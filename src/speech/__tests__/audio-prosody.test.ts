@@ -15,7 +15,7 @@ import {
   getProsodyMetrics,
   getSessionAudioProsodyAnalyzer,
   recordProsodyAnalysis,
-  removeSessionAudioProsodyAnalyzer,
+  resetSessionAudioProsodyAnalyzer,
   type ProsodyFeatures,
   type VoiceEmotionResult,
 } from '../audio-prosody.js';
@@ -31,7 +31,7 @@ function generateSineWave(
   frequency: number,
   duration: number,
   sampleRate: number,
-  amplitude: number = 0.5
+  amplitude = 0.5
 ): Float32Array {
   const samples = Math.floor(duration * sampleRate);
   const buffer = new Float32Array(samples);
@@ -46,11 +46,7 @@ function generateSineWave(
 /**
  * Generate white noise for testing
  */
-function generateNoise(
-  duration: number,
-  sampleRate: number,
-  amplitude: number = 0.3
-): Float32Array {
+function generateNoise(duration: number, sampleRate: number, amplitude = 0.3): Float32Array {
   const samples = Math.floor(duration * sampleRate);
   const buffer = new Float32Array(samples);
 
@@ -389,7 +385,7 @@ describe('Session Management', () => {
   const sessionId = 'test-prosody-session';
 
   afterEach(() => {
-    removeSessionAudioProsodyAnalyzer(sessionId);
+    resetSessionAudioProsodyAnalyzer(sessionId);
     clearProsodyMetrics(sessionId);
   });
 
@@ -407,15 +403,15 @@ describe('Session Management', () => {
     expect(analyzer1).not.toBe(analyzer2);
 
     // Cleanup
-    removeSessionAudioProsodyAnalyzer('session-a');
-    removeSessionAudioProsodyAnalyzer('session-b');
+    resetSessionAudioProsodyAnalyzer('session-a');
+    resetSessionAudioProsodyAnalyzer('session-b');
   });
 
   it('should remove session analyzer correctly', () => {
     const analyzer1 = getSessionAudioProsodyAnalyzer(sessionId);
     expect(analyzer1).toBeDefined();
 
-    removeSessionAudioProsodyAnalyzer(sessionId);
+    resetSessionAudioProsodyAnalyzer(sessionId);
 
     // Getting again should create a new instance
     const analyzer2 = getSessionAudioProsodyAnalyzer(sessionId);
@@ -436,7 +432,7 @@ describe('Prosody Metrics', () => {
 
   afterEach(() => {
     clearProsodyMetrics(sessionId);
-    removeSessionAudioProsodyAnalyzer(sessionId);
+    resetSessionAudioProsodyAnalyzer(sessionId);
   });
 
   it('should return empty metrics for new session', () => {

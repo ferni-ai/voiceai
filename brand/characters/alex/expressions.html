@@ -1,0 +1,812 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Alex Chen - Expression Gallery</title>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <!-- Design System: Single source of truth -->
+  <link rel="stylesheet" href="../../master-tokens.css">
+  <link rel="stylesheet" href="../../brand-components.css">
+  <style>
+    /* Alex-specific overrides - base tokens from master-tokens.css */
+    :root {
+      /* Alex's Colors */
+      --persona-start: #7a8ab8;
+      --persona-end: #5c6b99;
+
+      /* Alex's Timing: 0.95x (clear, professional) */
+      --timing-multiplier: 0.95;
+
+      /* Alex-specific glow colors */
+      --glow-calm: rgba(122, 138, 184, 0.5);
+      --glow-golden: rgba(196, 162, 101, 0.5);
+      --glow-sage: rgba(90, 122, 81, 0.5);
+      --glow-alert: rgba(239, 68, 68, 0.4);
+      --glow-focus: rgba(99, 102, 241, 0.5);
+      --glow-clarity: rgba(147, 197, 253, 0.5);
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: var(--font-display);
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      min-height: 100vh;
+    }
+
+    /* Navigation - uses .nav from master-tokens.css */
+
+    .header {
+      text-align: center;
+      padding: 100px 40px 40px;
+      background: linear-gradient(135deg, rgba(122, 138, 184, 0.1) 0%, transparent 100%);
+    }
+
+    .header h1 {
+      font-size: 48px;
+      font-weight: 700;
+      background: linear-gradient(135deg, var(--persona-start), var(--persona-end));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 8px;
+    }
+
+    .header .role { font-size: 20px; color: var(--text-secondary); margin-bottom: 12px; }
+    .header .quote { font-style: italic; color: var(--persona-end); font-size: 16px; max-width: 500px; margin: 0 auto; }
+
+    .timing-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 16px;
+      background: rgba(122, 138, 184, 0.15);
+      border-radius: 100px;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--persona-end);
+      margin-top: 20px;
+    }
+    .timing-badge svg { width: 16px; height: 16px; }
+
+    .container { max-width: 1400px; margin: 0 auto; padding: 40px; }
+
+    .avatar-stage {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 60px;
+      padding: 60px;
+      background: var(--bg-elevated);
+      border-radius: 32px;
+      margin-bottom: 40px;
+      border: 1px solid rgba(44, 37, 32, 0.08);
+    }
+
+    .avatar-container { position: relative; width: 200px; height: 200px; }
+
+    .avatar-glow {
+      position: absolute;
+      inset: -30px;
+      border-radius: 50%;
+      background: var(--glow-calm);
+      filter: blur(30px);
+      opacity: 0.6;
+      transition: all 0.4s var(--ease-gentle);
+    }
+
+    .main-avatar { width: 200px; height: 200px; position: relative; }
+
+    /* Alex's animations (0.95x - slightly faster, professional) */
+    @keyframes breathing {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.02); }
+    }
+
+    @keyframes gazeDrift {
+      0%, 100% { transform: translate(0, 0); }
+      25% { transform: translate(0.9px, -0.45px); }
+      50% { transform: translate(-0.45px, 0.45px); }
+      75% { transform: translate(0.45px, 0px); }
+    }
+
+    @keyframes calendarPulse {
+      0% { transform: scale(1); opacity: 0.8; }
+      50% { transform: scale(1.08); opacity: 1; }
+      100% { transform: scale(1); opacity: 0.8; }
+    }
+
+    @keyframes blink {
+      0%, 90%, 100% { transform: scaleY(1); }
+      95% { transform: scaleY(0.1); }
+    }
+
+    .avatar-body {
+      animation: breathing 3.8s ease-in-out infinite; /* 4s * 0.95 */
+      transform-origin: center center;
+    }
+
+    .eyes-group {
+      animation: gazeDrift 7.6s ease-in-out infinite; /* 8s * 0.95 */
+      transform-origin: center center;
+    }
+
+    /* Calendar Pulse - Alex's Signature */
+    .calendar-ring {
+      position: absolute;
+      inset: -15px;
+      border-radius: 50%;
+      border: 3px solid var(--persona-start);
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .calendar-ring.active { animation: calendarPulse 0.76s var(--ease-gentle) 3; }
+
+    .stage-controls { display: flex; flex-direction: column; gap: 16px; }
+    .current-expression { font-size: 28px; font-weight: 600; color: var(--text-primary); }
+    .expression-trigger { font-size: 14px; color: var(--text-muted); max-width: 250px; }
+
+    /* Expression Info Panel */
+    .expression-info {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-top: 16px;
+      padding: 16px;
+      background: rgba(122, 138, 184, 0.08);
+      border-radius: 12px;
+    }
+    .info-item { text-align: center; }
+    .info-label { font-size: 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; }
+    .info-value { font-size: 14px; font-weight: 600; color: var(--persona-end); margin-top: 2px; }
+
+    .micro-demo { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+    .micro-btn {
+      padding: 8px 14px;
+      border: 1px solid rgba(122, 138, 184, 0.3);
+      background: var(--bg-elevated);
+      border-radius: 100px;
+      font-family: inherit;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: all 0.2s var(--ease-spring);
+    }
+    .micro-btn:hover { border-color: var(--persona-start); color: var(--persona-end); }
+
+    .section-title { font-size: 20px; font-weight: 600; color: var(--text-primary); margin-bottom: 20px; }
+
+    /* Animation Layers Panel */
+    .layers-panel {
+      background: var(--bg-elevated);
+      border-radius: 20px;
+      padding: 28px;
+      margin-bottom: 40px;
+      border: 1px solid rgba(44, 37, 32, 0.08);
+    }
+    .layers-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; }
+    .layer-card {
+      background: rgba(122, 138, 184, 0.06);
+      padding: 20px;
+      border-radius: 12px;
+      border-left: 3px solid var(--persona-start);
+    }
+    .layer-name { font-size: 14px; font-weight: 600; color: var(--persona-end); margin-bottom: 8px; }
+    .layer-timing { font-size: 24px; font-weight: 700; color: var(--text-primary); }
+    .layer-desc { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
+
+    /* Micro-expressions Panel */
+    .micro-panel {
+      background: var(--bg-elevated);
+      border-radius: 20px;
+      padding: 28px;
+      margin-bottom: 40px;
+      border: 1px solid rgba(44, 37, 32, 0.08);
+    }
+    .micro-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 16px; }
+    .micro-card {
+      background: rgba(122, 138, 184, 0.06);
+      padding: 16px;
+      border-radius: 12px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s var(--ease-spring);
+      border: 2px solid transparent;
+    }
+    .micro-card:hover { border-color: var(--persona-start); transform: translateY(-2px); }
+    .micro-name { font-size: 14px; font-weight: 600; color: var(--text-primary); }
+    .micro-duration { font-size: 20px; font-weight: 700; color: var(--persona-end); margin: 4px 0; }
+    .micro-glow { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; }
+
+    /* Waveform Panel */
+    .waveform-panel {
+      background: var(--bg-elevated);
+      border-radius: 20px;
+      padding: 28px;
+      margin-bottom: 40px;
+      border: 1px solid rgba(44, 37, 32, 0.08);
+    }
+    .waveform-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 20px; }
+    .waveform-card {
+      background: rgba(122, 138, 184, 0.06);
+      padding: 20px;
+      border-radius: 12px;
+      text-align: center;
+    }
+    .waveform-name { font-size: 14px; font-weight: 600; color: var(--text-primary); margin-bottom: 12px; }
+    .waveform-bars { display: flex; justify-content: center; gap: 3px; height: 40px; align-items: flex-end; }
+    .waveform-bar {
+      width: 4px;
+      background: linear-gradient(to top, var(--persona-start), var(--persona-end));
+      border-radius: 2px;
+      animation: waveform 0.76s ease-in-out infinite; /* 0.8s * 0.95 */
+    }
+    @keyframes waveform {
+      0%, 100% { height: 20%; }
+      50% { height: 100%; }
+    }
+    .waveform-bar:nth-child(1) { animation-delay: 0s; }
+    .waveform-bar:nth-child(2) { animation-delay: 0.095s; }
+    .waveform-bar:nth-child(3) { animation-delay: 0.19s; }
+    .waveform-bar:nth-child(4) { animation-delay: 0.285s; }
+    .waveform-bar:nth-child(5) { animation-delay: 0.38s; }
+    .waveform-bar:nth-child(6) { animation-delay: 0.475s; }
+    .waveform-bar:nth-child(7) { animation-delay: 0.57s; }
+
+    /* Expression Families */
+    .family-section { margin-bottom: 32px; }
+    .family-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+    .family-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: var(--persona-start);
+    }
+    .family-name { font-size: 16px; font-weight: 600; color: var(--text-primary); }
+    .family-count { font-size: 12px; color: var(--text-muted); margin-left: auto; }
+
+    .expression-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+      gap: 12px;
+    }
+
+    .expression-btn {
+      padding: 14px 18px;
+      border: 2px solid rgba(122, 138, 184, 0.2);
+      border-radius: 12px;
+      background: var(--bg-elevated);
+      font-family: inherit;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-primary);
+      cursor: pointer;
+      transition: all 0.28s var(--ease-spring);
+      text-align: left;
+    }
+    .expression-btn:hover { border-color: var(--persona-start); transform: translateY(-2px); }
+    .expression-btn.active {
+      background: linear-gradient(135deg, var(--persona-start), var(--persona-end));
+      border-color: transparent;
+      color: white;
+    }
+    .expression-btn.signature { border-color: var(--persona-end); }
+    .expression-btn.signature::after { content: ' *'; }
+
+    .profile-section {
+      background: linear-gradient(135deg, rgba(122, 138, 184, 0.08) 0%, transparent 100%);
+      padding: 32px;
+      border-radius: 20px;
+      margin-bottom: 40px;
+    }
+
+    .profile-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 24px; }
+    .profile-item { text-align: center; }
+    .profile-value {
+      font-size: 32px;
+      font-weight: 700;
+      background: linear-gradient(135deg, var(--persona-start), var(--persona-end));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .profile-label { font-size: 12px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-top: 4px; }
+
+    .traits-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px; }
+    .trait-card { background: var(--bg-elevated); padding: 28px; border-radius: 16px; border-left: 4px solid var(--persona-start); }
+    .trait-card h3 { font-size: 15px; font-weight: 600; color: var(--persona-end); margin-bottom: 10px; }
+    .trait-card p { font-size: 14px; color: var(--text-secondary); line-height: 1.6; }
+
+    @media (max-width: 768px) {
+      .avatar-stage { flex-direction: column; padding: 40px 20px; }
+      .stage-controls { align-items: center; text-align: center; }
+      .container { padding: 20px; }
+      .expression-info { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <!-- Shared Navigation -->
+  <div id="nav-placeholder"></div>
+
+  <!-- Persona Switcher (Secondary Nav) -->
+  <nav class="persona-switcher" role="navigation" aria-label="Persona navigation">
+    <div class="persona-switcher-inner">
+      <a href="../ferni/expressions.html" class="persona-chip" data-persona="ferni">
+        <span class="persona-dot" style="background: var(--color-ferni)"></span>
+        Ferni
+      </a>
+      <a href="../maya/expressions.html" class="persona-chip" data-persona="maya">
+        <span class="persona-dot" style="background: var(--color-maya)"></span>
+        Maya
+      </a>
+      <a href="../peter/expressions.html" class="persona-chip" data-persona="peter">
+        <span class="persona-dot" style="background: var(--color-peter)"></span>
+        Peter
+      </a>
+      <a href="../jordan/expressions.html" class="persona-chip" data-persona="jordan">
+        <span class="persona-dot" style="background: var(--color-jordan)"></span>
+        Jordan
+      </a>
+      <a href="expressions.html" class="persona-chip active" data-persona="alex">
+        <span class="persona-dot" style="background: var(--color-alex)"></span>
+        Alex
+      </a>
+      <a href="../nayan/expressions.html" class="persona-chip" data-persona="nayan">
+        <span class="persona-dot" style="background: var(--color-nayan)"></span>
+        Nayan
+      </a>
+    </div>
+  </nav>
+
+  <header class="header">
+    <h1>Alex Chen</h1>
+    <p class="role">The Communication Expert</p>
+    <p class="quote">"Clear communication isn't about more words - it's about the right ones."</p>
+    <div class="timing-badge">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>
+      </svg>
+      0.95x Timing - Clear, professional rhythm
+    </div>
+  </header>
+
+  <div class="container">
+    <div class="avatar-stage">
+      <div class="avatar-container" id="avatarContainer">
+        <div class="avatar-glow" id="avatarGlow"></div>
+        <div class="calendar-ring" id="calendarRing"></div>
+        <svg class="main-avatar" viewBox="0 0 200 200">
+          <defs>
+            <linearGradient id="bodyGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#7a8ab8"/>
+              <stop offset="100%" stop-color="#5c6b99"/>
+            </linearGradient>
+            <clipPath id="eyeClipLeft"><ellipse id="eyeClipLeftShape" cx="70" cy="90" rx="20" ry="18"/></clipPath>
+            <clipPath id="eyeClipRight"><ellipse id="eyeClipRightShape" cx="130" cy="90" rx="20" ry="18"/></clipPath>
+          </defs>
+          <g class="avatar-body"><circle cx="100" cy="100" r="85" fill="url(#bodyGradient)"/></g>
+          <!-- LUXO STYLE: opaque white eyes, no pupils - expression comes from eye shape -->
+          <g class="eyes-group" id="eyesGroup">
+            <g clip-path="url(#eyeClipLeft)">
+              <ellipse id="eyeLeft" cx="70" cy="90" rx="20" ry="18" fill="white"/>
+            </g>
+            <path d="M 50,72 Q 70,72 90,72" fill="none" stroke="url(#bodyGradient)" stroke-width="14" stroke-linecap="round" id="lidLeft"/>
+            <g clip-path="url(#eyeClipRight)">
+              <ellipse id="eyeRight" cx="130" cy="90" rx="20" ry="18" fill="white"/>
+            </g>
+            <path d="M 110,72 Q 130,72 150,72" fill="none" stroke="url(#bodyGradient)" stroke-width="14" stroke-linecap="round" id="lidRight"/>
+          </g>
+          <!-- No smile - Luxo style avatar (expressions through eye shape only) -->
+        </svg>
+      </div>
+      <div class="stage-controls">
+        <div class="current-expression" id="currentExpression">Neutral</div>
+        <div class="expression-trigger" id="expressionTrigger">Ready to help you communicate clearly.</div>
+        <div class="expression-info" id="expressionInfo">
+          <div class="info-item">
+            <div class="info-label">Lid Path</div>
+            <div class="info-value" id="infoLid">M 50,72 Q 70,72 90,72</div>
+          </div>
+          <div class="info-item">
+            <div class="info-label">Glow</div>
+            <div class="info-value" id="infoGlow">Calm</div>
+          </div>
+          <div class="info-item">
+            <div class="info-label">Eye Scale</div>
+            <div class="info-value" id="infoScale">1.0x, 1.0x</div>
+          </div>
+        </div>
+        <div class="micro-demo">
+          <button class="micro-btn" data-micro="pulse">Calendar Pulse</button>
+          <button class="micro-btn" data-micro="clarity">Clarity 72ms</button>
+          <button class="micro-btn" data-micro="focus">Focus 90ms</button>
+          <button class="micro-btn" data-micro="urgency">Urgency 57ms</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Animation Layers Panel -->
+    <div class="layers-panel">
+      <h3 class="section-title">Animation Layers (0.95x Timing)</h3>
+      <div class="layers-grid">
+        <div class="layer-card">
+          <div class="layer-name">Breathing</div>
+          <div class="layer-timing">3.8s</div>
+          <div class="layer-desc">Slightly faster cycle. Professional pace.</div>
+        </div>
+        <div class="layer-card">
+          <div class="layer-name">Blinking</div>
+          <div class="layer-timing">2.85-6.65s</div>
+          <div class="layer-desc">Random blink intervals. Alert rhythm.</div>
+        </div>
+        <div class="layer-card">
+          <div class="layer-name">Gaze Drift</div>
+          <div class="layer-timing">7.6s</div>
+          <div class="layer-desc">Efficient eye movement. Focused presence.</div>
+        </div>
+        <div class="layer-card">
+          <div class="layer-name">Anticipation</div>
+          <div class="layer-timing">0.38s</div>
+          <div class="layer-desc">Quick prep before actions.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Micro-expressions Panel -->
+    <div class="micro-panel">
+      <h3 class="section-title">Micro-expressions (38-114ms subliminal flashes)</h3>
+      <div class="micro-grid" id="microGrid"></div>
+    </div>
+
+    <!-- Waveform Panel -->
+    <div class="waveform-panel">
+      <h3 class="section-title">Waveform Shapes</h3>
+      <div class="waveform-grid">
+        <div class="waveform-card">
+          <div class="waveform-name">Articulating</div>
+          <div class="waveform-bars">
+            <div class="waveform-bar" style="animation-delay: 0s;"></div>
+            <div class="waveform-bar" style="animation-delay: 0.095s;"></div>
+            <div class="waveform-bar" style="animation-delay: 0.19s;"></div>
+            <div class="waveform-bar" style="animation-delay: 0.285s;"></div>
+            <div class="waveform-bar" style="animation-delay: 0.38s;"></div>
+            <div class="waveform-bar" style="animation-delay: 0.475s;"></div>
+            <div class="waveform-bar" style="animation-delay: 0.57s;"></div>
+          </div>
+        </div>
+        <div class="waveform-card">
+          <div class="waveform-name">Processing</div>
+          <div class="waveform-bars" style="animation: none;">
+            <div class="waveform-bar" style="height: 45%; animation: none;"></div>
+            <div class="waveform-bar" style="height: 55%; animation: none;"></div>
+            <div class="waveform-bar" style="height: 50%; animation: none;"></div>
+            <div class="waveform-bar" style="height: 60%; animation: none;"></div>
+            <div class="waveform-bar" style="height: 55%; animation: none;"></div>
+            <div class="waveform-bar" style="height: 50%; animation: none;"></div>
+            <div class="waveform-bar" style="height: 45%; animation: none;"></div>
+          </div>
+        </div>
+        <div class="waveform-card">
+          <div class="waveform-name">Urgent</div>
+          <div class="waveform-bars">
+            <div class="waveform-bar" style="animation-duration: 0.38s;"></div>
+            <div class="waveform-bar" style="animation-duration: 0.38s; animation-delay: 0.047s;"></div>
+            <div class="waveform-bar" style="animation-duration: 0.38s; animation-delay: 0.095s;"></div>
+            <div class="waveform-bar" style="animation-duration: 0.38s; animation-delay: 0.142s;"></div>
+            <div class="waveform-bar" style="animation-duration: 0.38s; animation-delay: 0.19s;"></div>
+            <div class="waveform-bar" style="animation-duration: 0.38s; animation-delay: 0.237s;"></div>
+            <div class="waveform-bar" style="animation-duration: 0.38s; animation-delay: 0.285s;"></div>
+          </div>
+        </div>
+        <div class="waveform-card">
+          <div class="waveform-name">Calm</div>
+          <div class="waveform-bars">
+            <div class="waveform-bar" style="animation-duration: 1.52s;"></div>
+            <div class="waveform-bar" style="animation-duration: 1.52s; animation-delay: 0.19s;"></div>
+            <div class="waveform-bar" style="animation-duration: 1.52s; animation-delay: 0.38s;"></div>
+            <div class="waveform-bar" style="animation-duration: 1.52s; animation-delay: 0.57s;"></div>
+            <div class="waveform-bar" style="animation-duration: 1.52s; animation-delay: 0.76s;"></div>
+            <div class="waveform-bar" style="animation-duration: 1.52s; animation-delay: 0.95s;"></div>
+            <div class="waveform-bar" style="animation-duration: 1.52s; animation-delay: 1.14s;"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="profile-section">
+      <h3 class="section-title">Animation Profile</h3>
+      <div class="profile-grid">
+        <div class="profile-item"><div class="profile-value">0.95x</div><div class="profile-label">Timing Multiplier</div></div>
+        <div class="profile-item"><div class="profile-value">Gentle</div><div class="profile-label">Easing Curve</div></div>
+        <div class="profile-item"><div class="profile-value">Calm</div><div class="profile-label">Primary Glow</div></div>
+        <div class="profile-item"><div class="profile-value">Pulse</div><div class="profile-label">Signature Effect</div></div>
+        <div class="profile-item"><div class="profile-value">24</div><div class="profile-label">Expressions</div></div>
+        <div class="profile-item"><div class="profile-value">6</div><div class="profile-label">Micro-expressions</div></div>
+      </div>
+    </div>
+
+    <h3 class="section-title">Alex's Expression Families</h3>
+    <div id="expressionFamilies"></div>
+
+    <h3 class="section-title">Character Traits</h3>
+    <div class="traits-grid">
+      <div class="trait-card">
+        <h3>Signature Move</h3>
+        <p>Calendar Pulse - a rhythmic ring that pulses when organizing time or clarifying communication priorities.</p>
+      </div>
+      <div class="trait-card">
+        <h3>Core Philosophy</h3>
+        <p>"Calendar chaos creates communication breakdowns." Helps you find time for what matters and communicate it clearly.</p>
+      </div>
+      <div class="trait-card">
+        <h3>Superpower</h3>
+        <p>Sees calendar density patterns. Knows when you're overcommitted. Helps craft messages that get to the point.</p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Alex's Expression Families - 24 total expressions organized by domain
+    var EXPRESSION_FAMILIES = {
+      communication: [
+        { name: 'Clear', trigger: 'Message drafted perfectly', lid: 'M 50,76 Q 70,78 90,76', glow: 'clarity', eyeScale: [1.0, 1.05], signature: true },
+        { name: 'Articulating', trigger: 'Finding right words', lid: 'M 50,74 Q 70,75 90,74', glow: 'calm', eyeScale: [0.98, 1.0] },
+        { name: 'Listening', trigger: 'Understanding context', lid: 'M 50,72 Q 70,70 90,72', glow: 'calm', eyeScale: [1.02, 1.0] },
+        { name: 'Clarifying', trigger: 'Removing ambiguity', lid: 'M 50,75 Q 70,76 90,75', glow: 'clarity', eyeScale: [1.0, 1.02] },
+        { name: 'Concise', trigger: 'Trimming the excess', lid: 'M 50,73 Q 70,72 90,73', glow: 'sage', eyeScale: [0.95, 0.95] }
+      ],
+      scheduling: [
+        { name: 'Focused', trigger: 'Organizing schedule', lid: 'M 50,74 Q 70,72 90,74', glow: 'focus', eyeScale: [0.95, 0.9], signature: true },
+        { name: 'Optimizing', trigger: 'Schedule refined', lid: 'M 50,76 Q 70,78 90,76', glow: 'sage', eyeScale: [1.0, 1.05] },
+        { name: 'Thinking', trigger: 'Processing request', lid: 'M 50,73 Q 70,71 90,73', glow: 'calm', eyeScale: [0.98, 0.95] },
+        { name: 'Coordinating', trigger: 'Syncing calendars', lid: 'M 50,74 Q 70,73 90,74', glow: 'focus', eyeScale: [0.96, 0.94] },
+        { name: 'Satisfied', trigger: 'Calendar optimized', lid: 'M 50,78 Q 70,80 90,78', glow: 'golden', eyeScale: [1.02, 1.08] }
+      ],
+      professional: [
+        { name: 'Professional', trigger: 'Business communication', lid: 'M 50,74 Q 70,74 90,74', glow: 'calm', eyeScale: [1.0, 0.98] },
+        { name: 'Diplomatic', trigger: 'Navigating sensitive topic', lid: 'M 50,73 Q 70,73 90,73', glow: 'calm', eyeScale: [0.98, 0.96] },
+        { name: 'Confident', trigger: 'Delivering key message', lid: 'M 50,76 Q 70,78 90,76', glow: 'sage', eyeScale: [1.0, 1.04] },
+        { name: 'Attentive', trigger: 'User explaining context', lid: 'M 50,72 Q 70,70 90,72', glow: 'calm', eyeScale: [1.02, 1.0] },
+        { name: 'Delegating', trigger: 'Task assignment', lid: 'M 50,75 Q 70,76 90,75', glow: 'focus', eyeScale: [0.98, 1.0] }
+      ],
+      alert: [
+        { name: 'Alert', trigger: 'Calendar conflict detected', lid: 'M 50,70 Q 70,66 90,70', glow: 'alert', eyeScale: [1.1, 1.0] },
+        { name: 'Concerned', trigger: 'Overbooked warning', lid: 'M 50,70 Q 70,68 90,70', glow: 'alert', eyeScale: [1.05, 0.98] },
+        { name: 'Urgent', trigger: 'Time-sensitive matter', lid: 'M 50,68 Q 70,64 90,68', glow: 'alert', eyeScale: [1.12, 1.02] },
+        { name: 'Cautious', trigger: 'Potential issue ahead', lid: 'M 50,71 Q 70,69 90,71', glow: 'alert', eyeScale: [1.02, 0.98] }
+      ],
+      supportive: [
+        { name: 'Encouraging', trigger: 'User delegation success', lid: 'M 50,76 Q 70,80 90,76', glow: 'golden', eyeScale: [1.0, 1.08] },
+        { name: 'Warm', trigger: 'Personal communication', lid: 'M 50,78 Q 70,80 90,78', glow: 'golden', eyeScale: [1.02, 1.1] },
+        { name: 'Playful', trigger: 'Light scheduling moment', lid: 'M 50,78 Q 70,82 90,78', glow: 'sage', eyeScale: [1.05, 1.1] },
+        { name: 'Reassuring', trigger: 'User feels overwhelmed', lid: 'M 50,77 Q 70,79 90,77', glow: 'calm', eyeScale: [1.0, 1.05] },
+        { name: 'Celebratory', trigger: 'Inbox zero achieved', lid: 'M 50,80 Q 70,84 90,80', glow: 'golden', eyeScale: [1.08, 1.12], signature: true }
+      ]
+    };
+
+    // Alex's Micro-expressions - 6 subliminal flashes (0.95x timing = 38-114ms range)
+    var MICRO_EXPRESSIONS = {
+      clarity: { lid: 'M 50,76 Q 70,78 90,76', glow: 'clarity', duration: 72 },
+      focus: { lid: 'M 50,74 Q 70,72 90,74', glow: 'focus', duration: 90 },
+      urgency: { lid: 'M 50,68 Q 70,64 90,68', glow: 'alert', duration: 57 },
+      calm: { lid: 'M 50,75 Q 70,76 90,75', glow: 'calm', duration: 95 },
+      efficiency: { lid: 'M 50,73 Q 70,72 90,73', glow: 'sage', duration: 66 },
+      organization: { lid: 'M 50,74 Q 70,73 90,74', glow: 'focus', duration: 76 }
+    };
+
+    var GLOW_COLORS = {
+      calm: 'rgba(122, 138, 184, 0.5)',
+      golden: 'rgba(196, 162, 101, 0.5)',
+      sage: 'rgba(90, 122, 81, 0.5)',
+      alert: 'rgba(239, 68, 68, 0.4)',
+      focus: 'rgba(99, 102, 241, 0.5)',
+      clarity: 'rgba(147, 197, 253, 0.5)'
+    };
+
+    var FAMILY_LABELS = {
+      communication: 'Communication',
+      scheduling: 'Scheduling',
+      professional: 'Professional',
+      alert: 'Alert',
+      supportive: 'Supportive'
+    };
+
+    var avatarGlow = document.getElementById('avatarGlow');
+    var lidLeft = document.getElementById('lidLeft');
+    var lidRight = document.getElementById('lidRight');
+    var eyeLeft = document.getElementById('eyeLeft');
+    var eyeRight = document.getElementById('eyeRight');
+    var eyeClipLeftShape = document.getElementById('eyeClipLeftShape');
+    var eyeClipRightShape = document.getElementById('eyeClipRightShape');
+    var eyesGroup = document.getElementById('eyesGroup');
+    var currentExpressionEl = document.getElementById('currentExpression');
+    var expressionTriggerEl = document.getElementById('expressionTrigger');
+    var infoLid = document.getElementById('infoLid');
+    var infoGlow = document.getElementById('infoGlow');
+    var infoScale = document.getElementById('infoScale');
+    var calendarRing = document.getElementById('calendarRing');
+
+    var BASE_EYE_RX = 20;
+    var BASE_EYE_RY = 18;
+
+    function buildExpressionFamilies() {
+      var container = document.getElementById('expressionFamilies');
+      Object.entries(EXPRESSION_FAMILIES).forEach(function(entry) {
+        var family = entry[0];
+        var expressions = entry[1];
+
+        var section = document.createElement('div');
+        section.className = 'family-section';
+
+        var header = document.createElement('div');
+        header.className = 'family-header';
+
+        var dot = document.createElement('div');
+        dot.className = 'family-dot';
+
+        var nameEl = document.createElement('div');
+        nameEl.className = 'family-name';
+        nameEl.textContent = FAMILY_LABELS[family];
+
+        var countEl = document.createElement('div');
+        countEl.className = 'family-count';
+        countEl.textContent = expressions.length + ' expressions';
+
+        header.appendChild(dot);
+        header.appendChild(nameEl);
+        header.appendChild(countEl);
+        section.appendChild(header);
+
+        var grid = document.createElement('div');
+        grid.className = 'expression-grid';
+        grid.id = 'family-' + family;
+
+        expressions.forEach(function(expr) {
+          var btn = document.createElement('button');
+          btn.className = 'expression-btn' + (expr.signature ? ' signature' : '');
+          btn.textContent = expr.name;
+          btn.addEventListener('click', function() { setExpression(expr, btn); });
+          grid.appendChild(btn);
+        });
+
+        section.appendChild(grid);
+        container.appendChild(section);
+      });
+    }
+
+    function buildMicroGrid() {
+      var grid = document.getElementById('microGrid');
+      Object.entries(MICRO_EXPRESSIONS).forEach(function(entry) {
+        var name = entry[0];
+        var micro = entry[1];
+
+        var card = document.createElement('div');
+        card.className = 'micro-card';
+
+        var nameEl = document.createElement('div');
+        nameEl.className = 'micro-name';
+        nameEl.textContent = name.charAt(0).toUpperCase() + name.slice(1);
+
+        var durationEl = document.createElement('div');
+        durationEl.className = 'micro-duration';
+        durationEl.textContent = micro.duration + 'ms';
+
+        var glowEl = document.createElement('div');
+        glowEl.className = 'micro-glow';
+        glowEl.textContent = micro.glow + ' glow';
+
+        card.appendChild(nameEl);
+        card.appendChild(durationEl);
+        card.appendChild(glowEl);
+
+        card.addEventListener('click', function() { playMicroExpression(micro.lid, micro.glow, micro.duration); });
+        grid.appendChild(card);
+      });
+    }
+
+    function setExpression(expr, btn) {
+      document.querySelectorAll('.expression-btn').forEach(function(b) { b.classList.remove('active'); });
+      if (btn) btn.classList.add('active');
+
+      lidLeft.setAttribute('d', expr.lid);
+      lidRight.setAttribute('d', expr.lid.replace(/50/g, '110').replace(/70/g, '130').replace(/90/g, '150'));
+      avatarGlow.style.background = GLOW_COLORS[expr.glow];
+
+      // Apply eye scaling
+      var scale = expr.eyeScale || [1.0, 1.0];
+      var newRx = BASE_EYE_RX * scale[0];
+      var newRy = BASE_EYE_RY * scale[1];
+      [eyeLeft, eyeClipLeftShape].forEach(function(el) { el.setAttribute('rx', newRx); el.setAttribute('ry', newRy); });
+      [eyeRight, eyeClipRightShape].forEach(function(el) { el.setAttribute('rx', newRx); el.setAttribute('ry', newRy); });
+
+      currentExpressionEl.textContent = expr.name;
+      expressionTriggerEl.textContent = expr.trigger;
+      infoLid.textContent = expr.lid;
+      infoGlow.textContent = expr.glow.charAt(0).toUpperCase() + expr.glow.slice(1);
+      infoScale.textContent = scale[0] + 'x, ' + scale[1] + 'x';
+
+      if (expr.signature) playCalendarPulse();
+    }
+
+    function playCalendarPulse() {
+      calendarRing.classList.remove('active');
+      void calendarRing.offsetWidth;
+      calendarRing.classList.add('active');
+      setTimeout(function() { calendarRing.classList.remove('active'); }, 2300);
+    }
+
+    function playMicroExpression(lid, glow, duration) {
+      var currentLid = lidLeft.getAttribute('d');
+      var currentGlow = avatarGlow.style.background;
+
+      lidLeft.setAttribute('d', lid);
+      lidRight.setAttribute('d', lid.replace(/50/g, '110').replace(/70/g, '130').replace(/90/g, '150'));
+      avatarGlow.style.background = GLOW_COLORS[glow];
+      avatarGlow.style.opacity = '0.9';
+
+      setTimeout(function() {
+        lidLeft.setAttribute('d', currentLid);
+        lidRight.setAttribute('d', currentLid.replace(/50/g, '110').replace(/70/g, '130').replace(/90/g, '150'));
+        avatarGlow.style.background = currentGlow;
+        avatarGlow.style.opacity = '0.6';
+      }, duration);
+    }
+
+    // Random blinking (0.95x timing: 2.85-6.65s intervals)
+    function scheduleBlink() {
+      var minInterval = 2850;  // 3s * 0.95
+      var maxInterval = 6650;  // 7s * 0.95
+      var nextBlink = minInterval + Math.random() * (maxInterval - minInterval);
+
+      setTimeout(function() {
+        blink();
+        scheduleBlink();
+      }, nextBlink);
+    }
+
+    function blink() {
+      eyesGroup.style.transition = 'transform 0.076s ease-in';
+      eyesGroup.style.transform = 'scaleY(0.1)';
+      setTimeout(function() {
+        eyesGroup.style.transition = 'transform 0.076s ease-out';
+        eyesGroup.style.transform = 'scaleY(1)';
+      }, 76);
+    }
+
+    // Micro button handlers
+    document.querySelectorAll('.micro-btn').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        var type = btn.dataset.micro;
+        if (type === 'pulse') {
+          playCalendarPulse();
+        } else if (MICRO_EXPRESSIONS[type]) {
+          var micro = MICRO_EXPRESSIONS[type];
+          playMicroExpression(micro.lid, micro.glow, micro.duration);
+        }
+      });
+    });
+
+    // Initialize
+    buildExpressionFamilies();
+    buildMicroGrid();
+    scheduleBlink();
+
+    // Set initial expression
+    setExpression(EXPRESSION_FAMILIES.communication[0], document.querySelector('.expression-btn'));
+  </script>
+
+  <!-- Shared Footer -->
+  <div id="footer-placeholder"></div>
+
+  <!-- Shared Navigation Script -->
+  <script src="../../shared/nav.js" defer></script>
+</body>
+</html>

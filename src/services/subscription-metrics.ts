@@ -10,7 +10,7 @@
  * Persists to Firestore for durability.
  */
 
-import { removeUndefined } from '../utils/firestore-utils.js';
+import { removeUndefined, cleanForFirestore } from '../utils/firestore-utils.js';
 import { getLogger } from '../utils/safe-logger.js';
 
 const log = getLogger().child({ module: 'subscription-metrics' });
@@ -65,7 +65,7 @@ const MAX_RECENT_EVENTS = 100;
 
 // Price mapping for MRR calculation
 const TIER_PRICES: Record<string, number> = {
-  monthly: 999, // $9.99/month
+  monthly: 1000, // $10/month (Founding Member)
   yearly: 8325, // $99.90/year = $8.33/month
   free: 0,
 };
@@ -266,7 +266,7 @@ export async function getSubscriptionMetrics(): Promise<SubscriptionMetrics> {
   // Conversion = paid subscribers / total unique users this month
   let conversionRate = 0;
   try {
-    const { getAnalyticsSummary } = await import('./user-analytics.js');
+    const { getAnalyticsSummary } = await import('./analytics/user-analytics.js');
     const analytics = await getAnalyticsSummary();
     const totalUniqueUsersThisMonth = analytics.thisMonth.uniqueUsers;
 

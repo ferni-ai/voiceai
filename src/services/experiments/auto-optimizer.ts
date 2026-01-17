@@ -13,7 +13,7 @@
  */
 
 import { FieldValue, getFirestore } from 'firebase-admin/firestore';
-import { removeUndefined } from '../../utils/firestore-utils.js';
+import { removeUndefined, cleanForFirestore } from '../../utils/firestore-utils.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import {
   analyzeExperiment,
@@ -485,12 +485,17 @@ async function shipWinner(
  */
 async function markForReview(experimentId: string, decision: WinnerDecision): Promise<void> {
   const db = getFirestore();
-  await db.collection('web_experiments').doc(experimentId).update({
-    needsReview: true,
-    reviewReason: decision.reasoning,
-    reviewRecommendation: decision.recommendation,
-    reviewRequestedAt: FieldValue.serverTimestamp(),
-  });
+  await db
+    .collection('web_experiments')
+    .doc(experimentId)
+    .update(
+      cleanForFirestore({
+        needsReview: true,
+        reviewReason: decision.reasoning,
+        reviewRecommendation: decision.recommendation,
+        reviewRequestedAt: FieldValue.serverTimestamp(),
+      })
+    );
 
   log.info({ experimentId, reason: decision.reasoning }, 'Experiment marked for review');
 }
@@ -504,14 +509,14 @@ async function updateVariantLibraryDefault(experimentId: string, winnerId: strin
     .collection('variant_library')
     .doc(experimentId)
     .set(
-      {
+      cleanForFirestore({
         currentDefault: winnerId,
         updatedAt: FieldValue.serverTimestamp(),
         history: FieldValue.arrayUnion({
           variantId: winnerId,
           promotedAt: new Date().toISOString(),
         }),
-      },
+      }),
       { merge: true }
     );
 }

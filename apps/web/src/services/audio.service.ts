@@ -4,17 +4,16 @@
  * Manages audio playback, sound effects, and audio visualization.
  * Provides a type-safe API for audio operations.
  *
- * REFACTOR TODO #90: Consider extracting handoff-specific audio logic into
- * a dedicated HandoffSoundManager class that:
- * - Pre-loads all handoff sounds on init
- * - Manages AudioContext lifecycle properly
- * - Handles sound overlap prevention
- * - Coordinates with backend timing via HANDOFF_TIMING constants
- * - Provides methods: preloadSounds(), playHandoffSound(), cancelCurrentSound()
+ * UPDATED: Now uses procedural sound generation (Web Audio API) as primary,
+ * with MP3 fallback for backward compatibility. Procedural sounds are:
+ * - On-brand (warm, zen, grounded)
+ * - Unique per persona (based on their sonic signature)
+ * - Zero file dependencies
  */
 
 import { AUDIO } from '../config/index.js';
 import { createLogger } from '../utils/logger.js';
+import { proceduralSounds, playProceduralSound, type ProceduralSoundEffect } from './procedural-sounds.service.js';
 
 const log = createLogger('Audio');
 
@@ -70,16 +69,36 @@ class AudioService {
   private analyser: AnalyserNode | null = null;
   private animationFrame: number | null = null;
   private mediaSource: MediaElementAudioSourceNode | null = null;
+  /**
+   * FIX: Store MediaStreamSource to prevent garbage collection.
+   * Without this reference, the source gets GC'd and the analyser
+   * receives no audio data, causing all volume readings to be 0.
+   */
+  private mediaStreamSource: MediaStreamAudioSourceNode | null = null;
   private attachedElement: HTMLAudioElement | null = null;
   /** FIX BUG #59: Track currently playing handoff sound to prevent overlap */
   private currentHandoffSound: HTMLAudioElement | null = null;
+  /** Prefer procedural sounds over MP3 files */
+  private useProceduralSounds = true;
+  /** Track if procedural sounds are initialized */
+  private proceduralInitialized = false;
 
   /**
    * Initialize the audio service and preload sounds.
    * Non-blocking - starts loading sounds in background.
    */
   initialize(): void {
-    // Start preloading sounds in background (don't await)
+    // Initialize procedural sounds (preferred)
+    if (proceduralSounds.isAvailable()) {
+      void proceduralSounds.initialize().then((success) => {
+        this.proceduralInitialized = success;
+        if (success) {
+          log.info('Procedural sounds enabled (on-brand, per-persona)');
+        }
+      });
+    }
+
+    // Start preloading MP3 sounds in background as fallback
     // Sounds will be available when they finish loading
     void this.preloadSounds();
   }
@@ -90,10 +109,46 @@ class AudioService {
   private readonly FALLBACK_SOUND: SoundEffect = 'connect';
 
   /**
+   * Check if a sound effect can be played procedurally.
+   */
+  private canPlayProcedurally(effect: SoundEffect): boolean {
+    if (!this.useProceduralSounds || !this.proceduralInitialized) return false;
+
+    // All our standard effects can be played procedurally
+    const proceduralEffects: SoundEffect[] = [
+      'connect',
+      'disconnect',
+      'dramatic-entrance',
+      'cameo-arrive',
+      'cameo-return',
+      'handoff-to-peter',
+      'handoff-to-jack',
+      'handoff-to-alex',
+      'handoff-to-maya',
+      'handoff-to-jordan',
+      'handoff-to-nayan',
+    ];
+
+    return proceduralEffects.includes(effect) || effect.startsWith('handoff-to-');
+  }
+
+  /**
    * Play a sound effect.
-   * FIX BUG #61: Falls back to 'connect' sound if the requested sound is missing.
+   * Prefers procedural sounds (on-brand, no files needed).
+   * Falls back to MP3 if procedural unavailable.
    */
   async playSound(effect: SoundEffect): Promise<void> {
+    // Try procedural sound first (preferred)
+    if (this.canPlayProcedurally(effect)) {
+      try {
+        await playProceduralSound(effect as ProceduralSoundEffect);
+        return;
+      } catch (error) {
+        log.debug(`Procedural sound failed for ${effect}, trying MP3 fallback:`, error);
+      }
+    }
+
+    // Fallback to MP3
     let audio = this.sounds.get(effect);
 
     // FIX BUG #61: Try fallback sound if primary isn't loaded
@@ -133,6 +188,17 @@ class AudioService {
   }
 
   async playSoundAndWait(effect: SoundEffect): Promise<void> {
+    // Try procedural sound first (preferred)
+    if (this.canPlayProcedurally(effect)) {
+      try {
+        await playProceduralSound(effect as ProceduralSoundEffect);
+        return;
+      } catch (error) {
+        log.debug(`Procedural sound failed for ${effect}, trying MP3 fallback:`, error);
+      }
+    }
+
+    // Fallback to MP3
     let audio = this.sounds.get(effect);
 
     // FIX BUG #61: Try fallback sound if primary isn't loaded
@@ -181,6 +247,8 @@ class AudioService {
    * This ensures the transition feels natural and not rushed.
    * FIX BUG #59: Stops any currently playing handoff sound to prevent overlap.
    * FIX BUG #62: Now handles audio context errors gracefully.
+   *
+   * Updated to prefer procedural sounds (on-brand, per-persona signatures).
    */
   async playHandoffSound(effect: SoundEffect, pauseMs: number = 300): Promise<void> {
     try {
@@ -191,7 +259,7 @@ class AudioService {
         log.debug('Stopped previous handoff sound to prevent overlap');
       }
 
-      // FIX BUG #62: Resume audio context if suspended (common after page becomes inactive)
+      // Resume audio contexts if suspended
       if (this.audioContext?.state === 'suspended') {
         try {
           await this.audioContext.resume();
@@ -200,7 +268,16 @@ class AudioService {
         }
       }
 
-      // FIX BUG #59: Track the sound we're about to play
+      // Also resume procedural sounds context
+      if (this.useProceduralSounds && this.proceduralInitialized) {
+        try {
+          await proceduralSounds.resume();
+        } catch {
+          // Ignore - procedural sounds may not be available
+        }
+      }
+
+      // FIX BUG #59: Track the sound we're about to play (for MP3 fallback)
       const audio = this.sounds.get(effect) ?? this.sounds.get(this.FALLBACK_SOUND);
       if (audio) {
         this.currentHandoffSound = audio;
@@ -249,8 +326,11 @@ class AudioService {
       // Create media stream source for VISUALIZATION ONLY
       // Audio playback is handled by the HTML audio element from track.attach()
       const stream = new MediaStream([track]);
-      const source = this.audioContext.createMediaStreamSource(stream);
-      source.connect(this.analyser);
+      // FIX: Store the source reference to prevent garbage collection!
+      // Without this, the MediaStreamSource gets GC'd and the analyser
+      // receives no audio data, causing all volume readings to be 0.
+      this.mediaStreamSource = this.audioContext.createMediaStreamSource(stream);
+      this.mediaStreamSource.connect(this.analyser);
 
       // DO NOT connect to destination - audio is already playing via track.attach()
       // Connecting here would cause DOUBLE playback and robotic/phaser sound!
@@ -337,7 +417,19 @@ class AudioService {
       this.animationFrame = null;
     }
     this.visualizationCallback = null;
-    // Note: Don't disconnect mediaSource - that would stop audio playback!
+    
+    // MediaStreamSource can be safely disconnected (doesn't affect playback)
+    // since audio plays through the HTML audio element, not Web Audio API
+    if (this.mediaStreamSource) {
+      try {
+        this.mediaStreamSource.disconnect();
+      } catch {
+        // Already disconnected - ignore
+      }
+      this.mediaStreamSource = null;
+    }
+    
+    // Note: Don't disconnect mediaSource (MediaElementSource) - that would stop audio playback!
     // The connection remains until the audio element is removed from DOM
   }
 
@@ -395,8 +487,21 @@ class AudioService {
       this.analyser = null;
     }
 
+    // Clean up procedural sounds
+    proceduralSounds.dispose();
+    this.proceduralInitialized = false;
+
     // Clear preloaded sounds
     this.sounds.clear();
+  }
+
+  /**
+   * Enable or disable procedural sounds.
+   * When disabled, falls back to MP3 files.
+   */
+  setProceduralSoundsEnabled(enabled: boolean): void {
+    this.useProceduralSounds = enabled;
+    log.info(`Procedural sounds ${enabled ? 'enabled' : 'disabled'}`);
   }
 
   // ============================================================================

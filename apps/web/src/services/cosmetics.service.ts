@@ -311,12 +311,15 @@ export const COSMETICS_CATALOG: CosmeticItem[] = [
 ];
 
 // ============================================================================
-// STATE
+// CONSTANTS
 // ============================================================================
 
-let userCosmetics: UserCosmetics = createDefaultCosmetics();
-let currentTier: SubscriptionTier = 'free';
-const cosmeticsListeners = new Set<(cosmetics: UserCosmetics) => void>();
+/** Starter seeds for new users - "Seeds to get you growing" */
+const STARTER_SEEDS = 25;
+
+// ============================================================================
+// STATE
+// ============================================================================
 
 function createDefaultCosmetics(): UserCosmetics {
   return {
@@ -328,9 +331,13 @@ function createDefaultCosmetics(): UserCosmetics {
       'sound-pack': null,
       emote: null,
     },
-    seedBalance: 0,
+    seedBalance: STARTER_SEEDS, // New users start with seeds to explore
   };
 }
+
+let userCosmetics: UserCosmetics = createDefaultCosmetics();
+let currentTier: SubscriptionTier = 'free';
+const cosmeticsListeners = new Set<(cosmetics: UserCosmetics) => void>();
 
 // ============================================================================
 // CORE FUNCTIONS
@@ -605,7 +612,7 @@ function applySkinConfig(config: Record<string, string>): void {
     } else {
       root.style.setProperty('--skin-primary', config.primaryColor);
       // Also set with alpha for glow effects
-      const glowColor = config.glowColor || `${config.primaryColor}50`;
+      const glowColor = config.glowColor ?? `${config.primaryColor}50`;
       root.style.setProperty('--skin-glow', glowColor);
     }
   }

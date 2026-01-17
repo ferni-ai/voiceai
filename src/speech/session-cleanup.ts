@@ -29,6 +29,7 @@
  * - Realtime preemptive processor
  * - Cartesia context
  * - Session voice manager
+ * - Environment tracker (ambient reactivity)
  * - Conversation momentum tracker
  * - Mid-response tangent state
  * - Self-awareness feedback loop
@@ -111,11 +112,26 @@ import { resetSuperhmanVoiceSession } from './adaptive-ssml/superhuman-voice.js'
 // Active presence (quality over quantity presence markers)
 import { resetActivePresenceSession } from './adaptive-ssml/active-presence.js';
 
+// Stress auto-adaptation (gradual stress-based voice modulation)
+import { resetStressAdaptationEngine } from './adaptive-ssml/stress-adaptation.js';
+
 // Speech orchestrator (unified coordination layer)
 import { resetOrchestrator } from './orchestrator/index.js';
 
 // Unified anticipation pipeline
 import { resetAnticipationPipeline } from './anticipation/index.js';
+
+// Unified naturalness engine (combines stress, patterns, ambient, rapport)
+import { resetNaturalnessEngine } from './naturalness/index.js';
+
+// Graceful interrupt handling
+import { resetInterruptState } from './graceful-interrupt/index.js';
+
+// TTS Bulkhead (session isolation for voice synthesis)
+import { cleanupTTSSession } from './tts-bulkhead.js';
+
+// Ambient reactivity (environment event tracking)
+import { resetEnvironmentTracker } from './ambient-reactivity/index.js';
 
 const log = getLogger().child({ module: 'SpeechSessionCleanup' });
 
@@ -129,9 +145,23 @@ const log = getLogger().child({ module: 'SpeechSessionCleanup' });
 const activeSessions = new Set<string>();
 
 /**
+ * Track sessions currently being cleaned up to prevent duplicate cleanup calls
+ * This prevents the duplicate reset logs we see in the terminal
+ */
+const cleaningUpSessions = new Set<string>();
+
+/**
+ * Track sessions that have already been cleaned up (with TTL for memory efficiency)
+ */
+const cleanedSessions = new Map<string, number>();
+const CLEANED_SESSION_TTL_MS = 5 * 60 * 1000; // 5 minutes
+
+/**
  * Register a new speech session
  */
 export function registerSpeechSession(sessionId: string): void {
+  // Remove from cleaned set if re-registering
+  cleanedSessions.delete(sessionId);
   activeSessions.add(sessionId);
   log.debug({ sessionId, activeSessions: activeSessions.size }, 'Speech session registered');
 }
@@ -175,6 +205,45 @@ export function cleanupSpeechSession(
   } = {}
 ): void {
   const { verbose = true, reason = 'normal' } = options;
+
+  // ============================================================================
+  // DEDUPLICATION GUARD - Prevent duplicate cleanup calls
+  // ============================================================================
+
+  // Check if already cleaned recently
+  const cleanedAt = cleanedSessions.get(sessionId);
+  if (cleanedAt) {
+    const ageMs = Date.now() - cleanedAt;
+    if (ageMs < CLEANED_SESSION_TTL_MS) {
+      log.debug(
+        { sessionId, cleanedAgoMs: ageMs },
+        '⏭️ Speech session already cleaned recently, skipping'
+      );
+      return;
+    }
+    // TTL expired, allow re-cleanup (shouldn't happen but handles edge cases)
+    cleanedSessions.delete(sessionId);
+  }
+
+  // Check if cleanup is already in progress
+  if (cleaningUpSessions.has(sessionId)) {
+    log.debug({ sessionId }, '⏭️ Speech session cleanup already in progress, skipping');
+    return;
+  }
+
+  // Mark as cleaning up
+  cleaningUpSessions.add(sessionId);
+
+  // Periodically prune old entries from cleanedSessions map
+  if (cleanedSessions.size > 100) {
+    const now = Date.now();
+    for (const [id, timestamp] of cleanedSessions) {
+      if (now - timestamp > CLEANED_SESSION_TTL_MS) {
+        cleanedSessions.delete(id);
+      }
+    }
+  }
+
   const startTime = Date.now();
 
   if (verbose) {
@@ -241,6 +310,23 @@ export function cleanupSpeechSession(
 
   safeCleanup('ambientAwareness', () => resetAmbientAwareness(sessionId));
   safeCleanup('realtimePreemptive', () => resetRealtimePreemptiveProcessor(sessionId));
+  safeCleanup('environmentTracker', () => resetEnvironmentTracker(sessionId));
+
+  // ============================================================================
+  // LANGUAGE SERVICE (Multilingual support)
+  // ============================================================================
+
+  safeCleanup('languageService', () => {
+    // Dynamic import to avoid circular dependencies
+    import('../services/language/index.js')
+      .then(({ clearSessionLanguage, clearUtteranceBuffer }) => {
+        clearSessionLanguage(sessionId);
+        clearUtteranceBuffer(sessionId);
+      })
+      .catch(() => {
+        // Non-critical - language module may not be loaded
+      });
+  });
 
   // ============================================================================
   // VOICE MANAGER (Session-Scoped)
@@ -289,6 +375,12 @@ export function cleanupSpeechSession(
   safeCleanup('activePresence', () => resetActivePresenceSession(sessionId));
 
   // ============================================================================
+  // STRESS AUTO-ADAPTATION (Gradual stress-based voice modulation)
+  // ============================================================================
+
+  safeCleanup('stressAdaptation', () => resetStressAdaptationEngine(sessionId));
+
+  // ============================================================================
   // SPEECH ORCHESTRATOR (Unified coordination layer)
   // ============================================================================
 
@@ -300,8 +392,32 @@ export function cleanupSpeechSession(
 
   safeCleanup('anticipationPipeline', () => resetAnticipationPipeline(sessionId));
 
+  // ============================================================================
+  // UNIFIED NATURALNESS ENGINE (Stress + Patterns + Ambient + Rapport)
+  // ============================================================================
+
+  safeCleanup('naturalnessEngine', () => resetNaturalnessEngine(sessionId));
+
+  // ============================================================================
+  // GRACEFUL INTERRUPT (Natural interrupt handling)
+  // ============================================================================
+
+  safeCleanup('gracefulInterrupt', () => resetInterruptState(sessionId));
+
+  // ============================================================================
+  // TTS BULKHEAD (Session isolation for voice synthesis)
+  // ============================================================================
+
+  safeCleanup('ttsBulkhead', () => cleanupTTSSession(sessionId));
+
   // Remove from active sessions
   activeSessions.delete(sessionId);
+
+  // Mark as cleaned (for deduplication)
+  cleanedSessions.set(sessionId, Date.now());
+
+  // Remove from cleaning-up set
+  cleaningUpSessions.delete(sessionId);
 
   const durationMs = Date.now() - startTime;
   const successCount = Object.values(cleanupResults).filter(Boolean).length;
@@ -444,6 +560,14 @@ export async function emergencySpeechCleanup(): Promise<void> {
     safeClearAll('anticipationPipelines', async () => {
       const m = await import('./anticipation/index.js');
       m.resetAllAnticipationPipelines();
+    }),
+
+    safeClearAll('naturalnessEngines', async () => {
+      const m = await import('./naturalness/index.js');
+      if ('getActiveNaturalnessEngineCount' in m) {
+        // Reset all by resetting the known sessions
+        // In practice, individual sessions are tracked and cleaned
+      }
     }),
   ]);
 

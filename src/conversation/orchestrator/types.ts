@@ -40,7 +40,7 @@ import type {
 } from '../utils/detection.js';
 import type { SessionIntelligenceInsight } from '../session-intelligence.js';
 import type { BetterThanHumanInsight } from '../superhuman/types.js';
-import type { ConversationMood } from '../deep-humanization.js';
+import type { ConversationMood } from '../deep-humanization/types.js';
 import type { EmotionalResponse } from '../emotional-arc.js';
 
 // ============================================================================

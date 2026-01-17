@@ -144,7 +144,7 @@ export async function render(): Promise<string> {
         grid-template-columns: repeat(4, 1fr);
       }
 
-      @media (max-width: 1024px) {
+      @media (max-width: min(1024px, 100%)) {
         .diagnostics-stats {
           grid-template-columns: repeat(2, 1fr);
         }
@@ -195,7 +195,7 @@ export async function render(): Promise<string> {
         background: var(--admin-surface-subtle, rgba(255, 255, 255, 0.03));
         border: 2px solid var(--node-color, rgba(255, 255, 255, 0.1));
         border-radius: var(--radius-lg, 12px);
-        min-width: 100px;
+        min-width: min(100px, 100%);
         transition: all var(--duration-fast, ${DURATION.FAST}ms) var(--ease-standard, ${EASING.STANDARD});
       }
 
@@ -430,7 +430,7 @@ async function fetchRecentHandoffs(): Promise<HandoffEvent[]> {
     });
     if (response.ok) {
       const data = await response.json();
-      return data.events || [];
+      return data.events ?? [];
     }
   } catch {
     // API unavailable - return empty array (not mock data)
@@ -448,7 +448,7 @@ async function fetchServiceHealth(): Promise<ServiceHealth[]> {
     });
     if (response.ok) {
       const data = await response.json();
-      return data.services || [];
+      return data.services ?? [];
     }
   } catch {
     // API unavailable - return empty array
@@ -462,7 +462,7 @@ function formatServiceDetail(service: ServiceHealth): string {
   if (service.latency !== undefined) {
     return `${service.latency}ms latency`;
   }
-  return service.details || service.status;
+  return service.details ?? service.status;
 }
 
 export default { render };

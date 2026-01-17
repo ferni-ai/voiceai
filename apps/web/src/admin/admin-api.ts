@@ -12,7 +12,6 @@
  */
 
 import { getAuthToken, initAuth } from '../services/firebase-auth.service.js';
-import { isDevelopment } from '../utils/environment.js';
 import { createLogger } from '../utils/logger.js';
 
 const log = createLogger('AdminAPI');
@@ -41,10 +40,14 @@ async function ensureAuthReady(): Promise<void> {
  * Get the admin API key for authentication.
  * In development, uses 'dev-mode' which the backend accepts.
  * In production, uses VITE_ADMIN_API_KEY environment variable.
+ * 
+ * SECURITY: Uses import.meta.env.DEV which is ONLY true during `vite dev` builds.
+ * This is more secure than hostname detection which could be spoofed.
  */
 export function getAdminApiKey(): string {
-  // In development, use dev-mode (backend accepts this when NODE_ENV !== 'production')
-  if (isDevelopment()) {
+  // SECURITY: Only use dev-mode when Vite's DEV flag is true
+  // This flag is set at build time and cannot be changed at runtime
+  if (import.meta.env.DEV) {
     return 'dev-mode';
   }
 
@@ -148,7 +151,7 @@ export async function adminGet<T = unknown>(
       log.warn('Admin GET failed', { path, status: response.status, error: errorData });
       return {
         ok: false,
-        error: errorData.error || `HTTP ${response.status}`,
+        error: errorData.error ?? `HTTP ${response.status}`,
         status: response.status,
       };
     }
@@ -187,7 +190,7 @@ export async function adminPost<T = unknown>(
       log.warn('Admin POST failed', { path, status: response.status, error: errorData });
       return {
         ok: false,
-        error: errorData.error || `HTTP ${response.status}`,
+        error: errorData.error ?? `HTTP ${response.status}`,
         status: response.status,
       };
     }

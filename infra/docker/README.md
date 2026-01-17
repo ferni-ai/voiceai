@@ -78,7 +78,7 @@ LIVEKIT_API_KEY=your-api-key
 LIVEKIT_API_SECRET=your-api-secret
 GOOGLE_API_KEY=your-gemini-key
 CARTESIA_API_KEY=your-cartesia-key
-PERSONA_ID=ferni  # or jack-bogle, peter-lynch, etc.
+PERSONA_ID=ferni  # or jack-bogle, peter-john, etc.
 ```
 
 ### Required for UI Server

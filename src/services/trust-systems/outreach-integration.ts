@@ -31,6 +31,7 @@ import {
   type GrowthReflection,
 } from './growth-reflection.js';
 
+import { cleanForFirestore } from '../../utils/firestore-utils.js';
 import {
   routeToPersona,
   formatSmsMessage,
@@ -108,9 +109,10 @@ registerInterval(
   60000
 );
 
-// Default preferences
+// Default preferences - OPT-OUT BY DEFAULT
+// Users must explicitly enable proactive outreach
 const DEFAULT_PREFERENCES: OutreachPreferences = {
-  enabled: true,
+  enabled: false,
   maxPerDay: 2,
   maxPerWeek: 5,
   preferredMethod: 'any',
@@ -491,7 +493,7 @@ async function sendMessage(item: OutreachItem, method: 'voice' | 'sms' | 'push')
         const formatted = formatVoiceMessage(personaId, item.message, formatContext);
 
         // Use the voice call service with persona's Cartesia voice
-        const { callWithPersonaVoice } = await import('../voice-call.js');
+        const { callWithPersonaVoice } = await import('../voice/voice-call.js');
         const result = await callWithPersonaVoice(phone, formatted.message, personaId, {
           fallbackToTwilioVoice: true,
           customGreeting: formatted.opening,
@@ -614,7 +616,7 @@ export async function processUserOutreach(userId: string): Promise<{
  */
 export function setUserPreferences(userId: string, prefs: Partial<OutreachPreferences>): void {
   const current = userPreferences.get(userId) || DEFAULT_PREFERENCES;
-  userPreferences.set(userId, { ...current, ...prefs });
+  userPreferences.set(cleanForFirestore(userId), { ...current, ...prefs });
 }
 
 /**
@@ -629,7 +631,7 @@ export function getUserPreferences(userId: string): OutreachPreferences {
  */
 export function disableOutreach(userId: string): void {
   const current = userPreferences.get(userId) || DEFAULT_PREFERENCES;
-  userPreferences.set(userId, { ...current, enabled: false });
+  userPreferences.set(cleanForFirestore(userId), { ...current, enabled: false });
   log.info({ userId }, 'Outreach disabled');
 }
 
@@ -638,7 +640,7 @@ export function disableOutreach(userId: string): void {
  */
 export function enableOutreach(userId: string): void {
   const current = userPreferences.get(userId) || DEFAULT_PREFERENCES;
-  userPreferences.set(userId, { ...current, enabled: true });
+  userPreferences.set(cleanForFirestore(userId), { ...current, enabled: true });
   log.info({ userId }, 'Outreach enabled');
 }
 

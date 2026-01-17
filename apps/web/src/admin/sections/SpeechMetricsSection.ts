@@ -559,12 +559,12 @@ export async function render(): Promise<string> {
         </div>
         <div class="admin-card speech-stat">
           <div class="speech-stat-icon">${iconSm(ICON_TARGET)}</div>
-          <div class="speech-stat-value">${global.metrics.quality.turnPredictionAccuracyRate || 0}%</div>
+          <div class="speech-stat-value">${global.metrics.quality.turnPredictionAccuracyRate ?? 0}%</div>
           <div class="speech-stat-label">Turn Prediction</div>
         </div>
         <div class="admin-card speech-stat">
           <div class="speech-stat-icon">${iconSm(ICON_MICROPHONE)}</div>
-          <div class="speech-stat-value">${global.metrics.quality.backchannelAccuracyRate || 0}%</div>
+          <div class="speech-stat-value">${global.metrics.quality.backchannelAccuracyRate ?? 0}%</div>
           <div class="speech-stat-label">Backchannel Timing</div>
         </div>
         <div class="admin-card speech-stat">

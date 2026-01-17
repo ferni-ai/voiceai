@@ -259,7 +259,7 @@ describe('Service Persistence Integration', () => {
   describe('Team Engagement', () => {
     it('should generate and persist team huddles', async () => {
       const { getTeamEngagementService, shutdownTeamEngagementService } =
-        await import('../services/team-engagement.js');
+        await import('../services/engagement/team-engagement.js');
 
       const service = getTeamEngagementService();
       await service.initialize();

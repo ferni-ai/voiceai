@@ -1,0 +1,288 @@
+{
+  "$schema": "../schemas/tokens.schema.json",
+  "name": "Window Avatar Design Tokens",
+  "description": "Animation and shape parameters for Ferni's signature window avatar system",
+  "version": "1.0.0",
+  
+  "windowAvatar": {
+    "description": "The window avatar creates the illusion of Ferni peeking through the interface",
+    
+    "lids": {
+      "top": {
+        "description": "Top window mask - affects brow/forehead visibility",
+        "default": {
+          "cutoff": 0.12,
+          "curve": 0,
+          "asymmetry": 0
+        },
+        "expressions": {
+          "neutral": { "cutoff": 0.12, "curve": 0, "asymmetry": 0 },
+          "surprised": { "cutoff": 0.06, "curve": 0.1, "asymmetry": 0 },
+          "sleepy": { "cutoff": 0.22, "curve": -0.15, "asymmetry": 0 },
+          "thinking": { "cutoff": 0.14, "curve": 0, "asymmetry": 0 },
+          "curious": { "cutoff": 0.10, "curve": 0.05, "asymmetry": 0.15 },
+          "skeptical": { "cutoff": 0.11, "curve": 0, "asymmetry": 0.25 },
+          "worried": { "cutoff": 0.13, "curve": -0.1, "asymmetry": 0.1 },
+          "happy": { "cutoff": 0.14, "curve": 0.08, "asymmetry": 0 },
+          "delighted": { "cutoff": 0.16, "curve": 0.12, "asymmetry": 0 },
+          "sad": { "cutoff": 0.12, "curve": -0.08, "asymmetry": 0.05 },
+          "excited": { "cutoff": 0.08, "curve": 0.1, "asymmetry": 0 },
+          "empathetic": { "cutoff": 0.13, "curve": 0.05, "asymmetry": 0.08 },
+          "contemplative": { "cutoff": 0.15, "curve": 0, "asymmetry": 0 },
+          "listening": { "cutoff": 0.11, "curve": 0.03, "asymmetry": 0 }
+        }
+      },
+      "bottom": {
+        "description": "Bottom window mask - creates mouth/speaking effect",
+        "default": {
+          "cutoff": 0.12,
+          "curve": 0,
+          "asymmetry": 0
+        },
+        "speaking": {
+          "minCutoff": 0.10,
+          "maxCutoff": 0.35,
+          "volumeScale": 0.25,
+          "description": "Bottom opens based on voice volume"
+        },
+        "expressions": {
+          "neutral": { "cutoff": 0.12, "curve": 0, "asymmetry": 0 },
+          "happy": { "cutoff": 0.14, "curve": -0.20, "asymmetry": 0 },
+          "delighted": { "cutoff": 0.16, "curve": -0.30, "asymmetry": 0 },
+          "sad": { "cutoff": 0.10, "curve": 0.15, "asymmetry": 0 },
+          "surprised": { "cutoff": 0.18, "curve": 0, "asymmetry": 0 },
+          "thinking": { "cutoff": 0.11, "curve": 0.05, "asymmetry": 0.08 },
+          "skeptical": { "cutoff": 0.11, "curve": 0.08, "asymmetry": 0.20 },
+          "curious": { "cutoff": 0.13, "curve": 0, "asymmetry": 0.12 },
+          "worried": { "cutoff": 0.09, "curve": 0.12, "asymmetry": 0.05 },
+          "excited": { "cutoff": 0.15, "curve": -0.18, "asymmetry": 0 },
+          "empathetic": { "cutoff": 0.12, "curve": -0.10, "asymmetry": 0.05 },
+          "contemplative": { "cutoff": 0.11, "curve": 0.03, "asymmetry": 0.10 },
+          "listening": { "cutoff": 0.12, "curve": -0.05, "asymmetry": 0 }
+        }
+      }
+    },
+    
+    "animation": {
+      "mouth": {
+        "smoothing": {
+          "attack": 0.25,
+          "release": 0.12,
+          "description": "Attack is faster for responsive feel, release is slower for natural decay"
+        },
+        "spring": {
+          "stiffness": 400,
+          "damping": 25,
+          "mass": 1
+        },
+        "duration": {
+          "idle": 200,
+          "speaking": 60,
+          "transition": 300
+        }
+      },
+      "brow": {
+        "duration": {
+          "raise": 250,
+          "lower": 400,
+          "transition": 350
+        },
+        "spring": {
+          "stiffness": 300,
+          "damping": 20,
+          "mass": 1
+        }
+      },
+      "expression": {
+        "microExpression": {
+          "duration": 80,
+          "description": "Subliminal 40-150ms flashes"
+        },
+        "transition": {
+          "duration": 300,
+          "easing": "spring(1, 80, 10)"
+        },
+        "hold": {
+          "duration": 500,
+          "description": "How long to hold peak expression"
+        }
+      }
+    },
+    
+    "shapes": {
+      "curveTension": {
+        "default": 0.3,
+        "smooth": 0.5,
+        "sharp": 0.15,
+        "description": "Controls bezier curve roundness (0=flat, 1=semicircle)"
+      },
+      "viewBox": {
+        "width": 100,
+        "height": 100,
+        "description": "SVG viewBox for path calculations"
+      }
+    },
+    
+    "phonemes": {
+      "description": "Mouth shapes for different speech sounds",
+      "shapes": {
+        "rest": { "open": 0, "width": 1.0, "roundness": 0 },
+        "A": { "open": 0.9, "width": 1.2, "roundness": 0.3, "description": "ah, father" },
+        "E": { "open": 0.5, "width": 1.3, "roundness": 0.2, "description": "eh, bed" },
+        "I": { "open": 0.3, "width": 1.4, "roundness": 0.1, "description": "ee, see" },
+        "O": { "open": 0.7, "width": 0.8, "roundness": 0.8, "description": "oh, go" },
+        "U": { "open": 0.4, "width": 0.6, "roundness": 0.9, "description": "oo, blue" },
+        "M": { "open": 0, "width": 1.0, "roundness": 0, "description": "m, b, p - closed" },
+        "F": { "open": 0.15, "width": 1.1, "roundness": 0.1, "description": "f, v" },
+        "TH": { "open": 0.2, "width": 1.0, "roundness": 0.2, "description": "th" },
+        "L": { "open": 0.35, "width": 1.1, "roundness": 0.15, "description": "l" },
+        "W": { "open": 0.3, "width": 0.7, "roundness": 0.7, "description": "w, r" }
+      }
+    },
+    
+    "stateTransitions": {
+      "description": "How the window behaves during state changes",
+      "connecting": {
+        "top": { "cutoff": 0.15, "curve": 0 },
+        "bottom": { "cutoff": 0.15, "curve": 0 },
+        "animation": "pulse"
+      },
+      "thinking": {
+        "top": { "cutoff": 0.14, "curve": 0 },
+        "bottom": { "cutoff": 0.11, "curve": 0.05 },
+        "animation": "contemplative-drift"
+      },
+      "listening": {
+        "top": { "cutoff": 0.11, "curve": 0.03 },
+        "bottom": { "cutoff": 0.12, "curve": -0.05 },
+        "animation": "attentive-lean"
+      },
+      "speaking": {
+        "top": { "cutoff": 0.12, "curve": 0 },
+        "bottom": "voice-reactive",
+        "animation": "conversational"
+      },
+      "farewell": {
+        "top": { "cutoff": 0.14, "curve": 0.05 },
+        "bottom": { "cutoff": 0.13, "curve": -0.15 },
+        "animation": "gentle-close"
+      }
+    },
+    
+    "scale": {
+      "description": "Avatar size affects window visibility",
+      "tiny": {
+        "size": "24-32px",
+        "topVisible": false,
+        "bottomVisible": false,
+        "note": "Just eyes visible - favicon, notification badge"
+      },
+      "small": {
+        "size": "40-64px",
+        "topVisible": true,
+        "bottomVisible": true,
+        "lidScale": 0.8,
+        "note": "Minimal expression - nav, list items"
+      },
+      "medium": {
+        "size": "80-120px",
+        "topVisible": true,
+        "bottomVisible": true,
+        "lidScale": 1.0,
+        "note": "Full expression range - main avatar"
+      },
+      "large": {
+        "size": "160-240px",
+        "topVisible": true,
+        "bottomVisible": true,
+        "lidScale": 1.2,
+        "note": "Maximum detail - hero, onboarding"
+      }
+    },
+
+    "notificationBadge": {
+      "description": "Notification indicators that appear on or near the avatar",
+      "positioning": {
+        "topRight": { "top": "-4px", "right": "-4px" },
+        "topLeft": { "top": "-4px", "left": "-4px" },
+        "bottomRight": { "bottom": "-4px", "right": "-4px" },
+        "bottomLeft": { "bottom": "-4px", "left": "-4px" }
+      },
+      "sizes": {
+        "dot": {
+          "width": "8px",
+          "height": "8px",
+          "fontSize": "0",
+          "description": "Simple presence indicator, no count"
+        },
+        "small": {
+          "minWidth": "16px",
+          "height": "16px",
+          "fontSize": "10px",
+          "padding": "0 4px",
+          "description": "1-2 digit counts"
+        },
+        "default": {
+          "minWidth": "20px",
+          "height": "20px",
+          "fontSize": "11px",
+          "padding": "0 6px",
+          "description": "Standard notification count"
+        }
+      },
+      "variants": {
+        "default": {
+          "background": "var(--color-semantic-error)",
+          "color": "white",
+          "description": "Urgent notifications, unread messages"
+        },
+        "subtle": {
+          "background": "var(--color-bg-elevated)",
+          "border": "1px solid var(--color-border-medium)",
+          "color": "var(--color-text-secondary)",
+          "description": "Non-urgent counts"
+        },
+        "success": {
+          "background": "var(--color-semantic-success)",
+          "color": "white",
+          "description": "Positive notifications, completed tasks"
+        },
+        "persona": {
+          "background": "var(--persona-primary)",
+          "color": "white",
+          "description": "Persona-specific notifications"
+        }
+      },
+      "animation": {
+        "entrance": {
+          "keyframes": "badgeEntrance",
+          "duration": "300ms",
+          "easing": "var(--ease-out-back)"
+        },
+        "pulse": {
+          "keyframes": "badgePulse",
+          "duration": "1.5s",
+          "iteration": "infinite",
+          "description": "Draws attention to new notifications"
+        },
+        "bounce": {
+          "keyframes": "badgeBounce",
+          "duration": "400ms",
+          "easing": "var(--ease-spring)",
+          "description": "Plays when count increases"
+        }
+      },
+      "states": {
+        "hidden": {
+          "opacity": 0,
+          "transform": "scale(0)",
+          "pointerEvents": "none"
+        },
+        "visible": {
+          "opacity": 1,
+          "transform": "scale(1)"
+        }
+      }
+    }
+  }
+}

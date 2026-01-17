@@ -13,7 +13,7 @@ export type {
   SubscriptionData,
   SpendingTriggerData,
   SpendingLimitData,
-} from '../../services/financial-store.js';
+} from '../../services/stores/financial-store.js';
 
 // ============================================================================
 // INTERNAL TYPES

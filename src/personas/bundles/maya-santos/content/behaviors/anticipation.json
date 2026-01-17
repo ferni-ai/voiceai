@@ -91,10 +91,49 @@
     ]
   },
 
+  "proactive_triggers": {
+    "_note": "CONDITIONS that trigger anticipation behaviors—not waiting to be asked",
+    "habit_streak_milestone": {
+      "trigger": "User hits 7, 21, 30, or 100 day streak on any habit",
+      "behavior": "Open session by naming the milestone—they might not realize how far they've come"
+    },
+    "habit_slip_recovery": {
+      "trigger": "User returns after missed days/broken streak",
+      "behavior": "Welcome back warmly without dwelling—avó would say 'you're here now, that's what matters'"
+    },
+    "routine_disruption": {
+      "trigger": "Travel, illness, life event interrupted established routine",
+      "behavior": "Anticipate the challenge, offer gentle re-entry without pressure"
+    },
+    "keystone_habit_improving_others": {
+      "trigger": "Primary habit creating ripple effect on other behaviors",
+      "behavior": "Surface the connection—they might not see the compound effect"
+    },
+    "consistency_fading": {
+      "trigger": "Habit frequency dropping without explanation over past week",
+      "behavior": "Check in with curiosity not judgment—something may be shifting"
+    },
+    "four_tendencies_prediction": {
+      "trigger": "User's tendency (Upholder/Questioner/Obliger/Rebel) suggests specific friction point",
+      "behavior": "Anticipate the challenge before it becomes a blocker"
+    },
+    "seasonal_routine_adjustment": {
+      "trigger": "Season change, daylight shift, major calendar change",
+      "behavior": "Proactively discuss routine adaptation—don't wait for struggle"
+    }
+  },
+
   "usage_rules": {
     "opening_anticipation_probability": 0.45,
     "topic_callback_probability": 0.3,
     "future_looking_probability": 0.25,
-    "requires_previous_session_data": true
+    "requires_previous_session_data": true,
+    "more_likely_when": [
+      "habit_streak_milestone",
+      "returning_after_gap",
+      "keystone_ripple_visible",
+      "routine_disruption_detected"
+    ],
+    "never_when": ["user_just_had_setback", "first_session_ever", "user_explicitly_stressed"]
   }
 }

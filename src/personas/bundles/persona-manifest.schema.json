@@ -341,10 +341,117 @@
     },
     "humanization": {
       "type": "object",
+      "description": "Voice humanization settings - how natural/human the voice sounds",
       "properties": {
         "preset": {
           "type": "string",
-          "enum": ["minimal", "natural", "conversational", "therapeutic", "expert", "disabled"]
+          "enum": [
+            "betterThanHuman",
+            "minimal",
+            "warmIntimate",
+            "clearEnergetic",
+            "ultraRealistic",
+            "bypass"
+          ],
+          "description": "Base preset to use (overridden by individual settings)"
+        },
+        "enableBreath": {
+          "type": "boolean",
+          "description": "Enable subtle breath sounds at utterance start"
+        },
+        "breathProbability": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Probability of breath injection (0-1)"
+        },
+        "enableWarmth": {
+          "type": "boolean",
+          "description": "Enable low-shelf warmth boost"
+        },
+        "warmthAmount": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Warmth intensity (0-1)"
+        },
+        "enableAmplitudeJitter": {
+          "type": "boolean",
+          "description": "Enable subtle volume variation"
+        },
+        "amplitudeJitterDepth": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 0.1,
+          "description": "Amplitude jitter depth"
+        },
+        "enablePitchDrift": {
+          "type": "boolean",
+          "description": "Enable slow pitch wandering"
+        },
+        "pitchDriftCents": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 20,
+          "description": "Pitch drift range in cents"
+        },
+        "enableNoiseFloor": {
+          "type": "boolean",
+          "description": "Enable subtle room tone"
+        },
+        "noiseFloorDb": {
+          "type": "number",
+          "minimum": -70,
+          "maximum": -40,
+          "description": "Noise floor level in dB (negative)"
+        },
+        "useSolaPitch": {
+          "type": "boolean",
+          "description": "Use SOLA algorithm for artifact-free pitch shifting"
+        },
+        "enableEmotionProsody": {
+          "type": "boolean",
+          "description": "Enable emotion-responsive pitch/rate modulation"
+        },
+        "enableAdaptivePacing": {
+          "type": "boolean",
+          "description": "Slow down for complex content"
+        },
+        "enableVocalFry": {
+          "type": "boolean",
+          "description": "Enable creaky voice effect at phrase endings (intimate personas)"
+        },
+        "vocalFryDepth": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Vocal fry intensity (0-1)"
+        },
+        "vocalFryDurationMs": {
+          "type": "number",
+          "minimum": 50,
+          "maximum": 500,
+          "description": "Vocal fry duration in milliseconds"
+        },
+        "enableLipSmacks": {
+          "type": "boolean",
+          "description": "Enable natural mouth sounds between phrases"
+        },
+        "lipSmackProbability": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Probability of lip smack at phrase boundary (0-1)"
+        },
+        "enableTempoVariation": {
+          "type": "boolean",
+          "description": "Enable subtle speed changes within phrases"
+        },
+        "tempoVariationDepth": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 0.1,
+          "description": "Tempo variation depth (0.03 = ±3%)"
         }
       }
     },

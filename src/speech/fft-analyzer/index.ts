@@ -61,3 +61,27 @@ export {
   getFFTAnalyzer,
   resetFFTAnalyzer,
 } from './service.js';
+
+// ============================================================================
+// NATIVE ACCELERATION (Rust SIMD)
+// ============================================================================
+
+export {
+  // Native FFT functions
+  analyzeSpectrumNative,
+  applyHanningWindowNative,
+  fftNative,
+  getMagnitudeSpectrumNative,
+  // Native availability check
+  getNativeFftInfo,
+  getNativeFftLoadError,
+  isNativeFftAvailable,
+  // Metrics
+  getFftMetrics,
+  logFftStatus,
+  resetFftMetrics,
+  // Types
+  type NativeFftLibraryInfo,
+  type NativeFftResult,
+  type NativeSpectralFeatures,
+} from './native-fft.js';

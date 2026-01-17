@@ -16,6 +16,10 @@
  * - Uses ProductivityStore for persistence
  * - Integrates with gamification-v2 for XP/badges
  * - Leverages tool orchestration for conversation flow
+ *
+ * NOTE: This file contains SIMPLIFIED constants for the unified tools.
+ * For comprehensive habit coaching with full behavioral science backing,
+ * use the canonical constants from habit-coaching/constants.ts instead.
  */
 
 import { llm, log as _log } from '@livekit/agents';
@@ -34,7 +38,7 @@ import {
   getProductivityStore,
   type HabitData,
   type HabitLogData,
-} from '../../../services/productivity-store.js';
+} from '../../../services/stores/productivity-store.js';
 
 // ============================================================================
 // TYPES
@@ -75,7 +79,8 @@ export interface EnhancedHabit {
 }
 
 // ============================================================================
-// LIFE DOMAINS (from habit-coaching.ts)
+// SIMPLIFIED LIFE DOMAINS (for unified tools - user-friendly output)
+// For comprehensive domains with subdomains, use habit-coaching/constants.ts
 // ============================================================================
 
 export const LIFE_DOMAINS = {
@@ -118,7 +123,9 @@ export const LIFE_DOMAINS = {
 } as const;
 
 // ============================================================================
-// FOUR TENDENCIES STRATEGIES
+// SIMPLIFIED TENDENCY STRATEGIES (for unified tools - user-friendly output)
+// For comprehensive strategies with habitStrategies/avoid/motivationTip,
+// use FOUR_TENDENCIES_STRATEGIES from habit-coaching/constants.ts
 // ============================================================================
 
 export const TENDENCY_STRATEGIES: Record<

@@ -17,10 +17,19 @@ import { log, voice } from '@livekit/agents';
 import type { PersonaConfig } from '../../personas/types.js';
 import { diag } from '../../services/diagnostic-logger.js';
 import type { SessionServices } from '../../services/index.js';
-import { autoOptimizer } from '../../tools/auto-optimizer.js';
+import { autoOptimizer } from '../../tools/optimization/auto-optimizer.js';
 import { deprecationService } from '../../tools/deprecation.js';
-import { patternAnalyzer } from '../../tools/pattern-analyzer.js';
+import { patternAnalyzer } from '../../tools/optimization/pattern-analyzer.js';
 import type { UserData } from '../shared/types.js';
+
+// Capability learning - track tool execution for collective learning
+import { onToolExecuted } from '../../intelligence/capability-learning.js';
+// Safe fire-and-forget pattern for non-critical async operations
+import { fireAndForget } from '../../utils/safe-fire-and-forget.js';
+// Semantic tool presence - "Better than Human" tool feedback
+import { startToolPresence, stopToolPresence } from '../../tools/execution/index.js';
+// Tool timing context for natural LLM framing
+import { recordToolTiming } from '../../intelligence/context-builders/awareness/tool-timing-awareness.js';
 
 // ============================================================================
 // TYPES
@@ -41,6 +50,8 @@ export interface ToolTrackingContext {
   debugEnabled?: boolean;
   /** Enable verbose tool result logging (from admin config) */
   logToolResults?: boolean;
+  /** Callback to send data messages to frontend (for behavior signals) */
+  sendDataMessage?: (type: string, payload: Record<string, unknown>) => Promise<void>;
 }
 
 export interface ToolTrackingResult {
@@ -63,6 +74,18 @@ interface ToolInfo {
     error?: unknown;
     startTime?: number;
   }>;
+  // OpenAI Realtime API structure
+  functionCalls?: Array<{
+    name?: string;
+    arguments?: Record<string, unknown>;
+    callId?: string;
+  }>;
+  functionCallOutputs?: Array<{
+    name?: string;
+    output?: unknown;
+    callId?: string;
+    isError?: boolean;
+  }>;
 }
 
 // ============================================================================
@@ -79,13 +102,24 @@ interface ToolInfo {
  * 4. Records pattern analysis data
  * 5. Feeds auto-optimizer
  */
+// Behavior tool names that should emit signals to frontend
+const BEHAVIOR_TOOLS = ['shiftMode', 'adjustPacing', 'processing', 'holdSpace', 'expressPresence'];
+
 export function setupToolTrackingHandler(ctx: ToolTrackingContext): ToolTrackingResult {
-  const { session, userData, services, sessionPersona, sessionId, debugEnabled, logToolResults } =
-    ctx;
+  const {
+    session,
+    userData,
+    services,
+    sessionPersona,
+    sessionId,
+    debugEnabled,
+    logToolResults,
+    sendDataMessage,
+  } = ctx;
   const logger = log();
 
   session.on(voice.AgentSessionEventTypes.FunctionToolsExecuted, (event) => {
-    void (async () => {
+    fireAndForget(async () => {
       const toolStartTime = Date.now();
 
       // Verbose tool result logging (controlled by admin config)
@@ -107,21 +141,71 @@ export function setupToolTrackingHandler(ctx: ToolTrackingContext): ToolTracking
         const convState = userData.conversationState;
 
         // Get tool information from event
-        // The event structure varies, but typically contains tool name/id
+        // The event structure varies by LLM backend:
+        // - OpenAI Realtime: { functionCallOutputs: [...] }
+        // - Gemini/Other: { tools: [...] } or direct tool object
         const toolInfo = event as ToolInfo;
 
-        // Handle single tool or multiple tools
-        const toolCalls = toolInfo.tools || [toolInfo];
+        // Handle different event structures:
+        // 1. OpenAI Realtime API: functionCallOutputs array
+        // 2. Legacy/Gemini: tools array or single tool object
+        let toolCalls: Array<{
+          name?: string;
+          result?: unknown;
+          output?: unknown;
+          error?: unknown;
+          isError?: boolean;
+          startTime?: number;
+        }>;
+
+        if (toolInfo.functionCallOutputs && toolInfo.functionCallOutputs.length > 0) {
+          // OpenAI Realtime API structure - map output to result for consistency
+          toolCalls = toolInfo.functionCallOutputs.map((fco) => ({
+            name: fco.name,
+            result: fco.output,
+            error: fco.isError ? fco.output : undefined,
+            isError: fco.isError,
+          }));
+          logger.debug(
+            { toolCount: toolCalls.length, names: toolCalls.map((t) => t.name) },
+            '🔧 [TOOLS] Parsed OpenAI functionCallOutputs'
+          );
+        } else if (toolInfo.tools && toolInfo.tools.length > 0) {
+          // Legacy/Gemini structure
+          toolCalls = toolInfo.tools;
+          logger.debug(
+            { toolCount: toolCalls.length, names: toolCalls.map((t) => t.name) },
+            '🔧 [TOOLS] Parsed legacy tools array'
+          );
+        } else {
+          // Single tool object fallback - log warning to diagnose unexpected structure
+          toolCalls = [toolInfo];
+          logger.warn(
+            {
+              hasName: !!toolInfo.name,
+              hasToolName: !!toolInfo.toolName,
+              hasFunctionCallOutputs: !!toolInfo.functionCallOutputs,
+              functionCallOutputsLength: toolInfo.functionCallOutputs?.length,
+              hasTools: !!toolInfo.tools,
+              toolsLength: toolInfo.tools?.length,
+              eventKeys: Object.keys(toolInfo),
+            },
+            '🔧 [TOOLS] WARNING: Falling back to single tool object - unexpected event structure'
+          );
+        }
 
         for (const tool of toolCalls) {
-          const toolName = tool.name || toolInfo.name || toolInfo.toolName || 'unknown';
-          const hasError = !!tool.error || !!toolInfo.error;
+          const toolName = tool.name || toolInfo.name || toolInfo.toolName || 'unnamed_tool';
+          // Handle both legacy (error) and OpenAI Realtime (isError) error indicators
+          const hasError = !!tool.error || !!tool.isError || !!toolInfo.error;
+          // Use result or output (OpenAI uses output, legacy uses result)
+          const toolResult = tool.result ?? tool.output;
           const resultSummary =
-            tool.result === undefined
+            toolResult === undefined
               ? '(no result)'
-              : typeof tool.result === 'string'
-                ? tool.result.slice(0, 200)
-                : JSON.stringify(tool.result).slice(0, 200);
+              : typeof toolResult === 'string'
+                ? toolResult.slice(0, 200)
+                : JSON.stringify(toolResult).slice(0, 200);
 
           // 🔍 DIAGNOSTIC: Track tool execution sequence for cross-tool debugging
           const diagTimestamp = new Date().toISOString();
@@ -156,8 +240,135 @@ export function setupToolTrackingHandler(ctx: ToolTrackingContext): ToolTracking
             );
           }
 
+          // ================================================================
+          // 📰 FIX: Speak news/weather results directly for native function calling
+          // When using native function calling, the SDK JSON.stringify()s the result
+          // which double-escapes SSML, confusing the LLM. We speak the result directly.
+          // ================================================================
+          if (isNewsOrWeather && !hasError && toolResult) {
+            const resultToSpeak =
+              typeof toolResult === 'string' ? toolResult : JSON.stringify(toolResult);
+
+            // Only speak if there's meaningful content (not empty or too short)
+            if (resultToSpeak && resultToSpeak.length > 20) {
+              logger.info(
+                {
+                  toolName,
+                  resultLength: resultToSpeak.length,
+                  sessionId,
+                },
+                '📰 News/weather tool result - speaking via safeGenerateReply'
+              );
+
+              // Fire-and-forget: speak the result via safeGenerateReply
+              fireAndForget(async () => {
+                try {
+                  const { safeGenerateReply, formatToolResult } =
+                    await import('../shared/safe-generate-reply.js');
+
+                  // Format the tool result with behavioral instructions
+                  const instructions = formatToolResult(toolName, resultToSpeak);
+
+                  await safeGenerateReply(session, {
+                    instructions,
+                    allowInterruptions: true,
+                    context: `native-tool-result-${toolName}`,
+                    waitForPlayout: true,
+                    timeoutMs: 6000,
+                    fallbackMessage: 'Let me share what I found...',
+                    sessionId,
+                  });
+
+                  logger.info(
+                    { toolName, sessionId },
+                    '📰 News/weather result spoken successfully'
+                  );
+                } catch (speakErr) {
+                  logger.warn(
+                    { toolName, error: String(speakErr), sessionId },
+                    '📰 Failed to speak news/weather result (will retry via LLM)'
+                  );
+                }
+              }, 'speak-news-result');
+            }
+          }
+
           // Record in conversation state
           convState.recordToolCall(toolName, resultSummary);
+
+          // 📚 CAPABILITY LEARNING: Track tool execution for collective learning
+          // This feeds into domain fluency optimization over time
+          if (!hasError) {
+            const sessionKey = `${services.userId || 'anon'}-${sessionId}`;
+            onToolExecuted(sessionKey, toolName);
+          }
+
+          // 🔄 BEHAVIOR TOOL SIGNAL EMISSION
+          // When behavior tools execute, emit signals to frontend for avatar updates
+          if (sendDataMessage && BEHAVIOR_TOOLS.includes(toolName) && !hasError && tool.result) {
+            try {
+              const result = tool.result as Record<string, unknown>;
+
+              // Emit the signal that the behavior tool returned
+              if (result.signal) {
+                await sendDataMessage('behavior_signal', result.signal as Record<string, unknown>);
+                logger.debug(
+                  { toolName, signal: result.signal },
+                  '🔄 Behavior signal emitted to frontend'
+                );
+              }
+
+              // For mode shifts, emit mode change
+              if (toolName === 'shiftMode' && result.mode) {
+                await sendDataMessage('behavior_signal', {
+                  type: 'mode_shift',
+                  mode: result.mode,
+                  timestamp: Date.now(),
+                });
+              }
+
+              // For pacing changes, emit pacing change
+              if (toolName === 'adjustPacing' && result.speed) {
+                await sendDataMessage('behavior_signal', {
+                  type: 'pacing_change',
+                  pacing: result.speed,
+                  timestamp: Date.now(),
+                });
+              }
+
+              // For processing, emit processing state
+              if (toolName === 'processing') {
+                await sendDataMessage('behavior_signal', {
+                  type: 'processing_start',
+                  expression: result.phrase,
+                  timestamp: Date.now(),
+                });
+              }
+
+              // For hold space, emit hold space
+              if (toolName === 'holdSpace' && result.duration) {
+                await sendDataMessage('behavior_signal', {
+                  type: 'hold_space',
+                  duration: result.duration,
+                  timestamp: Date.now(),
+                });
+              }
+
+              // For presence expressions
+              if (toolName === 'expressPresence' && result.expression) {
+                await sendDataMessage('behavior_signal', {
+                  type: 'expression',
+                  expression: result.expression,
+                  timestamp: Date.now(),
+                });
+              }
+            } catch (emitError) {
+              logger.debug(
+                { error: String(emitError), toolName },
+                'Failed to emit behavior signal (non-critical)'
+              );
+            }
+          }
 
           // Record analytics for tool usage optimization
           await recordToolAnalytics({
@@ -170,6 +381,24 @@ export function setupToolTrackingHandler(ctx: ToolTrackingContext): ToolTracking
             sessionId,
           });
 
+          // "Better than Human" - Record tool timing for natural LLM framing
+          // This helps the LLM acknowledge wait times naturally
+          const toolWithStartTime = tool as { startTime?: number };
+          const actualLatencyMs = toolWithStartTime.startTime
+            ? Date.now() - toolWithStartTime.startTime
+            : Date.now() - toolStartTime;
+
+          // Stop semantic tool presence tracking (if it was started)
+          const timingContext = stopToolPresence(sessionId, toolName);
+
+          // Record timing for context injection into next LLM call
+          recordToolTiming(
+            sessionId,
+            toolName,
+            timingContext?.durationMs ?? actualLatencyMs,
+            userData?.voiceEmotion?.primary
+          );
+
           diag.tool('Tool execution tracked', {
             tool: toolName,
             hasResult: !!tool.result,
@@ -177,7 +406,7 @@ export function setupToolTrackingHandler(ctx: ToolTrackingContext): ToolTracking
           });
         }
       }
-    })();
+    }, 'tool-tracking-handler');
   });
 
   return {
@@ -208,7 +437,7 @@ async function recordToolAnalytics(params: RecordToolAnalyticsParams): Promise<v
   const { tool, toolInfo, toolName, toolStartTime, sessionPersona, services, sessionId } = params;
 
   try {
-    const { recordToolUsage } = await import('../../services/tool-usage-analytics.js');
+    const { recordToolUsage } = await import('../../services/analytics/tool-usage-analytics.js');
     const toolWithStartTime = tool as { startTime?: number };
     const latencyMs = toolWithStartTime.startTime
       ? Date.now() - toolWithStartTime.startTime

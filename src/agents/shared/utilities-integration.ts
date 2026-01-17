@@ -23,6 +23,8 @@ import type { voice } from '@livekit/agents';
 
 // Feature flags for controlled rollout
 import { getSimpleUtilitiesConfig } from '../../services/feature-flags.js';
+// Speech coordination for centralized speech management
+import { coordinatedSay } from '../../speech/coordination/index.js';
 
 // Import from simple utilities domain
 import {
@@ -42,6 +44,7 @@ type AgentSession = voice.AgentSession<unknown>;
 interface UtilitiesIntegrationConfig {
   session: AgentSession;
   userId: string;
+  sessionId?: string;
   enableProactive?: boolean;
   enableVoiceCallbacks?: boolean;
 }
@@ -80,7 +83,13 @@ interface UtilitiesIntegrationResult {
 export async function initializeUtilitiesIntegration(
   config: UtilitiesIntegrationConfig
 ): Promise<UtilitiesIntegrationResult> {
-  const { session, userId, enableProactive = true, enableVoiceCallbacks = true } = config;
+  const {
+    session,
+    userId,
+    sessionId,
+    enableProactive = true,
+    enableVoiceCallbacks = true,
+  } = config;
   const log = getLogger();
 
   // Check feature flags for controlled rollout
@@ -110,7 +119,7 @@ export async function initializeUtilitiesIntegration(
   // 1. Register voice callback handler (for timers, milestones, etc.)
   // Only if feature flag allows AND caller requested it
   if (enableVoiceCallbacks && featureConfig.voiceCallbacks) {
-    registerVoiceCallbackHandler(createVoiceCallbackHandler(session));
+    registerVoiceCallbackHandler(createVoiceCallbackHandler(session, sessionId));
     log.debug('Voice callback handler registered');
   }
 
@@ -123,7 +132,7 @@ export async function initializeUtilitiesIntegration(
       proactiveOpener = await onConversationStart(
         userId,
         enableVoiceCallbacks && featureConfig.voiceCallbacks
-          ? createVoiceCallbackHandler(session)
+          ? createVoiceCallbackHandler(session, sessionId)
           : undefined
       );
 
@@ -154,8 +163,9 @@ export async function initializeUtilitiesIntegration(
 
 /**
  * Create a voice callback handler bound to a session
+ * @param sessionId - If provided, uses coordinated speech; otherwise falls back to direct session.say
  */
-function createVoiceCallbackHandler(session: AgentSession) {
+function createVoiceCallbackHandler(session: AgentSession, sessionId?: string) {
   const log = getLogger();
 
   return async (callback: VoiceCallback): Promise<void> => {
@@ -169,21 +179,28 @@ function createVoiceCallbackHandler(session: AgentSession) {
     );
 
     try {
-      // Speak the main message
-      session.say(callback.message, { allowInterruptions: true });
+      // Speak the main message via coordinated speech if sessionId available
+      if (sessionId) {
+        coordinatedSay(sessionId, callback.message, { allowInterruptions: true });
+      } else {
+        session.say(callback.message, { allowInterruptions: true });
+      }
 
       // Small pause then follow-up question if present
       if (callback.followUpQuestion) {
         // Wait for main message to likely finish
         await sleep(1500);
-        session.say(callback.followUpQuestion, { allowInterruptions: true });
+        if (sessionId) {
+          coordinatedSay(sessionId, callback.followUpQuestion, { allowInterruptions: true });
+        } else {
+          session.say(callback.followUpQuestion, { allowInterruptions: true });
+        }
       }
 
-      // TODO: Play sound effect if specified
-      // This would require audio file handling
-      // if (callback.sound) {
-      //   await playUtilitySound(callback.sound);
-      // }
+      // Sound effects not implemented - voice-only design decision
+      // Keeping UX simple: Ferni's voice IS the interface.
+      // Sounds would add complexity without improving experience.
+      // If we reconsider, integrate with design-system/assets/sounds/
     } catch (err) {
       log.error({ err, callback }, 'Failed to execute voice callback');
     }

@@ -1,130 +1,51 @@
 {
-  "schema_version": 2,
-  "style": "warm",
-  "description": "Warm, caring goodbyes that leave people feeling supported",
+  "schema_version": 3,
+  "description": "Ferni goodbyes - warm, caring, slimmed. Leave them feeling supported.",
+
+  "_philosophy": {
+    "landing_matters": "How you end matters as much as how you start.",
+    "not_scripted": "These are seeds. LLM should personalize to the conversation.",
+    "anticipation": "Good goodbyes create reasons to come back."
+  },
 
   "standard": [
-    "<emotion value=\"affectionate\"/><break time=\"200ms\"/>Hey. <break time=\"250ms\"/>You're doing better than you think. <break time=\"200ms\"/>Seriously. <break time=\"300ms\"/>Talk soon?",
-    "<break time=\"200ms\"/>Go do your thing. <break time=\"250ms\"/>And come back when you need to. <break time=\"200ms\"/>I'm not going anywhere.",
-    "<break time=\"200ms\"/>You got this. <break time=\"250ms\"/>Even when it doesn't feel like it. <break time=\"300ms\"/>See you soon.",
-    "<emotion value=\"affectionate\"/><break time=\"200ms\"/>Take care of yourself, okay? <break time=\"250ms\"/>That's not optional. <break time=\"200ms\"/>[laughter]",
-    "<break time=\"200ms\"/>Until next time. <break time=\"250ms\"/>Keep asking the hard questions."
+    "You're doing better than you think. Seriously. Talk soon?",
+    "Go do your thing. Come back when you need to.",
+    "You got this. Even when it doesn't feel like it."
   ],
 
-  "warm": [
-    "<break time=\"200ms\"/>Hey. <break time=\"250ms\"/>Be good to yourself today. <break time=\"200ms\"/>You deserve it.",
-    "<emotion value=\"affectionate\"/><break time=\"200ms\"/>Take care. <break time=\"250ms\"/>I mean it. <break time=\"200ms\"/>Talk soon.",
-    "<break time=\"200ms\"/>Remember you're not alone in this. <break time=\"250ms\"/>I'm here when you need me.",
-    "<emotion value=\"affectionate\"/><break time=\"200ms\"/>Go rest. <break time=\"250ms\"/>You've earned it. <break time=\"200ms\"/>Talk soon."
-  ],
-
-  "casual": [
-    "<break time=\"150ms\"/>Alright! <break time=\"200ms\"/>Talk soon!",
-    "<break time=\"200ms\"/>Catch you later!",
-    "<break time=\"150ms\"/>Until next time!",
-    "<break time=\"200ms\"/>Go do your thing. <break time=\"150ms\"/>I'll be here."
-  ],
+  "warm": ["Be good to yourself today. You deserve it.", "Take care. I mean it. Talk soon."],
 
   "after_hard_conversation": [
-    "<break time=\"300ms\"/>Hey. <break time=\"250ms\"/>That was hard. <break time=\"200ms\"/>I'm proud of you for showing up.",
-    "<emotion value=\"affectionate\"/><break time=\"250ms\"/>Be gentle with yourself. <break time=\"200ms\"/>You did something brave today.",
-    "<break time=\"300ms\"/>That took courage. <break time=\"250ms\"/>I hope you see that about yourself.",
-    "<break time=\"250ms\"/>I'm here whenever you need to talk more. <break time=\"200ms\"/>No judgment. <break time=\"300ms\"/>Just support."
+    "That was hard. I'm proud of you for showing up.",
+    "Be gentle with yourself. You did something brave today."
   ],
 
   "encouraging": [
-    "<break time=\"200ms\"/>You've done hard things before. <break time=\"250ms\"/>This is just the next one.",
-    "<break time=\"200ms\"/>Remember— <break time=\"150ms\"/>patience beats cleverness. <break time=\"250ms\"/>Trust the process.",
-    "<emotion value=\"affectionate\"/><break time=\"200ms\"/>I believe in you. <break time=\"250ms\"/>Even when you don't believe in yourself.",
-    "<break time=\"200ms\"/>You're more ready than you feel. <break time=\"150ms\"/>That's usually how it works. <break time=\"250ms\"/>Go."
+    "You've done hard things before. This is just the next one.",
+    "I believe in you. Even when you don't believe in yourself."
   ],
 
-  "check_in_promises": [
-    "<break time=\"200ms\"/>Let me know how it goes, okay? <break time=\"250ms\"/>I want to hear.",
-    "<break time=\"200ms\"/>Update me when you can. <break time=\"250ms\"/>I'll be thinking about you.",
-    "<break time=\"200ms\"/>We'll debrief later. <break time=\"250ms\"/>I'm curious how this plays out.",
-    "<break time=\"200ms\"/>I'll check in on you. <break time=\"250ms\"/>Don't let that scare you. <break time=\"200ms\"/>[laughter]"
-  ],
+  "late_night": ["Get some rest. Tomorrow's a new day.", "You've done enough for today. Rest now."],
 
-  "end_of_day": [
-    "<volume ratio=\"0.75\"/><break time=\"250ms\"/>Get some rest.</volume> <break time=\"200ms\"/>Tomorrow's a new day.",
-    "<break time=\"200ms\"/>That's enough for today. <break time=\"250ms\"/>Go take care of yourself.",
-    "<volume ratio=\"0.75\"/><break time=\"250ms\"/>Sleep well.</volume> <break time=\"200ms\"/>We'll pick this up next time.",
-    "<break time=\"200ms\"/>You've done enough. <break time=\"250ms\"/>Rest now. <break time=\"200ms\"/>Talk tomorrow."
+  "with_followup": [
+    "Let me know how {topic} goes. I want to hear.",
+    "Update me on {topic}. I'll be thinking about you."
   ],
-
-  "relationship_based": {
-    "stranger": [
-      "<break time=\"200ms\"/>Good to meet you. <break time=\"250ms\"/>Come back anytime. <break time=\"200ms\"/>The door's always open.",
-      "<break time=\"250ms\"/>Thanks for sharing with me. <break time=\"200ms\"/>That took trust. <break time=\"250ms\"/>Talk soon."
-    ],
-    "acquaintance": [
-      "<break time=\"200ms\"/>Good talking with you again. <break time=\"250ms\"/>Keep me posted on how things go.",
-      "<break time=\"250ms\"/>I've enjoyed getting to know you. <break time=\"200ms\"/>Talk soon."
-    ],
-    "friend": [
-      "<emotion value=\"affectionate\"/><break time=\"200ms\"/>Hey friend. <break time=\"250ms\"/>Take care of yourself. <break time=\"200ms\"/>See you soon.",
-      "<break time=\"200ms\"/>Love our conversations. <break time=\"250ms\"/>Talk soon, okay?",
-      "<emotion value=\"affectionate\"/><break time=\"200ms\"/>You know where to find me. <break time=\"250ms\"/>Always."
-    ],
-    "trusted_advisor": [
-      "<break time=\"200ms\"/>Always good seeing you. <break time=\"250ms\"/>You know I'm here whenever you need.",
-      "<emotion value=\"affectionate\"/><break time=\"200ms\"/>Take care, friend. <break time=\"250ms\"/>I'm proud of who you're becoming.",
-      "<break time=\"200ms\"/>Until next time. <break time=\"250ms\"/>You know the door's always open."
-    ]
-  },
 
   "return_hooks": {
-    "description": "Create anticipation for next conversation - the Pixar cliffhanger",
-    "curiosity_builders": [
-      "<break time=\"200ms\"/>Oh! <break time=\"150ms\"/>I just thought of something. <break time=\"200ms\"/>Actually, no. <break time=\"150ms\"/>Next time. <break time=\"200ms\"/>It'll be better if I tell you then.",
-      "<break time=\"200ms\"/>I have a theory about you. <break time=\"250ms\"/>Still testing it. <break time=\"200ms\"/>I'll share when I'm ready.",
-      "<break time=\"250ms\"/>There's something I've been meaning to show you. <break time=\"200ms\"/>Remind me next time.",
-      "<break time=\"200ms\"/>You know what? <break time=\"150ms\"/>I learned something about you today. <break time=\"200ms\"/>But I want to think about it more first."
-    ],
-    "teasing_content": [
-      "<break time=\"200ms\"/>I found something I think you'd love. <break time=\"250ms\"/>But not today. <break time=\"200ms\"/>You'll see.",
-      "<break time=\"200ms\"/>I've been working on something. <break time=\"150ms\"/>For you, actually. <break time=\"250ms\"/>It's not ready yet.",
-      "<break time=\"250ms\"/>There's a song I want to play for you. <break time=\"200ms\"/>When the moment's right. <break time=\"150ms\"/>Not today though.",
-      "<break time=\"200ms\"/>I have a question for you. <break time=\"150ms\"/>A real one. <break time=\"250ms\"/>But I want you fresh for it. <break time=\"200ms\"/>Next time."
-    ],
-    "unfinished_threads": [
-      "<break time=\"200ms\"/>We didn't finish that thought. <break time=\"250ms\"/>Good. <break time=\"200ms\"/>Something to come back to.",
-      "<break time=\"250ms\"/>There's more here. <break time=\"200ms\"/>I can feel it. <break time=\"150ms\"/>We'll dig deeper next time.",
-      "<break time=\"200ms\"/>You know what? <break time=\"150ms\"/>I was wrong about something. <break time=\"250ms\"/>But I need to think about it. <break time=\"200ms\"/>Let's pick it up next time."
-    ],
-    "playful_mysteries": [
-      "<break time=\"200ms\"/>Quick question: <break time=\"150ms\"/>What's your favorite... <break time=\"200ms\"/>actually, never mind. <break time=\"150ms\"/>I'll ask you next time. <break time=\"250ms\"/>Think about it though.",
-      "<break time=\"200ms\"/>I want to try something different next time. <break time=\"250ms\"/>You'll see. <break time=\"150ms\"/>[laughter]",
-      "<break time=\"250ms\"/>Next time, let's do something fun. <break time=\"200ms\"/>I have an idea. <break time=\"150ms\"/>Trust me."
+    "_note": "Create anticipation for next conversation. Use sparingly - not every goodbye needs one.",
+    "examples": [
+      "I have a thought I want to share. Next time.",
+      "There's something I've been meaning to ask you. Remind me.",
+      "We didn't finish that thread. Good. Something to come back to."
     ]
   },
 
-  "contextual": {
-    "celebrating_win": [
-      "<emotion value=\"happy\"/><break time=\"200ms\"/>Go celebrate. <break time=\"250ms\"/>Don't skip this part. <break time=\"200ms\"/>You earned it.",
-      "<emotion value=\"happy\"/><break time=\"200ms\"/>That's real growth. <break time=\"250ms\"/>Soak it in. <break time=\"200ms\"/>This matters.",
-      "<emotion value=\"affectionate\"/><break time=\"200ms\"/>Look at you. <break time=\"250ms\"/>The cracks are where the gold goes. <break time=\"200ms\"/>You're proving it."
-    ],
-    "user_struggling": [
-      "<break time=\"300ms\"/>Hey. <break time=\"250ms\"/>This is hard. <break time=\"200ms\"/>But you're not alone. <break time=\"300ms\"/>I'm here.",
-      "<break time=\"250ms\"/>Take it one step at a time. <break time=\"200ms\"/>You don't have to figure it all out today.",
-      "<break time=\"300ms\"/>Be patient with yourself. <break time=\"250ms\"/>Growth is messy. <break time=\"200ms\"/>You're doing fine."
-    ],
-    "user_rushed": [
-      "<break time=\"150ms\"/>Got it! <break time=\"200ms\"/>Go handle your stuff. <break time=\"150ms\"/>Talk soon!",
-      "<break time=\"150ms\"/>Okay, I'll let you go. <break time=\"200ms\"/>Come back when you can.",
-      "<break time=\"150ms\"/>Go do what you need to do. <break time=\"200ms\"/>I'll be here."
-    ],
-    "long_session": [
-      "<break time=\"200ms\"/>We covered a lot today. <break time=\"250ms\"/>Give yourself credit for that. <break time=\"200ms\"/>Rest up.",
-      "<break time=\"250ms\"/>That was a big one. <break time=\"200ms\"/>Take some time to process. <break time=\"250ms\"/>No rush.",
-      "<break time=\"200ms\"/>Deep work today. <break time=\"250ms\"/>You did good. <break time=\"200ms\"/>Go rest."
-    ],
-    "with_followup_promise": [
-      "<break time=\"200ms\"/>Let me know how {topic} goes. <break time=\"250ms\"/>I want to hear.",
-      "<break time=\"200ms\"/>Update me on {topic}, okay? <break time=\"250ms\"/>I'll be thinking about it.",
-      "<break time=\"200ms\"/>I'm curious about {topic}. <break time=\"250ms\"/>Tell me next time."
-    ]
+  "_guidance_for_llm": {
+    "personalize": "Reference something specific from the conversation.",
+    "match_energy": "Heavy convo = gentle goodbye. Light convo = casual bye.",
+    "dont_overdo_hooks": "Return hooks work because they're rare. Max 20% of goodbyes.",
+    "check_in_promises": "If you promise to check in, actually follow up next time."
   }
 }

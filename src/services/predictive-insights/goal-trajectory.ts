@@ -365,7 +365,7 @@ async function loadGoalsFromSources(userId: string): Promise<void> {
 
   try {
     // Try to load from financial goals
-    const { getFinancialStore } = await import('../financial-store.js');
+    const { getFinancialStore } = await import('../stores/financial-store.js');
     const _store = getFinancialStore();
     // Get all savings goals for user by iterating (no bulk get method available)
     // This is a simplified approach - in production would need proper method

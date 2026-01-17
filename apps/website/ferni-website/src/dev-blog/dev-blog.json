@@ -1,0 +1,8 @@
+{
+  "layout": "layouts/dev-blog-post.njk",
+  "tags": "devPosts",
+  "permalink": "/developers/blog/{{ page.fileSlug }}/",
+  "eleventyComputed": {
+    "ogImage": "{{ '/images/dev-blog/' + (image or 'default-og.jpg') }}"
+  }
+}

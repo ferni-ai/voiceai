@@ -9,6 +9,7 @@
  * @module conversation/superhuman/natural-speech
  */
 
+import { seededChance, seededFloat, seededIndex, seededPick } from '../utils/rng.js';
 import { createLogger } from '../../utils/safe-logger.js';
 
 const log = createLogger({ module: 'NaturalSpeech' });
@@ -100,7 +101,13 @@ const THINKING_ALOUD: Record<string, string[]> = {
     "Wait, I'm having a thought—",
     "Hold on, something's clicking—",
   ],
-  calm: ['Let me reflect on that...', "I'm taking that in...", "That's worth sitting with..."],
+  // HUMANIZATION FIX: Removed "sitting with" - became therapy-speak crutch
+  calm: [
+    'Let me reflect on that...',
+    "I'm taking that in...",
+    'That one landed...',
+    'Hmm. Give me a second...',
+  ],
 };
 
 const SELF_CORRECTIONS: Record<string, string[]> = {
@@ -179,7 +186,7 @@ export function getSpeechModification(
   }
 ): SpeechModification | null {
   // Check if we should add a modification at all
-  if (Math.random() > config.frequency) {
+  if (!seededChance(`${Date.now()}:1`, config.frequency)) {
     return null;
   }
 
@@ -201,15 +208,15 @@ export function getSpeechModification(
   const filtered = enabledTypes.filter((t) => weights[t] > 0);
   if (filtered.length === 0) return null;
 
-  // Weighted random selection
+  // Weighted random selection using seeded RNG
   const totalWeight = filtered.reduce((sum, t) => sum + weights[t], 0);
-  let random = Math.random() * totalWeight;
+  let random = seededFloat(`${Date.now()}:naturalSpeech`) * totalWeight;
 
   for (const type of filtered) {
     random -= weights[type];
     if (random <= 0) {
       const patterns = getPatternPool(type, style);
-      const insertion = patterns[Math.floor(Math.random() * patterns.length)];
+      const insertion = seededPick(`${Date.now()}:213`, patterns) ?? patterns[0];
 
       return {
         type,
@@ -279,23 +286,23 @@ export function addNaturalSpeech(
 /**
  * Generate a "thinking out loud" moment
  */
-export function generateThinkingMoment(style: string = 'warm'): string {
+export function generateThinkingMoment(style = 'warm'): string {
   const patterns = THINKING_ALOUD[style] || THINKING_ALOUD['warm'];
-  return patterns[Math.floor(Math.random() * patterns.length)];
+  return seededPick(`${Date.now()}:285`, patterns) ?? patterns[0];
 }
 
 /**
  * Generate a self-correction
  */
-export function generateSelfCorrection(style: string = 'warm'): string {
+export function generateSelfCorrection(style = 'warm'): string {
   const patterns = SELF_CORRECTIONS[style] || SELF_CORRECTIONS['warm'];
-  return patterns[Math.floor(Math.random() * patterns.length)];
+  return seededPick(`${Date.now()}:293`, patterns) ?? patterns[0];
 }
 
 /**
  * Format natural speech guidance for prompt
  */
-export function formatNaturalSpeechGuidance(style: string = 'warm'): string {
+export function formatNaturalSpeechGuidance(style = 'warm'): string {
   return [
     '[🗣️ NATURAL SPEECH REMINDER]',
     '',

@@ -25,16 +25,26 @@
     <title>Ferni - Better Than Human</title>
 
     <!-- Favicon and Icons -->
+    <!-- ICO for legacy browsers (IE, older Safari) -->
+    <link rel="icon" href="/favicon.ico" sizes="16x16 32x32 48x48" />
+    <!-- SVG for modern browsers (scales perfectly, supports animation) -->
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <!-- Animated favicon for browsers that support it (breathing + smile) -->
+    <link rel="icon" type="image/svg+xml" href="/favicon-animated.svg" media="(prefers-reduced-motion: no-preference)" />
+    <!-- PNG fallbacks for older browsers -->
     <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png" />
     <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <!-- Apple Touch Icons -->
     <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
     <link rel="apple-touch-icon" sizes="120x120" href="/icons/apple-touch-icon-120x120.png" />
     <link rel="apple-touch-icon" sizes="152x152" href="/icons/apple-touch-icon-152x152.png" />
     <link rel="apple-touch-icon" sizes="167x167" href="/icons/apple-touch-icon-167x167.png" />
     <link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon-180x180.png" />
+    <!-- Safari Pinned Tab -->
     <link rel="mask-icon" href="/icons/safari-pinned-tab.svg" color="#4a6741" />
+    <!-- PWA Manifest -->
     <link rel="manifest" href="/manifest.json" />
+    <!-- Microsoft -->
     <meta name="msapplication-TileImage" content="/icons/mstile-150x150.png" />
     <meta name="msapplication-TileColor" content="#4a6741" />
 
@@ -75,6 +85,9 @@
       }
     </script>
 
+    <!-- Google Identity Services - One-Tap Sign-In -->
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+
     <!-- Spotify Web Playback SDK - Define callback BEFORE loading SDK -->
     <script>
       // Must be defined before SDK loads to avoid race condition
@@ -102,14 +115,6 @@
       <!-- Message Toast -->
       <div id="messageContainer" class="status-pill">
         <p id="messageText"></p>
-      </div>
-
-      <!-- Handoff Progress Indicator -->
-      <div id="handoffProgress" class="handoff-progress hidden" aria-live="polite">
-        <div class="handoff-progress-content">
-          <div class="handoff-spinner"></div>
-          <span class="handoff-text">Transferring to <span id="handoffTargetName"></span>...</span>
-        </div>
       </div>
 
       <!-- Transcript Container -->
@@ -159,8 +164,22 @@
           <div class="avatar-container entrance-avatar" data-emotion="neutral">
             <div id="avatarRing"></div>
             <div id="coachAvatar">
-              <span id="avatarText">FE</span>
-              <!-- Text IS the expressive element - no separate eye needed -->
+              <!-- Ferni: Simple opaque white eyes (no pupils, no sparkles)
+                   Sized to match iOS: eyeWidth ~22% of avatar, eyeHeight slightly taller -->
+              <svg id="avatarEyes" class="avatar-eyes" viewBox="0 0 100 100" aria-hidden="true">
+                <defs>
+                  <linearGradient id="eyeFillMain" x1="0%" y1="0%" x2="0%" y2="100%">
+                    <stop offset="0%" stop-color="#ffffff"/>
+                    <stop offset="100%" stop-color="#f0f0f0"/>
+                  </linearGradient>
+                </defs>
+                <!-- Left eye - iOS spacing: 18% from center = cx at 32 -->
+                <ellipse class="eye-main eye-left" cx="32" cy="50" rx="11" ry="14" fill="url(#eyeFillMain)"/>
+                <!-- Right eye - iOS spacing: 18% from center = cx at 68 -->
+                <ellipse class="eye-main eye-right" cx="68" cy="50" rx="11" ry="14" fill="url(#eyeFillMain)"/>
+              </svg>
+              <!-- Other personas: Text initials -->
+              <span id="avatarText"></span>
             </div>
             <div id="statusIndicator" class="status-disconnected"></div>
             <!-- Thinking indicator - floats below avatar, no layout shift -->

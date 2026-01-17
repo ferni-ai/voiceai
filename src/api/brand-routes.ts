@@ -32,7 +32,7 @@ import type {
 } from '../services/brand/types.js';
 import { createLogger } from '../utils/safe-logger.js';
 import { requireAuth } from './auth-middleware.js';
-import { parseRequestBody, sendError, sendJsonResponse } from './helpers.js';
+import { parseRequestBody, sendError, sendJsonResponse, sendJSONEdgeCached } from './helpers.js';
 
 const log = createLogger({ module: 'BrandRoutes' });
 
@@ -129,15 +129,22 @@ export async function handleBrandRoutes(
 /**
  * GET /api/brand/rules
  * Returns minimal brand rules for client-side validation
+ *
+ * Edge cached for 1 hour (static content)
  */
-async function handleGetRules(req: IncomingMessage, res: ServerResponse): Promise<boolean> {
+function handleGetRules(_req: IncomingMessage, res: ServerResponse): boolean {
   const rules = getClientBrandRules();
 
-  sendJsonResponse(res, 200, {
-    bannedPhrases: rules.bannedPhrases,
-    wordsToAvoid: rules.wordsToAvoid,
-    wordsToUse: rules.wordsToUse,
-  });
+  // Edge cache for 1 hour (brand rules are static)
+  sendJSONEdgeCached(
+    res,
+    {
+      bannedPhrases: rules.bannedPhrases,
+      wordsToAvoid: rules.wordsToAvoid,
+      wordsToUse: rules.wordsToUse,
+    },
+    3600
+  ); // 1 hour
 
   return true;
 }
@@ -201,7 +208,7 @@ async function handleQuickValidate(req: IncomingMessage, res: ServerResponse): P
  * GET /api/brand/personas
  * Returns list of all personas
  */
-async function handleGetPersonas(req: IncomingMessage, res: ServerResponse): Promise<boolean> {
+function handleGetPersonas(_req: IncomingMessage, res: ServerResponse): boolean {
   const personas = Object.values(PERSONA_VOICES).map((p) => ({
     id: p.id,
     name: p.name,
@@ -211,27 +218,27 @@ async function handleGetPersonas(req: IncomingMessage, res: ServerResponse): Pro
     colors: p.colors,
   }));
 
-  sendJsonResponse(res, 200, { personas });
+  // Edge cache for 24 hours (persona list is static)
+  sendJSONEdgeCached(res, { personas }, 86400); // 24 hours
   return true;
 }
 
 /**
  * GET /api/brand/personas/:id
  * Returns detailed info for a specific persona
+ *
+ * Edge cached for 24 hours (persona profiles are static)
  */
-async function handleGetPersona(
-  req: IncomingMessage,
-  res: ServerResponse,
-  personaId: string
-): Promise<boolean> {
+function handleGetPersona(_req: IncomingMessage, res: ServerResponse, personaId: string): boolean {
   const persona = getPersonaVoice(personaId as PersonaId);
 
-  if (!persona) {
+  if (persona === undefined) {
     sendError(res, 'Persona not found', 404);
     return true;
   }
 
-  sendJsonResponse(res, 200, { persona });
+  // Edge cache for 24 hours (persona profiles are static)
+  sendJSONEdgeCached(res, { persona }, 86400); // 24 hours
   return true;
 }
 

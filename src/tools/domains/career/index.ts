@@ -1081,9 +1081,9 @@ const expandNetworkDef: ToolDefinition = {
 // ============================================================================
 
 const assessBurnoutDef: ToolDefinition = {
-  id: 'assessBurnout',
-  name: 'Assess Burnout',
-  description: 'Check for signs of work burnout',
+  id: 'assessWorkBurnout',
+  name: 'Assess Work Burnout',
+  description: 'Check for signs of work-related burnout',
   domain: 'career',
   tags: ['career', 'burnout', 'wellness', 'assessment'],
 

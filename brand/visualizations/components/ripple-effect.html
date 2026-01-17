@@ -1,0 +1,85 @@
+<!-- Ripple Effect Map Visualization Component -->
+<!-- Cascading consequences of decisions -->
+
+<section id="ripple-effect" class="story-section">
+  <header class="story-section-header">
+    <p class="story-section-overline">Cause and Effect</p>
+    <h2 class="story-section-title">Ripple Effect</h2>
+    <p class="story-section-description">
+      Every decision creates ripples. Some we see immediately, others take months to reach the shore. This maps the cascading effects of one choice.
+    </p>
+  </header>
+
+  <div class="bth-callout">
+    <div class="bth-callout-icon">F</div>
+    <div class="bth-callout-content">
+      <div class="bth-callout-title">Better Than Human</div>
+      <div class="bth-callout-text">
+        Friends see isolated events. Ferni traces the invisible threads - how one decision in March led to that opportunity in October.
+      </div>
+    </div>
+  </div>
+
+  <div class="story-card">
+    <div class="story-card-header">
+      <div>
+        <h3 class="story-card-title">The Ripples of Change</h3>
+        <p class="story-card-subtitle">How "quitting that job" changed everything</p>
+      </div>
+    </div>
+
+    <div class="ripple-container">
+      <svg class="ripple-svg" viewBox="0 0 400 400">
+        <defs>
+          <radialGradient id="rippleGrad" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" style="stop-color: var(--color-nayan); stop-opacity: 0.3"/>
+            <stop offset="100%" style="stop-color: var(--color-nayan); stop-opacity: 0"/>
+          </radialGradient>
+        </defs>
+
+        <!-- Ripple circles (concentric) -->
+        <circle class="ripple-circle" cx="200" cy="200" r="40" stroke-width="2"/>
+        <circle class="ripple-circle" cx="200" cy="200" r="90" stroke-width="1.5"/>
+        <circle class="ripple-circle" cx="200" cy="200" r="140" stroke-width="1"/>
+        <circle class="ripple-circle" cx="200" cy="200" r="190" stroke-width="0.5"/>
+
+        <!-- Connection lines -->
+        <line x1="200" y1="160" x2="200" y2="60" stroke="rgba(212, 165, 116, 0.3)" stroke-width="1"/>
+        <line x1="240" y1="175" x2="320" y2="100" stroke="rgba(212, 165, 116, 0.3)" stroke-width="1"/>
+        <line x1="240" y1="225" x2="340" y2="280" stroke="rgba(212, 165, 116, 0.3)" stroke-width="1"/>
+        <line x1="200" y1="240" x2="200" y2="340" stroke="rgba(212, 165, 116, 0.3)" stroke-width="1"/>
+        <line x1="160" y1="225" x2="80" y2="300" stroke="rgba(212, 165, 116, 0.3)" stroke-width="1"/>
+        <line x1="160" y1="175" x2="70" y2="120" stroke="rgba(212, 165, 116, 0.3)" stroke-width="1"/>
+
+        <!-- Center glow -->
+        <circle cx="200" cy="200" r="50" fill="url(#rippleGrad)"/>
+      </svg>
+
+      <div class="ripple-center">
+        <div class="ripple-origin">"I quit"</div>
+        <div class="ripple-date">March 2022</div>
+      </div>
+
+      <div class="ripple-effects">
+        <div class="ripple-effect" style="top: 10%; left: 50%; transform: translateX(-50%);">
+          More time with family
+        </div>
+        <div class="ripple-effect" style="top: 18%; right: 8%;">
+          Started therapy
+        </div>
+        <div class="ripple-effect" style="top: 65%; right: 5%;">
+          New career path
+        </div>
+        <div class="ripple-effect" style="bottom: 8%; left: 50%; transform: translateX(-50%);">
+          Better sleep quality
+        </div>
+        <div class="ripple-effect" style="top: 70%; left: 5%;">
+          Repaired friendship
+        </div>
+        <div class="ripple-effect" style="top: 22%; left: 5%;">
+          Lost some income
+        </div>
+      </div>
+    </div>
+  </div>
+</section>

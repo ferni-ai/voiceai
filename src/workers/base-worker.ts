@@ -11,6 +11,8 @@
  * 3. Cloud Functions (event-driven, auto-scaling)
  */
 
+/* eslint-disable no-restricted-imports -- Workers need direct service imports */
+
 import type { EventPayload, EventType } from '../services/async-events/index.js';
 import { createLogger } from '../utils/safe-logger.js';
 
@@ -152,14 +154,8 @@ export abstract class BaseWorker {
 
     try {
       // Dynamic import - may not be available in all environments
-      // Using Function constructor to avoid TypeScript module resolution
-      const moduleName = '@google-cloud/pubsub';
-      const importFn = new Function('m', 'return import(m)') as (m: string) => Promise<unknown>;
-      const pubsubModule = (await importFn(moduleName).catch(() => null)) as {
-        PubSub?: new (opts: { projectId: string }) => {
-          subscription: (name: string, opts: unknown) => unknown;
-        };
-      } | null;
+      // Uses standard dynamic import (safe - no Function constructor)
+      const pubsubModule = await import('@google-cloud/pubsub').catch(() => null);
       if (!pubsubModule?.PubSub) {
         this.log.warn('Pub/Sub module not available - running in local mode');
         return;
@@ -170,9 +166,8 @@ export abstract class BaseWorker {
 
       this.subscription = pubsub.subscription(this.config.subscriptionName, {
         flowControl: {
-          maxMessages: this.config.maxConcurrency || 10,
+          maxMessages: this.config.maxConcurrency ?? 10,
         },
-        ackDeadline: this.config.ackDeadlineSeconds || 30,
       });
 
       // Use generic event handlers to avoid type issues
@@ -273,11 +268,13 @@ export abstract class LocalWorker extends BaseWorker {
     this.log.info('Local event subscription active');
   }
 
-  protected async cleanup(): Promise<void> {
+  protected override async cleanup(): Promise<void> {
     if (this.unsubscribe) {
       this.unsubscribe();
       this.unsubscribe = null;
     }
+    // No cleanup needed - just satisfy interface
+    await Promise.resolve();
   }
 }
 

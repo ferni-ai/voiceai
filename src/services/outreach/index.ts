@@ -208,7 +208,7 @@ import {
 } from './maintenance.js';
 
 // Analytics & Learning
-import { getBetterThanHumanTelemetry } from '../better-than-human-telemetry.js';
+import { getBetterThanHumanTelemetry } from '../analytics/better-than-human-telemetry.js';
 import {
   analytics,
   calculateGlobalAnalytics,
@@ -669,7 +669,7 @@ async function handleOutreachDelivery(decision: OutreachDecision): Promise<void>
     // Fallback to legacy delivery if new services didn't work
     if (!delivered) {
       log.debug({ channel: finalChannel, userId }, 'Falling back to legacy delivery');
-      const proactiveOutreach = await import('../../tools/proactive-outreach.js');
+      const proactiveOutreach = await import('../../tools/domains/proactive/outreach/index.js');
 
       switch (finalChannel) {
         case 'sms':
@@ -855,7 +855,7 @@ export async function triggerThinkingOfYou(
 // Decision Engine
 export {
   getOutreachDecisionEngine,
-  OutreachDecisionEngine,
+  type OutreachDecisionEngine,
   startOutreachDecisionEngine,
   stopOutreachDecisionEngine,
 };
@@ -896,7 +896,7 @@ export type { ThinkingOfYouOutreach, ThinkingOfYouTrigger };
 
 // Conversational Calls
 export {
-  ConversationalCallService,
+  type ConversationalCallService,
   getConversationalCallService,
   isConversationalCallsConfigured,
   makeConversationalCall,
@@ -1171,6 +1171,57 @@ export {
 } from './superhuman-outreach-integration.js';
 
 export type { SuperhumanOutreachTrigger } from './superhuman-outreach-integration.js';
+
+// 🌱 Maya Habit Outreach
+export {
+  checkStreaksAtRisk,
+  checkMilestonesToCelebrate,
+  checkSetbackRecoveryNeeded,
+  generateWeeklyReviewData,
+  publishStreakProtectionAlert,
+  publishMilestoneCelebration,
+  publishWeeklyReviewTrigger,
+  publishSetbackRecoveryTrigger,
+  MAYA_STREAK_PROTECTION_MESSAGES,
+  MAYA_MILESTONE_MESSAGES,
+  MAYA_WEEKLY_REVIEW_MESSAGES,
+  MAYA_SETBACK_MESSAGES,
+  MAYA_HABIT_OUTREACH_CONFIG,
+  type HabitOutreachContext,
+  type StreakAtRiskResult,
+} from './maya-habit-outreach.js';
+
+// 🧠 Trust-Based Outreach Bridge ("Better than Human")
+export {
+  evaluateTrustBasedOutreach,
+  handleConcernDetection,
+  shouldAvoidOutreachTopic,
+  runTrustBasedOutreachBatch,
+  type TrustOutreachEvaluationResult,
+  type ConcernOutreachContext,
+} from './trust-outreach-bridge.js';
+
+// 🌊 Life Rhythm Prediction Outreach
+export {
+  evaluateLifeRhythmOutreach,
+  triggerLifeRhythmOutreach,
+  generateLifeRhythmMessage,
+  runDailyLifeRhythmOutreach,
+  type LifeRhythmOutreachConfig,
+  type LifeRhythmOutreachResult,
+} from './life-rhythm-outreach.js';
+
+// 🔔 Pattern-Based Proactive Outreach (Better Than Human)
+export {
+  schedulePatternOutreach,
+  schedulePatternOutreachAsync,
+  scheduleSundayAnxietyFollowUp,
+  scheduleWorkStressFollowUp,
+  scheduleRelationshipCheckIn,
+  PATTERN_OUTREACH_MAP,
+  type PatternTrigger,
+  type PatternOutreachContext,
+} from './pattern-outreach-integration.js';
 
 // ============================================================================
 // DEFAULT EXPORT

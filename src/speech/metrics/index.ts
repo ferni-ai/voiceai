@@ -112,10 +112,10 @@ class SpeechMetricsCollector {
   private backchannelResults: boolean[] = [];
   private turnPredictionResults: boolean[] = [];
 
-  private sessionStarts: Map<string, number> = new Map();
+  private sessionStarts = new Map<string, number>();
   private sessionDurations: number[] = [];
 
-  private operations: Map<string, OperationMetrics> = new Map();
+  private operations = new Map<string, OperationMetrics>();
 
   private totalSessionsCreated = 0;
   private totalSessionsCleaned = 0;

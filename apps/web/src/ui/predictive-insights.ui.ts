@@ -22,7 +22,7 @@ import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 const log = createLogger('PredictiveInsightsUI');
 
 // FIX BUG: Track all setTimeout calls for proper cleanup
-const { trackedTimeout, clearAll: clearAllTimeouts } = createTimeoutTracker();
+const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
 
 // ============================================================================
 // TYPES
@@ -367,9 +367,9 @@ class PredictiveInsightsUI {
         position: fixed;
         top: calc(var(--space-4) + 60px);
         right: var(--space-4);
-        z-index: 1000;
+        z-index: var(--z-dropdown);
         pointer-events: none;
-        max-width: 360px;
+        max-width: min(360px, 100%);
         width: 100%;
       }
 
@@ -515,7 +515,7 @@ class PredictiveInsightsUI {
       }
 
       /* Mobile adjustments */
-      @media (max-width: 480px) {
+      @media (max-width: clamp(336px, 90vw, 480px)) {
         .predictive-insights-container {
           top: auto;
           bottom: calc(var(--space-4) + 80px);

@@ -109,20 +109,19 @@ const STYLES = `
   .trust-analytics-backdrop {
     position: absolute;
     inset: 0;
-    background: rgba(44, 37, 32, 0.5);
-    backdrop-filter: blur(var(--glass-blur-strong, 24px));
-    -webkit-backdrop-filter: blur(var(--glass-blur-strong, 24px));
+    background: rgba(44, 37, 32, 0.75);
   }
 
   /* Modal Card */
   .trust-analytics-card {
     position: relative;
     width: 100%;
-    max-width: 800px;
+    max-width: clamp(560px, 90vw, 800px);
     max-height: 90vh;
-    background: var(--color-background-elevated, #fffdfb);
-    border-radius: var(--radius-2xl, 24px);
-    box-shadow: var(--shadow-2xl, 0 24px 48px rgba(44, 37, 32, 0.15));
+    background: var(--color-bg-elevated, #FFFDFB);
+    border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
+    border-radius: var(--radius-xl, 20px);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.06);
     overflow: hidden;
     transform: scale(0.95);
     transition: transform ${DURATION.NORMAL}ms ${EASING.SPRING};
@@ -573,7 +572,7 @@ class TrustAnalyticsUI {
             <span class="trust-analytics-eyebrow">Admin</span>
             <h2 class="trust-analytics-title">Trust Systems Analytics</h2>
           </div>
-          <div class="trust-analytics-header-actions">
+          <div class="trust-analytics-header-actions" role="button" tabindex="0">
             <button class="trust-analytics-btn-icon" data-action="refresh" aria-label="${t('accessibility.refresh')}">
               ${ICONS.refresh}
             </button>
@@ -589,7 +588,7 @@ class TrustAnalyticsUI {
     // Bind events
     this.overlay.querySelector('.trust-analytics-backdrop')?.addEventListener('click', () => this.hide());
     this.overlay.querySelector('[data-action="close"]')?.addEventListener('click', () => this.hide());
-    this.overlay.querySelector('[data-action="refresh"]')?.addEventListener('click', () => this.refresh());
+    this.overlay.querySelector('[data-action="refresh"]')?.addEventListener('click', () => { void this.refresh(); });
 
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape' && this.isVisible) {

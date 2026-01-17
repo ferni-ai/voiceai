@@ -39,6 +39,8 @@ import type { PersonaId } from '../types/persona.js';
 import { getHandoffTimeoutMs } from '../utils/environment.js';
 import { createLogger } from '../utils/logger.js';
 import { audioService, type SoundEffect } from './audio.service.js';
+// 🌟 Transcendent Animation Systems - Signature handoff moments
+import { handleMomentTrigger, setEmotionalState } from '../systems/index.js';
 
 const log = createLogger('Handoff');
 
@@ -70,7 +72,11 @@ export type HandoffStartCallback = (
   banter?: HandoffBanter
 ) => void;
 export type HandoffCompleteCallback = (toPersona: PersonaId) => void;
-export type HandoffFailedCallback = (error: string, targetPersona: PersonaId) => void;
+export type HandoffFailedCallback = (
+  error: string,
+  targetPersona: PersonaId,
+  rollbackTo?: PersonaId
+) => void;
 /** FIX BUG #17: Callback for when backend acknowledges receiving handoff request */
 export type HandoffAcknowledgedCallback = (
   target: PersonaId,
@@ -287,10 +293,11 @@ class HandoffService {
   async processDataMessage(message: DataMessage): Promise<boolean> {
     // FIX BUG #33: Handle state reset messages from backend
     if (isStateReset(message)) {
-      log.info('State reset received from backend:', message.activePersona);
-      this.resetSession();
-      // Update app state to match backend
       const personaId = normalizeAgentId(message.activePersona);
+      log.info('State reset received from backend:', personaId);
+      // BUG FIX: Pass the starting persona so metPersonas is correctly initialized
+      this.resetSession(personaId);
+      // Update app state to match backend
       setActivePersona(personaId);
       return true;
     }
@@ -330,7 +337,7 @@ class HandoffService {
     const event = message as HandoffEvent;
     // FIX BUG: Backend may send 'target' OR 'newAgent' - accept either
     const eventWithTarget = event as HandoffEvent & { target?: string };
-    const agentId = event.newAgent || eventWithTarget.target || '';
+    const agentId = event.newAgent ?? eventWithTarget.target ?? '';
     const toPersona = normalizeAgentId(agentId);
     const eventWithPrevious = event as HandoffEvent & { previousAgent?: string };
     const fromPersona = eventWithPrevious.previousAgent
@@ -361,7 +368,7 @@ class HandoffService {
         success?: boolean;
         error?: string;
       };
-      const target = normalizeAgentId(ackEvent.target || ackEvent.newAgent);
+      const target = normalizeAgentId(ackEvent.target ?? ackEvent.newAgent);
       const success = ackEvent.success ?? true;
       const error = ackEvent.error;
 
@@ -389,7 +396,7 @@ class HandoffService {
 
       // WARM HANDOFF: Extract banter text from the event
       const banter: HandoffBanter | undefined =
-        event.softOpenBanter || event.arrivingBanter
+        event.softOpenBanter ?? event.arrivingBanter
           ? { softOpen: event.softOpenBanter, arriving: event.arrivingBanter }
           : undefined;
 
@@ -542,7 +549,11 @@ class HandoffService {
 
       // Handoff failed - recover gracefully
       const errorMsg = (event as HandoffEvent & { error?: string }).error ?? 'Unknown error';
-      log.error('Handoff failed:', errorMsg);
+      // FIX AUDIT GAP #1: Extract rollbackTo for UI state recovery
+      const rollbackTo = (event as HandoffEvent & { rollbackTo?: string }).rollbackTo;
+      const rollbackPersona = rollbackTo ? normalizeAgentId(rollbackTo) : undefined;
+
+      log.error('Handoff failed:', { errorMsg, rollbackTo: rollbackPersona });
 
       // FIX BUG #38: If we already played a handoff sound, play recovery sound
       // so the user knows the transition failed (auditory feedback)
@@ -562,10 +573,16 @@ class HandoffService {
       this._targetPersona = null;
       this._handoffPhase = 'failed';
 
-      // Notify failure callbacks
+      // FIX AUDIT GAP #1: Restore UI to previous persona if rollbackTo provided
+      if (rollbackPersona) {
+        log.info('Rolling back UI state to:', rollbackPersona);
+        setActivePersona(rollbackPersona);
+      }
+
+      // Notify failure callbacks (now includes rollbackTo)
       for (const callback of this.failedCallbacks) {
         try {
-          callback(errorMsg, toPersona);
+          callback(errorMsg, toPersona, rollbackPersona);
         } catch (error) {
           log.error('Handoff failed callback error:', error);
         }
@@ -643,19 +660,24 @@ class HandoffService {
    * FIX BUG: Start a timeout for handoff transitions.
    * If backend doesn't respond within timeout, reset state to prevent stuck UI.
    * Also restores the UI to the previous state.
+   *
+   * FIX AUDIT GAP #2: Store fromPersona at timeout start for reliable rollback.
+   * The timeout captures the "from" persona at the moment the handoff starts,
+   * ensuring we always have accurate rollback info even if state changes during transition.
    */
   private startHandoffTimeout(targetPersona: PersonaId): void {
     // Clear any existing timeout
     this.clearHandoffTimeout();
 
     // Store the current persona before transition for recovery
-    const previousPersona = appState.get('activePersona').id;
+    // FIX AUDIT GAP #2: Capture at the EXACT moment handoff starts for reliable rollback
+    const fromPersona = appState.get('activePersona').id;
 
     this._handoffTimeoutId = setTimeout(() => {
       log.warn('Handoff timeout - restoring UI:', {
         targetPersona,
         timeoutMs: this.HANDOFF_TIMEOUT_MS,
-        previousPersona,
+        fromPersona,
       });
 
       // Reset transition state
@@ -664,14 +686,15 @@ class HandoffService {
       this._handoffPhase = 'idle';
       this._soundPlayedForCurrentHandoff = false;
 
-      // FIX BUG: Restore the UI to the previous active persona
+      // FIX AUDIT GAP #2: Restore the UI to the "from" persona captured at start
       // This ensures the button moves back to the correct position
-      setActivePersona(previousPersona);
+      setActivePersona(fromPersona);
 
-      // Notify failed callbacks with timeout error
+      // FIX AUDIT GAP #2: Notify failed callbacks with timeout error AND rollback info
+      // This allows app.ts handlers to also update waveform/avatar persona
       for (const callback of this.failedCallbacks) {
         try {
-          callback('Connection timeout - please try again', targetPersona);
+          callback('Connection timeout - please try again', targetPersona, fromPersona);
         } catch (err) {
           log.error('Handoff timeout callback error:', err);
         }
@@ -760,23 +783,56 @@ class HandoffService {
       }
     }
 
-    // Optionally notify backend (if it supports cancellation)
-    void import('./connection.service.js')
-      .then(({ connectionService }) => {
+    // FIX AUDIT GAP #4: Notify backend with better error handling and retry logic
+    // Use IIFE to properly handle async errors without losing the cancel result
+    (async () => {
+      try {
+        const { connectionService } = await import('./connection.service.js');
         const room = connectionService.getRoom();
-        if (room?.localParticipant && this.currentHandoffId) {
-          const message = JSON.stringify({
-            type: 'handoff_cancel',
-            handoffId: this.currentHandoffId,
-            reason: 'User cancelled',
-            timestamp: Date.now(),
-          });
-          room.localParticipant
-            .publishData(new TextEncoder().encode(message), { reliable: true })
-            .catch((err) => log.warn('Failed to notify backend of cancellation:', err));
+
+        if (!room?.localParticipant) {
+          log.debug('No room/participant available to send cancel - likely already disconnected');
+          return;
         }
-      })
-      .catch((err) => log.warn('Failed to import connection service for cancellation:', err));
+
+        // Include target persona for backend state cleanup
+        const message = JSON.stringify({
+          type: 'handoff_cancel',
+          handoffId: this.currentHandoffId,
+          targetPersona: cancelledTarget,
+          reason: 'User cancelled',
+          timestamp: Date.now(),
+        });
+
+        // Retry once if first send fails
+        let sendAttempt = 0;
+        const maxAttempts = 2;
+
+        while (sendAttempt < maxAttempts) {
+          try {
+            await room.localParticipant.publishData(new TextEncoder().encode(message), {
+              reliable: true,
+            });
+            log.debug('Backend notified of cancellation:', { handoffId: this.currentHandoffId });
+            return;
+          } catch (sendErr) {
+            sendAttempt++;
+            if (sendAttempt >= maxAttempts) {
+              log.warn('Failed to notify backend of cancellation after retries:', {
+                error: String(sendErr),
+                attempts: maxAttempts,
+              });
+            } else {
+              // Brief delay before retry
+              await new Promise((resolve) => setTimeout(resolve, 100));
+            }
+          }
+        }
+      } catch (importErr) {
+        // Module import failed - connection service not available
+        log.warn('Could not load connection service for cancellation:', String(importErr));
+      }
+    })();
 
     return true;
   }
@@ -941,14 +997,17 @@ class HandoffService {
 
   /**
    * Reset session state (call on disconnect).
+   * BUG FIX: Now accepts the starting persona to properly initialize metPersonas.
+   * If no persona provided, defaults to 'ferni' for backward compatibility.
    */
-  resetSession(): void {
+  resetSession(startingPersonaId?: PersonaId): void {
     // FIX BUG: Clear timeouts to prevent stuck states
     this.clearHandoffTimeout();
     this.clearPendingSoftOpenTimeout();
 
     this.metPersonas.clear();
-    this.metPersonas.add('ferni');
+    // BUG FIX: Use the actual starting persona, not always 'ferni'
+    this.metPersonas.add(startingPersonaId ?? 'ferni');
     this._isTransitioning = false;
     this._targetPersona = null;
     // FIX BUG #31: Reset sequence tracking on session reset
@@ -1007,6 +1066,7 @@ class HandoffService {
    * - Full IDs: 'jack-bogle', 'peter-lynch', 'comm-specialist', etc.
    * - Short aliases: 'jack', 'peter', 'alex', 'maya', 'jordan'
    * - Legacy names: 'generic-advisor', 'debt-counselor', 'retirement-specialist'
+   * - New format: 'target' field (from coordinator)
    */
   private normalizeHandoff(event: HandoffEvent): NormalizedHandoff {
     // Use previousAgent from event if available, otherwise get from current state
@@ -1014,7 +1074,12 @@ class HandoffService {
     const fromPersona = eventWithPrevious.previousAgent
       ? normalizeAgentId(eventWithPrevious.previousAgent)
       : appState.get('activePersona').id;
-    const toPersona = normalizeAgentId(event.newAgent);
+    
+    // FIX BUG: Backend sends 'target' (from coordinator) OR 'newAgent' (legacy)
+    // Accept either field to prevent undefined being passed to normalizeAgentId
+    const eventWithTarget = event as HandoffEvent & { target?: string };
+    const agentId = event.newAgent ?? eventWithTarget.target;
+    const toPersona = normalizeAgentId(agentId);
 
     log.debug('Normalizing handoff:', {
       rawNewAgent: event.newAgent,
@@ -1096,6 +1161,12 @@ class HandoffService {
     // Track that we've met this persona
     this.metPersonas.add(handoff.toPersona);
 
+    // 🌟 Transcendent: Trigger recognition moment for first meetings
+    // This is the powerful "I see you" moment that creates instant connection
+    if (isFirstMeeting) {
+      handleMomentTrigger('recognition');
+    }
+
     // Calculate post-sound pause for human-like timing
     const pauseAfterSound = this.calculatePauseAfterSound(handoff.direction, isFirstMeeting);
 
@@ -1114,6 +1185,12 @@ class HandoffService {
 
     // Update active persona in state
     setActivePersona(handoff.toPersona);
+
+    // 🌟 Transcendent: Trigger the signature handoff moment
+    // This creates a multi-phase orchestrated transition animation
+    handleMomentTrigger('handoff');
+    // Set emotional state to anticipation (excitement for the new persona)
+    setEmotionalState('anticipation');
 
     // Notify all callbacks
     for (const callback of this.callbacks) {

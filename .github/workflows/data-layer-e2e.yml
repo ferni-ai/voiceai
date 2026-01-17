@@ -1,0 +1,130 @@
+name: Data Layer E2E Tests
+
+# Runs Firestore emulator tests for the semantic data layer
+# Validates full data flow: hooks → indexing → search → retrieval
+
+on:
+  pull_request:
+    paths:
+      - 'src/services/data-layer/**'
+      - 'src/memory/**'
+      - 'src/intelligence/**'
+      - 'src/tests/data-layer/**'
+  push:
+    branches: [main]
+    paths:
+      - 'src/services/data-layer/**'
+      - 'src/memory/**'
+  workflow_dispatch:
+
+jobs:
+  firestore-e2e:
+    name: Firestore Emulator E2E
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 10
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Setup Java (required for Firestore emulator)
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Install Firebase CLI
+        run: npm install -g firebase-tools
+
+      - name: Start Firestore Emulator
+        run: |
+          firebase emulators:start --only firestore --project demo-project &
+          echo "Waiting for emulator to start..."
+          sleep 10
+          # Verify emulator is running
+          curl -s http://localhost:8080/ || echo "Emulator may not be HTTP accessible, continuing..."
+
+      - name: Run Data Layer E2E Tests
+        run: |
+          pnpm vitest run src/tests/data-layer/e2e-firestore.test.ts --reporter=verbose
+        env:
+          FIRESTORE_EMULATOR_HOST: localhost:8080
+          NODE_ENV: test
+          # Disable Google API for tests (no real embeddings)
+          GOOGLE_API_KEY: ''
+          SKIP_EMBEDDING: 'true'
+
+      - name: Run Service Wiring Integration Tests
+        run: |
+          pnpm vitest run src/services/data-layer/__tests__/service-wiring-integration.test.ts --reporter=verbose
+        env:
+          NODE_ENV: test
+
+      - name: Run Intelligence Layer Tests
+        run: |
+          pnpm vitest run src/intelligence/__tests__/ --reporter=verbose
+        env:
+          FIRESTORE_EMULATOR_HOST: localhost:8080
+          NODE_ENV: test
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "## 🗄️ Data Layer E2E Test Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Tests run with Firestore emulator at localhost:8080" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Coverage" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Integration hooks (trust, superhuman, calendar, contacts)" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Semantic search across domains" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Cross-domain correlation" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ TTL cleanup validation" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Queue metrics and monitoring" >> $GITHUB_STEP_SUMMARY
+
+  # Quick unit tests (no emulator required)
+  unit-tests:
+    name: Data Layer Unit Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 10
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build TypeScript
+        run: pnpm build:fast
+
+      - name: Run Unit Tests
+        run: |
+          pnpm vitest run src/services/data-layer/__tests__/ --reporter=verbose
+        env:
+          NODE_ENV: test
+          SKIP_FIRESTORE: 'true'

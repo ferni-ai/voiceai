@@ -328,7 +328,9 @@ describe('OrchestratorPerformance', () => {
       expect(cache.get('a')).toBe(1);
 
       // Wait for TTL
-      await new Promise((resolve) => setTimeout(resolve, 60));
+      await new Promise<void>((resolve) => {
+        setTimeout(resolve, 60);
+      });
 
       expect(cache.get('a')).toBeUndefined();
     });
@@ -444,7 +446,9 @@ describe('OrchestratorPerformance', () => {
       expect(breaker.isOpen()).toBe(true);
 
       // Wait for reset timeout
-      await new Promise((resolve) => setTimeout(resolve, 60));
+      await new Promise<void>((resolve) => {
+        setTimeout(resolve, 60);
+      });
 
       expect(breaker.isOpen()).toBe(false);
       expect(breaker.getState().state).toBe('half-open');
@@ -459,7 +463,9 @@ describe('OrchestratorPerformance', () => {
       });
 
       breaker.recordFailure();
-      await new Promise((resolve) => setTimeout(resolve, 60));
+      await new Promise<void>((resolve) => {
+        setTimeout(resolve, 60);
+      });
 
       // Call isOpen() to trigger transition to half-open
       expect(breaker.isOpen()).toBe(false); // Returns false, but transitions to half-open
@@ -482,7 +488,9 @@ describe('OrchestratorPerformance', () => {
       });
 
       breaker.recordFailure();
-      await new Promise((resolve) => setTimeout(resolve, 60));
+      await new Promise<void>((resolve) => {
+        setTimeout(resolve, 60);
+      });
 
       // Half-open
       breaker.isOpen(); // Triggers transition to half-open
@@ -574,7 +582,9 @@ describe('OrchestratorPerformance', () => {
     it('should timeout slow operations', async () => {
       const result = await withTimeout(
         async () => {
-          await new Promise((resolve) => setTimeout(resolve, 100));
+          await new Promise<void>((resolve) => {
+            setTimeout(resolve, 100);
+          });
           return 'too-late';
         },
         50,

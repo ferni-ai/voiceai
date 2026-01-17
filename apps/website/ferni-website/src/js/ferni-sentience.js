@@ -458,7 +458,9 @@
           const teamAttention = state.attentionMap.get('team');
           return teamAttention && teamAttention.duration > 5000;
         },
-        action: () => this.highlightCTA('Meet the team →', '#team'),
+        // Note: Use PredictivePresence instead of 'this' because arrow functions
+        // capture 'this' from definition scope, not the object
+        action: () => PredictivePresence.highlightCTA('Meet the team →', '#team'),
       },
 
       // Pattern: User read pricing carefully
@@ -467,19 +469,19 @@
           const pricingAttention = state.attentionMap.get('pricing');
           return pricingAttention && pricingAttention.duration > 8000;
         },
-        action: () => this.showSoftNudge('Ready to start? Your first 5 conversations are free.'),
+        action: () => PredictivePresence.showSoftNudge('Ready to start? Your first 5 conversations are free.'),
       },
 
       // Pattern: User scrolled past CTA multiple times
       ctaHesitation: {
         trigger: () => state.interactionCount > 10 && !state.hasClickedCTA,
-        action: () => this.showSoftNudge('No pressure. Just try talking to Ferni.'),
+        action: () => PredictivePresence.showSoftNudge('No pressure. Just try talking to Ferni.'),
       },
 
       // Pattern: High engagement, not converted
       highEngagementNoConversion: {
         trigger: () => state.sentiment > 0.7 && state.engagementLevel >= 2 && !state.hasConverted,
-        action: () => this.pulseDemo(),
+        action: () => PredictivePresence.pulseDemo(),
       },
     },
 
@@ -511,29 +513,13 @@
     },
 
     showSoftNudge(message) {
-      // Non-intrusive nudge (not a popup)
-      const existing = document.querySelector('.ferni-soft-nudge');
-      if (existing) return;
-
-      const nudge = document.createElement('div');
-      nudge.className = 'ferni-soft-nudge';
-      nudge.innerHTML = `
-        <div class="ferni-soft-nudge__avatar">FE</div>
-        <p class="ferni-soft-nudge__message">${message}</p>
-      `;
-
-      document.body.appendChild(nudge);
-
-      // Animate in
-      requestAnimationFrame(() => {
-        nudge.classList.add('is-visible');
-      });
-
-      // Remove after 8 seconds
-      setTimeout(() => {
-        nudge.classList.remove('is-visible');
-        setTimeout(() => nudge.remove(), 500);
-      }, 8000);
+      // DISABLED: Soft nudge boxes were intrusive
+      // Instead, log for debugging and use subtle visual cues
+      if (CONFIG.debug) {
+        console.log('[Ferni Sentience] Soft nudge (disabled):', message);
+      }
+      // The sentiment color shifts and mood changes provide enough feedback
+      // without floating boxes
     },
 
     pulseDemo() {
@@ -729,50 +715,10 @@
         50% { box-shadow: 0 0 20px 5px rgba(74, 103, 65, 0.3); }
       }
       
-      /* Soft nudge */
-      .ferni-soft-nudge {
-        position: fixed;
-        bottom: 100px;
-        right: 24px;
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        padding: 12px 20px;
-        background: var(--color-background-elevated, #faf8f5);
-        border-radius: 24px;
-        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-        opacity: 0;
-        transform: translateY(20px);
-        transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
-        z-index: 9997;
-        max-width: 300px;
-      }
-      
-      .ferni-soft-nudge.is-visible {
-        opacity: 1;
-        transform: translateY(0);
-      }
-      
-      .ferni-soft-nudge__avatar {
-        width: 32px;
-        height: 32px;
-        background: linear-gradient(135deg, #5a7751, #4a6741);
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: white;
-        font-size: 10px;
-        font-weight: 700;
-        flex-shrink: 0;
-      }
-      
-      .ferni-soft-nudge__message {
-        font-size: 14px;
-        color: var(--color-text-primary, #2c2520);
-        margin: 0;
-        line-height: 1.4;
-      }
+      /* Soft nudge - DISABLED (kept for reference)
+       * Previously showed floating message boxes - users found them intrusive
+       * Sentiment feedback now happens through color shifts and mood states
+       */
       
       /* Demo pulse attention */
       .ferni-pulse-attention {
@@ -914,23 +860,8 @@
     },
 
     adjustNudgePositioning() {
-      // Nudges should appear above mobile nav on phones
-      const style = document.createElement('style');
-      style.textContent = `
-        @media (max-width: 768px) {
-          .ferni-soft-nudge {
-            bottom: 140px !important;
-            right: 16px !important;
-            left: 16px !important;
-            max-width: none !important;
-          }
-          
-          .ferni-soft-nudge__message {
-            font-size: 13px;
-          }
-        }
-      `;
-      document.head.appendChild(style);
+      // Soft nudges disabled - no positioning needed
+      // Mobile haptic feedback and touch tracking still active
     },
   };
 

@@ -1,3 +1,0 @@
-module Crypto {
-    header "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/include/Crypto-Swift.h"
-}

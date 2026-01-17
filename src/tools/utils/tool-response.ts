@@ -196,7 +196,7 @@ export function pending(
     params: Record<string, unknown>;
     description: string;
   },
-  ttlMs: number = 60000
+  ttlMs = 60000
 ): ToolResponsePending {
   return {
     success: true,
@@ -215,7 +215,7 @@ export function pending(
 /**
  * Truncate summary to optimal length for LLM processing
  */
-function truncateSummary(summary: string, maxLength: number = 500): string {
+function truncateSummary(summary: string, maxLength = 500): string {
   if (summary.length <= maxLength) {
     return summary;
   }

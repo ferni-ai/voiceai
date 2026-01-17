@@ -1,0 +1,48 @@
+[package]
+name = "ferni-audio"
+version = "0.1.0"
+edition = "2021"
+description = "Zero-allocation real-time audio processing for Ferni voice agent"
+license = "MIT"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+# NAPI-RS for Node.js bindings
+napi = { version = "2.16", features = ["napi9"] }
+napi-derive = "2.16"
+
+# Ring buffer for zero-allocation streaming
+ringbuf = "0.4"
+
+# SIMD for fast audio conversion
+wide = "0.7"
+
+# Error handling
+thiserror = "1.0"
+
+# Global state management
+lazy_static = "1.5"
+
+[dev-dependencies]
+# Criterion for stable Rust benchmarking
+criterion = { version = "0.5", features = ["html_reports"] }
+
+[build-dependencies]
+# Updated to 2.3.1 with Rust 1.92
+napi-build = "2.3.1"
+
+[[bench]]
+name = "simd_benchmarks"
+harness = false
+
+[profile.release]
+lto = true
+opt-level = 3
+codegen-units = 1
+panic = "abort"
+
+[profile.bench]
+lto = true
+opt-level = 3

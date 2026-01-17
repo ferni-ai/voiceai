@@ -115,7 +115,7 @@ function bundleCli(isRelease: boolean): void {
     `npx esbuild "${entryPoint}" --bundle --platform=node --target=node20 ` +
       `--outfile="${outfile}" --format=cjs ${minify} ${sourcemap} ` +
       `--external:@livekit/* --external:@sentry/* --external:pg-native ` +
-      `--external:@google/* --external:../src/* ` +
+      `--external:@google/* --external:../src/* --external:onnxruntime-node --external:@xenova/transformers --external:sharp ` +
       `--define:import.meta.url='"${shimUrl}"'`,
     { stdio: 'inherit' }
   );
@@ -251,7 +251,7 @@ function buildContainerBundle(isRelease: boolean): void {
     `npx esbuild "${entryPoint}" --bundle --platform=node --target=node20 ` +
       `--outfile="${outfile}" --format=esm ${minify} ` +
       `--external:@livekit/* --external:@sentry/* --external:pg-native ` +
-      `--external:@google/* ` +
+      `--external:@google/* --external:onnxruntime-node --external:@xenova/transformers --external:sharp ` +
       `--define:import.meta.url='"${shimUrl}"'`,
     { stdio: 'inherit' }
   );

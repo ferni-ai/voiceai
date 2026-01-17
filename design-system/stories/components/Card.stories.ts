@@ -1,208 +1,199 @@
+/**
+ * Card Component Stories
+ */
+
 import type { Meta, StoryObj } from '@storybook/html';
 
-const meta = {
+interface CardProps {
+  variant?: 'elevated' | 'outlined' | 'filled';
+  size?: 'sm' | 'md' | 'lg';
+  clickable?: boolean;
+  header?: string;
+  body?: string;
+  footer?: string;
+}
+
+const SIZE_PADDING = {
+  sm: '12px',
+  md: '16px',
+  lg: '24px',
+};
+
+const VARIANT_STYLES = {
+  elevated: {
+    background: '#FFFFFF',
+    border: 'none',
+    shadow: '0 4px 6px rgba(44, 37, 32, 0.07)',
+  },
+  outlined: {
+    background: '#FFFFFF',
+    border: '1px solid rgba(44, 37, 32, 0.1)',
+    shadow: 'none',
+  },
+  filled: {
+    background: '#F5F1E8',
+    border: 'none',
+    shadow: 'none',
+  },
+};
+
+const createCard = (props: CardProps): HTMLElement => {
+  const container = document.createElement('div');
+  const variant = props.variant || 'elevated';
+  const size = props.size || 'md';
+  const variantStyle = VARIANT_STYLES[variant];
+  const padding = SIZE_PADDING[size];
+
+  container.innerHTML = `
+    <div 
+      class="ferni-card ${props.clickable ? 'clickable' : ''}"
+      style="
+        background: ${variantStyle.background};
+        border: ${variantStyle.border};
+        box-shadow: ${variantStyle.shadow};
+        border-radius: 12px;
+        overflow: hidden;
+        max-width: 400px;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+        ${props.clickable ? 'cursor: pointer;' : ''}
+      "
+    >
+      ${props.header ? `
+        <div style="
+          padding: ${padding};
+          border-bottom: 1px solid rgba(44, 37, 32, 0.08);
+          font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+          font-weight: 600;
+          color: #2C2520;
+        ">${props.header}</div>
+      ` : ''}
+      
+      ${props.body ? `
+        <div style="
+          padding: ${padding};
+          font-family: Inter, system-ui, sans-serif;
+          color: #5C544A;
+          line-height: 1.6;
+        ">${props.body}</div>
+      ` : ''}
+      
+      ${props.footer ? `
+        <div style="
+          padding: ${padding};
+          border-top: 1px solid rgba(44, 37, 32, 0.08);
+          background: #F5F1E8;
+          font-family: Inter, system-ui, sans-serif;
+          font-size: 14px;
+          color: #8A847A;
+        ">${props.footer}</div>
+      ` : ''}
+    </div>
+    
+    <style>
+      .ferni-card.clickable:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 15px rgba(44, 37, 32, 0.1) !important;
+      }
+    </style>
+  `;
+
+  return container;
+};
+
+const meta: Meta<CardProps> = {
   title: 'Components/Card',
   tags: ['autodocs'],
-  parameters: {
-    docs: {
-      description: {
-        component: `
-Cards are content containers with consistent styling. They support different 
-elevations and can adapt to persona colors.
-        `,
-      },
+  render: (args) => createCard(args),
+  argTypes: {
+    variant: {
+      control: { type: 'select' },
+      options: ['elevated', 'outlined', 'filled'],
     },
+    size: {
+      control: { type: 'select' },
+      options: ['sm', 'md', 'lg'],
+    },
+    clickable: { control: 'boolean' },
   },
-} satisfies Meta;
+};
 
 export default meta;
-type Story = StoryObj;
+type Story = StoryObj<CardProps>;
 
-export const Default: Story = {
-  render: () => `
-    <div style="
-      background: var(--color-background-elevated);
-      border-radius: 16px;
-      padding: 1.5rem;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-      max-width: 400px;
-    ">
-      <h3 style="
-        font-family: 'Plus Jakarta Sans', sans-serif;
-        font-size: 1.25rem;
-        font-weight: 600;
-        margin: 0 0 0.5rem 0;
-      ">Daily Check-in</h3>
-      <p style="
-        font-family: Inter, sans-serif;
-        color: var(--color-text-secondary);
-        margin: 0;
-        line-height: 1.6;
-      ">
-        Take a moment to reflect on your day. How are you feeling right now?
-      </p>
-    </div>
-  `,
+export const Elevated: Story = {
+  args: {
+    variant: 'elevated',
+    header: 'Card Title',
+    body: 'This is an elevated card with a subtle shadow. It provides visual hierarchy and separates content from the background.',
+  },
 };
 
-export const WithPersonaAccent: Story = {
-  render: () => `
-    <div style="
-      background: var(--color-background-elevated);
-      border-radius: 16px;
-      padding: 1.5rem;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-      max-width: 400px;
-      border-left: 4px solid var(--persona-primary, #4a6741);
-    ">
-      <span style="
-        font-family: Inter, sans-serif;
-        font-size: 0.75rem;
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
-        color: var(--persona-primary, #4a6741);
-        font-weight: 500;
-      ">Insight</span>
-      <h3 style="
-        font-family: 'Plus Jakarta Sans', sans-serif;
-        font-size: 1.25rem;
-        font-weight: 600;
-        margin: 0.5rem 0;
-      ">You've been consistent!</h3>
-      <p style="
-        font-family: Inter, sans-serif;
-        color: var(--color-text-secondary);
-        margin: 0;
-        line-height: 1.6;
-      ">
-        You've logged in 5 days in a row. That's building a great habit!
-      </p>
-    </div>
-  `,
+export const Outlined: Story = {
+  args: {
+    variant: 'outlined',
+    header: 'Card Title',
+    body: 'This is an outlined card with a border instead of a shadow. Good for secondary content.',
+  },
 };
 
-export const TeamMemberCard: Story = {
-  render: () => `
-    <div style="
-      background: var(--color-background-elevated);
-      border-radius: 16px;
-      padding: 1.5rem;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-      max-width: 300px;
-      text-align: center;
-    ">
-      <div style="
-        width: 80px;
-        height: 80px;
-        border-radius: 50%;
-        background: linear-gradient(135deg, var(--persona-primary, #4a6741), var(--persona-secondary, #3d5a35));
-        margin: 0 auto 1rem;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 2rem;
-      ">🌿</div>
-      <h3 style="
-        font-family: 'Plus Jakarta Sans', sans-serif;
-        font-size: 1.25rem;
-        font-weight: 600;
-        margin: 0 0 0.25rem 0;
-      ">Ferni</h3>
-      <p style="
-        font-family: Inter, sans-serif;
-        font-size: 0.875rem;
-        color: var(--color-text-muted);
-        margin: 0 0 1rem 0;
-      ">Your AI Life Coach</p>
-      <button style="
-        background: var(--persona-primary, #4a6741);
-        color: white;
-        border: none;
-        padding: 0.75rem 1.5rem;
-        font-family: Inter, sans-serif;
-        font-weight: 500;
-        font-size: 0.875rem;
-        border-radius: 8px;
-        cursor: pointer;
-        width: 100%;
-      ">Start Conversation</button>
-    </div>
-  `,
+export const Filled: Story = {
+  args: {
+    variant: 'filled',
+    header: 'Card Title',
+    body: 'This is a filled card with a subtle background. Great for grouping related content.',
+  },
 };
 
-export const StatsCard: Story = {
-  render: () => `
-    <div style="
-      background: var(--color-background-elevated);
-      border-radius: 16px;
-      padding: 1.5rem;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-      max-width: 200px;
-    ">
-      <span style="
-        font-family: Inter, sans-serif;
-        font-size: 0.75rem;
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
-        color: var(--color-text-muted);
-        font-weight: 500;
-      ">Conversations</span>
-      <p style="
-        font-family: 'Plus Jakarta Sans', sans-serif;
-        font-size: 2.5rem;
-        font-weight: 700;
-        color: var(--persona-primary, #4a6741);
-        margin: 0.25rem 0;
-      ">47</p>
-      <p style="
-        font-family: Inter, sans-serif;
-        font-size: 0.875rem;
-        color: var(--color-text-secondary);
-        margin: 0;
-      ">+12 this week</p>
-    </div>
-  `,
+export const WithFooter: Story = {
+  args: {
+    variant: 'elevated',
+    header: 'Session Summary',
+    body: 'You talked about your goals for the week and made progress on your morning routine habit.',
+    footer: 'Last updated 2 hours ago',
+  },
 };
 
-export const CardGrid: Story = {
-  render: () => `
-    <div style="
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 1.5rem;
-      max-width: 800px;
-    ">
-      <div style="
-        background: var(--color-background-elevated);
-        border-radius: 16px;
-        padding: 1.5rem;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-      ">
-        <span style="font-size: 1.5rem; margin-bottom: 0.5rem; display: block;">🎯</span>
-        <h4 style="font-family: 'Plus Jakarta Sans', sans-serif; margin: 0 0 0.5rem;">Goals</h4>
-        <p style="font-family: Inter, sans-serif; color: var(--color-text-secondary); font-size: 0.875rem; margin: 0;">Track your progress</p>
-      </div>
-      <div style="
-        background: var(--color-background-elevated);
-        border-radius: 16px;
-        padding: 1.5rem;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-      ">
-        <span style="font-size: 1.5rem; margin-bottom: 0.5rem; display: block;">💭</span>
-        <h4 style="font-family: 'Plus Jakarta Sans', sans-serif; margin: 0 0 0.5rem;">Reflect</h4>
-        <p style="font-family: Inter, sans-serif; color: var(--color-text-secondary); font-size: 0.875rem; margin: 0;">Journal your thoughts</p>
-      </div>
-      <div style="
-        background: var(--color-background-elevated);
-        border-radius: 16px;
-        padding: 1.5rem;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-      ">
-        <span style="font-size: 1.5rem; margin-bottom: 0.5rem; display: block;">📊</span>
-        <h4 style="font-family: 'Plus Jakarta Sans', sans-serif; margin: 0 0 0.5rem;">Insights</h4>
-        <p style="font-family: Inter, sans-serif; color: var(--color-text-secondary); font-size: 0.875rem; margin: 0;">See your patterns</p>
-      </div>
-    </div>
-  `,
+export const Clickable: Story = {
+  args: {
+    variant: 'elevated',
+    header: 'Click Me',
+    body: 'This card has a hover effect and cursor pointer, indicating it\'s interactive.',
+    clickable: true,
+  },
 };
 
+export const AllVariants: Story = {
+  render: () => {
+    const container = document.createElement('div');
+    container.style.cssText = 'display: flex; gap: 24px; flex-wrap: wrap;';
+    
+    const variants: Array<'elevated' | 'outlined' | 'filled'> = ['elevated', 'outlined', 'filled'];
+    variants.forEach((variant) => {
+      container.appendChild(createCard({
+        variant,
+        header: `${variant.charAt(0).toUpperCase() + variant.slice(1)} Card`,
+        body: `This is an example of the ${variant} card variant.`,
+      }));
+    });
+    
+    return container;
+  },
+};
+
+export const Sizes: Story = {
+  render: () => {
+    const container = document.createElement('div');
+    container.style.cssText = 'display: flex; flex-direction: column; gap: 24px;';
+    
+    const sizes: Array<'sm' | 'md' | 'lg'> = ['sm', 'md', 'lg'];
+    sizes.forEach((size) => {
+      container.appendChild(createCard({
+        size,
+        header: `Size: ${size.toUpperCase()}`,
+        body: 'Notice the different padding for each size variant.',
+      }));
+    });
+    
+    return container;
+  },
+};

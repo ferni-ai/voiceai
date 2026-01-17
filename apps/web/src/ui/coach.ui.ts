@@ -33,7 +33,7 @@ import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 const log = createLogger('CoachUI');
 
 // FIX BUG: Track all setTimeout calls for proper cleanup
-const { trackedTimeout, clearAll: clearAllTimeouts } = createTimeoutTracker();
+const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
 
 // ============================================================================
 // ANIMATION PROFILE ADAPTER
@@ -314,8 +314,9 @@ export function updatePersonaDisplay(persona: PersonaConfig): void {
     elements?.container && removeClass(elements.container, 'persona-transitioning');
   }, 600);
 
-  setText(elements.avatarText, persona.initials);
-  
+  // Note: avatarText is hidden by CSS - all personas now show eyes instead of initials
+  // setText(elements.avatarText, persona.initials);
+
   // 🔤 Animate name change with kinetic typography
   if (elements.name && elements.name.textContent !== persona.name) {
     void animateNameHandoff(elements.name, persona.name, { duration: 500 });

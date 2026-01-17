@@ -1,0 +1,1171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Peter John - Expression Gallery</title>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <!-- Design System: Single source of truth -->
+  <link rel="stylesheet" href="../../master-tokens.css">
+  <link rel="stylesheet" href="../../brand-components.css">
+  <style>
+    /* Peter-specific overrides - base tokens from master-tokens.css */
+    :root {
+      /* Peter's Colors - Teal/Research */
+      --persona-start: #3d8888;
+      --persona-end: #2d6a6a;
+      --persona-glow: rgba(61, 136, 136, 0.5);
+
+      /* Peter's Timing: 0.8x (quick, curious - fastest persona) */
+      --timing-multiplier: 0.8;
+      --base-duration: 0.35s;
+      --scaled-duration: calc(var(--base-duration) * var(--timing-multiplier));
+
+      /* Peter-specific glow colors */
+      --glow-teal: rgba(61, 136, 136, 0.5);
+      --glow-golden: rgba(196, 162, 101, 0.5);
+      --glow-sage: rgba(90, 122, 81, 0.5);
+      --glow-alert: rgba(239, 68, 68, 0.4);
+      --glow-electric: rgba(59, 130, 246, 0.5);
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: var(--font-display);
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      min-height: 100vh;
+    }
+
+    /* Header */
+    .header {
+      text-align: center;
+      padding: 100px 40px 40px;
+      background: linear-gradient(135deg, rgba(61, 136, 136, 0.1) 0%, transparent 100%);
+    }
+
+    .header h1 {
+      font-size: 48px;
+      font-weight: 700;
+      background: linear-gradient(135deg, var(--persona-start), var(--persona-end));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 8px;
+    }
+
+    .header .role { font-size: 20px; color: var(--text-secondary); margin-bottom: 12px; }
+    .header .quote { font-style: italic; color: var(--persona-end); font-size: 16px; max-width: 500px; margin: 0 auto; }
+
+    /* Timing Badge */
+    .timing-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 16px;
+      background: rgba(61, 136, 136, 0.15);
+      border-radius: 100px;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--persona-end);
+      margin-top: 20px;
+    }
+    .timing-badge svg { width: 16px; height: 16px; }
+
+    .container { max-width: 1400px; margin: 0 auto; padding: 40px; }
+
+    /* Avatar Stage */
+    .avatar-stage {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 60px;
+      padding: 60px;
+      background: var(--bg-elevated);
+      border-radius: 32px;
+      margin-bottom: 40px;
+      border: 1px solid rgba(44, 37, 32, 0.08);
+    }
+
+    .avatar-container {
+      position: relative;
+      width: 200px;
+      height: 200px;
+    }
+
+    .avatar-glow {
+      position: absolute;
+      inset: -30px;
+      border-radius: 50%;
+      background: var(--glow-teal);
+      filter: blur(30px);
+      opacity: 0.6;
+      transition: all 0.32s var(--ease-spring);
+    }
+
+    .main-avatar { width: 200px; height: 200px; position: relative; }
+
+    /* Pixar Animations - Peter's 0.8x timing (faster) */
+    @keyframes breathing {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.02); }
+    }
+
+    @keyframes gazeDrift {
+      0%, 100% { transform: translate(0, 0); }
+      25% { transform: translate(1.2px, -0.6px); }
+      50% { transform: translate(-0.6px, 0.6px); }
+      75% { transform: translate(0.6px, 0px); }
+    }
+
+    @keyframes anticipation {
+      0%, 100% { transform: scale(1) translateY(0); }
+      50% { transform: scale(0.98) translateY(2px); }
+    }
+
+    @keyframes dataSpark {
+      0% { opacity: 0; transform: scale(0.5); }
+      50% { opacity: 1; transform: scale(1.2); }
+      100% { opacity: 0; transform: scale(0.8) translateY(-20px); }
+    }
+
+    .avatar-body {
+      animation: breathing 3.2s ease-in-out infinite; /* 4s * 0.8 */
+      transform-origin: center center;
+    }
+
+    .avatar-body.anticipating {
+      animation: anticipation 0.32s var(--ease-spring) forwards;
+    }
+
+    .eyes-group {
+      animation: gazeDrift 6.4s ease-in-out infinite; /* 8s * 0.8 */
+    }
+
+    /* Research Spark - Peter's Signature */
+    .data-particle {
+      position: absolute;
+      width: 6px;
+      height: 6px;
+      background: var(--persona-start);
+      border-radius: 50%;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .data-particle.active { animation: dataSpark 0.48s var(--ease-spring) forwards; }
+    .data-particle:nth-child(2) { animation-delay: 0.06s; }
+    .data-particle:nth-child(3) { animation-delay: 0.12s; }
+    .data-particle:nth-child(4) { animation-delay: 0.18s; }
+    .data-particle:nth-child(5) { animation-delay: 0.24s; }
+
+    /* Presence Ring */
+    .presence-ring {
+      position: absolute;
+      inset: -8px;
+      border-radius: 50%;
+      border: 2px solid transparent;
+      opacity: 0;
+      transition: all 0.32s var(--ease-spring);
+    }
+
+    .presence-ring.active {
+      border-color: var(--persona-start);
+      opacity: 0.4;
+    }
+
+    /* Stage Controls */
+    .stage-controls { display: flex; flex-direction: column; gap: 16px; max-width: 300px; }
+    .current-expression { font-size: 28px; font-weight: 600; color: var(--text-primary); }
+    .expression-trigger { font-size: 14px; color: var(--text-muted); }
+
+    /* Expression Info Panel */
+    .expression-info {
+      background: rgba(61, 136, 136, 0.08);
+      padding: 16px;
+      border-radius: 12px;
+      font-size: 12px;
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+      margin-top: 16px;
+    }
+
+    .info-item { display: flex; flex-direction: column; gap: 2px; }
+    .info-label { color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; font-size: 10px; }
+    .info-value { color: var(--text-primary); font-weight: 500; font-family: monospace; }
+
+    /* Section Styles */
+    .section-title {
+      font-size: 20px;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .section-title::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: linear-gradient(to right, rgba(61, 136, 136, 0.3), transparent);
+    }
+
+    /* Animation Layers Panel */
+    .layers-panel {
+      background: var(--bg-elevated);
+      border-radius: 20px;
+      padding: 24px;
+      margin-bottom: 40px;
+      border: 1px solid rgba(44, 37, 32, 0.08);
+    }
+
+    .layers-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+    }
+
+    .layer-toggle {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      padding: 16px;
+      background: rgba(61, 136, 136, 0.05);
+      border-radius: 12px;
+      cursor: pointer;
+      transition: all 0.24s var(--ease-spring);
+      border: 2px solid transparent;
+    }
+
+    .layer-toggle:hover { background: rgba(61, 136, 136, 0.1); }
+    .layer-toggle.active { border-color: var(--persona-start); background: rgba(61, 136, 136, 0.15); }
+
+    .layer-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      background: linear-gradient(135deg, var(--persona-start), var(--persona-end));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .layer-icon svg { width: 18px; height: 18px; stroke: white; fill: none; }
+
+    .layer-name { font-size: 13px; font-weight: 600; color: var(--text-primary); }
+    .layer-timing { font-size: 11px; color: var(--text-muted); }
+
+    /* Micro-Expressions Section */
+    .micro-section {
+      background: var(--bg-elevated);
+      border-radius: 20px;
+      padding: 24px;
+      margin-bottom: 40px;
+      border: 1px solid rgba(44, 37, 32, 0.08);
+    }
+
+    .micro-intro {
+      font-size: 14px;
+      color: var(--text-secondary);
+      margin-bottom: 20px;
+      line-height: 1.6;
+    }
+
+    .micro-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+      gap: 12px;
+    }
+
+    .micro-btn {
+      padding: 14px 16px;
+      border: 1px solid rgba(61, 136, 136, 0.2);
+      background: var(--bg-elevated);
+      border-radius: 12px;
+      font-family: inherit;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-primary);
+      cursor: pointer;
+      transition: all 0.16s var(--ease-spring);
+      text-align: left;
+    }
+
+    .micro-btn:hover { border-color: var(--persona-start); background: rgba(61, 136, 136, 0.05); }
+
+    .micro-btn .micro-name { display: block; margin-bottom: 4px; }
+    .micro-btn .micro-timing {
+      font-size: 11px;
+      color: var(--text-muted);
+      font-family: monospace;
+    }
+
+    /* Waveform Shapes Section */
+    .waveform-section {
+      background: var(--bg-elevated);
+      border-radius: 20px;
+      padding: 24px;
+      margin-bottom: 40px;
+      border: 1px solid rgba(44, 37, 32, 0.08);
+    }
+
+    .waveform-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+    }
+
+    .waveform-card {
+      padding: 20px;
+      background: rgba(61, 136, 136, 0.05);
+      border-radius: 12px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.24s var(--ease-spring);
+      border: 2px solid transparent;
+    }
+
+    .waveform-card:hover { background: rgba(61, 136, 136, 0.1); }
+    .waveform-card.active { border-color: var(--persona-start); }
+
+    .waveform-preview {
+      height: 40px;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 3px;
+    }
+
+    .waveform-bar {
+      width: 4px;
+      background: linear-gradient(to top, var(--persona-start), var(--persona-end));
+      border-radius: 2px;
+      animation: waveformPulse 0.8s ease-in-out infinite;
+    }
+
+    @keyframes waveformPulse {
+      0%, 100% { height: 8px; }
+      50% { height: var(--target-height, 24px); }
+    }
+
+    .waveform-card[data-emotion="excited"] .waveform-bar { animation-duration: 0.48s; }
+    .waveform-card[data-emotion="excited"] .waveform-bar:nth-child(1) { --target-height: 32px; animation-delay: 0s; }
+    .waveform-card[data-emotion="excited"] .waveform-bar:nth-child(2) { --target-height: 40px; animation-delay: 0.06s; }
+    .waveform-card[data-emotion="excited"] .waveform-bar:nth-child(3) { --target-height: 28px; animation-delay: 0.12s; }
+    .waveform-card[data-emotion="excited"] .waveform-bar:nth-child(4) { --target-height: 36px; animation-delay: 0.08s; }
+    .waveform-card[data-emotion="excited"] .waveform-bar:nth-child(5) { --target-height: 30px; animation-delay: 0.04s; }
+
+    .waveform-card[data-emotion="focused"] .waveform-bar { animation-duration: 1.6s; }
+    .waveform-card[data-emotion="focused"] .waveform-bar:nth-child(1) { --target-height: 18px; animation-delay: 0s; }
+    .waveform-card[data-emotion="focused"] .waveform-bar:nth-child(2) { --target-height: 20px; animation-delay: 0.16s; }
+    .waveform-card[data-emotion="focused"] .waveform-bar:nth-child(3) { --target-height: 16px; animation-delay: 0.32s; }
+    .waveform-card[data-emotion="focused"] .waveform-bar:nth-child(4) { --target-height: 22px; animation-delay: 0.24s; }
+    .waveform-card[data-emotion="focused"] .waveform-bar:nth-child(5) { --target-height: 18px; animation-delay: 0.08s; }
+
+    .waveform-card[data-emotion="curious"] .waveform-bar { animation-duration: 0.64s; }
+    .waveform-card[data-emotion="curious"] .waveform-bar:nth-child(1) { --target-height: 24px; animation-delay: 0s; }
+    .waveform-card[data-emotion="curious"] .waveform-bar:nth-child(2) { --target-height: 34px; animation-delay: 0.04s; }
+    .waveform-card[data-emotion="curious"] .waveform-bar:nth-child(3) { --target-height: 20px; animation-delay: 0.08s; }
+    .waveform-card[data-emotion="curious"] .waveform-bar:nth-child(4) { --target-height: 30px; animation-delay: 0.06s; }
+    .waveform-card[data-emotion="curious"] .waveform-bar:nth-child(5) { --target-height: 26px; animation-delay: 0.02s; }
+
+    .waveform-card[data-emotion="skeptical"] .waveform-bar { animation-duration: 1.2s; }
+    .waveform-card[data-emotion="skeptical"] .waveform-bar:nth-child(1) { --target-height: 14px; animation-delay: 0s; }
+    .waveform-card[data-emotion="skeptical"] .waveform-bar:nth-child(2) { --target-height: 16px; animation-delay: 0.12s; }
+    .waveform-card[data-emotion="skeptical"] .waveform-bar:nth-child(3) { --target-height: 12px; animation-delay: 0.24s; }
+    .waveform-card[data-emotion="skeptical"] .waveform-bar:nth-child(4) { --target-height: 18px; animation-delay: 0.18s; }
+    .waveform-card[data-emotion="skeptical"] .waveform-bar:nth-child(5) { --target-height: 14px; animation-delay: 0.06s; }
+
+    .waveform-name { font-size: 13px; font-weight: 600; color: var(--text-primary); }
+    .waveform-desc { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
+
+    /* Expression Families */
+    .families-section { margin-bottom: 40px; }
+
+    .family-group {
+      background: var(--bg-elevated);
+      border-radius: 16px;
+      padding: 20px;
+      margin-bottom: 16px;
+      border: 1px solid rgba(44, 37, 32, 0.08);
+    }
+
+    .family-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .family-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+    }
+
+    .family-name { font-size: 15px; font-weight: 600; color: var(--text-primary); }
+    .family-count { font-size: 12px; color: var(--text-muted); margin-left: auto; }
+
+    .expression-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+      gap: 10px;
+    }
+
+    .expression-btn {
+      padding: 12px 14px;
+      border: 2px solid rgba(61, 136, 136, 0.15);
+      border-radius: 10px;
+      background: var(--bg-primary);
+      font-family: inherit;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text-primary);
+      cursor: pointer;
+      transition: all 0.2s var(--ease-spring);
+    }
+
+    .expression-btn:hover { border-color: var(--persona-start); transform: translateY(-2px); }
+    .expression-btn.active {
+      background: linear-gradient(135deg, var(--persona-start), var(--persona-end));
+      border-color: transparent;
+      color: white;
+    }
+
+    /* Animation Profile */
+    .profile-section {
+      background: linear-gradient(135deg, rgba(61, 136, 136, 0.08) 0%, transparent 100%);
+      padding: 32px;
+      border-radius: 20px;
+      margin-bottom: 40px;
+    }
+
+    .profile-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 24px;
+    }
+
+    .profile-item { text-align: center; }
+    .profile-value {
+      font-size: 32px;
+      font-weight: 700;
+      background: linear-gradient(135deg, var(--persona-start), var(--persona-end));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .profile-label {
+      font-size: 12px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-top: 4px;
+    }
+
+    /* Traits */
+    .traits-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 24px;
+    }
+
+    .trait-card {
+      background: var(--bg-elevated);
+      padding: 28px;
+      border-radius: 16px;
+      border-left: 4px solid var(--persona-start);
+    }
+
+    .trait-card h3 {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--persona-end);
+      margin-bottom: 10px;
+    }
+
+    .trait-card p {
+      font-size: 14px;
+      color: var(--text-secondary);
+      line-height: 1.6;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .avatar-stage { flex-direction: column; padding: 40px 20px; }
+      .stage-controls { align-items: center; text-align: center; max-width: 100%; }
+      .container { padding: 20px; }
+      .layers-grid { grid-template-columns: repeat(2, 1fr); }
+      .waveform-grid { grid-template-columns: repeat(2, 1fr); }
+      .expression-info { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <!-- Shared Navigation -->
+  <div id="nav-placeholder"></div>
+
+  <!-- Persona Switcher (Secondary Nav) -->
+  <nav class="persona-switcher" role="navigation" aria-label="Persona navigation">
+    <div class="persona-switcher-inner">
+      <a href="../ferni/expressions.html" class="persona-chip" data-persona="ferni">
+        <span class="persona-dot" style="background: var(--color-ferni)"></span>
+        Ferni
+      </a>
+      <a href="../maya/expressions.html" class="persona-chip" data-persona="maya">
+        <span class="persona-dot" style="background: var(--color-maya)"></span>
+        Maya
+      </a>
+      <a href="expressions.html" class="persona-chip active" data-persona="peter">
+        <span class="persona-dot" style="background: var(--color-peter)"></span>
+        Peter
+      </a>
+      <a href="../jordan/expressions.html" class="persona-chip" data-persona="jordan">
+        <span class="persona-dot" style="background: var(--color-jordan)"></span>
+        Jordan
+      </a>
+      <a href="../alex/expressions.html" class="persona-chip" data-persona="alex">
+        <span class="persona-dot" style="background: var(--color-alex)"></span>
+        Alex
+      </a>
+      <a href="../nayan/expressions.html" class="persona-chip" data-persona="nayan">
+        <span class="persona-dot" style="background: var(--color-nayan)"></span>
+        Nayan
+      </a>
+    </div>
+  </nav>
+
+  <!-- Header -->
+  <header class="header">
+    <h1>Peter John</h1>
+    <p class="role">The Research Partner</p>
+    <p class="quote">"Let me find the actual data on that - I live for this stuff."</p>
+    <div class="timing-badge">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="10"/>
+        <path d="M12 6v6l4 2"/>
+      </svg>
+      0.8x Timing - Quick, curious movements
+    </div>
+  </header>
+
+  <div class="container">
+    <!-- Avatar Stage -->
+    <div class="avatar-stage">
+      <div class="avatar-container" id="avatarContainer">
+        <div class="avatar-glow" id="avatarGlow"></div>
+        <div class="presence-ring" id="presenceRing"></div>
+        <div class="data-particle" id="particle1" style="top: 20%; left: 30%;"></div>
+        <div class="data-particle" id="particle2" style="top: 40%; left: 70%;"></div>
+        <div class="data-particle" id="particle3" style="top: 60%; left: 25%;"></div>
+        <div class="data-particle" id="particle4" style="top: 30%; left: 65%;"></div>
+        <div class="data-particle" id="particle5" style="top: 50%; left: 45%;"></div>
+        <svg class="main-avatar" viewBox="0 0 200 200" id="mainAvatar">
+          <defs>
+            <linearGradient id="bodyGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#3d8888"/>
+              <stop offset="100%" stop-color="#2d6a6a"/>
+            </linearGradient>
+            <clipPath id="eyeClipLeft"><ellipse cx="70" cy="90" rx="20" ry="18"/></clipPath>
+            <clipPath id="eyeClipRight"><ellipse cx="130" cy="90" rx="20" ry="18"/></clipPath>
+          </defs>
+
+          <!-- Body -->
+          <g class="avatar-body" id="avatarBody">
+            <circle cx="100" cy="100" r="85" fill="url(#bodyGradient)"/>
+          </g>
+
+          <!-- Eyes Group - LUXO STYLE (opaque white, no pupils) -->
+          <g class="eyes-group" id="eyesGroup">
+            <!-- Left Eye -->
+            <g clip-path="url(#eyeClipLeft)">
+              <ellipse class="eye-white" cx="70" cy="90" rx="20" ry="18" fill="white" id="eyeLeft"/>
+            </g>
+            <path d="M 50,72 Q 70,72 90,72" fill="none" stroke="url(#bodyGradient)" stroke-width="14" stroke-linecap="round" id="lidLeft"/>
+
+            <!-- Right Eye -->
+            <g clip-path="url(#eyeClipRight)">
+              <ellipse class="eye-white" cx="130" cy="90" rx="20" ry="18" fill="white" id="eyeRight"/>
+            </g>
+            <path d="M 110,72 Q 130,72 150,72" fill="none" stroke="url(#bodyGradient)" stroke-width="14" stroke-linecap="round" id="lidRight"/>
+          </g>
+        </svg>
+      </div>
+
+      <div class="stage-controls">
+        <div class="current-expression" id="currentExpression">Neutral</div>
+        <div class="expression-trigger" id="expressionTrigger">Ready to dive deep into any question.</div>
+
+        <!-- Expression Info Panel -->
+        <div class="expression-info" id="expressionInfo">
+          <div class="info-item">
+            <span class="info-label">Lid Position</span>
+            <span class="info-value" id="infoLid">M 50,72 Q 70,72</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">Eye Scale</span>
+            <span class="info-value" id="infoEyeScale">1.0, 1.0</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">Body Transform</span>
+            <span class="info-value" id="infoBody">scale(1)</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">Glow</span>
+            <span class="info-value" id="infoGlow">teal</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Animation Layers Panel -->
+    <section class="layers-panel">
+      <h3 class="section-title">Animation Layers</h3>
+      <div class="layers-grid">
+        <div class="layer-toggle active" data-layer="breathing" id="layerBreathing">
+          <div class="layer-icon">
+            <svg viewBox="0 0 24 24" stroke-width="2"><circle cx="12" cy="12" r="8"/></svg>
+          </div>
+          <span class="layer-name">Breathing</span>
+          <span class="layer-timing">3.2s cycle</span>
+        </div>
+        <div class="layer-toggle active" data-layer="blinking" id="layerBlinking">
+          <div class="layer-icon">
+            <svg viewBox="0 0 24 24" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/></svg>
+          </div>
+          <span class="layer-name">Blinking</span>
+          <span class="layer-timing">2.4-5.6s random</span>
+        </div>
+        <div class="layer-toggle active" data-layer="gazing" id="layerGazing">
+          <div class="layer-icon">
+            <svg viewBox="0 0 24 24" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 5v2M12 17v2M5 12h2M17 12h2"/></svg>
+          </div>
+          <span class="layer-name">Gaze Drift</span>
+          <span class="layer-timing">6.4s cycle</span>
+        </div>
+        <div class="layer-toggle" data-layer="anticipation" id="layerAnticipation">
+          <div class="layer-icon">
+            <svg viewBox="0 0 24 24" stroke-width="2"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83"/></svg>
+          </div>
+          <span class="layer-name">Anticipation</span>
+          <span class="layer-timing">0.32s squash</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Micro-Expressions Section -->
+    <section class="micro-section">
+      <h3 class="section-title">Micro-Expressions</h3>
+      <p class="micro-intro">
+        Subliminal emotional flashes (32-120ms) that build trust unconsciously. Peter's micro-expressions are 0.8x shorter than Ferni's, matching his quick, curious timing. These fire automatically when detecting interesting data or making connections.
+      </p>
+      <div class="micro-grid">
+        <button class="micro-btn" data-micro="interest">
+          <span class="micro-name">Interest</span>
+          <span class="micro-timing">64ms - "Tell me more"</span>
+        </button>
+        <button class="micro-btn" data-micro="eureka">
+          <span class="micro-name">Eureka</span>
+          <span class="micro-timing">96ms - connection made</span>
+        </button>
+        <button class="micro-btn" data-micro="skeptical">
+          <span class="micro-name">Skeptical</span>
+          <span class="micro-timing">80ms - needs evidence</span>
+        </button>
+        <button class="micro-btn" data-micro="excited">
+          <span class="micro-name">Excited</span>
+          <span class="micro-timing">72ms - compelling data</span>
+        </button>
+        <button class="micro-btn" data-micro="focus">
+          <span class="micro-name">Focus</span>
+          <span class="micro-timing">56ms - deep dive</span>
+        </button>
+        <button class="micro-btn" data-micro="caution">
+          <span class="micro-name">Caution</span>
+          <span class="micro-timing">120ms - limited data</span>
+        </button>
+      </div>
+    </section>
+
+    <!-- Waveform Shapes Section -->
+    <section class="waveform-section">
+      <h3 class="section-title">Voice Waveform Shapes</h3>
+      <div class="waveform-grid">
+        <div class="waveform-card" data-emotion="excited">
+          <div class="waveform-preview">
+            <div class="waveform-bar"></div>
+            <div class="waveform-bar"></div>
+            <div class="waveform-bar"></div>
+            <div class="waveform-bar"></div>
+            <div class="waveform-bar"></div>
+          </div>
+          <div class="waveform-name">Excited</div>
+          <div class="waveform-desc">Rapid, energetic spikes</div>
+        </div>
+        <div class="waveform-card active" data-emotion="focused">
+          <div class="waveform-preview">
+            <div class="waveform-bar"></div>
+            <div class="waveform-bar"></div>
+            <div class="waveform-bar"></div>
+            <div class="waveform-bar"></div>
+            <div class="waveform-bar"></div>
+          </div>
+          <div class="waveform-name">Focused</div>
+          <div class="waveform-desc">Steady, measured rhythm</div>
+        </div>
+        <div class="waveform-card" data-emotion="curious">
+          <div class="waveform-preview">
+            <div class="waveform-bar"></div>
+            <div class="waveform-bar"></div>
+            <div class="waveform-bar"></div>
+            <div class="waveform-bar"></div>
+            <div class="waveform-bar"></div>
+          </div>
+          <div class="waveform-name">Curious</div>
+          <div class="waveform-desc">Quick, probing pulses</div>
+        </div>
+        <div class="waveform-card" data-emotion="skeptical">
+          <div class="waveform-preview">
+            <div class="waveform-bar"></div>
+            <div class="waveform-bar"></div>
+            <div class="waveform-bar"></div>
+            <div class="waveform-bar"></div>
+            <div class="waveform-bar"></div>
+          </div>
+          <div class="waveform-name">Skeptical</div>
+          <div class="waveform-desc">Low, deliberate waves</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Expression Families -->
+    <section class="families-section">
+      <h3 class="section-title">Expression Families</h3>
+
+      <!-- Discovery Family -->
+      <div class="family-group" data-family="discovery">
+        <div class="family-header">
+          <span class="family-dot" style="background: var(--glow-golden);"></span>
+          <span class="family-name">Discovery</span>
+          <span class="family-count">5 expressions</span>
+        </div>
+        <div class="expression-grid" id="discoveryGrid"></div>
+      </div>
+
+      <!-- Analysis Family -->
+      <div class="family-group" data-family="analysis">
+        <div class="family-header">
+          <span class="family-dot" style="background: var(--glow-teal);"></span>
+          <span class="family-name">Analysis</span>
+          <span class="family-count">6 expressions</span>
+        </div>
+        <div class="expression-grid" id="analysisGrid"></div>
+      </div>
+
+      <!-- Curiosity Family -->
+      <div class="family-group" data-family="curiosity">
+        <div class="family-header">
+          <span class="family-dot" style="background: var(--glow-electric);"></span>
+          <span class="family-name">Curiosity</span>
+          <span class="family-count">5 expressions</span>
+        </div>
+        <div class="expression-grid" id="curiosityGrid"></div>
+      </div>
+
+      <!-- Caution Family -->
+      <div class="family-group" data-family="caution">
+        <div class="family-header">
+          <span class="family-dot" style="background: var(--glow-alert);"></span>
+          <span class="family-name">Caution</span>
+          <span class="family-count">4 expressions</span>
+        </div>
+        <div class="expression-grid" id="cautionGrid"></div>
+      </div>
+
+      <!-- Playful Family -->
+      <div class="family-group" data-family="playful">
+        <div class="family-header">
+          <span class="family-dot" style="background: var(--glow-sage);"></span>
+          <span class="family-name">Playful</span>
+          <span class="family-count">4 expressions</span>
+        </div>
+        <div class="expression-grid" id="playfulGrid"></div>
+      </div>
+    </section>
+
+    <!-- Animation Profile -->
+    <div class="profile-section">
+      <h3 class="section-title">Animation Profile</h3>
+      <div class="profile-grid">
+        <div class="profile-item">
+          <div class="profile-value">0.8x</div>
+          <div class="profile-label">Timing Multiplier</div>
+        </div>
+        <div class="profile-item">
+          <div class="profile-value">Spring</div>
+          <div class="profile-label">Easing Curve</div>
+        </div>
+        <div class="profile-item">
+          <div class="profile-value">Teal</div>
+          <div class="profile-label">Primary Glow</div>
+        </div>
+        <div class="profile-item">
+          <div class="profile-value">Particles</div>
+          <div class="profile-label">Signature Effect</div>
+        </div>
+        <div class="profile-item">
+          <div class="profile-value">24</div>
+          <div class="profile-label">Total Expressions</div>
+        </div>
+        <div class="profile-item">
+          <div class="profile-value">6</div>
+          <div class="profile-label">Micro-expressions</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Traits -->
+    <h3 class="section-title">Character Traits</h3>
+    <div class="traits-grid">
+      <div class="trait-card">
+        <h3>Signature Move</h3>
+        <p>Research Spark - data particles burst outward when discovering interesting information. The faster the discovery, the more particles.</p>
+      </div>
+      <div class="trait-card">
+        <h3>Core Philosophy</h3>
+        <p>"What does the research actually say?" Evidence over opinion. Always ready to dig deeper and find the source.</p>
+      </div>
+      <div class="trait-card">
+        <h3>Superpower</h3>
+        <p>Cross-references information instantly. Connects dots between seemingly unrelated fields. Remembers every source.</p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ═══════════════════════════════════════════════════════════════
+    // Peter's Expression Families - Organized by research domain
+    // ═══════════════════════════════════════════════════════════════
+
+    const EXPRESSION_FAMILIES = {
+      discovery: [
+        { name: 'Eureka', trigger: 'Made a connection', lid: 'M 50,70 Q 70,66 90,70', glow: 'golden', eyeScale: [1.15, 1.2], signature: true },
+        { name: 'Excited', trigger: 'Found compelling data', lid: 'M 50,76 Q 70,80 90,76', glow: 'golden', eyeScale: [1.1, 1.15], signature: true },
+        { name: 'Delighted', trigger: 'Unexpected insight', lid: 'M 50,78 Q 70,82 90,78', glow: 'golden', eyeScale: [1.08, 1.12] },
+        { name: 'Surprised', trigger: 'Unexpected finding', lid: 'M 50,66 Q 70,62 90,66', glow: 'golden', eyeScale: [1.12, 1.18] },
+        { name: 'Triumphant', trigger: 'Research complete', lid: 'M 50,80 Q 70,84 90,80', glow: 'golden', eyeScale: [1.1, 1.15] }
+      ],
+      analysis: [
+        { name: 'Neutral', trigger: 'Ready to dive deep', lid: 'M 50,72 Q 70,72 90,72', glow: 'teal', eyeScale: [1.0, 1.0] },
+        { name: 'Thinking', trigger: 'Processing query', lid: 'M 50,73 Q 70,71 90,73', glow: 'teal', eyeScale: [0.98, 1.0] },
+        { name: 'Focused', trigger: 'Deep research mode', lid: 'M 50,74 Q 70,72 90,74', glow: 'teal', eyeScale: [0.95, 0.98] },
+        { name: 'Processing', trigger: 'Analyzing data', lid: 'M 50,74 Q 70,72 90,74', glow: 'teal', eyeScale: [0.96, 0.98] },
+        { name: 'Satisfied', trigger: 'Thorough answer ready', lid: 'M 50,76 Q 70,78 90,76', glow: 'sage', eyeScale: [1.02, 1.05] },
+        { name: 'Confident', trigger: 'Solid evidence found', lid: 'M 50,76 Q 70,78 90,76', glow: 'teal', eyeScale: [1.0, 1.02] }
+      ],
+      curiosity: [
+        { name: 'Curious', trigger: 'Interesting question', lid: 'M 50,68 Q 70,64 90,68', glow: 'electric', eyeScale: [1.1, 1.15], signature: true },
+        { name: 'Eager', trigger: 'Complex topic incoming', lid: 'M 50,70 Q 70,66 90,70', glow: 'electric', eyeScale: [1.08, 1.12] },
+        { name: 'Intrigued', trigger: 'Unusual pattern', lid: 'M 50,70 Q 70,66 90,70', glow: 'electric', eyeScale: [1.05, 1.1] },
+        { name: 'Fascinated', trigger: 'Deep complexity', lid: 'M 50,68 Q 70,64 90,68', glow: 'electric', eyeScale: [1.1, 1.15] },
+        { name: 'Wondering', trigger: 'Open question', lid: 'M 50,70 Q 70,68 90,70', glow: 'teal', eyeScale: [1.02, 1.05] }
+      ],
+      caution: [
+        { name: 'Skeptical', trigger: 'Needs more evidence', lid: 'M 50,72 Q 70,74 90,70', glow: 'alert', eyeScale: [1.0, 1.02] },
+        { name: 'Cautious', trigger: 'Limited data warning', lid: 'M 50,72 Q 70,70 90,72', glow: 'alert', eyeScale: [1.02, 1.05] },
+        { name: 'Concerned', trigger: 'Conflicting sources', lid: 'M 50,70 Q 70,68 90,70', glow: 'alert', eyeScale: [1.05, 1.08] },
+        { name: 'Uncertain', trigger: 'Unclear evidence', lid: 'M 50,72 Q 70,70 90,72', glow: 'sage', eyeScale: [0.98, 1.0] }
+      ],
+      playful: [
+        { name: 'Playful', trigger: 'Fun fact discovered', lid: 'M 50,78 Q 70,82 90,78', glow: 'sage', eyeScale: [1.05, 1.1] },
+        { name: 'Amused', trigger: 'Ironic finding', lid: 'M 50,78 Q 70,82 90,78', glow: 'sage', eyeScale: [1.08, 1.12] },
+        { name: 'Mischievous', trigger: 'Counterintuitive data', lid: 'M 50,76 Q 70,80 90,78', glow: 'sage', eyeScale: [1.02, 1.08] },
+        { name: 'Winking', trigger: 'Shared knowledge', lid: 'M 50,78 Q 70,82 90,82', glow: 'sage', eyeScale: [0.9, 1.1] }
+      ]
+    };
+
+    // Flatten for easy lookup
+    const ALL_EXPRESSIONS = Object.values(EXPRESSION_FAMILIES).flat();
+
+    const GLOW_COLORS = {
+      teal: 'rgba(61, 136, 136, 0.5)',
+      golden: 'rgba(196, 162, 101, 0.5)',
+      sage: 'rgba(90, 122, 81, 0.5)',
+      alert: 'rgba(239, 68, 68, 0.4)',
+      electric: 'rgba(59, 130, 246, 0.5)'
+    };
+
+    // ═══════════════════════════════════════════════════════════════
+    // DOM References
+    // ═══════════════════════════════════════════════════════════════
+
+    const avatarGlow = document.getElementById('avatarGlow');
+    const avatarBody = document.getElementById('avatarBody');
+    const eyesGroup = document.getElementById('eyesGroup');
+    const lidLeft = document.getElementById('lidLeft');
+    const lidRight = document.getElementById('lidRight');
+    const eyeLeft = document.getElementById('eyeLeft');
+    const eyeRight = document.getElementById('eyeRight');
+    const presenceRing = document.getElementById('presenceRing');
+    const currentExpressionEl = document.getElementById('currentExpression');
+    const expressionTriggerEl = document.getElementById('expressionTrigger');
+    const particles = [1, 2, 3, 4, 5].map(i => document.getElementById('particle' + i));
+
+    // Info panel elements
+    const infoLid = document.getElementById('infoLid');
+    const infoEyeScale = document.getElementById('infoEyeScale');
+    const infoBody = document.getElementById('infoBody');
+    const infoGlow = document.getElementById('infoGlow');
+
+    // Animation layer states
+    let layers = {
+      breathing: true,
+      blinking: true,
+      gazing: true,
+      anticipation: false
+    };
+
+    let blinkInterval;
+    let currentExpression = ALL_EXPRESSIONS.find(e => e.name === 'Neutral');
+
+    // ═══════════════════════════════════════════════════════════════
+    // Build Expression Grids by Family
+    // ═══════════════════════════════════════════════════════════════
+
+    function buildExpressionGrids() {
+      Object.entries(EXPRESSION_FAMILIES).forEach(([family, expressions]) => {
+        const grid = document.getElementById(family + 'Grid');
+        if (!grid) return;
+
+        expressions.forEach((expr, i) => {
+          const btn = document.createElement('button');
+          btn.className = 'expression-btn' + (family === 'analysis' && i === 0 ? ' active' : '');
+          btn.textContent = expr.name;
+          btn.addEventListener('click', () => setExpression(expr, btn));
+          grid.appendChild(btn);
+        });
+      });
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // Set Expression
+    // ═══════════════════════════════════════════════════════════════
+
+    function setExpression(expr, btn) {
+      currentExpression = expr;
+
+      // Update button states
+      document.querySelectorAll('.expression-btn').forEach(b => b.classList.remove('active'));
+      if (btn) btn.classList.add('active');
+
+      // Update lid positions
+      lidLeft.setAttribute('d', expr.lid);
+      lidRight.setAttribute('d', expr.lid.replace(/50/g, '110').replace(/70/g, '130').replace(/90/g, '150'));
+
+      // Update eye scale
+      if (expr.eyeScale) {
+        eyeLeft.setAttribute('rx', 20 * expr.eyeScale[0]);
+        eyeLeft.setAttribute('ry', 18 * expr.eyeScale[1]);
+        eyeRight.setAttribute('rx', 20 * expr.eyeScale[0]);
+        eyeRight.setAttribute('ry', 18 * expr.eyeScale[1]);
+      }
+
+      // Update glow
+      avatarGlow.style.background = GLOW_COLORS[expr.glow];
+
+      // Update text
+      currentExpressionEl.textContent = expr.name;
+      expressionTriggerEl.textContent = expr.trigger;
+
+      // Update info panel
+      updateInfoPanel(expr);
+
+      // Play signature animation for discovery expressions
+      if (expr.signature) {
+        playResearchSpark();
+      }
+
+      // Show presence ring briefly
+      presenceRing.classList.add('active');
+      setTimeout(() => presenceRing.classList.remove('active'), 800);
+
+      // Trigger anticipation if enabled
+      if (layers.anticipation) {
+        playAnticipation();
+      }
+    }
+
+    function updateInfoPanel(expr) {
+      infoLid.textContent = expr.lid.substring(0, 20) + '...';
+      infoEyeScale.textContent = expr.eyeScale ? expr.eyeScale.join(', ') : '1.0, 1.0';
+      infoBody.textContent = 'scale(1)';
+      infoGlow.textContent = expr.glow;
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // Signature Animation: Research Spark
+    // ═══════════════════════════════════════════════════════════════
+
+    function playResearchSpark() {
+      particles.forEach((p, i) => {
+        p.classList.remove('active');
+        void p.offsetWidth;
+        setTimeout(() => p.classList.add('active'), i * 64); // 80ms * 0.8
+      });
+      setTimeout(() => particles.forEach(p => p.classList.remove('active')), 640);
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // Animation Layers
+    // ═══════════════════════════════════════════════════════════════
+
+    function toggleLayer(layer) {
+      layers[layer] = !layers[layer];
+      const toggle = document.querySelector(`[data-layer="${layer}"]`);
+      toggle.classList.toggle('active', layers[layer]);
+
+      switch (layer) {
+        case 'breathing':
+          avatarBody.style.animation = layers.breathing ? 'breathing 3.2s ease-in-out infinite' : 'none';
+          break;
+        case 'blinking':
+          if (layers.blinking) {
+            startRandomBlinking();
+          } else {
+            clearTimeout(blinkInterval);
+          }
+          break;
+        case 'gazing':
+          eyesGroup.style.animation = layers.gazing ? 'gazeDrift 6.4s ease-in-out infinite' : 'none';
+          break;
+        case 'anticipation':
+          // Anticipation triggers on expression change
+          break;
+      }
+    }
+
+    // Set up layer toggle listeners
+    document.querySelectorAll('.layer-toggle').forEach(toggle => {
+      toggle.addEventListener('click', () => toggleLayer(toggle.dataset.layer));
+    });
+
+    // ═══════════════════════════════════════════════════════════════
+    // Random Blinking (Peter's 0.8x timing - faster)
+    // ═══════════════════════════════════════════════════════════════
+
+    function blink() {
+      const currentLidLeft = lidLeft.getAttribute('d');
+      const currentLidRight = lidRight.getAttribute('d');
+
+      // Close eyes
+      lidLeft.setAttribute('d', 'M 50,90 Q 70,90 90,90');
+      lidRight.setAttribute('d', 'M 110,90 Q 130,90 150,90');
+
+      // Open after 120ms (150ms * 0.8)
+      setTimeout(() => {
+        lidLeft.setAttribute('d', currentLidLeft);
+        lidRight.setAttribute('d', currentLidRight);
+      }, 120);
+    }
+
+    function startRandomBlinking() {
+      function scheduleBlink() {
+        // Random interval: 2.4-5.6 seconds (3-7s * 0.8)
+        const interval = 2400 + Math.random() * 3200;
+        blinkInterval = setTimeout(() => {
+          if (layers.blinking) {
+            blink();
+            scheduleBlink();
+          }
+        }, interval);
+      }
+      scheduleBlink();
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // Anticipation Animation
+    // ═══════════════════════════════════════════════════════════════
+
+    function playAnticipation() {
+      avatarBody.classList.add('anticipating');
+      setTimeout(() => avatarBody.classList.remove('anticipating'), 320);
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // Micro-Expressions (32-120ms subliminal flashes - faster)
+    // ═══════════════════════════════════════════════════════════════
+
+    const MICRO_EXPRESSIONS = {
+      interest: { lid: 'M 50,68 Q 70,64 90,68', glow: 'electric', duration: 64 },
+      eureka: { lid: 'M 50,70 Q 70,66 90,70', glow: 'golden', duration: 96 },
+      skeptical: { lid: 'M 50,72 Q 70,74 90,70', glow: 'alert', duration: 80 },
+      excited: { lid: 'M 50,76 Q 70,80 90,76', glow: 'golden', duration: 72 },
+      focus: { lid: 'M 50,74 Q 70,72 90,74', glow: 'teal', duration: 56 },
+      caution: { lid: 'M 50,72 Q 70,70 90,72', glow: 'alert', duration: 120 }
+    };
+
+    function playMicroExpression(type) {
+      const micro = MICRO_EXPRESSIONS[type];
+      if (!micro) return;
+
+      const currentLidLeft = lidLeft.getAttribute('d');
+      const currentLidRight = lidRight.getAttribute('d');
+      const currentGlow = avatarGlow.style.background;
+
+      // Flash the micro-expression
+      lidLeft.setAttribute('d', micro.lid);
+      lidRight.setAttribute('d', micro.lid.replace(/50/g, '110').replace(/70/g, '130').replace(/90/g, '150'));
+      avatarGlow.style.background = GLOW_COLORS[micro.glow];
+      avatarGlow.style.opacity = '0.9';
+
+      // Return to previous state
+      setTimeout(() => {
+        lidLeft.setAttribute('d', currentLidLeft);
+        lidRight.setAttribute('d', currentLidRight);
+        avatarGlow.style.background = currentGlow;
+        avatarGlow.style.opacity = '0.6';
+      }, micro.duration);
+
+      // Play research spark for eureka and excited
+      if (type === 'eureka' || type === 'excited') {
+        playResearchSpark();
+      }
+    }
+
+    // Set up micro-expression listeners
+    document.querySelectorAll('.micro-btn').forEach(btn => {
+      btn.addEventListener('click', () => playMicroExpression(btn.dataset.micro));
+    });
+
+    // ═══════════════════════════════════════════════════════════════
+    // Waveform Selection
+    // ═══════════════════════════════════════════════════════════════
+
+    document.querySelectorAll('.waveform-card').forEach(card => {
+      card.addEventListener('click', () => {
+        document.querySelectorAll('.waveform-card').forEach(c => c.classList.remove('active'));
+        card.classList.add('active');
+      });
+    });
+
+    // ═══════════════════════════════════════════════════════════════
+    // Initialize
+    // ═══════════════════════════════════════════════════════════════
+
+    buildExpressionGrids();
+    startRandomBlinking();
+    updateInfoPanel(currentExpression);
+  </script>
+
+  <!-- Shared Footer -->
+  <div id="footer-placeholder"></div>
+
+  <!-- Shared Navigation Script -->
+  <script src="../../shared/nav.js" defer></script>
+</body>
+</html>

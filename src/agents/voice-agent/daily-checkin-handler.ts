@@ -409,7 +409,7 @@ export function extractEmotionalWeather(transcript: string): EmotionalWeather | 
   return {
     primary: primaryWeather,
     energy,
-    note: transcript.length > 200 ? transcript.slice(0, 200) + '...' : transcript,
+    note: transcript.length > 200 ? `${transcript.slice(0, 200)}...` : transcript,
     confidence,
   };
 }
@@ -422,17 +422,19 @@ export async function extractEmotionalWeatherWithLLM(
   sessionId: string
 ): Promise<EmotionalWeather | null> {
   try {
-    // Dynamic import to avoid circular dependencies
-    const { GoogleGenerativeAI } = await import('@google/generative-ai');
+    // Use centralized Gemini config
+    const { getGeminiClient, isGeminiConfigured } = await import('../../config/gemini-config.js');
 
-    const apiKey = process.env.GOOGLE_API_KEY || process.env.GEMINI_API_KEY;
-    if (!apiKey) {
-      log().warn('No Gemini API key found, falling back to keyword extraction');
+    if (!isGeminiConfigured()) {
+      log().warn('Gemini not configured, falling back to keyword extraction');
       return extractEmotionalWeather(transcripts.join(' '));
     }
 
-    const genai = new GoogleGenerativeAI(apiKey);
-    const model = genai.getGenerativeModel({ model: getDefaultModel() });
+    const genai = await getGeminiClient();
+    if (!genai) {
+      log().warn('Failed to get Gemini client, falling back to keyword extraction');
+      return extractEmotionalWeather(transcripts.join(' '));
+    }
 
     const combinedTranscript = transcripts.join('\n\n');
 
@@ -460,8 +462,12 @@ Based on the conversation, determine:
 Respond in JSON format ONLY:
 {"primary": "weather_type", "energy": "level", "note": "brief note", "confidence": 0.0-1.0}`;
 
-    const result = await model.generateContent(prompt);
-    const text = result.response.text();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const result = await (genai as any).models.generateContent({
+      model: getDefaultModel(),
+      contents: prompt,
+    });
+    const text = result.text ?? '';
 
     // Parse JSON from response
     const jsonMatch = text.match(/\{[\s\S]*\}/);
@@ -473,7 +479,7 @@ Respond in JSON format ONLY:
     const parsed = JSON.parse(jsonMatch[0]) as EmotionalWeather;
 
     // Validate the response
-    const validWeathers: EmotionalWeather['primary'][] = [
+    const validWeathers: Array<EmotionalWeather['primary']> = [
       'sunny',
       'partly-cloudy',
       'cloudy',
@@ -482,7 +488,7 @@ Respond in JSON format ONLY:
       'foggy',
       'rainbow',
     ];
-    const validEnergies: EmotionalWeather['energy'][] = ['high', 'medium', 'low'];
+    const validEnergies: Array<EmotionalWeather['energy']> = ['high', 'medium', 'low'];
 
     if (!validWeathers.includes(parsed.primary) || !validEnergies.includes(parsed.energy)) {
       log().warn('Invalid weather values from LLM', { parsed });
@@ -525,7 +531,7 @@ export async function recordDailyCheckIn(
   try {
     // Import the services
     const { getDailyRitualsService } = await import('../../services/daily-rituals.js');
-    const { getEngagementStore } = await import('../../services/engagement-store.js');
+    const { getEngagementStore } = await import('../../services/engagement/engagement-store.js');
 
     const service = getDailyRitualsService();
     const store = await getEngagementStore();

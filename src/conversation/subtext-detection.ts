@@ -17,6 +17,7 @@
  * @module @ferni/subtext-detection
  */
 
+import { seededChance, seededPick, seededIndex } from './utils/rng.js';
 import { humanizationSignalEmitter } from '../services/humanization/humanization-signal-emitter.js';
 import { createLogger } from '../utils/safe-logger.js';
 
@@ -384,7 +385,9 @@ export class SubtextDetectionEngine {
     // Get gentle probe
     const probes = GENTLE_PROBES[bestDetection.type];
     const gentleProbe =
-      shouldAct && probes.length > 0 ? probes[Math.floor(Math.random() * probes.length)] : null;
+      shouldAct && probes.length > 0
+        ? (seededPick(`${Date.now()}:388`, probes) ?? probes[0])
+        : null;
 
     // Generate inferred meaning
     const inferredMeaning = this.generateInferredMeaning(bestDetection.type, userMessage);

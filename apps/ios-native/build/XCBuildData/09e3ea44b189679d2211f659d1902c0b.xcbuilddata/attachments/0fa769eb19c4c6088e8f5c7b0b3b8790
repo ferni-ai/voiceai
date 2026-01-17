@@ -1,0 +1,4 @@
+module FirebaseAuthInternal {
+umbrella "/Users/sethford/Library/Developer/Xcode/DerivedData/FerniVoice-gmmrbswmbdzcpmewiqefhbwjbjhd/SourcePackages/checkouts/firebase-ios-sdk/FirebaseAuth/Sources/Public"
+export *
+}

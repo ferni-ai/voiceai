@@ -151,7 +151,7 @@ export {
 } from '../topic-tracking.js';
 
 // Voice adaptation
-import { VoiceAdaptationService as _VoiceAdaptationService } from '../voice-adaptation.js';
+import { VoiceAdaptationService as _VoiceAdaptationService } from '../voice/voice-adaptation.js';
 
 export {
   addEmphasis,
@@ -168,7 +168,7 @@ export {
   type VoiceContext,
   type VoiceExpression,
   type VoiceModifiers,
-} from '../voice-adaptation.js';
+} from '../voice/voice-adaptation.js';
 
 // Cultural awareness
 import { CulturalAwarenessService as _CulturalAwarenessService } from '../cultural-awareness.js';

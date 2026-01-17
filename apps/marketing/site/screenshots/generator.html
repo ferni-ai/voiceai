@@ -1,0 +1,770 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>App Store Screenshot Generator - Ferni</title>
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <!-- Design System -->
+  <link rel="stylesheet" href="../../../../brand/master-tokens.css">
+
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: var(--font-body);
+      background: #1a1a1a;
+      color: white;
+      min-height: 100vh;
+      padding: 40px;
+    }
+
+    .generator-header {
+      text-align: center;
+      margin-bottom: 40px;
+    }
+
+    .generator-header h1 {
+      font-family: var(--font-display);
+      font-size: 32px;
+      margin-bottom: 8px;
+    }
+
+    .generator-header p {
+      color: #888;
+      font-size: 14px;
+    }
+
+    /* Controls */
+    .controls {
+      display: flex;
+      gap: 24px;
+      justify-content: center;
+      margin-bottom: 40px;
+      flex-wrap: wrap;
+    }
+
+    .control-group {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .control-group label {
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: #888;
+    }
+
+    .control-group select,
+    .control-group button {
+      padding: 12px 20px;
+      border-radius: 8px;
+      font-family: inherit;
+      font-size: 14px;
+      cursor: pointer;
+    }
+
+    .control-group select {
+      background: #2a2a2a;
+      border: 1px solid #444;
+      color: white;
+      min-width: 200px;
+    }
+
+    .btn-generate {
+      background: var(--color-accent);
+      color: white;
+      border: none;
+      font-weight: 600;
+    }
+
+    .btn-generate:hover {
+      background: var(--color-accent-hover);
+    }
+
+    .btn-export {
+      background: #333;
+      color: white;
+      border: 1px solid #555;
+    }
+
+    .btn-export:hover {
+      background: #444;
+    }
+
+    /* Preview Container */
+    .preview-container {
+      display: flex;
+      justify-content: center;
+      padding: 40px;
+      background: #111;
+      border-radius: 16px;
+      overflow: auto;
+    }
+
+    /* Screenshot Frame (Phone mockup) */
+    .screenshot-frame {
+      background: #000;
+      border-radius: 48px;
+      padding: 12px;
+      box-shadow: 0 25px 80px rgba(0,0,0,0.5);
+    }
+
+    /* Screenshot Canvas */
+    .screenshot {
+      border-radius: 40px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* Device Sizes */
+    .screenshot[data-device="iphone-67"] {
+      width: 430px;
+      height: 932px;
+    }
+
+    .screenshot[data-device="iphone-65"] {
+      width: 414px;
+      height: 896px;
+    }
+
+    .screenshot[data-device="iphone-55"] {
+      width: 414px;
+      height: 736px;
+    }
+
+    .screenshot[data-device="android"] {
+      width: 360px;
+      height: 640px;
+    }
+
+    /* Screenshot Content Base */
+    .screenshot-content {
+      width: 100%;
+      height: 100%;
+      background: var(--color-bg-primary);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 60px 40px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* Dark mode variant */
+    .screenshot-content.dark {
+      background: #141311;
+    }
+
+    .screenshot-content.dark .text-primary {
+      color: #FAF8F5;
+    }
+
+    .screenshot-content.dark .text-secondary {
+      color: #A8A29E;
+    }
+
+    /* Typography classes */
+    .text-primary {
+      color: var(--color-text-primary);
+    }
+
+    .text-secondary {
+      color: var(--color-text-secondary);
+    }
+
+    .text-accent {
+      color: var(--color-accent);
+    }
+
+    /* Background glow */
+    .bg-glow {
+      position: absolute;
+      width: 600px;
+      height: 600px;
+      border-radius: 50%;
+      opacity: 0.3;
+      pointer-events: none;
+    }
+
+    .bg-glow.ferni {
+      background: radial-gradient(circle, var(--color-ferni) 0%, transparent 70%);
+    }
+
+    .bg-glow.maya {
+      background: radial-gradient(circle, var(--color-maya) 0%, transparent 70%);
+    }
+
+    .bg-glow.peter {
+      background: radial-gradient(circle, var(--color-peter) 0%, transparent 70%);
+    }
+
+    /* Avatar sizes */
+    .avatar-large {
+      width: 200px;
+      height: 200px;
+    }
+
+    .avatar-medium {
+      width: 120px;
+      height: 120px;
+    }
+
+    .avatar-small {
+      width: 80px;
+      height: 80px;
+    }
+
+    .avatar-tiny {
+      width: 48px;
+      height: 48px;
+    }
+
+    /* Headline styles */
+    .headline-hero {
+      font-family: var(--font-display);
+      font-size: 48px;
+      font-weight: 800;
+      line-height: 1.1;
+      margin-bottom: 16px;
+    }
+
+    .headline-large {
+      font-family: var(--font-display);
+      font-size: 36px;
+      font-weight: 700;
+      line-height: 1.2;
+      margin-bottom: 12px;
+    }
+
+    .headline-medium {
+      font-family: var(--font-display);
+      font-size: 28px;
+      font-weight: 600;
+      line-height: 1.3;
+      margin-bottom: 10px;
+    }
+
+    .subhead {
+      font-size: 18px;
+      line-height: 1.5;
+      max-width: 320px;
+    }
+
+    /* Team grid */
+    .team-row {
+      display: flex;
+      gap: 24px;
+      justify-content: center;
+      margin-bottom: 24px;
+    }
+
+    .team-avatar-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .team-avatar-wrap span {
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    /* Chat bubble */
+    .chat-container {
+      width: 100%;
+      padding: 0 20px;
+    }
+
+    .chat-bubble {
+      background: var(--color-bg-elevated);
+      border-radius: 20px;
+      padding: 20px;
+      margin-bottom: 16px;
+      text-align: left;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+
+    .chat-bubble.user {
+      background: var(--color-accent);
+      color: white;
+      margin-left: 40px;
+    }
+
+    .chat-bubble.assistant {
+      margin-right: 40px;
+    }
+
+    .chat-time {
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 32px;
+    }
+
+    /* Handoff visual */
+    .handoff-visual {
+      display: flex;
+      align-items: center;
+      gap: 24px;
+      margin-bottom: 32px;
+    }
+
+    .handoff-arrow {
+      font-size: 32px;
+      color: var(--color-accent);
+    }
+
+    /* Persona card */
+    .persona-card {
+      background: var(--color-bg-elevated);
+      border-radius: 24px;
+      padding: 32px;
+      text-align: center;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+      max-width: 320px;
+    }
+
+    .persona-role {
+      font-size: 14px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      margin-bottom: 8px;
+    }
+
+    .persona-desc {
+      font-size: 16px;
+      line-height: 1.5;
+    }
+
+    /* Size info display */
+    .size-info {
+      position: fixed;
+      bottom: 20px;
+      left: 20px;
+      background: #333;
+      padding: 12px 20px;
+      border-radius: 8px;
+      font-size: 12px;
+      color: #888;
+    }
+
+    .size-info strong {
+      color: white;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="generator-header">
+    <h1>App Store Screenshot Generator</h1>
+    <p>Generate branded screenshots for iOS App Store and Google Play Store</p>
+  </div>
+
+  <div class="controls">
+    <div class="control-group">
+      <label>Device Size</label>
+      <select id="deviceSelect">
+        <option value="iphone-67">iPhone 6.7" (1290×2796)</option>
+        <option value="iphone-65">iPhone 6.5" (1242×2688)</option>
+        <option value="iphone-55">iPhone 5.5" (1242×2208)</option>
+        <option value="android">Android (1080×1920)</option>
+      </select>
+    </div>
+
+    <div class="control-group">
+      <label>Screenshot Type</label>
+      <select id="typeSelect">
+        <option value="hero">1. Hero - Team of 6</option>
+        <option value="conversation">2. 3am Conversation</option>
+        <option value="team-grid">3. Meet the Team</option>
+        <option value="meet-maya">4. Meet Maya</option>
+        <option value="meet-peter">5. Meet Peter</option>
+        <option value="handoff">6. Seamless Handoff</option>
+      </select>
+    </div>
+
+    <div class="control-group">
+      <label>&nbsp;</label>
+      <button class="btn-generate" onclick="generateScreenshot()">Generate</button>
+    </div>
+
+    <div class="control-group">
+      <label>&nbsp;</label>
+      <button class="btn-export" onclick="exportScreenshot()">Export PNG</button>
+    </div>
+  </div>
+
+  <div class="preview-container">
+    <div class="screenshot-frame">
+      <div class="screenshot" id="screenshot" data-device="iphone-67">
+        <div class="screenshot-content" id="screenshotContent">
+          <!-- Content generated by JavaScript -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="size-info">
+    Current: <strong id="sizeDisplay">430×932</strong> (scaled for preview)
+  </div>
+
+  <script>
+    // Persona data
+    const personas = {
+      ferni: { name: 'Ferni', role: 'The Coordinator', color: '#4A6741', desc: 'Your primary companion. Listens deeply, connects the dots.' },
+      maya: { name: 'Maya', role: 'Habits Coach', color: '#A67A6A', desc: 'Gentle accountability without shame. Celebrates your progress.' },
+      peter: { name: 'Peter', role: 'The Quant', color: '#3A6B73', desc: 'Deep research on any topic. Data-driven decisions.' },
+      jordan: { name: 'Jordan', role: 'Life Planner', color: '#C4856A', desc: 'Big dreams, concrete plans. Turns "someday" into "this month".' },
+      alex: { name: 'Alex', role: 'Chief of Staff', color: '#5A6B8A', desc: 'Email strategy, calendar optimization, productivity partner.' },
+      nayan: { name: 'Nayan', role: 'The Sage', color: '#B8956A', desc: "Life's deeper questions. Purpose, meaning, values." }
+    };
+
+    // Device sizes for export
+    const deviceSizes = {
+      'iphone-67': { w: 1290, h: 2796, preview: { w: 430, h: 932 } },
+      'iphone-65': { w: 1242, h: 2688, preview: { w: 414, h: 896 } },
+      'iphone-55': { w: 1242, h: 2208, preview: { w: 414, h: 736 } },
+      'android': { w: 1080, h: 1920, preview: { w: 360, h: 640 } }
+    };
+
+    // Create SVG avatar
+    function createAvatar(color, size) {
+      const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      svg.setAttribute('viewBox', '0 0 100 100');
+      svg.setAttribute('width', size);
+      svg.setAttribute('height', size);
+
+      const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      circle.setAttribute('cx', '50');
+      circle.setAttribute('cy', '50');
+      circle.setAttribute('r', '46');
+      circle.setAttribute('fill', color);
+
+      const leftEye = document.createElementNS('http://www.w3.org/2000/svg', 'ellipse');
+      leftEye.setAttribute('cx', '36');
+      leftEye.setAttribute('cy', '48');
+      leftEye.setAttribute('rx', '8');
+      leftEye.setAttribute('ry', '10');
+      leftEye.setAttribute('fill', 'white');
+
+      const rightEye = document.createElementNS('http://www.w3.org/2000/svg', 'ellipse');
+      rightEye.setAttribute('cx', '64');
+      rightEye.setAttribute('cy', '48');
+      rightEye.setAttribute('rx', '8');
+      rightEye.setAttribute('ry', '10');
+      rightEye.setAttribute('fill', 'white');
+
+      svg.appendChild(circle);
+      svg.appendChild(leftEye);
+      svg.appendChild(rightEye);
+
+      return svg;
+    }
+
+    // Create background glow
+    function createGlow(className) {
+      const glow = document.createElement('div');
+      glow.className = 'bg-glow ' + className;
+      glow.style.top = '50%';
+      glow.style.left = '50%';
+      glow.style.transform = 'translate(-50%, -50%)';
+      return glow;
+    }
+
+    // Screenshot generators
+    const generators = {
+      hero: function(container) {
+        container.appendChild(createGlow('ferni'));
+
+        const headline = document.createElement('h1');
+        headline.className = 'headline-hero text-primary';
+        headline.textContent = 'Your team of 6 AI specialists';
+        headline.style.position = 'relative';
+        headline.style.zIndex = '1';
+        container.appendChild(headline);
+
+        const subhead = document.createElement('p');
+        subhead.className = 'subhead text-secondary';
+        subhead.textContent = 'Better than human. Always available.';
+        subhead.style.position = 'relative';
+        subhead.style.zIndex = '1';
+        subhead.style.marginBottom = '48px';
+        container.appendChild(subhead);
+
+        // Avatar with glow
+        const avatarWrap = document.createElement('div');
+        avatarWrap.style.position = 'relative';
+        avatarWrap.style.zIndex = '1';
+        avatarWrap.style.marginBottom = '32px';
+        avatarWrap.appendChild(createAvatar(personas.ferni.color, 180));
+        container.appendChild(avatarWrap);
+
+        // Row of smaller team avatars
+        const teamRow = document.createElement('div');
+        teamRow.className = 'team-row';
+        teamRow.style.position = 'relative';
+        teamRow.style.zIndex = '1';
+
+        ['maya', 'peter', 'jordan', 'alex', 'nayan'].forEach(id => {
+          const p = personas[id];
+          const wrap = document.createElement('div');
+          wrap.className = 'team-avatar-wrap';
+          wrap.appendChild(createAvatar(p.color, 56));
+          const name = document.createElement('span');
+          name.className = 'text-secondary';
+          name.textContent = p.name;
+          wrap.appendChild(name);
+          teamRow.appendChild(wrap);
+        });
+
+        container.appendChild(teamRow);
+      },
+
+      conversation: function(container) {
+        container.classList.add('dark');
+        container.appendChild(createGlow('ferni'));
+
+        const time = document.createElement('div');
+        time.className = 'chat-time';
+        time.style.color = '#FAF8F5';
+        time.textContent = '3:12 AM';
+        time.style.position = 'relative';
+        time.style.zIndex = '1';
+        container.appendChild(time);
+
+        const chatContainer = document.createElement('div');
+        chatContainer.className = 'chat-container';
+        chatContainer.style.position = 'relative';
+        chatContainer.style.zIndex = '1';
+
+        // User message
+        const userBubble = document.createElement('div');
+        userBubble.className = 'chat-bubble user';
+        userBubble.textContent = "I can't sleep. Too much on my mind.";
+        chatContainer.appendChild(userBubble);
+
+        // Assistant message with avatar
+        const assistantRow = document.createElement('div');
+        assistantRow.style.display = 'flex';
+        assistantRow.style.alignItems = 'flex-start';
+        assistantRow.style.gap = '12px';
+
+        assistantRow.appendChild(createAvatar(personas.ferni.color, 40));
+
+        const assistantBubble = document.createElement('div');
+        assistantBubble.className = 'chat-bubble assistant';
+        assistantBubble.style.background = '#2A2825';
+        assistantBubble.style.color = '#FAF8F5';
+        assistantBubble.textContent = "I'm here. Want to talk through what's keeping you up?";
+        assistantRow.appendChild(assistantBubble);
+
+        chatContainer.appendChild(assistantRow);
+        container.appendChild(chatContainer);
+
+        const tagline = document.createElement('p');
+        tagline.className = 'subhead';
+        tagline.style.color = '#A8A29E';
+        tagline.style.marginTop = '48px';
+        tagline.style.position = 'relative';
+        tagline.style.zIndex = '1';
+        tagline.textContent = 'Always here. Even at 3am.';
+        container.appendChild(tagline);
+      },
+
+      'team-grid': function(container) {
+        container.appendChild(createGlow('ferni'));
+
+        const headline = document.createElement('h1');
+        headline.className = 'headline-large text-primary';
+        headline.textContent = 'Meet Your Team';
+        headline.style.position = 'relative';
+        headline.style.zIndex = '1';
+        headline.style.marginBottom = '40px';
+        container.appendChild(headline);
+
+        // Grid of all personas
+        const grid = document.createElement('div');
+        grid.style.display = 'grid';
+        grid.style.gridTemplateColumns = 'repeat(3, 1fr)';
+        grid.style.gap = '24px';
+        grid.style.position = 'relative';
+        grid.style.zIndex = '1';
+
+        Object.entries(personas).forEach(([id, p]) => {
+          const card = document.createElement('div');
+          card.style.textAlign = 'center';
+
+          card.appendChild(createAvatar(p.color, 80));
+
+          const name = document.createElement('div');
+          name.className = 'text-primary';
+          name.style.fontWeight = '600';
+          name.style.marginTop = '8px';
+          name.textContent = p.name;
+          card.appendChild(name);
+
+          const role = document.createElement('div');
+          role.style.fontSize = '11px';
+          role.style.color = p.color;
+          role.textContent = p.role;
+          card.appendChild(role);
+
+          grid.appendChild(card);
+        });
+
+        container.appendChild(grid);
+      },
+
+      'meet-maya': function(container) {
+        const p = personas.maya;
+        const glow = createGlow('maya');
+        glow.style.background = 'radial-gradient(circle, ' + p.color + ' 0%, transparent 70%)';
+        container.appendChild(glow);
+
+        const card = document.createElement('div');
+        card.className = 'persona-card';
+        card.style.position = 'relative';
+        card.style.zIndex = '1';
+
+        card.appendChild(createAvatar(p.color, 120));
+
+        const name = document.createElement('h2');
+        name.className = 'headline-medium text-primary';
+        name.style.marginTop = '16px';
+        name.textContent = p.name;
+        card.appendChild(name);
+
+        const role = document.createElement('div');
+        role.className = 'persona-role';
+        role.style.color = p.color;
+        role.textContent = p.role;
+        card.appendChild(role);
+
+        const desc = document.createElement('p');
+        desc.className = 'persona-desc text-secondary';
+        desc.textContent = p.desc;
+        card.appendChild(desc);
+
+        container.appendChild(card);
+      },
+
+      'meet-peter': function(container) {
+        const p = personas.peter;
+        const glow = createGlow('peter');
+        glow.style.background = 'radial-gradient(circle, ' + p.color + ' 0%, transparent 70%)';
+        container.appendChild(glow);
+
+        const card = document.createElement('div');
+        card.className = 'persona-card';
+        card.style.position = 'relative';
+        card.style.zIndex = '1';
+
+        card.appendChild(createAvatar(p.color, 120));
+
+        const name = document.createElement('h2');
+        name.className = 'headline-medium text-primary';
+        name.style.marginTop = '16px';
+        name.textContent = p.name;
+        card.appendChild(name);
+
+        const role = document.createElement('div');
+        role.className = 'persona-role';
+        role.style.color = p.color;
+        role.textContent = p.role;
+        card.appendChild(role);
+
+        const desc = document.createElement('p');
+        desc.className = 'persona-desc text-secondary';
+        desc.textContent = p.desc;
+        card.appendChild(desc);
+
+        container.appendChild(card);
+      },
+
+      handoff: function(container) {
+        container.appendChild(createGlow('ferni'));
+
+        const headline = document.createElement('h1');
+        headline.className = 'headline-large text-primary';
+        headline.textContent = 'Seamless Handoffs';
+        headline.style.position = 'relative';
+        headline.style.zIndex = '1';
+        headline.style.marginBottom = '32px';
+        container.appendChild(headline);
+
+        const visual = document.createElement('div');
+        visual.className = 'handoff-visual';
+        visual.style.position = 'relative';
+        visual.style.zIndex = '1';
+
+        visual.appendChild(createAvatar(personas.ferni.color, 100));
+
+        const arrow = document.createElement('span');
+        arrow.className = 'handoff-arrow';
+        arrow.textContent = '→';
+        visual.appendChild(arrow);
+
+        visual.appendChild(createAvatar(personas.maya.color, 100));
+
+        container.appendChild(visual);
+
+        const quote = document.createElement('p');
+        quote.className = 'subhead text-secondary';
+        quote.style.position = 'relative';
+        quote.style.zIndex = '1';
+        quote.style.fontStyle = 'italic';
+        quote.textContent = '"Maya can help you build that morning routine. Let me bring her in..."';
+        container.appendChild(quote);
+      }
+    };
+
+    function generateScreenshot() {
+      const device = document.getElementById('deviceSelect').value;
+      const type = document.getElementById('typeSelect').value;
+
+      const screenshot = document.getElementById('screenshot');
+      const content = document.getElementById('screenshotContent');
+
+      // Clear existing content
+      while (content.firstChild) {
+        content.removeChild(content.firstChild);
+      }
+      content.className = 'screenshot-content';
+
+      // Set device size
+      screenshot.setAttribute('data-device', device);
+
+      // Update size display
+      const size = deviceSizes[device];
+      document.getElementById('sizeDisplay').textContent = size.preview.w + '×' + size.preview.h;
+
+      // Generate content
+      if (generators[type]) {
+        generators[type](content);
+      }
+    }
+
+    function exportScreenshot() {
+      alert('Export feature requires html2canvas library.\n\nTo implement:\n1. Add html2canvas.js\n2. Render at actual device resolution\n3. Download as PNG');
+    }
+
+    // Initialize
+    generateScreenshot();
+  </script>
+</body>
+</html>

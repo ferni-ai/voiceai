@@ -147,22 +147,33 @@ export function analyzeQuestionComplexity(userText: string): number {
 }
 
 // ============================================================================
-// THINKING PHRASES (via ThinkingPhraseCoordinator)
+// DEPRECATED: STATIC THINKING PHRASES
+// ============================================================================
+//
+// These static thinking phrases have been replaced by LLM behavioral guidance.
+// See: src/intelligence/context-builders/humanization/dynamic-speech-guidance.ts
+//
+// The new approach:
+// - Silence is fine when thinking (don't announce "let me think")
+// - Brief acknowledgments are okay but should vary naturally
+// - The LLM generates contextual responses, not template phrases
+//
+// The phrase pools below are kept for backward compatibility but return
+// empty strings. The LLM will handle natural pauses and speech.
 // ============================================================================
 
 /**
- * @deprecated Use ThinkingPhraseCoordinator instead.
- * Kept for backwards compatibility with tests.
+ * @deprecated REMOVED - LLM generates natural thinking behavior from guidance
+ * Kept for backwards compatibility with tests - returns empty strings.
  */
-// NOTE: Removed "Well..." from all personas - it sounds like AI inner monologue/stalling
 const personaThinkingPhrases: Record<string, string[]> = {
-  ferni: ['Hmm...', 'Let me think about that...', 'You know...', 'Okay, so...'],
-  'nayan-patel': ['Hmm...', 'You know...', 'Let me consider that...', 'Let me think...'],
-  'peter-john': ['Hmm, let me think...', 'You know what...', "Here's what jumps out..."],
-  'maya-santos': ['Hmm...', "Let's see...", 'You know...'],
-  'alex-chen': ['Let me think...', 'Hmm...', "Okay, let's see..."],
-  'jordan-taylor': ['Let me think...', 'Hmm...', 'You know what...'],
-  default: ['Hmm...', 'Let me think about that...', 'You know...'],
+  ferni: [''], // Empty - LLM decides naturally based on context
+  'nayan-patel': [''],
+  'peter-john': [''],
+  'maya-santos': [''],
+  'alex-chen': [''],
+  'jordan-taylor': [''],
+  default: [''],
 };
 
 /**

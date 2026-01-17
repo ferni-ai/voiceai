@@ -10,7 +10,10 @@
 import type { IncomingMessage, ServerResponse } from 'http';
 import crypto from 'crypto';
 import { createLogger } from '../utils/safe-logger.js';
+import { registerInterval } from '../utils/interval-manager.js';
 import { sendError, sendJsonResponse, parseRequestBody } from './helpers.js';
+import { requireAuth, type AuthContext } from './auth-middleware.js';
+import { cleanForFirestore } from '../utils/firestore-utils.js';
 
 const log = createLogger({ module: 'WidgetRoutes' });
 
@@ -124,8 +127,8 @@ function cleanExpiredSessions(): void {
   }
 }
 
-// Clean expired sessions every 5 minutes
-setInterval(cleanExpiredSessions, 5 * 60 * 1000);
+// Clean expired sessions every 5 minutes (managed interval for proper shutdown)
+registerInterval('widget-session-cleanup', cleanExpiredSessions, 5 * 60 * 1000);
 
 // ============================================================================
 // ROUTE HANDLER
@@ -299,11 +302,10 @@ async function handleCreateSession(req: IncomingMessage, res: ServerResponse): P
  * Registers a new widget (requires authentication)
  */
 async function handleRegisterWidget(req: IncomingMessage, res: ServerResponse): Promise<boolean> {
-  const userId = req.headers['x-user-id'] as string;
-  if (!userId) {
-    sendError(res, 'Authentication required', 401);
-    return true;
-  }
+  // SECURITY: Use Firebase auth instead of deprecated x-user-id header
+  const auth = await requireAuth(req, res);
+  if (!auth) return true; // 401 already sent
+  const { userId } = auth;
 
   const body = await parseRequestBody<{
     displayName: string;
@@ -361,11 +363,10 @@ async function handleRegisterWidget(req: IncomingMessage, res: ServerResponse): 
  * Lists all widgets for the authenticated user
  */
 async function handleListWidgets(req: IncomingMessage, res: ServerResponse): Promise<boolean> {
-  const userId = req.headers['x-user-id'] as string;
-  if (!userId) {
-    sendError(res, 'Authentication required', 401);
-    return true;
-  }
+  // SECURITY: Use Firebase auth instead of deprecated x-user-id header
+  const auth = await requireAuth(req, res);
+  if (!auth) return true; // 401 already sent
+  const { userId } = auth;
 
   const userWidgets: WidgetConfig[] = [];
   for (const config of widgetConfigs.values()) {
@@ -398,11 +399,10 @@ async function handleDeleteWidget(
   res: ServerResponse,
   widgetId: string
 ): Promise<boolean> {
-  const userId = req.headers['x-user-id'] as string;
-  if (!userId) {
-    sendError(res, 'Authentication required', 401);
-    return true;
-  }
+  // SECURITY: Use Firebase auth instead of deprecated x-user-id header
+  const auth = await requireAuth(req, res);
+  if (!auth) return true; // 401 already sent
+  const { userId } = auth;
 
   const config = widgetConfigs.get(widgetId);
   if (!config) {
@@ -487,7 +487,7 @@ const EMBED_SCRIPT = `
   const WIDGET_ID = window.FerniWidget?.widgetId;
 
   if (!WIDGET_ID) {
-    console.error('[Ferni] Widget ID not configured. Set window.FerniWidget.widgetId');
+    if (window.FerniWidget?.debug) console.error('[Ferni] Widget ID not configured. Set window.FerniWidget.widgetId');
     return;
   }
 
@@ -598,9 +598,9 @@ const EMBED_SCRIPT = `
         setTimeout(open, 2000);
       }
 
-      console.log('[Ferni] Widget initialized:', config.displayName);
+      if (window.FerniWidget?.debug) console.log('[Ferni] Widget initialized:', config.displayName);
     } catch (err) {
-      console.error('[Ferni] Failed to initialize:', err);
+      if (window.FerniWidget?.debug) console.error('[Ferni] Failed to initialize:', err);
     }
   }
 
@@ -664,7 +664,7 @@ const EMBED_SCRIPT = `
         isOpen = true;
       });
     } catch (err) {
-      console.error('[Ferni] Failed to open:', err);
+      if (window.FerniWidget?.debug) console.error('[Ferni] Failed to open:', err);
       alert('Unable to start voice assistant. Please try again later.');
     }
   }

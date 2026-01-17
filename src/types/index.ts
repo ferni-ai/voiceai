@@ -353,14 +353,8 @@ export * as ProfileAggregates from './profile/index.js';
 export { createCompositeUserProfile } from './profile/index.js';
 export type { CompositeUserProfile } from './profile/index.js';
 
-// Migration utilities (profile format)
-export {
-  ensureCompositeProfile,
-  isCompositeProfile,
-  isLegacyProfile,
-  migrateUserProfile,
-  toLegacyProfile,
-} from './profile/migration.js';
+// Migration utilities - import from canonical location:
+//   import { detectProfileFormat, migrateToComposite, migrateToLegacy } from './migration/profile-migrator.js';
 
 // ============================================================================
 // ADVANCED MIGRATION UTILITIES
@@ -557,3 +551,69 @@ export type {
   Recommendation,
   RecommendationType,
 } from './optimization-types.js';
+
+// ============================================================================
+// EMOTION TYPES (Shared across memory and intelligence layers)
+// ============================================================================
+
+export {
+  isEmotionResult,
+  isPrimaryEmotion,
+  type EmotionalCheckIn,
+  type EmotionalContext,
+  type EmotionalMoment,
+  type EmotionalPattern,
+  type EmotionResult,
+  type PrimaryEmotion,
+  type Valence,
+} from './emotion-types.js';
+
+// ============================================================================
+// PERFORMANCE METRICS TYPES (Shared across services and memory layers)
+// ============================================================================
+
+export {
+  noopMetrics,
+  type PerformanceMetricsCallbacks,
+  type RecordCacheEvictionFn,
+  type RecordCacheHitFn,
+  type RecordCacheMissFn,
+} from './performance-metrics-types.js';
+
+// ============================================================================
+// AGENT ID TYPES (Shared persona/agent identifiers)
+// ============================================================================
+
+export {
+  getCanonicalAgentId,
+  SHORT_TO_CANONICAL,
+  type AgentId,
+  type CanonicalPersonaId,
+  type ShortPersonaId,
+} from './agent-ids.js';
+
+// ============================================================================
+// CONTACT TYPES (Contact management and outreach)
+// ============================================================================
+
+export type {
+  BatchOutreachRequest,
+  BatchOutreachResult,
+  BudgetRange,
+  ChannelType,
+  ContactChannel,
+  ContactGroup,
+  ContactImportantDate,
+  DateSentiment,
+  EnhancedContact,
+  ImportantDateType,
+  OccasionPreferences,
+  OutreachContext,
+  OutreachOccasion,
+  OutreachSuggestion,
+  OutreachTone,
+  PersonalizedMessage,
+  RelationshipSentiment,
+  RelationshipType,
+  SuggestionType,
+} from './contacts.js';

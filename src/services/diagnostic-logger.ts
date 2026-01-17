@@ -53,6 +53,9 @@ const CATEGORY_EMOJIS: Record<string, string> = {
   health: '💓',
   handoff: '🤝',
   session: '📡',
+  processing: '⏳', // Processing phase tracking
+  filler: '🗣️', // Verbal fillers spoken
+  music: '🎵', // Thinking music / ambient
   default: '📋',
 };
 
@@ -203,6 +206,21 @@ class DiagnosticLogger {
   /** Session lifecycle */
   session(message: string, data?: LogData): void {
     this.log('info', 'session', message, data);
+  }
+
+  /** Processing phase tracking (turn processing, LLM waiting, etc.) */
+  processing(message: string, data?: LogData): void {
+    this.log('debug', 'processing', message, data);
+  }
+
+  /** Verbal filler spoken (thinking fillers, backchannels, etc.) */
+  filler(message: string, data?: LogData): void {
+    this.log('info', 'filler', message, data);
+  }
+
+  /** Thinking music and ambient music events */
+  music(message: string, data?: LogData): void {
+    this.log('debug', 'music', message, data);
   }
 
   // ============================================================================

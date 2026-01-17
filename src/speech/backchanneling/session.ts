@@ -10,7 +10,8 @@
 import { getLogger } from '../../utils/safe-logger.js';
 import { BreathPauseDetector } from '../live-backchanneling/breath-pause.js';
 import { createSessionManager, type SessionService } from '../session-service.js';
-import { BackchannelEngine, createBackchannelEngine } from './decision-engine.js';
+import type { BackchannelEngine } from './decision-engine.js';
+import { createBackchannelEngine } from './decision-engine.js';
 import type { BackchannelEngineOptions, BackchannelMode } from './types.js';
 
 const log = getLogger().child({ module: 'BackchannelSession' });
@@ -23,12 +24,12 @@ const log = getLogger().child({ module: 'BackchannelSession' });
  * Session-scoped wrapper that manages multiple engine modes
  */
 export class SessionBackchannelManager implements SessionService {
-  private engines: Map<BackchannelMode, BackchannelEngine> = new Map();
+  private engines = new Map<BackchannelMode, BackchannelEngine>();
   private breathPauseDetector: BreathPauseDetector | null = null;
   private readonly sessionId: string;
   private readonly personaId: string;
 
-  constructor(sessionId: string, personaId: string = 'ferni') {
+  constructor(sessionId: string, personaId = 'ferni') {
     this.sessionId = sessionId;
     this.personaId = personaId;
     log.debug({ sessionId, personaId }, 'SessionBackchannelManager initialized');

@@ -1,123 +1,60 @@
 {
-  "schema_version": 2,
-  "description": "Ferni's breath and somatic sounds for embodied audio - Enhanced with Cartesia Sonic-3 expressiveness",
+  "schema_version": 1,
+  "description": "Ferni's breath sounds - soft, grounding, Wyoming calm. The breath of someone who's been through hard things and found peace.",
 
-  "breath_sounds": {
-    "centering": [
-      "<speed ratio=\"0.85\"/><volume ratio=\"0.85\"/><break time=\"400ms\"/>Okay.",
-      "<speed ratio=\"0.90\"/><break time=\"300ms\"/>",
-      "<speed ratio=\"0.85\"/><volume ratio=\"0.90\"/><break time=\"300ms\"/>Alright.",
-      "<speed ratio=\"0.80\"/><volume ratio=\"0.85\"/><emotion value=\"contemplative\"/><break time=\"200ms\"/>Let me think..."
-    ],
-    "processing_heavy": [
-      "<speed ratio=\"0.80\"/><volume ratio=\"0.80\"/><emotion value=\"sympathetic\"/><break time=\"300ms\"/>That's heavy.",
-      "<speed ratio=\"0.85\"/><volume ratio=\"0.85\"/><emotion value=\"surprised\"/><break time=\"200ms\"/>Wow.",
-      "<speed ratio=\"0.85\"/><volume ratio=\"0.85\"/><emotion value=\"sympathetic\"/><break time=\"200ms\"/>Yeah. <break time=\"150ms\"/>That's a lot.",
-      "<speed ratio=\"0.80\"/><volume ratio=\"0.80\"/><emotion value=\"affectionate\"/><break time=\"300ms\"/>I hear you."
-    ],
-    "relief": [
-      "<speed ratio=\"0.95\"/><emotion value=\"content\"/><break time=\"200ms\"/>Good.",
-      "<speed ratio=\"0.90\"/><emotion value=\"content\"/><break time=\"150ms\"/>That's a relief to hear.",
-      "<speed ratio=\"0.90\"/><emotion value=\"calm\"/><break time=\"200ms\"/>Okay. <break time=\"150ms\"/>Okay.",
-      "<break time=\"200ms\"/>"
-    ]
-  },
+  "contemplative_breath": [
+    "<break time=\"300ms\"/>[soft breath]<break time=\"200ms\"/>",
+    "<break time=\"250ms\"/>[gentle exhale]<break time=\"200ms\"/>",
+    "<break time=\"300ms\"/>[quiet inhale]<break time=\"250ms\"/>"
+  ],
 
-  "micro_sounds": {
-    "recognition": [
-      "<emotion value=\"curious\"/>Ah. <break time=\"150ms\"/>",
-      "<emotion value=\"surprised\"/>Oh. <break time=\"150ms\"/>",
-      "<emotion value=\"calm\"/>Mm. <break time=\"100ms\"/>"
-    ],
-    "content_acknowledgment": [
-      "<volume ratio=\"0.90\"/>Mmm. <break time=\"200ms\"/>",
-      "<emotion value=\"contemplative\"/>Hmm. <break time=\"150ms\"/>",
-      "<volume ratio=\"0.90\"/>Mhm. <break time=\"100ms\"/>"
-    ],
-    "soft_laugh": [
-      "<emotion value=\"happy\"/>Ha. <break time=\"150ms\"/>",
-      "<emotion value=\"content\"/>Heh. <break time=\"150ms\"/>",
-      "<emotion value=\"happy\"/>Hah. <break time=\"150ms\"/>",
-      "<emotion value=\"content\"/>Heh. <break time=\"150ms\"/>"
-    ],
-    "wistful": [
-      "<speed ratio=\"0.85\"/><volume ratio=\"0.85\"/><emotion value=\"wistful\"/>Hmm. <break time=\"300ms\"/>",
-      "<speed ratio=\"0.85\"/><volume ratio=\"0.80\"/><break time=\"200ms\"/>",
-      "<speed ratio=\"0.85\"/><emotion value=\"nostalgic\"/><break time=\"200ms\"/>"
-    ],
-    "realization": [
-      "<emotion value=\"surprised\"/>Oh. <break time=\"200ms\"/>",
-      "<emotion value=\"curious\"/>Ah. <break time=\"150ms\"/>I see...",
-      "<emotion value=\"contemplative\"/>Mmm. <break time=\"100ms\"/>yes..."
-    ]
-  },
+  "before_something_hard": [
+    "<break time=\"400ms\"/>[deep breath]<break time=\"300ms\"/>",
+    "<break time=\"350ms\"/>[slow exhale]<break time=\"250ms\"/>Okay.",
+    "<break time=\"400ms\"/>[breath]<break time=\"300ms\"/>Here's the thing."
+  ],
 
-  "emotional_sounds": {
-    "touched": [
-      "<speed ratio=\"0.85\"/><volume ratio=\"0.85\"/><emotion value=\"affectionate\"/><break time=\"200ms\"/>That's beautiful.",
-      "<speed ratio=\"0.90\"/><emotion value=\"grateful\"/><break time=\"150ms\"/>Thank you for sharing that.",
-      "<speed ratio=\"0.85\"/><volume ratio=\"0.80\"/><emotion value=\"affectionate\"/><break time=\"200ms\"/>"
-    ],
-    "amused": [
-      "<emotion value=\"happy\"/>Ha! <break time=\"200ms\"/>",
-      "<emotion value=\"content\"/>Heh. <break time=\"150ms\"/>",
-      "<emotion value=\"happy\"/>Ha! <break time=\"150ms\"/>I love that.",
-      "<emotion value=\"happy\"/>Ha! <break time=\"100ms\"/>Yeah."
-    ],
-    "surprised": [
-      "<speed ratio=\"1.10\"/><emotion value=\"surprised\"/>Oh! <break time=\"150ms\"/>",
-      "<speed ratio=\"1.05\"/><emotion value=\"amazed\"/>Oh! <break time=\"100ms\"/>",
-      "<emotion value=\"curious\"/><break time=\"100ms\"/>Huh."
-    ],
-    "sympathetic": [
-      "<speed ratio=\"0.85\"/><volume ratio=\"0.85\"/><emotion value=\"sympathetic\"/>Mmm. <break time=\"200ms\"/>I know...",
-      "<speed ratio=\"0.85\"/><volume ratio=\"0.85\"/><emotion value=\"sympathetic\"/><break time=\"150ms\"/>Yeah...",
-      "<speed ratio=\"0.85\"/><emotion value=\"contemplative\"/>Hmm. <break time=\"200ms\"/>"
-    ]
-  },
+  "after_user_shares": [
+    "<break time=\"300ms\"/>[soft breath]<break time=\"200ms\"/>",
+    "<break time=\"350ms\"/>[exhale]<break time=\"250ms\"/>Yeah.",
+    "<break time=\"300ms\"/>[breath]<break time=\"200ms\"/>I hear you."
+  ],
 
-  "transitional_sounds": {
-    "before_speaking": [
-      "<break time=\"150ms\"/>",
-      "<break time=\"100ms\"/>",
-      "<volume ratio=\"0.95\"/><break time=\"150ms\"/>"
-    ],
-    "before_serious_point": [
-      "<speed ratio=\"0.90\"/><volume ratio=\"0.95\"/><break time=\"200ms\"/>",
-      "<speed ratio=\"0.85\"/><break time=\"200ms\"/>",
-      "<emotion value=\"determined\"/><break time=\"200ms\"/>"
-    ],
-    "topic_shift": [
-      "<speed ratio=\"0.95\"/><break time=\"200ms\"/>Okay. <break time=\"150ms\"/>So...",
-      "<emotion value=\"curious\"/><break time=\"150ms\"/>Different direction...",
-      "<speed ratio=\"0.95\"/><break time=\"200ms\"/>Let's..."
-    ]
-  },
+  "holding_space": [
+    "<break time=\"500ms\"/>[quiet breath]<break time=\"400ms\"/>",
+    "<break time=\"400ms\"/>[still breath]<break time=\"350ms\"/>",
+    "<break time=\"450ms\"/>[soft exhale]<break time=\"300ms\"/>"
+  ],
 
-  "energy_variations": {
-    "high_energy": {
-      "speed_range": [1.05, 1.2],
-      "volume_range": [1.05, 1.2],
-      "emotions": ["excited", "enthusiastic", "happy"]
-    },
-    "low_energy": {
-      "speed_range": [0.8, 0.9],
-      "volume_range": [0.75, 0.9],
-      "emotions": ["calm", "contemplative", "peaceful"]
-    },
-    "intimate": {
-      "speed_range": [0.8, 0.9],
-      "volume_range": [0.6, 0.75],
-      "emotions": ["affectionate", "calm", "sympathetic"]
-    }
-  },
+  "grounding": [
+    "<break time=\"300ms\"/>Take a breath with me.<break time=\"500ms\"/>[breath]<break time=\"400ms\"/>",
+    "<break time=\"350ms\"/>[deep breath]<break time=\"400ms\"/>Let it out slow.",
+    "<break time=\"400ms\"/>Breathe.<break time=\"500ms\"/>[exhale]<break time=\"300ms\"/>Good."
+  ],
+
+  "gentle_sigh": [
+    "<break time=\"250ms\"/>[soft sigh]<break time=\"200ms\"/>",
+    "<break time=\"300ms\"/>[quiet sigh]<break time=\"250ms\"/>Yeah.",
+    "<break time=\"250ms\"/>[exhale]<break time=\"200ms\"/>I know."
+  ],
+
+  "wyoming_stillness": [
+    "<break time=\"500ms\"/>[still]<break time=\"400ms\"/>",
+    "<break time=\"400ms\"/>[quiet breath]<break time=\"500ms\"/>",
+    "<break time=\"450ms\"/>[pause]<break time=\"400ms\"/>"
+  ],
 
   "usage_rules": {
-    "centering_probability": 0.2,
-    "micro_sound_probability": 0.15,
-    "emotional_sound_probability": 0.25,
-    "more_likely_when": ["emotional_moment", "before_important_point", "processing_time"],
-    "never_when": ["rapid_exchange", "user_in_crisis_needs_clarity"],
-    "energy_based_selection": true
+    "frequency": "low",
+    "max_per_response": 1,
+    "more_likely_when": [
+      "user_vulnerable",
+      "heavy_topic",
+      "late_night",
+      "after_hard_share",
+      "before_hard_truth"
+    ],
+    "less_likely_when": ["celebratory", "quick_task", "high_energy"],
+    "note": "Ferni's breaths are grounding, not anxious. Wyoming calm."
   }
 }

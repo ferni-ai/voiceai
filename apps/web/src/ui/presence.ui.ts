@@ -31,7 +31,7 @@ import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 const log = createLogger('PresenceUI');
 
 // FIX BUG: Track all setTimeout calls for proper cleanup
-const { trackedTimeout, clearAll: clearAllTimeouts } = createTimeoutTracker();
+const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
 
 import {
   AVATAR_BREATH_TIMING,
@@ -104,6 +104,34 @@ const MICRO_IDLE_INTERVAL_MIN = 3000;  // Min time between micro-movements
 const MICRO_IDLE_INTERVAL_MAX = 8000;  // Max time between micro-movements
 
 // ============================================================================
+// 🔊 BASS SPEAKER VOICE PULSE - Avatar "breathes" with speech
+// Like a speaker cone moving with audio, creates sense of life when talking
+// ============================================================================
+
+// Voice pulse state
+let voicePulseFrame: number | null = null;
+let currentVoiceVolume = 0;
+let smoothedVoiceVolume = 0;
+let voicePulseEnabled = true;
+
+// Voice pulse configuration
+const VOICE_PULSE_CONFIG = {
+  // Scale range: avatar pulses between 1.0 and 1.0 + MAX_SCALE
+  maxScale: 0.12,        // 12% max scale increase (bass speaker effect)
+  minScale: 0.02,        // 2% minimum pulse when speaking (always some movement)
+  
+  // Smoothing: lower = more responsive, higher = smoother
+  smoothingUp: 0.25,     // Fast attack - respond quickly to volume increases
+  smoothingDown: 0.08,   // Slow release - smooth decay feels more organic
+  
+  // Squash/stretch for Pixar-quality deformation
+  squashRatio: 0.4,      // When scaling up, squash horizontally by this ratio
+  
+  // Update rate
+  targetFps: 60,
+};
+
+// ============================================================================
 // INITIALIZATION
 // ============================================================================
 
@@ -128,6 +156,12 @@ export function initPresenceUI(): void {
   // 🆕 Human-like behaviors - makes avatar feel alive
   startBlinking();
   startMicroIdleMovements();
+  
+  // 🔊 NEW: Initialize three-layer speaking system (body, halo, lid)
+  import('./speaking-system.ui.js').then(m => {
+    m.speakingSystem.init();
+    log.debug('🔊 Three-layer speaking system initialized');
+  });
   
   // 🚀 Ferni EQ: Listen for breath sync events
   document.addEventListener('ferni:breath-sync', handleBreathSync as EventListener);
@@ -614,6 +648,144 @@ function stopMicroIdleMovements(): void {
 }
 
 // ============================================================================
+// 🔊 VOICE PULSE - Bass Speaker Animation
+// Avatar pulses with voice amplitude like a speaker cone
+// ============================================================================
+
+/**
+ * Start the voice pulse animation loop.
+ * Called when agent starts speaking.
+ * 
+ * 🎬 PIXAR PRINCIPLE: SQUASH & STRETCH
+ * When the avatar scales up (loud), it squashes horizontally.
+ * This creates organic, living movement like a beating heart or speaker cone.
+ */
+function startVoicePulse(): void {
+  if (voicePulseFrame !== null) return; // Already running
+  if (!voicePulseEnabled) return;
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  
+  log.debug('🔊 Starting voice pulse animation');
+  
+  const animate = () => {
+    if (!avatarContainer || !isSpeaking) {
+      stopVoicePulse();
+      return;
+    }
+    
+    // Smooth the volume with different attack/release
+    const config = VOICE_PULSE_CONFIG;
+    if (currentVoiceVolume > smoothedVoiceVolume) {
+      // Attack: fast response to volume increases
+      smoothedVoiceVolume += (currentVoiceVolume - smoothedVoiceVolume) * config.smoothingUp;
+    } else {
+      // Release: slow decay for organic feel
+      smoothedVoiceVolume += (currentVoiceVolume - smoothedVoiceVolume) * config.smoothingDown;
+    }
+    
+    // Calculate scale based on volume
+    // Minimum pulse when speaking (so there's always movement)
+    const minPulse = isSpeaking ? config.minScale : 0;
+    const volumeScale = minPulse + smoothedVoiceVolume * (config.maxScale - minPulse);
+    
+    // Apply scale with squash/stretch
+    // When scaling up (Y), squash horizontally (X)
+    const scaleY = 1 + volumeScale;
+    const scaleX = 1 - (volumeScale * config.squashRatio);
+    
+    // Apply transform - this works with the breathing animation
+    // Use a separate CSS property to not conflict with other transforms
+    avatarContainer.style.setProperty('--voice-scale-x', String(scaleX));
+    avatarContainer.style.setProperty('--voice-scale-y', String(scaleY));
+    
+    // Also apply directly if CSS var isn't being used
+    // This gives immediate visual feedback
+    const currentTransform = getComputedStyle(avatarContainer).transform;
+    if (currentTransform === 'none' || !currentTransform.includes('scale')) {
+      // No existing transform, apply directly
+      avatarContainer.style.transform = `scaleX(${scaleX}) scaleY(${scaleY})`;
+    }
+    
+    voicePulseFrame = requestAnimationFrame(animate);
+  };
+  
+  voicePulseFrame = requestAnimationFrame(animate);
+}
+
+/**
+ * Stop the voice pulse animation.
+ * Called when agent stops speaking.
+ */
+function stopVoicePulse(): void {
+  if (voicePulseFrame !== null) {
+    cancelAnimationFrame(voicePulseFrame);
+    voicePulseFrame = null;
+  }
+  
+  // Reset to neutral with smooth transition
+  if (avatarContainer) {
+    avatarContainer.style.setProperty('--voice-scale-x', '1');
+    avatarContainer.style.setProperty('--voice-scale-y', '1');
+    
+    // Smooth return to neutral scale
+    avatarContainer.animate([
+      { transform: `scaleX(${1 - smoothedVoiceVolume * VOICE_PULSE_CONFIG.squashRatio}) scaleY(${1 + smoothedVoiceVolume * VOICE_PULSE_CONFIG.maxScale})` },
+      { transform: 'scaleX(1) scaleY(1)' },
+    ], {
+      duration: DURATION.SLOW,
+      easing: EASING.GENTLE,
+      fill: 'forwards',
+    });
+  }
+  
+  smoothedVoiceVolume = 0;
+  currentVoiceVolume = 0;
+  
+  log.debug('🔊 Stopped voice pulse animation');
+}
+
+/**
+ * Update the voice volume for the pulse animation.
+ * Called by the audio visualization system.
+ * 
+ * @param volume - Normalized volume (0-1)
+ */
+export function setVoiceVolume(volume: number): void {
+  currentVoiceVolume = Math.max(0, Math.min(1, volume));
+  
+  // Start pulse animation if speaking and not already running
+  if (isSpeaking && voicePulseFrame === null && voicePulseEnabled) {
+    startVoicePulse();
+  }
+  
+  // 🔊 NEW: Update unified speaking system with volume
+  // This drives the three-layer animation (body, halo, lid)
+  if (isSpeaking) {
+    import('./speaking-system.ui.js').then(m => m.speakingSystem.updateVolume(currentVoiceVolume));
+  }
+}
+
+/**
+ * Enable or disable voice pulse animation.
+ * Useful for users who find the movement distracting.
+ */
+export function setVoicePulseEnabled(enabled: boolean): void {
+  voicePulseEnabled = enabled;
+  if (!enabled) {
+    stopVoicePulse();
+  } else if (isSpeaking) {
+    startVoicePulse();
+  }
+}
+
+/**
+ * Check if voice pulse is enabled.
+ */
+export function isVoicePulseEnabled(): boolean {
+  return voicePulseEnabled;
+}
+
+// ============================================================================
 // EYE TRACKING - WALL-E Curious Gaze
 // ============================================================================
 
@@ -714,6 +886,17 @@ export function setSpeaking(speaking: boolean): void {
   // Update breathing intensity when speaking state changes
   if (wasSpeaking !== speaking) {
     updateBreathingAnimation();
+    
+    // 🔊 Start/stop voice pulse animation (bass speaker effect)
+    if (speaking) {
+      startVoicePulse();
+      // 🔊 NEW: Start unified speaking system (body + halo + lid)
+      import('./speaking-system.ui.js').then(m => m.speakingSystem.start());
+    } else {
+      stopVoicePulse();
+      // 🔊 NEW: Stop unified speaking system
+      import('./speaking-system.ui.js').then(m => m.speakingSystem.stop());
+    }
     
     // 🎬 Zen blink when stopping speaking (natural pause moment)
     if (wasSpeaking && !speaking) {
@@ -1262,7 +1445,7 @@ export function resetFromSettling(): void {
 
 export function dispose(): void {
   // FIX BUG: Clear all tracked timeouts first
-  clearAllTimeouts();
+  _clearAllTimeouts();
 
   // Stop all animations
   stopEyeTracking();
@@ -1410,6 +1593,10 @@ export const presenceUI = {
   blink,
   // 🚀 Ferni EQ: Breath sync
   resetBreathSync,
+  // 🔊 Voice pulse (bass speaker animation)
+  setVoiceVolume,
+  setVoicePulseEnabled,
+  isVoicePulseEnabled,
   // Cleanup
   dispose,
 };

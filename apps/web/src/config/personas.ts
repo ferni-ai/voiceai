@@ -366,7 +366,8 @@ const LEGACY_ID_MAPPING: Record<string, PersonaId> = (() => {
  * Check if an agent ID is valid (canonical or aliased).
  * Returns true if the ID can be normalized to a known persona.
  */
-export function isKnownPersonaId(agentId: string): boolean {
+export function isKnownPersonaId(agentId: string | undefined | null): boolean {
+  if (!agentId) return false;
   const normalized = agentId.toLowerCase();
   return normalized in PERSONAS || normalized in LEGACY_ID_MAPPING;
 }
@@ -374,8 +375,17 @@ export function isKnownPersonaId(agentId: string): boolean {
 /**
  * Normalize any agent ID to canonical PersonaId.
  * Handles both legacy IDs and short names.
+ * Returns 'ferni' as fallback for invalid/undefined inputs.
  */
-export function normalizeAgentId(agentId: string): PersonaId {
+export function normalizeAgentId(agentId: string | undefined | null): PersonaId {
+  if (!agentId) {
+    // Defensive: return default persona if agentId is undefined/null
+    // This prevents crashes but logs warning in dev
+    if (import.meta.env?.DEV) {
+      console.warn('[personas] normalizeAgentId called with undefined/null, defaulting to ferni');
+    }
+    return 'ferni';
+  }
   const normalized = agentId.toLowerCase();
   
   // Direct canonical match

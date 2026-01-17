@@ -19,7 +19,7 @@ export {
 } from '../scheduling.js';
 
 // Financial habits tools
-export { createFinancialHabitsTools } from '../financial-habits.js';
+export { createFinancialHabitsTools } from './finance/financial-habits.js';
 
 // Event planning tools
 export { createEventPlanningTools } from './life-planning/event-planning.js';
@@ -33,7 +33,7 @@ export {
   createJordanMemoryTools,
   createAlexMemoryTools,
   createMemoryManagementTools,
-} from '../persona-memory-tools.js';
+} from './memory/persona-tools.js';
 
 // NOTE: Team handlers have been migrated to the team-handler-registry system.
 // See: src/services/team-handler-registry/

@@ -9,6 +9,7 @@
  * @module conversation/superhuman/nicknames
  */
 
+import { seededChance, seededFloat, seededIndex, seededPick } from '../utils/rng.js';
 import { createLogger } from '../../utils/safe-logger.js';
 
 const log = createLogger({ module: 'Nicknames' });
@@ -167,7 +168,7 @@ export function shouldUseName(
   }
 
   // Decide between name and endearment
-  const roll = Math.random();
+  const roll = seededFloat(`${Date.now()}:nickname`);
 
   // Endearment for support moments (if allowed)
   if (
@@ -176,7 +177,7 @@ export function shouldUseName(
     roll < NAME_OCCASIONS.endearment.probability
   ) {
     const endearments = ENDEARMENTS[naming.allowedEndearments];
-    const suggestion = endearments[Math.floor(Math.random() * endearments.length)];
+    const suggestion = seededPick(`${Date.now()}:endearment`, endearments) ?? endearments[0];
     return { useName: false, useEndearment: true, suggestion };
   }
 
@@ -219,12 +220,29 @@ export function extractNameFromMessage(
     /this is (\w+)/i,
   ];
 
+  // CRITICAL: Never confuse persona names with user names!
+  // When user says "Hi Maya" after Maya introduces herself, that's NOT the user's name
+  const personaNames = new Set([
+    'ferni',
+    'maya',
+    'peter',
+    'alex',
+    'jordan',
+    'nayan',
+    'santos',
+    'chen',
+    'taylor',
+    'john',
+    'patel',
+  ]);
+
   for (const pattern of patterns) {
     const match = message.match(pattern);
     if (match && match[1]) {
       const name = match[1];
       // Basic validation - names are usually 2-15 chars
-      if (name.length >= 2 && name.length <= 15) {
+      // Also reject persona names (don't confuse "Hi Maya" as user's name)
+      if (name.length >= 2 && name.length <= 15 && !personaNames.has(name.toLowerCase())) {
         // Check if it's a preferred name indicator
         const isPreferred = /call me|go by|everyone calls/i.test(message);
         return {

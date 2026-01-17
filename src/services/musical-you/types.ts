@@ -491,3 +491,113 @@ export interface MusicTriviaQuestion {
   funFact?: string;
   points: number;
 }
+
+// ============================================================================
+// APPLE MUSIC INTEGRATION
+// ============================================================================
+
+/**
+ * Apple Music library data synced via MusicKit API
+ * Key advantage over Spotify: Play counts from Heavy Rotation!
+ */
+export interface AppleMusicLibraryData {
+  userId: string;
+  appleMusicUserId: string;
+  connected: boolean;
+  lastSyncedAt: Date | null;
+
+  // Library summary
+  libraryTrackCount: number;
+  playlistCount: number;
+
+  // Top items (from Heavy Rotation - includes play counts!)
+  topArtists: AppleMusicArtist[];
+  topGenres: string[];
+  topDecades: string[];
+
+  // For games and DNA
+  libraryTracks: AppleMusicTrack[];
+  recentlyPlayed: AppleMusicTrack[]; // Last 25 tracks
+  heavyRotation: AppleMusicTrack[]; // Most played (with play counts)
+}
+
+export interface AppleMusicTrack {
+  id: string;
+  name: string;
+  artistName: string;
+  artistId?: string;
+  albumName: string;
+  albumArt: string;
+  durationMs: number;
+  releaseYear: number;
+  releaseDate?: string;
+  genres: string[];
+  // Apple Music specific - better than Spotify!
+  playCount?: number; // From Heavy Rotation
+  lastPlayedAt?: Date;
+  dateAdded?: Date;
+  // Note: Apple Music doesn't provide preview URLs
+  // Use iTunes Search API to find preview for a track
+}
+
+export interface AppleMusicArtist {
+  id: string;
+  name: string;
+  genres: string[];
+  imageUrl?: string;
+}
+
+export interface AppleMusicPlaylist {
+  id: string;
+  name: string;
+  description?: string;
+  trackCount: number;
+  isPublic: boolean;
+  dateCreated?: Date;
+  lastModified?: Date;
+}
+
+/**
+ * Taste analysis from Apple Music listening data
+ * More accurate than Spotify because we have PLAY COUNTS
+ */
+export interface AppleMusicTasteAnalysis {
+  // Genre preferences weighted by play count
+  topGenres: Array<{ genre: string; playCount: number; percentage: number }>;
+  // Decade preferences weighted by play count
+  topDecades: Array<{ decade: string; playCount: number; percentage: number }>;
+  // Top artists by play count
+  topArtists: Array<{ name: string; playCount: number }>;
+  // Listening patterns
+  listeningStyle: 'deep-diver' | 'variety-seeker' | 'balanced';
+  // How often they replay vs discover new
+  repeatVsDiscoverRatio: number; // 0 = all new, 1 = all repeats
+  // Average plays per track (engagement depth)
+  avgPlaysPerTrack: number;
+  // Total listening time estimate (plays * avg duration)
+  estimatedListeningMinutes: number;
+}
+
+/**
+ * Combined music source status for the dashboard
+ */
+export interface MusicSourcesStatus {
+  games: {
+    connected: true; // Always connected
+    gamesPlayed: number;
+    lastPlayed: Date | null;
+  };
+  spotify: {
+    connected: boolean;
+    trackCount: number;
+    lastSynced: Date | null;
+  };
+  appleMusic: {
+    connected: boolean;
+    trackCount: number;
+    lastSynced: Date | null;
+  };
+  // Overall DNA confidence based on data sources
+  dnaConfidence: number; // 0-100
+  dnaConfidenceLabel: string; // "Low", "Medium", "High", "Excellent"
+}

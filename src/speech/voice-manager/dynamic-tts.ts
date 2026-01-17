@@ -6,7 +6,9 @@
 
 import { tts } from '@livekit/agents';
 import * as cartesia from '@livekit/agents-plugin-cartesia';
-import { getCurrentAgent } from '../../tools/handoff/index.js';
+// NOTE: This uses the global getCurrentAgent (no sessionId) because DynamicTTS
+// is deprecated and doesn't have session context. Use PersonaAwareTTS instead.
+import { getCurrentAgent } from '../../tools/handoff/state.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import { VOICES } from './config.js';
 import { normalizeAgentId } from './manager.js';
@@ -32,7 +34,8 @@ export class DynamicTTS extends tts.TTS {
 
   constructor() {
     // Call parent with sample rate and channels
-    super(44100, 1, { streaming: true });
+    // IMPORTANT: Cartesia outputs at 24000 Hz - must match!
+    super(24000, 1, { streaming: true });
 
     // FIX BUG #voice-4 & #voice-5: Use ferni instead of legacy jack-b
     const personaIds: VoiceAgentId[] = [

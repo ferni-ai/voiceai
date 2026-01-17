@@ -14,7 +14,7 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import { getFirestore, FieldValue } from 'firebase-admin/firestore';
-import { removeUndefined } from '../../utils/firestore-utils.js';
+import { removeUndefined, cleanForFirestore } from '../../utils/firestore-utils.js';
 
 // Trust system imports
 import { exportBoundaries, importBoundaries, type BoundaryProfile } from './boundary-memory.js';
@@ -43,7 +43,13 @@ import {
   type ThinkingOfYouProfile,
 } from './thinking-of-you.js';
 
-import { getUnsaidProfile, type UserUnsaidProfile } from './reading-between-lines.js';
+import {
+  getUnsaidProfile,
+  exportUnsaidProfile,
+  importUnsaidProfile,
+  type UserUnsaidProfile,
+  type PersistedUserUnsaidProfile,
+} from './reading-between-lines.js';
 
 // Phase 12-17, 24-29: New trust system imports for persistence
 import { getHealthScore, type RelationshipHealthScore } from './relationship-health.js';
@@ -78,7 +84,7 @@ export interface TrustProfileBundle {
   insideJokes?: InsideJokesProfile;
   smallWins?: SmallWinsProfile;
   thinkingOfYou?: ThinkingOfYouProfile;
-  unsaid?: UserUnsaidProfile;
+  unsaid?: PersistedUserUnsaidProfile;
   // Phase 12-17: Advanced trust systems
   relationshipHealth?: RelationshipHealthScore;
   celebrationMomentum?: MomentumProfile;
@@ -470,7 +476,7 @@ export function exportTrustBundle(userId: string): TrustProfileBundle {
     insideJokes: exportInsideJokesProfile(userId) || undefined,
     smallWins: exportSmallWinsProfile(userId) || undefined,
     thinkingOfYou: exportThinkingOfYouProfile(userId) || undefined,
-    unsaid: getUnsaidProfile(userId) || undefined,
+    unsaid: exportUnsaidProfile(userId) || undefined,
     lastSynced: new Date(),
     version: CURRENT_VERSION,
   };
@@ -495,7 +501,10 @@ export function importTrustBundle(bundle: TrustProfileBundle): void {
   if (bundle.thinkingOfYou) {
     importThinkingOfYouProfile(bundle.thinkingOfYou);
   }
-  // Note: unsaid is session-only, not imported
+  // P4 FIX: Import unsaid profile for cross-session deflection tracking
+  if (bundle.unsaid) {
+    importUnsaidProfile(bundle.unsaid);
+  }
 
   log.info({ userId: bundle.userId }, '📦 Trust bundle imported');
 }

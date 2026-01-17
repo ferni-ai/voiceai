@@ -330,6 +330,193 @@ function handleGetTypes(_req: IncomingMessage, res: ServerResponse): void {
 }
 
 // ============================================================================
+// GROWTH JOURNAL ROUTES
+// ============================================================================
+
+/**
+ * GET /api/journal/growth - Get auto-generated growth journal entries
+ *
+ * Returns Ferni-written reflections on the user's journey, including:
+ * - Milestones achieved
+ * - Patterns noticed
+ * - Insights surfaced
+ * - Celebrations
+ * - Gentle nudges
+ */
+async function handleGetJournalEntries(
+  req: IncomingMessage,
+  res: ServerResponse,
+  parsedUrl: URL
+): Promise<void> {
+  const userId = requireUserId(req, res, parsedUrl);
+  if (!userId) return;
+
+  try {
+    const engine = getGrowthVisibilityEngine(userId);
+    engine.detectGrowth();
+
+    const insights = engine.getAllInsights();
+    const stats = engine.getStats();
+
+    // Transform insights into journal entries
+    const entries = insights.map((insight) => {
+      // Determine entry type based on insight characteristics
+      let entryType: 'milestone' | 'pattern' | 'insight' | 'celebration' | 'nudge' = 'insight';
+      if (insight.type === 'capability_growth' || insight.type === 'consistency_improvement') {
+        entryType = 'milestone';
+      } else if (insight.type === 'pattern_break') {
+        entryType = 'pattern';
+      } else if (insight.type === 'self_awareness' || insight.type === 'depth_increase') {
+        // Check if insight was surfaced and resonated (if reactions exist)
+        const insightData = insight as GrowthInsight & { reactions?: { resonated?: boolean } };
+        entryType = insightData.reactions?.resonated ? 'celebration' : 'insight';
+      }
+
+      // Generate a warm, human-readable title
+      const titles: Record<GrowthType, string> = {
+        capability_growth: 'A new capability emerged',
+        topic_comfort: 'Opening up about something new',
+        pattern_break: 'Breaking an old pattern',
+        consistency_improvement: 'Showing up more consistently',
+        depth_increase: 'Going deeper',
+        emotional_regulation: 'Handling emotions better',
+        self_awareness: 'Noticing something about yourself',
+      };
+
+      return {
+        id: insight.id,
+        date: insight.timespan.end,
+        title: titles[insight.type] || 'A moment of growth',
+        content: insight.evidence.join(' '),
+        type: entryType,
+        tags: [insight.area, insight.type.replace(/_/g, ' ')],
+        personaId: 'ferni',
+      };
+    });
+
+    // Sort by date (newest first)
+    entries.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+    // Limit to reasonable number
+    const limitedEntries = entries.slice(0, 20);
+
+    // Calculate streak (days with consecutive growth events)
+    let streakDays = 0;
+    const today = new Date();
+    const sortedDates = entries
+      .map((e) => new Date(e.date).toDateString())
+      .filter((v, i, a) => a.indexOf(v) === i); // unique dates
+
+    for (const dateStr of sortedDates) {
+      const entryDate = new Date(dateStr);
+      const diffDays = Math.floor((today.getTime() - entryDate.getTime()) / (1000 * 60 * 60 * 24));
+      if (diffDays === streakDays) {
+        streakDays++;
+      } else {
+        break;
+      }
+    }
+
+    sendJSONCached(
+      res,
+      {
+        entries: limitedEntries,
+        lastUpdated: new Date().toISOString(),
+        streakDays,
+        totalInsights: stats.totalInsights,
+      },
+      120 // Cache for 2 minutes
+    );
+  } catch (err) {
+    log.error({ error: err, userId }, 'Failed to get growth journal entries');
+    sendJSON(res, { entries: [], lastUpdated: new Date().toISOString(), streakDays: 0 }, 500);
+  }
+}
+
+// ============================================================================
+// PATTERN INSIGHTS ROUTES
+// ============================================================================
+
+/**
+ * GET /api/insights/patterns - Get behavioral pattern insights
+ *
+ * Returns patterns Ferni has noticed across conversations:
+ * - Communication preferences
+ * - Time patterns
+ * - Topic preferences
+ * - Emotional patterns
+ */
+async function handleGetPatternInsights(
+  req: IncomingMessage,
+  res: ServerResponse,
+  parsedUrl: URL
+): Promise<void> {
+  const userId = requireUserId(req, res, parsedUrl);
+  if (!userId) return;
+
+  try {
+    const { getDefaultStore } = await import('../../memory/index.js');
+    const { extractLearnedMemories } = await import('../../services/memory/learned-memories.js');
+
+    const store = getDefaultStore();
+    const profile = await store.getProfile(userId);
+
+    if (!profile) {
+      sendJSON(res, { patterns: [], summary: 'Keep chatting - patterns will emerge!' });
+      return;
+    }
+
+    // Extract patterns from profile
+    const { patterns: rawPatterns } = extractLearnedMemories(
+      profile as Parameters<typeof extractLearnedMemories>[0]
+    );
+
+    // Transform patterns for the UI
+    const patterns = rawPatterns.map((pattern) => ({
+      id: (pattern as { id?: string }).id || `pattern-${Math.random().toString(36).slice(2)}`,
+      category: (pattern as { category?: string }).category || 'general',
+      pattern: (pattern as { pattern?: string }).pattern || '',
+      frequency: (pattern as { frequency?: number }).frequency || 1,
+      examples: (pattern as { examples?: string[] }).examples || [],
+      confidence: Math.min(100, ((pattern as { frequency?: number }).frequency || 1) * 10),
+    }));
+
+    // Group by category
+    const byCategory: Record<string, typeof patterns> = {};
+    for (const p of patterns) {
+      if (!byCategory[p.category]) {
+        byCategory[p.category] = [];
+      }
+      byCategory[p.category].push(p);
+    }
+
+    // Generate a warm summary
+    const totalPatterns = patterns.length;
+    const summaryPhrases = [
+      totalPatterns === 0 ? "I'm still learning about you" : null,
+      totalPatterns > 0 && totalPatterns < 5 ? "I'm starting to notice some patterns" : null,
+      totalPatterns >= 5 && totalPatterns < 10 ? "I'm getting to know you pretty well" : null,
+      totalPatterns >= 10 ? "I feel like I really understand how you tick" : null,
+    ].filter(Boolean);
+
+    sendJSONCached(
+      res,
+      {
+        patterns,
+        byCategory,
+        totalPatterns,
+        summary: summaryPhrases[0] || "Let's keep talking!",
+        lastUpdated: new Date().toISOString(),
+      },
+      180 // Cache for 3 minutes
+    );
+  } catch (err) {
+    log.error({ error: err, userId }, 'Failed to get pattern insights');
+    sendJSON(res, { patterns: [], byCategory: {}, totalPatterns: 0, summary: '' }, 500);
+  }
+}
+
+// ============================================================================
 // MAIN ROUTE HANDLER
 // ============================================================================
 
@@ -377,6 +564,18 @@ export async function handleGrowthRoutes(
   // GET /api/growth/types
   if (pathname === '/api/growth/types' && method === 'GET') {
     handleGetTypes(req, res);
+    return true;
+  }
+
+  // GET /api/journal/growth - Growth Journal entries
+  if (pathname === '/api/journal/growth' && method === 'GET') {
+    await handleGetJournalEntries(req, res, parsedUrl);
+    return true;
+  }
+
+  // GET /api/insights/patterns - Pattern Insights
+  if (pathname === '/api/insights/patterns' && method === 'GET') {
+    await handleGetPatternInsights(req, res, parsedUrl);
     return true;
   }
 

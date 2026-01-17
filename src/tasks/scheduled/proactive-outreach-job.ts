@@ -18,6 +18,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
+import { cleanForFirestore } from '../../utils/firestore-utils.js';
 
 const log = createLogger({ module: 'ProactiveOutreachJob' });
 
@@ -124,7 +125,7 @@ function recordOutreach(userId: string): void {
     existing.countToday++;
     existing.lastOutreach = new Date();
   } else {
-    outreachTracker.set(userId, {
+    outreachTracker.set(cleanForFirestore(userId), {
       lastOutreach: new Date(),
       countToday: 1,
       dateKey,

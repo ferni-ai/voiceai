@@ -1,14 +1,15 @@
 {
   "projects": {
-    "default": "johnb-app"
+    "default": "johnb-2025"
   },
   "targets": {
-    "johnb-app": {
+    "johnb-2025": {
       "hosting": {
         "ferni-marketplace": [
           "ferni-marketplace"
         ]
       }
     }
-  }
+  },
+  "etags": {}
 }

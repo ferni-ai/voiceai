@@ -17,7 +17,7 @@ import {
   createCalculatorTools,
   calculateCompoundGrowth,
   calculateFeeImpact,
-} from '../tools/calculators.js';
+} from '../tools/domains/finance/calculators.js';
 import { getEmotionDetector } from '../intelligence/emotion-detector.js';
 import { getStateMachine } from '../intelligence/conversation-state.js';
 

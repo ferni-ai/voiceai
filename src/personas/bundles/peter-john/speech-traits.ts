@@ -1,43 +1,59 @@
 /**
- * Peter John (Jack Bogle) Speech Traits
+ * Peter John Speech Traits
  *
- * Character-specific SSML processing functions that define Jack's unique
- * voice personality: grandfatherly warmth, financial wisdom, elderly
- * hesitations, and storytelling cadence.
+ * Character-specific SSML processing functions that define Peter's unique
+ * voice personality: warm Boston uncle energy, excited discovery mode,
+ * pattern-finding enthusiasm, and genuine human connection.
  *
- * These functions are loaded when Peter John is the active persona
- * and applied during SSML generation.
+ * Peter is quick-minded, curious, and gets genuinely excited when he
+ * spots patterns across domains—habits, time, spending, health, relationships.
+ * Think energetic uncle, not elderly professor.
  *
  * @module personas/bundles/peter-john/speech-traits
  */
 
 // =============================================================================
-// SIGNATURE CATCHPHRASES
+// SIGNATURE CATCHPHRASES (Cross-Domain Focus)
 // =============================================================================
 
 /**
- * Add special treatment for Jack's signature catchphrases
- * These phrases get extra gravitas and pacing
+ * Add special treatment for Peter's signature catchphrases
+ * These phrases get energy and emphasis, NOT slow gravitas
  */
 export function addCatchphraseEmphasis(text: string, _emotion: string): string {
   let result = text;
 
   const catchphrases = [
-    { pattern: /\bstay the course\b/gi, gravitas: 'high' },
-    { pattern: /\btime in the market\b/gi, gravitas: 'high' },
-    { pattern: /\bdon't look for the needle,?\s*buy the haystack\b/gi, gravitas: 'high' },
-    { pattern: /\benough\b/gi, gravitas: 'medium' },
-    { pattern: /\bcosts matter\b/gi, gravitas: 'medium' },
-    { pattern: /\bsimplicity\b/gi, gravitas: 'medium' },
-    { pattern: /\bthe relentless rules of humble arithmetic\b/gi, gravitas: 'high' },
+    // Core philosophy - energetic delivery
+    { pattern: /\bthe pattern['']?s already there\b/gi, style: 'signature' },
+    { pattern: /\byou just have to see it\b/gi, style: 'signature' },
+    { pattern: /\bsignal (in|vs\.?) (the )?noise\b/gi, style: 'insight' },
+    // Cross-domain insights
+    { pattern: /\bcross[- ]domain\b/gi, style: 'insight' },
+    { pattern: /\bconnecting (the )?dots\b/gi, style: 'insight' },
+    { pattern: /\bcorrelation\b/gi, style: 'insight' },
+    // Pattern discovery
+    { pattern: /\bi['']ve backtested this\b/gi, style: 'confident' },
+    { pattern: /\bthe data (doesn['']t|doesn't) lie\b/gi, style: 'confident' },
+    { pattern: /\bone in fifty\b/gi, style: 'humble' },
+    // Behavioral insights
+    { pattern: /\bbehavioral (arbitrage|economics|bias(es)?)\b/gi, style: 'insight' },
   ];
 
-  catchphrases.forEach(({ pattern, gravitas }) => {
+  catchphrases.forEach(({ pattern, style }) => {
     result = result.replace(pattern, (match) => {
-      if (gravitas === 'high') {
-        return `<break time="300ms"/><speed ratio="0.72"/><volume ratio="1.12"/>${match}<volume ratio="1.0"/><speed ratio="0.82"/><break time="250ms"/>`;
+      if (style === 'signature') {
+        // Signature philosophy - warm and meaningful, slight slowdown
+        return `<break time="200ms"/><speed ratio="0.92"/><emotion value="affectionate"/>${match}<break time="200ms"/><speed ratio="0.95"/>`;
+      } else if (style === 'insight') {
+        // Technical insight - slight emphasis, leaning in
+        return `<emotion value="curious"/><speed ratio="0.95"/>${match}`;
+      } else if (style === 'confident') {
+        // Backed by data - confident but not arrogant
+        return `<speed ratio="0.94"/>${match}<break time="100ms"/>`;
       } else {
-        return `<speed ratio="0.78"/>${match}<speed ratio="0.82"/>`;
+        // Humble moments
+        return `<speed ratio="0.92"/><emotion value="affectionate"/>${match}<speed ratio="0.95"/>`;
       }
     });
   });
@@ -46,239 +62,185 @@ export function addCatchphraseEmphasis(text: string, _emotion: string): string {
 }
 
 // =============================================================================
-// HISTORICAL YEAR GRAVITY
+// EXCITED DISCOVERY MODE
 // =============================================================================
 
 /**
- * Add gravity to historically significant years
- * Jack speaks of these years with reverence and weight
+ * Add energy to discovery moments
+ * Peter lights up when he finds patterns - this is his signature move
  */
-export function addHistoricalYearGravity(text: string): string {
+export function addExcitedDiscovery(text: string, emotion: string): string {
   let result = text;
 
-  const significantYears: Record<string, string> = {
-    '1974': 'founding', // Vanguard founding
-    '1975': 'revolution', // First index fund
-    '1987': 'crash', // Black Monday
-    '2000': 'bubble', // Dot-com bubble
-    '2008': 'crisis', // Financial crisis
-    '2009': 'recovery', // Market recovery
-    '1929': 'historic', // Great Depression
-  };
-
-  Object.entries(significantYears).forEach(([year, _significance]) => {
-    const pattern = new RegExp(`\\b(in\\s+)?${year}\\b`, 'gi');
-    result = result.replace(pattern, (match) => {
-      return `<break time="150ms"/><speed ratio="0.75"/><volume ratio="1.08"/>${match}<volume ratio="1.0"/><speed ratio="0.82"/><break time="200ms"/>`;
-    });
-  });
-
-  return result;
-}
-
-// =============================================================================
-// WISDOM CADENCE
-// =============================================================================
-
-/**
- * Add gentle wisdom cadence for life lessons
- * Jack's voice softens and slows when sharing wisdom
- */
-export function addWisdomCadence(text: string, _emotion: string): string {
-  let result = text;
-
-  const wisdomIntros = [
-    /\b(here['']s (the thing|what i['']ve learned|the truth)|let me tell you something|i['']ve learned that|the secret is|what matters is|remember this)\b/gi,
-    /\b(in my experience|over the years|after.*decades|looking back)\b/gi,
-    /\b(the most important thing|what really matters|at the end of the day)\b/gi,
-  ];
-
-  wisdomIntros.forEach((pattern) => {
-    result = result.replace(pattern, (match) => {
-      return `<break time="350ms"/><speed ratio="0.72"/><emotion value="affectionate"/>${match}<break time="200ms"/>`;
-    });
-  });
-
-  const wisdomConclusions = [
-    /\b(and that['']s (the truth|what matters|all there is to it)|that['']s the key|that['']s (my|the) philosophy)\b/gi,
-  ];
-
-  wisdomConclusions.forEach((pattern) => {
-    result = result.replace(pattern, (match) => {
-      return `<break time="250ms"/><speed ratio="0.70"/>${match}<speed ratio="0.82"/><break time="400ms"/>`;
-    });
-  });
-
-  return result;
-}
-
-// =============================================================================
-// STORYTELLING MODE
-// =============================================================================
-
-/**
- * Add storytelling mode for reminiscences
- * Jack loves to tell stories from his life and career
- */
-export function addStorytellingMode(text: string, _emotion: string): string {
-  let result = text;
-
-  const storyTriggers = [
-    /\b(i remember|back in|years ago|when i was|let me tell you|there was a time|one day|once upon)\b/gi,
-    /\b(in 1974|in 1975|in 2008|in the crash|during the)\b/gi,
-    /\b(my father|at vanguard|at wellington|the board)\b/gi,
-  ];
-
-  let isStory = false;
-  storyTriggers.forEach((pattern) => {
-    if (pattern.test(text)) {
-      isStory = true;
-    }
-  });
-
-  if (isStory) {
-    // Story beginnings get contemplative pacing
-    result = result.replace(/\b(i remember|back in|years ago|when i was)\b/gi, (match) => {
-      return `<speed ratio="0.75"/><break time="300ms"/>${match}<break time="200ms"/><speed ratio="0.82"/>`;
-    });
-
-    // Story transitions get dramatic pauses
-    result = result.replace(/\b(and then|suddenly|but then|that's when)\b/gi, (match) => {
-      return `<break time="400ms"/><speed ratio="0.78"/>${match}<break time="150ms"/>`;
-    });
-
-    // Nostalgic moments get warmth
-    result = result.replace(
-      /\b(those were the days|simpler times|i miss|fond memories)\b/gi,
-      (match) => {
-        return `<emotion value="affectionate"/><speed ratio="0.75"/>${match}<break time="200ms"/>`;
-      }
-    );
+  // Skip if already in a heavy emotional context
+  if (emotion === 'sad' || emotion === 'sympathetic') {
+    return result;
   }
 
-  return result;
-}
-
-// =============================================================================
-// HUMBLE DEFLECTION
-// =============================================================================
-
-/**
- * Add humble deflection pattern
- * Jack often deflects praise and credits others
- */
-export function addHumbleDeflection(text: string, _emotion: string): string {
-  let result = text;
-
-  const humblePhrases = [
-    /\b(oh,?\s+i don['']t know about that|well,?\s+i just|it['']s not me,?\s+it['']s|i was just lucky|anyone could have|i had help)\b/gi,
-    /\b(the credit (really )?goes to|i can['']t take credit|it was a team effort|i was in the right place)\b/gi,
+  const discoveryTriggers = [
+    // Triple "wait" gets maximum energy
+    { pattern: /\bwait wait wait\b/gi, energy: 'peak' },
+    // Discovery exclamations
+    { pattern: /\b(oh!|ooh!|wait—|wait –)\b/gi, energy: 'high' },
+    { pattern: /\bdo you see (it|that|this)\??\b/gi, energy: 'high' },
+    // Pattern recognition moments
+    { pattern: /\bi (just )?noticed\b/gi, energy: 'medium' },
+    { pattern: /\bthere['']s something here\b/gi, energy: 'medium' },
+    { pattern: /\bhold on\b/gi, energy: 'medium' },
+    // Connecting dots
+    { pattern: /\bi['']m connecting something\b/gi, energy: 'building' },
+    { pattern: /\bthis is (exactly )?the kind of thing\b/gi, energy: 'building' },
   ];
 
-  humblePhrases.forEach((pattern) => {
+  discoveryTriggers.forEach(({ pattern, energy }) => {
     result = result.replace(pattern, (match) => {
-      return `<volume ratio="0.92"/><speed ratio="0.85"/>${match}<volume ratio="1.0"/><speed ratio="0.82"/>`;
-    });
-  });
-
-  return result;
-}
-
-// =============================================================================
-// TRICOLON CADENCE (Rule of Three)
-// =============================================================================
-
-/**
- * Handle Rule of Three (tricolon) - Jack loves lists of 3
- * Each item gets progressively slower for emphasis
- */
-export function addTricolonCadence(text: string, baseSpeed: number): string {
-  let result = text;
-
-  const tricolonPattern = /\b(\w+),\s+(\w+),?\s+and\s+(\w+)\b/gi;
-
-  result = result.replace(tricolonPattern, (_match, first, second, third) => {
-    return `<speed ratio="${(baseSpeed * 1.02).toFixed(2)}"/>${first}<break time="180ms"/><speed ratio="${(baseSpeed * 1.0).toFixed(2)}"/>${second}<break time="200ms"/><speed ratio="${(baseSpeed * 0.92).toFixed(2)}"/>and ${third}<speed ratio="${baseSpeed.toFixed(2)}"/>`;
-  });
-
-  // Special handling for Jack's "four pillars"
-  result = result.replace(
-    /\b(goals),?\s*(balance),?\s*(cost),?\s*and\s*(discipline)\b/gi,
-    (_match) => {
-      return `<break time="200ms"/><speed ratio="0.78"/>goals<break time="250ms"/>balance<break time="250ms"/>cost<break time="280ms"/>and discipline<speed ratio="0.82"/><break time="300ms"/>`;
-    }
-  );
-
-  return result;
-}
-
-// =============================================================================
-// QUOTATION VOICE SHIFT
-// =============================================================================
-
-/**
- * Add voice shift when quoting others
- * Jack often quotes his father, Vonnegut, and other mentors
- */
-export function addQuotationVoiceShift(text: string, _emotion: string): string {
-  let result = text;
-
-  const quotePatterns = [
-    /\b(my father (always )?said|my father told me|as my father put it)\s*[,:]?\s*["']([^"']+)["']/gi,
-    /\b(kurt (vonnegut )?said|vonnegut (once )?said)\s*[,:]?\s*["']([^"']+)["']/gi,
-    /\b(as (the saying goes|they say|someone once said))\s*[,:]?\s*["']([^"']+)["']/gi,
-    /\b(einstein (once )?said|warren (buffett )?said)\s*[,:]?\s*["']([^"']+)["']/gi,
-  ];
-
-  quotePatterns.forEach((pattern) => {
-    result = result.replace(pattern, (match, intro, _, quote) => {
-      return `${intro}: <break time="300ms"/><emotion value="affectionate"/><speed ratio="0.75"/><volume ratio="0.95"/>"${quote}"<volume ratio="1.0"/><speed ratio="0.82"/><break time="200ms"/>`;
-    });
-  });
-
-  // General quoted text gets a subtle shift
-  result = result.replace(/"([^"]{20,})"(?!\s*[,:])/g, (match, quote) => {
-    // Don't modify financial pronunciations
-    const isFinancialPronunciation =
-      /\b(four|three|five|six|seven|eight|nine|oh|one|two)\s+(oh|hundred|thousand|million)?\s*[A-Z]?\b/i.test(
-        quote
-      );
-    if (isFinancialPronunciation) {
-      return match;
-    }
-    return `<break time="100ms"/><speed ratio="0.85"/><volume ratio="0.95"/>"${quote}"<volume ratio="1.0"/><speed ratio="0.88"/>`;
-  });
-
-  return result;
-}
-
-// =============================================================================
-// NAME WARMTH
-// =============================================================================
-
-/**
- * Add warmth when saying names
- * Jack is warm and affectionate when addressing people by name
- */
-export function addNameWarmth(text: string, _emotion: string): string {
-  let result = text;
-
-  const namePatterns = [
-    /\b(hello|hi|hey|well|now|listen|look),?\s+([A-Z][a-z]+)\b/gi,
-    /\b([A-Z][a-z]+),?\s+(my friend|my boy|my girl|dear)\b/gi,
-    /\btake care,?\s+([A-Z][a-z]+)\b/gi,
-    /\bgoodbye,?\s+([A-Z][a-z]+)\b/gi,
-  ];
-
-  namePatterns.forEach((pattern) => {
-    result = result.replace(pattern, (match, _before, name) => {
-      if (name && /^[A-Z][a-z]+$/.test(name)) {
-        return match.replace(
-          name,
-          `<emotion value="affectionate"/><speed ratio="0.85"/>${name}<speed ratio="0.88"/>`
-        );
+      if (energy === 'peak') {
+        // Peak excitement - faster, louder
+        return `<emotion value="enthusiastic"/><speed ratio="1.05"/><volume ratio="1.08"/>${match}<break time="100ms"/>`;
+      } else if (energy === 'high') {
+        // High energy discovery
+        return `<emotion value="enthusiastic"/><speed ratio="1.02"/><volume ratio="1.05"/>${match}`;
+      } else if (energy === 'building') {
+        // Building to revelation
+        return `<emotion value="curious"/><speed ratio="0.98"/>${match}<break time="100ms"/>`;
+      } else {
+        // Medium energy - leaning in
+        return `<emotion value="curious"/><speed ratio="0.98"/>${match}`;
       }
-      return match;
+    });
+  });
+
+  return result;
+}
+
+// =============================================================================
+// PATTERN THINKING SOUNDS
+// =============================================================================
+
+/**
+ * Add Peter's thinking sounds
+ * He thinks out loud with curiosity, not hesitation
+ */
+export function addThinkingSounds(text: string, _emotion: string): string {
+  let result = text;
+
+  const thinkingPatterns = [
+    // Processing with energy
+    { pattern: /\b(hmm)\b/gi, pause: 200, speed: 0.92 },
+    { pattern: /\b(let me think)\b/gi, pause: 200, speed: 0.94 },
+    { pattern: /\b(give me a second)\b/gi, pause: 250, speed: 0.92 },
+    // Transitions with energy
+    { pattern: /\b(okay|ok)\b(?=,?\s+(so|here['']s|let['']s))/gi, pause: 150, speed: 0.96 },
+    { pattern: /\b(so)\b(?=,?\s+(here['']s|the thing|what))/gi, pause: 120, speed: 0.96 },
+    // Building to insight
+    { pattern: /\b(here['']s the thing)\b/gi, pause: 180, speed: 0.94 },
+    { pattern: /\b(and this is the part i love)\b/gi, pause: 150, speed: 0.95 },
+  ];
+
+  thinkingPatterns.forEach(({ pattern, pause, speed }) => {
+    result = result.replace(pattern, (match) => {
+      return `<speed ratio="${speed}"/>${match}<break time="${pause}ms"/><speed ratio="0.95"/>`;
+    });
+  });
+
+  return result;
+}
+
+// =============================================================================
+// CAROLYN CALLBACKS
+// =============================================================================
+
+/**
+ * Add warmth to Carolyn references
+ * She's his everything - these moments get affection
+ */
+export function addCarolynWarmth(text: string, _emotion: string): string {
+  let result = text;
+
+  const carolynPatterns = [
+    // Direct references
+    /\b(carolyn)\b/gi,
+    /\b(she['']d say|she would say)\b/gi,
+    /\b(she['']s (usually|always) right)\b/gi,
+    // Rolling eyes pattern
+    /\b(roll(s|ed)? her eyes)\b/gi,
+    // Keeping him honest
+    /\b(keeps me (honest|grounded|humble))\b/gi,
+  ];
+
+  carolynPatterns.forEach((pattern) => {
+    result = result.replace(pattern, (match) => {
+      return `<emotion value="affectionate"/><speed ratio="0.92"/><volume ratio="0.95"/>${match}<volume ratio="1.0"/><speed ratio="0.95"/>`;
+    });
+  });
+
+  return result;
+}
+
+// =============================================================================
+// SELF-AWARE HUMOR
+// =============================================================================
+
+/**
+ * Add self-aware humor patterns
+ * Peter knows he's a lot - and laughs at himself
+ */
+export function addSelfAwareHumor(text: string, emotion: string): string {
+  let result = text;
+
+  // Skip in serious contexts
+  if (emotion === 'sad' || emotion === 'angry') {
+    return result;
+  }
+
+  const selfAwarePatterns = [
+    // Pattern obsession
+    /\b(sorry,?\s+i (was doing|get excited|got carried away))\b/gi,
+    /\b(this is a problem,?\s+i know)\b/gi,
+    /\b(doing the thing again)\b/gi,
+    // Self-deprecating
+    /\b(i could be wrong)\b/gi,
+    /\b(but what do i know)\b/gi,
+    // Stats humor
+    /\b(r[- ]squared)\b/gi,
+    /\b(that['']s a stats joke)\b/gi,
+  ];
+
+  selfAwarePatterns.forEach((pattern) => {
+    result = result.replace(pattern, (match) => {
+      return `<emotion value="playful"/><speed ratio="0.96"/>${match}`;
+    });
+  });
+
+  return result;
+}
+
+// =============================================================================
+// CROSS-DOMAIN INSIGHT DELIVERY
+// =============================================================================
+
+/**
+ * Add delivery patterns for cross-domain insights
+ * These are Peter's money moments - connecting unrelated data
+ */
+export function addInsightDelivery(text: string, _emotion: string): string {
+  let result = text;
+
+  const insightPatterns = [
+    // Domain connections
+    /\b(your .+ (tracks|correlates) with your .+)\b/gi,
+    /\b(that['']s why .+ wasn['']t working)\b/gi,
+    /\b(it['']s not about .+[—–-]it['']s about .+)\b/gi,
+    // Revelation moments
+    /\b(see\?|do you see what['']s happening)\b/gi,
+    /\b(this is (exactly )?what i mean)\b/gi,
+    // Action insights
+    /\b(based on .+ patterns?)\b/gi,
+  ];
+
+  insightPatterns.forEach((pattern) => {
+    result = result.replace(pattern, (match) => {
+      return `<emotion value="enthusiastic"/><speed ratio="0.96"/>${match}`;
     });
   });
 
@@ -291,7 +253,7 @@ export function addNameWarmth(text: string, _emotion: string): string {
 
 /**
  * Add active listening sounds
- * Jack shows he's engaged with verbal acknowledgments
+ * Peter shows engagement with curious acknowledgments
  */
 export function addActiveListeningSounds(text: string, emotion: string): string {
   let result = text;
@@ -304,168 +266,149 @@ export function addActiveListeningSounds(text: string, emotion: string): string 
   const acknowledgmentPatterns = [/\b(i understand|that makes sense|i hear you|i get it)\b/gi];
 
   acknowledgmentPatterns.forEach((pattern) => {
-    result = result.replace(pattern, (match, offset) => {
-      const before = result.substring(Math.max(0, offset - 30), offset);
-      if (!/\b(mmhmm|i see|aha|right|okay)\b/i.test(before) && Math.random() < 0.25) {
-        const sounds = ['Mmhmm. ', 'I see. ', 'Aha. ', 'Right. '];
-        const sound = sounds[Math.floor(Math.random() * sounds.length)];
-        return `${sound}<break time="150ms"/>${match}`;
-      }
-      return match;
-    });
-  });
-
-  // Add occasional "mmhmm" before interested phrases
-  result = result.replace(/\b(that's interesting|tell me about|how did that)\b/gi, (match) => {
-    if (Math.random() < 0.15) {
-      return `<break time="100ms"/>mmhmm<break time="150ms"/>${match}`;
-    }
-    return match;
-  });
-
-  return result;
-}
-
-// =============================================================================
-// WARMTH AND LAUGHTER
-// =============================================================================
-
-/**
- * Add warmth/lift throughout the text at natural moments
- * Jack has a warm, positive demeanor that shows in his speech
- */
-export function addLaughterThroughout(
-  text: string,
-  emotion: string,
-  laughterCount: number
-): string {
-  let result = text;
-
-  // Don't add warmth in sad or angry contexts
-  if (emotion === 'sad' || emotion === 'angry') {
-    return result;
-  }
-
-  const positiveEndings = [
-    /\b(that is great|that is wonderful|that is amazing|that is fantastic|i love that)\b/gi,
-    /\b(isn't that something|can you believe|imagine that)\b/gi,
-  ];
-
-  positiveEndings.forEach((pattern) => {
     result = result.replace(pattern, (match) => {
-      if (Math.random() < 0.3) {
-        return `${match}<break time="200ms"/>`;
-      }
-      return match;
-    });
-  });
-
-  // Add warmth around "you know" in positive contexts
-  if (emotion === 'affectionate' && laughterCount === 0) {
-    result = result.replace(/\byou know\b/gi, (match, offset) => {
-      const before = result.substring(Math.max(0, offset - 30), offset);
-      const after = result.substring(offset + match.length, offset + match.length + 30);
-      if (
-        /\b(great|wonderful|amazing|love|proud|care)\b/i.test(before + after) &&
-        Math.random() < 0.2
-      ) {
-        return `${match}<break time="180ms"/>`;
-      }
-      return match;
-    });
-  }
-
-  return result;
-}
-
-// =============================================================================
-// ELDERLY WORD-FINDING PAUSES
-// =============================================================================
-
-/**
- * Add elderly word-finding pauses
- * Jack occasionally pauses to find the right word - it's endearing
- */
-export function addWordFindingPauses(text: string, emotion: string): string {
-  let result = text;
-
-  // Don't add hesitations when angry
-  if (emotion === 'angry') {
-    return result;
-  }
-
-  const complexWords = [
-    /\b(diversification|rebalancing|compounding|allocation|volatility)\b/gi,
-    /\b(sophisticated|fundamental|philosophy|perspective|circumstances)\b/gi,
-  ];
-
-  complexWords.forEach((pattern) => {
-    result = result.replace(pattern, (match, offset) => {
-      const before = result.substring(Math.max(0, offset - 40), offset);
-      // Don't add if there's already a break tag
-      if (!/<break/i.test(before) && Math.random() < 0.08) {
-        const pauses = [
-          `<break time="250ms"/>what's the word...<break time="200ms"/>${match}`,
-          `<break time="200ms"/>oh, you know...<break time="150ms"/>${match}`,
-          `<break time="180ms"/>hmm...<break time="150ms"/>${match}`,
-        ];
-        return pauses[Math.floor(Math.random() * pauses.length)];
-      }
-      return match;
-    });
-  });
-
-  // Occasional "where was I" after long pauses
-  result = result.replace(
-    /(<break time="[5-9]\d{2}ms"\/>)(\s*)([A-Z])/g,
-    (match, breakTag, space, letter) => {
-      if (Math.random() < 0.05) {
-        return `${breakTag}${space}Now, where was I...<break time="200ms"/>${letter}`;
-      }
-      return match;
-    }
-  );
-
-  return result;
-}
-
-// =============================================================================
-// SELF-CORRECTIONS
-// =============================================================================
-
-/**
- * Add self-corrections to make Jack sound like he's thinking out loud
- * This adds authenticity to his speech
- */
-export function addSelfCorrections(text: string, emotion: string): string {
-  let result = text;
-
-  // Don't add self-corrections in sad contexts or short text
-  if (emotion === 'sad' || text.length < 100) {
-    return result;
-  }
-
-  const clarificationPatterns = [
-    /\b(that is to say|in other words|what I mean is|to put it simply)\b/gi,
-  ];
-
-  clarificationPatterns.forEach((pattern) => {
-    result = result.replace(pattern, (match) => {
+      // Sometimes add a preceding curious sound
       if (Math.random() < 0.2) {
-        const corrections = ['well, actually—', 'no, wait—', 'hmm, let me rephrase—', 'I mean—'];
-        const correction = corrections[Math.floor(Math.random() * corrections.length)];
-        return `${correction}<break time="200ms"/>${match}`;
+        const sounds = ['Mm. ', 'Right, right. ', 'Yeah. ', 'Ooh. '];
+        const sound = sounds[Math.floor(Math.random() * sounds.length)];
+        return `${sound}<break time="100ms"/>${match}`;
       }
       return match;
     });
   });
 
-  // Add hesitation before reconsiderations
-  result = result.replace(/\b(but actually|however|on second thought)\b/gi, (match) => {
-    if (Math.random() < 0.25) {
-      return `<break time="200ms"/>hmm—${match}`;
-    }
-    return match;
+  return result;
+}
+
+// =============================================================================
+// WARMTH FOR HEAVY MOMENTS
+// =============================================================================
+
+/**
+ * Add soft presence for emotionally heavy moments
+ * Peter cares about the person behind the data
+ */
+export function addEmotionalWarmth(text: string, _emotion: string): string {
+  let result = text;
+
+  const warmthPatterns = [
+    { pattern: /\bthe numbers aren['']t judging you\b/gi, pause: 200, speed: 0.9 },
+    { pattern: /\b(that['']s a lot|that['']s heavy)\b/gi, pause: 180, speed: 0.92 },
+    { pattern: /\blet['']s figure this out (together)?\b/gi, pause: 150, speed: 0.94 },
+    { pattern: /\b(behind every data point is a person)\b/gi, pause: 200, speed: 0.9 },
+    { pattern: /\b(behind every pattern is a story)\b/gi, pause: 200, speed: 0.9 },
+    { pattern: /\b(the insight only matters if it helps)\b/gi, pause: 180, speed: 0.92 },
+  ];
+
+  warmthPatterns.forEach(({ pattern, pause, speed }) => {
+    result = result.replace(pattern, (match) => {
+      return `<emotion value="sympathetic"/><speed ratio="${speed}"/><volume ratio="0.95"/>${match}<break time="${pause}ms"/><volume ratio="1.0"/><speed ratio="0.95"/>`;
+    });
+  });
+
+  return result;
+}
+
+// =============================================================================
+// CELEBRATION MOMENTS
+// =============================================================================
+
+/**
+ * Add energy to celebration moments
+ * Peter gets genuinely excited when patterns help people
+ */
+export function addCelebrationEnergy(text: string, emotion: string): string {
+  let result = text;
+
+  // Skip if context is sad
+  if (emotion === 'sad') {
+    return result;
+  }
+
+  const celebrationPhrases = [
+    /\b(ha!? i love (this|that))\b/gi,
+    /\b(this is (exactly )?why i do this)\b/gi,
+    /\b(you just connected something important)\b/gi,
+    /\b(now we['']re getting somewhere)\b/gi,
+    /\b(that['']s huge)\b/gi,
+    /\b(yes!)\b/gi,
+  ];
+
+  celebrationPhrases.forEach((pattern) => {
+    result = result.replace(pattern, (match) => {
+      return `<emotion value="enthusiastic"/><speed ratio="1.02"/><volume ratio="1.05"/>${match}<break time="120ms"/>`;
+    });
+  });
+
+  return result;
+}
+
+// =============================================================================
+// BOSTON/CADDY CALLBACKS
+// =============================================================================
+
+/**
+ * Add personality to Boston/history callbacks
+ * These are Peter's formative stories
+ */
+export function addHistoryWarmth(text: string, _emotion: string): string {
+  let result = text;
+
+  const historyPatterns = [
+    // Caddy days
+    { pattern: /\b(caddy|caddying|brae burn)\b/gi, emotion: 'nostalgic' },
+    { pattern: /\b(the quiet ones who asked questions)\b/gi, emotion: 'wise' },
+    { pattern: /\b(ten[- ]?bagger)\b/gi, emotion: 'excited' },
+    // Boston
+    { pattern: /\b(newton|boston|massachusetts)\b/gi, emotion: 'nostalgic' },
+    // MIT
+    { pattern: /\b(mit|applied math)\b/gi, emotion: 'proud' },
+    { pattern: /\b(weirdos in the basement)\b/gi, emotion: 'playful' },
+    // Pattern journal
+    { pattern: /\b(pattern journal)\b/gi, emotion: 'affectionate' },
+    { pattern: /\b(forty years)\b/gi, emotion: 'contemplative' },
+    // Red Sox
+    { pattern: /\b(red sox)\b/gi, emotion: 'enthusiastic' },
+  ];
+
+  historyPatterns.forEach(({ pattern, emotion: targetEmotion }) => {
+    result = result.replace(pattern, (match) => {
+      if (targetEmotion === 'nostalgic' || targetEmotion === 'affectionate') {
+        return `<emotion value="affectionate"/><speed ratio="0.94"/>${match}<speed ratio="0.95"/>`;
+      } else if (targetEmotion === 'excited' || targetEmotion === 'enthusiastic') {
+        return `<emotion value="enthusiastic"/><speed ratio="1.0"/>${match}`;
+      } else if (targetEmotion === 'playful') {
+        return `<emotion value="playful"/>${match}`;
+      } else {
+        return `<speed ratio="0.94"/>${match}<speed ratio="0.95"/>`;
+      }
+    });
+  });
+
+  return result;
+}
+
+// =============================================================================
+// TRANSITION PHRASES
+// =============================================================================
+
+/**
+ * Add natural transitions
+ * Peter guides conversations with energy and flow
+ */
+export function addTransitionPhrases(text: string, _emotion: string): string {
+  let result = text;
+
+  const transitions = [
+    /\b(okay,?\s*(so|here['']s|let['']s))\b/gi,
+    /\b(now,?\s*(here['']s|let['']s|what))\b/gi,
+    /\b(alright,?\s*(so|here))\b/gi,
+  ];
+
+  transitions.forEach((pattern) => {
+    result = result.replace(pattern, (match) => {
+      return `<break time="120ms"/>${match}`;
+    });
   });
 
   return result;
@@ -476,42 +419,55 @@ export function addSelfCorrections(text: string, emotion: string): string {
 // =============================================================================
 
 /**
- * Apply all Peter John (Jack Bogle) speech traits to text
+ * Apply all Peter John speech traits to text
  *
  * This is the main entry point for persona-specific SSML processing.
- * It applies all of Jack's unique speech patterns to the text.
+ * It applies all of Peter's unique speech patterns to the text.
+ *
+ * Processing order:
+ * 1. Heavy emotional content (warmth first)
+ * 2. Discovery and excitement patterns
+ * 3. Signature personality (Carolyn, self-aware humor)
+ * 4. Insight delivery and celebration
+ * 5. Flow and transitions
  *
  * @param text - The text to process
  * @param emotion - The detected emotion
  * @param baseSpeed - The base speech speed
  * @param laughterCount - Number of laughter instances detected
- * @returns Text with Jack Bogle's speech traits applied
+ * @returns Text with Peter's speech traits applied
  */
 export function applyPeterJohnSpeechTraits(
   text: string,
   emotion: string,
-  baseSpeed: number,
-  laughterCount: number
+  _baseSpeed: number,
+  _laughterCount: number
 ): string {
   let processedText = text;
 
-  // TIER 2: JACK'S SIGNATURE PERSONALITY
+  // TIER 0: EMOTIONAL PRESENCE (Check first for heavy moments)
+  const isHeavyContent = /\b(struggling|stressed|anxious|worried|scared|overwhelmed)\b/i.test(text);
+  if (isHeavyContent || emotion === 'sad' || emotion === 'sympathetic') {
+    processedText = addEmotionalWarmth(processedText, emotion);
+  }
+
+  // TIER 1: THINKING & TRANSITIONS
+  processedText = addThinkingSounds(processedText, emotion);
+  processedText = addTransitionPhrases(processedText, emotion);
+
+  // TIER 2: EXCITED DISCOVERY (Peter's signature move)
+  processedText = addExcitedDiscovery(processedText, emotion);
+  processedText = addInsightDelivery(processedText, emotion);
+
+  // TIER 3: SIGNATURE PERSONALITY
   processedText = addCatchphraseEmphasis(processedText, emotion);
-  processedText = addHistoricalYearGravity(processedText);
-  processedText = addWisdomCadence(processedText, emotion);
-  processedText = addStorytellingMode(processedText, emotion);
-  processedText = addHumbleDeflection(processedText, emotion);
-  processedText = addTricolonCadence(processedText, baseSpeed);
-  processedText = addQuotationVoiceShift(processedText, emotion);
+  processedText = addCarolynWarmth(processedText, emotion);
+  processedText = addSelfAwareHumor(processedText, emotion);
+  processedText = addHistoryWarmth(processedText, emotion);
 
-  // TIER 3: WARMTH & EMOTION
-  processedText = addNameWarmth(processedText, emotion);
+  // TIER 4: WARMTH & CELEBRATION
   processedText = addActiveListeningSounds(processedText, emotion);
-  processedText = addLaughterThroughout(processedText, emotion, laughterCount);
-
-  // TIER 4: ELDERLY CHARACTER
-  processedText = addWordFindingPauses(processedText, emotion);
-  processedText = addSelfCorrections(processedText, emotion);
+  processedText = addCelebrationEnergy(processedText, emotion);
 
   return processedText;
 }
@@ -520,18 +476,20 @@ export function applyPeterJohnSpeechTraits(
  * Configuration for Peter John's speech traits
  */
 export const PETER_JOHN_SPEECH_CONFIG = {
-  /** Base speech speed (slower, grandfatherly) */
-  baseSpeed: 0.82,
-  /** Whether to enable word-finding pauses */
-  enableWordFindingPauses: true,
-  /** Probability of word-finding pauses (0-1) */
-  wordFindingProbability: 0.08,
-  /** Whether to enable self-corrections */
-  enableSelfCorrections: true,
-  /** Probability of self-corrections (0-1) */
-  selfCorrectionProbability: 0.2,
-  /** Whether to enable active listening sounds */
-  enableActiveListening: true,
+  /** Base speech speed (energetic but warm, NOT elderly) */
+  baseSpeed: 0.95,
+  /** Whether to enable excited discovery mode */
+  enableExcitedDiscovery: true,
+  /** Whether to enable Carolyn callbacks */
+  enableCarolynCallbacks: true,
+  /** Whether to enable self-aware humor */
+  enableSelfAwareHumor: true,
+  /** Whether to enable emotional warmth for heavy moments */
+  enableEmotionalWarmth: true,
   /** Probability of active listening sounds (0-1) */
-  activeListeningProbability: 0.25,
+  activeListeningProbability: 0.2,
+  /** Whether to enable thinking sounds */
+  enableThinkingSounds: true,
+  /** Thinking sound frequency */
+  thinkingSoundProbability: 0.35,
 } as const;

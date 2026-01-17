@@ -12,7 +12,7 @@
  */
 
 import { getFirestore, type Firestore } from 'firebase-admin/firestore';
-import { removeUndefined } from '../utils/firestore-utils.js';
+import { removeUndefined, cleanForFirestore } from '../utils/firestore-utils.js';
 import { createLogger } from '../utils/safe-logger.js';
 import type { EmotionalDataPoint, EmotionalPattern, GrowthMoment } from './emotional-patterns.js';
 
@@ -230,10 +230,12 @@ export async function markPatternSurfaced(userId: string, patternId: string): Pr
       .collection('patterns')
       .doc(patternId);
 
-    await docRef.update({
-      surfacedToUser: true,
-      surfacedAt: new Date().toISOString(),
-    });
+    await docRef.update(
+      cleanForFirestore({
+        surfacedToUser: true,
+        surfacedAt: new Date().toISOString(),
+      })
+    );
 
     log.info({ userId, patternId }, '✅ Pattern marked as surfaced');
     return true;
@@ -335,10 +337,12 @@ export async function markGrowthSurfaced(userId: string, growthId: string): Prom
       .collection('moments')
       .doc(growthId);
 
-    await docRef.update({
-      surfaced: true,
-      surfacedAt: new Date().toISOString(),
-    });
+    await docRef.update(
+      cleanForFirestore({
+        surfaced: true,
+        surfacedAt: new Date().toISOString(),
+      })
+    );
 
     log.info({ userId, growthId }, '✅ Growth moment marked as celebrated');
     return true;

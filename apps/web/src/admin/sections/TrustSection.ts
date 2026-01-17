@@ -182,7 +182,7 @@ export async function render(): Promise<string> {
         grid-template-columns: repeat(4, 1fr);
       }
 
-      @media (max-width: 1024px) {
+      @media (max-width: min(1024px, 100%)) {
         .trust-stats {
           grid-template-columns: repeat(2, 1fr);
         }
@@ -296,7 +296,7 @@ export async function render(): Promise<string> {
       }
 
       .stage-name {
-        min-width: 140px;
+        min-width: min(140px, 100%);
         font-size: 0.875rem;
         font-weight: 500;
       }
@@ -425,7 +425,7 @@ export async function render(): Promise<string> {
         margin-bottom: var(--space-4, 1rem);
       }
 
-      @media (max-width: 900px) {
+      @media (max-width: min(900px, 100%)) {
         .warmth-visualization {
           flex-direction: column;
         }
@@ -455,7 +455,7 @@ export async function render(): Promise<string> {
         font-weight: bold;
         color: white;
         margin: 0 auto var(--space-2, 0.5rem);
-        transition: all 0.3s ease;
+        transition: transform 0.3s ease, opacity 0.3s ease;
       }
 
       .warmth-stage-info {
@@ -491,12 +491,12 @@ export async function render(): Promise<string> {
         padding: var(--space-4, 1rem);
         background: rgba(0, 0, 0, 0.2);
         border-radius: var(--radius-lg, 12px);
-        min-width: 200px;
+        min-width: min(200px, 100%);
       }
 
       .warmth-avatar-container {
         position: relative;
-        width: 100px;
+        width: min(100px, 100%);
         height: 100px;
         display: flex;
         align-items: center;
@@ -508,7 +508,7 @@ export async function render(): Promise<string> {
         inset: -20px;
         border-radius: 50%;
         background: radial-gradient(circle, rgba(74, 103, 65, 0.3) 0%, transparent 70%);
-        transition: all 0.5s ease;
+        transition: transform 0.5s ease, opacity 0.5s ease;
         pointer-events: none;
       }
 
@@ -524,8 +524,8 @@ export async function render(): Promise<string> {
         font-weight: bold;
         color: white;
         box-shadow: 0 0 15px hsla(120, 20%, 33%, 0.3);
-        transition: all 0.5s ease;
-        z-index: 1;
+        transition: transform 0.5s ease, opacity 0.5s ease;
+        z-index: var(--z-docked);
       }
 
       .warmth-slider-container {
@@ -639,10 +639,10 @@ async function fetchTrustMetrics(): Promise<TrustMetrics> {
     if (response.ok) {
       const data = await response.json();
       return {
-        totalProfiles: data.totalProfiles || 0,
-        avgTrustScore: data.avgTrustScore || 0,
-        activeRelationships: data.activeRelationships || 0,
-        milestonesReached: data.milestonesReached || 0,
+        totalProfiles: data.totalProfiles ?? 0,
+        avgTrustScore: data.avgTrustScore ?? 0,
+        activeRelationships: data.activeRelationships ?? 0,
+        milestonesReached: data.milestonesReached ?? 0,
       };
     }
   } catch (error) {
@@ -666,7 +666,7 @@ async function fetchTrustEvents(): Promise<TrustEvent[]> {
     });
     if (response.ok) {
       const data = await response.json();
-      return data.activity || [];
+      return data.activity ?? [];
     }
   } catch (error) {
     log.warn({ error }, 'Failed to fetch trust events');
@@ -690,7 +690,7 @@ async function fetchStageDistribution(): Promise<StageData[]> {
     });
     if (response.ok) {
       const data = await response.json();
-      return data.stages || [];
+      return data.stages ?? [];
     }
   } catch (error) {
     log.warn({ error }, 'Failed to fetch stage distribution');
@@ -728,7 +728,7 @@ async function fetchTrustSystems(): Promise<TrustSystem[]> {
     });
     if (response.ok) {
       const data = await response.json();
-      return data.systems || [];
+      return data.systems ?? [];
     }
   } catch (error) {
     log.warn({ error }, 'Failed to fetch trust systems');
@@ -746,7 +746,7 @@ function getStageColor(stage: string): string {
     deep: 'var(--persona-peter, #3a6b73)',
     flourishing: 'var(--color-accent, #C4A265)',
   };
-  return colors[stage] || 'var(--color-text-secondary, #a89a8c)';
+  return colors[stage] ?? 'var(--color-text-secondary, #a89a8c)';
 }
 
 async function fetchWarmthStats(): Promise<WarmthStats> {

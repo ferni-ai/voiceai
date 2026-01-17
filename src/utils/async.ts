@@ -77,22 +77,21 @@ export function debounceAsync<TArgs extends unknown[], TResult>(
   const debounced = (async (...args: TArgs): Promise<TResult> => {
     lastArgs = args;
 
-    // Clear existing timeout
+    // Clear existing timeout (will be re-set below)
     if (timeoutId) {
       clearTimeout(timeoutId);
+      timeoutId = null;
     }
 
-    // Return existing promise if one is pending
-    if (pendingPromise) {
-      return pendingPromise;
+    // Create new promise if one isn't pending
+    if (!pendingPromise) {
+      pendingPromise = new Promise<TResult>((resolve, reject) => {
+        pendingResolve = resolve;
+        pendingReject = reject;
+      });
     }
 
-    // Create new promise
-    pendingPromise = new Promise<TResult>((resolve, reject) => {
-      pendingResolve = resolve;
-      pendingReject = reject;
-    });
-
+    // Always set a new timeout (this is the debounce reset)
     timeoutId = setTimeout(() => {
       void (async () => {
         const currentArgs = lastArgs;
@@ -408,6 +407,7 @@ export async function parallelLimit<T>(
 
   for (let index = 0; index < tasks.length; index++) {
     const task = tasks[index];
+    if (!task) continue; // Guard for noUncheckedIndexedAccess
     const currentIndex = index; // Capture for closure
 
     // Create a tracked promise that removes itself from the set when done

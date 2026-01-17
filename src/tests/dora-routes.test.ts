@@ -32,7 +32,7 @@ const mockDORAService = {
   reset: vi.fn(),
 };
 
-vi.mock('../services/dora-metrics.js', () => ({
+vi.mock('../services/analytics/dora-metrics.js', () => ({
   getDORAMetricsService: vi.fn(() => mockDORAService),
 }));
 

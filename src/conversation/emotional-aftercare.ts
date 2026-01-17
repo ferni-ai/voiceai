@@ -16,6 +16,7 @@
  * @module @ferni/emotional-aftercare
  */
 
+import { seededChance, seededPick, seededIndex } from './utils/rng.js';
 import { humanizationSignalEmitter } from '../services/humanization/humanization-signal-emitter.js';
 import { createLogger } from '../utils/safe-logger.js';
 
@@ -583,7 +584,7 @@ export class EmotionalAftercareEngine {
   }
 
   private pickRandom<T>(array: T[]): T {
-    return array[Math.floor(Math.random() * array.length)];
+    return seededPick(`${Date.now()}:587`, array) ?? array[0];
   }
 }
 

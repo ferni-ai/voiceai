@@ -7,15 +7,19 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Mock dependencies
-vi.mock('../../../utils/safe-logger.js', () => ({
-  getLogger: () => ({
+vi.mock('../../../utils/safe-logger.js', () => {
+  const mockLogger = {
     debug: vi.fn(),
     info: vi.fn(),
     warn: vi.fn(),
     error: vi.fn(),
-    child: vi.fn(() => ({ debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() })),
-  }),
-}));
+    child: vi.fn().mockReturnThis(),
+  };
+  return {
+    getLogger: () => mockLogger,
+    createLogger: () => mockLogger,
+  };
+});
 
 vi.mock('../../domains/shared/index.js', () => ({
   isLifeCoachAnalyticsEnabled: vi.fn(() => false),

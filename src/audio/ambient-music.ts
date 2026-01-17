@@ -124,7 +124,7 @@ export async function fetchSpotifyAmbientTracks(): Promise<MusicTrack[]> {
 
   try {
     // Try to import Spotify module
-    const { searchTracksWithPreviews } = await import('../tools/spotify.js');
+    const { searchTracksWithPreviews } = await import('../tools/domains/entertainment/spotify.js');
 
     // Pick random search queries
     const queries = AMBIENT_SEARCH_QUERIES.sort(() => Math.random() - 0.5).slice(0, 3);
@@ -256,6 +256,13 @@ export async function playAmbientMusic(): Promise<boolean> {
 
   // Don't play if already playing
   if (player.isPlaying()) {
+    return false;
+  }
+
+  // 🎧 FIX: Don't play ambient music if user explicitly stopped music
+  // This prevents auto-play after user says "stop the music"
+  if (player.wasExplicitlyStopped()) {
+    getLogger().debug('Skipping ambient music - user explicitly stopped music recently');
     return false;
   }
 

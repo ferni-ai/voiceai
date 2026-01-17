@@ -21,6 +21,7 @@
  *   domains/life-planning/ - Goals, milestones
  *   domains/entertainment/ - Music, media
  *   domains/telephony/    - Phone calls, callbacks
+ *   domains/concierge/    - AI-powered outreach (hotels, restaurants, appointments, services)
  *
  *   === DEEP HUMAN ENGAGEMENT DOMAINS ===
  *   domains/relationships/ - Connection, conflict, nurturing relationships
@@ -95,14 +96,29 @@ export { getToolDefinitions as getLifePlanningToolDefinitions } from './life-pla
 // Entertainment domain - music, media
 export { getToolDefinitions as getEntertainmentToolDefinitions } from './entertainment/index.js';
 
+// Vibe domain - unified environment control (music, lights, temperature)
+export { getToolDefinitions as getVibeToolDefinitions } from './vibe/index.js';
+
 // Games domain - interactive music games
 export { getToolDefinitions as getGamesToolDefinitions } from './games/index.js';
 
 // Telephony domain - phone calls, callbacks
 export { getToolDefinitions as getTelephonyToolDefinitions } from './telephony/index.js';
 
+// Voice Enrollment domain - voice enrollment for phone callers, sponsored identities
+export { getToolDefinitions as getVoiceEnrollmentToolDefinitions } from './voice-enrollment/index.js';
+
+// Human Transfer domain - escalation to human professionals (therapy, crisis, legal, financial)
+export { getToolDefinitions as getHumanTransferToolDefinitions } from './human-transfer/index.js';
+
 // Cameo domain - team member pop-in interactions
 export { getToolDefinitions as getCameoToolDefinitions } from './cameo/index.js';
+
+// Group Conversation domain - team roundtables, conference calls
+export { getToolDefinitions as getGroupConversationToolDefinitions } from './group-conversation/index.js';
+
+// Behavior domain - modes, pacing, processing, presence (bidirectional behavior system)
+export { getToolDefinitions as getBehaviorToolDefinitions } from './behavior/index.js';
 
 // ============================================================================
 // DEEP HUMAN ENGAGEMENT DOMAINS
@@ -131,6 +147,9 @@ export { getToolDefinitions as getDreamsToolDefinitions } from './dreams/index.j
 
 // Self-Compassion domain - inner critic, self-kindness, acceptance
 export { getToolDefinitions as getSelfCompassionToolDefinitions } from './self-compassion/index.js';
+
+// Coaching Support domain - motivation, boundaries, anger, burnout coaching (extends self-compassion)
+export { getToolDefinitions as getCoachingSupportToolDefinitions } from './coaching-support/index.js';
 
 // Play domain - joy, fun, playfulness, lightness
 export { getToolDefinitions as getPlayToolDefinitions } from './play/index.js';
@@ -199,6 +218,115 @@ export { getToolDefinitions as getReflectionGamesToolDefinitions } from './refle
 // Quiet Growth domain - anti-hustle growth: rest, seasons, plateaus, sufficiency
 export { getToolDefinitions as getQuietGrowthToolDefinitions } from './quiet-growth/index.js';
 
+// Boundaries domain - setting and maintaining healthy boundaries
+export { getToolDefinitions as getBoundariesToolDefinitions } from './boundaries/index.js';
+
+// Social Skills domain - communication and social interaction
+export { getToolDefinitions as getSocialSkillsToolDefinitions } from './social-skills/index.js';
+
+// Anger Management domain - healthy anger expression and management
+export { getToolDefinitions as getAngerToolDefinitions } from './anger/index.js';
+
+// Shame domain - understanding, processing, and healing from shame
+export { getToolDefinitions as getShameToolDefinitions } from './shame/index.js';
+
+// Envy domain - understanding and transforming envy
+export { getToolDefinitions as getEnvyToolDefinitions } from './envy/index.js';
+
+// Resentment domain - understanding, processing, and releasing resentment
+export { getToolDefinitions as getResentmentToolDefinitions } from './resentment/index.js';
+
+// Caregiver domain - supporting those caring for aging/ill loved ones
+export { getToolDefinitions as getCaregiverToolDefinitions } from './caregiver/index.js';
+
+// Divorce domain - navigating divorce process and recovery
+export { getToolDefinitions as getDivorceToolDefinitions } from './divorce/index.js';
+
+// New Parent domain - adjusting to parenthood
+export { getToolDefinitions as getNewParentToolDefinitions } from './new-parent/index.js';
+
+// Empty Nest domain - when children leave home
+export { getToolDefinitions as getEmptyNestToolDefinitions } from './empty-nest/index.js';
+
+// Infidelity domain - betrayal recovery and trust rebuilding
+export { getToolDefinitions as getInfidelityToolDefinitions } from './infidelity/index.js';
+
+// Health Diagnosis domain - chronic illness adjustment
+export { getToolDefinitions as getHealthDiagnosisToolDefinitions } from './health-diagnosis/index.js';
+
+// Job Loss domain - unemployment emotional support
+export { getToolDefinitions as getJobLossToolDefinitions } from './job-loss/index.js';
+
+// Sobriety domain - recovery and addiction support
+export { getToolDefinitions as getSobrietyToolDefinitions } from './sobriety/index.js';
+
+// Sandwich Generation domain - caring for kids AND aging parents
+export { getToolDefinitions as getSandwichGenerationToolDefinitions } from './sandwich-generation/index.js';
+
+// Blended Family domain - step-parenting and family merging
+export { getToolDefinitions as getBlendedFamilyToolDefinitions } from './blended-family/index.js';
+
+// Coming Out domain - LGBTQ+ identity journey
+export { getToolDefinitions as getComingOutToolDefinitions } from './coming-out/index.js';
+
+// Faith Transition domain - religious/spiritual changes
+export { getToolDefinitions as getFaithTransitionToolDefinitions } from './faith-transition/index.js';
+
+// Procrastination domain - understanding and overcoming procrastination
+export { getToolDefinitions as getProcrastinationToolDefinitions } from './procrastination/index.js';
+
+// Burnout Recovery domain - recognizing and recovering from burnout
+export { getToolDefinitions as getBurnoutRecoveryToolDefinitions } from './burnout-recovery/index.js';
+
+// Perfectionism domain - healing from perfectionism and imposter syndrome
+export { getToolDefinitions as getPerfectionismToolDefinitions } from './perfectionism/index.js';
+
+// Digital Wellness domain - healthy relationship with technology
+export { getToolDefinitions as getDigitalWellnessToolDefinitions } from './digital-wellness/index.js';
+
+// Breakup Recovery domain - healing from heartbreak
+export { getToolDefinitions as getBreakupRecoveryToolDefinitions } from './breakup-recovery/index.js';
+
+// Body Relationship domain - healthy relationship with your body
+export { getToolDefinitions as getBodyRelationshipToolDefinitions } from './body-relationship/index.js';
+
+// Dating domain - navigating modern dating
+export { getToolDefinitions as getDatingToolDefinitions } from './dating/index.js';
+
+// Neurodiversity domain - support for ADHD, autism, and neurodivergent needs
+export { getToolDefinitions as getNeurodiversityToolDefinitions } from './neurodiversity/index.js';
+
+// Trauma Support domain - grounding and support for trauma responses
+export { getToolDefinitions as getTraumaSupportToolDefinitions } from './trauma-support/index.js';
+
+// Intimacy domain - building and maintaining intimate connection
+export { getToolDefinitions as getIntimacyToolDefinitions } from './intimacy/index.js';
+
+// Chronic Conditions domain - living well with chronic illness
+export { getToolDefinitions as getChronicConditionsToolDefinitions } from './chronic-conditions/index.js';
+
+// Midlife domain - navigating midlife transitions and meaning
+export { getToolDefinitions as getMidlifeToolDefinitions } from './midlife/index.js';
+
+// Scheduling domain - scheduled messages, calls, emails
+export { getToolDefinitions as getSchedulingToolDefinitions } from './scheduling/index.js';
+
+// Concierge domain - AI-powered outreach for hotels, restaurants, appointments, services
+export { getToolDefinitions as getConciergeToolDefinitions } from './concierge/index.js';
+
+// Local Search domain - Yelp-powered local business discovery (restaurants, services, reviews)
+export { getToolDefinitions as getLocalSearchToolDefinitions } from './local-search/index.js';
+
+// ============================================================================
+// "BETTER THAN HUMAN" CORE DOMAINS
+// ============================================================================
+
+// Visual Memory domain - photo recall, image analysis, visual context
+export { getToolDefinitions as getVisualMemoryToolDefinitions } from './visual-memory/index.js';
+
+// Ambient Mode domain - context awareness, proactive nudges, continuous presence
+export { getToolDefinitions as getAmbientModeToolDefinitions } from './ambient-mode/index.js';
+
 // ============================================================================
 // PERSONA-SPECIFIC "BETTER THAN HUMAN" DOMAINS
 // ============================================================================
@@ -225,6 +353,38 @@ export { getToolDefinitions as getTimelessPerspectiveToolDefinitions } from './t
 // Developer domain - CLI commands, file editing, bash
 export { getToolDefinitions as getDeveloperToolDefinitions } from './developer/index.js';
 
+// Marketing domain - social media management (Alex's dogfooding tools)
+export { getToolDefinitions as getMarketingToolDefinitions } from './marketing/index.js';
+
+// Referral domain - viral growth via voice calls
+export { getToolDefinitions as getReferralToolDefinitions } from './referral/index.js';
+
+// ============================================================================
+// MEDIA DISCOVERY DOMAINS
+// ============================================================================
+
+// Podcasts domain - podcast discovery and recommendations
+export { getToolDefinitions as getPodcastsToolDefinitions } from './podcasts/index.js';
+
+// Video domain - YouTube video discovery
+export { getToolDefinitions as getVideoToolDefinitions } from './video/index.js';
+
+// Books domain - book discovery and reading lists
+export { getToolDefinitions as getBooksToolDefinitions } from './books/index.js';
+
+// ============================================================================
+// USER SETTINGS DOMAINS
+// ============================================================================
+
+// Settings domain - language preferences, user settings
+export { getToolDefinitions as getSettingsToolDefinitions } from './settings/index.js';
+
+// Insights domain - analytics summaries, progress tracking, weekly reviews
+export { getToolDefinitions as getInsightsToolDefinitions } from './insights/index.js';
+
+// CEO Coaching domain - briefings, wins, energy, priorities, decisions
+export { getToolDefinitions as getCEOCoachingToolDefinitions } from './ceo-coaching/index.js';
+
 // ============================================================================
 // LEGACY DOMAIN EXPORTS (for backwards compatibility)
 // These will be deprecated once all consumers migrate to registry-based system
@@ -233,12 +393,15 @@ export { getToolDefinitions as getDeveloperToolDefinitions } from './developer/i
 export * from './agent.js';
 export * from './banking.js';
 export * from './conversation/index.js';
-export * from './financial.js';
-export * from './human-connection.js';
 export * from './personas.js';
 
-// NOTE: communication.js, information.js, entertainment.js, life-planning.js
-// are being replaced by the registry-based domains above
+// NOTE: financial.js, human-connection.js, entertainment.js, information.js, life-planning.js
+// have been removed - use the registry-based domains instead:
+// - finance/index.js instead of financial.js
+// - connection/index.js instead of human-connection.js
+// - entertainment/index.js instead of entertainment.js
+// - information/index.js instead of information.js
+// - life-planning/index.js instead of life-planning.js
 
 // ============================================================================
 // HELPER: Get all domain tool definitions
@@ -267,10 +430,17 @@ export async function getAllDomainToolDefinitions(): Promise<ToolDefinition[]> {
     import('./research/index.js').then(async (m) => m.getToolDefinitions()),
     import('./life-planning/index.js').then(async (m) => m.getToolDefinitions()),
     import('./entertainment/index.js').then(async (m) => m.getToolDefinitions()),
+    import('./vibe/index.js').then(async (m) => m.getToolDefinitions()),
     import('./games/index.js').then(async (m) => m.getToolDefinitions()),
     import('./telephony/index.js').then(async (m) => m.getToolDefinitions()),
+    // Voice Enrollment domain - voice enrollment for phone callers
+    import('./voice-enrollment/index.js').then(async (m) => m.getToolDefinitions()),
+    // Human Transfer domain - escalation to human professionals
+    import('./human-transfer/index.js').then(async (m) => m.getToolDefinitions()),
     // Cameo domain - team member pop-ins
     import('./cameo/index.js').then(async (m) => m.getToolDefinitions()),
+    // Group Conversation domain - team roundtables, conference calls
+    import('./group-conversation/index.js').then(async (m) => m.getToolDefinitions()),
     // Deep human engagement domains
     import('./relationships/index.js').then(async (m) => m.getToolDefinitions()),
     import('./meaning/index.js').then(async (m) => m.getToolDefinitions()),
@@ -280,6 +450,8 @@ export async function getAllDomainToolDefinitions(): Promise<ToolDefinition[]> {
     import('./curiosity/index.js').then(async (m) => m.getToolDefinitions()),
     import('./dreams/index.js').then(async (m) => m.getToolDefinitions()),
     import('./self-compassion/index.js').then(async (m) => m.getToolDefinitions()),
+    // Coaching Support domain - motivation, boundaries, anger, burnout coaching
+    import('./coaching-support/index.js').then(async (m) => m.getToolDefinitions()),
     import('./play/index.js').then(async (m) => m.getToolDefinitions()),
     import('./presence/index.js').then(async (m) => m.getToolDefinitions()),
     // Engagement domain - daily rituals, games, persona activities
@@ -310,6 +482,37 @@ export async function getAllDomainToolDefinitions(): Promise<ToolDefinition[]> {
     // Note: reflection-games has a different export format and is loaded separately
     // Quiet Growth domain - anti-hustle growth: rest, seasons, plateaus
     import('./quiet-growth/index.js').then(async (m) => m.getToolDefinitions()),
+    // NEW Life Coaching Expansion domains
+    import('./boundaries/index.js').then(async (m) => m.getToolDefinitions()),
+    import('./social-skills/index.js').then(async (m) => m.getToolDefinitions()),
+    import('./anger/index.js').then(async (m) => m.getToolDefinitions()),
+    import('./shame/index.js').then(async (m) => m.getToolDefinitions()),
+    import('./envy/index.js').then(async (m) => m.getToolDefinitions()),
+    import('./resentment/index.js').then(async (m) => m.getToolDefinitions()),
+    import('./caregiver/index.js').then(async (m) => m.getToolDefinitions()),
+    import('./divorce/index.js').then(async (m) => m.getToolDefinitions()),
+    import('./new-parent/index.js').then(async (m) => m.getToolDefinitions()),
+    import('./empty-nest/index.js').then(async (m) => m.getToolDefinitions()),
+    import('./infidelity/index.js').then(async (m) => m.getToolDefinitions()),
+    import('./health-diagnosis/index.js').then(async (m) => m.getToolDefinitions()),
+    import('./job-loss/index.js').then(async (m) => m.getToolDefinitions()),
+    import('./sobriety/index.js').then(async (m) => m.getToolDefinitions()),
+    import('./sandwich-generation/index.js').then(async (m) => m.getToolDefinitions()),
+    import('./blended-family/index.js').then(async (m) => m.getToolDefinitions()),
+    import('./coming-out/index.js').then(async (m) => m.getToolDefinitions()),
+    import('./faith-transition/index.js').then(async (m) => m.getToolDefinitions()),
+    import('./procrastination/index.js').then(async (m) => m.getToolDefinitions()),
+    import('./burnout-recovery/index.js').then(async (m) => m.getToolDefinitions()),
+    import('./perfectionism/index.js').then(async (m) => m.getToolDefinitions()),
+    import('./digital-wellness/index.js').then(async (m) => m.getToolDefinitions()),
+    import('./breakup-recovery/index.js').then(async (m) => m.getToolDefinitions()),
+    import('./body-relationship/index.js').then(async (m) => m.getToolDefinitions()),
+    import('./dating/index.js').then(async (m) => m.getToolDefinitions()),
+    import('./neurodiversity/index.js').then(async (m) => m.getToolDefinitions()),
+    import('./trauma-support/index.js').then(async (m) => m.getToolDefinitions()),
+    import('./intimacy/index.js').then(async (m) => m.getToolDefinitions()),
+    import('./chronic-conditions/index.js').then(async (m) => m.getToolDefinitions()),
+    import('./midlife/index.js').then(async (m) => m.getToolDefinitions()),
     // Persona-specific "Better Than Human" domains
     import('./pattern-mastery/index.js').then(async (m) => m.getToolDefinitions()),
     import('./workflow-mastery/index.js').then(async (m) => m.getToolDefinitions()),
@@ -318,6 +521,29 @@ export async function getAllDomainToolDefinitions(): Promise<ToolDefinition[]> {
     import('./timeless-perspective/index.js').then(async (m) => m.getToolDefinitions()),
     // Developer tools domain - CLI commands, file editing, bash
     import('./developer/index.js').then(async (m) => m.getToolDefinitions()),
+    // Marketing domain - social media management (Alex's dogfooding tools)
+    import('./marketing/index.js').then(async (m) => m.getToolDefinitions()),
+    // Referral domain - viral growth via voice calls
+    import('./referral/index.js').then(async (m) => m.getToolDefinitions()),
+    // Media Discovery domains
+    import('./podcasts/index.js').then(async (m) => m.getToolDefinitions()),
+    import('./video/index.js').then(async (m) => m.getToolDefinitions()),
+    import('./books/index.js').then(async (m) => m.getToolDefinitions()),
+    // Scheduling domain - scheduled messages, calls, emails
+    import('./scheduling/index.js').then(async (m) => m.getToolDefinitions()),
+    // Concierge domain - AI-powered outreach for hotels, restaurants, appointments
+    import('./concierge/index.js').then(async (m) => m.getToolDefinitions()),
+    // "Better Than Human" Core domains
+    import('./visual-memory/index.js').then(async (m) => m.getToolDefinitions()),
+    import('./ambient-mode/index.js').then(async (m) => m.getToolDefinitions()),
+    // Settings domains - user preferences
+    import('./settings/index.js').then(async (m) => m.getToolDefinitions()),
+    // Insights domain - analytics summaries, progress tracking
+    import('./insights/index.js').then(async (m) => m.getToolDefinitions()),
+    // Routines domain - Ferni's care routines ("What I Do For You")
+    import('./routines/index.js').then(async (m) => m.getToolDefinitions()),
+    // CEO Coaching domain - briefings, wins, energy, priorities, decisions
+    import('./ceo-coaching/index.js').then(async (m) => m.getToolDefinitions()),
   ]);
 
   // Collect successful results
@@ -429,6 +655,13 @@ export const DOMAIN_METADATA = {
     name: 'Telephony',
     description: 'Phone calls and callbacks',
     icon: '📞',
+    status: 'active',
+  },
+  'human-transfer': {
+    name: 'Human Transfer',
+    description:
+      "Evaluate and connect to human professionals when AI coaching isn't enough - therapy, crisis support, legal, financial",
+    icon: '🤝',
     status: 'active',
   },
   cameo: {
@@ -616,6 +849,115 @@ export const DOMAIN_METADATA = {
     icon: '🌱',
     status: 'active',
   },
+  // NEW Life Coaching Expansion Domains
+  boundaries: {
+    name: 'Boundaries',
+    description: 'Setting and maintaining healthy boundaries in all relationships',
+    icon: '🛡️',
+    status: 'active',
+  },
+  'social-skills': {
+    name: 'Social Skills',
+    description: 'Communication, active listening, small talk, and social confidence',
+    icon: '💬',
+    status: 'active',
+  },
+  anger: {
+    name: 'Anger Management',
+    description: 'Healthy anger expression, triggers, and regulation strategies',
+    icon: '🌋',
+    status: 'active',
+  },
+  shame: {
+    name: 'Shame',
+    description: 'Understanding, processing, and healing from shame',
+    icon: '🌑',
+    status: 'active',
+  },
+  envy: {
+    name: 'Envy',
+    description: 'Understanding and transforming envy into motivation',
+    icon: '💚',
+    status: 'active',
+  },
+  resentment: {
+    name: 'Resentment',
+    description: 'Processing and releasing held grudges and resentments',
+    icon: '⚖️',
+    status: 'active',
+  },
+  procrastination: {
+    name: 'Procrastination',
+    description: 'Understanding and overcoming procrastination patterns',
+    icon: '⏰',
+    status: 'active',
+  },
+  'burnout-recovery': {
+    name: 'Burnout Recovery',
+    description: 'Recognizing, recovering from, and preventing burnout',
+    icon: '🔋',
+    status: 'active',
+  },
+  perfectionism: {
+    name: 'Perfectionism',
+    description: 'Healing from perfectionism and imposter syndrome',
+    icon: '✨',
+    status: 'active',
+  },
+  'digital-wellness': {
+    name: 'Digital Wellness',
+    description: 'Healthy relationship with technology and social media',
+    icon: '📱',
+    status: 'active',
+  },
+  'breakup-recovery': {
+    name: 'Breakup Recovery',
+    description: 'Healing from heartbreak and rebuilding after relationships end',
+    icon: '💔',
+    status: 'active',
+  },
+  'body-relationship': {
+    name: 'Body Relationship',
+    description: 'Developing a healthier relationship with your body',
+    icon: '🪞',
+    status: 'active',
+  },
+  dating: {
+    name: 'Dating',
+    description: 'Navigating modern dating with intention and self-respect',
+    icon: '💕',
+    status: 'active',
+  },
+  neurodiversity: {
+    name: 'Neurodiversity',
+    description: 'Support for ADHD, autism, and neurodivergent needs',
+    icon: '🧠',
+    status: 'active',
+  },
+  'trauma-support': {
+    name: 'Trauma Support',
+    description: 'Grounding, regulation, and support for trauma responses',
+    icon: '🌿',
+    status: 'active',
+  },
+  intimacy: {
+    name: 'Intimacy',
+    description: 'Building and maintaining intimate connection in relationships',
+    icon: '❤️',
+    status: 'active',
+  },
+  'chronic-conditions': {
+    name: 'Chronic Conditions',
+    description: 'Living well with chronic illness, pain, or disability',
+    icon: '🥄',
+    status: 'active',
+  },
+  midlife: {
+    name: 'Midlife',
+    description: 'Navigating midlife transitions, meaning, and reinvention',
+    icon: '🌅',
+    status: 'active',
+  },
   // Persona-specific "Better Than Human" Domains
   'pattern-mastery': {
     name: 'Pattern Mastery',
@@ -658,6 +1000,93 @@ export const DOMAIN_METADATA = {
     description:
       'Voice-driven development: Ferni CLI commands, file editing, bash, and code search',
     icon: '💻',
+    status: 'active',
+  },
+  marketing: {
+    name: 'Marketing & Social Media',
+    description:
+      "Alex's marketing tools: social content generation, Twitter/X posting, LinkedIn publishing, analytics",
+    icon: '📣',
+    status: 'active',
+  },
+  referral: {
+    name: 'Voice Referrals',
+    description:
+      'Viral growth via voice calls - Ferni personally calls friends to introduce herself',
+    icon: '📞',
+    status: 'active',
+  },
+  // Media Discovery Domains
+  podcasts: {
+    name: 'Podcasts',
+    description: 'Podcast discovery, search, and recommendations via iTunes',
+    icon: '🎙️',
+    status: 'active',
+  },
+  video: {
+    name: 'Video',
+    description: 'YouTube video discovery, search, and trending content',
+    icon: '📺',
+    status: 'active',
+  },
+  books: {
+    name: 'Books',
+    description: 'Book discovery, reading lists, and progress tracking via Google Books',
+    icon: '📖',
+    status: 'active',
+  },
+  scheduling: {
+    name: 'Scheduling',
+    description: 'Schedule text messages, phone calls, and emails for later delivery',
+    icon: '📲',
+    status: 'active',
+  },
+  concierge: {
+    name: 'AI Concierge',
+    description:
+      'AI-powered outreach: hotel quotes, restaurant reservations, healthcare appointments, service provider quotes',
+    icon: '🛎️',
+    status: 'active',
+  },
+  'local-search': {
+    name: 'Local Search',
+    description:
+      'Yelp-powered local business discovery: restaurants, reviews, ratings, hours, phone lookup',
+    icon: '📍',
+    status: 'active',
+  },
+  // "Better Than Human" Core Domains
+  'visual-memory': {
+    name: 'Visual Memory',
+    description:
+      'Photo recall, image analysis, and visual context - Ferni remembers every photo you share',
+    icon: '📸',
+    status: 'active',
+  },
+  'ambient-mode': {
+    name: 'Ambient Mode',
+    description:
+      'Continuous presence, location awareness, and proactive nudges - Ferni knows when to check in',
+    icon: '🌙',
+    status: 'active',
+  },
+  // Settings domains
+  settings: {
+    name: 'Settings',
+    description: 'User preferences - language, voice, and session settings',
+    icon: '⚙️',
+    status: 'active',
+  },
+  insights: {
+    name: 'Insights',
+    description: 'Analytics summaries, progress tracking, and weekly reviews',
+    icon: '📊',
+    status: 'active',
+  },
+  'ceo-coaching': {
+    name: 'CEO Coaching',
+    description: 'Voice-based executive coaching: briefings, wins, energy, priorities, decisions, focus sessions',
+    icon: '🎯',
     status: 'active',
   },
 } as const;

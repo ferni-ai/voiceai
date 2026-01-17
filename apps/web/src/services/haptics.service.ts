@@ -51,7 +51,8 @@ export interface HapticEvent {
 // HAPTIC PATTERNS
 // ============================================================================
 
-export const HAPTIC_PATTERNS: Record<string, HapticPattern> = {
+// Using satisfies to get type-safe keys while maintaining literal types
+export const HAPTIC_PATTERNS = {
   // ==========================================================================
   // BASIC PATTERNS
   // ==========================================================================
@@ -204,7 +205,65 @@ export const HAPTIC_PATTERNS: Record<string, HapticPattern> = {
       { type: 'continuous', startTime: 0, duration: 400, intensity: 0.2, sharpness: 0.05 },
     ],
   },
-  
+
+  // ==========================================================================
+  // BREATHING PATTERNS (from physics.json - emotional momentum)
+  // ==========================================================================
+
+  breathingInhale: {
+    name: 'breathingInhale',
+    totalDuration: 4000,
+    events: [
+      { type: 'continuous', startTime: 0, duration: 4000, intensity: 0.15, sharpness: 0.05 },
+    ],
+  },
+
+  breathingExhale: {
+    name: 'breathingExhale',
+    totalDuration: 6000,
+    events: [
+      { type: 'continuous', startTime: 0, duration: 6000, intensity: 0.25, sharpness: 0.1 },
+    ],
+  },
+
+  breathingPause: {
+    name: 'breathingPause',
+    totalDuration: 2000,
+    events: [
+      { type: 'continuous', startTime: 0, duration: 2000, intensity: 0.05, sharpness: 0.02 },
+    ],
+  },
+
+  // ==========================================================================
+  // EMOTIONAL MOMENTUM PATTERNS (from physics.json)
+  // ==========================================================================
+
+  heavyImpact: {
+    name: 'heavyImpact',
+    totalDuration: 100,
+    events: [
+      { type: 'continuous', startTime: 0, duration: 100, intensity: 0.9, sharpness: 0.8 },
+    ],
+  },
+
+  etherealTouch: {
+    name: 'etherealTouch',
+    totalDuration: 300,
+    events: [
+      { type: 'continuous', startTime: 0, duration: 300, intensity: 0.15, sharpness: 0.1 },
+    ],
+  },
+
+  bouncyConfirm: {
+    name: 'bouncyConfirm',
+    totalDuration: 200,
+    events: [
+      { type: 'transient', startTime: 0, intensity: 0.7 },
+      { type: 'transient', startTime: 80, intensity: 0.5 },
+      { type: 'transient', startTime: 140, intensity: 0.3 },
+    ],
+  },
+
   // ==========================================================================
   // INTERACTION FEEDBACK
   // ==========================================================================
@@ -263,7 +322,40 @@ export const HAPTIC_PATTERNS: Record<string, HapticPattern> = {
       { type: 'transient', startTime: 60, intensity: 0.3 },
     ],
   },
-};
+  
+  // ==========================================================================
+  // GOODBYE PATTERN
+  // ==========================================================================
+  
+  goodbye: {
+    name: 'goodbye',
+    totalDuration: 500,
+    events: [
+      { type: 'continuous', startTime: 0, duration: 200, intensity: 0.35, sharpness: 0.2 },
+      { type: 'continuous', startTime: 250, duration: 200, intensity: 0.2, sharpness: 0.1 },
+    ],
+  },
+} as const satisfies Record<string, HapticPattern>;
+
+// Type for safe pattern key access
+export type HapticPatternName = keyof typeof HAPTIC_PATTERNS;
+
+/**
+ * Type guard to check if a string is a valid haptic pattern name
+ */
+export function isHapticPatternName(name: string): name is HapticPatternName {
+  return name in HAPTIC_PATTERNS;
+}
+
+/**
+ * Safely get a haptic pattern by name (for runtime string access)
+ */
+export function getHapticPattern(name: string): HapticPattern | undefined {
+  if (isHapticPatternName(name)) {
+    return HAPTIC_PATTERNS[name];
+  }
+  return undefined;
+}
 
 // ============================================================================
 // PERSONA HAPTIC PROFILES
@@ -427,16 +519,16 @@ export class HapticsService {
    */
   play(patternName: string, options: { intensity?: number } = {}): void {
     if (!this.isAvailable()) return;
-    
-    const pattern = HAPTIC_PATTERNS[patternName];
+
+    const pattern = getHapticPattern(patternName);
     if (!pattern) {
       log.warn('Unknown haptic pattern', { patternName });
       return;
     }
-    
+
     const intensity = (options.intensity ?? 1) * this.config.intensityMultiplier;
     this.executePattern(pattern, intensity);
-    
+
     log.debug('Playing haptic', { pattern: patternName, intensity });
   }
   
@@ -509,7 +601,151 @@ export class HapticsService {
     
     this.play(patterns[magnitude], { intensity: intensities[magnitude] });
   }
-  
+
+  // ==========================================================================
+  // BREATHING HAPTICS (Synchronized with UI breathing)
+  // ==========================================================================
+
+  private breathingInterval: ReturnType<typeof setInterval> | null = null;
+  private breathingPhase: 'inhale' | 'hold' | 'exhale' | 'pause' = 'inhale';
+
+  /**
+   * Start breathing haptics that sync with UI breathing animations
+   * Uses the box breathing pattern: inhale (4s) → hold (2s) → exhale (6s) → pause (2s)
+   */
+  startBreathingHaptics(options: {
+    inhaleDuration?: number;
+    holdDuration?: number;
+    exhaleDuration?: number;
+    pauseDuration?: number;
+    intensity?: number;
+  } = {}): void {
+    if (!this.isAvailable()) return;
+
+    // Stop any existing breathing haptics
+    this.stopBreathingHaptics();
+
+    const {
+      inhaleDuration = 4000,
+      holdDuration = 2000,
+      exhaleDuration = 6000,
+      pauseDuration = 2000,
+      intensity = 1,
+    } = options;
+
+    const totalCycle = inhaleDuration + holdDuration + exhaleDuration + pauseDuration;
+    let elapsedInCycle = 0;
+
+    const runBreathCycle = () => {
+      // Determine current phase based on elapsed time
+      if (elapsedInCycle < inhaleDuration) {
+        this.breathingPhase = 'inhale';
+        this.play('breathingInhale', { intensity: intensity * 0.8 });
+      } else if (elapsedInCycle < inhaleDuration + holdDuration) {
+        this.breathingPhase = 'hold';
+        this.play('breathingPause', { intensity: intensity * 0.3 });
+      } else if (elapsedInCycle < inhaleDuration + holdDuration + exhaleDuration) {
+        this.breathingPhase = 'exhale';
+        this.play('breathingExhale', { intensity: intensity * 1.0 });
+      } else {
+        this.breathingPhase = 'pause';
+        this.play('breathingPause', { intensity: intensity * 0.2 });
+      }
+
+      // Advance phase timing (check every 500ms)
+      elapsedInCycle = (elapsedInCycle + 500) % totalCycle;
+    };
+
+    // Start immediately and repeat
+    runBreathCycle();
+    this.breathingInterval = setInterval(runBreathCycle, 500);
+
+    log.debug('Started breathing haptics', {
+      inhaleDuration, holdDuration, exhaleDuration, pauseDuration
+    });
+  }
+
+  /**
+   * Stop breathing haptics
+   */
+  stopBreathingHaptics(): void {
+    if (this.breathingInterval) {
+      clearInterval(this.breathingInterval);
+      this.breathingInterval = null;
+      this.breathingPhase = 'inhale';
+      log.debug('Stopped breathing haptics');
+    }
+  }
+
+  /**
+   * Get current breathing phase (for UI sync)
+   */
+  getBreathingPhase(): 'inhale' | 'hold' | 'exhale' | 'pause' {
+    return this.breathingPhase;
+  }
+
+  /**
+   * Check if breathing haptics are active
+   */
+  isBreathingActive(): boolean {
+    return this.breathingInterval !== null;
+  }
+
+  // ==========================================================================
+  // EMOTIONAL MOMENTUM HAPTICS (from physics.json)
+  // ==========================================================================
+
+  /**
+   * Play haptic feedback based on emotional momentum
+   * Maps to spring types: heavy (weighty moments), ethereal (delicate), bouncy (playful)
+   */
+  playEmotionalMomentum(type: 'heavy' | 'ethereal' | 'bouncy'): void {
+    if (!this.isAvailable()) return;
+
+    const patternMap: Record<typeof type, string> = {
+      heavy: 'heavyImpact',
+      ethereal: 'etherealTouch',
+      bouncy: 'bouncyConfirm',
+    };
+
+    this.play(patternMap[type]);
+    log.debug('Playing emotional momentum haptic', { type });
+  }
+
+  /**
+   * Play haptic for significant life moments (from physics.json emotional contexts)
+   * Uses heavier, more impactful patterns for weighty emotional transitions
+   */
+  playSignificantMoment(context: 'achievement' | 'loss' | 'transition' | 'breakthrough'): void {
+    if (!this.isAvailable()) return;
+
+    switch (context) {
+      case 'achievement':
+        // Bouncy, celebratory
+        this.play('bouncyConfirm');
+        setTimeout(() => this.play('celebration'), 150);
+        break;
+      case 'loss':
+        // Heavy, supportive
+        this.play('heavyImpact', { intensity: 0.6 });
+        setTimeout(() => this.play('empathy'), 200);
+        break;
+      case 'transition':
+        // Ethereal, marking change
+        this.play('etherealTouch');
+        setTimeout(() => this.play('presence'), 300);
+        break;
+      case 'breakthrough':
+        // Building momentum to celebration
+        this.play('heavyImpact');
+        setTimeout(() => this.play('bouncyConfirm'), 100);
+        setTimeout(() => this.play('milestone'), 250);
+        break;
+    }
+
+    log.debug('Playing significant moment haptic', { context });
+  }
+
   // ==========================================================================
   // PLATFORM EXECUTION
   // ==========================================================================

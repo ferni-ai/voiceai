@@ -3,6 +3,19 @@
  *
  * Core interfaces for the services layer.
  * Separated for clean imports without circular dependencies.
+ *
+ * ## Interface Segregation
+ *
+ * SessionServices is split into focused sub-interfaces for better testability
+ * and adherence to the Interface Segregation Principle (ISP).
+ *
+ * New code should depend on the smallest interface needed:
+ * - SessionCore for basic session info
+ * - SessionMemory for memory/history operations
+ * - SessionAnalysisMethods for conversation analysis
+ * - etc.
+ *
+ * Existing code using SessionServices continues to work unchanged.
  */
 
 import type { ContextManager, PromptContext } from '../context/index.js';
@@ -32,49 +45,70 @@ import type { InsightGenerationResult } from '../intelligence/proactive-insight-
 import type { FirestoreVectorStore } from '../memory/firestore-vector-store.js';
 import type { ConversationHistoryTracker, MemoryStore, VectorStore } from '../memory/index.js';
 import type { SpeechContext } from '../speech/index.js';
-import type { HandoffState } from '../tools/handoff-state.js';
+import type { HandoffState } from './handoff/handoff-state.js';
 import type { UserProfile } from '../types/user-profile.js';
 import type { HumanizingStateUpdate } from './humanizing-state.js';
 
 // ============================================================================
-// SESSION SERVICES
+// SESSION SUB-INTERFACES (Interface Segregation)
 // ============================================================================
 
 /**
- * Session services - created per conversation
+ * Core session identification and metadata
  */
-export interface SessionServices {
+export interface SessionCore {
   sessionId: string;
   userId?: string;
   personaId?: string; // Current persona ID for persona-specific memory retrieval
   sessionStartTime: number; // Timestamp when session started
   realtimeConversationId?: string; // Firestore conversation ID for real-time turn persistence
+}
 
+/**
+ * Handoff state management
+ */
+export interface SessionHandoff {
   // Handoff State (per-session, not global)
   // Fixes BUG #1-4: Global state cross-session contamination
   handoffState: HandoffState;
+}
 
-  // Profile & Memory
+/**
+ * Profile and memory services
+ */
+export interface SessionMemory {
   userProfile: UserProfile | null;
   historyTracker: ConversationHistoryTracker;
   contextManager: ContextManager;
   learningEngine: UserLearningEngine;
+}
 
-  // Advanced Intelligence Engines
+/**
+ * Advanced intelligence engines
+ */
+export interface SessionIntelligence {
   responseQualityTracker: ResponseQualityTracker;
   patternAnalyzer: ConversationPatternAnalyzer;
   proactiveEngine: ProactiveInsightEngine;
   journeyTracker: FinancialJourneyTracker;
   crossSessionThreader: CrossSessionThreader;
   voicePaceAdapter: VoicePaceAdapter;
+}
 
-  // Human-Level Interaction Engines
+/**
+ * Human-level interaction engines
+ */
+export interface SessionHumanization {
   humorCalibration: HumorCalibrationEngine;
   storyPreference: StoryPreferenceEngine;
   communicationMirroring: CommunicationMirroringEngine;
   emotionalMemory: EmotionalMemoryEngine;
+}
 
-  // Session Priming (cross-session continuity)
+/**
+ * Session priming for cross-session continuity
+ */
+export interface SessionPriming {
   sessionPriming?: {
     suggestedOpener: string;
     openThreads: Array<{ topic: string; urgency: 'high' | 'medium' | 'low' }>;
@@ -83,20 +117,33 @@ export interface SessionServices {
     relationshipContext?: { stage: string; sessionsCount: number };
     naturalGreetingHints: string[];
   };
+}
 
-  // Superhuman Memory Context - "Better than Human" proactive intelligence
+/**
+ * Superhuman memory context and methods
+ */
+export interface SessionSuperhuman {
   superhumanContext?: SuperhumanContext;
 
-  // Methods
+  /** Get superhuman memory context with proactive insights */
+  getSuperhumanContext: () => SuperhumanContext | undefined;
+  /** Refresh superhuman context with current conversation state */
+  refreshSuperhumanContext: (options?: {
+    detectedEmotion?: string;
+    detectedStressLevel?: number;
+    currentTopic?: string;
+  }) => void;
+  /** Mark a superhuman insight as delivered */
+  markSuperhumanInsightDelivered: (insightId: string) => void;
+  /** Get superhuman memory prompt injection (formatted for LLM) */
+  getSuperhumanPromptInjection: () => string;
+}
+
+/**
+ * Conversation analysis methods
+ */
+export interface SessionAnalysisMethods {
   analyze: (message: string) => ConversationAnalysis;
-  addTurn: (role: 'user' | 'assistant', content: string, durationMs?: number) => void;
-  getPromptContext: () => PromptContext;
-  getDynamicContext: () => DynamicUserContext;
-  getEnhancedPromptContext: () => string;
-  getSpeechContext: (text?: string, userEmotion?: string) => SpeechContext;
-  tagWithSsml: (text: string) => string;
-  searchKnowledge: (query: string) => Promise<string | null>;
-  searchPastConversations: (query: string) => Promise<string | null>;
   trackResponseQuality: (
     response: string,
     userReaction: 'positive' | 'neutral' | 'negative'
@@ -117,32 +164,95 @@ export interface SessionServices {
     questionAsked?: string;
   }) => void;
   captureInsight: (type: string, key: string, value: unknown, confidence: number) => void;
+}
+
+/**
+ * Context building methods
+ */
+export interface SessionContextMethods {
+  getPromptContext: () => PromptContext;
+  getDynamicContext: () => DynamicUserContext;
+  getEnhancedPromptContext: () => string;
+}
+
+/**
+ * Speech-related methods
+ */
+export interface SessionSpeechMethods {
+  getSpeechContext: (text?: string, userEmotion?: string) => SpeechContext;
+  tagWithSsml: (text: string) => string;
+}
+
+/**
+ * Knowledge search methods
+ */
+export interface SessionSearchMethods {
+  searchKnowledge: (query: string) => Promise<string | null>;
+  searchPastConversations: (query: string) => Promise<string | null>;
+}
+
+/**
+ * Proactive insights methods
+ */
+export interface SessionInsightMethods {
   getProactiveInsights: () => Promise<InsightGenerationResult & { suggestedInsightId?: string }>;
   /** Mark a proactive insight as delivered (for tracking) */
   markInsightDelivered: (insightId: string) => void;
+}
+
+/**
+ * Cross-session thread methods
+ */
+export interface SessionThreadMethods {
   getOpenThreads: () => OpenThread[];
   /** Get a natural conversation starter from open threads */
   getThreadConversationStarter: () => string | null;
   /** Get thread context formatted for prompt injection */
   getThreadContextForPrompt: () => string;
+}
+
+/**
+ * Session lifecycle methods
+ */
+export interface SessionLifecycleMethods {
+  addTurn: (role: 'user' | 'assistant', content: string, durationMs?: number) => void;
   saveProfile: () => Promise<void>;
   updateHumanizingState: (update: HumanizingStateUpdate) => void;
   endSession: () => Promise<void>;
-
-  // Superhuman Memory Methods
-  /** Get superhuman memory context with proactive insights */
-  getSuperhumanContext: () => SuperhumanContext | undefined;
-  /** Refresh superhuman context with current conversation state */
-  refreshSuperhumanContext: (options?: {
-    detectedEmotion?: string;
-    detectedStressLevel?: number;
-    currentTopic?: string;
-  }) => void;
-  /** Mark a superhuman insight as delivered */
-  markSuperhumanInsightDelivered: (insightId: string) => void;
-  /** Get superhuman memory prompt injection (formatted for LLM) */
-  getSuperhumanPromptInjection: () => string;
 }
+
+// ============================================================================
+// SESSION SERVICES (Composite Interface)
+// ============================================================================
+
+/**
+ * Session services - created per conversation
+ *
+ * This interface extends all sub-interfaces for backward compatibility.
+ * New code should prefer depending on the smallest sub-interface needed.
+ *
+ * @example
+ * // Old code (still works)
+ * function doSomething(services: SessionServices) { ... }
+ *
+ * // New code (more focused, easier to test)
+ * function analyzeMessage(services: SessionAnalysisMethods) { ... }
+ */
+export interface SessionServices
+  extends SessionCore,
+    SessionHandoff,
+    SessionMemory,
+    SessionIntelligence,
+    SessionHumanization,
+    SessionPriming,
+    SessionSuperhuman,
+    SessionAnalysisMethods,
+    SessionContextMethods,
+    SessionSpeechMethods,
+    SessionSearchMethods,
+    SessionInsightMethods,
+    SessionThreadMethods,
+    SessionLifecycleMethods {}
 
 // ============================================================================
 // GLOBAL SERVICES
@@ -154,9 +264,9 @@ export interface SessionServices {
 export interface GlobalServices {
   store: MemoryStore;
   vectorStore: VectorStore | FirestoreVectorStore;
-  productivityStore: import('./productivity-store.js').default;
-  backgroundTasks: import('./background-tasks.js').default;
-  collectiveLearning: import('./collective-learning-store.js').CollectiveLearningStore;
+  productivityStore: import('./stores/productivity-store.js').default;
+  backgroundTasks: import('./scheduling/background-tasks.js').default;
+  collectiveLearning: import('./memory/collective-learning-store.js').CollectiveLearningStore;
   initialized: boolean;
 }
 
@@ -170,6 +280,8 @@ export interface GlobalServices {
 export interface CreateSessionOptions {
   sessionId: string;
   userId?: string;
+  /** User's name from onboarding or auth - persisted to Firestore on profile creation */
+  userName?: string;
   isReturningUser?: boolean;
   personaSpeech?: import('../personas/types.js').SpeechCharacteristics;
   personaEnergy?: number;

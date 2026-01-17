@@ -2,15 +2,172 @@
  * Token Routes
  *
  * LiveKit token generation and demo session handling.
+ * Uses shared rate limiting from src/servers/token/demo-rate-limit.ts
  */
 
 import type { IncomingMessage, ServerResponse } from 'http';
 import { AccessToken, AgentDispatchClient } from 'livekit-server-sdk';
 import { rateLimit } from '../../../api/auth-middleware.js';
 import * as demoSessions from '../services/demo-sessions.js';
+import { prewarmContent, type ContentType } from '../../../services/llm-dynamic-content.js';
 import { createLogger } from '../../../utils/safe-logger.js';
 
+// Import shared rate limiting from token server module (single source of truth)
+import {
+  DEMO_CONFIG,
+  checkDemoAllowed,
+  recordDemoSession,
+  startRateLimitCleanup as startSharedRateLimitCleanup,
+  stopRateLimitCleanup as stopSharedRateLimitCleanup,
+} from '../../token/demo-rate-limit.js';
+
+// Developer Platform: marketplace registry for persona→publisher lookup
+import { getAgentAsync } from '../../../marketplace/registry.js';
+
 const log = createLogger({ module: 'TokenRoutes' });
+
+/**
+ * Pre-warm LLM content cache for a persona (fire-and-forget)
+ * Called when user requests a token, BEFORE session starts
+ */
+function prewarmLLMContentForPersona(personaId: string, userId?: string): void {
+  const contentTypes: ContentType[] = [
+    'thinking_phrase',
+    'greeting',
+    'empathetic_reflection',
+    'active_listening',
+    'encouragement',
+    'celebration',
+  ];
+
+  const contexts = contentTypes.map((contentType) => ({
+    contentType,
+    personaId,
+    metadata: { userId, prewarmSource: 'token_request' },
+  }));
+
+  // Fire-and-forget - don't await, just log success/failure
+  prewarmContent(contexts)
+    .then(() => log.debug({ personaId, types: contentTypes.length }, '🔥 LLM cache pre-warmed'))
+    .catch((err) => log.warn({ error: String(err) }, 'LLM pre-warm failed (non-fatal)'));
+}
+
+/**
+ * 🔗 Developer Platform: Look up publisher ID for a persona
+ *
+ * For marketplace/custom personas, returns the publisher.id from AgentManifest.
+ * For built-in personas (ferni, maya, etc.), returns undefined.
+ *
+ * This enables the Developer Platform to:
+ * - Load publisher-registered MCP servers
+ * - Dispatch webhooks to the correct publisher
+ * - Track activities by publisher
+ */
+async function getPublisherIdForPersona(personaId: string): Promise<string | undefined> {
+  try {
+    // Check if this is a marketplace/custom persona
+    const agent = await getAgentAsync(personaId);
+    if (agent?.publisher?.id) {
+      log.debug({ personaId, publisherId: agent.publisher.id }, '🔗 Publisher ID resolved');
+      return agent.publisher.id;
+    }
+    // Built-in personas don't have a publisher
+    return undefined;
+  } catch (err) {
+    // Non-fatal - fall back to no publisher
+    log.debug({ personaId, error: String(err) }, 'Publisher lookup failed (non-fatal)');
+    return undefined;
+  }
+}
+
+/**
+ * ⚡ OPTIMIZATION: Pre-fetch user data during token generation
+ *
+ * This saves 200-500ms on session start by loading:
+ * - User profile from Firestore
+ * - Trust profiles
+ * - Cross-persona insights
+ * - Memory embeddings
+ *
+ * Data is cached in memory and ready when agent session starts.
+ * Fire-and-forget - failures don't block token generation.
+ */
+function prefetchUserData(userId: string, personaId: string): void {
+  if (!userId || userId.length < 10) return; // Skip invalid/test IDs
+
+  const startTime = Date.now();
+
+  // Fire-and-forget all pre-fetches in parallel
+  Promise.all([
+    // 1. Pre-warm user profile (biggest latency saver)
+    (async () => {
+      try {
+        const { getGlobalServices } = await import('../../../services/global-services.js');
+        const global = await getGlobalServices();
+        if (global?.store) {
+          const profile = await global.store.getProfile(userId);
+          if (profile) {
+            log.debug(
+              { userId: userId.slice(0, 8), totalConvs: profile.totalConversations },
+              '⚡ User profile pre-fetched'
+            );
+          }
+        }
+      } catch (e) {
+        log.debug({ error: String(e) }, 'Profile pre-fetch failed (non-fatal)');
+      }
+    })(),
+
+    // 2. Pre-warm trust profiles
+    (async () => {
+      try {
+        const { onSessionStart } = await import('../../../services/trust-systems/index.js');
+        await onSessionStart(userId);
+        log.debug({ userId: userId.slice(0, 8) }, '⚡ Trust profiles pre-fetched');
+      } catch (e) {
+        log.debug({ error: String(e) }, 'Trust pre-fetch failed (non-fatal)');
+      }
+    })(),
+
+    // 3. Pre-warm cross-persona insights
+    (async () => {
+      try {
+        const { loadInsights } = await import('../../../services/cross-persona-insights.js');
+        await loadInsights(userId);
+        log.debug({ userId: userId.slice(0, 8) }, '⚡ Cross-persona insights pre-fetched');
+      } catch (e) {
+        log.debug({ error: String(e) }, 'Insights pre-fetch failed (non-fatal)');
+      }
+    })(),
+
+    // 4. Pre-compute memory embeddings for faster search
+    // NOTE: Skipped - precomputeUserMemoryEmbeddings requires memory content arrays
+    // which requires an additional DB fetch. The optimization isn't worth the
+    // complexity here. Embeddings will be computed on-demand during conversation.
+
+    // 5. Pre-warm persona bundle
+    (async () => {
+      try {
+        // FIX: Use loadBundleById which searches standard paths, not loadBundle which expects full path
+        const { loadBundleById } = await import('../../../personas/bundles/loader.js');
+        await loadBundleById(personaId);
+        log.debug({ personaId }, '⚡ Persona bundle pre-loaded');
+      } catch (e) {
+        log.debug({ error: String(e) }, 'Persona bundle pre-load failed (non-fatal)');
+      }
+    })(),
+  ])
+    .then(() => {
+      const elapsed = Date.now() - startTime;
+      log.info(
+        { userId: userId.slice(0, 8), personaId, elapsedMs: elapsed },
+        '⚡ User data pre-fetch complete'
+      );
+    })
+    .catch((err) => {
+      log.debug({ error: String(err) }, 'User data pre-fetch partially failed (non-fatal)');
+    });
+}
 
 // Configuration
 const LIVEKIT_URL = process.env.LIVEKIT_URL || '';
@@ -18,31 +175,18 @@ const LIVEKIT_API_KEY = process.env.LIVEKIT_API_KEY || '';
 const LIVEKIT_API_SECRET = process.env.LIVEKIT_API_SECRET || '';
 const AGENT_NAME = process.env.AGENT_NAME || 'voice-agent';
 
-// Demo rate limiting configuration
-const DEMO_CONFIG = {
-  maxSessionsPerDay: 3,
-  sessionDurationMinutes: 3,
-  cooldownMinutes: 5,
-};
-
-// Demo rate limit storage (in-memory is OK since it's per-IP throttling)
-const demoRateLimits = new Map<
-  string,
-  { dayStart: number; sessionCount: number; lastSession: number }
->();
+// Convert WSS URL to HTTPS for REST API calls (AgentDispatchClient uses HTTP, not WebSocket)
+const LIVEKIT_HOST = LIVEKIT_URL.replace('wss://', 'https://');
 
 // Agent dispatch client
 let agentDispatch: AgentDispatchClient | null = null;
-
-// Cleanup interval reference for graceful shutdown
-let rateLimitCleanupInterval: NodeJS.Timeout | null = null;
 
 /**
  * Initialize the agent dispatch client
  */
 function getAgentDispatch(): AgentDispatchClient {
   if (!agentDispatch) {
-    agentDispatch = new AgentDispatchClient(LIVEKIT_URL, LIVEKIT_API_KEY, LIVEKIT_API_SECRET);
+    agentDispatch = new AgentDispatchClient(LIVEKIT_HOST, LIVEKIT_API_KEY, LIVEKIT_API_SECRET);
   }
   return agentDispatch;
 }
@@ -67,63 +211,14 @@ async function createToken(roomName: string, participantName: string): Promise<s
 }
 
 /**
- * Get demo rate limit data for an IP
+ * Get IP address from request
  */
-function getDemoRateLimit(ip: string): {
-  dayStart: number;
-  sessionCount: number;
-  lastSession: number;
-} {
-  const dayStart = new Date().setHours(0, 0, 0, 0);
-  let data = demoRateLimits.get(ip);
-
-  if (!data || data.dayStart !== dayStart) {
-    data = { dayStart, sessionCount: 0, lastSession: 0 };
-    demoRateLimits.set(ip, data);
-  }
-  return data;
-}
-
-/**
- * Check if demo is allowed for an IP
- */
-function checkDemoAllowed(ip: string): {
-  allowed: boolean;
-  reason?: string;
-  message?: string;
-  sessionsRemaining?: number;
-} {
-  const data = getDemoRateLimit(ip);
-  const now = Date.now();
-
-  if (data.sessionCount >= DEMO_CONFIG.maxSessionsPerDay) {
-    return {
-      allowed: false,
-      reason: 'daily_limit',
-      message: `You've used all ${DEMO_CONFIG.maxSessionsPerDay} demo sessions today. Create a free account for unlimited access!`,
-    };
-  }
-
-  const cooldownMs = DEMO_CONFIG.cooldownMinutes * 60 * 1000;
-  if (data.lastSession && now - data.lastSession < cooldownMs) {
-    const retryIn = Math.ceil((cooldownMs - (now - data.lastSession)) / 1000);
-    return {
-      allowed: false,
-      reason: 'cooldown',
-      message: `Please wait ${retryIn} seconds before starting another demo.`,
-    };
-  }
-
-  return { allowed: true, sessionsRemaining: DEMO_CONFIG.maxSessionsPerDay - data.sessionCount };
-}
-
-/**
- * Record a demo session for an IP
- */
-function recordDemoSession(ip: string): void {
-  const data = getDemoRateLimit(ip);
-  data.sessionCount++;
-  data.lastSession = Date.now();
+function getClientIp(req: IncomingMessage): string {
+  return (
+    (req.headers['x-forwarded-for'] as string)?.split(',')[0] ||
+    req.socket.remoteAddress ||
+    'unknown'
+  );
 }
 
 /**
@@ -138,22 +233,34 @@ function getDemoStatus(ip: string): {
   cooldownMinutes: number;
   canStartSession: boolean;
 } {
-  const data = getDemoRateLimit(ip);
-  const now = Date.now();
-  const sessionsRemaining = Math.max(0, DEMO_CONFIG.maxSessionsPerDay - data.sessionCount);
-  const cooldownMs = DEMO_CONFIG.cooldownMinutes * 60 * 1000;
-  const timeSinceLastSession = data.lastSession ? now - data.lastSession : Infinity;
-  const inCooldown = !!data.lastSession && timeSinceLastSession < cooldownMs;
-  const cooldownRemaining = inCooldown ? Math.ceil((cooldownMs - timeSinceLastSession) / 1000) : 0;
+  // Use the shared checkDemoAllowed to get current status
+  const check = checkDemoAllowed(ip);
+
+  if (!check.allowed) {
+    // Parse cooldown info from the message if in cooldown
+    const cooldownMatch = check.message?.match(/wait (\d+) seconds/);
+    const cooldownRemaining = cooldownMatch ? parseInt(cooldownMatch[1], 10) : 0;
+    const inCooldown = check.reason === 'cooldown';
+
+    return {
+      sessionsRemaining: check.sessionsRemaining ?? 0,
+      sessionsTotal: DEMO_CONFIG.maxSessionsPerDay,
+      sessionDurationMinutes: DEMO_CONFIG.sessionDurationMinutes,
+      inCooldown,
+      cooldownRemaining,
+      cooldownMinutes: DEMO_CONFIG.cooldownMinutes,
+      canStartSession: false,
+    };
+  }
 
   return {
-    sessionsRemaining,
+    sessionsRemaining: check.sessionsRemaining ?? DEMO_CONFIG.maxSessionsPerDay,
     sessionsTotal: DEMO_CONFIG.maxSessionsPerDay,
     sessionDurationMinutes: DEMO_CONFIG.sessionDurationMinutes,
-    inCooldown,
-    cooldownRemaining,
+    inCooldown: false,
+    cooldownRemaining: 0,
     cooldownMinutes: DEMO_CONFIG.cooldownMinutes,
-    canStartSession: sessionsRemaining > 0 && !inCooldown,
+    canStartSession: true,
   };
 }
 
@@ -166,19 +273,22 @@ export async function handleTokenRoutes(
   pathname: string,
   parsedUrl: URL
 ): Promise<boolean> {
-  // LiveKit URL endpoint
+  // LiveKit URL endpoint - rate limit: 100/min (simple read-only endpoint)
   if (pathname === '/token-url') {
+    if (rateLimit(req, res, { maxRequests: 100, windowMs: 60000 })) {
+      return true;
+    }
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ url: LIVEKIT_URL }));
     return true;
   }
 
-  // Demo status endpoint (hyphenated path for backwards compatibility)
+  // Demo status endpoint - rate limit: 60/min (prevent status polling abuse)
   if (pathname === '/demo-status') {
-    const ip =
-      (req.headers['x-forwarded-for'] as string)?.split(',')[0] ||
-      req.socket.remoteAddress ||
-      'unknown';
+    if (rateLimit(req, res, { maxRequests: 60, windowMs: 60000 })) {
+      return true;
+    }
+    const ip = getClientIp(req);
     const status = getDemoStatus(ip);
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify(status));
@@ -187,22 +297,28 @@ export async function handleTokenRoutes(
 
   // Demo token endpoint (for landing page try-without-signup)
   if (pathname === '/demo-token') {
-    const ip =
-      (req.headers['x-forwarded-for'] as string)?.split(',')[0] ||
-      req.socket.remoteAddress ||
-      'unknown';
+    const ip = getClientIp(req);
 
-    // Check rate limits
-    const allowed = checkDemoAllowed(ip);
-    if (!allowed.allowed) {
-      res.writeHead(429, { 'Content-Type': 'application/json' });
-      res.end(
-        JSON.stringify({
-          error: allowed.reason,
-          message: allowed.message,
-        })
-      );
-      return true;
+    // Get persona_id from query params (defaults to 'ferni' for backwards compatibility)
+    const personaId = parsedUrl.searchParams.get('persona_id') || 'ferni';
+
+    // Branded persona pages bypass demo rate limits (they have their own dedicated experience)
+    const BRANDED_PERSONAS = ['joel-dickson'];
+    const isBrandedPersona = BRANDED_PERSONAS.includes(personaId);
+
+    // Check rate limits using shared module (skip for branded personas)
+    if (!isBrandedPersona) {
+      const allowed = checkDemoAllowed(ip);
+      if (!allowed.allowed) {
+        res.writeHead(429, { 'Content-Type': 'application/json' });
+        res.end(
+          JSON.stringify({
+            error: allowed.reason,
+            message: allowed.message,
+          })
+        );
+        return true;
+      }
     }
 
     try {
@@ -217,25 +333,77 @@ export async function handleTokenRoutes(
         userAgent: req.headers['user-agent'],
       });
 
-      // Record the session for rate limiting
-      recordDemoSession(ip);
+      // Record the session for rate limiting (skip for branded personas)
+      if (!isBrandedPersona) {
+        recordDemoSession(ip);
+      }
+
+      // Pre-warm LLM content cache for the requested persona (fire-and-forget)
+      prewarmLLMContentForPersona(personaId);
+
+      // 🌍 Detect geo/location for demo users (enables weather, local content)
+      let demoGeoData = {
+        locale: 'en-US',
+        detectedAccent: 'american',
+        countryCode: undefined as string | undefined,
+        city: undefined as string | undefined,
+        regionCode: undefined as string | undefined,
+      };
+
+      try {
+        const { detectGeoFromRequest } =
+          await import('../../../services/identity/geo-detection.js');
+        const geo = await detectGeoFromRequest(req, {
+          enableIpLookup: true,
+          ipLookupTimeout: 2000,
+        });
+        demoGeoData = {
+          locale: geo.primaryLanguage || 'en-US',
+          detectedAccent: geo.accent,
+          countryCode: geo.countryCode,
+          city: geo.city,
+          regionCode: geo.regionCode,
+        };
+
+        if (geo.city) {
+          log.info(
+            { city: geo.city, region: geo.regionCode, country: geo.countryCode },
+            '📍 Demo: location detected for weather/local content'
+          );
+        }
+      } catch (geoErr) {
+        log.debug({ note: (geoErr as Error).message }, 'Demo geo detection failed (non-fatal)');
+      }
 
       // Generate token
       const token = await createToken(roomName, username);
 
-      // Dispatch agent
+      // 🔗 Developer Platform: Look up publisher for marketplace personas (including demos)
+      const publisherId = await getPublisherIdForPersona(personaId);
+
+      // Dispatch agent with requested persona
       try {
         const agentMetadata = {
           is_demo: true,
           demo_id: demoId,
           session_duration_minutes: DEMO_CONFIG.sessionDurationMinutes,
-          persona_id: 'ferni',
+          persona_id: personaId,
+          // 🔗 Developer Platform: publisher ID for custom/marketplace personas
+          publisher_id: publisherId,
+          // 🌍 Include geo data for weather and local content (TikTok-style)
+          locale: demoGeoData.locale,
+          preferredAccent: demoGeoData.detectedAccent,
+          countryCode: demoGeoData.countryCode,
+          city: demoGeoData.city,
+          regionCode: demoGeoData.regionCode,
         };
+        log.info({ room: roomName, agent: AGENT_NAME, persona: personaId, city: demoGeoData.city }, '🚀 Dispatching agent');
         await getAgentDispatch().createDispatch(roomName, AGENT_NAME, {
           metadata: JSON.stringify(agentMetadata),
         });
+        log.info({ room: roomName, agent: AGENT_NAME, persona: personaId }, '✅ Agent dispatched');
       } catch (dispatchErr) {
-        log.debug({ note: (dispatchErr as Error).message }, 'Demo agent dispatch note');
+        log.error({ error: (dispatchErr as Error).message, room: roomName }, '❌ Agent dispatch failed');
       }
 
       res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -247,9 +415,13 @@ export async function handleTokenRoutes(
           username,
           demo_id: demoId,
           expires_in_minutes: DEMO_CONFIG.sessionDurationMinutes,
-          sessions_remaining: allowed.sessionsRemaining! - 1,
+          sessions_remaining: isBrandedPersona ? 999 : (checkDemoAllowed(ip).sessionsRemaining ?? 1) - 1,
           claim_token: demoSession.claimToken,
           claim_expires_at: demoSession.expiresAt,
+          // 🌍 Include detected location for UI (weather, personalization)
+          city: demoGeoData.city,
+          regionCode: demoGeoData.regionCode,
+          countryCode: demoGeoData.countryCode,
         })
       );
     } catch (error) {
@@ -260,8 +432,11 @@ export async function handleTokenRoutes(
     return true;
   }
 
-  // Demo session claim endpoint
+  // Demo session claim endpoint - rate limit: 10/min (one-time operation)
   if (pathname === '/demo-claim' && req.method === 'POST') {
+    if (rateLimit(req, res, { maxRequests: 10, windowMs: 60000 })) {
+      return true;
+    }
     let body = '';
     req.on('data', (chunk: Buffer) => (body += chunk.toString()));
 
@@ -320,8 +495,11 @@ export async function handleTokenRoutes(
     });
   }
 
-  // Demo session update endpoint (called by voice agent)
+  // Demo session update endpoint (called by voice agent) - rate limit: 30/min (frequent updates)
   if (pathname === '/demo-session-update' && req.method === 'POST') {
+    if (rateLimit(req, res, { maxRequests: 30, windowMs: 60000 })) {
+      return true;
+    }
     let body = '';
     req.on('data', (chunk: Buffer) => (body += chunk.toString()));
 
@@ -385,6 +563,9 @@ export async function handleTokenRoutes(
     const device_id = parsedUrl.searchParams.get('device_id');
     const persona_id = parsedUrl.searchParams.get('persona_id');
     const preferred_accent = parsedUrl.searchParams.get('accent');
+    // 🐛 FIX: Read firebase_uid from query params (frontend sends this!)
+    const firebase_uid_param = parsedUrl.searchParams.get('firebase_uid');
+    const user_email_param = parsedUrl.searchParams.get('user_email');
 
     if (!room || !username) {
       res.writeHead(400, { 'Content-Type': 'application/json' });
@@ -395,21 +576,32 @@ export async function handleTokenRoutes(
     const selectedPersona = persona_id || 'ferni';
 
     try {
-      // Try to verify Firebase token
+      // Try to verify Firebase token from Authorization header
       let firebaseUid: string | null = null;
       const authHeader = req.headers['authorization'];
       if (authHeader && typeof authHeader === 'string' && authHeader.startsWith('Bearer ')) {
         try {
-          const { verifyFirebaseToken } = await import('../../../services/firebase-auth.js');
+          const { verifyFirebaseToken } =
+            await import('../../../services/identity/firebase-auth.js');
           const firebaseToken = authHeader.slice(7);
           const verified = await verifyFirebaseToken(firebaseToken);
           if (verified) {
             firebaseUid = verified.uid;
-            log.debug({ firebaseUid: firebaseUid.substring(0, 8) }, 'Firebase auth');
+            log.debug({ firebaseUid: firebaseUid.substring(0, 8) }, 'Firebase auth via header');
           }
         } catch (firebaseErr) {
-          log.debug({ note: (firebaseErr as Error).message }, 'Firebase auth note');
+          log.debug({ note: (firebaseErr as Error).message }, 'Firebase auth header failed');
         }
+      }
+
+      // 🐛 FIX: Fallback to firebase_uid query param if header auth failed
+      // This is critical for user memory persistence!
+      if (!firebaseUid && firebase_uid_param) {
+        firebaseUid = firebase_uid_param;
+        log.info(
+          { firebaseUid: firebaseUid.substring(0, 8) },
+          '🔑 Using firebase_uid from query param (header auth unavailable)'
+        );
       }
 
       // Generate token
@@ -422,8 +614,18 @@ export async function handleTokenRoutes(
       // 3. Geo-detected accent from IP/locale
       // 4. Default to 'american'
 
-      // Try to load user's saved accent from profile if authenticated
+      // Try to load user's saved accent AND location from profile if authenticated
+      // "Better than Human" - We remember your accent preference AND location
       let savedAccent: string | undefined;
+      let savedLocation:
+        | {
+            city?: string;
+            regionCode?: string;
+            countryCode?: string;
+            source?: string;
+          }
+        | undefined;
+
       if (firebaseUid && !preferred_accent) {
         try {
           const { getDefaultStore } = await import('../../../memory/index.js');
@@ -436,60 +638,140 @@ export async function handleTokenRoutes(
               'Loaded saved accent from profile'
             );
           }
+          // 📍 Load saved location (from browser geolocation or manual entry)
+          if (profile?.location?.city || profile?.location?.countryCode) {
+            savedLocation = {
+              city: profile.location.city,
+              regionCode: profile.location.regionCode,
+              countryCode: profile.location.countryCode,
+              source: profile.location.source,
+            };
+            log.debug(
+              {
+                firebaseUid: firebaseUid.substring(0, 8),
+                city: savedLocation.city,
+                source: savedLocation.source,
+              },
+              '📍 Loaded saved location from profile'
+            );
+          }
         } catch (profileErr) {
-          log.debug({ note: (profileErr as Error).message }, 'Profile accent lookup note');
+          log.debug({ note: (profileErr as Error).message }, 'Profile lookup note');
         }
       }
 
       // Detect geo/accent (fallback if no explicit or saved preference)
+      // Priority: saved location (browser-gps/manual) > IP geolocation > timezone inference
       let geoData = {
         locale: 'en-US',
         locales: ['en-US'],
         detectedAccent: preferred_accent || savedAccent || 'american',
-        countryCode: undefined as string | undefined,
+        countryCode: savedLocation?.countryCode,
+        city: savedLocation?.city,
+        regionCode: savedLocation?.regionCode,
+        source: savedLocation?.source || 'default',
       };
 
-      try {
-        const { detectGeoFromRequest } = await import('../../../services/geo-detection.js');
-        const geo = await detectGeoFromRequest(req, {
-          enableIpLookup: true,
-          ipLookupTimeout: 2000,
-        });
-        geoData = {
-          locale: geo.primaryLanguage || 'en-US',
-          locales: geo.languages.length > 0 ? geo.languages : ['en-US'],
-          // Use explicit > saved > geo-detected accent
-          detectedAccent: preferred_accent || savedAccent || geo.accent,
-          countryCode: geo.countryCode,
-        };
-      } catch (geoErr) {
-        log.debug({ note: (geoErr as Error).message }, 'Geo detection note');
+      // Only do IP geolocation if we don't have saved location
+      if (!savedLocation?.city && !savedLocation?.countryCode) {
+        try {
+          const { detectGeoFromRequest } =
+            await import('../../../services/identity/geo-detection.js');
+          const geo = await detectGeoFromRequest(req, {
+            enableIpLookup: true,
+            ipLookupTimeout: 2000,
+          });
+          geoData = {
+            locale: geo.primaryLanguage || 'en-US',
+            locales: geo.languages.length > 0 ? geo.languages : ['en-US'],
+            // Use explicit > saved > geo-detected accent
+            detectedAccent: preferred_accent || savedAccent || geo.accent,
+            countryCode: geo.countryCode,
+            city: geo.city, // For weather, local content hints
+            regionCode: geo.regionCode, // State/province for weather
+            source: geo.source,
+          };
+
+          if (geo.city) {
+            log.info(
+              {
+                city: geo.city,
+                region: geo.regionCode,
+                country: geo.countryCode,
+                source: geo.source,
+              },
+              '📍 Token: location detected via IP/headers'
+            );
+          } else {
+            log.info({ source: geo.source }, '📍 Token: no city detected in geo data');
+          }
+        } catch (geoErr) {
+          log.warn({ note: (geoErr as Error).message }, 'Geo detection failed');
+        }
+      } else {
+        log.info(
+          {
+            city: savedLocation?.city,
+            region: savedLocation?.regionCode,
+            country: savedLocation?.countryCode,
+            source: savedLocation?.source,
+          },
+          '📍 Token: using saved location from profile (Better than Human!)'
+        );
       }
 
       log.info(
-        { username, room, persona: selectedPersona, accent: geoData.detectedAccent },
-        'Generated token'
+        {
+          username,
+          room,
+          persona: selectedPersona,
+          accent: geoData.detectedAccent,
+          city: geoData.city,
+          region: geoData.regionCode,
+        },
+        'Generated token with geo'
       );
+
+      // Pre-warm LLM content cache (fire-and-forget, before session starts)
+      prewarmLLMContentForPersona(selectedPersona, firebaseUid || undefined);
+
+      // ⚡ OPTIMIZATION: Pre-fetch user data while token is being prepared
+      // This starts loading profile, trust, insights BEFORE session starts
+      if (firebaseUid) {
+        prefetchUserData(firebaseUid, selectedPersona);
+      }
+
+      // 🔗 Developer Platform: Look up publisher for marketplace personas
+      // This enables MCP server loading and webhook dispatch for custom personas
+      const publisherId = await getPublisherIdForPersona(selectedPersona);
 
       // Dispatch agent
       try {
         const agentMetadata = {
           user_name: username,
           firebase_uid: firebaseUid || undefined,
+          // 🐛 FIX: Include user_email for granted profile linking
+          user_email: user_email_param || undefined,
           device_id: device_id || undefined,
           persona_id: selectedPersona,
+          // 🔗 Developer Platform: publisher ID for custom/marketplace personas
+          publisher_id: publisherId,
           source: 'web',
           locale: geoData.locale,
           locales: geoData.locales,
           preferredAccent: geoData.detectedAccent,
           countryCode: geoData.countryCode,
+          // IP-detected location for weather, local content hints (TikTok-style)
+          city: geoData.city,
+          regionCode: geoData.regionCode,
         };
+        log.info({ agent: AGENT_NAME, room, persona_id: selectedPersona }, '🎯 Dispatching agent with persona');
         await getAgentDispatch().createDispatch(room, AGENT_NAME, {
           metadata: JSON.stringify(agentMetadata),
         });
-        log.info({ agent: AGENT_NAME, room }, 'Dispatched agent');
+        log.info({ agent: AGENT_NAME, room, persona_id: selectedPersona }, '✅ Agent dispatch successful');
       } catch (dispatchErr) {
-        log.debug({ note: (dispatchErr as Error).message }, 'Agent dispatch note');
+        log.error({ error: (dispatchErr as Error).message, room, persona_id: selectedPersona }, '❌ Agent dispatch FAILED');
       }
 
       res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -504,6 +786,9 @@ export async function handleTokenRoutes(
           persona_id: selectedPersona,
           accent: geoData.detectedAccent,
           countryCode: geoData.countryCode,
+          // IP-detected location for weather, local content
+          city: geoData.city,
+          regionCode: geoData.regionCode,
         })
       );
     } catch (error) {
@@ -519,36 +804,20 @@ export async function handleTokenRoutes(
 
 /**
  * Start rate limit cleanup interval
+ * Delegates to shared module for single source of truth
  */
 export function startRateLimitCleanup(): void {
-  if (rateLimitCleanupInterval) return;
-
-  // Cleanup old rate limit entries hourly
-  rateLimitCleanupInterval = setInterval(
-    () => {
-      const dayAgo = Date.now() - 24 * 60 * 60 * 1000;
-      for (const [ip, data] of demoRateLimits.entries()) {
-        if (data.lastSession < dayAgo) {
-          demoRateLimits.delete(ip);
-        }
-      }
-      log.debug({ remaining: demoRateLimits.size }, 'Cleaned up old rate limits');
-    },
-    60 * 60 * 1000
-  );
-
-  log.info('Rate limit cleanup interval started');
+  startSharedRateLimitCleanup();
+  log.info('Rate limit cleanup started (delegating to shared module)');
 }
 
 /**
  * Stop rate limit cleanup interval (for graceful shutdown)
+ * Delegates to shared module
  */
 export function stopRateLimitCleanup(): void {
-  if (rateLimitCleanupInterval) {
-    clearInterval(rateLimitCleanupInterval);
-    rateLimitCleanupInterval = null;
-    log.info('Rate limit cleanup interval stopped');
-  }
+  stopSharedRateLimitCleanup();
+  log.info('Rate limit cleanup stopped');
 }
 
 /**

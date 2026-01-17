@@ -63,7 +63,7 @@ export {
   type VoiceSketch,
   type VoiceSimilarityResult,
   type VoiceSearchResult,
-} from '../voice-memory.js';
+} from '../memory/voice-memory.js';
 
 // Neural embeddings (high-accuracy) - from voice-memory-enhanced.ts
 export {
@@ -100,7 +100,7 @@ export {
   type ConversationRecord,
   type ConversationMemory,
   type ConversationContext,
-} from '../voice-conversation-memory.js';
+} from '../memory/voice-conversation-memory.js';
 
 // ============================================================================
 // MODULE-LEVEL UTILITIES

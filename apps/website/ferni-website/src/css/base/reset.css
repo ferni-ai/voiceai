@@ -12,7 +12,7 @@
 }
 
 html {
-  font-size: 16px;
+  font-size: var(--text-base);
   scroll-behavior: smooth;
   scroll-padding-top: 80px; /* Account for sticky nav */
   -webkit-font-smoothing: antialiased;

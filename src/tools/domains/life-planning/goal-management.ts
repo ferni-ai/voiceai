@@ -16,11 +16,15 @@ import {
   getLifeDataStore,
   type LifeGoal as StoredGoal,
   type LifePortfolio as StoredPortfolio,
-} from '../../../services/life-data-store.js';
+} from '../../../services/stores/life-data-store.js';
 import { sanitizePlainText, parseAmount, isValidAmount } from '../../validation.js';
 import { getLogger, generateId } from '../../utils/tool-helpers.js';
 
 import { getToolDescription } from '../../utils/tool-descriptions.js';
+import {
+  syncGoalToCalendar,
+  removeCalendarSyncedItem,
+} from '../../../services/calendar/calendar-bridge.js';
 // ============================================================================
 // VALIDATION HELPERS
 // ============================================================================
@@ -187,6 +191,11 @@ const portfolios = new Map<string, LifePortfolio>();
 
 // ============================================================================
 // GOAL TEMPLATES
+// ============================================================================
+// NOTE: These templates serve as starting points for goal exploration.
+// For truly dynamic questioning during goal discovery, consider using:
+// import { generateQuestion } from '../../../intelligence/dynamic-questions.js'
+// with questionType 'deepening' and context about the goal category.
 // ============================================================================
 
 const GOAL_TEMPLATES: Record<GoalCategory, { examples: string[]; questions: string[] }> = {
@@ -408,7 +417,23 @@ export async function createGoal(
     getLogger().warn({ error, goalId: id }, 'Failed to persist goal to store');
   }
 
-  getLogger().info({ goalId: id, title, category, timeframe }, '🎯 Goal created');
+  getLogger().info({ goalId: id, title, category, timeframe }, 'Goal created');
+
+  // Sync goal deadline to calendar if target date is set
+  if (targetDate) {
+    try {
+      await syncGoalToCalendar(userId, id, sanitizedTitle, targetDate, {
+        description: sanitizedDesc,
+        category,
+      });
+      getLogger().info({ goalId: id }, 'Goal deadline synced to calendar');
+    } catch (calendarError) {
+      getLogger().warn(
+        { error: String(calendarError), goalId: id },
+        'Failed to sync goal to calendar'
+      );
+    }
+  }
 
   return goal;
 }

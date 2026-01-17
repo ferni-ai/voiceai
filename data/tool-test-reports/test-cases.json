@@ -1,0 +1,67 @@
+[
+  {
+    "toolId": "playMusic",
+    "category": "core",
+    "naturalLanguageProbe": "Put on some tunes.",
+    "expectedToolCall": "playMusic",
+    "shouldAvoid": [
+      "I have the ability to play music.",
+      "I can access a music player.",
+      "Playing music is one of my features."
+    ],
+    "priority": "critical",
+    "generatedAt": "2026-01-01T04:12:34.086Z"
+  },
+  {
+    "toolId": "searchAppleMusic",
+    "category": "core",
+    "naturalLanguageProbe": "Play some new songs on Apple Music.",
+    "expectedToolCall": "searchAppleMusic",
+    "shouldAvoid": [
+      "I can search Apple Music for you.",
+      "Do you want to use Apple Music?",
+      "Apple Music has a large library of songs."
+    ],
+    "priority": "critical",
+    "generatedAt": "2026-01-01T04:12:34.136Z"
+  },
+  {
+    "toolId": "rememberAboutUser",
+    "category": "core",
+    "naturalLanguageProbe": "Hey Ferni, please remember that I prefer to be called Liz.",
+    "expectedToolCall": "rememberAboutUser",
+    "shouldAvoid": [
+      "Can you tell me about the memory features?",
+      "How do I set a personal preference?",
+      "What's the best way to update my profile?"
+    ],
+    "priority": "critical",
+    "generatedAt": "2026-01-01T04:12:34.321Z"
+  },
+  {
+    "toolId": "recallFromMemory",
+    "category": "core",
+    "naturalLanguageProbe": "Hey Ferni, what was the name of that Italian restaurant we went to last month?",
+    "expectedToolCall": "recallFromMemory",
+    "shouldAvoid": [
+      "I can help you remember things.",
+      "I have access to your memory.",
+      "Let me check your memory for that."
+    ],
+    "priority": "critical",
+    "generatedAt": "2026-01-01T04:12:34.246Z"
+  },
+  {
+    "toolId": "updateMemory",
+    "category": "core",
+    "naturalLanguageProbe": "Please update memory",
+    "expectedToolCall": "updateMemory",
+    "shouldAvoid": [
+      "i'll",
+      "let me",
+      "i'm going to"
+    ],
+    "priority": "medium",
+    "generatedAt": "2026-01-01T04:12:36.585Z"
+  }
+]

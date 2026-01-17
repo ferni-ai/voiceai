@@ -86,6 +86,9 @@ export const ICON_PLUS = `<svg ${ICON_ATTRS}><path d="M5 12h14"/><path d="M12 5v
 /** Check */
 export const ICON_CHECK = `<svg ${ICON_ATTRS}><polyline points="20 6 9 17 4 12"/></svg>`;
 
+/** Target / Crosshair */
+export const ICON_TARGET = `<svg ${ICON_ATTRS}><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>`;
+
 /** Warning / Alert Triangle */
 export const ICON_WARNING = `<svg ${ICON_ATTRS}><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>`;
 
@@ -144,6 +147,9 @@ export const ICON_TOGGLE_ON = `<svg ${ICON_ATTRS}><rect width="20" height="12" x
 /** Toggle Off */
 export const ICON_TOGGLE_OFF = `<svg ${ICON_ATTRS}><rect width="20" height="12" x="2" y="6" rx="6" ry="6"/><circle cx="8" cy="12" r="2"/></svg>`;
 
+/** Eye Off / Blind */
+export const ICON_EYE_OFF = `<svg ${ICON_ATTRS}><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/><path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"/><line x1="2" x2="22" y1="2" y2="22"/></svg>`;
+
 /** Trend Up */
 export const ICON_TREND_UP = `<svg ${ICON_ATTRS}><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>`;
 
@@ -185,6 +191,21 @@ export const ICON_LAYOUT_GRID = `<svg ${ICON_ATTRS}><rect width="7" height="7" x
 
 /** Sparkles / Avatar Soul */
 export const ICON_SPARKLES = `<svg ${ICON_ATTRS}><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/><path d="M5 3v4"/><path d="M19 17v4"/><path d="M3 5h4"/><path d="M17 19h4"/></svg>`;
+
+/** Routing / Git Branch */
+export const ICON_ROUTING = `<svg ${ICON_ATTRS}><line x1="6" x2="6" y1="3" y2="15"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9a9 9 0 0 1-9 9"/></svg>`;
+
+/** Timer / Stopwatch */
+export const ICON_TIMER = `<svg ${ICON_ATTRS}><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>`;
+
+/** Learning / Graduate Cap */
+export const ICON_LEARNING = `<svg ${ICON_ATTRS}><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c0 2 2 3 6 3s6-1 6-3v-5"/></svg>`;
+
+/** Beaker / Flask */
+export const ICON_BEAKER = `<svg ${ICON_ATTRS}><path d="M4.5 3h15"/><path d="M6 3v16a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V3"/><path d="M6 14h12"/></svg>`;
+
+/** Wrench / Tool */
+export const ICON_WRENCH = `<svg ${ICON_ATTRS}><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>`;
 
 // ============================================================================
 // ICON MAP (for dynamic lookup)
@@ -244,6 +265,11 @@ export const ICONS = {
   'arrow-right': ICON_ARROW_RIGHT,
   handoff: ICON_HANDOFF,
   sparkles: ICON_SPARKLES,
+  routing: ICON_ROUTING,
+  timer: ICON_TIMER,
+  learning: ICON_LEARNING,
+  beaker: ICON_BEAKER,
+  wrench: ICON_WRENCH,
 } as const;
 
 export type IconName = keyof typeof ICONS;
@@ -252,14 +278,14 @@ export type IconName = keyof typeof ICONS;
  * Get an icon by name
  */
 export function getIcon(name: IconName): string {
-  return ICONS[name] || ICON_INFO;
+  return ICONS[name] ?? ICON_INFO;
 }
 
 /**
  * Render an icon with custom class
  */
 export function icon(name: IconName, className?: string): string {
-  const svg = ICONS[name] || ICON_INFO;
+  const svg = ICONS[name] ?? ICON_INFO;
   if (className) {
     return svg.replace('<svg ', `<svg class="${className}" `);
   }

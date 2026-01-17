@@ -189,7 +189,7 @@ const CATEGORY_LABELS: Record<DashboardLink['category'], { label: string; icon: 
 /**
  * Render the more dashboards section
  */
-export async function render(): Promise<string> {
+export function render(): string {
   log.debug('Rendering more dashboards section');
 
   const categories = ['observability', 'analytics', 'voice', 'system', 'development'] as const;
@@ -261,7 +261,7 @@ export async function render(): Promise<string> {
         border-radius: var(--radius-md, 8px);
         text-decoration: none;
         color: inherit;
-        transition: all 150ms ease;
+        transition: transform 150ms ease, opacity 150ms ease;
       }
 
       .dashboard-link:hover {

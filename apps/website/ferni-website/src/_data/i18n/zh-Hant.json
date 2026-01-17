@@ -72,52 +72,51 @@
       "sampleQuote": "你說過'有一天'想去日本。讓我們把它變成真實的一天。"
     }
   },
-  "pricing": {
-    "sectionTitle": "簡單定價",
-    "headline": "免費開始。",
-    "headlineAccent": "準備好了再升級。",
-    "subtitle": "無隱藏費用。無合約。隨時取消。",
-    "popular": "最受歡迎",
-    "trialNote": "7天免費試用。隨時取消。",
-    "free": {
-      "name": "免費",
-      "price": "NT$0",
+  "founders": {
+    "sectionTitle": "創始人基金",
+    "headline": "免費。",
+    "headlineAccent": "真正免費。",
+    "subtitle": "我們正在構建每個人都應得的東西。如果你也相信，請加入我們。",
+    "mostChosen": "最多選擇",
+    "cancelNote": "隨時更改或取消。沒關係。",
+    "community": {
+      "name": "社群",
+      "price": "免費",
       "period": "永久",
-      "description": "了解Ferni",
-      "cta": "免費開始",
-      "features": [
-        "每月5次對話",
-        "與Ferni聊天（生活教練）",
-        "網頁和電話存取",
-        "基礎對話記憶"
-      ]
-    },
-    "friend": {
-      "name": "朋友",
-      "price": "NT$299",
-      "period": "月",
-      "description": "定期支援",
-      "cta": "開始免費試用",
+      "description": "Ferni在這裡陪伴你",
+      "cta": "與Ferni對話",
       "features": [
         "無限對話",
-        "全部6位AI專家",
-        "完整對話記憶",
-        "優先回應時間",
-        "網頁、電話和簡訊存取"
+        "與Ferni對話（生活教練）",
+        "語音和文字",
+        "完整記憶 — 我記得一切"
       ]
     },
-    "partner": {
-      "name": "夥伴",
+    "foundingMember": {
+      "name": "創始會員",
+      "price": "NT$299",
+      "period": "月",
+      "description": "加入我們。一起構建。",
+      "cta": "加入",
+      "features": [
+        "無限對話時間",
+        "認識整個團隊",
+        "創始人牆上的你的名字",
+        "投票決定我們下一步做什麼"
+      ]
+    },
+    "foundingPatron": {
+      "name": "創始贊助人",
       "price": "NT$599",
       "period": "月",
-      "description": "深度合作",
-      "cta": "開始免費試用",
+      "description": "你在塑造我們的未來",
+      "cta": "加入",
       "features": [
-        "朋友版所有功能",
-        "存取Nayan（智慧導師）",
-        "進階個人化",
-        "無限記憶和上下文",
-        "搶先體驗新功能"
+        "創始會員的所有功能",
+        "完整團隊 + Nayan存取",
+        "新功能搶先體驗",
+        "與創始人直接聯繫",
+        "家庭共享"
       ]
     }
   },
@@ -129,7 +128,7 @@
     "items": [
       {
         "question": "Ferni真的免費嗎？",
-        "answer": "是的！Ferni完全免費使用。我們相信每個人都應該獲得優質的生活指導。進階功能即將推出，但核心體驗將永遠免費。"
+        "answer": "是的。真的。Ferni傾聽、記憶、陪伴你——永遠免費。沒有陷阱。如果你相信我們正在構建的東西，可以通過創始人基金參與。但說實話？和Ferni聊天就夠了。"
       },
       {
         "question": "電話通話如何運作？",
@@ -175,7 +174,7 @@
   "nav": {
     "features": "功能",
     "team": "團隊",
-    "pricing": "價格",
+    "support": "支持",
     "faq": "常見問題",
     "developers": "開發者",
     "about": "關於我們",
@@ -219,7 +218,7 @@
     "callFerni": "撥打Ferni",
     "suggestionsLabel": "或者試試這些：",
     "meetTeam": "認識團隊",
-    "viewPricing": "查看價格",
+    "supportFerni": "支持Ferni",
     "readFaq": "閱讀常見問題",
     "readBlog": "閱讀我們的部落格"
   }

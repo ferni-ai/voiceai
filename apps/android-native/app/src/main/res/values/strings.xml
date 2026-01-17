@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Ferni</string>
+    <string name="mic_permission_title">Microphone Access</string>
+    <string name="mic_permission_message">Ferni needs microphone access for voice conversations with your AI coaching team.</string>
+    <string name="mic_permission_button">Enable Microphone</string>
+    <string name="connect">Connect</string>
+    <string name="disconnect">Disconnect</string>
+    <string name="mute">Mute</string>
+    <string name="unmute">Unmute</string>
+    <string name="settings">Settings</string>
+    <string name="transcript">Transcript</string>
+    <string name="switch_persona">Switch Coach</string>
+</resources>

@@ -1,0 +1,45 @@
+{
+  "postFile": "voice-ai-future.md",
+  "title": "The Future of Voice AI Interfaces",
+  "date": "2026-01-11T00:00:00.000Z",
+  "snippets": {
+    "twitter": {
+      "platform": "twitter",
+      "text": "📚 The Future of Voice AI Interfaces\n\nhttps://developers.ferni.ai/developers/blog/voice-ai-future/\n\n#VoiceAI #FutureOfTech",
+      "length": null
+    },
+    "twitterThread": {
+      "platform": "twitter_thread",
+      "tweets": [
+        {
+          "text": "🧵 The Future of Voice AI Interfaces\n\nA thread on what you'll learn:\n\n👇",
+          "type": "hook"
+        },
+        {
+          "text": "Why voice-first is the next mobile-first, and what it means for developers building the next generation of applications.\n\nLet's dive in...",
+          "type": "summary"
+        },
+        {
+          "text": "📖 Read the full post:\nhttps://developers.ferni.ai/developers/blog/voice-ai-future/\n\n#VoiceAI #FutureOfTech #AITrends",
+          "type": "cta"
+        }
+      ],
+      "totalTweets": 3
+    },
+    "linkedin": {
+      "platform": "linkedin",
+      "text": "The Future of Voice AI Interfaces\n\nWhy voice-first is the next mobile-first, and what it means for developers building the next generation of applications.\n\nThis is part of our ongoing series helping developers build with voice AI.\n\nKey takeaways:\n• Practical code examples you can use today\n• Real-world patterns from production systems\n• Best practices from the Ferni team\n\nRead the full post: https://developers.ferni.ai/developers/blog/voice-ai-future/\n\n#VoiceAI #FutureOfTech #AITrends",
+      "length": 490
+    },
+    "discord": {
+      "platform": "discord",
+      "text": "🌍 **The Future of Voice AI Interfaces**\n\nWhy voice-first is the next mobile-first, and what it means for developers building the next generation of applications.\n\n🔗 **Read more:** https://developers.ferni.ai/developers/blog/voice-ai-future/\n\n---\n*7 min read • Industry Insights*",
+      "length": 280
+    },
+    "threads": {
+      "platform": "threads",
+      "text": "The Future of Voice AI Interfaces\n\nWhy voice-first is the next mobile-first, and what it means for developers building the next generation of applications.\n\nRead more 👉 https://developers.ferni.ai/developers/blog/voice-ai-future/",
+      "length": 230
+    }
+  }
+}

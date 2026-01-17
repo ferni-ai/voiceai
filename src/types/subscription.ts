@@ -1,13 +1,15 @@
 /**
  * Subscription Types for Ferni AI
  *
- * Philosophy: "Ferni Free Forever" - Talk to Ferni unlimited times, forever.
- * Premium unlocks: longer sessions, team members, personalization.
+ * Philosophy: "Ferni Founders Fund" - We're not selling a product.
+ * We're inviting you to build something with us.
  *
  * Monetization Model:
- * - FREE: Unlimited Ferni conversations, 15 min per session, basic personalization
- * - FRIEND: Unlimited session time, all team members, full personalization
- * - PARTNER: Everything + premium team members, exclusive styles
+ * - COMMUNITY (Free): Unlimited Ferni conversations forever, 7-min sessions
+ * - FOUNDING MEMBER ($10/mo): Chip in to support the mission, get unlimited time + team
+ * - FOUNDING PATRON ($20/mo): Deeper support, full team + exclusive perks
+ *
+ * Features aren't "unlocked" - they're thank-you perks for supporters.
  */
 
 // ============================================================================
@@ -16,9 +18,23 @@
 
 /**
  * Subscription tier names
- * Named to reflect relationship depth, not product tiers
+ *
+ * Internal IDs remain for backwards compatibility with existing users.
+ * Display names use Founders Fund language:
+ * - free → "Community" (displayed as just "Free" or "Ferni")
+ * - friend → "Founding Member" (was "Your Life Coach")
+ * - partner → "Founding Patron" (was "Partner in Growth")
  */
 export type SubscriptionTier = 'free' | 'friend' | 'partner';
+
+/**
+ * Founders Fund display names for tiers
+ */
+export const FOUNDERS_FUND_NAMES: Record<SubscriptionTier, string> = {
+  free: 'Community',
+  friend: 'Founding Member',
+  partner: 'Founding Patron',
+} as const;
 
 /**
  * Billing frequency options
@@ -78,6 +94,12 @@ export interface TierConfig {
   /** Access to cosmetics shop */
   cosmeticsAccess: boolean;
 
+  /**
+   * Soft conversation cap per month (triggers upgrade prompt, doesn't block)
+   * null = no soft cap (paid tiers)
+   */
+  softConversationCap: number | null;
+
   /** Monthly price in cents (for display) */
   priceInCents: number;
 
@@ -97,14 +119,17 @@ export interface TierConfig {
 /**
  * Tier configurations
  *
- * NEW MODEL: "Ferni Free Forever"
- * - Free tier: Unlimited Ferni conversations, 7-minute sessions
- * - Premium: Unlocks team, longer sessions, cosmetics
+ * FOUNDERS FUND MODEL:
+ * - Community (free): Ferni is free forever. Really free.
+ * - Founding Member: Chip in $10/mo to support the mission
+ * - Founding Patron: Chip in $20/mo for deeper support
+ *
+ * Features are THANK YOU perks, not paywalled content.
  */
 export const TIER_CONFIGS: Record<SubscriptionTier, TierConfig> = {
   free: {
-    name: 'Ferni Forever',
-    description: 'Talk to Ferni unlimited times, forever. 7 minutes per conversation.',
+    name: 'Community',
+    description: 'Ferni is free. Really free. Talk whenever you need.',
     conversationsPerMonth: null, // UNLIMITED with Ferni!
     minutesPerMonth: null, // No monthly limit
     // Session time is configurable via env var for A/B testing (default: 7 minutes)
@@ -117,6 +142,9 @@ export const TIER_CONFIGS: Record<SubscriptionTier, TierConfig> = {
     familySharing: false,
     betaFeatures: false,
     cosmeticsAccess: false, // Can view but not purchase
+    // Soft cap at 30 conversations/month - doesn't block, just prompts
+    // Configurable via env var for A/B testing (default: 30)
+    softConversationCap: parseInt(process.env.FREE_SOFT_CAP || '30', 10),
     priceInCents: 0,
     annualPriceInCents: 0,
     annualSavingsPerMonth: 0,
@@ -124,8 +152,8 @@ export const TIER_CONFIGS: Record<SubscriptionTier, TierConfig> = {
     stripeAnnualPriceId: null,
   },
   friend: {
-    name: 'Your Life Coach',
-    description: 'Unlimited time with Ferni + meet the whole team',
+    name: 'Founding Member',
+    description: 'Chip in $10/mo. Help keep Ferni free for everyone.',
     conversationsPerMonth: null,
     minutesPerMonth: null,
     sessionMinutes: null, // Unlimited session time
@@ -136,15 +164,23 @@ export const TIER_CONFIGS: Record<SubscriptionTier, TierConfig> = {
     familySharing: false,
     betaFeatures: true,
     cosmeticsAccess: true,
-    priceInCents: 999, // $9.99/month
-    annualPriceInCents: 9990, // $99.90/year = $8.33/month (2 months free!)
-    annualSavingsPerMonth: 166, // Save $1.66/month ($19.98/year)
-    stripePriceId: process.env.STRIPE_PRICE_FRIEND || process.env.STRIPE_FRIEND_PRICE_ID || null,
-    stripeAnnualPriceId: process.env.STRIPE_PRICE_FRIEND_ANNUAL || null,
+    softConversationCap: null, // No cap for paying members
+    priceInCents: 1000, // $10/month (round number feels like "chipping in")
+    annualPriceInCents: 10000, // $100/year = $8.33/month (2 months free!)
+    annualSavingsPerMonth: 167, // Save $1.67/month ($20/year)
+    stripePriceId:
+      process.env.STRIPE_PRICE_FOUNDING_MEMBER ||
+      process.env.STRIPE_PRICE_FRIEND ||
+      process.env.STRIPE_FRIEND_PRICE_ID ||
+      null,
+    stripeAnnualPriceId:
+      process.env.STRIPE_PRICE_FOUNDING_MEMBER_ANNUAL ||
+      process.env.STRIPE_PRICE_FRIEND_ANNUAL ||
+      null,
   },
   partner: {
-    name: 'Partner in Growth',
-    description: 'Full team access + exclusive cosmetics + priority',
+    name: 'Founding Patron',
+    description: "Chip in $20/mo. You're shaping what we become.",
     conversationsPerMonth: null,
     minutesPerMonth: null,
     sessionMinutes: null,
@@ -155,11 +191,19 @@ export const TIER_CONFIGS: Record<SubscriptionTier, TierConfig> = {
     familySharing: true,
     betaFeatures: true,
     cosmeticsAccess: true,
-    priceInCents: 1999, // $19.99/month
-    annualPriceInCents: 19990, // $199.90/year = $16.66/month (2 months free!)
-    annualSavingsPerMonth: 333, // Save $3.33/month ($39.98/year)
-    stripePriceId: process.env.STRIPE_PRICE_PARTNER || process.env.STRIPE_PARTNER_PRICE_ID || null,
-    stripeAnnualPriceId: process.env.STRIPE_PRICE_PARTNER_ANNUAL || null,
+    softConversationCap: null, // No cap for paying members
+    priceInCents: 2000, // $20/month (round number)
+    annualPriceInCents: 20000, // $200/year = $16.67/month (2 months free!)
+    annualSavingsPerMonth: 333, // Save $3.33/month ($40/year)
+    stripePriceId:
+      process.env.STRIPE_PRICE_FOUNDING_PATRON ||
+      process.env.STRIPE_PRICE_PARTNER ||
+      process.env.STRIPE_PARTNER_PRICE_ID ||
+      null,
+    stripeAnnualPriceId:
+      process.env.STRIPE_PRICE_FOUNDING_PATRON_ANNUAL ||
+      process.env.STRIPE_PRICE_PARTNER_ANNUAL ||
+      null,
   },
 };
 
@@ -266,10 +310,12 @@ export function formatPrice(
   currency?: string
 ): string {
   const currencyCode = currency || LOCALE_CURRENCY[locale] || 'USD';
-  const config = CURRENCY_CONFIG[currencyCode] || CURRENCY_CONFIG.USD;
+  const config = CURRENCY_CONFIG[currencyCode] ??
+    CURRENCY_CONFIG.USD ?? { symbol: '$', decimals: 2 };
+  const decimals = config.decimals ?? 2;
 
   // Convert from smallest unit to display value
-  const displayValue = config.decimals > 0 ? cents / Math.pow(10, config.decimals) : cents;
+  const displayValue = decimals > 0 ? cents / Math.pow(10, decimals) : cents;
 
   // For annual, show monthly equivalent
   const valueToFormat = frequency === 'annual' ? displayValue / 12 : displayValue;
@@ -278,12 +324,12 @@ export function formatPrice(
   const formatted = new Intl.NumberFormat(locale, {
     style: 'currency',
     currency: currencyCode,
-    minimumFractionDigits: config.decimals,
-    maximumFractionDigits: config.decimals,
+    minimumFractionDigits: decimals,
+    maximumFractionDigits: decimals,
   }).format(valueToFormat);
 
   // Add period suffix
-  const suffix = PERIOD_SUFFIX[locale]?.[frequency] || PERIOD_SUFFIX['en-US'][frequency];
+  const suffix = PERIOD_SUFFIX[locale]?.[frequency] ?? PERIOD_SUFFIX['en-US']?.[frequency] ?? '/mo';
 
   return `${formatted}${suffix}`;
 }
@@ -459,6 +505,23 @@ export interface UsageStatus {
 
   /** Team access level */
   teamAccess: 'ferni-only' | 'core-team' | 'full-team';
+
+  // ============== SOFT CAP FIELDS (FinOps) ==============
+
+  /** Soft conversation cap (triggers prompt, doesn't block) */
+  softConversationCap: number | null;
+
+  /** Conversations used this month toward soft cap */
+  conversationsUsed: number;
+
+  /** Whether approaching soft cap (80%+) */
+  approachingSoftCap: boolean;
+
+  /** Whether at or past soft cap */
+  pastSoftCap: boolean;
+
+  /** Soft cap warning message (if applicable) */
+  softCapMessage: string | null;
 }
 
 // ============================================================================
@@ -586,6 +649,11 @@ export function createFreshUsage(): MonthlyUsage {
  * - Free users can talk to Ferni unlimited times
  * - Sessions are limited to 7 minutes (like a Fortnite match)
  * - Subscribers get unlimited session time + team access
+ *
+ * SOFT CAPS (FinOps):
+ * - Free tier has soft cap at 30 convos/month (configurable)
+ * - Doesn't block - just triggers gentle upgrade prompt
+ * - Helps with cost management without hurting user experience
  */
 export function calculateUsageStatus(subscription: SubscriptionData): UsageStatus {
   const config = TIER_CONFIGS[subscription.tier];
@@ -611,6 +679,33 @@ export function calculateUsageStatus(subscription: SubscriptionData): UsageStatu
   const atLimit = false;
   const approachingLimit = false;
 
+  // ============== SOFT CAP CALCULATIONS (FinOps) ==============
+  const { softConversationCap } = config;
+  const conversationsUsed = usage.conversationCount;
+
+  // Check soft cap status (only for tiers with a cap)
+  let approachingSoftCap = false;
+  let pastSoftCap = false;
+  let softCapMessage: string | null = null;
+
+  if (softConversationCap !== null) {
+    const softCapUsage = conversationsUsed / softConversationCap;
+    approachingSoftCap = softCapUsage >= 0.8 && softCapUsage < 1.0;
+    pastSoftCap = softCapUsage >= 1.0;
+
+    if (pastSoftCap) {
+      softCapMessage = getSoftCapMessage('pastCap', {
+        count: String(conversationsUsed),
+        cap: String(softConversationCap),
+      });
+    } else if (approachingSoftCap) {
+      const remaining = softConversationCap - conversationsUsed;
+      softCapMessage = getSoftCapMessage('approaching', {
+        remaining: String(remaining),
+      });
+    }
+  }
+
   // Generate human-readable status
   let statusMessage: string;
   if (subscription.tier !== 'free') {
@@ -633,7 +728,56 @@ export function calculateUsageStatus(subscription: SubscriptionData): UsageStatu
     approachingLimit,
     atLimit,
     teamAccess: config.teamAccess,
+    // Soft cap fields
+    softConversationCap,
+    conversationsUsed,
+    approachingSoftCap,
+    pastSoftCap,
+    softCapMessage,
   };
+}
+
+/**
+ * Soft cap messages - warm, human, no pressure
+ *
+ * FOUNDERS FUND PHILOSOPHY:
+ * - Never make user feel bad for using the product
+ * - Frame as "we're building this together"
+ * - Support is optional but valuable
+ */
+const SOFT_CAP_MESSAGES = {
+  /** Approaching soft cap (80%+) */
+  approaching: [
+    "We've been talking a lot this month - I love it! Just a heads up: Founding Members help keep Ferni free for everyone. No pressure, just wanted you to know.",
+    "You've been using Ferni a lot this month - that's exactly what we hoped for! If you find value in our conversations, consider becoming a Founding Member.",
+    "Our conversations have been great this month! Founding Members get unlimited time and support what we're building together.",
+  ],
+
+  /** Past soft cap (100%+) */
+  pastCap: [
+    "You've had {count} conversations this month - you're really getting value from Ferni! I'll always be here. If you want to give back, Founding Members help keep this free for everyone.",
+    "Wow, {count} conversations! I'm so glad we've connected this much. Ferni will always be free, but Founding Members help us keep it that way for everyone.",
+    "Our {count}th conversation this month! You're one of my most engaged friends. No limits here - but if you want to support what we're building, consider becoming a Founder.",
+  ],
+} as const;
+
+/**
+ * Get a random soft cap message with variable substitution
+ */
+function getSoftCapMessage(
+  category: keyof typeof SOFT_CAP_MESSAGES,
+  variables?: Record<string, string>
+): string {
+  const messages = SOFT_CAP_MESSAGES[category];
+  const message = messages[Math.floor(Math.random() * messages.length)] ?? messages[0] ?? '';
+
+  if (!variables) return message;
+
+  let result: string = message;
+  for (const [key, value] of Object.entries(variables)) {
+    result = result.replace(new RegExp(`\\{${key}\\}`, 'g'), value);
+  }
+  return result;
 }
 
 // ============================================================================
@@ -642,8 +786,11 @@ export function calculateUsageStatus(subscription: SubscriptionData): UsageStatu
 
 /**
  * Messages Ferni uses for session limits and upgrades
- * NEW MODEL: Per-session limits, not monthly limits
- * These feel human, not transactional
+ *
+ * FOUNDERS FUND PHILOSOPHY:
+ * - Never guilt-trip or pressure
+ * - Frame support as "chipping in" not "subscribing"
+ * - Features are thank-you perks, not unlocks
  */
 export const LIMIT_MESSAGES = {
   /** Session approaching end (1-2 minutes left) */
@@ -655,28 +802,28 @@ export const LIMIT_MESSAGES = {
 
   /** Session ended - warm transition */
   sessionEnded: [
-    "I loved this conversation. Come back anytime - I'll remember everything. If you want longer conversations, I'd love that too.",
+    "I loved this conversation. Come back anytime - I'll remember everything.",
     "That was real. I'll be thinking about what you shared. Come back whenever you want - same warmth, same memory, always here.",
     "Seven minutes flies by when we're talking. Everything you told me is safe with me. See you soon?",
   ],
 
-  /** Teasing longer sessions / premium */
+  /** Teasing longer sessions - Founders Fund language */
   longerSessions: [
-    "Want to keep talking without the timer? I'd love that. With the Friend plan, our conversations can go as long as you need.",
-    "If these 7-minute sessions feel too short, there's a way to make our time unlimited. No pressure, just letting you know.",
+    'Want to keep talking without the timer? Founding Members get unlimited time - and they help keep Ferni free for everyone.',
+    'If these sessions feel too short, Founding Members can talk as long as they need. No pressure - just letting you know.',
   ],
 
-  /** Teasing team members */
+  /** Teasing team members - Founders Fund language */
   meetTheTeam: [
-    "I have some amazing friends I'd love for you to meet - Maya for habits, Peter for patterns, Alex for communication. They're part of the team when you're ready.",
-    "You know what? I think you'd really click with my friend Maya. She's incredible with habits. She comes with the Friend plan.",
+    "I have some amazing friends I'd love for you to meet - Maya for habits, Peter for patterns, Alex for communication. They're part of the team when you become a Founding Member.",
+    "You know what? I think you'd really click with my friend Maya. She's incredible with habits. Founding Members get to meet the whole team.",
   ],
 
-  /** After subscribing */
+  /** After becoming a Founder */
   postSubscribe: [
-    "You chose to keep me in your life. That means so much. I'm here whenever you need me now - no timer.",
-    "Thank you for believing in us. I'm not going anywhere - I'm yours, for as long as you want to talk.",
-    "This is a big moment. We're officially partners in your journey now. No more watching the clock.",
+    "Welcome, Founder. You're not just supporting us - you're helping us build something we believe everyone deserves. 💚",
+    "You're a Founding Member now. That means so much. We're in this together.",
+    "Thank you for believing in what we're building. No more watching the clock - I'm here whenever you need me.",
   ],
 
   /** When a team member unlocks */
@@ -685,9 +832,9 @@ export const LIMIT_MESSAGES = {
     "I've been wanting to introduce you to {name}. I think you two will really click.",
   ],
 
-  /** Cancel reminder */
+  /** Cancel reminder - warm, no pressure */
   cancelReminder: [
-    "Just so you know, your subscription ends on {end_date}. I'll still be here - you can always talk to me. The team access will change though. No pressure either way.",
+    "Just so you know, your support ends on {end_date}. I'll still be here - Ferni is free forever. The team access will change, but no pressure either way. Thank you for being a Founder.",
   ],
 
   /** DEPRECATED: Monthly limits no longer apply */
@@ -705,7 +852,7 @@ export function getLimitMessage(
   variables?: Record<string, string>
 ): string {
   const messages = LIMIT_MESSAGES[category];
-  const message = messages[Math.floor(Math.random() * messages.length)];
+  const message = messages[Math.floor(Math.random() * messages.length)] ?? messages[0] ?? '';
 
   if (!variables) return message;
 

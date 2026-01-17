@@ -17,6 +17,7 @@
  */
 
 import { DURATION, EASING } from '../config/animation-constants.js';
+import { relationshipStageService } from '../services/relationship-stage.service.js';
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import { getCelebratedCount, getTotalMilestonesCount } from './ferni-milestones.ui.js';
@@ -25,7 +26,7 @@ import { journeyUI } from './journey.ui.js';
 const log = createLogger('ConnectionHeart');
 
 // FIX BUG: Track all setTimeout calls for proper cleanup
-const { trackedTimeout, clearAll: clearAllTimeouts } = createTimeoutTracker();
+const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
 
 // ============================================================================
 // STATE
@@ -61,6 +62,11 @@ const HEART_FILLED = `<svg width="20" height="20" viewBox="0 0 24 24" fill="curr
 // Outline heart (connecting/healing) - transitional state
 const HEART_HEALING = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
   <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+</svg>`;
+
+// Streak flame icon (Lucide-style: 2px stroke, outlined, rounded corners)
+const FLAME_ICON = `<svg class="connection-heart__flame" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/>
 </svg>`;
 
 // ============================================================================
@@ -114,12 +120,16 @@ function create(): void {
 
   const celebrated = getCelebratedCount();
   const total = getTotalMilestonesCount();
+  const metrics = relationshipStageService.getMetrics();
+  const streak = metrics.currentStreak;
 
   // Icons - broken heart visible by default with inline fallback styles
+  // Show streak count as primary indicator (replaces separate streak badge)
   indicator.innerHTML = `
     <span class="connection-heart__icon connection-heart__icon--broken" style="opacity: 1; transform: scale(1); color: #9a8a82;">${HEART_BROKEN}</span>
     <span class="connection-heart__icon connection-heart__icon--healing">${HEART_HEALING}</span>
     <span class="connection-heart__icon connection-heart__icon--filled">${HEART_FILLED}</span>
+    <span class="connection-heart__streak" aria-label="${streak} day streak">${streak > 0 ? `${FLAME_ICON}${streak}` : ''}</span>
     <span class="connection-heart__count" aria-label="${celebrated} of ${total} milestones">${celebrated}</span>
     <span class="connection-heart__glow"></span>
   `;
@@ -143,6 +153,9 @@ function create(): void {
     setState('disconnected');
     startDisconnectedPulse();
   }
+  
+  // Show streak badge immediately if user has a streak
+  updateStreakDisplay();
 
   log.info('Connection heart created');
 }
@@ -172,10 +185,15 @@ function setState(state: ConnectionState): void {
   // Update aria and title
   const countEl = indicator.querySelector('.connection-heart__count');
 
+  // Get current stats for tooltip
+  const metrics = relationshipStageService.getMetrics();
+  const streak = metrics.currentStreak;
+  const streakText = streak > 0 ? `🔥 ${streak} day streak\n` : '';
+
   switch (state) {
     case 'disconnected':
-      indicator.setAttribute('aria-label', 'View your journey');
-      indicator.setAttribute('title', 'Your journey with Ferni');
+      indicator.setAttribute('aria-label', 'View your journey with Ferni');
+      indicator.setAttribute('title', `${streakText}Tap to see your journey`);
       pulseAnimation?.cancel();
       startDisconnectedPulse();
       break;
@@ -188,15 +206,16 @@ function setState(state: ConnectionState): void {
       break;
 
     case 'connected':
-      indicator.setAttribute('aria-label', 'View your journey');
-      indicator.setAttribute('title', 'Our story so far');
+      indicator.setAttribute('aria-label', 'View your journey with Ferni');
+      indicator.setAttribute('title', `${streakText}Tap to see our story`);
       pulseAnimation?.cancel();
       // Play heart fill animation if transitioning from disconnected/connecting
       if (oldState === 'connecting' || oldState === 'disconnected' || oldState === 'error') {
         playConnectionAnimation();
       }
-      // Update count
+      // Update counts
       if (countEl) countEl.textContent = String(getCelebratedCount());
+      updateStreakDisplay();
       startConnectedPulse();
       break;
 
@@ -263,6 +282,27 @@ function handleNewMilestone(): void {
   celebrationPulse();
 
   log.info('New milestone indicator triggered');
+}
+
+/**
+ * Update the streak display badge
+ */
+function updateStreakDisplay(): void {
+  if (!indicator) return;
+  
+  const streakEl = indicator.querySelector('.connection-heart__streak');
+  if (!streakEl) return;
+  
+  const metrics = relationshipStageService.getMetrics();
+  const streak = metrics.currentStreak;
+  
+  if (streak > 0) {
+    streakEl.textContent = String(streak);
+    streakEl.classList.add('connection-heart__streak--visible');
+  } else {
+    streakEl.textContent = '';
+    streakEl.classList.remove('connection-heart__streak--visible');
+  }
 }
 
 // ============================================================================
@@ -458,7 +498,7 @@ function injectStyles(): void {
       position: absolute;
       bottom: -4px;
       right: -4px;
-      z-index: 10;
+      z-index: var(--z-docked);
       
       display: flex;
       align-items: center;
@@ -515,10 +555,52 @@ function injectStyles(): void {
       transform: scale(0.8);
     }
     
-    /* Count badge */
+    /* Streak badge (top-left, fire-style) */
+    .connection-heart__streak {
+      position: absolute;
+      top: -8px;
+      left: -8px;
+      
+      display: flex;
+      align-items: center;
+      gap: 2px;
+      
+      min-width: 20px;
+      height: 20px;
+      padding: 0 6px;
+      
+      font-size: 11px;
+      font-weight: 700;
+      
+      color: white;
+      background: linear-gradient(135deg, #f59e0b, #d97706);
+      border-radius: 10px;
+      box-shadow: 0 2px 6px rgba(245, 158, 11, 0.4);
+      
+      opacity: 0;
+      transform: scale(0.5);
+      transition: all ${DURATION.FAST}ms ${EASING.SPRING};
+      z-index: 2;
+    }
+    
+    .connection-heart__streak:empty {
+      display: none;
+    }
+    
+    .connection-heart__flame {
+      flex-shrink: 0;
+    }
+    
+    .connection-heart__streak--visible,
+    .connection-heart:hover .connection-heart__streak:not(:empty) {
+      opacity: 1;
+      transform: scale(1);
+    }
+    
+    /* Count badge (milestones, bottom-right) */
     .connection-heart__count {
       position: absolute;
-      top: -6px;
+      bottom: -6px;
       right: -6px;
       
       min-width: 18px;
@@ -565,6 +647,12 @@ function injectStyles(): void {
       color: var(--color-text-muted, #9a8a82);
     }
     
+    /* Show streak badge even when disconnected (motivation to come back) */
+    .connection-heart--disconnected .connection-heart__streak:not(:empty) {
+      opacity: 0.85;
+      transform: scale(1);
+    }
+    
     /* Show count on hover even when disconnected */
     .connection-heart--disconnected:hover .connection-heart__count {
       opacity: 0.6;
@@ -606,6 +694,11 @@ function injectStyles(): void {
       opacity: 1;
       transform: scale(1);
       color: var(--persona-primary, #4a6741);
+    }
+    
+    .connection-heart--connected .connection-heart__streak:not(:empty) {
+      opacity: 1;
+      transform: scale(1);
     }
     
     .connection-heart--connected:hover .connection-heart__count {
@@ -697,6 +790,39 @@ function injectStyles(): void {
       background: var(--persona-primary, #6b8f5e);
     }
     
+    [data-theme="midnight"] .connection-heart__streak {
+      background: linear-gradient(135deg, #f59e0b, #d97706);
+      box-shadow: 0 2px 6px rgba(245, 158, 11, 0.3);
+    }
+    
+    /* ===== CIRCADIAN AWARENESS ===== */
+    /* Late night: warmer, softer glow for intimate presence */
+    [data-circadian="lateNight"] .connection-heart--connected,
+    [data-circadian="deepNight"] .connection-heart--connected {
+      box-shadow: 0 2px 12px var(--persona-glow, rgba(74, 103, 65, 0.25));
+    }
+    
+    [data-circadian="lateNight"] .connection-heart__glow,
+    [data-circadian="deepNight"] .connection-heart__glow {
+      opacity: 0.15;
+    }
+    
+    /* Morning: fresher, crisper appearance */
+    [data-circadian="morning"] .connection-heart--connected {
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.12);
+    }
+    
+    /* ===== RELATIONSHIP WARMTH ===== */
+    /* Deeper relationships get warmer, more prominent heart glow */
+    [data-relationship-stage="established"] .connection-heart--connected,
+    [data-relationship-stage="deep-partnership"] .connection-heart--connected {
+      box-shadow: 0 3px 14px var(--persona-glow, rgba(74, 103, 65, 0.3));
+    }
+    
+    [data-relationship-stage="deep-partnership"] .connection-heart__glow {
+      opacity: 0.2;
+    }
+    
     /* ===== REDUCED MOTION ===== */
     @media (prefers-reduced-motion: reduce) {
       .connection-heart,
@@ -712,7 +838,7 @@ function injectStyles(): void {
     }
     
     /* ===== MOBILE ===== */
-    @media (max-width: 640px) {
+    @media (max-width: clamp(448px, 90vw, 640px)) {
       .connection-heart {
         width: 40px;
         height: 40px;
@@ -723,6 +849,15 @@ function injectStyles(): void {
       .connection-heart__icon svg {
         width: 20px;
         height: 20px;
+      }
+      
+      .connection-heart__streak {
+        top: -10px;
+        left: -10px;
+        min-width: 22px;
+        height: 22px;
+        line-height: 22px;
+        font-size: 12px;
       }
       
       .connection-heart__count {

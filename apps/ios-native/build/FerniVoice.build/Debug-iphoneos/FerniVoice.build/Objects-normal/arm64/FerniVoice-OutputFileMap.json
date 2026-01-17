@@ -1,0 +1,249 @@
+{
+  "" : {
+    "diagnostics" : "/Users/sethford/Documents/voiceai/apps/ios-native/build/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/FerniVoice-primary.dia",
+    "emit-module-dependencies" : "/Users/sethford/Documents/voiceai/apps/ios-native/build/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/FerniVoice-primary-emit-module.d",
+    "emit-module-diagnostics" : "/Users/sethford/Documents/voiceai/apps/ios-native/build/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/FerniVoice-primary-emit-module.dia",
+    "pch" : "/Users/sethford/Documents/voiceai/apps/ios-native/build/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/FerniVoice-primary-Bridging-header.pch",
+    "swift-dependencies" : "/Users/sethford/Documents/voiceai/apps/ios-native/build/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/FerniVoice-primary.swiftdeps"
+  },
+  "/Users/sethford/Documents/voiceai/apps/ios-native/Sources/App/FerniVoiceApp.swift" : {
+    "const-values" : "/Users/sethford/Documents/voiceai/apps/ios-native/build/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/FerniVoiceApp.swiftconstvalues",
+    "dependencies" : "/Users/sethford/Documents/voiceai/apps/ios-native/build/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/FerniVoiceApp.d",
+    "diagnostics" : "/Users/sethford/Documents/voiceai/apps/ios-native/build/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/FerniVoiceApp.dia",
+    "index-unit-output-path" : "/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/FerniVoiceApp.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/apps/ios-native/build/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/FerniVoiceApp.bc",
+    "object" : "/Users/sethford/Documents/voiceai/apps/ios-native/build/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/FerniVoiceApp.o",
+    "swift-dependencies" : "/Users/sethford/Documents/voiceai/apps/ios-native/build/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/FerniVoiceApp.swiftdeps",
+    "swiftmodule" : "/Users/sethford/Documents/voiceai/apps/ios-native/build/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/FerniVoiceApp~partial.swiftmodule"
+  },
+  "/Users/sethford/Documents/voiceai/apps/ios-native/Sources/App/Typography.swift" : {
+    "const-values" : "/Users/sethford/Documents/voiceai/apps/ios-native/build/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/Typography.swiftconstvalues",
+    "dependencies" : "/Users/sethford/Documents/voiceai/apps/ios-native/build/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/Typography.d",
+    "diagnostics" : "/Users/sethford/Documents/voiceai/apps/ios-native/build/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/Typography.dia",
+    "index-unit-output-path" : "/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/Typography.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/apps/ios-native/build/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/Typography.bc",
+    "object" : "/Users/sethford/Documents/voiceai/apps/ios-native/build/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/Typography.o",
+    "swift-dependencies" : "/Users/sethford/Documents/voiceai/apps/ios-native/build/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/Typography.swiftdeps",
+    "swiftmodule" : "/Users/sethford/Documents/voiceai/apps/ios-native/build/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/Typography~partial.swiftmodule"
+  },
+  "/Users/sethford/Documents/voiceai/apps/ios-native/Sources/Design/FerniColors.swift" : {
+    "const-values" : "/Users/sethford/Documents/voiceai/apps/ios-native/build/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/FerniColors.swiftconstvalues",
+    "dependencies" : "/Users/sethford/Documents/voiceai/apps/ios-native/build/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/FerniColors.d",
+    "diagnostics" : "/Users/sethford/Documents/voiceai/apps/ios-native/build/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/FerniColors.dia",
+    "index-unit-output-path" : "/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/FerniColors.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/apps/ios-native/build/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/FerniColors.bc",
+    "object" : "/Users/sethford/Documents/voiceai/apps/ios-native/build/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/FerniColors.o",
+    "swift-dependencies" : "/Users/sethford/Documents/voiceai/apps/ios-native/build/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/FerniColors.swiftdeps",
+    "swiftmodule" : "/Users/sethford/Documents/voiceai/apps/ios-native/build/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/FerniColors~partial.swiftmodule"
+  },
+  "/Users/sethford/Documents/voiceai/apps/ios-native/Sources/Services/AmbientModeService.swift" : {
+    "const-values" : "/Users/sethford/Documents/voiceai/apps/ios-native/build/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/AmbientModeService.swiftconstvalues",
+    "dependencies" : "/Users/sethford/Documents/voiceai/apps/ios-native/build/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/AmbientModeService.d",
+    "diagnostics" : "/Users/sethford/Documents/voiceai/apps/ios-native/build/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/AmbientModeService.dia",
+    "index-unit-output-path" : "/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/AmbientModeService.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/apps/ios-native/build/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/AmbientModeService.bc",
+    "object" : "/Users/sethford/Documents/voiceai/apps/ios-native/build/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/AmbientModeService.o",
+    "swift-dependencies" : "/Users/sethford/Documents/voiceai/apps/ios-native/build/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/AmbientModeService.swiftdeps",
+    "swiftmodule" : "/Users/sethford/Documents/voiceai/apps/ios-native/build/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/AmbientModeService~partial.swiftmodule"
+  },
+  "/Users/sethford/Documents/voiceai/apps/ios-native/Sources/Services/AuthService.swift" : {
+    "const-values" : "/Users/sethford/Documents/voiceai/apps/ios-native/build/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/AuthService.swiftconstvalues",
+    "dependencies" : "/Users/sethford/Documents/voiceai/apps/ios-native/build/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/AuthService.d",
+    "diagnostics" : "/Users/sethford/Documents/voiceai/apps/ios-native/build/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/AuthService.dia",
+    "index-unit-output-path" : "/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/AuthService.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/apps/ios-native/build/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/AuthService.bc",
+    "object" : "/Users/sethford/Documents/voiceai/apps/ios-native/build/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/AuthService.o",
+    "swift-dependencies" : "/Users/sethford/Documents/voiceai/apps/ios-native/build/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/AuthService.swiftdeps",
+    "swiftmodule" : "/Users/sethford/Documents/voiceai/apps/ios-native/build/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/AuthService~partial.swiftmodule"
+  },
+  "/Users/sethford/Documents/voiceai/apps/ios-native/Sources/Services/CalendarService.swift" : {
+    "const-values" : "/Users/sethford/Documents/voiceai/apps/ios-native/build/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/CalendarService.swiftconstvalues",
+    "dependencies" : "/Users/sethford/Documents/voiceai/apps/ios-native/build/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/CalendarService.d",
+    "diagnostics" : "/Users/sethford/Documents/voiceai/apps/ios-native/build/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/CalendarService.dia",
+    "index-unit-output-path" : "/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/CalendarService.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/apps/ios-native/build/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/CalendarService.bc",
+    "object" : "/Users/sethford/Documents/voiceai/apps/ios-native/build/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/CalendarService.o",
+    "swift-dependencies" : "/Users/sethford/Documents/voiceai/apps/ios-native/build/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/CalendarService.swiftdeps",
+    "swiftmodule" : "/Users/sethford/Documents/voiceai/apps/ios-native/build/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/CalendarService~partial.swiftmodule"
+  },
+  "/Users/sethford/Documents/voiceai/apps/ios-native/Sources/Services/ContactsService.swift" : {
+    "const-values" : "/Users/sethford/Documents/voiceai/apps/ios-native/build/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/ContactsService.swiftconstvalues",
+    "dependencies" : "/Users/sethford/Documents/voiceai/apps/ios-native/build/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/ContactsService.d",
+    "diagnostics" : "/Users/sethford/Documents/voiceai/apps/ios-native/build/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/ContactsService.dia",
+    "index-unit-output-path" : "/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/ContactsService.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/apps/ios-native/build/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/ContactsService.bc",
+    "object" : "/Users/sethford/Documents/voiceai/apps/ios-native/build/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/ContactsService.o",
+    "swift-dependencies" : "/Users/sethford/Documents/voiceai/apps/ios-native/build/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/ContactsService.swiftdeps",
+    "swiftmodule" : "/Users/sethford/Documents/voiceai/apps/ios-native/build/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/ContactsService~partial.swiftmodule"
+  },
+  "/Users/sethford/Documents/voiceai/apps/ios-native/Sources/Services/HealthKitService.swift" : {
+    "const-values" : "/Users/sethford/Documents/voiceai/apps/ios-native/build/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/HealthKitService.swiftconstvalues",
+    "dependencies" : "/Users/sethford/Documents/voiceai/apps/ios-native/build/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/HealthKitService.d",
+    "diagnostics" : "/Users/sethford/Documents/voiceai/apps/ios-native/build/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/HealthKitService.dia",
+    "index-unit-output-path" : "/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/HealthKitService.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/apps/ios-native/build/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/HealthKitService.bc",
+    "object" : "/Users/sethford/Documents/voiceai/apps/ios-native/build/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/HealthKitService.o",
+    "swift-dependencies" : "/Users/sethford/Documents/voiceai/apps/ios-native/build/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/HealthKitService.swiftdeps",
+    "swiftmodule" : "/Users/sethford/Documents/voiceai/apps/ios-native/build/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/HealthKitService~partial.swiftmodule"
+  },
+  "/Users/sethford/Documents/voiceai/apps/ios-native/Sources/Services/HomeKitService.swift" : {
+    "const-values" : "/Users/sethford/Documents/voiceai/apps/ios-native/build/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/HomeKitService.swiftconstvalues",
+    "dependencies" : "/Users/sethford/Documents/voiceai/apps/ios-native/build/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/HomeKitService.d",
+    "diagnostics" : "/Users/sethford/Documents/voiceai/apps/ios-native/build/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/HomeKitService.dia",
+    "index-unit-output-path" : "/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/HomeKitService.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/apps/ios-native/build/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/HomeKitService.bc",
+    "object" : "/Users/sethford/Documents/voiceai/apps/ios-native/build/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/HomeKitService.o",
+    "swift-dependencies" : "/Users/sethford/Documents/voiceai/apps/ios-native/build/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/HomeKitService.swiftdeps",
+    "swiftmodule" : "/Users/sethford/Documents/voiceai/apps/ios-native/build/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/HomeKitService~partial.swiftmodule"
+  },
+  "/Users/sethford/Documents/voiceai/apps/ios-native/Sources/Services/IOSLiveKitSession.swift" : {
+    "const-values" : "/Users/sethford/Documents/voiceai/apps/ios-native/build/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/IOSLiveKitSession.swiftconstvalues",
+    "dependencies" : "/Users/sethford/Documents/voiceai/apps/ios-native/build/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/IOSLiveKitSession.d",
+    "diagnostics" : "/Users/sethford/Documents/voiceai/apps/ios-native/build/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/IOSLiveKitSession.dia",
+    "index-unit-output-path" : "/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/IOSLiveKitSession.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/apps/ios-native/build/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/IOSLiveKitSession.bc",
+    "object" : "/Users/sethford/Documents/voiceai/apps/ios-native/build/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/IOSLiveKitSession.o",
+    "swift-dependencies" : "/Users/sethford/Documents/voiceai/apps/ios-native/build/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/IOSLiveKitSession.swiftdeps",
+    "swiftmodule" : "/Users/sethford/Documents/voiceai/apps/ios-native/build/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/IOSLiveKitSession~partial.swiftmodule"
+  },
+  "/Users/sethford/Documents/voiceai/apps/ios-native/Sources/Services/KeychainManager.swift" : {
+    "const-values" : "/Users/sethford/Documents/voiceai/apps/ios-native/build/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/KeychainManager.swiftconstvalues",
+    "dependencies" : "/Users/sethford/Documents/voiceai/apps/ios-native/build/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/KeychainManager.d",
+    "diagnostics" : "/Users/sethford/Documents/voiceai/apps/ios-native/build/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/KeychainManager.dia",
+    "index-unit-output-path" : "/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/KeychainManager.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/apps/ios-native/build/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/KeychainManager.bc",
+    "object" : "/Users/sethford/Documents/voiceai/apps/ios-native/build/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/KeychainManager.o",
+    "swift-dependencies" : "/Users/sethford/Documents/voiceai/apps/ios-native/build/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/KeychainManager.swiftdeps",
+    "swiftmodule" : "/Users/sethford/Documents/voiceai/apps/ios-native/build/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/KeychainManager~partial.swiftmodule"
+  },
+  "/Users/sethford/Documents/voiceai/apps/ios-native/Sources/Services/LocationService.swift" : {
+    "const-values" : "/Users/sethford/Documents/voiceai/apps/ios-native/build/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/LocationService.swiftconstvalues",
+    "dependencies" : "/Users/sethford/Documents/voiceai/apps/ios-native/build/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/LocationService.d",
+    "diagnostics" : "/Users/sethford/Documents/voiceai/apps/ios-native/build/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/LocationService.dia",
+    "index-unit-output-path" : "/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/LocationService.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/apps/ios-native/build/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/LocationService.bc",
+    "object" : "/Users/sethford/Documents/voiceai/apps/ios-native/build/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/LocationService.o",
+    "swift-dependencies" : "/Users/sethford/Documents/voiceai/apps/ios-native/build/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/LocationService.swiftdeps",
+    "swiftmodule" : "/Users/sethford/Documents/voiceai/apps/ios-native/build/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/LocationService~partial.swiftmodule"
+  },
+  "/Users/sethford/Documents/voiceai/apps/ios-native/Sources/Services/MusicKitService.swift" : {
+    "const-values" : "/Users/sethford/Documents/voiceai/apps/ios-native/build/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/MusicKitService.swiftconstvalues",
+    "dependencies" : "/Users/sethford/Documents/voiceai/apps/ios-native/build/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/MusicKitService.d",
+    "diagnostics" : "/Users/sethford/Documents/voiceai/apps/ios-native/build/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/MusicKitService.dia",
+    "index-unit-output-path" : "/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/MusicKitService.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/apps/ios-native/build/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/MusicKitService.bc",
+    "object" : "/Users/sethford/Documents/voiceai/apps/ios-native/build/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/MusicKitService.o",
+    "swift-dependencies" : "/Users/sethford/Documents/voiceai/apps/ios-native/build/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/MusicKitService.swiftdeps",
+    "swiftmodule" : "/Users/sethford/Documents/voiceai/apps/ios-native/build/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/MusicKitService~partial.swiftmodule"
+  },
+  "/Users/sethford/Documents/voiceai/apps/ios-native/Sources/Services/ProactiveNotificationsService.swift" : {
+    "const-values" : "/Users/sethford/Documents/voiceai/apps/ios-native/build/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/ProactiveNotificationsService.swiftconstvalues",
+    "dependencies" : "/Users/sethford/Documents/voiceai/apps/ios-native/build/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/ProactiveNotificationsService.d",
+    "diagnostics" : "/Users/sethford/Documents/voiceai/apps/ios-native/build/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/ProactiveNotificationsService.dia",
+    "index-unit-output-path" : "/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/ProactiveNotificationsService.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/apps/ios-native/build/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/ProactiveNotificationsService.bc",
+    "object" : "/Users/sethford/Documents/voiceai/apps/ios-native/build/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/ProactiveNotificationsService.o",
+    "swift-dependencies" : "/Users/sethford/Documents/voiceai/apps/ios-native/build/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/ProactiveNotificationsService.swiftdeps",
+    "swiftmodule" : "/Users/sethford/Documents/voiceai/apps/ios-native/build/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/ProactiveNotificationsService~partial.swiftmodule"
+  },
+  "/Users/sethford/Documents/voiceai/apps/ios-native/Sources/Services/SiriShortcutsService.swift" : {
+    "const-values" : "/Users/sethford/Documents/voiceai/apps/ios-native/build/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/SiriShortcutsService.swiftconstvalues",
+    "dependencies" : "/Users/sethford/Documents/voiceai/apps/ios-native/build/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/SiriShortcutsService.d",
+    "diagnostics" : "/Users/sethford/Documents/voiceai/apps/ios-native/build/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/SiriShortcutsService.dia",
+    "index-unit-output-path" : "/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/SiriShortcutsService.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/apps/ios-native/build/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/SiriShortcutsService.bc",
+    "object" : "/Users/sethford/Documents/voiceai/apps/ios-native/build/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/SiriShortcutsService.o",
+    "swift-dependencies" : "/Users/sethford/Documents/voiceai/apps/ios-native/build/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/SiriShortcutsService.swiftdeps",
+    "swiftmodule" : "/Users/sethford/Documents/voiceai/apps/ios-native/build/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/SiriShortcutsService~partial.swiftmodule"
+  },
+  "/Users/sethford/Documents/voiceai/apps/ios-native/Sources/Views/AccountSection.swift" : {
+    "const-values" : "/Users/sethford/Documents/voiceai/apps/ios-native/build/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/AccountSection.swiftconstvalues",
+    "dependencies" : "/Users/sethford/Documents/voiceai/apps/ios-native/build/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/AccountSection.d",
+    "diagnostics" : "/Users/sethford/Documents/voiceai/apps/ios-native/build/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/AccountSection.dia",
+    "index-unit-output-path" : "/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/AccountSection.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/apps/ios-native/build/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/AccountSection.bc",
+    "object" : "/Users/sethford/Documents/voiceai/apps/ios-native/build/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/AccountSection.o",
+    "swift-dependencies" : "/Users/sethford/Documents/voiceai/apps/ios-native/build/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/AccountSection.swiftdeps",
+    "swiftmodule" : "/Users/sethford/Documents/voiceai/apps/ios-native/build/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/AccountSection~partial.swiftmodule"
+  },
+  "/Users/sethford/Documents/voiceai/apps/ios-native/Sources/Views/ConnectingView.swift" : {
+    "const-values" : "/Users/sethford/Documents/voiceai/apps/ios-native/build/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/ConnectingView.swiftconstvalues",
+    "dependencies" : "/Users/sethford/Documents/voiceai/apps/ios-native/build/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/ConnectingView.d",
+    "diagnostics" : "/Users/sethford/Documents/voiceai/apps/ios-native/build/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/ConnectingView.dia",
+    "index-unit-output-path" : "/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/ConnectingView.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/apps/ios-native/build/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/ConnectingView.bc",
+    "object" : "/Users/sethford/Documents/voiceai/apps/ios-native/build/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/ConnectingView.o",
+    "swift-dependencies" : "/Users/sethford/Documents/voiceai/apps/ios-native/build/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/ConnectingView.swiftdeps",
+    "swiftmodule" : "/Users/sethford/Documents/voiceai/apps/ios-native/build/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/ConnectingView~partial.swiftmodule"
+  },
+  "/Users/sethford/Documents/voiceai/apps/ios-native/Sources/Views/OnboardingView.swift" : {
+    "const-values" : "/Users/sethford/Documents/voiceai/apps/ios-native/build/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/OnboardingView.swiftconstvalues",
+    "dependencies" : "/Users/sethford/Documents/voiceai/apps/ios-native/build/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/OnboardingView.d",
+    "diagnostics" : "/Users/sethford/Documents/voiceai/apps/ios-native/build/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/OnboardingView.dia",
+    "index-unit-output-path" : "/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/OnboardingView.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/apps/ios-native/build/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/OnboardingView.bc",
+    "object" : "/Users/sethford/Documents/voiceai/apps/ios-native/build/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/OnboardingView.o",
+    "swift-dependencies" : "/Users/sethford/Documents/voiceai/apps/ios-native/build/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/OnboardingView.swiftdeps",
+    "swiftmodule" : "/Users/sethford/Documents/voiceai/apps/ios-native/build/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/OnboardingView~partial.swiftmodule"
+  },
+  "/Users/sethford/Documents/voiceai/apps/ios-native/Sources/Views/PersonaPickerSheet.swift" : {
+    "const-values" : "/Users/sethford/Documents/voiceai/apps/ios-native/build/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/PersonaPickerSheet.swiftconstvalues",
+    "dependencies" : "/Users/sethford/Documents/voiceai/apps/ios-native/build/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/PersonaPickerSheet.d",
+    "diagnostics" : "/Users/sethford/Documents/voiceai/apps/ios-native/build/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/PersonaPickerSheet.dia",
+    "index-unit-output-path" : "/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/PersonaPickerSheet.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/apps/ios-native/build/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/PersonaPickerSheet.bc",
+    "object" : "/Users/sethford/Documents/voiceai/apps/ios-native/build/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/PersonaPickerSheet.o",
+    "swift-dependencies" : "/Users/sethford/Documents/voiceai/apps/ios-native/build/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/PersonaPickerSheet.swiftdeps",
+    "swiftmodule" : "/Users/sethford/Documents/voiceai/apps/ios-native/build/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/PersonaPickerSheet~partial.swiftmodule"
+  },
+  "/Users/sethford/Documents/voiceai/apps/ios-native/Sources/Views/SettingsView.swift" : {
+    "const-values" : "/Users/sethford/Documents/voiceai/apps/ios-native/build/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/SettingsView.swiftconstvalues",
+    "dependencies" : "/Users/sethford/Documents/voiceai/apps/ios-native/build/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/SettingsView.d",
+    "diagnostics" : "/Users/sethford/Documents/voiceai/apps/ios-native/build/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/SettingsView.dia",
+    "index-unit-output-path" : "/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/SettingsView.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/apps/ios-native/build/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/SettingsView.bc",
+    "object" : "/Users/sethford/Documents/voiceai/apps/ios-native/build/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/SettingsView.o",
+    "swift-dependencies" : "/Users/sethford/Documents/voiceai/apps/ios-native/build/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/SettingsView.swiftdeps",
+    "swiftmodule" : "/Users/sethford/Documents/voiceai/apps/ios-native/build/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/SettingsView~partial.swiftmodule"
+  },
+  "/Users/sethford/Documents/voiceai/apps/ios-native/Sources/Views/SplashView.swift" : {
+    "const-values" : "/Users/sethford/Documents/voiceai/apps/ios-native/build/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/SplashView.swiftconstvalues",
+    "dependencies" : "/Users/sethford/Documents/voiceai/apps/ios-native/build/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/SplashView.d",
+    "diagnostics" : "/Users/sethford/Documents/voiceai/apps/ios-native/build/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/SplashView.dia",
+    "index-unit-output-path" : "/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/SplashView.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/apps/ios-native/build/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/SplashView.bc",
+    "object" : "/Users/sethford/Documents/voiceai/apps/ios-native/build/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/SplashView.o",
+    "swift-dependencies" : "/Users/sethford/Documents/voiceai/apps/ios-native/build/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/SplashView.swiftdeps",
+    "swiftmodule" : "/Users/sethford/Documents/voiceai/apps/ios-native/build/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/SplashView~partial.swiftmodule"
+  },
+  "/Users/sethford/Documents/voiceai/apps/ios-native/Sources/Views/TranscriptView.swift" : {
+    "const-values" : "/Users/sethford/Documents/voiceai/apps/ios-native/build/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/TranscriptView.swiftconstvalues",
+    "dependencies" : "/Users/sethford/Documents/voiceai/apps/ios-native/build/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/TranscriptView.d",
+    "diagnostics" : "/Users/sethford/Documents/voiceai/apps/ios-native/build/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/TranscriptView.dia",
+    "index-unit-output-path" : "/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/TranscriptView.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/apps/ios-native/build/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/TranscriptView.bc",
+    "object" : "/Users/sethford/Documents/voiceai/apps/ios-native/build/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/TranscriptView.o",
+    "swift-dependencies" : "/Users/sethford/Documents/voiceai/apps/ios-native/build/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/TranscriptView.swiftdeps",
+    "swiftmodule" : "/Users/sethford/Documents/voiceai/apps/ios-native/build/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/TranscriptView~partial.swiftmodule"
+  },
+  "/Users/sethford/Documents/voiceai/apps/ios-native/Sources/Views/VoiceView.swift" : {
+    "const-values" : "/Users/sethford/Documents/voiceai/apps/ios-native/build/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/VoiceView.swiftconstvalues",
+    "dependencies" : "/Users/sethford/Documents/voiceai/apps/ios-native/build/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/VoiceView.d",
+    "diagnostics" : "/Users/sethford/Documents/voiceai/apps/ios-native/build/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/VoiceView.dia",
+    "index-unit-output-path" : "/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/VoiceView.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/apps/ios-native/build/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/VoiceView.bc",
+    "object" : "/Users/sethford/Documents/voiceai/apps/ios-native/build/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/VoiceView.o",
+    "swift-dependencies" : "/Users/sethford/Documents/voiceai/apps/ios-native/build/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/VoiceView.swiftdeps",
+    "swiftmodule" : "/Users/sethford/Documents/voiceai/apps/ios-native/build/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/VoiceView~partial.swiftmodule"
+  },
+  "/Users/sethford/Documents/voiceai/apps/ios-native/build/FerniVoice.build/Debug-iphoneos/FerniVoice.build/DerivedSources/GeneratedAssetSymbols.swift" : {
+    "const-values" : "/Users/sethford/Documents/voiceai/apps/ios-native/build/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/GeneratedAssetSymbols.swiftconstvalues",
+    "dependencies" : "/Users/sethford/Documents/voiceai/apps/ios-native/build/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/GeneratedAssetSymbols.d",
+    "diagnostics" : "/Users/sethford/Documents/voiceai/apps/ios-native/build/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/GeneratedAssetSymbols.dia",
+    "index-unit-output-path" : "/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/GeneratedAssetSymbols.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/apps/ios-native/build/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/GeneratedAssetSymbols.bc",
+    "object" : "/Users/sethford/Documents/voiceai/apps/ios-native/build/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/GeneratedAssetSymbols.o",
+    "swift-dependencies" : "/Users/sethford/Documents/voiceai/apps/ios-native/build/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/GeneratedAssetSymbols.swiftdeps",
+    "swiftmodule" : "/Users/sethford/Documents/voiceai/apps/ios-native/build/FerniVoice.build/Debug-iphoneos/FerniVoice.build/Objects-normal/arm64/GeneratedAssetSymbols~partial.swiftmodule"
+  }
+}

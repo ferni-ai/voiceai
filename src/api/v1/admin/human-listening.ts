@@ -16,6 +16,8 @@
 import type { IncomingMessage, ServerResponse } from 'http';
 import type { URL } from 'url';
 import { createLogger } from '../../../utils/safe-logger.js';
+import { registerInterval } from '../../../utils/interval-manager.js';
+import { cleanForFirestore } from '../../../utils/firestore-utils.js';
 
 const log = createLogger({ module: 'HumanListeningAPI' });
 
@@ -111,8 +113,8 @@ export function cleanupStaleSessions(): void {
   }
 }
 
-// Run cleanup every minute
-setInterval(cleanupStaleSessions, 60 * 1000);
+// Run cleanup every minute (managed interval for proper shutdown)
+registerInterval('human-listening-cleanup', cleanupStaleSessions, 60 * 1000);
 
 /**
  * Handle human listening admin routes

@@ -10,7 +10,7 @@
  * PERSISTENCE: Uses Firestore for cross-session awareness with in-memory caching.
  */
 
-import { removeUndefined } from '../utils/firestore-utils.js';
+import { removeUndefined, cleanForFirestore } from '../utils/firestore-utils.js';
 import { getLogger } from '../utils/safe-logger.js';
 import type { AgentId } from './agent-bus.js';
 import type { Firestore as FirestoreType } from '@google-cloud/firestore';
@@ -51,6 +51,8 @@ export interface TeamNote {
 // ============================================================================
 
 let db: FirestoreType | null = null;
+// FIX: Promise-based singleton to prevent race condition
+let dbInitPromise: Promise<FirestoreType | null> | null = null;
 const TEAM_AWARENESS_COLLECTION = 'team_awareness';
 const TEAM_NOTES_COLLECTION = 'team_notes';
 
@@ -59,7 +61,13 @@ const TEAM_NOTES_COLLECTION = 'team_notes';
  */
 async function getFirestore(): Promise<FirestoreType | null> {
   if (db) return db;
+  if (dbInitPromise) return dbInitPromise;
 
+  dbInitPromise = initializeFirestore();
+  return dbInitPromise;
+}
+
+async function initializeFirestore(): Promise<FirestoreType | null> {
   try {
     const { Firestore } = await import('@google-cloud/firestore');
     db = new Firestore({
@@ -73,6 +81,7 @@ async function getFirestore(): Promise<FirestoreType | null> {
       { error },
       'Firestore not available for cross-agent awareness, using in-memory only'
     );
+    dbInitPromise = null; // Allow retry
     return null;
   }
 }
@@ -129,11 +138,11 @@ export async function recordConversationForTeam(
       const trimmed = teamHistory.slice(-20);
 
       await docRef.set(
-        {
+        cleanForFirestore({
           userId,
           conversations: trimmed,
           lastUpdated: new Date(),
-        },
+        }),
         { merge: true }
       );
 
@@ -278,11 +287,11 @@ export async function addTeamNote(
       const trimmed = notes.slice(-50);
 
       await docRef.set(
-        {
+        cleanForFirestore({
           userId,
           notes: trimmed,
           lastUpdated: new Date(),
-        },
+        }),
         { merge: true }
       );
 

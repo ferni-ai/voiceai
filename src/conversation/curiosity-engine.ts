@@ -16,6 +16,7 @@
  * @module @ferni/curiosity-engine
  */
 
+import { seededChance, seededPick, seededIndex } from './utils/rng.js';
 import { createLogger } from '../utils/safe-logger.js';
 
 const logger = createLogger({ module: 'CuriosityEngine' });
@@ -329,7 +330,7 @@ export class CuriosityEngine {
    * Get a deepening question for current topic
    */
   getDeepeningQuestion(): string {
-    return DEEPENING_QUESTIONS[Math.floor(Math.random() * DEEPENING_QUESTIONS.length)];
+    return seededPick(`${Date.now()}:333`, DEEPENING_QUESTIONS) ?? DEEPENING_QUESTIONS[0];
   }
 
   /**
@@ -565,7 +566,7 @@ export class CuriosityEngine {
 
       // Generate prompt
       const templates = FOLLOW_UP_TEMPLATES[thread.category] || FOLLOW_UP_TEMPLATES.situation;
-      const template = templates[Math.floor(Math.random() * templates.length)];
+      const template = seededPick(`${Date.now()}:569`, templates) ?? templates[0];
       const question = template.replace('{detail}', thread.content);
 
       // Calculate confidence
@@ -586,10 +587,10 @@ export class CuriosityEngine {
 
     // Check for detail confirmation opportunity
     const namedDetails = this.lifeDetails.filter((d) => d.name);
-    if (namedDetails.length > 0 && Math.random() < 0.3) {
-      const detail = namedDetails[Math.floor(Math.random() * namedDetails.length)];
+    if (namedDetails.length > 0 && seededChance(`${Date.now()}:590`, 0.3)) {
+      const detail = seededPick(`${Date.now()}:591`, namedDetails) ?? namedDetails[0];
       const templates = DETAIL_CHECK_TEMPLATES;
-      const template = templates[Math.floor(Math.random() * templates.length)];
+      const template = seededPick(`${Date.now()}:593`, templates) ?? templates[0];
       const question = template
         .replace('{name}', detail.name!)
         .replace('{category}', detail.category);

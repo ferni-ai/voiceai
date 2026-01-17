@@ -59,7 +59,7 @@ const VARIANT_STYLES: Record<SkeletonVariant, Partial<CSSStyleDeclaration>> = {
     borderRadius: '50%',
   },
   button: {
-    width: '120px',
+    width: 'min(120px, 100%)',
     height: '40px',
     borderRadius: '9999px',
   },
@@ -260,7 +260,7 @@ export class SkeletonUI {
     
     const headerText = document.createElement('div');
     headerText.style.cssText = 'flex: 1; display: flex; flex-direction: column; gap: 6px;';
-    headerText.appendChild(this.create({ variant: 'text', width: '120px', height: '12px' }));
+    headerText.appendChild(this.create({ variant: 'text', width: 'min(120px, 100%)', height: '12px' }));
     headerText.appendChild(this.create({ variant: 'text', width: '80px', height: '10px' }));
     header.appendChild(headerText);
     
@@ -289,8 +289,8 @@ export class SkeletonUI {
     
     const content = document.createElement('div');
     content.style.cssText = 'flex: 1; display: flex; flex-direction: column; gap: 6px;';
-    content.appendChild(this.create({ variant: 'text', width: '150px', height: '14px' }));
-    content.appendChild(this.create({ variant: 'text', width: '100px', height: '12px' }));
+    content.appendChild(this.create({ variant: 'text', width: 'min(150px, 100%)', height: '14px' }));
+    content.appendChild(this.create({ variant: 'text', width: 'min(100px, 100%)', height: '12px' }));
     item.appendChild(content);
     
     return item;
@@ -358,9 +358,9 @@ export class SkeletonUI {
       padding: 12px;
       max-width: 60%;
     `;
-    userBubble.appendChild(this.create({ 
-      variant: 'text', 
-      width: '120px', 
+    userBubble.appendChild(this.create({
+      variant: 'text',
+      width: 'min(120px, 100%)',
       height: '12px',
     }));
     // Override with lighter color for visibility on dark bg

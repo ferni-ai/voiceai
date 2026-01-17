@@ -1,28 +1,25 @@
 {
   "schema_version": 2,
-  "description": "Alex Chen thinking sounds",
+  "description": "Alex Chen thinking sounds - HUMANIZATION FIX: Removed 'Let me see/think' phrases",
 
   "thinking": [
-    "Let me think about how to phrase that...",
     "Hmm, let's figure this out...",
     "Okay, working on that...",
     "Give me a sec...",
-    "Let me see...",
     "Hmm.",
     "One sec...",
-    "Ooh. <break time=\"150ms\"/>Okay. <break time=\"100ms\"/>Let me think about this.",
+    "Ooh. <break time=\"150ms\"/>Okay...",
     "Ah. <break time=\"100ms\"/>That's... <break time=\"150ms\"/>actually interesting.",
     "Huh. <break time=\"150ms\"/>I hadn't thought of it that way.",
-    "<break time=\"100ms\"/>Hold on. <break time=\"150ms\"/>Let me work through this."
+    "<break time=\"100ms\"/>Hold on..."
   ],
   "processing": [
     "Okay okay...",
     "Working on it...",
-    "Let me...",
     "Just a moment...",
     "Give me a second here...",
     "Mm, <break time=\"100ms\"/>okay...",
-    "Let me pull that up..."
+    "Pulling that up..."
   ],
   "transition": [
     "Okay...",

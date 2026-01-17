@@ -4,21 +4,22 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-// Mock logger
-vi.mock('../../../utils/safe-logger.js', () => ({
-  getLogger: () => ({
+// Mock logger - must include both getLogger and createLogger
+vi.mock('../../../utils/safe-logger.js', () => {
+  const mockLogger = {
     debug: vi.fn(),
     info: vi.fn(),
     warn: vi.fn(),
     error: vi.fn(),
-    child: vi.fn(() => ({
-      debug: vi.fn(),
-      info: vi.fn(),
-      warn: vi.fn(),
-      error: vi.fn(),
-    })),
-  }),
-}));
+    child: vi.fn(),
+  };
+  mockLogger.child.mockReturnValue(mockLogger);
+  return {
+    getLogger: () => mockLogger,
+    createLogger: () => mockLogger,
+    serializeError: (e: unknown) => String(e),
+  };
+});
 
 // Mock fetch
 const mockFetch = vi.fn();
@@ -301,6 +302,8 @@ describe('Sandbox Executor', () => {
         { userId: 'user123', sessionId: 'session456', agentId: 'maya', tenantId: 'tenant789' }
       );
 
+      // SECURITY: Implementation sends anonymized tokens, not raw IDs
+      // Session ID and Tenant ID are intentionally NOT sent to external tools
       expect(mockFetch).toHaveBeenCalledWith(
         'https://api.test.com/execute',
         expect.objectContaining({
@@ -308,9 +311,8 @@ describe('Sandbox Executor', () => {
             'Content-Type': 'application/json',
             'X-Ferni-Tool-Id': 'test-tool',
             'X-Ferni-Tool-Version': '1.0.0',
-            'X-Ferni-User-Id': 'user123',
-            'X-Ferni-Session-Id': 'session456',
-            'X-Ferni-Tenant-Id': 'tenant789',
+            'X-Ferni-User-Token': expect.stringMatching(/^anon_/),
+            'X-Ferni-Request-Id': expect.stringMatching(/^req_/),
           }),
         })
       );

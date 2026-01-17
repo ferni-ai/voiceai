@@ -12,6 +12,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
+import { registerInterval, clearNamedInterval } from '../../utils/interval-manager.js';
 
 const log = createLogger({ module: 'livekit-keepalive' });
 
@@ -26,7 +27,9 @@ const KEEPALIVE_INTERVAL_MS = 30_000; // 30 seconds
 const CONNECTION_TIMEOUT_MS = 60_000; // 60 seconds
 
 // Max time a worker can be idle before we force restart
-const MAX_IDLE_TIME_MS = 5 * 60 * 1000; // 5 minutes
+// NOTE: Reduced from 5 minutes to 90 seconds per VOICE-AGENT-AUDIT.md issue #4
+// Dead connections were serving 5 minutes of failed calls before recovery
+const MAX_IDLE_TIME_MS = 90 * 1000; // 90 seconds
 
 // ============================================================================
 // STATE
@@ -144,17 +147,19 @@ export function startKeepalive(worker?: { running: boolean }): void {
   lastPingTime = Date.now();
   connectionAlive = true;
 
-  keepaliveInterval = setInterval(() => {
-    // If worker explicitly stopped, don't check
-    if (workerRef && !workerRef.running) {
-      return;
-    }
+  registerInterval(
+    'livekit-keepalive',
+    () => {
+      // If worker explicitly stopped, don't check
+      if (workerRef && !workerRef.running) {
+        return;
+      }
 
-    checkConnectionHealth();
-  }, KEEPALIVE_INTERVAL_MS);
-
-  // Don't prevent process exit
-  keepaliveInterval.unref();
+      checkConnectionHealth();
+    },
+    KEEPALIVE_INTERVAL_MS
+  );
+  keepaliveInterval = 1 as unknown as ReturnType<typeof setInterval>; // Marker
 
   log.info(
     {
@@ -170,7 +175,7 @@ export function startKeepalive(worker?: { running: boolean }): void {
  */
 export function stopKeepalive(): void {
   if (keepaliveInterval) {
-    clearInterval(keepaliveInterval);
+    clearNamedInterval('livekit-keepalive');
     keepaliveInterval = null;
     log.debug('Keep-alive monitor stopped');
   }

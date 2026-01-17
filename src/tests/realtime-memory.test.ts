@@ -9,7 +9,7 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { buildQuickSummary, type ConversationTurn } from '../services/realtime-memory.js';
+import { buildQuickSummary, type ConversationTurn } from '../services/memory/realtime-memory.js';
 
 // Mock dependencies
 vi.mock('../utils/safe-logger.js', () => ({
@@ -217,7 +217,7 @@ describe('ConversationTurn type', () => {
 describe('Conversation ID generation', () => {
   it('should generate unique IDs', async () => {
     // Import the function to check ID format
-    const { startConversation } = await import('../services/realtime-memory.js');
+    const { startConversation } = await import('../services/memory/realtime-memory.js');
 
     // Generate two IDs
     const id1 = await startConversation('user-1', 'persona-1');

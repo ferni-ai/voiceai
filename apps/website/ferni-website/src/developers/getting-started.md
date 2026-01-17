@@ -1,188 +1,222 @@
 ---
 layout: layouts/docs.njk
 title: Getting Started
-description: Build your first AI voice agent in under 5 minutes
+description: Get your API keys and make your first call in under 5 minutes
 order: 1
 ---
 
-## Prerequisites
+## Welcome to Ferni Developer Platform
 
-Before you begin, make sure you have:
+The Ferni Developer Platform lets you extend voice agents with custom integrations, workflows, and tools. No local setup required—everything runs in the cloud.
 
-- **Node.js 18+** — [Download here](https://nodejs.org)
-- **npm or pnpm** — Comes with Node.js
-- **Git** — For cloning the repository
-- **OpenAI API Key** — [Get one here](https://platform.openai.com)
-- **Cartesia API Key** (optional) — For voice synthesis
+**What you can build:**
+- Connect external services via **MCP Servers**
+- Create **Custom Tools** for voice agents to use
+- Receive real-time events via **Webhooks**
+- Define multi-step **Workflows** triggered by voice
+- Track custom **Activities** and metrics
 
-## Installation
+## Step 1: Get Your API Credentials
 
-### 1. Clone the repository
+### Create a Developer Account
 
-```bash
-git clone https://github.com/ferni-ai/ferni-agents.git
-cd ferni-agents
+1. Visit [console.ferni.ai](https://console.ferni.ai)
+2. Sign up with your email or Google account
+3. Accept the Developer Terms of Service
+
+### Generate API Keys
+
+Navigate to **Settings → API Keys** and click **Create API Key**.
+
+```
+pk_live_xxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 ```
 
-### 2. Install dependencies
+**Important:** Copy your key immediately—it won't be shown again.
+
+| Key Type | Prefix | Usage |
+|----------|--------|-------|
+| Live | `pk_live_` | Production traffic |
+| Test | `pk_test_` | Development & testing |
+
+## Step 2: Make Your First API Call
+
+Let's verify your credentials by listing your MCP servers (initially empty):
 
 ```bash
-npm install
-# or
-pnpm install
+curl https://api.ferni.ai/api/v2/developers/mcp-servers \
+  -H "Authorization: Bearer pk_live_xxxxx"
 ```
 
-### 3. Configure environment
-
-Copy the example environment file and add your API keys:
-
-```bash
-cp .env.example .env
-```
-
-Then edit `.env`:
-
-```bash
-# Required
-OPENAI_API_KEY=sk-your-key-here
-
-# Optional: For voice synthesis
-CARTESIA_API_KEY=your-cartesia-key
-
-# Optional: For real-time voice
-LIVEKIT_API_KEY=your-livekit-key
-LIVEKIT_API_SECRET=your-livekit-secret
-```
-
-### 4. Start the development server
-
-```bash
-npm run dev
-```
-
-Open [http://localhost:3000](http://localhost:3000) — you should see the Ferni interface with the default agent.
-
-## Create Your First Agent
-
-Now let's create a custom agent using the CLI:
-
-### 1. Generate agent scaffold
-
-```bash
-# Create a sage-style advisor
-npm run agents create my-advisor --template sage
-```
-
-This creates a new agent bundle at `src/personas/bundles/my-advisor/`
-
-### 2. Customize the manifest
-
-Open `src/personas/bundles/my-advisor/persona.manifest.json`:
-
+**Response:**
 ```json
 {
-  "identity": {
-    "id": "my-advisor",
-    "name": "Sam",
-    "description": "A thoughtful career advisor",
-    "subtitle": "Career & Growth"
-  },
-  "voice": {
-    "provider": "cartesia",
-    "voiceId": "your-voice-id"
-  },
-  "personality": {
-    "warmth": 0.8,
-    "energy": 0.5,
-    "directness": 0.6
-  },
-  "team": {
-    "handoff_triggers": ["career", "job", "resume", "interview"]
-  }
+  "success": true,
+  "data": []
 }
 ```
 
-### 3. Add personality content
+If you see this response, you're ready to build!
 
-Edit `identity/system-prompt.md` with your agent's instructions:
+## Step 3: Choose Your Path
 
-```markdown
-# Sam - Career Advisor
+### Path A: Connect External Tools (MCP Servers)
 
-You are Sam, a thoughtful career advisor with 20 years of experience 
-helping people find fulfilling work.
-
-## Your Approach
-- Listen deeply before offering advice
-- Ask clarifying questions
-- Share relevant personal anecdotes
-- Focus on the person's strengths and values
-
-## Topics You Cover
-- Career transitions
-- Resume and interview preparation
-- Salary negotiation
-- Work-life balance
-```
-
-### 4. Run with your new agent
+Register an [MCP Server](/developers/api/mcp-servers/) to give voice agents access to your tools:
 
 ```bash
-# Validate the bundle first
-npm run agents validate my-advisor
-
-# Start with your agent
-PERSONA_ID=my-advisor npm run dev
+curl -X POST https://api.ferni.ai/api/v2/developers/mcp-servers \
+  -H "Authorization: Bearer pk_live_xxxxx" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "my-crm",
+    "description": "CRM integration for customer lookups",
+    "transport": "http",
+    "endpoint": "https://mcp.yourcompany.com",
+    "autoConnect": true
+  }'
 ```
 
-## Agent Templates
+Now users can say "Look up customer Acme Corp" and your tools execute automatically.
 
-The CLI provides several templates to get you started:
+→ [Full MCP Integration Guide](/dev-blog/mcp-server-integration/)
 
-| Template | Best For | Characteristics |
-|----------|----------|-----------------|
-| `basic` | General-purpose agents | Balanced personality, flexible |
-| `sage` | Wise advisors, mentors | Slow speech, high warmth, thoughtful |
-| `specialist` | Domain experts | Efficient, precise, direct |
-| `coordinator` | Team lead agents | Can handoff to any team member |
+### Path B: Receive Events (Webhooks)
 
-## Bundle Structure
+Get notified when things happen in Ferni:
 
-Each agent lives in a self-contained bundle folder:
-
-```
-src/personas/bundles/my-advisor/
-├── persona.manifest.json    ← Configuration (required)
-├── identity/
-│   ├── biography.md         ← Background story
-│   └── system-prompt.md     ← Behavioral instructions
-└── content/
-    ├── behaviors/
-    │   ├── greetings.json   ← Hello phrases
-    │   ├── catchphrases.json← Signature lines
-    │   └── quirks.json      ← Personality quirks
-    ├── stories/
-    │   ├── _index.json      ← Story triggers
-    │   └── *.json           ← Personal anecdotes
-    └── knowledge/
-        ├── _index.json      ← Topic index
-        └── *.md             ← Domain expertise
+```bash
+curl -X POST https://api.ferni.ai/api/v2/developers/webhooks \
+  -H "Authorization: Bearer pk_live_xxxxx" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Session Events",
+    "url": "https://api.yourcompany.com/ferni-webhooks",
+    "events": ["session.started", "session.ended", "tool.called"],
+    "enabled": true
+  }'
 ```
 
-## CLI Commands
+→ [Webhook Security Best Practices](/dev-blog/webhook-security/)
 
-| Command | Description |
-|---------|-------------|
-| `npm run agents list` | List all discovered agents |
-| `npm run agents show <id>` | Show detailed agent info |
-| `npm run agents create <id>` | Create new agent from template |
-| `npm run agents validate [id]` | Validate bundle(s) for errors |
-| `npm run agents enable <id>` | Enable an agent in the roster |
-| `npm run agents disable <id>` | Disable without deleting |
+### Path C: Build Workflows
+
+Create multi-step automations triggered by voice:
+
+{% raw %}
+```bash
+curl -X POST https://api.ferni.ai/api/v2/developers/workflows \
+  -H "Authorization: Bearer pk_live_xxxxx" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Daily Standup",
+    "trigger": { "type": "voice_command", "config": { "command": "start standup" } },
+    "nodes": [
+      { "id": "start", "type": "start" },
+      { "id": "fetch", "type": "mcp_call", "config": { "serverId": "mcp_xxx", "toolName": "calendar.getEvents" } },
+      { "id": "speak", "type": "speak", "config": { "text": "{{fetch.result | summarize}}" } },
+      { "id": "end", "type": "end" }
+    ],
+    "edges": [
+      { "sourceId": "start", "targetId": "fetch" },
+      { "sourceId": "fetch", "targetId": "speak" },
+      { "sourceId": "speak", "targetId": "end" }
+    ]
+  }'
+```
+{% endraw %}
+
+→ [Workflow Engine Guide](/dev-blog/workflow-engine-guide/)
+
+## Authentication
+
+All API requests require a Bearer token:
+
+```bash
+curl https://api.ferni.ai/api/v2/developers/... \
+  -H "Authorization: Bearer pk_live_xxxxx"
+```
+
+### Error Responses
+
+| Status | Meaning |
+|--------|---------|
+| `401` | Missing or invalid API key |
+| `403` | Key doesn't have required scope |
+| `429` | Rate limit exceeded |
+
+## Rate Limits
+
+| Plan | Requests/minute | MCP Servers | Webhooks |
+|------|-----------------|-------------|----------|
+| Free | 60 | 3 | 5 |
+| Pro | 600 | 25 | 50 |
+| Enterprise | Unlimited | Unlimited | Unlimited |
+
+Rate limit headers are included in every response:
+
+```
+X-RateLimit-Limit: 60
+X-RateLimit-Remaining: 58
+X-RateLimit-Reset: 1704985200
+```
+
+## Base URLs
+
+| Environment | Base URL |
+|-------------|----------|
+| Production | `https://api.ferni.ai/api/v2` |
+| Sandbox | `https://sandbox.ferni.ai/api/v2` |
+
+## SDKs (Coming Soon)
+
+Official SDKs are in development:
+
+```typescript
+// TypeScript SDK (coming Q1 2026)
+import { Ferni } from '@ferni/sdk';
+
+const ferni = new Ferni({ apiKey: 'pk_live_xxxxx' });
+
+const server = await ferni.mcp.create({
+  name: 'my-crm',
+  endpoint: 'https://mcp.yourcompany.com'
+});
+```
+
+```python
+# Python SDK (coming Q1 2026)
+from ferni import Ferni
+
+ferni = Ferni(api_key="pk_live_xxxxx")
+
+server = ferni.mcp.create(
+    name="my-crm",
+    endpoint="https://mcp.yourcompany.com"
+)
+```
+
+Until then, use `curl` or any HTTP client.
+
+## Quick Reference
+
+| What you want | Endpoint | Guide |
+|---------------|----------|-------|
+| Register external tools | `POST /mcp-servers` | [MCP Guide](/dev-blog/mcp-server-integration/) |
+| Create custom tools | `POST /tools` | [API Reference](/developers/api/#custom-tools) |
+| Receive events | `POST /webhooks` | [Webhook Security](/dev-blog/webhook-security/) |
+| Build automations | `POST /workflows` | [Workflow Guide](/dev-blog/workflow-engine-guide/) |
+| Track metrics | `POST /activities` | [API Reference](/developers/api/#activities) |
+| Connect OAuth | `POST /oauth/providers` | [API Reference](/developers/api/#oauth) |
 
 ## Next Steps
 
-- [API Reference](/developers/api/) — Full endpoint documentation
-- [Testing Guide](/developers/testing/) — How to test your agents
-- [Bundle System](/developers/bundles/) — Deep dive into agent architecture
+- **[API Reference](/developers/api/)** — Full endpoint documentation
+- **[Dev Blog](/dev-blog/)** — Tutorials and best practices
+- **[Examples](https://github.com/ferni-ai/examples)** — Working code samples
 
+## Get Help
+
+- **[Discord](https://discord.gg/ferni)** — Community support
+- **[GitHub Issues](https://github.com/ferni-ai/platform/issues)** — Bug reports
+- **[support@ferni.ai](mailto:support@ferni.ai)** — Enterprise support

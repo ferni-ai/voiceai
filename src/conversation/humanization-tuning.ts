@@ -526,13 +526,53 @@ export const TUNING_PRESETS = {
 } as const;
 
 /**
- * Apply a preset multiplier to all probabilities
+ * Apply a preset multiplier to all probability values recursively
+ *
+ * Finds all properties containing "probability", "Probability", or "Prob" and scales them.
+ * Values are clamped to [0, 1].
+ *
+ * @param tuning - The tuning object to scale
+ * @param multiplier - Scale factor (e.g., 1.3 for 30% increase, 0.5 for 50% decrease)
  */
 export function applyPresetMultiplier(
   tuning: HumanizationTuning,
   multiplier: number
 ): HumanizationTuning {
-  // This would recursively multiply all probability values
-  // Implementation left simple for now
-  return tuning; // TODO: Implement recursive probability scaling
+  if (multiplier === 1.0) return tuning;
+
+  return scaleProbabilitiesRecursive(tuning, multiplier) as HumanizationTuning;
+}
+
+/**
+ * Recursively walk an object and scale all probability values
+ */
+function scaleProbabilitiesRecursive<T>(obj: T, multiplier: number): T {
+  if (obj === null || obj === undefined) return obj;
+  if (typeof obj !== 'object') return obj;
+  if (Array.isArray(obj))
+    return obj.map((item) => scaleProbabilitiesRecursive(item, multiplier)) as T;
+
+  const result: Record<string, unknown> = {};
+
+  for (const [key, value] of Object.entries(obj as Record<string, unknown>)) {
+    // Check if this key is a probability value
+    const isProbabilityKey =
+      key === 'probability' ||
+      key.endsWith('Probability') ||
+      key.endsWith('Prob') ||
+      key === 'baseFrequency'; // Also scale baseFrequency
+
+    if (isProbabilityKey && typeof value === 'number') {
+      // Scale and clamp to [0, 1]
+      result[key] = Math.max(0, Math.min(1, value * multiplier));
+    } else if (typeof value === 'object' && value !== null) {
+      // Recursively process nested objects
+      result[key] = scaleProbabilitiesRecursive(value, multiplier);
+    } else {
+      // Keep non-probability values unchanged
+      result[key] = value;
+    }
+  }
+
+  return result as T;
 }

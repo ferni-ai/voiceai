@@ -90,7 +90,7 @@ describe('User Memory Indexer', () => {
     }) as UserProfile;
 
   // Helper to create key moment
-  const createKeyMoment = (id: string, type: string = 'breakthrough'): KeyMoment => ({
+  const createKeyMoment = (id: string, type = 'breakthrough'): KeyMoment => ({
     id,
     type: type as KeyMoment['type'],
     summary: `Test moment ${id}`,

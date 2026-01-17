@@ -1,0 +1,153 @@
+name: Dev Blog Changelog Post
+
+# Automatically generates a developer blog post when a new release is published
+# or can be triggered manually with a specific version
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to generate changelog for (e.g., v1.2.3)'
+        required: true
+        type: string
+      dry_run:
+        description: 'Dry run (preview without committing)'
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+jobs:
+  generate-blog-post:
+    name: Generate Changelog Blog Post
+    runs-on: ubuntu-latest
+
+    env:
+      # Use environment variables for all external inputs to prevent injection
+      RELEASE_TAG: ${{ github.event.release.tag_name }}
+      INPUT_VERSION: ${{ github.event.inputs.version }}
+      INPUT_DRY_RUN: ${{ github.event.inputs.dry_run }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Full history for git log
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Validate and set version
+        id: version
+        run: |
+          # Determine version from release or manual input
+          if [ "${{ github.event_name }}" == "release" ]; then
+            VERSION="$RELEASE_TAG"
+          else
+            VERSION="$INPUT_VERSION"
+          fi
+
+          # Validate version format (must be v followed by semver)
+          if ! echo "$VERSION" | grep -qE '^v[0-9]+\.[0-9]+\.[0-9]+'; then
+            echo "Error: Invalid version format. Expected v1.2.3 pattern."
+            exit 1
+          fi
+
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+          echo "Using version: $VERSION"
+
+      - name: Generate changelog blog post
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          VERSION: ${{ steps.version.outputs.VERSION }}
+        run: |
+          if [ "$INPUT_DRY_RUN" == "true" ]; then
+            node scripts/generate-changelog-post.js \
+              --version "$VERSION" \
+              --dry-run
+          else
+            node scripts/generate-changelog-post.js \
+              --version "$VERSION" \
+              --output apps/website/ferni-website/src/dev-blog/
+          fi
+
+      - name: Generate OG image
+        if: env.INPUT_DRY_RUN != 'true'
+        env:
+          VERSION: ${{ steps.version.outputs.VERSION }}
+        run: |
+          # Install sharp if not present
+          pnpm add -D sharp gray-matter || true
+
+          node scripts/generate-dev-blog-image.js \
+            --title "What's New in $VERSION" \
+            --category changelog \
+            --version "$VERSION" \
+            --output apps/website/ferni-website/images/dev-blog/
+
+      - name: Commit and push
+        if: env.INPUT_DRY_RUN != 'true'
+        env:
+          VERSION: ${{ steps.version.outputs.VERSION }}
+        run: |
+          git config user.name "Ferni Bot"
+          git config user.email "bot@ferni.ai"
+
+          # Check if there are changes
+          if git diff --quiet apps/website/ferni-website/src/dev-blog/ apps/website/ferni-website/images/dev-blog/; then
+            echo "No changes to commit"
+            exit 0
+          fi
+
+          git add apps/website/ferni-website/src/dev-blog/*.md
+          git add apps/website/ferni-website/images/dev-blog/*.png || true
+
+          git commit -m "docs(dev-blog): add changelog post for $VERSION
+
+          Automatically generated changelog blog post from release.
+
+          Co-Authored-By: Ferni Bot <bot@ferni.ai>"
+
+          git push
+
+      - name: Post to Slack
+        if: env.INPUT_DRY_RUN != 'true' && success()
+        uses: slackapi/slack-github-action@v1.24.0
+        with:
+          channel-id: 'dev-announcements'
+          payload-file-path: '.github/slack-changelog-payload.json'
+        env:
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+          VERSION: ${{ steps.version.outputs.VERSION }}
+        continue-on-error: true
+
+      - name: Summary
+        env:
+          VERSION: ${{ steps.version.outputs.VERSION }}
+        run: |
+          echo "## 📝 Changelog Blog Post" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Version:** $VERSION" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          if [ "$INPUT_DRY_RUN" == "true" ]; then
+            echo "🔍 **Dry run** - no changes committed" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "✅ Blog post published to \`apps/website/ferni-website/src/dev-blog/\`" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "📷 OG image generated in \`apps/website/ferni-website/images/dev-blog/\`" >> $GITHUB_STEP_SUMMARY
+          fi

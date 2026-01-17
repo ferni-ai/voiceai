@@ -454,8 +454,8 @@ scripts/colab_export_ecapa.py
 ## Related Documentation
 
 - [Trust Systems](./TRUST-SYSTEMS.md) - How voice auth integrates with trust
-- [Brand Guidelines](../design-system/design-system/brand/FERNI-BRAND-GUIDELINES.md) - Voice/UX considerations
-- [Deployment Guide](./DEPLOYMENT.md) - Full deployment instructions
+- [Brand Guidelines](../design-system/design-system/docs/brand/FERNI-BRAND-GUIDELINES.md) - Voice/UX considerations
+- [Deployment Guide](../deployment/) - Full deployment instructions
 
 ---
 

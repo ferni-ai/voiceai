@@ -127,6 +127,10 @@ export interface MusicStateMessage extends BaseMessage {
   track?: {
     name: string;
     artist?: string;
+    /** Track duration in milliseconds */
+    duration?: number;
+    /** Album artwork URL (from Spotify/iTunes) */
+    albumArt?: string;
   };
   isAmbient: boolean;
   /** 💚 Is this a shared musical memory ("our song")? */
@@ -147,6 +151,50 @@ export interface EngagementDataMessage extends BaseMessage {
 }
 
 /**
+ * Set language message - voice-triggered app language change
+ *
+ * Sent when the user asks Ferni to change the app language.
+ * The frontend will change the locale WITHOUT reloading, keeping
+ * the LiveKit connection alive.
+ */
+export interface SetLanguageMessage extends BaseMessage {
+  type: 'set_language';
+  language: string;
+}
+
+/**
+ * Game state message - real-time game board updates
+ *
+ * Sent when game state changes (move made, turn taken, etc.)
+ * The frontend renders visual game boards based on this data.
+ */
+export interface GameStateMessage extends BaseMessage {
+  type: 'game_state';
+  gameType: 'tic-tac-toe' | '20-questions' | 'word-association' | 'story-builder' | 'would-you-rather' | string;
+  status: 'active' | 'completed' | 'abandoned';
+  gameData: Record<string, unknown>;
+}
+
+/**
+ * Game started message - notify frontend to show game board
+ */
+export interface GameStartedMessage extends BaseMessage {
+  type: 'game_started';
+  gameId: string;
+  gameType: string;
+  gameName: string;
+}
+
+/**
+ * Game ended message - notify frontend to hide game board
+ */
+export interface GameEndedMessage extends BaseMessage {
+  type: 'game_ended';
+  gameType: string;
+  result?: string;
+}
+
+/**
  * All possible message types
  */
 export type FrontendMessage =
@@ -158,7 +206,11 @@ export type FrontendMessage =
   | MoodMessage
   | CelebrationMessage
   | MusicStateMessage
-  | EngagementDataMessage;
+  | EngagementDataMessage
+  | SetLanguageMessage
+  | GameStateMessage
+  | GameStartedMessage
+  | GameEndedMessage;
 
 /**
  * Publisher configuration
@@ -226,7 +278,13 @@ export class FrontendPublisher {
    */
   async send<T extends FrontendMessage>(message: Omit<T, 'timestamp'>): Promise<boolean> {
     if (!this.room?.localParticipant) {
-      if (this.config.verbose) {
+      // Always log for music_state messages since we're debugging
+      if (message.type === 'music_state') {
+        diag.warn('🎧 [PUBLISHER.send] Cannot send music_state: no room connection', {
+          hasRoom: !!this.room,
+          hasLocalParticipant: !!this.room?.localParticipant,
+        });
+      } else if (this.config.verbose) {
         this.logger.debug({ type: message.type }, 'Cannot send: no room connection');
       }
       return false;
@@ -243,16 +301,34 @@ export class FrontendPublisher {
       try {
         await this.room.localParticipant.publishData(data, { reliable: true });
 
-        if (this.config.verbose) {
+        // Always log success for music_state messages
+        if (message.type === 'music_state') {
+          const musicMsg = fullMessage as MusicStateMessage;
+          diag.state('🎧 [PUBLISHER.send] music_state published to LiveKit data channel', {
+            trackName: musicMsg.track?.name,
+            state: musicMsg.state,
+          });
+        } else if (this.config.verbose) {
           this.logger.debug({ type: message.type }, 'Message sent to frontend');
         }
 
         return true;
       } catch (error) {
+        const errorStr = String(error);
+        // Don't retry if connection is already closed - bail out immediately
+        if (errorStr.includes('closed') || errorStr.includes('disconnect')) {
+          if (message.type === 'music_state') {
+            diag.debug('🎧 [PUBLISHER.send] music_state skipped - connection closed');
+          } else if (this.config.verbose) {
+            this.logger.debug({ type: message.type }, 'Send skipped - connection closed');
+          }
+          return false;
+        }
+
         if (attempt < this.config.maxRetries) {
           const delay = this.config.retryDelayMs * (attempt + 1);
           this.logger.warn(
-            { type: message.type, attempt: attempt + 1, error: String(error) },
+            { type: message.type, attempt: attempt + 1, error: errorStr },
             `Send failed, retrying in ${delay}ms...`
           );
           await new Promise<void>((resolve) => {
@@ -260,7 +336,7 @@ export class FrontendPublisher {
           });
         } else {
           this.logger.error(
-            { type: message.type, attempts: attempt + 1, error: String(error) },
+            { type: message.type, attempts: attempt + 1, error: errorStr },
             'Failed to send after retries'
           );
           return false;
@@ -458,18 +534,21 @@ export class FrontendPublisher {
    */
   async sendMusicState(
     state: 'playing' | 'ducking' | 'fading' | 'changing' | 'paused' | 'stopped' | 'idle',
-    track?: { name: string; artist?: string },
+    track?: { name: string; artist?: string; duration?: number; albumArt?: string },
     isAmbient = false,
     ourSongInfo?: { isOurSong: boolean; context?: string }
   ): Promise<boolean> {
-    diag.state('Music state', {
+    diag.state('🎧 [PUBLISHER] sendMusicState called', {
       state,
       track: track?.name,
+      duration: track?.duration,
+      albumArt: track?.albumArt ? 'present' : 'none',
       isAmbient,
       isOurSong: ourSongInfo?.isOurSong,
+      hasLocalParticipant: !!this.room?.localParticipant,
     });
 
-    return this.send<MusicStateMessage>({
+    const result = await this.send<MusicStateMessage>({
       type: 'music_state',
       state,
       track,
@@ -477,6 +556,14 @@ export class FrontendPublisher {
       isOurSong: ourSongInfo?.isOurSong,
       ourSongContext: ourSongInfo?.context,
     });
+
+    diag.state('🎧 [PUBLISHER] sendMusicState result', {
+      success: result,
+      state,
+      trackName: track?.name,
+    });
+
+    return result;
   }
 
   // ============================================================================
@@ -492,6 +579,89 @@ export class FrontendPublisher {
     return this.send<EngagementDataMessage>({
       type: 'engagement_data',
       ...data,
+    });
+  }
+
+  // ============================================================================
+  // APP SETTINGS MESSAGES
+  // ============================================================================
+
+  /**
+   * Send a language change request to the frontend
+   *
+   * The frontend will change the locale WITHOUT reloading the page,
+   * keeping the LiveKit connection alive. This enables voice-triggered
+   * language changes without disconnecting the call.
+   *
+   * @param language - The locale code (e.g., 'es', 'fr', 'ja')
+   */
+  async sendSetLanguage(language: string): Promise<boolean> {
+    this.logger.info({ language }, '🌐 Sending language change to frontend');
+
+    return this.send<SetLanguageMessage>({
+      type: 'set_language',
+      language,
+    });
+  }
+
+  // ============================================================================
+  // GAME STATE MESSAGES
+  // ============================================================================
+
+  /**
+   * Send game started notification to frontend
+   *
+   * Triggers the game board UI to appear with the appropriate game type.
+   */
+  async sendGameStarted(
+    gameId: string,
+    gameType: string,
+    gameName: string
+  ): Promise<boolean> {
+    this.logger.info({ gameId, gameType, gameName }, '🎮 Game started');
+
+    return this.send<GameStartedMessage>({
+      type: 'game_started',
+      gameId,
+      gameType,
+      gameName,
+    });
+  }
+
+  /**
+   * Send game state update to frontend
+   *
+   * Updates the visual game board with current state (moves, scores, turns).
+   */
+  async sendGameState(
+    gameType: GameStateMessage['gameType'],
+    status: GameStateMessage['status'],
+    gameData: Record<string, unknown>
+  ): Promise<boolean> {
+    if (this.config.verbose) {
+      this.logger.debug({ gameType, status }, '🎮 Sending game state update');
+    }
+
+    return this.send<GameStateMessage>({
+      type: 'game_state',
+      gameType,
+      status,
+      gameData,
+    });
+  }
+
+  /**
+   * Send game ended notification to frontend
+   *
+   * Triggers the game board UI to show results and then hide.
+   */
+  async sendGameEnded(gameType: string, result?: string): Promise<boolean> {
+    this.logger.info({ gameType, result }, '🎮 Game ended');
+
+    return this.send<GameEndedMessage>({
+      type: 'game_ended',
+      gameType,
+      result,
     });
   }
 

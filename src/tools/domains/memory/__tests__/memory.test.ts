@@ -59,6 +59,53 @@ vi.mock('../../../../memory/index.js', () => ({
       summary: 'Test relationship summary',
     }),
   },
+  getMemoryOrchestrator: vi.fn(() => ({
+    recall: vi.fn().mockResolvedValue({
+      primaryMemories: [],
+      associatedMemories: [],
+      emotionalThreads: [],
+      patterns: [],
+      approachGuidance: null,
+      triggers: [],
+      generatedReferences: [],
+    }),
+    store: vi.fn().mockResolvedValue({ success: true }),
+    extractSignals: vi.fn().mockResolvedValue({ signals: [] }),
+  })),
+  resetMemoryOrchestrator: vi.fn(),
+  getMemoryConsolidator: vi.fn(() => ({
+    consolidate: vi.fn().mockResolvedValue({ consolidated: [] }),
+    getStats: vi.fn().mockReturnValue({ totalConsolidated: 0 }),
+  })),
+  getMemoryDecayManager: vi.fn(() => ({
+    applyDecay: vi.fn().mockResolvedValue({ decayed: [] }),
+    prune: vi.fn().mockResolvedValue({ pruned: [] }),
+  })),
+  getMemoryGraph: vi.fn(() => ({
+    addNode: vi.fn(),
+    getRelatedNodes: vi.fn().mockReturnValue([]),
+    getGraph: vi.fn().mockReturnValue({ nodes: [], edges: [] }),
+  })),
+  getLearningEngine: vi.fn(() => ({
+    getThresholds: vi.fn().mockResolvedValue({}),
+    recordFeedback: vi.fn().mockResolvedValue(undefined),
+  })),
+}));
+
+// Mock the unified memory service directly to prevent constructor issues
+vi.mock('../../../../services/unified-memory-service.js', () => ({
+  getUnifiedMemoryService: vi.fn(() => ({
+    recall: vi.fn().mockResolvedValue({
+      memories: [],
+      timing: { shouldSurface: false },
+      phrasing: null,
+    }),
+    recordFact: vi.fn().mockResolvedValue({ success: true }),
+    recordFactWithFeedback: vi.fn().mockResolvedValue({ success: true, feedbackId: 'test' }),
+    recordFeedback: vi.fn().mockResolvedValue(undefined),
+    getRelatedMemories: vi.fn().mockResolvedValue([]),
+  })),
+  resetUnifiedMemoryService: vi.fn(),
 }));
 
 // ============================================================================

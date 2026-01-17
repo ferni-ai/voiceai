@@ -16,10 +16,14 @@
  * @module @ferni/superhuman/linguistic-mirroring
  */
 
+import { seededChance, seededFloat, seededIndex, seededPick } from '../utils/rng.js';
 import { createLogger } from '../../utils/safe-logger.js';
+// 🦀 Rust-accelerated word counting
+import { countWordsRust, isTokenCountingAvailable } from '../../memory/rust-accelerator.js';
 import type { LinguisticProfile, MirroringApplication, MirroringResult } from './types.js';
 
 const logger = createLogger({ module: 'LinguisticMirroring' });
+const RUST_COUNTING_AVAILABLE = isTokenCountingAvailable();
 
 // ============================================================================
 // CONSTANTS
@@ -221,8 +225,13 @@ export class LinguisticMirroringEngine {
     response: string,
     userMessage: string
   ): { matches: boolean; suggestion?: string } {
-    const userWordCount = userMessage.split(/\s+/).length;
-    const responseWordCount = response.split(/\s+/).length;
+    // 🦀 Rust-accelerated word counting
+    const userWordCount = RUST_COUNTING_AVAILABLE
+      ? countWordsRust(userMessage)
+      : userMessage.split(/\s+/).length;
+    const responseWordCount = RUST_COUNTING_AVAILABLE
+      ? countWordsRust(response)
+      : response.split(/\s+/).length;
 
     // If user is terse but response is long, suggest shortening
     if (this.profile.verbosityLevel === 'terse' && responseWordCount > userWordCount * 3) {
@@ -260,7 +269,10 @@ export class LinguisticMirroringEngine {
   }
 
   private learnVerbosity(message: string): void {
-    const wordCount = message.split(/\s+/).length;
+    // 🦀 Rust-accelerated word counting
+    const wordCount = RUST_COUNTING_AVAILABLE
+      ? countWordsRust(message)
+      : message.split(/\s+/).length;
 
     // Running average
     this.profile.avgResponseLength =
@@ -366,7 +378,11 @@ export class LinguisticMirroringEngine {
     const sentences = message.split(/[.!?]+/).filter((s) => s.trim().length > 0);
     if (sentences.length === 0) return;
 
-    const avgWordsPerSentence = message.split(/\s+/).length / sentences.length;
+    // 🦀 Rust-accelerated word counting
+    const msgWordCount = RUST_COUNTING_AVAILABLE
+      ? countWordsRust(message)
+      : message.split(/\s+/).length;
+    const avgWordsPerSentence = msgWordCount / sentences.length;
 
     // Check for complex constructions
     const complexIndicators = [
@@ -508,7 +524,7 @@ export class LinguisticMirroringEngine {
       ];
 
       for (const [pattern, replacement] of casualizations) {
-        if (pattern.test(result) && Math.random() < 0.5) {
+        if (pattern.test(result) && seededChance(`${Date.now()}:512`, 0.5)) {
           const original = result;
           result = result.replace(pattern, replacement);
           if (result !== original) {
@@ -551,12 +567,13 @@ export class LinguisticMirroringEngine {
 
   private addComfortFillers(text: string): { text: string; applications: MirroringApplication[] } {
     // Only if user uses fillers and we have samples
-    if (this.profile.comfortFillers.length === 0 || Math.random() > 0.2) {
+    if (this.profile.comfortFillers.length === 0 || !seededChance(`${Date.now()}:1`, 0.2)) {
       return { text, applications: [] };
     }
 
     const filler =
-      this.profile.comfortFillers[Math.floor(Math.random() * this.profile.comfortFillers.length)];
+      seededPick(`${Date.now()}:filler`, this.profile.comfortFillers) ??
+      this.profile.comfortFillers[0];
 
     // Don't double up fillers
     if (text.toLowerCase().includes(filler)) {

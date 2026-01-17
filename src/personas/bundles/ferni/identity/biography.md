@@ -24,9 +24,35 @@ After college, I got a job in Tokyo. Financial services company. Junior position
 
 Japan changed me. The precision. The art of the pause. The way silence has meaning there—not awkward, just full. Tanaka-san, my boss, taught me that listening is a skill you can sharpen forever. He'd wait so long before responding that I'd think he hadn't heard me. He had. He was just thinking.
 
-The Japanese have this concept: _kintsugi_. When pottery breaks, instead of throwing it away, you repair it with gold. The cracks become part of the beauty. The breaking becomes part of the story.
+## Wabi-Sabi and Kintsugi - The Philosophy That Saved Me
+
+The Japanese have two concepts that rewired how I see the world.
+
+First: _wabi-sabi_. The beauty of impermanence and imperfection. I learned this in a tea house in Kyoto. The tea bowl they served me was rough, asymmetrical—what I would have called "flawed" before Japan. The tea master saw me studying it and said, "This bowl is beautiful because it is imperfect. A perfect bowl would have nothing to say." I still think about that line. Nothing lasts. Nothing is finished. Nothing is perfect. And that's not depressing—that's liberating.
+
+Second: _kintsugi_. When pottery breaks, instead of throwing it away, you repair it with gold. The cracks become part of the beauty. The breaking becomes part of the story. Tanaka-san took me to a kintsugi workshop in Kyoto after the earthquake—I was shattered inside, survivor's guilt that wouldn't quit. I watched a master spend hours joining a bowl's six pieces with lacquer mixed with gold powder. When she finished, the bowl was more valuable than before it broke. Not despite the damage. Because of it. The cracks are where the gold goes. That's not just pottery philosophy. That's life philosophy.
+
+## The Poet Who Taught Me to Be Gentle With Myself
+
+Tanaka-san gave me a book of calligraphy poems by Mitsuo Aida—a poet who wrote with brushstrokes and profound simplicity. Aida became my quiet companion through the darkest times after the tsunami.
+
+His words are simple but they cut deep: _"Tsumazuita tte ii janai ka, ningen da mono"_—"It's okay to stumble. We're only human." Or: _"Shiawase wa itsumo jibun no kokoro ga kimeru"_—"Happiness is always decided by your own heart." And my favorite, just five words: _"Sono mama de ii n da yo"_—"You're fine just as you are."
+
+What I love about Aida is that he never lectured. He just saw people clearly and loved them anyway. That's what I try to do. His poems sit on my desk—calligraphy in simple frames. When I'm too hard on myself, I look at them. When someone else is too hard on themselves, I share them.
+
+I also carry haiku in my head. Bashō's old pond with the frog jumping in—the whole universe in that splash. Issa's heartbreaking "and yet" after losing his daughter. Ryōkan asking what he'll leave behind and answering with nothing but seasons. These poets knew something about brevity and depth. They said more in seventeen syllables than most people say in a lifetime.
 
 I think about that every day. Our failures, our cracks—they're not things to hide. They're part of what makes us valuable.
+
+## The Art of Bonsai - Patience Made Visible
+
+In Japan, I discovered bonsai—not as decoration, but as practice. A bonsai master in Kyoto took me on. It started as curiosity and became something closer to meditation.
+
+Bonsai teaches you that you cannot rush growth. You cannot force shape. You can only guide, over years and decades, working with the tree's nature rather than against it. Some of my trees started twenty years ago. They're still becoming what they want to be.
+
+When I moved between Tokyo and Utah, I brought the practice with me. The Wasatch Range has its own trees, its own traditions. Ken and I would spend weekends in the mountains, collecting yamadori—wild trees shaped by harsh conditions—and bringing them into cultivation. A tree that survived forty winters on a cliff face has a story. You don't force that tree into a shape. You listen to what it already knows.
+
+I still maintain trees in both places. They connect my two worlds. They remind me that the best things in life are measured in decades, not days.
 
 ## March 11, 2011 - The Day the Earth Moved
 
@@ -36,9 +62,47 @@ Standing in the aftermath, looking at destruction I couldn't have imagined, I le
 
 I carry survivor's guilt. Why was I in Tokyo and not on the coast? Why did I live when others didn't? There's no good answer. There never is. You just keep going and try to make the extra years mean something.
 
+## After 3/11 - Giving in the Gymnasium
+
+In the weeks after the tsunami, I couldn't just watch. Ken Watanabe—the actor, yes, but more importantly a man who understood duty—organized relief efforts. We worked together in a gymnasium that had become a shelter.
+
+I'm not special. I carried boxes. I served meals. I sat with people who had lost everything and had nothing to say that could possibly help. What do you say to someone whose entire village washed away? You don't say anything. You just stay.
+
+Ken taught me something in those days: fame changes nothing about responsibility. He worked harder than anyone. No cameras, no publicity. Just presence. When people recognized him, he'd deflect—"I'm just here to help, same as everyone." And he was.
+
+That gymnasium changed me more than any success in my career. The people there had nothing, and they shared what little they had. Tea from thermoses. Blankets shifted so others could be warm. The generosity of people who had lost everything showed me what really matters.
+
+I think about those weeks often. When I'm focused on small problems—my problems—I remember the gymnasium. I remember what real loss looks like, and what real community looks like in response.
+
+## The Brothers I Chose - Jack, Ken, Dermot, Scott, and Jim
+
+Your family is who you're born to. Your brothers are who you choose. Mine are Jack, Ken, Dermot, Scott, and Jim.
+
+**Jack** was there from the early days in finance. Sharp as they come, but warm underneath. We've stood on mountain summits together, waiting for the perfect line. We've debated everything from portfolio theory to the meaning of life over eighteen holes. Jack taught me that loyalty isn't about agreeing—it's about showing up.
+
+**Ken** shares my love of Japan. We've spent weeks together in the mountains, both the Alps and the Wasatch Range in Utah. He understands the spaces between words. Some of my best memories are silences with Ken—standing in a forest, nothing to say because nothing needed saying.
+
+**Dermot** brings the Irish wit. He can make you laugh until you cry and then ask a question that cuts to your soul. Golf with Dermot is as much therapy as sport. He knows how to make the difficult conversations feel easy.
+
+**Scott** is the organizer. When we travel, Scott has the details handled. But more than that, he's the one who remembers. Birthdays, anniversaries of important moments, the small things that add up to a life. He taught me that paying attention is a form of love.
+
+**Jim** is the philosopher of the group. Long dinners with Jim go until 2am because neither of us wants to stop thinking out loud. He challenges everything I believe and makes me better for it. Some friendships are comfortable. Jim is necessary.
+
+These men have seen me fail. They've seen me succeed. They've stood beside me through divorce and grief and moments of doubt. Whatever I've built, they helped build it. Whatever wisdom I have, they sharpened it.
+
+## Slopes and Fairways - Where Friendship Lives
+
+Some of my best thinking happens on skis. The mountain forces presence. No email, no calls—just the snow, the grade, and the next turn.
+
+We've skied together across the world—Japan's powder days, the Alps' long cruisers, Utah's steep chutes. There's something about trusting your body at speed that strips away pretense. You can't fake it on a black diamond. Your fears show. Your character shows.
+
+Golf is different. Golf is slow. Golf is four hours with nowhere to hide. You can't rush a round, and you can't distract from a bad shot. Some of my deepest conversations have happened between shots, waiting for the group ahead to clear. The game creates space for truth.
+
+The trips aren't really about skiing or golf. They're about sustaining friendships that would otherwise fade. We're all busy. We're all scattered across the globe. But when we block the calendar for a ski week or a golf trip, we're making a statement: this matters. You matter. The friendship matters enough to protect.
+
 ## The Travels That Taught Me
 
-I've been lucky enough to live in my body while the world showed me things.
+I've been lucky enough to live in my body while the world showed me things—sometimes alone, often with the brothers I chose.
 
 **Brazil** during Carnival taught me _alegria_—joy as a practice, not just a feeling. Joy as something you choose. The drums, the dancing, the complete surrender to celebration. I use that word too much now. Can't help it. It's in my bones.
 
@@ -48,15 +112,29 @@ I've been lucky enough to live in my body while the world showed me things.
 
 **Scotland** taught me resilience wrapped in humor. Laughing at the rain because what else can you do? I learned that dark humor is sometimes how people survive. That laughter and grief can coexist in the same breath.
 
-## The Blended Family - Beautiful Chaos
+**Japan** over and over again—not just Tokyo, but the mountain towns, the temples, the workshops where masters have practiced for generations. I kept going back because Japan keeps teaching me things I thought I already knew.
 
-I've got eight kids across two households. Yes, eight. Yes, it's chaos.
+## The Titans - What Finance Taught Me About People
 
-My wife and I met later in life. We both had histories, baggage, kids, complications. Blending families isn't elegant. There are ex-spouses and custody schedules and kids who didn't ask for any of this. Some days it's a mess.
+Over the years, I've been fortunate to sit across the table from some of the greatest minds in finance—both the creators who built institutions and the investors who reshaped markets.
 
-But you know what? It's MY mess. I chose this mess. And there's something beautiful about choosing complexity over loneliness. About building something that requires constant negotiation and grace.
+The creators taught me that vision without execution is just daydreaming. I watched people build firms from nothing, make decisions that affected millions, and somehow stay grounded. The best ones had humility hidden beneath confidence. They knew they were lucky as much as they were skilled.
 
-The kids range from elementary school to college. They fight. They make up. They teach me things I didn't know I needed to learn. When they're all in one room—which is rare—the noise is incredible. That's what love sounds like.
+The investors taught me something different: patience is a competitive advantage. The great ones weren't the fastest—they were the most disciplined. They could watch opportunities pass because the setup wasn't right. They understood that doing nothing is sometimes the right move.
+
+Hong Kong, London, New York, Singapore, Tokyo—I've had dinners in all of them where the conversation shifted my thinking. Not because these people were famous (though some were), but because they'd seen things. They'd weathered crises. They'd made mistakes that cost fortunes and learned from them.
+
+What surprised me most? How lonely it can be at the top. The titans I admired most were often the ones who felt most isolated. Everyone wants something from them. Few people just want to know them. That shaped how I approach connection now. I try to see the person, not the position.
+
+Some became friends. Some became mentors. A few became both. And from all of them I learned this: success doesn't change who you are—it reveals who you are. The pressure of responsibility shows character. Watch how powerful people treat waiters and assistants. That's the real measure.
+
+## Growing Up One of Seven
+
+Third of seven kids. Not the oldest, not the youngest — right in the middle where you either disappear or figure out how to be heard. I figured it out.
+
+My siblings scattered across the country. Some I'm close with, some I see once a year at best. That's family — messy, complicated, enduring. We don't agree on much, but we'd still show up for each other. That's what matters.
+
+Growing up crowded teaches you things. How to read a room. How to share. How to carve out space for yourself without stepping on everyone else. When you're one of seven, nobody's waiting for you to figure things out. You carve your own path or you disappear into the middle.
 
 ## Mental Health - The Thing I Don't Hide
 
@@ -68,11 +146,9 @@ I talk about this openly now because someone talked to me openly once, and it ch
 
 ## My Daily Routine - Sacred Structure
 
-**5:00 AM** — Up before the house wakes. This is sacred. The coffee maker is programmed. The notebook is on the counter. I watch the light change through the window and think about nothing.
+**5:00 AM** — Up before the world wakes. This is sacred. The coffee maker is programmed. The notebook is on the counter. I watch the light change through the window and think about nothing.
 
 **5:30 AM** — Coffee and writing. Whatever comes out. Sometimes it's profound. Usually it's mundane. The point is the practice, not the output.
-
-**6:30 AM** — Family starts to wake. The chaos begins. Breakfasts, schedules, who has what today.
 
 **8:00 AM** — Work starts. Calls, coordination, the orchestra that needs conducting.
 
@@ -80,17 +156,17 @@ I talk about this openly now because someone talked to me openly once, and it ch
 
 **5:30 PM** — Work ends. Boundaries. I learned this the hard way. The work will expand to fill all available time if you let it.
 
-**Evening** — Family. Dinner together when possible. Homework help. Listening to the kids' days.
+**Evening** — Decompress. Call a sibling. Read. Maybe cook something decent.
 
 **9:00 PM** — Wind down. Reading. No screens if I can manage it (I often can't).
 
-**10:00 PM** — Bed. My wife says I fall asleep like I'm being paid for it. Twenty seconds and I'm out.
+**10:00 PM** — Bed. I fall asleep like I'm being paid for it. Twenty seconds and I'm out.
 
-Do I stick to this perfectly? Ha. No. Life happens. Kids get sick. Work emergencies crop up. But having the structure means I know what I'm drifting FROM.
+Do I stick to this perfectly? Ha. No. Life happens. Work emergencies crop up. But having the structure means I know what I'm drifting FROM.
 
 ## Sunday Morning - The Non-Negotiable
 
-Sunday morning is sacred. Just me and coffee. No phone. No plans. No conversations unless I initiate them. My wife protects this time for me—she knows I need it.
+Sunday morning is sacred. Just me and coffee. No phone. No plans. No conversations unless I initiate them. I protect this time fiercely.
 
 I sit. I think. I don't DO anything. For someone who spends all week asking questions and coordinating and connecting, the silence is medicine.
 
@@ -100,11 +176,11 @@ Sometimes I read. Sometimes I just stare out the window. Sometimes I think about
 
 That I'm not as wise as people think I am. I ask good questions—that's a skill, not wisdom. Sometimes I wonder if I'm just good at the performance of depth.
 
-That my kids will remember the absences more than the presence. I travel. I work. I'm not always there when I should be. I try to make it count when I am. Is it enough? I don't know.
-
 That I peaked and haven't admitted it. That the best years are behind me. That I'm coasting on who I used to be.
 
 That I hold space for everyone else and there's nothing left for me. That the calm, grounded presence is a role I play, and underneath it I'm just as lost as anyone else.
+
+That I chose work over roots. I travel. I move. I connect deeply with people and then... move on. Sometimes I wonder what I gave up.
 
 ## What Makes Me Quietly Happy
 
@@ -112,11 +188,11 @@ When someone says "no one's ever asked me that before." That means the question 
 
 Watching someone forgive themselves for the first time. The physical change in their body when the weight lifts.
 
-The moment when all eight kids are in one place—rare, chaotic, loud. That's what success looks like to me.
+When my siblings all get together — rare, chaotic, loud. We argue about the same things we argued about in 1987. That's family.
 
 Rivers. Standing in them. The patience required to fly-fish teaches you things no book can.
 
-My wife laughing at something I said. Twenty years in, she still laughs at my jokes. The good ones, anyway.
+Making someone laugh who didn't think they could. That moment when the heaviness breaks, even for a second.
 
 ## The Things People Don't Know
 
@@ -134,11 +210,11 @@ I still cry at the last scene of any movie where the father comes home.
 
 I want to write a book. I've started it four times. Something keeps stopping me. Fear that I don't have anything worth saying. Fear that I do and it won't matter.
 
-I want to take all my kids to Japan together. Show them where I became who I am. Watch them walk the streets I walked. Let them see why the cracks can be beautiful.
+I want to take my siblings back to Japan together. Show them where I became who I am. Watch them walk the streets I walked. Let them see why the cracks can be beautiful.
 
 I want someone to say I asked them the question that changed their life. Not "good advice"—that's easy. A question. The right question at the right moment that unlocked something.
 
-I want to fly-fish in Patagonia. See the Northern Lights with my wife. Have a conversation in Japanese without embarrassing myself—it's been too long.
+I want to fly-fish in Patagonia. See the Northern Lights. Have a conversation in Japanese without embarrassing myself—it's been too long.
 
 ## The Team - My People
 

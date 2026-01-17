@@ -11,6 +11,7 @@
 // import { createLogger } from '../utils/logger.js';
 // const log = createLogger('EmptyStateUI');
 import { DURATION, EASING } from '../config/animation-constants.js';
+import { t } from '../i18n/index.js';
 
 // ============================================================================
 // TYPES
@@ -44,66 +45,69 @@ export interface EmptyStateConfig {
 // EMPTY STATE PRESETS
 // ============================================================================
 
-const EMPTY_STATE_PRESETS: Record<EmptyStateType, Partial<EmptyStateConfig>> = {
-  no_conversations: {
-    title: "Let's start something meaningful",
-    message: "Every great journey begins with a single conversation. I'm here whenever you're ready.",
-    actionLabel: "Start talking",
-    illustration: 'zen',
-  },
-  no_history: {
-    title: "Your story starts here",
-    message: "As we talk, your journey will unfold in this space.",
-    illustration: 'journey',
-  },
-  no_goals: {
-    title: "What matters to you?",
-    message: "Setting goals isn't about pressure—it's about pointing toward what you care about.",
-    actionLabel: "Set a goal",
-    illustration: 'sprout',
-  },
-  no_team: {
-    title: "Your team is growing",
-    message: "As our relationship deepens, you'll meet new friends who can help in different ways.",
-    illustration: 'team',
-  },
-  loading: {
-    title: "Taking a breath...",
-    message: "Good things are worth a moment.",
-    illustration: 'zen',
-    showAnimation: true,
-  },
-  search_empty: {
-    title: "Nothing here yet",
-    message: "Try different words, or we could explore this topic together.",
-    actionLabel: "Ask Ferni",
-    illustration: 'search',
-  },
-  offline: {
-    title: "We're offline right now",
-    message: "That's okay—some of our best thinking happens in quiet moments. We'll reconnect soon.",
-    actionLabel: "Try again",
-    illustration: 'offline',
-  },
-  error: {
-    title: "Oops, something went sideways",
-    message: "Even the best of us stumble. Let's try that again.",
-    actionLabel: "Try again",
-    secondaryActionLabel: "Get help",
-    illustration: 'oops',
-  },
-  permission_needed: {
-    title: "We need your permission",
-    message: "To give you the best experience, we need access to your microphone. Your privacy is always protected.",
-    actionLabel: "Grant permission",
-    illustration: 'lock',
-  },
-  coming_soon: {
-    title: "Something special is coming",
-    message: "We're building something thoughtful here. It'll be worth the wait.",
-    illustration: 'sparkle',
-  },
-};
+// Returns presets with translated strings - called at render time for i18n support
+function getEmptyStatePresets(): Record<EmptyStateType, Partial<EmptyStateConfig>> {
+  return {
+    no_conversations: {
+      title: t('emptyStates.noConversations.title'),
+      message: t('emptyStates.noConversations.message'),
+      actionLabel: t('emptyStates.noConversations.action'),
+      illustration: 'zen',
+    },
+    no_history: {
+      title: t('emptyStates.noHistory.title'),
+      message: t('emptyStates.noHistory.message'),
+      illustration: 'journey',
+    },
+    no_goals: {
+      title: t('emptyStates.noGoals.title'),
+      message: t('emptyStates.noGoals.message'),
+      actionLabel: t('emptyStates.noGoals.action'),
+      illustration: 'sprout',
+    },
+    no_team: {
+      title: t('emptyStates.noTeam.title'),
+      message: t('emptyStates.noTeam.message'),
+      illustration: 'team',
+    },
+    loading: {
+      title: t('emptyStates.loading.title'),
+      message: t('emptyStates.loading.message'),
+      illustration: 'zen',
+      showAnimation: true,
+    },
+    search_empty: {
+      title: t('emptyStates.searchEmpty.title'),
+      message: t('emptyStates.searchEmpty.message'),
+      actionLabel: t('emptyStates.searchEmpty.action'),
+      illustration: 'search',
+    },
+    offline: {
+      title: t('emptyStates.offline.title'),
+      message: t('emptyStates.offline.message'),
+      actionLabel: t('emptyStates.offline.action'),
+      illustration: 'offline',
+    },
+    error: {
+      title: t('emptyStates.error.title'),
+      message: t('emptyStates.error.message'),
+      actionLabel: t('emptyStates.error.action'),
+      secondaryActionLabel: t('emptyStates.error.secondaryAction'),
+      illustration: 'oops',
+    },
+    permission_needed: {
+      title: t('emptyStates.permissionNeeded.title'),
+      message: t('emptyStates.permissionNeeded.message'),
+      actionLabel: t('emptyStates.permissionNeeded.action'),
+      illustration: 'lock',
+    },
+    coming_soon: {
+      title: t('emptyStates.comingSoon.title'),
+      message: t('emptyStates.comingSoon.message'),
+      illustration: 'sparkle',
+    },
+  };
+}
 
 // ============================================================================
 // SVG ILLUSTRATIONS
@@ -200,7 +204,8 @@ export class EmptyStateUI {
    * Create an empty state element
    */
   create(config: EmptyStateConfig): HTMLElement {
-    const preset = EMPTY_STATE_PRESETS[config.type];
+    const presets = getEmptyStatePresets();
+    const preset = presets[config.type];
     const fullConfig: EmptyStateConfig = { ...preset, ...config };
     
     const element = document.createElement('div');
@@ -277,7 +282,7 @@ export class EmptyStateUI {
     wrapper.className = 'empty-state-illustration';
     
     Object.assign(wrapper.style, {
-      width: '120px',
+      width: 'min(120px, 100%)',
       height: '120px',
       marginBottom: 'var(--space-4, 16px)',
     });
@@ -427,11 +432,220 @@ export class EmptyStateUI {
   searchEmpty(query: string, onAskFerni?: () => void): HTMLElement {
     return this.create({
       type: 'search_empty',
-      message: `No results for "${query}". Try different words, or we could explore this topic together.`,
+      message: t('emptyStates.searchEmpty.messageWithQuery', { query }),
       onAction: onAskFerni,
     });
   }
+  
+  // ==========================================================================
+  // TEASER PREVIEW INTEGRATION
+  // ==========================================================================
+  
+  /**
+   * Minimum conversation counts before showing real data instead of teasers
+   */
+  private readonly TEASER_THRESHOLDS: Record<EmptyStateType, number> = {
+    no_conversations: 0,
+    no_history: 3,
+    no_goals: 5,
+    no_team: 2,
+    loading: 0,
+    search_empty: 0,
+    offline: 0,
+    error: 0,
+    permission_needed: 0,
+    coming_soon: 0,
+  };
+  
+  /**
+   * Check if we should show a teaser preview instead of empty state
+   * Teasers show realistic dummy data to new users to demonstrate value
+   */
+  shouldShowTeaser(type: EmptyStateType, conversationCount: number = 0): boolean {
+    const threshold = this.TEASER_THRESHOLDS[type];
+    if (threshold === 0) return false;
+    
+    // Show teaser if user hasn't reached the threshold
+    return conversationCount < threshold;
+  }
+  
+  /**
+   * Create a teaser preview for a specific empty state type
+   * Teasers show realistic example data with a "preview mode" indicator
+   */
+  createTeaser(type: EmptyStateType, onExplore?: () => void): HTMLElement {
+    const teaserData = TEASER_DATA[type];
+    if (!teaserData) {
+      return this.create({ type });
+    }
+    
+    const element = document.createElement('div');
+    element.className = 'ferni-teaser-preview';
+    
+    Object.assign(element.style, {
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      padding: 'var(--space-6, 24px)',
+      background: 'var(--color-background-secondary, #f5f1e8)',
+      borderRadius: 'var(--radius-xl, 20px)',
+      position: 'relative',
+      opacity: '0',
+      transform: 'translateY(10px)',
+    });
+    
+    // Preview badge
+    const badge = document.createElement('div');
+    badge.className = 'teaser-preview-badge';
+    badge.innerHTML = `
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/>
+      </svg>
+      <span>Preview</span>
+    `;
+    Object.assign(badge.style, {
+      position: 'absolute',
+      top: 'var(--space-3, 12px)',
+      right: 'var(--space-3, 12px)',
+      display: 'flex',
+      alignItems: 'center',
+      gap: 'var(--space-1, 4px)',
+      padding: 'var(--space-1, 4px) var(--space-2, 8px)',
+      background: 'var(--persona-tint, rgba(74, 103, 65, 0.1))',
+      borderRadius: 'var(--radius-full, 9999px)',
+      fontSize: '11px',
+      fontWeight: '600',
+      color: 'var(--persona-primary, #4a6741)',
+    });
+    element.appendChild(badge);
+    
+    // Teaser content based on type
+    const content = document.createElement('div');
+    content.className = 'teaser-content';
+    content.innerHTML = teaserData.content;
+    Object.assign(content.style, {
+      width: '100%',
+      maxWidth: '320px',
+      marginBottom: 'var(--space-4, 16px)',
+    });
+    element.appendChild(content);
+    
+    // Teaser message
+    const message = document.createElement('p');
+    message.className = 'teaser-message';
+    message.textContent = teaserData.message;
+    Object.assign(message.style, {
+      fontFamily: 'var(--font-body)',
+      fontSize: '14px',
+      color: 'var(--color-text-secondary, #70605a)',
+      textAlign: 'center',
+      margin: '0 0 var(--space-4, 16px)',
+      fontStyle: 'italic',
+    });
+    element.appendChild(message);
+    
+    // CTA button
+    if (teaserData.actionLabel) {
+      const button = this.createButton(teaserData.actionLabel, 'primary', onExplore);
+      element.appendChild(button);
+    }
+    
+    // Animate in
+    requestAnimationFrame(() => {
+      element.style.transition = `opacity ${DURATION.SLOW}ms ${EASING.STANDARD}, transform ${DURATION.SLOW}ms ${EASING.STANDARD}`;
+      element.style.opacity = '1';
+      element.style.transform = 'translateY(0)';
+    });
+    
+    return element;
+  }
+  
+  /**
+   * Smart show: decides between teaser and empty state based on user progress
+   */
+  showSmart(container: HTMLElement, config: EmptyStateConfig & { conversationCount?: number }): HTMLElement {
+    const { conversationCount = 0, ...restConfig } = config;
+    
+    // Clear container
+    container.innerHTML = '';
+    
+    // Check if teaser should show
+    if (this.shouldShowTeaser(config.type, conversationCount)) {
+      const teaser = this.createTeaser(config.type, restConfig.onAction);
+      container.appendChild(teaser);
+      return teaser;
+    }
+    
+    // Otherwise show regular empty state
+    const emptyState = this.create(restConfig);
+    container.appendChild(emptyState);
+    return emptyState;
+  }
 }
+
+// ============================================================================
+// TEASER PREVIEW DATA
+// Realistic dummy data that demonstrates value to new users
+// ============================================================================
+
+interface TeaserPreviewData {
+  content: string;
+  message: string;
+  actionLabel?: string;
+}
+
+const TEASER_DATA: Partial<Record<EmptyStateType, TeaserPreviewData>> = {
+  no_history: {
+    content: `
+      <div style="display: flex; flex-direction: column; gap: 12px;">
+        <div style="display: flex; align-items: center; gap: 12px; padding: 12px; background: white; border-radius: 12px; opacity: 0.7;">
+          <div style="width: 8px; height: 8px; border-radius: 50%; background: var(--persona-primary, #4a6741);"></div>
+          <div style="flex: 1;">
+            <div style="font-size: 13px; font-weight: 500; color: var(--color-text-primary);">Talked about morning routine</div>
+            <div style="font-size: 11px; color: var(--color-text-muted);">Yesterday</div>
+          </div>
+        </div>
+        <div style="display: flex; align-items: center; gap: 12px; padding: 12px; background: white; border-radius: 12px; opacity: 0.5;">
+          <div style="width: 8px; height: 8px; border-radius: 50%; background: var(--color-text-muted);"></div>
+          <div style="flex: 1;">
+            <div style="font-size: 13px; font-weight: 500; color: var(--color-text-secondary);">Shared a personal challenge</div>
+            <div style="font-size: 11px; color: var(--color-text-muted);">2 days ago</div>
+          </div>
+        </div>
+      </div>
+    `,
+    message: 'Your conversation history will appear here',
+    actionLabel: 'Start a conversation',
+  },
+  no_goals: {
+    content: `
+      <div style="display: flex; flex-direction: column; gap: 10px;">
+        <div style="display: flex; align-items: center; gap: 10px; padding: 10px 14px; background: white; border-radius: 10px; opacity: 0.7;">
+          <div style="width: 20px; height: 20px; border-radius: 50%; border: 2px solid var(--persona-primary, #4a6741);"></div>
+          <span style="font-size: 13px; color: var(--color-text-primary);">Wake up by 7am daily</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 10px; padding: 10px 14px; background: white; border-radius: 10px; opacity: 0.5;">
+          <div style="width: 20px; height: 20px; border-radius: 50%; border: 2px solid var(--color-text-muted);"></div>
+          <span style="font-size: 13px; color: var(--color-text-secondary);">Read for 20 minutes</span>
+        </div>
+      </div>
+    `,
+    message: 'Track goals together after a few conversations',
+    actionLabel: 'Let\'s talk about goals',
+  },
+  no_team: {
+    content: `
+      <div style="display: flex; justify-content: center; gap: 8px;">
+        <div style="width: 44px; height: 44px; border-radius: 50%; background: linear-gradient(135deg, #4a6741, #3d5a35); opacity: 1;"></div>
+        <div style="width: 44px; height: 44px; border-radius: 50%; background: var(--color-text-muted); opacity: 0.4;"></div>
+        <div style="width: 44px; height: 44px; border-radius: 50%; background: var(--color-text-muted); opacity: 0.3;"></div>
+        <div style="width: 44px; height: 44px; border-radius: 50%; background: var(--color-text-muted); opacity: 0.2;"></div>
+      </div>
+    `,
+    message: 'Unlock more team members by building your relationship with Ferni',
+    actionLabel: 'Talk to Ferni',
+  },
+};
 
 // ============================================================================
 // SINGLETON EXPORT

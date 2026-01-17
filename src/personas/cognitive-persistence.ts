@@ -16,11 +16,14 @@ import type { Firestore as FirestoreType } from '@google-cloud/firestore';
 import { getFirestoreDatabase, getGCPProjectId } from '../config/environment.js';
 import { createLogger } from '../utils/safe-logger.js';
 import type { ReasoningStyle } from './cognitive-types.js';
+import { cleanForFirestore } from '../utils/firestore-utils.js';
 
 const log = createLogger({ module: 'CognitivePersistence' });
 
 // Module-level Firestore instance (lazy initialized)
 let db: FirestoreType | null = null;
+// FIX: Promise-based singleton to prevent race condition
+let dbInitPromise: Promise<FirestoreType | null> | null = null;
 
 // ============================================================================
 // TYPES
@@ -107,7 +110,13 @@ export interface PersistedKnowledgeState {
  */
 async function getFirestore(): Promise<FirestoreType | null> {
   if (db) return db;
+  if (dbInitPromise) return dbInitPromise;
 
+  dbInitPromise = initializeFirestore();
+  return dbInitPromise;
+}
+
+async function initializeFirestore(): Promise<FirestoreType | null> {
   try {
     const { Firestore } = await import('@google-cloud/firestore');
     db = new Firestore({
@@ -118,6 +127,7 @@ async function getFirestore(): Promise<FirestoreType | null> {
     return db;
   } catch (error) {
     log.warn({ error }, 'Firestore not available for cognitive persistence');
+    dbInitPromise = null; // Allow retry
     return null;
   }
 }
@@ -146,10 +156,10 @@ export async function saveCognitiveLearning(data: PersistedCognitiveLearning): P
       .collection(COGNITIVE_LEARNING_COLLECTION)
       .doc(docId)
       .set(
-        {
+        cleanForFirestore({
           ...data,
           updatedAt: new Date().toISOString(),
-        },
+        }),
         { merge: true }
       );
 
@@ -259,10 +269,10 @@ export async function saveKnowledgeState(data: PersistedKnowledgeState): Promise
       .collection(KNOWLEDGE_STATE_COLLECTION)
       .doc('state')
       .set(
-        {
+        cleanForFirestore({
           ...data,
           updatedAt: new Date().toISOString(),
-        },
+        }),
         { merge: true }
       );
 
@@ -456,7 +466,7 @@ export function fromPersistedKnowledge(data: PersistedKnowledgeState): {
   >();
 
   for (const [topic, info] of Object.entries(data.topicsExplained)) {
-    topicsExplained.set(topic, {
+    topicsExplained.set(cleanForFirestore(topic), {
       firstExplained: new Date(info.firstExplained),
       timesRevisited: info.timesRevisited,
       understandingLevel: info.understandingLevel,

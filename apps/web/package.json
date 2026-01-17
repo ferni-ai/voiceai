@@ -1,6 +1,6 @@
 {
   "name": "voiceai-frontend",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Ferni Frontend - Better than human. Voice-first life coaching experience.",
   "type": "module",
   "scripts": {
@@ -15,6 +15,17 @@
     "lint": "ESLINT_USE_FLAT_CONFIG=false eslint src --ext .ts,.tsx",
     "lint:fix": "ESLINT_USE_FLAT_CONFIG=false eslint src --ext .ts,.tsx --fix",
     "lint:tokens": "node scripts/validate-design-tokens.js",
+    "lint:result-types": "node scripts/lint-result-types.js",
+    "lint:i18n": "node scripts/lint-i18n.js",
+    "i18n:sync": "node scripts/sync-i18n.js --write",
+    "i18n:sync-missing": "node scripts/sync-missing-i18n.js",
+    "i18n:check": "node scripts/sync-i18n.js",
+    "i18n:extract": "node scripts/extract-i18n-strings.js",
+    "i18n:fix:toasts": "node scripts/fix-i18n-toasts.js",
+    "i18n:fix:text": "node scripts/fix-i18n-text.js",
+    "i18n:fix:aria": "node scripts/fix-i18n-aria.js",
+    "i18n:fix:all": "node scripts/fix-i18n-toasts.js && node scripts/fix-i18n-text.js && node scripts/fix-i18n-aria.js && npm run i18n:sync-missing",
+    "i18n:coverage": "node scripts/sync-missing-i18n.js",
     "generate:icons": "node scripts/generate-icons.js",
     "lint:brand": "node scripts/check-brand-compliance.js",
     "lint:a11y": "node scripts/check-a11y-colors.js",
@@ -39,7 +50,8 @@
     "@tsparticles/slim": "^3.9.1",
     "firebase": "^10.14.1",
     "gsap": "^3.13.0",
-    "livekit-client": "^2.0.0"
+    "livekit-client": "^2.0.0",
+    "zod": "^3.23.0"
   },
   "devDependencies": {
     "@capacitor/cli": "^7.4.4",
@@ -71,7 +83,11 @@
     ],
     "src/ui/**/*.ts": [
       "node scripts/validate-design-tokens.js",
-      "node scripts/check-a11y-colors.js --strict"
+      "node scripts/check-a11y-colors.js --strict",
+      "node scripts/lint-i18n.js --staged"
+    ],
+    "src/services/**/*.ts": [
+      "node scripts/lint-i18n.js --staged"
     ],
     "src/**/*.{ts,tsx,css}": [
       "node scripts/check-brand-compliance.js"

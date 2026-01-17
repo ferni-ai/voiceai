@@ -61,6 +61,7 @@ import type { ConnectionState, DataMessage } from '../types/events.js';
 import type { RoomState, TokenRequest, TokenResponse } from '../types/livekit.js';
 import { isValidTokenResponse } from '../types/livekit.js';
 import { createLogger } from '../utils/logger.js';
+import { spotifyService } from './spotify.service.js';
 
 const log = createLogger('Connection');
 
@@ -107,6 +108,9 @@ class ConnectionService {
   private qualityMonitorInterval: number | null = null;
   // Cache audio elements by participant to prevent duplicate creation
   private audioElements: Map<string, HTMLAudioElement> = new Map();
+
+  // Track intentional disconnects vs crashes
+  private isDisconnecting = false;
 
   // 🎚️ Music track identification
   // When we receive music_state: playing, we expect a music track soon
@@ -261,6 +265,53 @@ class ConnectionService {
   }
 
   /**
+   * 🎚️ FIX: Re-attach the most recent music track for ducking.
+   * Called when we receive music_state: playing to ensure ducking is on the right track.
+   * This handles the case where a stinger was attached instead of real music.
+   */
+  reattachMusicTrackForDucking(): void {
+    // Find the most recent music track from pending buffer
+    if (this.pendingMusicTracks.size === 0) {
+      log.debug('🎚️ No pending tracks to re-attach for ducking');
+      return;
+    }
+
+    let mostRecentTrack: { trackKey: string; audioEl: HTMLAudioElement } | null = null;
+    let mostRecentTime = 0;
+
+    for (const [trackKey, { audioEl, timestamp }] of this.pendingMusicTracks) {
+      if (timestamp > mostRecentTime) {
+        mostRecentTime = timestamp;
+        mostRecentTrack = { trackKey, audioEl };
+      }
+    }
+
+    if (!mostRecentTrack) {
+      return;
+    }
+
+    const { trackKey, audioEl } = mostRecentTrack;
+
+    // Mark as music track
+    this.musicTrackIds.add(trackKey);
+    this.pendingMusicTracks.delete(trackKey);
+
+    log.info('🎚️ Re-attaching music track for ducking', { trackKey });
+
+    // Route to MusicAudioController for ducking
+    this.callbacks.onMusicTrack?.(audioEl, trackKey);
+  }
+
+  /**
+   * Check if we're expecting a music track (music_state: playing was received).
+   * Used by fallback UI logic to distinguish real music from system stingers.
+   * System stingers (sound-*) don't send music_state messages.
+   */
+  isExpectingMusic(): boolean {
+    return this.expectingMusicTrack;
+  }
+
+  /**
    * Connect to a LiveKit room.
    */
   async connect(): Promise<boolean> {
@@ -272,7 +323,18 @@ class ConnectionService {
     try {
       this.updateState('connecting');
 
-      // Get connection parameters from state
+      // CRITICAL FIX: Wait for Firebase Auth to initialize before connecting
+      // This ensures we have the Firebase UID for proper user identification
+      try {
+        const { initializeAuth } = await import('./auth-init.service.js');
+        await initializeAuth();
+        log.debug('Firebase auth ready for connection');
+      } catch (authError) {
+        // Continue even if auth fails - will fall back to device ID
+        log.warn('Auth init failed, will use device ID:', authError);
+      }
+
+      // Get connection parameters from state (now with Firebase UID if available)
       const state = appState.getState();
 
       // Check for claimed demo conversation ("Better than human")
@@ -313,6 +375,13 @@ class ConnectionService {
         // Claimed demo conversation (Better than human - remember first conversation)
         claimedDemoConversation,
       };
+
+      // Debug: Log identity being used for connection
+      log.info('Connection identity', {
+        firebaseUid: state.firebaseUid ? state.firebaseUid.substring(0, 8) + '...' : 'none',
+        deviceId: state.deviceId.substring(0, 16) + '...',
+        hasFirebaseUid: !!state.firebaseUid,
+      });
 
       // Fetch token
       let tokenResponse;
@@ -359,6 +428,36 @@ class ConnectionService {
 
       this.updateState('connected');
       this.startQualityMonitoring();
+
+      // 📊 Initialize disconnect diagnostics session
+      try {
+        const { startSession, trackPeerConnection } = await import('./disconnect-diagnostics.service.js');
+        const sessionId = tokenResponse.room || `session-${Date.now()}`;
+        startSession(sessionId, tokenResponse.room || 'unknown', tokenResponse.username);
+        
+        // Track the RTCPeerConnection for WebRTC diagnostics
+        // LiveKit's Room internally uses RTCPeerConnection - try to access it
+        const pc = (this.room as unknown as { engine?: { pcManager?: { publisher?: { pc?: RTCPeerConnection } } } }).engine?.pcManager?.publisher?.pc;
+        if (pc) {
+          trackPeerConnection(pc);
+          log.debug('📊 Tracking RTCPeerConnection for diagnostics');
+        }
+      } catch (err) {
+        log.debug({ error: String(err) }, 'Disconnect diagnostics not available');
+      }
+
+      // Initialize Spotify Web Playback SDK now that user has interacted
+      // This must happen after user interaction (browser autoplay policy)
+      spotifyService.initialize().then((success) => {
+        if (success) {
+          log.info('🎵 Spotify Web Playback initialized');
+        } else {
+          log.debug('Spotify not available (not linked or not Premium)');
+        }
+      }).catch((err) => {
+        log.warn('Spotify init failed:', err);
+      });
+
       return true;
     } catch (error) {
       log.error('Connection failed:', error);
@@ -373,6 +472,9 @@ class ConnectionService {
    */
   async disconnect(): Promise<void> {
     if (!this.room) return;
+
+    // Mark as intentional disconnect (for crash analytics)
+    this.isDisconnecting = true;
 
     try {
       // Stop quality monitoring
@@ -395,6 +497,8 @@ class ConnectionService {
       this.updateState('disconnected');
     } catch (error) {
       log.error('Disconnect error:', error);
+    } finally {
+      this.isDisconnecting = false;
     }
   }
 
@@ -467,13 +571,30 @@ class ConnectionService {
 
     const url = `${API.TOKEN}?${params.toString()}`;
 
+    // 🔐 CRITICAL FIX: Include Firebase Auth Bearer token for user identification
+    // Without this, the server can't verify who you are and conversations
+    // get saved under anonymous device IDs instead of your profile!
+    const headers: Record<string, string> = {
+      Accept: 'application/json',
+    };
+
+    try {
+      const { getAuthToken } = await import('./firebase-auth.service.js');
+      const authToken = await getAuthToken();
+      if (authToken) {
+        headers['Authorization'] = `Bearer ${authToken}`;
+        log.debug('Including Firebase auth token in token request');
+      }
+    } catch (authError) {
+      // Auth service not available or not signed in - continue without
+      log.debug('No Firebase auth token available:', authError);
+    }
+
     let response: Response;
     try {
       response = await fetch(url, {
         method: 'GET',
-        headers: {
-          Accept: 'application/json',
-        },
+        headers,
         // iOS sometimes needs explicit cache control
         cache: 'no-cache',
       });
@@ -513,13 +634,44 @@ class ConnectionService {
     if (!this.room) return;
 
     // Connection state changes
-    const onConnectionStateChange = (state: string) => {
+    const onConnectionStateChange = async (state: string) => {
       const mapped = this.mapConnectionState(state);
       this.updateState(mapped);
+
+      // Update crash reporter context
+      try {
+        const { updateCrashContext } = await import('./crash-reporter.service.js');
+        updateCrashContext({
+          connectionState: mapped as 'connecting' | 'connected' | 'reconnecting' | 'disconnected',
+          roomName: this.room?.name,
+        });
+      } catch {
+        // Crash reporter not available
+      }
     };
     this.room.on('connectionStateChanged', onConnectionStateChange);
     this.cleanupFunctions.push(() => {
       this.room?.off('connectionStateChanged', onConnectionStateChange);
+    });
+
+    // 🔄 Handle reconnection - re-enable microphone after LiveKit reconnects
+    // This fixes the issue where mic disconnects and needs to be manually re-enabled
+    const onReconnected = async () => {
+      log.info('🔄 Room reconnected - re-enabling microphone');
+      try {
+        // Check if mic should be enabled (user hasn't muted)
+        const isMuted = (window as unknown as { appState?: { get?: (key: string) => unknown } }).appState?.get?.('isMuted') ?? false;
+        if (!isMuted && this.room?.localParticipant) {
+          await this.room.localParticipant.setMicrophoneEnabled(true);
+          log.info('🎤 Microphone re-enabled after reconnection');
+        }
+      } catch (err) {
+        log.warn('Failed to re-enable mic after reconnection:', err);
+      }
+    };
+    this.room.on('reconnected', onReconnected);
+    this.cleanupFunctions.push(() => {
+      this.room?.off('reconnected', onReconnected);
     });
 
     // Participant connected (agent joins)
@@ -650,16 +802,43 @@ class ConnectionService {
           }
         };
 
-        void playAudio();
-
-        // 🎚️ Route music tracks to MusicAudioController for ducking
+        // 🎚️ CRITICAL FIX: For music tracks, we need Web Audio attached BEFORE playing!
+        // If we play first and attach Web Audio later, the audio bypasses our GainNode.
+        // 
+        // For MUSIC tracks: Trigger attachment, wait briefly for Web Audio setup, then play
+        // For VOICE tracks: Play immediately (ducking triggers from this callback)
         if (isMusicTrack) {
-          this.callbacks.onMusicTrack?.(audioEl, trackKey);
+          // 🎚️ Attach to Web Audio FIRST, then play
+          // This ensures the audio flows through our GainNode from the start
+          const musicCallback = this.callbacks.onMusicTrack;
+          if (musicCallback) {
+            log.info('🎚️ Music track detected - starting Web Audio attachment BEFORE playback', { trackKey });
+            
+            // Call the callback which will start async attachment
+            // The callback's async work will complete in parallel with our timeout
+            musicCallback(audioEl, trackKey);
+            
+            // Give Web Audio time to:
+            // 1. Initialize AudioContext if needed (may require user gesture)
+            // 2. Create MediaElementSource 
+            // 3. Connect the audio chain
+            // 200ms should be enough for Web Audio initialization
+            setTimeout(() => {
+              log.info('🎚️ Starting music playback (Web Audio attachment should be complete)', { trackKey });
+              void playAudio();
+            }, 200);
+          } else {
+            // No callback - just play directly
+            void playAudio();
+          }
+        } else {
+          // Voice tracks: Play immediately, fire callback for ducking trigger
+          void playAudio();
+          // Pass VOICE audio element AND track for visualization
+          // Track-based visualization works better for WebRTC streams
+          // NOTE: Only for voice tracks - music visualization is handled separately
+          this.callbacks.onAudioTrack?.(audioEl, participant.identity, track.mediaStreamTrack);
         }
-
-        // Pass audio element AND track for visualization
-        // Track-based visualization works better for WebRTC streams
-        this.callbacks.onAudioTrack?.(audioEl, participant.identity, track.mediaStreamTrack);
       }
     };
     this.room.on('trackSubscribed', onTrackSubscribed);
@@ -707,8 +886,13 @@ class ConnectionService {
     });
 
     // Local track unpublished (microphone disabled)
+    // ⚠️ This fires when mic is taken away by iOS audio interruption, reconnect, etc.
     const onLocalTrackUnpublished = (publication: { kind: string }, _participant: unknown) => {
       if (publication.kind === 'audio') {
+        log.warn('⚠️ Local audio track unpublished (mic dropped)', { 
+          roomState: this.room?.state,
+          visibilityState: document.visibilityState,
+        });
         this.callbacks.onLocalMicActive?.(false);
       }
     };
@@ -718,8 +902,13 @@ class ConnectionService {
     });
 
     // Track muted/unmuted (for detecting when user mutes their mic)
+    // ⚠️ trackMuted can fire due to iOS audio session interruption
     const onTrackMuted = (publication: { kind: string }, participant: { isLocal?: boolean }) => {
       if (participant.isLocal && publication.kind === 'audio') {
+        log.debug('🔇 Local audio track muted', {
+          roomState: this.room?.state,
+          visibilityState: document.visibilityState,
+        });
         this.callbacks.onLocalMicActive?.(false);
       }
     };
@@ -753,13 +942,112 @@ class ConnectionService {
       this.room?.off('dataReceived', onDataReceived);
     });
 
-    // Disconnected
-    const onDisconnected = () => {
+    // Disconnected - COMPREHENSIVE DIAGNOSTICS
+    const onDisconnected = async (reason?: unknown) => {
+      const disconnectTime = Date.now();
+      const wasGraceful = this.isDisconnecting; // Check if we initiated the disconnect
+      const disconnectReason = String(reason || 'unknown');
+
+      // 🚨 CRITICAL: Capture FULL disconnect diagnostics
+      log.warn(
+        {
+          wasGraceful,
+          disconnectReason,
+          roomName: this.room?.name,
+          roomState: this.room?.state,
+          isDisconnecting: this.isDisconnecting,
+          disconnectTime: new Date(disconnectTime).toISOString(),
+        },
+        wasGraceful
+          ? '🔌 Graceful disconnect from LiveKit room'
+          : `🚨 UNEXPECTED DISCONNECT from LiveKit room - reason: ${disconnectReason}`
+      );
+
       this.updateState('disconnected');
+
+      // 📊 Capture comprehensive disconnect diagnostics
+      try {
+        const { captureDisconnectDiagnostic, endSession } = await import('./disconnect-diagnostics.service.js');
+        await captureDisconnectDiagnostic(disconnectReason, wasGraceful, this.room?.state);
+        endSession();
+      } catch (err) {
+        log.error({ error: String(err) }, 'Failed to capture disconnect diagnostics');
+      }
+
+      // Report unexpected disconnections to crash analytics with full context
+      try {
+        const { reportConnectionDrop } = await import('./crash-reporter.service.js');
+        reportConnectionDrop(`LiveKit disconnect: ${disconnectReason}`, wasGraceful, {
+          roomName: this.room?.name,
+          disconnectTime: new Date(disconnectTime).toISOString(),
+          disconnectReason,
+          source: 'livekit_disconnected_event',
+        });
+      } catch (err) {
+        log.error({ error: String(err) }, 'Failed to report connection drop');
+      }
     };
     this.room.on('disconnected', onDisconnected);
     this.cleanupFunctions.push(() => {
       this.room?.off('disconnected', onDisconnected);
+    });
+
+    // 📱 Handle mobile visibility changes (screen lock, tab switch)
+    // When returning to app, audio track may need to be restored
+    const onVisibilityChange = async () => {
+      if (document.visibilityState === 'visible' && this.room?.state === 'connected') {
+        log.debug('📱 App became visible - checking microphone state');
+        try {
+          const isMuted = (window as unknown as { appState?: { get?: (key: string) => unknown } }).appState?.get?.('isMuted') ?? false;
+          if (!isMuted && this.room?.localParticipant) {
+            // Small delay to let audio context resume
+            await new Promise(resolve => setTimeout(resolve, 100));
+            
+            // Check if mic is already publishing
+            const audioTracks = this.room.localParticipant.getTrackPublications()
+              .filter((pub: { kind?: string; track?: unknown }) => pub.kind === 'audio' && pub.track);
+            
+            if (audioTracks.length === 0) {
+              log.info('📱 No audio track found - re-enabling microphone');
+              await this.room.localParticipant.setMicrophoneEnabled(true);
+              log.info('🎤 Microphone restored after visibility change');
+            }
+          }
+        } catch (err) {
+          log.warn('Failed to restore mic on visibility change:', err);
+        }
+      }
+    };
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    this.cleanupFunctions.push(() => {
+      document.removeEventListener('visibilitychange', onVisibilityChange);
+    });
+
+    // 📱 Handle native app state changes (iOS/Android via Capacitor)
+    // This fires when app comes back from background, after phone calls, etc.
+    const onAppState = async (event: Event) => {
+      const { isActive } = (event as CustomEvent<{ isActive: boolean }>).detail;
+      
+      if (isActive && this.room?.state === 'connected') {
+        log.info('📱 Native app became active - restoring microphone');
+        try {
+          const isMuted = (window as unknown as { appState?: { get?: (key: string) => unknown } }).appState?.get?.('isMuted') ?? false;
+          if (!isMuted && this.room?.localParticipant) {
+            // Longer delay for native - iOS audio session needs time to restore
+            await new Promise(resolve => setTimeout(resolve, 300));
+            
+            // Re-enable microphone
+            await this.room.localParticipant.setMicrophoneEnabled(true);
+            log.info('🎤 Microphone restored after native app state change');
+          }
+        } catch (err) {
+          log.warn('Failed to restore mic on app state change:', err);
+        }
+      }
+    };
+    document.addEventListener('ferni:app-state', onAppState);
+    this.cleanupFunctions.push(() => {
+      document.removeEventListener('ferni:app-state', onAppState);
     });
   }
 

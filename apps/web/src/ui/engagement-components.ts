@@ -283,6 +283,20 @@ export const ICONS = {
     <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
     <path d="M12 17h.01"/>
   </svg>`,
+
+  star: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+  </svg>`,
+
+  moon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+  </svg>`,
+
+  volume: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+    <path d="M15.54 8.46a5 5 0 0 1 0 7.07"/>
+    <path d="M19.07 4.93a10 10 0 0 1 0 14.14"/>
+  </svg>`,
 } as const;
 
 export type IconName = keyof typeof ICONS;
@@ -334,20 +348,18 @@ export const SHARED_STYLES = `
     visibility: visible;
   }
 
-  /* Modal Backdrop - Blurred overlay */
+  /* Modal Backdrop */
   .ferni-modal__backdrop {
     position: absolute;
     inset: 0;
-    background: var(--backdrop-heavy);
-    backdrop-filter: blur(var(--glass-blur-subtle, 8px));
-    -webkit-backdrop-filter: blur(var(--glass-blur-subtle, 8px));
+    background: rgba(44, 37, 32, 0.75);
   }
 
   /* Modal Card - The floating content container */
   .ferni-modal__card {
     position: relative;
     width: 100%;
-    max-width: 420px;
+    max-width: clamp(294px, 90vw, 420px);
     max-height: 80vh;
     background: var(--color-background-elevated);
     border-radius: var(--radius-2xl, 1.5rem);
@@ -441,7 +453,7 @@ export const SHARED_STYLES = `
     top: 0;
     right: 0;
     bottom: 0;
-    width: 320px;
+    width: min(320px, 100%);
     max-width: 85vw;
     background: var(--color-background-elevated);
     box-shadow: var(--shadow-2xl);
@@ -460,7 +472,7 @@ export const SHARED_STYLES = `
   /* ========================================
      RESPONSIVE - Modal/Menu adjustments
      ======================================== */
-  @media (max-width: 480px) {
+  @media (max-width: clamp(336px, 90vw, 480px)) {
     .ferni-modal {
       /* Respect safe areas on notched devices */
       padding: max(var(--space-4, 16px), env(safe-area-inset-top, 0))
@@ -497,7 +509,7 @@ export const SHARED_STYLES = `
   
   /* iOS Safari specific fixes */
   @supports (-webkit-touch-callout: none) {
-    @media (max-width: 480px) {
+    @media (max-width: clamp(336px, 90vw, 480px)) {
       .ferni-modal__card {
         max-height: -webkit-fill-available;
       }
@@ -725,18 +737,22 @@ export const SHARED_STYLES = `
     font-size: var(--text-sm);
     font-weight: var(--font-weight-medium, 500);
     color: var(--color-text-muted);
-    background: transparent;
+    background: var(--tonal-surface-2);
     border: none;
     border-radius: var(--radius-lg);
     cursor: pointer;
-    transition: 
+    transition:
       color var(--duration-fast) var(--ease-gentle),
       background var(--duration-fast) var(--ease-gentle);
   }
 
   .engagement-btn-secondary:hover {
     color: var(--color-text-primary);
-    background: var(--color-background-secondary);
+    background: var(--tonal-surface-3);
+  }
+
+  .engagement-btn-secondary:active {
+    background: var(--tonal-surface-active);
   }
 
   /* -------------------------------------
@@ -808,7 +824,7 @@ export const SHARED_STYLES = `
   .engagement-empty-message {
     font-size: var(--text-sm);
     color: var(--color-text-secondary);
-    max-width: 200px;
+    max-width: min(200px, 100%);
     line-height: var(--leading-normal);
     margin: 0;
   }

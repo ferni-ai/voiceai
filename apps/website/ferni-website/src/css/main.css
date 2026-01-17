@@ -10,7 +10,7 @@
   left: 50%;
   transform: translateX(-50%);
   padding: 1rem 2rem;
-  background: var(--color-ferni, #4a6741);
+  background: var(--color-ferni, var(--color-ferni));
   color: white;
   font-weight: 600;
   border-radius: 0 0 0.75rem 0.75rem;
@@ -134,7 +134,7 @@
   width: 3px;
   height: 100%;
   background: rgba(255, 255, 255, 0.8);
-  border-radius: 2px;
+  border-radius: var(--radius-xs);
   transform-origin: center;
   animation: waveformIdle 1.2s ease-in-out infinite;
   animation-delay: calc(var(--bar-index, 0) * 0.1s);
@@ -353,7 +353,7 @@
   .ferni-orb {
     @apply relative flex items-center justify-center;
     @apply rounded-full;
-    background: linear-gradient(to bottom right, #5a7751, #4a6741, #3d5545);
+    background: linear-gradient(to bottom right, var(--color-ferni), var(--color-ferni), var(--color-ferni-secondary));
     box-shadow: 0 0 40px rgba(74, 103, 65, 0.3);
   }
 
@@ -413,7 +413,7 @@
   }
 
   .section-dark {
-    @apply bg-gradient-to-b from-[#1a1512] via-[#2a2420] to-paper;
+    @apply bg-gradient-to-b from-[var(--color-bg-dark)] via-[var(--color-bg-dark-elevated)] to-paper;
     @apply text-white;
   }
 
@@ -518,7 +518,7 @@
   justify-content: center;
   font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
   font-weight: 700;
-  font-size: 14px;
+  font-size: var(--text-sm);
   color: white;
   flex-shrink: 0;
 }
@@ -532,19 +532,19 @@
 .blog-post__author-name {
   font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
   font-weight: 600;
-  font-size: 15px;
-  color: var(--color-text, #2c2520);
+  font-size: var(--text-base);
+  color: var(--color-text, var(--color-text-primary));
 }
 
 .blog-post__author-role {
-  font-size: 12px;
+  font-size: var(--text-xs);
   font-weight: 500;
-  color: var(--color-text-muted, #8a7f72);
+  color: var(--color-text-muted, var(--color-stone));
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
 
 .blog-post__date {
-  font-size: 13px;
-  color: var(--color-text-muted, #8a7f72);
+  font-size: var(--text-sm);
+  color: var(--color-text-muted, var(--color-stone));
 }

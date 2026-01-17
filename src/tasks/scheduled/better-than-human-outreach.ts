@@ -28,7 +28,7 @@ import {
 } from '../../services/trust-systems/thinking-of-you.js';
 
 // Store for active user IDs (in production, would come from Firestore)
-let activeUserIds: string[] = [];
+const activeUserIds: string[] = [];
 
 const log = createLogger({ module: 'BetterThanHumanOutreach' });
 

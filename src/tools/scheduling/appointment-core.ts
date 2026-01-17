@@ -6,7 +6,12 @@
 
 import { getLogger } from '../../utils/safe-logger.js';
 import { validatePhone, sanitizePhoneForLog } from '../validation.js';
-import { getAppointmentFollowUpService } from '../../services/appointment-followup.js';
+import { getAppointmentFollowUpService } from '../../services/scheduling/appointment-followup.js';
+import {
+  syncAppointmentToCalendar,
+  updateCalendarSyncedItem,
+  removeCalendarSyncedItem,
+} from '../../services/calendar/calendar-bridge.js';
 import type { AppointmentType, AppointmentStatus, ScheduledAppointment } from './types.js';
 
 // Twilio credentials
@@ -24,7 +29,7 @@ const appointments = new Map<string, ScheduledAppointment>();
 /**
  * Create a new appointment request and track it for follow-up
  */
-export function createAppointmentRequest(params: {
+export async function createAppointmentRequest(params: {
   userId: string;
   type: AppointmentType;
   businessName: string;
@@ -35,7 +40,7 @@ export function createAppointmentRequest(params: {
   specialRequests?: string;
   linkedMilestoneId?: string;
   linkedEventName?: string;
-}): ScheduledAppointment {
+}): Promise<ScheduledAppointment> {
   const id = `apt_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
 
   const appointment: ScheduledAppointment = {
@@ -90,19 +95,132 @@ export function createAppointmentRequest(params: {
     'Appointment request created'
   );
 
+  // Sync appointment to calendar for unified visibility
+  // Even pending appointments should appear on the calendar (marked as tentative)
+  try {
+    const appointmentTitle = getAppointmentTitle(params.type, params.businessName);
+    const calendarResult = await syncAppointmentToCalendar(
+      params.userId,
+      id,
+      appointmentTitle,
+      params.requestedDateTime,
+      {
+        location: params.businessName,
+        contactName: params.forPerson,
+        description: buildAppointmentDescription(appointment),
+        durationMinutes: getDefaultDuration(params.type),
+      }
+    );
+
+    if (calendarResult.success) {
+      getLogger().info(
+        {
+          appointmentId: id,
+          calendarEventId: calendarResult.calendarEventId,
+        },
+        '📅 Appointment synced to calendar'
+      );
+
+      if (calendarResult.conflicts && calendarResult.conflicts.length > 0) {
+        getLogger().warn(
+          {
+            appointmentId: id,
+            conflicts: calendarResult.conflicts.length,
+          },
+          '⚠️ Appointment conflicts with existing calendar events'
+        );
+      }
+    }
+  } catch (calendarError) {
+    // Don't fail appointment creation if calendar sync fails
+    getLogger().warn(
+      { error: String(calendarError), appointmentId: id },
+      '⚠️ Failed to sync appointment to calendar'
+    );
+  }
+
   return appointment;
+}
+
+/**
+ * Generate a human-readable title for the appointment
+ */
+function getAppointmentTitle(type: AppointmentType, businessName: string): string {
+  const typeLabels: Record<AppointmentType, string> = {
+    restaurant: 'Reservation',
+    doctor: 'Doctor Appointment',
+    dentist: 'Dentist Appointment',
+    salon: 'Salon Appointment',
+    spa: 'Spa Appointment',
+    vet: 'Vet Appointment',
+    veterinary: 'Vet Appointment',
+    service: 'Service Appointment',
+    general_service: 'Appointment',
+    consultation: 'Consultation',
+    meeting: 'Meeting',
+    other: 'Appointment',
+  };
+  return `${typeLabels[type] || 'Appointment'} at ${businessName}`;
+}
+
+/**
+ * Get default appointment duration based on type
+ */
+function getDefaultDuration(type: AppointmentType): number {
+  const durations: Record<AppointmentType, number> = {
+    restaurant: 90,
+    doctor: 60,
+    dentist: 60,
+    salon: 60,
+    spa: 120,
+    vet: 45,
+    veterinary: 45,
+    service: 60,
+    general_service: 60,
+    consultation: 60,
+    meeting: 60,
+    other: 60,
+  };
+  return durations[type] || 60;
+}
+
+/**
+ * Build appointment description for calendar
+ */
+function buildAppointmentDescription(apt: ScheduledAppointment): string {
+  const parts: string[] = [];
+
+  if (apt.forPerson) {
+    parts.push(`For: ${apt.forPerson}`);
+  }
+  if (apt.partySize) {
+    parts.push(`Party size: ${apt.partySize}`);
+  }
+  if (apt.specialRequests) {
+    parts.push(`Special requests: ${apt.specialRequests}`);
+  }
+  if (apt.status !== 'confirmed') {
+    parts.push(`\nStatus: ${apt.status.toUpperCase()} - awaiting confirmation`);
+  }
+  if (apt.confirmationNumber) {
+    parts.push(`Confirmation #: ${apt.confirmationNumber}`);
+  }
+
+  parts.push(`\n[Ferni ID: ${apt.id}]`);
+
+  return parts.join('\n');
 }
 
 /**
  * Update appointment status
  */
-export function updateAppointmentStatus(
+export async function updateAppointmentStatus(
   id: string,
   status: AppointmentStatus,
   note?: string,
   confirmedDateTime?: Date,
   confirmationNumber?: string
-): ScheduledAppointment | null {
+): Promise<ScheduledAppointment | null> {
   const apt = appointments.get(id);
   if (!apt) return null;
 
@@ -114,6 +232,36 @@ export function updateAppointmentStatus(
   if (note) apt.notes.push(`[${new Date().toISOString()}] ${note}`);
 
   appointments.set(id, apt);
+
+  // Update or remove calendar event based on status
+  try {
+    if (status === 'cancelled') {
+      // Remove from calendar when cancelled
+      await removeCalendarSyncedItem(apt.userId, id);
+      getLogger().info({ appointmentId: id }, '📅 Cancelled appointment removed from calendar');
+    } else if (status === 'confirmed' && confirmedDateTime) {
+      // Update calendar event with confirmed time
+      await updateCalendarSyncedItem(apt.userId, id, {
+        scheduledFor: confirmedDateTime,
+        description: buildAppointmentDescription(apt),
+      });
+      getLogger().info(
+        { appointmentId: id },
+        '📅 Calendar updated with confirmed appointment time'
+      );
+    } else {
+      // Update calendar event with new status
+      await updateCalendarSyncedItem(apt.userId, id, {
+        description: buildAppointmentDescription(apt),
+      });
+    }
+  } catch (calendarError) {
+    getLogger().warn(
+      { error: String(calendarError), appointmentId: id },
+      '⚠️ Failed to update calendar for appointment status change'
+    );
+  }
+
   return apt;
 }
 

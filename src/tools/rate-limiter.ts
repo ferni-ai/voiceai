@@ -202,11 +202,13 @@ function getServiceConfig(service: string): Partial<RateLimitConfig> {
       refillInterval: 1000,
     },
 
-    // ESPN (sports scores) - public API, be nice
+    // ESPN (sports scores) - public API, fairly generous limits
+    // Note: getTeamScore iterates through 8 sports leagues to find a team,
+    // so we need enough tokens for multiple teams at session startup
     espn: {
-      maxTokens: 5,
-      refillRate: 1,
-      refillInterval: 2000,
+      maxTokens: 30,
+      refillRate: 5,
+      refillInterval: 1000, // 5 per second, burst of 30
     },
 
     // Weather API - generous
@@ -228,6 +230,27 @@ function getServiceConfig(service: string): Partial<RateLimitConfig> {
       maxTokens: 10,
       refillRate: 2,
       refillInterval: 1000,
+    },
+
+    // Google Calendar API - 1M queries/day but be conservative
+    'google-calendar': {
+      maxTokens: 20,
+      refillRate: 5,
+      refillInterval: 1000, // 5 per second
+    },
+
+    // Cartesia TTS - generous but protect from abuse
+    cartesia: {
+      maxTokens: 50,
+      refillRate: 10,
+      refillInterval: 1000, // 10 per second
+    },
+
+    // Cartesia Voice Clone - expensive operation
+    'cartesia-voice-clone': {
+      maxTokens: 5,
+      refillRate: 1,
+      refillInterval: 5000, // 1 every 5 seconds
     },
   };
 

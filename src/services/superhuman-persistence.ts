@@ -14,6 +14,7 @@ import type {
   SuperhumanPatternData,
 } from '../types/profile/conversation-memory.js';
 import { createLogger } from '../utils/safe-logger.js';
+import { cleanForFirestore } from '../utils/firestore-utils.js';
 
 const logger = createLogger({ module: 'SuperhumanPersistence' });
 
@@ -151,9 +152,10 @@ export async function loadSuperhumanData(
 
     // Load memories into proactive memory engine
     const memoryEngine = getProactiveMemoryEngine(sessionId);
-    if (data.memories.length > 0) {
+    const memories = data.memories ?? [];
+    if (memories.length > 0) {
       // Convert to engine format (they're the same structure, but engine has additional runtime fields)
-      const memoriesForEngine = data.memories.map((m) => ({
+      const memoriesForEngine = memories.map((m) => ({
         ...m,
         surfaced: false,
         surfaceCount: 0,
@@ -161,7 +163,7 @@ export async function loadSuperhumanData(
       }));
       memoryEngine.importMemories(memoriesForEngine);
       logger.info(
-        { userId, memoryCount: data.memories.length },
+        { userId, memoryCount: memories.length },
         '🧠 Loaded memories from previous sessions'
       );
     }
@@ -187,11 +189,12 @@ export async function loadSuperhumanData(
       logger.info({ userId }, '🧠 Loaded learning patterns from previous sessions');
     }
 
+    const patterns = data.patterns ?? [];
     logger.info(
       {
         userId,
-        memoriesLoaded: data.memories.length,
-        patternsLoaded: data.patterns.length,
+        memoriesLoaded: memories.length,
+        patternsLoaded: patterns.length,
         hasLearning: !!data.learning,
       },
       '✅ Superhuman data loaded successfully'
@@ -342,7 +345,10 @@ export function createFirestoreSuperhumanStore(
           lastUpdated: data.lastUpdated.toISOString(),
         };
 
-        await db.collection(COLLECTION).doc(data.userId).set(serialized, { merge: true });
+        await db
+          .collection(COLLECTION)
+          .doc(data.userId)
+          .set(cleanForFirestore(serialized), { merge: true });
       } catch (error) {
         logger.error({ userId: data.userId, error }, 'Error saving superhuman data to Firestore');
         throw error;

@@ -92,8 +92,10 @@ describe('Subscription E2E Integration', () => {
       expect(body.tiers).toHaveLength(3);
       expect(body.tiers.map((t) => t.id)).toEqual(['free', 'friend', 'partner']);
       expect(body.tiers.find((t) => t.id === 'free')?.priceInSmallestUnit).toBe(0);
-      expect(body.tiers.find((t) => t.id === 'friend')?.priceInSmallestUnit).toBe(999);
-      expect(body.tiers.find((t) => t.id === 'partner')?.priceInSmallestUnit).toBe(1999);
+      // Note: "Friend" tier is $10/month (1000 cents) - see subscription.ts
+      expect(body.tiers.find((t) => t.id === 'friend')?.priceInSmallestUnit).toBe(1000);
+      // Note: "Partner" tier is $20/month (2000 cents) - see subscription.ts
+      expect(body.tiers.find((t) => t.id === 'partner')?.priceInSmallestUnit).toBe(2000);
     });
 
     it('should indicate Stripe is not enabled when not configured', async () => {

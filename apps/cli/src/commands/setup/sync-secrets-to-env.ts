@@ -25,6 +25,9 @@ const SECRET_MAPPING: Record<string, string> = {
 
   // Google APIs
   'google-api-key': 'GOOGLE_API_KEY',
+  'google-client-id': 'GOOGLE_CLIENT_ID',
+  'google-client-secret': 'GOOGLE_CLIENT_SECRET',
+  'google-maps-api-key': 'GOOGLE_MAPS_API_KEY',
 
   // LiveKit
   'livekit-url': 'LIVEKIT_URL',
@@ -44,7 +47,7 @@ const SECRET_MAPPING: Record<string, string> = {
   'spotify-client-secret': 'SPOTIFY_CLIENT_SECRET',
   'spotify-refresh-token': 'SPOTIFY_REFRESH_TOKEN',
 
-  // Research APIs
+  // Research APIs (Peter - The Quant)
   'finnhub-api-key': 'FINNHUB_API_KEY',
   'alpha-vantage-key': 'ALPHA_VANTAGE_API_KEY',
   'fred-api-key': 'FRED_API_KEY',
@@ -55,6 +58,19 @@ const SECRET_MAPPING: Record<string, string> = {
 
   // Tracking
   'aftership-api-key': 'AFTERSHIP_API_KEY',
+
+  // Restaurant Reservations (Jordan)
+  'opentable-api-key': 'OPENTABLE_API_KEY',
+  'resy-api-key': 'RESY_API_KEY',
+  'yelp-api-key': 'YELP_API_KEY',
+
+  // Biometrics (Maya)
+  'oura-client-id': 'OURA_CLIENT_ID',
+  'oura-client-secret': 'OURA_CLIENT_SECRET',
+  'whoop-client-id': 'WHOOP_CLIENT_ID',
+  'whoop-client-secret': 'WHOOP_CLIENT_SECRET',
+  'terra-api-key': 'TERRA_API_KEY',
+  'terra-dev-id': 'TERRA_DEV_ID',
 
   // Admin
   'admin-api-key': 'ADMIN_API_KEY',
@@ -159,6 +175,8 @@ function main() {
     RESEARCH: ['FINNHUB_', 'ALPHA_VANTAGE_', 'FRED_'],
     TRAVEL: ['AMADEUS_'],
     TRACKING: ['AFTERSHIP_'],
+    RESERVATIONS: ['OPENTABLE_', 'RESY_', 'YELP_'],
+    BIOMETRICS: ['OURA_', 'WHOOP_', 'TERRA_', 'GOOGLE_FIT_'],
     ADMIN: ['ADMIN_', 'LOG_HASH_'],
     OBSERVABILITY: ['SENTRY_'],
     OTHER: [],

@@ -113,6 +113,62 @@ export interface SuperhumanInsights {
   };
 }
 
+/**
+ * Silence response content for meaningful silence moments.
+ * Makes quiet moments feel like genuine human connection.
+ */
+export interface SilenceResponses {
+  schema_version?: number;
+  description?: string;
+  philosophy?: string;
+  comfortable_presence?: {
+    general?: string[];
+    after_heavy_topic?: string[];
+    late_conversation?: string[];
+  };
+  memory_callback_templates?: string[];
+  thinking_out_loud?: {
+    after_personal_share?: string[];
+    after_question?: string[];
+    general?: string[];
+  };
+  micro_stories?: string[];
+  thoughtful_questions?: {
+    persona_voice?: string[];
+    family?: string[];
+    work?: string[];
+    general?: string[];
+  };
+  gentle_observations?: string[];
+  gentle_humor?: string[];
+  music_offerings?: string[];
+  game_suggestions?: string[];
+  time_aware?: {
+    late_night?: string[];
+    early_morning?: string[];
+    evening?: string[];
+    weekend?: string[];
+  };
+  topic_specific?: Record<string, string[]>;
+  llm_guidance?: {
+    presence?: { instruction_template?: string; examples?: string[] };
+    memory_callback?: { instruction_template?: string; examples?: string[] };
+    thoughtful_question?: { instruction_template?: string; examples?: string[] };
+    check_in?: { instruction_template?: string; examples?: string[] };
+  };
+  usage_rules?: {
+    first_silence_threshold_sec?: number;
+    second_silence_threshold_sec?: number;
+    extended_silence_threshold_sec?: number;
+    music_playing_minimum_sec?: number;
+    game_active_minimum_sec?: number;
+    presence_after_heavy_topic?: boolean;
+    no_humor_when_heavy?: boolean;
+    micro_story_min_turn_count?: number;
+    thoughtful_question_min_turn_count?: number;
+  };
+}
+
 // ============================================================================
 // LIFE COACHING BEHAVIOR TYPES
 // ============================================================================
@@ -609,6 +665,21 @@ export async function loadSuperhumanInsights(
   return null;
 }
 
+/**
+ * Load silence responses content for a specific persona
+ * Used for meaningful silence moments that feel like genuine human connection
+ */
+export async function loadSilenceResponses(personaId = 'ferni'): Promise<SilenceResponses | null> {
+  const content = await loadPersonaContent<SilenceResponses>(personaId, 'silence_responses');
+  if (content) return content;
+
+  // Fall back to Ferni
+  if (personaId !== 'ferni') {
+    return loadPersonaContent<SilenceResponses>('ferni', 'silence_responses');
+  }
+  return null;
+}
+
 // ============================================================================
 // LIFE COACHING DOMAIN LOADERS
 // ============================================================================
@@ -757,6 +828,7 @@ export default {
   loadEmotionalIntelligence,
   loadINoticePower,
   loadSuperhumanInsights,
+  loadSilenceResponses,
   // Life coaching domain loaders
   loadSecondChancesVoice,
   loadConnectionVoice,

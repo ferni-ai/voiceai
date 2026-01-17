@@ -59,7 +59,7 @@ const styles = `
     top: calc(var(--space-4, 16px) + env(safe-area-inset-top));
     left: 50%;
     transform: translateX(-50%) translateY(-120%);
-    z-index: 1000;
+    z-index: var(--z-dropdown);
     
     display: flex;
     align-items: center;
@@ -140,7 +140,7 @@ const styles = `
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    max-width: 250px;
+    max-width: min(250px, 100%);
   }
   
   .speaker-change-indicator__actions {
@@ -334,11 +334,11 @@ function showIndicator(state: IndicatorState, title: string, message: string): v
       <span class="speaker-change-indicator__message">${message}</span>
     </div>
     ${state === 'speaker_changed' ? `
-      <div class="speaker-change-indicator__actions">
-        <button class="speaker-change-indicator__btn speaker-change-indicator__btn--primary" data-action="yes">
+      <div class="speaker-change-indicator__actions" role="button" tabindex="0">
+        <button aria-label="${t('accessibility.yesItSMe')}" class="speaker-change-indicator__btn speaker-change-indicator__btn--primary" data-action="yes">
           Yes, it's me
         </button>
-        <button class="speaker-change-indicator__btn speaker-change-indicator__btn--secondary" data-action="new">
+        <button aria-label="${t('accessibility.someoneNew')}" class="speaker-change-indicator__btn speaker-change-indicator__btn--secondary" data-action="new">
           Someone new
         </button>
       </div>

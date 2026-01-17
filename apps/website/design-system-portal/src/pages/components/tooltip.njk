@@ -1,0 +1,882 @@
+---
+layout: layouts/base.njk
+title: Tooltip
+description: Contextual hints and information popups
+permalink: /components/tooltip/
+---
+
+<article class="component-page">
+  <header class="page-header">
+    <h1>Tooltip</h1>
+    <p class="lead">Small contextual popups that provide additional information on hover or focus. Use tooltips to clarify UI elements without cluttering the interface.</p>
+  </header>
+
+  <section class="section">
+    <h2>Basic Tooltip</h2>
+    <p>Simple tooltip that appears on hover.</p>
+
+    <div class="demo-container">
+      <div class="demo-preview">
+        <div class="tooltip-wrapper">
+          <button class="demo-btn" aria-describedby="tooltip-1">Hover me</button>
+          <div class="tooltip" role="tooltip" id="tooltip-1">
+            <span class="tooltip-content">This is a helpful tooltip</span>
+            <div class="tooltip-arrow"></div>
+          </div>
+        </div>
+      </div>
+      <div class="demo-code">
+        <pre><code>&lt;div class="tooltip-wrapper"&gt;
+  &lt;button aria-describedby="tooltip-1"&gt;Hover me&lt;/button&gt;
+  &lt;div class="tooltip" role="tooltip" id="tooltip-1"&gt;
+    &lt;span class="tooltip-content"&gt;This is a helpful tooltip&lt;/span&gt;
+    &lt;div class="tooltip-arrow"&gt;&lt;/div&gt;
+  &lt;/div&gt;
+&lt;/div&gt;</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <h2>Positions</h2>
+    <p>Tooltips can appear in four directions based on available space.</p>
+
+    <div class="demo-container">
+      <div class="demo-preview tooltip-positions-demo">
+        <div class="tooltip-wrapper tooltip-top">
+          <button class="demo-btn" aria-describedby="tooltip-top">Top</button>
+          <div class="tooltip" role="tooltip" id="tooltip-top">
+            <span class="tooltip-content">Tooltip on top</span>
+            <div class="tooltip-arrow"></div>
+          </div>
+        </div>
+        <div class="tooltip-wrapper tooltip-right">
+          <button class="demo-btn" aria-describedby="tooltip-right">Right</button>
+          <div class="tooltip" role="tooltip" id="tooltip-right">
+            <span class="tooltip-content">Tooltip on right</span>
+            <div class="tooltip-arrow"></div>
+          </div>
+        </div>
+        <div class="tooltip-wrapper tooltip-bottom">
+          <button class="demo-btn" aria-describedby="tooltip-bottom">Bottom</button>
+          <div class="tooltip" role="tooltip" id="tooltip-bottom">
+            <span class="tooltip-content">Tooltip on bottom</span>
+            <div class="tooltip-arrow"></div>
+          </div>
+        </div>
+        <div class="tooltip-wrapper tooltip-left">
+          <button class="demo-btn" aria-describedby="tooltip-left">Left</button>
+          <div class="tooltip" role="tooltip" id="tooltip-left">
+            <span class="tooltip-content">Tooltip on left</span>
+            <div class="tooltip-arrow"></div>
+          </div>
+        </div>
+      </div>
+      <div class="demo-code">
+        <pre><code>&lt;div class="tooltip-wrapper tooltip-top"&gt;...&lt;/div&gt;
+&lt;div class="tooltip-wrapper tooltip-right"&gt;...&lt;/div&gt;
+&lt;div class="tooltip-wrapper tooltip-bottom"&gt;...&lt;/div&gt;
+&lt;div class="tooltip-wrapper tooltip-left"&gt;...&lt;/div&gt;</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <h2>Icon Tooltips</h2>
+    <p>Common pattern for icon buttons that need labels.</p>
+
+    <div class="demo-container">
+      <div class="demo-preview" style="gap: var(--space-6);">
+        <div class="tooltip-wrapper tooltip-bottom">
+          <button class="icon-btn" aria-describedby="tooltip-settings" aria-label="Settings">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="3"/>
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+            </svg>
+          </button>
+          <div class="tooltip" role="tooltip" id="tooltip-settings">
+            <span class="tooltip-content">Settings</span>
+            <div class="tooltip-arrow"></div>
+          </div>
+        </div>
+
+        <div class="tooltip-wrapper tooltip-bottom">
+          <button class="icon-btn" aria-describedby="tooltip-search" aria-label="Search">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="11" cy="11" r="8"/>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+            </svg>
+          </button>
+          <div class="tooltip" role="tooltip" id="tooltip-search">
+            <span class="tooltip-content">Search</span>
+            <div class="tooltip-arrow"></div>
+          </div>
+        </div>
+
+        <div class="tooltip-wrapper tooltip-bottom">
+          <button class="icon-btn" aria-describedby="tooltip-notifications" aria-label="Notifications">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+              <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+            </svg>
+          </button>
+          <div class="tooltip" role="tooltip" id="tooltip-notifications">
+            <span class="tooltip-content">Notifications</span>
+            <div class="tooltip-arrow"></div>
+          </div>
+        </div>
+
+        <div class="tooltip-wrapper tooltip-bottom">
+          <button class="icon-btn" aria-describedby="tooltip-help" aria-label="Help">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"/>
+              <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
+              <line x1="12" y1="17" x2="12.01" y2="17"/>
+            </svg>
+          </button>
+          <div class="tooltip" role="tooltip" id="tooltip-help">
+            <span class="tooltip-content">Help</span>
+            <div class="tooltip-arrow"></div>
+          </div>
+        </div>
+      </div>
+      <div class="demo-code">
+        <pre><code>&lt;div class="tooltip-wrapper tooltip-bottom"&gt;
+  &lt;button class="icon-btn" aria-label="Settings"&gt;
+    &lt;svg&gt;...&lt;/svg&gt;
+  &lt;/button&gt;
+  &lt;div class="tooltip" role="tooltip"&gt;
+    &lt;span class="tooltip-content"&gt;Settings&lt;/span&gt;
+    &lt;div class="tooltip-arrow"&gt;&lt;/div&gt;
+  &lt;/div&gt;
+&lt;/div&gt;</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <h2>Keyboard Shortcut Tooltips</h2>
+    <p>Show keyboard shortcuts with styled key badges.</p>
+
+    <div class="demo-container">
+      <div class="demo-preview" style="gap: var(--space-6);">
+        <div class="tooltip-wrapper tooltip-bottom">
+          <button class="demo-btn" aria-describedby="tooltip-save">Save</button>
+          <div class="tooltip tooltip-wide" role="tooltip" id="tooltip-save">
+            <span class="tooltip-content">
+              Save changes
+              <span class="tooltip-keys">
+                <kbd>⌘</kbd><kbd>S</kbd>
+              </span>
+            </span>
+            <div class="tooltip-arrow"></div>
+          </div>
+        </div>
+
+        <div class="tooltip-wrapper tooltip-bottom">
+          <button class="demo-btn" aria-describedby="tooltip-copy">Copy</button>
+          <div class="tooltip tooltip-wide" role="tooltip" id="tooltip-copy">
+            <span class="tooltip-content">
+              Copy to clipboard
+              <span class="tooltip-keys">
+                <kbd>⌘</kbd><kbd>C</kbd>
+              </span>
+            </span>
+            <div class="tooltip-arrow"></div>
+          </div>
+        </div>
+
+        <div class="tooltip-wrapper tooltip-bottom">
+          <button class="demo-btn" aria-describedby="tooltip-search-kb">Search</button>
+          <div class="tooltip tooltip-wide" role="tooltip" id="tooltip-search-kb">
+            <span class="tooltip-content">
+              Quick search
+              <span class="tooltip-keys">
+                <kbd>⌘</kbd><kbd>K</kbd>
+              </span>
+            </span>
+            <div class="tooltip-arrow"></div>
+          </div>
+        </div>
+      </div>
+      <div class="demo-code">
+        <pre><code>&lt;div class="tooltip tooltip-wide"&gt;
+  &lt;span class="tooltip-content"&gt;
+    Save changes
+    &lt;span class="tooltip-keys"&gt;
+      &lt;kbd&gt;⌘&lt;/kbd&gt;&lt;kbd&gt;S&lt;/kbd&gt;
+    &lt;/span&gt;
+  &lt;/span&gt;
+&lt;/div&gt;</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <h2>Rich Content Tooltip</h2>
+    <p>Tooltips with more detailed content for complex explanations.</p>
+
+    <div class="demo-container">
+      <div class="demo-preview">
+        <div class="tooltip-wrapper tooltip-top">
+          <button class="demo-btn" aria-describedby="tooltip-rich">What is Ferni?</button>
+          <div class="tooltip tooltip-rich" role="tooltip" id="tooltip-rich">
+            <span class="tooltip-content">
+              <strong>Ferni AI</strong>
+              <p>Your personal AI companion for habits, wellness, and daily support. Talk anytime, anywhere.</p>
+            </span>
+            <div class="tooltip-arrow"></div>
+          </div>
+        </div>
+      </div>
+      <div class="demo-code">
+        <pre><code>&lt;div class="tooltip tooltip-rich"&gt;
+  &lt;span class="tooltip-content"&gt;
+    &lt;strong&gt;Ferni AI&lt;/strong&gt;
+    &lt;p&gt;Your personal AI companion...&lt;/p&gt;
+  &lt;/span&gt;
+&lt;/div&gt;</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <h2>Persona-Themed Tooltips</h2>
+    <p>Tooltips styled with persona accent colors.</p>
+
+    <div class="demo-container">
+      <div class="demo-preview" style="gap: var(--space-6);">
+        <div class="tooltip-wrapper tooltip-bottom">
+          <button class="demo-btn persona-btn-ferni" aria-describedby="tooltip-ferni">Ferni</button>
+          <div class="tooltip tooltip-ferni" role="tooltip" id="tooltip-ferni">
+            <span class="tooltip-content">Your AI companion</span>
+            <div class="tooltip-arrow"></div>
+          </div>
+        </div>
+
+        <div class="tooltip-wrapper tooltip-bottom">
+          <button class="demo-btn persona-btn-maya" aria-describedby="tooltip-maya">Maya</button>
+          <div class="tooltip tooltip-maya" role="tooltip" id="tooltip-maya">
+            <span class="tooltip-content">Habit coach</span>
+            <div class="tooltip-arrow"></div>
+          </div>
+        </div>
+
+        <div class="tooltip-wrapper tooltip-bottom">
+          <button class="demo-btn persona-btn-jordan" aria-describedby="tooltip-jordan">Jordan</button>
+          <div class="tooltip tooltip-jordan" role="tooltip" id="tooltip-jordan">
+            <span class="tooltip-content">Life planner</span>
+            <div class="tooltip-arrow"></div>
+          </div>
+        </div>
+      </div>
+      <div class="demo-code">
+        <pre><code>&lt;div class="tooltip tooltip-ferni"&gt;...&lt;/div&gt;
+&lt;div class="tooltip tooltip-maya"&gt;...&lt;/div&gt;
+&lt;div class="tooltip tooltip-jordan"&gt;...&lt;/div&gt;</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <h2>Delayed Tooltip</h2>
+    <p>Add a delay before showing to prevent accidental triggers.</p>
+
+    <div class="demo-container">
+      <div class="demo-preview">
+        <div class="tooltip-wrapper tooltip-bottom tooltip-delayed">
+          <button class="demo-btn" aria-describedby="tooltip-delayed">Hover for 500ms</button>
+          <div class="tooltip" role="tooltip" id="tooltip-delayed">
+            <span class="tooltip-content">I appeared after a delay!</span>
+            <div class="tooltip-arrow"></div>
+          </div>
+        </div>
+      </div>
+      <div class="demo-code">
+        <pre><code>/* CSS delay */
+.tooltip-delayed .tooltip {
+  transition-delay: 500ms;
+}
+
+.tooltip-delayed:hover .tooltip {
+  transition-delay: 500ms;
+}</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <h2>CSS Implementation</h2>
+    <div class="demo-code">
+      <pre><code>/* Tooltip Wrapper */
+.tooltip-wrapper {
+  position: relative;
+  display: inline-block;
+}
+
+/* Base Tooltip */
+.tooltip {
+  position: absolute;
+  z-index: 1000;
+  padding: var(--space-2) var(--space-3);
+  background: var(--bg-inverse);
+  color: var(--text-inverse);
+  font-size: var(--text-sm);
+  border-radius: var(--radius-md);
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transform: translateY(4px);
+  transition: opacity var(--duration-fast) var(--ease-ease-out),
+              transform var(--duration-fast) var(--ease-ease-out);
+}
+
+.tooltip-wrapper:hover .tooltip,
+.tooltip-wrapper:focus-within .tooltip {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Arrow */
+.tooltip-arrow {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  background: inherit;
+  transform: rotate(45deg);
+}
+
+/* Positions */
+.tooltip-top .tooltip {
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%) translateY(-8px);
+  margin-bottom: var(--space-2);
+}
+
+.tooltip-top .tooltip-arrow {
+  bottom: -4px;
+  left: 50%;
+  margin-left: -4px;
+}
+
+.tooltip-bottom .tooltip {
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%) translateY(8px);
+  margin-top: var(--space-2);
+}
+
+.tooltip-bottom .tooltip-arrow {
+  top: -4px;
+  left: 50%;
+  margin-left: -4px;
+}
+
+.tooltip-left .tooltip {
+  right: 100%;
+  top: 50%;
+  transform: translateY(-50%) translateX(-8px);
+  margin-right: var(--space-2);
+}
+
+.tooltip-left .tooltip-arrow {
+  right: -4px;
+  top: 50%;
+  margin-top: -4px;
+}
+
+.tooltip-right .tooltip {
+  left: 100%;
+  top: 50%;
+  transform: translateY(-50%) translateX(8px);
+  margin-left: var(--space-2);
+}
+
+.tooltip-right .tooltip-arrow {
+  left: -4px;
+  top: 50%;
+  margin-top: -4px;
+}
+
+/* Hover States */
+.tooltip-wrapper:hover .tooltip-top .tooltip,
+.tooltip-top.tooltip-wrapper:hover .tooltip {
+  transform: translateX(-50%) translateY(0);
+}
+
+.tooltip-wrapper:hover .tooltip-bottom .tooltip,
+.tooltip-bottom.tooltip-wrapper:hover .tooltip {
+  transform: translateX(-50%) translateY(0);
+}
+
+/* Keyboard Shortcuts */
+.tooltip-keys {
+  display: inline-flex;
+  gap: 2px;
+  margin-left: var(--space-2);
+}
+
+.tooltip-keys kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 var(--space-1);
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-body);
+  font-size: var(--text-xs);
+}
+
+/* Rich Tooltip */
+.tooltip-rich {
+  white-space: normal;
+  max-width: 240px;
+  text-align: left;
+}
+
+.tooltip-rich strong {
+  display: block;
+  margin-bottom: var(--space-1);
+}
+
+.tooltip-rich p {
+  margin: 0;
+  font-size: var(--text-xs);
+  opacity: 0.9;
+}
+
+/* Persona Colors */
+.tooltip-ferni { background: var(--persona-ferni); }
+.tooltip-maya { background: var(--persona-maya); }
+.tooltip-jordan { background: var(--persona-jordan); }</code></pre>
+    </div>
+  </section>
+
+  <section class="section">
+    <h2>Accessibility</h2>
+    <ul class="guidelines-list">
+      <li><strong>aria-describedby</strong>: Link trigger elements to tooltips using <code>aria-describedby</code></li>
+      <li><strong>role="tooltip"</strong>: Identify the element as a tooltip for assistive technology</li>
+      <li><strong>Keyboard access</strong>: Show tooltips on focus, not just hover</li>
+      <li><strong>No essential info</strong>: Don't put critical information only in tooltips</li>
+      <li><strong>Sufficient delay</strong>: Add delay before hiding to allow reading time</li>
+      <li><strong>Escape to dismiss</strong>: Allow users to dismiss tooltips with Escape key</li>
+    </ul>
+  </section>
+
+  <section class="section">
+    <h2>Usage Guidelines</h2>
+    <div class="guidelines-grid">
+      <div class="guideline do">
+        <h4>✓ Do</h4>
+        <ul>
+          <li>Use for supplementary, non-critical info</li>
+          <li>Keep tooltip text brief (1-2 lines max)</li>
+          <li>Position to avoid viewport overflow</li>
+          <li>Show on both hover and keyboard focus</li>
+        </ul>
+      </div>
+      <div class="guideline dont">
+        <h4>✗ Don't</h4>
+        <ul>
+          <li>Put essential content in tooltips</li>
+          <li>Use on touch-only devices (no hover)</li>
+          <li>Create tooltips that block interaction</li>
+          <li>Use for complex interactive content</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+</article>
+
+<style>
+.component-page {
+  max-width: var(--container-max);
+}
+
+.page-header {
+  margin-bottom: var(--space-12);
+}
+
+.page-header h1 {
+  font-family: var(--font-display);
+  font-size: var(--text-4xl);
+  font-weight: var(--font-weight-bold);
+  letter-spacing: -0.02em;
+  margin-bottom: var(--space-4);
+}
+
+.demo-container {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+  margin-top: var(--space-6);
+}
+
+.demo-preview {
+  padding: var(--space-10);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+  background: var(--bg-secondary);
+  min-height: 140px;
+}
+
+.tooltip-positions-demo {
+  gap: var(--space-8);
+  padding: var(--space-12);
+}
+
+.demo-code {
+  padding: var(--space-4);
+  border-top: 1px solid var(--border-subtle);
+  background: var(--bg-tertiary);
+}
+
+.demo-code pre {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  overflow-x: auto;
+}
+
+.demo-code code {
+  color: var(--text-primary);
+}
+
+/* Demo Buttons */
+.demo-btn {
+  padding: var(--space-2) var(--space-4);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-md);
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--ease-ease-out);
+}
+
+.demo-btn:hover {
+  border-color: var(--accent-primary);
+  color: var(--accent-primary);
+}
+
+.icon-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--ease-ease-out);
+}
+
+.icon-btn:hover {
+  border-color: var(--accent-primary);
+  color: var(--accent-primary);
+}
+
+/* Persona buttons */
+.persona-btn-ferni {
+  border-color: var(--persona-ferni);
+  color: var(--persona-ferni);
+}
+
+.persona-btn-maya {
+  border-color: var(--persona-maya);
+  color: var(--persona-maya);
+}
+
+.persona-btn-jordan {
+  border-color: var(--persona-jordan);
+  color: var(--persona-jordan);
+}
+
+/* Tooltip Styles */
+.tooltip-wrapper {
+  position: relative;
+  display: inline-block;
+}
+
+.tooltip {
+  position: absolute;
+  z-index: 1000;
+  padding: var(--space-2) var(--space-3);
+  background: var(--bg-inverse);
+  color: var(--text-inverse);
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  border-radius: var(--radius-md);
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity var(--duration-fast) var(--ease-ease-out),
+              transform var(--duration-fast) var(--ease-ease-out);
+}
+
+.tooltip-wrapper:hover .tooltip,
+.tooltip-wrapper:focus-within .tooltip {
+  opacity: 1;
+}
+
+.tooltip-arrow {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  background: inherit;
+  transform: rotate(45deg);
+}
+
+/* Default position (top) */
+.tooltip-wrapper:not(.tooltip-bottom):not(.tooltip-left):not(.tooltip-right) .tooltip,
+.tooltip-top .tooltip {
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%) translateY(4px);
+  margin-bottom: var(--space-2);
+}
+
+.tooltip-wrapper:not(.tooltip-bottom):not(.tooltip-left):not(.tooltip-right):hover .tooltip,
+.tooltip-top:hover .tooltip {
+  transform: translateX(-50%) translateY(0);
+}
+
+.tooltip-wrapper:not(.tooltip-bottom):not(.tooltip-left):not(.tooltip-right) .tooltip-arrow,
+.tooltip-top .tooltip-arrow {
+  bottom: -4px;
+  left: 50%;
+  margin-left: -4px;
+}
+
+/* Bottom position */
+.tooltip-bottom .tooltip {
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%) translateY(-4px);
+  margin-top: var(--space-2);
+}
+
+.tooltip-bottom:hover .tooltip,
+.tooltip-bottom:focus-within .tooltip {
+  transform: translateX(-50%) translateY(0);
+}
+
+.tooltip-bottom .tooltip-arrow {
+  top: -4px;
+  left: 50%;
+  margin-left: -4px;
+}
+
+/* Left position */
+.tooltip-left .tooltip {
+  right: 100%;
+  top: 50%;
+  transform: translateY(-50%) translateX(4px);
+  margin-right: var(--space-2);
+}
+
+.tooltip-left:hover .tooltip,
+.tooltip-left:focus-within .tooltip {
+  transform: translateY(-50%) translateX(0);
+}
+
+.tooltip-left .tooltip-arrow {
+  right: -4px;
+  top: 50%;
+  margin-top: -4px;
+}
+
+/* Right position */
+.tooltip-right .tooltip {
+  left: 100%;
+  top: 50%;
+  transform: translateY(-50%) translateX(-4px);
+  margin-left: var(--space-2);
+}
+
+.tooltip-right:hover .tooltip,
+.tooltip-right:focus-within .tooltip {
+  transform: translateY(-50%) translateX(0);
+}
+
+.tooltip-right .tooltip-arrow {
+  left: -4px;
+  top: 50%;
+  margin-top: -4px;
+}
+
+/* Wide tooltip for keyboard shortcuts */
+.tooltip-wide {
+  white-space: nowrap;
+}
+
+.tooltip-content {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.tooltip-keys {
+  display: inline-flex;
+  gap: 2px;
+  margin-left: var(--space-2);
+}
+
+.tooltip-keys kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 var(--space-1);
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-body);
+  font-size: var(--text-xs);
+}
+
+/* Rich tooltip */
+.tooltip-rich {
+  white-space: normal;
+  max-width: 240px;
+  text-align: left;
+  padding: var(--space-3) var(--space-4);
+}
+
+.tooltip-rich .tooltip-content {
+  display: block;
+}
+
+.tooltip-rich strong {
+  display: block;
+  margin-bottom: var(--space-1);
+  font-weight: var(--font-weight-semibold);
+}
+
+.tooltip-rich p {
+  margin: 0;
+  font-size: var(--text-xs);
+  opacity: 0.9;
+  line-height: var(--leading-relaxed);
+}
+
+/* Persona-themed tooltips */
+.tooltip-ferni {
+  background: var(--persona-ferni);
+}
+
+.tooltip-ferni .tooltip-arrow {
+  background: var(--persona-ferni);
+}
+
+.tooltip-maya {
+  background: var(--persona-maya);
+}
+
+.tooltip-maya .tooltip-arrow {
+  background: var(--persona-maya);
+}
+
+.tooltip-jordan {
+  background: var(--persona-jordan);
+}
+
+.tooltip-jordan .tooltip-arrow {
+  background: var(--persona-jordan);
+}
+
+/* Delayed tooltip */
+.tooltip-delayed .tooltip {
+  transition-delay: 0ms;
+}
+
+.tooltip-delayed:hover .tooltip {
+  transition-delay: 500ms;
+}
+
+/* Guidelines */
+.guidelines-list {
+  list-style: none;
+  padding: 0;
+  margin-top: var(--space-6);
+}
+
+.guidelines-list li {
+  padding: var(--space-3) 0;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.guidelines-list li:last-child {
+  border-bottom: none;
+}
+
+.guidelines-list code {
+  background: var(--bg-secondary);
+  padding: 2px var(--space-2);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+}
+
+.guidelines-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: var(--space-6);
+  margin-top: var(--space-6);
+}
+
+.guideline {
+  background: var(--bg-elevated);
+  border-radius: var(--radius-lg);
+  padding: var(--space-6);
+}
+
+.guideline h4 {
+  font-family: var(--font-display);
+  font-weight: var(--font-weight-semibold);
+  margin-bottom: var(--space-4);
+}
+
+.guideline.do h4 { color: var(--success); }
+.guideline.dont h4 { color: var(--error); }
+
+.guideline ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.guideline li {
+  padding: var(--space-2) 0;
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+}
+
+@media (max-width: 768px) {
+  .page-header h1 {
+    font-size: var(--text-3xl);
+  }
+
+  .demo-preview {
+    padding: var(--space-6);
+  }
+
+  .tooltip-positions-demo {
+    flex-direction: column;
+    padding: var(--space-8);
+  }
+}
+</style>

@@ -6,6 +6,10 @@
  */
 
 import type { UserProfile, LifeStage } from '../types/user-profile.js';
+// 🦀 Rust-accelerated word counting
+import { countWordsRust, isTokenCountingAvailable } from '../memory/rust-accelerator.js';
+
+const RUST_COUNTING_AVAILABLE = isTokenCountingAvailable();
 
 // ============================================================================
 // TYPES
@@ -241,7 +245,10 @@ export class ProfilePersonalizer {
     // Enforce verbosity preference
     if (profile.preferences.verbosity === 'concise') {
       // If response is too long, suggest summarizing
-      const wordCount = filtered.split(/\s+/).length;
+      // 🦀 Rust-accelerated word counting
+      const wordCount = RUST_COUNTING_AVAILABLE
+        ? countWordsRust(filtered)
+        : filtered.split(/\s+/).length;
       if (wordCount > 200) {
         // This is a signal to the LLM - in practice, we'd want to truncate or regenerate
         filtered = `[REMINDER: User prefers concise responses - keep under 150 words]\n\n${filtered}`;

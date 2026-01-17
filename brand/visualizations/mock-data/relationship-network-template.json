@@ -1,0 +1,158 @@
+{
+  "$schema": "Relationship Network Mock Data Template",
+  "description": "Template for constellation and network visualizations",
+
+  "people": [
+    {
+      "id": "sarah",
+      "name": "Sarah",
+      "relationship": "partner",
+      "importance": 10,
+      "mentionFrequency": 156,
+      "sentimentAverage": 8.2,
+      "lastMentioned": "2024-12-30",
+      "topics": ["daily life", "future plans", "support", "quality time"],
+      "trend": "stable-close",
+      "insight": "Your conversations about Sarah are 40% longer than average. Deep connection."
+    },
+    {
+      "id": "mom",
+      "name": "Mom",
+      "relationship": "family",
+      "importance": 9,
+      "mentionFrequency": 45,
+      "sentimentAverage": 7.8,
+      "lastMentioned": "2024-12-28",
+      "topics": ["health", "family updates", "advice", "memories"],
+      "trend": "strengthening",
+      "insight": "You mention calling her but often delay. Pattern: 2+ hours delay in 70% of cases."
+    },
+    {
+      "id": "dad",
+      "name": "Dad",
+      "relationship": "family",
+      "importance": 8,
+      "mentionFrequency": 28,
+      "sentimentAverage": 6.9,
+      "lastMentioned": "2024-12-15",
+      "topics": ["work advice", "sports", "history"],
+      "trend": "stable",
+      "insight": "Conversations about Dad often include 'wish we were closer' sentiment."
+    },
+    {
+      "id": "david",
+      "name": "David",
+      "relationship": "friend",
+      "importance": 7,
+      "mentionFrequency": 34,
+      "sentimentAverage": 7.5,
+      "lastMentioned": "2024-12-22",
+      "topics": ["work", "hobbies", "social plans"],
+      "trend": "stable",
+      "insight": "Your longest friendship. Mentions spike around planning activities together."
+    },
+    {
+      "id": "lisa",
+      "name": "Lisa",
+      "relationship": "friend",
+      "importance": 6,
+      "mentionFrequency": 22,
+      "sentimentAverage": 7.2,
+      "lastMentioned": "2024-12-10",
+      "topics": ["mutual friends", "events", "advice"],
+      "trend": "drifting",
+      "insight": "Mention frequency down 40% in last 3 months. Natural drift or worth addressing?"
+    },
+    {
+      "id": "james",
+      "name": "James",
+      "relationship": "colleague",
+      "importance": 5,
+      "mentionFrequency": 18,
+      "sentimentAverage": 5.8,
+      "lastMentioned": "2024-12-29",
+      "topics": ["work projects", "office dynamics", "frustrations"],
+      "trend": "tension",
+      "insight": "Sentiment trending negative. Unresolved workplace tension detected."
+    },
+    {
+      "id": "old-friend",
+      "name": "Alex (old friend)",
+      "relationship": "former-close",
+      "importance": 4,
+      "mentionFrequency": 8,
+      "sentimentAverage": 6.5,
+      "lastMentioned": "2024-11-15",
+      "topics": ["nostalgia", "wondering", "past memories"],
+      "trend": "distant-with-longing",
+      "insight": "847 days since contact. Mentioned with wistfulness 6 times."
+    }
+  ],
+
+  "constellationPositions": {
+    "center": { "x": 250, "y": 175, "label": "You" },
+    "stars": [
+      { "id": "sarah", "x": 320, "y": 80, "size": 12, "brightness": 1.0 },
+      { "id": "mom", "x": 180, "y": 100, "size": 10, "brightness": 0.9 },
+      { "id": "dad", "x": 100, "y": 155, "size": 6, "brightness": 0.6 },
+      { "id": "david", "x": 380, "y": 155, "size": 8, "brightness": 0.8 },
+      { "id": "lisa", "x": 160, "y": 250, "size": 7, "brightness": 0.7 },
+      { "id": "james", "x": 340, "y": 260, "size": 6, "brightness": 0.5 },
+      { "id": "old-friend", "x": 420, "y": 280, "size": 4, "brightness": 0.3 }
+    ]
+  },
+
+  "evolutionOverTime": {
+    "months": [
+      {
+        "month": "2024-09",
+        "positions": [
+          { "id": "sarah", "distance": 1.0, "brightness": 1.0 },
+          { "id": "mom", "distance": 1.5, "brightness": 0.85 },
+          { "id": "david", "distance": 2.0, "brightness": 0.7 },
+          { "id": "lisa", "distance": 1.8, "brightness": 0.8 },
+          { "id": "james", "distance": 2.5, "brightness": 0.6 }
+        ]
+      },
+      {
+        "month": "2024-12",
+        "positions": [
+          { "id": "sarah", "distance": 1.0, "brightness": 1.0 },
+          { "id": "mom", "distance": 1.3, "brightness": 0.9 },
+          { "id": "david", "distance": 2.0, "brightness": 0.8 },
+          { "id": "lisa", "distance": 2.2, "brightness": 0.7 },
+          { "id": "james", "distance": 2.8, "brightness": 0.5 }
+        ]
+      }
+    ],
+    "insight": "Mom moved closer (more frequent, warmer mentions). Lisa drifted (40% fewer mentions). James tension increased."
+  },
+
+  "connectionTypes": {
+    "strong": ["sarah", "mom"],
+    "stable": ["david", "dad"],
+    "needs-attention": ["lisa", "old-friend"],
+    "source-of-stress": ["james"]
+  },
+
+  "recommendations": [
+    {
+      "person": "lisa",
+      "action": "Reach out this week",
+      "reason": "Friendship showing drift pattern. A small message now prevents bigger distance later.",
+      "suggestedMessage": "Hey! It's been a while. How are things?"
+    },
+    {
+      "person": "old-friend",
+      "action": "Consider reconnecting",
+      "reason": "Mentioned with longing 6 times. Some bridges can still be rebuilt.",
+      "suggestedMessage": "I was thinking about you. Hope you're well."
+    },
+    {
+      "person": "james",
+      "action": "Address the tension",
+      "reason": "Unresolved workplace tension detected. You tend to address things after 5-6 mentions. At 4 now.",
+      "suggestedApproach": "Direct conversation vs continued avoidance"
+    }
+  ]
+}

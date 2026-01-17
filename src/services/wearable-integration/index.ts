@@ -3,6 +3,7 @@
  *
  * Foundation for integrating data from wearable devices:
  * - Apple Watch / HealthKit
+ * - Eight Sleep (smart mattress)
  * - Fitbit
  * - Garmin
  * - Oura Ring
@@ -38,9 +39,8 @@ const log = createLogger({ module: 'WearableIntegration' });
 export class WearableIntegrationService {
   private userId: string;
   private config: WearableConfig;
-  private latestData: Map<WearableProvider, WearableData> = new Map();
-  private connectionStatus: Map<WearableProvider, 'connected' | 'disconnected' | 'pending'> =
-    new Map();
+  private latestData = new Map<WearableProvider, WearableData>();
+  private connectionStatus = new Map<WearableProvider, 'connected' | 'disconnected' | 'pending'>();
 
   constructor(userId: string, config?: Partial<WearableConfig>) {
     this.userId = userId;
@@ -78,6 +78,7 @@ export class WearableIntegrationService {
       // Return OAuth URL for the provider
       const authUrls: Record<WearableProvider, string> = {
         apple_health: 'ferniapp://healthkit/authorize', // Deep link for iOS app
+        eight_sleep: `https://client-api.8slp.net/oauth/authorize?client_id=${process.env.EIGHT_SLEEP_CLIENT_ID}`,
         fitbit: `https://www.fitbit.com/oauth2/authorize?client_id=${process.env.FITBIT_CLIENT_ID}`,
         garmin: `https://connect.garmin.com/oauth2/authorize?client_id=${process.env.GARMIN_CLIENT_ID}`,
         oura: `https://cloud.ouraring.com/oauth/authorize?client_id=${process.env.OURA_CLIENT_ID}`,
@@ -488,7 +489,7 @@ export function removeWearableIntegration(userId: string): void {
 // EXPORTS
 // ============================================================================
 
-export * from './types.js';
+export type * from './types.js';
 
 export default {
   getWearableIntegration,

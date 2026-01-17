@@ -1,0 +1,45 @@
+{
+  "postFile": "webhook-security.md",
+  "title": "Webhook Security Best Practices",
+  "date": "2026-01-10T00:00:00.000Z",
+  "snippets": {
+    "twitter": {
+      "platform": "twitter",
+      "text": "📚 Webhook Security Best Practices\n\nhttps://developers.ferni.ai/developers/blog/webhook-security/\n\n#VoiceAI #Developers",
+      "length": null
+    },
+    "twitterThread": {
+      "platform": "twitter_thread",
+      "tweets": [
+        {
+          "text": "🧵 Webhook Security Best Practices\n\nA thread on what you'll learn:\n\n👇",
+          "type": "hook"
+        },
+        {
+          "text": "How to verify webhook signatures, handle retries, and build robust event handlers for the Ferni Developer Platform.\n\nLet's dive in...",
+          "type": "summary"
+        },
+        {
+          "text": "📖 Read the full post:\nhttps://developers.ferni.ai/developers/blog/webhook-security/\n\n#VoiceAI #Developers",
+          "type": "cta"
+        }
+      ],
+      "totalTweets": 3
+    },
+    "linkedin": {
+      "platform": "linkedin",
+      "text": "Webhook Security Best Practices\n\nHow to verify webhook signatures, handle retries, and build robust event handlers for the Ferni Developer Platform.\n\nThis is part of our ongoing series helping developers build with voice AI.\n\nKey takeaways:\n• Practical code examples you can use today\n• Real-world patterns from production systems\n• Best practices from the Ferni team\n\nRead the full post: https://developers.ferni.ai/developers/blog/webhook-security/\n\n#VoiceAI #Developers",
+      "length": 472
+    },
+    "discord": {
+      "platform": "discord",
+      "text": "📝 **Webhook Security Best Practices**\n\nHow to verify webhook signatures, handle retries, and build robust event handlers for the Ferni Developer Platform.\n\n🔗 **Read more:** https://developers.ferni.ai/developers/blog/webhook-security/\n\n---\n*10 min read • Security*",
+      "length": 266
+    },
+    "threads": {
+      "platform": "threads",
+      "text": "Webhook Security Best Practices\n\nHow to verify webhook signatures, handle retries, and build robust event handlers for the Ferni Developer Platform.\n\nRead more 👉 https://developers.ferni.ai/developers/blog/webhook-security/",
+      "length": 224
+    }
+  }
+}

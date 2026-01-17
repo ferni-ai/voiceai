@@ -354,7 +354,7 @@ class CameoService {
    * roster, we automatically add them so they appear visually when Ferni
    * calls them back.
    */
-  private async handleCameoStart(message: CameoDataMessage): Promise<void> {
+  private handleCameoStart(message: CameoDataMessage): void {
     const { personaId, personaName, isFirstCameo, cameoId } = message;
 
     log.info('🎬 Cameo started (voice switched)', { personaId, personaName, isFirstCameo });
@@ -419,7 +419,7 @@ class CameoService {
    * NOTE: Sound is played in handleCameoEnding (which fires first).
    * This handler focuses on state cleanup and triggering UI callbacks.
    */
-  private async handleCameoComplete(message: CameoDataMessage): Promise<void> {
+  private handleCameoComplete(message: CameoDataMessage): void {
     const { personaId } = message;
     const duration = this.state.startTime ? Date.now() - this.state.startTime : 0;
 
@@ -457,7 +457,7 @@ class CameoService {
   /**
    * Handle cameo cancelled
    */
-  private async handleCameoCancelled(message: CameoDataMessage): Promise<void> {
+  private handleCameoCancelled(message: CameoDataMessage): void {
     const { personaId, error } = message;
 
     log.info('Cameo cancelled', { personaId, reason: error });
@@ -492,7 +492,7 @@ class CameoService {
   /**
    * Handle cameo failed
    */
-  private async handleCameoFailed(message: CameoDataMessage): Promise<void> {
+  private handleCameoFailed(message: CameoDataMessage): void {
     const { personaId, error } = message;
 
     log.error('Cameo failed', { personaId, error });

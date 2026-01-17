@@ -12,6 +12,7 @@
 
 import type { IncomingMessage, Server, ServerResponse } from 'http';
 import { createLogger } from './safe-logger.js';
+import { registerInterval, clearNamedInterval } from './interval-manager.js';
 
 const log = createLogger({ module: 'DDoSProtection' });
 
@@ -220,15 +221,30 @@ export async function parseJsonBodySafe<T = unknown>(
 
 const healthRateLimits = new Map<string, { count: number; resetTime: number }>();
 
-// Cleanup old entries every minute
-setInterval(() => {
-  const now = Date.now();
-  for (const [ip, data] of Array.from(healthRateLimits.entries())) {
-    if (data.resetTime < now) {
-      healthRateLimits.delete(ip);
-    }
-  }
-}, 60_000);
+// Track if cleanup is running
+let healthRateLimitCleanupStarted = false;
+
+function startHealthRateLimitCleanup(): void {
+  if (healthRateLimitCleanupStarted) return; // Already running
+
+  // Cleanup old entries every minute using managed interval
+  registerInterval(
+    'ddos-health-rate-limit-cleanup',
+    () => {
+      const now = Date.now();
+      for (const [ip, data] of Array.from(healthRateLimits.entries())) {
+        if (data.resetTime < now) {
+          healthRateLimits.delete(ip);
+        }
+      }
+    },
+    60_000
+  );
+  healthRateLimitCleanupStarted = true;
+}
+
+// Start cleanup automatically
+startHealthRateLimitCleanup();
 
 /**
  * Check if health endpoint request should be rate limited
@@ -321,7 +337,11 @@ export function getClientIp(req: IncomingMessage): string {
   // But only take the first IP (client IP), not proxy chain
   const forwarded = req.headers['x-forwarded-for'];
   if (forwarded) {
-    const ips = (Array.isArray(forwarded) ? forwarded[0] : forwarded).split(',');
+    const forwardedValue = Array.isArray(forwarded) ? forwarded[0] : forwarded;
+    if (!forwardedValue) {
+      return req.socket?.remoteAddress || 'unknown';
+    }
+    const ips = forwardedValue.split(',');
     // First IP should be client, last would be the proxy
     const clientIp = ips[0]?.trim();
     if (clientIp && isValidIp(clientIp)) {
@@ -364,21 +384,32 @@ function isInternalRequest(req: IncomingMessage): boolean {
 // OAUTH STATE PROTECTION
 // ============================================================================
 
+// Counter for unique OAuth manager instances
+let oauthManagerCounter = 0;
+
 /**
  * Create a secure OAuth state manager with limits
  */
 export function createOAuthStateManager<T = unknown>(expiry = DDOS_CONFIG.oauthStateExpiry) {
   const states = new Map<string, { data: T; expires: number }>();
 
-  // Cleanup expired states every minute
-  const cleanupInterval = setInterval(() => {
-    const now = Date.now();
-    for (const [state, entry] of Array.from(states.entries())) {
-      if (entry.expires < now) {
-        states.delete(state);
+  // Generate unique interval name for this manager instance
+  const instanceId = ++oauthManagerCounter;
+  const intervalName = `ddos-oauth-cleanup-${instanceId}`;
+
+  // Cleanup expired states every minute using managed interval
+  const clearCleanup = registerInterval(
+    intervalName,
+    () => {
+      const now = Date.now();
+      for (const [state, entry] of Array.from(states.entries())) {
+        if (entry.expires < now) {
+          states.delete(state);
+        }
       }
-    }
-  }, 60_000);
+    },
+    60_000
+  );
 
   return {
     /**
@@ -423,7 +454,7 @@ export function createOAuthStateManager<T = unknown>(expiry = DDOS_CONFIG.oauthS
      * Cleanup on shutdown
      */
     destroy(): void {
-      clearInterval(cleanupInterval);
+      clearCleanup(); // Uses managed interval cleanup
       states.clear();
     },
   };
@@ -612,16 +643,18 @@ export async function checkAndAlertDDoS(serverName = 'unknown'): Promise<void> {
  * Checks every 30 seconds for attack patterns.
  */
 export function startDDoSMonitoring(serverName: string, intervalMs = 30_000): () => void {
-  const interval = setInterval(() => {
-    checkAndAlertDDoS(serverName).catch((err) => {
-      // Silently ignore alert failures to prevent cascading issues
-      if (process.env.NODE_ENV === 'development') {
-        console.error('[DDoS Monitor] Alert failed:', err);
-      }
-    });
-  }, intervalMs);
-
-  return () => clearInterval(interval);
+  return registerInterval(
+    `ddos-monitor-${serverName}`,
+    () => {
+      checkAndAlertDDoS(serverName).catch((err) => {
+        // Silently ignore alert failures to prevent cascading issues
+        if (process.env.NODE_ENV === 'development') {
+          log.error({ error: String(err) }, 'DDoS Monitor alert failed');
+        }
+      });
+    },
+    intervalMs
+  );
 }
 
 // ============================================================================
@@ -669,4 +702,28 @@ export function handleSecurityMonitoring(
     })
   );
   return true;
+}
+
+// ============================================================================
+// CLEANUP (for testing and graceful shutdown)
+// ============================================================================
+
+/**
+ * Stop all DDoS protection intervals.
+ * Call this on graceful shutdown or in tests.
+ */
+export function stopDDoSProtection(): void {
+  // Use interval manager to clear the registered interval
+  clearNamedInterval('ddos-health-rate-limit-cleanup');
+  healthRateLimitCleanupStarted = false;
+  healthRateLimits.clear();
+  rateLimitEvents.length = 0;
+}
+
+/**
+ * Reset DDoS protection state (for testing).
+ */
+export function resetDDoSProtection(): void {
+  healthRateLimits.clear();
+  rateLimitEvents.length = 0;
 }

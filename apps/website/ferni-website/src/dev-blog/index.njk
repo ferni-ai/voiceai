@@ -1,0 +1,609 @@
+---
+layout: layouts/dev-base.njk
+title: Developer Blog | Ferni
+description: Technical insights, API updates, and engineering deep dives from the Ferni Developer Platform team.
+permalink: /developers/blog/
+---
+
+<style>
+  :root {
+    /* Design System Aligned Colors - Cedar Night Theme */
+    --dev-bg: #584840;
+    --dev-surface: #60504a;
+    --dev-surface-elevated: #70605a;
+    --dev-border: rgba(215, 185, 145, 0.12);
+    --dev-border-strong: rgba(215, 185, 145, 0.20);
+    --dev-accent: #4a6741;
+    --dev-accent-hover: #5a7a4f;
+    --dev-accent-light: rgba(74, 103, 65, 0.15);
+    --dev-text: #faf6f0;
+    --dev-text-secondary: #f0ebe4;
+    --dev-text-muted: #e8e2da;
+    --dev-code-bg: #4a3c36;
+    
+    /* Design System Spacing (MA - Japanese intentional space) */
+    --space-breath: 8px;
+    --space-pause: 13px;
+    --space-rest: 21px;
+    --space-silence: 34px;
+    --space-meditation: 55px;
+    --space-contemplation: 89px;
+  }
+
+  body {
+    background: var(--dev-bg);
+    color: var(--dev-text);
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    margin: 0;
+  }
+
+  /* Navigation - Design System Aligned */
+  .dev-nav {
+    background: var(--dev-surface-elevated);
+    border-bottom: 1px solid var(--dev-border-strong);
+    padding: var(--space-rest) var(--space-silence);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    min-height: 72px;
+    box-sizing: border-box;
+  }
+
+  .dev-nav-inner {
+    max-width: 1280px;
+    width: 100%;
+    margin: 0 auto;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .dev-nav-brand {
+    display: flex;
+    align-items: center;
+    gap: var(--space-pause);
+    text-decoration: none;
+    color: var(--dev-text);
+    font-weight: 700;
+    font-size: 1.25rem;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    letter-spacing: -0.02em;
+  }
+
+  .dev-nav-brand svg {
+    width: 44px;
+    height: 44px;
+    flex-shrink: 0;
+  }
+
+  .dev-nav-links {
+    display: flex;
+    gap: var(--space-silence);
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    align-items: center;
+  }
+
+  .dev-nav-links li {
+    margin: 0;
+  }
+
+  .dev-nav-links a {
+    color: var(--dev-text-muted);
+    text-decoration: none;
+    font-size: 0.9375rem;
+    font-weight: 500;
+    transition: color 0.2s ease;
+    padding: var(--space-breath) 0;
+    display: inline-block;
+  }
+
+  .dev-nav-links a:hover {
+    color: var(--dev-text);
+  }
+  
+  .dev-nav-links a.active {
+    color: var(--dev-text);
+    font-weight: 600;
+    position: relative;
+  }
+
+  .dev-nav-links a.active::after {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: var(--dev-accent);
+    border-radius: 1px;
+  }
+
+  /* Header Section - Generous Spacing */
+  .dev-blog-header {
+    background: linear-gradient(180deg, var(--dev-surface-elevated) 0%, var(--dev-surface) 50%, var(--dev-bg) 100%);
+    border-bottom: 1px solid var(--dev-border);
+    padding: var(--space-contemplation) var(--space-silence);
+    text-align: center;
+  }
+
+  .dev-blog-header h1 {
+    font-size: 3.5rem;
+    font-weight: 700;
+    margin: 0 0 var(--space-rest);
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    color: var(--dev-text);
+    letter-spacing: -0.03em;
+  }
+
+  .dev-blog-header p {
+    font-size: 1.25rem;
+    color: var(--dev-text-secondary);
+    max-width: 600px;
+    margin: 0 auto;
+    line-height: 1.6;
+  }
+
+  /* Content Area - Design System Spacing */
+  .dev-blog-content {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: var(--space-meditation) var(--space-silence);
+  }
+
+  .posts-grid {
+    display: grid;
+    gap: var(--space-rest);
+  }
+
+  .post-card {
+    background: var(--dev-surface);
+    border: 1px solid var(--dev-border);
+    border-radius: 16px;
+    overflow: hidden;
+    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), 
+                border-color 0.2s ease,
+                box-shadow 0.3s ease;
+  }
+
+  .post-card:hover {
+    transform: translateY(-4px);
+    border-color: var(--dev-border-strong);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+  }
+
+  .post-card a {
+    text-decoration: none;
+    color: inherit;
+    display: block;
+    padding: var(--space-silence);
+  }
+
+  .post-card-meta {
+    display: flex;
+    align-items: center;
+    gap: var(--space-pause);
+    margin-bottom: var(--space-pause);
+    font-size: 0.875rem;
+    color: var(--dev-text-muted);
+  }
+
+  .post-card-category {
+    background: var(--dev-accent);
+    color: #fff;
+    padding: 6px 14px;
+    border-radius: 9999px;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+
+  .post-card h2 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin: 0 0 var(--space-pause);
+    color: var(--dev-text);
+    line-height: 1.35;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    letter-spacing: -0.02em;
+  }
+
+  .post-card p {
+    color: var(--dev-text-secondary);
+    line-height: 1.65;
+    margin: 0;
+    font-size: 1rem;
+  }
+
+  .post-card-footer {
+    display: flex;
+    align-items: center;
+    gap: var(--space-pause);
+    margin-top: var(--space-rest);
+    padding-top: var(--space-rest);
+    border-top: 1px solid var(--dev-border);
+  }
+
+  .post-card-author {
+    display: flex;
+    align-items: center;
+    gap: var(--space-breath);
+  }
+
+  .post-card-author-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: var(--dev-accent);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: #fff;
+  }
+
+  .post-card-author-name {
+    font-size: 0.9375rem;
+    font-weight: 500;
+    color: var(--dev-text);
+  }
+
+  .post-card-read-time {
+    margin-left: auto;
+    font-size: 0.875rem;
+    color: var(--dev-text-muted);
+  }
+
+  .empty-state {
+    text-align: center;
+    padding: var(--space-contemplation) var(--space-silence);
+    color: var(--dev-text-muted);
+  }
+
+  .empty-state h2 {
+    color: var(--dev-text);
+    margin-bottom: var(--space-pause);
+    font-family: 'Plus Jakarta Sans', sans-serif;
+  }
+
+  /* Footer - Design System Aligned */
+  .dev-footer {
+    background: var(--dev-surface);
+    border-top: 1px solid var(--dev-border);
+    padding: var(--space-meditation) var(--space-silence);
+  }
+
+  .dev-footer-inner {
+    max-width: 1280px;
+    margin: 0 auto;
+  }
+
+  .dev-footer-top {
+    display: grid;
+    grid-template-columns: 1.5fr repeat(3, 1fr);
+    gap: var(--space-meditation);
+    padding-bottom: var(--space-silence);
+    border-bottom: 1px solid var(--dev-border);
+  }
+
+  .dev-footer-brand {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-pause);
+  }
+
+  .dev-footer-logo {
+    display: flex;
+    align-items: center;
+    gap: var(--space-pause);
+    text-decoration: none;
+    color: var(--dev-text);
+  }
+
+  .dev-footer-logo svg {
+    width: 40px;
+    height: 40px;
+    flex-shrink: 0;
+  }
+
+  .dev-footer-logo span {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-weight: 700;
+    font-size: 1.125rem;
+    letter-spacing: -0.02em;
+  }
+
+  .dev-footer-tagline {
+    color: var(--dev-text-muted);
+    font-size: 0.9375rem;
+    line-height: 1.5;
+    max-width: 280px;
+    margin: 0;
+  }
+
+  .dev-footer-column {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-pause);
+  }
+
+  .dev-footer-column h4 {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-weight: 600;
+    font-size: 0.8125rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--dev-text-muted);
+    margin: 0 0 var(--space-breath);
+  }
+
+  .dev-footer-column a {
+    color: var(--dev-text-secondary);
+    text-decoration: none;
+    font-size: 0.9375rem;
+    transition: color 0.2s ease;
+    padding: 4px 0;
+  }
+
+  .dev-footer-column a:hover {
+    color: var(--dev-text);
+  }
+
+  .dev-footer-bottom {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: var(--space-rest);
+    gap: var(--space-rest);
+  }
+
+  .dev-footer-copyright {
+    color: var(--dev-text-muted);
+    font-size: 0.875rem;
+    margin: 0;
+  }
+
+  .dev-footer-legal {
+    display: flex;
+    gap: var(--space-rest);
+  }
+
+  .dev-footer-legal a {
+    color: var(--dev-text-muted);
+    text-decoration: none;
+    font-size: 0.875rem;
+    transition: color 0.2s ease;
+  }
+
+  .dev-footer-legal a:hover {
+    color: var(--dev-text-secondary);
+  }
+
+  /* Responsive - Mobile */
+  @media (max-width: 768px) {
+    .dev-nav {
+      padding: var(--space-pause) var(--space-rest);
+      min-height: 64px;
+    }
+
+    .dev-nav-brand {
+      font-size: 1.125rem;
+    }
+
+    .dev-nav-brand svg {
+      width: 36px;
+      height: 36px;
+    }
+
+    .dev-nav-links {
+      gap: var(--space-rest);
+    }
+
+    .dev-nav-links a {
+      font-size: 0.875rem;
+    }
+
+    .dev-blog-header {
+      padding: var(--space-meditation) var(--space-rest);
+    }
+
+    .dev-blog-header h1 {
+      font-size: 2.25rem;
+    }
+
+    .dev-blog-header p {
+      font-size: 1.0625rem;
+    }
+
+    .dev-blog-content {
+      padding: var(--space-silence) var(--space-rest);
+    }
+
+    .post-card a {
+      padding: var(--space-rest);
+    }
+
+    .post-card h2 {
+      font-size: 1.25rem;
+    }
+  }
+
+  /* Very small screens */
+  @media (max-width: 480px) {
+    .dev-nav {
+      flex-direction: column;
+      gap: var(--space-pause);
+      padding: var(--space-pause);
+    }
+
+    .dev-nav-links {
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: var(--space-pause) var(--space-rest);
+    }
+  }
+
+  /* Footer Responsive */
+  @media (max-width: 900px) {
+    .dev-footer-top {
+      grid-template-columns: repeat(2, 1fr);
+      gap: var(--space-silence);
+    }
+
+    .dev-footer-brand {
+      grid-column: span 2;
+      padding-bottom: var(--space-rest);
+      border-bottom: 1px solid var(--dev-border);
+      margin-bottom: var(--space-pause);
+    }
+  }
+
+  @media (max-width: 600px) {
+    .dev-footer {
+      padding: var(--space-silence) var(--space-rest);
+    }
+
+    .dev-footer-top {
+      grid-template-columns: 1fr;
+      gap: var(--space-rest);
+    }
+
+    .dev-footer-brand {
+      grid-column: span 1;
+    }
+
+    .dev-footer-bottom {
+      flex-direction: column;
+      text-align: center;
+      gap: var(--space-pause);
+    }
+
+    .dev-footer-legal {
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: var(--space-pause) var(--space-rest);
+    }
+  }
+</style>
+
+<nav class="dev-nav">
+  <div class="dev-nav-inner">
+    <a href="/developers/" class="dev-nav-brand">
+      <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <circle cx="50" cy="50" r="45" fill="#4a6741"/>
+        <ellipse cx="35" cy="45" rx="8" ry="10" fill="#FFFDFB"/>
+        <ellipse cx="65" cy="45" rx="8" ry="10" fill="#FFFDFB"/>
+      </svg>
+      <span>Ferni Developers</span>
+    </a>
+    <ul class="dev-nav-links">
+      <li><a href="/developers/">Docs</a></li>
+      <li><a href="/developers/api/">API Reference</a></li>
+      <li><a href="/developers/blog/" class="active">Blog</a></li>
+      <li><a href="https://github.com/ferni-ai" target="_blank" rel="noopener">GitHub</a></li>
+    </ul>
+  </div>
+</nav>
+
+<header class="dev-blog-header">
+  <h1>Developer Blog</h1>
+  <p>Technical insights, API updates, and engineering deep dives from the Ferni Developer Platform team.</p>
+</header>
+
+<main class="dev-blog-content">
+  {% if collections.devPosts.length > 0 %}
+    <div class="posts-grid">
+      {% for post in collections.devPosts %}
+        <article class="post-card">
+          <a href="{{ post.url }}">
+            <div class="post-card-meta">
+              {% if post.data.category %}
+                <span class="post-card-category">{{ post.data.category }}</span>
+              {% endif %}
+              <time datetime="{{ post.date | date('yyyy-MM-dd') }}">
+                {{ post.date | date('MMM d, yyyy') }}
+              </time>
+            </div>
+            <h2>{{ post.data.title }}</h2>
+            {% if post.data.excerpt %}
+              <p>{{ post.data.excerpt }}</p>
+            {% endif %}
+            <div class="post-card-footer">
+              <div class="post-card-author">
+                <span class="post-card-author-avatar" style="background: {{ post.data.authorColor or '#4a6741' }}">
+                  {{ post.data.authorInitials or 'FD' }}
+                </span>
+                <span class="post-card-author-name">{{ post.data.author or 'Ferni Dev Team' }}</span>
+              </div>
+              {% if post.data.readTime %}
+                <span class="post-card-read-time">{{ post.data.readTime }} min read</span>
+              {% endif %}
+            </div>
+          </a>
+        </article>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="empty-state">
+      <h2>Coming Soon</h2>
+      <p>We're working on some great content for developers. Check back soon!</p>
+    </div>
+  {% endif %}
+</main>
+
+<footer class="dev-footer">
+  <div class="dev-footer-inner">
+    <div class="dev-footer-top">
+      <div class="dev-footer-brand">
+        <a href="/developers/" class="dev-footer-logo">
+          <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <circle cx="50" cy="50" r="45" fill="#4a6741"/>
+            <ellipse cx="35" cy="45" rx="8" ry="10" fill="#FFFDFB"/>
+            <ellipse cx="65" cy="45" rx="8" ry="10" fill="#FFFDFB"/>
+          </svg>
+          <span>Ferni Developers</span>
+        </a>
+        <p class="dev-footer-tagline">Build voice-first AI experiences. Powerful APIs, comprehensive docs, and world-class support.</p>
+      </div>
+      
+      <div class="dev-footer-column">
+        <h4>Documentation</h4>
+        <a href="/developers/getting-started/">Getting Started</a>
+        <a href="/developers/api/">API Reference</a>
+        <a href="/developers/api/webhooks/">Webhooks</a>
+        <a href="/developers/api/mcp-servers/">MCP Servers</a>
+      </div>
+      
+      <div class="dev-footer-column">
+        <h4>Resources</h4>
+        <a href="/developers/blog/">Blog</a>
+        <a href="https://github.com/ferni-ai" target="_blank" rel="noopener">GitHub</a>
+        <a href="https://discord.gg/ferni" target="_blank" rel="noopener">Discord</a>
+        <a href="https://status.ferni.ai" target="_blank" rel="noopener">Status</a>
+      </div>
+      
+      <div class="dev-footer-column">
+        <h4>Company</h4>
+        <a href="/about/">About Ferni</a>
+        <a href="/blog/">Company Blog</a>
+        <a href="https://ferni.ai">ferni.ai</a>
+        <a href="mailto:developers@ferni.ai">Contact</a>
+      </div>
+    </div>
+    
+    <div class="dev-footer-bottom">
+      <p class="dev-footer-copyright">&copy; {{ 'now' | date('yyyy') }} Ferni AI. All rights reserved.</p>
+      <div class="dev-footer-legal">
+        <a href="/privacy/">Privacy</a>
+        <a href="/terms/">Terms</a>
+        <a href="/accessibility/">Accessibility</a>
+      </div>
+    </div>
+  </div>
+</footer>

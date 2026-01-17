@@ -7,6 +7,7 @@
  * @module @ferni/conversation/deep-humanization/generators/excitement-interruption
  */
 
+import { seededChance, seededIndex, seededPick } from '../../utils/rng.js';
 import type {
   HumanizationContext,
   ConversationMood,
@@ -70,7 +71,8 @@ export async function generateExcitementInterruption(
   // Boost probability for clear breakthroughs
   const adjustedProbability = isBreakthrough ? probability * 1.5 : probability;
 
-  if (Math.random() > adjustedProbability) {
+  // Use turnCount + timestamp for better seed entropy across calls
+  if (!seededChance(`${context.turnCount}:${Date.now()}:excitement`, adjustedProbability)) {
     return null;
   }
 
@@ -94,7 +96,7 @@ export async function generateExcitementInterruption(
     reactions = EXCITEMENT_REACTIONS.success;
   }
 
-  const content = reactions[Math.floor(Math.random() * reactions.length)];
+  const content = seededPick(`${Date.now()}:98`, reactions) ?? reactions[0];
 
   return {
     type: 'excitement_interruption',

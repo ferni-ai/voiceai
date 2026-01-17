@@ -1,6 +1,26 @@
+# =============================================================================
+# LiveKit Configuration
+# =============================================================================
+# 
+# IMPORTANT: We have TWO LiveKit projects to prevent dev/prod conflicts:
+#
+# PRODUCTION (GCE): test-rvg91u1z.livekit.cloud
+# DEVELOPMENT:      dev-8sm1ba0z.livekit.cloud (Project: ferni-dev, ID: p_1gcwootg9al)
+#
+# When running locally, use the dev project credentials in your .env file.
+# GCE production uses the production credentials from Secret Manager.
+# =============================================================================
+
+# Default project for CLI (production)
 [project]
   subdomain = "test-rvg91u1z"
 
 [agent]
   id = "A_AHg7cGc8SpXh"
   name = "voice-agent"
+
+# Development project (use this locally)
+# Get credentials from: https://cloud.livekit.io/projects/p_1gcwootg9al/settings/keys
+[project.dev]
+  subdomain = "dev-8sm1ba0z"
+  project_id = "p_1gcwootg9al"

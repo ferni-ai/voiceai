@@ -25,8 +25,95 @@
 import { spawn } from 'child_process';
 import { getLogger } from '../../utils/safe-logger.js';
 import type { TrustLevel } from '../schema/types.js';
+import { isValidDockerImage, isValidCommand } from '../auth/index.js';
 
 const log = getLogger().child({ module: 'docker-runtime' });
+
+// Allowlist of approved base images for marketplace tools
+const APPROVED_BASE_IMAGES = new Set([
+  'node:20-alpine',
+  'node:20-slim',
+  'node:18-alpine',
+  'node:18-slim',
+  'denoland/deno:alpine',
+  'denoland/deno:latest',
+  'python:3.12-slim',
+  'python:3.11-slim',
+  'golang:1.22-alpine',
+  'rust:1.75-slim',
+]);
+
+/**
+ * Validate Docker image is safe to use
+ */
+function validateDockerImage(
+  image: string,
+  trustLevel: TrustLevel
+): { valid: boolean; reason?: string } {
+  // Basic format validation
+  if (!isValidDockerImage(image)) {
+    return { valid: false, reason: 'Invalid Docker image format' };
+  }
+
+  // For unverified/community tools, only allow approved base images
+  if (trustLevel === 'unverified' || trustLevel === 'community') {
+    // Extract base image (remove tag/digest for comparison)
+    const baseImage = image.split('@')[0]; // Remove digest
+    const imageWithoutTag = baseImage.includes(':') ? baseImage : `${baseImage}:latest`;
+
+    // Check against approved list
+    let isApproved = false;
+    for (const approved of APPROVED_BASE_IMAGES) {
+      if (
+        imageWithoutTag === approved ||
+        imageWithoutTag.startsWith(`${approved.split(':')[0]}:`)
+      ) {
+        isApproved = true;
+        break;
+      }
+    }
+
+    if (!isApproved) {
+      return {
+        valid: false,
+        reason: `Image '${image}' not in approved list for ${trustLevel} tools`,
+      };
+    }
+  }
+
+  // For verified/platform, allow any valid image format
+  return { valid: true };
+}
+
+/**
+ * Validate command array is safe to execute
+ */
+function validateCommand(command: string[]): { valid: boolean; reason?: string } {
+  if (!isValidCommand(command)) {
+    return { valid: false, reason: 'Invalid command format or contains shell metacharacters' };
+  }
+
+  // Block dangerous commands
+  const dangerousCommands = [
+    'rm',
+    'dd',
+    'mkfs',
+    'fdisk',
+    'mount',
+    'umount',
+    'chmod',
+    'chown',
+    'kill',
+    'pkill',
+  ];
+  const firstArg = command[0].split('/').pop() || '';
+
+  if (dangerousCommands.includes(firstArg)) {
+    return { valid: false, reason: `Command '${firstArg}' is not allowed` };
+  }
+
+  return { valid: true };
+}
 
 // ============================================================================
 // TYPES
@@ -163,6 +250,41 @@ export class DockerRuntime {
 
     // Get limits and security based on trust level
     const trustLevel = options.trustLevel || 'community';
+
+    // SECURITY: Validate Docker image
+    const imageValidation = validateDockerImage(image, trustLevel);
+    if (!imageValidation.valid) {
+      log.warn(
+        { image, trustLevel, reason: imageValidation.reason },
+        'Docker image validation failed'
+      );
+      return {
+        success: false,
+        exitCode: -1,
+        stdout: '',
+        stderr: '',
+        error: { code: 'INVALID_IMAGE', message: imageValidation.reason || 'Invalid Docker image' },
+        metrics: { executionTimeMs: Date.now() - startTime },
+      };
+    }
+
+    // SECURITY: Validate command
+    const commandValidation = validateCommand(options.command);
+    if (!commandValidation.valid) {
+      log.warn(
+        { command: options.command, reason: commandValidation.reason },
+        'Command validation failed'
+      );
+      return {
+        success: false,
+        exitCode: -1,
+        stdout: '',
+        stderr: '',
+        error: { code: 'INVALID_COMMAND', message: commandValidation.reason || 'Invalid command' },
+        metrics: { executionTimeMs: Date.now() - startTime },
+      };
+    }
+
     const baseLimits = DEFAULT_LIMITS[trustLevel];
     const limits: Required<DockerLimits> = {
       memoryMB: options.limits?.memoryMB ?? baseLimits.memoryMB ?? 256,

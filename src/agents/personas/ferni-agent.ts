@@ -12,20 +12,61 @@
  */
 
 import { llm, voice } from '@livekit/agents';
+import type { AudioFrame } from '@livekit/rtc-node';
+import type { ReadableStream as NodeReadableStream } from 'node:stream/web';
 import { z } from 'zod';
 
-import { createLogger } from '../../utils/safe-logger.js';
-import { createSanitizerTransformStream } from '../shared/tool-call-sanitizer.js';
-import type { UserProfile } from '../../types/user-profile.js';
 import type { ToolContext } from '../../tools/registry/types.js';
+import type { UserProfile } from '../../types/user-profile.js';
+import { createLogger } from '../../utils/safe-logger.js';
+import {
+  clearInterruptFlags,
+  extractTtsSessionContext,
+  wrappedTtsNode,
+} from '../shared/tts-wrapper.js';
+// Centralized generateReply gateway - NEVER use session.generateReply directly!
+import { generateReply } from '../shared/generate-reply-gateway.js';
+// Safe fire-and-forget for non-critical async operations
+import { fireAndForget } from '../../utils/safe-fire-and-forget.js';
+// Model provider abstraction
+import { getModelProvider } from '../model-provider/index.js';
 
 const log = createLogger({ module: 'FerniAgent' });
+
+/**
+ * Estimate token count (~4 chars per token for English)
+ */
+function estimateTokens(text: string): number {
+  return Math.ceil(text.length / 4);
+}
+
+/**
+ * Emergency truncation for system prompt if it exceeds token limit.
+ * This is a last-resort defense - should rarely trigger if prompt-loader works correctly.
+ */
+function emergencyTruncate(prompt: string, maxTokens: number): string {
+  const tokens = estimateTokens(prompt);
+  if (tokens <= maxTokens) return prompt;
+
+  log.warn(
+    { currentTokens: tokens, maxTokens, promptLength: prompt.length },
+    '🚨 EMERGENCY: System prompt still exceeds token limit after prompt-loader truncation!'
+  );
+
+  // Simple character-based truncation (prompt-loader should have done smart truncation)
+  const maxChars = maxTokens * 4;
+  return prompt.slice(0, maxChars) + '\n\n[EMERGENCY TRUNCATION - prompt exceeded OpenAI Realtime limit]';
+}
 
 // ============================================================================
 // TYPES
 // ============================================================================
 
-interface FerniSessionData {
+/**
+ * Session data for PersonaVoiceAgent instances.
+ * @alias FerniSessionData - Backwards compatibility alias
+ */
+interface PersonaSessionData {
   userId?: string;
   userName?: string;
   userProfile?: UserProfile | null;
@@ -36,9 +77,15 @@ interface FerniSessionData {
 }
 
 // Tool context type from LiveKit - properly typed for function tools
-type ToolSet = llm.ToolContext<FerniSessionData>;
+type ToolSet = llm.ToolContext<PersonaSessionData>;
 
-export interface FerniAgentOptions {
+// Backwards compatibility type aliases
+type FerniSessionData = PersonaSessionData;
+
+/**
+ * Options for creating a PersonaVoiceAgent (or FerniAgent for backwards compat).
+ */
+export interface PersonaVoiceAgentOptions {
   /** Chat context from previous agent (for handoffs) */
   chatCtx?: llm.ChatContext;
   /** Whether to skip default greeting (handled externally) */
@@ -55,17 +102,17 @@ export interface FerniAgentOptions {
 
 // Memory tools - persistence and recall
 import {
-  rememberAboutUserDef,
+  forgetMemoryDef,
+  getRelationshipSummaryDef,
   recallFromMemoryDef,
   recallPreviousConversationDef,
+  rememberAboutUserDef,
   rememberImportantFactDef,
-  getRelationshipSummaryDef,
   updateMemoryDef,
-  forgetMemoryDef,
 } from '../../tools/domains/memory/tools.js';
 
 // Entertainment tools - music playback (from domains)
-import { createMusicTools } from '../../tools/domains/entertainment.js';
+import { createMusicTools } from '../../tools/domains/entertainment/music.js';
 
 // Conversation tools - wrap up, end conversation, graceful exit (from domains)
 import { createConversationTools } from '../../tools/domains/conversation/index.js';
@@ -86,6 +133,9 @@ import { definitions as proactiveToolDefs } from '../../tools/domains/proactive/
 
 // Crisis tools - emergency support
 import { definitions as crisisToolDefs } from '../../tools/domains/crisis/index.js';
+
+// Human transfer tools - professional referral, warm handoff
+import { definitions as humanTransferToolDefs } from '../../tools/domains/human-transfer/index.js';
 
 // Habits tools - goal setting, tracking
 import { definitions as habitsToolDefs } from '../../tools/domains/habits/index.js';
@@ -242,7 +292,13 @@ function buildCrisisTools(agentId: string): ToolSet {
   const ctx = createToolContext(agentId);
   const tools: Record<string, unknown> = {};
 
+  // Crisis support tools (grounding, resources, safety planning)
   for (const def of crisisToolDefs) {
+    tools[def.id] = def.create(ctx);
+  }
+
+  // Human transfer tools (professional referral, warm handoff)
+  for (const def of humanTransferToolDefs) {
     tools[def.id] = def.create(ctx);
   }
 
@@ -374,7 +430,10 @@ function buildHandoffTools(): ToolSet {
 // ============================================================================
 
 /**
- * Ferni - The main life coach and orchestrator.
+ * PersonaVoiceAgent - The main voice agent for all personas.
+ *
+ * This agent class is used for ALL personas (Ferni, Maya, Alex, etc.).
+ * The persona identity comes from the system prompt, not the class name.
  *
  * Pure LiveKit 1.0 implementation with:
  * - Direct domain imports (no registry/manifest indirection)
@@ -382,11 +441,33 @@ function buildHandoffTools(): ToolSet {
  * - Entertainment tools for music playback
  * - Inline handoff tools for team switching
  * - Clean lifecycle hooks (onEnter/onExit)
+ *
+ * @alias FerniAgent - Backwards compatibility alias
  */
-export class FerniAgent extends voice.Agent<FerniSessionData> {
+export class PersonaVoiceAgent extends voice.Agent<PersonaSessionData> {
   private skipGreeting: boolean;
 
-  constructor(systemPrompt: string, options: FerniAgentOptions = {}) {
+  constructor(systemPrompt: string, options: PersonaVoiceAgentOptions = {}) {
+    // TOKEN LIMIT - Defense-in-depth
+    // Primary truncation happens in prompt-loader.ts, but this is a safety net
+    // Uses provider's token limit for flexibility across different LLM providers
+    const provider = getModelProvider();
+    const tokenLimit = provider.getTokenLimit();
+    let finalSystemPrompt = systemPrompt;
+    const estimatedTokenCount = estimateTokens(systemPrompt);
+    if (estimatedTokenCount > tokenLimit) {
+      finalSystemPrompt = emergencyTruncate(systemPrompt, tokenLimit);
+      log.warn(
+        {
+          originalTokens: estimatedTokenCount,
+          newTokens: estimateTokens(finalSystemPrompt),
+          limit: tokenLimit,
+          providerId: provider.id,
+        },
+        `${provider.getLogPrefix()} Applied emergency truncation in agent constructor`
+      );
+    }
+
     // Use orchestrator-selected tools if provided, otherwise build all tools
     let allTools: ToolSet;
     let toolSource: 'orchestrator' | 'internal';
@@ -452,7 +533,7 @@ export class FerniAgent extends voice.Agent<FerniSessionData> {
     }
 
     super({
-      instructions: systemPrompt,
+      instructions: finalSystemPrompt,
       chatCtx: options.chatCtx,
       tools: allTools,
     });
@@ -460,10 +541,16 @@ export class FerniAgent extends voice.Agent<FerniSessionData> {
     this.skipGreeting = options.skipGreeting ?? false;
 
     if (toolSource === 'orchestrator') {
+      const toolNamesList = Object.keys(allTools);
+      const hasWeather = toolNamesList.includes('getWeather');
+      const hasMusic = toolNamesList.includes('playMusic');
       log.info(
         {
-          totalTools: Object.keys(allTools).length,
-          toolNames: Object.keys(allTools).slice(0, 20),
+          totalTools: toolNamesList.length,
+          toolNames: toolNamesList.slice(0, 20),
+          hasWeather,
+          hasMusic,
+          weatherTools: toolNamesList.filter((t) => t.toLowerCase().includes('weather')),
           skipGreeting: this.skipGreeting,
         },
         '🎯 Agent initialized with ORCHESTRATOR-selected tools'
@@ -482,21 +569,37 @@ export class FerniAgent extends voice.Agent<FerniSessionData> {
     }
 
     // Generate a contextual greeting using session data
-    const userData = this.session.userData;
+    const { userData } = this.session;
     const isReturning = userData?.isReturningUser ?? false;
     const userName = userData?.userName;
 
-    let greetingInstructions = 'Greet the user warmly. Keep it natural and brief.';
+    // Build context-aware greeting instructions using speak pseudo-tool
+    // This prevents echoing of meta-instructions - LLM outputs JSON, caught by sanitizer
+    let contextHint = '';
     if (isReturning && userName) {
-      greetingInstructions = `Welcome back ${userName} warmly. Reference that you remember them. Keep it natural.`;
+      contextHint = `This is ${userName}, a returning user you remember.`;
     } else if (isReturning) {
-      greetingInstructions =
-        'Welcome them back warmly - acknowledge that you remember them. Keep it natural.';
+      contextHint = 'This is a returning user you remember.';
+    } else {
+      contextHint = 'This is a new user.';
     }
 
-    this.session.generateReply({
-      instructions: greetingInstructions,
-    });
+    // Generate a sessionId from available data (this agent class doesn't have sessionId directly)
+    const derivedSessionId = userData?.userId ? `agent-${userData.userId}` : `agent-${Date.now()}`;
+
+    // Use gateway for proper error handling and session readiness
+    fireAndForget(async () => {
+      await generateReply(this.session, derivedSessionId, {
+        instructions: `You are Ferni. ${contextHint}
+
+Generate a warm, brief greeting (1-2 sentences max).
+
+Respond with ONLY your greeting as plain text. No JSON. No quotes. Just speak naturally.`,
+        context: 'ferni-greeting',
+        fallbackMessage: 'Hey! Nice to meet you.',
+        priority: 'high', // Greetings are important
+      });
+    }, 'ferni-agent-greeting');
   }
 
   /**
@@ -508,28 +611,42 @@ export class FerniAgent extends voice.Agent<FerniSessionData> {
   }
 
   /**
-   * Override transcriptionNode to filter out malformed function-call-like text.
+   * Override ttsNode to filter out JSON function calls BEFORE they reach TTS.
    *
-   * Sometimes Gemini outputs text like "Play music query christmas music" instead
-   * of actually calling the playMusic function. This filter catches and sanitizes
-   * such output before it reaches TTS.
+   * WORKAROUND (Dec 2024): Gemini Live API has a known bug where it "narrates"
+   * tool calls instead of executing them. We instruct Gemini to output JSON like
+   * {"fn":"playMusic","args":{"query":"jazz"}} and intercept it here before TTS.
    *
-   * @see ../shared/tool-call-sanitizer.ts
+   * The key insight: transcriptionNode filters a DIFFERENT stream than TTS reads from!
+   * The LiveKit SDK does baseStream.tee() and sends one to transcription, one to TTS.
+   * So we MUST filter in ttsNode to prevent TTS from speaking the JSON.
+   *
+   * This uses the shared wrappedTtsNode which handles:
+   * - JSON function call sanitization
+   * - Interrupt-aware SSML softening
+   * - FinOps cost tracking
+   *
+   * @see ../shared/tts-wrapper.ts
    */
-  async transcriptionNode(
-    text: ReadableStream<string>,
+  async ttsNode(
+    text: NodeReadableStream<string>,
     modelSettings: voice.ModelSettings
-  ): Promise<ReadableStream<string> | null> {
-    // First, get the default processed stream
-    const defaultStream = await voice.Agent.default.transcriptionNode(this, text, modelSettings);
+  ): Promise<NodeReadableStream<AudioFrame> | null> {
+    // Get persona ID and turn count from session
+    const userData = this.session.userData as Record<string, unknown> | undefined;
+    const personaId = (userData?.personaId as string) || 'ferni';
+    const turnCount = (userData?.turnCount as number) || 0;
 
-    if (!defaultStream) {
-      return null;
-    }
-
-    // Pipe through our sanitizer to filter tool-call-like text
-    const sanitizer = createSanitizerTransformStream();
-    return defaultStream.pipeThrough(sanitizer);
+    // Use the shared TTS wrapper with explicit agent reference
+    // Pass session so tool results can be spoken via safeGenerateReply
+    // isFirstTurn enables more aggressive streaming optimization for faster first-audio
+    return wrappedTtsNode(this, text, modelSettings, {
+      tools: this._tools as Record<string, unknown> | undefined,
+      sessionContext: extractTtsSessionContext(this, personaId),
+      onInterruptRecoveryApplied: () => clearInterruptFlags(this),
+      session: this.session,
+      isFirstTurn: turnCount <= 1, // First turn gets aggressive streaming optimization
+    });
   }
 }
 
@@ -538,18 +655,37 @@ export class FerniAgent extends voice.Agent<FerniSessionData> {
 // ============================================================================
 
 /**
- * Create a Ferni agent with the given system prompt.
+ * Create a PersonaVoiceAgent with the given system prompt.
+ * @alias createFerniAgent - Backwards compatibility
  */
-export function createFerniAgent(systemPrompt: string, options?: FerniAgentOptions): FerniAgent {
-  return new FerniAgent(systemPrompt, options);
+export function createPersonaVoiceAgent(
+  systemPrompt: string,
+  options?: PersonaVoiceAgentOptions
+): PersonaVoiceAgent {
+  return new PersonaVoiceAgent(systemPrompt, options);
 }
+
+// ============================================================================
+// BACKWARDS COMPATIBILITY ALIASES
+// ============================================================================
+// These aliases maintain compatibility with existing code that uses the old names.
+// New code should use PersonaVoiceAgent, PersonaVoiceAgentOptions, createPersonaVoiceAgent.
+
+/** @deprecated Use PersonaVoiceAgent instead */
+export const FerniAgent = PersonaVoiceAgent;
+
+/** @deprecated Use PersonaVoiceAgentOptions instead */
+export type FerniAgentOptions = PersonaVoiceAgentOptions;
+
+/** @deprecated Use createPersonaVoiceAgent instead */
+export const createFerniAgent = createPersonaVoiceAgent;
 
 /**
  * Build all Ferni tools externally (for filtering before passing to constructor).
  * This is called by voice-agent-entry when orchestrator is disabled but tool
  * filtering is still needed.
  */
-export function buildAllFerniTools(agentId: string = 'ferni'): ToolSet {
+export function buildAllFerniTools(agentId = 'ferni'): ToolSet {
   const memoryTools = buildMemoryTools(agentId);
   const entertainmentTools = buildEntertainmentTools();
   const informationTools = buildInformationTools(agentId);

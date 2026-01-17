@@ -8,7 +8,7 @@
  * - Concern detection (protective care before user asks)
  * - Anticipation (emotion before user finishes)
  *
- * Reference: design-system/brand/BETTER-THAN-HUMAN.md
+ * Reference: design-system/docs/brand/BETTER-THAN-HUMAN.md
  */
 
 import { expect, test } from '@playwright/test';
@@ -295,7 +295,7 @@ test.describe('Summary', () => {
     console.log('  - Full EQ testing requires live voice session');
     console.log('  - These tests validate infrastructure exists');
     console.log('  - ⚠️ warnings indicate features may need implementation');
-    console.log('  - Reference: design-system/brand/BETTER-THAN-HUMAN.md');
+    console.log('  - Reference: design-system/docs/brand/BETTER-THAN-HUMAN.md');
 
     console.log('\n' + '='.repeat(60) + '\n');
   });

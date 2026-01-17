@@ -97,7 +97,7 @@ function minifyJS() {
 
 function minifyHTML() {
   log('blue', '\n📦 Minifying HTML...');
-  
+
   // Find all HTML files
   const htmlFiles = [];
   function findHTML(dir) {
@@ -112,33 +112,69 @@ function minifyHTML() {
     }
   }
   findHTML(SITE_DIR);
-  
+
   let totalSaved = 0;
   let count = 0;
-  
+
   for (const filePath of htmlFiles) {
     const originalSize = fs.statSync(filePath).size;
-    
+
     // Simple HTML minification: remove comments, collapse whitespace
     let content = fs.readFileSync(filePath, 'utf8');
     const originalLength = content.length;
-    
+
+    // IMPORTANT: Extract inline scripts BEFORE minification to preserve them
+    // The regex minification breaks JavaScript by collapsing whitespace
+    const scriptPlaceholders = [];
+    content = content.replace(/<script\b[^>]*>([\s\S]*?)<\/script>/gi, (match, scriptContent) => {
+      const placeholder = `__SCRIPT_PLACEHOLDER_${scriptPlaceholders.length}__`;
+      scriptPlaceholders.push(match);
+      return placeholder;
+    });
+
+    // Also preserve <style> tags
+    const stylePlaceholders = [];
+    content = content.replace(/<style\b[^>]*>([\s\S]*?)<\/style>/gi, (match, styleContent) => {
+      const placeholder = `__STYLE_PLACEHOLDER_${stylePlaceholders.length}__`;
+      stylePlaceholders.push(match);
+      return placeholder;
+    });
+
+    // Also preserve <pre> and <code> blocks
+    const prePlaceholders = [];
+    content = content.replace(/<pre\b[^>]*>[\s\S]*?<\/pre>/gi, (match) => {
+      const placeholder = `__PRE_PLACEHOLDER_${prePlaceholders.length}__`;
+      prePlaceholders.push(match);
+      return placeholder;
+    });
+
     // Remove HTML comments (but keep conditional comments)
     content = content.replace(/<!--(?!\[if)[\s\S]*?-->/g, '');
-    
-    // Collapse multiple spaces/newlines (but preserve pre/code blocks)
+
+    // Collapse multiple spaces/newlines
     content = content.replace(/\s+/g, ' ');
-    
+
     // Remove spaces around tags
     content = content.replace(/>\s+</g, '><');
-    
+
+    // Restore preserved content
+    prePlaceholders.forEach((pre, i) => {
+      content = content.replace(`__PRE_PLACEHOLDER_${i}__`, pre);
+    });
+    stylePlaceholders.forEach((style, i) => {
+      content = content.replace(`__STYLE_PLACEHOLDER_${i}__`, style);
+    });
+    scriptPlaceholders.forEach((script, i) => {
+      content = content.replace(`__SCRIPT_PLACEHOLDER_${i}__`, script);
+    });
+
     fs.writeFileSync(filePath, content);
-    
+
     const newSize = fs.statSync(filePath).size;
     totalSaved += originalSize - newSize;
     count++;
   }
-  
+
   log('green', `  ✓ Minified ${count} HTML files`);
   log('green', `  Total HTML saved: ${(totalSaved/1024).toFixed(1)}KB`);
 }

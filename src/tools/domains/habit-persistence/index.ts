@@ -18,6 +18,16 @@ import { createDomainExport } from '../../registry/loader.js';
 import type { Tool, ToolContext, ToolDefinition } from '../../registry/types.js';
 
 import { getToolDescription } from '../../utils/tool-descriptions.js';
+
+// Cross-persona intelligence imports
+import {
+  addCrossPersonaInsight,
+  getInsightsForPersona,
+  type InsightPriority,
+} from '../../../services/cross-persona-insights.js';
+
+// Pattern recognition imports
+import { getPatternToSurface } from '../../../services/superhuman/pattern-mirror.js';
 // ============================================================================
 // SUPPORT TOOLS
 // ============================================================================
@@ -339,16 +349,247 @@ const behaviorArchitectureDef: ToolDefinition = {
 };
 
 // ============================================================================
+// CROSS-PERSONA INTELLIGENCE TOOLS
+// ============================================================================
+
+const surfacePatternInsightDef: ToolDefinition = {
+  id: 'surfacePatternInsight',
+  name: 'Surface Pattern Insight',
+  description: 'Share a pattern insight Maya noticed with the team or user',
+  domain: 'habit-persistence',
+  tags: ['cross-persona', 'patterns', 'insights'],
+
+  create: (ctx: ToolContext): Tool => {
+    return llm.tool({
+      description: getToolDescription('surfacePatternInsight'),
+      parameters: z.object({
+        targetPersona: z
+          .enum(['peter', 'jordan', 'nayan', 'ferni', 'all'])
+          .describe('Which persona should receive this insight'),
+        patternDescription: z.string().describe('The pattern Maya noticed'),
+        significance: z.string().describe('Why this matters'),
+        urgency: z.enum(['critical', 'high', 'normal', 'low']).default('normal'),
+      }),
+      execute: async ({ targetPersona, patternDescription, significance, urgency }) => {
+        getLogger().info({ agentId: ctx.agentId, targetPersona }, 'Surfacing pattern insight');
+
+        try {
+          addCrossPersonaInsight(ctx.userId, {
+            source: 'maya',
+            target: targetPersona,
+            priority: urgency as InsightPriority,
+            content: `${patternDescription} | Context: ${significance}`,
+            category: 'behavior_pattern',
+            proactive: true,
+            oneTime: false,
+          });
+
+          const targetName =
+            targetPersona === 'all'
+              ? 'the team'
+              : targetPersona.charAt(0).toUpperCase() + targetPersona.slice(1);
+
+          return `**Pattern Shared with ${targetName}**\n\nI've noted this pattern: "${patternDescription}"\n\n${targetPersona !== 'all' ? `${targetName} will have this context when you talk to them.` : 'The whole team will be aware of this.'}\n\nThis is how we work together—I notice the behaviors, and the team can support you from their expertise.`;
+        } catch (error) {
+          getLogger().error({ error }, 'Failed to share pattern insight');
+          return 'I made a note of this pattern. Let me keep an eye on it.';
+        }
+      },
+    });
+  },
+};
+
+const getTeamInsightsDef: ToolDefinition = {
+  id: 'getTeamInsights',
+  name: 'Get Team Insights for Maya',
+  description: 'Retrieve insights from other team members relevant to habit coaching',
+  domain: 'habit-persistence',
+  tags: ['cross-persona', 'insights', 'team'],
+
+  create: (ctx: ToolContext): Tool => {
+    return llm.tool({
+      description: getToolDescription('getTeamInsights'),
+      parameters: z.object({}),
+      execute: async () => {
+        getLogger().info({ agentId: ctx.agentId }, 'Getting team insights for Maya');
+
+        try {
+          const insights = getInsightsForPersona(ctx.userId, 'maya');
+          const patternInsight = getPatternToSurface(ctx.userId);
+
+          let response = `**Team Intelligence for Your Session**\n\n`;
+
+          if (insights.length === 0 && !patternInsight) {
+            return "No specific insights from the team right now. Let's focus on what you're working on today.";
+          }
+
+          if (insights.length > 0) {
+            response += `**From the team:**\n`;
+            for (const item of insights.slice(0, 3)) {
+              const sourceName =
+                item.insight.sourcePersona.charAt(0).toUpperCase() +
+                item.insight.sourcePersona.slice(1);
+              response += `• ${sourceName}: ${item.insight.summary}\n`;
+            }
+            response += `\n`;
+          }
+
+          if (patternInsight) {
+            response += `**Pattern I've noticed:**\n`;
+            response += `${patternInsight.insight}\n`;
+            if (patternInsight.gentleProbe) {
+              response += `\n*${patternInsight.gentleProbe}*\n`;
+            }
+          }
+
+          return response;
+        } catch (error) {
+          getLogger().error({ error }, 'Failed to get team insights');
+          return "Let's focus on what's present for you today.";
+        }
+      },
+    });
+  },
+};
+
+const flagMilestoneForJordanDef: ToolDefinition = {
+  id: 'flagMilestoneForJordan',
+  name: 'Flag Milestone for Jordan',
+  description:
+    "Alert Jordan when a habit milestone is reached that's worth celebrating or turning into a bigger goal",
+  domain: 'habit-persistence',
+  tags: ['cross-persona', 'milestones', 'jordan'],
+
+  create: (ctx: ToolContext): Tool => {
+    return llm.tool({
+      description: getToolDescription('flagMilestoneForJordan'),
+      parameters: z.object({
+        milestone: z.string().describe('The milestone achieved'),
+        habitName: z.string().describe('The habit that reached this milestone'),
+        streakDays: z.number().optional().describe('Days in streak if applicable'),
+        readyForBiggerGoal: z
+          .boolean()
+          .describe('Is this person ready to expand this habit into a bigger goal?'),
+        suggestion: z.string().optional().describe('What bigger goal might be right'),
+      }),
+      execute: async ({ milestone, habitName, streakDays, readyForBiggerGoal, suggestion }) => {
+        getLogger().info({ agentId: ctx.agentId, milestone }, 'Flagging milestone for Jordan');
+
+        try {
+          let insightText = `Habit milestone: ${milestone} on "${habitName}"`;
+          if (streakDays) {
+            insightText += ` (${streakDays} day streak)`;
+          }
+
+          const context = readyForBiggerGoal
+            ? `Maya thinks they're ready to level up. ${suggestion || 'This habit has momentum.'}`
+            : `Worth celebrating, but pace is important. Don't push too fast.`;
+
+          addCrossPersonaInsight(ctx.userId, {
+            source: 'maya',
+            target: 'jordan',
+            content: `${insightText} | ${context}`,
+            priority: readyForBiggerGoal ? 'high' : 'normal',
+            category: 'milestone',
+            proactive: true,
+            oneTime: false,
+          });
+
+          let response = `**Milestone Shared with Jordan**\n\n`;
+          response += `I've let Jordan know about your progress with ${habitName}.\n\n`;
+
+          if (readyForBiggerGoal) {
+            response += `I mentioned you might be ready to build on this momentum. `;
+            response += `When you talk to Jordan about goals, they'll know you've got strong foundations here.\n\n`;
+          } else {
+            response += `I noted that you're building something real, but steady wins the race. `;
+            response += `Jordan will know to celebrate without pushing.\n\n`;
+          }
+
+          response += `**This is how the team supports you** — your progress echoes across our conversations.`;
+
+          return response;
+        } catch (error) {
+          getLogger().error({ error }, 'Failed to flag milestone for Jordan');
+          return `I've noted your milestone with ${habitName}. Let's keep building on it.`;
+        }
+      },
+    });
+  },
+};
+
+const requestPeterAnalysisDef: ToolDefinition = {
+  id: 'requestPeterAnalysis',
+  name: 'Request Peter Analysis',
+  description: 'Ask Peter to look into data that might explain a habit pattern',
+  domain: 'habit-persistence',
+  tags: ['cross-persona', 'data', 'peter'],
+
+  create: (ctx: ToolContext): Tool => {
+    return llm.tool({
+      description: getToolDescription('requestPeterAnalysis'),
+      parameters: z.object({
+        question: z.string().describe('What Maya wants Peter to investigate'),
+        habitContext: z.string().describe('The habit-related context for this request'),
+        suspicion: z.string().optional().describe('What Maya suspects might be going on'),
+      }),
+      execute: async ({ question, habitContext, suspicion }) => {
+        getLogger().info({ agentId: ctx.agentId, question }, 'Requesting Peter analysis');
+
+        try {
+          const insightText = `Maya needs data analysis: "${question}"`;
+          let contextText = `Habit context: ${habitContext}`;
+          if (suspicion) {
+            contextText += ` | Maya suspects: ${suspicion}`;
+          }
+
+          addCrossPersonaInsight(ctx.userId, {
+            source: 'maya',
+            target: 'peter',
+            content: `${insightText} | ${contextText}`,
+            priority: 'normal',
+            category: 'data_request',
+            proactive: true,
+            oneTime: false,
+          });
+
+          let response = `**Analysis Request Sent to Peter**\n\n`;
+          response += `I've asked Peter to look into: "${question}"\n\n`;
+          response += `When you talk to Peter, he'll have this context from me about what's happening with your habits.\n\n`;
+
+          if (suspicion) {
+            response += `I shared my hunch (${suspicion}) so he knows where to dig.\n\n`;
+          }
+
+          response += `Sometimes the numbers reveal what the feelings can't see clearly. Let's see what Peter finds.`;
+
+          return response;
+        } catch (error) {
+          getLogger().error({ error }, 'Failed to request Peter analysis');
+          return "I'll keep this in mind. Let's explore it together.";
+        }
+      },
+    });
+  },
+};
+
+// ============================================================================
 // DOMAIN TOOLS COLLECTION
 // ============================================================================
 
 const habitPersistenceTools: ToolDefinition[] = [
+  // Core coaching tools
   gentleAccountabilityDef,
   compassionateResetDef,
   celebrateTinyWinDef,
   identifyResistanceDef,
   findSustainablePaceDef,
   behaviorArchitectureDef,
+  // Cross-persona intelligence tools
+  surfacePatternInsightDef,
+  getTeamInsightsDef,
+  flagMilestoneForJordanDef,
+  requestPeterAnalysisDef,
 ];
 
 // ============================================================================

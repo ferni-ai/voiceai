@@ -29,7 +29,7 @@ function mockEmbedding(text: string): number[] {
 }
 
 // Helper to create test memory items
-function createMemoryItem(id: string, content: string, topic: string = 'general'): MemoryItem {
+function createMemoryItem(id: string, content: string, topic = 'general'): MemoryItem {
   return {
     id,
     content,

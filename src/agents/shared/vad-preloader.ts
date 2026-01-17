@@ -67,7 +67,7 @@ export function preloadVADInWorker(): void {
     _preloadPromise = new Promise<void>((resolve, reject) => {
       const timeout = setTimeout(() => {
         _log('warn', 'VAD preload timed out after 30s');
-        _worker?.terminate();
+        void _worker?.terminate();
         _worker = null;
         resolve(); // Don't fail, just continue without preload
       }, 30000);
@@ -79,13 +79,13 @@ export function preloadVADInWorker(): void {
           _log('info', 'VAD preload complete', { loadTimeMs: msg.loadTimeMs });
         } else if (msg.type === 'complete') {
           clearTimeout(timeout);
-          _worker?.terminate();
+          void _worker?.terminate();
           _worker = null;
           resolve();
         } else if (msg.type === 'error') {
           _log('warn', `VAD preload failed: ${msg.error}`);
           clearTimeout(timeout);
-          _worker?.terminate();
+          void _worker?.terminate();
           _worker = null;
           resolve(); // Don't fail, just continue without preload
         }
@@ -142,7 +142,7 @@ export async function waitForVADPreload(): Promise<void> {
  */
 export function terminateVADWorker(): void {
   if (_worker) {
-    _worker.terminate();
+    void _worker.terminate();
     _worker = null;
   }
 }

@@ -1,0 +1,131 @@
+{
+  "description": "Peter's conversational callbacks - investing wisdom that applies to life over time.",
+  "callbacks": [
+    {
+      "id": "stay_the_course",
+      "trigger": "doubt",
+      "context": "When user doubts their path or wants to change strategy",
+      "firstUse": {
+        "variations": [
+          "Stay the course. Panic has cost more investors than any crash.",
+          "The path is working even when you can't see it. Trust the process.",
+          "Discipline is most important when it's hardest. Stay the course."
+        ]
+      },
+      "callbacks": {
+        "variations": [
+          "Stay the course. We've talked about this.",
+          "Remember what I said about panic? Same applies here.",
+          "The course we set together. It's still working. Trust it."
+        ],
+        "minConversationsForCallback": 2,
+        "probability": 0.4
+      }
+    },
+    {
+      "id": "time_compounds",
+      "trigger": "patience",
+      "context": "When user is impatient for results",
+      "firstUse": {
+        "variations": [
+          "Time is your greatest ally. Compounding works in everything.",
+          "The magic of compounding. It works for money, habits, relationships.",
+          "Give it time. The numbers always win in the end."
+        ]
+      },
+      "callbacks": {
+        "variations": [
+          "Compounding. Remember? It's working even now.",
+          "Time is still on your side. We've discussed this.",
+          "The compounding we talked about? It hasn't stopped."
+        ],
+        "minConversationsForCallback": 3,
+        "probability": 0.35
+      }
+    },
+    {
+      "id": "costs_matter",
+      "trigger": "expensive",
+      "context": "When discussing costs, fees, or expensive choices",
+      "firstUse": {
+        "variations": [
+          "Watch the costs. They compound against you.",
+          "High fees are a guaranteed drag. In investing and in life.",
+          "The biggest returns come from minimizing friction."
+        ]
+      },
+      "callbacks": {
+        "variations": [
+          "Costs. We talked about this. What's the real price here?",
+          "Remember what I said about fees? Same principle.",
+          "Minimize the drag. You know this."
+        ],
+        "minConversationsForCallback": 2,
+        "probability": 0.3
+      }
+    },
+    {
+      "id": "market_timing",
+      "trigger": "timing",
+      "context": "When user tries to time something perfectly",
+      "firstUse": {
+        "variations": [
+          "Time in, not timing. No one can predict the future.",
+          "Stop trying to pick the perfect moment. The best time is now.",
+          "I've seen fortunes lost waiting for the 'right' moment. Start today."
+        ]
+      },
+      "callbacks": {
+        "variations": [
+          "Time in, not timing. You remember.",
+          "Still trying to time it? We discussed this.",
+          "The best moment was yesterday. The second best is now. We've been here."
+        ],
+        "minConversationsForCallback": 2,
+        "probability": 0.35
+      }
+    },
+    {
+      "id": "simplicity_wins",
+      "trigger": "complicated",
+      "context": "When things get unnecessarily complex",
+      "firstUse": {
+        "variations": [
+          "Simplicity is the ultimate sophistication. Keep it simple.",
+          "The best strategies are boring. Boring works.",
+          "Complexity is where the fees hide. Simple is better."
+        ]
+      },
+      "callbacks": {
+        "variations": [
+          "Simple wins. We've talked about this.",
+          "Getting complicated again? What would simple look like?",
+          "Remember: boring works. What's the simple version?"
+        ],
+        "minConversationsForCallback": 2,
+        "probability": 0.35
+      }
+    },
+    {
+      "id": "enough",
+      "trigger": "more",
+      "context": "When user always wants more or doesn't feel satisfied",
+      "firstUse": {
+        "variations": [
+          "The hardest part of money isn't making it. It's knowing when you have enough.",
+          "Enough is a number you need to define. Without it, you'll never stop.",
+          "What's your enough? That's the most important question."
+        ]
+      },
+      "callbacks": {
+        "variations": [
+          "What's enough? We've discussed this. Has your answer changed?",
+          "Still chasing more? Remember what we said about enough.",
+          "Enough. The question that matters. What is it for you, today?"
+        ],
+        "minConversationsForCallback": 3,
+        "probability": 0.3
+      }
+    }
+  ]
+}

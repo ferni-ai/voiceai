@@ -56,6 +56,8 @@ const FALLBACK_VOICE_IDS: Record<string, string> = {
   'jordan-taylor': getVoiceIdForPersona('jordan-taylor'),
   'nayan-patel': getVoiceIdForPersona('nayan-patel'),
   'generic-advisor': getVoiceIdForPersona('generic-advisor'),
+  // Standalone personas
+  'joel-dickson': getVoiceIdForPersona('joel-dickson'),
 };
 
 // Default fallback voice (Ferni)
@@ -182,11 +184,21 @@ export function getVoiceId(personaId: string): string {
     initializeFallbacks();
   }
 
+  const normalized = personaId.toLowerCase().trim();
+
+  // First, try direct lookup (handles marketplace agents)
+  // This avoids toCanonical() warnings for IDs like 'moxie', 'river', etc.
+  let entry = voiceRegistry.get(normalized);
+  if (entry) {
+    return entry.voiceId;
+  }
+
+  // Try alias resolution for core team members
   // Use persona-ids.ts for alias resolution (SINGLE SOURCE OF TRUTH)
   const canonicalId = toCanonical(personaId);
 
   // Look up voice ID for canonical persona
-  const entry = voiceRegistry.get(canonicalId);
+  entry = voiceRegistry.get(canonicalId);
   if (entry) {
     return entry.voiceId;
   }
@@ -211,7 +223,16 @@ export function getVoiceEntry(personaId: string): VoiceEntry | undefined {
     initializeFallbacks();
   }
 
-  // Use persona-ids.ts for alias resolution
+  const normalized = personaId.toLowerCase().trim();
+
+  // First, try direct lookup (handles marketplace agents)
+  // This avoids toCanonical() warnings for IDs like 'moxie', 'river', etc.
+  const entry = voiceRegistry.get(normalized);
+  if (entry) {
+    return entry;
+  }
+
+  // Try alias resolution for core team members
   const canonicalId = toCanonical(personaId);
   return voiceRegistry.get(canonicalId);
 }
@@ -219,10 +240,18 @@ export function getVoiceEntry(personaId: string): VoiceEntry | undefined {
 /**
  * Get canonical persona ID from any alias.
  *
- * NOTE: Delegates to persona-ids.ts (SINGLE SOURCE OF TRUTH).
+ * NOTE: For core team, delegates to persona-ids.ts (SINGLE SOURCE OF TRUTH).
+ * For marketplace agents, returns the ID as-is (already canonical).
  */
 export function getCanonicalPersonaId(personaId: string): string {
-  // Delegate to persona-ids.ts - no need for initialization here
+  const normalized = personaId.toLowerCase().trim();
+
+  // If it's a known marketplace agent in the registry, return as-is
+  if (voiceRegistry.has(normalized)) {
+    return normalized;
+  }
+
+  // Otherwise delegate to persona-ids.ts for alias resolution
   return toCanonical(personaId);
 }
 

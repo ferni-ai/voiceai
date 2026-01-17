@@ -267,7 +267,7 @@ describe('Engagement → Notification Integration', () => {
 
   it('should track team engagement across personas', async () => {
     const { getTeamEngagementService, getHandoffBanter } =
-      await import('../services/team-engagement.js');
+      await import('../services/engagement/team-engagement.js');
 
     // Get the service instance
     const service = getTeamEngagementService();

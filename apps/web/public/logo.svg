@@ -1,27 +1,30 @@
-<svg width="100" height="100" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-  <!-- 
-    Ferni Logo - Three Stones (Zen) - Primary
-    
-    A peaceful, balanced design that looks like three zen stones:
-    - Outer: The sage green body/world
-    - Middle: The white eye foundation  
-    - Inner: The dark pupil/center
-    
-    The mouth is hidden for static use but available for animation.
-  -->
-  
-  <!-- Outer Stone: Body/World -->
-  <circle cx="50" cy="50" r="45" fill="#4a6741"/>
-  
-  <!-- Middle Stone: Eye White (centered) -->
-  <circle cx="50" cy="50" r="18" fill="white"/>
-  
-  <!-- Eye Details -->
-  <circle cx="50" cy="50" r="12" fill="#5a8060"/>
-  
-  <!-- Inner Stone: Pupil -->
-  <circle cx="50" cy="50" r="6" fill="#2c2520"/>
-  
-  <!-- Catchlight (life spark) -->
-  <circle cx="47" cy="47" r="2" fill="white" opacity="0.9"/>
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Main Ferni brand logo with eyes design -->
+<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="orbGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#4a6741"/>
+      <stop offset="100%" stop-color="#3a5731"/>
+    </linearGradient>
+    <linearGradient id="eyeFill" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="100%" stop-color="#f0f0f0"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Outer ring -->
+  <circle cx="50" cy="50" r="46" fill="none" stroke="#4a6741" stroke-width="1.5" opacity="0.35"/>
+
+  <!-- Circular background -->
+  <circle cx="50" cy="50" r="40" fill="url(#orbGradient)"/>
+
+  <!-- Left eye -->
+  <ellipse cx="36" cy="47" rx="8" ry="10" fill="url(#eyeFill)"/>
+  <circle cx="34" cy="43" r="2" fill="white"/>
+  <circle cx="36" cy="45" r="0.8" fill="white" opacity="0.7"/>
+
+  <!-- Right eye -->
+  <ellipse cx="64" cy="47" rx="8" ry="10" fill="url(#eyeFill)"/>
+  <circle cx="62" cy="43" r="2" fill="white"/>
+  <circle cx="64" cy="45" r="0.8" fill="white" opacity="0.7"/>
 </svg>

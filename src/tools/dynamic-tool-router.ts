@@ -106,6 +106,49 @@ export const TOOL_TIERS = {
       ],
       domains: ['presence'],
     },
+    // === ORPHANED EMOTIONAL DOMAINS (wired Jan 2026) ===
+    envy: {
+      keywords: [
+        'jealous',
+        'envious',
+        'comparing myself',
+        'they have',
+        'not fair',
+        'why them',
+        'social media makes me feel',
+        'everyone else has',
+        'comparison',
+      ],
+      domains: ['envy'],
+    },
+    shame: {
+      keywords: [
+        'ashamed',
+        'embarrassed',
+        'humiliated',
+        'cant tell anyone',
+        'secret',
+        'what would people think',
+        'disgusted with myself',
+        'unworthy',
+        'not good enough',
+      ],
+      domains: ['shame'],
+    },
+    resentment: {
+      keywords: [
+        'resent',
+        'grudge',
+        'cant forgive',
+        'still angry about',
+        'they did this to me',
+        'never apologized',
+        'unfair',
+        'bitter',
+        'holding onto',
+      ],
+      domains: ['resentment'],
+    },
 
     // Life situation domains
     relationships: {
@@ -134,6 +177,73 @@ export const TOOL_TIERS = {
         'starting over',
       ],
       domains: ['life-transitions', 'second-chances'],
+    },
+    // === MIDLIFE & LEGACY DOMAINS (wired Jan 2026) ===
+    midlife: {
+      keywords: [
+        'midlife',
+        'turning 40',
+        'turning 50',
+        'half my life',
+        'is this it',
+        'second half',
+        'what have I done',
+        'midlife crisis',
+        'lost years',
+      ],
+      domains: ['midlife'],
+    },
+    empty_nest: {
+      keywords: [
+        'empty nest',
+        'kids left',
+        'children moved out',
+        'house is quiet',
+        'all grown up',
+        'on my own now',
+      ],
+      domains: ['empty-nest', 'midlife'],
+    },
+    // === IDENTITY TRANSITION DOMAINS (wired Jan 2026) ===
+    coming_out: {
+      keywords: [
+        'coming out',
+        'gay',
+        'lesbian',
+        'bisexual',
+        'trans',
+        'queer',
+        'sexuality',
+        'gender identity',
+        'closet',
+        'hiding who I am',
+      ],
+      domains: ['coming-out'],
+    },
+    faith_transition: {
+      keywords: [
+        'lost my faith',
+        'leaving church',
+        'religious doubt',
+        'deconstructing',
+        'dont believe anymore',
+        'questioning faith',
+        'spiritual crisis',
+      ],
+      domains: ['faith-transition'],
+    },
+    blended_family: {
+      keywords: [
+        'stepchildren',
+        'stepparent',
+        'blended family',
+        'his kids',
+        'her kids',
+        'co-parenting',
+        'step mom',
+        'step dad',
+      ],
+      domains: ['blended-family'],
     },
     difficult_conversations: {
       keywords: [

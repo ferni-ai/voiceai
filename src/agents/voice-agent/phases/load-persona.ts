@@ -3,6 +3,7 @@
  *
  * Loads persona configuration from cache or bundles.
  * Handles metadata parsing and system prompt loading.
+ * Supports custom user-created agents loaded from Firestore.
  *
  * @module voice-agent/phases/load-persona
  */
@@ -12,9 +13,9 @@ import type { PersonaConfig } from '../../../personas/types.js';
 import type { PersonaPhaseResult } from './types.js';
 
 /**
- * Parse job and room metadata to extract persona ID.
+ * Parse job and room metadata to extract persona ID and user ID.
  */
-function parsePersonaId(ctx: JobContext): string {
+function parseMetadata(ctx: JobContext): { personaId: string; userId: string | null } {
   let metadata: Record<string, unknown> = {};
 
   // Try job metadata first
@@ -38,7 +39,26 @@ function parsePersonaId(ctx: JobContext): string {
     }
   }
 
-  return (metadata.persona_id as string) || process.env.PERSONA_ID || 'ferni';
+  const personaId = (metadata.persona_id as string) || process.env.PERSONA_ID || 'ferni';
+
+  // Priority: firebase_uid (cryptographically secure) > user_id > userId
+  // This ensures Firebase-authenticated users get their Firebase UID as the profile key
+  const userId =
+    (metadata.firebase_uid as string) ||
+    (metadata.firebaseUid as string) ||
+    (metadata.user_id as string) ||
+    (metadata.userId as string) ||
+    null;
+
+  return { personaId, userId };
+}
+
+/**
+ * Parse job and room metadata to extract persona ID.
+ * @deprecated Use parseMetadata instead
+ */
+function parsePersonaId(ctx: JobContext): string {
+  return parseMetadata(ctx).personaId;
 }
 
 /**
@@ -133,12 +153,68 @@ async function loadRichSystemPrompt(personaId: string): Promise<string> {
 }
 
 /**
+ * Load a custom user-created agent from Firestore.
+ */
+async function loadCustomAgent(personaId: string, userId: string): Promise<PersonaConfig | null> {
+  try {
+    const { isCustomAgentId, loadCustomAgentAsPersona, createFallbackCustomAgentPersona } =
+      await import('../../../services/custom-agent/custom-agent-runtime.service.js');
+
+    if (!isCustomAgentId(personaId)) {
+      return null;
+    }
+
+    process.stderr.write(`[load-persona] Detected custom agent ID: ${personaId}\n`);
+
+    if (!userId) {
+      process.stderr.write(`[load-persona] No userId for custom agent, using fallback\n`);
+      return createFallbackCustomAgentPersona(personaId, personaId);
+    }
+
+    const customPersona = await loadCustomAgentAsPersona(personaId, userId);
+
+    if (customPersona) {
+      process.stderr.write(`[load-persona] Loaded custom agent: ${customPersona.name} ✨\n`);
+      return customPersona;
+    }
+
+    process.stderr.write(`[load-persona] Custom agent not found, using fallback\n`);
+    return createFallbackCustomAgentPersona(personaId, personaId);
+  } catch (error) {
+    process.stderr.write(`[load-persona] Custom agent loading failed: ${error}\n`);
+    return null;
+  }
+}
+
+/**
  * Load persona phase - gets persona config and system prompt.
+ * Supports both built-in personas and custom user-created agents.
  */
 export async function loadPersonaPhase(ctx: JobContext): Promise<PersonaPhaseResult> {
-  const personaId = parsePersonaId(ctx);
-  process.stderr.write(`[load-persona] Resolved personaId: ${personaId}\n`);
+  const { personaId, userId } = parseMetadata(ctx);
+  process.stderr.write(`[load-persona] Resolved personaId: ${personaId}, userId: ${userId}\n`);
 
+  // =========================================================================
+  // CHECK FOR CUSTOM AGENT
+  // =========================================================================
+  // Custom agents are stored in Firestore and have IDs prefixed with 'agent_', 'custom_', or 'ca_'
+  const customPersona = await loadCustomAgent(personaId, userId || '');
+
+  if (customPersona) {
+    process.stderr.write(`[load-persona] Using custom agent: ${customPersona.name}\n`);
+
+    // Custom agents already have their system prompt generated
+    return {
+      personaId,
+      persona: customPersona,
+      systemPrompt: customPersona.systemPrompt,
+      usePrewarmed: false,
+    };
+  }
+
+  // =========================================================================
+  // STANDARD PERSONA LOADING
+  // =========================================================================
   const {
     usePrewarmed,
     persona: cachedPersona,
@@ -184,34 +260,55 @@ export async function loadPersonaPhase(ctx: JobContext): Promise<PersonaPhaseRes
   };
 
   // Create full persona config with defaults
-  const fullPersona = (persona || {
+  const personaName = personaId
+    .split('-')
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(' ');
+
+  const defaultIdentity = {
+    selfReference: personaName,
+    coreValues: ['empathy', 'growth', 'authenticity'],
+    role: 'life coach',
+    priorities: ['user wellbeing', 'genuine connection'],
+    desiredUserExperience: 'feeling heard and supported',
+  };
+
+  const fullPersona: PersonaConfig = persona || {
     id: personaId,
-    name: personaId
-      .split('-')
-      .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-      .join(' '),
-    voice: { voiceId: defaultVoice.voiceId, provider: defaultVoice.provider },
+    name: personaName,
+    description: `${personaName} is a warm and supportive life coach.`,
+    voice: { voiceId: defaultVoice.voiceId, provider: 'cartesia' as const },
     systemPrompt: cachedPrompt || `You are ${personaId}, a warm and supportive life coach.`,
-    personality: { warmth: 0.7, humor: 0.4, directness: 0.6, energy: 0.6 },
-    speechCharacteristics: { baseSpeedMultiplier: 1.0, pauseMultiplier: 1.0 },
-  }) as unknown as PersonaConfig;
+    personality: {
+      warmth: 0.7,
+      humorLevel: 0.4,
+      humorStyle: ['gentle-teasing'],
+      directness: 0.6,
+      energy: 0.6,
+      tangentFrequency: 0.3,
+      traits: ['warm', 'supportive', 'thoughtful'],
+      boundaries: ['no medical advice', 'no legal advice'],
+    },
+    // speechCharacteristics is optional - omit for default behavior
+    communication: defaultCommunication,
+    identity: defaultIdentity,
+    knowledge: {
+      domains: ['general'],
+      qualifiedTopics: ['life coaching', 'personal growth', 'emotional support'],
+      outOfScopeTopics: ['medical-diagnosis', 'legal-advice'],
+      outOfScopeResponse: "That's outside my expertise, but I can help you think through who might be able to help.",
+    },
+  };
 
   // Ensure communication config exists (may be missing from cache)
   if (!fullPersona.communication) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (fullPersona as any).communication = defaultCommunication;
+    (fullPersona as { communication: typeof defaultCommunication }).communication =
+      defaultCommunication;
   }
 
   // Ensure identity config exists (greetings.ts accesses identity.selfReference)
   if (!fullPersona.identity) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (fullPersona as any).identity = {
-      selfReference: fullPersona.name || personaId,
-      coreValues: ['empathy', 'growth', 'authenticity'],
-      role: 'life coach',
-      priorities: ['user wellbeing', 'genuine connection'],
-      desiredUserExperience: 'feeling heard and supported',
-    };
+    (fullPersona as { identity: typeof defaultIdentity }).identity = defaultIdentity;
   }
 
   // Load rich system prompt

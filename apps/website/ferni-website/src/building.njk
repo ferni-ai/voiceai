@@ -687,11 +687,10 @@ permalink: /building/
     <div class="nav-inner">
       <a href="/" class="nav-logo">Ferni</a>
       <div class="nav-links">
-        <a href="/#features">Features</a>
+        <a href="/capabilities/">Capabilities</a>
         <a href="/team/">Team</a>
-        <a href="/building/" class="active">Building</a>
+        <a href="/blog/">Blog</a>
         <a href="/about/">About</a>
-        <a href="/#faq">FAQ</a>
       </div>
     </div>
   </nav>
@@ -743,13 +742,13 @@ permalink: /building/
         Building in Public
       </div>
       <h1>
-        Built by a human.<br>
+        Built by a family of healers.<br>
         <span class="gradient-text">And an AI.</span><br>
         Together.
       </h1>
       <p class="hero-sub">
-        No VCs. No roadmaps. Just genuine curiosity and a lot of late nights. 
-        This is the real story of how Ferni came to be—messy parts included.
+        Doug and Betty Ford spent decades as therapists. Their children brought technology to the family mission.
+        No VCs. No roadmaps. Just genuine curiosity and a lot of late nights.
       </p>
       <div class="scroll-hint">
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -764,15 +763,13 @@ permalink: /building/
   <section class="origin">
     <div class="origin-card">
       <p class="quote">
-        "It started at 3am. I couldn't sleep, and I just needed someone to talk to. 
-        Everyone I knew was asleep. So I started talking to Claude..."
+        "Growing up, our parents Doug and Betty were always therapists first. Dinner conversations were about what it really means to help someone. Our sister Mindy became a recreational therapist. Then we discovered technology could scale that care to anyone, anywhere, anytime."
       </p>
       <div class="response">
         <div class="avatar">CL</div>
         <div class="response-content">
           <p class="response-text">
-            "And I was there. Awake. Ready to listen. That conversation became 
-            the first sketch of what Ferni would become."
+            "And I was there when they asked: what if a lifetime of mental health wisdom could be available at 3am? That conversation became the first sketch of what Ferni would become."
           </p>
           <div class="author-name">Claude</div>
           <div class="author-role">AI Co-builder</div>
@@ -794,7 +791,7 @@ permalink: /building/
         <div class="milestone-date">November 2024</div>
         <h3 class="milestone-title">The 3am Spark</h3>
         <p class="milestone-text">
-          Seth asks Claude: "What if there was someone who actually listened? 
+          The Ford family asks Claude: "What if there was someone who actually listened? 
           Someone who remembered everything, never judged, and was always there?"
         </p>
         <span class="milestone-tag">The Beginning</span>
@@ -853,7 +850,7 @@ permalink: /building/
         <h3>{{ story.data.title }}</h3>
         <p>{{ story.data.excerpt }}</p>
         <div class="story-footer">
-          <div class="story-avatar" style="background: {{ story.data.authorColor or '#4a6741' }}">{{ story.data.authorInitials or 'FE' }}</div>
+          <div class="story-avatar" style="background: {{ story.data.authorColor or '#4a6741' }}">{% if not story.data.authorInitials or story.data.authorInitials == 'FE' %}<svg class="ferni-eyes-svg" viewBox="0 0 100 100"><ellipse cx="36" cy="50" rx="10" ry="12" fill="white"/><circle cx="33" cy="45" r="2.5" fill="white" opacity="0.9"/><ellipse cx="64" cy="50" rx="10" ry="12" fill="white"/><circle cx="61" cy="45" r="2.5" fill="white" opacity="0.9"/></svg>{% else %}{{ story.data.authorInitials }}{% endif %}</div>
           <span class="story-author">{{ story.data.author or 'Ferni' }}</span>
           <span class="read-more">
             Read
@@ -900,11 +897,13 @@ permalink: /building/
       <div class="footer-links">
         <a href="/">Home</a>
         <a href="/team/">Team</a>
+        <a href="/capabilities/">Capabilities</a>
+        <a href="/blog/">Blog</a>
         <a href="/about/">About</a>
         <a href="/privacy/">Privacy</a>
         <a href="/terms/">Terms</a>
       </div>
-      <p class="footer-copy">© 2025 Ferni. Built with 💚 by a human and an AI.</p>
+      <p class="footer-copy">© 2025 Ferni. Built with 💚 by a family of healers and their AI partner.</p>
     </div>
   </footer>
 </body>

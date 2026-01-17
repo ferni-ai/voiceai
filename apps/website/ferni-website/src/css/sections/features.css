@@ -21,7 +21,7 @@
   direction: ltr;
 }
 
-@media (max-width: 968px) {
+@media (max-width: 1024px) {
   .feature-grid {
     grid-template-columns: 1fr;
     gap: var(--space-10);
@@ -53,7 +53,7 @@
 
 /* Phone mockup */
 .phone-mockup {
-  background: #1a1a1a;
+  background: var(--color-bg-dark);
   border-radius: var(--radius-3xl);
   padding: var(--space-3);
   max-width: 280px;
@@ -81,7 +81,7 @@
 }
 
 .section-features.is-dark .eyebrow {
-  color: var(--color-dark-text-muted, #ddd6cc);
+  color: var(--color-dark-text-muted, var(--color-text-muted));
 }
 
 .section-features.is-dark .headline-lg {

@@ -231,7 +231,7 @@ export function identifyValue(
   userId: string,
   valueName: string,
   domain: ValueDomain,
-  importance: number = 7
+  importance = 7
 ): Value {
   const profile = getOrCreateProfile(userId);
 

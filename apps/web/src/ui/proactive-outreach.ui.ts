@@ -18,6 +18,7 @@
 
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { createLogger } from '../utils/logger.js';
+import { t } from '../i18n/index.js';
 
 const log = createLogger('ProactiveOutreachUI');
 
@@ -184,17 +185,17 @@ function createNotificationElement(data: ProactiveOutreachData): HTMLElement {
       <p class="proactive-outreach__message">${escapeHtml(data.message)}</p>
       ${data.context ? `<p class="proactive-outreach__context">${escapeHtml(data.context)}</p>` : ''}
     </div>
-    <button class="proactive-outreach__dismiss" aria-label="Dismiss" type="button">
+    <button class="proactive-outreach__dismiss" aria-label="${t('accessibility.dismiss')}" type="button">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <line x1="18" y1="6" x2="6" y2="18"></line>
         <line x1="6" y1="6" x2="18" y2="18"></line>
       </svg>
     </button>
-    <div class="proactive-outreach__actions">
-      <button class="proactive-outreach__action proactive-outreach__action--respond" type="button">
+    <div class="proactive-outreach__actions" role="button" tabindex="0">
+      <button aria-label="${t('accessibility.letSTalk')}" class="proactive-outreach__action proactive-outreach__action--respond" type="button">
         Let's talk
       </button>
-      <button class="proactive-outreach__action proactive-outreach__action--later" type="button">
+      <button aria-label="${t('accessibility.later')}" class="proactive-outreach__action proactive-outreach__action--later" type="button">
         Later
       </button>
     </div>
@@ -244,7 +245,7 @@ function injectStyles(): void {
       top: 80px;
       right: 20px;
       z-index: var(--z-notification, 3000);
-      max-width: 360px;
+      max-width: min(360px, 100%);
       pointer-events: none;
     }
 

@@ -11,6 +11,7 @@
 
 import type { IncomingMessage, ServerResponse } from 'http';
 import { getLogger } from '../../utils/safe-logger.js';
+import { parseBody } from '../helpers.js';
 import {
   getVideoRecommendations,
   getVideoById,
@@ -36,8 +37,31 @@ import {
   getCreativeJourneyStats,
   getCreativeProfileCardData,
 } from '../../services/creative-you/creative-dna.js';
+import {
+  getIntelligentRecommendations,
+  generateLearningTrackForUser,
+} from '../../services/creative-you/intelligent-curator.js';
+import {
+  discoverVideosForTopic,
+  searchYouTubeVideos,
+  isYouTubeApiAvailable,
+} from '../../services/creative-you/youtube-api-client.js';
 
 const log = getLogger();
+
+// ============================================================================
+// WARM ERROR MESSAGES (Brand-compliant - friendly, not technical)
+// ============================================================================
+
+const WARM_ERRORS = {
+  missingUserId: "Hmm, I'm not sure who you are. Try refreshing?",
+  videoNotFound: "Can't find that video. It might have been removed.",
+  sessionNotFound: 'Lost track of where we were. Want to start fresh?',
+  youtubeUnavailable: "Can't reach YouTube right now. Try the curated picks instead?",
+  trackNotFound: "That learning track isn't available right now.",
+  couldNotGenerateTrack: "Couldn't find enough content for those topics. Try something else?",
+  internalError: 'Something went wrong on my end. Mind trying again?',
+} as const;
 
 /**
  * Handle Creative You API routes
@@ -124,7 +148,7 @@ export async function handleCreativeYouRoutes(
 
       if (!video) {
         res.writeHead(404, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: 'Video not found' }));
+        res.end(JSON.stringify({ error: WARM_ERRORS.videoNotFound }));
         return true;
       }
 
@@ -144,9 +168,9 @@ export async function handleCreativeYouRoutes(
 
     // POST /api/creative/watch/start
     if (pathname === '/api/creative/watch/start' && method === 'POST') {
-      const body = await parseBody(req);
-      const userId = body.userId as string | undefined;
-      const videoId = body.videoId as string | undefined;
+      const body = await parseBody<{ userId?: string; videoId?: string }>(req);
+      const userId = body.userId;
+      const videoId = body.videoId;
 
       if (!userId || !videoId) {
         res.writeHead(400, { 'Content-Type': 'application/json' });
@@ -169,9 +193,9 @@ export async function handleCreativeYouRoutes(
 
     // POST /api/creative/watch/complete
     if (pathname === '/api/creative/watch/complete' && method === 'POST') {
-      const body = await parseBody(req);
-      const userId = body.userId as string | undefined;
-      const sessionId = body.sessionId as string | undefined;
+      const body = await parseBody<{ userId?: string; sessionId?: string }>(req);
+      const userId = body.userId;
+      const sessionId = body.sessionId;
 
       if (!userId || !sessionId) {
         res.writeHead(400, { 'Content-Type': 'application/json' });
@@ -276,8 +300,14 @@ export async function handleCreativeYouRoutes(
       // Check if it's an episode or podcast
       const episode = getEpisodeById(podcastId);
       if (episode) {
+        // Get discussion prompts from curated episodes
+        const { CURATED_EPISODES } =
+          await import('../../services/creative-you/podcast-discovery.js');
+        const curatedEpisode = CURATED_EPISODES.find((e) => e.id === podcastId);
+        const discussionPrompts = curatedEpisode?.discussionPrompts || [];
+
         res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ episode }));
+        res.end(JSON.stringify({ episode, discussionPrompts }));
         return true;
       }
 
@@ -290,6 +320,164 @@ export async function handleCreativeYouRoutes(
 
       res.writeHead(404, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ error: 'Podcast not found' }));
+      return true;
+    }
+
+    // ========================================
+    // YOUTUBE LIVE SEARCH (Fresh Content)
+    // ========================================
+
+    // GET /api/creative/youtube/search?query=productivity&maxResults=5
+    if (pathname === '/api/creative/youtube/search' && method === 'GET') {
+      if (!isYouTubeApiAvailable()) {
+        res.writeHead(503, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: WARM_ERRORS.youtubeUnavailable }));
+        return true;
+      }
+
+      const query = searchParams.get('query') || '';
+      const maxResults = parseInt(searchParams.get('maxResults') || '5');
+      const trustedOnly = searchParams.get('trustedOnly') !== 'false';
+
+      if (!query) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Missing query parameter' }));
+        return true;
+      }
+
+      const videos = await searchYouTubeVideos(query, {
+        maxResults,
+        trustedChannelsOnly: trustedOnly,
+      });
+
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ videos, source: 'youtube_api' }));
+      return true;
+    }
+
+    // GET /api/creative/youtube/discover?topic=anxiety&maxResults=5
+    if (pathname === '/api/creative/youtube/discover' && method === 'GET') {
+      if (!isYouTubeApiAvailable()) {
+        res.writeHead(503, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: WARM_ERRORS.youtubeUnavailable }));
+        return true;
+      }
+
+      const topic = searchParams.get('topic') || '';
+      const maxResults = parseInt(searchParams.get('maxResults') || '5');
+      const trustedOnly = searchParams.get('trustedOnly') !== 'false';
+
+      if (!topic) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Missing topic parameter' }));
+        return true;
+      }
+
+      const videos = await discoverVideosForTopic(topic, {
+        maxResults,
+        trustedChannelsOnly: trustedOnly,
+        minViews: 10000,
+        durationFilter: 'medium',
+      });
+
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(
+        JSON.stringify({
+          videos,
+          topic,
+          source: 'youtube_api',
+        })
+      );
+      return true;
+    }
+
+    // GET /api/creative/youtube/status - Check if YouTube API is available
+    if (pathname === '/api/creative/youtube/status' && method === 'GET') {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(
+        JSON.stringify({
+          available: isYouTubeApiAvailable(),
+          message: isYouTubeApiAvailable()
+            ? 'YouTube API is configured and ready'
+            : 'YouTube API key not configured (GOOGLE_API_KEY)',
+        })
+      );
+      return true;
+    }
+
+    // ========================================
+    // INTELLIGENT RECOMMENDATIONS (AI-Powered)
+    // ========================================
+
+    // GET /api/creative/intelligent?userId=xxx&topics=creativity,productivity&mood=learn
+    if (pathname === '/api/creative/intelligent' && method === 'GET') {
+      const userId = searchParams.get('userId') || '';
+      const topicsParam = searchParams.get('topics') || '';
+      const recentTopics = topicsParam ? topicsParam.split(',').map((t) => t.trim()) : [];
+      const mood = searchParams.get('mood') as
+        | 'learn'
+        | 'chill'
+        | 'inspire'
+        | 'reflect'
+        | undefined;
+      const count = parseInt(searchParams.get('count') || '5');
+      const preferVideos = searchParams.get('preferVideos') === 'true';
+      const preferPodcasts = searchParams.get('preferPodcasts') === 'true';
+
+      if (!userId) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Missing userId parameter' }));
+        return true;
+      }
+
+      const recommendations = await getIntelligentRecommendations(userId, recentTopics, {
+        count,
+        mood,
+        preferVideos,
+        preferPodcasts,
+      });
+
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(
+        JSON.stringify({
+          recommendations,
+          meta: {
+            basedOnTopics: recentTopics,
+            mood: mood || 'auto',
+            count: recommendations.length,
+          },
+        })
+      );
+      return true;
+    }
+
+    // POST /api/creative/intelligent/track - Generate personalized learning track
+    if (pathname === '/api/creative/intelligent/track' && method === 'POST') {
+      const body = await parseBody<{ userId?: string; topics?: string[] }>(req);
+      const userId = body.userId;
+      const topics = body.topics || [];
+
+      if (!userId || topics.length === 0) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Missing userId or topics' }));
+        return true;
+      }
+
+      const track = generateLearningTrackForUser(userId, topics);
+
+      if (!track) {
+        res.writeHead(404, { 'Content-Type': 'application/json' });
+        res.end(
+          JSON.stringify({
+            error: WARM_ERRORS.couldNotGenerateTrack,
+            suggestion: 'Try topics like: productivity, creativity, anxiety, relationships',
+          })
+        );
+        return true;
+      }
+
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ track }));
       return true;
     }
 
@@ -313,7 +501,7 @@ export async function handleCreativeYouRoutes(
 
       if (!track) {
         res.writeHead(404, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: 'Track not found' }));
+        res.end(JSON.stringify({ error: WARM_ERRORS.trackNotFound }));
         return true;
       }
 
@@ -367,17 +555,21 @@ export async function handleCreativeYouRoutes(
 
     // POST /api/creative/insights
     if (pathname === '/api/creative/insights' && method === 'POST') {
-      const body = await parseBody(req);
-      const userId = body.userId as string | undefined;
-      const content = body.content as string | undefined;
-      const source = body.source as
-        | {
-            type: 'video' | 'podcast' | 'conversation';
-            id: string;
-            title: string;
-          }
-        | undefined;
-      const tags = (body.tags as string[]) || [];
+      interface InsightSource {
+        type: 'video' | 'podcast' | 'conversation';
+        id: string;
+        title: string;
+      }
+      const body = await parseBody<{
+        userId?: string;
+        content?: string;
+        source?: InsightSource;
+        tags?: string[];
+      }>(req);
+      const userId = body.userId;
+      const content = body.content;
+      const source = body.source;
+      const tags = body.tags || [];
 
       if (!userId || !content || !source) {
         res.writeHead(400, { 'Content-Type': 'application/json' });
@@ -421,7 +613,7 @@ export async function handleCreativeYouRoutes(
   } catch (error) {
     log.error({ error, pathname }, '🎨 Creative You route error');
     res.writeHead(500, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ error: 'Internal server error' }));
+    res.end(JSON.stringify({ error: WARM_ERRORS.internalError }));
     return true;
   }
 }
@@ -430,19 +622,4 @@ export async function handleCreativeYouRoutes(
 // HELPERS
 // ============================================================================
 
-async function parseBody(req: IncomingMessage): Promise<Record<string, unknown>> {
-  return new Promise((resolve, reject) => {
-    let body = '';
-    req.on('data', (chunk) => {
-      body += chunk.toString();
-    });
-    req.on('end', () => {
-      try {
-        resolve(JSON.parse(body));
-      } catch {
-        resolve({});
-      }
-    });
-    req.on('error', reject);
-  });
-}
+// parseBody imported from '../helpers.js'

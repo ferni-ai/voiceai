@@ -101,39 +101,40 @@ if [ -d "$SOUNDS_DIR" ]; then
     echo "  ✓ Sounds bundled"
 fi
 
-# Copy app icon
+# Copy app icon - use the official Apple App Store icon
 echo ""
 echo "→ Adding app icon..."
-ICON_SOURCE="$PROJECT_ROOT/apps/electron/resources/icon.icns"
-if [ -f "$ICON_SOURCE" ]; then
-    cp "$ICON_SOURCE" "$RESOURCES_DIR/AppIcon.icns"
-    echo "  ✓ App icon added"
+ICON_PNG="$PROJECT_ROOT/apps/marketing/assets/app-stores/apple/icon-1024.png"
+if [ -f "$ICON_PNG" ]; then
+    echo "  → Generating .icns from marketing icon..."
+    ICONSET_DIR="$BUILD_DIR/AppIcon.iconset"
+    mkdir -p "$ICONSET_DIR"
+
+    # Generate all required sizes for macOS app icon
+    sips -z 16 16 "$ICON_PNG" --out "$ICONSET_DIR/icon_16x16.png" 2>/dev/null
+    sips -z 32 32 "$ICON_PNG" --out "$ICONSET_DIR/icon_16x16@2x.png" 2>/dev/null
+    sips -z 32 32 "$ICON_PNG" --out "$ICONSET_DIR/icon_32x32.png" 2>/dev/null
+    sips -z 64 64 "$ICON_PNG" --out "$ICONSET_DIR/icon_32x32@2x.png" 2>/dev/null
+    sips -z 128 128 "$ICON_PNG" --out "$ICONSET_DIR/icon_128x128.png" 2>/dev/null
+    sips -z 256 256 "$ICON_PNG" --out "$ICONSET_DIR/icon_128x128@2x.png" 2>/dev/null
+    sips -z 256 256 "$ICON_PNG" --out "$ICONSET_DIR/icon_256x256.png" 2>/dev/null
+    sips -z 512 512 "$ICON_PNG" --out "$ICONSET_DIR/icon_256x256@2x.png" 2>/dev/null
+    sips -z 512 512 "$ICON_PNG" --out "$ICONSET_DIR/icon_512x512.png" 2>/dev/null
+    sips -z 1024 1024 "$ICON_PNG" --out "$ICONSET_DIR/icon_512x512@2x.png" 2>/dev/null
+
+    iconutil -c icns "$ICONSET_DIR" -o "$RESOURCES_DIR/AppIcon.icns" 2>/dev/null && \
+        echo "  ✓ App icon added (zen eye)" || \
+        echo "  ⚠ Failed to generate .icns"
+
+    rm -rf "$ICONSET_DIR"
 else
-    echo "  ⚠ App icon not found at $ICON_SOURCE"
-    # Generate icon from PNG if available
-    ICON_PNG="$PROJECT_ROOT/brand/icons/png/ios-1024.png"
-    if [ -f "$ICON_PNG" ]; then
-        echo "  → Generating .icns from PNG..."
-        ICONSET_DIR="$BUILD_DIR/AppIcon.iconset"
-        mkdir -p "$ICONSET_DIR"
-        
-        # Generate all required sizes
-        sips -z 16 16 "$ICON_PNG" --out "$ICONSET_DIR/icon_16x16.png" 2>/dev/null
-        sips -z 32 32 "$ICON_PNG" --out "$ICONSET_DIR/icon_16x16@2x.png" 2>/dev/null
-        sips -z 32 32 "$ICON_PNG" --out "$ICONSET_DIR/icon_32x32.png" 2>/dev/null
-        sips -z 64 64 "$ICON_PNG" --out "$ICONSET_DIR/icon_32x32@2x.png" 2>/dev/null
-        sips -z 128 128 "$ICON_PNG" --out "$ICONSET_DIR/icon_128x128.png" 2>/dev/null
-        sips -z 256 256 "$ICON_PNG" --out "$ICONSET_DIR/icon_128x128@2x.png" 2>/dev/null
-        sips -z 256 256 "$ICON_PNG" --out "$ICONSET_DIR/icon_256x256.png" 2>/dev/null
-        sips -z 512 512 "$ICON_PNG" --out "$ICONSET_DIR/icon_256x256@2x.png" 2>/dev/null
-        sips -z 512 512 "$ICON_PNG" --out "$ICONSET_DIR/icon_512x512.png" 2>/dev/null
-        sips -z 1024 1024 "$ICON_PNG" --out "$ICONSET_DIR/icon_512x512@2x.png" 2>/dev/null
-        
-        iconutil -c icns "$ICONSET_DIR" -o "$RESOURCES_DIR/AppIcon.icns" 2>/dev/null && \
-            echo "  ✓ Generated .icns from PNG" || \
-            echo "  ⚠ Failed to generate .icns"
-        
-        rm -rf "$ICONSET_DIR"
+    # Fallback to electron icon if it exists
+    ICON_SOURCE="$PROJECT_ROOT/apps/electron/resources/icon.icns"
+    if [ -f "$ICON_SOURCE" ]; then
+        cp "$ICON_SOURCE" "$RESOURCES_DIR/AppIcon.icns"
+        echo "  ✓ App icon added (fallback)"
+    else
+        echo "  ⚠ No app icon found"
     fi
 fi
 
@@ -177,6 +178,10 @@ cat > "$CONTENTS_DIR/Info.plist" << EOF
     <true/>
     <key>NSMicrophoneUsageDescription</key>
     <string>Ferni Voice needs microphone access to enable voice conversations with Ferni.</string>
+    <key>NSCameraUsageDescription</key>
+    <string>Ferni Voice may use camera for future video features.</string>
+    <key>NSCameraUseContinuityCameraDeviceType</key>
+    <true/>
     <key>NSHighResolutionCapable</key>
     <true/>
     <key>NSHumanReadableCopyright</key>
@@ -185,6 +190,37 @@ cat > "$CONTENTS_DIR/Info.plist" << EOF
     <string>public.app-category.productivity</string>
     <key>NSAppleEventsUsageDescription</key>
     <string>Ferni Voice uses AppleScript to integrate with Terminal for Claude Code.</string>
+    <!-- System Intelligence Permissions -->
+    <key>NSAccessibilityUsageDescription</key>
+    <string>Ferni uses accessibility to understand what you're working on and offer contextual help with the "Help me with this" feature.</string>
+    <key>NSCalendarsUsageDescription</key>
+    <string>Ferni uses calendar access to provide meeting context, help you prepare for upcoming events, and manage your schedule.</string>
+    <key>NSContactsUsageDescription</key>
+    <string>Ferni uses contacts to help you remember birthdays, anniversaries, and maintain important relationships.</string>
+    <key>NSLocationWhenInUseUsageDescription</key>
+    <string>Ferni uses location for habit reminders when you arrive at places like home, work, or gym.</string>
+    <key>NSLocationUsageDescription</key>
+    <string>Ferni uses location to provide context-aware suggestions and location-based reminders.</string>
+    <key>NSScreenCaptureUsageDescription</key>
+    <string>Ferni can analyze your screen to help with errors and provide context-aware assistance.</string>
+    <key>NSFocusStatusUsageDescription</key>
+    <string>Ferni respects your Focus modes to avoid interruptions and adjust behavior based on whether you're in Do Not Disturb, Work, or Personal focus.</string>
+    <!-- Siri / Shortcuts Integration -->
+    <key>INIntentsSupported</key>
+    <array>
+        <string>StartFerniCheckInIntent</string>
+        <string>EndFerniSessionIntent</string>
+        <string>HelpMeWithThisIntent</string>
+    </array>
+    <key>INIntentsRestrictedWhileLocked</key>
+    <array/>
+    <!-- Handoff / Continuity -->
+    <key>NSUserActivityTypes</key>
+    <array>
+        <string>com.ferni.voice.conversation</string>
+        <string>com.ferni.voice.insight</string>
+        <string>com.ferni.voice.checkin</string>
+    </array>
     <key>SUFeedURL</key>
     <string>https://app.ferni.ai/updates/macos/appcast.xml</string>
     <key>SUPublicDSAKeyFile</key>

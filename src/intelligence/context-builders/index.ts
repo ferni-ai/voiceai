@@ -1,9 +1,17 @@
 /**
- * Context Builder Orchestrator
+ * Context Builder Orchestrator (LEGACY)
  *
- * Modular system for building conversational context injections.
+ * ⚠️  PREFER the new behavioral system in `./behavioral/integration.js`
  *
- * Features:
+ * The behavioral system prevents context leakage by separating concerns:
+ * - Behavioral signals (HOW to respond) - can't leak
+ * - Awareness facts (WHAT to know) - meant to be used
+ * - Tool guidance (WHEN to query) - on-demand data
+ *
+ * This legacy module is kept for backward compatibility with existing tests
+ * and code that hasn't migrated yet.
+ *
+ * Features (legacy):
  * - 70+ context builders organized by category
  * - Metrics tracking for performance monitoring
  * - Validation and error handling
@@ -11,14 +19,27 @@
  * - High-emotion mode for focused support
  *
  * @module intelligence/context-builders
+ * @deprecated Use `./behavioral/integration.js` for new code
  */
 
 import { createHash } from 'crypto';
-import type { PersonaConfig } from '../../personas/types.js';
-import type { UserProfile } from '../../types/user-profile.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { DISTRESS } from '../distress-levels.js';
-import { BUILDER_CATEGORIES, BuilderCategory, getBuilderCategory } from './categories.js';
+
+// Import types for local use in this module
+import type {
+  ConversationAnalysis,
+  ContextBuilder,
+  ContextBuilderInput,
+  ContextInjection,
+  ContextPriority,
+} from './core/types.js';
+import {
+  BuilderCategory as BC,
+  BUILDER_CATEGORIES,
+  getBuilderCategory,
+  type BuilderCategory,
+} from './core/categories.js';
 import {
   checkPerformanceIssues,
   getMetricsSummary,
@@ -187,181 +208,31 @@ export function clearContextOutputCache(): void {
 }
 
 // ============================================================================
-// TYPES
+// TYPES - Re-exported from types.ts (single source of truth)
 // ============================================================================
 
-export interface ConversationAnalysis {
-  emotion: {
-    primary: string;
-    intensity: number;
-    secondaryEmotions?: string[];
-    needsSupport?: boolean;
-    isVenting?: boolean;
-    isProcessing?: boolean;
-    mentalHealthSignals?: string[];
-    confidence?: number;
-    distressLevel?: number;
-    valence?: 'positive' | 'negative' | 'neutral';
-    markers?: string[];
-    suggestedTone?: string;
-  };
-  intent: {
-    primary: string;
-    confidence: number;
-    entities?: Record<string, unknown>;
-    isQuestion?: boolean;
-    isFollowUp?: boolean;
-    requiresEmpathy?: boolean;
-    requiresAction?: boolean;
-    suggestedApproach?: string;
-  };
-  topics: {
-    detected: string[];
-    primary?: string | null;
-    trending?: string[];
-    sentiment?: Record<string, number>;
-    isTopicShift?: boolean;
-  };
-  state: {
-    phase: string;
-    trustLevel?: number;
-    engagementLevel?: number;
-    distressLevel?: number;
-    currentMood?: string;
-  };
-}
-
-/**
- * Minimal SessionServices interface for context builders.
- *
- * This is a SUBSET of the full SessionServices from services/index.ts.
- * Context builders only need these fields to operate. The full SessionServices
- * interface is structurally compatible with this, so passing the real
- * SessionServices object works due to TypeScript's structural typing.
- *
- * @see services/index.ts for the full SessionServices interface
- */
-export interface SessionServices {
-  sessionId: string;
-  userId?: string;
-  sessionStartTime: number;
-  userProfile: UserProfile | null;
-
-  // Methods used by context builders
-  searchKnowledge?: (query: string) => Promise<string | null>;
-  searchPastConversations?: (query: string) => Promise<string | null>;
-  getEnhancedPromptContext?: () => string;
-  trackResponseQuality?: (response: string, reaction: 'positive' | 'neutral' | 'negative') => void;
-
-  // Learning engine access (for memory context builder)
-  learningEngine?: {
-    getProactiveInsight: (profile: UserProfile | null, turnCount: number) => string | null;
-  };
-
-  // History tracker (for memory context builder)
-  historyTracker?: {
-    getSimpleTurns: () => Array<{ role: string; content: string }>;
-    getTurnCount: () => number;
-  };
-
-  // Current persona ID (for persona memory context builder)
-  personaId?: string;
-}
-
-export interface VoiceEmotionResult {
-  emotion: string;
-  confidence: number;
-  speechRate?: number;
-  pitch?: number;
-}
-
-export interface SessionRecoveryState {
-  wasDisconnected?: boolean;
-  disconnectedAt?: Date | null; // Match conversation-quality.ts definition
-  recoveryGreeting?: string;
-}
-
-export interface ExtractedDetail {
-  type:
-    | 'user_name'
-    | 'person_name'
-    | 'pet_name'
-    | 'place'
-    | 'company'
-    | 'date'
-    | 'amount'
-    | 'other';
-  value: string;
-}
-
-export interface ContextUserData {
-  userName?: string;
-  name?: string;
-  isReturningUser?: boolean;
-  sessionDurationMs?: number;
-  turnCount?: number;
-  lastTopic?: string;
-  recentTopics?: string[];
-  currentPersona?: string;
-  keyMoments?: Array<{ summary: string; timestamp: Date }>;
-  lastPacingScore?: number;
-  sessionRecoveryState?: SessionRecoveryState;
-  storiesShared?: string[];
-  lastPhysicalNote?: string;
-  extractedDetails?: ExtractedDetail[];
-  lastNameUsed?: number;
-  /** Memory references already made this session (prevents repetition) */
-  referencedMemories?: string[];
-  /** Whether we've already referenced the last conversation topic */
-  hasReferencedLastConversation?: boolean;
-}
-
-export interface ContextBuilderInput {
-  userText: string;
-  analysis: ConversationAnalysis;
-  services: SessionServices;
-  userData: ContextUserData;
-  userProfile: UserProfile | null;
-  persona: PersonaConfig;
-  voiceEmotion?: VoiceEmotionResult;
-  /** Bundle runtime for accessing rich persona content (quirks, inner world, etc.) */
-  bundleRuntime?: import('../../personas/bundles/runtime.js').BundleRuntimeEngine;
-}
-
-export type ContextPriority = 'critical' | 'high' | 'standard' | 'hint';
-
-export interface ContextInjection {
-  id: string;
-  source: string;
-  content: string;
-  priority: ContextPriority;
-  category?: string;
-  confidence?: number;
-}
-
-export interface ContextBuilder {
-  name: string;
-  description: string;
-  priority: number;
-  /** Optional category for organization */
-  category?: BuilderCategory;
-  /** Optional dependencies - builders that must run before this one */
-  dependsOn?: string[];
-  /** The build function */
-  build: (input: ContextBuilderInput) => Promise<ContextInjection[]>;
-}
-
-export interface ContextBuilderMetrics {
-  name: string;
-  callCount: number;
-  totalDurationMs: number;
-  avgDurationMs: number;
-  injectionsProduced: number;
-  lastCallTimestamp?: number;
-}
-
-// Re-export imported types
-export type { PersonaConfig, UserProfile };
+// All context builder types are defined in types.ts and re-exported here
+// for backward compatibility. See types.ts for documentation.
+export type {
+  ConversationAnalysis,
+  ConversationStateAnalysis,
+  ContextBuilder,
+  ContextBuilderInput,
+  ContextBuilderMetrics,
+  ContextInjection,
+  ContextPriority,
+  ContextUserData,
+  EmotionAnalysis,
+  EmotionValence,
+  ExtractedDetail,
+  IntentAnalysis,
+  SessionRecoveryState,
+  SessionServices,
+  TopicsAnalysis,
+  VoiceEmotionResult,
+  PersonaConfig,
+  UserProfile,
+} from './core/types.js';
 
 // Re-export categories and metrics
 export {
@@ -369,10 +240,10 @@ export {
   BuilderCategory,
   getBuilderCategory,
   getBuildersInCategory,
-} from './categories.js';
+  getCategoryMetadata,
+  validateBuilderPriorities,
+} from './core/categories.js';
 
-// Import for internal use
-import { BuilderCategory as BC } from './categories.js';
 export {
   checkPerformanceIssues,
   getAllBuilderMetrics,
@@ -646,6 +517,11 @@ const PRIORITY_ORDER: Record<ContextPriority, number> = {
 };
 
 /**
+ * @deprecated Use `buildIntegratedContext` from `./behavioral/integration.js` instead.
+ *
+ * The new behavioral system produces pre-formatted output that doesn't need
+ * this formatting step and is resistant to context leakage.
+ *
  * Format context injections for the LLM prompt
  *
  * BETTER-THAN-HUMAN: In high-emotion moments, we reduce noise by filtering out
@@ -692,6 +568,8 @@ export function formatContextForPrompt(
 }
 
 /**
+ * @deprecated High emotion mode is now handled internally by `buildIntegratedContext`.
+ *
  * BETTER-THAN-HUMAN: Determine if we should use high-emotion mode
  *
  * High emotion mode reduces context noise when the user needs focused support.
@@ -718,10 +596,17 @@ export function shouldUseHighEmotionMode(analysis: ConversationAnalysis): boolea
 /**
  * Categories that are ALWAYS run regardless of context
  */
-const CORE_CATEGORIES: BC[] = [BC.SAFETY, BC.CONTEXT];
+const CORE_CATEGORIES: BuilderCategory[] = [BUILDER_CATEGORIES.SAFETY, BUILDER_CATEGORIES.CONTEXT];
 
 // Import optimized fast conditional loading
 import { determineActiveCategoriesFast as fastDetermineCategories } from './fast-conditional-loading.js';
+
+// Import builder-level prioritization (Phase 2 optimization)
+import {
+  prioritizeBuilders,
+  recordPrioritizationResult,
+  getPrioritizationConfig,
+} from './builder-prioritization.js';
 
 /**
  * Determine which builder categories should be active for this turn
@@ -732,8 +617,8 @@ import { determineActiveCategoriesFast as fastDetermineCategories } from './fast
  * @param input - The context builder input
  * @returns Array of categories that should be active
  */
-export function determineActiveCategories(input: ContextBuilderInput): BC[] {
-  const categories = new Set<BC>(CORE_CATEGORIES);
+export function determineActiveCategories(input: ContextBuilderInput): BuilderCategory[] {
+  const categories = new Set<BuilderCategory>(CORE_CATEGORIES);
 
   const { analysis, userData, voiceEmotion } = input;
   const turnCount = userData?.turnCount || 1;
@@ -749,23 +634,25 @@ export function determineActiveCategories(input: ContextBuilderInput): BC[] {
     emotionIntensity > 0.5 ||
     analysis?.emotion?.valence === 'negative'
   ) {
-    categories.add(BC.EMOTIONAL);
+    categories.add(BUILDER_CATEGORIES.EMOTIONAL);
   }
 
   // VOICE - When voice emotion data is available
   if (voiceEmotion && voiceEmotion.confidence > 0.3) {
-    categories.add(BC.VOICE);
+    categories.add(BUILDER_CATEGORIES.VOICE);
   }
 
-  // MEMORY - First 3 turns (session priming) + every 5th turn + returning users
-  if (turnCount <= 3 || turnCount % 5 === 0 || userData?.isReturningUser) {
-    categories.add(BC.MEMORY);
+  // MEMORY - First 3 turns (session priming) + every 3rd turn + returning users
+  // FIX: Changed from every 5th turn to every 3rd turn for better memory continuity
+  // Users were reporting Ferni "forgetting" them in longer conversations
+  if (turnCount <= 3 || turnCount % 3 === 0 || userData?.isReturningUser) {
+    categories.add(BUILDER_CATEGORIES.MEMORY);
   }
 
   // PERSONA - Every turn for character consistency, but can be reduced
   // Run on first turn, then periodically, or when low emotional intensity
   if (turnCount === 1 || turnCount % 3 === 0 || emotionIntensity < 0.3) {
-    categories.add(BC.PERSONA);
+    categories.add(BUILDER_CATEGORIES.PERSONA);
   }
 
   // COACHING - When user is seeking advice or in exploring phase
@@ -775,7 +662,7 @@ export function determineActiveCategories(input: ContextBuilderInput): BC[] {
     analysis?.state?.phase === 'advising' ||
     analysis?.state?.phase === 'exploring'
   ) {
-    categories.add(BC.COACHING);
+    categories.add(BUILDER_CATEGORIES.COACHING);
   }
 
   // COGNITIVE - When complex reasoning or distortions detected
@@ -786,7 +673,7 @@ export function determineActiveCategories(input: ContextBuilderInput): BC[] {
       ['decision', 'problem', 'stuck', 'confused', 'anxiety'].includes(t.toLowerCase())
     )
   ) {
-    categories.add(BC.COGNITIVE);
+    categories.add(BUILDER_CATEGORIES.COGNITIVE);
   }
 
   // ENGAGEMENT - When positive emotion or during lighter conversation
@@ -797,7 +684,7 @@ export function determineActiveCategories(input: ContextBuilderInput): BC[] {
       ['music', 'game', 'fun', 'story', 'celebration'].includes(t.toLowerCase())
     )
   ) {
-    categories.add(BC.ENGAGEMENT);
+    categories.add(BUILDER_CATEGORIES.ENGAGEMENT);
   }
 
   // TEAM - When handoff signals detected or team mentioned
@@ -806,7 +693,7 @@ export function determineActiveCategories(input: ContextBuilderInput): BC[] {
     input.userText?.toLowerCase().includes('talk to') ||
     input.userText?.toLowerCase().includes('switch to')
   ) {
-    categories.add(BC.TEAM);
+    categories.add(BUILDER_CATEGORIES.TEAM);
   }
 
   // EXTERNAL - Periodically (every 10 turns) or when external topics mentioned
@@ -816,18 +703,18 @@ export function determineActiveCategories(input: ContextBuilderInput): BC[] {
       ['weather', 'calendar', 'health', 'finance', 'biometric'].includes(t.toLowerCase())
     )
   ) {
-    categories.add(BC.EXTERNAL);
+    categories.add(BUILDER_CATEGORIES.EXTERNAL);
   }
 
   // HUMANIZING - Most turns to maintain natural speech
   // Skip only during high distress (focus on support)
   if (distressLevel < DISTRESS.HIGH) {
-    categories.add(BC.HUMANIZING);
+    categories.add(BUILDER_CATEGORIES.HUMANIZING);
   }
 
   // LEARNING - Periodically (every 10 turns)
   if (turnCount % 10 === 0) {
-    categories.add(BC.LEARNING);
+    categories.add(BUILDER_CATEGORIES.LEARNING);
   }
 
   return Array.from(categories);
@@ -885,7 +772,25 @@ export function getConditionalLoadingConfig(): ConditionalLoadingConfig {
 // ============================================================================
 
 /**
- * Build conversation context from all registered builders
+ * @deprecated Use `buildIntegratedContext` from `./behavioral/integration.js` instead.
+ *
+ * This legacy function builds context using the old approach that was prone to
+ * context leakage. The new behavioral system separates concerns:
+ * - Behavioral signals (HOW to respond) - can't leak
+ * - Awareness facts (WHAT to know) - meant to be used
+ * - Tool guidance (WHEN to query) - on-demand data
+ *
+ * Migration:
+ * ```typescript
+ * // OLD
+ * const injections = await buildConversationContext(input);
+ * const prompt = formatContextForPrompt(injections);
+ *
+ * // NEW
+ * import { buildIntegratedContext } from './behavioral/integration.js';
+ * const result = await buildIntegratedContext(input);
+ * // result.behavioralDirective + result.awarenessFacts + result.toolGuidance
+ * ```
  *
  * Features:
  * - Output caching with 5-minute TTL
@@ -965,6 +870,28 @@ export async function buildConversationContext(
   } else {
     // Run all builders (legacy behavior)
     buildersToRun = getRegisteredBuilders();
+  }
+
+  // PHASE 2 OPTIMIZATION: Builder-level prioritization
+  // Further filter builders by intent/topic relevance scoring
+  // This reduces ~20-30 builders per turn to ~10-15 builders
+  const prioritizationConfig = getPrioritizationConfig();
+  if (!prioritizationConfig.disabled && buildersToRun.length > 0) {
+    const prioritizationResult = prioritizeBuilders(buildersToRun, input);
+    recordPrioritizationResult(prioritizationResult);
+    buildersToRun = prioritizationResult.selectedBuilders;
+
+    if (conditionalLoadingConfig.logActiveCategories) {
+      log.debug(
+        {
+          beforePrioritization: prioritizationResult.totalScored,
+          afterPrioritization: buildersToRun.length,
+          skipped: prioritizationResult.skippedBuilders.length,
+          avgRelevance: prioritizationResult.avgRelevanceScore.toFixed(2),
+        },
+        'Builder-level prioritization applied'
+      );
+    }
   }
 
   const builderResults: Array<{
@@ -1093,10 +1020,18 @@ export {
   getLoadingStatus,
   reloadBuilders,
   type BuilderLoadReport,
-} from './loader.js';
+} from './core/loader.js';
 
 // Import for internal use
-import { ensureBuildersLoaded } from './loader.js';
+import { ensureBuildersLoaded } from './core/loader.js';
+
+// Re-export builder prioritization functions for observability
+export {
+  getPrioritizationMetrics,
+  getPrioritizationConfig,
+  setPrioritizationConfig,
+  resetPrioritizationMetrics,
+} from './builder-prioritization.js';
 
 // ============================================================================
 // CONVERSATION HUMANIZING CONTEXT BUILDER
@@ -1107,13 +1042,13 @@ export {
   buildConversationHumanizingContext,
   formatConversationHumanizingForPrompt,
   getHumanizingSummary as getConversationHumanizingSummary,
-} from './conversation-humanizing.js';
+} from './humanization/conversation-humanizing.js';
 
 // ============================================================================
 // RNG UTILITIES FOR DETERMINISTIC BEHAVIOR
 // ============================================================================
 
-export { createBuilderRng, createSimpleRng, type BuilderRng } from './rng-utils.js';
+export { createBuilderRng, createSimpleRng, type BuilderRng } from './core/rng-utils.js';
 
 // ============================================================================
 // SESSION CLEANUP (Memory Leak Prevention)
@@ -1134,7 +1069,7 @@ export async function cleanupContextBuilderSession(sessionId: string): Promise<v
 
   // Clear deep understanding session state
   try {
-    const { clearDeepUnderstandingSession } = await import('./deep-understanding.js');
+    const { clearDeepUnderstandingSession } = await import('./intelligence/deep-understanding.js');
     clearDeepUnderstandingSession(sessionId);
   } catch {
     /* module not loaded */
@@ -1142,7 +1077,7 @@ export async function cleanupContextBuilderSession(sessionId: string): Promise<v
 
   // Clear conversational superpowers session state
   try {
-    const { clearSuperpowersSession } = await import('./conversational-superpowers.js');
+    const { clearSuperpowersSession } = await import('./superhuman/conversational-superpowers.js');
     clearSuperpowersSession(sessionId);
   } catch {
     /* module not loaded */
@@ -1150,8 +1085,16 @@ export async function cleanupContextBuilderSession(sessionId: string): Promise<v
 
   // Clear superhuman insights session state
   try {
-    const { clearSuperhumanInsightsSession } = await import('./superhuman-insights.js');
+    const { clearSuperhumanInsightsSession } = await import('./superhuman/superhuman-insights.js');
     clearSuperhumanInsightsSession(sessionId);
+  } catch {
+    /* module not loaded */
+  }
+
+  // Clear memory lane session state
+  try {
+    const { clearMemoryLaneSession } = await import('./superhuman/memory-lane-context.js');
+    clearMemoryLaneSession(sessionId);
   } catch {
     /* module not loaded */
   }
@@ -1168,7 +1111,7 @@ export async function cleanupAllContextBuilderSessions(): Promise<void> {
 
   // Clear all deep understanding sessions
   try {
-    const { clearAllDeepUnderstandingSessions } = await import('./deep-understanding.js');
+    const { clearAllDeepUnderstandingSessions } = await import('./intelligence/deep-understanding.js');
     clearAllDeepUnderstandingSessions();
   } catch {
     /* module not loaded */
@@ -1176,7 +1119,7 @@ export async function cleanupAllContextBuilderSessions(): Promise<void> {
 
   // Clear all conversational superpowers sessions
   try {
-    const { clearAllSuperpowersSessions } = await import('./conversational-superpowers.js');
+    const { clearAllSuperpowersSessions } = await import('./superhuman/conversational-superpowers.js');
     clearAllSuperpowersSessions();
   } catch {
     /* module not loaded */
@@ -1184,8 +1127,17 @@ export async function cleanupAllContextBuilderSessions(): Promise<void> {
 
   // Clear all superhuman insights sessions
   try {
-    const { clearAllSuperhumanInsightsSessions } = await import('./superhuman-insights.js');
+    const { clearAllSuperhumanInsightsSessions } =
+      await import('./superhuman/superhuman-insights.js');
     clearAllSuperhumanInsightsSessions();
+  } catch {
+    /* module not loaded */
+  }
+
+  // Clear all memory lane sessions
+  try {
+    const { clearAllMemoryLaneSessions } = await import('./superhuman/memory-lane-context.js');
+    clearAllMemoryLaneSessions();
   } catch {
     /* module not loaded */
   }

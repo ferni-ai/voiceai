@@ -28,7 +28,7 @@
 
 /* Focus visible styles for keyboard users */
 *:focus-visible {
-  outline: 2px solid var(--color-ferni, #4a6741);
+  outline: 2px solid var(--color-ferni, var(--color-ferni));
   outline-offset: 2px;
 }
 
@@ -70,7 +70,13 @@ html[data-time="morning"] {
   --warmth-filter: sepia(2%) brightness(101%);
 }
 
-body {
+/*
+ * IMPORTANT: Do NOT apply filter directly to body!
+ * CSS filters on ancestors break position:fixed on descendants.
+ * The cookie banner and modals need position:fixed to work correctly.
+ * Instead, apply the filter to the main content wrapper.
+ */
+body > *:not(.cookie-banner):not(.cookie-settings-modal):not(#cookieBanner):not(#cookieSettingsModal) {
   filter: var(--warmth-filter);
 }
 
@@ -286,7 +292,7 @@ html.loaded .reveal.visible {
   position: absolute;
   inset: 0;
   border-radius: 50%;
-  background: linear-gradient(135deg, var(--avatar-light, #5a7751), var(--avatar-color, #4a6741), var(--avatar-dark, #3d5a35));
+  background: linear-gradient(135deg, var(--avatar-light, var(--color-ferni)), var(--avatar-color, var(--color-ferni)), var(--avatar-dark, var(--color-ferni-secondary)));
   box-shadow: 
     0 10px 40px rgba(74, 103, 65, 0.35),
     inset 0 -5px 20px rgba(0, 0, 0, 0.1),
@@ -329,7 +335,7 @@ html.loaded .reveal.visible {
 .wave-bar {
   width: 3px;
   background: rgba(255, 255, 255, 0.9);
-  border-radius: 2px;
+  border-radius: var(--radius-xs);
   transform-origin: center;
 }
 
@@ -413,11 +419,11 @@ html.loaded .reveal.visible {
 
 /* Dark theme variables - Bold & Readable */
 .night-section {
-  --bg-primary: #1a1512;
-  --bg-secondary: #2a2420;
-  --text-primary: #ffffff;
-  --text-muted: #ddd6cc;
-  --text-dim: #c8bfb4;
+  --bg-primary: var(--color-bg-dark);
+  --bg-secondary: var(--color-bg-dark-elevated);
+  --text-primary: var(--color-text-inverse);
+  --text-muted: var(--color-text-muted);
+  --text-dim: var(--color-text-dimmed);
 }
 
 /* Time display pulsing */
@@ -467,7 +473,7 @@ html.loaded .reveal.visible {
 /* Transition divider - gradient line */
 .section-divider {
   height: 2px;
-  background: linear-gradient(90deg, transparent, var(--avatar-color, #4a6741), transparent);
+  background: linear-gradient(90deg, transparent, var(--avatar-color, var(--color-ferni)), transparent);
   opacity: 0.3;
 }
 
@@ -798,11 +804,11 @@ details[open] .faq-icon {
 .text-gradient-alive {
   background: linear-gradient(
     135deg,
-    #4a6741 0%,
-    #5a7751 25%,
-    #3d5a35 50%,
-    #5a7751 75%,
-    #4a6741 100%
+    var(--color-ferni) 0%,
+    var(--color-ferni) 25%,
+    var(--color-ferni-secondary) 50%,
+    var(--color-ferni) 75%,
+    var(--color-ferni) 100%
   );
   background-size: 200% 200%;
   -webkit-background-clip: text;
@@ -837,14 +843,14 @@ details[open] .faq-icon {
    ═══════════════════════════════════════════════════════════════════════════ */
 
 :focus-visible {
-  outline: 2px solid #4a6741;
+  outline: 2px solid var(--color-ferni);
   outline-offset: 3px;
-  border-radius: 4px;
+  border-radius: var(--radius-xs);
 }
 
 a:focus-visible,
 button:focus-visible {
-  outline: 2px solid #4a6741;
+  outline: 2px solid var(--color-ferni);
   outline-offset: 4px;
 }
 

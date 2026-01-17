@@ -14,6 +14,7 @@
  * @module @ferni/superhuman/shared-language
  */
 
+import { seededChance, seededPick, seededIndex } from '../utils/rng.js';
 import { createLogger } from '../../utils/safe-logger.js';
 
 const logger = createLogger({ module: 'SharedLanguage' });
@@ -194,7 +195,7 @@ export function extractSharedLanguage(
       }
 
       const term: SharedTerm = {
-        id: `term_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
+        id: `term_${Date.now()}_${Date.now().toString(36).slice(-7)}`,
         phrase: phrase.trim(),
         meaning: inferMeaning(phrase, context.topics || [], message),
         type: 'metaphor',
@@ -224,7 +225,7 @@ export function extractSharedLanguage(
       }
 
       const term: SharedTerm = {
-        id: `term_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
+        id: `term_${Date.now()}_${Date.now().toString(36).slice(-7)}`,
         phrase: phrase.trim(),
         meaning: `Nickname for someone/something in ${context.topics?.[0] || 'their life'}`,
         type: 'nickname',
@@ -323,7 +324,7 @@ export function findRelevantTerm(
 
       // Generate reference
       const templates = TERM_REFERENCE_TEMPLATES[term.type];
-      const template = templates[Math.floor(Math.random() * templates.length)];
+      const template = seededPick(`${Date.now()}:327`, templates) ?? templates[0];
       const suggestion = template.replace('{phrase}', term.phrase);
 
       // Update usage
@@ -403,7 +404,7 @@ export function addSharedTerm(userId: string, term: Omit<SharedTerm, 'id'>): Sha
   const state = getOrCreateState(userId);
   const newTerm: SharedTerm = {
     ...term,
-    id: `term_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
+    id: `term_${Date.now()}_${Date.now().toString(36).slice(-7)}`,
   };
   state.terms.push(newTerm);
   state.lastUpdated = new Date();

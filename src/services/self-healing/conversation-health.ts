@@ -22,6 +22,7 @@ import {
 } from './health-monitors.js';
 import { getAllCircuitStats, type CircuitState } from './circuit-breaker.js';
 import { humanizeError } from './error-humanizer.js';
+import { cleanForFirestore } from '../../utils/firestore-utils.js';
 
 const log = createLogger({ module: 'conversation-health' });
 
@@ -177,8 +178,11 @@ function categorizeService(serviceName: string): keyof typeof DEGRADATION_PHRASE
   const lower = serviceName.toLowerCase();
 
   if (lower.includes('spotify') || lower.includes('music')) return 'music';
-  if (lower.includes('weather') || lower.includes('google')) return 'weather';
-  if (lower.includes('calendar')) return 'calendar';
+  // Only categorize as 'weather' if explicitly weather-related
+  // Previously included 'google' which caused unrelated Google circuits (calendar, books)
+  // to incorrectly report weather as unavailable
+  if (lower.includes('weather') || lower.includes('open-meteo')) return 'weather';
+  if (lower.includes('calendar') || lower.includes('google-calendar')) return 'calendar';
   if (
     lower.includes('home') ||
     lower.includes('hue') ||
@@ -236,7 +240,7 @@ export function getHealthContext(): HealthContext {
 
   if (healthStatus?.unhealthyServices) {
     for (const svc of healthStatus.unhealthyServices) {
-      degradedServices.add(svc);
+      degradedServices.add(cleanForFirestore(svc));
     }
   }
 
@@ -417,8 +421,11 @@ export function checkCapability(
 
   const serviceMap: Record<string, string[]> = {
     music: ['spotify'],
-    weather: ['weather', 'google'],
-    calendar: ['calendar', 'google'],
+    // NOTE: Weather uses Open-Meteo as fallback, don't include 'google' here
+    // Google Weather API is optional - Open-Meteo always works
+    weather: ['weather', 'open-meteo'],
+    // Calendar specifically uses google-calendar circuit breaker
+    calendar: ['google-calendar'],
     smartHome: ['home-assistant', 'hue', 'lifx', 'smartthings'],
     memory: ['firestore', 'context'],
   };

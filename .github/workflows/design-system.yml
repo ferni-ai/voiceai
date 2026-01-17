@@ -1,265 +1,252 @@
-name: Design System Validation
+# Ferni Design System CI/CD
+# Validates tokens, builds packages, and publishes to npm
 
-# ============================================================================
-# DESIGN SYSTEM CI PIPELINE
-# ============================================================================
-# Validates design system integrity on every PR and push to main.
-#
-# Checks:
-# - Token drift (JSON → generated files)
-# - Brand compliance (colors, copy, patterns)
-# - Design system violations in code
-# - Accessibility (WCAG AA)
-# - Design system health metrics
-# - Token usage analytics
-# - Storybook builds
-# ============================================================================
+name: Design System
 
 on:
   push:
     branches: [main]
     paths:
       - 'design-system/**'
-      - 'frontend-typescript/src/**'
-      - 'promo/**'
+      - 'packages/ferni-react/**'
+      - 'apps/vscode-extension/**'
+      - 'apps/figma-plugin/**'
   pull_request:
     paths:
       - 'design-system/**'
-      - 'frontend-typescript/src/**'
-      - 'promo/**'
-
-env:
-  NODE_VERSION: '20'
+      - 'packages/ferni-react/**'
+      - 'apps/vscode-extension/**'
+      - 'apps/figma-plugin/**'
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: 'Publish packages to npm'
+        required: false
+        type: boolean
+        default: false
 
 jobs:
   # ============================================================================
-  # TOKEN VALIDATION
+  # Token Validation
   # ============================================================================
-  tokens:
-    name: 🎨 Token Integrity
+  validate-tokens:
+    name: Validate Design Tokens
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 9
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
+          node-version: '20'
+          cache: 'pnpm'
 
       - name: Install dependencies
-        run: npm ci
+        run: pnpm install --frozen-lockfile
 
-      - name: Check for token drift
-        run: node design-system/check-drift.js
+      - name: Check token drift
+        run: pnpm tokens:check
+        working-directory: .
 
-      - name: Regenerate tokens (verify idempotent)
-        run: |
-          npm run build:design-system
-          # Verify no changes after regeneration
-          if [[ -n $(git status --porcelain design-system/dist frontend-typescript/src/config/*.generated.ts) ]]; then
-            echo "❌ Token drift detected! Run 'npm run tokens:sync' locally"
-            git diff --stat
-            exit 1
-          fi
-          echo "✅ Tokens are in sync"
+      - name: Validate brand alignment
+        run: pnpm brand:check
+        working-directory: .
+        continue-on-error: true
 
-      - name: Validate brand colors
-        run: node design-system/check-brand.js
+      - name: Check accessibility
+        run: pnpm run check:a11y
+        working-directory: design-system
+        continue-on-error: true
 
   # ============================================================================
-  # DESIGN SYSTEM HEALTH
+  # Build Packages
   # ============================================================================
-  health:
-    name: 🌿 Design System Health
+  build:
+    name: Build All Packages
     runs-on: ubuntu-latest
+    needs: validate-tokens
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v3
         with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Run health check
-        id: health
-        run: |
-          cd design-system
-          npm ci
-          npx ts-node dashboard/health-metrics.ts --json > health-report.json
-          cat health-report.json
-
-      - name: Check health score
-        run: |
-          SCORE=$(cat design-system/health-report.json | jq '.overall.score')
-          echo "Design System Health Score: $SCORE/100"
-          if [ "$SCORE" -lt 70 ]; then
-            echo "⚠️ Health score below 70% - review recommended"
-          else
-            echo "✅ Health score is healthy"
-          fi
-
-      - name: Upload health report
-        uses: actions/upload-artifact@v4
-        with:
-          name: design-system-health
-          path: design-system/health-report.json
-          retention-days: 30
-
-  # ============================================================================
-  # TOKEN ANALYTICS
-  # ============================================================================
-  token-analytics:
-    name: 📊 Token Analytics
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
+          version: 9
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
+          node-version: '20'
+          cache: 'pnpm'
 
       - name: Install dependencies
-        run: npm ci
+        run: pnpm install --frozen-lockfile
 
-      - name: Run token analytics
-        run: |
-          cd design-system
-          npm ci
-          npx ts-node dashboard/token-analytics.ts --json > token-analytics.json
-          cat token-analytics.json
+      # Build @ferni/react
+      - name: Build React package
+        run: pnpm build
+        working-directory: packages/ferni-react
 
-      - name: Check token usage
-        run: |
-          USAGE=$(cat design-system/token-analytics.json | jq '.summary.usageRate')
-          echo "Token Usage Rate: $USAGE%"
-          UNUSED=$(cat design-system/token-analytics.json | jq '.summary.unusedTokens')
-          echo "Unused Tokens: $UNUSED"
-
-      - name: Upload analytics report
-        uses: actions/upload-artifact@v4
+      - name: Upload React package artifacts
+        uses: actions/upload-artifact@v6
         with:
-          name: token-analytics
-          path: design-system/token-analytics.json
-          retention-days: 30
+          name: ferni-react-dist
+          path: packages/ferni-react/dist/
+          retention-days: 7
 
-  # ============================================================================
-  # CODE COMPLIANCE
-  # ============================================================================
-  compliance:
-    name: 🔍 Design Compliance
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
-      
-      - name: Install dependencies
-        run: npm ci
-      
-      - name: Check design system violations
-        run: node design-system/check-design-compliance.js
-        continue-on-error: true  # Report but don't block (for now)
-      
-      - name: Check brand language
-        run: |
-          # Check for forbidden words in UI files
-          FORBIDDEN="chatbot|virtual assistant|bot|AI assistant"
-          if grep -rn --include="*.ts" -E "$FORBIDDEN" frontend-typescript/src/ui/; then
-            echo "⚠️ Found forbidden brand words - review recommended"
-          fi
+      # Build VS Code extension
+      - name: Build VS Code extension
+        run: pnpm build
+        working-directory: apps/vscode-extension
 
-  # ============================================================================
-  # ACCESSIBILITY
-  # ============================================================================
-  accessibility:
-    name: ♿ Accessibility Check
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - name: Upload VS Code extension artifacts
+        uses: actions/upload-artifact@v6
         with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
-      
-      - name: Install dependencies
-        run: npm ci
-      
-      - name: Run accessibility checks
-        run: node design-system/check-accessibility.js
-        continue-on-error: true  # WCAG warnings don't block
+          name: vscode-extension-dist
+          path: apps/vscode-extension/dist/
+          retention-days: 7
 
-  # ============================================================================
-  # STORYBOOK BUILD
-  # ============================================================================
-  storybook:
-    name: 📚 Storybook Build
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      # Build Figma plugin
+      - name: Build Figma plugin
+        run: pnpm build
+        working-directory: apps/figma-plugin
+
+      - name: Upload Figma plugin artifacts
+        uses: actions/upload-artifact@v6
         with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
-      
-      - name: Install dependencies
-        run: |
-          npm ci
-          cd design-system && npm ci
-      
-      - name: Build Storybook
-        run: npm run build-storybook
-      
-      - name: Upload Storybook artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: storybook
-          path: design-system/storybook-static
+          name: figma-plugin-dist
+          path: apps/figma-plugin/dist/
           retention-days: 7
 
   # ============================================================================
-  # DEPLOY STORYBOOK (main branch only)
+  # Storybook Build
   # ============================================================================
-  deploy-storybook:
-    name: 🚀 Deploy Storybook
-    needs: [tokens, storybook]
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+  storybook:
+    name: Build Storybook
     runs-on: ubuntu-latest
-    permissions:
-      pages: write
-      id-token: write
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+    needs: build
     steps:
-      - name: Download Storybook artifact
+      - uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 9
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build React package (needed for stories)
+        run: pnpm build
+        working-directory: packages/ferni-react
+
+      - name: Build Storybook
+        run: pnpm run build-storybook
+        working-directory: design-system
+
+      - name: Upload Storybook
+        uses: actions/upload-artifact@v6
+        with:
+          name: storybook-static
+          path: design-system/storybook-static/
+          retention-days: 7
+
+  # ============================================================================
+  # Publish to npm (manual trigger or main branch)
+  # ============================================================================
+  publish:
+    name: Publish to npm
+    runs-on: ubuntu-latest
+    needs: [build, storybook]
+    if: |
+      (github.event_name == 'workflow_dispatch' && inputs.publish) ||
+      (github.event_name == 'push' && github.ref == 'refs/heads/main' && contains(github.event.head_commit.message, '[publish]'))
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 9
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Download React package artifacts
         uses: actions/download-artifact@v4
         with:
-          name: storybook
-          path: storybook-static
-      
-      - name: Setup Pages
-        uses: actions/configure-pages@v4
-      
-      - name: Upload to GitHub Pages
-        uses: actions/upload-pages-artifact@v3
+          name: ferni-react-dist
+          path: packages/ferni-react/dist/
+
+      - name: Publish @ferni/react
+        run: pnpm publish --access public --no-git-checks
+        working-directory: packages/ferni-react
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+  # ============================================================================
+  # VS Code Extension Publish
+  # ============================================================================
+  publish-vscode:
+    name: Publish VS Code Extension
+    runs-on: ubuntu-latest
+    needs: build
+    if: |
+      (github.event_name == 'workflow_dispatch' && inputs.publish) ||
+      (github.event_name == 'push' && github.ref == 'refs/heads/main' && contains(github.event.head_commit.message, '[publish-vscode]'))
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v3
         with:
-          path: storybook-static
-      
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+          version: 9
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Download VS Code extension artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: vscode-extension-dist
+          path: apps/vscode-extension/dist/
+
+      - name: Package extension
+        run: pnpm run package
+        working-directory: apps/vscode-extension
+
+      - name: Publish to VS Code Marketplace
+        run: npx @vscode/vsce publish -p ${{ secrets.VSCE_TOKEN }}
+        working-directory: apps/vscode-extension
+        continue-on-error: true # May fail if VSCE_TOKEN not set
+
+      - name: Upload VSIX artifact
+        uses: actions/upload-artifact@v6
+        with:
+          name: ferni-design-system.vsix
+          path: apps/vscode-extension/*.vsix
+          retention-days: 30

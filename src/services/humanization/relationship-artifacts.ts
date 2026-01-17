@@ -19,6 +19,7 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import { humanizationSignalEmitter } from './humanization-signal-emitter.js';
+import { cleanForFirestore } from '../../utils/firestore-utils.js';
 
 const logger = createLogger({ module: 'RelationshipArtifacts' });
 

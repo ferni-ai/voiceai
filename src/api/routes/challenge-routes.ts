@@ -6,6 +6,7 @@
 
 import type { IncomingMessage, ServerResponse } from 'http';
 import { getLogger } from '../../utils/safe-logger.js';
+import { parseBody } from '../helpers.js';
 import {
   getTodaysChallenge,
   getUpcomingChallenges,
@@ -118,9 +119,9 @@ export async function handleChallengeRoutes(
 
     // POST /api/challenges/start
     if (pathname === '/api/challenges/start' && method === 'POST') {
-      const body = await parseBody(req);
-      const userId = body.userId as string | undefined;
-      const challengeId = body.challengeId as string | undefined;
+      const body = await parseBody<{ userId?: string; challengeId?: string }>(req);
+      const userId = body.userId;
+      const challengeId = body.challengeId;
 
       if (!userId || !challengeId) {
         res.writeHead(400, { 'Content-Type': 'application/json' });
@@ -137,10 +138,10 @@ export async function handleChallengeRoutes(
 
     // POST /api/challenges/complete
     if (pathname === '/api/challenges/complete' && method === 'POST') {
-      const body = await parseBody(req);
-      const userId = body.userId as string | undefined;
-      const challengeId = body.challengeId as string | undefined;
-      const score = (body.score as number) || 0;
+      const body = await parseBody<{ userId?: string; challengeId?: string; score?: number }>(req);
+      const userId = body.userId;
+      const challengeId = body.challengeId;
+      const score = body.score || 0;
 
       if (!userId || !challengeId) {
         res.writeHead(400, { 'Content-Type': 'application/json' });
@@ -172,8 +173,8 @@ export async function handleChallengeRoutes(
 
     // POST /api/challenges/streak-freeze
     if (pathname === '/api/challenges/streak-freeze' && method === 'POST') {
-      const body = await parseBody(req);
-      const userId = body.userId as string | undefined;
+      const body = await parseBody<{ userId?: string }>(req);
+      const userId = body.userId;
 
       if (!userId) {
         res.writeHead(400, { 'Content-Type': 'application/json' });
@@ -228,22 +229,7 @@ export async function handleChallengeRoutes(
 // HELPERS
 // ============================================================================
 
-async function parseBody(req: IncomingMessage): Promise<Record<string, unknown>> {
-  return new Promise((resolve, reject) => {
-    let body = '';
-    req.on('data', (chunk) => {
-      body += chunk.toString();
-    });
-    req.on('end', () => {
-      try {
-        resolve(JSON.parse(body));
-      } catch {
-        resolve({});
-      }
-    });
-    req.on('error', reject);
-  });
-}
+// parseBody imported from '../helpers.js'
 
 /**
  * Check for milestone achievements

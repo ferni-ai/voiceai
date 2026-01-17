@@ -5,7 +5,10 @@
  */
 
 import type { EnglishAccent, VoicePreference } from '../../config/voice-accents.js';
-import type { MoodState, PersonaMood } from '../../intelligence/context-builders/persona-mood.js';
+import type {
+  MoodState,
+  PersonaMood,
+} from '../../intelligence/context-builders/personas/persona-mood.js';
 import type { SilenceAnalysis } from '../../intelligence/silence-intelligence.js';
 import type { BundleRuntimeState, UserBundleState } from '../../personas/bundles/index.js';
 import type { ConversationStateManager } from '../../services/conversation-state.js';
@@ -63,6 +66,8 @@ export interface UserData {
   name?: string;
   userId?: string;
   userName?: string;
+  /** Active persona ID (e.g., 'ferni', 'peter-john') - used for TTS persona-specific traits */
+  personaId?: string;
 
   // Session state
   isReturningUser?: boolean;
@@ -82,11 +87,22 @@ export interface UserData {
   /** Preferred language for speech recognition validation (default: 'en') */
   preferredLanguage?: string;
 
+  /** User's IP-detected location (for weather, local info personalization) */
+  userLocation?: {
+    city?: string;
+    regionCode?: string;
+    countryCode?: string;
+  };
+
   // Timing
   userSpeakingStartTime?: number;
   userWentSilent?: boolean;
   /** Whether the user was interrupted (for response recovery) */
   wasInterrupted?: boolean;
+  /** Type of interrupt: 'hard' (wait/stop) or 'soft' (just started talking) */
+  interruptType?: 'hard' | 'soft';
+  /** Pending trailing SSML to inject before cut (graceful interrupt) */
+  pendingTrailingSsml?: string;
 
   // Voice emotion tracking
   voiceEmotion?: VoiceEmotionResult;
@@ -119,6 +135,14 @@ export interface UserData {
   hasOfferedToPause?: boolean;
   /** Ambient acknowledgment phrase to inject into next response */
   pendingAmbientAcknowledgment?: string | null;
+  /** Data capture acknowledgment to inject (e.g., "I saved Mom's number") */
+  dataCaptureAcknowledgment?: string;
+
+  // Greeting context (so LLM knows what it said)
+  /** The greeting text that was spoken at session start */
+  greetingText?: string;
+  /** Whether the greeting has been injected into LLM context */
+  greetingInjected?: boolean;
 
   // Conversation context for humanization
   lastUserMessage?: string;
@@ -126,8 +150,14 @@ export interface UserData {
   lastAgentResponseTime?: number; // For engagement scoring
   /** Timestamp when agent finished speaking (for echo prevention cooldown) */
   lastAgentSpeechEndTime?: number;
+  /** Duration of last agent utterance in ms (for adaptive echo prevention) */
+  lastAgentUtteranceDurationMs?: number;
+  /** Timestamp when agent started speaking (for duration calculation) */
+  lastAgentSpeechStartTime?: number;
   /** Recommended delay before responding (from human turn intelligence) */
   recommendedResponseDelay?: number;
+  /** How long user paused before speaking (ms) - for voice signal analysis */
+  pauseBeforeSpeakingMs?: number;
   lastEmotionAnalysis?: {
     primary: string;
     intensity: number;
@@ -148,6 +178,34 @@ export interface UserData {
 
   // Key moments captured this session
   keyMoments?: string[];
+
+  // ============================================================
+  // BETTER THAN HUMAN - Prosody & Emotional Intelligence
+  // Voice prosody signals and proactive interventions
+  // ============================================================
+
+  /** Voice prosody tool boost (from Better Than Human analysis) */
+  prosodyBoost?: {
+    boostedTools: string[];
+    suppressedTools: string[];
+    reason: string;
+    confidence?: number;
+  };
+
+  /** Proactive intervention suggestion (from emotional arc tracking) */
+  suggestedIntervention?: {
+    type: string;
+    message: string;
+    tool: string;
+    urgency: string;
+  };
+
+  /** Emotional arc tracking status */
+  emotionalArc?: {
+    dominantEmotion: string;
+    trend: 'improving' | 'declining' | 'stable';
+    needsAttention: boolean;
+  };
 
   // ============================================================
   // HUMANIZING STATE
@@ -198,6 +256,18 @@ export interface UserData {
 
   /** Whether we've already referenced the last conversation topic in this session */
   hasReferencedLastConversation?: boolean;
+
+  // ============================================================
+  // TRIGGER EFFECTIVENESS TRACKING (Phase 4)
+  // Tracks fired triggers for outcome recording on next turn
+  // ============================================================
+
+  /** Triggers fired in the previous turn (for outcome recording) */
+  lastFiredTriggers?: Array<{
+    name: string;
+    category: string;
+    timestamp: number;
+  }>;
 
   /** Personal themes already mentioned this session (prevents "always talks about Wyoming") */
   mentionedPersonalThemes?: Set<string>;
@@ -255,6 +325,90 @@ export interface UserData {
 
   /** Session prompt from extensibility hooks (injected into context) */
   extensibilitySessionPrompt?: string | null;
+
+  // ============================================================
+  // PRE-SESSION BRIEFING: World/Time Awareness
+  // Gives Ferni context about date, time, events BEFORE first turn
+  // ============================================================
+
+  /** Pre-session briefing with temporal/cultural context */
+  preSessionBriefing?: string;
+
+  /** When user's last conversation was (for briefing calculation) */
+  lastConversationDate?: string;
+
+  // ============================================================
+  // BETTER THAN HUMAN: Calendar Awareness
+  // Loaded asynchronously at session start - provides meeting context
+  // ============================================================
+
+  /** Calendar awareness context loaded at session start */
+  calendarAwareness?: string;
+
+  // ============================================================
+  // macOS NATIVE APP CONTEXT
+  // System intelligence from the macOS menubar app
+  // ============================================================
+
+  /** macOS desktop context from menubar app (sent via data channel) */
+  macOS?: import('../../intelligence/context-builders/external/macos-context.js').MacOSContextPayload;
+
+  // ============================================================
+  // ANTICIPATORY TRIGGERS (Phase 5)
+  // "Better than Human" early signal detection before full expression
+  // ============================================================
+
+  /** User's anticipatory intelligence profile (learned signals, patterns) */
+  anticipatoryIntelligence?: import('../../intelligence/triggers/index.js').AnticipatoryIntelligence;
+
+  /** User's full trigger profile (for saving at session end) */
+  triggerProfile?: import('../../intelligence/triggers/index.js').UserTriggerProfile;
+
+  /** Pending anticipatory detection from partial input (for outcome recording) */
+  pendingAnticipatoryResult?: {
+    detection: import('../../intelligence/triggers/index.js').SignalDetectionResult;
+    firedAt: number;
+    verbalResponse: string;
+    anticipatedOutcome: string;
+  } | null;
+
+  /** Count of anticipatory firings this session (for safeguards) */
+  anticipatoryFiringsThisSession?: number;
+
+  /** Timestamp of last anticipatory firing (for cooldown) */
+  lastAnticipatoryFiringAt?: number;
+
+  // ============================================================
+  // SEMANTIC INTELLIGENCE (Learning Loop Integration)
+  // Tool prediction from semantic analysis for learning loop
+  // ============================================================
+
+  /** Semantic prediction from the current turn (for learning loop comparison) */
+  semanticPrediction?: {
+    /** Predicted tool ID */
+    toolId: string;
+    /** Confidence level (0-1) */
+    confidence: number;
+    /** Whether this was classified as a tool request */
+    isToolRequest: boolean;
+  };
+
+  // ============================================================
+  // BIDIRECTIONAL ENGAGEMENT: Thread Context
+  // Cross-channel conversation continuity (SMS → voice, push → call)
+  // ============================================================
+
+  /** Thread context for LLM injection (when continuing a thread) */
+  threadContext?: string;
+
+  /** Active thread ID (if continuing a conversation) */
+  threadId?: string;
+
+  /** Whether this is a response to our proactive outreach */
+  isOutreachResponse?: boolean;
+
+  /** Index signature for extensibility (compatible with PersonaSessionData) */
+  [key: string]: unknown;
 }
 
 // ============================================================================

@@ -119,7 +119,7 @@ export function formatDecimal(
 export function formatPercent(
   value: number,
   locale: SupportedLocale = DEFAULT_LOCALE,
-  decimals: number = 0
+  decimals = 0
 ): string {
   return new Intl.NumberFormat(locale, {
     style: 'percent',
@@ -151,17 +151,19 @@ export function formatCompact(value: number, locale: SupportedLocale = DEFAULT_L
  */
 export function formatCurrency(
   value: number,
-  currency: string = 'USD',
+  currency = 'USD',
   locale: SupportedLocale = DEFAULT_LOCALE
 ): string {
-  const config = CURRENCIES[currency] || CURRENCIES.USD;
-  const displayValue = config.decimals > 0 ? value / Math.pow(10, config.decimals) : value;
+  const config = CURRENCIES[currency] ??
+    CURRENCIES.USD ?? { code: 'USD', symbol: '$', decimals: 2 };
+  const decimals = config.decimals ?? 2;
+  const displayValue = decimals > 0 ? value / Math.pow(10, decimals) : value;
 
   return new Intl.NumberFormat(locale, {
     style: 'currency',
-    currency: config.code,
-    minimumFractionDigits: config.decimals,
-    maximumFractionDigits: config.decimals,
+    currency: config.code ?? 'USD',
+    minimumFractionDigits: decimals,
+    maximumFractionDigits: decimals,
   }).format(displayValue);
 }
 
@@ -175,7 +177,7 @@ export function formatCurrency(
  */
 export function formatPrice(
   cents: number,
-  currency: string = 'USD',
+  currency = 'USD',
   period: 'monthly' | 'annual' = 'monthly',
   locale: SupportedLocale = DEFAULT_LOCALE
 ): string {
@@ -216,8 +218,9 @@ export function getTierPrice(
   locale: SupportedLocale = DEFAULT_LOCALE
 ): { amount: number; currency: string; formatted: string } {
   const currency = getCurrencyForLocale(locale);
-  const prices = TIER_PRICES[currency] || TIER_PRICES.USD;
-  const amount = prices[period][tier];
+  const prices = TIER_PRICES[currency] ?? TIER_PRICES.USD;
+  const periodPrices = prices?.[period];
+  const amount = periodPrices?.[tier] ?? 0;
 
   return {
     amount,
@@ -232,7 +235,7 @@ export function getTierPrice(
 export function formatPriceRange(
   minCents: number,
   maxCents: number,
-  currency: string = 'USD',
+  currency = 'USD',
   locale: SupportedLocale = DEFAULT_LOCALE
 ): string {
   const minFormatted = formatCurrency(minCents, currency, locale);
@@ -245,7 +248,7 @@ export function formatPriceRange(
  */
 export function formatSavings(
   cents: number,
-  currency: string = 'USD',
+  currency = 'USD',
   locale: SupportedLocale = DEFAULT_LOCALE
 ): string {
   const formatted = formatCurrency(cents, currency, locale);
@@ -286,14 +289,16 @@ export function getStripeCurrency(locale: SupportedLocale): StripeCurrency {
  * Stripe expects amounts in smallest currency unit
  */
 export function toStripeAmount(displayAmount: number, currency: string): number {
-  const config = CURRENCIES[currency] || CURRENCIES.USD;
-  return Math.round(displayAmount * Math.pow(10, config.decimals));
+  const config = CURRENCIES[currency] ?? CURRENCIES.USD;
+  const decimals = config?.decimals ?? 2;
+  return Math.round(displayAmount * Math.pow(10, decimals));
 }
 
 /**
  * Convert Stripe amount to display amount
  */
 export function fromStripeAmount(stripeAmount: number, currency: string): number {
-  const config = CURRENCIES[currency] || CURRENCIES.USD;
-  return stripeAmount / Math.pow(10, config.decimals);
+  const config = CURRENCIES[currency] ?? CURRENCIES.USD;
+  const decimals = config?.decimals ?? 2;
+  return stripeAmount / Math.pow(10, decimals);
 }

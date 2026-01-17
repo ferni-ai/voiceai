@@ -12,6 +12,8 @@
 import crypto from 'crypto';
 import { createPersistenceStore } from '../../../services/persistence/index.js';
 import { createLogger } from '../../../utils/safe-logger.js';
+import { registerInterval, clearNamedInterval } from '../../../utils/interval-manager.js';
+import { cleanForFirestore } from '../../../utils/firestore-utils.js';
 
 const log = createLogger({ module: 'DemoSessions' });
 
@@ -223,7 +225,7 @@ export async function claimDemoSession(
   firebaseUid: string
 ): Promise<ClaimResult> {
   // First try to get from index
-  let roomName = claimTokenIndex.get(claimToken);
+  const roomName = claimTokenIndex.get(claimToken);
   let session: DemoSession | null = null;
 
   if (roomName) {
@@ -300,7 +302,8 @@ export function startCleanupInterval(): void {
   if (cleanupInterval) return;
 
   // Cleanup every hour
-  cleanupInterval = setInterval(
+  registerInterval(
+    'demo-sessions-cleanup',
     () => {
       cleanupExpiredSessions().catch((err) => {
         log.error({ error: (err as Error).message }, 'Failed to cleanup expired sessions');
@@ -308,6 +311,7 @@ export function startCleanupInterval(): void {
     },
     60 * 60 * 1000
   );
+  cleanupInterval = 1 as unknown as ReturnType<typeof setInterval>; // Marker
 
   log.info('Demo session cleanup interval started');
 }
@@ -317,7 +321,7 @@ export function startCleanupInterval(): void {
  */
 export function stopCleanupInterval(): void {
   if (cleanupInterval) {
-    clearInterval(cleanupInterval);
+    clearNamedInterval('demo-sessions-cleanup');
     cleanupInterval = null;
     log.info('Demo session cleanup interval stopped');
   }

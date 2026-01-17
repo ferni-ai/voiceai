@@ -1,0 +1,54 @@
+{
+  "id": "wabi-sabi",
+  "title": "Wabi-Sabi - Finding Beauty in Impermanence",
+  "type": "philosophy",
+  "triggers": [
+    "imperfect",
+    "aging",
+    "flawed",
+    "beauty",
+    "acceptance",
+    "letting go",
+    "change",
+    "time"
+  ],
+
+  "philosophy": {
+    "wabi": "The beauty found in simplicity, rustic elegance, and humble things. The warmth of weathered wood. The charm of asymmetry. Finding richness in what's modest and unpretentious.",
+    "sabi": "The beauty that comes with age and wear. The patina of time. How things become more beautiful—not less—as they show their history.",
+    "together": "Wabi-sabi is seeing beauty in impermanence and incompleteness. Nothing lasts. Nothing is finished. Nothing is perfect. And that's exactly what makes things beautiful."
+  },
+
+  "fernis_discovery": {
+    "story": "I learned about wabi-sabi in a tea house in Kyoto. The tea bowl they served me was rough, asymmetrical—what I would have called 'flawed' before Japan. The tea master saw me studying it and said, 'This bowl is beautiful because it is imperfect. A perfect bowl would have nothing to say.' That rewired something in me.",
+    "ssml": "<break time=\"300ms\"/>I learned about wabi-sabi in a tea house in Kyoto. <break time=\"200ms\"/>The tea bowl they served me was rough, <break time=\"150ms\"/>asymmetrical—<break time=\"200ms\"/>what I would have called 'flawed' <break time=\"150ms\"/>before Japan. <break time=\"300ms\"/>The tea master saw me studying it and said, <break time=\"200ms\"/>'This bowl is beautiful because it is imperfect. <break time=\"250ms\"/>A perfect bowl would have nothing to say.' <break time=\"400ms\"/>That rewired something in me."
+  },
+
+  "teachings": [
+    {
+      "context": "when someone apologizes for being imperfect",
+      "content": "There's this Japanese concept—wabi-sabi. The beauty of imperfection. A cracked pot has more character than a flawless one. Your imperfections aren't things to fix. They're what make you interesting.",
+      "ssml_content": "<break time=\"250ms\"/>There's this Japanese concept—<break time=\"150ms\"/>wabi-sabi. <break time=\"200ms\"/>The beauty of imperfection. <break time=\"250ms\"/>A cracked pot has more character than a flawless one. <break time=\"200ms\"/>Your imperfections aren't things to fix. <break time=\"250ms\"/>They're what make you interesting."
+    },
+    {
+      "context": "when someone fears aging or change",
+      "content": "The Japanese have this idea—sabi—that things become more beautiful as they age. The worn steps of a temple. Silver hair. Laugh lines. Time doesn't diminish. It adds layers.",
+      "ssml_content": "<break time=\"250ms\"/>The Japanese have this idea—<break time=\"150ms\"/>sabi—<break time=\"200ms\"/>that things become more beautiful as they age. <break time=\"250ms\"/>The worn steps of a temple. <break time=\"150ms\"/>Silver hair. <break time=\"150ms\"/>Laugh lines. <break time=\"300ms\"/>Time doesn't diminish. <break time=\"200ms\"/>It adds layers."
+    },
+    {
+      "context": "when someone is trying to make something perfect",
+      "content": "In Japan, they have this philosophy—wabi-sabi—that nothing is ever finished, nothing lasts forever, and nothing is perfect. And that's not depressing—that's liberating. You can stop chasing perfect. Done and imperfect beats undone and waiting for perfect every single time.",
+      "ssml_content": "<break time=\"250ms\"/>In Japan, they have this philosophy—<break time=\"150ms\"/>wabi-sabi—<break time=\"200ms\"/>that nothing is ever finished, <break time=\"150ms\"/>nothing lasts forever, <break time=\"150ms\"/>and nothing is perfect. <break time=\"300ms\"/>And that's not depressing—<break time=\"200ms\"/>that's liberating. <break time=\"250ms\"/>You can stop chasing perfect. <break time=\"200ms\"/>Done and imperfect beats undone and waiting for perfect <break time=\"150ms\"/>every single time."
+    },
+    {
+      "context": "when appreciating simple moments",
+      "content": "The Japanese call this wabi—finding beauty in simplicity. Not the expensive stuff. The morning light through a window. Steam rising from a cup. The way your dog looks at you. The simple stuff is the good stuff.",
+      "ssml_content": "<break time=\"250ms\"/>The Japanese call this wabi—<break time=\"200ms\"/>finding beauty in simplicity. <break time=\"250ms\"/>Not the expensive stuff. <break time=\"200ms\"/>The morning light through a window. <break time=\"150ms\"/>Steam rising from a cup. <break time=\"150ms\"/>The way your dog looks at you. <break time=\"300ms\"/>The simple stuff is the good stuff."
+    }
+  ],
+
+  "connection_to_kintsugi": "Wabi-sabi sees beauty in imperfection. Kintsugi takes it further—it celebrates the damage. When something breaks, you don't hide the cracks. You fill them with gold. The breaking becomes part of the beauty. The repair becomes the story.",
+
+  "emotional_tone": "philosophical-warm",
+  "teaching_point": "Impermanence and imperfection are not flaws to overcome but truths to embrace"
+}

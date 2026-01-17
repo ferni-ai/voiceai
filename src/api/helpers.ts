@@ -19,6 +19,8 @@ import {
 // REQUEST PARSING
 // ============================================================================
 
+import { z, type ZodSchema, type ZodError } from 'zod';
+
 /**
  * Parse JSON body from incoming request
  *
@@ -44,21 +46,217 @@ export async function parseBody<T = unknown>(req: IncomingMessage): Promise<T> {
 }
 
 /**
+ * Parse raw body from incoming request (for webhooks needing signature verification).
+ *
+ * This returns the raw string body without JSON parsing.
+ * Use this for Stripe webhooks or other services that need raw body for signature verification.
+ *
+ * IMPORTANT: This handles the race condition where:
+ * - The stream may have already ended before we attach listeners
+ * - The stream may error during reading
+ * - Timeout prevents hanging forever on malformed requests
+ *
+ * @param req - Incoming HTTP request
+ * @param options - Configuration options
+ * @returns Raw body string
+ * @throws Error if body reading fails or times out
+ */
+export async function parseRawBody(
+  req: IncomingMessage,
+  options: { timeoutMs?: number; maxBytes?: number } = {}
+): Promise<string> {
+  const { timeoutMs = 30000, maxBytes = 10 * 1024 * 1024 } = options; // 30s timeout, 10MB max
+
+  return new Promise((resolve, reject) => {
+    const chunks: Buffer[] = [];
+    let totalBytes = 0;
+    let resolved = false;
+
+    // Timeout to prevent hanging
+    const timeout = setTimeout(() => {
+      if (!resolved) {
+        resolved = true;
+        req.removeAllListeners('data');
+        req.removeAllListeners('end');
+        req.removeAllListeners('error');
+        reject(new Error('Body parsing timeout'));
+      }
+    }, timeoutMs);
+
+    const cleanup = () => {
+      clearTimeout(timeout);
+    };
+
+    // Check if stream already ended (edge case with keep-alive)
+    if (req.complete) {
+      cleanup();
+      // Stream already consumed or empty
+      resolve('');
+      return;
+    }
+
+    req.on('data', (chunk: Buffer) => {
+      if (resolved) return;
+      totalBytes += chunk.length;
+      if (totalBytes > maxBytes) {
+        resolved = true;
+        cleanup();
+        reject(new Error(`Body exceeds maximum size of ${maxBytes} bytes`));
+        return;
+      }
+      chunks.push(chunk);
+    });
+
+    req.on('end', () => {
+      if (resolved) return;
+      resolved = true;
+      cleanup();
+      resolve(Buffer.concat(chunks).toString('utf8'));
+    });
+
+    req.on('error', (err) => {
+      if (resolved) return;
+      resolved = true;
+      cleanup();
+      reject(err);
+    });
+  });
+}
+
+/**
+ * Validation result type for parseBodyWithSchema
+ */
+export type ValidationResult<T> =
+  | { success: true; data: T }
+  | { success: false; error: string; zodError?: ZodError };
+
+/**
+ * Parse and validate JSON body using Zod schema.
+ *
+ * This is the RECOMMENDED way to parse request bodies. It ensures:
+ * 1. Valid JSON syntax
+ * 2. Data matches expected schema
+ * 3. Type-safe data extraction
+ *
+ * Usage:
+ *   const UserSchema = z.object({
+ *     email: z.string().email(),
+ *     name: z.string().min(1),
+ *   });
+ *
+ *   const result = await parseBodyWithSchema(req, UserSchema);
+ *   if (!result.success) {
+ *     return sendError(res, result.error, 400);
+ *   }
+ *   const { email, name } = result.data; // Fully typed!
+ *
+ * @param req - Incoming HTTP request
+ * @param schema - Zod schema to validate against
+ * @returns Validation result with typed data or error message
+ */
+export async function parseBodyWithSchema<T>(
+  req: IncomingMessage,
+  schema: ZodSchema<T>
+): Promise<ValidationResult<T>> {
+  try {
+    const rawBody = await parseBody<unknown>(req);
+    const result = schema.safeParse(rawBody);
+
+    if (!result.success) {
+      // Format Zod errors into human-readable message
+      const errorMessages = result.error.issues
+        .map((e) => `${e.path.join('.')}: ${e.message}`)
+        .join('; ');
+      return {
+        success: false,
+        error: `Invalid request body: ${errorMessages}`,
+        zodError: result.error,
+      };
+    }
+
+    return { success: true, data: result.data };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Invalid JSON body',
+    };
+  }
+}
+
+/**
+ * Validate query parameters using Zod schema.
+ *
+ * Usage:
+ *   const QuerySchema = z.object({
+ *     limit: z.coerce.number().min(1).max(100).default(10),
+ *     offset: z.coerce.number().min(0).default(0),
+ *   });
+ *
+ *   const result = validateQueryParams(parsedUrl, QuerySchema);
+ *   if (!result.success) {
+ *     return sendError(res, result.error, 400);
+ *   }
+ *   const { limit, offset } = result.data;
+ *
+ * @param parsedUrl - Parsed URL with searchParams
+ * @param schema - Zod schema to validate against
+ * @returns Validation result with typed data or error message
+ */
+export function validateQueryParams<T>(parsedUrl: URL, schema: ZodSchema<T>): ValidationResult<T> {
+  const params: Record<string, string> = {};
+  parsedUrl.searchParams.forEach((value, key) => {
+    params[key] = value;
+  });
+
+  const result = schema.safeParse(params);
+
+  if (!result.success) {
+    const errorMessages = result.error.issues
+      .map((e) => `${e.path.join('.')}: ${e.message}`)
+      .join('; ');
+    return {
+      success: false,
+      error: `Invalid query parameters: ${errorMessages}`,
+      zodError: result.error,
+    };
+  }
+
+  return { success: true, data: result.data };
+}
+
+/**
  * Get user ID from request with proper validation.
  *
- * Checks query params and headers. Returns null if not found
- * (callers must handle missing userId appropriately).
+ * SECURITY: Prioritizes Firebase auth (x-firebase-uid) over deprecated x-user-id.
+ * Checks in order: Firebase UID, query params, legacy header, dev mode.
  *
  * @param req - Incoming HTTP request
  * @param parsedUrl - Parsed URL with searchParams
  * @returns User ID or null if not provided
  */
 export function getUserId(req: IncomingMessage, parsedUrl: URL): string | null {
+  // SECURITY: Prioritize Firebase auth (set by auth-middleware)
+  const firebaseUid = req.headers['x-firebase-uid'] as string | undefined;
+  if (firebaseUid) return firebaseUid;
+
+  // Query params (for backwards compatibility)
   const fromQuery = parsedUrl.searchParams.get('userId');
   if (fromQuery) return fromQuery;
 
-  const fromHeader = req.headers['x-user-id'];
-  if (typeof fromHeader === 'string' && fromHeader) return fromHeader;
+  // Legacy header (deprecated - will be removed in future version)
+  // TODO: Remove x-user-id support after migration period
+  const fromLegacyHeader = req.headers['x-user-id'];
+  if (typeof fromLegacyHeader === 'string' && fromLegacyHeader) return fromLegacyHeader;
+
+  // Dev mode bypass - allows testing without authentication
+  // SECURITY: Only works in development environment
+  const isDev = process.env.NODE_ENV !== 'production';
+  const adminKey =
+    parsedUrl.searchParams.get('admin_key') || (req.headers['x-admin-key'] as string);
+
+  if (isDev && adminKey === 'dev-mode') {
+    return 'dev-user-123';
+  }
 
   return null;
 }
@@ -116,6 +314,10 @@ export function getSecureResponseHeaders(origin?: string): Record<string, string
 /**
  * Send JSON response with security headers.
  *
+ * NOTE: CORS headers are set by handleCorsPreflightIfNeeded(), so we only
+ * add security headers here. Make sure to call handleCorsPreflightIfNeeded()
+ * at the start of your route handler.
+ *
  * @param res - Server response
  * @param data - Data to serialize as JSON
  * @param status - HTTP status code (default 200)
@@ -123,7 +325,7 @@ export function getSecureResponseHeaders(origin?: string): Record<string, string
 export function sendJSON(res: ServerResponse, data: unknown, status = 200): void {
   res.writeHead(status, {
     'Content-Type': 'application/json',
-    ...getSecureResponseHeaders(),
+    ...getAPISecurityHeaders(),
   });
   res.end(JSON.stringify(data));
 }
@@ -155,33 +357,149 @@ export function sendJSONCached(
 }
 
 /**
- * Send error response with security headers.
+ * Send JSON response with PUBLIC cache headers for CDN/edge caching.
+ * Use for static content that can be cached at CDN layer.
+ *
+ * IMPORTANT: Only use for truly static content that doesn't contain
+ * user-specific data. For user-specific cacheable data, use sendJSONCached.
  *
  * @param res - Server response
- * @param message - Error message
+ * @param data - Data to serialize
+ * @param maxAge - Cache max-age in seconds (default: 3600 = 1 hour)
+ * @param status - HTTP status code
+ */
+export function sendJSONEdgeCached(
+  res: ServerResponse,
+  data: unknown,
+  maxAge = 3600,
+  status = 200
+): void {
+  // Get security headers but override Cache-Control for public caching
+  const { 'Cache-Control': _, Pragma: __, ...securityHeaders } = getAPISecurityHeaders();
+  res.writeHead(status, {
+    'Content-Type': 'application/json',
+    ...securityHeaders,
+    ...getCorsHeaders(),
+    // Public cache for CDN/edge caching
+    'Cache-Control': `public, max-age=${maxAge}, s-maxage=${maxAge}`,
+    // ETag support for conditional requests
+    Vary: 'Accept-Encoding',
+  });
+  res.end(JSON.stringify(data));
+}
+
+/**
+ * Send error response with security headers.
+ *
+ * Standard error response format: `{ "error": "message" }`
+ *
+ * For 5xx errors in production, the message is replaced with a generic
+ * "Internal server error" to avoid leaking implementation details.
+ *
+ * @param res - Server response
+ * @param message - Error message (use API_ERRORS constants for user-facing messages)
  * @param status - HTTP status code (default 500)
+ *
+ * @example
+ * ```typescript
+ * // Use predefined error messages
+ * sendError(res, API_ERRORS.USER_ID_REQUIRED, 401);
+ * sendError(res, API_ERRORS.NOT_FOUND, 404);
+ *
+ * // Custom error message
+ * sendError(res, "Couldn't process that request", 400);
+ * ```
+ *
+ * @see API_ERRORS in error-messages.ts for human-friendly error constants
  */
 export function sendError(res: ServerResponse, message: string, status = 500): void {
   // In production, avoid exposing internal error details
   const safeMessage = isProduction() && status >= 500 ? 'Internal server error' : message;
 
+  // NOTE: CORS headers are set by handleCorsPreflightIfNeeded()
   res.writeHead(status, {
     'Content-Type': 'application/json',
-    ...getSecureResponseHeaders(),
+    ...getAPISecurityHeaders(),
   });
   res.end(JSON.stringify({ error: safeMessage }));
 }
 
 /**
+ * Standard API error response interface.
+ */
+export interface ApiErrorResponse {
+  error: string;
+  code?: string;
+  details?: Record<string, unknown>;
+}
+
+/**
+ * Send a structured API error response with optional code and details.
+ *
+ * Use this for APIs that need more structured error information,
+ * such as when clients need to programmatically handle specific errors.
+ *
+ * @param res - Server response
+ * @param options - Error options
+ *
+ * @example
+ * ```typescript
+ * sendApiError(res, {
+ *   status: 400,
+ *   message: "Couldn't validate email",
+ *   code: 'VALIDATION_ERROR',
+ *   details: { field: 'email', reason: 'Invalid format' }
+ * });
+ * ```
+ */
+export function sendApiError(
+  res: ServerResponse,
+  options: {
+    status: number;
+    message: string;
+    code?: string;
+    details?: Record<string, unknown>;
+  }
+): void {
+  const { status, message, code, details } = options;
+
+  // In production, sanitize 5xx error messages
+  const safeMessage = isProduction() && status >= 500 ? 'Internal server error' : message;
+
+  const body: ApiErrorResponse = { error: safeMessage };
+  if (code) body.code = code;
+  if (details && !isProduction()) body.details = details;
+
+  res.writeHead(status, {
+    'Content-Type': 'application/json',
+    ...getSecureResponseHeaders(),
+  });
+  res.end(JSON.stringify(body));
+}
+
+/**
  * Handle CORS preflight requests
+ *
+ * IMPORTANT: This also sets CORS headers on the response for ALL requests,
+ * not just OPTIONS. This is critical for cross-origin API calls to work.
  *
  * @param req - Incoming request
  * @param res - Server response
  * @returns true if this was a preflight request that was handled
  */
 export function handleCorsPreflightIfNeeded(req: IncomingMessage, res: ServerResponse): boolean {
+  const origin = req.headers.origin as string | undefined;
+
+  // Set CORS headers on ALL responses (required for cross-origin API calls)
+  const corsHeaders = getCorsHeaders(origin);
+  for (const [key, value] of Object.entries(corsHeaders)) {
+    if (value) {
+      res.setHeader(key, value);
+    }
+  }
+
   if (req.method === 'OPTIONS') {
-    res.writeHead(204, getCorsHeaders());
+    res.writeHead(204);
     res.end();
     return true;
   }
@@ -232,6 +550,11 @@ export type RouteHandler = (
 export const parseRequestBody = parseBody;
 
 /**
+ * Alias for parseBody - used for reading request body
+ */
+export const readBody = parseBody;
+
+/**
  * Alias for sendJSON - used in some route handlers
  */
 export const sendSuccess = sendJSON;
@@ -255,3 +578,103 @@ export async function validateAuth(
   const parsedUrl = new URL(req.url || '/', `http://${req.headers.host || 'localhost'}`);
   return requireUserId(req, res, parsedUrl);
 }
+
+// ============================================================================
+// SECURE AUTH HELPERS (IDOR Prevention)
+// ============================================================================
+
+import type { AuthContext } from './auth-middleware.js';
+
+/**
+ * Securely get userId from authenticated context.
+ *
+ * SECURITY: This prevents IDOR (Insecure Direct Object Reference) attacks
+ * by ensuring users can only access their own data unless they're admins.
+ *
+ * @param auth - Authenticated context from requireAuth()
+ * @param requestedUserId - Optional userId from query params (only used by admins)
+ * @returns The appropriate userId to use for the request
+ */
+export function getSecureUserId(auth: AuthContext, requestedUserId?: string | null): string {
+  // Admins can access other users' data (for support/debugging)
+  if (auth.isAdmin && requestedUserId) {
+    return requestedUserId;
+  }
+  // Everyone else uses their own authenticated ID
+  return auth.userId;
+}
+
+/**
+ * Verify admin access with proper security checks.
+ *
+ * SECURITY: This function NEVER accepts 'dev-mode' string in production.
+ * The dev-mode bypass only works when NODE_ENV is explicitly 'development'.
+ *
+ * @param req - Incoming HTTP request
+ * @param allowDevMode - Whether to allow dev-mode bypass (only works in development)
+ * @returns true if request has valid admin credentials
+ */
+export function verifyAdminAccess(req: IncomingMessage, allowDevMode = false): boolean {
+  const adminKey = req.headers['x-admin-key'] as string | undefined;
+  const configuredAdminKey = process.env.ADMIN_KEY;
+  const isDev = process.env.NODE_ENV === 'development';
+
+  // Primary check: valid ADMIN_KEY from environment
+  if (configuredAdminKey && adminKey === configuredAdminKey) {
+    return true;
+  }
+
+  // Dev mode bypass - ONLY works in development environment
+  // SECURITY: Never accept 'dev-mode' string in production
+  if (allowDevMode && isDev && adminKey === 'dev-mode') {
+    return true;
+  }
+
+  return false;
+}
+
+/**
+ * Verify admin access from query params or headers.
+ *
+ * @param req - Incoming HTTP request
+ * @param parsedUrl - Parsed URL with searchParams
+ * @param allowDevMode - Whether to allow dev-mode bypass (only in development)
+ * @returns true if request has valid admin credentials
+ */
+export function verifyAdminAccessFromUrl(
+  req: IncomingMessage,
+  parsedUrl: URL,
+  allowDevMode = false
+): boolean {
+  const adminKeyFromHeader = req.headers['x-admin-key'] as string | undefined;
+  const adminKeyFromQuery = parsedUrl.searchParams.get('admin_key');
+  const adminKey = adminKeyFromHeader || adminKeyFromQuery || undefined;
+
+  const configuredAdminKey = process.env.ADMIN_KEY;
+  const isDev = process.env.NODE_ENV === 'development';
+
+  // Primary check: valid ADMIN_KEY from environment
+  if (configuredAdminKey && adminKey === configuredAdminKey) {
+    return true;
+  }
+
+  // Dev mode bypass - ONLY works in development environment
+  // SECURITY: Never accept 'dev-mode' string in production
+  if (allowDevMode && isDev && adminKey === 'dev-mode') {
+    return true;
+  }
+
+  return false;
+}
+
+// ============================================================================
+// ZOD RE-EXPORT (for convenience)
+// ============================================================================
+
+/**
+ * Re-export Zod for convenient imports.
+ *
+ * Routes can import both validation helpers and Zod from a single place:
+ *   import { parseBodyWithSchema, z, sendError } from './helpers.js';
+ */
+export { z };

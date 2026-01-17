@@ -23,6 +23,181 @@
 
 import { createSessionId, createUserId, type SessionId, type UserId } from '../types/branded.js';
 import { getLogger } from '../utils/safe-logger.js';
+import { cleanForFirestore, removeUndefined } from '../utils/firestore-utils.js';
+import { getDb } from '../utils/safe-firestore.js';
+
+// ============================================================================
+// FIRESTORE PERSISTENCE
+// ============================================================================
+
+const USERS_COLLECTION = 'bogle_users';
+const CONVERSATION_STATE_DOC = 'conversation_state';
+
+/**
+ * Get Firestore instance using shared utility
+ * Uses centralized getDb() which handles initialization safely
+ */
+async function getFirestoreDb(): Promise<FirebaseFirestore.Firestore | null> {
+  const db = getDb();
+  if (!db) {
+    getLogger().debug({}, 'getFirestoreDb: Firestore not available from shared utility');
+  }
+  return db;
+}
+
+/**
+ * Debounce helper to avoid too many Firestore writes
+ */
+const pendingPersists = new Map<string, NodeJS.Timeout>();
+const PERSIST_DEBOUNCE_MS = 2000; // Debounce writes by 2 seconds
+
+function debouncedPersist(userId: string, state: ConversationStateManager): void {
+  const existing = pendingPersists.get(userId);
+  if (existing) {
+    clearTimeout(existing);
+  }
+
+  const timeout = setTimeout(() => {
+    pendingPersists.delete(userId);
+    void persistConversationStateToFirestore(state);
+  }, PERSIST_DEBOUNCE_MS);
+
+  pendingPersists.set(userId, timeout);
+}
+
+/**
+ * Persist conversation state to Firestore
+ */
+async function persistConversationStateToFirestore(
+  manager: ConversationStateManager
+): Promise<boolean> {
+  const log = getLogger();
+  try {
+    const db = await getFirestoreDb();
+    if (!db) {
+      log.warn(
+        { userId: manager.userId, sessionId: manager.sessionId },
+        '💾 PERSIST FAIL: Firestore not available'
+      );
+      return false;
+    }
+
+    const { userId } = manager;
+    const path = `${USERS_COLLECTION}/${userId}/${CONVERSATION_STATE_DOC}/latest`;
+    const { FieldValue } = await import('firebase-admin/firestore');
+
+    const data = manager.toJSON();
+
+    // Convert dates to ISO strings for Firestore
+    const firestoreData = removeUndefined({
+      ...data,
+      startedAt: data.startedAt instanceof Date ? data.startedAt.toISOString() : data.startedAt,
+      lastActivityAt:
+        data.lastActivityAt instanceof Date
+          ? data.lastActivityAt.toISOString()
+          : data.lastActivityAt,
+      emotional: {
+        ...(data.emotional as Record<string, unknown>),
+        updatedAt:
+          (data.emotional as Record<string, unknown>).updatedAt instanceof Date
+            ? ((data.emotional as Record<string, unknown>).updatedAt as Date).toISOString()
+            : (data.emotional as Record<string, unknown>).updatedAt,
+      },
+      persistedAt: FieldValue.serverTimestamp(),
+    });
+
+    await db.doc(path).set(firestoreData);
+    log.info(
+      { userId, sessionId: manager.sessionId, path },
+      '💾 Conversation state persisted to Firestore'
+    );
+    return true;
+  } catch (error) {
+    log.warn(
+      { error: String(error), userId: manager.userId, sessionId: manager.sessionId },
+      'Failed to persist conversation state'
+    );
+    return false;
+  }
+}
+
+/**
+ * Load conversation state from Firestore
+ */
+export async function loadConversationStateFromFirestore(
+  userId: string
+): Promise<Record<string, unknown> | null> {
+  try {
+    const db = await getFirestoreDb();
+    if (!db) return null;
+
+    const path = `${USERS_COLLECTION}/${userId}/${CONVERSATION_STATE_DOC}/latest`;
+    const doc = await db.doc(path).get();
+
+    if (!doc.exists) return null;
+
+    const data = doc.data();
+    const log = getLogger();
+    log.debug({ userId }, '📖 Conversation state loaded from Firestore');
+    return data as Record<string, unknown>;
+  } catch (error) {
+    const log = getLogger();
+    log.warn({ userId, error: String(error) }, 'Failed to load conversation state');
+    return null;
+  }
+}
+
+/**
+ * Archive conversation state when session ends
+ */
+async function archiveConversationState(manager: ConversationStateManager): Promise<boolean> {
+  const log = getLogger();
+  try {
+    const db = await getFirestoreDb();
+    if (!db) {
+      log.warn(
+        { userId: manager.userId, sessionId: manager.sessionId },
+        '📦 ARCHIVE FAIL: Firestore not available'
+      );
+      return false;
+    }
+
+    const { userId } = manager;
+    const { sessionId } = manager;
+    const archivePath = `${USERS_COLLECTION}/${userId}/${CONVERSATION_STATE_DOC}/archive/${sessionId}`;
+    const { FieldValue } = await import('firebase-admin/firestore');
+
+    const data = manager.toJSON();
+
+    // Convert dates to ISO strings for Firestore
+    const firestoreData = removeUndefined({
+      ...data,
+      startedAt: data.startedAt instanceof Date ? data.startedAt.toISOString() : data.startedAt,
+      lastActivityAt:
+        data.lastActivityAt instanceof Date
+          ? data.lastActivityAt.toISOString()
+          : data.lastActivityAt,
+      emotional: {
+        ...(data.emotional as Record<string, unknown>),
+        updatedAt:
+          (data.emotional as Record<string, unknown>).updatedAt instanceof Date
+            ? ((data.emotional as Record<string, unknown>).updatedAt as Date).toISOString()
+            : (data.emotional as Record<string, unknown>).updatedAt,
+      },
+      archivedAt: FieldValue.serverTimestamp(),
+    });
+
+    await db.doc(archivePath).set(firestoreData);
+    log.info({ userId, sessionId, archivePath }, '📦 Conversation state archived');
+    return true;
+  } catch (error) {
+    log.warn(
+      { error: String(error), userId: manager.userId },
+      'Failed to archive conversation state'
+    );
+    return false;
+  }
+}
 
 // ============================================================================
 // TYPES
@@ -254,6 +429,7 @@ function createDefaultGameContext(): GameContext {
 export class ConversationStateManager {
   private state: ConversationState;
   private logger = getLogger();
+  private persistenceEnabled = false;
 
   constructor(sessionId: SessionId, userId: UserId, agentId: string) {
     const now = new Date();
@@ -271,6 +447,25 @@ export class ConversationStateManager {
       startedAt: now,
       lastActivityAt: now,
     };
+  }
+
+  /**
+   * Enable Firestore persistence for this session
+   * Call this after creating the manager to auto-persist changes
+   */
+  enablePersistence(): void {
+    this.persistenceEnabled = true;
+    this.logger.info(
+      { userId: this.userId, sessionId: this.sessionId },
+      '💾 Conversation state persistence enabled'
+    );
+  }
+
+  /**
+   * Check if persistence is enabled
+   */
+  isPersistenceEnabled(): boolean {
+    return this.persistenceEnabled;
   }
 
   // ============================================================================
@@ -583,6 +778,11 @@ export class ConversationStateManager {
 
   private touch(): void {
     this.state.lastActivityAt = new Date();
+
+    // Trigger debounced persistence if enabled
+    if (this.persistenceEnabled) {
+      debouncedPersist(this.state.userId, this);
+    }
   }
 
   /**
@@ -723,18 +923,104 @@ export function hasConversationState(sessionId: string | SessionId): boolean {
 
 /**
  * End a conversation and clean up state
+ * Archives state to Firestore if persistence was enabled
  */
-export function endConversation(sessionId: string | SessionId): ConversationState | null {
+export async function endConversation(
+  sessionId: string | SessionId
+): Promise<ConversationState | null> {
+  const log = getLogger();
   const id = typeof sessionId === 'string' ? sessionId : (sessionId as string);
-  const state = activeConversations.get(id);
+  const manager = activeConversations.get(id);
 
-  if (state) {
-    const finalState = state.getState();
+  log.debug({ sessionId: id, hasManager: !!manager }, 'endConversation called');
+
+  if (manager) {
+    const finalState = manager.getState();
+    const persistenceEnabled = manager.isPersistenceEnabled();
+
+    log.info(
+      {
+        sessionId: id,
+        userId: manager.userId,
+        persistenceEnabled,
+        turnCount: finalState.flow.turnCount,
+      },
+      `📦 Ending conversation (persistence: ${persistenceEnabled ? 'enabled' : 'disabled'})`
+    );
+
+    // Archive to Firestore if persistence was enabled
+    if (persistenceEnabled) {
+      // Cancel any pending debounced persist
+      const pending = pendingPersists.get(manager.userId);
+      if (pending) {
+        clearTimeout(pending);
+        pendingPersists.delete(manager.userId);
+        log.debug({ userId: manager.userId }, 'Cancelled pending debounced persist');
+      }
+
+      // Archive the final state
+      const archived = await archiveConversationState(manager);
+      log.info({ sessionId: id, userId: manager.userId, archived }, '📦 Archive result');
+    } else {
+      log.warn(
+        { sessionId: id, userId: manager.userId },
+        '📦 SKIP: Persistence was NOT enabled for this session'
+      );
+    }
+
     activeConversations.delete(id);
     return finalState as ConversationState;
   }
 
+  log.warn({ sessionId: id }, '📦 endConversation: No manager found for session');
   return null;
+}
+
+/**
+ * Initialize conversation state with Firestore persistence
+ *
+ * This creates or gets a conversation state manager and enables persistence.
+ * Optionally restores the last emotional context from Firestore for continuity.
+ *
+ * @param sessionId - Session identifier
+ * @param userId - User identifier
+ * @param agentId - Agent/persona identifier
+ * @param restoreEmotionalContext - If true, attempts to restore last emotional state
+ */
+export async function initConversationStateWithPersistence(
+  sessionId: string | SessionId,
+  userId: string | UserId,
+  agentId: string,
+  restoreEmotionalContext = true
+): Promise<ConversationStateManager> {
+  const manager = getConversationState(sessionId, userId, agentId);
+  manager.enablePersistence();
+
+  // Optionally restore emotional context from last session
+  if (restoreEmotionalContext) {
+    const userIdStr = typeof userId === 'string' ? userId : (userId as string);
+    const lastState = await loadConversationStateFromFirestore(userIdStr);
+
+    if (lastState?.emotional) {
+      const emotional = lastState.emotional as Record<string, unknown>;
+      manager.setEmotionalContext({
+        sentiment: emotional.sentiment as EmotionalContext['sentiment'],
+        emotions: (emotional.emotions as EmotionalContext['emotions']) || [],
+        urgency: (emotional.urgency as number) || 3,
+        topicFatigue: (emotional.topicFatigue as boolean) || false,
+        confidence: (emotional.confidence as number) || 0.5,
+        updatedAt: new Date(),
+      });
+
+      const log = getLogger();
+      log.info(
+        { userId: userIdStr, sentiment: emotional.sentiment },
+        '📖 Restored emotional context from last session'
+      );
+    }
+  }
+
+  return manager;
 }
 
 /**
@@ -775,4 +1061,7 @@ export default {
   getActiveSessionIds,
   cleanupStaleConversations,
   ConversationStateManager,
+  // Persistence functions
+  initConversationStateWithPersistence,
+  loadConversationStateFromFirestore,
 };

@@ -87,7 +87,9 @@ export function createMockLLMStream(
     }
 
     for (let i = 0; i < words.length; i++) {
-      await new Promise((resolve) => setTimeout(resolve, tokenDelay));
+      await new Promise<void>((resolve) => {
+        setTimeout(resolve, tokenDelay);
+      });
 
       const isLast = i === words.length - 1;
       yield {
@@ -124,7 +126,7 @@ export function createMockTimeoutStream(timeoutMs: number): AsyncGenerator<MockS
 export class MockLLMClient {
   private options: MockLLMOptions;
   private responseQueue: string[] = [];
-  private callHistory: { messages: MockChatMessage[]; response: string }[] = [];
+  private callHistory: Array<{ messages: MockChatMessage[]; response: string }> = [];
 
   constructor(options: MockLLMOptions = {}) {
     this.options = {
@@ -200,7 +202,9 @@ export class MockLLMClient {
     this.callHistory.push({ messages: [...messages], response });
 
     // Simulate processing time
-    await new Promise((resolve) => setTimeout(resolve, 50));
+    await new Promise<void>((resolve) => {
+      setTimeout(resolve, 50);
+    });
 
     return response;
   }
@@ -208,7 +212,7 @@ export class MockLLMClient {
   /**
    * Get call history for assertions
    */
-  getCallHistory(): { messages: MockChatMessage[]; response: string }[] {
+  getCallHistory(): Array<{ messages: MockChatMessage[]; response: string }> {
     return [...this.callHistory];
   }
 
@@ -293,7 +297,7 @@ export const mockResponses = {
 /**
  * Get an appropriate mock response based on detected emotion
  */
-export function getMockResponseForEmotion(emotion: string, intensity: number = 0.5): string {
+export function getMockResponseForEmotion(emotion: string, intensity = 0.5): string {
   const responses: Record<string, string[]> = {
     happy: [
       mockResponses.celebratory,
@@ -315,11 +319,7 @@ export function getMockResponseForEmotion(emotion: string, intensity: number = 0
       'I can understand why that would be upsetting. Want to vent a bit more?',
       "Sometimes things just don't go our way. I'm here to listen.",
     ],
-    neutral: [
-      mockResponses.curious,
-      mockResponses.greeting,
-      "Tell me more about what's on your mind.",
-    ],
+    neutral: [mockResponses.curious, mockResponses.greeting, "What's on your mind?"],
     excited: [
       'I can feel your excitement! This is so great!',
       mockResponses.celebratory,
@@ -350,7 +350,7 @@ export function setupGoogleGenAIMocks(client?: MockLLMClient): void {
       getGenerativeModel: vi.fn().mockReturnValue({
         generateContent: vi.fn().mockImplementation(async (prompt) => ({
           response: {
-            text: () => mockClient.generate([{ role: 'user', content: prompt }]),
+            text: async () => mockClient.generate([{ role: 'user', content: prompt }]),
           },
         })),
         generateContentStream: vi.fn().mockImplementation(async (prompt) => ({

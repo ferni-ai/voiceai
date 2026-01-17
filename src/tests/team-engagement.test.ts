@@ -22,12 +22,24 @@ import {
   type PersonaEvolutionEvent,
   type SeasonalEvent,
   type UserAnniversary,
-} from '../services/team-engagement.js';
+} from '../services/engagement/team-engagement.js';
 import type { UserProfile } from '../types/user-profile.js';
 
 // Mock dependencies
 vi.mock('../utils/safe-logger.js', () => ({
   getLogger: () => ({
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+    debug: vi.fn(),
+    child: () => ({
+      info: vi.fn(),
+      warn: vi.fn(),
+      error: vi.fn(),
+      debug: vi.fn(),
+    }),
+  }),
+  createLogger: () => ({
     info: vi.fn(),
     warn: vi.fn(),
     error: vi.fn(),

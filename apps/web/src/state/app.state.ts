@@ -314,6 +314,14 @@ export const appState = new AppStateStore();
 export function setConnectionState(state: ConnectionState): void {
   appState.set('connection', state);
 
+  // Update body attribute for mobile zen mode CSS
+  // When connected, mobile UI hides secondary elements for focused conversation
+  if (state === 'connected') {
+    document.body.setAttribute('data-connected', 'true');
+  } else {
+    document.body.removeAttribute('data-connected');
+  }
+
   // Dispatch event for UI components (connection heart, favicon, etc.)
   window.dispatchEvent(
     new CustomEvent('ferni:connection-state', {
@@ -379,6 +387,13 @@ export function setAudioState(state: AudioState): void {
  */
 export function getDeviceId(): string {
   return appState.getState().deviceId;
+}
+
+/**
+ * Get current user name (from onboarding, localStorage, or auth).
+ */
+export function getUserName(): string | null {
+  return appState.getState().userName;
 }
 
 /**

@@ -10,9 +10,9 @@
 | **Understand the mission** | [CORE-PRINCIPLES.md](../CORE-PRINCIPLES.md) |
 | **Write code**             | [CLAUDE.md](../CLAUDE.md)                   |
 | **Contribute**             | [CONTRIBUTING.md](../CONTRIBUTING.md)       |
-| **Deploy**                 | [DEPLOYMENT.md](../DEPLOYMENT.md)           |
+| **Deploy**                 | [deployment/](./deployment/) (use `ferni deploy`) |
 | **Run commands**           | [SCRIPTS.md](../SCRIPTS.md)                 |
-| **Check implementation status** | [CURRENT-STATE-SUMMARY.md](./CURRENT-STATE-SUMMARY.md) 🆕 |
+| **Check implementation status** | [status/CURRENT-STATE-SUMMARY.md](./status/CURRENT-STATE-SUMMARY.md) |
 
 ---
 
@@ -25,33 +25,83 @@ voiceai/
 ├── CORE-PRINCIPLES.md     # Mission & philosophy
 ├── ONBOARDING.md          # Developer setup
 ├── CONTRIBUTING.md        # How to contribute
-├── DEPLOYMENT.md          # Deployment guide
+├── (See docs/deployment/) # Deployment guide
 ├── SCRIPTS.md             # npm scripts
 ├── BACKLOG.md             # Product backlog
 └── CHANGELOG.md           # Version history
 
 docs/
 ├── README.md              # THIS FILE - Index
-├── CURRENT-STATE-SUMMARY.md  # ⭐ AUTHORITATIVE implementation status
-├── DOCUMENTATION-STATE.md    # Documentation audit & cleanup plan
+├── status/                # Implementation status & health
+│   ├── CURRENT-STATE-SUMMARY.md  # ⭐ AUTHORITATIVE implementation status
+│   ├── DOCUMENTATION-STATE.md    # Documentation audit & cleanup plan
+│   ├── SYSTEM-HEALTH-REPORT.md   # System health tracking
+│   └── TECH-DEBT.md             # Auto-generated tech debt report
 │
-├── architecture/          # System design (30 docs)
-├── audits/                # Quality audits (32 docs)
-├── plans/                 # Implementation plans (23 active)
-├── features/              # Feature specs (16 docs)
-├── guides/                # How-to guides (18 docs)
+├── architecture/          # System design (80 docs + ADRs)
+├── audits/                # Quality audits (73 active)
+├── plans/                 # Implementation plans (44 docs)
+├── features/              # Feature specs (19 docs)
+├── guides/                # How-to guides (24 docs)
 ├── deployment/            # Deploy guides (12 docs)
-├── security/              # Security checklists
-├── api/                   # API documentation
-├── operations/            # Runbooks & operations
-├── strategy/              # Business & launch docs
-├── marketplace/           # Marketplace docs
-└── archive/               # 📦 Completed/outdated plans
+├── security/              # Security checklists (3 docs)
+├── api/                   # API documentation (5 docs)
+├── operations/            # Runbooks & operations (4 docs)
+├── research/              # Research documents (4 docs)
+├── refactoring/           # Refactoring guides (7 docs)
+├── strategy/              # Business & launch docs (3 docs)
+├── marketplace/           # Marketplace docs (3 docs)
+└── archive/               # 📦 Completed/outdated/consolidated docs (35+)
 
 brand/                     # Brand ASSETS (logos, icons)
-design-system/brand/       # Brand DOCUMENTATION
+design-system/docs/brand/       # Brand DOCUMENTATION
 apps/web/       # Frontend code & CLAUDE.md
 marketplace-agents/        # Agent marketplace
+```
+
+---
+
+## Complete Documentation Locations
+
+> **Rule:** All major documentation should live in `docs/`. Module-specific READMEs and CLAUDE.md files stay in-source.
+
+### By Category
+
+| Type | Location | Examples |
+|------|----------|----------|
+| **Architecture** | `docs/architecture/` | System design, ADRs, technical decisions |
+| **Audits** | `docs/audits/` | Code reviews, quality assessments |
+| **Plans** | `docs/plans/` | Implementation roadmaps, feature plans |
+| **Guides** | `docs/guides/` | How-to guides, tutorials |
+| **API Docs** | `docs/api/` | REST API, OpenAPI specs |
+| **Features** | `docs/features/` | Feature specifications |
+| **Deployment** | `docs/deployment/` | Deploy guides, CI/CD setup |
+| **Brand** | `design-system/docs/brand/` | Brand guidelines, voice guide |
+| **Module Docs** | `src/*/CLAUDE.md`, `src/*/README.md` | In-source context for AI & devs |
+
+### Scattered Documentation (Intentionally In-Place)
+
+These docs stay with their code because they're project-specific:
+
+| Location | Purpose |
+|----------|---------|
+| `apps/web/CLAUDE.md` | Frontend coding context |
+| `apps/website/ferni-website/docs/` | Website-specific (marketing pipeline, assets) |
+| `apps/website/ferni-website/*.md` | Website plans (LAUNCH-PLAN, POLISH-PLAN) |
+| `design-system/README.md` | Design system setup |
+| `design-system/docs/brand/` | Brand guidelines, voice, imagery |
+| `src/personas/bundles/*/` | Persona content (identity, commands, etc.) |
+| `src/*/CLAUDE.md` | AI coding context for each module |
+| `src/*/README.md` | Module-specific documentation |
+
+### Pointer Files
+
+Files that have been moved will have a pointer showing the new location:
+
+```markdown
+# ⚠️ MOVED
+This documentation has been moved to:
+📍 `docs/architecture/NEW-LOCATION.md`
 ```
 
 ---
@@ -66,6 +116,8 @@ System design and technical decisions.
 | ----------------------------------------------------------------------------------------------- | ------------------------------------ |
 | [ARCHITECTURE-ACTION-PLAN.md](./architecture/ARCHITECTURE-ACTION-PLAN.md)                       | **Refactoring priorities & roadmap** |
 | [CLEAN-ARCHITECTURE.md](./architecture/CLEAN-ARCHITECTURE.md)                                   | Layer structure & import rules       |
+| [SEMANTIC-ROUTER.md](./architecture/SEMANTIC-ROUTER.md)                                         | **Pre-LLM tool routing system**      |
+| [SPEECH-COORDINATION.md](./architecture/SPEECH-COORDINATION.md)                                 | **Adaptive speech coordination**     |
 | [AGENT-AGNOSTIC-ARCHITECTURE.md](./architecture/AGENT-AGNOSTIC-ARCHITECTURE.md)                 | Tool & persona patterns              |
 | [COGNITIVE-INTELLIGENCE-ARCHITECTURE.md](./architecture/COGNITIVE-INTELLIGENCE-ARCHITECTURE.md) | How personas think                   |
 | [PERSISTENCE-ARCHITECTURE.md](./architecture/PERSISTENCE-ARCHITECTURE.md)                       | Memory & storage                     |
@@ -142,7 +194,7 @@ Feature specifications and roadmaps.
 
 | Doc                                                                                       | Description                        |
 | ----------------------------------------------------------------------------------------- | ---------------------------------- |
-| [design-system/brand/BETTER-THAN-HUMAN.md](../design-system/brand/BETTER-THAN-HUMAN.md)   | EQ specification (source of truth) |
+| [design-system/docs/brand/BETTER-THAN-HUMAN.md](../design-system/docs/brand/BETTER-THAN-HUMAN.md)   | EQ specification (source of truth) |
 | [BETTER-THAN-HUMAN-INTEGRATION-PLAN.md](./plans/BETTER-THAN-HUMAN-INTEGRATION-PLAN.md)    | Implementation plan                |
 | [BETTER-THAN-PHD-ROADMAP.md](./plans/BETTER-THAN-PHD-ROADMAP.md)                          | PhD-level EQ roadmap               |
 | [BETTER-THAN-PHD-SYSTEMS.md](./architecture/BETTER-THAN-PHD-SYSTEMS.md)                   | Systems implementation             |
@@ -210,7 +262,7 @@ System and code quality audits.
 | [GAMES-AUDIT.md](./audits/GAMES-AUDIT.md)                         | Games system               |
 | [BEHAVIOR-AUDIT.md](./audits/BEHAVIOR-AUDIT.md)                   | Persona behaviors          |
 | [SDLC-AUDIT.md](./audits/SDLC-AUDIT.md)                           | Dev lifecycle              |
-| [TECH-DEBT.md](./TECH-DEBT.md)                                    | Auto-generated debt report |
+| [TECH-DEBT.md](./status/TECH-DEBT.md)                             | Auto-generated debt report |
 
 ---
 
@@ -266,13 +318,13 @@ Implementation plans and roadmaps. See [archive/](./archive/) for completed plan
 | File                                                                                                 | Purpose                      |
 | ---------------------------------------------------------------------------------------------------- | ---------------------------- |
 | [brand/README.md](../brand/README.md)                                                                | Brand assets (logos, icons)  |
-| [design-system/brand/FERNI-BRAND-GUIDELINES.md](../design-system/brand/FERNI-BRAND-GUIDELINES.md)    | Core brand guidelines        |
-| [design-system/brand/FERNI-SCREEN-GUIDELINES.md](../design-system/brand/FERNI-SCREEN-GUIDELINES.md)  | Screen design system         |
-| [design-system/brand/FERNI-SONIC-IDENTITY.md](../design-system/brand/FERNI-SONIC-IDENTITY.md)        | Audio branding               |
-| [design-system/brand/FERNI-UNIVERSE-BIBLE.md](../design-system/brand/FERNI-UNIVERSE-BIBLE.md)        | Brand universe & personality |
-| [design-system/brand/BETTER-THAN-HUMAN.md](../design-system/brand/BETTER-THAN-HUMAN.md)              | EQ specification             |
+| [design-system/docs/brand/FERNI-BRAND-GUIDELINES.md](../design-system/docs/brand/FERNI-BRAND-GUIDELINES.md)    | Core brand guidelines        |
+| [design-system/docs/brand/FERNI-SCREEN-GUIDELINES.md](../design-system/docs/brand/FERNI-SCREEN-GUIDELINES.md)  | Screen design system         |
+| [design-system/docs/brand/FERNI-SONIC-IDENTITY.md](../design-system/docs/brand/FERNI-SONIC-IDENTITY.md)        | Audio branding               |
+| [design-system/docs/brand/FERNI-UNIVERSE-BIBLE.md](../design-system/docs/brand/FERNI-UNIVERSE-BIBLE.md)        | Brand universe & personality |
+| [design-system/docs/brand/BETTER-THAN-HUMAN.md](../design-system/docs/brand/BETTER-THAN-HUMAN.md)              | EQ specification             |
 
-See [design-system/brand/README.md](../design-system/brand/README.md) for complete brand documentation index.
+See [design-system/docs/brand/README.md](../design-system/docs/brand/README.md) for complete brand documentation index.
 
 ---
 
@@ -317,7 +369,8 @@ Completed plans and outdated documentation preserved for historical reference.
 
 | Category | Contents |
 |----------|----------|
-| `completed-plans/` | 6 plans now fully implemented (Animation, Trust Systems, Personas, etc.) |
+| `completed-audits/` | 4 point-in-time audits that are resolved |
+| `completed-plans/` | 10 plans now fully implemented (Animation, Trust Systems, Personas, etc.) |
 | Root archive | Superseded status documents |
 
 See [archive/README.md](./archive/README.md) for details.
@@ -328,9 +381,9 @@ See [archive/README.md](./archive/README.md) for details.
 
 For documentation cleanup status and maintenance guidelines, see:
 
-- [DOCUMENTATION-STATE.md](./DOCUMENTATION-STATE.md) - Documentation audit & cleanup plan
-- [CURRENT-STATE-SUMMARY.md](./CURRENT-STATE-SUMMARY.md) - **Authoritative** implementation status
+- [status/DOCUMENTATION-STATE.md](./status/DOCUMENTATION-STATE.md) - Documentation audit & cleanup plan
+- [status/CURRENT-STATE-SUMMARY.md](./status/CURRENT-STATE-SUMMARY.md) - **Authoritative** implementation status
 
 ---
 
-_Last updated: December 15, 2024_
+_Last updated: December 24, 2024_

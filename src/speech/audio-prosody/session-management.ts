@@ -29,9 +29,9 @@ export function getSessionAudioProsodyAnalyzer(sessionId: string): AudioProsodyA
 }
 
 /**
- * Remove a session's prosody analyzer (on session end)
+ * Reset and remove a session's prosody analyzer (on session end)
  */
-export function removeSessionAudioProsodyAnalyzer(sessionId: string): void {
+export function resetSessionAudioProsodyAnalyzer(sessionId: string): void {
   const analyzer = sessionAnalyzers.get(sessionId);
   if (analyzer) {
     analyzer.reset();
@@ -40,11 +40,6 @@ export function removeSessionAudioProsodyAnalyzer(sessionId: string): void {
   // Also clear metrics for this session
   sessionMetrics.delete(sessionId);
 }
-
-/**
- * Alias for removeSessionAudioProsodyAnalyzer (preferred naming)
- */
-export const resetSessionAudioProsodyAnalyzer = removeSessionAudioProsodyAnalyzer;
 
 // ============================================================================
 // PROSODY METRICS TRACKING

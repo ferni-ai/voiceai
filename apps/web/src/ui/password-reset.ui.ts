@@ -15,7 +15,7 @@ import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 const log = createLogger('PasswordResetUI');
 
 // FIX BUG: Track all setTimeout calls for proper cleanup
-const { trackedTimeout, clearAll: clearAllTimeouts } = createTimeoutTracker();
+const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
 
 // ============================================================================
 // ELEMENT REFERENCES
@@ -83,7 +83,7 @@ export function showPasswordResetModal(prefillEmail?: string): void {
               placeholder="${t('placeholders.emailExample')}"
             />
           </div>
-          <button type="submit" class="submit-btn">Send Reset Link</button>
+          <button aria-label="${t('accessibility.sendResetLink')}" type="submit" class="submit-btn">Send Reset Link</button>
         </form>
       </div>
       
@@ -100,7 +100,7 @@ export function showPasswordResetModal(prefillEmail?: string): void {
       
       <div class="password-reset-error" style="display: none;">
         <p class="error-message"></p>
-        <button class="retry-btn">Try Again</button>
+        <button aria-label="${t('accessibility.tryAgain')}" class="retry-btn">Try Again</button>
       </div>
     </div>
   `;
@@ -147,7 +147,7 @@ function applyResetStyles(overlay: HTMLElement): void {
       display: flex;
       align-items: center;
       justify-content: center;
-      z-index: 1000;
+      z-index: var(--z-dropdown);
       opacity: 0;
       transition: opacity ${DURATION.NORMAL}ms ${EASING.STANDARD};
     }
@@ -157,16 +157,16 @@ function applyResetStyles(overlay: HTMLElement): void {
     .password-reset-backdrop {
       position: absolute;
       inset: 0;
-      background: rgba(44, 37, 32, 0.4);
-      backdrop-filter: blur(var(--glass-blur-strong, 24px));
+      background: rgba(44, 37, 32, 0.75);
     }
     .password-reset-card {
       position: relative;
       width: 90%;
-      max-width: 400px;
-      background: var(--color-background-elevated, #FFFDFB);
-      border-radius: var(--radius-2xl, 24px);
-      box-shadow: var(--shadow-2xl, 0 24px 48px rgba(0,0,0,0.2));
+      max-width: min(400px, 100%);
+      background: var(--color-bg-elevated, #FFFDFB);
+      border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
+      border-radius: var(--radius-xl, 20px);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.06);
       transform: scale(0.95);
       opacity: 0;
       transition: all ${DURATION.SLOW}ms ${EASING.SPRING};

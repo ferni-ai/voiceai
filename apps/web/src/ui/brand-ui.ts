@@ -40,7 +40,6 @@ export {
 // ============================================================================
 
 export {
-  ToastManager,
   getToastManager,
   resetToastManager,
   showToast,
@@ -49,7 +48,7 @@ export {
   toast,
   type ToastType,
   type ToastConfig,
-} from './toast.ui.js';
+} from './whisper.ui.js';
 
 // ============================================================================
 // LOADING SKELETONS

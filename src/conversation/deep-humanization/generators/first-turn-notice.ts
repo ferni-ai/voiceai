@@ -7,6 +7,7 @@
  * @module @ferni/conversation/deep-humanization/generators/first-turn-notice
  */
 
+import { seededChance, seededIndex, seededPick } from '../../utils/rng.js';
 import type {
   HumanizationContext,
   ConversationMood,
@@ -71,7 +72,7 @@ export async function generateFirstTurnNotice(
 
   const probability = HUMANIZATION_CONFIG.probabilities.firstTurnNotice;
 
-  if (Math.random() > probability) {
+  if (!seededChance(`${Date.now()}:1`, probability)) {
     return null;
   }
 
@@ -95,7 +96,7 @@ export async function generateFirstTurnNotice(
     notices = NOTICING_HESITATION;
   }
 
-  const content = notices[Math.floor(Math.random() * notices.length)];
+  const content = seededPick(`${Date.now()}:99`, notices) ?? notices[0];
 
   return {
     type: 'first_turn_notice',

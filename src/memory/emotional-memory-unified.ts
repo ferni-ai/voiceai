@@ -15,29 +15,24 @@
  *
  * This module provides a single entry point for all emotional memory operations.
  *
+ * Architecture Note: This module uses dependency injection for the emotional memory
+ * engines to avoid architecture violations (memory layer importing from intelligence
+ * and conversation layers). The engines are injected at runtime by the services layer.
+ *
  * @module memory/emotional-memory-unified
  */
 
 import { createLogger } from '../utils/safe-logger.js';
 
-// Import from the two source systems
+// Import types from the types layer (architecture-compliant)
 import {
-  getEmotionalMemory as getUserEmotionMemory,
-  removeEmotionalMemory as removeUserEmotionMemory,
   type EmotionalCheckIn,
   type EmotionalContext,
   type EmotionalMoment,
   type EmotionalPattern,
-  type EmotionalMemoryEngine as UserEmotionEngine,
-} from '../intelligence/emotional-memory.js';
+  type PrimaryEmotion,
+} from '../types/emotion-types.js';
 
-import {
-  clearEmotionalMemory as clearBondingMemory,
-  getEmotionalMemory as getBondingMemory,
-  type EmotionalMemoryEngine as BondingEngine,
-} from '../conversation/superhuman/emotional-memory.js';
-
-// Import shared types to avoid architecture violation (memory → conversation)
 import {
   fromLegacyStage,
   type EmotionalBond,
@@ -49,7 +44,109 @@ import {
 export type UserEmotionalContext = EmotionalContext;
 export type UserEmotionalMoment = EmotionalMoment;
 
+// ============================================================================
+// INTERFACE DEFINITIONS FOR DEPENDENCY INJECTION
+// ============================================================================
+
+/**
+ * Interface for user emotion tracking engine
+ */
+export interface UserEmotionEngine {
+  startSession: (sessionId: string) => void;
+  recordMoment: (
+    emotion: PrimaryEmotion,
+    topic: string,
+    trigger: string,
+    userStatement: string,
+    intensity?: 'mild' | 'moderate' | 'strong'
+  ) => string;
+  resolveEmotion: (momentId: string, note?: string) => void;
+  markFollowedUp: (momentId: string) => void;
+  buildEmotionalContext: () => EmotionalContext;
+  detectPatterns: () => EmotionalPattern[];
+  getCheckInSuggestions: () => EmotionalCheckIn[];
+  formatForPrompt: () => string;
+  exportMoments: () => EmotionalMoment[];
+  importMoments: (moments: EmotionalMoment[]) => void;
+  getStats: () => Record<string, unknown>;
+}
+
+/**
+ * Interface for persona bonding engine
+ */
+export interface BondingEngine {
+  setPersonaId: (personaId: string) => void;
+  recordSessionEnd: () => void;
+  recordEvent: (
+    event: string,
+    context?: { topic?: string; description?: string; intensity?: number }
+  ) => void;
+  updateConcern: (level: number) => void;
+  getBondMetrics: () => {
+    warmth: number;
+    trust: number;
+    protectiveness: number;
+    admiration: number;
+    concern: number;
+    stage: string;
+  };
+  getBond: () => EmotionalBond;
+  getGreetingModifier: () => string | null;
+  getEmotionalMemoryCallback: () => string | null;
+  getBondPhrase: (context: { turnCount: number }) => { phrase: string } | null;
+  getRelationshipStage: () => string;
+  export: () => EmotionalBond;
+  import: (bond: EmotionalBond) => void;
+}
+
+/**
+ * Factory functions for creating engines (injected at runtime)
+ */
+export interface EmotionalMemoryEngineFactories {
+  getUserEmotionEngine: (userId: string) => UserEmotionEngine;
+  getBondingEngine: (userId: string, existingBond?: EmotionalBond) => BondingEngine;
+  removeUserEmotionEngine: (userId: string) => void;
+  clearBondingEngine: (userId: string) => void;
+}
+
+// Engine factories - must be configured before use
+let engineFactories: EmotionalMemoryEngineFactories | null = null;
+
+/**
+ * Configure the emotional memory engine factories.
+ * This MUST be called by the services layer before using UnifiedEmotionalMemory.
+ *
+ * @example
+ * // In services/index.ts or similar:
+ * configureEmotionalMemoryEngines({
+ *   getUserEmotionEngine: (userId) => getEmotionalMemory(userId),
+ *   getBondingEngine: (userId, bond) => getEmotionalMemory(userId, bond),
+ *   removeUserEmotionEngine: (userId) => removeEmotionalMemory(userId),
+ *   clearBondingEngine: (userId) => clearEmotionalMemory(userId),
+ * });
+ */
+export function configureEmotionalMemoryEngines(factories: EmotionalMemoryEngineFactories): void {
+  engineFactories = factories;
+}
+
+/**
+ * Check if engines are configured
+ */
+export function areEmotionalMemoryEnginesConfigured(): boolean {
+  return engineFactories !== null;
+}
+
 const log = createLogger({ module: 'UnifiedEmotionalMemory' });
+
+function getFactories(): EmotionalMemoryEngineFactories {
+  if (!engineFactories) {
+    throw new Error(
+      'EmotionalMemoryEngineFactories not configured. ' +
+        'Call configureEmotionalMemoryEngines() during service initialization.'
+    );
+  }
+  return engineFactories;
+}
 
 // ============================================================================
 // TYPES
@@ -108,9 +205,10 @@ export class UnifiedEmotionalMemory {
     this.userId = config.userId;
     this.personaId = config.personaId || 'ferni';
 
-    // Get or create the underlying engines
-    this.userEmotions = getUserEmotionMemory(config.userId);
-    this.bonding = getBondingMemory(config.userId, config.existingBond);
+    // Get or create the underlying engines via dependency injection
+    const factories = getFactories();
+    this.userEmotions = factories.getUserEmotionEngine(config.userId);
+    this.bonding = factories.getBondingEngine(config.userId, config.existingBond);
 
     if (config.personaId) {
       this.bonding.setPersonaId(config.personaId);
@@ -158,7 +256,7 @@ export class UnifiedEmotionalMemory {
   ): string {
     // Record in user emotion system
     const momentId = this.userEmotions.recordMoment(
-      emotion as Parameters<UserEmotionEngine['recordMoment']>[0],
+      emotion as PrimaryEmotion,
       topic,
       trigger,
       userStatement,
@@ -397,8 +495,12 @@ export function getUnifiedEmotionalMemory(config: EmotionalMemoryConfig): Unifie
 export function clearUnifiedEmotionalMemory(userId: string, personaId?: string): void {
   const key = `${userId}:${personaId || 'ferni'}`;
   unifiedEngines.delete(key);
-  removeUserEmotionMemory(userId);
-  clearBondingMemory(userId);
+
+  // Clear underlying engines if factories are configured
+  if (engineFactories) {
+    engineFactories.removeUserEmotionEngine(userId);
+    engineFactories.clearBondingEngine(userId);
+  }
 }
 
 /**
@@ -412,13 +514,13 @@ export function clearAllUnifiedEmotionalMemories(): void {
 // RE-EXPORTS for backward compatibility
 // ============================================================================
 
-// Re-export types from source modules
+// Re-export types from types layer (architecture-compliant)
 export type {
   EmotionalCheckIn,
   EmotionalContext,
   EmotionalMoment,
   EmotionalPattern,
-} from '../intelligence/emotional-memory.js';
+} from '../types/emotion-types.js';
 
 export type { EmotionalBond, RelationshipStage } from '../types/relationship-stages.js';
 
@@ -427,4 +529,6 @@ export default {
   clearUnifiedEmotionalMemory,
   clearAllUnifiedEmotionalMemories,
   UnifiedEmotionalMemory,
+  configureEmotionalMemoryEngines,
+  areEmotionalMemoryEnginesConfigured,
 };

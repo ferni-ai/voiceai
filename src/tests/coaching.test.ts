@@ -436,9 +436,9 @@ describe('Handoff Intelligence', () => {
 
   it('should detect handoff opportunities', () => {
     const patterns = [
-      { text: 'I need help writing an email to my boss', expectedPersona: 'alex' },
-      { text: "I can't seem to stick to my morning routine", expectedPersona: 'maya' },
-      { text: 'I have a party to plan for next weekend', expectedPersona: 'jordan' },
+      { text: 'I need help writing an email to my boss', expectedPersona: 'alex-chen' },
+      { text: "I can't seem to stick to my morning routine", expectedPersona: 'maya-santos' },
+      { text: 'I have a party to plan for next weekend', expectedPersona: 'jordan-taylor' },
     ];
 
     for (const { text, expectedPersona } of patterns) {
@@ -494,10 +494,14 @@ describe('Seasonal Awareness', () => {
   it('should record and recall difficult times', () => {
     const userId = 'test-user-difficult';
 
-    seasonalAwareness.recordDifficultTime(userId, 'December', 'anniversary of loss');
+    // Use the current month name so the difficult time will be detected as current
+    const currentMonth = new Date().toLocaleString('en-US', { month: 'long' }).toLowerCase();
+    seasonalAwareness.recordDifficultTime(userId, currentMonth, 'anniversary of loss');
 
     const context = seasonalAwareness.buildSeasonalContext(userId);
-    expect(context).toContain('December');
+    // Context should include the difficult time warning when it's the current month
+    expect(context).toContain('KNOWN DIFFICULT TIME');
+    expect(context).toContain('anniversary of loss');
   });
 });
 

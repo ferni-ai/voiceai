@@ -102,9 +102,9 @@ class ErrorTrackingService {
         tracesSampleRate: this.environment === 'production' ? 0.1 : 1.0,
         profilesSampleRate: this.environment === 'production' ? 0.1 : 1.0,
         integrations: [],
-        beforeSend(event: unknown) {
+        beforeSend(event) {
           // Scrub sensitive data
-          const evt = event as Record<string, unknown>;
+          const evt = event as unknown as Record<string, unknown>;
           const request = evt['request'] as { headers?: Record<string, unknown> } | undefined;
           if (request?.headers) {
             delete request.headers['authorization'];

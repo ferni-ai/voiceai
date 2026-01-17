@@ -16,51 +16,33 @@ import { createLogger } from '../../utils/safe-logger.js';
 const log = createLogger({ module: 'LandingAIInteractions' });
 
 // ============================================================================
-// DYNAMIC GEMINI SDK LOADING (Optional dependency)
+// GEMINI CONFIG (uses centralized config)
 // ============================================================================
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-let GoogleGenerativeAI: any;
-let sdkLoaded = false;
-let sdkLoadPromise: Promise<boolean> | null = null;
-
-async function loadGeminiSDK(): Promise<boolean> {
-  if (sdkLoaded) return !!GoogleGenerativeAI;
-  if (sdkLoadPromise) return sdkLoadPromise;
-
-  sdkLoadPromise = (async () => {
-    try {
-      // Use Function constructor to avoid TypeScript static analysis
-      const importFn = new Function('specifier', 'return import(specifier)');
-      const module = await importFn('@google/generative-ai');
-      GoogleGenerativeAI = module.GoogleGenerativeAI;
-      sdkLoaded = true;
-      return true;
-    } catch {
-      log.warn('Gemini SDK not available - AI features will use fallbacks');
-      sdkLoaded = true;
-      return false;
-    }
-  })();
-
-  return sdkLoadPromise;
-}
+import {
+  getGeminiClient,
+  isGeminiConfigured,
+  getDefaultModel,
+  TEMP_EXTRACTION,
+  TEMP_REASONING,
+  TEMP_CONTENT,
+  TEMP_CREATIVE,
+  MAX_TOKENS_TINY,
+  MAX_TOKENS_SHORT,
+  MAX_TOKENS_MEDIUM,
+} from '../../config/gemini-config.js';
 
 // ============================================================================
-// CONFIGURATION
+// CONFIGURATION (model name from gemini-config.ts)
 // ============================================================================
 
-const MODEL_NAME = 'gemini-1.5-flash';
+// Model name comes from centralized config (GEMINI_MODEL env var)
+const MODEL_NAME = getDefaultModel();
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function getGenAI(): Promise<any | null> {
-  const loaded = await loadGeminiSDK();
-  if (!loaded || !GoogleGenerativeAI) return null;
-
-  const apiKey = process.env.GOOGLE_API_KEY || process.env.GEMINI_API_KEY;
-  if (!apiKey) return null;
-
-  return new GoogleGenerativeAI(apiKey);
+  if (!isGeminiConfigured()) return null;
+  return getGeminiClient();
 }
 
 // Rate limiting for demo chat (per visitor)
@@ -220,7 +202,7 @@ const PERSONA_PROMPTS: Record<
 export async function sendDemoChatMessage(
   visitorId: string,
   message: string,
-  persona: string = 'ferni'
+  persona = 'ferni'
 ): Promise<{
   response: string;
   messagesRemaining: number;
@@ -312,8 +294,8 @@ Remember: This is their first impression of Ferni. Make it count.`;
     const chat = model.startChat({
       history,
       generationConfig: {
-        maxOutputTokens: 150,
-        temperature: 0.7,
+        maxOutputTokens: MAX_TOKENS_TINY,
+        temperature: TEMP_REASONING,
       },
     });
 
@@ -411,8 +393,8 @@ Give a BRIEF response (1-2 sentences) that shows your unique perspective and per
     const result = await model.generateContent({
       contents: [{ role: 'user', parts: [{ text: prompt }] }],
       generationConfig: {
-        maxOutputTokens: 100,
-        temperature: 0.8,
+        maxOutputTokens: MAX_TOKENS_TINY,
+        temperature: TEMP_CONTENT,
       },
     });
 
@@ -447,9 +429,9 @@ Ferni is a voice-first AI life coach with six specialists:
 - Nayan Patel: Sage & mentor (Partner tier)
 
 Pricing:
-- Free: 5 conversations/month, Ferni only
-- Friend ($9.99/mo): Unlimited conversations, all 6 specialists
-- Partner ($19.99/mo): Everything + Nayan, advanced features
+- Community: Ferni is free forever (session-based soft limits)
+- Founding Member ($10/mo): Unlimited conversations, all 6 specialists
+- Founding Patron ($20/mo): Everything + Nayan, advanced features
 
 Key features:
 - Voice-first (just talk naturally)
@@ -500,8 +482,8 @@ Respond in JSON format:
     const result = await model.generateContent({
       contents: [{ role: 'user', parts: [{ text: prompt }] }],
       generationConfig: {
-        maxOutputTokens: 200,
-        temperature: 0.3,
+        maxOutputTokens: MAX_TOKENS_SHORT,
+        temperature: TEMP_EXTRACTION,
         responseMimeType: 'application/json',
       },
     });
@@ -526,7 +508,7 @@ function getFallbackFAQ(question: string): SmartFAQResponse {
     return {
       question,
       answer:
-        'Ferni is free to start with 5 conversations/month. Friend tier ($9.99/mo) gives unlimited access to all 6 specialists. Partner tier ($19.99/mo) adds premium features and Nayan, our sage mentor.',
+        "Ferni is free forever - really free. If you believe in what we're building, you can chip in as a Founding Member ($10/mo) for unlimited access to all 6 specialists. Founding Patrons ($20/mo) get premium features and Nayan, our sage mentor.",
       relatedQuestions: ["What's included in the free tier?", 'Can I cancel anytime?'],
       confidence: 0.95,
     };
@@ -615,8 +597,8 @@ Respond in JSON:
     const result = await model.generateContent({
       contents: [{ role: 'user', parts: [{ text: prompt }] }],
       generationConfig: {
-        maxOutputTokens: 300,
-        temperature: 0.8,
+        maxOutputTokens: MAX_TOKENS_SHORT,
+        temperature: TEMP_CONTENT,
         responseMimeType: 'application/json',
       },
     });
@@ -696,7 +678,7 @@ const SOCIAL_PROOF_TEMPLATES = [
 /**
  * Generate dynamic social proof snippets
  */
-export async function generateSocialProof(count: number = 3): Promise<SocialProofSnippet[]> {
+export async function generateSocialProof(count = 3): Promise<SocialProofSnippet[]> {
   const genAI = await getGenAI();
   if (!genAI) {
     // Return template-based snippets
@@ -732,8 +714,8 @@ Make them feel REAL and specific, not generic. No made-up names.`;
     const result = await model.generateContent({
       contents: [{ role: 'user', parts: [{ text: prompt }] }],
       generationConfig: {
-        maxOutputTokens: 500,
-        temperature: 0.9,
+        maxOutputTokens: MAX_TOKENS_MEDIUM,
+        temperature: TEMP_CREATIVE,
         responseMimeType: 'application/json',
       },
     });
@@ -805,8 +787,8 @@ Just return the text, no quotes.`;
     const result = await model.generateContent({
       contents: [{ role: 'user', parts: [{ text: prompt }] }],
       generationConfig: {
-        maxOutputTokens: 30,
-        temperature: 0.9,
+        maxOutputTokens: MAX_TOKENS_TINY,
+        temperature: TEMP_CREATIVE,
       },
     });
 
@@ -898,8 +880,8 @@ Return JSON:
     const result = await model.generateContent({
       contents: [{ role: 'user', parts: [{ text: prompt }] }],
       generationConfig: {
-        maxOutputTokens: 150,
-        temperature: 0.7,
+        maxOutputTokens: MAX_TOKENS_TINY,
+        temperature: TEMP_REASONING,
         responseMimeType: 'application/json',
       },
     });

@@ -1,0 +1,972 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="zen">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Transcendent Animation Systems - Interactive Demo</title>
+  <link rel="stylesheet" href="/design-system/tokens.css">
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--color-background-primary, #f5f0eb);
+      color: var(--color-text-primary, #2c2520);
+      min-height: 100vh;
+      padding: 2rem;
+      overflow-x: hidden;
+    }
+
+    h1 {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 2.5rem;
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+      background: linear-gradient(135deg, var(--color-ferni, #4a6741), var(--color-accent, #3d5a45));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .subtitle {
+      color: var(--color-text-secondary, #6b5d52);
+      margin-bottom: 3rem;
+      font-size: 1.1rem;
+    }
+
+    /* =========================================
+       DEMO SECTIONS
+       ========================================= */
+    .demo-section {
+      background: var(--color-background-elevated, #fff);
+      border-radius: 16px;
+      padding: 2rem;
+      margin-bottom: 2rem;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+    }
+
+    .demo-section h2 {
+      font-size: 1.25rem;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .demo-section p {
+      color: var(--color-text-secondary);
+      margin-bottom: 1.5rem;
+      font-size: 0.95rem;
+    }
+
+    .demo-area {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      align-items: center;
+    }
+
+    /* =========================================
+       1. BREATH SYNC - Everything Pulses
+       ========================================= */
+    .breath-demo {
+      display: flex;
+      gap: 2rem;
+      align-items: center;
+    }
+
+    .breath-orb {
+      width: 120px;
+      height: 120px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 30% 30%,
+        var(--color-ferni, #4a6741),
+        color-mix(in srgb, var(--color-ferni, #4a6741) 60%, black)
+      );
+      animation: breath-pulse 4s ease-in-out infinite;
+      box-shadow:
+        0 0 40px color-mix(in srgb, var(--color-ferni, #4a6741) 30%, transparent),
+        inset 0 0 30px rgba(255, 255, 255, 0.1);
+    }
+
+    @keyframes breath-pulse {
+      0%, 100% {
+        transform: scale(1);
+        opacity: 0.9;
+        box-shadow:
+          0 0 40px color-mix(in srgb, var(--color-ferni, #4a6741) 30%, transparent),
+          inset 0 0 30px rgba(255, 255, 255, 0.1);
+      }
+      50% {
+        transform: scale(1.08);
+        opacity: 1;
+        box-shadow:
+          0 0 60px color-mix(in srgb, var(--color-ferni, #4a6741) 50%, transparent),
+          inset 0 0 40px rgba(255, 255, 255, 0.2);
+      }
+    }
+
+    .breath-metrics {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .breath-bar {
+      width: 200px;
+      height: 8px;
+      background: var(--color-background-tertiary, #e8e0d8);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .breath-bar-fill {
+      height: 100%;
+      background: var(--color-ferni, #4a6741);
+      border-radius: 4px;
+      animation: breath-bar 4s ease-in-out infinite;
+    }
+
+    @keyframes breath-bar {
+      0%, 100% { width: 40%; }
+      50% { width: 100%; }
+    }
+
+    .breath-label {
+      font-size: 0.8rem;
+      color: var(--color-text-muted);
+    }
+
+    /* =========================================
+       2. IMPERFECTION ENGINE - Organic Motion
+       ========================================= */
+    .imperfection-grid {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 0.75rem;
+    }
+
+    .imperfection-dot {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: var(--color-accent, #3d5a45);
+      animation: wobble 3s ease-in-out infinite;
+    }
+
+    /* Each dot has slightly different timing - organic feel */
+    .imperfection-dot:nth-child(1) { animation-delay: 0.00s; animation-duration: 2.9s; }
+    .imperfection-dot:nth-child(2) { animation-delay: 0.15s; animation-duration: 3.1s; }
+    .imperfection-dot:nth-child(3) { animation-delay: 0.08s; animation-duration: 2.8s; }
+    .imperfection-dot:nth-child(4) { animation-delay: 0.22s; animation-duration: 3.2s; }
+    .imperfection-dot:nth-child(5) { animation-delay: 0.05s; animation-duration: 3.0s; }
+    .imperfection-dot:nth-child(6) { animation-delay: 0.18s; animation-duration: 2.95s; }
+    .imperfection-dot:nth-child(7) { animation-delay: 0.12s; animation-duration: 3.15s; }
+    .imperfection-dot:nth-child(8) { animation-delay: 0.25s; animation-duration: 2.85s; }
+    .imperfection-dot:nth-child(9) { animation-delay: 0.03s; animation-duration: 3.05s; }
+    .imperfection-dot:nth-child(10) { animation-delay: 0.20s; animation-duration: 2.92s; }
+    .imperfection-dot:nth-child(11) { animation-delay: 0.10s; animation-duration: 3.08s; }
+    .imperfection-dot:nth-child(12) { animation-delay: 0.17s; animation-duration: 2.98s; }
+
+    @keyframes wobble {
+      0%, 100% {
+        transform: translate(0, 0) rotate(0deg) scale(1);
+      }
+      25% {
+        transform: translate(2px, -3px) rotate(2deg) scale(1.02);
+      }
+      50% {
+        transform: translate(-1px, 2px) rotate(-1deg) scale(0.98);
+      }
+      75% {
+        transform: translate(3px, 1px) rotate(1.5deg) scale(1.01);
+      }
+    }
+
+    .vs-comparison {
+      display: flex;
+      gap: 3rem;
+      margin-top: 1.5rem;
+    }
+
+    .comparison-box {
+      flex: 1;
+      padding: 1rem;
+      border-radius: 8px;
+      text-align: center;
+    }
+
+    .comparison-box.perfect {
+      background: var(--color-background-tertiary);
+    }
+
+    .comparison-box.organic {
+      background: color-mix(in srgb, var(--color-ferni) 10%, transparent);
+    }
+
+    .comparison-box h4 {
+      font-size: 0.85rem;
+      margin-bottom: 0.75rem;
+      color: var(--color-text-secondary);
+    }
+
+    .perfect-dots {
+      display: flex;
+      gap: 0.5rem;
+      justify-content: center;
+    }
+
+    .perfect-dots .dot {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: var(--color-text-muted);
+      animation: perfect-bounce 1s ease-in-out infinite;
+    }
+
+    .perfect-dots .dot:nth-child(2) { animation-delay: 0.1s; }
+    .perfect-dots .dot:nth-child(3) { animation-delay: 0.2s; }
+    .perfect-dots .dot:nth-child(4) { animation-delay: 0.3s; }
+    .perfect-dots .dot:nth-child(5) { animation-delay: 0.4s; }
+
+    @keyframes perfect-bounce {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-10px); }
+    }
+
+    .organic-dots {
+      display: flex;
+      gap: 0.5rem;
+      justify-content: center;
+    }
+
+    .organic-dots .dot {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: var(--color-ferni);
+    }
+
+    .organic-dots .dot:nth-child(1) { animation: organic-bounce-1 1.05s ease-in-out infinite 0.02s; }
+    .organic-dots .dot:nth-child(2) { animation: organic-bounce-2 0.98s ease-in-out infinite 0.12s; }
+    .organic-dots .dot:nth-child(3) { animation: organic-bounce-3 1.02s ease-in-out infinite 0.18s; }
+    .organic-dots .dot:nth-child(4) { animation: organic-bounce-4 0.95s ease-in-out infinite 0.28s; }
+    .organic-dots .dot:nth-child(5) { animation: organic-bounce-5 1.08s ease-in-out infinite 0.42s; }
+
+    @keyframes organic-bounce-1 {
+      0%, 100% { transform: translateY(0) rotate(0deg); }
+      50% { transform: translateY(-11px) rotate(3deg); }
+    }
+    @keyframes organic-bounce-2 {
+      0%, 100% { transform: translateY(0) rotate(0deg); }
+      50% { transform: translateY(-9px) rotate(-2deg); }
+    }
+    @keyframes organic-bounce-3 {
+      0%, 100% { transform: translateY(0) rotate(0deg); }
+      50% { transform: translateY(-12px) rotate(1deg); }
+    }
+    @keyframes organic-bounce-4 {
+      0%, 100% { transform: translateY(0) rotate(0deg); }
+      50% { transform: translateY(-8px) rotate(-3deg); }
+    }
+    @keyframes organic-bounce-5 {
+      0%, 100% { transform: translateY(0) rotate(0deg); }
+      50% { transform: translateY(-10px) rotate(2deg); }
+    }
+
+    /* =========================================
+       3. BUTTON MICRO-INTERACTIONS
+       ========================================= */
+    .button-demo {
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .demo-btn {
+      padding: 0.875rem 1.75rem;
+      border: none;
+      border-radius: 12px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s cubic-bezier(0.5, 1.5, 0.5, 1);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .demo-btn.primary {
+      background: var(--color-ferni, #4a6741);
+      color: white;
+      box-shadow: 0 4px 12px color-mix(in srgb, var(--color-ferni) 30%, transparent);
+    }
+
+    .demo-btn.secondary {
+      background: var(--color-background-tertiary, #e8e0d8);
+      color: var(--color-text-primary);
+    }
+
+    .demo-btn.ghost {
+      background: transparent;
+      color: var(--color-ferni);
+      border: 2px solid var(--color-ferni);
+    }
+
+    .demo-btn:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 8px 24px color-mix(in srgb, var(--color-ferni) 25%, transparent);
+    }
+
+    .demo-btn:active {
+      transform: scale(0.96);
+      transition-duration: 0.05s;
+    }
+
+    /* Ripple effect */
+    .demo-btn::after {
+      content: '';
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      top: 0;
+      left: 0;
+      background: radial-gradient(circle, rgba(255,255,255,0.3) 0%, transparent 70%);
+      transform: scale(0);
+      opacity: 0;
+    }
+
+    .demo-btn:active::after {
+      animation: ripple 0.4s ease-out;
+    }
+
+    @keyframes ripple {
+      0% { transform: scale(0); opacity: 1; }
+      100% { transform: scale(2.5); opacity: 0; }
+    }
+
+    /* =========================================
+       4. OVERLAPPING ACTION - Staggered Entry
+       ========================================= */
+    .stagger-demo {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .stagger-row {
+      display: flex;
+      gap: 0.75rem;
+    }
+
+    .stagger-card {
+      width: 80px;
+      height: 60px;
+      background: linear-gradient(135deg,
+        var(--color-background-elevated),
+        var(--color-background-tertiary)
+      );
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+      opacity: 0;
+      animation: stagger-in 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    }
+
+    /* Staggered delays */
+    .stagger-row:nth-child(1) .stagger-card:nth-child(1) { animation-delay: 0.0s; }
+    .stagger-row:nth-child(1) .stagger-card:nth-child(2) { animation-delay: 0.05s; }
+    .stagger-row:nth-child(1) .stagger-card:nth-child(3) { animation-delay: 0.1s; }
+    .stagger-row:nth-child(1) .stagger-card:nth-child(4) { animation-delay: 0.15s; }
+    .stagger-row:nth-child(2) .stagger-card:nth-child(1) { animation-delay: 0.08s; }
+    .stagger-row:nth-child(2) .stagger-card:nth-child(2) { animation-delay: 0.13s; }
+    .stagger-row:nth-child(2) .stagger-card:nth-child(3) { animation-delay: 0.18s; }
+    .stagger-row:nth-child(2) .stagger-card:nth-child(4) { animation-delay: 0.23s; }
+
+    @keyframes stagger-in {
+      0% {
+        opacity: 0;
+        transform: translateY(20px) scale(0.9);
+      }
+      100% {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+
+    .replay-btn {
+      margin-top: 1rem;
+      padding: 0.5rem 1rem;
+      background: none;
+      border: 1px solid var(--color-border-subtle);
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.85rem;
+      color: var(--color-text-secondary);
+    }
+
+    .replay-btn:hover {
+      background: var(--color-background-tertiary);
+    }
+
+    /* =========================================
+       5. EMOTIONAL COLOR - Temperature Shift
+       ========================================= */
+    .emotional-demo {
+      display: flex;
+      gap: 1rem;
+    }
+
+    .emotion-card {
+      flex: 1;
+      padding: 1.5rem;
+      border-radius: 12px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .emotion-card.calm {
+      background: linear-gradient(135deg, #a8d5ba, #7bc88f);
+      color: #1a3d20;
+    }
+
+    .emotion-card.warm {
+      background: linear-gradient(135deg, #f5c77e, #e8a54b);
+      color: #4a3520;
+    }
+
+    .emotion-card.concern {
+      background: linear-gradient(135deg, #d4a5a5, #c08080);
+      color: #3d2020;
+    }
+
+    .emotion-card.joy {
+      background: linear-gradient(135deg, #ffe066, #ffd000);
+      color: #4a4000;
+    }
+
+    .emotion-card:hover {
+      transform: scale(1.05);
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
+    }
+
+    .emotion-card .emoji {
+      font-size: 2rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .emotion-card .label {
+      font-weight: 600;
+      font-size: 0.9rem;
+    }
+
+    /* =========================================
+       6. ENERGY WAVE VISUALIZATION (New!)
+       ========================================= */
+    .energy-wave-container {
+      position: relative;
+      height: 200px;
+      background: linear-gradient(180deg,
+        var(--color-background-tertiary) 0%,
+        var(--color-background-elevated) 100%
+      );
+      border-radius: 12px;
+      overflow: hidden;
+    }
+
+    .energy-wave {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 200%;
+      height: 100%;
+    }
+
+    .wave-path {
+      fill: none;
+      stroke-width: 3;
+      stroke-linecap: round;
+    }
+
+    .wave-1 {
+      stroke: color-mix(in srgb, var(--color-ferni) 60%, transparent);
+      animation: wave-move 8s linear infinite;
+    }
+
+    .wave-2 {
+      stroke: color-mix(in srgb, var(--color-ferni) 40%, transparent);
+      animation: wave-move 12s linear infinite reverse;
+    }
+
+    .wave-3 {
+      stroke: color-mix(in srgb, var(--color-ferni) 20%, transparent);
+      animation: wave-move 6s linear infinite;
+    }
+
+    .wave-fill {
+      fill: url(#wave-gradient);
+      opacity: 0.3;
+      animation: wave-move 8s linear infinite;
+    }
+
+    @keyframes wave-move {
+      0% { transform: translateX(0); }
+      100% { transform: translateX(-50%); }
+    }
+
+    .energy-now {
+      position: absolute;
+      top: 1rem;
+      right: 1rem;
+      background: var(--color-background-elevated);
+      padding: 0.75rem 1rem;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    }
+
+    .energy-now .value {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--color-ferni);
+    }
+
+    .energy-now .label {
+      font-size: 0.75rem;
+      color: var(--color-text-muted);
+    }
+
+    .time-markers {
+      position: absolute;
+      bottom: 0.5rem;
+      left: 0;
+      right: 0;
+      display: flex;
+      justify-content: space-between;
+      padding: 0 1rem;
+      font-size: 0.7rem;
+      color: var(--color-text-muted);
+    }
+
+    /* =========================================
+       7. SOCIAL BATTERY GAUGE (New!)
+       ========================================= */
+    .battery-container {
+      display: flex;
+      align-items: center;
+      gap: 2rem;
+    }
+
+    .battery-visual {
+      position: relative;
+      width: 80px;
+      height: 160px;
+    }
+
+    .battery-body {
+      position: absolute;
+      bottom: 0;
+      width: 100%;
+      height: 140px;
+      background: var(--color-background-tertiary);
+      border-radius: 12px;
+      overflow: hidden;
+      border: 3px solid var(--color-border-medium, #d0c8c0);
+    }
+
+    .battery-tip {
+      position: absolute;
+      top: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 40px;
+      height: 12px;
+      background: var(--color-border-medium, #d0c8c0);
+      border-radius: 4px 4px 0 0;
+    }
+
+    .battery-fill {
+      position: absolute;
+      bottom: 0;
+      width: 100%;
+      height: 65%;
+      background: linear-gradient(180deg,
+        var(--color-ferni) 0%,
+        color-mix(in srgb, var(--color-ferni) 70%, black) 100%
+      );
+      transition: height 1s cubic-bezier(0.16, 1, 0.3, 1);
+      animation: battery-breathe 4s ease-in-out infinite;
+    }
+
+    @keyframes battery-breathe {
+      0%, 100% { opacity: 0.9; }
+      50% { opacity: 1; }
+    }
+
+    .battery-info {
+      flex: 1;
+    }
+
+    .battery-percentage {
+      font-size: 3rem;
+      font-weight: 700;
+      color: var(--color-ferni);
+      line-height: 1;
+    }
+
+    .battery-status {
+      font-size: 1rem;
+      color: var(--color-text-secondary);
+      margin-top: 0.25rem;
+    }
+
+    .battery-triggers {
+      margin-top: 1rem;
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+
+    .trigger-tag {
+      padding: 0.25rem 0.75rem;
+      background: var(--color-background-tertiary);
+      border-radius: 20px;
+      font-size: 0.8rem;
+      color: var(--color-text-secondary);
+    }
+
+    .trigger-tag.drain {
+      background: color-mix(in srgb, #c08080 20%, transparent);
+      color: #8b4040;
+    }
+
+    .trigger-tag.recharge {
+      background: color-mix(in srgb, var(--color-ferni) 20%, transparent);
+      color: var(--color-ferni);
+    }
+
+    /* =========================================
+       8. VOICE TYPOGRAPHY
+       ========================================= */
+    .typography-demo {
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+
+    .type-example {
+      padding: 1rem;
+      border-radius: 8px;
+      background: var(--color-background-tertiary);
+    }
+
+    .type-example.speaking {
+      animation: type-speaking 0.3s ease-in-out infinite alternate;
+    }
+
+    @keyframes type-speaking {
+      0% { letter-spacing: 0; opacity: 0.9; }
+      100% { letter-spacing: 0.02em; opacity: 1; }
+    }
+
+    .type-example.thinking {
+      animation: type-thinking 2s ease-in-out infinite;
+    }
+
+    @keyframes type-thinking {
+      0%, 100% { opacity: 0.6; }
+      50% { opacity: 0.9; }
+    }
+
+    .type-label {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--color-text-muted);
+      margin-bottom: 0.5rem;
+    }
+
+    .type-text {
+      font-size: 1.1rem;
+      line-height: 1.6;
+    }
+
+    /* =========================================
+       FOOTER
+       ========================================= */
+    .demo-footer {
+      text-align: center;
+      margin-top: 3rem;
+      padding-top: 2rem;
+      border-top: 1px solid var(--color-border-subtle);
+      color: var(--color-text-muted);
+      font-size: 0.9rem;
+    }
+
+    .demo-footer a {
+      color: var(--color-ferni);
+      text-decoration: none;
+    }
+
+    /* Reduce motion */
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <h1>Transcendent Animation Systems</h1>
+  <p class="subtitle">Experience what "Better than Human" motion feels like</p>
+
+  <!-- 1. Breath Sync -->
+  <section class="demo-section">
+    <h2>1. Breath Sync</h2>
+    <p>Everything pulses with life. 4-second inhale/exhale cycle creates a living, breathing interface.</p>
+    <div class="demo-area breath-demo">
+      <div class="breath-orb"></div>
+      <div class="breath-metrics">
+        <div class="breath-label">Inhale</div>
+        <div class="breath-bar"><div class="breath-bar-fill"></div></div>
+        <div class="breath-label" style="margin-top: 0.5rem;">Connection strength</div>
+        <div class="breath-bar"><div class="breath-bar-fill" style="animation-delay: 1s;"></div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2. Imperfection Engine -->
+  <section class="demo-section">
+    <h2>2. Imperfection Engine</h2>
+    <p>"Perfection is cold. Imperfection is human." - Subtle variations prevent uncanny valley motion.</p>
+    <div class="demo-area">
+      <div class="imperfection-grid">
+        <div class="imperfection-dot"></div>
+        <div class="imperfection-dot"></div>
+        <div class="imperfection-dot"></div>
+        <div class="imperfection-dot"></div>
+        <div class="imperfection-dot"></div>
+        <div class="imperfection-dot"></div>
+        <div class="imperfection-dot"></div>
+        <div class="imperfection-dot"></div>
+        <div class="imperfection-dot"></div>
+        <div class="imperfection-dot"></div>
+        <div class="imperfection-dot"></div>
+        <div class="imperfection-dot"></div>
+      </div>
+    </div>
+    <div class="vs-comparison">
+      <div class="comparison-box perfect">
+        <h4>Robotic (Perfect Sync)</h4>
+        <div class="perfect-dots">
+          <div class="dot"></div>
+          <div class="dot"></div>
+          <div class="dot"></div>
+          <div class="dot"></div>
+          <div class="dot"></div>
+        </div>
+      </div>
+      <div class="comparison-box organic">
+        <h4>Organic (With Imperfection)</h4>
+        <div class="organic-dots">
+          <div class="dot"></div>
+          <div class="dot"></div>
+          <div class="dot"></div>
+          <div class="dot"></div>
+          <div class="dot"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3. Button Micro-Interactions -->
+  <section class="demo-section">
+    <h2>3. Pixar Button Pop</h2>
+    <p>Press and release. Feel the anticipation squash and follow-through pop.</p>
+    <div class="demo-area button-demo">
+      <button class="demo-btn primary">Primary Action</button>
+      <button class="demo-btn secondary">Secondary</button>
+      <button class="demo-btn ghost">Ghost Button</button>
+    </div>
+  </section>
+
+  <!-- 4. Overlapping Action -->
+  <section class="demo-section">
+    <h2>4. Overlapping Action</h2>
+    <p>Elements enter with natural stagger - no two things move at exactly the same time.</p>
+    <div class="demo-area stagger-demo" id="stagger-container">
+      <div class="stagger-row">
+        <div class="stagger-card">1</div>
+        <div class="stagger-card">2</div>
+        <div class="stagger-card">3</div>
+        <div class="stagger-card">4</div>
+      </div>
+      <div class="stagger-row">
+        <div class="stagger-card">5</div>
+        <div class="stagger-card">6</div>
+        <div class="stagger-card">7</div>
+        <div class="stagger-card">8</div>
+      </div>
+    </div>
+    <button class="replay-btn" onclick="replayStagger()">Replay Animation</button>
+  </section>
+
+  <!-- 5. Emotional Color -->
+  <section class="demo-section">
+    <h2>5. Emotional Color Temperature</h2>
+    <p>Colors shift based on emotional context. Click to feel each state.</p>
+    <div class="demo-area emotional-demo">
+      <div class="emotion-card calm" onclick="showEmotion('calm')">
+        <div class="emoji">🌿</div>
+        <div class="label">Calm</div>
+      </div>
+      <div class="emotion-card warm" onclick="showEmotion('warm')">
+        <div class="emoji">☀️</div>
+        <div class="label">Warm</div>
+      </div>
+      <div class="emotion-card concern" onclick="showEmotion('concern')">
+        <div class="emoji">🫂</div>
+        <div class="label">Concern</div>
+      </div>
+      <div class="emotion-card joy" onclick="showEmotion('joy')">
+        <div class="emoji">✨</div>
+        <div class="label">Joy</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6. Energy Wave Visualization -->
+  <section class="demo-section">
+    <h2>6. Energy Wave Visualization</h2>
+    <p>Your energy patterns across the day. Flowing waves show natural rhythms.</p>
+    <div class="energy-wave-container">
+      <svg class="energy-wave" viewBox="0 0 1200 200" preserveAspectRatio="none">
+        <defs>
+          <linearGradient id="wave-gradient" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" style="stop-color: var(--color-ferni); stop-opacity: 0.4" />
+            <stop offset="100%" style="stop-color: var(--color-ferni); stop-opacity: 0.05" />
+          </linearGradient>
+        </defs>
+        <!-- Wave fills -->
+        <path class="wave-fill" d="M0,100 Q150,60 300,100 T600,100 T900,100 T1200,100 L1200,200 L0,200 Z" />
+        <!-- Wave lines -->
+        <path class="wave-path wave-1" d="M0,100 Q150,40 300,100 T600,100 T900,100 T1200,100" />
+        <path class="wave-path wave-2" d="M0,120 Q150,80 300,120 T600,120 T900,120 T1200,120" />
+        <path class="wave-path wave-3" d="M0,140 Q150,110 300,140 T600,140 T900,140 T1200,140" />
+      </svg>
+      <div class="energy-now">
+        <div class="value">78%</div>
+        <div class="label">Current Energy</div>
+      </div>
+      <div class="time-markers">
+        <span>6am</span>
+        <span>9am</span>
+        <span>12pm</span>
+        <span>3pm</span>
+        <span>6pm</span>
+        <span>9pm</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7. Social Battery -->
+  <section class="demo-section">
+    <h2>7. Social Battery Gauge</h2>
+    <p>Track your social energy. Know when to recharge before you're depleted.</p>
+    <div class="demo-area battery-container">
+      <div class="battery-visual">
+        <div class="battery-tip"></div>
+        <div class="battery-body">
+          <div class="battery-fill" id="battery-fill"></div>
+        </div>
+      </div>
+      <div class="battery-info">
+        <div class="battery-percentage" id="battery-pct">65%</div>
+        <div class="battery-status">Comfortable capacity</div>
+        <div class="battery-triggers">
+          <span class="trigger-tag drain">Team meeting -15%</span>
+          <span class="trigger-tag drain">Calls -10%</span>
+          <span class="trigger-tag recharge">Solo lunch +8%</span>
+          <span class="trigger-tag recharge">Walk +12%</span>
+        </div>
+      </div>
+    </div>
+    <div style="margin-top: 1rem; display: flex; gap: 0.5rem;">
+      <button class="replay-btn" onclick="drainBattery()">Simulate Drain</button>
+      <button class="replay-btn" onclick="rechargeBattery()">Recharge</button>
+    </div>
+  </section>
+
+  <!-- 8. Voice Typography -->
+  <section class="demo-section">
+    <h2>8. Voice Typography</h2>
+    <p>Text that responds to speaking state. Subtle shifts show who's talking.</p>
+    <div class="demo-area typography-demo">
+      <div class="type-example speaking">
+        <div class="type-label">Agent Speaking</div>
+        <div class="type-text">I've noticed you've been really focused on your goals lately. That takes real commitment.</div>
+      </div>
+      <div class="type-example thinking">
+        <div class="type-label">Agent Thinking</div>
+        <div class="type-text">Processing your request...</div>
+      </div>
+      <div class="type-example">
+        <div class="type-label">Neutral / User Turn</div>
+        <div class="type-text">Your voice, your story, your journey forward.</div>
+      </div>
+    </div>
+  </section>
+
+  <footer class="demo-footer">
+    <p>Transcendent Animation Systems &mdash; Making AI feel genuinely human</p>
+    <p><a href="/">Back to Ferni</a></p>
+  </footer>
+
+  <script>
+    // Replay stagger animation
+    function replayStagger() {
+      const container = document.getElementById('stagger-container');
+      const cards = container.querySelectorAll('.stagger-card');
+
+      cards.forEach(card => {
+        card.style.animation = 'none';
+        card.offsetHeight; // Trigger reflow
+        card.style.animation = '';
+      });
+    }
+
+    // Show emotion feedback
+    function showEmotion(emotion) {
+      // Could update body background, show toast, etc.
+      console.log('Emotion selected:', emotion);
+    }
+
+    // Battery simulation
+    let batteryLevel = 65;
+
+    function updateBattery() {
+      document.getElementById('battery-fill').style.height = batteryLevel + '%';
+      document.getElementById('battery-pct').textContent = batteryLevel + '%';
+    }
+
+    function drainBattery() {
+      batteryLevel = Math.max(10, batteryLevel - 15);
+      updateBattery();
+    }
+
+    function rechargeBattery() {
+      batteryLevel = Math.min(100, batteryLevel + 20);
+      updateBattery();
+    }
+  </script>
+</body>
+</html>

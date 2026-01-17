@@ -30,11 +30,12 @@ const { mockEngagementStore, mockConversationHistory, mockLogger } = vi.hoisted(
   },
 }));
 
-vi.mock('../services/engagement-store.js', () => ({
+// Mock the correct paths as used in the actual handler
+vi.mock('../services/engagement/engagement-store.js', () => ({
   getEngagementStore: vi.fn(() => Promise.resolve(mockEngagementStore)),
 }));
 
-vi.mock('../services/conversation-history.js', () => ({
+vi.mock('../services/stores/conversation-history.js', () => ({
   getConversationHistoryService: vi.fn(() => mockConversationHistory),
 }));
 

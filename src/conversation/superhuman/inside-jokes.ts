@@ -9,6 +9,7 @@
  * @module conversation/superhuman/inside-jokes
  */
 
+import { seededChance, seededPick, seededIndex } from '../utils/rng.js';
 import { createLogger } from '../../utils/safe-logger.js';
 
 const log = createLogger({ module: 'InsideJokes' });
@@ -136,7 +137,7 @@ export function detectJokeMoment(
   }
 
   const joke: InsideJoke = {
-    id: `joke_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+    id: `joke_${Date.now()}_${Date.now().toString(36).slice(-6)}`,
     userId,
     originalContext: message.slice(0, 300),
     funnyPart: funnyPart.trim(),
@@ -309,7 +310,7 @@ function generateJokeIntro(joke: InsideJoke): string {
     `Wasn't it you who ${timeRef} called it`,
   ];
 
-  return intros[Math.floor(Math.random() * intros.length)];
+  return seededPick(`${Date.now()}:313`, intros) ?? intros[0];
 }
 
 /**
@@ -322,7 +323,7 @@ function generateNaturalUsage(joke: InsideJoke): string {
       `your "${joke.shorthand}"`,
       `what you called the "${joke.shorthand}"`,
     ];
-    return usages[Math.floor(Math.random() * usages.length)];
+    return seededPick(`${Date.now()}:326`, usages) ?? usages[0];
   }
 
   return `"${joke.funnyPart.slice(0, 50)}${joke.funnyPart.length > 50 ? '...' : ''}"`;

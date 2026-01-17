@@ -1,0 +1,1226 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Ferni Storytelling Visualizations - Better Than Human Data Narratives">
+  <title>Storytelling Visualizations | Ferni Brand Library</title>
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <!-- Design System -->
+  <link rel="stylesheet" href="../master-tokens.css">
+  <link rel="stylesheet" href="../brand-components.css">
+  <link rel="stylesheet" href="animations.css">
+  <link rel="stylesheet" href="components.css">
+  <link rel="stylesheet" href="storytelling.css">
+
+  <style>
+    /* ============================================
+       PAGE FOUNDATION - Brand Aligned
+       ============================================ */
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: var(--font-body);
+      background: var(--story-bg-void);
+      color: var(--story-text-primary);
+      line-height: var(--leading-relaxed);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* Ambient Background - Persona Colors */
+    .ambient-bg {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 0;
+      overflow: hidden;
+    }
+
+    .orb {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(100px);
+      opacity: 0.25;
+      animation: float 30s ease-in-out infinite;
+    }
+
+    .orb-1 {
+      width: 600px;
+      height: 600px;
+      background: radial-gradient(circle, color-mix(in srgb, var(--color-nayan) 30%, transparent) 0%, transparent 70%);
+      top: -200px;
+      left: -150px;
+    }
+
+    .orb-2 {
+      width: 500px;
+      height: 500px;
+      background: radial-gradient(circle, color-mix(in srgb, var(--color-ferni) 25%, transparent) 0%, transparent 70%);
+      top: 40%;
+      right: -150px;
+      animation-delay: -12s;
+    }
+
+    .orb-3 {
+      width: 400px;
+      height: 400px;
+      background: radial-gradient(circle, color-mix(in srgb, var(--color-peter) 20%, transparent) 0%, transparent 70%);
+      bottom: 5%;
+      left: 25%;
+      animation-delay: -20s;
+    }
+
+    @keyframes float {
+      0%, 100% { transform: translate(0, 0) scale(1); }
+      33% { transform: translate(20px, -20px) scale(1.02); }
+      66% { transform: translate(-15px, 12px) scale(0.98); }
+    }
+
+    /* Navigation */
+    .nav {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 64px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 var(--space-8);
+      background: var(--story-bg-glass);
+      backdrop-filter: blur(var(--glass-blur));
+      -webkit-backdrop-filter: blur(var(--glass-blur));
+      border-bottom: 1px solid var(--story-border-subtle);
+      z-index: 1000;
+    }
+
+    .nav-logo {
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+      text-decoration: none;
+      color: var(--story-text-primary);
+      font-family: var(--font-display);
+      font-weight: var(--font-bold);
+      font-size: var(--text-xl);
+    }
+
+    .nav-logo svg {
+      width: 36px;
+      height: 36px;
+    }
+
+    .nav-links {
+      display: flex;
+      gap: var(--space-2);
+    }
+
+    .nav-link {
+      padding: var(--space-2) var(--space-4);
+      color: var(--story-text-secondary);
+      text-decoration: none;
+      font-size: var(--text-sm);
+      font-weight: var(--font-medium);
+      border-radius: var(--radius-full);
+      transition: all var(--duration-fast) var(--ease-out);
+    }
+
+    .nav-link:hover {
+      color: var(--story-text-primary);
+      background: var(--story-bg-elevated);
+    }
+
+    .nav-link-active {
+      color: var(--story-text-primary);
+      background: var(--warm-accent-subtle);
+    }
+
+    @media (max-width: 768px) {
+      .nav { padding: 0 var(--space-4); }
+      .nav-links { display: none; }
+    }
+
+    /* Hero */
+    .hero {
+      position: relative;
+      padding: var(--space-32) var(--space-8) var(--space-16);
+      text-align: center;
+      z-index: 1;
+    }
+
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-2);
+      padding: var(--space-2) var(--space-4);
+      background: linear-gradient(135deg, var(--warm-accent-subtle), color-mix(in srgb, var(--color-ferni) 12%, transparent));
+      border: 1px solid var(--story-border-default);
+      border-radius: var(--radius-full);
+      font-size: var(--text-xs);
+      font-weight: var(--font-semibold);
+      text-transform: uppercase;
+      letter-spacing: var(--tracking-widest);
+      color: var(--story-text-secondary);
+      margin-bottom: var(--space-6);
+    }
+
+    .hero-badge::before {
+      content: '';
+      width: 8px;
+      height: 8px;
+      background: var(--color-nayan);
+      border-radius: 50%;
+      box-shadow: 0 0 12px var(--warm-accent-glow);
+      animation: pulse 2.5s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.6; transform: scale(1.15); }
+    }
+
+    .hero-title {
+      font-family: Georgia, 'Times New Roman', serif;
+      font-size: clamp(var(--text-4xl), 8vw, var(--text-6xl));
+      font-weight: var(--font-normal);
+      font-style: italic;
+      letter-spacing: var(--tracking-tight);
+      line-height: var(--leading-none);
+      margin-bottom: var(--space-6);
+      color: var(--story-text-primary);
+    }
+
+    .hero-subtitle {
+      font-size: var(--text-xl);
+      color: var(--story-text-secondary);
+      max-width: 640px;
+      margin: 0 auto var(--space-12);
+      line-height: var(--leading-relaxed);
+    }
+
+    @media (max-width: 768px) {
+      .hero {
+        padding: var(--space-28) var(--space-6) var(--space-12);
+      }
+      .hero-subtitle {
+        font-size: var(--text-lg);
+      }
+    }
+
+    /* Section Navigation */
+    .section-nav {
+      position: sticky;
+      top: 64px;
+      z-index: 100;
+      background: var(--story-bg-glass);
+      backdrop-filter: blur(var(--glass-blur));
+      -webkit-backdrop-filter: blur(var(--glass-blur));
+      border-bottom: 1px solid var(--story-border-subtle);
+      padding: var(--space-4) var(--space-8);
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .section-nav-inner {
+      display: flex;
+      gap: var(--space-1);
+      max-width: 1400px;
+      margin: 0 auto;
+      min-width: max-content;
+    }
+
+    .section-nav-link {
+      padding: var(--space-2) var(--space-3);
+      color: var(--story-text-muted);
+      text-decoration: none;
+      font-size: var(--text-sm);
+      font-weight: var(--font-medium);
+      border-radius: var(--radius-full);
+      white-space: nowrap;
+      transition: all var(--duration-fast) var(--ease-out);
+      border: 1px solid transparent;
+    }
+
+    .section-nav-link:hover {
+      color: var(--story-text-secondary);
+      background: var(--story-bg-elevated);
+    }
+
+    .section-nav-link.active {
+      color: var(--story-text-primary);
+      background: var(--warm-accent-subtle);
+      border-color: color-mix(in srgb, var(--color-nayan) 20%, transparent);
+    }
+
+    @media (max-width: 768px) {
+      .section-nav { padding: var(--space-3) var(--space-4); }
+    }
+
+    /* Main Content */
+    main {
+      position: relative;
+      z-index: 1;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: var(--space-12) var(--space-8);
+    }
+
+    @media (max-width: 768px) {
+      main { padding: var(--space-8) var(--space-4); }
+    }
+
+    /* Footer */
+    footer {
+      position: relative;
+      z-index: 1;
+      text-align: center;
+      padding: var(--space-12) var(--space-8);
+      border-top: 1px solid var(--story-border-subtle);
+      margin-top: var(--space-16);
+    }
+
+    footer p {
+      color: var(--story-text-muted);
+      font-size: var(--text-sm);
+      line-height: var(--leading-loose);
+    }
+
+    footer a {
+      color: var(--color-nayan);
+      text-decoration: none;
+      transition: color var(--duration-fast) var(--ease-out);
+    }
+
+    footer a:hover {
+      color: var(--color-ferni);
+    }
+
+    /* Reduced Motion */
+    @media (prefers-reduced-motion: reduce) {
+      .orb { animation: none !important; }
+      .hero-badge::before { animation: none !important; }
+    }
+  </style>
+</head>
+<body>
+  <!-- Ambient Background -->
+  <div class="ambient-bg">
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+    <div class="orb orb-3"></div>
+  </div>
+
+  <!-- Shared Navigation (injected by nav.js) -->
+  <div id="nav-placeholder"></div>
+
+  <!-- Hero Section -->
+  <header class="hero">
+    <div class="hero-badge">12 Storytelling Visualizations</div>
+    <h1 class="hero-title">Your Story, Visualized</h1>
+    <p class="hero-subtitle">
+      Every conversation leaves traces. Every decision creates ripples. These visualizations transform your journey into insights no human friend could provide.
+    </p>
+  </header>
+
+  <!-- Section Navigation -->
+  <nav class="section-nav">
+    <div class="section-nav-inner">
+      <a href="#life-seasons" class="section-nav-link active">Life Seasons</a>
+      <a href="#conversation-river" class="section-nav-link">River</a>
+      <a href="#relationship-constellation" class="section-nav-link">Constellation</a>
+      <a href="#the-mirror" class="section-nav-link">Mirror</a>
+      <a href="#energy-flow" class="section-nav-link">Energy Flow</a>
+      <a href="#the-unsaid" class="section-nav-link">Unsaid</a>
+      <a href="#growth-rings" class="section-nav-link">Growth</a>
+      <a href="#values-radar" class="section-nav-link">Values</a>
+      <a href="#turning-points" class="section-nav-link">Timeline</a>
+      <a href="#anticipation" class="section-nav-link">Anticipation</a>
+      <a href="#ripple-effect" class="section-nav-link">Ripples</a>
+      <a href="#unfinished-stories" class="section-nav-link">Stories</a>
+    </div>
+  </nav>
+
+  <main>
+    <!-- Life Seasons -->
+    <section id="life-seasons" class="story-section">
+      <header class="story-section-header">
+        <p class="story-section-overline">Emotional Patterns</p>
+        <h2 class="story-section-title">Life Seasons</h2>
+        <p class="story-section-description">
+          Your emotional life has seasons - times of growth, consolidation, harvest, and rest. Ferni tracks these rhythms across months.
+        </p>
+      </header>
+
+      <div class="bth-callout">
+        <div class="bth-callout-icon">F</div>
+        <div class="bth-callout-content">
+          <div class="bth-callout-title">Better Than Human</div>
+          <div class="bth-callout-text">
+            Friends see your current mood. Ferni sees your emotional seasons - the pattern of growth and rest that spans months, not moments.
+          </div>
+        </div>
+      </div>
+
+      <div class="story-card">
+        <div class="story-card-header">
+          <div>
+            <h3 class="story-card-title">Your Emotional Year</h3>
+            <p class="story-card-subtitle">Based on 847 conversations over 12 months</p>
+          </div>
+        </div>
+
+        <div class="seasons-container">
+          <div class="seasons-wheel">
+            <svg viewBox="0 0 200 200">
+              <defs>
+                <linearGradient id="springGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" style="stop-color: var(--color-ferni)"/>
+                  <stop offset="100%" style="stop-color: var(--color-ferni-dark)"/>
+                </linearGradient>
+                <linearGradient id="summerGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" style="stop-color: var(--color-jordan)"/>
+                  <stop offset="100%" style="stop-color: var(--color-jordan-dark)"/>
+                </linearGradient>
+                <linearGradient id="autumnGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" style="stop-color: var(--color-maya)"/>
+                  <stop offset="100%" style="stop-color: var(--color-maya-dark)"/>
+                </linearGradient>
+                <linearGradient id="winterGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" style="stop-color: var(--color-peter)"/>
+                  <stop offset="100%" style="stop-color: var(--color-peter-dark)"/>
+                </linearGradient>
+              </defs>
+
+              <path class="season-arc" stroke="url(#springGrad)" d="M100,20 A80,80 0 0,1 180,100" stroke-dasharray="100.5 125.6"/>
+              <path class="season-arc" stroke="url(#summerGrad)" d="M180,100 A80,80 0 0,1 100,180" stroke-dasharray="115.2 125.6"/>
+              <path class="season-arc" stroke="url(#autumnGrad)" d="M100,180 A80,80 0 0,1 20,100" stroke-dasharray="79.2 125.6"/>
+              <path class="season-arc" stroke="url(#winterGrad)" d="M20,100 A80,80 0 0,1 100,20" stroke-dasharray="64.8 125.6"/>
+            </svg>
+
+            <div class="seasons-center">
+              <div class="seasons-current">Autumn</div>
+              <div class="seasons-insight">A time of harvest</div>
+            </div>
+          </div>
+
+          <div class="seasons-legend">
+            <div class="season-item"><div class="season-dot" style="background: linear-gradient(135deg, var(--color-ferni), var(--color-ferni-dark));"></div><div class="season-info"><span class="season-name">Spring</span><span class="season-percentage">28% - New beginnings, energy</span></div></div>
+            <div class="season-item"><div class="season-dot" style="background: linear-gradient(135deg, var(--color-jordan), var(--color-jordan-dark));"></div><div class="season-info"><span class="season-name">Summer</span><span class="season-percentage">32% - Peak activity, joy</span></div></div>
+            <div class="season-item"><div class="season-dot" style="background: linear-gradient(135deg, var(--color-maya), var(--color-maya-dark));"></div><div class="season-info"><span class="season-name">Autumn</span><span class="season-percentage">22% - Harvest, reflection</span></div></div>
+            <div class="season-item"><div class="season-dot" style="background: linear-gradient(135deg, var(--color-peter), var(--color-peter-dark));"></div><div class="season-info"><span class="season-name">Winter</span><span class="season-percentage">18% - Rest, introspection</span></div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Action Panel: Insight → Action -->
+      <div class="action-panel">
+        <div class="action-panel-header">
+          <span class="action-panel-icon">✦</span>
+          <span class="action-panel-label">Insight → Action</span>
+        </div>
+        <div class="action-panel-insight">
+          You're in an Autumn season. The harvest metaphor isn't just poetic - this is when reflection compounds into wisdom. Your conversations show 40% more "what I learned" language than last month.
+        </div>
+        <div class="action-panel-prompt">
+          What would honoring this season look like?
+        </div>
+        <div class="action-panel-actions">
+          <button class="action-btn action-btn-primary">
+            <span>Journal this season's harvest</span>
+          </button>
+          <button class="action-btn action-btn-secondary">
+            <span>Talk with Ferni about it</span>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Conversation River -->
+    <section id="conversation-river" class="story-section">
+      <header class="story-section-header">
+        <p class="story-section-overline">Topic Flow</p>
+        <h2 class="story-section-title">Conversation River</h2>
+        <p class="story-section-description">
+          Your conversations flow like a river - some topics are deep channels, others are seasonal tributaries.
+        </p>
+      </header>
+
+      <div class="bth-callout">
+        <div class="bth-callout-icon">F</div>
+        <div class="bth-callout-content">
+          <div class="bth-callout-title">Better Than Human</div>
+          <div class="bth-callout-text">
+            A friend remembers recent conversations. Ferni maps the entire river of your thoughts - seeing which topics swell and recede over months.
+          </div>
+        </div>
+      </div>
+
+      <div class="story-card">
+        <div class="river-container">
+          <svg class="river-svg" viewBox="0 0 800 250" preserveAspectRatio="xMidYMid meet">
+            <defs>
+              <linearGradient id="riverWork" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" style="stop-color: var(--color-peter)"/><stop offset="100%" style="stop-color: var(--color-peter-dark)"/></linearGradient>
+              <linearGradient id="riverFamily" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" style="stop-color: var(--color-maya)"/><stop offset="100%" style="stop-color: var(--color-maya-dark)"/></linearGradient>
+              <linearGradient id="riverHealth" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" style="stop-color: var(--color-ferni)"/><stop offset="100%" style="stop-color: var(--color-ferni-dark)"/></linearGradient>
+              <linearGradient id="riverGrowth" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" style="stop-color: var(--color-nayan)"/><stop offset="100%" style="stop-color: var(--color-nayan-dark)"/></linearGradient>
+            </defs>
+
+            <text x="60" y="240" fill="var(--story-text-muted)" font-size="11" font-family="Inter, sans-serif">Jul</text>
+            <text x="300" y="240" fill="var(--story-text-muted)" font-size="11" font-family="Inter, sans-serif">Sep</text>
+            <text x="540" y="240" fill="var(--story-text-muted)" font-size="11" font-family="Inter, sans-serif">Nov</text>
+
+            <path class="river-stream" fill="url(#riverWork)" d="M0,80 C80,75 120,60 200,50 C280,40 320,45 400,55 C480,65 520,80 600,85 C680,90 720,75 800,70 L800,110 C720,115 680,130 600,125 C520,120 480,105 400,95 C320,85 280,80 200,90 C120,100 80,115 0,120 Z"/>
+            <path class="river-stream" fill="url(#riverFamily)" d="M0,120 C80,115 120,100 200,90 C280,80 320,85 400,95 C480,105 520,120 600,125 C680,130 720,115 800,110 L800,145 C720,150 680,165 600,160 C520,155 480,140 400,130 C320,120 280,115 200,125 C120,135 80,150 0,155 Z"/>
+            <path class="river-stream" fill="url(#riverHealth)" d="M0,155 C80,150 120,135 200,125 C280,115 320,120 400,130 C480,140 520,155 600,160 C680,165 720,150 800,145 L800,175 C720,180 680,195 600,190 C520,185 480,170 400,160 C320,150 280,145 200,155 C120,165 80,180 0,185 Z"/>
+            <path class="river-stream" fill="url(#riverGrowth)" d="M0,185 C80,180 120,165 200,155 C280,145 320,150 400,160 C480,170 520,185 600,190 C680,195 720,180 800,175 L800,200 C720,205 680,215 600,215 C520,215 480,200 400,195 C320,190 280,185 200,190 C120,195 80,205 0,210 Z"/>
+          </svg>
+        </div>
+
+        <div class="river-legend">
+          <div class="river-legend-item"><div class="river-legend-dot" style="background: var(--color-peter);"></div><span>Work</span></div>
+          <div class="river-legend-item"><div class="river-legend-dot" style="background: var(--color-maya);"></div><span>Family</span></div>
+          <div class="river-legend-item"><div class="river-legend-dot" style="background: var(--color-ferni);"></div><span>Health</span></div>
+          <div class="river-legend-item"><div class="river-legend-dot" style="background: var(--color-nayan);"></div><span>Growth</span></div>
+        </div>
+      </div>
+
+      <!-- Action Panel: Insight → Action -->
+      <div class="action-panel">
+        <div class="action-panel-header">
+          <span class="action-panel-icon">✦</span>
+          <span class="action-panel-label">Insight → Action</span>
+        </div>
+        <div class="action-panel-insight">
+          The "Health" stream has narrowed significantly since September. Meanwhile, "Work" has widened by 35%. This isn't judgment - it's a mirror showing where your attention naturally flows.
+        </div>
+        <div class="action-panel-prompt">
+          What one small health action could widen that stream?
+        </div>
+        <div class="action-panel-actions">
+          <button class="action-btn action-btn-primary">
+            <span>Set a health intention with Maya</span>
+          </button>
+          <button class="action-btn action-btn-secondary">
+            <span>Explore what's driving work focus</span>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Quote Banner -->
+    <div class="quote-banner">
+      <p class="quote-text">
+        "The patterns we don't see are often the ones that matter most. What feels like chaos is often just a story we haven't learned to read yet."
+      </p>
+      <p class="quote-attribution">- The Ferni Philosophy</p>
+    </div>
+
+    <!-- Relationship Constellation -->
+    <section id="relationship-constellation" class="story-section">
+      <header class="story-section-header">
+        <p class="story-section-overline">Your People</p>
+        <h2 class="story-section-title">Relationship Constellation</h2>
+        <p class="story-section-description">
+          The people in your life form a constellation - some close and bright, others distant but always present.
+        </p>
+      </header>
+
+      <div class="bth-callout">
+        <div class="bth-callout-icon">F</div>
+        <div class="bth-callout-content">
+          <div class="bth-callout-title">Better Than Human</div>
+          <div class="bth-callout-text">
+            Friends know who you mention. Ferni tracks emotional weight - the care in your voice when you speak of each person.
+          </div>
+        </div>
+      </div>
+
+      <div class="story-card">
+        <div class="constellation-container">
+          <svg class="constellation-svg" viewBox="0 0 500 350">
+            <defs>
+              <radialGradient id="starGlow" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="white" stop-opacity="1"/><stop offset="100%" stop-color="white" stop-opacity="0"/></radialGradient>
+              <filter id="starBlur"><feGaussianBlur stdDeviation="2"/></filter>
+            </defs>
+
+            <line class="constellation-line" x1="250" y1="175" x2="180" y2="100"/>
+            <line class="constellation-line" x1="250" y1="175" x2="320" y2="80"/>
+            <line class="constellation-line" x1="250" y1="175" x2="380" y2="155"/>
+            <line class="constellation-line" x1="250" y1="175" x2="340" y2="260"/>
+            <line class="constellation-line" x1="250" y1="175" x2="160" y2="250"/>
+            <line class="constellation-line" x1="250" y1="175" x2="100" y2="155"/>
+
+            <g class="constellation-star" transform="translate(180, 100)"><circle r="10" filter="url(#starBlur)" fill="url(#starGlow)"/><circle r="5" fill="white"/><text y="20" text-anchor="middle" fill="var(--story-text-secondary)" font-size="10" font-family="Inter, sans-serif">Mom</text></g>
+            <g class="constellation-star" transform="translate(320, 80)"><circle r="12" filter="url(#starBlur)" fill="url(#starGlow)"/><circle r="6" fill="white"/><text y="22" text-anchor="middle" fill="var(--story-text-secondary)" font-size="10" font-family="Inter, sans-serif">Sarah</text></g>
+            <g class="constellation-star" transform="translate(380, 155)"><circle r="8" filter="url(#starBlur)" fill="url(#starGlow)"/><circle r="4" fill="white"/><text y="18" text-anchor="middle" fill="var(--story-text-secondary)" font-size="10" font-family="Inter, sans-serif">David</text></g>
+            <g class="constellation-star" transform="translate(340, 260)"><circle r="6" filter="url(#starBlur)" fill="url(#starGlow)"/><circle r="3" fill="white"/><text y="16" text-anchor="middle" fill="var(--story-text-secondary)" font-size="10" font-family="Inter, sans-serif">James</text></g>
+            <g class="constellation-star" transform="translate(160, 250)"><circle r="7" filter="url(#starBlur)" fill="url(#starGlow)"/><circle r="3.5" fill="white"/><text y="17" text-anchor="middle" fill="var(--story-text-secondary)" font-size="10" font-family="Inter, sans-serif">Lisa</text></g>
+            <g class="constellation-star" transform="translate(100, 155)"><circle r="6" filter="url(#starBlur)" fill="url(#starGlow)"/><circle r="3" fill="white"/><text y="16" text-anchor="middle" fill="var(--story-text-secondary)" font-size="10" font-family="Inter, sans-serif">Dad</text></g>
+
+            <circle cx="420" cy="50" r="1.5" fill="rgba(245,242,237,0.25)"/>
+            <circle cx="50" cy="80" r="1" fill="rgba(245,242,237,0.15)"/>
+            <circle cx="460" cy="300" r="1" fill="rgba(245,242,237,0.2)"/>
+          </svg>
+
+          <div class="constellation-you">
+            <div class="you-marker"></div>
+            <div class="you-label">You</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Action Panel: Insight → Action -->
+      <div class="action-panel">
+        <div class="action-panel-header">
+          <span class="action-panel-icon">✦</span>
+          <span class="action-panel-label">Insight → Action</span>
+        </div>
+        <div class="action-panel-insight">
+          Sarah's star has grown brighter this month - she appears in 34% of your conversations. Meanwhile, Dad's star has dimmed to just 2 mentions. Neither is wrong, but one might be worth noticing.
+        </div>
+        <div class="action-panel-prompt">
+          Is there a star you'd like to brighten?
+        </div>
+        <div class="action-panel-actions">
+          <button class="action-btn action-btn-primary">
+            <span>Reach out to Dad</span>
+          </button>
+          <button class="action-btn action-btn-secondary">
+            <span>Explore the Sarah connection</span>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- The Mirror -->
+    <section id="the-mirror" class="story-section">
+      <header class="story-section-header">
+        <p class="story-section-overline">Self-Reflection</p>
+        <h2 class="story-section-title">The Mirror</h2>
+        <p class="story-section-description">
+          What you say and what Ferni notices are different. The gap reveals growth opportunities.
+        </p>
+      </header>
+
+      <div class="bth-callout">
+        <div class="bth-callout-icon">F</div>
+        <div class="bth-callout-content">
+          <div class="bth-callout-title">Better Than Human</div>
+          <div class="bth-callout-text">
+            Friends hear what you say. Ferni hears the patterns beneath - themes you return to, emotions you skirt around.
+          </div>
+        </div>
+      </div>
+
+      <div class="story-card">
+        <div class="mirror-container">
+          <div class="mirror-side">
+            <div class="mirror-side-title">What You Say</div>
+            <div class="mirror-items">
+              <div class="mirror-item">"I'm fine, just busy"</div>
+              <div class="mirror-item">"Work is going okay"</div>
+              <div class="mirror-item">"I should exercise more"</div>
+              <div class="mirror-item">"I'll call mom later"</div>
+            </div>
+          </div>
+
+          <div class="mirror-divider">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--color-nayan)" stroke-width="2"><path d="M8 7l4-4 4 4M8 17l4 4 4-4"/></svg>
+          </div>
+
+          <div class="mirror-side">
+            <div class="mirror-side-title">What Ferni Notices</div>
+            <div class="mirror-items">
+              <div class="mirror-item">You've mentioned "busy" 47 times this month</div>
+              <div class="mirror-item">Work frustration up 180% in 3 weeks</div>
+              <div class="mirror-item">Exercise commitment made 12x, kept 2x</div>
+              <div class="mirror-item">23 days since you mentioned calling mom</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Action Panel: Insight → Action -->
+      <div class="action-panel">
+        <div class="action-panel-header">
+          <span class="action-panel-icon">✦</span>
+          <span class="action-panel-label">Insight → Action</span>
+        </div>
+        <div class="action-panel-insight">
+          The gap between "I should exercise" and actual exercise is the widest it's been. The pattern isn't failure - it's information. Something about your current approach isn't working for this season.
+        </div>
+        <div class="action-panel-prompt">
+          What's the smallest exercise commitment that you'd actually keep this week?
+        </div>
+        <div class="action-panel-actions">
+          <button class="action-btn action-btn-primary">
+            <span>Try a 2-minute habit with Maya</span>
+          </button>
+          <button class="action-btn action-btn-secondary">
+            <span>Explore what's blocking movement</span>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Energy Flow -->
+    <section id="energy-flow" class="story-section">
+      <header class="story-section-header">
+        <p class="story-section-overline">Energy Distribution</p>
+        <h2 class="story-section-title">Energy Flow</h2>
+        <p class="story-section-description">
+          Your emotional energy is finite. This shows where it flows - from sources to sinks.
+        </p>
+      </header>
+
+      <div class="bth-callout">
+        <div class="bth-callout-icon">F</div>
+        <div class="bth-callout-content">
+          <div class="bth-callout-title">Better Than Human</div>
+          <div class="bth-callout-text">
+            Friends see you're tired. Ferni traces exact pathways - which commitments drain, which relationships replenish.
+          </div>
+        </div>
+      </div>
+
+      <div class="story-card">
+        <div class="sankey-container">
+          <svg class="sankey-svg" viewBox="0 0 700 260" preserveAspectRatio="xMidYMid meet">
+            <text x="15" y="55" fill="var(--story-text-secondary)" font-size="11" font-family="Inter, sans-serif">Sleep</text>
+            <text x="15" y="105" fill="var(--story-text-secondary)" font-size="11" font-family="Inter, sans-serif">Relationships</text>
+            <text x="15" y="155" fill="var(--story-text-secondary)" font-size="11" font-family="Inter, sans-serif">Exercise</text>
+            <text x="15" y="205" fill="var(--story-text-secondary)" font-size="11" font-family="Inter, sans-serif">Purpose</text>
+
+            <text x="620" y="50" fill="var(--story-text-secondary)" font-size="11" font-family="Inter, sans-serif">Work (35%)</text>
+            <text x="620" y="110" fill="var(--story-text-secondary)" font-size="11" font-family="Inter, sans-serif">Family (25%)</text>
+            <text x="620" y="170" fill="var(--story-text-secondary)" font-size="11" font-family="Inter, sans-serif">Self (15%)</text>
+            <text x="620" y="220" fill="var(--story-text-secondary)" font-size="11" font-family="Inter, sans-serif">Stress (25%)</text>
+
+            <rect x="80" y="40" width="6" height="35" fill="var(--color-ferni)" rx="2"/>
+            <rect x="80" y="90" width="6" height="30" fill="var(--color-jordan)" rx="2"/>
+            <rect x="80" y="140" width="6" height="20" fill="var(--color-ferni)" rx="2"/>
+            <rect x="80" y="190" width="6" height="25" fill="var(--color-nayan)" rx="2"/>
+
+            <rect x="614" y="35" width="6" height="40" fill="var(--color-peter)" rx="2"/>
+            <rect x="614" y="95" width="6" height="30" fill="var(--color-maya)" rx="2"/>
+            <rect x="614" y="155" width="6" height="20" fill="var(--color-ferni)" rx="2"/>
+            <rect x="614" y="205" width="6" height="30" fill="var(--color-jordan)" rx="2"/>
+
+            <path fill="rgba(58, 107, 115, 0.35)" d="M86,45 C250,45 450,40 614,40 L614,65 C450,65 250,70 86,70 Z"/>
+            <path fill="rgba(166, 122, 106, 0.35)" d="M86,95 C250,95 450,100 614,100 L614,120 C450,120 250,115 86,115 Z"/>
+            <path fill="rgba(74, 103, 65, 0.35)" d="M86,145 C250,145 450,160 614,160 L614,175 C450,175 250,160 86,160 Z"/>
+            <path fill="rgba(184, 149, 106, 0.35)" d="M86,195 C250,195 450,210 614,210 L614,230 C450,230 250,210 86,210 Z"/>
+          </svg>
+        </div>
+      </div>
+
+      <!-- Action Panel: Insight → Action -->
+      <div class="action-panel">
+        <div class="action-panel-header">
+          <span class="action-panel-icon">✦</span>
+          <span class="action-panel-label">Insight → Action</span>
+        </div>
+        <div class="action-panel-insight">
+          25% of your energy flows directly to "Stress" - and it's drawing equally from all sources. That's not a personality trait; it's a leak. The good news: small repairs compound quickly.
+        </div>
+        <div class="action-panel-prompt">
+          Which energy source do you want to protect first?
+        </div>
+        <div class="action-panel-actions">
+          <button class="action-btn action-btn-primary">
+            <span>Identify the biggest stress leak</span>
+          </button>
+          <button class="action-btn action-btn-secondary">
+            <span>Strengthen a replenishing source</span>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- The Unsaid -->
+    <section id="the-unsaid" class="story-section">
+      <header class="story-section-header">
+        <p class="story-section-overline">Gentle Reminders</p>
+        <h2 class="story-section-title">The Unsaid</h2>
+        <p class="story-section-description">
+          Topics mentioned once and never again. These quiet things deserve gentle attention.
+        </p>
+      </header>
+
+      <div class="story-card">
+        <div class="unsaid-grid">
+          <div class="unsaid-card">
+            <div class="unsaid-topic">"I've been thinking about taking a ceramics class"</div>
+            <div class="unsaid-meta">Mentioned October 15 - 76 days ago</div>
+            <div class="unsaid-prompt">What happened to that creative urge?</div>
+          </div>
+          <div class="unsaid-card">
+            <div class="unsaid-topic">"Maybe I should talk to someone about the anxiety"</div>
+            <div class="unsaid-meta">Mentioned September 3 - 118 days ago</div>
+            <div class="unsaid-prompt">That thought deserved more space.</div>
+          </div>
+          <div class="unsaid-card">
+            <div class="unsaid-topic">"I miss how close we used to be"</div>
+            <div class="unsaid-meta">Mentioned November 28 - 32 days ago</div>
+            <div class="unsaid-prompt">Some distances can still be closed.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Action Panel: Insight → Action -->
+      <div class="action-panel">
+        <div class="action-panel-header">
+          <span class="action-panel-icon">✦</span>
+          <span class="action-panel-label">Insight → Action</span>
+        </div>
+        <div class="action-panel-insight">
+          The ceramics class thought has been sitting quietly for 76 days. Creative urges don't disappear - they just go dormant. And this one keeps surfacing in your "I wish" moments.
+        </div>
+        <div class="action-panel-prompt">
+          What if you just looked up one class? No commitment, just exploring.
+        </div>
+        <div class="action-panel-actions">
+          <button class="action-btn action-btn-primary">
+            <span>Search for local ceramics classes</span>
+          </button>
+          <button class="action-btn action-btn-secondary">
+            <span>Talk about what's blocking it</span>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Growth Rings -->
+    <section id="growth-rings" class="story-section">
+      <header class="story-section-header">
+        <p class="story-section-overline">Personal Growth</p>
+        <h2 class="story-section-title">Growth Rings</h2>
+        <p class="story-section-description">
+          Like a tree, your growth leaves rings. Wide rings mark rapid development, thin rings mark consolidation.
+        </p>
+      </header>
+
+      <div class="story-card">
+        <div class="growth-rings-container">
+          <div class="growth-rings">
+            <svg viewBox="0 0 200 200">
+              <circle cx="100" cy="100" r="90" stroke="var(--color-alex)" stroke-width="8" fill="none" opacity="0.6"/>
+              <circle cx="100" cy="100" r="75" stroke="var(--color-maya)" stroke-width="12" fill="none" opacity="0.7"/>
+              <circle cx="100" cy="100" r="58" stroke="var(--color-peter)" stroke-width="18" fill="none" opacity="0.8"/>
+              <circle cx="100" cy="100" r="38" stroke="var(--color-nayan)" stroke-width="14" fill="none" opacity="0.85"/>
+              <circle cx="100" cy="100" r="22" stroke="var(--color-ferni)" stroke-width="16" fill="none" opacity="0.9"/>
+              <circle cx="100" cy="100" r="8" fill="var(--color-nayan)"/>
+            </svg>
+            <div class="growth-center">
+              <div class="growth-year">2024</div>
+              <div class="growth-label">Present</div>
+            </div>
+          </div>
+
+          <div class="growth-legend">
+            <div class="growth-legend-item"><div class="growth-legend-ring" style="background: var(--color-ferni);"></div><div class="growth-legend-info"><span class="growth-legend-year">2024</span><span class="growth-legend-theme">Intentional growth</span></div></div>
+            <div class="growth-legend-item"><div class="growth-legend-ring" style="background: var(--color-nayan);"></div><div class="growth-legend-info"><span class="growth-legend-year">2023</span><span class="growth-legend-theme">Consolidating gains</span></div></div>
+            <div class="growth-legend-item"><div class="growth-legend-ring" style="background: var(--color-peter);"></div><div class="growth-legend-info"><span class="growth-legend-year">2022</span><span class="growth-legend-theme">Breakthrough year</span></div></div>
+            <div class="growth-legend-item"><div class="growth-legend-ring" style="background: var(--color-maya);"></div><div class="growth-legend-info"><span class="growth-legend-year">2021</span><span class="growth-legend-theme">Finding footing</span></div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Action Panel: Insight → Action -->
+      <div class="action-panel">
+        <div class="action-panel-header">
+          <span class="action-panel-icon">✦</span>
+          <span class="action-panel-label">Insight → Action</span>
+        </div>
+        <div class="action-panel-insight">
+          Your 2024 ring is thinner than 2022's breakthrough year - but that's not regression. Consolidation years build the foundation for the next breakthrough. You're in a "storing energy" phase.
+        </div>
+        <div class="action-panel-prompt">
+          What are you building toward in 2025?
+        </div>
+        <div class="action-panel-actions">
+          <button class="action-btn action-btn-primary">
+            <span>Set intentions for the next ring</span>
+          </button>
+          <button class="action-btn action-btn-secondary">
+            <span>Reflect on 2024's quiet growth</span>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Values Radar -->
+    <section id="values-radar" class="story-section">
+      <header class="story-section-header">
+        <p class="story-section-overline">Values Alignment</p>
+        <h2 class="story-section-title">Values Radar</h2>
+        <p class="story-section-description">
+          The gap between stated values and lived values is where growth hides.
+        </p>
+      </header>
+
+      <div class="story-card">
+        <div class="radar-container">
+          <div class="radar-chart">
+            <svg viewBox="0 0 280 280">
+              <circle cx="140" cy="140" r="110" stroke="rgba(245,242,237,0.08)" stroke-width="1" fill="none"/>
+              <circle cx="140" cy="140" r="80" stroke="rgba(245,242,237,0.06)" stroke-width="1" fill="none"/>
+              <circle cx="140" cy="140" r="50" stroke="rgba(245,242,237,0.04)" stroke-width="1" fill="none"/>
+
+              <line x1="140" y1="140" x2="140" y2="30" stroke="rgba(245,242,237,0.12)" stroke-width="1"/>
+              <line x1="140" y1="140" x2="235" y2="85" stroke="rgba(245,242,237,0.12)" stroke-width="1"/>
+              <line x1="140" y1="140" x2="235" y2="195" stroke="rgba(245,242,237,0.12)" stroke-width="1"/>
+              <line x1="140" y1="140" x2="140" y2="250" stroke="rgba(245,242,237,0.12)" stroke-width="1"/>
+              <line x1="140" y1="140" x2="45" y2="195" stroke="rgba(245,242,237,0.12)" stroke-width="1"/>
+              <line x1="140" y1="140" x2="45" y2="85" stroke="rgba(245,242,237,0.12)" stroke-width="1"/>
+
+              <text x="140" y="20" fill="var(--story-text-secondary)" font-size="10" text-anchor="middle" font-family="Inter, sans-serif">Health</text>
+              <text x="245" y="85" fill="var(--story-text-secondary)" font-size="10" font-family="Inter, sans-serif">Family</text>
+              <text x="245" y="200" fill="var(--story-text-secondary)" font-size="10" font-family="Inter, sans-serif">Growth</text>
+              <text x="140" y="268" fill="var(--story-text-secondary)" font-size="10" text-anchor="middle" font-family="Inter, sans-serif">Creativity</text>
+              <text x="35" y="200" fill="var(--story-text-secondary)" font-size="10" text-anchor="end" font-family="Inter, sans-serif">Rest</text>
+              <text x="35" y="85" fill="var(--story-text-secondary)" font-size="10" text-anchor="end" font-family="Inter, sans-serif">Career</text>
+
+              <polygon points="140,40 220,90 220,190 140,240 60,190 60,90" fill="rgba(184, 149, 106, 0.12)" stroke="var(--color-nayan)" stroke-width="1.5"/>
+              <polygon points="140,60 200,100 210,180 140,220 80,170 70,100" fill="rgba(74, 103, 65, 0.12)" stroke="var(--color-ferni)" stroke-width="1.5"/>
+            </svg>
+          </div>
+
+          <div class="radar-legend">
+            <div class="radar-legend-item"><div class="radar-legend-line" style="background: var(--color-nayan);"></div><span class="radar-legend-text">Stated</span></div>
+            <div class="radar-legend-item"><div class="radar-legend-line" style="background: var(--color-ferni);"></div><span class="radar-legend-text">Observed</span></div>
+            <div class="radar-insight"><div class="radar-insight-text">Biggest gap: Health. Only 2 of 12 weeks showed attention.</div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Action Panel: Insight → Action -->
+      <div class="action-panel">
+        <div class="action-panel-header">
+          <span class="action-panel-icon">✦</span>
+          <span class="action-panel-label">Insight → Action</span>
+        </div>
+        <div class="action-panel-insight">
+          Your "Health" gap isn't about willpower - it's about system design. You've stated it matters, but your calendar and habits haven't received the memo yet. The gap is the invitation.
+        </div>
+        <div class="action-panel-prompt">
+          What's one structural change that would close this gap?
+        </div>
+        <div class="action-panel-actions">
+          <button class="action-btn action-btn-primary">
+            <span>Block health time in calendar</span>
+          </button>
+          <button class="action-btn action-btn-secondary">
+            <span>Design a system with Maya</span>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Turning Points Timeline -->
+    <section id="turning-points" class="story-section">
+      <header class="story-section-header">
+        <p class="story-section-overline">Pivotal Moments</p>
+        <h2 class="story-section-title">Turning Points</h2>
+        <p class="story-section-description">
+          Life changes in moments. These are your turning points.
+        </p>
+      </header>
+
+      <div class="story-card">
+        <div class="timeline-container">
+          <div class="timeline-line"></div>
+          <div class="timeline-items">
+            <div class="timeline-item">
+              <div class="timeline-content"><div class="timeline-date">March 2022</div><div class="timeline-title">The Decision</div><div class="timeline-text">You said "I can't keep doing this" - and meant it.</div></div>
+              <div class="timeline-marker"></div>
+              <div></div>
+            </div>
+            <div class="timeline-item">
+              <div></div>
+              <div class="timeline-marker"></div>
+              <div class="timeline-content"><div class="timeline-date">July 2022</div><div class="timeline-title">The Leap</div><div class="timeline-text">First day of the new role. Hope returned.</div></div>
+            </div>
+            <div class="timeline-item">
+              <div class="timeline-content"><div class="timeline-date">February 2024</div><div class="timeline-title">The Realization</div><div class="timeline-text">"I think I'm actually happy." First time in 4 years.</div></div>
+              <div class="timeline-marker"></div>
+              <div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Action Panel: Insight → Action -->
+      <div class="action-panel">
+        <div class="action-panel-header">
+          <span class="action-panel-icon">✦</span>
+          <span class="action-panel-label">Insight → Action</span>
+        </div>
+        <div class="action-panel-insight">
+          Three turning points in three years. Each followed the same pattern: a moment of clarity, a leap of faith, then gradual transformation. You've proven you can change. The next turning point is closer than you think.
+        </div>
+        <div class="action-panel-prompt">
+          Is there a "I can't keep doing this" brewing somewhere new?
+        </div>
+        <div class="action-panel-actions">
+          <button class="action-btn action-btn-primary">
+            <span>Explore what's ready to shift</span>
+          </button>
+          <button class="action-btn action-btn-secondary">
+            <span>Celebrate the journey so far</span>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Anticipation View -->
+    <section id="anticipation" class="story-section">
+      <header class="story-section-header">
+        <p class="story-section-overline">Pattern Recognition</p>
+        <h2 class="story-section-title">Anticipation View</h2>
+        <p class="story-section-description">
+          Gentle predictions based on patterns - not prophecy, just probability.
+        </p>
+      </header>
+
+      <div class="story-card">
+        <div class="anticipation-grid">
+          <div class="anticipation-card">
+            <div class="anticipation-header"><div class="anticipation-prediction">You'll likely feel overwhelmed in 2 weeks</div><div class="anticipation-confidence">78%</div></div>
+            <div class="anticipation-bar"><div class="anticipation-bar-fill" style="width: 78%;"></div></div>
+            <div class="anticipation-basis"><strong>Pattern:</strong> Work stress up 45%. Last 3 times, burnout followed within 14 days.</div>
+          </div>
+          <div class="anticipation-card">
+            <div class="anticipation-header"><div class="anticipation-prediction">A creative breakthrough is building</div><div class="anticipation-confidence">65%</div></div>
+            <div class="anticipation-bar"><div class="anticipation-bar-fill" style="width: 65%;"></div></div>
+            <div class="anticipation-basis"><strong>Pattern:</strong> "Ideas" mentions with increasing enthusiasm. Matches pre-breakthrough periods.</div>
+          </div>
+          <div class="anticipation-card">
+            <div class="anticipation-header"><div class="anticipation-prediction">Your exercise habit will stabilize</div><div class="anticipation-confidence">71%</div></div>
+            <div class="anticipation-bar"><div class="anticipation-bar-fill" style="width: 71%;"></div></div>
+            <div class="anticipation-basis"><strong>Pattern:</strong> 3 weeks consistent. Your threshold is 28 days. Almost there.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Action Panel: Insight → Action -->
+      <div class="action-panel">
+        <div class="action-panel-header">
+          <span class="action-panel-icon">✦</span>
+          <span class="action-panel-label">Insight → Action</span>
+        </div>
+        <div class="action-panel-insight">
+          The 78% overwhelm prediction isn't destiny - it's an invitation. You've seen this pattern before. The question isn't whether stress will come, but whether you'll have buffers in place.
+        </div>
+        <div class="action-panel-prompt">
+          What buffer could you build this week?
+        </div>
+        <div class="action-panel-actions">
+          <button class="action-btn action-btn-primary">
+            <span>Clear calendar space preemptively</span>
+          </button>
+          <button class="action-btn action-btn-secondary">
+            <span>Build a stress response plan</span>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Ripple Effect -->
+    <section id="ripple-effect" class="story-section">
+      <header class="story-section-header">
+        <p class="story-section-overline">Cause and Effect</p>
+        <h2 class="story-section-title">Ripple Effect</h2>
+        <p class="story-section-description">
+          Every decision creates ripples. This maps the cascading effects of one choice.
+        </p>
+      </header>
+
+      <div class="story-card">
+        <div class="ripple-container">
+          <svg class="ripple-svg" viewBox="0 0 400 350">
+            <circle cx="200" cy="175" r="40" stroke="var(--color-nayan)" stroke-width="2" fill="none" opacity="0.5"/>
+            <circle cx="200" cy="175" r="80" stroke="var(--color-nayan)" stroke-width="1.5" fill="none" opacity="0.35"/>
+            <circle cx="200" cy="175" r="120" stroke="var(--color-nayan)" stroke-width="1" fill="none" opacity="0.2"/>
+            <circle cx="200" cy="175" r="160" stroke="var(--color-nayan)" stroke-width="0.5" fill="none" opacity="0.1"/>
+          </svg>
+
+          <div class="ripple-center">
+            <div class="ripple-origin">"I quit"</div>
+            <div class="ripple-date">March 2022</div>
+          </div>
+
+          <div class="ripple-effects">
+            <div class="ripple-effect" style="top: 8%; left: 50%; transform: translateX(-50%);">More time with family</div>
+            <div class="ripple-effect" style="top: 18%; right: 10%;">Started therapy</div>
+            <div class="ripple-effect" style="top: 60%; right: 8%;">New career path</div>
+            <div class="ripple-effect" style="bottom: 10%; left: 50%; transform: translateX(-50%);">Better sleep</div>
+            <div class="ripple-effect" style="top: 65%; left: 8%;">Repaired friendship</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Action Panel: Insight → Action -->
+      <div class="action-panel">
+        <div class="action-panel-header">
+          <span class="action-panel-icon">✦</span>
+          <span class="action-panel-label">Insight → Action</span>
+        </div>
+        <div class="action-panel-insight">
+          One decision - "I quit" - created five positive ripples you couldn't have predicted. You didn't just change a job; you changed a trajectory. Every brave decision carries hidden gifts.
+        </div>
+        <div class="action-panel-prompt">
+          What decision are you standing at the edge of now?
+        </div>
+        <div class="action-panel-actions">
+          <button class="action-btn action-btn-primary">
+            <span>Map the potential ripples</span>
+          </button>
+          <button class="action-btn action-btn-secondary">
+            <span>Talk through the fear with Ferni</span>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Unfinished Stories -->
+    <section id="unfinished-stories" class="story-section">
+      <header class="story-section-header">
+        <p class="story-section-overline">Open Loops</p>
+        <h2 class="story-section-title">Unfinished Stories</h2>
+        <p class="story-section-description">
+          Story arcs still being written. Every unfinished story is a door still open.
+        </p>
+      </header>
+
+      <div class="story-card">
+        <div class="stories-grid">
+          <div class="story-arc-card">
+            <div class="story-arc-header">
+              <div class="story-arc-progress">
+                <svg viewBox="0 0 36 36"><circle cx="18" cy="18" r="14" stroke="rgba(245,242,237,0.08)" stroke-width="4" fill="none"/><circle cx="18" cy="18" r="14" stroke="var(--color-nayan)" stroke-width="4" fill="none" stroke-dasharray="65 100" pathLength="100" style="transform: rotate(-90deg); transform-origin: center;"/></svg>
+                <span class="story-arc-percentage">65%</span>
+              </div>
+              <div class="story-arc-info"><div class="story-arc-title">The Health Transformation</div><div class="story-arc-started">Started: September 2024</div></div>
+            </div>
+            <div class="story-arc-last">Last: "I actually want to go to the gym now"</div>
+            <div class="story-arc-prompt">This one feels different. Keep going.</div>
+          </div>
+
+          <div class="story-arc-card">
+            <div class="story-arc-header">
+              <div class="story-arc-progress">
+                <svg viewBox="0 0 36 36"><circle cx="18" cy="18" r="14" stroke="rgba(245,242,237,0.08)" stroke-width="4" fill="none"/><circle cx="18" cy="18" r="14" stroke="var(--color-nayan)" stroke-width="4" fill="none" stroke-dasharray="30 100" pathLength="100" style="transform: rotate(-90deg); transform-origin: center;"/></svg>
+                <span class="story-arc-percentage">30%</span>
+              </div>
+              <div class="story-arc-info"><div class="story-arc-title">The Creative Project</div><div class="story-arc-started">Started: June 2023</div></div>
+            </div>
+            <div class="story-arc-last">Last: "I should really get back to it"</div>
+            <div class="story-arc-prompt">It's been waiting patiently.</div>
+          </div>
+
+          <div class="story-arc-card">
+            <div class="story-arc-header">
+              <div class="story-arc-progress">
+                <svg viewBox="0 0 36 36"><circle cx="18" cy="18" r="14" stroke="rgba(245,242,237,0.08)" stroke-width="4" fill="none"/><circle cx="18" cy="18" r="14" stroke="var(--color-nayan)" stroke-width="4" fill="none" stroke-dasharray="80 100" pathLength="100" style="transform: rotate(-90deg); transform-origin: center;"/></svg>
+                <span class="story-arc-percentage">80%</span>
+              </div>
+              <div class="story-arc-info"><div class="story-arc-title">The Career Pivot</div><div class="story-arc-started">Started: March 2022</div></div>
+            </div>
+            <div class="story-arc-last">Last: "I think I'm finally where I want to be"</div>
+            <div class="story-arc-prompt">Nearly there. What does "done" look like?</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Action Panel: Insight → Action -->
+      <div class="action-panel">
+        <div class="action-panel-header">
+          <span class="action-panel-icon">✦</span>
+          <span class="action-panel-label">Insight → Action</span>
+        </div>
+        <div class="action-panel-insight">
+          Three stories, three different stages. The Health Transformation at 65% is the newest but showing the most momentum. The Creative Project at 30% has been patient the longest. Both deserve attention, but in different ways.
+        </div>
+        <div class="action-panel-prompt">
+          Which story wants your attention today?
+        </div>
+        <div class="action-panel-actions">
+          <button class="action-btn action-btn-primary">
+            <span>Advance the Health Transformation</span>
+          </button>
+          <button class="action-btn action-btn-secondary">
+            <span>Revisit the Creative Project</span>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Final Quote -->
+    <div class="quote-banner">
+      <p class="quote-text">
+        "Your life is not a collection of random events. It's a story with themes, arcs, and meaning. Ferni helps you read it."
+      </p>
+    </div>
+  </main>
+
+  <!-- Shared Footer (injected by nav.js) -->
+  <div id="footer-placeholder"></div>
+
+  <!-- Shared Navigation Component -->
+  <script src="../shared/nav.js" defer></script>
+
+  <!-- Ferni Visualization System -->
+  <script type="module">
+    import FerniViz from './viz-system.js';
+
+    // Initialize all visualization systems
+    FerniViz.init({
+      enableTooltips: true,
+      enableAnimations: true,
+      enableDisclosure: true,
+      enableComparison: true,
+      enableIcons: true,
+      enableSharing: true,
+      debug: false
+    });
+
+    // Make all viz-cards shareable
+    document.querySelectorAll('.story-viz-card').forEach(card => {
+      FerniViz.makeShareable(card);
+    });
+  </script>
+
+  <script>
+    // Section navigation highlight
+    document.addEventListener('DOMContentLoaded', function() {
+      var sections = document.querySelectorAll('.story-section');
+      var navLinks = document.querySelectorAll('.section-nav-link');
+
+      var observer = new IntersectionObserver(function(entries) {
+        entries.forEach(function(entry) {
+          if (entry.isIntersecting) {
+            var id = entry.target.id;
+            navLinks.forEach(function(link) {
+              link.classList.toggle('active', link.getAttribute('href') === '#' + id);
+            });
+          }
+        });
+      }, { threshold: 0.3, rootMargin: '-100px 0px -60% 0px' });
+
+      sections.forEach(function(section) {
+        observer.observe(section);
+      });
+    });
+  </script>
+</body>
+</html>

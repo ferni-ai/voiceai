@@ -1,69 +1,121 @@
 # Ferni Monetization System
 
-> **"Ferni Free Forever"** - Talk to Ferni unlimited times. We make money when we create value, not by gatekeeping.
+> **"Ferni Founders Fund"** - We're not selling a product. We're inviting you to build something with us.
 
 ## Philosophy
 
 Traditional SaaS gates content behind paywalls. We believe in a different model:
 
-**We make money when we genuinely help people.**
+**We're building something we believe everyone deserves.**
 
-**Five Revenue Streams:**
+**Primary Revenue Stream:**
 
-1. **Tip Jar** - Gratitude-based, always available
-2. **Value Capture** - "I helped you, share what it's worth"
-3. **Ferni Fund** - Pay-it-forward community pool
+1. **Founders Fund** - "Chip in" to support the mission. Features are thank-you perks.
+
+**Secondary Revenue Streams:**
+
+2. **Plant a Seed** - One-time contributions (not "tips" — seeds grow)
+3. **Ferni Garden** - Pay-it-forward community pool
 4. **B2B Licensing** - Companies pay for employee wellness
 5. **Contextual Partnerships** - Warm introductions to helpful products
 
 **Key Principles:**
 
-1. **Free is actually free** - Unlimited Ferni conversations, forever
-2. **No gates, no guilt** - Users contribute because they want to, not because they have to
-3. **Revenue tied to outcomes** - When users win, we can win too (if they choose)
-4. **Community-powered** - Those who can afford it help those who can't
-5. **Transparency** - Users always know how we make money
+1. **Free is really free** - Unlimited Ferni conversations, forever, with full memory
+2. **Chip in, not subscribe** - Users support the mission because they believe in it
+3. **Features are perks, not unlocks** - We give perks to say thank you, not to gate features
+4. **Community-powered** - Founders help keep Ferni free for everyone
+5. **No pressure, no guilt** - "Not ready? That's totally fine. Ferni is here for you either way."
+
+**Founders Fund Tiers:**
+
+| Tier | Monthly | What You're Doing |
+|------|---------|-------------------|
+| **Community** | Free | Talk to Ferni forever. Really free. |
+| **Founding Member** | $10/mo | Chip in. Help keep Ferni free for everyone. |
+| **Founding Patron** | $20/mo | You're shaping what we become. |
+
+**Language Rules:**
+
+| Instead of... | Say... |
+|---------------|--------|
+| Subscribe | Chip in |
+| Upgrade | Support Ferni |
+| Unlock | Thank-you perk |
+| Plan | Support level |
+| Current plan | You're here |
+| Subscriber | Founder |
+| Premium | Founding Member / Founding Patron |
 
 ---
 
-## Revenue Stream 1: Tip Jar 💚
+## Revenue Stream 1: Founders Fund 💚
 
-**"Ferni is free forever. If I've helped you, you can buy me a coffee."**
+**"We're inviting you to build something with us."**
 
 ### How It Works
 
-- Always available, never prompted aggressively
-- Suggested amounts: $1, $3, $5, $10 (custom allowed)
-- Shown after meaningful conversations (sparingly)
-- Maximum 1 prompt per 20 conversations
+- Primary call to action throughout the app
+- Framed as "chipping in" not "subscribing"
+- Features are positioned as thank-you perks, not unlocks
+- No guilt, no pressure, no urgency
+
+### Tiers
+
+| Tier | Price | Perks (Our Thank You) |
+|------|-------|----------------------|
+| **Community** | Free forever | Unlimited Ferni, 7-min sessions, full memory |
+| **Founding Member** | $10/mo | + Unlimited time, full team, Founders Wall, vote on roadmap |
+| **Founding Patron** | $20/mo | + Early access, founder Q&A, family sharing |
 
 ### Implementation
 
 ```typescript
-import { tipJar } from '../services/monetization/index.js';
+import { FOUNDERS_FUND_NAMES, TIER_CONFIGS } from '../types/subscription.js';
 
-// Check if we should offer (rarely)
-const prompt = tipJar.shouldOffer({
-  userId,
-  conversationCount: 50,
-  lastTipOfferedConversation: 30,
-  userAskedToHelp: false,
-  conversationWasMeaningful: true,
-});
+// Use Founders Fund display names
+const displayName = FOUNDERS_FUND_NAMES[tier]; // "Community" | "Founding Member" | "Founding Patron"
 
-if (prompt) {
-  // Show tip opportunity conversationally
-}
+// Get tier config
+const config = TIER_CONFIGS[tier];
+console.log(config.name); // "Community", "Founding Member", "Founding Patron"
+console.log(config.description); // "Chip in $10/mo. Help keep Ferni free for everyone."
 ```
+
+### Example Copy
+
+```
+"Ferni is free forever. If you believe in what we're building, chip in.
+As a thank you, we'll unlock some perks."
+
+"You're a Founding Member now. That means so much.
+We're in this together. 💚"
+
+"Not ready to chip in? That's totally fine.
+Ferni is here for you either way."
+```
+
+---
+
+## Revenue Stream 2: Plant a Seed 🌱
+
+**"A one-time contribution to help Ferni grow."**
+
+### How It Works
+
+- Available in Support menu as "Plant a Seed"
+- Suggested amounts: $5, $10, $25, $50
+- Shown after meaningful conversations (sparingly)
+- Positioned as planting a seed, not tipping
 
 ### Example Prompts
 
 ```
-"That was a real conversation. If it meant something to you, you can
-support Ferni - but no pressure at all."
+"If this conversation meant something, you can plant a seed to help
+Ferni grow - but no pressure at all."
 
-"We've had 50 conversations together. If any of them mattered, you can
-tip what they're worth. Or just keep talking - that's the real gift."
+"We've had many conversations together. If any of them mattered, you can
+plant a seed. Or just keep talking - that's the real gift."
 ```
 
 ---
@@ -123,23 +175,23 @@ reward is the person you're becoming."
 
 ---
 
-## Revenue Stream 3: Ferni Fund 🌱
+## Revenue Stream 3: Ferni Garden 🌱
 
 **"Someone sponsored this conversation for you. They wanted you to know: you matter."**
 
 ### How It Works
 
-1. Users can contribute to a community pool
+1. Users can contribute to a community pool (the "Garden")
 2. Contributions symbolically "sponsor" conversations for others
 3. Recipients occasionally see a message that someone cared
 4. Creates sense of community and pay-it-forward culture
 
 ### For Contributors
 
-- Can contribute any amount
+- Can plant any amount
 - Optional message to show recipients
-- See impact: "You've sponsored 20 conversations"
-- Recurring option: Weekly/monthly contributions
+- See impact: "You've helped sponsor 20 conversations"
+- Recurring option: Monthly gardening
 
 ### For Recipients
 

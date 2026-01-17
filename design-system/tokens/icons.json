@@ -1,0 +1,330 @@
+{
+  "$schema": "https://json-schema.org/draft-07/schema#",
+  "description": "Ferni Icon System Tokens - Apple SF Symbols-inspired with emotional weight",
+  "version": "1.0.0",
+
+  "_designPhilosophy": {
+    "principle": "Icons are visual words - they should speak with Ferni's voice",
+    "style": "Rounded, organic, warm - never sharp or aggressive",
+    "inspiration": "SF Symbols + Phosphor Icons + custom Ferni symbols"
+  },
+
+  "sizes": {
+    "_description": "Icon size scale aligned with touch targets and visual hierarchy",
+
+    "2xs": {
+      "value": "12px",
+      "usage": "Inline text indicators, micro-badges"
+    },
+    "xs": {
+      "value": "14px",
+      "usage": "Caption icons, small buttons"
+    },
+    "sm": {
+      "value": "16px",
+      "usage": "Body text icons, chip icons"
+    },
+    "md": {
+      "value": "20px",
+      "usage": "Default icon size, list items"
+    },
+    "lg": {
+      "value": "24px",
+      "usage": "Navigation, primary actions"
+    },
+    "xl": {
+      "value": "28px",
+      "usage": "Hero icons, empty states"
+    },
+    "2xl": {
+      "value": "32px",
+      "usage": "Feature icons, onboarding"
+    },
+    "3xl": {
+      "value": "40px",
+      "usage": "Large feature callouts"
+    },
+    "4xl": {
+      "value": "48px",
+      "usage": "Page headers, splash screens"
+    },
+    "5xl": {
+      "value": "64px",
+      "usage": "Hero illustrations, empty states"
+    }
+  },
+
+  "weights": {
+    "_description": "Stroke weight variants like SF Symbols - express emphasis and mood",
+    "_note": "Not all icons support all weights - fallback to regular",
+
+    "ultraLight": {
+      "strokeWidth": "1px",
+      "usage": "Decorative, background icons",
+      "emotionalTone": "whisper"
+    },
+    "thin": {
+      "strokeWidth": "1.25px",
+      "usage": "Subtle indicators",
+      "emotionalTone": "gentle"
+    },
+    "light": {
+      "strokeWidth": "1.5px",
+      "usage": "Secondary actions",
+      "emotionalTone": "calm"
+    },
+    "regular": {
+      "strokeWidth": "1.75px",
+      "usage": "Default weight",
+      "emotionalTone": "balanced"
+    },
+    "medium": {
+      "strokeWidth": "2px",
+      "usage": "Primary navigation",
+      "emotionalTone": "present"
+    },
+    "semibold": {
+      "strokeWidth": "2.25px",
+      "usage": "Emphasis, CTAs",
+      "emotionalTone": "confident"
+    },
+    "bold": {
+      "strokeWidth": "2.5px",
+      "usage": "Strong emphasis",
+      "emotionalTone": "assertive"
+    },
+    "heavy": {
+      "strokeWidth": "3px",
+      "usage": "Maximum emphasis",
+      "emotionalTone": "powerful"
+    }
+  },
+
+  "renderingModes": {
+    "_description": "How icons are rendered - affects visual treatment",
+
+    "monochrome": {
+      "description": "Single color, inherits from parent",
+      "fill": "currentColor",
+      "usage": "Default, most icons"
+    },
+    "hierarchical": {
+      "description": "Primary/secondary layers with opacity",
+      "primaryOpacity": 1,
+      "secondaryOpacity": 0.5,
+      "usage": "Complex icons with depth"
+    },
+    "palette": {
+      "description": "Multiple distinct colors",
+      "usage": "Status icons, branded icons"
+    },
+    "multicolor": {
+      "description": "Full color with fixed palette",
+      "usage": "Emoji-style icons, illustrations"
+    }
+  },
+
+  "opticalSizes": {
+    "_description": "Icons optimized for different display sizes - like Apple's optical scaling",
+
+    "small": {
+      "targetSize": "< 20px",
+      "strokeMultiplier": 1.15,
+      "detailLevel": "simplified",
+      "_note": "Thicker strokes, less detail at small sizes"
+    },
+    "medium": {
+      "targetSize": "20-32px",
+      "strokeMultiplier": 1.0,
+      "detailLevel": "standard"
+    },
+    "large": {
+      "targetSize": "> 32px",
+      "strokeMultiplier": 0.9,
+      "detailLevel": "detailed",
+      "_note": "More detail visible at large sizes"
+    }
+  },
+
+  "colors": {
+    "_description": "Icon color tokens - contextual and semantic",
+
+    "default": "var(--color-text-secondary)",
+    "muted": "var(--color-text-muted)",
+    "primary": "var(--color-text-primary)",
+    "accent": "var(--color-accent-primary)",
+    "persona": "var(--persona-primary)",
+
+    "semantic": {
+      "success": "var(--color-semantic-success)",
+      "error": "var(--color-semantic-error)",
+      "warning": "var(--color-semantic-warning)",
+      "info": "var(--color-semantic-info)"
+    },
+
+    "states": {
+      "hover": "var(--color-text-primary)",
+      "disabled": "var(--state-disabled-content)"
+    }
+  },
+
+  "animations": {
+    "_description": "Icon animation presets for interaction feedback",
+
+    "press": {
+      "scale": 0.85,
+      "duration": "100ms",
+      "easing": "var(--ease-spring)"
+    },
+    "hover": {
+      "scale": 1.1,
+      "duration": "150ms",
+      "easing": "var(--ease-gentle)"
+    },
+    "spin": {
+      "duration": "1s",
+      "easing": "linear",
+      "iterations": "infinite"
+    },
+    "pulse": {
+      "scale": [1, 1.15, 1],
+      "duration": "600ms",
+      "easing": "var(--ease-gentle)"
+    },
+    "bounce": {
+      "translateY": [0, -4, 0],
+      "duration": "400ms",
+      "easing": "var(--ease-bounce)"
+    },
+    "shake": {
+      "rotate": [0, -10, 10, -5, 5, 0],
+      "duration": "400ms",
+      "easing": "var(--ease-elastic)"
+    },
+    "morph": {
+      "duration": "300ms",
+      "easing": "var(--ease-spring)",
+      "_note": "For icon-to-icon transitions"
+    }
+  },
+
+  "buttonIcons": {
+    "_description": "Icon sizing within buttons",
+
+    "xs": { "iconSize": "14px", "gap": "4px" },
+    "sm": { "iconSize": "16px", "gap": "6px" },
+    "md": { "iconSize": "18px", "gap": "8px" },
+    "lg": { "iconSize": "20px", "gap": "10px" },
+    "xl": { "iconSize": "24px", "gap": "12px" }
+  },
+
+  "inputIcons": {
+    "_description": "Icons within input fields",
+
+    "leading": {
+      "size": "20px",
+      "color": "var(--color-text-muted)",
+      "marginRight": "12px"
+    },
+    "trailing": {
+      "size": "20px",
+      "color": "var(--color-text-muted)",
+      "marginLeft": "12px"
+    },
+    "clearButton": {
+      "size": "16px",
+      "color": "var(--color-text-muted)",
+      "hoverColor": "var(--color-text-primary)",
+      "padding": "4px"
+    }
+  },
+
+  "categories": {
+    "_description": "Icon categories for organizational consistency",
+
+    "navigation": {
+      "icons": ["home", "search", "settings", "menu", "back", "close", "chevron-left", "chevron-right", "chevron-up", "chevron-down"],
+      "defaultWeight": "medium"
+    },
+    "actions": {
+      "icons": ["add", "remove", "edit", "delete", "share", "download", "upload", "copy", "paste", "save"],
+      "defaultWeight": "regular"
+    },
+    "communication": {
+      "icons": ["chat", "message", "mail", "phone", "video", "mic", "mic-off", "speaker", "volume"],
+      "defaultWeight": "regular"
+    },
+    "status": {
+      "icons": ["check", "check-circle", "x", "x-circle", "alert", "info", "help", "warning"],
+      "defaultWeight": "medium"
+    },
+    "media": {
+      "icons": ["play", "pause", "stop", "skip-back", "skip-forward", "record", "shuffle", "repeat"],
+      "defaultWeight": "regular"
+    },
+    "objects": {
+      "icons": ["heart", "star", "bookmark", "flag", "tag", "calendar", "clock", "location"],
+      "defaultWeight": "regular"
+    },
+    "personas": {
+      "icons": ["ferni", "peter", "alex", "maya", "jordan", "nayan"],
+      "defaultWeight": "regular",
+      "_note": "Custom persona icons"
+    },
+    "emotions": {
+      "icons": ["happy", "sad", "calm", "stressed", "energized", "tired", "focused", "reflective"],
+      "defaultWeight": "light",
+      "_note": "Emotion indicator icons"
+    }
+  },
+
+  "accessibility": {
+    "_description": "Accessibility requirements for icons",
+
+    "minTouchTarget": {
+      "size": "44px",
+      "description": "Minimum touch target per WCAG"
+    },
+    "ariaLabels": {
+      "required": true,
+      "description": "All interactive icons must have aria-label"
+    },
+    "decorative": {
+      "ariaHidden": true,
+      "role": "presentation",
+      "description": "Decorative icons hidden from AT"
+    },
+    "focusable": {
+      "tabindex": 0,
+      "focusRing": "var(--focus-ring-default)"
+    }
+  },
+
+  "cssVariables": {
+    "_description": "CSS custom properties for icon system",
+
+    "--icon-size-2xs": "12px",
+    "--icon-size-xs": "14px",
+    "--icon-size-sm": "16px",
+    "--icon-size-md": "20px",
+    "--icon-size-lg": "24px",
+    "--icon-size-xl": "28px",
+    "--icon-size-2xl": "32px",
+    "--icon-size-3xl": "40px",
+    "--icon-size-4xl": "48px",
+    "--icon-size-5xl": "64px",
+
+    "--icon-stroke-ultralight": "1px",
+    "--icon-stroke-thin": "1.25px",
+    "--icon-stroke-light": "1.5px",
+    "--icon-stroke-regular": "1.75px",
+    "--icon-stroke-medium": "2px",
+    "--icon-stroke-semibold": "2.25px",
+    "--icon-stroke-bold": "2.5px",
+    "--icon-stroke-heavy": "3px",
+
+    "--icon-color": "var(--color-text-secondary)",
+    "--icon-color-hover": "var(--color-text-primary)",
+    "--icon-color-active": "var(--color-accent-primary)"
+  }
+}

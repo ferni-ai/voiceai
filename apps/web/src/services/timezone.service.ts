@@ -23,6 +23,7 @@
  */
 
 import { createLogger } from '../utils/logger.js';
+import { apiPost } from '../utils/api.js';
 
 const log = createLogger('TimezoneService');
 
@@ -129,16 +130,9 @@ async function syncTimezoneToBackend(timezone: string): Promise<boolean> {
   }
 
   try {
-    const response = await fetch(`${API_BASE}/api/user/timezone`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-User-Id': userId,
-      },
-      body: JSON.stringify({
-        userId,
-        timezone,
-      }),
+    const response = await apiPost(`${API_BASE}/api/user/timezone`, {
+      userId,
+      timezone,
     });
 
     if (!response.ok) {
@@ -297,7 +291,7 @@ export function getFriendlyTimezoneName(): string {
     });
     const parts = formatter.formatToParts(new Date());
     const tzPart = parts.find((p) => p.type === 'timeZoneName');
-    return tzPart?.value || timezone;
+    return tzPart?.value ?? timezone;
   } catch {
     return timezone;
   }

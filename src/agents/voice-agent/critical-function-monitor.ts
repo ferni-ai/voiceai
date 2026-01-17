@@ -556,16 +556,41 @@ export function setupCriticalFunctionMonitoring(
       toolName?: string;
       error?: unknown;
       tools?: Array<{ name?: string; error?: unknown }>;
+      // OpenAI Realtime API structure
+      functionCallOutputs?: Array<{
+        name?: string;
+        output?: unknown;
+        isError?: boolean;
+      }>;
     };
 
     // Extract tool names and check for errors
-    const tools = toolInfo.tools || [toolInfo];
+    // Handle different event structures from different LLM backends:
+    // - OpenAI Realtime: { functionCallOutputs: [...] }
+    // - Gemini/Legacy: { tools: [...] } or direct tool object
+    let tools: Array<{ name?: string; error?: unknown; isError?: boolean }>;
+
+    if (toolInfo.functionCallOutputs && toolInfo.functionCallOutputs.length > 0) {
+      // OpenAI Realtime API structure
+      tools = toolInfo.functionCallOutputs.map((fco) => ({
+        name: fco.name,
+        error: fco.isError ? fco.output : undefined,
+        isError: fco.isError,
+      }));
+    } else if (toolInfo.tools && toolInfo.tools.length > 0) {
+      // Legacy/Gemini structure
+      tools = toolInfo.tools;
+    } else {
+      // Single tool object fallback
+      tools = [toolInfo];
+    }
+
     for (const tool of tools) {
-      const toolName = tool.name || toolInfo.name || toolInfo.toolName || 'unknown';
+      const toolName = tool.name || toolInfo.name || toolInfo.toolName || 'unknown_tool';
       const tracker = trackToolExecution(sessionId, toolName);
 
-      if (tool.error) {
-        tracker.fail(String(tool.error));
+      if (tool.error || tool.isError) {
+        tracker.fail(String(tool.error || 'Tool reported error'));
       } else {
         tracker.complete();
       }

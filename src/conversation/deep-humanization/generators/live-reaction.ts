@@ -7,6 +7,7 @@
  * @module @ferni/conversation/deep-humanization/generators/live-reaction
  */
 
+import { seededChance, seededIndex, seededPick } from '../../utils/rng.js';
 import type {
   HumanizationContext,
   ConversationMood,
@@ -42,7 +43,7 @@ export async function generateLiveReaction(
 ): Promise<GeneratorResult> {
   const probability = HUMANIZATION_CONFIG.probabilities.liveReaction;
 
-  if (Math.random() > probability) {
+  if (!seededChance(`${Date.now()}:1`, probability)) {
     return null;
   }
 
@@ -63,7 +64,7 @@ export async function generateLiveReaction(
     reactions = REACTIONS.processing;
   }
 
-  const content = reactions[Math.floor(Math.random() * reactions.length)];
+  const content = seededPick(`${Date.now()}:67`, reactions) ?? reactions[0];
 
   return {
     type: 'live_reaction',

@@ -72,52 +72,51 @@
       "sampleQuote": "You mentioned wanting to visit Japan 'someday.' Let's make it a real day."
     }
   },
-  "pricing": {
-    "sectionTitle": "Simple Pricing",
-    "headline": "Start free.",
-    "headlineAccent": "Grow when ready.",
-    "subtitle": "No hidden fees. No contracts. Cancel anytime.",
-    "popular": "Most Popular",
-    "trialNote": "7-day free trial. Cancel anytime.",
-    "free": {
-      "name": "Free",
-      "price": "£0",
+  "founders": {
+    "sectionTitle": "Founders Fund",
+    "headline": "Free.",
+    "headlineAccent": "Really free.",
+    "subtitle": "We're building something we believe everyone deserves. If you believe in it too, chip in.",
+    "mostChosen": "Most Chosen",
+    "cancelNote": "Change or cancel anytime. No hard feelings.",
+    "community": {
+      "name": "Community",
+      "price": "Free",
       "period": "forever",
-      "description": "Get to know Ferni",
-      "cta": "Start Free",
-      "features": [
-        "5 conversations/month",
-        "Chat with Ferni (Life Coach)",
-        "Web and phone access",
-        "Basic conversation memory"
-      ]
-    },
-    "friend": {
-      "name": "Friend",
-      "price": "£7.99",
-      "period": "month",
-      "description": "For regular support",
-      "cta": "Start Free Trial",
+      "description": "Ferni is here for you",
+      "cta": "Talk to Ferni",
       "features": [
         "Unlimited conversations",
-        "All 6 AI specialists",
-        "Full conversation memory",
-        "Priority response times",
-        "Web, phone, and SMS access"
+        "Talk to Ferni (Life Coach)",
+        "Voice & text",
+        "Full memory — I remember everything"
       ]
     },
-    "partner": {
-      "name": "Partner",
-      "price": "£15.99",
+    "foundingMember": {
+      "name": "Founding Member",
+      "price": "£8",
       "period": "month",
-      "description": "For deep partnership",
-      "cta": "Start Free Trial",
+      "description": "Chip in. Help us build this.",
+      "cta": "Chip In",
       "features": [
-        "Everything in Friend",
-        "Access to Nayan (Sage Mentor)",
-        "Advanced personalisation",
-        "Unlimited memory & context",
-        "Early access to features"
+        "Unlimited conversation time",
+        "Meet the whole team",
+        "Your name on the Founders Wall",
+        "Vote on what we build next"
+      ]
+    },
+    "foundingPatron": {
+      "name": "Founding Patron",
+      "price": "£16",
+      "period": "month",
+      "description": "You're shaping what we become",
+      "cta": "Chip In",
+      "features": [
+        "Everything in Founding Member",
+        "Full team + Nayan access",
+        "Early access to new features",
+        "Direct line to founders",
+        "Family sharing"
       ]
     }
   },
@@ -126,7 +125,12 @@
     "eyebrow": "Questions & Answers",
     "headline": "Frequently asked",
     "headlineBreak": "questions.",
-    "items": []
+    "items": [
+      {
+        "question": "Is Ferni really free?",
+        "answer": "Yes. Really. Ferni listens, remembers, and shows up for you — forever free. No catch. If you believe in what we're building, you can chip in through the Founders Fund. But honestly? Just talking to Ferni is enough."
+      }
+    ]
   },
   "testimonials": {
     "sectionTitle": "What People Say"
@@ -150,7 +154,7 @@
   "nav": {
     "features": "Features",
     "team": "Team",
-    "pricing": "Pricing",
+    "support": "Support",
     "faq": "FAQ",
     "developers": "Developers",
     "about": "About",
@@ -194,7 +198,7 @@
     "callFerni": "Call Ferni",
     "suggestionsLabel": "Or try one of these:",
     "meetTeam": "Meet the Team",
-    "viewPricing": "View Pricing",
+    "supportFerni": "Support Ferni",
     "readFaq": "Read FAQ",
     "readBlog": "Read Our Blog"
   }

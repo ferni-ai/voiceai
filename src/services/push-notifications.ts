@@ -11,6 +11,7 @@
 import { getLogger } from '../utils/safe-logger.js';
 import { AgentRole } from '../personas/index.js';
 import { createPersistenceStore, type PersistenceStore } from './persistence/index.js';
+import { cleanForFirestore } from '../utils/firestore-utils.js';
 
 // Web-push module interface (optional dependency)
 interface WebPushModule {
@@ -52,6 +53,9 @@ export type NotificationType =
   | 'team_huddle'
   | 'ferni_checkin'
   | 'engagement'
+  | 'calendar_reminder'
+  | 'calendar_digest'
+  | 'family_approval_request'
   | 'general';
 
 export interface PushSubscription {
@@ -96,6 +100,9 @@ const NOTIFICATION_TEMPLATES: Record<NotificationType, { icon: string }> = {
   team_huddle: { icon: '/icons/team-192.png' },
   ferni_checkin: { icon: '/icons/ferni-192.png' },
   engagement: { icon: '/icons/engagement-192.png' },
+  calendar_reminder: { icon: '/icons/calendar-192.png' },
+  calendar_digest: { icon: '/icons/calendar-192.png' },
+  family_approval_request: { icon: '/icons/family-192.png' },
   general: { icon: '/icons/icon-192.png' },
 };
 
@@ -227,7 +234,7 @@ class PushNotificationsBackendService {
           if (notification.status === 'pending') {
             const scheduledFor = new Date(notification.scheduledFor);
             if (scheduledFor > new Date()) {
-              this.scheduledNotifications.set(id, {
+              this.scheduledNotifications.set(cleanForFirestore(id), {
                 ...notification,
                 scheduledFor,
               });
@@ -287,7 +294,7 @@ class PushNotificationsBackendService {
 
     if (filtered.length > 0) {
       this.subscriptions.set(userId, filtered);
-      this.subscriptionStore?.set(userId, { subscriptions: filtered });
+      this.subscriptionStore?.set(cleanForFirestore(userId), { subscriptions: filtered });
     } else {
       this.subscriptions.delete(userId);
       await this.subscriptionStore?.delete(userId);

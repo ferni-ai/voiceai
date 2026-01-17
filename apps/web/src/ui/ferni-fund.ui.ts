@@ -22,12 +22,12 @@ import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import type { GardenStatus, PlantSeedResponse, SubscriptionResponse, UserGarden } from '../types/seed-fund.types.js';
 import { getStatusDisplayName } from '../types/seed-fund.types.js';
 import { ferniFundStyles as styles, CLOSE_ICON, SEED_ICON, CHECK_ICON } from './ferni-fund.styles.js';
-import { toast } from './toast.ui.js';
+import { toast } from './whisper.ui.js';
 
 const log = createLogger('FerniFundUI');
 
 // FIX BUG: Track all setTimeout calls for proper cleanup
-const { trackedTimeout, clearAll: clearAllTimeouts } = createTimeoutTracker();
+const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
 
 // ============================================================================
 // GARDEN API
@@ -95,7 +95,20 @@ async function startMonthlySubscription(amount: number): Promise<SubscriptionRes
 // CONSTANTS
 // ============================================================================
 
-const SUGGESTED_AMOUNTS = [300, 500, 1000, 2500]; // $3, $5, $10, $25 (1 seed = $1)
+// Seed Fund contribution tiers (matching Stripe products)
+const SEED_TIERS = [
+  { amount: 500, name: 'Plant a Seed', description: 'A small gesture of support' },
+  { amount: 1000, name: 'Sponsor a Conversation', description: 'Help someone find clarity' },
+  { amount: 2500, name: 'Help Someone Get Started', description: 'Welcome a new friend' },
+  { amount: 5000, name: 'Support the Mission', description: 'Keep Ferni free for everyone' },
+] as const;
+
+// Monthly subscription tiers (matching Stripe products)
+const MONTHLY_TIERS = [
+  { amount: 1000, name: 'Founding Member', description: '$10/month - Chip in to help' },
+  { amount: 2000, name: 'Founding Patron', description: '$20/month - Shape what we become' },
+] as const;
+
 const MONTHLY_GOAL_CENTS = 350000; // $3,500/month to keep Ferni free
 
 // ============================================================================
@@ -207,43 +220,53 @@ function renderContributionForm(gardenStatus: GardenStatus | null): string {
       </div>
     </div>
 
-    <div class="ferni-fund-amounts">
-      ${SUGGESTED_AMOUNTS.map(
-        (amount) => `
-        <button class="ferni-fund-amount-btn" data-amount="${amount}">
-          ${formatAmount(amount)}
-          <span class="impact">${Math.round(amount / 100)} seeds</span>
+    <!-- One-time contributions -->
+    <div class="ferni-fund-section-label">One-time contribution</div>
+    <div class="ferni-fund-amounts ferni-fund-amounts--vertical">
+      ${SEED_TIERS.map(
+        (tier) => `
+        <button aria-label="${t('accessibility.moreInformation')}" class="ferni-fund-amount-btn" data-amount="${tier.amount}">
+          <div class="tier-info">
+            <span class="tier-name">${tier.name}</span>
+            <span class="tier-desc">${tier.description}</span>
+          </div>
+          <span class="tier-price">${formatAmount(tier.amount)}</span>
         </button>
       `
       ).join('')}
     </div>
 
-    <input
-      type="text"
-      class="ferni-fund-custom-input"
-      placeholder="${t('placeholders.customAmount')}"
-      inputmode="decimal"
-    />
+    <div class="ferni-fund-divider">
+      <span>or</span>
+    </div>
+
+    <!-- Monthly subscriptions -->
+    <div class="ferni-fund-section-label">Become a Founding supporter</div>
+    <div class="ferni-fund-monthly-options">
+      ${MONTHLY_TIERS.map(
+        (tier) => `
+        <button aria-label="${t('accessibility.moreInformation')}" class="ferni-fund-monthly-btn" data-monthly-amount="${tier.amount}">
+          <div class="tier-info">
+            <span class="tier-name">${tier.name}</span>
+            <span class="tier-desc">${tier.description}</span>
+          </div>
+          <span class="tier-badge">Monthly</span>
+        </button>
+      `
+      ).join('')}
+    </div>
 
     <div class="ferni-fund-impact" style="display: none;">
       <div class="ferni-fund-impact-number">0</div>
       <div class="ferni-fund-impact-text">seeds you'll plant</div>
     </div>
 
-    <div class="ferni-fund-recurring">
-      <div class="ferni-fund-recurring-toggle" data-active="false"></div>
-      <div class="ferni-fund-recurring-text">
-        <div class="ferni-fund-recurring-title">Become a monthly Gardener</div>
-        <div class="ferni-fund-recurring-desc">Plant seeds automatically each month</div>
-      </div>
-    </div>
-
-    <button class="ferni-fund-submit-btn" disabled>
+    <button aria-label="${t('accessibility.plantSeeds')}" class="ferni-fund-submit-btn" disabled>
       Plant Seeds
     </button>
 
     <p class="ferni-fund-footer">
-      When enough people give, everyone benefits. That's the whole point.
+      Ferni is free forever. Your support keeps it that way for everyone.
     </p>
   `;
 }
@@ -279,13 +302,11 @@ function renderThankYou(impact: { conversationsSponsored: number; message: strin
 function setupFormListeners(): void {
   if (!container) return;
 
-  const buttons = container.querySelectorAll('.ferni-fund-amount-btn');
-  const customInput = container.querySelector('.ferni-fund-custom-input') as HTMLInputElement;
+  const oneTimeButtons = container.querySelectorAll('.ferni-fund-amount-btn');
+  const monthlyButtons = container.querySelectorAll('.ferni-fund-monthly-btn');
   const submitBtn = container.querySelector('.ferni-fund-submit-btn') as HTMLButtonElement;
   const impactDiv = container.querySelector('.ferni-fund-impact') as HTMLElement;
   const impactNumber = container.querySelector('.ferni-fund-impact-number') as HTMLElement;
-  const recurringToggle = container.querySelector('.ferni-fund-recurring-toggle') as HTMLElement;
-  const messageInput = container.querySelector('.ferni-fund-message-input') as HTMLTextAreaElement;
 
   let selectedAmount = 0;
   let isRecurring = false;
@@ -301,37 +322,43 @@ function setupFormListeners(): void {
     }
   }
 
-  buttons.forEach((btn) => {
+  function clearAllSelections(): void {
+    oneTimeButtons.forEach((b) => b.classList.remove('selected'));
+    monthlyButtons.forEach((b) => b.classList.remove('selected'));
+  }
+
+  function updateSubmitButton(): void {
+    submitBtn.disabled = selectedAmount < 100;
+    submitBtn.textContent = isRecurring ? 'Start Monthly Support' : 'Plant Seeds';
+  }
+
+  // One-time contribution buttons
+  oneTimeButtons.forEach((btn) => {
     btn.addEventListener('click', () => {
-      buttons.forEach((b) => b.classList.remove('selected'));
+      clearAllSelections();
       btn.classList.add('selected');
       selectedAmount = parseInt(btn.getAttribute('data-amount') || '0', 10);
-      customInput.value = '';
-      submitBtn.disabled = false;
+      isRecurring = false;
       updateImpact(selectedAmount);
+      updateSubmitButton();
     });
   });
 
-  customInput.addEventListener('input', () => {
-    buttons.forEach((b) => b.classList.remove('selected'));
-    const value = customInput.value.replace(/[^0-9.]/g, '');
-    const cents = Math.round(parseFloat(value) * 100) || 0;
-    selectedAmount = cents;
-    submitBtn.disabled = cents < 100;
-    updateImpact(selectedAmount);
-  });
-
-  recurringToggle?.addEventListener('click', () => {
-    isRecurring = !isRecurring;
-    recurringToggle.classList.toggle('active', isRecurring);
-    recurringToggle.setAttribute('data-active', String(isRecurring));
+  // Monthly subscription buttons
+  monthlyButtons.forEach((btn) => {
+    btn.addEventListener('click', () => {
+      clearAllSelections();
+      btn.classList.add('selected');
+      selectedAmount = parseInt(btn.getAttribute('data-monthly-amount') || '0', 10);
+      isRecurring = true;
+      updateImpact(selectedAmount);
+      updateSubmitButton();
+    });
   });
 
   submitBtn.addEventListener('click', async () => {
     if (selectedAmount < 100 || !currentUserId) return;
-
-    const message = messageInput?.value || '';
-    await processContribution(selectedAmount, message, isRecurring);
+    await processContribution(selectedAmount, '', isRecurring);
   });
 }
 
@@ -447,7 +474,7 @@ export function close(): void {
  */
 export function showThankYou(impact: { conversationsSponsored: number; message: string }): void {
   if (!container) {
-    createModal().then((el) => {
+    void createModal().then((el) => {
       container = el;
       showThankYouContent(impact);
     });
@@ -542,8 +569,8 @@ function renderUserImpact(
           </div>
         ` : ''}
 
-        <div class="ferni-fund-actions">
-          <button class="ferni-fund-action-btn ferni-fund-action-btn--secondary" data-action="plant-more">
+        <div class="ferni-fund-actions" role="button" tabindex="0">
+          <button aria-label="${t('accessibility.plantMoreSeeds')}" class="ferni-fund-action-btn ferni-fund-action-btn--secondary" data-action="plant-more">
             ${SEED_ICON}
             <span>Plant More Seeds</span>
           </button>
@@ -567,8 +594,8 @@ function renderUserImpact(
             </div>
           ` : ''}
 
-          <div class="ferni-fund-actions">
-            <button class="ferni-fund-action-btn ferni-fund-action-btn--primary" data-action="plant-first">
+          <div class="ferni-fund-actions" role="button" tabindex="0">
+            <button aria-label="${t('accessibility.plantYourFirstSeed')}" class="ferni-fund-action-btn ferni-fund-action-btn--primary" data-action="plant-first">
               ${SEED_ICON}
               <span>Plant Your First Seed</span>
             </button>

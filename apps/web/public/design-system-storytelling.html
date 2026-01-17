@@ -1,0 +1,2035 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ferni Storytelling Visualizations - Better Than Apple & Google</title>
+  <style>
+    /* ============================================
+       FERNI DESIGN SYSTEM - STORYTELLING CHARTS
+       "This is what it feels like to be truly known"
+       ============================================ */
+
+    /* Midnight Theme (Default - Dark) */
+    :root {
+      --bg-primary: #2C2520;
+      --bg-secondary: #3a3330;
+      --bg-elevated: #4a4340;
+      --bg-card: #3a3330;
+      --text-primary: #f5f0eb;
+      --text-secondary: #c9c0b8;
+      --text-muted: #9a9088;
+      --text-dimmed: #6b635b;
+      --accent-primary: #d4a574;
+      --accent-secondary: #c49464;
+      --accent-tertiary: #a67c52;
+      --semantic-success: #7dad7a;
+      --semantic-warning: #d4a574;
+      --semantic-error: #c97b7b;
+      --semantic-info: #7a9dad;
+      --border-subtle: rgba(212, 165, 116, 0.15);
+      --border-medium: rgba(212, 165, 116, 0.25);
+      --glass-bg: rgba(58, 51, 48, 0.8);
+      --glass-border: rgba(212, 165, 116, 0.1);
+      --shadow-soft: 0 4px 20px rgba(0, 0, 0, 0.3);
+      --shadow-glow: 0 0 30px rgba(212, 165, 116, 0.15);
+
+      /* Storytelling specific */
+      --season-spring: #7dad7a;
+      --season-summer: #d4a574;
+      --season-autumn: #c97b7b;
+      --season-winter: #7a9dad;
+      --emotion-worry: #c97b7b;
+      --emotion-focus: #7a9dad;
+      --emotion-rest: #a67c52;
+      --emotion-joy: #d4a574;
+      --emotion-growth: #7dad7a;
+      --constellation-glow: rgba(212, 165, 116, 0.4);
+    }
+
+    /* Zen Theme (Light) */
+    [data-theme="zen"] {
+      --bg-primary: #f8f4ef;
+      --bg-secondary: #f0ebe4;
+      --bg-elevated: #ffffff;
+      --bg-card: #ffffff;
+      --text-primary: #2C2520;
+      --text-secondary: #5a524a;
+      --text-muted: #8a827a;
+      --text-dimmed: #b0a89f;
+      --accent-primary: #3D5A45;
+      --accent-secondary: #4a6741;
+      --accent-tertiary: #5a7751;
+      --semantic-success: #3D5A45;
+      --semantic-warning: #a67c52;
+      --semantic-error: #8b4a4a;
+      --semantic-info: #4a6a8b;
+      --border-subtle: rgba(61, 90, 69, 0.12);
+      --border-medium: rgba(61, 90, 69, 0.2);
+      --glass-bg: rgba(255, 255, 255, 0.9);
+      --glass-border: rgba(61, 90, 69, 0.08);
+      --shadow-soft: 0 4px 20px rgba(44, 37, 32, 0.08);
+      --shadow-glow: 0 0 30px rgba(61, 90, 69, 0.1);
+
+      /* Storytelling specific */
+      --season-spring: #4a6741;
+      --season-summer: #a67c52;
+      --season-autumn: #8b4a4a;
+      --season-winter: #4a6a8b;
+      --emotion-worry: #a67c52;
+      --emotion-focus: #4a6a8b;
+      --emotion-rest: #7a9dad;
+      --emotion-joy: #d4a574;
+      --emotion-growth: #3D5A45;
+      --constellation-glow: rgba(61, 90, 69, 0.3);
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      line-height: 1.6;
+      min-height: 100vh;
+      transition: background 0.3s ease, color 0.3s ease;
+    }
+
+    /* Header */
+    header {
+      text-align: center;
+      padding: 3rem 2rem 2rem;
+      position: relative;
+    }
+
+    .theme-toggle {
+      position: absolute;
+      top: 1.5rem;
+      right: 2rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      background: var(--bg-elevated);
+      padding: 0.5rem 1rem;
+      border-radius: 9999px;
+      border: 1px solid var(--border-subtle);
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .theme-toggle button {
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 0.25rem;
+      color: var(--text-muted);
+      transition: color 0.2s ease;
+    }
+
+    .theme-toggle button:hover,
+    .theme-toggle button.active {
+      color: var(--accent-primary);
+    }
+
+    .tagline {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.15em;
+      color: var(--accent-primary);
+      margin-bottom: 0.75rem;
+    }
+
+    h1 {
+      font-size: 2.5rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 0.5rem;
+      font-style: italic;
+      font-family: Georgia, 'Times New Roman', serif;
+    }
+
+    .subtitle {
+      font-size: 1rem;
+      color: var(--text-secondary);
+      max-width: 600px;
+      margin: 0 auto;
+    }
+
+    /* Navigation */
+    nav {
+      display: flex;
+      gap: 0.5rem;
+      padding: 1rem 2rem;
+      background: var(--bg-secondary);
+      flex-wrap: wrap;
+      justify-content: center;
+      border-bottom: 1px solid var(--glass-border);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      backdrop-filter: blur(20px);
+    }
+
+    nav a {
+      color: var(--text-secondary);
+      text-decoration: none;
+      padding: 0.625rem 1rem;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      font-weight: 500;
+      transition: all 0.3s ease;
+      border: 1px solid transparent;
+      white-space: nowrap;
+    }
+
+    nav a:hover {
+      color: var(--text-primary);
+      background: var(--bg-elevated);
+      border-color: var(--border-subtle);
+    }
+
+    nav a.active {
+      background: var(--accent-primary);
+      color: var(--bg-primary);
+    }
+
+    /* Main Content */
+    main {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 2rem;
+    }
+
+    /* Section Styling */
+    section {
+      margin-bottom: 4rem;
+      scroll-margin-top: 100px;
+    }
+
+    .section-header {
+      margin-bottom: 2rem;
+    }
+
+    .section-tag {
+      font-size: 0.6875rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--accent-primary);
+      background: var(--bg-elevated);
+      padding: 0.375rem 0.75rem;
+      border-radius: 9999px;
+      display: inline-block;
+      margin-bottom: 0.75rem;
+      border: 1px solid var(--border-subtle);
+    }
+
+    .section-title {
+      font-size: 1.75rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 0.5rem;
+      font-family: Georgia, 'Times New Roman', serif;
+      font-style: italic;
+    }
+
+    .section-desc {
+      font-size: 0.9375rem;
+      color: var(--text-secondary);
+      max-width: 700px;
+    }
+
+    /* Chart Card */
+    .chart-card {
+      background: var(--bg-card);
+      border-radius: 20px;
+      padding: 2rem;
+      border: 1px solid var(--border-subtle);
+      box-shadow: var(--shadow-soft);
+    }
+
+    .chart-card.full-width {
+      grid-column: span 2;
+    }
+
+    .chart-title {
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 1.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    /* ============================================
+       1. LIFE SEASONS VIEW
+       ============================================ */
+    .seasons-container {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 400px;
+      position: relative;
+    }
+
+    .seasons-wheel {
+      width: 350px;
+      height: 350px;
+      position: relative;
+    }
+
+    .season-arc {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+    }
+
+    .season-arc svg {
+      width: 100%;
+      height: 100%;
+      transform: rotate(-90deg);
+    }
+
+    .season-arc path {
+      fill: none;
+      stroke-width: 40;
+      stroke-linecap: round;
+      transition: opacity 0.3s ease;
+    }
+
+    .season-arc path.spring { stroke: var(--season-spring); }
+    .season-arc path.summer { stroke: var(--season-summer); }
+    .season-arc path.autumn { stroke: var(--season-autumn); }
+    .season-arc path.winter { stroke: var(--season-winter); }
+
+    .season-center {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      text-align: center;
+      background: var(--bg-card);
+      width: 180px;
+      height: 180px;
+      border-radius: 50%;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      border: 1px solid var(--border-subtle);
+    }
+
+    .season-current {
+      font-size: 0.6875rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--text-muted);
+      margin-bottom: 0.25rem;
+    }
+
+    .season-name {
+      font-size: 1.5rem;
+      font-weight: 600;
+      color: var(--season-spring);
+      font-family: Georgia, serif;
+      font-style: italic;
+    }
+
+    .season-insight {
+      font-size: 0.8125rem;
+      color: var(--text-secondary);
+      margin-top: 0.5rem;
+    }
+
+    .season-labels {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+    }
+
+    .season-label {
+      position: absolute;
+      font-size: 0.75rem;
+      font-weight: 500;
+      color: var(--text-muted);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.25rem;
+    }
+
+    .season-label.top { top: -30px; left: 50%; transform: translateX(-50%); }
+    .season-label.right { right: -50px; top: 50%; transform: translateY(-50%); }
+    .season-label.bottom { bottom: -30px; left: 50%; transform: translateX(-50%); }
+    .season-label.left { left: -50px; top: 50%; transform: translateY(-50%); }
+
+    .season-emoji {
+      font-size: 1.25rem;
+    }
+
+    /* ============================================
+       2. CONVERSATION RIVER
+       ============================================ */
+    .river-container {
+      min-height: 300px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .river-svg {
+      width: 100%;
+      height: 300px;
+    }
+
+    .river-path {
+      fill: none;
+      stroke-linecap: round;
+      opacity: 0.7;
+      transition: opacity 0.3s ease;
+    }
+
+    .river-path:hover {
+      opacity: 1;
+    }
+
+    .river-label {
+      font-size: 0.75rem;
+      fill: var(--text-secondary);
+    }
+
+    .river-legend {
+      display: flex;
+      justify-content: center;
+      gap: 2rem;
+      margin-top: 1.5rem;
+      flex-wrap: wrap;
+    }
+
+    .river-legend-item {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.8125rem;
+      color: var(--text-secondary);
+    }
+
+    .river-legend-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+    }
+
+    /* ============================================
+       3. RELATIONSHIP CONSTELLATION
+       ============================================ */
+    .constellation-container {
+      min-height: 450px;
+      position: relative;
+      background: radial-gradient(ellipse at center, var(--bg-elevated) 0%, var(--bg-card) 100%);
+      border-radius: 16px;
+      overflow: hidden;
+    }
+
+    .constellation-svg {
+      width: 100%;
+      height: 450px;
+    }
+
+    .star {
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .star:hover .star-glow {
+      r: 25;
+      opacity: 0.6;
+    }
+
+    .star-glow {
+      fill: var(--constellation-glow);
+      transition: all 0.3s ease;
+    }
+
+    .star-core {
+      fill: var(--accent-primary);
+    }
+
+    .star-label {
+      font-size: 0.75rem;
+      fill: var(--text-secondary);
+      text-anchor: middle;
+    }
+
+    .constellation-line {
+      stroke: var(--border-subtle);
+      stroke-width: 1;
+      stroke-dasharray: 4 4;
+    }
+
+    .constellation-center {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      text-align: center;
+    }
+
+    .you-label {
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    /* ============================================
+       4. THE MIRROR - What You Say vs Notice
+       ============================================ */
+    .mirror-container {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      gap: 1rem;
+      align-items: start;
+    }
+
+    .mirror-side {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .mirror-side.left { align-items: flex-end; }
+    .mirror-side.right { align-items: flex-start; }
+
+    .mirror-header {
+      font-size: 0.6875rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--text-muted);
+      margin-bottom: 0.5rem;
+    }
+
+    .mirror-item {
+      background: var(--bg-elevated);
+      padding: 0.75rem 1rem;
+      border-radius: 12px;
+      font-size: 0.875rem;
+      color: var(--text-secondary);
+      border: 1px solid var(--border-subtle);
+      max-width: 200px;
+      transition: all 0.2s ease;
+    }
+
+    .mirror-item:hover {
+      border-color: var(--accent-primary);
+      color: var(--text-primary);
+    }
+
+    .mirror-item.insight {
+      background: linear-gradient(135deg, var(--bg-elevated), rgba(212, 165, 116, 0.1));
+      border-color: var(--accent-tertiary);
+    }
+
+    .mirror-divider {
+      width: 2px;
+      background: linear-gradient(to bottom, transparent, var(--border-medium), transparent);
+      min-height: 300px;
+      position: relative;
+    }
+
+    .mirror-divider::after {
+      content: 'vs';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: var(--bg-card);
+      padding: 0.5rem;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      border-radius: 50%;
+      border: 1px solid var(--border-subtle);
+    }
+
+    /* ============================================
+       5. ENERGY FLOW SANKEY
+       ============================================ */
+    .sankey-container {
+      min-height: 350px;
+    }
+
+    .sankey-svg {
+      width: 100%;
+      height: 350px;
+    }
+
+    .sankey-node {
+      fill: var(--accent-primary);
+      rx: 4;
+    }
+
+    .sankey-node.depleting { fill: var(--semantic-error); }
+    .sankey-node.neutral { fill: var(--text-muted); }
+    .sankey-node.energizing { fill: var(--semantic-success); }
+
+    .sankey-flow {
+      fill: var(--accent-primary);
+      opacity: 0.3;
+    }
+
+    .sankey-label {
+      font-size: 0.8125rem;
+      fill: var(--text-secondary);
+    }
+
+    .sankey-value {
+      font-size: 0.75rem;
+      fill: var(--text-muted);
+    }
+
+    /* ============================================
+       6. THE UNSAID CHART
+       ============================================ */
+    .unsaid-container {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .unsaid-item {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      padding: 1rem;
+      background: var(--bg-elevated);
+      border-radius: 12px;
+      border: 1px solid var(--border-subtle);
+      transition: all 0.2s ease;
+    }
+
+    .unsaid-item:hover {
+      border-color: var(--accent-primary);
+      box-shadow: var(--shadow-glow);
+    }
+
+    .unsaid-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: var(--bg-card);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-muted);
+      font-size: 1.25rem;
+      border: 1px solid var(--border-subtle);
+    }
+
+    .unsaid-content {
+      flex: 1;
+    }
+
+    .unsaid-topic {
+      font-size: 0.9375rem;
+      font-weight: 500;
+      color: var(--text-primary);
+      margin-bottom: 0.25rem;
+    }
+
+    .unsaid-meta {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+
+    .unsaid-time {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 0.25rem;
+    }
+
+    .unsaid-days {
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: var(--accent-primary);
+    }
+
+    .unsaid-label {
+      font-size: 0.6875rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+    }
+
+    /* ============================================
+       7. GROWTH RINGS
+       ============================================ */
+    .rings-container {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 400px;
+    }
+
+    .rings-svg {
+      width: 400px;
+      height: 400px;
+    }
+
+    .growth-ring {
+      fill: none;
+      stroke-width: 20;
+      transition: all 0.3s ease;
+    }
+
+    .growth-ring:hover {
+      stroke-width: 25;
+    }
+
+    .ring-marker {
+      cursor: pointer;
+    }
+
+    .ring-marker circle {
+      fill: var(--bg-card);
+      stroke: var(--accent-primary);
+      stroke-width: 2;
+      transition: all 0.2s ease;
+    }
+
+    .ring-marker:hover circle {
+      fill: var(--accent-primary);
+      r: 8;
+    }
+
+    .rings-center {
+      font-size: 0.75rem;
+      fill: var(--text-muted);
+      text-anchor: middle;
+    }
+
+    .rings-legend {
+      display: flex;
+      justify-content: center;
+      gap: 1.5rem;
+      margin-top: 1.5rem;
+      flex-wrap: wrap;
+    }
+
+    .rings-legend-item {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.8125rem;
+      color: var(--text-secondary);
+    }
+
+    .rings-legend-bar {
+      width: 24px;
+      height: 8px;
+      border-radius: 4px;
+    }
+
+    /* ============================================
+       8. VALUES ALIGNMENT RADAR
+       ============================================ */
+    .radar-container {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 400px;
+    }
+
+    .radar-svg {
+      width: 400px;
+      height: 400px;
+    }
+
+    .radar-grid {
+      fill: none;
+      stroke: var(--border-subtle);
+      stroke-width: 1;
+    }
+
+    .radar-axis {
+      stroke: var(--border-subtle);
+      stroke-width: 1;
+    }
+
+    .radar-area-stated {
+      fill: var(--accent-primary);
+      fill-opacity: 0.15;
+      stroke: var(--accent-primary);
+      stroke-width: 2;
+    }
+
+    .radar-area-actual {
+      fill: var(--semantic-success);
+      fill-opacity: 0.15;
+      stroke: var(--semantic-success);
+      stroke-width: 2;
+      stroke-dasharray: 5 3;
+    }
+
+    .radar-label {
+      font-size: 0.75rem;
+      fill: var(--text-secondary);
+      text-anchor: middle;
+    }
+
+    .radar-value {
+      font-size: 0.625rem;
+      fill: var(--text-muted);
+      text-anchor: middle;
+    }
+
+    /* ============================================
+       9. TURNING POINTS TIMELINE
+       ============================================ */
+    .timeline-container {
+      position: relative;
+      padding: 2rem 0;
+    }
+
+    .timeline-line {
+      position: absolute;
+      left: 50%;
+      top: 0;
+      bottom: 0;
+      width: 2px;
+      background: linear-gradient(to bottom, transparent, var(--border-medium), transparent);
+      transform: translateX(-50%);
+    }
+
+    .timeline-points {
+      display: flex;
+      flex-direction: column;
+      gap: 3rem;
+    }
+
+    .timeline-point {
+      display: flex;
+      align-items: center;
+      gap: 2rem;
+    }
+
+    .timeline-point:nth-child(odd) {
+      flex-direction: row;
+    }
+
+    .timeline-point:nth-child(even) {
+      flex-direction: row-reverse;
+    }
+
+    .timeline-content {
+      flex: 1;
+      max-width: 300px;
+      background: var(--bg-elevated);
+      padding: 1.25rem;
+      border-radius: 16px;
+      border: 1px solid var(--border-subtle);
+      transition: all 0.2s ease;
+    }
+
+    .timeline-content:hover {
+      border-color: var(--accent-primary);
+      box-shadow: var(--shadow-glow);
+    }
+
+    .timeline-date {
+      font-size: 0.6875rem;
+      color: var(--accent-primary);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 0.5rem;
+    }
+
+    .timeline-title {
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 0.375rem;
+      font-family: Georgia, serif;
+      font-style: italic;
+    }
+
+    .timeline-desc {
+      font-size: 0.8125rem;
+      color: var(--text-secondary);
+    }
+
+    .timeline-marker {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: var(--accent-primary);
+      border: 4px solid var(--bg-card);
+      box-shadow: var(--shadow-soft);
+      z-index: 1;
+      flex-shrink: 0;
+    }
+
+    .timeline-marker.major {
+      width: 28px;
+      height: 28px;
+      background: var(--semantic-success);
+    }
+
+    .timeline-spacer {
+      flex: 1;
+      max-width: 300px;
+    }
+
+    /* ============================================
+       10. ANTICIPATION VIEW
+       ============================================ */
+    .anticipation-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1rem;
+    }
+
+    .anticipation-card {
+      background: var(--bg-elevated);
+      border-radius: 16px;
+      padding: 1.5rem;
+      border: 1px solid var(--border-subtle);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .anticipation-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, var(--accent-primary), var(--accent-tertiary));
+    }
+
+    .anticipation-timing {
+      font-size: 0.6875rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--accent-primary);
+      margin-bottom: 0.75rem;
+    }
+
+    .anticipation-prediction {
+      font-size: 1rem;
+      font-weight: 500;
+      color: var(--text-primary);
+      margin-bottom: 0.75rem;
+      line-height: 1.4;
+    }
+
+    .anticipation-basis {
+      font-size: 0.8125rem;
+      color: var(--text-muted);
+      font-style: italic;
+    }
+
+    .anticipation-confidence {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-top: 1rem;
+      padding-top: 1rem;
+      border-top: 1px solid var(--border-subtle);
+    }
+
+    .confidence-bar {
+      flex: 1;
+      height: 4px;
+      background: var(--bg-card);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+
+    .confidence-fill {
+      height: 100%;
+      background: var(--accent-primary);
+      border-radius: 2px;
+    }
+
+    .confidence-label {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+
+    /* ============================================
+       11. RIPPLE EFFECT MAP
+       ============================================ */
+    .ripple-container {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 400px;
+      position: relative;
+    }
+
+    .ripple-svg {
+      width: 100%;
+      max-width: 600px;
+      height: 400px;
+    }
+
+    .ripple-circle {
+      fill: none;
+      stroke: var(--accent-primary);
+      stroke-width: 1;
+      opacity: 0.3;
+    }
+
+    .ripple-circle.active {
+      stroke-width: 2;
+      opacity: 0.6;
+    }
+
+    .ripple-node {
+      cursor: pointer;
+    }
+
+    .ripple-node circle {
+      fill: var(--bg-elevated);
+      stroke: var(--accent-primary);
+      stroke-width: 2;
+      transition: all 0.2s ease;
+    }
+
+    .ripple-node:hover circle {
+      fill: var(--accent-primary);
+    }
+
+    .ripple-node text {
+      font-size: 0.6875rem;
+      fill: var(--text-secondary);
+      text-anchor: middle;
+    }
+
+    .ripple-center-text {
+      font-size: 0.875rem;
+      fill: var(--text-primary);
+      text-anchor: middle;
+      font-weight: 600;
+    }
+
+    .ripple-arrow {
+      fill: none;
+      stroke: var(--accent-primary);
+      stroke-width: 1.5;
+      marker-end: url(#arrowhead);
+    }
+
+    /* ============================================
+       12. UNFINISHED STORIES
+       ============================================ */
+    .stories-container {
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+
+    .story-card {
+      background: var(--bg-elevated);
+      border-radius: 16px;
+      padding: 1.5rem;
+      border: 1px solid var(--border-subtle);
+      display: flex;
+      gap: 1.5rem;
+      align-items: center;
+    }
+
+    .story-progress-ring {
+      width: 80px;
+      height: 80px;
+      flex-shrink: 0;
+    }
+
+    .story-progress-ring svg {
+      width: 100%;
+      height: 100%;
+      transform: rotate(-90deg);
+    }
+
+    .story-progress-bg {
+      fill: none;
+      stroke: var(--bg-card);
+      stroke-width: 8;
+    }
+
+    .story-progress-fill {
+      fill: none;
+      stroke: var(--accent-primary);
+      stroke-width: 8;
+      stroke-linecap: round;
+      transition: stroke-dashoffset 0.5s ease;
+    }
+
+    .story-progress-text {
+      font-size: 1.125rem;
+      font-weight: 600;
+      fill: var(--text-primary);
+    }
+
+    .story-content {
+      flex: 1;
+    }
+
+    .story-title {
+      font-size: 1.125rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 0.375rem;
+      font-family: Georgia, serif;
+      font-style: italic;
+    }
+
+    .story-started {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin-bottom: 0.75rem;
+    }
+
+    .story-chapters {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+
+    .story-chapter {
+      font-size: 0.75rem;
+      padding: 0.25rem 0.625rem;
+      background: var(--bg-card);
+      border-radius: 9999px;
+      color: var(--text-secondary);
+      border: 1px solid var(--border-subtle);
+    }
+
+    .story-chapter.complete {
+      background: var(--accent-primary);
+      color: var(--bg-primary);
+      border-color: var(--accent-primary);
+    }
+
+    .story-chapter.current {
+      border-color: var(--accent-primary);
+      color: var(--accent-primary);
+    }
+
+    /* ============================================
+       QUOTE BANNER
+       ============================================ */
+    .quote-banner {
+      background: linear-gradient(135deg, var(--bg-elevated), rgba(212, 165, 116, 0.05));
+      border-radius: 16px;
+      padding: 2rem;
+      text-align: center;
+      border: 1px solid var(--border-subtle);
+      margin: 3rem 0;
+    }
+
+    .quote-icon {
+      font-size: 1.5rem;
+      color: var(--accent-primary);
+      margin-bottom: 0.75rem;
+    }
+
+    .quote-text {
+      font-size: 1.25rem;
+      font-family: Georgia, serif;
+      font-style: italic;
+      color: var(--text-primary);
+    }
+
+    .quote-text em {
+      color: var(--accent-primary);
+      font-style: italic;
+    }
+
+    /* Grid Layouts */
+    .chart-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 1.5rem;
+    }
+
+    @media (max-width: 900px) {
+      .chart-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .chart-card.full-width {
+        grid-column: span 1;
+      }
+
+      .mirror-container {
+        grid-template-columns: 1fr;
+        gap: 2rem;
+      }
+
+      .mirror-side.left,
+      .mirror-side.right {
+        align-items: center;
+      }
+
+      .mirror-divider {
+        width: 100%;
+        height: 2px;
+        min-height: auto;
+        background: linear-gradient(to right, transparent, var(--border-medium), transparent);
+      }
+
+      .mirror-divider::after {
+        top: 50%;
+        left: 50%;
+      }
+
+      .timeline-point,
+      .timeline-point:nth-child(even) {
+        flex-direction: column;
+      }
+
+      .timeline-line {
+        left: 20px;
+      }
+
+      .timeline-spacer {
+        display: none;
+      }
+    }
+
+    /* Animations */
+    @keyframes pulse {
+      0%, 100% { opacity: 0.4; }
+      50% { opacity: 0.8; }
+    }
+
+    @keyframes float {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-10px); }
+    }
+
+    .animate-pulse {
+      animation: pulse 3s ease-in-out infinite;
+    }
+
+    .animate-float {
+      animation: float 6s ease-in-out infinite;
+    }
+
+    /* Reduced Motion */
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation: none !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="theme-toggle">
+      <span>Theme</span>
+      <button onclick="setTheme('midnight')" title="Midnight" id="btn-midnight">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+        </svg>
+      </button>
+      <button onclick="setTheme('zen')" title="Zen" id="btn-zen">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="5"/>
+          <line x1="12" y1="1" x2="12" y2="3"/>
+          <line x1="12" y1="21" x2="12" y2="23"/>
+          <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
+          <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+          <line x1="1" y1="12" x2="3" y2="12"/>
+          <line x1="21" y1="12" x2="23" y2="12"/>
+          <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
+          <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+        </svg>
+      </button>
+      <span id="theme-label">Midnight</span>
+    </div>
+    <div class="tagline">Storytelling Visualizations</div>
+    <h1>What it feels like to be truly known</h1>
+    <p class="subtitle">Visualizations that show meaning, not just metrics. Narrative, not numbers. Growth, not graphs.</p>
+  </header>
+
+  <nav>
+    <a href="#seasons" class="active">Life Seasons</a>
+    <a href="#river">Conversation River</a>
+    <a href="#constellation">Constellation</a>
+    <a href="#mirror">The Mirror</a>
+    <a href="#energy">Energy Flow</a>
+    <a href="#unsaid">The Unsaid</a>
+    <a href="#rings">Growth Rings</a>
+    <a href="#values">Values Radar</a>
+    <a href="#timeline">Turning Points</a>
+    <a href="#anticipation">Anticipation</a>
+    <a href="#ripple">Ripple Effect</a>
+    <a href="#stories">Unfinished Stories</a>
+  </nav>
+
+  <main>
+    <!-- 1. LIFE SEASONS VIEW -->
+    <section id="seasons">
+      <div class="section-header">
+        <span class="section-tag">Emotional Intelligence</span>
+        <h2 class="section-title">Life Seasons</h2>
+        <p class="section-desc">Not a calendar - emotional seasons. See your year as a living, breathing journey of growth, rest, release, and renewal.</p>
+      </div>
+      <div class="chart-card">
+        <div class="seasons-container">
+          <div class="seasons-wheel">
+            <div class="season-arc">
+              <svg viewBox="0 0 200 200">
+                <!-- Spring: 0-90 degrees -->
+                <path class="spring" d="M 100 20 A 80 80 0 0 1 180 100" stroke-opacity="0.8"/>
+                <!-- Summer: 90-180 degrees -->
+                <path class="summer" d="M 180 100 A 80 80 0 0 1 100 180" stroke-opacity="0.6"/>
+                <!-- Autumn: 180-270 degrees -->
+                <path class="autumn" d="M 100 180 A 80 80 0 0 1 20 100" stroke-opacity="0.4"/>
+                <!-- Winter: 270-360 degrees -->
+                <path class="winter" d="M 20 100 A 80 80 0 0 1 100 20" stroke-opacity="0.3"/>
+              </svg>
+            </div>
+            <div class="season-labels">
+              <div class="season-label top">
+                <span class="season-emoji">&#127793;</span>
+                <span>Growth</span>
+              </div>
+              <div class="season-label right">
+                <span class="season-emoji">&#9728;</span>
+                <span>Expansion</span>
+              </div>
+              <div class="season-label bottom">
+                <span class="season-emoji">&#127810;</span>
+                <span>Release</span>
+              </div>
+              <div class="season-label left">
+                <span class="season-emoji">&#10052;</span>
+                <span>Rest</span>
+              </div>
+            </div>
+            <div class="season-center">
+              <span class="season-current">You're in a season of</span>
+              <span class="season-name">Growth</span>
+              <span class="season-insight">Expanding, learning, reaching</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 2. CONVERSATION RIVER -->
+    <section id="river">
+      <div class="section-header">
+        <span class="section-tag">Topic Tracking</span>
+        <h2 class="section-title">Conversation River</h2>
+        <p class="section-desc">Topics flowing through time like tributaries. Width shows how much you talked about it, color intensity shows emotional weight.</p>
+      </div>
+      <div class="chart-card">
+        <svg class="river-svg" viewBox="0 0 800 300">
+          <defs>
+            <linearGradient id="workGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" style="stop-color:var(--emotion-focus);stop-opacity:0.3" />
+              <stop offset="50%" style="stop-color:var(--emotion-focus);stop-opacity:0.7" />
+              <stop offset="100%" style="stop-color:var(--emotion-focus);stop-opacity:0.4" />
+            </linearGradient>
+            <linearGradient id="familyGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" style="stop-color:var(--emotion-joy);stop-opacity:0.4" />
+              <stop offset="50%" style="stop-color:var(--emotion-joy);stop-opacity:0.8" />
+              <stop offset="100%" style="stop-color:var(--emotion-joy);stop-opacity:0.5" />
+            </linearGradient>
+            <linearGradient id="healthGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" style="stop-color:var(--emotion-growth);stop-opacity:0.2" />
+              <stop offset="50%" style="stop-color:var(--emotion-growth);stop-opacity:0.5" />
+              <stop offset="100%" style="stop-color:var(--emotion-growth);stop-opacity:0.6" />
+            </linearGradient>
+            <linearGradient id="worryGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" style="stop-color:var(--emotion-worry);stop-opacity:0.6" />
+              <stop offset="50%" style="stop-color:var(--emotion-worry);stop-opacity:0.3" />
+              <stop offset="100%" style="stop-color:var(--emotion-worry);stop-opacity:0.1" />
+            </linearGradient>
+          </defs>
+
+          <!-- Work stream -->
+          <path class="river-path" d="M 0 80 Q 100 70, 200 90 T 400 85 T 600 100 T 800 90" stroke="url(#workGrad)" stroke-width="40"/>
+
+          <!-- Family stream -->
+          <path class="river-path" d="M 0 150 Q 100 160, 200 140 T 400 160 T 600 145 T 800 155" stroke="url(#familyGrad)" stroke-width="35"/>
+
+          <!-- Health stream -->
+          <path class="river-path" d="M 0 210 Q 100 200, 200 220 T 400 200 T 600 210 T 800 195" stroke="url(#healthGrad)" stroke-width="25"/>
+
+          <!-- Worry stream (fading) -->
+          <path class="river-path" d="M 0 260 Q 100 265, 200 255 T 400 270 T 600 280 T 800 285" stroke="url(#worryGrad)" stroke-width="20"/>
+
+          <!-- Month labels -->
+          <text x="50" y="290" class="river-label">Jun</text>
+          <text x="200" y="290" class="river-label">Jul</text>
+          <text x="350" y="290" class="river-label">Aug</text>
+          <text x="500" y="290" class="river-label">Sep</text>
+          <text x="650" y="290" class="river-label">Oct</text>
+          <text x="770" y="290" class="river-label">Now</text>
+        </svg>
+        <div class="river-legend">
+          <div class="river-legend-item">
+            <div class="river-legend-dot" style="background: var(--emotion-focus)"></div>
+            <span>Work</span>
+          </div>
+          <div class="river-legend-item">
+            <div class="river-legend-dot" style="background: var(--emotion-joy)"></div>
+            <span>Family</span>
+          </div>
+          <div class="river-legend-item">
+            <div class="river-legend-dot" style="background: var(--emotion-growth)"></div>
+            <span>Health</span>
+          </div>
+          <div class="river-legend-item">
+            <div class="river-legend-dot" style="background: var(--emotion-worry)"></div>
+            <span>Worry (fading)</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 3. RELATIONSHIP CONSTELLATION -->
+    <section id="constellation">
+      <div class="section-header">
+        <span class="section-tag">Relationship Intelligence</span>
+        <h2 class="section-title">Your Constellation</h2>
+        <p class="section-desc">Your people as stars in a sky. Distance shows connection strength, brightness shows recent contact.</p>
+      </div>
+      <div class="chart-card">
+        <div class="constellation-container">
+          <svg class="constellation-svg" viewBox="0 0 600 450">
+            <!-- Connection lines -->
+            <line class="constellation-line" x1="300" y1="225" x2="180" y2="120"/>
+            <line class="constellation-line" x1="300" y1="225" x2="420" y2="100"/>
+            <line class="constellation-line" x1="300" y1="225" x2="150" y2="280"/>
+            <line class="constellation-line" x1="300" y1="225" x2="450" y2="250"/>
+            <line class="constellation-line" x1="300" y1="225" x2="250" y2="380"/>
+            <line class="constellation-line" x1="300" y1="225" x2="380" y2="360"/>
+            <line class="constellation-line" x1="300" y1="225" x2="100" y2="180"/>
+            <line class="constellation-line" x1="300" y1="225" x2="500" y2="180"/>
+
+            <!-- Distant stars (faded) -->
+            <g class="star" opacity="0.4">
+              <circle class="star-glow" cx="80" cy="80" r="8" opacity="0.3"/>
+              <circle class="star-core" cx="80" cy="80" r="3"/>
+            </g>
+            <g class="star" opacity="0.3">
+              <circle class="star-glow" cx="520" cy="60" r="6" opacity="0.2"/>
+              <circle class="star-core" cx="520" cy="60" r="2"/>
+            </g>
+            <g class="star" opacity="0.35">
+              <circle class="star-glow" cx="550" cy="350" r="7" opacity="0.25"/>
+              <circle class="star-core" cx="550" cy="350" r="2.5"/>
+            </g>
+
+            <!-- Close stars -->
+            <g class="star">
+              <circle class="star-glow" cx="180" cy="120" r="18" opacity="0.4"/>
+              <circle class="star-core" cx="180" cy="120" r="8"/>
+              <text class="star-label" x="180" y="150">Mom</text>
+            </g>
+
+            <g class="star">
+              <circle class="star-glow" cx="420" cy="100" r="20" opacity="0.5"/>
+              <circle class="star-core" cx="420" cy="100" r="9"/>
+              <text class="star-label" x="420" y="130">Partner</text>
+            </g>
+
+            <g class="star">
+              <circle class="star-glow" cx="150" cy="280" r="14" opacity="0.35"/>
+              <circle class="star-core" cx="150" cy="280" r="6"/>
+              <text class="star-label" x="150" y="310">Sarah</text>
+            </g>
+
+            <g class="star">
+              <circle class="star-glow" cx="450" cy="250" r="12" opacity="0.3"/>
+              <circle class="star-core" cx="450" cy="250" r="5"/>
+              <text class="star-label" x="450" y="280">Mike</text>
+            </g>
+
+            <g class="star">
+              <circle class="star-glow" cx="250" cy="380" r="10" opacity="0.25"/>
+              <circle class="star-core" cx="250" cy="380" r="4"/>
+              <text class="star-label" x="250" y="405">Alex</text>
+            </g>
+
+            <g class="star">
+              <circle class="star-glow" cx="380" cy="360" r="11" opacity="0.28"/>
+              <circle class="star-core" cx="380" cy="360" r="4.5"/>
+              <text class="star-label" x="380" y="385">Jordan</text>
+            </g>
+
+            <g class="star">
+              <circle class="star-glow" cx="100" cy="180" r="8" opacity="0.2"/>
+              <circle class="star-core" cx="100" cy="180" r="3"/>
+              <text class="star-label" x="100" y="205">Dad</text>
+            </g>
+
+            <g class="star">
+              <circle class="star-glow" cx="500" cy="180" r="9" opacity="0.22"/>
+              <circle class="star-core" cx="500" cy="180" r="3.5"/>
+              <text class="star-label" x="500" y="205">Boss</text>
+            </g>
+
+            <!-- Center (You) -->
+            <circle cx="300" cy="225" r="25" fill="var(--accent-primary)" opacity="0.2"/>
+            <circle cx="300" cy="225" r="15" fill="var(--accent-primary)"/>
+            <text x="300" y="270" class="star-label" style="font-weight: 600; fill: var(--text-primary);">You</text>
+          </svg>
+        </div>
+      </div>
+    </section>
+
+    <!-- Quote Banner -->
+    <div class="quote-banner">
+      <div class="quote-icon">&#9734;</div>
+      <p class="quote-text">This is what it feels like to be <em>truly</em> known.</p>
+    </div>
+
+    <!-- 4. THE MIRROR -->
+    <section id="mirror">
+      <div class="section-header">
+        <span class="section-tag">Self Awareness</span>
+        <h2 class="section-title">The Mirror</h2>
+        <p class="section-desc">What you talk about vs what Ferni notices. The gap between these IS the insight.</p>
+      </div>
+      <div class="chart-card">
+        <div class="mirror-container">
+          <div class="mirror-side left">
+            <div class="mirror-header">What you bring up</div>
+            <div class="mirror-item">Work deadlines</div>
+            <div class="mirror-item">Weekend plans</div>
+            <div class="mirror-item">That podcast</div>
+            <div class="mirror-item">Fitness goals</div>
+            <div class="mirror-item">The new project</div>
+          </div>
+          <div class="mirror-divider"></div>
+          <div class="mirror-side right">
+            <div class="mirror-header">What I notice</div>
+            <div class="mirror-item insight">Energy drops Mondays</div>
+            <div class="mirror-item insight">Avoiding mom topic</div>
+            <div class="mirror-item insight">More "should" lately</div>
+            <div class="mirror-item insight">Sleep mentioned 1x only</div>
+            <div class="mirror-item insight">Laughter returning</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="chart-grid">
+      <!-- 5. ENERGY FLOW SANKEY -->
+      <section id="energy" class="chart-card full-width">
+        <div class="section-header">
+          <span class="section-tag">Energy Intelligence</span>
+          <h2 class="section-title">Energy Flow</h2>
+          <p class="section-desc">Where your emotional energy goes - and what gives back.</p>
+        </div>
+        <svg class="sankey-svg" viewBox="0 0 800 300">
+          <!-- Source node -->
+          <rect class="sankey-node" x="50" y="100" width="30" height="100"/>
+          <text class="sankey-label" x="65" y="90">Your Energy</text>
+          <text class="sankey-value" x="65" y="220">100%</text>
+
+          <!-- Flow paths -->
+          <path class="sankey-flow" d="M 80 110 C 200 110, 200 50, 320 50 L 320 90 C 200 90, 200 150, 80 150 Z" style="fill: var(--semantic-error); opacity: 0.4;"/>
+          <path class="sankey-flow" d="M 80 150 C 200 150, 200 130, 320 130 L 320 180 C 200 180, 200 190, 80 190 Z" style="fill: var(--semantic-success); opacity: 0.4;"/>
+          <path class="sankey-flow" d="M 80 190 C 200 190, 200 220, 320 220 L 320 250 C 200 250, 200 210, 80 210 Z" style="fill: var(--text-muted); opacity: 0.3;"/>
+
+          <!-- Destination nodes -->
+          <rect class="sankey-node depleting" x="320" y="50" width="30" height="40"/>
+          <text class="sankey-label" x="380" y="65">Work stress</text>
+          <text class="sankey-value" x="380" y="82">45% - draining</text>
+
+          <rect class="sankey-node energizing" x="320" y="130" width="30" height="50"/>
+          <text class="sankey-label" x="380" y="150">Family time</text>
+          <text class="sankey-value" x="380" y="167">30% - energizing</text>
+
+          <rect class="sankey-node neutral" x="320" y="220" width="30" height="30"/>
+          <text class="sankey-label" x="380" y="232">Self-care</text>
+          <text class="sankey-value" x="380" y="249">15% - neglected</text>
+
+          <!-- Second level flows -->
+          <path class="sankey-flow" d="M 350 70 C 450 70, 450 60, 550 60 L 550 85 C 450 85, 450 85, 350 85 Z" style="fill: var(--semantic-error); opacity: 0.3;"/>
+          <path class="sankey-flow" d="M 350 155 C 450 155, 450 140, 550 140 L 550 175 C 450 175, 450 170, 350 170 Z" style="fill: var(--semantic-success); opacity: 0.35;"/>
+
+          <!-- Final outcomes -->
+          <rect class="sankey-node depleting" x="550" y="55" width="20" height="30"/>
+          <text class="sankey-label" x="590" y="70">Exhaustion</text>
+
+          <rect class="sankey-node energizing" x="550" y="135" width="20" height="45"/>
+          <text class="sankey-label" x="590" y="155">Joy & connection</text>
+        </svg>
+      </section>
+    </div>
+
+    <!-- 6. THE UNSAID -->
+    <section id="unsaid">
+      <div class="section-header">
+        <span class="section-tag">Gentle Awareness</span>
+        <h2 class="section-title">The Unsaid</h2>
+        <p class="section-desc">Topics you mentioned once, never returned to. Not guilt - curiosity.</p>
+      </div>
+      <div class="chart-card">
+        <div class="unsaid-container">
+          <div class="unsaid-item">
+            <div class="unsaid-icon">&#128172;</div>
+            <div class="unsaid-content">
+              <div class="unsaid-topic">Your sister's wedding</div>
+              <div class="unsaid-meta">Mentioned feeling complicated about it</div>
+            </div>
+            <div class="unsaid-time">
+              <span class="unsaid-days">47</span>
+              <span class="unsaid-label">days ago</span>
+            </div>
+          </div>
+          <div class="unsaid-item">
+            <div class="unsaid-icon">&#128161;</div>
+            <div class="unsaid-content">
+              <div class="unsaid-topic">The business idea</div>
+              <div class="unsaid-meta">You were excited, then silence</div>
+            </div>
+            <div class="unsaid-time">
+              <span class="unsaid-days">23</span>
+              <span class="unsaid-label">days ago</span>
+            </div>
+          </div>
+          <div class="unsaid-item">
+            <div class="unsaid-icon">&#128150;</div>
+            <div class="unsaid-content">
+              <div class="unsaid-topic">Feeling disconnected from friends</div>
+              <div class="unsaid-meta">A late-night mention</div>
+            </div>
+            <div class="unsaid-time">
+              <span class="unsaid-days">31</span>
+              <span class="unsaid-label">days ago</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 7. GROWTH RINGS -->
+    <section id="rings">
+      <div class="section-header">
+        <span class="section-tag">Long-term View</span>
+        <h2 class="section-title">Growth Rings</h2>
+        <p class="section-desc">Like a tree - each ring represents a period of growth. Wider rings mean deeper growth.</p>
+      </div>
+      <div class="chart-card">
+        <div class="rings-container">
+          <svg class="rings-svg" viewBox="0 0 400 400">
+            <!-- Growth rings (oldest to newest) -->
+            <circle class="growth-ring" cx="200" cy="200" r="160" stroke="var(--season-winter)" stroke-opacity="0.3"/>
+            <circle class="growth-ring" cx="200" cy="200" r="130" stroke="var(--season-autumn)" stroke-opacity="0.4"/>
+            <circle class="growth-ring" cx="200" cy="200" r="95" stroke="var(--season-summer)" stroke-opacity="0.5"/>
+            <circle class="growth-ring" cx="200" cy="200" r="55" stroke="var(--season-spring)" stroke-opacity="0.7"/>
+
+            <!-- Milestone markers -->
+            <g class="ring-marker">
+              <circle cx="200" cy="40" r="6" />
+              <title>Started therapy - Jan 2023</title>
+            </g>
+            <g class="ring-marker">
+              <circle cx="330" cy="200" r="6" />
+              <title>Set the boundary - Jun 2023</title>
+            </g>
+            <g class="ring-marker">
+              <circle cx="200" cy="295" r="6" />
+              <title>The breakthrough - Oct 2023</title>
+            </g>
+            <g class="ring-marker">
+              <circle cx="145" cy="200" r="6" />
+              <title>Finding peace - Now</title>
+            </g>
+
+            <!-- Center -->
+            <circle cx="200" cy="200" r="25" fill="var(--accent-primary)" opacity="0.2"/>
+            <circle cx="200" cy="200" r="15" fill="var(--accent-primary)"/>
+            <text class="rings-center" x="200" y="204">Now</text>
+          </svg>
+        </div>
+        <div class="rings-legend">
+          <div class="rings-legend-item">
+            <div class="rings-legend-bar" style="background: var(--season-winter);"></div>
+            <span>2022 - Dormant</span>
+          </div>
+          <div class="rings-legend-item">
+            <div class="rings-legend-bar" style="background: var(--season-autumn);"></div>
+            <span>Early 2023 - Releasing</span>
+          </div>
+          <div class="rings-legend-item">
+            <div class="rings-legend-bar" style="background: var(--season-summer);"></div>
+            <span>Mid 2023 - Expanding</span>
+          </div>
+          <div class="rings-legend-item">
+            <div class="rings-legend-bar" style="background: var(--season-spring);"></div>
+            <span>Now - Growing</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 8. VALUES ALIGNMENT RADAR -->
+    <section id="values">
+      <div class="section-header">
+        <span class="section-tag">Values Intelligence</span>
+        <h2 class="section-title">Values Alignment</h2>
+        <p class="section-desc">Your stated values vs your actual conversations. How aligned are your days with what matters most?</p>
+      </div>
+      <div class="chart-card">
+        <div class="radar-container">
+          <svg class="radar-svg" viewBox="0 0 400 400">
+            <!-- Grid circles -->
+            <circle class="radar-grid" cx="200" cy="200" r="150"/>
+            <circle class="radar-grid" cx="200" cy="200" r="112"/>
+            <circle class="radar-grid" cx="200" cy="200" r="75"/>
+            <circle class="radar-grid" cx="200" cy="200" r="37"/>
+
+            <!-- Axis lines -->
+            <line class="radar-axis" x1="200" y1="50" x2="200" y2="350"/>
+            <line class="radar-axis" x1="50" y1="200" x2="350" y2="200"/>
+            <line class="radar-axis" x1="94" y1="94" x2="306" y2="306"/>
+            <line class="radar-axis" x1="306" y1="94" x2="94" y2="306"/>
+
+            <!-- Stated values (what you say matters) -->
+            <polygon class="radar-area-stated" points="200,65 305,140 305,260 200,335 95,260 95,140"/>
+
+            <!-- Actual values (what you talk about) -->
+            <polygon class="radar-area-actual" points="200,95 270,155 280,240 200,290 120,250 130,145"/>
+
+            <!-- Labels -->
+            <text class="radar-label" x="200" y="35">Family</text>
+            <text class="radar-label" x="365" y="125">Health</text>
+            <text class="radar-label" x="365" y="285">Career</text>
+            <text class="radar-label" x="200" y="380">Growth</text>
+            <text class="radar-label" x="35" y="285">Connection</text>
+            <text class="radar-label" x="35" y="125">Creativity</text>
+          </svg>
+        </div>
+        <div class="river-legend" style="margin-top: 1rem;">
+          <div class="river-legend-item">
+            <div class="river-legend-dot" style="background: var(--accent-primary);"></div>
+            <span>What you say matters</span>
+          </div>
+          <div class="river-legend-item">
+            <div class="river-legend-dot" style="background: var(--semantic-success);"></div>
+            <span>What you actually discuss</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 9. TURNING POINTS TIMELINE -->
+    <section id="timeline">
+      <div class="section-header">
+        <span class="section-tag">Your Story</span>
+        <h2 class="section-title">Turning Points</h2>
+        <p class="section-desc">Not every conversation - just the pivots. The moments that changed everything.</p>
+      </div>
+      <div class="chart-card">
+        <div class="timeline-container">
+          <div class="timeline-line"></div>
+          <div class="timeline-points">
+            <div class="timeline-point">
+              <div class="timeline-content">
+                <div class="timeline-date">September 14</div>
+                <div class="timeline-title">You set the boundary</div>
+                <div class="timeline-desc">After months of hints, you finally said no. "I can't keep doing this."</div>
+              </div>
+              <div class="timeline-marker major"></div>
+              <div class="timeline-spacer"></div>
+            </div>
+            <div class="timeline-point">
+              <div class="timeline-spacer"></div>
+              <div class="timeline-marker"></div>
+              <div class="timeline-content">
+                <div class="timeline-date">October 2</div>
+                <div class="timeline-title">The relief arrived</div>
+                <div class="timeline-desc">First time you mentioned sleeping well in weeks.</div>
+              </div>
+            </div>
+            <div class="timeline-point">
+              <div class="timeline-content">
+                <div class="timeline-date">November 18</div>
+                <div class="timeline-title">You forgave yourself</div>
+                <div class="timeline-desc">"I did the best I could with what I knew then."</div>
+              </div>
+              <div class="timeline-marker major"></div>
+              <div class="timeline-spacer"></div>
+            </div>
+            <div class="timeline-point">
+              <div class="timeline-spacer"></div>
+              <div class="timeline-marker"></div>
+              <div class="timeline-content">
+                <div class="timeline-date">December 5</div>
+                <div class="timeline-title">Joy returned</div>
+                <div class="timeline-desc">You laughed - really laughed - for the first time in a while.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 10. ANTICIPATION VIEW -->
+    <section id="anticipation">
+      <div class="section-header">
+        <span class="section-tag">Better Than Human</span>
+        <h2 class="section-title">What I See Coming</h2>
+        <p class="section-desc">Patterns suggest... Not fortune-telling, just pattern recognition that cares.</p>
+      </div>
+      <div class="chart-card">
+        <div class="anticipation-grid">
+          <div class="anticipation-card">
+            <div class="anticipation-timing">Next week</div>
+            <div class="anticipation-prediction">You might feel anxious around Thursday</div>
+            <div class="anticipation-basis">Quarterly reviews tend to affect your sleep the night before.</div>
+            <div class="anticipation-confidence">
+              <div class="confidence-bar"><div class="confidence-fill" style="width: 78%;"></div></div>
+              <span class="confidence-label">78% pattern match</span>
+            </div>
+          </div>
+          <div class="anticipation-card">
+            <div class="anticipation-timing">Late January</div>
+            <div class="anticipation-prediction">Energy might dip like last year</div>
+            <div class="anticipation-basis">You mentioned seasonal patterns. The light changes.</div>
+            <div class="anticipation-confidence">
+              <div class="confidence-bar"><div class="confidence-fill" style="width: 65%;"></div></div>
+              <span class="confidence-label">65% pattern match</span>
+            </div>
+          </div>
+          <div class="anticipation-card">
+            <div class="anticipation-timing">This anniversary</div>
+            <div class="anticipation-prediction">March 15 might feel heavy</div>
+            <div class="anticipation-basis">Last year you struggled with this date. I remember.</div>
+            <div class="anticipation-confidence">
+              <div class="confidence-bar"><div class="confidence-fill" style="width: 85%;"></div></div>
+              <span class="confidence-label">85% pattern match</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 11. RIPPLE EFFECT MAP -->
+    <section id="ripple">
+      <div class="section-header">
+        <span class="section-tag">Cause & Effect</span>
+        <h2 class="section-title">Ripple Effects</h2>
+        <p class="section-desc">When one thing changes, watch it cascade. Better sleep rippled into everything.</p>
+      </div>
+      <div class="chart-card">
+        <div class="ripple-container">
+          <svg class="ripple-svg" viewBox="0 0 600 400">
+            <defs>
+              <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+                <polygon points="0 0, 10 3.5, 0 7" fill="var(--accent-primary)" opacity="0.6"/>
+              </marker>
+            </defs>
+
+            <!-- Ripple circles -->
+            <circle class="ripple-circle active" cx="300" cy="200" r="50"/>
+            <circle class="ripple-circle" cx="300" cy="200" r="100"/>
+            <circle class="ripple-circle" cx="300" cy="200" r="150"/>
+
+            <!-- Center node -->
+            <circle cx="300" cy="200" r="35" fill="var(--accent-primary)" opacity="0.2"/>
+            <circle cx="300" cy="200" r="25" fill="var(--accent-primary)"/>
+            <text class="ripple-center-text" x="300" y="195">Better</text>
+            <text class="ripple-center-text" x="300" y="212">Sleep</text>
+
+            <!-- Arrows to first ring -->
+            <path class="ripple-arrow" d="M 325 180 Q 350 160, 370 145"/>
+            <path class="ripple-arrow" d="M 325 220 Q 350 240, 370 255"/>
+            <path class="ripple-arrow" d="M 275 180 Q 250 160, 230 145"/>
+            <path class="ripple-arrow" d="M 275 220 Q 250 240, 230 255"/>
+
+            <!-- First ring nodes -->
+            <g class="ripple-node">
+              <circle cx="385" cy="130" r="20"/>
+              <text x="385" y="105">More</text>
+              <text x="385" y="118">patience</text>
+            </g>
+            <g class="ripple-node">
+              <circle cx="385" cy="270" r="20"/>
+              <text x="385" y="245">Clearer</text>
+              <text x="385" y="258">thinking</text>
+            </g>
+            <g class="ripple-node">
+              <circle cx="215" cy="130" r="20"/>
+              <text x="215" y="105">Better</text>
+              <text x="215" y="118">mood</text>
+            </g>
+            <g class="ripple-node">
+              <circle cx="215" cy="270" r="20"/>
+              <text x="215" y="245">More</text>
+              <text x="215" y="258">energy</text>
+            </g>
+
+            <!-- Arrows to second ring -->
+            <path class="ripple-arrow" d="M 400 115 Q 430 90, 460 75"/>
+            <path class="ripple-arrow" d="M 200 115 Q 170 90, 140 75"/>
+
+            <!-- Second ring nodes -->
+            <g class="ripple-node">
+              <circle cx="475" cy="60" r="18"/>
+              <text x="475" y="35">Fewer</text>
+              <text x="475" y="48">conflicts</text>
+            </g>
+            <g class="ripple-node">
+              <circle cx="125" cy="60" r="18"/>
+              <text x="125" y="35">Better</text>
+              <text x="125" y="48">with kids</text>
+            </g>
+          </svg>
+        </div>
+      </div>
+    </section>
+
+    <!-- 12. UNFINISHED STORIES -->
+    <section id="stories">
+      <div class="section-header">
+        <span class="section-tag">Story Arcs</span>
+        <h2 class="section-title">Unfinished Stories</h2>
+        <p class="section-desc">Story arcs you started but haven't resolved. Not pressure - gentle awareness of open loops.</p>
+      </div>
+      <div class="chart-card">
+        <div class="stories-container">
+          <div class="story-card">
+            <div class="story-progress-ring">
+              <svg viewBox="0 0 80 80">
+                <circle class="story-progress-bg" cx="40" cy="40" r="32"/>
+                <circle class="story-progress-fill" cx="40" cy="40" r="32"
+                        stroke-dasharray="201" stroke-dashoffset="80"/>
+                <text class="story-progress-text" x="40" y="44" transform="rotate(90, 40, 40)">60%</text>
+              </svg>
+            </div>
+            <div class="story-content">
+              <div class="story-title">The job decision</div>
+              <div class="story-started">Started 6 weeks ago</div>
+              <div class="story-chapters">
+                <span class="story-chapter complete">Noticed unhappiness</span>
+                <span class="story-chapter complete">Explored options</span>
+                <span class="story-chapter current">Making choice</span>
+                <span class="story-chapter">Taking action</span>
+              </div>
+            </div>
+          </div>
+          <div class="story-card">
+            <div class="story-progress-ring">
+              <svg viewBox="0 0 80 80">
+                <circle class="story-progress-bg" cx="40" cy="40" r="32"/>
+                <circle class="story-progress-fill" cx="40" cy="40" r="32"
+                        stroke-dasharray="201" stroke-dashoffset="140" style="stroke: var(--emotion-worry);"/>
+                <text class="story-progress-text" x="40" y="44" transform="rotate(90, 40, 40)">30%</text>
+              </svg>
+            </div>
+            <div class="story-content">
+              <div class="story-title">Making peace with mom</div>
+              <div class="story-started">Started 4 months ago</div>
+              <div class="story-chapters">
+                <span class="story-chapter complete">Acknowledged hurt</span>
+                <span class="story-chapter current">Processing</span>
+                <span class="story-chapter">Having conversation</span>
+                <span class="story-chapter">Finding peace</span>
+              </div>
+            </div>
+          </div>
+          <div class="story-card">
+            <div class="story-progress-ring">
+              <svg viewBox="0 0 80 80">
+                <circle class="story-progress-bg" cx="40" cy="40" r="32"/>
+                <circle class="story-progress-fill" cx="40" cy="40" r="32"
+                        stroke-dasharray="201" stroke-dashoffset="20" style="stroke: var(--semantic-success);"/>
+                <text class="story-progress-text" x="40" y="44" transform="rotate(90, 40, 40)">90%</text>
+              </svg>
+            </div>
+            <div class="story-content">
+              <div class="story-title">Building the exercise habit</div>
+              <div class="story-started">Started 3 months ago</div>
+              <div class="story-chapters">
+                <span class="story-chapter complete">Tiny starts</span>
+                <span class="story-chapter complete">Found rhythm</span>
+                <span class="story-chapter complete">Survived setback</span>
+                <span class="story-chapter current">Making it identity</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Final Quote Banner -->
+    <div class="quote-banner">
+      <div class="quote-icon">&#127793;</div>
+      <p class="quote-text">Apple shows what happened. Google shows what you did.<br/>Ferni shows what it <em>means</em> and how you're <em>growing</em>.</p>
+    </div>
+  </main>
+
+  <script>
+    // Theme toggle
+    function setTheme(theme) {
+      if (theme === 'zen') {
+        document.documentElement.setAttribute('data-theme', 'zen');
+        document.getElementById('theme-label').textContent = 'Zen';
+        document.getElementById('btn-zen').classList.add('active');
+        document.getElementById('btn-midnight').classList.remove('active');
+      } else {
+        document.documentElement.removeAttribute('data-theme');
+        document.getElementById('theme-label').textContent = 'Midnight';
+        document.getElementById('btn-midnight').classList.add('active');
+        document.getElementById('btn-zen').classList.remove('active');
+      }
+      localStorage.setItem('ferni-theme', theme);
+    }
+
+    // Load saved theme
+    const savedTheme = localStorage.getItem('ferni-theme') || 'midnight';
+    setTheme(savedTheme);
+
+    // Navigation highlighting
+    const navLinks = document.querySelectorAll('nav a');
+    const sections = document.querySelectorAll('section');
+
+    window.addEventListener('scroll', () => {
+      let current = '';
+      sections.forEach(section => {
+        const sectionTop = section.offsetTop - 150;
+        if (window.scrollY >= sectionTop) {
+          current = section.getAttribute('id');
+        }
+      });
+
+      navLinks.forEach(link => {
+        link.classList.remove('active');
+        if (link.getAttribute('href') === '#' + current) {
+          link.classList.add('active');
+        }
+      });
+    });
+
+    // Smooth scroll for nav links
+    navLinks.forEach(link => {
+      link.addEventListener('click', (e) => {
+        e.preventDefault();
+        const targetId = link.getAttribute('href');
+        document.querySelector(targetId).scrollIntoView({
+          behavior: 'smooth'
+        });
+      });
+    });
+  </script>
+</body>
+</html>

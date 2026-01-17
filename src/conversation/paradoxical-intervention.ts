@@ -16,6 +16,7 @@
  * @module @ferni/paradoxical-intervention
  */
 
+import { seededChance, seededPick, seededIndex } from './utils/rng.js';
 import { createLogger } from '../utils/safe-logger.js';
 
 const logger = createLogger({ module: 'ParadoxicalIntervention' });
@@ -454,7 +455,7 @@ export class ParadoxicalInterventionEngine {
 
     decision.shouldIntervene = shouldIntervene;
     decision.interventionType = type;
-    decision.phrase = phrases[Math.floor(Math.random() * phrases.length)];
+    decision.phrase = seededPick(`${Date.now()}:458`, phrases) ?? phrases[0];
     decision.reasoning = `Resistance type: ${resistance.type}, consecutive: ${this.consecutiveResistances}, rejection rate: ${(rejectionRate * 100).toFixed(0)}%`;
 
     logger.debug(
@@ -485,7 +486,7 @@ export class ParadoxicalInterventionEngine {
     };
 
     const phrases = phraseMap[type];
-    return phrases[Math.floor(Math.random() * phrases.length)];
+    return seededPick(`${Date.now()}:489`, phrases) ?? phrases[0];
   }
 
   /**

@@ -54,7 +54,7 @@ test.describe('Design System Visual Tests', () => {
     const personas = [
       'ferni',
       'jack-bogle',
-      'peter-lynch',
+      'peter-john',
       'alex-chen',
       'maya-santos',
       'jordan-taylor',

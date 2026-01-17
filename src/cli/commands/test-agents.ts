@@ -43,7 +43,9 @@ async function rateLimit(): Promise<void> {
   const elapsed = now - lastCallTime;
   if (elapsed < MIN_DELAY_MS) {
     const waitTime = MIN_DELAY_MS - elapsed;
-    await new Promise((resolve) => setTimeout(resolve, waitTime));
+    await new Promise<void>((resolve) => {
+      setTimeout(resolve, waitTime);
+    });
   }
   lastCallTime = Date.now();
 }
@@ -801,7 +803,7 @@ Transfer **immediately** when the topic matches a specialist:
 
 class AgentTester {
   private genai: GoogleGenAI;
-  private model: string = 'gemini-2.0-flash-exp';
+  private model = 'gemini-2.0-flash-exp';
 
   constructor() {
     const apiKey = process.env.GOOGLE_API_KEY;
@@ -891,7 +893,7 @@ class AgentTester {
     }
   }
 
-  async testAgent(agent: AgentToolConfig, verbose: boolean = false): Promise<TestResult[]> {
+  async testAgent(agent: AgentToolConfig, verbose = false): Promise<TestResult[]> {
     const results: TestResult[] = [];
 
     console.log(`\n🤖 Testing ${agent.agentName} (${agent.criticalScenarios.length} scenarios)`);

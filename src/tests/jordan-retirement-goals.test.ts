@@ -11,7 +11,7 @@ import {
   getRetirementPlan,
   updateRetirementSavings,
   addVisionItem,
-} from '../tools/retirement-planning.js';
+} from '../tools/domains/finance/retirement-planning.js';
 
 import {
   createGoal,

@@ -27,9 +27,21 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var eventMonitor: Any?
     private var cancellables = Set<AnyCancellable>()
     private var loginItemManager = LoginItemManager.shared
-    
+
+    // System Intelligence (unified manager for all macOS-native capabilities)
+    private let intelligence = SystemIntelligenceManager.shared
+
+    // Pending context for "Help me with this" feature
+    private var pendingContextSnapshot: ContextSnapshot?
+
+    // Convenience accessors for services
+    private var contextService: ContextAwarenessService { intelligence.contextService }
+    private var calendarService: CalendarService { intelligence.calendarService }
+    private var focusService: FocusModeService { intelligence.focusModeService }
+
     // User preferences
     @AppStorage("globalHotkeyEnabled") private var globalHotkeyEnabled = true
+    @AppStorage("helpMeHotkeyEnabled") private var helpMeHotkeyEnabled = true
     @AppStorage("showNotifications") private var showNotifications = true
     @AppStorage("playSounds") private var playSounds = true
     @AppStorage("defaultPersonaId") private var defaultPersonaId = "ferni"
@@ -38,10 +50,15 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         NSApp.setActivationPolicy(.accessory)
         setupMenuBar()
         setupGlobalHotkey()
+        setupShortcutsHandlers()
         requestMicrophonePermission()
         requestNotificationPermission()
         observeStateChanges()
-        
+        observeIntelligenceChanges()
+
+        // Register Shortcuts with the system
+        ShortcutsService.registerShortcuts()
+
         // Set default persona from preferences
         voiceManager.currentPersonaId = defaultPersonaId
     }
@@ -73,34 +90,161 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 self?.updateIcon()
             }
             .store(in: &cancellables)
-        
-        // Observe backend mode changes
-        voiceManager.$backendMode
+    }
+    
+    // MARK: - Shortcuts Integration
+
+    private func setupShortcutsHandlers() {
+        intelligence.setupShortcutHandlers(
+            onStart: { [weak self] personaId in
+                Task { @MainActor in
+                    self?.voiceManager.currentPersonaId = personaId
+                    await self?.voiceManager.start()
+                }
+            },
+            onEnd: { [weak self] in
+                Task { @MainActor in
+                    await self?.voiceManager.stop()
+                }
+            },
+            onSwitch: { [weak self] personaId in
+                Task { @MainActor in
+                    await self?.voiceManager.switchPersona(personaId)
+                }
+            },
+            onHelpMe: { [weak self] in
+                Task { @MainActor in
+                    await self?.handleHelpMeWithThis()
+                }
+            }
+        )
+    }
+
+    // MARK: - Intelligence Observation
+
+    private func observeIntelligenceChanges() {
+        // Observe upcoming meetings for proactive notifications
+        intelligence.calendarService.$upcomingEvent
             .receive(on: DispatchQueue.main)
-            .sink { [weak self] mode in
+            .sink { [weak self] event in
+                guard let self = self, let event = event else { return }
+
+                // Notify at 15 minutes before meeting
+                if event.minutesUntilStart == 15 {
+                    self.showNotification(
+                        title: "Meeting in 15 minutes",
+                        message: event.title
+                    )
+                }
+                // Urgent notification at 5 minutes
+                else if event.minutesUntilStart == 5 {
+                    self.showNotification(
+                        title: "Meeting in 5 minutes!",
+                        message: event.title
+                    )
+                }
+            }
+            .store(in: &cancellables)
+
+        // Observe context changes for status display
+        intelligence.$contextSummary
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                // Could update menubar tooltip or other UI
                 self?.updateIcon()
             }
             .store(in: &cancellables)
     }
-    
-    // MARK: - Global Hotkey (Cmd+Shift+F)
-    
+
+    // MARK: - Global Hotkeys
+
     private func setupGlobalHotkey() {
         eventMonitor = NSEvent.addGlobalMonitorForEvents(matching: .keyDown) { [weak self] event in
-            guard self?.globalHotkeyEnabled == true else { return }
-            
-            // Cmd+Shift+F
-            if event.modifierFlags.contains([.command, .shift]) && event.keyCode == 3 {
+            guard let self = self else { return }
+
+            // Cmd+Shift+F - Toggle voice (keyCode 3 = F)
+            if self.globalHotkeyEnabled &&
+               event.modifierFlags.contains([.command, .shift]) &&
+               event.keyCode == 3 {
                 Task { @MainActor in
-                    await self?.voiceManager.toggle()
+                    await self.voiceManager.toggle()
+                }
+            }
+
+            // Cmd+Shift+H - Help me with this (keyCode 4 = H)
+            if self.helpMeHotkeyEnabled &&
+               event.modifierFlags.contains([.command, .shift]) &&
+               event.keyCode == 4 {
+                Task { @MainActor in
+                    await self.handleHelpMeWithThis()
                 }
             }
         }
     }
+
+    // MARK: - Help Me With This
+
+    /// Captures context and starts voice session with selected text
+    @MainActor
+    private func handleHelpMeWithThis() async {
+        // Check for accessibility permission first
+        if !contextService.hasAccessibilityPermission {
+            contextService.requestAccessibilityPermission()
+            showNotification(
+                title: "Accessibility Required",
+                message: "Grant accessibility permission to use 'Help me with this'"
+            )
+            return
+        }
+
+        // Capture the current context (including selected text)
+        let snapshot = contextService.captureContextSnapshot()
+        pendingContextSnapshot = snapshot
+
+        // Log what we captured
+        if let text = snapshot.selectedText {
+            print("[HelpMe] Captured selected text: \(text.prefix(100))...")
+        } else {
+            print("[HelpMe] No text selected, using app context: \(snapshot.activeApp)")
+        }
+
+        // Show notification about what we captured
+        if let text = snapshot.selectedText, !text.isEmpty {
+            let preview = text.count > 50 ? String(text.prefix(50)) + "..." : text
+            showNotification(
+                title: "Got it!",
+                message: "Helping with: \"\(preview)\""
+            )
+        } else {
+            showNotification(
+                title: "Context Captured",
+                message: "Working in \(snapshot.activeApp): \(snapshot.windowTitle)"
+            )
+        }
+
+        // Start voice session if not already active
+        if !voiceManager.state.isActive {
+            await voiceManager.start()
+        }
+
+        // TODO: Send context to agent via data channel once connected
+    }
+
+    /// Get the pending context snapshot (for sending to agent)
+    func getPendingContext() -> ContextSnapshot? {
+        let context = pendingContextSnapshot
+        pendingContextSnapshot = nil  // Clear after retrieval
+        return context
+    }
     
     // MARK: - Notification Permission
-    
+
     private func requestNotificationPermission() {
+        // Only request if running as proper app bundle
+        guard Bundle.main.bundleIdentifier != nil else {
+            print("[Notifications] Skipping permission request - not app bundle")
+            return
+        }
         UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { granted, error in
             if let error = error {
                 print("[Notifications] Permission error: \(error)")
@@ -137,86 +281,128 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private func showContextMenu() {
         let menu = NSMenu()
         
-        // Current persona indicator
+        // Current persona indicator - colored circle with persona color
         let currentPersona = voiceManager.currentPersona
-        let headerItem = NSMenuItem(title: "\(currentPersona.emoji) \(currentPersona.name)", action: nil, keyEquivalent: "")
+        let headerItem = NSMenuItem(title: currentPersona.name, action: nil, keyEquivalent: "")
+        let headerIcon = NSImage(systemSymbolName: "circle.fill", accessibilityDescription: nil)
+        let headerConfig = NSImage.SymbolConfiguration(pointSize: 12, weight: .medium)
+            .applying(NSImage.SymbolConfiguration(paletteColors: [NSColor(currentPersona.primaryColor)]))
+        headerItem.image = headerIcon?.withSymbolConfiguration(headerConfig)
         headerItem.isEnabled = false
         menu.addItem(headerItem)
-        
+
         menu.addItem(NSMenuItem.separator())
-        
-        // Persona picker
+
+        // Persona picker - each persona gets their brand color
         for persona in PersonaRegistry.all {
             let item = NSMenuItem(
-                title: "\(persona.emoji) \(persona.name) - \(persona.role)",
+                title: "\(persona.name) — \(persona.role)",
                 action: #selector(selectPersona(_:)),
                 keyEquivalent: ""
             )
+            let isSelected = persona.id == voiceManager.currentPersonaId
+            let symbolName = isSelected ? "circle.fill" : "circle"
+            let personaIcon = NSImage(systemSymbolName: symbolName, accessibilityDescription: nil)
+            let personaConfig = NSImage.SymbolConfiguration(pointSize: 10, weight: .medium)
+                .applying(NSImage.SymbolConfiguration(paletteColors: [NSColor(persona.primaryColor)]))
+            item.image = personaIcon?.withSymbolConfiguration(personaConfig)
             item.target = self
             item.representedObject = persona.id
-            if persona.id == voiceManager.currentPersonaId {
+            if isSelected {
                 item.state = .on
             }
             menu.addItem(item)
         }
         
         menu.addItem(NSMenuItem.separator())
-        
-        // Shortcut hint
-        let shortcutItem = NSMenuItem(title: "Hotkey: ⌘⇧F", action: nil, keyEquivalent: "")
+
+        // System Intelligence
+        let intelligenceHeaderItem = NSMenuItem(title: "System Intelligence", action: nil, keyEquivalent: "")
+        intelligenceHeaderItem.isEnabled = false
+        menu.addItem(intelligenceHeaderItem)
+
+        let helpMeItem = NSMenuItem(
+            title: "Help Me With This",
+            action: #selector(helpMeWithThisClicked),
+            keyEquivalent: "H"
+        )
+        helpMeItem.keyEquivalentModifierMask = [.command, .shift]
+        helpMeItem.target = self
+        menu.addItem(helpMeItem)
+
+        // Show current context - subtle gray circle
+        let contextItem = NSMenuItem(
+            title: contextService.activeApp.isEmpty ? "No app focused" : contextService.activeApp,
+            action: nil,
+            keyEquivalent: ""
+        )
+        let contextIcon = NSImage(systemSymbolName: "circle.fill", accessibilityDescription: nil)
+        let contextConfig = NSImage.SymbolConfiguration(pointSize: 8, weight: .medium)
+            .applying(NSImage.SymbolConfiguration(paletteColors: [NSColor.tertiaryLabelColor]))
+        contextItem.image = contextIcon?.withSymbolConfiguration(contextConfig)
+        contextItem.isEnabled = false
+        menu.addItem(contextItem)
+
+        menu.addItem(NSMenuItem.separator())
+
+        // Shortcut hints
+        let shortcutItem = NSMenuItem(title: "⌘⇧F Toggle Voice  •  ⌘⇧H Help Me", action: nil, keyEquivalent: "")
         shortcutItem.isEnabled = false
         menu.addItem(shortcutItem)
-        
+
         menu.addItem(NSMenuItem.separator())
-        
-        // Claude Code Integration
+
+        // Claude Code Integration - use subtle accent color
         let claudeHeaderItem = NSMenuItem(title: "Claude Code", action: nil, keyEquivalent: "")
         claudeHeaderItem.isEnabled = false
         menu.addItem(claudeHeaderItem)
-        
+
+        // Anthropic orange/terracotta for Claude items
+        let claudeColor = NSColor(red: 0.85, green: 0.55, blue: 0.35, alpha: 1.0)
+
         let openClaudeTerminalItem = NSMenuItem(
-            title: "🖥️ Open Claude in Terminal",
+            title: "Open in Terminal",
             action: #selector(openClaudeInTerminal),
             keyEquivalent: ""
         )
+        let terminalIcon = NSImage(systemSymbolName: "circle", accessibilityDescription: nil)
+        let terminalConfig = NSImage.SymbolConfiguration(pointSize: 10, weight: .medium)
+            .applying(NSImage.SymbolConfiguration(paletteColors: [claudeColor]))
+        openClaudeTerminalItem.image = terminalIcon?.withSymbolConfiguration(terminalConfig)
         openClaudeTerminalItem.target = self
         menu.addItem(openClaudeTerminalItem)
-        
+
         let openClaudeITermItem = NSMenuItem(
-            title: "🖥️ Open Claude in iTerm",
+            title: "Open in iTerm",
             action: #selector(openClaudeInITerm),
             keyEquivalent: ""
         )
+        let iTermIcon = NSImage(systemSymbolName: "circle.fill", accessibilityDescription: nil)
+        let iTermConfig = NSImage.SymbolConfiguration(pointSize: 10, weight: .medium)
+            .applying(NSImage.SymbolConfiguration(paletteColors: [claudeColor]))
+        openClaudeITermItem.image = iTermIcon?.withSymbolConfiguration(iTermConfig)
         openClaudeITermItem.target = self
         menu.addItem(openClaudeITermItem)
         
         menu.addItem(NSMenuItem.separator())
-        
-        // Backend mode (Native/CLI)
-        let backendIcon = voiceManager.backendMode == .native ? "⚡️" : "🖥️"
-        let backendLabel = "\(backendIcon) \(voiceManager.backendMode.displayName)"
-        let backendItem = NSMenuItem(title: backendLabel, action: nil, keyEquivalent: "")
-        backendItem.isEnabled = false
-        menu.addItem(backendItem)
-        
-        let toggleBackendItem = NSMenuItem(
-            title: voiceManager.backendMode == .native ? "Switch to CLI Mode" : "Switch to Native Mode",
-            action: #selector(toggleBackendMode),
-            keyEquivalent: ""
-        )
-        toggleBackendItem.target = self
-        menu.addItem(toggleBackendItem)
-        
-        menu.addItem(NSMenuItem.separator())
-        
-        // Cloud/Local toggle
-        let modeLabel = voiceManager.useCloudMode ? "☁️ Cloud (app.ferni.ai)" : "🏠 Local (localhost)"
+
+        // Cloud/Local toggle - brand-aligned colors
+        let isCloud = voiceManager.useCloudMode
+        let modeLabel = isCloud ? "Cloud (app.ferni.ai)" : "Local (localhost)"
         let modeItem = NSMenuItem(title: modeLabel, action: nil, keyEquivalent: "")
+        // Blue for cloud, Ferni green for local
+        let modeColor = isCloud
+            ? NSColor(red: 0.25, green: 0.45, blue: 0.65, alpha: 1.0)  // Calm blue
+            : NSColor(red: 0.29, green: 0.40, blue: 0.25, alpha: 1.0)  // Ferni green
+        let modeIcon = NSImage(systemSymbolName: "circle.fill", accessibilityDescription: nil)
+        let modeConfig = NSImage.SymbolConfiguration(pointSize: 10, weight: .medium)
+            .applying(NSImage.SymbolConfiguration(paletteColors: [modeColor]))
+        modeItem.image = modeIcon?.withSymbolConfiguration(modeConfig)
         modeItem.isEnabled = false
         menu.addItem(modeItem)
-        
+
         let toggleModeItem = NSMenuItem(
-            title: voiceManager.useCloudMode ? "Switch to Local" : "Switch to Cloud",
+            title: isCloud ? "Switch to Local" : "Switch to Cloud",
             action: #selector(toggleCloudMode),
             keyEquivalent: ""
         )
@@ -316,14 +502,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         case .connecting:
             iconName = "mic.circle.fill"
             isTemplate = false
-        case .connected:
+        case .connected, .listening, .speaking:
+            // All active conversation states use same icon
+            // NO visual distinction between listening/speaking - like real humans
             iconName = "waveform.circle.fill"
-            isTemplate = false
-        case .listening:
-            iconName = "ear.fill"
-            isTemplate = false
-        case .speaking:
-            iconName = "waveform"
             isTemplate = false
         case .thinking:
             iconName = "ellipsis.circle.fill"
@@ -361,16 +543,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         )
     }
     
-    @objc private func toggleBackendMode() {
-        voiceManager.backendMode = voiceManager.backendMode == .native ? .cli : .native
-        showNotification(
-            title: "Ferni Voice",
-            message: voiceManager.backendMode == .native
-                ? "Switched to Native SDK (lower latency)"
-                : "Switched to CLI Mode (easier debugging)"
-        )
+    @objc private func helpMeWithThisClicked() {
+        Task { @MainActor in
+            await handleHelpMeWithThis()
+        }
     }
-    
+
     @objc private func openClaudeInTerminal() {
         VisibleTerminalBridge.openTerminalWithClaude()
         showNotification(
@@ -415,19 +593,21 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     
     private func showNotification(title: String, message: String) {
         guard showNotifications else { return }
-        
+        // Skip if not running as proper app bundle
+        guard Bundle.main.bundleIdentifier != nil else { return }
+
         // Use UNUserNotificationCenter for macOS 11+
         let content = UNMutableNotificationContent()
         content.title = title
         content.body = message
         content.sound = playSounds ? .default : nil
-        
+
         let request = UNNotificationRequest(
             identifier: UUID().uuidString,
             content: content,
             trigger: nil
         )
-        
+
         UNUserNotificationCenter.current().add(request)
     }
 }

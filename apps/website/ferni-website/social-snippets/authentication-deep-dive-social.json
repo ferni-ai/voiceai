@@ -1,0 +1,45 @@
+{
+  "postFile": "authentication-deep-dive.md",
+  "title": "Authentication Deep Dive: OAuth, API Keys, and JWTs",
+  "date": "2026-01-13T00:00:00.000Z",
+  "snippets": {
+    "twitter": {
+      "platform": "twitter",
+      "text": "📚 Authentication Deep Dive: OAuth, API Keys, and JWTs\n\nhttps://developers.ferni.ai/developers/blog/authentication-deep-dive/\n\n#TechDeepDive #Engineering",
+      "length": null
+    },
+    "twitterThread": {
+      "platform": "twitter_thread",
+      "tweets": [
+        {
+          "text": "🧵 Authentication Deep Dive: OAuth, API Keys, and JWTs\n\nA thread on what you'll learn:\n\n👇",
+          "type": "hook"
+        },
+        {
+          "text": "A comprehensive guide to securing your Ferni integration - from simple API keys to enterprise SSO.\n\nLet's dive in...",
+          "type": "summary"
+        },
+        {
+          "text": "📖 Read the full post:\nhttps://developers.ferni.ai/developers/blog/authentication-deep-dive/\n\n#TechDeepDive #Engineering #VoiceAI",
+          "type": "cta"
+        }
+      ],
+      "totalTweets": 3
+    },
+    "linkedin": {
+      "platform": "linkedin",
+      "text": "Authentication Deep Dive: OAuth, API Keys, and JWTs\n\nA comprehensive guide to securing your Ferni integration - from simple API keys to enterprise SSO.\n\nThis is part of our ongoing series helping developers build with voice AI.\n\nKey takeaways:\n• Practical code examples you can use today\n• Real-world patterns from production systems\n• Best practices from the Ferni team\n\nRead the full post: https://developers.ferni.ai/developers/blog/authentication-deep-dive/\n\n#TechDeepDive #Engineering #VoiceAI",
+      "length": 498
+    },
+    "discord": {
+      "platform": "discord",
+      "text": "🔬 **Authentication Deep Dive: OAuth, API Keys, and JWTs**\n\nA comprehensive guide to securing your Ferni integration - from simple API keys to enterprise SSO.\n\n🔗 **Read more:** https://developers.ferni.ai/developers/blog/authentication-deep-dive/\n\n---\n*12 min read • Deep Dives*",
+      "length": 279
+    },
+    "threads": {
+      "platform": "threads",
+      "text": "Authentication Deep Dive: OAuth, API Keys, and JWTs\n\nA comprehensive guide to securing your Ferni integration - from simple API keys to enterprise SSO.\n\nRead more 👉 https://developers.ferni.ai/developers/blog/authentication-deep-dive/",
+      "length": 235
+    }
+  }
+}

@@ -19,6 +19,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
+import { indexSmallWin } from '../data-layer/integrations/trust-integration.js';
 
 const log = createLogger({ module: 'SmallWins' });
 
@@ -283,6 +284,13 @@ function createWin(
   };
 
   profile.wins.push(win);
+
+  // Index to semantic memory
+  indexSmallWin(profile.userId, {
+    id: win.id,
+    win: win.description,
+    effort: win.whatMadeItHard,
+  });
 
   // Keep only last 50 wins
   if (profile.wins.length > 50) {
@@ -776,6 +784,13 @@ export function markIntentionStruggled(userId: string, intentionId: string): Sma
 
     profile.wins.push(win);
     intention.linkedWinId = win.id;
+
+    // Index to semantic memory
+    indexSmallWin(userId, {
+      id: win.id,
+      win: win.description,
+      effort: win.whatMadeItHard,
+    });
 
     log.info({ userId, intentionId }, '💪 Intention struggled but effort celebrated');
 

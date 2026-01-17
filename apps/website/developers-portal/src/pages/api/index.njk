@@ -22,6 +22,8 @@ description: Complete API reference for the Ferni Marketplace
       <h3 style="margin-bottom: var(--space-4);">Jump to Section</h3>
       <div class="grid grid-2" style="gap: var(--space-2);">
         <a href="#authentication" style="color: var(--text-secondary); text-decoration: none; padding: var(--space-2);">→ Authentication</a>
+        <a href="#developer" style="color: var(--text-secondary); text-decoration: none; padding: var(--space-2);">→ Developer API</a>
+        <a href="#analytics" style="color: var(--text-secondary); text-decoration: none; padding: var(--space-2);">→ Analytics API</a>
         <a href="#publisher" style="color: var(--text-secondary); text-decoration: none; padding: var(--space-2);">→ Publisher API</a>
         <a href="#browse" style="color: var(--text-secondary); text-decoration: none; padding: var(--space-2);">→ Browse API</a>
         <a href="#install" style="color: var(--text-secondary); text-decoration: none; padding: var(--space-2);">→ Install API</a>
@@ -87,6 +89,575 @@ x-publisher-name: Acme Corp</code></pre>
         <div class="code-content">
           <pre><code>curl https://api.ferni.ai/api/marketplace/browse/tools \
   -H "x-user-id: user_abc123"</code></pre>
+        </div>
+      </div>
+    </div>
+
+    <!-- Developer API -->
+    <div id="developer" style="margin-bottom: var(--space-12);">
+      <h2 style="margin-bottom: var(--space-4);">Developer API</h2>
+      <p style="color: var(--text-secondary); margin-bottom: var(--space-8);">
+        Create, manage, and publish AI personas through the developer console. All endpoints require Firebase Authentication.
+      </p>
+
+      <!-- Developer Auth -->
+      <div style="margin-bottom: var(--space-10);">
+        <h3 style="margin-bottom: var(--space-4);">Developer Authentication</h3>
+        <p style="color: var(--text-secondary); margin-bottom: var(--space-4);">
+          Developer API uses Firebase Auth tokens. Get a token after signing in with Google or GitHub:
+        </p>
+        <div class="code-block" style="margin-bottom: var(--space-4);">
+          <div class="code-header">
+            <div class="code-dots">
+              <span class="code-dot code-dot-red"></span>
+              <span class="code-dot code-dot-yellow"></span>
+              <span class="code-dot code-dot-green"></span>
+            </div>
+            <span class="code-lang">http</span>
+          </div>
+          <div class="code-content">
+            <pre><code>Authorization: Bearer &lt;firebase-id-token&gt;</code></pre>
+          </div>
+        </div>
+      </div>
+
+      <!-- API Keys -->
+      <div style="margin-bottom: var(--space-10);">
+        <h3 style="margin-bottom: var(--space-6);">API Keys</h3>
+
+        <!-- List Keys -->
+        <div style="margin-bottom: var(--space-8);">
+          <div style="display: flex; align-items: center; gap: var(--space-3); margin-bottom: var(--space-4);">
+            <span style="display: inline-block; padding: var(--space-1) var(--space-3); background: var(--accent-primary); color: var(--bg-code); font-weight: 700; border-radius: var(--radius-md); font-size: var(--text-sm);">GET</span>
+            <code style="color: var(--text-primary); font-size: var(--text-lg);">/api/v1/developers/keys</code>
+          </div>
+          <p style="color: var(--text-secondary); margin-bottom: var(--space-4);">
+            List all API keys (prefix only for security).
+          </p>
+          <h4 style="margin-bottom: var(--space-3);">Response</h4>
+          <div class="code-block">
+            <div class="code-header">
+              <div class="code-dots">
+                <span class="code-dot code-dot-red"></span>
+                <span class="code-dot code-dot-yellow"></span>
+                <span class="code-dot code-dot-green"></span>
+              </div>
+              <span class="code-lang">json</span>
+            </div>
+            <div class="code-content">
+              <pre><code class="language-json">{
+  "keys": [
+    {
+      "id": "key_abc123",
+      "name": "Production Key",
+      "prefix": "pk_live_abc1****",
+      "createdAt": "2026-01-03T10:00:00Z",
+      "lastUsedAt": "2026-01-03T15:30:00Z"
+    }
+  ]
+}</code></pre>
+            </div>
+          </div>
+        </div>
+
+        <!-- Create Key -->
+        <div style="margin-bottom: var(--space-8);">
+          <div style="display: flex; align-items: center; gap: var(--space-3); margin-bottom: var(--space-4);">
+            <span style="display: inline-block; padding: var(--space-1) var(--space-3); background: var(--success); color: var(--bg-code); font-weight: 700; border-radius: var(--radius-md); font-size: var(--text-sm);">POST</span>
+            <code style="color: var(--text-primary); font-size: var(--text-lg);">/api/v1/developers/keys</code>
+          </div>
+          <p style="color: var(--text-secondary); margin-bottom: var(--space-4);">
+            Create a new API key. <strong>The full key is only returned once!</strong>
+          </p>
+          <h4 style="margin-bottom: var(--space-3);">Request Body</h4>
+          <div class="code-block" style="margin-bottom: var(--space-4);">
+            <div class="code-header">
+              <div class="code-dots">
+                <span class="code-dot code-dot-red"></span>
+                <span class="code-dot code-dot-yellow"></span>
+                <span class="code-dot code-dot-green"></span>
+              </div>
+              <span class="code-lang">json</span>
+            </div>
+            <div class="code-content">
+              <pre><code class="language-json">{
+  "name": "Production Key",
+  "environment": "live"
+}</code></pre>
+            </div>
+          </div>
+          <h4 style="margin-bottom: var(--space-3);">Response</h4>
+          <div class="code-block">
+            <div class="code-header">
+              <div class="code-dots">
+                <span class="code-dot code-dot-red"></span>
+                <span class="code-dot code-dot-yellow"></span>
+                <span class="code-dot code-dot-green"></span>
+              </div>
+              <span class="code-lang">json</span>
+            </div>
+            <div class="code-content">
+              <pre><code class="language-json">{
+  "key": {
+    "id": "key_abc123",
+    "name": "Production Key",
+    "fullKey": "pk_live_abc123def456...",
+    "prefix": "pk_live_abc1****",
+    "createdAt": "2026-01-03T10:00:00Z"
+  },
+  "warning": "Store this key securely. It will not be shown again."
+}</code></pre>
+            </div>
+          </div>
+        </div>
+
+        <!-- Delete Key -->
+        <div style="margin-bottom: var(--space-8);">
+          <div style="display: flex; align-items: center; gap: var(--space-3); margin-bottom: var(--space-4);">
+            <span style="display: inline-block; padding: var(--space-1) var(--space-3); background: var(--error); color: var(--bg-code); font-weight: 700; border-radius: var(--radius-md); font-size: var(--text-sm);">DELETE</span>
+            <code style="color: var(--text-primary); font-size: var(--text-lg);">/api/v1/developers/keys/:id</code>
+          </div>
+          <p style="color: var(--text-secondary); margin-bottom: var(--space-4);">
+            Revoke an API key immediately.
+          </p>
+        </div>
+      </div>
+
+      <!-- Personas -->
+      <div style="margin-bottom: var(--space-10);">
+        <h3 style="margin-bottom: var(--space-6);">Personas</h3>
+
+        <!-- List Personas -->
+        <div style="margin-bottom: var(--space-8);">
+          <div style="display: flex; align-items: center; gap: var(--space-3); margin-bottom: var(--space-4);">
+            <span style="display: inline-block; padding: var(--space-1) var(--space-3); background: var(--accent-primary); color: var(--bg-code); font-weight: 700; border-radius: var(--radius-md); font-size: var(--text-sm);">GET</span>
+            <code style="color: var(--text-primary); font-size: var(--text-lg);">/api/v1/developers/personas</code>
+          </div>
+          <p style="color: var(--text-secondary); margin-bottom: var(--space-4);">
+            List all personas created by the authenticated developer.
+          </p>
+          <h4 style="margin-bottom: var(--space-3);">Response</h4>
+          <div class="code-block">
+            <div class="code-header">
+              <div class="code-dots">
+                <span class="code-dot code-dot-red"></span>
+                <span class="code-dot code-dot-yellow"></span>
+                <span class="code-dot code-dot-green"></span>
+              </div>
+              <span class="code-lang">json</span>
+            </div>
+            <div class="code-content">
+              <pre><code class="language-json">{
+  "personas": [
+    {
+      "id": "persona_abc123",
+      "name": "Luna the Coach",
+      "tagline": "Your thoughtful companion for growth",
+      "status": "draft",
+      "category": "coaching",
+      "createdAt": "2026-01-03T10:00:00Z",
+      "updatedAt": "2026-01-03T15:30:00Z"
+    }
+  ]
+}</code></pre>
+            </div>
+          </div>
+        </div>
+
+        <!-- Create Persona -->
+        <div style="margin-bottom: var(--space-8);">
+          <div style="display: flex; align-items: center; gap: var(--space-3); margin-bottom: var(--space-4);">
+            <span style="display: inline-block; padding: var(--space-1) var(--space-3); background: var(--success); color: var(--bg-code); font-weight: 700; border-radius: var(--radius-md); font-size: var(--text-sm);">POST</span>
+            <code style="color: var(--text-primary); font-size: var(--text-lg);">/api/v1/developers/personas</code>
+          </div>
+          <p style="color: var(--text-secondary); margin-bottom: var(--space-4);">
+            Create a new persona draft.
+          </p>
+          <h4 style="margin-bottom: var(--space-3);">Request Body (Persona Manifest)</h4>
+          <div class="code-block">
+            <div class="code-header">
+              <div class="code-dots">
+                <span class="code-dot code-dot-red"></span>
+                <span class="code-dot code-dot-yellow"></span>
+                <span class="code-dot code-dot-green"></span>
+              </div>
+              <span class="code-lang">json</span>
+            </div>
+            <div class="code-content">
+              <pre><code class="language-json">{
+  "manifest": {
+    "identity": {
+      "id": "luna-coach",
+      "name": "Luna the Coach",
+      "tagline": "Your thoughtful companion for growth",
+      "description": "A warm, insightful life coach...",
+      "aliases": ["Luna", "Coach Luna"]
+    },
+    "voice": {
+      "provider": "cartesia",
+      "voice_id": "a0e99841-438c-4a64-b679-ae501e7d6091"
+    },
+    "personality": {
+      "warmth": 0.85,
+      "humor_level": 0.6,
+      "directness": 0.7,
+      "formality": 0.3,
+      "traits": ["empathetic", "encouraging", "insightful"]
+    },
+    "knowledge": {
+      "category": "coaching",
+      "domains": ["life-coaching", "personal-growth"],
+      "expertise_tags": ["goal-setting", "habits", "motivation"],
+      "out_of_scope_topics": ["medical-advice", "legal-advice"]
+    },
+    "behaviors": {
+      "greetings": ["Hey! Ready to make some progress today?"],
+      "backchannels": ["mm-hmm", "I hear you", "go on"],
+      "thinking_sounds": ["hmm", "let me think..."]
+    }
+  }
+}</code></pre>
+            </div>
+          </div>
+        </div>
+
+        <!-- Update Persona -->
+        <div style="margin-bottom: var(--space-8);">
+          <div style="display: flex; align-items: center; gap: var(--space-3); margin-bottom: var(--space-4);">
+            <span style="display: inline-block; padding: var(--space-1) var(--space-3); background: var(--warning); color: var(--bg-code); font-weight: 700; border-radius: var(--radius-md); font-size: var(--text-sm);">PUT</span>
+            <code style="color: var(--text-primary); font-size: var(--text-lg);">/api/v1/developers/personas/:id</code>
+          </div>
+          <p style="color: var(--text-secondary); margin-bottom: var(--space-4);">
+            Update a draft persona. Only drafts and rejected personas can be updated.
+          </p>
+        </div>
+
+        <!-- Validate Persona -->
+        <div style="margin-bottom: var(--space-8);">
+          <div style="display: flex; align-items: center; gap: var(--space-3); margin-bottom: var(--space-4);">
+            <span style="display: inline-block; padding: var(--space-1) var(--space-3); background: var(--success); color: var(--bg-code); font-weight: 700; border-radius: var(--radius-md); font-size: var(--text-sm);">POST</span>
+            <code style="color: var(--text-primary); font-size: var(--text-lg);">/api/v1/developers/personas/:id/validate</code>
+          </div>
+          <p style="color: var(--text-secondary); margin-bottom: var(--space-4);">
+            Validate a persona manifest before submission.
+          </p>
+          <h4 style="margin-bottom: var(--space-3);">Response</h4>
+          <div class="code-block">
+            <div class="code-header">
+              <div class="code-dots">
+                <span class="code-dot code-dot-red"></span>
+                <span class="code-dot code-dot-yellow"></span>
+                <span class="code-dot code-dot-green"></span>
+              </div>
+              <span class="code-lang">json</span>
+            </div>
+            <div class="code-content">
+              <pre><code class="language-json">{
+  "valid": true,
+  "errors": [],
+  "warnings": [
+    "Consider adding more greeting variations for natural conversation"
+  ]
+}</code></pre>
+            </div>
+          </div>
+        </div>
+
+        <!-- Submit Persona -->
+        <div style="margin-bottom: var(--space-8);">
+          <div style="display: flex; align-items: center; gap: var(--space-3); margin-bottom: var(--space-4);">
+            <span style="display: inline-block; padding: var(--space-1) var(--space-3); background: var(--success); color: var(--bg-code); font-weight: 700; border-radius: var(--radius-md); font-size: var(--text-sm);">POST</span>
+            <code style="color: var(--text-primary); font-size: var(--text-lg);">/api/v1/developers/personas/:id/submit</code>
+          </div>
+          <p style="color: var(--text-secondary); margin-bottom: var(--space-4);">
+            Submit a persona for marketplace review. Must pass validation first.
+          </p>
+          <h4 style="margin-bottom: var(--space-3);">Response</h4>
+          <div class="code-block">
+            <div class="code-header">
+              <div class="code-dots">
+                <span class="code-dot code-dot-red"></span>
+                <span class="code-dot code-dot-yellow"></span>
+                <span class="code-dot code-dot-green"></span>
+              </div>
+              <span class="code-lang">json</span>
+            </div>
+            <div class="code-content">
+              <pre><code class="language-json">{
+  "success": true,
+  "status": "submitted",
+  "message": "Your persona has been submitted for review. This typically takes 2-5 business days."
+}</code></pre>
+            </div>
+          </div>
+        </div>
+
+        <!-- Delete Persona -->
+        <div style="margin-bottom: var(--space-8);">
+          <div style="display: flex; align-items: center; gap: var(--space-3); margin-bottom: var(--space-4);">
+            <span style="display: inline-block; padding: var(--space-1) var(--space-3); background: var(--error); color: var(--bg-code); font-weight: 700; border-radius: var(--radius-md); font-size: var(--text-sm);">DELETE</span>
+            <code style="color: var(--text-primary); font-size: var(--text-lg);">/api/v1/developers/personas/:id</code>
+          </div>
+          <p style="color: var(--text-secondary); margin-bottom: var(--space-4);">
+            Delete a persona. Published personas cannot be deleted (use unpublish instead).
+          </p>
+        </div>
+      </div>
+
+      <!-- Voices -->
+      <div style="margin-bottom: var(--space-10);">
+        <h3 style="margin-bottom: var(--space-6);">Voices</h3>
+
+        <!-- List Voices -->
+        <div style="margin-bottom: var(--space-8);">
+          <div style="display: flex; align-items: center; gap: var(--space-3); margin-bottom: var(--space-4);">
+            <span style="display: inline-block; padding: var(--space-1) var(--space-3); background: var(--accent-primary); color: var(--bg-code); font-weight: 700; border-radius: var(--radius-md); font-size: var(--text-sm);">GET</span>
+            <code style="color: var(--text-primary); font-size: var(--text-lg);">/api/v1/developers/voices</code>
+          </div>
+          <p style="color: var(--text-secondary); margin-bottom: var(--space-4);">
+            List curated Cartesia voices available for personas.
+          </p>
+          <h4 style="margin-bottom: var(--space-3);">Query Parameters</h4>
+          <ul style="color: var(--text-secondary); margin-bottom: var(--space-4);">
+            <li><code>gender</code> - Filter by gender (male, female, neutral)</li>
+            <li><code>category</code> - Filter by category (conversational, professional, etc.)</li>
+          </ul>
+          <h4 style="margin-bottom: var(--space-3);">Response</h4>
+          <div class="code-block">
+            <div class="code-header">
+              <div class="code-dots">
+                <span class="code-dot code-dot-red"></span>
+                <span class="code-dot code-dot-yellow"></span>
+                <span class="code-dot code-dot-green"></span>
+              </div>
+              <span class="code-lang">json</span>
+            </div>
+            <div class="code-content">
+              <pre><code class="language-json">{
+  "voices": [
+    {
+      "id": "a0e99841-438c-4a64-b679-ae501e7d6091",
+      "name": "Sarah",
+      "description": "Warm and friendly female voice, perfect for coaching",
+      "gender": "female",
+      "category": "conversational",
+      "tags": ["warm", "friendly", "coach"]
+    }
+  ]
+}</code></pre>
+            </div>
+          </div>
+        </div>
+
+        <!-- Preview Voice -->
+        <div style="margin-bottom: var(--space-8);">
+          <div style="display: flex; align-items: center; gap: var(--space-3); margin-bottom: var(--space-4);">
+            <span style="display: inline-block; padding: var(--space-1) var(--space-3); background: var(--success); color: var(--bg-code); font-weight: 700; border-radius: var(--radius-md); font-size: var(--text-sm);">POST</span>
+            <code style="color: var(--text-primary); font-size: var(--text-lg);">/api/v1/developers/voices/preview</code>
+          </div>
+          <p style="color: var(--text-secondary); margin-bottom: var(--space-4);">
+            Generate an audio preview of a voice with custom text.
+          </p>
+          <h4 style="margin-bottom: var(--space-3);">Request Body</h4>
+          <div class="code-block" style="margin-bottom: var(--space-4);">
+            <div class="code-header">
+              <div class="code-dots">
+                <span class="code-dot code-dot-red"></span>
+                <span class="code-dot code-dot-yellow"></span>
+                <span class="code-dot code-dot-green"></span>
+              </div>
+              <span class="code-lang">json</span>
+            </div>
+            <div class="code-content">
+              <pre><code class="language-json">{
+  "voice_id": "a0e99841-438c-4a64-b679-ae501e7d6091",
+  "text": "Hey! I'm so glad you're here. Let's talk about what's on your mind."
+}</code></pre>
+            </div>
+          </div>
+          <h4 style="margin-bottom: var(--space-3);">Response</h4>
+          <div class="code-block">
+            <div class="code-header">
+              <div class="code-dots">
+                <span class="code-dot code-dot-red"></span>
+                <span class="code-dot code-dot-yellow"></span>
+                <span class="code-dot code-dot-green"></span>
+              </div>
+              <span class="code-lang">json</span>
+            </div>
+            <div class="code-content">
+              <pre><code class="language-json">{
+  "preview": {
+    "audioUrl": "data:audio/mp3;base64,SUQzBAAAAAAAI1RTU0UAAAAP...",
+    "duration": 3.2,
+    "text": "Hey! I'm so glad you're here..."
+  }
+}</code></pre>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Persona Lifecycle -->
+      <div style="background: var(--bg-code); border-radius: var(--radius-lg); padding: var(--space-6); margin-bottom: var(--space-8);">
+        <h4 style="margin-bottom: var(--space-4);">Persona Lifecycle</h4>
+        <div style="display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap; color: var(--text-secondary);">
+          <span style="padding: var(--space-2) var(--space-3); background: var(--bg-elevated); border-radius: var(--radius-md); font-weight: 600;">draft</span>
+          <span>→</span>
+          <span style="padding: var(--space-2) var(--space-3); background: var(--warning); color: var(--bg-code); border-radius: var(--radius-md); font-weight: 600;">submitted</span>
+          <span>→</span>
+          <span style="padding: var(--space-2) var(--space-3); background: var(--success); color: var(--bg-code); border-radius: var(--radius-md); font-weight: 600;">approved</span>
+          <span>→</span>
+          <span style="padding: var(--space-2) var(--space-3); background: var(--accent-primary); color: var(--bg-code); border-radius: var(--radius-md); font-weight: 600;">published</span>
+        </div>
+        <p style="color: var(--text-secondary); margin-top: var(--space-4); font-size: var(--text-sm);">
+          Rejected personas can be edited and resubmitted. Published personas appear in the marketplace.
+        </p>
+      </div>
+
+      <!-- Analytics -->
+      <div id="analytics" style="margin-bottom: var(--space-10);">
+        <h3 style="margin-bottom: var(--space-6);">Analytics</h3>
+
+        <!-- Overview -->
+        <div style="margin-bottom: var(--space-8);">
+          <div style="display: flex; align-items: center; gap: var(--space-3); margin-bottom: var(--space-4);">
+            <span style="display: inline-block; padding: var(--space-1) var(--space-3); background: var(--accent-primary); color: var(--bg-code); font-weight: 700; border-radius: var(--radius-md); font-size: var(--text-sm);">GET</span>
+            <code style="color: var(--text-primary); font-size: var(--text-lg);">/api/v1/developers/analytics/overview</code>
+          </div>
+          <p style="color: var(--text-secondary); margin-bottom: var(--space-4);">
+            Get summary statistics with comparison to previous period.
+          </p>
+          <h4 style="margin-bottom: var(--space-3);">Query Parameters</h4>
+          <ul style="color: var(--text-secondary); margin-bottom: var(--space-4);">
+            <li><code>period</code> - Time period: day, week, month, or year (default: week)</li>
+          </ul>
+          <h4 style="margin-bottom: var(--space-3);">Response</h4>
+          <div class="code-block">
+            <div class="code-header">
+              <div class="code-dots">
+                <span class="code-dot code-dot-red"></span>
+                <span class="code-dot code-dot-yellow"></span>
+                <span class="code-dot code-dot-green"></span>
+              </div>
+              <span class="code-lang">json</span>
+            </div>
+            <div class="code-content">
+              <pre><code class="language-json">{
+  "overview": {
+    "totalApiCalls": 12500,
+    "totalApiCallsChange": 15,
+    "uniqueUsers": 340,
+    "uniqueUsersChange": 8,
+    "activePersonas": 5,
+    "activePersonasChange": 0,
+    "errorRate": 0.5,
+    "errorRateChange": -12,
+    "avgResponseTime": 245,
+    "avgResponseTimeChange": -5
+  }
+}</code></pre>
+            </div>
+          </div>
+        </div>
+
+        <!-- Usage Over Time -->
+        <div style="margin-bottom: var(--space-8);">
+          <div style="display: flex; align-items: center; gap: var(--space-3); margin-bottom: var(--space-4);">
+            <span style="display: inline-block; padding: var(--space-1) var(--space-3); background: var(--accent-primary); color: var(--bg-code); font-weight: 700; border-radius: var(--radius-md); font-size: var(--text-sm);">GET</span>
+            <code style="color: var(--text-primary); font-size: var(--text-lg);">/api/v1/developers/analytics/usage</code>
+          </div>
+          <p style="color: var(--text-secondary); margin-bottom: var(--space-4);">
+            Get API call volume over time for charting.
+          </p>
+          <h4 style="margin-bottom: var(--space-3);">Response</h4>
+          <div class="code-block">
+            <div class="code-header">
+              <div class="code-dots">
+                <span class="code-dot code-dot-red"></span>
+                <span class="code-dot code-dot-yellow"></span>
+                <span class="code-dot code-dot-green"></span>
+              </div>
+              <span class="code-lang">json</span>
+            </div>
+            <div class="code-content">
+              <pre><code class="language-json">{
+  "usage": [
+    { "date": "2026-01-01", "apiCalls": 1850, "uniqueUsers": 42, "errors": 5 },
+    { "date": "2026-01-02", "apiCalls": 2100, "uniqueUsers": 48, "errors": 3 }
+  ]
+}</code></pre>
+            </div>
+          </div>
+        </div>
+
+        <!-- Persona Usage -->
+        <div style="margin-bottom: var(--space-8);">
+          <div style="display: flex; align-items: center; gap: var(--space-3); margin-bottom: var(--space-4);">
+            <span style="display: inline-block; padding: var(--space-1) var(--space-3); background: var(--accent-primary); color: var(--bg-code); font-weight: 700; border-radius: var(--radius-md); font-size: var(--text-sm);">GET</span>
+            <code style="color: var(--text-primary); font-size: var(--text-lg);">/api/v1/developers/analytics/personas</code>
+          </div>
+          <p style="color: var(--text-secondary); margin-bottom: var(--space-4);">
+            Get per-persona usage breakdown.
+          </p>
+          <h4 style="margin-bottom: var(--space-3);">Response</h4>
+          <div class="code-block">
+            <div class="code-header">
+              <div class="code-dots">
+                <span class="code-dot code-dot-red"></span>
+                <span class="code-dot code-dot-yellow"></span>
+                <span class="code-dot code-dot-green"></span>
+              </div>
+              <span class="code-lang">json</span>
+            </div>
+            <div class="code-content">
+              <pre><code class="language-json">{
+  "personas": [
+    {
+      "personaId": "persona_abc123",
+      "personaName": "Luna the Coach",
+      "totalCalls": 5200,
+      "avgSessionDuration": 180000,
+      "uniqueUsers": 150
+    }
+  ]
+}</code></pre>
+            </div>
+          </div>
+        </div>
+
+        <!-- Errors -->
+        <div style="margin-bottom: var(--space-8);">
+          <div style="display: flex; align-items: center; gap: var(--space-3); margin-bottom: var(--space-4);">
+            <span style="display: inline-block; padding: var(--space-1) var(--space-3); background: var(--accent-primary); color: var(--bg-code); font-weight: 700; border-radius: var(--radius-md); font-size: var(--text-sm);">GET</span>
+            <code style="color: var(--text-primary); font-size: var(--text-lg);">/api/v1/developers/analytics/errors</code>
+          </div>
+          <p style="color: var(--text-secondary); margin-bottom: var(--space-4);">
+            Get error breakdown by type.
+          </p>
+          <h4 style="margin-bottom: var(--space-3);">Response</h4>
+          <div class="code-block">
+            <div class="code-header">
+              <div class="code-dots">
+                <span class="code-dot code-dot-red"></span>
+                <span class="code-dot code-dot-yellow"></span>
+                <span class="code-dot code-dot-green"></span>
+              </div>
+              <span class="code-lang">json</span>
+            </div>
+            <div class="code-content">
+              <pre><code class="language-json">{
+  "errors": [
+    {
+      "code": "RATE_LIMIT_EXCEEDED",
+      "message": "API rate limit exceeded",
+      "count": 23,
+      "lastOccurred": "2026-01-03T15:30:00Z"
+    }
+  ]
+}</code></pre>
+            </div>
+          </div>
         </div>
       </div>
     </div>

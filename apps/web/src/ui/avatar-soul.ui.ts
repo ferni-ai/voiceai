@@ -33,6 +33,7 @@
 
 import { DURATION, EASING, FIBONACCI_DURATION } from '../config/animation-constants.js';
 import { type EmotionId } from '../emotion/emotion-state.js';
+import { soulStatsService } from '../services/soul-stats.service.js';
 import { gsap } from '../utils/gsap-setup.js';
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
@@ -41,7 +42,7 @@ import { ferniExpressions } from './ferni-expressions.ui.js';
 const log = createLogger('AvatarSoul');
 
 // FIX BUG: Track all setTimeout calls for proper cleanup
-const { trackedTimeout, clearAll: clearAllTimeouts } = createTimeoutTracker();
+const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
 
 // ============================================================================
 // TYPES & INTERFACES
@@ -167,6 +168,8 @@ const PUPIL_SIZES = {
   DILATED: 1.35, // Peak interest/emotion
 } as const;
 
+// Emotion-mapped glow colors for canvas/WebGL rendering
+// @design-tokens-ignore - Canvas rendering requires literal color values
 const GLOW_COLORS = {
   NEUTRAL: 'rgba(74, 103, 65, 0.4)', // Ferni sage
   WARM: 'rgba(196, 162, 101, 0.5)', // Golden warmth
@@ -1035,6 +1038,9 @@ export function triggerMemorySpark(): void {
   setPupilDilation('DILATED', 'fast');
   trackedTimeout(() => setPupilDilation('INTERESTED', 'slow'), 400);
 
+  // Track stats
+  soulStatsService.recordMemorySpark();
+
   log.debug('Memory spark triggered');
 }
 
@@ -1078,6 +1084,9 @@ export function startComfortPulse(): void {
 
   // Also set protective glow
   setGlowBleed(0.4, GLOW_COLORS.PROTECTIVE);
+
+  // Track stats
+  soulStatsService.recordComfortPulse();
 
   log.debug('Comfort pulse started');
 }
@@ -1334,6 +1343,9 @@ export function enterProtectiveMode(): void {
 
   // Start comfort pulse
   startComfortPulse();
+
+  // Track stats
+  soulStatsService.recordProtectiveMode();
 
   log.debug('Protective mode entered');
 }
@@ -1614,7 +1626,7 @@ function injectSoulStyles(): void {
         #2C2520 60%,
         transparent 100%
       );
-      z-index: 5;
+      z-index: var(--z-docked);
       pointer-events: none;
       transform-origin: center center;
     }
@@ -1643,7 +1655,7 @@ function injectSoulStyles(): void {
       inset: 5%;
       border-radius: 50%;
       pointer-events: none;
-      z-index: 4;
+      z-index: var(--z-docked);
       --shimmer-intensity: 0.6;
     }
     
@@ -1719,7 +1731,7 @@ function injectSoulStyles(): void {
       border-radius: 50%;
       opacity: 0.04;
       pointer-events: none;
-      z-index: 6;
+      z-index: var(--z-docked);
       background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
       background-size: 100px 100px;
       mix-blend-mode: overlay;
@@ -1786,7 +1798,7 @@ function injectSoulStyles(): void {
       width: 100%;
       height: 100%;
       pointer-events: none;
-      z-index: 20;
+      z-index: var(--z-dropdown);
       display: none;
     }
     
@@ -1873,7 +1885,7 @@ function injectSoulStyles(): void {
       border: 2px solid var(--persona-primary, rgba(74, 103, 65, 0.5));
       opacity: 0;
       pointer-events: none;
-      z-index: 3;
+      z-index: var(--z-docked);
     }
     
     /* Growth Celebration */
@@ -1885,7 +1897,7 @@ function injectSoulStyles(): void {
       width: 200%;
       height: 200%;
       pointer-events: none;
-      z-index: 25;
+      z-index: var(--z-dropdown);
       display: none;
     }
     
@@ -1951,6 +1963,52 @@ function injectSoulStyles(): void {
       );
     }
     
+    /* ========================================================================
+       CIRCADIAN AWARENESS - Time-of-day adjustments
+       Uses CSS variables from circadian-manager.ts
+       ======================================================================== */
+    
+    /* Late night: warmer, calmer glow */
+    [data-circadian="lateNight"] .avatar-container,
+    [data-circadian="deepNight"] .avatar-container {
+      --breath-duration: calc(var(--breath-duration, 5000ms) * 1.3);
+      filter: sepia(0.05);
+    }
+    
+    [data-circadian="lateNight"] .soul-glow-bleed,
+    [data-circadian="deepNight"] .soul-glow-bleed {
+      opacity: calc(var(--glow-intensity, 0.3) * 0.8);
+    }
+    
+    /* Morning: fresher, more energetic */
+    [data-circadian="morning"] .avatar-container {
+      --breath-duration: calc(var(--breath-duration, 5000ms) * 0.9);
+    }
+    
+    [data-circadian="morning"] .soul-glow-bleed {
+      opacity: calc(var(--glow-intensity, 0.3) * 1.1);
+    }
+    
+    /* Evening: transitional warmth */
+    [data-circadian="evening"] .avatar-container,
+    [data-circadian="night"] .avatar-container {
+      filter: sepia(0.02);
+    }
+    
+    /* ========================================================================
+       RELATIONSHIP DEPTH - Deeper relationships = more confident animations
+       Uses CSS variables from warmth-manager.ts
+       ======================================================================== */
+    
+    [data-relationship-stage="established"] .avatar-container,
+    [data-relationship-stage="deep-partnership"] .avatar-container {
+      --breath-duration: calc(var(--breath-duration, 5000ms) * 1.15);
+    }
+    
+    [data-relationship-stage="deep-partnership"] .soul-glow-bleed {
+      opacity: calc(var(--glow-intensity, 0.3) * 1.2);
+    }
+    
     /* Reduced motion */
     @media (prefers-reduced-motion: reduce) {
       .soul-iris-shimmer,
@@ -2007,7 +2065,7 @@ function injectSoulStyles(): void {
  */
 export function disposeAvatarSoul(): void {
   // FIX BUG: Clear all tracked timeouts first
-  clearAllTimeouts();
+  _clearAllTimeouts();
 
   // Kill all GSAP animations
   if (pupilTimeline) pupilTimeline.kill();

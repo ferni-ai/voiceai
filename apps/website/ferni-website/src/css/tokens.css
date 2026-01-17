@@ -5,45 +5,111 @@
    Import this file in every page via the head partial.
    ============================================================================ */
 
+/* ============================================================================
+   RESPONSIVE BREAKPOINTS - STANDARD VALUES
+   ============================================================================
+   Use these consistent breakpoint values for all media queries.
+   Aligned with Tailwind CSS for consistency with design system.
+
+   BREAKPOINTS:
+   --bp-sm:  640px   Small devices (large phones, portrait tablets)
+   --bp-md:  768px   Medium devices (tablets, small laptops)
+   --bp-lg:  1024px  Large devices (laptops, desktops)
+   --bp-xl:  1280px  Extra large devices (large desktops)
+   --bp-2xl: 1536px  2X large devices (wide screens)
+
+   USAGE EXAMPLES:
+   @media (max-width: 640px) { ... }   -- Small and below
+   @media (max-width: 768px) { ... }   -- Medium and below
+   @media (max-width: 1024px) { ... }  -- Large and below
+   @media (min-width: 768px) { ... }   -- Medium and above
+
+   MIGRATION FROM NON-STANDARD VALUES:
+   - 480px → 640px (consolidate very small phone styles)
+   - 600px → 640px (consolidate to sm breakpoint)
+   - 700px → 768px (consolidate to md breakpoint)
+   - 767px → 768px (fix off-by-one)
+   - 900px → 1024px (consolidate to lg breakpoint)
+   - 968px → 1024px (consolidate to lg breakpoint)
+   ============================================================================ */
+
 :root {
   /* =========================================================================
-     COLORS - BACKGROUND
+     FOUNDATION COLORS - Base values (must be defined first!)
      ========================================================================= */
-  --color-bg-primary: #F5F1E8;      /* Paper Cream - main background */
-  --color-bg-secondary: #E8E0D5;    /* Sand - cards, sections */
-  --color-bg-elevated: #FFFDFB;     /* Elevated surfaces */
-  --color-bg-dark: #2C2520;         /* Dark sections, footer */
-  --color-bg-code: #2C2520;         /* Code blocks */
+  --color-paper: #faf8f5;
+  --color-paper-warm: #f5f2ed;
+  --color-paper-cream: #fffdfb;
+  --color-ink: #2c2520;
+  --color-ink-light: #5c544a;
+  --color-sand: #e8e0d5;
+  --color-stone: #8a8075;
+  --color-stone-dark: #6b635a;
+  --color-wood: #a8896c;
+  --color-wood-light: #d4c4b0;
+  --color-moss: #5a7a3d;
+  --color-tea: #c4a77d;
+  --color-tea-light: #d8c8a8;
+  --color-bamboo: #7a8f5a;
+  --color-gold: #a6854a;
+  --color-peach: #f0c0a0;
+  --color-cedar-deep: #1f1a16;
+  --color-error-muted: rgba(181, 69, 58, 0.5);
 
   /* =========================================================================
-     COLORS - TEXT
+     COLORS - BACKGROUND (Light Mode)
+     Values from design-system/tokens/colors.json
      ========================================================================= */
-  --color-text-primary: #2C2520;    /* Natural Ink - headlines */
-  --color-text-secondary: #5C544A;  /* Body text */
-  --color-text-muted: #756A5E;      /* Captions, hints */
-  --color-text-dimmed: #A89D90;     /* Disabled, placeholder */
-  --color-text-inverse: #F5F1E8;    /* Text on dark backgrounds */
+  --color-bg-primary: var(--color-paper);                    /* Paper Cream - main background */
+  --color-bg-secondary: var(--color-paper-warm);                  /* Sand - cards, sections */
+  --color-bg-elevated: var(--color-paper-cream);                   /* Elevated surfaces */
+  --color-bg-dark: var(--color-ink);                       /* Dark sections, footer */
+  --color-bg-dark-elevated: var(--color-cedar-dark);              /* Dark elevated surfaces */
+  --color-bg-dark-surface: var(--color-cedar-deep);               /* Dark card surfaces */
+  --color-bg-code: var(--color-ink);                       /* Code blocks */
 
   /* =========================================================================
-     COLORS - ACCENT
+     COLORS - TEXT (Light Mode) - WCAG AA Compliant
      ========================================================================= */
-  --color-accent: #3D5A45;          /* Forest Green - CTAs, links */
-  --color-accent-hover: #4a6d52;    /* Hover state */
-  --color-accent-light: rgba(61, 90, 69, 0.1);  /* Light accent bg */
-  --color-highlight: #C4A265;       /* Warm Amber - emphasis */
+  --color-text-primary: var(--color-ink);                  /* 12.0:1 contrast - headlines */
+  --color-text-secondary: var(--color-ink-light);                /* 7.0:1 contrast - body text */
+  --color-text-muted: var(--color-stone-dark);                    /* 5.5:1 contrast - captions, hints */
+  --color-text-dimmed: var(--color-text-muted);                   /* 4.7:1 contrast - disabled, placeholder */
+  --color-text-inverse: var(--color-paper);                  /* Text on dark backgrounds */
+
+  /* =========================================================================
+     COLORS - ACCENT (Light Mode)
+     ========================================================================= */
+  --color-accent: #3D5A45;                        /* Forest Green - CTAs, links */
+  --color-forest-green: var(--color-accent);                  /* Alias for accent */
+  --color-accent-hover: var(--color-ferni-light);                  /* Hover state */
+  --color-accent-pressed: var(--color-ferni-dark);                /* Pressed state */
+  --color-accent-light: rgba(61, 90, 69, 0.1);    /* Light accent bg */
+  --color-highlight: var(--color-nayan);                     /* Warm Amber - emphasis (nayan) */
   --color-highlight-glow: rgba(196, 162, 101, 0.2);
 
   /* =========================================================================
      COLORS - SEMANTIC
      ========================================================================= */
-  --color-success: #4a7352;
+  --color-success: var(--color-ferni-light);
   --color-success-bg: rgba(74, 115, 82, 0.1);
-  --color-error: #a65a52;
+  --color-error: var(--color-error-muted);
   --color-error-bg: rgba(166, 90, 82, 0.1);
-  --color-warning: #a6854a;
+  --color-warning: var(--color-gold);
   --color-warning-bg: rgba(166, 133, 74, 0.1);
-  --color-info: #3a6b73;
+  --color-info: var(--color-peter);
   --color-info-bg: rgba(58, 107, 115, 0.1);
+  --color-success-light: var(--color-ferni-light);
+
+  /* =========================================================================
+     COLORS - CEDAR / DARK THEME BASE
+     Cedar Night theme foundation colors
+     ========================================================================= */
+  --color-cedar: var(--color-bg-elevated);
+  --color-cedar-dark: var(--color-cedar);
+  --color-accent-gold: #d4a84a;
+  --color-accent-gold-hover: var(--color-accent-hover);
+  --color-text-secondary-light: var(--color-sand);
 
   /* =========================================================================
      COLORS - BORDERS
@@ -56,33 +122,35 @@
      COLORS - CINEMATIC (Google Flow inspired)
      Pure blacks for video-heavy sections
      ========================================================================= */
-  --color-cinematic-black: #0a0a0a;
-  --color-cinematic-dark: #121212;
-  --color-cinematic-deep: #1a1a1a;
-  --color-cinematic-surface: #222222;
+  --color-cinematic-black: var(--cinematic-black-primary);
+  --color-cinematic-dark: var(--cinematic-black-deep);
+  --color-cinematic-deep: var(--color-bg-dark);
+  --color-cinematic-rich: var(--cinematic-black-rich);              /* Deep warm brown for dramatic sections */
+  --color-cinematic-primary: var(--cinematic-black-primary);           /* Deepest cinematic black */
+  --color-cinematic-surface: var(--color-gray-900);
   --color-cinematic-overlay-light: rgba(0, 0, 0, 0.3);
   --color-cinematic-overlay-medium: rgba(0, 0, 0, 0.5);
   --color-cinematic-overlay-heavy: rgba(0, 0, 0, 0.7);
   --color-cinematic-overlay-vignette: radial-gradient(circle at center, transparent 30%, rgba(0, 0, 0, 0.4) 100%);
-  --color-cinematic-text: #ffffff;
-  --color-cinematic-text-secondary: #f0ebe4;
-  --color-cinematic-text-muted: #ddd6cc;
-  --color-cinematic-text-subtle: #c8bfb4;
+  --color-cinematic-text: var(--color-text-inverse);
+  --color-cinematic-text-secondary: rgba(255, 255, 255, 0.8);
+  --color-cinematic-text-muted: rgba(255, 255, 255, 0.6);
+  --color-cinematic-text-subtle: rgba(255, 255, 255, 0.4);
   
   /* =========================================================================
      COLORS - FERNI WARM CINEMATIC (Brand-aligned)
      Warm, earthy darks instead of cold pure blacks
      ========================================================================= */
-  --color-ferni-cinematic-black: #1a1614;
-  --color-ferni-cinematic-dark: #2c2520;
-  --color-ferni-cinematic-deep: #3a332e;
-  --color-ferni-cinematic-surface: #4a4038;
-  --color-ferni-cinematic-elevated: #584840;
+  --color-ferni-cinematic-black: var(--color-bg-dark);
+  --color-ferni-cinematic-dark: var(--color-text-primary);
+  --color-ferni-cinematic-deep: var(--color-bg-dark-elevated);
+  --color-ferni-cinematic-surface: var(--color-bg-dark-surface);
+  --color-ferni-cinematic-elevated: var(--color-cedar-dark);
   --color-ferni-overlay-vignette: radial-gradient(circle at center, transparent 30%, rgba(44, 37, 32, 0.5) 100%);
-  --color-ferni-cinematic-text: #ffffff;
-  --color-ferni-cinematic-text-secondary: #f0ebe4;
-  --color-ferni-cinematic-text-muted: #ddd6cc;
-  --color-ferni-cinematic-text-accent: #C4A265;
+  --color-ferni-cinematic-text: var(--color-text-inverse);
+  --color-ferni-cinematic-text-secondary: rgba(255, 255, 255, 0.8);
+  --color-ferni-cinematic-text-muted: rgba(255, 255, 255, 0.6);
+  --color-ferni-cinematic-text-accent: var(--color-nayan);
   
   /* =========================================================================
      PREMIUM GLASSMORPHISM (Google Flow style buttons)
@@ -107,27 +175,76 @@
 
   /* =========================================================================
      COLORS - PERSONAS
+     Values from design-system/tokens/colors.json
      ========================================================================= */
   --color-ferni: #4a6741;
   --color-ferni-secondary: #3d5a35;
+  --color-ferni-glow: rgba(74, 103, 65, 0.28);
+  --color-ferni-text: #4a6741;
+  --color-ferni-green: #4a6741;
 
   /* Garden/Sage Colors - Community funding theme */
-  --color-sage: var(--color-ferni);
-  --color-sage-dark: var(--color-ferni-secondary);
+  --color-sage: #4a6741;
+  --color-sage-dark: #3d5a35;
   --color-bg-sage-subtle: rgba(74, 103, 65, 0.05);
 
   --color-jack: #9a7b5a;
   --color-jack-secondary: #7d6348;
+  --color-jack-glow: rgba(154, 123, 90, 0.28);
   --color-peter: #3a6b73;
   --color-peter-secondary: #2d5359;
+  --color-peter-glow: rgba(58, 107, 115, 0.28);
   --color-alex: #5a6b8a;
   --color-alex-secondary: #4a5a73;
+  --color-alex-glow: rgba(90, 107, 138, 0.28);
   --color-maya: #a67a6a;
   --color-maya-secondary: #8a635a;
+  --color-maya-glow: rgba(166, 122, 106, 0.28);
   --color-jordan: #c4856a;
   --color-jordan-secondary: #a86d55;
+  --color-jordan-glow: rgba(196, 133, 106, 0.28);
   --color-jaggi: #b8956a;
-  --color-jaggi-secondary: #9a7a52;
+  --color-jaggi-secondary: #9a7b5a;
+
+  /* Nayan (alias for jaggi) */
+  --color-nayan: #b8956a;
+  --color-nayan-secondary: #9a7a52;
+  --color-nayan-glow: rgba(184, 149, 106, 0.28);
+
+  /* =========================================================================
+     PERSONA COLORS - Extended Palette (for visualizations)
+     Light/Subtle/Glow variants for data viz and capabilities showcase
+     ========================================================================= */
+  --color-ferni-light: #6b8760;
+  --color-ferni-dark: #3d5a35;
+  --color-ferni-subtle: rgba(74, 103, 65, 0.1);
+  --color-ferni-border: rgba(74, 103, 65, 0.3);
+  --color-ferni-glow: rgba(74, 103, 65, 0.4);
+
+  --color-maya-light: #c69a8a;
+  --color-maya-dark: #8a635a;
+  --color-maya-subtle: rgba(166, 122, 106, 0.1);
+  --color-maya-glow: rgba(166, 122, 106, 0.4);
+
+  --color-peter-light: #5a8b93;
+  --color-peter-dark: #2d5359;
+  --color-peter-subtle: rgba(58, 107, 115, 0.1);
+  --color-peter-glow: rgba(58, 107, 115, 0.4);
+
+  --color-jordan-light: #e4a58a;
+  --color-jordan-dark: #a86d55;
+  --color-jordan-subtle: rgba(196, 133, 106, 0.1);
+  --color-jordan-glow: rgba(196, 133, 106, 0.4);
+
+  --color-alex-light: #7a8baa;
+  --color-alex-dark: #4a5a73;
+  --color-alex-subtle: rgba(90, 107, 138, 0.1);
+  --color-alex-glow: rgba(90, 107, 138, 0.4);
+
+  --color-nayan-light: #d8b58a;
+  --color-nayan-dark: #9a7a52;
+  --color-nayan-subtle: rgba(184, 149, 106, 0.1);
+  --color-nayan-glow: rgba(184, 149, 106, 0.4);
 
   /* =========================================================================
      TYPOGRAPHY
@@ -407,7 +524,7 @@ code {
   border-radius: var(--radius-full);
   color: var(--color-cinematic-text);
   font-family: var(--font-body);
-  font-size: 15px;
+  font-size: var(--text-base);
   font-weight: 500;
   text-decoration: none;
   box-shadow: var(--glass-btn-shadow);
@@ -423,7 +540,7 @@ code {
 
 /* Text Gradient */
 .text-gradient-light {
-  background: linear-gradient(135deg, #ffffff 0%, rgba(255, 255, 255, 0.7) 100%);
+  background: linear-gradient(135deg, var(--color-text-inverse) 0%, rgba(255, 255, 255, 0.7) 100%);
   background-clip: text;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -493,7 +610,166 @@ code {
   
   .btn-glass {
     padding: 14px 24px;
-    font-size: 14px;
+    font-size: var(--text-sm);
   }
+}
+
+/* ============================================================================
+   DARK MODE - System Dark Theme Variable Overrides
+   ============================================================================
+   When the user has dark mode enabled, override all color tokens to ensure
+   excellent contrast and visibility throughout the site.
+   
+   CRITICAL: Use HARDCODED HEX VALUES here, not variable references!
+   Variable references can create circular dependencies that break colors.
+   
+   Cedar Night Theme - Warm, earthy darks (not cold/gray)
+   ============================================================================ */
+@media (prefers-color-scheme: dark) {
+  :root {
+    /* Background Colors - Warm Ferni Dark Palette (Cedar Night) */
+    /* HARDCODED to prevent circular reference issues */
+    --color-bg-primary: #58483f;                  /* Warm dark brown - main bg */
+    --color-bg-secondary: #60504a;                /* Slightly lighter */
+    --color-bg-elevated: #6a5a52;                 /* Card surfaces */
+    --color-bg-dark: #1f1a16;                     /* Deepest dark */
+    --color-bg-dark-elevated: #58483f;            /* Dark elevated */
+    --color-bg-dark-surface: #1f1a16;             /* Dark surface */
+    --color-bg-glass: rgba(230, 195, 160, 0.08);
+    --color-bg-overlay: rgba(88, 72, 64, 0.95);
+
+    /* Text Colors - High Contrast for Readability */
+    /* HARDCODED to ensure proper contrast - these are LIGHT colors for dark bg */
+    --color-text-primary: #faf6f0;                /* Light cream for headlines - 5.5:1 contrast */
+    --color-text-secondary: #e8e0d5;              /* Warm cream for body - 4.6:1 contrast */
+    --color-text-muted: #d8d0c5;                  /* Muted for captions - 3.9:1 contrast */
+    --color-text-dimmed: #c8c0b5;                 /* Subtle text */
+    --color-text-inverse: #2a2420;                /* Dark text on light bg */
+
+    /* Accent Colors - Brighter for Dark Mode */
+    --color-accent: #d4a84a;                      /* Golden amber (warm) */
+    --color-accent-hover: #e4b85a;                /* Even brighter on hover */
+    --color-accent-pressed: #c49a3a;              /* Pressed state */
+    --color-accent-light: rgba(212, 168, 74, 0.2);
+    --color-accent-glow: rgba(212, 168, 74, 0.22);
+    --color-highlight: #d8c8a8;                   /* Brighter warm amber */
+    --color-highlight-glow: rgba(212, 178, 117, 0.3);
+
+    /* Border Colors - Visible on Dark */
+    --color-border-subtle: rgba(215, 185, 145, 0.12);
+    --color-border-medium: rgba(215, 185, 145, 0.20);
+    --color-border-strong: rgba(215, 185, 145, 0.30);
+
+    /* Semantic Colors - Bright for Dark Mode */
+    --color-success: #6bc48f;
+    --color-success-bg: rgba(107, 196, 143, 0.22);
+    --color-error: #e07575;
+    --color-error-bg: rgba(224, 117, 117, 0.22);
+    --color-warning: #e0b860;
+    --color-warning-bg: rgba(224, 184, 96, 0.22);
+
+    /* Persona Text Colors - WCAG AA compliant on dark backgrounds */
+    --color-ferni-text: #6b8760;
+    --color-jack-text: #d4c4b0;
+    --color-peter-text: #5a8b93;
+    --color-alex-text: #7a8baa;
+    --color-maya-text: #c69a8a;
+    --color-jordan-text: #f0c0a0;
+    --color-nayan-text: #d8b58a;
+
+    /* Shadows - Deeper for Dark Mode */
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+    --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
+    --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.5);
+    --shadow-xl: 0 12px 32px rgba(0, 0, 0, 0.6);
+  }
+
+  /* Body Dark Background */
+  body {
+    background: #58483f;
+    color: #faf6f0;
+  }
+
+  /* All headings - EXPLICIT light color */
+  h1, h2, h3, h4, h5, h6 {
+    color: #faf6f0 !important;
+  }
+
+  /* Links - Brighter accent */
+  a {
+    color: #d8c8a8;
+  }
+
+  a:hover {
+    color: #e4b85a;
+  }
+
+  /* Code blocks */
+  code {
+    background: #60504a;
+    color: #e8e0d5;
+  }
+}
+
+/* ============================================================================
+   DATA-THEME DARK MODE (for manual toggle)
+   ============================================================================
+   CRITICAL: Use HARDCODED hex values here to prevent circular references!
+   Values sourced from design-system/tokens/colors.json → themes.midnight
+   ============================================================================ */
+[data-theme="dark"] {
+  /* Background Colors - Cedar Night theme from design system */
+  --color-bg-primary: #584840;
+  --color-bg-secondary: #60504a;
+  --color-bg-elevated: #70605a;
+  --color-bg-dark: #1f1a16;
+  --color-bg-dark-elevated: #584840;
+  --color-bg-dark-surface: #1f1a16;
+  --color-bg-glass: rgba(230, 195, 160, 0.08);
+  --color-bg-overlay: rgba(88, 72, 64, 0.95);
+
+  /* Text Colors - WCAG AA compliant from design system */
+  --color-text-primary: #faf6f0;
+  --color-text-secondary: #f0ebe4;
+  --color-text-muted: #e8e2da;
+  --color-text-dimmed: #ddd6cc;
+  --color-text-inverse: #2a2420;
+
+  /* Accent Colors - Golden amber from design system */
+  --color-accent: #d4a84a;
+  --color-accent-hover: #e0bc6a;
+  --color-accent-pressed: #c49a3a;
+  --color-accent-light: rgba(212, 168, 74, 0.2);
+  --color-accent-glow: rgba(212, 168, 74, 0.22);
+  --color-highlight: #d8c8a8;
+  --color-highlight-glow: rgba(212, 178, 117, 0.3);
+
+  /* Border Colors - from design system */
+  --color-border-subtle: rgba(215, 185, 145, 0.12);
+  --color-border-medium: rgba(215, 185, 145, 0.20);
+  --color-border-strong: rgba(215, 185, 145, 0.30);
+
+  /* Semantic Colors - from design system */
+  --color-success: #6bc48f;
+  --color-success-bg: rgba(107, 196, 143, 0.22);
+  --color-error: #e07575;
+  --color-error-bg: rgba(224, 117, 117, 0.22);
+  --color-warning: #e0b860;
+  --color-warning-bg: rgba(224, 184, 96, 0.22);
+
+  /* Persona Text Colors - textOnDark variants from design system (WCAG AA) */
+  --color-ferni-text: #a5c99a;
+  --color-jack-text: #d4c4a8;
+  --color-peter-text: #8bc4cf;
+  --color-alex-text: #a8b8d8;
+  --color-maya-text: #e0b8a8;
+  --color-jordan-text: #f0c0a0;
+  --color-nayan-text: #e8d0a8;
+
+  /* Shadows - deeper for dark mode */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.5);
+  --shadow-xl: 0 12px 32px rgba(0, 0, 0, 0.6);
 }
 

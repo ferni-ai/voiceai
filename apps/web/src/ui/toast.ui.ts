@@ -22,7 +22,7 @@ import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 const log = createLogger('ToastUI');
 
 // FIX BUG: Track all setTimeout calls for proper cleanup
-const { trackedTimeout, clearAll: clearAllTimeouts } = createTimeoutTracker();
+const { trackedTimeout } = createTimeoutTracker();
 
 // ============================================================================
 // TYPES
@@ -48,20 +48,20 @@ interface ActiveToast {
 
 const TYPE_COLORS: Record<ToastType, { bg: string; text: string }> = {
   info: {
-    bg: 'var(--persona-primary, #4a6741)',
-    text: 'white',
+    bg: 'var(--persona-primary)',
+    text: 'var(--color-text-primary)',
   },
   success: {
-    bg: 'var(--persona-primary, #4a6741)',
-    text: 'white',
+    bg: 'var(--color-semantic-success)',
+    text: 'var(--color-text-primary)',
   },
   warning: {
-    bg: 'var(--color-warning, #b8956a)',
-    text: 'white',
+    bg: 'var(--color-semantic-warning)',
+    text: 'var(--color-text-inverse)',
   },
   error: {
-    bg: 'var(--color-destructive, #a65a52)',
-    text: 'white',
+    bg: 'var(--color-semantic-error)',
+    text: 'var(--color-text-primary)',
   },
 };
 
@@ -173,8 +173,8 @@ export class ToastManager {
       fontFamily: 'var(--font-body, system-ui)',
       fontWeight: '500',
       letterSpacing: '0.01em',
-      boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
-      zIndex: '10001',
+      boxShadow: 'var(--shadow-md)',
+      zIndex: 'var(--z-tooltip)',
       animation: `toast-in ${DURATION.SLOW}ms ${EASING.SPRING}`,
       whiteSpace: 'nowrap',
       maxWidth: 'calc(100vw - 48px)',

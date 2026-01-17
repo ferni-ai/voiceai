@@ -139,7 +139,7 @@ function parseCustomCondition(
       };
 
       // Replace property access with context lookups
-      let evalStr = condition
+      const evalStr = condition
         .replace(/distressLevel/g, 'ctx.distressLevel')
         .replace(/emotion/g, 'ctx.emotion')
         .replace(/valence/g, 'ctx.valence')

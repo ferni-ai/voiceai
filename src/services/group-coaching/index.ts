@@ -35,7 +35,7 @@ const log = createLogger({ module: 'GroupCoaching' });
 // ============================================================================
 
 export class GroupSessionManager {
-  private sessions: Map<string, GroupSession> = new Map();
+  private sessions = new Map<string, GroupSession>();
 
   // ==========================================================================
   // SESSION LIFECYCLE

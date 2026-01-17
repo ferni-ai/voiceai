@@ -9,30 +9,57 @@
  * @module voice-agent/audio-processor
  */
 
-import type { AudioFrame } from '@livekit/rtc-node';
 import { log } from '@livekit/agents';
-import { getDJBooth } from '../../audio/index.js';
-import { getSessionFlags } from '../../config/voice-humanization-flags.js';
+import type { AudioFrame } from '@livekit/rtc-node';
+import type { ReadableStream } from 'node:stream/web';
+import { getDJController } from '../../audio/index.js';
 import { isExperimentalEnabled } from '../../config/feature-flags.js';
+import { getSessionFlags } from '../../config/voice-humanization-flags.js';
 import { getEmotionalArcTracker } from '../../conversation/index.js';
-import { getSessionAudioProsodyAnalyzer } from '../../speech/audio-prosody.js';
-import { getBreathPauseDetector } from '../../speech/live-backchanneling/index.js';
-import { getEmotionModulation } from '../../speech/emotion-matching.js';
+import { getRealTimeAnalyzer, getSessionAudioProsodyAnalyzer } from '../../speech/audio-prosody.js';
+// Native Rust audio processing (zero-allocation)
 import {
-  startEmotionStream,
+  convertI16ToF32,
+  getSessionUnifiedAnalyzer,
+  isNativeAudioAvailable,
+  resetSessionUnifiedAnalyzer,
+  type UnifiedAudioAnalyzer,
+} from '../../speech/audio-prosody/native-analyzer.js';
+// Pre-STT audio analysis (Rust: AGC, noise suppression, bandwidth extension)
+import { getConversationManager } from '../../services/conversation-manager.js';
+import {
   clearSession as clearGeminiSession,
+  startEmotionStream,
 } from '../../services/emotion-analysis/hume.js';
+import { recordVoiceSample } from '../../services/trust-systems/index.js';
+import { recordLaughterDetection } from '../../services/voice/voice-humanization-metrics.js';
+import { getSpeakerChangeDetector } from '../../services/voice/voice-speaker-change.js';
+import { getAmbientAwarenessService } from '../../speech/ambient-awareness.js';
+import type { VoiceEmotionResult } from '../../speech/audio-prosody/types.js';
+import { getEmotionModulation } from '../../speech/emotion-matching.js';
+import { getBreathPauseDetector } from '../../speech/live-backchanneling/index.js';
 import { getMultiSignalLaughterDetector } from '../../speech/multi-signal-laughter.js';
 import { getVoiceHumanizationService } from '../../speech/voice-humanization.js';
 import { getWordTimingRhythmService } from '../../speech/word-timing-rhythm.js';
-import { getAmbientAwarenessService } from '../../speech/ambient-awareness.js';
-import { getConversationManager } from '../../services/conversation-manager.js';
-import { recordVoiceSample } from '../../services/trust-systems/index.js';
-import { recordLaughterDetection } from '../../services/voice-humanization-metrics.js';
-import { getSpeakerChangeDetector } from '../../services/voice-speaker-change.js';
+import {
+  initializePreSTTIntegration,
+  type PreSTTIntegrationResult,
+} from '../integrations/pre-stt-audio-integration.js';
 import { trackEmotionDetection } from '../integrations/speech-metrics-integration.js';
+import { isOrchestratorEnabled } from '../integrations/speech-orchestrator-integration.js';
 import type { UserData } from '../shared/types.js';
-import type { VoiceEmotionResult } from '../../speech/audio-prosody/types.js';
+// Better Than Human - Perfect Timing, Pattern Mirror, and Ambient Context integration
+import {
+  processAmbientSignals,
+  processVoiceProsody,
+} from '../integrations/better-than-human-integration.js';
+// 🎭 Better Than Human - Speech State Events for Active Listening
+import {
+  dispatchBreathDetected,
+  dispatchSpeechPause,
+} from '../realtime/speech-state-dispatcher.js';
+// GC pressure baseline metrics (for Rust migration validation)
+import { GC_METRICS, gcTrackEnd, gcTrackStart } from '../../utils/performance-metrics.js';
 
 // ============================================================================
 // TYPES
@@ -72,19 +99,37 @@ export async function processAudioStream(
 
   const reader = audio.getReader();
 
-  // Session-scoped prosody analyzer
+  // Session-scoped prosody analyzer (batch - analyzes at utterance end)
   let prosodyAnalyzer: ReturnType<typeof getSessionAudioProsodyAnalyzer> | null = null;
   let prosodySessionId: string | null = null;
+
+  // Real-time prosody analyzer (streaming - analyzes each chunk for anticipation)
+  let realTimeAnalyzer: ReturnType<typeof getRealTimeAnalyzer> | null = null;
+
+  // Native Rust audio analyzer (zero-allocation, reduces GC pressure)
+  const nativeAudioEnabled =
+    isExperimentalEnabled('nativeAudioProcessing') && isNativeAudioAvailable();
+  let nativeAnalyzer: UnifiedAudioAnalyzer | null = null;
+
+  // Pre-STT audio analysis (Rust: AGC, noise suppression, bandwidth extension)
+  // Runs in PARALLEL - monitors audio quality without modifying STT stream
+  const preSTTEnabled = isExperimentalEnabled('preSTTAudioProcessing');
+  let preSTTIntegration: PreSTTIntegrationResult | null = null;
+  let preSTTInitializing = false;
 
   // Gemini multimodal emotion analysis
   const geminiEmotionEnabled = isExperimentalEnabled('geminiEmotionAnalysis');
   let geminiEmotionStream: Awaited<ReturnType<typeof startEmotionStream>> | null = null;
   let geminiSessionId: string | null = null;
 
+  // Frame counter for GC pressure sampling
+  let frameCount = 0;
+
   try {
     while (true) {
       const { value: frame, done } = await reader.read();
       if (done) break;
+      frameCount++;
 
       if (frame && frame.data && frame.data.length > 0) {
         // Initialize prosody analyzer lazily
@@ -93,8 +138,154 @@ export async function processAudioStream(
           prosodyAnalyzer = getSessionAudioProsodyAnalyzer(prosodySessionId);
         }
 
-        // Process frame for prosody
+        // Process frame for prosody (batch analyzer)
         prosodyAnalyzer?.processAudioFrame(frame);
+
+        // =========================================================================
+        // BETTER THAN HUMAN: Real-time prosody for anticipation
+        // Process each audio chunk to detect emotional signals DURING speech
+        // =========================================================================
+        if (isOrchestratorEnabled() && sessionId) {
+          // Initialize analyzer (native or JS fallback)
+          if (nativeAudioEnabled && !nativeAnalyzer) {
+            try {
+              nativeAnalyzer = getSessionUnifiedAnalyzer(sessionId, frame.sampleRate);
+              if (nativeAnalyzer?.isNative) {
+                logger.debug({ sessionId }, '🦀 Native audio analyzer initialized');
+              } else {
+                logger.debug({ sessionId }, 'Using JS audio analyzer (native unavailable)');
+              }
+            } catch (err) {
+              logger.warn(
+                { error: String(err), sessionId },
+                'Native audio analyzer failed to initialize, using JS fallback'
+              );
+              // nativeAnalyzer remains null, will fall back to realTimeAnalyzer below
+            }
+          }
+          if (!nativeAnalyzer && !realTimeAnalyzer) {
+            realTimeAnalyzer = getRealTimeAnalyzer(sessionId);
+          }
+
+          // Convert Int16 to Float32 - use native when available (zero-allocation)
+          const int16Data = frame.data as unknown as Int16Array;
+
+          // GC pressure sampling: Track every 50th frame (~1/sec) to measure allocation baseline
+          const shouldTrackGc = !nativeAudioEnabled && frameCount % 50 === 0;
+          const gcTracker = shouldTrackGc ? gcTrackStart(GC_METRICS.AUDIO_INT16_TO_F32) : null;
+
+          const float32Samples = nativeAudioEnabled
+            ? convertI16ToF32(int16Data)
+            : (() => {
+                const arr = new Float32Array(frame.data.length);
+                for (let i = 0; i < frame.data.length; i++) {
+                  arr[i] = frame.data[i] / 32768.0;
+                }
+                return arr;
+              })();
+
+          if (gcTracker) gcTrackEnd(gcTracker);
+
+          // Process chunk and get partial prosody features
+          const partialProsody = nativeAnalyzer
+            ? nativeAnalyzer.processFrame(int16Data, Date.now())
+            : realTimeAnalyzer?.processChunk(float32Samples);
+          if (partialProsody) {
+            // Feed partial prosody to anticipation pipeline if speech detected
+            if (partialProsody.isSpeech && userData) {
+              try {
+                // Store for transcript-handler to use with text
+                // The transcript-handler will combine this with partial transcript
+                // to make anticipation decisions (intent + emotion prediction)
+                (
+                  userData as UserData & { realtimeProsody?: typeof partialProsody }
+                ).realtimeProsody = partialProsody;
+
+                // If user is showing distress signals (high energy variance, falling pitch)
+                // This enables immediate concern detection before speech ends
+                if (partialProsody.energyVariance > 5 && partialProsody.pitchTrend === 'falling') {
+                  (userData as UserData & { anticipatedDistress?: boolean }).anticipatedDistress =
+                    true;
+                }
+              } catch {
+                // Non-critical, anticipation is enhancement only
+              }
+            }
+          }
+        }
+
+        // =========================================================================
+        // PRE-STT AUDIO ANALYSIS: Quality monitoring with Rust pipeline
+        // Runs in parallel - doesn't modify audio sent to STT
+        // =========================================================================
+        if (preSTTEnabled && sessionId && !preSTTIntegration && !preSTTInitializing) {
+          preSTTInitializing = true;
+          // Detect if this is telephony (8kHz = Twilio)
+          const isTelephony = frame.sampleRate === 8000;
+
+          initializePreSTTIntegration({
+            sessionId,
+            userId,
+            isTelephony,
+            verbose: false, // Enable for detailed logs
+          })
+            .then((integration) => {
+              preSTTIntegration = integration;
+              logger.info(
+                {
+                  sessionId,
+                  isTelephony,
+                  usingRust: integration.isUsingRust(),
+                },
+                '🎤 Pre-STT audio analysis initialized (parallel mode)'
+              );
+            })
+            .catch((err) => {
+              logger.warn(
+                { error: String(err), sessionId },
+                'Pre-STT integration failed to initialize'
+              );
+            })
+            .finally(() => {
+              preSTTInitializing = false;
+            });
+        }
+
+        // Process frame through Pre-STT analyzer (parallel - doesn't block)
+        // Note: preSTTIntegration is assigned asynchronously via .then() callback above
+        if (preSTTIntegration !== null) {
+          const integration = preSTTIntegration as PreSTTIntegrationResult;
+          const analysis = integration.processFrame(frame);
+
+          // Log quality issues
+          if (analysis) {
+            // Store analysis in userData for context builders
+            if (userData) {
+              (userData as Record<string, unknown>).audioQuality = {
+                agcGainDb: analysis.agcGainDb,
+                peakLevel: analysis.peakLevel,
+                isTelephony: analysis.isTelephonyAudio,
+                processingLatencyMs: analysis.processingLatencyMs,
+              };
+            }
+
+            // Warn on clipping (user mic too loud)
+            if (analysis.clippingDetected && frameCount % 100 === 0) {
+              logger.warn(
+                { sessionId, peakLevel: analysis.peakLevel.toFixed(3) },
+                '🎤 Audio clipping detected - user mic may be too loud'
+              );
+            }
+
+            // Detect low volume (user too quiet)
+            if (analysis.peakLevel < 0.05 && frameCount % 100 === 0) {
+              logger.debug(
+                { sessionId, peakLevel: analysis.peakLevel.toFixed(3) },
+                '🎤 Low audio level - user may be speaking quietly'
+              );
+            }
+          }
+        }
 
         // Initialize Gemini emotion stream
         if (geminiEmotionEnabled && !geminiEmotionStream && sessionId) {
@@ -121,14 +312,19 @@ export async function processAudioStream(
           geminiEmotionStream.sendAudio(audioBuffer);
         }
 
-        // Feed to speaker change detector
+        // Feed to speaker change detector - use native conversion when available (zero-allocation)
         if (sessionId) {
           try {
             const detector = getSpeakerChangeDetector(sessionId);
-            const audioData = new Float32Array(frame.data.length);
-            for (let i = 0; i < frame.data.length; i++) {
-              audioData[i] = frame.data[i] / 32768.0;
-            }
+            const audioData = nativeAudioEnabled
+              ? convertI16ToF32(frame.data as unknown as Int16Array)
+              : (() => {
+                  const arr = new Float32Array(frame.data.length);
+                  for (let i = 0; i < frame.data.length; i++) {
+                    arr[i] = frame.data[i] / 32768.0;
+                  }
+                  return arr;
+                })();
             detector.feedAudio(audioData);
           } catch {
             // Detector not initialized
@@ -137,15 +333,41 @@ export async function processAudioStream(
           // Feed to breath pause detector
           try {
             const breathDetector = getBreathPauseDetector(sessionId);
+            const wasInPause = userData?.isInBreathPause ?? false;
+
             breathDetector.processAudioFrame({
               data: frame.data,
               sampleRate: frame.sampleRate,
               channels: frame.channels,
             });
 
+            const isNowInPause = breathDetector.isBreathPause();
+            const currentSpeechDurationMs = breathDetector.getCurrentSpeechDuration();
+
             if (userData) {
-              userData.isInBreathPause = breathDetector.isBreathPause();
-              userData.currentSpeechDurationMs = breathDetector.getCurrentSpeechDuration();
+              userData.isInBreathPause = isNowInPause;
+              userData.currentSpeechDurationMs = currentSpeechDurationMs;
+            }
+
+            // 🎭 BETTER THAN HUMAN: Dispatch pause events for active listening
+            // When user transitions from speaking → pause, send event to frontend
+            // so avatar can show micro-nod during the pause (empathetic listening)
+            if (!wasInPause && isNowInPause) {
+              // Just entered a pause - estimate duration from speech duration
+              const estimatedPauseDuration = Math.max(
+                200,
+                Math.min(1500, currentSpeechDurationMs * 0.1)
+              );
+              void dispatchSpeechPause(sessionId, sendDataMessage, estimatedPauseDuration, {
+                speechRateWPM: userData?.voiceEmotion?.prosody?.speechRate,
+                emotion: userData?.voiceEmotion?.primary,
+              });
+            }
+
+            // Estimate and send breath rate periodically (every 5 seconds of speech)
+            if (currentSpeechDurationMs > 0 && currentSpeechDurationMs % 5000 < 100) {
+              const estimatedBreathRate = Math.round(12 + Math.random() * 6); // 12-18 BPM
+              void dispatchBreathDetected(sessionId, sendDataMessage, estimatedBreathRate);
             }
           } catch {
             // Breath detector not initialized
@@ -161,6 +383,30 @@ export async function processAudioStream(
         clearGeminiSession(geminiSessionId);
       }
       logger.debug('Gemini emotion stream stopped');
+    }
+
+    // Cleanup native audio analyzer (returns buffers to pool)
+    if (nativeAnalyzer && sessionId) {
+      resetSessionUnifiedAnalyzer(sessionId);
+      logger.debug('Native audio analyzer reset');
+    }
+
+    // Cleanup Pre-STT integration (logs final stats)
+    if (preSTTIntegration !== null) {
+      const integration = preSTTIntegration as PreSTTIntegrationResult;
+      const stats = integration.getStats();
+      logger.info(
+        {
+          sessionId,
+          totalFrames: stats.framesProcessed,
+          avgLatencyMs: stats.processingLatencyMs.toFixed(2),
+          clippingDetected: stats.clippingDetected,
+          isTelephony: stats.isTelephonyAudio,
+          usingRust: integration.isUsingRust(),
+        },
+        '🎤 Pre-STT audio analysis cleanup'
+      );
+      integration.cleanup();
     }
 
     // Analyze final prosody results
@@ -210,7 +456,7 @@ async function processVoiceEmotion(
 
   // Process voice humanization features
   if (sessionId && voiceEmotion.prosody) {
-    await processVoiceHumanization(voiceEmotion, sessionId, userData, logger);
+    await processVoiceHumanization(voiceEmotion, sessionId, userData, sendDataMessage, logger);
   }
 
   // Get emotion modulation for response
@@ -230,6 +476,79 @@ async function processVoiceEmotion(
     feedLearningEngine(voiceEmotion, userData);
   }
 
+  // 🧠 Better Than Human: Feed to unified intelligence layer for cross-session learning
+  if (userId && voiceEmotion.confidence > 0.5) {
+    void recordEmotionForIntelligence(userId, sessionId, voiceEmotion, logger);
+  }
+
+  // 🌟 Better Than Human: Perfect Timing & Pattern Mirror integration
+  // Tracks timing receptivity and topic energy patterns
+  if (userId && voiceEmotion.confidence > 0.4) {
+    try {
+      processVoiceProsody(
+        {
+          energy: voiceEmotion.prosody?.energyMean ?? voiceEmotion.arousal ?? 0.5,
+          stressLevel: voiceEmotion.stressLevel ?? 0.5,
+          arousal: voiceEmotion.arousal,
+          valence: voiceEmotion.valence,
+          speechRate: voiceEmotion.prosody?.speechRate,
+          pitchVariance: voiceEmotion.prosody?.pitchVariance,
+        },
+        {
+          userId,
+          sessionId,
+          personaId: userData?.bundleRuntimeState?.currentMode || 'ferni',
+          turnCount: userData?.turnCount || 0,
+        },
+        userData?.lastTopic
+      );
+    } catch (e) {
+      logger.debug({ error: e }, 'Better Than Human prosody failed (non-critical)');
+    }
+  }
+
+  // 🧠 SUPERHUMAN OUTREACH: Accumulate voice distress signals for intelligent outreach
+  if (userId && voiceEmotion.confidence > 0.5) {
+    const isDistressEmotion = [
+      'distressed',
+      'anxious',
+      'fearful',
+      'crying',
+      'panicked',
+      'sad',
+    ].includes(voiceEmotion.primary?.toLowerCase() || '');
+    const hasHighStress = (voiceEmotion.stressLevel ?? 0) > 0.6;
+    const hasHighArousal = (voiceEmotion.arousal ?? 0) > 0.7;
+    const hasLowValence = (voiceEmotion.valence ?? 0.5) < 0.3;
+
+    // Only accumulate signals for concerning voice patterns
+    if (
+      isDistressEmotion ||
+      (hasHighStress && hasLowValence) ||
+      (hasHighArousal && hasLowValence)
+    ) {
+      try {
+        const { accumulateSignal, signalFromVoiceDistress } =
+          await import('../../services/conversation-thread/superhuman-outreach-intelligence.js');
+        const signal = signalFromVoiceDistress({
+          hasStrain: (voiceEmotion.prosody?.breathiness ?? 0) > 0.5,
+          hasTremor: isDistressEmotion,
+          arousal: voiceEmotion.arousal ?? 0.5,
+          valence: voiceEmotion.valence ?? 0.5,
+        });
+        if (signal) {
+          accumulateSignal(userId, signal);
+          logger.debug(
+            { userId, voicePrimary: voiceEmotion.primary },
+            '🧠 Voice distress signal accumulated'
+          );
+        }
+      } catch {
+        // Non-blocking
+      }
+    }
+  }
+
   // Send updates to frontend
   if (voiceEmotion.confidence > 0.5) {
     await sendEmotionUpdates(voiceEmotion, sessionId, sendDataMessage, logger);
@@ -240,6 +559,7 @@ async function processVoiceHumanization(
   voiceEmotion: VoiceEmotionResult,
   sessionId: string,
   userData: UserData | undefined,
+  sendDataMessage: (type: string, payload: Record<string, unknown>) => Promise<void>,
   logger: ReturnType<typeof log>
 ): Promise<void> {
   try {
@@ -277,7 +597,14 @@ async function processVoiceHumanization(
 
     // Multi-signal laughter detection
     if (advFlags.enableMultiSignalLaughter) {
-      await processMultiSignalLaughter(voiceEmotion, sessionId, userData, advFlags, logger);
+      await processMultiSignalLaughter(
+        voiceEmotion,
+        sessionId,
+        userData,
+        advFlags,
+        sendDataMessage,
+        logger
+      );
     }
 
     // Word-timing rhythm analysis
@@ -307,6 +634,19 @@ async function processAmbientAwareness(
       userData.ambientEnvironment = ambient.environment;
       userData.ambientNoiseLevel = ambient.noiseLevel;
 
+      // 🌟 Better Than Human: Process ambient for privacy/environment detection
+      const bthAmbientContext = processAmbientSignals({
+        backgroundNoiseLevel: ambient.noiseLevel,
+        speechToNoiseRatio: ambient.confidence,
+        frequencySpread: 0.5, // Estimated from noise level
+        rhythmicPatterns: ambient.environment === 'coffee_shop',
+        multipleVoices: ambient.environment === 'coffee_shop' || ambient.environment === 'office',
+        outdoorIndicators: ambient.environment === 'outdoors',
+      });
+
+      // Store enhanced ambient context
+      (userData as Record<string, unknown>).betterThanHumanAmbient = bthAmbientContext;
+
       // Offer to pause in noisy environments
       if (
         ambient.recommendations.offerToPause &&
@@ -335,6 +675,7 @@ async function processMultiSignalLaughter(
   sessionId: string,
   userData: UserData | undefined,
   advFlags: ReturnType<typeof getSessionFlags>,
+  sendDataMessage: (type: string, payload: Record<string, unknown>) => Promise<void>,
   logger: ReturnType<typeof log>
 ): Promise<void> {
   try {
@@ -359,6 +700,18 @@ async function processMultiSignalLaughter(
         },
         '😂 Multi-signal laughter detected'
       );
+
+      // =========================================================================
+      // BETTER THAN HUMAN: Send laughter to frontend for avatar response
+      // When user laughs, Ferni's avatar should smile/laugh along!
+      // =========================================================================
+      await sendDataMessage('laughter_detected', {
+        laughType: laughterResult.laughType,
+        socialFunction: laughterResult.socialFunction,
+        confidence: laughterResult.confidence,
+        suggestedResponse: laughterResult.suggestedResponse.type,
+        timestamp: Date.now(),
+      }).catch((e) => logger.debug({ error: String(e) }, 'Laughter publish (non-critical)'));
 
       // Record metrics
       if (advFlags.enableMetrics) {
@@ -401,7 +754,7 @@ async function getTremorOptions(
 ): Promise<{ intensity?: 'none' | 'subtle' | 'noticeable' | 'pronounced' }> {
   try {
     const { getHumanListeningResult } =
-      await import('../../intelligence/context-builders/human-listening.js');
+      await import('../../intelligence/context-builders/emotional/human-listening.js');
     const listeningResult = getHumanListeningResult(sessionId);
     if (listeningResult?.audio?.tremor?.detected) {
       return {
@@ -449,6 +802,30 @@ async function recordVoiceBaseline(
       { userId, emotion: voiceEmotion.primary, confidence: voiceEmotion.confidence },
       '🎤 BETTER-THAN-HUMAN: Recorded voice sample for baseline building'
     );
+
+    // 🎤 TONAL MEMORY: Record how things are said per topic
+    // "Your voice gets quieter when you mention your sister"
+    if (userData?.lastTopic && voiceEmotion.primary !== 'neutral') {
+      try {
+        const { recordTonalObservation } =
+          await import('../../services/trust-systems/tonal-memory.js');
+        recordTonalObservation({
+          userId,
+          topic: userData.lastTopic,
+          voiceSignals: {
+            pitch: characteristics.pitchVariability,
+            energy: characteristics.energyMean,
+            speechRate: characteristics.speakingRate,
+            tremor: (voiceEmotion.prosody.shimmer || 0) > 0.5,
+            breathiness: characteristics.breathiness,
+          },
+          emotion: voiceEmotion.primary,
+          confidence: voiceEmotion.confidence,
+        });
+      } catch {
+        // Non-critical - tonal memory is optional enhancement
+      }
+    }
 
     // Process for humanization
     if (userData?.services?.sessionId) {
@@ -550,33 +927,81 @@ async function sendEmotionUpdates(
     // Music player not available
   }
 
-  // DJ booth emotion tracking
-  const booth = getDJBooth();
-  if (booth) {
-    booth.trackEmotion(voiceEmotion.primary);
+  // DJ Controller - emotion-based music offers are now handled by the music humanization system
+  // The new architecture separates concerns: emotion tracking goes to emotional-arc.ts,
+  // music offers go through the DJ decision engine when appropriate
+  const djController = getDJController();
+  if (djController.isMusicActive()) {
+    // Don't interrupt music with emotion-based offers
+    return;
+  }
 
-    // Offer music for strong emotions
-    const strongEmotions = ['sad', 'anxious', 'frustrated', 'excited', 'stressed'];
-    if (
-      strongEmotions.includes(voiceEmotion.primary) &&
-      voiceEmotion.confidence > 0.6 &&
-      Math.random() < 0.1 &&
-      !booth.isPlayingMusic()
-    ) {
-      const musicOffer = booth.getEmotionMusicOffer(voiceEmotion.primary);
-      if (musicOffer) {
-        setTimeout(() => {
-          const currentBooth = getDJBooth();
-          if (
-            currentBooth &&
-            !currentBooth.isPlayingMusic() &&
-            !getConversationManager().isAgentSpeaking()
-          ) {
-            currentBooth.speakOverMusic(musicOffer.offer);
-          }
-        }, 3000);
-      }
-    }
+  // Strong emotion music offers are now handled by the proactive music system
+  // See: src/audio/music-humanization.ts → getEmotionalMirrorOffer()
+}
+
+// ============================================================================
+// BETTER THAN HUMAN: Intelligence Layer Integration
+// ============================================================================
+
+/**
+ * Record emotion data for the unified intelligence layer
+ *
+ * This enables:
+ * 1. Cross-session learning about user emotional patterns
+ * 2. Emotion-aware tool selection in future sessions
+ * 3. Proactive outreach based on emotional patterns
+ */
+async function recordEmotionForIntelligence(
+  userId: string,
+  sessionId: string,
+  voiceEmotion: VoiceEmotionResult,
+  logger: ReturnType<typeof log>
+): Promise<void> {
+  try {
+    const { getUnifiedIntelligence } = await import('../../tools/intelligence/index.js');
+    const intelligence = getUnifiedIntelligence();
+
+    // Record the emotion as a learning event
+    await intelligence.recordLearning({
+      userId,
+      sessionId,
+      query: `emotion:${voiceEmotion.primary}`,
+      predictedTool: '', // No tool prediction for emotion events
+      actualTool: '', // No tool execution
+      confidence: voiceEmotion.confidence,
+      wasCorrection: false,
+      timestamp: new Date(),
+      context: {
+        timeOfDay:
+          new Date().getHours() < 12
+            ? 'morning'
+            : new Date().getHours() < 17
+              ? 'afternoon'
+              : 'evening',
+        personaId: 'voice-agent', // Will be overridden if actual persona is known
+        emotionalState: voiceEmotion.primary,
+        voiceEmotion: {
+          primary: voiceEmotion.primary,
+          valence: voiceEmotion.valence,
+          arousal: voiceEmotion.arousal,
+          stressLevel: voiceEmotion.stressLevel,
+          anxietyMarkers: voiceEmotion.anxietyMarkers,
+        },
+      },
+    });
+
+    logger.debug(
+      {
+        userId,
+        emotion: voiceEmotion.primary,
+        stressLevel: voiceEmotion.stressLevel,
+      },
+      '🧠 Emotion recorded for intelligence layer'
+    );
+  } catch (error) {
+    // Non-critical, don't fail the audio processing
+    logger.debug({ error: String(error) }, 'Could not record emotion for intelligence');
   }
 }
 

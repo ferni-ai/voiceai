@@ -42,7 +42,9 @@ export class LiveBackchannelingService {
     }
 
     // Too soon since last backchannel
-    if (ctx.timeSinceLastBackchannel < CONFIG.MIN_INTERVAL) {
+    // HUMANIZATION FIX: Add ±30% randomization to prevent robotic predictability
+    const randomizedInterval = CONFIG.MIN_INTERVAL * (0.7 + Math.random() * 0.6);
+    if (ctx.timeSinceLastBackchannel < randomizedInterval) {
       return { ...noBackchannel, reason: 'too_soon' };
     }
 
@@ -125,10 +127,15 @@ export class LiveBackchannelingService {
 
   /**
    * Wrap phrase with SSML for soft volume
+   * HUMANIZATION FIX: Add variation in speed/volume to prevent static delivery
    */
   private wrapWithSoftVolume(phrase: string): string {
-    // Use Cartesia-compatible SSML
-    return `<volume ratio="0.75"><speed ratio="0.95">${phrase}</speed></volume>`;
+    // Use Cartesia-compatible SSML with RANDOMIZED delivery
+    // Volume: 0.65-0.85 (varies around soft)
+    const volumeRatio = 0.65 + Math.random() * 0.2;
+    // Speed: 0.88-1.02 (natural variation, slightly slower on average)
+    const speedRatio = 0.88 + Math.random() * 0.14;
+    return `<volume ratio="${volumeRatio.toFixed(2)}"><speed ratio="${speedRatio.toFixed(2)}">${phrase}</speed></volume>`;
   }
 
   /**

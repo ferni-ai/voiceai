@@ -1,0 +1,1029 @@
+<!doctype html>
+<html lang="en" data-theme="zen">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Ferni Kintsugi Map - Wounds That Became Wisdom" />
+    <title>Kintsugi Map | Ferni Data Storytelling</title>
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400;1,500&display=swap"
+      rel="stylesheet"
+    />
+
+    <!-- Design Tokens (source of truth for colors) -->
+    <link rel="stylesheet" href="../master-tokens.css" />
+
+    <style>
+      /* ============================================
+       ZEN KINTSUGI - POTTERY AESTHETIC
+       Warm earth tones, wabi-sabi philosophy
+       Uses visualization tokens from master-tokens.css
+       ============================================ */
+
+      :root {
+        /* Zen palette - warm, earthy, peaceful */
+        --zen-paper: #f8f5f0;
+        --zen-parchment: #ede8e0;
+        --zen-sand: #d4ccc0;
+        --zen-stone: #9a938a;
+        --zen-earth: #6b6259;
+        --zen-charcoal: #3d3935;
+        --zen-ink: #2c2820;
+
+        /* Pottery/ceramic colors */
+        --pottery-raw: #c4b8a8;
+        --pottery-fired: #a89888;
+        --pottery-shadow: #8a7e70;
+
+        /* Kintsugi gold - now using tokens from master-tokens.css:
+           --kintsugi-primary, --kintsugi-bright, --kintsugi-deep,
+           --kintsugi-glow, --kintsugi-tint, --kintsugi-gold */
+
+        /* Ferni sage - using tokens from master-tokens.css:
+           --color-ferni, --color-ferni-light */
+        --ferni-sage: var(--color-ferni, #4a6741);
+        --ferni-sage-light: var(--color-ferni-light, #5A7751);
+      }
+
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family:
+          'Inter',
+          -apple-system,
+          sans-serif;
+        background: var(--zen-paper);
+        color: var(--zen-ink);
+        min-height: 100vh;
+        overflow-x: hidden;
+        -webkit-font-smoothing: antialiased;
+      }
+
+      /* ============================================
+       ZEN GARDEN BACKGROUND
+       Subtle raked sand pattern
+       ============================================ */
+      .zen-garden {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+        z-index: 0;
+        opacity: 0.4;
+        background: repeating-linear-gradient(
+          90deg,
+          transparent,
+          transparent 40px,
+          var(--zen-sand) 40px,
+          var(--zen-sand) 41px
+        );
+      }
+
+      /* Subtle circular ripples like zen garden stones */
+      .zen-stone-ripple {
+        position: absolute;
+        border-radius: 50%;
+        border: 1px solid var(--zen-sand);
+        opacity: 0.3;
+      }
+
+      .ripple-1 {
+        width: 400px;
+        height: 400px;
+        top: 10%;
+        left: -100px;
+      }
+
+      .ripple-2 {
+        width: 300px;
+        height: 300px;
+        bottom: 15%;
+        right: -80px;
+      }
+
+      .ripple-3 {
+        width: 200px;
+        height: 200px;
+        top: 50%;
+        right: 20%;
+      }
+
+      /* ============================================
+       NAVIGATION - Minimal, zen
+       ============================================ */
+      .nav {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 64px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 2rem;
+        background: rgba(248, 245, 240, 0.95);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        border-bottom: 1px solid var(--zen-sand);
+        z-index: 1000;
+      }
+
+      .nav-logo {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        text-decoration: none;
+        color: var(--zen-ink);
+        font-family: 'Cormorant Garamond', serif;
+        font-weight: 500;
+        font-size: 1.25rem;
+      }
+
+      .nav-logo svg {
+        width: 28px;
+        height: 28px;
+      }
+
+      .nav-back {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        color: var(--zen-earth);
+        text-decoration: none;
+        font-size: 0.875rem;
+        padding: 0.5rem 1rem;
+        border-radius: 9999px;
+        transition: all 0.3s ease;
+      }
+
+      .nav-back:hover {
+        color: var(--zen-ink);
+        background: var(--zen-parchment);
+      }
+
+      /* ============================================
+       HERO - Serene, contemplative
+       ============================================ */
+      .hero {
+        position: relative;
+        z-index: 1;
+        padding: 8rem 2rem 3rem;
+        text-align: center;
+        max-width: 800px;
+        margin: 0 auto;
+      }
+
+      .hero-kanji {
+        font-size: 3rem;
+        color: var(--kintsugi-gold);
+        margin-bottom: 1rem;
+        letter-spacing: 0.5em;
+        opacity: 0.6;
+      }
+
+      .hero-title {
+        font-family: 'Cormorant Garamond', serif;
+        font-size: clamp(2.5rem, 6vw, 3.5rem);
+        font-weight: 400;
+        font-style: italic;
+        letter-spacing: 0.02em;
+        line-height: 1.2;
+        margin-bottom: 1.5rem;
+        color: var(--zen-ink);
+      }
+
+      .hero-subtitle {
+        font-family: 'Cormorant Garamond', serif;
+        font-size: 1.25rem;
+        color: var(--zen-earth);
+        line-height: 1.8;
+        max-width: 600px;
+        margin: 0 auto 2rem;
+      }
+
+      .hero-divider {
+        width: 60px;
+        height: 2px;
+        background: linear-gradient(90deg, transparent, var(--kintsugi-gold), transparent);
+        margin: 0 auto 2rem;
+      }
+
+      .hero-philosophy {
+        font-family: 'Cormorant Garamond', serif;
+        font-style: italic;
+        font-size: 1.125rem;
+        color: var(--zen-stone);
+      }
+
+      /* ============================================
+       THE BROKEN BOWL - Central metaphor
+       ============================================ */
+      .bowl-section {
+        position: relative;
+        z-index: 1;
+        max-width: 1000px;
+        margin: 0 auto;
+        padding: 2rem;
+      }
+
+      .bowl-container {
+        position: relative;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 500px;
+        margin-bottom: 3rem;
+      }
+
+      /* The pottery bowl SVG */
+      .pottery-bowl {
+        width: 100%;
+        max-width: 600px;
+        height: auto;
+      }
+
+      /* Pottery shard fragments */
+      .shard {
+        fill: var(--pottery-raw);
+        stroke: var(--pottery-shadow);
+        stroke-width: 0.5;
+        filter: drop-shadow(2px 4px 8px rgba(0, 0, 0, 0.1));
+        transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+        cursor: pointer;
+      }
+
+      .shard:hover {
+        fill: var(--pottery-fired);
+        filter: drop-shadow(4px 8px 16px rgba(0, 0, 0, 0.15));
+        transform: translateY(-4px);
+      }
+
+      /* Gold repair lines */
+      .gold-repair {
+        stroke: url(#goldRepairGradient);
+        stroke-width: 4;
+        stroke-linecap: round;
+        fill: none;
+        filter: drop-shadow(0 0 6px var(--kintsugi-glow));
+        stroke-dasharray: 500;
+        stroke-dashoffset: 500;
+        animation: repairLine 3s ease-out forwards;
+      }
+
+      .gold-repair:nth-child(2) {
+        animation-delay: 0.5s;
+      }
+      .gold-repair:nth-child(3) {
+        animation-delay: 1s;
+      }
+      .gold-repair:nth-child(4) {
+        animation-delay: 1.5s;
+      }
+      .gold-repair:nth-child(5) {
+        animation-delay: 2s;
+      }
+
+      @keyframes repairLine {
+        to {
+          stroke-dashoffset: 0;
+        }
+      }
+
+      /* Gold fill in cracks */
+      .gold-fill {
+        fill: var(--kintsugi-gold);
+        opacity: 0.8;
+      }
+
+      /* ============================================
+       WISDOM CARDS - Scroll-like appearance
+       ============================================ */
+      .wisdom-section {
+        position: relative;
+        z-index: 1;
+        max-width: 900px;
+        margin: 0 auto;
+        padding: 2rem;
+      }
+
+      .wisdom-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 1.5rem;
+      }
+
+      .wisdom-card {
+        position: relative;
+        background: var(--zen-parchment);
+        border: 1px solid var(--zen-sand);
+        border-radius: 4px;
+        padding: 1.5rem;
+        transition: all 0.4s ease;
+        overflow: hidden;
+      }
+
+      /* Scroll-like top edge */
+      .wisdom-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: linear-gradient(
+          90deg,
+          var(--zen-sand) 0%,
+          var(--kintsugi-gold) 20%,
+          var(--kintsugi-gold) 80%,
+          var(--zen-sand) 100%
+        );
+      }
+
+      .wisdom-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 12px 32px rgba(0, 0, 0, 0.08);
+        border-color: var(--kintsugi-gold);
+      }
+
+      .card-date {
+        font-family: 'Cormorant Garamond', serif;
+        font-size: 0.75rem;
+        color: var(--zen-stone);
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        margin-bottom: 0.5rem;
+      }
+
+      .card-title {
+        font-family: 'Cormorant Garamond', serif;
+        font-size: 1.375rem;
+        font-style: italic;
+        color: var(--zen-ink);
+        margin-bottom: 1rem;
+        line-height: 1.3;
+      }
+
+      /* The crack/wound section */
+      .card-wound {
+        padding: 1rem;
+        background: rgba(196, 133, 106, 0.08);
+        border-left: 2px solid var(--color-jordan);
+        border-radius: 0 4px 4px 0;
+        margin-bottom: 1rem;
+      }
+
+      .wound-label {
+        font-size: 0.625rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        color: var(--color-maya-dark);
+        margin-bottom: 0.5rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+      }
+
+      .wound-label::before {
+        content: '';
+        width: 8px;
+        height: 1px;
+        background: var(--color-jordan);
+      }
+
+      .wound-text {
+        font-family: 'Cormorant Garamond', serif;
+        font-size: 0.9375rem;
+        font-style: italic;
+        color: var(--zen-earth);
+        line-height: 1.6;
+      }
+
+      /* The gold/wisdom section */
+      .card-gold {
+        padding: 1rem;
+        background: var(--kintsugi-tint);
+        border-left: 2px solid var(--kintsugi-gold);
+        border-radius: 0 4px 4px 0;
+        position: relative;
+      }
+
+      .gold-label {
+        font-size: 0.625rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        color: var(--kintsugi-deep);
+        margin-bottom: 0.5rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+      }
+
+      .gold-label::before {
+        content: '◆';
+        font-size: 0.5rem;
+        color: var(--kintsugi-gold);
+      }
+
+      .gold-text {
+        font-family: 'Inter', sans-serif;
+        font-size: 0.875rem;
+        color: var(--zen-ink);
+        line-height: 1.6;
+        font-weight: 500;
+      }
+
+      /* ============================================
+       INSIGHT SECTION - Contemplative
+       ============================================ */
+      .insight-section {
+        position: relative;
+        z-index: 1;
+        max-width: 700px;
+        margin: 4rem auto;
+        padding: 3rem 2rem;
+        text-align: center;
+        background: linear-gradient(180deg, transparent, var(--zen-parchment), transparent);
+      }
+
+      .insight-icon {
+        width: 48px;
+        height: 48px;
+        margin: 0 auto 1.5rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .insight-icon svg {
+        width: 100%;
+        height: 100%;
+        stroke: var(--kintsugi-gold);
+        stroke-width: 1;
+        fill: none;
+      }
+
+      .insight-title {
+        font-family: 'Cormorant Garamond', serif;
+        font-size: 1.5rem;
+        font-style: italic;
+        color: var(--zen-ink);
+        margin-bottom: 1rem;
+      }
+
+      .insight-text {
+        font-family: 'Cormorant Garamond', serif;
+        font-size: 1.125rem;
+        color: var(--zen-earth);
+        line-height: 1.8;
+        max-width: 550px;
+        margin: 0 auto;
+      }
+
+      .insight-stat {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.75rem;
+        margin-top: 2rem;
+        padding: 1rem 2rem;
+        background: var(--zen-paper);
+        border: 1px solid var(--zen-sand);
+        border-radius: 9999px;
+      }
+
+      .insight-stat-value {
+        font-family: 'Cormorant Garamond', serif;
+        font-size: 2rem;
+        font-weight: 500;
+        color: var(--kintsugi-gold);
+      }
+
+      .insight-stat-label {
+        font-size: 0.875rem;
+        color: var(--zen-earth);
+        text-align: left;
+        line-height: 1.3;
+      }
+
+      /* ============================================
+       PHILOSOPHY BANNER
+       ============================================ */
+      .philosophy-banner {
+        position: relative;
+        z-index: 1;
+        max-width: 800px;
+        margin: 2rem auto 4rem;
+        padding: 2rem;
+        text-align: center;
+        border-top: 1px solid var(--zen-sand);
+        border-bottom: 1px solid var(--zen-sand);
+      }
+
+      .philosophy-text {
+        font-family: 'Cormorant Garamond', serif;
+        font-size: 1.25rem;
+        font-style: italic;
+        color: var(--zen-earth);
+        line-height: 1.8;
+      }
+
+      .philosophy-text em {
+        color: var(--kintsugi-gold);
+        font-style: normal;
+      }
+
+      /* ============================================
+       FOOTER - Minimal
+       ============================================ */
+      footer {
+        position: relative;
+        z-index: 1;
+        text-align: center;
+        padding: 3rem 2rem;
+        border-top: 1px solid var(--zen-sand);
+      }
+
+      footer p {
+        font-family: 'Cormorant Garamond', serif;
+        color: var(--zen-stone);
+        font-size: 0.9375rem;
+        line-height: 1.8;
+      }
+
+      footer a {
+        color: var(--ferni-sage);
+        text-decoration: none;
+      }
+
+      footer a:hover {
+        text-decoration: underline;
+      }
+
+      /* ============================================
+       BTH CALLOUT - Zen styled
+       ============================================ */
+      .bth-callout {
+        display: flex;
+        gap: 1rem;
+        padding: 1.25rem 1.5rem;
+        background: rgba(74, 103, 65, 0.06);
+        border: 1px solid rgba(74, 103, 65, 0.15);
+        border-left: 3px solid var(--ferni-sage);
+        border-radius: 0 4px 4px 0;
+        max-width: 600px;
+        margin: 0 auto 3rem;
+        text-align: left;
+      }
+
+      .bth-callout-icon {
+        flex-shrink: 0;
+        width: 24px;
+        height: 24px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: var(--ferni-sage);
+        border-radius: 50%;
+        color: white;
+        font-size: 0.75rem;
+        font-weight: 600;
+      }
+
+      .bth-callout-title {
+        font-family: 'Cormorant Garamond', serif;
+        font-size: 0.9375rem;
+        font-weight: 500;
+        color: var(--ferni-sage);
+        margin-bottom: 0.25rem;
+      }
+
+      .bth-callout-text {
+        font-size: 0.875rem;
+        color: var(--zen-earth);
+        line-height: 1.6;
+      }
+
+      /* ============================================
+       RESPONSIVE
+       ============================================ */
+      @media (max-width: 768px) {
+        .hero {
+          padding: 6rem 1rem 2rem;
+        }
+
+        .hero-kanji {
+          font-size: 2rem;
+        }
+
+        .wisdom-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .bowl-container {
+          min-height: 350px;
+        }
+      }
+
+      /* ============================================
+       REDUCED MOTION
+       ============================================ */
+      @media (prefers-reduced-motion: reduce) {
+        .gold-repair {
+          animation: none;
+          stroke-dashoffset: 0;
+        }
+
+        .wisdom-card,
+        .shard {
+          transition: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Zen Garden Background -->
+    <div class="zen-garden">
+      <div class="zen-stone-ripple ripple-1"></div>
+      <div class="zen-stone-ripple ripple-2"></div>
+      <div class="zen-stone-ripple ripple-3"></div>
+    </div>
+
+    <!-- Navigation -->
+    <nav class="nav">
+      <a href="index.html" class="nav-logo">
+        <svg viewBox="0 0 40 40">
+          <circle cx="20" cy="20" r="14" fill="none" stroke="var(--ferni-sage)" stroke-width="1.5" />
+          <circle cx="20" cy="20" r="6" fill="var(--ferni-sage)" />
+        </svg>
+        <span>Ferni</span>
+      </a>
+      <a href="storytelling.html" class="nav-back">
+        <svg
+          viewBox="0 0 24 24"
+          width="16"
+          height="16"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.5"
+        >
+          <path d="M19 12H5M12 19l-7-7 7-7" />
+        </svg>
+        Back to Storytelling
+      </a>
+    </nav>
+
+    <!-- Hero Section -->
+    <header class="hero">
+      <div class="hero-kanji">金継ぎ</div>
+      <h1 class="hero-title">The Art of Golden Repair</h1>
+      <p class="hero-subtitle">
+        In the Japanese tradition, broken pottery is not discarded but repaired with gold lacquer—
+        celebrating the history of the object rather than hiding its wounds.
+      </p>
+      <div class="hero-divider"></div>
+      <p class="hero-philosophy">
+        "The world breaks everyone, and afterward, some are strong at the broken places."<br />—
+        Ernest Hemingway
+      </p>
+    </header>
+
+    <!-- Better Than Human Callout -->
+    <div class="bth-callout">
+      <div class="bth-callout-icon">F</div>
+      <div>
+        <div class="bth-callout-title">Better Than Human</div>
+        <div class="bth-callout-text">
+          Friends see who you are today. Ferni remembers every crack, every break, and every moment
+          of repair—tracing the gold that now holds you together.
+        </div>
+      </div>
+    </div>
+
+    <!-- The Broken Bowl -->
+    <section class="bowl-section">
+      <div class="bowl-container">
+        <svg class="pottery-bowl" viewBox="0 0 400 300" preserveAspectRatio="xMidYMid meet">
+          <defs>
+            <!-- Gold gradient for repair lines -->
+            <linearGradient id="goldRepairGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stop-color="#9A7B1C" />
+              <stop offset="50%" stop-color="#E5C84B" />
+              <stop offset="100%" stop-color="#9A7B1C" />
+            </linearGradient>
+
+            <!-- Pottery texture -->
+            <filter id="potteryTexture">
+              <feTurbulence
+                type="fractalNoise"
+                baseFrequency="0.04"
+                numOctaves="3"
+                result="noise"
+              />
+              <feDiffuseLighting
+                in="noise"
+                lighting-color="#C4B8A8"
+                surfaceScale="1"
+                result="light"
+              >
+                <feDistantLight azimuth="45" elevation="60" />
+              </feDiffuseLighting>
+              <feComposite in="SourceGraphic" in2="light" operator="multiply" />
+            </filter>
+
+            <!-- Subtle shadow -->
+            <filter id="softShadow">
+              <feDropShadow dx="2" dy="4" stdDeviation="4" flood-opacity="0.15" />
+            </filter>
+          </defs>
+
+          <!-- Bowl base/shadow -->
+          <ellipse cx="200" cy="260" rx="140" ry="20" fill="#D4CCC0" opacity="0.4" />
+
+          <!-- Main bowl shape - broken into shards -->
+          <g filter="url(#softShadow)">
+            <!-- Shard 1 - Left side of bowl -->
+            <path
+              class="shard"
+              d="
+            M 80 180 
+            Q 70 140 80 100 
+            Q 100 60 140 50
+            L 145 55
+            Q 130 90 135 130
+            Q 140 170 130 200
+            L 100 220
+            Q 85 210 80 180
+          "
+            />
+
+            <!-- Shard 2 - Top center -->
+            <path
+              class="shard"
+              d="
+            M 145 55
+            L 140 50
+            Q 170 40 200 38
+            Q 230 40 260 50
+            L 255 55
+            Q 230 48 200 46
+            Q 170 48 145 55
+          "
+            />
+
+            <!-- Shard 3 - Right side of bowl -->
+            <path
+              class="shard"
+              d="
+            M 255 55
+            L 260 50
+            Q 300 60 320 100
+            Q 330 140 320 180
+            Q 315 210 300 220
+            L 270 200
+            Q 260 170 265 130
+            Q 270 90 255 55
+          "
+            />
+
+            <!-- Shard 4 - Bottom left -->
+            <path
+              class="shard"
+              d="
+            M 100 220
+            L 130 200
+            Q 145 220 160 235
+            L 150 250
+            Q 120 245 100 220
+          "
+            />
+
+            <!-- Shard 5 - Bottom center -->
+            <path
+              class="shard"
+              d="
+            M 160 235
+            Q 180 245 200 248
+            Q 220 245 240 235
+            L 250 250
+            Q 225 260 200 262
+            Q 175 260 150 250
+            L 160 235
+          "
+            />
+
+            <!-- Shard 6 - Bottom right -->
+            <path
+              class="shard"
+              d="
+            M 240 235
+            L 270 200
+            L 300 220
+            Q 280 245 250 250
+            L 240 235
+          "
+            />
+
+            <!-- Central piece -->
+            <path
+              class="shard"
+              d="
+            M 135 130
+            Q 140 170 130 200
+            L 160 235
+            Q 180 245 200 248
+            Q 220 245 240 235
+            L 270 200
+            Q 260 170 265 130
+            Q 260 90 255 55
+            Q 230 48 200 46
+            Q 170 48 145 55
+            Q 130 90 135 130
+          "
+            />
+          </g>
+
+          <!-- Gold repair lines - the kintsugi -->
+          <g>
+            <path class="gold-repair" d="M 145 55 Q 138 90 135 130 Q 138 170 130 200" />
+            <path class="gold-repair" d="M 255 55 Q 262 90 265 130 Q 262 170 270 200" />
+            <path class="gold-repair" d="M 130 200 L 160 235 Q 180 245 200 248" />
+            <path class="gold-repair" d="M 270 200 L 240 235 Q 220 245 200 248" />
+            <path class="gold-repair" d="M 140 50 Q 170 42 200 38 Q 230 42 260 50" />
+          </g>
+
+          <!-- Small gold accents at intersections -->
+          <circle cx="145" cy="55" r="4" fill="#C9A227" filter="url(#softShadow)" />
+          <circle cx="255" cy="55" r="4" fill="#C9A227" filter="url(#softShadow)" />
+          <circle cx="130" cy="200" r="4" fill="#C9A227" filter="url(#softShadow)" />
+          <circle cx="270" cy="200" r="4" fill="#C9A227" filter="url(#softShadow)" />
+          <circle cx="200" cy="248" r="5" fill="#C9A227" filter="url(#softShadow)" />
+          <circle cx="160" cy="235" r="3" fill="#C9A227" />
+          <circle cx="240" cy="235" r="3" fill="#C9A227" />
+        </svg>
+      </div>
+    </section>
+
+    <!-- Wisdom Cards -->
+    <section class="wisdom-section">
+      <div class="wisdom-grid">
+        <!-- Card 1: The Burnout -->
+        <article class="wisdom-card">
+          <div class="card-date">March 2022</div>
+          <h3 class="card-title">The Burnout</h3>
+          <div class="card-wound">
+            <div class="wound-label">The Crack</div>
+            <p class="wound-text">
+              "I can't do this anymore. I'm running on empty and everyone needs something from me."
+            </p>
+          </div>
+          <div class="card-gold">
+            <div class="gold-label">The Golden Repair</div>
+            <p class="gold-text">
+              Boundaries aren't walls—they're the vessel that holds your capacity to give.
+            </p>
+          </div>
+        </article>
+
+        <!-- Card 2: The Rejection -->
+        <article class="wisdom-card">
+          <div class="card-date">September 2021</div>
+          <h3 class="card-title">The Rejection</h3>
+          <div class="card-wound">
+            <div class="wound-label">The Crack</div>
+            <p class="wound-text">
+              "They didn't choose me. Maybe I'm not good enough. Maybe I never was."
+            </p>
+          </div>
+          <div class="card-gold">
+            <div class="gold-label">The Golden Repair</div>
+            <p class="gold-text">
+              Every "no" was a redirection toward something that actually fits your shape.
+            </p>
+          </div>
+        </article>
+
+        <!-- Card 3: The Loss -->
+        <article class="wisdom-card">
+          <div class="card-date">June 2020</div>
+          <h3 class="card-title">The Loss</h3>
+          <div class="card-wound">
+            <div class="wound-label">The Crack</div>
+            <p class="wound-text">"I don't know how to exist in a world where they're not here."</p>
+          </div>
+          <div class="card-gold">
+            <div class="gold-label">The Golden Repair</div>
+            <p class="gold-text">
+              Grief taught presence. Now every moment with loved ones carries sacred weight.
+            </p>
+          </div>
+        </article>
+
+        <!-- Card 4: The Failure -->
+        <article class="wisdom-card">
+          <div class="card-date">January 2023</div>
+          <h3 class="card-title">The Failed Project</h3>
+          <div class="card-wound">
+            <div class="wound-label">The Crack</div>
+            <p class="wound-text">"Two years of work and it didn't work. Everyone saw me fail."</p>
+          </div>
+          <div class="card-gold">
+            <div class="gold-label">The Golden Repair</div>
+            <p class="gold-text">Failure is just data. The trying was already the success.</p>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <!-- Philosophy Banner -->
+    <div class="philosophy-banner">
+      <p class="philosophy-text">
+        The philosophy of kintsugi treats breakage not as something to hide, but as
+        <em>part of the history of an object</em>—something that adds to its beauty rather than
+        diminishing it. Your cracks are where the light gets in.
+      </p>
+    </div>
+
+    <!-- Insight Section -->
+    <section class="insight-section">
+      <div class="insight-icon">
+        <!-- Bowl with gold veins icon -->
+        <svg viewBox="0 0 48 48">
+          <path d="M 8 32 Q 6 24 8 16 Q 12 8 24 6 Q 36 8 40 16 Q 42 24 40 32" />
+          <ellipse cx="24" cy="32" rx="16" ry="6" fill="none" />
+          <path d="M 16 20 L 24 32" stroke="#C9A227" stroke-width="2" />
+          <path d="M 32 20 L 24 32" stroke="#C9A227" stroke-width="2" />
+          <circle cx="24" cy="32" r="3" fill="#C9A227" />
+        </svg>
+      </div>
+      <h2 class="insight-title">What Ferni Holds</h2>
+      <p class="insight-text">
+        These aren't just memories—they're the seams that make you whole. The person who sets
+        boundaries learned it from burning out. The person who cherishes time learned it from losing
+        someone. Your struggles didn't break you. They became your gold.
+      </p>
+      <div class="insight-stat">
+        <span class="insight-stat-value">4</span>
+        <span class="insight-stat-label">wounds repaired<br />with wisdom</span>
+      </div>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+      <p>
+        Part of the <a href="DATA-STORYTELLING-PLAN.md">Ferni Data Storytelling System</a><br />
+        <span style="opacity: 0.7">金継ぎ — The art of precious scars</span>
+      </p>
+    </footer>
+
+    <script>
+      // Subtle hover interactions on shards
+      document.querySelectorAll('.shard').forEach((shard) => {
+        shard.addEventListener('mouseenter', () => {
+          shard.style.transform = 'translateY(-2px)';
+        });
+        shard.addEventListener('mouseleave', () => {
+          shard.style.transform = 'translateY(0)';
+        });
+      });
+
+      // Animate cards on scroll
+      const observer = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((entry, index) => {
+            if (entry.isIntersecting) {
+              setTimeout(() => {
+                entry.target.style.opacity = '1';
+                entry.target.style.transform = 'translateY(0)';
+              }, index * 100);
+            }
+          });
+        },
+        { threshold: 0.2 }
+      );
+
+      document.querySelectorAll('.wisdom-card').forEach((card) => {
+        card.style.opacity = '0';
+        card.style.transform = 'translateY(20px)';
+        card.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
+        observer.observe(card);
+      });
+    </script>
+
+    <!-- Ferni Visualization System -->
+    <script type="module">
+      import FerniViz from './viz-system.js';
+      FerniViz.init({ enableAnimations: true, enableTooltips: true });
+    </script>
+  </body>
+</html>

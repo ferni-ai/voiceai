@@ -10,6 +10,7 @@
 
 import type { IncomingMessage, ServerResponse } from 'http';
 import { getLogger } from '../../utils/safe-logger.js';
+import { parseBody } from '../helpers.js';
 import {
   createChallenge,
   acceptChallenge,
@@ -473,19 +474,4 @@ export async function handleSocialRoutes(
 // HELPERS
 // ============================================================================
 
-async function parseBody(req: IncomingMessage): Promise<Record<string, unknown>> {
-  return new Promise((resolve, reject) => {
-    let body = '';
-    req.on('data', (chunk) => {
-      body += chunk.toString();
-    });
-    req.on('end', () => {
-      try {
-        resolve(JSON.parse(body));
-      } catch {
-        resolve({});
-      }
-    });
-    req.on('error', reject);
-  });
-}
+// parseBody imported from '../helpers.js'

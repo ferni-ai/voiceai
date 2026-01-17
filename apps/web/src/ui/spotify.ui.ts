@@ -10,13 +10,14 @@ import type { TrackInfo } from '../services/spotify.service.js';
 import { spotifyService } from '../services/spotify.service.js';
 import { getElementByIdOrNull, setText, addClass, removeClass, setClasses } from '../utils/dom.js';
 import { getDeviceId } from '../state/app.state.js';
+import { apiGet } from '../utils/api.js';
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 
 const log = createLogger('SpotifyUI');
 
 // FIX BUG: Track all setTimeout calls for proper cleanup
-const { trackedTimeout, clearAll: clearAllTimeouts } = createTimeoutTracker();
+const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
 
 // Lucide music icon (no emojis per brand guidelines)
 const MUSIC_ICON = `<svg class="spotify-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>`;
@@ -64,7 +65,7 @@ export function initSpotifyUI(): void {
 
   // Set up link button click handler
   if (linkButton) {
-    linkButton.addEventListener('click', handleLinkClick);
+    linkButton.addEventListener('click', () => { void handleLinkClick(); });
   }
 }
 
@@ -76,11 +77,12 @@ async function checkSpotifyStatus(): Promise<void> {
   if (!deviceId) return;
 
   try {
-    const response = await fetch(`/spotify/status?device_id=${encodeURIComponent(deviceId)}`);
-    if (response.ok) {
-      const data = await response.json();
-      spotifyConfigured = data.spotify_configured;
-      isSpotifyLinked = data.linked;
+    const response = await apiGet<{ spotify_configured?: boolean; linked?: boolean }>(
+      `/spotify/status?device_id=${encodeURIComponent(deviceId)}`
+    );
+    if (response.ok && response.data) {
+      spotifyConfigured = response.data.spotify_configured ?? false;
+      isSpotifyLinked = response.data.linked ?? false;
       updateLinkButton();
     }
   } catch (e) {
@@ -129,7 +131,7 @@ async function handleLinkClick(): Promise<void> {
   if (isSpotifyLinked) {
     // Unlink
     try {
-      await fetch(`/spotify/unlink?device_id=${encodeURIComponent(deviceId)}`);
+      await apiGet(`/spotify/unlink?device_id=${encodeURIComponent(deviceId)}`);
       isSpotifyLinked = false;
       updateLinkButton();
       showSpotifyStatus('Spotify disconnected', 'info');

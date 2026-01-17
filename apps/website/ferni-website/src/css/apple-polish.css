@@ -16,7 +16,7 @@
   left: 50%;
   transform: translateX(-50%);
   padding: 1rem 2rem;
-  background: var(--color-ferni, #4a6741);
+  background: var(--color-ferni, var(--color-ferni));
   color: white;
   font-weight: 600;
   border-radius: 0 0 0.75rem 0.75rem;
@@ -404,14 +404,14 @@
   left: 0;
   width: 100%;
   height: 2px;
-  background: var(--color-ferni, #4a6741);
+  background: var(--color-ferni, var(--color-ferni));
   transform: scaleX(0);
   transform-origin: left;
   transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .nav-link.active {
-  color: var(--color-text-primary, #2c2520);
+  color: var(--color-text-primary, var(--color-text-primary));
 }
 
 .nav-link.active::after {
@@ -428,9 +428,9 @@
   left: 0;
   height: 3px;
   background: linear-gradient(90deg, 
-    var(--color-ferni, #4a6741) 0%,
-    var(--color-peter, #3a6b73) 50%,
-    var(--color-ferni, #4a6741) 100%
+    var(--color-ferni, var(--color-ferni)) 0%,
+    var(--color-peter, var(--color-peter)) 50%,
+    var(--color-ferni, var(--color-ferni)) 100%
   );
   background-size: 200% 100%;
   animation: scrollProgressShimmer 3s ease infinite;
@@ -450,12 +450,12 @@
 /* Brand-colored text selection */
 ::selection {
   background: var(--color-ferni-glow, rgba(74, 103, 65, 0.2));
-  color: var(--color-text-primary, #2c2520);
+  color: var(--color-text-primary, var(--color-text-primary));
 }
 
 ::-moz-selection {
   background: var(--color-ferni-glow, rgba(74, 103, 65, 0.2));
-  color: var(--color-text-primary, #2c2520);
+  color: var(--color-text-primary, var(--color-text-primary));
 }
 
 /* Custom cursor hints */
@@ -481,7 +481,7 @@
 
 ::-webkit-scrollbar-thumb {
   background: rgba(92, 84, 74, 0.3);
-  border-radius: 5px;
+  border-radius: var(--radius-sm);
   border: 3px solid transparent;
   background-clip: content-box;
   transition: background 0.3s ease;
@@ -518,7 +518,7 @@
   );
   background-size: 200% 100%;
   animation: shimmer 1.5s ease-in-out infinite;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
 }
 
 @keyframes shimmer {
@@ -568,8 +568,8 @@
 .form-floating textarea:focus ~ label,
 .form-floating textarea:not(:placeholder-shown) ~ label {
   transform: translateY(-1.75rem);
-  font-size: 0.75rem;
-  color: var(--color-ferni, #4a6741);
+  font-size: var(--text-xs);
+  color: var(--color-ferni, var(--color-ferni));
 }
 
 /* Focus glow */
@@ -581,7 +581,7 @@
 
 .focus-glow:focus {
   outline: none;
-  border-color: var(--color-ferni, #4a6741);
+  border-color: var(--color-ferni, var(--color-ferni));
   box-shadow: 
     0 0 0 3px var(--color-ferni-glow, rgba(74, 103, 65, 0.15)),
     0 0 20px var(--color-accent-subtle, rgba(74, 103, 65, 0.1));
@@ -592,8 +592,8 @@ input:-webkit-autofill,
 input:-webkit-autofill:hover,
 input:-webkit-autofill:focus,
 textarea:-webkit-autofill {
-  -webkit-box-shadow: 0 0 0 1000px var(--color-bg-primary, #faf8f5) inset !important;
-  -webkit-text-fill-color: var(--color-text-primary, #2c2520) !important;
+  -webkit-box-shadow: 0 0 0 1000px var(--color-bg-primary, var(--color-bg-primary)) inset !important;
+  -webkit-text-fill-color: var(--color-text-primary, var(--color-text-primary)) !important;
   transition: background-color 5000s ease-in-out 0s;
 }
 
@@ -726,7 +726,7 @@ textarea:-webkit-autofill {
 @media (prefers-contrast: high) {
   :root {
     --color-ink: #000000;
-    --color-paper: #ffffff;
+    --color-paper: var(--color-text-inverse);
   }
   
   .glass,
@@ -751,7 +751,7 @@ textarea:-webkit-autofill {
   bottom: 0;
   width: 80%;
   max-width: 320px;
-  background: var(--color-paper, #faf8f5);
+  background: var(--color-paper, var(--color-bg-primary));
   transform: translateX(100%);
   transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
   z-index: 100;
@@ -812,13 +812,13 @@ textarea:-webkit-autofill {
   background: white;
   border: 2px solid rgba(44, 37, 32, 0.1);
   border-radius: 2rem;
-  font-size: 1rem;
+  font-size: var(--text-base);
   transition: border-color 0.3s ease, box-shadow 0.3s ease;
 }
 
 .newsletter-form input:focus {
   outline: none;
-  border-color: var(--color-ferni, #4a6741);
+  border-color: var(--color-ferni, var(--color-ferni));
   box-shadow: 0 0 0 4px var(--color-ferni-glow, rgba(74, 103, 65, 0.1));
 }
 
@@ -828,7 +828,7 @@ textarea:-webkit-autofill {
   top: 50%;
   transform: translateY(-50%);
   padding: 0.75rem 1.5rem;
-  background: var(--color-ferni, #4a6741);
+  background: var(--color-ferni, var(--color-ferni));
   color: white;
   border: none;
   border-radius: 1.5rem;
@@ -838,7 +838,7 @@ textarea:-webkit-autofill {
 }
 
 .newsletter-form button:hover {
-  background: var(--color-ferni-secondary, #3d5a35);
+  background: var(--color-ferni-secondary, var(--color-ferni-secondary));
 }
 
 .newsletter-success {
@@ -867,7 +867,7 @@ textarea:-webkit-autofill {
 }
 
 .social-link:hover {
-  background: var(--color-ferni, #4a6741);
+  background: var(--color-ferni, var(--color-ferni));
   color: white;
   transform: translateY(-3px) scale(1.1);
 }
@@ -895,7 +895,7 @@ textarea:-webkit-autofill {
 .shimmer-text {
   display: inline-block;
   height: 1em;
-  border-radius: 4px;
+  border-radius: var(--radius-xs);
   background: linear-gradient(
     90deg,
     rgba(200, 190, 180, 0.3) 0%,
@@ -966,7 +966,7 @@ blockquote::before {
   position: absolute;
   left: -0.5em;
   top: -0.2em;
-  font-size: 3em;
+  font-size: var(--text-4xl);
   color: rgba(74, 103, 65, 0.2);
   font-family: Georgia, serif;
 }
@@ -1406,7 +1406,7 @@ body {
   justify-content: center;
   font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
   font-weight: bold;
-  font-size: 3rem;
+  font-size: var(--text-4xl);
   color: white;
   animation: personaEntrance 1s cubic-bezier(0.34, 1.56, 0.64, 1);
 }

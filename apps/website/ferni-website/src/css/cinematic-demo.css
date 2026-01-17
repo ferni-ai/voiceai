@@ -16,28 +16,28 @@
    ============================================================================ */
 :root {
   /* === Warm Palette (never cold blacks) === */
-  --ferni-ink: #2C2520;
-  --ferni-ink-soft: #3a332e;
-  --ferni-ink-deep: #1e1a17;
-  --ferni-cream: #F5F1E8;
-  --ferni-cream-soft: #faf8f5;
-  --ferni-sand: #E8E0D5;
-  --ferni-elevated: #FFFDFB;
+  --ferni-ink: var(--color-text-primary);
+  --ferni-ink-soft: var(--color-bg-dark-elevated);
+  --ferni-ink-deep: var(--color-bg-dark);
+  --ferni-cream: var(--color-bg-primary);
+  --ferni-cream-soft: var(--color-bg-primary);
+  --ferni-sand: var(--color-bg-secondary);
+  --ferni-elevated: var(--color-bg-elevated);
   
   /* === Text Hierarchy === */
-  --text-primary: #2C2520;
-  --text-secondary: #5C544A;
-  --text-muted: #756A5E;
-  --text-dimmed: #A89D90;
-  --text-on-dark: #F5F1E8;
+  --text-primary: var(--color-text-primary);
+  --text-secondary: var(--color-text-secondary);
+  --text-muted: var(--color-text-muted);
+  --text-dimmed: var(--color-text-muted);
+  --text-on-dark: var(--color-bg-primary);
   --text-on-dark-muted: rgba(245, 241, 232, 0.7);
   --text-on-dark-subtle: rgba(245, 241, 232, 0.5);
   
   /* === Accents === */
-  --accent-forest: #3D5A45;
-  --accent-forest-hover: #4a6d52;
-  --accent-sage: #4a6741;
-  --accent-amber: #C4A265;
+  --accent-forest: var(--color-accent);
+  --accent-forest-hover: var(--color-accent-hover);
+  --accent-sage: var(--color-ferni);
+  --accent-amber: var(--color-nayan);
   --accent-amber-soft: rgba(196, 162, 101, 0.15);
   
   /* === Fonts (from brand guidelines) === */
@@ -96,7 +96,7 @@ html {
   background: var(--ferni-cream);
   color: var(--text-primary);
   font-family: var(--font-body);
-  font-size: 17px;
+  font-size: var(--text-lg);
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -200,7 +200,7 @@ html {
   gap: var(--space-2);
   margin-bottom: var(--space-8);
   font-family: var(--font-body);
-  font-size: 11px;
+  font-size: var(--text-2xs);
   font-weight: 600;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -286,9 +286,9 @@ html {
   gap: var(--space-2);
   padding: var(--space-4) var(--space-8);
   background: var(--accent-forest);
-  color: #fff;
+  color: var(--color-text-inverse);
   font-family: var(--font-display);
-  font-size: 16px;
+  font-size: var(--text-base);
   font-weight: 600;
   letter-spacing: -0.01em;
   text-decoration: none;
@@ -325,7 +325,7 @@ html {
   gap: var(--space-2);
   padding: var(--space-3) var(--space-4);
   font-family: var(--font-body);
-  font-size: 15px;
+  font-size: var(--text-base);
   font-weight: 500;
   color: var(--text-muted);
   text-decoration: none;
@@ -359,7 +359,7 @@ html {
 
 .hero-scroll-hint span {
   font-family: var(--font-body);
-  font-size: 11px;
+  font-size: var(--text-2xs);
   font-weight: 500;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -396,7 +396,7 @@ html {
   display: inline-block;
   margin-bottom: var(--space-4);
   font-family: var(--font-body);
-  font-size: 11px;
+  font-size: var(--text-2xs);
   font-weight: 700;
   letter-spacing: 0.1em;
   text-transform: uppercase;
@@ -417,7 +417,7 @@ html {
 .section-subheadline {
   margin: 0;
   font-family: var(--font-body);
-  font-size: 17px;
+  font-size: var(--text-lg);
   line-height: 1.6;
   color: var(--text-secondary);
 }
@@ -471,7 +471,7 @@ html {
 .card-title {
   margin: 0 0 var(--space-2);
   font-family: var(--font-display);
-  font-size: 20px;
+  font-size: var(--text-xl);
   font-weight: 600;
   line-height: 1.35;
   letter-spacing: 0;
@@ -481,7 +481,7 @@ html {
 .card-description {
   margin: 0;
   font-family: var(--font-body);
-  font-size: 15px;
+  font-size: var(--text-base);
   line-height: 1.6;
   color: var(--text-secondary);
 }
@@ -554,7 +554,7 @@ html {
 .team-name {
   margin: 0 0 var(--space-1);
   font-family: var(--font-display);
-  font-size: 20px;
+  font-size: var(--text-xl);
   font-weight: 600;
   color: var(--text-primary);
 }
@@ -563,7 +563,7 @@ html {
   display: block;
   margin-bottom: var(--space-3);
   font-family: var(--font-body);
-  font-size: 13px;
+  font-size: var(--text-sm);
   font-weight: 500;
   letter-spacing: 0.01em;
   color: var(--persona-color, var(--accent-sage));
@@ -572,7 +572,7 @@ html {
 .team-bio {
   margin: 0;
   font-family: var(--font-body);
-  font-size: 15px;
+  font-size: var(--text-base);
   line-height: 1.5;
   color: var(--text-secondary);
 }
@@ -624,7 +624,7 @@ html {
 .cta-subheadline {
   margin: 0 0 var(--space-10);
   font-family: var(--font-body);
-  font-size: 18px;
+  font-size: var(--text-lg);
   line-height: 1.6;
   color: var(--text-on-dark-muted);
 }
@@ -646,7 +646,7 @@ html {
   background: var(--ferni-cream);
   color: var(--text-primary);
   font-family: var(--font-display);
-  font-size: 16px;
+  font-size: var(--text-base);
   font-weight: 600;
   text-decoration: none;
   border-radius: var(--radius-full);
@@ -654,7 +654,7 @@ html {
 }
 
 .btn-light:hover {
-  background: #fff;
+  background: var(--color-text-inverse);
   transform: translateY(-2px);
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
 }
@@ -671,7 +671,7 @@ html {
   gap: var(--space-2);
   padding: var(--space-3) var(--space-4);
   font-family: var(--font-body);
-  font-size: 15px;
+  font-size: var(--text-base);
   font-weight: 500;
   color: var(--text-on-dark-muted);
   text-decoration: none;

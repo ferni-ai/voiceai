@@ -143,7 +143,7 @@ export function normalizeLocale(langCode: string): SupportedLocale | null {
 
   // Try base language (e.g., 'es-MX' → 'es')
   const baseLang = normalized.split('-')[0];
-  if (LANGUAGE_MAP[baseLang]) {
+  if (baseLang && LANGUAGE_MAP[baseLang]) {
     return LANGUAGE_MAP[baseLang];
   }
 
@@ -173,8 +173,8 @@ export function getLocaleFromPath(): SupportedLocale | null {
   if (typeof window === 'undefined') return null;
 
   const pathSegments = window.location.pathname.split('/').filter(Boolean);
-  if (pathSegments.length > 0) {
-    const firstSegment = pathSegments[0];
+  const firstSegment = pathSegments[0];
+  if (firstSegment) {
     return normalizeLocale(firstSegment);
   }
 
@@ -326,7 +326,7 @@ export function parseAcceptLanguage(header: string): Array<{ locale: string; qua
     .map((part) => {
       const [locale, qValue] = part.trim().split(';q=');
       return {
-        locale: locale.trim(),
+        locale: (locale ?? '').trim(),
         quality: qValue ? parseFloat(qValue) : 1,
       };
     })
@@ -374,9 +374,9 @@ export function getLocalizedURL(
  */
 export function stripLocaleFromURL(url: string): { path: string; locale: SupportedLocale | null } {
   const segments = url.split('/').filter(Boolean);
+  const firstSegment = segments[0];
 
-  if (segments.length > 0) {
-    const firstSegment = segments[0];
+  if (firstSegment) {
     const locale = normalizeLocale(firstSegment);
 
     if (locale) {
@@ -395,7 +395,7 @@ export function stripLocaleFromURL(url: string): { path: string; locale: Support
  */
 export function generateHreflangLinks(
   currentPath: string,
-  baseUrl: string = ''
+  baseUrl = ''
 ): Array<{ locale: SupportedLocale; href: string }> {
   const { path } = stripLocaleFromURL(currentPath);
 

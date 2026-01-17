@@ -242,21 +242,21 @@ export const ROADMAP_FEATURES: RoadmapFeature[] = [
   // PERSONALIZE CATEGORY
   // -------------------------------------------------------------------------
   {
-    id: 'wearable-settings',
-    headline: 'We notice what you cannot.',
+    id: 'connections',
+    headline: 'We sync with your world.',
     description:
-      'Your body tells stories your words do not. By connecting your wearables, Ferni understands your rhythms - when you are depleted, when you are ready to push, when rest is the bravest choice.',
+      'Your wearables, calendar, and trusted services tell a story words cannot. By connecting your life, Ferni understands your rhythms - when you are depleted, when you are overcommitted, when rest is the bravest choice.',
     stage: 'sprout',
     superhuman: [
-      'Pattern recognition - We see trends you would miss',
+      'Body awareness - We notice stress before you do',
+      'Calendar intelligence - We see the chaos in your schedule',
+      'Holistic view - Health + time + commitments in one conversation',
       'Rest advocacy - We will tell you when to stop',
-      'Holistic view - Mind + body in one conversation',
-      'Sleep understanding - Your nights inform your days',
     ],
-    existing: ['Apple Health connection', 'Basic metrics awareness'],
+    existing: ['Apple Health basics', 'Google Calendar sync', 'Spotify integration'],
     estimatedArrival: 'Q1 2025',
     canVote: true,
-    icon: 'watch',
+    icon: 'link',
     category: 'personalize',
   },
   {
@@ -405,9 +405,22 @@ class RoadmapService {
 
   /**
    * Check if an ID is a roadmap feature (not yet implemented)
+   * Includes menu action IDs that may differ from roadmap feature IDs
    */
   isRoadmapFeature(id: string): boolean {
-    return ROADMAP_FEATURES.some((f) => f.id === id);
+    // Map menu action IDs to roadmap feature IDs
+    const MENU_ACTION_TO_ROADMAP: Record<string, string> = {
+      'video-call-settings': 'video-settings',
+      'together-sessions': 'group-coaching',
+      'household-members': 'household',
+      'voice-id-settings': 'voice-enrollment',
+      'personal-settings': 'personalize',
+      'discover-agents': 'marketplace',
+    };
+    
+    // Check direct match or mapped match
+    const roadmapId = MENU_ACTION_TO_ROADMAP[id] || id;
+    return ROADMAP_FEATURES.some((f) => f.id === roadmapId);
   }
 
   /**
@@ -669,7 +682,7 @@ class RoadmapService {
       if (options?.category) params.set('category', options.category);
       if (options?.limit) params.set('limit', String(options.limit));
 
-      const url = `/api/roadmap/suggestions${params.toString() ? '?' + params : ''}`;
+      const url = `/api/roadmap/suggestions${params.toString() ? '?' + params.toString() : ''}`;
       const response = await apiGet<{ suggestions: RoadmapSuggestion[] }>(url);
 
       return response?.suggestions ?? [];
@@ -816,8 +829,8 @@ export const SMART_PROMPT_RULES: SmartPromptRule[] = [
     minMentions: 2,
   },
   {
-    featureId: 'wearable-settings',
-    triggers: ['sleep', 'health', 'workout', 'exercise', 'tired', 'energy', 'steps', 'fitbit', 'apple watch', 'garmin'],
+    featureId: 'connections',
+    triggers: ['sleep', 'health', 'workout', 'exercise', 'tired', 'energy', 'steps', 'fitbit', 'apple watch', 'garmin', 'calendar', 'busy', 'schedule', 'meetings', 'overbooked', 'sync', 'connect'],
     minMentions: 3,
   },
   {
@@ -951,7 +964,7 @@ class SmartPromptTracker {
    */
   getTopRecommendation(): SmartPromptRecommendation | null {
     const recommendations = this.getRecommendations();
-    return recommendations.length > 0 ? recommendations[0] : null;
+    return recommendations.length > 0 ? recommendations[0] ?? null : null;
   }
 
   /**

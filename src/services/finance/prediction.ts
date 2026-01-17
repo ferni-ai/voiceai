@@ -19,7 +19,7 @@ import {
   getAccountBalances,
   getTransactions,
   analyzeSpending,
-} from '../../tools/plaid.js';
+} from '../../tools/domains/finance/plaid.js';
 
 const log = createLogger({ module: 'FinancePrediction' });
 
@@ -386,7 +386,7 @@ export async function detectIncome(userId: string): Promise<IncomeSource[]> {
  */
 export async function predictCashFlow(
   userId: string,
-  daysOut: number = 14
+  daysOut = 14
 ): Promise<CashFlowForecast | null> {
   const accessToken = getStoredAccessToken(userId);
   if (!accessToken) return null;
@@ -417,7 +417,7 @@ export async function predictCashFlow(
 
     // Project income
     for (const inc of state.income) {
-      let nextDate = new Date(inc.nextExpected);
+      const nextDate = new Date(inc.nextExpected);
       while (nextDate <= endDate) {
         if (nextDate >= today) {
           inflows.push({
@@ -443,7 +443,7 @@ export async function predictCashFlow(
 
     // Project bills
     for (const bill of state.bills) {
-      let nextDate = new Date(bill.dueDate);
+      const nextDate = new Date(bill.dueDate);
       while (nextDate <= endDate) {
         if (nextDate >= today) {
           outflows.push({
@@ -796,7 +796,7 @@ export function createSavingsGoal(
   name: string,
   targetAmount: number,
   targetDate: Date,
-  currentAmount: number = 0
+  currentAmount = 0
 ): SavingsGoal {
   const state = getOrCreateState(userId);
 

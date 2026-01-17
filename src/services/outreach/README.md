@@ -689,6 +689,19 @@ apps/web/src/ui/
 - [x] Scheduling UI for upcoming outreach
 - [x] Reschedule/cancel/preview capabilities
 
+## Related Documentation
+
+| Document | Location | Purpose |
+|----------|----------|---------|
+| **Vision** | `docs/features/PROACTIVE-OUTREACH-VISION.md` | Philosophy and long-term goals |
+| **Architecture** | `docs/architecture/OUTREACH-WORKER-ARCHITECTURE.md` | Scaling proposal (worker separation) |
+| **Implementation Plan** | `docs/plans/INTELLIGENT-OUTREACH-PLAN.md` | Phased implementation roadmap |
+| **Production Plan** | `docs/plans/OUTREACH-PRODUCTION-PLAN.md` | Deployment checklist and status |
+| **System Audit** | `docs/audits/OUTREACH-SYSTEM-AUDIT.md` | Current state findings |
+| **Webhook Setup** | `docs/features/OUTREACH-WEBHOOKS.md` | Provider webhook configuration |
+
+---
+
 ## Production Deployment
 
 The outreach system initializes automatically when the app starts. To deploy:

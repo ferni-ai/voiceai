@@ -225,6 +225,9 @@ export async function loadBundle(
   const reloadCallbacks = new Set<() => void>();
 
   // Load story index if exists
+  // Handles two formats:
+  // 1. Direct: { stories: [...] }
+  // 2. Wrapped (marketplace agents): { stories_index: { stories: [...] } }
   async function loadStoryIndex(): Promise<StoryIndex | null> {
     if (storyIndex) return storyIndex;
 
@@ -233,7 +236,28 @@ export async function loadBundle(
 
     const indexPath = join(bundlePath, storiesDir, '_index.json');
     if (await fileExists(indexPath)) {
-      storyIndex = await loadJsonFile<StoryIndex>(indexPath);
+      const rawIndex = await loadJsonFile<StoryIndex | { stories_index: StoryIndex }>(indexPath);
+
+      // Handle wrapped format (marketplace agents use { stories_index: { stories: [] } } or { story_index: { stories: [] } })
+      if ('stories_index' in rawIndex && rawIndex.stories_index?.stories) {
+        storyIndex = { stories: rawIndex.stories_index.stories };
+      } else if (
+        'story_index' in rawIndex &&
+        (rawIndex as { story_index?: { stories?: unknown[] } }).story_index?.stories
+      ) {
+        storyIndex = {
+          stories: (rawIndex as { story_index: { stories: unknown[] } }).story_index.stories,
+        } as StoryIndex;
+      } else if ('stories' in rawIndex && Array.isArray(rawIndex.stories)) {
+        storyIndex = rawIndex as StoryIndex;
+      } else {
+        getLogger().warn(
+          { indexPath, keys: Object.keys(rawIndex) },
+          'Story index has unexpected format - expected "stories", "stories_index.stories", or "story_index.stories"'
+        );
+        return null;
+      }
+
       return storyIndex;
     }
 
@@ -278,11 +302,13 @@ export async function loadBundle(
       const storiesDir = manifest.content.stories?.directory;
       if (!storiesDir) return null;
 
-      const storyPath = join(bundlePath, storiesDir, ref.file);
+      // Default to ${id}.json if file property is missing
+      const storyFile = ref.file || `${id}.json`;
+      const storyPath = join(bundlePath, storiesDir, storyFile);
       if (!(await fileExists(storyPath))) return null;
 
       let story: BundleStory;
-      if (ref.file.endsWith('.json')) {
+      if (storyFile.endsWith('.json')) {
         story = await loadJsonFile<BundleStory>(storyPath);
       } else {
         // Markdown file - wrap in story object
@@ -366,11 +392,13 @@ export async function loadBundle(
       const knowledgeDir = manifest.content.knowledge?.directory;
       if (!knowledgeDir) return null;
 
-      const knowledgePath = join(bundlePath, knowledgeDir, ref.file);
+      // Default to ${id}.md if file property is missing
+      const knowledgeFile = ref.file || `${ref.id}.md`;
+      const knowledgePath = join(bundlePath, knowledgeDir, knowledgeFile);
       if (!(await fileExists(knowledgePath))) return null;
 
       let knowledge: BundleKnowledge;
-      if (ref.file.endsWith('.json')) {
+      if (knowledgeFile.endsWith('.json')) {
         knowledge = await loadJsonFile<BundleKnowledge>(knowledgePath);
       } else {
         const content = await loadMarkdownFile(knowledgePath);
@@ -634,6 +662,13 @@ export async function loadBundle(
       if (await fileExists(mortalityAwarenessPath)) {
         behaviors.mortality_awareness =
           await loadJsonFile<BundleBehaviors['mortality_awareness']>(mortalityAwarenessPath);
+      }
+
+      // Load silence responses (meaningful silence content)
+      const silenceResponsesPath = join(behaviorsPath, 'silence-responses.json');
+      if (await fileExists(silenceResponsesPath)) {
+        behaviors.silence_responses =
+          await loadJsonFile<BundleBehaviors['silence_responses']>(silenceResponsesPath);
       }
 
       // ========================================================================
@@ -908,10 +943,13 @@ export async function loadBundle(
       return getHooks(bundlePath);
     },
 
-    async getMCPConfig() {
+    async getMCPConfig(options?: { publisherId?: string; personaId?: string }) {
       // Lazy import to avoid circular dependencies
       const { getMCPConfig } = await import('./mcp-loader.js');
-      return getMCPConfig(bundlePath);
+      return getMCPConfig(bundlePath, {
+        publisherId: options?.publisherId,
+        personaId: options?.personaId ?? manifest.identity.id,
+      });
     },
   };
 
@@ -977,7 +1015,10 @@ export function getBundleSearchPaths(): string[] {
   // 3. Also check dist/personas/bundles/ relative path (in case content is there)
   paths.push(join(process.cwd(), 'dist/personas/bundles'));
 
-  // 4. User-level bundles
+  // 4. Marketplace agents (community/premium agents from apps/marketplace-agents)
+  paths.push(join(process.cwd(), 'apps/marketplace-agents/agents'));
+
+  // 5. User-level bundles
   const home = process.env.HOME || process.env.USERPROFILE;
   if (home) {
     paths.push(join(home, '.voiceai/personas'));

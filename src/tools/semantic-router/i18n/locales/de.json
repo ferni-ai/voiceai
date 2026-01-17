@@ -1,0 +1,792 @@
+{
+  "$schema": "./locale.schema.json",
+  "$locale": "de",
+  "$name": "Deutsch",
+
+  "weather_current": {
+    "phrases": [
+      "wie ist das Wetter",
+      "was für Wetter ist es",
+      "regnet es",
+      "ist es kalt",
+      "ist es warm",
+      "brauche ich einen Regenschirm",
+      "soll ich eine Jacke mitnehmen"
+    ],
+    "patterns": [
+      "^wie\\s+ist\\s+(?:das\\s+)?(?:Wetter|draußen)",
+      "^(?:was\\s+für\\s+)?Wetter\\s+(?:ist\\s+)?(?:es|heute)",
+      "^(?:regnet|schneit)\\s+es",
+      "^ist\\s+es\\s+(?:kalt|warm|sonnig|bewölkt)"
+    ],
+    "keywords": [
+      { "word": "Wetter", "weight": 1.0 },
+      { "word": "Temperatur", "weight": 0.9 },
+      { "word": "Regen", "weight": 0.8 },
+      { "word": "regnet", "weight": 0.8 },
+      { "word": "sonnig", "weight": 0.7 },
+      { "word": "bewölkt", "weight": 0.7 },
+      { "word": "kalt", "weight": 0.6 },
+      { "word": "warm", "weight": 0.6 },
+      { "word": "Regenschirm", "weight": 0.8 }
+    ],
+    "antiKeywords": ["Email", "Kalender", "Termin", "Musik"]
+  },
+
+  "weather_forecast": {
+    "phrases": [
+      "Wettervorhersage",
+      "Wetter diese Woche",
+      "Wetter morgen",
+      "wie wird das Wetter",
+      "Wetter am Wochenende"
+    ],
+    "patterns": [
+      "^(?:wie\\s+wird|was\\s+ist)\\s+(?:das\\s+)?(?:Wetter|die\\s+Wettervorhersage)",
+      "^(?:das\\s+)?Wetter\\s+(?:für\\s+)?(?:diese|nächste)\\s+Woche",
+      "^(?:wird\\s+es)\\s+(?:morgen|diese\\s+Woche)\\s+(?:regnen|schneien)"
+    ],
+    "keywords": [
+      { "word": "Vorhersage", "weight": 1.0 },
+      { "word": "Woche", "weight": 0.7 },
+      { "word": "morgen", "weight": 0.8 }
+    ],
+    "antiKeywords": ["jetzt", "gerade", "momentan"]
+  },
+
+  "calendar_list_events": {
+    "phrases": [
+      "was steht in meinem Kalender",
+      "zeig mir meinen Kalender",
+      "mein Terminplan",
+      "was habe ich heute",
+      "welche Termine habe ich",
+      "habe ich heute Termine"
+    ],
+    "patterns": [
+      "^(?:was\\s+steht|zeig\\s+mir)\\s+(?:in\\s+)?(?:meinem?\\s+)?(?:Kalender|Terminplan)",
+      "^(?:zeige|öffne)\\s+(?:meinen?\\s+)?(?:Kalender|Terminplan)",
+      "^(?:welche|habe\\s+ich)\\s+(?:Termine|Meetings)\\s+(?:heute|morgen)"
+    ],
+    "keywords": [
+      { "word": "Kalender", "weight": 1.0 },
+      { "word": "Terminplan", "weight": 0.9 },
+      { "word": "Termin", "weight": 0.8 },
+      { "word": "Termine", "weight": 0.8 },
+      { "word": "Meeting", "weight": 0.8 }
+    ],
+    "antiKeywords": ["erstellen", "hinzufügen", "planen", "absagen", "löschen"]
+  },
+
+  "habit_track": {
+    "phrases": [
+      "ich habe meine",
+      "ich habe es geschafft",
+      "ich habe fertig",
+      "Gewohnheit erledigt",
+      "ich habe meditiert",
+      "ich habe trainiert",
+      "ich war im Fitnessstudio"
+    ],
+    "patterns": [
+      "^ich\\s+habe\\s+(?:meine?\\s+)?(.+)\\s+(?:erledigt|geschafft|gemacht)",
+      "^(?:markiere|trag\\s+ein)\\s+(?:meine?\\s+)?(?:Gewohnheit|(.+))\\s+(?:als\\s+)?(?:erledigt|fertig)"
+    ],
+    "keywords": [
+      { "word": "erledigt", "weight": 0.8 },
+      { "word": "geschafft", "weight": 0.9 },
+      { "word": "fertig", "weight": 0.8 },
+      { "word": "meditiert", "weight": 0.9 },
+      { "word": "trainiert", "weight": 0.9 },
+      { "word": "Fitnessstudio", "weight": 0.8 }
+    ],
+    "antiKeywords": ["erstellen", "hinzufügen", "neu", "vorschlagen", "hilfe", "was"]
+  },
+
+  "memory_save": {
+    "phrases": [
+      "merk dir das",
+      "erinnere dich daran",
+      "vergiss nicht",
+      "speicher das",
+      "notiere dass",
+      "behalte im Kopf"
+    ],
+    "patterns": [
+      "^(?:bitte\\s+)?(?:merk|erinner)\\s+dir\\s+(?:dass\\s+)?(.+)",
+      "^vergiss\\s+(?:bitte\\s+)?nicht\\s+(?:dass\\s+)?(.+)",
+      "^(?:speicher|notier)\\s+(?:dass\\s+)?(.+)"
+    ],
+    "keywords": [
+      { "word": "merk", "weight": 1.0 },
+      { "word": "erinner", "weight": 0.9 },
+      { "word": "vergiss", "weight": 0.9 },
+      { "word": "speicher", "weight": 0.7 },
+      { "word": "notier", "weight": 0.7 }
+    ],
+    "antiKeywords": ["was", "wann", "wer", "sag mir"]
+  },
+
+  "memory_recall": {
+    "phrases": [
+      "was habe ich dir gesagt",
+      "erinnerst du dich",
+      "was weißt du über",
+      "was ist mein",
+      "wer ist mein",
+      "wann ist mein"
+    ],
+    "patterns": [
+      "^(?:was|wann|wer)\\s+habe\\s+ich\\s+dir\\s+(?:gesagt|erzählt|erwähnt)",
+      "^erinnerst\\s+du\\s+dich\\s+(?:an\\s+)?(?:was|wann|mein)",
+      "^(?:was|wer|wann)\\s+ist\\s+mein\\s+(.+)"
+    ],
+    "keywords": [
+      { "word": "erinnerst", "weight": 0.9 },
+      { "word": "weißt", "weight": 0.6 },
+      { "word": "gesagt", "weight": 0.8 }
+    ],
+    "antiKeywords": ["speicher", "notier", "vergiss nicht"]
+  },
+
+  "grounding_exercise": {
+    "phrases": [
+      "ich bin ängstlich",
+      "ich bin gestresst",
+      "ich fühle mich überfordert",
+      "ich muss mich beruhigen",
+      "hilf mir zu entspannen",
+      "Atemübung",
+      "ich habe Panik"
+    ],
+    "patterns": [
+      "^ich\\s+(?:bin|fühle\\s+mich)\\s+(?:sehr\\s+)?(?:ängstlich|gestresst|überfordert|panisch)",
+      "^ich\\s+(?:muss|brauche)\\s+(?:mich\\s+)?(?:beruhigen|entspannen)",
+      "^(?:hilf|kannst\\s+du)\\s+mir\\s+(?:mich\\s+)?(?:zu\\s+)?(?:beruhigen|entspannen)"
+    ],
+    "keywords": [
+      { "word": "ängstlich", "weight": 1.0 },
+      { "word": "Angst", "weight": 1.0 },
+      { "word": "gestresst", "weight": 0.9 },
+      { "word": "Panik", "weight": 1.0 },
+      { "word": "beruhigen", "weight": 0.8 },
+      { "word": "entspannen", "weight": 0.7 },
+      { "word": "atmen", "weight": 0.8 }
+    ],
+    "antiKeywords": []
+  },
+
+  "spotify_play": {
+    "phrases": [
+      "spiel Musik",
+      "spiele Musik",
+      "ich möchte hören",
+      "leg etwas auf",
+      "starte Spotify"
+    ],
+    "patterns": [
+      "^(?:spiel|spiele)\\s+(?:mir\\s+)?(?:etwas\\s+)?(.+)",
+      "^(?:leg|lege)\\s+(?:mir\\s+)?(?:etwas\\s+)?(.+)\\s+auf",
+      "^ich\\s+möchte\\s+(?:gerne\\s+)?(?:hören|anhören)\\s+(.+)"
+    ],
+    "keywords": [
+      { "word": "spiel", "weight": 1.0 },
+      { "word": "Musik", "weight": 0.8 },
+      { "word": "Spotify", "weight": 0.9 },
+      { "word": "Lied", "weight": 0.7 },
+      { "word": "Jazz", "weight": 0.8 },
+      { "word": "Rock", "weight": 0.7 }
+    ],
+    "antiKeywords": ["stopp", "pause", "nächstes", "überspringen"]
+  },
+
+  "calendar_create_event": {
+    "phrases": [
+      "Termin erstellen",
+      "zum Kalender hinzufügen",
+      "Meeting planen",
+      "Verabredung eintragen",
+      "neuer Termin"
+    ],
+    "patterns": [
+      "^(?:erstelle|füge\\s+hinzu|plane)\\s+(?:einen?\\s+)?(?:Termin|Meeting|Verabredung)",
+      "^(?:trag|füge)\\s+(?:in\\s+)?(?:meinen?\\s+)?Kalender\\s+ein"
+    ],
+    "keywords": [
+      { "word": "erstellen", "weight": 1.0 },
+      { "word": "hinzufügen", "weight": 0.9 },
+      { "word": "planen", "weight": 0.9 },
+      { "word": "eintragen", "weight": 0.8 }
+    ],
+    "antiKeywords": ["zeig", "anzeigen", "was", "welche", "absagen", "löschen"]
+  },
+
+  "info_time": {
+    "phrases": ["wie spät ist es", "sag mir die Uhrzeit", "aktuelle Uhrzeit", "welche Zeit ist es"],
+    "patterns": [
+      "^wie\\s+spät\\s+ist\\s+es",
+      "^(?:sag|gib)\\s+mir\\s+(?:die\\s+)?(?:Uhrzeit|Zeit)"
+    ],
+    "keywords": [
+      { "word": "Uhrzeit", "weight": 1.0 },
+      { "word": "Zeit", "weight": 0.8 },
+      { "word": "spät", "weight": 0.7 }
+    ],
+    "antiKeywords": ["Wetter", "Kalender", "Termin"]
+  },
+
+  "handoff": {
+    "phrases": [
+      "verbinde mich mit",
+      "ich möchte mit sprechen",
+      "kann ich mit sprechen",
+      "wechsle zu",
+      "gib mir"
+    ],
+    "patterns": [
+      "^(?:verbinde|stell)\\s+mich\\s+(?:mit|zu)\\s+(.+)",
+      "^(?:ich\\s+möchte|kann\\s+ich)\\s+mit\\s+(.+)\\s+sprechen",
+      "^wechsle\\s+(?:mich\\s+)?zu\\s+(.+)"
+    ],
+    "keywords": [
+      { "word": "verbinde", "weight": 1.0 },
+      { "word": "sprechen", "weight": 0.7 },
+      { "word": "Maya", "weight": 0.9 },
+      { "word": "Peter", "weight": 0.9 },
+      { "word": "Alex", "weight": 0.9 },
+      { "word": "Jordan", "weight": 0.9 },
+      { "word": "Nayan", "weight": 0.9 }
+    ],
+    "antiKeywords": []
+  },
+
+  "spotify_pause": {
+    "phrases": ["pause", "pausiere die Musik", "stoppe die Musik", "halt an"],
+    "patterns": ["^(?:pausiere?|stopp)\\s+(?:die\\s+)?Musik", "^halt\\s+(?:die\\s+Musik\\s+)?an"],
+    "keywords": [
+      { "word": "pause", "weight": 1.0 },
+      { "word": "stopp", "weight": 0.9 }
+    ],
+    "antiKeywords": ["spiel", "starte", "weiter"]
+  },
+
+  "spotify_skip": {
+    "phrases": ["nächstes Lied", "überspringen", "überspring das Lied", "weiter"],
+    "patterns": [
+      "^(?:nächstes?|weiter)\\s+(?:Lied)?",
+      "^überspring(?:e)?\\s+(?:das\\s+)?(?:Lied)?"
+    ],
+    "keywords": [
+      { "word": "nächstes", "weight": 1.0 },
+      { "word": "überspringen", "weight": 1.0 }
+    ],
+    "antiKeywords": ["vorheriges", "zurück"]
+  },
+
+  "set_timer": {
+    "phrases": ["stell einen Timer", "Timer für", "starte einen Timer"],
+    "patterns": ["^(?:stell|starte)\\s+(?:einen\\s+)?Timer\\s+(?:für\\s+)?(.+)"],
+    "keywords": [
+      { "word": "Timer", "weight": 1.0 },
+      { "word": "Minuten", "weight": 0.7 }
+    ],
+    "antiKeywords": ["Wecker", "Erinnerung"]
+  },
+
+  "set_reminder": {
+    "phrases": [
+      "erinnere mich an",
+      "stell eine Erinnerung",
+      "Erinnerung für",
+      "vergiss nicht mich zu erinnern"
+    ],
+    "patterns": [
+      "^erinnere\\s+mich\\s+(?:an\\s+)?(.+)",
+      "^(?:stell|erstelle)\\s+(?:eine\\s+)?Erinnerung\\s+(?:für\\s+)?(.+)"
+    ],
+    "keywords": [
+      { "word": "erinnere", "weight": 1.0 },
+      { "word": "Erinnerung", "weight": 1.0 }
+    ],
+    "antiKeywords": ["Timer", "Wecker"]
+  },
+
+  "set_alarm": {
+    "phrases": ["stell einen Wecker", "weck mich", "Wecker für"],
+    "patterns": [
+      "^(?:stell|stelle)\\s+(?:einen\\s+)?Wecker\\s+(?:für\\s+)?(.+)",
+      "^weck\\s+mich\\s+(?:um\\s+)?(.+)"
+    ],
+    "keywords": [
+      { "word": "Wecker", "weight": 1.0 },
+      { "word": "weck", "weight": 0.9 }
+    ],
+    "antiKeywords": ["Timer", "Erinnerung"]
+  },
+
+  "burnout_assess": {
+    "phrases": [
+      "ich bin ausgebrannt",
+      "ich bin völlig erschöpft",
+      "ich glaube ich habe Burnout",
+      "ich kann nicht mehr",
+      "ich bin am Ende"
+    ],
+    "patterns": [
+      "^ich\\s+(?:bin|fühle\\s+mich)\\s+(?:völlig\\s+)?(?:ausgebrannt|erschöpft|am\\s+Ende)",
+      "^ich\\s+(?:glaube|denke)\\s+(?:ich\\s+habe|es\\s+ist)\\s+Burnout"
+    ],
+    "keywords": [
+      { "word": "Burnout", "weight": 1.0 },
+      { "word": "ausgebrannt", "weight": 1.0 },
+      { "word": "erschöpft", "weight": 0.9 }
+    ],
+    "antiKeywords": []
+  },
+
+  "career_coaching": {
+    "phrases": [
+      "ich brauche Karriereberatung",
+      "Hilfe mit meiner Karriere",
+      "Karrierewechsel",
+      "soll ich meinen Job kündigen",
+      "ich denke an einen neuen Job"
+    ],
+    "patterns": [
+      "^(?:ich\\s+brauche|hilf\\s+mir\\s+mit)\\s+(?:meiner\\s+)?Karriere",
+      "^(?:soll\\s+ich|ich\\s+denke\\s+darüber\\s+nach)\\s+(?:meinen\\s+)?(?:Job|Arbeit)\\s+(?:zu\\s+)?(?:kündigen|wechseln)"
+    ],
+    "keywords": [
+      { "word": "Karriere", "weight": 1.0 },
+      { "word": "Job", "weight": 0.8 },
+      { "word": "Arbeit", "weight": 0.7 },
+      { "word": "kündigen", "weight": 0.7 }
+    ],
+    "antiKeywords": []
+  },
+
+  "decision_help": {
+    "phrases": [
+      "hilf mir zu entscheiden",
+      "ich kann mich nicht entscheiden",
+      "soll ich",
+      "hilf mir bei der Entscheidung",
+      "ich bin unentschlossen"
+    ],
+    "patterns": [
+      "^(?:hilf\\s+mir|ich\\s+kann\\s+mich\\s+nicht)\\s+(?:zu\\s+)?entscheiden",
+      "^soll\\s+ich\\s+(.+)",
+      "^ich\\s+bin\\s+(?:sehr\\s+)?unentschlossen"
+    ],
+    "keywords": [
+      { "word": "entscheiden", "weight": 1.0 },
+      { "word": "Entscheidung", "weight": 1.0 },
+      { "word": "unentschlossen", "weight": 0.8 }
+    ],
+    "antiKeywords": []
+  },
+
+  "dream_clarify": {
+    "phrases": [
+      "was ist mein Traum",
+      "hilf mir meinen Traum zu finden",
+      "ich weiß nicht was ich will",
+      "meine Ziele klären"
+    ],
+    "patterns": [
+      "^(?:was\\s+ist|hilf\\s+mir\\s+zu\\s+finden)\\s+meinen?\\s+Traum",
+      "^ich\\s+weiß\\s+nicht\\s+was\\s+ich\\s+(?:will|wirklich\\s+will)"
+    ],
+    "keywords": [
+      { "word": "Traum", "weight": 1.0 },
+      { "word": "Ziel", "weight": 0.8 },
+      { "word": "Vision", "weight": 0.7 }
+    ],
+    "antiKeywords": ["schlafen", "Albtraum"]
+  },
+
+  "grief_support": {
+    "phrases": [
+      "ich habe jemanden verloren",
+      "jemand ist gestorben",
+      "ich trauere",
+      "mein Angehöriger ist verstorben",
+      "ich vermisse sie so sehr"
+    ],
+    "patterns": [
+      "^ich\\s+habe\\s+(?:gerade\\s+)?(?:jemanden|einen\\s+geliebten\\s+Menschen)\\s+verloren",
+      "^ich\\s+(?:bin\\s+in|durchlebe)\\s+Trauer",
+      "^(?:mein|meine)\\s+(?:Mutter|Vater|Eltern|Freund)\\s+(?:ist\\s+)?(?:gestorben|verstorben)"
+    ],
+    "keywords": [
+      { "word": "Trauer", "weight": 1.0 },
+      { "word": "Verlust", "weight": 0.9 },
+      { "word": "gestorben", "weight": 1.0 },
+      { "word": "verstorben", "weight": 0.9 },
+      { "word": "vermisse", "weight": 0.6 }
+    ],
+    "antiKeywords": []
+  },
+
+  "anger_support": {
+    "phrases": [
+      "ich bin so wütend",
+      "ich bin rasend",
+      "ich kann meine Wut nicht kontrollieren",
+      "hilf mir mit meiner Wut"
+    ],
+    "patterns": [
+      "^ich\\s+bin\\s+(?:so\\s+)?(?:wütend|zornig|rasend|sauer)",
+      "^ich\\s+kann\\s+meine\\s+Wut\\s+nicht\\s+kontrollieren"
+    ],
+    "keywords": [
+      { "word": "wütend", "weight": 1.0 },
+      { "word": "Wut", "weight": 1.0 },
+      { "word": "zornig", "weight": 0.9 },
+      { "word": "sauer", "weight": 0.7 }
+    ],
+    "antiKeywords": []
+  },
+
+  "gratitude_practice": {
+    "phrases": [
+      "Dankbarkeitspraxis",
+      "wofür bin ich dankbar",
+      "hilf mir dankbar zu sein",
+      "meine Segnungen zählen"
+    ],
+    "patterns": [
+      "^(?:lass\\s+uns|hilf\\s+mir\\s+bei)\\s+(?:einer\\s+)?(?:Dankbarkeits)?übung",
+      "^(?:wofür|für\\s+was)\\s+(?:bin\\s+ich|sollte\\s+ich)\\s+dankbar"
+    ],
+    "keywords": [
+      { "word": "dankbar", "weight": 1.0 },
+      { "word": "Dankbarkeit", "weight": 1.0 },
+      { "word": "Segnungen", "weight": 0.7 }
+    ],
+    "antiKeywords": []
+  },
+
+  "self_compassion": {
+    "phrases": [
+      "ich bin zu hart zu mir selbst",
+      "ich hasse mich",
+      "ich bin nicht gut genug",
+      "ich fühle mich wie ein Versager"
+    ],
+    "patterns": [
+      "^ich\\s+bin\\s+(?:zu\\s+)?hart\\s+zu\\s+mir\\s+selbst",
+      "^ich\\s+(?:hasse|mag)\\s+mich\\s+(?:selbst\\s+)?nicht",
+      "^ich\\s+bin\\s+nicht\\s+gut\\s+genug"
+    ],
+    "keywords": [
+      { "word": "hart", "weight": 0.6 },
+      { "word": "selbst", "weight": 0.7 },
+      { "word": "Versager", "weight": 0.8 },
+      { "word": "Selbstmitgefühl", "weight": 1.0 }
+    ],
+    "antiKeywords": []
+  },
+
+  "loneliness_support": {
+    "phrases": [
+      "ich bin so einsam",
+      "ich fühle mich allein",
+      "ich habe keine Freunde",
+      "niemand versteht mich",
+      "ich fühle mich isoliert"
+    ],
+    "patterns": [
+      "^ich\\s+(?:bin|fühle\\s+mich)\\s+(?:so\\s+)?(?:einsam|allein|isoliert)",
+      "^ich\\s+habe\\s+(?:keine\\s+)?(?:Freunde|niemanden)"
+    ],
+    "keywords": [
+      { "word": "einsam", "weight": 1.0 },
+      { "word": "allein", "weight": 0.9 },
+      { "word": "isoliert", "weight": 0.9 },
+      { "word": "Freunde", "weight": 0.6 }
+    ],
+    "antiKeywords": []
+  },
+
+  "sleep_help": {
+    "phrases": [
+      "ich kann nicht schlafen",
+      "hilf mir zu schlafen",
+      "Schlaflosigkeit",
+      "Schlafprobleme"
+    ],
+    "patterns": [
+      "^ich\\s+kann\\s+nicht\\s+(?:ein)?schlafen",
+      "^(?:hilf\\s+mir|ich\\s+brauche\\s+Hilfe)\\s+(?:beim|zum)\\s+(?:Ein)?schlafen"
+    ],
+    "keywords": [
+      { "word": "schlafen", "weight": 1.0 },
+      { "word": "Schlaf", "weight": 1.0 },
+      { "word": "Schlaflosigkeit", "weight": 1.0 },
+      { "word": "wach", "weight": 0.7 }
+    ],
+    "antiKeywords": []
+  },
+
+  "motivation_boost": {
+    "phrases": [
+      "ich brauche Motivation",
+      "ich bin nicht motiviert",
+      "hilf mir anzufangen",
+      "ich prokrastiniere"
+    ],
+    "patterns": [
+      "^ich\\s+(?:brauche|habe\\s+keine)\\s+Motivation",
+      "^ich\\s+(?:bin\\s+nicht\\s+motiviert|prokrastiniere)"
+    ],
+    "keywords": [
+      { "word": "Motivation", "weight": 1.0 },
+      { "word": "motiviert", "weight": 1.0 },
+      { "word": "prokrastiniere", "weight": 0.9 }
+    ],
+    "antiKeywords": []
+  },
+
+  "boundary_coaching": {
+    "phrases": ["ich kann nicht nein sagen", "hilf mir Grenzen zu setzen", "Leute nutzen mich aus"],
+    "patterns": [
+      "^ich\\s+kann\\s+(?:nicht\\s+)?nein\\s+sagen",
+      "^(?:hilf\\s+mir|ich\\s+muss)\\s+Grenzen\\s+(?:zu\\s+)?setzen"
+    ],
+    "keywords": [
+      { "word": "Grenzen", "weight": 1.0 },
+      { "word": "nein", "weight": 0.5 }
+    ],
+    "antiKeywords": []
+  },
+
+  "imposter_syndrome": {
+    "phrases": [
+      "ich fühle mich wie ein Betrüger",
+      "Hochstapler-Syndrom",
+      "ich verdiene das nicht",
+      "sie werden herausfinden dass ich nicht gut genug bin"
+    ],
+    "patterns": [
+      "^ich\\s+(?:fühle\\s+mich|bin)\\s+(?:wie\\s+)?(?:ein\\s+)?(?:Betrüger|Hochstapler)",
+      "^ich\\s+verdiene\\s+(?:das\\s+)?nicht"
+    ],
+    "keywords": [
+      { "word": "Hochstapler", "weight": 1.0 },
+      { "word": "Betrüger", "weight": 1.0 },
+      { "word": "verdiene", "weight": 0.8 }
+    ],
+    "antiKeywords": []
+  },
+
+  "relationship_advice": {
+    "phrases": [
+      "Beziehungsratschläge",
+      "Hilfe mit meiner Beziehung",
+      "Probleme mit meinem Partner",
+      "wir streiten ständig"
+    ],
+    "patterns": [
+      "^(?:ich\\s+brauche|hilf\\s+mir\\s+mit)\\s+(?:meiner\\s+)?Beziehung",
+      "^(?:Probleme|Schwierigkeiten)\\s+mit\\s+meinem\\s+(?:Partner|Ehepartner|Mann|Frau)"
+    ],
+    "keywords": [
+      { "word": "Beziehung", "weight": 1.0 },
+      { "word": "Partner", "weight": 0.9 },
+      { "word": "Ehepartner", "weight": 0.9 },
+      { "word": "Ehe", "weight": 0.8 }
+    ],
+    "antiKeywords": []
+  },
+
+  "smart_home_lights": {
+    "phrases": ["Licht an", "Licht aus", "dimme das Licht", "Lichter an", "Lichter aus"],
+    "patterns": [
+      "^(?:mach|schalte)\\s+(?:das\\s+)?Licht(?:er)?\\s+(?:an|aus)",
+      "^Licht(?:er)?\\s+(?:an|aus)"
+    ],
+    "keywords": [
+      { "word": "Licht", "weight": 1.0 },
+      { "word": "Lichter", "weight": 1.0 }
+    ],
+    "antiKeywords": []
+  },
+
+  "smart_home_thermostat": {
+    "phrases": [
+      "stelle die Temperatur ein",
+      "dreh die Heizung hoch",
+      "mach es wärmer",
+      "mach es kühler"
+    ],
+    "patterns": [
+      "^(?:stelle|ändere)\\s+(?:die\\s+)?Temperatur",
+      "^(?:dreh|mach)\\s+(?:die\\s+)?(?:Heizung|Klimaanlage)\\s+(?:hoch|runter)"
+    ],
+    "keywords": [
+      { "word": "Temperatur", "weight": 1.0 },
+      { "word": "Thermostat", "weight": 1.0 },
+      { "word": "Heizung", "weight": 0.8 },
+      { "word": "Klimaanlage", "weight": 0.8 }
+    ],
+    "antiKeywords": ["Wetter"]
+  },
+
+  "define_word": {
+    "phrases": ["definiere", "was bedeutet", "Definition von", "was heißt"],
+    "patterns": [
+      "^definiere\\s+(.+)",
+      "^was\\s+(?:bedeutet|heißt)\\s+(.+)",
+      "^(?:was\\s+ist\\s+die\\s+)?Definition\\s+von\\s+(.+)"
+    ],
+    "keywords": [
+      { "word": "definiere", "weight": 1.0 },
+      { "word": "Definition", "weight": 1.0 },
+      { "word": "bedeutet", "weight": 0.9 }
+    ],
+    "antiKeywords": []
+  },
+
+  "translate": {
+    "phrases": [
+      "übersetze",
+      "wie sagt man",
+      "was heißt das auf",
+      "sag auf Spanisch",
+      "übersetze ins Französische"
+    ],
+    "patterns": [
+      "^übersetze\\s+(.+)",
+      "^wie\\s+sagt\\s+man\\s+(.+)",
+      "^(?:was\\s+heißt\\s+das|sag)\\s+auf\\s+(\\w+)"
+    ],
+    "keywords": [
+      { "word": "übersetze", "weight": 1.0 },
+      { "word": "Spanisch", "weight": 0.8 },
+      { "word": "Französisch", "weight": 0.8 }
+    ],
+    "antiKeywords": []
+  },
+
+  "calculate": {
+    "phrases": ["berechne", "wie viel ist", "was ist das Ergebnis von", "Matheaufgabe"],
+    "patterns": [
+      "^berechne\\s+(.+)",
+      "^wie\\s+viel\\s+(?:ist|sind)\\s+(.+)",
+      "^was\\s+ist\\s+(?:das\\s+Ergebnis\\s+von\\s+)?(.+)"
+    ],
+    "keywords": [
+      { "word": "berechne", "weight": 1.0 },
+      { "word": "Mathe", "weight": 0.9 },
+      { "word": "plus", "weight": 0.7 }
+    ],
+    "antiKeywords": []
+  },
+
+  "news_update": {
+    "phrases": [
+      "was gibt es Neues",
+      "Nachrichten",
+      "letzte Neuigkeiten",
+      "was passiert in der Welt"
+    ],
+    "patterns": [
+      "^(?:was\\s+gibt\\s+es|gib\\s+mir)\\s+(?:die\\s+)?(?:letzten\\s+)?(?:Nachrichten|Neuigkeiten)",
+      "^Nachrichten\\s+(?:von\\s+)?heute"
+    ],
+    "keywords": [
+      { "word": "Nachrichten", "weight": 1.0 },
+      { "word": "Neuigkeiten", "weight": 1.0 }
+    ],
+    "antiKeywords": []
+  },
+
+  "get_directions": {
+    "phrases": ["Wegbeschreibung zu", "wie komme ich zu", "navigiere zu", "Route zu"],
+    "patterns": [
+      "^(?:gib\\s+mir\\s+)?(?:die\\s+)?Wegbeschreibung\\s+(?:zu|nach)\\s+(.+)",
+      "^wie\\s+komme\\s+ich\\s+(?:zu|nach)\\s+(.+)"
+    ],
+    "keywords": [
+      { "word": "Wegbeschreibung", "weight": 1.0 },
+      { "word": "navigiere", "weight": 1.0 },
+      { "word": "Route", "weight": 0.9 }
+    ],
+    "antiKeywords": []
+  },
+
+  "book_search": {
+    "phrases": [
+      "finde mir ein Buch",
+      "Buchempfehlung",
+      "schlage ein Buch vor",
+      "was sollte ich lesen"
+    ],
+    "patterns": [
+      "^(?:finde|empfehle|schlage)\\s+(?:mir\\s+)?(?:ein\\s+)?Buch\\s+vor?",
+      "^was\\s+(?:sollte|kann)\\s+ich\\s+lesen"
+    ],
+    "keywords": [
+      { "word": "Buch", "weight": 1.0 },
+      { "word": "lesen", "weight": 0.8 },
+      { "word": "empfehle", "weight": 0.7 }
+    ],
+    "antiKeywords": []
+  },
+
+  "podcast_find": {
+    "phrases": [
+      "finde einen Podcast",
+      "Podcast-Empfehlung",
+      "schlage einen Podcast vor",
+      "welchen Podcast hören"
+    ],
+    "patterns": [
+      "^(?:finde|empfehle|schlage)\\s+(?:mir\\s+)?(?:einen\\s+)?Podcast\\s+vor?",
+      "^welchen\\s+Podcast\\s+(?:sollte|kann)\\s+ich\\s+hören"
+    ],
+    "keywords": [
+      { "word": "Podcast", "weight": 1.0 },
+      { "word": "hören", "weight": 0.7 }
+    ],
+    "antiKeywords": []
+  },
+
+  "movie_recommend": {
+    "phrases": [
+      "empfehle einen Film",
+      "welchen Film schauen",
+      "Filmvorschlag",
+      "finde mir einen Film"
+    ],
+    "patterns": [
+      "^(?:empfehle|schlage|finde)\\s+(?:mir\\s+)?(?:einen\\s+)?Film\\s+vor?",
+      "^welchen\\s+Film\\s+(?:sollte|kann)\\s+ich\\s+(?:an)?schauen"
+    ],
+    "keywords": [
+      { "word": "Film", "weight": 1.0 },
+      { "word": "schauen", "weight": 0.7 }
+    ],
+    "antiKeywords": []
+  },
+
+  "restaurant_find": {
+    "phrases": [
+      "finde ein Restaurant",
+      "wo sollte ich essen",
+      "Restaurant-Empfehlung",
+      "ein Ort zum Essen"
+    ],
+    "patterns": [
+      "^(?:finde|empfehle)\\s+(?:mir\\s+)?(?:ein\\s+)?Restaurant",
+      "^wo\\s+(?:sollte|kann)\\s+ich\\s+(?:essen|Essen\\s+gehen)"
+    ],
+    "keywords": [
+      { "word": "Restaurant", "weight": 1.0 },
+      { "word": "essen", "weight": 0.8 },
+      { "word": "Essen", "weight": 0.7 }
+    ],
+    "antiKeywords": []
+  }
+}

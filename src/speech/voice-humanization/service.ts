@@ -7,6 +7,8 @@
 import type { EmotionalArc } from '../../conversation/emotional-arc.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import type { ProsodyFeatures, VoiceEmotionResult } from '../audio-prosody.js';
+// 🦀 Rust-accelerated word counting
+import { countWordsRust, isTokenCountingAvailable } from '../../memory/rust-accelerator.js';
 import {
   predictTurnWithVoice,
   voiceSuggestsTurnComplete,
@@ -30,6 +32,9 @@ import type {
 } from './types.js';
 
 const log = getLogger().child({ service: 'VoiceHumanization' });
+
+// Check Rust availability at module load
+const RUST_COUNTING_AVAILABLE = isTokenCountingAvailable();
 
 // ============================================================================
 // VOICE HUMANIZATION SERVICE
@@ -450,8 +455,11 @@ export class VoiceHumanizationService {
 
   private estimateAvgPhraseLength(text: string): number {
     const phrases = text.split(/[,;.!?\-—]/).filter((p) => p.trim().length > 0);
-    if (phrases.length === 0) return text.split(/\s+/).length;
-    const totalWords = phrases.reduce((sum, p) => sum + p.trim().split(/\s+/).length, 0);
+    // 🦀 Use Rust for O(1) word counting when available
+    const countWords = (s: string): number =>
+      RUST_COUNTING_AVAILABLE ? countWordsRust(s) : s.split(/\s+/).length;
+    if (phrases.length === 0) return countWords(text);
+    const totalWords = phrases.reduce((sum, p) => sum + countWords(p.trim()), 0);
     return totalWords / phrases.length;
   }
 

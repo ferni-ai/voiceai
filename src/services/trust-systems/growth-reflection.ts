@@ -19,6 +19,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
+import { indexGrowthReflection } from '../data-layer/integrations/trust-integration.js';
 
 const log = createLogger({ module: 'GrowthReflection' });
 
@@ -296,6 +297,15 @@ function checkEmotionalRegulationGrowth(
       };
 
       profile.patterns.push(pattern);
+
+      // Index to semantic memory
+      indexGrowthReflection(profile.userId, {
+        id: pattern.id,
+        observation: pattern.after.pattern,
+        area: pattern.type,
+        evidence: pattern.after.examples.join('; '),
+      });
+
       log.info(
         { userId: profile.userId, type: 'emotional_regulation' },
         '🌱 Growth pattern detected'
@@ -344,6 +354,15 @@ function checkPerspectiveGrowth(
       };
 
       profile.patterns.push(pattern);
+
+      // Index to semantic memory
+      indexGrowthReflection(profile.userId, {
+        id: pattern.id,
+        observation: pattern.after.pattern,
+        area: pattern.type,
+        evidence: pattern.after.examples.join('; '),
+      });
+
       log.info({ userId: profile.userId, type: 'perspective_shift' }, '🌱 Growth pattern detected');
     }
   }
@@ -389,6 +408,15 @@ function checkBoundaryGrowth(
       };
 
       profile.patterns.push(pattern);
+
+      // Index to semantic memory
+      indexGrowthReflection(profile.userId, {
+        id: pattern.id,
+        observation: pattern.after.pattern,
+        area: pattern.type,
+        evidence: pattern.after.examples.join('; '),
+      });
+
       log.info({ userId: profile.userId, type: 'boundary_setting' }, '🌱 Growth pattern detected');
     }
   }

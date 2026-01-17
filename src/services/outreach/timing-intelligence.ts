@@ -19,6 +19,7 @@ import { getLogger } from '../../utils/safe-logger.js';
 import type { OutreachPriority } from './decision-engine.js';
 import { loadOutreachProfile, saveOutreachProfile } from './firestore-persistence.js';
 import type { OutreachChannel } from './persona-voice-generator.js';
+import { cleanForFirestore } from '../../utils/firestore-utils.js';
 
 // ============================================================================
 // TIMEZONE UTILITIES
@@ -1057,7 +1058,8 @@ export async function checkCalendarBeforeOutreach(
 }> {
   try {
     // Dynamic import to avoid circular dependencies
-    const { isUserBusy, getCalendarBusyProfile } = await import('../calendar-busy-detection.js');
+    const { isUserBusy, getCalendarBusyProfile } =
+      await import('../scheduling/calendar-busy-detection.js');
 
     const busyCheck = await isUserBusy(userId);
 

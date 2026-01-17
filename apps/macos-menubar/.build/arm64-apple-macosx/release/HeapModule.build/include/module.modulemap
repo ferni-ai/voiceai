@@ -1,3 +1,0 @@
-module HeapModule {
-    header "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/HeapModule.build/include/HeapModule-Swift.h"
-}

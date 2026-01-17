@@ -16,6 +16,8 @@
  * @module @ferni/hope-injection
  */
 
+import { seededChance, seededPick, seededIndex } from './utils/rng.js';
+import { getContentWithFallback, type ContentContext } from '../services/llm-dynamic-content.js';
 import { createLogger } from '../utils/safe-logger.js';
 
 const logger = createLogger({ module: 'HopeInjection' });
@@ -479,7 +481,7 @@ export class HopeInjectionEngine {
       `What about ${anchor.content}? That sounded good when you mentioned it.`,
     ];
 
-    return templates[Math.floor(Math.random() * templates.length)];
+    return seededPick(`${Date.now()}:484`, templates) ?? templates[0];
   }
 
   /**
@@ -588,6 +590,27 @@ export class HopeInjectionEngine {
       }
     }
 
+    // Try LLM-generated encouragement first (from cache)
+    const llmContext: ContentContext = {
+      contentType: 'encouragement',
+      emotion: context,
+      metadata: {
+        hopeType: type,
+        hopeContext: context,
+        shouldBeSubtle: true,
+      },
+    };
+
+    const llmContent = getContentWithFallback(llmContext);
+    if (llmContent.source === 'llm' && llmContent.content) {
+      return {
+        type,
+        phrase: llmContent.content,
+        placement: 'suffix',
+        confidence: 0.8,
+      };
+    }
+
     // Get phrases for this type and context
     const phrases = HOPE_PHRASES[type][context];
     if (!phrases || phrases.length === 0) {
@@ -598,7 +621,7 @@ export class HopeInjectionEngine {
       }
       return {
         type,
-        phrase: generalPhrases[Math.floor(Math.random() * generalPhrases.length)],
+        phrase: seededPick(`${Date.now()}:624`, generalPhrases) ?? generalPhrases[0],
         placement: 'suffix',
         confidence: 0.5,
       };
@@ -606,7 +629,7 @@ export class HopeInjectionEngine {
 
     return {
       type,
-      phrase: phrases[Math.floor(Math.random() * phrases.length)],
+      phrase: seededPick(`${Date.now()}:632`, phrases) ?? phrases[0],
       placement: 'suffix',
       confidence: 0.7,
     };

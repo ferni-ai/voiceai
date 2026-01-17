@@ -1,3 +1,4 @@
+// TODO: Fix type errors - persona colors and array indexing
 /**
  * Persona Introduction Flow
  *
@@ -37,7 +38,7 @@ import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 const log = createLogger('PersonaIntro');
 
 // FIX BUG: Track all setTimeout calls for proper cleanup
-const { trackedTimeout, clearAll: clearAllTimeouts } = createTimeoutTracker();
+const { trackedTimeout } = createTimeoutTracker();
 
 // ============================================================================
 // TYPES
@@ -72,14 +73,17 @@ const ICONS = {
 // PERSONA COLORS
 // ============================================================================
 
+// Default Ferni colors (fallback)
+const DEFAULT_PERSONA_COLORS = {
+  primary: 'var(--persona-primary, #4a6741)',
+  secondary: 'var(--persona-secondary, #3d5a35)',
+  tint: 'var(--persona-tint, rgba(74, 103, 65, 0.06))',
+};
+
 // Persona colors - use CSS variables from data-persona attribute
 // See design-system/tokens/colors.json for source of truth
-const PERSONA_COLORS: Record<string, { primary: string; secondary: string; tint: string }> = {
-  ferni: {
-    primary: 'var(--persona-primary, #4a6741)',
-    secondary: 'var(--persona-secondary, #3d5a35)',
-    tint: 'var(--persona-tint, rgba(74, 103, 65, 0.06))',
-  },
+const PERSONA_COLORS: Record<string, typeof DEFAULT_PERSONA_COLORS> = {
+  ferni: DEFAULT_PERSONA_COLORS,
   'maya-santos': {
     primary: 'var(--persona-primary, #a67a6a)',
     secondary: 'var(--persona-secondary, #8a635a)',
@@ -487,7 +491,7 @@ function renderStep(): void {
   const step = currentIntroData.steps[currentStep];
   if (!step) return;
 
-  const colors = PERSONA_COLORS[currentPersona.id] ?? PERSONA_COLORS['ferni'];
+  const colors = PERSONA_COLORS[currentPersona.id] ?? DEFAULT_PERSONA_COLORS;
   const isFirstStep = currentStep === 0;
   const isLastStep = currentStep === currentIntroData.steps.length - 1;
   const initials = getInitials(currentPersona.displayName);
@@ -529,21 +533,21 @@ function renderStep(): void {
     }
     
     <!-- Actions -->
-    <div class="persona-intro-actions">
+    <div class="persona-intro-actions" role="button" tabindex="0">
       ${
         !isFirstStep
           ? `
-        <button class="persona-intro-btn persona-intro-btn--secondary" data-action="prev">
+        <button aria-label="${t('accessibility.back')}" class="persona-intro-btn persona-intro-btn--secondary" data-action="prev">
           Back
         </button>
       `
           : `
-        <button class="persona-intro-btn persona-intro-btn--secondary" data-action="skip">
+        <button aria-label="${t('accessibility.skipIntro')}" class="persona-intro-btn persona-intro-btn--secondary" data-action="skip">
           Skip intro
         </button>
       `
       }
-      <button class="persona-intro-btn persona-intro-btn--primary" data-action="next" style="background: ${colors.primary}">
+      <button aria-label="${t('accessibility.goForward')}" class="persona-intro-btn persona-intro-btn--primary" data-action="next" style="background: ${colors.primary}">
         ${isLastStep ? ICONS.messageCircle : ''}
         <span>${step.buttonText}</span>
         ${!isLastStep ? ICONS.arrowRight : ''}
@@ -678,19 +682,16 @@ function injectStyles(): void {
     .persona-intro-backdrop {
       position: absolute;
       inset: 0;
-      background: rgba(44, 37, 32, 0.8);
-      backdrop-filter: blur(var(--glass-blur-strong, 24px));
-      -webkit-backdrop-filter: blur(var(--glass-blur-strong, 24px));
+      background: rgba(44, 37, 32, 0.75);
     }
-    
+
     .persona-intro-card {
       position: relative;
-      background: var(--color-background-elevated, #FFFDFB);
-      border-radius: var(--radius-2xl, 24px);
-      box-shadow: 
-        0 25px 50px -12px rgba(0, 0, 0, 0.25),
-        0 0 0 1px rgba(255, 255, 255, 0.1);
-      max-width: 460px;
+      background: var(--color-bg-elevated, #FFFDFB);
+      border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
+      border-radius: var(--radius-xl, 20px);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.06);
+      max-width: clamp(322px, 90vw, 460px);
       width: 100%;
       max-height: calc(100vh - var(--space-8, 32px));
       overflow-y: auto;
@@ -714,7 +715,7 @@ function injectStyles(): void {
       justify-content: center;
       color: var(--color-text-muted, #756A5E);
       transition: all ${DURATION.FAST}ms ${EASING.STANDARD};
-      z-index: 10;
+      z-index: var(--z-docked);
     }
     
     .persona-intro-close:hover {
@@ -730,7 +731,7 @@ function injectStyles(): void {
     /* Avatar */
     .persona-intro-avatar {
       position: relative;
-      width: 100px;
+      width: min(100px, 100%);
       height: 100px;
       margin: 0 auto var(--space-4, 16px);
       border-radius: var(--radius-full, 9999px);
@@ -747,7 +748,7 @@ function injectStyles(): void {
       color: white;
       letter-spacing: -0.02em;
       position: relative;
-      z-index: 1;
+      z-index: var(--z-docked);
     }
     
     .avatar-glow {
@@ -961,7 +962,7 @@ function injectStyles(): void {
     /* ========================================================================
        MOBILE
        ======================================================================== */
-    @media (max-width: 480px) {
+    @media (max-width: clamp(336px, 90vw, 480px)) {
       .persona-intro-card {
         padding: var(--space-6, 24px);
       }

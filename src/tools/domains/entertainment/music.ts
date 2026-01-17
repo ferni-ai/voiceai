@@ -12,11 +12,25 @@
 import { llm } from '@livekit/agents';
 import { z } from 'zod';
 import { getDJDropPhrase } from '../../../audio/ambient-music.js';
-import { getMusicPlayer, type MusicTrack } from '../../../audio/index.js';
+import {
+  getMusicPlayer,
+  isMusicAvailable,
+  getDJController,
+  type MusicTrack,
+} from '../../../audio/index.js';
 import { isMusicEnabled } from '../../../config/environment.js';
 import { getMusicDiscoveryOffer, getQueueTeaser } from '../../../services/dj-service.js';
 import { findTrack, searchByMood, searchItunes } from '../../../services/itunes.js';
-import { getSpotifyAccessToken, isSpotifyConfigured } from '../../../services/spotify-auth.js';
+import {
+  getSpotifyAccessToken,
+  isSpotifyConfigured,
+} from '../../../services/identity/spotify-auth.js';
+import {
+  detectMusicIntent as detectUnifiedIntent,
+  extractRoomFromQuery,
+  mentionsSonos,
+  mentionsSpotify,
+} from '../../../services/music/music-provider.js';
 import {
   getAirDJMoment,
   getDancingComment,
@@ -36,27 +50,106 @@ import { getToolDescription, getParameterDescription } from '../../utils/tool-de
 // MUSIC SOURCE CONFIGURATION
 // ============================================================================
 
-type MusicSource = 'itunes' | 'spotify';
-
 interface MusicConfig {
-  /** Preferred source (itunes = free previews, spotify = full playback if linked) */
-  preferredSource: MusicSource;
-  /** Is Spotify linked and working? */
+  /** Is Spotify linked and working? (auto-detected at session start) */
   spotifyLinked: boolean;
-  /** User explicitly requested Spotify? */
-  userRequestedSpotify: boolean;
 }
 
 // Session-level config
 // 🐛 FIX BUG-012: Add default config factory to prevent cross-session pollution
 const DEFAULT_MUSIC_CONFIG: MusicConfig = {
-  preferredSource: 'itunes', // Default to free previews
   spotifyLinked: false,
-  userRequestedSpotify: false,
 };
 
 // Mutable config - reset at start of each session via initializeMusicConfig()
 let musicConfig: MusicConfig = { ...DEFAULT_MUSIC_CONFIG };
+
+// ============================================================================
+// MUSIC INTENT DETECTION
+// ============================================================================
+
+/**
+ * Music intent types:
+ * - AMBIENT: Background music while chatting (30-sec previews are perfect)
+ * - LISTENING: User wants to actually hear a specific song (Spotify preferred)
+ */
+export type MusicIntent = 'ambient' | 'listening';
+
+/**
+ * Detect whether the user wants ambient background music or to actually listen.
+ *
+ * AMBIENT signals (iTunes DJ mode - chains previews):
+ * - "Play some..." (vague/mood-based)
+ * - "Put on something..."
+ * - "While we talk/chat..."
+ * - Mood words: relaxing, upbeat, focus, chill, background
+ *
+ * LISTENING signals (Spotify full track):
+ * - "Play THE song..." (specific)
+ * - "I want to hear [artist/song]"
+ * - "On Spotify..."
+ * - Specific artist + song name together
+ */
+export function detectMusicIntent(query: string): MusicIntent {
+  const q = query.toLowerCase().trim();
+
+  // LISTENING intent signals - user wants a specific full song
+  const listeningPatterns = [
+    /\bthe song\b/, // "play the song..."
+    /\bi want to hear\b/, // "I want to hear..."
+    /\bi want to listen\b/, // "I want to listen to..."
+    /\bon spotify\b/, // "...on Spotify"
+    /\bfull (song|track|version)\b/, // "full song"
+    /\bactually (play|listen|hear)\b/, // "actually play..."
+    /\bqueue\b/, // "queue up..."
+    /\bby .+ called\b/, // "by Taylor Swift called..."
+    /^play .+ by .+ $/, // "play [song] by [artist]" (specific)
+  ];
+
+  // AMBIENT intent signals - background music for conversation
+  const ambientPatterns = [
+    /\bsome\b/, // "play some jazz"
+    /\bsomething\b/, // "put on something"
+    /\bwhile we\b/, // "while we talk"
+    /\bbackground\b/, // "background music"
+    /\bambient\b/, // "ambient"
+    /\bmood\b/, // "set the mood"
+    /\bvibes?\b/, // "good vibes"
+    /\brelaxing\b/, // mood-based
+    /\bchill\b/,
+    /\bupbeat\b/,
+    /\bfocus\b/,
+    /\bcalm\b/,
+    /\benergetic\b/,
+    /\bmellow\b/,
+  ];
+
+  // Check for explicit listening intent first
+  for (const pattern of listeningPatterns) {
+    if (pattern.test(q)) {
+      getLogger().debug({ query, pattern: pattern.source }, '🎵 Detected LISTENING intent');
+      return 'listening';
+    }
+  }
+
+  // Check for ambient intent
+  for (const pattern of ambientPatterns) {
+    if (pattern.test(q)) {
+      getLogger().debug({ query, pattern: pattern.source }, '🎵 Detected AMBIENT intent');
+      return 'ambient';
+    }
+  }
+
+  // Default: short/vague queries → ambient, longer specific queries → listening
+  const words = q.split(/\s+/).filter((w) => w.length > 2);
+  if (words.length <= 3) {
+    getLogger().debug({ query, wordCount: words.length }, '🎵 Short query → AMBIENT intent');
+    return 'ambient';
+  }
+
+  getLogger().debug({ query, wordCount: words.length }, '🎵 Specific query → LISTENING intent');
+  return 'listening';
+}
 
 /**
  * Check if Spotify is available for this session.
@@ -74,7 +167,7 @@ async function checkSpotifyAvailability(): Promise<boolean> {
 /**
  * Initialize music config for the session.
  * Called when the voice agent starts.
- * 🐛 FIX BUG-012: Resets config to defaults before initializing to prevent cross-session pollution
+ * Auto-detects if Spotify is available.
  */
 export async function initializeMusicConfig(): Promise<void> {
   // Reset to defaults first to prevent cross-session pollution
@@ -85,9 +178,9 @@ export async function initializeMusicConfig(): Promise<void> {
   getLogger().info(
     {
       spotifyLinked: musicConfig.spotifyLinked,
-      preferredSource: musicConfig.preferredSource,
+      musicSource: musicConfig.spotifyLinked ? 'spotify' : 'itunes',
     },
-    '🎵 Music config initialized'
+    '🎵 Music auto-configured'
   );
 }
 
@@ -100,47 +193,212 @@ export function resetMusicConfig(): void {
   getLogger().debug('🎵 Music config reset to defaults');
 }
 
-/**
- * Set user's preferred music source.
- */
-export function setMusicSource(source: MusicSource): void {
-  musicConfig.preferredSource = source;
-  musicConfig.userRequestedSpotify = source === 'spotify';
-  getLogger().info({ source }, '🎵 Music source preference set');
-}
-
 // ============================================================================
-// UNIFIED PLAYBACK
+// UNIFIED PLAYBACK (Intent-Based Routing)
 // ============================================================================
 
 /**
- * Play music using the best available source.
+ * Play music using INTENT-BASED routing for the best experience.
  *
- * Priority:
- * 1. If user explicitly requested Spotify AND it's linked → Spotify
- * 2. Otherwise → iTunes previews (works for everyone!)
+ * 🎵 AMBIENT (background music while chatting):
+ *    - Uses iTunes DJ mode - chains 30-second previews with crossfades
+ *    - ALWAYS works, no device issues
+ *    - Perfect for conversation - natural segments
+ *    - Example: "Play some jazz", "Put on something relaxing"
  *
- * This ensures delightful music for all users, regardless of subscriptions.
+ * 🎧 LISTENING (user wants to actually hear a song):
+ *    - Uses Spotify if linked + device available
+ *    - Falls back to iTunes preview with helpful message
+ *    - Example: "Play 'All Too Well' by Taylor Swift", "I want to hear..."
+ *
+ * 🔊 SONOS: For Sonos playback, use the playSonosMusic tool directly.
+ *    - The LLM should route "play on Sonos" requests to playSonosMusic tool
  */
 export async function playMusicUnified(query: string): Promise<string> {
   const log = getLogger();
-  log.debug('playMusicUnified called', {
-    query,
-    userRequestedSpotify: musicConfig.userRequestedSpotify,
-    spotifyLinked: musicConfig.spotifyLinked,
-    preferredSource: musicConfig.preferredSource,
-  });
-  log.info({ query, config: musicConfig }, '🎵 Playing music');
+  const intent = detectMusicIntent(query);
 
-  // Check if user wants Spotify AND it's available
-  if (musicConfig.userRequestedSpotify && musicConfig.spotifyLinked) {
-    log.debug('Taking SPOTIFY path');
-    return playViaSpotify(query);
+  // Check for Sonos/room mentions - guide user to the right approach
+  const explicitSonos = mentionsSonos(query);
+  const roomName = extractRoomFromQuery(query);
+
+  log.info(
+    {
+      query,
+      intent,
+      explicitSonos,
+      roomName,
+      spotifyLinked: musicConfig.spotifyLinked,
+    },
+    '🎵 Playing music (intent-based routing)'
+  );
+
+  // 🔊 If user mentions Sonos but this tool was called, guide them
+  // Note: The LLM should route Sonos requests to playSonosMusic tool instead
+  if (explicitSonos || roomName) {
+    log.info({ query, roomName, explicitSonos }, '🎵 Sonos mentioned - LLM should use playSonosMusic');
+    // Return helpful message - this shouldn't happen if tools are configured correctly
+    // but provides fallback UX if it does
+    return `To play on Sonos, I'll use the playSonosMusic tool. Let me try that for "${query}"${roomName ? ` in ${roomName}` : ''}...`;
   }
 
-  // Default: Play via iTunes (free for everyone!)
-  log.debug('Taking iTunes path (default)');
-  return playViaItunes(query);
+  // 🚨 CRITICAL: Check if music is available FIRST
+  // This provides a clear error to the LLM so it knows music won't work this session
+  const musicAvailability = isMusicAvailable();
+  if (!musicAvailability.available) {
+    log.warn(
+      { query, reason: musicAvailability.reason },
+      '🎵 Music playback NOT available for this session'
+    );
+    // Return a clear message that tells the LLM music isn't working (not just one track)
+    return `I'd love to play "${query}" for you, but music isn't available in this session. The audio system didn't initialize properly - you might need to reconnect. In the meantime, let's keep chatting!`;
+  }
+
+  // AMBIENT INTENT: Always use iTunes DJ mode (chains previews, always works)
+  if (intent === 'ambient') {
+    log.info({ query }, '🎵 AMBIENT mode: Using iTunes DJ (chains previews)');
+    return playAmbientMusic(query);
+  }
+
+  // LISTENING INTENT: Try Spotify first, graceful fallback
+  if (musicConfig.spotifyLinked) {
+    log.info({ query }, '🎵 LISTENING mode: Trying Spotify...');
+    const result = await playViaSpotify(query);
+
+    // Check if Spotify failed due to device issue
+    if (result.includes("can't play it yet") || result.includes('no active device')) {
+      log.info({ query }, '🎵 Spotify device unavailable, falling back to iTunes preview');
+      return playViaItunesWithListeningFallback(query);
+    }
+
+    return result;
+  }
+
+  // No Spotify: Use iTunes with "listening" framing
+  log.info({ query }, '🎵 LISTENING mode: No Spotify, using iTunes preview');
+  return playViaItunesWithListeningFallback(query);
+}
+
+/**
+ * Play ambient background music - chains iTunes previews like a DJ.
+ * Perfect for conversation - 30-second segments with smooth crossfades.
+ *
+ * 🎧 DJ AMBIENT MODE:
+ * - Searches for multiple tracks matching the mood/genre
+ * - Queues them up for continuous playback
+ * - Music player handles crossfades between tracks
+ * - Each preview is ~30 seconds - perfect for conversation!
+ */
+async function playAmbientMusic(query: string): Promise<string> {
+  const log = getLogger();
+  log.info({ query }, '🎧 DJ Ambient Mode: Starting...');
+
+  // Search for multiple tracks to queue
+  const searchResults = await searchItunes(query, 5);
+
+  if (searchResults.resultCount === 0 || !searchResults.results.length) {
+    log.warn({ query }, '🎧 No tracks found for ambient mode');
+    return `Couldn't find any ${query} tracks. Want to try something else?`;
+  }
+
+  // Filter to only tracks with preview URLs
+  const tracksWithPreviews = searchResults.results.filter((t) => t.previewUrl);
+
+  if (tracksWithPreviews.length === 0) {
+    log.warn({ query }, '🎧 Found tracks but none have previews');
+    return `Found some ${query} tracks but none have previews available. Try a different search?`;
+  }
+
+  // Get the music player
+  const musicPlayer = getMusicPlayer();
+
+  // 🚨 IMPROVED: Better check with clear error message
+  const musicAvailability = isMusicAvailable();
+  if (!musicAvailability.available) {
+    log.warn(
+      { query, reason: musicAvailability.reason },
+      '🎧 Music player not available for ambient mode'
+    );
+    return `I'd love to set the mood with some ${query} music, but the audio system isn't ready this session. Let's keep chatting!`;
+  }
+
+  // Play the first track immediately
+  const firstTrack = tracksWithPreviews[0];
+  const ITUNES_PREVIEW_DURATION_MS = 30000;
+
+  const musicTrack: MusicTrack = {
+    name: firstTrack.trackName,
+    artist: firstTrack.artistName,
+    previewUrl: firstTrack.previewUrl!,
+    duration: ITUNES_PREVIEW_DURATION_MS,
+    albumArt: firstTrack.artworkUrl100, // 🎨 Album artwork for Now Playing UI
+  };
+
+  const success = await musicPlayer.playFromUrl(firstTrack.previewUrl!, musicTrack);
+
+  if (!success) {
+    log.error({ track: firstTrack.trackName }, '🎧 Failed to start ambient playback');
+    // 🚨 IMPROVED: Better error message - system issue, not track issue
+    return `Something went wrong with the audio system while trying to play ${query} music. You might need to reconnect for music to work.`;
+  }
+
+  // 🎧 DJ MODE: Queue just ONE backup track for smooth transition
+  // After that, let the DJ decide whether to keep it going with personality!
+  // This makes the DJ feel more alive - not just an auto-queue robot.
+  if (tracksWithPreviews.length > 1) {
+    const backupTrack = tracksWithPreviews[1];
+    musicPlayer.addToQueue({
+      name: backupTrack.trackName,
+      artist: backupTrack.artistName,
+      previewUrl: backupTrack.previewUrl!,
+      duration: ITUNES_PREVIEW_DURATION_MS,
+    });
+  }
+
+  log.info(
+    {
+      firstTrack: firstTrack.trackName,
+      backupTrack: tracksWithPreviews[1]?.trackName || 'none',
+      totalTracksFound: tracksWithPreviews.length,
+    },
+    '🎧 DJ Mode: Playing with one backup, DJ will decide from there!'
+  );
+
+  // Return ambient-style response (short, doesn't interrupt conversation)
+  const ambientResponses = [
+    "Here's some vibes...",
+    'Setting the mood...',
+    'Got something for you...',
+    `Some ${query} coming up...`,
+    '', // Sometimes just play silently and let the music speak!
+  ];
+
+  return ambientResponses[Math.floor(Math.random() * ambientResponses.length)];
+}
+
+/**
+ * iTunes fallback when user wanted Spotify but it's unavailable.
+ * Provides helpful context about the preview.
+ */
+async function playViaItunesWithListeningFallback(query: string): Promise<string> {
+  const log = getLogger();
+  const result = await playViaItunes(query);
+
+  // If playback succeeded, add context about it being a preview
+  if (!result.includes("couldn't") && !result.includes('trouble')) {
+    // Extract track name from result if possible
+    const trackMatch = result.match(/"([^"]+)"/);
+    const trackName = trackMatch ? trackMatch[1] : 'that';
+
+    const fallbackResponses = [
+      `Here's a taste of ${trackName}... open Spotify to hear the full thing!`,
+      `Playing a preview... want the full song? Open Spotify and I'll queue it up.`,
+      `Here's 30 seconds of ${trackName}. The full track's on Spotify when you're ready!`,
+    ];
+    return fallbackResponses[Math.floor(Math.random() * fallbackResponses.length)];
+  }
+
+  return result;
 }
 
 /**
@@ -152,25 +410,28 @@ export async function playMusicUnified(query: string): Promise<string> {
 export async function playViaItunes(query: string, personaId?: string): Promise<string> {
   const log = getLogger();
   const startTime = Date.now();
-  
+
   // 🔍 DIAGNOSTIC: Log full state at tool entry
   const musicPlayer = getMusicPlayer();
   log.info(
-    { 
+    {
       timestamp: new Date().toISOString(),
-      query, 
+      query,
       personaId,
       musicPlayerInitialized: musicPlayer.isInitialized(),
       musicPlayerSessionId: musicPlayer.getSessionId(),
       musicEnabled: isMusicEnabled(),
-    }, 
+    },
     '🎵 [DIAG] playViaItunes START - checking player state'
   );
 
   // 🐛 FIX: Check if music is enabled FIRST before doing anything
   // This provides a clear error message instead of "audio system isn't ready"
   if (!isMusicEnabled()) {
-    log.warn({ query, elapsed: Date.now() - startTime }, '🎵 [DIAG] Music feature is disabled (MUSIC_ENABLED=false)');
+    log.warn(
+      { query, elapsed: Date.now() - startTime },
+      '🎵 [DIAG] Music feature is disabled (MUSIC_ENABLED=false)'
+    );
     return `I'd love to play "${query}" for you, but music playback is currently disabled. Let's keep chatting instead!`;
   }
 
@@ -236,7 +497,7 @@ export async function playViaItunes(query: string, personaId?: string): Promise<
     // 🔍 DIAGNOSTIC: Check if the player instance changed
     if (currentMusicPlayer !== musicPlayer) {
       log.warn(
-        { 
+        {
           timestamp: new Date().toISOString(),
           originalSessionId: musicPlayer.getSessionId(),
           currentSessionId: currentMusicPlayer.getSessionId(),
@@ -250,7 +511,7 @@ export async function playViaItunes(query: string, personaId?: string): Promise<
     // This properly awaits the initialization promise with a 5-second timeout
     if (!currentMusicPlayer.isInitialized()) {
       log.warn(
-        { 
+        {
           timestamp: new Date().toISOString(),
           query,
           sessionId: currentMusicPlayer.getSessionId(),
@@ -320,6 +581,8 @@ export async function playViaItunes(query: string, personaId?: string): Promise<
       artist: track.artist,
       previewUrl: track.previewUrl,
       duration: ITUNES_PREVIEW_DURATION_MS, // Use preview duration, NOT full track duration
+      genre: track.genre, // 🎵 Include genre for preference learning
+      albumArt: track.artwork, // 🎨 Album artwork for Now Playing UI
     };
 
     // Step 4: Play the track - use crossfade if something is already playing!
@@ -345,10 +608,10 @@ export async function playViaItunes(query: string, personaId?: string): Promise<
 
     if (!success) {
       log.error(
-        { 
+        {
           timestamp: new Date().toISOString(),
-          track: track.name, 
-          artist: track.artist, 
+          track: track.name,
+          artist: track.artist,
           previewUrl: track.previewUrl?.slice(0, 50),
           elapsed: Date.now() - startTime,
         },
@@ -460,7 +723,7 @@ async function playViaSpotify(query: string): Promise<string> {
 
   try {
     // Dynamically import Spotify to avoid circular deps
-    const { default: createSpotifyTools } = await import('../../spotify.js');
+    const { default: createSpotifyTools } = await import('./spotify.js');
     const tools = createSpotifyTools();
 
     // Use Spotify's playMusic tool
@@ -555,6 +818,7 @@ export async function suggestAndPlayMusic(mood: string): Promise<string> {
     artist: result.track.artist,
     previewUrl: result.track.previewUrl,
     duration: ITUNES_PREVIEW_DURATION_MS, // Use preview duration for proper fade-out
+    albumArt: result.track.artwork, // 🎨 Album artwork for Now Playing UI
   };
 
   const success = await musicPlayer.playFromUrl(result.track.previewUrl, musicTrack);
@@ -593,21 +857,54 @@ export function createMusicTools() {
       }),
       execute: async ({ query }) => {
         const log = getLogger();
-        log.debug('playMusic TOOL INVOKED BY LLM', { query });
-        log.info({ query }, '🎵 TOOL: playMusic CALLED');
+
+        // 🔍 DIAGNOSTIC: Log at INFO level at the VERY START to confirm LLM is calling this
+        log.info(
+          {
+            timestamp: new Date().toISOString(),
+            query,
+            toolName: 'playMusic',
+          },
+          '🎵 [DIAG] ========== playMusic TOOL INVOKED BY LLM =========='
+        );
+
+        // 🔍 DIAGNOSTIC: Check and log music availability BEFORE attempting playback
+        const musicAvailability = isMusicAvailable();
+        log.info(
+          {
+            query,
+            available: musicAvailability.available,
+            reason: musicAvailability.reason,
+            spotifyLinked: musicConfig.spotifyLinked,
+            musicEnabled: isMusicEnabled(),
+          },
+          '🎵 [DIAG] Music availability check at tool entry'
+        );
+
         try {
           const result = await playMusicUnified(query);
-          log.debug('playMusic SUCCESS', { resultPreview: result.slice(0, 150) });
-          log.info({ query, resultPreview: result.slice(0, 100) }, '🎵 TOOL: playMusic SUCCESS');
+          log.info(
+            {
+              query,
+              resultPreview: result.slice(0, 150),
+              success: !result.includes("isn't available") && !result.includes("couldn't"),
+            },
+            '🎵 [DIAG] playMusic completed - check if music actually played'
+          );
           return result;
         } catch (error) {
-          log.error({ query, error }, '🎵 TOOL: playMusic ERROR');
-          const musicErrors = [
-            `"${query}" isn't cooperating. Let me try a different way.`,
-            `Hmm, can't get "${query}" going. Want me to try something similar?`,
-            `Music player's being weird. Give me a sec and I'll try again.`,
-          ];
-          return musicErrors[Math.floor(Math.random() * musicErrors.length)];
+          log.error(
+            { query, error: String(error), stack: (error as Error).stack?.slice(0, 300) },
+            '🎵 [DIAG] playMusic EXCEPTION'
+          );
+          // 🚨 IMPROVED: Clear error that helps LLM understand the issue
+          // Check if music system is working at all
+          const postErrorAvailability = isMusicAvailable();
+          if (!postErrorAvailability.available) {
+            return `I tried to play "${query}" but the music system isn't working this session. The audio didn't initialize properly - reconnecting might help. For now, let's keep talking!`;
+          }
+          // Music system is working, just this track/request failed
+          return `I had trouble with "${query}". Maybe try a different song or artist?`;
         }
       },
     }),
@@ -790,11 +1087,10 @@ export function createMusicTools() {
       parameters: z.object({}),
       execute: async () => {
         if (!musicConfig.spotifyLinked) {
-          return "Spotify isn't linked yet. For now, I'll play 30-second previews that work for everyone!";
+          return "Spotify isn't linked yet. Link your account in settings to enjoy full songs!";
         }
-
-        setMusicSource('spotify');
-        return "Switched to Spotify! I'll play full songs from your library now.";
+        // Auto-detection handles source selection - Spotify is already active
+        return "Spotify is linked and ready! I'll play full songs from your library.";
       },
     }),
 
@@ -802,8 +1098,8 @@ export function createMusicTools() {
       description: getToolDescription('useFreePreviews'),
       parameters: z.object({}),
       execute: async () => {
-        setMusicSource('itunes');
-        return 'Using free previews now - works without any subscriptions!';
+        // iTunes previews are always available as fallback
+        return 'Free 30-second previews are always available - no subscription needed!';
       },
     }),
 
@@ -828,6 +1124,37 @@ export function createMusicTools() {
         const hasQueue = musicPlayer.getState().queue.length > 0;
         const teaser = getQueueTeaser(personaId || 'ferni', hasQueue);
         return teaser || 'Want me to keep the music going?';
+      },
+    }),
+
+    /**
+     * 🎵 Get user's learned music preferences
+     * Users can ask "What music do you remember I like?" or "What are my music preferences?"
+     */
+    myMusicPreferences: llm.tool({
+      description:
+        "Get the user's learned music preferences including favorite genres, artists, and dislikes. " +
+        'Use when user asks about their music taste, what you remember about their preferences, ' +
+        'or "what music do I like".',
+      parameters: z.object({}),
+      execute: async () => {
+        // Music preferences are now stored via music-user-learning.ts
+        // and music-memory-integration.ts using Thompson Sampling
+        // The DJ Controller tracks music state but preferences are per-user
+        const djController = getDJController();
+        const state = djController.getState();
+        
+        const parts: string[] = [];
+        
+        if (state.currentTrack) {
+          parts.push(`I know you're currently listening to ${state.currentTrack.name}.`);
+        }
+        
+        parts.push("I'm learning your music preferences as we listen together!");
+        
+        return parts.length > 0 
+          ? parts.join(' ')
+          : "I'm still learning your music preferences! Play some music and tell me what you like.";
       },
     }),
   };

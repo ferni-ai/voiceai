@@ -319,7 +319,7 @@ export async function handleAdminModelConfigRoutes(
     return true;
   } catch (error) {
     log.error({ error, pathname, method }, 'Error handling model config request');
-    sendError(res, `Server error: ${error instanceof Error ? error.message : String(error)}`, 500);
+    sendError(res, 'Internal server error', 500);
     return true;
   }
 }

@@ -1,8 +1,15 @@
 /**
  * Handoff Module
  *
- * Unified exports for handoff functionality.
- * The main handler is still in handoff-handler.ts for backward compatibility.
+ * Unified exports for the coordinator-based handoff system.
+ *
+ * @deprecated This module is deprecated. Import from '../../handoff/index.js' instead.
+ *
+ * The handoff system has been consolidated into a single unified module at:
+ * - src/handoff/index.ts (main entry point)
+ * - src/handoff/unified-state.ts (state management)
+ * - src/handoff/actions.ts (high-level actions)
+ * - src/handoff/types.ts (type definitions)
  *
  * @module agents/shared/handoff
  */
@@ -10,7 +17,7 @@
 // Types
 export * from './types.js';
 
-// Session state management
+// Re-export from unified handoff module for backward compatibility
 export {
   HANDOFF_TIMEOUT_MS,
   MAX_PENDING_HANDOFFS,
@@ -32,8 +39,9 @@ export {
   stopProgressHeartbeat,
   getHandoffPersonaInfo,
   type HandoffProgressInfo,
-  // Message sequencing
+  // Message sequencing - use sync version for backward compatibility
   getNextMessageSeq,
+  getNextMessageSeqSync,
 } from './session-state.js';
 
 // Cached module accessors
@@ -44,3 +52,21 @@ export {
   getBundleFunctionsCached,
   clearCachedModules,
 } from './cached-modules.js';
+
+// Coordinator-based handoff system
+export {
+  CoordinatorAdapter,
+  createCoordinatorAdapter,
+  getSessionAdapter,
+  removeSessionAdapter,
+  type CoordinatorAdapterConfig,
+  type AdapterHandoffResult,
+} from './coordinator-adapter.js';
+
+// NEW: Event handler for voiceSwitch events (drop-in replacement for createHandoffHandler)
+export {
+  createEventHandler,
+  createHandoffEventHandler,
+  type EventHandlerConfig,
+  type EventHandlerResult,
+} from './event-handler.js';

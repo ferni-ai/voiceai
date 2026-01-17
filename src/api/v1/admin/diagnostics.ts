@@ -18,6 +18,7 @@ import { createLogger } from '../../../utils/safe-logger.js';
 import { rateLimit, requireAuth } from '../../auth-middleware.js';
 import { handleCorsPreflightIfNeeded, sendError, sendJSON } from '../../helpers.js';
 import { recordActivity } from './dashboard.js';
+import { cleanForFirestore } from '../../../utils/firestore-utils.js';
 
 const log = createLogger({ module: 'AdminDiagnosticsAPI' });
 
@@ -253,7 +254,7 @@ async function checkLiveKitHealth(): Promise<ServiceHealth> {
     }
 
     // Get real latency from tracker
-    const { getServiceStats } = await import('../../../services/latency-tracker.js');
+    const { getServiceStats } = await import('../../../services/analytics/latency-tracker.js');
     const stats = getServiceStats('livekit');
 
     return {
@@ -281,7 +282,7 @@ async function checkGeminiHealth(): Promise<ServiceHealth> {
     }
 
     // Get real latency from tracker
-    const { getServiceStats } = await import('../../../services/latency-tracker.js');
+    const { getServiceStats } = await import('../../../services/analytics/latency-tracker.js');
     const stats = getServiceStats('gemini');
 
     return {
@@ -312,7 +313,7 @@ async function checkCartesiaHealth(): Promise<ServiceHealth> {
     }
 
     // Get real latency from tracker
-    const { getServiceStats } = await import('../../../services/latency-tracker.js');
+    const { getServiceStats } = await import('../../../services/analytics/latency-tracker.js');
     const stats = getServiceStats('cartesia');
 
     return {
@@ -346,7 +347,7 @@ async function checkFirestoreHealth(): Promise<ServiceHealth> {
     }
 
     // Get real latency from tracker
-    const { getServiceStats } = await import('../../../services/latency-tracker.js');
+    const { getServiceStats } = await import('../../../services/analytics/latency-tracker.js');
     const stats = getServiceStats('firestore');
 
     return {

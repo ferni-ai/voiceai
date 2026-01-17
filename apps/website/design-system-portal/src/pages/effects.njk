@@ -1,0 +1,1450 @@
+---
+layout: layouts/base.njk
+title: Effects
+description: Visual effects - gradients, textures, glass, and depth
+permalink: /effects/
+---
+
+<article class="effects-page">
+  <header class="page-header">
+    <h1>Effects</h1>
+    <p class="lead">Visual effects that create warmth, depth, and presence. Never decorative—always purposeful.</p>
+  </header>
+
+  <!-- Gradients Section -->
+  <section class="section" id="gradients">
+    <h2>Gradients</h2>
+    <p>Gradients add atmosphere and depth. Theme-aware for both dark (Cedar) and light (Zen) modes.</p>
+
+    <div class="gradient-grid">
+      <div class="gradient-card">
+        <div class="gradient-preview aurora"></div>
+        <div class="gradient-info">
+          <h4>Aurora</h4>
+          <p>Multi-color ambient glow</p>
+          <code>linear-gradient(135deg, rgba(74, 103, 65, 0.15), rgba(212, 168, 74, 0.15), rgba(92, 184, 132, 0.15))</code>
+        </div>
+      </div>
+
+      <div class="gradient-card">
+        <div class="gradient-preview warm-glow"></div>
+        <div class="gradient-info">
+          <h4>Warm Glow</h4>
+          <p>Centered radial warmth</p>
+          <code>radial-gradient(circle at 50% 50%, rgba(212, 168, 74, 0.15), transparent 70%)</code>
+        </div>
+      </div>
+
+      <div class="gradient-card">
+        <div class="gradient-preview sunbeam"></div>
+        <div class="gradient-info">
+          <h4>Sunbeam</h4>
+          <p>Top-down ambient light</p>
+          <code>linear-gradient(180deg, rgba(212, 168, 74, 0.08), transparent 50%)</code>
+        </div>
+      </div>
+
+      <div class="gradient-card">
+        <div class="gradient-preview persona-glow"></div>
+        <div class="gradient-info">
+          <h4>Persona Glow</h4>
+          <p>Dynamic per-persona radial</p>
+          <code>radial-gradient(circle at 50% 50%, var(--persona-glow), transparent 60%)</code>
+        </div>
+      </div>
+
+      <div class="gradient-card wide">
+        <div class="gradient-preview mesh"></div>
+        <div class="gradient-info">
+          <h4>Mesh Gradient</h4>
+          <p>Complex layered gradient for backgrounds</p>
+          <code>radial-gradient(at 40% 20%, ...), radial-gradient(at 80% 0%, ...), radial-gradient(at 0% 50%, ...)</code>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Textures Section -->
+  <section class="section" id="textures">
+    <h2>Textures</h2>
+    <p>Subtle textures add organic warmth. Very low opacity—felt, not seen.</p>
+
+    <div class="texture-grid">
+      <div class="texture-card">
+        <div class="texture-preview paper-grain"></div>
+        <div class="texture-info">
+          <h4>Paper Grain</h4>
+          <p>Subtle paper texture for warmth</p>
+          <span class="texture-opacity">Opacity: 0.03</span>
+        </div>
+      </div>
+
+      <div class="texture-card">
+        <div class="texture-preview linen"></div>
+        <div class="texture-info">
+          <h4>Linen</h4>
+          <p>Organic linen-like texture</p>
+          <span class="texture-opacity">Pattern: 4px × 4px</span>
+        </div>
+      </div>
+
+      <div class="texture-card">
+        <div class="texture-preview noise"></div>
+        <div class="texture-info">
+          <h4>Film Grain</h4>
+          <p>Noise overlay for depth</p>
+          <span class="texture-opacity">Opacity: 0.04</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Glass Effects Section -->
+  <section class="section" id="glass">
+    <h2>Glass Effects</h2>
+    <p>Glass surfaces create depth without heaviness. Combining blur, background, border, and shadow.</p>
+
+    <div class="glass-thickness-scale">
+      <h3>Thickness Scale</h3>
+      <div class="thickness-cards">
+        <div class="thickness-card">
+          <div class="glass-sample ultra-thin">
+            <span>Ultra Thin</span>
+          </div>
+          <div class="thickness-specs">
+            <span>Blur: 4px</span>
+            <span>Use: List items</span>
+          </div>
+        </div>
+        <div class="thickness-card">
+          <div class="glass-sample thin">
+            <span>Thin</span>
+          </div>
+          <div class="thickness-specs">
+            <span>Blur: 8px</span>
+            <span>Use: Cards</span>
+          </div>
+        </div>
+        <div class="thickness-card">
+          <div class="glass-sample regular">
+            <span>Regular</span>
+          </div>
+          <div class="thickness-specs">
+            <span>Blur: 12px</span>
+            <span>Use: Popovers</span>
+          </div>
+        </div>
+        <div class="thickness-card">
+          <div class="glass-sample thick">
+            <span>Thick</span>
+          </div>
+          <div class="thickness-specs">
+            <span>Blur: 24px</span>
+            <span>Use: Modals</span>
+          </div>
+        </div>
+        <div class="thickness-card">
+          <div class="glass-sample ultra-thick">
+            <span>Ultra Thick</span>
+          </div>
+          <div class="thickness-specs">
+            <span>Blur: 40px</span>
+            <span>Use: Sheets</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <h3>Glass Presets</h3>
+    <div class="glass-presets">
+      <div class="glass-preset">
+        <div class="preset-demo card-demo">
+          <div class="demo-content">
+            <div class="demo-title"></div>
+            <div class="demo-text"></div>
+          </div>
+        </div>
+        <div class="preset-info">
+          <h4>Card</h4>
+          <pre><code>.glass-card {
+  backdrop-filter: blur(8px);
+  background: var(--glass-thin-background);
+  border: 1px solid var(--glass-thin-border);
+  border-radius: var(--radius-lg);
+}</code></pre>
+        </div>
+      </div>
+
+      <div class="glass-preset">
+        <div class="preset-demo modal-demo">
+          <div class="demo-modal">
+            <div class="demo-title"></div>
+            <div class="demo-text"></div>
+            <div class="demo-button"></div>
+          </div>
+        </div>
+        <div class="preset-info">
+          <h4>Modal</h4>
+          <pre><code>.glass-modal {
+  backdrop-filter: blur(24px);
+  background: var(--glass-thick-background);
+  border: 1px solid var(--glass-thick-border);
+  border-radius: var(--radius-xl);
+}</code></pre>
+        </div>
+      </div>
+
+      <div class="glass-preset">
+        <div class="preset-demo tooltip-demo">
+          <div class="demo-tooltip">Tooltip</div>
+        </div>
+        <div class="preset-info">
+          <h4>Tooltip</h4>
+          <pre><code>.glass-tooltip {
+  backdrop-filter: blur(12px);
+  background: var(--glass-thin-background);
+  border: 1px solid var(--glass-thin-border);
+  border-radius: var(--radius-md);
+}</code></pre>
+        </div>
+      </div>
+
+      <div class="glass-preset">
+        <div class="preset-demo sheet-demo">
+          <div class="demo-sheet">
+            <div class="demo-handle"></div>
+            <div class="demo-text"></div>
+          </div>
+        </div>
+        <div class="preset-info">
+          <h4>Sheet</h4>
+          <pre><code>.glass-sheet {
+  backdrop-filter: blur(40px);
+  background: var(--glass-ultra-thick-background);
+  border: 1px solid var(--glass-ultra-thick-border);
+  border-radius: var(--radius-2xl) var(--radius-2xl) 0 0;
+}</code></pre>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Shadows Section -->
+  <section class="section" id="shadows">
+    <h2>Glass Shadows</h2>
+    <p>Shadows for glass surfaces—diffuse and subtle, suggesting floating surfaces.</p>
+
+    <div class="shadow-grid">
+      <div class="shadow-card">
+        <div class="shadow-sample ultra-thin-shadow"></div>
+        <h4>Ultra Thin</h4>
+        <p>Subtle list items</p>
+        <code>0 1px 2px rgba(0,0,0,0.04), 0 1px 3px rgba(0,0,0,0.02)</code>
+      </div>
+      <div class="shadow-card">
+        <div class="shadow-sample thin-shadow"></div>
+        <h4>Thin</h4>
+        <p>Cards</p>
+        <code>0 2px 4px rgba(0,0,0,0.06), 0 4px 8px rgba(0,0,0,0.04)</code>
+      </div>
+      <div class="shadow-card">
+        <div class="shadow-sample regular-shadow"></div>
+        <h4>Regular</h4>
+        <p>Default glass</p>
+        <code>0 4px 6px rgba(0,0,0,0.08), 0 8px 16px rgba(0,0,0,0.06)</code>
+      </div>
+      <div class="shadow-card">
+        <div class="shadow-sample thick-shadow"></div>
+        <h4>Thick</h4>
+        <p>Modals</p>
+        <code>0 8px 12px rgba(0,0,0,0.10), 0 16px 32px rgba(0,0,0,0.08)</code>
+      </div>
+      <div class="shadow-card">
+        <div class="shadow-sample ultra-thick-shadow"></div>
+        <h4>Ultra Thick</h4>
+        <p>System dialogs</p>
+        <code>0 16px 24px rgba(0,0,0,0.12), 0 32px 64px rgba(0,0,0,0.10)</code>
+      </div>
+    </div>
+  </section>
+
+  <!-- Chromatic Aberration Section -->
+  <section class="section" id="chromatic">
+    <h2>Chromatic Aberration</h2>
+    <p>Subtle RGB splitting creates depth and a cinematic 3D feel. Used sparingly on key UI elements.</p>
+
+    <div class="chromatic-intro">
+      <div class="chromatic-theory">
+        <h4>How It Works</h4>
+        <p>Chromatic aberration simulates the optical phenomenon where different wavelengths of light refract differently through a lens. By offsetting red and cyan color channels, we create a subtle 3D depth effect.</p>
+      </div>
+    </div>
+
+    <h3>Intensity Scale</h3>
+    <div class="chromatic-scale">
+      <div class="chromatic-sample subtle">
+        <div class="chromatic-box">
+          <span>Subtle</span>
+        </div>
+        <div class="chromatic-specs">
+          <code>--effect-chromatic-offset-subtle: 1px</code>
+          <span>Use: Ambient depth, backgrounds</span>
+        </div>
+      </div>
+      <div class="chromatic-sample normal">
+        <div class="chromatic-box">
+          <span>Normal</span>
+        </div>
+        <div class="chromatic-specs">
+          <code>--effect-chromatic-offset-normal: 2px</code>
+          <span>Use: Cards, buttons on hover</span>
+        </div>
+      </div>
+      <div class="chromatic-sample strong">
+        <div class="chromatic-box">
+          <span>Strong</span>
+        </div>
+        <div class="chromatic-specs">
+          <code>--effect-chromatic-offset-strong: 4px</code>
+          <span>Use: Hero elements, focus states</span>
+        </div>
+      </div>
+    </div>
+
+    <h3>Live Demo</h3>
+    <div class="chromatic-demo-grid">
+      <div class="chromatic-demo-card">
+        <div class="chromatic-avatar-demo">
+          <div class="avatar-with-chromatic"></div>
+        </div>
+        <h4>Avatar Depth</h4>
+        <p>Adds presence to the AI avatar</p>
+      </div>
+
+      <div class="chromatic-demo-card">
+        <div class="chromatic-text-demo">
+          <span class="chromatic-heading">Ferni</span>
+        </div>
+        <h4>Text Treatment</h4>
+        <p>Hero headings with depth</p>
+      </div>
+
+      <div class="chromatic-demo-card">
+        <div class="chromatic-button-demo">
+          <button class="chromatic-btn">Start Talking</button>
+        </div>
+        <h4>Button Hover</h4>
+        <p>Hover to see effect</p>
+      </div>
+    </div>
+
+    <h3>CSS Implementation</h3>
+    <pre><code>/* Token Variables */
+--effect-chromatic-red: #ff0000;
+--effect-chromatic-red-tint: rgba(255, 0, 0, 0.2);
+--effect-chromatic-cyan: #00ffff;
+--effect-chromatic-cyan-tint: rgba(0, 255, 255, 0.2);
+--effect-chromatic-offset-subtle: 1px;
+--effect-chromatic-offset-normal: 2px;
+--effect-chromatic-offset-strong: 4px;
+
+/* Usage with box-shadow (most common) */
+.chromatic-element {
+  box-shadow:
+    calc(var(--effect-chromatic-offset-normal) * -1) 0 0 var(--effect-chromatic-red-tint),
+    var(--effect-chromatic-offset-normal) 0 0 var(--effect-chromatic-cyan-tint);
+}
+
+/* Usage with text-shadow */
+.chromatic-text {
+  text-shadow:
+    calc(var(--effect-chromatic-offset-subtle) * -1) 0 0 var(--effect-chromatic-red-tint),
+    var(--effect-chromatic-offset-subtle) 0 0 var(--effect-chromatic-cyan-tint);
+}</code></pre>
+
+    <h3>Guidelines</h3>
+    <div class="chromatic-guidelines">
+      <div class="guideline-card do">
+        <h4>✓ Do</h4>
+        <ul>
+          <li>Use on hero elements and focal points</li>
+          <li>Apply on hover states for interactivity</li>
+          <li>Combine with subtle (1px) for ambient depth</li>
+          <li>Use tinted (20% opacity) colors</li>
+        </ul>
+      </div>
+      <div class="guideline-card dont">
+        <h4>✗ Don't</h4>
+        <ul>
+          <li>Apply to body text—readability suffers</li>
+          <li>Overuse—should feel special, not everywhere</li>
+          <li>Use strong (4px) on small elements</li>
+          <li>Combine with other heavy effects</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- Blur Scale -->
+  <section class="section" id="blur">
+    <h2>Blur Scale</h2>
+    <div class="blur-scale">
+      <div class="blur-sample" style="--blur: 0px;">
+        <span>none</span>
+        <code>0</code>
+      </div>
+      <div class="blur-sample" style="--blur: 2px;">
+        <span>xs</span>
+        <code>2px</code>
+      </div>
+      <div class="blur-sample" style="--blur: 4px;">
+        <span>sm</span>
+        <code>4px</code>
+      </div>
+      <div class="blur-sample" style="--blur: 8px;">
+        <span>md</span>
+        <code>8px</code>
+      </div>
+      <div class="blur-sample" style="--blur: 16px;">
+        <span>lg</span>
+        <code>16px</code>
+      </div>
+      <div class="blur-sample" style="--blur: 24px;">
+        <span>xl</span>
+        <code>24px</code>
+      </div>
+      <div class="blur-sample" style="--blur: 40px;">
+        <span>2xl</span>
+        <code>40px</code>
+      </div>
+    </div>
+  </section>
+
+  <!-- Entrance Animations -->
+  <section class="section" id="entrance">
+    <h2>Entrance Animations</h2>
+    <p>Page load animations that make elements "arrive" with personality.</p>
+
+    <div class="entrance-grid">
+      <div class="entrance-card">
+        <div class="entrance-demo avatar-entrance" onclick="this.classList.remove('animate'); void this.offsetWidth; this.classList.add('animate');">
+          <div class="demo-avatar"></div>
+          <span class="click-hint">Click to replay</span>
+        </div>
+        <div class="entrance-info">
+          <h4>Avatar</h4>
+          <ul>
+            <li>From: scale(0.8), translateY(20px), opacity 0</li>
+            <li>Duration: 600ms</li>
+            <li>Easing: cubic-bezier(0.34, 1.56, 0.64, 1)</li>
+            <li>Delay: 200ms</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="entrance-card">
+        <div class="entrance-demo controls-entrance" onclick="this.classList.remove('animate'); void this.offsetWidth; this.classList.add('animate');">
+          <div class="demo-controls">
+            <div class="control-btn"></div>
+            <div class="control-btn"></div>
+            <div class="control-btn"></div>
+          </div>
+          <span class="click-hint">Click to replay</span>
+        </div>
+        <div class="entrance-info">
+          <h4>Controls</h4>
+          <ul>
+            <li>From: translateY(10px), opacity 0</li>
+            <li>Duration: 400ms</li>
+            <li>Easing: cubic-bezier(0.16, 1, 0.3, 1)</li>
+            <li>Delay: 400ms</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="entrance-card">
+        <div class="entrance-demo team-entrance" onclick="this.classList.remove('animate'); void this.offsetWidth; this.classList.add('animate');">
+          <div class="demo-team">
+            <div class="team-avatar"></div>
+            <div class="team-avatar"></div>
+            <div class="team-avatar"></div>
+            <div class="team-avatar"></div>
+          </div>
+          <span class="click-hint">Click to replay</span>
+        </div>
+        <div class="entrance-info">
+          <h4>Team (Staggered)</h4>
+          <ul>
+            <li>Stagger: 80ms between items</li>
+            <li>From: scale(0.9), opacity 0</li>
+            <li>Duration: 300ms</li>
+            <li>Start delay: 500ms</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Loading States -->
+  <section class="section" id="loading">
+    <h2>Loading States</h2>
+
+    <h3>Shimmer Effect</h3>
+    <p>Loading skeleton shimmer makes loading feel alive.</p>
+
+    <div class="shimmer-demo">
+      <div class="shimmer-card">
+        <div class="shimmer-avatar"></div>
+        <div class="shimmer-content">
+          <div class="shimmer-line"></div>
+          <div class="shimmer-line short"></div>
+        </div>
+      </div>
+    </div>
+
+    <pre><code>.shimmer {
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.08) 50%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+}
+
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}</code></pre>
+  </section>
+
+  <!-- Accessibility -->
+  <section class="section" id="accessibility">
+    <h2>Accessibility</h2>
+    <p>Visual effects must respect user preferences.</p>
+
+    <div class="a11y-grid">
+      <div class="a11y-card">
+        <h4>Reduced Motion</h4>
+        <p>For users with vestibular disorders</p>
+        <pre><code>@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}</code></pre>
+      </div>
+
+      <div class="a11y-card">
+        <h4>Focus Ring</h4>
+        <p>High-visibility for keyboard navigation</p>
+        <pre><code>:focus-visible {
+  outline: 3px solid var(--color-focus-ring);
+  outline-offset: 2px;
+}</code></pre>
+      </div>
+
+      <div class="a11y-card">
+        <h4>High Contrast</h4>
+        <p>Enhanced contrast for visual impairments</p>
+        <pre><code>@media (prefers-contrast: high) {
+  .glass {
+    border-width: 2px;
+  }
+}</code></pre>
+      </div>
+    </div>
+  </section>
+</article>
+
+<style>
+/* Effects Page Styles */
+.effects-page {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+/* Gradient Grid */
+.gradient-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: var(--space-4);
+  margin-top: var(--space-6);
+}
+
+.gradient-card {
+  background: var(--bg-elevated);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  border: 1px solid var(--border-subtle);
+}
+
+.gradient-card.wide {
+  grid-column: 1 / -1;
+}
+
+.gradient-preview {
+  height: 120px;
+}
+
+.gradient-preview.aurora {
+  background: linear-gradient(135deg, rgba(74, 103, 65, 0.4) 0%, rgba(212, 168, 74, 0.4) 50%, rgba(92, 184, 132, 0.4) 100%);
+}
+
+.gradient-preview.warm-glow {
+  background: radial-gradient(circle at 50% 50%, rgba(212, 168, 74, 0.5) 0%, transparent 70%), var(--bg-subtle);
+}
+
+.gradient-preview.sunbeam {
+  background: linear-gradient(180deg, rgba(212, 168, 74, 0.3) 0%, transparent 70%), var(--bg-subtle);
+}
+
+.gradient-preview.persona-glow {
+  background: radial-gradient(circle at 50% 50%, var(--color-ferni) 0%, transparent 60%);
+  opacity: 0.5;
+}
+
+.gradient-preview.mesh {
+  background:
+    radial-gradient(at 40% 20%, rgba(74, 103, 65, 0.3) 0px, transparent 50%),
+    radial-gradient(at 80% 0%, rgba(212, 168, 74, 0.3) 0px, transparent 50%),
+    radial-gradient(at 0% 50%, rgba(92, 184, 132, 0.2) 0px, transparent 50%),
+    var(--bg-subtle);
+}
+
+.gradient-info {
+  padding: var(--space-4);
+}
+
+.gradient-info h4 {
+  margin-bottom: var(--space-2);
+}
+
+.gradient-info p {
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  margin-bottom: var(--space-3);
+}
+
+.gradient-info code {
+  font-size: var(--text-xs);
+  word-break: break-all;
+}
+
+/* Texture Grid */
+.texture-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: var(--space-4);
+  margin-top: var(--space-6);
+}
+
+.texture-card {
+  background: var(--bg-elevated);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  border: 1px solid var(--border-subtle);
+}
+
+.texture-preview {
+  height: 120px;
+  position: relative;
+}
+
+.texture-preview.paper-grain {
+  background: var(--bg-subtle);
+}
+
+.texture-preview.paper-grain::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+  opacity: 0.15;
+}
+
+.texture-preview.linen {
+  background:
+    repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(128,128,128,0.1) 2px, rgba(128,128,128,0.1) 4px),
+    repeating-linear-gradient(90deg, transparent, transparent 2px, rgba(128,128,128,0.1) 2px, rgba(128,128,128,0.1) 4px),
+    var(--bg-subtle);
+}
+
+.texture-preview.noise {
+  background: var(--bg-subtle);
+}
+
+.texture-preview.noise::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+  opacity: 0.2;
+}
+
+.texture-info {
+  padding: var(--space-4);
+}
+
+.texture-info h4 {
+  margin-bottom: var(--space-2);
+}
+
+.texture-info p {
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  margin-bottom: var(--space-2);
+}
+
+.texture-opacity {
+  font-size: var(--text-xs);
+  color: var(--text-tertiary);
+  font-family: var(--font-mono);
+}
+
+/* Glass Thickness Scale */
+.thickness-cards {
+  display: flex;
+  gap: var(--space-4);
+  margin-top: var(--space-6);
+  overflow-x: auto;
+  padding-bottom: var(--space-2);
+}
+
+.thickness-card {
+  flex: 0 0 160px;
+}
+
+.glass-sample {
+  height: 100px;
+  border-radius: var(--radius-lg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  margin-bottom: var(--space-3);
+}
+
+.glass-sample.ultra-thin {
+  backdrop-filter: blur(4px);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+.glass-sample.thin {
+  backdrop-filter: blur(8px);
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.06);
+}
+
+.glass-sample.regular {
+  backdrop-filter: blur(12px);
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.08);
+}
+
+.glass-sample.thick {
+  backdrop-filter: blur(24px);
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 0 8px 12px rgba(0, 0, 0, 0.1);
+}
+
+.glass-sample.ultra-thick {
+  backdrop-filter: blur(40px);
+  background: rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  box-shadow: 0 16px 24px rgba(0, 0, 0, 0.12);
+}
+
+.thickness-specs {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+}
+
+/* Glass Presets */
+.glass-presets {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: var(--space-6);
+  margin-top: var(--space-6);
+}
+
+.glass-preset {
+  background: var(--bg-elevated);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  border: 1px solid var(--border-subtle);
+}
+
+.preset-demo {
+  height: 160px;
+  background: linear-gradient(135deg, var(--color-ferni) 0%, var(--color-peter) 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-4);
+}
+
+.demo-content,
+.demo-modal,
+.demo-tooltip,
+.demo-sheet {
+  backdrop-filter: blur(12px);
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
+}
+
+.demo-modal {
+  width: 80%;
+  backdrop-filter: blur(24px);
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.demo-tooltip {
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--text-sm);
+  color: white;
+}
+
+.demo-sheet {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 60%;
+  border-radius: var(--radius-2xl) var(--radius-2xl) 0 0;
+  backdrop-filter: blur(40px);
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.preset-demo.sheet-demo {
+  position: relative;
+  align-items: flex-end;
+  padding: 0;
+}
+
+.demo-handle {
+  width: 40px;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: var(--radius-full);
+  margin: var(--space-3) auto var(--space-4);
+}
+
+.demo-title {
+  height: 12px;
+  width: 60%;
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: var(--radius-sm);
+  margin-bottom: var(--space-2);
+}
+
+.demo-text {
+  height: 8px;
+  width: 80%;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: var(--radius-sm);
+}
+
+.demo-button {
+  height: 24px;
+  width: 50%;
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: var(--radius-md);
+  margin-top: var(--space-3);
+}
+
+.preset-info {
+  padding: var(--space-4);
+}
+
+.preset-info h4 {
+  margin-bottom: var(--space-3);
+}
+
+.preset-info pre {
+  margin: 0;
+  font-size: var(--text-xs);
+}
+
+/* Shadow Grid */
+.shadow-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: var(--space-4);
+  margin-top: var(--space-6);
+}
+
+.shadow-card {
+  text-align: center;
+}
+
+.shadow-sample {
+  height: 80px;
+  background: var(--bg-elevated);
+  border-radius: var(--radius-lg);
+  margin-bottom: var(--space-4);
+}
+
+.shadow-sample.ultra-thin-shadow {
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04), 0 1px 3px rgba(0, 0, 0, 0.02);
+}
+
+.shadow-sample.thin-shadow {
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.06), 0 4px 8px rgba(0, 0, 0, 0.04);
+}
+
+.shadow-sample.regular-shadow {
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.08), 0 8px 16px rgba(0, 0, 0, 0.06);
+}
+
+.shadow-sample.thick-shadow {
+  box-shadow: 0 8px 12px rgba(0, 0, 0, 0.1), 0 16px 32px rgba(0, 0, 0, 0.08);
+}
+
+.shadow-sample.ultra-thick-shadow {
+  box-shadow: 0 16px 24px rgba(0, 0, 0, 0.12), 0 32px 64px rgba(0, 0, 0, 0.1);
+}
+
+.shadow-card h4 {
+  margin-bottom: var(--space-1);
+}
+
+.shadow-card p {
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  margin-bottom: var(--space-2);
+}
+
+.shadow-card code {
+  font-size: 10px;
+  word-break: break-all;
+}
+
+/* Blur Scale */
+.blur-scale {
+  display: flex;
+  gap: var(--space-4);
+  margin-top: var(--space-6);
+  overflow-x: auto;
+  padding-bottom: var(--space-2);
+}
+
+.blur-sample {
+  flex: 0 0 100px;
+  text-align: center;
+}
+
+.blur-sample::before {
+  content: '';
+  display: block;
+  height: 80px;
+  background: linear-gradient(135deg, var(--color-ferni), var(--color-peter));
+  border-radius: var(--radius-lg);
+  margin-bottom: var(--space-3);
+  filter: blur(var(--blur));
+}
+
+.blur-sample span {
+  display: block;
+  font-weight: 600;
+  margin-bottom: var(--space-1);
+}
+
+.blur-sample code {
+  font-size: var(--text-xs);
+}
+
+/* Entrance Animations */
+.entrance-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: var(--space-4);
+  margin-top: var(--space-6);
+}
+
+.entrance-card {
+  background: var(--bg-elevated);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  border: 1px solid var(--border-subtle);
+}
+
+.entrance-demo {
+  height: 160px;
+  background: var(--bg-subtle);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+  cursor: pointer;
+  position: relative;
+}
+
+.click-hint {
+  font-size: var(--text-xs);
+  color: var(--text-tertiary);
+}
+
+.demo-avatar {
+  width: 60px;
+  height: 60px;
+  background: var(--color-ferni);
+  border-radius: var(--radius-full);
+}
+
+.avatar-entrance.animate .demo-avatar {
+  animation: avatarEntrance 600ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+@keyframes avatarEntrance {
+  from {
+    opacity: 0;
+    transform: scale(0.8) translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.demo-controls {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.control-btn {
+  width: 40px;
+  height: 40px;
+  background: var(--bg-elevated);
+  border-radius: var(--radius-md);
+}
+
+.controls-entrance.animate .control-btn {
+  animation: controlsEntrance 400ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes controlsEntrance {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.demo-team {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.team-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-full);
+}
+
+.team-avatar:nth-child(1) { background: var(--color-ferni); }
+.team-avatar:nth-child(2) { background: var(--color-maya); }
+.team-avatar:nth-child(3) { background: var(--color-peter); }
+.team-avatar:nth-child(4) { background: var(--color-alex); }
+
+.team-entrance.animate .team-avatar {
+  animation: teamEntrance 300ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+.team-entrance.animate .team-avatar:nth-child(1) { animation-delay: 500ms; }
+.team-entrance.animate .team-avatar:nth-child(2) { animation-delay: 580ms; }
+.team-entrance.animate .team-avatar:nth-child(3) { animation-delay: 660ms; }
+.team-entrance.animate .team-avatar:nth-child(4) { animation-delay: 740ms; }
+
+@keyframes teamEntrance {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.entrance-info {
+  padding: var(--space-4);
+}
+
+.entrance-info h4 {
+  margin-bottom: var(--space-3);
+}
+
+.entrance-info ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  font-size: var(--text-sm);
+}
+
+.entrance-info li {
+  padding: var(--space-1) 0;
+  color: var(--text-secondary);
+}
+
+/* Shimmer Demo */
+.shimmer-demo {
+  margin: var(--space-6) 0;
+}
+
+.shimmer-card {
+  display: flex;
+  gap: var(--space-4);
+  padding: var(--space-4);
+  background: var(--bg-elevated);
+  border-radius: var(--radius-lg);
+  max-width: 400px;
+}
+
+.shimmer-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-full);
+  background: var(--bg-subtle);
+  position: relative;
+  overflow: hidden;
+}
+
+.shimmer-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  justify-content: center;
+}
+
+.shimmer-line {
+  height: 12px;
+  background: var(--bg-subtle);
+  border-radius: var(--radius-sm);
+  position: relative;
+  overflow: hidden;
+}
+
+.shimmer-line.short {
+  width: 60%;
+}
+
+.shimmer-avatar::after,
+.shimmer-line::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.1) 50%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+}
+
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* Accessibility Grid */
+.a11y-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: var(--space-4);
+  margin-top: var(--space-6);
+}
+
+.a11y-card {
+  background: var(--bg-elevated);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+  border: 1px solid var(--border-subtle);
+}
+
+.a11y-card h4 {
+  margin-bottom: var(--space-2);
+}
+
+.a11y-card p {
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  margin-bottom: var(--space-4);
+}
+
+.a11y-card pre {
+  margin: 0;
+  font-size: var(--text-xs);
+}
+
+/* Chromatic Aberration */
+.chromatic-intro {
+  margin: var(--space-6) 0;
+}
+
+.chromatic-theory {
+  background: var(--bg-elevated);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+  border: 1px solid var(--border-subtle);
+}
+
+.chromatic-theory h4 {
+  margin-bottom: var(--space-2);
+}
+
+.chromatic-theory p {
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+  margin: 0;
+}
+
+.chromatic-scale {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-4);
+  margin: var(--space-6) 0;
+}
+
+.chromatic-sample {
+  text-align: center;
+}
+
+.chromatic-box {
+  height: 100px;
+  background: var(--bg-elevated);
+  border-radius: var(--radius-lg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  margin-bottom: var(--space-3);
+  transition: box-shadow var(--duration-normal) var(--ease-ease-out);
+}
+
+.chromatic-sample.subtle .chromatic-box {
+  box-shadow:
+    -1px 0 0 var(--effect-chromatic-red-tint),
+    1px 0 0 var(--effect-chromatic-cyan-tint);
+}
+
+.chromatic-sample.normal .chromatic-box {
+  box-shadow:
+    -2px 0 0 var(--effect-chromatic-red-tint),
+    2px 0 0 var(--effect-chromatic-cyan-tint);
+}
+
+.chromatic-sample.strong .chromatic-box {
+  box-shadow:
+    -4px 0 0 var(--effect-chromatic-red-tint),
+    4px 0 0 var(--effect-chromatic-cyan-tint);
+}
+
+.chromatic-specs {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.chromatic-specs code {
+  font-size: var(--text-xs);
+}
+
+.chromatic-specs span {
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+}
+
+.chromatic-demo-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: var(--space-4);
+  margin: var(--space-6) 0;
+}
+
+.chromatic-demo-card {
+  background: var(--bg-elevated);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+  border: 1px solid var(--border-subtle);
+  text-align: center;
+}
+
+.chromatic-demo-card h4 {
+  margin: var(--space-4) 0 var(--space-2);
+}
+
+.chromatic-demo-card p {
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+.chromatic-avatar-demo {
+  display: flex;
+  justify-content: center;
+}
+
+.avatar-with-chromatic {
+  width: 80px;
+  height: 80px;
+  background: var(--persona-ferni);
+  border-radius: var(--radius-full);
+  box-shadow:
+    -2px 0 0 var(--effect-chromatic-red-tint),
+    2px 0 0 var(--effect-chromatic-cyan-tint),
+    0 4px 12px rgba(0, 0, 0, 0.2);
+  animation: chromatic-pulse 3s ease-in-out infinite;
+}
+
+@keyframes chromatic-pulse {
+  0%, 100% {
+    box-shadow:
+      -2px 0 0 var(--effect-chromatic-red-tint),
+      2px 0 0 var(--effect-chromatic-cyan-tint),
+      0 4px 12px rgba(0, 0, 0, 0.2);
+  }
+  50% {
+    box-shadow:
+      -4px 0 0 var(--effect-chromatic-red-tint),
+      4px 0 0 var(--effect-chromatic-cyan-tint),
+      0 8px 20px rgba(0, 0, 0, 0.25);
+  }
+}
+
+.chromatic-text-demo {
+  padding: var(--space-4) 0;
+}
+
+.chromatic-heading {
+  font-family: var(--font-display);
+  font-size: var(--text-3xl);
+  font-weight: 700;
+  text-shadow:
+    -1px 0 0 var(--effect-chromatic-red-tint),
+    1px 0 0 var(--effect-chromatic-cyan-tint);
+}
+
+.chromatic-button-demo {
+  padding: var(--space-4) 0;
+}
+
+.chromatic-btn {
+  background: var(--accent-primary);
+  color: var(--text-inverse);
+  border: none;
+  padding: var(--space-3) var(--space-5);
+  border-radius: var(--radius-md);
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--duration-normal) var(--ease-ease-out);
+}
+
+.chromatic-btn:hover {
+  transform: translateY(-2px);
+  box-shadow:
+    -2px 0 0 var(--effect-chromatic-red-tint),
+    2px 0 0 var(--effect-chromatic-cyan-tint),
+    0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.chromatic-guidelines {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-4);
+  margin-top: var(--space-6);
+}
+
+.guideline-card {
+  background: var(--bg-elevated);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+  border: 1px solid var(--border-subtle);
+}
+
+.guideline-card.do {
+  border-color: var(--success);
+}
+
+.guideline-card.dont {
+  border-color: var(--error);
+}
+
+.guideline-card h4 {
+  margin-bottom: var(--space-3);
+}
+
+.guideline-card ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.guideline-card li {
+  padding: var(--space-2) 0;
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.guideline-card li:last-child {
+  border-bottom: none;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .thickness-cards {
+    flex-wrap: wrap;
+  }
+
+  .thickness-card {
+    flex: 0 0 calc(50% - var(--space-2));
+  }
+
+  .blur-scale {
+    flex-wrap: wrap;
+  }
+
+  .blur-sample {
+    flex: 0 0 calc(33% - var(--space-2));
+  }
+
+  .chromatic-scale {
+    grid-template-columns: 1fr;
+  }
+
+  .chromatic-guidelines {
+    grid-template-columns: 1fr;
+  }
+}
+</style>
+
+<script>
+// Auto-trigger entrance animations when page loads
+document.addEventListener('DOMContentLoaded', () => {
+  const demos = document.querySelectorAll('.entrance-demo');
+  demos.forEach(demo => {
+    setTimeout(() => {
+      demo.classList.add('animate');
+    }, 500);
+  });
+});
+</script>

@@ -52,10 +52,11 @@ design-system/
 │       ├── connect.mp3
 │       ├── disconnect.mp3
 │       └── handoff-to-*.mp3
-├── brand/                     # 📚 Brand documentation
-│   ├── GUIDELINES.md         # Full brand identity guide
-│   ├── SCREEN-GUIDELINES.md  # Digital design standards
-│   └── brand-book.html       # Interactive brand book
+├── docs/                      # 📚 Documentation
+│   └── brand/                # Brand documentation
+│       ├── GUIDELINES.md     # Full brand identity guide
+│       ├── SCREEN-GUIDELINES.md  # Digital design standards
+│       └── BETTER-THAN-HUMAN.md  # Superhuman EQ specs
 ├── dist/                      # ⚙️ Generated output (DON'T EDIT)
 │   ├── tokens.css            # CSS custom properties
 │   ├── tokens.ts             # TypeScript types + utilities
@@ -649,3 +650,192 @@ npm run build -- --skip-a11y
 ```
 
 2. Rebuild and update TypeScript types
+
+## 🚀 Beyond Material Design 3 & Apple Design System
+
+Ferni's design system goes beyond industry standards with capabilities neither M3 nor Apple provides.
+
+### Comparison: What Makes Us Different
+
+| Capability | Material Design 3 | Apple Design System | Ferni Design System |
+|------------|-------------------|---------------------|---------------------|
+| **Spring Physics** | ❌ CSS only | ✅ Good | ✅ **Emotional weight** - UI feels heavier for serious content |
+| **Biometric Sync** | ❌ None | ❌ None | ✅ **Breath synchronization** - UI breathes with user |
+| **Time Awareness** | ❌ None | ✅ Auto dark mode | ✅ **Circadian rhythm** - UI warmth changes throughout day |
+| **Relationship Memory** | ❌ None | ❌ None | ✅ **Depth progression** - 100th session feels different than 1st |
+| **Data Visualization** | ⚠️ Basic charts | ⚠️ Basic charts | ✅ **Narrative visuals** - Constellation, garden, timeline |
+| **Predictive UI** | ❌ None | ⚠️ Suggestions | ✅ **Anticipatory loading** - Content ready before you need it |
+| **Emotional Momentum** | ❌ None | ❌ None | ✅ **State carryover** - Celebrations affect subsequent animations |
+
+### Advanced Token Files
+
+#### `tokens/insights.json` - Financial-Grade Visualizations
+
+Fidelity-inspired data visualization with Ferni's warmth:
+
+```typescript
+import { INSIGHT_CARDS, DATA_COLORS, CHART_STYLES } from 'design-system/dist/tokens';
+
+// Insight cards with semantic sizing
+const cardSize = INSIGHT_CARDS.medium; // 340x200px for trends
+
+// Warm data colors (not cold financial blue)
+const trendColor = DATA_COLORS.positive.gradient; // Sage green gradient
+
+// Chart animations that feel alive
+const lineStyle = CHART_STYLES.lineChart; // Organic line drawing animation
+```
+
+**Narrative Visuals:**
+- **Timeline** - Life events as a visual journey
+- **Constellation** - Relationship network as stars
+- **Garden** - Growth visualization as living plants
+
+#### `tokens/physics.json` - Emotional Physics Engine
+
+Beyond Apple's spring animations with emotional context:
+
+```typescript
+import { SPRINGS, EMOTIONAL_MOMENTUM } from 'design-system/dist/tokens';
+
+// Spring with emotional weight
+const spring = SPRINGS.heavy; // For serious content - feels weighty
+const spring2 = SPRINGS.bouncy; // For celebrations - feels joyful
+
+// UI carries emotional momentum
+const afterCelebration = EMOTIONAL_MOMENTUM.carryover.afterCelebration;
+// Next 5 seconds: bouncy springs, extra particles
+```
+
+**Haptic Patterns:**
+- **Heartbeat** - For intimate, empathetic moments
+- **Breathing** - Synced with breath exercises
+- **Impact** - Light/medium/heavy for feedback weight
+
+#### `tokens/predictive.json` - Anticipatory UI
+
+UI that predicts and prepares:
+
+```typescript
+import { ANTICIPATION, SUGGESTION, ADAPTATION } from 'design-system/dist/tokens';
+
+// Hover intent detection - preload before click
+const hoverIntent = ANTICIPATION.hoverIntent;
+// Detects cursor trajectory, preloads likely target
+
+// Time-based preloading
+const morningContent = ANTICIPATION.timeBasedPreload.morningContent;
+// ['calendar', 'weather', 'priorities'] - ready at 7am
+
+// UI learns user patterns
+const frequencyBoost = ADAPTATION.frequencyBoost;
+// Frequently used features become more prominent
+```
+
+### Using Advanced Animations
+
+#### Emotional Spring Physics
+
+```typescript
+import { createEmotionalSpring } from 'design-system/dist/tokens';
+
+// After user shares something difficult
+const seriousSpring = createEmotionalSpring('heavy');
+// { tension: 120, friction: 40, mass: 2 }
+
+// After achievement celebration
+const joyfulSpring = createEmotionalSpring('bouncy');
+// { tension: 300, friction: 10, mass: 1 }
+```
+
+#### Insight Card Animations
+
+```css
+/* Draw-in animation for line charts */
+.insight-chart path {
+  animation: drawIn 1.2s ease-out;
+  stroke-dasharray: 100%;
+  stroke-dashoffset: 0;
+}
+
+@keyframes drawIn {
+  from { stroke-dashoffset: 100%; }
+  to { stroke-dashoffset: 0%; }
+}
+
+/* Count-up animation for metrics */
+.insight-metric {
+  animation: countUp 1.2s ease-out;
+}
+```
+
+#### Predictive Loading States
+
+```typescript
+import { LOADING_STAGES, SKELETON_STYLES } from 'design-system/dist/tokens';
+
+// Adaptive loading based on duration
+function getLoadingState(durationMs: number) {
+  if (durationMs < 100) return 'instant'; // Show nothing
+  if (durationMs < 300) return 'fast';    // Subtle pulse
+  if (durationMs < 1000) return 'normal'; // Skeleton
+  if (durationMs < 5000) return 'slow';   // Skeleton + progress
+  return 'extended';                       // Skeleton + progress + messages
+}
+```
+
+### Spatial Depth System
+
+Beyond flat design with meaningful depth:
+
+```css
+/* Layer system with parallax */
+.background-layer {
+  --layer-z: -100;
+  --parallax-factor: 0.3;
+  filter: blur(8px);
+  transform: scale(0.95);
+}
+
+.floating-layer {
+  --layer-z: 100;
+  --parallax-factor: 0.9;
+  transform: scale(1.02);
+  box-shadow: var(--shadow-lg);
+}
+```
+
+### Gesture Recognition
+
+Advanced touch patterns:
+
+```typescript
+import { GESTURE_SIGNATURES, GESTURE_COMBOS } from 'design-system/dist/tokens';
+
+// Standard gestures with natural thresholds
+const swipeUp = GESTURE_SIGNATURES.swipeUp;
+// { direction: [0, -1], minVelocity: 300, minDistance: 50 }
+
+// Power user combos
+const quickActions = GESTURE_COMBOS.quickActions;
+// longPress + swipeUp → showQuickMenu
+```
+
+### Haptic Feedback Patterns
+
+Organic haptics that feel human:
+
+```typescript
+import { HAPTIC_PATTERNS } from 'design-system/dist/tokens';
+
+// Standard feedback
+triggerHaptic(HAPTIC_PATTERNS.success);    // [10, 50, 10]
+triggerHaptic(HAPTIC_PATTERNS.selection);  // [5] - light tap
+
+// Emotional haptics
+triggerHaptic(HAPTIC_PATTERNS.heartbeat);  // [30, 80, 30, 200] × 2
+// For intimate moments - feels like a heartbeat
+
+triggerHaptic(HAPTIC_PATTERNS.breathing);
+// Synced with breath visualization (inhale/exhale)
+```

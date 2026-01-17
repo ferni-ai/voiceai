@@ -16,6 +16,7 @@
  */
 
 import { createLogger } from '../utils/safe-logger.js';
+import { registerInterval, clearNamedInterval, hasInterval } from '../utils/interval-manager.js';
 import { getContentCacheStats, pruneExpiredContent } from './persona-content-loader.js';
 import {
   getContextOutputCacheStats,
@@ -261,23 +262,27 @@ export function logCacheStatus(): void {
 // PERIODIC MAINTENANCE
 // ============================================================================
 
-let maintenanceInterval: NodeJS.Timeout | null = null;
+const CACHE_MAINTENANCE_INTERVAL = 'cache-maintenance';
 
 /**
  * Start periodic cache maintenance (every 15 minutes)
  */
 export function startCacheMaintenance(intervalMs = 15 * 60 * 1000): void {
-  if (maintenanceInterval) {
+  if (hasInterval(CACHE_MAINTENANCE_INTERVAL)) {
     return;
   }
 
-  maintenanceInterval = setInterval(() => {
-    try {
-      runCacheMaintenance();
-    } catch (error) {
-      log.error({ error: String(error) }, 'Cache maintenance failed');
-    }
-  }, intervalMs);
+  registerInterval(
+    CACHE_MAINTENANCE_INTERVAL,
+    () => {
+      try {
+        runCacheMaintenance();
+      } catch (error) {
+        log.error({ error: String(error) }, 'Cache maintenance failed');
+      }
+    },
+    intervalMs
+  );
 
   log.info({ intervalMs }, 'Cache maintenance started');
 }
@@ -286,11 +291,8 @@ export function startCacheMaintenance(intervalMs = 15 * 60 * 1000): void {
  * Stop periodic cache maintenance
  */
 export function stopCacheMaintenance(): void {
-  if (maintenanceInterval) {
-    clearInterval(maintenanceInterval);
-    maintenanceInterval = null;
-    log.info('Cache maintenance stopped');
-  }
+  clearNamedInterval(CACHE_MAINTENANCE_INTERVAL);
+  log.info('Cache maintenance stopped');
 }
 
 export default {

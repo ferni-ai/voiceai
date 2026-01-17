@@ -22,6 +22,7 @@
  * @module @ferni/humanization/disfluency-injection
  */
 
+import { seededChance, seededFloat, seededIndex, seededPick } from '../utils/rng.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import type {
   HumanizationContext,
@@ -425,7 +426,7 @@ export class DisfluencyEngine {
     }
 
     // Roll the dice
-    if (Math.random() > probability) {
+    if (!seededChance(`${context.turnCount}:disfluency:roll`, probability)) {
       return null;
     }
 
@@ -544,7 +545,7 @@ export class DisfluencyEngine {
 
     // Emotional -> false_start or discourse_marker
     if (contexts.includes('emotional')) {
-      if (typesToChooseFrom.includes('false_start') && Math.random() < 0.3) {
+      if (typesToChooseFrom.includes('false_start') && seededChance(`${Date.now()}:548`, 0.3)) {
         return 'false_start';
       }
       if (typesToChooseFrom.includes('discourse_marker')) {
@@ -558,7 +559,7 @@ export class DisfluencyEngine {
     }
 
     // Default: random from available
-    return typesToChooseFrom[Math.floor(Math.random() * typesToChooseFrom.length)];
+    return seededPick(`${Date.now()}:562`, typesToChooseFrom) ?? typesToChooseFrom[0];
   }
 
   private choosePattern(
@@ -571,9 +572,8 @@ export class DisfluencyEngine {
     // Use persona-specific patterns when available
     if (type === 'filled_pause' && personaPrefs.filledPauseStyle.length > 0) {
       const pattern =
-        personaPrefs.filledPauseStyle[
-          Math.floor(Math.random() * personaPrefs.filledPauseStyle.length)
-        ];
+        seededPick(`${Date.now()}:filled_pause`, personaPrefs.filledPauseStyle) ??
+        personaPrefs.filledPauseStyle[0];
       return {
         pattern,
         ssml: `<break time="150ms"/>${pattern}<break time="200ms"/>`,
@@ -582,9 +582,8 @@ export class DisfluencyEngine {
 
     if (type === 'discourse_marker' && personaPrefs.discourseMarkers.length > 0) {
       const pattern =
-        personaPrefs.discourseMarkers[
-          Math.floor(Math.random() * personaPrefs.discourseMarkers.length)
-        ];
+        seededPick(`${Date.now()}:discourse_marker`, personaPrefs.discourseMarkers) ??
+        personaPrefs.discourseMarkers[0];
       return {
         pattern,
         ssml: `${pattern},<break time="100ms"/>`,
@@ -592,7 +591,7 @@ export class DisfluencyEngine {
     }
 
     // Use default patterns
-    const index = Math.floor(Math.random() * patternConfig.patterns.length);
+    const index = seededIndex(`${Date.now()}:pattern:${type}`, patternConfig.patterns.length);
     return {
       pattern: patternConfig.patterns[index],
       ssml: patternConfig.ssmlPatterns[index],
@@ -600,17 +599,21 @@ export class DisfluencyEngine {
   }
 
   private calculatePauseDuration(type: DisfluencyType): number {
+    // Use seeded float for deterministic but varied pause durations
+    const seed = `${Date.now()}:pause:${type}`;
+    const variance = seededFloat(seed);
+
     switch (type) {
       case 'filled_pause':
-        return 200 + Math.random() * 150; // 200-350ms
+        return 200 + variance * 150; // 200-350ms
       case 'discourse_marker':
-        return 100 + Math.random() * 100; // 100-200ms
+        return 100 + variance * 100; // 100-200ms
       case 'lengthening':
-        return 150 + Math.random() * 100; // 150-250ms
+        return 150 + variance * 100; // 150-250ms
       case 'false_start':
-        return 80 + Math.random() * 70; // 80-150ms
+        return 80 + variance * 70; // 80-150ms
       case 'repetition':
-        return 100 + Math.random() * 50; // 100-150ms
+        return 100 + variance * 50; // 100-150ms
       default:
         return 150;
     }

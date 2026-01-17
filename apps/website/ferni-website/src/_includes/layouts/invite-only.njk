@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ title }} | Ferni</title>
+  <meta name="description" content="{{ description or 'Join the waitlist for Ferni, your AI life coach who truly listens.' }}">
+
+  {# ====== PRECONNECT & FONTS ====== #}
+  {# Fonts (Single Source of Truth) #}
+  {% include "partials/fonts.njk" %}
+
+  {# ====== FAVICONS ====== #}
+  <link rel="icon" href="/images/favicon.png" type="image/png">
+  <link rel="apple-touch-icon" href="/images/apple-touch-icon.png">
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#4a6741">
+
+  {# ====== STYLES ====== #}
+  <link rel="stylesheet" href="/css/_tokens.css">
+  <link rel="stylesheet" href="/css/waitlist.css?v=20251225">
+
+  {# ====== OPEN GRAPH ====== #}
+  <meta property="og:title" content="{{ title }} | Ferni">
+  <meta property="og:description" content="{{ description or 'Join the waitlist for Ferni, your AI life coach who truly listens.' }}">
+  <meta property="og:image" content="https://ferni.ai/images/og-image.jpg">
+  <meta property="og:url" content="https://ferni.ai{{ page.url }}">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Ferni">
+
+  {# ====== TWITTER CARD ====== #}
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:site" content="@ferniAI">
+  <meta name="twitter:title" content="{{ title }} | Ferni">
+  <meta name="twitter:description" content="{{ description or 'Join the waitlist for Ferni, your AI life coach who truly listens.' }}">
+  <meta name="twitter:image" content="https://ferni.ai/images/og-image.jpg">
+
+  {# ====== ADDITIONAL SEO ====== #}
+  <link rel="canonical" href="https://ferni.ai{{ page.url }}">
+  <meta name="robots" content="index, follow">
+</head>
+<body class="invite-only-page">
+
+  {# ====== MINIMAL HEADER ====== #}
+  <header class="invite-header">
+    <a href="/" class="invite-logo" aria-label="Ferni Home">
+      <svg viewBox="0 0 32 32" width="40" height="40" fill="none" aria-hidden="true">
+        <circle cx="16" cy="16" r="15" fill="var(--color-ferni)"/>
+        <text x="16" y="21" text-anchor="middle" fill="white" font-size="14" font-weight="600" font-family="Plus Jakarta Sans, sans-serif">f</text>
+      </svg>
+      <span class="invite-logo-text">Ferni</span>
+    </a>
+  </header>
+
+  {# ====== MAIN CONTENT ====== #}
+  <main class="invite-main">
+    {{ content | safe }}
+  </main>
+
+  {# ====== MINIMAL FOOTER ====== #}
+  <footer class="invite-footer">
+    <p>&copy; 2025 Ferni. Made with care.</p>
+  </footer>
+
+  {# ====== SCRIPTS ====== #}
+  <script src="/js/waitlist.js?v=20251225"></script>
+</body>
+</html>

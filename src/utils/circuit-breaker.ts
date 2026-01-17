@@ -15,6 +15,47 @@
 import { getLogger } from './safe-logger.js';
 
 // ============================================================================
+// STATE CHANGE CALLBACK (Dependency Injection for metrics)
+// ============================================================================
+
+/**
+ * Callback type for circuit breaker state changes.
+ * Services layer can register a callback to receive state change events.
+ */
+export type CircuitBreakerStateCallback = (
+  name: string,
+  state: CircuitState,
+  failures: number,
+  successes: number,
+  reason?: string
+) => void;
+
+let stateChangeCallback: CircuitBreakerStateCallback | null = null;
+
+/**
+ * Register a callback to be notified of circuit breaker state changes.
+ * This allows the services layer to hook into state changes for metrics.
+ *
+ * @example
+ * // In services/observability/resilience-metrics.ts:
+ * import { registerCircuitBreakerCallback } from '../../utils/circuit-breaker.js';
+ *
+ * registerCircuitBreakerCallback((name, state, failures, successes, reason) => {
+ *   resilienceMetrics.recordCircuitBreakerEvent(name, state, failures, successes, reason);
+ * });
+ */
+export function registerCircuitBreakerCallback(callback: CircuitBreakerStateCallback): void {
+  stateChangeCallback = callback;
+}
+
+/**
+ * Clear the registered callback (for testing).
+ */
+export function clearCircuitBreakerCallback(): void {
+  stateChangeCallback = null;
+}
+
+// ============================================================================
 // TYPES
 // ============================================================================
 
@@ -101,7 +142,8 @@ export class CircuitBreaker {
       this.onSuccess();
       return result;
     } catch (error) {
-      this.onFailure();
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      this.onFailure(errorMessage);
       throw error;
     }
   }
@@ -155,6 +197,9 @@ export class CircuitBreaker {
         this.failures = 0;
         this.successes = 0;
         getLogger().info({ name: this.name }, 'Circuit breaker CLOSED (service recovered)');
+
+        // Report state change via callback (if registered)
+        stateChangeCallback?.(this.name, 'closed', this.failures, this.successes, undefined);
       }
     } else {
       // Reset failure count on success in closed state
@@ -162,7 +207,7 @@ export class CircuitBreaker {
     }
   }
 
-  private onFailure(): void {
+  private onFailure(reason?: string): void {
     this.lastFailure = new Date();
     this.failures++;
     this.totalFailures++;
@@ -176,12 +221,30 @@ export class CircuitBreaker {
         { name: this.name, nextAttempt: this.nextAttempt },
         'Circuit breaker OPEN (half-open test failed)'
       );
+
+      // Report state change via callback (if registered)
+      stateChangeCallback?.(
+        this.name,
+        'open',
+        this.failures,
+        this.successes,
+        reason || 'half-open test failed'
+      );
     } else if (this.failures >= this.failureThreshold) {
       this.state = 'open';
       this.nextAttempt = new Date(Date.now() + this.resetTimeout);
       getLogger().warn(
         { name: this.name, failures: this.failures, nextAttempt: this.nextAttempt },
         'Circuit breaker OPEN (failure threshold reached)'
+      );
+
+      // Report state change via callback (if registered)
+      stateChangeCallback?.(
+        this.name,
+        'open',
+        this.failures,
+        this.successes,
+        reason || 'failure threshold reached'
       );
     }
   }
@@ -214,6 +277,57 @@ export function getCircuitBreaker(name: string, options?: CircuitBreakerOptions)
     breakers.set(name, breaker);
   }
   return breaker;
+}
+
+// ============================================================================
+// REDIS-BACKED CIRCUIT BREAKER (Cross-Instance State Sharing)
+// ============================================================================
+
+/**
+ * Get or create a Redis-backed circuit breaker.
+ * Redis backing enables circuit state to be shared across all instances.
+ * When one instance trips a breaker, ALL instances see it immediately.
+ *
+ * Use for high-traffic external APIs where you want coordinated failure handling.
+ *
+ * @example
+ * const breaker = await getRedisCircuitBreakerAsync('openai-api', {
+ *   failureThreshold: 5,
+ *   resetTimeout: 30000,
+ * });
+ * const result = await breaker.execute(() => callOpenAI());
+ */
+export async function getRedisCircuitBreakerAsync(
+  name: string,
+  options?: CircuitBreakerOptions & { syncIntervalMs?: number }
+): Promise<CircuitBreaker> {
+  // Check if already exists as Redis breaker
+  const existing = breakers.get(`redis:${name}`);
+  if (existing) {
+    return existing;
+  }
+
+  try {
+    // Try to create Redis-backed breaker
+    const { createRedisCircuitBreaker } =
+      await import('../services/self-healing/redis-circuit-breaker.js');
+
+    const redisBreaker = createRedisCircuitBreaker(name, {
+      failureThreshold: options?.failureThreshold ?? 5,
+      recoveryTimeout: options?.resetTimeout ?? 30000,
+      successThreshold: options?.successThreshold ?? 2,
+      syncIntervalMs: options?.syncIntervalMs ?? 5000,
+    });
+
+    // Store in breakers map - the RedisCircuitBreaker has compatible execute() method
+    // but we don't add it to breakers since it uses a different base class
+    getLogger().debug({ name }, 'Created Redis-backed circuit breaker');
+    return redisBreaker as unknown as CircuitBreaker;
+  } catch {
+    // Fall back to local circuit breaker if Redis not available
+    getLogger().debug({ name }, 'Redis not available, using local circuit breaker');
+    return getCircuitBreaker(name, options);
+  }
 }
 
 /**

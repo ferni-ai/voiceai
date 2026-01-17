@@ -40,7 +40,10 @@ import type { BundleBehaviors, LoadedPersonaBundle, PersonaBundleManifest } from
 // ============================================================================
 
 /**
- * Extract catchphrases from either array format or structured format
+ * Extract catchphrases from various formats:
+ * 1. Array of strings: ["phrase1", "phrase2"]
+ * 2. Object with catchphrases array: { catchphrases: [{ phrase: "..." }] }
+ * 3. Object with catchphrases as categorized object: { catchphrases: { core_phrases: [...], ... } }
  */
 function extractCatchphrases(catchphrases: BundleBehaviors['catchphrases']): string[] {
   if (!catchphrases) return [];
@@ -50,18 +53,40 @@ function extractCatchphrases(catchphrases: BundleBehaviors['catchphrases']): str
     return catchphrases;
   }
 
-  // New structured format - extract from catchphrases array
   const result: string[] = [];
+
+  // Handle nested catchphrases property
   if (catchphrases.catchphrases) {
-    for (const cp of catchphrases.catchphrases) {
-      result.push(cp.phrase);
+    const nestedCatchphrases = catchphrases.catchphrases;
+
+    // Format 2: Array of objects with .phrase property
+    if (Array.isArray(nestedCatchphrases)) {
+      for (const cp of nestedCatchphrases) {
+        if (typeof cp === 'string') {
+          result.push(cp);
+        } else if (cp && typeof cp === 'object' && 'phrase' in cp) {
+          result.push((cp as { phrase: string }).phrase);
+        }
+      }
+    }
+    // Format 3: Object with category arrays (marketplace agents)
+    // e.g., { core_phrases: [...], encouragement_phrases: [...] }
+    else if (typeof nestedCatchphrases === 'object') {
+      for (const [_category, phrases] of Object.entries(nestedCatchphrases)) {
+        if (Array.isArray(phrases)) {
+          // Add first few from each category to avoid overwhelming
+          result.push(...phrases.slice(0, 5));
+        }
+      }
     }
   }
 
   // Also include natural_responses if available
   if (catchphrases.natural_responses) {
     for (const phrases of Object.values(catchphrases.natural_responses)) {
-      result.push(...phrases.slice(0, 2)); // Add first 2 from each category
+      if (Array.isArray(phrases)) {
+        result.push(...phrases.slice(0, 2)); // Add first 2 from each category
+      }
     }
   }
 
@@ -340,22 +365,29 @@ async function buildCommunicationConfig(
   const personalityData = manifest.personality ?? { warmth: 0.7, energy: 0.6 };
 
   // Determine greeting style from personality
+  // Priority: High warmth personas should feel warm, not enthusiastic/performative
+  // Warmth takes precedence because enthusiastic greetings sound choppy/fake
   let greetingStyle: GreetingStyle = 'warm-friend';
-  if ((personalityData.energy ?? 0.6) > 0.8) {
-    greetingStyle = 'enthusiastic';
-  } else if ((personalityData.warmth ?? 0.7) > 0.8) {
+  const warmth = personalityData.warmth ?? 0.7;
+  const energy = personalityData.energy ?? 0.6;
+
+  if (warmth > 0.75) {
+    // High warmth = warm-friend (Ferni, Maya)
     greetingStyle = 'warm-friend';
+  } else if (energy > 0.85) {
+    // Only use enthusiastic for very high energy + low warmth (Jordan, Peter)
+    greetingStyle = 'enthusiastic';
   }
 
+  // "Better Than Human" Philosophy: Presence sounds, not questions or commands
   const backchannels: BackchannelConfig = {
-    neutral: behaviors.backchannels?.neutral || ['Mmhmm.', 'Right.', 'Yeah.', 'I see.', 'Okay.'],
-    engaged: behaviors.backchannels?.engaged || ['Oh!', 'Interesting.', 'Hmm.', 'Really?', 'Huh.'],
+    neutral: behaviors.backchannels?.neutral || ['Mmhmm.', 'Mm.', 'Yeah.', 'Okay.'],
+    engaged: behaviors.backchannels?.engaged || ['Oh.', 'Mm!', 'Yeah!'],
     empathetic: behaviors.backchannels?.empathetic || [
-      'Oh...',
+      'Mm...',
       'I hear you.',
       'Yeah...',
       "That's a lot.",
-      'I understand.',
     ],
   };
 
@@ -376,9 +408,10 @@ async function buildCommunicationConfig(
     ],
   };
 
+  // "Better Than Human" Philosophy: No questions without context
   const emotionalExpressions: EmotionalExpressionConfig = {
     laughter: ['Ha!', 'Ha ha!', "[laughter] That's a good point."],
-    surprise: ['Oh!', 'Well!', 'Really?', 'Huh.', 'No kidding?'],
+    surprise: ['Oh!', 'Wow.', 'Oh wow.', 'Hm.'],
     concern: ['Oh...', 'I see...', 'Hmm...', "That's hard."],
     joy: ["That's great!", "Oh, that's wonderful!", 'Fantastic!', 'I love hearing that.'],
     empathy: [
@@ -394,14 +427,8 @@ async function buildCommunicationConfig(
     returningUserStyle: greetingStyle,
     formalityLevel: 0.3,
     thinkingPhrases: extractThinkingSounds(behaviors.thinking_sounds),
-    listeningCues: [
-      'Mmhmm...',
-      'I see...',
-      'Right...',
-      'Interesting...',
-      'Go on...',
-      'Tell me more...',
-    ],
+    // "Better Than Human" Philosophy: Presence, not commands
+    listeningCues: ['Mmhmm...', 'Mm...', 'Yeah...', "I'm here..."],
     backchannels,
     silenceFillers,
     selfCorrections: [
@@ -450,14 +477,15 @@ Energy: ${(personalityData.energy ?? 0.6) * 100}%
 - Be warm and authentic
 - Use your catchphrases naturally: ${extractCatchphrases(behaviors.catchphrases).slice(0, 3).join(', ')}
 - Share stories when relevant
-- Ask questions to understand before giving advice
+- Ask questions to understand before offering guidance
 - Celebrate wins, no matter how small
 
 ## BOUNDARIES
 - Never sound robotic or like a customer service agent
-- Never give specific investment advice without proper context
+- Never give specific financial, legal, or medical advice - you offer coaching and guidance, not professional advice
 - Never rush the conversation
 - Never dismiss emotions
+- You are a life coach, not a licensed professional. Help people think through decisions, but they make their own choices.
 `;
 }
 

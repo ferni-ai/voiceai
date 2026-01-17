@@ -1,0 +1,69 @@
+# Outreach Worker Dockerfile
+# Processes outreach triggers from Pub/Sub
+# Runs as a Cloud Run Job, scheduled every 5 minutes
+#
+# Uses esbuild for fast bundling without type checking
+
+FROM node:20-slim AS builder
+
+WORKDIR /app
+
+# Install git (needed for some deps)
+RUN apt-get update && apt-get install -y --no-install-recommends git \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy package files first (cache layer)
+COPY package.json package-lock.json* ./
+COPY .npmrc ./
+
+# Install ALL dependencies (including devDeps for esbuild)
+RUN npm install --legacy-peer-deps
+
+# Copy ALL source files (simplest approach for complex dependency graph)
+COPY src/ ./src/
+
+# Build the outreach worker with esbuild
+RUN npx esbuild src/workers/outreach-worker.ts \
+  --bundle \
+  --platform=node \
+  --target=node20 \
+  --format=esm \
+  --outfile=dist/workers/outreach-worker.js \
+  --external:@livekit/* \
+  --external:@google-cloud/* \
+  --external:firebase-admin \
+  --external:twilio \
+  --external:pg \
+  --external:@sendgrid/mail \
+  --external:bullmq \
+  --external:ioredis \
+  --external:better-sqlite3 \
+  --external:canvas \
+  --external:sharp \
+  --external:cartesia-js \
+  --external:openai \
+  --external:@anthropic-ai/sdk \
+  --external:googleapis \
+  --external:node-fetch \
+  --banner:js="import { createRequire } from 'module';const require = createRequire(import.meta.url);"
+
+# Production stage
+FROM node:20-slim AS runner
+
+WORKDIR /app
+
+# Copy package files and install production dependencies
+COPY package.json package-lock.json* ./
+COPY .npmrc ./
+RUN npm install --omit=dev --legacy-peer-deps
+
+# Copy built code
+COPY --from=builder /app/dist ./dist
+
+# Set environment
+ENV NODE_ENV=production
+ENV GOOGLE_CLOUD_PROJECT=johnb-2025
+ENV PUBSUB_ENABLED=true
+
+# Run the outreach worker
+CMD ["node", "--max-old-space-size=512", "dist/workers/outreach-worker.js"]

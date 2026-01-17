@@ -106,7 +106,7 @@ export async function initializePerformanceOptimizations(
   } = config;
 
   // Initialize in parallel where possible
-  const initTasks: Promise<void>[] = [];
+  const initTasks: Array<Promise<void>> = [];
 
   // 1. Initialize Pub/Sub
   if (enablePubSub) {
@@ -124,15 +124,18 @@ export async function initializePerformanceOptimizations(
     );
   }
 
-  // 2. Warm up speculative TTS
+  // 2. Warm up speculative TTS with emotion variants
   if (enableSpeculativeTTS && personaId) {
     initTasks.push(
       (async () => {
         try {
-          const { warmupTTSVoice } = await import('./speculative-tts.js');
-          await warmupTTSVoice(personaId);
+          const { warmupTTSVoice } =
+            await import('../../../services/performance/speculative-tts.js');
+          // Warm up with common emotions for faster first-audio with emotion caching
+          const commonEmotions = ['neutral', 'warm', 'concerned', 'supportive', 'curious'];
+          await warmupTTSVoice(personaId, commonEmotions);
           metrics.speculativeTTSEnabled = true;
-          log.info('Speculative TTS warmed up');
+          log.info('Speculative TTS warmed up with emotion variants');
         } catch (error) {
           log.debug({ error: String(error) }, 'Speculative TTS warmup skipped');
         }
@@ -226,7 +229,7 @@ export async function processOptimizedTurn(input: {
 
   // Start profiling if enabled
   if (metrics.profilingEnabled) {
-    const { startTurnProfiling } = await import('./turn-profiler.js');
+    const { startTurnProfiling } = await import('../../../services/performance/turn-profiler.js');
     startTurnProfiling(input.sessionId, input.turnNumber);
   }
 
@@ -305,7 +308,8 @@ export async function processOptimizedTurn(input: {
 
   // Complete profiling
   if (metrics.profilingEnabled) {
-    const { completeTurnProfiling } = await import('./turn-profiler.js');
+    const { completeTurnProfiling } =
+      await import('../../../services/performance/turn-profiler.js');
     completeTurnProfiling(input.sessionId, input.turnNumber);
   }
 
@@ -416,7 +420,7 @@ export async function startSpeculativeTTS(input: {
   if (!metrics.speculativeTTSEnabled) return;
 
   try {
-    const { speculateTTS } = await import('./speculative-tts.js');
+    const { speculateTTS } = await import('../../../services/performance/speculative-tts.js');
     await speculateTTS(input.sessionId, input.personaId, {
       emotion: input.analysis?.emotion?.primary,
       intent: input.analysis?.intent?.primary,
@@ -471,14 +475,16 @@ export async function getPerformanceSummary(): Promise<Record<string, unknown>> 
   }
 
   try {
-    const { getSpeculativeTTSMetrics } = await import('./speculative-tts.js');
+    const { getSpeculativeTTSMetrics } =
+      await import('../../../services/performance/speculative-tts.js');
     summary.speculativeTTS = getSpeculativeTTSMetrics();
   } catch {
     /* ignore */
   }
 
   try {
-    const { getGlobalPerformanceSummary } = await import('./turn-profiler.js');
+    const { getGlobalPerformanceSummary } =
+      await import('../../../services/performance/turn-profiler.js');
     summary.turnProfiling = getGlobalPerformanceSummary();
   } catch {
     /* ignore */

@@ -402,10 +402,11 @@ export class RitualEngine {
         await this.executeVisualStep(action, step.params, context);
         break;
         
-      case 'delay':
+      case 'delay': {
         const ms = (step.params?.ms as number) || 0;
         await this.wait(ms);
         break;
+      }
     }
   }
   
@@ -420,7 +421,7 @@ export class RitualEngine {
     }
   }
   
-  private async executeHapticStep(pattern: string, context: RitualContext): Promise<void> {
+  private executeHapticStep(pattern: string, context: RitualContext): void {
     try {
       if (pattern === 'persona_signature' && context.personaId) {
         // TODO: Add persona-specific haptic signatures
@@ -434,11 +435,11 @@ export class RitualEngine {
     }
   }
   
-  private async executeGlowStep(
-    action: string, 
+  private executeGlowStep(
+    action: string,
     params?: Record<string, unknown>,
     context?: RitualContext
-  ): Promise<void> {
+  ): void {
     try {
       switch (action) {
         case 'startBreathing':
@@ -491,13 +492,14 @@ export class RitualEngine {
   ): Promise<void> {
     try {
       switch (action) {
-        case 'celebration':
+        case 'celebration': {
           const celebrationType = params?.type as CelebrationType;
           await this.celebration.celebrate({
             type: celebrationType,
             title: context?.message,
           });
           break;
+        }
           
         case 'streak':
           if (context?.streakCount) {

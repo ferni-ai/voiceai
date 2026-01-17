@@ -1,0 +1,45 @@
+{
+  "postFile": "week-2-preview.md",
+  "title": "Week 2: Authentication, Performance, and Your First Case Study",
+  "date": "2026-01-12T00:00:00.000Z",
+  "snippets": {
+    "twitter": {
+      "platform": "twitter",
+      "text": "📚 Week 2: Authentication, Performance, and Your First Case Study\n\nhttps://developers.ferni.ai/developers/blog/week-2-preview/\n\n#VoiceAI #Developers",
+      "length": null
+    },
+    "twitterThread": {
+      "platform": "twitter_thread",
+      "tweets": [
+        {
+          "text": "🧵 Week 2: Authentication, Performance, and Your First Case Study\n\nA thread on what you'll learn:\n\n👇",
+          "type": "hook"
+        },
+        {
+          "text": "Preview of what's coming next week - deep dives into auth patterns, performance optimization, and our first community spotlight.\n\nLet's dive in...",
+          "type": "summary"
+        },
+        {
+          "text": "📖 Read the full post:\nhttps://developers.ferni.ai/developers/blog/week-2-preview/\n\n#VoiceAI #Developers",
+          "type": "cta"
+        }
+      ],
+      "totalTweets": 3
+    },
+    "linkedin": {
+      "platform": "linkedin",
+      "text": "Week 2: Authentication, Performance, and Your First Case Study\n\nPreview of what's coming next week - deep dives into auth patterns, performance optimization, and our first community spotlight.\n\nThis is part of our ongoing series helping developers build with voice AI.\n\nKey takeaways:\n• Practical code examples you can use today\n• Real-world patterns from production systems\n• Best practices from the Ferni team\n\nRead the full post: https://developers.ferni.ai/developers/blog/week-2-preview/\n\n#VoiceAI #Developers",
+      "length": 514
+    },
+    "discord": {
+      "platform": "discord",
+      "text": "📝 **Week 2: Authentication, Performance, and Your First Case Study**\n\nPreview of what's coming next week - deep dives into auth patterns, performance optimization, and our first community spotlight.\n\n🔗 **Read more:** https://developers.ferni.ai/developers/blog/week-2-preview/\n\n---\n*3 min read • Roadmap*",
+      "length": 306
+    },
+    "threads": {
+      "platform": "threads",
+      "text": "Week 2: Authentication, Performance, and Your First Case Study\n\nPreview of what's coming next week - deep dives into auth patterns, performance optimization, and our first community spotlight.\n\nRead more 👉 https://developers.ferni.ai/developers/blog/week-2-preview/",
+      "length": 266
+    }
+  }
+}

@@ -29,7 +29,7 @@ import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 const log = createLogger('Waveform');
 
 // FIX BUG: Track all setTimeout calls for proper cleanup
-const { trackedTimeout, clearAll: clearAllTimeouts } = createTimeoutTracker();
+const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
 
 // ============================================================================
 // CONFIGURATION
@@ -136,13 +136,18 @@ import { getWaveformProfile } from '@design-system/tokens';
 /**
  * Get persona color from CSS variable (design system integration)
  * Falls back to accent color if persona not set
+ * 
+ * IMPORTANT: Reads from document.body because persona CSS variables
+ * are set via [data-persona='...'] selectors on the body element.
  */
 function getPersonaColor(): string {
-  const style = getComputedStyle(document.documentElement);
+  // Read from body where persona-specific CSS variables are applied
+  const style = getComputedStyle(document.body);
   const personaColor = style.getPropertyValue('--persona-primary').trim();
   if (personaColor) return personaColor;
-  // Fallback to accent color
-  return style.getPropertyValue('--color-accent-primary').trim() || '#4a6741'; // Ferni sage green fallback
+  // Fallback to accent color (from documentElement since it's a global token)
+  const rootStyle = getComputedStyle(document.documentElement);
+  return rootStyle.getPropertyValue('--color-accent-primary').trim() || '#4a6741'; // Ferni sage green fallback
 }
 
 // ============================================================================
@@ -264,7 +269,7 @@ function createParticleContainer(): void {
     height: 100%;
     pointer-events: none;
     overflow: visible;
-    z-index: 10;
+    z-index: var(--z-docked);
   `;
   container.appendChild(particleContainer);
 }
@@ -302,6 +307,10 @@ export function setSpeaking(speaking: boolean): void {
     targetShape =
       currentEmotion !== 'neutral' ? EMOTION_SHAPES[currentEmotion] : EMOTION_SHAPES.speaking;
     startAnimation();
+    // Reset the volume timer to give the audio visualization time to attach
+    // (attachAudioVisualization is async, so there's a race condition)
+    lastNonZeroVolumeTime = Date.now();
+    volumeDropWarningLogged = false;
   } else {
     container.classList.remove('speaking');
     targetShape =
@@ -334,10 +343,27 @@ export function setThinking(thinking: boolean): void {
   }
 }
 
+// Track last time we received non-zero volume for debugging
+let lastNonZeroVolumeTime = 0;
+let volumeDropWarningLogged = false;
+
+// 🎧 BETTER THAN HUMAN: Longer grace period for audio visualization attachment
+// AudioContext can take 3-5s to resume from suspended state (browser autoplay policy)
+// Plus WebRTC track subscription has variable latency
+const VOLUME_TIMEOUT_MS = 5000;
+
 export function setVolume(volume: number): void {
   lastVolume = Math.max(0, Math.min(1, volume));
-  // Debug: Log volume occasionally to verify data is flowing
-  if (Math.random() < 0.02 && volume > 0.001) {
+  
+  // Debug: Track volume drops after speaking starts
+  if (volume > 0.01) {
+    lastNonZeroVolumeTime = Date.now();
+    volumeDropWarningLogged = false;
+  } else if (isSpeaking && Date.now() - lastNonZeroVolumeTime > VOLUME_TIMEOUT_MS && !volumeDropWarningLogged) {
+    // No volume for 5+ seconds while we think we're speaking
+    // This is a debug warning - the safety fallback is that waveform still animates based on speaking state
+    log.warn('⚠️ No volume received for 5s while speaking - audio visualization may be disconnected');
+    volumeDropWarningLogged = true;
   }
 }
 
@@ -513,22 +539,38 @@ function updateBars(): void {
       const shimmerWave = Math.sin(wavePhase * 2 + i * 0.4) * 0.5 + 0.5;
       targetHeight = MIN_BAR_HEIGHT + shimmerWave * MAX_BAR_HEIGHT * 0.4;
     } else if (isListeningToMusic) {
-      // MUSIC LISTENING: Natural, reflective, meditative
-      // Like gentle breathing or calm water ripples
+      // MUSIC LISTENING: Responsive to actual audio, but still gentle and meditative
+      // Blends real volume data with organic wave motion
 
-      // Very slow primary wave - the main breathing rhythm
-      const breathWave = Math.sin(wavePhase * 0.6 + i * 0.25) * 0.5 + 0.5;
+      // Check if we have real audio volume from the music track
+      const hasRealMusicVolume = smoothedVolume > 0.01;
 
-      // Secondary subtle harmonic - adds natural variation without chaos
-      const harmonic = Math.sin(wavePhase * 1.2 + i * 0.5) * 0.15 + 0.5;
+      if (hasRealMusicVolume) {
+        // 🎵 Real music volume - responsive but smooth visualization
+        // Less aggressive than speaking mode, more natural/flowing
 
-      // Combine for organic, non-mechanical movement
-      const combined = breathWave * 0.7 + harmonic * 0.3;
+        // Primary rhythm wave - gives bars different phases for visual interest
+        const rhythmWave = Math.sin(wavePhase * 1.5 + i * 0.35) * 0.3 + 0.7;
 
-      // Use shape curve for the base, modulated by the gentle waves
-      // Keep it subtle - max 40% of full height for a calm presence
-      const musicEnergy = shapeCurve * 0.4 * combined;
-      targetHeight = MIN_BAR_HEIGHT + MAX_BAR_HEIGHT * musicEnergy;
+        // Volume factor - gentler curve than speaking mode (0.5 power = softer response)
+        const volumeFactor = Math.pow(smoothedVolume, 0.5) * 0.8;
+
+        // Base height from volume * shape curve * rhythm
+        const baseHeight = shapeCurve * MAX_BAR_HEIGHT * volumeFactor * rhythmWave;
+
+        // Subtle bounce for musicality
+        const bounce = Math.sin(wavePhase * 2.5 + i * 0.4) * currentShape.bounce * 4;
+
+        targetHeight = MIN_BAR_HEIGHT + baseHeight + bounce;
+      } else {
+        // Fallback: gentle breathing animation when no volume data
+        // (keeps waveform alive during audio initialization)
+        const breathWave = Math.sin(wavePhase * 0.6 + i * 0.25) * 0.5 + 0.5;
+        const harmonic = Math.sin(wavePhase * 1.2 + i * 0.5) * 0.15 + 0.5;
+        const combined = breathWave * 0.7 + harmonic * 0.3;
+        const musicEnergy = shapeCurve * 0.4 * combined;
+        targetHeight = MIN_BAR_HEIGHT + MAX_BAR_HEIGHT * musicEnergy;
+      }
     } else if (isSpeaking) {
       // Lower threshold - even small volume should be detected
       const hasRealVolume = smoothedVolume > 0.005;

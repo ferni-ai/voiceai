@@ -22,6 +22,7 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import { createPersistenceStore, type PersistenceStore } from '../persistence/index.js';
+import { cleanForFirestore } from '../../utils/firestore-utils.js';
 
 const log = createLogger({ module: 'VoiceProsodyLearning' });
 
@@ -205,7 +206,7 @@ function persistUserData(userId: string): void {
   const baseline = userBaselines.get(userId);
   const samples = voiceSamples.get(userId) || [];
 
-  getPersistence().set(userId, {
+  getPersistence().set(cleanForFirestore(userId), {
     baseline: baseline ? serializeBaseline(baseline) : undefined,
     samples: samples.map(serializeSample),
   });
@@ -327,7 +328,7 @@ function calculateBaseline(userId: string, samples: VoiceSample[]): void {
 
   const existing = userBaselines.get(userId);
 
-  userBaselines.set(userId, {
+  userBaselines.set(cleanForFirestore(userId), {
     userId,
     characteristics: baseline,
     sampleCount: samples.length,

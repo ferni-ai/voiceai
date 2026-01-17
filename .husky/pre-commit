@@ -78,13 +78,18 @@ echo "🎨 Design system checks..."
 if ! node design-system/check-drift.js 2>/dev/null; then
   echo ""
   echo "  ⚠ Token drift detected - auto-regenerating..."
-  npm run build:design-system --silent
+  npm run tokens:sync --silent
 
   # Stage the regenerated files
   git add design-system/dist/ 2>/dev/null || true
-  git add frontend-typescript/src/config/animation-constants.generated.ts 2>/dev/null || true
-  git add promo/ferni-website/tailwind.config.generated.js 2>/dev/null || true
-  git add promo/ferni-website/css/design-tokens.css 2>/dev/null || true
+  git add apps/web/src/config/animation-constants.generated.ts 2>/dev/null || true
+  git add apps/web/public/design-system/tokens.css 2>/dev/null || true
+  git add apps/website/ferni-website/tailwind.config.generated.js 2>/dev/null || true
+  git add apps/website/ferni-website/css/design-tokens.css 2>/dev/null || true
+  git add apps/website/ferni-website/src/css/_tokens.css 2>/dev/null || true
+  git add apps/website/developers-portal/src/css/tokens.css 2>/dev/null || true
+  git add apps/website/design-system-portal/src/css/tokens.css 2>/dev/null || true
+  git add brand/ferni-design-tokens.css 2>/dev/null || true
 
   echo "  ✓ Tokens regenerated and staged"
 fi

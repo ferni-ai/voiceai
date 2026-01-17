@@ -46,6 +46,7 @@ import type {
 } from '../../../tools/event-planning/types.js';
 
 // Import storage and helpers from extracted module
+import { cleanForFirestore } from '../../../utils/firestore-utils.js';
 import {
   events,
   majorPurchases,

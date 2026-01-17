@@ -1,0 +1,109 @@
+# Cloud Build Configuration for Ferni Async Workers
+#
+# Builds and deploys the async worker platform to Cloud Run.
+# Workers handle:
+# - Outreach trigger processing (Pub/Sub)
+# - Batch processing (Cloud Scheduler)
+# - Delivery scheduling (Cloud Tasks)
+#
+# Triggered by:
+#   gcloud builds submit --config=cloudbuild-async.yaml
+#   OR: ferni deploy async
+
+steps:
+  # Build with Kaniko (fast caching)
+  - name: 'gcr.io/kaniko-project/executor:latest'
+    args:
+      - '--dockerfile=apps/async/Dockerfile'
+      - '--context=apps/async'
+      - '--destination=gcr.io/$PROJECT_ID/ferni-async:latest'
+      - '--destination=gcr.io/$PROJECT_ID/ferni-async:$COMMIT_SHA'
+      - '--cache=true'
+      - '--cache-ttl=168h'
+      - '--snapshot-mode=redo'
+      - '--use-new-run'
+      - '--push-retry=3'
+    id: 'build-async'
+
+  # Deploy to Cloud Run
+  - name: 'gcr.io/cloud-builders/gcloud'
+    args:
+      - 'run'
+      - 'deploy'
+      - 'ferni-async'
+      - '--image=gcr.io/$PROJECT_ID/ferni-async:$COMMIT_SHA'
+      - '--platform=managed'
+      - '--region=us-central1'
+      - '--allow-unauthenticated'
+      - '--memory=512Mi'
+      - '--cpu=1'
+      - '--min-instances=0'
+      - '--max-instances=10'
+      - '--concurrency=50'
+      - '--timeout=300s'
+      - '--set-env-vars=GCP_PROJECT_ID=$PROJECT_ID,NODE_ENV=production'
+    id: 'deploy-async'
+    waitFor: ['build-async']
+
+  # Configure Pub/Sub push subscription (idempotent)
+  - name: 'gcr.io/cloud-builders/gcloud'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        # Get the Cloud Run service URL
+        SERVICE_URL=$(gcloud run services describe ferni-async --platform=managed --region=us-central1 --format='value(status.url)')
+
+        # Create topic if not exists
+        gcloud pubsub topics describe outreach-triggers 2>/dev/null || \
+          gcloud pubsub topics create outreach-triggers
+
+        # Create or update push subscription
+        gcloud pubsub subscriptions describe outreach-triggers-push 2>/dev/null && \
+          gcloud pubsub subscriptions update outreach-triggers-push \
+            --push-endpoint="$SERVICE_URL/process-trigger" || \
+          gcloud pubsub subscriptions create outreach-triggers-push \
+            --topic=outreach-triggers \
+            --push-endpoint="$SERVICE_URL/process-trigger" \
+            --ack-deadline=60 \
+            --message-retention-duration=1d
+
+        echo "✅ Pub/Sub configured: outreach-triggers -> $SERVICE_URL/process-trigger"
+    id: 'configure-pubsub'
+    waitFor: ['deploy-async']
+
+  # Configure Cloud Scheduler for batch processing (idempotent)
+  - name: 'gcr.io/cloud-builders/gcloud'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        # Get the Cloud Run service URL
+        SERVICE_URL=$(gcloud run services describe ferni-async --platform=managed --region=us-central1 --format='value(status.url)')
+
+        # Create or update scheduler job (runs every 5 minutes)
+        gcloud scheduler jobs describe outreach-batch-processor --location=us-central1 2>/dev/null && \
+          gcloud scheduler jobs update http outreach-batch-processor \
+            --location=us-central1 \
+            --uri="$SERVICE_URL/process-batch?limit=100" \
+            --http-method=POST \
+            --schedule="*/5 * * * *" \
+            --time-zone="America/Los_Angeles" || \
+          gcloud scheduler jobs create http outreach-batch-processor \
+            --location=us-central1 \
+            --uri="$SERVICE_URL/process-batch?limit=100" \
+            --http-method=POST \
+            --schedule="*/5 * * * *" \
+            --time-zone="America/Los_Angeles" \
+            --attempt-deadline=300s
+
+        echo "✅ Cloud Scheduler configured: every 5 min -> $SERVICE_URL/process-batch"
+    id: 'configure-scheduler'
+    waitFor: ['deploy-async']
+
+options:
+  machineType: 'E2_MEDIUM'
+  logging: CLOUD_LOGGING_ONLY
+
+timeout: '600s'
+

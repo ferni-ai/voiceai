@@ -55,9 +55,7 @@ import { resetConversationRhythmTracker as _resetConversationRhythm } from './co
 import { resetConversationalMemory as _resetConversationalMemory } from './conversational-memory.js';
 import { resetConversationalRepairEngine as _resetConversationalRepair } from './conversational-repair.js';
 import { resetCuriosityEngine as _resetCuriosity } from './curiosity-engine.js';
-import { resetDeepHumanizationEngine as _resetDeepHumanization } from './deep-humanization.js';
-// NEW: Import from split deep-humanization module
-import { resetDeepHumanization as _resetDeepHumanizationNew } from './deep-humanization/index.js';
+import { resetDeepHumanization as _resetDeepHumanization } from './deep-humanization/index.js';
 import { resetEmotionalAftercareEngine as _resetEmotionalAftercare } from './emotional-aftercare.js';
 import { resetEmotionalArcTracker as _resetEmotionalArc } from './emotional-arc.js';
 import { resetEnergyRegulationEngine as _resetEnergyRegulation } from './energy-regulation.js';
@@ -144,6 +142,7 @@ export {
 export {
   buildOpenerContext,
   generateProactiveOpener,
+  generateProactiveOpenerAsync,
   type ConversationOpener,
   type OpenerContext,
   type OpenerType,
@@ -295,31 +294,27 @@ export {
   type EffectPlacement,
 } from './effects/index.js';
 
-// Deep Humanization - Advanced personality features (legacy module)
-export {
-  classifyTopicWeight,
-  DeepHumanizationEngine,
-  detectAdviceGiving,
-  detectBreakthrough,
-  detectEvidence,
-  getDeepHumanizationEngine,
-  resetDeepHumanizationEngine,
-  type ConversationMood,
-  type HumanizationContext as DeepHumanizationContext,
-  type HumanizationInjection,
-  type HumanizationType,
-  type SessionMemory,
-} from './deep-humanization.js';
-
-// NEW: Split Deep Humanization Module (clean architecture)
-// Uses types from legacy module above for backward compatibility
+// Deep Humanization - Clean architecture module
 export {
   applyDeepHumanization,
   getMoodTracker,
   resetDeepHumanization,
   resetMoodTracker,
   resetAllDeepHumanization,
+  type ConversationMood,
+  type HumanizationContext as DeepHumanizationContext,
+  type HumanizationInjection,
+  type HumanizationType,
+  type SessionMemory,
 } from './deep-humanization/index.js';
+
+// Detection utilities - exported from deep humanization for backward compatibility
+export {
+  classifyTopicWeight,
+  detectAdviceGiving,
+  detectBreakthrough,
+  detectEvidence,
+} from './utils/detection.js';
 
 // Note: Humanization tuning already exported above
 
@@ -724,8 +719,6 @@ export function resetAllConversationState(
   _resetConversationRhythm();
   if (personaId) {
     _resetDeepHumanization(personaId);
-    // NEW: Also reset the split module
-    _resetDeepHumanizationNew(personaId);
   }
   // Superhuman capabilities (session-scoped)
   if (sessionId) {

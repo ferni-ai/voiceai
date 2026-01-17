@@ -14,7 +14,8 @@ import {
   sanitizePlainText,
   sanitizeEmailForLog,
   sanitizePhoneForLog,
-} from '../tools/validation.js';
+} from '../utils/validation.js';
+import { MAX_RETRIES, RETRY_DELAY_MS, RETRY_MAX_DELAY_MS } from '../config/resilience-config.js';
 
 // API Keys from environment
 const SENDGRID_API_KEY = process.env.SENDGRID_API_KEY || '';
@@ -33,9 +34,9 @@ interface RetryOptions {
 }
 
 const DEFAULT_RETRY_OPTIONS: Required<RetryOptions> = {
-  maxRetries: 3,
-  baseDelayMs: 500,
-  maxDelayMs: 5000,
+  maxRetries: MAX_RETRIES,
+  baseDelayMs: RETRY_DELAY_MS,
+  maxDelayMs: RETRY_MAX_DELAY_MS,
 };
 
 /**

@@ -19,7 +19,7 @@ import { DURATION, EASING } from '../config/animation-constants.js';
 const log = createLogger('SplashScreen');
 
 // FIX BUG: Track all setTimeout calls for proper cleanup
-const { trackedTimeout, clearAll: clearAllTimeouts } = createTimeoutTracker();
+const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
 
 // ============================================================================
 // CONSTANTS
@@ -181,17 +181,8 @@ function getSplashHTML(): string {
         <!-- Outer Stone -->
         <circle cx="50" cy="50" r="45" fill="${COLORS.sage}"/>
         
-        <!-- Eye Group -->
-        <g class="eye-group">
-          <circle cx="50" cy="50" r="18" fill="${COLORS.white}"/>
-          <circle cx="50" cy="50" r="12" fill="${COLORS.sageLight}"/>
-          
-          <!-- Pupil Group -->
-          <g class="pupil-group">
-            <circle cx="50" cy="50" r="6" fill="${COLORS.ink}"/>
-            <circle cx="47" cy="47" r="2" fill="${COLORS.white}" opacity="0.9"/>
-          </g>
-        </g>
+        <!-- Simple white eye (no pupil) -->
+        <circle class="eye-main" cx="50" cy="50" r="14" fill="${COLORS.white}"/>
       </svg>
       
       <p class="splash-tagline">Your AI team is ready</p>
@@ -222,15 +213,11 @@ styleSheet.textContent = `
   }
   
   #${SPLASH_ID} .splash-logo {
-    width: 120px;
+    width: min(120px, 100%);
     height: 120px;
   }
   
-  #${SPLASH_ID} .splash-logo .eye-group {
-    transform-origin: 50px 50px;
-  }
-  
-  #${SPLASH_ID} .splash-logo .pupil-group {
+  #${SPLASH_ID} .splash-logo .eye-main {
     transform-origin: 50px 50px;
   }
   

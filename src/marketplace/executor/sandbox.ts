@@ -18,7 +18,7 @@
 /* global AbortController */
 
 import { getLogger } from '../../utils/safe-logger.js';
-import { checkQuota, recordUsage } from '../billing/index.js';
+import { checkAndIncrementQuota, recordUsage } from '../billing/index.js';
 import { getInstallation, getTool, hasPermission, recordExecution } from '../registry.js';
 import type {
   MarketplaceId,
@@ -28,6 +28,7 @@ import type {
   UserId,
 } from '../schema/types.js';
 import { getDockerRuntime } from './docker-runtime.js';
+import { executeHttpTool } from './http-executor.js';
 import { getWasmRuntime } from './wasm-runtime.js';
 
 const log = getLogger().child({ module: 'sandbox-executor' });
@@ -164,75 +165,7 @@ function getEffectiveLimits(manifest: ToolManifest): { timeoutMs: number; maxRet
   };
 }
 
-// ============================================================================
-// HTTP EXECUTOR
-// ============================================================================
-
-/**
- * Execute an HTTP-based tool
- */
-async function executeHttpTool(
-  manifest: ToolManifest,
-  parameters: Record<string, unknown>,
-  context: ExecutionContext,
-  options: ExecutionOptions
-): Promise<{ data: unknown; summary: string }> {
-  const endpoint = manifest.execution.runtime.endpoint;
-  if (!endpoint) {
-    throw new Error('HTTP tool missing endpoint configuration');
-  }
-
-  const { timeoutMs } = getEffectiveLimits(manifest);
-  const effectiveTimeout = options.timeoutMs ?? timeoutMs;
-
-  log.debug({ toolId: manifest.id, endpoint, timeoutMs: effectiveTimeout }, 'Executing HTTP tool');
-
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), effectiveTimeout);
-
-  try {
-    const response = await fetch(endpoint, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Ferni-Tool-Id': manifest.id,
-        'X-Ferni-Tool-Version': manifest.version,
-        'X-Ferni-User-Id': context.userId,
-        'X-Ferni-Session-Id': context.sessionId,
-        ...(context.tenantId && { 'X-Ferni-Tenant-Id': context.tenantId }),
-      },
-      body: JSON.stringify({
-        parameters,
-        context: {
-          userId: context.userId,
-          sessionId: context.sessionId,
-          agentId: context.agentId,
-        },
-      }),
-      signal: controller.signal,
-    });
-
-    clearTimeout(timeoutId);
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`HTTP ${response.status}: ${errorText}`);
-    }
-
-    const result = (await response.json()) as { summary?: string; data?: unknown };
-
-    // Extract summary for voice response
-    const summary =
-      result.summary ||
-      (typeof result.data === 'string'
-        ? result.data
-        : JSON.stringify(result.data ?? result).slice(0, 500));
-
-    return { data: result.data || result, summary };
-  } finally {
-    clearTimeout(timeoutId);
-  }
-}
+// HTTP executor is imported from ./http-executor.ts
 
 // ============================================================================
 // WASM EXECUTOR
@@ -429,9 +362,14 @@ export async function executeMarketplaceTool(
   // Track which permissions we're using
   permissionsUsed.push(...manifest.permissions.required.map((p) => p.scope));
 
-  // Check quota before execution (skip for platform tools)
+  // Check and atomically increment quota before execution (skip for platform tools)
+  // Using atomic operation prevents race conditions where concurrent requests could exceed quota
   if (manifest.verification.trustLevel !== 'platform' && !options.skipPermissionCheck) {
-    const quotaCheck = checkQuota(context.userId, toolId, context.subscriptionTier || 'free');
+    const quotaCheck = await checkAndIncrementQuota(
+      context.userId,
+      toolId,
+      context.subscriptionTier || 'free'
+    );
 
     if (!quotaCheck.allowed) {
       log.warn({ toolId, userId: context.userId, reason: quotaCheck.reason }, 'Quota exceeded');
@@ -467,9 +405,12 @@ export async function executeMarketplaceTool(
 
     // Route to appropriate executor based on runtime type
     switch (manifest.execution.runtime.type) {
-      case 'http':
-        result = await executeHttpTool(manifest, parameters, context, options);
+      case 'http': {
+        const { timeoutMs } = getEffectiveLimits(manifest);
+        const effectiveTimeout = options.timeoutMs ?? timeoutMs;
+        result = await executeHttpTool(manifest, parameters, context, options, effectiveTimeout);
         break;
+      }
 
       case 'wasm':
         result = await executeWasmTool(manifest, parameters, context, options);

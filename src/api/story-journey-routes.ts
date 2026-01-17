@@ -10,6 +10,7 @@
 import { getFirestore } from 'firebase-admin/firestore';
 import type { IncomingMessage, ServerResponse } from 'http';
 import { createLogger } from '../utils/safe-logger.js';
+import { cleanForFirestore } from '../utils/firestore-utils.js';
 import { rateLimit, requireAuth } from './auth-middleware.js';
 import { handleCorsPreflightIfNeeded } from './helpers.js';
 
@@ -155,7 +156,10 @@ export async function handleStoryJourneyRoutes(
         ...data,
       };
 
-      await db.collection('story_journeys').doc(userId).set(journey, { merge: true });
+      await db
+        .collection('story_journeys')
+        .doc(userId)
+        .set(cleanForFirestore(journey), { merge: true });
 
       log.info({ userId }, 'Story journey updated');
       sendJson(res, 200, { success: true, journey });
@@ -195,11 +199,11 @@ export async function handleStoryJourneyRoutes(
       };
 
       await docRef.set(
-        {
+        cleanForFirestore({
           userId,
           milestones: [...currentMilestones, newMilestone],
           updatedAt: new Date(),
-        },
+        }),
         { merge: true }
       );
 
@@ -257,11 +261,11 @@ export async function handleStoryJourneyRoutes(
       }
 
       await docRef.set(
-        {
+        cleanForFirestore({
           userId,
           threads: currentThreads,
           updatedAt: new Date(),
-        },
+        }),
         { merge: true }
       );
 
@@ -297,14 +301,14 @@ export async function handleStoryJourneyRoutes(
       const now = new Date().toISOString();
 
       await docRef.set(
-        {
+        cleanForFirestore({
           userId,
           totalSessions: (currentData?.totalSessions || 0) + 1,
           totalMinutes: (currentData?.totalMinutes || 0) + (data.durationMinutes || 0),
           firstSessionAt: currentData?.firstSessionAt || now,
           lastSessionAt: now,
           updatedAt: new Date(),
-        },
+        }),
         { merge: true }
       );
 

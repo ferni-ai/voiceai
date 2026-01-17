@@ -240,7 +240,7 @@ export function generateSocraticQuestion(context: SocraticContext): SocraticQues
 /**
  * Generate multiple questions for a topic
  */
-export function generateQuestionSequence(topic: string, depth: number = 3): SocraticQuestion[] {
+export function generateQuestionSequence(topic: string, depth = 3): SocraticQuestion[] {
   const questions: SocraticQuestion[] = [];
   const usedTypes: SocraticQuestionType[] = [];
 

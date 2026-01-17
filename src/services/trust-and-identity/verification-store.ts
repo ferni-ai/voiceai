@@ -10,7 +10,7 @@
  */
 
 import { getFirestore, type Firestore } from 'firebase-admin/firestore';
-import { removeUndefined } from '../../utils/firestore-utils.js';
+import { removeUndefined, cleanForFirestore } from '../../utils/firestore-utils.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import { registerInterval } from '../../utils/interval-manager.js';
 
@@ -218,11 +218,13 @@ export async function verifyCode(
     if (db) {
       try {
         const docRef = db.collection(COLLECTION_NAME).doc(userId);
-        await docRef.update({
-          verified: true,
-          verifiedAt: storedCode.verifiedAt,
-          attempts: storedCode.attempts,
-        });
+        await docRef.update(
+          cleanForFirestore({
+            verified: true,
+            verifiedAt: storedCode.verifiedAt,
+            attempts: storedCode.attempts,
+          })
+        );
       } catch (error) {
         log.warn({ error, userId }, 'Failed to update Firestore - updating in-memory');
         inMemoryStore.set(userId, storedCode);
@@ -239,7 +241,7 @@ export async function verifyCode(
   if (db) {
     try {
       const docRef = db.collection(COLLECTION_NAME).doc(userId);
-      await docRef.update({ attempts: storedCode.attempts });
+      await docRef.update(cleanForFirestore({ attempts: storedCode.attempts }));
     } catch {
       inMemoryStore.set(userId, storedCode);
     }

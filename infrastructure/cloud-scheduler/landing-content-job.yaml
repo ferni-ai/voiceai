@@ -1,0 +1,68 @@
+# Cloud Scheduler Job - Landing Content Generation
+# ═══════════════════════════════════════════════════════════════════════════
+#
+# Runs daily at 4am UTC to pre-generate AI content for the landing page.
+# This reduces real-time API costs from $$$$/month to ~$0.05/month.
+#
+# Deploy with:
+#   gcloud scheduler jobs create http landing-content-generation \
+#     --location=us-central1 \
+#     --schedule="0 4 * * *" \
+#     --time-zone="America/New_York" \
+#     --uri="https://john-bogle-ui-bmopaivmsq-uc.a.run.app/api/landing/generate-content" \
+#     --http-method=POST \
+#     --headers="Content-Type=application/json" \
+#     --message-body='{"action":"generate-all"}' \
+#     --oidc-service-account-email=johnb-2025@appspot.gserviceaccount.com \
+#     --attempt-deadline=600s \
+#     --description="Daily AI content pre-generation for landing page (cost optimization)"
+#
+# DEPLOYED: 2025-12-20
+# Status: ENABLED (runs daily at 4am ET)
+
+apiVersion: cloudscheduler.cnrm.cloud.google.com/v1beta1
+kind: CloudSchedulerJob
+metadata:
+  name: landing-content-generation
+  namespace: ferni
+spec:
+  # Schedule: Every day at 4am UTC (covers all US timezones before morning)
+  schedule: "0 4 * * *"
+  timeZone: "America/New_York"
+  
+  httpTarget:
+    uri: "https://john-bogle-ui-bmopaivmsq-uc.a.run.app/api/landing/generate-content"
+    httpMethod: POST
+    headers:
+      Content-Type: "application/json"
+    body: |
+      {
+        "action": "generate-all",
+        "includeHeroes": true,
+        "includeSocialProof": true,
+        "includeMemoryStories": true,
+        "includeLateNightScenarios": true
+      }
+    oidcToken:
+      serviceAccountEmail: johnb-2025@appspot.gserviceaccount.com
+  
+  # Retry configuration
+  retryConfig:
+    retryCount: 3
+    minBackoffDuration: "5s"
+    maxBackoffDuration: "60s"
+    maxDoublings: 2
+  
+  # Timeout: 10 minutes (content generation can take time)
+  attemptDeadline: "600s"
+
+---
+# Manual trigger endpoint for deployments
+# Can be called from CI/CD pipeline after landing page deploys
+
+# Usage:
+#   curl -X POST "https://bogle-ui.../api/landing/generate-content" \
+#     -H "Authorization: Bearer $(gcloud auth print-identity-token)" \
+#     -H "Content-Type: application/json" \
+#     -d '{"action": "generate-all"}'
+

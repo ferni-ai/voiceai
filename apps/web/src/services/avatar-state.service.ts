@@ -32,7 +32,7 @@ const PERSONA_ID_TO_PROFILE_KEY: Record<
 > = {
   ferni: 'ferni',
   jack: 'ferni', // Jack uses Ferni's timing (wise, grounded)
-  peter: 'peter-lynch',
+  peter: 'peter-john',
   alex: 'alex-chen',
   maya: 'maya-santos',
   jordan: 'jordan-taylor',

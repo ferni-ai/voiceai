@@ -1,0 +1,1590 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="cedar">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Predictive UI | Ferni Design System</title>
+  <meta name="description" content="Ferni Design System - Brand tokens, components, and patterns for building human-centered AI experiences">
+
+  <!-- Fonts: Plus Jakarta Sans (display), Inter (body), JetBrains Mono (code) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+  <!-- Design Tokens (auto-generated from design-system/tokens/*.json) -->
+  <link rel="stylesheet" href="/css/tokens.css">
+  <link rel="stylesheet" href="/css/components.css">
+  <link rel="stylesheet" href="/css/docs.css">
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%233D5A45' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z'/><path d='M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12'/></svg>">
+</head>
+<body>
+  <div class="layout">
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <a href="/" class="logo">
+          <span class="logo-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"/>
+              <path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"/>
+            </svg>
+          </span>
+          <span class="logo-text">Ferni Design</span>
+        </a>
+        <span class="version-badge">v2.0</span>
+      </div>
+
+      <!-- Search -->
+      <div class="sidebar-search">
+        <input type="text" id="searchInput" placeholder="Search..." aria-label="Search documentation">
+        <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="11" cy="11" r="8"/>
+          <path d="m21 21-4.3-4.3"/>
+        </svg>
+      </div>
+
+      <nav class="sidebar-nav">
+        <div class="nav-section">
+          <span class="nav-section-title">Foundations</span>
+          <ul>
+            <li><a href="/" class="">Overview</a></li>
+            <li><a href="/colors/" class="">Colors</a></li>
+            <li><a href="/typography/" class="">Typography</a></li>
+            <li><a href="/spacing/" class="">Spacing</a></li>
+            <li><a href="/animation/" class="">Animation</a></li>
+            <li><a href="/physics/" class="">Physics</a></li>
+            <li><a href="/responsive/" class="">Responsive</a></li>
+            <li><a href="/effects/" class="">Effects</a></li>
+            <li><a href="/sequences/" class="">Sequences</a></li>
+            <li><a href="/motion/" class="">Motion</a></li>
+            <li><a href="/haptics/" class="">Haptics</a></li>
+          </ul>
+        </div>
+
+        <div class="nav-section">
+          <span class="nav-section-title">Patterns</span>
+          <ul>
+            <li><a href="/feedback/" class="">Feedback</a></li>
+            <li><a href="/predictive-ui/" class="active">Predictive UI</a></li>
+          </ul>
+        </div>
+
+        <div class="nav-section">
+          <span class="nav-section-title">Brand</span>
+          <ul>
+            <li><a href="/personas/" class="">Personas</a></li>
+            <li><a href="/personality/" class="">Personality</a></li>
+            <li><a href="/capabilities/" class="">Capabilities</a></li>
+            <li><a href="/voice/" class="">Voice & Tone</a></li>
+            <li><a href="/sounds-haptics/" class="">Sounds & Haptics</a></li>
+            <li><a href="/sonic-identity/" class="">Sonic Identity</a></li>
+            <li><a href="/rituals/" class="">Rituals</a></li>
+            <li><a href="/icons/" class="">Icons</a></li>
+            <li><a href="/expressions/" class="">Expressions</a></li>
+            <li><a href="/glow-colors/" class="">Glow Colors</a></li>
+            <li><a href="/window-avatar/" class="">Window Avatar</a></li>
+            <li><a href="/universe/" class="">Universe</a></li>
+            <li><a href="/visualizations/" class="">Visualizations</a></li>
+            <li><a href="/brand-guardrails/" class="">Brand Guardrails</a></li>
+            <li><a href="/brand-kit/" class="">Brand Kit</a></li>
+          </ul>
+        </div>
+
+        <div class="nav-section">
+          <span class="nav-section-title">Components</span>
+          <ul>
+            <li><a href="/components/" class="">Overview</a></li>
+            <li><a href="/components/avatar/" class="">Avatar</a></li>
+            <li><a href="/components/badge/" class="">Badge</a></li>
+            <li><a href="/components/buttons/" class="">Buttons</a></li>
+            <li><a href="/components/cards/" class="">Cards</a></li>
+            <li><a href="/components/dropdown/" class="">Dropdown</a></li>
+            <li><a href="/components/glass/" class="">Glass Surfaces</a></li>
+            <li><a href="/components/inputs/" class="">Inputs</a></li>
+            <li><a href="/components/modal/" class="">Modal</a></li>
+            <li><a href="/components/progress/" class="">Progress</a></li>
+            <li><a href="/components/tabs/" class="">Tabs</a></li>
+            <li><a href="/components/toast/" class="">Toast</a></li>
+            <li><a href="/components/tooltip/" class="">Tooltip</a></li>
+          </ul>
+        </div>
+
+        <div class="nav-section">
+          <span class="nav-section-title">Resources</span>
+          <ul>
+            <li><a href="https://developers.ferni.ai" target="_blank">Developer Docs</a></li>
+            <li><a href="https://marketplace.ferni.ai" target="_blank">Marketplace</a></li>
+            <li><a href="https://ferni.ai" target="_blank">Product</a></li>
+          </ul>
+        </div>
+      </nav>
+
+      <div class="sidebar-footer">
+        <button class="theme-preview-btn" onclick="toggleThemePreview()" aria-label="Toggle theme comparison">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="3" width="7" height="7"/>
+            <rect x="14" y="3" width="7" height="7"/>
+            <rect x="3" y="14" width="7" height="7"/>
+            <rect x="14" y="14" width="7" height="7"/>
+          </svg>
+          <span>Compare</span>
+        </button>
+        <div class="theme-toggle" onclick="toggleTheme()">
+          <svg class="sun-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="5"/>
+            <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+          </svg>
+          <svg class="moon-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+          </svg>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Theme Preview Modal -->
+    <div id="themePreviewModal" class="theme-preview-modal">
+      <div class="theme-preview-header">
+        <h3>Theme Comparison</h3>
+        <button class="close-preview" onclick="toggleThemePreview()" aria-label="Close preview">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M18 6L6 18M6 6l12 12"/>
+          </svg>
+        </button>
+      </div>
+      <div class="theme-preview-content">
+        <div class="theme-panel" data-theme="cedar">
+          <div class="theme-label">Cedar (Dark)</div>
+          <div class="theme-sample">
+            <div class="sample-card">
+              <div class="sample-avatar"></div>
+              <div class="sample-text">
+                <div class="sample-title"></div>
+                <div class="sample-body"></div>
+              </div>
+            </div>
+            <div class="sample-buttons">
+              <button class="sample-btn primary">Primary</button>
+              <button class="sample-btn secondary">Secondary</button>
+            </div>
+            <div class="sample-colors">
+              <div class="color-dot ferni"></div>
+              <div class="color-dot maya"></div>
+              <div class="color-dot peter"></div>
+              <div class="color-dot alex"></div>
+              <div class="color-dot jordan"></div>
+            </div>
+          </div>
+        </div>
+        <div class="theme-panel" data-theme="zen">
+          <div class="theme-label">Zen (Light)</div>
+          <div class="theme-sample">
+            <div class="sample-card">
+              <div class="sample-avatar"></div>
+              <div class="sample-text">
+                <div class="sample-title"></div>
+                <div class="sample-body"></div>
+              </div>
+            </div>
+            <div class="sample-buttons">
+              <button class="sample-btn primary">Primary</button>
+              <button class="sample-btn secondary">Secondary</button>
+            </div>
+            <div class="sample-colors">
+              <div class="color-dot ferni"></div>
+              <div class="color-dot maya"></div>
+              <div class="color-dot peter"></div>
+              <div class="color-dot alex"></div>
+              <div class="color-dot jordan"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Search Results -->
+    <div id="searchResults" class="search-results"></div>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      
+<div class="page-header">
+  <h1>Predictive UI</h1>
+  <p class="lead">The best interface is one that's already prepared for what you need. Ferni anticipates, not just reacts.</p>
+</div>
+
+<section class="section" id="preloading">
+  <h2>Preloading Patterns</h2>
+
+  <h3>Skeleton Loading</h3>
+  <div class="skeleton-demo">
+    <div class="skeleton-card">
+      <div class="skeleton-line" style="width: 80%"></div>
+      <div class="skeleton-line" style="width: 60%"></div>
+      <div class="skeleton-line" style="width: 70%"></div>
+    </div>
+    <div class="skeleton-specs">
+      <ul>
+        <li><strong>Shimmer speed:</strong> 1.5s</li>
+        <li><strong>Shimmer angle:</strong> -20deg</li>
+        <li><strong>Pulse opacity:</strong> 0.04 → 0.08</li>
+        <li><strong>Pulse duration:</strong> 2s</li>
+      </ul>
+    </div>
+  </div>
+
+  <h3>Ghost Content</h3>
+  <p>Placeholder shapes that hint at incoming content structure.</p>
+
+  <div class="ghost-grid">
+    <div class="ghost-item">
+      <div class="ghost-shape text-line"></div>
+      <span>Text Line</span>
+      <code>height: 1em, width: 60-90%</code>
+    </div>
+    <div class="ghost-item">
+      <div class="ghost-shape avatar"></div>
+      <span>Avatar</span>
+      <code>40px circle</code>
+    </div>
+    <div class="ghost-item">
+      <div class="ghost-shape card"></div>
+      <span>Card</span>
+      <code>16:9 aspect ratio</code>
+    </div>
+    <div class="ghost-item">
+      <div class="ghost-shape button"></div>
+      <span>Button</span>
+      <code>120px × 44px pill</code>
+    </div>
+  </div>
+
+  <h3>Progressive Reveal</h3>
+  <p>Content appears in priority order with staggered timing.</p>
+
+  <div class="reveal-demo">
+    <div class="reveal-item" style="--delay: 0">
+      <span class="priority">1</span>
+      <span class="element">Heading</span>
+    </div>
+    <div class="reveal-item" style="--delay: 1">
+      <span class="priority">2</span>
+      <span class="element">Primary Action</span>
+    </div>
+    <div class="reveal-item" style="--delay: 2">
+      <span class="priority">3</span>
+      <span class="element">Body</span>
+    </div>
+    <div class="reveal-item" style="--delay: 3">
+      <span class="priority">4</span>
+      <span class="element">Metadata</span>
+    </div>
+    <div class="reveal-item" style="--delay: 4">
+      <span class="priority">5</span>
+      <span class="element">Secondary Actions</span>
+    </div>
+  </div>
+  <p class="spec-note">Stagger delay: 50ms per item · Animation: fadeSlideIn 300ms ease-out</p>
+</section>
+
+<section class="section" id="anticipation">
+  <h2>Anticipation</h2>
+  <p>UI prepares for likely next actions.</p>
+
+  <div class="anticipation-grid">
+    <div class="anticipation-card">
+      <h4>Hover Intent</h4>
+      <p>Detect hover trajectory to preload content</p>
+      <ul>
+        <li><strong>Detection radius:</strong> 100px</li>
+        <li><strong>Velocity threshold:</strong> 50px/s</li>
+        <li><strong>Preload delay:</strong> 100ms</li>
+        <li><strong>Visual hint:</strong> opacity 0.02, scale 1.005</li>
+      </ul>
+    </div>
+
+    <div class="anticipation-card">
+      <h4>Scroll Anticipation</h4>
+      <p>Preload content in scroll direction</p>
+      <ul>
+        <li><strong>Look ahead:</strong> 2 viewports</li>
+        <li><strong>Velocity multiplier:</strong> 1.5×</li>
+        <li><strong>Preload threshold:</strong> 0.5 viewports</li>
+      </ul>
+    </div>
+
+    <div class="anticipation-card">
+      <h4>Time-Based Preload</h4>
+      <p>Load content based on typical usage patterns</p>
+      <div class="time-preloads">
+        <div class="time-slot">
+          <span class="time">Morning</span>
+          <span class="content">calendar, weather, priorities</span>
+        </div>
+        <div class="time-slot">
+          <span class="time">Evening</span>
+          <span class="content">reflections, tomorrow-prep, wind-down</span>
+        </div>
+        <div class="time-slot">
+          <span class="time">Weekend</span>
+          <span class="content">weekly-review, personal-goals, relationships</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="anticipation-card">
+      <h4>Contextual Preload</h4>
+      <p>Load based on detected intent</p>
+      <div class="context-preloads">
+        <div class="context-row">
+          <span class="context">After goal discussion</span>
+          <span class="loads">goal-tracker, milestone-history</span>
+        </div>
+        <div class="context-row">
+          <span class="context">After emotional conversation</span>
+          <span class="loads">mood-insights, journal</span>
+        </div>
+        <div class="context-row">
+          <span class="context">After scheduling talk</span>
+          <span class="loads">calendar, reminders</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="suggestions">
+  <h2>Proactive Suggestions</h2>
+
+  <div class="suggestion-types">
+    <div class="suggestion-card">
+      <div class="suggestion-demo bubble">
+        <div class="suggestion-bubble">Hey, want to check in on your morning routine?</div>
+      </div>
+      <h4>Suggestion Bubble</h4>
+      <ul>
+        <li><strong>Max width:</strong> 280px</li>
+        <li><strong>Padding:</strong> 12px 16px</li>
+        <li><strong>Border radius:</strong> 16px</li>
+        <li><strong>Background:</strong> glass-regular</li>
+        <li><strong>Entry:</strong> bubbleIn 400ms spring</li>
+      </ul>
+    </div>
+
+    <div class="suggestion-card">
+      <div class="suggestion-demo nudge">
+        <div class="nudge-target">
+          <div class="nudge-arrow"></div>
+        </div>
+      </div>
+      <h4>Nudge</h4>
+      <ul>
+        <li><strong>Arrow size:</strong> 8px</li>
+        <li><strong>Animation:</strong> nudgePulse 2s infinite</li>
+        <li><strong>Max occurrences:</strong> 3</li>
+        <li><strong>Cooldown:</strong> 1 hour</li>
+      </ul>
+    </div>
+
+    <div class="suggestion-card">
+      <div class="suggestion-demo spotlight">
+        <div class="spotlight-target"></div>
+      </div>
+      <h4>Spotlight</h4>
+      <ul>
+        <li><strong>Glow radius:</strong> 20px</li>
+        <li><strong>Glow opacity:</strong> 0.15</li>
+        <li><strong>Animation:</strong> spotlightPulse 3s infinite</li>
+        <li><strong>Dim background:</strong> 0.4 opacity</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="adaptation">
+  <h2>UI Adaptation</h2>
+  <p>UI adapts to user patterns over time.</p>
+
+  <div class="adaptation-grid">
+    <div class="adaptation-card">
+      <h4>Frequency Boost</h4>
+      <p>Frequently used features become more prominent</p>
+      <ul>
+        <li><strong>Threshold:</strong> 5 uses / week</li>
+        <li><strong>Position:</strong> elevated</li>
+        <li><strong>Size:</strong> 1.1×</li>
+        <li><strong>Show shortcut:</strong> true</li>
+      </ul>
+    </div>
+
+    <div class="adaptation-card">
+      <h4>Time Optimization</h4>
+      <p>Features optimize for when they're most used</p>
+      <ul>
+        <li>Track usage time</li>
+        <li>Show at optimal time</li>
+        <li>Hide when irrelevant</li>
+      </ul>
+    </div>
+
+    <div class="adaptation-card">
+      <h4>Sequence Detection</h4>
+      <p>Detect common action sequences</p>
+      <ul>
+        <li><strong>Min length:</strong> 2 actions</li>
+        <li><strong>Confidence:</strong> 0.7</li>
+        <li><strong>Suggest next:</strong> true</li>
+        <li><strong>Create shortcut:</strong> after 10 occurrences</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="loading-stages">
+  <h2>Loading Stages</h2>
+  <p>Loading states that feel alive, not stuck.</p>
+
+  <div class="loading-stages">
+    <div class="stage-card">
+      <div class="stage-header">
+        <span class="stage-name">Instant</span>
+        <span class="stage-time">&lt; 100ms</span>
+      </div>
+      <div class="stage-show">Show nothing</div>
+      <p>Too fast to show anything</p>
+    </div>
+
+    <div class="stage-card">
+      <div class="stage-header">
+        <span class="stage-name">Fast</span>
+        <span class="stage-time">100-300ms</span>
+      </div>
+      <div class="stage-show">
+        <div class="subtle-pulse"></div>
+        Subtle pulse
+      </div>
+      <p>Brief acknowledgment</p>
+    </div>
+
+    <div class="stage-card">
+      <div class="stage-header">
+        <span class="stage-name">Normal</span>
+        <span class="stage-time">300ms-1s</span>
+      </div>
+      <div class="stage-show">
+        <div class="skeleton-mini"></div>
+        Skeleton
+      </div>
+      <p>Standard loading</p>
+    </div>
+
+    <div class="stage-card">
+      <div class="stage-header">
+        <span class="stage-name">Slow</span>
+        <span class="stage-time">1-5s</span>
+      </div>
+      <div class="stage-show">
+        <div class="progress-mini"></div>
+        Skeleton + progress
+      </div>
+      <p>Show we're working</p>
+    </div>
+
+    <div class="stage-card">
+      <div class="stage-header">
+        <span class="stage-name">Extended</span>
+        <span class="stage-time">&gt; 5s</span>
+      </div>
+      <div class="stage-show">
+        Skeleton + progress + message
+      </div>
+      <p class="messages">"Still working..." → "Almost there..." → "Thanks for waiting..."</p>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="personalization">
+  <h2>Intelligence Personalization</h2>
+  <p>UI adapts to individual preferences over time.</p>
+
+  <div class="personalization-grid">
+    <div class="personalization-card">
+      <h4>Information Density</h4>
+      <div class="density-options">
+        <div class="density minimal">
+          <span class="label">Minimal</span>
+          <ul>
+            <li>Spacing: 1.5×</li>
+            <li>Font: 1.1×</li>
+            <li>Items/view: 3</li>
+          </ul>
+        </div>
+        <div class="density balanced">
+          <span class="label">Balanced</span>
+          <ul>
+            <li>Spacing: 1×</li>
+            <li>Font: 1×</li>
+            <li>Items/view: 5</li>
+          </ul>
+        </div>
+        <div class="density dense">
+          <span class="label">Dense</span>
+          <ul>
+            <li>Spacing: 0.8×</li>
+            <li>Font: 0.95×</li>
+            <li>Items/view: 8</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="personalization-card">
+      <h4>Interaction Speed</h4>
+      <div class="speed-options">
+        <div class="speed deliberate">
+          <span class="label">Deliberate</span>
+          <ul>
+            <li>Animation: 0.8×</li>
+            <li>Hold duration: 1.2×</li>
+            <li>Tooltip delay: 400ms</li>
+          </ul>
+        </div>
+        <div class="speed balanced">
+          <span class="label">Balanced</span>
+          <ul>
+            <li>Animation: 1×</li>
+            <li>Hold duration: 1×</li>
+            <li>Tooltip delay: 300ms</li>
+          </ul>
+        </div>
+        <div class="speed quick">
+          <span class="label">Quick</span>
+          <ul>
+            <li>Animation: 1.3×</li>
+            <li>Hold duration: 0.7×</li>
+            <li>Tooltip delay: 150ms</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="personalization-card">
+      <h4>Visual Complexity</h4>
+      <div class="complexity-options">
+        <div class="complexity calm">
+          <span class="label">Calm</span>
+          <ul>
+            <li>Particles: none</li>
+            <li>Gradients: subtle</li>
+            <li>Animations: minimal</li>
+          </ul>
+        </div>
+        <div class="complexity balanced">
+          <span class="label">Balanced</span>
+          <ul>
+            <li>Particles: light</li>
+            <li>Gradients: moderate</li>
+            <li>Animations: standard</li>
+          </ul>
+        </div>
+        <div class="complexity rich">
+          <span class="label">Rich</span>
+          <ul>
+            <li>Particles: full</li>
+            <li>Gradients: vibrant</li>
+            <li>Animations: expressive</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+.skeleton-demo {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-6);
+  margin: var(--space-6) 0;
+  align-items: center;
+}
+
+.skeleton-card {
+  padding: var(--space-5);
+  background: var(--glass-subtle-background);
+  border-radius: var(--radius-lg);
+}
+
+.skeleton-line {
+  height: 16px;
+  background: linear-gradient(90deg, var(--color-border-subtle) 0%, var(--color-bg-elevated) 50%, var(--color-border-subtle) 100%);
+  background-size: 200% 100%;
+  border-radius: var(--radius-sm);
+  margin-bottom: var(--space-3);
+  animation: shimmer 1.5s infinite;
+}
+
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+.skeleton-specs ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.skeleton-specs li {
+  padding: var(--space-1) 0;
+}
+
+.ghost-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: var(--space-4);
+  margin: var(--space-6) 0;
+}
+
+.ghost-item {
+  text-align: center;
+}
+
+.ghost-shape {
+  margin: 0 auto var(--space-3);
+  background: var(--color-border-subtle);
+  animation: pulse 2s ease-in-out infinite;
+}
+
+.ghost-shape.text-line {
+  width: 80%;
+  height: 16px;
+  border-radius: var(--radius-sm);
+}
+
+.ghost-shape.avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+}
+
+.ghost-shape.card {
+  width: 100%;
+  aspect-ratio: 16/9;
+  border-radius: var(--radius-md);
+}
+
+.ghost-shape.button {
+  width: 120px;
+  height: 44px;
+  border-radius: var(--radius-full);
+}
+
+.ghost-item span {
+  display: block;
+  margin-bottom: var(--space-1);
+  font-weight: 500;
+}
+
+.ghost-item code {
+  font-size: 0.75rem;
+  color: var(--color-text-tertiary);
+}
+
+.reveal-demo {
+  display: flex;
+  gap: var(--space-3);
+  margin: var(--space-6) 0;
+}
+
+.reveal-item {
+  flex: 1;
+  padding: var(--space-3);
+  background: var(--glass-subtle-background);
+  border-radius: var(--radius-md);
+  text-align: center;
+  animation: revealItem 3s ease-out infinite;
+  animation-delay: calc(var(--delay) * 0.15s);
+}
+
+@keyframes revealItem {
+  0%, 100% { opacity: 0.3; transform: translateY(8px); }
+  20%, 80% { opacity: 1; transform: translateY(0); }
+}
+
+.reveal-item .priority {
+  display: block;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--color-accent);
+}
+
+.reveal-item .element {
+  font-size: 0.85rem;
+  color: var(--color-text-secondary);
+}
+
+.spec-note {
+  font-size: 0.85rem;
+  color: var(--color-text-tertiary);
+  text-align: center;
+}
+
+.anticipation-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: var(--space-4);
+  margin: var(--space-6) 0;
+}
+
+.anticipation-card {
+  padding: var(--space-4);
+  background: var(--glass-subtle-background);
+  border-radius: var(--radius-lg);
+}
+
+.anticipation-card h4 {
+  margin: 0 0 var(--space-2);
+  color: var(--color-accent);
+}
+
+.anticipation-card > p {
+  margin: 0 0 var(--space-3);
+  color: var(--color-text-secondary);
+}
+
+.anticipation-card ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+.anticipation-card li {
+  padding: var(--space-1) 0;
+}
+
+.time-preloads, .context-preloads {
+  margin-top: var(--space-3);
+}
+
+.time-slot, .context-row {
+  display: flex;
+  justify-content: space-between;
+  padding: var(--space-2);
+  border-bottom: 1px solid var(--color-border-subtle);
+  font-size: 0.85rem;
+}
+
+.time-slot .time, .context-row .context {
+  font-weight: 500;
+}
+
+.time-slot .content, .context-row .loads {
+  color: var(--color-text-secondary);
+}
+
+.suggestion-types {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: var(--space-4);
+  margin: var(--space-6) 0;
+}
+
+.suggestion-card {
+  padding: var(--space-4);
+  background: var(--glass-subtle-background);
+  border-radius: var(--radius-lg);
+}
+
+.suggestion-demo {
+  height: 100px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-bg-primary);
+  border-radius: var(--radius-md);
+  margin-bottom: var(--space-4);
+}
+
+.suggestion-bubble {
+  padding: var(--space-3) var(--space-4);
+  background: var(--glass-regular-background);
+  backdrop-filter: blur(8px);
+  border-radius: 16px;
+  font-size: 0.9rem;
+  max-width: 200px;
+  animation: bubbleIn 2s ease-out infinite;
+}
+
+@keyframes bubbleIn {
+  0%, 100% { opacity: 0; transform: scale(0.8) translateY(10px); }
+  30%, 70% { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.nudge-target {
+  width: 60px;
+  height: 60px;
+  background: var(--color-accent);
+  border-radius: var(--radius-md);
+  position: relative;
+}
+
+.nudge-arrow {
+  position: absolute;
+  right: -20px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 0;
+  height: 0;
+  border-top: 8px solid transparent;
+  border-bottom: 8px solid transparent;
+  border-left: 12px solid var(--color-accent);
+  animation: nudgePulse 2s ease-in-out infinite;
+}
+
+@keyframes nudgePulse {
+  0%, 100% { transform: translateY(-50%) translateX(0); }
+  25% { transform: translateY(-50%) translateX(4px); }
+  75% { transform: translateY(-50%) translateX(-2px); }
+}
+
+.spotlight-target {
+  width: 60px;
+  height: 60px;
+  background: var(--color-accent);
+  border-radius: var(--radius-md);
+  box-shadow: 0 0 20px var(--color-accent);
+  animation: spotlightPulse 3s ease-in-out infinite;
+}
+
+@keyframes spotlightPulse {
+  0%, 100% { box-shadow: 0 0 20px var(--color-accent); }
+  50% { box-shadow: 0 0 40px var(--color-accent); }
+}
+
+.suggestion-card h4 {
+  margin: 0 0 var(--space-3);
+}
+
+.suggestion-card ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+.adaptation-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: var(--space-4);
+  margin: var(--space-6) 0;
+}
+
+.adaptation-card {
+  padding: var(--space-4);
+  background: var(--glass-subtle-background);
+  border-radius: var(--radius-lg);
+}
+
+.adaptation-card h4 {
+  margin: 0 0 var(--space-2);
+  color: var(--color-accent);
+}
+
+.adaptation-card > p {
+  margin: 0 0 var(--space-3);
+  color: var(--color-text-secondary);
+}
+
+.adaptation-card ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+.loading-stages {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: var(--space-4);
+  margin: var(--space-6) 0;
+}
+
+.stage-card {
+  padding: var(--space-4);
+  background: var(--glass-subtle-background);
+  border-radius: var(--radius-lg);
+  text-align: center;
+}
+
+.stage-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: var(--space-3);
+}
+
+.stage-name {
+  font-weight: 600;
+}
+
+.stage-time {
+  font-size: 0.85rem;
+  color: var(--color-text-secondary);
+  font-family: monospace;
+}
+
+.stage-show {
+  padding: var(--space-3);
+  background: var(--color-bg-primary);
+  border-radius: var(--radius-md);
+  margin-bottom: var(--space-2);
+  min-height: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  font-size: 0.85rem;
+  color: var(--color-text-secondary);
+}
+
+.subtle-pulse {
+  width: 20px;
+  height: 20px;
+  background: var(--color-accent);
+  border-radius: 50%;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+.skeleton-mini {
+  width: 100%;
+  height: 12px;
+  background: linear-gradient(90deg, var(--color-border-subtle) 0%, var(--color-bg-elevated) 50%, var(--color-border-subtle) 100%);
+  background-size: 200% 100%;
+  border-radius: var(--radius-sm);
+  animation: shimmer 1.5s infinite;
+}
+
+.progress-mini {
+  width: 100%;
+  height: 4px;
+  background: var(--color-border-subtle);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+  position: relative;
+}
+
+.progress-mini::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 100%;
+  width: 30%;
+  background: var(--color-accent);
+  animation: progress 2s ease-in-out infinite;
+}
+
+@keyframes progress {
+  0% { left: -30%; }
+  100% { left: 100%; }
+}
+
+.stage-card > p {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--color-text-tertiary);
+}
+
+.messages {
+  font-style: italic;
+}
+
+.personalization-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: var(--space-4);
+  margin: var(--space-6) 0;
+}
+
+.personalization-card {
+  padding: var(--space-4);
+  background: var(--glass-subtle-background);
+  border-radius: var(--radius-lg);
+}
+
+.personalization-card h4 {
+  margin: 0 0 var(--space-4);
+  color: var(--color-accent);
+}
+
+.density-options, .speed-options, .complexity-options {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-3);
+}
+
+.density, .speed, .complexity {
+  padding: var(--space-3);
+  background: var(--color-bg-primary);
+  border-radius: var(--radius-md);
+  text-align: center;
+}
+
+.density .label, .speed .label, .complexity .label {
+  display: block;
+  font-weight: 500;
+  margin-bottom: var(--space-2);
+  font-size: 0.85rem;
+}
+
+.density ul, .speed ul, .complexity ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+}
+</style>
+
+    </main>
+  </div>
+
+  <style>
+    /* Search styles */
+    .sidebar-search {
+      padding: 0 var(--space-4);
+      margin-bottom: var(--space-4);
+      position: relative;
+    }
+    .sidebar-search input {
+      width: 100%;
+      padding: var(--space-2) var(--space-3);
+      padding-left: 36px;
+      background: var(--bg-subtle);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      color: var(--text-primary);
+      font-size: var(--text-sm);
+      font-family: var(--font-body);
+    }
+    .sidebar-search input:focus {
+      outline: none;
+      border-color: var(--color-accent);
+      box-shadow: 0 0 0 3px rgba(61, 90, 69, 0.1);
+    }
+    .sidebar-search input::placeholder {
+      color: var(--text-tertiary);
+    }
+    .search-icon {
+      position: absolute;
+      left: calc(var(--space-4) + 10px);
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-tertiary);
+      pointer-events: none;
+    }
+    .search-results {
+      position: fixed;
+      top: 80px;
+      left: 260px;
+      width: 400px;
+      max-height: 60vh;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border-default);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-lg);
+      overflow-y: auto;
+      z-index: 1000;
+      display: none;
+    }
+    .search-results.active {
+      display: block;
+    }
+    .search-result-item {
+      display: block;
+      padding: var(--space-3) var(--space-4);
+      border-bottom: 1px solid var(--border-subtle);
+      text-decoration: none;
+      color: var(--text-primary);
+      transition: background 0.15s;
+    }
+    .search-result-item:hover {
+      background: var(--bg-subtle);
+    }
+    .search-result-item:last-child {
+      border-bottom: none;
+    }
+    .search-result-title {
+      font-weight: 600;
+      margin-bottom: 2px;
+    }
+    .search-result-section {
+      font-size: var(--text-xs);
+      color: var(--text-tertiary);
+    }
+    .search-no-results {
+      padding: var(--space-4);
+      text-align: center;
+      color: var(--text-secondary);
+    }
+
+    /* Theme preview button */
+    .theme-preview-btn {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+      padding: var(--space-2) var(--space-3);
+      background: var(--bg-subtle);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      color: var(--text-secondary);
+      font-size: var(--text-xs);
+      font-family: var(--font-body);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .theme-preview-btn:hover {
+      background: var(--bg-elevated);
+      border-color: var(--color-accent);
+      color: var(--text-primary);
+    }
+
+    /* Theme preview modal */
+    .theme-preview-modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.8);
+      backdrop-filter: blur(8px);
+      z-index: 2000;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: var(--space-6);
+    }
+    .theme-preview-modal.active {
+      display: flex;
+    }
+    .theme-preview-header {
+      position: absolute;
+      top: var(--space-4);
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      align-items: center;
+      gap: var(--space-4);
+    }
+    .theme-preview-header h3 {
+      color: white;
+      margin: 0;
+    }
+    .close-preview {
+      background: rgba(255, 255, 255, 0.1);
+      border: none;
+      padding: var(--space-2);
+      border-radius: var(--radius-md);
+      color: white;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .close-preview:hover {
+      background: rgba(255, 255, 255, 0.2);
+    }
+    .theme-preview-content {
+      display: flex;
+      gap: var(--space-6);
+      max-width: 900px;
+      width: 100%;
+    }
+    .theme-panel {
+      flex: 1;
+      border-radius: var(--radius-xl);
+      overflow: hidden;
+    }
+    .theme-panel[data-theme="cedar"] {
+      background: #0c0a08;
+    }
+    .theme-panel[data-theme="zen"] {
+      background: #FFFDFB;
+    }
+    .theme-label {
+      padding: var(--space-3) var(--space-4);
+      font-weight: 600;
+      font-size: var(--text-sm);
+    }
+    .theme-panel[data-theme="cedar"] .theme-label {
+      color: #FAF8F5;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    .theme-panel[data-theme="zen"] .theme-label {
+      color: #2C2520;
+      border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+    }
+    .theme-sample {
+      padding: var(--space-5);
+    }
+    .sample-card {
+      display: flex;
+      gap: var(--space-4);
+      padding: var(--space-4);
+      border-radius: var(--radius-lg);
+      margin-bottom: var(--space-4);
+    }
+    .theme-panel[data-theme="cedar"] .sample-card {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .theme-panel[data-theme="zen"] .sample-card {
+      background: rgba(0, 0, 0, 0.02);
+      border: 1px solid rgba(0, 0, 0, 0.08);
+    }
+    .sample-avatar {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      background: #4a6741;
+    }
+    .sample-text {
+      flex: 1;
+    }
+    .sample-title {
+      height: 14px;
+      width: 60%;
+      border-radius: 4px;
+      margin-bottom: 8px;
+    }
+    .sample-body {
+      height: 10px;
+      width: 80%;
+      border-radius: 4px;
+    }
+    .theme-panel[data-theme="cedar"] .sample-title {
+      background: rgba(255, 255, 255, 0.15);
+    }
+    .theme-panel[data-theme="cedar"] .sample-body {
+      background: rgba(255, 255, 255, 0.08);
+    }
+    .theme-panel[data-theme="zen"] .sample-title {
+      background: rgba(0, 0, 0, 0.12);
+    }
+    .theme-panel[data-theme="zen"] .sample-body {
+      background: rgba(0, 0, 0, 0.06);
+    }
+    .sample-buttons {
+      display: flex;
+      gap: var(--space-2);
+      margin-bottom: var(--space-4);
+    }
+    .sample-btn {
+      padding: var(--space-2) var(--space-4);
+      border-radius: 9999px;
+      font-size: var(--text-sm);
+      font-weight: 600;
+      border: none;
+      cursor: default;
+    }
+    .sample-btn.primary {
+      background: #3D5A45;
+      color: white;
+    }
+    .sample-btn.secondary {
+      background: transparent;
+    }
+    .theme-panel[data-theme="cedar"] .sample-btn.secondary {
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: #FAF8F5;
+    }
+    .theme-panel[data-theme="zen"] .sample-btn.secondary {
+      border: 1px solid rgba(0, 0, 0, 0.2);
+      color: #2C2520;
+    }
+    .sample-colors {
+      display: flex;
+      gap: var(--space-2);
+    }
+    .color-dot {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+    }
+    .color-dot.ferni { background: #4a6741; }
+    .color-dot.maya { background: #a67a6a; }
+    .color-dot.peter { background: #3a6b73; }
+    .color-dot.alex { background: #5a6b8a; }
+    .color-dot.jordan { background: #c4856a; }
+
+    /* Copy button styles */
+    .code-block-wrapper {
+      position: relative;
+    }
+    .copy-btn {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding: 6px 10px;
+      background: var(--surface-secondary);
+      border: 1px solid var(--border-subtle);
+      border-radius: 6px;
+      color: var(--text-secondary);
+      font-size: 12px;
+      font-family: var(--font-body);
+      cursor: pointer;
+      opacity: 0;
+      transition: opacity 0.2s, background 0.2s;
+    }
+    .code-block-wrapper:hover .copy-btn {
+      opacity: 1;
+    }
+    .copy-btn:hover {
+      background: var(--surface-tertiary);
+      color: var(--text-primary);
+    }
+    .copy-btn.copied {
+      background: var(--color-success-subtle);
+      border-color: var(--color-success);
+      color: var(--color-success);
+    }
+    .copy-btn svg {
+      width: 14px;
+      height: 14px;
+    }
+    .copy-btn .check-icon {
+      display: none;
+    }
+    .copy-btn.copied .copy-icon {
+      display: none;
+    }
+    .copy-btn.copied .check-icon {
+      display: block;
+    }
+  </style>
+
+  <script>
+    // Theme toggle
+    function toggleTheme() {
+      var html = document.documentElement;
+      var current = html.getAttribute('data-theme');
+      var next = current === 'cedar' ? 'zen' : 'cedar';
+      html.setAttribute('data-theme', next);
+      localStorage.setItem('ferni-theme', next);
+    }
+
+    // Theme preview toggle
+    function toggleThemePreview() {
+      var modal = document.getElementById('themePreviewModal');
+      modal.classList.toggle('active');
+    }
+
+    // Close theme preview on escape
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') {
+        var modal = document.getElementById('themePreviewModal');
+        modal.classList.remove('active');
+        var searchResults = document.getElementById('searchResults');
+        searchResults.classList.remove('active');
+      }
+    });
+
+    // Search functionality
+    var searchIndex = [
+      { title: 'Overview', section: 'Foundations', url: '/' },
+      { title: 'Colors', section: 'Foundations', url: '/colors/' },
+      { title: 'Typography', section: 'Foundations', url: '/typography/' },
+      { title: 'Spacing', section: 'Foundations', url: '/spacing/' },
+      { title: 'Animation', section: 'Foundations', url: '/animation/' },
+      { title: 'Physics & Motion', section: 'Foundations', url: '/physics/' },
+      { title: 'Responsive', section: 'Foundations', url: '/responsive/' },
+      { title: 'Effects', section: 'Foundations', url: '/effects/' },
+      { title: 'Sequences', section: 'Foundations', url: '/sequences/' },
+      { title: 'Motion', section: 'Foundations', url: '/motion/' },
+      { title: 'Haptics', section: 'Foundations', url: '/haptics/' },
+      { title: 'Feedback', section: 'Patterns', url: '/feedback/' },
+      { title: 'Predictive UI', section: 'Patterns', url: '/predictive-ui/' },
+      { title: 'Personas', section: 'Brand', url: '/personas/' },
+      { title: 'Personality', section: 'Brand', url: '/personality/' },
+      { title: 'Capabilities', section: 'Brand', url: '/capabilities/' },
+      { title: 'Voice & Tone', section: 'Brand', url: '/voice/' },
+      { title: 'Sounds & Haptics', section: 'Brand', url: '/sounds-haptics/' },
+      { title: 'Sonic Identity', section: 'Brand', url: '/sonic-identity/' },
+      { title: 'Glow Colors', section: 'Brand', url: '/glow-colors/' },
+      { title: 'Window Avatar', section: 'Brand', url: '/window-avatar/' },
+      { title: 'Rituals', section: 'Brand', url: '/rituals/' },
+      { title: 'Icons', section: 'Brand', url: '/icons/' },
+      { title: 'Expressions', section: 'Brand', url: '/expressions/' },
+      { title: 'Universe', section: 'Brand', url: '/universe/' },
+      { title: 'Visualizations', section: 'Brand', url: '/visualizations/' },
+      { title: 'Brand Guardrails', section: 'Brand', url: '/brand-guardrails/' },
+      { title: 'Brand Kit', section: 'Brand', url: '/brand-kit/' },
+      { title: 'Components Overview', section: 'Components', url: '/components/' },
+      { title: 'Avatar', section: 'Components', url: '/components/avatar/' },
+      { title: 'Badge', section: 'Components', url: '/components/badge/' },
+      { title: 'Buttons', section: 'Components', url: '/components/buttons/' },
+      { title: 'Cards', section: 'Components', url: '/components/cards/' },
+      { title: 'Dropdown', section: 'Components', url: '/components/dropdown/' },
+      { title: 'Glass Surfaces', section: 'Components', url: '/components/glass/' },
+      { title: 'Inputs', section: 'Components', url: '/components/inputs/' },
+      { title: 'Modal', section: 'Components', url: '/components/modal/' },
+      { title: 'Progress', section: 'Components', url: '/components/progress/' },
+      { title: 'Tabs', section: 'Components', url: '/components/tabs/' },
+      { title: 'Toast', section: 'Components', url: '/components/toast/' },
+      { title: 'Tooltip', section: 'Components', url: '/components/tooltip/' },
+      { title: 'Spring Animations', section: 'Physics', url: '/physics/#springs' },
+      { title: 'Emotional Momentum', section: 'Physics', url: '/physics/#emotional-momentum' },
+      { title: 'Forbidden Words', section: 'Brand Guardrails', url: '/brand-guardrails/#language' },
+      { title: 'Color Rules', section: 'Brand Guardrails', url: '/brand-guardrails/#colors' },
+      { title: 'Accessibility Requirements', section: 'Brand Guardrails', url: '/brand-guardrails/#accessibility' },
+      { title: 'App Wake Ritual', section: 'Rituals', url: '/rituals/#rituals' },
+      { title: 'Celebration Rituals', section: 'Rituals', url: '/rituals/#rituals' }
+    ];
+
+    function performSearch(query) {
+      var results = document.getElementById('searchResults');
+      if (!query || query.length < 2) {
+        results.classList.remove('active');
+        return;
+      }
+
+      var lowerQuery = query.toLowerCase();
+      var matches = searchIndex.filter(function(item) {
+        return item.title.toLowerCase().indexOf(lowerQuery) !== -1 ||
+               item.section.toLowerCase().indexOf(lowerQuery) !== -1;
+      });
+
+      if (matches.length === 0) {
+        results.classList.add('active');
+        var noResults = document.createElement('div');
+        noResults.className = 'search-no-results';
+        noResults.textContent = 'No results found';
+        results.innerHTML = '';
+        results.appendChild(noResults);
+        return;
+      }
+
+      results.classList.add('active');
+      results.innerHTML = '';
+
+      matches.slice(0, 8).forEach(function(item) {
+        var link = document.createElement('a');
+        link.className = 'search-result-item';
+        link.href = item.url;
+
+        var titleDiv = document.createElement('div');
+        titleDiv.className = 'search-result-title';
+        titleDiv.textContent = item.title;
+
+        var sectionDiv = document.createElement('div');
+        sectionDiv.className = 'search-result-section';
+        sectionDiv.textContent = item.section;
+
+        link.appendChild(titleDiv);
+        link.appendChild(sectionDiv);
+        results.appendChild(link);
+      });
+    }
+
+    // Load saved theme
+    var saved = localStorage.getItem('ferni-theme');
+    if (saved) {
+      document.documentElement.setAttribute('data-theme', saved);
+    }
+
+    // Initialize search
+    document.addEventListener('DOMContentLoaded', function() {
+      var searchInput = document.getElementById('searchInput');
+      if (searchInput) {
+        searchInput.addEventListener('input', function(e) {
+          performSearch(e.target.value);
+        });
+
+        // Close search results when clicking outside
+        document.addEventListener('click', function(e) {
+          var results = document.getElementById('searchResults');
+          if (!e.target.closest('.sidebar-search') && !e.target.closest('.search-results')) {
+            results.classList.remove('active');
+          }
+        });
+      }
+    });
+
+    // Copy to clipboard functionality
+    document.addEventListener('DOMContentLoaded', function() {
+      const codeBlocks = document.querySelectorAll('pre');
+
+      codeBlocks.forEach(function(pre) {
+        // Create wrapper
+        const wrapper = document.createElement('div');
+        wrapper.className = 'code-block-wrapper';
+        pre.parentNode.insertBefore(wrapper, pre);
+        wrapper.appendChild(pre);
+
+        // Create copy button using safe DOM methods
+        const copyBtn = document.createElement('button');
+        copyBtn.className = 'copy-btn';
+        copyBtn.type = 'button';
+        copyBtn.setAttribute('aria-label', 'Copy code');
+
+        // Create copy icon SVG
+        const copyIcon = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        copyIcon.setAttribute('class', 'copy-icon');
+        copyIcon.setAttribute('viewBox', '0 0 24 24');
+        copyIcon.setAttribute('fill', 'none');
+        copyIcon.setAttribute('stroke', 'currentColor');
+        copyIcon.setAttribute('stroke-width', '2');
+        const copyPath1 = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+        copyPath1.setAttribute('x', '9');
+        copyPath1.setAttribute('y', '9');
+        copyPath1.setAttribute('width', '13');
+        copyPath1.setAttribute('height', '13');
+        copyPath1.setAttribute('rx', '2');
+        const copyPath2 = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        copyPath2.setAttribute('d', 'M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1');
+        copyIcon.appendChild(copyPath1);
+        copyIcon.appendChild(copyPath2);
+
+        // Create check icon SVG
+        const checkIcon = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        checkIcon.setAttribute('class', 'check-icon');
+        checkIcon.setAttribute('viewBox', '0 0 24 24');
+        checkIcon.setAttribute('fill', 'none');
+        checkIcon.setAttribute('stroke', 'currentColor');
+        checkIcon.setAttribute('stroke-width', '2');
+        const checkPath = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
+        checkPath.setAttribute('points', '20 6 9 17 4 12');
+        checkIcon.appendChild(checkPath);
+
+        // Create text span
+        const textSpan = document.createElement('span');
+        textSpan.className = 'copy-text';
+        textSpan.textContent = 'Copy';
+
+        // Assemble button
+        copyBtn.appendChild(copyIcon);
+        copyBtn.appendChild(checkIcon);
+        copyBtn.appendChild(textSpan);
+
+        wrapper.appendChild(copyBtn);
+
+        // Click handler
+        copyBtn.addEventListener('click', function() {
+          const code = pre.querySelector('code');
+          const text = code ? code.textContent : pre.textContent;
+
+          navigator.clipboard.writeText(text).then(function() {
+            copyBtn.classList.add('copied');
+            textSpan.textContent = 'Copied!';
+
+            setTimeout(function() {
+              copyBtn.classList.remove('copied');
+              textSpan.textContent = 'Copy';
+            }, 2000);
+          });
+        });
+      });
+    });
+  </script>
+</body>
+</html>

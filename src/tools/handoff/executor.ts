@@ -14,7 +14,7 @@ import {
   getLockedMemberTeaser,
   isCoreTeamMember,
   isTeamMemberUnlocked,
-} from '../../intelligence/context-builders/team-availability.js';
+} from '../../intelligence/context-builders/team/team-availability.js';
 import {
   detectUserMoodFromContext,
   getAliveEntranceForHandoff,
@@ -35,8 +35,14 @@ import {
   formatCognitiveHandoffForPrompt,
   type CognitiveHandoffContext,
 } from './cognitive-handoff.js';
+import {
+  buildInsightBriefingForHandoff,
+  formatInsightBriefingForPrompt,
+} from '../../services/cross-persona-insights.js';
 import { createHandoffEvent } from './types.js';
 import { HANDOFF_TIMING } from '../../config/handoff-timing.js';
+// Persona Affinity Tracking - "Better Than Human" smart routing
+import { personaAffinity } from '../../services/superhuman/persona-affinity.js';
 // FIX BUG: Import state management from state.ts to keep state in sync
 // FIX BUG: Import handoffEvents from state.ts instead of creating a duplicate!
 // The handler in voice-agent.ts registers on state.ts's EventEmitter,
@@ -50,6 +56,13 @@ import {
   resetHandoffState as resetStateHandoffState,
   setCurrentAgent,
 } from './state.js';
+// FIX: Import session-scoped state for concurrent session isolation
+import {
+  getSessionState,
+  hasSessionState,
+  getCurrentAgent as getSessionCurrentAgent,
+  setCurrentAgent as setSessionCurrentAgent,
+} from './session-state.js';
 // FIX BUG #12: Import HandoffRecord from types.ts instead of duplicating
 import type { HandoffRecord } from './types.js';
 
@@ -83,6 +96,15 @@ interface HandoffContext {
   recentMessages: Array<{ role: 'user' | 'assistant'; content: string }>;
   /** Cognitive insights for the target persona */
   cognitiveContext?: CognitiveHandoffContext;
+  /** Voice emotion for better-than-human entrance adaptation */
+  voiceEmotion?: {
+    voiceEmotion?: string;
+    voiceConfidence?: number;
+    arousal?: number;
+    valence?: number;
+    hasVoiceStrain?: boolean;
+    hasVoiceTremor?: boolean;
+  };
 }
 
 let conversationContext: HandoffContext | null = null;
@@ -97,6 +119,7 @@ export function captureHandoffContext(context: Partial<HandoffContext>): void {
     summary: context.summary || '',
     pendingItems: context.pendingItems || [],
     recentMessages: context.recentMessages || [],
+    voiceEmotion: context.voiceEmotion,
     cognitiveContext: context.cognitiveContext,
   };
 }
@@ -213,6 +236,15 @@ export interface ExecuteHandoffOptions {
   emotionalState?: string;
   /** Topics discussed in the conversation */
   topics?: string[];
+  /** Voice emotion for better-than-human entrance adaptation */
+  voiceEmotion?: {
+    voiceEmotion?: string;
+    voiceConfidence?: number;
+    arousal?: number;
+    valence?: number;
+    hasVoiceStrain?: boolean;
+    hasVoiceTremor?: boolean;
+  };
 }
 
 export interface HandoffResult {
@@ -256,7 +288,24 @@ export async function executeHandoff(
   reason: string,
   options: ExecuteHandoffOptions = {}
 ): Promise<HandoffResult> {
-  const previousAgent = getCurrentAgent();
+  const executionStart = Date.now();
+  getLogger().info(
+    {
+      targetAgentId,
+      reason,
+      sessionId: options.sessionId,
+      hasUserProfile: !!options.userProfile,
+      subscriptionTier: options.subscriptionTier,
+      recentMessageCount: options.recentMessages?.length || 0,
+    },
+    '🔧 [TOOL] executeHandoff() ENTRY'
+  );
+
+  // FIX: Use session-scoped state when sessionId is provided to prevent
+  // concurrent session interference. Fall back to global state for backwards compatibility.
+  const { sessionId } = options;
+  const sessionState = sessionId && hasSessionState(sessionId) ? getSessionState(sessionId) : null;
+  const previousAgent = sessionState ? getSessionCurrentAgent(sessionState) : getCurrentAgent();
 
   // Normalize the target agent ID
   const canonicalTargetId = getCanonicalPersonaId(targetAgentId);
@@ -357,13 +406,14 @@ export async function executeHandoff(
 
   // FIX BUG #6: Capture conversation context if provided
   // This ensures the new persona has awareness of what was just discussed
-  if (options.recentMessages || options.topics || options.emotionalState) {
+  if (options.recentMessages || options.topics || options.emotionalState || options.voiceEmotion) {
     captureHandoffContext({
       topics: options.topics || [],
       emotionalState: options.emotionalState || 'neutral',
       summary: reason,
       pendingItems: [],
       recentMessages: options.recentMessages || [],
+      voiceEmotion: options.voiceEmotion,
     });
     getLogger().debug(
       {
@@ -376,13 +426,38 @@ export async function executeHandoff(
   }
 
   // Update current agent
+  // FIX: Update both session-scoped and global state for compatibility
+  if (sessionState) {
+    setSessionCurrentAgent(sessionState, canonicalTargetId as AgentId);
+  }
   setCurrentAgent(canonicalTargetId as AgentId);
 
   // Generate greeting
   const greeting = await generateHandoffGreeting(canonicalTargetId, reason, previousAgent);
 
   // Build context continuation - now includes recent messages if available
-  const contextContinuation = buildContextContinuation(reason, options.recentMessages);
+  let contextContinuation = buildContextContinuation(reason, options.recentMessages);
+
+  // FIX: Add cross-persona insights to handoff context
+  try {
+    const userId = options.userId || options.sessionId;
+    if (userId) {
+      const insightBriefing = await buildInsightBriefingForHandoff(userId, canonicalTargetId);
+      const insightContext = formatInsightBriefingForPrompt(insightBriefing);
+      if (insightContext) {
+        contextContinuation += `\n\n${insightContext}`;
+        getLogger().debug(
+          {
+            targetId: canonicalTargetId,
+            insightCount: insightBriefing.incomingInsights.length,
+          },
+          '📨 Cross-persona insights added to handoff'
+        );
+      }
+    }
+  } catch (error) {
+    getLogger().warn({ error: String(error) }, 'Could not add cross-persona insights to handoff');
+  }
 
   // Get voice ID for the target agent
   let voiceId: string | undefined;
@@ -409,6 +484,7 @@ export async function executeHandoff(
     previousAgentId: previousAgent,
   });
 
+  const emitTime = Date.now();
   getLogger().info(
     {
       targetId: canonicalTargetId,
@@ -416,8 +492,9 @@ export async function executeHandoff(
       personaId: eventData.persona?.id,
       previousAgentId: eventData.previousAgentId,
       listenerCount: handoffEvents.listenerCount('voiceSwitch'),
+      elapsedSinceEntry: emitTime - executionStart,
     },
-    '📡 Emitting voiceSwitch event'
+    '📡 [TOOL] Emitting voiceSwitch event - waiting for handler...'
   );
 
   // FIX: Wait for handler to complete before returning to LLM
@@ -496,6 +573,73 @@ export async function executeHandoff(
       },
       '✅ Handoff handler completed successfully'
     );
+
+    // 🧠 Better Than Human: Record handoff for cross-persona intelligence
+    try {
+      const { getUnifiedIntelligence } = await import('../intelligence/index.js');
+      const intelligence = getUnifiedIntelligence();
+      await intelligence.recordHandoff({
+        userId: options.userId || options.sessionId || 'unknown',
+        sessionId: options.sessionId || 'unknown',
+        fromPersonaId: previousAgent,
+        toPersonaId: canonicalTargetId,
+        // Extract tool names from recent messages content (simplified approach)
+        toolsUsed: [],
+        topicsDiscussed: options.topics || [],
+        emotionalState: options.voiceEmotion
+          ? {
+              // Map from handoff voiceEmotion format to intelligence layer format
+              primary: options.voiceEmotion.voiceEmotion || 'neutral',
+              valence: options.voiceEmotion.valence ?? 0,
+              arousal: options.voiceEmotion.arousal ?? 0.5,
+              stressLevel: options.voiceEmotion.hasVoiceStrain ? 0.7 : 0,
+              anxietyMarkers: options.voiceEmotion.hasVoiceTremor ?? false,
+            }
+          : undefined,
+        timestamp: new Date(),
+      });
+      getLogger().debug(
+        { from: previousAgent, to: canonicalTargetId },
+        '🧠 Recorded handoff for cross-persona intelligence'
+      );
+    } catch (intelligenceErr) {
+      // Non-critical, don't fail the handoff
+      getLogger().debug(
+        { error: String(intelligenceErr) },
+        'Could not record handoff for intelligence layer'
+      );
+    }
+
+    // 💕 Better Than Human: Record persona affinity for smart future routing
+    try {
+      if (options.userId) {
+        await personaAffinity.recordInteraction(options.userId, {
+          personaId: previousAgent,
+          interactionType: 'handoff',
+          topics: options.topics || [reason.split(' ')[0]],
+          sentiment: 'neutral',
+          duration: 0,
+          outcome: 'handed_off',
+        });
+
+        // Record handoff for learning
+        await personaAffinity.recordHandoff(options.userId, {
+          fromPersona: previousAgent,
+          toPersona: canonicalTargetId,
+          topics: options.topics || [],
+          userApproved: true,
+          successful: true,
+        });
+
+        getLogger().debug(
+          { from: previousAgent, to: canonicalTargetId, userId: options.userId },
+          '💕 Recorded persona affinity for handoff'
+        );
+      }
+    } catch (affinityErr) {
+      // Non-critical, don't fail the handoff
+      getLogger().debug({ error: String(affinityErr) }, 'Could not record persona affinity');
+    }
   } else {
     getLogger().warn(
       {
@@ -512,6 +656,21 @@ export async function executeHandoff(
   // 1. The handoff state WAS updated (currentAgent changed)
   // 2. The voiceSwitch event WAS emitted
   // The handler result indicates whether greeting/instructions were applied
+  const totalDurationMs = Date.now() - executionStart;
+  getLogger().info(
+    {
+      targetId: canonicalTargetId,
+      from: previousAgent,
+      to: targetAgentName,
+      success: true,
+      greetingSpoken: handlerResult.greetingSpoken,
+      instructionsUpdated: handlerResult.instructionsUpdated,
+      handlerError: handlerResult.error,
+      totalDurationMs,
+    },
+    '🔧 [TOOL] executeHandoff() EXIT - returning to LLM'
+  );
+
   return {
     success: true,
     targetAgent: canonicalTargetId,
@@ -547,6 +706,8 @@ async function generateHandoffGreeting(
       referringAgent: previousAgent,
       precedingTopic: reason,
       userMood: detectUserMoodFromContext(reason),
+      // Pass voice emotion for better-than-human entrance adaptation
+      voiceEmotion: conversationContext?.voiceEmotion,
     });
 
     if (aliveEntrance) {

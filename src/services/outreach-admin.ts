@@ -11,7 +11,7 @@
  */
 
 import { getLogger } from '../utils/safe-logger.js';
-import { getUserContactInfo } from '../tools/proactive-outreach.js';
+import { getUserContactInfo } from './outreach/user-contact.js';
 import {
   getPreferences,
   setPreferences,
@@ -23,8 +23,8 @@ import {
   getGlobalAnalytics,
   generateSummaryReport,
   getOptimizationRecommendations,
-} from './outreach-analytics.js';
-import { getPendingReminders, cancelReminder } from './reminder-scheduler.js';
+} from './analytics/outreach-analytics.js';
+import { getPendingReminders, cancelReminder } from './scheduling/reminder-scheduler.js';
 
 // ============================================================================
 // TYPES
@@ -170,8 +170,8 @@ export function getScheduledOutreach(userId: string): ScheduledOutreach[] {
 /**
  * Cancel a scheduled outreach
  */
-export function cancelScheduledOutreach(reminderId: string): boolean {
-  const success = cancelReminder(reminderId);
+export async function cancelScheduledOutreach(reminderId: string): Promise<boolean> {
+  const success = await cancelReminder(reminderId);
 
   if (success) {
     getLogger().info({ reminderId }, '❌ Scheduled outreach cancelled');
@@ -237,7 +237,7 @@ export async function sendBroadcast(
   scheduledFor?: Date
 ): Promise<{ sent: number; failed: number; skipped: number }> {
   const { scheduleText, scheduleEmail, canReachUser } =
-    await import('../tools/proactive-outreach.js');
+    await import('../tools/domains/proactive/outreach/index.js');
   const { canSendOutreach } = await import('./outreach-intelligence.js');
 
   let sent = 0;

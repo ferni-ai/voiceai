@@ -21,7 +21,7 @@ import {
   filterMemoriesByRelationshipStage,
   getRandomAcknowledgmentPhrase,
   type NormalizedPersonaId,
-} from '../intelligence/context-builders/persona-memory.js';
+} from '../intelligence/context-builders/personas/persona-memory.js';
 import type {
   Memory,
   FerniMemory,
@@ -29,7 +29,7 @@ import type {
   PeterMemory,
   MayaMemory,
   JordanMemory,
-} from '../services/persona-memories.js';
+} from '../services/memory/persona-memories.js';
 
 // ============================================================================
 // PERSONA ID NORMALIZATION TESTS

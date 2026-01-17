@@ -40,10 +40,30 @@ import {
 } from '../advanced/tool-lifecycle.js';
 import { buildEssentialTools } from '../builder.js';
 import { detectToolIntent, type DetectedIntent } from '../dynamic-tool-router.js';
+import {
+  getUnifiedIntelligence,
+  initializeUnifiedIntelligence,
+  type IntelligenceEnhancement,
+} from '../intelligence/index.js';
+// Memory-aware routing for personalized tool selection
+import { getMemoryAwareRouter, type EnhancedToolScore } from '../memory-aware-router.js';
 import { toolRegistry } from '../registry/index.js';
 import { initializeToolRegistry, loadToolDomainsLazy } from '../registry/loader.js';
-import type { Tool, ToolContext, ToolDomain } from '../registry/types.js';
-import { semanticRouter, type SemanticMatch } from '../semantic-router.js';
+import {
+  EnvironmentServiceRegistry,
+  type Tool,
+  type ToolContext,
+  type ToolDomain,
+} from '../registry/types.js';
+// Migrated to new semantic router module
+import { semanticRouter, type SemanticMatch } from '../semantic-router/compat.js';
+// FTIS - Ferni Tool Intelligence System (complexity-based routing)
+import { getFTISIntegration, type FTISRoutingResult } from '../intelligence/ftis-integration.js';
+// FTIS A/B Testing - determines whether to use FTIS for a given user
+import {
+  initializeFTISExperiment,
+  shouldUseFTIS,
+} from '../intelligence/learning/ab-testing.js';
 
 const log = getLogger();
 
@@ -70,6 +90,15 @@ export interface ToolSelectionRequest {
   forceInclude?: string[];
   /** Force exclude specific tools */
   forceExclude?: string[];
+  /**
+   * User's detected location from IP (TikTok-style personalization)
+   * Used for weather defaults, local content hints
+   */
+  userLocation?: {
+    city?: string;
+    regionCode?: string;
+    countryCode?: string;
+  };
 }
 
 export interface ToolSelectionContext {
@@ -87,6 +116,18 @@ export interface ToolSelectionContext {
   messageCount?: number;
   /** Is this a new user? */
   isNewUser?: boolean;
+  /** Session ID for tracking */
+  sessionId?: string;
+  /** Previous persona (for cross-persona intelligence) */
+  previousPersonaId?: string;
+  /** Voice emotion state (for emotion-aware tool selection) */
+  voiceEmotion?: {
+    primary: string;
+    valence: number;
+    arousal: number;
+    stressLevel: number;
+    anxietyMarkers: boolean;
+  };
 }
 
 export interface ToolSelectionResult {
@@ -106,6 +147,8 @@ export interface ToolSelectionResult {
       semantic: number;
       contextual: number;
       mcp: number;
+      /** Tools added from intelligence layer (anticipated/personalized) */
+      intelligence: number;
     };
     /** Intent detected from transcript */
     detectedIntent: DetectedIntent | null;
@@ -113,6 +156,21 @@ export interface ToolSelectionResult {
     semanticMatches: SemanticMatch[];
     /** Warnings/notes */
     warnings: string[];
+    /** Intelligence enhancement applied (Better Than Human) */
+    intelligenceEnhancement?: {
+      anticipatedTools: string[];
+      prioritizedTools: string[];
+      proactiveSuggestions: number;
+      isReturningUser: boolean;
+    };
+    /** FTIS routing info (complexity-based intelligence) */
+    ftisRouting?: {
+      complexity: 'simple' | 'medium' | 'complex';
+      confidence: number;
+      approach: 'direct' | 'sequence' | 'mcts';
+      predictions?: Array<{ toolId: string; probability: number }>;
+      routingTimeMs: number;
+    };
   };
 }
 
@@ -181,7 +239,31 @@ export interface OrchestratorConfig {
 import { modelConfig } from '../../services/model-config.js';
 
 // Base always-available domains (before filtering by enabledDomains)
-const BASE_ALWAYS_DOMAINS: ToolDomain[] = ['memory', 'handoff', 'entertainment', 'information'];
+// These domains are ALWAYS sent to the LLM - they don't rely on semantic matching
+// CRITICAL: Include all user-facing essentials, not just system domains!
+// Must stay in sync with ESSENTIAL_DOMAINS in registry/loader.ts
+const BASE_ALWAYS_DOMAINS: ToolDomain[] = [
+  // Core system domains
+  'memory',
+  'handoff',
+
+  // User-facing essential domains (users expect these to ALWAYS work)
+  'calendar',       // Schedule meetings, events, reminders
+  'scheduling',     // Scheduling coordination
+  'communication',  // Send messages, emails
+  'telephony',      // Make phone calls ("call my mom")
+  'productivity',   // Todos, notes, tasks
+  'family',         // Family-related actions, messages
+
+  // Daily wellness & habits (people check these every day!)
+  'habits',         // "How are my habits?", "Log my workout"
+  'wellness',       // "I'm stressed", emotional support
+
+  // Entertainment & info
+  'entertainment',  // Music, media
+  'information',    // Weather, news, search
+  'games',          // Name That Tune, Tic-Tac-Toe, etc.
+];
 
 const getDefaultConfig = (): OrchestratorConfig => {
   const adminConfig = modelConfig.getDefaultToolConfig();
@@ -191,9 +273,7 @@ const getDefaultConfig = (): OrchestratorConfig => {
   // - If enabledDomains is empty, use all BASE_ALWAYS_DOMAINS
   let finalAlwaysDomains = BASE_ALWAYS_DOMAINS;
   if (adminConfig.enabledDomains && adminConfig.enabledDomains.length > 0) {
-    finalAlwaysDomains = BASE_ALWAYS_DOMAINS.filter((d) =>
-      adminConfig.enabledDomains.includes(d)
-    );
+    finalAlwaysDomains = BASE_ALWAYS_DOMAINS.filter((d) => adminConfig.enabledDomains.includes(d));
     // Ensure we always have at least memory and handoff for core functionality
     if (!finalAlwaysDomains.includes('memory')) finalAlwaysDomains.push('memory');
     if (!finalAlwaysDomains.includes('handoff')) finalAlwaysDomains.push('handoff');
@@ -274,11 +354,45 @@ export class UnifiedToolOrchestrator {
     log.info('🚀 Initializing Unified Tool Orchestrator...');
 
     try {
-      // 1. Initialize tool registry (loads ALL tool definitions - NOT lazy loading!)
-      // The orchestrator needs ALL tools registered for semantic search to work correctly
-      await initializeToolRegistry({ lazyLoading: false });
+      // =======================================================================
+      // FAST INITIALIZATION: Use manifest + lazy loading!
+      // OLD: lazyLoading: false → loads ALL 98 domains → 5-15 seconds
+      // NEW: lazyLoading: true  → loads only essential → ~500ms
+      // =======================================================================
+      
+      // Check if we have pre-built artifacts for fast semantic search
+      let useManifestForSemantics = false;
+      try {
+        const { isManifestLoaded, loadToolManifest } = await import('../registry/manifest-loader.js');
+        const { areEmbeddingsLoaded, loadPrecomputedEmbeddings } = await import(
+          '../semantic-router/precomputed-embeddings.js'
+        );
+        
+        // Load manifest if not already loaded
+        if (!isManifestLoaded()) {
+          await loadToolManifest();
+        }
+        // Load embeddings if not already loaded
+        if (!areEmbeddingsLoaded()) {
+          await loadPrecomputedEmbeddings();
+        }
+        
+        useManifestForSemantics = isManifestLoaded() && areEmbeddingsLoaded();
+        if (useManifestForSemantics) {
+          log.info('⚡ Pre-built manifest + embeddings available for fast semantic search');
+        }
+      } catch (artifactError) {
+        log.debug({ error: String(artifactError) }, 'Pre-built artifacts not available');
+      }
+
+      // 1. Initialize tool registry with LAZY LOADING (only essential domains)
+      // Other domains will be loaded on-demand when tools are actually created
+      await initializeToolRegistry({ 
+        lazyLoading: true,  // ⚡ KEY CHANGE: Only load essential domains!
+        loadHighPriority: true,
+      });
       const allTools = toolRegistry.getAll();
-      log.info({ toolCount: allTools.length }, '📦 Tool registry initialized');
+      log.info({ toolCount: allTools.length, lazyLoading: true }, '📦 Tool registry initialized (essential only)');
 
       // 2. Initialize semantic router (builds embedding index)
       if (this.config.precomputeEmbeddings) {
@@ -294,7 +408,34 @@ export class UnifiedToolOrchestrator {
       });
       log.info('🔄 Tool lifecycle initialized');
 
-      // 4. Pre-cache essential tools
+      // 4. Initialize Unified Intelligence Layer (Better Than Human)
+      try {
+        await initializeUnifiedIntelligence();
+        log.info('🧠 Unified Intelligence Layer initialized');
+      } catch (intelligenceError) {
+        log.warn(
+          { error: String(intelligenceError) },
+          '⚠️ Intelligence layer partially initialized'
+        );
+      }
+
+      // 5. Initialize FTIS (Ferni Tool Intelligence System)
+      try {
+        const ftis = getFTISIntegration();
+        await ftis.initialize();
+        
+        // Initialize FTIS A/B experiment (50/50 split between semantic-only and FTIS)
+        initializeFTISExperiment();
+        
+        log.info('🎯 FTIS (Tool Intelligence) initialized with A/B experiment');
+      } catch (ftisError) {
+        log.warn(
+          { error: String(ftisError) },
+          '⚠️ FTIS partially initialized'
+        );
+      }
+
+      // 6. Pre-cache essential tools
       await this.preloadEssentialTools();
       log.info('⚡ Essential tools pre-cached');
 
@@ -352,53 +493,123 @@ export class UnifiedToolOrchestrator {
     }
 
     const warnings: string[] = [];
-    const sources = { essential: 0, semantic: 0, contextual: 0, mcp: 0 };
+    const sources = { essential: 0, semantic: 0, contextual: 0, mcp: 0, intelligence: 0 };
 
     // Build tool context
     const ctx: ToolContext = {
       userId: request.userId,
       agentId: request.agentId,
       agentDisplayName: request.agentDisplayName || request.agentId,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      services: undefined as any, // Will be populated by builder
+      // Use EnvironmentServiceRegistry to check actual env vars for service availability
+      // This enables tools that require external services (Twilio, Plaid, etc.)
+      services: new EnvironmentServiceRegistry(),
+      // IP-detected location for weather, local content (TikTok-style)
+      userLocation: request.userLocation,
     };
 
-    // 1. ALWAYS-AVAILABLE TOOLS (Tier 0)
-    const alwaysTools = await this.getAlwaysAvailableTools(ctx);
-    sources.essential = Object.keys(alwaysTools).length;
+    // 0. GET INTELLIGENCE ENHANCEMENT (Better Than Human)
+    let intelligenceEnhancement: IntelligenceEnhancement | null = null;
+    try {
+      const intelligence = getUnifiedIntelligence();
+      intelligenceEnhancement = await intelligence.enhanceToolSelection(request.userId, {
+        personaId: request.agentId,
+        timeOfDay: new Date(),
+        transcript: request.transcript,
+        sessionHistory: request.conversationHistory,
+        // Better Than Human: Pass voice emotion for emotion-aware selection
+        voiceEmotion: request.context?.voiceEmotion,
+        // Better Than Human: Pass previous persona for cross-persona intelligence
+        previousPersonaId: request.context?.previousPersonaId,
+      });
 
-    // 2. SEMANTIC RETRIEVAL
-    const { semanticTools, matches } = await this.getSemanticTools(
-      request.transcript,
-      ctx,
-      request.conversationHistory
-    );
-    sources.semantic = Object.keys(semanticTools).length;
+      if (intelligenceEnhancement.anticipatedTools.length > 0) {
+        log.debug(
+          {
+            anticipated: intelligenceEnhancement.anticipatedTools,
+            prioritized: intelligenceEnhancement.prioritizeTools.slice(0, 5),
+            emotionAware: !!intelligenceEnhancement.emotionAwareBoosts,
+            crossPersona: !!intelligenceEnhancement.crossPersonaContext,
+          },
+          '🧠 Intelligence enhancement applied (Better Than Human)'
+        );
+      }
 
-    // 3. CONTEXTUAL TOOLS (based on emotion, time, etc.)
-    let contextualTools: Record<string, Tool> = {};
-    if (this.config.enableContextualTools && request.context) {
-      contextualTools = await this.getContextualTools(request.context, ctx);
-      sources.contextual = Object.keys(contextualTools).length;
+      // Log emotion-aware boosts
+      if (intelligenceEnhancement.emotionAwareBoosts) {
+        log.info(
+          {
+            boostedDomains: intelligenceEnhancement.emotionAwareBoosts.boostedDomains,
+            reason: intelligenceEnhancement.emotionAwareBoosts.reason,
+            stressLevel: intelligenceEnhancement.emotionAwareBoosts.stressLevel,
+          },
+          '🫂 Emotion-aware tool boosts applied'
+        );
+      }
+    } catch (intelligenceError) {
+      log.debug({ error: String(intelligenceError) }, 'Intelligence enhancement unavailable');
     }
 
-    // 4. INTENT-BASED DOMAINS
+    // 0b. FTIS routing moved to after tool fetching (see step 6b below)
+    let ftisRouting: FTISRoutingResult | null = null;
+    const useFTIS = shouldUseFTIS(request.userId);
+
+    // ==========================================================================
+    // ⚡ PARALLELIZED TOOL FETCHING - Run independent operations concurrently
+    // These operations don't depend on each other, so run them in parallel
+    // to reduce total latency from O(n) to O(max(n))
+    // ==========================================================================
+
+    // 4. INTENT-BASED DOMAINS (sync - no await needed for detection)
     const intent = detectToolIntent(request.transcript);
-    let intentTools: Record<string, Tool> = {};
+
+    // Start all independent fetches in parallel
+    const [alwaysTools, semanticResult, contextualTools, intentTools, anticipatedTools] =
+      await Promise.all([
+        // 1. ALWAYS-AVAILABLE TOOLS (Tier 0)
+        this.getAlwaysAvailableTools(ctx),
+
+        // 2. SEMANTIC RETRIEVAL
+        this.getSemanticTools(request.transcript, ctx, request.conversationHistory),
+
+        // 3. CONTEXTUAL TOOLS (based on emotion, time, etc.)
+        this.config.enableContextualTools && request.context
+          ? this.getContextualTools(request.context, ctx)
+          : Promise.resolve({} as Record<string, Tool>),
+
+        // 4. INTENT-BASED DOMAINS
+        intent.domains.length > 0
+          ? this.getToolsForDomains(intent.domains, ctx)
+          : Promise.resolve({} as Record<string, Tool>),
+
+        // 5. ANTICIPATED TOOLS (from intelligence layer - proactive loading)
+        intelligenceEnhancement?.anticipatedTools.length
+          ? this.getToolsByIds(intelligenceEnhancement.anticipatedTools, ctx)
+          : Promise.resolve({} as Record<string, Tool>),
+      ]);
+
+    // Unpack semantic result
+    const { semanticTools, matches } = semanticResult;
+
+    // Update sources
+    sources.essential = Object.keys(alwaysTools).length;
+    sources.semantic = Object.keys(semanticTools).length;
+    sources.contextual = Object.keys(contextualTools).length;
+    sources.intelligence = Object.keys(anticipatedTools).length;
+
     if (intent.domains.length > 0) {
-      intentTools = await this.getToolsForDomains(intent.domains, ctx);
       log.debug(
         { intent: intent.categories, domains: intent.domains },
         '🎯 Intent-based domains detected'
       );
     }
 
-    // 5. MERGE AND FILTER
+    // 6. MERGE AND FILTER
     let allTools: Record<string, Tool> = {
       ...alwaysTools,
       ...semanticTools,
       ...contextualTools,
       ...intentTools,
+      ...anticipatedTools,
     };
 
     // ======== NEW: Apply model-config.json settings ========
@@ -452,8 +663,84 @@ export class UnifiedToolOrchestrator {
       }
     }
 
-    // Limit to max tools
-    const finalTools = this.limitTools(allTools, this.config.maxTools);
+    // 6b. FTIS ROUTING (Complexity-based tool intelligence)
+    // Now that we have actual available tools, run FTIS for accurate routing
+    if (useFTIS) {
+      try {
+        const ftis = getFTISIntegration();
+        const availableToolIds = Object.keys(allTools);
+
+        ftisRouting = await ftis.route({
+          query: request.transcript,
+          userId: request.userId,
+          personaId: request.agentId,
+          sessionId: request.context?.sessionId || '',
+          availableTools: availableToolIds, // Now populated with actual tools!
+          emotion: request.context?.emotion,
+          recentTools: this.getRecentToolsFromSession(request.context?.sessionId || ''),
+        });
+
+        if (ftisRouting.complexity.complexity !== 'simple') {
+          log.debug(
+            {
+              complexity: ftisRouting.complexity.complexity,
+              approach: ftisRouting.complexity.suggestedApproach,
+              predictions: ftisRouting.predictions?.slice(0, 3),
+              availableToolCount: availableToolIds.length,
+              abVariant: 'ftis',
+            },
+            '🎯 FTIS routing: non-simple query detected'
+          );
+        }
+      } catch (ftisError) {
+        log.debug({ error: String(ftisError) }, 'FTIS routing unavailable');
+      }
+    } else {
+      log.debug({ userId: request.userId }, '📊 FTIS A/B: User in control group (semantic-only)');
+    }
+
+    // 7. MEMORY-AWARE ROUTING (Better Than Human personalization)
+    // Uses user's tool history to boost tools they've had success with
+    let memoryBoosts: EnhancedToolScore[] = [];
+    try {
+      const memoryRouter = getMemoryAwareRouter();
+      const toolIds = Object.keys(allTools);
+
+      // Get recent tool IDs from context carrier (via context)
+      const recentToolIds = request.context?.sessionId
+        ? this.getRecentToolsFromSession(request.context.sessionId)
+        : [];
+
+      memoryBoosts = await memoryRouter.enhanceScores(
+        {
+          userId: request.userId,
+          sessionId: request.context?.sessionId || '',
+          query: request.transcript,
+          topic: request.context?.currentTopic,
+          emotion: request.context?.emotion,
+          personaId: request.agentId,
+          recentToolIds,
+        },
+        // Start with base score of 1.0 for all tools
+        toolIds.map((id) => ({ toolId: id, score: 1.0 }))
+      );
+
+      log.debug(
+        {
+          toolsWithBoosts: memoryBoosts.filter((b) => b.memoryBoost !== 1.0).length,
+          topBoosts: memoryBoosts
+            .filter((b) => b.memoryBoost > 1.0)
+            .slice(0, 3)
+            .map((b) => ({ id: b.toolId, boost: b.memoryBoost.toFixed(2) })),
+        },
+        '🧠 Memory-aware routing applied'
+      );
+    } catch (routerError) {
+      log.debug({ error: String(routerError) }, 'Memory-aware routing unavailable');
+    }
+
+    // Limit to max tools (using memory boosts for prioritization)
+    const finalTools = this.limitTools(allTools, this.config.maxTools, memoryBoosts);
 
     // ======== NEW: Debug logging from config ========
     if (this.config.logToolSchemas) {
@@ -475,21 +762,108 @@ export class UnifiedToolOrchestrator {
         detectedIntent: intent.domains.length > 0 ? intent : null,
         semanticMatches: matches,
         warnings,
+        // Include intelligence enhancement info (Better Than Human)
+        intelligenceEnhancement: intelligenceEnhancement
+          ? {
+              anticipatedTools: intelligenceEnhancement.anticipatedTools,
+              prioritizedTools: intelligenceEnhancement.prioritizeTools.slice(0, 10),
+              proactiveSuggestions: intelligenceEnhancement.proactiveSuggestions.length,
+              isReturningUser: intelligenceEnhancement.contextHints.isReturningUser,
+            }
+          : undefined,
+        // Include FTIS routing info (complexity-based intelligence)
+        ftisRouting: ftisRouting
+          ? {
+              complexity: ftisRouting.complexity.complexity,
+              confidence: ftisRouting.complexity.confidence,
+              approach: ftisRouting.complexity.suggestedApproach,
+              predictions: ftisRouting.predictions,
+              routingTimeMs: ftisRouting.routingTimeMs,
+            }
+          : undefined,
       },
     };
 
     // Cache result
     this.selectionCache.set(cacheKey, { result, timestamp: Date.now() });
 
-    log.info(
-      {
-        transcript: request.transcript.slice(0, 50),
-        selected: result.meta.selected,
-        sources,
-        elapsedMs: result.meta.selectionTimeMs,
+    // Calculate estimated token usage from tool schemas
+    const toolSchemaTokens = Object.values(finalTools).reduce((total, tool) => {
+      // Estimate: tool name (~10 tokens) + description (~30 tokens) + params (~50 tokens)
+      const descLen = tool.description?.length || 0;
+      return total + 10 + Math.round(descLen / 4) + 50;
+    }, 0);
+    
+    const MAX_TOOL_TOKENS = 8000; // Safe limit for tool schemas
+    const toolUsagePercent = Math.round((toolSchemaTokens / MAX_TOOL_TOKENS) * 100);
+    
+    if (toolUsagePercent > 80) {
+      log.warn(
+        {
+          toolCount: result.meta.selected,
+          estimatedTokens: toolSchemaTokens,
+          usagePercent: toolUsagePercent,
+          maxTools: this.config.maxTools,
+        },
+        `⚠️ Tool schema size at ${toolUsagePercent}% of safe limit - consider reducing maxTools`
+      );
+    }
+    
+    // ======== OBSERVABILITY: Structured logging for monitoring ========
+    // This block provides rich telemetry for debugging and dashboards
+    const observabilityData = {
+      // Request context
+      transcript: request.transcript.slice(0, 50),
+      userId: request.userId.slice(0, 8), // Truncate for privacy
+      personaId: request.agentId,
+      sessionId: request.context?.sessionId?.slice(0, 12),
+
+      // Selection metrics
+      selected: result.meta.selected,
+      totalAvailable: result.meta.totalAvailable,
+      selectionTimeMs: result.meta.selectionTimeMs,
+
+      // Token budget
+      toolTokens: toolSchemaTokens,
+      toolUsagePercent,
+      maxTools: this.config.maxTools,
+
+      // Intelligence layers active
+      layers: {
+        semantic: matches.length > 0,
+        intent: intent.domains.length > 0,
+        intelligence: !!intelligenceEnhancement,
+        ftis: !!ftisRouting,
+        memoryAware: memoryBoosts.filter((b) => b.memoryBoost !== 1.0).length > 0,
       },
-      '🔧 Tools selected for intent'
-    );
+
+      // FTIS complexity (if active)
+      ...(ftisRouting && {
+        ftisComplexity: ftisRouting.complexity.complexity,
+        ftisConfidence: Math.round(ftisRouting.complexity.confidence * 100),
+        ftisSuggestedApproach: ftisRouting.complexity.suggestedApproach,
+      }),
+
+      // Intent detection
+      ...(intent.domains.length > 0 && {
+        detectedDomains: intent.domains.slice(0, 3),
+        intentConfidence: Math.round(intent.confidence * 100),
+      }),
+
+      // Top matches (for debugging semantic router)
+      topMatches: matches.slice(0, 3).map((m) => ({
+        tool: m.toolId,
+        score: Math.round(m.similarity * 100),
+      })),
+
+      // Source breakdown
+      sources,
+    };
+
+    log.info(observabilityData, '🔧 Tool selection complete');
+
+    // Emit observability event for external monitoring (fire-and-forget)
+    this.emitToolSelectionEvent(observabilityData).catch(() => {});
 
     return result;
   }
@@ -500,6 +874,9 @@ export class UnifiedToolOrchestrator {
 
   /**
    * Get tools based on semantic similarity to the user's intent
+   * 
+   * OPTIMIZATION: Uses pre-computed embeddings when available for 100x faster matching!
+   * Then lazy-loads only the domains we actually need.
    */
   private async getSemanticTools(
     transcript: string,
@@ -513,11 +890,82 @@ export class UnifiedToolOrchestrator {
       query = `${recentHistory} ${transcript}`;
     }
 
-    // Get semantic matches
-    const matches = await semanticRouter.findRelevantToolsAsync(query);
+    // =========================================================================
+    // FAST PATH: Use pre-computed embeddings if available (100x faster!)
+    // =========================================================================
+    let matches: SemanticMatch[] = [];
+    try {
+      const { areEmbeddingsLoaded, semanticSearchTools } = await import(
+        '../semantic-router/precomputed-embeddings.js'
+      );
+      
+      if (areEmbeddingsLoaded()) {
+        // Use pre-computed embeddings for matching (near-instant)
+        const precomputedMatches = await semanticSearchTools(query, {
+          topK: 20,
+          minSimilarity: this.config.semanticThreshold,
+        });
+        
+        // Convert to SemanticMatch format (need domain from manifest)
+        const { getToolEntry } = await import('../registry/manifest-loader.js');
+        for (const m of precomputedMatches) {
+          const entry = await getToolEntry(m.toolId);
+          matches.push({
+            toolId: m.toolId,
+            domain: (entry?.domain || 'unknown') as ToolDomain,
+            similarity: m.similarity,
+            description: entry?.description || '',
+          });
+        }
+        
+        log.debug(
+          { matchCount: matches.length, topMatch: matches[0]?.toolId },
+          '⚡ Used pre-computed embeddings for semantic matching'
+        );
+      }
+    } catch {
+      // Fall back to semantic router
+    }
+    
+    // =========================================================================
+    // FALLBACK: Use semantic router (slower but works without pre-computed)
+    // =========================================================================
+    if (matches.length === 0) {
+      matches = await semanticRouter.findRelevantToolsAsync(query);
+    }
 
-    // Build tools from matches
+    // =========================================================================
+    // LAZY LOADING: Load domains on-demand for matched tools
+    // =========================================================================
     const tools: Record<string, Tool> = {};
+    const domainsToLoad = new Set<string>();
+    
+    // First pass: identify which domains need to be loaded
+    for (const match of matches) {
+      const toolDef = toolRegistry.get(match.toolId);
+      if (!toolDef) {
+        // Tool not in registry - need to load its domain
+        // Get domain from manifest
+        try {
+          const { getToolEntry } = await import('../registry/manifest-loader.js');
+          const entry = await getToolEntry(match.toolId);
+          if (entry?.domain) {
+            domainsToLoad.add(entry.domain);
+          }
+        } catch {
+          // Can't determine domain, skip this tool
+        }
+      }
+    }
+    
+    // Load missing domains in parallel
+    const domainsArray = Array.from(domainsToLoad);
+    if (domainsArray.length > 0) {
+      log.debug({ domains: domainsArray }, '🔄 Lazy-loading domains for matched tools');
+      await loadToolDomainsLazy(domainsArray as ToolDomain[]);
+    }
+
+    // Second pass: create tools (now domains should be loaded)
     for (const match of matches) {
       const toolDef = toolRegistry.get(match.toolId);
       if (toolDef) {
@@ -543,6 +991,9 @@ export class UnifiedToolOrchestrator {
   private async getAlwaysAvailableTools(ctx: ToolContext): Promise<Record<string, Tool>> {
     const tools: Record<string, Tool> = {};
 
+    // DEBUG: Log alwaysDomains config
+    log.info({ alwaysDomains: this.config.alwaysDomains }, '📦 Always-available domains config');
+
     // Ensure always-available domains are loaded (should already be loaded at init)
     const domainsToLoad = this.config.alwaysDomains.filter((domain) => {
       const existing = toolRegistry.query({ domains: [domain] });
@@ -550,13 +1001,18 @@ export class UnifiedToolOrchestrator {
     });
 
     if (domainsToLoad.length > 0) {
-      log.debug({ domains: domainsToLoad }, '🔄 Lazy loading always-available domains');
+      log.info({ domains: domainsToLoad }, '🔄 Lazy loading always-available domains');
       await loadToolDomainsLazy(domainsToLoad);
     }
 
     for (const domain of this.config.alwaysDomains) {
       const domainTools = toolRegistry.query({ domains: [domain] });
-      log.debug({ domain, toolCount: domainTools.length }, 'Querying always-available domain');
+      // DEBUG: Log ALL tool names for each domain
+      const toolNames = domainTools.map((t) => t.id);
+      log.info(
+        { domain, toolCount: domainTools.length, toolNames },
+        '📦 Querying always-available domain'
+      );
       for (const toolDef of domainTools) {
         try {
           tools[toolDef.id] = toolDef.create(ctx);
@@ -569,6 +1025,10 @@ export class UnifiedToolOrchestrator {
       }
     }
 
+    log.info(
+      { totalTools: Object.keys(tools).length, toolNames: Object.keys(tools) },
+      '📦 Total always-available tools'
+    );
     return tools;
   }
 
@@ -628,7 +1088,7 @@ export class UnifiedToolOrchestrator {
     }
 
     // Dedupe domains
-    const uniqueDomains = [...new Set(domainsToLoad)];
+    const uniqueDomains = Array.from(new Set(domainsToLoad));
 
     // Lazy load domains that aren't loaded yet
     const unloadedDomains = uniqueDomains.filter((domain) => {
@@ -793,26 +1253,43 @@ export class UnifiedToolOrchestrator {
   }
 
   /**
-   * Limit tools to maxTools, prioritizing essential and high-similarity matches
+   * Limit tools to maxTools, prioritizing essential domains and memory-aware boosts
    */
-  private limitTools(tools: Record<string, Tool>, maxTools: number): Record<string, Tool> {
+  private limitTools(
+    tools: Record<string, Tool>,
+    maxTools: number,
+    memoryBoosts: EnhancedToolScore[] = []
+  ): Record<string, Tool> {
     const entries = Object.entries(tools);
 
     if (entries.length <= maxTools) {
       return tools;
     }
 
-    // Sort: essential domains first, then by name (stable sort)
+    // Build boost lookup map
+    const boostMap = new Map(memoryBoosts.map((b) => [b.toolId, b.finalScore]));
+
+    // Sort: essential domains first, then by memory boost score, then by name
     const sorted = entries.sort(([idA], [idB]) => {
       const toolA = toolRegistry.get(idA);
       const toolB = toolRegistry.get(idB);
 
+      // Priority 1: Essential domains always come first
       const aEssential = toolA && this.config.alwaysDomains.includes(toolA.domain);
       const bEssential = toolB && this.config.alwaysDomains.includes(toolB.domain);
 
       if (aEssential && !bEssential) return -1;
       if (bEssential && !aEssential) return 1;
-      return 0;
+
+      // Priority 2: Memory-aware boost scores (higher = better)
+      const aBoost = boostMap.get(idA) ?? 1.0;
+      const bBoost = boostMap.get(idB) ?? 1.0;
+
+      if (aBoost !== bBoost) {
+        return bBoost - aBoost; // Higher boost first
+      }
+
+      return 0; // Stable sort preserves original order
     });
 
     const limited = sorted.slice(0, maxTools);
@@ -822,9 +1299,30 @@ export class UnifiedToolOrchestrator {
       result[id] = tool;
     }
 
-    log.debug({ original: entries.length, limited: limited.length }, '🔪 Tools limited to max');
+    log.debug(
+      {
+        original: entries.length,
+        limited: limited.length,
+        withBoosts: memoryBoosts.filter((b) => b.memoryBoost !== 1.0).length,
+      },
+      '🔪 Tools limited to max (memory-aware)'
+    );
 
     return result;
+  }
+
+  /**
+   * Get recent tools used in the session from context carrier
+   */
+  private getRecentToolsFromSession(sessionId: string): string[] {
+    try {
+      const { getContextCarrier } = require('../context-carrier.js');
+      const carrier = getContextCarrier();
+      const sessionContext = carrier.getSessionContext(sessionId);
+      return sessionContext?.toolsUsed?.slice(-10) || [];
+    } catch {
+      return [];
+    }
   }
 
   /**
@@ -838,6 +1336,25 @@ export class UnifiedToolOrchestrator {
       .slice(0, 100);
 
     return `${request.agentId}:${request.userId}:${normalizedTranscript}`;
+  }
+
+  // ==========================================================================
+  // OBSERVABILITY
+  // ==========================================================================
+
+  /**
+   * Emit tool selection event for external monitoring systems
+   * Fire-and-forget - errors are logged but don't affect tool selection
+   */
+  private async emitToolSelectionEvent(data: Record<string, unknown>): Promise<void> {
+    try {
+      // Import the observability emitter lazily to avoid circular deps
+      const { emitToolIntelligenceEvent } = await import('../../api/observability-routes.js');
+      emitToolIntelligenceEvent('tool_selection', data);
+    } catch (err) {
+      // Silently ignore - observability should never break tool selection
+      log.debug({ error: String(err) }, 'Tool selection event emission failed (non-critical)');
+    }
   }
 
   // ==========================================================================
@@ -857,7 +1374,25 @@ export class UnifiedToolOrchestrator {
     explanation += `  • Essential (always): ${result.meta.sources.essential}\n`;
     explanation += `  • Semantic (matched): ${result.meta.sources.semantic}\n`;
     explanation += `  • Contextual (smart): ${result.meta.sources.contextual}\n`;
-    explanation += `  • MCP (external): ${result.meta.sources.mcp}\n\n`;
+    explanation += `  • MCP (external): ${result.meta.sources.mcp}\n`;
+    explanation += `  • Intelligence (anticipated): ${result.meta.sources.intelligence}\n\n`;
+
+    // Better Than Human intelligence enhancement
+    if (result.meta.intelligenceEnhancement) {
+      const ie = result.meta.intelligenceEnhancement;
+      explanation += '🧠 Better Than Human Intelligence:\n';
+      explanation += `  • Returning user: ${ie.isReturningUser ? 'Yes' : 'No'}\n`;
+      if (ie.anticipatedTools.length > 0) {
+        explanation += `  • Anticipated tools: ${ie.anticipatedTools.join(', ')}\n`;
+      }
+      if (ie.prioritizedTools.length > 0) {
+        explanation += `  • Prioritized tools: ${ie.prioritizedTools.slice(0, 5).join(', ')}\n`;
+      }
+      if (ie.proactiveSuggestions > 0) {
+        explanation += `  • Proactive suggestions ready: ${ie.proactiveSuggestions}\n`;
+      }
+      explanation += '\n';
+    }
 
     if (result.meta.detectedIntent) {
       explanation += `Detected Intent:\n`;

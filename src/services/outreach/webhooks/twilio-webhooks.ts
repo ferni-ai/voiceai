@@ -17,6 +17,9 @@ import { getOutreachDecisionEngine } from '../decision-engine.js';
 import { markResponded, updateDeliveryStatus } from '../delivery/delivery-tracker.js';
 import { handleSMSStatus } from '../delivery/sms-delivery.js';
 import { handleCallStatus, handleMachineDetection } from '../sip-bridge.js';
+import { findContactByPhone, markContactResponded } from '../../contacts/optimal-timing.js';
+// Bidirectional engagement - route replies to the right agent
+import { handleInboundSMS as routeInboundSMS } from '../../conversation-thread/inbound-router.js';
 
 const log = getLogger().child({ module: 'twilio-webhooks' });
 
@@ -421,6 +424,70 @@ export async function handleInboundSMSWebhook(
     log.info({ userId, from: From }, 'SMS response attributed to user');
   }
 
+  // =========================================================================
+  // ML TIMING LEARNING - Check if this is a response from a known contact
+  // =========================================================================
+  // If the inbound message is from a phone number we've sent TO (a contact),
+  // update the ML timing model to record that they responded.
+  try {
+    const contactLookup = await findContactByPhone(From);
+    if (contactLookup) {
+      const mlResult = await markContactResponded(
+        contactLookup.userId,
+        contactLookup.contactId,
+        new Date()
+      );
+
+      if (mlResult.updated) {
+        log.info(
+          {
+            contactId: contactLookup.contactId,
+            contactName: contactLookup.contactName,
+            userId: contactLookup.userId,
+          },
+          '📊 ML timing model updated - contact responded to outreach'
+        );
+      }
+    }
+  } catch (mlError) {
+    // Don't fail the webhook if ML tracking fails
+    log.warn(
+      { error: String(mlError), from: From },
+      'Failed to update ML timing for contact response'
+    );
+  }
+
+  // =========================================================================
+  // BIDIRECTIONAL ROUTING - Route to appropriate agent
+  // =========================================================================
+  if (userId !== 'unknown') {
+    try {
+      const routeResult = await routeInboundSMS(userId, From, Body);
+
+      log.info(
+        {
+          userId,
+          routedToAgent: routeResult.routeDecision.agentId,
+          confidence: routeResult.routeDecision.confidence,
+          shouldInitiateCall: routeResult.shouldInitiateCall,
+        },
+        '🔀 SMS routed to agent'
+      );
+
+      // If user wants a call, we could trigger one here
+      // For now, just track the routing decision
+      if (routeResult.shouldInitiateCall && routeResult.responseMessage) {
+        return {
+          success: true,
+          twiml: generateTwiML(routeResult.responseMessage),
+        };
+      }
+    } catch (routeError) {
+      log.warn({ error: String(routeError), userId }, 'Failed to route inbound SMS');
+      // Continue with default handling
+    }
+  }
+
   // Auto-reply (optional)
   // For now, don't auto-reply to avoid confusion
   return { success: true };
@@ -534,6 +601,39 @@ export async function handleCallStatusWebhook(
   }
 
   updateDeliveryStatus(CallSid, deliveryStatus);
+
+  // =========================================================================
+  // ML TIMING LEARNING - If call was answered/completed, it's a "response"
+  // =========================================================================
+  if (deliveryStatus === 'responded' || deliveryStatus === 'delivered') {
+    try {
+      const contactLookup = await findContactByPhone(payload.To);
+      if (contactLookup) {
+        const mlResult = await markContactResponded(
+          contactLookup.userId,
+          contactLookup.contactId,
+          new Date()
+        );
+
+        if (mlResult.updated) {
+          log.info(
+            {
+              contactId: contactLookup.contactId,
+              contactName: contactLookup.contactName,
+              callStatus: CallStatus,
+            },
+            '📊 ML timing model updated - contact answered call'
+          );
+        }
+      }
+    } catch (mlError) {
+      // Don't fail the webhook if ML tracking fails
+      log.warn(
+        { error: String(mlError), to: payload.To },
+        'Failed to update ML timing for call response'
+      );
+    }
+  }
 
   return { success: true };
 }

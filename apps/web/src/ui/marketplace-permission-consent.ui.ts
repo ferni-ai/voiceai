@@ -23,10 +23,10 @@ import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import { soundUI } from './sound.ui.js';
 
-const log = createLogger('PermissionConsentUI');
+const _log = createLogger('PermissionConsentUI');
 
 // FIX BUG: Track all setTimeout calls for proper cleanup
-const { trackedTimeout, clearAll: clearAllTimeouts } = createTimeoutTracker();
+const { trackedTimeout } = createTimeoutTracker();
 
 // ============================================================================
 // LUCIDE ICONS (brand-compliant, no emoji)
@@ -144,6 +144,30 @@ export interface MarketplaceItem {
 export interface ConsentResult {
   granted: boolean;
   permissions: PermissionScope[];
+}
+
+// ============================================================================
+// HELPERS
+// ============================================================================
+
+/**
+ * Extracts the scope from either a PermissionRequest object or a PermissionScope string.
+ * This allows the code to handle both formats consistently.
+ */
+function getPermissionScope(p: PermissionRequest | PermissionScope): PermissionScope {
+  return typeof p === 'string' ? p : p.scope;
+}
+
+/**
+ * Normalizes a permission to a PermissionRequest object.
+ * If it's already a PermissionRequest, returns it as-is.
+ * If it's a PermissionScope string, wraps it in a basic PermissionRequest.
+ */
+function normalizePermission(p: PermissionRequest | PermissionScope, required: boolean): PermissionRequest {
+  if (typeof p === 'string') {
+    return { scope: p, reason: '', required };
+  }
+  return p;
 }
 
 // ============================================================================
@@ -325,12 +349,14 @@ const PERMISSION_DISPLAY: Record<
 };
 
 // Trust badges use simple text characters (brand compliant)
-const TRUST_BADGES: Record<string, { label: string; color: string; icon: string }> = {
+const TRUST_BADGES = {
   platform: { label: 'By Ferni', color: 'var(--persona-primary)', icon: '✓' },
   verified: { label: 'Verified', color: 'var(--color-semantic-success)', icon: '✓' },
   community: { label: 'Community', color: 'var(--color-semantic-warning)', icon: '●' },
   unverified: { label: 'Review pending', color: 'var(--color-semantic-error)', icon: '○' },
-};
+} as const;
+
+const DEFAULT_TRUST_BADGE = TRUST_BADGES.community;
 
 // ============================================================================
 // STATE
@@ -400,7 +426,7 @@ export function requestPermissionConsent(item: MarketplaceItem): Promise<Consent
     selectedOptionalPermissions = new Set();
 
     // Pre-select all optional permissions by default
-    item.permissions.optional.forEach((p) => selectedOptionalPermissions.add(p.scope));
+    item.permissions.optional.forEach((p) => selectedOptionalPermissions.add(getPermissionScope(p)));
 
     modal = createModal(item);
     document.body.appendChild(modal);
@@ -429,9 +455,9 @@ function createModal(item: MarketplaceItem): HTMLElement {
   el.setAttribute('aria-modal', 'true');
   el.setAttribute('aria-labelledby', 'consent-title');
 
-  const trustBadge = TRUST_BADGES[item.trustLevel] || TRUST_BADGES.community;
+  const trustBadge = TRUST_BADGES[item.trustLevel as keyof typeof TRUST_BADGES] ?? DEFAULT_TRUST_BADGE;
   const hasHighSensitivity = [...item.permissions.required, ...item.permissions.optional].some(
-    (p) => PERMISSION_DISPLAY[p.scope]?.sensitivity === 'high'
+    (p) => PERMISSION_DISPLAY[getPermissionScope(p)]?.sensitivity === 'high'
   );
 
   el.innerHTML = `
@@ -473,7 +499,7 @@ function createModal(item: MarketplaceItem): HTMLElement {
           <section class="permission-section">
             <h3 class="section-label">Required permissions</h3>
             <ul class="permission-list" role="list">
-              ${item.permissions.required.map((p) => renderPermissionItem(p, true)).join('')}
+              ${item.permissions.required.map((p) => renderPermissionItem(normalizePermission(p, true), true)).join('')}
             </ul>
           </section>
         `
@@ -487,7 +513,7 @@ function createModal(item: MarketplaceItem): HTMLElement {
             <h3 class="section-label">Optional permissions</h3>
             <p class="section-hint">You can change these later in settings</p>
             <ul class="permission-list" role="list">
-              ${item.permissions.optional.map((p) => renderPermissionItem(p, false)).join('')}
+              ${item.permissions.optional.map((p) => renderPermissionItem(normalizePermission(p, false), false)).join('')}
             </ul>
           </section>
         `
@@ -507,10 +533,10 @@ function createModal(item: MarketplaceItem): HTMLElement {
       </div>
 
       <footer class="consent-footer">
-        <button class="consent-btn consent-btn--secondary" data-action="cancel">
+        <button aria-label="${t('accessibility.cancel')}" class="consent-btn consent-btn--secondary" data-action="cancel">
           Cancel
         </button>
-        <button class="consent-btn consent-btn--primary" data-action="confirm">
+        <button aria-label="${t('accessibility.add')}" class="consent-btn consent-btn--primary" data-action="confirm">
           Add ${item.type === 'agent' ? 'to Team' : 'Tool'}
         </button>
       </footer>
@@ -597,7 +623,7 @@ function handleCancel(): void {
 
 function handleConfirm(item: MarketplaceItem): void {
   const grantedPermissions: PermissionScope[] = [
-    ...item.permissions.required.map((p) => p.scope),
+    ...item.permissions.required.map((p) => getPermissionScope(p)),
     ...Array.from(selectedOptionalPermissions),
   ];
 
@@ -663,16 +689,16 @@ function injectStyles(): void {
     .consent-backdrop {
       position: absolute;
       inset: 0;
-      background: var(--backdrop-heavy, rgba(44, 37, 32, 0.7));
-      backdrop-filter: blur(var(--glass-blur-modal, 20px));
+      background: rgba(44, 37, 32, 0.75);
     }
 
     .consent-panel {
       position: relative;
-      background: var(--color-background-elevated, #FFFDFB);
-      border-radius: var(--radius-2xl, 24px);
-      box-shadow: var(--shadow-2xl);
-      max-width: 480px;
+      background: var(--color-bg-elevated, #FFFDFB);
+      border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
+      border-radius: var(--radius-xl, 20px);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.06);
+      max-width: clamp(336px, 90vw, 480px);
       width: 100%;
       max-height: 85vh;
       overflow-y: auto;
@@ -730,7 +756,7 @@ function injectStyles(): void {
       justify-content: center;
       background: var(--persona-tint);
       border-radius: var(--radius-xl);
-      color: var(--persona-primary);
+      color: var(--persona-text);
     }
 
     .consent-icon svg {
@@ -848,7 +874,7 @@ function injectStyles(): void {
       width: 18px;
       height: 18px;
       margin-top: 2px;
-      accent-color: var(--persona-primary);
+      accent-color: var(--persona-text);
       cursor: pointer;
     }
 
@@ -991,7 +1017,7 @@ function injectStyles(): void {
     }
 
     /* Mobile */
-    @media (max-width: 480px) {
+    @media (max-width: clamp(336px, 90vw, 480px)) {
       .consent-panel {
         max-height: 90vh;
         border-radius: var(--radius-xl) var(--radius-xl) 0 0;

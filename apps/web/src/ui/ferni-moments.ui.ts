@@ -34,12 +34,13 @@ import { DURATION } from '../config/animation-constants.js';
 import { gsap } from '../utils/gsap-setup.js';
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
+import { avatarSidekicks } from './avatar-sidekicks.ui.js';
 import { morphIconToText, morphTextToIcon, setExpression } from './ferni-expressions.ui.js';
 
 const log = createLogger('FerniMoments');
 
 // FIX BUG: Track all setTimeout calls for proper cleanup
-const { trackedTimeout, clearAll: clearAllTimeouts } = createTimeoutTracker();
+const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
 
 // GSAP helper - convert ms to seconds
 const toSeconds = (ms: number) => ms / 1000;
@@ -446,7 +447,7 @@ function ensureContainer(): HTMLElement | null {
     width: ${size}px;
     height: ${size}px;
     pointer-events: none;
-    z-index: 15;
+    z-index: var(--z-dropdown);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -538,7 +539,9 @@ export function getTimeOfDayMoment(): MomentType | null {
 }
 
 /**
- * Play time-appropriate moment.
+ * Play time-appropriate moment (full morph animation over avatar).
+ * For a softer alternative, use avatarSidekicks.timeOfDay() instead
+ * which shows icons beside the avatar.
  */
 export function playTimeOfDayMoment(): void {
   const moment = getTimeOfDayMoment();
@@ -598,7 +601,7 @@ function playIconMoment(momentContainer: HTMLElement, config: MomentConfig): voi
 
   // For single centered icons, use the dramatic morph system
   if (isSingleCenteredIcon) {
-    playDramaticIconMoment(iconSvg, config);
+    void playDramaticIconMoment(iconSvg, config);
     return;
   }
 
@@ -1117,10 +1120,10 @@ function startTimeAwareness(): void {
       lastTimeCheck = timeSlot;
       // Only auto-play on significant transitions
       if (timeSlot === 'morning' || timeSlot === 'evening' || timeSlot === 'lateNight') {
-        // Subtle moment on time transition
+        // Use sidekicks for a subtle, non-intrusive moment beside the avatar
+        // instead of the dramatic center morph animation
         trackedTimeout(() => {
-          const moment = getTimeOfDayMoment();
-          if (moment) playMoment(moment);
+          avatarSidekicks.timeOfDay();
         }, 2000); // Delay so it doesn't feel jarring
       }
     }

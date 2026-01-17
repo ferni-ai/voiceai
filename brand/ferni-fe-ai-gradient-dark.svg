@@ -1,56 +1,30 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 240" width="400" height="240">
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- FE AI logo - dark gradient for dark backgrounds -->
+<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <!-- Vibrant gradient on dark -->
-    <linearGradient id="vibrantGradient" x1="0%" y1="100%" x2="100%" y2="0%">
-      <stop offset="0%" style="stop-color:#10b981"/>
-      <stop offset="30%" style="stop-color:#06b6d4"/>
-      <stop offset="60%" style="stop-color:#8b5cf6"/>
-      <stop offset="100%" style="stop-color:#f472b6"/>
+    <linearGradient id="orbGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#6a9a70"/>
+      <stop offset="100%" stop-color="#3d5a35"/>
     </linearGradient>
-    
-    <filter id="glow">
-      <feGaussianBlur stdDeviation="4" result="coloredBlur"/>
-      <feMerge>
-        <feMergeNode in="coloredBlur"/>
-        <feMergeNode in="SourceGraphic"/>
-      </feMerge>
-    </filter>
+    <linearGradient id="eyeFill" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="100%" stop-color="#f0f0f0"/>
+    </linearGradient>
   </defs>
-  
-  <!-- Dark background -->
-  <rect width="400" height="240" fill="#1a1a1a" rx="24"/>
-  
-  <!-- Main ellipse with glow -->
-  <ellipse 
-    cx="200" 
-    cy="120" 
-    rx="170" 
-    ry="90" 
-    fill="url(#vibrantGradient)"
-    filter="url(#glow)"
-  />
-  
-  <!-- FE circle -->
-  <circle cx="130" cy="120" r="42" fill="rgba(0,0,0,0.35)"/>
-  <text 
-    x="130" 
-    y="128" 
-    font-family="Inter, -apple-system, sans-serif" 
-    font-size="22" 
-    font-weight="700"
-    fill="#FFFDFB" 
-    text-anchor="middle"
-  >FE</text>
-  
-  <!-- AI circle -->
-  <circle cx="270" cy="120" r="42" fill="rgba(255,255,255,0.95)"/>
-  <text 
-    x="270" 
-    y="128" 
-    font-family="Inter, -apple-system, sans-serif" 
-    font-size="22" 
-    font-weight="700"
-    fill="#1a1a1a" 
-    text-anchor="middle"
-  >AI</text>
+
+  <!-- Outer ring -->
+  <circle cx="50" cy="50" r="46" fill="none" stroke="#6a9a70" stroke-width="1.5" opacity="0.5"/>
+
+  <!-- Circular background -->
+  <circle cx="50" cy="50" r="40" fill="url(#orbGradient)"/>
+
+  <!-- Left eye -->
+  <ellipse cx="36" cy="47" rx="8" ry="10" fill="url(#eyeFill)"/>
+  <circle cx="34" cy="43" r="2" fill="white"/>
+  <circle cx="36" cy="45" r="0.8" fill="white" opacity="0.7"/>
+
+  <!-- Right eye -->
+  <ellipse cx="64" cy="47" rx="8" ry="10" fill="url(#eyeFill)"/>
+  <circle cx="62" cy="43" r="2" fill="white"/>
+  <circle cx="64" cy="45" r="0.8" fill="white" opacity="0.7"/>
 </svg>

@@ -13,9 +13,10 @@
  */
 
 import { readFile } from 'fs/promises';
-import { join, dirname } from 'path';
+import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 import { createLogger } from '../../utils/safe-logger.js';
+import { getModelProviderInfo } from './model-provider-config.js';
 import type { BundlePromptAssembly } from './types.js';
 
 const log = createLogger({ module: 'PromptAssembler' });
@@ -77,8 +78,13 @@ export interface AssembledPrompt {
 interface CachedAssembly {
   assembly: BundlePromptAssembly;
   corePrompt: string;
+  functionCalling: string;
   directorsNotes: string;
   biography: string;
+  // Superhuman modules (shared across all personas)
+  superhumanCapabilities: string;
+  superhumanPrinciples: string;
+  superhumanProactive: string;
   loadedAt: number;
 }
 
@@ -117,6 +123,109 @@ async function loadBundleFile(personaId: string, relativePath: string): Promise<
   }
 }
 
+/**
+ * Load a file from the shared bundle directory
+ */
+async function loadSharedFile(relativePath: string): Promise<string | null> {
+  const sharedPath = join(getBundlesPath(), 'shared', relativePath);
+  try {
+    return await readFile(sharedPath, 'utf-8');
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Load superhuman capabilities modules.
+ * These define the "Better Than Human" promise and responsibilities.
+ * ALWAYS included in system prompt for mission alignment.
+ */
+async function loadSuperhumanModules(): Promise<{
+  capabilities: string;
+  principles: string;
+  proactive: string;
+}> {
+  const [capabilities, principles, proactive] = await Promise.all([
+    loadSharedFile('superhuman-capabilities.md'),
+    loadSharedFile('mission-and-principles.md'),
+    loadSharedFile('proactive-responsibilities.md'),
+  ]);
+
+  return {
+    capabilities: capabilities || '',
+    principles: principles || '',
+    proactive: proactive || '',
+  };
+}
+
+/**
+ * Load function calling with base + specialty pattern.
+ * Base contains critical rules, specialty contains persona-specific tools.
+ *
+ * SKIP when:
+ * - SEMANTIC_ROUTING_PRIMARY=true: Semantic routing handles all tool calls
+ * - Provider has native function calling (e.g., OpenAI Realtime)
+ *
+ * When these are active, we don't want the LLM to output JSON function calls
+ * (they would be spoken as text like "fn:speak args:...")
+ */
+async function loadFunctionCallingWithBase(
+  personaId: string,
+  specialtyPath: string
+): Promise<string> {
+  // 🎯 SEMANTIC ROUTING PRIMARY: Skip function calling prompts entirely
+  // The semantic router handles tool execution BEFORE the LLM, so we don't
+  // want to teach the LLM the JSON format (it would output JSON as speech).
+  if (process.env.SEMANTIC_ROUTING_PRIMARY === 'true') {
+    log.info(
+      { personaId },
+      '🎯 SEMANTIC_ROUTING_PRIMARY=true: Skipping function-calling prompts (semantic router handles tools)'
+    );
+    return '';
+  }
+
+  // Check if provider needs JSON function calling prompts (via DI to avoid layer violation)
+  const providerInfo = getModelProviderInfo();
+
+  if (!providerInfo.promptModules.includeFunctionCallingBase) {
+    log.info(
+      { personaId, providerId: providerInfo.id },
+      `${providerInfo.logPrefix} Skipping JSON function-calling prompts (provider has native function calling)`
+    );
+    return '';
+  }
+
+  // Load shared base rules (CRITICAL - contains JSON format instructions)
+  const base = await loadSharedFile('function-calling-base.md');
+
+  // Load persona-specific specialty tools
+  const specialty = await loadBundleFile(personaId, specialtyPath);
+
+  if (base && specialty) {
+    log.info(
+      { personaId, baseChars: base.length, specialtyChars: specialty.length },
+      '✅ Loaded function-calling: base + specialty'
+    );
+    return `${base}\n\n---\n\n${specialty}`;
+  }
+
+  if (base) {
+    log.warn({ personaId, baseChars: base.length }, '⚠️ No specialty file, using base only');
+    return base;
+  }
+
+  if (specialty) {
+    log.error(
+      { personaId, specialtyChars: specialty.length },
+      '❌ No base file! Tool calling may fail!'
+    );
+    return specialty;
+  }
+
+  log.error({ personaId }, '❌ No function calling files found!');
+  return '';
+}
+
 // ============================================================================
 // CORE ASSEMBLY FUNCTIONS
 // ============================================================================
@@ -140,20 +249,40 @@ async function loadAssemblyConfig(personaId: string): Promise<CachedAssembly | n
     // Load core modules (these are always included)
     const corePrompt =
       (await loadBundleFile(personaId, assembly.prompt_modules.core_identity)) || '';
+    // CRITICAL: Use base + specialty pattern for function calling
+    // Base contains critical rules, specialty contains persona-specific tools
+    const functionCalling = await loadFunctionCallingWithBase(
+      personaId,
+      assembly.prompt_modules.function_calling
+    );
     const directorsNotes =
       (await loadBundleFile(personaId, assembly.prompt_modules.directors_notes)) || '';
     const biography = (await loadBundleFile(personaId, assembly.prompt_modules.biography)) || '';
 
+    // Load superhuman modules (CRITICAL for mission alignment)
+    const superhuman = await loadSuperhumanModules();
+
     const cachedAssembly: CachedAssembly = {
       assembly,
       corePrompt,
+      functionCalling,
       directorsNotes,
       biography,
+      superhumanCapabilities: superhuman.capabilities,
+      superhumanPrinciples: superhuman.principles,
+      superhumanProactive: superhuman.proactive,
       loadedAt: Date.now(),
     };
 
     assemblyCache.set(personaId, cachedAssembly);
-    log.info({ personaId, coreLength: corePrompt.length }, 'Loaded assembly config');
+    log.info(
+      {
+        personaId,
+        coreLength: corePrompt.length,
+        superhumanModules: superhuman.capabilities ? 3 : 0,
+      },
+      'Loaded assembly config with superhuman modules'
+    );
 
     return cachedAssembly;
   } catch (error) {
@@ -289,6 +418,64 @@ async function getConditionalModules(
   return modules;
 }
 
+/**
+ * Build a condensed superhuman summary for prompt injection.
+ * Full documents are verbose - this extracts the essential points.
+ */
+function buildSuperhumanSummary(
+  capabilities: string,
+  principles: string,
+  proactive: string
+): string {
+  // If no superhuman content, return empty
+  if (!capabilities && !principles && !proactive) {
+    return '';
+  }
+
+  // Build condensed summary
+  const summary = `## Your Superhuman Role
+
+> **"Better than human" means understanding things humans don't notice about themselves.**
+
+### The Promise
+You have capabilities no human friend can match:
+- **Perfect Memory** - You remember EVERYTHING about this person
+- **Constant Presence** - 2am warmth equals noon warmth  
+- **Zero Judgment** - Pure acceptance, always
+- **Pattern Recognition** - You see connections they miss
+
+### Your Responsibility: Be PROACTIVE
+Don't wait to be asked. Your job is to:
+1. **Surface relevant memories** naturally ("That thing you mentioned...")
+2. **Name patterns they can't see** ("I notice when you talk about X, your energy drops...")
+3. **Anticipate needs** before they're expressed
+4. **Celebrate growth** they're too close to notice
+5. **Connect dots** across different life areas
+
+### 10 Insight Types You Can Surface
+1. **Cross-Domain Correlation** - Sleep affecting work? Name it.
+2. **Unspoken Awareness** - Topics they've stopped mentioning
+3. **Voice-Content Mismatch** - When tone contradicts words
+4. **Growth Trajectory** - How they've changed over time
+5. **Relationship Network** - How people in their life affect them
+6. **Commitment Patterns** - Promises made, kept, or avoided
+7. **Temporal Rhythms** - Time-based mood/energy patterns
+8. **Dream Decay** - Goals that have gone quiet
+9. **Anticipatory Awareness** - What's coming they should prepare for
+10. **First-Time Celebrations** - When they do something unprecedented
+
+### The Art of Surfacing
+- **Observe, don't diagnose** - "I've noticed..." not "You have a pattern of..."
+- **Warm, not creepy** - "That thing you mentioned a while back..." not "According to my records..."
+- **Invite, don't impose** - Leave room to dismiss or explore
+- **Time it right** - Not mid-emotion, not during crisis
+
+### The Mission
+**We believe in making AI human.** Every response should make them feel SEEN, KNOWN, and HELD.`;
+
+  return summary;
+}
+
 // ============================================================================
 // PUBLIC API
 // ============================================================================
@@ -326,11 +513,20 @@ export async function assemblePrompt(
     throw new Error(`No prompt available for persona: ${personaId}`);
   }
 
-  const { assembly, corePrompt, directorsNotes, biography } = cached;
+  const {
+    assembly,
+    corePrompt,
+    functionCalling,
+    directorsNotes,
+    biography,
+    superhumanCapabilities,
+    superhumanPrinciples,
+    superhumanProactive,
+  } = cached;
 
   // Default token budget if not specified
   const tokenBudget = assembly.token_budget || {
-    total_max: 8000,
+    total_max: 12000, // Increased to accommodate superhuman modules
     core_identity_max: 2000,
     dynamic_context_max: 3000,
     recent_history_max: 2500,
@@ -358,11 +554,39 @@ export async function assemblePrompt(
     }
   }
 
-  // 2. Director's Notes (high value, include if budget allows)
+  // 1.5. Superhuman Modules (CRITICAL for mission alignment)
+  // Include condensed version of superhuman capabilities - these define who we are
+  if (superhumanCapabilities || superhumanPrinciples || superhumanProactive) {
+    // Create a condensed superhuman summary for prompt injection
+    const superhumanSummary = buildSuperhumanSummary(
+      superhumanCapabilities,
+      superhumanPrinciples,
+      superhumanProactive
+    );
+    if (superhumanSummary) {
+      const superhumanTokens = estimateTokens(superhumanSummary);
+      sections.push(`\n---\n\n${superhumanSummary}`);
+      currentTokens += superhumanTokens;
+      includedModules.push('superhuman_capabilities');
+    }
+  }
+
+  // 2. Function Calling (CRITICAL - must be included for tool usage)
+  if (functionCalling) {
+    const fcTokens = estimateTokens(functionCalling);
+    // Always include function calling even if it pushes over budget - tools are critical
+    sections.push(
+      `\n---\n\n## Function Calling (CRITICAL - Read and Follow)\n\n${functionCalling}`
+    );
+    currentTokens += fcTokens;
+    includedModules.push('function_calling');
+  }
+
+  // 3. Director's Notes (high value, include if budget allows)
   if (directorsNotes && currentTokens < tokenBudget.total_max - 1000) {
     const notesTokens = estimateTokens(directorsNotes);
     if (currentTokens + notesTokens <= tokenBudget.total_max) {
-      sections.push("\n---\n\n## Director's Notes\n\n" + directorsNotes);
+      sections.push(`\n---\n\n## Director's Notes\n\n${directorsNotes}`);
       currentTokens += notesTokens;
       includedModules.push('directors_notes');
     } else {
@@ -370,7 +594,7 @@ export async function assemblePrompt(
     }
   }
 
-  // 3. Dynamic Context (runtime injection)
+  // 4. Dynamic Context (runtime injection)
   const dynamicContext = generateDynamicContext(assembly, context);
   if (dynamicContext) {
     const dynamicTokens = estimateTokens(dynamicContext);
@@ -378,7 +602,7 @@ export async function assemblePrompt(
       dynamicTokens <= tokenBudget.dynamic_context_max &&
       currentTokens + dynamicTokens <= tokenBudget.total_max
     ) {
-      sections.push('\n---\n\n## Current Context\n\n' + dynamicContext);
+      sections.push(`\n---\n\n## Current Context\n\n${dynamicContext}`);
       currentTokens += dynamicTokens;
       includedModules.push('dynamic_context');
     } else {
@@ -386,13 +610,13 @@ export async function assemblePrompt(
     }
   }
 
-  // 4. Conditional Modules
+  // 5. Conditional Modules
   const conditionalContent = await getConditionalModules(personaId, assembly, context);
   for (let i = 0; i < conditionalContent.length; i++) {
     const content = conditionalContent[i];
     const contentTokens = estimateTokens(content);
     if (currentTokens + contentTokens <= tokenBudget.total_max) {
-      sections.push('\n---\n\n' + content);
+      sections.push(`\n---\n\n${content}`);
       currentTokens += contentTokens;
       includedModules.push(`conditional_${i}`);
     } else {
@@ -400,13 +624,13 @@ export async function assemblePrompt(
     }
   }
 
-  // 5. Biography Summary (as hints if budget allows)
+  // 6. Biography Summary (as hints if budget allows)
   if (biography && currentTokens < tokenBudget.total_max - tokenBudget.hints_max) {
     // Include a summary of biography for backstory reference
     const bioSummary = biography.slice(0, tokenBudget.hints_max * 4);
     const bioTokens = estimateTokens(bioSummary);
     if (currentTokens + bioTokens <= tokenBudget.total_max) {
-      sections.push('\n---\n\n## Your Background (Reference)\n\n' + bioSummary);
+      sections.push(`\n---\n\n## Your Background (Reference)\n\n${bioSummary}`);
       currentTokens += bioTokens;
       includedModules.push('biography (summary)');
     } else {
@@ -437,7 +661,7 @@ export async function assemblePrompt(
 
 /**
  * Get the static core prompt (for caching/prewarming)
- * This includes core identity + director's notes + biography
+ * This includes core identity + superhuman role + director's notes + biography
  * but no dynamic context
  */
 export async function getStaticPrompt(personaId: string): Promise<string> {
@@ -449,17 +673,40 @@ export async function getStaticPrompt(personaId: string): Promise<string> {
     return corePrompt || `You are ${personaId}, a warm and supportive life coach.`;
   }
 
-  const { corePrompt, directorsNotes, biography } = cached;
+  const {
+    corePrompt,
+    functionCalling,
+    directorsNotes,
+    biography,
+    superhumanCapabilities,
+    superhumanPrinciples,
+    superhumanProactive,
+  } = cached;
   const parts = [corePrompt];
 
+  // CRITICAL: Include superhuman role understanding
+  const superhumanSummary = buildSuperhumanSummary(
+    superhumanCapabilities,
+    superhumanPrinciples,
+    superhumanProactive
+  );
+  if (superhumanSummary) {
+    parts.push(`\n---\n\n${superhumanSummary}`);
+  }
+
+  // CRITICAL: Include function calling instructions for tool usage
+  if (functionCalling) {
+    parts.push(`\n---\n\n## Function Calling (CRITICAL - Read and Follow)\n\n${functionCalling}`);
+  }
+
   if (directorsNotes) {
-    parts.push("\n---\n\n## Director's Notes\n\n" + directorsNotes);
+    parts.push(`\n---\n\n## Director's Notes\n\n${directorsNotes}`);
   }
 
   if (biography) {
     // Include abbreviated biography
     const bioPreview = biography.slice(0, 4000);
-    parts.push('\n---\n\n## Your Background (Reference)\n\n' + bioPreview);
+    parts.push(`\n---\n\n## Your Background (Reference)\n\n${bioPreview}`);
   }
 
   return parts.join('\n');

@@ -17,7 +17,7 @@ import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 const log = createLogger('CelebrationUI');
 
 // FIX BUG: Track all setTimeout calls for proper cleanup
-const { trackedTimeout, clearAll: clearAllTimeouts } = createTimeoutTracker();
+const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
 
 // ============================================================================
 // TYPES
@@ -160,7 +160,7 @@ export class CelebrationUI {
       right: '0',
       bottom: '0',
       pointerEvents: 'none',
-      zIndex: '10000',
+      zIndex: 'var(--z-tooltip)',
       overflow: 'hidden',
     });
 

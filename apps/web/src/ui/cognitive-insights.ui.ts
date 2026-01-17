@@ -20,6 +20,7 @@
 import { t } from '../i18n/index.js';
 import { DURATION, EASING, prefersReducedMotion } from '../config/animation-constants.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
+import { apiGet } from '../utils/api.js';
 import {
   escapeHtml,
   ICONS,
@@ -27,6 +28,9 @@ import {
   renderCloseButton,
   STAGGER_DELAYS,
 } from './engagement-components.js';
+import { createLogger } from '../utils/logger.js';
+
+const log = createLogger('CognitiveInsights');
 
 // Track setTimeout calls for memory leak prevention
 const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
@@ -648,20 +652,19 @@ class CognitiveInsightsUI {
       .cognitive-insights__backdrop {
         position: absolute;
         inset: 0;
-        background: var(--color-background-overlay);
-        backdrop-filter: blur(var(--glass-blur-subtle, 8px));
+        background: rgba(44, 37, 32, 0.75);
       }
 
       /* Card */
       .cognitive-insights__card {
         position: relative;
         width: 100%;
-        max-width: 440px;
+        max-width: clamp(308px, 90vw, 440px);
         max-height: 80vh;
-        background: var(--color-background-elevated);
-        border-radius: var(--radius-2xl, 1.5rem);
-        box-shadow: var(--shadow-2xl);
-        border: 1px solid var(--color-border-subtle);
+        background: var(--color-bg-elevated, #FFFDFB);
+        border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
+        border-radius: var(--radius-xl, 20px);
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.06);
         display: flex;
         flex-direction: column;
         overflow: hidden;
@@ -1288,7 +1291,7 @@ class CognitiveInsightsUI {
       }
 
       /* Responsive */
-      @media (max-width: 480px) {
+      @media (max-width: clamp(336px, 90vw, 480px)) {
         .cognitive-insights {
           padding: var(--space-4, 16px);
         }
@@ -1363,23 +1366,24 @@ export async function fetchSuperhumanInsights(): Promise<{
   topicAbsences: TopicAbsence[];
 } | null> {
   try {
-    const response = await fetch('/api/cognitive/superhuman-insights', {
-      credentials: 'include',
-    });
+    const response = await apiGet<{
+      insights?: SuperhumanInsight[];
+      temporalContext?: { isSpecialDate: boolean; specialDateInfo?: string; seasonalPattern?: string };
+      topicAbsences?: TopicAbsence[];
+    }>('/api/cognitive/superhuman-insights');
 
-    if (!response.ok) {
-      console.warn('Failed to fetch superhuman insights:', response.status);
+    if (!response.ok || !response.data) {
+      log.warn('Failed to fetch superhuman insights:', response.status);
       return null;
     }
 
-    const data = await response.json();
     return {
-      insights: data.insights || [],
-      temporalContext: data.temporalContext || { isSpecialDate: false },
-      topicAbsences: data.topicAbsences || [],
+      insights: response.data.insights || [],
+      temporalContext: response.data.temporalContext || { isSpecialDate: false },
+      topicAbsences: response.data.topicAbsences || [],
     };
   } catch (error) {
-    console.warn('Error fetching superhuman insights:', error);
+    log.warn('Error fetching superhuman insights:', error);
     return null;
   }
 }

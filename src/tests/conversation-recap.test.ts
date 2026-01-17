@@ -29,7 +29,7 @@ import {
   RECAP_PATTERNS,
   TOPIC_CALLBACK_PATTERNS,
   buildConversationRecap,
-} from '../intelligence/context-builders/conversation-recap.js';
+} from '../intelligence/context-builders/session/conversation-recap.js';
 
 describe('Conversation Recap', () => {
   describe('RECAP_PATTERNS', () => {

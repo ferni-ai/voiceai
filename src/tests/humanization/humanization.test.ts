@@ -967,7 +967,7 @@ describe('E2E Scenarios', () => {
     const orchestrator = getHumanizationOrchestrator('ambient-session', {}, 'ambient-user');
 
     // Start in quiet environment
-    let context = orchestrator.getAmbientContext();
+    const context = orchestrator.getAmbientContext();
     expect(context).toBeNull(); // Not yet processed
 
     // TODO: Add ambient detection integration when available

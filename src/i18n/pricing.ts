@@ -145,7 +145,7 @@ export const LOCALE_CURRENCY: Record<SupportedLocale, CurrencyCode> = {
  * Adjusted for purchasing power parity in different regions
  */
 const TIER_PRICING: Record<CurrencyCode, { friend: number; partner: number }> = {
-  USD: { friend: 999, partner: 1999 }, // $9.99, $19.99
+  USD: { friend: 1000, partner: 2000 }, // $10, $20 (Founding Member / Patron)
   EUR: { friend: 899, partner: 1799 }, // €8.99, €17.99
   GBP: { friend: 799, partner: 1599 }, // £7.99, £15.99
   JPY: { friend: 1500, partner: 3000 }, // ¥1500, ¥3000 (no decimals)
@@ -220,14 +220,19 @@ const DEFAULT_STRIPE_PRICE_IDS: Record<CurrencyCode, StripePriceIds> = {
  */
 export function formatPrice(amountInSmallestUnit: number, currency: CurrencyCode): string {
   const config = CURRENCY_CONFIG[currency];
+  if (!config) {
+    return `$${(amountInSmallestUnit / 100).toFixed(2)}`;
+  }
   const divisor = config.decimalPlaces > 0 ? Math.pow(10, config.decimalPlaces) : 1;
   const amount = amountInSmallestUnit / divisor;
 
   // Format the number
   const parts = amount.toFixed(config.decimalPlaces).split('.');
-  const integerPart = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, config.thousandsSeparator);
+  const integerPart = (parts[0] ?? '0').replace(/\B(?=(\d{3})+(?!\d))/g, config.thousandsSeparator);
   const formattedNumber =
-    config.decimalPlaces > 0 ? `${integerPart}${config.decimalSeparator}${parts[1]}` : integerPart;
+    config.decimalPlaces > 0
+      ? `${integerPart}${config.decimalSeparator}${parts[1] ?? '00'}`
+      : integerPart;
 
   // Add currency symbol
   if (config.symbolPosition === 'before') {
@@ -300,7 +305,7 @@ export function detectCurrencyFromHeader(acceptLanguage: string | undefined): Cu
   // Parse Accept-Language header (e.g., "en-US,en;q=0.9,ja;q=0.8")
   const languages = acceptLanguage.split(',').map((lang) => {
     const parts = lang.trim().split(';');
-    return parts[0].toLowerCase();
+    return (parts[0] ?? '').toLowerCase();
   });
 
   // Find first matching locale
@@ -312,9 +317,9 @@ export function detectCurrencyFromHeader(acceptLanguage: string | undefined): Cu
       }
     }
     // Try base language match
-    const baseLang = lang.split('-')[0];
+    const baseLang = lang.split('-')[0] ?? '';
     for (const [locale, currency] of Object.entries(LOCALE_CURRENCY)) {
-      if (locale.split('-')[0].toLowerCase() === baseLang) {
+      if ((locale.split('-')[0] ?? '').toLowerCase() === baseLang) {
         return currency;
       }
     }

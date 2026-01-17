@@ -66,6 +66,9 @@ const ICONS: Record<string, string> = {
   watch:
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>',
 
+  // Connections - Linked chain (sync your world)
+  link: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>',
+
   // Household - Nested circles (family unity)
   household:
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>',
@@ -97,6 +100,9 @@ const ICONS: Record<string, string> = {
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>',
   vote:
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="m9 12 2 2 4-4"/><path d="M5 7c0-1.1.9-2 2-2h10a2 2 0 0 1 2 2v12H5V7Z"/><path d="M22 19H2"/></svg>',
+  // Conversation - Speech bubble (for seeds earned)
+  conversation:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>',
 };
 
 // ============================================================================
@@ -249,7 +255,7 @@ class RoadmapPanelUI {
             <div class="roadmap-panel__seed-balance" data-seeds-info>
               <span class="roadmap-panel__seed-icon">${ICONS.seed}</span>
               <span class="roadmap-panel__seed-count">${seedBalance}</span>
-              <span class="roadmap-panel__seed-info-trigger" title="${t('roadmap.howSeedsWork.title') || 'How do seeds work?'}">?</span>
+              <span class="roadmap-panel__seed-info-trigger" role="button" tabindex="0" title="${t('roadmap.howSeedsWork.title') || 'How do seeds work?'}">?</span>
             </div>
             ${this.renderStreakProgress()}
           </div>
@@ -274,7 +280,7 @@ class RoadmapPanelUI {
           </div>
 
           <!-- Suggest a Feature Button -->
-          <button class="roadmap-panel__suggest-btn" ${seedBalance < 5 ? 'disabled' : ''}>
+          <button aria-label=") || '5 seeds'}" class="roadmap-panel__suggest-btn" ${seedBalance < 5 ? 'disabled' : ''}>
             <span class="roadmap-panel__suggest-icon">${ICONS.lightbulb}</span>
             <span class="roadmap-panel__suggest-text">${t('roadmap.plantNewSeed') || 'Plant a New Seed'}</span>
             <span class="roadmap-panel__suggest-cost">${t('roadmap.costSeeds', { count: 5 }) || '5 seeds'}</span>
@@ -398,7 +404,7 @@ class RoadmapPanelUI {
     const confidenceIcon = rec.confidence === 'high' ? ICONS.target : rec.confidence === 'medium' ? ICONS.lightbulb : ICONS.seed;
 
     return `
-      <button class="roadmap-recommendation" data-feature-id="${rec.featureId}" data-rec-confidence="${rec.confidence}">
+      <button aria-label="${t('accessibility.close')}" class="roadmap-recommendation" data-feature-id="${rec.featureId}" data-rec-confidence="${rec.confidence}">
         <div class="roadmap-recommendation__badge">${confidenceIcon}</div>
         <div class="roadmap-recommendation__content">
           <div class="roadmap-recommendation__header">
@@ -432,7 +438,7 @@ class RoadmapPanelUI {
     const totalSeeds = feature.totalSeeds || 0;
 
     return `
-      <button class="roadmap-card" data-feature-id="${feature.id}" data-stage="${feature.stage}">
+      <button aria-label="${t('accessibility.goForward')}" class="roadmap-card" data-feature-id="${feature.id}" data-stage="${feature.stage}">
         <div class="roadmap-card__header">
           <div class="roadmap-card__icon">${featureIcon}</div>
           <span class="roadmap-card__stage ${stageInfo.colorClass}">
@@ -568,7 +574,7 @@ class RoadmapPanelUI {
                     ${t('roadmap.plantSeeds') || 'Plant seeds on this feature'}
                   </label>
                   <div class="roadmap-detail__slider-row">
-                    <button class="roadmap-detail__slider-btn" data-action="decrease" aria-label="Decrease">−</button>
+                    <button class="roadmap-detail__slider-btn" data-action="decrease" aria-label="${t('accessibility.decrease')}">−</button>
                     <div class="roadmap-detail__slider-container">
                       <input type="range"
                              class="roadmap-detail__slider"
@@ -578,7 +584,7 @@ class RoadmapPanelUI {
                              data-feature="${feature.id}">
                       <div class="roadmap-detail__slider-track"></div>
                     </div>
-                    <button class="roadmap-detail__slider-btn" data-action="increase" aria-label="Increase">+</button>
+                    <button class="roadmap-detail__slider-btn" data-action="increase" aria-label="${t('accessibility.increase')}">+</button>
                   </div>
                   <div class="roadmap-detail__slider-value">
                     <span class="roadmap-detail__slider-seeds">${ICONS.seed}</span>
@@ -588,8 +594,8 @@ class RoadmapPanelUI {
                   <button class="roadmap-detail__plant-btn"
                           data-action="plant-multiple"
                           data-feature="${feature.id}">
-                    <span class="roadmap-detail__plant-btn-icon">${ICONS.seed}</span>
-                    <span class="roadmap-detail__plant-btn-text">${t('roadmap.plantNow') || 'Plant Now'}</span>
+                    <span class="roadmap-detail__plant-btn-icon" role="button" tabindex="0">${ICONS.seed}</span>
+                    <span class="roadmap-detail__plant-btn-text" role="button" tabindex="0">${t('roadmap.plantNow') || 'Plant Now'}</span>
                   </button>
                 </div>
               ` : `
@@ -599,7 +605,7 @@ class RoadmapPanelUI {
               `}
 
               ${hasVoted ? `
-                <button class="roadmap-detail__remove-btn"
+                <button aria-label="()" class="roadmap-detail__remove-btn"
                         data-action="unplant"
                         data-feature="${feature.id}">
                   ${t('roadmap.removeSeeds') || 'Remove my seeds'} (${t('roadmap.refund50') || '50% refund'})
@@ -694,7 +700,7 @@ class RoadmapPanelUI {
               </span>
             </div>
 
-            <button
+            <button aria-label="${t('accessibility.submit')}"
               type="submit"
               class="roadmap-suggestion__submit"
               ${seedBalance < 5 ? 'disabled' : ''}>
@@ -911,7 +917,7 @@ class RoadmapPanelUI {
       </h4>
       <ul class="roadmap-panel__seeds-tooltip-list">
         <li>
-          <span class="roadmap-panel__seeds-tooltip-icon">💬</span>
+          <span class="roadmap-panel__seeds-tooltip-icon">${ICONS.conversation}</span>
           <span>${t('roadmap.howSeedsWork.conversation') || 'Have a conversation: +1 seed'}</span>
         </li>
         <li>
@@ -960,7 +966,7 @@ class RoadmapPanelUI {
   /**
    * Bind events for detail mode
    */
-  private bindDetailEvents(feature: RoadmapFeature): void {
+  private bindDetailEvents(_feature: RoadmapFeature): void {
     if (!this.modal) return;
 
     // Close on backdrop click
@@ -1098,19 +1104,18 @@ class RoadmapPanelUI {
       .roadmap-panel__backdrop {
         position: absolute;
         inset: 0;
-        background: var(--color-background-overlay, rgba(44, 37, 32, 0.6));
-        backdrop-filter: blur(var(--glass-blur-strong, 24px));
-        -webkit-backdrop-filter: blur(var(--glass-blur-strong, 24px));
+        background: rgba(44, 37, 32, 0.75);
       }
 
       .roadmap-panel__card {
         position: relative;
         width: 100%;
-        max-width: 600px;
+        max-width: clamp(420px, 90vw, 600px);
         max-height: 85vh;
-        background: var(--color-background-elevated, #fffdfb);
-        border-radius: var(--radius-2xl, 24px);
-        box-shadow: var(--shadow-2xl, 0 25px 50px -12px rgba(0, 0, 0, 0.25));
+        background: var(--color-bg-elevated, #FFFDFB);
+        border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
+        border-radius: var(--radius-xl, 20px);
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.06);
         display: flex;
         flex-direction: column;
         overflow: hidden;
@@ -1327,8 +1332,8 @@ class RoadmapPanelUI {
          ======================================================================== */
       .roadmap-panel__seeds-tooltip {
         position: absolute;
-        z-index: 100;
-        min-width: 240px;
+        z-index: var(--z-docked);
+        min-width: min(240px, 100%);
         padding: var(--space-4, 16px);
         background: var(--color-background-elevated, #fff);
         border-radius: var(--radius-lg, 12px);
@@ -1586,7 +1591,7 @@ class RoadmapPanelUI {
         align-items: center;
         gap: var(--space-3, 12px);
         position: relative;
-        z-index: 1;
+        z-index: var(--z-docked);
       }
 
       .roadmap-card__icon {
@@ -1662,7 +1667,7 @@ class RoadmapPanelUI {
         margin: 0;
         line-height: 1.3;
         position: relative;
-        z-index: 1;
+        z-index: var(--z-docked);
       }
 
       .roadmap-card__arrival {
@@ -1671,7 +1676,7 @@ class RoadmapPanelUI {
         color: var(--color-text-muted, #756a5e);
         margin: 0;
         position: relative;
-        z-index: 1;
+        z-index: var(--z-docked);
       }
 
       .roadmap-card__interest {
@@ -2146,7 +2151,7 @@ class RoadmapPanelUI {
         box-shadow: var(--shadow-md, 0 4px 8px rgba(0, 0, 0, 0.08));
         transition: transform ${DURATION.FAST}ms ${EASING.SPRING};
         position: relative;
-        z-index: 1;
+        z-index: var(--z-docked);
       }
 
       .roadmap-detail__slider::-webkit-slider-thumb:hover {
@@ -2704,7 +2709,7 @@ class RoadmapPanelUI {
         color: var(--color-text-secondary, #4a423b);
         line-height: 1.6;
         margin: 0;
-        max-width: 280px;
+        max-width: min(280px, 100%);
       }
 
       .roadmap-suggestion__done-btn {
@@ -3210,7 +3215,7 @@ class RoadmapPanelUI {
       /* ========================================================================
          RESPONSIVE
          ======================================================================== */
-      @media (max-width: 480px) {
+      @media (max-width: clamp(336px, 90vw, 480px)) {
         .roadmap-panel {
           padding: 0;
           align-items: flex-end;
@@ -3282,6 +3287,17 @@ export function showRoadmapPanel(featureId?: string): void {
 
 export function hideRoadmapPanel(): void {
   getRoadmapPanelUI().hide();
+}
+
+/**
+ * Initialize roadmap panel event listeners
+ */
+export function initRoadmapPanelUI(): void {
+  // Listen for events to open roadmap panel (from founders journey, etc.)
+  document.addEventListener('ferni:open-roadmap', ((e: CustomEvent) => {
+    const featureId = e.detail?.featureId;
+    void showRoadmapPanel(featureId);
+  }) as EventListener);
 }
 
 export default RoadmapPanelUI;

@@ -33,7 +33,7 @@ import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 const log = createLogger('AvatarLamp');
 
 // FIX BUG: Track all setTimeout calls for proper cleanup
-const { trackedTimeout, clearAll: clearAllTimeouts } = createTimeoutTracker();
+const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
 
 // ============================================================================
 // TYPES
@@ -121,7 +121,7 @@ export function initAvatarLamp(): void {
  */
 export function disposeAvatarLamp(): void {
   // FIX BUG: Clear all tracked timeouts first
-  clearAllTimeouts();
+  _clearAllTimeouts();
 
   stopBreathing();
   emotionTimeline?.kill();

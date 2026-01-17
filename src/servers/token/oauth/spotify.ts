@@ -9,6 +9,7 @@ import type { OAuthTokens } from '../../shared/types.js';
 import { encryptData, decryptData } from '../../shared/encryption.js';
 import { createPersistenceStore } from '../../../services/persistence/index.js';
 import { createLogger } from '../../../utils/safe-logger.js';
+import { cleanForFirestore } from '../../../utils/firestore-utils.js';
 
 const log = createLogger({ module: 'SpotifyOAuth' });
 

@@ -92,20 +92,19 @@ const STYLES = `
   .outreach-prefs-backdrop {
     position: absolute;
     inset: 0;
-    background: rgba(44, 37, 32, 0.4);
-    backdrop-filter: blur(var(--glass-blur-strong, 24px));
-    -webkit-backdrop-filter: blur(var(--glass-blur-strong, 24px));
+    background: rgba(44, 37, 32, 0.75);
   }
 
   /* Modal Card */
   .outreach-prefs-card {
     position: relative;
     width: 100%;
-    max-width: 420px;
+    max-width: clamp(294px, 90vw, 420px);
     max-height: 85vh;
-    background: var(--color-background-elevated, #fffdfb);
-    border-radius: var(--radius-2xl, 24px);
-    box-shadow: var(--shadow-2xl, 0 24px 48px rgba(44, 37, 32, 0.15));
+    background: var(--color-bg-elevated, #FFFDFB);
+    border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
+    border-radius: var(--radius-xl, 20px);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.06);
     overflow: hidden;
     transform: scale(0.9);
     transition: transform ${DURATION.NORMAL}ms ${EASING.SPRING};
@@ -333,7 +332,7 @@ const STYLES = `
   }
 
   .outreach-prefs-slider {
-    width: 100px;
+    width: min(100px, 100%);
     height: 6px;
     -webkit-appearance: none;
     appearance: none;
@@ -588,10 +587,10 @@ class OutreachPreferencesUI {
         </header>
         <div class="outreach-prefs-content"></div>
         <footer class="outreach-prefs-footer">
-          <button class="outreach-prefs-btn outreach-prefs-btn--secondary" data-action="cancel">
+          <button aria-label="${t('accessibility.cancel')}" class="outreach-prefs-btn outreach-prefs-btn--secondary" data-action="cancel">
             Cancel
           </button>
-          <button class="outreach-prefs-btn outreach-prefs-btn--primary" data-action="save">
+          <button aria-label="${t('accessibility.saveChanges')}" class="outreach-prefs-btn outreach-prefs-btn--primary" data-action="save">
             Save Changes
           </button>
         </footer>
@@ -602,7 +601,7 @@ class OutreachPreferencesUI {
     this.overlay.querySelector('.outreach-prefs-backdrop')?.addEventListener('click', () => this.hide());
     this.overlay.querySelector('.outreach-prefs-close')?.addEventListener('click', () => this.hide());
     this.overlay.querySelector('[data-action="cancel"]')?.addEventListener('click', () => this.hide());
-    this.overlay.querySelector('[data-action="save"]')?.addEventListener('click', () => this.handleSave());
+    this.overlay.querySelector('[data-action="save"]')?.addEventListener('click', () => { void this.handleSave(); });
 
     // Close on escape
     document.addEventListener('keydown', (e) => {
@@ -626,13 +625,13 @@ class OutreachPreferencesUI {
     content.innerHTML = `
       <!-- Master Toggle -->
       <div class="outreach-prefs-section">
-        <div class="outreach-prefs-toggle-row">
-          <div class="outreach-prefs-toggle-info">
-            <span class="outreach-prefs-toggle-label">Proactive check-ins</span>
-            <span class="outreach-prefs-toggle-desc">Let Ferni reach out when something comes to mind</span>
+        <div class="outreach-prefs-toggle-row" role="button" tabindex="0">
+          <div class="outreach-prefs-toggle-info" role="button" tabindex="0">
+            <span class="outreach-prefs-toggle-label" role="button" tabindex="0">Proactive check-ins</span>
+            <span class="outreach-prefs-toggle-desc" role="button" tabindex="0">Let Ferni reach out when something comes to mind</span>
           </div>
-          <div class="outreach-prefs-toggle ${p.enabled ? 'outreach-prefs-toggle--on' : ''}" data-pref="enabled">
-            <div class="outreach-prefs-toggle-knob"></div>
+          <div class="outreach-prefs-toggle ${p.enabled ? 'outreach-prefs-toggle--on' : ''}" role="button" tabindex="0" data-pref="enabled">
+            <div class="outreach-prefs-toggle-knob" role="button" tabindex="0"></div>
           </div>
         </div>
       </div>

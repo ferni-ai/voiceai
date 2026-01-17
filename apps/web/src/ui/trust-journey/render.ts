@@ -9,7 +9,7 @@ import { STAGGER } from '../../config/animation-constants.js';
 import { ICONS } from './icons.js';
 import type { TrustJourneyData, TimelineItem, TrustJourneyState, TimelineFilterType } from './types.js';
 
-const TIMELINE_PAGE_SIZE = 10;
+export const TIMELINE_PAGE_SIZE = 10;
 
 const FILTER_OPTIONS: TimelineFilterType[] = ['all', 'growth', 'win', 'callback', 'boundary', 'outreach'];
 
@@ -45,7 +45,7 @@ export function renderSkeleton(): string {
 // ERROR STATES
 // ============================================================================
 
-export function renderError(errorType: string, onRetry: () => void): string {
+export function renderError(errorType: string, _onRetry: () => void): string {
   const errorConfig = getErrorConfig(errorType);
 
   return `
@@ -56,7 +56,7 @@ export function renderError(errorType: string, onRetry: () => void): string {
       ${
         errorConfig.showRetry
           ? `
-        <button class="trust-journey-retry-btn" data-action="retry">
+        <button aria-label="${t('accessibility.refresh')}" class="trust-journey-retry-btn" data-action="retry">
           ${ICONS.refresh}
           <span>${t('common.tryAgain')}</span>
         </button>
@@ -278,7 +278,7 @@ export function renderContent(data: TrustJourneyData, state: TrustJourneyState):
           hasMoreTimeline
             ? `
           <div class="timeline-load-more">
-            <button class="timeline-load-more-btn" data-action="load-more">
+            <button aria-label="${t('accessibility.moveDown')}" class="timeline-load-more-btn" data-action="load-more">
               ${ICONS.chevronDown}
               <span>${t('trustJourney.loadMore', { count: Math.min(TIMELINE_PAGE_SIZE, data.timeline.length - visibleTimeline.length) })}</span>
             </button>
@@ -313,10 +313,11 @@ function renderFilterTabs(currentFilter: TimelineFilterType, timeline: TimelineI
   });
 
   // Only show filters that have items (except 'all' which always shows)
-  const availableFilters = FILTER_OPTIONS.filter(f => f === 'all' || counts[f] > 0);
+  const availableFilters = FILTER_OPTIONS.filter(f => f === 'all' || (counts[f] ?? 0) > 0);
 
   return availableFilters.map(filter => `
-    <button 
+    <button
+      aria-label="${t(`trustJourney.filters.${filter}`)}"
       class="timeline-filter-tab ${filter === currentFilter ? 'timeline-filter-tab--active' : ''}"
       data-action="filter"
       data-filter="${filter}"
@@ -372,5 +373,4 @@ function escapeHtml(text: string): string {
   return div.innerHTML;
 }
 
-export { TIMELINE_PAGE_SIZE };
 

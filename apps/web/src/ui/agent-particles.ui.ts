@@ -29,9 +29,10 @@ const CONTAINER_ID = 'agent-particles';
 
 /**
  * Get persona colors from CSS variables (design system integration)
+ * Reads from body where persona-specific CSS variables are applied via [data-persona] selectors
  */
 function getPersonaColors(): string[] {
-  const style = getComputedStyle(document.documentElement);
+  const style = getComputedStyle(document.body);
   const primary = style.getPropertyValue('--persona-primary').trim();
   const secondary = style.getPropertyValue('--persona-secondary').trim();
 
@@ -41,8 +42,9 @@ function getPersonaColors(): string[] {
   if (primary) {
     return [primary];
   }
-  // Fallback to accent color
-  const accent = style.getPropertyValue('--color-accent-primary').trim();
+  // Fallback to accent color (from documentElement since it's a global token)
+  const rootStyle = getComputedStyle(document.documentElement);
+  const accent = rootStyle.getPropertyValue('--color-accent-primary').trim();
   return accent ? [accent] : ['#4a6741']; // Ferni sage green fallback
 }
 

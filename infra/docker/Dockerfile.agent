@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1.4
 # ============================================================================
-# FERNI VOICE AGENT DOCKERFILE (OPTIMIZED WITH PNPM + ESBUILD)
+# FERNI VOICE AGENT DOCKERFILE (OPTIMIZED WITH PNPM + ESBUILD + RUST)
 # ============================================================================
 # Builds the LiveKit voice agent service with aggressive caching.
 # Supports all personas via PERSONA_ID environment variable.
@@ -8,6 +8,7 @@
 # OPTIMIZATIONS:
 # - pnpm for ~40% faster dependency installs
 # - esbuild for ~10-50x faster TypeScript compilation
+# - Rust native modules for zero-GC audio processing
 # - BuildKit 1.4 syntax enables parallel stage builds
 # - Cache mounts persist across builds
 # - Optimal layer ordering (rarely-changing layers first)
@@ -20,9 +21,51 @@
 # ============================================================================
 
 ARG NODE_VERSION=20
+ARG RUST_VERSION=1.75
 
 # ============================================================================
-# Stage 1: Build TypeScript with pnpm + esbuild
+# Stage 1: Build Rust Native Modules (NAPI-RS)
+# ============================================================================
+# These modules provide zero-allocation audio processing and SIMD-optimized
+# embedding operations, reducing GC pressure by ~192KB/sec in the audio path.
+FROM rust:${RUST_VERSION}-slim AS rust-builder
+
+WORKDIR /rust
+
+# Install Node.js for napi-rs
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
+    && apt-get install -y nodejs \
+    && npm install -g @napi-rs/cli \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy Rust source files
+COPY apps/rust-perf/Cargo.toml apps/rust-perf/Cargo.lock apps/rust-perf/build.rs ./rust-perf/
+COPY apps/rust-perf/src/ ./rust-perf/src/
+
+COPY apps/rust-audio/Cargo.toml apps/rust-audio/build.rs ./rust-audio/
+COPY apps/rust-audio/src/ ./rust-audio/src/
+COPY apps/rust-audio/benches/ ./rust-audio/benches/
+
+# Build rust-perf with release optimizations
+WORKDIR /rust/rust-perf
+RUN --mount=type=cache,target=/usr/local/cargo/registry \
+    --mount=type=cache,target=/rust/rust-perf/target \
+    cargo build --release && \
+    napi build --platform --release && \
+    ls -la *.node
+
+# Build rust-audio with release optimizations
+WORKDIR /rust/rust-audio
+RUN --mount=type=cache,target=/usr/local/cargo/registry \
+    --mount=type=cache,target=/rust/rust-audio/target \
+    cargo build --release && \
+    napi build --platform --release && \
+    ls -la *.node || echo "rust-audio build optional"
+
+# ============================================================================
+# Stage 2: Build TypeScript with pnpm + esbuild
 # ============================================================================
 FROM node:${NODE_VERSION}-slim AS builder
 
@@ -132,6 +175,53 @@ RUN echo "=== Patching LiveKit SDK timeouts ===" && \
 # Copy built files from builder
 COPY --from=builder /app/dist ./dist
 
+# Copy Rust native modules (zero-allocation audio processing, SIMD embeddings)
+# These modules are optional - the app gracefully falls back to JS if unavailable
+RUN mkdir -p apps/rust-perf apps/rust-audio
+
+# Copy rust-perf: native module (.node) and NAPI-generated loader (index.js, index.d.ts)
+COPY --from=rust-builder /rust/rust-perf/*.node ./apps/rust-perf/
+COPY --from=rust-builder /rust/rust-perf/index.js /rust/rust-perf/index.d.ts ./apps/rust-perf/
+COPY apps/rust-perf/package.json ./apps/rust-perf/
+
+# Copy rust-audio: native module and loader files
+# Using RUN with mount to handle missing files gracefully (rust-audio may not be built yet)
+RUN --mount=from=rust-builder,source=/rust/rust-audio,target=/tmp/rust-audio \
+    (cp /tmp/rust-audio/*.node ./apps/rust-audio/ 2>/dev/null && \
+     cp /tmp/rust-audio/index.js /tmp/rust-audio/index.d.ts ./apps/rust-audio/ 2>/dev/null) || \
+    echo "rust-audio native module not available (will use JS fallback)"
+
+# Copy rust-audio package.json for module resolution
+COPY apps/rust-audio/package.json ./apps/rust-audio/
+
+# =============================================================================
+# VERIFY NATIVE MODULES LOADED CORRECTLY
+# =============================================================================
+# This verification step ensures the Rust native modules are properly built
+# and can be loaded. If this fails, the container won't start with broken
+# native modules - it will fail fast during build instead.
+RUN echo "=== Verifying native Rust modules ===" && \
+    node -e " \
+      const perfPath = './apps/rust-perf'; \
+      const audioPath = './apps/rust-audio'; \
+      let perfOk = false, audioOk = false; \
+      try { \
+        const perf = require(perfPath); \
+        const info = perf.getLibraryInfo(); \
+        console.log('✅ @ferni/perf loaded:', info.version, '- SIMD:', info.simdAvailable ? 'yes' : 'no'); \
+        perfOk = true; \
+      } catch (e) { console.error('❌ @ferni/perf failed:', e.message); } \
+      try { \
+        const audio = require(audioPath); \
+        const info = audio.getLibraryInfo(); \
+        console.log('✅ @ferni/audio loaded:', info.version, '- Sample rate:', info.defaultSampleRate); \
+        audioOk = true; \
+      } catch (e) { console.error('⚠️ @ferni/audio not available:', e.message, '(optional)'); } \
+      if (!perfOk) { process.exit(1); } \
+      console.log('=== Native module verification complete ==='); \
+    " && \
+    echo "Native modules verified successfully"
+
 # Copy persona bundles (JSON, MD files needed at runtime)
 COPY --from=builder /app/src/personas/bundles/ ./dist/personas/bundles/
 
@@ -149,6 +239,18 @@ ENV PERSONA_ID=ferni
 # This gives ~100x faster job startup (instant vs 30-120s with child processes)
 ENV USE_SINGLE_PROCESS=true
 
+# =============================================================================
+# NATIVE RUST MODULE CONFIGURATION
+# =============================================================================
+# These enable the Rust NAPI modules for production use:
+# - @ferni/perf: SIMD-accelerated cosine similarity, LSH deduplication (10-50x faster)
+# - @ferni/audio: Zero-allocation audio processing, FFT analysis (reduces GC pressure)
+#
+# Both are ENABLED by default (the flags use !== 'false' pattern in feature-flags.ts)
+# but we set them explicitly here for clarity and Docker layer caching.
+ENV USE_NATIVE_AUDIO=true
+ENV USE_NATIVE_EMBEDDINGS=true
+
 # Node.js process optimizations for voice agent stability and fast startup
 # - --max-old-space-size=3072: 3GB heap for voice processing
 # - --max-semi-space-size=128: Larger young generation for less frequent minor GC
@@ -158,6 +260,20 @@ ENV USE_SINGLE_PROCESS=true
 ENV NODE_OPTIONS="--max-old-space-size=3072 --max-semi-space-size=128 --no-warnings --dns-result-order=ipv4first --no-deprecation"
 
 EXPOSE 8080
+
+# =============================================================================
+# HEALTH CHECK
+# =============================================================================
+# The health check verifies:
+# 1. Server is responding (basic liveness)
+# 2. Workers are ready to accept calls (readiness - workers signal ready)
+#
+# Start period: 60s - allows time for workers to initialize
+# Interval: 30s - check every 30 seconds
+# Timeout: 10s - fail if no response in 10 seconds
+# Retries: 3 - mark unhealthy after 3 consecutive failures
+HEALTHCHECK --start-period=60s --interval=30s --timeout=10s --retries=3 \
+    CMD curl -f http://localhost:8080/health/ready || exit 1
 
 # Run the voice agent
 CMD ["node", "dist/agent.js", "dev"]

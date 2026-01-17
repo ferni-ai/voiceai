@@ -69,7 +69,7 @@ export { initKeyboardUI, keyboardUI, setConnected as setKeyboardConnected } from
 export { initThinkingUI, thinkingUI } from './thinking.ui.js';
 export { initTranscriptUI, transcriptUI } from './transcript.ui.js';
 
-// World-class Toast System
+// World-class Toast System (legacy - prefer whisper)
 export {
   dismissAllToasts,
   dismissToast,
@@ -80,8 +80,26 @@ export {
   toastInfo,
   toastSuccess,
   toastWarning,
-} from './toast.ui.js';
-export type { ToastConfig, ToastType } from './toast.ui.js';
+} from './whisper.ui.js';
+export type { ToastConfig, ToastType } from './whisper.ui.js';
+
+// 🤫 Whisper System - Gentle notifications near avatar
+// Whispers feel like Ferni speaking, not popups interrupting.
+// New code should prefer whisper over toast.
+export {
+  whisper,
+  whisperInfo,
+  whisperSuccess,
+  whisperWarning,
+  whisperError,
+  whisperCelebration,
+  showWhisper,
+  dismissWhisper,
+  disposeWhisper,
+  // Toast-compatible API for gradual migration
+  toast as whisperToast,
+} from './whisper.ui.js';
+export type { WhisperConfig, WhisperType } from './whisper.ui.js';
 
 // Premium Experience
 export { agentParticlesUI, initAgentParticles } from './agent-particles.ui.js';
@@ -238,6 +256,24 @@ export type {
   StreakTrend,
 } from './analytics-dashboard.ui.js';
 
+// Life Context Dashboard UI (Phase 6 Cross-Domain Synthesis)
+export {
+  getLifeContextState,
+  hideLifeContextDashboard,
+  initLifeContextDashboard,
+  setLifeContextError,
+  setLifeContextLoading,
+  showLifeContextDashboard,
+  updateLifeContextDashboard,
+} from './life-context-dashboard.ui.js';
+export type {
+  CrossDomainPattern,
+  DomainStressIndicator,
+  LifeContextDashboardState,
+  LifeContextSnapshot,
+  SynthesisTrigger,
+} from './life-context-dashboard.ui.js';
+
 // Onboarding UI
 export {
   getOnboardingUI,
@@ -271,6 +307,13 @@ export type {
   CognitiveMemory,
   LearningPattern,
 } from './cognitive-insights.ui.js';
+
+// Semantic Intelligence Panel (Better Than Human V3.0-V3.7)
+export {
+  showSemanticIntelligencePanel,
+  hideSemanticIntelligencePanel,
+  isSemanticIntelligencePanelVisible,
+} from './semantic-intelligence-panel.ui.js';
 
 // Custom Ritual Builder UI
 export { getRitualBuilderUI, initRitualBuilderUI, showRitualBuilder } from './ritual-builder.ui.js';
@@ -308,7 +351,7 @@ export {
   relationshipProgressUI,
   showProgressPanel as showRelationshipProgress,
   toggleProgressPanel as toggleRelationshipProgress,
-} from './relationship-progress.ui.js';
+} from './stage-celebration.ui.js';
 
 // Trust Journey UI - "Better Than Human" relationship visualization
 export {
@@ -462,11 +505,12 @@ export type {
 // ============================================================================
 
 // Stage Celebration Modal - Full celebration with confetti on relationship stage-up
+// NOTE: Renamed from relationship-progress.ui.ts - exports use legacy names for compatibility
 export {
-  initStageCelebration,
-  showStageCelebration,
-  hideStageCelebration,
-  stageCelebration,
+  initRelationshipProgressUI as initStageCelebration,
+  showCelebration as showStageCelebration,
+  hideProgressPanel as hideStageCelebration,
+  relationshipProgressUI as stageCelebration,
 } from './stage-celebration.ui.js';
 
 // Trust Signal Cards - "Ferni noticed..." moments from trust systems
@@ -509,6 +553,72 @@ export {
   expandProgressIndicator,
   progressIndicator,
 } from './progress-indicator.ui.js';
+
+// Calendar View UI - Visual calendar component for Alex
+export {
+  calendarViewUI,
+  hideCalendarView,
+  setCalendarViewCallbacks,
+  showCalendarView,
+  toggleCalendarView,
+} from './calendar-view.ui.js';
+export type {
+  CalendarEvent as CalendarViewEvent,
+  CalendarViewCallbacks,
+  DayOverview as CalendarDayOverview,
+  WeekOverview as CalendarWeekOverview,
+} from './calendar-view.ui.js';
+
+// Calendar Settings UI - Provider integration management
+export {
+  getCalendarSettingsUI,
+  showCalendarSettings,
+  openCalendarSettings,
+  hideCalendarSettings,
+} from './calendar-settings.ui.js';
+export type {
+  CalendarStatus,
+  ProviderStatus,
+  CalendarProvidersStatus,
+  CalendarSettingsCallbacks,
+} from './calendar-settings.ui.js';
+
+// Calendar Conflicts UI - Sync conflict resolution
+export {
+  getCalendarConflictsUI,
+  showCalendarConflicts,
+  hideCalendarConflicts,
+} from './calendar-conflicts.ui.js';
+export type {
+  CalendarConflict,
+  ConflictEventData,
+  ConflictResolution,
+} from './calendar-conflicts.ui.js';
+
+// Calendar Selection UI - Selective calendar sync
+export {
+  getCalendarSelectionUI,
+  showCalendarSelection,
+  hideCalendarSelection,
+} from './calendar-selection.ui.js';
+export type {
+  CalendarItem,
+  CalendarProvider,
+} from './calendar-selection.ui.js';
+
+// Team Observations Panel - Cross-persona coordination visibility
+export {
+  show as showTeamObservations,
+  hide as hideTeamObservations,
+  refresh as refreshTeamObservations,
+} from './team-observations-panel.ui.js';
+
+// Agent Page Builder - Self-serve landing page creation
+export {
+  pageBuilder,
+  showPageBuilder,
+} from './agent-page-builder.ui.js';
+export type { PageBuilderCallbacks } from './agent-page-builder.ui.js';
 
 // Types
 export type { ConnectionQuality } from './connection-quality.ui.js';

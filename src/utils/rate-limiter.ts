@@ -255,6 +255,9 @@ export class SlidingWindowLimiter {
     }
 
     const oldestRequest = this.requests[0];
+    if (oldestRequest === undefined) {
+      return 0;
+    }
     return oldestRequest + this.windowMs - Date.now();
   }
 

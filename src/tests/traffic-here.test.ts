@@ -57,7 +57,7 @@ describe('traffic (HERE fallback)', () => {
     vi.stubGlobal('fetch', mockFetch as unknown as typeof fetch);
 
     // Import after env + fetch mock so module constants are correct
-    const { getTrafficTime } = await import('../tools/traffic.js');
+    const { getTrafficTime } = await import('../tools/domains/information/traffic.js');
 
     const result = await getTrafficTime('San Francisco, CA', 'Oakland, CA');
 

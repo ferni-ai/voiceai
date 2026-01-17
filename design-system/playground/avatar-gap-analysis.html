@@ -1,0 +1,652 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ferni Avatar — Gap Analysis</title>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --ferni: #4a6741;
+      --ferni-light: #5a7a51;
+      --cream: #F5F1E8;
+      --ink: #2C2520;
+      --ink-light: #5C544A;
+      --accent: #c4856a;
+    }
+    
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background: var(--cream);
+      min-height: 100vh;
+      color: var(--ink);
+      padding: 24px;
+    }
+    
+    h1 {
+      font-size: 1.4rem;
+      font-weight: 800;
+      color: var(--ferni);
+      text-align: center;
+      margin-bottom: 8px;
+    }
+    
+    .subtitle {
+      text-align: center;
+      font-size: 0.75rem;
+      color: var(--ink-light);
+      margin-bottom: 24px;
+    }
+    
+    .comparison {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      max-width: 800px;
+      margin: 0 auto 24px;
+    }
+    
+    .panel {
+      background: white;
+      border-radius: 16px;
+      padding: 16px;
+      box-shadow: 0 4px 20px rgba(44,37,32,0.06);
+    }
+    
+    .panel-title {
+      font-size: 0.7rem;
+      font-weight: 700;
+      color: var(--ferni);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    
+    .panel-title .badge {
+      font-size: 0.5rem;
+      padding: 2px 6px;
+      border-radius: 4px;
+      background: rgba(74, 103, 65, 0.1);
+    }
+    
+    .panel-title .badge.production {
+      background: rgba(74, 103, 65, 0.2);
+    }
+    
+    .panel-title .badge.playground {
+      background: rgba(196, 133, 106, 0.2);
+      color: var(--accent);
+    }
+    
+    .feature-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    
+    .feature {
+      display: flex;
+      gap: 8px;
+      align-items: flex-start;
+      font-size: 0.7rem;
+      color: var(--ink-light);
+    }
+    
+    .feature-icon {
+      width: 18px;
+      height: 18px;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.6rem;
+      flex-shrink: 0;
+    }
+    
+    .feature-icon.has { background: rgba(74, 103, 65, 0.15); color: var(--ferni); }
+    .feature-icon.missing { background: rgba(196, 133, 106, 0.15); color: var(--accent); }
+    .feature-icon.gap { background: rgba(59, 130, 246, 0.15); color: #3b82f6; }
+    
+    .section {
+      background: white;
+      border-radius: 16px;
+      padding: 20px;
+      margin-bottom: 16px;
+      max-width: 800px;
+      margin-left: auto;
+      margin-right: auto;
+      box-shadow: 0 4px 20px rgba(44,37,32,0.06);
+    }
+    
+    .section-title {
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: var(--ferni);
+      margin-bottom: 12px;
+    }
+    
+    .speaking-options {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-top: 16px;
+    }
+    
+    .option {
+      background: rgba(74, 103, 65, 0.04);
+      border-radius: 12px;
+      padding: 16px 12px;
+      text-align: center;
+    }
+    
+    .option-icon {
+      font-size: 2rem;
+      margin-bottom: 8px;
+    }
+    
+    .option-name {
+      font-size: 0.7rem;
+      font-weight: 700;
+      color: var(--ferni);
+      margin-bottom: 4px;
+    }
+    
+    .option-desc {
+      font-size: 0.6rem;
+      color: var(--ink-light);
+      line-height: 1.4;
+    }
+    
+    .demo-area {
+      display: flex;
+      justify-content: center;
+      gap: 32px;
+      padding: 24px 0;
+    }
+    
+    /* Avatar demos */
+    .avatar-demo {
+      text-align: center;
+    }
+    
+    .avatar-demo-label {
+      font-size: 0.6rem;
+      color: var(--ink-light);
+      margin-top: 8px;
+    }
+    
+    /* Current Web App style */
+    .webapp-avatar {
+      width: 80px;
+      height: 80px;
+      position: relative;
+    }
+    
+    .webapp-avatar svg {
+      width: 100%;
+      height: 100%;
+    }
+    
+    /* Speaking options demo */
+    .halo-speaker {
+      --size: 80px;
+      width: var(--size);
+      height: var(--size);
+      position: relative;
+    }
+    
+    .halo-speaker .ring {
+      position: absolute;
+      inset: -8px;
+      border: 2px solid var(--ferni);
+      border-radius: 50%;
+      opacity: 0.3;
+      animation: speakerPulse 0.4s ease-in-out infinite;
+    }
+    
+    .halo-speaker .ring:nth-child(2) {
+      inset: -14px;
+      opacity: 0.2;
+      animation-delay: 0.1s;
+    }
+    
+    .halo-speaker .ring:nth-child(3) {
+      inset: -20px;
+      opacity: 0.1;
+      animation-delay: 0.2s;
+    }
+    
+    @keyframes speakerPulse {
+      0%, 100% { transform: scale(1); opacity: 0.3; }
+      50% { transform: scale(1.05); opacity: 0.5; }
+    }
+    
+    .halo-speaker .orb {
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(135deg, var(--ferni-light), var(--ferni));
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      animation: bodyPulse 0.4s ease-in-out infinite;
+    }
+    
+    @keyframes bodyPulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scaleY(1.02) scaleX(0.98); }
+    }
+    
+    .halo-speaker .eyes {
+      display: flex;
+      gap: 14px;
+    }
+    
+    .halo-speaker .eye {
+      width: 12px;
+      height: 16px;
+      background: white;
+      border-radius: 50%;
+    }
+    
+    /* Body Breath Speaker */
+    .body-speaker .orb {
+      animation: deepBreath 0.35s ease-in-out infinite;
+    }
+    
+    @keyframes deepBreath {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scaleY(1.04) scaleX(0.96); }
+    }
+    
+    /* Lid Mouth */
+    .lid-mouth {
+      --size: 80px;
+      width: var(--size);
+      height: var(--size);
+      position: relative;
+    }
+    
+    .lid-mouth svg {
+      width: 100%;
+      height: 100%;
+    }
+    
+    .lid-mouth .mouth-lid {
+      animation: mouthOpen 0.35s ease-in-out infinite;
+    }
+    
+    @keyframes mouthOpen {
+      0%, 100% { d: path("M 0,100 Q 50,95 100,100 L 100,100 L 0,100 Z"); }
+      50% { d: path("M 0,100 Q 50,75 100,100 L 100,100 L 0,100 Z"); }
+    }
+    
+    .recommendation {
+      background: rgba(74, 103, 65, 0.06);
+      border-radius: 12px;
+      padding: 16px;
+      margin-top: 16px;
+    }
+    
+    .recommendation-title {
+      font-size: 0.7rem;
+      font-weight: 700;
+      color: var(--ferni);
+      margin-bottom: 8px;
+    }
+    
+    .recommendation-text {
+      font-size: 0.65rem;
+      color: var(--ink-light);
+      line-height: 1.5;
+    }
+    
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.65rem;
+      margin-top: 12px;
+    }
+    
+    th, td {
+      padding: 8px;
+      text-align: left;
+      border-bottom: 1px solid rgba(44,37,32,0.08);
+    }
+    
+    th {
+      font-weight: 700;
+      color: var(--ferni);
+    }
+    
+    td.yes { color: var(--ferni); }
+    td.no { color: var(--accent); }
+    td.partial { color: #f59e0b; }
+  </style>
+</head>
+<body>
+  <h1>Ferni Avatar Gap Analysis</h1>
+  <p class="subtitle">Web App ↔ Playground ↔ iOS</p>
+
+  <div class="comparison">
+    <div class="panel">
+      <div class="panel-title">
+        <span class="badge production">Production</span>
+        Web App Has
+      </div>
+      <div class="feature-list">
+        <div class="feature">
+          <div class="feature-icon has">✓</div>
+          <span><strong>Voice Pulse:</strong> Bass speaker effect (12% max scale)</span>
+        </div>
+        <div class="feature">
+          <div class="feature-icon has">✓</div>
+          <span><strong>Speaking Mouth:</strong> Bottom lid opens with volume</span>
+        </div>
+        <div class="feature">
+          <div class="feature-icon has">✓</div>
+          <span><strong>50+ Expressions:</strong> Full emotional range</span>
+        </div>
+        <div class="feature">
+          <div class="feature-icon has">✓</div>
+          <span><strong>Ring Pulse:</strong> Halo syncs with speaking</span>
+        </div>
+        <div class="feature">
+          <div class="feature-icon has">✓</div>
+          <span><strong>Eye Tracking:</strong> WALL-E curious following</span>
+        </div>
+        <div class="feature">
+          <div class="feature-icon has">✓</div>
+          <span><strong>Blinking:</strong> Random 3-7s natural blinks</span>
+        </div>
+        <div class="feature">
+          <div class="feature-icon has">✓</div>
+          <span><strong>Breathing:</strong> 4s idle cycle</span>
+        </div>
+        <div class="feature">
+          <div class="feature-icon has">✓</div>
+          <span><strong>Micro-idle:</strong> Subtle random shifts</span>
+        </div>
+        <div class="feature">
+          <div class="feature-icon has">✓</div>
+          <span><strong>Attentive Lean:</strong> Lifts up when listening</span>
+        </div>
+      </div>
+    </div>
+    
+    <div class="panel">
+      <div class="panel-title">
+        <span class="badge playground">Playground</span>
+        Mood Boards Have
+      </div>
+      <div class="feature-list">
+        <div class="feature">
+          <div class="feature-icon has">✓</div>
+          <span><strong>Breathing:</strong> 4s cycle, 1.8% scale</span>
+        </div>
+        <div class="feature">
+          <div class="feature-icon has">✓</div>
+          <span><strong>Blinking:</strong> Random 3-7s intervals</span>
+        </div>
+        <div class="feature">
+          <div class="feature-icon has">✓</div>
+          <span><strong>Gaze Drift:</strong> 8s subtle eye movement</span>
+        </div>
+        <div class="feature">
+          <div class="feature-icon has">✓</div>
+          <span><strong>Anticipation:</strong> Spring overshoot on transitions</span>
+        </div>
+        <div class="feature">
+          <div class="feature-icon has">✓</div>
+          <span><strong>Speaking Pulse:</strong> 0.45s body rhythm</span>
+        </div>
+        <div class="feature">
+          <div class="feature-icon missing">✗</div>
+          <span><strong>Voice Volume:</strong> Not reactive to actual audio</span>
+        </div>
+        <div class="feature">
+          <div class="feature-icon missing">✗</div>
+          <span><strong>Eye Tracking:</strong> No mouse following</span>
+        </div>
+        <div class="feature">
+          <div class="feature-icon missing">✗</div>
+          <span><strong>Speaking Mouth:</strong> Not implemented</span>
+        </div>
+        <div class="feature">
+          <div class="feature-icon missing">✗</div>
+          <span><strong>Attentive Lean:</strong> Not implemented</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Speaking Deep Dive -->
+  <div class="section">
+    <div class="section-title">🔊 Speaking: Three Layers Working Together</div>
+    
+    <p style="font-size: 0.7rem; color: var(--ink-light); margin-bottom: 16px;">
+      The web app uses <strong>three simultaneous animations</strong> to convey Ferni is speaking. 
+      The question is: which is the PRIMARY signal, and how do they work on iOS?
+    </p>
+    
+    <div class="speaking-options">
+      <div class="option">
+        <div class="option-icon">💫</div>
+        <div class="option-name">1. Halo Pulse</div>
+        <div class="option-desc">
+          The presence ring pulses outward like a speaker cone.<br><br>
+          <strong>Web:</strong> Ring scales 0.6% with 0.45s rhythm<br>
+          <strong>Role:</strong> Ambient indicator, peripheral vision
+        </div>
+      </div>
+      
+      <div class="option">
+        <div class="option-icon">🫁</div>
+        <div class="option-name">2. Body Pulse</div>
+        <div class="option-desc">
+          Avatar squash/stretch with voice volume.<br><br>
+          <strong>Web:</strong> Up to 12% scale, 0.4 squash ratio<br>
+          <strong>Role:</strong> Primary speaking indicator
+        </div>
+      </div>
+      
+      <div class="option">
+        <div class="option-icon">👄</div>
+        <div class="option-name">3. Lid Mouth</div>
+        <div class="option-desc">
+          Bottom lid opens/closes with volume.<br><br>
+          <strong>Web:</strong> Y control 110→65 (max open)<br>
+          <strong>Role:</strong> Speech articulation
+        </div>
+      </div>
+    </div>
+    
+    <div class="demo-area">
+      <div class="avatar-demo">
+        <div class="halo-speaker">
+          <div class="ring"></div>
+          <div class="ring"></div>
+          <div class="ring"></div>
+          <div class="orb">
+            <div class="eyes">
+              <div class="eye"></div>
+              <div class="eye"></div>
+            </div>
+          </div>
+        </div>
+        <div class="avatar-demo-label">Halo + Body</div>
+      </div>
+      
+      <div class="avatar-demo">
+        <div class="lid-mouth">
+          <svg viewBox="0 0 100 100">
+            <defs>
+              <linearGradient id="og" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#5a7a51"/>
+                <stop offset="100%" stop-color="#3d5a35"/>
+              </linearGradient>
+              <clipPath id="oc">
+                <circle cx="50" cy="50" r="40"/>
+              </clipPath>
+            </defs>
+            <circle cx="50" cy="50" r="46" fill="none" stroke="#4a6741" stroke-width="1.5" opacity="0.3"/>
+            <g clip-path="url(#oc)">
+              <circle cx="50" cy="50" r="40" fill="url(#og)"/>
+              <ellipse cx="36" cy="48" rx="7" ry="10" fill="white"/>
+              <ellipse cx="64" cy="48" rx="7" ry="10" fill="white"/>
+              <path class="mouth-lid" d="M 0,100 Q 50,95 100,100 L 100,100 L 0,100 Z" fill="#F5F1E8"/>
+            </g>
+          </svg>
+        </div>
+        <div class="avatar-demo-label">Lid Mouth</div>
+      </div>
+    </div>
+    
+    <div class="recommendation">
+      <div class="recommendation-title">💡 Recommendation: Combine All Three</div>
+      <div class="recommendation-text">
+        <strong>Primary signal:</strong> Body pulse (squash/stretch) - most visible, feels like breathing/speaking<br>
+        <strong>Secondary:</strong> Halo pulse - peripheral awareness, "radiating" voice<br>
+        <strong>Tertiary:</strong> Lid mouth - articulation detail, subtle but adds personality<br><br>
+        
+        <strong>The halo as speaker metaphor works</strong> - it's like sound waves emanating from the avatar. 
+        Combined with body pulse, it creates a convincing "speaking" effect without an actual mouth.
+      </div>
+    </div>
+  </div>
+
+  <!-- Platform Comparison -->
+  <div class="section">
+    <div class="section-title">📱 Platform Feature Matrix</div>
+    
+    <table>
+      <thead>
+        <tr>
+          <th>Feature</th>
+          <th>Web App</th>
+          <th>Playground</th>
+          <th>iOS (Target)</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Idle Breathing</td>
+          <td class="yes">✓ 4s cycle</td>
+          <td class="yes">✓ 4s cycle</td>
+          <td class="yes">✓ Already has</td>
+        </tr>
+        <tr>
+          <td>Natural Blinking</td>
+          <td class="yes">✓ 3-7s random</td>
+          <td class="yes">✓ 3-7s random</td>
+          <td class="yes">✓ Already has</td>
+        </tr>
+        <tr>
+          <td>Eye Tracking</td>
+          <td class="yes">✓ Mouse follow</td>
+          <td class="no">✗ Not impl</td>
+          <td class="partial">◐ Touch/face?</td>
+        </tr>
+        <tr>
+          <td>Voice-Reactive Body</td>
+          <td class="yes">✓ 12% scale</td>
+          <td class="partial">◐ Fixed rhythm</td>
+          <td class="yes">✓ Needs port</td>
+        </tr>
+        <tr>
+          <td>Speaking Mouth (Lid)</td>
+          <td class="yes">✓ Volume-driven</td>
+          <td class="no">✗ Not impl</td>
+          <td class="partial">◐ Needs design</td>
+        </tr>
+        <tr>
+          <td>Halo/Ring Pulse</td>
+          <td class="yes">✓ Speaking sync</td>
+          <td class="yes">✓ Breathing sync</td>
+          <td class="partial">◐ Needs port</td>
+        </tr>
+        <tr>
+          <td>Gaze Drift</td>
+          <td class="partial">◐ Via micro-idle</td>
+          <td class="yes">✓ 8s cycle</td>
+          <td class="no">✗ Add this</td>
+        </tr>
+        <tr>
+          <td>Anticipation Overshoot</td>
+          <td class="yes">✓ Spring easing</td>
+          <td class="yes">✓ Spring easing</td>
+          <td class="partial">◐ Check impl</td>
+        </tr>
+        <tr>
+          <td>Attentive Lean</td>
+          <td class="yes">✓ Lift on listen</td>
+          <td class="no">✗ Not impl</td>
+          <td class="no">✗ Add this</td>
+        </tr>
+        <tr>
+          <td>50+ Expressions</td>
+          <td class="yes">✓ Full library</td>
+          <td class="partial">◐ ~25 shown</td>
+          <td class="partial">◐ Needs port</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Action Items -->
+  <div class="section">
+    <div class="section-title">✅ Action Items</div>
+    
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 12px;">
+      <div>
+        <div style="font-size: 0.7rem; font-weight: 700; color: var(--ferni); margin-bottom: 8px;">
+          Playground → Web App
+        </div>
+        <div class="feature-list">
+          <div class="feature">
+            <div class="feature-icon gap">→</div>
+            <span>Gaze drift (8s cycle) - subtle but adds life</span>
+          </div>
+          <div class="feature">
+            <div class="feature-icon gap">→</div>
+            <span>Documented animation values - easier tuning</span>
+          </div>
+        </div>
+      </div>
+      
+      <div>
+        <div style="font-size: 0.7rem; font-weight: 700; color: var(--ferni); margin-bottom: 8px;">
+          Web App → iOS
+        </div>
+        <div class="feature-list">
+          <div class="feature">
+            <div class="feature-icon gap">→</div>
+            <span>Voice-reactive body pulse (critical for speaking)</span>
+          </div>
+          <div class="feature">
+            <div class="feature-icon gap">→</div>
+            <span>Halo/ring pulse sync with speaking</span>
+          </div>
+          <div class="feature">
+            <div class="feature-icon gap">→</div>
+            <span>Speaking mouth (lid opening with volume)</span>
+          </div>
+          <div class="feature">
+            <div class="feature-icon gap">→</div>
+            <span>Attentive lean (lift when listening)</span>
+          </div>
+          <div class="feature">
+            <div class="feature-icon gap">→</div>
+            <span>Full expression library port</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

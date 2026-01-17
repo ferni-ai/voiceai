@@ -204,7 +204,7 @@
     overlay.className = 'page-transition-overlay';
     overlay.innerHTML = `
       <div class="transition-content">
-        <div class="transition-logo">FE</div>
+        <div class="transition-logo"><svg class="ferni-eyes-svg" viewBox="0 0 100 100"><ellipse cx="36" cy="50" rx="10" ry="12" fill="white"/><circle cx="33" cy="45" r="2.5" fill="white" opacity="0.9"/><ellipse cx="64" cy="50" rx="10" ry="12" fill="white"/><circle cx="61" cy="45" r="2.5" fill="white" opacity="0.9"/></svg></div>
       </div>
     `;
     document.body.appendChild(overlay);

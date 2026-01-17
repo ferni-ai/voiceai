@@ -29,6 +29,7 @@ import {
   validateForFirestore,
 } from '../types/firestore/index.js';
 import { getLogger } from '../utils/safe-logger.js';
+import { cleanForFirestore } from '../utils/firestore-utils.js';
 
 // Re-export all converter utilities for convenient access
 export {
@@ -226,12 +227,12 @@ export function validateBatchDocuments<T>(
  * const profile = snapshot.data(); // TypeScript knows this is UserProfile | undefined
  *
  * // Write with automatic date conversion
- * await docRef.set({
+ * await docRef.set(cleanForFirestore({
  *   id: userId,
  *   name: 'Test User',
  *   createdAt: new Date(),
  *   // ... other fields
- * });
+ * }));
  *
  * // Partial updates
  * const updates = createPartialUpdate({
@@ -255,14 +256,16 @@ export function validateBatchDocuments<T>(
  * ```typescript
  * import { validateForFirestore } from './firestore-converters-integration.js';
  * import { UserProfileSchema } from '../types/user-profile.js';
+ * import { getLogger } from '../utils/safe-logger.js';
  *
+ * const log = getLogger();
  * const userData = { name: 'Test', age: 25 };
  * const validation = validateForFirestore(userData, UserProfileSchema);
  *
  * if (validation.valid) {
  *   await docRef.set(validation.data);
  * } else {
- *   console.error('Validation errors:', validation.errors);
+ *   log.error({ errors: validation.errors }, 'Validation failed');
  * }
  * ```
  */

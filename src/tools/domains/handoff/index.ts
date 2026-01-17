@@ -8,13 +8,19 @@
  *
  * IMPORTANT: This domain loads tools asynchronously from the AgentRegistry.
  * The getToolDefinitions() function MUST be called after AgentRegistry is initialized.
+ *
+ * FIX (Jan 2026): Use buildHandoffTools() instead of createHandoffTools().
+ * createHandoffTools() returns raw HandoffToolDefinition objects with Zod parameters,
+ * which OpenAI Realtime API doesn't understand (it needs JSON Schema).
+ * buildHandoffTools() properly wraps tools with llm.tool() which handles the conversion.
  */
 
-import type { ToolDefinition, ToolContext } from '../../registry/types.js';
+import type { ToolDefinition, ToolContext, Tool } from '../../registry/types.js';
 
 // Agent-agnostic handoff factory
 // NOTE: Path is relative from tools/domains/handoff/ to tools/handoff/
-import { createHandoffTools } from '../../handoff/index.js';
+// FIX: Use buildHandoffTools which returns proper llm.tool() wrapped tools
+import { buildHandoffTools, createHandoffTools } from '../../handoff/index.js';
 
 // ============================================================================
 // HANDOFF TOOLS
@@ -23,20 +29,37 @@ import { createHandoffTools } from '../../handoff/index.js';
 /**
  * Get handoff tool definitions dynamically from the agent registry.
  * This is the primary function - it loads tools asynchronously.
+ *
+ * FIX: buildHandoffTools() creates proper llm.tool() wrapped tools that work
+ * with OpenAI Realtime API. createHandoffTools() only returns raw definitions
+ * with Zod parameters that don't convert properly to JSON Schema.
  */
 async function getHandoffToolDefinitionsAsync(): Promise<ToolDefinition[]> {
+  // Get raw definitions for metadata (triggers, agentId, etc.)
   const handoffToolSet = await createHandoffTools();
+  
+  // Get properly wrapped llm.tool() tools
+  const { tools: wrappedTools } = await buildHandoffTools();
 
   const definitions: ToolDefinition[] = [];
 
   for (const toolDef of handoffToolSet.tools) {
+    // Get the corresponding wrapped tool
+    const wrappedTool = wrappedTools[toolDef.name];
+    
+    if (!wrappedTool) {
+      // Tool was filtered out (e.g., locked team member) - skip it
+      continue;
+    }
+    
     definitions.push({
       id: toolDef.name,
       name: toolDef.name.replace(/([A-Z])/g, ' $1').trim(), // CamelCase to Title Case
       description: toolDef.description,
       domain: 'handoff',
       tags: ['handoff', 'team', ...(toolDef.handoffTriggers || [])],
-      create: (_ctx: ToolContext) => toolDef,
+      // FIX: Return the properly wrapped tool, not the raw definition
+      create: (_ctx: ToolContext) => wrappedTool as Tool,
     });
   }
 

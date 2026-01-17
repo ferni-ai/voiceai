@@ -23,6 +23,9 @@ import {
   type ThinkingOfYouOutreach,
   type UserOutreachContext,
 } from './thinking-of-you.js';
+import { deliverOutreach } from './delivery/index.js';
+// Outreach History Tracking - "Better Than Human" learning from patterns
+import { outreachHistory } from './outreach-history.js';
 
 const log = createLogger({ module: 'OutreachOrchestrator' });
 
@@ -65,7 +68,7 @@ export class OutreachOrchestrator extends EventEmitter {
     avgResponseTimeMs: 0,
   };
 
-  private scheduledOutreach: Map<string, NodeJS.Timeout> = new Map();
+  private scheduledOutreach = new Map<string, NodeJS.Timeout>();
 
   constructor() {
     super();
@@ -261,6 +264,314 @@ export class OutreachOrchestrator extends EventEmitter {
     return triggerId;
   }
 
+  // ==========================================================================
+  // PROACTIVE VOICE CALL (Better Than Human - ML-Driven)
+  // ==========================================================================
+
+  /**
+   * Trigger a proactive voice call.
+   * This is the highest-touch outreach - only for high-confidence predictions.
+   *
+   * > "Better than Human" = We call BEFORE they know they need us.
+   */
+  async triggerProactiveCall(
+    userId: string,
+    personaId: string,
+    context: {
+      trigger: string;
+      message?: string;
+      confidence: number;
+      metadata?: Record<string, unknown>;
+    }
+  ): Promise<OutreachEvent | null> {
+    // Validate confidence threshold (voice calls are high-touch)
+    if (context.confidence < 0.75) {
+      log.debug({ userId, confidence: context.confidence }, 'Proactive call confidence too low');
+      return null;
+    }
+
+    // Store outreach context for conversation bridge
+    try {
+      const { storeOutreachContext } = await import('./conversation-context-bridge.js');
+      await storeOutreachContext({
+        outreachId: `call_${userId}_${Date.now()}`,
+        userId,
+        type: context.trigger as
+          | 'ml_prediction'
+          | 'thinking_of_you'
+          | 'hard_date'
+          | 'follow_up'
+          | 'life_rhythm'
+          | 'habit_support'
+          | 'celebration',
+        personaId,
+        message: context.message || "I've been thinking about you and wanted to check in.",
+        channel: 'voice_message',
+        sentAt: new Date(),
+        reason: `ML prediction triggered proactive call (${(context.confidence * 100).toFixed(0)}% confidence)`,
+        mlConfidence: context.confidence,
+        triggerDetails: context.metadata,
+      });
+    } catch (err) {
+      log.warn({ error: String(err) }, 'Failed to store outreach context for proactive call');
+    }
+
+    // Create outreach event
+    const event: OutreachEvent = {
+      type: 'check_in',
+      userId,
+      personaId,
+      channel: 'call',
+      message: context.message || "I've been thinking about you...",
+      scheduledFor: new Date(),
+      metadata: {
+        trigger: context.trigger,
+        confidence: context.confidence,
+        mlDriven: true,
+        ...context.metadata,
+      },
+    };
+
+    // Register with decision engine for rate limiting
+    const decisionEngine = getOutreachDecisionEngine();
+    decisionEngine.addTrigger({
+      type: 'check_in', // Using check_in as this is ML-driven proactive outreach
+      userId,
+      priority: 'high',
+      reason: `ML-driven proactive call: ${context.trigger}`,
+    });
+
+    // Track telemetry
+    this.recordTelemetry('proactive_call', personaId);
+
+    // Emit for delivery (actual call initiation happens in delivery handler)
+    this.emit('outreach:proactive-call', event);
+
+    log.info(
+      { userId, personaId, trigger: context.trigger, confidence: context.confidence },
+      '📞 Proactive voice call triggered'
+    );
+
+    // Attempt to deliver via outbound call system
+    try {
+      await deliverOutreach({
+        userId,
+        channel: 'call',
+        message: event.message,
+        personaId: event.personaId,
+        outreachId: `call_${userId}_${Date.now()}`,
+      });
+      this.telemetry.successfulDeliveries++;
+
+      // Record to outreach history for learning
+      await outreachHistory.recordAttempt(userId, {
+        type: 'thinking_of_you',
+        reason: context.trigger,
+        channel: 'voice',
+        personaId,
+        status: 'delivered',
+      });
+    } catch (err) {
+      log.error({ error: String(err), userId }, 'Failed to deliver proactive call');
+
+      // Record failed attempt
+      await outreachHistory.recordAttempt(userId, {
+        type: 'thinking_of_you',
+        reason: context.trigger,
+        channel: 'voice',
+        personaId,
+        status: 'failed',
+      });
+    }
+
+    return event;
+  }
+
+  // ==========================================================================
+  // PUSH NOTIFICATION (Medium-Touch Outreach)
+  // ==========================================================================
+
+  /**
+   * Send a push notification.
+   * This is medium-touch outreach - for moderate-confidence predictions.
+   */
+  async sendPushNotification(
+    userId: string,
+    message: string,
+    context: {
+      trigger?: string;
+      personaId?: string;
+      deepLink?: string;
+      metadata?: Record<string, unknown>;
+    }
+  ): Promise<OutreachEvent | null> {
+    const personaId = context.personaId || 'ferni';
+
+    // Store outreach context for conversation bridge
+    try {
+      const { storeOutreachContext } = await import('./conversation-context-bridge.js');
+      await storeOutreachContext({
+        outreachId: `push_${userId}_${Date.now()}`,
+        userId,
+        type: (context.trigger as 'ml_prediction' | 'thinking_of_you') || 'thinking_of_you',
+        personaId,
+        message,
+        channel: 'push',
+        sentAt: new Date(),
+        reason: context.trigger || 'Proactive check-in',
+        triggerDetails: context.metadata,
+      });
+    } catch (err) {
+      log.warn({ error: String(err) }, 'Failed to store outreach context for push');
+    }
+
+    // Create outreach event
+    const event: OutreachEvent = {
+      type: 'thinking_of_you',
+      userId,
+      personaId,
+      channel: 'push',
+      message,
+      scheduledFor: new Date(),
+      metadata: {
+        trigger: context.trigger,
+        deepLink: context.deepLink,
+        ...context.metadata,
+      },
+    };
+
+    // Track telemetry
+    this.recordTelemetry('push', personaId);
+
+    // Emit for delivery
+    this.emit('outreach:push', event);
+
+    log.info({ userId, personaId, trigger: context.trigger }, '🔔 Push notification sent');
+
+    // Attempt to deliver
+    try {
+      await deliverOutreach({
+        userId,
+        channel: 'push',
+        message: event.message,
+        personaId: event.personaId,
+        outreachId: `push_${userId}_${Date.now()}`,
+      });
+      this.telemetry.successfulDeliveries++;
+
+      // Record to outreach history for learning
+      await outreachHistory.recordAttempt(userId, {
+        type: 'thinking_of_you',
+        reason: context.trigger || 'proactive',
+        channel: 'push',
+        personaId,
+        status: 'delivered',
+      });
+    } catch (err) {
+      log.error({ error: String(err), userId }, 'Failed to deliver push notification');
+
+      // Record failed attempt
+      await outreachHistory.recordAttempt(userId, {
+        type: 'thinking_of_you',
+        reason: context.trigger || 'proactive',
+        channel: 'push',
+        personaId,
+        status: 'failed',
+      });
+    }
+
+    return event;
+  }
+
+  // ==========================================================================
+  // SMS OUTREACH
+  // ==========================================================================
+
+  /**
+   * Send an SMS message.
+   */
+  async sendSMS(
+    userId: string,
+    message: string,
+    context: {
+      trigger?: string;
+      personaId?: string;
+      metadata?: Record<string, unknown>;
+    }
+  ): Promise<OutreachEvent | null> {
+    const personaId = context.personaId || 'ferni';
+
+    // Store outreach context
+    try {
+      const { storeOutreachContext } = await import('./conversation-context-bridge.js');
+      await storeOutreachContext({
+        outreachId: `sms_${userId}_${Date.now()}`,
+        userId,
+        type: (context.trigger as 'ml_prediction' | 'thinking_of_you') || 'thinking_of_you',
+        personaId,
+        message,
+        channel: 'sms',
+        sentAt: new Date(),
+        reason: context.trigger || 'Proactive check-in',
+        triggerDetails: context.metadata,
+      });
+    } catch (err) {
+      log.warn({ error: String(err) }, 'Failed to store outreach context for SMS');
+    }
+
+    // Create outreach event
+    const event: OutreachEvent = {
+      type: 'thinking_of_you',
+      userId,
+      personaId,
+      channel: 'sms',
+      message,
+      scheduledFor: new Date(),
+      metadata: context.metadata,
+    };
+
+    // Track telemetry
+    this.recordTelemetry('sms', personaId);
+
+    // Emit for delivery
+    this.emit('outreach:sms', event);
+
+    log.info({ userId, personaId }, '💬 SMS sent');
+
+    try {
+      await deliverOutreach({
+        userId,
+        channel: 'sms',
+        message: event.message,
+        personaId: event.personaId,
+        outreachId: `sms_${userId}_${Date.now()}`,
+      });
+      this.telemetry.successfulDeliveries++;
+
+      // Record to outreach history for learning
+      await outreachHistory.recordAttempt(userId, {
+        type: 'thinking_of_you',
+        reason: context.trigger || 'proactive',
+        channel: 'sms',
+        personaId,
+        status: 'delivered',
+      });
+    } catch (err) {
+      log.error({ error: String(err), userId }, 'Failed to deliver SMS');
+
+      // Record failed attempt for learning
+      await outreachHistory.recordAttempt(userId, {
+        type: 'thinking_of_you',
+        reason: context.trigger || 'proactive',
+        channel: 'sms',
+        personaId,
+        status: 'failed',
+      });
+    }
+
+    return event;
+  }
+
   /**
    * Process daily outreach for all users
    * Call this via cron job
@@ -387,11 +698,11 @@ export class OutreachOrchestrator extends EventEmitter {
     }
 
     // Get recent wins from goals
-    const recentWins: string[] = [];
+    const recentWins: Array<{ description: string; date?: Date; category?: string }> = [];
     if (profile.goals) {
       for (const goal of profile.goals) {
         if (goal.status === 'achieved') {
-          recentWins.push(goal.name);
+          recentWins.push({ description: goal.name, category: goal.type });
         }
       }
     }
@@ -530,6 +841,57 @@ let instance: OutreachOrchestrator | null = null;
 export function getOutreachOrchestrator(): OutreachOrchestrator {
   if (!instance) {
     instance = new OutreachOrchestrator();
+
+    // ==========================================================================
+    // 🔗 CONNECT TO DELIVERY SYSTEM
+    // This is the critical bridge that makes "Thinking of You" actually execute!
+    // When the orchestrator decides it's time to reach out, we deliver the message.
+    // ==========================================================================
+    instance.on('outreach:ready', (event: OutreachEvent) => {
+      log.info(
+        {
+          type: event.type,
+          userId: event.userId,
+          channel: event.channel,
+          personaId: event.personaId,
+        },
+        '💌 Executing outreach delivery'
+      );
+
+      // Use void to explicitly handle the promise and satisfy TypeScript
+      void (async () => {
+        try {
+          const result = await deliverOutreach({
+            userId: event.userId,
+            channel: event.channel === 'voice_message' ? 'push' : event.channel, // Map voice_message to push
+            message: event.message,
+            personaId: event.personaId,
+            outreachId: event.metadata?.triggerId as string | undefined,
+          });
+
+          if (result.success) {
+            log.info(
+              { userId: event.userId, channel: event.channel, messageId: result.messageId },
+              '✅ Outreach delivered successfully'
+            );
+            // Update telemetry
+            instance?.recordDeliverySuccess();
+          } else {
+            log.warn(
+              { userId: event.userId, channel: event.channel, error: result.error },
+              '⚠️ Outreach delivery failed'
+            );
+          }
+        } catch (error) {
+          log.error(
+            { userId: event.userId, channel: event.channel, error: String(error) },
+            '❌ Outreach delivery error'
+          );
+        }
+      })();
+    });
+
+    log.info('📤 OutreachOrchestrator initialized with delivery listener');
   }
   return instance;
 }

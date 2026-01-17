@@ -211,6 +211,116 @@
         }
       }
     }
+  },
+  
+  "personaAvatar": {
+    "description": "Circular avatar orb for personas and agents - ALWAYS CIRCULAR, never rounded squares. Uses Pixar-inspired breathing animation to feel alive.",
+    "designPrinciple": "No more rounded squares - all persona avatars are perfect circles (orbs) with gradient backgrounds, subtle glow rings, and breathing animations.",
+    "base": {
+      "borderRadius": "50%",
+      "display": "flex",
+      "alignItems": "center",
+      "justifyContent": "center",
+      "fontFamily": "var(--font-display)",
+      "fontWeight": "700",
+      "color": "white",
+      "background": "var(--gradient-persona)",
+      "boxShadow": "0 1px 2px rgba(0, 0, 0, 0.08), 0 4px 8px rgba(0, 0, 0, 0.06), 0 0 0 2px rgba(255, 255, 255, 0.1) inset, 0 6px 18px -4px var(--persona-glow, rgba(74, 103, 65, 0.25))",
+      "transition": "transform var(--transition-standard), box-shadow var(--transition-standard)",
+      "animation": "avatar-breathe 5s var(--ease-smooth) infinite"
+    },
+    "variants": {
+      "xs": {
+        "description": "Team roster, inline mentions",
+        "width": "32px",
+        "height": "32px",
+        "fontSize": "0.7rem"
+      },
+      "sm": {
+        "description": "Employee cards, compact lists",
+        "width": "44px",
+        "height": "44px",
+        "fontSize": "0.8rem"
+      },
+      "md": {
+        "description": "Cofounder cards, custom agent cards",
+        "width": "56px",
+        "height": "56px",
+        "fontSize": "1.1rem"
+      },
+      "lg": {
+        "description": "CEO card, feature cards",
+        "width": "72px",
+        "height": "72px",
+        "fontSize": "1.25rem"
+      },
+      "xl": {
+        "description": "Discover cards, hero sections",
+        "width": "88px",
+        "height": "88px",
+        "fontSize": "1.5rem"
+      }
+    },
+    "states": {
+      "hover": {
+        "transform": "scale(1.08)",
+        "animation": "avatar-breathe 2s var(--ease-spring-gentle) infinite",
+        "boxShadow": "0 2px 4px rgba(0, 0, 0, 0.1), 0 8px 16px rgba(0, 0, 0, 0.08), 0 0 0 2px rgba(255, 255, 255, 0.15) inset, 0 10px 28px -4px var(--persona-glow, rgba(74, 103, 65, 0.35)), 0 0 18px -2px var(--persona-glow, rgba(74, 103, 65, 0.2))"
+      }
+    },
+    "glowRing": {
+      "description": "Optional pulsing glow ring behind the avatar for emphasis",
+      "position": "absolute",
+      "inset": "-6px",
+      "borderRadius": "50%",
+      "background": "radial-gradient(circle, var(--persona-glow, rgba(74, 103, 65, 0.25)) 0%, transparent 70%)",
+      "opacity": "0.15",
+      "animation": "ring-pulse 4s var(--ease-smooth) infinite",
+      "pointerEvents": "none"
+    },
+    "animations": {
+      "breathe": {
+        "description": "Pixar principle: Everything alive breathes. Subtle scale animation makes avatars feel alive.",
+        "keyframes": {
+          "0%, 100%": { "transform": "scale3d(1, 1, 1) translateY(0)" },
+          "40%": { "transform": "scale3d(0.994, 1.012, 1) translateY(-2px)" },
+          "50%": { "transform": "scale3d(0.994, 1.012, 1) translateY(-2px)" },
+          "90%": { "transform": "scale3d(1, 1, 1) translateY(0)" }
+        },
+        "duration": "5s",
+        "easing": "var(--ease-smooth)",
+        "iteration": "infinite"
+      },
+      "glowPulse": {
+        "description": "Pulsing glow ring for hover/active states",
+        "keyframes": {
+          "0%, 100%": { "opacity": "0.15", "transform": "scale(1)" },
+          "50%": { "opacity": "0.4", "transform": "scale(1.02)" }
+        },
+        "duration": "4s",
+        "easing": "var(--ease-smooth)",
+        "iteration": "infinite"
+      },
+      "float": {
+        "description": "Gentle floating motion for discover cards",
+        "keyframes": {
+          "0%, 100%": { "transform": "translateY(0) rotate(0deg)" },
+          "33%": { "transform": "translateY(-4px) rotate(0.5deg)" },
+          "66%": { "transform": "translateY(-2px) rotate(-0.5deg)" }
+        },
+        "duration": "8s",
+        "easing": "var(--ease-smooth)",
+        "iteration": "infinite"
+      }
+    },
+    "zenTheme": {
+      "boxShadow": "0 1px 2px rgba(44, 37, 32, 0.08), 0 4px 8px rgba(44, 37, 32, 0.06), 0 0 0 2px rgba(255, 255, 255, 0.4) inset, 0 6px 18px -4px var(--persona-glow, rgba(74, 103, 65, 0.2))",
+      "states": {
+        "hover": {
+          "boxShadow": "0 2px 4px rgba(44, 37, 32, 0.1), 0 8px 16px rgba(44, 37, 32, 0.08), 0 0 0 2px rgba(255, 255, 255, 0.5) inset, 0 10px 28px -4px var(--persona-glow, rgba(44, 37, 32, 0.3)), 0 0 18px -2px var(--persona-glow, rgba(44, 37, 32, 0.15))"
+        }
+      }
+    }
   }
 }
 

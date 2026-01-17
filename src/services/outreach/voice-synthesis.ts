@@ -9,6 +9,7 @@
 
 import { Storage } from '@google-cloud/storage';
 import { getLogger } from '../../utils/safe-logger.js';
+import { CARTESIA_MODEL, CARTESIA_API_VERSION } from '../../config/voice-ids.js';
 
 const log = getLogger().child({ module: 'outreach-voice-synthesis' });
 
@@ -55,7 +56,7 @@ const PERSONA_VOICES: Record<string, PersonaVoiceProfile> = {
     voiceId:
       process.env.MAYA_SANTOS_VOICE_ID ||
       process.env.SPEND_SAVE_VOICE_ID ||
-      'eef47c0d-cb49-4160-a4a0-6b97ed4c81e6',
+      '11175483-5332-496c-8c01-ca527ce04e4a',
     speed: 1.0,
     emotion: 'encouraging',
   },
@@ -194,11 +195,11 @@ async function synthesizeWithCartesia(
       method: 'POST',
       headers: {
         'X-API-Key': config.cartesiaApiKey,
-        'Cartesia-Version': '2024-06-10',
+        'Cartesia-Version': CARTESIA_API_VERSION,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model_id: 'sonic-english',
+        model_id: CARTESIA_MODEL,
         transcript: text,
         voice: {
           mode: 'id',

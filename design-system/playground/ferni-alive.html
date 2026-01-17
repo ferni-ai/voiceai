@@ -1,0 +1,4033 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ferni — Alive (Full Expression System)</title>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --ferni: #4a6741;
+      --ferni-light: #5a7a51;
+      --ferni-dark: #3d5a35;
+      --cream: #F5F1E8;
+      --cream-dark: #E8E2D9;
+      --ink: #2C2520;
+      --ink-light: #5C544A;
+      --accent: #c4856a;
+      /* Ferni Animation Easings - Better than Pixar Lamp */
+      --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+      --ease-spring-heavy: cubic-bezier(0.34, 1.8, 0.64, 1);
+      --ease-gentle: cubic-bezier(0.4, 0, 0.2, 1);
+      --ease-organic: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+      --ease-bounce: cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    }
+    
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background: var(--cream);
+      min-height: 100vh;
+      color: var(--ink);
+    }
+    
+    header {
+      text-align: center;
+      padding: 24px 20px 12px;
+    }
+    
+    h1 {
+      font-size: 1.3rem;
+      font-weight: 800;
+      color: var(--ferni);
+    }
+    
+    .subtitle {
+      font-size: 0.7rem;
+      color: var(--ink-light);
+      margin-top: 4px;
+    }
+    
+    .stage {
+      max-width: 440px;
+      margin: 0 auto;
+      padding: 0 20px;
+    }
+    
+    .avatar-stage {
+      background: white;
+      border-radius: 24px;
+      padding: 32px;
+      box-shadow: 0 8px 40px rgba(44,37,32,0.06);
+      margin-bottom: 16px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    
+    .status {
+      font-size: 0.65rem;
+      font-weight: 700;
+      color: var(--ferni);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-top: 16px;
+      opacity: 0.7;
+    }
+    
+    /* Controls */
+    .control-section {
+      background: white;
+      border-radius: 16px;
+      padding: 16px;
+      margin-bottom: 12px;
+      box-shadow: 0 4px 16px rgba(44,37,32,0.04);
+    }
+    
+    .section-title {
+      font-size: 0.6rem;
+      font-weight: 700;
+      color: var(--ferni);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 10px;
+    }
+    
+    .control-row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    
+    .btn {
+      padding: 8px 14px;
+      border: none;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 0.7rem;
+      cursor: pointer;
+      transition: all 0.15s var(--ease-spring);
+      background: rgba(44,37,32,0.05);
+      color: var(--ink);
+    }
+    
+    .btn:hover {
+      background: rgba(44,37,32,0.1);
+      transform: translateY(-1px);
+    }
+    
+    .btn.active {
+      background: var(--ferni);
+      color: white;
+    }
+    
+    .toggle {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.7rem;
+      color: var(--ink-light);
+      cursor: pointer;
+      padding: 6px 0;
+    }
+    
+    .toggle input {
+      width: 32px;
+      height: 18px;
+      appearance: none;
+      background: rgba(44,37,32,0.15);
+      border-radius: 999px;
+      position: relative;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    
+    .toggle input:checked {
+      background: var(--ferni);
+    }
+    
+    .toggle input::after {
+      content: '';
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      width: 14px;
+      height: 14px;
+      background: white;
+      border-radius: 50%;
+      transition: transform 0.2s var(--ease-spring);
+    }
+    
+    .toggle input:checked::after {
+      transform: translateX(14px);
+    }
+    
+    /* Layers panel - 8 layers in 4x2 grid */
+    .layers {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 6px;
+    }
+    
+    .layer-card {
+      background: rgba(74, 103, 65, 0.04);
+      border-radius: 8px;
+      padding: 8px 4px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.15s var(--ease-spring);
+    }
+
+    .layer-card:hover {
+      background: rgba(74, 103, 65, 0.1);
+      transform: translateY(-1px);
+    }
+    
+    .layer-card.disabled {
+      opacity: 0.4;
+    }
+    
+    .layer-icon {
+      font-size: 1rem;
+      margin-bottom: 2px;
+      line-height: 1;
+    }
+
+    .layer-name {
+      font-size: 0.55rem;
+      font-weight: 700;
+      color: var(--ferni);
+      line-height: 1.2;
+    }
+
+    .layer-desc {
+      font-size: 0.45rem;
+      color: var(--ink-light);
+      margin-top: 2px;
+      line-height: 1.2;
+    }
+    
+    /* ============================================
+       FERNI AVATAR - ALIVE
+       ============================================ */
+    
+    .ferni-avatar {
+      --size: 120px;
+      position: relative;
+      width: var(--size);
+      height: var(--size);
+      transition: transform 0.4s var(--ease-spring);
+    }
+    
+    .avatar-svg {
+      width: 100%;
+      height: 100%;
+      overflow: visible;
+    }
+    
+    /* Presence ring breathes with avatar */
+    .presence-ring {
+      fill: none;
+      stroke: var(--ferni);
+      stroke-width: 1.5;
+      opacity: 0.3;
+      transition: all 0.4s var(--ease-gentle);
+      transform-origin: center center;
+    }
+    
+    /* BREATHING - Makes Ferni feel alive */
+    .ferni-avatar.breathing .avatar-body {
+      animation: breathe 4s ease-in-out infinite;
+    }
+    
+    .ferni-avatar.breathing .presence-ring {
+      animation: ringBreathe 4s ease-in-out infinite;
+      animation-delay: 0.3s; /* Secondary action offset */
+    }
+    
+    @keyframes breathe {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scaleY(1.018) scaleX(0.994); }
+    }
+    
+    @keyframes ringBreathe {
+      0%, 100% { transform: scale(1); opacity: 0.3; }
+      50% { transform: scale(1.008); opacity: 0.35; }
+    }
+    
+    /* BLINKING - Natural eye blinks */
+    .eye-white {
+      transform-origin: center center;
+      transition: transform 0.08s ease-out;
+    }
+    
+    .ferni-avatar.blinking .eye-white {
+      animation: blink 0.15s ease-in-out;
+    }
+    
+    @keyframes blink {
+      0%, 100% { transform: scaleY(1); }
+      50% { transform: scaleY(0.1); }
+    }
+    
+    /* LID TRANSITIONS with anticipation */
+    .lid-top, .lid-bottom {
+      fill: var(--cream);
+      transition: d 0.35s var(--ease-spring);
+    }
+
+    /* When anticipation is on, add settle overshoot */
+    .ferni-avatar.anticipation .lid-top,
+    .ferni-avatar.anticipation .lid-bottom {
+      transition: d 0.4s cubic-bezier(0.34, 1.8, 0.64, 1);
+    }
+
+    /* ============================================
+       LUXO-STYLE EYES - Opaque & Expressive
+       No pupils! Like the Pixar lamp, emotion
+       comes from SHAPE and MOVEMENT, not details.
+       ============================================ */
+
+    /* GAZE DRIFT - Subtle idle eye movement */
+    .eyes-group {
+      transition: transform 0.8s var(--ease-organic);
+    }
+    
+    .ferni-avatar.gazing .eyes-group {
+      animation: gazeDrift 8s ease-in-out infinite;
+    }
+    
+    @keyframes gazeDrift {
+      0%, 100% { transform: translate(0, 0); }
+      25% { transform: translate(1px, -0.5px); }
+      50% { transform: translate(-0.5px, 0.5px); }
+      75% { transform: translate(0.5px, 0px); }
+    }
+    
+    /* === EXPRESSIONS === */
+    
+    .ferni-avatar[data-mood="neutral"] .lid-top {
+      d: path("M 0,0 Q 50,-10 100,0 L 100,0 L 0,0 Z");
+    }
+    .ferni-avatar[data-mood="neutral"] .lid-bottom {
+      d: path("M 0,100 Q 50,110 100,100 L 100,100 L 0,100 Z");
+    }
+    
+    .ferni-avatar[data-mood="listening"] {
+      transform: translateY(-2px);
+    }
+    .ferni-avatar[data-mood="listening"] .eye-white {
+      transform: scaleY(1.08);
+    }
+    .ferni-avatar[data-mood="listening"] .lid-top {
+      d: path("M 0,0 Q 50,5 100,0 L 100,0 L 0,0 Z");
+    }
+    .ferni-avatar[data-mood="listening"] .presence-ring {
+      opacity: 0.4;
+    }
+    
+    .ferni-avatar[data-mood="speaking"] .eye-white {
+      transform: scaleY(0.88) scaleX(1.02);
+    }
+    .ferni-avatar[data-mood="speaking"] .lid-top {
+      d: path("M 0,0 Q 50,15 100,0 L 100,0 L 0,0 Z");
+    }
+    .ferni-avatar[data-mood="speaking"] .avatar-body {
+      animation: speakPulse 0.45s ease-in-out infinite;
+    }
+    .ferni-avatar[data-mood="speaking"] .presence-ring {
+      animation: ringPulse 0.45s ease-in-out infinite;
+    }
+    
+    @keyframes speakPulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scaleY(1.012) scaleX(0.992); }
+    }
+    
+    @keyframes ringPulse {
+      0%, 100% { transform: scale(1); opacity: 0.3; }
+      50% { transform: scale(1.006); opacity: 0.38; }
+    }
+    
+    .ferni-avatar[data-mood="happy"] .eye-white {
+      transform: scaleY(0.8) scaleX(1.06);
+    }
+    .ferni-avatar[data-mood="happy"] .lid-top {
+      d: path("M 0,0 Q 50,25 100,0 L 100,0 L 0,0 Z");
+    }
+    .ferni-avatar[data-mood="happy"] .lid-bottom {
+      d: path("M 0,100 Q 50,85 100,100 L 100,100 L 0,100 Z");
+    }
+    
+    .ferni-avatar[data-mood="thinking"] {
+      transform: rotate(1.5deg);
+    }
+    .ferni-avatar[data-mood="thinking"] .eyes-group {
+      transform: translate(2px, -2px);
+    }
+    .ferni-avatar[data-mood="thinking"] .eye-white {
+      transform: scaleY(0.95);
+    }
+    .ferni-avatar[data-mood="thinking"] .lid-top {
+      d: path("M 0,0 Q 50,15 100,0 L 100,0 L 0,0 Z");
+    }
+    
+    .ferni-avatar[data-mood="surprised"] {
+      transform: scaleY(1.02) scaleX(0.99);
+    }
+    .ferni-avatar[data-mood="surprised"] .eye-white {
+      transform: scaleY(1.15) scaleX(1.05);
+    }
+    .ferni-avatar[data-mood="surprised"] .lid-top {
+      d: path("M 0,0 Q 50,-15 100,0 L 100,0 L 0,0 Z");
+    }
+    .ferni-avatar[data-mood="surprised"] .lid-bottom {
+      d: path("M 0,100 Q 50,115 100,100 L 100,100 L 0,100 Z");
+    }
+    
+    .ferni-avatar[data-mood="warm"] .eye-white {
+      transform: scaleY(0.9) scaleX(1.03);
+    }
+    .ferni-avatar[data-mood="warm"] .lid-top {
+      d: path("M 0,0 Q 50,18 100,0 L 100,0 L 0,0 Z");
+    }
+    .ferni-avatar[data-mood="warm"] .lid-bottom {
+      d: path("M 0,100 Q 50,90 100,100 L 100,100 L 0,100 Z");
+    }
+    
+    .ferni-avatar[data-mood="sleepy"] {
+      transform: scaleY(0.99);
+    }
+    .ferni-avatar[data-mood="sleepy"] .eye-white {
+      transform: scaleY(0.5);
+    }
+    .ferni-avatar[data-mood="sleepy"] .lid-top {
+      d: path("M 0,0 Q 50,55 100,0 L 100,0 L 0,0 Z");
+    }
+    .ferni-avatar[data-mood="sleepy"] .lid-bottom {
+      d: path("M 0,100 Q 50,70 100,100 L 100,100 L 0,100 Z");
+    }
+
+    /* ============================================
+       SMILE CREASES & SPARKLES - Secondary Action
+       (Pixar Principle #11 - Duchenne smile indicator)
+       ============================================ */
+
+    .smile-crease {
+      opacity: 0;
+      transition: opacity 0.3s var(--ease-gentle), stroke-width 0.2s var(--ease-spring);
+    }
+
+    .sparkle-group {
+      opacity: 0;
+      transition: all 0.2s var(--ease-spring);
+    }
+
+    .sparkle-star {
+      transform-origin: center;
+    }
+
+    /* Sparkle twinkle animation */
+    @keyframes sparkleRotate {
+      0%, 100% { transform: rotate(0deg) scale(1); }
+      50% { transform: rotate(15deg) scale(1.1); }
+    }
+
+    .ferni-avatar[data-mood="delighted"] .sparkle-star,
+    .ferni-avatar[data-mood="amazed"] .sparkle-star,
+    .ferni-avatar[data-mood="excited"] .sparkle-star {
+      animation: sparkleRotate 0.6s ease-in-out infinite;
+    }
+
+    .sparkle-2 {
+      animation-delay: 0.15s !important;
+    }
+
+    /* ============================================
+       FULL EXPRESSION SYSTEM - 57 EXPRESSIONS
+       Organized by emotional category
+       ============================================ */
+
+    /* --- HAPPY FAMILY (8 expressions) --- DRAMATICALLY ENHANCED */
+
+    .ferni-avatar[data-mood="joyful"] {
+      transform: translateY(-4px) scale(1.03);
+    }
+    .ferni-avatar[data-mood="joyful"] .eye-white {
+      transform: scaleY(0.7) scaleX(1.12);
+    }
+    .ferni-avatar[data-mood="joyful"] .lid-top {
+      d: path("M 0,0 Q 50,35 100,0 L 100,0 L 0,0 Z");
+    }
+    .ferni-avatar[data-mood="joyful"] .lid-bottom {
+      d: path("M 0,100 Q 50,75 100,100 L 100,100 L 0,100 Z");
+    }
+    .ferni-avatar[data-mood="joyful"] .smile-crease { opacity: 1; stroke-width: 1.5; }
+    .ferni-avatar[data-mood="joyful"] .presence-ring {
+      opacity: 0.5;
+      stroke-width: 2;
+      transform: scale(1.02);
+    }
+
+    .ferni-avatar[data-mood="delighted"] {
+      transform: translateY(-6px) scale(1.05) rotate(-2deg);
+      animation: delightedBounce 0.5s var(--ease-spring);
+    }
+    .ferni-avatar[data-mood="delighted"] .eye-white {
+      transform: scaleY(0.6) scaleX(1.15);
+    }
+    .ferni-avatar[data-mood="delighted"] .lid-top {
+      d: path("M 0,0 Q 50,42 100,0 L 100,0 L 0,0 Z");
+    }
+    .ferni-avatar[data-mood="delighted"] .lid-bottom {
+      d: path("M 0,100 Q 50,72 100,100 L 100,100 L 0,100 Z");
+    }
+    .ferni-avatar[data-mood="delighted"] .smile-crease { opacity: 1; stroke-width: 2; }
+    .ferni-avatar[data-mood="delighted"] .sparkle-group { opacity: 1; }
+    .ferni-avatar[data-mood="delighted"] .presence-ring {
+      opacity: 0.6;
+      stroke-width: 2.5;
+      animation: ringGlow 0.8s ease-in-out infinite alternate;
+    }
+
+    @keyframes delightedBounce {
+      0% { transform: translateY(0) scale(1) rotate(0); }
+      40% { transform: translateY(-10px) scale(1.08) rotate(-3deg); }
+      70% { transform: translateY(-4px) scale(1.04) rotate(-1deg); }
+      100% { transform: translateY(-6px) scale(1.05) rotate(-2deg); }
+    }
+
+    @keyframes ringGlow {
+      0% { opacity: 0.5; transform: scale(1.01); }
+      100% { opacity: 0.7; transform: scale(1.04); }
+    }
+
+    .ferni-avatar[data-mood="amused"] {
+      transform: rotate(1.5deg);
+    }
+    .ferni-avatar[data-mood="amused"] .eye-white {
+      transform: scaleY(0.78) scaleX(1.06);
+    }
+    .ferni-avatar[data-mood="amused"] .eye-left {
+      transform: scaleY(0.75) scaleX(1.06); /* Asymmetric squint */
+    }
+    .ferni-avatar[data-mood="amused"] .lid-top {
+      d: path("M 0,0 Q 50,26 100,0 L 100,0 L 0,0 Z");
+    }
+    .ferni-avatar[data-mood="amused"] .smile-crease { opacity: 0.7; }
+
+    .ferni-avatar[data-mood="pleased"] {
+      transform: translateY(-2px);
+    }
+    .ferni-avatar[data-mood="pleased"] .eye-white {
+      transform: scaleY(0.82) scaleX(1.04);
+    }
+    .ferni-avatar[data-mood="pleased"] .lid-top {
+      d: path("M 0,0 Q 50,22 100,0 L 100,0 L 0,0 Z");
+    }
+    .ferni-avatar[data-mood="pleased"] .smile-crease { opacity: 0.5; }
+
+    .ferni-avatar[data-mood="content"] {
+      transform: scale(0.99);
+    }
+    .ferni-avatar[data-mood="content"] .eye-white {
+      transform: scaleY(0.85) scaleX(1.02);
+    }
+    .ferni-avatar[data-mood="content"] .lid-top {
+      d: path("M 0,0 Q 50,18 100,0 L 100,0 L 0,0 Z");
+    }
+    .ferni-avatar[data-mood="content"] .smile-crease { opacity: 0.4; }
+    .ferni-avatar[data-mood="content"] .presence-ring {
+      opacity: 0.25;
+    }
+
+    .ferni-avatar[data-mood="excited"] {
+      transform: scale(1.06);
+      animation: excitedBounce 0.35s var(--ease-bounce) infinite;
+    }
+    .ferni-avatar[data-mood="excited"] .eye-white {
+      transform: scaleY(1.15) scaleX(1.08);
+    }
+    .ferni-avatar[data-mood="excited"] .lid-top {
+      d: path("M 0,0 Q 50,-12 100,0 L 100,0 L 0,0 Z");
+    }
+    .ferni-avatar[data-mood="excited"] .smile-crease { opacity: 0.8; }
+    .ferni-avatar[data-mood="excited"] .sparkle-group { opacity: 1; }
+    .ferni-avatar[data-mood="excited"] .presence-ring {
+      opacity: 0.6;
+      stroke-width: 2.5;
+      animation: excitedRing 0.35s var(--ease-bounce) infinite;
+    }
+
+    @keyframes excitedBounce {
+      0%, 100% { transform: scale(1.06) translateY(0) rotate(0); }
+      25% { transform: scale(1.08) translateY(-4px) rotate(-1deg); }
+      50% { transform: scale(1.04) translateY(-2px) rotate(1deg); }
+      75% { transform: scale(1.07) translateY(-3px) rotate(-0.5deg); }
+    }
+
+    @keyframes excitedRing {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+    }
+
+    .ferni-avatar[data-mood="grateful"] {
+      transform: translateY(-3px) rotate(-1deg);
+    }
+    .ferni-avatar[data-mood="grateful"] .eye-white {
+      transform: scaleY(0.72) scaleX(1.08);
+    }
+    .ferni-avatar[data-mood="grateful"] .lid-top {
+      d: path("M 0,0 Q 50,32 100,0 L 100,0 L 0,0 Z");
+    }
+    .ferni-avatar[data-mood="grateful"] .lid-bottom {
+      d: path("M 0,100 Q 50,85 100,100 L 100,100 L 0,100 Z");
+    }
+    .ferni-avatar[data-mood="grateful"] .smile-crease { opacity: 0.9; stroke-width: 1.3; }
+
+    .ferni-avatar[data-mood="proud"] {
+      transform: translateY(-5px) scale(1.04);
+    }
+    .ferni-avatar[data-mood="proud"] .eye-white {
+      transform: scaleY(0.88) scaleX(1.04);
+    }
+    .ferni-avatar[data-mood="proud"] .lid-top {
+      d: path("M 0,0 Q 50,15 100,0 L 100,0 L 0,0 Z");
+    }
+    .ferni-avatar[data-mood="proud"] .smile-crease { opacity: 0.6; }
+    .ferni-avatar[data-mood="proud"] .presence-ring {
+      opacity: 0.45;
+      stroke-width: 2;
+    }
+
+    /* --- WARMTH FAMILY (7 expressions) --- DRAMATICALLY ENHANCED */
+
+    .ferni-avatar[data-mood="caring"] {
+      transform: translateY(-2px) rotate(-1deg);
+      animation: caringSettle 0.4s var(--ease-spring);
+    }
+    .ferni-avatar[data-mood="caring"] .eye-white {
+      transform: scaleY(0.88) scaleX(1.02);
+    }
+    .ferni-avatar[data-mood="caring"] .lid-top {
+      d: path("M 0,0 Q 50,20 100,0 L 100,0 L 0,0 Z");
+    }
+    .ferni-avatar[data-mood="caring"] .lid-bottom {
+      d: path("M 0,100 Q 50,92 100,100 L 100,100 L 0,100 Z");
+    }
+    .ferni-avatar[data-mood="caring"] .smile-crease { opacity: 0.6; }
+    .ferni-avatar[data-mood="caring"] .presence-ring {
+      opacity: 0.4;
+      stroke-width: 1.8;
+      animation: warmPulse 3s ease-in-out infinite;
+    }
+
+    @keyframes caringSettle {
+      0% { transform: translateY(0) rotate(0); }
+      50% { transform: translateY(-3px) rotate(-1.5deg); }
+      100% { transform: translateY(-2px) rotate(-1deg); }
+    }
+
+    @keyframes warmPulse {
+      0%, 100% { opacity: 0.4; transform: scale(1); }
+      50% { opacity: 0.5; transform: scale(1.02); }
+    }
+
+    .ferni-avatar[data-mood="loving"] {
+      transform: translateY(-4px) scale(1.02);
+      animation: lovingGlow 2s ease-in-out infinite;
+    }
+    .ferni-avatar[data-mood="loving"] .eye-white {
+      transform: scaleY(0.75) scaleX(1.08);
+    }
+    .ferni-avatar[data-mood="loving"] .lid-top {
+      d: path("M 0,0 Q 50,30 100,0 L 100,0 L 0,0 Z");
+    }
+    .ferni-avatar[data-mood="loving"] .lid-bottom {
+      d: path("M 0,100 Q 50,82 100,100 L 100,100 L 0,100 Z");
+    }
+    .ferni-avatar[data-mood="loving"] .smile-crease { opacity: 1; stroke-width: 1.5; }
+    .ferni-avatar[data-mood="loving"] .presence-ring {
+      opacity: 0.55;
+      stroke-width: 2.5;
+      animation: loveRing 1.5s ease-in-out infinite alternate;
+    }
+
+    @keyframes lovingGlow {
+      0%, 100% { transform: translateY(-4px) scale(1.02); }
+      50% { transform: translateY(-5px) scale(1.03); }
+    }
+
+    @keyframes loveRing {
+      0% { opacity: 0.45; transform: scale(1); }
+      100% { opacity: 0.65; transform: scale(1.04); }
+    }
+
+    .ferni-avatar[data-mood="tender"] {
+      transform: translateY(-2px) rotate(-0.5deg);
+    }
+    .ferni-avatar[data-mood="tender"] .eye-white {
+      transform: scaleY(0.82) scaleX(1.04);
+    }
+    .ferni-avatar[data-mood="tender"] .lid-top {
+      d: path("M 0,0 Q 50,24 100,0 L 100,0 L 0,0 Z");
+    }
+    .ferni-avatar[data-mood="tender"] .lid-bottom {
+      d: path("M 0,100 Q 50,90 100,100 L 100,100 L 0,100 Z");
+    }
+    .ferni-avatar[data-mood="tender"] .smile-crease { opacity: 0.8; stroke-width: 1.2; }
+    .ferni-avatar[data-mood="tender"] .presence-ring {
+      opacity: 0.38;
+      stroke-width: 1.8;
+    }
+
+    .ferni-avatar[data-mood="supportive"] {
+      transform: translateY(-1px);
+      animation: supportiveLean 0.3s var(--ease-spring);
+    }
+    .ferni-avatar[data-mood="supportive"] .eye-white {
+      transform: scaleY(0.92) scaleX(1.01);
+    }
+    .ferni-avatar[data-mood="supportive"] .eyes-group {
+      transform: translate(-1px, 0); /* Leaning in - Luxo-style gaze */
+    }
+    .ferni-avatar[data-mood="supportive"] .lid-top {
+      d: path("M 0,0 Q 50,15 100,0 L 100,0 L 0,0 Z");
+    }
+    .ferni-avatar[data-mood="supportive"] .smile-crease { opacity: 0.5; }
+    .ferni-avatar[data-mood="supportive"] .presence-ring {
+      opacity: 0.42;
+      stroke-width: 1.6;
+    }
+
+    @keyframes supportiveLean {
+      0% { transform: translateY(0); }
+      100% { transform: translateY(-1px); }
+    }
+
+    .ferni-avatar[data-mood="compassionate"] {
+      transform: translateY(-2px) rotate(-1.5deg);
+      animation: compassionSettle 0.5s var(--ease-gentle);
+    }
+    .ferni-avatar[data-mood="compassionate"] .eye-white {
+      transform: scaleY(0.88) scaleX(1.03);
+    }
+    .ferni-avatar[data-mood="compassionate"] .eye-left {
+      transform: scaleY(0.86) scaleX(1.03); /* Subtle asymmetry - empathetic tilt */
+    }
+    .ferni-avatar[data-mood="compassionate"] .lid-top {
+      d: path("M 0,0 Q 50,20 100,0 L 100,0 L 0,0 Z");
+    }
+    .ferni-avatar[data-mood="compassionate"] .lid-bottom {
+      d: path("M 0,100 Q 50,92 100,100 L 100,100 L 0,100 Z");
+    }
+    .ferni-avatar[data-mood="compassionate"] .smile-crease { opacity: 0.6; }
+    .ferni-avatar[data-mood="compassionate"] .presence-ring {
+      opacity: 0.4;
+      animation: warmPulse 3.5s ease-in-out infinite;
+    }
+
+    @keyframes compassionSettle {
+      0% { transform: translateY(0) rotate(0); }
+      60% { transform: translateY(-3px) rotate(-2deg); }
+      100% { transform: translateY(-2px) rotate(-1.5deg); }
+    }
+
+    .ferni-avatar[data-mood="empathetic"] {
+      transform: rotate(-2deg) translateY(-1px);
+      animation: empathyMirror 2.5s ease-in-out infinite;
+    }
+    .ferni-avatar[data-mood="empathetic"] .eye-white {
+      transform: scaleY(0.9) scaleX(1.02);
+    }
+    .ferni-avatar[data-mood="empathetic"] .eye-left {
+      transform: scaleY(0.88) scaleX(1.02); /* Mirror asymmetry */
+    }
+    .ferni-avatar[data-mood="empathetic"] .lid-top {
+      d: path("M 0,0 Q 50,18 100,0 L 100,0 L 0,0 Z");
+    }
+    .ferni-avatar[data-mood="empathetic"] .smile-crease { opacity: 0.5; }
+    .ferni-avatar[data-mood="empathetic"] .presence-ring {
+      opacity: 0.38;
+      stroke-width: 1.6;
+    }
+
+    @keyframes empathyMirror {
+      0%, 100% { transform: rotate(-2deg) translateY(-1px); }
+      50% { transform: rotate(-1deg) translateY(-2px); }
+    }
+
+    .ferni-avatar[data-mood="nurturing"] {
+      transform: translateY(-3px) scale(1.01);
+      animation: nurturingSwell 3s ease-in-out infinite;
+    }
+    .ferni-avatar[data-mood="nurturing"] .eye-white {
+      transform: scaleY(0.8) scaleX(1.06);
+    }
+    .ferni-avatar[data-mood="nurturing"] .lid-top {
+      d: path("M 0,0 Q 50,26 100,0 L 100,0 L 0,0 Z");
+    }
+    .ferni-avatar[data-mood="nurturing"] .lid-bottom {
+      d: path("M 0,100 Q 50,88 100,100 L 100,100 L 0,100 Z");
+    }
+    .ferni-avatar[data-mood="nurturing"] .smile-crease { opacity: 0.85; stroke-width: 1.3; }
+    .ferni-avatar[data-mood="nurturing"] .presence-ring {
+      opacity: 0.48;
+      stroke-width: 2;
+      animation: warmPulse 2.5s ease-in-out infinite;
+    }
+
+    @keyframes nurturingSwell {
+      0%, 100% { transform: translateY(-3px) scale(1.01); }
+      50% { transform: translateY(-4px) scale(1.02); }
+    }
+
+    /* --- PLAYFUL FAMILY (6 expressions) --- DRAMATICALLY ENHANCED */
+
+    .ferni-avatar[data-mood="playful"] {
+      transform: rotate(2deg) translateY(-2px);
+      animation: playfulSway 1.5s ease-in-out infinite;
+    }
+    .ferni-avatar[data-mood="playful"] .eye-white {
+      transform: scaleY(0.92) scaleX(1.06);
+    }
+    .ferni-avatar[data-mood="playful"] .eye-left {
+      transform: scaleY(0.88) scaleX(1.06); /* Slight squint */
+    }
+    .ferni-avatar[data-mood="playful"] .lid-top {
+      d: path("M 0,0 Q 50,14 100,0 L 100,0 L 0,0 Z");
+    }
+    .ferni-avatar[data-mood="playful"] .eyes-group {
+      transform: translate(2px, 0);
+    }
+    .ferni-avatar[data-mood="playful"] .smile-crease { opacity: 0.6; }
+
+    @keyframes playfulSway {
+      0%, 100% { transform: rotate(2deg) translateY(-2px); }
+      50% { transform: rotate(-1deg) translateY(-3px); }
+    }
+
+    .ferni-avatar[data-mood="mischievous"] {
+      transform: rotate(4deg) translateX(3px);
+    }
+    .ferni-avatar[data-mood="mischievous"] .eye-white {
+      transform: scaleY(0.85) scaleX(1.05);
+    }
+    .ferni-avatar[data-mood="mischievous"] .eye-left {
+      transform: scaleY(0.8) scaleX(1.05); /* More squinty */
+    }
+    .ferni-avatar[data-mood="mischievous"] .lid-top {
+      d: path("M 0,0 Q 50,20 100,0 L 100,0 L 0,0 Z");
+    }
+    .ferni-avatar[data-mood="mischievous"] .eyes-group {
+      transform: translate(3px, -1px); /* Luxo-style sidelong glance */
+    }
+    .ferni-avatar[data-mood="mischievous"] .smile-crease { opacity: 0.7; stroke-width: 1.3; }
+    .ferni-avatar[data-mood="mischievous"] .crease-right {
+      opacity: 0.9; /* Asymmetric crease */
+    }
+
+    .ferni-avatar[data-mood="cheeky"] {
+      transform: rotate(3deg) translateY(-2px);
+    }
+    .ferni-avatar[data-mood="cheeky"] .eye-white {
+      transform: scaleY(0.82) scaleX(1.06);
+    }
+    .ferni-avatar[data-mood="cheeky"] .lid-top {
+      d: path("M 0,0 Q 50,24 100,0 L 100,0 L 0,0 Z");
+    }
+    .ferni-avatar[data-mood="cheeky"] .smile-crease { opacity: 0.8; }
+
+    .ferni-avatar[data-mood="silly"] {
+      transform: rotate(-4deg) scaleX(1.03) translateY(-3px);
+      animation: sillyWobble 0.6s ease-in-out infinite;
+    }
+    .ferni-avatar[data-mood="silly"] .eye-white {
+      transform: scaleY(0.78) scaleX(1.12);
+    }
+    .ferni-avatar[data-mood="silly"] .eye-left {
+      transform: scaleY(0.72) scaleX(1.12); /* Even more asymmetric */
+    }
+    .ferni-avatar[data-mood="silly"] .lid-top {
+      d: path("M 0,0 Q 50,30 100,0 L 100,0 L 0,0 Z");
+    }
+    .ferni-avatar[data-mood="silly"] .smile-crease { opacity: 1; stroke-width: 1.5; }
+
+    @keyframes sillyWobble {
+      0%, 100% { transform: rotate(-4deg) scaleX(1.03) translateY(-3px); }
+      25% { transform: rotate(-2deg) scaleX(1.02) translateY(-4px); }
+      50% { transform: rotate(-5deg) scaleX(1.04) translateY(-2px); }
+      75% { transform: rotate(-3deg) scaleX(1.03) translateY(-4px); }
+    }
+
+    .ferni-avatar[data-mood="winking"] {
+      transform: rotate(2deg) translateY(-2px);
+      animation: winkBounce 0.25s var(--ease-spring);
+    }
+    .ferni-avatar[data-mood="winking"] .eye-left {
+      transform: scaleY(0.08) scaleX(1.2); /* Closed wink - Luxo squish! */
+    }
+    .ferni-avatar[data-mood="winking"] .eye-right {
+      transform: scaleY(1.05);
+    }
+    .ferni-avatar[data-mood="winking"] .lid-top {
+      d: path("M 0,0 Q 50,12 100,0 L 100,0 L 0,0 Z");
+    }
+    .ferni-avatar[data-mood="winking"] .smile-crease { opacity: 0.6; }
+    .ferni-avatar[data-mood="winking"] .crease-left {
+      opacity: 0.9;
+      stroke-width: 1.5; /* Crinkle on winking side */
+    }
+
+    @keyframes winkBounce {
+      0% { transform: rotate(0) translateY(0); }
+      50% { transform: rotate(3deg) translateY(-3px); }
+      100% { transform: rotate(2deg) translateY(-2px); }
+    }
+
+    .ferni-avatar[data-mood="teasing"] {
+      transform: rotate(2.5deg) translateX(2px);
+    }
+    .ferni-avatar[data-mood="teasing"] .eye-white {
+      transform: scaleY(0.88) scaleX(1.04);
+    }
+    .ferni-avatar[data-mood="teasing"] .eye-left {
+      transform: scaleY(0.82) scaleX(1.04); /* Subtle squint */
+    }
+    .ferni-avatar[data-mood="teasing"] .lid-top {
+      d: path("M 0,0 Q 50,16 100,0 L 100,0 L 0,0 Z");
+    }
+    .ferni-avatar[data-mood="teasing"] .eyes-group {
+      transform: translate(2px, -0.5px);
+    }
+    .ferni-avatar[data-mood="teasing"] .smile-crease { opacity: 0.55; }
+
+    /* --- SURPRISED FAMILY (5 expressions) --- DRAMATICALLY ENHANCED */
+
+    .ferni-avatar[data-mood="shocked"] {
+      transform: scaleY(1.08) scaleX(0.94) translateY(-8px);
+      animation: shockPop 0.3s var(--ease-spring);
+    }
+    .ferni-avatar[data-mood="shocked"] .eye-white {
+      transform: scaleY(1.35) scaleX(1.15); /* Luxo STRETCH on shock! */
+    }
+    .ferni-avatar[data-mood="shocked"] .lid-top {
+      d: path("M 0,0 Q 50,-35 100,0 L 100,0 L 0,0 Z");
+    }
+    .ferni-avatar[data-mood="shocked"] .lid-bottom {
+      d: path("M 0,100 Q 50,125 100,100 L 100,100 L 0,100 Z");
+    }
+    .ferni-avatar[data-mood="shocked"] .presence-ring {
+      opacity: 0.7;
+      stroke-width: 3;
+      animation: shockRing 0.4s ease-out;
+    }
+
+    @keyframes shockPop {
+      0% { transform: scaleY(0.95) scaleX(1.02) translateY(0); }
+      30% { transform: scaleY(1.12) scaleX(0.9) translateY(-12px); }
+      100% { transform: scaleY(1.08) scaleX(0.94) translateY(-8px); }
+    }
+
+    @keyframes shockRing {
+      0% { transform: scale(1); opacity: 0.3; }
+      50% { transform: scale(1.15); opacity: 0.8; }
+      100% { transform: scale(1.05); opacity: 0.7; }
+    }
+
+    .ferni-avatar[data-mood="amazed"] {
+      transform: translateY(-6px) scale(1.04);
+      animation: amazedFloat 2s ease-in-out infinite;
+    }
+    .ferni-avatar[data-mood="amazed"] .eye-white {
+      transform: scaleY(1.25) scaleX(1.1); /* Wide-eyed wonder */
+    }
+    .ferni-avatar[data-mood="amazed"] .lid-top {
+      d: path("M 0,0 Q 50,-28 100,0 L 100,0 L 0,0 Z");
+    }
+    .ferni-avatar[data-mood="amazed"] .sparkle-group { opacity: 1; }
+    .ferni-avatar[data-mood="amazed"] .presence-ring {
+      opacity: 0.55;
+      stroke-width: 2;
+      animation: amazedRing 1.5s ease-in-out infinite;
+    }
+
+    @keyframes amazedFloat {
+      0%, 100% { transform: translateY(-6px) scale(1.04); }
+      50% { transform: translateY(-9px) scale(1.05); }
+    }
+
+    @keyframes amazedRing {
+      0%, 100% { transform: scale(1); opacity: 0.5; }
+      50% { transform: scale(1.03); opacity: 0.65; }
+    }
+
+    .ferni-avatar[data-mood="intrigued"] {
+      transform: rotate(3deg) translateY(-2px);
+    }
+    .ferni-avatar[data-mood="intrigued"] .eye-white {
+      transform: scaleY(1.1) scaleX(1.03);
+    }
+    .ferni-avatar[data-mood="intrigued"] .eye-right {
+      transform: scaleY(1.15) scaleX(1.05); /* Right eye more open - asymmetric interest */
+    }
+    .ferni-avatar[data-mood="intrigued"] .lid-top {
+      d: path("M 0,0 Q 50,-12 100,0 L 100,0 L 0,0 Z");
+    }
+    .ferni-avatar[data-mood="intrigued"] .eyes-group {
+      transform: translate(2px, -2px);
+    }
+
+    .ferni-avatar[data-mood="astonished"] {
+      transform: scaleY(1.06) scaleX(0.95) translateY(-5px);
+      animation: astonishedPop 0.35s var(--ease-spring);
+    }
+    .ferni-avatar[data-mood="astonished"] .eye-white {
+      transform: scaleY(1.28) scaleX(1.1); /* Even wider than amazed */
+    }
+    .ferni-avatar[data-mood="astonished"] .lid-top {
+      d: path("M 0,0 Q 50,-30 100,0 L 100,0 L 0,0 Z");
+    }
+    .ferni-avatar[data-mood="astonished"] .presence-ring {
+      opacity: 0.5;
+      stroke-width: 2;
+    }
+
+    @keyframes astonishedPop {
+      0% { transform: scaleY(1) scaleX(1) translateY(0); }
+      50% { transform: scaleY(1.1) scaleX(0.92) translateY(-7px); }
+      100% { transform: scaleY(1.06) scaleX(0.95) translateY(-5px); }
+    }
+
+    .ferni-avatar[data-mood="curious"] {
+      transform: rotate(4deg) translateY(-3px);
+      animation: curiousTilt 3s ease-in-out infinite;
+    }
+    .ferni-avatar[data-mood="curious"] .eye-white {
+      transform: scaleY(1.08);
+    }
+    .ferni-avatar[data-mood="curious"] .eye-right {
+      transform: scaleY(1.12); /* Asymmetric - right eye more curious */
+    }
+    .ferni-avatar[data-mood="curious"] .lid-top {
+      d: path("M 0,0 Q 50,-8 100,0 L 100,0 L 0,0 Z");
+    }
+    .ferni-avatar[data-mood="curious"] .eyes-group {
+      transform: translate(3px, -2px); /* Luxo-style inquisitive lean */
+    }
+
+    @keyframes curiousTilt {
+      0%, 100% { transform: rotate(4deg) translateY(-3px); }
+      50% { transform: rotate(5deg) translateY(-4px); }
+    }
+
+    /* --- THINKING FAMILY (6 expressions) --- DRAMATICALLY ENHANCED */
+
+    .ferni-avatar[data-mood="pondering"] {
+      transform: rotate(3deg) translateY(-2px);
+      animation: ponderDrift 4s ease-in-out infinite;
+    }
+    .ferni-avatar[data-mood="pondering"] .eye-white {
+      transform: scaleY(0.88) scaleX(0.96); /* Luxo narrowed focus */
+    }
+    .ferni-avatar[data-mood="pondering"] .lid-top {
+      d: path("M 0,0 Q 50,18 100,0 L 100,0 L 0,0 Z");
+    }
+    .ferni-avatar[data-mood="pondering"] .eyes-group {
+      transform: translate(4px, -3px); /* Luxo looking up-right thinking */
+      animation: gazeWander 5s ease-in-out infinite;
+    }
+    .ferni-avatar[data-mood="pondering"] .presence-ring {
+      opacity: 0.28;
+      animation: thinkPulse 4s ease-in-out infinite;
+    }
+
+    @keyframes ponderDrift {
+      0%, 100% { transform: rotate(3deg) translateY(-2px); }
+      33% { transform: rotate(4deg) translateY(-3px); }
+      66% { transform: rotate(2deg) translateY(-1px); }
+    }
+
+    @keyframes gazeWander {
+      0%, 100% { transform: translate(4px, -3px); }
+      33% { transform: translate(5px, -2px); }
+      66% { transform: translate(3px, -4px); }
+    }
+
+    @keyframes thinkPulse {
+      0%, 100% { opacity: 0.28; }
+      50% { opacity: 0.35; }
+    }
+
+    .ferni-avatar[data-mood="contemplating"] {
+      transform: rotate(1.5deg) translateY(-1px);
+      animation: contemplateSway 5s ease-in-out infinite;
+    }
+    .ferni-avatar[data-mood="contemplating"] .eye-white {
+      transform: scaleY(0.9) scaleX(0.98);
+    }
+    .ferni-avatar[data-mood="contemplating"] .lid-top {
+      d: path("M 0,0 Q 50,16 100,0 L 100,0 L 0,0 Z");
+    }
+    .ferni-avatar[data-mood="contemplating"] .eyes-group {
+      transform: translate(3px, -2px);
+    }
+    .ferni-avatar[data-mood="contemplating"] .presence-ring {
+      opacity: 0.3;
+    }
+
+    @keyframes contemplateSway {
+      0%, 100% { transform: rotate(1.5deg) translateY(-1px); }
+      50% { transform: rotate(0.5deg) translateY(-2px); }
+    }
+
+    .ferni-avatar[data-mood="focused"] {
+      transform: translateY(-1px) scale(0.99);
+    }
+    .ferni-avatar[data-mood="focused"] .eye-white {
+      transform: scaleY(0.94) scaleX(0.95); /* Luxo laser focus squint */
+    }
+    .ferni-avatar[data-mood="focused"] .lid-top {
+      d: path("M 0,0 Q 50,12 100,0 L 100,0 L 0,0 Z");
+    }
+    .ferni-avatar[data-mood="focused"] .presence-ring {
+      opacity: 0.25;
+      stroke-width: 1.2;
+    }
+
+    .ferni-avatar[data-mood="processing"] {
+      animation: processingBody 1.2s ease-in-out infinite;
+    }
+    .ferni-avatar[data-mood="processing"] .eye-white {
+      transform: scaleY(0.86) scaleX(0.97);
+      animation: processingPulse 1.2s ease-in-out infinite;
+    }
+    .ferni-avatar[data-mood="processing"] .lid-top {
+      d: path("M 0,0 Q 50,14 100,0 L 100,0 L 0,0 Z");
+    }
+    .ferni-avatar[data-mood="processing"] .eyes-group {
+      animation: processingGaze 2s ease-in-out infinite;
+    }
+    .ferni-avatar[data-mood="processing"] .presence-ring {
+      opacity: 0.32;
+      animation: processingRing 1.2s ease-in-out infinite;
+    }
+
+    @keyframes processingBody {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(0.995); }
+    }
+
+    @keyframes processingPulse {
+      0%, 100% { transform: scaleY(0.86) scaleX(0.97); }
+      50% { transform: scaleY(0.84) scaleX(0.96); }
+    }
+
+    @keyframes processingGaze {
+      0%, 100% { transform: translate(0, 0); }
+      25% { transform: translate(1px, -1px); }
+      75% { transform: translate(-1px, 0); }
+    }
+
+    @keyframes processingRing {
+      0%, 100% { opacity: 0.32; transform: scale(1); }
+      50% { opacity: 0.38; transform: scale(1.01); }
+    }
+
+    .ferni-avatar[data-mood="reflecting"] {
+      transform: rotate(-2deg) translateY(-1px);
+      animation: reflectingSway 6s ease-in-out infinite;
+    }
+    .ferni-avatar[data-mood="reflecting"] .eye-white {
+      transform: scaleY(0.82) scaleX(1.02); /* Soft distant gaze */
+    }
+    .ferni-avatar[data-mood="reflecting"] .lid-top {
+      d: path("M 0,0 Q 50,22 100,0 L 100,0 L 0,0 Z");
+    }
+    .ferni-avatar[data-mood="reflecting"] .eyes-group {
+      transform: translate(-2px, 2px); /* Luxo looking down-left - inward */
+    }
+    .ferni-avatar[data-mood="reflecting"] .presence-ring {
+      opacity: 0.28;
+    }
+
+    @keyframes reflectingSway {
+      0%, 100% { transform: rotate(-2deg) translateY(-1px); }
+      50% { transform: rotate(-1deg) translateY(-2px); }
+    }
+
+    .ferni-avatar[data-mood="analyzing"] {
+      transform: translateY(-1px);
+      animation: analyzingScan 3s ease-in-out infinite;
+    }
+    .ferni-avatar[data-mood="analyzing"] .eye-white {
+      transform: scaleY(0.92) scaleX(0.94); /* Luxo analytical squint */
+    }
+    .ferni-avatar[data-mood="analyzing"] .lid-top {
+      d: path("M 0,0 Q 50,12 100,0 L 100,0 L 0,0 Z");
+    }
+    .ferni-avatar[data-mood="analyzing"] .eyes-group {
+      animation: analyzeGaze 3s ease-in-out infinite;
+    }
+    .ferni-avatar[data-mood="analyzing"] .presence-ring {
+      opacity: 0.3;
+      stroke-width: 1.3;
+    }
+
+    @keyframes analyzingScan {
+      0%, 100% { transform: translateY(-1px); }
+      50% { transform: translateY(-2px); }
+    }
+
+    @keyframes analyzeGaze {
+      0%, 100% { transform: translate(1px, 0); }
+      25% { transform: translate(2px, -1px); }
+      50% { transform: translate(0, 0); }
+      75% { transform: translate(-1px, 0); }
+    }
+
+    /* --- LISTENING FAMILY (5 expressions) --- */
+    /* Luxo-style: Like the lamp perking up and leaning in to hear better */
+
+    .ferni-avatar[data-mood="attentive"] {
+      transform: translateY(-2px) rotate(1deg);
+      animation: attentiveLean 4s ease-in-out infinite;
+    }
+    .ferni-avatar[data-mood="attentive"] .eye-white {
+      transform: scaleY(1.1) scaleX(1.02);
+    }
+    .ferni-avatar[data-mood="attentive"] .eye-right {
+      transform: scaleY(1.12); /* Luxo-style asymmetric - one eye more engaged */
+    }
+    .ferni-avatar[data-mood="attentive"] .lid-top {
+      d: path("M 0,0 Q 50,2 100,0 L 100,0 L 0,0 Z");
+    }
+    .ferni-avatar[data-mood="attentive"] .eyes-group {
+      transform: translate(0, -1px); /* Luxo-style lifting gaze */
+      animation: attentiveTrack 6s ease-in-out infinite;
+    }
+    .ferni-avatar[data-mood="attentive"] .presence-ring {
+      opacity: 0.45;
+      animation: attentiveRing 3s ease-in-out infinite;
+    }
+
+    @keyframes attentiveLean {
+      0%, 100% { transform: translateY(-2px) rotate(1deg); }
+      50% { transform: translateY(-3px) rotate(2deg); }
+    }
+    @keyframes attentiveTrack {
+      0%, 100% { transform: translate(0, -1px); }
+      33% { transform: translate(1px, -1px); }
+      66% { transform: translate(-0.5px, -1px); }
+    }
+    @keyframes attentiveRing {
+      0%, 100% { opacity: 0.45; stroke-width: 2; }
+      50% { opacity: 0.5; stroke-width: 2.2; }
+    }
+
+    .ferni-avatar[data-mood="engaged"] {
+      transform: translateY(-1px) scaleY(1.01);
+      animation: engagedNod 2.5s ease-in-out infinite;
+    }
+    .ferni-avatar[data-mood="engaged"] .eye-white {
+      transform: scaleY(1.06);
+    }
+    .ferni-avatar[data-mood="engaged"] .lid-top {
+      d: path("M 0,0 Q 50,5 100,0 L 100,0 L 0,0 Z");
+    }
+    .ferni-avatar[data-mood="engaged"] .eyes-group {
+      animation: engagedFocus 5s ease-in-out infinite;
+    }
+    .ferni-avatar[data-mood="engaged"] .presence-ring {
+      opacity: 0.4;
+    }
+
+    @keyframes engagedNod {
+      0%, 100% { transform: translateY(-1px) scaleY(1.01); }
+      30% { transform: translateY(0) scaleY(1.005); }
+      60% { transform: translateY(-1px) scaleY(1.01); }
+    }
+    @keyframes engagedFocus {
+      0%, 100% { transform: translateX(0); }
+      50% { transform: translateX(0.5px); }
+    }
+
+    .ferni-avatar[data-mood="interested"] {
+      transform: rotate(2deg);
+      animation: interestedTilt 5s ease-in-out infinite;
+    }
+    .ferni-avatar[data-mood="interested"] .eye-white {
+      transform: scaleY(1.04);
+    }
+    .ferni-avatar[data-mood="interested"] .eye-left {
+      transform: scaleY(1.06); /* Luxo-style curious asymmetry */
+    }
+    .ferni-avatar[data-mood="interested"] .lid-top {
+      d: path("M 0,0 Q 50,6 100,0 L 100,0 L 0,0 Z");
+    }
+    .ferni-avatar[data-mood="interested"] .eyes-group {
+      transform: translate(1px, -0.5px); /* Luxo-style inquisitive lean */
+      animation: interestedGaze 4s ease-in-out infinite;
+    }
+
+    @keyframes interestedTilt {
+      0%, 100% { transform: rotate(2deg); }
+      50% { transform: rotate(3deg) translateY(-1px); }
+    }
+    @keyframes interestedGaze {
+      0%, 100% { transform: translate(1px, -0.5px); }
+      50% { transform: translate(1.5px, -1px); }
+    }
+
+    .ferni-avatar[data-mood="absorbing"] {
+      transform: scaleY(1.01);
+      animation: absorbingBreathe 4s ease-in-out infinite;
+    }
+    .ferni-avatar[data-mood="absorbing"] .eye-white {
+      transform: scaleY(1.05);
+    }
+    .ferni-avatar[data-mood="absorbing"] .lid-top {
+      d: path("M 0,0 Q 50,4 100,0 L 100,0 L 0,0 Z");
+    }
+    .ferni-avatar[data-mood="absorbing"] .eyes-group {
+      animation: absorbingStillness 6s ease-in-out infinite;
+    }
+    .ferni-avatar[data-mood="absorbing"] .presence-ring {
+      opacity: 0.42;
+      animation: absorbingRingGlow 5s ease-in-out infinite;
+    }
+
+    @keyframes absorbingBreathe {
+      0%, 100% { transform: scaleY(1.01); }
+      50% { transform: scaleY(1.015); }
+    }
+    @keyframes absorbingStillness {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-0.5px); }
+    }
+    @keyframes absorbingRingGlow {
+      0%, 100% { opacity: 0.42; }
+      50% { opacity: 0.48; }
+    }
+
+    .ferni-avatar[data-mood="receptive"] {
+      transform: translateY(-0.5px);
+      animation: receptiveOpen 6s ease-in-out infinite;
+    }
+    .ferni-avatar[data-mood="receptive"] .eye-white {
+      transform: scaleY(1.02) scaleX(1.01);
+    }
+    .ferni-avatar[data-mood="receptive"] .lid-top {
+      d: path("M 0,0 Q 50,8 100,0 L 100,0 L 0,0 Z");
+    }
+    .ferni-avatar[data-mood="receptive"] .eyes-group {
+      animation: receptiveSoft 8s ease-in-out infinite;
+    }
+    .ferni-avatar[data-mood="receptive"] .presence-ring {
+      opacity: 0.35;
+      animation: receptiveRingPulse 4s ease-in-out infinite;
+    }
+
+    @keyframes receptiveOpen {
+      0%, 100% { transform: translateY(-0.5px); }
+      50% { transform: translateY(-1px); }
+    }
+    @keyframes receptiveSoft {
+      0%, 100% { transform: translateX(0); }
+      25% { transform: translateX(-0.5px); }
+      75% { transform: translateX(0.5px); }
+    }
+    @keyframes receptiveRingPulse {
+      0%, 100% { opacity: 0.35; }
+      50% { opacity: 0.42; }
+    }
+
+    /* --- PRESENCE FAMILY (5 expressions) --- */
+    /* Luxo-style: The lamp at rest but fully aware - weight, stillness, groundedness */
+
+    .ferni-avatar[data-mood="present"] {
+      animation: presentBreathe 6s ease-in-out infinite;
+    }
+    .ferni-avatar[data-mood="present"] .eye-white {
+      transform: scaleY(1);
+    }
+    .ferni-avatar[data-mood="present"] .lid-top {
+      d: path("M 0,0 Q 50,-5 100,0 L 100,0 L 0,0 Z");
+    }
+    .ferni-avatar[data-mood="present"] .eyes-group {
+      animation: presentAwareness 10s ease-in-out infinite;
+    }
+    .ferni-avatar[data-mood="present"] .presence-ring {
+      opacity: 0.35;
+      animation: presentRingPulse 5s ease-in-out infinite;
+    }
+
+    @keyframes presentBreathe {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.008); }
+    }
+    @keyframes presentAwareness {
+      0%, 100% { transform: translateX(0); }
+      25% { transform: translateX(0.5px); }
+      50% { transform: translateY(-0.3px); }
+      75% { transform: translateX(-0.5px); }
+    }
+    @keyframes presentRingPulse {
+      0%, 100% { opacity: 0.35; }
+      50% { opacity: 0.42; }
+    }
+
+    .ferni-avatar[data-mood="grounded"] {
+      transform: translateY(1px); /* Luxo-style weight, settled */
+      animation: groundedSettle 8s ease-in-out infinite;
+    }
+    .ferni-avatar[data-mood="grounded"] .eye-white {
+      transform: scaleY(0.98);
+    }
+    .ferni-avatar[data-mood="grounded"] .lid-top {
+      d: path("M 0,0 Q 50,5 100,0 L 100,0 L 0,0 Z");
+    }
+    .ferni-avatar[data-mood="grounded"] .avatar-body {
+      animation: groundedWeight 6s ease-in-out infinite;
+    }
+    .ferni-avatar[data-mood="grounded"] .presence-ring {
+      opacity: 0.38;
+      stroke-width: 2.5; /* Thicker ring = more grounded */
+      animation: groundedRing 7s ease-in-out infinite;
+    }
+
+    @keyframes groundedSettle {
+      0%, 100% { transform: translateY(1px); }
+      50% { transform: translateY(1.5px); }
+    }
+    @keyframes groundedWeight {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scaleY(0.995) scaleX(1.005); }
+    }
+    @keyframes groundedRing {
+      0%, 100% { opacity: 0.38; stroke-width: 2.5; }
+      50% { opacity: 0.45; stroke-width: 2.8; }
+    }
+
+    .ferni-avatar[data-mood="calm"] {
+      animation: calmFloat 10s ease-in-out infinite;
+    }
+    .ferni-avatar[data-mood="calm"] .eye-white {
+      transform: scaleY(0.95);
+    }
+    .ferni-avatar[data-mood="calm"] .lid-top {
+      d: path("M 0,0 Q 50,10 100,0 L 100,0 L 0,0 Z");
+    }
+    .ferni-avatar[data-mood="calm"] .eyes-group {
+      animation: calmGaze 12s ease-in-out infinite;
+    }
+    .ferni-avatar[data-mood="calm"] .presence-ring {
+      opacity: 0.32;
+      animation: calmRingGlow 8s ease-in-out infinite;
+    }
+
+    @keyframes calmFloat {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-0.5px); }
+    }
+    @keyframes calmGaze {
+      0%, 100% { transform: translateX(0); }
+      50% { transform: translateX(0.3px); }
+    }
+    @keyframes calmRingGlow {
+      0%, 100% { opacity: 0.32; }
+      50% { opacity: 0.38; }
+    }
+
+    .ferni-avatar[data-mood="serene"] {
+      animation: sereneFloat 12s ease-in-out infinite;
+    }
+    .ferni-avatar[data-mood="serene"] .eye-white {
+      transform: scaleY(0.92);
+    }
+    .ferni-avatar[data-mood="serene"] .eye-left {
+      transform: scaleY(0.90); /* Luxo-style gentle asymmetry */
+    }
+    .ferni-avatar[data-mood="serene"] .lid-top {
+      d: path("M 0,0 Q 50,14 100,0 L 100,0 L 0,0 Z");
+    }
+    .ferni-avatar[data-mood="serene"] .smile-crease {
+      opacity: 0.3;
+    }
+    .ferni-avatar[data-mood="serene"] .presence-ring {
+      opacity: 0.3;
+      animation: sereneRingGlow 10s ease-in-out infinite;
+    }
+
+    @keyframes sereneFloat {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-1px); }
+    }
+    @keyframes sereneRingGlow {
+      0%, 100% { opacity: 0.3; }
+      50% { opacity: 0.36; }
+    }
+
+    .ferni-avatar[data-mood="peaceful"] {
+      animation: peacefulDrift 14s ease-in-out infinite;
+    }
+    .ferni-avatar[data-mood="peaceful"] .eye-white {
+      transform: scaleY(0.88);
+    }
+    .ferni-avatar[data-mood="peaceful"] .lid-top {
+      d: path("M 0,0 Q 50,18 100,0 L 100,0 L 0,0 Z");
+    }
+    .ferni-avatar[data-mood="peaceful"] .lid-bottom {
+      d: path("M 0,100 Q 50,95 100,100 L 100,100 L 0,100 Z");
+    }
+    .ferni-avatar[data-mood="peaceful"] .smile-crease {
+      opacity: 0.4;
+    }
+    .ferni-avatar[data-mood="peaceful"] .eyes-group {
+      animation: peacefulSway 16s ease-in-out infinite;
+    }
+    .ferni-avatar[data-mood="peaceful"] .presence-ring {
+      opacity: 0.28;
+      animation: peacefulRingGlow 12s ease-in-out infinite;
+    }
+    .ferni-avatar[data-mood="peaceful"] .avatar-body {
+      animation: peacefulBreathe 6s ease-in-out infinite;
+    }
+
+    @keyframes peacefulDrift {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-1.5px); }
+    }
+    @keyframes peacefulSway {
+      0%, 100% { transform: translateX(0); }
+      25% { transform: translateX(-0.3px); }
+      75% { transform: translateX(0.3px); }
+    }
+    @keyframes peacefulRingGlow {
+      0%, 100% { opacity: 0.28; }
+      50% { opacity: 0.35; }
+    }
+    @keyframes peacefulBreathe {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.006); }
+    }
+
+    /* --- COACHING FAMILY (5 expressions) --- */
+    /* Luxo-style: The lamp as mentor - supportive bounces, wise tilts, knowing nods */
+
+    .ferni-avatar[data-mood="encouraging"] {
+      transform: translateY(-1px);
+      animation: encouragingBounce 2s ease-in-out infinite;
+    }
+    .ferni-avatar[data-mood="encouraging"] .eye-white {
+      transform: scaleY(0.92) scaleX(1.02);
+    }
+    .ferni-avatar[data-mood="encouraging"] .lid-top {
+      d: path("M 0,0 Q 50,15 100,0 L 100,0 L 0,0 Z");
+    }
+    .ferni-avatar[data-mood="encouraging"] .smile-crease { opacity: 0.45; }
+    .ferni-avatar[data-mood="encouraging"] .presence-ring {
+      opacity: 0.4;
+      animation: encouragingRingPulse 2.5s ease-in-out infinite;
+    }
+    .ferni-avatar[data-mood="encouraging"] .avatar-body {
+      animation: encouragingNod 2s ease-in-out infinite;
+    }
+
+    @keyframes encouragingBounce {
+      0%, 100% { transform: translateY(-1px); }
+      50% { transform: translateY(-3px); }
+    }
+    @keyframes encouragingRingPulse {
+      0%, 100% { opacity: 0.4; stroke-width: 2; }
+      50% { opacity: 0.5; stroke-width: 2.3; }
+    }
+    @keyframes encouragingNod {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scaleY(1.01); }
+    }
+
+    .ferni-avatar[data-mood="cheering"] {
+      transform: translateY(-2px) scaleY(1.02);
+      animation: cheeringBounce 0.8s ease-in-out infinite;
+    }
+    .ferni-avatar[data-mood="cheering"] .eye-white {
+      transform: scaleY(0.8) scaleX(1.06);
+    }
+    .ferni-avatar[data-mood="cheering"] .lid-top {
+      d: path("M 0,0 Q 50,25 100,0 L 100,0 L 0,0 Z");
+    }
+    .ferni-avatar[data-mood="cheering"] .smile-crease { opacity: 0.7; }
+    .ferni-avatar[data-mood="cheering"] .sparkle-group {
+      opacity: 1;
+      animation: cheeringSparkle 1.2s ease-in-out infinite;
+    }
+    .ferni-avatar[data-mood="cheering"] .presence-ring {
+      opacity: 0.55;
+      animation: cheeringRingBurst 0.8s ease-in-out infinite;
+    }
+    .ferni-avatar[data-mood="cheering"] .avatar-body {
+      animation: cheeringPump 0.8s ease-in-out infinite;
+    }
+
+    @keyframes cheeringBounce {
+      0%, 100% { transform: translateY(-2px) scaleY(1.02); }
+      50% { transform: translateY(-6px) scaleY(1.04); }
+    }
+    @keyframes cheeringSparkle {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.7; transform: scale(1.2); }
+    }
+    @keyframes cheeringRingBurst {
+      0%, 100% { opacity: 0.55; stroke-width: 2; }
+      50% { opacity: 0.7; stroke-width: 3; }
+    }
+    @keyframes cheeringPump {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.02); }
+    }
+
+    .ferni-avatar[data-mood="guiding"] {
+      transform: rotate(1deg);
+      animation: guidingLean 5s ease-in-out infinite;
+    }
+    .ferni-avatar[data-mood="guiding"] .eye-white {
+      transform: scaleY(0.96);
+    }
+    .ferni-avatar[data-mood="guiding"] .eye-right {
+      transform: scaleY(0.98); /* Luxo-style asymmetric guidance look */
+    }
+    .ferni-avatar[data-mood="guiding"] .lid-top {
+      d: path("M 0,0 Q 50,10 100,0 L 100,0 L 0,0 Z");
+    }
+    .ferni-avatar[data-mood="guiding"] .eyes-group {
+      transform: translate(0.5px, -0.5px);
+      animation: guidingGaze 6s ease-in-out infinite;
+    }
+    .ferni-avatar[data-mood="guiding"] .smile-crease { opacity: 0.35; }
+    .ferni-avatar[data-mood="guiding"] .presence-ring {
+      opacity: 0.38;
+      animation: guidingRingPulse 4s ease-in-out infinite;
+    }
+
+    @keyframes guidingLean {
+      0%, 100% { transform: rotate(1deg); }
+      50% { transform: rotate(2deg) translateY(-1px); }
+    }
+    @keyframes guidingGaze {
+      0%, 100% { transform: translate(0.5px, -0.5px); }
+      50% { transform: translate(1px, -1px); }
+    }
+    @keyframes guidingRingPulse {
+      0%, 100% { opacity: 0.38; }
+      50% { opacity: 0.45; }
+    }
+
+    .ferni-avatar[data-mood="wise"] {
+      transform: rotate(-0.5deg);
+      animation: wiseTilt 8s ease-in-out infinite;
+    }
+    .ferni-avatar[data-mood="wise"] .eye-white {
+      transform: scaleY(0.9);
+    }
+    .ferni-avatar[data-mood="wise"] .eye-left {
+      transform: scaleY(0.88); /* Luxo-style knowing asymmetry */
+    }
+    .ferni-avatar[data-mood="wise"] .lid-top {
+      d: path("M 0,0 Q 50,16 100,0 L 100,0 L 0,0 Z");
+    }
+    .ferni-avatar[data-mood="wise"] .smile-crease { opacity: 0.4; }
+    .ferni-avatar[data-mood="wise"] .eyes-group {
+      animation: wiseGaze 10s ease-in-out infinite;
+    }
+    .ferni-avatar[data-mood="wise"] .presence-ring {
+      opacity: 0.35;
+      stroke-width: 2.5;
+    }
+
+    @keyframes wiseTilt {
+      0%, 100% { transform: rotate(-0.5deg); }
+      50% { transform: rotate(-1.5deg) translateY(-0.5px); }
+    }
+    @keyframes wiseGaze {
+      0%, 100% { transform: translateX(0); }
+      30% { transform: translateX(-0.5px) translateY(-0.3px); }
+      70% { transform: translateX(0.5px); }
+    }
+
+    .ferni-avatar[data-mood="knowing"] {
+      animation: knowingNod 4s ease-in-out infinite;
+    }
+    .ferni-avatar[data-mood="knowing"] .eye-white {
+      transform: scaleY(0.88) scaleX(1.01);
+    }
+    .ferni-avatar[data-mood="knowing"] .eye-right {
+      transform: scaleY(0.86) scaleX(1.02); /* Luxo-style subtle wink hint */
+    }
+    .ferni-avatar[data-mood="knowing"] .lid-top {
+      d: path("M 0,0 Q 50,18 100,0 L 100,0 L 0,0 Z");
+    }
+    .ferni-avatar[data-mood="knowing"] .smile-crease { opacity: 0.5; }
+    .ferni-avatar[data-mood="knowing"] .eyes-group {
+      animation: knowingGlance 5s ease-in-out infinite;
+    }
+    .ferni-avatar[data-mood="knowing"] .presence-ring {
+      opacity: 0.32;
+      animation: knowingRingGlow 6s ease-in-out infinite;
+    }
+
+    @keyframes knowingNod {
+      0%, 100% { transform: translateY(0); }
+      25% { transform: translateY(-1px); }
+      50% { transform: translateY(0.5px); }
+      75% { transform: translateY(-0.5px); }
+    }
+    @keyframes knowingGlance {
+      0%, 100% { transform: translateX(0); }
+      50% { transform: translateX(1px); }
+    }
+    @keyframes knowingRingGlow {
+      0%, 100% { opacity: 0.32; }
+      50% { opacity: 0.38; }
+    }
+
+    /* --- TIRED FAMILY (5 expressions) --- DRAMATICALLY ENHANCED */
+
+    .ferni-avatar[data-mood="drowsy"] {
+      transform: scaleY(0.98) translateY(2px);
+    }
+    .ferni-avatar[data-mood="drowsy"] .eye-white {
+      transform: scaleY(0.5);
+    }
+    .ferni-avatar[data-mood="drowsy"] .pupil {
+      r: 2.5;
+      cy: 50;
+    }
+    .ferni-avatar[data-mood="drowsy"] .lid-top {
+      d: path("M 0,0 Q 50,52 100,0 L 100,0 L 0,0 Z");
+    }
+    .ferni-avatar[data-mood="drowsy"] .lid-bottom {
+      d: path("M 0,100 Q 50,75 100,100 L 100,100 L 0,100 Z");
+    }
+    .ferni-avatar[data-mood="drowsy"] .presence-ring {
+      opacity: 0.2;
+    }
+
+    .ferni-avatar[data-mood="exhausted"] {
+      transform: scaleY(0.97) rotate(-2deg) translateY(3px);
+      animation: exhaustedSlump 6s ease-in-out infinite;
+    }
+    .ferni-avatar[data-mood="exhausted"] .eye-white {
+      transform: scaleY(0.35);
+    }
+    .ferni-avatar[data-mood="exhausted"] .eye-left {
+      transform: scaleY(0.3); /* Luxo-style asymmetric - one more closed */
+    }
+    .ferni-avatar[data-mood="exhausted"] .lid-top {
+      d: path("M 0,0 Q 50,68 100,0 L 100,0 L 0,0 Z");
+    }
+    .ferni-avatar[data-mood="exhausted"] .lid-bottom {
+      d: path("M 0,100 Q 50,62 100,100 L 100,100 L 0,100 Z");
+    }
+    .ferni-avatar[data-mood="exhausted"] .eyes-group {
+      transform: translateY(2px); /* Luxo-style heavy head drooping */
+      animation: exhaustedDroop 4s ease-in-out infinite;
+    }
+    .ferni-avatar[data-mood="exhausted"] .presence-ring {
+      opacity: 0.15;
+      stroke-width: 1;
+    }
+
+    @keyframes exhaustedSlump {
+      0%, 100% { transform: scaleY(0.97) rotate(-2deg) translateY(3px); }
+      50% { transform: scaleY(0.96) rotate(-3deg) translateY(5px); }
+    }
+    @keyframes exhaustedDroop {
+      0%, 100% { transform: translateY(2px); }
+      50% { transform: translateY(3px); }
+    }
+
+    .ferni-avatar[data-mood="yawning"] {
+      transform: scaleY(1.04) scaleX(0.97);
+      animation: yawnStretch 2.5s ease-in-out;
+    }
+    .ferni-avatar[data-mood="yawning"] .eye-white {
+      transform: scaleY(0.2); /* Luxo-style: nearly closed, no internal detail needed */
+    }
+    .ferni-avatar[data-mood="yawning"] .lid-top {
+      d: path("M 0,0 Q 50,78 100,0 L 100,0 L 0,0 Z");
+    }
+    .ferni-avatar[data-mood="yawning"] .lid-bottom {
+      d: path("M 0,100 Q 50,55 100,100 L 100,100 L 0,100 Z");
+    }
+    .ferni-avatar[data-mood="yawning"] .avatar-body {
+      animation: yawnBody 2.5s ease-in-out;
+    }
+    .ferni-avatar[data-mood="yawning"] .eyes-group {
+      animation: yawnEyesDrift 2.5s ease-in-out; /* Luxo-style sleepy drift */
+    }
+
+    @keyframes yawnEyesDrift {
+      0% { transform: translateY(0); }
+      40% { transform: translateY(1px) translateX(-1px); }
+      70% { transform: translateY(2px); }
+      100% { transform: translateY(0); }
+    }
+
+    @keyframes yawnStretch {
+      0% { transform: scaleY(1) scaleX(1); }
+      20% { transform: scaleY(1.06) scaleX(0.95); }
+      50% { transform: scaleY(1.08) scaleX(0.94); }
+      80% { transform: scaleY(1.03) scaleX(0.98); }
+      100% { transform: scaleY(1.04) scaleX(0.97); }
+    }
+
+    @keyframes yawnBody {
+      0% { transform: scale(1); }
+      30% { transform: scaleY(1.05) scaleX(0.96); }
+      60% { transform: scaleY(1.03) scaleX(0.98); }
+      100% { transform: scale(1); }
+    }
+
+    .ferni-avatar[data-mood="resting"] {
+      transform: scaleY(0.99) translateY(1px);
+      animation: restingFloat 8s ease-in-out infinite;
+    }
+    .ferni-avatar[data-mood="resting"] .eye-white {
+      transform: scaleY(0.6); /* Luxo-style half-lidded contentment */
+    }
+    .ferni-avatar[data-mood="resting"] .lid-top {
+      d: path("M 0,0 Q 50,45 100,0 L 100,0 L 0,0 Z");
+    }
+    .ferni-avatar[data-mood="resting"] .eyes-group {
+      animation: restingGaze 10s ease-in-out infinite;
+    }
+    .ferni-avatar[data-mood="resting"] .presence-ring {
+      opacity: 0.22;
+      animation: restingRingPulse 6s ease-in-out infinite;
+    }
+
+    @keyframes restingFloat {
+      0%, 100% { transform: scaleY(0.99) translateY(1px); }
+      50% { transform: scaleY(0.99) translateY(2px); }
+    }
+    @keyframes restingGaze {
+      0%, 100% { transform: translateX(0); }
+      30% { transform: translateX(-1px); }
+      70% { transform: translateX(1px); }
+    }
+    @keyframes restingRingPulse {
+      0%, 100% { opacity: 0.22; }
+      50% { opacity: 0.18; }
+    }
+
+    .ferni-avatar[data-mood="blissful"] {
+      transform: translateY(-1px);
+      animation: blissfulFloat 5s ease-in-out infinite;
+    }
+    .ferni-avatar[data-mood="blissful"] .eye-white {
+      transform: scaleY(0.55) scaleX(1.04); /* Luxo-style happy squint */
+    }
+    .ferni-avatar[data-mood="blissful"] .lid-top {
+      d: path("M 0,0 Q 50,50 100,0 L 100,0 L 0,0 Z");
+    }
+    .ferni-avatar[data-mood="blissful"] .lid-bottom {
+      d: path("M 0,100 Q 50,82 100,100 L 100,100 L 0,100 Z");
+    }
+    .ferni-avatar[data-mood="blissful"] .smile-crease { opacity: 0.7; }
+    .ferni-avatar[data-mood="blissful"] .presence-ring {
+      opacity: 0.28;
+      animation: blissfulGlow 4s ease-in-out infinite;
+    }
+    .ferni-avatar[data-mood="blissful"] .avatar-body {
+      animation: blissfulPulse 3s ease-in-out infinite;
+    }
+
+    @keyframes blissfulFloat {
+      0%, 100% { transform: translateY(-1px); }
+      50% { transform: translateY(-3px); }
+    }
+    @keyframes blissfulGlow {
+      0%, 100% { opacity: 0.28; stroke-width: 2; }
+      50% { opacity: 0.4; stroke-width: 2.5; }
+    }
+    @keyframes blissfulPulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.01); }
+    }
+
+    /* --- CONCERN FAMILY (5 expressions) --- */
+    /* Luxo-style: The lamp leaning in with care - empathetic tilts, soft attention */
+
+    .ferni-avatar[data-mood="concerned"] {
+      transform: rotate(-1deg);
+      animation: concernedTilt 4s ease-in-out infinite;
+    }
+    .ferni-avatar[data-mood="concerned"] .eye-white {
+      transform: scaleY(1.02);
+    }
+    .ferni-avatar[data-mood="concerned"] .eye-left {
+      transform: scaleY(1.04); /* Luxo-style asymmetric worry */
+    }
+    .ferni-avatar[data-mood="concerned"] .lid-top {
+      d: path("M 0,0 Q 50,8 100,0 L 100,0 L 0,0 Z");
+    }
+    .ferni-avatar[data-mood="concerned"] .eyes-group {
+      animation: concernedGaze 5s ease-in-out infinite;
+    }
+    .ferni-avatar[data-mood="concerned"] .presence-ring {
+      opacity: 0.35;
+      animation: concernedRingPulse 3s ease-in-out infinite;
+    }
+
+    @keyframes concernedTilt {
+      0%, 100% { transform: rotate(-1deg); }
+      50% { transform: rotate(-2deg) translateY(0.5px); }
+    }
+    @keyframes concernedGaze {
+      0%, 100% { transform: translateX(0); }
+      50% { transform: translateX(-0.5px) translateY(0.3px); }
+    }
+    @keyframes concernedRingPulse {
+      0%, 100% { opacity: 0.35; }
+      50% { opacity: 0.42; }
+    }
+
+    .ferni-avatar[data-mood="worried"] {
+      transform: rotate(-1.5deg) translateY(1px);
+      animation: worriedFidget 3s ease-in-out infinite;
+    }
+    .ferni-avatar[data-mood="worried"] .eye-white {
+      transform: scaleY(1.05);
+    }
+    .ferni-avatar[data-mood="worried"] .eye-right {
+      transform: scaleY(1.08); /* Luxo-style anxious asymmetry */
+    }
+    .ferni-avatar[data-mood="worried"] .lid-top {
+      d: path("M 0,0 Q 50,5 100,0 L 100,0 L 0,0 Z");
+    }
+    .ferni-avatar[data-mood="worried"] .eyes-group {
+      animation: worriedGaze 2.5s ease-in-out infinite;
+    }
+    .ferni-avatar[data-mood="worried"] .presence-ring {
+      opacity: 0.38;
+      animation: worriedRingPulse 2s ease-in-out infinite;
+    }
+
+    @keyframes worriedFidget {
+      0%, 100% { transform: rotate(-1.5deg) translateY(1px); }
+      25% { transform: rotate(-2deg) translateY(1.5px); }
+      75% { transform: rotate(-1deg) translateY(0.5px); }
+    }
+    @keyframes worriedGaze {
+      0%, 100% { transform: translateX(0); }
+      30% { transform: translateX(-1px); }
+      70% { transform: translateX(0.5px); }
+    }
+    @keyframes worriedRingPulse {
+      0%, 100% { opacity: 0.38; }
+      50% { opacity: 0.45; }
+    }
+
+    .ferni-avatar[data-mood="sympathetic"] {
+      transform: rotate(-0.5deg);
+      animation: sympatheticLean 6s ease-in-out infinite;
+    }
+    .ferni-avatar[data-mood="sympathetic"] .eye-white {
+      transform: scaleY(0.95);
+    }
+    .ferni-avatar[data-mood="sympathetic"] .lid-top {
+      d: path("M 0,0 Q 50,12 100,0 L 100,0 L 0,0 Z");
+    }
+    .ferni-avatar[data-mood="sympathetic"] .smile-crease { opacity: 0.3; }
+    .ferni-avatar[data-mood="sympathetic"] .eyes-group {
+      animation: sympatheticSoftGaze 8s ease-in-out infinite;
+    }
+    .ferni-avatar[data-mood="sympathetic"] .presence-ring {
+      opacity: 0.32;
+      animation: sympatheticRingGlow 5s ease-in-out infinite;
+    }
+
+    @keyframes sympatheticLean {
+      0%, 100% { transform: rotate(-0.5deg); }
+      50% { transform: rotate(-1deg) translateY(-0.5px); }
+    }
+    @keyframes sympatheticSoftGaze {
+      0%, 100% { transform: translateX(0); }
+      50% { transform: translateY(0.3px); }
+    }
+    @keyframes sympatheticRingGlow {
+      0%, 100% { opacity: 0.32; }
+      50% { opacity: 0.38; }
+    }
+
+    .ferni-avatar[data-mood="understanding"] {
+      animation: understandingNod 4s ease-in-out infinite;
+    }
+    .ferni-avatar[data-mood="understanding"] .eye-white {
+      transform: scaleY(0.92);
+    }
+    .ferni-avatar[data-mood="understanding"] .eye-left {
+      transform: scaleY(0.90); /* Luxo-style gentle asymmetry */
+    }
+    .ferni-avatar[data-mood="understanding"] .lid-top {
+      d: path("M 0,0 Q 50,14 100,0 L 100,0 L 0,0 Z");
+    }
+    .ferni-avatar[data-mood="understanding"] .smile-crease { opacity: 0.35; }
+    .ferni-avatar[data-mood="understanding"] .eyes-group {
+      animation: understandingGaze 6s ease-in-out infinite;
+    }
+    .ferni-avatar[data-mood="understanding"] .presence-ring {
+      opacity: 0.35;
+      animation: understandingRingPulse 5s ease-in-out infinite;
+    }
+
+    @keyframes understandingNod {
+      0%, 100% { transform: translateY(0); }
+      30% { transform: translateY(-0.5px); }
+      60% { transform: translateY(0.3px); }
+    }
+    @keyframes understandingGaze {
+      0%, 100% { transform: translateX(0); }
+      50% { transform: translateX(0.3px); }
+    }
+    @keyframes understandingRingPulse {
+      0%, 100% { opacity: 0.35; }
+      50% { opacity: 0.4; }
+    }
+
+    .ferni-avatar[data-mood="comforting"] {
+      transform: translateY(-0.5px);
+      animation: comfortingWarmth 5s ease-in-out infinite;
+    }
+    .ferni-avatar[data-mood="comforting"] .eye-white {
+      transform: scaleY(0.9) scaleX(1.02);
+    }
+    .ferni-avatar[data-mood="comforting"] .lid-top {
+      d: path("M 0,0 Q 50,16 100,0 L 100,0 L 0,0 Z");
+    }
+    .ferni-avatar[data-mood="comforting"] .smile-crease { opacity: 0.4; }
+    .ferni-avatar[data-mood="comforting"] .eyes-group {
+      animation: comfortingSoftGaze 8s ease-in-out infinite;
+    }
+    .ferni-avatar[data-mood="comforting"] .presence-ring {
+      opacity: 0.4;
+      stroke-width: 2.5;
+      animation: comfortingRingGlow 4s ease-in-out infinite;
+    }
+    .ferni-avatar[data-mood="comforting"] .avatar-body {
+      animation: comfortingBreathe 4s ease-in-out infinite;
+    }
+
+    @keyframes comfortingWarmth {
+      0%, 100% { transform: translateY(-0.5px); }
+      50% { transform: translateY(-1.5px); }
+    }
+    @keyframes comfortingSoftGaze {
+      0%, 100% { transform: translateX(0); }
+      25% { transform: translateX(-0.3px); }
+      75% { transform: translateX(0.3px); }
+    }
+    @keyframes comfortingRingGlow {
+      0%, 100% { opacity: 0.4; stroke-width: 2.5; }
+      50% { opacity: 0.5; stroke-width: 3; }
+    }
+    @keyframes comfortingBreathe {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.008); }
+    }
+
+    /* ============================================
+       SAD FAMILY (5 expressions) 😢😭
+       Luxo-style: Heavy, drooping, vulnerable
+       ============================================ */
+
+    .ferni-avatar[data-mood="sad"] {
+      transform: translateY(2px) scaleY(0.98);
+      animation: sadDroop 5s ease-in-out infinite;
+    }
+    .ferni-avatar[data-mood="sad"] .eye-white {
+      transform: scaleY(0.85);
+    }
+    .ferni-avatar[data-mood="sad"] .eye-left {
+      transform: scaleY(0.82); /* Luxo-style asymmetric droopiness */
+    }
+    .ferni-avatar[data-mood="sad"] .lid-top {
+      d: path("M 0,0 Q 50,20 100,0 L 100,0 L 0,0 Z");
+    }
+    .ferni-avatar[data-mood="sad"] .eyes-group {
+      transform: translateY(2px);
+      animation: sadGaze 6s ease-in-out infinite;
+    }
+    .ferni-avatar[data-mood="sad"] .presence-ring {
+      opacity: 0.2;
+      animation: sadRingFade 4s ease-in-out infinite;
+    }
+
+    @keyframes sadDroop {
+      0%, 100% { transform: translateY(2px) scaleY(0.98); }
+      50% { transform: translateY(3px) scaleY(0.97); }
+    }
+    @keyframes sadGaze {
+      0%, 100% { transform: translateY(2px); }
+      50% { transform: translateY(3px) translateX(-0.5px); }
+    }
+    @keyframes sadRingFade {
+      0%, 100% { opacity: 0.2; }
+      50% { opacity: 0.15; }
+    }
+
+    .ferni-avatar[data-mood="crying"] {
+      transform: translateY(3px) scaleY(0.96);
+      animation: cryingShake 1s ease-in-out infinite;
+    }
+    .ferni-avatar[data-mood="crying"] .eye-white {
+      transform: scaleY(0.4) scaleX(1.1);
+    }
+    .ferni-avatar[data-mood="crying"] .lid-top {
+      d: path("M 0,0 Q 50,55 100,0 L 100,0 L 0,0 Z");
+    }
+    .ferni-avatar[data-mood="crying"] .lid-bottom {
+      d: path("M 0,100 Q 50,75 100,100 L 100,100 L 0,100 Z");
+    }
+    .ferni-avatar[data-mood="crying"] .avatar-body {
+      animation: cryingTremble 0.8s ease-in-out infinite;
+    }
+    .ferni-avatar[data-mood="crying"] .presence-ring {
+      opacity: 0.15;
+    }
+
+    @keyframes cryingShake {
+      0%, 100% { transform: translateY(3px) scaleY(0.96); }
+      25% { transform: translateY(3px) scaleY(0.96) rotate(-1deg); }
+      75% { transform: translateY(3px) scaleY(0.96) rotate(1deg); }
+    }
+    @keyframes cryingTremble {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scaleY(0.99) scaleX(1.005); }
+    }
+
+    .ferni-avatar[data-mood="melancholy"] {
+      transform: translateY(1px) rotate(-1deg);
+      animation: melancholyDrift 8s ease-in-out infinite;
+    }
+    .ferni-avatar[data-mood="melancholy"] .eye-white {
+      transform: scaleY(0.8);
+    }
+    .ferni-avatar[data-mood="melancholy"] .lid-top {
+      d: path("M 0,0 Q 50,25 100,0 L 100,0 L 0,0 Z");
+    }
+    .ferni-avatar[data-mood="melancholy"] .eyes-group {
+      animation: melancholyGaze 10s ease-in-out infinite;
+    }
+    .ferni-avatar[data-mood="melancholy"] .presence-ring {
+      opacity: 0.22;
+    }
+
+    @keyframes melancholyDrift {
+      0%, 100% { transform: translateY(1px) rotate(-1deg); }
+      50% { transform: translateY(2px) rotate(-1.5deg); }
+    }
+    @keyframes melancholyGaze {
+      0%, 100% { transform: translateX(0); }
+      30% { transform: translateX(-1px) translateY(1px); }
+      70% { transform: translateX(0.5px); }
+    }
+
+    .ferni-avatar[data-mood="disappointed"] {
+      transform: translateY(1.5px) scaleY(0.98);
+      animation: disappointedSink 4s ease-in-out infinite;
+    }
+    .ferni-avatar[data-mood="disappointed"] .eye-white {
+      transform: scaleY(0.75);
+    }
+    .ferni-avatar[data-mood="disappointed"] .lid-top {
+      d: path("M 0,0 Q 50,30 100,0 L 100,0 L 0,0 Z");
+    }
+    .ferni-avatar[data-mood="disappointed"] .eyes-group {
+      transform: translateY(1px);
+    }
+    .ferni-avatar[data-mood="disappointed"] .presence-ring {
+      opacity: 0.18;
+    }
+
+    @keyframes disappointedSink {
+      0%, 100% { transform: translateY(1.5px) scaleY(0.98); }
+      50% { transform: translateY(2.5px) scaleY(0.97); }
+    }
+
+    .ferni-avatar[data-mood="dejected"] {
+      transform: translateY(3px) scaleY(0.95) rotate(-2deg);
+      animation: dejectedSlump 6s ease-in-out infinite;
+    }
+    .ferni-avatar[data-mood="dejected"] .eye-white {
+      transform: scaleY(0.65);
+    }
+    .ferni-avatar[data-mood="dejected"] .eye-left {
+      transform: scaleY(0.6); /* One eye more droopy */
+    }
+    .ferni-avatar[data-mood="dejected"] .lid-top {
+      d: path("M 0,0 Q 50,40 100,0 L 100,0 L 0,0 Z");
+    }
+    .ferni-avatar[data-mood="dejected"] .eyes-group {
+      transform: translateY(2px) translateX(-1px);
+    }
+    .ferni-avatar[data-mood="dejected"] .presence-ring {
+      opacity: 0.12;
+      stroke-width: 1;
+    }
+
+    @keyframes dejectedSlump {
+      0%, 100% { transform: translateY(3px) scaleY(0.95) rotate(-2deg); }
+      50% { transform: translateY(4px) scaleY(0.94) rotate(-3deg); }
+    }
+
+    /* ============================================
+       FRUSTRATED FAMILY (5 expressions) 😤😒
+       Luxo-style: Compressed, tense, agitated
+       ============================================ */
+
+    .ferni-avatar[data-mood="frustrated"] {
+      transform: scaleY(0.97) scaleX(1.02);
+      animation: frustratedTense 2s ease-in-out infinite;
+    }
+    .ferni-avatar[data-mood="frustrated"] .eye-white {
+      transform: scaleY(0.7) scaleX(1.05);
+    }
+    .ferni-avatar[data-mood="frustrated"] .lid-top {
+      d: path("M 0,0 Q 50,15 100,0 L 100,0 L 0,0 Z");
+    }
+    .ferni-avatar[data-mood="frustrated"] .eyes-group {
+      animation: frustratedGlare 3s ease-in-out infinite;
+    }
+    .ferni-avatar[data-mood="frustrated"] .presence-ring {
+      opacity: 0.35;
+      animation: frustratedRingPulse 1.5s ease-in-out infinite;
+    }
+
+    @keyframes frustratedTense {
+      0%, 100% { transform: scaleY(0.97) scaleX(1.02); }
+      50% { transform: scaleY(0.96) scaleX(1.03); }
+    }
+    @keyframes frustratedGlare {
+      0%, 100% { transform: translateX(0); }
+      25% { transform: translateX(-0.5px); }
+      75% { transform: translateX(0.5px); }
+    }
+    @keyframes frustratedRingPulse {
+      0%, 100% { opacity: 0.35; }
+      50% { opacity: 0.45; }
+    }
+
+    .ferni-avatar[data-mood="annoyed"] {
+      transform: rotate(-1deg);
+      animation: annoyedTwitch 4s ease-in-out infinite;
+    }
+    .ferni-avatar[data-mood="annoyed"] .eye-white {
+      transform: scaleY(0.75);
+    }
+    .ferni-avatar[data-mood="annoyed"] .eye-right {
+      transform: scaleY(0.7); /* Asymmetric squint */
+    }
+    .ferni-avatar[data-mood="annoyed"] .lid-top {
+      d: path("M 0,0 Q 50,18 100,0 L 100,0 L 0,0 Z");
+    }
+    .ferni-avatar[data-mood="annoyed"] .eyes-group {
+      animation: annoyedGaze 5s ease-in-out infinite;
+    }
+
+    @keyframes annoyedTwitch {
+      0%, 90%, 100% { transform: rotate(-1deg); }
+      95% { transform: rotate(-2deg); }
+    }
+    @keyframes annoyedGaze {
+      0%, 100% { transform: translateX(0); }
+      50% { transform: translateX(1px); }
+    }
+
+    .ferni-avatar[data-mood="irritated"] {
+      transform: scaleY(0.98);
+      animation: irritatedJitter 0.5s ease-in-out infinite;
+    }
+    .ferni-avatar[data-mood="irritated"] .eye-white {
+      transform: scaleY(0.68) scaleX(1.04);
+    }
+    .ferni-avatar[data-mood="irritated"] .lid-top {
+      d: path("M 0,0 Q 50,22 100,0 L 100,0 L 0,0 Z");
+    }
+    .ferni-avatar[data-mood="irritated"] .presence-ring {
+      opacity: 0.4;
+    }
+
+    @keyframes irritatedJitter {
+      0%, 100% { transform: scaleY(0.98) translateX(0); }
+      50% { transform: scaleY(0.98) translateX(0.3px); }
+    }
+
+    .ferni-avatar[data-mood="exasperated"] {
+      transform: rotate(2deg) translateY(-2px);
+      animation: exasperatedSigh 3s ease-in-out infinite;
+    }
+    .ferni-avatar[data-mood="exasperated"] .eye-white {
+      transform: scaleY(0.6);
+    }
+    .ferni-avatar[data-mood="exasperated"] .lid-top {
+      d: path("M 0,0 Q 50,35 100,0 L 100,0 L 0,0 Z");
+    }
+    .ferni-avatar[data-mood="exasperated"] .eyes-group {
+      transform: translateY(-1px);
+      animation: exasperatedLook 4s ease-in-out infinite;
+    }
+
+    @keyframes exasperatedSigh {
+      0%, 100% { transform: rotate(2deg) translateY(-2px); }
+      30% { transform: rotate(0deg) translateY(0px); }
+      60% { transform: rotate(2deg) translateY(-2px); }
+    }
+    @keyframes exasperatedLook {
+      0%, 100% { transform: translateY(-1px); }
+      50% { transform: translateY(-2px) translateX(0.5px); }
+    }
+
+    .ferni-avatar[data-mood="eyeroll"] {
+      animation: eyerollTilt 2.5s ease-in-out;
+    }
+    .ferni-avatar[data-mood="eyeroll"] .eye-white {
+      transform: scaleY(0.85);
+    }
+    .ferni-avatar[data-mood="eyeroll"] .lid-top {
+      d: path("M 0,0 Q 50,12 100,0 L 100,0 L 0,0 Z");
+    }
+    .ferni-avatar[data-mood="eyeroll"] .eyes-group {
+      animation: eyerollGaze 2.5s ease-in-out;
+    }
+
+    @keyframes eyerollTilt {
+      0%, 100% { transform: rotate(0deg); }
+      30% { transform: rotate(-3deg); }
+      50% { transform: rotate(2deg); }
+    }
+    @keyframes eyerollGaze {
+      0% { transform: translateX(0) translateY(0); }
+      30% { transform: translateX(2px) translateY(-3px); }
+      60% { transform: translateX(-1px) translateY(-2px); }
+      100% { transform: translateX(0) translateY(0); }
+    }
+
+    /* ============================================
+       CONFUSED FAMILY (5 expressions) 😕🤨
+       Luxo-style: Tilted, searching, asymmetric
+       ============================================ */
+
+    .ferni-avatar[data-mood="confused"] {
+      transform: rotate(3deg);
+      animation: confusedTilt 3s ease-in-out infinite;
+    }
+    .ferni-avatar[data-mood="confused"] .eye-white {
+      transform: scaleY(1.02);
+    }
+    .ferni-avatar[data-mood="confused"] .eye-left {
+      transform: scaleY(0.95); /* Asymmetric confusion */
+    }
+    .ferni-avatar[data-mood="confused"] .lid-top {
+      d: path("M 0,0 Q 50,5 100,0 L 100,0 L 0,0 Z");
+    }
+    .ferni-avatar[data-mood="confused"] .eyes-group {
+      animation: confusedSearch 4s ease-in-out infinite;
+    }
+
+    @keyframes confusedTilt {
+      0%, 100% { transform: rotate(3deg); }
+      50% { transform: rotate(5deg); }
+    }
+    @keyframes confusedSearch {
+      0%, 100% { transform: translateX(0); }
+      25% { transform: translateX(-1px) translateY(-0.5px); }
+      75% { transform: translateX(1px) translateY(0.5px); }
+    }
+
+    .ferni-avatar[data-mood="skeptical"] {
+      transform: rotate(-2deg);
+      animation: skepticalSquint 4s ease-in-out infinite;
+    }
+    .ferni-avatar[data-mood="skeptical"] .eye-white {
+      transform: scaleY(0.8);
+    }
+    .ferni-avatar[data-mood="skeptical"] .eye-right {
+      transform: scaleY(0.65); /* One eye more squinted - 🤨 style */
+    }
+    .ferni-avatar[data-mood="skeptical"] .lid-top {
+      d: path("M 0,0 Q 50,20 100,0 L 100,0 L 0,0 Z");
+    }
+    .ferni-avatar[data-mood="skeptical"] .eyes-group {
+      transform: translateX(1px);
+    }
+
+    @keyframes skepticalSquint {
+      0%, 100% { transform: rotate(-2deg); }
+      50% { transform: rotate(-3deg); }
+    }
+
+    .ferni-avatar[data-mood="puzzled"] {
+      transform: rotate(4deg) translateY(-1px);
+      animation: puzzledBob 3s ease-in-out infinite;
+    }
+    .ferni-avatar[data-mood="puzzled"] .eye-white {
+      transform: scaleY(1.05);
+    }
+    .ferni-avatar[data-mood="puzzled"] .eye-left {
+      transform: scaleY(0.98);
+    }
+    .ferni-avatar[data-mood="puzzled"] .lid-top {
+      d: path("M 0,0 Q 50,3 100,0 L 100,0 L 0,0 Z");
+    }
+    .ferni-avatar[data-mood="puzzled"] .eyes-group {
+      animation: puzzledGaze 5s ease-in-out infinite;
+    }
+
+    @keyframes puzzledBob {
+      0%, 100% { transform: rotate(4deg) translateY(-1px); }
+      50% { transform: rotate(5deg) translateY(-2px); }
+    }
+    @keyframes puzzledGaze {
+      0%, 100% { transform: translateX(0); }
+      50% { transform: translateX(1.5px) translateY(-0.5px); }
+    }
+
+    .ferni-avatar[data-mood="perplexed"] {
+      transform: rotate(-3deg) scaleY(0.99);
+      animation: perplexedWobble 4s ease-in-out infinite;
+    }
+    .ferni-avatar[data-mood="perplexed"] .eye-white {
+      transform: scaleY(0.9);
+    }
+    .ferni-avatar[data-mood="perplexed"] .eye-left {
+      transform: scaleY(1.0); /* Asymmetric - different eye sizes */
+    }
+    .ferni-avatar[data-mood="perplexed"] .lid-top {
+      d: path("M 0,0 Q 50,10 100,0 L 100,0 L 0,0 Z");
+    }
+
+    @keyframes perplexedWobble {
+      0%, 100% { transform: rotate(-3deg) scaleY(0.99); }
+      33% { transform: rotate(-1deg) scaleY(0.99); }
+      66% { transform: rotate(-4deg) scaleY(0.99); }
+    }
+
+    .ferni-avatar[data-mood="bewildered"] {
+      transform: rotate(5deg) translateY(-2px);
+      animation: bewilderedSpin 2.5s ease-in-out infinite;
+    }
+    .ferni-avatar[data-mood="bewildered"] .eye-white {
+      transform: scaleY(1.1) scaleX(1.05);
+    }
+    .ferni-avatar[data-mood="bewildered"] .lid-top {
+      d: path("M 0,0 Q 50,-2 100,0 L 100,0 L 0,0 Z");
+    }
+    .ferni-avatar[data-mood="bewildered"] .eyes-group {
+      animation: bewilderedLook 3s ease-in-out infinite;
+    }
+
+    @keyframes bewilderedSpin {
+      0%, 100% { transform: rotate(5deg) translateY(-2px); }
+      25% { transform: rotate(-2deg) translateY(-1px); }
+      50% { transform: rotate(3deg) translateY(-3px); }
+      75% { transform: rotate(-1deg) translateY(-1px); }
+    }
+    @keyframes bewilderedLook {
+      0%, 100% { transform: translateX(0); }
+      25% { transform: translateX(-2px) translateY(-1px); }
+      50% { transform: translateX(1px) translateY(1px); }
+      75% { transform: translateX(2px) translateY(-0.5px); }
+    }
+
+    /* ============================================
+       NERVOUS FAMILY (5 expressions) 😰😨
+       Luxo-style: Jittery, contracted, wide-eyed
+       ============================================ */
+
+    .ferni-avatar[data-mood="nervous"] {
+      animation: nervousShake 0.3s ease-in-out infinite;
+    }
+    .ferni-avatar[data-mood="nervous"] .eye-white {
+      transform: scaleY(1.08);
+    }
+    .ferni-avatar[data-mood="nervous"] .lid-top {
+      d: path("M 0,0 Q 50,2 100,0 L 100,0 L 0,0 Z");
+    }
+    .ferni-avatar[data-mood="nervous"] .eyes-group {
+      animation: nervousGlance 2s ease-in-out infinite;
+    }
+    .ferni-avatar[data-mood="nervous"] .presence-ring {
+      opacity: 0.35;
+      animation: nervousRingPulse 0.8s ease-in-out infinite;
+    }
+
+    @keyframes nervousShake {
+      0%, 100% { transform: translateX(0); }
+      50% { transform: translateX(0.5px); }
+    }
+    @keyframes nervousGlance {
+      0%, 100% { transform: translateX(0); }
+      25% { transform: translateX(-1px); }
+      75% { transform: translateX(1px); }
+    }
+    @keyframes nervousRingPulse {
+      0%, 100% { opacity: 0.35; }
+      50% { opacity: 0.42; }
+    }
+
+    .ferni-avatar[data-mood="anxious"] {
+      transform: scaleY(0.99);
+      animation: anxiousTremble 0.4s ease-in-out infinite;
+    }
+    .ferni-avatar[data-mood="anxious"] .eye-white {
+      transform: scaleY(1.12);
+    }
+    .ferni-avatar[data-mood="anxious"] .eye-left {
+      transform: scaleY(1.08); /* Slight asymmetry */
+    }
+    .ferni-avatar[data-mood="anxious"] .lid-top {
+      d: path("M 0,0 Q 50,0 100,0 L 100,0 L 0,0 Z");
+    }
+    .ferni-avatar[data-mood="anxious"] .eyes-group {
+      animation: anxiousGaze 1.5s ease-in-out infinite;
+    }
+    .ferni-avatar[data-mood="anxious"] .presence-ring {
+      opacity: 0.4;
+      animation: anxiousRingPulse 0.6s ease-in-out infinite;
+    }
+
+    @keyframes anxiousTremble {
+      0%, 100% { transform: scaleY(0.99) translateX(0); }
+      25% { transform: scaleY(0.99) translateX(0.3px); }
+      75% { transform: scaleY(0.99) translateX(-0.3px); }
+    }
+    @keyframes anxiousGaze {
+      0%, 100% { transform: translateX(0); }
+      30% { transform: translateX(-1.5px) translateY(-0.5px); }
+      70% { transform: translateX(1px); }
+    }
+    @keyframes anxiousRingPulse {
+      0%, 100% { opacity: 0.4; }
+      50% { opacity: 0.5; }
+    }
+
+    .ferni-avatar[data-mood="scared"] {
+      transform: scaleY(0.97) translateY(1px);
+      animation: scaredRecoil 0.5s ease-in-out infinite;
+    }
+    .ferni-avatar[data-mood="scared"] .eye-white {
+      transform: scaleY(1.2) scaleX(1.1);
+    }
+    .ferni-avatar[data-mood="scared"] .lid-top {
+      d: path("M 0,0 Q 50,-5 100,0 L 100,0 L 0,0 Z");
+    }
+    .ferni-avatar[data-mood="scared"] .lid-bottom {
+      d: path("M 0,100 Q 50,105 100,100 L 100,100 L 0,100 Z");
+    }
+    .ferni-avatar[data-mood="scared"] .avatar-body {
+      animation: scaredShrink 0.6s ease-in-out infinite;
+    }
+    .ferni-avatar[data-mood="scared"] .presence-ring {
+      opacity: 0.45;
+    }
+
+    @keyframes scaredRecoil {
+      0%, 100% { transform: scaleY(0.97) translateY(1px); }
+      50% { transform: scaleY(0.96) translateY(2px); }
+    }
+    @keyframes scaredShrink {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(0.98); }
+    }
+
+    .ferni-avatar[data-mood="fearful"] {
+      transform: scaleY(0.95) scaleX(0.98);
+      animation: fearfulCower 0.8s ease-in-out infinite;
+    }
+    .ferni-avatar[data-mood="fearful"] .eye-white {
+      transform: scaleY(1.25) scaleX(1.15);
+    }
+    .ferni-avatar[data-mood="fearful"] .lid-top {
+      d: path("M 0,0 Q 50,-8 100,0 L 100,0 L 0,0 Z");
+    }
+    .ferni-avatar[data-mood="fearful"] .eyes-group {
+      transform: translateY(-1px);
+      animation: fearfulStare 1s ease-in-out infinite;
+    }
+    .ferni-avatar[data-mood="fearful"] .presence-ring {
+      opacity: 0.5;
+      animation: fearfulRingPulse 0.5s ease-in-out infinite;
+    }
+
+    @keyframes fearfulCower {
+      0%, 100% { transform: scaleY(0.95) scaleX(0.98); }
+      50% { transform: scaleY(0.94) scaleX(0.97); }
+    }
+    @keyframes fearfulStare {
+      0%, 100% { transform: translateY(-1px); }
+      50% { transform: translateY(-2px); }
+    }
+    @keyframes fearfulRingPulse {
+      0%, 100% { opacity: 0.5; }
+      50% { opacity: 0.6; }
+    }
+
+    .ferni-avatar[data-mood="uneasy"] {
+      transform: rotate(-1deg);
+      animation: uneasyShift 3s ease-in-out infinite;
+    }
+    .ferni-avatar[data-mood="uneasy"] .eye-white {
+      transform: scaleY(1.04);
+    }
+    .ferni-avatar[data-mood="uneasy"] .eye-right {
+      transform: scaleY(1.0);
+    }
+    .ferni-avatar[data-mood="uneasy"] .lid-top {
+      d: path("M 0,0 Q 50,4 100,0 L 100,0 L 0,0 Z");
+    }
+    .ferni-avatar[data-mood="uneasy"] .eyes-group {
+      animation: uneasyGlance 4s ease-in-out infinite;
+    }
+
+    @keyframes uneasyShift {
+      0%, 100% { transform: rotate(-1deg); }
+      30% { transform: rotate(0deg) translateX(-0.5px); }
+      70% { transform: rotate(-1.5deg) translateX(0.5px); }
+    }
+    @keyframes uneasyGlance {
+      0%, 100% { transform: translateX(0); }
+      50% { transform: translateX(-1px); }
+    }
+
+    /* ============================================
+       EMBARRASSED FAMILY (5 expressions) 😳😬
+       Luxo-style: Shrinking, flushed, awkward
+       ============================================ */
+
+    .ferni-avatar[data-mood="embarrassed"] {
+      transform: scaleY(0.97) scaleX(0.99);
+      animation: embarrassedShrink 2s ease-in-out infinite;
+    }
+    .ferni-avatar[data-mood="embarrassed"] .eye-white {
+      transform: scaleY(1.15) scaleX(1.08);
+    }
+    .ferni-avatar[data-mood="embarrassed"] .lid-top {
+      d: path("M 0,0 Q 50,-3 100,0 L 100,0 L 0,0 Z");
+    }
+    .ferni-avatar[data-mood="embarrassed"] .eyes-group {
+      transform: translateY(-0.5px);
+      animation: embarrassedGaze 3s ease-in-out infinite;
+    }
+    .ferni-avatar[data-mood="embarrassed"] .presence-ring {
+      opacity: 0.45;
+      animation: embarrassedRingFlush 1.5s ease-in-out infinite;
+    }
+
+    @keyframes embarrassedShrink {
+      0%, 100% { transform: scaleY(0.97) scaleX(0.99); }
+      50% { transform: scaleY(0.96) scaleX(0.98); }
+    }
+    @keyframes embarrassedGaze {
+      0%, 100% { transform: translateY(-0.5px) translateX(0); }
+      50% { transform: translateY(-0.5px) translateX(-1px); }
+    }
+    @keyframes embarrassedRingFlush {
+      0%, 100% { opacity: 0.45; }
+      50% { opacity: 0.55; }
+    }
+
+    .ferni-avatar[data-mood="awkward"] {
+      transform: rotate(2deg) scaleY(0.98);
+      animation: awkwardSquirm 2.5s ease-in-out infinite;
+    }
+    .ferni-avatar[data-mood="awkward"] .eye-white {
+      transform: scaleY(0.9) scaleX(1.05);
+    }
+    .ferni-avatar[data-mood="awkward"] .eye-left {
+      transform: scaleY(0.85);
+    }
+    .ferni-avatar[data-mood="awkward"] .lid-top {
+      d: path("M 0,0 Q 50,12 100,0 L 100,0 L 0,0 Z");
+    }
+    .ferni-avatar[data-mood="awkward"] .eyes-group {
+      animation: awkwardGaze 3s ease-in-out infinite;
+    }
+
+    @keyframes awkwardSquirm {
+      0%, 100% { transform: rotate(2deg) scaleY(0.98); }
+      25% { transform: rotate(-1deg) scaleY(0.98); }
+      75% { transform: rotate(3deg) scaleY(0.98); }
+    }
+    @keyframes awkwardGaze {
+      0%, 100% { transform: translateX(0); }
+      30% { transform: translateX(1px) translateY(0.5px); }
+      70% { transform: translateX(-0.5px) translateY(-0.5px); }
+    }
+
+    .ferni-avatar[data-mood="cringing"] {
+      transform: scaleY(0.95) scaleX(1.02);
+      animation: cringingSqueeze 1.5s ease-in-out infinite;
+    }
+    .ferni-avatar[data-mood="cringing"] .eye-white {
+      transform: scaleY(0.5) scaleX(1.1);
+    }
+    .ferni-avatar[data-mood="cringing"] .lid-top {
+      d: path("M 0,0 Q 50,45 100,0 L 100,0 L 0,0 Z");
+    }
+    .ferni-avatar[data-mood="cringing"] .lid-bottom {
+      d: path("M 0,100 Q 50,80 100,100 L 100,100 L 0,100 Z");
+    }
+    .ferni-avatar[data-mood="cringing"] .avatar-body {
+      animation: cringingTense 1s ease-in-out infinite;
+    }
+
+    @keyframes cringingSqueeze {
+      0%, 100% { transform: scaleY(0.95) scaleX(1.02); }
+      50% { transform: scaleY(0.94) scaleX(1.03); }
+    }
+    @keyframes cringingTense {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scaleY(0.99) scaleX(1.01); }
+    }
+
+    .ferni-avatar[data-mood="sheepish"] {
+      transform: rotate(-2deg) translateY(1px);
+      animation: sheepishLean 4s ease-in-out infinite;
+    }
+    .ferni-avatar[data-mood="sheepish"] .eye-white {
+      transform: scaleY(0.85);
+    }
+    .ferni-avatar[data-mood="sheepish"] .lid-top {
+      d: path("M 0,0 Q 50,18 100,0 L 100,0 L 0,0 Z");
+    }
+    .ferni-avatar[data-mood="sheepish"] .eyes-group {
+      transform: translateX(-1px);
+      animation: sheepishGaze 5s ease-in-out infinite;
+    }
+    .ferni-avatar[data-mood="sheepish"] .smile-crease {
+      opacity: 0.25;
+    }
+
+    @keyframes sheepishLean {
+      0%, 100% { transform: rotate(-2deg) translateY(1px); }
+      50% { transform: rotate(-3deg) translateY(1.5px); }
+    }
+    @keyframes sheepishGaze {
+      0%, 100% { transform: translateX(-1px); }
+      50% { transform: translateX(-1.5px) translateY(0.5px); }
+    }
+
+    .ferni-avatar[data-mood="flustered"] {
+      animation: flusteredBounce 0.6s ease-in-out infinite;
+    }
+    .ferni-avatar[data-mood="flustered"] .eye-white {
+      transform: scaleY(1.05);
+    }
+    .ferni-avatar[data-mood="flustered"] .eye-left {
+      transform: scaleY(1.1);
+    }
+    .ferni-avatar[data-mood="flustered"] .lid-top {
+      d: path("M 0,0 Q 50,5 100,0 L 100,0 L 0,0 Z");
+    }
+    .ferni-avatar[data-mood="flustered"] .eyes-group {
+      animation: flusteredGaze 1s ease-in-out infinite;
+    }
+    .ferni-avatar[data-mood="flustered"] .presence-ring {
+      opacity: 0.5;
+      animation: flusteredRingPulse 0.5s ease-in-out infinite;
+    }
+
+    @keyframes flusteredBounce {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-1px); }
+    }
+    @keyframes flusteredGaze {
+      0%, 100% { transform: translateX(0); }
+      25% { transform: translateX(-1px); }
+      75% { transform: translateX(1px); }
+    }
+    @keyframes flusteredRingPulse {
+      0%, 100% { opacity: 0.5; }
+      50% { opacity: 0.6; }
+    }
+
+    /* ============================================
+       COOL FAMILY (5 expressions) 😎😏
+       Luxo-style: Relaxed squints, confident tilts
+       ============================================ */
+
+    .ferni-avatar[data-mood="confident"] {
+      transform: translateY(-1px);
+      animation: confidentStance 5s ease-in-out infinite;
+    }
+    .ferni-avatar[data-mood="confident"] .eye-white {
+      transform: scaleY(0.88) scaleX(1.02);
+    }
+    .ferni-avatar[data-mood="confident"] .lid-top {
+      d: path("M 0,0 Q 50,14 100,0 L 100,0 L 0,0 Z");
+    }
+    .ferni-avatar[data-mood="confident"] .smile-crease {
+      opacity: 0.5;
+    }
+    .ferni-avatar[data-mood="confident"] .presence-ring {
+      opacity: 0.4;
+      stroke-width: 2.5;
+    }
+
+    @keyframes confidentStance {
+      0%, 100% { transform: translateY(-1px); }
+      50% { transform: translateY(-2px); }
+    }
+
+    .ferni-avatar[data-mood="smirking"] {
+      transform: rotate(2deg);
+      animation: smirkingTilt 4s ease-in-out infinite;
+    }
+    .ferni-avatar[data-mood="smirking"] .eye-white {
+      transform: scaleY(0.82);
+    }
+    .ferni-avatar[data-mood="smirking"] .eye-right {
+      transform: scaleY(0.75); /* Asymmetric smirk */
+    }
+    .ferni-avatar[data-mood="smirking"] .lid-top {
+      d: path("M 0,0 Q 50,20 100,0 L 100,0 L 0,0 Z");
+    }
+    .ferni-avatar[data-mood="smirking"] .smile-crease {
+      opacity: 0.6;
+    }
+    .ferni-avatar[data-mood="smirking"] .crease-right {
+      opacity: 0.75;
+      stroke-width: 1.3;
+    }
+    .ferni-avatar[data-mood="smirking"] .eyes-group {
+      transform: translateX(1px);
+    }
+
+    @keyframes smirkingTilt {
+      0%, 100% { transform: rotate(2deg); }
+      50% { transform: rotate(3deg); }
+    }
+
+    .ferni-avatar[data-mood="cool"] {
+      transform: translateY(-1px) rotate(-1deg);
+      animation: coolLean 6s ease-in-out infinite;
+    }
+    .ferni-avatar[data-mood="cool"] .eye-white {
+      transform: scaleY(0.7) scaleX(1.05);
+    }
+    .ferni-avatar[data-mood="cool"] .lid-top {
+      d: path("M 0,0 Q 50,28 100,0 L 100,0 L 0,0 Z");
+    }
+    .ferni-avatar[data-mood="cool"] .smile-crease {
+      opacity: 0.4;
+    }
+    .ferni-avatar[data-mood="cool"] .presence-ring {
+      opacity: 0.35;
+    }
+
+    @keyframes coolLean {
+      0%, 100% { transform: translateY(-1px) rotate(-1deg); }
+      50% { transform: translateY(-1.5px) rotate(-1.5deg); }
+    }
+
+    .ferni-avatar[data-mood="sassy"] {
+      transform: rotate(3deg) translateY(-1px);
+      animation: sassyBounce 2s ease-in-out infinite;
+    }
+    .ferni-avatar[data-mood="sassy"] .eye-white {
+      transform: scaleY(0.78);
+    }
+    .ferni-avatar[data-mood="sassy"] .eye-left {
+      transform: scaleY(0.72); /* Sassier left eye */
+    }
+    .ferni-avatar[data-mood="sassy"] .lid-top {
+      d: path("M 0,0 Q 50,24 100,0 L 100,0 L 0,0 Z");
+    }
+    .ferni-avatar[data-mood="sassy"] .smile-crease {
+      opacity: 0.65;
+    }
+    .ferni-avatar[data-mood="sassy"] .eyes-group {
+      animation: sassyGaze 3s ease-in-out infinite;
+    }
+
+    @keyframes sassyBounce {
+      0%, 100% { transform: rotate(3deg) translateY(-1px); }
+      50% { transform: rotate(4deg) translateY(-2px); }
+    }
+    @keyframes sassyGaze {
+      0%, 100% { transform: translateX(0); }
+      50% { transform: translateX(1.5px); }
+    }
+
+    .ferni-avatar[data-mood="smug"] {
+      transform: rotate(-1deg) scaleY(1.01);
+      animation: smugSettle 5s ease-in-out infinite;
+    }
+    .ferni-avatar[data-mood="smug"] .eye-white {
+      transform: scaleY(0.72) scaleX(1.04);
+    }
+    .ferni-avatar[data-mood="smug"] .lid-top {
+      d: path("M 0,0 Q 50,30 100,0 L 100,0 L 0,0 Z");
+    }
+    .ferni-avatar[data-mood="smug"] .smile-crease {
+      opacity: 0.7;
+      stroke-width: 1.3;
+    }
+    .ferni-avatar[data-mood="smug"] .presence-ring {
+      opacity: 0.42;
+      stroke-width: 2.5;
+    }
+
+    @keyframes smugSettle {
+      0%, 100% { transform: rotate(-1deg) scaleY(1.01); }
+      50% { transform: rotate(-1.5deg) scaleY(1.015); }
+    }
+
+    /* ============================================
+       INTENSE FAMILY (5 expressions) 💪🔥
+       Luxo-style: Focused, determined, passionate
+       ============================================ */
+
+    .ferni-avatar[data-mood="determined"] {
+      transform: scaleY(1.02) translateY(-1px);
+      animation: determinedStance 3s ease-in-out infinite;
+    }
+    .ferni-avatar[data-mood="determined"] .eye-white {
+      transform: scaleY(0.85) scaleX(1.04);
+    }
+    .ferni-avatar[data-mood="determined"] .lid-top {
+      d: path("M 0,0 Q 50,16 100,0 L 100,0 L 0,0 Z");
+    }
+    .ferni-avatar[data-mood="determined"] .eyes-group {
+      transform: translateY(-0.5px);
+    }
+    .ferni-avatar[data-mood="determined"] .presence-ring {
+      opacity: 0.5;
+      stroke-width: 2.8;
+      animation: determinedRingPulse 2s ease-in-out infinite;
+    }
+
+    @keyframes determinedStance {
+      0%, 100% { transform: scaleY(1.02) translateY(-1px); }
+      50% { transform: scaleY(1.03) translateY(-2px); }
+    }
+    @keyframes determinedRingPulse {
+      0%, 100% { opacity: 0.5; stroke-width: 2.8; }
+      50% { opacity: 0.6; stroke-width: 3.2; }
+    }
+
+    .ferni-avatar[data-mood="fierce"] {
+      transform: scaleY(0.98) scaleX(1.02);
+      animation: fierceIntensity 1.5s ease-in-out infinite;
+    }
+    .ferni-avatar[data-mood="fierce"] .eye-white {
+      transform: scaleY(0.75) scaleX(1.08);
+    }
+    .ferni-avatar[data-mood="fierce"] .lid-top {
+      d: path("M 0,0 Q 50,22 100,0 L 100,0 L 0,0 Z");
+    }
+    .ferni-avatar[data-mood="fierce"] .eyes-group {
+      animation: fierceGlare 2s ease-in-out infinite;
+    }
+    .ferni-avatar[data-mood="fierce"] .presence-ring {
+      opacity: 0.55;
+      animation: fierceRingPulse 1s ease-in-out infinite;
+    }
+
+    @keyframes fierceIntensity {
+      0%, 100% { transform: scaleY(0.98) scaleX(1.02); }
+      50% { transform: scaleY(0.97) scaleX(1.03); }
+    }
+    @keyframes fierceGlare {
+      0%, 100% { transform: translateX(0); }
+      50% { transform: translateY(-0.5px); }
+    }
+    @keyframes fierceRingPulse {
+      0%, 100% { opacity: 0.55; }
+      50% { opacity: 0.65; }
+    }
+
+    .ferni-avatar[data-mood="intense"] {
+      transform: scaleY(1.01);
+      animation: intenseStare 2.5s ease-in-out infinite;
+    }
+    .ferni-avatar[data-mood="intense"] .eye-white {
+      transform: scaleY(0.92) scaleX(1.05);
+    }
+    .ferni-avatar[data-mood="intense"] .lid-top {
+      d: path("M 0,0 Q 50,10 100,0 L 100,0 L 0,0 Z");
+    }
+    .ferni-avatar[data-mood="intense"] .eyes-group {
+      animation: intenseFocus 4s ease-in-out infinite;
+    }
+    .ferni-avatar[data-mood="intense"] .presence-ring {
+      opacity: 0.48;
+      stroke-width: 2.5;
+    }
+
+    @keyframes intenseStare {
+      0%, 100% { transform: scaleY(1.01); }
+      50% { transform: scaleY(1.02); }
+    }
+    @keyframes intenseFocus {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-0.5px); }
+    }
+
+    .ferni-avatar[data-mood="resolute"] {
+      transform: translateY(-0.5px);
+      animation: resoluteStand 4s ease-in-out infinite;
+    }
+    .ferni-avatar[data-mood="resolute"] .eye-white {
+      transform: scaleY(0.88) scaleX(1.02);
+    }
+    .ferni-avatar[data-mood="resolute"] .lid-top {
+      d: path("M 0,0 Q 50,14 100,0 L 100,0 L 0,0 Z");
+    }
+    .ferni-avatar[data-mood="resolute"] .smile-crease {
+      opacity: 0.35;
+    }
+    .ferni-avatar[data-mood="resolute"] .presence-ring {
+      opacity: 0.45;
+      stroke-width: 2.8;
+    }
+
+    @keyframes resoluteStand {
+      0%, 100% { transform: translateY(-0.5px); }
+      50% { transform: translateY(-1.5px); }
+    }
+
+    .ferni-avatar[data-mood="passionate"] {
+      transform: scaleY(1.02) translateY(-2px);
+      animation: passionatePulse 2s ease-in-out infinite;
+    }
+    .ferni-avatar[data-mood="passionate"] .eye-white {
+      transform: scaleY(0.9) scaleX(1.04);
+    }
+    .ferni-avatar[data-mood="passionate"] .lid-top {
+      d: path("M 0,0 Q 50,12 100,0 L 100,0 L 0,0 Z");
+    }
+    .ferni-avatar[data-mood="passionate"] .smile-crease {
+      opacity: 0.55;
+    }
+    .ferni-avatar[data-mood="passionate"] .presence-ring {
+      opacity: 0.5;
+      animation: passionateRingGlow 1.5s ease-in-out infinite;
+    }
+    .ferni-avatar[data-mood="passionate"] .avatar-body {
+      animation: passionatePump 2s ease-in-out infinite;
+    }
+
+    @keyframes passionatePulse {
+      0%, 100% { transform: scaleY(1.02) translateY(-2px); }
+      50% { transform: scaleY(1.03) translateY(-3px); }
+    }
+    @keyframes passionateRingGlow {
+      0%, 100% { opacity: 0.5; stroke-width: 2; }
+      50% { opacity: 0.65; stroke-width: 2.8; }
+    }
+    @keyframes passionatePump {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.015); }
+    }
+
+    /* ============================================
+       MICRO-EXPRESSIONS - 40-150ms Subliminal
+       (Beyond Pixar - builds unconscious trust)
+       ============================================ */
+
+    .ferni-avatar.micro-recognition .eye-white {
+      animation: microRecognition 80ms ease-out;
+    }
+
+    .ferni-avatar.micro-concern .lid-top {
+      animation: microConcern 100ms ease-out;
+    }
+
+    .ferni-avatar.micro-delight .smile-crease {
+      animation: microDelight 120ms ease-out;
+    }
+
+    .ferni-avatar.micro-warmth .smile-crease {
+      animation: microWarmth 100ms ease-out;
+    }
+
+    .ferni-avatar.micro-interest .eye-white {
+      animation: microInterest 90ms ease-out;
+    }
+
+    .ferni-avatar.micro-surprise .eye-white {
+      animation: microSurprise 150ms ease-out;
+    }
+
+    @keyframes microRecognition {
+      0%, 100% { transform: scaleY(1); }
+      50% { transform: scaleY(1.08); }
+    }
+
+    @keyframes microConcern {
+      0%, 100% { d: path("M 0,0 Q 50,-10 100,0 L 100,0 L 0,0 Z"); }
+      50% { d: path("M 0,0 Q 50,5 100,0 L 100,0 L 0,0 Z"); }
+    }
+
+    @keyframes microDelight {
+      0%, 100% { opacity: 0; }
+      50% { opacity: 0.8; }
+    }
+
+    @keyframes microWarmth {
+      0%, 100% { opacity: 0; }
+      50% { opacity: 0.6; }
+    }
+
+    @keyframes microInterest {
+      0%, 100% { transform: scaleY(1); }
+      50% { transform: scaleY(1.05); }
+    }
+
+    @keyframes microSurprise {
+      0%, 100% { transform: scaleY(1); }
+      50% { transform: scaleY(1.12) scaleX(1.05); }
+    }
+
+    /* ============================================
+       LIFE ENHANCEMENT SYSTEM
+       Making Ferni feel truly alive - beyond static animation
+       ============================================ */
+
+    /* CURSOR TRACKING - Eyes follow the user's presence */
+    .ferni-avatar.tracking .eyes-group {
+      transition: transform 0.15s var(--ease-organic);
+    }
+
+    /* HOVER RESPONSE - Avatar "perks up" when user is present */
+    .ferni-avatar:hover {
+      transform: translateY(-2px);
+    }
+
+    .ferni-avatar:hover .presence-ring {
+      opacity: 0.45 !important;
+      stroke-width: 2 !important;
+      transition: all 0.3s var(--ease-spring);
+    }
+
+    .ferni-avatar:hover .eye-white {
+      transform: scaleY(1.04);
+      transition: transform 0.2s var(--ease-spring);
+    }
+
+    /* ALIVE STATE - Subtle organic micro-tremors */
+    .ferni-avatar.alive {
+      animation: alivePresence 12s ease-in-out infinite;
+    }
+
+    .ferni-avatar.alive .avatar-body {
+      animation: aliveBody 6s ease-in-out infinite, aliveTremor 0.3s ease-in-out infinite;
+    }
+
+    .ferni-avatar.alive .presence-ring {
+      animation: aliveRingPulse 4s ease-in-out infinite, aliveRingBreathe 2s ease-in-out infinite;
+    }
+
+    @keyframes alivePresence {
+      0%, 100% { transform: translateY(0) rotate(0); }
+      25% { transform: translateY(-0.5px) rotate(0.1deg); }
+      50% { transform: translateY(0.3px) rotate(-0.1deg); }
+      75% { transform: translateY(-0.3px) rotate(0.05deg); }
+    }
+
+    @keyframes aliveBody {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scaleY(1.012) scaleX(0.996); }
+    }
+
+    @keyframes aliveTremor {
+      0%, 100% { transform: translate(0, 0); }
+      50% { transform: translate(0.15px, 0); }
+    }
+
+    @keyframes aliveRingPulse {
+      0%, 100% { opacity: 0.28; }
+      50% { opacity: 0.38; }
+    }
+
+    @keyframes aliveRingBreathe {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.006); }
+    }
+
+    /* HEARTBEAT - Subtle life pulse */
+    .ferni-avatar.heartbeat .avatar-body {
+      animation: heartbeatPulse 1.2s ease-in-out infinite;
+    }
+
+    .ferni-avatar.heartbeat .presence-ring {
+      animation: heartbeatRing 1.2s ease-in-out infinite;
+    }
+
+    @keyframes heartbeatPulse {
+      0%, 100% { transform: scale(1); }
+      15% { transform: scale(1.015); }
+      30% { transform: scale(1); }
+      45% { transform: scale(1.008); }
+      60% { transform: scale(1); }
+    }
+
+    @keyframes heartbeatRing {
+      0%, 100% { opacity: 0.3; transform: scale(1); }
+      15% { opacity: 0.45; transform: scale(1.02); }
+      30% { opacity: 0.3; transform: scale(1); }
+      45% { opacity: 0.38; transform: scale(1.01); }
+      60% { opacity: 0.3; transform: scale(1); }
+    }
+
+    /* IDLE QUIRKS - Random personality animations */
+    .ferni-avatar.quirk-glance .eyes-group {
+      animation: quirkyGlance 0.6s var(--ease-spring);
+    }
+
+    .ferni-avatar.quirk-settle .avatar-body {
+      animation: quirkySettle 0.8s var(--ease-spring);
+    }
+
+    .ferni-avatar.quirk-brow .lid-top {
+      animation: quirkyBrow 0.5s var(--ease-spring);
+    }
+
+    .ferni-avatar.quirk-squint .eye-white {
+      animation: quirkySquint 0.4s var(--ease-spring);
+    }
+
+    @keyframes quirkyGlance {
+      0%, 100% { transform: translate(0, 0); }
+      30% { transform: translate(2px, -1px); }
+      60% { transform: translate(-1px, 0); }
+    }
+
+    @keyframes quirkySettle {
+      0%, 100% { transform: scale(1); }
+      40% { transform: scaleY(0.98) scaleX(1.01); }
+    }
+
+    @keyframes quirkyBrow {
+      0%, 100% { d: path("M 0,0 Q 50,-10 100,0 L 100,0 L 0,0 Z"); }
+      50% { d: path("M 0,0 Q 50,5 100,0 L 100,0 L 0,0 Z"); }
+    }
+
+    @keyframes quirkySquint {
+      0%, 100% { transform: scaleY(1); }
+      50% { transform: scaleY(0.9); }
+    }
+
+    /* DOUBLE BLINK - More natural blink pattern */
+    .ferni-avatar.double-blinking .eye-white {
+      animation: doubleBlink 0.35s ease-in-out;
+    }
+
+    @keyframes doubleBlink {
+      0%, 100% { transform: scaleY(1); }
+      20% { transform: scaleY(0.1); }
+      40% { transform: scaleY(0.9); }
+      60% { transform: scaleY(0.1); }
+      80% { transform: scaleY(1); }
+    }
+
+    /* ATTENTION GLOW - When avatar is "focused" on user */
+    .ferni-avatar.attention .presence-ring {
+      stroke: var(--ferni-light);
+      stroke-width: 2.5;
+      opacity: 0.5;
+      filter: drop-shadow(0 0 4px rgba(74, 103, 65, 0.3));
+      animation: attentionGlow 2s ease-in-out infinite;
+    }
+
+    @keyframes attentionGlow {
+      0%, 100% { filter: drop-shadow(0 0 4px rgba(74, 103, 65, 0.2)); opacity: 0.45; }
+      50% { filter: drop-shadow(0 0 8px rgba(74, 103, 65, 0.4)); opacity: 0.55; }
+    }
+
+    /* ACTIVE LISTENING - Micro-nods during "listening" mode */
+    .ferni-avatar.active-listening {
+      animation: activeListeningNod 2s ease-in-out infinite;
+    }
+
+    .ferni-avatar.active-listening .eyes-group {
+      animation: activeListeningTrack 3s ease-in-out infinite;
+    }
+
+    @keyframes activeListeningNod {
+      0%, 100% { transform: translateY(0) rotate(0); }
+      20% { transform: translateY(1px) rotate(0.5deg); }
+      40% { transform: translateY(-0.5px) rotate(-0.3deg); }
+      60% { transform: translateY(0.8px) rotate(0.4deg); }
+      80% { transform: translateY(-0.3px) rotate(-0.2deg); }
+    }
+
+    @keyframes activeListeningTrack {
+      0%, 100% { transform: translate(0, 0); }
+      25% { transform: translate(0.5px, -0.3px); }
+      50% { transform: translate(-0.3px, 0.2px); }
+      75% { transform: translate(0.4px, -0.2px); }
+    }
+
+    /* ============================================
+       EXPRESSION GRID & CATEGORY TABS
+       ============================================ */
+
+    .category-tabs {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      margin-bottom: 12px;
+    }
+
+    .category-tab {
+      padding: 6px 10px;
+      border: none;
+      border-radius: 6px;
+      font-weight: 600;
+      font-size: 0.6rem;
+      cursor: pointer;
+      background: rgba(44,37,32,0.05);
+      color: var(--ink-light);
+      transition: all 0.15s var(--ease-spring);
+    }
+
+    .category-tab:hover {
+      background: rgba(44,37,32,0.1);
+    }
+
+    .category-tab.active {
+      background: var(--ferni);
+      color: white;
+    }
+
+    .expression-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 6px;
+    }
+
+    .expression-grid .btn {
+      padding: 6px 8px;
+      font-size: 0.6rem;
+    }
+
+    /* Principles footer */
+    .principles {
+      padding: 16px 20px 24px;
+      max-width: 440px;
+      margin: 0 auto;
+    }
+    
+    .principle-card {
+      background: white;
+      border-radius: 12px;
+      padding: 14px;
+      box-shadow: 0 4px 16px rgba(44,37,32,0.04);
+    }
+    
+    .principle-title {
+      font-size: 0.6rem;
+      font-weight: 700;
+      color: var(--ferni);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 8px;
+    }
+    
+    .principle-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    
+    .principle-item {
+      display: flex;
+      gap: 8px;
+      font-size: 0.65rem;
+      color: var(--ink-light);
+    }
+    
+    .principle-num {
+      width: 16px;
+      height: 16px;
+      background: rgba(74, 103, 65, 0.1);
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.5rem;
+      font-weight: 700;
+      color: var(--ferni);
+      flex-shrink: 0;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Ferni — Alive (Full Expression Bible)</h1>
+    <p class="subtitle">92 Expressions · 8 Life Layers · Cursor Tracking · Micro-Expressions · Idle Quirks</p>
+  </header>
+
+  <div class="stage">
+    <div class="avatar-stage">
+      <div class="ferni-avatar breathing gazing anticipation alive tracking" data-mood="neutral" id="mainAvatar">
+        <svg class="avatar-svg" viewBox="0 0 100 100">
+          <defs>
+            <linearGradient id="orbGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#5a7a51"/>
+              <stop offset="100%" stop-color="#3d5a35"/>
+            </linearGradient>
+            <linearGradient id="eyeGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stop-color="#ffffff"/>
+              <stop offset="100%" stop-color="#f0ebe4"/>
+            </linearGradient>
+            <clipPath id="orbClip">
+              <circle cx="50" cy="50" r="40"/>
+            </clipPath>
+          </defs>
+          <circle class="presence-ring" cx="50" cy="50" r="46"/>
+          <g clip-path="url(#orbClip)">
+            <circle class="avatar-body" cx="50" cy="50" r="40" fill="url(#orbGrad)"/>
+            <g class="eyes-group">
+              <!-- LUXO-STYLE: Opaque expressive eyes - no pupils! -->
+              <!-- Like the Pixar lamp, emotion comes from SHAPE not internal details -->
+              <ellipse class="eye-white eye-left" cx="36" cy="48" rx="7" ry="10" fill="url(#eyeGrad)"/>
+              <ellipse class="eye-white eye-right" cx="64" cy="48" rx="7" ry="10" fill="url(#eyeGrad)"/>
+            </g>
+            <path class="lid-top" d="M 0,0 Q 50,-10 100,0 L 100,0 L 0,0 Z"/>
+            <path class="lid-bottom" d="M 0,100 Q 50,110 100,100 L 100,100 L 0,100 Z"/>
+            <!-- Smile Creases - Pixar-style eye crinkles (Duchenne smile indicator) -->
+            <path class="smile-crease crease-left" d="M 26,56 Q 30,58 34,56" fill="none" stroke="rgba(61,90,53,0.25)" stroke-width="1" stroke-linecap="round"/>
+            <path class="smile-crease crease-right" d="M 66,56 Q 70,58 74,56" fill="none" stroke="rgba(61,90,53,0.25)" stroke-width="1" stroke-linecap="round"/>
+            <!-- Sparkle Stars - 4-point stars for delight (Pixar-style) -->
+            <g class="sparkle sparkle-group">
+              <path class="sparkle-star sparkle-1" d="M 72,38 L 73,40 L 75,40 L 73.5,41.5 L 74,44 L 72,42.5 L 70,44 L 70.5,41.5 L 69,40 L 71,40 Z" fill="white"/>
+              <path class="sparkle-star sparkle-2" d="M 78,44 L 78.5,45 L 80,45 L 79,46 L 79.3,47.5 L 78,46.8 L 76.7,47.5 L 77,46 L 76,45 L 77.5,45 Z" fill="white" transform="scale(0.7) translate(32, 20)"/>
+            </g>
+          </g>
+        </svg>
+      </div>
+      <div class="status" id="status">Neutral · Breathing</div>
+    </div>
+
+    <!-- Animation Layers -->
+    <div class="control-section">
+      <div class="section-title">Animation Layers</div>
+      <div class="layers">
+        <label class="layer-card" id="layerBreathing">
+          <div class="layer-icon">🫁</div>
+          <div class="layer-name">Breathing</div>
+          <div class="layer-desc">4s cycle, 1.8% expansion</div>
+          <input type="checkbox" checked data-layer="breathing" style="display:none">
+        </label>
+        <label class="layer-card" id="layerBlink">
+          <div class="layer-icon">👁</div>
+          <div class="layer-name">Blinking</div>
+          <div class="layer-desc">Random 3-7s interval</div>
+          <input type="checkbox" checked data-layer="blink" style="display:none">
+        </label>
+        <label class="layer-card" id="layerGaze">
+          <div class="layer-icon">👀</div>
+          <div class="layer-name">Gaze Drift</div>
+          <div class="layer-desc">8s subtle eye movement</div>
+          <input type="checkbox" checked data-layer="gaze" style="display:none">
+        </label>
+        <label class="layer-card" id="layerAnticipation">
+          <div class="layer-icon">⚡</div>
+          <div class="layer-name">Anticipation</div>
+          <div class="layer-desc">Overshoot on transitions</div>
+          <input type="checkbox" checked data-layer="anticipation" style="display:none">
+        </label>
+        <label class="layer-card" id="layerAlive">
+          <div class="layer-icon">💓</div>
+          <div class="layer-name">Alive</div>
+          <div class="layer-desc">Organic micro-tremors</div>
+          <input type="checkbox" checked data-layer="alive" style="display:none">
+        </label>
+        <label class="layer-card" id="layerTracking">
+          <div class="layer-icon">👁️‍🗨️</div>
+          <div class="layer-name">Tracking</div>
+          <div class="layer-desc">Eyes follow cursor</div>
+          <input type="checkbox" checked data-layer="tracking" style="display:none">
+        </label>
+        <label class="layer-card" id="layerQuirks">
+          <div class="layer-icon">🎭</div>
+          <div class="layer-name">Quirks</div>
+          <div class="layer-desc">Random personality</div>
+          <input type="checkbox" checked data-layer="quirks" style="display:none">
+        </label>
+        <label class="layer-card" id="layerActiveListening">
+          <div class="layer-icon">🎧</div>
+          <div class="layer-name">Active Listen</div>
+          <div class="layer-desc">Micro-nods when listening</div>
+          <input type="checkbox" checked data-layer="activeListening" style="display:none">
+        </label>
+      </div>
+    </div>
+
+    <!-- Expression Controls - Full 92 Expression System -->
+    <div class="control-section">
+      <div class="section-title">Expressions (92 Total)</div>
+
+      <!-- Category Tabs -->
+      <div class="category-tabs">
+        <button class="category-tab active" data-category="all">All</button>
+        <button class="category-tab" data-category="happy">😊 Happy</button>
+        <button class="category-tab" data-category="warmth">💛 Warmth</button>
+        <button class="category-tab" data-category="playful">😜 Playful</button>
+        <button class="category-tab" data-category="surprised">😮 Surprised</button>
+        <button class="category-tab" data-category="thinking">🤔 Thinking</button>
+        <button class="category-tab" data-category="listening">👂 Listening</button>
+        <button class="category-tab" data-category="presence">🧘 Presence</button>
+        <button class="category-tab" data-category="coaching">🎯 Coaching</button>
+        <button class="category-tab" data-category="tired">😴 Tired</button>
+        <button class="category-tab" data-category="concern">💙 Concern</button>
+        <button class="category-tab" data-category="sad">😢 Sad</button>
+        <button class="category-tab" data-category="frustrated">😤 Frustrated</button>
+        <button class="category-tab" data-category="confused">😕 Confused</button>
+        <button class="category-tab" data-category="nervous">😰 Nervous</button>
+        <button class="category-tab" data-category="embarrassed">😳 Embarrassed</button>
+        <button class="category-tab" data-category="cool">😎 Cool</button>
+        <button class="category-tab" data-category="intense">🔥 Intense</button>
+      </div>
+
+      <!-- Expression Grid -->
+      <div class="expression-grid" id="expressionGrid">
+        <!-- Core -->
+        <button class="btn active" data-mood="neutral" data-category="all">Neutral</button>
+        <button class="btn" data-mood="listening" data-category="listening">Listening</button>
+        <button class="btn" data-mood="speaking" data-category="all">Speaking</button>
+
+        <!-- Happy Family -->
+        <button class="btn" data-mood="happy" data-category="happy">Happy</button>
+        <button class="btn" data-mood="joyful" data-category="happy">Joyful</button>
+        <button class="btn" data-mood="delighted" data-category="happy">Delighted ✨</button>
+        <button class="btn" data-mood="amused" data-category="happy">Amused</button>
+        <button class="btn" data-mood="pleased" data-category="happy">Pleased</button>
+        <button class="btn" data-mood="content" data-category="happy">Content</button>
+        <button class="btn" data-mood="excited" data-category="happy">Excited ⚡</button>
+        <button class="btn" data-mood="grateful" data-category="happy">Grateful</button>
+        <button class="btn" data-mood="proud" data-category="happy">Proud</button>
+
+        <!-- Warmth Family -->
+        <button class="btn" data-mood="warm" data-category="warmth">Warm</button>
+        <button class="btn" data-mood="caring" data-category="warmth">Caring</button>
+        <button class="btn" data-mood="loving" data-category="warmth">Loving 💛</button>
+        <button class="btn" data-mood="tender" data-category="warmth">Tender</button>
+        <button class="btn" data-mood="supportive" data-category="warmth">Supportive</button>
+        <button class="btn" data-mood="compassionate" data-category="warmth">Compassionate</button>
+        <button class="btn" data-mood="empathetic" data-category="warmth">Empathetic</button>
+        <button class="btn" data-mood="nurturing" data-category="warmth">Nurturing</button>
+
+        <!-- Playful Family -->
+        <button class="btn" data-mood="playful" data-category="playful">Playful</button>
+        <button class="btn" data-mood="mischievous" data-category="playful">Mischievous 😏</button>
+        <button class="btn" data-mood="cheeky" data-category="playful">Cheeky</button>
+        <button class="btn" data-mood="silly" data-category="playful">Silly</button>
+        <button class="btn" data-mood="winking" data-category="playful">Winking 😉</button>
+        <button class="btn" data-mood="teasing" data-category="playful">Teasing</button>
+
+        <!-- Surprised Family -->
+        <button class="btn" data-mood="surprised" data-category="surprised">Surprised</button>
+        <button class="btn" data-mood="shocked" data-category="surprised">Shocked 😲</button>
+        <button class="btn" data-mood="amazed" data-category="surprised">Amazed ✨</button>
+        <button class="btn" data-mood="intrigued" data-category="surprised">Intrigued</button>
+        <button class="btn" data-mood="astonished" data-category="surprised">Astonished</button>
+        <button class="btn" data-mood="curious" data-category="surprised">Curious</button>
+
+        <!-- Thinking Family -->
+        <button class="btn" data-mood="thinking" data-category="thinking">Thinking</button>
+        <button class="btn" data-mood="pondering" data-category="thinking">Pondering</button>
+        <button class="btn" data-mood="contemplating" data-category="thinking">Contemplating</button>
+        <button class="btn" data-mood="focused" data-category="thinking">Focused</button>
+        <button class="btn" data-mood="processing" data-category="thinking">Processing 🔄</button>
+        <button class="btn" data-mood="reflecting" data-category="thinking">Reflecting</button>
+        <button class="btn" data-mood="analyzing" data-category="thinking">Analyzing</button>
+
+        <!-- Listening Family -->
+        <button class="btn" data-mood="attentive" data-category="listening">Attentive</button>
+        <button class="btn" data-mood="engaged" data-category="listening">Engaged</button>
+        <button class="btn" data-mood="interested" data-category="listening">Interested</button>
+        <button class="btn" data-mood="absorbing" data-category="listening">Absorbing</button>
+        <button class="btn" data-mood="receptive" data-category="listening">Receptive</button>
+
+        <!-- Presence Family -->
+        <button class="btn" data-mood="present" data-category="presence">Present</button>
+        <button class="btn" data-mood="grounded" data-category="presence">Grounded</button>
+        <button class="btn" data-mood="calm" data-category="presence">Calm</button>
+        <button class="btn" data-mood="serene" data-category="presence">Serene</button>
+        <button class="btn" data-mood="peaceful" data-category="presence">Peaceful 🧘</button>
+
+        <!-- Coaching Family -->
+        <button class="btn" data-mood="encouraging" data-category="coaching">Encouraging</button>
+        <button class="btn" data-mood="cheering" data-category="coaching">Cheering 🎉</button>
+        <button class="btn" data-mood="guiding" data-category="coaching">Guiding</button>
+        <button class="btn" data-mood="wise" data-category="coaching">Wise</button>
+        <button class="btn" data-mood="knowing" data-category="coaching">Knowing</button>
+
+        <!-- Tired Family -->
+        <button class="btn" data-mood="sleepy" data-category="tired">Sleepy</button>
+        <button class="btn" data-mood="drowsy" data-category="tired">Drowsy</button>
+        <button class="btn" data-mood="exhausted" data-category="tired">Exhausted</button>
+        <button class="btn" data-mood="yawning" data-category="tired">Yawning 🥱</button>
+        <button class="btn" data-mood="resting" data-category="tired">Resting</button>
+        <button class="btn" data-mood="blissful" data-category="tired">Blissful 😌</button>
+
+        <!-- Concern Family -->
+        <button class="btn" data-mood="concerned" data-category="concern">Concerned</button>
+        <button class="btn" data-mood="worried" data-category="concern">Worried</button>
+        <button class="btn" data-mood="sympathetic" data-category="concern">Sympathetic</button>
+        <button class="btn" data-mood="understanding" data-category="concern">Understanding</button>
+        <button class="btn" data-mood="comforting" data-category="concern">Comforting 💙</button>
+
+        <!-- Sad Family -->
+        <button class="btn" data-mood="sad" data-category="sad">Sad</button>
+        <button class="btn" data-mood="crying" data-category="sad">Crying 😢</button>
+        <button class="btn" data-mood="melancholy" data-category="sad">Melancholy</button>
+        <button class="btn" data-mood="disappointed" data-category="sad">Disappointed</button>
+        <button class="btn" data-mood="dejected" data-category="sad">Dejected</button>
+
+        <!-- Frustrated Family -->
+        <button class="btn" data-mood="frustrated" data-category="frustrated">Frustrated</button>
+        <button class="btn" data-mood="annoyed" data-category="frustrated">Annoyed</button>
+        <button class="btn" data-mood="irritated" data-category="frustrated">Irritated</button>
+        <button class="btn" data-mood="exasperated" data-category="frustrated">Exasperated 😤</button>
+        <button class="btn" data-mood="eyeroll" data-category="frustrated">Eye Roll 🙄</button>
+
+        <!-- Confused Family -->
+        <button class="btn" data-mood="confused" data-category="confused">Confused</button>
+        <button class="btn" data-mood="skeptical" data-category="confused">Skeptical 🤨</button>
+        <button class="btn" data-mood="puzzled" data-category="confused">Puzzled</button>
+        <button class="btn" data-mood="perplexed" data-category="confused">Perplexed</button>
+        <button class="btn" data-mood="bewildered" data-category="confused">Bewildered</button>
+
+        <!-- Nervous Family -->
+        <button class="btn" data-mood="nervous" data-category="nervous">Nervous</button>
+        <button class="btn" data-mood="anxious" data-category="nervous">Anxious 😰</button>
+        <button class="btn" data-mood="scared" data-category="nervous">Scared</button>
+        <button class="btn" data-mood="fearful" data-category="nervous">Fearful</button>
+        <button class="btn" data-mood="uneasy" data-category="nervous">Uneasy</button>
+
+        <!-- Embarrassed Family -->
+        <button class="btn" data-mood="embarrassed" data-category="embarrassed">Embarrassed 😳</button>
+        <button class="btn" data-mood="awkward" data-category="embarrassed">Awkward</button>
+        <button class="btn" data-mood="cringing" data-category="embarrassed">Cringing</button>
+        <button class="btn" data-mood="sheepish" data-category="embarrassed">Sheepish</button>
+        <button class="btn" data-mood="flustered" data-category="embarrassed">Flustered</button>
+
+        <!-- Cool Family -->
+        <button class="btn" data-mood="confident" data-category="cool">Confident</button>
+        <button class="btn" data-mood="smirking" data-category="cool">Smirking 😏</button>
+        <button class="btn" data-mood="cool" data-category="cool">Cool 😎</button>
+        <button class="btn" data-mood="sassy" data-category="cool">Sassy</button>
+        <button class="btn" data-mood="smug" data-category="cool">Smug</button>
+
+        <!-- Intense Family -->
+        <button class="btn" data-mood="determined" data-category="intense">Determined</button>
+        <button class="btn" data-mood="fierce" data-category="intense">Fierce 🔥</button>
+        <button class="btn" data-mood="intense" data-category="intense">Intense</button>
+        <button class="btn" data-mood="resolute" data-category="intense">Resolute</button>
+        <button class="btn" data-mood="passionate" data-category="intense">Passionate</button>
+      </div>
+    </div>
+
+    <!-- Micro-Expressions (Subliminal - Beyond Pixar) -->
+    <div class="control-section">
+      <div class="section-title">Micro-Expressions (40-150ms Subliminal)</div>
+      <p style="font-size: 0.6rem; color: var(--ink-light); margin-bottom: 10px;">
+        These flash so fast you barely notice, but they build unconscious trust. Pixar doesn't do this.
+      </p>
+      <div class="control-row">
+        <button class="btn" id="microRecognition">Recognition (80ms)</button>
+        <button class="btn" id="microConcern">Concern (100ms)</button>
+        <button class="btn" id="microDelight">Delight (120ms)</button>
+        <button class="btn" id="microWarmth">Warmth (100ms)</button>
+        <button class="btn" id="microInterest">Interest (90ms)</button>
+        <button class="btn" id="microSurprise">Surprise (150ms)</button>
+      </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="control-section">
+      <div class="section-title">Demo Sequences</div>
+      <div class="control-row">
+        <button class="btn" id="triggerBlink">👁 Blink Now</button>
+        <button class="btn" id="playConversation">▶ Conversation Demo</button>
+        <button class="btn" id="playJourney">🌅 Emotional Journey</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="principles">
+    <div class="principle-card" style="margin-bottom: 12px;">
+      <div class="principle-title">🎬 Pixar's 12 Principles Applied</div>
+      <div class="principle-list">
+        <div class="principle-item">
+          <div class="principle-num">1</div>
+          <span><strong>Squash & Stretch:</strong> Eyes scale on expressions (scaleY 0.3→1.25), body compresses when excited</span>
+        </div>
+        <div class="principle-item">
+          <div class="principle-num">2</div>
+          <span><strong>Anticipation:</strong> Spring overshoot (1.8 tension) — lids settle with organic bounce</span>
+        </div>
+        <div class="principle-item">
+          <div class="principle-num">3</div>
+          <span><strong>Secondary Action:</strong> Presence ring follows body breathing with 0.3s offset; smile creases add warmth</span>
+        </div>
+        <div class="principle-item">
+          <div class="principle-num">4</div>
+          <span><strong>Timing:</strong> 0.35s expression transitions, 150ms blinks, 4s breathing cycle</span>
+        </div>
+        <div class="principle-item">
+          <div class="principle-num">5</div>
+          <span><strong>Exaggeration:</strong> Eyes 125% scale for shock, 30% for exhaustion — readable at any size</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="principle-card" style="background: linear-gradient(135deg, rgba(74,103,65,0.08) 0%, rgba(74,103,65,0.02) 100%);">
+      <div class="principle-title">✨ Beyond Pixar's Luxo Jr.</div>
+      <div class="principle-list">
+        <div class="principle-item">
+          <div class="principle-num" style="background: var(--ferni); color: white;">+</div>
+          <span><strong>Two Expressive Eyes:</strong> Luxo has one lamp — Ferni's binocular vision creates warmth and emotional depth</span>
+        </div>
+        <div class="principle-item">
+          <div class="principle-num" style="background: var(--ferni); color: white;">+</div>
+          <span><strong>Micro-Expressions (40-150ms):</strong> Subliminal flashes below conscious perception that build trust unconsciously</span>
+        </div>
+        <div class="principle-item">
+          <div class="principle-num" style="background: var(--ferni); color: white;">+</div>
+          <span><strong>Smile Creases:</strong> Duchenne smile indicators — eye crinkles that show genuine vs. polite emotion</span>
+        </div>
+        <div class="principle-item">
+          <div class="principle-num" style="background: var(--ferni); color: white;">+</div>
+          <span><strong>57 Distinct Expressions:</strong> Emotional vocabulary from "shocked" to "blissful" — 10× Luxo's range</span>
+        </div>
+        <div class="principle-item">
+          <div class="principle-num" style="background: var(--ferni); color: white;">+</div>
+          <span><strong>Organic Breathing:</strong> Continuous life presence, not just reactive animation</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const avatar = document.getElementById('mainAvatar');
+    const avatarStage = document.querySelector('.avatar-stage');
+    const status = document.getElementById('status');
+    const expressionGrid = document.getElementById('expressionGrid');
+    const eyesGroup = avatar.querySelector('.eyes-group');
+
+    // Layer toggles - extended with new life features
+    const layers = {
+      breathing: true,
+      blink: true,
+      gaze: true,
+      anticipation: true,
+      alive: true,
+      tracking: true,
+      quirks: true,
+      activeListening: true
+    };
+
+    function updateLayers() {
+      avatar.classList.toggle('breathing', layers.breathing);
+      avatar.classList.toggle('gazing', layers.gaze);
+      avatar.classList.toggle('anticipation', layers.anticipation);
+      avatar.classList.toggle('alive', layers.alive);
+      avatar.classList.toggle('tracking', layers.tracking);
+
+      // Update layer cards
+      document.getElementById('layerBreathing').classList.toggle('disabled', !layers.breathing);
+      document.getElementById('layerBlink').classList.toggle('disabled', !layers.blink);
+      document.getElementById('layerGaze').classList.toggle('disabled', !layers.gaze);
+      document.getElementById('layerAnticipation').classList.toggle('disabled', !layers.anticipation);
+      document.getElementById('layerAlive').classList.toggle('disabled', !layers.alive);
+      document.getElementById('layerTracking').classList.toggle('disabled', !layers.tracking);
+      document.getElementById('layerQuirks').classList.toggle('disabled', !layers.quirks);
+      document.getElementById('layerActiveListening').classList.toggle('disabled', !layers.activeListening);
+
+      // Toggle active listening based on mood
+      updateActiveListening();
+    }
+
+    // ============================================
+    // CURSOR TRACKING - Eyes follow the mouse
+    // ============================================
+    function setupCursorTracking() {
+      avatarStage.addEventListener('mousemove', (e) => {
+        if (!layers.tracking) return;
+
+        const rect = avatar.getBoundingClientRect();
+        const centerX = rect.left + rect.width / 2;
+        const centerY = rect.top + rect.height / 2;
+
+        // Calculate offset from center (clamped to subtle range)
+        const maxOffset = 3; // Maximum pixel offset
+        let offsetX = (e.clientX - centerX) / 50;
+        let offsetY = (e.clientY - centerY) / 50;
+
+        offsetX = Math.max(-maxOffset, Math.min(maxOffset, offsetX));
+        offsetY = Math.max(-maxOffset, Math.min(maxOffset, offsetY));
+
+        eyesGroup.style.transform = `translate(${offsetX}px, ${offsetY}px)`;
+      });
+
+      avatarStage.addEventListener('mouseleave', () => {
+        eyesGroup.style.transform = '';
+      });
+    }
+
+    // ============================================
+    // IDLE QUIRKS - Random personality animations
+    // ============================================
+    const quirks = ['quirk-glance', 'quirk-settle', 'quirk-brow', 'quirk-squint'];
+    let quirksInterval;
+
+    function triggerRandomQuirk() {
+      if (!layers.quirks) return;
+
+      const quirk = quirks[Math.floor(Math.random() * quirks.length)];
+      avatar.classList.add(quirk);
+
+      // Remove after animation completes
+      setTimeout(() => {
+        avatar.classList.remove(quirk);
+      }, 800);
+    }
+
+    function scheduleQuirks() {
+      // Random quirk every 8-15 seconds
+      const delay = 8000 + Math.random() * 7000;
+      quirksInterval = setTimeout(() => {
+        triggerRandomQuirk();
+        scheduleQuirks();
+      }, delay);
+    }
+
+    // ============================================
+    // ACTIVE LISTENING - Micro-nods during listening
+    // ============================================
+    function updateActiveListening() {
+      const listeningMoods = ['listening', 'attentive', 'engaged', 'interested', 'absorbing', 'receptive'];
+      const currentMood = avatar.dataset.mood;
+
+      if (layers.activeListening && listeningMoods.includes(currentMood)) {
+        avatar.classList.add('active-listening');
+      } else {
+        avatar.classList.remove('active-listening');
+      }
+    }
+
+    // ============================================
+    // DOUBLE BLINK - More natural blink pattern
+    // ============================================
+    function triggerDoubleBlink() {
+      if (!layers.blink) return;
+      avatar.classList.add('double-blinking');
+      setTimeout(() => avatar.classList.remove('double-blinking'), 350);
+    }
+
+    // Layer card clicks
+    document.querySelectorAll('.layer-card').forEach(card => {
+      card.addEventListener('click', () => {
+        const input = card.querySelector('input');
+        const layer = input.dataset.layer;
+        layers[layer] = !layers[layer];
+        input.checked = layers[layer];
+        updateLayers();
+      });
+    });
+
+    // Category tab filtering
+    document.querySelectorAll('.category-tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        // Update active tab
+        document.querySelectorAll('.category-tab').forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+
+        const category = tab.dataset.category;
+
+        // Filter expression buttons
+        expressionGrid.querySelectorAll('.btn').forEach(btn => {
+          const btnCategory = btn.dataset.category;
+          if (category === 'all') {
+            btn.style.display = '';
+          } else {
+            btn.style.display = (btnCategory === category || btnCategory === 'all') ? '' : 'none';
+          }
+        });
+      });
+    });
+
+    // Expression buttons
+    expressionGrid.querySelectorAll('[data-mood]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        expressionGrid.querySelectorAll('[data-mood]').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        avatar.dataset.mood = btn.dataset.mood;
+        updateStatus();
+        updateActiveListening();
+      });
+    });
+
+    function updateStatus() {
+      const mood = avatar.dataset.mood;
+      const activeLayers = Object.entries(layers)
+        .filter(([k, v]) => v)
+        .map(([k]) => k.charAt(0).toUpperCase() + k.slice(1))
+        .join(' · ');
+      status.textContent = `${mood.charAt(0).toUpperCase() + mood.slice(1)} · ${activeLayers || 'No layers'}`;
+    }
+
+    // Blinking system - Enhanced with occasional double blinks
+    let blinkTimeout = null;
+
+    function triggerBlink() {
+      if (!layers.blink) return;
+
+      // 20% chance of double blink for more natural feel
+      if (Math.random() < 0.2) {
+        triggerDoubleBlink();
+      } else {
+        avatar.classList.add('blinking');
+        setTimeout(() => avatar.classList.remove('blinking'), 150);
+      }
+    }
+
+    function scheduleBlink() {
+      if (!layers.blink) return;
+      const delay = 3000 + Math.random() * 4000; // 3-7 seconds
+      blinkTimeout = setTimeout(() => {
+        triggerBlink();
+        scheduleBlink();
+      }, delay);
+    }
+
+    document.getElementById('triggerBlink').addEventListener('click', triggerBlink);
+
+    // Micro-expression system (40-150ms subliminal flashes)
+    function triggerMicroExpression(type, duration) {
+      avatar.classList.add(`micro-${type}`);
+      setTimeout(() => avatar.classList.remove(`micro-${type}`), duration);
+    }
+
+    document.getElementById('microRecognition').addEventListener('click', () => triggerMicroExpression('recognition', 80));
+    document.getElementById('microConcern').addEventListener('click', () => triggerMicroExpression('concern', 100));
+    document.getElementById('microDelight').addEventListener('click', () => triggerMicroExpression('delight', 120));
+    document.getElementById('microWarmth').addEventListener('click', () => triggerMicroExpression('warmth', 100));
+    document.getElementById('microInterest').addEventListener('click', () => triggerMicroExpression('interest', 90));
+    document.getElementById('microSurprise').addEventListener('click', () => triggerMicroExpression('surprise', 150));
+
+    // Enhanced conversation demo with micro-expressions
+    document.getElementById('playConversation').addEventListener('click', async () => {
+      const sequence = [
+        { mood: 'neutral', duration: 400 },
+        { mood: 'attentive', duration: 300, micro: 'recognition' },
+        { mood: 'listening', duration: 1200 },
+        { mood: 'intrigued', duration: 400, micro: 'interest' },
+        { mood: 'curious', duration: 600 },
+        { mood: 'processing', duration: 800 },
+        { mood: 'delighted', duration: 600, micro: 'delight' },
+        { mood: 'speaking', duration: 1500 },
+        { mood: 'encouraging', duration: 800 },
+        { mood: 'speaking', duration: 1200 },
+        { mood: 'warm', duration: 1000, micro: 'warmth' },
+        { mood: 'caring', duration: 800 },
+        { mood: 'listening', duration: 1000 },
+        { mood: 'understanding', duration: 600 },
+        { mood: 'supportive', duration: 800 },
+        { mood: 'loving', duration: 600 },
+        { mood: 'peaceful', duration: 800 },
+        { mood: 'neutral', duration: 500 },
+      ];
+
+      for (const step of sequence) {
+        // Trigger micro-expression first (subliminal anticipation)
+        if (step.micro) {
+          triggerMicroExpression(step.micro, step.micro === 'recognition' ? 80 : 100);
+          await new Promise(r => setTimeout(r, 50)); // Slight delay before main expression
+        }
+
+        avatar.dataset.mood = step.mood;
+        expressionGrid.querySelectorAll('[data-mood]').forEach(b => {
+          b.classList.toggle('active', b.dataset.mood === step.mood);
+        });
+        updateStatus();
+        await new Promise(r => setTimeout(r, step.duration));
+      }
+    });
+
+    // Emotional journey demo (shows range)
+    document.getElementById('playJourney').addEventListener('click', async () => {
+      const journey = [
+        // Morning energy
+        { mood: 'drowsy', duration: 800 },
+        { mood: 'yawning', duration: 1200 },
+        { mood: 'resting', duration: 600 },
+        { mood: 'calm', duration: 500 },
+        { mood: 'present', duration: 400 },
+        { mood: 'grounded', duration: 500 },
+        // Getting engaged
+        { mood: 'interested', duration: 400, micro: 'interest' },
+        { mood: 'curious', duration: 500 },
+        { mood: 'engaged', duration: 600 },
+        { mood: 'attentive', duration: 500 },
+        // Thinking
+        { mood: 'thinking', duration: 600 },
+        { mood: 'pondering', duration: 800 },
+        { mood: 'analyzing', duration: 600 },
+        { mood: 'focused', duration: 500 },
+        // Breakthrough moment
+        { mood: 'surprised', duration: 300, micro: 'surprise' },
+        { mood: 'amazed', duration: 500 },
+        { mood: 'excited', duration: 800 },
+        { mood: 'delighted', duration: 600, micro: 'delight' },
+        { mood: 'joyful', duration: 700 },
+        // Settling into warmth
+        { mood: 'happy', duration: 500 },
+        { mood: 'pleased', duration: 400 },
+        { mood: 'content', duration: 500 },
+        { mood: 'warm', duration: 600, micro: 'warmth' },
+        { mood: 'loving', duration: 800 },
+        { mood: 'tender', duration: 600 },
+        { mood: 'peaceful', duration: 1000 },
+        { mood: 'serene', duration: 800 },
+        { mood: 'blissful', duration: 1200 },
+        { mood: 'neutral', duration: 500 },
+      ];
+
+      for (const step of journey) {
+        if (step.micro) {
+          triggerMicroExpression(step.micro, 100);
+          await new Promise(r => setTimeout(r, 30));
+        }
+
+        avatar.dataset.mood = step.mood;
+        expressionGrid.querySelectorAll('[data-mood]').forEach(b => {
+          b.classList.toggle('active', b.dataset.mood === step.mood);
+        });
+        updateStatus();
+        await new Promise(r => setTimeout(r, step.duration));
+      }
+    });
+
+    // Initialize all life systems
+    updateLayers();
+    scheduleBlink();
+    scheduleQuirks();
+    setupCursorTracking();
+
+    // Show welcome micro-expression after short delay
+    setTimeout(() => {
+      triggerMicroExpression('recognition', 80);
+    }, 1000);
+  </script>
+</body>
+</html>

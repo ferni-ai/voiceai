@@ -169,11 +169,11 @@ export async function saveUtilityPreferences(
       .doc('patterns');
 
     await docRef.set(
-      {
+      cleanForFirestore({
         ...preferences,
         lastUpdated: new Date().toISOString(),
         version: 1,
-      },
+      }),
       { merge: true }
     );
 
@@ -375,6 +375,7 @@ export async function incrementDecisionCount(
 // ============================================================================
 
 import type { UserUtilityPatterns } from './pattern-intelligence.js';
+import { cleanForFirestore } from '../../../utils/firestore-utils.js';
 
 /**
  * Sync in-memory patterns to Firestore

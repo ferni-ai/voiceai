@@ -46,14 +46,15 @@ describe('Voice Agent Entry E2E - Voice Localization', () => {
   });
 
   it('should have voice localization service', async () => {
-    const voiceLocalization = await import('../../services/cartesia-voice-localization.js');
+    const voiceLocalization = await import('../../services/voice/cartesia-voice-localization.js');
     expect(voiceLocalization.getLocalizedVoiceId).toBeDefined();
     expect(typeof voiceLocalization.getLocalizedVoiceId).toBe('function');
   });
 
   it('should handle American accent (no localization needed)', async () => {
     // American is the default, no localization needed
-    const { getLocalizedVoiceId } = await import('../../services/cartesia-voice-localization.js');
+    const { getLocalizedVoiceId } =
+      await import('../../services/voice/cartesia-voice-localization.js');
 
     // This should return the original voice ID for American accent
     // or handle gracefully if the service isn't fully configured

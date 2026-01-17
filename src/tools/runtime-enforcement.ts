@@ -42,18 +42,134 @@ export interface ToolCallMetrics {
 
 /**
  * Domain ownership map - which persona owns which tools
+ *
+ * NOTE: These tool names MUST match the actual tool IDs in the registry!
+ * Check src/tools/domains/{domain}/index.ts for actual tool IDs.
+ *
+ * Mismatched tool names will cause silent failures - persona can't use their tools!
  */
 const DOMAIN_OWNERSHIP: Record<string, string[]> = {
-  // Peter owns stock/research tools
-  'peter-john': ['searchStocks', 'getStockQuote', 'analyzeCompany', 'getEarnings', 'stockResearch'],
-  // Nayan owns philosophy/index fund tools
-  'nayan-patel': ['explainIndexFunds', 'compareExpenseRatios', 'longTermStrategy'],
-  // Maya owns habit/budget tools
-  'maya-santos': ['trackHabit', 'getHabitStreak', 'setBudget', 'trackSpending', 'habitGlidepath'],
-  // Alex owns calendar/communication tools
-  'alex-chen': ['createAppointment', 'sendEmail', 'draftMessage', 'scheduleReminder'],
-  // Jordan owns event planning tools
-  'jordan-taylor': ['planEvent', 'createGuestList', 'trackMilestone', 'celebrationIdeas'],
+  // Peter owns research/analysis tools (from research domain)
+  // See: src/tools/domains/research/index.ts
+  'peter-john': [
+    // Market Quant
+    'analyzeStock',
+    'findStocks',
+    'marketData',
+    'marketAwareness',
+    'technicalIndicators',
+    'riskAnalysis',
+    // Personal Finance Quant
+    'analyzeSavingsRate',
+    'calculateFIRE',
+    'retirementReadiness',
+    // Coaching Quant
+    'behavioralScore',
+    'peerComparison',
+    // Pattern Analysis
+    'analyzePatterns',
+    'behavioralInsights',
+    'insightBriefing',
+    'proactiveInsights',
+  ],
+  // Nayan owns wisdom/philosophy tools (from wisdom domain)
+  // See: src/tools/domains/wisdom/index.ts
+  'nayan-patel': ['getWisdomQuote', 'getBogleQuote', 'getThisDayInHistory', 'getCrashPerspective'],
+  // Maya owns habit/budget tools (from habits domain)
+  // See: src/tools/domains/habits/index.ts
+  'maya-santos': [
+    'createHabit',
+    'logHabitCompletion',
+    'getHabits',
+    'habitCheckIn',
+    'habitCoach',
+    'habitSetback',
+    'habitStrategy',
+    'gamificationProfile',
+    'leaderboard',
+    // Voice-first tools (Phase 1-2 Maya Excellence)
+    'quickHabitCheck',
+    'microCommitNow',
+    'implementationIntention',
+    'weeklyHabitReview',
+  ],
+  // Alex owns calendar/communication tools (from communication + calendar domains)
+  // See: src/tools/domains/communication/index.ts, src/tools/domains/calendar/index.ts
+  'alex-chen': [
+    // Calendar Tools (Phase 1: Smart Calendar Management)
+    'getCalendarToday',
+    'getCalendarWeek',
+    'createCalendarEvent',
+    'updateCalendarEvent',
+    'deleteCalendarEvent',
+    'findFreeTime',
+    'checkAvailability',
+    'getDailyBriefing',
+    'suggestMeetingTime',
+    'detectCalendarIssues',
+    // Gmail Tools (Phase 2: Email Triage)
+    'getInboxSummary',
+    'getUnreadEmails',
+    'searchInbox',
+    'triageInbox',
+    'getEmailThread',
+    'checkEmailFrom',
+    // Contact Relationship Tools (Phase 3)
+    'getContactInsights',
+    'getContactsNeedingAttention',
+    'getContactInfo',
+    'saveContact',
+    'recordContactInteraction',
+    'setContactFollowUp',
+    'completeContactFollowUp',
+    // Message Validation Tools (Phase 4 - "Sleep on It")
+    'analyzeMessageTone',
+    'saveMessageForReview',
+    'getPendingMessages',
+    'getMessagesReadyForReview',
+    'reviewMessage',
+    'approveMessage',
+    'discardMessage',
+    // Legacy Calendar/Appointment Tools
+    'manageAppointment',
+    'scheduleReminder',
+    'manageContact',
+    'findBusiness',
+    // Communication Tools (sendMessage/draftMessage consolidated into reachOut)
+    'reachOut',
+    'analyzeMessage',
+    'rolePlayConversation',
+    'communicationStrategy',
+    'buildAssertiveness',
+    'planFollowUp',
+    // Enhanced Calendar Tools
+    'getPreMeetingBriefing',
+    'getPostMeetingFollowUp',
+    'recordMeetingOutcome',
+    'checkConflicts',
+    'smartReschedule',
+    'findBestTime',
+    // Better Than Human - Recovery & Wellbeing
+    'detectRecoveryNeeds',
+    'findRecoveryOpportunities',
+    'blockRecoveryTime',
+    'getCalendarLoadSummary',
+  ],
+  // Jordan owns event/milestone/goal planning tools (from life-planning domain)
+  // See: src/tools/domains/life-planning/index.ts
+  'jordan-taylor': [
+    'manageMilestone',
+    'milestoneSupport',
+    'manageEvent',
+    'eventGuests',
+    'eventBudget',
+    'manageGoal',
+    'goalsSummary',
+    'lifePortfolio',
+    'planVacation',
+    'planPurchase',
+    'annualPlan',
+  ],
   // Ferni can use most tools (team coordinator)
   ferni: [], // Empty means no exclusive tools - can handoff to specialists
 };

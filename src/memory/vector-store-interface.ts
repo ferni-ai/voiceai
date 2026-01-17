@@ -75,7 +75,7 @@ export interface VectorStoreStats {
  * - VectorStore: In-memory, ephemeral (development)
  * - FirestoreVectorStore: Persistent (production)
  */
-export interface IVectorStore {
+export interface VectorStoreContract {
   /**
    * Initialize the store
    */
@@ -136,9 +136,9 @@ export interface IVectorStore {
 }
 
 /**
- * Type guard to check if an object implements IVectorStore
+ * Type guard to check if an object implements VectorStoreContract
  */
-export function isVectorStore(obj: unknown): obj is IVectorStore {
+export function isVectorStore(obj: unknown): obj is VectorStoreContract {
   if (!obj || typeof obj !== 'object') return false;
   const store = obj as Record<string, unknown>;
   return (

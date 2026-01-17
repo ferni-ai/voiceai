@@ -130,12 +130,12 @@ describe('Frontend-Backend API Contract', () => {
         { name: 'calendar-routes', path: '../api/calendar-routes.js' },
         { name: 'feature-flags-routes', path: '../api/feature-flags-routes.js' },
         { name: 'monitoring-routes', path: '../api/monitoring-routes.js' },
-        { name: 'voice-auth-handler', path: '../api/voice-auth-handler.js' },
+        { name: 'voice-auth-routes', path: '../api/voice-auth.routes.js' },
         { name: 'habit-routes', path: '../api/habit-routes.js' },
         { name: 'household-routes', path: '../api/household-routes.js' },
         { name: 'story-journey-routes', path: '../api/story-journey-routes.js' },
-        { name: 'evalops-handler', path: '../api/evalops-handler.js' },
-        { name: 'outreach-handler', path: '../api/outreach-handler.js' },
+        { name: 'evalops-routes', path: '../api/evalops.routes.js' },
+        { name: 'outreach-routes', path: '../api/outreach.routes.js' },
         { name: 'subscription-routes', path: '../api/subscription-routes.js' },
         { name: 'auth-middleware', path: '../api/auth-middleware.js' },
         { name: 'v1-index', path: '../api/v1/index.js' },
@@ -193,7 +193,7 @@ describe('Frontend-Backend API Contract', () => {
 
   describe('EvalOps API Contract', () => {
     it('should export evalops handlers', async () => {
-      const module = await import('../api/evalops-handler.js');
+      const module = await import('../api/evalops.routes.js');
 
       expect(module.handleEvalOpsRoutes).toBeDefined();
     });
@@ -201,7 +201,7 @@ describe('Frontend-Backend API Contract', () => {
 
   describe('Voice Auth API Contract', () => {
     it('should export voice auth handlers', async () => {
-      const module = await import('../api/voice-auth-handler.js');
+      const module = await import('../api/voice-auth.routes.js');
 
       expect(module.handleVoiceAuthRoutes).toBeDefined();
     });
@@ -259,7 +259,7 @@ describe('Service Layer Integration', () => {
 
   describe('Spotify Auth Service', () => {
     it('should have auth methods', async () => {
-      const module = await import('../services/spotify-auth.js');
+      const module = await import('../services/identity/spotify-auth.js');
 
       expect(module.isSpotifyConfigured).toBeDefined();
       expect(module.getSpotifyAccessToken).toBeDefined();
@@ -268,7 +268,7 @@ describe('Service Layer Integration', () => {
     });
 
     it('should return token status', async () => {
-      const { getSpotifyTokenStatus } = await import('../services/spotify-auth.js');
+      const { getSpotifyTokenStatus } = await import('../services/identity/spotify-auth.js');
 
       const status = getSpotifyTokenStatus();
       expect(status).toHaveProperty('valid');
@@ -278,7 +278,7 @@ describe('Service Layer Integration', () => {
 
   describe('Google Calendar Service', () => {
     it('should have OAuth methods', async () => {
-      const module = await import('../services/google-calendar-oauth.js');
+      const module = await import('../services/identity/google-calendar-oauth.js');
 
       expect(module.generateAuthUrl).toBeDefined();
       expect(module.exchangeCodeForTokens).toBeDefined();
@@ -287,7 +287,7 @@ describe('Service Layer Integration', () => {
     });
 
     it('should have calendar CRUD methods', async () => {
-      const module = await import('../services/google-calendar-oauth.js');
+      const module = await import('../services/identity/google-calendar-oauth.js');
 
       expect(module.listCalendars).toBeDefined();
       expect(module.createEvent).toBeDefined();
@@ -465,7 +465,7 @@ describe('Authentication Middleware', () => {
 
 describe('Scheduled Jobs Integration', () => {
   it('should have scheduled jobs handler', async () => {
-    const module = await import('../api/scheduled-jobs-handler.js');
+    const module = await import('../api/scheduled-jobs.routes.js');
 
     expect(module.handleScheduledJobsRoutes).toBeDefined();
   });

@@ -10,6 +10,8 @@
  * @module conversation/superhuman/micro-celebrations
  */
 
+import { seededChance, seededIndex, seededPick } from '../utils/rng.js';
+import { getContentWithFallback, type ContentContext } from '../../services/llm-dynamic-content.js';
 import { createLogger } from '../../utils/safe-logger.js';
 
 const log = createLogger({ module: 'MicroCelebrations' });
@@ -349,6 +351,7 @@ const FOLLOW_UPS: Record<WinType, string[]> = {
 
 /**
  * Detect if a message contains a micro-win
+ * Now LLM-powered with template fallback!
  */
 export function detectMicroWin(message: string): MicroWin | null {
   for (const [type, config] of Object.entries(WIN_PATTERNS)) {
@@ -360,19 +363,40 @@ export function detectMicroWin(message: string): MicroWin | null {
         const celebrations = CELEBRATIONS[config.magnitude][winType];
         const followUps = FOLLOW_UPS[winType];
 
+        // Try LLM-generated celebration first (from cache)
+        const llmContext: ContentContext = {
+          contentType: 'celebration',
+          userMessage: message,
+          metadata: {
+            winType,
+            magnitude: config.magnitude,
+            trigger: match[0],
+          },
+        };
+
+        const llmContent = getContentWithFallback(llmContext);
+        const celebration =
+          llmContent.source === 'llm' && llmContent.content
+            ? llmContent.content
+            : (seededPick(`${Date.now()}:381`, celebrations) ?? celebrations[0]);
+
         const win: MicroWin = {
           type: winType,
           magnitude: config.magnitude,
           trigger: match[0],
-          celebration: celebrations[Math.floor(Math.random() * celebrations.length)],
-          followUp:
-            Math.random() > 0.5
-              ? followUps[Math.floor(Math.random() * followUps.length)]
-              : undefined,
+          celebration,
+          followUp: !seededChance(`${Date.now()}:1`, 0.5)
+            ? (seededPick(`${Date.now()}:390`, followUps) ?? followUps[0])
+            : undefined,
         };
 
         log.debug(
-          { type: winType, magnitude: config.magnitude, trigger: match[0] },
+          {
+            type: winType,
+            magnitude: config.magnitude,
+            trigger: match[0],
+            source: llmContent.source,
+          },
           '🎊 Micro-win detected'
         );
 

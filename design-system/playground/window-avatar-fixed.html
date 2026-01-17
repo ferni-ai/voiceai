@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Window Avatar — Fixed Structure</title>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      /* Actual Ferni colors */
+      --ferni: #4a6741;
+      --ferni-light: #5a7a51;
+      --ferni-dark: #3d5a35;
+      --cream: #F5F1E8;
+      --ink: #2C2520;
+      
+      /* Animation */
+      --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background: var(--cream);
+      min-height: 100vh;
+      padding: 40px 20px;
+      color: var(--ink);
+    }
+    
+    header {
+      text-align: center;
+      margin-bottom: 24px;
+    }
+    
+    h1 {
+      font-size: 1.5rem;
+      font-weight: 800;
+      color: var(--ferni);
+      margin-bottom: 4px;
+    }
+    
+    .subtitle {
+      color: #5C544A;
+      font-size: 0.85rem;
+    }
+    
+    .demo-area {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+    
+    .main-demo {
+      background: rgba(255,253,251,0.95);
+      border-radius: 24px;
+      padding: 32px;
+      margin-bottom: 24px;
+      box-shadow: 0 4px 20px rgba(44,37,32,0.05);
+    }
+    
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      justify-content: center;
+      margin-bottom: 24px;
+    }
+    
+    .btn {
+      padding: 8px 16px;
+      border: none;
+      border-radius: 999px;
+      font-weight: 600;
+      font-size: 0.75rem;
+      cursor: pointer;
+      background: rgba(44,37,32,0.06);
+      color: var(--ink);
+      transition: all 0.2s var(--ease-spring);
+    }
+    
+    .btn:hover, .btn.active {
+      background: var(--ferni);
+      color: white;
+    }
+    
+    .avatar-stage {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 180px;
+    }
+    
+    /* ============================================
+       FIXED FERNI AVATAR STRUCTURE
+       
+       DOM structure matches actual Ferni:
+       1. Container div (position: relative)
+       2. Main SVG (ring, orb, eyes)
+       3. Lid overlay div (position: absolute, overflow: hidden, border-radius: 50%)
+          - Lid SVG inside (paths fill from edges with background color)
+       ============================================ */
+    
+    .ferni-avatar {
+      --size: 120px;
+      position: relative;
+      width: var(--size);
+      height: var(--size);
+    }
+    
+    /* Main avatar SVG */
+    .ferni-avatar .avatar-svg {
+      width: 100%;
+      height: 100%;
+      overflow: visible;
+    }
+    
+    /* Presence ring */
+    .presence-ring {
+      fill: none;
+      stroke: var(--ferni);
+      stroke-width: 2;
+      opacity: 0.35;
+    }
+    
+    /* Green orb gradient */
+    .avatar-body {
+      transition: transform 0.3s var(--ease-spring);
+    }
+    
+    /* Eyes */
+    .eye-main {
+      transition: transform 0.15s var(--ease-spring);
+      transform-origin: center center;
+    }
+    
+    .sparkle {
+      transition: transform 0.12s var(--ease-spring);
+    }
+    
+    /* ============================================
+       LID OVERLAY - THE KEY FIX!
+       
+       - position: absolute (covers entire avatar)
+       - border-radius: 50% (creates circular shape)
+       - overflow: hidden (CLIPS lids to circle!)
+       
+       The lid paths start at edges (0,0) and (0,100)
+       and curve INWARD. They're filled with background
+       color to create the "window" effect.
+       ============================================ */
+    
+    .avatar-lid-overlay {
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      overflow: hidden; /* THIS IS THE KEY! Clips lids to circle */
+      pointer-events: none;
+    }
+    
+    .avatar-lid-overlay .lid-svg {
+      width: 100%;
+      height: 100%;
+    }
+    
+    /* Lids are filled with background color */
+    .lid-top, .lid-bottom {
+      fill: var(--cream);
+      transition: d 0.3s var(--ease-spring);
+    }
+    
+    /* ============================================
+       EXPRESSIONS - Lid path animations
+       
+       Path structure:
+       - Top: M 0,0 Q 50,[Y] 100,0 L 100,0 L 0,0 Z
+         - Y < 0 = bulges OUT (less visible)
+         - Y > 0 = curves DOWN (more visible, covers eyes)
+       
+       - Bottom: M 0,100 Q 50,[Y] 100,100 L 100,100 L 0,100 Z
+         - Y > 100 = bulges OUT (less visible)
+         - Y < 100 = curves UP (more visible, covers eyes)
+       ============================================ */
+    
+    /* NEUTRAL - barely visible lids */
+    .ferni-avatar[data-mood="neutral"] .lid-top {
+      d: path("M 0,0 Q 50,-10 100,0 L 100,0 L 0,0 Z");
+    }
+    .ferni-avatar[data-mood="neutral"] .lid-bottom {
+      d: path("M 0,100 Q 50,110 100,100 L 100,100 L 0,100 Z");
+    }
+    
+    /* HAPPY - lids curve in (squinted smile) */
+    .ferni-avatar[data-mood="happy"] .eye-main {
+      transform: scaleY(0.65) scaleX(1.08) translateY(1px);
+    }
+    .ferni-avatar[data-mood="happy"] .sparkle {
+      transform: translateY(2px) scale(1.15);
+    }
+    .ferni-avatar[data-mood="happy"] .lid-top {
+      d: path("M 0,0 Q 50,25 100,0 L 100,0 L 0,0 Z");
+    }
+    .ferni-avatar[data-mood="happy"] .lid-bottom {
+      d: path("M 0,100 Q 50,85 100,100 L 100,100 L 0,100 Z");
+    }
+    
+    /* SURPRISED - lids pull back (wide eyes) */
+    .ferni-avatar[data-mood="surprised"] .eye-main {
+      transform: scaleY(1.25) scaleX(1.1) translateY(-2px);
+    }
+    .ferni-avatar[data-mood="surprised"] .sparkle {
+      transform: translateY(-3px) scale(1.2);
+    }
+    .ferni-avatar[data-mood="surprised"] .lid-top {
+      d: path("M 0,0 Q 50,-18 100,0 L 100,0 L 0,0 Z");
+    }
+    .ferni-avatar[data-mood="surprised"] .lid-bottom {
+      d: path("M 0,100 Q 50,118 100,100 L 100,100 L 0,100 Z");
+    }
+    
+    /* CURIOUS - slight tilt */
+    .ferni-avatar[data-mood="curious"] .eye-main {
+      transform: scaleY(1.15) scaleX(1.02) translateY(-1px);
+    }
+    .ferni-avatar[data-mood="curious"] .lid-top {
+      d: path("M 0,0 Q 50,15 100,0 L 100,0 L 0,0 Z");
+    }
+    .ferni-avatar[data-mood="curious"] .lid-bottom {
+      d: path("M 0,100 Q 50,100 100,100 L 100,100 L 0,100 Z");
+    }
+    
+    /* THINKING - eyes drift up-right */
+    .ferni-avatar[data-mood="thinking"] .eye-main {
+      transform: translateX(2px) translateY(-2px);
+    }
+    .ferni-avatar[data-mood="thinking"] .sparkle {
+      transform: translateX(2px) translateY(-3px);
+    }
+    .ferni-avatar[data-mood="thinking"] .lid-top {
+      d: path("M 0,0 Q 50,12 100,0 L 100,0 L 0,0 Z");
+    }
+    .ferni-avatar[data-mood="thinking"] .lid-bottom {
+      d: path("M 0,100 Q 50,95 100,100 L 100,100 L 0,100 Z");
+    }
+    
+    /* SLEEPY - heavy lids (upper 66%, lower 33%) */
+    .ferni-avatar[data-mood="sleepy"] .eye-main {
+      transform: scaleY(0.7) translateY(2px);
+    }
+    .ferni-avatar[data-mood="sleepy"] .lid-top {
+      d: path("M 0,0 Q 50,55 100,0 L 100,0 L 0,0 Z");
+    }
+    .ferni-avatar[data-mood="sleepy"] .lid-bottom {
+      d: path("M 0,100 Q 50,70 100,100 L 100,100 L 0,100 Z");
+    }
+    
+    /* SAD - droopy expression */
+    .ferni-avatar[data-mood="sad"] .eye-main {
+      transform: scaleY(0.8) translateY(3px);
+    }
+    .ferni-avatar[data-mood="sad"] .lid-top {
+      d: path("M 0,0 Q 50,35 100,0 L 100,0 L 0,0 Z");
+    }
+    .ferni-avatar[data-mood="sad"] .lid-bottom {
+      d: path("M 0,100 Q 50,100 100,100 L 100,100 L 0,100 Z");
+    }
+    
+    /* SPEAKING - subtle body breathing */
+    .ferni-avatar[data-mood="speaking"] .eye-main {
+      transform: scaleY(0.82) scaleX(1.04);
+    }
+    .ferni-avatar[data-mood="speaking"] .avatar-body {
+      animation: speakBreath 0.4s ease-in-out infinite;
+    }
+    
+    @keyframes speakBreath {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.015); }
+    }
+    
+    /* LISTENING - attentive, slight widen */
+    .ferni-avatar[data-mood="listening"] .eye-main {
+      transform: scaleY(1.05) scaleX(1.02);
+    }
+    .ferni-avatar[data-mood="listening"] .avatar-body {
+      animation: listenBreathe 3s ease-in-out infinite;
+    }
+    
+    @keyframes listenBreathe {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.02); }
+    }
+    
+    /* Gallery */
+    .gallery {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
+      gap: 10px;
+    }
+    
+    .gallery-card {
+      background: rgba(255,253,251,0.95);
+      border-radius: 12px;
+      padding: 10px;
+      text-align: center;
+      box-shadow: 0 2px 8px rgba(44,37,32,0.04);
+      cursor: pointer;
+      transition: all 0.2s var(--ease-spring);
+    }
+    
+    .gallery-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(44,37,32,0.08);
+    }
+    
+    .gallery-card h3 {
+      font-size: 0.65rem;
+      margin-top: 4px;
+    }
+    
+    .mini-avatar {
+      --size: 50px;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Window Avatar — Fixed Structure</h1>
+    <p class="subtitle">Proper DOM: Avatar + Separate Lid Overlay with overflow:hidden</p>
+  </header>
+
+  <div class="demo-area">
+    <div class="main-demo">
+      <div class="controls">
+        <button class="btn active" data-mood="neutral">Neutral</button>
+        <button class="btn" data-mood="happy">Happy</button>
+        <button class="btn" data-mood="surprised">Surprised</button>
+        <button class="btn" data-mood="curious">Curious</button>
+        <button class="btn" data-mood="thinking">Thinking</button>
+        <button class="btn" data-mood="sleepy">Sleepy</button>
+        <button class="btn" data-mood="sad">Sad</button>
+        <button class="btn" data-mood="speaking">Speaking</button>
+        <button class="btn" data-mood="listening">Listening</button>
+      </div>
+      
+      <div class="avatar-stage">
+        <!-- FIXED STRUCTURE -->
+        <div class="ferni-avatar" data-mood="neutral" id="mainAvatar">
+          <!-- 1. Main avatar SVG (ring, orb, eyes) -->
+          <svg class="avatar-svg" viewBox="0 0 100 100">
+            <defs>
+              <linearGradient id="orbGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#5a7a51"/>
+                <stop offset="100%" stop-color="#3d5a35"/>
+              </linearGradient>
+              <linearGradient id="eyeGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                <stop offset="0%" stop-color="#ffffff"/>
+                <stop offset="100%" stop-color="#f5f1e8"/>
+              </linearGradient>
+            </defs>
+            
+            <!-- Presence ring (r=46) -->
+            <circle class="presence-ring" cx="50" cy="50" r="46"/>
+            
+            <!-- Green orb (r=40) -->
+            <circle class="avatar-body" cx="50" cy="50" r="40" fill="url(#orbGrad)"/>
+            
+            <!-- Shine -->
+            <ellipse cx="38" cy="38" rx="10" ry="7" fill="rgba(255,255,255,0.12)"/>
+            
+            <!-- Eyes at (35,50) and (65,50) -->
+            <g class="eyes-group">
+              <ellipse class="eye-main eye-left" cx="35" cy="50" rx="8" ry="11" fill="url(#eyeGrad)"/>
+              <circle class="sparkle" cx="33" cy="46" r="2" fill="white"/>
+              
+              <ellipse class="eye-main eye-right" cx="65" cy="50" rx="8" ry="11" fill="url(#eyeGrad)"/>
+              <circle class="sparkle" cx="63" cy="46" r="2" fill="white"/>
+            </g>
+          </svg>
+          
+          <!-- 2. LID OVERLAY - SEPARATE div with circular clipping! -->
+          <div class="avatar-lid-overlay">
+            <svg class="lid-svg" viewBox="0 0 100 100" preserveAspectRatio="none">
+              <!-- Top lid: starts at (0,0), curves based on expression -->
+              <path class="lid-top" d="M 0,0 Q 50,-10 100,0 L 100,0 L 0,0 Z"/>
+              <!-- Bottom lid: starts at (0,100), curves based on expression -->
+              <path class="lid-bottom" d="M 0,100 Q 50,110 100,100 L 100,100 L 0,100 Z"/>
+            </svg>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Gallery -->
+    <div class="gallery">
+      <div class="gallery-card" data-set="neutral">
+        <div class="ferni-avatar mini-avatar" data-mood="neutral">
+          <svg class="avatar-svg" viewBox="0 0 100 100">
+            <defs><linearGradient id="og1" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#5a7a51"/><stop offset="100%" stop-color="#3d5a35"/></linearGradient><linearGradient id="eg1" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" stop-color="#fff"/><stop offset="100%" stop-color="#f5f1e8"/></linearGradient></defs>
+            <circle class="presence-ring" cx="50" cy="50" r="46"/>
+            <circle class="avatar-body" cx="50" cy="50" r="40" fill="url(#og1)"/>
+            <g class="eyes-group"><ellipse class="eye-main" cx="35" cy="50" rx="8" ry="11" fill="url(#eg1)"/><circle class="sparkle" cx="33" cy="46" r="2" fill="white"/><ellipse class="eye-main" cx="65" cy="50" rx="8" ry="11" fill="url(#eg1)"/><circle class="sparkle" cx="63" cy="46" r="2" fill="white"/></g>
+          </svg>
+          <div class="avatar-lid-overlay"><svg class="lid-svg" viewBox="0 0 100 100" preserveAspectRatio="none"><path class="lid-top" d="M 0,0 Q 50,-10 100,0 L 100,0 L 0,0 Z"/><path class="lid-bottom" d="M 0,100 Q 50,110 100,100 L 100,100 L 0,100 Z"/></svg></div>
+        </div>
+        <h3>Neutral</h3>
+      </div>
+      
+      <div class="gallery-card" data-set="happy">
+        <div class="ferni-avatar mini-avatar" data-mood="happy">
+          <svg class="avatar-svg" viewBox="0 0 100 100">
+            <defs><linearGradient id="og2" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#5a7a51"/><stop offset="100%" stop-color="#3d5a35"/></linearGradient><linearGradient id="eg2" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" stop-color="#fff"/><stop offset="100%" stop-color="#f5f1e8"/></linearGradient></defs>
+            <circle class="presence-ring" cx="50" cy="50" r="46"/>
+            <circle class="avatar-body" cx="50" cy="50" r="40" fill="url(#og2)"/>
+            <g class="eyes-group"><ellipse class="eye-main" cx="35" cy="50" rx="8" ry="11" fill="url(#eg2)"/><circle class="sparkle" cx="33" cy="46" r="2" fill="white"/><ellipse class="eye-main" cx="65" cy="50" rx="8" ry="11" fill="url(#eg2)"/><circle class="sparkle" cx="63" cy="46" r="2" fill="white"/></g>
+          </svg>
+          <div class="avatar-lid-overlay"><svg class="lid-svg" viewBox="0 0 100 100" preserveAspectRatio="none"><path class="lid-top" d="M 0,0 Q 50,-10 100,0 L 100,0 L 0,0 Z"/><path class="lid-bottom" d="M 0,100 Q 50,110 100,100 L 100,100 L 0,100 Z"/></svg></div>
+        </div>
+        <h3>Happy</h3>
+      </div>
+      
+      <div class="gallery-card" data-set="surprised">
+        <div class="ferni-avatar mini-avatar" data-mood="surprised">
+          <svg class="avatar-svg" viewBox="0 0 100 100">
+            <defs><linearGradient id="og3" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#5a7a51"/><stop offset="100%" stop-color="#3d5a35"/></linearGradient><linearGradient id="eg3" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" stop-color="#fff"/><stop offset="100%" stop-color="#f5f1e8"/></linearGradient></defs>
+            <circle class="presence-ring" cx="50" cy="50" r="46"/>
+            <circle class="avatar-body" cx="50" cy="50" r="40" fill="url(#og3)"/>
+            <g class="eyes-group"><ellipse class="eye-main" cx="35" cy="50" rx="8" ry="11" fill="url(#eg3)"/><circle class="sparkle" cx="33" cy="46" r="2" fill="white"/><ellipse class="eye-main" cx="65" cy="50" rx="8" ry="11" fill="url(#eg3)"/><circle class="sparkle" cx="63" cy="46" r="2" fill="white"/></g>
+          </svg>
+          <div class="avatar-lid-overlay"><svg class="lid-svg" viewBox="0 0 100 100" preserveAspectRatio="none"><path class="lid-top" d="M 0,0 Q 50,-10 100,0 L 100,0 L 0,0 Z"/><path class="lid-bottom" d="M 0,100 Q 50,110 100,100 L 100,100 L 0,100 Z"/></svg></div>
+        </div>
+        <h3>Surprised</h3>
+      </div>
+      
+      <div class="gallery-card" data-set="sleepy">
+        <div class="ferni-avatar mini-avatar" data-mood="sleepy">
+          <svg class="avatar-svg" viewBox="0 0 100 100">
+            <defs><linearGradient id="og4" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#5a7a51"/><stop offset="100%" stop-color="#3d5a35"/></linearGradient><linearGradient id="eg4" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" stop-color="#fff"/><stop offset="100%" stop-color="#f5f1e8"/></linearGradient></defs>
+            <circle class="presence-ring" cx="50" cy="50" r="46"/>
+            <circle class="avatar-body" cx="50" cy="50" r="40" fill="url(#og4)"/>
+            <g class="eyes-group"><ellipse class="eye-main" cx="35" cy="50" rx="8" ry="11" fill="url(#eg4)"/><circle class="sparkle" cx="33" cy="46" r="2" fill="white"/><ellipse class="eye-main" cx="65" cy="50" rx="8" ry="11" fill="url(#eg4)"/><circle class="sparkle" cx="63" cy="46" r="2" fill="white"/></g>
+          </svg>
+          <div class="avatar-lid-overlay"><svg class="lid-svg" viewBox="0 0 100 100" preserveAspectRatio="none"><path class="lid-top" d="M 0,0 Q 50,-10 100,0 L 100,0 L 0,0 Z"/><path class="lid-bottom" d="M 0,100 Q 50,110 100,100 L 100,100 L 0,100 Z"/></svg></div>
+        </div>
+        <h3>Sleepy</h3>
+      </div>
+      
+      <div class="gallery-card" data-set="speaking">
+        <div class="ferni-avatar mini-avatar" data-mood="speaking">
+          <svg class="avatar-svg" viewBox="0 0 100 100">
+            <defs><linearGradient id="og5" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#5a7a51"/><stop offset="100%" stop-color="#3d5a35"/></linearGradient><linearGradient id="eg5" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" stop-color="#fff"/><stop offset="100%" stop-color="#f5f1e8"/></linearGradient></defs>
+            <circle class="presence-ring" cx="50" cy="50" r="46"/>
+            <circle class="avatar-body" cx="50" cy="50" r="40" fill="url(#og5)"/>
+            <g class="eyes-group"><ellipse class="eye-main" cx="35" cy="50" rx="8" ry="11" fill="url(#eg5)"/><circle class="sparkle" cx="33" cy="46" r="2" fill="white"/><ellipse class="eye-main" cx="65" cy="50" rx="8" ry="11" fill="url(#eg5)"/><circle class="sparkle" cx="63" cy="46" r="2" fill="white"/></g>
+          </svg>
+          <div class="avatar-lid-overlay"><svg class="lid-svg" viewBox="0 0 100 100" preserveAspectRatio="none"><path class="lid-top" d="M 0,0 Q 50,-10 100,0 L 100,0 L 0,0 Z"/><path class="lid-bottom" d="M 0,100 Q 50,110 100,100 L 100,100 L 0,100 Z"/></svg></div>
+        </div>
+        <h3>Speaking</h3>
+      </div>
+      
+      <div class="gallery-card" data-set="listening">
+        <div class="ferni-avatar mini-avatar" data-mood="listening">
+          <svg class="avatar-svg" viewBox="0 0 100 100">
+            <defs><linearGradient id="og6" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#5a7a51"/><stop offset="100%" stop-color="#3d5a35"/></linearGradient><linearGradient id="eg6" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" stop-color="#fff"/><stop offset="100%" stop-color="#f5f1e8"/></linearGradient></defs>
+            <circle class="presence-ring" cx="50" cy="50" r="46"/>
+            <circle class="avatar-body" cx="50" cy="50" r="40" fill="url(#og6)"/>
+            <g class="eyes-group"><ellipse class="eye-main" cx="35" cy="50" rx="8" ry="11" fill="url(#eg6)"/><circle class="sparkle" cx="33" cy="46" r="2" fill="white"/><ellipse class="eye-main" cx="65" cy="50" rx="8" ry="11" fill="url(#eg6)"/><circle class="sparkle" cx="63" cy="46" r="2" fill="white"/></g>
+          </svg>
+          <div class="avatar-lid-overlay"><svg class="lid-svg" viewBox="0 0 100 100" preserveAspectRatio="none"><path class="lid-top" d="M 0,0 Q 50,-10 100,0 L 100,0 L 0,0 Z"/><path class="lid-bottom" d="M 0,100 Q 50,110 100,100 L 100,100 L 0,100 Z"/></svg></div>
+        </div>
+        <h3>Listening</h3>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const avatar = document.getElementById('mainAvatar');
+    const buttons = document.querySelectorAll('.btn');
+    const cards = document.querySelectorAll('.gallery-card');
+    
+    function setMood(mood) {
+      avatar.dataset.mood = mood;
+      buttons.forEach(b => b.classList.toggle('active', b.dataset.mood === mood));
+    }
+    
+    buttons.forEach(btn => btn.addEventListener('click', () => setMood(btn.dataset.mood)));
+    cards.forEach(card => card.addEventListener('click', () => setMood(card.dataset.set)));
+  </script>
+</body>
+</html>

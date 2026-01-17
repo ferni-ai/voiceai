@@ -1,27 +1,35 @@
 /**
- * Handoff State Management
- * Manages current agent state, history, and context
+ * Handoff State Management (GLOBAL STATE - DEPRECATED)
  *
- * REFACTORED: Now uses AgentDirectory for ID normalization.
- * The hardcoded mapping tables have been removed.
+ * ⚠️ DEPRECATED: This module uses GLOBAL state shared across all sessions.
  *
- * ⚠️ MIGRATION NOTICE:
- * This module contains GLOBAL state that is shared across all sessions.
- * For new code, prefer the session-scoped state from './session-state.js':
+ * ## Recommended: Unified Handoff Module
  *
+ * For new code, use the unified handoff module at `src/handoff/`:
  * ```typescript
- * // New (preferred) - session-isolated state
- * import { getSessionState, getCurrentAgent } from './session-state.js';
- * const state = getSessionState(sessionId);
- * const agent = getCurrentAgent(state);
- *
- * // Old (legacy) - global state
- * import { getCurrentAgent } from './state.js';
- * const agent = getCurrentAgent();
+ * import {
+ *   getCurrentAgent,    // Session-scoped
+ *   startHandoff,       // Session-scoped
+ *   completeHandoff,    // Session-scoped
+ *   isHandoffAllowed,   // Session-scoped
+ *   handoffEvents,      // Event bus (re-exported from this file)
+ * } from '../../handoff/index.js';
  * ```
  *
- * @see session-state.ts for the new session-scoped implementation
- * @see docs/audits/AGENT-TRANSFER-BUGS-GAPS.md for migration context
+ * ## What's Still Valid in This File
+ *
+ * - `handoffEvents` - Event emitter for handoff coordination (re-exported by unified module)
+ * - `cameoUnlockEvents` - Event emitter for cameo unlocks (re-exported by unified module)
+ *
+ * ## What's Deprecated
+ *
+ * - `getCurrentAgent()` without sessionId - Use `getCurrentAgent(sessionId)` from unified module
+ * - `setCurrentAgent()` without sessionId - Use `setCurrentAgent(sessionId, agentId)` from unified module
+ * - All other global state functions - Use session-scoped versions from unified module
+ *
+ * @deprecated Use `src/handoff/index.js` for new code
+ * @see src/handoff/unified-state.ts for the new session-scoped implementation
+ * @see docs/architecture/HANDOFF-CLEAN-ARCHITECTURE.md for migration guide
  */
 
 import { EventEmitter } from 'events';
@@ -30,6 +38,27 @@ import { AgentDirectory, normalizeAgentIdSync } from '../../personas/agent-direc
 import type { AgentId } from '../../services/agent-bus.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import type { HandoffAnalytics, HandoffContext, HandoffRecord } from './types.js';
+
+// Redis Pub/Sub for cross-instance handoff notifications
+let pubsubBroadcast: ((from: string, to: string, reason: string) => void) | null = null;
+
+// Initialize Pub/Sub broadcasting (non-blocking)
+void (async () => {
+  try {
+    const { publishSessionEvent } = await import('../../services/redis-pubsub.js');
+    pubsubBroadcast = (from: string, to: string, reason: string) => {
+      publishSessionEvent('handoff', {
+        userId: 'broadcast', // Will be overridden by session context
+        sessionId: 'broadcast',
+        personaId: to,
+        metadata: { from, to, reason, timestamp: Date.now() },
+      }).catch(() => {});
+    };
+    getLogger().debug('Handoff Pub/Sub broadcasting enabled');
+  } catch {
+    // Pub/Sub not available
+  }
+})();
 
 // Re-export session-scoped state for new code
 export {
@@ -220,6 +249,7 @@ export function recordHandoffRecord(record: HandoffRecord): void {
 /**
  * Record a handoff in history (convenience version with separate params)
  * FIX BUG #2: Also updates rate limiting timestamp for single source of truth
+ * PERFORMANCE: Also broadcasts via Redis Pub/Sub for cross-instance notifications
  */
 export function recordHandoff(from: AgentId, to: AgentId, reason: string): void {
   const now = Date.now();
@@ -237,6 +267,12 @@ export function recordHandoff(from: AgentId, to: AgentId, reason: string): void 
   lastHandoffTimestamp = now;
 
   recordHandoffRecord(record);
+
+  // Broadcast handoff via Redis Pub/Sub for cross-instance notifications
+  // This enables real-time handoff tracking across all instances
+  if (pubsubBroadcast) {
+    pubsubBroadcast(from, to, reason);
+  }
 
   getLogger().debug({ handoff: record }, 'Handoff recorded');
 }
@@ -682,7 +718,7 @@ async function fetchAgentContextAsync(agentId: string, retryCount = 0): Promise<
         { error: String(error), agentId, attempt: retryCount + 1 },
         'Agent context fetch failed, retrying...'
       );
-      await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY_MS * (retryCount + 1)));
+      await new Promise<void>((resolve) => setTimeout(resolve, RETRY_DELAY_MS * (retryCount + 1)));
       return fetchAgentContextAsync(agentId, retryCount + 1);
     }
     getLogger().warn(

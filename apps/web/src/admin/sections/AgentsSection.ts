@@ -57,12 +57,12 @@ export async function render(): Promise<string> {
         <div class="agents-header-left">
           <span class="agents-count">${agents.length} agents</span>
         </div>
-        <div class="agents-header-actions">
-          <button class="admin-btn" data-action="validate-all">
+        <div class="agents-header-actions" role="button" tabindex="0">
+          <button aria-label="Search" class="admin-btn" data-action="validate-all">
             <span class="admin-icon">${iconSm(ICON_SEARCH)}</span>
             Validate All
           </button>
-          <button class="admin-btn admin-btn--primary" data-action="create-agent">
+          <button aria-label="Add" class="admin-btn admin-btn--primary" data-action="create-agent">
             <span class="admin-icon">${iconSm(ICON_PLUS)}</span>
             Create Agent
           </button>
@@ -341,9 +341,9 @@ function renderAgentCard(agent: ApiAgent, isCoordinator: boolean): string {
       </div>
       <div class="agent-info">
         <div class="agent-name">${agent.name}</div>
-        <div class="agent-subtitle">${agent.subtitle || agent.roleId}</div>
+        <div class="agent-subtitle">${agent.subtitle ?? agent.roleId}</div>
       </div>
-      <div class="agent-actions">
+      <div class="agent-actions" role="button" tabindex="0">
         <button class="agent-action-btn" data-action="edit" data-agent-id="${agent.id}" aria-label="Edit ${agent.name}">
           ${iconSm(ICON_EDIT)}
         </button>
@@ -359,7 +359,7 @@ function renderAgentCard(agent: ApiAgent, isCoordinator: boolean): string {
               data-agent-id="${agent.id}"
               aria-label="Enable or disable ${agent.name}"
             >
-            <span class="admin-toggle-slider" aria-hidden="true"></span>
+            <span class="admin-toggle-slider" role="button" tabindex="0" aria-hidden="true"></span>
           </label>
         ` : ''}
       </div>
@@ -385,7 +385,7 @@ function renderError(message: string): string {
       <div class="admin-error-icon">${ICON_WARNING}</div>
       <h2>Failed to Load Agents</h2>
       <p class="admin-error-details">${message}</p>
-      <button class="admin-btn admin-btn--primary" onclick="window.location.reload()">
+      <button aria-label="Retry" class="admin-btn admin-btn--primary" onclick="window.location.reload()">
         Retry
       </button>
     </div>

@@ -9,12 +9,16 @@
  * - GET /api/observability/connection - Connection health metrics
  * - GET /api/observability/ux - User experience metrics
  * - GET /api/observability/memory - Memory/RAG metrics
+ * - GET /api/observability/dynamic-memory - Dynamic memory system (L1/L2/L3) metrics
  * - GET /api/observability/cost - Cost tracking metrics
  * - GET /api/observability/errors - Error & recovery metrics
  * - GET /api/observability/personas - Persona health metrics
  * - GET /api/observability/alerts - Recent alerts
  * - GET /api/observability/self-healing - Self-healing dashboard (circuits, anomalies, restarts)
  * - GET /api/observability/intelligence - Collective learning & intelligence metrics
+ * - GET /api/observability/resilience - Resilience metrics (workers, cleanup, queues, circuits)
+ * - GET /api/observability/redis - Redis cache stats, pub/sub status, circuit breakers
+ * - GET /api/observability/ftis - FTIS (Tool Intelligence) metrics (transitions, outcomes, patterns)
  * - POST /api/observability/clear - Clear all metrics
  */
 
@@ -31,8 +35,16 @@ import {
   memoryMetrics,
   observabilityHub,
   personaMetrics,
+  resilienceMetrics,
   uxQualityMetrics,
 } from '../services/observability/index.js';
+import {
+  getAggregateMetrics,
+  getDashboardData as getSemanticDashboardData,
+} from '../tools/semantic-router/integration/metrics.js';
+import { getProactiveStats } from '../tools/semantic-router/advanced/proactive-suggestions.js';
+import { getAggregateRoutingStats } from '../tools/semantic-router/integration/routing-observability.js';
+import { getAgentEvolution } from '../intelligence/agent-evolution.js';
 import {
   getAllCircuitStats,
   getAllClientStats,
@@ -45,6 +57,52 @@ import { rateLimit, requireAdmin, requireAuth } from './auth-middleware.js';
 import { handleCorsPreflightIfNeeded, parsePositiveInt, sendError, sendJSON } from './helpers.js';
 
 const log = createLogger({ module: 'ObservabilityAPI' });
+
+// ============================================================================
+// TOOL INTELLIGENCE OBSERVABILITY
+// Buffer for tool selection events (for dashboard and debugging)
+// ============================================================================
+
+interface ToolIntelligenceEvent {
+  type: string;
+  data: Record<string, unknown>;
+  timestamp: string;
+}
+
+const toolIntelligenceEvents: ToolIntelligenceEvent[] = [];
+const MAX_TOOL_INTELLIGENCE_EVENTS = 100;
+
+/**
+ * Emit a tool intelligence event for monitoring/debugging
+ * Used by unified-tool-orchestrator.ts and other tool intelligence components
+ *
+ * @param type Event type (e.g., 'tool_selection', 'ftis_routing', 'outcome_tracked')
+ * @param data Event payload
+ */
+export function emitToolIntelligenceEvent(type: string, data: Record<string, unknown>): void {
+  const event: ToolIntelligenceEvent = {
+    type,
+    data,
+    timestamp: new Date().toISOString(),
+  };
+
+  // Add to buffer (ring buffer behavior - oldest removed when full)
+  toolIntelligenceEvents.push(event);
+  if (toolIntelligenceEvents.length > MAX_TOOL_INTELLIGENCE_EVENTS) {
+    toolIntelligenceEvents.shift();
+  }
+
+  // Log at debug level for immediate observability
+  log.debug({ type, ...data }, `🧠 Tool intelligence: ${type}`);
+}
+
+/**
+ * Get recent tool intelligence events
+ * @param limit Max number of events to return (default: 50)
+ */
+export function getToolIntelligenceEvents(limit = 50): ToolIntelligenceEvent[] {
+  return toolIntelligenceEvents.slice(-limit);
+}
 
 /**
  * Parse window minutes from query string
@@ -138,6 +196,205 @@ async function getSelfHealingDashboardData() {
     },
     timestamp: new Date().toISOString(),
   };
+}
+
+/**
+ * Get semantic routing metrics for the admin dashboard
+ */
+function getSemanticRoutingMetrics() {
+  // Get aggregate metrics from semantic router
+  const aggregate = getAggregateMetrics();
+  const { hourly } = getSemanticDashboardData();
+
+  // Learning metrics (corrections, etc.)
+  // Note: This is a simplified version - could be expanded with Firestore data
+  const learning = {
+    totalCorrections: 0,
+    correctionRate: 0,
+    recentCorrections: [] as Array<{
+      query: string;
+      predicted: string;
+      actual: string;
+      timestamp: string;
+    }>,
+  };
+
+  // A/B test status from agent evolution
+  const evolution = getAgentEvolution();
+  const evolutionStates = evolution.exportState();
+  const allExperiments: Array<{
+    id: string;
+    name: string;
+    status: string;
+    variants: number;
+  }> = [];
+
+  for (const state of evolutionStates.values()) {
+    for (const exp of state.experiments) {
+      allExperiments.push({
+        id: exp.id,
+        name: exp.name,
+        status: exp.status,
+        variants: 2, // control + treatment
+      });
+    }
+  }
+
+  const abTests = {
+    active: allExperiments.filter((e) => e.status === 'running').length,
+    experiments: allExperiments.slice(0, 10),
+  };
+
+  // Proactive suggestions
+  const proactiveStats = getProactiveStats();
+  const proactive = {
+    suggestionsToday: proactiveStats.totalSuggestions,
+    acceptanceRate: proactiveStats.acceptanceRate,
+  };
+
+  // Community patterns (from intelligence layer)
+  const communityInsights = getCommunityInsights();
+  const insightsStats = communityInsights.getStats();
+  const community = {
+    totalPatterns: insightsStats.totalPatterns,
+    avgConfidence: insightsStats.avgPatternConfidence,
+    lastAggregation: null as string | null,
+  };
+
+  // ================================================================
+  // 📊 ROUTING PATH BREAKDOWN (semantic vs JSON workaround vs native)
+  // This shows which tool calling path handles each request
+  // ================================================================
+  const routingPathStats = getAggregateRoutingStats();
+  const routingPaths = {
+    totalToolCalls: routingPathStats.totalToolCalls,
+    semanticAutoExecute: routingPathStats.totalSemanticAutoExecute,
+    jsonWorkaround: routingPathStats.totalJsonFallback,
+    // Native function calling = total - (semantic + json workaround)
+    // This is the "blind spot" that can cause issues with SSML tools
+    nativeFunctionCalling:
+      routingPathStats.totalToolCalls -
+      routingPathStats.totalSemanticAutoExecute -
+      routingPathStats.totalJsonFallback,
+    efficiency: `${routingPathStats.avgEfficiency.toFixed(1)}%`,
+    activeSessions: routingPathStats.totalSessions,
+    note: 'Native function calling may fail for SSML tools (news, weather)',
+  };
+
+  return {
+    aggregate,
+    routingPaths,
+    learning,
+    abTests,
+    proactive,
+    community,
+    hourly,
+    timestamp: new Date().toISOString(),
+  };
+}
+
+/**
+ * Get Redis metrics for cross-instance caching and messaging
+ */
+async function getRedisMetrics() {
+  const metrics: {
+    connected: boolean;
+    caches: Array<{ name: string; stats: Record<string, unknown> }>;
+    pubsub: { enabled: boolean; channels: string[] };
+    circuitBreakers: Array<{ name: string; state: string; failures: number }>;
+    timestamp: string;
+  } = {
+    connected: false,
+    caches: [],
+    pubsub: { enabled: false, channels: [] },
+    circuitBreakers: [],
+    timestamp: new Date().toISOString(),
+  };
+
+  try {
+    // Check Redis connection
+    const { getRedisCache } = await import('../memory/redis-cache.js');
+    const redisCache = getRedisCache();
+    metrics.connected = redisCache.isConnected();
+
+    // Get cache stats from ManagedCache registry
+    const { getAllCacheStats } = await import('../services/data-layer/memory-cache-manager.js');
+    const cacheStats = getAllCacheStats();
+    metrics.caches = Object.entries(cacheStats).map(([name, s]) => ({
+      name,
+      stats: {
+        entries: s.entries,
+        hits: s.hits,
+        misses: s.misses,
+        hitRate:
+          s.hits + s.misses > 0 ? `${((s.hits / (s.hits + s.misses)) * 100).toFixed(1)}%` : 'N/A',
+        evictions: s.evictions,
+        estimatedSizeBytes: s.estimatedSizeBytes,
+      },
+    }));
+
+    // Get Pub/Sub status
+    try {
+      const { getRedisPubSub, CHANNELS } = await import('../services/redis-pubsub.js');
+      const pubsub = getRedisPubSub();
+      metrics.pubsub = {
+        enabled: pubsub.isAvailable(),
+        channels: Object.values(CHANNELS),
+      };
+    } catch {
+      // Pub/Sub not available
+    }
+
+    // Get Redis circuit breaker stats
+    try {
+      const { getAllRedisCircuitStats } =
+        await import('../services/self-healing/redis-circuit-breaker.js');
+      const circuitStats = getAllRedisCircuitStats();
+      metrics.circuitBreakers = circuitStats.map((s) => ({
+        name: s.name,
+        state: s.state,
+        failures: s.failures,
+      }));
+    } catch {
+      // Redis circuit breakers not available
+    }
+
+    // Get persona insights cache stats
+    try {
+      const { getInsightsCacheStats } =
+        await import('../intelligence/context-builders/persona-insights-cache.js');
+      const insightsStats = getInsightsCacheStats();
+      metrics.caches.push({
+        name: 'persona-insights',
+        stats: {
+          totalSessions: insightsStats.totalSessions,
+          totalEntries: insightsStats.totalEntries,
+          pendingRefreshes: insightsStats.pendingRefreshes,
+          redisL2Enabled: insightsStats.redisL2Enabled,
+        },
+      });
+    } catch {
+      // Persona insights cache not available
+    }
+
+    // Get semantic router cache stats
+    try {
+      const { getSemanticRouterCache } =
+        await import('../tools/semantic-router/integration/redis-cache.js');
+      const routerCache = getSemanticRouterCache();
+      const routerStats = routerCache.getStats();
+      metrics.caches.push({
+        name: 'semantic-router',
+        stats: { ...routerStats }, // Spread to convert to plain object
+      });
+    } catch {
+      // Semantic router cache not available
+    }
+  } catch (error) {
+    log.debug({ error: String(error) }, 'Error getting Redis metrics');
+  }
+
+  return metrics;
 }
 
 /**
@@ -292,6 +549,36 @@ export async function handleObservabilityRoutes(
       return true;
     }
 
+    // GET /api/observability/dynamic-memory - Dynamic memory system metrics
+    if (pathname === '/api/observability/dynamic-memory' && req.method === 'GET') {
+      try {
+        const { getDynamicMemoryMetrics, getSTMStats } = await import('../memory/dynamic/index.js');
+        const { getSyncStats } = await import('../memory/dynamic/firestore-spanner-sync.js');
+        const { getDeepExtractionWorker } =
+          await import('../memory/dynamic/deep-extraction-worker.js');
+
+        const dynamicMetrics = getDynamicMemoryMetrics();
+        const stmStats = getSTMStats();
+        const syncStats = getSyncStats();
+        const worker = getDeepExtractionWorker();
+        const workerStats = worker?.getStats() ?? null;
+
+        sendJSON(res, {
+          dynamicMemory: dynamicMetrics,
+          stmBuffer: stmStats,
+          syncService: syncStats,
+          deepExtractionWorker: workerStats,
+          collectedAt: new Date().toISOString(),
+        });
+      } catch (error) {
+        sendJSON(res, {
+          error: 'Dynamic memory metrics not available',
+          message: String(error),
+        });
+      }
+      return true;
+    }
+
     // GET /api/observability/cost - Cost tracking
     if (pathname === '/api/observability/cost' && req.method === 'GET') {
       const snapshot = costMetrics.getSnapshot();
@@ -333,6 +620,51 @@ export async function handleObservabilityRoutes(
     if (pathname === '/api/observability/intelligence' && req.method === 'GET') {
       const intelligenceData = getIntelligenceMetrics();
       sendJSON(res, intelligenceData);
+      return true;
+    }
+
+    // GET /api/observability/resilience - Resilience metrics (workers, cleanup, queues, circuit breakers)
+    if (pathname === '/api/observability/resilience' && req.method === 'GET') {
+      const snapshot = resilienceMetrics.getSnapshot();
+      sendJSON(res, snapshot);
+      return true;
+    }
+
+    // GET /api/observability/redis - Redis cache, pub/sub, and circuit breaker metrics
+    if (pathname === '/api/observability/redis' && req.method === 'GET') {
+      const redisData = await getRedisMetrics();
+      sendJSON(res, redisData);
+      return true;
+    }
+
+    // GET /api/observability/ftis - FTIS (Tool Intelligence) metrics
+    if (pathname === '/api/observability/ftis' && req.method === 'GET') {
+      try {
+        const { getFTISIntegration } = await import('../tools/intelligence/ftis-integration.js');
+        const ftis = getFTISIntegration();
+        const metrics = ftis.getMetrics();
+        const patterns = ftis.getToolPatterns();
+
+        sendJSON(res, {
+          transitionMatrix: metrics.transitionMatrix,
+          planner: metrics.planner,
+          learner: metrics.learner,
+          topPatterns: patterns.slice(0, 10),
+          collectedAt: new Date().toISOString(),
+        });
+      } catch (error) {
+        sendJSON(res, {
+          error: 'FTIS metrics not available',
+          message: String(error),
+        });
+      }
+      return true;
+    }
+
+    // GET /api/observability/semantic-routing - Semantic router metrics
+    if (pathname === '/api/observability/semantic-routing' && req.method === 'GET') {
+      const semanticData = getSemanticRoutingMetrics();
+      sendJSON(res, semanticData);
       return true;
     }
 

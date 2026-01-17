@@ -16,6 +16,7 @@
  */
 
 import { getLogger } from '../../utils/safe-logger.js';
+import { cleanForFirestore } from '../../utils/firestore-utils.js';
 
 const log = getLogger();
 
@@ -426,7 +427,7 @@ export function getLeaderboardAroundUser(
   userId: string,
   period: LeaderboardPeriod = 'weekly',
   gameType: string | 'overall' = 'overall',
-  contextSize: number = 3
+  contextSize = 3
 ): LeaderboardEntry[] {
   const leaderboard = getLeaderboard(period, gameType, 'global', userId);
   const userIndex = leaderboard.entries.findIndex((e) => e.userId === userId);

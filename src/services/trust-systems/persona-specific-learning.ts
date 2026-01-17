@@ -1,3 +1,4 @@
+import { cleanForFirestore } from '../../utils/firestore-utils.js';
 /**
  * Persona-Specific Learning
  *
@@ -10,21 +11,26 @@
  * - Transfer learning shares relevant insights between personas
  * - Relationship dynamics vary per persona
  *
- * PERSONAS:
- * - Ferni: Life coach, deep emotional understanding
- * - Jack: Sage mentor, wisdom and philosophy
- * - Peter: Research, analytical insights
- * - Alex: Communications, social dynamics
- * - Maya: Habits & routines, behavioral patterns
- * - Jordan: Events & planning, scheduling preferences
- * - Nayan: Premium partner, advanced synthesis
+ * PERSONAS (using canonical IDs):
+ * - ferni: Life coach, deep emotional understanding
+ * - peter-john: Research, analytical insights
+ * - alex-chen: Communications, social dynamics
+ * - maya-santos: Habits & routines, behavioral patterns
+ * - jordan-taylor: Events & planning, scheduling preferences
+ * - nayan-patel: Sage mentor, wisdom, philosophy & long-term thinking (premium)
  */
 
 // ============================================================================
 // TYPES
 // ============================================================================
 
-export type PersonaId = 'ferni' | 'jack' | 'peter' | 'alex' | 'maya' | 'jordan' | 'nayan';
+export type PersonaId =
+  | 'ferni'
+  | 'peter-john'
+  | 'alex-chen'
+  | 'maya-santos'
+  | 'jordan-taylor'
+  | 'nayan-patel';
 
 export interface PersonaMemory {
   personaId: PersonaId;
@@ -98,17 +104,10 @@ const PERSONA_DOMAINS: Record<
     name: 'Ferni',
     specialty: 'Life coaching & emotional support',
     learnsAbout: ['emotions', 'life_goals', 'relationships', 'growth', 'challenges'],
-    sharesInsights: ['jack', 'peter', 'alex', 'maya', 'jordan', 'nayan'],
-    receivesFrom: ['jack', 'maya', 'alex'],
+    sharesInsights: ['peter-john', 'alex-chen', 'maya-santos', 'jordan-taylor', 'nayan-patel'],
+    receivesFrom: ['maya-santos', 'alex-chen', 'nayan-patel'],
   },
-  jack: {
-    name: 'Jack',
-    specialty: 'Wisdom & philosophical guidance',
-    learnsAbout: ['values', 'beliefs', 'life_philosophy', 'decisions', 'meaning'],
-    sharesInsights: ['ferni', 'nayan'],
-    receivesFrom: ['ferni'],
-  },
-  peter: {
+  'peter-john': {
     name: 'Peter',
     specialty: 'Research & analytical thinking',
     learnsAbout: [
@@ -118,10 +117,10 @@ const PERSONA_DOMAINS: Record<
       'knowledge_gaps',
       'research_topics',
     ],
-    sharesInsights: ['ferni', 'maya'],
+    sharesInsights: ['ferni', 'maya-santos'],
     receivesFrom: ['ferni'],
   },
-  alex: {
+  'alex-chen': {
     name: 'Alex',
     specialty: 'Communications & social dynamics',
     learnsAbout: [
@@ -131,29 +130,29 @@ const PERSONA_DOMAINS: Record<
       'networking',
       'conflicts',
     ],
-    sharesInsights: ['ferni', 'jordan'],
-    receivesFrom: ['ferni', 'jordan'],
+    sharesInsights: ['ferni', 'jordan-taylor'],
+    receivesFrom: ['ferni', 'jordan-taylor'],
   },
-  maya: {
+  'maya-santos': {
     name: 'Maya',
     specialty: 'Habits & daily routines',
     learnsAbout: ['routines', 'habits', 'productivity', 'health', 'energy_patterns', 'sleep'],
-    sharesInsights: ['ferni', 'jordan'],
-    receivesFrom: ['ferni', 'peter'],
+    sharesInsights: ['ferni', 'jordan-taylor'],
+    receivesFrom: ['ferni', 'peter-john'],
   },
-  jordan: {
+  'jordan-taylor': {
     name: 'Jordan',
     specialty: 'Events & planning',
     learnsAbout: ['schedule', 'commitments', 'events', 'deadlines', 'planning_style'],
-    sharesInsights: ['ferni', 'maya', 'alex'],
-    receivesFrom: ['ferni', 'maya', 'alex'],
+    sharesInsights: ['ferni', 'maya-santos', 'alex-chen'],
+    receivesFrom: ['ferni', 'maya-santos', 'alex-chen'],
   },
-  nayan: {
+  'nayan-patel': {
     name: 'Nayan',
-    specialty: 'Premium synthesis & advanced coaching',
-    learnsAbout: ['everything'], // Nayan learns from all
+    specialty: 'Wisdom, philosophy & long-term thinking',
+    learnsAbout: ['values', 'beliefs', 'life_philosophy', 'decisions', 'meaning', 'everything'],
     sharesInsights: ['ferni'],
-    receivesFrom: ['ferni', 'jack', 'peter', 'alex', 'maya', 'jordan'],
+    receivesFrom: ['ferni', 'peter-john', 'alex-chen', 'maya-santos', 'jordan-taylor'],
   },
 };
 
@@ -505,12 +504,11 @@ export function getPersonaCommunicationStyle(
     }
   > = {
     ferni: { tone: 'warm', formality: 0.3, emoji: true, verbosity: 'moderate' },
-    jack: { tone: 'wise', formality: 0.5, emoji: false, verbosity: 'detailed' },
-    peter: { tone: 'analytical', formality: 0.6, emoji: false, verbosity: 'detailed' },
-    alex: { tone: 'friendly', formality: 0.3, emoji: true, verbosity: 'moderate' },
-    maya: { tone: 'encouraging', formality: 0.3, emoji: true, verbosity: 'concise' },
-    jordan: { tone: 'organized', formality: 0.4, emoji: true, verbosity: 'concise' },
-    nayan: { tone: 'insightful', formality: 0.4, emoji: false, verbosity: 'moderate' },
+    'peter-john': { tone: 'analytical', formality: 0.6, emoji: false, verbosity: 'detailed' },
+    'alex-chen': { tone: 'friendly', formality: 0.3, emoji: true, verbosity: 'moderate' },
+    'maya-santos': { tone: 'encouraging', formality: 0.3, emoji: true, verbosity: 'concise' },
+    'jordan-taylor': { tone: 'organized', formality: 0.4, emoji: true, verbosity: 'concise' },
+    'nayan-patel': { tone: 'wise', formality: 0.5, emoji: false, verbosity: 'detailed' },
   };
 
   const base = defaults[personaId];

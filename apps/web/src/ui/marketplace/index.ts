@@ -1,62 +1,107 @@
 /**
- * Marketplace UI Components
+ * Marketplace UI Module
  *
- * Unified exports for all marketplace-related UI:
- * - Marketplace browser (user-facing catalog)
- * - Publisher portal (developer tools)
- * - Billing dashboard (usage & quotas)
+ * A beautiful modal interface for browsing and installing agents from the
+ * VoiceAI Agents marketplace (similar to Claude MCP's marketplace).
+ *
+ * Features:
+ * - Browse available agents by category
+ * - Search agents by name, description, or tags
+ * - Install/uninstall agents with one click
+ * - View installed agents
+ * - Create custom agents
+ *
+ * This module re-exports the main marketplace UI functionality.
+ * For internal use, import from submodules directly.
+ *
+ * @module marketplace
+ *
+ * USAGE:
+ *   import { openMarketplace, closeMarketplace } from './ui/marketplace/index.js';
+ *
+ *   // Open the marketplace modal
+ *   openMarketplace();
  */
 
-// Re-export from existing marketplace.ui.ts (user marketplace browser)
-export { openMarketplace, closeMarketplace, isMarketplaceLoading } from '../marketplace.ui.js';
+// Re-export types
+export type {
+  MarketplaceAgent,
+  MarketplaceAgentWithStatus,
+  MarketplaceTab,
+  AgentReview,
+  ReviewStats,
+  CategoryColors,
+  MarketplaceState,
+  CategoryId,
+  ExternalBrandId,
+  MarketplaceCallbacks,
+} from './types.js';
 
-// Publisher portal for developers
-import {
-  initPublisherPortalUI as initPublisher,
-  openPublisherPortal,
-  closePublisherPortal,
-  publisherPortalUI,
-  type PublisherProfile,
-  type PublisherItem,
-  type PublisherAnalytics,
-} from '../marketplace-publisher.ui.js';
-
+// Re-export constants
 export {
-  openPublisherPortal,
-  closePublisherPortal,
-  publisherPortalUI,
-  type PublisherProfile,
-  type PublisherItem,
-  type PublisherAnalytics,
-};
-export { initPublisher as initPublisherPortalUI };
+  DURATION,
+  EASING,
+  CATEGORY_LABELS,
+  getCategoryLabel,
+  isExternalBrand,
+  getPersonaGradient,
+  getPersonaGlow,
+  getCategoryGradient,
+  getCategoryGlow,
+  getCategoryTextColor,
+  getCategoryTint,
+  ICONS,
+  ANIMATION_PRESETS,
+  getStaggerDelay,
+  DOM_IDS,
+  CSS_CLASSES,
+} from './constants.js';
 
-// Billing dashboard
-import {
-  initBillingUI as initBilling,
-  openBillingDashboard,
-  closeBillingDashboard,
-  createUsageIndicator,
-  billingUI,
-  type UsageSummary,
-  type RevenueShare,
-} from '../marketplace-billing.ui.js';
-
+// Re-export state management
 export {
-  openBillingDashboard,
-  closeBillingDashboard,
-  createUsageIndicator,
-  billingUI,
-  type UsageSummary,
-  type RevenueShare,
-};
-export { initBilling as initBillingUI };
+  getModal,
+  getCurrentTab,
+  getCurrentCategory,
+  getSearchQuery,
+  isLoading,
+  isOpen,
+  setModal,
+  setCurrentTab,
+  setCurrentCategory,
+  setSearchQuery,
+  setLoading,
+  resetState,
+  getState,
+} from './state.js';
+
+// Re-export utilities
+export {
+  trackedTimeout,
+  _clearAllTimeouts,
+  debounce,
+  announceToScreenReader,
+  renderStars,
+  formatReviewCount,
+  getInitials,
+} from './utils.js';
+
+// Re-export styles
+export {
+  getMarketplaceStyles,
+  getDetailStyles,
+  injectStyles,
+  injectDetailStyles,
+} from './styles/index.js';
+
+// The main marketplace UI is still in the parent file (marketplace.ui.ts)
+// This module provides the modular foundation for it.
+// To complete the refactor, move the remaining logic here.
 
 /**
- * Initialize all marketplace UI components
- * Call this once at app startup to pre-inject styles
+ * Note: The main openMarketplace, closeMarketplace, and toggleMarketplace
+ * functions are still in apps/web/src/ui/marketplace.ui.ts.
+ *
+ * This index.ts provides the modular building blocks that the main file uses.
+ * A full migration would move all UI logic here, but for backward compatibility,
+ * the main entry point remains marketplace.ui.ts.
  */
-export function initAllMarketplaceUI(): void {
-  initPublisher();
-  initBilling();
-}

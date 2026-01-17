@@ -1,0 +1,555 @@
+/**
+ * Transcendent Design System CSS Utilities
+ *
+ * Auto-generated utility classes for the transcendent animation systems.
+ * Import this file to get all CSS utilities, or use the JavaScript
+ * generators for dynamic CSS.
+ *
+ * Systems included:
+ * - Overlapping Action (stagger)
+ * - Physics (spring animations)
+ * - Contextual Spacing
+ * - Voice Typography
+ * - Imperfection Engine
+ *
+ * @example
+ * import './systems/transcendent.css';
+ */
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   OVERLAPPING ACTION (STAGGER)
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* Stagger fade-in animation */
+@keyframes stagger-fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.stagger-fadeIn {
+  animation: stagger-fadeIn var(--stagger-duration, 300ms) var(--stagger-easing, ease-out);
+  animation-delay: var(--stagger-delay, 0ms);
+  animation-fill-mode: both;
+}
+
+/* Stagger fade-out animation */
+@keyframes stagger-fadeOut {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+}
+
+.stagger-fadeOut {
+  animation: stagger-fadeOut var(--stagger-duration, 300ms) var(--stagger-easing, ease-out);
+  animation-delay: var(--stagger-delay, 0ms);
+  animation-fill-mode: both;
+}
+
+/* Stagger scale-in animation */
+@keyframes stagger-scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.stagger-scaleIn {
+  animation: stagger-scaleIn var(--stagger-duration, 300ms) var(--stagger-easing, ease-out);
+  animation-delay: var(--stagger-delay, 0ms);
+  animation-fill-mode: both;
+}
+
+/* Stagger slide-up animation */
+@keyframes stagger-slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.stagger-slideUp {
+  animation: stagger-slideUp var(--stagger-duration, 300ms) var(--stagger-easing, ease-out);
+  animation-delay: var(--stagger-delay, 0ms);
+  animation-fill-mode: both;
+}
+
+/* Stagger slide-right animation */
+@keyframes stagger-slideRight {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.stagger-slideRight {
+  animation: stagger-slideRight var(--stagger-duration, 300ms) var(--stagger-easing, ease-out);
+  animation-delay: var(--stagger-delay, 0ms);
+  animation-fill-mode: both;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   PHYSICS (SPRING ANIMATIONS)
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* Physics preset classes */
+.physics-button {
+  --physics-mass: 0.1;
+  --physics-stiffness: 400;
+  --physics-damping: 25;
+  transition: transform var(--duration-fast, 150ms) cubic-bezier(0.5, 1.5, 0.5, 1);
+}
+
+.physics-card {
+  --physics-mass: 0.3;
+  --physics-stiffness: 300;
+  --physics-damping: 20;
+  transition: transform var(--duration-normal, 200ms) cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.physics-modal {
+  --physics-mass: 0.5;
+  --physics-stiffness: 250;
+  --physics-damping: 18;
+  transition: transform var(--duration-slow, 300ms) cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.physics-tooltip {
+  --physics-mass: 0.05;
+  --physics-stiffness: 500;
+  --physics-damping: 30;
+  transition: transform var(--duration-fast, 150ms) cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+.physics-dropdown {
+  --physics-mass: 0.2;
+  --physics-stiffness: 350;
+  --physics-damping: 22;
+  transition: transform var(--duration-normal, 200ms) cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.physics-toggle {
+  --physics-mass: 0.1;
+  --physics-stiffness: 450;
+  --physics-damping: 28;
+  transition: transform var(--duration-fast, 150ms) cubic-bezier(0.5, 1.5, 0.5, 1);
+}
+
+.physics-notification {
+  --physics-mass: 0.15;
+  --physics-stiffness: 380;
+  --physics-damping: 24;
+  transition: transform var(--duration-normal, 200ms) cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.physics-avatar {
+  --physics-mass: 0.4;
+  --physics-stiffness: 200;
+  --physics-damping: 15;
+  transition: transform var(--duration-slow, 300ms) cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Spring bounce animations */
+@keyframes spring-bounce {
+  0% { transform: scale(0.9); }
+  50% { transform: scale(1.05); }
+  75% { transform: scale(0.98); }
+  100% { transform: scale(1); }
+}
+
+.spring-bounce {
+  animation: spring-bounce var(--duration-normal, 200ms) cubic-bezier(0.5, 1.5, 0.5, 1);
+}
+
+@keyframes spring-pop {
+  0% { transform: scale(0); opacity: 0; }
+  50% { transform: scale(1.1); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.spring-pop {
+  animation: spring-pop var(--duration-normal, 200ms) cubic-bezier(0.5, 1.5, 0.5, 1);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   CONTEXTUAL SPACING
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* Relationship-based spacing */
+.space-none { margin-bottom: var(--space-0, 0); }
+.space-none-top { margin-top: var(--space-0, 0); }
+.gap-none { gap: var(--space-0, 0); }
+.p-none { padding: var(--space-0, 0); }
+
+.space-tight { margin-bottom: var(--space-2, 8px); }
+.space-tight-top { margin-top: var(--space-2, 8px); }
+.gap-tight { gap: var(--space-2, 8px); }
+.p-tight { padding: var(--space-2, 8px); }
+
+.space-related { margin-bottom: var(--space-4, 16px); }
+.space-related-top { margin-top: var(--space-4, 16px); }
+.gap-related { gap: var(--space-4, 16px); }
+.p-related { padding: var(--space-4, 16px); }
+
+.space-section { margin-bottom: var(--space-6, 32px); }
+.space-section-top { margin-top: var(--space-6, 32px); }
+.gap-section { gap: var(--space-6, 32px); }
+.p-section { padding: var(--space-6, 32px); }
+
+.space-group { margin-bottom: var(--space-7, 48px); }
+.space-group-top { margin-top: var(--space-7, 48px); }
+.gap-group { gap: var(--space-7, 48px); }
+.p-group { padding: var(--space-7, 48px); }
+
+.space-dramatic { margin-bottom: var(--space-9, 96px); }
+.space-dramatic-top { margin-top: var(--space-9, 96px); }
+.gap-dramatic { gap: var(--space-9, 96px); }
+.p-dramatic { padding: var(--space-9, 96px); }
+
+/* Content type spacing (auto sibling spacing) */
+.content-heading + * { margin-top: var(--space-from-heading, var(--space-4, 16px)); }
+.content-subheading + * { margin-top: var(--space-from-subheading, var(--space-2, 8px)); }
+.content-body + * { margin-top: var(--space-from-body, var(--space-4, 16px)); }
+.content-button + * { margin-top: var(--space-from-button, var(--space-4, 16px)); }
+.content-input + * { margin-top: var(--space-from-input, var(--space-4, 16px)); }
+.content-list-item + * { margin-top: var(--space-from-list-item, var(--space-2, 8px)); }
+.content-card + * { margin-top: var(--space-from-card, var(--space-4, 16px)); }
+.content-label + * { margin-top: var(--space-from-label, var(--space-2, 8px)); }
+
+/* Emotional modifiers */
+.emotion-neutral { --spacing-scale: 1.0; }
+.emotion-celebration { --spacing-scale: 1.3; }
+.emotion-focus { --spacing-scale: 0.85; }
+.emotion-calm { --spacing-scale: 1.2; }
+.emotion-urgent { --spacing-scale: 0.75; }
+.emotion-intimate { --spacing-scale: 0.9; }
+.emotion-contemplative { --spacing-scale: 1.4; }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   VOICE TYPOGRAPHY
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* Role-based typography */
+.type-transcript {
+  font-size: calc(1rem * var(--type-transcript-scale, 1));
+  font-weight: var(--type-transcript-weight, 400);
+  letter-spacing: var(--type-transcript-spacing, 0);
+  line-height: var(--type-transcript-height, 1.6);
+  opacity: var(--type-transcript-opacity, 1);
+  transition: all var(--duration-normal, 200ms) var(--ease-decelerate, ease-out);
+}
+
+.type-message {
+  font-size: calc(1rem * var(--type-message-scale, 1));
+  font-weight: var(--type-message-weight, 400);
+  letter-spacing: var(--type-message-spacing, 0);
+  line-height: var(--type-message-height, 1.5);
+  opacity: var(--type-message-opacity, 1);
+  transition: all var(--duration-normal, 200ms) var(--ease-decelerate, ease-out);
+}
+
+.type-insight {
+  font-size: calc(1rem * var(--type-insight-scale, 1.1));
+  font-weight: var(--type-insight-weight, 500);
+  letter-spacing: var(--type-insight-spacing, -0.01em);
+  line-height: var(--type-insight-height, 1.4);
+  opacity: var(--type-insight-opacity, 1);
+  transition: all var(--duration-normal, 200ms) var(--ease-decelerate, ease-out);
+}
+
+.type-label {
+  font-size: calc(1rem * var(--type-label-scale, 0.875));
+  font-weight: var(--type-label-weight, 500);
+  letter-spacing: var(--type-label-spacing, 0.02em);
+  line-height: var(--type-label-height, 1.2);
+  opacity: var(--type-label-opacity, 1);
+  text-transform: uppercase;
+  transition: all var(--duration-normal, 200ms) var(--ease-decelerate, ease-out);
+}
+
+.type-heading {
+  font-size: calc(1rem * var(--type-heading-scale, 1.5));
+  font-weight: var(--type-heading-weight, 600);
+  letter-spacing: var(--type-heading-spacing, -0.02em);
+  line-height: var(--type-heading-height, 1.2);
+  opacity: var(--type-heading-opacity, 1);
+  transition: all var(--duration-normal, 200ms) var(--ease-decelerate, ease-out);
+}
+
+.type-caption {
+  font-size: calc(1rem * var(--type-caption-scale, 0.75));
+  font-weight: var(--type-caption-weight, 400);
+  letter-spacing: var(--type-caption-spacing, 0.01em);
+  line-height: var(--type-caption-height, 1.4);
+  opacity: var(--type-caption-opacity, 1);
+  transition: all var(--duration-normal, 200ms) var(--ease-decelerate, ease-out);
+}
+
+.type-quote {
+  font-size: calc(1rem * var(--type-quote-scale, 1.1));
+  font-weight: var(--type-quote-weight, 400);
+  letter-spacing: var(--type-quote-spacing, 0);
+  line-height: var(--type-quote-height, 1.6);
+  opacity: var(--type-quote-opacity, 1);
+  font-style: italic;
+  transition: all var(--duration-normal, 200ms) var(--ease-decelerate, ease-out);
+}
+
+/* Intensity modifiers */
+.type-whisper {
+  --intensity-scale: 0.9;
+  --intensity-weight: 300;
+  font-size: calc(1em * var(--intensity-scale, 1));
+  font-weight: var(--intensity-weight, inherit);
+  opacity: 0.7;
+}
+
+.type-soft {
+  --intensity-scale: 0.95;
+  --intensity-weight: 400;
+  font-size: calc(1em * var(--intensity-scale, 1));
+  font-weight: var(--intensity-weight, inherit);
+  opacity: 0.85;
+}
+
+.type-emphasized {
+  --intensity-scale: 1.05;
+  --intensity-weight: 500;
+  font-size: calc(1em * var(--intensity-scale, 1));
+  font-weight: var(--intensity-weight, inherit);
+}
+
+.type-strong {
+  --intensity-scale: 1.1;
+  --intensity-weight: 600;
+  font-size: calc(1em * var(--intensity-scale, 1));
+  font-weight: var(--intensity-weight, inherit);
+}
+
+.type-exclaimed {
+  --intensity-scale: 1.15;
+  --intensity-weight: 700;
+  font-size: calc(1em * var(--intensity-scale, 1));
+  font-weight: var(--intensity-weight, inherit);
+}
+
+/* Key moment highlight */
+.type-key-moment {
+  --type-scale-boost: 1.1;
+  animation: keyMomentPulse 600ms ease-out;
+}
+
+@keyframes keyMomentPulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.02); }
+  100% { transform: scale(1); }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   IMPERFECTION ENGINE
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* Base imperfect modifier */
+.imperfect {
+  --imperfection-timing-offset: 0ms;
+  --imperfection-duration-mult: 1;
+  --imperfection-path-x: 0%;
+  --imperfection-path-y: 0%;
+  --imperfection-amplitude: 1;
+  --imperfection-phase: 0rad;
+  --imperfection-rotation: 0deg;
+  --imperfection-opacity: 1;
+
+  transform:
+    rotate(var(--imperfection-rotation))
+    scale(var(--imperfection-amplitude))
+    translate(var(--imperfection-path-x), var(--imperfection-path-y));
+  opacity: var(--imperfection-opacity);
+  transition-delay: var(--imperfection-timing-offset);
+}
+
+/* Intensity presets - generated at runtime for unique values per element */
+.imperfect-subtle { }
+.imperfect-gentle { }
+.imperfect-organic { }
+.imperfect-expressive { }
+
+/* Wobble animation - organic idle */
+@keyframes imperfect-wobble {
+  0%, 100% {
+    transform: rotate(calc(var(--imperfection-rotation, 0.5deg) * 0.5));
+  }
+  25% {
+    transform: rotate(calc(var(--imperfection-rotation, 0.5deg) * -0.3)) scale(calc(1 + var(--imperfection-amplitude, 1) * 0.01 - 0.01));
+  }
+  50% {
+    transform: rotate(calc(var(--imperfection-rotation, 0.5deg) * 0.2));
+  }
+  75% {
+    transform: rotate(calc(var(--imperfection-rotation, 0.5deg) * -0.4)) scale(calc(1 - var(--imperfection-amplitude, 1) * 0.01 + 0.01));
+  }
+}
+
+.imperfect-wobble {
+  animation: imperfect-wobble 4s ease-in-out infinite;
+  animation-delay: var(--imperfection-timing-offset, 0ms);
+}
+
+/* Drift animation - slow organic movement */
+@keyframes imperfect-drift {
+  0%, 100% {
+    transform: translate(0, 0);
+  }
+  25% {
+    transform: translate(var(--imperfection-path-x, 1%), calc(var(--imperfection-path-y, 1%) * -1));
+  }
+  50% {
+    transform: translate(calc(var(--imperfection-path-x, 1%) * -1), var(--imperfection-path-y, 1%));
+  }
+  75% {
+    transform: translate(var(--imperfection-path-y, 1%), var(--imperfection-path-x, 1%));
+  }
+}
+
+.imperfect-drift {
+  animation: imperfect-drift 8s ease-in-out infinite;
+  animation-delay: calc(var(--imperfection-timing-offset, 0ms) + var(--imperfection-phase, 0) * 1000ms);
+}
+
+/* Breathe animation - subtle scale pulse */
+@keyframes imperfect-breathe {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(var(--imperfection-amplitude, 1.01));
+  }
+}
+
+.imperfect-breathe {
+  animation: imperfect-breathe 5s ease-in-out infinite;
+  animation-delay: var(--imperfection-timing-offset, 0ms);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   MICRO-INTERACTIONS
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* Button micro-interactions */
+.micro-button {
+  transition: transform var(--duration-fast, 150ms) cubic-bezier(0.5, 1.5, 0.5, 1);
+}
+
+.micro-button:hover {
+  transform: scale(1.02);
+}
+
+.micro-button:active {
+  transform: scale(0.97);
+}
+
+/* Card micro-interactions */
+.micro-card {
+  transition: transform var(--duration-fast, 150ms) ease-out,
+              box-shadow var(--duration-fast, 150ms) ease-out;
+}
+
+.micro-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.micro-card:active {
+  transform: translateY(0) scale(0.99);
+}
+
+/* Input micro-interactions */
+.micro-input {
+  transition: transform var(--duration-fast, 150ms) ease-out,
+              box-shadow var(--duration-fast, 150ms) ease-out;
+}
+
+.micro-input:focus {
+  transform: scale(1.01);
+}
+
+/* Toggle micro-interactions */
+.micro-toggle {
+  transition: transform var(--duration-fast, 150ms) cubic-bezier(0.5, 1.5, 0.5, 1);
+}
+
+/* Notification entrance */
+@keyframes notification-enter {
+  0% {
+    opacity: 0;
+    transform: translateY(-10px) scale(0.95);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.micro-notification-enter {
+  animation: notification-enter var(--duration-normal, 200ms) cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   REDUCED MOTION SUPPORT
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+@media (prefers-reduced-motion: reduce) {
+  .stagger-fadeIn,
+  .stagger-fadeOut,
+  .stagger-scaleIn,
+  .stagger-slideUp,
+  .stagger-slideRight,
+  .spring-bounce,
+  .spring-pop,
+  .imperfect,
+  .imperfect-wobble,
+  .imperfect-drift,
+  .imperfect-breathe,
+  .type-key-moment,
+  .micro-notification-enter {
+    animation: none !important;
+    transition: none !important;
+  }
+
+  .micro-button,
+  .micro-card,
+  .micro-input,
+  .micro-toggle {
+    transition: none !important;
+  }
+
+  .micro-button:hover,
+  .micro-button:active,
+  .micro-card:hover,
+  .micro-card:active,
+  .micro-input:focus {
+    transform: none !important;
+  }
+}

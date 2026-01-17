@@ -19,7 +19,7 @@ import {
   type Workflow,
   type TaskPriority,
   type TaskStatus,
-} from '../services/background-tasks.js';
+} from '../services/scheduling/background-tasks.js';
 
 // Mock the logger
 vi.mock('../utils/safe-logger.js', () => ({

@@ -22,8 +22,8 @@
 
 import { llm } from '@livekit/agents';
 import { z } from 'zod';
+import { isTeamMemberUnlocked } from '../../intelligence/context-builders/team/team-availability.js';
 import { getToolDescription } from '../utils/tool-descriptions.js';
-import { isTeamMemberUnlocked } from '../../intelligence/context-builders/team-availability.js';
 // FIX BUG #6: Import normalizeAgentIdSync for robust ID matching
 import { normalizeAgentIdSync } from '../../personas/agent-directory.js';
 import { isCoach } from '../../personas/persona-ids.js';
@@ -71,17 +71,14 @@ export interface HandoffToolSet {
 /**
  * Generate a handoff tool definition for an agent
  */
-function generateHandoffTool(agent: Agent, coordinator: Agent): HandoffToolDefinition {
+function generateHandoffTool(agent: Agent, _coordinator: Agent): HandoffToolDefinition {
   // Generate tool name from agent ID (e.g., 'nayan-patel' -> 'handoffToNayan')
-  const firstName = agent.name.split(' ')[0];
+  // Sanitize the first name to remove non-alphanumeric characters
+  const firstName = agent.name.split(' ')[0].replace(/[^a-zA-Z]/g, '');
   const toolName = `handoffTo${firstName}`;
 
-  // Generate description from agent info
-  // IMPORTANT: Make it clear this is an ACTION to execute, not something to speak about
-  const description =
-    `IMMEDIATELY transfer the conversation to ${agent.name} (${agent.roleDescription}). ` +
-    `Call silently - do NOT announce the transfer, just execute. After handoff, continue conversation naturally. ` +
-    `Use when the user needs help with: ${agent.handoffTriggers.slice(0, 5).join(', ') || agent.roleDescription}.`;
+  // Generate description - WHAT it does, not HOW to behave
+  const description = `Transfer conversation to ${agent.name}, who specializes in ${agent.roleDescription}.`;
 
   // Parameters schema
   const parameters = z.object({
@@ -104,15 +101,13 @@ function generateHandoffTool(agent: Agent, coordinator: Agent): HandoffToolDefin
  * Generate the "return to coordinator" tool
  */
 function generateReturnToCoordinatorTool(coordinator: Agent): HandoffToolDefinition {
-  const toolName = `handoffTo${coordinator.name.split(' ')[0]}`;
+  // Sanitize the first name to remove non-alphanumeric characters
+  const firstName = coordinator.name.split(' ')[0].replace(/[^a-zA-Z]/g, '');
+  const toolName = `handoffTo${firstName}`;
 
   return {
     name: toolName,
-    description:
-      `IMMEDIATELY return the conversation to ${coordinator.name}, the main coordinator. ` +
-      `Call silently - do NOT announce the return, just execute. After handoff, continue conversation naturally. ` +
-      `Use when: the user's request is outside your expertise, the user asks for another team member, ` +
-      `or the conversation naturally concludes your specialty area.`,
+    description: `Return conversation to ${coordinator.name}, the main coordinator.`,
     parameters: z.object({
       reason: z.string().describe(`Reason for returning to ${coordinator.name}`),
       handoff_note: z
@@ -344,6 +339,11 @@ export interface BuildHandoffToolsOptions {
   userProfile?: UserProfile | null;
   /** User's subscription tier (fallback if runtime context unavailable) */
   subscriptionTier?: 'free' | 'friend' | 'partner';
+  /**
+   * Session services for dev mode bypass check.
+   * When dev mode is synced from frontend, this allows bypassing unlock checks.
+   */
+  services?: { devMode?: { enabled: boolean; bypassUnlocks: boolean } };
 }
 
 /**
@@ -368,7 +368,10 @@ export async function buildHandoffTools(
 
   // Extract options - userProfile and subscriptionTier are used as FALLBACKS
   // when runtime context isn't available (e.g., during testing)
-  const { currentAgentId, userProfile, subscriptionTier = 'free' } = options;
+  const { currentAgentId, userProfile, subscriptionTier = 'free', services } = options;
+
+  // Check for session-scoped dev mode bypass (synced from frontend dev panel)
+  const sessionDevModeBypass = services?.devMode?.enabled && services?.devMode?.bypassUnlocks;
 
   const toolSet = await createHandoffTools(currentAgentId);
   const tools: Record<string, unknown> = {};
@@ -407,7 +410,9 @@ export async function buildHandoffTools(
     // return a friendly error message.
     const isTargetCoordinator = isCoach(def.agentId);
     const hasProfileData = userProfile !== undefined;
-    const bypassUnlocks = process.env['BYPASS_TEAM_UNLOCKS'] === 'true';
+    // Check both environment variable AND session-scoped dev mode bypass
+    const envBypassUnlocks = process.env['BYPASS_TEAM_UNLOCKS'] === 'true';
+    const bypassUnlocks = envBypassUnlocks || sessionDevModeBypass;
 
     if (
       hasProfileData &&
@@ -416,14 +421,18 @@ export async function buildHandoffTools(
       !isTeamMemberUnlocked(def.agentId, userProfile ?? null, subscriptionTier)
     ) {
       filteredTools.push(def.name);
-      getLogger().debug(
+      // 🐛 FIX: Use INFO level for filtered tools - this helps diagnose "can't handoff" issues
+      getLogger().info(
         {
           toolName: def.name,
           agentId: def.agentId,
           tier: subscriptionTier,
           hasProfile: !!userProfile,
+          envBypassUnlocks,
+          sessionDevModeBypass,
+          reason: 'member_locked',
         },
-        'Skipping handoff tool for locked member (BUILD-TIME filter)'
+        `🔒 Handoff tool ${def.name} NOT available - member is locked`
       );
       continue; // Don't create this tool
     }
@@ -444,12 +453,18 @@ export async function buildHandoffTools(
         // but runtime context always should (after user joins session)
         //
         // 🐛 FIX BUG-008: Include recentMessages and conversationTopics in type for clearing
-        type RuntimeUserData = {
+        interface RuntimeUserData {
           services?: { userProfile?: UserProfile | null; sessionId?: string };
           recentMessages?: Array<{ role: 'user' | 'assistant'; content: string }>;
           conversationTopics?: string[];
           lastEmotionAnalysis?: { primary: string; intensity: number };
-        };
+          voiceEmotion?: {
+            primary?: string;
+            confidence?: number;
+            arousal?: number;
+            valence?: number;
+          };
+        }
         const ctx = (runContext as { ctx?: { userData?: RuntimeUserData } })?.ctx;
         const userData = ctx?.userData;
         const runtimeUserProfile = userData?.services?.userProfile || userProfile || null;
@@ -478,6 +493,16 @@ export async function buildHandoffTools(
         const recentMessages = userData?.recentMessages || [];
         const sessionId = userData?.services?.sessionId;
 
+        // Extract voice emotion for better-than-human entrance adaptation
+        const voiceEmotion = userData?.voiceEmotion
+          ? {
+              voiceEmotion: userData.voiceEmotion.primary,
+              voiceConfidence: userData.voiceEmotion.confidence,
+              arousal: userData.voiceEmotion.arousal,
+              valence: userData.voiceEmotion.valence,
+            }
+          : undefined;
+
         // Use the generic executor with runtime user context for unlock validation
         // NOW INCLUDES cognitive handoff context!
         const result = await executeHandoff(def.agentId, reason, {
@@ -489,6 +514,8 @@ export async function buildHandoffTools(
           topics,
           recentMessages,
           sessionId,
+          // Pass voice emotion for better-than-human entrance adaptation
+          voiceEmotion,
         });
 
         if (!result.success) {
@@ -654,7 +681,7 @@ Do NOT try to transfer to them. This was just a quick hello.`,
       // This prevents re-introduction in the same session
       try {
         const { markIntroduced } =
-          await import('../../intelligence/context-builders/cameo-unlock.js');
+          await import('../../intelligence/context-builders/team/cameo-unlock.js');
         markIntroduced(member.memberId);
       } catch {
         // Non-critical - continue anyway
@@ -685,7 +712,9 @@ Do NOT try to transfer to them. This was just a quick hello.`,
       );
 
       // Wait for speech to (approximately) finish, then trigger the visual reveal
-      await new Promise((resolve) => setTimeout(resolve, revealDelayMs));
+      await new Promise<void>((resolve) => {
+        setTimeout(resolve, revealDelayMs);
+      });
 
       // Now emit the event - visual celebration appears as speech finishes!
       cameoUnlockEvents.emit('memberUnlocked', {

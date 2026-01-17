@@ -23,6 +23,7 @@
  */
 
 import { getLogger } from '../../utils/safe-logger.js';
+import { registerInterval, clearNamedInterval } from '../../utils/interval-manager.js';
 import {
   fetchRecentEvaluations as fetchRecentEvaluationsFromFirestore,
   persistEvaluation,
@@ -611,32 +612,35 @@ interface ScheduleConfig {
   generateResponse: (probe: string, context?: unknown) => Promise<string>;
 }
 
-let scheduledInterval: ReturnType<typeof setInterval> | null = null;
+const EVALOPS_SCHEDULED_INTERVAL = 'evalops-scheduled-evaluation';
 
 /**
  * Start scheduled evaluation runs
  */
 export function startScheduledEvaluation(config: ScheduleConfig): void {
-  if (scheduledInterval) {
-    clearInterval(scheduledInterval);
-  }
+  // Clear any existing interval
+  clearNamedInterval(EVALOPS_SCHEDULED_INTERVAL);
 
   const intervalMs = typeof config.schedule === 'number' ? config.schedule : 24 * 60 * 60 * 1000; // Default: daily
 
-  scheduledInterval = setInterval(() => {
-    if (!featureFlags.enabled || !featureFlags.scheduledSuites) return;
+  registerInterval(
+    EVALOPS_SCHEDULED_INTERVAL,
+    () => {
+      if (!featureFlags.enabled || !featureFlags.scheduledSuites) return;
 
-    // Run async operations without blocking setInterval
-    void (async () => {
-      for (const personaId of config.personas) {
-        try {
-          await runScheduledSuite(personaId, config.generateResponse, config.criticalOnly);
-        } catch (error) {
-          log.error({ error, personaId }, 'Scheduled suite failed');
+      // Run async operations
+      void (async () => {
+        for (const personaId of config.personas) {
+          try {
+            await runScheduledSuite(personaId, config.generateResponse, config.criticalOnly);
+          } catch (error) {
+            log.error({ error, personaId }, 'Scheduled suite failed');
+          }
         }
-      }
-    })();
-  }, intervalMs);
+      })();
+    },
+    intervalMs
+  );
 
   log.info({ intervalMs, personas: config.personas }, 'Scheduled evaluation started');
 }
@@ -645,11 +649,8 @@ export function startScheduledEvaluation(config: ScheduleConfig): void {
  * Stop scheduled evaluation runs
  */
 export function stopScheduledEvaluation(): void {
-  if (scheduledInterval) {
-    clearInterval(scheduledInterval);
-    scheduledInterval = null;
-    log.info('Scheduled evaluation stopped');
-  }
+  clearNamedInterval(EVALOPS_SCHEDULED_INTERVAL);
+  log.info('Scheduled evaluation stopped');
 }
 
 // ============================================================================

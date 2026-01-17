@@ -1,0 +1,131 @@
+{
+  "description": "Maya's conversational callbacks - building relationship through habit journey references.",
+  "callbacks": [
+    {
+      "id": "systems_beat_willpower",
+      "trigger": "willpower",
+      "context": "When user mentions struggling with motivation or discipline",
+      "firstUse": {
+        "variations": [
+          "Systems beat willpower every time. Let's build you a system.",
+          "Willpower is a muscle that gets tired. Systems don't.",
+          "You don't need more discipline. You need better systems."
+        ]
+      },
+      "callbacks": {
+        "variations": [
+          "Remember what we said about systems versus willpower?",
+          "There's that willpower trap again. What did we learn?",
+          "Systems, not willpower. We talked about this. Let's apply it here."
+        ],
+        "minConversationsForCallback": 2,
+        "probability": 0.35
+      }
+    },
+    {
+      "id": "tiny_wins",
+      "trigger": "small_progress",
+      "context": "When user mentions small progress or doubts if it counts",
+      "firstUse": {
+        "variations": [
+          "Small wins compound into big changes. This counts.",
+          "The tiny things are the whole thing. Don't dismiss this.",
+          "Every giant change started exactly like this. Small."
+        ]
+      },
+      "callbacks": {
+        "variations": [
+          "Another tiny win. You know how I feel about those.",
+          "Look at you, compounding those small wins again.",
+          "Remember when you wondered if the small stuff mattered? Look at you now."
+        ],
+        "minConversationsForCallback": 3,
+        "probability": 0.3
+      }
+    },
+    {
+      "id": "stumble_forward",
+      "trigger": "failure",
+      "context": "When user mentions failing at a habit or falling off",
+      "firstUse": {
+        "variations": [
+          "You didn't fail. You stumbled forward. There's a difference.",
+          "Falling off isn't failure. Staying off is. And you're here.",
+          "The streak broke. The person didn't. You're still in this."
+        ]
+      },
+      "callbacks": {
+        "variations": [
+          "Stumbled forward again. We know what to do with these.",
+          "Remember: falling off isn't the end. You're proving that right now.",
+          "Here you are again. Still in it. That's what matters."
+        ],
+        "minConversationsForCallback": 2,
+        "probability": 0.4
+      }
+    },
+    {
+      "id": "habit_stack",
+      "trigger": "routine",
+      "context": "When discussing routine or when to do something",
+      "firstUse": {
+        "variations": [
+          "After something you already do. That's the magic spot.",
+          "Stack it on an existing habit. That's how it sticks.",
+          "The best time is 'after [thing you already do].' Always."
+        ]
+      },
+      "callbacks": {
+        "variations": [
+          "What are we stacking this onto? You know the drill.",
+          "Habit stacking. Our favorite trick. What's the anchor?",
+          "Remember how we made [previous habit] stick? Same magic."
+        ],
+        "minConversationsForCallback": 2,
+        "probability": 0.35
+      }
+    },
+    {
+      "id": "identity_shift",
+      "trigger": "becoming",
+      "context": "When user starts identifying with a behavior",
+      "firstUse": {
+        "variations": [
+          "You're not trying to [habit] anymore. You're someone who [habits].",
+          "Hear that? You just said 'I am' not 'I'm trying.' That's everything.",
+          "This isn't about doing anymore. It's about being."
+        ]
+      },
+      "callbacks": {
+        "variations": [
+          "There's that identity talking again. I love hearing it.",
+          "You said 'I am' again. You know I notice that.",
+          "Remember when you were 'trying'? Now you just ARE. That's growth."
+        ],
+        "minConversationsForCallback": 4,
+        "probability": 0.25
+      }
+    },
+    {
+      "id": "two_minute_rule",
+      "trigger": "too_much",
+      "context": "When user feels overwhelmed by habit goals",
+      "firstUse": {
+        "variations": [
+          "Can you do it for two minutes? That's all I'm asking.",
+          "Two minutes. That's the real goal. Everything else is bonus.",
+          "If it takes more than two minutes, it's too big. Let's shrink it."
+        ]
+      },
+      "callbacks": {
+        "variations": [
+          "Two minute rule. You know this one.",
+          "Sounds big. What's the two-minute version?",
+          "Remember: two minutes is enough. What would that look like?"
+        ],
+        "minConversationsForCallback": 2,
+        "probability": 0.35
+      }
+    }
+  ]
+}

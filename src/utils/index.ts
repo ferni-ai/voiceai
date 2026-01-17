@@ -59,11 +59,32 @@ export {
 
 export {
   CircuitBreaker,
+  CircuitOpenError,
   getCircuitBreaker,
+  getAllCircuitBreakerStats,
   resetAllCircuitBreakers,
   withCircuitBreaker,
+  registerCircuitBreakerCallback,
+  clearCircuitBreakerCallback,
   type CircuitBreakerOptions,
+  type CircuitState,
+  type CircuitBreakerStats,
+  type CircuitBreakerStateCallback,
 } from './circuit-breaker.js';
+
+// ============================================================================
+// REQUEST COALESCER
+// ============================================================================
+
+export {
+  RequestCoalescer,
+  getRequestCoalescer,
+  getAllCoalescerStats,
+  resetAllCoalescers,
+  hashContent,
+  type CoalescerOptions,
+  type CoalescerStats,
+} from './request-coalescer.js';
 
 // ============================================================================
 // METRICS
@@ -91,10 +112,221 @@ export { CleanupManager, addAutoCleanupListener, addOnceListener } from './clean
 
 export { cleanForFirestore, deepRemoveUndefined, removeUndefined } from './firestore-utils.js';
 
+// Safe Firestore write operations (ALWAYS use these instead of direct writes!)
+export {
+  safeSet,
+  safeUpdate,
+  safeAdd,
+  createSafeBatch,
+  getDb,
+  getFirestoreInstance,
+  resetFirestoreInstance,
+  COLLECTIONS,
+} from './safe-firestore.js';
+
 // ============================================================================
-// DEFAULT EXPORT
+// SAFE FIRE AND FORGET
+// ============================================================================
+
+export {
+  safeFireAndForget,
+  fireAndForget,
+  createSafeFireAndForget,
+  batchFireAndForget,
+  getFireAndForgetMetrics,
+  resetFireAndForgetMetrics,
+  registerGlobalErrorHandlers,
+  type SafeFireAndForgetOptions,
+} from './safe-fire-and-forget.js';
+
+// ============================================================================
+// BACKGROUND TASKS
+// ============================================================================
+
+export {
+  runBackground,
+  runBackgroundWithTimeout,
+  runBackgroundBatch,
+  type BackgroundTaskContext,
+} from './background-task.js';
+
+// ============================================================================
+// SESSION REGISTRY
+// ============================================================================
+
+export {
+  createSessionRegistry,
+  registerGlobalRegistry,
+  resetSessionGlobally,
+  resetAllSessionsGlobally,
+  getGlobalRegistryStats,
+  safeSessionId,
+  assertSessionId,
+  isValidSessionId,
+  type SessionRegistry,
+  type SessionRegistryOptions,
+} from './session-registry.js';
+
+// ============================================================================
+// INTERVAL MANAGER
+// ============================================================================
+
+export {
+  registerInterval,
+  clearNamedInterval,
+  clearAllIntervals,
+  getIntervalStats,
+  hasInterval,
+} from './interval-manager.js';
+
+// ============================================================================
+// LAZY SERVICE
+// ============================================================================
+
+export { lazyService, type LazyServiceOptions } from './lazy-service.js';
+// NOTE: lazyServices registry moved to services layer (see services/lazy-registry.ts)
+
+// ============================================================================
+// PERFORMANCE METRICS
+// ============================================================================
+
+export {
+  startTimer,
+  stopTimer,
+  recordSample,
+  timeAsync,
+  timeSync,
+  getMetricSummary,
+  getAllMetricSummaries,
+  getMetricSamples,
+  clearAllMetrics,
+  logMetricsSummary,
+  METRICS,
+  // GC pressure metrics (for Rust migration baseline)
+  gcTrackStart,
+  gcTrackEnd,
+  gcTrackAsync,
+  gcTrackSync,
+  getGcPressureSummary,
+  getAllGcPressureSummaries,
+  logGcPressureSummary,
+  clearGcMetrics,
+  GC_METRICS,
+  type MetricSample,
+  type MetricSummary,
+  type MetricName,
+  type GcSample,
+  type GcPressureSummary,
+  type GcMetricName,
+} from './performance-metrics.js';
+
+// ============================================================================
+// COGNITIVE METRICS
+// ============================================================================
+
+export {
+  cognitiveMetrics,
+  timeCognitiveOperation,
+  timeCognitiveOperationSync,
+  recordTurnMetrics,
+  getCognitiveMetricsSummary,
+  maybeLogMetrics,
+  maybeBroadcastMetrics,
+  registerCognitiveMetricsBroadcast,
+  clearCognitiveMetricsBroadcast,
+  type CognitiveMetrics,
+  type CognitiveMetricsSummary,
+  type CognitiveMetricsBroadcastCallback,
+} from './cognitive-metrics.js';
+
+// ============================================================================
+// DDOS PROTECTION
+// ============================================================================
+
+export {
+  DDOS_CONFIG,
+  generateRequestId,
+  addRequestId,
+  hardenServer,
+  parseBodySafe,
+  parseJsonBodySafe,
+  isHealthRateLimited,
+  handleHealthEndpoint,
+  getClientIp,
+  createOAuthStateManager,
+  recordRateLimitEvent,
+  getRateLimitStats,
+  detectDDoSPattern,
+  registerDDoSAlertCallback,
+  checkAndAlertDDoS,
+  startDDoSMonitoring,
+  handleSecurityMonitoring,
+  stopDDoSProtection,
+  resetDDoSProtection,
+  type ParseBodyOptions,
+  type ParseBodyResult,
+} from './ddos-protection.js';
+
+// ============================================================================
+// TEXT UTILITIES
+// ============================================================================
+
+export { stripSSML, containsSSML, normalizeForComparison, looksLikeName } from './text-utils.js';
+
+// ============================================================================
+// ID GENERATION
+// ============================================================================
+
+export {
+  generateId,
+  generateShortId,
+  getIdPrefix,
+  hasIdPrefix,
+  ID_PREFIXES,
+} from './id-generator.js';
+
+// ============================================================================
+// ASYNC SINGLETON
+// ============================================================================
+
+export {
+  createAsyncSingleton,
+  createNullableAsyncSingleton,
+  createResettableAsyncSingleton,
+  type AsyncSingletonOptions,
+} from './async-singleton.js';
+
+// ============================================================================
+// VALIDATION & SANITIZATION
+// ============================================================================
+
+export {
+  // Email validation
+  isValidEmail,
+  validateEmail,
+  sanitizeEmailForLog,
+  // Phone validation
+  isValidPhone,
+  validatePhone,
+  normalizePhone,
+  sanitizePhoneForLog,
+  // Text sanitization
+  sanitizePlainText,
+  sanitizeForSql,
+  // Stock validation
+  isValidStockSymbol,
+  normalizeStockSymbol,
+} from './validation.js';
+
+// ============================================================================
+// DEFAULT EXPORTS
 // ============================================================================
 
 export { default as asyncUtils } from './async.js';
 export { default as metricsUtils } from './metrics.js';
 export { default as rateLimiterUtils } from './rate-limiter.js';
+export { default as circuitBreakerUtils } from './circuit-breaker.js';
+export { default as requestCoalescerUtils } from './request-coalescer.js';
+export { default as sessionRegistryUtils } from './session-registry.js';
+export { default as cognitiveMetricsUtils } from './cognitive-metrics.js';
+export { default as textUtils } from './text-utils.js';

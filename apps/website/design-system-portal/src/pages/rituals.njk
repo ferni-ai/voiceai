@@ -1,0 +1,851 @@
+---
+layout: layouts/base.njk
+title: Rituals
+description: Brand rituals - orchestrated moments that create emotional connection
+permalink: /rituals/
+---
+
+<article class="rituals-page">
+  <header class="page-header">
+    <h1>Rituals</h1>
+    <p class="lead">Orchestrated multi-sensory moments that create emotional connection. Sound, haptics, and visuals working together.</p>
+  </header>
+
+  <!-- Philosophy Section -->
+  <section class="section" id="philosophy">
+    <div class="philosophy-card">
+      <h2>Why Rituals Matter</h2>
+      <p>Rituals transform routine interactions into meaningful moments. When Ferni wakes up for the first time today, it's not just an app launch—it's a greeting. When you achieve something, it's not just a checkmark—it's a celebration.</p>
+      <p>Each ritual combines three sensory channels: <strong>visual</strong> (glow animations), <strong>audio</strong> (signature sounds), and <strong>haptic</strong> (tactile feedback). Together, they create moments that feel remembered, not programmed.</p>
+    </div>
+  </section>
+
+  <!-- Rituals Grid -->
+  <section class="section" id="rituals">
+    <h2>Core Rituals</h2>
+
+    <div class="rituals-grid">
+      <!-- App Wake -->
+      <div class="ritual-card" data-emotion="welcoming">
+        <div class="ritual-header">
+          <div class="ritual-icon wake-icon"></div>
+          <div class="ritual-meta">
+            <h3>Morning Wake</h3>
+            <span class="ritual-trigger">first_daily_open</span>
+          </div>
+        </div>
+        <p class="ritual-description">The app breathing to life for the first time today</p>
+
+        <div class="ritual-steps">
+          <div class="step" data-type="glow">
+            <span class="step-icon"></span>
+            <span class="step-action">startBreathing</span>
+            <span class="step-delay">0ms</span>
+          </div>
+          <div class="step" data-type="audio">
+            <span class="step-icon"></span>
+            <span class="step-action">system.startup</span>
+            <span class="step-delay">100ms</span>
+          </div>
+          <div class="step" data-type="haptic">
+            <span class="step-icon"></span>
+            <span class="step-action">warmWelcome</span>
+            <span class="step-delay">200ms</span>
+          </div>
+        </div>
+
+        <div class="ritual-footer">
+          <span class="emotion-badge welcoming">welcoming</span>
+          <span class="priority-badge">Priority: 10</span>
+        </div>
+      </div>
+
+      <!-- Connection Established -->
+      <div class="ritual-card" data-emotion="reassuring">
+        <div class="ritual-header">
+          <div class="ritual-icon connection-icon"></div>
+          <div class="ritual-meta">
+            <h3>We're Connected</h3>
+            <span class="ritual-trigger">livekit_connected</span>
+          </div>
+        </div>
+        <p class="ritual-description">Voice connection successfully established</p>
+
+        <div class="ritual-steps">
+          <div class="step" data-type="audio">
+            <span class="step-icon"></span>
+            <span class="step-action">connectionSuccess</span>
+            <span class="step-delay">0ms</span>
+          </div>
+          <div class="step" data-type="glow">
+            <span class="step-icon"></span>
+            <span class="step-action">pulse (1.2)</span>
+            <span class="step-delay">50ms</span>
+          </div>
+          <div class="step" data-type="haptic">
+            <span class="step-icon"></span>
+            <span class="step-action">presence</span>
+            <span class="step-delay">100ms</span>
+          </div>
+        </div>
+
+        <div class="ritual-footer">
+          <span class="emotion-badge reassuring">reassuring</span>
+          <span class="priority-badge">Priority: 20</span>
+        </div>
+      </div>
+
+      <!-- First Words -->
+      <div class="ritual-card" data-emotion="attentive">
+        <div class="ritual-header">
+          <div class="ritual-icon listening-icon"></div>
+          <div class="ritual-meta">
+            <h3>You're Heard</h3>
+            <span class="ritual-trigger">user_speech_start</span>
+          </div>
+        </div>
+        <p class="ritual-description">First user speech detected in session</p>
+
+        <div class="ritual-steps">
+          <div class="step" data-type="glow">
+            <span class="step-icon"></span>
+            <span class="step-action">setListening</span>
+            <span class="step-delay">0ms</span>
+          </div>
+          <div class="step" data-type="haptic">
+            <span class="step-icon"></span>
+            <span class="step-action">softTap</span>
+            <span class="step-delay">50ms</span>
+          </div>
+        </div>
+
+        <div class="ritual-footer">
+          <span class="emotion-badge attentive">attentive</span>
+          <span class="priority-badge">Priority: 15</span>
+        </div>
+      </div>
+
+      <!-- Persona Entrance -->
+      <div class="ritual-card" data-emotion="introducing">
+        <div class="ritual-header">
+          <div class="ritual-icon persona-icon"></div>
+          <div class="ritual-meta">
+            <h3>A Friend Arrives</h3>
+            <span class="ritual-trigger">persona_switch</span>
+          </div>
+        </div>
+        <p class="ritual-description">New persona activated</p>
+
+        <div class="ritual-steps">
+          <div class="step" data-type="glow">
+            <span class="step-icon"></span>
+            <span class="step-action">switchPersona</span>
+            <span class="step-delay">0ms</span>
+          </div>
+          <div class="step" data-type="audio">
+            <span class="step-icon"></span>
+            <span class="step-action">persona.{id}</span>
+            <span class="step-delay">100ms</span>
+          </div>
+          <div class="step" data-type="haptic">
+            <span class="step-icon"></span>
+            <span class="step-action">persona_signature</span>
+            <span class="step-delay">150ms</span>
+          </div>
+        </div>
+
+        <div class="ritual-footer">
+          <span class="emotion-badge introducing">introducing</span>
+          <span class="priority-badge">Priority: 25</span>
+        </div>
+      </div>
+
+      <!-- Small Win -->
+      <div class="ritual-card" data-emotion="proud">
+        <div class="ritual-header">
+          <div class="ritual-icon small-win-icon"></div>
+          <div class="ritual-meta">
+            <h3>Small Victory</h3>
+            <span class="ritual-trigger">achievement_small</span>
+          </div>
+        </div>
+        <p class="ritual-description">Quick acknowledgment of achievement</p>
+
+        <div class="ritual-steps">
+          <div class="step" data-type="audio">
+            <span class="step-icon"></span>
+            <span class="step-action">celebration.small</span>
+            <span class="step-delay">0ms</span>
+          </div>
+          <div class="step" data-type="haptic">
+            <span class="step-icon"></span>
+            <span class="step-action">success</span>
+            <span class="step-delay">50ms</span>
+          </div>
+          <div class="step" data-type="glow">
+            <span class="step-icon"></span>
+            <span class="step-action">celebrate (600ms)</span>
+            <span class="step-delay">0ms</span>
+          </div>
+          <div class="step" data-type="visual">
+            <span class="step-icon"></span>
+            <span class="step-action">small_win</span>
+            <span class="step-delay">100ms</span>
+          </div>
+        </div>
+
+        <div class="ritual-footer">
+          <span class="emotion-badge proud">proud</span>
+          <span class="priority-badge">Priority: 5</span>
+        </div>
+      </div>
+
+      <!-- Big Win -->
+      <div class="ritual-card" data-emotion="ecstatic">
+        <div class="ritual-header">
+          <div class="ritual-icon big-win-icon"></div>
+          <div class="ritual-meta">
+            <h3>Major Achievement</h3>
+            <span class="ritual-trigger">achievement_major</span>
+          </div>
+        </div>
+        <p class="ritual-description">Significant accomplishment celebration</p>
+
+        <div class="ritual-steps">
+          <div class="step" data-type="audio">
+            <span class="step-icon"></span>
+            <span class="step-action">celebration.big</span>
+            <span class="step-delay">0ms</span>
+          </div>
+          <div class="step" data-type="haptic">
+            <span class="step-icon"></span>
+            <span class="step-action">celebration</span>
+            <span class="step-delay">0ms</span>
+          </div>
+          <div class="step" data-type="glow">
+            <span class="step-icon"></span>
+            <span class="step-action">celebrate (1200ms)</span>
+            <span class="step-delay">0ms</span>
+          </div>
+          <div class="step" data-type="visual">
+            <span class="step-icon"></span>
+            <span class="step-action">confetti</span>
+            <span class="step-delay">100ms</span>
+          </div>
+        </div>
+
+        <div class="ritual-footer">
+          <span class="emotion-badge ecstatic">ecstatic</span>
+          <span class="priority-badge">Priority: 30</span>
+        </div>
+      </div>
+
+      <!-- Streak -->
+      <div class="ritual-card" data-emotion="impressed">
+        <div class="ritual-header">
+          <div class="ritual-icon streak-icon"></div>
+          <div class="ritual-meta">
+            <h3>Consistency Streak</h3>
+            <span class="ritual-trigger">streak_milestone</span>
+          </div>
+        </div>
+        <p class="ritual-description">Consecutive day milestone</p>
+
+        <div class="ritual-steps">
+          <div class="step" data-type="audio">
+            <span class="step-icon"></span>
+            <span class="step-action">celebration.streak</span>
+            <span class="step-delay">0ms</span>
+          </div>
+          <div class="step" data-type="haptic">
+            <span class="step-icon"></span>
+            <span class="step-action">success</span>
+            <span class="step-delay">0ms</span>
+          </div>
+          <div class="step" data-type="glow">
+            <span class="step-icon"></span>
+            <span class="step-action">celebrate (800ms)</span>
+            <span class="step-delay">0ms</span>
+          </div>
+          <div class="step" data-type="visual">
+            <span class="step-icon"></span>
+            <span class="step-action">streak</span>
+            <span class="step-delay">100ms</span>
+          </div>
+        </div>
+
+        <div class="ritual-footer">
+          <span class="emotion-badge impressed">impressed</span>
+          <span class="milestone-list">3, 7, 14, 30, 60, 100, 365 days</span>
+        </div>
+      </div>
+
+      <!-- Team Unlock -->
+      <div class="ritual-card" data-emotion="welcoming">
+        <div class="ritual-header">
+          <div class="ritual-icon team-icon"></div>
+          <div class="ritual-meta">
+            <h3>New Friend</h3>
+            <span class="ritual-trigger">persona_unlocked</span>
+          </div>
+        </div>
+        <p class="ritual-description">Team member becomes available</p>
+
+        <div class="ritual-steps">
+          <div class="step" data-type="audio">
+            <span class="step-icon"></span>
+            <span class="step-action">celebration.teamUnlock</span>
+            <span class="step-delay">0ms</span>
+          </div>
+          <div class="step" data-type="haptic">
+            <span class="step-icon"></span>
+            <span class="step-action">celebration</span>
+            <span class="step-delay">0ms</span>
+          </div>
+          <div class="step" data-type="glow">
+            <span class="step-icon"></span>
+            <span class="step-action">celebrate (1500ms)</span>
+            <span class="step-delay">0ms</span>
+          </div>
+          <div class="step" data-type="visual">
+            <span class="step-icon"></span>
+            <span class="step-action">confetti</span>
+            <span class="step-delay">200ms</span>
+          </div>
+        </div>
+
+        <div class="ritual-footer">
+          <span class="emotion-badge welcoming">welcoming</span>
+          <span class="priority-badge">Priority: 35</span>
+        </div>
+      </div>
+
+      <!-- Deep Moment -->
+      <div class="ritual-card" data-emotion="supportive">
+        <div class="ritual-header">
+          <div class="ritual-icon deep-icon"></div>
+          <div class="ritual-meta">
+            <h3>Breakthrough</h3>
+            <span class="ritual-trigger">emotional_breakthrough</span>
+          </div>
+        </div>
+        <p class="ritual-description">Emotional or cognitive breakthrough moment</p>
+
+        <div class="ritual-steps">
+          <div class="step" data-type="haptic">
+            <span class="step-icon"></span>
+            <span class="step-action">empathy</span>
+            <span class="step-delay">0ms</span>
+          </div>
+          <div class="step" data-type="glow">
+            <span class="step-icon"></span>
+            <span class="step-action">pulse (0.8, 2000ms)</span>
+            <span class="step-delay">0ms</span>
+          </div>
+          <div class="step" data-type="audio">
+            <span class="step-icon"></span>
+            <span class="step-action">notification.gentle</span>
+            <span class="step-delay">500ms</span>
+          </div>
+        </div>
+
+        <div class="ritual-footer">
+          <span class="emotion-badge supportive">supportive</span>
+          <span class="subtle-badge">subtle</span>
+        </div>
+      </div>
+
+      <!-- Thinking of You -->
+      <div class="ritual-card" data-emotion="caring">
+        <div class="ritual-header">
+          <div class="ritual-icon thinking-icon"></div>
+          <div class="ritual-meta">
+            <h3>I Thought of You</h3>
+            <span class="ritual-trigger">proactive_outreach</span>
+          </div>
+        </div>
+        <p class="ritual-description">Proactive no-agenda outreach</p>
+
+        <div class="ritual-steps">
+          <div class="step" data-type="audio">
+            <span class="step-icon"></span>
+            <span class="step-action">notification.thinkingOfYou</span>
+            <span class="step-delay">0ms</span>
+          </div>
+          <div class="step" data-type="haptic">
+            <span class="step-icon"></span>
+            <span class="step-action">gentleNudge</span>
+            <span class="step-delay">100ms</span>
+          </div>
+          <div class="step" data-type="glow">
+            <span class="step-icon"></span>
+            <span class="step-action">pulse (0.6)</span>
+            <span class="step-delay">0ms</span>
+          </div>
+        </div>
+
+        <div class="ritual-footer">
+          <span class="emotion-badge caring">caring</span>
+          <span class="cooldown-badge">Cooldown: 24h</span>
+        </div>
+      </div>
+
+      <!-- Session End -->
+      <div class="ritual-card" data-emotion="grateful">
+        <div class="ritual-header">
+          <div class="ritual-icon goodbye-icon"></div>
+          <div class="ritual-meta">
+            <h3>Until Next Time</h3>
+            <span class="ritual-trigger">session_ending</span>
+          </div>
+        </div>
+        <p class="ritual-description">Graceful session conclusion</p>
+
+        <div class="ritual-steps">
+          <div class="step" data-type="audio">
+            <span class="step-icon"></span>
+            <span class="step-action">system.sessionEnd</span>
+            <span class="step-delay">0ms</span>
+          </div>
+          <div class="step" data-type="haptic">
+            <span class="step-icon"></span>
+            <span class="step-action">goodbye</span>
+            <span class="step-delay">300ms</span>
+          </div>
+          <div class="step" data-type="glow">
+            <span class="step-icon"></span>
+            <span class="step-action">fadeOut (1500ms)</span>
+            <span class="step-delay">0ms</span>
+          </div>
+        </div>
+
+        <div class="ritual-footer">
+          <span class="emotion-badge grateful">grateful</span>
+          <span class="priority-badge">Priority: 15</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Step Types Legend -->
+  <section class="section" id="step-types">
+    <h2>Step Types</h2>
+    <p>Each ritual step has a type that determines which system handles it.</p>
+
+    <div class="step-types-grid">
+      <div class="step-type-card">
+        <div class="step-type-icon glow-type"></div>
+        <h4>Glow</h4>
+        <p>Avatar glow animations—breathing, pulsing, celebrating, persona color shifts</p>
+        <code>type: "glow"</code>
+      </div>
+
+      <div class="step-type-card">
+        <div class="step-type-icon audio-type"></div>
+        <h4>Audio</h4>
+        <p>Sound effects from the audio library—startup chimes, celebrations, notifications</p>
+        <code>type: "audio"</code>
+      </div>
+
+      <div class="step-type-card">
+        <div class="step-type-icon haptic-type"></div>
+        <h4>Haptic</h4>
+        <p>Tactile feedback patterns—taps, bumps, vibration sequences</p>
+        <code>type: "haptic"</code>
+      </div>
+
+      <div class="step-type-card">
+        <div class="step-type-icon visual-type"></div>
+        <h4>Visual</h4>
+        <p>Screen animations—confetti, particles, celebration effects</p>
+        <code>type: "visual"</code>
+      </div>
+    </div>
+  </section>
+
+  <!-- Preferences -->
+  <section class="section" id="preferences">
+    <h2>User Preferences</h2>
+    <p>Users can customize ritual behavior to match their preferences.</p>
+
+    <div class="preferences-grid">
+      <div class="preference-card">
+        <h4>Haptics</h4>
+        <div class="preference-options">
+          <span class="option">Off</span>
+          <span class="option">Subtle</span>
+          <span class="option active">Normal</span>
+          <span class="option">Strong</span>
+        </div>
+      </div>
+
+      <div class="preference-card">
+        <h4>Sounds</h4>
+        <div class="preference-toggles">
+          <label><input type="checkbox" checked disabled> System</label>
+          <label><input type="checkbox" checked disabled> Celebration</label>
+          <label><input type="checkbox" checked disabled> Notification</label>
+          <label><input type="checkbox" checked disabled> Ambient</label>
+        </div>
+        <div class="volume-slider">
+          <span>Volume</span>
+          <div class="slider-track">
+            <div class="slider-fill" style="width: 80%"></div>
+          </div>
+          <span>80%</span>
+        </div>
+      </div>
+
+      <div class="preference-card">
+        <h4>Visual Effects</h4>
+        <div class="preference-toggles">
+          <label><input type="checkbox" checked disabled> Confetti</label>
+          <label><input type="checkbox" checked disabled> Glow Effects</label>
+          <label><input type="checkbox" disabled> Reduced Motion</label>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Usage Example -->
+  <section class="section" id="usage">
+    <h2>Usage</h2>
+    <div class="code-example">
+      <pre><code>import { triggerRitual, rituals } from 'design-system/rituals';
+
+// Trigger a ritual by ID
+await triggerRitual('small_win');
+
+// Trigger with custom parameters
+await triggerRitual('streak', {
+  streakCount: 7,
+  personalized: true
+});
+
+// Check if ritual can fire (respects cooldowns)
+if (rituals.canFire('thinking_of_you')) {
+  await triggerRitual('thinking_of_you');
+}
+
+// Listen for ritual completion
+rituals.on('ritual:complete', (ritual) => {
+  console.log(`Ritual ${ritual.id} completed`);
+});</code></pre>
+    </div>
+  </section>
+</article>
+
+<style>
+/* Rituals Page Styles */
+.rituals-page {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+/* Philosophy Card */
+.philosophy-card {
+  background: linear-gradient(135deg, var(--bg-elevated), var(--bg-subtle));
+  border-radius: var(--radius-xl);
+  padding: var(--space-8);
+  border: 1px solid var(--border-subtle);
+}
+
+.philosophy-card h2 {
+  margin-bottom: var(--space-4);
+}
+
+.philosophy-card p {
+  font-size: var(--text-lg);
+  line-height: 1.7;
+  color: var(--text-secondary);
+  margin-bottom: var(--space-4);
+}
+
+.philosophy-card p:last-child {
+  margin-bottom: 0;
+}
+
+/* Rituals Grid */
+.rituals-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: var(--space-4);
+  margin-top: var(--space-6);
+}
+
+.ritual-card {
+  background: var(--bg-elevated);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+  border: 1px solid var(--border-subtle);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.ritual-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.ritual-header {
+  display: flex;
+  gap: var(--space-4);
+  margin-bottom: var(--space-3);
+}
+
+.ritual-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-lg);
+  flex-shrink: 0;
+}
+
+.wake-icon { background: linear-gradient(135deg, #FFD93D, #FF9F1C); }
+.connection-icon { background: linear-gradient(135deg, var(--color-ferni), var(--color-peter)); }
+.listening-icon { background: linear-gradient(135deg, var(--color-peter), var(--color-alex)); }
+.persona-icon { background: linear-gradient(135deg, var(--color-maya), var(--color-jordan)); }
+.small-win-icon { background: linear-gradient(135deg, #4ADE80, #22C55E); }
+.big-win-icon { background: linear-gradient(135deg, #FBBF24, #F59E0B); }
+.streak-icon { background: linear-gradient(135deg, #F472B6, #EC4899); }
+.team-icon { background: linear-gradient(135deg, var(--color-nayan), var(--color-ferni)); }
+.deep-icon { background: linear-gradient(135deg, #818CF8, #6366F1); }
+.thinking-icon { background: linear-gradient(135deg, var(--color-maya), var(--color-alex)); }
+.goodbye-icon { background: linear-gradient(135deg, var(--color-jordan), var(--color-nayan)); }
+
+.ritual-meta h3 {
+  margin: 0 0 var(--space-1);
+  font-size: var(--text-lg);
+}
+
+.ritual-trigger {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--text-tertiary);
+  background: var(--bg-subtle);
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-sm);
+}
+
+.ritual-description {
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  margin-bottom: var(--space-4);
+}
+
+/* Ritual Steps */
+.ritual-steps {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin-bottom: var(--space-4);
+  padding: var(--space-3);
+  background: var(--bg-subtle);
+  border-radius: var(--radius-md);
+}
+
+.step {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  font-size: var(--text-sm);
+}
+
+.step-icon {
+  width: 20px;
+  height: 20px;
+  border-radius: var(--radius-sm);
+  flex-shrink: 0;
+}
+
+.step[data-type="glow"] .step-icon { background: linear-gradient(135deg, #FFD93D, #FF9F1C); }
+.step[data-type="audio"] .step-icon { background: linear-gradient(135deg, #60A5FA, #3B82F6); }
+.step[data-type="haptic"] .step-icon { background: linear-gradient(135deg, #A78BFA, #8B5CF6); }
+.step[data-type="visual"] .step-icon { background: linear-gradient(135deg, #4ADE80, #22C55E); }
+
+.step-action {
+  flex: 1;
+  font-family: var(--font-mono);
+  color: var(--text-primary);
+}
+
+.step-delay {
+  font-size: var(--text-xs);
+  color: var(--text-tertiary);
+}
+
+/* Ritual Footer */
+.ritual-footer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  align-items: center;
+}
+
+.emotion-badge {
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-full);
+  font-size: var(--text-xs);
+  font-weight: 600;
+}
+
+.emotion-badge.welcoming { background: rgba(74, 222, 128, 0.15); color: #22C55E; }
+.emotion-badge.reassuring { background: rgba(74, 103, 65, 0.15); color: var(--color-ferni); }
+.emotion-badge.attentive { background: rgba(58, 107, 115, 0.15); color: var(--color-peter); }
+.emotion-badge.introducing { background: rgba(166, 122, 106, 0.15); color: var(--color-maya); }
+.emotion-badge.proud { background: rgba(74, 222, 128, 0.15); color: #22C55E; }
+.emotion-badge.ecstatic { background: rgba(251, 191, 36, 0.15); color: #F59E0B; }
+.emotion-badge.impressed { background: rgba(244, 114, 182, 0.15); color: #EC4899; }
+.emotion-badge.supportive { background: rgba(129, 140, 248, 0.15); color: #6366F1; }
+.emotion-badge.caring { background: rgba(166, 122, 106, 0.15); color: var(--color-maya); }
+.emotion-badge.grateful { background: rgba(196, 133, 106, 0.15); color: var(--color-jordan); }
+
+.priority-badge,
+.subtle-badge,
+.cooldown-badge,
+.milestone-list {
+  font-size: var(--text-xs);
+  color: var(--text-tertiary);
+}
+
+.subtle-badge {
+  font-style: italic;
+}
+
+/* Step Types Grid */
+.step-types-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: var(--space-4);
+  margin-top: var(--space-6);
+}
+
+.step-type-card {
+  background: var(--bg-elevated);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+  border: 1px solid var(--border-subtle);
+  text-align: center;
+}
+
+.step-type-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: var(--radius-lg);
+  margin: 0 auto var(--space-4);
+}
+
+.glow-type { background: linear-gradient(135deg, #FFD93D, #FF9F1C); }
+.audio-type { background: linear-gradient(135deg, #60A5FA, #3B82F6); }
+.haptic-type { background: linear-gradient(135deg, #A78BFA, #8B5CF6); }
+.visual-type { background: linear-gradient(135deg, #4ADE80, #22C55E); }
+
+.step-type-card h4 {
+  margin-bottom: var(--space-2);
+}
+
+.step-type-card p {
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  margin-bottom: var(--space-3);
+}
+
+.step-type-card code {
+  font-size: var(--text-xs);
+}
+
+/* Preferences Grid */
+.preferences-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: var(--space-4);
+  margin-top: var(--space-6);
+}
+
+.preference-card {
+  background: var(--bg-elevated);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+  border: 1px solid var(--border-subtle);
+}
+
+.preference-card h4 {
+  margin-bottom: var(--space-4);
+}
+
+.preference-options {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.option {
+  padding: var(--space-2) var(--space-3);
+  background: var(--bg-subtle);
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+}
+
+.option.active {
+  background: var(--color-accent);
+  color: white;
+}
+
+.preference-toggles {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin-bottom: var(--space-4);
+}
+
+.preference-toggles label {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+}
+
+.volume-slider {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+}
+
+.slider-track {
+  flex: 1;
+  height: 6px;
+  background: var(--bg-subtle);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+}
+
+.slider-fill {
+  height: 100%;
+  background: var(--color-accent);
+  border-radius: var(--radius-full);
+}
+
+/* Code Example */
+.code-example {
+  background: var(--bg-elevated);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+  border: 1px solid var(--border-subtle);
+}
+
+.code-example pre {
+  margin: 0;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .rituals-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .philosophy-card {
+    padding: var(--space-5);
+  }
+}
+</style>

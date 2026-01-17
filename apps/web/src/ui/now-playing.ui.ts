@@ -1,27 +1,30 @@
 /**
- * Now Playing UI - Compact Music Indicator
+ * Now Playing UI - Compact Music Indicator (Rewritten)
  *
  * A minimal floating pill that appears near the avatar when music plays.
- * Designed to be unobtrusive and out of the way of conversation.
+ * This is a PURE VIEW component - all state is managed by MusicStateManager.
  *
  * DESIGN PRINCIPLES:
  *   - Minimal footprint - doesn't block conversation
- *   - Starts expanded (shows track info), auto-collapses to icon only
+ *   - Starts expanded, auto-collapses to icon only
  *   - Hover/tap to see full info
- *   - Shorter timers - matches 30s Spotify preview duration
- *   - Warm, human animation
+ *   - All styling uses design system tokens
+ *   - Pure view - subscribes to MusicStateManager for state
+ *
+ * @module ui/now-playing
  */
 
 import { t } from '../i18n/index.js';
 import { DURATION, EASING, prefersReducedMotion } from '../config/animation-constants.js';
 import type { MusicPlaybackState } from '../types/events.js';
 import { createLogger } from '../utils/logger.js';
-import { createTimeoutTracker } from '../utils/tracked-timeout.js';
+import {
+  getMusicStateManager,
+  type MusicTrack,
+  type MusicStateEvent,
+} from '../services/music-state-manager.js';
 
 const log = createLogger('NowPlaying');
-
-// FIX BUG: Track all setTimeout calls for proper cleanup
-const { trackedTimeout, clearAll: clearAllTimeouts } = createTimeoutTracker();
 
 // ============================================================================
 // ICONS (Lucide-style, 2px stroke, rounded)
@@ -39,12 +42,14 @@ const ICONS = {
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>',
   volumeMuted:
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>',
-  // 💚 "Our Song" heart - filled to indicate shared memory
   ourSong:
     '<svg viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>',
-  // ✖️ Close/dismiss button
+  heartOutline:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>',
   close:
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>',
+  history:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>',
 };
 
 // ============================================================================
@@ -54,16 +59,19 @@ const ICONS = {
 export interface NowPlayingTrack {
   name: string;
   artist: string;
-  duration?: number; // ms
+  duration?: number;
+  albumArt?: string;
   isAmbient?: boolean;
-  isOurSong?: boolean; // 💚 Song with shared memory
-  ourSongContext?: string; // Brief context for tooltip
+  isOurSong?: boolean;
+  ourSongContext?: string;
 }
 
 export interface NowPlayingCallbacks {
   onSkip?: () => void;
   onPause?: () => void;
   onResume?: () => void;
+  onVolumeChange?: (volume: number) => void;
+  onFavorite?: (track: NowPlayingTrack) => void;
 }
 
 // ============================================================================
@@ -81,24 +89,16 @@ class NowPlayingUI {
   private startTime: number | null = null;
   private _callbacks: NowPlayingCallbacks = {};
   private waveformBars: HTMLElement[] = [];
-  // 🎧 FIX: Track hide animation to prevent race conditions
-  private hideTimeoutId: ReturnType<typeof setTimeout> | null = null;
-  // 🎧 FIX: Safety timer to auto-hide if no state update received
-  private safetyHideTimeoutId: ReturnType<typeof setTimeout> | null = null;
-  // 🎧 Absolute maximum timer - card can never stay visible longer than this
-  private absoluteMaxTimeoutId: ReturnType<typeof setTimeout> | null = null;
-  // 🎧 Auto-collapse timer - collapses to compact mode after showing full info
   private autoCollapseTimeoutId: ReturnType<typeof setTimeout> | null = null;
-  // Default track duration fallback (35 seconds - just over typical 30s preview)
-  // Tighter timing so card hides promptly when 'stopped' message is missed
-  private static readonly SAFETY_HIDE_DELAY_MS = 35000;
-  // 🎧 Maximum time the card can stay visible (40 seconds absolute max)
-  // Most Spotify previews are 30s, so 40s is generous but not excessive
-  private static readonly ABSOLUTE_MAX_VISIBLE_MS = 40000;
-  // 🎧 Shorter timeout for ambient music (auto-plays, less important to show long)
-  private static readonly AMBIENT_SAFETY_DELAY_MS = 33000;
-  // 🎧 Auto-collapse delay - show full info for 4 seconds, then collapse
+  private trackHistory: Array<NowPlayingTrack & { playedAt: number }> = [];
+  private unsubscribeStateManager: (() => void) | null = null;
+
+  private static readonly MAX_HISTORY_SIZE = 20;
   private static readonly AUTO_COLLAPSE_DELAY_MS = 4000;
+
+  // ============================================================================
+  // INITIALIZATION
+  // ============================================================================
 
   initialize(): void {
     if (this.container) return;
@@ -109,8 +109,46 @@ class NowPlayingUI {
 
     this.injectStyles();
     this.createContainer();
+    this.subscribeToStateManager();
 
     log.debug('Now Playing UI initialized');
+  }
+
+  /**
+   * Subscribe to MusicStateManager for state updates.
+   */
+  private subscribeToStateManager(): void {
+    const stateManager = getMusicStateManager();
+    stateManager.initialize();
+
+    this.unsubscribeStateManager = stateManager.subscribe((event: MusicStateEvent) => {
+      this.handleStateEvent(event);
+    });
+  }
+
+  /**
+   * Handle events from MusicStateManager.
+   */
+  private handleStateEvent(event: MusicStateEvent): void {
+    switch (event.type) {
+      case 'state_changed':
+        this.updateState(event.state.state);
+        break;
+      case 'track_started':
+        this.show(event.track);
+        break;
+      case 'track_ended':
+        this.hide();
+        break;
+      case 'ducking_started':
+        this.updateState('ducking');
+        break;
+      case 'ducking_ended':
+        if (this._currentState === 'ducking') {
+          this.updateState('playing');
+        }
+        break;
+    }
   }
 
   setCallbacks(callbacks: NowPlayingCallbacks): void {
@@ -121,34 +159,23 @@ class NowPlayingUI {
     return this._callbacks;
   }
 
+  // ============================================================================
+  // SHOW / HIDE
+  // ============================================================================
+
   /**
-   * Show the Now Playing card with track info
+   * Show the Now Playing card with track info.
    */
-  show(track: NowPlayingTrack): void {
+  show(track: NowPlayingTrack | MusicTrack): void {
     this.initialize();
     if (!this.container) return;
 
-    // 🎧 FIX: Cancel any pending hide operation (prevents race condition)
-    if (this.hideTimeoutId) {
-      clearTimeout(this.hideTimeoutId);
-      this.hideTimeoutId = null;
-    }
-
     this.currentTrack = track;
     this.startTime = Date.now();
+    this.addToHistory(track);
     this.updateTrackInfo();
     this.startWaveformAnimation();
     this.startProgressTracking();
-
-    // 🎧 FIX: Reset safety timer whenever card is shown
-    // This ensures the card auto-hides even if backend doesn't send 'stopped'
-    // Use shorter timeout for ambient music (less important to show long)
-    this.resetSafetyTimer(track.duration, track.isAmbient);
-
-    // 🎧 Set absolute max timer (1 minute) - card can never stay visible longer
-    this.resetAbsoluteMaxTimer();
-
-    // 🎧 Start expanded, auto-collapse after 4 seconds to minimize distraction
     this.expand();
     this.startAutoCollapseTimer();
 
@@ -156,7 +183,6 @@ class NowPlayingUI {
       this.container.classList.add('now-playing--visible');
       this.isVisible = true;
 
-      // Animate in from the right side (near avatar)
       if (!prefersReducedMotion()) {
         this.container.animate(
           [
@@ -173,7 +199,6 @@ class NowPlayingUI {
 
       log.debug('Now Playing shown', { track: track.name, artist: track.artist });
     } else {
-      // Already visible - update was called for same/new track, re-expand to show new info
       this.expand();
       this.startAutoCollapseTimer();
       log.debug('Now Playing updated', { track: track.name, artist: track.artist });
@@ -181,36 +206,17 @@ class NowPlayingUI {
   }
 
   /**
-   * Hide the Now Playing card
+   * Hide the Now Playing card.
    */
   hide(): void {
-    if (!this.container || !this.isVisible) {
-      log.debug('🎧 Now Playing hide skipped (already hidden or no container)');
-      return;
-    }
+    if (!this.container || !this.isVisible) return;
 
-    log.info('🎧 Now Playing hiding', {
-      track: this.currentTrack?.name,
-      showDuration: this.startTime
-        ? Math.round((Date.now() - this.startTime) / 1000) + 's'
-        : 'unknown',
-    });
+    log.info('Now Playing hiding', { track: this.currentTrack?.name });
 
-    // 🎧 FIX: Clear all timers - we're hiding properly
-    this.clearSafetyTimer();
-    this.clearAbsoluteMaxTimer();
     this.clearAutoCollapseTimer();
-
-    // 🎧 FIX: Clear any pending hide timeout to prevent double-hide
-    if (this.hideTimeoutId) {
-      clearTimeout(this.hideTimeoutId);
-      this.hideTimeoutId = null;
-    }
-
     this.stopWaveformAnimation();
     this.stopProgressTracking();
 
-    // Animate out (slide to right)
     if (!prefersReducedMotion()) {
       this.container.animate(
         [
@@ -225,39 +231,26 @@ class NowPlayingUI {
       );
     }
 
-    // 🎧 FIX: Track the timeout and clear state properly
-    this.hideTimeoutId = trackedTimeout(() => {
+    setTimeout(() => {
       this.container?.classList.remove('now-playing--visible', 'now-playing--collapsed');
       this.isVisible = false;
       this.isCollapsed = false;
       this.currentTrack = null;
       this.startTime = null;
       this._currentState = 'idle';
-      this.hideTimeoutId = null;
-      log.debug('Now Playing fully hidden');
     }, DURATION.NORMAL);
-
-    log.debug('Now Playing hiding (animation started)');
   }
 
-  /**
-   * Get current music state
-   */
+  // ============================================================================
+  // STATE MANAGEMENT
+  // ============================================================================
+
   getState(): MusicPlaybackState {
     return this._currentState;
   }
 
   /**
    * Update music state (playing, ducking, fading, etc.)
-   *
-   * States:
-   * - 'playing': Music actively playing, full waveform animation
-   * - 'ducking': Agent speaking over music, subdued waveform
-   * - 'fading': Track ending soon (~5 seconds left), pulse animation
-   * - 'changing': DJ crossfade in progress, transition animation
-   * - 'paused': Playback paused, static waveform
-   * - 'stopped': Playback stopped, hide the card
-   * - 'idle': No music loaded, hide the card
    */
   updateState(state: MusicPlaybackState): void {
     const previousState = this._currentState;
@@ -275,189 +268,45 @@ class NowPlayingUI {
       'now-playing--changing'
     );
 
-    // Add current state class
     switch (state) {
       case 'ducking':
         this.container.classList.add('now-playing--ducking');
         this.slowWaveform();
-        // 🎧 FIX: Don't clear safety timer during ducking - track is still playing
         break;
       case 'fading':
         this.container.classList.add('now-playing--fading');
         this.fadeWaveform();
-        // 🎧 Track is about to end - safety timer will handle if 'stopped' never arrives
         break;
       case 'changing':
-        // DJ crossfade in progress - show subtle transition animation
         this.container.classList.add('now-playing--changing');
         this.crossfadeWaveform();
-        // 🎧 Reset safety timer for the new track (will be updated when new track shows)
         break;
       case 'paused':
         this.container.classList.add('now-playing--paused');
         this.pauseWaveform();
-        // 🎧 FIX: Clear safety timer when paused (user intentionally paused)
-        this.clearSafetyTimer();
         break;
       case 'playing':
-        // If coming back from 'changing', we might have a new track
-        // Re-enable full waveform animation
         this.resumeWaveform();
-        // 🎧 FIX: Reset safety timer when playing resumes (from pause or new track)
-        if (previousState === 'paused') {
-          this.resetSafetyTimer(this.currentTrack?.duration, this.currentTrack?.isAmbient);
-        }
         break;
       case 'stopped':
       case 'idle':
-        // Always hide on stopped/idle, regardless of previous state
-        this.hide();
-        break;
-      default:
-        // Unknown state - log and hide for safety
-        log.warn('Unknown music state received', { state });
         this.hide();
         break;
     }
   }
 
-  /**
-   * Check if the Now Playing card is currently visible
-   */
   isShowing(): boolean {
     return this.isVisible;
   }
 
-  /**
-   * Get current track info (if playing)
-   */
   getCurrentTrack(): NowPlayingTrack | null {
     return this.currentTrack;
   }
 
-  // ==========================================================================
-  // SAFETY TIMER - Auto-hide fallback
-  // ==========================================================================
+  // ============================================================================
+  // COLLAPSE / EXPAND
+  // ============================================================================
 
-  /**
-   * 🎧 Reset the safety timer.
-   * This is a fallback to auto-hide the card if the backend never sends 'stopped'.
-   *
-   * @param trackDuration - Track duration in ms (optional, uses default if not provided)
-   * @param isAmbient - If true, use shorter ambient timeout
-   */
-  private resetSafetyTimer(trackDuration?: number, isAmbient?: boolean): void {
-    // Clear existing safety timer
-    if (this.safetyHideTimeoutId) {
-      clearTimeout(this.safetyHideTimeoutId);
-      this.safetyHideTimeoutId = null;
-    }
-
-    // Calculate delay:
-    // - If we have track duration: duration + 3s buffer
-    // - For ambient music: use shorter ambient delay
-    // - Otherwise: use default safety delay
-    let delay: number;
-    if (trackDuration) {
-      delay = trackDuration + 3000; // Track duration + 3 second buffer (tighter)
-    } else if (isAmbient) {
-      delay = NowPlayingUI.AMBIENT_SAFETY_DELAY_MS;
-    } else {
-      delay = NowPlayingUI.SAFETY_HIDE_DELAY_MS;
-    }
-
-    log.debug('Safety timer set', {
-      delay: Math.round(delay / 1000) + 's',
-      isAmbient,
-      hasDuration: !!trackDuration,
-    });
-
-    this.safetyHideTimeoutId = trackedTimeout(() => {
-      if (this.isVisible) {
-        log.warn('Now Playing safety timer triggered - hiding stale card', {
-          track: this.currentTrack?.name,
-          wasShowingFor: this.startTime
-            ? Math.round((Date.now() - this.startTime) / 1000) + 's'
-            : 'unknown',
-        });
-        this.hide();
-      }
-    }, delay);
-  }
-
-  /**
-   * 🎧 Clear the safety timer (called when we receive a proper state update).
-   */
-  private clearSafetyTimer(): void {
-    if (this.safetyHideTimeoutId) {
-      clearTimeout(this.safetyHideTimeoutId);
-      this.safetyHideTimeoutId = null;
-    }
-  }
-
-  /**
-   * 🎧 Reset the absolute max timer.
-   * This is a hard limit - the card will NEVER stay visible longer than 2 minutes.
-   */
-  private resetAbsoluteMaxTimer(): void {
-    // Clear existing timer
-    if (this.absoluteMaxTimeoutId) {
-      clearTimeout(this.absoluteMaxTimeoutId);
-      this.absoluteMaxTimeoutId = null;
-    }
-
-    this.absoluteMaxTimeoutId = trackedTimeout(() => {
-      if (this.isVisible) {
-        log.warn('🎧 Now Playing absolute max timer triggered - force hiding', {
-          track: this.currentTrack?.name,
-          wasShowingFor: this.startTime
-            ? Math.round((Date.now() - this.startTime) / 1000) + 's'
-            : 'unknown',
-        });
-        this.hide();
-      }
-    }, NowPlayingUI.ABSOLUTE_MAX_VISIBLE_MS);
-  }
-
-  /**
-   * 🎧 Clear the absolute max timer.
-   */
-  private clearAbsoluteMaxTimer(): void {
-    if (this.absoluteMaxTimeoutId) {
-      clearTimeout(this.absoluteMaxTimeoutId);
-      this.absoluteMaxTimeoutId = null;
-    }
-  }
-
-  /**
-   * 💚 Mark the current track as "our song" - a shared musical memory.
-   * Shows a heart icon and updates the tooltip with context.
-   *
-   * @param context - Brief context for the tooltip (e.g., "When you got the job")
-   */
-  markAsOurSong(context?: string): void {
-    if (!this.currentTrack || !this.container) return;
-
-    this.currentTrack.isOurSong = true;
-    this.currentTrack.ourSongContext = context;
-
-    // Trigger visual update
-    this.updateTrackInfo();
-
-    log.debug('Track marked as "our song"', {
-      track: this.currentTrack.name,
-      context,
-    });
-  }
-
-  // ==========================================================================
-  // COLLAPSE / EXPAND METHODS
-  // ==========================================================================
-
-  /**
-   * 🎧 Collapse to compact mode (just icon + mini waveform)
-   * Reduces visual footprint during conversation
-   */
   private collapse(): void {
     if (!this.container || this.isCollapsed) return;
 
@@ -475,15 +324,9 @@ class NowPlayingUI {
     log.debug('Now Playing collapsed');
   }
 
-  /**
-   * 🎧 Expand to show full track info
-   * Called on hover/tap or when new track starts
-   */
   private expand(): void {
     if (!this.container) return;
 
-    // Always remove collapsed class when expanding, even if not currently collapsed
-    // This handles the case where we're showing a new track
     if (this.isCollapsed) {
       log.debug('Now Playing expanded');
     }
@@ -492,27 +335,16 @@ class NowPlayingUI {
     this.container.classList.remove('now-playing--collapsed');
   }
 
-  /**
-   * 🎧 Start the auto-collapse timer
-   * After showing full info for a few seconds, collapse to minimize distraction
-   */
   private startAutoCollapseTimer(): void {
-    // Clear existing timer
-    if (this.autoCollapseTimeoutId) {
-      clearTimeout(this.autoCollapseTimeoutId);
-      this.autoCollapseTimeoutId = null;
-    }
+    this.clearAutoCollapseTimer();
 
-    this.autoCollapseTimeoutId = trackedTimeout(() => {
+    this.autoCollapseTimeoutId = setTimeout(() => {
       if (this.isVisible && !this.isCollapsed) {
         this.collapse();
       }
     }, NowPlayingUI.AUTO_COLLAPSE_DELAY_MS);
   }
 
-  /**
-   * 🎧 Clear auto-collapse timer (called when hovering or hiding)
-   */
   private clearAutoCollapseTimer(): void {
     if (this.autoCollapseTimeoutId) {
       clearTimeout(this.autoCollapseTimeoutId);
@@ -520,9 +352,23 @@ class NowPlayingUI {
     }
   }
 
-  // ==========================================================================
-  // PRIVATE METHODS
-  // ==========================================================================
+  // ============================================================================
+  // "OUR SONG" FEATURE
+  // ============================================================================
+
+  markAsOurSong(context?: string): void {
+    if (!this.currentTrack || !this.container) return;
+
+    this.currentTrack.isOurSong = true;
+    this.currentTrack.ourSongContext = context;
+    this.updateTrackInfo();
+
+    log.debug('Track marked as "our song"', { track: this.currentTrack.name, context });
+  }
+
+  // ============================================================================
+  // STYLES (Design System Compliant)
+  // ============================================================================
 
   private injectStyles(): void {
     if (document.getElementById('now-playing-styles')) return;
@@ -530,12 +376,12 @@ class NowPlayingUI {
     const styles = document.createElement('style');
     styles.id = 'now-playing-styles';
     styles.textContent = `
-      /* 🎧 Compact Now Playing - positioned near avatar, minimal footprint */
+      /* Now Playing - Compact floating pill */
       .now-playing {
         position: fixed;
-        top: 280px;
+        bottom: 140px;
         right: var(--space-4);
-        z-index: 90;
+        z-index: var(--z-tooltip);
         
         display: none;
         align-items: center;
@@ -545,7 +391,7 @@ class NowPlayingUI {
         background: var(--color-background-elevated);
         border: none;
         border-radius: var(--radius-full);
-        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+        box-shadow: var(--shadow-md);
         
         opacity: 0;
         pointer-events: none;
@@ -553,10 +399,10 @@ class NowPlayingUI {
         font-family: var(--font-body);
         color: var(--color-text-primary);
         
-        max-width: 240px;
+        max-width: min(240px, 100%);
         overflow: hidden;
-        transition: width var(--duration-normal, 200ms) var(--ease-standard, ease-out),
-                    max-width var(--duration-normal, 200ms) var(--ease-standard, ease-out);
+        transition: width var(--duration-normal) var(--ease-standard),
+                    max-width var(--duration-normal) var(--ease-standard);
         cursor: pointer;
       }
       
@@ -565,7 +411,7 @@ class NowPlayingUI {
         pointer-events: auto;
       }
       
-      /* 🎧 Collapsed state - just icon + mini waveform */
+      /* Collapsed state */
       .now-playing--collapsed {
         max-width: 52px;
         padding: var(--space-2);
@@ -574,7 +420,8 @@ class NowPlayingUI {
       
       .now-playing--collapsed .now-playing__info,
       .now-playing--collapsed .now-playing__our-song,
-      .now-playing--collapsed .now-playing__progress {
+      .now-playing--collapsed .now-playing__progress,
+      .now-playing--collapsed .now-playing__controls {
         display: none;
       }
       
@@ -605,16 +452,16 @@ class NowPlayingUI {
         align-items: center;
         justify-content: center;
         
-        background: var(--persona-tint, rgba(74, 103, 65, 0.1));
+        background: var(--persona-tint);
         border-radius: var(--radius-lg);
         color: var(--color-text-secondary);
-        transition: width var(--duration-fast, 100ms), height var(--duration-fast, 100ms);
+        transition: width var(--duration-fast), height var(--duration-fast);
       }
       
       .now-playing__icon svg {
         width: 16px;
         height: 16px;
-        transition: width var(--duration-fast, 100ms), height var(--duration-fast, 100ms);
+        transition: width var(--duration-fast), height var(--duration-fast);
       }
       
       /* Track info */
@@ -622,47 +469,179 @@ class NowPlayingUI {
         flex: 1;
         min-width: 0;
         overflow: hidden;
+        position: relative;
+        cursor: pointer;
       }
-      
+
+      .now-playing__info-tooltip {
+        position: absolute;
+        bottom: calc(100% + var(--space-2));
+        left: 50%;
+        transform: translateX(-50%);
+        background: var(--color-background-elevated);
+        border-radius: var(--radius-md);
+        padding: var(--space-2) var(--space-3);
+        box-shadow: var(--shadow-lg);
+        white-space: nowrap;
+        opacity: 0;
+        visibility: hidden;
+        pointer-events: none;
+        transition: opacity var(--duration-fast) ease, visibility var(--duration-fast) ease;
+        z-index: var(--z-tooltip);
+        max-width: 280px;
+      }
+
+      .now-playing__info-tooltip::after {
+        content: '';
+        position: absolute;
+        top: 100%;
+        left: 50%;
+        transform: translateX(-50%);
+        border: 6px solid transparent;
+        border-top-color: var(--color-background-elevated);
+      }
+
+      .now-playing__info:hover .now-playing__info-tooltip,
+      .now-playing__info:focus .now-playing__info-tooltip {
+        opacity: 1;
+        visibility: visible;
+      }
+
+      .now-playing__info-tooltip-track {
+        font-size: var(--text-sm);
+        font-weight: var(--font-weight-semibold);
+        color: var(--color-text-primary);
+        margin: 0;
+        white-space: normal;
+        word-break: break-word;
+      }
+
+      .now-playing__info-tooltip-artist {
+        font-size: var(--text-xs);
+        color: var(--color-text-secondary);
+        margin: var(--space-1) 0 0 0;
+        white-space: normal;
+        word-break: break-word;
+      }
+
       .now-playing__track {
-        font-size: 0.8125rem;
-        font-weight: 500;
+        font-size: var(--text-sm);
+        font-weight: var(--font-weight-medium);
         color: var(--color-text-primary);
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
         margin: 0;
-        line-height: 1.2;
+        line-height: var(--leading-tight);
       }
       
       .now-playing__artist {
-        font-size: 0.6875rem;
+        font-size: var(--text-xs);
         color: var(--color-text-secondary);
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
         margin: 0;
-        line-height: 1.2;
+        line-height: var(--leading-tight);
+      }
+
+      /* Time display */
+      .now-playing__time {
+        display: flex;
+        align-items: center;
+        gap: 2px;
+        font-size: 10px;
+        font-family: var(--font-mono, monospace);
+        color: var(--color-text-muted);
+        margin-top: 2px;
+        line-height: 1;
+      }
+
+      .now-playing__time-current {
+        min-width: 28px;
+        text-align: right;
+      }
+
+      .now-playing__time-separator {
+        opacity: 0.5;
+      }
+
+      .now-playing__time-total {
+        min-width: 28px;
+      }
+
+      .now-playing--collapsed .now-playing__time {
+        display: none;
+      }
+
+      /* Album art */
+      .now-playing__album-art {
+        display: none;
+        flex-shrink: 0;
+        width: 36px;
+        height: 36px;
+        border-radius: var(--radius-sm);
+        overflow: hidden;
+        background: var(--color-background-muted);
+        position: relative;
+      }
+
+      .now-playing:not(.now-playing--collapsed) .now-playing__album-art {
+        display: block;
+      }
+
+      .now-playing__album-art-img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: none;
+      }
+
+      .now-playing__album-art-fallback {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        height: 100%;
+        color: var(--color-text-muted);
+      }
+
+      .now-playing__album-art-fallback svg {
+        width: 18px;
+        height: 18px;
+      }
+
+      .now-playing__album-art--loaded .now-playing__album-art-img {
+        display: block;
+      }
+
+      .now-playing__album-art--loaded .now-playing__album-art-fallback {
+        display: none;
+      }
+
+      /* Ambient mode hides album art */
+      .now-playing--ambient .now-playing__album-art {
+        display: none !important;
       }
       
-      /* Waveform visualization - more compact */
+      /* Waveform visualization */
       .now-playing__waveform {
         display: flex;
         align-items: center;
         gap: 2px;
         height: 20px;
         flex-shrink: 0;
-        transition: height var(--duration-fast, 100ms);
+        transition: height var(--duration-fast);
       }
       
       .now-playing__bar {
         width: 2.5px;
-        background: var(--persona-primary, #4a6741);
+        background: var(--persona-primary);
         border-radius: 1.25px;
-        transition: height 0.15s ease, width var(--duration-fast, 100ms);
+        transition: height 0.15s ease, width var(--duration-fast);
       }
       
-      /* Progress bar - thin line at bottom */
+      /* Progress bar */
       .now-playing__progress {
         position: absolute;
         bottom: 0;
@@ -676,12 +655,12 @@ class NowPlayingUI {
       
       .now-playing__progress-fill {
         height: 100%;
-        background: var(--persona-primary, #4a6741);
+        background: var(--persona-primary);
         width: 0%;
         transition: width 0.5s linear;
       }
       
-      /* State: Ducking (agent speaking) */
+      /* State: Ducking */
       .now-playing--ducking {
         opacity: 0.6;
       }
@@ -690,7 +669,7 @@ class NowPlayingUI {
         opacity: 0.4;
       }
       
-      /* State: Fading (track ending) */
+      /* State: Fading */
       .now-playing--fading {
         animation: now-playing-pulse 1.2s ease-in-out infinite;
       }
@@ -704,7 +683,159 @@ class NowPlayingUI {
       .now-playing--paused .now-playing__bar {
         height: 3px !important;
       }
+
+      .now-playing__icon--music {
+        display: none;
+      }
+
+      .now-playing__icon--pause {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+      }
+
+      .now-playing__icon--pause:hover {
+        background: var(--color-accent);
+        color: var(--color-text-on-accent);
+        transform: scale(1.05);
+      }
+
+      .now-playing__icon--pause:active {
+        transform: scale(0.95);
+      }
+
+      .now-playing__icon--play {
+        display: none;
+      }
+
+      .now-playing--paused .now-playing__icon--pause {
+        display: none;
+      }
+
+      .now-playing--paused .now-playing__icon--play {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+      }
+
+      .now-playing--paused .now-playing__icon--play:hover {
+        background: var(--color-accent);
+        color: var(--color-text-on-accent);
+        transform: scale(1.05);
+      }
+
+      .now-playing--paused .now-playing__icon--play:active {
+        transform: scale(0.95);
+      }
       
+      /* Controls */
+      .now-playing__controls {
+        display: flex;
+        align-items: center;
+        gap: var(--space-1);
+        flex-shrink: 0;
+      }
+
+      .now-playing__btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 28px;
+        height: 28px;
+        padding: 0;
+        border: none;
+        border-radius: var(--radius-md);
+        background: transparent;
+        color: var(--color-text-secondary);
+        cursor: pointer;
+        transition: background var(--duration-fast) ease,
+                    color var(--duration-fast) ease,
+                    transform var(--duration-fast) ease;
+      }
+
+      .now-playing__btn svg {
+        width: 14px;
+        height: 14px;
+      }
+
+      .now-playing__btn:hover {
+        background: var(--color-background-hover);
+        color: var(--color-text-primary);
+      }
+
+      .now-playing__btn:active {
+        transform: scale(0.92);
+      }
+
+      .now-playing__btn--favorite:hover {
+        color: var(--color-semantic-error);
+      }
+
+      .now-playing__btn--favorite.is-favorite {
+        color: var(--color-semantic-error);
+      }
+
+      .now-playing__btn--favorite.is-favorite svg {
+        fill: currentColor;
+      }
+
+      .now-playing__btn--skip:hover {
+        color: var(--persona-primary);
+      }
+
+      .now-playing__btn--history:hover {
+        color: var(--color-accent);
+      }
+
+      /* Volume control */
+      .now-playing__volume-control {
+        position: relative;
+        display: flex;
+        align-items: center;
+      }
+
+      .now-playing__volume-slider {
+        position: absolute;
+        right: 100%;
+        margin-right: var(--space-1);
+        width: 0;
+        height: 4px;
+        opacity: 0;
+        pointer-events: none;
+        transition: width var(--duration-normal) ease, opacity var(--duration-fast) ease;
+        appearance: none;
+        background: var(--color-border);
+        border-radius: 2px;
+        cursor: pointer;
+      }
+
+      .now-playing__volume-control:hover .now-playing__volume-slider,
+      .now-playing__volume-slider:focus {
+        width: 60px;
+        opacity: 1;
+        pointer-events: auto;
+      }
+
+      .now-playing__volume-slider::-webkit-slider-thumb {
+        appearance: none;
+        width: 12px;
+        height: 12px;
+        background: var(--persona-primary);
+        border-radius: 50%;
+        cursor: pointer;
+      }
+
+      .now-playing__volume-slider::-moz-range-thumb {
+        width: 12px;
+        height: 12px;
+        background: var(--persona-primary);
+        border-radius: 50%;
+        border: none;
+        cursor: pointer;
+      }
+
       /* State: Changing (DJ crossfade) */
       .now-playing--changing {
         animation: now-playing-crossfade 1.2s ease-in-out;
@@ -724,7 +855,7 @@ class NowPlayingUI {
         100% { transform: scaleY(0.5); }
       }
       
-      /* Ambient music indicator */
+      /* Ambient music */
       .now-playing--ambient .now-playing__icon {
         background: var(--color-background-muted);
         color: var(--color-text-muted);
@@ -735,16 +866,18 @@ class NowPlayingUI {
         opacity: 0.4;
       }
       
-      /* 💚 "Our Song" heart indicator - shared musical memory */
+      /* "Our Song" heart - Enhanced with warm glow */
       .now-playing__our-song {
         display: none;
-        width: 16px;
-        height: 16px;
-        color: var(--color-text-secondary);
+        position: relative;
+        width: 18px;
+        height: 18px;
+        color: #e85d75;
         opacity: 0;
-        transition: opacity var(--duration-normal) ease-out;
+        transition: opacity var(--duration-normal) ease-out, transform var(--duration-fast) ease;
         cursor: help;
         flex-shrink: 0;
+        filter: drop-shadow(0 0 2px rgba(232, 93, 117, 0.4));
       }
       
       .now-playing__our-song svg {
@@ -755,55 +888,91 @@ class NowPlayingUI {
       .now-playing--our-song .now-playing__our-song {
         display: flex;
         opacity: 1;
-        animation: heartPulse 2s ease-in-out infinite;
+        animation: heartPulse 1.8s ease-in-out infinite;
+      }
+      
+      /* Warm glow background behind heart for "our song" */
+      .now-playing--our-song {
+        background: linear-gradient(
+          135deg,
+          var(--color-background-elevated) 0%,
+          rgba(232, 93, 117, 0.08) 100%
+        );
+        box-shadow: var(--shadow-md), 0 0 20px rgba(232, 93, 117, 0.15);
       }
       
       @keyframes heartPulse {
-        0%, 100% { transform: scale(1); }
-        50% { transform: scale(1.1); }
+        0%, 100% { 
+          transform: scale(1); 
+          filter: drop-shadow(0 0 3px rgba(232, 93, 117, 0.5));
+        }
+        50% { 
+          transform: scale(1.15); 
+          filter: drop-shadow(0 0 8px rgba(232, 93, 117, 0.8));
+        }
       }
       
-      /* Heart glow effect on hover */
       .now-playing__our-song:hover {
-        filter: drop-shadow(0 0 4px var(--persona-primary, #a67a6a));
+        transform: scale(1.2);
+        filter: drop-shadow(0 0 10px rgba(232, 93, 117, 0.9));
+      }
+
+      /* Our Song memory tooltip */
+      .now-playing--our-song .now-playing__our-song::after {
+        content: attr(title);
+        position: absolute;
+        bottom: calc(100% + 8px);
+        left: 50%;
+        transform: translateX(-50%) scale(0.9);
+        background: var(--color-background-elevated);
+        color: var(--color-text-secondary);
+        font-size: 11px;
+        font-style: italic;
+        padding: 6px 10px;
+        border-radius: var(--radius-sm);
+        white-space: nowrap;
+        max-width: 200px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        box-shadow: var(--shadow-md);
+        opacity: 0;
+        visibility: hidden;
+        pointer-events: none;
+        transition: opacity var(--duration-fast) ease, 
+                    transform var(--duration-fast) ease,
+                    visibility var(--duration-fast) ease;
+        z-index: calc(var(--z-tooltip) + 1);
+      }
+
+      .now-playing--our-song .now-playing__our-song:hover::after {
+        opacity: 1;
+        visibility: visible;
+        transform: translateX(-50%) scale(1);
+      }
+
+      /* Sparkle decoration for Our Song */
+      .now-playing--our-song::before {
+        content: '✨';
+        position: absolute;
+        top: -8px;
+        right: -4px;
+        font-size: 14px;
+        animation: sparkle 2s ease-in-out infinite;
+        pointer-events: none;
+        opacity: 0.8;
+      }
+
+      @keyframes sparkle {
+        0%, 100% { opacity: 0.6; transform: scale(1) rotate(0deg); }
+        50% { opacity: 1; transform: scale(1.2) rotate(10deg); }
       }
       
-      /* Hover: expand if collapsed */
+      /* Hover effects */
       .now-playing:hover {
-        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+        box-shadow: var(--shadow-lg);
       }
       
-      /* Reduced motion */
-      @media (prefers-reduced-motion: reduce) {
-        .now-playing,
-        .now-playing__bar {
-          transition: none !important;
-          animation: none !important;
-        }
-      }
-      
-      /* Mobile adjustments - position below avatar area */
-      @media (max-width: 480px) {
-        .now-playing {
-          top: auto;
-          bottom: 160px;
-          right: var(--space-3);
-          left: auto;
-          max-width: 200px;
-        }
-        
-        .now-playing--collapsed {
-          max-width: 48px;
-        }
-      }
-      
-      /* Dark theme adjustments */
-      [data-theme="midnight"] .now-playing {
-        background: var(--color-background-elevated, #3d3530);
-        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
-      }
-      
-      /* ✖️ Dismiss button - appears on hover */
+      /* Dismiss button */
       .now-playing__dismiss {
         display: none;
         position: absolute;
@@ -817,11 +986,11 @@ class NowPlayingUI {
         background: var(--color-background-elevated);
         color: var(--color-text-muted);
         cursor: pointer;
-        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
+        box-shadow: var(--shadow-sm);
         transition: transform var(--duration-fast) ease,
                     background var(--duration-fast) ease,
                     color var(--duration-fast) ease;
-        z-index: 1;
+        z-index: var(--z-docked);
       }
       
       .now-playing__dismiss svg {
@@ -845,7 +1014,7 @@ class NowPlayingUI {
         transform: scale(0.95);
       }
       
-      /* 🎵 MINIMAL AMBIENT MODE - tiny pulsing indicator */
+      /* Ambient minimal mode */
       .now-playing--ambient-minimal {
         max-width: 40px !important;
         padding: var(--space-2) !important;
@@ -856,7 +1025,8 @@ class NowPlayingUI {
       .now-playing--ambient-minimal .now-playing__info,
       .now-playing--ambient-minimal .now-playing__our-song,
       .now-playing--ambient-minimal .now-playing__progress,
-      .now-playing--ambient-minimal .now-playing__waveform {
+      .now-playing--ambient-minimal .now-playing__waveform,
+      .now-playing--ambient-minimal .now-playing__controls {
         display: none !important;
       }
       
@@ -884,7 +1054,6 @@ class NowPlayingUI {
         }
       }
       
-      /* Ambient minimal hover - show tooltip hint */
       .now-playing--ambient-minimal::after {
         content: attr(data-ambient-hint);
         position: absolute;
@@ -894,8 +1063,8 @@ class NowPlayingUI {
         padding: var(--space-1) var(--space-2);
         background: var(--color-background-elevated);
         border-radius: var(--radius-md);
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
-        font-size: 0.6875rem;
+        box-shadow: var(--shadow-sm);
+        font-size: var(--text-xs);
         color: var(--color-text-secondary);
         white-space: nowrap;
         opacity: 0;
@@ -907,18 +1076,48 @@ class NowPlayingUI {
         opacity: 1;
       }
       
-      /* Hide dismiss button in minimal mode (just tap to dismiss) */
-      .now-playing--ambient-minimal .now-playing__dismiss {
+      .now-playing--ambient-minimal .now-playing__dismiss,
+      .now-playing--ambient-minimal:hover .now-playing__dismiss {
         display: none !important;
       }
       
-      .now-playing--ambient-minimal:hover .now-playing__dismiss {
-        display: none !important;
+      /* Reduced motion */
+      @media (prefers-reduced-motion: reduce) {
+        .now-playing,
+        .now-playing__bar {
+          transition: none !important;
+          animation: none !important;
+        }
+      }
+      
+      /* Mobile */
+      @media (max-width: 480px) {
+        .now-playing {
+          top: auto;
+          bottom: 160px;
+          right: var(--space-3);
+          left: auto;
+          max-width: min(200px, 100%);
+        }
+        
+        .now-playing--collapsed {
+          max-width: 48px;
+        }
+      }
+      
+      /* Dark theme */
+      [data-theme="midnight"] .now-playing {
+        background: var(--color-background-elevated);
+        box-shadow: var(--shadow-md);
       }
     `;
     document.head.appendChild(styles);
     this.styleElement = styles;
   }
+
+  // ============================================================================
+  // DOM CREATION
+  // ============================================================================
 
   private createContainer(): void {
     this.container = document.createElement('div');
@@ -931,33 +1130,74 @@ class NowPlayingUI {
       <button class="now-playing__dismiss" aria-label="${t('accessibility.dismiss')}" title="${t('accessibility.dismiss')}">
         ${ICONS.close}
       </button>
-      <div class="now-playing__icon">
+      <div class="now-playing__album-art" aria-hidden="true">
+        <img class="now-playing__album-art-img" src="" alt="Album art" />
+        <div class="now-playing__album-art-fallback">
+          ${ICONS.music}
+        </div>
+      </div>
+      <div class="now-playing__icon now-playing__icon--music">
         ${ICONS.music}
       </div>
-      <div class="now-playing__info">
+      <div class="now-playing__icon now-playing__icon--pause" role="button" tabindex="0" aria-label="${t('accessibility.pause')}" title="Pause music">
+        ${ICONS.pause}
+      </div>
+      <div class="now-playing__icon now-playing__icon--play" role="button" tabindex="0" aria-label="${t('accessibility.play')}" title="Resume playback">
+        ${ICONS.play}
+      </div>
+      <div class="now-playing__info" tabindex="0" role="button" aria-label="Track info">
         <p class="now-playing__track">Loading...</p>
         <p class="now-playing__artist"></p>
+        <div class="now-playing__time">
+          <span class="now-playing__time-current">0:00</span>
+          <span class="now-playing__time-separator">/</span>
+          <span class="now-playing__time-total">0:00</span>
+        </div>
+        <div class="now-playing__info-tooltip">
+          <p class="now-playing__info-tooltip-track"></p>
+          <p class="now-playing__info-tooltip-artist"></p>
+        </div>
+      </div>
+      <div class="now-playing__controls">
+        <button class="now-playing__btn now-playing__btn--favorite" aria-label="Add to favorites" title="Add to favorites">
+          ${ICONS.heartOutline}
+        </button>
+        <button class="now-playing__btn now-playing__btn--skip" aria-label="Skip track" title="Skip to next track">
+          ${ICONS.skipForward}
+        </button>
+        <div class="now-playing__volume-control">
+          <button class="now-playing__btn now-playing__btn--volume" aria-label="Volume" title="Adjust volume">
+            ${ICONS.volume}
+          </button>
+          <input type="range" class="now-playing__volume-slider" min="0" max="100" value="70" aria-label="Volume slider" />
+        </div>
+        <button class="now-playing__btn now-playing__btn--history" aria-label="Recently played" title="View recently played">
+          ${ICONS.history}
+        </button>
       </div>
       <div class="now-playing__our-song" title="${t('titles.sharedSong')}" aria-label="${t('accessibility.sharedMusicalMemory')}">
         ${ICONS.ourSong}
       </div>
       <div class="now-playing__waveform">
-        ${Array(4)
-          .fill(0)
-          .map(() => '<div class="now-playing__bar"></div>')
-          .join('')}
+        ${Array(4).fill(0).map(() => '<div class="now-playing__bar"></div>').join('')}
       </div>
       <div class="now-playing__progress">
         <div class="now-playing__progress-fill"></div>
       </div>
     `;
 
-    // Cache waveform bars
     this.waveformBars = Array.from(
       this.container.querySelectorAll<HTMLElement>('.now-playing__bar')
     );
 
-    // 🎧 Hover/tap to expand when collapsed
+    this.bindEvents();
+    document.body.appendChild(this.container);
+  }
+
+  private bindEvents(): void {
+    if (!this.container) return;
+
+    // Hover to expand
     this.container.addEventListener('mouseenter', () => {
       if (this.isCollapsed) {
         this.expand();
@@ -971,31 +1211,114 @@ class NowPlayingUI {
       }
     });
 
-    // Touch support - tap to expand (but not on dismiss button)
+    // Click to expand (not on buttons)
     this.container.addEventListener('click', (e) => {
       const target = e.target as HTMLElement;
-      // Don't expand if clicking the dismiss button
       if (target.closest('.now-playing__dismiss')) return;
 
       if (this.isCollapsed) {
         this.expand();
-        // Re-start collapse timer after showing info
         this.startAutoCollapseTimer();
       }
     });
 
-    // ✖️ Dismiss button - hide the card
-    const dismissBtn = this.container.querySelector('.now-playing__dismiss');
-    if (dismissBtn) {
-      dismissBtn.addEventListener('click', (e) => {
-        e.stopPropagation(); // Don't trigger expand
-        log.debug('Now Playing dismissed by user');
-        this.hide();
+    // Dismiss button
+    this.container.querySelector('.now-playing__dismiss')?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      log.debug('Now Playing dismissed by user');
+      this.hide();
+    });
+
+    // Pause button
+    const pauseBtn = this.container.querySelector('.now-playing__icon--pause');
+    pauseBtn?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      this._callbacks.onPause?.();
+    });
+    pauseBtn?.addEventListener('keydown', (e) => {
+      if ((e as KeyboardEvent).key === 'Enter' || (e as KeyboardEvent).key === ' ') {
+        e.preventDefault();
+        e.stopPropagation();
+        this._callbacks.onPause?.();
+      }
+    });
+
+    // Play button
+    const playBtn = this.container.querySelector('.now-playing__icon--play');
+    playBtn?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      this._callbacks.onResume?.();
+    });
+    playBtn?.addEventListener('keydown', (e) => {
+      if ((e as KeyboardEvent).key === 'Enter' || (e as KeyboardEvent).key === ' ') {
+        e.preventDefault();
+        e.stopPropagation();
+        this._callbacks.onResume?.();
+      }
+    });
+
+    // Skip button
+    this.container.querySelector('.now-playing__btn--skip')?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      this._callbacks.onSkip?.();
+    });
+
+    // Favorite button
+    const favoriteBtn = this.container.querySelector('.now-playing__btn--favorite');
+    favoriteBtn?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const isFavorite = favoriteBtn.classList.toggle('is-favorite');
+      if (this._callbacks.onFavorite && this.currentTrack) {
+        this._callbacks.onFavorite(this.currentTrack);
+      }
+      favoriteBtn.setAttribute('aria-label', isFavorite ? 'Remove from favorites' : 'Add to favorites');
+      favoriteBtn.setAttribute('title', isFavorite ? 'Remove from favorites' : 'Add to favorites');
+    });
+
+    // Volume slider
+    const volumeSlider = this.container.querySelector<HTMLInputElement>('.now-playing__volume-slider');
+    const volumeBtn = this.container.querySelector('.now-playing__btn--volume');
+    if (volumeSlider) {
+      volumeSlider.addEventListener('input', (e) => {
+        e.stopPropagation();
+        const volume = parseInt((e.target as HTMLInputElement).value, 10);
+        this._callbacks.onVolumeChange?.(volume);
+        if (volumeBtn) {
+          volumeBtn.innerHTML = volume === 0 ? ICONS.volumeMuted : ICONS.volume;
+        }
       });
     }
 
-    document.body.appendChild(this.container);
+    // Volume mute toggle
+    if (volumeBtn && volumeSlider) {
+      let lastVolume = 70;
+      volumeBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const currentVolume = parseInt(volumeSlider.value, 10);
+        if (currentVolume > 0) {
+          lastVolume = currentVolume;
+          volumeSlider.value = '0';
+          volumeBtn.innerHTML = ICONS.volumeMuted;
+          this._callbacks.onVolumeChange?.(0);
+        } else {
+          volumeSlider.value = String(lastVolume);
+          volumeBtn.innerHTML = ICONS.volume;
+          this._callbacks.onVolumeChange?.(lastVolume);
+        }
+      });
+    }
+
+    // History button
+    this.container.querySelector('.now-playing__btn--history')?.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      const { musicHistoryUI } = await import('./music-history.ui.js');
+      musicHistoryUI.toggle();
+    });
   }
+
+  // ============================================================================
+  // TRACK INFO
+  // ============================================================================
 
   private updateTrackInfo(): void {
     if (!this.container || !this.currentTrack) return;
@@ -1003,21 +1326,63 @@ class NowPlayingUI {
     const trackEl = this.container.querySelector('.now-playing__track');
     const artistEl = this.container.querySelector('.now-playing__artist');
     const ourSongEl = this.container.querySelector<HTMLElement>('.now-playing__our-song');
+    const albumArtContainer = this.container.querySelector<HTMLElement>('.now-playing__album-art');
+    const albumArtImg = this.container.querySelector<HTMLImageElement>('.now-playing__album-art-img');
+    const albumArtFallback = this.container.querySelector<HTMLElement>('.now-playing__album-art-fallback');
 
-    if (trackEl) {
-      trackEl.textContent = this.currentTrack.name;
-    }
-    if (artistEl) {
-      artistEl.textContent = this.currentTrack.artist;
+    if (trackEl) trackEl.textContent = this.currentTrack.name;
+    if (artistEl) artistEl.textContent = this.currentTrack.artist;
+
+    // Album art
+    if (albumArtContainer && albumArtImg && albumArtFallback) {
+      if (this.currentTrack.albumArt) {
+        albumArtImg.src = this.currentTrack.albumArt;
+        albumArtImg.alt = `${this.currentTrack.name} album art`;
+        albumArtImg.style.display = 'block';
+        albumArtFallback.style.display = 'none';
+        albumArtContainer.classList.add('now-playing__album-art--loaded');
+
+        // Animate album art in
+        if (!prefersReducedMotion()) {
+          albumArtImg.animate(
+            [
+              { opacity: 0, transform: 'scale(0.8)' },
+              { opacity: 1, transform: 'scale(1)' },
+            ],
+            { duration: DURATION.NORMAL, easing: EASING.SPRING, fill: 'forwards' }
+          );
+        }
+      } else {
+        albumArtImg.style.display = 'none';
+        albumArtFallback.style.display = 'flex';
+        albumArtContainer.classList.remove('now-playing__album-art--loaded');
+      }
     }
 
-    // 💚 "Our Song" indicator - shows a heart for shared musical memories
+    // Duration time display
+    const totalTimeEl = this.container.querySelector('.now-playing__time-total');
+    const currentTimeEl = this.container.querySelector('.now-playing__time-current');
+    if (totalTimeEl && this.currentTrack.duration) {
+      totalTimeEl.textContent = this.formatTime(this.currentTrack.duration);
+    } else if (totalTimeEl) {
+      totalTimeEl.textContent = '0:30'; // Default for 30-second previews
+    }
+    if (currentTimeEl) {
+      currentTimeEl.textContent = '0:00';
+    }
+
+    // Tooltip
+    const tooltipTrack = this.container.querySelector('.now-playing__info-tooltip-track');
+    const tooltipArtist = this.container.querySelector('.now-playing__info-tooltip-artist');
+    if (tooltipTrack) tooltipTrack.textContent = this.currentTrack.name;
+    if (tooltipArtist) tooltipArtist.textContent = this.currentTrack.artist;
+
+    // "Our Song" indicator
     if (ourSongEl) {
       if (this.currentTrack.isOurSong) {
         this.container.classList.add('now-playing--our-song');
         ourSongEl.title = this.currentTrack.ourSongContext ?? 'A song we share';
 
-        // Animate heart appearance
         if (!prefersReducedMotion()) {
           ourSongEl.animate(
             [
@@ -1025,11 +1390,7 @@ class NowPlayingUI {
               { transform: 'scale(1.2)', opacity: 1 },
               { transform: 'scale(1)', opacity: 1 },
             ],
-            {
-              duration: DURATION.MODERATE,
-              easing: EASING.SPRING,
-              fill: 'forwards',
-            }
+            { duration: DURATION.MODERATE, easing: EASING.SPRING, fill: 'forwards' }
           );
         }
       } else {
@@ -1037,11 +1398,9 @@ class NowPlayingUI {
       }
     }
 
-    // 🎵 AMBIENT MUSIC: Show minimal UI (tiny pulsing icon) instead of full card
-    // This is less intrusive for background/thinking music
+    // Ambient mode
     if (this.currentTrack.isAmbient) {
       this.container.classList.add('now-playing--ambient', 'now-playing--ambient-minimal');
-      // Set tooltip hint for hover
       this.container.setAttribute('data-ambient-hint', 'Thinking music...');
     } else {
       this.container.classList.remove('now-playing--ambient', 'now-playing--ambient-minimal');
@@ -1049,45 +1408,45 @@ class NowPlayingUI {
     }
   }
 
+  private formatTime(ms: number): string {
+    const totalSeconds = Math.floor(ms / 1000);
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+  }
+
+  // ============================================================================
+  // WAVEFORM ANIMATION
+  // ============================================================================
+
   private startWaveformAnimation(): void {
     if (prefersReducedMotion()) return;
 
-    // Animate bars with slightly different phases
     this.waveformBars.forEach((bar, index) => {
       const animate = () => {
         const phase = (Date.now() / 400 + index * 0.5) % (Math.PI * 2);
-        const height = 8 + Math.sin(phase) * 8; // 8-16px range
+        const height = 8 + Math.sin(phase) * 8;
         bar.style.height = `${height}px`;
       };
 
-      // Initial animation
       animate();
-
-      // Continue animation
       const intervalId = setInterval(animate, 50);
-      (bar as HTMLElement & { _animInterval?: ReturnType<typeof setInterval> })._animInterval =
-        intervalId;
+      (bar as HTMLElement & { _animInterval?: ReturnType<typeof setInterval> })._animInterval = intervalId;
     });
   }
 
   private stopWaveformAnimation(): void {
     this.waveformBars.forEach((bar) => {
-      const intervalId = (bar as HTMLElement & { _animInterval?: ReturnType<typeof setInterval> })
-        ._animInterval;
-      if (intervalId) {
-        clearInterval(intervalId);
-      }
+      const intervalId = (bar as HTMLElement & { _animInterval?: ReturnType<typeof setInterval> })._animInterval;
+      if (intervalId) clearInterval(intervalId);
       bar.style.height = '4px';
     });
   }
 
   private pauseWaveform(): void {
     this.waveformBars.forEach((bar) => {
-      const intervalId = (bar as HTMLElement & { _animInterval?: ReturnType<typeof setInterval> })
-        ._animInterval;
-      if (intervalId) {
-        clearInterval(intervalId);
-      }
+      const intervalId = (bar as HTMLElement & { _animInterval?: ReturnType<typeof setInterval> })._animInterval;
+      if (intervalId) clearInterval(intervalId);
     });
   }
 
@@ -1096,69 +1455,58 @@ class NowPlayingUI {
   }
 
   private slowWaveform(): void {
-    // Slow down the animation for ducking
     this.waveformBars.forEach((bar, index) => {
-      const intervalId = (bar as HTMLElement & { _animInterval?: ReturnType<typeof setInterval> })
-        ._animInterval;
-      if (intervalId) {
-        clearInterval(intervalId);
-      }
+      const intervalId = (bar as HTMLElement & { _animInterval?: ReturnType<typeof setInterval> })._animInterval;
+      if (intervalId) clearInterval(intervalId);
 
       const animate = () => {
-        const phase = (Date.now() / 800 + index * 0.5) % (Math.PI * 2); // Slower
-        const height = 6 + Math.sin(phase) * 4; // Smaller range
+        const phase = (Date.now() / 800 + index * 0.5) % (Math.PI * 2);
+        const height = 6 + Math.sin(phase) * 4;
         bar.style.height = `${height}px`;
       };
 
       const newIntervalId = setInterval(animate, 100);
-      (bar as HTMLElement & { _animInterval?: ReturnType<typeof setInterval> })._animInterval =
-        newIntervalId;
+      (bar as HTMLElement & { _animInterval?: ReturnType<typeof setInterval> })._animInterval = newIntervalId;
     });
   }
 
   private fadeWaveform(): void {
-    // Fading animation for track ending
     this.waveformBars.forEach((bar, index) => {
-      const intervalId = (bar as HTMLElement & { _animInterval?: ReturnType<typeof setInterval> })
-        ._animInterval;
-      if (intervalId) {
-        clearInterval(intervalId);
-      }
+      const intervalId = (bar as HTMLElement & { _animInterval?: ReturnType<typeof setInterval> })._animInterval;
+      if (intervalId) clearInterval(intervalId);
 
       const animate = () => {
         const phase = (Date.now() / 600 + index * 0.5) % (Math.PI * 2);
-        const height = 4 + Math.sin(phase) * 4; // Smaller range
+        const height = 4 + Math.sin(phase) * 4;
         bar.style.height = `${height}px`;
         bar.style.opacity = '0.5';
       };
 
       const newIntervalId = setInterval(animate, 80);
-      (bar as HTMLElement & { _animInterval?: ReturnType<typeof setInterval> })._animInterval =
-        newIntervalId;
+      (bar as HTMLElement & { _animInterval?: ReturnType<typeof setInterval> })._animInterval = newIntervalId;
     });
   }
 
   private crossfadeWaveform(): void {
-    // DJ crossfade animation - quick pulse while switching tracks
     this.waveformBars.forEach((bar, index) => {
-      const intervalId = (bar as HTMLElement & { _animInterval?: ReturnType<typeof setInterval> })
-        ._animInterval;
-      if (intervalId) {
-        clearInterval(intervalId);
-      }
+      const intervalId = (bar as HTMLElement & { _animInterval?: ReturnType<typeof setInterval> })._animInterval;
+      if (intervalId) clearInterval(intervalId);
 
       const animate = () => {
         const phase = (Date.now() / 200 + index * 0.8) % (Math.PI * 2);
-        const height = 6 + Math.sin(phase) * 6; // Quick pulse
+        const height = 6 + Math.sin(phase) * 6;
         bar.style.height = `${height}px`;
         bar.style.opacity = '0.7';
       };
 
-      const newIntervalId = setInterval(animate, 40); // Faster animation
-      (bar as HTMLElement & { _animInterval?: ReturnType<typeof setInterval> })._animInterval =
-        newIntervalId;
+      const newIntervalId = setInterval(animate, 40);
+      (bar as HTMLElement & { _animInterval?: ReturnType<typeof setInterval> })._animInterval = newIntervalId;
     });
   }
+
+  // ============================================================================
+  // PROGRESS TRACKING
+  // ============================================================================
 
   private startProgressTracking(): void {
     if (!this.currentTrack?.duration) return;
@@ -1181,28 +1529,67 @@ class NowPlayingUI {
     const elapsed = Date.now() - this.startTime;
     const progress = Math.min((elapsed / this.currentTrack.duration) * 100, 100);
 
+    // Update progress bar
     const progressFill = this.container.querySelector('.now-playing__progress-fill') as HTMLElement;
     if (progressFill) {
       progressFill.style.width = `${progress}%`;
     }
+
+    // Update current time display
+    const currentTimeEl = this.container.querySelector('.now-playing__time-current');
+    if (currentTimeEl) {
+      const clampedElapsed = Math.min(elapsed, this.currentTrack.duration);
+      currentTimeEl.textContent = this.formatTime(clampedElapsed);
+    }
   }
 
-  /**
-   * Cleanup on destroy
-   */
+  // ============================================================================
+  // HISTORY
+  // ============================================================================
+
+  private addToHistory(track: NowPlayingTrack | MusicTrack): void {
+    const lastTrack = this.trackHistory[0];
+    if (
+      lastTrack &&
+      lastTrack.name === track.name &&
+      lastTrack.artist === track.artist &&
+      Date.now() - lastTrack.playedAt < 60000
+    ) {
+      return;
+    }
+
+    this.trackHistory.unshift({
+      ...track,
+      playedAt: Date.now(),
+    });
+
+    if (this.trackHistory.length > NowPlayingUI.MAX_HISTORY_SIZE) {
+      this.trackHistory = this.trackHistory.slice(0, NowPlayingUI.MAX_HISTORY_SIZE);
+    }
+  }
+
+  getHistory(): Array<NowPlayingTrack & { playedAt: number }> {
+    return [...this.trackHistory];
+  }
+
+  clearHistory(): void {
+    this.trackHistory = [];
+  }
+
+  // ============================================================================
+  // CLEANUP
+  // ============================================================================
+
   destroy(): void {
-    log.debug('🎧 Now Playing UI destroying');
+    log.debug('Now Playing UI destroying');
     this.stopWaveformAnimation();
     this.stopProgressTracking();
-
-    // 🎧 FIX: Clear all timers on destroy
-    if (this.hideTimeoutId) {
-      clearTimeout(this.hideTimeoutId);
-      this.hideTimeoutId = null;
-    }
-    this.clearSafetyTimer();
-    this.clearAbsoluteMaxTimer();
     this.clearAutoCollapseTimer();
+
+    if (this.unsubscribeStateManager) {
+      this.unsubscribeStateManager();
+      this.unsubscribeStateManager = null;
+    }
 
     this.container?.remove();
     this.styleElement?.remove();
@@ -1234,7 +1621,6 @@ export function resetNowPlayingUI(): void {
   }
 }
 
-// Convenience export
 export const nowPlayingUI = {
   get: getNowPlayingUI,
   reset: resetNowPlayingUI,
@@ -1243,6 +1629,8 @@ export const nowPlayingUI = {
   hide: () => getNowPlayingUI().hide(),
   updateState: (state: MusicPlaybackState) => getNowPlayingUI().updateState(state),
   setCallbacks: (callbacks: NowPlayingCallbacks) => getNowPlayingUI().setCallbacks(callbacks),
+  getHistory: () => getNowPlayingUI().getHistory(),
+  clearHistory: () => getNowPlayingUI().clearHistory(),
 };
 
 export default nowPlayingUI;

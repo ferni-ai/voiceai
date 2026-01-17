@@ -4,6 +4,8 @@
  * Tests the trust worker's integration with trust systems.
  */
 
+/* eslint-disable no-restricted-imports -- Test file needs to mock service imports */
+
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { TrustWorker } from '../trust-worker.js';
 

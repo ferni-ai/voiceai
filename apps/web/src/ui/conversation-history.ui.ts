@@ -14,6 +14,7 @@
 
 import { t } from '../i18n/index.js';
 import { DURATION, EASING, STAGGER, prefersReducedMotion } from '../config/animation-constants.js';
+import { teaserPreview } from './teaser-preview.ui.js';
 
 // ============================================================================
 // TYPES
@@ -301,16 +302,9 @@ class ConversationHistoryUI {
   }
 
   private renderEmptyState(): string {
-    return `
-      <div class="history__empty">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-          <path d="M12 8v4l3 3"/>
-          <circle cx="12" cy="12" r="10"/>
-        </svg>
-        <p>No conversations yet</p>
-        <span>Your journey begins with a single conversation</span>
-      </div>
-    `;
+    // Use teaser preview system to show what conversation history WILL look like
+    // Shows realistic dummy data to create anticipation
+    return teaserPreview.memories().outerHTML;
   }
 
   private formatDuration(minutes: number): string {
@@ -384,21 +378,19 @@ class ConversationHistoryUI {
       .history__backdrop {
         position: absolute;
         inset: 0;
-        background: var(--backdrop-heavy);
-        backdrop-filter: blur(var(--glass-blur-subtle));
-        -webkit-backdrop-filter: blur(var(--glass-blur-subtle));
+        background: rgba(44, 37, 32, 0.75);
       }
 
       /* Card */
       .history__card {
         position: relative;
         width: 100%;
-        max-width: 480px;
+        max-width: clamp(336px, 90vw, 480px);
         max-height: 80vh;
-        background: var(--color-background-elevated);
-        border-radius: var(--radius-2xl, 1.5rem);
-        box-shadow: var(--shadow-2xl);
-        border: 1px solid var(--color-border-subtle);
+        background: var(--color-bg-elevated, #FFFDFB);
+        border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
+        border-radius: var(--radius-xl, 20px);
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.06);
         display: flex;
         flex-direction: column;
         overflow: hidden;
@@ -806,7 +798,7 @@ class ConversationHistoryUI {
       /* ========================================================================
          RESPONSIVE
          ======================================================================== */
-      @media (max-width: 480px) {
+      @media (max-width: clamp(336px, 90vw, 480px)) {
         .history {
           padding: var(--space-4, 16px);
         }

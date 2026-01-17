@@ -204,12 +204,12 @@
   margin-bottom: var(--space-12);
 }
 
-@media (max-width: 480px) {
+@media (max-width: 640px) {
   .hero-actions {
     flex-direction: column;
     align-items: center;
   }
-  
+
   .hero-actions .btn-primary,
   .hero-actions .btn-phone {
     width: 100%;
@@ -264,11 +264,11 @@
   background: var(--color-border-subtle);
 }
 
-@media (max-width: 480px) {
+@media (max-width: 640px) {
   .hero-proof .proof-divider {
     display: none;
   }
-  
+
   .hero-proof {
     justify-content: space-around;
   }

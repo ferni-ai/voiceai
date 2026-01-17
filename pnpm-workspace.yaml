@@ -1,8 +1,10 @@
 packages:
   - .
   - apps/web
+  - apps/async
+  - apps/cli
+  - apps/intelligence-worker
+  - apps/rust-audio
+  - apps/rust-perf
+  - packages/shared-types
   - design-system
-
-patchedDependencies:
-  '@livekit/agents': patches/@livekit__agents.patch
-  '@livekit/agents-plugin-google': patches/@livekit__agents-plugin-google.patch

@@ -251,6 +251,466 @@ export async function dispatchEmotionEvents(
 }
 
 // ============================================================================
+// HOLISTIC NLU EVENT DISPATCH
+// Maps holistic context (relationship, emotion, crisis) to avatar expressions
+// ============================================================================
+
+import type { HolisticContextSummary } from '../../tools/semantic-router/types.js';
+
+/**
+ * Options for dispatching holistic NLU events
+ */
+export interface HolisticDispatchOptions {
+  holisticContext: HolisticContextSummary;
+  userId: string;
+  personaId: string;
+  sessionId?: string;
+}
+
+/**
+ * Map holistic emotion types to frontend signal types
+ */
+function mapEmotionToSignal(
+  emotionType: string | undefined,
+  sentiment: string
+): { signalType: HumanizationSignalType; intensity: number } | null {
+  // Crisis is highest priority
+  if (sentiment === 'crisis') {
+    return { signalType: 'concern_detected', intensity: 1.0 };
+  }
+
+  // Map negative emotions to concern detection
+  const concernEmotions: Record<string, number> = {
+    stressed: 0.6,
+    anxious: 0.7,
+    overwhelmed: 0.8,
+    sad: 0.6,
+    grieving: 0.7,
+    scared: 0.7,
+    ashamed: 0.5,
+    exhausted: 0.6,
+  };
+
+  if (emotionType && concernEmotions[emotionType]) {
+    return {
+      signalType: 'concern_detected',
+      intensity: concernEmotions[emotionType],
+    };
+  }
+
+  // Map positive emotions to high engagement
+  const positiveEmotions = ['happy', 'excited', 'loving', 'anticipating', 'curious'];
+  if (emotionType && positiveEmotions.includes(emotionType)) {
+    return { signalType: 'high_engagement', intensity: 0.7 };
+  }
+
+  return null;
+}
+
+/**
+ * Map holistic relationship to signal type
+ */
+function mapRelationshipToSignal(
+  relationshipType: string | undefined,
+  relationshipSentiment: string | undefined
+): { signalType: HumanizationSignalType; intensity: number } | null {
+  // Personal relationships trigger emotional bond signals
+  if (relationshipSentiment === 'personal') {
+    const familyRelations = ['family_immediate', 'family_extended', 'romantic'];
+    if (relationshipType && familyRelations.includes(relationshipType)) {
+      return { signalType: 'emotional_trajectory', intensity: 0.7 };
+    }
+    if (relationshipType === 'friends') {
+      return { signalType: 'emotional_trajectory', intensity: 0.5 };
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Dispatch holistic NLU events to the frontend for avatar expressions.
+ *
+ * This function bridges the semantic router's holistic context analysis
+ * with the frontend EQ system, enabling:
+ * - Micro-expressions based on detected relationships (warmth for family)
+ * - Concern mode for detected stress/anxiety/crisis
+ * - Engagement signals for positive emotions
+ *
+ * Called BEFORE the LLM runs, enabling anticipatory avatar responses.
+ *
+ * @param options - Holistic context and session info
+ * @param sendDataMessage - Function to send data message to frontend
+ */
+export async function dispatchHolisticEvents(
+  options: HolisticDispatchOptions,
+  sendDataMessage: SendDataMessageFn
+): Promise<void> {
+  const { holisticContext, userId, personaId } = options;
+  const {
+    emotionType,
+    sentiment,
+    isCrisis,
+    urgency,
+    relationshipType,
+    relationshipSentiment,
+    isCompoundIntent,
+  } = holisticContext;
+
+  try {
+    // ========================================================================
+    // 1. CRISIS DETECTION - Highest priority, immediate response
+    // ========================================================================
+    if (isCrisis || sentiment === 'crisis' || urgency === 'critical') {
+      await sendDataMessage('humanization_signal', {
+        signalType: 'concern_detected',
+        concernLevel: 'crisis',
+        concernType: emotionType || 'crisis',
+        intensity: 1.0,
+        timestamp: Date.now(),
+        source: 'holistic_nlu',
+      });
+
+      log.info(
+        { userId, emotionType, urgency },
+        '🚨 HOLISTIC: Crisis signal dispatched to frontend'
+      );
+      return; // Crisis takes precedence, don't send other signals
+    }
+
+    // ========================================================================
+    // 2. EMOTIONAL STATE - Map to concern or engagement signals
+    // ========================================================================
+    const emotionSignal = mapEmotionToSignal(emotionType, sentiment);
+    if (emotionSignal) {
+      const concernLevel =
+        emotionSignal.intensity >= 0.7
+          ? 'elevated'
+          : emotionSignal.intensity >= 0.5
+            ? 'moderate'
+            : 'mild';
+
+      await sendDataMessage('humanization_signal', {
+        signalType: emotionSignal.signalType,
+        concernLevel: emotionSignal.signalType === 'concern_detected' ? concernLevel : undefined,
+        concernType: emotionType,
+        intensity: emotionSignal.intensity,
+        timestamp: Date.now(),
+        source: 'holistic_nlu',
+      });
+
+      log.debug(
+        { userId, emotionType, signalType: emotionSignal.signalType },
+        '🧠 HOLISTIC: Emotion signal dispatched'
+      );
+    }
+
+    // ========================================================================
+    // 3. RELATIONSHIP DETECTION - Warm avatar for personal relationships
+    // ========================================================================
+    const relationshipSignal = mapRelationshipToSignal(relationshipType, relationshipSentiment);
+    if (relationshipSignal) {
+      await sendDataMessage('humanization_signal', {
+        signalType: relationshipSignal.signalType,
+        emotionalTrajectory: 'deepening', // Relationship warmth
+        intensity: relationshipSignal.intensity,
+        timestamp: Date.now(),
+        source: 'holistic_nlu',
+        relationshipType,
+      });
+
+      log.debug(
+        { userId, relationshipType, relationshipSentiment },
+        '💞 HOLISTIC: Relationship warmth signal dispatched'
+      );
+    }
+
+    // ========================================================================
+    // 4. COMPOUND INTENT - Active listening for complex queries
+    // ========================================================================
+    if (isCompoundIntent) {
+      await sendDataMessage('humanization_signal', {
+        signalType: 'high_engagement',
+        intensity: 0.6,
+        timestamp: Date.now(),
+        source: 'holistic_nlu',
+        reason: 'compound_intent',
+      });
+
+      log.debug({ userId }, '🎯 HOLISTIC: Compound intent - active listening triggered');
+    }
+  } catch (error) {
+    // Non-critical - log and continue
+    log.warn({ error: String(error), userId, personaId }, 'Holistic event dispatch failed');
+  }
+}
+
+// ============================================================================
+// EXPRESSION UPDATE DISPATCH (Luxo 100+ Expression System)
+// ============================================================================
+
+/**
+ * Luxo expression IDs available for dispatch.
+ * These map directly to design-system/tokens/expressions.json
+ *
+ * @see design-system/tokens/expressions.json for full list
+ * @see apps/web/src/ui/luxo-expressions.ui.ts for frontend handler
+ */
+export type LuxoExpressionId =
+  // Core
+  | 'neutral'
+  | 'listening'
+  | 'speaking'
+  // Happy family
+  | 'happy'
+  | 'joyful'
+  | 'delighted'
+  | 'amused'
+  | 'pleased'
+  | 'content'
+  | 'excited'
+  | 'grateful'
+  | 'proud'
+  // Warmth family
+  | 'warm'
+  | 'caring'
+  | 'loving'
+  | 'tender'
+  | 'supportive'
+  | 'compassionate'
+  | 'empathetic'
+  | 'nurturing'
+  // Thinking family
+  | 'thinking'
+  | 'pondering'
+  | 'contemplating'
+  | 'focused'
+  | 'processing'
+  | 'reflecting'
+  | 'analyzing'
+  // Presence family
+  | 'present'
+  | 'grounded'
+  | 'calm'
+  | 'serene'
+  | 'peaceful'
+  // Coaching family
+  | 'encouraging'
+  | 'cheering'
+  | 'guiding'
+  | 'wise'
+  | 'knowing'
+  // Concern family
+  | 'concerned'
+  | 'worried'
+  | 'sympathetic'
+  | 'understanding'
+  | 'comforting'
+  // Playful family
+  | 'playful'
+  | 'mischievous'
+  // Listening family
+  | 'interested'
+  // Other common expressions
+  | 'curious'
+  | 'surprised'
+  | 'attentive'
+  | 'determined'
+  | 'confident';
+
+/**
+ * Expression update payload for frontend
+ */
+export interface ExpressionUpdatePayload {
+  type: 'expression_update';
+  expression: LuxoExpressionId;
+  intensity?: number;
+  duration?: number;
+  hold?: number;
+  timestamp: number;
+}
+
+/**
+ * Map emotional states to appropriate Luxo expressions.
+ *
+ * This is the core mapping that converts backend emotional analysis
+ * to specific avatar expressions from the 100+ expression system.
+ */
+const EMOTION_TO_EXPRESSION: Record<string, LuxoExpressionId[]> = {
+  // Positive emotions
+  happy: ['happy', 'joyful', 'pleased'],
+  excited: ['excited', 'delighted', 'joyful'],
+  grateful: ['grateful', 'warm', 'tender'],
+  loving: ['loving', 'tender', 'warm'],
+  hopeful: ['encouraging', 'warm', 'supportive'],
+  proud: ['proud', 'confident', 'pleased'],
+  curious: ['curious', 'attentive', 'interested'],
+  amused: ['amused', 'playful', 'delighted'],
+
+  // Contemplative states
+  thoughtful: ['contemplating', 'reflecting', 'pondering'],
+  processing: ['processing', 'thinking', 'focused'],
+  calm: ['calm', 'serene', 'peaceful'],
+
+  // Concern/distress states (respond with empathy)
+  sad: ['concerned', 'sympathetic', 'comforting'],
+  anxious: ['supportive', 'calm', 'grounded'],
+  stressed: ['understanding', 'supportive', 'calm'],
+  frustrated: ['understanding', 'calm', 'supportive'],
+  overwhelmed: ['comforting', 'supportive', 'calm'],
+  fearful: ['comforting', 'supportive', 'warm'],
+  lonely: ['warm', 'compassionate', 'nurturing'],
+
+  // Neutral states
+  neutral: ['neutral', 'present', 'listening'],
+};
+
+/**
+ * Map concern levels to appropriate expressions
+ */
+const CONCERN_LEVEL_TO_EXPRESSION: Record<string, LuxoExpressionId> = {
+  crisis: 'comforting',
+  elevated: 'concerned',
+  moderate: 'sympathetic',
+  mild: 'attentive',
+  none: 'present',
+};
+
+/**
+ * Get appropriate expression for emotional state.
+ *
+ * @param emotion - Primary emotion detected
+ * @param intensity - Emotion intensity (0-1)
+ * @returns Expression ID to use
+ */
+function getExpressionForEmotion(emotion: string, intensity: number): LuxoExpressionId {
+  const candidates = EMOTION_TO_EXPRESSION[emotion] || ['neutral'];
+
+  // Select expression based on intensity
+  // Higher intensity = more expressive variant
+  const index = Math.min(Math.floor(intensity * candidates.length), candidates.length - 1);
+
+  return candidates[index];
+}
+
+/**
+ * Options for dispatching expression updates
+ */
+export interface ExpressionDispatchOptions {
+  expression?: LuxoExpressionId;
+  emotion?: string;
+  intensity?: number;
+  duration?: number;
+  hold?: number;
+  concernLevel?: 'none' | 'mild' | 'moderate' | 'elevated' | 'crisis';
+}
+
+/**
+ * Dispatch an expression update to the frontend.
+ *
+ * This is the MAIN function for setting avatar expressions from the backend.
+ * It sends an `expression_update` message to the frontend which sets the
+ * Luxo expression directly.
+ *
+ * USAGE:
+ * ```typescript
+ * // Direct expression
+ * await dispatchExpressionUpdate(
+ *   { expression: 'joyful', duration: 400 },
+ *   sendDataMessage
+ * );
+ *
+ * // From detected emotion
+ * await dispatchExpressionUpdate(
+ *   { emotion: 'happy', intensity: 0.8 },
+ *   sendDataMessage
+ * );
+ *
+ * // From concern level
+ * await dispatchExpressionUpdate(
+ *   { concernLevel: 'elevated' },
+ *   sendDataMessage
+ * );
+ * ```
+ *
+ * @param options - Expression options
+ * @param sendDataMessage - Function to send data message to frontend
+ */
+export async function dispatchExpressionUpdate(
+  options: ExpressionDispatchOptions,
+  sendDataMessage: SendDataMessageFn
+): Promise<void> {
+  const { expression, emotion, intensity = 0.7, duration = 300, hold = 0, concernLevel } = options;
+
+  // Determine expression to use
+  let expressionToUse: LuxoExpressionId;
+
+  if (expression) {
+    // Direct expression specified
+    expressionToUse = expression;
+  } else if (concernLevel && concernLevel !== 'none') {
+    // Map concern level to expression
+    expressionToUse = CONCERN_LEVEL_TO_EXPRESSION[concernLevel];
+  } else if (emotion) {
+    // Map emotion to expression
+    expressionToUse = getExpressionForEmotion(emotion, intensity);
+  } else {
+    // Default to neutral
+    expressionToUse = 'neutral';
+  }
+
+  try {
+    await sendDataMessage('expression_update', {
+      expression: expressionToUse,
+      intensity,
+      duration,
+      hold,
+      timestamp: Date.now(),
+    });
+
+    log.debug(
+      { expression: expressionToUse, intensity, duration },
+      '🎭 Expression update dispatched to frontend'
+    );
+  } catch (error) {
+    log.warn({ error: String(error) }, 'Expression update dispatch failed');
+  }
+}
+
+/**
+ * Dispatch expression based on emotional state (convenience function).
+ *
+ * Combines humanization signal + expression update for complete
+ * avatar emotional response.
+ *
+ * @param options - Emotion dispatch options
+ * @param sendDataMessage - Function to send data message to frontend
+ */
+export async function dispatchEmotionWithExpression(
+  options: EmotionDispatchOptions,
+  sendDataMessage: SendDataMessageFn
+): Promise<void> {
+  // First dispatch humanization signals
+  await dispatchEmotionEvents(options, sendDataMessage);
+
+  // Then dispatch corresponding expression update
+  const { emotionalState } = options;
+  const { primary, intensity, distressLevel } = emotionalState;
+
+  // If distressed, use concern-based expression
+  if (distressLevel > 0.3) {
+    const concernLevel = getConcernLevel(distressLevel);
+    await dispatchExpressionUpdate(
+      { concernLevel, intensity: distressLevel, duration: 400 },
+      sendDataMessage
+    );
+  } else {
+    // Use emotion-based expression
+    await dispatchExpressionUpdate({ emotion: primary, intensity, duration: 300 }, sendDataMessage);
+  }
+}
+
+// ============================================================================
 // EXPORTS
 // ============================================================================
 

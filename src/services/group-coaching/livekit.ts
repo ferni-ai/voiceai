@@ -191,7 +191,7 @@ interface ParticipantTokenMetadata {
 export async function generateParticipantToken(
   session: GroupSession,
   participant: GroupParticipant,
-  ttl: string = '2h'
+  ttl = '2h'
 ): Promise<string> {
   const roomName = getRoomName(session.id);
 
@@ -242,10 +242,7 @@ export async function generateParticipantToken(
 /**
  * Generate token for Ferni agent to join the group session
  */
-export async function generateAgentToken(
-  session: GroupSession,
-  ttl: string = '4h'
-): Promise<string> {
+export async function generateAgentToken(session: GroupSession, ttl = '4h'): Promise<string> {
   const roomName = getRoomName(session.id);
 
   const metadata = {

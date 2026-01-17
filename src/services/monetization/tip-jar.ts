@@ -15,6 +15,7 @@ import {
 } from '../../types/monetization.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { getUserTips as getPersistentTips, saveTip, type TipRecord } from './persistence.js';
+import { cleanForFirestore } from '../../utils/firestore-utils.js';
 
 const log = createLogger({ module: 'TipJar' });
 
@@ -23,7 +24,7 @@ const log = createLogger({ module: 'TipJar' });
 // ============================================================================
 
 // Cache for quick access - populated from Firestore on first access
-const tipCache: Map<string, TipTransaction> = new Map();
+const tipCache = new Map<string, TipTransaction>();
 let totalTipsCents = 0;
 let tipCount = 0;
 let statsLoaded = false;

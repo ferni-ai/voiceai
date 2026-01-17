@@ -540,7 +540,7 @@ export function getUserValuesProfile(userId: string): UserValuesProfile | null {
 /**
  * Get user's top stated values
  */
-export function getTopValues(userId: string, count: number = 3): string[] {
+export function getTopValues(userId: string, count = 3): string[] {
   const profile = userValuesProfiles.get(userId);
   if (!profile) return [];
 

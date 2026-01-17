@@ -72,14 +72,16 @@ export function isValidUserProfile(data: unknown): data is UserProfile {
   if (!isString(data.id)) return false;
 
   // Optional but type-checked fields
-  if ('name' in data && data.name !== undefined && !isString(data.name)) return false;
-  if ('email' in data && data.email !== undefined && !isString(data.email)) return false;
-  if ('phone' in data && data.phone !== undefined && !isString(data.phone)) return false;
+  // Note: Firestore often returns null for unset fields, so we allow null/undefined
+  if ('name' in data && data.name != null && !isString(data.name)) return false;
+  if ('email' in data && data.email != null && !isString(data.email)) return false;
+  if ('phone' in data && data.phone != null && !isString(data.phone)) return false;
 
   // Date fields can be missing but if present should be date-like
+  // Note: Using != null to allow both null and undefined (common in Firestore)
   const dateFields = ['firstContact', 'lastContact', 'createdAt', 'updatedAt'];
   for (const field of dateFields) {
-    if (field in data && data[field] !== undefined && !isDateLike(data[field])) return false;
+    if (field in data && data[field] != null && !isDateLike(data[field])) return false;
   }
 
   return true;

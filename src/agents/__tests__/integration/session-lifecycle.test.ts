@@ -310,7 +310,9 @@ describe('Session Lifecycle Integration Tests', () => {
       mockPipeline.say('Hello!');
 
       // Wait for speaking to complete
-      await new Promise((resolve) => setTimeout(resolve, 500));
+      await new Promise<void>((resolve) => {
+        setTimeout(resolve, 500);
+      });
 
       expect(events).toContain('started');
       expect(events).toContain('stopped');

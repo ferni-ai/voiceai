@@ -26,7 +26,8 @@ import { t } from '../i18n/index.js';
 import { DURATION, EASING, STAGGER } from '../config/animation-constants.js';
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
-import { toast } from './toast.ui.js';
+import { toast } from './whisper.ui.js';
+import { getApiHeadersAsync } from '../utils/api-helpers.js';
 
 // Use TIGHT for fast staggered animations
 const STAGGER_FAST = STAGGER.TIGHT;
@@ -34,7 +35,7 @@ const STAGGER_FAST = STAGGER.TIGHT;
 const log = createLogger('PublisherPortalUI');
 
 // FIX BUG: Track all setTimeout calls for proper cleanup
-const { trackedTimeout, clearAll: clearAllTimeouts } = createTimeoutTracker();
+const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
 
 // ============================================================================
 // TYPES
@@ -212,7 +213,7 @@ export async function openPublisherPortal(session?: { id: string; name: string }
   }
 
   if (!publisherSession) {
-    toast.error('Sign in as a publisher first');
+    toast.error(t('toasts.signInAsAPublisherFirst'));
     return;
   }
 
@@ -251,7 +252,9 @@ async function loadPublisherData(): Promise<void> {
   if (!publisherSession) return;
 
   try {
+    const authHeaders = await getApiHeadersAsync();
     const headers = {
+      ...authHeaders,
       'x-publisher-id': publisherSession.id,
       'x-publisher-name': publisherSession.name,
     };
@@ -301,7 +304,7 @@ function createPortalContainer(): HTMLElement {
       </header>
 
       <nav class="publisher-tabs" role="tablist" aria-label="${t('accessibility.portalSections')}">
-        <button
+        <button aria-label="${t('accessibility.myItems')}"
           role="tab"
           class="publisher-tab ${state.activeTab === 'items' ? 'publisher-tab--active' : ''}"
           data-tab="items"
@@ -309,7 +312,7 @@ function createPortalContainer(): HTMLElement {
         >
           ${ICONS.box} My Items
         </button>
-        <button
+        <button aria-label="${t('accessibility.analytics')}"
           role="tab"
           class="publisher-tab ${state.activeTab === 'analytics' ? 'publisher-tab--active' : ''}"
           data-tab="analytics"
@@ -317,7 +320,7 @@ function createPortalContainer(): HTMLElement {
         >
           ${ICONS.barChart} Analytics
         </button>
-        <button
+        <button aria-label="${t('accessibility.add')}"
           role="tab"
           class="publisher-tab ${state.activeTab === 'submit' ? 'publisher-tab--active' : ''}"
           data-tab="submit"
@@ -387,7 +390,7 @@ function renderItemsList(content: Element): void {
         <div class="publisher-empty-icon" aria-hidden="true">${ICONS.box}</div>
         <h3 class="publisher-empty-title">No items yet</h3>
         <p class="publisher-empty-text">Submit your first tool or agent to get started</p>
-        <button class="publisher-button publisher-button--primary" data-action="submit">
+        <button aria-label="${t('accessibility.add')}" class="publisher-button publisher-button--primary" data-action="submit">
           ${ICONS.plus} Submit New Item
         </button>
       </div>
@@ -501,9 +504,9 @@ function renderAnalytics(content: Element): void {
     </div>
 
     <div class="analytics-period">
-      <button class="period-button period-button--active" data-period="7d">7 days</button>
-      <button class="period-button" data-period="30d">30 days</button>
-      <button class="period-button" data-period="90d">90 days</button>
+      <button aria-label="7 days" class="period-button period-button--active" data-period="7d">7 days</button>
+      <button aria-label="30 days" class="period-button" data-period="30d">30 days</button>
+      <button aria-label="90 days" class="period-button" data-period="90d">90 days</button>
     </div>
 
     <div class="analytics-grid">
@@ -643,11 +646,11 @@ function renderSubmitForm(content: Element): void {
         </div>
       </div>
 
-      <div class="form-actions">
-        <button type="button" class="publisher-button publisher-button--secondary" data-action="cancel">
+      <div class="form-actions" role="button" tabindex="0">
+        <button aria-label="${t('accessibility.cancel')}" type="button" class="publisher-button publisher-button--secondary" data-action="cancel">
           Cancel
         </button>
-        <button type="submit" class="publisher-button publisher-button--primary">
+        <button aria-label="${t('accessibility.upload')}" type="submit" class="publisher-button publisher-button--primary">
           ${ICONS.upload} Submit for Review
         </button>
       </div>
@@ -739,10 +742,11 @@ async function handleSubmission(form: HTMLFormElement): Promise<void> {
         };
 
   try {
+    const authHeaders = await getApiHeadersAsync({ 'Content-Type': 'application/json' });
     const response = await fetch('/api/marketplace/publisher/submit', {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
+        ...authHeaders,
         'x-publisher-id': publisherSession.id,
         'x-publisher-name': publisherSession.name,
       },
@@ -752,7 +756,7 @@ async function handleSubmission(form: HTMLFormElement): Promise<void> {
     const result = await response.json();
 
     if (response.ok && result.success) {
-      toast.success(`${name} submitted for review!`);
+      toast.success(t('toasts.nameSubmittedForReview'));
       announceToScreenReader(`Successfully submitted ${name} for review`);
 
       // Reload data and switch to items
@@ -824,26 +828,26 @@ function injectStyles(): void {
     .publisher-backdrop {
       position: absolute;
       inset: 0;
-      background: rgba(44, 37, 32, 0.7);
-      backdrop-filter: blur(var(--glass-blur-modal, 20px));
+      background: rgba(44, 37, 32, 0.75);
     }
 
     .publisher-panel {
       position: relative;
       width: 100%;
-      max-width: 900px;
+      max-width: min(900px, 100%);
       margin: 0 auto;
-      background: var(--color-background-elevated, #FFFDFB);
+      background: var(--color-bg-elevated, #FFFDFB);
+      border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
       display: flex;
       flex-direction: column;
       overflow: hidden;
     }
 
-    @media (min-width: 768px) {
+    @media (min-width: clamp(538px, 90vw, 768px)) {
       .publisher-panel {
         margin: var(--space-8, 32px) auto;
-        border-radius: var(--radius-2xl, 24px);
-        box-shadow: var(--shadow-2xl);
+        border-radius: var(--radius-xl, 20px);
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.06);
         max-height: calc(100vh - 64px);
       }
     }
@@ -930,7 +934,7 @@ function injectStyles(): void {
 
     .publisher-tab--active {
       background: var(--persona-tint);
-      color: var(--persona-primary);
+      color: var(--persona-text);
     }
 
     .publisher-tab:focus-visible {
@@ -1012,12 +1016,12 @@ function injectStyles(): void {
     }
 
     .publisher-item:hover {
-      border-color: var(--persona-primary);
+      border-color: var(--persona-text);
     }
 
     .publisher-item:focus-visible {
       outline: none;
-      border-color: var(--persona-primary);
+      border-color: var(--persona-text);
       box-shadow: 0 0 0 3px var(--persona-tint);
     }
 
@@ -1030,7 +1034,7 @@ function injectStyles(): void {
       justify-content: center;
       background: var(--persona-tint);
       border-radius: var(--radius-lg);
-      color: var(--persona-primary);
+      color: var(--persona-text);
     }
 
     .item-icon svg {
@@ -1226,7 +1230,7 @@ function injectStyles(): void {
 
     .period-button--active {
       background: var(--persona-tint);
-      color: var(--persona-primary);
+      color: var(--persona-text);
     }
 
     .analytics-grid {
@@ -1253,7 +1257,7 @@ function injectStyles(): void {
       justify-content: center;
       background: var(--persona-tint);
       border-radius: var(--radius-md);
-      color: var(--persona-primary);
+      color: var(--persona-text);
     }
 
     .analytics-card-icon svg {
@@ -1284,7 +1288,7 @@ function injectStyles(): void {
 
     /* Submit Form */
     .submit-form {
-      max-width: 600px;
+      max-width: clamp(420px, 90vw, 600px);
     }
 
     .form-section {
@@ -1328,7 +1332,7 @@ function injectStyles(): void {
     .form-input:focus,
     .form-textarea:focus {
       outline: none;
-      border-color: var(--persona-primary);
+      border-color: var(--persona-text);
     }
 
     .form-textarea {
@@ -1363,7 +1367,7 @@ function injectStyles(): void {
     .form-radio input {
       width: 18px;
       height: 18px;
-      accent-color: var(--persona-primary);
+      accent-color: var(--persona-text);
     }
 
     .radio-label {
@@ -1433,7 +1437,7 @@ function injectStyles(): void {
     }
 
     /* Responsive */
-    @media (max-width: 768px) {
+    @media (max-width: clamp(538px, 90vw, 768px)) {
       .publisher-stats-bar {
         grid-template-columns: repeat(2, 1fr);
       }

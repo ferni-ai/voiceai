@@ -15,6 +15,7 @@
  */
 
 import { createLogger } from '../utils/logger.js';
+import { getApiHeadersAsync } from '../utils/api.js';
 import { appState } from '../state/app.state.js';
 
 const log = createLogger('VoiceAuthService');
@@ -227,23 +228,23 @@ class VoiceAuthService {
     endpoint: string,
     options: RequestInit = {}
   ): Promise<T> {
-    const userId = this.getUserId();
+    // Use getApiHeadersAsync for proper Firebase auth
+    const authHeaders = await getApiHeadersAsync(true);
 
     const response = await fetch(`/api/voice${endpoint}`, {
       ...options,
       headers: {
-        'Content-Type': 'application/json',
-        'X-User-ID': userId,
+        ...authHeaders,
         ...options.headers,
       },
     });
 
     if (!response.ok) {
-      const error = await response.json().catch(() => ({ error: 'Unknown error' }));
+      const error = (await response.json().catch(() => ({ error: 'Unknown error' }))) as { error?: string };
       throw new Error(error.error || `API error: ${response.status}`);
     }
 
-    return response.json();
+    return response.json() as Promise<T>;
   }
 
   // ==========================================================================

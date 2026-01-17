@@ -17,6 +17,7 @@
  * @module @ferni/humanization/ambient-awareness
  */
 
+import { seededChance, seededPick, seededIndex } from '../utils/rng.js';
 import { createLogger } from '../../utils/safe-logger.js';
 
 const logger = createLogger({ module: 'AmbientAwareness' });
@@ -638,7 +639,7 @@ export class AmbientAwarenessEngine {
     if (!this.currentContext?.shouldAcknowledge) return null;
     const acks = this.currentContext.acknowledgments;
     if (acks.length === 0) return null;
-    return acks[Math.floor(Math.random() * acks.length)];
+    return seededPick(`${Date.now()}:642`, acks) ?? acks[0];
   }
 
   /**

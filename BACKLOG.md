@@ -34,6 +34,7 @@ Product backlog and roadmap for Ferni AI development.
 
 | Feature | Status | Notes |
 |---------|--------|-------|
+| **Group Conversations** | ✅ Done | Multi-participant: Team Roundtable + Conference Calls |
 | **Semantic Memory (Vector Store)** | 📋 Planned | Pinecone/Weaviate integration for better recall |
 | **Proactive Notifications** | 📋 Planned | Push notifications for habits, milestones |
 | **Calendar Integration** | 🟡 Partial | Google Calendar OAuth, need sync |
@@ -120,9 +121,11 @@ Product backlog and roadmap for Ferni AI development.
 - Vector store integration
 - Push notifications
 - Mobile app polish
+- **Group Conversations (Team Roundtable)** - Multiple agents active simultaneously
 - Public beta launch
 
 ### Q2 2025
+- **Group Conversations (Conference Calls)** - Add external people via phone
 - Multi-language support
 - Custom personas
 - Team sharing
@@ -179,4 +182,6 @@ Product backlog and roadmap for Ferni AI development.
 - [CONTRIBUTING.md](CONTRIBUTING.md) - How to contribute
 - [docs/features/](docs/features/) - Feature specifications
 - [docs/architecture/](docs/architecture/) - Architecture decisions
+- [docs/architecture/GROUP-CONVERSATIONS.md](docs/architecture/GROUP-CONVERSATIONS.md) - Group conversation architecture
+- [docs/plans/GROUP-CONVERSATIONS-ROADMAP.md](docs/plans/GROUP-CONVERSATIONS-ROADMAP.md) - Implementation roadmap
 

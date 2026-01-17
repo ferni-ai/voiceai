@@ -42,8 +42,8 @@ export function buildRelationshipContext(userProfile?: UserProfile): string {
     sections.push(`Last time: ${p.lastConversationSummary}`);
   }
 
-  if ((p.pendingFollowUps?.length ?? 0) > 0) {
-    const followUp = p.pendingFollowUps[0];
+  const followUp = p.pendingFollowUps?.[0];
+  if (followUp) {
     sections.push(`Follow-up needed: ${followUp.topic} (${followUp.reason})`);
   }
 
@@ -206,11 +206,12 @@ export function buildHandoffChainDescription(
   handoffHistory: HandoffRecord[],
   currentPersona?: PersonaId
 ): string {
-  if (handoffHistory.length === 0) {
+  const firstHandoff = handoffHistory[0];
+  if (!firstHandoff) {
     return currentPersona || '';
   }
 
-  const parts: string[] = [handoffHistory[0].fromPersona];
+  const parts: string[] = [firstHandoff.fromPersona];
 
   for (const handoff of handoffHistory) {
     parts.push(`→ ${handoff.toPersona} (turn ${handoff.turnCount})`);

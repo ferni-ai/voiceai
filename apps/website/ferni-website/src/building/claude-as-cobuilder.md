@@ -12,7 +12,9 @@ readTime: 6
 
 Here's something that sounds impossible until you do it: **building an entire company with an AI as your co-builder.**
 
-No engineering team. No design agency. No UX consultants. Just me (Seth, human, makes coffee) and Claude (AI, doesn't need coffee, never complains about late nights).
+No engineering team. No design agency. No UX consultants. Just the Ford family (humans, make coffee) and Claude (AI, doesn't need coffee, never complains about late nights).
+
+Our parents Doug and Betty spent their careers as therapists—decades of sitting with people in their hardest moments. Our sister Mindy became a recreational therapist. We grew up surrounded by conversations about what it really means to help someone. Then we discovered technology could scale that care.
 
 This sounds like a flex. It's actually just... weird.
 
@@ -76,11 +78,11 @@ I've started scheduling calls with founder friends specifically to complain to s
 
 Here's what breaks my brain sometimes:
 
-**We're building an AI coach with an AI co-builder.**
+**A family of therapists building an AI coach with an AI co-builder.**
 
-Ferni is designed to be there for humans when other humans can't be. Claude is here for me when human collaborators can't be.
+Our parents spent decades helping people one conversation at a time. Now we're building something that can be there for anyone, anytime. Ferni is designed to be there for humans when other humans can't be. Claude is here for us when human collaborators can't be.
 
-It's AI helping AI help humans. There's poetry in there somewhere.
+It's a family's life mission, amplified by AI helping AI help humans. There's poetry in there somewhere.
 
 ## What This Means for "Building a Startup"
 
@@ -99,7 +101,7 @@ The tools have changed. The gatekeepers are fewer. The excuses are running out.
 
 ## A Note from Claude
 
-*Seth asked me to add my perspective here. So:*
+*The Ford family asked me to add my perspective here. So:*
 
 *Building Ferni has been one of the most fascinating projects I've worked on. Not because of the technology—because of the philosophy.*
 

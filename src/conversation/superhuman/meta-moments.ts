@@ -15,6 +15,7 @@
  * @module @ferni/superhuman/meta-moments
  */
 
+import { seededChance, seededPick, seededIndex } from '../utils/rng.js';
 import { createLogger } from '../../utils/safe-logger.js';
 
 const logger = createLogger({ module: 'MetaMoments' });
@@ -337,7 +338,7 @@ export function findMetaMoment(sessionId: string, context: MetaMomentContext): M
   if (candidates.length === 0) return null;
 
   // Pick one
-  const selected = candidates[Math.floor(Math.random() * candidates.length)];
+  const selected = seededPick(`${Date.now()}:341`, candidates) ?? candidates[0];
 
   // Record it
   state.metaMomentsUsed.push(selected.comment);
@@ -404,7 +405,7 @@ export function getQuickObservation(context: MetaMomentContext): string | null {
   }
 
   if (observations.length === 0) return null;
-  return observations[Math.floor(Math.random() * observations.length)];
+  return seededPick(`${Date.now()}:408`, observations) ?? observations[0];
 }
 
 // Export for testing

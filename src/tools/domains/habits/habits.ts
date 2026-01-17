@@ -18,10 +18,11 @@ import {
   getProductivityStore,
   type HabitData,
   type HabitLogData,
-} from '../../../services/productivity-store.js';
+} from '../../../services/stores/productivity-store.js';
 import { getLogger, generateId } from '../../utils/tool-helpers.js';
 
 import { getToolDescription } from '../../utils/tool-descriptions.js';
+import { syncHabitToCalendar } from '../../../services/calendar/calendar-bridge.js';
 // Bridge functions for persistence
 function habitDataToHabit(data: HabitData & { userId?: string }, userId: string): Habit {
   return {
@@ -298,7 +299,7 @@ function getDueHabits(userId: string): Habit[] {
 // CORE FUNCTIONS
 // ============================================================================
 
-export function createHabit(params: {
+export async function createHabit(params: {
   userId: string;
   name: string;
   description?: string;
@@ -307,7 +308,7 @@ export function createHabit(params: {
   customDays?: number[];
   targetPerDay?: number;
   reminderTime?: string;
-}): Habit {
+}): Promise<Habit> {
   const habit: Habit = {
     id: generateId('habit'),
     userId: params.userId,
@@ -327,7 +328,32 @@ export function createHabit(params: {
   habitsCache.set(habit.id, habit);
   persistHabit(params.userId, habit);
 
-  getLogger().info({ habitId: habit.id, name: habit.name }, '✨ Habit created');
+  // Sync habit reminder to calendar if reminder time is set
+  if (params.reminderTime) {
+    try {
+      const [hours, minutes] = params.reminderTime.split(':').map(Number);
+      const today = new Date();
+      const scheduledFor = new Date(today);
+      scheduledFor.setHours(hours, minutes, 0, 0);
+      // If time has passed today, schedule for tomorrow
+      if (scheduledFor <= today) {
+        scheduledFor.setDate(scheduledFor.getDate() + 1);
+      }
+
+      await syncHabitToCalendar(params.userId, habit.id, habit.name, scheduledFor, {
+        frequency: habit.frequency,
+        category: habit.category,
+        description: habit.description,
+      });
+    } catch (calendarError) {
+      getLogger().warn(
+        { error: calendarError, habitId: habit.id },
+        'Failed to sync habit to calendar'
+      );
+    }
+  }
+
+  getLogger().info({ habitId: habit.id, name: habit.name }, 'Habit created');
 
   return habit;
 }
@@ -366,6 +392,31 @@ export function logHabit(params: {
   // Save to cache and persist
   habitLogsCache.set(log.id, log);
   persistHabitLog(params.userId, log);
+
+  // Trigger workflow event for habit logging
+  void (async () => {
+    try {
+      const { getWorkflowEngine } = await import('../../../services/workflows/workflow-engine.js');
+      const engine = getWorkflowEngine(params.userId);
+      const streak = calculateStreak(params.habitId);
+      await engine.handleHabitTrigger('habit_logged', {
+        habitId: params.habitId,
+        habitName: habit.name,
+        streak,
+      });
+      
+      // Check for streak achievement
+      if (streak > 0 && streak % 7 === 0) {
+        await engine.handleHabitTrigger('streak_achieved', {
+          habitId: params.habitId,
+          habitName: habit.name,
+          streak,
+        });
+      }
+    } catch (error) {
+      getLogger().debug({ error: String(error) }, 'Failed to trigger workflow for habit log');
+    }
+  })();
 
   return log;
 }
@@ -419,7 +470,7 @@ export function createHabitTools() {
         const userId = userData?.userId || 'default';
 
         await ensureUserHabitsLoaded(userId);
-        const habit = createHabit({
+        const habit = await createHabit({
           userId,
           name,
           category,
@@ -428,17 +479,17 @@ export function createHabitTools() {
           reminderTime,
         });
 
-        let response = `✨ New habit: "${habit.name}"\n`;
-        response += `📅 Frequency: ${frequency}\n`;
+        let response = `New habit: "${habit.name}"\n`;
+        response += `Frequency: ${frequency}\n`;
         if (targetPerDay > 1) {
-          response += `🎯 Target: ${targetPerDay}x per day\n`;
+          response += `Target: ${targetPerDay}x per day\n`;
         }
         if (reminderTime) {
-          response += `⏰ Reminder: ${reminderTime}\n`;
+          response += `Reminder: ${reminderTime} (added to calendar)\n`;
         }
 
         const existingHabits = getUserHabitsFromCache(userId);
-        response += `\nYou're now tracking ${existingHabits.length} habit${existingHabits.length !== 1 ? 's' : ''}. Let's build that streak! 🔥`;
+        response += `\nYou're now tracking ${existingHabits.length} habit${existingHabits.length !== 1 ? 's' : ''}. Let's build that streak!`;
 
         return response;
       },

@@ -4,9 +4,10 @@ name: Error Rate Monitor
 # Alerts to Slack if error rate exceeds threshold
 
 on:
-  schedule:
-    # Every 15 minutes
-    - cron: '*/15 * * * *'
+  # DISABLED: Scheduled runs consume too many Actions minutes
+  # Re-enable when on paid plan
+  # schedule:
+  #   - cron: '*/15 * * * *'
   workflow_dispatch:
 
 env:

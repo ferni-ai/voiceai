@@ -14,6 +14,8 @@
  * updates don't add latency to conversations.
  */
 
+/* eslint-disable no-restricted-imports -- Workers need direct service imports */
+
 import { LocalWorker, type WorkerConfig } from './base-worker.js';
 import type { EventPayload } from '../services/async-events/index.js';
 
@@ -98,7 +100,7 @@ export class TrustWorker extends LocalWorker {
 
     try {
       // If user shared something significant, record it
-      if (data.didShare) {
+      if (data.didShare === true) {
         recordDidShare(userId);
         this.log.debug({ userId }, 'Recorded user share');
       }
@@ -126,11 +128,12 @@ export class TrustWorker extends LocalWorker {
     try {
       // Get any uncelebrated wins to potentially celebrate
       const uncelebratedWins = getUncelebratedWins(userId);
-      if (uncelebratedWins.length > 0) {
-        const celebration = generateCelebration(userId, uncelebratedWins[0]);
+      const firstWin = uncelebratedWins[0];
+      if (firstWin != null) {
+        const celebration = generateCelebration(userId, firstWin);
         if (celebration) {
           this.log.info(
-            { userId, winType: uncelebratedWins[0].type, celebration: celebration.celebration },
+            { userId, winType: firstWin.type, celebration: celebration.celebration },
             'Generated celebration for milestone'
           );
         }

@@ -43,8 +43,9 @@ describe('Peter John Persona E2E Tests', () => {
 
     it('should have correct role domains', () => {
       const { domains } = bundle.manifest.role;
-      expect(domains).toContain('insights-discovery');
-      expect(domains).toContain('pattern-recognition');
+      // Updated to match current manifest - Peter is the cross-domain pattern finder
+      expect(domains).toContain('cross-domain-pattern-recognition');
+      expect(domains).toContain('proactive-intelligence');
     });
 
     it('should have correct personality traits', () => {

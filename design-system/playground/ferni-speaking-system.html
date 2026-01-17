@@ -1,0 +1,701 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ferni Speaking System</title>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --ferni: #4a6741;
+      --ferni-light: #5a7a51;
+      --ferni-dark: #3d5a35;
+      --cream: #F5F1E8;
+      --ink: #2C2520;
+      --ink-light: #5C544A;
+      --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+      --ease-gentle: cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background: var(--cream);
+      min-height: 100vh;
+      color: var(--ink);
+    }
+    
+    header {
+      text-align: center;
+      padding: 24px 20px 12px;
+    }
+    
+    h1 {
+      font-size: 1.3rem;
+      font-weight: 800;
+      color: var(--ferni);
+    }
+    
+    .subtitle {
+      font-size: 0.7rem;
+      color: var(--ink-light);
+      margin-top: 4px;
+    }
+    
+    .stage {
+      max-width: 440px;
+      margin: 0 auto;
+      padding: 0 20px;
+    }
+    
+    .avatar-stage {
+      background: white;
+      border-radius: 24px;
+      padding: 32px;
+      box-shadow: 0 8px 40px rgba(44,37,32,0.06);
+      margin-bottom: 16px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    
+    .status {
+      font-size: 0.65rem;
+      font-weight: 700;
+      color: var(--ferni);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-top: 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--ink-light);
+      transition: all 0.2s;
+    }
+    
+    .status-dot.speaking {
+      background: var(--ferni);
+      animation: statusPulse 0.5s ease-in-out infinite;
+    }
+    
+    @keyframes statusPulse {
+      0%, 100% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.3); opacity: 0.7; }
+    }
+    
+    /* Volume meter */
+    .volume-meter {
+      width: 100%;
+      height: 6px;
+      background: rgba(44,37,32,0.08);
+      border-radius: 3px;
+      margin-top: 16px;
+      overflow: hidden;
+    }
+    
+    .volume-bar {
+      height: 100%;
+      background: linear-gradient(90deg, var(--ferni-light), var(--ferni));
+      border-radius: 3px;
+      width: 0%;
+      transition: width 0.05s ease-out;
+    }
+    
+    /* Controls */
+    .control-section {
+      background: white;
+      border-radius: 16px;
+      padding: 16px;
+      margin-bottom: 12px;
+      box-shadow: 0 4px 16px rgba(44,37,32,0.04);
+    }
+    
+    .section-title {
+      font-size: 0.6rem;
+      font-weight: 700;
+      color: var(--ferni);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 10px;
+    }
+    
+    .control-row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    
+    .btn {
+      padding: 10px 18px;
+      border: none;
+      border-radius: 999px;
+      font-weight: 600;
+      font-size: 0.75rem;
+      cursor: pointer;
+      transition: all 0.15s var(--ease-spring);
+      background: var(--ferni);
+      color: white;
+    }
+    
+    .btn:hover {
+      background: var(--ferni-dark);
+      transform: scale(1.02);
+    }
+    
+    .btn.secondary {
+      background: rgba(44,37,32,0.06);
+      color: var(--ink);
+    }
+    
+    .btn.secondary:hover {
+      background: rgba(44,37,32,0.12);
+    }
+    
+    .btn.active {
+      box-shadow: 0 0 0 2px var(--ferni), 0 0 0 4px rgba(74,103,65,0.2);
+    }
+    
+    /* Layer toggles */
+    .layers {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+    }
+    
+    .layer-toggle {
+      background: rgba(74, 103, 65, 0.06);
+      border-radius: 10px;
+      padding: 12px 8px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s var(--ease-spring);
+      border: 2px solid transparent;
+    }
+    
+    .layer-toggle.active {
+      background: rgba(74, 103, 65, 0.12);
+      border-color: var(--ferni);
+    }
+    
+    .layer-toggle:hover {
+      transform: translateY(-2px);
+    }
+    
+    .layer-icon {
+      font-size: 1.5rem;
+      margin-bottom: 4px;
+    }
+    
+    .layer-name {
+      font-size: 0.6rem;
+      font-weight: 700;
+      color: var(--ferni);
+    }
+    
+    .layer-value {
+      font-size: 0.5rem;
+      color: var(--ink-light);
+      margin-top: 2px;
+    }
+    
+    /* ============================================
+       FERNI AVATAR - SPEAKING SYSTEM
+       Three layers working in harmony
+       ============================================ */
+    
+    .ferni-avatar {
+      --size: 140px;
+      --volume: 0;
+      position: relative;
+      width: var(--size);
+      height: var(--size);
+    }
+    
+    .avatar-svg {
+      width: 100%;
+      height: 100%;
+      overflow: visible;
+    }
+    
+    /* LAYER 1: HALO PULSE - Sound waves emanating */
+    .presence-ring {
+      fill: none;
+      stroke: var(--ferni);
+      stroke-width: 1.5;
+      opacity: 0.3;
+      transform-origin: center center;
+      transition: all 0.1s ease-out;
+    }
+    
+    .ferni-avatar.halo-active .presence-ring {
+      /* Scale: 1.0 + (volume * 0.015) → max 1.015 */
+      transform: scale(calc(1 + var(--volume) * 0.015));
+      opacity: calc(0.3 + var(--volume) * 0.2);
+    }
+    
+    /* Secondary halo rings (sound waves) */
+    .halo-wave {
+      fill: none;
+      stroke: var(--ferni);
+      stroke-width: 1;
+      opacity: 0;
+      transform-origin: center center;
+    }
+    
+    .ferni-avatar.halo-active .halo-wave.wave-1 {
+      opacity: calc(var(--volume) * 0.15);
+      transform: scale(calc(1.08 + var(--volume) * 0.04));
+    }
+    
+    .ferni-avatar.halo-active .halo-wave.wave-2 {
+      opacity: calc(var(--volume) * 0.08);
+      transform: scale(calc(1.15 + var(--volume) * 0.05));
+    }
+    
+    /* LAYER 2: BODY PULSE - Bass speaker effect */
+    .avatar-body-group {
+      transform-origin: center center;
+      transition: transform 0.08s ease-out;
+    }
+    
+    .ferni-avatar.body-active .avatar-body-group {
+      /* ScaleY: 1.0 + (volume * 0.08) → max 1.08 */
+      /* ScaleX: 1.0 - (volume * 0.03) → min 0.97 (squash) */
+      transform: scaleY(calc(1 + var(--volume) * 0.08)) scaleX(calc(1 - var(--volume) * 0.03));
+    }
+    
+    .eye-main {
+      transform-origin: center center;
+      transition: transform 0.1s ease-out;
+    }
+    
+    /* Eyes squint slightly when speaking */
+    .ferni-avatar.body-active .eye-main {
+      transform: scaleY(calc(1 - var(--volume) * 0.15));
+    }
+    
+    /* LAYER 3: LID MOUTH - Articulation */
+    .lid-top, .lid-bottom {
+      fill: var(--cream);
+      transition: d 0.08s ease-out;
+    }
+    
+    /* Neutral lids - invisible */
+    .lid-top {
+      d: path("M 0,0 Q 50,-10 100,0 L 100,0 L 0,0 Z");
+    }
+    
+    .lid-bottom {
+      d: path("M 0,100 Q 50,110 100,100 L 100,100 L 0,100 Z");
+    }
+    
+    /* The lid paths are set dynamically via JavaScript */
+    
+    /* Principles panel */
+    .principles {
+      padding: 0 20px 24px;
+      max-width: 440px;
+      margin: 0 auto;
+    }
+    
+    .principle-card {
+      background: white;
+      border-radius: 12px;
+      padding: 14px;
+      box-shadow: 0 4px 16px rgba(44,37,32,0.04);
+    }
+    
+    .principle-title {
+      font-size: 0.6rem;
+      font-weight: 700;
+      color: var(--ferni);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 8px;
+    }
+    
+    .principle-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    
+    .principle-item {
+      display: flex;
+      gap: 8px;
+      font-size: 0.6rem;
+      color: var(--ink-light);
+      align-items: flex-start;
+    }
+    
+    .principle-num {
+      width: 18px;
+      height: 18px;
+      background: rgba(74, 103, 65, 0.1);
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.5rem;
+      font-weight: 700;
+      color: var(--ferni);
+      flex-shrink: 0;
+    }
+    
+    /* Waveform visualization */
+    .waveform {
+      display: flex;
+      gap: 3px;
+      justify-content: center;
+      height: 30px;
+      align-items: center;
+      margin-top: 12px;
+    }
+    
+    .wave-bar {
+      width: 4px;
+      background: var(--ferni);
+      border-radius: 2px;
+      transition: height 0.05s ease-out;
+      height: 8px;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Ferni Speaking System</h1>
+    <p class="subtitle">Three layers working in harmony</p>
+  </header>
+
+  <div class="stage">
+    <div class="avatar-stage">
+      <div class="ferni-avatar body-active halo-active lid-active" id="mainAvatar">
+        <svg class="avatar-svg" viewBox="0 0 100 100">
+          <defs>
+            <linearGradient id="orbGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#5a7a51"/>
+              <stop offset="100%" stop-color="#3d5a35"/>
+            </linearGradient>
+            <linearGradient id="eyeGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stop-color="#ffffff"/>
+              <stop offset="100%" stop-color="#f0ebe4"/>
+            </linearGradient>
+            <clipPath id="orbClip">
+              <circle cx="50" cy="50" r="40"/>
+            </clipPath>
+          </defs>
+          
+          <!-- Halo waves (sound emanating) -->
+          <circle class="halo-wave wave-2" cx="50" cy="50" r="46"/>
+          <circle class="halo-wave wave-1" cx="50" cy="50" r="46"/>
+          <circle class="presence-ring" cx="50" cy="50" r="46"/>
+          
+          <!-- Body group (for squash/stretch) -->
+          <g class="avatar-body-group" clip-path="url(#orbClip)">
+            <circle class="avatar-body" cx="50" cy="50" r="40" fill="url(#orbGrad)"/>
+            <g class="eyes-group">
+              <ellipse class="eye-main eye-left" cx="36" cy="48" rx="7" ry="10" fill="url(#eyeGrad)"/>
+              <ellipse class="eye-main eye-right" cx="64" cy="48" rx="7" ry="10" fill="url(#eyeGrad)"/>
+            </g>
+            <!-- Lid overlays -->
+            <path class="lid-top" id="lidTop"/>
+            <path class="lid-bottom" id="lidBottom"/>
+          </g>
+        </svg>
+      </div>
+      
+      <div class="waveform" id="waveform">
+        <div class="wave-bar"></div>
+        <div class="wave-bar"></div>
+        <div class="wave-bar"></div>
+        <div class="wave-bar"></div>
+        <div class="wave-bar"></div>
+        <div class="wave-bar"></div>
+        <div class="wave-bar"></div>
+        <div class="wave-bar"></div>
+        <div class="wave-bar"></div>
+      </div>
+      
+      <div class="volume-meter">
+        <div class="volume-bar" id="volumeBar"></div>
+      </div>
+      
+      <div class="status">
+        <div class="status-dot" id="statusDot"></div>
+        <span id="statusText">Idle</span>
+      </div>
+    </div>
+
+    <!-- Speaking Controls -->
+    <div class="control-section">
+      <div class="section-title">Simulate Speaking</div>
+      <div class="control-row">
+        <button class="btn" id="speakBtn">🎤 Hold to Speak</button>
+        <button class="btn secondary" id="autoBtn">▶ Auto Demo</button>
+      </div>
+    </div>
+
+    <!-- Layer Toggles -->
+    <div class="control-section">
+      <div class="section-title">Animation Layers</div>
+      <div class="layers">
+        <div class="layer-toggle active" data-layer="halo" id="toggleHalo">
+          <div class="layer-icon">💫</div>
+          <div class="layer-name">Halo</div>
+          <div class="layer-value" id="haloValue">1.5% scale</div>
+        </div>
+        <div class="layer-toggle active" data-layer="body" id="toggleBody">
+          <div class="layer-icon">🫁</div>
+          <div class="layer-name">Body</div>
+          <div class="layer-value" id="bodyValue">8% stretch</div>
+        </div>
+        <div class="layer-toggle active" data-layer="lid" id="toggleLid">
+          <div class="layer-icon">👄</div>
+          <div class="layer-name">Lid Mouth</div>
+          <div class="layer-value" id="lidValue">Y: 110</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="principles">
+    <div class="principle-card">
+      <div class="principle-title">How It Works</div>
+      <div class="principle-list">
+        <div class="principle-item">
+          <div class="principle-num">1</div>
+          <span><strong>Halo:</strong> Ring scales 1.0→1.015 with volume, opacity 0.3→0.5. Secondary waves create "sound emanating" effect.</span>
+        </div>
+        <div class="principle-item">
+          <div class="principle-num">2</div>
+          <span><strong>Body:</strong> ScaleY 1.0→1.08, scaleX 1.0→0.97 (squash). Eyes squint 15% when loud. Like a bass speaker cone.</span>
+        </div>
+        <div class="principle-item">
+          <div class="principle-num">3</div>
+          <span><strong>Lid:</strong> Bottom Y control point 110→70 (opens). Creates subtle "mouth" articulation without actual mouth.</span>
+        </div>
+        <div class="principle-item">
+          <div class="principle-num">✨</div>
+          <span><strong>Together:</strong> Body is PRIMARY (most visible), halo is AMBIENT (peripheral), lid is DETAIL (articulation).</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const avatar = document.getElementById('mainAvatar');
+    const lidTop = document.getElementById('lidTop');
+    const lidBottom = document.getElementById('lidBottom');
+    const volumeBar = document.getElementById('volumeBar');
+    const statusDot = document.getElementById('statusDot');
+    const statusText = document.getElementById('statusText');
+    const waveform = document.getElementById('waveform');
+    const waveBars = waveform.querySelectorAll('.wave-bar');
+    
+    const haloValue = document.getElementById('haloValue');
+    const bodyValue = document.getElementById('bodyValue');
+    const lidValue = document.getElementById('lidValue');
+    
+    // State
+    let volume = 0;
+    let targetVolume = 0;
+    let isSpeaking = false;
+    let autoMode = false;
+    let autoPhase = 0;
+    
+    const layers = {
+      halo: true,
+      body: true,
+      lid: true
+    };
+    
+    // Layer toggles
+    document.querySelectorAll('.layer-toggle').forEach(toggle => {
+      toggle.addEventListener('click', () => {
+        const layer = toggle.dataset.layer;
+        layers[layer] = !layers[layer];
+        toggle.classList.toggle('active', layers[layer]);
+        avatar.classList.toggle(`${layer}-active`, layers[layer]);
+      });
+    });
+    
+    // Update avatar with volume
+    function updateAvatar() {
+      // Smooth volume
+      const smoothing = volume < targetVolume ? 0.3 : 0.1;
+      volume += (targetVolume - volume) * smoothing;
+      
+      // Clamp
+      volume = Math.max(0, Math.min(1, volume));
+      
+      // Set CSS variable
+      avatar.style.setProperty('--volume', volume);
+      
+      // Update lid paths (only if lid layer active)
+      if (layers.lid) {
+        // Top lid: slightly closes when speaking (Y: -10 → 15)
+        const topY = -10 + volume * 25;
+        lidTop.setAttribute('d', `M 0,0 Q 50,${topY} 100,0 L 100,0 L 0,0 Z`);
+        
+        // Bottom lid: opens with volume (Y: 110 → 70)
+        const bottomY = 110 - volume * 40;
+        lidBottom.setAttribute('d', `M 0,100 Q 50,${bottomY} 100,100 L 100,100 L 0,100 Z`);
+        
+        lidValue.textContent = `Y: ${Math.round(bottomY)}`;
+      } else {
+        lidTop.setAttribute('d', `M 0,0 Q 50,-10 100,0 L 100,0 L 0,0 Z`);
+        lidBottom.setAttribute('d', `M 0,100 Q 50,110 100,100 L 100,100 L 0,100 Z`);
+        lidValue.textContent = `Y: 110`;
+      }
+      
+      // Update value displays
+      if (layers.halo) {
+        const haloScale = (1 + volume * 0.015).toFixed(3);
+        haloValue.textContent = `${(volume * 1.5).toFixed(1)}% scale`;
+      }
+      
+      if (layers.body) {
+        const bodyStretch = (volume * 8).toFixed(1);
+        bodyValue.textContent = `${bodyStretch}% stretch`;
+      }
+      
+      // Update volume bar
+      volumeBar.style.width = `${volume * 100}%`;
+      
+      // Update waveform bars
+      waveBars.forEach((bar, i) => {
+        const offset = Math.sin(Date.now() / 100 + i * 0.5) * 0.3 + 0.7;
+        const height = 8 + volume * 22 * offset;
+        bar.style.height = `${height}px`;
+        bar.style.opacity = 0.3 + volume * 0.7;
+      });
+      
+      // Status
+      if (volume > 0.05) {
+        statusDot.classList.add('speaking');
+        statusText.textContent = 'Speaking';
+      } else {
+        statusDot.classList.remove('speaking');
+        statusText.textContent = 'Idle';
+      }
+      
+      requestAnimationFrame(updateAvatar);
+    }
+    
+    // Start animation loop
+    updateAvatar();
+    
+    // Speak button (hold to speak)
+    const speakBtn = document.getElementById('speakBtn');
+    
+    speakBtn.addEventListener('mousedown', () => {
+      isSpeaking = true;
+      speakBtn.classList.add('active');
+    });
+    
+    speakBtn.addEventListener('mouseup', () => {
+      isSpeaking = false;
+      speakBtn.classList.remove('active');
+    });
+    
+    speakBtn.addEventListener('mouseleave', () => {
+      isSpeaking = false;
+      speakBtn.classList.remove('active');
+    });
+    
+    // Touch support
+    speakBtn.addEventListener('touchstart', (e) => {
+      e.preventDefault();
+      isSpeaking = true;
+      speakBtn.classList.add('active');
+    });
+    
+    speakBtn.addEventListener('touchend', () => {
+      isSpeaking = false;
+      speakBtn.classList.remove('active');
+    });
+    
+    // Simulate voice volume when speaking
+    function simulateVoice() {
+      if (isSpeaking && !autoMode) {
+        // Simulate natural speech patterns
+        const base = 0.4;
+        const variation = Math.sin(Date.now() / 150) * 0.3;
+        const burst = Math.random() > 0.85 ? 0.3 : 0;
+        targetVolume = base + variation + burst;
+      } else if (!autoMode) {
+        targetVolume = 0;
+      }
+      
+      requestAnimationFrame(simulateVoice);
+    }
+    
+    simulateVoice();
+    
+    // Auto demo mode
+    const autoBtn = document.getElementById('autoBtn');
+    let autoInterval = null;
+    
+    autoBtn.addEventListener('click', () => {
+      autoMode = !autoMode;
+      autoBtn.textContent = autoMode ? '⏹ Stop Demo' : '▶ Auto Demo';
+      autoBtn.classList.toggle('active', autoMode);
+      
+      if (autoMode) {
+        // Simulate a conversation pattern
+        const patterns = [
+          // Greeting
+          { duration: 800, volume: 0.5 },
+          { duration: 200, volume: 0.2 },
+          { duration: 600, volume: 0.6 },
+          { duration: 300, volume: 0.3 },
+          // Pause
+          { duration: 800, volume: 0 },
+          // Explanation
+          { duration: 400, volume: 0.4 },
+          { duration: 300, volume: 0.7 },
+          { duration: 500, volume: 0.5 },
+          { duration: 200, volume: 0.3 },
+          { duration: 600, volume: 0.6 },
+          { duration: 400, volume: 0.8 },
+          { duration: 300, volume: 0.4 },
+          // Pause
+          { duration: 1000, volume: 0 },
+          // Question
+          { duration: 500, volume: 0.5 },
+          { duration: 400, volume: 0.6 },
+          { duration: 600, volume: 0.7 },
+          // Pause
+          { duration: 1500, volume: 0 },
+        ];
+        
+        let patternIndex = 0;
+        
+        function playPattern() {
+          if (!autoMode) return;
+          
+          const pattern = patterns[patternIndex];
+          targetVolume = pattern.volume + (Math.random() - 0.5) * 0.15;
+          
+          setTimeout(() => {
+            patternIndex = (patternIndex + 1) % patterns.length;
+            playPattern();
+          }, pattern.duration);
+        }
+        
+        playPattern();
+      } else {
+        targetVolume = 0;
+      }
+    });
+  </script>
+</body>
+</html>

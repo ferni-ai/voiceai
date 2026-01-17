@@ -29,12 +29,12 @@
     ],
     "tone_mismatch": [
       "<break time=\"250ms\"/>I'm sorry— <break time=\"200ms\"/>I should've read the room better.",
-      "<break time=\"200ms\"/>That landed wrong. <break time=\"250ms\"/>Let me recalibrate.",
+      "<break time=\"200ms\"/>That came out wrong. <break time=\"250ms\"/>Let me try again.",
       "<break time=\"250ms\"/>You're right. <break time=\"200ms\"/>This deserves more attention."
     ],
     "check_in": [
       "<break time=\"200ms\"/>Am I tracking?",
-      "<break time=\"200ms\"/>Did that land?",
+      "<break time=\"200ms\"/>Does that work?",
       "<break time=\"250ms\"/>Is that what you mean?"
     ]
   },

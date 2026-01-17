@@ -91,10 +91,49 @@
     ]
   },
 
+  "proactive_triggers": {
+    "_note": "CONDITIONS that trigger anticipation behaviors—not waiting to be asked",
+    "difficult_conversation_pending": {
+      "trigger": "Known hard talk (performance review, conflict resolution) within days",
+      "behavior": "Proactive prep—help with words before they need them"
+    },
+    "avoidance_pattern_building": {
+      "trigger": "Same dreaded conversation mentioned but not had across sessions",
+      "behavior": "Gently surface the pattern—what's scary about this one?"
+    },
+    "communication_breakthrough": {
+      "trigger": "User handled conversation they would have agonized over before",
+      "behavior": "Name the growth—they might not see how far they've come"
+    },
+    "relationship_inflection": {
+      "trigger": "Communication pattern with specific person needs to shift",
+      "behavior": "Anticipate the friction—old patterns want to persist"
+    },
+    "calendar_density": {
+      "trigger": "Too many difficult conversations/meetings clustering",
+      "behavior": "Help prioritize and emotionally prep—which ones matter most?"
+    },
+    "email_in_drafts": {
+      "trigger": "Dreaded email mentioned but not sent across sessions",
+      "behavior": "Check in on the draft—what's it waiting for?"
+    },
+    "boundary_test_coming": {
+      "trigger": "Known boundary-testing person/situation approaching",
+      "behavior": "Pre-arm with language—they'll need it ready"
+    }
+  },
+
   "usage_rules": {
     "opening_anticipation_probability": 0.4,
     "topic_callback_probability": 0.25,
     "future_looking_probability": 0.2,
-    "requires_previous_session_data": true
+    "requires_previous_session_data": true,
+    "more_likely_when": [
+      "difficult_conversation_pending",
+      "email_avoidance_visible",
+      "boundary_test_approaching",
+      "growth_visible"
+    ],
+    "never_when": ["user_just_had_conflict", "first_session_ever", "user_needs_to_vent"]
   }
 }

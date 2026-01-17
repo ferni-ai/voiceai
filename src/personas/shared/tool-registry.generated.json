@@ -1,0 +1,4095 @@
+{
+  "generatedAt": "2025-12-19T17:27:36.073Z",
+  "totalTools": 452,
+  "domains": 52,
+  "tools": [
+    {
+      "id": "captureDream",
+      "name": "Capture Dream",
+      "description": "Capture a dream or aspiration without judgment",
+      "domain": "dreams",
+      "category": "lifestyle",
+      "tags": ["dreams", "capture", "aspirations"]
+    },
+    {
+      "id": "exploreDream",
+      "name": "Explore Dream",
+      "description": "Explore what a dream really means and wants",
+      "domain": "dreams",
+      "category": "lifestyle",
+      "tags": ["dreams", "exploration", "meaning"]
+    },
+    {
+      "id": "honorUnfulfilled",
+      "name": "Honor Unfulfilled Dream",
+      "description": "Honor dreams that may not come true",
+      "domain": "dreams",
+      "category": "lifestyle",
+      "tags": ["dreams", "grief", "acceptance"]
+    },
+    {
+      "id": "playWithPossibility",
+      "name": "Play With Possibility",
+      "description": "Imaginatively explore possibilities without practical constraints",
+      "domain": "dreams",
+      "category": "lifestyle",
+      "tags": ["dreams", "possibility", "play"]
+    },
+    {
+      "id": "alternativeLife",
+      "name": "Alternative Life",
+      "description": "Explore the lives not lived",
+      "domain": "dreams",
+      "category": "lifestyle",
+      "tags": ["dreams", "alternative", "paths"]
+    },
+    {
+      "id": "futureSelf",
+      "name": "Future Self",
+      "description": "Connect with your future self",
+      "domain": "dreams",
+      "category": "lifestyle",
+      "tags": ["dreams", "future", "self"]
+    },
+    {
+      "id": "bucketList",
+      "name": "Bucket List",
+      "description": "Explore and capture bucket list dreams",
+      "domain": "dreams",
+      "category": "lifestyle",
+      "tags": ["dreams", "bucket-list", "aspirations"]
+    },
+    {
+      "id": "reconnectWithDreams",
+      "name": "Reconnect With Dreams",
+      "description": "Reconnect with dreams that have been forgotten or suppressed",
+      "domain": "dreams",
+      "category": "lifestyle",
+      "tags": ["dreams", "reconnection", "rediscovery"]
+    },
+    {
+      "id": "mapJoy",
+      "name": "Map Joy",
+      "description": "Create a map of what brings joy",
+      "domain": "play",
+      "category": "entertainment",
+      "tags": ["play", "joy", "mapping"]
+    },
+    {
+      "id": "noticeJoy",
+      "name": "Notice Joy",
+      "description": "Practice noticing and savoring joy in the moment",
+      "domain": "play",
+      "category": "entertainment",
+      "tags": ["play", "joy", "mindfulness"]
+    },
+    {
+      "id": "scheduleJoy",
+      "name": "Schedule Joy",
+      "description": "Intentionally schedule joy into life",
+      "domain": "play",
+      "category": "entertainment",
+      "tags": ["play", "joy", "intention"]
+    },
+    {
+      "id": "cultivatePlayfulness",
+      "name": "Cultivate Playfulness",
+      "description": "Develop a more playful approach to life",
+      "domain": "play",
+      "category": "entertainment",
+      "tags": ["play", "playfulness", "cultivation"]
+    },
+    {
+      "id": "givePermissionToPlay",
+      "name": "Give Permission To Play",
+      "description": "Grant permission for fun, silliness, and lightness",
+      "domain": "play",
+      "category": "entertainment",
+      "tags": ["play", "permission", "lightness"]
+    },
+    {
+      "id": "embraceLightness",
+      "name": "Embrace Lightness",
+      "description": "Find lightness amid heaviness",
+      "domain": "play",
+      "category": "entertainment",
+      "tags": ["play", "lightness", "balance"]
+    },
+    {
+      "id": "noteThatWasFun",
+      "name": "Note That Was Fun",
+      "description": "Capture moments of fun to remember and repeat",
+      "domain": "play",
+      "category": "entertainment",
+      "tags": ["play", "fun", "capture"]
+    },
+    {
+      "id": "becomeSilly",
+      "name": "Become Silly",
+      "description": "Embrace and practice silliness",
+      "domain": "play",
+      "category": "entertainment",
+      "tags": ["play", "silly", "lightness"]
+    },
+    {
+      "id": "spontaneityChallenge",
+      "name": "Spontaneity Challenge",
+      "description": "Challenges to break routine and embrace spontaneity",
+      "domain": "play",
+      "category": "entertainment",
+      "tags": ["play", "spontaneity", "challenge"]
+    },
+    {
+      "id": "playfulCreativity",
+      "name": "Playful Creativity",
+      "description": "Unlock creativity through playful, low-stakes creative activities",
+      "domain": "play",
+      "category": "entertainment",
+      "tags": ["play", "creativity", "expression"]
+    },
+    {
+      "id": "reclaimLostHobby",
+      "name": "Reclaim Lost Hobby",
+      "description": "Reconnect with a hobby or activity that brought joy in the past",
+      "domain": "play",
+      "category": "entertainment",
+      "tags": ["play", "hobbies", "rediscovery"]
+    },
+    {
+      "id": "practiceSelfKindness",
+      "name": "Practice Self Kindness",
+      "description": "Guide a practice of self-kindness in a difficult moment",
+      "domain": "self-compassion",
+      "category": "lifestyle",
+      "tags": ["self-compassion", "kindness", "practice"]
+    },
+    {
+      "id": "speakToYourselfAsAFriend",
+      "name": "Speak To Yourself As A Friend",
+      "description": "Reframe self-talk as if speaking to a dear friend",
+      "domain": "self-compassion",
+      "category": "lifestyle",
+      "tags": ["self-compassion", "self-talk", "reframe"]
+    },
+    {
+      "id": "noticeInnerCritic",
+      "name": "Notice Inner Critic",
+      "description": "Develop awareness of the inner critic voice",
+      "domain": "self-compassion",
+      "category": "lifestyle",
+      "tags": ["self-compassion", "inner-critic", "awareness"]
+    },
+    {
+      "id": "reframeInnerCritic",
+      "name": "Reframe Inner Critic",
+      "description": "Transform inner critic messages into something more helpful",
+      "domain": "self-compassion",
+      "category": "lifestyle",
+      "tags": ["self-compassion", "inner-critic", "reframe"]
+    },
+    {
+      "id": "practiceSelfAcceptance",
+      "name": "Practice Self Acceptance",
+      "description": "Guide a practice of accepting oneself as is",
+      "domain": "self-compassion",
+      "category": "lifestyle",
+      "tags": ["self-compassion", "acceptance", "practice"]
+    },
+    {
+      "id": "embraceImperfection",
+      "name": "Embrace Imperfection",
+      "description": "Find peace with imperfection and humanity",
+      "domain": "self-compassion",
+      "category": "lifestyle",
+      "tags": ["self-compassion", "imperfection", "humanity"]
+    },
+    {
+      "id": "enoughness",
+      "name": "Enoughness",
+      "description": "Connect with a sense of being enough as you are",
+      "domain": "self-compassion",
+      "category": "lifestyle",
+      "tags": ["self-compassion", "enoughness", "worthiness"]
+    },
+    {
+      "id": "celebrateYourself",
+      "name": "Celebrate Yourself",
+      "description": "Create space to genuinely celebrate yourself",
+      "domain": "self-compassion",
+      "category": "lifestyle",
+      "tags": ["self-compassion", "celebration", "acknowledgment"]
+    },
+    {
+      "id": "giveYourselfCredit",
+      "name": "Give Yourself Credit",
+      "description": "Acknowledge effort and progress often overlooked",
+      "domain": "self-compassion",
+      "category": "lifestyle",
+      "tags": ["self-compassion", "credit", "acknowledgment"]
+    },
+    {
+      "id": "selfCompassionBreak",
+      "name": "Self Compassion Break",
+      "description": "Kristin Neff's three-step self-compassion break",
+      "domain": "self-compassion",
+      "category": "lifestyle",
+      "tags": ["self-compassion", "neff", "practice"]
+    },
+    {
+      "id": "compassionateLetter",
+      "name": "Compassionate Letter",
+      "description": "Write a letter to yourself from a compassionate perspective",
+      "domain": "self-compassion",
+      "category": "lifestyle",
+      "tags": ["self-compassion", "letter", "practice"]
+    },
+    {
+      "id": "bodyImageCompassion",
+      "name": "Body Image Compassion",
+      "description": "Practice self-compassion specifically around body image",
+      "domain": "self-compassion",
+      "category": "lifestyle",
+      "tags": ["self-compassion", "body", "acceptance"]
+    },
+    {
+      "id": "groundingExercise",
+      "name": "Grounding Exercise",
+      "description": "Guided grounding exercise for returning to the present",
+      "domain": "presence",
+      "category": "lifestyle",
+      "tags": ["presence", "grounding", "exercise"]
+    },
+    {
+      "id": "noticeThisMoment",
+      "name": "Notice This Moment",
+      "description": "Practice simple present-moment awareness",
+      "domain": "presence",
+      "category": "lifestyle",
+      "tags": ["presence", "awareness", "now"]
+    },
+    {
+      "id": "breatheWithMe",
+      "name": "Breathe With Me",
+      "description": "Guided breathing for presence and calm",
+      "domain": "presence",
+      "category": "lifestyle",
+      "tags": ["presence", "breathing", "calm"]
+    },
+    {
+      "id": "protectPresence",
+      "name": "Protect Presence",
+      "description": "Identify and address what fragments attention",
+      "domain": "presence",
+      "category": "lifestyle",
+      "tags": ["presence", "protection", "attention"]
+    },
+    {
+      "id": "naturePrescription",
+      "name": "Nature Prescription",
+      "description": "Use nature for presence and wellbeing",
+      "domain": "presence",
+      "category": "lifestyle",
+      "tags": ["presence", "nature", "wellbeing"]
+    },
+    {
+      "id": "createSafeSpace",
+      "name": "Create Safe Space",
+      "description": "Establish a safe container for vulnerable sharing",
+      "domain": "vulnerability",
+      "category": "lifestyle",
+      "tags": ["vulnerability", "safety", "container"]
+    },
+    {
+      "id": "holdSecret",
+      "name": "Hold Secret",
+      "description": "Provide a space to share something never spoken aloud",
+      "domain": "vulnerability",
+      "category": "lifestyle",
+      "tags": ["vulnerability", "secrets", "confession"]
+    },
+    {
+      "id": "exploreShame",
+      "name": "Explore Shame",
+      "description": "Gently explore and understand shame",
+      "domain": "vulnerability",
+      "category": "lifestyle",
+      "tags": ["vulnerability", "shame", "exploration"]
+    },
+    {
+      "id": "processShame",
+      "name": "Process Shame",
+      "description": "Work through a specific shame experience toward healing",
+      "domain": "vulnerability",
+      "category": "lifestyle",
+      "tags": ["vulnerability", "shame", "healing"]
+    },
+    {
+      "id": "practiceTruth",
+      "name": "Practice Truth",
+      "description": "Practice speaking difficult truths in a safe space",
+      "domain": "vulnerability",
+      "category": "lifestyle",
+      "tags": ["vulnerability", "truth", "practice"]
+    },
+    {
+      "id": "revealHiddenSelf",
+      "name": "Reveal Hidden Self",
+      "description": "Explore parts of self usually kept hidden",
+      "domain": "vulnerability",
+      "category": "lifestyle",
+      "tags": ["vulnerability", "hidden-self", "exploration"]
+    },
+    {
+      "id": "practiceSelfForgiveness",
+      "name": "Practice Self Forgiveness",
+      "description": "Guide a self-forgiveness practice",
+      "domain": "vulnerability",
+      "category": "lifestyle",
+      "tags": ["vulnerability", "forgiveness", "healing"]
+    },
+    {
+      "id": "addressImposter",
+      "name": "Address Imposter Syndrome",
+      "description": "Address feelings of being a fraud or imposter",
+      "domain": "vulnerability",
+      "category": "lifestyle",
+      "tags": ["vulnerability", "imposter", "self-worth"]
+    },
+    {
+      "id": "assessRelationshipHealth",
+      "name": "Assess Relationship Health",
+      "description": "Reflect on the health of a specific relationship across key dimensions",
+      "domain": "relationships",
+      "category": "lifestyle",
+      "tags": ["relationships", "assessment", "health"]
+    },
+    {
+      "id": "mapRelationshipCircles",
+      "name": "Map Relationship Circles",
+      "description": "Visualize and reflect on your different circles of relationships",
+      "domain": "relationships",
+      "category": "lifestyle",
+      "tags": ["relationships", "reflection", "mapping"]
+    },
+    {
+      "id": "suggestConnectionAction",
+      "name": "Suggest Connection Action",
+      "description": "Get personalized ideas for meaningful ways to connect with someone",
+      "domain": "relationships",
+      "category": "lifestyle",
+      "tags": ["relationships", "nurturing", "action"]
+    },
+    {
+      "id": "deepenFriendship",
+      "name": "Deepen Friendship",
+      "description": "Move a friendship from surface-level to deeper connection",
+      "domain": "relationships",
+      "category": "lifestyle",
+      "tags": ["relationships", "friendship", "deepening"]
+    },
+    {
+      "id": "navigateConflict",
+      "name": "Navigate Conflict",
+      "description": "Get guidance for navigating a conflict or tension in a relationship",
+      "domain": "relationships",
+      "category": "lifestyle",
+      "tags": ["relationships", "conflict", "guidance"]
+    },
+    {
+      "id": "prepareForDifficultConversation",
+      "name": "Prepare for Difficult Conversation",
+      "description": "Get coached on having a difficult but necessary conversation",
+      "domain": "relationships",
+      "category": "lifestyle",
+      "tags": ["relationships", "communication", "difficult-conversations"]
+    },
+    {
+      "id": "captureLifeStory",
+      "name": "Capture Life Story",
+      "description": "Guide someone through capturing meaningful pieces of their life story",
+      "domain": "stories",
+      "category": "information",
+      "tags": ["stories", "capture", "biography"]
+    },
+    {
+      "id": "exploreLifeChapter",
+      "name": "Explore Life Chapter",
+      "description": "Explore a specific chapter or era of life",
+      "domain": "stories",
+      "category": "information",
+      "tags": ["stories", "chapters", "eras"]
+    },
+    {
+      "id": "defineLegacy",
+      "name": "Define Legacy",
+      "description": "Explore what legacy means and what you want to leave behind",
+      "domain": "stories",
+      "category": "information",
+      "tags": ["stories", "legacy", "meaning"]
+    },
+    {
+      "id": "writeEthicalWill",
+      "name": "Write Ethical Will",
+      "description": "Guide creation of an ethical will - a document of values and wisdom for loved ones",
+      "domain": "stories",
+      "category": "information",
+      "tags": ["stories", "legacy", "ethical-will"]
+    },
+    {
+      "id": "findNarrativeThread",
+      "name": "Find Narrative Thread",
+      "description": "Discover the through-lines and themes in your life story",
+      "domain": "stories",
+      "category": "information",
+      "tags": ["stories", "narrative", "themes"]
+    },
+    {
+      "id": "rewriteStory",
+      "name": "Rewrite Story",
+      "description": "Reframe a painful story into a more empowering narrative",
+      "domain": "stories",
+      "category": "information",
+      "tags": ["stories", "reframe", "healing"]
+    },
+    {
+      "id": "createTimeCapsule",
+      "name": "Create Time Capsule",
+      "description": "Create a time capsule message to your future self or loved ones",
+      "domain": "stories",
+      "category": "information",
+      "tags": ["stories", "time-capsule", "future"]
+    },
+    {
+      "id": "familyStoryPrompts",
+      "name": "Family Story Prompts",
+      "description": "Prompts for collecting stories from family members",
+      "domain": "stories",
+      "category": "information",
+      "tags": ["stories", "family", "interview"]
+    },
+    {
+      "id": "recordOralHistory",
+      "name": "Record Oral History",
+      "description": "Guide for recording and preserving oral history",
+      "domain": "stories",
+      "category": "information",
+      "tags": ["stories", "oral-history", "preservation"]
+    },
+    {
+      "id": "captureQuestion",
+      "name": "Capture Question",
+      "description": "Capture a question that deserves exploration",
+      "domain": "curiosity",
+      "category": "information",
+      "tags": ["curiosity", "questions", "capture"]
+    },
+    {
+      "id": "exploreQuestion",
+      "name": "Explore Question",
+      "description": "Deep exploration of a question without rushing to answers",
+      "domain": "curiosity",
+      "category": "information",
+      "tags": ["curiosity", "exploration", "depth"]
+    },
+    {
+      "id": "experienceWonder",
+      "name": "Experience Wonder",
+      "description": "Cultivate and capture experiences of wonder",
+      "domain": "curiosity",
+      "category": "information",
+      "tags": ["curiosity", "wonder", "awe"]
+    },
+    {
+      "id": "cultivateBeginnersMind",
+      "name": "Cultivate Beginners Mind",
+      "description": "Practice seeing with fresh, beginner eyes",
+      "domain": "curiosity",
+      "category": "information",
+      "tags": ["curiosity", "beginners-mind", "freshness"]
+    },
+    {
+      "id": "intellectualExploration",
+      "name": "Intellectual Exploration",
+      "description": "Follow a thread of intellectual curiosity",
+      "domain": "curiosity",
+      "category": "information",
+      "tags": ["curiosity", "intellectual", "learning"]
+    },
+    {
+      "id": "embraceMystery",
+      "name": "Embrace Mystery",
+      "description": "Find comfort in not-knowing and mystery",
+      "domain": "curiosity",
+      "category": "information",
+      "tags": ["curiosity", "mystery", "not-knowing"]
+    },
+    {
+      "id": "whatIf",
+      "name": "What If",
+      "description": "Explore imaginative what-if questions",
+      "domain": "curiosity",
+      "category": "information",
+      "tags": ["curiosity", "imagination", "what-if"]
+    },
+    {
+      "id": "explorePurpose",
+      "name": "Explore Purpose",
+      "description": "Guided exploration of what gives life meaning and purpose",
+      "domain": "meaning",
+      "category": "lifestyle",
+      "tags": ["meaning", "purpose", "exploration"]
+    },
+    {
+      "id": "createPersonalMission",
+      "name": "Create Personal Mission",
+      "description": "Craft a personal mission statement",
+      "domain": "meaning",
+      "category": "lifestyle",
+      "tags": ["meaning", "mission", "purpose"]
+    },
+    {
+      "id": "clarifyValues",
+      "name": "Clarify Values",
+      "description": "Guided process to identify and articulate core values",
+      "domain": "meaning",
+      "category": "lifestyle",
+      "tags": ["meaning", "values", "clarity"]
+    },
+    {
+      "id": "sitWithBigQuestion",
+      "name": "Sit With Big Question",
+      "description": "Hold space for existential questions without rushing to answers",
+      "domain": "meaning",
+      "category": "lifestyle",
+      "tags": ["meaning", "existential", "questions"]
+    },
+    {
+      "id": "spiritualPracticeSupport",
+      "name": "Spiritual Practice Support",
+      "description": "Support engagement with spiritual or contemplative practices",
+      "domain": "meaning",
+      "category": "lifestyle",
+      "tags": ["meaning", "spiritual", "practice"]
+    },
+    {
+      "id": "processGrief",
+      "name": "Process Grief",
+      "description": "Support for processing grief in its many forms",
+      "domain": "grief",
+      "category": "lifestyle",
+      "tags": ["grief", "processing", "support"]
+    },
+    {
+      "id": "navigateGriefWave",
+      "name": "Navigate Grief Wave",
+      "description": "In-the-moment support during a wave of grief",
+      "domain": "grief",
+      "category": "lifestyle",
+      "tags": ["grief", "wave", "immediate"]
+    },
+    {
+      "id": "anniversarySupport",
+      "name": "Anniversary Support",
+      "description": "Support for grief anniversaries and significant dates",
+      "domain": "grief",
+      "category": "lifestyle",
+      "tags": ["grief", "anniversary", "dates"]
+    },
+    {
+      "id": "acknowledgeLoss",
+      "name": "Acknowledge Loss",
+      "description": "Acknowledge and validate losses that may not be socially recognized",
+      "domain": "grief",
+      "category": "lifestyle",
+      "tags": ["grief", "acknowledgment", "validation"]
+    },
+    {
+      "id": "rememberLoved",
+      "name": "Remember Loved One",
+      "description": "Create space to remember and celebrate someone who has died",
+      "domain": "grief",
+      "category": "lifestyle",
+      "tags": ["grief", "memory", "celebration"]
+    },
+    {
+      "id": "navigateTransition",
+      "name": "Navigate Transition",
+      "description": "Support for navigating major life transitions",
+      "domain": "grief",
+      "category": "lifestyle",
+      "tags": ["grief", "transition", "change"]
+    },
+    {
+      "id": "processEnding",
+      "name": "Process Ending",
+      "description": "Help process the ending phase of something meaningful",
+      "domain": "grief",
+      "category": "lifestyle",
+      "tags": ["grief", "ending", "closure"]
+    },
+    {
+      "id": "embraceNewIdentity",
+      "name": "Embrace New Identity",
+      "description": "Support the emergence of a new identity after loss or transition",
+      "domain": "grief",
+      "category": "lifestyle",
+      "tags": ["grief", "identity", "transformation"]
+    },
+    {
+      "id": "validateGrief",
+      "name": "Validate Grief",
+      "description": "Validate the experience of grief against common dismissive messages",
+      "domain": "grief",
+      "category": "lifestyle",
+      "tags": ["grief", "validation", "support"]
+    },
+    {
+      "id": "companionInGrief",
+      "name": "Companion in Grief",
+      "description": "Simply be present with someone in their grief",
+      "domain": "grief",
+      "category": "lifestyle",
+      "tags": ["grief", "presence", "companionship"]
+    },
+    {
+      "id": "frameMajorDecision",
+      "name": "Frame Major Decision",
+      "description": "Help structure and clarify a major life decision",
+      "domain": "decisions",
+      "category": "core",
+      "tags": ["decisions", "framework", "clarity"]
+    },
+    {
+      "id": "walkThroughDecisionFramework",
+      "name": "Walk Through Decision Framework",
+      "description": "Guide through a specific decision-making framework",
+      "domain": "decisions",
+      "category": "core",
+      "tags": ["decisions", "framework", "process"]
+    },
+    {
+      "id": "analyzeProsAndCons",
+      "name": "Analyze Pros And Cons",
+      "description": "Structured analysis of advantages and disadvantages",
+      "domain": "decisions",
+      "category": "core",
+      "tags": ["decisions", "analysis", "pros-cons"]
+    },
+    {
+      "id": "scoreOptions",
+      "name": "Score Options",
+      "description": "Weighted scoring of decision alternatives",
+      "domain": "decisions",
+      "category": "core",
+      "tags": ["decisions", "analysis", "scoring"]
+    },
+    {
+      "id": "assessRisk",
+      "name": "Assess Risk",
+      "description": "Evaluate risks and plan mitigation",
+      "domain": "decisions",
+      "category": "core",
+      "tags": ["decisions", "risk", "analysis"]
+    },
+    {
+      "id": "checkValuesAlignment",
+      "name": "Check Values Alignment",
+      "description": "Evaluate how options align with core values",
+      "domain": "decisions",
+      "category": "core",
+      "tags": ["decisions", "values", "alignment"]
+    },
+    {
+      "id": "prepareSecondOpinionQuestions",
+      "name": "Prepare Second Opinion Questions",
+      "description": "Structure questions for getting input from others",
+      "domain": "decisions",
+      "category": "core",
+      "tags": ["decisions", "support", "advice"]
+    },
+    {
+      "id": "reflectOnPastDecisions",
+      "name": "Reflect On Past Decisions",
+      "description": "Learn from previous decisions",
+      "domain": "decisions",
+      "category": "core",
+      "tags": ["decisions", "reflection", "learning"]
+    },
+    {
+      "id": "remindHomeMaintenance",
+      "name": "Remind Home Maintenance",
+      "description": "Seasonal and routine maintenance reminders",
+      "domain": "home",
+      "category": "productivity",
+      "tags": ["home", "maintenance", "reminders"]
+    },
+    {
+      "id": "trackRepair",
+      "name": "Track Repair",
+      "description": "Track needed and completed repairs",
+      "domain": "home",
+      "category": "productivity",
+      "tags": ["home", "repairs", "tracking"]
+    },
+    {
+      "id": "coachDecluttering",
+      "name": "Coach Decluttering",
+      "description": "Guide the decluttering process",
+      "domain": "home",
+      "category": "productivity",
+      "tags": ["home", "organization", "decluttering"]
+    },
+    {
+      "id": "organizeSpace",
+      "name": "Organize Space",
+      "description": "Help organize specific spaces",
+      "domain": "home",
+      "category": "productivity",
+      "tags": ["home", "organization", "space"]
+    },
+    {
+      "id": "planMove",
+      "name": "Plan Move",
+      "description": "Comprehensive moving planning",
+      "domain": "home",
+      "category": "productivity",
+      "tags": ["home", "moving", "planning"]
+    },
+    {
+      "id": "assessEmergencyPreparedness",
+      "name": "Assess Emergency Preparedness",
+      "description": "Evaluate household emergency preparedness",
+      "domain": "home",
+      "category": "productivity",
+      "tags": ["home", "emergency", "safety", "preparedness"]
+    },
+    {
+      "id": "planHomeProject",
+      "name": "Plan Home Project",
+      "description": "Plan home improvement projects",
+      "domain": "home",
+      "category": "productivity",
+      "tags": ["home", "projects", "planning", "improvement"]
+    },
+    {
+      "id": "manageContractor",
+      "name": "Manage Contractor",
+      "description": "Guidance for working with contractors",
+      "domain": "home",
+      "category": "productivity",
+      "tags": ["home", "contractors", "management"]
+    },
+    {
+      "id": "getCurrentContext",
+      "name": "Get Current Context",
+      "description": "Get comprehensive awareness of current time, day, season, and contextual factors",
+      "domain": "awareness",
+      "category": "core",
+      "tags": ["awareness", "time", "context", "environment"]
+    },
+    {
+      "id": "getUserContext",
+      "name": "Get User Context",
+      "description": "Get awareness of user state, recent activity, and relationship context",
+      "domain": "awareness",
+      "category": "core",
+      "tags": ["awareness", "user", "context", "relationship"]
+    },
+    {
+      "id": "getConversationAwareness",
+      "name": "Get Conversation Awareness",
+      "description": "Get awareness of current conversation flow, topics, and emotional trajectory",
+      "domain": "awareness",
+      "category": "core",
+      "tags": ["awareness", "conversation", "emotional", "flow"]
+    },
+    {
+      "id": "getTodaySignificance",
+      "name": "Get Today's Significance",
+      "description": "Get any special significance of today for conversation openers or context",
+      "domain": "awareness",
+      "category": "core",
+      "tags": ["awareness", "today", "special", "openers"]
+    },
+    {
+      "id": "getProactiveInsights",
+      "name": "Get Proactive Insights",
+      "description": "Get proactive insights about what might be relevant to discuss based on context",
+      "domain": "awareness",
+      "category": "core",
+      "tags": ["awareness", "proactive", "insights", "suggestions"]
+    },
+    {
+      "id": "setLearningGoal",
+      "name": "Set Learning Goal",
+      "description": "Define learning objectives clearly",
+      "domain": "learning",
+      "category": "productivity",
+      "tags": ["learning", "goals", "planning"]
+    },
+    {
+      "id": "trackLearningProgress",
+      "name": "Track Learning Progress",
+      "description": "Monitor skill development over time",
+      "domain": "learning",
+      "category": "productivity",
+      "tags": ["learning", "progress", "tracking"]
+    },
+    {
+      "id": "reflectOnLearning",
+      "name": "Reflect On Learning",
+      "description": "Guided reflection to deepen learning",
+      "domain": "learning",
+      "category": "productivity",
+      "tags": ["learning", "reflection", "metacognition"]
+    },
+    {
+      "id": "planStudySession",
+      "name": "Plan Study Session",
+      "description": "Plan effective study sessions",
+      "domain": "learning",
+      "category": "productivity",
+      "tags": ["learning", "study", "planning"]
+    },
+    {
+      "id": "scheduleSpacedRepetition",
+      "name": "Schedule Spaced Repetition",
+      "description": "Optimize retention with spaced practice",
+      "domain": "learning",
+      "category": "productivity",
+      "tags": ["learning", "spaced-repetition", "memory"]
+    },
+    {
+      "id": "testKnowledge",
+      "name": "Test Knowledge",
+      "description": "Self-testing to strengthen retention",
+      "domain": "learning",
+      "category": "productivity",
+      "tags": ["learning", "testing", "recall"]
+    },
+    {
+      "id": "recommendResource",
+      "name": "Recommend Resource",
+      "description": "Suggest learning resources",
+      "domain": "learning",
+      "category": "productivity",
+      "tags": ["learning", "resources", "recommendations"]
+    },
+    {
+      "id": "trackBooksRead",
+      "name": "Track Books Read",
+      "description": "Log books and key takeaways",
+      "domain": "learning",
+      "category": "productivity",
+      "tags": ["learning", "reading", "books", "tracking"]
+    },
+    {
+      "id": "overcomeLearningBlock",
+      "name": "Overcome Learning Block",
+      "description": "Help with learning obstacles",
+      "domain": "learning",
+      "category": "productivity",
+      "tags": ["learning", "blocks", "obstacles"]
+    },
+    {
+      "id": "trackCreativeProject",
+      "name": "Track Creative Project",
+      "description": "Track progress on creative projects",
+      "domain": "creativity",
+      "category": "entertainment",
+      "tags": ["creativity", "projects", "tracking"]
+    },
+    {
+      "id": "setCreativeGoal",
+      "name": "Set Creative Goal",
+      "description": "Set goals for creative pursuits",
+      "domain": "creativity",
+      "category": "entertainment",
+      "tags": ["creativity", "goals", "planning"]
+    },
+    {
+      "id": "celebrateCreation",
+      "name": "Celebrate Creation",
+      "description": "Acknowledge creative work",
+      "domain": "creativity",
+      "category": "entertainment",
+      "tags": ["creativity", "celebration", "acknowledgment"]
+    },
+    {
+      "id": "exploreNewHobby",
+      "name": "Explore New Hobby",
+      "description": "Discover new hobbies and interests",
+      "domain": "creativity",
+      "category": "entertainment",
+      "tags": ["creativity", "hobbies", "exploration"]
+    },
+    {
+      "id": "suggestHobbyBasedOnInterests",
+      "name": "Suggest Hobby Based On Interests",
+      "description": "Match hobbies to personality and interests",
+      "domain": "creativity",
+      "category": "entertainment",
+      "tags": ["creativity", "hobbies", "suggestions"]
+    },
+    {
+      "id": "navigateCreativeBlock",
+      "name": "Navigate Creative Block",
+      "description": "Help overcome creative blocks",
+      "domain": "creativity",
+      "category": "entertainment",
+      "tags": ["creativity", "blocks", "obstacles"]
+    },
+    {
+      "id": "findInspiration",
+      "name": "Find Inspiration",
+      "description": "Sources of creative inspiration",
+      "domain": "creativity",
+      "category": "entertainment",
+      "tags": ["creativity", "inspiration", "ideas"]
+    },
+    {
+      "id": "buildCreativeHabit",
+      "name": "Build Creative Habit",
+      "description": "Build consistent creative practice",
+      "domain": "creativity",
+      "category": "entertainment",
+      "tags": ["creativity", "habits", "practice"]
+    },
+    {
+      "id": "organizeDocuments",
+      "name": "Organize Documents",
+      "description": "Important document organization guidance",
+      "domain": "legal-admin",
+      "category": "productivity",
+      "tags": ["legal-admin", "documents", "organization"]
+    },
+    {
+      "id": "locateDocument",
+      "name": "Locate Document",
+      "description": "Help find or replace specific documents",
+      "domain": "legal-admin",
+      "category": "productivity",
+      "tags": ["legal-admin", "documents", "locate"]
+    },
+    {
+      "id": "promptEstatePlanning",
+      "name": "Prompt Estate Planning",
+      "description": "Encourage estate planning basics",
+      "domain": "legal-admin",
+      "category": "productivity",
+      "tags": ["legal-admin", "estate", "planning"]
+    },
+    {
+      "id": "reviewBeneficiaries",
+      "name": "Review Beneficiaries",
+      "description": "Prompt annual beneficiary review",
+      "domain": "legal-admin",
+      "category": "productivity",
+      "tags": ["legal-admin", "beneficiaries", "review"]
+    },
+    {
+      "id": "reviewInsuranceCoverage",
+      "name": "Review Insurance Coverage",
+      "description": "Guide insurance coverage review",
+      "domain": "legal-admin",
+      "category": "productivity",
+      "tags": ["legal-admin", "insurance", "review"]
+    },
+    {
+      "id": "prepareForTaxSeason",
+      "name": "Prepare For Tax Season",
+      "description": "Tax preparation reminders and guidance",
+      "domain": "legal-admin",
+      "category": "productivity",
+      "tags": ["legal-admin", "taxes", "preparation"]
+    },
+    {
+      "id": "reminderAnnualTasks",
+      "name": "Reminder Annual Tasks",
+      "description": "Administrative task reminders throughout the year",
+      "domain": "legal-admin",
+      "category": "productivity",
+      "tags": ["legal-admin", "annual", "reminders"]
+    },
+    {
+      "id": "startReflectionGame",
+      "name": "Start Reflection Game",
+      "description": "Start a fun, introspective game to help users learn about themselves",
+      "domain": "reflection-games",
+      "category": "lifestyle",
+      "tags": ["play", "reflection", "games", "self-discovery"]
+    },
+    {
+      "id": "honorTheRest",
+      "name": "Honor the Rest",
+      "description": "Give permission for fallow seasons, rest, and recovery",
+      "domain": "quiet-growth",
+      "category": "lifestyle",
+      "tags": ["quiet-growth", "rest", "permission", "self-compassion"]
+    },
+    {
+      "id": "celebrateMaintenance",
+      "name": "Celebrate Maintenance",
+      "description": "Acknowledge holding steady as an achievement",
+      "domain": "quiet-growth",
+      "category": "lifestyle",
+      "tags": ["quiet-growth", "maintenance", "celebration", "achievement"]
+    },
+    {
+      "id": "enoughForToday",
+      "name": "Enough for Today",
+      "description": "Define and honor what's \"enough\" for today",
+      "domain": "quiet-growth",
+      "category": "lifestyle",
+      "tags": ["quiet-growth", "sufficiency", "boundaries", "daily"]
+    },
+    {
+      "id": "seasonalWisdom",
+      "name": "Seasonal Wisdom",
+      "description": "Identify what season of growth they're in",
+      "domain": "quiet-growth",
+      "category": "lifestyle",
+      "tags": ["quiet-growth", "seasons", "cycles", "wisdom"]
+    },
+    {
+      "id": "winterSeason",
+      "name": "Winter Season",
+      "description": "Support during fallow, dormant, or winter periods",
+      "domain": "quiet-growth",
+      "category": "lifestyle",
+      "tags": ["quiet-growth", "winter", "dormancy", "rest"]
+    },
+    {
+      "id": "gentleGoals",
+      "name": "Gentle Goals",
+      "description": "Set goals that allow for humanity",
+      "domain": "quiet-growth",
+      "category": "lifestyle",
+      "tags": ["quiet-growth", "goals", "gentle", "sustainable"]
+    },
+    {
+      "id": "releaseUrgency",
+      "name": "Release Urgency",
+      "description": "Let go of artificial urgency and hustle",
+      "domain": "quiet-growth",
+      "category": "lifestyle",
+      "tags": ["quiet-growth", "urgency", "anti-hustle", "pace"]
+    },
+    {
+      "id": "goodEnough",
+      "name": "Good Enough",
+      "description": "Celebrate good enough as a valid endpoint",
+      "domain": "quiet-growth",
+      "category": "lifestyle",
+      "tags": ["quiet-growth", "sufficiency", "perfectionism", "completion"]
+    },
+    {
+      "id": "compareToYesterday",
+      "name": "Compare to Yesterday",
+      "description": "Redirect comparison to self instead of others",
+      "domain": "quiet-growth",
+      "category": "lifestyle",
+      "tags": ["quiet-growth", "comparison", "self-growth", "progress"]
+    },
+    {
+      "id": "embracePlateau",
+      "name": "Embrace Plateau",
+      "description": "Reframe plateaus as integration periods",
+      "domain": "quiet-growth",
+      "category": "lifestyle",
+      "tags": ["quiet-growth", "plateau", "integration", "patience"]
+    },
+    {
+      "id": "discoverPattern",
+      "name": "Discover Pattern",
+      "description": "Find hidden patterns in user behavior or data",
+      "domain": "pattern-mastery",
+      "category": "information",
+      "tags": ["patterns", "discovery", "insight"]
+    },
+    {
+      "id": "crossDomainConnection",
+      "name": "Cross-Domain Connection",
+      "description": "Find unexpected connections between different life areas",
+      "domain": "pattern-mastery",
+      "category": "information",
+      "tags": ["patterns", "connections", "insight"]
+    },
+    {
+      "id": "historicalParallel",
+      "name": "Historical Parallel",
+      "description": "Draw insights from historical patterns and precedents",
+      "domain": "pattern-mastery",
+      "category": "information",
+      "tags": ["patterns", "history", "perspective"]
+    },
+    {
+      "id": "dataStorytelling",
+      "name": "Data Storytelling",
+      "description": "Turn numbers into meaningful narratives",
+      "domain": "pattern-mastery",
+      "category": "information",
+      "tags": ["data", "storytelling", "insight"]
+    },
+    {
+      "id": "counterIntuitiveInsight",
+      "name": "Counter-Intuitive Insight",
+      "description": "Reveal surprising truths that defy conventional wisdom",
+      "domain": "pattern-mastery",
+      "category": "information",
+      "tags": ["insight", "wisdom", "surprise"]
+    },
+    {
+      "id": "patternPrediction",
+      "name": "Pattern Prediction",
+      "description": "Use pattern recognition to anticipate future outcomes",
+      "domain": "pattern-mastery",
+      "category": "information",
+      "tags": ["patterns", "prediction", "future"]
+    },
+    {
+      "id": "decadeView",
+      "name": "Decade View",
+      "description": "Provide perspective by looking at situations in decades, not days",
+      "domain": "timeless-perspective",
+      "category": "information",
+      "tags": ["wisdom", "perspective", "long-term"]
+    },
+    {
+      "id": "thisTooPasses",
+      "name": "This Too Passes",
+      "description": "Offer perspective that all states are temporary",
+      "domain": "timeless-perspective",
+      "category": "information",
+      "tags": ["wisdom", "impermanence", "comfort"]
+    },
+    {
+      "id": "ancientParallel",
+      "name": "Ancient Parallel",
+      "description": "Connect current struggles to timeless human experiences",
+      "domain": "timeless-perspective",
+      "category": "information",
+      "tags": ["wisdom", "history", "connection"]
+    },
+    {
+      "id": "zoomOut",
+      "name": "Zoom Out",
+      "description": "Help zoom out from immediate concerns to larger context",
+      "domain": "timeless-perspective",
+      "category": "information",
+      "tags": ["perspective", "context", "clarity"]
+    },
+    {
+      "id": "whatWillMatter",
+      "name": "What Will Matter",
+      "description": "Help identify what will actually matter in the long run",
+      "domain": "timeless-perspective",
+      "category": "information",
+      "tags": ["wisdom", "priorities", "meaning"]
+    },
+    {
+      "id": "applySeasonalWisdom",
+      "name": "Apply Seasonal Wisdom",
+      "description": "Apply the wisdom of seasons to life circumstances",
+      "domain": "timeless-perspective",
+      "category": "information",
+      "tags": ["wisdom", "seasons", "cycles", "perspective"]
+    },
+    {
+      "id": "systemDesign",
+      "name": "System Design",
+      "description": "Design an elegant system for recurring tasks or workflows",
+      "domain": "workflow-mastery",
+      "category": "productivity",
+      "tags": ["organization", "systems", "efficiency"]
+    },
+    {
+      "id": "chaosToOrder",
+      "name": "Chaos To Order",
+      "description": "Transform overwhelming chaos into manageable structure",
+      "domain": "workflow-mastery",
+      "category": "productivity",
+      "tags": ["organization", "overwhelm", "structure"]
+    },
+    {
+      "id": "calendarArchitecture",
+      "name": "Calendar Architecture",
+      "description": "Design a calendar that supports life goals, not just meetings",
+      "domain": "workflow-mastery",
+      "category": "productivity",
+      "tags": ["calendar", "time", "design"]
+    },
+    {
+      "id": "messageCrafting",
+      "name": "Message Crafting",
+      "description": "Craft clear, effective messages for any situation",
+      "domain": "workflow-mastery",
+      "category": "productivity",
+      "tags": ["communication", "writing", "clarity"]
+    },
+    {
+      "id": "difficultEmailDraft",
+      "name": "Difficult Email Draft",
+      "description": "Navigate tricky email situations with grace",
+      "domain": "workflow-mastery",
+      "category": "productivity",
+      "tags": ["communication", "email", "difficult"]
+    },
+    {
+      "id": "planStakeholderCommunication",
+      "name": "Plan Stakeholder Communication",
+      "description": "Plan multi-stakeholder communication approach for complex situations",
+      "domain": "workflow-mastery",
+      "category": "productivity",
+      "tags": ["communication", "strategy", "planning", "stakeholders", "workflow"]
+    },
+    {
+      "id": "gentleAccountability",
+      "name": "Gentle Accountability",
+      "description": "Provide accountability without shame or pressure",
+      "domain": "habit-persistence",
+      "category": "lifestyle",
+      "tags": ["accountability", "support", "habits"]
+    },
+    {
+      "id": "compassionateReset",
+      "name": "Compassionate Reset",
+      "description": "Help reset after falling off a habit without shame",
+      "domain": "habit-persistence",
+      "category": "lifestyle",
+      "tags": ["reset", "compassion", "recovery"]
+    },
+    {
+      "id": "celebrateTinyWin",
+      "name": "Celebrate Tiny Win",
+      "description": "Help celebrate small wins that build momentum",
+      "domain": "habit-persistence",
+      "category": "lifestyle",
+      "tags": ["celebration", "wins", "momentum"]
+    },
+    {
+      "id": "identifyResistance",
+      "name": "Identify Resistance",
+      "description": "Explore what is driving resistance to change",
+      "domain": "habit-persistence",
+      "category": "lifestyle",
+      "tags": ["resistance", "insight", "change"]
+    },
+    {
+      "id": "findSustainablePace",
+      "name": "Find Sustainable Pace",
+      "description": "Help find a pace of change that can actually be maintained",
+      "domain": "habit-persistence",
+      "category": "lifestyle",
+      "tags": ["sustainable", "pace", "realistic"]
+    },
+    {
+      "id": "behaviorArchitecture",
+      "name": "Behavior Architecture",
+      "description": "Design the environment and systems to support behavior change",
+      "domain": "habit-persistence",
+      "category": "lifestyle",
+      "tags": ["environment", "design", "systems"]
+    },
+    {
+      "id": "celebrateWin",
+      "name": "Celebrate Win",
+      "description": "Help fully celebrate wins of all sizes",
+      "domain": "milestone-mastery",
+      "category": "lifestyle",
+      "tags": ["celebration", "wins", "joy"]
+    },
+    {
+      "id": "markTheMoment",
+      "name": "Mark The Moment",
+      "description": "Create meaningful ways to mark significant moments",
+      "domain": "milestone-mastery",
+      "category": "lifestyle",
+      "tags": ["moments", "memory", "ritual"]
+    },
+    {
+      "id": "createTradition",
+      "name": "Create Tradition",
+      "description": "Help establish meaningful recurring traditions",
+      "domain": "milestone-mastery",
+      "category": "lifestyle",
+      "tags": ["traditions", "rituals", "meaning"]
+    },
+    {
+      "id": "buildCountdown",
+      "name": "Build Countdown",
+      "description": "Create excitement through countdown milestones",
+      "domain": "milestone-mastery",
+      "category": "lifestyle",
+      "tags": ["countdown", "anticipation", "planning"]
+    },
+    {
+      "id": "anticipationBuilder",
+      "name": "Anticipation Builder",
+      "description": "Create positive anticipation for upcoming events",
+      "domain": "milestone-mastery",
+      "category": "lifestyle",
+      "tags": ["anticipation", "excitement", "mindset"]
+    },
+    {
+      "id": "navigateFirstTime",
+      "name": "Navigate First Time",
+      "description": "Support for experiencing something for the first time",
+      "domain": "milestone-mastery",
+      "category": "lifestyle",
+      "tags": ["firsts", "support", "transitions"]
+    },
+    {
+      "id": "honorEnding",
+      "name": "Honor Ending",
+      "description": "Help honor and mark the end of significant chapters",
+      "domain": "milestone-mastery",
+      "category": "lifestyle",
+      "tags": ["endings", "closure", "meaning"]
+    },
+    {
+      "id": "embraceBeginning",
+      "name": "Embrace Beginning",
+      "description": "Help embrace the possibilities of new beginnings",
+      "domain": "milestone-mastery",
+      "category": "lifestyle",
+      "tags": ["beginnings", "possibilities", "hope"]
+    },
+    {
+      "id": "gitStatus",
+      "name": "Git Status",
+      "description": "Check git status - what files have changed",
+      "domain": "developer",
+      "category": "productivity",
+      "tags": ["git", "status", "changes", "vcs"]
+    },
+    {
+      "id": "gitDiff",
+      "name": "Git Diff",
+      "description": "Show what changed in files",
+      "domain": "developer",
+      "category": "productivity",
+      "tags": ["git", "diff", "changes", "vcs"]
+    },
+    {
+      "id": "gitCommit",
+      "name": "Git Commit",
+      "description": "Commit staged changes with a message",
+      "domain": "developer",
+      "category": "productivity",
+      "tags": ["git", "commit", "save", "vcs"]
+    },
+    {
+      "id": "gitLog",
+      "name": "Git Log",
+      "description": "Show recent commits",
+      "domain": "developer",
+      "category": "productivity",
+      "tags": ["git", "log", "history", "commits"]
+    },
+    {
+      "id": "runFerniCommand",
+      "name": "Run Ferni CLI Command",
+      "description": "Execute ferni CLI commands like deploy, status, logs, etc.",
+      "domain": "developer",
+      "category": "productivity",
+      "tags": ["cli", "ferni", "deploy", "status", "devops"]
+    },
+    {
+      "id": "checkBackgroundJob",
+      "name": "Check Background Job",
+      "description": "Check status of a background job",
+      "domain": "developer",
+      "category": "productivity",
+      "tags": ["job", "background", "status", "check"]
+    },
+    {
+      "id": "readFile",
+      "name": "Read File",
+      "description": "Read the contents of a file",
+      "domain": "developer",
+      "category": "productivity",
+      "tags": ["file", "read", "code", "view"]
+    },
+    {
+      "id": "editFile",
+      "name": "Edit File",
+      "description": "Edit or create a file with find/replace",
+      "domain": "developer",
+      "category": "productivity",
+      "tags": ["file", "edit", "write", "code", "modify"]
+    },
+    {
+      "id": "runBash",
+      "name": "Run Bash Command",
+      "description": "Execute a bash command",
+      "domain": "developer",
+      "category": "productivity",
+      "tags": ["bash", "shell", "terminal", "command"]
+    },
+    {
+      "id": "searchFiles",
+      "name": "Search Files",
+      "description": "Search for text in files",
+      "domain": "developer",
+      "category": "productivity",
+      "tags": ["search", "grep", "find", "code"]
+    },
+    {
+      "id": "coachParentingChallenge",
+      "name": "Coach Parenting Challenge",
+      "description": "Guidance on specific parenting challenges",
+      "domain": "family",
+      "category": "lifestyle",
+      "tags": ["family", "parenting", "coaching"]
+    },
+    {
+      "id": "navigateDiscipline",
+      "name": "Navigate Discipline",
+      "description": "Positive discipline strategies",
+      "domain": "family",
+      "category": "lifestyle",
+      "tags": ["family", "parenting", "discipline"]
+    },
+    {
+      "id": "suggestAgeAppropriateActivity",
+      "name": "Suggest Age-Appropriate Activity",
+      "description": "Suggest activities for bonding and development",
+      "domain": "family",
+      "category": "lifestyle",
+      "tags": ["family", "activities", "bonding"]
+    },
+    {
+      "id": "trackChildMilestone",
+      "name": "Track Child Milestone",
+      "description": "Record and celebrate developmental milestones",
+      "domain": "family",
+      "category": "lifestyle",
+      "tags": ["family", "milestones", "celebration"]
+    },
+    {
+      "id": "celebrateFamilyMoment",
+      "name": "Celebrate Family Moment",
+      "description": "Acknowledge special family moments",
+      "domain": "family",
+      "category": "lifestyle",
+      "tags": ["family", "celebration", "moments"]
+    },
+    {
+      "id": "supportFamilyTransition",
+      "name": "Support Family Transition",
+      "description": "Help navigate major family transitions",
+      "domain": "family",
+      "category": "lifestyle",
+      "tags": ["family", "transitions", "support"]
+    },
+    {
+      "id": "navigateFamilyConflict",
+      "name": "Navigate Family Conflict",
+      "description": "Help resolve family conflicts",
+      "domain": "family",
+      "category": "lifestyle",
+      "tags": ["family", "conflict", "resolution"]
+    },
+    {
+      "id": "planFamilyMeeting",
+      "name": "Plan Family Meeting",
+      "description": "Structure productive family discussions",
+      "domain": "family",
+      "category": "lifestyle",
+      "tags": ["family", "communication", "meetings"]
+    },
+    {
+      "id": "coordinateElderCare",
+      "name": "Coordinate Elder Care",
+      "description": "Help coordinate care for aging parents",
+      "domain": "family",
+      "category": "lifestyle",
+      "tags": ["family", "elder-care", "coordination"]
+    },
+    {
+      "id": "createFamilyTradition",
+      "name": "Create Family Tradition",
+      "description": "Build meaningful family traditions",
+      "domain": "family",
+      "category": "lifestyle",
+      "tags": ["family", "traditions", "connection"]
+    },
+    {
+      "id": "discussValues",
+      "name": "Discuss Values",
+      "description": "Help discuss values with children",
+      "domain": "family",
+      "category": "lifestyle",
+      "tags": ["family", "values", "teaching"]
+    },
+    {
+      "id": "findVolunteerOpportunity",
+      "name": "Find Volunteer Opportunity",
+      "description": "Match to volunteer opportunities",
+      "domain": "community",
+      "category": "lifestyle",
+      "tags": ["community", "volunteering", "service"]
+    },
+    {
+      "id": "trackVolunteerHours",
+      "name": "Track Volunteer Hours",
+      "description": "Log volunteer activities",
+      "domain": "community",
+      "category": "lifestyle",
+      "tags": ["community", "volunteering", "tracking"]
+    },
+    {
+      "id": "planCharitableGiving",
+      "name": "Plan Charitable Giving",
+      "description": "Strategic approach to charitable giving",
+      "domain": "community",
+      "category": "lifestyle",
+      "tags": ["community", "giving", "charity", "planning"]
+    },
+    {
+      "id": "alignGivingWithValues",
+      "name": "Align Giving With Values",
+      "description": "Ensure giving reflects personal values",
+      "domain": "community",
+      "category": "lifestyle",
+      "tags": ["community", "giving", "values"]
+    },
+    {
+      "id": "findCommunityGroup",
+      "name": "Find Community Group",
+      "description": "Find local groups and communities",
+      "domain": "community",
+      "category": "lifestyle",
+      "tags": ["community", "connection", "groups"]
+    },
+    {
+      "id": "engageCivically",
+      "name": "Engage Civically",
+      "description": "Support civic engagement",
+      "domain": "community",
+      "category": "lifestyle",
+      "tags": ["community", "civic", "engagement", "citizenship"]
+    },
+    {
+      "id": "trackImpact",
+      "name": "Track Impact",
+      "description": "Track social impact and contributions",
+      "domain": "community",
+      "category": "lifestyle",
+      "tags": ["community", "impact", "tracking"]
+    },
+    {
+      "id": "reflectOnContribution",
+      "name": "Reflect On Contribution",
+      "description": "Reflect on impact made",
+      "domain": "community",
+      "category": "lifestyle",
+      "tags": ["community", "reflection", "contribution"]
+    },
+    {
+      "id": "acknowledgeLoneliness",
+      "name": "Acknowledge Loneliness",
+      "description": "Validate and sit with loneliness without rushing to fix it",
+      "domain": "connection",
+      "category": "lifestyle",
+      "tags": ["connection", "loneliness", "validation", "presence"]
+    },
+    {
+      "id": "exploreLonelinessType",
+      "name": "Explore Loneliness Type",
+      "description": "Help identify what type of loneliness someone is experiencing",
+      "domain": "connection",
+      "category": "lifestyle",
+      "tags": ["connection", "loneliness", "assessment", "understanding"]
+    },
+    {
+      "id": "sitWithLoneliness",
+      "name": "Sit With Loneliness",
+      "description": "Companion presence for moments of acute loneliness",
+      "domain": "connection",
+      "category": "lifestyle",
+      "tags": ["connection", "loneliness", "presence", "companionship"]
+    },
+    {
+      "id": "makeAdultFriends",
+      "name": "Make Adult Friends",
+      "description": "Navigate the surprisingly hard skill of making friends after childhood",
+      "domain": "connection",
+      "category": "lifestyle",
+      "tags": ["connection", "friendship", "adult", "social"]
+    },
+    {
+      "id": "maintainFriendships",
+      "name": "Maintain Friendships",
+      "description": "Keep existing friendships alive despite busy adult life",
+      "domain": "connection",
+      "category": "lifestyle",
+      "tags": ["connection", "friendship", "maintenance", "rituals"]
+    },
+    {
+      "id": "moveFromAcquaintanceToFriend",
+      "name": "Move From Acquaintance to Friend",
+      "description": "Move from acquaintance to real friend through vulnerability",
+      "domain": "connection",
+      "category": "lifestyle",
+      "tags": ["connection", "friendship", "depth", "vulnerability", "acquaintance"]
+    },
+    {
+      "id": "recognizeToxicFriendship",
+      "name": "Recognize Toxic Friendship",
+      "description": "Identify when a friendship is harmful rather than healthy",
+      "domain": "connection",
+      "category": "lifestyle",
+      "tags": ["connection", "friendship", "boundaries", "toxic"]
+    },
+    {
+      "id": "findYourPeople",
+      "name": "Find Your People",
+      "description": "Help discover where your community might be",
+      "domain": "connection",
+      "category": "lifestyle",
+      "tags": ["connection", "belonging", "community", "tribe"]
+    },
+    {
+      "id": "createBelonging",
+      "name": "Create Belonging",
+      "description": "Build belonging where you are rather than searching for it",
+      "domain": "connection",
+      "category": "lifestyle",
+      "tags": ["connection", "belonging", "creation", "home"]
+    },
+    {
+      "id": "assessConnectionHealth",
+      "name": "Assess Connection Health",
+      "description": "Evaluate the health of someone's social connections",
+      "domain": "connection",
+      "category": "lifestyle",
+      "tags": ["connection", "assessment", "health", "relationships"]
+    },
+    {
+      "id": "balanceAloneAndTogether",
+      "name": "Balance Alone and Together",
+      "description": "Find the right balance between solitude and connection",
+      "domain": "connection",
+      "category": "lifestyle",
+      "tags": ["connection", "solitude", "balance", "introvert"]
+    },
+    {
+      "id": "smallActsOfConnection",
+      "name": "Small Acts of Connection",
+      "description": "Suggest tiny, doable connection practices",
+      "domain": "connection",
+      "category": "lifestyle",
+      "tags": ["connection", "rituals", "small-acts", "practical"]
+    },
+    {
+      "id": "shareConnectionWisdom",
+      "name": "Share Connection Wisdom",
+      "description": "Share wisdom about connection, loneliness, and belonging",
+      "domain": "connection",
+      "category": "lifestyle",
+      "tags": ["connection", "wisdom", "quotes", "inspiration"]
+    },
+    {
+      "id": "prepareHardConversation",
+      "name": "Prepare Hard Conversation",
+      "description": "Plan and prepare for a difficult conversation",
+      "domain": "difficult-conversations",
+      "category": "lifestyle",
+      "tags": ["difficult-conversations", "preparation", "planning", "communication"]
+    },
+    {
+      "id": "clarifyIntention",
+      "name": "Clarify Intention",
+      "description": "Get clear on the real purpose of the conversation",
+      "domain": "difficult-conversations",
+      "category": "lifestyle",
+      "tags": ["difficult-conversations", "intention", "clarity", "purpose"]
+    },
+    {
+      "id": "anticipateResponses",
+      "name": "Anticipate Responses",
+      "description": "Prepare for how the other person might respond",
+      "domain": "difficult-conversations",
+      "category": "lifestyle",
+      "tags": ["difficult-conversations", "anticipation", "preparation", "responses"]
+    },
+    {
+      "id": "practiceConversation",
+      "name": "Practice Conversation",
+      "description": "Role-play a difficult conversation in a safe space",
+      "domain": "difficult-conversations",
+      "category": "lifestyle",
+      "tags": ["difficult-conversations", "practice", "role-play", "rehearsal"]
+    },
+    {
+      "id": "buildScript",
+      "name": "Build Script",
+      "description": "Create a framework or script for the conversation",
+      "domain": "difficult-conversations",
+      "category": "lifestyle",
+      "tags": ["difficult-conversations", "script", "framework", "structure"]
+    },
+    {
+      "id": "setBoundaryConversation",
+      "name": "Set Boundary Conversation",
+      "description": "Prepare to set or enforce a boundary",
+      "domain": "difficult-conversations",
+      "category": "lifestyle",
+      "tags": ["difficult-conversations", "boundaries", "limits", "assertiveness"]
+    },
+    {
+      "id": "sayNoWithGrace",
+      "name": "Say No With Grace",
+      "description": "Learn to say no without guilt or excessive explanation",
+      "domain": "difficult-conversations",
+      "category": "lifestyle",
+      "tags": ["difficult-conversations", "no", "decline", "grace"]
+    },
+    {
+      "id": "repairRelationshipRupture",
+      "name": "Repair Relationship Rupture",
+      "description": "Address and repair a rupture in a relationship",
+      "domain": "difficult-conversations",
+      "category": "lifestyle",
+      "tags": ["difficult-conversations", "repair", "rupture", "relationships"]
+    },
+    {
+      "id": "makeAmends",
+      "name": "Make Amends",
+      "description": "Prepare to make amends for something you did",
+      "domain": "difficult-conversations",
+      "category": "lifestyle",
+      "tags": ["difficult-conversations", "amends", "apology", "accountability"]
+    },
+    {
+      "id": "endOfLifeConversation",
+      "name": "End of Life Conversation",
+      "description": "Prepare for conversations about death, wishes, and legacy",
+      "domain": "difficult-conversations",
+      "category": "lifestyle",
+      "tags": ["difficult-conversations", "end-of-life", "death", "family"]
+    },
+    {
+      "id": "majorAnnouncement",
+      "name": "Major Announcement",
+      "description": "Prepare to share major life news that might be received poorly",
+      "domain": "difficult-conversations",
+      "category": "lifestyle",
+      "tags": ["difficult-conversations", "announcement", "life-change", "family"]
+    },
+    {
+      "id": "shareConversationWisdom",
+      "name": "Share Conversation Wisdom",
+      "description": "Share wisdom about difficult conversations",
+      "domain": "difficult-conversations",
+      "category": "lifestyle",
+      "tags": ["difficult-conversations", "wisdom", "quotes", "communication"]
+    },
+    {
+      "id": "acknowledgeTransition",
+      "name": "Acknowledge Transition",
+      "description": "Acknowledge and validate the magnitude of a life transition",
+      "domain": "life-transitions",
+      "category": "lifestyle",
+      "tags": ["life-transitions", "validation", "recognition", "support"]
+    },
+    {
+      "id": "transitionStage",
+      "name": "Transition Stage",
+      "description": "Help identify where user is in the transition process",
+      "domain": "life-transitions",
+      "category": "lifestyle",
+      "tags": ["life-transitions", "stages", "understanding", "bridges-model"]
+    },
+    {
+      "id": "grieveWhatWas",
+      "name": "Grieve What Was",
+      "description": "Honor the grief that comes with transition, even \"happy\" ones",
+      "domain": "life-transitions",
+      "category": "lifestyle",
+      "tags": ["life-transitions", "grief", "processing", "loss"]
+    },
+    {
+      "id": "holdDualEmotions",
+      "name": "Hold Dual Emotions",
+      "description": "Help user hold two seemingly contradictory emotions at once",
+      "domain": "life-transitions",
+      "category": "lifestyle",
+      "tags": ["life-transitions", "emotions", "complexity", "both-and"]
+    },
+    {
+      "id": "navigateAmbiguousLoss",
+      "name": "Navigate Ambiguous Loss",
+      "description": "Support for losses that lack clear endings or closure",
+      "domain": "life-transitions",
+      "category": "lifestyle",
+      "tags": ["life-transitions", "ambiguous-loss", "grief", "no-closure"]
+    },
+    {
+      "id": "exploreIdentityShift",
+      "name": "Explore Identity Shift",
+      "description": "Explore how identity is changing through transition",
+      "domain": "life-transitions",
+      "category": "lifestyle",
+      "tags": ["life-transitions", "identity", "exploration", "who-am-i"]
+    },
+    {
+      "id": "whoAmIBecoming",
+      "name": "Who Am I Becoming",
+      "description": "Explore the emerging new identity through transition",
+      "domain": "life-transitions",
+      "category": "lifestyle",
+      "tags": ["life-transitions", "identity", "future-self", "becoming"]
+    },
+    {
+      "id": "honorWhoYouWere",
+      "name": "Honor Who You Were",
+      "description": "Appreciate and thank the past version of self",
+      "domain": "life-transitions",
+      "category": "lifestyle",
+      "tags": ["life-transitions", "identity", "past-self", "gratitude"]
+    },
+    {
+      "id": "findMeaningInTransition",
+      "name": "Find Meaning in Transition",
+      "description": "Explore what meaning or purpose can be found in this transition",
+      "domain": "life-transitions",
+      "category": "lifestyle",
+      "tags": ["life-transitions", "meaning", "purpose", "wisdom"]
+    },
+    {
+      "id": "createTransitionRitual",
+      "name": "Create Transition Ritual",
+      "description": "Design a ritual to mark the transition",
+      "domain": "life-transitions",
+      "category": "lifestyle",
+      "tags": ["life-transitions", "ritual", "ceremony", "marking"]
+    },
+    {
+      "id": "preserveWhatMatters",
+      "name": "Preserve What Matters",
+      "description": "Identify what to carry forward through the transition",
+      "domain": "life-transitions",
+      "category": "lifestyle",
+      "tags": ["life-transitions", "values", "preservation", "intentional"]
+    },
+    {
+      "id": "embraceUncertainty",
+      "name": "Embrace Uncertainty",
+      "description": "Support for sitting with not-knowing during transition",
+      "domain": "life-transitions",
+      "category": "lifestyle",
+      "tags": ["life-transitions", "uncertainty", "unknown", "patience"]
+    },
+    {
+      "id": "adaptToNewNormal",
+      "name": "Adapt to New Normal",
+      "description": "Practical support for adjusting to life after transition",
+      "domain": "life-transitions",
+      "category": "lifestyle",
+      "tags": ["life-transitions", "adaptation", "new-normal", "practical"]
+    },
+    {
+      "id": "rememberAboutUser",
+      "name": "Remember About User",
+      "description": "Store an important fact about the user for future recall across conversations",
+      "domain": "memory",
+      "category": "core",
+      "tags": ["memory", "storage", "facts"]
+    },
+    {
+      "id": "recallFromMemory",
+      "name": "Recall From Memory",
+      "description": "Try to recall something from previous conversations with this user",
+      "domain": "memory",
+      "category": "core",
+      "tags": ["memory", "recall", "history"]
+    },
+    {
+      "id": "recallPreviousConversation",
+      "name": "Recall Previous Conversation",
+      "description": "Search memory for relevant past conversations based on a topic or theme",
+      "domain": "memory",
+      "category": "core",
+      "tags": ["memory", "semantic-search", "history"]
+    },
+    {
+      "id": "rememberImportantFact",
+      "name": "Remember Important Fact",
+      "description": "Save a critically important fact that should be remembered forever",
+      "domain": "memory",
+      "category": "core",
+      "tags": ["memory", "storage", "important", "milestone"]
+    },
+    {
+      "id": "getRelationshipSummary",
+      "name": "Get Relationship Summary",
+      "description": "Get a summary of the relationship with this user - how long you've known them, key moments, etc.",
+      "domain": "memory",
+      "category": "core",
+      "tags": ["memory", "relationship", "summary"]
+    },
+    {
+      "id": "updateMemory",
+      "name": "Update Memory",
+      "description": "Update an existing memory with new information when the user corrects or adds to what you remember",
+      "domain": "memory",
+      "category": "core",
+      "tags": ["memory", "update", "modification"]
+    },
+    {
+      "id": "forgetMemory",
+      "name": "Forget Memory",
+      "description": "Remove something from memory when the user asks you to forget it",
+      "domain": "memory",
+      "category": "core",
+      "tags": ["memory", "delete", "forget", "privacy"]
+    },
+    {
+      "id": "getWisdomQuote",
+      "name": "Get Wisdom Quote",
+      "description": "Get an inspirational quote about investing, money, or life wisdom",
+      "domain": "wisdom",
+      "category": "information",
+      "tags": ["wisdom", "quotes", "inspiration"]
+    },
+    {
+      "id": "getBogleQuote",
+      "name": "Get Bogle Quote",
+      "description": "Get a quote from John Bogle about investing and life",
+      "domain": "wisdom",
+      "category": "information",
+      "tags": ["wisdom", "quotes", "bogle", "investing"]
+    },
+    {
+      "id": "getThisDayInHistory",
+      "name": "Get This Day in History",
+      "description": "Get a notable financial or historical event from this day in history",
+      "domain": "wisdom",
+      "category": "information",
+      "tags": ["wisdom", "history", "education"]
+    },
+    {
+      "id": "getCrashPerspective",
+      "name": "Get Crash Perspective",
+      "description": "Get historical perspective on market crashes to provide context",
+      "domain": "wisdom",
+      "category": "information",
+      "tags": ["wisdom", "perspective", "crashes", "history"]
+    },
+    {
+      "id": "callUser",
+      "name": "Call User",
+      "description": "Make an outbound phone call to the user for alerts, reminders, or check-ins",
+      "domain": "telephony",
+      "category": "communication",
+      "tags": ["telephony", "phone", "outbound", "call"]
+    },
+    {
+      "id": "scheduleCallback",
+      "name": "Schedule Callback",
+      "description": "Schedule a callback to the user at a specific time",
+      "domain": "telephony",
+      "category": "communication",
+      "tags": ["telephony", "phone", "callback", "schedule"]
+    },
+    {
+      "id": "calculateTip",
+      "name": "Calculate Tip",
+      "description": "Calculate tip amount and total bill",
+      "domain": "simple-utilities",
+      "category": "core",
+      "tags": ["math", "tip", "restaurant", "money"]
+    },
+    {
+      "id": "splitBill",
+      "name": "Split Bill",
+      "description": "Split a bill evenly between people",
+      "domain": "simple-utilities",
+      "category": "core",
+      "tags": ["math", "split", "money", "group"]
+    },
+    {
+      "id": "calculatePercentage",
+      "name": "Calculate Percentage",
+      "description": "Quick percentage calculations",
+      "domain": "simple-utilities",
+      "category": "core",
+      "tags": ["math", "percentage", "calculation"]
+    },
+    {
+      "id": "quickMath",
+      "name": "Quick Math",
+      "description": "Simple arithmetic calculations",
+      "domain": "simple-utilities",
+      "category": "core",
+      "tags": ["math", "calculator", "arithmetic"]
+    },
+    {
+      "id": "convertUnits",
+      "name": "Convert Units",
+      "description": "Convert between common units of measurement",
+      "domain": "simple-utilities",
+      "category": "core",
+      "tags": ["conversion", "units", "measurement", "cooking"]
+    },
+    {
+      "id": "convertTemperature",
+      "name": "Convert Temperature",
+      "description": "Convert between Fahrenheit and Celsius",
+      "domain": "simple-utilities",
+      "category": "core",
+      "tags": ["conversion", "temperature", "weather"]
+    },
+    {
+      "id": "daysUntil",
+      "name": "Days Until",
+      "description": "Calculate days until a date or event",
+      "domain": "simple-utilities",
+      "category": "core",
+      "tags": ["date", "countdown", "time", "event"]
+    },
+    {
+      "id": "dateFromNow",
+      "name": "Date From Now",
+      "description": "Calculate a date in the future or past",
+      "domain": "simple-utilities",
+      "category": "core",
+      "tags": ["date", "future", "past", "calculation"]
+    },
+    {
+      "id": "calculateAge",
+      "name": "Calculate Age",
+      "description": "Calculate age from birthdate",
+      "domain": "simple-utilities",
+      "category": "core",
+      "tags": ["age", "birthday", "date", "years"]
+    },
+    {
+      "id": "timeInCity",
+      "name": "Time in City",
+      "description": "Get the current time in any city",
+      "domain": "simple-utilities",
+      "category": "core",
+      "tags": ["timezone", "time", "city", "world"]
+    },
+    {
+      "id": "bestTimeToCall",
+      "name": "Best Time to Call",
+      "description": "Find a good time to call someone in another timezone",
+      "domain": "simple-utilities",
+      "category": "core",
+      "tags": ["timezone", "call", "schedule", "international"]
+    },
+    {
+      "id": "flipCoin",
+      "name": "Flip Coin",
+      "description": "Flip a coin for a random heads/tails",
+      "domain": "simple-utilities",
+      "category": "core",
+      "tags": ["random", "coin", "decision", "chance"]
+    },
+    {
+      "id": "rollDice",
+      "name": "Roll Dice",
+      "description": "Roll dice for random numbers",
+      "domain": "simple-utilities",
+      "category": "core",
+      "tags": ["random", "dice", "game", "number"]
+    },
+    {
+      "id": "pickRandom",
+      "name": "Pick Random",
+      "description": "Pick randomly from a list of options",
+      "domain": "simple-utilities",
+      "category": "core",
+      "tags": ["random", "pick", "choice", "decision"]
+    },
+    {
+      "id": "helpMeDecide",
+      "name": "Help Me Decide",
+      "description": "Help make a decision with weighted pros/cons",
+      "domain": "simple-utilities",
+      "category": "core",
+      "tags": ["decision", "choice", "help", "thinking"]
+    },
+    {
+      "id": "setTimer",
+      "name": "Set Timer",
+      "description": "Set a simple countdown timer",
+      "domain": "simple-utilities",
+      "category": "core",
+      "tags": ["timer", "countdown", "alarm", "reminder"]
+    },
+    {
+      "id": "cancelTimer",
+      "name": "Cancel Timer",
+      "description": "Cancel an active timer",
+      "domain": "simple-utilities",
+      "category": "core",
+      "tags": ["timer", "cancel", "stop"]
+    },
+    {
+      "id": "quickNote",
+      "name": "Quick Note",
+      "description": "Save a quick transient note for this session",
+      "domain": "simple-utilities",
+      "category": "core",
+      "tags": ["note", "remember", "quick", "temp"]
+    },
+    {
+      "id": "recallNote",
+      "name": "Recall Note",
+      "description": "Recall quick notes from this session",
+      "domain": "simple-utilities",
+      "category": "core",
+      "tags": ["note", "recall", "remember"]
+    },
+    {
+      "id": "clearNotes",
+      "name": "Clear Notes",
+      "description": "Clear all quick notes",
+      "domain": "simple-utilities",
+      "category": "core",
+      "tags": ["note", "clear", "delete"]
+    },
+    {
+      "id": "translate",
+      "name": "Translate",
+      "description": "Translate text between languages",
+      "domain": "simple-utilities",
+      "category": "core",
+      "tags": ["translation", "language", "international", "travel"]
+    },
+    {
+      "id": "pronounce",
+      "name": "Pronunciation Guide",
+      "description": "Get pronunciation help for words in any language",
+      "domain": "simple-utilities",
+      "category": "core",
+      "tags": ["pronunciation", "language", "speaking", "learning"]
+    },
+    {
+      "id": "learnPhrases",
+      "name": "Learn Common Phrases",
+      "description": "Learn essential phrases in a new language",
+      "domain": "simple-utilities",
+      "category": "core",
+      "tags": ["language-learning", "travel", "phrases", "education"]
+    },
+    {
+      "id": "detectLanguage",
+      "name": "Detect Language",
+      "description": "Identify what language text is written in",
+      "domain": "simple-utilities",
+      "category": "core",
+      "tags": ["language", "detection", "identification"]
+    },
+    {
+      "id": "culturalContext",
+      "name": "Cultural Context",
+      "description": "Get cultural context for communication in different cultures",
+      "domain": "simple-utilities",
+      "category": "core",
+      "tags": ["culture", "etiquette", "international", "communication"]
+    },
+    {
+      "id": "getNews",
+      "name": "Get News",
+      "description": "Get current news headlines. Categories: \"general\" (top headlines), \"finance\" (market news, economy), \"tech\" (technology, AI, startups), or \"stock\" (news about a specific stock ticker). For stock news, include the ticker symbol.",
+      "domain": "information",
+      "category": "information",
+      "tags": ["information", "news", "headlines", "finance", "tech", "stocks"]
+    },
+    {
+      "id": "getWeather",
+      "name": "Get Weather",
+      "description": "Get current weather for a city or location. Returns temperature, humidity, wind, and conditions. Use when user asks about the weather anywhere.",
+      "domain": "information",
+      "category": "information",
+      "tags": ["information", "weather", "temperature", "conditions"]
+    },
+    {
+      "id": "getWeatherForecast",
+      "name": "Get Weather Forecast",
+      "description": "Get weather forecast for upcoming days. Use when user asks about weekend weather or future conditions.",
+      "domain": "information",
+      "category": "information",
+      "tags": ["information", "weather", "forecast", "weekend"]
+    },
+    {
+      "id": "getSports",
+      "name": "Get Sports",
+      "description": "Get sports scores, standings, and schedules. Query by team name (e.g., \"Eagles\", \"Phillies\", \"Lakers\") or league (NFL, MLB, NBA, NHL). Returns most recent game results, next scheduled game, and current standings.",
+      "domain": "information",
+      "category": "information",
+      "tags": [
+        "information",
+        "sports",
+        "scores",
+        "standings",
+        "schedule",
+        "nfl",
+        "mlb",
+        "nba",
+        "nhl"
+      ]
+    },
+    {
+      "id": "searchWeb",
+      "name": "Search Web",
+      "description": "Search the internet for current information, facts, how-tos, or any topic. Returns relevant web results with summaries. Great for: \"What is...\", \"How to...\", \"Latest news about...\", or researching any topic.",
+      "domain": "information",
+      "category": "information",
+      "tags": ["information", "search", "web", "google", "research"]
+    },
+    {
+      "id": "lookupInfo",
+      "name": "Lookup Info",
+      "description": "Quick lookup for definitions, facts, or encyclopedia-style information. Sources: Wikipedia for detailed topics, dictionary for word definitions. Best for: \"Define...\", \"What does X mean?\", \"Who was...\", factual questions.",
+      "domain": "information",
+      "category": "information",
+      "tags": ["information", "search", "wikipedia", "definition", "dictionary", "facts"]
+    },
+    {
+      "id": "bankAccount",
+      "name": "Bank Account",
+      "description": "Manage bank account connection: check link status, link a new bank account via Plaid, or unlink an existing account. Actions: \"status\", \"link\", or \"unlink\". Required for spending analysis and balance checking.",
+      "domain": "finance",
+      "category": "financial",
+      "tags": ["finance", "banking", "plaid", "setup", "status", "link", "unlink"]
+    },
+    {
+      "id": "bankData",
+      "name": "Bank Data",
+      "description": "Get financial data from linked accounts: account balances, recent transactions, or spending analysis by category. Actions: \"balances\", \"transactions\", or \"spending\". Requires linked bank account.",
+      "domain": "finance",
+      "category": "financial",
+      "tags": ["finance", "banking", "balances", "transactions", "spending", "analysis"]
+    },
+    {
+      "id": "financialHealth",
+      "name": "Financial Health",
+      "description": "Get a comprehensive financial health assessment based on linked account data. Shows savings rate, spending patterns, debt-to-income, and personalized recommendations.",
+      "domain": "finance",
+      "category": "financial",
+      "tags": ["finance", "banking", "health", "assessment", "recommendations"]
+    },
+    {
+      "id": "investmentCalc",
+      "name": "Investment Calculator",
+      "description": "Calculate investment growth, fee impact, or retirement projections. Modes: \"growth\" (compound interest over time), \"fees\" (how fees reduce returns), or \"retirement\" (project retirement savings). Uses Rule of 72 for quick estimates.",
+      "domain": "finance",
+      "category": "financial",
+      "tags": ["finance", "calculators", "investing", "compound", "fees", "retirement"]
+    },
+    {
+      "id": "housingCalc",
+      "name": "Housing Calculator",
+      "description": "Calculate mortgage payments, total interest, or home affordability. Modes: \"mortgage\" (monthly payment and total cost), \"affordability\" (how much house you can afford based on income). Includes down payment scenarios.",
+      "domain": "finance",
+      "category": "financial",
+      "tags": ["finance", "calculators", "mortgage", "housing", "affordability"]
+    },
+    {
+      "id": "savingsCalc",
+      "name": "Savings Calculator",
+      "description": "Calculate emergency fund target, savings rate, or time to reach goals. Modes: \"emergency\" (3-6 month fund target), \"rate\" (what % of income you're saving), or \"double\" (years to double money at given rate).",
+      "domain": "finance",
+      "category": "financial",
+      "tags": ["finance", "calculators", "savings", "emergency", "rate"]
+    },
+    {
+      "id": "debtPayoff",
+      "name": "Debt Payoff Planner",
+      "description": "Calculate debt payoff timeline, total interest, and strategies. Supports: snowball method (smallest first), avalanche method (highest interest first), or custom. Shows monthly payment needed and payoff date.",
+      "domain": "finance",
+      "category": "financial",
+      "tags": ["finance", "debt", "payoff", "snowball", "avalanche", "planning"]
+    },
+    {
+      "id": "budgetPlanner",
+      "name": "Budget Planner",
+      "description": "Create a budget using the 50/30/20 rule (needs/wants/savings), or explore what financial security might look like for you. Modes: \"budget\" (allocate income) or \"security\" (explore your personal financial freedom target).",
+      "domain": "finance",
+      "category": "financial",
+      "tags": ["finance", "budget", "50-30-20", "security", "freedom", "planning"]
+    },
+    {
+      "id": "financeEducation",
+      "name": "Finance Education",
+      "description": "Explain financial concepts in plain language. Topics: banking (APY, overdraft, etc.), mortgage (PMI, points, ARM vs fixed), retirement accounts (401k vs IRA, Roth vs Traditional), or investing (diversification, index funds, etc.).",
+      "domain": "finance",
+      "category": "financial",
+      "tags": ["finance", "education", "concepts", "banking", "mortgage", "retirement"]
+    },
+    {
+      "id": "startGame",
+      "name": "Start Game",
+      "description": "Start a fun music game with the user!\n\nAvailable games:\n- \"name-that-tune\" - Play a song clip, user guesses the song/artist\n- \"one-word-song\" - User says a word, you find a song with that word\n- \"desert-island-discs\" - User picks 5 songs they'd bring to a desert island\n- \"this-or-that\" - Play two songs, user picks their favorite\n- \"mood-dj-challenge\" - User describes a mood, you pick the perfect song\n\nUse when user says things like:\n- \"Let's play a game\"\n- \"Play name that tune\"\n- \"Let's do desert island discs\"\n- \"Can we play a music game?\"",
+      "domain": "games",
+      "category": "entertainment",
+      "tags": ["games", "music", "interactive", "fun"]
+    },
+    {
+      "id": "submitGameAnswer",
+      "name": "Submit Game Answer",
+      "description": "Submit the user's answer or choice in the current game.\n\nUse when:\n- User guesses a song in Name That Tune\n- User says a word in One Word Song\n- User picks a song in Desert Island Discs\n- User chooses A or B in This or That\n- User describes a mood in Mood DJ Challenge\n- User rates your song pick (1-5)",
+      "domain": "games",
+      "category": "entertainment",
+      "tags": ["games", "answer", "interactive"]
+    },
+    {
+      "id": "getGameHint",
+      "name": "Get Game Hint",
+      "description": "Give the user a hint in the current game.\nUse when user says \"hint\", \"help\", \"I don't know\", or seems stuck.",
+      "domain": "games",
+      "category": "entertainment",
+      "tags": ["games", "hint", "help"]
+    },
+    {
+      "id": "skipGameRound",
+      "name": "Skip Game Round",
+      "description": "Skip the current round in the game.\nUse when user says \"skip\", \"pass\", \"next\", or wants to move on.",
+      "domain": "games",
+      "category": "entertainment",
+      "tags": ["games", "skip", "next"]
+    },
+    {
+      "id": "endGame",
+      "name": "End Game",
+      "description": "End the current game early.\nUse when user says \"stop\", \"quit\", \"end game\", or wants to do something else.",
+      "domain": "games",
+      "category": "entertainment",
+      "tags": ["games", "end", "quit"]
+    },
+    {
+      "id": "getGameStatus",
+      "name": "Get Game Status",
+      "description": "Check the current game status.\nUse when user asks \"what's the score?\", \"what round?\", \"how am I doing?\"",
+      "domain": "games",
+      "category": "entertainment",
+      "tags": ["games", "status", "score"]
+    },
+    {
+      "id": "getGameHistory",
+      "name": "Get Game History",
+      "description": "Check the user's game history and stats.\nUse when user asks \"how many games have I played?\", \"what's my best score?\"",
+      "domain": "games",
+      "category": "entertainment",
+      "tags": ["games", "history", "stats"]
+    },
+    {
+      "id": "suggestGame",
+      "name": "Suggest Game",
+      "description": "Suggest a game to the user based on context or mood.\nUse proactively during lulls or when user seems like they want to do something fun.",
+      "domain": "games",
+      "category": "entertainment",
+      "tags": ["games", "suggest", "proactive"]
+    },
+    {
+      "id": "startTextGame",
+      "name": "Start Text Game",
+      "description": "Start a text-based game like tic-tac-toe with the user!\n\nAvailable text games:\n- \"tic-tac-toe\" - Classic 3x3 grid game. User says positions like \"center\", \"top left\", or numbers 1-9.\n\nUse when user says things like:\n- \"Let's play tic tac toe\"\n- \"Play tic-tac-toe with me\"\n- \"Can we play a game?\" (then offer tic-tac-toe as an option)\n- \"I want to play something\"",
+      "domain": "games",
+      "category": "entertainment",
+      "tags": ["games", "text-games", "tic-tac-toe", "interactive", "fun"]
+    },
+    {
+      "id": "makeTextGameMove",
+      "name": "Make Text Game Move",
+      "description": "Submit the user's move in a text game like tic-tac-toe.\n\nFor tic-tac-toe, the user can say:\n- Numbers 1-9 (top-left to bottom-right)\n- Positions like \"center\", \"top left\", \"bottom right\", \"middle\"\n- Descriptions like \"the middle one\", \"upper right corner\"\n\nUse when:\n- User says a position during tic-tac-toe\n- User makes any move in an active text game",
+      "domain": "games",
+      "category": "entertainment",
+      "tags": ["games", "text-games", "move", "interactive"]
+    },
+    {
+      "id": "getTextGameBoard",
+      "name": "Get Text Game Board",
+      "description": "Describe the current state of a text game board.\nUse when user asks \"what does the board look like?\", \"where are the pieces?\", \"show me the board\"",
+      "domain": "games",
+      "category": "entertainment",
+      "tags": ["games", "text-games", "status", "board"]
+    },
+    {
+      "id": "endTextGame",
+      "name": "End Text Game",
+      "description": "End the current text game early.\nUse when user says \"stop\", \"quit\", \"I give up\", \"end game\", or wants to do something else.",
+      "domain": "games",
+      "category": "entertainment",
+      "tags": ["games", "text-games", "end", "quit"]
+    },
+    {
+      "id": "assessCareerSatisfaction",
+      "name": "Assess Career Satisfaction",
+      "description": "Evaluate satisfaction with current role and career",
+      "domain": "career",
+      "category": "productivity",
+      "tags": ["career", "assessment", "satisfaction"]
+    },
+    {
+      "id": "clarifyCareerGoals",
+      "name": "Clarify Career Goals",
+      "description": "Define and refine career aspirations",
+      "domain": "career",
+      "category": "productivity",
+      "tags": ["career", "goals", "planning"]
+    },
+    {
+      "id": "exploreGrowthAreas",
+      "name": "Explore Growth Areas",
+      "description": "Explore skills and areas for professional growth",
+      "domain": "career",
+      "category": "productivity",
+      "tags": ["career", "skills", "development", "growth"]
+    },
+    {
+      "id": "trackJobApplication",
+      "name": "Track Job Application",
+      "description": "Log and track job applications",
+      "domain": "career",
+      "category": "productivity",
+      "tags": ["career", "job-search", "applications", "tracking"]
+    },
+    {
+      "id": "suggestJobSearchStrategy",
+      "name": "Suggest Job Search Strategy",
+      "description": "Optimize job search approach",
+      "domain": "career",
+      "category": "productivity",
+      "tags": ["career", "job-search", "strategy"]
+    },
+    {
+      "id": "practiceInterview",
+      "name": "Practice Interview",
+      "description": "Practice interview questions with feedback",
+      "domain": "career",
+      "category": "productivity",
+      "tags": ["career", "interview", "practice", "preparation"]
+    },
+    {
+      "id": "prepareSTARStories",
+      "name": "Prepare STAR Stories",
+      "description": "Develop behavioral interview stories",
+      "domain": "career",
+      "category": "productivity",
+      "tags": ["career", "interview", "STAR", "stories"]
+    },
+    {
+      "id": "researchSalary",
+      "name": "Research Salary",
+      "description": "Research compensation for negotiation",
+      "domain": "career",
+      "category": "productivity",
+      "tags": ["career", "salary", "negotiation", "research"]
+    },
+    {
+      "id": "rolePlayNegotiation",
+      "name": "Role Play Negotiation",
+      "description": "Practice salary negotiation",
+      "domain": "career",
+      "category": "productivity",
+      "tags": ["career", "salary", "negotiation", "practice"]
+    },
+    {
+      "id": "createLearningPath",
+      "name": "Create Learning Path",
+      "description": "Create a skill development plan",
+      "domain": "career",
+      "category": "productivity",
+      "tags": ["career", "learning", "development", "skills"]
+    },
+    {
+      "id": "expandNetwork",
+      "name": "Expand Network",
+      "description": "Strategic networking guidance",
+      "domain": "career",
+      "category": "productivity",
+      "tags": ["career", "networking", "relationships", "professional"]
+    },
+    {
+      "id": "assessBurnout",
+      "name": "Assess Burnout",
+      "description": "Check for signs of work burnout",
+      "domain": "career",
+      "category": "productivity",
+      "tags": ["career", "burnout", "wellness", "assessment"]
+    },
+    {
+      "id": "setWorkBoundary",
+      "name": "Set Work Boundary",
+      "description": "Establish healthy work-life boundaries",
+      "domain": "career",
+      "category": "productivity",
+      "tags": ["career", "boundaries", "work-life", "balance"]
+    },
+    {
+      "id": "planCareerTransition",
+      "name": "Plan Career Transition",
+      "description": "Navigate career changes and pivots",
+      "domain": "career",
+      "category": "productivity",
+      "tags": ["career", "transition", "pivot", "change"]
+    },
+    {
+      "id": "provideCrisisResources",
+      "name": "Provide Crisis Resources",
+      "description": "Surface appropriate crisis support resources based on situation",
+      "domain": "crisis",
+      "category": "core",
+      "tags": ["crisis", "safety", "resources", "support"]
+    },
+    {
+      "id": "findSafeResources",
+      "name": "Find Safe Resources",
+      "description": "Help find local safety resources like shelters and support services",
+      "domain": "crisis",
+      "category": "core",
+      "tags": ["crisis", "safety", "resources", "local"]
+    },
+    {
+      "id": "findFinancialAssistance",
+      "name": "Find Financial Assistance",
+      "description": "Find emergency financial assistance resources",
+      "domain": "crisis",
+      "category": "core",
+      "tags": ["crisis", "financial", "emergency", "assistance"]
+    },
+    {
+      "id": "guideGroundingExercise",
+      "name": "Guide Grounding Exercise",
+      "description": "Guide through a grounding exercise to reconnect with the present",
+      "domain": "crisis",
+      "category": "core",
+      "tags": ["crisis", "grounding", "anxiety", "present-moment"]
+    },
+    {
+      "id": "deEscalateAnxiety",
+      "name": "De-escalate Anxiety",
+      "description": "Help calm acute anxiety or panic episode",
+      "domain": "crisis",
+      "category": "core",
+      "tags": ["crisis", "anxiety", "panic", "calming"]
+    },
+    {
+      "id": "createSafetyPlan",
+      "name": "Create Safety Plan",
+      "description": "Help create a personal safety plan for crisis moments",
+      "domain": "crisis",
+      "category": "core",
+      "tags": ["crisis", "safety", "planning", "prevention"]
+    },
+    {
+      "id": "supportRecoveryJourney",
+      "name": "Support Recovery Journey",
+      "description": "Support someone on an addiction recovery journey",
+      "domain": "crisis",
+      "category": "core",
+      "tags": ["crisis", "recovery", "addiction", "support"]
+    },
+    {
+      "id": "trackSobrietyMilestone",
+      "name": "Track Sobriety Milestone",
+      "description": "Celebrate recovery milestones",
+      "domain": "crisis",
+      "category": "core",
+      "tags": ["crisis", "recovery", "milestones", "celebration"]
+    },
+    {
+      "id": "logExercise",
+      "name": "Log Exercise",
+      "description": "Record and celebrate physical activity",
+      "domain": "health",
+      "category": "lifestyle",
+      "tags": ["health", "fitness", "exercise", "tracking"]
+    },
+    {
+      "id": "suggestWorkout",
+      "name": "Suggest Workout",
+      "description": "Recommend a workout based on goals and energy level",
+      "domain": "health",
+      "category": "lifestyle",
+      "tags": ["health", "fitness", "workout", "suggestions"]
+    },
+    {
+      "id": "trackFitnessGoal",
+      "name": "Track Fitness Goal",
+      "description": "Set and track fitness goals",
+      "domain": "health",
+      "category": "lifestyle",
+      "tags": ["health", "fitness", "goals", "tracking"]
+    },
+    {
+      "id": "coachOnNutrition",
+      "name": "Coach On Nutrition",
+      "description": "Provide general nutrition guidance and mindful eating support",
+      "domain": "health",
+      "category": "lifestyle",
+      "tags": ["health", "nutrition", "eating", "coaching"]
+    },
+    {
+      "id": "trackHydration",
+      "name": "Track Hydration",
+      "description": "Log and track water intake",
+      "domain": "health",
+      "category": "lifestyle",
+      "tags": ["health", "hydration", "water", "tracking"]
+    },
+    {
+      "id": "analyzeSleepPattern",
+      "name": "Analyze Sleep Pattern",
+      "description": "Review and discuss sleep patterns and quality",
+      "domain": "health",
+      "category": "lifestyle",
+      "tags": ["health", "sleep", "analysis", "patterns"]
+    },
+    {
+      "id": "suggestSleepHygiene",
+      "name": "Suggest Sleep Hygiene",
+      "description": "Recommend sleep improvement strategies",
+      "domain": "health",
+      "category": "lifestyle",
+      "tags": ["health", "sleep", "hygiene", "tips"]
+    },
+    {
+      "id": "logSymptom",
+      "name": "Log Symptom",
+      "description": "Track symptoms for health awareness",
+      "domain": "health",
+      "category": "lifestyle",
+      "tags": ["health", "symptoms", "tracking", "awareness"]
+    },
+    {
+      "id": "prepareForDoctorVisit",
+      "name": "Prepare For Doctor Visit",
+      "description": "Prepare questions and information for doctor appointments",
+      "domain": "health",
+      "category": "lifestyle",
+      "tags": ["health", "doctor", "preparation", "appointments"]
+    },
+    {
+      "id": "remindPreventiveCare",
+      "name": "Remind Preventive Care",
+      "description": "Remind about screenings, checkups, and vaccines",
+      "domain": "health",
+      "category": "lifestyle",
+      "tags": ["health", "preventive", "screenings", "reminders"]
+    },
+    {
+      "id": "assessEnergyLevel",
+      "name": "Assess Energy Level",
+      "description": "Track and understand energy patterns",
+      "domain": "health",
+      "category": "lifestyle",
+      "tags": ["health", "energy", "assessment", "tracking"]
+    },
+    {
+      "id": "suggestEnergyBoost",
+      "name": "Suggest Energy Boost",
+      "description": "Suggest ways to improve energy levels",
+      "domain": "health",
+      "category": "lifestyle",
+      "tags": ["health", "energy", "boost", "suggestions"]
+    },
+    {
+      "id": "assessReadinessForChange",
+      "name": "Assess Readiness for Change",
+      "description": "Evaluate where someone is in their readiness for a fresh start",
+      "domain": "second-chances",
+      "category": "lifestyle",
+      "tags": ["second-chances", "assessment", "readiness", "change"]
+    },
+    {
+      "id": "identifyWhatToKeep",
+      "name": "Identify What to Keep",
+      "description": "Discover what to carry forward from the past into the new chapter",
+      "domain": "second-chances",
+      "category": "lifestyle",
+      "tags": ["second-chances", "reflection", "values", "identity"]
+    },
+    {
+      "id": "acknowledgeWhatWas",
+      "name": "Acknowledge What Was",
+      "description": "Honor and grieve what was lost before moving forward",
+      "domain": "second-chances",
+      "category": "lifestyle",
+      "tags": ["second-chances", "grief", "processing", "loss"]
+    },
+    {
+      "id": "reframeNarrative",
+      "name": "Reframe Narrative",
+      "description": "Help reshape the story of what happened from victim to author",
+      "domain": "second-chances",
+      "category": "lifestyle",
+      "tags": ["second-chances", "narrative", "reframe", "story"]
+    },
+    {
+      "id": "findTheLessons",
+      "name": "Find the Lessons",
+      "description": "Extract wisdom from difficult experiences without toxic positivity",
+      "domain": "second-chances",
+      "category": "lifestyle",
+      "tags": ["second-chances", "lessons", "wisdom", "reflection"]
+    },
+    {
+      "id": "defineFirstStep",
+      "name": "Define First Step",
+      "description": "Identify the smallest possible first step toward a fresh start",
+      "domain": "second-chances",
+      "category": "lifestyle",
+      "tags": ["second-chances", "planning", "action", "first-step"]
+    },
+    {
+      "id": "createComebackPlan",
+      "name": "Create Comeback Plan",
+      "description": "Develop a realistic plan for rebuilding",
+      "domain": "second-chances",
+      "category": "lifestyle",
+      "tags": ["second-chances", "planning", "comeback", "rebuilding"]
+    },
+    {
+      "id": "identifySupports",
+      "name": "Identify Supports",
+      "description": "Map out the support system for a fresh start",
+      "domain": "second-chances",
+      "category": "lifestyle",
+      "tags": ["second-chances", "support", "relationships", "resources"]
+    },
+    {
+      "id": "processGriefForWhatWas",
+      "name": "Process Grief for What Was",
+      "description": "Dedicated space for grieving what was lost",
+      "domain": "second-chances",
+      "category": "lifestyle",
+      "tags": ["second-chances", "grief", "processing", "emotions"]
+    },
+    {
+      "id": "buildCourageForWhatNext",
+      "name": "Build Courage for What's Next",
+      "description": "Cultivate courage for facing the unknown",
+      "domain": "second-chances",
+      "category": "lifestyle",
+      "tags": ["second-chances", "courage", "fear", "moving-forward"]
+    },
+    {
+      "id": "celebrateTinyWins",
+      "name": "Celebrate Tiny Wins",
+      "description": "Recognize and celebrate progress, no matter how small",
+      "domain": "second-chances",
+      "category": "lifestyle",
+      "tags": ["second-chances", "celebration", "progress", "wins"]
+    },
+    {
+      "id": "checkInOnJourney",
+      "name": "Check In on Journey",
+      "description": "Regular check-in on the fresh start journey",
+      "domain": "second-chances",
+      "category": "lifestyle",
+      "tags": ["second-chances", "check-in", "journey", "progress"]
+    },
+    {
+      "id": "holdHopeWhenCant",
+      "name": "Hold Hope When Can't",
+      "description": "Hold hope for someone when they can't hold it themselves",
+      "domain": "second-chances",
+      "category": "lifestyle",
+      "tags": ["second-chances", "hope", "support", "dark-times"]
+    },
+    {
+      "id": "remindOfProgress",
+      "name": "Remind of Progress",
+      "description": "Remind user how far they've come on their journey",
+      "domain": "second-chances",
+      "category": "lifestyle",
+      "tags": ["second-chances", "progress", "reminder", "reflection"]
+    },
+    {
+      "id": "shareSecondChanceWisdom",
+      "name": "Share Second Chance Wisdom",
+      "description": "Share inspiring wisdom about fresh starts and comebacks",
+      "domain": "second-chances",
+      "category": "lifestyle",
+      "tags": ["second-chances", "wisdom", "quotes", "inspiration"]
+    },
+    {
+      "id": "morningSkyCheck",
+      "name": "Morning Sky Check",
+      "description": "Ferni's daily emotional weather check-in",
+      "domain": "engagement",
+      "category": "core",
+      "tags": ["engagement", "ferni", "daily-ritual", "emotional-awareness"]
+    },
+    {
+      "id": "kintsugiMoments",
+      "name": "Kintsugi Moments",
+      "description": "Reframe failures as gold - Ferni's growth exercise",
+      "domain": "engagement",
+      "category": "core",
+      "tags": ["engagement", "ferni", "growth", "reframing"]
+    },
+    {
+      "id": "questionOfTheWeek",
+      "name": "Question of the Week",
+      "description": "Ferni's deep weekly question for reflection",
+      "domain": "engagement",
+      "category": "core",
+      "tags": ["engagement", "ferni", "reflection", "weekly"]
+    },
+    {
+      "id": "compoundInterestGame",
+      "name": "Compound & Interest Game",
+      "description": "Maya's habit tracking game with her cats",
+      "domain": "engagement",
+      "category": "core",
+      "tags": ["engagement", "maya", "habits", "gamification"]
+    },
+    {
+      "id": "tinyBets",
+      "name": "Tiny Bets",
+      "description": "Maya's low-stakes habit commitment game",
+      "domain": "engagement",
+      "category": "core",
+      "tags": ["engagement", "maya", "habits", "commitment"]
+    },
+    {
+      "id": "futureSelfLetter",
+      "name": "Future Self Letter",
+      "description": "Write a letter to your future self that Jordan delivers later",
+      "domain": "engagement",
+      "category": "core",
+      "tags": ["engagement", "jordan", "time-capsule", "reflection"]
+    },
+    {
+      "id": "lifePortfolioReview",
+      "name": "Life Portfolio Review",
+      "description": "Jordan's quarterly life domains check-in",
+      "domain": "engagement",
+      "category": "core",
+      "tags": ["engagement", "jordan", "life-review", "quarterly"]
+    },
+    {
+      "id": "predictionMarket",
+      "name": "Prediction Market",
+      "description": "Jordan's game where you predict your own future",
+      "domain": "engagement",
+      "category": "core",
+      "tags": ["engagement", "jordan", "predictions", "accountability"]
+    },
+    {
+      "id": "paradoxOfTheDay",
+      "name": "Paradox of the Day",
+      "description": "Nayan's daily paradox for contemplation",
+      "domain": "engagement",
+      "category": "core",
+      "tags": ["engagement", "nayan", "wisdom", "contemplation"]
+    },
+    {
+      "id": "questionBeneath",
+      "name": "The Question Beneath",
+      "description": "Nayan's 5 Whys exploration game",
+      "domain": "engagement",
+      "category": "core",
+      "tags": ["engagement", "nayan", "depth", "exploration"]
+    },
+    {
+      "id": "patternDetective",
+      "name": "Pattern Detective",
+      "description": "Peter's game where user guesses their own patterns",
+      "domain": "engagement",
+      "category": "core",
+      "tags": ["engagement", "peter", "patterns", "self-discovery"]
+    },
+    {
+      "id": "weeklyPrediction",
+      "name": "Weekly Prediction",
+      "description": "Peter's game where user predicts their own weekly behavior",
+      "domain": "engagement",
+      "category": "core",
+      "tags": ["engagement", "peter", "predictions", "self-knowledge"]
+    },
+    {
+      "id": "inboxZeroChallenge",
+      "name": "Inbox Zero Challenge",
+      "description": "Alex's streak-based inbox management game",
+      "domain": "engagement",
+      "category": "core",
+      "tags": ["engagement", "alex", "productivity", "streaks"]
+    },
+    {
+      "id": "sundayPrepGame",
+      "name": "Sunday Prep Game",
+      "description": "Alex's weekly planning ritual",
+      "domain": "engagement",
+      "category": "core",
+      "tags": ["engagement", "alex", "planning", "weekly"]
+    },
+    {
+      "id": "teamHuddle",
+      "name": "Team Huddle",
+      "description": "Multi-persona check-in on user progress",
+      "domain": "engagement",
+      "category": "core",
+      "tags": ["engagement", "team", "weekly", "celebration"]
+    },
+    {
+      "id": "quickChallenges",
+      "name": "Quick Challenges",
+      "description": "Micro-challenges for instant engagement",
+      "domain": "engagement",
+      "category": "core",
+      "tags": ["engagement", "challenges", "fun", "quick"]
+    },
+    {
+      "id": "reflectionPrompts",
+      "name": "Reflection Prompts",
+      "description": "Deep reflection questions for meaningful conversations",
+      "domain": "engagement",
+      "category": "core",
+      "tags": ["engagement", "reflection", "growth", "deep-talk"]
+    },
+    {
+      "id": "streakTracker",
+      "name": "Streak Tracker",
+      "description": "Track and celebrate user streaks",
+      "domain": "engagement",
+      "category": "core",
+      "tags": ["engagement", "streaks", "gamification", "motivation"]
+    },
+    {
+      "id": "celebrationMoment",
+      "name": "Celebration Moment",
+      "description": "Create a meaningful celebration for user achievements",
+      "domain": "engagement",
+      "category": "core",
+      "tags": ["engagement", "celebration", "achievement", "joy"]
+    },
+    {
+      "id": "manageAppointment",
+      "name": "Manage Appointment",
+      "description": "Schedule, confirm, cancel, or check status of appointments. Works for doctors, dentists, salons, and other services.",
+      "domain": "calendar",
+      "category": "productivity",
+      "tags": ["calendar", "appointments", "scheduling", "confirm", "cancel", "status"]
+    },
+    {
+      "id": "restaurant",
+      "name": "Restaurant",
+      "description": "Find restaurants nearby or make a reservation.",
+      "domain": "calendar",
+      "category": "productivity",
+      "tags": ["calendar", "restaurants", "reservations", "search", "dining"]
+    },
+    {
+      "id": "foodDelivery",
+      "name": "Food Delivery",
+      "description": "Order food for delivery - search restaurants, start orders, add items, checkout.",
+      "domain": "calendar",
+      "category": "productivity",
+      "tags": ["calendar", "delivery", "food", "order", "doordash", "ubereats"]
+    },
+    {
+      "id": "findBusiness",
+      "name": "Find Business",
+      "description": "Search for businesses by name, type, or location. Get details including phone, hours, address, and reviews.",
+      "domain": "calendar",
+      "category": "productivity",
+      "tags": ["calendar", "places", "search", "nearby", "details", "phone", "hours"]
+    },
+    {
+      "id": "manageContact",
+      "name": "Manage Contact",
+      "description": "Add, find, update, delete, list, or call contacts from the address book.",
+      "domain": "calendar",
+      "category": "productivity",
+      "tags": ["calendar", "contacts", "add", "find", "update", "delete", "list", "call"]
+    },
+    {
+      "id": "sendMessage",
+      "name": "Send Message",
+      "description": "Send a message via email or SMS. Use email for formal/longer communications, SMS for quick texts and reminders.",
+      "domain": "communication",
+      "category": "communication",
+      "tags": ["communication", "email", "sms", "send", "message"]
+    },
+    {
+      "id": "scheduleReminder",
+      "name": "Schedule Reminder",
+      "description": "Set a reminder or schedule a calendar event. Supports reminders, events with attendees, and follow-ups.",
+      "domain": "communication",
+      "category": "communication",
+      "tags": ["communication", "reminder", "calendar", "event", "schedule", "follow-up"]
+    },
+    {
+      "id": "save_user_contact",
+      "name": "Save User Contact",
+      "description": "Save the user's contact information so you can reach out to them later.\nUse this when the user shares their phone number or email.\nExample: \"My number is 555-123-4567\" → save their phone\nExample: \"Email me at john@example.com\" → save their email",
+      "domain": "communication",
+      "category": "communication",
+      "tags": ["proactive", "outreach", "contact", "reminder"]
+    },
+    {
+      "id": "send_text_now",
+      "name": "Send Text Now",
+      "description": "Send an immediate text message to the user.\nUse for urgent updates or when they ask you to text them something right now.\nRequires: User's phone number must be saved first.",
+      "domain": "communication",
+      "category": "communication",
+      "tags": ["proactive", "outreach", "contact", "reminder"]
+    },
+    {
+      "id": "send_email_now",
+      "name": "Send Email Now",
+      "description": "Send an immediate email to the user.\nUse for sending detailed information, summaries, or resources.\nRequires: User's email must be saved first.",
+      "domain": "communication",
+      "category": "communication",
+      "tags": ["proactive", "outreach", "contact", "reminder"]
+    },
+    {
+      "id": "schedule_reminder",
+      "name": "Schedule Reminder",
+      "description": "Schedule a future reminder via text, email, or call.\nUse when the user wants to be reminded about something later.\nExamples:\n- \"Remind me tomorrow at 9am about my interview\"\n- \"Text me in 2 hours to check on my progress\"\n- \"Send me an email next week with a summary\"\n- \"Call me tonight at 8pm if I haven't worked out\"",
+      "domain": "communication",
+      "category": "communication",
+      "tags": ["proactive", "outreach", "contact", "reminder"]
+    },
+    {
+      "id": "call_user_now",
+      "name": "Call User Now",
+      "description": "Initiate a phone call to the user right now.\nUse sparingly - only for urgent matters or when explicitly requested.\nThe call will play a voice message when they answer.",
+      "domain": "communication",
+      "category": "communication",
+      "tags": ["proactive", "outreach", "contact", "reminder"]
+    },
+    {
+      "id": "draftMessage",
+      "name": "Draft Message",
+      "description": "Help draft any difficult message: asking for a raise, setting boundaries, giving feedback, declining requests, or resolving conflicts. Uses proven frameworks (SBI, assertion techniques).",
+      "domain": "communication",
+      "category": "communication",
+      "tags": ["communication", "coaching", "draft", "difficult", "assertive", "boundaries"]
+    },
+    {
+      "id": "rolePlayConversation",
+      "name": "Role-Play Conversation",
+      "description": "Role-play a conversation before having it. Build confidence by practicing: salary negotiations, difficult feedback, boundary setting, conflict resolution. I'll play the other person.",
+      "domain": "communication",
+      "category": "communication",
+      "tags": ["communication", "coaching", "practice", "roleplay", "confidence"]
+    },
+    {
+      "id": "analyzeMessage",
+      "name": "Analyze Message",
+      "description": "Analyze messages for tone, clarity, and effectiveness. Review your drafts, understand incoming messages, or transform tone.",
+      "domain": "communication",
+      "category": "communication",
+      "tags": ["communication", "coaching", "analysis", "tone", "review", "transform"]
+    },
+    {
+      "id": "communicationStrategy",
+      "name": "Communication Strategy",
+      "description": "Plan a comprehensive communication strategy for complex situations: difficult conversations, ongoing negotiations, relationship repair. Includes timing, channel selection, and follow-up planning.",
+      "domain": "communication",
+      "category": "communication",
+      "tags": ["communication", "coaching", "strategy", "planning", "follow-up"]
+    },
+    {
+      "id": "buildAssertiveness",
+      "name": "Build Assertive Response",
+      "description": "Help respond more assertively to situations where you feel pushed around, need to say no, or are avoiding a necessary conversation.",
+      "domain": "communication",
+      "category": "communication",
+      "tags": ["communication", "coaching", "assertiveness", "boundaries", "confidence"]
+    },
+    {
+      "id": "planFollowUp",
+      "name": "Plan Follow-Up",
+      "description": "Plan a follow-up strategy when you've sent something and gotten no response. Helps you persist without being annoying.",
+      "domain": "communication",
+      "category": "communication",
+      "tags": ["communication", "coaching", "follow-up", "persistence", "strategy"]
+    },
+    {
+      "id": "setGoal",
+      "name": "Set Goal",
+      "description": "Create a new financial goal with target amount and timeline",
+      "domain": "proactive",
+      "category": "core",
+      "tags": ["proactive", "goals", "financial", "create"]
+    },
+    {
+      "id": "checkGoalProgress",
+      "name": "Check Goal Progress",
+      "description": "View progress towards financial goals",
+      "domain": "proactive",
+      "category": "core",
+      "tags": ["proactive", "goals", "financial", "tracking"]
+    },
+    {
+      "id": "scheduleFollowUp",
+      "name": "Schedule Follow-Up",
+      "description": "Schedule a follow-up conversation about a topic",
+      "domain": "proactive",
+      "category": "core",
+      "tags": ["proactive", "reminders", "follow-up", "scheduling"]
+    },
+    {
+      "id": "suggestCheckIn",
+      "name": "Suggest Check-In",
+      "description": "Get AI-suggested check-in approach based on user state",
+      "domain": "proactive",
+      "category": "core",
+      "tags": ["proactive", "coaching", "suggestions"]
+    },
+    {
+      "id": "triggerCircleBack",
+      "name": "Trigger Circle Back",
+      "description": "Circle back to a topic from earlier in the conversation",
+      "domain": "proactive",
+      "category": "core",
+      "tags": ["proactive", "conversation", "memory"]
+    },
+    {
+      "id": "checkForProactiveOpportunities",
+      "name": "Check For Proactive Opportunities",
+      "description": "Scan for situations that need proactive outreach",
+      "domain": "proactive",
+      "category": "core",
+      "tags": ["proactive", "coaching", "triggers", "detection"]
+    },
+    {
+      "id": "generateProactiveMessage",
+      "name": "Generate Proactive Message",
+      "description": "Create a personalized proactive coaching message based on a trigger",
+      "domain": "proactive",
+      "category": "core",
+      "tags": ["proactive", "coaching", "messaging"]
+    },
+    {
+      "id": "celebrateAchievement",
+      "name": "Celebrate Achievement",
+      "description": "Celebrate a user achievement or milestone",
+      "domain": "proactive",
+      "category": "core",
+      "tags": ["proactive", "coaching", "celebration", "motivation"]
+    },
+    {
+      "id": "createHabit",
+      "name": "Create Habit",
+      "description": "Create a new habit to track, or remove an existing habit. Specify name, frequency (daily/weekly), category, and optional reminders.",
+      "domain": "habits",
+      "category": "lifestyle",
+      "tags": ["habits", "core", "create", "delete"]
+    },
+    {
+      "id": "logHabitCompletion",
+      "name": "Log Habit Completion",
+      "description": "Log that you completed a habit for today. Tracks streaks and awards XP.",
+      "domain": "habits",
+      "category": "lifestyle",
+      "tags": ["habits", "core", "tracking"]
+    },
+    {
+      "id": "getHabits",
+      "name": "Get Habits",
+      "description": "Get habits due today, list all habits, or view stats for a specific habit. Include type: \"due\", \"all\", or \"stats\".",
+      "domain": "habits",
+      "category": "lifestyle",
+      "tags": ["habits", "core", "list", "stats", "today"]
+    },
+    {
+      "id": "habitCheckIn",
+      "name": "Habit Check-In",
+      "description": "Get a personalized check-in on your habit progress with encouragement and insights.",
+      "domain": "habits",
+      "category": "lifestyle",
+      "tags": ["habits", "core", "summary", "checkin"]
+    },
+    {
+      "id": "habitCoach",
+      "name": "Habit Coach",
+      "description": "Get personalized habit coaching: recommendations based on life stage, motivation, encouragement, or Four Tendencies assessment. Mode: \"recommend\", \"motivate\", \"encourage\", or \"assess\".",
+      "domain": "habits",
+      "category": "lifestyle",
+      "tags": ["habits", "coaching", "recommendations", "motivation"]
+    },
+    {
+      "id": "habitSetback",
+      "name": "Habit Setback",
+      "description": "Get compassionate guidance for recovering from a habit setback. Includes identity work and self-compassion.",
+      "domain": "habits",
+      "category": "lifestyle",
+      "tags": ["habits", "coaching", "setback", "recovery"]
+    },
+    {
+      "id": "habitStrategy",
+      "name": "Habit Strategy",
+      "description": "Get habit bundles and stacking strategies - pre-built combinations of habits that work well together for specific goals.",
+      "domain": "habits",
+      "category": "lifestyle",
+      "tags": ["habits", "coaching", "stacking", "bundles", "strategy"]
+    },
+    {
+      "id": "gamificationProfile",
+      "name": "Gamification Profile",
+      "description": "View gamification profile (level, XP, title), badge collection, or award XP/badges. Action: \"profile\", \"badges\", \"award_xp\", or \"award_badge\".",
+      "domain": "habits",
+      "category": "lifestyle",
+      "tags": ["habits", "gamification", "profile", "badges", "rewards"]
+    },
+    {
+      "id": "leaderboard",
+      "name": "Leaderboard",
+      "description": "View leaderboard rankings or configure privacy settings. Action: \"view\" or \"settings\".",
+      "domain": "habits",
+      "category": "lifestyle",
+      "tags": ["habits", "gamification", "leaderboard", "social"]
+    },
+    {
+      "id": "addTask",
+      "name": "Add Task",
+      "description": "Create a new task or to-do item with optional due date and priority. Can also update existing tasks by providing the task ID.",
+      "domain": "productivity",
+      "category": "productivity",
+      "tags": ["productivity", "tasks", "create", "update"]
+    },
+    {
+      "id": "completeTask",
+      "name": "Complete Task",
+      "description": "Mark a task as completed, or delete it entirely if no longer needed",
+      "domain": "productivity",
+      "category": "productivity",
+      "tags": ["productivity", "tasks", "complete", "delete"]
+    },
+    {
+      "id": "getTasks",
+      "name": "Get Tasks",
+      "description": "Get list of tasks filtered by status, category, or due date. Also shows upcoming items and anything waiting for attention.",
+      "domain": "productivity",
+      "category": "productivity",
+      "tags": ["productivity", "tasks", "list", "summary"]
+    },
+    {
+      "id": "saveNote",
+      "name": "Save Note",
+      "description": "Save a note, thought, gratitude, or mood entry. Specify type: \"note\", \"gratitude\", or \"mood\".",
+      "domain": "productivity",
+      "category": "productivity",
+      "tags": ["productivity", "notes", "create", "gratitude", "mood"]
+    },
+    {
+      "id": "getNotes",
+      "name": "Get Notes",
+      "description": "Get recent notes or search by keyword. Returns notes, gratitude entries, and mood logs.",
+      "domain": "productivity",
+      "category": "productivity",
+      "tags": ["productivity", "notes", "list", "search"]
+    },
+    {
+      "id": "journal",
+      "name": "Journal",
+      "description": "Start a journaling session, record entries, get prompts, or view journal history. Action: \"start\", \"write\", \"prompt\", or \"history\".",
+      "domain": "productivity",
+      "category": "productivity",
+      "tags": ["productivity", "notes", "journal"]
+    },
+    {
+      "id": "manageRoutine",
+      "name": "Manage Routine",
+      "description": "Create, list, or delete routines. For creating, specify steps and frequency (daily/weekly).",
+      "domain": "productivity",
+      "category": "productivity",
+      "tags": ["productivity", "routines", "create", "list", "delete"]
+    },
+    {
+      "id": "runRoutine",
+      "name": "Run Routine",
+      "description": "Start a routine, mark steps complete, skip steps, or check progress. Action: \"start\", \"done\", \"skip\", or \"status\".",
+      "domain": "productivity",
+      "category": "productivity",
+      "tags": ["productivity", "routines", "start", "progress"]
+    },
+    {
+      "id": "shoppingList",
+      "name": "Shopping List",
+      "description": "Manage shopping list: add items (supports multiple), view list, check off items, remove items, or clear list. Action: \"add\", \"view\", \"check\", \"remove\", or \"clear\".",
+      "domain": "productivity",
+      "category": "productivity",
+      "tags": ["productivity", "shopping", "add", "list", "check", "remove"]
+    },
+    {
+      "id": "emotionalSupport",
+      "name": "Emotional Support",
+      "description": "Provide compassionate support for difficult emotions. Handles: anxiety (especially financial), stress, overwhelm, discouragement. Also does wellbeing check-ins, encouragement, and guided gratitude practice. Modes: \"support\" (listen and validate), \"checkin\" (how are you really?), or \"gratitude\" (guided appreciation).",
+      "domain": "wellness",
+      "category": "lifestyle",
+      "tags": [
+        "wellness",
+        "emotional",
+        "anxiety",
+        "support",
+        "checkin",
+        "gratitude",
+        "encouragement"
+      ]
+    },
+    {
+      "id": "reframeBelief",
+      "name": "Reframe Belief",
+      "description": "Help reframe unhelpful beliefs into healthier perspectives. Works for: money beliefs, self-worth, scarcity mindset, imposter syndrome, perfectionism. Uses cognitive reframing techniques to shift perspective without dismissing feelings.",
+      "domain": "wellness",
+      "category": "lifestyle",
+      "tags": ["wellness", "emotional", "mindset", "beliefs", "reframe", "cognitive"]
+    },
+    {
+      "id": "manageMedication",
+      "name": "Manage Medication",
+      "description": "Track medications: add new, log doses taken/skipped, update pill count, or stop tracking. Actions: \"add\" (new medication with dosage/schedule), \"take\" (log dose taken), \"skip\" (log skipped dose), \"update\" (pill count), or \"stop\" (remove from tracking). Includes refill reminders.",
+      "domain": "wellness",
+      "category": "lifestyle",
+      "tags": ["wellness", "medications", "add", "take", "skip", "tracking", "refill"]
+    },
+    {
+      "id": "medicationSchedule",
+      "name": "Medication Schedule",
+      "description": "View medication schedule and adherence. Modes: \"today\" (what's due now), \"all\" (list all medications), or \"checkin\" (adherence summary with missed doses and refill alerts). Supports daily reminders and tracking patterns.",
+      "domain": "wellness",
+      "category": "lifestyle",
+      "tags": ["wellness", "medications", "schedule", "today", "list", "checkin", "adherence"]
+    },
+    {
+      "id": "analyzeStock",
+      "name": "Analyze Stock",
+      "description": "Deep analysis of any stock using Peter Lynch's framework. Includes: P/E ratio, PEG ratio, growth rate, category classification (slow grower, stalwart, fast grower, cyclical, turnaround, asset play), and \"the story\" - why this company will succeed. Just provide a ticker symbol like AAPL, COST, or TSLA.",
+      "domain": "research",
+      "category": "financial",
+      "tags": ["research", "stocks", "analysis", "valuation", "peg", "category"]
+    },
+    {
+      "id": "findStocks",
+      "name": "Find Stocks",
+      "description": "Discover stocks matching specific criteria. Modes: \"category\" (find slow growers, stalwarts, fast growers, cyclicals, turnarounds, asset plays), \"ten-baggers\" (potential 10x returns), or \"sector\" (by industry). Great for building a diversified portfolio.",
+      "domain": "research",
+      "category": "financial",
+      "tags": ["research", "stocks", "discovery", "ten-bagger", "category", "search"]
+    },
+    {
+      "id": "marketData",
+      "name": "Market Data",
+      "description": "Get real-time market information. Modes: \"quote\" (current price for any stock ticker), \"summary\" (major indices like S&P 500, Dow, NASDAQ), or \"status\" (are markets open? when do they close?). Essential for staying informed about market conditions.",
+      "domain": "research",
+      "category": "financial",
+      "tags": ["research", "stocks", "quote", "price", "market", "indices"]
+    },
+    {
+      "id": "marketAwareness",
+      "name": "Market Awareness",
+      "description": "Get current date/time with market context: what day of week, is market open, hours until close/open, any market holidays. Helps with timing for trades and financial planning.",
+      "domain": "research",
+      "category": "financial",
+      "tags": ["research", "time", "market-hours", "awareness", "context"]
+    },
+    {
+      "id": "analyzePatterns",
+      "name": "Analyze Patterns",
+      "description": "Find patterns, anomalies, correlations, and trends in data. Modes: \"anomalies\" (unusual patterns), \"correlations\" (relationships between factors), \"trends\" (project future based on history), or \"lever\" (key factor driving outcomes). Essential for data-driven decisions.",
+      "domain": "research",
+      "category": "financial",
+      "tags": ["research", "insights", "patterns", "anomalies", "correlations", "trends"]
+    },
+    {
+      "id": "behavioralInsights",
+      "name": "Behavioral Insights",
+      "description": "Understand behavior patterns and psychological factors. Modes: \"patterns\" (how you typically behave), \"biases\" (cognitive biases affecting decisions like loss aversion, recency bias), or \"recommendations\" (personalized suggestions based on behavior).",
+      "domain": "research",
+      "category": "financial",
+      "tags": ["research", "insights", "behavior", "psychology", "bias"]
+    },
+    {
+      "id": "insightBriefing",
+      "name": "Insight Briefing",
+      "description": "Generate a comprehensive briefing or dashboard of key insights. Synthesizes multiple data sources into actionable summary. Great for: morning briefings, weekly reviews, decision prep.",
+      "domain": "research",
+      "category": "financial",
+      "tags": ["research", "insights", "briefing", "dashboard", "summary"]
+    },
+    {
+      "id": "proactiveInsights",
+      "name": "Proactive Insights",
+      "description": "Automatically scan for opportunities, risks, and actionable insights you should know about. Runs in background and surfaces what matters most. Topics: finances, goals, habits, relationships, or \"all\".",
+      "domain": "research",
+      "category": "financial",
+      "tags": ["research", "insights", "proactive", "scan", "opportunities"]
+    },
+    {
+      "id": "manageEvent",
+      "name": "Manage Event",
+      "description": "Create a new event (wedding, birthday, graduation, etc.), view event summary, get planning checklist, or mark tasks complete. Actions: \"create\", \"summary\", \"checklist\", or \"complete_task\". Supports all event types: weddings, birthdays, baby showers, retirement parties, graduations, and more.",
+      "domain": "life-planning",
+      "category": "lifestyle",
+      "tags": ["life-planning", "events", "create", "summary", "checklist", "tasks"]
+    },
+    {
+      "id": "eventGuests",
+      "name": "Event Guests",
+      "description": "Manage the guest list for an event: add guests, view guest list, track RSVPs. Actions: \"add\", \"list\", or \"rsvp\".",
+      "domain": "life-planning",
+      "category": "lifestyle",
+      "tags": ["life-planning", "events", "guests", "rsvp"]
+    },
+    {
+      "id": "eventBudget",
+      "name": "Event Budget",
+      "description": "Track event budget and expenses, or search for venues. Actions: \"expense\" (track a purchase), \"summary\" (budget overview), or \"venues\" (find venues).",
+      "domain": "life-planning",
+      "category": "lifestyle",
+      "tags": ["life-planning", "events", "budget", "expenses", "venues"]
+    },
+    {
+      "id": "planPurchase",
+      "name": "Plan Major Purchase",
+      "description": "Plan a major purchase (car, home, appliances, etc.). Get a preparation checklist, best time to buy advice, and savings timeline. Supports: cars, homes, electronics, furniture, and other big-ticket items.",
+      "domain": "life-planning",
+      "category": "lifestyle",
+      "tags": ["life-planning", "planning", "purchases", "major", "timing"]
+    },
+    {
+      "id": "planVacation",
+      "name": "Plan Vacation",
+      "description": "Plan a vacation or trip: get destination suggestions based on preferences/budget, create itinerary, or check best times to travel. Actions: \"suggest\" (get destination ideas), \"plan\" (create trip plan), or \"timing\" (best times to go).",
+      "domain": "life-planning",
+      "category": "lifestyle",
+      "tags": ["life-planning", "planning", "vacation", "travel", "destinations"]
+    },
+    {
+      "id": "annualPlan",
+      "name": "Annual Plan",
+      "description": "Create or review your annual life plan with goals and milestones. Actions: \"create\" (new annual plan), \"status\" (check progress), or \"review\" (quarterly review).",
+      "domain": "life-planning",
+      "category": "lifestyle",
+      "tags": ["life-planning", "planning", "annual", "goals", "review"]
+    },
+    {
+      "id": "manageGoal",
+      "name": "Manage Goal",
+      "description": "Create a new goal, update progress, add milestones, or add reflections. Actions: \"create\" (new goal), \"progress\" (update %), \"milestone\" (add milestone), or \"reflect\" (journal entry). Supports any life goal: career, health, financial, relationship, personal growth, etc.",
+      "domain": "life-planning",
+      "category": "lifestyle",
+      "tags": ["life-planning", "goals", "create", "progress", "milestones", "reflection"]
+    },
+    {
+      "id": "goalsSummary",
+      "name": "Goals Summary",
+      "description": "View all goals and their status, get personalized goal ideas, or run a quarterly review. Actions: \"list\" (all goals), \"ideas\" (suggestions based on your life stage), or \"review\" (quarterly check-in).",
+      "domain": "life-planning",
+      "category": "lifestyle",
+      "tags": ["life-planning", "goals", "summary", "list", "ideas", "review"]
+    },
+    {
+      "id": "lifePortfolio",
+      "name": "Life Portfolio",
+      "description": "View or update your life portfolio - a holistic view of satisfaction across all life areas (career, health, relationships, finances, personal growth, etc.). Actions: \"view\" or \"update\" (rate satisfaction 1-10).",
+      "domain": "life-planning",
+      "category": "lifestyle",
+      "tags": ["life-planning", "goals", "portfolio", "life-areas", "satisfaction"]
+    },
+    {
+      "id": "manageMilestone",
+      "name": "Manage Life Milestone",
+      "description": "Track life milestones like first home, first child, wedding, graduation, retirement. Actions: \"create\" (new milestone), \"list\" (view all), \"task\" (update preparation task), or \"note\" (add memory/reflection). Supports all major life transitions.",
+      "domain": "life-planning",
+      "category": "lifestyle",
+      "tags": ["life-planning", "milestones", "create", "list", "tasks", "notes", "firsts"]
+    },
+    {
+      "id": "milestoneSupport",
+      "name": "Milestone Support",
+      "description": "Get tips, advice, and countdown for upcoming milestones. Actions: \"tips\" (preparation advice), \"countdown\" (days until milestone), or \"checklist\" (things to prepare). Great for wedding prep, new baby, home buying, retirement planning.",
+      "domain": "life-planning",
+      "category": "lifestyle",
+      "tags": ["life-planning", "milestones", "tips", "countdown", "advice", "checklist"]
+    },
+    {
+      "id": "inviteCameo",
+      "name": "Invite Team Cameo",
+      "description": "Invite a team member to briefly pop in and share a quick insight",
+      "domain": "cameo",
+      "category": "core",
+      "tags": ["cameo", "team", "collaboration", "pop-in"]
+    },
+    {
+      "id": "completeCameo",
+      "name": "Complete Cameo",
+      "description": "Signal that you are done with your cameo and ready to hand back to Ferni",
+      "domain": "cameo",
+      "category": "core",
+      "tags": ["cameo", "team", "handback"]
+    },
+    {
+      "id": "checkCameoOpportunity",
+      "name": "Check Cameo Opportunity",
+      "description": "Check if bringing in a team member would add value to the current conversation",
+      "domain": "cameo",
+      "category": "core",
+      "tags": ["cameo", "team", "suggestion"]
+    },
+    {
+      "id": "playMusic",
+      "name": "Play Music",
+      "description": "Play music by song, artist, genre, or mood. Searches music catalog and starts playback. Returns track information and playback status.",
+      "domain": "entertainment",
+      "category": "entertainment",
+      "tags": ["entertainment", "music", "playback", "primary", "search", "suggestions"]
+    },
+    {
+      "id": "musicControl",
+      "name": "Music Control",
+      "description": "Control music playback: pause, resume, stop, skip, or adjust volume. Actions: \"pause\", \"resume\", \"stop\", \"skip\", or \"volume\" (with level 0-100).",
+      "domain": "entertainment",
+      "category": "entertainment",
+      "tags": ["entertainment", "music", "playback", "pause", "resume", "stop", "volume"]
+    },
+    {
+      "id": "musicInfo",
+      "name": "Music Info",
+      "description": "Get info about current music: what's playing now, or get suggestions for a mood/activity. Actions: \"playing\" (current track info) or \"suggest\" (recommendations based on mood).",
+      "domain": "entertainment",
+      "category": "entertainment",
+      "tags": ["entertainment", "music", "status", "suggestions", "info"]
+    },
+    {
+      "id": "musicProvider",
+      "name": "Music Provider",
+      "description": "Switch between music providers. Actions: \"spotify\" (requires Premium account for full songs) or \"free\" (30-second previews, works for everyone).",
+      "domain": "entertainment",
+      "category": "entertainment",
+      "tags": ["entertainment", "music", "provider", "spotify", "free"]
+    },
+    {
+      "id": "spotifyAdvanced",
+      "name": "Spotify Advanced",
+      "description": "Advanced Spotify features: transfer playback to another device, search Spotify library, skip songs, or get detailed info about current song/artist/album. Actions: \"transfer\", \"search\", \"skip\", or \"details\". Requires linked Spotify Premium.",
+      "domain": "entertainment",
+      "category": "entertainment",
+      "tags": ["entertainment", "music", "spotify", "transfer", "search", "skip", "details"]
+    },
+    {
+      "id": "callMusic",
+      "name": "Call Music",
+      "description": "Play background music during voice calls: play preview clips, pause, resume, stop, or adjust volume. Actions: \"play\", \"pause\", \"resume\", \"stop\", or \"volume\". Great for hold music or ambiance.",
+      "domain": "entertainment",
+      "category": "entertainment",
+      "tags": ["entertainment", "music", "call", "preview", "background", "ambient"]
+    },
+    {
+      "id": "spotifyStatus",
+      "name": "Spotify Status",
+      "description": "Check Spotify connection status and health. Returns current playback state, linked account info, and connection health.",
+      "domain": "entertainment",
+      "category": "entertainment",
+      "tags": ["entertainment", "music", "spotify", "status", "health"]
+    },
+    {
+      "id": "handoffToAlex",
+      "name": "handoff To Alex",
+      "description": "IMMEDIATELY transfer the conversation to Alex Chen (Communication Coach & Chief of Staff - manages calendars, schedules meetings, sends emails/texts, makes calls, coaches you through difficult conversations, helps with assertive communication, and builds your communication skills). Call silently - do NOT announce the transfer, just execute. After handoff, continue conversation naturally. Use when the user needs help with: hey alex, hi alex, hello alex, send an email, write an email.",
+      "domain": "handoff",
+      "category": "core",
+      "tags": [
+        "handoff",
+        "team",
+        "hey alex",
+        "hi alex",
+        "hello alex",
+        "send an email",
+        "write an email",
+        "draft email",
+        "email to",
+        "compose email",
+        "email someone",
+        "send a message",
+        "schedule",
+        "calendar",
+        "appointment",
+        "meeting",
+        "book a",
+        "set up a call",
+        "find time",
+        "availability",
+        "make a call",
+        "phone call",
+        "call someone",
+        "reach out",
+        "get in touch",
+        "contact",
+        "send a text",
+        "text message",
+        "sms",
+        "talk to alex",
+        "get alex",
+        "alex can",
+        "difficult conversation",
+        "hard conversation",
+        "how do i say",
+        "how should i respond",
+        "ask for a raise",
+        "ask for promotion",
+        "give feedback",
+        "saying no",
+        "set a boundary",
+        "boundaries",
+        "nervous to send",
+        "afraid to ask",
+        "practice conversation",
+        "role play",
+        "review my email",
+        "check my message",
+        "too harsh",
+        "too soft",
+        "follow up",
+        "not responding",
+        "negotiate",
+        "assertive",
+        "communication help",
+        "help me write",
+        "lost my job",
+        "laid off",
+        "got fired",
+        "let go from",
+        "unemployment",
+        "job search",
+        "looking for work",
+        "resume",
+        "cover letter",
+        "interview prep",
+        "interview practice",
+        "job interview",
+        "networking",
+        "linkedin",
+        "resignation",
+        "quitting",
+        "two weeks notice",
+        "exit interview"
+      ]
+    },
+    {
+      "id": "handoffToJordan",
+      "name": "handoff To Jordan",
+      "description": "IMMEDIATELY transfer the conversation to Jordan Taylor (Life milestones & planning - from dreams to decades: vacations, transitions, goals, and celebrating every chapter). Call silently - do NOT announce the transfer, just execute. After handoff, continue conversation naturally. Use when the user needs help with: hey jordan, hi jordan, hello jordan, life plan, lifetime plan.",
+      "domain": "handoff",
+      "category": "core",
+      "tags": [
+        "handoff",
+        "team",
+        "hey jordan",
+        "hi jordan",
+        "hello jordan",
+        "life plan",
+        "lifetime plan",
+        "five year plan",
+        "ten year plan",
+        "bucket list",
+        "life goals",
+        "dream",
+        "vision board",
+        "future planning",
+        "life vision",
+        "what do i want",
+        "where do i see myself",
+        "first home",
+        "buying a house",
+        "new house",
+        "housewarming",
+        "moving",
+        "move in",
+        "closing on",
+        "home buying",
+        "first baby",
+        "expecting",
+        "pregnant",
+        "baby shower",
+        "nursery",
+        "hospital bag",
+        "due date",
+        "new baby",
+        "having kids",
+        "starting a family",
+        "empty nest",
+        "kids leaving",
+        "wedding",
+        "getting married",
+        "engagement",
+        "engaged",
+        "bridal shower",
+        "bachelorette",
+        "bachelor party",
+        "honeymoon",
+        "anniversary",
+        "vow renewal",
+        "divorce",
+        "separation",
+        "new chapter",
+        "graduation",
+        "graduating",
+        "grad party",
+        "college send-off",
+        "first job",
+        "career change",
+        "promotion",
+        "job transition",
+        "milestone birthday",
+        "sweet sixteen",
+        "21st birthday",
+        "turning 30",
+        "turning 40",
+        "turning 50",
+        "turning 60",
+        "retirement",
+        "retiring",
+        "retirement party",
+        "retirement planning",
+        "what comes next",
+        "next chapter",
+        "vacation",
+        "trip",
+        "travel planning",
+        "travel",
+        "adventure",
+        "big purchase",
+        "car",
+        "new car",
+        "party",
+        "celebration",
+        "birthday party",
+        "event",
+        "life milestone",
+        "big moment",
+        "life event",
+        "life transition",
+        "major decision",
+        "crossroads",
+        "life stage",
+        "annual review",
+        "quarterly review",
+        "year planning",
+        "new year goals",
+        "new year resolution",
+        "bar mitzvah",
+        "bat mitzvah",
+        "quinceanera",
+        "first communion",
+        "confirmation",
+        "memorial",
+        "funeral planning",
+        "celebration of life",
+        "legacy",
+        "talk to jordan",
+        "get jordan",
+        "jordan can",
+        "life planner",
+        "event planner",
+        "lifetime planner"
+      ]
+    },
+    {
+      "id": "handoffToMaya",
+      "name": "handoff To Maya",
+      "description": "IMMEDIATELY transfer the conversation to Maya Santos (Life habits across all domains - finance, health, wellness, relationships, productivity, self-care). Call silently - do NOT announce the transfer, just execute. After handoff, continue conversation naturally. Use when the user needs help with: hey maya, hi maya, hello maya, habit, habits.",
+      "domain": "handoff",
+      "category": "core",
+      "tags": [
+        "handoff",
+        "team",
+        "hey maya",
+        "hi maya",
+        "hello maya",
+        "habit",
+        "habits",
+        "routine",
+        "routines",
+        "morning routine",
+        "evening routine",
+        "bedtime routine",
+        "daily routine",
+        "budget",
+        "spending",
+        "how much can i spend",
+        "overspending",
+        "track expenses",
+        "expense tracking",
+        "saving",
+        "save money",
+        "savings goal",
+        "emergency fund",
+        "put away",
+        "set aside",
+        "subscription",
+        "recurring",
+        "cancel subscription",
+        "monthly charges",
+        "what am i paying for",
+        "50/30/20",
+        "spending leak",
+        "where is my money going",
+        "cut costs",
+        "reduce spending",
+        "save more",
+        "exercise",
+        "workout",
+        "work out",
+        "gym",
+        "fitness",
+        "sleep",
+        "sleeping",
+        "sleep better",
+        "insomnia",
+        "wake up early",
+        "morning person",
+        "healthy eating",
+        "eat better",
+        "drink water",
+        "hydration",
+        "meditation",
+        "meditate",
+        "mindfulness",
+        "stress",
+        "stressed",
+        "overwhelmed",
+        "self care",
+        "self-care",
+        "take care of myself",
+        "consistency",
+        "stick with",
+        "keep doing",
+        "build a habit",
+        "start a habit",
+        "break a habit",
+        "stop doing",
+        "quit",
+        "procrastinating",
+        "procrastination",
+        "productivity",
+        "get more done",
+        "focus",
+        "distracted",
+        "phone addiction",
+        "screen time",
+        "talk to maya",
+        "get maya",
+        "maya can",
+        "help me change",
+        "want to improve",
+        "better at",
+        "struggle with",
+        "can't seem to",
+        "broke my streak",
+        "fell off the wagon",
+        "keep failing",
+        "can't stick with",
+        "give up",
+        "start over",
+        "relapse",
+        "bad habit",
+        "stop a habit",
+        "break a bad habit",
+        "environment",
+        "set myself up",
+        "willpower",
+        "motivation",
+        "accountability",
+        "accountability partner",
+        "check in",
+        "stay on track",
+        "reward myself",
+        "temptation",
+        "craving",
+        "urge",
+        "trigger",
+        "what triggers me",
+        "why do I keep",
+        "identity",
+        "type of person",
+        "who I am",
+        "become someone who",
+        "diagnosed",
+        "diagnosis",
+        "health condition",
+        "chronic illness",
+        "chronic pain",
+        "managing symptoms",
+        "treatment plan",
+        "medication routine",
+        "take my meds",
+        "remember medication",
+        "doctor said",
+        "recovery routine",
+        "physical therapy",
+        "rehab exercises",
+        "health scare",
+        "lifestyle change",
+        "health goals",
+        "post-surgery",
+        "managing diabetes",
+        "blood pressure",
+        "cholesterol",
+        "weight management",
+        "mental health routine"
+      ]
+    },
+    {
+      "id": "handoffToNayan",
+      "name": "handoff To Nayan",
+      "description": "IMMEDIATELY transfer the conversation to Nayan (Wisdom & long-term thinking - where inner peace meets compound interest, spiritual depth meets practical action). Call silently - do NOT announce the transfer, just execute. After handoff, continue conversation naturally. Use when the user needs help with: hey nayan, hi nayan, hello nayan, talk to nayan, get nayan.",
+      "domain": "handoff",
+      "category": "core",
+      "tags": [
+        "handoff",
+        "team",
+        "hey nayan",
+        "hi nayan",
+        "hello nayan",
+        "talk to nayan",
+        "get nayan",
+        "mystic",
+        "guru",
+        "spiritual",
+        "meditation",
+        "yoga",
+        "consciousness",
+        "enlightenment",
+        "inner peace",
+        "lifetime advice",
+        "life wisdom",
+        "sage advice",
+        "deep wisdom",
+        "long-term thinking",
+        "big picture",
+        "meaning of life",
+        "existential",
+        "what's the point",
+        "why am I here",
+        "purpose in life",
+        "midlife crisis",
+        "quarter life crisis",
+        "feeling lost",
+        "lost my way",
+        "who am I",
+        "identity crisis",
+        "what matters",
+        "legacy",
+        "mortality",
+        "life and death",
+        "acceptance",
+        "letting go",
+        "impermanence",
+        "suffering",
+        "find peace",
+        "inner peace",
+        "serenity",
+        "contentment",
+        "enough",
+        "when is enough"
+      ]
+    },
+    {
+      "id": "handoffToPeter",
+      "name": "handoff To Peter",
+      "description": "IMMEDIATELY transfer the conversation to Peter John (Research & insights - synthesizes patterns across all domains to drive action and goal setting). Call silently - do NOT announce the transfer, just execute. After handoff, continue conversation naturally. Use when the user needs help with: hey peter, hi peter, hello peter, what patterns, what do you see.",
+      "domain": "handoff",
+      "category": "core",
+      "tags": [
+        "handoff",
+        "team",
+        "hey peter",
+        "hi peter",
+        "hello peter",
+        "what patterns",
+        "what do you see",
+        "analyze",
+        "insights",
+        "insight",
+        "patterns",
+        "trends",
+        "what's the data say",
+        "numbers tell me",
+        "break it down",
+        "deep dive",
+        "research",
+        "what am i missing",
+        "connect the dots",
+        "big picture",
+        "what should i know",
+        "spot anything",
+        "see anything",
+        "what stands out",
+        "anomaly",
+        "unusual",
+        "discovery",
+        "discover",
+        "uncover",
+        "dig into",
+        "stock pick",
+        "stock picking",
+        "individual stock",
+        "company analysis",
+        "research a stock",
+        "ten bagger",
+        "tenbagger",
+        "10 bagger",
+        "growth stock",
+        "value stock",
+        "invest in what you know",
+        "know what you own",
+        "peter john",
+        "find stocks",
+        "stock research",
+        "talk to peter",
+        "get peter",
+        "quant",
+        "the quant",
+        "data analysis",
+        "cross-reference",
+        "correlation",
+        "opportunity",
+        "blind spot",
+        "habits and spending",
+        "time and money",
+        "patterns across",
+        "behavioral insight",
+        "what's really going on",
+        "hit my savings goal",
+        "reached my goal",
+        "savings milestone",
+        "net worth",
+        "paid off debt",
+        "debt free",
+        "paid off my",
+        "six months emergency",
+        "emergency fund complete",
+        "maxed out 401k",
+        "maxed my ira",
+        "first 100k",
+        "crossed 100k",
+        "millionaire",
+        "coast fire",
+        "fire number",
+        "financial independence",
+        "portfolio milestone",
+        "investment anniversary",
+        "compound interest",
+        "dividend milestone",
+        "passive income",
+        "side hustle income",
+        "income milestone"
+      ]
+    },
+    {
+      "id": "handoffToFerni",
+      "name": "handoff To Ferni",
+      "description": "IMMEDIATELY return the conversation to Ferni, the main coordinator. Call silently - do NOT announce the return, just execute. After handoff, continue conversation naturally. Use when: the user's request is outside your expertise, the user asks for another team member, or the conversation naturally concludes your specialty area.",
+      "domain": "handoff",
+      "category": "core",
+      "tags": ["handoff", "team", "return to coordinator", "back to main", "done with specialist"]
+    }
+  ]
+}

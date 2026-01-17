@@ -13,7 +13,7 @@
 
 import type { IncomingMessage, ServerResponse } from 'http';
 import { getOptimizerStatus } from '../services/experiments/auto-optimizer.js';
-import { toolUsageAnalytics } from '../services/tool-usage-analytics.js';
+import { toolUsageAnalytics } from '../services/analytics/tool-usage-analytics.js';
 import { createLogger } from '../utils/safe-logger.js';
 import { rateLimit, requireAuth } from './auth-middleware.js';
 import { handleCorsPreflightIfNeeded, sendError, sendJSON } from './helpers.js';

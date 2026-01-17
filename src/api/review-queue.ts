@@ -18,8 +18,13 @@
 import { getFirestore, type Firestore } from 'firebase-admin/firestore';
 import { getAgent, getTool } from '../marketplace/index.js';
 import type { AgentManifest, ToolManifest } from '../marketplace/schema/types.js';
-import { removeUndefined } from '../utils/firestore-utils.js';
+import { removeUndefined, cleanForFirestore } from '../utils/firestore-utils.js';
 import { getLogger } from '../utils/safe-logger.js';
+import {
+  sendEmail,
+  isEmailDeliveryAvailable,
+} from '../services/outreach/delivery/email-delivery.js';
+import { getPushNotificationsService } from '../services/push-notifications.js';
 
 const log = getLogger().child({ module: 'review-queue' });
 
@@ -488,12 +493,14 @@ export async function assignReviewer(
   const submission = docToSubmission(doc)!;
 
   // Update status and assignment
-  await doc.ref.update({
-    status: 'in_review',
-    assignedTo: reviewerId,
-    reviewerName,
-    assignedAt: new Date(),
-  });
+  await doc.ref.update(
+    cleanForFirestore({
+      status: 'in_review',
+      assignedTo: reviewerId,
+      reviewerName,
+      assignedAt: new Date(),
+    })
+  );
 
   const updated: ReviewSubmission = {
     ...submission,
@@ -544,12 +551,14 @@ export async function submitReview(
 
   // Update submission
   const newStatus: ReviewStatus = decision;
-  await doc.ref.update({
-    status: newStatus,
-    decision,
-    reviewerFeedback: feedback,
-    reviewedAt: new Date(),
-  });
+  await doc.ref.update(
+    cleanForFirestore({
+      status: newStatus,
+      decision,
+      reviewerFeedback: feedback,
+      reviewedAt: new Date(),
+    })
+  );
 
   const updated: ReviewSubmission = {
     ...submission,
@@ -618,7 +627,124 @@ export async function getSubmission(submissionId: string): Promise<ReviewSubmiss
 }
 
 // ============================================================================
-// NOTIFICATION STUBS
+// NOTIFICATION HELPERS
+// ============================================================================
+
+const NOTIFICATIONS_COLLECTION = 'marketplace_notifications';
+
+interface MarketplaceNotification {
+  id?: string;
+  userId: string;
+  type: 'submission_received' | 'review_complete' | 'reviewer_assigned' | 'changes_requested';
+  itemId: string;
+  title: string;
+  message: string;
+  read: boolean;
+  createdAt: Date;
+  metadata?: Record<string, unknown>;
+}
+
+/**
+ * Store in-app notification in Firestore
+ */
+async function storeInAppNotification(
+  notification: Omit<MarketplaceNotification, 'id'>
+): Promise<void> {
+  try {
+    const db = getDb();
+    await db.collection(NOTIFICATIONS_COLLECTION).add(
+      cleanForFirestore({
+        ...notification,
+        createdAt: new Date(),
+      })
+    );
+    log.debug(
+      { userId: notification.userId, type: notification.type },
+      'In-app notification stored'
+    );
+  } catch (error) {
+    log.error({ error: String(error) }, 'Failed to store in-app notification');
+  }
+}
+
+/**
+ * Send push notification to user
+ */
+async function sendPushNotification(
+  userId: string,
+  title: string,
+  body: string,
+  data?: Record<string, unknown>
+): Promise<void> {
+  try {
+    const pushService = getPushNotificationsService();
+    await pushService.sendNotification(userId, {
+      title,
+      body,
+      type: 'general',
+      data,
+    });
+    log.debug({ userId, title }, 'Push notification sent');
+  } catch (error) {
+    log.warn({ error: String(error), userId }, 'Failed to send push notification');
+  }
+}
+
+/**
+ * Send email notification
+ */
+async function sendEmailNotification(
+  toEmail: string,
+  toName: string,
+  userId: string,
+  subject: string,
+  body: string,
+  itemId: string
+): Promise<void> {
+  if (!isEmailDeliveryAvailable()) {
+    log.debug('Email delivery not available, skipping email notification');
+    return;
+  }
+
+  try {
+    await sendEmail({
+      to: toEmail,
+      toName,
+      subject,
+      body,
+      personaId: 'ferni', // Use Ferni styling for marketplace emails
+      userId,
+      outreachId: `marketplace_${itemId}_${Date.now()}`,
+      tags: ['marketplace', 'review-queue'],
+    });
+    log.debug({ toEmail, subject }, 'Email notification sent');
+  } catch (error) {
+    log.warn({ error: String(error), toEmail }, 'Failed to send email notification');
+  }
+}
+
+/**
+ * Get user contact info from Firestore
+ */
+async function getUserContactInfo(userId: string): Promise<{ email?: string; name?: string }> {
+  try {
+    const db = getDb();
+    const userDoc = await db.collection('bogle_users').doc(userId).get();
+    if (!userDoc.exists) return {};
+
+    const data = userDoc.data();
+    return {
+      email: data?.email as string | undefined,
+      name: (data?.name || data?.displayName) as string | undefined,
+    };
+  } catch (error) {
+    log.warn({ error: String(error), userId }, 'Failed to get user contact info');
+    return {};
+  }
+}
+
+// ============================================================================
+// NOTIFICATION IMPLEMENTATIONS
 // ============================================================================
 
 /**
@@ -628,8 +754,39 @@ async function notifyPublisherSubmissionReceived(
   publisherId: string,
   itemId: string
 ): Promise<void> {
-  // TODO: Implement email/in-app notification
-  log.info({ publisherId, itemId }, '[NOTIFICATION] Publisher submission received');
+  log.info({ publisherId, itemId }, 'Sending submission received notification');
+
+  // Store in-app notification
+  await storeInAppNotification({
+    userId: publisherId,
+    type: 'submission_received',
+    itemId,
+    title: 'Submission Received',
+    message: `Your submission for "${itemId}" has been received and is now pending review.`,
+    read: false,
+    createdAt: new Date(),
+  });
+
+  // Send push notification
+  await sendPushNotification(
+    publisherId,
+    'Submission Received',
+    `Your marketplace submission is now pending review.`,
+    { itemId, type: 'submission_received' }
+  );
+
+  // Send email if available
+  const userInfo = await getUserContactInfo(publisherId);
+  if (userInfo.email) {
+    await sendEmailNotification(
+      userInfo.email,
+      userInfo.name || 'Publisher',
+      publisherId,
+      'Marketplace Submission Received',
+      `Hi ${userInfo.name || 'there'},\n\nYour submission for "${itemId}" has been received and is now pending review. Our team will review it shortly.\n\nYou'll receive another notification once the review is complete.\n\nThanks for contributing to the Ferni marketplace!`,
+      itemId
+    );
+  }
 }
 
 /**
@@ -640,16 +797,108 @@ async function notifyPublisherReviewComplete(
   itemId: string,
   decision: ReviewDecision
 ): Promise<void> {
-  // TODO: Implement email/in-app notification
-  log.info({ publisherId, itemId, decision }, '[NOTIFICATION] Publisher review complete');
+  log.info({ publisherId, itemId, decision }, 'Sending review complete notification');
+
+  const decisionMessages: Record<
+    ReviewDecision,
+    { title: string; message: string; emoji: string }
+  > = {
+    approved: {
+      title: 'Submission Approved!',
+      message: `Great news! Your submission for "${itemId}" has been approved and is now live on the marketplace.`,
+      emoji: '🎉',
+    },
+    rejected: {
+      title: 'Submission Not Approved',
+      message: `Unfortunately, your submission for "${itemId}" was not approved. Please review the feedback and consider resubmitting.`,
+      emoji: '❌',
+    },
+    changes_requested: {
+      title: 'Changes Requested',
+      message: `Your submission for "${itemId}" needs some changes before it can be approved. Please review the feedback and resubmit.`,
+      emoji: '📝',
+    },
+  };
+
+  const { title, message, emoji } = decisionMessages[decision];
+
+  // Store in-app notification
+  await storeInAppNotification({
+    userId: publisherId,
+    type: decision === 'changes_requested' ? 'changes_requested' : 'review_complete',
+    itemId,
+    title: `${emoji} ${title}`,
+    message,
+    read: false,
+    createdAt: new Date(),
+    metadata: { decision },
+  });
+
+  // Send push notification
+  await sendPushNotification(publisherId, title, message, {
+    itemId,
+    type: 'review_complete',
+    decision,
+  });
+
+  // Send email if available
+  const userInfo = await getUserContactInfo(publisherId);
+  if (userInfo.email) {
+    const emailBody =
+      decision === 'approved'
+        ? `Hi ${userInfo.name || 'there'},\n\n${emoji} Great news! Your submission for "${itemId}" has been approved and is now live on the Ferni marketplace.\n\nCongratulations on your contribution!\n\nBest,\nThe Ferni Team`
+        : decision === 'changes_requested'
+          ? `Hi ${userInfo.name || 'there'},\n\n${emoji} Your submission for "${itemId}" needs a few changes before it can be approved.\n\nPlease log in to view the reviewer feedback and make the necessary updates. Once you've addressed the changes, you can resubmit for review.\n\nBest,\nThe Ferni Team`
+          : `Hi ${userInfo.name || 'there'},\n\n${emoji} Unfortunately, your submission for "${itemId}" was not approved at this time.\n\nPlease log in to view the reviewer feedback for more details. You're welcome to address any concerns and resubmit.\n\nBest,\nThe Ferni Team`;
+
+    await sendEmailNotification(
+      userInfo.email,
+      userInfo.name || 'Publisher',
+      publisherId,
+      `Marketplace Review: ${title}`,
+      emailBody,
+      itemId
+    );
+  }
 }
 
 /**
  * Notify reviewer of new assignment
  */
 async function notifyReviewerNewAssignment(reviewerId: string, itemId: string): Promise<void> {
-  // TODO: Implement email/in-app notification
-  log.info({ reviewerId, itemId }, '[NOTIFICATION] Reviewer new assignment');
+  log.info({ reviewerId, itemId }, 'Sending reviewer assignment notification');
+
+  // Store in-app notification
+  await storeInAppNotification({
+    userId: reviewerId,
+    type: 'reviewer_assigned',
+    itemId,
+    title: 'New Review Assignment',
+    message: `You have been assigned to review "${itemId}". Please complete your review at your earliest convenience.`,
+    read: false,
+    createdAt: new Date(),
+  });
+
+  // Send push notification
+  await sendPushNotification(
+    reviewerId,
+    'New Review Assignment',
+    `You've been assigned a new marketplace item to review.`,
+    { itemId, type: 'reviewer_assigned' }
+  );
+
+  // Send email if available
+  const userInfo = await getUserContactInfo(reviewerId);
+  if (userInfo.email) {
+    await sendEmailNotification(
+      userInfo.email,
+      userInfo.name || 'Reviewer',
+      reviewerId,
+      'New Marketplace Review Assignment',
+      `Hi ${userInfo.name || 'there'},\n\nYou have been assigned to review the marketplace submission "${itemId}".\n\nPlease log in to the admin panel to complete your review.\n\nBest,\nThe Ferni Team`,
+      itemId
+    );
+  }
 }
 
 // ============================================================================

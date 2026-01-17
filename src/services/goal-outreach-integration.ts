@@ -13,10 +13,12 @@
  * PERSISTENCE: Goals and streaks are persisted to Firestore.
  */
 
-import { canReachUser, scheduleEmail, scheduleText } from '../tools/proactive-outreach.js';
+import { canReachUser, scheduleEmail, scheduleText } from './outreach/user-contact.js';
 import { getLogger } from '../utils/safe-logger.js';
+import { registerInterval, clearNamedInterval, hasInterval } from '../utils/interval-manager.js';
 import { canSendOutreach, getPreferences } from './outreach-intelligence.js';
 import { createPersistenceStore, type PersistenceStore } from './persistence/index.js';
+import { cleanForFirestore } from '../utils/firestore-utils.js';
 
 // ============================================================================
 // TYPES
@@ -218,7 +220,7 @@ async function ensureUserLoaded(userId: string): Promise<void> {
  */
 function persistGoals(userId: string): void {
   const goals = goalStore.get(userId) || [];
-  getGoalPersistence().set(userId, {
+  getGoalPersistence().set(cleanForFirestore(userId), {
     goals: goals.map(serializeGoal),
   });
 }
@@ -228,7 +230,7 @@ function persistGoals(userId: string): void {
  */
 function persistStreaks(userId: string): void {
   const streaks = streakStore.get(userId) || [];
-  getStreakPersistence().set(userId, {
+  getStreakPersistence().set(cleanForFirestore(userId), {
     streaks: streaks.map(serializeStreak),
   });
 }
@@ -681,7 +683,7 @@ export async function sendMissedCheckInNudges(maxDaysSinceContact = 3): Promise<
 
   try {
     // Get engagement store to find users who haven't interacted recently
-    const { getEngagementStore } = await import('./engagement-store.js');
+    const { getEngagementStore } = await import('./engagement/engagement-store.js');
     const store = await getEngagementStore();
 
     if (!store) {
@@ -783,44 +785,45 @@ function generateMissedCheckInMessage(daysSinceContact: number, goal: Goal): str
 // SCHEDULED JOBS
 // ============================================================================
 
-let goalCheckInterval: NodeJS.Timeout | null = null;
+const GOAL_MONITORING_INTERVAL = 'goal-outreach-monitoring';
 
 /**
  * Start the goal monitoring background job
  */
 export function startGoalMonitoring(intervalMs: number = 60 * 60 * 1000): void {
-  if (goalCheckInterval) {
+  if (hasInterval(GOAL_MONITORING_INTERVAL)) {
     getLogger().warn('Goal monitoring already running');
     return;
   }
 
   getLogger().info({ intervalMs }, '🎯 Starting goal monitoring');
 
-  goalCheckInterval = setInterval(() => {
-    void (async () => {
-      try {
-        const streakAlerts = await checkAtRiskStreaks();
-        const deadlineAlerts = await checkGoalDeadlines();
+  registerInterval(
+    GOAL_MONITORING_INTERVAL,
+    () => {
+      void (async () => {
+        try {
+          const streakAlerts = await checkAtRiskStreaks();
+          const deadlineAlerts = await checkGoalDeadlines();
 
-        if (streakAlerts > 0 || deadlineAlerts > 0) {
-          getLogger().info({ streakAlerts, deadlineAlerts }, '📊 Goal monitoring cycle complete');
+          if (streakAlerts > 0 || deadlineAlerts > 0) {
+            getLogger().info({ streakAlerts, deadlineAlerts }, '📊 Goal monitoring cycle complete');
+          }
+        } catch (error) {
+          getLogger().error({ error }, 'Goal monitoring error');
         }
-      } catch (error) {
-        getLogger().error({ error }, 'Goal monitoring error');
-      }
-    })();
-  }, intervalMs);
+      })();
+    },
+    intervalMs
+  );
 }
 
 /**
  * Stop the goal monitoring background job
  */
 export function stopGoalMonitoring(): void {
-  if (goalCheckInterval) {
-    clearInterval(goalCheckInterval);
-    goalCheckInterval = null;
-    getLogger().info('Goal monitoring stopped');
-  }
+  clearNamedInterval(GOAL_MONITORING_INTERVAL);
+  getLogger().info('Goal monitoring stopped');
 }
 
 // ============================================================================

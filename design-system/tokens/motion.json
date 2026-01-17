@@ -2,50 +2,74 @@
   "$schema": "./schema.json",
   "meta": {
     "name": "Ferni Motion Tokens",
-    "description": "Animation timing, easing, and choreography definitions",
-    "version": "1.0.0"
+    "description": "Animation timing, easing, and choreography definitions - Single Source of Truth for all Ferni motion language",
+    "version": "2.0.0",
+    "source": "Extracted from design-system/playground/ferni-alive.html",
+    "pixarPrinciples": [
+      "Squash & Stretch - Organic deformation during movement",
+      "Anticipation - Wind-up before action",
+      "Staging - Clear focus on important elements",
+      "Follow Through & Overlapping - Secondary actions trail primary",
+      "Slow In & Slow Out - Natural acceleration/deceleration",
+      "Arcs - Natural curved motion paths",
+      "Secondary Action - Supporting movements reinforce main action",
+      "Timing - Personality through speed",
+      "Exaggeration - Emphasis through amplification",
+      "Appeal - Charismatic, engaging motion"
+    ]
   },
-  
+
   "duration": {
-    "micro": {
-      "value": 50,
+    "_comment": "Timing categories from ferni-alive.html animation system",
+    "instant": {
+      "value": 40,
       "unit": "ms",
-      "description": "Immediate feedback, imperceptible"
+      "description": "Micro-expressions, subliminal (40-80ms)"
     },
-    "fast": {
+    "micro": {
+      "value": 80,
+      "unit": "ms",
+      "description": "Micro-expressions upper bound"
+    },
+    "quick": {
       "value": 100,
       "unit": "ms",
-      "description": "Hover states, focus rings"
+      "description": "Quick feedback (100-150ms)"
+    },
+    "fast": {
+      "value": 150,
+      "unit": "ms",
+      "description": "Blink duration from ferni-alive.html"
     },
     "normal": {
-      "value": 200,
+      "value": 250,
       "unit": "ms",
-      "description": "Standard UI transitions"
+      "description": "Standard UI transitions (250-400ms)"
     },
     "slow": {
-      "value": 300,
-      "unit": "ms",
-      "description": "Deliberate, noticeable moves"
-    },
-    "moderate": {
       "value": 400,
       "unit": "ms",
-      "description": "Panel slides, page transitions"
+      "description": "Deliberate, noticeable moves (400-600ms)"
+    },
+    "moderate": {
+      "value": 450,
+      "unit": "ms",
+      "description": "Speaking pulse from ferni-alive.html"
     },
     "deliberate": {
-      "value": 500,
-      "unit": "ms",
-      "description": "Emphasis, important changes"
-    },
-    "dramatic": {
       "value": 600,
       "unit": "ms",
-      "description": "Celebrations, major events"
+      "description": "Emphasis, sparkle rotation (600-1000ms)"
     },
-    "celebration": {
+    "dramatic": {
       "value": 800,
       "unit": "ms",
-      "description": "Full celebration sequences"
+      "description": "Eyes group transition from ferni-alive.html"
+    },
+    "celebration": {
+      "value": 1000,
+      "unit": "ms",
+      "description": "Contemplative transitions (1000ms+)"
     },
     "glacial": {
       "value": 1500,
@@ -53,8 +77,9 @@
       "description": "Ambient, background effects"
     }
   },
-  
+
   "easing": {
+    "_comment": "Exact values from ferni-alive.html CSS variables (lines 18-24)",
     "standard": {
       "value": "cubic-bezier(0.4, 0.0, 0.2, 1)",
       "description": "Material standard deceleration"
@@ -73,7 +98,11 @@
     },
     "spring": {
       "value": "cubic-bezier(0.34, 1.56, 0.64, 1)",
-      "description": "Expressive bounce with overshoot"
+      "description": "Expressive bounce with overshoot - FROM ferni-alive.html --ease-spring"
+    },
+    "springHeavy": {
+      "value": "cubic-bezier(0.34, 1.8, 0.64, 1)",
+      "description": "Stronger bounce - FROM ferni-alive.html --ease-spring-heavy"
     },
     "springGentle": {
       "value": "cubic-bezier(0.34, 1.2, 0.64, 1)",
@@ -84,8 +113,12 @@
       "description": "Dramatic exit deceleration"
     },
     "gentle": {
-      "value": "cubic-bezier(0.25, 0.1, 0.25, 1)",
-      "description": "Organic, natural easing"
+      "value": "cubic-bezier(0.4, 0, 0.2, 1)",
+      "description": "FROM ferni-alive.html --ease-gentle"
+    },
+    "organic": {
+      "value": "cubic-bezier(0.25, 0.46, 0.45, 0.94)",
+      "description": "FROM ferni-alive.html --ease-organic"
     },
     "anticipate": {
       "value": "cubic-bezier(0.38, -0.4, 0.88, 0.65)",
@@ -93,7 +126,7 @@
     },
     "bounce": {
       "value": "cubic-bezier(0.68, -0.55, 0.265, 1.55)",
-      "description": "Strong bounce effect"
+      "description": "FROM ferni-alive.html --ease-bounce"
     },
     "elastic": {
       "value": "cubic-bezier(0.5, 1.8, 0.5, 0.8)",
@@ -404,6 +437,321 @@
         { "partial": "I need to tell you", "tone": "any", "emotion": "attentive" },
         { "partial": "Actually", "tone": "any", "emotion": "curious" }
       ]
+    }
+  },
+
+  "breathCycles": {
+    "_comment": "Extracted from ferni-alive.html breathing animations (lines 231-247)",
+    "idle": {
+      "duration": 4000,
+      "unit": "ms",
+      "expansion": {
+        "scaleY": 1.018,
+        "scaleX": 0.994,
+        "description": "Subtle chest expansion - 1.8% vertical, -0.6% horizontal"
+      },
+      "easing": "gentle",
+      "description": "Natural resting breath cycle"
+    },
+    "calm": {
+      "duration": 5000,
+      "unit": "ms",
+      "expansion": {
+        "scaleY": 1.02,
+        "scaleX": 0.99
+      },
+      "easing": "gentle",
+      "description": "Slower, deeper calm breathing"
+    },
+    "excited": {
+      "duration": 2500,
+      "unit": "ms",
+      "expansion": {
+        "scaleY": 1.025,
+        "scaleX": 0.985
+      },
+      "easing": "spring",
+      "description": "Quick, energetic breathing"
+    },
+    "speaking": {
+      "duration": 1800,
+      "unit": "ms",
+      "expansion": {
+        "scaleY": 1.03,
+        "scaleX": 0.98
+      },
+      "easing": "organic",
+      "description": "Breath rhythm while speaking"
+    },
+    "ringDelay": {
+      "value": 300,
+      "unit": "ms",
+      "description": "Ring breathe delay offset from body"
+    }
+  },
+
+  "blinkTiming": {
+    "_comment": "Extracted from ferni-alive.html blink animations (lines 256-262, 3591-3597)",
+    "duration": {
+      "value": 150,
+      "unit": "ms",
+      "description": "Blink animation duration"
+    },
+    "intervalRange": {
+      "min": 3000,
+      "max": 7000,
+      "unit": "ms",
+      "description": "Random interval between blinks (3000 + Math.random() * 4000)"
+    },
+    "lidTransition": {
+      "duration": 350,
+      "unit": "ms",
+      "easing": "spring",
+      "description": "Lid shape transition timing"
+    },
+    "halfBlink": {
+      "duration": 100,
+      "unit": "ms",
+      "description": "Quick half-blink for expression changes"
+    },
+    "slowBlink": {
+      "duration": 300,
+      "unit": "ms",
+      "description": "Contemplative slow blink"
+    }
+  },
+
+  "gazeDrift": {
+    "_comment": "Extracted from ferni-alive.html gaze animations (lines 284-288)",
+    "cycle": {
+      "value": 8000,
+      "unit": "ms",
+      "description": "Full gaze drift cycle duration"
+    },
+    "eyesGroupTransition": {
+      "duration": 800,
+      "unit": "ms",
+      "easing": "organic",
+      "description": "Eyes group movement timing"
+    },
+    "range": {
+      "x": { "min": -3, "max": 3, "unit": "px" },
+      "y": { "min": -2, "max": 2, "unit": "px" },
+      "description": "Subtle natural eye movement range"
+    },
+    "easing": "organic"
+  },
+
+  "speakingAnimation": {
+    "_comment": "Extracted from ferni-alive.html speaking state (lines 324-327)",
+    "pulseDuration": {
+      "value": 450,
+      "unit": "ms",
+      "description": "Speaking pulse cycle"
+    },
+    "waveformHeights": {
+      "idle": { "min": 0.1, "max": 0.2, "description": "Minimal ambient movement" },
+      "listening": { "min": 0.15, "max": 0.35, "description": "Responsive to input audio" },
+      "speaking": { "min": 0.4, "max": 0.9, "description": "Active speech visualization" },
+      "excited": { "min": 0.6, "max": 1.0, "description": "High energy speech" },
+      "whisper": { "min": 0.1, "max": 0.3, "description": "Quiet, intimate speech" }
+    },
+    "sparkle": {
+      "rotateDuration": 600,
+      "unit": "ms",
+      "easing": "spring",
+      "description": "Sparkle rotation while speaking"
+    }
+  },
+
+  "glowProperties": {
+    "_comment": "Glow animation properties for emotional states",
+    "idle": {
+      "blur": 20,
+      "spread": 8,
+      "opacity": 0.4,
+      "pulseDuration": 4000,
+      "description": "Subtle ambient glow"
+    },
+    "active": {
+      "blur": 30,
+      "spread": 12,
+      "opacity": 0.6,
+      "pulseDuration": 2000,
+      "description": "Engaged, present glow"
+    },
+    "excited": {
+      "blur": 40,
+      "spread": 16,
+      "opacity": 0.8,
+      "pulseDuration": 1500,
+      "description": "High energy glow"
+    },
+    "calm": {
+      "blur": 25,
+      "spread": 10,
+      "opacity": 0.35,
+      "pulseDuration": 5000,
+      "description": "Peaceful, steady glow"
+    },
+    "concern": {
+      "blur": 22,
+      "spread": 8,
+      "opacity": 0.5,
+      "pulseDuration": 3000,
+      "description": "Warm, supportive glow"
+    }
+  },
+
+  "expressionTransforms": {
+    "_comment": "SVG path morphing for lid expressions",
+    "neutral": {
+      "lidPath": "M 8,12 Q 16,8 24,12",
+      "pupilScale": 1.0,
+      "description": "Default relaxed state"
+    },
+    "happy": {
+      "lidPath": "M 8,14 Q 16,6 24,14",
+      "pupilScale": 1.1,
+      "description": "Upturned, joyful eyes"
+    },
+    "curious": {
+      "lidPath": "M 8,10 Q 16,10 24,10",
+      "pupilScale": 1.15,
+      "description": "Wide, interested eyes"
+    },
+    "concerned": {
+      "lidPath": "M 8,11 Q 16,13 24,11",
+      "pupilScale": 0.95,
+      "description": "Slightly furrowed, caring"
+    },
+    "sleepy": {
+      "lidPath": "M 8,14 Q 16,12 24,14",
+      "pupilScale": 0.9,
+      "description": "Heavy-lidded, drowsy"
+    },
+    "surprised": {
+      "lidPath": "M 8,8 Q 16,10 24,8",
+      "pupilScale": 1.25,
+      "description": "Wide open, alert"
+    }
+  },
+
+  "animationLayers": {
+    "_comment": "Layered animation system from ferni-alive.html (lines 3232-3255)",
+    "breathing": {
+      "priority": 1,
+      "cycle": 4000,
+      "expansion": 0.018,
+      "description": "Always-on base layer"
+    },
+    "blinking": {
+      "priority": 2,
+      "intervalMin": 3000,
+      "intervalMax": 7000,
+      "description": "Random natural blinking"
+    },
+    "gazeDrift": {
+      "priority": 3,
+      "cycle": 8000,
+      "description": "Subtle eye movement"
+    },
+    "anticipation": {
+      "priority": 4,
+      "overshoot": true,
+      "description": "Slight overshoot on transitions"
+    },
+    "expression": {
+      "priority": 5,
+      "duration": 350,
+      "description": "Emotional state changes"
+    },
+    "speaking": {
+      "priority": 6,
+      "overridesBreathing": true,
+      "description": "Active speech animation"
+    }
+  },
+
+  "secondaryActionOffsets": {
+    "_comment": "Follow-through and overlapping action timing (Pixar principle)",
+    "ringFromBody": {
+      "delay": 300,
+      "unit": "ms",
+      "description": "Ring follows body movement"
+    },
+    "sparkleFromCore": {
+      "delay": 100,
+      "unit": "ms",
+      "description": "Sparkles trail core motion"
+    },
+    "glowFromExpression": {
+      "delay": 150,
+      "unit": "ms",
+      "description": "Glow responds to expression"
+    },
+    "lidFromGaze": {
+      "delay": 50,
+      "unit": "ms",
+      "description": "Lid shape follows gaze direction"
+    }
+  },
+
+  "cinematicMoments": {
+    "description": "Full-screen cinematic experiences for special occasions",
+    
+    "winterSolstice": {
+      "description": "The shortest day, the longest warmth - a Pixar-quality year reflection",
+      "duration": {
+        "total": 18000,
+        "act1_darkness": 3000,
+        "act2_constellation": 3000,
+        "act3_sunrise": 4000,
+        "act4_gathering": 4000,
+        "act5_promise": 4000
+      },
+      "colors": {
+        "skyTop": "#0d1b2a",
+        "skyMid": "#1b263b",
+        "horizon": "#2c3e50",
+        "dawnHorizon": "#d4a574",
+        "dawnSkyMid": "#2d4a5a",
+        "sunCore": "#f8e8c8",
+        "sunMid": "#f4d9a5",
+        "sunOuter": "#e8c088",
+        "star": "#f0f4ff",
+        "constellation": "rgba(240, 244, 255, 0.4)",
+        "snow": "#ffffff",
+        "fog": "#c4b8a8"
+      },
+      "animations": {
+        "starTwinkle": {
+          "duration": "1000-3000ms",
+          "easing": "sine.inOut"
+        },
+        "sunRise": {
+          "duration": 2000,
+          "easing": "power1.out",
+          "translateY": -350
+        },
+        "snowFall": {
+          "duration": "8000-12000ms",
+          "easing": "none",
+          "particleCount": 30
+        },
+        "teamOrb": {
+          "duration": 300,
+          "easing": "back.out(1.7)",
+          "stagger": 150
+        }
+      },
+      "storyBeats": {
+        "act1": "DAWN - The darkest moment before light (acknowledgment)",
+        "act2": "REFLECTION - Stars that represent memories/growth",
+        "act3": "RETURN - The sun rises (hope)",
+        "act4": "GATHERING - The team comes together (warmth)",
+        "act5": "PROMISE - A commitment for the year ahead"
+      }
     }
   }
 }

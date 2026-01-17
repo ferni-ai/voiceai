@@ -1,0 +1,1271 @@
+{
+  "" : {
+    "const-values" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/LiveKit-primary.swiftconstvalues",
+    "dependencies" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/LiveKit-primary.d",
+    "diagnostics" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/LiveKit-primary.dia",
+    "emit-module-dependencies" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/LiveKit-primary-emit-module.d",
+    "emit-module-diagnostics" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/LiveKit-primary-emit-module.dia",
+    "pch" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/LiveKit-primary-Bridging-header.pch",
+    "swift-dependencies" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/LiveKit-primary.swiftdeps"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Agent/Agent.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/Agent.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/Agent.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/Agent.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Agent/Chat/Message.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/Message.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/Message.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/Message.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Agent/Chat/Receive/MessageReceiver.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/MessageReceiver.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/MessageReceiver.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/MessageReceiver.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Agent/Chat/Receive/TranscriptionDelegateReceiver.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/TranscriptionDelegateReceiver.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/TranscriptionDelegateReceiver.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/TranscriptionDelegateReceiver.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Agent/Chat/Receive/TranscriptionStreamReceiver.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/TranscriptionStreamReceiver.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/TranscriptionStreamReceiver.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/TranscriptionStreamReceiver.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Agent/Chat/Send/MessageSender.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/MessageSender.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/MessageSender.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/MessageSender.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Agent/Chat/Send/TextMessageSender.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/TextMessageSender.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/TextMessageSender.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/TextMessageSender.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Agent/Participant+Agent.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/Participant+Agent.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/Participant+Agent.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/Participant+Agent.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Agent/Room+Agent.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/Room+Agent.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/Room+Agent.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/Room+Agent.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Agent/Session.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/Session.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/Session.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/Session.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Agent/SessionOptions.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/SessionOptions.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/SessionOptions.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/SessionOptions.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Audio/AudioDeviceModuleDelegateAdapter.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/AudioDeviceModuleDelegateAdapter.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/AudioDeviceModuleDelegateAdapter.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/AudioDeviceModuleDelegateAdapter.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Audio/AudioEngineObserver.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/AudioEngineObserver.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/AudioEngineObserver.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/AudioEngineObserver.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Audio/AudioSessionEngineObserver.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/AudioSessionEngineObserver.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/AudioSessionEngineObserver.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/AudioSessionEngineObserver.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Audio/Manager/AudioManager+ModuleType.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/AudioManager+ModuleType.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/AudioManager+ModuleType.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/AudioManager+ModuleType.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Audio/Manager/AudioManager+MuteMode.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/AudioManager+MuteMode.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/AudioManager+MuteMode.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/AudioManager+MuteMode.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Audio/Manager/AudioManager+Testing.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/AudioManager+Testing.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/AudioManager+Testing.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/AudioManager+Testing.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Audio/Manager/AudioManager.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/AudioManager.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/AudioManager.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/AudioManager.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Audio/MixerEngineObserver.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/MixerEngineObserver.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/MixerEngineObserver.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/MixerEngineObserver.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Broadcast/BroadcastBundleInfo.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/BroadcastBundleInfo.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/BroadcastBundleInfo.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/BroadcastBundleInfo.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Broadcast/BroadcastManager.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/BroadcastManager.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/BroadcastManager.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/BroadcastManager.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Broadcast/BroadcastScreenCapturer.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/BroadcastScreenCapturer.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/BroadcastScreenCapturer.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/BroadcastScreenCapturer.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Broadcast/IPC/BroadcastAudioCodec.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/BroadcastAudioCodec.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/BroadcastAudioCodec.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/BroadcastAudioCodec.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Broadcast/IPC/BroadcastIPCHeader.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/BroadcastIPCHeader.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/BroadcastIPCHeader.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/BroadcastIPCHeader.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Broadcast/IPC/BroadcastImageCodec.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/BroadcastImageCodec.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/BroadcastImageCodec.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/BroadcastImageCodec.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Broadcast/IPC/BroadcastReceiver.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/BroadcastReceiver.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/BroadcastReceiver.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/BroadcastReceiver.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Broadcast/IPC/BroadcastUploader.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/BroadcastUploader.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/BroadcastUploader.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/BroadcastUploader.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Broadcast/IPC/IPCChannel.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/IPCChannel.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/IPCChannel.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/IPCChannel.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Broadcast/IPC/IPCProtocol.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/IPCProtocol.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/IPCProtocol.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/IPCProtocol.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Broadcast/IPC/SocketPath.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/SocketPath.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/SocketPath.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/SocketPath.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Broadcast/LKSampleHandler.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/LKSampleHandler.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/LKSampleHandler.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/LKSampleHandler.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Broadcast/Support/DarwinNotificationCenter.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/DarwinNotificationCenter.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/DarwinNotificationCenter.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/DarwinNotificationCenter.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Convenience/AudioProcessing.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/AudioProcessing.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/AudioProcessing.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/AudioProcessing.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Core/DataChannelPair.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/DataChannelPair.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/DataChannelPair.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/DataChannelPair.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Core/PreConnectAudioBuffer.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/PreConnectAudioBuffer.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/PreConnectAudioBuffer.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/PreConnectAudioBuffer.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Core/RPC.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/RPC.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/RPC.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/RPC.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Core/RTC.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/RTC.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/RTC.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/RTC.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Core/Room+Convenience.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/Room+Convenience.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/Room+Convenience.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/Room+Convenience.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Core/Room+DataStream.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/Room+DataStream.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/Room+DataStream.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/Room+DataStream.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Core/Room+Debug.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/Room+Debug.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/Room+Debug.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/Room+Debug.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Core/Room+Engine.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/Room+Engine.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/Room+Engine.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/Room+Engine.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Core/Room+EngineDelegate.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/Room+EngineDelegate.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/Room+EngineDelegate.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/Room+EngineDelegate.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Core/Room+MulticastDelegate.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/Room+MulticastDelegate.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/Room+MulticastDelegate.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/Room+MulticastDelegate.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Core/Room+PreConnect.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/Room+PreConnect.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/Room+PreConnect.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/Room+PreConnect.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Core/Room+RPC.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/Room+RPC.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/Room+RPC.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/Room+RPC.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Core/Room+SignalClientDelegate.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/Room+SignalClientDelegate.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/Room+SignalClientDelegate.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/Room+SignalClientDelegate.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Core/Room+TransportDelegate.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/Room+TransportDelegate.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/Room+TransportDelegate.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/Room+TransportDelegate.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Core/Room.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/Room.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/Room.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/Room.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Core/SignalClient.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/SignalClient.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/SignalClient.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/SignalClient.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Core/Transport.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/Transport.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/Transport.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/Transport.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/DataStream/FileInfo.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/FileInfo.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/FileInfo.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/FileInfo.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/DataStream/Incoming/ByteStreamReader.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/ByteStreamReader.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/ByteStreamReader.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/ByteStreamReader.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/DataStream/Incoming/IncomingStreamManager.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/IncomingStreamManager.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/IncomingStreamManager.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/IncomingStreamManager.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/DataStream/Incoming/StreamReaderSource.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/StreamReaderSource.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/StreamReaderSource.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/StreamReaderSource.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/DataStream/Incoming/TextStreamReader.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/TextStreamReader.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/TextStreamReader.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/TextStreamReader.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/DataStream/Outgoing/ByteStreamWriter.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/ByteStreamWriter.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/ByteStreamWriter.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/ByteStreamWriter.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/DataStream/Outgoing/OutgoingStreamManager.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/OutgoingStreamManager.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/OutgoingStreamManager.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/OutgoingStreamManager.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/DataStream/Outgoing/StreamData.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/StreamData.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/StreamData.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/StreamData.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/DataStream/Outgoing/StreamWriterDestination.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/StreamWriterDestination.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/StreamWriterDestination.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/StreamWriterDestination.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/DataStream/Outgoing/TextStreamWriter.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/TextStreamWriter.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/TextStreamWriter.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/TextStreamWriter.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/DataStream/StreamError.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/StreamError.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/StreamError.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/StreamError.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/DataStream/StreamInfo.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/StreamInfo.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/StreamInfo.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/StreamInfo.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/DataStream/StreamOptions.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/StreamOptions.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/StreamOptions.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/StreamOptions.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/E2EE/E2EEManager.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/E2EEManager.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/E2EEManager.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/E2EEManager.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/E2EE/KeyProvider.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/KeyProvider.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/KeyProvider.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/KeyProvider.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/E2EE/Options.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/Options.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/Options.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/Options.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/E2EE/Protos+E2EE.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/Protos+E2EE.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/Protos+E2EE.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/Protos+E2EE.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/E2EE/State.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/State.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/State.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/State.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Errors.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/Errors.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/Errors.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/Errors.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Extensions/AVAudioPCMBuffer.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/AVAudioPCMBuffer.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/AVAudioPCMBuffer.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/AVAudioPCMBuffer.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Extensions/AVCaptureDevice.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/AVCaptureDevice.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/AVCaptureDevice.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/AVCaptureDevice.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Extensions/AsyncSequence.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/AsyncSequence.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/AsyncSequence.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/AsyncSequence.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Extensions/CGFloat.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/CGFloat.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/CGFloat.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/CGFloat.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Extensions/Codable.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/Codable.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/Codable.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/Codable.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Extensions/CoreImage.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/CoreImage.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/CoreImage.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/CoreImage.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Extensions/CustomStringConvertible.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/CustomStringConvertible.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/CustomStringConvertible.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/CustomStringConvertible.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Extensions/DispatchQueue.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/DispatchQueue.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/DispatchQueue.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/DispatchQueue.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Extensions/LKRTCRtpSender.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/LKRTCRtpSender.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/LKRTCRtpSender.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/LKRTCRtpSender.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Extensions/PixelBuffer.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/PixelBuffer.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/PixelBuffer.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/PixelBuffer.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Extensions/Primitives.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/Primitives.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/Primitives.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/Primitives.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Extensions/RTCConfiguration.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/RTCConfiguration.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/RTCConfiguration.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/RTCConfiguration.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Extensions/RTCDataChannel+Util.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/RTCDataChannel+Util.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/RTCDataChannel+Util.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/RTCDataChannel+Util.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Extensions/RTCI420Buffer.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/RTCI420Buffer.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/RTCI420Buffer.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/RTCI420Buffer.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Extensions/RTCMediaConstraints.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/RTCMediaConstraints.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/RTCMediaConstraints.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/RTCMediaConstraints.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Extensions/RTCRtpTransceiver.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/RTCRtpTransceiver.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/RTCRtpTransceiver.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/RTCRtpTransceiver.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Extensions/RTCVideoCapturerDelegate+Buffer.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/RTCVideoCapturerDelegate+Buffer.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/RTCVideoCapturerDelegate+Buffer.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/RTCVideoCapturerDelegate+Buffer.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Extensions/Sendable.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/Sendable.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/Sendable.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/Sendable.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Extensions/String.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/String.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/String.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/String.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Extensions/TimeInterval.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/TimeInterval.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/TimeInterval.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/TimeInterval.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Extensions/URL.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/URL.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/URL.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/URL.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/LiveKit+DeviceHelpers.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/LiveKit+DeviceHelpers.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/LiveKit+DeviceHelpers.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/LiveKit+DeviceHelpers.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/LiveKit.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/LiveKit-0f921acc1f1b2df5003808a12eff92d9.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/LiveKit-0f921acc1f1b2df5003808a12eff92d9.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/LiveKit-0f921acc1f1b2df5003808a12eff92d9.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Participant/LocalParticipant+DataStream.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/LocalParticipant+DataStream.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/LocalParticipant+DataStream.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/LocalParticipant+DataStream.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Participant/LocalParticipant+RPC.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/LocalParticipant+RPC.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/LocalParticipant+RPC.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/LocalParticipant+RPC.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Participant/LocalParticipant.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/LocalParticipant.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/LocalParticipant.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/LocalParticipant.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Participant/Participant+Convenience.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/Participant+Convenience.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/Participant+Convenience.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/Participant+Convenience.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Participant/Participant+Equatable.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/Participant+Equatable.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/Participant+Equatable.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/Participant+Equatable.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Participant/Participant+Identifiable.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/Participant+Identifiable.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/Participant+Identifiable.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/Participant+Identifiable.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Participant/Participant+Kind.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/Participant+Kind.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/Participant+Kind.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/Participant+Kind.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Participant/Participant+MulticastDelegate.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/Participant+MulticastDelegate.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/Participant+MulticastDelegate.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/Participant+MulticastDelegate.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Participant/Participant.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/Participant.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/Participant.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/Participant.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Participant/RemoteParticipant+Active.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/RemoteParticipant+Active.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/RemoteParticipant+Active.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/RemoteParticipant+Active.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Participant/RemoteParticipant.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/RemoteParticipant.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/RemoteParticipant.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/RemoteParticipant.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Protocols/AudioCustomProcessingDelegate.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/AudioCustomProcessingDelegate.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/AudioCustomProcessingDelegate.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/AudioCustomProcessingDelegate.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Protocols/AudioRenderer.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/AudioRenderer.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/AudioRenderer.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/AudioRenderer.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Protocols/MediaEncoding.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/MediaEncoding.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/MediaEncoding.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/MediaEncoding.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Protocols/Mirrorable.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/Mirrorable.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/Mirrorable.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/Mirrorable.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Protocols/NextInvokable.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/NextInvokable.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/NextInvokable.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/NextInvokable.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Protocols/ParticipantDelegate.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/ParticipantDelegate.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/ParticipantDelegate.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/ParticipantDelegate.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Protocols/RoomDelegate.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/RoomDelegate.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/RoomDelegate.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/RoomDelegate.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Protocols/SignalClientDelegate.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/SignalClientDelegate.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/SignalClientDelegate.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/SignalClientDelegate.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Protocols/TrackDelegate.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/TrackDelegate.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/TrackDelegate.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/TrackDelegate.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Protocols/TransportDelegate.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/TransportDelegate.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/TransportDelegate.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/TransportDelegate.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Protocols/VideoProcessor.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/VideoProcessor.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/VideoProcessor.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/VideoProcessor.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Protocols/VideoRenderer.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/VideoRenderer.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/VideoRenderer.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/VideoRenderer.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Protocols/VideoViewDelegate.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/VideoViewDelegate.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/VideoViewDelegate.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/VideoViewDelegate.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Protos/livekit_metrics.pb.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/livekit_metrics.pb.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/livekit_metrics.pb.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/livekit_metrics.pb.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Protos/livekit_models.pb.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/livekit_models.pb.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/livekit_models.pb.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/livekit_models.pb.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Protos/livekit_rtc.pb.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/livekit_rtc.pb.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/livekit_rtc.pb.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/livekit_rtc.pb.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Support/AppStateListener.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/AppStateListener.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/AppStateListener.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/AppStateListener.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Support/AsyncCompleter.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/AsyncCompleter.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/AsyncCompleter.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/AsyncCompleter.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Support/AsyncDebounce.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/AsyncDebounce.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/AsyncDebounce.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/AsyncDebounce.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Support/AsyncFileStream.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/AsyncFileStream.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/AsyncFileStream.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/AsyncFileStream.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Support/AsyncRetry.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/AsyncRetry.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/AsyncRetry.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/AsyncRetry.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Support/AsyncSerialDelegate.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/AsyncSerialDelegate.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/AsyncSerialDelegate.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/AsyncSerialDelegate.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Support/AsyncTimer.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/AsyncTimer.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/AsyncTimer.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/AsyncTimer.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Support/AsyncTryMapSequence.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/AsyncTryMapSequence.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/AsyncTryMapSequence.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/AsyncTryMapSequence.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Support/Audio/AVAudioPCMRingBuffer.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/AVAudioPCMRingBuffer.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/AVAudioPCMRingBuffer.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/AVAudioPCMRingBuffer.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Support/Audio/AudioConverter.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/AudioConverter.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/AudioConverter.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/AudioConverter.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Support/AudioMixRecorder.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/AudioMixRecorder.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/AudioMixRecorder.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/AudioMixRecorder.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Support/AudioPlayerRenderer.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/AudioPlayerRenderer.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/AudioPlayerRenderer.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/AudioPlayerRenderer.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Support/ConnectivityListener.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/ConnectivityListener.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/ConnectivityListener.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/ConnectivityListener.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Support/DeviceManager.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/DeviceManager.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/DeviceManager.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/DeviceManager.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Support/FFTProcessor.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/FFTProcessor.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/FFTProcessor.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/FFTProcessor.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Support/Global.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/Global.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/Global.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/Global.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Support/HTTP.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/HTTP.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/HTTP.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/HTTP.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Support/Locks.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/Locks.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/Locks.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/Locks.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Support/Logger.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/Logger.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/Logger.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/Logger.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Support/MapTable.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/MapTable.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/MapTable.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/MapTable.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Support/MulticastDelegate.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/MulticastDelegate.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/MulticastDelegate.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/MulticastDelegate.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Support/NativeView.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/NativeView.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/NativeView.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/NativeView.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Support/NativeViewRepresentable.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/NativeViewRepresentable.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/NativeViewRepresentable.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/NativeViewRepresentable.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Support/ObservableObject+.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/ObservableObject+.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/ObservableObject+.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/ObservableObject+.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Support/QueueActor.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/QueueActor.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/QueueActor.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/QueueActor.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Support/RingBuffer.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/RingBuffer.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/RingBuffer.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/RingBuffer.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Support/SerialRunnerActor.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/SerialRunnerActor.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/SerialRunnerActor.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/SerialRunnerActor.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Support/StateSync.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/StateSync.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/StateSync.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/StateSync.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Support/Stopwatch.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/Stopwatch.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/Stopwatch.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/Stopwatch.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Support/TTLDictionary.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/TTLDictionary.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/TTLDictionary.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/TTLDictionary.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Support/TextView.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/TextView.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/TextView.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/TextView.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Support/Utils.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/Utils.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/Utils.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/Utils.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Support/ValueOrAbsent.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/ValueOrAbsent.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/ValueOrAbsent.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/ValueOrAbsent.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Support/WebSocket.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/WebSocket.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/WebSocket.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/WebSocket.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/SwiftUI/LocalMedia.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/LocalMedia.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/LocalMedia.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/LocalMedia.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/SwiftUI/SwiftUIAudioRoutePickerButton.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/SwiftUIAudioRoutePickerButton.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/SwiftUIAudioRoutePickerButton.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/SwiftUIAudioRoutePickerButton.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/SwiftUI/SwiftUIVideoView.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/SwiftUIVideoView.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/SwiftUIVideoView.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/SwiftUIVideoView.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/SwiftUI/TrackDelegateObserver.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/TrackDelegateObserver.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/TrackDelegateObserver.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/TrackDelegateObserver.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Token/CachingTokenSource.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/CachingTokenSource.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/CachingTokenSource.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/CachingTokenSource.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Token/EndpointTokenSource.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/EndpointTokenSource.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/EndpointTokenSource.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/EndpointTokenSource.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Token/LiteralTokenSource.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/LiteralTokenSource.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/LiteralTokenSource.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/LiteralTokenSource.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Token/SandboxTokenSource.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/SandboxTokenSource.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/SandboxTokenSource.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/SandboxTokenSource.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Token/TokenSource.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/TokenSource.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/TokenSource.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/TokenSource.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Track/AudioTrack.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/AudioTrack.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/AudioTrack.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/AudioTrack.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Track/Capturers/ARCameraCapturer.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/ARCameraCapturer.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/ARCameraCapturer.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/ARCameraCapturer.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Track/Capturers/BufferCapturer.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/BufferCapturer.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/BufferCapturer.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/BufferCapturer.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Track/Capturers/CameraCapturer.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/CameraCapturer.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/CameraCapturer.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/CameraCapturer.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Track/Capturers/InAppCapturer.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/InAppCapturer.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/InAppCapturer.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/InAppCapturer.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Track/Capturers/MacOSScreenCapturer.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/MacOSScreenCapturer.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/MacOSScreenCapturer.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/MacOSScreenCapturer.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Track/Capturers/VideoCapturer+MulticastDelegate.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/VideoCapturer+MulticastDelegate.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/VideoCapturer+MulticastDelegate.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/VideoCapturer+MulticastDelegate.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Track/Capturers/VideoCapturer.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/VideoCapturer.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/VideoCapturer.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/VideoCapturer.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Track/Local/LocalAudioTrack.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/LocalAudioTrack.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/LocalAudioTrack.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/LocalAudioTrack.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Track/Local/LocalTrack.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/LocalTrack.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/LocalTrack.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/LocalTrack.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Track/Local/LocalVideoTrack.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/LocalVideoTrack.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/LocalVideoTrack.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/LocalVideoTrack.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Track/Metrics/MetricsManager.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/MetricsManager.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/MetricsManager.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/MetricsManager.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Track/Recorders/LocalAudioTrackRecorder.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/LocalAudioTrackRecorder.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/LocalAudioTrackRecorder.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/LocalAudioTrackRecorder.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Track/Remote/RemoteAudioTrack.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/RemoteAudioTrack.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/RemoteAudioTrack.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/RemoteAudioTrack.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Track/Remote/RemoteTrack.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/RemoteTrack.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/RemoteTrack.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/RemoteTrack.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Track/Remote/RemoteVideoTrack.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/RemoteVideoTrack.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/RemoteVideoTrack.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/RemoteVideoTrack.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Track/Support/Extensions.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/Extensions.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/Extensions.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/Extensions.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Track/Track+Equatable.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/Track+Equatable.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/Track+Equatable.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/Track+Equatable.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Track/Track+MulticastDelegate.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/Track+MulticastDelegate.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/Track+MulticastDelegate.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/Track+MulticastDelegate.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Track/Track.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/Track.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/Track.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/Track.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Track/VideoTrack.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/VideoTrack.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/VideoTrack.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/VideoTrack.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/TrackPublications/LocalTrackPublication.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/LocalTrackPublication.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/LocalTrackPublication.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/LocalTrackPublication.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/TrackPublications/RemoteTrackPublication.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/RemoteTrackPublication.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/RemoteTrackPublication.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/RemoteTrackPublication.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/TrackPublications/TrackPublication+Equatable.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/TrackPublication+Equatable.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/TrackPublication+Equatable.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/TrackPublication+Equatable.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/TrackPublications/TrackPublication+Identifiable.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/TrackPublication+Identifiable.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/TrackPublication+Identifiable.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/TrackPublication+Identifiable.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/TrackPublications/TrackPublication.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/TrackPublication.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/TrackPublication.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/TrackPublication.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Types/Attributes/AttributeTypings.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/AttributeTypings.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/AttributeTypings.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/AttributeTypings.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Types/AudioBuffer.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/AudioBuffer.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/AudioBuffer.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/AudioBuffer.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Types/AudioDevice.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/AudioDevice.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/AudioDevice.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/AudioDevice.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Types/AudioDuckingLevel.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/AudioDuckingLevel.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/AudioDuckingLevel.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/AudioDuckingLevel.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Types/AudioEncoding+Comparable.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/AudioEncoding+Comparable.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/AudioEncoding+Comparable.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/AudioEncoding+Comparable.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Types/AudioEncoding.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/AudioEncoding.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/AudioEncoding.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/AudioEncoding.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Types/AudioEngineAvailability.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/AudioEngineAvailability.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/AudioEngineAvailability.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/AudioEngineAvailability.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Types/AudioSessionConfiguration.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/AudioSessionConfiguration.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/AudioSessionConfiguration.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/AudioSessionConfiguration.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Types/Codec/Codec.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/Codec.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/Codec.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/Codec.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Types/Codec/VideoCodec.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/VideoCodec.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/VideoCodec.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/VideoCodec.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Types/ConnectionQuality.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/ConnectionQuality.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/ConnectionQuality.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/ConnectionQuality.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Types/ConnectionState.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/ConnectionState.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/ConnectionState.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/ConnectionState.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Types/DegradationPreference.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/DegradationPreference.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/DegradationPreference.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/DegradationPreference.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Types/Dimensions.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/Dimensions.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/Dimensions.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/Dimensions.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Types/IceCandidate.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/IceCandidate.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/IceCandidate.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/IceCandidate.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Types/IceServer.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/IceServer.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/IceServer.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/IceServer.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Types/IceTransportPolicy.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/IceTransportPolicy.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/IceTransportPolicy.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/IceTransportPolicy.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Types/MediaDevice.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/MediaDevice.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/MediaDevice.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/MediaDevice.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Types/Options/ARCameraCaptureOptions.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/ARCameraCaptureOptions.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/ARCameraCaptureOptions.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/ARCameraCaptureOptions.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Types/Options/AudioCaptureOptions.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/AudioCaptureOptions.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/AudioCaptureOptions.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/AudioCaptureOptions.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Types/Options/AudioPublishOptions.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/AudioPublishOptions.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/AudioPublishOptions.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/AudioPublishOptions.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Types/Options/BufferCaptureOptions.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/BufferCaptureOptions.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/BufferCaptureOptions.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/BufferCaptureOptions.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Types/Options/CameraCaptureOptions+Copy.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/CameraCaptureOptions+Copy.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/CameraCaptureOptions+Copy.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/CameraCaptureOptions+Copy.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Types/Options/CameraCaptureOptions.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/CameraCaptureOptions.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/CameraCaptureOptions.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/CameraCaptureOptions.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Types/Options/CaptureOptions.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/CaptureOptions.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/CaptureOptions.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/CaptureOptions.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Types/Options/ConnectOptions+Copy.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/ConnectOptions+Copy.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/ConnectOptions+Copy.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/ConnectOptions+Copy.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Types/Options/ConnectOptions.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/ConnectOptions.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/ConnectOptions.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/ConnectOptions.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Types/Options/DataPublishOptions.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/DataPublishOptions.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/DataPublishOptions.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/DataPublishOptions.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Types/Options/PublishOptions.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/PublishOptions.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/PublishOptions.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/PublishOptions.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Types/Options/RoomOptions.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/RoomOptions.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/RoomOptions.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/RoomOptions.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Types/Options/ScreenShareCaptureOptions.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/ScreenShareCaptureOptions.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/ScreenShareCaptureOptions.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/ScreenShareCaptureOptions.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Types/Options/VideoCaptureOptions.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/VideoCaptureOptions.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/VideoCaptureOptions.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/VideoCaptureOptions.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Types/Options/VideoPublishOptions.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/VideoPublishOptions.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/VideoPublishOptions.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/VideoPublishOptions.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Types/Participant+Types.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/Participant+Types.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/Participant+Types.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/Participant+Types.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Types/ParticipantPermissions.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/ParticipantPermissions.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/ParticipantPermissions.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/ParticipantPermissions.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Types/ParticipantState.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/ParticipantState.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/ParticipantState.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/ParticipantState.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Types/ParticipantTrackPermission.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/ParticipantTrackPermission.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/ParticipantTrackPermission.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/ParticipantTrackPermission.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Types/ProtocolVersion.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/ProtocolVersion.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/ProtocolVersion.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/ProtocolVersion.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Types/Room+Types.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/Room+Types.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/Room+Types.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/Room+Types.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Types/RoomConfiguration.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/RoomConfiguration.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/RoomConfiguration.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/RoomConfiguration.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Types/ScalabilityMode.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/ScalabilityMode.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/ScalabilityMode.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/ScalabilityMode.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Types/SessionDescription.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/SessionDescription.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/SessionDescription.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/SessionDescription.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Types/SpeechActivityEvent.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/SpeechActivityEvent.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/SpeechActivityEvent.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/SpeechActivityEvent.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Types/Statistics.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/Statistics.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/Statistics.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/Statistics.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Types/Track+Types.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/Track+Types.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/Track+Types.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/Track+Types.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Types/TrackSettings.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/TrackSettings.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/TrackSettings.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/TrackSettings.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Types/TrackSource.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/TrackSource.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/TrackSource.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/TrackSource.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Types/TrackStatistics.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/TrackStatistics.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/TrackStatistics.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/TrackStatistics.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Types/TrackStreamState.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/TrackStreamState.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/TrackStreamState.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/TrackStreamState.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Types/TrackType.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/TrackType.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/TrackType.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/TrackType.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Types/TranscriptionSegment.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/TranscriptionSegment.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/TranscriptionSegment.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/TranscriptionSegment.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Types/VideoEncoding+Comparable.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/VideoEncoding+Comparable.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/VideoEncoding+Comparable.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/VideoEncoding+Comparable.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Types/VideoEncoding.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/VideoEncoding.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/VideoEncoding.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/VideoEncoding.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Types/VideoFrame.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/VideoFrame.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/VideoFrame.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/VideoFrame.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Types/VideoParameters+Comparable.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/VideoParameters+Comparable.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/VideoParameters+Comparable.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/VideoParameters+Comparable.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Types/VideoParameters.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/VideoParameters.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/VideoParameters.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/VideoParameters.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Types/VideoQuality.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/VideoQuality.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/VideoQuality.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/VideoQuality.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Types/VideoRotation.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/VideoRotation.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/VideoRotation.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/VideoRotation.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/VideoProcessors/BackgroundBlurVideoProcessor.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/BackgroundBlurVideoProcessor.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/BackgroundBlurVideoProcessor.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/BackgroundBlurVideoProcessor.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Views/SampleBufferVideoRenderer.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/SampleBufferVideoRenderer.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/SampleBufferVideoRenderer.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/SampleBufferVideoRenderer.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Views/VideoView+MulticastDelegate.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/VideoView+MulticastDelegate.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/VideoView+MulticastDelegate.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/VideoView+MulticastDelegate.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Views/VideoView+PinchToZoom.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/VideoView+PinchToZoom.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/VideoView+PinchToZoom.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/VideoView+PinchToZoom.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/Sources/LiveKit/Views/VideoView.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/VideoView.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/VideoView.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/VideoView.o"
+  },
+  "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/DerivedSources/resource_bundle_accessor.swift" : {
+    "index-unit-output-path" : "/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/resource_bundle_accessor.o",
+    "llvm-bc" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/resource_bundle_accessor.bc",
+    "object" : "/Users/sethford/Documents/voiceai/vendor/client-sdk-swift/build/LiveKit.build/Release-iphoneos/LiveKit.build/Objects-normal/arm64/resource_bundle_accessor.o"
+  }
+}

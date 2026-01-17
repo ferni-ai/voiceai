@@ -1,48 +1,27 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 180" width="180" height="180">
-  <!-- Ferni Orb Logo - 180x180 -->
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Ferni Apple Touch Icon 180x180 - Eyes -->
+<svg viewBox="0 0 180 180" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <linearGradient id="orbGradient" x1="0%" y1="100%" x2="100%" y2="0%">
-      <stop offset="0%" stop-color="#3d5a35"/>
-      <stop offset="40%" stop-color="#4a6741"/>
-      <stop offset="100%" stop-color="#5a7a4d"/>
+    <linearGradient id="orbGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#4a6741"/>
+      <stop offset="100%" stop-color="#3a5731"/>
     </linearGradient>
-    <radialGradient id="orbHighlight" cx="35%" cy="25%" r="40%">
-      <stop offset="0%" stop-color="rgba(255,255,255,0.4)"/>
-      <stop offset="100%" stop-color="rgba(255,255,255,0)"/>
-    </radialGradient>
-    
-    <filter id="orbGlow" x="-50%" y="-50%" width="200%" height="200%">
-      <feGaussianBlur stdDeviation="7.2" result="blur"/>
-      <feFlood flood-color="#4a6741" flood-opacity="0.35"/>
-      <feComposite in2="blur" operator="in"/>
-      <feMerge>
-        <feMergeNode/>
-        <feMergeNode in="SourceGraphic"/>
-      </feMerge>
-    </filter>
+    <linearGradient id="eyeFill" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="100%" stop-color="#f0f0f0"/>
+    </linearGradient>
   </defs>
 
-  <rect width="180" height="180" rx="0" fill="#F5F1E8"/>
-  
-    <circle cx="90" cy="90" r="74.32560000000001" fill="none" stroke="#4a6741" stroke-width="1" opacity="0.15"/>
-    <circle cx="90" cy="90" r="67.13280000000002" fill="none" stroke="#4a6741" stroke-width="1" opacity="0.1"/>
+  <!-- Background -->
+  <rect width="180" height="180" fill="url(#orbGradient)"/>
 
-  <!-- Main orb -->
-  <circle cx="90" cy="90" r="59.940000000000005" fill="url(#orbGradient)" filter="url(#orbGlow)"/>
+  <!-- Left eye -->
+  <ellipse cx="65" cy="84" rx="17.5" ry="23" fill="url(#eyeFill)"/>
+  <circle cx="61" cy="75" r="4.5" fill="white"/>
+  <circle cx="65" cy="79" r="1.8" fill="white" opacity="0.7"/>
 
-  <!-- Top highlight -->
-  <circle cx="90" cy="90" r="59.940000000000005" fill="url(#orbHighlight)"/>
-
-  <!-- Waveform bars -->
-  <g>
-    <rect x="61" y="85.5045" width="2" height="8.991000000000001" rx="1" fill="rgba(255,255,255,0.95)"/>
-    <rect x="68" y="83.25675" width="2" height="13.486500000000001" rx="1" fill="rgba(255,255,255,0.95)"/>
-    <rect x="75" y="81.009" width="2" height="17.982000000000003" rx="1" fill="rgba(255,255,255,0.95)"/>
-    <rect x="82" y="79.5105" width="2" height="20.979000000000003" rx="1" fill="rgba(255,255,255,0.95)"/>
-    <rect x="89" y="78.012" width="2" height="23.976000000000003" rx="1" fill="rgba(255,255,255,0.95)"/>
-    <rect x="96" y="79.5105" width="2" height="20.979000000000003" rx="1" fill="rgba(255,255,255,0.95)"/>
-    <rect x="103" y="81.009" width="2" height="17.982000000000003" rx="1" fill="rgba(255,255,255,0.95)"/>
-    <rect x="110" y="83.25675" width="2" height="13.486500000000001" rx="1" fill="rgba(255,255,255,0.95)"/>
-    <rect x="117" y="85.5045" width="2" height="8.991000000000001" rx="1" fill="rgba(255,255,255,0.95)"/>
-  </g>
+  <!-- Right eye -->
+  <ellipse cx="115" cy="84" rx="17.5" ry="23" fill="url(#eyeFill)"/>
+  <circle cx="111" cy="75" r="4.5" fill="white"/>
+  <circle cx="115" cy="79" r="1.8" fill="white" opacity="0.7"/>
 </svg>

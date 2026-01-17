@@ -4,21 +4,20 @@
  * Handles cleanup of orphaned sessions to prevent memory leaks.
  * Sessions older than SESSION_MAX_AGE_MS are automatically ended.
  *
+ * TTL Configuration:
+ * - SESSION_MAX_AGE: Maximum session age (default: "4h")
+ * - SESSION_CLEANUP_INTERVAL: Cleanup check interval (default: "15m")
+ *
  * @module session-manager/cleanup
  */
 
 import { getLogger } from '../../utils/safe-logger.js';
+import { registerInterval, clearNamedInterval } from '../../utils/interval-manager.js';
 import type { SessionServices } from '../types.js';
+import { SESSION_MAX_AGE_MS, SESSION_CLEANUP_INTERVAL_MS } from './constants.js';
 
-// ============================================================================
-// CONFIGURATION
-// ============================================================================
-
-/** Maximum session age before automatic cleanup (4 hours) */
-export const SESSION_MAX_AGE_MS = 4 * 60 * 60 * 1000;
-
-/** Interval for checking orphaned sessions (15 minutes) */
-export const SESSION_CLEANUP_INTERVAL_MS = 15 * 60 * 1000;
+// Re-export for backward compatibility
+export { SESSION_MAX_AGE_MS, SESSION_CLEANUP_INTERVAL_MS };
 
 // ============================================================================
 // STATE
@@ -49,9 +48,14 @@ export function startSessionCleanup(): void {
     return; // Already running
   }
 
-  sessionCleanupInterval = setInterval(() => {
-    void cleanupOrphanedSessions();
-  }, SESSION_CLEANUP_INTERVAL_MS);
+  registerInterval(
+    'session-manager-cleanup',
+    () => {
+      void cleanupOrphanedSessions();
+    },
+    SESSION_CLEANUP_INTERVAL_MS
+  );
+  sessionCleanupInterval = 1 as unknown as NodeJS.Timeout; // Marker
 
   getLogger().info('🧹 Session cleanup scheduler started');
 }
@@ -61,7 +65,7 @@ export function startSessionCleanup(): void {
  */
 export function stopSessionCleanup(): void {
   if (sessionCleanupInterval) {
-    clearInterval(sessionCleanupInterval);
+    clearNamedInterval('session-manager-cleanup');
     sessionCleanupInterval = null;
     getLogger().info('🧹 Session cleanup scheduler stopped');
   }

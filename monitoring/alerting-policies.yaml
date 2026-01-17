@@ -1,0 +1,277 @@
+# Cloud Monitoring Alerting Policies
+# Deploy with: gcloud alpha monitoring policies create --policy-from-file=alerting-policies.yaml
+#
+# These policies monitor critical API metrics and trigger alerts when thresholds are exceeded.
+
+---
+# API Error Rate Alert
+# Triggers when error rate exceeds 1% over 5 minutes
+apiVersion: monitoring.googleapis.com/v1
+kind: AlertPolicy
+metadata:
+  name: api-error-rate-high
+  labels:
+    severity: critical
+    team: api
+spec:
+  displayName: "API Error Rate > 1%"
+  documentation:
+    content: |
+      The API error rate has exceeded 1% over the past 5 minutes.
+
+      **Investigation Steps:**
+      1. Check Cloud Run logs: `ferni ops:logs:errors`
+      2. Check recent deployments
+      3. Verify external service health (Stripe, Cartesia, etc.)
+
+      **Escalation:**
+      - Page on-call if error rate > 5%
+      - Rollback if caused by recent deployment
+    mimeType: text/markdown
+  conditions:
+    - displayName: Error rate above threshold
+      conditionThreshold:
+        filter: |
+          resource.type="cloud_run_revision"
+          AND resource.labels.service_name="john-bogle-ui"
+          AND metric.type="run.googleapis.com/request_count"
+          AND metric.labels.response_code_class!="2xx"
+        aggregations:
+          - alignmentPeriod: 300s
+            perSeriesAligner: ALIGN_RATE
+            crossSeriesReducer: REDUCE_SUM
+        comparison: COMPARISON_GT
+        thresholdValue: 0.01  # 1%
+        duration: 300s
+  combiner: OR
+  alertStrategy:
+    autoClose: 1800s  # 30 minutes
+  notificationChannels:
+    - projects/ferni-prod/notificationChannels/email-oncall
+    - projects/ferni-prod/notificationChannels/slack-alerts
+
+---
+# P95 Latency Alert
+# Triggers when P95 latency exceeds 500ms
+apiVersion: monitoring.googleapis.com/v1
+kind: AlertPolicy
+metadata:
+  name: api-latency-high
+  labels:
+    severity: warning
+    team: api
+spec:
+  displayName: "API P95 Latency > 500ms"
+  documentation:
+    content: |
+      API P95 latency has exceeded 500ms.
+
+      **Investigation Steps:**
+      1. Check for slow database queries
+      2. Check external API latency (Cartesia, Stripe)
+      3. Review recent code changes
+
+      **Common Causes:**
+      - Database connection pool exhaustion
+      - Cold starts after scale-down
+      - External API slowdown
+    mimeType: text/markdown
+  conditions:
+    - displayName: P95 latency above threshold
+      conditionThreshold:
+        filter: |
+          resource.type="cloud_run_revision"
+          AND resource.labels.service_name="john-bogle-ui"
+          AND metric.type="run.googleapis.com/request_latencies"
+        aggregations:
+          - alignmentPeriod: 300s
+            perSeriesAligner: ALIGN_PERCENTILE_95
+        comparison: COMPARISON_GT
+        thresholdValue: 500  # milliseconds
+        duration: 600s
+  combiner: OR
+  alertStrategy:
+    autoClose: 1800s
+  notificationChannels:
+    - projects/ferni-prod/notificationChannels/slack-alerts
+
+---
+# Email Delivery Failure Alert
+# Triggers when email delivery failure rate exceeds 5%
+apiVersion: monitoring.googleapis.com/v1
+kind: AlertPolicy
+metadata:
+  name: email-delivery-failures
+  labels:
+    severity: warning
+    team: engagement
+spec:
+  displayName: "Email Delivery Failure Rate > 5%"
+  documentation:
+    content: |
+      Email delivery failure rate has exceeded 5%.
+
+      **Investigation Steps:**
+      1. Check SendGrid/Mailgun status
+      2. Verify API keys are valid
+      3. Check for bounces or spam complaints
+
+      **Impact:**
+      - Share invites not being received
+      - Marketplace notifications failing
+      - User engagement affected
+    mimeType: text/markdown
+  conditions:
+    - displayName: Email failures above threshold
+      conditionThreshold:
+        filter: |
+          resource.type="cloud_run_revision"
+          AND metric.type="custom.googleapis.com/email/delivery_failures"
+        aggregations:
+          - alignmentPeriod: 600s
+            perSeriesAligner: ALIGN_RATE
+        comparison: COMPARISON_GT
+        thresholdValue: 0.05
+        duration: 600s
+  combiner: OR
+  alertStrategy:
+    autoClose: 3600s
+  notificationChannels:
+    - projects/ferni-prod/notificationChannels/slack-alerts
+
+---
+# GCS Upload Failure Alert
+# Triggers when voice upload failures occur
+apiVersion: monitoring.googleapis.com/v1
+kind: AlertPolicy
+metadata:
+  name: gcs-upload-failures
+  labels:
+    severity: warning
+    team: api
+spec:
+  displayName: "GCS Upload Failures Detected"
+  documentation:
+    content: |
+      GCS voice upload failures have been detected.
+
+      **Investigation Steps:**
+      1. Check GCS bucket permissions
+      2. Verify service account credentials
+      3. Check bucket quota
+
+      **Impact:**
+      - Custom agent voice uploads failing
+      - User experience degraded
+    mimeType: text/markdown
+  conditions:
+    - displayName: GCS upload errors
+      conditionThreshold:
+        filter: |
+          resource.type="gcs_bucket"
+          AND resource.labels.bucket_name="voiceai-custom-agents"
+          AND metric.type="storage.googleapis.com/api/request_count"
+          AND metric.labels.response_code!="OK"
+        aggregations:
+          - alignmentPeriod: 300s
+            perSeriesAligner: ALIGN_COUNT
+        comparison: COMPARISON_GT
+        thresholdValue: 5
+        duration: 300s
+  combiner: OR
+  alertStrategy:
+    autoClose: 1800s
+  notificationChannels:
+    - projects/ferni-prod/notificationChannels/slack-alerts
+
+---
+# Voice Agent Health Alert (GCE)
+# Triggers when voice agent health check fails
+apiVersion: monitoring.googleapis.com/v1
+kind: AlertPolicy
+metadata:
+  name: voice-agent-unhealthy
+  labels:
+    severity: critical
+    team: voice
+spec:
+  displayName: "Voice Agent Unhealthy"
+  documentation:
+    content: |
+      Voice agent health check is failing.
+
+      **Investigation Steps:**
+      1. SSH to GCE instance: `gcloud compute ssh voiceai-agent`
+      2. Check container logs: `docker logs voiceai-agent`
+      3. Check LiveKit connection
+
+      **Recovery:**
+      1. Restart container: `docker restart voiceai-agent`
+      2. If persistent, redeploy: `ferni deploy gce`
+    mimeType: text/markdown
+  conditions:
+    - displayName: Health check failing
+      conditionThreshold:
+        filter: |
+          resource.type="uptime_url"
+          AND metric.type="monitoring.googleapis.com/uptime_check/check_passed"
+          AND resource.labels.check_id="voice-agent-health"
+        aggregations:
+          - alignmentPeriod: 60s
+            perSeriesAligner: ALIGN_NEXT_OLDER
+            crossSeriesReducer: REDUCE_COUNT_FALSE
+        comparison: COMPARISON_GT
+        thresholdValue: 2  # 2 consecutive failures
+        duration: 120s
+  combiner: OR
+  alertStrategy:
+    autoClose: 600s
+  notificationChannels:
+    - projects/ferni-prod/notificationChannels/email-oncall
+    - projects/ferni-prod/notificationChannels/slack-alerts
+    - projects/ferni-prod/notificationChannels/pagerduty
+
+---
+# Subscription Webhook Failures
+# Triggers when Stripe webhook processing fails
+apiVersion: monitoring.googleapis.com/v1
+kind: AlertPolicy
+metadata:
+  name: subscription-webhook-failures
+  labels:
+    severity: critical
+    team: billing
+spec:
+  displayName: "Subscription Webhook Failures"
+  documentation:
+    content: |
+      Stripe webhook processing is failing.
+
+      **Impact:**
+      - Subscription status not updating
+      - Revenue tracking inaccurate
+      - Users may lose access incorrectly
+
+      **Investigation:**
+      1. Check Stripe webhook logs
+      2. Verify webhook signature secret
+      3. Check for schema changes
+    mimeType: text/markdown
+  conditions:
+    - displayName: Webhook processing errors
+      conditionThreshold:
+        filter: |
+          resource.type="cloud_run_revision"
+          AND metric.type="logging.googleapis.com/user/subscription_webhook_errors"
+        aggregations:
+          - alignmentPeriod: 300s
+            perSeriesAligner: ALIGN_COUNT
+        comparison: COMPARISON_GT
+        thresholdValue: 3
+        duration: 300s
+  combiner: OR
+  alertStrategy:
+    autoClose: 1800s
+  notificationChannels:
+    - projects/ferni-prod/notificationChannels/email-oncall
+    - projects/ferni-prod/notificationChannels/slack-alerts

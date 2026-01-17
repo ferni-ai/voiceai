@@ -31,7 +31,7 @@ import {
   type FinancialGoal,
 } from '../types/profile/financial.js';
 
-import { migrateUserProfile } from '../types/profile/migration.js';
+import { migrateToComposite as migrateUserProfile } from '../types/migration/profile-migrator.js';
 import type { UserProfile } from '../types/user-profile.js';
 
 // ============================================================================

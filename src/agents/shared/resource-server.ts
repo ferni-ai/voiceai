@@ -189,7 +189,7 @@ class ResourceRegistry {
       const { initializeFromBundles, getPersonaAsync } = await import('../../personas/index.js');
       await initializeFromBundles();
 
-      // Cache all persona configs
+      // Cache all persona configs in parallel
       const personaIds = [
         'ferni',
         'alex-chen',
@@ -198,14 +198,20 @@ class ResourceRegistry {
         'jordan-taylor',
         'nayan-patel',
       ];
-      for (const id of personaIds) {
-        try {
-          const config = await getPersonaAsync(id);
-          if (config) {
-            this.personas.configs.set(id, config);
+      const results = await Promise.all(
+        personaIds.map(async (id) => {
+          try {
+            const config = await getPersonaAsync(id);
+            return { id, config };
+          } catch {
+            // Non-fatal
+            return { id, config: null };
           }
-        } catch {
-          // Non-fatal
+        })
+      );
+      for (const { id, config } of results) {
+        if (config) {
+          this.personas.configs.set(id, config);
         }
       }
 
@@ -427,7 +433,7 @@ function handleTTSRequest(reg: ResourceRegistry, request: ResourceRequest): Reso
   const payload = request.payload as { personaId?: string };
 
   switch (request.action) {
-    case 'get':
+    case 'get': {
       // Check if TTS is available for persona
       const tts = payload.personaId ? reg.getTTS(payload.personaId) : null;
       return {
@@ -435,8 +441,9 @@ function handleTTSRequest(reg: ResourceRegistry, request: ResourceRequest): Reso
         success: true,
         data: { available: !!tts, personaId: payload.personaId },
       };
+    }
 
-    case 'config':
+    case 'config': {
       // Return TTS configuration for persona (Phase 3: share config, not connection)
       const personaConfig = payload.personaId ? reg.getPersonaConfig(payload.personaId) : null;
       if (personaConfig) {
@@ -462,6 +469,7 @@ function handleTTSRequest(reg: ResourceRegistry, request: ResourceRequest): Reso
         success: false,
         error: 'Persona not found',
       };
+    }
 
     default:
       return {
@@ -476,15 +484,16 @@ function handlePersonaRequest(reg: ResourceRegistry, request: ResourceRequest): 
   const payload = request.payload as { personaId?: string };
 
   switch (request.action) {
-    case 'get':
+    case 'get': {
       const config = payload.personaId ? reg.getPersonaConfig(payload.personaId) : null;
       return {
         id: request.id,
         success: true,
         data: config,
       };
+    }
 
-    case 'prompt':
+    case 'prompt': {
       // Return pre-computed system prompt (Phase 3 optimization)
       const personaConfig = payload.personaId ? reg.getPersonaConfig(payload.personaId) : null;
       if (personaConfig) {
@@ -500,6 +509,7 @@ function handlePersonaRequest(reg: ResourceRegistry, request: ResourceRequest): 
         success: false,
         error: 'Persona not found',
       };
+    }
 
     case 'list':
       return {

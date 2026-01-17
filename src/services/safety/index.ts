@@ -71,7 +71,7 @@ export type {
 // ============================================================================
 
 import { getFirestore, type Firestore } from 'firebase-admin/firestore';
-import { removeUndefined } from '../../utils/firestore-utils.js';
+import { removeUndefined, cleanForFirestore } from '../../utils/firestore-utils.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { detectCrisis, type CrisisDetectionResult, type CrisisSignal } from './crisis-detection.js';
 import { generateCrisisResponse, type CrisisResponseContent } from './crisis-response.js';
@@ -340,7 +340,7 @@ async function updateUserCrisisSignals(
           totalSignalCount: (data?.totalSignalCount || 0) + 1,
         });
       } else {
-        transaction.set(userSignalsRef, {
+        transaction.set(cleanForFirestore(userSignalsRef), {
           userId,
           signals: [signal],
           firstSignalAt: new Date(),

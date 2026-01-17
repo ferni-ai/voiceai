@@ -220,5 +220,70 @@ export function createLogger(bindings: Record<string, unknown>): FallbackLogger 
   }
 }
 
+// ============================================================================
+// LOG TRUNCATION UTILITIES
+// ============================================================================
+
+/**
+ * Check if full (non-truncated) logging is enabled.
+ *
+ * Set LOG_FULL_RESPONSES=true to see complete LLM responses, TTS text,
+ * and other long strings in logs without truncation.
+ *
+ * WARNING: This can produce very large log output. Only use for debugging.
+ */
+export function isFullLoggingEnabled(): boolean {
+  return process.env.LOG_FULL_RESPONSES === 'true';
+}
+
+/**
+ * Truncate a string for logging, respecting LOG_FULL_RESPONSES env var.
+ *
+ * @param text - The text to potentially truncate
+ * @param maxLength - Maximum length before truncation (default: 200)
+ * @param suffix - Suffix to add when truncated (default: '...')
+ * @returns The original text if full logging is enabled, otherwise truncated
+ *
+ * @example
+ * ```typescript
+ * import { truncateForLog } from '../utils/safe-logger.js';
+ *
+ * // With LOG_FULL_RESPONSES=false (default):
+ * truncateForLog('very long text...', 50); // Returns: 'very long text...' (truncated)
+ *
+ * // With LOG_FULL_RESPONSES=true:
+ * truncateForLog('very long text...', 50); // Returns full text
+ * ```
+ */
+export function truncateForLog(text: string, maxLength = 200, suffix = '...'): string {
+  if (!text) return text;
+  if (isFullLoggingEnabled()) return text;
+  if (text.length <= maxLength) return text;
+  return text.slice(0, maxLength) + suffix;
+}
+
+/**
+ * Truncate for log with explicit full text capture option.
+ *
+ * Returns an object with both truncated preview and full text,
+ * allowing logs to include the preview while optionally capturing full text.
+ *
+ * @param text - The text to process
+ * @param maxLength - Maximum length for preview
+ * @returns Object with preview and full text
+ */
+export function logPreview(
+  text: string,
+  maxLength = 200
+): { preview: string; full: string; truncated: boolean } {
+  if (!text) return { preview: '', full: '', truncated: false };
+  const truncated = text.length > maxLength && !isFullLoggingEnabled();
+  return {
+    preview: truncated ? `${text.slice(0, maxLength)}...` : text,
+    full: text,
+    truncated,
+  };
+}
+
 // Default export for convenience
 export default safeLog;

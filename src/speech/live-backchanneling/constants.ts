@@ -1,7 +1,20 @@
 /**
  * Live Backchanneling Constants
  *
- * Configuration and phrase banks for live backchanneling.
+ * Configuration and phrase banks for live backchanneling during user speech.
+ *
+ * IMPORTANT: Live backchannels are MINIMAL presence signals during user speech.
+ * They're NOT meant to be substantial acknowledgments - the LLM handles those
+ * in turn responses based on behavioral guidance from dynamic-speech-guidance.ts.
+ *
+ * Live backchannels should be:
+ * - RARE: Low probability, long intervals
+ * - SHORT: 1-2 syllables max ("Mm", "Yeah")
+ * - SOFT: 30% volume, quick
+ * - CONTEXT-AWARE: Only during natural breath pauses
+ *
+ * For substantial acknowledgments, the LLM generates contextually appropriate
+ * responses based on what the user actually said.
  */
 
 // ============================================================================
@@ -10,10 +23,14 @@
 
 export const CONFIG = {
   /** Minimum time into turn before live backchannel (ms) */
-  MIN_SPEAKING_DURATION: 4000,
+  MIN_SPEAKING_DURATION: 6000, // Increased from 5000 - wait 6s before backchanneling
 
-  /** Minimum time between backchannels (ms) */
-  MIN_INTERVAL: 8000,
+  /**
+   * Minimum time between backchannels (ms)
+   * TIMING FIX (Jan 2026): Increased to 15s to match timing-config.ts
+   * Target: ~3-4 backchannels per minute (human parity)
+   */
+  MIN_INTERVAL: 15000, // Increased from 10000 - 15s between backchannels
 
   /** Volume ratio for soft backchannels (30% of normal) */
   SOFT_VOLUME_RATIO: 0.3,
@@ -22,13 +39,19 @@ export const CONFIG = {
   BREATH_PAUSE_MAX: 400,
 
   /** Minimum turns before live backchannels start */
-  MIN_TURNS: 3,
+  MIN_TURNS: 5, // Increased from 4 - wait for more rapport before backchanneling
 
-  /** Probability of backchannel when conditions are met */
-  BASE_PROBABILITY: 0.25,
+  /**
+   * Probability of backchannel when conditions are met - LOW to minimize repetition
+   * TIMING FIX (Jan 2026): Reduced to 10% to fix "all over the place" feel
+   */
+  BASE_PROBABILITY: 0.1, // Reduced from 0.15 - less frequent
 
-  /** Increased probability for emotional moments */
-  EMOTIONAL_PROBABILITY: 0.4,
+  /**
+   * Increased probability for emotional moments - still very conservative
+   * TIMING FIX (Jan 2026): Reduced to 20%
+   */
+  EMOTIONAL_PROBABILITY: 0.2, // Reduced from 0.3
 } as const;
 
 // ============================================================================
@@ -61,9 +84,11 @@ export const SOFT_BACKCHANNELS: Record<string, Record<string, string[]>> = {
     engaged: ['Right', 'Yeah', 'Okay'],
   },
   'maya-santos': {
-    neutral: ['Mm', 'Yeah', 'Okay'],
-    empathetic: ['Mm', 'Yeah', 'I hear you'],
-    engaged: ['Oh', 'Yeah', 'Right'],
+    // HUMANIZATION FIX (Dec 2025): More variety to prevent robotic repetition
+    // Maya is warm and supportive - her backchannels should reflect that
+    neutral: ['Mm', 'Yeah', 'Mhm', 'Okay', 'Mm-hm', 'Yep', 'Uh-huh'],
+    empathetic: ['Mm', 'Yeah', 'I hear you', 'Mmm', 'Ahh', 'Yeah...', 'Mm-hm'],
+    engaged: ['Oh', 'Yeah', 'Right', 'Mm!', 'Ah', 'Oh!', 'Yes'],
   },
   'peter-john': {
     neutral: ['Mm', 'Yeah', 'Okay'],

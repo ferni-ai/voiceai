@@ -10,11 +10,30 @@
  * - Present, not flashy
  * - Grounded - calm, stable, reliable presence
  * - Human - natural, organic, approachable
+ *
+ * EXPRESSION SYSTEMS:
+ * - Legacy: ferniExpressions (GSAP-based lid overlays)
+ * - Luxo: luxoExpressions (CSS transform-based, 100+ expressions)
+ *
+ * Set USE_LUXO_EXPRESSIONS=true to use the new system.
  */
 
 import { ferniExpressions } from '../ui/ferni-expressions.ui.js';
+import * as luxoExpressions from '../ui/luxo-expressions.ui.js';
+import type { ExpressionId } from '../config/expressions.generated.js';
 import { createLogger } from '../utils/logger.js';
 import { emotionState, type EmotionId, type EmotionState } from './emotion-state.js';
+
+// ============================================================================
+// CONFIGURATION
+// ============================================================================
+
+/**
+ * Feature flag: Use new Luxo expression system (CSS transforms)
+ * When true, uses the 100+ expression system from expressions.json
+ * When false, uses legacy GSAP-based lid overlay system
+ */
+const USE_LUXO_EXPRESSIONS = true;
 
 const log = createLogger('EmotionBridge');
 
@@ -95,6 +114,92 @@ const EMOTION_TO_EXPRESSION: Record<EmotionId, () => void> = {
 };
 
 // ============================================================================
+// LUXO EXPRESSION MAPPING (New 100+ Expression System)
+// ============================================================================
+
+/**
+ * Maps emotion IDs to Luxo expression IDs.
+ * Luxo expressions are CSS-driven and data-loaded from expressions.json.
+ */
+const EMOTION_TO_LUXO_EXPRESSION: Record<EmotionId, ExpressionId | null> = {
+  // Core emotions
+  neutral: 'neutral',
+  happy: 'happy',
+  excited: 'excited',
+  curious: 'curious',
+  thinking: 'thinking',
+  calm: 'calm',
+  sad: 'sad',
+  frustrated: 'frustrated',
+  listening: 'listening',
+  speaking: null, // Don't change expression during speech
+
+  // Brand-aligned additions
+  contemplative: 'contemplating',
+  noticing: 'attentive',
+  holdingSpace: 'supportive',
+
+  // Phase 1: Listening States
+  attentive: 'attentive',
+  absorbing: 'absorbing',
+  receiving: 'receptive',
+  curiousLean: 'curious',
+
+  // Phase 2: Warmth Gradient
+  warm: 'warm',
+  pleased: 'pleased',
+  delighted: 'delighted',
+  proud: 'proud',
+  celebrating: 'joyful',
+
+  // Phase 3: Presence States
+  present: 'present',
+  holding: 'supportive',
+  accompanying: 'nurturing',
+  waiting: 'patient' as ExpressionId, // Maps to calm if patient doesn't exist
+
+  // Phase 4: Coaching Emotions
+  encouraging: 'encouraging',
+  challenging: 'determined',
+  reflecting: 'reflecting',
+  recognizing: 'knowing',
+
+  // Phase 5: Relational Moments
+  remembering: 'thoughtful' as ExpressionId,
+  reconnecting: 'warm',
+  insider: 'amused',
+  growing: 'proud',
+
+  // Phase 6: Transition States
+  processing: 'processing',
+  realizing: 'surprised',
+  shifting: 'focused',
+  settling: 'content',
+};
+
+/**
+ * Trigger a Luxo expression for an emotion.
+ * Falls back to neutral if expression doesn't exist.
+ */
+function triggerLuxoExpression(emotionId: EmotionId, intensity = 0.5): void {
+  const expressionId = EMOTION_TO_LUXO_EXPRESSION[emotionId];
+
+  if (expressionId === null) {
+    // Explicitly null means don't change expression (e.g., speaking)
+    return;
+  }
+
+  // Check if the expression exists
+  if (luxoExpressions.hasExpression(expressionId)) {
+    luxoExpressions.setExpression(expressionId, { duration: 300 });
+  } else {
+    // Fall back to emotion-to-expression mapping
+    const fallback = luxoExpressions.emotionToExpression(emotionId, intensity);
+    luxoExpressions.setExpression(fallback, { duration: 300 });
+  }
+}
+
+// ============================================================================
 // STATE
 // ============================================================================
 
@@ -133,37 +238,45 @@ function onEmotionChange(emotion: EmotionState, previous: EmotionState): void {
     return;
   }
 
-  // Get the expression function for this emotion
-  const expressionFn = EMOTION_TO_EXPRESSION[emotion.id];
-  if (expressionFn) {
-    expressionFn();
+  const intensityValue = emotion.movement.energy;
+  const intensity = intensityValue > 0.6 ? 'high' : 'normal';
+
+  // Use appropriate expression system
+  if (USE_LUXO_EXPRESSIONS) {
+    // New Luxo expression system (CSS-based, 100+ expressions)
+    triggerLuxoExpression(emotion.id, intensityValue);
     lastExpressionTime = now;
-    log.debug('Expression triggered for emotion:', emotion.id);
-
-    const intensity = emotion.movement.energy > 0.6 ? 'high' : 'normal';
-    const intensityValue = emotion.movement.energy;
-
-    // Emit event for logo expressions to react
-    window.dispatchEvent(
-      new CustomEvent('ferni:avatar-emotion', {
-        detail: {
-          emotion: emotion.id,
-          intensity,
-        },
-      })
-    );
-
-    // ✨ Emit event for Avatar Soul to react (pupil, glow, etc.)
-    document.dispatchEvent(
-      new CustomEvent('ferni:emotion-change', {
-        detail: {
-          emotion: emotion.id,
-          intensity: intensityValue,
-          previous: previous.id,
-        },
-      })
-    );
+    log.debug('Luxo expression triggered for emotion:', emotion.id);
+  } else {
+    // Legacy GSAP-based expression system
+    const expressionFn = EMOTION_TO_EXPRESSION[emotion.id];
+    if (expressionFn) {
+      expressionFn();
+      lastExpressionTime = now;
+      log.debug('Legacy expression triggered for emotion:', emotion.id);
+    }
   }
+
+  // Emit event for logo expressions to react
+  window.dispatchEvent(
+    new CustomEvent('ferni:avatar-emotion', {
+      detail: {
+        emotion: emotion.id,
+        intensity,
+      },
+    })
+  );
+
+  // Emit event for Avatar Soul to react (pupil, glow, etc.)
+  document.dispatchEvent(
+    new CustomEvent('ferni:emotion-change', {
+      detail: {
+        emotion: emotion.id,
+        intensity: intensityValue,
+        previous: previous.id,
+      },
+    })
+  );
 }
 
 /**
@@ -203,13 +316,47 @@ export function isBridgeEnabled(): boolean {
  * Manually trigger an expression for an emotion.
  * Useful for testing or one-off triggers.
  */
-export function triggerExpressionForEmotion(emotionId: EmotionId): void {
-  const expressionFn = EMOTION_TO_EXPRESSION[emotionId];
-  if (expressionFn) {
-    expressionFn();
-    lastExpressionTime = Date.now();
-    log.debug('Manual expression trigger:', emotionId);
+export function triggerExpressionForEmotion(emotionId: EmotionId, intensity = 0.5): void {
+  if (USE_LUXO_EXPRESSIONS) {
+    triggerLuxoExpression(emotionId, intensity);
+  } else {
+    const expressionFn = EMOTION_TO_EXPRESSION[emotionId];
+    if (expressionFn) {
+      expressionFn();
+    }
   }
+  lastExpressionTime = Date.now();
+  log.debug('Manual expression trigger:', emotionId);
+}
+
+/**
+ * Directly set a Luxo expression by ID.
+ * Bypasses emotion mapping for direct expression control.
+ */
+export function setLuxoExpression(expressionId: string, options?: { duration?: number }): void {
+  if (luxoExpressions.hasExpression(expressionId)) {
+    luxoExpressions.setExpression(expressionId as ExpressionId, options);
+    log.debug('Direct Luxo expression set:', expressionId);
+  } else {
+    log.warn('Unknown Luxo expression:', expressionId);
+  }
+}
+
+/**
+ * Check if using Luxo expression system.
+ */
+export function isUsingLuxoExpressions(): boolean {
+  return USE_LUXO_EXPRESSIONS;
+}
+
+/**
+ * Get current expression ID (Luxo system only).
+ */
+export function getCurrentExpression(): ExpressionId | null {
+  if (USE_LUXO_EXPRESSIONS) {
+    return luxoExpressions.getCurrentExpression();
+  }
+  return null;
 }
 
 // ============================================================================
@@ -221,6 +368,10 @@ export const emotionExpressionBridge = {
   disable: disableEmotionExpressionBridge,
   isEnabled: isBridgeEnabled,
   trigger: triggerExpressionForEmotion,
+  // Luxo expression system
+  setExpression: setLuxoExpression,
+  isUsingLuxo: isUsingLuxoExpressions,
+  getCurrentExpression,
 };
 
 export default emotionExpressionBridge;

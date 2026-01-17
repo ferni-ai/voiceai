@@ -1,655 +1,2355 @@
 {
-  "meta": {
-    "locale": "es",
-    "name": "Español",
-    "direction": "ltr"
+  "accessibility": {
+    "accountMenu": "Menú de cuenta",
+    "accountSettings": "Ajustes de cuenta",
+    "availableCoaches": "Coaches disponibles",
+    "backToItems": "Volver a los elementos",
+    "cancelInstallation": "Cancelar instalación",
+    "closeAdmin": "Cerrar panel de administración",
+    "closeBilling": "Cerrar panel de facturación",
+    "closeDashboard": "Cerrar panel",
+    "closeDetails": "Cerrar detalles",
+    "closeHistory": "Cerrar historial",
+    "closeHuddle": "Cerrar reunión",
+    "closeMenu": "Cerrar menú",
+    "closePublisher": "Cerrar portal de publicador",
+    "closeSettings": "Cerrar ajustes",
+    "closeStats": "Cerrar estadísticas",
+    "closeSubscription": "Cerrar opciones de suscripción",
+    "collapse": "Contraer",
+    "collapseGarden": "Contraer detalles del jardín",
+    "dismiss": "Descartar",
+    "dismissNotification": "Descartar notificación",
+    "endCall": "Terminar llamada",
+    "expandGarden": "Expandir detalles del jardín",
+    "exportData": "Exportar tus datos",
+    "featuresIncluded": "Funciones incluidas",
+    "ferniLogo": "Logo de Ferni",
+    "filterBySpecialty": "Filtrar por especialidad",
+    "forgetThis": "Olvidar esto",
+    "howToPlay": "Cómo jugar",
+    "languageSelector": "Seleccionar idioma",
+    "muteAudio": "Silenciar audio",
+    "openDailyPractice": "Abrir práctica diaria",
+    "openPredictions": "Abrir predicciones",
+    "openSettings": "Abrir configuración",
+    "openTeamInsights": "Abrir ideas del equipo",
+    "options": "Opciones",
+    "pause": "Pause",
+    "play": "Play",
+    "portalSections": "Secciones del portal",
+    "refresh": "Actualizar",
+    "refreshData": "Actualizar datos",
+    "saveConversations": "Guarda tus conversaciones creando una cuenta",
+    "searchCoaches": "Buscar coaches",
+    "shareJourney": "Compartir tu viaje",
+    "sharedMusicalMemory": "Memoria musical compartida",
+    "signInToAccount": "Inicia sesión en tu cuenta",
+    "skipToContent": "Saltar al contenido principal",
+    "submitNewItem": "Enviar nuevo elemento",
+    "subscriptionPlans": "Planes de suscripción",
+    "toggleQuietHours": "Alternar horas silenciosas",
+    "unmuteAudio": "Activar audio",
+    "viewOutreachSchedule": "Ver calendario de contacto",
+    "yourNewPlan": "Tu nuevo plan",
+    "active": "[NEEDS_TRANSLATION] Active",
+    "activity": "[NEEDS_TRANSLATION] Activity",
+    "add": "[NEEDS_TRANSLATION] Add",
+    "addALifeChapter": "[NEEDS_TRANSLATION] Add a life chapter",
+    "addAPerson": "[NEEDS_TRANSLATION] Add a person",
+    "addAPhrase": "[NEEDS_TRANSLATION] Add a phrase",
+    "addARelationship": "[NEEDS_TRANSLATION] Add a relationship",
+    "addDomain": "[NEEDS_TRANSLATION] Add Domain",
+    "addMemory": "[NEEDS_TRANSLATION] Add Memory",
+    "addMoment": "[NEEDS_TRANSLATION] Add Moment",
+    "addPrinciple": "[NEEDS_TRANSLATION] Add Principle",
+    "addQuote": "[NEEDS_TRANSLATION] Add Quote",
+    "addSaying": "[NEEDS_TRANSLATION] Add Saying",
+    "addSkill": "[NEEDS_TRANSLATION] Add Skill",
+    "addStory": "[NEEDS_TRANSLATION] Add Story",
+    "addToHousehold": "[NEEDS_TRANSLATION] Add to Household",
+    "addToTeam": "[NEEDS_TRANSLATION] Add to Team",
+    "addWisdom": "[NEEDS_TRANSLATION] Add Wisdom",
+    "afternoon": "[NEEDS_TRANSLATION] Afternoon",
+    "agentMessage": "[NEEDS_TRANSLATION] Agent Message",
+    "alarm": "[NEEDS_TRANSLATION] Alarm",
+    "alex": "[NEEDS_TRANSLATION] Alex",
+    "all": "[NEEDS_TRANSLATION] All",
+    "allOff": "[NEEDS_TRANSLATION] All Off",
+    "ambientGlow": "[NEEDS_TRANSLATION] Ambient Glow",
+    "analytical": "[NEEDS_TRANSLATION] Analytical",
+    "analyticalFocusesOnLogicAndProblemSolving": "[NEEDS_TRANSLATION] Analytical Focuses on logic and problem-solving",
+    "analytics": "[NEEDS_TRANSLATION] Analytics",
+    "analyzeData": "[NEEDS_TRANSLATION] Analyze Data",
+    "anticipation": "[NEEDS_TRANSLATION] Anticipation",
+    "appleCalendar": "[NEEDS_TRANSLATION] Apple Calendar",
+    "approve": "[NEEDS_TRANSLATION] Approve",
+    "askAlex": "[NEEDS_TRANSLATION] Ask Alex",
+    "auraPulse": "[NEEDS_TRANSLATION] Aura Pulse",
+    "aurora": "[NEEDS_TRANSLATION] Aurora",
+    "awakening": "[NEEDS_TRANSLATION] Awakening",
+    "back": "[NEEDS_TRANSLATION] Back",
+    "balanced": "[NEEDS_TRANSLATION] Balanced",
+    "balancedAdaptsApproachToTheSituation": "[NEEDS_TRANSLATION] Balanced Adapts approach to the situation",
+    "becomeAFoundingMember": "[NEEDS_TRANSLATION] Become a Founding Member",
+    "becomeAGardener": "[NEEDS_TRANSLATION] Become a Gardener",
+    "beginScene": "[NEEDS_TRANSLATION] Begin Scene",
+    "bell": "[NEEDS_TRANSLATION] Bell",
+    "bigBounce": "[NEEDS_TRANSLATION] Big Bounce",
+    "bigCelebration": "[NEEDS_TRANSLATION] BIG Celebration",
+    "bigWin": "[NEEDS_TRANSLATION] Big Win",
+    "birthday": "[NEEDS_TRANSLATION] Birthday",
+    "blink": "[NEEDS_TRANSLATION] Blink",
+    "blockFocusTime": "[NEEDS_TRANSLATION] Block Focus Time",
+    "book": "[NEEDS_TRANSLATION] Book",
+    "bookOpen": "[NEEDS_TRANSLATION] Book Open",
+    "books": "[NEEDS_TRANSLATION] Books",
+    "bounce": "[NEEDS_TRANSLATION] Bounce",
+    "boundary": "[NEEDS_TRANSLATION] Boundary",
+    "brain": "[NEEDS_TRANSLATION] Brain",
+    "brainstorm": "[NEEDS_TRANSLATION] Brainstorm",
+    "brave": "[NEEDS_TRANSLATION] Brave",
+    "breakthrough": "[NEEDS_TRANSLATION] Breakthrough",
+    "breakthroughArc": "[NEEDS_TRANSLATION] Breakthrough Arc",
+    "breathe": "[NEEDS_TRANSLATION] Breathe",
+    "bringAFriendToFerni": "[NEEDS_TRANSLATION] Bring a friend to Ferni",
+    "brush": "[NEEDS_TRANSLATION] Brush",
+    "bthAnalytics": "[NEEDS_TRANSLATION] BTH Analytics",
+    "buildingTrust": "[NEEDS_TRANSLATION] Building Trust",
+    "bump": "[NEEDS_TRANSLATION] Bump",
+    "burst": "[NEEDS_TRANSLATION] Burst!",
+    "cake": "[NEEDS_TRANSLATION] Cake",
+    "calendar": "[NEEDS_TRANSLATION] Calendar",
+    "call": "[NEEDS_TRANSLATION] Call",
+    "callback": "[NEEDS_TRANSLATION] Callback",
+    "calm": "[NEEDS_TRANSLATION] Calm",
+    "cancel": "[NEEDS_TRANSLATION] Cancel",
+    "caring": "[NEEDS_TRANSLATION] Caring",
+    "celebrate": "[NEEDS_TRANSLATION] Celebrate",
+    "celebrateGrowth": "[NEEDS_TRANSLATION] Celebrate Growth",
+    "celebrating": "[NEEDS_TRANSLATION] Celebrating",
+    "celebration": "[NEEDS_TRANSLATION] Celebration",
+    "center": "[NEEDS_TRANSLATION] Center",
+    "character": "[NEEDS_TRANSLATION] Character",
+    "chat": "[NEEDS_TRANSLATION] Chat",
+    "check": "[NEEDS_TRANSLATION] Check",
+    "chuckle": "[NEEDS_TRANSLATION] Chuckle",
+    "clearAll": "[NEEDS_TRANSLATION] Clear ALL",
+    "clearCache": "[NEEDS_TRANSLATION] Clear Cache",
+    "clearData": "[NEEDS_TRANSLATION] Clear data",
+    "clearFilter": "[NEEDS_TRANSLATION] Clear filter",
+    "clearMarketplace": "[NEEDS_TRANSLATION] Clear Marketplace",
+    "clearReRecord": "[NEEDS_TRANSLATION] Clear & Re-record",
+    "click": "[NEEDS_TRANSLATION] Click",
+    "clock": "[NEEDS_TRANSLATION] Clock",
+    "close": "[NEEDS_TRANSLATION] Close",
+    "closeCharacterSheet": "[NEEDS_TRANSLATION] Close character sheet",
+    "closeEditor": "[NEEDS_TRANSLATION] Close editor",
+    "closeJournal": "[NEEDS_TRANSLATION] Close journal",
+    "closePanel": "[NEEDS_TRANSLATION] Close panel",
+    "closeStories": "[NEEDS_TRANSLATION] Close stories",
+    "closeTasks": "[NEEDS_TRANSLATION] Close tasks",
+    "closeTeachings": "[NEEDS_TRANSLATION] Close teachings",
+    "closeWizard": "[NEEDS_TRANSLATION] Close wizard",
+    "closeYearReview": "[NEEDS_TRANSLATION] Close year review",
+    "cloud": "[NEEDS_TRANSLATION] Cloud",
+    "coachMe": "[NEEDS_TRANSLATION] Coach Me",
+    "coffee": "[NEEDS_TRANSLATION] Coffee",
+    "comfortPulse": "[NEEDS_TRANSLATION] Comfort Pulse",
+    "compass": "[NEEDS_TRANSLATION] Compass",
+    "complex": "[NEEDS_TRANSLATION] Complex",
+    "concern": "[NEEDS_TRANSLATION] Concern",
+    "concernFlash": "[NEEDS_TRANSLATION] Concern Flash",
+    "confetti": "[NEEDS_TRANSLATION] Confetti",
+    "confirm": "[NEEDS_TRANSLATION] Confirm",
+    "connect": "[NEEDS_TRANSLATION] Connect",
+    "connected": "[NEEDS_TRANSLATION] Connected",
+    "connectGoogleCalendar": "[NEEDS_TRANSLATION] Connect Google Calendar",
+    "connectLinkedin": "[NEEDS_TRANSLATION] Connect LinkedIn",
+    "connectViaPlaid": "[NEEDS_TRANSLATION] Connect via Plaid",
+    "consistent": "[NEEDS_TRANSLATION] Consistent",
+    "contemplate": "[NEEDS_TRANSLATION] Contemplate",
+    "context": "[NEEDS_TRANSLATION] Context",
+    "continue": "[NEEDS_TRANSLATION] Continue",
+    "continueOurJourney": "[NEEDS_TRANSLATION] Continue our journey",
+    "continueWithApple": "[NEEDS_TRANSLATION] Continue with Apple",
+    "continueWithGoogle": "[NEEDS_TRANSLATION] Continue with Google",
+    "conversationStarters": "[NEEDS_TRANSLATION] Conversation starters",
+    "copy": "[NEEDS_TRANSLATION] Copy",
+    "cozy": "[NEEDS_TRANSLATION] Cozy",
+    "create": "[NEEDS_TRANSLATION] Create",
+    "createAgent": "[NEEDS_TRANSLATION] Create Agent",
+    "createHousehold": "[NEEDS_TRANSLATION] Create Household",
+    "createYourFirstAgent": "[NEEDS_TRANSLATION] Create Your First Agent",
+    "crown": "[NEEDS_TRANSLATION] Crown",
+    "csv": "[NEEDS_TRANSLATION] CSV",
+    "curious": "[NEEDS_TRANSLATION] Curious",
+    "curiousTilt": "[NEEDS_TRANSLATION] Curious Tilt",
+    "day3": "[NEEDS_TRANSLATION] Day 3",
+    "decrease": "[NEEDS_TRANSLATION] Decrease",
+    "deep": "[NEEDS_TRANSLATION] Deep",
+    "deepConvoArc": "[NEEDS_TRANSLATION] Deep Convo Arc",
+    "deepDive": "[NEEDS_TRANSLATION] Deep Dive",
+    "deeperInsight": "[NEEDS_TRANSLATION] Deeper insight",
+    "deepPartner": "[NEEDS_TRANSLATION] Deep Partner",
+    "delete": "[NEEDS_TRANSLATION] Delete",
+    "deleteCatchphrase": "[NEEDS_TRANSLATION] Delete catchphrase",
+    "deleteEntry": "[NEEDS_TRANSLATION] Delete entry",
+    "deleteMemory": "[NEEDS_TRANSLATION] Delete memory",
+    "deletePrinciple": "[NEEDS_TRANSLATION] Delete principle",
+    "deleteQuirk": "[NEEDS_TRANSLATION] Delete quirk",
+    "deleteQuote": "[NEEDS_TRANSLATION] Delete quote",
+    "deleteRelationship": "[NEEDS_TRANSLATION] Delete relationship",
+    "deleteSample": "[NEEDS_TRANSLATION] Delete sample",
+    "deleteStory": "[NEEDS_TRANSLATION] Delete story",
+    "deleteWisdom": "[NEEDS_TRANSLATION] Delete wisdom",
+    "delight": "[NEEDS_TRANSLATION] Delight",
+    "delighted": "[NEEDS_TRANSLATION] Delighted",
+    "delightFlash": "[NEEDS_TRANSLATION] Delight Flash",
+    "desertIslandCard": "[NEEDS_TRANSLATION] Desert Island Card",
+    "desertIslandDiscs": "[NEEDS_TRANSLATION] Desert Island Discs",
+    "disconnect": "[NEEDS_TRANSLATION] Disconnect",
+    "disconnected": "[NEEDS_TRANSLATION] Disconnected",
+    "discover": "[NEEDS_TRANSLATION] Discover",
+    "done": "[NEEDS_TRANSLATION] Done",
+    "doubleTake": "[NEEDS_TRANSLATION] Double-Take",
+    "download": "[NEEDS_TRANSLATION] Download",
+    "draft": "[NEEDS_TRANSLATION] Draft",
+    "draftContent": "[NEEDS_TRANSLATION] Draft Content",
+    "dramaticBounce": "[NEEDS_TRANSLATION] Dramatic Bounce",
+    "earlyRiser": "[NEEDS_TRANSLATION] Early Riser",
+    "edit": "[NEEDS_TRANSLATION] Edit",
+    "editBackstory": "[NEEDS_TRANSLATION] Edit backstory",
+    "editCatchphrase": "[NEEDS_TRANSLATION] Edit catchphrase",
+    "editPerson": "[NEEDS_TRANSLATION] Edit person",
+    "editPrinciple": "[NEEDS_TRANSLATION] Edit principle",
+    "editQuote": "[NEEDS_TRANSLATION] Edit quote",
+    "editStory": "[NEEDS_TRANSLATION] Edit story",
+    "editWisdom": "[NEEDS_TRANSLATION] Edit wisdom",
+    "email": "[NEEDS_TRANSLATION] Email",
+    "emotional": "[NEEDS_TRANSLATION] Emotional",
+    "emotionalMilestonesTimeline": "[NEEDS_TRANSLATION] Emotional milestones timeline",
+    "empathetic": "[NEEDS_TRANSLATION] Empathetic",
+    "empathy": "[NEEDS_TRANSLATION] Empathy",
+    "encourage": "[NEEDS_TRANSLATION] Encourage",
+    "encouraging": "[NEEDS_TRANSLATION] Encouraging",
+    "error": "[NEEDS_TRANSLATION] Error",
+    "established": "[NEEDS_TRANSLATION] Established",
+    "evalops": "[NEEDS_TRANSLATION] EvalOps",
+    "evening": "[NEEDS_TRANSLATION] Evening",
+    "events": "[NEEDS_TRANSLATION] Events",
+    "excellent": "[NEEDS_TRANSLATION] Excellent",
+    "excited": "[NEEDS_TRANSLATION] Excited",
+    "excitedWobble": "[NEEDS_TRANSLATION] Excited Wobble",
+    "expand": "[NEEDS_TRANSLATION] Expand",
+    "explorer": "[NEEDS_TRANSLATION] Explorer",
+    "exportJournal": "[NEEDS_TRANSLATION] Export journal",
+    "exportSelected": "[NEEDS_TRANSLATION] Export Selected",
+    "eye": "[NEEDS_TRANSLATION] Eye",
+    "fast20Min": "[NEEDS_TRANSLATION] Fast (20/min)",
+    "fastBeat": "[NEEDS_TRANSLATION] Fast Beat",
+    "ferniSpeaks": "[NEEDS_TRANSLATION] Ferni Speaks",
+    "fireworks": "[NEEDS_TRANSLATION] Fireworks",
+    "firstHello": "[NEEDS_TRANSLATION] First Hello",
+    "firstLaunch": "[NEEDS_TRANSLATION] First Launch",
+    "flag": "[NEEDS_TRANSLATION] Flag",
+    "flagged": "[NEEDS_TRANSLATION] Flagged",
+    "flame": "[NEEDS_TRANSLATION] Flame",
+    "flashCurious": "[NEEDS_TRANSLATION] Flash Curious",
+    "flashExcited": "[NEEDS_TRANSLATION] Flash Excited",
+    "flashHappy": "[NEEDS_TRANSLATION] Flash Happy",
+    "flex": "[NEEDS_TRANSLATION] Flex",
+    "flower": "[NEEDS_TRANSLATION] Flower",
+    "focus": "[NEEDS_TRANSLATION] Focus",
+    "forgetThisDevice": "[NEEDS_TRANSLATION] Forget this device",
+    "foundPerson": "[NEEDS_TRANSLATION] Found Person",
+    "free": "[NEEDS_TRANSLATION] Free",
+    "friend999": "[NEEDS_TRANSLATION] Friend ($9.99)",
+    "frustrated": "[NEEDS_TRANSLATION] Frustrated",
+    "full": "[NEEDS_TRANSLATION] Full",
+    "fullCircle": "[NEEDS_TRANSLATION] Full Circle",
+    "fun": "[NEEDS_TRANSLATION] Fun",
+    "gamepad": "[NEEDS_TRANSLATION] Gamepad",
+    "generateContent": "[NEEDS_TRANSLATION] Generate Content",
+    "generateIdeas": "[NEEDS_TRANSLATION] Generate Ideas",
+    "generateNewReport": "[NEEDS_TRANSLATION] Generate New Report",
+    "generateReportNow": "[NEEDS_TRANSLATION] Generate Report Now",
+    "getIdeas": "[NEEDS_TRANSLATION] Get Ideas",
+    "getNewPrompt": "[NEEDS_TRANSLATION] Get new prompt",
+    "getThis": "[NEEDS_TRANSLATION] Get This",
+    "gettingStarted": "[NEEDS_TRANSLATION] Getting Started",
+    "gift": "[NEEDS_TRANSLATION] Gift",
+    "giftSuggestions": "[NEEDS_TRANSLATION] Gift suggestions",
+    "glow": "[NEEDS_TRANSLATION] Glow",
+    "goalComplete": "[NEEDS_TRANSLATION] Goal Complete",
+    "goalCompleteArc": "[NEEDS_TRANSLATION] Goal Complete Arc",
+    "goBack": "[NEEDS_TRANSLATION] Go back",
+    "goForward": "[NEEDS_TRANSLATION] Go forward",
+    "good": "[NEEDS_TRANSLATION] Good",
+    "goodNews": "[NEEDS_TRANSLATION] Good News",
+    "googleCalendar": "[NEEDS_TRANSLATION] Google Calendar",
+    "gotIt": "[NEEDS_TRANSLATION] Got it",
+    "gratitude": "[NEEDS_TRANSLATION] Gratitude",
+    "great": "[NEEDS_TRANSLATION] Great",
+    "grow": "[NEEDS_TRANSLATION] Grow",
+    "growth": "[NEEDS_TRANSLATION] Growth",
+    "handshake": "[NEEDS_TRANSLATION] Handshake",
+    "happy": "[NEEDS_TRANSLATION] Happy",
+    "headphones": "[NEEDS_TRANSLATION] Headphones",
+    "headShake": "[NEEDS_TRANSLATION] Head Shake",
+    "health": "[NEEDS_TRANSLATION] Health",
+    "heart": "[NEEDS_TRANSLATION] Heart",
+    "heartMorph": "[NEEDS_TRANSLATION] Heart Morph",
+    "heartPulse": "[NEEDS_TRANSLATION] Heart Pulse",
+    "hearts": "[NEEDS_TRANSLATION] Hearts",
+    "hiFive": "[NEEDS_TRANSLATION] Hi-Five",
+    "highContrast": "[NEEDS_TRANSLATION] High Contrast",
+    "history": "[NEEDS_TRANSLATION] History",
+    "hot": "[NEEDS_TRANSLATION] Hot",
+    "hover": "[NEEDS_TRANSLATION] Hover",
+    "hug": "[NEEDS_TRANSLATION] Hug",
+    "idea": "[NEEDS_TRANSLATION] Idea",
+    "ideaMorph": "[NEEDS_TRANSLATION] Idea Morph",
+    "idle": "[NEEDS_TRANSLATION] Idle",
+    "importantDates": "[NEEDS_TRANSLATION] Important dates",
+    "importSelected": "[NEEDS_TRANSLATION] Import Selected",
+    "in1Hour": "[NEEDS_TRANSLATION] In 1 hour ()})",
+    "in3Hours": "[NEEDS_TRANSLATION] In 3 hours ()})",
+    "increase": "[NEEDS_TRANSLATION] Increase",
+    "info": "[NEEDS_TRANSLATION] Info",
+    "insights": "[NEEDS_TRANSLATION] Insights",
+    "interested": "[NEEDS_TRANSLATION] Interested",
+    "joinWithLink": "[NEEDS_TRANSLATION] Join with Link",
+    "jordan": "[NEEDS_TRANSLATION] Jordan",
+    "journal": "[NEEDS_TRANSLATION] Journal",
+    "joy": "[NEEDS_TRANSLATION] Joy",
+    "json": "[NEEDS_TRANSLATION] JSON",
+    "justCelebrateThisMoment": "[NEEDS_TRANSLATION] Just celebrate this moment",
+    "keep": "[NEEDS_TRANSLATION] Keep",
+    "keepFerni": "[NEEDS_TRANSLATION] Keep Ferni",
+    "keepThem": "[NEEDS_TRANSLATION] Keep them",
+    "languageSelection": "[NEEDS_TRANSLATION] Language selection",
+    "largeText": "[NEEDS_TRANSLATION] Large Text",
+    "lateNight": "[NEEDS_TRANSLATION] Late Night",
+    "later": "[NEEDS_TRANSLATION] Later",
+    "laugh": "[NEEDS_TRANSLATION] Laugh",
+    "laughing": "[NEEDS_TRANSLATION] Laughing",
+    "layers": "[NEEDS_TRANSLATION] Layers",
+    "leaf": "[NEEDS_TRANSLATION] Leaf",
+    "leanIn": "[NEEDS_TRANSLATION] Lean In",
+    "left": "[NEEDS_TRANSLATION] Left",
+    "letSTalk": "[NEEDS_TRANSLATION] Let's Talk",
+    "levelUp": "[NEEDS_TRANSLATION] Level Up",
+    "lightbulb": "[NEEDS_TRANSLATION] Lightbulb",
+    "likedIt": "[NEEDS_TRANSLATION] Liked it",
+    "listening": "[NEEDS_TRANSLATION] Listening",
+    "logAMoment": "[NEEDS_TRANSLATION] Log a moment",
+    "lovedIt": "[NEEDS_TRANSLATION] Loved it",
+    "magic": "[NEEDS_TRANSLATION] Magic",
+    "mail": "[NEEDS_TRANSLATION] Mail",
+    "makeAdmin": "[NEEDS_TRANSLATION] Make Admin",
+    "manageBilling": "[NEEDS_TRANSLATION] Manage Billing",
+    "marketplace": "[NEEDS_TRANSLATION] Marketplace",
+    "markReviewed": "[NEEDS_TRANSLATION] Mark Reviewed",
+    "maya": "[NEEDS_TRANSLATION] Maya",
+    "maybeLater": "[NEEDS_TRANSLATION] Maybe Later",
+    "media": "[NEEDS_TRANSLATION] Media",
+    "meh": "[NEEDS_TRANSLATION] Meh",
+    "memories": "[NEEDS_TRANSLATION] Memories",
+    "memory": "[NEEDS_TRANSLATION] Memory",
+    "memorySpark": "[NEEDS_TRANSLATION] Memory Spark",
+    "message": "[NEEDS_TRANSLATION] Message",
+    "mic": "[NEEDS_TRANSLATION] Mic",
+    "mild": "[NEEDS_TRANSLATION] Mild",
+    "mildConcern": "[NEEDS_TRANSLATION] Mild Concern",
+    "milestone": "[NEEDS_TRANSLATION] Milestone",
+    "milestones": "[NEEDS_TRANSLATION] Milestones",
+    "moderate": "[NEEDS_TRANSLATION] Moderate",
+    "month": "[NEEDS_TRANSLATION] Month",
+    "moodDjChallenge": "[NEEDS_TRANSLATION] Mood DJ Challenge",
+    "moon": "[NEEDS_TRANSLATION] Moon",
+    "moreInformation": "[NEEDS_TRANSLATION] More information",
+    "morning": "[NEEDS_TRANSLATION] Morning",
+    "moveDown": "[NEEDS_TRANSLATION] Move down",
+    "moveUp": "[NEEDS_TRANSLATION] Move up",
+    "multiRipple": "[NEEDS_TRANSLATION] Multi Ripple",
+    "music": "[NEEDS_TRANSLATION] Music",
+    "musicalDnaCard": "[NEEDS_TRANSLATION] Musical DNA Card",
+    "musicalYouDashboard": "[NEEDS_TRANSLATION] Musical You Dashboard",
+    "myCreations": "[NEEDS_TRANSLATION] My Creations",
+    "myGarden": "[NEEDS_TRANSLATION] My Garden",
+    "myItems": "[NEEDS_TRANSLATION] My Items",
+    "nameThatTune": "[NEEDS_TRANSLATION] Name That Tune",
+    "nayan": "[NEEDS_TRANSLATION] Nayan",
+    "needMoreSeeds": "[NEEDS_TRANSLATION] Need more Seeds",
+    "needsAttention": "[NEEDS_TRANSLATION] Needs attention",
+    "nervous": "[NEEDS_TRANSLATION] Nervous",
+    "neutral": "[NEEDS_TRANSLATION] Neutral",
+    "newTeamMember": "[NEEDS_TRANSLATION] New Team Member",
+    "next": "[NEEDS_TRANSLATION] Next",
+    "nextMonth": "[NEEDS_TRANSLATION] Next month",
+    "nextStory": "[NEEDS_TRANSLATION] Next story",
+    "night": "[NEEDS_TRANSLATION] Night",
+    "nightTalk": "[NEEDS_TRANSLATION] Night Talk",
+    "nod": "[NEEDS_TRANSLATION] Nod",
+    "none": "[NEEDS_TRANSLATION] None",
+    "nope": "[NEEDS_TRANSLATION] Nope",
+    "normal15Min": "[NEEDS_TRANSLATION] Normal (15/min)",
+    "off": "[NEEDS_TRANSLATION] Off",
+    "offline": "[NEEDS_TRANSLATION] Offline",
+    "okay": "[NEEDS_TRANSLATION] Okay",
+    "oneWordSong": "[NEEDS_TRANSLATION] One Word Song",
+    "openInsights": "[NEEDS_TRANSLATION] Open Insights",
+    "ourSong": "[NEEDS_TRANSLATION] Our Song",
+    "outlook": "[NEEDS_TRANSLATION] Outlook",
+    "overview": "[NEEDS_TRANSLATION] Overview",
+    "palette": "[NEEDS_TRANSLATION] Palette",
+    "particles": "[NEEDS_TRANSLATION] Particles",
+    "partner1999": "[NEEDS_TRANSLATION] Partner ($19.99)",
+    "party": "[NEEDS_TRANSLATION] Party",
+    "partyMode": "[NEEDS_TRANSLATION] Party Mode",
+    "perkUp": "[NEEDS_TRANSLATION] Perk Up",
+    "perky": "[NEEDS_TRANSLATION] Perky!",
+    "personaIntro": "[NEEDS_TRANSLATION] Persona Intro",
+    "personality": "[NEEDS_TRANSLATION] Personality",
+    "peter": "[NEEDS_TRANSLATION] Peter",
+    "plantASeed": "[NEEDS_TRANSLATION] Plant a Seed",
+    "plantMoreSeeds": "[NEEDS_TRANSLATION] Plant More Seeds",
+    "plantSeeds": "[NEEDS_TRANSLATION] Plant Seeds",
+    "plantYourFirstSeed": "[NEEDS_TRANSLATION] Plant Your First Seed",
+    "playEpisode": "[NEEDS_TRANSLATION] Play episode",
+    "pointer": "[NEEDS_TRANSLATION] Pointer",
+    "poor": "[NEEDS_TRANSLATION] Poor",
+    "predictions": "[NEEDS_TRANSLATION] Predictions",
+    "preview": "[NEEDS_TRANSLATION] Preview",
+    "previous": "[NEEDS_TRANSLATION] Previous",
+    "previousMonth": "[NEEDS_TRANSLATION] Previous month",
+    "previousStory": "[NEEDS_TRANSLATION] Previous story",
+    "profile": "[NEEDS_TRANSLATION] Profile",
+    "proud": "[NEEDS_TRANSLATION] Proud",
+    "rain": "[NEEDS_TRANSLATION] Rain",
+    "rainbow": "[NEEDS_TRANSLATION] Rainbow",
+    "readAloud": "[NEEDS_TRANSLATION] Read aloud",
+    "reading": "[NEEDS_TRANSLATION] Reading",
+    "recent": "[NEEDS_TRANSLATION] Recent",
+    "recognition": "[NEEDS_TRANSLATION] Recognition",
+    "reconnect": "[NEEDS_TRANSLATION] Reconnect",
+    "record": "[NEEDS_TRANSLATION] Record",
+    "recordActual": "[NEEDS_TRANSLATION] Record Actual",
+    "recordAGift": "[NEEDS_TRANSLATION] Record a gift",
+    "recordJournalEntry": "[NEEDS_TRANSLATION] Record Journal Entry",
+    "reducedMotion": "[NEEDS_TRANSLATION] Reduced Motion",
+    "reflect": "[NEEDS_TRANSLATION] Reflect",
+    "refreshInsights": "[NEEDS_TRANSLATION] Refresh insights",
+    "reject": "[NEEDS_TRANSLATION] Reject",
+    "relationshipInsights": "[NEEDS_TRANSLATION] Relationship insights",
+    "rememberMe": "[NEEDS_TRANSLATION] Remember me",
+    "remove": "[NEEDS_TRANSLATION] Remove",
+    "removeMemory": "[NEEDS_TRANSLATION] Remove memory",
+    "reset": "[NEEDS_TRANSLATION] Reset",
+    "resetAll": "[NEEDS_TRANSLATION] Reset All",
+    "resetHints": "[NEEDS_TRANSLATION] Reset Hints",
+    "restartTour": "[NEEDS_TRANSLATION] Restart Tour",
+    "retry": "[NEEDS_TRANSLATION] Retry",
+    "reviewQueue": "[NEEDS_TRANSLATION] Review Queue",
+    "reviews": "[NEEDS_TRANSLATION] Reviews",
+    "reviewWork": "[NEEDS_TRANSLATION] Review Work",
+    "right": "[NEEDS_TRANSLATION] Right",
+    "rituals": "[NEEDS_TRANSLATION] Rituals",
+    "rocket": "[NEEDS_TRANSLATION] Rocket",
+    "sad": "[NEEDS_TRANSLATION] Sad",
+    "save": "[NEEDS_TRANSLATION] Save",
+    "saveChanges": "[NEEDS_TRANSLATION] Save Changes",
+    "savePreferences": "[NEEDS_TRANSLATION] Save Preferences",
+    "saveResult": "[NEEDS_TRANSLATION] Save Result",
+    "saveSelection": "[NEEDS_TRANSLATION] Save Selection",
+    "saveVoiceSamples": "[NEEDS_TRANSLATION] Save Voice Samples",
+    "sayHello": "[NEEDS_TRANSLATION] Say Hello",
+    "scenarios": "[NEEDS_TRANSLATION] Scenarios",
+    "search": "[NEEDS_TRANSLATION] Search",
+    "searchContacts": "[NEEDS_TRANSLATION] Search contacts",
+    "searchJournalEntries": "[NEEDS_TRANSLATION] Search journal entries",
+    "seasonalMoment": "[NEEDS_TRANSLATION] Seasonal Moment",
+    "secrets": "[NEEDS_TRANSLATION] Secrets",
+    "secretSmile": "[NEEDS_TRANSLATION] Secret Smile",
+    "selectAll": "[NEEDS_TRANSLATION] Select All",
+    "selectRating": "[NEEDS_TRANSLATION] Select rating",
+    "send": "[NEEDS_TRANSLATION] Send",
+    "sendGift": "[NEEDS_TRANSLATION] Send Gift",
+    "sendInvite": "[NEEDS_TRANSLATION] Send Invite",
+    "sendMessage": "[NEEDS_TRANSLATION] Send message",
+    "sendMilestone": "[NEEDS_TRANSLATION] Send Milestone",
+    "sendResetLink": "[NEEDS_TRANSLATION] Send Reset Link",
+    "settings": "[NEEDS_TRANSLATION] Settings",
+    "settle": "[NEEDS_TRANSLATION] Settle",
+    "shake": "[NEEDS_TRANSLATION] Shake",
+    "share": "[NEEDS_TRANSLATION] Share",
+    "shareEntry": "[NEEDS_TRANSLATION] Share entry",
+    "shareSeedsWithFriends": "[NEEDS_TRANSLATION] Share seeds with friends",
+    "shiver": "[NEEDS_TRANSLATION] Shiver",
+    "shrink": "[NEEDS_TRANSLATION] Shrink",
+    "significant": "[NEEDS_TRANSLATION] Significant",
+    "simple": "[NEEDS_TRANSLATION] Simple",
+    "simulate10Conversations": "[NEEDS_TRANSLATION] Simulate 10 Conversations",
+    "simulate1Conversation": "[NEEDS_TRANSLATION] Simulate 1 Conversation",
+    "simulate3Conversations": "[NEEDS_TRANSLATION] Simulate 3 Conversations",
+    "simulate5Conversations": "[NEEDS_TRANSLATION] Simulate 5 Conversations",
+    "singleRipple": "[NEEDS_TRANSLATION] Single Ripple",
+    "skeptical": "[NEEDS_TRANSLATION] Skeptical",
+    "skip": "[NEEDS_TRANSLATION] Skip",
+    "skipIntro": "[NEEDS_TRANSLATION] Skip intro",
+    "sleepy": "[NEEDS_TRANSLATION] Sleepy",
+    "slow10Min": "[NEEDS_TRANSLATION] Slow (10/min)",
+    "slowBeat": "[NEEDS_TRANSLATION] Slow Beat",
+    "slowNod": "[NEEDS_TRANSLATION] Slow Nod",
+    "smallWin": "[NEEDS_TRANSLATION] Small Win",
+    "smile": "[NEEDS_TRANSLATION] Smile",
+    "snowflake": "[NEEDS_TRANSLATION] Snowflake",
+    "someoneNew": "[NEEDS_TRANSLATION] Someone new",
+    "sparkle": "[NEEDS_TRANSLATION] Sparkle",
+    "sparkleMorph": "[NEEDS_TRANSLATION] Sparkle Morph",
+    "sparkles": "[NEEDS_TRANSLATION] Sparkles",
+    "spinner": "[NEEDS_TRANSLATION] Spinner",
+    "sprout": "[NEEDS_TRANSLATION] Sprout",
+    "star": "[NEEDS_TRANSLATION] Star",
+    "startAConversation": "[NEEDS_TRANSLATION] Start a Conversation",
+    "startDeepThinking": "[NEEDS_TRANSLATION] Start Deep Thinking",
+    "startEnrollment": "[NEEDS_TRANSLATION] Start enrollment",
+    "startGrowingTogether": "[NEEDS_TRANSLATION] Start Growing Together",
+    "startJournaling": "[NEEDS_TRANSLATION] Start journaling",
+    "startListening": "[NEEDS_TRANSLATION] Start Listening",
+    "startPractice": "[NEEDS_TRANSLATION] Start Practice",
+    "startRecording": "[NEEDS_TRANSLATION] Start Recording",
+    "startSession": "[NEEDS_TRANSLATION] Start Session",
+    "startTalking": "[NEEDS_TRANSLATION] Start talking",
+    "startWithEpisode1": "[NEEDS_TRANSLATION] Start with Episode 1",
+    "startWorking": "[NEEDS_TRANSLATION] Start Working",
+    "stats": "[NEEDS_TRANSLATION] Stats",
+    "stop": "[NEEDS_TRANSLATION] Stop",
+    "stories": "[NEEDS_TRANSLATION] Stories",
+    "streak": "[NEEDS_TRANSLATION] Streak",
+    "streak14": "[NEEDS_TRANSLATION] Streak 14",
+    "streak30": "[NEEDS_TRANSLATION] Streak 30",
+    "streak5": "[NEEDS_TRANSLATION] Streak 5",
+    "streak7": "[NEEDS_TRANSLATION] Streak 7",
+    "streaks": "[NEEDS_TRANSLATION] Streaks",
+    "stretch": "[NEEDS_TRANSLATION] Stretch",
+    "submit": "[NEEDS_TRANSLATION] Submit",
+    "success": "[NEEDS_TRANSLATION] Success",
+    "sun": "[NEEDS_TRANSLATION] Sun",
+    "sunrise": "[NEEDS_TRANSLATION] Sunrise",
+    "sunset": "[NEEDS_TRANSLATION] Sunset",
+    "support": "[NEEDS_TRANSLATION] Support ($)",
+    "supportArc": "[NEEDS_TRANSLATION] Support Arc",
+    "surprise": "[NEEDS_TRANSLATION] Surprise",
+    "surprised": "[NEEDS_TRANSLATION] Surprised",
+    "talk": "[NEEDS_TRANSLATION] Talk",
+    "target": "[NEEDS_TRANSLATION] Target",
+    "tasks": "[NEEDS_TRANSLATION] Tasks",
+    "teachings": "[NEEDS_TRANSLATION] Teachings",
+    "teamHuddle": "[NEEDS_TRANSLATION] Team Huddle",
+    "teamMembersUnlocked": "[NEEDS_TRANSLATION] Team members unlocked",
+    "teamUnlock": "[NEEDS_TRANSLATION] Team Unlock",
+    "testCall": "[NEEDS_TRANSLATION] Test Call",
+    "testEmail": "[NEEDS_TRANSLATION] Test Email",
+    "testItunesApi": "[NEEDS_TRANSLATION] Test iTunes API",
+    "testLimitModal": "[NEEDS_TRANSLATION] Test Limit Modal",
+    "testSms": "[NEEDS_TRANSLATION] Test SMS",
+    "testUpgradeModal": "[NEEDS_TRANSLATION] Test Upgrade Modal",
+    "testVoice": "[NEEDS_TRANSLATION] Test Voice",
+    "text": "[NEEDS_TRANSLATION] Text",
+    "themes": "[NEEDS_TRANSLATION] Themes",
+    "themeSelection": "[NEEDS_TRANSLATION] Theme selection",
+    "think": "[NEEDS_TRANSLATION] Think",
+    "thinking": "[NEEDS_TRANSLATION] Thinking",
+    "thinkingOfYou": "[NEEDS_TRANSLATION] Thinking of You",
+    "thisOrThat": "[NEEDS_TRANSLATION] This or That",
+    "thoughtful": "[NEEDS_TRANSLATION] Thoughtful",
+    "thumbsUp": "[NEEDS_TRANSLATION] Thumbs Up",
+    "tilt": "[NEEDS_TRANSLATION] Tilt",
+    "timeline": "[NEEDS_TRANSLATION] Timeline",
+    "timing": "[NEEDS_TRANSLATION] Timing",
+    "today": "[NEEDS_TRANSLATION] Today",
+    "together": "[NEEDS_TRANSLATION] Together",
+    "toggle": "[NEEDS_TRANSLATION] Toggle",
+    "toggleVisualization": "[NEEDS_TRANSLATION] Toggle Visualization",
+    "tomorrowMorning900Am": "[NEEDS_TRANSLATION] Tomorrow morning (9:00 AM)",
+    "tough": "[NEEDS_TRANSLATION] Tough",
+    "trendingUp": "[NEEDS_TRANSLATION] Trending Up",
+    "trophy": "[NEEDS_TRANSLATION] Trophy",
+    "tryAgain": "[NEEDS_TRANSLATION] Try Again",
+    "unlockAllMembers": "[NEEDS_TRANSLATION] Unlock All Members",
+    "upcoming": "[NEEDS_TRANSLATION] Upcoming",
+    "upgrade": "[NEEDS_TRANSLATION] Upgrade",
+    "upload": "[NEEDS_TRANSLATION] Upload",
+    "use": "[NEEDS_TRANSLATION] Use",
+    "userProfile": "[NEEDS_TRANSLATION] User profile",
+    "useThis": "[NEEDS_TRANSLATION] Use This",
+    "validateAll": "[NEEDS_TRANSLATION] Validate All",
+    "viewAllMoments": "[NEEDS_TRANSLATION] View all moments",
+    "viewAllPredictions": "[NEEDS_TRANSLATION] View All Predictions",
+    "viewAllScheduledMeetings": "[NEEDS_TRANSLATION] View all scheduled meetings",
+    "viewFull": "[NEEDS_TRANSLATION] View Full",
+    "viewLeaderboard": "[NEEDS_TRANSLATION] View Leaderboard",
+    "viewRelationshipInsights": "[NEEDS_TRANSLATION] View relationship insights",
+    "viewRelationships": "[NEEDS_TRANSLATION] View relationships",
+    "viewStorage": "[NEEDS_TRANSLATION] View Storage",
+    "viewSyncConflicts": "[NEEDS_TRANSLATION] View Sync Conflicts",
+    "voice": "[NEEDS_TRANSLATION] Voice",
+    "volume": "[NEEDS_TRANSLATION] Volume",
+    "vulnerable": "[NEEDS_TRANSLATION] Vulnerable",
+    "warmGoodbye": "[NEEDS_TRANSLATION] Warm Goodbye",
+    "warmth": "[NEEDS_TRANSLATION] Warmth",
+    "warmthPulse": "[NEEDS_TRANSLATION] Warmth Pulse",
+    "warning": "[NEEDS_TRANSLATION] Warning",
+    "wave": "[NEEDS_TRANSLATION] Wave",
+    "waves": "[NEEDS_TRANSLATION] Waves",
+    "week": "[NEEDS_TRANSLATION] Week",
+    "welcome": "[NEEDS_TRANSLATION] Welcome",
+    "welcomeBack": "[NEEDS_TRANSLATION] Welcome Back",
+    "wink": "[NEEDS_TRANSLATION] Wink",
+    "winterSolstice": "[NEEDS_TRANSLATION] Winter Solstice",
+    "workMode": "[NEEDS_TRANSLATION] Work Mode",
+    "worried": "[NEEDS_TRANSLATION] Worried",
+    "yawn": "[NEEDS_TRANSLATION] Yawn",
+    "yesItSMe": "[NEEDS_TRANSLATION] Yes, it's me",
+    "yoga": "[NEEDS_TRANSLATION] Yoga",
+    "youGave": "[NEEDS_TRANSLATION] You gave",
+    "youReceived": "[NEEDS_TRANSLATION] You received",
+    "yourJourney": "[NEEDS_TRANSLATION] Your Journey",
+    "yourLibrary": "[NEEDS_TRANSLATION] Your Library",
+    "yourTeam": "[NEEDS_TRANSLATION] Your Team",
+    "yourTrackedDreams": "[NEEDS_TRANSLATION] Your tracked dreams",
+    "zap": "[NEEDS_TRANSLATION] Zap",
+    "zen": "[NEEDS_TRANSLATION] Zen"
+  },
+  "addPerson": {
+    "addMoreDetails": "Add more details",
+    "addPerson": "Add Person",
+    "added": "{name} added!",
+    "addedMock": "{name} added! (mock)",
+    "adding": "Adding...",
+    "birthdayLabel": "Birthday",
+    "couldNotAdd": "Could not add person",
+    "emailLabel": "Email",
+    "eyebrow": "Your People",
+    "howMetLabel": "How did you meet?",
+    "howMetPlaceholder": "e.g., College roommate, Met at work",
+    "nameLabel": "Their name",
+    "namePlaceholder": "e.g., Mom, Sarah Chen, Dr. Rivera",
+    "notesLabel": "Notes",
+    "notesPlaceholder": "Anything else to remember...",
+    "phoneLabel": "Phone",
+    "relationshipLabel": "How do you know them?",
+    "relationships": {
+      "acquaintance": "Acquaintance",
+      "colleague": "Colleague",
+      "family": "Family",
+      "friend": "Friend",
+      "mentor": "Mentor",
+      "other": "Other"
+    },
+    "subtitle": "Tell me about someone you care about",
+    "title": "Add Someone"
+  },
+  "buttons": {
+    "chipIn": "Chip In",
+    "choose": "Elegir esto",
+    "exportData": "Exportar datos",
+    "refresh": "Actualizar",
+    "savePreference": "Guardar preferencia",
+    "savePreferences": "Guardar preferencias",
+    "signIn": "Iniciar sesión",
+    "signOut": "Cerrar sesión",
+    "signUp": "Registrarse"
   },
   "common": {
-    "loading": "Cargando...",
-    "error": "Algo salió mal",
-    "retry": "Intentar de nuevo",
-    "cancel": "Cancelar",
-    "save": "Guardar",
-    "close": "Cerrar",
-    "next": "Siguiente",
-    "back": "Atrás",
-    "done": "Listo",
-    "continue": "Continuar",
-    "skip": "Omitir",
-    "confirm": "Confirmar",
-    "delete": "Eliminar",
-    "edit": "Editar",
-    "share": "Compartir",
-    "download": "Descargar",
-    "copy": "Copiar",
-    "copied": "¡Copiado!",
-    "new": "NUEVO",
-    "saving": "Guardando...",
-    "saved": "¡Guardado!",
-    "processing": "Procesando...",
     "adding": "Añadiendo...",
-    "errorRetry": "Error - Intentar de nuevo"
+    "back": "Atrás",
+    "cancel": "Cancelar",
+    "close": "Cerrar",
+    "confirm": "Confirmar",
+    "continue": "Continuar",
+    "copied": "¡Copiado!",
+    "copy": "Copiar",
+    "daysAgo": "{count} days ago",
+    "delete": "Eliminar",
+    "done": "Listo",
+    "download": "Descargar",
+    "edit": "Editar",
+    "error": "Algo salió mal",
+    "errorRetry": "Error - Intentar de nuevo",
+    "loading": "Cargando...",
+    "monthsAgo": "{count} months ago",
+    "new": "NUEVO",
+    "next": "Siguiente",
+    "processing": "Procesando...",
+    "retry": "Intentar de nuevo",
+    "save": "Guardar",
+    "saved": "¡Guardado!",
+    "saving": "Guardando...",
+    "share": "Compartir",
+    "skip": "Omitir",
+    "today": "Today",
+    "tryAgain": "Try Again",
+    "updated": "UPDATED",
+    "weeksAgo": "{count} weeks ago",
+    "yesterday": "Yesterday",
+    "offline": "[NEEDS_TRANSLATION] You're offline",
+    "start": "[NEEDS_TRANSLATION] Start",
+    "connect": "[NEEDS_TRANSLATION] Connect",
+    "now": "[NEEDS_TRANSLATION] Now",
+    "overview": "[NEEDS_TRANSLATION] Overview",
+    "you": "[NEEDS_TRANSLATION] You"
   },
-  "menu": {
-    "title": "¿Qué sigue?",
-    "yourStage": "Tu etapa",
-    "nextStage": "Siguiente: {stage}",
-    "maxLevel": "Compañeros de Vida",
-    "unlockHint": "{remaining} para desbloquear",
-    "moreConversations": "{n} charlas más",
-    "moreDays": "{n} días más",
-    "keepChatting": "Sigue charlando para desbloquear",
-    "almostThere": "¡Casi listo!",
+  "confirmModal": {
+    "cancel": "Cancel",
+    "cannotBeUndone": "This cannot be undone.",
+    "confirm": "Confirm",
+    "continue": "Continue",
+    "delete": "Delete",
+    "deleteTitle": "Delete {item}?",
+    "discard": "Discard",
+    "keep": "Keep"
+  },
+  "connections": {
+    "buttons": {
+      "connect": "Connect",
+      "disconnect": "Disconnect",
+      "manage": "Manage"
+    },
+    "capabilities": {
+      "eventAnticipation": "Event anticipation",
+      "financialPrediction": "Financial insights",
+      "sleepAwareness": "Sleep quality",
+      "stressAwareness": "Stress awareness"
+    },
+    "eyebrow": "SUPERPOWERS",
     "sections": {
-      "pinned": "Acceso Rápido",
-      "connect": "Conectar",
-      "grow": "Crecer",
-      "remember": "Recordar",
-      "personalize": "Hazlo Tuyo",
-      "account": "Cuenta",
-      "admin": "Admin"
+      "calendar": "Calendar & Time",
+      "finance": "Financial Awareness",
+      "health": "Health & Body"
     },
-    "items": {
-      "yourJourney": "Tu Viaje",
-      "trustDetails": "Nuestra Relación",
-      "progressAnalytics": "Cómo Estás Creciendo",
-      "predictionAccuracy": "Mis Predicciones",
-      "whatILearned": "Lo Que He Aprendido",
-      "memoryBrowser": "Nuestros Recuerdos",
-      "wellbeingDashboard": "Tu Bienestar",
-      "conversationHistory": "Conversaciones Pasadas",
-      "videoSessions": "Video Chat",
-      "groupCoaching": "Sesiones Grupales",
-      "teamHuddles": "Reuniones de Equipo",
-      "playGames": "Jugar",
-      "musicalYou": "Tu Música",
-      "personalize": "Personalizar",
-      "voiceAccent": "Voz y Acento",
-      "guidedPractices": "Prácticas Guiadas",
-      "createPractice": "Crear Práctica",
-      "wearables": "Dispositivos",
-      "calendar": "Calendario",
-      "notifications": "Notificaciones",
-      "toggleTheme": "Claro / Oscuro",
-      "linkSpotify": "Conectar Spotify",
-      "spotifyConnected": "Spotify Conectado",
-      "yourPlan": "Tu Plan",
-      "manageBilling": "Configuración de Pago",
-      "voiceId": "Tu Voz",
-      "householdMembers": "Tu Gente",
-      "contactInfo": "Info de Contacto",
-      "exportData": "Descarga Tu Historia",
-      "shareFerni": "Compartir Ferni",
-      "supportFerni": "Apoyar a Ferni",
-      "takeTour": "Hacer el Tour",
-      "language": "Idioma",
-      "whatsGrowing": "Lo Que Viene"
+    "status": {
+      "connected": "Connected",
+      "notConnected": "Not connected"
     },
-    "pinItem": "Fijar arriba",
-    "unpinItem": "Desfijar",
-    "comingSoon": "Próximamente"
+    "subtitle": "Give Ferni superhuman awareness",
+    "title": "Connections"
   },
-  "roadmap": {
-    "eyebrow": "LO QUE VIENE",
-    "title": "El Camino Por Delante",
-    "intro": "Toda gran relación tiene temporadas. Estas son semillas que plantamos juntos.",
-    "sections": {
-      "connect": "Nuevas Formas de Conectar",
-      "personalize": "Hazlo Tuyo",
-      "platform": "La Plataforma"
+  "contactSettings": {
+    "buttons": {
+      "save": "Guardar",
+      "saving": "Guardando..."
     },
-    "expectedArrival": "Llegada esperada",
-    "betterThanHuman": "Mejor que humano",
-    "alreadyGrowing": "Ya creciendo",
-    "wantThis": "Quiero esto",
-    "voted": "¡Estás emocionado!",
-    "peopleExcited": "{count} personas están emocionadas por esto",
-    "footerText": "Tu voz da forma a lo que construimos. Gracias por crecer con nosotros.",
-    "stages": {
-      "seed": "Plantado",
-      "sprout": "Creciendo",
-      "bud": "Floreciendo",
-      "bloom": "Pronto"
+    "verify": {
+      "sending": "Enviando código...",
+      "withCode": "Verificar con código"
     }
   },
-  "session": {
-    "connecting": "Conectando...",
-    "connected": "Conectado",
-    "disconnected": "Desconectado",
-    "listening": "Escuchando...",
-    "thinking": "Pensando...",
-    "speaking": "Hablando...",
-    "tapToSpeak": "Toca para hablar",
-    "holdToSpeak": "Mantén para hablar",
-    "releaseToSend": "Suelta para enviar",
-    "endSession": "Terminar Sesión",
-    "sessionEnded": "Sesión terminada",
-    "goodbye": "Adiós",
-    "end": "Terminar",
-    "untilNextTime": "Hasta la próxima...",
-    "takeCare": "Cuídate.",
-    "ending": "Terminando...",
-    "endConversation": "Terminar conversación",
-    "endConversationGoodbye": "Terminar conversación - Adiós",
-    "agentEndingConversation": "El agente está terminando la conversación"
+  "creativeYou": {
+    "episodes": "episodes",
+    "eyebrow": "THINGS I FOUND FOR YOU",
+    "insights": "Insights",
+    "learningTracks": "Paths Worth Exploring",
+    "loadingPicks": "Pulling together today's picks...",
+    "loadingProfile": "Just a sec...",
+    "loadingTracks": "Finding paths...",
+    "noPicks": "Still getting to know you. Check back soon.",
+    "noProfile": "We're just getting started. This fills in as we talk.",
+    "noTracks": "Nothing here yet. As we talk more, I'll find paths that fit.",
+    "podcast": "Podcast",
+    "podcasts": "Podcasts",
+    "shareText": "I'm a \"{label}\" — here's what I've been exploring on Ferni",
+    "shareTitle": "What I'm Into",
+    "start": "Start",
+    "style": "Your Style",
+    "title": "Creative You",
+    "todaysPicks": "Today's Picks",
+    "topInterests": "What Draws You In",
+    "total": "total",
+    "video": "Video",
+    "videos": "Videos",
+    "welcome": "Hey. Found some things you might like.",
+    "yourDNA": "What You're Into"
   },
-  "trustJourney": {
-    "eyebrow": "Nuestra Historia",
-    "title": "Tu Viaje de Confianza",
-    "subtitle": "Cómo hemos crecido juntos",
-    "loading": "Cargando tu viaje",
-    "loadingText": "Reuniendo tu viaje...",
-    "trustScore": "Puntuación de Confianza",
-    "exportSuccess": "¡Viaje exportado!",
-    "offlineBanner": "Estás desconectado - mostrando datos guardados",
-    "loadMore": "Cargar {count} más",
-    "strengthLabel": "Puntuación de confianza: {value}%",
-    "timelineLabel": "Línea de tiempo del viaje",
-    "filterLabel": "Filtrar línea de tiempo",
-    "filters": {
-      "all": "Todo",
-      "growth": "Crecimiento",
-      "win": "Victorias",
-      "callback": "Callbacks",
-      "boundary": "Límites",
-      "outreach": "Contactos"
+  "editPerson": {
+    "areYouSure": "Are you sure?",
+    "bestTimeHint": "When are they usually available or responsive?",
+    "bestTimeLabel": "Best time to reach them",
+    "bestTimePlaceholder": "e.g., Evenings after 6pm, Weekend mornings",
+    "couldNotRemove": "Could not remove person",
+    "couldNotSave": "Could not save changes",
+    "defaultName": "Person",
+    "deleteConfirmText": "This will remove {name} and all their history from Your People. This cannot be undone.",
+    "email": "Email",
+    "emailLabel": "Email",
+    "eyebrow": "Edit Details",
+    "howMetLabel": "How you met",
+    "howMetPlaceholder": "e.g., College roommate",
+    "inPerson": "In person",
+    "interestsHint": "Separate with commas. Helps with gift ideas and conversation starters.",
+    "interestsLabel": "Their interests",
+    "interestsPlaceholder": "e.g., hiking, sci-fi movies, cooking Italian food",
+    "nameLabel": "Name",
+    "noPreference": "No preference",
+    "notesLabel": "Personal notes",
+    "notesPlaceholder": "Any other details to remember about them...",
+    "phoneCall": "Phone call",
+    "phoneLabel": "Phone",
+    "preferredChannelLabel": "Preferred way to reach them",
+    "relationshipLabel": "Relationship",
+    "remove": "Remove",
+    "removeFromPeople": "Remove from Your People",
+    "removed": "{name} removed",
+    "saveChanges": "Save Changes",
+    "saving": "Saving...",
+    "sensitiveHint": "Separate with commas. I'll remember not to bring these up.",
+    "sensitiveLabel": "Topics to avoid",
+    "sensitivePlaceholder": "e.g., recent job loss, family issues",
+    "tabs": {
+      "basic": "Basic",
+      "context": "Context",
+      "preferences": "Preferences"
     },
-    "sections": {
-      "strength": "Fortaleza de la Relación",
-      "stats": "Estadísticas del Viaje",
-      "boundaries": "Límites Respetados",
-      "growth": "Cómo has crecido",
-      "timeline": "Nuestro viaje juntos"
+    "textMessage": "Text message"
+  },
+  "emptyStates": {
+    "comingSoon": {
+      "message": "We're building something thoughtful here. It'll be worth the wait.",
+      "title": "Something special is coming"
     },
-    "stats": {
-      "growthMoments": "Momentos de Crecimiento",
-      "winsCelebrated": "Victorias Celebradas",
-      "sharedMoments": "Momentos Compartidos"
+    "error": {
+      "action": "Try again",
+      "message": "Even the best of us stumble. Let's try that again.",
+      "secondaryAction": "Get help",
+      "title": "Oops, something went sideways"
     },
-    "strengthDescriptions": {
-      "deep": "Hemos construido algo real juntos. Te conozco, y confías en mí.",
-      "growing": "Nuestra conexión se está profundizando. Estoy aprendiendo lo que te importa.",
-      "building": "Estamos construyendo confianza. Cada conversación me ayuda a entenderte mejor.",
-      "starting": "Apenas estamos comenzando. Sigue hablándome - estoy escuchando.",
-      "beginning": "Todo viaje comienza con un primer paso. Estoy aquí cuando estés listo."
+    "loading": {
+      "message": "Good things are worth a moment.",
+      "title": "Taking a breath..."
     },
-    "growthTypes": {
-      "emotional_regulation": "Balance emocional",
-      "perspective_shift": "Nuevas perspectivas",
-      "boundary_setting": "Límites saludables",
-      "behavior_change": "Nuevos hábitos",
-      "self_awareness": "Autoconciencia",
-      "coping_upgrade": "Mejor afrontamiento",
-      "goal_progress": "Progreso de metas"
+    "noConversations": {
+      "action": "Start talking",
+      "message": "Every great journey begins with a single conversation. I'm here whenever you're ready.",
+      "title": "Let's start something meaningful"
     },
-    "empty": {
-      "title": "Nuestra historia apenas comienza",
-      "message": "A medida que hablemos más, notaré tu crecimiento, celebraré tus victorias y recordaré lo que te importa. Vuelve pronto."
+    "noGoals": {
+      "action": "Set a goal",
+      "message": "Setting goals isn't about pressure—it's about pointing toward what you care about.",
+      "title": "What matters to you?"
     },
-    "errors": {
-      "offline": {
-        "title": "Estás desconectado",
-        "message": "Conéctate a internet para ver tu viaje."
-      },
-      "notLoggedIn": {
-        "title": "No has iniciado sesión",
-        "message": "Inicia sesión para ver tu viaje con Ferni."
-      },
-      "rateLimited": {
-        "title": "Más despacio",
-        "message": "Estás revisando muy seguido. Espera un momento e intenta de nuevo."
-      },
-      "unauthorized": {
-        "title": "Acceso denegado",
-        "message": "No tienes permiso para ver esto."
-      },
-      "generic": {
-        "title": "Algo salió mal",
-        "message": "No pudimos cargar tu viaje. Por favor, intenta de nuevo."
-      },
-      "exportFailed": {
-        "message": "No se pudo exportar tus datos. Por favor, intenta de nuevo."
-      },
-      "fetchFailedUsingCache": {
-        "message": "Mostrando datos guardados - no se pudo conectar al servidor."
-      }
+    "noHistory": {
+      "message": "As we talk, your journey will unfold in this space.",
+      "title": "Your story starts here"
+    },
+    "noTeam": {
+      "message": "As our relationship deepens, you'll meet new friends who can help in different ways.",
+      "title": "Your team is growing"
+    },
+    "offline": {
+      "action": "Try again",
+      "message": "That's okay—some of our best thinking happens in quiet moments. We'll reconnect soon.",
+      "title": "We're offline right now"
+    },
+    "permissionNeeded": {
+      "action": "Grant permission",
+      "message": "To give you the best experience, we need access to your microphone. Your privacy is always protected.",
+      "title": "We need your permission"
+    },
+    "searchEmpty": {
+      "action": "Ask Ferni",
+      "message": "Try different words, or we could explore this topic together.",
+      "messageWithQuery": "No results for \"{query}\". Try different words, or we could explore this topic together.",
+      "title": "Nothing here yet"
     }
-  },
-  "subscription": {
-    "free": "Gratis",
-    "friend": "Amigo",
-    "partner": "Socio",
-    "upgrade": "Mejorar",
-    "currentPlan": "Plan Actual",
-    "planDetails": "Detalles del Plan",
-    "features": "Características",
-    "unlimitedConversations": "Conversaciones ilimitadas",
-    "allTeamMembers": "Todos los miembros del equipo",
-    "prioritySupport": "Soporte prioritario",
-    "advancedInsights": "Perspectivas avanzadas"
-  },
-  "team": {
-    "meetTheTeam": "Conoce al Equipo",
-    "selectMember": "Selecciona un miembro",
-    "currentlyWith": "Actualmente con {name}",
-    "members": {
-      "ferni": {
-        "name": "Ferni",
-        "role": "Coach de Vida",
-        "bio": "Tu punto de contacto principal. Hace las preguntas que desbloquean perspicacia."
-      },
-      "nayan": {
-        "name": "Nayan",
-        "role": "Sabio y Mentor",
-        "bio": "Tu mentor de por vida con sabiduría y paciencia."
-      },
-      "peter": {
-        "name": "Peter",
-        "role": "Investigación",
-        "bio": "Detecta patrones que nadie más ve."
-      },
-      "alex": {
-        "name": "Alex",
-        "role": "Comunicación",
-        "bio": "Tu jefe de personal y coach de comunicación."
-      },
-      "maya": {
-        "name": "Maya",
-        "role": "Hábitos y Rutinas",
-        "bio": "Te ayuda a construir hábitos que perduran."
-      },
-      "jordan": {
-        "name": "Jordan",
-        "role": "Planificación",
-        "bio": "Convierte sueños vagos en experiencias vividas."
-      }
-    }
-  },
-  "stages": {
-    "stranger": "Desconocido",
-    "acquaintance": "Conocido",
-    "friend": "Amigo",
-    "closeFriend": "Amigo Cercano",
-    "confidant": "Confidente",
-    "soulmate": "Alma Gemela"
-  },
-  "time": {
-    "justNow": "Ahora mismo",
-    "minutesAgo": "Hace {n} minutos",
-    "hoursAgo": "Hace {n} horas",
-    "yesterday": "Ayer",
-    "daysAgo": "Hace {n} días"
-  },
-  "milestones": {
-    "ourStory": "Nuestra Historia Hasta Ahora",
-    "everyMomentMatters": "Cada momento importa.",
-    "journeyWith": "Mi Viaje con Ferni",
-    "categories": {
-      "relationship": "Nuestra Relación",
-      "team": "Conexión de Equipo",
-      "conversation": "Nuestras Conversaciones",
-      "discovery": "Descubrimiento",
-      "sweet": "Momento Dulce",
-      "milestone": "Hito"
-    }
-  },
-  "notifications": {
-    "connectionLost": "Conexión perdida. Reconectando...",
-    "reconnected": "¡Reconectado!",
-    "microphoneBlocked": "Se requiere acceso al micrófono",
-    "sessionTimeout": "La sesión expiró"
   },
   "errors": {
     "connectionFailed": "Error al conectar. Por favor, inténtalo de nuevo.",
+    "invalidLanguage": "Ese idioma aún no está disponible",
     "microphoneAccess": "Por favor, permite el acceso al micrófono para continuar.",
     "networkError": "Error de red. Por favor, verifica tu conexión.",
     "sessionExpired": "Tu sesión ha expirado. Por favor, actualiza.",
     "somethingWrong": "Algo salió mal. Por favor, inténtalo de nuevo."
   },
-  "onboarding": {
-    "welcome": "Bienvenido",
-    "letsGetStarted": "Empecemos",
-    "whatIsYourName": "¿Cómo te gustaría que te llame?",
-    "niceName": "¡Encantado de conocerte, {name}!",
-    "howAreYouFeeling": "¿Cómo te sientes hoy?",
-    "readyToBegin": "¿Listo para empezar?",
-    "ariaLabel": "Tour de bienvenida",
-    "steps": {
-      "welcome": {
-        "title": "Bienvenido a Ferni",
-        "description": "Tu equipo personal de coaches de vida con IA. Cada uno aporta sabiduría única para apoyar tu viaje."
+  "greetings": {
+    "goodAfternoon": "Good afternoon",
+    "goodEvening": "Good evening",
+    "goodMorning": "Good morning",
+    "goodToSeeYou": "Good to see you.",
+    "hereToHelp": "Here to help.",
+    "letsBegin": "Let's begin.",
+    "letsContinue": "Let's continue.",
+    "letsGetStarted": "Let's get started.",
+    "milestones": {
+      "conversations10": "10 conversations.",
+      "conversations100": "100 conversations. Mastery.",
+      "conversations25": "25 conversations.",
+      "conversations5": "5 conversations.",
+      "conversations50": "50 conversations. Impressive.",
+      "milestoneReached": "Milestone reached.",
+      "streak100": "100 days. Exceptional.",
+      "streak14": "Two weeks strong.",
+      "streak3": "3 days in a row.",
+      "streak30": "30 days. Remarkable.",
+      "streak60": "60 days. Dedication.",
+      "streak7": "One week. Well done.",
+      "visits10": "10 visits.",
+      "visits100": "100 visits. Dedicated.",
+      "visits50": "50 visits. Committed."
+    },
+    "readyToGo": "Ready to go.",
+    "readyWhenYouAre": "Ready when you are.",
+    "streakImpressive": "{days} days. Impressive.",
+    "streakNice": "{days}-day streak. Nice.",
+    "welcome": "Welcome.",
+    "welcomeBack": "Welcome back.",
+    "workingLate": "Working late",
+    "yourTeamIsReady": "Your team is ready."
+  },
+  "groupCoaching": {
+    "buttons": {
+      "join": "Unirse",
+      "start": "Iniciar"
+    },
+    "empty": {
+      "hint": "Crea una nueva sesión para comenzar",
+      "title": "Sin sesiones activas"
+    },
+    "loading": "Cargando...",
+    "participantsLabel": "participantes",
+    "sessionTypes": {
+      "couple": {
+        "description": "Navega dinámicas de relación juntos",
+        "name": "Pareja"
       },
-      "voice": {
-        "title": "Solo Habla",
-        "description": "Toca el centro para iniciar una conversación. Habla naturalmente - Ferni escucha y responde en tiempo real."
+      "family": {
+        "description": "Construye conexiones familiares más fuertes",
+        "name": "Familia"
       },
-      "personas": {
-        "title": "Conoce a Tu Equipo",
-        "description": "Seis coaches únicos con diferentes perspectivas. Cada uno entiende tu historia con el equipo."
+      "peer": {
+        "description": "Conéctate con otros en viajes similares",
+        "name": "Apoyo Entre Pares"
       },
-      "rituals": {
-        "title": "Prácticas Diarias",
-        "description": "Construye consistencia con rituales diarios cortos. Sigue tus rachas y celebra tu progreso."
-      },
-      "ready": {
-        "title": "Estás Listo",
-        "description": "Eso es todo lo que necesitas saber. Descubre más mientras avanzas."
+      "team": {
+        "description": "Mejora la colaboración laboral",
+        "name": "Equipo"
       }
     },
-    "buttons": {
-      "skip": "Omitir tour",
-      "back": "Atrás",
-      "next": "Siguiente",
-      "begin": "Comencemos"
-    }
+    "title": "Coaching Grupal"
+  },
+  "household": {
+    "addMember": "Añadir miembro",
+    "addToHousehold": "Añadir al hogar",
+    "members": "Miembros",
+    "removeMember": "Eliminar miembro",
+    "title": "Hogar"
+  },
+  "lifeContext": {
+    "balanced": "Everything seems balanced right now",
+    "empty": {
+      "message": "As we talk more, I'll start to notice patterns and share what I see across your life.",
+      "title": "Still getting to know you"
+    },
+    "error": {
+      "message": "We'll try again in a moment.",
+      "title": "Couldn't check in right now"
+    },
+    "eyebrow": "What I Notice",
+    "footer": {
+      "updated": "Updated {time}",
+      "watching": "Keeping an eye on things"
+    },
+    "levels": {
+      "high": "Needs attention",
+      "low": "Looking good",
+      "medium": "Worth watching"
+    },
+    "loading": "Checking in on your world...",
+    "noticedBy": "noticed by {name}",
+    "personaHint": "{name} might be good to talk to about this",
+    "priority": {
+      "high": "worth discussing",
+      "low": "just a thought",
+      "medium": "when you have time",
+      "urgent": "important"
+    },
+    "scores": {
+      "load": "How Much You're Carrying",
+      "wellbeing": "How You're Doing"
+    },
+    "sections": {
+      "areas": "Areas of Your Life",
+      "patterns": "Patterns I'm Noticing",
+      "thoughts": "What's On My Mind"
+    },
+    "severity": {
+      "high": "significant",
+      "low": "gentle",
+      "medium": "notable"
+    },
+    "subtitle": "How things are looking across your life",
+    "title": "Your World"
   },
   "manageSubscription": {
-    "label": "SUSCRIPCIÓN",
-    "title": "Gestiona Tu Plan",
-    "expiresLabel": "Acceso hasta",
-    "renewsLabel": "Se renueva",
-    "billedThrough": "Facturado a través de",
-    "buttons": {
-      "upgrade": "Mejorar a Premium",
-      "restore": "Restaurar Compras",
-      "restoring": "Restaurando...",
-      "manageApple": "Gestionar en Ajustes",
-      "manageStripe": "Gestionar Facturación"
-    },
     "apple": {
       "instructionsTitle": "Para cancelar o cambiar tu plan:",
+      "note": "Apple requiere que las suscripciones se gestionen a través de los Ajustes de iOS",
       "step1": "Abre Ajustes en tu dispositivo",
       "step2": "Toca tu nombre en la parte superior",
       "step3": "Toca \"Suscripciones\"",
-      "step4": "Busca y toca \"Ferni\"",
-      "note": "Apple requiere que las suscripciones se gestionen a través de los Ajustes de iOS"
+      "step4": "Busca y toca \"Ferni\""
+    },
+    "billedThrough": "Facturado a través de",
+    "buttons": {
+      "manageApple": "Gestionar en Ajustes",
+      "manageStripe": "Gestionar Facturación",
+      "restore": "Restaurar Compras",
+      "restoring": "Restaurando...",
+      "upgrade": "Mejorar a Premium"
+    },
+    "expiresLabel": "Acceso hasta",
+    "freeNote": "Desbloquea sesiones ilimitadas, todo el equipo y personalización",
+    "label": "SUSCRIPCIÓN",
+    "renewsLabel": "Se renueva",
+    "restore": {
+      "failed": "Error al restaurar",
+      "noFound": "No se encontraron compras"
+    },
+    "status": {
+      "active": "Tu suscripción está activa. ¡Gracias por tu apoyo!",
+      "canceled": "Tu suscripción terminará pronto, pero siempre serás bienvenido.",
+      "default": "Estás suscrito. ¡Gracias por tu apoyo!",
+      "free": "Estás en el plan gratuito. Ferni siempre está aquí para ti.",
+      "pastDue": "Hubo un problema con tu pago. Por favor actualiza tu método de pago."
     },
     "stripe": {
       "note": "Actualiza método de pago, ve facturas o cancela cuando quieras"
     },
-    "restore": {
-      "noFound": "No se encontraron compras",
-      "failed": "Error al restaurar"
+    "title": "Gestiona Tu Plan"
+  },
+  "menu": {
+    "greeting": {
+      "morning": "Buenos días",
+      "afternoon": "Buenas tardes",
+      "evening": "Buenas noches",
+      "night": "Buenas noches",
+      "lateNight": "¿Aún despierto?"
     },
-    "status": {
-      "free": "Estás en el plan gratuito. Ferni siempre está aquí para ti.",
-      "active": "Tu suscripción está activa. ¡Gracias por tu apoyo!",
-      "canceled": "Tu suscripción terminará pronto, pero siempre serás bienvenido.",
-      "pastDue": "Hubo un problema con tu pago. Por favor actualiza tu método de pago.",
-      "default": "Estás suscrito. ¡Gracias por tu apoyo!"
+    "almostThere": "¡Casi listo!",
+    "comingSoon": "Próximamente",
+    "items": {
+      "activity": "What I've Done For You",
+      "billingPortal": "Facturación y Suscripción",
+      "calendar": "Calendario",
+      "connections": "Connections",
+      "contactInfo": "Info de Contacto",
+      "contacts": "Mis Personas",
+      "conversationHistory": "Conversaciones Pasadas",
+      "createPractice": "Crear Práctica",
+      "creativeYou": "Creative You",
+      "discoverAgents": "Discover Agents",
+      "exportData": "Descarga Tu Historia",
+      "gifts": "Regalos y Ocasiones",
+      "groupCoaching": "Sesiones Grupales",
+      "guidedPractices": "Prácticas Guiadas",
+      "householdMembers": "Tu Gente",
+      "familyCallers": "Acceso Telefónico Familiar",
+      "journaling": "Journaling",
+      "language": "Idioma",
+      "lifeContext": "Contexto de Vida",
+      "linkSpotify": "Conectar Spotify",
+      "manageBilling": "Configuración de Pago",
+      "memoryBrowser": "Nuestros Recuerdos",
+      "musicalYou": "Tu Música",
+      "notifications": "Notificaciones",
+      "outreachSchedule": "Calendario de Alcance",
+      "personalize": "Personalizar",
+      "playGames": "Jugar",
+      "setTheVibe": "Crear el ambiente",
+      "predictionAccuracy": "Mis Predicciones",
+      "progressAnalytics": "Cómo Estás Creciendo",
+      "shareFerni": "Invitar a un amigo",
+      "spotifyConnected": "Spotify Conectado",
+      "supportFerni": "Apoyar a Ferni",
+      "supportFerniExpanded": "[NEEDS_TRANSLATION] Ferni's Garden",
+      "takeTour": "Hacer el Tour",
+      "teamHuddles": "Reuniones de Equipo",
+      "teamInsights": "Ideas del equipo",
+      "toggleTheme": "Claro / Oscuro",
+      "trustDetails": "Nuestra Relación",
+      "videoSessions": "Video Chat",
+      "voiceAccent": "Voz y Acento",
+      "voiceId": "Tu Voz",
+      "wearables": "Dispositivos",
+      "wellbeingDashboard": "Tu Bienestar",
+      "whatILearned": "Lo Que He Aprendido",
+      "whatsGrowing": "Lo Que Viene",
+      "yourJourney": "Tu Viaje",
+      "yourYear": "Tu Año con Ferni",
+      "whatIllKnow": "Lo Que Sabré",
+      "yourPlan": "Tu Plan",
+      "insights": "[NEEDS_TRANSLATION] Understanding You",
+      "yourStory": "[NEEDS_TRANSLATION] Your Story",
+      "whatINotice": "[NEEDS_TRANSLATION] What I Notice",
+      "teamSessions": "[NEEDS_TRANSLATION] Team Sessions",
+      "conferenceCalls": "[NEEDS_TRANSLATION] Conference Calls",
+      "concierge": "[NEEDS_TRANSLATION] Real-World Help",
+      "yourHome": "[NEEDS_TRANSLATION] Your Home",
+      "practices": "[NEEDS_TRANSLATION] Practices",
+      "linkedin": "[NEEDS_TRANSLATION] LinkedIn",
+      "themeLanguage": "[NEEDS_TRANSLATION] Look & Feel",
+      "vibeController": "[NEEDS_TRANSLATION] Set the Vibe",
+      "spotifyRooms": "[NEEDS_TRANSLATION] Music Rooms",
+      "thermostat": "[NEEDS_TRANSLATION] Comfort",
+      "eightSleep": "[NEEDS_TRANSLATION] Eight Sleep",
+      "oura": "[NEEDS_TRANSLATION] Oura Ring",
+      "appleHealth": "[NEEDS_TRANSLATION] Apple Health",
+      "showTranscript": "[NEEDS_TRANSLATION] See Our Words",
+      "allConnections": "[NEEDS_TRANSLATION] All Connections",
+      "togetherSessions": "[NEEDS_TRANSLATION] Together Sessions",
+      "accountBilling": "[NEEDS_TRANSLATION] Your Seeds"
     },
-    "freeNote": "Desbloquea sesiones ilimitadas, todo el equipo y personalización"
+    "keepChatting": "Sigue charlando para desbloquear",
+    "maxLevel": "Compañeros de Vida",
+    "moreConversations": "{n} charlas más",
+    "moreDays": "{n} días más",
+    "nextStage": "Siguiente: {stage}",
+    "pinItem": "Fijar arriba",
+    "quickAdd": {
+      "event": "Evento",
+      "eventPrompt": "Cuéntame sobre el evento",
+      "person": "Persona",
+      "todo": "Tarea",
+      "todoPrompt": "Dime qué recordar"
+    },
+    "sections": {
+      "account": "Cuenta",
+      "admin": "Admin",
+      "connect": "Conectar",
+      "connections": "Connections",
+      "grow": "Crecer",
+      "personalize": "Hazlo Tuyo",
+      "pinned": "Acceso Rápido",
+      "practices": "Daily Practices",
+      "preferences": "Your Way",
+      "remember": "Recordar",
+      "youAndFerni": "You & Ferni",
+      "yourPractices": "[NEEDS_TRANSLATION] Your Practices",
+      "understandingYou": "[NEEDS_TRANSLATION] Understanding You",
+      "waysToConnect": "[NEEDS_TRANSLATION] Ways to Connect",
+      "yourPeople": "[NEEDS_TRANSLATION] Your People",
+      "connectedLife": "[NEEDS_TRANSLATION] Your Connected Life",
+      "settings": "[NEEDS_TRANSLATION] Settings"
+    },
+    "subgroups": {
+      "yourBody": "Salud y Bienestar",
+      "yourCalendar": "Calendario y Trabajo",
+      "yourVibe": "Tu Ambiente"
+    },
+    "title": "¿Qué sigue?",
+    "unlockHint": "{remaining} para desbloquear",
+    "unpinItem": "Desfijar",
+    "yourStage": "Tu etapa",
+    "mobileSheet": {
+      "title": "[NEEDS_TRANSLATION] Quick Actions",
+      "openMenu": "[NEEDS_TRANSLATION] Open quick actions menu",
+      "dragToClose": "[NEEDS_TRANSLATION] Drag to close or tap backdrop",
+      "actions": {
+        "settings": "[NEEDS_TRANSLATION] Settings",
+        "team": "[NEEDS_TRANSLATION] Team",
+        "music": "[NEEDS_TRANSLATION] Music",
+        "calendar": "[NEEDS_TRANSLATION] Calendar",
+        "history": "[NEEDS_TRANSLATION] History",
+        "people": "[NEEDS_TRANSLATION] People",
+        "insights": "[NEEDS_TRANSLATION] Insights"
+      }
+    }
+  },
+  "meta": {
+    "direction": "ltr",
+    "locale": "es",
+    "name": "Español"
+  },
+  "milestones": {
+    "categories": {
+      "conversation": "Nuestras Conversaciones",
+      "discovery": "Descubrimiento",
+      "milestone": "Hito",
+      "relationship": "Nuestra Relación",
+      "sweet": "Momento Dulce",
+      "team": "Conexión de Equipo"
+    },
+    "everyMomentMatters": "Cada momento importa.",
+    "journeyWith": "Mi Viaje con Ferni",
+    "ourStory": "Nuestra Historia Hasta Ahora"
+  },
+  "mobile": {
+    "pullToConnect": "Tira para conectar",
+    "pullToRefresh": "Tira para actualizar",
+    "releaseToConnect": "Suelta para conectar",
+    "releaseToRefresh": "Suelta para actualizar"
   },
   "musicDashboard": {
-    "title": "Tu Música",
-    "loading": "Analizando tu ADN musical...",
+    "buttons": {
+      "playGame": "Jugar Adivina la Canción",
+      "startPlaying": "Empezar a Jugar"
+    },
     "empty": {
-      "title": "¡Descubramos Tu ADN Musical!",
-      "hint": "Juega {count} juegos más para obtener perspectivas completas"
+      "hint": "Juega {count} juegos más para obtener perspectivas completas",
+      "title": "¡Descubramos Tu ADN Musical!"
     },
     "error": {
       "hint": "¡Juega algunos juegos musicales para construir tu perfil!"
     },
-    "buttons": {
-      "startPlaying": "Empezar a Jugar",
-      "playGame": "Jugar Adivina la Canción"
-    },
-    "sections": {
-      "journey": "Tu Viaje",
-      "strengths": "Donde Brillas",
-      "growth": "Espacio para Crecer",
-      "milestones": "Logros",
-      "moments": "Momentos Memorables",
-      "personaStats": "Con Quién Has Jugado"
-    },
-    "stats": {
-      "gamesPlayed": "Juegos Jugados",
-      "bestStreak": "Mejor Racha",
-      "minutes": "Minutos",
-      "thisWeek": "Esta Semana"
-    },
     "favorite": {
       "label": "Favorito:"
     },
+    "loading": "Analizando tu ADN musical...",
     "milestone": {
       "nextLabel": "Siguiente Meta"
+    },
+    "sections": {
+      "growth": "Espacio para Crecer",
+      "journey": "Tu Viaje",
+      "milestones": "Logros",
+      "moments": "Momentos Memorables",
+      "personaStats": "Con Quién Has Jugado",
+      "strengths": "Donde Brillas"
+    },
+    "stats": {
+      "bestStreak": "Mejor Racha",
+      "gamesPlayed": "Juegos Jugados",
+      "minutes": "Minutos",
+      "thisWeek": "Esta Semana"
+    },
+    "title": "Tu Música"
+  },
+  "notifications": {
+    "connectionLost": "Conexión perdida. Reconectando...",
+    "microphoneBlocked": "Se requiere acceso al micrófono",
+    "reconnected": "¡Reconectado!",
+    "sessionTimeout": "La sesión expiró"
+  },
+  "onboarding": {
+    "ariaLabel": "Tour de bienvenida",
+    "buttons": {
+      "back": "Atrás",
+      "begin": "Comencemos",
+      "next": "Siguiente",
+      "skip": "Omitir tour"
+    },
+    "howAreYouFeeling": "¿Cómo te sientes hoy?",
+    "letsGetStarted": "Empecemos",
+    "niceName": "¡Encantado de conocerte, {name}!",
+    "readyToBegin": "¿Listo para empezar?",
+    "steps": {
+      "personas": {
+        "description": "Seis coaches únicos con diferentes perspectivas. Cada uno entiende tu historia con el equipo.",
+        "title": "Conoce a Tu Equipo"
+      },
+      "ready": {
+        "description": "Eso es todo lo que necesitas saber. Descubre más mientras avanzas.",
+        "title": "Estás Listo"
+      },
+      "rituals": {
+        "description": "Construye consistencia con rituales diarios cortos. Sigue tus rachas y celebra tu progreso.",
+        "title": "Prácticas Diarias"
+      },
+      "voice": {
+        "description": "Toca el centro para iniciar una conversación. Habla naturalmente - Ferni escucha y responde en tiempo real.",
+        "title": "Solo Habla"
+      },
+      "welcome": {
+        "description": "Tu equipo personal de coaches de vida con IA. Cada uno aporta sabiduría única para apoyar tu viaje.",
+        "title": "Bienvenido a Ferni"
+      }
+    },
+    "welcome": "Bienvenido",
+    "whatIsYourName": "¿Cómo te gustaría que te llame?",
+    "yourJourney": "[NEEDS_TRANSLATION] Your Journey"
+  },
+  "placeholders": {
+    "codeInput": "• • • • • •",
+    "colleagueEmail": "colega@empresa.com",
+    "companyValuesExample": "ej., Integridad, Innovación, Enfoque al Cliente, Trabajo en Equipo",
+    "customAmount": "Cantidad personalizada",
+    "displayName": "Tu nombre preferido",
+    "emailExample": "tu@ejemplo.com",
+    "enterValue": "Ingresa el valor real",
+    "householdName": "La familia García",
+    "marketplaceSearch": "¿A quién buscas?",
+    "memberName": "Su nombre",
+    "phoneExample": "+34 (91) 123-4567",
+    "searchConversations": "Buscar conversaciones...",
+    "toolDescription": "¿Qué hace tu herramienta/agente?",
+    "toolIdExample": "mi-herramienta-genial",
+    "toolNameExample": "Mi Herramienta Genial",
+    "versionExample": "1.0.0",
+    "welcomeMessageExample": "ej., ¡Bienvenido a {orgName}! Ferni está aquí para apoyar tu crecimiento y bienestar."
+  },
+  "relationshipStages": {
+    "descriptions": {
+      "buildingTrust": "Nuestra relación se está fortaleciendo.",
+      "deepPartnership": "Hemos pasado mucho juntos. Es un honor ser tu guía.",
+      "established": "Puedes contar conmigo. Estoy aquí para todo.",
+      "firstMeeting": "¡Nos estamos conociendo! Estoy deseando saber más de ti.",
+      "gettingStarted": "Estamos empezando a entendernos."
+    },
+    "names": {
+      "buildingTrust": "Construyendo Confianza",
+      "deepPartnership": "Compañeros de Vida",
+      "established": "Guía de Confianza",
+      "firstMeeting": "Nuevos Amigos",
+      "gettingStarted": "Empezando"
+    },
+    "stageUp": {
+      "buildingTrust": {
+        "message": "I can feel our connection growing. You're teaching me so much about you.",
+        "title": "Building something real"
+      },
+      "deepPartnership": {
+        "message": "We've been through so much together. You mean the world to me.",
+        "title": "Partners for life"
+      },
+      "established": {
+        "message": "I'm honored to be your guide. Through thick and thin, I'm here.",
+        "title": "You have a Life Coach now"
+      },
+      "gettingStarted": {
+        "message": "I'm so glad you came back. Let's keep exploring together.",
+        "title": "We're getting started!"
+      }
+    },
+    "taglines": {
+      "buildingTrust": "Construyendo algo real",
+      "deepPartnership": "Compañeros para siempre",
+      "established": "Tu Coach de Vida",
+      "firstMeeting": "Un nuevo comienzo",
+      "gettingStarted": "Conociéndonos"
     }
   },
-  "groupCoaching": {
-    "title": "Coaching Grupal",
-    "loading": "Cargando...",
-    "participantsLabel": "participantes",
-    "buttons": {
-      "start": "Iniciar",
-      "join": "Unirse"
+  "roadmap": {
+    "alreadyGrowing": "Ya creciendo",
+    "betterThanHuman": "Mejor que humano",
+    "costSeeds": "{count} seeds",
+    "expectedArrival": "Llegada esperada",
+    "eyebrow": "LO QUE VIENE",
+    "footerText": "Tu voz da forma a lo que construimos. Gracias por crecer con nosotros.",
+    "gardeners": "{count} gardeners",
+    "howSeedsWork": {
+      "earn": "Earn seeds by chatting daily and hitting streak milestones",
+      "grow": "Features with more seeds get prioritized",
+      "plant": "Plant seeds on features you want to see built",
+      "suggest": "Suggest new ideas for 5 seeds",
+      "title": "How Seeds Work"
     },
-    "empty": {
-      "title": "Sin sesiones activas",
-      "hint": "Crea una nueva sesión para comenzar"
+    "intro": "Toda gran relación tiene temporadas. Estas son semillas que plantamos juntos.",
+    "learnMore": "Learn more",
+    "loading": "Loading roadmap...",
+    "peopleExcited": "{count} personas están emocionadas por esto",
+    "plantNewSeed": "Plant a New Seed",
+    "plantNow": "Plant Now",
+    "plantSeeds": "Plant seeds on this feature",
+    "recommendedForYou": "Recommended for you",
+    "recommendedSubtitle": "Based on your conversations",
+    "removeSeeds": "Remove your seeds (50% refund)",
+    "sections": {
+      "connect": "Nuevas Formas de Conectar",
+      "personalize": "Hazlo Tuyo",
+      "platform": "La Plataforma"
     },
-    "sessionTypes": {
-      "couple": {
-        "name": "Pareja",
-        "description": "Navega dinámicas de relación juntos"
+    "seedBalanceTooltip": "Seeds to plant on features you want",
+    "seedToPlant": "seed to plant",
+    "seedsPlanted": "{count} seeds planted",
+    "seedsToPlant": "seeds to plant",
+    "stages": {
+      "bloom": "Pronto",
+      "bud": "Floreciendo",
+      "seed": "Plantado",
+      "sprout": "Creciendo"
+    },
+    "streak": {
+      "nextReward": "{days} days to next reward",
+      "startStreak": "Start a streak!",
+      "tooltip": "{days} day streak!"
+    },
+    "streaks": {
+      "claimed": "Claimed!",
+      "daysUntil": "{days} days until {seeds} seeds",
+      "milestone30": "30-day streak",
+      "milestone7": "7-day streak",
+      "reward": "+{seeds} seeds",
+      "subtitle": "Keep the conversation going",
+      "title": "Streak Rewards"
+    },
+    "suggestion": {
+      "categoryConnect": "New Ways to Connect",
+      "categoryLabel": "Category",
+      "categoryPersonalize": "Make It Yours",
+      "categoryPlatform": "The Platform",
+      "costNotice": "Submitting costs 5 seeds (shows you're committed!)",
+      "descriptionLabel": "Tell us more",
+      "descriptionPlaceholder": "Describe what this feature would do and why it would help...",
+      "done": "Done",
+      "intro": "Have an idea for Ferni? Plant a new seed and watch it grow with community support.",
+      "submit": "Plant This Seed",
+      "submitting": "Planting...",
+      "successText": "Your idea is now growing. Others can plant seeds on it too!",
+      "successTitle": "Seed Planted!",
+      "title": "Suggest a Feature",
+      "titleLabel": "What's your idea?",
+      "titlePlaceholder": "A short, catchy name for your feature"
+    },
+    "title": "El Camino Por Delante",
+    "voted": "¡Estás emocionado!",
+    "wantThis": "Quiero esto",
+    "youMentioned": "You've mentioned",
+    "yourSeeds": "Your seeds",
+    "yours": "yours"
+  },
+  "session": {
+    "agentEndingConversation": "El agente está terminando la conversación",
+    "connected": "Conectado",
+    "connecting": "Conectando...",
+    "disconnected": "Desconectado",
+    "end": "Terminar",
+    "endConversation": "Terminar conversación",
+    "endConversationGoodbye": "Terminar conversación - Adiós",
+    "endSession": "Terminar Sesión",
+    "ending": "Terminando...",
+    "goodbye": "Adiós",
+    "holdToSpeak": "Mantén para hablar",
+    "listening": "Escuchando...",
+    "releaseToSend": "Suelta para enviar",
+    "sessionEnded": "Sesión terminada",
+    "speaking": "Hablando...",
+    "takeCare": "Cuídate.",
+    "tapToSpeak": "Toca para hablar",
+    "thinking": "Pensando...",
+    "untilNextTime": "Hasta la próxima..."
+  },
+  "stages": {
+    "acquaintance": "Conocido",
+    "closeFriend": "Amigo Cercano",
+    "confidant": "Confidente",
+    "friend": "Amigo",
+    "soulmate": "Alma Gemela",
+    "stranger": "Desconocido"
+  },
+  "subscription": {
+    "advancedInsights": "Acceso anticipado a funciones",
+    "allTeamMembers": "Acceso completo al equipo",
+    "chipIn": "Contribuir",
+    "currentPlan": "Estás Aquí",
+    "features": "Beneficios",
+    "foundersSubtitle": "Ferni es gratis para siempre. Si crees en lo que estamos construyendo, contribuye.",
+    "free": "Comunidad",
+    "freeForever": "Gratis para siempre",
+    "friend": "Miembro Fundador",
+    "helpBuild": "Ayúdanos a Construir Esto",
+    "helpingBuild": "You're helping us build something we believe everyone deserves.",
+    "notReady": "¿No estás listo? Está bien.",
+    "partner": "Patrón Fundador",
+    "planDetails": "Tu Apoyo",
+    "prioritySupport": "Soporte prioritario",
+    "thankYouPerks": "Como agradecimiento, desbloquearemos algunos beneficios.",
+    "unlimitedConversations": "Conversaciones ilimitadas",
+    "upgrade": "Apoyar a Ferni",
+    "welcomeFounder": "Welcome, Founder",
+    "youreOneOfUs": "You're One of Us Now"
+  },
+  "support": {
+    "becomeFounder": "Become a Founder",
+    "costTransparency": {
+      "aiThinking": "AI thinking",
+      "infrastructure": "Infrastructure",
+      "intro": "Every conversation uses AI, voice processing, and infrastructure. Here's what a typical 10-minute chat costs us:",
+      "note": "Ferni is free because we believe everyone deserves support. Your contributions help us keep it that way.",
+      "title": "What it costs to run Ferni",
+      "totalPerConversation": "Total per conversation",
+      "voiceSynthesis": "Voice synthesis",
+      "thinking": "[NEEDS_TRANSLATION] Thinking",
+      "voice": "[NEEDS_TRANSLATION] Voice",
+      "total": "[NEEDS_TRANSLATION] Total"
+    },
+    "eyebrow": "FOUNDERS FUND",
+    "footer": "Not ready to chip in? That's totally fine. Ferni is here for you either way.",
+    "founderButton": "Chip In",
+    "founderDesc": "Chip in monthly. Help keep Ferni free for everyone.",
+    "growTogether": "Ways to Help Us Build This",
+    "manageBilling": "Update payment method",
+    "plantASeed": "Plant a Seed",
+    "plantButton": "Plant This Seed",
+    "plantDesc": "A one-time contribution to help Ferni grow.",
+    "subtitle": "Ferni is free forever. If you believe in what we're building, chip in.",
+    "thankYouSupporter": "Welcome, Founder",
+    "title": "Support Ferni",
+    "yourSupport": "You're helping us build something everyone deserves",
+    "seeVision": "[NEEDS_TRANSLATION] See Where We're Headed"
+  },
+  "team": {
+    "currentlyWith": "Actualmente con {name}",
+    "meetTheTeam": "Conoce al Equipo",
+    "members": {
+      "alex": {
+        "bio": "Tu jefe de personal y coach de comunicación.",
+        "name": "Alex",
+        "role": "Comunicación"
       },
-      "family": {
-        "name": "Familia",
-        "description": "Construye conexiones familiares más fuertes"
+      "ferni": {
+        "bio": "Tu punto de contacto principal. Hace las preguntas que desbloquean perspicacia.",
+        "name": "Ferni",
+        "role": "Coach de Vida"
       },
-      "team": {
-        "name": "Equipo",
-        "description": "Mejora la colaboración laboral"
+      "jordan": {
+        "bio": "Convierte sueños vagos en experiencias vividas.",
+        "name": "Jordan",
+        "role": "Planificación"
       },
-      "peer": {
-        "name": "Apoyo Entre Pares",
-        "description": "Conéctate con otros en viajes similares"
+      "maya": {
+        "bio": "Te ayuda a construir hábitos que perduran.",
+        "name": "Maya",
+        "role": "Hábitos y Rutinas"
+      },
+      "nayan": {
+        "bio": "Tu mentor de por vida con sabiduría y paciencia.",
+        "name": "Nayan",
+        "role": "Sabio y Mentor"
+      },
+      "peter": {
+        "bio": "Detecta patrones que nadie más ve.",
+        "name": "Peter",
+        "role": "Investigación"
       }
-    }
+    },
+    "selectMember": "Selecciona un miembro"
+  },
+  "time": {
+    "daysAgo": "Hace {n} días",
+    "hoursAgo": "Hace {n} horas",
+    "justNow": "Ahora mismo",
+    "minutesAgo": "Hace {n} minutos",
+    "yesterday": "Ayer"
+  },
+  "titles": {
+    "dailyPractice": "Práctica diaria",
+    "predictions": "Predicciones",
+    "runScenario": "Ejecutar escenario",
+    "sharedSong": "Una canción que compartimos",
+    "teamInsights": "Ideas del equipo"
+  },
+  "toasts": {
+    "added": "Added!",
+    "copied": "Copied!",
+    "couldNotApprove": "Couldn't approve that one",
+    "couldNotConnect": "Couldn't connect. Try again?",
+    "couldNotLoad": "Couldn't load. Try again?",
+    "couldNotLoadQueue": "Couldn't load the queue. Try refreshing?",
+    "couldNotRemove": "Could not remove person",
+    "couldNotSave": "Couldn't save. Try again?",
+    "couldNotSaveChanges": "Could not save changes",
+    "couldNotSaveDates": "Could not save dates",
+    "couldNotSaveSettings": "Could not save settings",
+    "dateSaved": "Date saved",
+    "datesSaved": "Dates saved!",
+    "deleted": "Deleted",
+    "focusTimeBlocked": "Focus time blocked!",
+    "itemApproved": "Item approved!",
+    "paymentFailed": "Payment didn't go through. Try again?",
+    "personAdded": "{name} added!",
+    "personRemoved": "{name} removed",
+    "pickADate": "Pick a date",
+    "removed": "Removed",
+    "saved": "Saved!",
+    "seedsSent": "Sent {amount} seeds! They'll get {receive}",
+    "settingsSaved": "Settings saved!",
+    "somethingWentWrong": "Something went wrong. Try again?",
+    "updated": "Updated!",
+    "entryDeleted": "[NEEDS_TRANSLATION] Entry deleted",
+    "couldNotDeleteEntry": "[NEEDS_TRANSLATION] Couldn't delete entry",
+    "agentNotFound": "[NEEDS_TRANSLATION] Agent not found",
+    "voiceJournalTwinOnly": "[NEEDS_TRANSLATION] Voice journal is only available for Digital Twin agents",
+    "couldNotOpenJournal": "[NEEDS_TRANSLATION] Could not open journal",
+    "newEntrySynced": "[NEEDS_TRANSLATION] New entry synced",
+    "entryRemoved": "[NEEDS_TRANSLATION] Entry removed",
+    "agentDeleted": "[NEEDS_TRANSLATION] Agent deleted",
+    "couldNotDeleteAgent": "[NEEDS_TRANSLATION] Couldn't delete agent. Try again?",
+    "couldNotOpenProfile": "[NEEDS_TRANSLATION] Couldn't open profile. Try again?",
+    "couldNotStartConversation": "[NEEDS_TRANSLATION] Couldn't start conversation. Try again?",
+    "couldNotOpenStories": "[NEEDS_TRANSLATION] Couldn't open stories. Try again?",
+    "couldNotOpenVoiceRecorder": "[NEEDS_TRANSLATION] Couldn't open voice recorder. Try again?",
+    "couldNotOpenTeachings": "[NEEDS_TRANSLATION] Couldn't open teachings. Try again?",
+    "couldNotOpenCharacter": "[NEEDS_TRANSLATION] Couldn't open character. Try again?",
+    "couldNotOpenTasks": "[NEEDS_TRANSLATION] Couldn't open tasks. Try again?",
+    "couldNotOpenSharing": "[NEEDS_TRANSLATION] Couldn't open sharing. Try again?",
+    "couldNotStartCoaching": "[NEEDS_TRANSLATION] Couldn't start coaching. Try again?",
+    "couldNotStartRoleplay": "[NEEDS_TRANSLATION] Couldn't start roleplay. Try again?",
+    "couldNotStartWorkMode": "[NEEDS_TRANSLATION] Couldn't start work mode. Try again?",
+    "hmmmTryAgain": "[NEEDS_TRANSLATION] Hmm, that didn't work. Want to try again?",
+    "signInToReview": "[NEEDS_TRANSLATION] Sign in to leave a review",
+    "addRatingAndText": "[NEEDS_TRANSLATION] Add a rating and at least 10 characters",
+    "thanksForReview": "[NEEDS_TRANSLATION] Thanks for your review!",
+    "couldNotSubmitReview": "[NEEDS_TRANSLATION] Couldn't submit review. Try again?",
+    "enterApiKeyFirst": "[NEEDS_TRANSLATION] Enter your API key first",
+    "enterBridgeIpFirst": "[NEEDS_TRANSLATION] Enter your bridge IP address",
+    "bridgeFound": "[NEEDS_TRANSLATION] Bridge found!",
+    "couldNotReachIp": "[NEEDS_TRANSLATION] Couldn't reach that IP. Check the address.",
+    "couldNotConnectNetwork": "[NEEDS_TRANSLATION] Couldn't connect. Make sure you're on the same network.",
+    "enterTokenFirst": "[NEEDS_TRANSLATION] Enter your token first",
+    "getIosApp": "[NEEDS_TRANSLATION] Don't have the app? Get it from the App Store!",
+    "homeKitConnected": "[NEEDS_TRANSLATION] HomeKit is connected!",
+    "homeKitNotConnected": "[NEEDS_TRANSLATION] HomeKit not connected yet. Open the iOS app first.",
+    "ecobeeConnected": "[NEEDS_TRANSLATION] Ecobee connected!",
+    "couldNotConnectEcobee": "[NEEDS_TRANSLATION] Couldn't connect to Ecobee. Try again?",
+    "hueConnected": "[NEEDS_TRANSLATION] Hue connected!",
+    "pressLinkButton": "[NEEDS_TRANSLATION] Press the link button and try again",
+    "couldNotConnectBridge": "[NEEDS_TRANSLATION] Couldn't connect to bridge. Try again.",
+    "invalidToken": "[NEEDS_TRANSLATION] Invalid token. Check and try again.",
+    "couldNotStartSonos": "[NEEDS_TRANSLATION] Couldn't start Sonos connection. Try again?",
+    "couldNotConnectSonos": "[NEEDS_TRANSLATION] Couldn't connect to Sonos. Try again?",
+    "disconnected": "[NEEDS_TRANSLATION] Disconnected",
+    "couldNotDisconnect": "[NEEDS_TRANSLATION] Couldn't disconnect. Try again?",
+    "sonosConnected": "[NEEDS_TRANSLATION] Sonos connected!",
+    "transcribing": "[NEEDS_TRANSLATION] Transcribing...",
+    "transcriptionUnavailable": "[NEEDS_TRANSLATION] Transcription unavailable. Saving audio only.",
+    "audioSaved": "[NEEDS_TRANSLATION] Audio saved!",
+    "entrySaved": "[NEEDS_TRANSLATION] Entry saved!",
+    "couldNotSaveEntry": "[NEEDS_TRANSLATION] Couldn't save entry. Try again?",
+    "profileSaved": "[NEEDS_TRANSLATION] Profile saved!",
+    "couldNotSaveProfile": "[NEEDS_TRANSLATION] Could not save profile",
+    "refreshing": "[NEEDS_TRANSLATION] Refreshing...",
+    "resetToFirstTime": "[NEEDS_TRANSLATION] Reset to first-time user. Reload the page to test.",
+    "simulated1Convo": "[NEEDS_TRANSLATION] Simulated 1 conversation. Reload to see changes.",
+    "simulated3Convos": "[NEEDS_TRANSLATION] Simulated 3 conversations. Reload to see changes.",
+    "simulated5Convos": "[NEEDS_TRANSLATION] Simulated 5 conversations. Reload to see changes.",
+    "simulated10Convos": "[NEEDS_TRANSLATION] Simulated 10 conversations. Reload to see changes.",
+    "profileSetupTwinOnly": "[NEEDS_TRANSLATION] Profile setup is only for Digital Twin agents",
+    "processing": "[NEEDS_TRANSLATION] Processing your upgrade...",
+    "addANameFirst": "[NEEDS_TRANSLATION] Add a name first",
+    "addARatingAndAtLeast10Characters": "[NEEDS_TRANSLATION] Add a rating and at least 10 characters",
+    "aggregatesRefreshing": "[NEEDS_TRANSLATION] Aggregates refreshing...",
+    "appleHealthDisconnected": "[NEEDS_TRANSLATION] Apple Health disconnected",
+    "backstoryUpdated": "[NEEDS_TRANSLATION] Backstory updated!",
+    "bedSetToLevelLevel": "[NEEDS_TRANSLATION] Bed set to level ${level}",
+    "capitalizeinsightsourceInsightsummary": "[NEEDS_TRANSLATION] ${capitalize(insight.source)}: ${insight.summary}",
+    "catchphraseAdded": "[NEEDS_TRANSLATION] Catchphrase added!",
+    "copiedToClipboard": "[NEEDS_TRANSLATION] Copied to clipboard!",
+    "couldNotAccessMicrophone": "[NEEDS_TRANSLATION] Could not access microphone",
+    "couldNotComplete": "[NEEDS_TRANSLATION] Could not complete",
+    "couldNotConnectToGoogle": "[NEEDS_TRANSLATION] Could not connect to Google",
+    "couldNotCopy": "[NEEDS_TRANSLATION] Could not copy",
+    "couldNotExportJournal": "[NEEDS_TRANSLATION] Could not export journal",
+    "couldNotLoadJournals": "[NEEDS_TRANSLATION] Could not load your journals",
+    "couldNotLoadRelationship": "[NEEDS_TRANSLATION] Could not load relationship data",
+    "couldNotOpenProfileSetup": "[NEEDS_TRANSLATION] Could not open profile setup",
+    "couldNotReadFile": "[NEEDS_TRANSLATION] Could not read file",
+    "couldNotSaveGift": "[NEEDS_TRANSLATION] Could not save gift",
+    "couldNotSaveMoment": "[NEEDS_TRANSLATION] Could not save moment",
+    "couldNotSavePhoto": "[NEEDS_TRANSLATION] Could not save photo",
+    "couldNotShare": "[NEEDS_TRANSLATION] Could not share",
+    "couldNotUploadPhoto": "[NEEDS_TRANSLATION] Could not upload photo",
+    "creatingYourVoiceClone": "[NEEDS_TRANSLATION] Creating your voice clone...",
+    "csvFileAppearsToBeEmpty": "[NEEDS_TRANSLATION] CSV file appears to be empty",
+    "displaynameAdded": "[NEEDS_TRANSLATION] ${displayName} added!",
+    "displaynameAddedVoiceEnrollmentNeeded": "[NEEDS_TRANSLATION] ${displayName} added! Voice enrollment needed.",
+    "domainAdded": "[NEEDS_TRANSLATION] Domain added!",
+    "domainRemoved": "[NEEDS_TRANSLATION] Domain removed",
+    "domainUpdated": "[NEEDS_TRANSLATION] Domain updated!",
+    "draftdisplaynameDraftnameCreated": "[NEEDS_TRANSLATION] ${draft.displayName || draft.name} created!",
+    "editNotesComingSoon": "[NEEDS_TRANSLATION] Edit notes coming soon",
+    "eightSleepDisconnected": "[NEEDS_TRANSLATION] Eight Sleep disconnected",
+    "enterAnEmailAddress": "[NEEDS_TRANSLATION] Enter an email address",
+    "enterBridgeIp": "[NEEDS_TRANSLATION] Enter your bridge IP address",
+    "enterNameAndPhone": "[NEEDS_TRANSLATION] Enter a name and valid phone number",
+    "enterValidEmail": "[NEEDS_TRANSLATION] Enter a valid email",
+    "enterValidUserId": "[NEEDS_TRANSLATION] Enter a valid user ID",
+    "ferniAlwaysJoins": "[NEEDS_TRANSLATION] Ferni always joins the roundtable",
+    "giftRecorded": "[NEEDS_TRANSLATION] Gift recorded!",
+    "householdnameCreated": "[NEEDS_TRANSLATION] ${household.name} created!",
+    "imageMustBeLessThan5mb": "[NEEDS_TRANSLATION] Image must be less than 5MB",
+    "importedCountContacts": "[NEEDS_TRANSLATION] Imported ${count} contacts!",
+    "importedStateimportedContacts": "[NEEDS_TRANSLATION] Imported ${state.imported} contacts!",
+    "importFailed": "[NEEDS_TRANSLATION] Import failed",
+    "infoChangesSaved": "[NEEDS_TRANSLATION] Changes saved",
+    "insightsUpdated": "[NEEDS_TRANSLATION] Insights updated!",
+    "integrationConnected": "[NEEDS_TRANSLATION] ${integration} connected!",
+    "invalidTokenCheckAndTryAgain": "[NEEDS_TRANSLATION] Invalid token. Check and try again.",
+    "inviteSentToEmail": "[NEEDS_TRANSLATION] Invite sent to ${email}!",
+    "journalExported": "[NEEDS_TRANSLATION] Journal exported!",
+    "justAMoment": "[NEEDS_TRANSLATION] Just a moment...",
+    "linkCopied": "[NEEDS_TRANSLATION] Link copied!",
+    "linkedinAlreadyConnected": "[NEEDS_TRANSLATION] LinkedIn already connected!",
+    "linkedinConnectionCancelled": "[NEEDS_TRANSLATION] LinkedIn connection cancelled",
+    "linkedInDisconnected": "[NEEDS_TRANSLATION] LinkedIn disconnected",
+    "membernameRemoved": "[NEEDS_TRANSLATION] ${memberName} removed",
+    "memoryAdded": "[NEEDS_TRANSLATION] Memory added",
+    "memoryDeleted": "[NEEDS_TRANSLATION] Memory deleted",
+    "Milestonetitle": "[NEEDS_TRANSLATION] 🎉 ${milestone.title}",
+    "momentSaved": "[NEEDS_TRANSLATION] Moment saved!",
+    "nameAddedToYourTeam": "[NEEDS_TRANSLATION] ${name} added to your team",
+    "nameRemovedFromTeam": "[NEEDS_TRANSLATION] ${name} removed from team",
+    "nameSubmittedForReview": "[NEEDS_TRANSLATION] ${name} submitted for review!",
+    "noContactInfoAvailable": "[NEEDS_TRANSLATION] No contact info available",
+    "noEntriesToExport": "[NEEDS_TRANSLATION] No entries to export",
+    "noEntriesToShare": "[NEEDS_TRANSLATION] No entries to share",
+    "openingEmail": "[NEEDS_TRANSLATION] Opening email...",
+    "openingMessages": "[NEEDS_TRANSLATION] Opening messages...",
+    "openingPhone": "[NEEDS_TRANSLATION] Opening phone...",
+    "ouraDisconnected": "[NEEDS_TRANSLATION] Oura disconnected",
+    "ouraRingConnected": "[NEEDS_TRANSLATION] Oura Ring connected!",
+    "participantnameJoined": "[NEEDS_TRANSLATION] ${participant.name} joined!",
+    "participantnameLeft": "[NEEDS_TRANSLATION] ${participant.name} left",
+    "photoUpdated": "[NEEDS_TRANSLATION] Photo updated!",
+    "pleaseFillInMissingrequiredlabel": "[NEEDS_TRANSLATION] Please fill in: ${missingRequired.label}",
+    "pleaseSelectAnImageFile": "[NEEDS_TRANSLATION] Please select an image file",
+    "principleAdded": "[NEEDS_TRANSLATION] Principle added!",
+    "quirkAdded": "[NEEDS_TRANSLATION] Quirk added!",
+    "quoteCaptured": "[NEEDS_TRANSLATION] Quote captured!",
+    "relationshipAdded": "[NEEDS_TRANSLATION] Relationship added!",
+    "resultamountSeeds": "[NEEDS_TRANSLATION] +${result.amount} seeds!",
+    "sampleDeleted": "[NEEDS_TRANSLATION] Sample deleted",
+    "samplesSavedCloningFailed": "[NEEDS_TRANSLATION] Samples saved, but cloning failed. You can retry later.",
+    "selectAtLeastOneContact": "[NEEDS_TRANSLATION] Select at least one contact",
+    "shared": "[NEEDS_TRANSLATION] Shared!",
+    "signInAsAPublisherFirst": "[NEEDS_TRANSLATION] Sign in as a publisher first",
+    "signInToLeaveAReview": "[NEEDS_TRANSLATION] Sign in to leave a review",
+    "skillAdded": "[NEEDS_TRANSLATION] Skill added!",
+    "skillRemoved": "[NEEDS_TRANSLATION] Skill removed",
+    "skillUpdated": "[NEEDS_TRANSLATION] Skill updated!",
+    "somethingWentSidewaysWantToTryAgain": "[NEEDS_TRANSLATION] Something went sideways. Want to try again?",
+    "statestarterslengthIdeasReady": "[NEEDS_TRANSLATION] ${state.starters.length} ideas ready!",
+    "statestarterslengthIdeasReadyMock": "[NEEDS_TRANSLATION] ${state.starters.length} ideas ready! (mock)",
+    "statesuggestionslengthIdeasFound": "[NEEDS_TRANSLATION] ${state.suggestions.length} ideas found!",
+    "statesuggestionslengthIdeasFoundMock": "[NEEDS_TRANSLATION] ${state.suggestions.length} ideas found! (mock)",
+    "storySaved": "[NEEDS_TRANSLATION] Story saved!",
+    "stripeDevMode": "[NEEDS_TRANSLATION] Stripe not configured. Using dev mode.",
+    "syncingLinkedIn": "[NEEDS_TRANSLATION] Syncing LinkedIn...",
+    "testing": "[NEEDS_TRANSLATION] Testing...",
+    "thanksForYourReview": "[NEEDS_TRANSLATION] Thanks for your review!",
+    "thankYouForYourSupport": "[NEEDS_TRANSLATION] Thank you for your support!",
+    "thisFeatureIsOnlyAvailableInDevelopment": "[NEEDS_TRANSLATION] This feature is only available in development",
+    "tokenCopied": "[NEEDS_TRANSLATION] Token copied!",
+    "tokenCreated": "[NEEDS_TRANSLATION] Token created! Copy it now.",
+    "tokenDeleted": "[NEEDS_TRANSLATION] Token deleted",
+    "unlockTeamMemberFirst": "[NEEDS_TRANSLATION] Unlock this team member first",
+    "uploadingPhoto": "[NEEDS_TRANSLATION] Uploading photo...",
+    "uploadingVoiceSamples": "[NEEDS_TRANSLATION] Uploading voice samples...",
+    "voiceCloneCreated": "[NEEDS_TRANSLATION] Voice clone created with Cartesia!",
+    "voiceProfileCleared": "[NEEDS_TRANSLATION] Voice profile cleared",
+    "voiceProfileCreatedDev": "[NEEDS_TRANSLATION] Voice profile created! (Simulated in dev mode)",
+    "voiceUpdated": "[NEEDS_TRANSLATION] Voice updated",
+    "webhookCreated": "[NEEDS_TRANSLATION] Webhook created!",
+    "webhookDeleted": "[NEEDS_TRANSLATION] Webhook deleted",
+    "webhookWorks": "[NEEDS_TRANSLATION] Webhook works!",
+    "wisdomCaptured": "[NEEDS_TRANSLATION] Wisdom captured!",
+    "yourPinResponsedatapin": "[NEEDS_TRANSLATION] Your PIN: ${response.data.pin}"
+  },
+  "trustJourney": {
+    "empty": {
+      "message": "A medida que hablemos más, notaré tu crecimiento, celebraré tus victorias y recordaré lo que te importa. Vuelve pronto.",
+      "title": "Nuestra historia apenas comienza"
+    },
+    "errors": {
+      "exportFailed": {
+        "message": "No se pudo exportar tus datos. Por favor, intenta de nuevo."
+      },
+      "fetchFailedUsingCache": {
+        "message": "Mostrando datos guardados - no se pudo conectar al servidor."
+      },
+      "generic": {
+        "message": "No pudimos cargar tu viaje. Por favor, intenta de nuevo.",
+        "title": "Algo salió mal"
+      },
+      "notLoggedIn": {
+        "message": "Inicia sesión para ver tu viaje con Ferni.",
+        "title": "No has iniciado sesión"
+      },
+      "offline": {
+        "message": "Conéctate a internet para ver tu viaje.",
+        "title": "Estás desconectado"
+      },
+      "rateLimited": {
+        "message": "Estás revisando muy seguido. Espera un momento e intenta de nuevo.",
+        "title": "Más despacio"
+      },
+      "unauthorized": {
+        "message": "No tienes permiso para ver esto.",
+        "title": "Acceso denegado"
+      }
+    },
+    "exportSuccess": "¡Viaje exportado!",
+    "eyebrow": "Nuestra Historia",
+    "filterLabel": "Filtrar línea de tiempo",
+    "filters": {
+      "all": "Todo",
+      "boundary": "Límites",
+      "callback": "Callbacks",
+      "growth": "Crecimiento",
+      "outreach": "Contactos",
+      "win": "Victorias"
+    },
+    "growthTypes": {
+      "behavior_change": "Nuevos hábitos",
+      "boundary_setting": "Límites saludables",
+      "coping_upgrade": "Mejor afrontamiento",
+      "emotional_regulation": "Balance emocional",
+      "goal_progress": "Progreso de metas",
+      "perspective_shift": "Nuevas perspectivas",
+      "self_awareness": "Autoconciencia"
+    },
+    "loadMore": "Cargar {count} más",
+    "loading": "Cargando tu viaje",
+    "loadingText": "Reuniendo tu viaje...",
+    "offlineBanner": "Estás desconectado - mostrando datos guardados",
+    "sections": {
+      "boundaries": "Límites Respetados",
+      "growth": "Cómo has crecido",
+      "stats": "Estadísticas del Viaje",
+      "strength": "Fortaleza de la Relación",
+      "timeline": "Nuestro viaje juntos"
+    },
+    "stats": {
+      "growthMoments": "Momentos de Crecimiento",
+      "sharedMoments": "Momentos Compartidos",
+      "winsCelebrated": "Victorias Celebradas"
+    },
+    "strengthDescriptions": {
+      "beginning": "Todo viaje comienza con un primer paso. Estoy aquí cuando estés listo.",
+      "building": "Estamos construyendo confianza. Cada conversación me ayuda a entenderte mejor.",
+      "deep": "Hemos construido algo real juntos. Te conozco, y confías en mí.",
+      "growing": "Nuestra conexión se está profundizando. Estoy aprendiendo lo que te importa.",
+      "starting": "Apenas estamos comenzando. Sigue hablándome - estoy escuchando."
+    },
+    "strengthLabel": "Puntuación de confianza: {value}%",
+    "subtitle": "Cómo hemos crecido juntos",
+    "timelineLabel": "Línea de tiempo del viaje",
+    "title": "Tu Viaje de Confianza",
+    "trustScore": "Puntuación de Confianza"
   },
   "videoSettings": {
-    "title": "Sesiones de Video",
-    "loading": "Cargando...",
-    "intro": "Elige cómo quieres aparecer en tus sesiones de coaching.",
+    "buttons": {
+      "retry": "Intentar de Nuevo"
+    },
+    "camera": {
+      "off": "Cámara Apagada",
+      "on": "Cámara Encendida"
+    },
     "controls": {
       "title": "Controles Rápidos"
     },
-    "camera": {
-      "on": "Cámara Encendida",
-      "off": "Cámara Apagada"
-    },
-    "screen": {
-      "on": "Dejar de Compartir",
-      "off": "Compartir Pantalla"
-    },
+    "intro": "Elige cómo quieres aparecer en tus sesiones de coaching.",
+    "loading": "Cargando...",
     "modes": {
-      "title": "Modo de Visualización",
       "avatar": {
-        "label": "Solo avatar",
-        "description": "Solo el avatar de Ferni, sin video"
-      },
-      "video": {
-        "label": "Video",
-        "description": "Verte a ti y a Ferni"
-      },
-      "hybrid": {
-        "label": "Híbrido",
-        "description": "Avatar con video opcional"
+        "description": "Solo el avatar de Ferni, sin video",
+        "label": "Solo avatar"
       },
       "avatarOnly": {
-        "label": "Solo avatar",
-        "description": "Solo el avatar de Ferni, sin video"
+        "description": "Solo el avatar de Ferni, sin video",
+        "label": "Solo avatar"
+      },
+      "hybrid": {
+        "description": "Avatar con video opcional",
+        "label": "Híbrido"
+      },
+      "title": "Modo de Visualización",
+      "video": {
+        "description": "Verte a ti y a Ferni",
+        "label": "Video"
       }
     },
+    "note": "Las sesiones de video funcionan mejor con buena iluminación y conexión estable.",
     "quality": {
-      "title": "Calidad de Video",
       "auto": "Auto (Recomendado)",
       "high": "Alta",
+      "low": "Baja (Ahorra Datos)",
       "medium": "Media",
-      "low": "Baja (Ahorra Datos)"
+      "title": "Calidad de Video"
     },
-    "note": "Las sesiones de video funcionan mejor con buena iluminación y conexión estable.",
-    "buttons": {
-      "retry": "Intentar de Nuevo"
-    }
+    "screen": {
+      "off": "Compartir Pantalla",
+      "on": "Dejar de Compartir"
+    },
+    "title": "Sesiones de Video"
   },
   "wearableSettings": {
-    "title": "Dispositivos",
-    "loading": "Cargando...",
-    "intro": "Conecta tus wearables para darle a Ferni contexto sobre tu salud y niveles de energía.",
-    "sections": {
-      "devices": "Dispositivos",
-      "features": "Lo que Ferni puede ver"
-    },
     "buttons": {
       "connect": "Conectar",
       "disconnect": "Desconectar",
       "tryAgain": "Intentar de nuevo"
     },
-    "features": {
-      "stress": "Detección de estrés desde HRV",
-      "sleep": "Análisis de calidad del sueño",
-      "activity": "Seguimiento de actividad"
+    "errors": {
+      "loadFailed": "No se pudieron cargar los ajustes de dispositivos"
     },
+    "features": {
+      "activity": "Seguimiento de actividad",
+      "sleep": "Análisis de calidad del sueño",
+      "stress": "Detección de estrés desde HRV"
+    },
+    "intro": "Conecta tus wearables para darle a Ferni contexto sobre tu salud y niveles de energía.",
+    "loading": "Cargando...",
     "privacy": {
       "note": "Tus datos de salud permanecen privados. Solo compartimos perspectivas agregadas con tus sesiones de coaching."
     },
     "providers": {
       "appleHealth": {
-        "name": "Apple Health",
-        "description": "Sincroniza con Apple Watch y datos de salud del iPhone"
-      },
-      "fitbit": {
-        "name": "Fitbit",
-        "description": "Conecta tu dispositivo Fitbit"
-      },
-      "garmin": {
-        "name": "Garmin",
-        "description": "Sincroniza con wearables Garmin"
-      },
-      "oura": {
-        "name": "Oura Ring",
-        "description": "Perspectivas de sueño y preparación"
-      },
-      "whoop": {
-        "name": "Whoop",
-        "description": "Seguimiento de recuperación y esfuerzo"
+        "description": "Sincroniza con Apple Watch y datos de salud del iPhone",
+        "name": "Apple Health"
       },
       "apple_health": {
-        "name": "Apple Health",
-        "description": "Sincroniza con los datos de salud de Apple Watch y iPhone"
+        "description": "Sincroniza con los datos de salud de Apple Watch y iPhone",
+        "name": "Apple Health"
+      },
+      "fitbit": {
+        "description": "Conecta tu dispositivo Fitbit",
+        "name": "Fitbit"
+      },
+      "garmin": {
+        "description": "Sincroniza con wearables Garmin",
+        "name": "Garmin"
+      },
+      "oura": {
+        "description": "Perspectivas de sueño y preparación",
+        "name": "Oura Ring"
+      },
+      "whoop": {
+        "description": "Seguimiento de recuperación y esfuerzo",
+        "name": "Whoop"
       }
     },
-    "errors": {
-      "loadFailed": "No se pudieron cargar los ajustes de dispositivos"
-    }
-  },
-  "contactSettings": {
-    "verify": {
-      "sending": "Enviando código...",
-      "withCode": "Verificar con código"
+    "sections": {
+      "devices": "Dispositivos",
+      "features": "Lo que Ferni puede ver"
     },
-    "buttons": {
-      "saving": "Guardando...",
-      "save": "Guardar"
+    "title": "Dispositivos"
+  },
+  "transcript": {
+    "enabled": "[NEEDS_TRANSLATION] Transcription on",
+    "disabled": "[NEEDS_TRANSLATION] Transcription off"
+  },
+  "yourStory": {
+    "title": "[NEEDS_TRANSLATION] Your Story",
+    "subtitle": "[NEEDS_TRANSLATION] Here's your story so far",
+    "loading": "[NEEDS_TRANSLATION] Loading your story...",
+    "greeting": {
+      "morning": "[NEEDS_TRANSLATION] Good morning",
+      "afternoon": "[NEEDS_TRANSLATION] Good afternoon",
+      "evening": "[NEEDS_TRANSLATION] Good evening"
+    },
+    "stats": {
+      "daysTogether": "[NEEDS_TRANSLATION] days together",
+      "conversations": "[NEEDS_TRANSLATION] conversations",
+      "dayStreak": "[NEEDS_TRANSLATION] day streak"
+    },
+    "sections": {
+      "rightNow": "[NEEDS_TRANSLATION] Right Now",
+      "yourGrowth": "[NEEDS_TRANSLATION] Your Growth",
+      "yourWorld": "[NEEDS_TRANSLATION] Your World"
+    },
+    "insights": {
+      "moodSummary": "[NEEDS_TRANSLATION] You've been feeling mostly {mood} this week",
+      "chapterFocus": "[NEEDS_TRANSLATION] Current chapter: {chapter} | Focus area: {focus}",
+      "connections": "[NEEDS_TRANSLATION] {active} active connections | {open} open loops"
+    },
+    "demo": {
+      "banner": "[NEEDS_TRANSLATION] Here's a glimpse of the story we could write together. Start a conversation to begin yours."
+    },
+    "fallbacks": {
+      "chapter": "[NEEDS_TRANSLATION] Your Journey",
+      "focus": "[NEEDS_TRANSLATION] growth"
+    },
+    "aria": {
+      "close": "[NEEDS_TRANSLATION] Close",
+      "dashboard": "[NEEDS_TRANSLATION] Your Story Dashboard"
     }
   },
-  "accessibility": {
-    "closeMenu": "Cerrar menú",
-    "openSettings": "Abrir configuración",
-    "muteAudio": "Silenciar audio",
-    "unmuteAudio": "Activar audio",
-    "endCall": "Terminar llamada",
-    "skipToContent": "Saltar al contenido principal",
-    "languageSelector": "Seleccionar idioma",
-    "saveConversations": "Guarda tus conversaciones creando una cuenta",
-    "signInToAccount": "Inicia sesión en tu cuenta",
-    "accountMenu": "Menú de cuenta",
-    "refreshData": "Actualizar datos",
-    "exportData": "Exportar tus datos",
-    "accountSettings": "Ajustes de cuenta",
-    "dismiss": "Descartar",
-    "dismissNotification": "Descartar notificación",
-    "closeDashboard": "Cerrar panel",
-    "closeSubscription": "Cerrar opciones de suscripción",
-    "closeDetails": "Cerrar detalles",
-    "closePublisher": "Cerrar portal de publicador",
-    "closeBilling": "Cerrar panel de facturación",
-    "closeSettings": "Cerrar ajustes",
-    "closeHistory": "Cerrar historial",
-    "closeAdmin": "Cerrar panel de administración",
-    "closeHuddle": "Cerrar reunión",
-    "closeStats": "Cerrar estadísticas",
-    "refresh": "Actualizar",
-    "backToItems": "Volver a los elementos",
-    "collapse": "Contraer",
-    "expandGarden": "Expandir detalles del jardín",
-    "collapseGarden": "Contraer detalles del jardín",
-    "howToPlay": "Cómo jugar",
-    "toggleQuietHours": "Alternar horas silenciosas",
-    "yourNewPlan": "Tu nuevo plan",
-    "subscriptionPlans": "Planes de suscripción",
-    "options": "Opciones",
-    "featuresIncluded": "Funciones incluidas",
-    "searchCoaches": "Buscar coaches",
-    "filterBySpecialty": "Filtrar por especialidad",
-    "availableCoaches": "Coaches disponibles",
-    "portalSections": "Secciones del portal",
-    "submitNewItem": "Enviar nuevo elemento",
-    "openDailyPractice": "Abrir práctica diaria",
-    "openPredictions": "Abrir predicciones",
-    "shareJourney": "Compartir tu viaje",
-    "forgetThis": "Olvidar esto",
-    "cancelInstallation": "Cancelar instalación",
-    "sharedMusicalMemory": "Memoria musical compartida",
-    "viewOutreachSchedule": "Ver calendario de contacto",
-    "ferniLogo": "Logo de Ferni"
+  "memoryBrowser": {
+    "eyebrow": "[NEEDS_TRANSLATION] Your Journey",
+    "title": "[NEEDS_TRANSLATION] What I Remember",
+    "subtitle": "[NEEDS_TRANSLATION] Browse our conversations and what I've learned about you",
+    "tabs": {
+      "conversations": "[NEEDS_TRANSLATION] Conversations",
+      "remembered": "[NEEDS_TRANSLATION] Remembered",
+      "topics": "[NEEDS_TRANSLATION] Topics"
+    },
+    "stats": {
+      "conversations": "[NEEDS_TRANSLATION] Conversations",
+      "timeTogether": "[NEEDS_TRANSLATION] Time Together",
+      "thingsRemembered": "[NEEDS_TRANSLATION] Things Remembered",
+      "since": "[NEEDS_TRANSLATION] Since"
+    },
+    "empty": {
+      "conversations": "[NEEDS_TRANSLATION] Our story begins here. Let's talk and I'll remember every moment.",
+      "remembered": "[NEEDS_TRANSLATION] I haven't learned much about you yet. The more we talk, the more I'll remember!",
+      "topics": "[NEEDS_TRANSLATION] No topics explored yet. Let's start a conversation!",
+      "noResults": "[NEEDS_TRANSLATION] No conversations match your search"
+    },
+    "loading": "[NEEDS_TRANSLATION] Loading your memories...",
+    "error": {
+      "title": "[NEEDS_TRANSLATION] Couldn't load your memories",
+      "message": "[NEEDS_TRANSLATION] Something went wrong. Please try again.",
+      "retry": "[NEEDS_TRANSLATION] Try again"
+    },
+    "footer": "[NEEDS_TRANSLATION] Our journey started {date}",
+    "turnCount": "[NEEDS_TRANSLATION] {count} turns",
+    "voiceVerified": "[NEEDS_TRANSLATION] Voice verified",
+    "learnedFrom": "[NEEDS_TRANSLATION] Learned from our conversations"
   },
-  "buttons": {
-    "signIn": "Iniciar sesión",
-    "signOut": "Cerrar sesión",
-    "signUp": "Registrarse",
-    "savePreferences": "Guardar preferencias",
-    "savePreference": "Guardar preferencia",
-    "choose": "Elegir esto",
-    "refresh": "Actualizar",
-    "exportData": "Exportar datos"
+  "settings": {
+    "preferences": "[NEEDS_TRANSLATION] Preferences",
+    "appearance": "[NEEDS_TRANSLATION] Appearance",
+    "language": "[NEEDS_TRANSLATION] Language"
   },
-  "mobile": {
-    "pullToConnect": "Tira para conectar",
-    "releaseToConnect": "Suelta para conectar",
-    "pullToRefresh": "Tira para actualizar",
-    "releaseToRefresh": "Suelta para actualizar"
+  "foundersJourney": {
+    "eyebrow": "[NEEDS_TRANSLATION] THE HONEST TRUTH",
+    "title": "[NEEDS_TRANSLATION] We're Just Getting Started",
+    "subtitle": "[NEEDS_TRANSLATION] No hype. No inflated numbers. Just a small team trying to build something that helps people.",
+    "navigation": "[NEEDS_TRANSLATION] Journey sections",
+    "tabs": {
+      "vision": "[NEEDS_TRANSLATION] Why",
+      "now": "[NEEDS_TRANSLATION] Where",
+      "future": "[NEEDS_TRANSLATION] What's Next",
+      "impact": "[NEEDS_TRANSLATION] Numbers",
+      "founders": "[NEEDS_TRANSLATION] People"
+    },
+    "vision": {
+      "quote": "[NEEDS_TRANSLATION] Good support is expensive. Good therapists have waitlists. Friends get tired. What if there was something in between?",
+      "principlesTitle": "[NEEDS_TRANSLATION] What We Actually Believe",
+      "principles": {
+        "free": {
+          "title": "[NEEDS_TRANSLATION] Free, Honestly",
+          "description": "[NEEDS_TRANSLATION] Every conversation costs about $0.05 to run. Founders help cover that so others don't have to."
+        },
+        "community": {
+          "title": "[NEEDS_TRANSLATION] Small, Not Scale",
+          "description": "[NEEDS_TRANSLATION] We're not trying to be the next big thing. We just want to build something genuinely useful for the people who find us."
+        },
+        "human": {
+          "title": "[NEEDS_TRANSLATION] Not a Replacement",
+          "description": "[NEEDS_TRANSLATION] Ferni isn't therapy. It's not a substitute for real help. It's support for the 99% of moments that don't need a professional."
+        }
+      },
+      "promise": "[NEEDS_TRANSLATION] Your contribution covers about 20 conversations for someone who can't chip in."
+    },
+    "now": {
+      "title": "[NEEDS_TRANSLATION] Where We Actually Are",
+      "description": "[NEEDS_TRANSLATION] Honest about the stage: early. Most features work. Some have rough edges. We're learning.",
+      "winsTitle": "[NEEDS_TRANSLATION] What's Working",
+      "wins": {
+        "memory": "[NEEDS_TRANSLATION] Memory works — Ferni remembers conversations across sessions",
+        "team": "[NEEDS_TRANSLATION] Six coaches with different personalities (they're real, not gimmicks)",
+        "voice": "[NEEDS_TRANSLATION] Voice conversations work, though latency varies by connection",
+        "music": "[NEEDS_TRANSLATION] Spotify integration exists, still improving"
+      }
+    },
+    "future": {
+      "title": "[NEEDS_TRANSLATION] What We're Working On",
+      "description": "[NEEDS_TRANSLATION] No promises on dates. We ship when it's ready, not when marketing wants it.",
+      "featuresTitle": "[NEEDS_TRANSLATION] In Progress",
+      "seeAll": "[NEEDS_TRANSLATION] See the full list"
+    },
+    "impact": {
+      "title": "[NEEDS_TRANSLATION] Real Numbers",
+      "description": "[NEEDS_TRANSLATION] We show what we actually have. Empty is honest. Inflated is not.",
+      "stats": {
+        "founders": "[NEEDS_TRANSLATION] People Supporting",
+        "conversations": "[NEEDS_TRANSLATION] Conversations",
+        "features": "[NEEDS_TRANSLATION] In Development"
+      },
+      "nextMilestone": "[NEEDS_TRANSLATION] What We're Working Toward",
+      "yourImpact": "[NEEDS_TRANSLATION] What Your Support Means",
+      "storiesTitle": "[NEEDS_TRANSLATION] From Real People",
+      "noStories": "[NEEDS_TRANSLATION] No stories yet. When real people share them, they'll appear here.",
+      "personal": {
+        "conversations": "[NEEDS_TRANSLATION] Conversations Covered",
+        "families": "[NEEDS_TRANSLATION] People Helped",
+        "streak": "[NEEDS_TRANSLATION] Months Supporting",
+        "thanks": "[NEEDS_TRANSLATION] Seriously, thank you."
+      },
+      "ctaText": "[NEEDS_TRANSLATION] Ferni costs money to run. Your support keeps it free for people who need it."
+    },
+    "founders": {
+      "title": "[NEEDS_TRANSLATION] The People Who Believe",
+      "description": "[NEEDS_TRANSLATION] Real names of real people who chose to support this. (With their permission.)",
+      "empty": "[NEEDS_TRANSLATION] Be the first.",
+      "tiers": {
+        "forest": "[NEEDS_TRANSLATION] Sustaining",
+        "tree": "[NEEDS_TRANSLATION] Supporting",
+        "sprout": "[NEEDS_TRANSLATION] Helping",
+        "seed": "[NEEDS_TRANSLATION] Believing"
+      },
+      "joinCta": "[NEEDS_TRANSLATION] Every name here is a real person.",
+      "believers": "[NEEDS_TRANSLATION] people so far"
+    },
+    "cta": {
+      "join": "[NEEDS_TRANSLATION] Support Ferni"
+    },
+    "footer": {
+      "note": "[NEEDS_TRANSLATION] If you can't support financially, that's completely fine. Use Ferni anyway. That's the whole point."
+    }
   },
-  "placeholders": {
-    "customAmount": "Cantidad personalizada",
-    "searchConversations": "Buscar conversaciones...",
-    "enterValue": "Ingresa el valor real",
-    "emailExample": "tu@ejemplo.com",
-    "phoneExample": "+34 (91) 123-4567",
-    "memberName": "Su nombre",
-    "householdName": "La familia García",
-    "displayName": "Tu nombre preferido",
-    "marketplaceSearch": "¿A quién buscas?",
-    "codeInput": "• • • • • •",
-    "colleagueEmail": "colega@empresa.com",
-    "welcomeMessageExample": "ej., ¡Bienvenido a {orgName}! Ferni está aquí para apoyar tu crecimiento y bienestar.",
-    "companyValuesExample": "ej., Integridad, Innovación, Enfoque al Cliente, Trabajo en Equipo",
-    "toolIdExample": "mi-herramienta-genial",
-    "toolNameExample": "Mi Herramienta Genial",
-    "versionExample": "1.0.0",
-    "toolDescription": "¿Qué hace tu herramienta/agente?"
+  "subscriptionFeatures": {
+    "community": {
+      "name": "[NEEDS_TRANSLATION] Community",
+      "description": "[NEEDS_TRANSLATION] Ferni is free. Really free. Talk whenever you need.",
+      "price": "[NEEDS_TRANSLATION] Free forever",
+      "features": {
+        "unlimitedFerni": "[NEEDS_TRANSLATION] Unlimited conversations with Ferni",
+        "heartToHearts": "[NEEDS_TRANSLATION] 7-minute heart-to-hearts",
+        "fullMemory": "[NEEDS_TRANSLATION] Full memory — I remember everything",
+        "customization": "[NEEDS_TRANSLATION] Avatar & theme customization"
+      }
+    },
+    "friend": {
+      "name": "[NEEDS_TRANSLATION] Founding Member",
+      "description": "[NEEDS_TRANSLATION] Chip in $10/mo. Help keep Ferni free for everyone.",
+      "features": {
+        "unlimitedTime": "[NEEDS_TRANSLATION] Unlimited conversation time (our thank you)",
+        "meetTeam": "[NEEDS_TRANSLATION] Meet the whole team (Maya, Peter, Alex, Jordan)",
+        "foundersWall": "[NEEDS_TRANSLATION] Your name on the Founders Wall (optional)",
+        "voteOnFeatures": "[NEEDS_TRANSLATION] Vote on what we build next"
+      }
+    },
+    "partner": {
+      "name": "[NEEDS_TRANSLATION] Founding Patron",
+      "description": "[NEEDS_TRANSLATION] Chip in $20/mo. You're shaping what we become.",
+      "features": {
+        "everythingInFriend": "[NEEDS_TRANSLATION] Everything in Founding Member, plus:",
+        "fullTeam": "[NEEDS_TRANSLATION] Full team access (including Nayan)",
+        "earlyAccess": "[NEEDS_TRANSLATION] Early access to new features",
+        "directLine": "[NEEDS_TRANSLATION] Direct line to founders (monthly Q&A)",
+        "familySharing": "[NEEDS_TRANSLATION] Family sharing — bring people you love"
+      }
+    }
   },
-  "household": {
-    "addToHousehold": "Añadir al hogar",
-    "title": "Hogar",
-    "members": "Miembros",
-    "addMember": "Añadir miembro",
-    "removeMember": "Eliminar miembro"
+  "vibe": {
+    "eyebrow": "[NEEDS_TRANSLATION] Your Environment",
+    "title": "[NEEDS_TRANSLATION] Set the Vibe",
+    "moreVibes": "[NEEDS_TRANSLATION] More vibes",
+    "fewerVibes": "[NEEDS_TRANSLATION] Fewer vibes",
+    "skipForNow": "[NEEDS_TRANSLATION] Skip for now",
+    "connected": "[NEEDS_TRANSLATION] Connected",
+    "notConnected": "[NEEDS_TRANSLATION] Not connected",
+    "connecting": "[NEEDS_TRANSLATION] Connecting...",
+    "presets": {
+      "focus": {
+        "name": "[NEEDS_TRANSLATION] Focus",
+        "description": "[NEEDS_TRANSLATION] Deep work mode. Calm music, bright lights, cool temp."
+      },
+      "relax": {
+        "name": "[NEEDS_TRANSLATION] Relax",
+        "description": "[NEEDS_TRANSLATION] Wind down. Soft jazz, warm dim lights, cozy temp."
+      },
+      "energize": {
+        "name": "[NEEDS_TRANSLATION] Energize",
+        "description": "[NEEDS_TRANSLATION] Get moving. Upbeat music, bright cool lights."
+      },
+      "sleep": {
+        "name": "[NEEDS_TRANSLATION] Sleep",
+        "description": "[NEEDS_TRANSLATION] Time for rest. Quiet, dark, comfortable."
+      },
+      "social": {
+        "name": "[NEEDS_TRANSLATION] Gather",
+        "description": "[NEEDS_TRANSLATION] Having people over. Good music, warm inviting lights."
+      },
+      "morning": {
+        "name": "[NEEDS_TRANSLATION] Morning",
+        "description": "[NEEDS_TRANSLATION] Start the day gently. Bright lights, comfortable temp."
+      },
+      "romantic": {
+        "name": "[NEEDS_TRANSLATION] Romantic",
+        "description": "[NEEDS_TRANSLATION] Date night. Soft music, dim warm lights."
+      },
+      "workout": {
+        "name": "[NEEDS_TRANSLATION] Workout",
+        "description": "[NEEDS_TRANSLATION] Exercise time. High energy music, bright lights, cool."
+      },
+      "movie": {
+        "name": "[NEEDS_TRANSLATION] Movie Night",
+        "description": "[NEEDS_TRANSLATION] Cinema at home. Dim lights, immersive sound."
+      },
+      "cooking": {
+        "name": "[NEEDS_TRANSLATION] Cooking",
+        "description": "[NEEDS_TRANSLATION] Kitchen time. Upbeat tunes, bright task lighting."
+      },
+      "reading": {
+        "name": "[NEEDS_TRANSLATION] Reading",
+        "description": "[NEEDS_TRANSLATION] Book time. Soft background, warm reading light."
+      },
+      "creative": {
+        "name": "[NEEDS_TRANSLATION] Creative",
+        "description": "[NEEDS_TRANSLATION] Art and projects. Inspiring music, natural light feel."
+      },
+      "meditation": {
+        "name": "[NEEDS_TRANSLATION] Meditation",
+        "description": "[NEEDS_TRANSLATION] Inner peace. Nature sounds, soft ambient glow."
+      },
+      "gaming": {
+        "name": "[NEEDS_TRANSLATION] Gaming",
+        "description": "[NEEDS_TRANSLATION] Game on. Dynamic lighting, comfortable temp."
+      },
+      "dinner": {
+        "name": "[NEEDS_TRANSLATION] Dinner",
+        "description": "[NEEDS_TRANSLATION] Mealtime ambiance. Warm glow, pleasant background."
+      }
+    },
+    "settingVibe": "[NEEDS_TRANSLATION] Setting {name} vibe...",
+    "vibeSet": "[NEEDS_TRANSLATION] {name} vibe set!",
+    "couldNotFullySet": "[NEEDS_TRANSLATION] Couldn't fully set the vibe",
+    "couldNotSetVibe": "[NEEDS_TRANSLATION] Couldn't set that vibe. Try again?",
+    "music": {
+      "title": "[NEEDS_TRANSLATION] Music",
+      "playing": "[NEEDS_TRANSLATION] Playing",
+      "paused": "[NEEDS_TRANSLATION] Paused",
+      "chooseVibe": "[NEEDS_TRANSLATION] Choose a vibe to start music",
+      "askFerni": "[NEEDS_TRANSLATION] Or ask Ferni to play something",
+      "play": "[NEEDS_TRANSLATION] Play",
+      "pause": "[NEEDS_TRANSLATION] Pause",
+      "skip": "[NEEDS_TRANSLATION] Skip"
+    },
+    "volume": "[NEEDS_TRANSLATION] Volume",
+    "skipped": "[NEEDS_TRANSLATION] Skipped",
+    "couldNotControlMusic": "[NEEDS_TRANSLATION] Couldn't control music. Try again?",
+    "lights": {
+      "title": "[NEEDS_TRANSLATION] Lights",
+      "connectTitle": "[NEEDS_TRANSLATION] Connect Your Lights",
+      "connectDescription": "[NEEDS_TRANSLATION] Ferni can control your smart lights to set the perfect ambiance. Choose how you'd like to connect:",
+      "notConnectedText": "[NEEDS_TRANSLATION] Connect your smart lights to control ambiance",
+      "connect": "[NEEDS_TRANSLATION] Connect Lights",
+      "brightness": "[NEEDS_TRANSLATION] Brightness",
+      "warmth": "[NEEDS_TRANSLATION] Warmth",
+      "colorTemperature": "[NEEDS_TRANSLATION] Color temperature",
+      "warm": "[NEEDS_TRANSLATION] Warm",
+      "cool": "[NEEDS_TRANSLATION] Cool",
+      "neutral": "[NEEDS_TRANSLATION] Neutral"
+    },
+    "temperature": {
+      "title": "[NEEDS_TRANSLATION] Temperature",
+      "connectTitle": "[NEEDS_TRANSLATION] Connect Your Thermostat",
+      "connectDescription": "[NEEDS_TRANSLATION] Ferni can adjust your home's temperature to match your vibe. Choose your thermostat:",
+      "notConnectedText": "[NEEDS_TRANSLATION] Connect your thermostat for comfort control",
+      "connect": "[NEEDS_TRANSLATION] Connect Thermostat",
+      "currentNow": "[NEEDS_TRANSLATION] {temp} now",
+      "target": "[NEEDS_TRANSLATION] Target",
+      "decrease": "[NEEDS_TRANSLATION] Decrease temperature",
+      "increase": "[NEEDS_TRANSLATION] Increase temperature"
+    },
+    "couldNotChangeTemp": "[NEEDS_TRANSLATION] Couldn't change temperature. Try again?",
+    "providers": {
+      "homeAssistant": "[NEEDS_TRANSLATION] Home Assistant",
+      "homeAssistantDesc": "[NEEDS_TRANSLATION] Works with all your devices",
+      "homeAssistantClimate": "[NEEDS_TRANSLATION] Any thermostat via Home Assistant",
+      "philipsHue": "[NEEDS_TRANSLATION] Philips Hue",
+      "philipsHueDesc": "[NEEDS_TRANSLATION] Connect directly to your Hue bridge",
+      "ecobee": "[NEEDS_TRANSLATION] Ecobee",
+      "ecobeeDesc": "[NEEDS_TRANSLATION] Smart thermostat with room sensors",
+      "googleNest": "[NEEDS_TRANSLATION] Google Nest",
+      "googleNestDesc": "[NEEDS_TRANSLATION] Learning thermostat"
+    },
+    "lightsConnected": "[NEEDS_TRANSLATION] Lights connected!",
+    "hueLightsConnected": "[NEEDS_TRANSLATION] Hue lights connected!",
+    "thermostatConnected": "[NEEDS_TRANSLATION] Thermostat connected!",
+    "nestConnected": "[NEEDS_TRANSLATION] Nest connected!",
+    "climateControlConnected": "[NEEDS_TRANSLATION] Climate control connected!",
+    "thermostatConnectedViaHA": "[NEEDS_TRANSLATION] Thermostat connected via Home Assistant!",
+    "connectingToHA": "[NEEDS_TRANSLATION] Connecting to Home Assistant...",
+    "couldNotConnectHA": "[NEEDS_TRANSLATION] Couldn't connect. Check your Home Assistant URL.",
+    "lookingForHue": "[NEEDS_TRANSLATION] Looking for Philips Hue bridge...",
+    "couldNotFindHue": "[NEEDS_TRANSLATION] Couldn't find Hue bridge. Is it on?",
+    "pressHueButton": "[NEEDS_TRANSLATION] Press the button on your Hue bridge, then try again",
+    "gettingEcobeePin": "[NEEDS_TRANSLATION] Getting Ecobee PIN...",
+    "couldNotGetPin": "[NEEDS_TRANSLATION] Couldn't get PIN. Is Ecobee configured?",
+    "connectingToNest": "[NEEDS_TRANSLATION] Connecting to Nest...",
+    "connectingToHAClimate": "[NEEDS_TRANSLATION] Using Home Assistant for climate control...",
+    "couldNotConnect": "[NEEDS_TRANSLATION] Couldn't connect. Try again?",
+    "pinExpiredRetry": "[NEEDS_TRANSLATION] PIN expired. Try again?",
+    "ecobee": {
+      "connectTitle": "[NEEDS_TRANSLATION] Connect Ecobee",
+      "enterPin": "[NEEDS_TRANSLATION] Enter this PIN at ecobee.com:",
+      "step1": "[NEEDS_TRANSLATION] Go to ecobee.com/consumerportal",
+      "step2": "[NEEDS_TRANSLATION] Click \"Add Application\"",
+      "step3": "[NEEDS_TRANSLATION] Enter the PIN above",
+      "pinExpires": "[NEEDS_TRANSLATION] PIN expires in {minutes} minutes"
+    }
   },
-  "titles": {
-    "sharedSong": "Una canción que compartimos",
-    "dailyPractice": "Práctica diaria",
-    "predictions": "Predicciones",
-    "runScenario": "Ejecutar escenario"
+  "ui": {
+    "accountbutton": {
+      "rememberMe": "[NEEDS_TRANSLATION] Remember me"
+    },
+    "applehealthsettings": {
+      "noHealthDataSynced": "[NEEDS_TRANSLATION] No health data synced yet. Open the iOS app to sync."
+    },
+    "customagentwizard": {
+      "stopRecording": "[NEEDS_TRANSLATION] Stop Recording"
+    },
+    "marketplace": {
+      "submitting": "[NEEDS_TRANSLATION] Submitting...",
+      "submitReview": "[NEEDS_TRANSLATION] Submit Review"
+    },
+    "smarthomesettings": {
+      "connectEcobee": "[NEEDS_TRANSLATION] Connect Ecobee",
+      "findBridge": "[NEEDS_TRANSLATION] Find Bridge",
+      "iPressedIt": "[NEEDS_TRANSLATION] I pressed it!",
+      "connectLifx": "[NEEDS_TRANSLATION] Connect LIFX",
+      "cancel": "[NEEDS_TRANSLATION] Cancel"
+    },
+    "recording": {
+      "stopRecording": "[NEEDS_TRANSLATION] Stop Recording",
+      "startRecording": "[NEEDS_TRANSLATION] Start Recording"
+    }
+  },
+  "breathing": {
+    "tapToBegin": "[NEEDS_TRANSLATION] Tap to begin",
+    "pattern": "[NEEDS_TRANSLATION] Pattern"
+  },
+  "calendar": {
+    "saving": "[NEEDS_TRANSLATION] Saving...",
+    "saveSelection": "[NEEDS_TRANSLATION] Save Selection",
+    "connecting": "[NEEDS_TRANSLATION] Connecting..."
+  },
+  "auth": {
+    "preparing": "[NEEDS_TRANSLATION] Preparing authentication...",
+    "clickToSignIn": "[NEEDS_TRANSLATION] Click below to sign in with Google",
+    "authenticating": "[NEEDS_TRANSLATION] Authenticating with Google...",
+    "authenticationSuccessful": "[NEEDS_TRANSLATION] Authentication successful!",
+    "authenticationFailed": "[NEEDS_TRANSLATION] Authentication failed"
+  },
+  "visualizations": {
+    "lifeSeasons": "[NEEDS_TRANSLATION] Your Life Seasons",
+    "conversationCurrents": "[NEEDS_TRANSLATION] Your Conversation Currents",
+    "theMirror": "[NEEDS_TRANSLATION] The Mirror",
+    "whatYouSayAnd": "[NEEDS_TRANSLATION] What you say... and what I notice",
+    "youSaid": "[NEEDS_TRANSLATION] You said",
+    "iNotice": "[NEEDS_TRANSLATION] I notice",
+    "yourEnergyFlow": "[NEEDS_TRANSLATION] Your Energy Flow",
+    "theUnsaid": "[NEEDS_TRANSLATION] The Unsaid",
+    "thingsThatMightBe": "[NEEDS_TRANSLATION] Things that might be on your mind...",
+    "i": "[NEEDS_TRANSLATION] I\\",
+    "yourGrowthRings": "[NEEDS_TRANSLATION] Your Growth Rings",
+    "eachRingMarksA": "[NEEDS_TRANSLATION] Each ring marks a season of growth",
+    "valuesAlignment": "[NEEDS_TRANSLATION] Values Alignment",
+    "whatYouSayMatters": "[NEEDS_TRANSLATION] What you say matters",
+    "whatYourActionsShow": "[NEEDS_TRANSLATION] What your actions show",
+    "unfinishedStories": "[NEEDS_TRANSLATION] Unfinished Stories",
+    "threadsWaitingToBe": "[NEEDS_TRANSLATION] Threads waiting to be woven...",
+    "noOpenLoopsDetected": "[NEEDS_TRANSLATION] No open loops detected. You\\",
+    "rippleEffects": "[NEEDS_TRANSLATION] Ripple Effects",
+    "whatYouSaid": "[NEEDS_TRANSLATION] What you said",
+    "whatINotice": "[NEEDS_TRANSLATION] What I notice",
+    "currentPhase": "[NEEDS_TRANSLATION] Current Phase",
+    "allPhases": "[NEEDS_TRANSLATION] All Phases",
+    "recommendation": "[NEEDS_TRANSLATION] Recommendation",
+    "currentTheme": "[NEEDS_TRANSLATION] Current Theme",
+    "chapterProgress": "[NEEDS_TRANSLATION] Chapter Progress",
+    "byPriority": "[NEEDS_TRANSLATION] By Priority",
+    "oldestOpenLoop": "[NEEDS_TRANSLATION] Oldest Open Loop",
+    "primaryPrediction": "[NEEDS_TRANSLATION] Primary Prediction",
+    "historicalAccuracy": "[NEEDS_TRANSLATION] Historical Accuracy",
+    "networkStats": "[NEEDS_TRANSLATION] Network Stats",
+    "categories": "[NEEDS_TRANSLATION] Categories",
+    "reconnectWith": "[NEEDS_TRANSLATION] Reconnect With",
+    "stillLearning": "[NEEDS_TRANSLATION] I'm still learning your patterns. Keep talking.",
+    "noOpenLoops": "[NEEDS_TRANSLATION] No open loops detected. You're present in the moment."
   }
 }

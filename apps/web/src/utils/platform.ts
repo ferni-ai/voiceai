@@ -571,7 +571,12 @@ export async function initPlatform(): Promise<void> {
     // Listen for app lifecycle changes
     onAppStateChange((isActive) => {
       log.info(`📱 App ${isActive ? 'active' : 'background'}`);
-      // Could pause/resume audio, save state, etc.
+      
+      // Dispatch custom event so other parts of the app can react
+      // The connection service will use this to restore the microphone
+      document.dispatchEvent(new CustomEvent('ferni:app-state', { 
+        detail: { isActive } 
+      }));
     });
   }
 

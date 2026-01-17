@@ -42,33 +42,68 @@ export interface InsightsSummary {
 }
 
 // ============================================================================
-// STATE
+// STATE & CACHE
 // ============================================================================
 
 let pollingInterval: ReturnType<typeof setInterval> | null = null;
 const shownInsightIds = new Set<string>();
+
+/** Cache for insights to avoid redundant API calls */
+let insightsCache: PredictiveInsightData[] | null = null;
+let insightsCacheTime = 0;
+const INSIGHTS_CACHE_TTL_MS = 60 * 1000; // 1 minute
+
+/** Cache for insights summary */
+let summaryCache: InsightsSummary | null = null;
+let summaryCacheTime = 0;
+const SUMMARY_CACHE_TTL_MS = 2 * 60 * 1000; // 2 minutes
+
+/** Whether a fetch is already in progress (deduplication) */
+let fetchInProgress: Promise<PredictiveInsightData[]> | null = null;
 
 // ============================================================================
 // API CALLS
 // ============================================================================
 
 /**
- * Fetch predictive insights from the API
+ * Fetch predictive insights from the API (with caching)
  */
-export async function fetchPredictiveInsights(): Promise<PredictiveInsightData[]> {
-  try {
-    const response = await apiGet<{ insights?: PredictiveInsightData[] }>('/api/insights/predictions');
+export async function fetchPredictiveInsights(forceRefresh = false): Promise<PredictiveInsightData[]> {
+  const now = Date.now();
 
-    if (!response.ok || !response.data) {
-      return [];
-    }
-
-    log.debug({ count: response.data.insights?.length || 0 }, 'Fetched predictive insights');
-    return response.data.insights || [];
-  } catch (error) {
-    log.warn({ error }, 'Failed to fetch predictive insights');
-    return [];
+  // Return cached result if still valid
+  if (!forceRefresh && insightsCache && now - insightsCacheTime < INSIGHTS_CACHE_TTL_MS) {
+    return insightsCache;
   }
+
+  // Dedupe concurrent requests
+  if (fetchInProgress) {
+    return fetchInProgress;
+  }
+
+  fetchInProgress = (async () => {
+    try {
+      const response = await apiGet<{ insights?: PredictiveInsightData[] }>('/api/insights/predictions');
+
+      if (!response.ok || !response.data) {
+        return insightsCache || []; // Return stale cache on error
+      }
+
+      // Update cache
+      insightsCache = response.data.insights || [];
+      insightsCacheTime = now;
+
+      log.debug({ count: insightsCache.length }, 'Fetched predictive insights');
+      return insightsCache;
+    } catch (error) {
+      log.warn({ error }, 'Failed to fetch predictive insights');
+      return insightsCache || []; // Return stale cache on error
+    } finally {
+      fetchInProgress = null;
+    }
+  })();
+
+  return fetchInProgress;
 }
 
 /**
@@ -102,21 +137,42 @@ export async function provideFeedback(
 }
 
 /**
- * Get insights summary
+ * Get insights summary (with caching)
  */
-export async function getInsightsSummary(): Promise<InsightsSummary | null> {
+export async function getInsightsSummary(forceRefresh = false): Promise<InsightsSummary | null> {
+  const now = Date.now();
+
+  // Return cached result if still valid
+  if (!forceRefresh && summaryCache && now - summaryCacheTime < SUMMARY_CACHE_TTL_MS) {
+    return summaryCache;
+  }
+
   try {
     const response = await apiGet<{ summary?: InsightsSummary }>('/api/insights/summary');
 
     if (!response.ok || !response.data) {
-      return null;
+      return summaryCache; // Return stale cache on error
     }
 
-    return response.data.summary || null;
+    // Update cache
+    summaryCache = response.data.summary || null;
+    summaryCacheTime = now;
+
+    return summaryCache;
   } catch (error) {
     log.warn({ error }, 'Failed to get insights summary');
-    return null;
+    return summaryCache; // Return stale cache on error
   }
+}
+
+/**
+ * Clear insights cache (useful when user takes action that invalidates data)
+ */
+export function clearInsightsCache(): void {
+  insightsCache = null;
+  insightsCacheTime = 0;
+  summaryCache = null;
+  summaryCacheTime = 0;
 }
 
 // ============================================================================

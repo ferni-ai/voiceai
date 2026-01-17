@@ -10,6 +10,30 @@
  * - Human listening SSML adjustments
  * - Dynamic speed control (persona-aware)
  * - Voice humanization (laughter, contagion, rhythm, breathing)
+ * - Trust enforcement (emotional mismatch detection, boundary checking)
+ * - Crisis guard (crisis resource injection, dismissive language blocking)
+ *
+ * ## Architecture Note
+ *
+ * **Current Status:** This module is EXPORTED but NOT CALLED in the main production flow.
+ *
+ * The LiveKit SDK uses streaming responses that go directly from LLM → TTS via the
+ * `ttsNode` in `ferni-agent.ts`. This makes post-response validation architecturally
+ * difficult because we can't easily intercept the response after LLM generation but
+ * before speech synthesis.
+ *
+ * **Where safety/trust enforcement actually happens:**
+ * 1. **Pre-response (injections):** Crisis detection and trust context are built in
+ *    `turn-processor.ts` and injected as high-priority context BEFORE the LLM generates.
+ * 2. **Pre-response (override):** Severe crisis → LLM is given a pre-written response
+ *    to prevent any deviation. See `turn-handler.ts` crisis handling.
+ * 3. **Monitoring:** Trust context summary is emitted as events to the frontend for
+ *    avatar adaptation. See `turn-handler.ts` trust context section.
+ *
+ * **When to use this module:**
+ * - Non-streaming response scenarios (e.g., text-only chat mode)
+ * - Testing and validation of response quality
+ * - Future: Buffered response mode for enhanced validation
  *
  * Extracted from voice-agent.ts transcriptionNode method.
  *
@@ -42,6 +66,16 @@ export interface ResponseProcessorContext {
   services?: SessionServices;
   /** Session ID for feature flags */
   sessionId?: string;
+  /**
+   * Trust context from turn processing (for "Better Than Human" enforcement)
+   * When provided, responses are checked for proper emotional acknowledgment
+   */
+  trustContext?: import('../../services/trust-systems/index.js').TrustContext;
+  /**
+   * Crisis detection result from turn processing (for safety enforcement)
+   * When provided, responses are checked for crisis resources and dismissive language
+   */
+  crisisResult?: import('../safety/crisis-guard.js').CrisisDetectionResult;
 }
 
 export interface ResponseProcessorResult {
@@ -51,6 +85,24 @@ export interface ResponseProcessorResult {
   appliedFeatures: string[];
   /** Processing timing */
   timingMs: number;
+  /**
+   * Trust enforcement result (if trust context was provided)
+   * Contains info about blocked responses, required modifications, etc.
+   */
+  trustEnforcement?: {
+    shouldBlock: boolean;
+    mustAddress: string[];
+    regenerationGuidance?: string;
+  };
+  /**
+   * Crisis guard result (if crisis was detected)
+   * Contains info about added resources, blocked dismissive language, etc.
+   */
+  crisisGuard?: {
+    resourcesAdded: boolean;
+    dismissiveBlocked: boolean;
+    reason?: string;
+  };
 }
 
 export interface EmotionModulation {
@@ -144,6 +196,124 @@ export async function processResponse(
   }
 
   // ============================================================
+  // 2b. 🚨 TRUST ENFORCEMENT ("Better Than Human")
+  // Ensure response properly addresses:
+  // - Emotional mismatches (must acknowledge false "I'm fine")
+  // - Boundary violations (must not mention avoided topics)
+  // - Growth reflections (should celebrate progress)
+  // - Small wins (should acknowledge achievements)
+  // ============================================================
+  let trustEnforcementResult: ResponseProcessorResult['trustEnforcement'];
+
+  if (ctx.trustContext) {
+    try {
+      const { enforceTrustContext } = await import('../trust/trust-enforcer.js');
+
+      const enforcementContext = {
+        trustContext: ctx.trustContext,
+        voiceEmotion: userData?.voiceEmotion
+          ? {
+              primary: userData.voiceEmotion.primary || 'neutral',
+              intensity: userData.voiceEmotion.confidence || 0.5,
+              confidence: userData.voiceEmotion.confidence,
+            }
+          : undefined,
+        isReturningUser: userData?.isReturningUser,
+        turnCount: userData?.turnCount,
+      };
+
+      const trustResult = enforceTrustContext(processedText, enforcementContext);
+
+      trustEnforcementResult = {
+        shouldBlock: trustResult.shouldBlock,
+        mustAddress: trustResult.mustAddress,
+        regenerationGuidance: trustResult.regenerationGuidance,
+      };
+
+      if (trustResult.shouldBlock) {
+        // Log for monitoring but don't block - we want to improve, not break
+        diag.warn('🛡️ Trust enforcement would block response', {
+          mustAddress: trustResult.mustAddress,
+          regenerationGuidance: trustResult.regenerationGuidance,
+        });
+        appliedFeatures.push('trust_enforcement_warning');
+      }
+
+      // Apply phrase injection if required (e.g., "I notice something...")
+      if (trustResult.phraseToUse) {
+        processedText = `${trustResult.phraseToUse} ${processedText}`;
+        appliedFeatures.push('trust_phrase_injected');
+        diag.state('🤝 Trust phrase injected', { phrase: trustResult.phraseToUse });
+      }
+
+      // Apply required tone adjustments
+      if (trustResult.requiredTone) {
+        appliedFeatures.push(`trust_tone_${trustResult.requiredTone}`);
+      }
+    } catch (trustErr) {
+      diag.warn('Trust enforcement failed (non-fatal)', { error: String(trustErr) });
+    }
+  }
+
+  // ============================================================
+  // 2c. 🚨 CRISIS GUARD POST-RESPONSE CHECK
+  // Ensure crisis responses include resources (988 hotline)
+  // Block dismissive language during distress
+  // ============================================================
+  let crisisGuardResult: ResponseProcessorResult['crisisGuard'];
+
+  if (ctx.crisisResult) {
+    try {
+      const { guardPostResponse, buildCrisisGuardContext, applyGuardResult } =
+        await import('../safety/crisis-guard.js');
+
+      // Build context for guard
+      const hasEmotionalMismatch = ctx.trustContext?.unsaidSignals?.some(
+        (s) => s.type === 'emotional_mismatch' && s.confidence > 0.7
+      );
+
+      const guardContext = buildCrisisGuardContext(
+        ctx.crisisResult,
+        userData?.voiceEmotion
+          ? {
+              primary: userData.voiceEmotion.primary || 'neutral',
+              intensity: userData.voiceEmotion.confidence || 0.5,
+              confidence: userData.voiceEmotion.confidence,
+            }
+          : undefined,
+        hasEmotionalMismatch
+      );
+
+      const guardResult = guardPostResponse(processedText, guardContext);
+
+      crisisGuardResult = {
+        resourcesAdded: !!guardResult.requiredAdditions?.length,
+        dismissiveBlocked: guardResult.shouldBlock,
+        reason: guardResult.reason,
+      };
+
+      if (guardResult.shouldBlock) {
+        // This is serious - log but still allow through with warning
+        // The pre-response guard should have caught severe cases
+        diag.warn('🚫 Crisis guard would block response (dismissive language)', {
+          reason: guardResult.reason,
+        });
+        appliedFeatures.push('crisis_guard_warning');
+      }
+
+      // Apply required additions (crisis resources)
+      processedText = applyGuardResult(processedText, guardResult);
+
+      if (guardResult.requiredAdditions?.length) {
+        appliedFeatures.push('crisis_resources_added');
+        diag.state('🆘 Crisis resources added to response');
+      }
+    } catch (crisisErr) {
+      diag.warn('Crisis guard failed (non-fatal)', { error: String(crisisErr) });
+    }
+  }
+
+  // ============================================================
   // 3. SSML TAGGING (if not already done by humanizer)
   // ============================================================
   if (!hasSsmlTags(processedText) && services) {
@@ -159,6 +329,49 @@ export async function processResponse(
   // ============================================================
   if (userData?.services?.sessionId) {
     void recordResponse(userData.services.sessionId, ctx.rawText, userData, persona);
+  }
+
+  // ============================================================
+  // 4b. THREAD RECORDING (for cross-channel continuity)
+  // Records agent message to conversation thread for SMS/push continuity
+  // ============================================================
+  if (sessionId && userData?.userId && ctx.rawText) {
+    try {
+      const { recordAgentMessage } =
+        await import('../../services/conversation-thread/thread-recorder.js');
+      void recordAgentMessage({
+        userId: userData.userId,
+        sessionId,
+        personaId: (persona?.id || 'ferni') as import('../../personas/types.js').PersonaId,
+        threadId: userData.threadId,
+        content: ctx.rawText,
+      });
+    } catch {
+      // Non-fatal - thread recording is enhancement
+    }
+  }
+
+  // ============================================================
+  // 4c. SEMANTIC INTELLIGENCE TRACKING (Better Than Human V3)
+  // Track agent advice for counterfactual memory - enables "last time
+  // you tried X, you said Y. Want to try something different?"
+  // ============================================================
+  if (sessionId && userData?.userId && ctx.rawText) {
+    try {
+      const { trackAdviceInResponse } =
+        await import('../../services/superhuman/semantic-intelligence/advice-detector.js');
+      void trackAdviceInResponse(ctx.rawText, {
+        userId: userData.userId,
+        sessionId,
+        personaId: persona?.id || 'ferni',
+        topic: userData.lastTopic,
+        userSituation: userData.lastUserMessage?.slice(0, 200),
+        userEmotion: userData.lastEmotionAnalysis?.primary,
+      });
+      appliedFeatures.push('semantic_advice_tracking');
+    } catch {
+      // Non-fatal - semantic tracking is enhancement
+    }
   }
 
   // ============================================================
@@ -275,6 +488,8 @@ export async function processResponse(
     processedText,
     appliedFeatures,
     timingMs: Date.now() - startTime,
+    trustEnforcement: trustEnforcementResult,
+    crisisGuard: crisisGuardResult,
   };
 }
 
@@ -314,10 +529,8 @@ async function signalConversationEnd(sessionId: string | undefined): Promise<voi
 
   try {
     // 🎧 Play the exit sound - "Wrap the show"
-    const { getDJIntegration } = await import('../dj-integration.js');
-    const dj = getDJIntegration();
-    const wrapResult = await dj.wrapShow();
-    diag.info('🎧 Session wrap sound', { playedSound: wrapResult.playedSound });
+    // Note: Session end sounds are now handled by the session cleanup handler
+    diag.info('🎧 Session end - cleanup handler will handle exit sound');
   } catch (wrapErr) {
     diag.debug('Failed to play session-end sound', { error: String(wrapErr) });
   }
@@ -567,7 +780,7 @@ async function applyHumanListeningAdjustments(
 ): Promise<{ text: string; wasApplied: boolean }> {
   try {
     const { getHumanListeningResult } =
-      await import('../../intelligence/context-builders/human-listening.js');
+      await import('../../intelligence/context-builders/emotional/human-listening.js');
     const { applyHumanListeningAdjustments: applySsml } =
       await import('../../speech/emotion-matching.js');
 
@@ -727,7 +940,7 @@ async function applyDynamicSpeedControl(
 ): Promise<{ text: string; wasApplied: boolean }> {
   try {
     const { getHumanListeningResult } =
-      await import('../../intelligence/context-builders/human-listening.js');
+      await import('../../intelligence/context-builders/emotional/human-listening.js');
     const { applyDynamicSpeed, getPersonaSpeedProfile, calculatePersonaAdjustedSpeed } =
       await import('../integrations/dynamic-speed-integration.js');
     const { getEmotionalArcTracker } = await import('../../conversation/index.js');
@@ -735,6 +948,26 @@ async function applyDynamicSpeedControl(
     const listeningResult = getHumanListeningResult(sessionId);
     const emotionalArc = getEmotionalArcTracker();
     const personaProfile = getPersonaSpeedProfile(persona.id);
+
+    // ================================================================
+    // "BETTER THAN HUMAN" - Real-time Prosody Integration
+    // These values are set by audio-processor.ts DURING user speech,
+    // giving us insight into their emotional state before they finish.
+    // ================================================================
+    const { realtimeProsody } = userData as UserData & {
+      realtimeProsody?: {
+        pitchTrend: 'rising' | 'falling' | 'stable';
+        energyVariance: number;
+      };
+    };
+
+    // Anticipatory prosody from the anticipation pipeline (transcript-handler)
+    const { anticipatedProsody } = userData as UserData & {
+      anticipatedProsody?: {
+        speedMultiplier: number;
+        volumeMultiplier: number;
+      };
+    };
 
     // Derive emotional intensity
     const arcData = emotionalArc.getArc();
@@ -747,10 +980,19 @@ async function applyDynamicSpeedControl(
           : tremorIntensity === 'subtle'
             ? 0.3
             : 0;
+
+    // Real-time prosody signals boost emotional intensity detection
+    // Falling pitch + high energy variance suggests distress
+    const prosodyDistressScore =
+      realtimeProsody?.pitchTrend === 'falling' && (realtimeProsody?.energyVariance ?? 0) > 3
+        ? 0.4
+        : 0;
+
     const emotionalIntensity = Math.max(
       Math.abs(arcData.currentValence || 0),
       arcData.currentArousal || 0,
-      tremorScore
+      tremorScore,
+      prosodyDistressScore
     );
 
     // Derive content complexity
@@ -777,6 +1019,20 @@ async function applyDynamicSpeedControl(
       isQuestion: text.includes('?'),
     });
 
+    // Apply anticipatory prosody adjustment if available
+    // The anticipation pipeline may have pre-computed ideal speed based on
+    // predicted user intent (celebration → faster, emotional share → slower)
+    let finalBaseSpeed = personaSpeed.speed;
+    if (anticipatedProsody?.speedMultiplier) {
+      // Blend the anticipated speed with persona speed (60% anticipation, 40% persona)
+      finalBaseSpeed = personaSpeed.speed * 0.4 + anticipatedProsody.speedMultiplier * 0.6;
+      diag.debug('🔮 Anticipatory prosody applied to base speed', {
+        personaSpeed: personaSpeed.speed.toFixed(2),
+        anticipatedSpeed: anticipatedProsody.speedMultiplier.toFixed(2),
+        blendedSpeed: finalBaseSpeed.toFixed(2),
+      });
+    }
+
     const speedResult = applyDynamicSpeed(text, {
       sessionId,
       personaId: persona.id,
@@ -784,7 +1040,7 @@ async function applyDynamicSpeedControl(
       listeningResult: listeningResult || undefined,
       topicWeight,
       turnNumber: userData.turnCount || 0,
-      baseSpeed: personaSpeed.speed,
+      baseSpeed: finalBaseSpeed,
     });
 
     if (speedResult.wasAdjusted) {
@@ -792,6 +1048,9 @@ async function applyDynamicSpeedControl(
         speed: speedResult.speedResult.speedMultiplier,
         personaBase: personaProfile.baseSpeed,
         personaAdjusted: personaSpeed.speed.toFixed(2),
+        finalBase: finalBaseSpeed.toFixed(2),
+        hadAnticipation: !!anticipatedProsody,
+        hadRealtimeProsody: !!realtimeProsody,
         reason: speedResult.speedResult.reason,
       });
       return { text: speedResult.ssmlText, wasApplied: true };

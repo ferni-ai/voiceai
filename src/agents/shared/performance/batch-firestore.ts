@@ -15,6 +15,7 @@
  */
 
 import { createLogger } from '../../../utils/safe-logger.js';
+import { cleanForFirestore } from '../../../utils/firestore-utils.js';
 
 const log = createLogger({ module: 'BatchFirestore' });
 
@@ -65,9 +66,23 @@ export interface BatchMetrics {
 // BATCH WRITE MANAGER
 // ============================================================================
 
+/** Track failed queues with their failure time for cleanup */
+interface FailedQueueInfo {
+  failedAt: number;
+  retryCount: number;
+}
+
+/** Maximum age for failed queues before cleanup (5 minutes) */
+const MAX_FAILED_QUEUE_AGE_MS = 5 * 60 * 1000;
+
+/** Maximum retry attempts for failed queues */
+const MAX_QUEUE_RETRIES = 3;
+
 class BatchWriteManager {
   private sessionQueues = new Map<string, WriteOperation[]>();
   private flushTimers = new Map<string, NodeJS.Timeout>();
+  /** Track failed queues to prevent memory leaks */
+  private failedQueues = new Map<string, FailedQueueInfo>();
   private config: Required<BatchConfig>;
   private metrics: BatchMetrics = {
     totalWrites: 0,
@@ -173,9 +188,20 @@ class BatchWriteManager {
   }
 
   /**
+   * Track sessions currently being flushed to prevent race conditions
+   * RACE CONDITION FIX: Don't delete queue until commit completes
+   */
+  private flushingQueues = new Set<string>();
+
+  /**
    * Flush all queued writes for a session
    */
   async flush(sessionId: string): Promise<{ success: boolean; count: number; durationMs: number }> {
+    // Prevent concurrent flushes for the same session
+    if (this.flushingQueues.has(sessionId)) {
+      return { success: true, count: 0, durationMs: 0 };
+    }
+
     // Clear any pending timer
     const timer = this.flushTimers.get(sessionId);
     if (timer) {
@@ -183,13 +209,16 @@ class BatchWriteManager {
       this.flushTimers.delete(sessionId);
     }
 
-    // Get and clear queue
+    // Get queue but DON'T delete yet - wait until commit completes
     const queue = this.sessionQueues.get(sessionId);
-    this.sessionQueues.delete(sessionId);
 
     if (!queue || queue.length === 0) {
+      this.sessionQueues.delete(sessionId);
       return { success: true, count: 0, durationMs: 0 };
     }
+
+    // Mark as flushing to prevent concurrent operations
+    this.flushingQueues.add(cleanForFirestore(sessionId));
 
     const startTime = Date.now();
     const count = queue.length;
@@ -229,6 +258,11 @@ class BatchWriteManager {
 
       const durationMs = Date.now() - startTime;
 
+      // NOW it's safe to delete the queue (after successful commit)
+      this.sessionQueues.delete(sessionId);
+      // Clear any failure tracking on success
+      this.failedQueues.delete(sessionId);
+
       // Update metrics
       this.metrics.batchedWrites += count;
       this.metrics.batches++;
@@ -247,8 +281,35 @@ class BatchWriteManager {
       const durationMs = Date.now() - startTime;
       this.metrics.failedBatches++;
 
+      // Track failed queue for cleanup to prevent memory leaks
+      const failedInfo = this.failedQueues.get(sessionId);
+      if (failedInfo) {
+        failedInfo.retryCount++;
+        // If we've exceeded max retries, drop the queue to prevent memory leak
+        if (failedInfo.retryCount >= MAX_QUEUE_RETRIES) {
+          log.warn(
+            { sessionId, count, retryCount: failedInfo.retryCount },
+            'Batch write failed max retries, dropping queue to prevent memory leak'
+          );
+          this.sessionQueues.delete(sessionId);
+          this.failedQueues.delete(sessionId);
+        }
+      } else {
+        // First failure - track it
+        this.failedQueues.set(cleanForFirestore(sessionId), {
+          failedAt: Date.now(),
+          retryCount: 1,
+        });
+      }
+
+      // Clean up any old failed queues (older than MAX_FAILED_QUEUE_AGE_MS)
+      this.cleanupOldFailedQueues();
+
       log.error({ sessionId, count, error: String(error) }, 'Batch write failed');
       return { success: false, count, durationMs };
+    } finally {
+      // Always clear the flushing flag
+      this.flushingQueues.delete(sessionId);
     }
   }
 
@@ -266,10 +327,54 @@ class BatchWriteManager {
       if (this.config.retryOnFailure && attempt < this.config.maxRetries) {
         const delayMs = Math.min(100 * Math.pow(2, attempt), 2000);
         log.debug({ sessionId, attempt, delayMs }, 'Retrying batch commit');
-        await new Promise((resolve) => setTimeout(resolve, delayMs));
+        await new Promise<void>((resolve) => {
+          setTimeout(resolve, delayMs);
+        });
         return this.commitWithRetry(batch, sessionId, attempt + 1);
       }
       throw error;
+    }
+  }
+
+  /**
+   * Clean up old failed queues to prevent memory leaks
+   * Called after each failure to ensure stale queues are removed
+   */
+  private cleanupOldFailedQueues(): void {
+    const now = Date.now();
+    const staleSessionIds: string[] = [];
+
+    this.failedQueues.forEach((info, sessionId) => {
+      if (now - info.failedAt > MAX_FAILED_QUEUE_AGE_MS) {
+        staleSessionIds.push(sessionId);
+      }
+    });
+
+    if (staleSessionIds.length > 0) {
+      log.info(
+        { staleCount: staleSessionIds.length },
+        'Cleaning up stale failed batch queues to prevent memory leak'
+      );
+
+      for (const sessionId of staleSessionIds) {
+        const queue = this.sessionQueues.get(sessionId);
+        const queueSize = queue?.length ?? 0;
+
+        this.sessionQueues.delete(sessionId);
+        this.failedQueues.delete(sessionId);
+
+        // Also clear any timers
+        const timer = this.flushTimers.get(sessionId);
+        if (timer) {
+          clearTimeout(timer);
+          this.flushTimers.delete(sessionId);
+        }
+
+        log.warn(
+          { sessionId, droppedWrites: queueSize },
+          'Dropped stale failed queue (exceeded max age)'
+        );
+      }
     }
   }
 
@@ -336,7 +441,7 @@ class BatchWriteManager {
    */
   async flushAll(): Promise<void> {
     const sessions = Array.from(this.sessionQueues.keys());
-    await Promise.all(sessions.map((sessionId) => this.flush(sessionId)));
+    await Promise.all(sessions.map(async (sessionId) => this.flush(sessionId)));
   }
 
   /**

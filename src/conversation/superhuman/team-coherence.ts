@@ -16,6 +16,7 @@
  * @module @ferni/superhuman/team-coherence
  */
 
+import { seededChance, seededPick, seededIndex } from '../utils/rng.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import type { TeamAwarenessResult, TeamCoherence, TeamHandoffNote } from './types.js';
 
@@ -209,7 +210,7 @@ export class TeamCoherenceEngine {
     }
 
     // Team compliment (rare)
-    if (context.sessionCount > 10 && Math.random() < 0.03) {
+    if (context.sessionCount > 10 && seededChance(`${Date.now()}:213`, 0.03)) {
       this.lastTeamMentionTurn = context.turnCount;
       return {
         shouldMention: true,
@@ -219,7 +220,7 @@ export class TeamCoherenceEngine {
     }
 
     // Context from colleague during topic
-    if (context.currentTopic && Math.random() < 0.05) {
+    if (context.currentTopic && seededChance(`${Date.now()}:223`, 0.05)) {
       const otherPersona = this.findPersonaWhoDiscussedTopic(currentPersona, context.currentTopic);
       if (otherPersona) {
         this.lastTeamMentionTurn = context.turnCount;
@@ -329,7 +330,7 @@ export class TeamCoherenceEngine {
   }
 
   private selectRandom<T>(arr: T[]): T {
-    return arr[Math.floor(Math.random() * arr.length)];
+    return seededPick(`${Date.now()}:333`, arr) ?? arr[0];
   }
 
   // ==========================================================================
@@ -357,7 +358,7 @@ export class TeamCoherenceEngine {
     personaTopicHistory: [string, string[]][];
   } {
     return {
-      handoffNotes: JSON.parse(JSON.stringify(this.coherence.handoffNotes)),
+      handoffNotes: structuredClone(this.coherence.handoffNotes),
       sharedObservations: [...this.coherence.sharedObservations],
       sharedPreferences: Array.from(this.coherence.sharedPreferences.entries()),
       personaTopicHistory: Array.from(this.coherence.personaTopicHistory.entries()),

@@ -16,6 +16,7 @@ import { loadPatternsFromFirestore, getUpcomingMilestones } from './persistence.
 import { registerVoiceCallbackHandler, type VoiceCallback } from './voice-callbacks.js';
 import { getProactiveOpener, evaluateProactiveHooks } from './proactive-hooks.js';
 import { loadLifeContext } from './context-integration.js';
+import { cleanForFirestore } from '../../../utils/firestore-utils.js';
 
 // ============================================================================
 // SESSION STATE

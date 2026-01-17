@@ -25,8 +25,23 @@ import {
   type MetricAlert,
   type PruneResult,
 } from '../../memory/index.js';
+import {
+  findDuplicatesLSH,
+  type DuplicatePair,
+  type LSHConfig,
+} from '../../memory/lsh-deduplication.js';
+import {
+  findDuplicatesLsh as findDuplicatesLshRust,
+  isRustAvailable,
+  getRustInfo,
+} from '../../memory/rust-accelerator.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import { ScheduledJob, type BaseJobConfig, type JobContext } from './base-job.js';
+import {
+  TRANSCRIPT_RETENTION_DAYS,
+  SUMMARY_RETENTION_DAYS,
+  GROUP_TRANSCRIPT_RETENTION_DAYS,
+} from '../../services/session-manager/constants.js';
 
 const log = getLogger();
 
@@ -37,7 +52,7 @@ const log = getLogger();
 /**
  * Get list of user IDs from Firestore that have memory data
  */
-async function getActiveUserIds(limit: number = 500): Promise<string[]> {
+async function getActiveUserIds(limit = 500): Promise<string[]> {
   try {
     const { getFirestore } = await import('firebase-admin/firestore');
     const db = getFirestore();
@@ -446,30 +461,12 @@ export class MemoryDeduplicationJob extends ScheduledJob<
         usersProcessed++;
         totalMemoriesScanned += Math.min(memories.length, config.maxMemoriesToScan);
 
-        // Check for duplicates within this user's memories
+        // Check for duplicates within this user's memories using LSH
+        // O(n) average case instead of O(n²) - massive performance improvement
         const memoriesToCheck = memories.slice(0, config.maxMemoriesToScan);
-        const duplicatePairs: Array<{ first: MemoryItem; second: MemoryItem; similarity: number }> =
-          [];
-
-        // Simple O(n²) duplicate check - could be optimized with embeddings
-        for (let i = 0; i < memoriesToCheck.length; i++) {
-          for (let j = i + 1; j < memoriesToCheck.length; j++) {
-            const m1 = memoriesToCheck[i];
-            const m2 = memoriesToCheck[j];
-
-            // Check for exact content match
-            if (m1.content === m2.content) {
-              duplicatePairs.push({ first: m1, second: m2, similarity: 1.0 });
-              continue;
-            }
-
-            // Check for high similarity (simple text comparison)
-            const similarity = simpleTextSimilarity(m1.content, m2.content);
-            if (similarity >= config.exactDuplicateThreshold) {
-              duplicatePairs.push({ first: m1, second: m2, similarity });
-            }
-          }
-        }
+        const duplicatePairs = findDuplicatesWithLSH(memoriesToCheck, {
+          threshold: config.exactDuplicateThreshold,
+        });
 
         totalDuplicatesFound += duplicatePairs.length;
 
@@ -516,22 +513,56 @@ export class MemoryDeduplicationJob extends ScheduledJob<
 }
 
 /**
- * Simple text similarity using Jaccard index on word tokens
+ * Find duplicates using LSH (Locality-Sensitive Hashing)
+ *
+ * Performance: O(n) average case instead of O(n²)
+ * - 100 memories: 4,950 comparisons → ~100 hash lookups
+ * - 1000 memories: 499,500 comparisons → ~1000 hash lookups
+ *
+ * Uses Rust accelerator when available for parallel signature computation.
  */
-function simpleTextSimilarity(text1: string, text2: string): number {
-  const words1 = new Set(text1.toLowerCase().split(/\s+/).filter(Boolean));
-  const words2 = new Set(text2.toLowerCase().split(/\s+/).filter(Boolean));
+function findDuplicatesWithLSH(
+  memories: MemoryItem[],
+  config: { threshold: number }
+): Array<{ first: MemoryItem; second: MemoryItem; similarity: number }> {
+  // Try Rust accelerator first (parallel, faster for large batches)
+  if (isRustAvailable() && memories.length >= 50) {
+    const texts = memories.map((m) => m.content);
 
-  if (words1.size === 0 && words2.size === 0) return 1;
-  if (words1.size === 0 || words2.size === 0) return 0;
+    const rustInfo = getRustInfo();
+    log.debug(
+      { memoryCount: memories.length, threads: rustInfo.threads },
+      '🦀 Using Rust accelerator for LSH deduplication'
+    );
 
-  let intersection = 0;
-  for (const word of words1) {
-    if (words2.has(word)) intersection++;
+    const rustResults = findDuplicatesLshRust(texts, config.threshold, 100, 20);
+
+    // Map indices back to MemoryItem format
+    return rustResults.map((pair) => ({
+      first: memories[pair.firstIdx],
+      second: memories[pair.secondIdx],
+      similarity: pair.similarity,
+    }));
   }
 
-  const union = words1.size + words2.size - intersection;
-  return union > 0 ? intersection / union : 0;
+  // JS fallback for smaller batches or when Rust unavailable
+  const items = memories.map((m) => ({
+    id: m.id,
+    content: m.content,
+    original: m,
+  }));
+
+  const lshResults = findDuplicatesLSH(items, {
+    threshold: config.threshold,
+    numHashes: 100,
+    numBands: 20,
+  });
+
+  return lshResults.map((pair) => ({
+    first: (pair.first as { original: MemoryItem }).original,
+    second: (pair.second as { original: MemoryItem }).original,
+    similarity: pair.similarity,
+  }));
 }
 
 // ============================================================================
@@ -653,6 +684,232 @@ export class MemoryHealthCheckJob extends ScheduledJob<HealthCheckJobConfig, Hea
 }
 
 // ============================================================================
+// TRANSCRIPT CLEANUP JOB
+// ============================================================================
+
+export interface TranscriptCleanupJobConfig extends BaseJobConfig {
+  /** Retention period for transcripts in days (default: from env or 90) */
+  transcriptRetentionDays: number;
+  /** Retention period for summaries in days (default: from env or 365) */
+  summaryRetentionDays: number;
+  /** Retention period for group transcripts in days (default: from env or 180) */
+  groupTranscriptRetentionDays: number;
+  /** Maximum documents to delete per run (default: 500) */
+  maxDeletesPerRun: number;
+  /** Maximum users to process per run (default: 100) */
+  maxUsersPerRun: number;
+}
+
+export interface TranscriptCleanupJobResult extends Record<string, unknown> {
+  transcriptsDeleted: number;
+  summariesDeleted: number;
+  groupTranscriptsDeleted: number;
+  usersProcessed: number;
+  bytesRecovered: number;
+}
+
+/**
+ * Transcript Cleanup Job
+ *
+ * Removes old transcripts, summaries, and group conversation data
+ * based on configurable retention periods.
+ *
+ * Environment Variables:
+ * - TRANSCRIPT_RETENTION_DAYS: Raw transcript retention (default: 90)
+ * - SUMMARY_RETENTION_DAYS: Conversation summary retention (default: 365)
+ * - GROUP_TRANSCRIPT_RETENTION_DAYS: Group conversation retention (default: 180)
+ *
+ * Best run nightly to keep storage costs manageable.
+ */
+export class TranscriptCleanupJob extends ScheduledJob<
+  TranscriptCleanupJobConfig,
+  TranscriptCleanupJobResult
+> {
+  readonly name = 'TranscriptCleanupJob';
+  readonly defaultConfig: TranscriptCleanupJobConfig = {
+    dryRun: false,
+    transcriptRetentionDays: TRANSCRIPT_RETENTION_DAYS,
+    summaryRetentionDays: SUMMARY_RETENTION_DAYS,
+    groupTranscriptRetentionDays: GROUP_TRANSCRIPT_RETENTION_DAYS,
+    maxDeletesPerRun: 500,
+    maxUsersPerRun: 100,
+  };
+
+  protected async execute(
+    config: TranscriptCleanupJobConfig,
+    ctx: JobContext
+  ): Promise<TranscriptCleanupJobResult> {
+    ctx.log.info(
+      {
+        transcriptRetentionDays: config.transcriptRetentionDays,
+        summaryRetentionDays: config.summaryRetentionDays,
+        groupTranscriptRetentionDays: config.groupTranscriptRetentionDays,
+      },
+      'Starting transcript cleanup with TTL configuration'
+    );
+
+    let transcriptsDeleted = 0;
+    let summariesDeleted = 0;
+    let groupTranscriptsDeleted = 0;
+    let usersProcessed = 0;
+
+    try {
+      const { getFirestore } = await import('firebase-admin/firestore');
+      const db = getFirestore();
+
+      // Calculate cutoff dates
+      const now = new Date();
+      const transcriptCutoff = new Date(now);
+      transcriptCutoff.setDate(transcriptCutoff.getDate() - config.transcriptRetentionDays);
+
+      const summaryCutoff = new Date(now);
+      summaryCutoff.setDate(summaryCutoff.getDate() - config.summaryRetentionDays);
+
+      const groupCutoff = new Date(now);
+      groupCutoff.setDate(groupCutoff.getDate() - config.groupTranscriptRetentionDays);
+
+      ctx.log.info(
+        {
+          transcriptCutoff: transcriptCutoff.toISOString(),
+          summaryCutoff: summaryCutoff.toISOString(),
+          groupCutoff: groupCutoff.toISOString(),
+        },
+        'Cleanup cutoff dates'
+      );
+
+      // 1. Clean up old conversations from bogle_users/{userId}/conversations
+      const conversationsSnapshot = await db
+        .collectionGroup('conversations')
+        .where('startedAt', '<', transcriptCutoff.toISOString())
+        .limit(config.maxDeletesPerRun)
+        .get();
+
+      for (const doc of conversationsSnapshot.docs) {
+        ctx.counters.processed++;
+        if (config.dryRun) {
+          ctx.log.debug({ docId: doc.id }, 'DRY RUN: Would delete conversation');
+          ctx.counters.skipped++;
+          continue;
+        }
+
+        try {
+          // Delete the conversation and its subcollection of turns
+          const turnsSnapshot = await doc.ref.collection('turns').get();
+          const batch = db.batch();
+
+          for (const turn of turnsSnapshot.docs) {
+            batch.delete(turn.ref);
+          }
+          batch.delete(doc.ref);
+
+          await batch.commit();
+          transcriptsDeleted++;
+          ctx.counters.success++;
+        } catch (error) {
+          ctx.counters.errors++;
+          ctx.log.warn({ error: String(error), docId: doc.id }, 'Failed to delete conversation');
+        }
+      }
+
+      // 2. Clean up old group sessions
+      const groupSessionsSnapshot = await db
+        .collectionGroup('group_sessions')
+        .where('startedAt', '<', groupCutoff.toISOString())
+        .limit(config.maxDeletesPerRun)
+        .get();
+
+      for (const doc of groupSessionsSnapshot.docs) {
+        ctx.counters.processed++;
+        if (config.dryRun) {
+          ctx.log.debug({ docId: doc.id }, 'DRY RUN: Would delete group session');
+          ctx.counters.skipped++;
+          continue;
+        }
+
+        try {
+          // Delete transcript subcollection
+          const transcriptSnapshot = await doc.ref.collection('transcript').get();
+          const actionItemsSnapshot = await doc.ref.collection('action_items').get();
+          const batch = db.batch();
+
+          for (const sub of transcriptSnapshot.docs) {
+            batch.delete(sub.ref);
+          }
+          for (const sub of actionItemsSnapshot.docs) {
+            batch.delete(sub.ref);
+          }
+          batch.delete(doc.ref);
+
+          await batch.commit();
+          groupTranscriptsDeleted++;
+          ctx.counters.success++;
+        } catch (error) {
+          ctx.counters.errors++;
+          ctx.log.warn({ error: String(error), docId: doc.id }, 'Failed to delete group session');
+        }
+      }
+
+      // 3. Clean up old conversation summaries from bogle_users/{userId}/conversation_summaries
+      const summariesSnapshot = await db
+        .collectionGroup('conversation_summaries')
+        .where('createdAt', '<', summaryCutoff.toISOString())
+        .limit(config.maxDeletesPerRun)
+        .get();
+
+      for (const doc of summariesSnapshot.docs) {
+        ctx.counters.processed++;
+        if (config.dryRun) {
+          ctx.log.debug({ docId: doc.id }, 'DRY RUN: Would delete old summary');
+          ctx.counters.skipped++;
+          continue;
+        }
+
+        try {
+          await doc.ref.delete();
+          summariesDeleted++;
+          ctx.counters.success++;
+        } catch (error) {
+          ctx.counters.errors++;
+          ctx.log.warn({ error: String(error), docId: doc.id }, 'Failed to delete summary');
+        }
+      }
+
+      // Count unique users processed (approximate from docs)
+      const userIdsProcessed = new Set<string>();
+      for (const doc of [...conversationsSnapshot.docs, ...groupSessionsSnapshot.docs]) {
+        const parentPath = doc.ref.parent.parent?.id;
+        if (parentPath) {
+          userIdsProcessed.add(parentPath);
+        }
+      }
+      usersProcessed = userIdsProcessed.size;
+    } catch (error) {
+      ctx.log.error({ error: String(error) }, 'Transcript cleanup failed');
+      ctx.counters.errors++;
+    }
+
+    ctx.log.info(
+      {
+        transcriptsDeleted,
+        summariesDeleted,
+        groupTranscriptsDeleted,
+        usersProcessed,
+        dryRun: config.dryRun,
+      },
+      'Transcript cleanup complete'
+    );
+
+    return {
+      transcriptsDeleted,
+      summariesDeleted,
+      groupTranscriptsDeleted,
+      usersProcessed,
+      bytesRecovered: 0, // Would need document size tracking to calculate
+    };
+  }
+}
+
+// ============================================================================
 // EXPORTS
 // ============================================================================
 
@@ -661,4 +918,5 @@ export default {
   MemoryDecayJob,
   MemoryDeduplicationJob,
   MemoryHealthCheckJob,
+  TranscriptCleanupJob,
 };

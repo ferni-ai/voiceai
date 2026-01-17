@@ -8,20 +8,19 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type Stripe from 'stripe';
 
 // Mock logger
-vi.mock('../../../utils/safe-logger.js', () => ({
-  getLogger: () => ({
+vi.mock('../../../utils/safe-logger.js', () => {
+  const mockLogger = {
     debug: vi.fn(),
     info: vi.fn(),
     warn: vi.fn(),
     error: vi.fn(),
-    child: vi.fn(() => ({
-      debug: vi.fn(),
-      info: vi.fn(),
-      warn: vi.fn(),
-      error: vi.fn(),
-    })),
-  }),
-}));
+    child: vi.fn().mockReturnThis(),
+  };
+  return {
+    getLogger: () => mockLogger,
+    createLogger: () => mockLogger,
+  };
+});
 
 // Mock Firestore
 const mockFirestoreSet = vi.fn().mockResolvedValue(undefined);

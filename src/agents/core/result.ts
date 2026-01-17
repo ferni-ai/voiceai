@@ -212,7 +212,7 @@ export async function andThenAsync<T, U, E>(
  * Collect an array of results into a result of array.
  * Returns first error if any result is an error.
  */
-export function collect<T, E>(results: Result<T, E>[]): Result<T[], E> {
+export function collect<T, E>(results: Array<Result<T, E>>): Result<T[], E> {
   const values: T[] = [];
 
   for (const result of results) {
@@ -228,7 +228,7 @@ export function collect<T, E>(results: Result<T, E>[]): Result<T[], E> {
 /**
  * Like collect, but collects all errors instead of stopping at first.
  */
-export function collectAll<T, E>(results: Result<T, E>[]): Result<T[], E[]> {
+export function collectAll<T, E>(results: Array<Result<T, E>>): Result<T[], E[]> {
   const values: T[] = [];
   const errors: E[] = [];
 

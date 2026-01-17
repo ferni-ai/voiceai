@@ -76,7 +76,7 @@
     var(--color-ferni-secondary) 100%
   );
   color: var(--color-text-inverse);
-  border-radius: 10px;
+  border-radius: var(--radius-md);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -233,7 +233,7 @@
   width: 20px;
   height: 2px;
   background: var(--color-text-primary);
-  border-radius: 1px;
+  border-radius: var(--radius-xs);
   transition: all var(--duration-fast) var(--ease-ease-out);
 }
 

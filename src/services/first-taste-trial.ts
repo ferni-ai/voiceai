@@ -328,28 +328,47 @@ export async function isEligibleForTrial(userId: string): Promise<boolean> {
  * Get a welcome prompt for trial users.
  * This replaces the normal greeting for brand new users.
  *
- * HUMAN, not warm-robot. Real speech patterns:
- * - Incomplete thoughts, natural hesitations
- * - Not every greeting needs to ask a question
- * - Variety in length and structure
- * - Sometimes caught mid-thought
+ * "BETTER THAN HUMAN" FIRST IMPRESSIONS
+ *
+ * This is THE MOST IMPORTANT greeting - it sets the tone for the entire
+ * relationship. A trial user has never experienced Ferni before.
+ * This greeting needs to:
+ *
+ * 1. FEEL HUMAN: Breath before words, half-started sounds, natural pacing
+ * 2. BE WARM: Not performative warmth - genuine "oh, someone's here!" energy
+ * 3. CREATE SPACE: Landing pause after question - patient, not hovering
+ * 4. ASK FOR NAME: We want to know them, but not interrogate them
+ * 5. FEEL LIKE ARRIVING: Speed arc - slower opener, settling into connection
+ *
+ * HUMANIZATION PATTERNS:
+ * - [soft breath] / [breath] = subtle inhale signal "I'm arriving"
+ * - speed ratio 0.88-0.92 = slower, grounding opener
+ * - speed ratio 1.0 = natural question pace
+ * - Half-started ("...hey") = caught mid-thought, more human
+ * - Landing pause 400-550ms = patient presence after question
  */
 export function getTrialWelcomePrompt(): string {
   const prompts = [
-    // Settling in - caught arriving
-    '<break time="350ms"/>...hey.<break time="450ms"/>I\'m Ferni.<break time="400ms"/>What\'s your name?',
+    // The classic arrival - breath, slow "hey", settling into presence
+    '<break time="40ms"/>[soft breath]<break time="80ms"/><speed ratio="0.88"/><emotion value="affectionate"/>...hey.<break time="180ms"/><speed ratio="0.95"/>I\'m Ferni.<break time="200ms"/><speed ratio="1.0"/>What\'s your name?<break time="500ms"/>',
 
-    // Warm, curious
-    '<break time="250ms"/>Oh.<break time="350ms"/>Hey.<break time="400ms"/>I\'m Ferni.<break time="300ms"/>Who\'s this?',
+    // Recognition moment - "oh, someone's here"
+    '<break time="50ms"/><speed ratio="0.9"/>Oh.<break time="120ms"/><emotion value="affectionate"/>Hey.<break time="180ms"/><speed ratio="0.95"/>I\'m Ferni.<break time="200ms"/><speed ratio="1.0"/>Who\'s this?<break time="480ms"/>',
 
-    // Simple, present
-    '<break time="300ms"/>Hey.<break time="500ms"/>I\'m Ferni.<break time="350ms"/>Good to meet you.',
+    // Simple and warm - minimal SSML, let Cartesia's voice shine
+    '<break time="60ms"/><speed ratio="0.9"/><emotion value="affectionate"/>Hey.<break time="250ms"/><speed ratio="0.95"/>I\'m Ferni.<break time="200ms"/><speed ratio="1.0"/>Good to meet you.<break time="450ms"/>',
 
-    // A bit more engaged
-    '<break time="200ms"/><emotion value="curious"/>Hmm.<break time="300ms"/>Hey there.<break time="400ms"/>I\'m Ferni.<break time="250ms"/>What should I call you?',
+    // Curious arrival - a bit more engaged
+    '<break time="40ms"/>[breath]<break time="60ms"/><speed ratio="0.9"/><emotion value="curious"/>Hmm.<break time="150ms"/>Hey there.<break time="200ms"/><speed ratio="0.95"/>I\'m Ferni.<break time="180ms"/><speed ratio="1.0"/>What should I call you?<break time="520ms"/>',
 
-    // Casual
-    '<break time="350ms"/>Hey.<break time="450ms"/>So, I\'m Ferni.<break time="350ms"/>And you are...?',
+    // Half-started casual - caught in the middle of something
+    '<break time="50ms"/><speed ratio="0.88"/><emotion value="affectionate"/>...hey.<break time="200ms"/><speed ratio="0.95"/>So, I\'m Ferni.<break time="180ms"/><speed ratio="1.0"/>And you are...?<break time="500ms"/>',
+
+    // The gentle introduction - extra warm for someone new
+    '<break time="60ms"/>[soft breath]<break time="80ms"/><speed ratio="0.85"/><emotion value="affectionate"/>Oh— hey.<break time="180ms"/><speed ratio="0.92"/>I\'m Ferni.<break time="200ms"/><speed ratio="1.0"/>Nice to meet you.<break time="300ms"/>What\'s your name?<break time="480ms"/>',
+
+    // Curious and present - leaning in
+    '<break time="40ms"/><speed ratio="0.9"/><emotion value="curious"/>Hey.<break time="180ms"/><speed ratio="0.95"/>I\'m Ferni.<break time="200ms"/><speed ratio="1.0"/><break time="100ms"/>So... what brings you here?<break time="550ms"/>',
   ];
 
   return prompts[Math.floor(Math.random() * prompts.length)];

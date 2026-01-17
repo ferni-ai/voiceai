@@ -9,6 +9,7 @@
 
 import { createPersistenceStore } from '../../../services/persistence/index.js';
 import { createLogger } from '../../../utils/safe-logger.js';
+import { registerInterval, clearNamedInterval } from '../../../utils/interval-manager.js';
 
 const log = createLogger({ module: 'Spotify' });
 
@@ -236,9 +237,10 @@ export function startAutoRefresh(): void {
 
   // Then check every 5 minutes
   if (autoRefreshInterval) {
-    clearInterval(autoRefreshInterval);
+    clearNamedInterval('spotify-auto-refresh');
   }
-  autoRefreshInterval = setInterval(
+  registerInterval(
+    'spotify-auto-refresh',
     () => {
       refreshTokenIfNeeded().catch((err) => {
         log.warn({ error: (err as Error).message }, 'Periodic token refresh failed');
@@ -246,6 +248,7 @@ export function startAutoRefresh(): void {
     },
     5 * 60 * 1000
   );
+  autoRefreshInterval = 1 as unknown as ReturnType<typeof setInterval>; // Marker
 
   log.info('Spotify auto-refresh enabled (checks every 5 min)');
 }
@@ -255,7 +258,7 @@ export function startAutoRefresh(): void {
  */
 export function stopAutoRefresh(): void {
   if (autoRefreshInterval) {
-    clearInterval(autoRefreshInterval);
+    clearNamedInterval('spotify-auto-refresh');
     autoRefreshInterval = null;
     log.info('Spotify auto-refresh stopped');
   }

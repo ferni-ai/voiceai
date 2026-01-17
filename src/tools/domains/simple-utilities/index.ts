@@ -93,6 +93,138 @@ import {
   translationToolDefinitions,
 } from './translation-tools.js';
 
+// App Settings tools (voice-controlled settings)
+import { appSettingsToolDefinitions, setAppLanguageDef } from './app-settings-tools.js';
+
+// Dictionary tools
+import {
+  dictionaryToolDefinitions,
+  defineWordDef,
+  getSynonymsDef,
+  wordOfDayDef,
+} from './dictionary-tools.js';
+
+// Currency tools
+import {
+  currencyToolDefinitions,
+  convertCurrencyDef,
+  getExchangeRateDef,
+  listCurrenciesDef,
+} from './currency-tools.js';
+
+// Alarm tools
+import {
+  alarmToolDefinitions,
+  setAlarmDef,
+  getAlarmsDef,
+  deleteAlarmDef,
+  snoozeAlarmDef,
+} from './alarm-tools.js';
+
+// List tools (general purpose lists)
+import {
+  listToolDefinitions,
+  createListDef,
+  addToListDef,
+  viewListDef,
+  getAllListsDef,
+  checkOffItemDef,
+  removeFromListDef,
+  deleteListDef,
+} from './list-tools.js';
+
+// SMS Reading tools
+import {
+  smsReadingToolDefinitions,
+  readSMSDef,
+  checkNewMessagesDef,
+  searchMessagesDef,
+} from './sms-reading-tools.js';
+
+// Voice Memos tools
+import {
+  voiceMemosToolDefinitions,
+  saveVoiceMemoDef,
+  listVoiceMemosDef,
+  recallVoiceMemoDef,
+  deleteVoiceMemoDef,
+  searchVoiceMemosDef,
+} from './voice-memos-tools.js';
+
+// Essentials tools (voice assistant basics)
+import {
+  essentialsToolDefinitions,
+  whatCanYouDoDef,
+  quickCaptureDef,
+  recentContextDef,
+  setPreferenceDef,
+  getPreferencesDef,
+} from './essentials-tools.js';
+
+// Humor tools (jokes, fun facts, stories)
+import {
+  humorToolDefinitions,
+  tellJokeDef,
+  getFunFactDef,
+  tellMiniStoryDef,
+} from './humor-tools.js';
+
+// Wind-down tools (evening rituals)
+import {
+  winddownToolDefinitions,
+  windDownDef,
+  bedtimeCheckInDef,
+  sleepAffirmationDef,
+} from './winddown-tools.js';
+
+// Cross-domain shortcuts (delegates to other domains)
+import {
+  shortcutsToolDefinitions,
+  quickAlarmDef,
+  quickTimerDef,
+  quickWeatherDef,
+  quickMusicDef,
+  quickCalendarDef,
+  quickSmartHomeDef,
+  quickCallDef,
+  quickTextDef,
+  quickEmailDef,
+  trackCapabilityUsage,
+  getTopCapabilities,
+  getRecentCapabilities,
+} from './shortcuts-tools.js';
+
+// Knowledge tools (spelling with phonetic alphabet)
+// NOTE: Most knowledge tools already exist elsewhere:
+// - Math: math-tools.ts
+// - Conversions: conversion-tools.ts
+// - Definitions: dictionary-tools.ts
+// - Translation: translation-tools.ts
+import { knowledgeToolDefinitions, spellDef } from './knowledge-tools.js';
+
+// Advanced reminders (location-based, recurring)
+import {
+  advancedReminderDefinitions,
+  locationReminderDef,
+  listLocationRemindersDef,
+  recurringReminderDef,
+  listRecurringRemindersDef,
+  cancelReminderDef,
+} from './advanced-reminders.js';
+
+// Advanced lists - functionality exists in list-tools.ts
+// Project support can be added there if needed
+
+// Device tools (find my phone, battery, etc.)
+import {
+  deviceToolDefinitions,
+  findMyPhoneDef,
+  stopRingingDef,
+  checkBatteryDef,
+  listDevicesDef,
+  doNotDisturbDef,
+} from './device-tools.js';
+
 // Proactive tools - DISABLED pending implementation
 // import {
 //   getUtilitySuggestionsDef,
@@ -197,10 +329,109 @@ export {
   timerToolDefinitions,
   timezoneToolDefinitions,
   translationToolDefinitions,
+  dictionaryToolDefinitions,
+  currencyToolDefinitions,
+  alarmToolDefinitions,
+  listToolDefinitions,
+  smsReadingToolDefinitions,
+  voiceMemosToolDefinitions,
 };
 
 // Translation tools
 export { culturalContextDef, detectLanguageDef, learnPhrasesDef, pronounceDef, translateDef };
+
+// App Settings tools
+export { appSettingsToolDefinitions, setAppLanguageDef };
+
+// Dictionary tools
+export { defineWordDef, getSynonymsDef, wordOfDayDef };
+
+// Currency tools
+export { convertCurrencyDef, getExchangeRateDef, listCurrenciesDef };
+
+// Alarm tools
+export { setAlarmDef, getAlarmsDef, deleteAlarmDef, snoozeAlarmDef };
+
+// List tools
+export {
+  createListDef,
+  addToListDef,
+  viewListDef,
+  getAllListsDef,
+  checkOffItemDef,
+  removeFromListDef,
+  deleteListDef,
+};
+
+// SMS Reading tools
+export { readSMSDef, checkNewMessagesDef, searchMessagesDef };
+
+// Voice Memos tools
+export {
+  saveVoiceMemoDef,
+  listVoiceMemosDef,
+  recallVoiceMemoDef,
+  deleteVoiceMemoDef,
+  searchVoiceMemosDef,
+};
+
+// Essentials tools
+export {
+  essentialsToolDefinitions,
+  whatCanYouDoDef,
+  quickCaptureDef,
+  recentContextDef,
+  setPreferenceDef,
+  getPreferencesDef,
+};
+
+// Humor tools
+export { humorToolDefinitions, tellJokeDef, getFunFactDef, tellMiniStoryDef };
+
+// Wind-down tools
+export { winddownToolDefinitions, windDownDef, bedtimeCheckInDef, sleepAffirmationDef };
+
+// Cross-domain shortcuts
+export {
+  shortcutsToolDefinitions,
+  quickAlarmDef,
+  quickTimerDef,
+  quickWeatherDef,
+  quickMusicDef,
+  quickCalendarDef,
+  quickSmartHomeDef,
+  quickCallDef,
+  quickTextDef,
+  quickEmailDef,
+  trackCapabilityUsage,
+  getTopCapabilities,
+  getRecentCapabilities,
+};
+
+// Knowledge tools (only spelling - others exist elsewhere)
+export { knowledgeToolDefinitions, spellDef };
+
+// Advanced reminders
+export {
+  advancedReminderDefinitions,
+  locationReminderDef,
+  listLocationRemindersDef,
+  recurringReminderDef,
+  listRecurringRemindersDef,
+  cancelReminderDef,
+};
+
+// Advanced lists - see list-tools.ts for full list functionality
+
+// Device tools
+export {
+  deviceToolDefinitions,
+  findMyPhoneDef,
+  stopRingingDef,
+  checkBatteryDef,
+  listDevicesDef,
+  doNotDisturbDef,
+};
 
 // ============================================================================
 // DOMAIN EXPORT
@@ -240,6 +471,78 @@ const simpleUtilitiesTools: ToolDefinition[] = [
   learnPhrasesDef,
   detectLanguageDef,
   culturalContextDef,
+  // App Settings (voice-controlled)
+  setAppLanguageDef,
+  // Dictionary
+  defineWordDef,
+  getSynonymsDef,
+  wordOfDayDef,
+  // Currency
+  convertCurrencyDef,
+  getExchangeRateDef,
+  listCurrenciesDef,
+  // Alarms
+  setAlarmDef,
+  getAlarmsDef,
+  deleteAlarmDef,
+  snoozeAlarmDef,
+  // Lists
+  createListDef,
+  addToListDef,
+  viewListDef,
+  getAllListsDef,
+  checkOffItemDef,
+  removeFromListDef,
+  deleteListDef,
+  // SMS Reading
+  readSMSDef,
+  checkNewMessagesDef,
+  searchMessagesDef,
+  // Voice Memos
+  saveVoiceMemoDef,
+  listVoiceMemosDef,
+  recallVoiceMemoDef,
+  deleteVoiceMemoDef,
+  searchVoiceMemosDef,
+  // Essentials (voice assistant basics)
+  whatCanYouDoDef,
+  quickCaptureDef,
+  recentContextDef,
+  setPreferenceDef,
+  getPreferencesDef,
+  // Humor & Entertainment
+  tellJokeDef,
+  getFunFactDef,
+  tellMiniStoryDef,
+  // Wind-down (evening rituals)
+  windDownDef,
+  bedtimeCheckInDef,
+  sleepAffirmationDef,
+  // Cross-domain shortcuts (delegates to other domains)
+  quickAlarmDef,
+  quickTimerDef,
+  quickWeatherDef,
+  quickMusicDef,
+  quickCalendarDef,
+  quickSmartHomeDef,
+  quickCallDef,
+  quickTextDef,
+  quickEmailDef,
+  // Knowledge tools (only spelling - others exist in separate files)
+  spellDef,
+  // Advanced reminders (location-based, recurring)
+  locationReminderDef,
+  listLocationRemindersDef,
+  recurringReminderDef,
+  listRecurringRemindersDef,
+  cancelReminderDef,
+  // Advanced lists - already in list-tools.ts
+  // Device tools (find my phone, battery)
+  findMyPhoneDef,
+  stopRingingDef,
+  checkBatteryDef,
+  listDevicesDef,
+  doNotDisturbDef,
   // Proactive - DISABLED
   // getUtilitySuggestionsDef,
   // checkTimerStatusDef,

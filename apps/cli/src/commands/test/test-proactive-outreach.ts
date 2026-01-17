@@ -3,7 +3,7 @@
  * Sends a test text message to verify the system works
  */
 
-import { setUserContactInfo, textUser, scheduleText, initializeProactiveOutreach } from '../../../../../src/tools/proactive-outreach.js';
+import { setUserContactInfo, textUser, scheduleText, initializeProactiveOutreach } from '../../../../../src/tools/domains/proactive/outreach/index.js';
 
 async function test() {
   const phone = process.env.TEST_PHONE_NUMBER;

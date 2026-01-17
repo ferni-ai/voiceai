@@ -15,6 +15,12 @@
  * @module @ferni/superhuman/empathetic-reflections
  */
 
+import { seededChance, seededPick, seededIndex } from '../utils/rng.js';
+import {
+  generateContent,
+  getContentWithFallback,
+  type ContentContext,
+} from '../../services/llm-dynamic-content.js';
 import { createLogger } from '../../utils/safe-logger.js';
 
 const logger = createLogger({ module: 'EmpatheticReflections' });
@@ -299,11 +305,12 @@ function selectIntensity(
 function selectUnusedReflection(options: string[], state: SessionReflectionState): string | null {
   const unused = options.filter((o) => !state.reflectionsUsed.includes(o));
   if (unused.length === 0) return null;
-  return unused[Math.floor(Math.random() * unused.length)];
+  return seededPick(`${Date.now()}:308`, unused) ?? unused[0];
 }
 
 /**
  * Generate an empathetic reflection based on context
+ * Now LLM-powered with template fallback!
  */
 export function generateReflection(context: ReflectionContext): Reflection | null {
   const state = getSessionState(context.message); // Use message as pseudo-session-id for simplicity
@@ -324,8 +331,41 @@ export function generateReflection(context: ReflectionContext): Reflection | nul
 
   // Don't repeat same type twice in a row
   const availableTypes = types.filter((t) => t !== state.lastReflectionType);
-  const selectedType = availableTypes[Math.floor(Math.random() * availableTypes.length)];
+  const selectedType = seededPick(`${Date.now()}:334`, availableTypes) ?? availableTypes[0];
 
+  // Try LLM-generated reflection first (from cache)
+  const llmContext: ContentContext = {
+    contentType: 'empathetic_reflection',
+    emotion: context.emotion,
+    userMessage: context.message,
+    topic: context.topics[0],
+    metadata: {
+      intensity,
+      reflectionType: selectedType,
+      isPersonalSharing: context.isPersonalSharing,
+    },
+  };
+
+  const llmContent = getContentWithFallback(llmContext);
+  if (llmContent.source === 'llm' && llmContent.content) {
+    // Track usage
+    state.reflectionsUsed.push(llmContent.content);
+    state.lastReflectionType = selectedType;
+
+    logger.debug(
+      { emotion: context.emotion, type: selectedType, intensity, source: 'llm' },
+      '💭 Generated LLM reflection'
+    );
+
+    return {
+      text: llmContent.content,
+      type: selectedType,
+      intensity,
+      ssml: llmContent.ssml || `<break time="200ms"/>${llmContent.content}`,
+    };
+  }
+
+  // Fallback to template-based generation
   let reflection: string | null = null;
 
   switch (selectedType) {
@@ -356,7 +396,7 @@ export function generateReflection(context: ReflectionContext): Reflection | nul
         Object.keys(NEEDS_MAP).find((key) => context.emotion.toLowerCase().includes(key)) ||
         'neutral';
       const needs = NEEDS_MAP[emotionKey] || ['to be heard'];
-      const need = needs[Math.floor(Math.random() * needs.length)];
+      const need = seededPick(`${Date.now()}:399`, needs) ?? needs[0];
       const template = selectUnusedReflection(NEED_REFLECTIONS, state);
       if (template) {
         reflection = template.replace('{need}', need);
@@ -378,7 +418,7 @@ export function generateReflection(context: ReflectionContext): Reflection | nul
   state.lastReflectionType = selectedType;
 
   logger.debug(
-    { emotion: context.emotion, type: selectedType, intensity },
+    { emotion: context.emotion, type: selectedType, intensity, source: 'template' },
     '💭 Generated reflection'
   );
 
@@ -388,6 +428,64 @@ export function generateReflection(context: ReflectionContext): Reflection | nul
     intensity,
     ssml: `<break time="200ms"/>${reflection}`,
   };
+}
+
+/**
+ * Generate an empathetic reflection asynchronously
+ * Use this when you can afford to wait for LLM
+ */
+export async function generateReflectionAsync(
+  context: ReflectionContext
+): Promise<Reflection | null> {
+  const state = getSessionState(context.message);
+  state.turnCount++;
+
+  if (state.turnCount <= 1) return null;
+  if (state.reflectionsUsed.length > 5) return null;
+
+  const intensity = selectIntensity(
+    context.emotion,
+    context.isPersonalSharing,
+    context.relationshipStage
+  );
+
+  const types: ReflectionType[] = ['feeling', 'validation', 'experience', 'need', 'strength'];
+  const availableTypes = types.filter((t) => t !== state.lastReflectionType);
+  const selectedType = seededPick(`${Date.now()}:454`, availableTypes) ?? availableTypes[0];
+
+  // Try LLM generation (waits for result)
+  const llmContext: ContentContext = {
+    contentType: 'empathetic_reflection',
+    emotion: context.emotion,
+    userMessage: context.message,
+    topic: context.topics[0],
+    metadata: {
+      intensity,
+      reflectionType: selectedType,
+      isPersonalSharing: context.isPersonalSharing,
+    },
+  };
+
+  const llmContent = await generateContent(llmContext);
+  if (llmContent && llmContent.content) {
+    state.reflectionsUsed.push(llmContent.content);
+    state.lastReflectionType = selectedType;
+
+    logger.debug(
+      { emotion: context.emotion, type: selectedType, source: 'llm-async' },
+      '💭 Generated async LLM reflection'
+    );
+
+    return {
+      text: llmContent.content,
+      type: selectedType,
+      intensity,
+      ssml: llmContent.ssml || `<break time="200ms"/>${llmContent.content}`,
+    };
+  }
+
+  // Fallback to sync version
+  return generateReflection(context);
 }
 
 /**

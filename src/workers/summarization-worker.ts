@@ -13,6 +13,9 @@
  * This prevents 2-5s LLM summarization from blocking session cleanup.
  */
 
+/* eslint-disable no-restricted-imports -- Workers need direct service imports */
+/* eslint-disable no-await-in-loop -- Sequential processing required for summarization jobs */
+
 import { LocalWorker, type WorkerConfig } from './base-worker.js';
 import { AsyncEvents, type EventPayload } from '../services/async-events/index.js';
 import { removeUndefined } from '../utils/firestore-utils.js';
@@ -46,6 +49,9 @@ export interface SummarizationResult {
 // ============================================================================
 // WORKER IMPLEMENTATION
 // ============================================================================
+
+// Backpressure: max jobs in queue before rejecting new ones
+const MAX_QUEUE_DEPTH = 200;
 
 export class SummarizationWorker extends LocalWorker {
   private jobQueue: Array<SummarizationJob & { jobId: string }> = [];
@@ -110,6 +116,15 @@ export class SummarizationWorker extends LocalWorker {
     // Only summarize conversations with enough turns
     if (turnCount < 3) {
       this.log.debug({ userId, turnCount }, 'Skipping summarization (too few turns)');
+      return;
+    }
+
+    // Backpressure check
+    if (this.jobQueue.length >= MAX_QUEUE_DEPTH) {
+      this.log.warn(
+        { queueDepth: this.jobQueue.length },
+        'Backpressure: dropping summarization job'
+      );
       return;
     }
 
@@ -187,7 +202,7 @@ export class SummarizationWorker extends LocalWorker {
           break;
 
         case 'memory_consolidation':
-          result = await this.consolidateMemories(job);
+          result = await this.consolidateMemoriesAsync(job);
           break;
 
         case 'topic_thread':
@@ -213,7 +228,7 @@ export class SummarizationWorker extends LocalWorker {
       }
       this.summaryStats.avgDurationMs =
         this.summaryStats.durations.reduce((a, b) => a + b, 0) / this.summaryStats.durations.length;
-      if (result.tokensUsed) {
+      if (result.tokensUsed != null && result.tokensUsed > 0) {
         this.summaryStats.totalTokens += result.tokensUsed;
       }
 
@@ -314,58 +329,233 @@ export class SummarizationWorker extends LocalWorker {
   }
 
   /**
-   * Consolidate user memories
+   * Consolidate user memories using the MemoryConsolidator.
+   * Merges related memories into richer representations.
    */
-  private async consolidateMemories(
+  private async consolidateMemoriesAsync(
     job: SummarizationJob & { jobId: string }
   ): Promise<SummarizationResult> {
     const startTime = Date.now();
 
+    log.info({ userId: job.userId, jobId: job.jobId }, 'Starting memory consolidation');
+
     try {
-      // Simplified memory consolidation - just log for now
-      log.info({ userId: job.userId }, 'Memory consolidation requested');
+      // 1. Load user's memory index
+      const { getConversationPrimingMemories } = await import('../memory/advanced-retrieval.js');
+      const memories = getConversationPrimingMemories(job.userId, 'ferni');
+
+      if (memories.length < 5) {
+        log.debug(
+          { userId: job.userId, memoryCount: memories.length },
+          'Too few memories to consolidate'
+        );
+        return {
+          jobId: job.jobId,
+          summary: 'Insufficient memories for consolidation',
+          durationMs: Date.now() - startTime,
+        };
+      }
+
+      // 2. Run consolidation pass
+      const { getMemoryConsolidator } = await import('../memory/memory-consolidator.js');
+      const consolidator = getMemoryConsolidator();
+
+      // Convert to MemoryItem format expected by consolidator
+      // Note: The consolidator expects MemoryItem[] but we work with what we have
+      const memoryItems = memories.map((m) => ({
+        id: m.id,
+        type: 'moment' as const,
+        content: m.content,
+        timestamp: m.timestamp || new Date(),
+        emotionalWeight: m.emotionalWeight,
+        relevanceDecay: 0.8,
+        baseImportance: m.emotionalWeight,
+        embedding: m.embedding || [],
+      }));
+
+      // Cast to satisfy type - consolidator uses duck typing internally
+      const result = await consolidator.runConsolidationPass(memoryItems as never);
+
+      // 3. Save consolidated memories to Firestore
+      if (result.consolidated.length > 0) {
+        try {
+          const { getFirestore } = await import('firebase-admin/firestore');
+          const db = getFirestore();
+          const batch = db.batch();
+
+          for (const consolidated of result.consolidated) {
+            const docRef = db
+              .collection('bogle_users')
+              .doc(job.userId)
+              .collection('consolidated_memories')
+              .doc(consolidated.id);
+
+            batch.set(
+              docRef,
+              removeUndefined({
+                topic: consolidated.topic,
+                consolidatedContent: consolidated.consolidatedContent,
+                sourceMemoryIds: consolidated.sourceMemoryIds,
+                consolidatedAt: consolidated.consolidatedAt,
+                frequency: consolidated.frequency,
+                emotionalSignature: consolidated.emotionalSignature,
+                themes: consolidated.themes,
+                evolution: consolidated.evolution,
+              })
+            );
+          }
+
+          await batch.commit();
+        } catch (saveError) {
+          log.warn({ error: String(saveError) }, 'Failed to save consolidated memories');
+        }
+      }
+
+      log.info(
+        {
+          userId: job.userId,
+          consolidated: result.consolidated.length,
+          processed: result.memoriesProcessed,
+          durationMs: result.durationMs,
+        },
+        'Memory consolidation complete'
+      );
 
       return {
         jobId: job.jobId,
-        summary: 'Memory consolidation completed',
+        summary: `Consolidated ${result.consolidated.length} memory groups from ${result.memoriesProcessed} memories`,
+        topics: result.consolidated.map((c) => c.topic),
         durationMs: Date.now() - startTime,
       };
     } catch (error) {
-      log.warn({ jobId: job.jobId, error: String(error) }, 'Memory consolidation failed');
-      throw error;
+      log.warn({ userId: job.userId, error: String(error) }, 'Memory consolidation failed');
+      return {
+        jobId: job.jobId,
+        summary: `Consolidation error: ${String(error)}`,
+        durationMs: Date.now() - startTime,
+      };
     }
   }
 
   /**
-   * Extract topic thread across conversations
+   * Sync wrapper for consolidateMemories (backwards compatible).
+   */
+  private consolidateMemories(job: SummarizationJob & { jobId: string }): SummarizationResult {
+    // Fire async consolidation and return immediately
+    void this.consolidateMemoriesAsync(job);
+
+    return {
+      jobId: job.jobId,
+      summary: 'Memory consolidation started (async)',
+      durationMs: 0,
+    };
+  }
+
+  /**
+   * Extract topic thread across conversations.
+   * Groups related topics and identifies patterns.
+   *
+   * NOTE: Full implementation requires integration with memory search.
    */
   private async extractTopicThread(
     job: SummarizationJob & { jobId: string }
   ): Promise<SummarizationResult> {
     const startTime = Date.now();
 
-    // Placeholder - would use LLM to thread topics across conversations
-    return {
-      jobId: job.jobId,
-      topics: [],
-      durationMs: Date.now() - startTime,
-    };
+    try {
+      const { searchMemoriesByTopic } = await import('../memory/advanced-retrieval.js');
+
+      // Search memories by topic
+      const topicQuery = (job as { topic?: string }).topic ?? 'general discussion';
+      const memories = await searchMemoriesByTopic(job.userId, topicQuery);
+
+      // Extract unique topics by analyzing content patterns
+      const topics: string[] = [];
+
+      // Use keywords from retrieved memories to identify topics
+      for (const memory of memories.slice(0, 20)) {
+        // Simple topic extraction from content
+        const words = memory.item.content.toLowerCase().split(/\s+/);
+        const significantWords = words.filter((w) => w.length > 5);
+        for (const word of significantWords.slice(0, 3)) {
+          if (!topics.includes(word)) {
+            topics.push(word);
+          }
+        }
+      }
+
+      log.debug(
+        { userId: job.userId, topicsFound: topics.length },
+        'Topic thread extraction complete'
+      );
+
+      return {
+        jobId: job.jobId,
+        topics: topics.slice(0, 10),
+        durationMs: Date.now() - startTime,
+      };
+    } catch (error) {
+      log.warn({ userId: job.userId, error: String(error) }, 'Topic thread extraction failed');
+      return {
+        jobId: job.jobId,
+        topics: [],
+        durationMs: Date.now() - startTime,
+      };
+    }
   }
 
   /**
-   * Summarize emotional journey
+   * Summarize emotional journey across sessions.
+   * Identifies emotional patterns and highlights.
+   *
+   * NOTE: Full implementation requires integration with memory search.
    */
   private async summarizeEmotionalJourney(
     job: SummarizationJob & { jobId: string }
   ): Promise<SummarizationResult> {
     const startTime = Date.now();
 
-    // Placeholder - would analyze emotional patterns across sessions
-    return {
-      jobId: job.jobId,
-      emotionalHighlights: [],
-      durationMs: Date.now() - startTime,
-    };
+    try {
+      const { getConversationPrimingMemories } = await import('../memory/advanced-retrieval.js');
+
+      // Get recent memories for the user (personaId defaults to 'ferni')
+      const memories = getConversationPrimingMemories(job.userId, 'ferni');
+
+      // Filter by emotional weight as proxy for emotional significance
+      const emotionalMemories = memories.filter((m) => m.emotionalWeight > 0.5);
+
+      // Sort by emotional weight (highest first) and take top highlights
+      const sorted = emotionalMemories
+        .sort((a, b) => b.emotionalWeight - a.emotionalWeight)
+        .slice(0, 10);
+
+      const emotionalHighlights = sorted.map((m) => m.content.substring(0, 200));
+
+      log.debug(
+        {
+          userId: job.userId,
+          highlightsFound: emotionalHighlights.length,
+          memoriesSearched: memories.length,
+        },
+        'Emotional journey summarization complete'
+      );
+
+      return {
+        jobId: job.jobId,
+        emotionalHighlights,
+        durationMs: Date.now() - startTime,
+      };
+    } catch (error) {
+      log.warn(
+        { userId: job.userId, error: String(error) },
+        'Emotional journey summarization failed'
+      );
+      return {
+        jobId: job.jobId,
+        emotionalHighlights: [],
+        durationMs: Date.now() - startTime,
+      };
+    }
   }
 
   /**

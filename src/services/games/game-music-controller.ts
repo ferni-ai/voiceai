@@ -13,13 +13,38 @@
  * - Seamless integration with DJ Booth
  */
 
-import { getDJBooth } from '../../audio/dj-booth.js';
-import {
-  getGameMusicConfig,
-  getGameMusicPhrase,
-  type GameMusicConfig,
-} from '../../audio/dj-enhancements.js';
-import { getMusicPlayer } from '../../audio/music-player.js';
+import { getDJController, getMusicPlayer } from '../../audio/index.js';
+
+// Game music configuration (formerly from dj-enhancements)
+interface GameMusicConfig {
+  genres: string[];
+  tempo: 'slow' | 'medium' | 'fast';
+  intensity: number;
+  useCountdown?: boolean;
+}
+
+function getGameMusicConfig(gameType: string): GameMusicConfig {
+  const configs: Record<string, GameMusicConfig> = {
+    'name-that-tune': { genres: ['pop', 'rock', 'classic'], tempo: 'medium', intensity: 0.7 },
+    'trivia': { genres: ['electronic', 'upbeat'], tempo: 'medium', intensity: 0.6 },
+    'word-games': { genres: ['lo-fi', 'chill'], tempo: 'slow', intensity: 0.4 },
+    default: { genres: ['instrumental', 'ambient'], tempo: 'medium', intensity: 0.5 },
+  };
+  return configs[gameType] || configs.default;
+}
+
+function getGameMusicPhrase(event: string): string {
+  const phrases: Record<string, string[]> = {
+    gameStart: ['Game on!', "Let's play!", 'Here we go!'],
+    gameEnd: ['Good game!', 'That was fun!', 'Nice playing!'],
+    roundStart: ['Next round!', 'Ready?', "Here's the next one!"],
+    correctAnswer: ['Nice!', 'Got it!', 'Correct!'],
+    wrongAnswer: ['Not quite!', 'Good try!', 'Almost!'],
+    streak: ['On fire!', "You're killing it!", 'Streak!'],
+  };
+  const eventPhrases = phrases[event] || [''];
+  return eventPhrases[Math.floor(Math.random() * eventPhrases.length)];
+}
 import { getLogger } from '../../utils/safe-logger.js';
 import { playGameTrack, searchSong, searchSongForMood, stopGameTrack } from './game-music.js';
 import {
@@ -413,17 +438,18 @@ class GameMusicController {
   }
 
   /**
-   * Notify DJ Booth of game music state changes
+   * Notify DJ Controller of game music state changes
    */
   private async notifyDJBooth(): Promise<void> {
     try {
-      const djBooth = getDJBooth();
-      if (djBooth) {
-        // DJ Booth can use this for future enhancements like dynamic music switching
-        djBooth.setGameActive(this.state.isActive, this.state.gameType || undefined);
+      const djController = getDJController();
+      // DJ Controller handles game state via commands
+      // Games can duck music when active
+      if (this.state.isActive) {
+        djController.dispatch({ type: 'DUCK', reason: 'game' });
       }
     } catch {
-      // DJ Booth may not be initialized - that's okay
+      // DJ Controller may not be initialized - that's okay
     }
   }
 }

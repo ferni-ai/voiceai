@@ -21,6 +21,7 @@
 import type { VoiceEmotion } from '@design-system/tokens';
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { t } from '../i18n/index.js';
+import { apiGet, apiPost } from '../utils/api.js';
 import { modalCoordinator } from '../services/modal-coordinator.service.js';
 import {
   relationshipStageService,
@@ -68,8 +69,17 @@ import {
   type WeatherType,
 } from './weather-effects.ui.js';
 
+// Winter Solstice - cinematic holiday experience
+import { winterSolsticeMoment } from './winter-solstice.ui.js';
+
+// Ambient experience managers (circadian, warmth, persona aura)
+import { circadianManager, type CircadianPeriod } from '../services/circadian-manager.js';
+import { warmthManager, type RelationshipStage } from '../services/warmth-manager.js';
+
 // Ferni Moments - Character expressions
 import { ferniMoments, type MomentType } from './ferni-moments.ui.js';
+// Avatar Sidekicks - Expressive side icons (like "hands" holding props)
+import { avatarSidekicks, type SidekickIcon } from './avatar-sidekicks.ui.js';
 // Ferni Milestones - Relationship celebrations
 import { ferniMilestones, type MilestoneType } from './ferni-milestones.ui.js';
 // Journey UI - Milestone scrapbook view
@@ -100,7 +110,7 @@ import {
 // Dev Panel Modules (extracted for maintainability)
 import { handleOutreachAction as handleOutreachActionImpl } from './dev-panel/handlers/outreach.js';
 import { ICONS } from './dev-panel/icons.js';
-import { toast } from './toast.ui.js';
+import { toast } from './whisper.ui.js';
 
 const log = createLogger('DevPanel');
 
@@ -147,6 +157,14 @@ const getEnvConfig = () => {
 
 const ENV_CONFIG = getEnvConfig();
 
+// Clean up any previously stored admin keys (security improvement)
+// Dev panel now requires URL param each time, no persistent access
+try {
+  localStorage.removeItem('ferni_admin_key');
+} catch {
+  // Ignore localStorage errors
+}
+
 const checkAdminAccess = (): boolean => {
   // Auto-enable if VITE_DEV_PANEL_AUTO=true is set in .env
   // Useful for admin/staging deployments where you always want dev tools
@@ -154,22 +172,15 @@ const checkAdminAccess = (): boolean => {
     return true;
   }
 
-  // Check URL parameter with key
   const urlParams = new URLSearchParams(window.location.search);
+
+  // Check URL parameter with key (must be present in URL - no longer stored)
   const urlKey = urlParams.get('dev');
   if (urlKey && urlKey === ENV_CONFIG.adminKey) {
-    // Store it so they don't need to pass it every time
-    localStorage.setItem('ferni_admin_key', urlKey);
     return true;
   }
 
-  // Check stored admin key
-  const storedKey = localStorage.getItem('ferni_admin_key');
-  if (storedKey === ENV_CONFIG.adminKey) {
-    return true;
-  }
-
-  // Legacy check for simple dev mode flag (still works in dev environment)
+  // Legacy check for simple dev mode flag (only works in dev environment)
   if (isDevEnvironment()) {
     return localStorage.getItem('ferni_dev_mode') === 'true' || urlParams.has('dev');
   }
@@ -213,6 +224,29 @@ export function initDevPanel(): void {
 
   // Show dev indicator
   showDevIndicator();
+
+  // Auto-unlock team when:
+  // 1. VITE_DEV_PANEL_AUTO=true is set
+  // 2. ?dev URL parameter is present (for testing convenience)
+  const urlParams = new URLSearchParams(window.location.search);
+  const hasDevParam = urlParams.has('dev');
+  
+  if (ENV_CONFIG.autoEnable || hasDevParam) {
+    // Use setTimeout to ensure services are ready
+    setTimeout(() => {
+      quickUnlockAll();
+      log.info(`Auto-unlocked all team members (${ENV_CONFIG.autoEnable ? 'VITE_DEV_PANEL_AUTO' : '?dev URL param'})`);
+    }, 100);
+  }
+
+  // Listen for voice session connection to sync dev mode
+  // This ensures the backend knows about dev mode even if it was enabled before connection
+  document.addEventListener('ferni:voice-connected', () => {
+    if (DEV_MODE_ENABLED && tierOverride === 'partner') {
+      log.info('Voice connected - syncing dev mode to backend');
+      void syncDevModeToBackend(true, tierOverride);
+    }
+  });
 
   log.info('Dev panel initialized (Cmd/Ctrl+Shift+D to open)');
 }
@@ -361,14 +395,14 @@ function createPanel(): HTMLElement {
       <!-- Subscription Tier -->
       <section class="dev-section">
         <h3 class="dev-section__title">${ICONS.zap} Subscription Tier</h3>
-        <div class="dev-tier-buttons">
-          <button class="dev-tier-btn ${tier === 'free' ? 'dev-tier-btn--active' : ''}" data-tier="free">
+        <div class="dev-tier-buttons" role="button" tabindex="0">
+          <button aria-label="Free" class="dev-tier-btn ${tier === 'free' ? 'dev-tier-btn--active' : ''}" data-tier="free">
             Free
           </button>
-          <button class="dev-tier-btn ${tier === 'friend' ? 'dev-tier-btn--active' : ''}" data-tier="friend">
+          <button aria-label="Friend ($9.99)" class="dev-tier-btn ${tier === 'friend' ? 'dev-tier-btn--active' : ''}" data-tier="friend">
             Friend ($9.99)
           </button>
-          <button class="dev-tier-btn ${tier === 'partner' ? 'dev-tier-btn--active' : ''}" data-tier="partner">
+          <button aria-label="Partner ($19.99)" class="dev-tier-btn ${tier === 'partner' ? 'dev-tier-btn--active' : ''}" data-tier="partner">
             Partner ($19.99)
           </button>
         </div>
@@ -377,7 +411,7 @@ function createPanel(): HTMLElement {
       <!-- Relationship Stage -->
       <section class="dev-section">
         <h3 class="dev-section__title">${ICONS.heart} Relationship Stage</h3>
-        <div class="dev-stage-buttons">
+        <div class="dev-stage-buttons" role="button" tabindex="0">
           ${(
             [
               'first-meeting',
@@ -427,13 +461,13 @@ function createPanel(): HTMLElement {
         <h3 class="dev-section__title">${ICONS.users} Roster View</h3>
         <p class="dev-section__desc">Control which team members appear in roster</p>
         <div class="dev-roster-controls">
-          <button class="dev-roster-btn ${rosterPreferences.getPreferences().showAllMembers ? 'dev-roster-btn--active' : ''}" data-roster="show-all">
+          <button aria-label="User profile" class="dev-roster-btn ${rosterPreferences.getPreferences().showAllMembers ? 'dev-roster-btn--active' : ''}" data-roster="show-all">
             ${ICONS.users} Show All Members
           </button>
-          <button class="dev-roster-btn" data-roster="show-minimal">
+          <button aria-label="User profile" class="dev-roster-btn" data-roster="show-minimal">
             ${ICONS.user} Minimal (Ferni Only)
           </button>
-          <button class="dev-roster-btn" data-roster="reset">
+          <button aria-label="Refresh" class="dev-roster-btn" data-roster="reset">
             ${ICONS.refresh} Reset Preferences
           </button>
         </div>
@@ -442,20 +476,20 @@ function createPanel(): HTMLElement {
       <!-- Quick Actions -->
       <section class="dev-section">
         <h3 class="dev-section__title">${ICONS.zap} Quick Actions</h3>
-        <div class="dev-actions">
-          <button class="dev-action-btn" data-action="unlock-all">
+        <div class="dev-actions" role="button" tabindex="0">
+          <button aria-label="Unlock All Members" class="dev-action-btn" data-action="unlock-all">
             ${ICONS.unlock} Unlock All Members
           </button>
-          <button class="dev-action-btn" data-action="reset">
+          <button aria-label="Refresh" class="dev-action-btn" data-action="reset">
             ${ICONS.refresh} Reset Everything
           </button>
-          <button class="dev-action-btn" data-action="add-conversations">
+          <button aria-label="+ Add 5 Conversations" class="dev-action-btn" data-action="add-conversations">
             + Add 5 Conversations
           </button>
-          <button class="dev-action-btn" data-action="trigger-limit">
+          <button aria-label="Test Limit Modal" class="dev-action-btn" data-action="trigger-limit">
             Test Limit Modal
           </button>
-          <button class="dev-action-btn" data-action="trigger-upgrade">
+          <button aria-label="Test Upgrade Modal" class="dev-action-btn" data-action="trigger-upgrade">
             Test Upgrade Modal
           </button>
         </div>
@@ -470,20 +504,20 @@ function createPanel(): HTMLElement {
           ${renderFTUEStatus()}
         </div>
         
-        <div class="dev-actions">
-          <button class="dev-action-btn dev-action-btn--warning" data-ftue="reset">
+        <div class="dev-actions" role="button" tabindex="0">
+          <button aria-label="Refresh" class="dev-action-btn dev-action-btn--warning" data-ftue="reset">
             ${ICONS.refresh} Reset to First-Time User
           </button>
-          <button class="dev-action-btn" data-ftue="simulate-1">
+          <button aria-label="Simulate 1 Conversation" class="dev-action-btn" data-ftue="simulate-1">
             Simulate 1 Conversation
           </button>
-          <button class="dev-action-btn" data-ftue="simulate-3">
+          <button aria-label="Simulate 3 Conversations" class="dev-action-btn" data-ftue="simulate-3">
             Simulate 3 Conversations
           </button>
-          <button class="dev-action-btn" data-ftue="simulate-5">
+          <button aria-label="Simulate 5 Conversations" class="dev-action-btn" data-ftue="simulate-5">
             Simulate 5 Conversations
           </button>
-          <button class="dev-action-btn" data-ftue="simulate-10">
+          <button aria-label="Simulate 10 Conversations" class="dev-action-btn" data-ftue="simulate-10">
             Simulate 10 Conversations
           </button>
         </div>
@@ -505,20 +539,20 @@ function createPanel(): HTMLElement {
         <h3 class="dev-section__title">${ICONS.creditCard} Subscription Controls</h3>
         <p class="dev-section__desc">Admin controls for subscription gating</p>
         
-        <div class="dev-toggle-row">
+        <div class="dev-toggle-row" role="button" tabindex="0">
           <label class="dev-toggle">
             <input type="checkbox" id="dev-subscription-bypass" ${getSubscriptionBypass() ? 'checked' : ''}>
-            <span class="dev-toggle__slider"></span>
+            <span class="dev-toggle__slider" role="button" tabindex="0"></span>
           </label>
-          <span class="dev-toggle__label">Bypass All Limits (Admin Mode)</span>
+          <span class="dev-toggle__label" role="button" tabindex="0">Bypass All Limits (Admin Mode)</span>
         </div>
         
-        <div class="dev-toggle-row">
+        <div class="dev-toggle-row" role="button" tabindex="0">
           <label class="dev-toggle">
             <input type="checkbox" id="dev-subscription-enabled" ${getSubscriptionEnabled() ? 'checked' : ''}>
-            <span class="dev-toggle__slider"></span>
+            <span class="dev-toggle__slider" role="button" tabindex="0"></span>
           </label>
-          <span class="dev-toggle__label">Subscription Gating Enabled</span>
+          <span class="dev-toggle__label" role="button" tabindex="0">Subscription Gating Enabled</span>
         </div>
         
         <div class="dev-input-row">
@@ -526,19 +560,19 @@ function createPanel(): HTMLElement {
           <input type="text" id="dev-whitelist-ids" class="dev-input" 
             placeholder="user123, user456" 
             value="${getWhitelistIds().join(', ')}">
-          <button class="dev-action-btn dev-action-btn--small" data-action="save-whitelist">
+          <button aria-label="Confirm" class="dev-action-btn dev-action-btn--small" data-action="save-whitelist">
             ${ICONS.check} Save
           </button>
         </div>
         
-        <div class="dev-actions">
-          <button class="dev-action-btn" data-action="add-to-whitelist">
+        <div class="dev-actions" role="button" tabindex="0">
+          <button aria-label="Add" class="dev-action-btn" data-action="add-to-whitelist">
             ${ICONS.userPlus} Whitelist Current User
           </button>
-          <button class="dev-action-btn" data-action="remove-from-whitelist">
+          <button aria-label="Remove" class="dev-action-btn" data-action="remove-from-whitelist">
             ${ICONS.userMinus} Remove Current User
           </button>
-          <button class="dev-action-btn" data-action="clear-whitelist">
+          <button aria-label="Delete" class="dev-action-btn" data-action="clear-whitelist">
             ${ICONS.trash} Clear Whitelist
           </button>
         </div>
@@ -553,23 +587,23 @@ function createPanel(): HTMLElement {
       <section class="dev-section">
         <h3 class="dev-section__title">${ICONS.gamepad} Music Games</h3>
         <p class="dev-section__desc">Test music games and dashboard</p>
-        <div class="dev-actions">
-          <button class="dev-action-btn dev-action-btn--primary" data-game="dashboard">
+        <div class="dev-actions" role="button" tabindex="0">
+          <button aria-label="Musical You Dashboard" class="dev-action-btn dev-action-btn--primary" data-game="dashboard">
             ${ICONS.barChart} Musical You Dashboard
           </button>
-          <button class="dev-action-btn" data-game="name-that-tune">
+          <button aria-label="Name That Tune" class="dev-action-btn" data-game="name-that-tune">
             ${ICONS.music} Name That Tune
           </button>
-          <button class="dev-action-btn" data-game="one-word-song">
+          <button aria-label="One Word Song" class="dev-action-btn" data-game="one-word-song">
             ${ICONS.messageCircle} One Word Song
           </button>
-          <button class="dev-action-btn" data-game="desert-island">
+          <button aria-label="Desert Island Discs" class="dev-action-btn" data-game="desert-island">
             ${ICONS.palmtree} Desert Island Discs
           </button>
-          <button class="dev-action-btn" data-game="this-or-that">
+          <button aria-label="This or That" class="dev-action-btn" data-game="this-or-that">
             ${ICONS.zap} This or That
           </button>
-          <button class="dev-action-btn" data-game="mood-dj">
+          <button aria-label="Mood DJ Challenge" class="dev-action-btn" data-game="mood-dj">
             ${ICONS.headphones} Mood DJ Challenge
           </button>
         </div>
@@ -582,14 +616,14 @@ function createPanel(): HTMLElement {
         <div id="dev-music-status" class="dev-music-status">
           <div class="dev-music-status__loading">Loading music status...</div>
         </div>
-        <div class="dev-actions" style="margin-top: 8px;">
-          <button class="dev-action-btn" data-music-action="refresh-status">
+        <div class="dev-actions" role="button" tabindex="0" style="margin-top: 8px;">
+          <button aria-label="Refresh" class="dev-action-btn" data-music-action="refresh-status">
             ${ICONS.refresh} Refresh Status
           </button>
-          <button class="dev-action-btn" data-music-action="test-itunes">
+          <button aria-label="Test iTunes API" class="dev-action-btn" data-music-action="test-itunes">
             ${ICONS.music} Test iTunes API
           </button>
-          <button class="dev-action-btn" data-music-action="test-spotify">
+          <button aria-label="Confirm" class="dev-action-btn" data-music-action="test-spotify">
             ${ICONS.headphones} Check Spotify
           </button>
         </div>
@@ -603,8 +637,8 @@ function createPanel(): HTMLElement {
         <!-- Core Soul Features -->
         <div class="dev-subsection">
           <span class="dev-label">${ICONS.sparkles} Core Magic</span>
-          <div class="dev-soul-buttons">
-            <button class="dev-soul-btn dev-soul-btn--primary" data-soul="awakening" title="First launch experience">
+          <div class="dev-soul-buttons" role="button" tabindex="0">
+            <button aria-label="Awakening" class="dev-soul-btn dev-soul-btn--primary" data-soul="awakening" title="First launch experience">
               ${ICONS.sunrise} Awakening
             </button>
           </div>
@@ -613,17 +647,17 @@ function createPanel(): HTMLElement {
         <!-- Reactions -->
         <div class="dev-subsection">
           <span class="dev-label">${ICONS.sparkle} Reactions</span>
-          <div class="dev-soul-buttons">
-            <button class="dev-soul-btn" data-soul="celebrate" title="Celebration burst">
+          <div class="dev-soul-buttons" role="button" tabindex="0">
+            <button aria-label="Celebrate" class="dev-soul-btn" data-soul="celebrate" title="Celebration burst">
               ${ICONS.party} Celebrate
             </button>
-            <button class="dev-soul-btn" data-soul="empathy" title="Empathy pulse">
+            <button aria-label="Empathy" class="dev-soul-btn" data-soul="empathy" title="Empathy pulse">
               ${ICONS.heart} Empathy
             </button>
-            <button class="dev-soul-btn" data-soul="wink" title="Quick wink">
+            <button aria-label="Wink" class="dev-soul-btn" data-soul="wink" title="Quick wink">
               ${ICONS.wink} Wink
             </button>
-            <button class="dev-soul-btn" data-soul="curious-tilt" title="Interested tilt">
+            <button aria-label="Curious Tilt" class="dev-soul-btn" data-soul="curious-tilt" title="Interested tilt">
               ${ICONS.thinking} Curious Tilt
             </button>
           </div>
@@ -632,14 +666,14 @@ function createPanel(): HTMLElement {
         <!-- Ambient -->
         <div class="dev-subsection">
           <span class="dev-label">${ICONS.moon} Ambient</span>
-          <div class="dev-soul-buttons">
-            <button class="dev-soul-btn" data-soul="pause-tracking" title="Pause eye tracking 3s">
+          <div class="dev-soul-buttons" role="button" tabindex="0">
+            <button aria-label="Pause" class="dev-soul-btn" data-soul="pause-tracking" title="Pause eye tracking 3s">
               ${ICONS.pause} Pause Tracking
             </button>
-            <button class="dev-soul-btn" data-soul="secret-smile" title="Avatar smiles secretly">
+            <button aria-label="Secret Smile" class="dev-soul-btn" data-soul="secret-smile" title="Avatar smiles secretly">
               ${ICONS.smile} Secret Smile
             </button>
-            <button class="dev-soul-btn" data-soul="sleepy" title="Late night yawn">
+            <button aria-label="Sleepy" class="dev-soul-btn" data-soul="sleepy" title="Late night yawn">
               ${ICONS.sleepy} Sleepy
             </button>
           </div>
@@ -665,20 +699,20 @@ function createPanel(): HTMLElement {
         <!-- Core Movements -->
         <div class="dev-subsection">
           <span class="dev-label">${ICONS.kangaroo} Core Movements</span>
-          <div class="dev-lamp-buttons">
-            <button class="dev-lamp-btn dev-lamp-btn--primary" data-lamp="bounce" title="Excitement bounce">
+          <div class="dev-lamp-buttons" role="button" tabindex="0">
+            <button aria-label="Move up" class="dev-lamp-btn dev-lamp-btn--primary" data-lamp="bounce" title="Excitement bounce">
               ${ICONS.arrowUp} Bounce
             </button>
-            <button class="dev-lamp-btn" data-lamp="bounce-big" title="Big celebration bounce">
+            <button aria-label="Big Bounce" class="dev-lamp-btn" data-lamp="bounce-big" title="Big celebration bounce">
               ${ICONS.party} Big Bounce
             </button>
-            <button class="dev-lamp-btn" data-lamp="tilt-right" title="Curious tilt">
+            <button aria-label="Move up" class="dev-lamp-btn" data-lamp="tilt-right" title="Curious tilt">
               ${ICONS.arrowUpRight} Tilt Right
             </button>
-            <button class="dev-lamp-btn" data-lamp="tilt-left" title="Confused tilt">
+            <button aria-label="Move up" class="dev-lamp-btn" data-lamp="tilt-left" title="Confused tilt">
               ${ICONS.arrowUpLeft} Tilt Left
             </button>
-            <button class="dev-lamp-btn" data-lamp="tilt-forward" title="Listening lean">
+            <button aria-label="Move up" class="dev-lamp-btn" data-lamp="tilt-forward" title="Listening lean">
               ${ICONS.arrowUp} Lean In
             </button>
           </div>
@@ -687,20 +721,20 @@ function createPanel(): HTMLElement {
         <!-- Reactions -->
         <div class="dev-subsection">
           <span class="dev-label">${ICONS.lightbulb} Reactions</span>
-          <div class="dev-lamp-buttons">
-            <button class="dev-lamp-btn" data-lamp="perk-up" title="Aha! moment">
+          <div class="dev-lamp-buttons" role="button" tabindex="0">
+            <button aria-label="Perk Up" class="dev-lamp-btn" data-lamp="perk-up" title="Aha! moment">
               ${ICONS.zap} Perk Up
             </button>
-            <button class="dev-lamp-btn" data-lamp="nod" title="Understanding nod">
+            <button aria-label="Nod" class="dev-lamp-btn" data-lamp="nod" title="Understanding nod">
               ${ICONS.thumbsUp} Nod
             </button>
-            <button class="dev-lamp-btn" data-lamp="nod-slow" title="Thoughtful nod">
+            <button aria-label="Slow Nod" class="dev-lamp-btn" data-lamp="nod-slow" title="Thoughtful nod">
               ${ICONS.thinking} Slow Nod
             </button>
-            <button class="dev-lamp-btn" data-lamp="shake" title="Playful shake">
+            <button aria-label="Shake" class="dev-lamp-btn" data-lamp="shake" title="Playful shake">
               ${ICONS.laughing} Shake
             </button>
-            <button class="dev-lamp-btn" data-lamp="shrink" title="Empathy/sadness">
+            <button aria-label="Shrink" class="dev-lamp-btn" data-lamp="shrink" title="Empathy/sadness">
               ${ICONS.frown} Shrink
             </button>
           </div>
@@ -709,32 +743,32 @@ function createPanel(): HTMLElement {
         <!-- Emotion Presets -->
         <div class="dev-subsection">
           <span class="dev-label">${ICONS.drama} Emotion Presets</span>
-          <div class="dev-lamp-buttons">
-            <button class="dev-lamp-btn" data-lamp-emotion="happy" title="Happy">
+          <div class="dev-lamp-buttons" role="button" tabindex="0">
+            <button aria-label="Happy" class="dev-lamp-btn" data-lamp-emotion="happy" title="Happy">
               ${ICONS.smile} Happy
             </button>
-            <button class="dev-lamp-btn" data-lamp-emotion="excited" title="Excited">
+            <button aria-label="Excited" class="dev-lamp-btn" data-lamp-emotion="excited" title="Excited">
               ${ICONS.sparkles} Excited
             </button>
-            <button class="dev-lamp-btn" data-lamp-emotion="curious" title="Curious">
+            <button aria-label="Curious" class="dev-lamp-btn" data-lamp-emotion="curious" title="Curious">
               ${ICONS.thinking} Curious
             </button>
-            <button class="dev-lamp-btn" data-lamp-emotion="listening" title="Listening">
+            <button aria-label="Listening" class="dev-lamp-btn" data-lamp-emotion="listening" title="Listening">
               ${ICONS.mic} Listening
             </button>
-            <button class="dev-lamp-btn" data-lamp-emotion="thinking" title="Thinking">
+            <button aria-label="Thinking" class="dev-lamp-btn" data-lamp-emotion="thinking" title="Thinking">
               ${ICONS.messageCircle} Thinking
             </button>
-            <button class="dev-lamp-btn" data-lamp-emotion="empathetic" title="Empathetic">
+            <button aria-label="Empathetic" class="dev-lamp-btn" data-lamp-emotion="empathetic" title="Empathetic">
               ${ICONS.heart} Empathetic
             </button>
-            <button class="dev-lamp-btn" data-lamp-emotion="proud" title="Proud">
+            <button aria-label="Proud" class="dev-lamp-btn" data-lamp-emotion="proud" title="Proud">
               ${ICONS.trophy} Proud
             </button>
-            <button class="dev-lamp-btn" data-lamp-emotion="celebrating" title="Celebrating">
+            <button aria-label="Celebrating" class="dev-lamp-btn" data-lamp-emotion="celebrating" title="Celebrating">
               ${ICONS.confetti} Celebrating
             </button>
-            <button class="dev-lamp-btn" data-lamp-emotion="neutral" title="Reset to neutral">
+            <button aria-label="Neutral" class="dev-lamp-btn" data-lamp-emotion="neutral" title="Reset to neutral">
               ${ICONS.circleEmpty} Neutral
             </button>
           </div>
@@ -743,11 +777,11 @@ function createPanel(): HTMLElement {
         <!-- Breathing Control -->
         <div class="dev-subsection">
           <span class="dev-label">${ICONS.activity} Breathing</span>
-          <div class="dev-lamp-buttons">
-            <button class="dev-lamp-btn" data-lamp="breathing-start" title="Start breathing">
+          <div class="dev-lamp-buttons" role="button" tabindex="0">
+            <button aria-label="Play" class="dev-lamp-btn" data-lamp="breathing-start" title="Start breathing">
               ${ICONS.play} Start
             </button>
-            <button class="dev-lamp-btn" data-lamp="breathing-stop" title="Stop breathing">
+            <button aria-label="Stop" class="dev-lamp-btn" data-lamp="breathing-stop" title="Stop breathing">
               ${ICONS.stop} Stop
             </button>
           </div>
@@ -757,11 +791,11 @@ function createPanel(): HTMLElement {
       <!-- Agent Tester -->
       <section class="dev-section">
         <h3 class="dev-section__title">${ICONS.users} Handoff Tester</h3>
-        <div class="dev-handoff-buttons">
+        <div class="dev-handoff-buttons" role="button" tabindex="0">
           ${TEAM_MEMBERS.filter((m) => m.id !== 'ferni')
             .map(
               (member) => `
-            <button class="dev-handoff-btn" data-persona="${member.id}">
+            <button aria-label="Go forward" class="dev-handoff-btn" data-persona="${member.id}">
               → ${member.displayName}
             </button>
           `
@@ -774,63 +808,63 @@ function createPanel(): HTMLElement {
       <section class="dev-section">
         <h3 class="dev-section__title">${ICONS.drama} Avatar Expressions</h3>
         <p class="dev-section__desc">Test Ferni's emotional animations</p>
-        <div class="dev-expression-buttons">
-          <button class="dev-expression-btn" data-expression="chuckle" title="For humor/jokes">
+        <div class="dev-expression-buttons" role="button" tabindex="0">
+          <button aria-label="Chuckle" class="dev-expression-btn" data-expression="chuckle" title="For humor/jokes">
             ${ICONS.smile} Chuckle
           </button>
-          <button class="dev-expression-btn" data-expression="empathy" title="For sad moments">
+          <button aria-label="Empathy" class="dev-expression-btn" data-expression="empathy" title="For sad moments">
             ${ICONS.heart} Empathy
           </button>
-          <button class="dev-expression-btn" data-expression="delight" title="For excitement">
+          <button aria-label="Delight" class="dev-expression-btn" data-expression="delight" title="For excitement">
             ${ICONS.party} Delight
           </button>
-          <button class="dev-expression-btn" data-expression="contemplate" title="For deep moments">
+          <button aria-label="Contemplate" class="dev-expression-btn" data-expression="contemplate" title="For deep moments">
             ${ICONS.thinking} Contemplate
           </button>
-          <button class="dev-expression-btn" data-expression="encourage" title="For motivation">
+          <button aria-label="Encourage" class="dev-expression-btn" data-expression="encourage" title="For motivation">
             ${ICONS.flex} Encourage
           </button>
-          <button class="dev-expression-btn" data-expression="surprise" title="For revelations">
+          <button aria-label="Surprise" class="dev-expression-btn" data-expression="surprise" title="For revelations">
             ${ICONS.openMouth} Surprise
           </button>
-          <button class="dev-expression-btn" data-expression="settle" title="For calming">
+          <button aria-label="Settle" class="dev-expression-btn" data-expression="settle" title="For calming">
             ${ICONS.smile} Settle
           </button>
-          <button class="dev-expression-btn" data-expression="blink" title="Zen blink">
+          <button aria-label="Blink" class="dev-expression-btn" data-expression="blink" title="Zen blink">
             ${ICONS.eye} Blink
           </button>
         </div>
-        <div class="dev-expression-buttons" style="margin-top: 8px;">
-          <button class="dev-expression-btn dev-expression-btn--feedback" data-expression="success" title="Success feedback">
+        <div class="dev-expression-buttons" role="button" tabindex="0" style="margin-top: 8px;">
+          <button aria-label="Confirm" class="dev-expression-btn dev-expression-btn--feedback" data-expression="success" title="Success feedback">
             ${ICONS.check} Success
           </button>
-          <button class="dev-expression-btn dev-expression-btn--feedback" data-expression="error" title="Error feedback">
+          <button aria-label="Error" class="dev-expression-btn dev-expression-btn--feedback" data-expression="error" title="Error feedback">
             ${ICONS.x} Error
           </button>
-          <button class="dev-expression-btn dev-expression-btn--feedback" data-expression="warning" title="Warning feedback">
+          <button aria-label="Warning" class="dev-expression-btn dev-expression-btn--feedback" data-expression="warning" title="Warning feedback">
             ${ICONS.alertTriangle} Warning
           </button>
-          <button class="dev-expression-btn dev-expression-btn--feedback" data-expression="info" title="Info feedback">
+          <button aria-label="More information" class="dev-expression-btn dev-expression-btn--feedback" data-expression="info" title="Info feedback">
             ${ICONS.info} Info
           </button>
         </div>
         
         <!-- ${ICONS.party} NEW: Fun Micro-Reactions -->
         <p class="dev-section__desc" style="margin-top: 12px;">Fun Reactions (delightful avatar movements)</p>
-        <div class="dev-expression-buttons">
-          <button class="dev-expression-btn dev-expression-btn--reaction" data-reaction="happy" title="Bounce for good news">
+        <div class="dev-expression-buttons" role="button" tabindex="0">
+          <button aria-label="Happy" class="dev-expression-btn dev-expression-btn--reaction" data-reaction="happy" title="Bounce for good news">
             ${ICONS.party} Happy
           </button>
-          <button class="dev-expression-btn dev-expression-btn--reaction" data-reaction="curious" title="Tilt for 'tell me more'">
+          <button aria-label="Curious" class="dev-expression-btn dev-expression-btn--reaction" data-reaction="curious" title="Tilt for 'tell me more'">
             ${ICONS.thinking} Curious
           </button>
-          <button class="dev-expression-btn dev-expression-btn--reaction" data-reaction="empathy" title="Nod for understanding">
+          <button aria-label="Empathy" class="dev-expression-btn dev-expression-btn--reaction" data-reaction="empathy" title="Nod for understanding">
             ${ICONS.hugging} Empathy
           </button>
-          <button class="dev-expression-btn dev-expression-btn--reaction" data-reaction="laugh" title="Wobble for humor">
+          <button aria-label="Laugh" class="dev-expression-btn dev-expression-btn--reaction" data-reaction="laugh" title="Wobble for humor">
             ${ICONS.laughing} Laugh
           </button>
-          <button class="dev-expression-btn dev-expression-btn--reaction" data-reaction="surprise" title="Pop for wow moments">
+          <button aria-label="Surprise" class="dev-expression-btn dev-expression-btn--reaction" data-reaction="surprise" title="Pop for wow moments">
             ${ICONS.surprised} Surprise
           </button>
         </div>
@@ -843,39 +877,161 @@ function createPanel(): HTMLElement {
         
         <div class="dev-subsection">
           <span class="dev-label">Eye Lid Expressions</span>
-          <div class="dev-expression-buttons">
-            <button class="dev-expression-btn dev-expression-btn--ferni" data-ferni-expr="happy" title="Squinted, warm">${ICONS.smile} Happy</button>
-            <button class="dev-expression-btn dev-expression-btn--ferni" data-ferni-expr="delighted" title="Happy + sparkle">${ICONS.sparkles} Delighted</button>
-            <button class="dev-expression-btn dev-expression-btn--ferni" data-ferni-expr="surprised" title="Wide eyes">${ICONS.surprised} Surprised</button>
-            <button class="dev-expression-btn dev-expression-btn--ferni" data-ferni-expr="curious" title="Head tilt">${ICONS.thinking} Curious</button>
-            <button class="dev-expression-btn dev-expression-btn--ferni" data-ferni-expr="skeptical" title="One brow up">${ICONS.thinking} Skeptical</button>
-            <button class="dev-expression-btn dev-expression-btn--ferni" data-ferni-expr="worried" title="Angled brows">${ICONS.worried} Worried</button>
-            <button class="dev-expression-btn dev-expression-btn--ferni" data-ferni-expr="sad" title="Droopy lids">${ICONS.frown} Sad</button>
-            <button class="dev-expression-btn dev-expression-btn--ferni" data-ferni-expr="sleepy" title="Heavy lids">${ICONS.sleepy} Sleepy</button>
-            <button class="dev-expression-btn dev-expression-btn--ferni" data-ferni-expr="thinking" title="Looking away">${ICONS.messageCircle} Thinking</button>
-            <button class="dev-expression-btn dev-expression-btn--ferni" data-ferni-expr="empathetic" title="Soft understanding">${ICONS.hugging} Empathetic</button>
-            <button class="dev-expression-btn dev-expression-btn--ferni" data-ferni-expr="excited" title="Wide + sparkle">${ICONS.party} Excited</button>
-            <button class="dev-expression-btn dev-expression-btn--ferni" data-ferni-expr="neutral" title="Reset to neutral">${ICONS.meh} Neutral</button>
+          <div class="dev-expression-buttons" role="button" tabindex="0">
+            <button aria-label="Happy" class="dev-expression-btn dev-expression-btn--ferni" data-ferni-expr="happy" title="Squinted, warm">${ICONS.smile} Happy</button>
+            <button aria-label="Delighted" class="dev-expression-btn dev-expression-btn--ferni" data-ferni-expr="delighted" title="Happy + sparkle">${ICONS.sparkles} Delighted</button>
+            <button aria-label="Surprised" class="dev-expression-btn dev-expression-btn--ferni" data-ferni-expr="surprised" title="Wide eyes">${ICONS.surprised} Surprised</button>
+            <button aria-label="Curious" class="dev-expression-btn dev-expression-btn--ferni" data-ferni-expr="curious" title="Head tilt">${ICONS.thinking} Curious</button>
+            <button aria-label="Skeptical" class="dev-expression-btn dev-expression-btn--ferni" data-ferni-expr="skeptical" title="One brow up">${ICONS.thinking} Skeptical</button>
+            <button aria-label="Worried" class="dev-expression-btn dev-expression-btn--ferni" data-ferni-expr="worried" title="Angled brows">${ICONS.worried} Worried</button>
+            <button aria-label="Sad" class="dev-expression-btn dev-expression-btn--ferni" data-ferni-expr="sad" title="Droopy lids">${ICONS.frown} Sad</button>
+            <button aria-label="Sleepy" class="dev-expression-btn dev-expression-btn--ferni" data-ferni-expr="sleepy" title="Heavy lids">${ICONS.sleepy} Sleepy</button>
+            <button aria-label="Thinking" class="dev-expression-btn dev-expression-btn--ferni" data-ferni-expr="thinking" title="Looking away">${ICONS.messageCircle} Thinking</button>
+            <button aria-label="Empathetic" class="dev-expression-btn dev-expression-btn--ferni" data-ferni-expr="empathetic" title="Soft understanding">${ICONS.hugging} Empathetic</button>
+            <button aria-label="Excited" class="dev-expression-btn dev-expression-btn--ferni" data-ferni-expr="excited" title="Wide + sparkle">${ICONS.party} Excited</button>
+            <button aria-label="Neutral" class="dev-expression-btn dev-expression-btn--ferni" data-ferni-expr="neutral" title="Reset to neutral">${ICONS.meh} Neutral</button>
           </div>
         </div>
         
         <div class="dev-subsection">
           <span class="dev-label">Advanced Reactions</span>
-          <div class="dev-expression-buttons">
-            <button class="dev-expression-btn dev-expression-btn--ferni-react" data-ferni-react="doubleTake" title="Look away → snap back">${ICONS.eye} Double-Take</button>
-            <button class="dev-expression-btn dev-expression-btn--ferni-react" data-ferni-react="heldPose" title="Hold at peak emotion">${ICONS.pause} Held Pose</button>
-            <button class="dev-expression-btn dev-expression-btn--ferni-react" data-ferni-react="lookAway" title="Thinking look away">${ICONS.refresh} Look Away</button>
-            <button class="dev-expression-btn dev-expression-btn--ferni-react" data-ferni-react="nervousEnergy" title="Fidget trembles">${ICONS.worried} Nervous</button>
-            <button class="dev-expression-btn dev-expression-btn--ferni-react" data-ferni-react="delightSparkle" title="Eye sparkle effect">${ICONS.sparkle} Sparkle</button>
+          <div class="dev-expression-buttons" role="button" tabindex="0">
+            <button aria-label="Double-Take" class="dev-expression-btn dev-expression-btn--ferni-react" data-ferni-react="doubleTake" title="Look away → snap back">${ICONS.eye} Double-Take</button>
+            <button aria-label="Pause" class="dev-expression-btn dev-expression-btn--ferni-react" data-ferni-react="heldPose" title="Hold at peak emotion">${ICONS.pause} Held Pose</button>
+            <button aria-label="Refresh" class="dev-expression-btn dev-expression-btn--ferni-react" data-ferni-react="lookAway" title="Thinking look away">${ICONS.refresh} Look Away</button>
+            <button aria-label="Nervous" class="dev-expression-btn dev-expression-btn--ferni-react" data-ferni-react="nervousEnergy" title="Fidget trembles">${ICONS.worried} Nervous</button>
+            <button aria-label="Sparkle" class="dev-expression-btn dev-expression-btn--ferni-react" data-ferni-react="delightSparkle" title="Eye sparkle effect">${ICONS.sparkle} Sparkle</button>
           </div>
         </div>
         
         <div class="dev-subsection">
           <span class="dev-label">Text-to-Icon Morph</span>
-          <div class="dev-expression-buttons">
-            <button class="dev-expression-btn dev-expression-btn--ferni-morph" data-morph="lightbulb" title="Morph to idea icon">${ICONS.lightbulb} Idea Morph</button>
-            <button class="dev-expression-btn dev-expression-btn--ferni-morph" data-morph="heart" title="Morph to heart">${ICONS.heart} Heart Morph</button>
-            <button class="dev-expression-btn dev-expression-btn--ferni-morph" data-morph="sparkles" title="Morph to sparkles">${ICONS.sparkles} Sparkle Morph</button>
+          <div class="dev-expression-buttons" role="button" tabindex="0">
+            <button aria-label="Idea Morph" class="dev-expression-btn dev-expression-btn--ferni-morph" data-morph="lightbulb" title="Morph to idea icon">${ICONS.lightbulb} Idea Morph</button>
+            <button aria-label="Heart Morph" class="dev-expression-btn dev-expression-btn--ferni-morph" data-morph="heart" title="Morph to heart">${ICONS.heart} Heart Morph</button>
+            <button aria-label="Sparkle Morph" class="dev-expression-btn dev-expression-btn--ferni-morph" data-morph="sparkles" title="Morph to sparkles">${ICONS.sparkles} Sparkle Morph</button>
+          </div>
+        </div>
+        
+        <div class="dev-subsection">
+          <span class="dev-label">🤲 Side Expressions (80+ Icons!)</span>
+          <p style="font-size: 11px; color: var(--color-text-muted); margin: 4px 0 8px;">Icons float beside avatar like expressive "hands"</p>
+          
+          <!-- Time of Day -->
+          <p style="font-size: 10px; color: var(--color-text-dimmed); margin: 8px 0 4px; text-transform: uppercase; letter-spacing: 0.5px;">☀️ Time of Day</p>
+          <div class="dev-expression-buttons" role="button" tabindex="0">
+            <button aria-label="Coffee" class="dev-expression-btn dev-expression-btn--sidekick" data-sidekick="coffee" title="Morning coffee">${ICONS.coffee}</button>
+            <button aria-label="Sun" class="dev-expression-btn dev-expression-btn--sidekick" data-sidekick="sun" title="Sunshine">${ICONS.sun}</button>
+            <button aria-label="Sunrise" class="dev-expression-btn dev-expression-btn--sidekick" data-sidekick="sunrise" title="Sunrise">${ICONS.sunrise}</button>
+            <button aria-label="Sunset" class="dev-expression-btn dev-expression-btn--sidekick" data-sidekick="sunset" title="Sunset">${ICONS.sunset}</button>
+            <button aria-label="Moon" class="dev-expression-btn dev-expression-btn--sidekick" data-sidekick="moon" title="Moon">${ICONS.moon}</button>
+            <button aria-label="Flame" class="dev-expression-btn dev-expression-btn--sidekick" data-sidekick="flame" title="Cozy flame">${ICONS.flame}</button>
+            <button aria-label="Clock" class="dev-expression-btn dev-expression-btn--sidekick" data-sidekick="clock" title="Time">${ICONS.clock}</button>
+            <button aria-label="Alarm" class="dev-expression-btn dev-expression-btn--sidekick" data-sidekick="alarm" title="Alarm">${ICONS.alarm}</button>
+          </div>
+          
+          <!-- Emotions -->
+          <p style="font-size: 10px; color: var(--color-text-dimmed); margin: 8px 0 4px; text-transform: uppercase; letter-spacing: 0.5px;">❤️ Emotions</p>
+          <div class="dev-expression-buttons" role="button" tabindex="0">
+            <button aria-label="Heart" class="dev-expression-btn dev-expression-btn--sidekick" data-sidekick="heart" title="Love">${ICONS.heart}</button>
+            <button aria-label="Heart Pulse" class="dev-expression-btn dev-expression-btn--sidekick" data-sidekick="heartPulse" title="Heart pulse">${ICONS.heartPulse}</button>
+            <button aria-label="Sparkles" class="dev-expression-btn dev-expression-btn--sidekick" data-sidekick="sparkles" title="Sparkles">${ICONS.sparkles}</button>
+            <button aria-label="Smile" class="dev-expression-btn dev-expression-btn--sidekick" data-sidekick="smile" title="Smile">${ICONS.smile}</button>
+            <button aria-label="Laughing" class="dev-expression-btn dev-expression-btn--sidekick" data-sidekick="laughing" title="Laughing">${ICONS.laughing}</button>
+            <button aria-label="Wink" class="dev-expression-btn dev-expression-btn--sidekick" data-sidekick="wink" title="Wink">${ICONS.wink}</button>
+            <button aria-label="Hug" class="dev-expression-btn dev-expression-btn--sidekick" data-sidekick="hug" title="Hug">${ICONS.hugging}</button>
+            <button aria-label="Thumbs Up" class="dev-expression-btn dev-expression-btn--sidekick" data-sidekick="thumbsUp" title="Thumbs up">${ICONS.thumbsUp}</button>
+          </div>
+          
+          <!-- Ideas & Thinking -->
+          <p style="font-size: 10px; color: var(--color-text-dimmed); margin: 8px 0 4px; text-transform: uppercase; letter-spacing: 0.5px;">💡 Ideas & Thinking</p>
+          <div class="dev-expression-buttons" role="button" tabindex="0">
+            <button aria-label="Lightbulb" class="dev-expression-btn dev-expression-btn--sidekick" data-sidekick="lightbulb" title="Idea">${ICONS.lightbulb}</button>
+            <button aria-label="Brain" class="dev-expression-btn dev-expression-btn--sidekick" data-sidekick="brain" title="Thinking">${ICONS.brain}</button>
+            <button aria-label="Thinking" class="dev-expression-btn dev-expression-btn--sidekick" data-sidekick="thinking" title="Pondering">${ICONS.thinking}</button>
+            <button aria-label="Compass" class="dev-expression-btn dev-expression-btn--sidekick" data-sidekick="compass" title="Direction">${ICONS.compass}</button>
+            <button aria-label="Focus" class="dev-expression-btn dev-expression-btn--sidekick" data-sidekick="focus" title="Focus">${ICONS.focus}</button>
+            <button aria-label="Target" class="dev-expression-btn dev-expression-btn--sidekick" data-sidekick="target" title="Goal">${ICONS.target}</button>
+            <button aria-label="Search" class="dev-expression-btn dev-expression-btn--sidekick" data-sidekick="search" title="Search">${ICONS.search}</button>
+          </div>
+          
+          <!-- Gestures -->
+          <p style="font-size: 10px; color: var(--color-text-dimmed); margin: 8px 0 4px; text-transform: uppercase; letter-spacing: 0.5px;">👋 Gestures</p>
+          <div class="dev-expression-buttons" role="button" tabindex="0">
+            <button aria-label="Wave" class="dev-expression-btn dev-expression-btn--sidekick" data-sidekick="hand" title="Wave">${ICONS.hand}</button>
+            <button aria-label="Handshake" class="dev-expression-btn dev-expression-btn--sidekick" data-sidekick="handshake" title="Handshake">${ICONS.handshake}</button>
+            <button aria-label="Pointer" class="dev-expression-btn dev-expression-btn--sidekick" data-sidekick="pointer" title="Pointer">${ICONS.pointer}</button>
+            <button aria-label="Flex" class="dev-expression-btn dev-expression-btn--sidekick" data-sidekick="flex" title="Strength">${ICONS.flex}</button>
+          </div>
+          
+          <!-- Activities -->
+          <p style="font-size: 10px; color: var(--color-text-dimmed); margin: 8px 0 4px; text-transform: uppercase; letter-spacing: 0.5px;">🎵 Activities</p>
+          <div class="dev-expression-buttons" role="button" tabindex="0">
+            <button aria-label="Music" class="dev-expression-btn dev-expression-btn--sidekick" data-sidekick="music" title="Music">${ICONS.music}</button>
+            <button aria-label="Headphones" class="dev-expression-btn dev-expression-btn--sidekick" data-sidekick="headphones" title="Listening">${ICONS.headphones}</button>
+            <button aria-label="Book" class="dev-expression-btn dev-expression-btn--sidekick" data-sidekick="book" title="Reading">${ICONS.book}</button>
+            <button aria-label="Book Open" class="dev-expression-btn dev-expression-btn--sidekick" data-sidekick="bookOpen" title="Learning">${ICONS.bookOpen}</button>
+            <button aria-label="Palette" class="dev-expression-btn dev-expression-btn--sidekick" data-sidekick="palette" title="Art">${ICONS.palette}</button>
+            <button aria-label="Brush" class="dev-expression-btn dev-expression-btn--sidekick" data-sidekick="brush" title="Creative">${ICONS.brush}</button>
+            <button aria-label="Gamepad" class="dev-expression-btn dev-expression-btn--sidekick" data-sidekick="gamepad" title="Gaming">${ICONS.gamepad}</button>
+            <button aria-label="Yoga" class="dev-expression-btn dev-expression-btn--sidekick" data-sidekick="yoga" title="Wellness">${ICONS.yoga}</button>
+          </div>
+          
+          <!-- Celebrations -->
+          <p style="font-size: 10px; color: var(--color-text-dimmed); margin: 8px 0 4px; text-transform: uppercase; letter-spacing: 0.5px;">🏆 Celebrations</p>
+          <div class="dev-expression-buttons" role="button" tabindex="0">
+            <button aria-label="Trophy" class="dev-expression-btn dev-expression-btn--sidekick" data-sidekick="trophy" title="Achievement">${ICONS.trophy}</button>
+            <button aria-label="Star" class="dev-expression-btn dev-expression-btn--sidekick" data-sidekick="star" title="Star">${ICONS.star}</button>
+            <button aria-label="Crown" class="dev-expression-btn dev-expression-btn--sidekick" data-sidekick="crown" title="Recognition">${ICONS.crown}</button>
+            <button aria-label="Gift" class="dev-expression-btn dev-expression-btn--sidekick" data-sidekick="gift" title="Gift">${ICONS.gift}</button>
+            <button aria-label="Cake" class="dev-expression-btn dev-expression-btn--sidekick" data-sidekick="cake" title="Birthday">${ICONS.cake}</button>
+            <button aria-label="Party" class="dev-expression-btn dev-expression-btn--sidekick" data-sidekick="party" title="Party">${ICONS.party}</button>
+            <button aria-label="Confetti" class="dev-expression-btn dev-expression-btn--sidekick" data-sidekick="confetti" title="Confetti">${ICONS.confetti}</button>
+            <button aria-label="Rocket" class="dev-expression-btn dev-expression-btn--sidekick" data-sidekick="rocket" title="Launch">${ICONS.rocket}</button>
+          </div>
+          
+          <!-- Nature & Weather -->
+          <p style="font-size: 10px; color: var(--color-text-dimmed); margin: 8px 0 4px; text-transform: uppercase; letter-spacing: 0.5px;">🌿 Nature & Weather</p>
+          <div class="dev-expression-buttons" role="button" tabindex="0">
+            <button aria-label="Leaf" class="dev-expression-btn dev-expression-btn--sidekick" data-sidekick="leaf" title="Nature">${ICONS.leaf}</button>
+            <button aria-label="Flower" class="dev-expression-btn dev-expression-btn--sidekick" data-sidekick="flower" title="Flower">${ICONS.flower}</button>
+            <button aria-label="Sprout" class="dev-expression-btn dev-expression-btn--sidekick" data-sidekick="sprout" title="Growth">${ICONS.sparkle}</button>
+            <button aria-label="Grow" class="dev-expression-btn dev-expression-btn--sidekick" data-sidekick="grow" title="Growing">${ICONS.grow}</button>
+            <button aria-label="Cloud" class="dev-expression-btn dev-expression-btn--sidekick" data-sidekick="cloud" title="Cloud">${ICONS.cloud}</button>
+            <button aria-label="Rain" class="dev-expression-btn dev-expression-btn--sidekick" data-sidekick="cloudRain" title="Rain">${ICONS.cloudRain}</button>
+            <button aria-label="Snowflake" class="dev-expression-btn dev-expression-btn--sidekick" data-sidekick="snowflake" title="Snow">${ICONS.snowflake}</button>
+            <button aria-label="Rainbow" class="dev-expression-btn dev-expression-btn--sidekick" data-sidekick="rainbow" title="Rainbow">${ICONS.rainbow}</button>
+            <button aria-label="Waves" class="dev-expression-btn dev-expression-btn--sidekick" data-sidekick="waves" title="Waves">${ICONS.waves}</button>
+          </div>
+          
+          <!-- Energy & Motivation -->
+          <p style="font-size: 10px; color: var(--color-text-dimmed); margin: 8px 0 4px; text-transform: uppercase; letter-spacing: 0.5px;">⚡ Energy & Motivation</p>
+          <div class="dev-expression-buttons" role="button" tabindex="0">
+            <button aria-label="Zap" class="dev-expression-btn dev-expression-btn--sidekick" data-sidekick="zap" title="Energy">${ICONS.zap}</button>
+            <button aria-label="Trending Up" class="dev-expression-btn dev-expression-btn--sidekick" data-sidekick="trendingUp" title="Progress">${ICONS.trendingUp}</button>
+            <button aria-label="Activity" class="dev-expression-btn dev-expression-btn--sidekick" data-sidekick="activity" title="Activity">${ICONS.activity}</button>
+            <button aria-label="Flag" class="dev-expression-btn dev-expression-btn--sidekick" data-sidekick="flag" title="Milestone">${ICONS.flag}</button>
+          </div>
+          
+          <!-- Communication -->
+          <p style="font-size: 10px; color: var(--color-text-dimmed); margin: 8px 0 4px; text-transform: uppercase; letter-spacing: 0.5px;">💬 Communication</p>
+          <div class="dev-expression-buttons" role="button" tabindex="0">
+            <button aria-label="Chat" class="dev-expression-btn dev-expression-btn--sidekick" data-sidekick="chat" title="Chat">${ICONS.chat}</button>
+            <button aria-label="Message" class="dev-expression-btn dev-expression-btn--sidekick" data-sidekick="messageCircle" title="Message">${ICONS.messageCircle}</button>
+            <button aria-label="Bell" class="dev-expression-btn dev-expression-btn--sidekick" data-sidekick="bell" title="Reminder">${ICONS.bell}</button>
+            <button aria-label="Mail" class="dev-expression-btn dev-expression-btn--sidekick" data-sidekick="mail" title="Email">${ICONS.mail}</button>
+            <button aria-label="Mic" class="dev-expression-btn dev-expression-btn--sidekick" data-sidekick="mic" title="Voice">${ICONS.mic}</button>
+          </div>
+          
+          <!-- Misc -->
+          <p style="font-size: 10px; color: var(--color-text-dimmed); margin: 8px 0 4px; text-transform: uppercase; letter-spacing: 0.5px;">✨ More</p>
+          <div class="dev-expression-buttons" role="button" tabindex="0">
+            <button aria-label="Eye" class="dev-expression-btn dev-expression-btn--sidekick" data-sidekick="eye" title="Vision">${ICONS.eye}</button>
+            <button aria-label="Calendar" class="dev-expression-btn dev-expression-btn--sidekick" data-sidekick="calendar" title="Schedule">${ICONS.calendar}</button>
+            <button aria-label="Check" class="dev-expression-btn dev-expression-btn--sidekick" data-sidekick="checkCircle" title="Done">${ICONS.checkCircle}</button>
+            <button aria-label="Magic" class="dev-expression-btn dev-expression-btn--sidekick" data-sidekick="magic" title="Magic">${ICONS.magic}</button>
+            <button aria-label="Layers" class="dev-expression-btn dev-expression-btn--sidekick" data-sidekick="layers" title="Layers">${ICONS.layers}</button>
+            <button aria-label="Info" class="dev-expression-btn dev-expression-btn--sidekick" data-sidekick="info" title="Info">${ICONS.info}</button>
           </div>
         </div>
       </section>
@@ -887,65 +1043,65 @@ function createPanel(): HTMLElement {
         
         <div class="dev-subsection">
           <span class="dev-label">Emotional</span>
-          <div class="dev-expression-buttons">
-            <button class="dev-expression-btn" data-moment="celebration" title="Celebration">Celebrate</button>
-            <button class="dev-expression-btn" data-moment="warmGlow" title="Warm glow">Glow</button>
-            <button class="dev-expression-btn" data-moment="lightbulb" title="Aha moment">Idea</button>
-            <button class="dev-expression-btn" data-moment="hearts" title="Hearts">Hearts</button>
-            <button class="dev-expression-btn" data-moment="thinking" title="Thinking">Think</button>
+          <div class="dev-expression-buttons" role="button" tabindex="0">
+            <button aria-label="Celebrate" class="dev-expression-btn" data-moment="celebration" title="Celebration">Celebrate</button>
+            <button aria-label="Glow" class="dev-expression-btn" data-moment="warmGlow" title="Warm glow">Glow</button>
+            <button aria-label="Idea" class="dev-expression-btn" data-moment="lightbulb" title="Aha moment">Idea</button>
+            <button aria-label="Hearts" class="dev-expression-btn" data-moment="hearts" title="Hearts">Hearts</button>
+            <button aria-label="Think" class="dev-expression-btn" data-moment="thinking" title="Thinking">Think</button>
           </div>
         </div>
         
         <div class="dev-subsection">
           <span class="dev-label">Time of Day</span>
-          <div class="dev-expression-buttons">
-            <button class="dev-expression-btn" data-moment="coffee" title="Morning coffee">Coffee</button>
-            <button class="dev-expression-btn" data-moment="sunshine" title="Sunshine">Sun</button>
-            <button class="dev-expression-btn" data-moment="cozy" title="Cozy evening">Cozy</button>
-            <button class="dev-expression-btn" data-moment="moonlight" title="Moonlight">Moon</button>
-            <button class="dev-expression-btn" data-moment="sleepy" title="Sleepy">Sleepy</button>
+          <div class="dev-expression-buttons" role="button" tabindex="0">
+            <button aria-label="Coffee" class="dev-expression-btn" data-moment="coffee" title="Morning coffee">Coffee</button>
+            <button aria-label="Sun" class="dev-expression-btn" data-moment="sunshine" title="Sunshine">Sun</button>
+            <button aria-label="Cozy" class="dev-expression-btn" data-moment="cozy" title="Cozy evening">Cozy</button>
+            <button aria-label="Moon" class="dev-expression-btn" data-moment="moonlight" title="Moonlight">Moon</button>
+            <button aria-label="Sleepy" class="dev-expression-btn" data-moment="sleepy" title="Sleepy">Sleepy</button>
           </div>
         </div>
         
         <div class="dev-subsection">
           <span class="dev-label">Contextual</span>
-          <div class="dev-expression-buttons">
-            <button class="dev-expression-btn" data-moment="musicNotes" title="Music">Music</button>
-            <button class="dev-expression-btn" data-moment="sparkle" title="Sparkle">Sparkle</button>
-            <button class="dev-expression-btn" data-moment="books" title="Books/learning">Books</button>
-            <button class="dev-expression-btn" data-moment="growing" title="Growth">Grow</button>
+          <div class="dev-expression-buttons" role="button" tabindex="0">
+            <button aria-label="Music" class="dev-expression-btn" data-moment="musicNotes" title="Music">Music</button>
+            <button aria-label="Sparkle" class="dev-expression-btn" data-moment="sparkle" title="Sparkle">Sparkle</button>
+            <button aria-label="Books" class="dev-expression-btn" data-moment="books" title="Books/learning">Books</button>
+            <button aria-label="Grow" class="dev-expression-btn" data-moment="growing" title="Growth">Grow</button>
           </div>
         </div>
         
         <div class="dev-subsection">
           <span class="dev-label">Connection</span>
-          <div class="dev-expression-buttons">
-            <button class="dev-expression-btn" data-moment="wave" title="Wave hello">Wave</button>
-            <button class="dev-expression-btn" data-moment="nod" title="Nod">Nod</button>
-            <button class="dev-expression-btn" data-moment="headTilt" title="Curious tilt">Tilt</button>
-            <button class="dev-expression-btn" data-moment="highFive" title="High five">Hi-Five</button>
-            <button class="dev-expression-btn" data-moment="fistBump" title="Fist bump">Bump</button>
+          <div class="dev-expression-buttons" role="button" tabindex="0">
+            <button aria-label="Wave" class="dev-expression-btn" data-moment="wave" title="Wave hello">Wave</button>
+            <button aria-label="Nod" class="dev-expression-btn" data-moment="nod" title="Nod">Nod</button>
+            <button aria-label="Tilt" class="dev-expression-btn" data-moment="headTilt" title="Curious tilt">Tilt</button>
+            <button aria-label="Hi-Five" class="dev-expression-btn" data-moment="highFive" title="High five">Hi-Five</button>
+            <button aria-label="Bump" class="dev-expression-btn" data-moment="fistBump" title="Fist bump">Bump</button>
           </div>
         </div>
         
         <div class="dev-subsection">
           <span class="dev-label">Milestones</span>
-          <div class="dev-expression-buttons">
-            <button class="dev-expression-btn" data-moment="birthday" title="Birthday">Birthday</button>
-            <button class="dev-expression-btn" data-moment="streakFire" title="Streak fire">Streak</button>
-            <button class="dev-expression-btn" data-moment="trophy" title="Trophy">Trophy</button>
-            <button class="dev-expression-btn" data-moment="levelUp" title="Level up">Level Up</button>
+          <div class="dev-expression-buttons" role="button" tabindex="0">
+            <button aria-label="Birthday" class="dev-expression-btn" data-moment="birthday" title="Birthday">Birthday</button>
+            <button aria-label="Streak" class="dev-expression-btn" data-moment="streakFire" title="Streak fire">Streak</button>
+            <button aria-label="Trophy" class="dev-expression-btn" data-moment="trophy" title="Trophy">Trophy</button>
+            <button aria-label="Level Up" class="dev-expression-btn" data-moment="levelUp" title="Level up">Level Up</button>
           </div>
         </div>
         
         <div class="dev-subsection">
           <span class="dev-label">Human Touches</span>
-          <div class="dev-expression-buttons">
-            <button class="dev-expression-btn" data-moment="yawn" title="Yawn">Yawn</button>
-            <button class="dev-expression-btn" data-moment="stretch" title="Stretch">Stretch</button>
-            <button class="dev-expression-btn" data-moment="breathe" title="Deep breath">Breathe</button>
-            <button class="dev-expression-btn" data-moment="shiver" title="Cold/shiver">Shiver</button>
-            <button class="dev-expression-btn" data-moment="fan" title="Hot/fan">Hot</button>
+          <div class="dev-expression-buttons" role="button" tabindex="0">
+            <button aria-label="Yawn" class="dev-expression-btn" data-moment="yawn" title="Yawn">Yawn</button>
+            <button aria-label="Stretch" class="dev-expression-btn" data-moment="stretch" title="Stretch">Stretch</button>
+            <button aria-label="Breathe" class="dev-expression-btn" data-moment="breathe" title="Deep breath">Breathe</button>
+            <button aria-label="Shiver" class="dev-expression-btn" data-moment="shiver" title="Cold/shiver">Shiver</button>
+            <button aria-label="Hot" class="dev-expression-btn" data-moment="fan" title="Hot/fan">Hot</button>
           </div>
         </div>
       </section>
@@ -957,60 +1113,60 @@ function createPanel(): HTMLElement {
 
         <div class="dev-subsection">
           <span class="dev-label">Relationship</span>
-          <div class="dev-expression-buttons">
-            <button class="dev-expression-btn" data-milestone="first-hello" title="First conversation">First Hello</button>
-            <button class="dev-expression-btn" data-milestone="week-together" title="7 days">Week</button>
-            <button class="dev-expression-btn" data-milestone="month-of-growth" title="30 days">Month</button>
-            <button class="dev-expression-btn" data-milestone="welcome-back" title="Returned after absence">Welcome Back</button>
-            <button class="dev-expression-btn" data-milestone="streak-7" title="7-day streak">Streak 7</button>
-            <button class="dev-expression-btn" data-milestone="streak-30" title="30-day streak">Streak 30</button>
+          <div class="dev-expression-buttons" role="button" tabindex="0">
+            <button aria-label="First Hello" class="dev-expression-btn" data-milestone="first-hello" title="First conversation">First Hello</button>
+            <button aria-label="Week" class="dev-expression-btn" data-milestone="week-together" title="7 days">Week</button>
+            <button aria-label="Month" class="dev-expression-btn" data-milestone="month-of-growth" title="30 days">Month</button>
+            <button aria-label="Welcome Back" class="dev-expression-btn" data-milestone="welcome-back" title="Returned after absence">Welcome Back</button>
+            <button aria-label="Streak 7" class="dev-expression-btn" data-milestone="streak-7" title="7-day streak">Streak 7</button>
+            <button aria-label="Streak 30" class="dev-expression-btn" data-milestone="streak-30" title="30-day streak">Streak 30</button>
           </div>
         </div>
 
         <div class="dev-subsection">
           <span class="dev-label">Team Connection</span>
-          <div class="dev-expression-buttons">
-            <button class="dev-expression-btn" data-milestone="full-circle" title="Met all personas">Full Circle</button>
-            <button class="dev-expression-btn" data-milestone="found-your-person" title="Deep connection">Found Person</button>
-            <button class="dev-expression-btn" data-milestone="team-player" title="Natural handoff">Team Player</button>
+          <div class="dev-expression-buttons" role="button" tabindex="0">
+            <button aria-label="Full Circle" class="dev-expression-btn" data-milestone="full-circle" title="Met all personas">Full Circle</button>
+            <button aria-label="Found Person" class="dev-expression-btn" data-milestone="found-your-person" title="Deep connection">Found Person</button>
+            <button aria-label="Play" class="dev-expression-btn" data-milestone="team-player" title="Natural handoff">Team Player</button>
           </div>
         </div>
 
         <div class="dev-subsection">
           <span class="dev-label">Conversation</span>
-          <div class="dev-expression-buttons">
-            <button class="dev-expression-btn" data-milestone="deep-dive" title="10+ min conversation">Deep Dive</button>
-            <button class="dev-expression-btn" data-milestone="quick-checkin" title="Brief chat">Quick Check</button>
-            <button class="dev-expression-btn" data-milestone="night-talk" title="Late night">Night Talk</button>
-            <button class="dev-expression-btn" data-milestone="early-riser" title="Early morning">Early Riser</button>
-            <button class="dev-expression-btn" data-milestone="hundred-conversations" title="100 talks">100 Talks</button>
+          <div class="dev-expression-buttons" role="button" tabindex="0">
+            <button aria-label="Deep Dive" class="dev-expression-btn" data-milestone="deep-dive" title="10+ min conversation">Deep Dive</button>
+            <button aria-label="Confirm" class="dev-expression-btn" data-milestone="quick-checkin" title="Brief chat">Quick Check</button>
+            <button aria-label="Night Talk" class="dev-expression-btn" data-milestone="night-talk" title="Late night">Night Talk</button>
+            <button aria-label="Early Riser" class="dev-expression-btn" data-milestone="early-riser" title="Early morning">Early Riser</button>
+            <button aria-label="100 Talks" class="dev-expression-btn" data-milestone="hundred-conversations" title="100 talks">100 Talks</button>
           </div>
         </div>
 
         <div class="dev-subsection">
           <span class="dev-label">Discovery</span>
-          <div class="dev-expression-buttons">
-            <button class="dev-expression-btn" data-milestone="explorer" title="5 easter eggs">Explorer</button>
-            <button class="dev-expression-btn" data-milestone="secret-keeper" title="All easter eggs">Secrets</button>
-            <button class="dev-expression-btn" data-milestone="theme-seeker" title="All themes">Themes</button>
+          <div class="dev-expression-buttons" role="button" tabindex="0">
+            <button aria-label="Explorer" class="dev-expression-btn" data-milestone="explorer" title="5 easter eggs">Explorer</button>
+            <button aria-label="Secrets" class="dev-expression-btn" data-milestone="secret-keeper" title="All easter eggs">Secrets</button>
+            <button aria-label="Themes" class="dev-expression-btn" data-milestone="theme-seeker" title="All themes">Themes</button>
           </div>
         </div>
 
         <div class="dev-subsection">
           <span class="dev-label">Sweet Moments</span>
-          <div class="dev-expression-buttons">
-            <button class="dev-expression-btn" data-milestone="gratitude" title="Grateful heart">Gratitude</button>
-            <button class="dev-expression-btn" data-milestone="celebration" title="Shared good news">Good News</button>
-            <button class="dev-expression-btn" data-milestone="brave" title="Talked about hard things">Brave</button>
-            <button class="dev-expression-btn" data-milestone="consistent" title="Regular check-ins">Consistent</button>
+          <div class="dev-expression-buttons" role="button" tabindex="0">
+            <button aria-label="Gratitude" class="dev-expression-btn" data-milestone="gratitude" title="Grateful heart">Gratitude</button>
+            <button aria-label="Good News" class="dev-expression-btn" data-milestone="celebration" title="Shared good news">Good News</button>
+            <button aria-label="Brave" class="dev-expression-btn" data-milestone="brave" title="Talked about hard things">Brave</button>
+            <button aria-label="Consistent" class="dev-expression-btn" data-milestone="consistent" title="Regular check-ins">Consistent</button>
           </div>
         </div>
 
         <div class="dev-subsection">
           <span class="dev-label">Actions</span>
-          <div class="dev-expression-buttons">
-            <button class="dev-expression-btn" data-action="open-journey" title="View Your Journey scrapbook">Your Journey</button>
-            <button class="dev-expression-btn dev-expression-btn--danger" data-action="reset-milestones" title="Reset all milestone progress">Reset All</button>
+          <div class="dev-expression-buttons" role="button" tabindex="0">
+            <button aria-label="Your Journey" class="dev-expression-btn" data-action="open-journey" title="View Your Journey scrapbook">Your Journey</button>
+            <button aria-label="Reset All" class="dev-expression-btn dev-expression-btn--danger" data-action="reset-milestones" title="Reset all milestone progress">Reset All</button>
           </div>
         </div>
       </section>
@@ -1022,52 +1178,67 @@ function createPanel(): HTMLElement {
 
         <div class="dev-subsection">
           <span class="dev-label">Trust Signals ("Ferni Noticed...")</span>
-          <div class="dev-expression-buttons">
-            <button class="dev-expression-btn" data-trust-signal="growth" title="Growth moment">Growth</button>
-            <button class="dev-expression-btn" data-trust-signal="boundary" title="Boundary respected">Boundary</button>
-            <button class="dev-expression-btn" data-trust-signal="callback" title="Shared memory">Callback</button>
-            <button class="dev-expression-btn" data-trust-signal="small_win" title="Small win">Small Win</button>
-            <button class="dev-expression-btn" data-trust-signal="thinking_of_you" title="Thinking of you">Thinking</button>
-            <button class="dev-expression-btn" data-trust-signal="reading_lines" title="Reading between lines">Reading</button>
+          <div class="dev-expression-buttons" role="button" tabindex="0">
+            <button aria-label="Growth" class="dev-expression-btn" data-trust-signal="growth" title="Growth moment">Growth</button>
+            <button aria-label="Boundary" class="dev-expression-btn" data-trust-signal="boundary" title="Boundary respected">Boundary</button>
+            <button aria-label="Callback" class="dev-expression-btn" data-trust-signal="callback" title="Shared memory">Callback</button>
+            <button aria-label="Small Win" class="dev-expression-btn" data-trust-signal="small_win" title="Small win">Small Win</button>
+            <button aria-label="Thinking" class="dev-expression-btn" data-trust-signal="thinking_of_you" title="Thinking of you">Thinking</button>
+            <button aria-label="Reading" class="dev-expression-btn" data-trust-signal="reading_lines" title="Reading between lines">Reading</button>
           </div>
         </div>
 
         <div class="dev-subsection">
           <span class="dev-label">Stage Celebrations</span>
-          <div class="dev-expression-buttons">
-            <button class="dev-expression-btn" data-stage-celebrate="getting-started" title="Getting Started celebration">Getting Started</button>
-            <button class="dev-expression-btn" data-stage-celebrate="building-trust" title="Building Trust celebration">Building Trust</button>
-            <button class="dev-expression-btn" data-stage-celebrate="established" title="Established celebration">Established</button>
-            <button class="dev-expression-btn" data-stage-celebrate="deep-partnership" title="Deep Partnership celebration">Deep Partner</button>
+          <div class="dev-expression-buttons" role="button" tabindex="0">
+            <button aria-label="Getting Started" class="dev-expression-btn" data-stage-celebrate="getting-started" title="Getting Started celebration">Getting Started</button>
+            <button aria-label="Building Trust" class="dev-expression-btn" data-stage-celebrate="building-trust" title="Building Trust celebration">Building Trust</button>
+            <button aria-label="Established" class="dev-expression-btn" data-stage-celebrate="established" title="Established celebration">Established</button>
+            <button aria-label="Deep Partner" class="dev-expression-btn" data-stage-celebrate="deep-partnership" title="Deep Partnership celebration">Deep Partner</button>
           </div>
         </div>
 
         <div class="dev-subsection">
           <span class="dev-label">Persona Intros</span>
-          <div class="dev-expression-buttons">
-            <button class="dev-expression-btn" data-persona-intro="maya" title="Maya Santos intro">Maya</button>
-            <button class="dev-expression-btn" data-persona-intro="peter" title="Peter John intro">Peter</button>
-            <button class="dev-expression-btn" data-persona-intro="alex" title="Alex Chen intro">Alex</button>
-            <button class="dev-expression-btn" data-persona-intro="jordan" title="Jordan Taylor intro">Jordan</button>
-            <button class="dev-expression-btn" data-persona-intro="nayan" title="Nayan Patel intro">Nayan</button>
+          <div class="dev-expression-buttons" role="button" tabindex="0">
+            <button aria-label="Maya" class="dev-expression-btn" data-persona-intro="maya" title="Maya Santos intro">Maya</button>
+            <button aria-label="Peter" class="dev-expression-btn" data-persona-intro="peter" title="Peter John intro">Peter</button>
+            <button aria-label="Alex" class="dev-expression-btn" data-persona-intro="alex" title="Alex Chen intro">Alex</button>
+            <button aria-label="Jordan" class="dev-expression-btn" data-persona-intro="jordan" title="Jordan Taylor intro">Jordan</button>
+            <button aria-label="Nayan" class="dev-expression-btn" data-persona-intro="nayan" title="Nayan Patel intro">Nayan</button>
           </div>
         </div>
 
         <div class="dev-subsection">
           <span class="dev-label">Feature Hints</span>
-          <div class="dev-expression-buttons">
-            <button class="dev-expression-btn" data-feature-hint="team-huddle-intro" title="Team Huddle hint">Team Huddle</button>
-            <button class="dev-expression-btn" data-feature-hint="custom-rituals-intro" title="Custom Rituals hint">Rituals</button>
-            <button class="dev-expression-btn" data-feature-hint="memory-timeline-intro" title="Memory Timeline hint">Memory</button>
-            <button class="dev-expression-btn dev-expression-btn--danger" data-action="reset-hints" title="Reset dismissed hints">Reset Hints</button>
+          <div class="dev-expression-buttons" role="button" tabindex="0">
+            <button aria-label="Team Huddle" class="dev-expression-btn" data-feature-hint="team-huddle-intro" title="Team Huddle hint">Team Huddle</button>
+            <button aria-label="Rituals" class="dev-expression-btn" data-feature-hint="custom-rituals-intro" title="Custom Rituals hint">Rituals</button>
+            <button aria-label="Memory" class="dev-expression-btn" data-feature-hint="memory-timeline-intro" title="Memory Timeline hint">Memory</button>
+            <button aria-label="Reset Hints" class="dev-expression-btn dev-expression-btn--danger" data-action="reset-hints" title="Reset dismissed hints">Reset Hints</button>
           </div>
         </div>
 
         <div class="dev-subsection">
           <span class="dev-label">Progress Indicator</span>
-          <div class="dev-expression-buttons">
-            <button class="dev-expression-btn" data-action="toggle-progress" title="Toggle progress indicator visibility">Toggle</button>
-            <button class="dev-expression-btn" data-action="expand-progress" title="Force expand progress details">Expand</button>
+          <div class="dev-expression-buttons" role="button" tabindex="0">
+            <button aria-label="Toggle" class="dev-expression-btn" data-action="toggle-progress" title="Toggle progress indicator visibility">Toggle</button>
+            <button aria-label="Expand" class="dev-expression-btn" data-action="expand-progress" title="Force expand progress details">Expand</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Semantic Intelligence (Better Than Human V3.0) -->
+      <section class="dev-section">
+        <h3 class="dev-section__title">${ICONS.brain} Ferni's Understanding</h3>
+        <p class="dev-section__desc">What Ferni notices about your patterns and growth</p>
+
+        <div class="dev-subsection">
+          <span class="dev-label">Deep Insights</span>
+          <div class="dev-expression-buttons" role="button" tabindex="0">
+            <button aria-label="Open Insights" class="dev-action-btn dev-action-btn--primary" data-action="open-semantic-intelligence" title="View what Ferni has learned about you">
+              ${ICONS.lightbulb} What I've Noticed
+            </button>
           </div>
         </div>
       </section>
@@ -1079,33 +1250,33 @@ function createPanel(): HTMLElement {
 
         <div class="dev-subsection">
           <span class="dev-label">Welcome Sequence</span>
-          <div class="dev-expression-buttons">
-            <button class="dev-expression-btn" data-outreach="welcome-day0" title="Send Day 0 welcome">Welcome</button>
-            <button class="dev-expression-btn" data-outreach="welcome-day3" title="Send Day 3 check-in">Day 3</button>
-            <button class="dev-expression-btn" data-outreach="welcome-week" title="Send 1 week email">Week</button>
+          <div class="dev-expression-buttons" role="button" tabindex="0">
+            <button aria-label="Welcome" class="dev-expression-btn" data-outreach="welcome-day0" title="Send Day 0 welcome">Welcome</button>
+            <button aria-label="Day 3" class="dev-expression-btn" data-outreach="welcome-day3" title="Send Day 3 check-in">Day 3</button>
+            <button aria-label="Week" class="dev-expression-btn" data-outreach="welcome-week" title="Send 1 week email">Week</button>
           </div>
         </div>
 
         <div class="dev-subsection">
           <span class="dev-label">Milestone Celebration</span>
-          <div class="dev-expression-buttons">
-            <button class="dev-expression-btn" data-outreach="milestone" title="Send test milestone email">Send Milestone</button>
+          <div class="dev-expression-buttons" role="button" tabindex="0">
+            <button aria-label="Send Milestone" class="dev-expression-btn" data-outreach="milestone" title="Send test milestone email">Send Milestone</button>
           </div>
         </div>
 
         <div class="dev-subsection">
           <span class="dev-label">Streak Reminder</span>
-          <div class="dev-expression-buttons">
-            <button class="dev-expression-btn" data-outreach="streak-5" title="5-day streak reminder">Streak 5</button>
-            <button class="dev-expression-btn" data-outreach="streak-14" title="14-day streak reminder">Streak 14</button>
+          <div class="dev-expression-buttons" role="button" tabindex="0">
+            <button aria-label="Streak 5" class="dev-expression-btn" data-outreach="streak-5" title="5-day streak reminder">Streak 5</button>
+            <button aria-label="Streak 14" class="dev-expression-btn" data-outreach="streak-14" title="14-day streak reminder">Streak 14</button>
           </div>
         </div>
 
         <div class="dev-subsection">
           <span class="dev-label">Test Direct</span>
-          <div class="dev-expression-buttons">
-            <button class="dev-expression-btn" data-outreach="test-email" title="Test email delivery">Test Email</button>
-            <button class="dev-expression-btn" data-outreach="test-sms" title="Test SMS delivery">Test SMS</button>
+          <div class="dev-expression-buttons" role="button" tabindex="0">
+            <button aria-label="Test Email" class="dev-expression-btn" data-outreach="test-email" title="Test email delivery">Test Email</button>
+            <button aria-label="Test SMS" class="dev-expression-btn" data-outreach="test-sms" title="Test SMS delivery">Test SMS</button>
           </div>
         </div>
       </section>
@@ -1114,22 +1285,22 @@ function createPanel(): HTMLElement {
       <section class="dev-section">
         <h3 class="dev-section__title">${ICONS.music} Music Animations</h3>
         <p class="dev-section__desc">Test bass-reactive music visualization</p>
-        <div class="dev-music-buttons">
-          <button class="dev-music-btn" data-action="start-music" title="Start simulated music">
+        <div class="dev-music-buttons" role="button" tabindex="0">
+          <button aria-label="Play" class="dev-music-btn" data-action="start-music" title="Start simulated music">
             ${ICONS.play} Start Music
           </button>
-          <button class="dev-music-btn" data-action="stop-music" title="Stop with fun outro">
+          <button aria-label="Stop" class="dev-music-btn" data-action="stop-music" title="Stop with fun outro">
             ${ICONS.stop} Stop Music
           </button>
-          <button class="dev-music-btn" data-action="duck-music" title="Simulate agent talking over music">
+          <button aria-label="Volume" class="dev-music-btn" data-action="duck-music" title="Simulate agent talking over music">
             ${ICONS.volumeLow} Duck
           </button>
-          <button class="dev-music-btn" data-action="unduck-music" title="Restore full volume">
+          <button aria-label="Volume" class="dev-music-btn" data-action="unduck-music" title="Restore full volume">
             ${ICONS.volumeHigh} Unduck
           </button>
         </div>
-        <div class="dev-music-buttons" style="margin-top: var(--space-2);">
-          <button class="dev-music-btn" data-action="our-song" title="Test 'Our Song' - shared musical memory">
+        <div class="dev-music-buttons" role="button" tabindex="0" style="margin-top: var(--space-2);">
+          <button aria-label="Our Song" class="dev-music-btn" data-action="our-song" title="Test 'Our Song' - shared musical memory">
             ${ICONS.heart} Our Song
           </button>
         </div>
@@ -1143,17 +1314,17 @@ function createPanel(): HTMLElement {
         <!-- Listening/Speaking Modes -->
         <div class="dev-subsection">
           <span class="dev-label">Voice Modes</span>
-          <div class="dev-expression-buttons">
-            <button class="dev-expression-btn dev-expression-btn--mode" data-mode="start-listening" title="Simulate user speaking">
+          <div class="dev-expression-buttons" role="button" tabindex="0">
+            <button aria-label="Start Listening" class="dev-expression-btn dev-expression-btn--mode" data-mode="start-listening" title="Simulate user speaking">
               ${ICONS.mic} Start Listening
             </button>
-            <button class="dev-expression-btn dev-expression-btn--mode" data-mode="stop-listening" title="Stop listening mode">
+            <button aria-label="Stop" class="dev-expression-btn dev-expression-btn--mode" data-mode="stop-listening" title="Stop listening mode">
               ${ICONS.volumeOff} Stop Listening
             </button>
-            <button class="dev-expression-btn dev-expression-btn--mode" data-mode="start-speaking" title="Simulate agent speaking">
+            <button aria-label="Volume" class="dev-expression-btn dev-expression-btn--mode" data-mode="start-speaking" title="Simulate agent speaking">
               ${ICONS.speaker} Start Speaking
             </button>
-            <button class="dev-expression-btn dev-expression-btn--mode" data-mode="stop-speaking" title="Stop speaking mode">
+            <button aria-label="Stop" class="dev-expression-btn dev-expression-btn--mode" data-mode="stop-speaking" title="Stop speaking mode">
               ${ICONS.volumeOff} Stop Speaking
             </button>
           </div>
@@ -1162,17 +1333,17 @@ function createPanel(): HTMLElement {
         <!-- Greetings -->
         <div class="dev-subsection">
           <span class="dev-label">Greetings</span>
-          <div class="dev-expression-buttons">
-            <button class="dev-expression-btn dev-expression-btn--greeting" data-greeting="morning" title="Morning energy">
+          <div class="dev-expression-buttons" role="button" tabindex="0">
+            <button aria-label="Morning" class="dev-expression-btn dev-expression-btn--greeting" data-greeting="morning" title="Morning energy">
               ${ICONS.sunrise} Morning
             </button>
-            <button class="dev-expression-btn dev-expression-btn--greeting" data-greeting="evening" title="Evening calm">
+            <button aria-label="Evening" class="dev-expression-btn dev-expression-btn--greeting" data-greeting="evening" title="Evening calm">
               ${ICONS.moon} Evening
             </button>
-            <button class="dev-expression-btn dev-expression-btn--greeting" data-greeting="latenight" title="Late night gentle">
+            <button aria-label="Late Night" class="dev-expression-btn dev-expression-btn--greeting" data-greeting="latenight" title="Late night gentle">
               ${ICONS.moon} Late Night
             </button>
-            <button class="dev-expression-btn dev-expression-btn--greeting" data-greeting="welcomeback" title="Returning user">
+            <button aria-label="Welcome Back" class="dev-expression-btn dev-expression-btn--greeting" data-greeting="welcomeback" title="Returning user">
               ${ICONS.hand} Welcome Back
             </button>
           </div>
@@ -1181,18 +1352,21 @@ function createPanel(): HTMLElement {
         <!-- Milestones -->
         <div class="dev-subsection">
           <span class="dev-label">Celebrations</span>
-          <div class="dev-expression-buttons">
-            <button class="dev-expression-btn dev-expression-btn--celebrate" data-celebration="streak-5" title="5-day streak">
+          <div class="dev-expression-buttons" role="button" tabindex="0">
+            <button aria-label="5-Day Streak" class="dev-expression-btn dev-expression-btn--celebrate" data-celebration="streak-5" title="5-day streak">
               ${ICONS.flame} 5-Day Streak
             </button>
-            <button class="dev-expression-btn dev-expression-btn--celebrate" data-celebration="streak-30" title="30-day streak (max)">
+            <button aria-label="30-Day Streak" class="dev-expression-btn dev-expression-btn--celebrate" data-celebration="streak-30" title="30-day streak (max)">
               ${ICONS.flame} 30-Day Streak
             </button>
-            <button class="dev-expression-btn dev-expression-btn--celebrate" data-celebration="goal" title="Goal completed">
+            <button aria-label="Goal Complete" class="dev-expression-btn dev-expression-btn--celebrate" data-celebration="goal" title="Goal completed">
               ${ICONS.target} Goal Complete
             </button>
-            <button class="dev-expression-btn dev-expression-btn--celebrate" data-celebration="team" title="Meet new team member">
+            <button aria-label="New Team Member" class="dev-expression-btn dev-expression-btn--celebrate" data-celebration="team" title="Meet new team member">
               ${ICONS.handshake} New Team Member
+            </button>
+            <button aria-label="Winter Solstice" class="dev-expression-btn dev-expression-btn--celebrate" data-celebration="winter-solstice" title="Winter Solstice - Full cinematic experience" style="background: linear-gradient(135deg, #0d1b2a, #2c3e50); border: 1px solid #4a6741;">
+              ${ICONS.sunset} Winter Solstice
             </button>
           </div>
         </div>
@@ -1200,11 +1374,11 @@ function createPanel(): HTMLElement {
         <!-- Deep Thinking -->
         <div class="dev-subsection">
           <span class="dev-label">Thinking</span>
-          <div class="dev-expression-buttons">
-            <button class="dev-expression-btn dev-expression-btn--thinking" data-thinking="start" title="Deep contemplation">
+          <div class="dev-expression-buttons" role="button" tabindex="0">
+            <button aria-label="Start Deep Thinking" class="dev-expression-btn dev-expression-btn--thinking" data-thinking="start" title="Deep contemplation">
               ${ICONS.brain} Start Deep Thinking
             </button>
-            <button class="dev-expression-btn dev-expression-btn--thinking" data-thinking="stop" title="Insight achieved">
+            <button aria-label="Stop" class="dev-expression-btn dev-expression-btn--thinking" data-thinking="stop" title="Insight achieved">
               ${ICONS.lightbulb} Stop (with insight)
             </button>
           </div>
@@ -1213,20 +1387,20 @@ function createPanel(): HTMLElement {
         <!-- ${ICONS.sunrise} Conversation Flow -->
         <div class="dev-subsection">
           <span class="dev-label">Conversation Flow</span>
-          <div class="dev-expression-buttons">
-            <button class="dev-expression-btn dev-expression-btn--wrap-up" data-wrap-up="warm" title="Warm goodbye">
+          <div class="dev-expression-buttons" role="button" tabindex="0">
+            <button aria-label="Warm Goodbye" class="dev-expression-btn dev-expression-btn--wrap-up" data-wrap-up="warm" title="Warm goodbye">
               ${ICONS.hand} Warm Goodbye
             </button>
-            <button class="dev-expression-btn dev-expression-btn--wrap-up" data-wrap-up="encouraging" title="Encouraging farewell">
+            <button aria-label="Encouraging" class="dev-expression-btn dev-expression-btn--wrap-up" data-wrap-up="encouraging" title="Encouraging farewell">
               ${ICONS.flex} Encouraging
             </button>
-            <button class="dev-expression-btn dev-expression-btn--wrap-up" data-wrap-up="thoughtful" title="Thoughtful goodbye">
+            <button aria-label="Thoughtful" class="dev-expression-btn dev-expression-btn--wrap-up" data-wrap-up="thoughtful" title="Thoughtful goodbye">
               ${ICONS.thinking} Thoughtful
             </button>
-            <button class="dev-expression-btn dev-expression-btn--wrap-up" data-wrap-up="caring" title="Caring goodbye">
+            <button aria-label="Caring" class="dev-expression-btn dev-expression-btn--wrap-up" data-wrap-up="caring" title="Caring goodbye">
               ${ICONS.heart} Caring
             </button>
-            <button class="dev-expression-btn dev-expression-btn--wrap-up dev-expression-btn--reset" data-wrap-up="reset" title="Reset wrap-up state">
+            <button aria-label="Reset" class="dev-expression-btn dev-expression-btn--wrap-up dev-expression-btn--reset" data-wrap-up="reset" title="Reset wrap-up state">
               ${ICONS.rotateCcw} Reset
             </button>
           </div>
@@ -1241,17 +1415,17 @@ function createPanel(): HTMLElement {
         <!-- Core Emotions -->
         <div class="dev-subsection">
           <span class="dev-label">Core Emotions</span>
-          <div class="dev-emotion-buttons">
-            <button class="dev-emotion-btn" data-emotion="neutral" title="Default calm state">
+          <div class="dev-emotion-buttons" role="button" tabindex="0">
+            <button aria-label="Neutral" class="dev-emotion-btn" data-emotion="neutral" title="Default calm state">
               ${ICONS.meh} Neutral
             </button>
-            <button class="dev-emotion-btn" data-emotion="happy" title="Positive, smiling waveform">
+            <button aria-label="Happy" class="dev-emotion-btn" data-emotion="happy" title="Positive, smiling waveform">
               ${ICONS.smile} Happy
             </button>
-            <button class="dev-emotion-btn" data-emotion="excited" title="High energy, fast breathing">
+            <button aria-label="Excited" class="dev-emotion-btn" data-emotion="excited" title="High energy, fast breathing">
               ${ICONS.party} Excited
             </button>
-            <button class="dev-emotion-btn" data-emotion="curious" title="Attentive, interested">
+            <button aria-label="Curious" class="dev-emotion-btn" data-emotion="curious" title="Attentive, interested">
               ${ICONS.thinking} Curious
             </button>
           </div>
@@ -1259,17 +1433,17 @@ function createPanel(): HTMLElement {
         
         <div class="dev-subsection">
           <span class="dev-label">More Emotions</span>
-          <div class="dev-emotion-buttons">
-            <button class="dev-emotion-btn" data-emotion="thinking" title="Slow, contemplative">
+          <div class="dev-emotion-buttons" role="button" tabindex="0">
+            <button aria-label="Thinking" class="dev-emotion-btn" data-emotion="thinking" title="Slow, contemplative">
               ${ICONS.brain} Thinking
             </button>
-            <button class="dev-emotion-btn" data-emotion="calm" title="Peaceful, slow breathing">
+            <button aria-label="Calm" class="dev-emotion-btn" data-emotion="calm" title="Peaceful, slow breathing">
               ${ICONS.smile} Calm
             </button>
-            <button class="dev-emotion-btn" data-emotion="sad" title="Empathetic, sighing">
+            <button aria-label="Sad" class="dev-emotion-btn" data-emotion="sad" title="Empathetic, sighing">
               ${ICONS.frown} Sad
             </button>
-            <button class="dev-emotion-btn" data-emotion="frustrated" title="Agitated, irregular">
+            <button aria-label="Frustrated" class="dev-emotion-btn" data-emotion="frustrated" title="Agitated, irregular">
               ${ICONS.angry} Frustrated
             </button>
           </div>
@@ -1278,17 +1452,17 @@ function createPanel(): HTMLElement {
         <!-- Emotion Reactions -->
         <div class="dev-subsection">
           <span class="dev-label">Character Reactions</span>
-          <div class="dev-emotion-buttons">
-            <button class="dev-reaction-btn" data-reaction="nod" title="Agreement with follow-through">
+          <div class="dev-emotion-buttons" role="button" tabindex="0">
+            <button aria-label="Nod" class="dev-reaction-btn" data-reaction="nod" title="Agreement with follow-through">
               ${ICONS.thumbsUp} Nod
             </button>
-            <button class="dev-reaction-btn" data-reaction="shake" title="Gentle disagreement">
+            <button aria-label="Shake" class="dev-reaction-btn" data-reaction="shake" title="Gentle disagreement">
               ${ICONS.thumbsDown} Shake
             </button>
-            <button class="dev-reaction-btn" data-reaction="bounce" title="Excited hop with squash/stretch">
+            <button aria-label="Bounce" class="dev-reaction-btn" data-reaction="bounce" title="Excited hop with squash/stretch">
               ${ICONS.kangaroo} Bounce
             </button>
-            <button class="dev-reaction-btn" data-reaction="celebrate" title="Full celebration sequence">
+            <button aria-label="Celebrate" class="dev-reaction-btn" data-reaction="celebrate" title="Full celebration sequence">
               ${ICONS.confetti} Celebrate
             </button>
           </div>
@@ -1297,14 +1471,14 @@ function createPanel(): HTMLElement {
         <!-- Flash Emotions -->
         <div class="dev-subsection">
           <span class="dev-label">Flash Emotions (2s)</span>
-          <div class="dev-emotion-buttons">
-            <button class="dev-flash-btn" data-flash="excited" title="Brief excitement">
+          <div class="dev-emotion-buttons" role="button" tabindex="0">
+            <button aria-label="Flash Excited" class="dev-flash-btn" data-flash="excited" title="Brief excitement">
               ${ICONS.zap} Flash Excited
             </button>
-            <button class="dev-flash-btn" data-flash="happy" title="Brief happiness">
+            <button aria-label="Flash Happy" class="dev-flash-btn" data-flash="happy" title="Brief happiness">
               ${ICONS.zap} Flash Happy
             </button>
-            <button class="dev-flash-btn" data-flash="curious" title="Brief curiosity">
+            <button aria-label="Flash Curious" class="dev-flash-btn" data-flash="curious" title="Brief curiosity">
               ${ICONS.zap} Flash Curious
             </button>
           </div>
@@ -1382,17 +1556,17 @@ function createPanel(): HTMLElement {
         <!-- Dramatic Animations -->
         <div class="dev-subsection">
           <span class="dev-label">Dramatic Moves</span>
-          <div class="dev-expression-buttons">
-            <button class="dev-expression-btn dev-expression-btn--dramatic" data-dramatic="bounce" title="character-style bounce">
+          <div class="dev-expression-buttons" role="button" tabindex="0">
+            <button aria-label="Dramatic Bounce" class="dev-expression-btn dev-expression-btn--dramatic" data-dramatic="bounce" title="character-style bounce">
               ${ICONS.drama} Dramatic Bounce
             </button>
-            <button class="dev-expression-btn dev-expression-btn--dramatic" data-dramatic="wobble" title="Excited wobble">
+            <button aria-label="Excited Wobble" class="dev-expression-btn dev-expression-btn--dramatic" data-dramatic="wobble" title="Excited wobble">
               ${ICONS.tent} Excited Wobble
             </button>
-            <button class="dev-expression-btn dev-expression-btn--dramatic" data-dramatic="shake" title="Concerned head shake">
+            <button aria-label="Head Shake" class="dev-expression-btn dev-expression-btn--dramatic" data-dramatic="shake" title="Concerned head shake">
               ${ICONS.worried} Head Shake
             </button>
-            <button class="dev-expression-btn dev-expression-btn--dramatic" data-dramatic="perky" title="Perky attention">
+            <button aria-label="Perky!" class="dev-expression-btn dev-expression-btn--dramatic" data-dramatic="perky" title="Perky attention">
               ${ICONS.eye} Perky!
             </button>
           </div>
@@ -1401,17 +1575,17 @@ function createPanel(): HTMLElement {
         <!-- Ring & Aura -->
         <div class="dev-subsection">
           <span class="dev-label">Ring & Aura Effects</span>
-          <div class="dev-expression-buttons">
-            <button class="dev-expression-btn dev-expression-btn--ring" data-ring="heartbeat-slow" title="Calm heartbeat">
+          <div class="dev-expression-buttons" role="button" tabindex="0">
+            <button aria-label="Slow Beat" class="dev-expression-btn dev-expression-btn--ring" data-ring="heartbeat-slow" title="Calm heartbeat">
               ${ICONS.heartPulse} Slow Beat
             </button>
-            <button class="dev-expression-btn dev-expression-btn--ring" data-ring="heartbeat-fast" title="Excited heartbeat">
+            <button aria-label="Fast Beat" class="dev-expression-btn dev-expression-btn--ring" data-ring="heartbeat-fast" title="Excited heartbeat">
               ${ICONS.heartPulse} Fast Beat
             </button>
-            <button class="dev-expression-btn dev-expression-btn--ring" data-ring="heartbeat-stop" title="Stop heartbeat">
+            <button aria-label="Stop" class="dev-expression-btn dev-expression-btn--ring" data-ring="heartbeat-stop" title="Stop heartbeat">
               ${ICONS.volumeOff} Stop Beat
             </button>
-            <button class="dev-expression-btn dev-expression-btn--ring" data-ring="aura" title="Pulse emotion aura">
+            <button aria-label="Aura Pulse" class="dev-expression-btn dev-expression-btn--ring" data-ring="aura" title="Pulse emotion aura">
               ${ICONS.rainbow} Aura Pulse
             </button>
           </div>
@@ -1420,17 +1594,17 @@ function createPanel(): HTMLElement {
         <!-- Ripple Effects -->
         <div class="dev-subsection">
           <span class="dev-label">Ripple & Burst</span>
-          <div class="dev-expression-buttons">
-            <button class="dev-expression-btn dev-expression-btn--ripple" data-ripple="single" title="Single ripple">
+          <div class="dev-expression-buttons" role="button" tabindex="0">
+            <button aria-label="Single Ripple" class="dev-expression-btn dev-expression-btn--ripple" data-ripple="single" title="Single ripple">
               ${ICONS.circleDot} Single Ripple
             </button>
-            <button class="dev-expression-btn dev-expression-btn--ripple" data-ripple="multi" title="Multiple ripples">
+            <button aria-label="Multi Ripple" class="dev-expression-btn dev-expression-btn--ripple" data-ripple="multi" title="Multiple ripples">
               ${ICONS.circle} Multi Ripple
             </button>
-            <button class="dev-expression-btn dev-expression-btn--ripple" data-ripple="burst" title="Celebration burst">
+            <button aria-label="Burst!" class="dev-expression-btn dev-expression-btn--ripple" data-ripple="burst" title="Celebration burst">
               ${ICONS.zap} Burst!
             </button>
-            <button class="dev-expression-btn dev-expression-btn--ripple" data-ripple="big" title="BIG celebration">
+            <button aria-label="BIG Celebration" class="dev-expression-btn dev-expression-btn--ripple" data-ripple="big" title="BIG celebration">
               ${ICONS.fireworks} BIG Celebration
             </button>
           </div>
@@ -1445,17 +1619,17 @@ function createPanel(): HTMLElement {
         <!-- Micro-Expressions -->
         <div class="dev-subsection">
           <span class="dev-label">Micro-Expressions (Subliminal)</span>
-          <div class="dev-expression-buttons">
-            <button class="dev-expression-btn dev-expression-btn--beyond" data-micro="recognition" title="Flash of recognition (80ms)">
+          <div class="dev-expression-buttons" role="button" tabindex="0">
+            <button aria-label="Recognition" class="dev-expression-btn dev-expression-btn--beyond" data-micro="recognition" title="Flash of recognition (80ms)">
               ${ICONS.eye} Recognition
             </button>
-            <button class="dev-expression-btn dev-expression-btn--beyond" data-micro="concern_flash" title="Brief concern flash (60ms)">
+            <button aria-label="Concern Flash" class="dev-expression-btn dev-expression-btn--beyond" data-micro="concern_flash" title="Brief concern flash (60ms)">
               ${ICONS.worried} Concern Flash
             </button>
-            <button class="dev-expression-btn dev-expression-btn--beyond" data-micro="delight_flash" title="Micro-delight (100ms)">
+            <button aria-label="Delight Flash" class="dev-expression-btn dev-expression-btn--beyond" data-micro="delight_flash" title="Micro-delight (100ms)">
               ${ICONS.sparkles} Delight Flash
             </button>
-            <button class="dev-expression-btn dev-expression-btn--beyond" data-micro="warmth_pulse" title="Warmth pulse (120ms)">
+            <button aria-label="Warmth Pulse" class="dev-expression-btn dev-expression-btn--beyond" data-micro="warmth_pulse" title="Warmth pulse (120ms)">
               ${ICONS.heartPulse} Warmth Pulse
             </button>
           </div>
@@ -1464,17 +1638,17 @@ function createPanel(): HTMLElement {
         <!-- Active Listening -->
         <div class="dev-subsection">
           <span class="dev-label">Active Listening</span>
-          <div class="dev-expression-buttons">
-            <button class="dev-expression-btn dev-expression-btn--beyond" data-listen="micro-nod" title="Barely perceptible nod">
+          <div class="dev-expression-buttons" role="button" tabindex="0">
+            <button aria-label="User profile" class="dev-expression-btn dev-expression-btn--beyond" data-listen="micro-nod" title="Barely perceptible nod">
               ${ICONS.user} Micro-Nod
             </button>
-            <button class="dev-expression-btn dev-expression-btn--beyond" data-listen="subtle-nod" title="Subtle acknowledgment nod">
+            <button aria-label="User profile" class="dev-expression-btn dev-expression-btn--beyond" data-listen="subtle-nod" title="Subtle acknowledgment nod">
               ${ICONS.user} Subtle Nod
             </button>
-            <button class="dev-expression-btn dev-expression-btn--beyond" data-listen="visible-nod" title="Visible listening nod">
+            <button aria-label="User profile" class="dev-expression-btn dev-expression-btn--beyond" data-listen="visible-nod" title="Visible listening nod">
               ${ICONS.user} Visible Nod
             </button>
-            <button class="dev-expression-btn dev-expression-btn--beyond" data-listen="lean" title="Lean in with interest">
+            <button aria-label="Lean In" class="dev-expression-btn dev-expression-btn--beyond" data-listen="lean" title="Lean in with interest">
               ${ICONS.layers} Lean In
             </button>
           </div>
@@ -1483,14 +1657,14 @@ function createPanel(): HTMLElement {
         <!-- Concern Detection -->
         <div class="dev-subsection">
           <span class="dev-label">Concern Response</span>
-          <div class="dev-expression-buttons">
-            <button class="dev-expression-btn dev-expression-btn--beyond" data-concern="mild" title="Mild concern (subtle)">
+          <div class="dev-expression-buttons" role="button" tabindex="0">
+            <button aria-label="Mild Concern" class="dev-expression-btn dev-expression-btn--beyond" data-concern="mild" title="Mild concern (subtle)">
               ${ICONS.meh} Mild Concern
             </button>
-            <button class="dev-expression-btn dev-expression-btn--beyond" data-concern="moderate" title="Moderate concern (visible)">
+            <button aria-label="Moderate" class="dev-expression-btn dev-expression-btn--beyond" data-concern="moderate" title="Moderate concern (visible)">
               ${ICONS.worried} Moderate
             </button>
-            <button class="dev-expression-btn dev-expression-btn--beyond" data-concern="significant" title="Significant concern (active)">
+            <button aria-label="Significant" class="dev-expression-btn dev-expression-btn--beyond" data-concern="significant" title="Significant concern (active)">
               ${ICONS.frown} Significant
             </button>
           </div>
@@ -1499,17 +1673,17 @@ function createPanel(): HTMLElement {
         <!-- Breath Sync -->
         <div class="dev-subsection">
           <span class="dev-label">Breath Sync</span>
-          <div class="dev-expression-buttons">
-            <button class="dev-expression-btn dev-expression-btn--beyond" data-breath="slow" title="Sync to slow breath (10/min)">
+          <div class="dev-expression-buttons" role="button" tabindex="0">
+            <button aria-label="Slow (10/min)" class="dev-expression-btn dev-expression-btn--beyond" data-breath="slow" title="Sync to slow breath (10/min)">
               ${ICONS.turtle} Slow (10/min)
             </button>
-            <button class="dev-expression-btn dev-expression-btn--beyond" data-breath="normal" title="Sync to normal breath (15/min)">
+            <button aria-label="Normal (15/min)" class="dev-expression-btn dev-expression-btn--beyond" data-breath="normal" title="Sync to normal breath (15/min)">
               ${ICONS.smile} Normal (15/min)
             </button>
-            <button class="dev-expression-btn dev-expression-btn--beyond" data-breath="fast" title="Sync to fast breath (20/min)">
+            <button aria-label="Fast (20/min)" class="dev-expression-btn dev-expression-btn--beyond" data-breath="fast" title="Sync to fast breath (20/min)">
               ${ICONS.wind} Fast (20/min)
             </button>
-            <button class="dev-expression-btn dev-expression-btn--beyond" data-breath="off" title="Disable breath sync">
+            <button aria-label="Off" class="dev-expression-btn dev-expression-btn--beyond" data-breath="off" title="Disable breath sync">
               ${ICONS.ban} Off
             </button>
           </div>
@@ -1523,17 +1697,17 @@ function createPanel(): HTMLElement {
         
         <div class="dev-subsection">
           <span class="dev-label">Connection State</span>
-          <div class="dev-expression-buttons">
-            <button class="dev-expression-btn dev-expression-btn--connection" data-connection="connecting" title="Show connecting state">
+          <div class="dev-expression-buttons" role="button" tabindex="0">
+            <button aria-label="Refresh" class="dev-expression-btn dev-expression-btn--connection" data-connection="connecting" title="Show connecting state">
               ${ICONS.refresh} Connecting
             </button>
-            <button class="dev-expression-btn dev-expression-btn--connection" data-connection="connected" title="Show connected state">
+            <button aria-label="Confirm" class="dev-expression-btn dev-expression-btn--connection" data-connection="connected" title="Show connected state">
               ${ICONS.checkCircle} Connected
             </button>
-            <button class="dev-expression-btn dev-expression-btn--connection" data-connection="disconnected" title="Show disconnected state">
+            <button aria-label="Disconnected" class="dev-expression-btn dev-expression-btn--connection" data-connection="disconnected" title="Show disconnected state">
               ${ICONS.xCircle} Disconnected
             </button>
-            <button class="dev-expression-btn dev-expression-btn--connection" data-connection="error" title="Show error state">
+            <button aria-label="Error" class="dev-expression-btn dev-expression-btn--connection" data-connection="error" title="Show error state">
               ${ICONS.alertTriangle} Error
             </button>
           </div>
@@ -1541,23 +1715,23 @@ function createPanel(): HTMLElement {
         
         <div class="dev-subsection">
           <span class="dev-label">Sound Effects</span>
-          <div class="dev-expression-buttons">
-            <button class="dev-expression-btn dev-expression-btn--sound" data-sound="connect" title="Play connect sound">
+          <div class="dev-expression-buttons" role="button" tabindex="0">
+            <button aria-label="Connect" class="dev-expression-btn dev-expression-btn--sound" data-sound="connect" title="Play connect sound">
               ${ICONS.bell} Connect
             </button>
-            <button class="dev-expression-btn dev-expression-btn--sound" data-sound="disconnect" title="Play disconnect sound">
+            <button aria-label="Disconnect" class="dev-expression-btn dev-expression-btn--sound" data-sound="disconnect" title="Play disconnect sound">
               ${ICONS.bellOff} Disconnect
             </button>
-            <button class="dev-expression-btn dev-expression-btn--sound" data-sound="success" title="Play success sound">
+            <button aria-label="Success" class="dev-expression-btn dev-expression-btn--sound" data-sound="success" title="Play success sound">
               ${ICONS.sparkles} Success
             </button>
-            <button class="dev-expression-btn dev-expression-btn--sound" data-sound="error" title="Play error sound">
+            <button aria-label="Error" class="dev-expression-btn dev-expression-btn--sound" data-sound="error" title="Play error sound">
               ${ICONS.alertCircle} Error
             </button>
-            <button class="dev-expression-btn dev-expression-btn--sound" data-sound="hover" title="Play hover sound">
+            <button aria-label="Hover" class="dev-expression-btn dev-expression-btn--sound" data-sound="hover" title="Play hover sound">
               ${ICONS.pointer} Hover
             </button>
-            <button class="dev-expression-btn dev-expression-btn--sound" data-sound="click" title="Play click sound">
+            <button aria-label="Click" class="dev-expression-btn dev-expression-btn--sound" data-sound="click" title="Play click sound">
               ${ICONS.click} Click
             </button>
           </div>
@@ -1571,17 +1745,17 @@ function createPanel(): HTMLElement {
         
         <div class="dev-subsection">
           <span class="dev-label">Message Type</span>
-          <div class="dev-expression-buttons">
-            <button class="dev-expression-btn dev-expression-btn--message" data-message="user" title="Inject user message">
+          <div class="dev-expression-buttons" role="button" tabindex="0">
+            <button aria-label="User profile" class="dev-expression-btn dev-expression-btn--message" data-message="user" title="Inject user message">
               ${ICONS.user} User Message
             </button>
-            <button class="dev-expression-btn dev-expression-btn--message" data-message="agent" title="Inject agent message">
+            <button aria-label="Agent Message" class="dev-expression-btn dev-expression-btn--message" data-message="agent" title="Inject agent message">
               ${ICONS.robot} Agent Message
             </button>
-            <button class="dev-expression-btn dev-expression-btn--message" data-message="thinking" title="Show thinking indicator">
+            <button aria-label="Thinking..." class="dev-expression-btn dev-expression-btn--message" data-message="thinking" title="Show thinking indicator">
               ${ICONS.messageCircle} Thinking...
             </button>
-            <button class="dev-expression-btn dev-expression-btn--message" data-message="whisper" title="Show status whisper">
+            <button aria-label="Volume" class="dev-expression-btn dev-expression-btn--message" data-message="whisper" title="Show status whisper">
               ${ICONS.volumeOff} Whisper
             </button>
           </div>
@@ -1589,17 +1763,17 @@ function createPanel(): HTMLElement {
         
         <div class="dev-subsection">
           <span class="dev-label">Toast Notifications</span>
-          <div class="dev-expression-buttons">
-            <button class="dev-expression-btn dev-expression-btn--toast" data-toast="success" title="Show success toast">
+          <div class="dev-expression-buttons" role="button" tabindex="0">
+            <button aria-label="Confirm" class="dev-expression-btn dev-expression-btn--toast" data-toast="success" title="Show success toast">
               ${ICONS.checkCircle} Success
             </button>
-            <button class="dev-expression-btn dev-expression-btn--toast" data-toast="error" title="Show error toast">
+            <button aria-label="Error" class="dev-expression-btn dev-expression-btn--toast" data-toast="error" title="Show error toast">
               ${ICONS.xCircle} Error
             </button>
-            <button class="dev-expression-btn dev-expression-btn--toast" data-toast="info" title="Show info toast">
+            <button aria-label="More information" class="dev-expression-btn dev-expression-btn--toast" data-toast="info" title="Show info toast">
               ${ICONS.info} Info
             </button>
-            <button class="dev-expression-btn dev-expression-btn--toast" data-toast="warning" title="Show warning toast">
+            <button aria-label="Warning" class="dev-expression-btn dev-expression-btn--toast" data-toast="warning" title="Show warning toast">
               ${ICONS.alertTriangle} Warning
             </button>
           </div>
@@ -1613,17 +1787,17 @@ function createPanel(): HTMLElement {
         
         <div class="dev-subsection">
           <span class="dev-label">Panels</span>
-          <div class="dev-expression-buttons">
-            <button class="dev-expression-btn dev-expression-btn--modal" data-modal="analytics" title="Open analytics">
+          <div class="dev-expression-buttons" role="button" tabindex="0">
+            <button aria-label="Analytics" class="dev-expression-btn dev-expression-btn--modal" data-modal="analytics" title="Open analytics">
               ${ICONS.barChart} Analytics
             </button>
-            <button class="dev-expression-btn dev-expression-btn--modal" data-modal="history" title="Open conversation history">
+            <button aria-label="History" class="dev-expression-btn dev-expression-btn--modal" data-modal="history" title="Open conversation history">
               ${ICONS.scroll} History
             </button>
-            <button class="dev-expression-btn dev-expression-btn--modal" data-modal="insights" title="Open insights">
+            <button aria-label="Insights" class="dev-expression-btn dev-expression-btn--modal" data-modal="insights" title="Open insights">
               ${ICONS.brain} Insights
             </button>
-            <button class="dev-expression-btn dev-expression-btn--modal" data-modal="predictions" title="Open predictions">
+            <button aria-label="Predictions" class="dev-expression-btn dev-expression-btn--modal" data-modal="predictions" title="Open predictions">
               ${ICONS.crystalBall} Predictions
             </button>
           </div>
@@ -1631,17 +1805,17 @@ function createPanel(): HTMLElement {
         
         <div class="dev-subsection">
           <span class="dev-label">Special</span>
-          <div class="dev-expression-buttons">
-            <button class="dev-expression-btn dev-expression-btn--modal" data-modal="tour" title="Restart app tour">
+          <div class="dev-expression-buttons" role="button" tabindex="0">
+            <button aria-label="Restart Tour" class="dev-expression-btn dev-expression-btn--modal" data-modal="tour" title="Restart app tour">
               ${ICONS.target} Restart Tour
             </button>
-            <button class="dev-expression-btn dev-expression-btn--modal" data-modal="daily" title="Open daily check-in">
+            <button aria-label="Confirm" class="dev-expression-btn dev-expression-btn--modal" data-modal="daily" title="Open daily check-in">
               ${ICONS.sun} Daily Check-in
             </button>
-            <button class="dev-expression-btn dev-expression-btn--modal" data-modal="huddle" title="Open team huddle">
+            <button aria-label="Team Huddle" class="dev-expression-btn dev-expression-btn--modal" data-modal="huddle" title="Open team huddle">
               ${ICONS.handshake} Team Huddle
             </button>
-            <button class="dev-expression-btn dev-expression-btn--modal" data-modal="marketplace" title="Open marketplace">
+            <button aria-label="Marketplace" class="dev-expression-btn dev-expression-btn--modal" data-modal="marketplace" title="Open marketplace">
               ${ICONS.store} Marketplace
             </button>
           </div>
@@ -1655,20 +1829,20 @@ function createPanel(): HTMLElement {
         
         <div class="dev-subsection">
           <span class="dev-label">Time Override</span>
-          <div class="dev-expression-buttons">
-            <button class="dev-expression-btn dev-expression-btn--time" data-time="morning" title="Set to morning (6am)">
+          <div class="dev-expression-buttons" role="button" tabindex="0">
+            <button aria-label="Morning" class="dev-expression-btn dev-expression-btn--time" data-time="morning" title="Set to morning (6am)">
               ${ICONS.sunrise} Morning
             </button>
-            <button class="dev-expression-btn dev-expression-btn--time" data-time="afternoon" title="Set to afternoon (2pm)">
+            <button aria-label="Afternoon" class="dev-expression-btn dev-expression-btn--time" data-time="afternoon" title="Set to afternoon (2pm)">
               ${ICONS.sun} Afternoon
             </button>
-            <button class="dev-expression-btn dev-expression-btn--time" data-time="evening" title="Set to evening (7pm)">
+            <button aria-label="Evening" class="dev-expression-btn dev-expression-btn--time" data-time="evening" title="Set to evening (7pm)">
               ${ICONS.sunset} Evening
             </button>
-            <button class="dev-expression-btn dev-expression-btn--time" data-time="night" title="Set to night (11pm)">
+            <button aria-label="Night" class="dev-expression-btn dev-expression-btn--time" data-time="night" title="Set to night (11pm)">
               ${ICONS.moon} Night
             </button>
-            <button class="dev-expression-btn dev-expression-btn--time" data-time="reset" title="Use real time">
+            <button aria-label="Refresh" class="dev-expression-btn dev-expression-btn--time" data-time="reset" title="Use real time">
               ${ICONS.refresh} Real Time
             </button>
           </div>
@@ -1676,14 +1850,14 @@ function createPanel(): HTMLElement {
         
         <div class="dev-subsection">
           <span class="dev-label">Accessibility</span>
-          <div class="dev-expression-buttons">
-            <button class="dev-expression-btn dev-expression-btn--a11y" data-a11y="reduce-motion" title="Toggle reduced motion">
+          <div class="dev-expression-buttons" role="button" tabindex="0">
+            <button aria-label="Reduced Motion" class="dev-expression-btn dev-expression-btn--a11y" data-a11y="reduce-motion" title="Toggle reduced motion">
               ${ICONS.turtle} Reduced Motion
             </button>
-            <button class="dev-expression-btn dev-expression-btn--a11y" data-a11y="high-contrast" title="Toggle high contrast">
+            <button aria-label="High Contrast" class="dev-expression-btn dev-expression-btn--a11y" data-a11y="high-contrast" title="Toggle high contrast">
               ${ICONS.layers} High Contrast
             </button>
-            <button class="dev-expression-btn dev-expression-btn--a11y" data-a11y="large-text" title="Toggle large text">
+            <button aria-label="Large Text" class="dev-expression-btn dev-expression-btn--a11y" data-a11y="large-text" title="Toggle large text">
               ${ICONS.activity} Large Text
             </button>
           </div>
@@ -1697,17 +1871,17 @@ function createPanel(): HTMLElement {
         
         <div class="dev-subsection">
           <span class="dev-label">Special Effects</span>
-          <div class="dev-expression-buttons">
-            <button class="dev-expression-btn dev-expression-btn--easter" data-easter="confetti" title="Confetti burst">
+          <div class="dev-expression-buttons" role="button" tabindex="0">
+            <button aria-label="Confetti" class="dev-expression-btn dev-expression-btn--easter" data-easter="confetti" title="Confetti burst">
               ${ICONS.confetti} Confetti
             </button>
-            <button class="dev-expression-btn dev-expression-btn--easter" data-easter="fireworks" title="Fireworks">
+            <button aria-label="Fireworks" class="dev-expression-btn dev-expression-btn--easter" data-easter="fireworks" title="Fireworks">
               ${ICONS.fireworks} Fireworks
             </button>
-            <button class="dev-expression-btn dev-expression-btn--easter" data-easter="party" title="Party mode">
+            <button aria-label="Party Mode" class="dev-expression-btn dev-expression-btn--easter" data-easter="party" title="Party mode">
               ${ICONS.party} Party Mode
             </button>
-            <button class="dev-expression-btn dev-expression-btn--easter" data-easter="zen" title="Zen moment">
+            <button aria-label="Zen" class="dev-expression-btn dev-expression-btn--easter" data-easter="zen" title="Zen moment">
               ${ICONS.yoga} Zen
             </button>
           </div>
@@ -1740,11 +1914,11 @@ function createPanel(): HTMLElement {
         
         <div class="dev-subsection">
           <span class="dev-label">Toggle States</span>
-          <div class="dev-expression-buttons">
-            <button class="dev-expression-btn dev-expression-btn--state" data-state="toggle-mute" title="Toggle muted state">
+          <div class="dev-expression-buttons" role="button" tabindex="0">
+            <button aria-label="Volume" class="dev-expression-btn dev-expression-btn--state" data-state="toggle-mute" title="Toggle muted state">
               ${ICONS.volumeOff} Toggle Mute
             </button>
-            <button class="dev-expression-btn dev-expression-btn--state" data-state="refresh" title="Refresh state display">
+            <button aria-label="Refresh" class="dev-expression-btn dev-expression-btn--state" data-state="refresh" title="Refresh state display">
               ${ICONS.refresh} Refresh
             </button>
           </div>
@@ -1758,23 +1932,23 @@ function createPanel(): HTMLElement {
         
         <div class="dev-subsection">
           <span class="dev-label">Waveform Mode</span>
-          <div class="dev-expression-buttons">
-            <button class="dev-expression-btn dev-expression-btn--waveform" data-waveform="idle" title="Idle state">
+          <div class="dev-expression-buttons" role="button" tabindex="0">
+            <button aria-label="Idle" class="dev-expression-btn dev-expression-btn--waveform" data-waveform="idle" title="Idle state">
               ${ICONS.sleepy} Idle
             </button>
-            <button class="dev-expression-btn dev-expression-btn--waveform" data-waveform="listening" title="Listening state">
+            <button aria-label="Listening" class="dev-expression-btn dev-expression-btn--waveform" data-waveform="listening" title="Listening state">
               ${ICONS.mic} Listening
             </button>
-            <button class="dev-expression-btn dev-expression-btn--waveform" data-waveform="speaking-low" title="Low intensity speaking">
+            <button aria-label="Volume" class="dev-expression-btn dev-expression-btn--waveform" data-waveform="speaking-low" title="Low intensity speaking">
               ${ICONS.volumeLow} Speaking Low
             </button>
-            <button class="dev-expression-btn dev-expression-btn--waveform" data-waveform="speaking-med" title="Medium intensity speaking">
+            <button aria-label="Volume" class="dev-expression-btn dev-expression-btn--waveform" data-waveform="speaking-med" title="Medium intensity speaking">
               ${ICONS.volumeHigh} Speaking Med
             </button>
-            <button class="dev-expression-btn dev-expression-btn--waveform" data-waveform="speaking-high" title="High intensity speaking">
+            <button aria-label="Volume" class="dev-expression-btn dev-expression-btn--waveform" data-waveform="speaking-high" title="High intensity speaking">
               ${ICONS.speaker} Speaking High
             </button>
-            <button class="dev-expression-btn dev-expression-btn--waveform" data-waveform="thinking" title="Thinking state">
+            <button aria-label="Thinking" class="dev-expression-btn dev-expression-btn--waveform" data-waveform="thinking" title="Thinking state">
               ${ICONS.thinking} Thinking
             </button>
           </div>
@@ -1788,17 +1962,17 @@ function createPanel(): HTMLElement {
         
         <div class="dev-subsection">
           <span class="dev-label">Loading UI</span>
-          <div class="dev-expression-buttons">
-            <button class="dev-expression-btn dev-expression-btn--loading" data-loading="skeleton-avatar" title="Avatar skeleton">
+          <div class="dev-expression-buttons" role="button" tabindex="0">
+            <button aria-label="User profile" class="dev-expression-btn dev-expression-btn--loading" data-loading="skeleton-avatar" title="Avatar skeleton">
               ${ICONS.user} Avatar Skeleton
             </button>
-            <button class="dev-expression-btn dev-expression-btn--loading" data-loading="skeleton-team" title="Team skeleton">
+            <button aria-label="User profile" class="dev-expression-btn dev-expression-btn--loading" data-loading="skeleton-team" title="Team skeleton">
               ${ICONS.users} Team Skeleton
             </button>
-            <button class="dev-expression-btn dev-expression-btn--loading" data-loading="spinner" title="Show spinner">
+            <button aria-label="Spinner" class="dev-expression-btn dev-expression-btn--loading" data-loading="spinner" title="Show spinner">
               ${ICONS.hourglass} Spinner
             </button>
-            <button class="dev-expression-btn dev-expression-btn--loading" data-loading="clear" title="Clear loading states">
+            <button aria-label="Confirm" class="dev-expression-btn dev-expression-btn--loading" data-loading="clear" title="Clear loading states">
               ${ICONS.check} Clear All
             </button>
           </div>
@@ -1812,26 +1986,26 @@ function createPanel(): HTMLElement {
         
         <div class="dev-subsection">
           <span class="dev-label">Streak Days</span>
-          <div class="dev-expression-buttons">
-            <button class="dev-expression-btn dev-expression-btn--streak" data-streak="3" title="3-day streak">
+          <div class="dev-expression-buttons" role="button" tabindex="0">
+            <button aria-label="3 Days" class="dev-expression-btn dev-expression-btn--streak" data-streak="3" title="3-day streak">
               ${ICONS.activity} 3 Days
             </button>
-            <button class="dev-expression-btn dev-expression-btn--streak" data-streak="7" title="7-day streak">
+            <button aria-label="7 Days" class="dev-expression-btn dev-expression-btn--streak" data-streak="7" title="7-day streak">
               ${ICONS.activity} 7 Days
             </button>
-            <button class="dev-expression-btn dev-expression-btn--streak" data-streak="14" title="14-day streak">
+            <button aria-label="14 Days" class="dev-expression-btn dev-expression-btn--streak" data-streak="14" title="14-day streak">
               ${ICONS.calendar} 14 Days
             </button>
-            <button class="dev-expression-btn dev-expression-btn--streak" data-streak="30" title="30-day streak">
+            <button aria-label="30 Days" class="dev-expression-btn dev-expression-btn--streak" data-streak="30" title="30-day streak">
               ${ICONS.moon} 30 Days
             </button>
-            <button class="dev-expression-btn dev-expression-btn--streak" data-streak="60" title="60-day streak">
+            <button aria-label="60 Days" class="dev-expression-btn dev-expression-btn--streak" data-streak="60" title="60-day streak">
               ${ICONS.star} 60 Days
             </button>
-            <button class="dev-expression-btn dev-expression-btn--streak" data-streak="90" title="90-day streak">
+            <button aria-label="90 Days" class="dev-expression-btn dev-expression-btn--streak" data-streak="90" title="90-day streak">
               ${ICONS.trophy} 90 Days
             </button>
-            <button class="dev-expression-btn dev-expression-btn--streak" data-streak="365" title="365-day streak">
+            <button aria-label="365 Days!" class="dev-expression-btn dev-expression-btn--streak" data-streak="365" title="365-day streak">
               ${ICONS.crown} 365 Days!
             </button>
           </div>
@@ -1845,17 +2019,17 @@ function createPanel(): HTMLElement {
         
         <div class="dev-subsection">
           <span class="dev-label">Connection Quality</span>
-          <div class="dev-expression-buttons">
-            <button class="dev-expression-btn dev-expression-btn--network" data-network="excellent" title="Excellent connection">
+          <div class="dev-expression-buttons" role="button" tabindex="0">
+            <button aria-label="Excellent" class="dev-expression-btn dev-expression-btn--network" data-network="excellent" title="Excellent connection">
               ${ICONS.signalStrength} Excellent
             </button>
-            <button class="dev-expression-btn dev-expression-btn--network" data-network="good" title="Good connection">
+            <button aria-label="Good" class="dev-expression-btn dev-expression-btn--network" data-network="good" title="Good connection">
               ${ICONS.signalStrength} Good
             </button>
-            <button class="dev-expression-btn dev-expression-btn--network" data-network="poor" title="Poor connection">
+            <button aria-label="Poor" class="dev-expression-btn dev-expression-btn--network" data-network="poor" title="Poor connection">
               ${ICONS.signalStrength} Poor
             </button>
-            <button class="dev-expression-btn dev-expression-btn--network" data-network="offline" title="Offline mode">
+            <button aria-label="Offline" class="dev-expression-btn dev-expression-btn--network" data-network="offline" title="Offline mode">
               ${ICONS.xCircle} Offline
             </button>
           </div>
@@ -1863,17 +2037,17 @@ function createPanel(): HTMLElement {
         
         <div class="dev-subsection">
           <span class="dev-label">Latency</span>
-          <div class="dev-expression-buttons">
-            <button class="dev-expression-btn dev-expression-btn--latency" data-latency="0" title="No latency">
+          <div class="dev-expression-buttons" role="button" tabindex="0">
+            <button aria-label="0ms" class="dev-expression-btn dev-expression-btn--latency" data-latency="0" title="No latency">
               ${ICONS.zap} 0ms
             </button>
-            <button class="dev-expression-btn dev-expression-btn--latency" data-latency="200" title="200ms latency">
+            <button aria-label="200ms" class="dev-expression-btn dev-expression-btn--latency" data-latency="200" title="200ms latency">
               ${ICONS.turtle} 200ms
             </button>
-            <button class="dev-expression-btn dev-expression-btn--latency" data-latency="500" title="500ms latency">
+            <button aria-label="500ms" class="dev-expression-btn dev-expression-btn--latency" data-latency="500" title="500ms latency">
               ${ICONS.sloth} 500ms
             </button>
-            <button class="dev-expression-btn dev-expression-btn--latency" data-latency="1000" title="1s latency">
+            <button aria-label="1000ms" class="dev-expression-btn dev-expression-btn--latency" data-latency="1000" title="1s latency">
               ${ICONS.snail} 1000ms
             </button>
           </div>
@@ -1894,20 +2068,20 @@ function createPanel(): HTMLElement {
         
         <div class="dev-subsection">
           <span class="dev-label">Actions</span>
-          <div class="dev-expression-buttons">
-            <button class="dev-expression-btn dev-expression-btn--storage" data-storage="view" title="View all storage">
+          <div class="dev-expression-buttons" role="button" tabindex="0">
+            <button aria-label="View Storage" class="dev-expression-btn dev-expression-btn--storage" data-storage="view" title="View all storage">
               ${ICONS.eye} View Storage
             </button>
-            <button class="dev-expression-btn dev-expression-btn--storage" data-storage="clear-cache" title="Clear cache">
+            <button aria-label="Clear Cache" class="dev-expression-btn dev-expression-btn--storage" data-storage="clear-cache" title="Clear cache">
               ${ICONS.brush} Clear Cache
             </button>
-            <button class="dev-expression-btn dev-expression-btn--storage" data-storage="clear-marketplace" title="Clear installed marketplace agents">
+            <button aria-label="Clear Marketplace" class="dev-expression-btn dev-expression-btn--storage" data-storage="clear-marketplace" title="Clear installed marketplace agents">
               ${ICONS.store} Clear Marketplace
             </button>
-            <button class="dev-expression-btn dev-expression-btn--storage" data-storage="clear-all" title="Clear ALL data (careful!)">
+            <button aria-label="Clear ALL" class="dev-expression-btn dev-expression-btn--storage" data-storage="clear-all" title="Clear ALL data (careful!)">
               ${ICONS.alertTriangle} Clear ALL
             </button>
-            <button class="dev-expression-btn dev-expression-btn--storage" data-storage="export" title="Export storage to console">
+            <button aria-label="Upload" class="dev-expression-btn dev-expression-btn--storage" data-storage="export" title="Export storage to console">
               ${ICONS.upload} Export
             </button>
           </div>
@@ -1921,17 +2095,17 @@ function createPanel(): HTMLElement {
         
         <div class="dev-subsection">
           <span class="dev-label">Effects</span>
-          <div class="dev-expression-buttons">
-            <button class="dev-expression-btn dev-expression-btn--ambient" data-ambient="particles" title="Toggle particles">
+          <div class="dev-expression-buttons" role="button" tabindex="0">
+            <button aria-label="Particles" class="dev-expression-btn dev-expression-btn--ambient" data-ambient="particles" title="Toggle particles">
               ${ICONS.sparkles} Particles
             </button>
-            <button class="dev-expression-btn dev-expression-btn--ambient" data-ambient="glow" title="Toggle ambient glow">
+            <button aria-label="Ambient Glow" class="dev-expression-btn dev-expression-btn--ambient" data-ambient="glow" title="Toggle ambient glow">
               ${ICONS.star} Ambient Glow
             </button>
-            <button class="dev-expression-btn dev-expression-btn--ambient" data-ambient="aurora" title="Toggle aurora">
+            <button aria-label="Aurora" class="dev-expression-btn dev-expression-btn--ambient" data-ambient="aurora" title="Toggle aurora">
               ${ICONS.aurora} Aurora
             </button>
-            <button class="dev-expression-btn dev-expression-btn--ambient" data-ambient="off" title="Turn off all effects">
+            <button aria-label="All Off" class="dev-expression-btn dev-expression-btn--ambient" data-ambient="off" title="Turn off all effects">
               ${ICONS.ban} All Off
             </button>
           </div>
@@ -1939,8 +2113,8 @@ function createPanel(): HTMLElement {
         
         <div class="dev-subsection">
           <span class="dev-label">Avatar Weather (${getCurrentSeason()})</span>
-          <div class="dev-expression-buttons">
-            <button class="dev-expression-btn dev-expression-btn--weather dev-expression-btn--primary" data-weather="moment" title="Play brief seasonal moment">
+          <div class="dev-expression-buttons" role="button" tabindex="0">
+            <button aria-label="Seasonal Moment" class="dev-expression-btn dev-expression-btn--weather dev-expression-btn--primary" data-weather="moment" title="Play brief seasonal moment">
               ${ICONS.sparkles} Seasonal Moment
             </button>
             <button class="dev-expression-btn dev-expression-btn--weather ${getCurrentWeather() === 'snow' ? 'active' : ''}" data-weather="snow" title="Snow around avatar">
@@ -1963,6 +2137,64 @@ function createPanel(): HTMLElement {
             </button>
           </div>
         </div>
+        
+        <!-- Circadian & Warmth Testing -->
+        <div class="dev-subsection">
+          <span class="dev-label">${ICONS.moon} Circadian Period (${circadianManager.getCurrentPeriod() || 'auto'})</span>
+          <div class="dev-expression-buttons" role="button" tabindex="0">
+            <button class="dev-expression-btn dev-expression-btn--circadian ${circadianManager.getCurrentPeriod() === 'earlyMorning' ? 'active' : ''}" data-circadian="earlyMorning" title="Dawn">
+              🌅 Dawn
+            </button>
+            <button class="dev-expression-btn dev-expression-btn--circadian ${circadianManager.getCurrentPeriod() === 'morning' ? 'active' : ''}" data-circadian="morning" title="Morning">
+              ☀️ Morning
+            </button>
+            <button class="dev-expression-btn dev-expression-btn--circadian ${circadianManager.getCurrentPeriod() === 'midday' ? 'active' : ''}" data-circadian="midday" title="Midday">
+              🌞 Midday
+            </button>
+            <button class="dev-expression-btn dev-expression-btn--circadian ${circadianManager.getCurrentPeriod() === 'afternoon' ? 'active' : ''}" data-circadian="afternoon" title="Afternoon">
+              🌤️ Afternoon
+            </button>
+            <button class="dev-expression-btn dev-expression-btn--circadian ${circadianManager.getCurrentPeriod() === 'evening' ? 'active' : ''}" data-circadian="evening" title="Evening">
+              🌇 Evening
+            </button>
+            <button class="dev-expression-btn dev-expression-btn--circadian ${circadianManager.getCurrentPeriod() === 'night' ? 'active' : ''}" data-circadian="night" title="Night">
+              🌙 Night
+            </button>
+            <button class="dev-expression-btn dev-expression-btn--circadian ${circadianManager.getCurrentPeriod() === 'lateNight' ? 'active' : ''}" data-circadian="lateNight" title="Late Night">
+              🌃 Late Night
+            </button>
+            <button class="dev-expression-btn dev-expression-btn--circadian ${circadianManager.getCurrentPeriod() === 'deepNight' ? 'active' : ''}" data-circadian="deepNight" title="Deep Night">
+              ✨ Deep Night
+            </button>
+            <button class="dev-expression-btn dev-expression-btn--circadian" data-circadian="auto" title="Reset to Auto">
+              🔄 Auto
+            </button>
+          </div>
+        </div>
+        
+        <div class="dev-subsection">
+          <span class="dev-label">${ICONS.heart} Relationship Warmth</span>
+          <div class="dev-expression-buttons" role="button" tabindex="0">
+            <button class="dev-expression-btn dev-expression-btn--warmth" data-warmth="first-meeting" title="First Meeting">
+              1️⃣ First Meeting
+            </button>
+            <button class="dev-expression-btn dev-expression-btn--warmth" data-warmth="getting-started" title="Getting Started">
+              2️⃣ Getting Started
+            </button>
+            <button class="dev-expression-btn dev-expression-btn--warmth" data-warmth="building-trust" title="Building Trust">
+              3️⃣ Building Trust
+            </button>
+            <button class="dev-expression-btn dev-expression-btn--warmth" data-warmth="established" title="Established">
+              4️⃣ Established
+            </button>
+            <button class="dev-expression-btn dev-expression-btn--warmth" data-warmth="deep-partnership" title="Deep Partnership">
+              5️⃣ Deep Partnership
+            </button>
+            <button class="dev-expression-btn dev-expression-btn--warmth dev-expression-btn--primary" data-warmth="celebrate" title="Trigger Warmth Celebration">
+              ${ICONS.sparkles} Celebration
+            </button>
+          </div>
+        </div>
       </section>
       
       <!-- ${ICONS.upload} Proactive Outreach Testing -->
@@ -1979,17 +2211,17 @@ function createPanel(): HTMLElement {
         
         <div class="dev-subsection">
           <span class="dev-label">Test Channels</span>
-          <div class="dev-expression-buttons">
-            <button class="dev-expression-btn dev-expression-btn--outreach dev-expression-btn--primary" data-outreach="check-config" title="Check if phone/email is configured">
+          <div class="dev-expression-buttons" role="button" tabindex="0">
+            <button aria-label="Confirm" class="dev-expression-btn dev-expression-btn--outreach dev-expression-btn--primary" data-outreach="check-config" title="Check if phone/email is configured">
               ${ICONS.search} Check Config
             </button>
-            <button class="dev-expression-btn dev-expression-btn--outreach" data-outreach="test-sms" title="Send test SMS">
+            <button aria-label="Test SMS" class="dev-expression-btn dev-expression-btn--outreach" data-outreach="test-sms" title="Send test SMS">
               ${ICONS.smartphone} Test SMS
             </button>
-            <button class="dev-expression-btn dev-expression-btn--outreach" data-outreach="test-email" title="Send test email">
+            <button aria-label="Test Email" class="dev-expression-btn dev-expression-btn--outreach" data-outreach="test-email" title="Send test email">
               ${ICONS.mail} Test Email
             </button>
-            <button class="dev-expression-btn dev-expression-btn--outreach" data-outreach="test-call" title="Make test call">
+            <button aria-label="Test Call" class="dev-expression-btn dev-expression-btn--outreach" data-outreach="test-call" title="Make test call">
               ${ICONS.phone} Test Call
             </button>
           </div>
@@ -1997,17 +2229,17 @@ function createPanel(): HTMLElement {
         
         <div class="dev-subsection">
           <span class="dev-label">Trigger Types</span>
-          <div class="dev-expression-buttons">
-            <button class="dev-expression-btn dev-expression-btn--outreach" data-outreach="trigger-commitment" title="Commitment check-in">
+          <div class="dev-expression-buttons" role="button" tabindex="0">
+            <button aria-label="Copy" class="dev-expression-btn dev-expression-btn--outreach" data-outreach="trigger-commitment" title="Commitment check-in">
               ${ICONS.clipboard} Commitment
             </button>
-            <button class="dev-expression-btn dev-expression-btn--outreach" data-outreach="trigger-emotional" title="Emotional support">
+            <button aria-label="Emotional" class="dev-expression-btn dev-expression-btn--outreach" data-outreach="trigger-emotional" title="Emotional support">
               ${ICONS.heart} Emotional
             </button>
-            <button class="dev-expression-btn dev-expression-btn--outreach" data-outreach="trigger-celebration" title="Celebration">
+            <button aria-label="Celebration" class="dev-expression-btn dev-expression-btn--outreach" data-outreach="trigger-celebration" title="Celebration">
               ${ICONS.party} Celebration
             </button>
-            <button class="dev-expression-btn dev-expression-btn--outreach" data-outreach="trigger-thinking" title="Thinking of you">
+            <button aria-label="Thinking of You" class="dev-expression-btn dev-expression-btn--outreach" data-outreach="trigger-thinking" title="Thinking of you">
               ${ICONS.messageCircle} Thinking of You
             </button>
           </div>
@@ -2015,17 +2247,17 @@ function createPanel(): HTMLElement {
         
         <div class="dev-subsection">
           <span class="dev-label">View Data</span>
-          <div class="dev-expression-buttons">
-            <button class="dev-expression-btn dev-expression-btn--outreach" data-outreach="view-pending" title="View pending outreach">
+          <div class="dev-expression-buttons" role="button" tabindex="0">
+            <button aria-label="Copy" class="dev-expression-btn dev-expression-btn--outreach" data-outreach="view-pending" title="View pending outreach">
               ${ICONS.clipboard} Pending
             </button>
-            <button class="dev-expression-btn dev-expression-btn--outreach" data-outreach="view-history" title="View outreach history">
+            <button aria-label="History" class="dev-expression-btn dev-expression-btn--outreach" data-outreach="view-history" title="View outreach history">
               ${ICONS.scroll} History
             </button>
-            <button class="dev-expression-btn dev-expression-btn--outreach" data-outreach="view-context" title="View user context">
+            <button aria-label="Context" class="dev-expression-btn dev-expression-btn--outreach" data-outreach="view-context" title="View user context">
               ${ICONS.brain} Context
             </button>
-            <button class="dev-expression-btn dev-expression-btn--outreach" data-outreach="view-timing" title="View timing patterns">
+            <button aria-label="Timing" class="dev-expression-btn dev-expression-btn--outreach" data-outreach="view-timing" title="View timing patterns">
               ${ICONS.alarm} Timing
             </button>
           </div>
@@ -2109,7 +2341,7 @@ function createPanel(): HTMLElement {
             <a class="dev-dashboard-link" href="/feature-flags.html" target="_blank" title="Feature Flags">
               ${ICONS.flag} Feature Flags
             </a>
-            <button class="dev-dashboard-link" data-action="open-evalops" title="EvalOps Dashboard (Cmd+Shift+E)">
+            <button aria-label="EvalOps" class="dev-dashboard-link" data-action="open-evalops" title="EvalOps Dashboard (Cmd+Shift+E)">
               ${ICONS.target} EvalOps
             </button>
           </div>
@@ -2127,6 +2359,9 @@ function createPanel(): HTMLElement {
             <a class="dev-dashboard-link" href="/animation-playground.html" target="_blank" title="Animation Playground">
               ${ICONS.movie} Animations
             </a>
+            <button aria-label="BTH Analytics" class="dev-dashboard-link" data-action="open-bth-analytics" title="Better Than Human Analytics">
+              ${ICONS.heart} BTH Analytics
+            </button>
           </div>
         </div>
       </section>
@@ -2159,17 +2394,17 @@ function createPanel(): HTMLElement {
         
         <div class="dev-subsection">
           <span class="dev-label">Journey Beats</span>
-          <div class="dev-expression-buttons">
-            <button class="dev-expression-btn dev-expression-btn--narrative" data-beat="first_launch" title="First launch">
+          <div class="dev-expression-buttons" role="button" tabindex="0">
+            <button aria-label="First Launch" class="dev-expression-btn dev-expression-btn--narrative" data-beat="first_launch" title="First launch">
               ${ICONS.star} First Launch
             </button>
-            <button class="dev-expression-btn dev-expression-btn--narrative" data-beat="welcome_back" title="Welcome back">
+            <button aria-label="Welcome Back" class="dev-expression-btn dev-expression-btn--narrative" data-beat="welcome_back" title="Welcome back">
               ${ICONS.hand} Welcome Back
             </button>
-            <button class="dev-expression-btn dev-expression-btn--narrative" data-beat="streak_continues" title="Streak">
+            <button aria-label="Streak" class="dev-expression-btn dev-expression-btn--narrative" data-beat="streak_continues" title="Streak">
               ${ICONS.flame} Streak
             </button>
-            <button class="dev-expression-btn dev-expression-btn--narrative" data-beat="connected" title="Connected">
+            <button aria-label="Connected" class="dev-expression-btn dev-expression-btn--narrative" data-beat="connected" title="Connected">
               ${ICONS.sparkles} Connected
             </button>
           </div>
@@ -2177,17 +2412,17 @@ function createPanel(): HTMLElement {
         
         <div class="dev-subsection">
           <span class="dev-label">Conversation Flow</span>
-          <div class="dev-expression-buttons">
-            <button class="dev-expression-btn dev-expression-btn--narrative" data-beat="user_starts_speaking" title="User speaking">
+          <div class="dev-expression-buttons" role="button" tabindex="0">
+            <button aria-label="Volume" class="dev-expression-btn dev-expression-btn--narrative" data-beat="user_starts_speaking" title="User speaking">
               ${ICONS.speaker} User Speaks
             </button>
-            <button class="dev-expression-btn dev-expression-btn--narrative" data-beat="thinking" title="Thinking">
+            <button aria-label="Thinking" class="dev-expression-btn dev-expression-btn--narrative" data-beat="thinking" title="Thinking">
               ${ICONS.thinking} Thinking
             </button>
-            <button class="dev-expression-btn dev-expression-btn--narrative" data-beat="ferni_starts_speaking" title="Ferni speaking">
+            <button aria-label="Ferni Speaks" class="dev-expression-btn dev-expression-btn--narrative" data-beat="ferni_starts_speaking" title="Ferni speaking">
               ${ICONS.chat} Ferni Speaks
             </button>
-            <button class="dev-expression-btn dev-expression-btn--narrative" data-beat="long_pause" title="Long pause">
+            <button aria-label="Pause" class="dev-expression-btn dev-expression-btn--narrative" data-beat="long_pause" title="Long pause">
               ${ICONS.pause} Long Pause
             </button>
           </div>
@@ -2195,17 +2430,17 @@ function createPanel(): HTMLElement {
         
         <div class="dev-subsection">
           <span class="dev-label">Emotional Moments</span>
-          <div class="dev-expression-buttons">
-            <button class="dev-expression-btn dev-expression-btn--narrative" data-beat="empathy_moment" title="Empathy">
+          <div class="dev-expression-buttons" role="button" tabindex="0">
+            <button aria-label="Empathy" class="dev-expression-btn dev-expression-btn--narrative" data-beat="empathy_moment" title="Empathy">
               ${ICONS.heart} Empathy
             </button>
-            <button class="dev-expression-btn dev-expression-btn--narrative" data-beat="user_vulnerable" title="Vulnerable">
+            <button aria-label="Vulnerable" class="dev-expression-btn dev-expression-btn--narrative" data-beat="user_vulnerable" title="Vulnerable">
               ${ICONS.hugging} Vulnerable
             </button>
-            <button class="dev-expression-btn dev-expression-btn--narrative" data-beat="user_frustrated" title="Frustrated">
+            <button aria-label="Frustrated" class="dev-expression-btn dev-expression-btn--narrative" data-beat="user_frustrated" title="Frustrated">
               ${ICONS.angry} Frustrated
             </button>
-            <button class="dev-expression-btn dev-expression-btn--narrative" data-beat="user_sad" title="Sad">
+            <button aria-label="Sad" class="dev-expression-btn dev-expression-btn--narrative" data-beat="user_sad" title="Sad">
               ${ICONS.frown} Sad
             </button>
           </div>
@@ -2213,17 +2448,17 @@ function createPanel(): HTMLElement {
         
         <div class="dev-subsection">
           <span class="dev-label">Achievements</span>
-          <div class="dev-expression-buttons">
-            <button class="dev-expression-btn dev-expression-btn--narrative" data-beat="small_win" title="Small win">
+          <div class="dev-expression-buttons" role="button" tabindex="0">
+            <button aria-label="Small Win" class="dev-expression-btn dev-expression-btn--narrative" data-beat="small_win" title="Small win">
               ${ICONS.star} Small Win
             </button>
-            <button class="dev-expression-btn dev-expression-btn--narrative" data-beat="big_win" title="Big win">
+            <button aria-label="Big Win" class="dev-expression-btn dev-expression-btn--narrative" data-beat="big_win" title="Big win">
               ${ICONS.trophy} Big Win
             </button>
-            <button class="dev-expression-btn dev-expression-btn--narrative" data-beat="breakthrough" title="Breakthrough">
+            <button aria-label="Breakthrough" class="dev-expression-btn dev-expression-btn--narrative" data-beat="breakthrough" title="Breakthrough">
               ${ICONS.lightbulb} Breakthrough
             </button>
-            <button class="dev-expression-btn dev-expression-btn--narrative" data-beat="milestone_reached" title="Milestone">
+            <button aria-label="Milestone" class="dev-expression-btn dev-expression-btn--narrative" data-beat="milestone_reached" title="Milestone">
               ${ICONS.target} Milestone
             </button>
           </div>
@@ -2231,17 +2466,17 @@ function createPanel(): HTMLElement {
         
         <div class="dev-subsection">
           <span class="dev-label">Team & Special</span>
-          <div class="dev-expression-buttons">
-            <button class="dev-expression-btn dev-expression-btn--narrative" data-beat="persona_introduced" title="Persona intro">
+          <div class="dev-expression-buttons" role="button" tabindex="0">
+            <button aria-label="Persona Intro" class="dev-expression-btn dev-expression-btn--narrative" data-beat="persona_introduced" title="Persona intro">
               ${ICONS.drama} Persona Intro
             </button>
-            <button class="dev-expression-btn dev-expression-btn--narrative" data-beat="team_unlock" title="Team unlock">
+            <button aria-label="Team Unlock" class="dev-expression-btn dev-expression-btn--narrative" data-beat="team_unlock" title="Team unlock">
               ${ICONS.unlock} Team Unlock
             </button>
-            <button class="dev-expression-btn dev-expression-btn--narrative" data-beat="birthday" title="Birthday">
+            <button aria-label="Birthday" class="dev-expression-btn dev-expression-btn--narrative" data-beat="birthday" title="Birthday">
               ${ICONS.cake} Birthday
             </button>
-            <button class="dev-expression-btn dev-expression-btn--narrative" data-beat="morning_greeting" title="Morning">
+            <button aria-label="Morning" class="dev-expression-btn dev-expression-btn--narrative" data-beat="morning_greeting" title="Morning">
               ${ICONS.sun} Morning
             </button>
           </div>
@@ -2249,17 +2484,17 @@ function createPanel(): HTMLElement {
         
         <div class="dev-subsection">
           <span class="dev-label">Story Arcs</span>
-          <div class="dev-expression-buttons">
-            <button class="dev-expression-btn dev-expression-btn--arc" data-arc="breakthrough" title="Breakthrough arc">
+          <div class="dev-expression-buttons" role="button" tabindex="0">
+            <button aria-label="Breakthrough Arc" class="dev-expression-btn dev-expression-btn--arc" data-arc="breakthrough" title="Breakthrough arc">
               ${ICONS.lightbulb} Breakthrough Arc
             </button>
-            <button class="dev-expression-btn dev-expression-btn--arc" data-arc="deep_conversation" title="Deep conversation">
+            <button aria-label="Deep Convo Arc" class="dev-expression-btn dev-expression-btn--arc" data-arc="deep_conversation" title="Deep conversation">
               ${ICONS.hugging} Deep Convo Arc
             </button>
-            <button class="dev-expression-btn dev-expression-btn--arc" data-arc="goal_completion" title="Goal completion">
+            <button aria-label="Goal Complete Arc" class="dev-expression-btn dev-expression-btn--arc" data-arc="goal_completion" title="Goal completion">
               ${ICONS.target} Goal Complete Arc
             </button>
-            <button class="dev-expression-btn dev-expression-btn--arc" data-arc="frustration_support" title="Frustration support">
+            <button aria-label="Support Arc" class="dev-expression-btn dev-expression-btn--arc" data-arc="frustration_support" title="Frustration support">
               ${ICONS.heart} Support Arc
             </button>
           </div>
@@ -2407,7 +2642,17 @@ function createPanel(): HTMLElement {
     btn.addEventListener('click', () => {
       const morph = (btn as HTMLElement).dataset.morph;
       if (morph) {
-        triggerFerniMorph(morph);
+        void triggerFerniMorph(morph);
+      }
+    });
+  });
+
+  // 🤲 Avatar Sidekicks - Side expression icons
+  container.querySelectorAll('[data-sidekick]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const sidekick = (btn as HTMLElement).dataset.sidekick;
+      if (sidekick) {
+        void triggerSidekick(sidekick);
       }
     });
   });
@@ -2466,6 +2711,20 @@ function createPanel(): HTMLElement {
     journeyUI.open();
     log.info('${ICONS.bookOpen} Journey view opened');
   });
+
+  // Open semantic intelligence panel (what Ferni has learned)
+  container
+    .querySelector('[data-action="open-semantic-intelligence"]')
+    ?.addEventListener('click', async () => {
+      try {
+        const { showSemanticIntelligencePanel } = await import('./semantic-intelligence-panel.ui.js');
+        showSemanticIntelligencePanel();
+        log.info('${ICONS.brain} Semantic intelligence panel opened');
+      } catch (err) {
+        log.error({ error: String(err) }, 'Failed to open semantic intelligence panel');
+        toast.error("Something went wrong. Try again?");
+      }
+    });
 
   // Reset milestones button
   container.querySelector('[data-action="reset-milestones"]')?.addEventListener('click', () => {
@@ -2953,6 +3212,49 @@ function createPanel(): HTMLElement {
     });
   });
 
+  // Circadian period buttons
+  container.querySelectorAll('[data-circadian]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const period = (btn as HTMLElement).dataset.circadian;
+      if (period === 'auto') {
+        circadianManager.clearOverride();
+      } else if (period) {
+        circadianManager.setOverride(period as CircadianPeriod);
+      }
+      // Update active states
+      container.querySelectorAll('[data-circadian]').forEach((b) => {
+        const p = (b as HTMLElement).dataset.circadian;
+        if (p === 'auto') {
+          b.classList.toggle('active', !circadianManager.hasOverride());
+        } else {
+          b.classList.toggle('active', p === circadianManager.getCurrentPeriod());
+        }
+      });
+      log.info({ period }, 'Circadian period changed via dev panel');
+    });
+  });
+
+  // Warmth/relationship stage buttons
+  container.querySelectorAll('[data-warmth]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const stage = (btn as HTMLElement).dataset.warmth;
+      if (stage === 'celebrate') {
+        warmthManager.triggerWarmthCelebration();
+        log.info('Warmth celebration triggered via dev panel');
+      } else if (stage) {
+        warmthManager.applyTheme(stage as RelationshipStage);
+        // Update active states
+        container.querySelectorAll('[data-warmth]').forEach((b) => {
+          const s = (b as HTMLElement).dataset.warmth;
+          if (s !== 'celebrate') {
+            b.classList.toggle('active', s === stage);
+          }
+        });
+        log.info({ stage }, 'Warmth stage changed via dev panel');
+      }
+    });
+  });
+
   // 🆕 Emotion buttons
   container.querySelectorAll('[data-emotion]').forEach((btn) => {
     btn.addEventListener('click', () => {
@@ -2981,7 +3283,7 @@ function createPanel(): HTMLElement {
   container.querySelectorAll('[data-outreach]').forEach((btn) => {
     btn.addEventListener('click', () => {
       const outreach = (btn as HTMLElement).dataset.outreach;
-      handleOutreachAction(outreach!);
+      void handleOutreachAction(outreach!);
     });
   });
 
@@ -2998,6 +3300,11 @@ function setTierOverride(tier: 'free' | 'friend' | 'partner'): void {
 
   // Also update token server
   void updateServerSubscription(tier);
+
+  // Sync to backend voice agent for unlock bypass
+  // When tier is 'partner', enable bypass; otherwise just sync tier
+  const bypassUnlocks = tier === 'partner';
+  void syncDevModeToBackend(bypassUnlocks, tier);
 
   log.info({ tier }, 'Tier override set');
   refreshPanel();
@@ -3033,18 +3340,21 @@ function setStageOverride(stage: RelationshipStage): void {
 }
 
 async function updateServerSubscription(tier: 'free' | 'friend' | 'partner'): Promise<void> {
+  // 🛡️ SECURITY: Only allow in development - this endpoint requires admin_key
+  // In production, subscription upgrades go through Stripe checkout flow
+  if (!import.meta.env.DEV) {
+    log.debug('Skipping server subscription update (production mode)');
+    return;
+  }
+
   const deviceId = appState.getState().deviceId;
   if (!deviceId) return;
 
   try {
-    await fetch('/subscription/upgrade', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        device_id: deviceId,
-        tier,
-        admin_key: 'dev-mode', // Special dev key
-      }),
+    await apiPost('/subscription/upgrade', {
+      device_id: deviceId,
+      tier,
+      admin_key: 'dev-mode',
     });
   } catch (e) {
     log.warn('Could not update server subscription:', e);
@@ -3082,7 +3392,10 @@ function handleAction(action: string): void {
       updateWhitelistInput();
       break;
     case 'open-evalops':
-      openEvalOpsDashboard();
+      void openEvalOpsDashboard();
+      break;
+    case 'open-bth-analytics':
+      void openBTHAnalyticsDashboard();
       break;
   }
 }
@@ -3097,6 +3410,19 @@ async function openEvalOpsDashboard(): Promise<void> {
     log.info('${ICONS.target} Opened EvalOps dashboard');
   } catch (e) {
     log.error('Failed to open EvalOps dashboard:', e);
+  }
+}
+
+/**
+ * Open BTH Analytics dashboard
+ */
+async function openBTHAnalyticsDashboard(): Promise<void> {
+  try {
+    const { showBTHAnalyticsDashboard } = await import('./bth-analytics-dashboard.ui.js');
+    await showBTHAnalyticsDashboard();
+    log.info('Opened BTH Analytics dashboard');
+  } catch (e) {
+    log.error('Failed to open BTH Analytics dashboard:', e);
   }
 }
 
@@ -3194,7 +3520,7 @@ async function requestGameStart(gameType: string): Promise<void> {
  */
 function showToast(message: string, type: 'info' | 'success' | 'error' = 'info'): void {
   // Import dynamically to avoid circular deps
-  import('./toast.ui.js')
+  import('./whisper.ui.js')
     .then(({ toast }) => {
       if (type === 'success') {
         toast.success(message);
@@ -3213,7 +3539,49 @@ function showToast(message: string, type: 'info' | 'success' | 'error' = 'info')
 function quickUnlockAll(): void {
   setTierOverride('partner');
   setStageOverride('deep-partnership');
+  // Sync dev mode bypass to backend voice agent
+  void syncDevModeToBackend(true, 'partner');
   log.info('All team members unlocked');
+}
+
+/**
+ * Sync dev mode state to the backend voice agent via data channel.
+ *
+ * When enabled, this allows the voice agent to bypass team unlock checks,
+ * enabling testing of all persona handoffs without needing environment variables.
+ *
+ * @param bypassUnlocks - Whether to bypass team unlock checks
+ * @param simulatedTier - Optional tier to simulate
+ */
+async function syncDevModeToBackend(
+  bypassUnlocks: boolean,
+  simulatedTier?: 'free' | 'friend' | 'partner'
+): Promise<void> {
+  try {
+    // Get the LiveKit room from app state
+    const state = appState.getState() as unknown as Record<string, unknown>;
+    const room = state.room as { localParticipant?: { publishData: (data: Uint8Array, options: { reliable: boolean }) => Promise<void> } } | undefined;
+
+    if (!room?.localParticipant) {
+      log.debug('No active voice session - dev mode will sync when connected');
+      return;
+    }
+
+    const message = JSON.stringify({
+      type: 'dev_mode_sync',
+      enabled: DEV_MODE_ENABLED,
+      bypassUnlocks,
+      simulatedTier,
+      timestamp: Date.now(),
+    });
+
+    await room.localParticipant.publishData(new TextEncoder().encode(message), { reliable: true });
+
+    log.info({ bypassUnlocks, simulatedTier }, 'Dev mode synced to backend voice agent');
+    showToast('Dev mode synced to voice agent', 'info');
+  } catch (error) {
+    log.warn({ error }, 'Failed to sync dev mode to backend - voice agent may not bypass unlocks');
+  }
 }
 
 function resetToFree(): void {
@@ -3224,6 +3592,8 @@ function resetToFree(): void {
   relationshipStageService.reset();
   void teamUnlockService.update();
   void updateServerSubscription('free');
+  // Sync dev mode reset to backend
+  void syncDevModeToBackend(false, 'free');
   log.info('Reset to free tier');
   refreshPanel();
 }
@@ -3250,7 +3620,7 @@ function renderFTUEStatus(): string {
     <div class="dev-ftue-info">
       <div class="dev-ftue-count">
         <span class="dev-ftue-count__number">${convCount}</span>
-        <span class="dev-ftue-count__label">conversations</span>
+        <span class="dev-ftue-count__label">${convCount === 1 ? 'conversation' : 'conversations'}</span>
       </div>
       <div class="dev-ftue-badges">
         ${status.unlockedFeatures
@@ -3309,7 +3679,7 @@ function handleFTUEAction(action: string): void {
 }
 
 function triggerLimitModal(): void {
-  import('./subscription.ui.js').then(({ showLimitReachedModal }) => {
+  void import('./subscription.ui.js').then(({ showLimitReachedModal }) => {
     showLimitReachedModal(
       "We've used up our time this month. I'd love to keep talking...",
       new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
@@ -3318,7 +3688,7 @@ function triggerLimitModal(): void {
 }
 
 function triggerUpgradeModal(): void {
-  import('./subscription.ui.js').then(({ showUpgradeModal }) => {
+  void import('./subscription.ui.js').then(({ showUpgradeModal }) => {
     showUpgradeModal("Let's go deeper together.");
   });
 }
@@ -3944,18 +4314,67 @@ async function triggerFerniMorph(iconType: string): Promise<void> {
   log.info({ iconType }, 'Completed Ferni morph');
 }
 
+/**
+ * Trigger a sidekick (side expression icon).
+ * These float beside the avatar instead of over it.
+ */
+async function triggerSidekick(iconName: string): Promise<void> {
+  // Initialize if not already done
+  avatarSidekicks.init();
+  
+  // Cast to SidekickIcon if valid
+  const validIcons: SidekickIcon[] = avatarSidekicks.icons;
+  if (!validIcons.includes(iconName as SidekickIcon)) {
+    log.warn({ iconName }, 'Unknown sidekick icon');
+    return;
+  }
+  
+  // Show the sidekick
+  avatarSidekicks.show({
+    icon: iconName as SidekickIcon,
+    position: 'right', // Default to right side
+    duration: 2500,
+  });
+  
+  log.info({ iconName }, 'Triggered sidekick');
+}
+
 function triggerMusicAction(action: string): void {
   switch (action) {
     case 'start-music':
-      // Start music presence - audio level callback not yet implemented
-      avatarFeedback.musicPresence();
-      log.info('Started music visualization (presence mode)');
+      // Start music presence and show Now Playing UI
+      void (async () => {
+        const { nowPlayingUI } = await import('./now-playing.ui.js');
+        const { waveformUI } = await import('./waveform.ui.js');
+
+        avatarFeedback.musicPresence();
+        waveformUI.setMusicPlaying(true);
+
+        // Show Now Playing card with test track
+        nowPlayingUI.show({
+          name: 'Test Track',
+          artist: 'Dev Panel',
+          duration: 30000,
+          isAmbient: false,
+          isOurSong: false,
+        });
+
+        log.info('Started music visualization with Now Playing UI');
+      })();
       break;
 
     case 'stop-music':
-      // Stop dancing
-      avatarFeedback.stopDancing();
-      log.info('Stopped music');
+      // Stop dancing and hide Now Playing UI
+      void (async () => {
+        const { nowPlayingUI } = await import('./now-playing.ui.js');
+        const { waveformUI } = await import('./waveform.ui.js');
+
+        avatarFeedback.stopDancing();
+        waveformUI.setMusicPlaying(false);
+        nowPlayingUI.hide();
+
+        log.info('Stopped music and hid Now Playing UI');
+      })();
       break;
 
     case 'duck-music':
@@ -3970,7 +4389,7 @@ function triggerMusicAction(action: string): void {
 
     case 'our-song':
       // ${ICONS.heart} Test "Our Song" - shared musical memory with heart indicator
-      testOurSong();
+      void testOurSong();
       break;
   }
 }
@@ -4023,13 +4442,10 @@ interface MusicStatus {
 async function fetchMusicStatus(): Promise<MusicStatus | null> {
   try {
     // Use the API endpoint to get music status
-    const response = await fetch('/api/music/status', {
-      method: 'GET',
-      headers: { 'Content-Type': 'application/json' },
-    });
+    const response = await apiGet<MusicStatus>('/api/music/status');
 
-    if (response.ok) {
-      return await response.json();
+    if (response.ok && response.data) {
+      return response.data;
     }
 
     // If API not available, return null (we'll show "Not Connected")
@@ -4128,8 +4544,11 @@ async function handleMusicStatusAction(action: string): Promise<void> {
 
     case 'test-itunes':
       try {
-        const response = await fetch('/api/music/test-itunes', { method: 'POST' });
-        const result = await response.json();
+        const response = await apiPost<{ success?: boolean; track?: { name: string; artist: string }; error?: string }>(
+          '/api/music/test-itunes',
+          {}
+        );
+        const result = response.ok && response.data ? response.data : { success: false };
         if (result.success) {
           log.info({ track: result.track }, '${ICONS.check} iTunes API working');
           alert(`${ICONS.check} iTunes API working!\n\nFound: ${result.track?.name} by ${result.track?.artist}`);
@@ -4145,8 +4564,10 @@ async function handleMusicStatusAction(action: string): Promise<void> {
 
     case 'test-spotify':
       try {
-        const response = await fetch('/spotify/status');
-        const result = await response.json();
+        const response = await apiGet<{ configured?: boolean; linked?: boolean; deviceConnected?: boolean }>(
+          '/spotify/status'
+        );
+        const result = response.ok && response.data ? response.data : {};
         const statusLines = [
           `Configured: ${result.configured ? '${ICONS.check}' : '${ICONS.x}'}`,
           `Linked: ${result.linked ? '${ICONS.check}' : '${ICONS.x}'}`,
@@ -4316,6 +4737,12 @@ function triggerCelebration(celebration: string): void {
       log.info('Team member celebration triggered');
       break;
 
+    case 'winter-solstice':
+      // 🌟 Winter Solstice - Full cinematic experience!
+      void triggerWinterSolstice();
+      log.info('Winter Solstice cinematic experience triggered');
+      break;
+
     default:
       avatarFeedback.success(`Celebration: ${celebration}`);
       log.info({ celebration }, 'Generic celebration triggered');
@@ -4337,13 +4764,35 @@ function triggerThinking(thinking: string): void {
 }
 
 // ============================================================================
+// 🌟 WINTER SOLSTICE - Cinematic Holiday Experience
+// ============================================================================
+
+/**
+ * Trigger the Winter Solstice cinematic experience.
+ * This is a Pixar-quality full-screen visual journey.
+ */
+async function triggerWinterSolstice(): Promise<void> {
+  // Simulate user context for the experience
+  const mockContext = {
+    userName: 'Developer',
+    conversationsThisYear: 42,
+    daysSinceFirstChat: 180,
+    relationshipStage: 'friend',
+    topTopics: ['habits', 'mindfulness', 'goals', 'growth'],
+    unlockedTeamMembers: ['ferni', 'maya-santos', 'peter-john'],
+  };
+
+  await winterSolsticeMoment.play(mockContext);
+}
+
+// ============================================================================
 // ${ICONS.sunrise} WRAP-UP - Test conversation ending flow
 // ============================================================================
 
 function triggerWrapUp(sentiment: string): void {
   // Import dynamically to avoid circular deps
-  import('../state/app.state.js').then(({ setWrappingUp }) => {
-    import('../app/data-message-handlers.js').then(({ handleWrapUp }) => {
+  void import('../state/app.state.js').then(({ setWrappingUp }) => {
+    void import('../app/data-message-handlers.js').then(({ handleWrapUp }) => {
       if (sentiment === 'reset') {
         // Reset wrap-up state
         setWrappingUp(false);
@@ -4687,7 +5136,7 @@ function createRipple(x: number, y: number, count = 1, delay = 0): void {
         background: transparent;
         transform: translate(-50%, -50%);
         pointer-events: none;
-        z-index: 9998;
+        z-index: var(--z-tooltip);
       `;
       document.body.appendChild(ripple);
 
@@ -4700,7 +5149,7 @@ function createRipple(x: number, y: number, count = 1, delay = 0): void {
             borderWidth: '2px',
           },
           {
-            width: '200px',
+            width: 'min(200px, 100%)',
             height: '200px',
             opacity: 0,
             borderWidth: '1px',
@@ -5059,7 +5508,7 @@ function createConfetti(count: number): void {
       background: ${color};
       border-radius: ${Math.random() > 0.5 ? '50%' : '2px'};
       pointer-events: none;
-      z-index: 99999;
+      z-index: var(--z-tooltip);
     `;
     document.body.appendChild(confetti);
 
@@ -5814,7 +6263,7 @@ function injectStyles(): void {
       border-radius: var(--radius-lg, 12px);
       border: 2px solid rgba(124, 181, 113, 0.5);
       cursor: pointer;
-      z-index: 9999;
+      z-index: var(--z-tooltip);
       box-shadow: 
         0 4px 12px rgba(74, 103, 65, 0.4),
         0 0 20px rgba(124, 181, 113, 0.2),
@@ -5844,12 +6293,19 @@ function injectStyles(): void {
       flex-shrink: 0;
     }
     
+    /* MOBILE: Hide dev indicator - keyboard shortcuts don't work on mobile */
+    @media (max-width: 768px) {
+      .dev-indicator {
+        display: none !important;
+      }
+    }
+    
     /* Dev Panel */
     .dev-panel {
       position: fixed;
       top: var(--space-4, 16px);
       right: var(--space-4, 16px);
-      width: 400px;
+      width: min(400px, 100%);
       max-height: calc(100vh - 32px);
       background: var(--dev-bg);
       border-radius: var(--radius-xl, 16px);
@@ -5857,7 +6313,7 @@ function injectStyles(): void {
         0 25px 50px -12px rgba(0, 0, 0, 0.5),
         0 0 0 1px var(--dev-accent-border),
         0 0 60px rgba(74, 103, 65, 0.15);
-      z-index: 10002;
+      z-index: var(--z-tooltip);
       display: flex;
       flex-direction: column;
       opacity: 0;
@@ -6534,6 +6990,7 @@ function injectStyles(): void {
       align-items: baseline;
       gap: var(--space-2, 8px);
       margin-bottom: var(--space-2, 8px);
+      white-space: nowrap;
     }
     
     .dev-ftue-count__number {
@@ -6555,10 +7012,19 @@ function injectStyles(): void {
     }
     
     .dev-ftue-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
       font-size: 0.65rem;
       padding: 2px 6px;
       border-radius: 4px;
       font-weight: 500;
+    }
+    
+    .dev-ftue-badge svg {
+      width: 10px;
+      height: 10px;
+      flex-shrink: 0;
     }
     
     .dev-ftue-badge--unlocked {
@@ -7183,7 +7649,7 @@ function injectStyles(): void {
       display: flex;
       align-items: center;
       justify-content: center;
-      z-index: 99999;
+      z-index: var(--z-tooltip);
     }
     
     .dev-spinner {
@@ -7288,4 +7754,11 @@ export const devPanel = {
   toggle: togglePanel,
   isDevMode,
   getOverrides: getDevOverrides,
+  /** Sync dev mode state to backend voice agent (called on voice connection) */
+  syncToBackend: () => {
+    if (DEV_MODE_ENABLED && tierOverride === 'partner') {
+      return syncDevModeToBackend(true, tierOverride);
+    }
+    return Promise.resolve();
+  },
 };

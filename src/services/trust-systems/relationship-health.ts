@@ -19,6 +19,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
+import { indexTrustMilestone } from '../data-layer/integrations/trust-integration.js';
 
 const log = createLogger({ module: 'RelationshipHealth' });
 
@@ -683,6 +684,14 @@ export function recordMilestone(
     action: 'milestone',
     description: `Trust milestone for ${userId}: ${description}`,
     metadata: { userId, milestoneType: type, score: milestone.score },
+  });
+
+  // Index to semantic memory
+  indexTrustMilestone(userId, {
+    id: milestone.id,
+    milestone: description,
+    level: type,
+    evidence: `Score at milestone: ${milestone.score}`,
   });
 
   log.info({ userId, milestone }, '🏆 Relationship milestone recorded');

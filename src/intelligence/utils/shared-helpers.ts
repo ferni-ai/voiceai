@@ -5,6 +5,11 @@
  * Prevents code duplication and ensures consistent behavior.
  */
 
+// 🦀 Rust-accelerated word counting
+import { countWordsRust, isTokenCountingAvailable } from '../../memory/rust-accelerator.js';
+
+const RUST_COUNTING_AVAILABLE = isTokenCountingAvailable();
+
 /**
  * Get the time of day category from a Date
  */
@@ -60,7 +65,8 @@ export function detectResponseType(
  * Get response length category
  */
 export function getResponseLength(content: string): 'brief' | 'moderate' | 'lengthy' {
-  const wordCount = content.split(/\s+/).length;
+  // 🦀 Rust-accelerated word counting
+  const wordCount = RUST_COUNTING_AVAILABLE ? countWordsRust(content) : content.split(/\s+/).length;
   if (wordCount < 30) return 'brief';
   if (wordCount > 100) return 'lengthy';
   return 'moderate';

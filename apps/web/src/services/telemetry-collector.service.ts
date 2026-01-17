@@ -57,7 +57,7 @@ export function initTelemetryCollector(
   onBatchReady?: (batch: TelemetryBatch) => void
 ): void {
   sessionId = currentSessionId;
-  sendCallback = onBatchReady || null;
+  sendCallback = onBatchReady ?? null;
   events = [];
 
   // Listen for telemetry events from EQ system
@@ -110,7 +110,7 @@ export function flushBatch(): void {
   // Log summary
   const summary = batch.events.reduce(
     (acc, e) => {
-      acc[e.type] = (acc[e.type] || 0) + 1;
+      acc[e.type] = (acc[e.type] ?? 0) + 1;
       return acc;
     },
     {} as Record<string, number>
@@ -137,7 +137,7 @@ export function flushBatch(): void {
 export function getTelemetrySummary(): Record<string, number> {
   return events.reduce(
     (acc, e) => {
-      acc[e.type] = (acc[e.type] || 0) + 1;
+      acc[e.type] = (acc[e.type] ?? 0) + 1;
       return acc;
     },
     {} as Record<string, number>

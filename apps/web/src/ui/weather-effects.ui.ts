@@ -24,7 +24,7 @@ import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 const log = createLogger('WeatherEffects');
 
 // FIX BUG: Track all setTimeout calls for proper cleanup
-const { trackedTimeout, clearAll: clearAllTimeouts } = createTimeoutTracker();
+const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
 
 // ============================================================================
 // TYPES
@@ -90,7 +90,7 @@ function ensureContainer(): HTMLElement | null {
     width: ${size}px;
     height: ${size}px;
     pointer-events: none;
-    z-index: 10;
+    z-index: var(--z-docked);
     overflow: hidden;
     border-radius: 50%;
   `;

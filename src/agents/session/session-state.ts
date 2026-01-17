@@ -20,7 +20,7 @@ import type { SessionServices } from '../../services/index.js';
 import type { VoiceEmotionResult } from '../../speech/audio-prosody.js';
 import type { VoiceEmotionModulation } from '../../speech/emotion-matching.js';
 import type { ConversationStateManager } from '../../services/conversation-state.js';
-import type { MoodState } from '../../intelligence/context-builders/persona-mood.js';
+import type { MoodState } from '../../intelligence/context-builders/personas/persona-mood.js';
 
 // ============================================================================
 // STATE TYPES
@@ -517,9 +517,37 @@ export class SessionStateManager {
 
   /**
    * Update last agent response
+   * Also tracks advice for counterfactual memory (Better Than Human V3)
    */
   setLastAgentResponse(response: string): void {
     this.state = updateConversation(this.state, { lastAgentResponse: response });
+
+    // Track advice for counterfactual memory (fire-and-forget, non-blocking)
+    const { userId } = this.state.user;
+    if (userId && userId !== 'anonymous') {
+      void this.trackAdviceIfPresent(response, userId);
+    }
+  }
+
+  /**
+   * Fire-and-forget advice tracking for counterfactual memory
+   */
+  private async trackAdviceIfPresent(response: string, userId: string): Promise<void> {
+    try {
+      const { trackAdviceInResponse } =
+        await import('../../services/superhuman/semantic-intelligence/advice-detector.js');
+
+      await trackAdviceInResponse(response, {
+        userId,
+        sessionId: this.state.sessionId,
+        personaId: this.state.personaId,
+        topic: this.state.conversation.lastTopic,
+        userSituation: this.state.conversation.lastUserMessage,
+        userEmotion: this.state.emotional.lastEmotionAnalysis?.primary,
+      });
+    } catch {
+      // Non-critical - don't disrupt main flow
+    }
   }
 
   /**

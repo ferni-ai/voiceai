@@ -10,10 +10,22 @@ import { getLogger } from '../../utils/safe-logger.js';
 import { onSessionEnd as recordPredictiveSignals } from '../predictive-insights/data-collector.js';
 import {
   recordTimingInteraction,
-  triggerOutreach,
   updateEmotionalState as updateContextEmotionalState,
   updateUserContext,
 } from './index.js';
+import {
+  publishCommitmentTrigger,
+  publishEmotionalSupportTrigger,
+  publishMilestoneTrigger,
+  publishOutreachTrigger,
+} from './trigger-publisher.js';
+import {
+  checkStreaksAtRisk,
+  checkMilestonesToCelebrate,
+  publishStreakProtectionAlert,
+  publishMilestoneCelebration,
+} from './maya-habit-outreach.js';
+import { evaluateTrustBasedOutreach, handleConcernDetection } from './trust-outreach-bridge.js';
 
 const log = getLogger().child({ module: 'outreach-session-integration' });
 
@@ -324,21 +336,20 @@ export async function analyzeSessionForOutreach(data: SessionEndData): Promise<{
     log.warn({ error, userId }, 'Failed to update user context');
   }
 
-  // Create commitment check-in triggers
+  // Create commitment check-in triggers via Pub/Sub
+  // PERF: Triggers are published async and processed by Outreach Worker
   let triggersCreated = 0;
   for (const commitment of commitments) {
     try {
-      triggerOutreach({
+      const result = await publishCommitmentTrigger(
         userId,
-        type: 'commitment_check',
-        priority: 'medium',
-        reason: `Check in on commitment: ${commitment.what}`,
-        commitment: commitment.what,
-        suggestedTime: commitment.checkInDate,
-      });
-      triggersCreated++;
+        commitment.what,
+        commitment.checkInDate,
+        { sessionId: data.sessionId, personaId }
+      );
+      if (result.success) triggersCreated++;
     } catch (error) {
-      log.warn({ error, commitment }, 'Failed to create commitment trigger');
+      log.warn({ error, commitment }, 'Failed to publish commitment trigger');
     }
   }
 
@@ -348,40 +359,32 @@ export async function analyzeSessionForOutreach(data: SessionEndData): Promise<{
     ['stressed', 'anxious', 'sad', 'frustrated', 'overwhelmed'].includes(emotionalState)
   ) {
     try {
-      // Schedule a supportive check-in for tomorrow
-      const checkInTime = new Date();
-      checkInTime.setDate(checkInTime.getDate() + 1);
-      checkInTime.setHours(10, 0, 0, 0); // 10 AM
-
-      triggerOutreach({
+      // Publish emotional support trigger via Pub/Sub
+      const result = await publishEmotionalSupportTrigger(
         userId,
-        type: 'emotional_support',
-        priority: 'high',
-        reason: `User expressed ${emotionalState} feelings during conversation`,
-        suggestedTime: checkInTime,
-      });
-      triggersCreated++;
+        emotionalState,
+        0.7, // Intensity above threshold since we matched the emotion
+        { sessionId: data.sessionId, personaId, topics: summary?.mainTopics }
+      );
+      if (result.success) triggersCreated++;
 
-      log.info({ userId, emotionalState }, 'Created emotional support trigger');
+      log.info({ userId, emotionalState }, 'Published emotional support trigger');
     } catch (error) {
-      log.warn({ error, emotionalState }, 'Failed to create emotional support trigger');
+      log.warn({ error, emotionalState }, 'Failed to publish emotional support trigger');
     }
   }
 
   // Check for celebration triggers
   if (wins.length > 0 && (satisfaction === 'positive' || !satisfaction)) {
     try {
-      // Immediate celebration acknowledgment
-      triggerOutreach({
-        userId,
-        type: 'celebration',
-        priority: 'low',
-        reason: `Celebrate recent win: ${wins[0]}`,
-        milestone: wins[0],
+      // Publish milestone celebration trigger via Pub/Sub
+      const result = await publishMilestoneTrigger(userId, wins[0], {
+        sessionId: data.sessionId,
+        personaId,
       });
-      triggersCreated++;
+      if (result.success) triggersCreated++;
     } catch (error) {
-      log.warn({ error }, 'Failed to create celebration trigger');
+      log.warn({ error }, 'Failed to publish celebration trigger');
     }
   }
 
@@ -391,7 +394,8 @@ export async function analyzeSessionForOutreach(data: SessionEndData): Promise<{
       const checkInTime = new Date();
       checkInTime.setDate(checkInTime.getDate() + 3); // 3 days later
 
-      triggerOutreach({
+      // Publish reengagement trigger via Pub/Sub
+      const result = await publishOutreachTrigger({
         userId,
         type: 'reengagement',
         priority: 'medium',
@@ -399,11 +403,13 @@ export async function analyzeSessionForOutreach(data: SessionEndData): Promise<{
           durationMinutes < 2
             ? 'Short session - check in to see if everything is okay'
             : 'Previous session may not have met expectations',
-        suggestedTime: checkInTime,
+        scheduledFor: checkInTime.toISOString(),
+        sessionId: data.sessionId,
+        personaId,
       });
-      triggersCreated++;
+      if (result.success) triggersCreated++;
     } catch (error) {
-      log.warn({ error }, 'Failed to create reengagement trigger');
+      log.warn({ error }, 'Failed to publish reengagement trigger');
     }
   }
 
@@ -423,6 +429,60 @@ export async function analyzeSessionForOutreach(data: SessionEndData): Promise<{
     log.debug({ userId }, '📊 Recorded predictive insight signals');
   } catch (error) {
     log.warn({ error, userId }, 'Failed to record predictive signals');
+  }
+
+  // 🌱 MAYA HABIT OUTREACH: Post-session habit checks
+  // If the session was with Maya (habits), check for streak/milestone triggers
+  if (personaId === 'maya-santos' || personaId === 'maya') {
+    try {
+      const mayaResults = await analyzeMayaHabitSession(userId, data.sessionId);
+      triggersCreated += mayaResults.triggersCreated;
+      log.debug(
+        { userId, mayaTriggersCreated: mayaResults.triggersCreated },
+        '🌱 Maya habit session analyzed'
+      );
+    } catch (error) {
+      log.debug({ error: String(error), userId }, 'Maya habit session analysis failed (non-fatal)');
+    }
+  }
+
+  // 🧠 TRUST-BASED OUTREACH: "Better than Human" intelligence
+  // Evaluate all trust systems (thinking of you, growth reflection, small wins, etc.)
+  try {
+    const trustResult = await evaluateTrustBasedOutreach(userId, data.sessionId);
+    triggersCreated += trustResult.triggersCreated;
+    if (trustResult.triggersCreated > 0) {
+      log.info(
+        { userId, trustTriggers: trustResult.triggersCreated, types: trustResult.triggerTypes },
+        '🧠 Trust-based outreach triggers created'
+      );
+    }
+  } catch (error) {
+    log.debug(
+      { error: String(error), userId },
+      'Trust-based outreach evaluation failed (non-fatal)'
+    );
+  }
+
+  // 💚 CONCERN DETECTION: If emotional state indicates concern, schedule follow-up
+  if (
+    emotionalState &&
+    ['sad', 'overwhelmed', 'anxious'].includes(emotionalState) &&
+    struggles.length > 0
+  ) {
+    try {
+      const lastUserMessage = turns.filter((t) => t.role === 'user').pop()?.content || '';
+      await handleConcernDetection({
+        userId,
+        concernLevel: emotionalState === 'overwhelmed' ? 'elevated' : 'moderate',
+        concernType: emotionalState,
+        lastMessage: lastUserMessage,
+        detectedEmotion: emotionalState,
+      });
+      log.debug({ userId, emotionalState }, '💚 Concern-based outreach scheduled');
+    } catch (error) {
+      log.debug({ error: String(error), userId }, 'Concern detection failed (non-fatal)');
+    }
   }
 
   log.info(
@@ -461,10 +521,90 @@ export function analyzeMessageForContext(
 }
 
 // ============================================================================
+// MAYA HABIT SESSION ANALYSIS
+// ============================================================================
+
+interface MayaHabitSessionResult {
+  triggersCreated: number;
+  streaksAtRisk: number;
+  milestonesFound: number;
+}
+
+/**
+ * Analyze a Maya session for habit-specific outreach triggers
+ *
+ * This runs after any session with Maya to:
+ * 1. Check if any habit milestones were just hit
+ * 2. Schedule streak protection alerts for tonight
+ * 3. Set up follow-up outreach for habits discussed
+ */
+async function analyzeMayaHabitSession(
+  userId: string,
+  sessionId: string
+): Promise<MayaHabitSessionResult> {
+  const result: MayaHabitSessionResult = {
+    triggersCreated: 0,
+    streaksAtRisk: 0,
+    milestonesFound: 0,
+  };
+
+  try {
+    // 1. Check for milestones to celebrate (immediate celebration after session)
+    const milestones = await checkMilestonesToCelebrate(userId);
+    for (const milestone of milestones.slice(0, 2)) {
+      const sent = await publishMilestoneCelebration(
+        userId,
+        milestone.habitId,
+        milestone.habitName,
+        milestone.days
+      );
+      if (sent) {
+        result.triggersCreated++;
+        result.milestonesFound++;
+      }
+    }
+
+    // 2. Check for streaks at risk (schedule evening reminder)
+    const hour = new Date().getHours();
+
+    // If it's afternoon or later, check streaks and schedule evening alert
+    if (hour >= 12) {
+      const atRisk = await checkStreaksAtRisk(userId);
+      if (atRisk.atRisk) {
+        result.streaksAtRisk = atRisk.habits.length;
+
+        // Only schedule evening alert if not already evening
+        if (hour < 18) {
+          for (const habit of atRisk.habits.slice(0, 2)) {
+            const sent = await publishStreakProtectionAlert({
+              userId,
+              habitId: habit.id,
+              habitName: habit.name,
+              streakDays: habit.streakDays,
+              reason: `Post-session streak protection: ${habit.streakDays} days on "${habit.name}"`,
+            });
+            if (sent) {
+              result.triggersCreated++;
+            }
+          }
+        }
+      }
+    }
+
+    log.debug({ userId, sessionId, ...result }, 'Maya habit session analysis complete');
+  } catch (error) {
+    log.debug({ error: String(error), userId }, 'Maya habit session analysis error');
+  }
+
+  return result;
+}
+
+// ============================================================================
 // EXPORT
 // ============================================================================
 
 export {
+  analyzeMayaHabitSession,
   detectEmotionalState,
   extractCommitments,
   extractWinsAndStruggles,

@@ -193,7 +193,7 @@ describe('Multi-Turn Conversation Scenarios', () => {
     });
 
     it('should maintain context coherence', async () => {
-      const callHistory: { messages: { role: string; content: string }[] }[] = [];
+      const callHistory: Array<{ messages: Array<{ role: string; content: string }> }> = [];
 
       for (let i = 0; i < scenario.turns.length; i++) {
         const turn = scenario.turns[i];
@@ -259,7 +259,7 @@ describe('Multi-Turn Conversation Scenarios', () => {
     const scenario = coachingSession;
 
     it('should complete goal-focused coaching flow', async () => {
-      let previousTopic = '';
+      const previousTopic = '';
 
       for (let i = 0; i < scenario.turns.length; i++) {
         const turn = scenario.turns[i];

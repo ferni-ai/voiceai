@@ -166,12 +166,15 @@ class EngagementService {
         (s) => s.ritualId === event.ritualId
       );
       if (streakIndex >= 0) {
-        this.cachedData.ritualStreaks[streakIndex].currentStreak = event.streak;
-        if (event.isNewRecord) {
-          this.cachedData.ritualStreaks[streakIndex].longestStreak = event.streak;
+        const streak = this.cachedData.ritualStreaks[streakIndex];
+        if (streak) {
+          streak.currentStreak = event.streak;
+          if (event.isNewRecord) {
+            streak.longestStreak = event.streak;
+          }
+          streak.lastCompletedAt = event.timestamp;
+          streak.dueToday = false;
         }
-        this.cachedData.ritualStreaks[streakIndex].lastCompletedAt = event.timestamp;
-        this.cachedData.ritualStreaks[streakIndex].dueToday = false;
       }
 
       // Update stats
@@ -361,10 +364,10 @@ class EngagementService {
    * In the real implementation, this would send via LiveKit data message
    * which the backend would process.
    */
-  async submitPrediction(
+  submitPrediction(
     _userId: string,
     prediction: { category: string; question: string; userPrediction: number }
-  ): Promise<PredictionData | null> {
+  ): PredictionData | null {
     // Create a local prediction record
     // The backend will send the full record via LiveKit when it processes this
     const newPrediction: PredictionData = {

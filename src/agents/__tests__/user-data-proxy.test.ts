@@ -246,14 +246,13 @@ describe('UserData Proxy', () => {
 
   describe('Proxy Behavior', () => {
     it('should return undefined for unknown properties', () => {
-      // @ts-expect-error Testing undefined property access
+      // Index signature allows arbitrary property access
       expect(userData.nonExistentProperty).toBeUndefined();
     });
 
     it('should allow setting arbitrary properties on direct storage', () => {
-      // @ts-expect-error Testing arbitrary property
+      // Index signature allows arbitrary property access
       userData.customField = 'custom value';
-      // @ts-expect-error Testing arbitrary property
       expect(userData.customField).toBe('custom value');
     });
 

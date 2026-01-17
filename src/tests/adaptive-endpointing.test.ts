@@ -115,69 +115,79 @@ describe('Adaptive Endpointing', () => {
     });
 
     it('should increase delays in supporting phase', () => {
+      // Use heavy topic to get delays above 300ms floor clamp, making phase adjustment visible
       const exploringContext: EndpointingContext = {
-        topicWeight: 'light',
+        topicWeight: 'heavy', // +150ms min puts us above 300ms clamp floor
         sentenceCompleteness: 1.0,
         emotionalIntensity: 0.5,
         conversationPhase: 'exploring',
       };
 
       const supportingContext: EndpointingContext = {
-        topicWeight: 'light',
+        topicWeight: 'heavy', // +150ms min
         sentenceCompleteness: 1.0,
         emotionalIntensity: 0.5,
-        conversationPhase: 'supporting',
+        conversationPhase: 'supporting', // +75ms min
       };
 
       const exploringResult = calculateEndpointingDelay(exploringContext);
       const supportingResult = calculateEndpointingDelay(supportingContext);
 
+      // Base 200 + heavy 150 = 350 for exploring
+      // Base 200 + heavy 150 + supporting 75 = 425 for supporting
       expect(supportingResult.minDelay).toBeGreaterThan(exploringResult.minDelay);
     });
 
     it('should adjust for slow speakers', () => {
+      // Use heavy topic to get delays above 300ms floor clamp, making speaker rate adjustment visible
       const normalContext: EndpointingContext = {
-        topicWeight: 'light',
+        topicWeight: 'heavy', // +150ms min puts us above 300ms clamp floor
         sentenceCompleteness: 1.0,
         emotionalIntensity: 0.5,
         conversationPhase: 'exploring',
-        userSpeakingRate: 130, // Normal
+        userSpeakingRate: 130, // Normal - no adjustment
       };
 
       const slowContext: EndpointingContext = {
-        topicWeight: 'light',
+        topicWeight: 'heavy', // +150ms min
         sentenceCompleteness: 1.0,
         emotionalIntensity: 0.5,
         conversationPhase: 'exploring',
-        userSpeakingRate: 80, // Slow
+        userSpeakingRate: 80, // Slow - +100ms min
       };
 
       const normalResult = calculateEndpointingDelay(normalContext);
       const slowResult = calculateEndpointingDelay(slowContext);
 
+      // Base 200 + heavy 150 = 350 for normal
+      // Base 200 + heavy 150 + slow 100 = 450 for slow
       expect(slowResult.minDelay).toBeGreaterThan(normalResult.minDelay);
     });
 
     it('should adjust for fast speakers', () => {
+      // Use heavy topic + incomplete sentence to get delays high enough that fast speaker
+      // subtraction (-100ms) is visible and doesn't get clamped to 300ms floor
       const normalContext: EndpointingContext = {
-        topicWeight: 'light',
-        sentenceCompleteness: 1.0,
+        topicWeight: 'heavy', // +150ms min
+        sentenceCompleteness: 0.2, // incomplete: +150ms min
         emotionalIntensity: 0.5,
         conversationPhase: 'exploring',
-        userSpeakingRate: 130, // Normal
+        userSpeakingRate: 130, // Normal - no adjustment
       };
 
       const fastContext: EndpointingContext = {
-        topicWeight: 'light',
-        sentenceCompleteness: 1.0,
+        topicWeight: 'heavy', // +150ms min
+        sentenceCompleteness: 0.2, // incomplete: +150ms min
         emotionalIntensity: 0.5,
         conversationPhase: 'exploring',
-        userSpeakingRate: 180, // Fast
+        userSpeakingRate: 180, // Fast - -100ms min
       };
 
       const normalResult = calculateEndpointingDelay(normalContext);
       const fastResult = calculateEndpointingDelay(fastContext);
 
+      // Base 200 + heavy 150 + incomplete 150 = 500 for normal
+      // Base 200 + heavy 150 + incomplete 150 - fast 100 = 400 for fast
       expect(fastResult.minDelay).toBeLessThan(normalResult.minDelay);
     });
 

@@ -30,11 +30,12 @@ import { engagementService } from '../services/engagement.service.js';
 import { isDemoDataEnabled, getDemoEngagementData } from '../services/engagement-demo-data.js';
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
+import { teaserPreview } from './teaser-preview.ui.js';
 
 const log = createLogger('EngagementUI');
 
 // FIX BUG: Track all setTimeout calls for proper cleanup
-const { trackedTimeout, clearAll: clearAllTimeouts } = createTimeoutTracker();
+const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
 
 // ============================================================================
 // TYPES
@@ -142,24 +143,12 @@ export class EngagementUI {
   }
 
   /**
-   * Render empty state - welcoming, not clinical
+   * Render empty state - shows teaser preview of what daily habits WILL look like
    */
   private renderEmptyState(): string {
-    return `
-      <div class="engagement-empty">
-        <div class="engagement-empty__icon">
-          ${ICONS.heart}
-        </div>
-        <h3 class="engagement-empty__title">Start Your Journey</h3>
-        <p class="engagement-empty__message">
-          Daily practices help you build consistency and self-awareness. 
-          Start a conversation with Ferni to set up your first ritual.
-        </p>
-        <button class="engagement-empty__cta" onclick="document.querySelector('.engagement-panel')?.classList.remove('engagement-panel--visible')">
-          Talk to Ferni
-        </button>
-      </div>
-    `;
+    // Use teaser preview system to show what daily habits WILL look like
+    // Creates anticipation by showing realistic dummy data
+    return teaserPreview.habits().outerHTML;
   }
 
   /**
@@ -394,7 +383,7 @@ export class EngagementUI {
     return `
       <section class="engagement-card engagement-card--stats">
         <div class="engagement-section-header">
-          <span class="engagement-section-label">Your Progress</span>
+          <span class="engagement-section-label">Your Journey</span>
         </div>
         <div class="engagement-stats">
           ${statsHtml}
@@ -531,15 +520,14 @@ export class EngagementUI {
       .engagement-panel__backdrop {
         position: absolute;
         inset: 0;
-        background: var(--backdrop-heavy);
-        backdrop-filter: blur(var(--glass-blur-subtle, 8px));
+        background: rgba(44, 37, 32, 0.75);
       }
 
       /* Card */
       .engagement-panel__card {
         position: relative;
         width: 100%;
-        max-width: 420px;
+        max-width: clamp(294px, 90vw, 420px);
         max-height: 80vh;
         background: var(--color-background-elevated, #fffdfb);
         border-radius: var(--radius-2xl, 1.5rem);
@@ -933,7 +921,7 @@ export class EngagementUI {
         font-size: var(--text-sm);
         color: var(--color-text-secondary);
         line-height: var(--leading-relaxed);
-        max-width: 280px;
+        max-width: min(280px, 100%);
         margin: 0 0 var(--space-5, 20px) 0;
       }
 
@@ -1009,7 +997,7 @@ export class EngagementUI {
       }
 
       /* Responsive */
-      @media (max-width: 480px) {
+      @media (max-width: clamp(336px, 90vw, 480px)) {
         .engagement-panel {
           padding: var(--space-4, 16px);
         }
@@ -1044,7 +1032,7 @@ export class EngagementUI {
    */
   destroy(): void {
     // FIX: Clear all tracked timeouts to prevent memory leaks
-    clearAllTimeouts();
+    _clearAllTimeouts();
 
     if (this.container) {
       this.container.remove();

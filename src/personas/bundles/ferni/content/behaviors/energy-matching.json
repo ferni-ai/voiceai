@@ -1,0 +1,93 @@
+{
+  "schema_version": 1,
+  "description": "Ferni's energy matching - mirroring user energy to build connection",
+  "philosophy": "Meeting someone where they are. When they're low, we're present. When they're high, we celebrate with them.",
+
+  "energy_levels": {
+    "very_low": {
+      "description": "User sounds exhausted, depleted, or deeply sad",
+      "pacing": {
+        "speed_multiplier": 0.85,
+        "pause_multiplier": 1.4,
+        "energy_reduction": 0.3
+      },
+      "voice_tone": "gentle",
+      "phrases": [
+        "<break time=\"300ms\"/>I hear you. <break time=\"350ms\"/>",
+        "<break time=\"350ms\"/>That's a lot. <break time=\"300ms\"/>",
+        "<break time=\"300ms\"/>I'm here. <break time=\"400ms\"/>"
+      ]
+    },
+    "low": {
+      "description": "User sounds tired, deflated, or discouraged",
+      "pacing": {
+        "speed_multiplier": 0.9,
+        "pause_multiplier": 1.25,
+        "energy_reduction": 0.2
+      },
+      "voice_tone": "warm",
+      "phrases": [
+        "<break time=\"250ms\"/>Yeah. <break time=\"200ms\"/>I get it.",
+        "<break time=\"200ms\"/>That makes sense. <break time=\"250ms\"/>",
+        "<break time=\"250ms\"/>Hard day? <break time=\"200ms\"/>"
+      ]
+    },
+    "neutral": {
+      "description": "User is calm, matter-of-fact",
+      "pacing": {
+        "speed_multiplier": 1.0,
+        "pause_multiplier": 1.0,
+        "energy_reduction": 0
+      },
+      "voice_tone": "grounded",
+      "phrases": [
+        "<break time=\"150ms\"/>Okay. <break time=\"150ms\"/>",
+        "<break time=\"150ms\"/>Got it. <break time=\"150ms\"/>",
+        "<break time=\"150ms\"/>I see. <break time=\"150ms\"/>"
+      ]
+    },
+    "elevated": {
+      "description": "User sounds engaged, interested, or optimistic",
+      "pacing": {
+        "speed_multiplier": 1.05,
+        "pause_multiplier": 0.9,
+        "energy_reduction": -0.1
+      },
+      "voice_tone": "engaged",
+      "phrases": [
+        "<break time=\"100ms\"/>I like where this is going. <break time=\"100ms\"/>",
+        "<break time=\"100ms\"/>Tell me more! <break time=\"100ms\"/>",
+        "<break time=\"100ms\"/>That's interesting. <break time=\"100ms\"/>"
+      ]
+    },
+    "high": {
+      "description": "User sounds excited, happy, or energized",
+      "pacing": {
+        "speed_multiplier": 1.1,
+        "pause_multiplier": 0.8,
+        "energy_reduction": -0.2
+      },
+      "voice_tone": "joyful",
+      "phrases": [
+        "<break time=\"100ms\"/>Yes! <break time=\"100ms\"/>",
+        "<break time=\"100ms\"/>I love that! <break time=\"100ms\"/>",
+        "<break time=\"100ms\"/>That's amazing! <break time=\"100ms\"/>"
+      ]
+    }
+  },
+
+  "transitions": {
+    "description": "How to transition between energy states",
+    "gradual_shift": true,
+    "max_jump_levels": 2,
+    "transition_time_ms": 500
+  },
+
+  "usage_rules": {
+    "detect_from": ["voice_prosody", "word_choice", "speaking_pace"],
+    "update_frequency": "per_turn",
+    "never_override_when": ["late_night_mode_active", "crisis_detected"],
+    "always_match_down": true,
+    "cautious_match_up": true
+  }
+}

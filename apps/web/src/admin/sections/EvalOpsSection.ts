@@ -91,21 +91,21 @@ export async function render(): Promise<string> {
       </div>
 
       <!-- Actions -->
-      <div class="admin-card evalops-actions">
+      <div class="admin-card evalops-actions" role="button" tabindex="0">
         <h2 class="admin-section-title">
           <span class="admin-icon">${iconSm(ICON_ZAP)}</span>
           Quick Actions
         </h2>
-        <div class="evalops-actions-grid">
-          <button class="admin-btn admin-btn--primary" data-action="run-suite">
+        <div class="evalops-actions-grid" role="button" tabindex="0">
+          <button aria-label="Run Test Suite" class="admin-btn admin-btn--primary" data-action="run-suite">
             <span class="admin-icon">${iconSm(ICON_EVALOPS)}</span>
             Run Test Suite
           </button>
-          <button class="admin-btn" data-action="quick-check">
+          <button aria-label="Confirm" class="admin-btn" data-action="quick-check">
             <span class="admin-icon">${iconSm(ICON_SEARCH)}</span>
             Quick Voice Check
           </button>
-          <button class="admin-btn" data-action="export-report">
+          <button aria-label="Export Report" class="admin-btn" data-action="export-report">
             <span class="admin-icon">${iconSm(ICON_EXTERNAL)}</span>
             Export Report
           </button>
@@ -176,7 +176,7 @@ export async function render(): Promise<string> {
         grid-template-columns: repeat(4, 1fr);
       }
 
-      @media (max-width: 1024px) {
+      @media (max-width: min(1024px, 100%)) {
         .evalops-stats {
           grid-template-columns: repeat(2, 1fr);
         }
@@ -448,7 +448,7 @@ function renderFlagToggle(id: string, name: string, desc: string, enabled: boole
       </div>
       <label class="admin-toggle">
         <input type="checkbox" ${enabled ? 'checked' : ''} data-setting-id="${id}" data-action="toggle-evalops">
-        <span class="admin-toggle-slider"></span>
+        <span class="admin-toggle-slider" role="button" tabindex="0"></span>
       </label>
     </div>
   `;
@@ -462,12 +462,12 @@ async function fetchEvalMetrics(): Promise<EvalMetrics> {
     });
     if (response.ok) {
       const data = await response.json();
-      const metrics = data.metrics || data;
+      const metrics = data.metrics ?? data;
       return {
-        totalEvaluations: metrics.totalEvaluations || 0,
-        passRate: Math.round(metrics.averageScore || 0),
-        flaggedResponses: metrics.flaggedResponses || 0,
-        avgVoiceConsistency: Math.round(metrics.averageScore || 0),
+        totalEvaluations: metrics.totalEvaluations ?? 0,
+        passRate: Math.round(metrics.averageScore ?? 0),
+        flaggedResponses: metrics.flaggedResponses ?? 0,
+        avgVoiceConsistency: Math.round(metrics.averageScore ?? 0),
         lastRunTime: metrics.lastEvaluationTime
           ? formatTimeAgo(new Date(metrics.lastEvaluationTime))
           : 'Never run',
@@ -505,13 +505,13 @@ async function fetchFlaggedResponses(): Promise<FlaggedResponse[]> {
     });
     if (response.ok) {
       const data = await response.json();
-      const evaluations = data.evaluations || [];
+      const evaluations = data.evaluations ?? [];
       return evaluations.map((e: Record<string, unknown>) => ({
-        id: e.id || `eval-${Math.random().toString(36).slice(2)}`,
-        personaId: e.personaId || 'unknown',
-        dimension: e.lowestDimension || 'Quality',
-        score: e.lowestScore || e.overallScore || 0,
-        reason: e.details || 'Flagged for review',
+        id: e.id ?? `eval-${Math.random().toString(36).slice(2)}`,
+        personaId: e.personaId ?? 'unknown',
+        dimension: e.lowestDimension ?? 'Quality',
+        score: e.lowestScore ?? e.overallScore ?? 0,
+        reason: e.details ?? 'Flagged for review',
         timestamp: e.timestamp ? formatTimeAgo(new Date(e.timestamp as string)) : 'recently',
       }));
     }
@@ -531,7 +531,7 @@ async function fetchDimensionAverages(): Promise<DimensionAverages> {
     });
     if (response.ok) {
       const data = await response.json();
-      return data.dimensions || {
+      return data.dimensions ?? {
         personaVoice: 0,
         emotionalIntelligence: 0,
         helpfulness: 0,

@@ -5,6 +5,7 @@
  */
 
 export * from './audio.service.js';
+export * from './procedural-sounds.service.js';
 export * from './connection.service.js';
 export * from './delight.service.js';
 export * from './engagement-demo-data.js';
@@ -66,3 +67,17 @@ export * from './team-unlock.service.js';
 // ============================================================================
 
 export * from './roadmap.service.js';
+export * from './soul-stats.service.js';
+
+// ============================================================================
+// 🧠 BETTER THAN HUMAN - Voice ↔ App Sync
+// ============================================================================
+
+export * from './app-context-tracking.service.js';
+
+// ============================================================================
+// 🌍 BETTER THAN HUMAN - Location Awareness
+// ============================================================================
+
+export * from './geolocation.service.js';
+export * from './timezone.service.js';

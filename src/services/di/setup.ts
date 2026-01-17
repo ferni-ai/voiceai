@@ -83,19 +83,19 @@ async function registerApplicationServices(): Promise<void> {
 
   // Productivity Store
   container.registerSingleton(Tokens.ProductivityStore, async () => {
-    const { initializeProductivityStore } = await import('../productivity-store.js');
+    const { initializeProductivityStore } = await import('../stores/productivity-store.js');
     return initializeProductivityStore();
   });
 
   // Background Tasks
   container.registerSingleton(Tokens.BackgroundTasks, async () => {
-    const { initializeBackgroundTasks } = await import('../background-tasks.js');
+    const { initializeBackgroundTasks } = await import('../scheduling/background-tasks.js');
     return initializeBackgroundTasks();
   });
 
   // Collective Learning
   container.registerSingleton(Tokens.CollectiveLearning, async () => {
-    const { initializeCollectiveLearning } = await import('../collective-learning-store.js');
+    const { initializeCollectiveLearning } = await import('../memory/collective-learning-store.js');
     return initializeCollectiveLearning();
   });
 
@@ -107,7 +107,7 @@ async function registerApplicationServices(): Promise<void> {
 
   // Life Data Store
   container.registerSingleton(Tokens.LifeDataStore, async () => {
-    const { getLifeDataStore } = await import('../life-data-store.js');
+    const { getLifeDataStore } = await import('../stores/life-data-store.js');
     return getLifeDataStore();
   });
 
@@ -123,7 +123,7 @@ async function registerSchedulerServices(): Promise<void> {
   // Reminder Scheduler - use start function instead of getter
   container.registerSingleton(Tokens.ReminderScheduler, async () => {
     try {
-      const { startReminderScheduler } = await import('../reminder-scheduler.js');
+      const { startReminderScheduler } = await import('../scheduling/reminder-scheduler.js');
       return { start: startReminderScheduler };
     } catch {
       return null;
@@ -132,7 +132,7 @@ async function registerSchedulerServices(): Promise<void> {
 
   // Proactive Scheduler
   container.registerSingleton(Tokens.ProactiveScheduler, async () => {
-    const { getProactiveScheduler } = await import('../proactive-scheduler.js');
+    const { getProactiveScheduler } = await import('../scheduling/proactive-scheduler.js');
     return getProactiveScheduler();
   });
 

@@ -11,7 +11,7 @@
 
 import type { IncomingMessage, ServerResponse } from 'http';
 import { getDefaultStore } from '../memory/index.js';
-import { deleteFirebaseUser, getFirebaseUser } from '../services/firebase-auth.js';
+import { deleteFirebaseUser, getFirebaseUser } from '../services/identity/firebase-auth.js';
 import { recordSecurityEvent } from '../services/security-events.js';
 import { createUserProfile } from '../types/user-profile.js';
 import { createLogger } from '../utils/safe-logger.js';
@@ -114,10 +114,12 @@ async function handleGetAccount(
           emailVerified: firebaseUser.emailVerified,
           displayName: firebaseUser.displayName,
           photoURL: firebaseUser.photoURL,
-          providers: firebaseUser.providerData.map((p) => p.providerId),
+          providers: firebaseUser.providerData.map((p: { providerId: string }) => p.providerId),
           isAnonymous:
             firebaseUser.providerData.length === 0 ||
-            firebaseUser.providerData.every((p) => p.providerId === 'anonymous'),
+            firebaseUser.providerData.every(
+              (p: { providerId: string }) => p.providerId === 'anonymous'
+            ),
         };
       }
     }

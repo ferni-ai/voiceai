@@ -53,10 +53,21 @@ export {
 
 export { getEffectTracker, resetEffectTracker, resetAllEffectTrackers } from './effect-tracker.js';
 
-// Effect factories
+// Effect factories - Presence
 export { createBreathSoundEffect } from './presence/breath-sound.effect.js';
+export { createMoodSignalEffect } from './presence/mood-signal.effect.js';
+export { createPhysicalPresenceEffect } from './presence/physical-presence.effect.js';
+
+// Effect factories - Attunement
 export { createFirstTurnNoticingEffect } from './attunement/first-turn-noticing.effect.js';
+export { createSpontaneousThoughtEffect } from './attunement/spontaneous-thought.effect.js';
+
+// Effect factories - Reactions
 export { createExcitementInterruptionEffect } from './reactions/excitement-interruption.effect.js';
+export { createLiveReactionEffect } from './reactions/live-reaction.effect.js';
+export { createPlayfulnessEffect } from './reactions/playfulness.effect.js';
+
+// Effect factories - Naturalness
 export { createSpeechFillerEffect } from './naturalness/speech-filler.effect.js';
 
 // Metrics & Observability
@@ -104,25 +115,49 @@ export {
 // ============================================================================
 
 import type { EffectCoordinator, HumanizationEffect } from './types.js';
+
+// Presence effects
 import { createBreathSoundEffect } from './presence/breath-sound.effect.js';
+import { createMoodSignalEffect } from './presence/mood-signal.effect.js';
+import { createPhysicalPresenceEffect } from './presence/physical-presence.effect.js';
+
+// Attunement effects
 import { createFirstTurnNoticingEffect } from './attunement/first-turn-noticing.effect.js';
+import { createSpontaneousThoughtEffect } from './attunement/spontaneous-thought.effect.js';
+
+// Reaction effects
 import { createExcitementInterruptionEffect } from './reactions/excitement-interruption.effect.js';
+import { createLiveReactionEffect } from './reactions/live-reaction.effect.js';
+import { createPlayfulnessEffect } from './reactions/playfulness.effect.js';
+
+// Naturalness effects
 import { createSpeechFillerEffect } from './naturalness/speech-filler.effect.js';
 
 /**
  * All available effect factories
+ *
+ * These are the 9 core humanization effects that make the agent feel alive:
+ * - Presence: breath sounds, mood signals, physical presence
+ * - Attunement: first turn noticing, spontaneous thoughts
+ * - Reactions: excitement interruptions, live reactions, playfulness
+ * - Naturalness: speech fillers
  */
 const EFFECT_FACTORIES: Array<(personaId: string) => HumanizationEffect> = [
-  // Presence effects
+  // Presence effects - Making the agent feel "alive"
   createBreathSoundEffect,
+  createMoodSignalEffect,
+  createPhysicalPresenceEffect,
 
-  // Attunement effects
+  // Attunement effects - Reading and responding to the user
   createFirstTurnNoticingEffect,
+  createSpontaneousThoughtEffect,
 
-  // Reaction effects
+  // Reaction effects - Responding to user input
   createExcitementInterruptionEffect,
+  createLiveReactionEffect,
+  createPlayfulnessEffect,
 
-  // Naturalness effects
+  // Naturalness effects - Speech imperfections
   createSpeechFillerEffect,
 ];
 
@@ -139,11 +174,11 @@ export function registerDefaultEffects(coordinator: EffectCoordinator, personaId
 /**
  * Create a coordinator with all default effects registered
  */
-export function createCoordinatorWithEffects(
+export async function createCoordinatorWithEffects(
   sessionId: string,
   personaId: string
-): EffectCoordinator {
-  const { getEffectCoordinator } = require('./effect-coordinator.js');
+): Promise<EffectCoordinator> {
+  const { getEffectCoordinator } = await import('./effect-coordinator.js');
   const coordinator = getEffectCoordinator(sessionId, personaId);
   registerDefaultEffects(coordinator, personaId);
   return coordinator;
@@ -153,7 +188,7 @@ export function createCoordinatorWithEffects(
 // CONTEXT BUILDER HELPER
 // ============================================================================
 
-import type { ConversationMood } from '../deep-humanization.js';
+import type { ConversationMood } from '../deep-humanization/types.js';
 
 /**
  * Build an EffectContext from orchestrator input

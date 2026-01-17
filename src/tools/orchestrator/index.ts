@@ -39,5 +39,15 @@ export {
 
 // Re-export commonly used types
 export type { Tool, ToolContext, ToolDomain, ToolDefinition } from '../registry/types.js';
-export type { SemanticMatch } from '../semantic-router.js';
+export type { SemanticMatch } from '../semantic-router/compat.js';
 export type { DetectedIntent } from '../dynamic-tool-router.js';
+
+// Tool composition (chaining tools together)
+export {
+  ToolComposer,
+  createToolComposer,
+  TOOL_CHAINS,
+  type ToolChain,
+  type ComposedResult,
+  type ComposeOptions,
+} from './tool-composer.js';

@@ -21,28 +21,105 @@
 
 ARG NODE_VERSION=20
 
+# LiveKit agents SDK version - update this when upgrading @livekit/agents packages
+# Check latest: https://www.npmjs.com/package/@livekit/agents
+ARG LIVEKIT_AGENTS_VERSION=1.0.31
+
+# ============================================================================
+# Stage 0: Build Rust native modules (SIMD-accelerated audio processing)
+# ============================================================================
+FROM rust:1.92-slim AS rust-builder
+
+WORKDIR /rust
+
+# Install build dependencies for napi-rs
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    curl \
+    && rm -rf /var/lib/apt/lists/* \
+    && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
+    && apt-get install -y nodejs \
+    && npm install -g @napi-rs/cli
+
+# Copy rust-audio source (include Cargo.lock for version pinning)
+COPY apps/rust-audio/Cargo.toml apps/rust-audio/Cargo.lock ./rust-audio/
+COPY apps/rust-audio/package.json ./rust-audio/
+COPY apps/rust-audio/src ./rust-audio/src
+COPY apps/rust-audio/build.rs ./rust-audio/
+COPY apps/rust-audio/benches ./rust-audio/benches
+
+# Build rust-audio native module for Linux x64
+WORKDIR /rust/rust-audio
+RUN cargo build --release && \
+    napi build --platform --release && \
+    ls -la *.node && \
+    echo "=== rust-audio native module built ==="
+
+# Copy rust-perf source (if it exists)
+WORKDIR /rust
+COPY apps/rust-perf/Cargo.toml apps/rust-perf/Cargo.lock* ./rust-perf/
+COPY apps/rust-perf/package.json ./rust-perf/
+COPY apps/rust-perf/src ./rust-perf/src
+COPY apps/rust-perf/build.rs ./rust-perf/
+
+# Build rust-perf native module for Linux x64
+WORKDIR /rust/rust-perf
+RUN cargo build --release && \
+    napi build --platform --release && \
+    ls -la *.node && \
+    echo "=== rust-perf native module built ==="
+
 # ============================================================================
 # Stage 1: Build TypeScript with pnpm + esbuild
 # ============================================================================
 FROM node:${NODE_VERSION}-slim AS builder
 
+# Re-declare ARG after FROM to make it available in this stage
+ARG LIVEKIT_AGENTS_VERSION
+
 WORKDIR /app
 
-# Install git
+# Install git and enable pnpm
 RUN apt-get update && apt-get install -y --no-install-recommends git \
-    && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/* \
+    && corepack enable && corepack prepare pnpm@latest --activate
 
 # Copy package files first (cache layer)
-COPY package.json package-lock.json* ./
-COPY .npmrc ./
+COPY package.json pnpm-lock.yaml* pnpm-workspace.yaml* ./
+COPY .npmrc .pnpmrc* ./
+
+# Copy workspace packages that are referenced (apps/cli needs to be available)
+COPY apps/cli/package.json ./apps/cli/
+COPY apps/web/package.json ./apps/web/
+COPY apps/async/package.json ./apps/async/
+COPY apps/intelligence-worker/package.json ./apps/intelligence-worker/
+COPY packages/shared-types/package.json ./packages/shared-types/
+
+# Create stub package.json for packages not in build context (rust packages, design-system)
+RUN mkdir -p apps/rust-audio apps/rust-perf design-system && \
+    echo '{"name":"@ferni/audio","version":"0.1.0"}' > apps/rust-audio/package.json && \
+    echo '{"name":"@ferni/perf","version":"0.1.0"}' > apps/rust-perf/package.json && \
+    echo '{"name":"@ferni/design-system","version":"1.0.0"}' > design-system/package.json
+
+# Replace local file: dependencies with npm registry versions for Docker builds
+# The local agents-js is not available in Docker context
+# Version is controlled by LIVEKIT_AGENTS_VERSION build arg (defined at top of file)
+RUN echo "Using @livekit/agents version: ^${LIVEKIT_AGENTS_VERSION}" && \
+    sed -i "s|\"file:../agents-js/agents\"|\"^${LIVEKIT_AGENTS_VERSION}\"|g" package.json && \
+    sed -i "s|\"file:../agents-js/plugins/cartesia\"|\"^${LIVEKIT_AGENTS_VERSION}\"|g" package.json && \
+    sed -i "s|\"file:../agents-js/plugins/deepgram\"|\"^${LIVEKIT_AGENTS_VERSION}\"|g" package.json && \
+    sed -i "s|\"file:../agents-js/plugins/google\"|\"^${LIVEKIT_AGENTS_VERSION}\"|g" package.json && \
+    sed -i "s|\"file:../agents-js/plugins/openai\"|\"^${LIVEKIT_AGENTS_VERSION}\"|g" package.json && \
+    sed -i "s|\"file:../agents-js/plugins/silero\"|\"^${LIVEKIT_AGENTS_VERSION}\"|g" package.json && \
+    cat package.json | grep -A5 '"@livekit/agents"' | head -10
 
 # Copy build configs
 COPY tsconfig.json ./
 COPY tsconfig.build.json ./
 
-# Install dependencies with npm
-RUN --mount=type=cache,target=/root/.npm \
-    npm install --legacy-peer-deps
+# Install dependencies with pnpm (no frozen lockfile since we modified package.json)
+RUN --mount=type=cache,target=/root/.local/share/pnpm/store \
+    pnpm install --prefer-offline --no-frozen-lockfile
 
 # Copy source files (this layer invalidates on source changes)
 COPY src/ ./src/
@@ -53,15 +130,29 @@ COPY apps/cli/src/commands/build/build-fast.ts ./apps/cli/src/commands/build/
 COPY apps/cli/src/commands/build/build-cli-binary.ts ./apps/cli/src/commands/build/
 COPY apps/cli/src/ ./apps/cli/src/
 
-# Build TypeScript + Bundle Agent + CLI
+# Copy tool manifest/embeddings build scripts
+COPY scripts/build-tool-manifest.ts ./scripts/
+COPY scripts/build-tool-embeddings.ts ./scripts/
+
+# Build TypeScript + Bundle Agent + CLI + Tool Artifacts
 # - Agent bundle: 2441 modules → 1 file (eliminates 30-120s module loading)
+# - Tool manifest: 655 tools pre-indexed (100x faster than dynamic imports)
+# - Tool embeddings: 653 pre-computed vectors (30x faster semantic matching)
 # - CLI bundle: Packaged for in-container ops
-RUN npm run build:fast && \
+# IMPORTANT: Clean dist folder to avoid stale build artifacts from Kaniko cache
+RUN rm -rf dist && pnpm run build:fast && \
+    echo "=== Copying JSON config files ===" && \
+    mkdir -p dist/agents/shared/sanitizer/config && \
+    cp src/agents/shared/sanitizer/config/tool-patterns.json dist/agents/shared/sanitizer/config/ && \
+    echo "=== Building tool manifest + embeddings (100x faster startup!) ===" && \
+    pnpm exec tsx scripts/build-tool-manifest.ts && \
+    pnpm exec tsx scripts/build-tool-embeddings.ts && \
+    ls -lh dist/tool-manifest.json dist/tool-embeddings.json && \
     echo "=== Creating agent bundle (2441 modules → 1 file) ===" && \
-    npx tsx apps/cli/src/commands/build/bundle-agent.ts && \
+    pnpm exec tsx apps/cli/src/commands/build/bundle-agent.ts && \
     ls -lh dist/agents/voice-agent-bundle.js && \
     echo "=== Building Ferni CLI for container ===" && \
-    npx tsx apps/cli/src/commands/build/build-cli-binary.ts --container --release && \
+    pnpm exec tsx apps/cli/src/commands/build/build-cli-binary.ts --container --release && \
     ls -lh dist/ferni-bundle/
 
 # ============================================================================
@@ -80,21 +171,42 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && update-ca-certificates \
     && corepack enable && corepack prepare pnpm@latest --activate
 
-# Copy package files for production install
-COPY package.json pnpm-lock.yaml* package-lock.json* ./
+# Copy package files from builder stage (has file: deps replaced with npm versions)
+COPY --from=builder /app/package.json ./
+COPY --from=builder /app/pnpm-lock.yaml* ./
 COPY .npmrc .pnpmrc* ./
 
 # Copy patches directory (required for pnpm patched packages)
 COPY patches/ ./patches/
 
+# Copy workspace package stubs from builder
+COPY --from=builder /app/apps/rust-audio/package.json ./apps/rust-audio/
+COPY --from=builder /app/apps/rust-perf/package.json ./apps/rust-perf/
+COPY --from=builder /app/design-system/package.json ./design-system/
+COPY --from=builder /app/apps/cli/package.json ./apps/cli/
+COPY --from=builder /app/apps/web/package.json ./apps/web/
+COPY --from=builder /app/apps/async/package.json ./apps/async/
+COPY --from=builder /app/apps/intelligence-worker/package.json ./apps/intelligence-worker/
+COPY --from=builder /app/packages/shared-types/package.json ./packages/shared-types/
+COPY pnpm-workspace.yaml ./
+
 # Install production dependencies only (no devDependencies)
+# Note: no frozen-lockfile because we modified package.json in builder
 RUN --mount=type=cache,target=/root/.local/share/pnpm/store \
     --mount=type=cache,target=/root/.npm \
-    if [ -f pnpm-lock.yaml ]; then \
-      pnpm install --frozen-lockfile --prefer-offline --prod; \
-    else \
-      npm ci --omit=dev --prefer-offline; \
-    fi
+    pnpm install --prefer-offline --prod --no-frozen-lockfile && \
+    pnpm store prune && \
+    # Remove unnecessary files from node_modules to reduce image size
+    find node_modules -name "*.md" -delete 2>/dev/null || true && \
+    find node_modules -name "*.map" -delete 2>/dev/null || true && \
+    find node_modules -name "*.ts" ! -name "*.d.ts" -delete 2>/dev/null || true && \
+    find node_modules -name "CHANGELOG*" -delete 2>/dev/null || true && \
+    find node_modules -name "LICENSE*" -delete 2>/dev/null || true && \
+    find node_modules -name ".npmignore" -delete 2>/dev/null || true && \
+    find node_modules -type d -name "test" -exec rm -rf {} + 2>/dev/null || true && \
+    find node_modules -type d -name "tests" -exec rm -rf {} + 2>/dev/null || true && \
+    find node_modules -type d -name "__tests__" -exec rm -rf {} + 2>/dev/null || true && \
+    find node_modules -type d -name "docs" -exec rm -rf {} + 2>/dev/null || true
 
 # Patch LiveKit agents library to increase ALL timeouts
 # The library has multiple hardcoded timeouts that are too short for Cloud Run cold starts:
@@ -138,13 +250,24 @@ RUN echo "=== Patching LiveKit SDK timeouts ===" && \
     find node_modules/.pnpm -name "*.js" -exec grep -l "PATCHED" {} \; 2>/dev/null | head -6 || echo "pnpm verification done"
 
 # Copy built files from builder
+# Includes: dist/tool-manifest.json, dist/tool-embeddings.json (100x faster startup!)
 COPY --from=builder /app/dist ./dist
+
+# Copy Rust native modules (SIMD-accelerated audio processing)
+# These provide zero-allocation real-time audio analysis
+COPY --from=rust-builder /rust/rust-audio/*.node ./apps/rust-audio/
+COPY apps/rust-audio/package.json apps/rust-audio/index.d.ts apps/rust-audio/index.js ./apps/rust-audio/
+COPY --from=rust-builder /rust/rust-perf/*.node ./apps/rust-perf/
+COPY apps/rust-perf/package.json apps/rust-perf/index.d.ts apps/rust-perf/index.js ./apps/rust-perf/
 
 # Copy persona bundles (JSON, MD files needed at runtime)
 COPY --from=builder /app/src/personas/bundles/ ./dist/personas/bundles/
 
 # Copy task wisdom JSON files (not compiled by esbuild)
 COPY --from=builder /app/src/tasks/wisdom/*.json ./dist/tasks/wisdom/
+
+# Copy tool description JSON files (not compiled by esbuild)
+COPY --from=builder /app/src/tools/config/*.json ./dist/tools/config/
 
 # Copy sound effects for session intro/outro (connect.mp3, disconnect.mp3, etc.)
 # These are used by the DJ system for "opening the show" moments

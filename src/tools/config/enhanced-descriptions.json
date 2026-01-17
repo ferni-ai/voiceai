@@ -10,24 +10,30 @@
   ],
   "enhanced": {
     "playMusic": {
-      "description": "Play music based on a search query. Call when user asks to play music, wants to hear a song, artist, genre, or mood-based music. Returns confirmation of what's playing.",
+      "description": "PLAYS AUDIO DIRECTLY in the current voice session. Use when user says: 'play music', 'play some music', 'play a song', 'put on music', 'I want to hear music', 'can you play [song/artist/genre]'. This tool starts audio playback immediately - it does NOT contact anyone, does NOT reach out to anyone, does NOT message anyone. Just plays music directly through the speaker. Searches music catalog and starts playback. Returns track information.",
       "parameters": {
-        "query": "The music search query. Can be a song title, artist name, genre, or mood. Examples: 'relaxing jazz', 'The Beatles', 'upbeat workout music', 'lo-fi beats', 'classical piano'",
-        "source": "Optional: Music service to use. Options: 'spotify', 'youtube', 'apple'. Default: user's preferred service"
+        "query": "Music search query. Can be: song title ('Bohemian Rhapsody'), artist name ('The Beatles'), genre ('jazz'), mood ('relaxing', 'chill', 'upbeat'), or combination ('calm late night music'). DO NOT put contact names here - this is for music search terms only."
+      }
+    },
+    "reachOut": {
+      "description": "Contact a PERSON via call, text, or email. Use ONLY when user wants to communicate with a human contact like 'text Mom', 'call John', 'message my friend'. This is for HUMAN communication only. Do NOT use for music - use playMusic instead. Do NOT use for playing audio.",
+      "parameters": {
+        "contact": "Name of a PERSON to contact. Must be a real human contact like 'Mom', 'John Smith', 'my boss'. NOT for music or audio playback.",
+        "purpose": "Why contacting this person: 'wish happy birthday', 'check in', 'ask a question'. NOT for playing music or audio."
       }
     },
     "rememberAboutUser": {
-      "description": "Store an important fact about the user for future conversations. Call when user shares personal information worth remembering - names, preferences, life events, goals, concerns. The fact will persist across sessions.",
+      "description": "Store an important fact about the user with semantic embedding for future recall. Facts persist across all sessions and are searchable by meaning. Stores personal details, life events, goals, concerns, and preferences.",
       "parameters": {
-        "fact": "The important fact to remember. Be specific and natural. Examples: 'has two kids named Maya and Jake', 'retiring next year from teaching', 'worried about healthcare costs', 'loves hiking in the mountains'",
-        "category": "Category of fact. Options: 'personal' (family, interests), 'financial' (money concerns), 'emotional' (feelings, struggles), 'goal' (aspirations), 'preference' (likes/dislikes)",
-        "importance": "Priority level: 'low' (nice-to-know details), 'medium' (useful context), 'high' (critical to remember)"
+        "fact": "The fact to remember with full context. Examples: 'has two kids named Maya and Jake, ages 8 and 12', 'retiring next year from teaching biology', 'worried about healthcare costs', 'loves hiking in Colorado mountains'",
+        "category": "Category: 'personal' (family, background), 'financial' (money, career), 'emotional' (feelings, struggles), 'goal' (aspirations), 'preference' (likes/dislikes)",
+        "importance": "'low' (nice-to-know), 'medium' (useful context), 'high' (critical life events, key relationships)"
       }
     },
     "recallFromMemory": {
-      "description": "Retrieve something remembered about the user from previous conversations. Call when you need to reference past information, check what you know about them, or personalize the conversation.",
+      "description": "Semantic search across stored memories. Finds memories by meaning, not just keywords. Returns matches with temporal context showing when the memory was stored.",
       "parameters": {
-        "topic": "What you're trying to recall. Examples: 'their retirement goals', 'family members', 'what worried them last time', 'their job situation', 'hobbies they mentioned'"
+        "topic": "What to recall - conceptual, not exact match. Examples: 'retirement plans', 'family situation', 'their concerns', 'career goals'"
       }
     },
     "getWeather": {
@@ -38,33 +44,33 @@
       }
     },
     "handoffToMaya": {
-      "description": "Transfer the conversation to Maya Santos, the Habits & Routines coach. Call when user needs help with: building habits, daily routines, productivity systems, time management, breaking bad habits, or creating new positive behaviors.",
+      "description": "Transfer conversation to Maya Santos, who specializes in habits, routines, productivity, and behavior change.",
       "parameters": {
-        "reason": "Brief context for the handoff. Examples: 'User wants to build a morning routine', 'Struggling with exercise consistency', 'Wants help breaking phone addiction'"
+        "reason": "Brief context for the handoff. Examples: 'wants to build a morning routine', 'struggling with exercise', 'breaking phone addiction'"
       }
     },
     "handoffToAlex": {
-      "description": "Transfer the conversation to Alex Chen, the Communication & Executive Support specialist. Call when user needs help with: writing emails, preparing for meetings, communication coaching, professional correspondence, or difficult conversations.",
+      "description": "Transfer conversation to Alex Chen, who specializes in communication, email writing, calendar management, and professional correspondence.",
       "parameters": {
-        "reason": "Brief context for the handoff. Examples: 'User needs help drafting an important email', 'Preparing for a salary negotiation', 'Wants to improve public speaking'"
+        "reason": "Brief context for the handoff. Examples: 'drafting an important email', 'salary negotiation prep', 'improving communication'"
       }
     },
     "handoffToPeter": {
-      "description": "Transfer the conversation to Peter John, the Research & Analysis expert. Call when user needs help with: financial research, stock analysis, market trends, investment decisions, or data-driven insights.",
+      "description": "Transfer conversation to Peter John, who specializes in research, data analysis, stock market insights, and financial trends.",
       "parameters": {
-        "reason": "Brief context for the handoff. Examples: 'User wants to research a stock', 'Needs help understanding market trends', 'Wants investment analysis'"
+        "reason": "Brief context for the handoff. Examples: 'researching a stock', 'understanding market trends', 'investment analysis'"
       }
     },
     "handoffToJordan": {
-      "description": "Transfer the conversation to Jordan Taylor, the Life Planning & Events specialist. Call when user needs help with: planning celebrations, organizing events, life milestones, travel planning, or special occasions.",
+      "description": "Transfer conversation to Jordan Taylor, who specializes in life planning, event organization, celebrations, and milestones.",
       "parameters": {
-        "reason": "Brief context for the handoff. Examples: 'Planning a birthday party', 'Organizing a family reunion', 'Needs help with wedding planning'"
+        "reason": "Brief context for the handoff. Examples: 'planning a birthday', 'organizing a reunion', 'wedding planning'"
       }
     },
     "handoffToNayan": {
-      "description": "Transfer the conversation to Nayan Patel, the Wisdom & Philosophy guide (Premium). Call when user seeks: deep reflection, philosophical perspectives, life wisdom, spiritual guidance, or meaning-making during difficult times.",
+      "description": "Transfer conversation to Nayan Patel (Premium), who specializes in wisdom, philosophical perspective, meaning-making, and spiritual guidance.",
       "parameters": {
-        "reason": "Brief context for the handoff. Examples: 'Seeking perspective on a life decision', 'Wants to discuss purpose and meaning', 'Going through existential questioning'"
+        "reason": "Brief context for the handoff. Examples: 'seeking life perspective', 'discussing purpose', 'existential questioning'"
       }
     },
     "createAppointment": {
@@ -216,6 +222,1141 @@
       "description": "Record that user completed a habit for today. Call when user mentions they did something that's part of their tracked habits.",
       "parameters": {
         "habitName": "Which habit was done. Partial match works. Examples: 'meditation', 'exercise', 'reading', 'water'"
+      }
+    },
+
+    "_comment_lifecoaching": "========== LIFE COACHING DOMAIN TOOLS ==========",
+
+    "identifyBoundaryNeeds": {
+      "description": "Help user identify areas where they need to set boundaries. Call when user mentions feeling drained, overwhelmed by others, inability to say no, or feeling like a pushover. Uses Four Tendencies framework for personalized guidance.",
+      "parameters": {
+        "situation": "The situation or relationship causing strain. Examples: 'my mother calls every day', 'boss expects overtime constantly', 'friend always asks for favors'"
+      }
+    },
+    "setBoundary": {
+      "description": "Help user script and practice setting a specific boundary. Provides exact words and role-play practice. Call when user needs help with the actual conversation or language.",
+      "parameters": {
+        "boundaryType": "Type of boundary. Options: 'physical', 'emotional', 'time', 'digital', 'material', 'intellectual', 'sexual'",
+        "personType": "Relationship with person. Options: 'parent', 'family', 'partner', 'boss', 'coworker', 'friend', 'acquaintance'",
+        "situation": "Specific situation. Examples: 'they keep borrowing money', 'won't respect my work hours', 'criticizes my choices'"
+      }
+    },
+    "practiceBoundaryScript": {
+      "description": "Practice saying boundary-setting words out loud. Role-play the conversation. Call when user wants to rehearse before having the actual conversation.",
+      "parameters": {
+        "personType": "Who they're setting boundary with. Options: 'boss', 'family', 'friend', 'partner', 'coworker'",
+        "boundaryType": "Type of boundary. Options: 'time', 'emotional', 'physical', 'digital'"
+      }
+    },
+    "handleBoundaryPushback": {
+      "description": "Help user navigate pushback when someone resists their boundary. Call when user reports the other person got upset, guilt-tripped, or didn't accept the boundary.",
+      "parameters": {
+        "pushbackType": "Type of resistance. Options: 'guilt', 'anger', 'tears', 'persistence', 'silent-treatment'"
+      }
+    },
+
+    "buildConversationSkills": {
+      "description": "Help user improve their conversation and social skills. Call when user feels awkward socially, doesn't know what to say, struggles at parties, or wants to make friends.",
+      "parameters": {
+        "situation": "Where they struggle. Options: 'parties', 'meetings', 'networking', 'dates', 'small-talk', 'groups'",
+        "challenge": "What specifically is hard. Examples: 'starting conversations', 'keeping them going', 'feeling natural'"
+      }
+    },
+    "practiceSmallTalk": {
+      "description": "Practice casual conversation with role-play scenarios. Call when user wants to rehearse social interactions before an event.",
+      "parameters": {
+        "scenario": "Type of scenario. Options: 'party', 'work-event', 'coffee-shop', 'networking', 'date'"
+      }
+    },
+    "navigateSocialAnxiety": {
+      "description": "Help user cope with social anxiety before or during social situations. Call when user expresses nervousness about upcoming social events.",
+      "parameters": {
+        "situation": "What's coming up. Examples: 'work party tomorrow', 'meeting new people', 'presentation'"
+      }
+    },
+    "developFriendships": {
+      "description": "Help user build deeper friendships or make new friends. Call when user mentions loneliness or wanting closer connections.",
+      "parameters": {
+        "stage": "Friendship stage. Options: 'making-new', 'deepening-existing', 'reconnecting', 'maintaining'"
+      }
+    },
+
+    "understandAnger": {
+      "description": "Help user understand their anger patterns. Call when user is angry, mentions losing temper, or wants to manage anger better.",
+      "parameters": {
+        "pattern": "Anger style. Options: 'explosive', 'suppressed', 'passive-aggressive', 'chronic', 'unsure'"
+      }
+    },
+    "identifyAngerTriggers": {
+      "description": "Help user identify what triggers their anger. Call when user wants to understand why they get angry or prevent future outbursts.",
+      "parameters": {
+        "recentExample": "Recent anger episode. Examples: 'blew up at my partner yesterday', 'got furious at a driver'"
+      }
+    },
+    "angerCoolingTechniques": {
+      "description": "Provide immediate anger management techniques. Call when user is currently angry and needs to calm down NOW.",
+      "parameters": {
+        "intensity": "How angry. Options: 'mild', 'moderate', 'high', 'intense'"
+      }
+    },
+    "repairAfterAnger": {
+      "description": "Help user repair relationship damage after an anger outburst. Call when user regrets how they acted while angry.",
+      "parameters": {
+        "situation": "What happened. Examples: 'yelled at my kids', 'said hurtful things to partner', 'sent angry email to boss'"
+      }
+    },
+
+    "understandProcrastination": {
+      "description": "Help user understand why they procrastinate. Call when user can't start tasks, keeps putting things off, or feels stuck.",
+      "parameters": {
+        "task": "What they're avoiding. Examples: 'big project at work', 'cleaning the house', 'making a phone call'",
+        "reason": "Why they think. Options: 'fear', 'overwhelm', 'perfectionism', 'boredom', 'unclear', 'unsure'"
+      }
+    },
+    "breakDownTask": {
+      "description": "Break overwhelming task into tiny actionable steps. Call when user is procrastinating because task feels too big.",
+      "parameters": {
+        "task": "The overwhelming task. Examples: 'file taxes', 'write thesis', 'organize garage'"
+      }
+    },
+    "buildMomentum": {
+      "description": "Help user build momentum through small wins. Call when user is stuck and needs to get started with anything.",
+      "parameters": {
+        "context": "What they're trying to do. Examples: 'working on a project', 'getting back into exercise', 'job searching'"
+      }
+    },
+    "overcomeProcrastinationBlock": {
+      "description": "Help user push through a specific procrastination block right now. Call when user wants to start but can't.",
+      "parameters": {
+        "block": "What's blocking them. Options: 'fear-of-failure', 'overwhelm', 'perfectionism', 'unclear-start', 'energy'"
+      }
+    },
+
+    "recognizePerfectionism": {
+      "description": "Help user recognize perfectionist patterns. Call when nothing is ever good enough, they can't finish things, or they're paralyzed by high standards.",
+      "parameters": {
+        "pattern": "What they're experiencing. Examples: 'rewriting emails 10 times', 'can't ship anything', 'harsh self-criticism'"
+      }
+    },
+    "challengePerfectionistThoughts": {
+      "description": "Challenge specific perfectionist thoughts. Call when user expresses all-or-nothing thinking about their work or self.",
+      "parameters": {
+        "thought": "The perfectionist thought. Examples: 'if it's not perfect no one will respect me', 'I should be able to do this perfectly'"
+      }
+    },
+    "embraceGoodEnough": {
+      "description": "Practice accepting good enough over perfect. Call when user needs permission to release something that's not perfect.",
+      "parameters": {
+        "situation": "What needs to be good-enough. Examples: 'this presentation', 'my house before guests', 'my parenting'"
+      }
+    },
+
+    "assessScreenTime": {
+      "description": "Assess user's digital habits and screen time concerns. Call when user mentions phone addiction, doomscrolling, or too much screen time.",
+      "parameters": {
+        "concern": "Main concern. Examples: 'on phone all day', 'can't stop scrolling', 'affects my sleep', 'losing time to social media'"
+      }
+    },
+    "createDigitalBoundaries": {
+      "description": "Help user set boundaries with technology. Call when user wants to limit app usage or create tech-free times.",
+      "parameters": {
+        "app": "What to limit. Examples: 'social media', 'TikTok', 'work email', 'phone overall'"
+      }
+    },
+    "addressDoomscrolling": {
+      "description": "Help user break doomscrolling habit. Call when user mentions compulsive scrolling, especially of negative news.",
+      "parameters": {
+        "trigger": "When it happens. Options: 'boredom', 'anxiety', 'bedtime', 'morning', 'throughout-day'"
+      }
+    },
+
+    "assessBurnout": {
+      "description": "Assess user's burnout level and symptoms. Call when user mentions exhaustion, can't keep up, depleted, or thinks they're burning out.",
+      "parameters": {
+        "symptoms": "What they're experiencing. Examples: 'exhausted all the time', 'cynical about work', 'nothing feels meaningful'"
+      }
+    },
+    "createRecoveryPlan": {
+      "description": "Help create a burnout recovery plan. Call when user is in burnout and needs a path forward.",
+      "parameters": {
+        "priorities": "What matters most. Examples: 'keeping my job', 'my health', 'my family', 'not sure'"
+      }
+    },
+    "identifyEnergyDrains": {
+      "description": "Help identify what's draining the user's energy. Call when user feels depleted and wants to understand why.",
+      "parameters": {
+        "area": "Where to look. Options: 'work', 'relationships', 'commitments', 'home', 'all'"
+      }
+    },
+
+    "exploreBodyImage": {
+      "description": "Help user explore their relationship with their body. Call when user expresses body dissatisfaction, negative self-talk about appearance, or body image struggles.",
+      "parameters": {
+        "feeling": "What they're experiencing. Examples: 'hate how I look', 'uncomfortable in my body', 'compare myself to others'"
+      }
+    },
+    "buildBodyGratitude": {
+      "description": "Help build appreciation for what the body does (vs. how it looks). Call when user needs to shift from appearance to function/capability.",
+      "parameters": {
+        "focus": "What to appreciate. Options: 'function', 'capability', 'resilience', 'senses', 'healing'"
+      }
+    },
+
+    "clarifyDatingGoals": {
+      "description": "Help user get clear on what they want in dating/relationships. Call when user is confused about what they want, just starting to date, or unsure about relationship goals.",
+      "parameters": {
+        "currentStatus": "Where they are. Options: 'single', 'dating-casually', 'in-relationship-questioning', 'recently-single'"
+      }
+    },
+    "buildDatingConfidence": {
+      "description": "Help build user's dating confidence. Call when user feels unworthy of love, nervous about dating, or lacks confidence.",
+      "parameters": {
+        "concern": "What's holding them back. Examples: 'not attractive enough', 'don't know how to flirt', 'fear of rejection'"
+      }
+    },
+    "navigateDatingAnxiety": {
+      "description": "Help manage dating anxiety before or during dates. Call when user is nervous about an upcoming date or dating situation.",
+      "parameters": {
+        "situation": "What's causing anxiety. Examples: 'first date tomorrow', 'waiting for text back', 'asking someone out'"
+      }
+    },
+    "processRejection": {
+      "description": "Help user process dating rejection. Call when user was rejected, ghosted, or turned down.",
+      "parameters": {
+        "situation": "What happened. Examples: 'got ghosted', 'they said they just want to be friends', 'date went badly'"
+      }
+    },
+
+    "understandNeurodivergence": {
+      "description": "Help user understand their neurodivergent experience. Call when user mentions ADHD, autism, dyslexia, or feeling like their brain works differently.",
+      "parameters": {
+        "type": "What they identify with. Options: 'ADHD', 'autism', 'dyslexia', 'anxiety', 'multiple', 'exploring'"
+      }
+    },
+    "buildNeurodivergentStrategies": {
+      "description": "Build personalized strategies for neurodivergent challenges. Call when user needs coping strategies for their specific brain.",
+      "parameters": {
+        "challenge": "What they need help with. Options: 'focus', 'organization', 'time', 'social', 'overwhelm', 'routines'"
+      }
+    },
+    "celebrateNeurodivergentStrengths": {
+      "description": "Celebrate and leverage neurodivergent strengths. Call when user needs to see the positive side of how their brain works.",
+      "parameters": {
+        "strength": "Strength to explore. Options: 'creativity', 'hyperfocus', 'pattern-recognition', 'unique-perspective', 'intensity'"
+      }
+    },
+
+    "assessTraumaReadiness": {
+      "description": "Assess user's readiness to explore trauma-related topics. SAFETY CRITICAL. Call BEFORE any deeper trauma work to ensure they have support and grounding.",
+      "parameters": {
+        "safety": "Current safety status. Examples: 'doing okay', 'having a hard time', 'feel stable today'"
+      }
+    },
+    "buildSafetyResources": {
+      "description": "Help user build trauma-safe resources and coping strategies. Call when user needs grounding tools or safety planning.",
+      "parameters": {
+        "type": "What to build. Options: 'grounding', 'support-people', 'safe-places', 'coping-practices'"
+      }
+    },
+    "navigateTraumaTriggers": {
+      "description": "Help user navigate when they've been triggered. Call when user is activated/triggered and needs to regulate.",
+      "parameters": {
+        "trigger": "What triggered them. Examples: 'saw something on TV', 'argument reminded me', 'anniversary of event'"
+      }
+    },
+
+    "exploreIntimacyNeeds": {
+      "description": "Help user explore their intimacy needs and desires. Call when user wants to talk about closeness, vulnerability, or connection in relationships.",
+      "parameters": {
+        "type": "Type of intimacy. Options: 'emotional', 'physical', 'intellectual', 'spiritual', 'unsure'"
+      }
+    },
+    "navigateIntimacyFears": {
+      "description": "Help user navigate fears around intimacy. Call when user is scared of getting close, being vulnerable, or being truly seen.",
+      "parameters": {
+        "fear": "What they're afraid of. Examples: 'being rejected', 'being hurt again', 'losing myself', 'being too much'"
+      }
+    },
+    "communicateIntimacyNeeds": {
+      "description": "Help user communicate intimacy needs to partner. Call when user needs to talk to partner about closeness, touch, or emotional needs.",
+      "parameters": {
+        "need": "What they need to communicate. Examples: 'need more emotional connection', 'want different physical intimacy', 'need space'"
+      }
+    },
+
+    "manageChronicCondition": {
+      "description": "Support user in managing life with a chronic condition. Call when user mentions chronic illness, chronic pain, or ongoing health condition.",
+      "parameters": {
+        "condition": "Their condition. Examples: 'chronic fatigue', 'fibromyalgia', 'autoimmune', 'chronic pain', 'diabetes'"
+      }
+    },
+    "processChronicConditionEmotions": {
+      "description": "Help process emotions around chronic illness. Call when user expresses grief, frustration, or difficulty accepting their condition.",
+      "parameters": {
+        "emotion": "What they're feeling. Examples: 'angry at my body', 'grieving my old life', 'frustrated with limitations'"
+      }
+    },
+    "navigateFlareUps": {
+      "description": "Help user cope during a condition flare-up. Call when user reports their condition is worse or they're having a bad health day.",
+      "parameters": {
+        "situation": "Current state. Examples: 'pain is really bad today', 'exhausted and frustrated', 'symptoms acting up'"
+      }
+    },
+
+    "exploreMidlifeQuestions": {
+      "description": "Help user explore midlife questions and transitions. Call when user questions their life choices, wonders 'is this all there is', or mentions midlife crisis.",
+      "parameters": {
+        "question": "What they're grappling with. Examples: 'what have I accomplished', 'is this the right path', 'what do I want the rest of my life to look like'"
+      }
+    },
+    "redefineSuccess": {
+      "description": "Help user redefine what success means for them now. Call when user's old definition of success no longer fits.",
+      "parameters": {
+        "oldDefinition": "What success used to mean. Examples: 'career achievement', 'making money', 'being the best'"
+      }
+    },
+    "buildMidlifeMeaning": {
+      "description": "Help user find meaning and purpose in midlife. Call when user wants to figure out what matters now or build a meaningful second half of life.",
+      "parameters": {
+        "focus": "Area to explore. Options: 'legacy', 'purpose', 'values', 'relationships', 'contribution'"
+      }
+    },
+
+    "processBreakupPain": {
+      "description": "Help user process breakup pain and grief. Call when user just went through a breakup, divorce, or relationship ending.",
+      "parameters": {
+        "stage": "Where they are. Options: 'fresh-wound', 'grieving', 'anger-phase', 'acceptance', 'moving-forward'"
+      }
+    },
+    "navigateBreakupEmotions": {
+      "description": "Help navigate the emotional waves after breakup. Call when user is hit by waves of emotion related to breakup.",
+      "parameters": {
+        "emotion": "Current emotion. Options: 'sadness', 'anger', 'relief', 'confusion', 'longing', 'despair'"
+      }
+    },
+    "buildPostBreakupIdentity": {
+      "description": "Help user rebuild identity after relationship ends. Call when user doesn't know who they are without their ex.",
+      "parameters": {
+        "focus": "What to focus on. Options: 'career', 'friendships', 'hobbies', 'self-discovery', 'values'"
+      }
+    },
+    "moveForwardFromBreakup": {
+      "description": "Help user move forward and date again after breakup. Call when user is ready (or questioning if ready) to start dating again.",
+      "parameters": {
+        "readiness": "Readiness level. Options: 'just-curious', 'starting-to-feel-ready', 'definitely-ready', 'scared-but-willing'"
+      }
+    },
+
+    "_comment_cross_domain": "=== CROSS-DOMAIN CONNECTION TOOLS (Better Than Human) ===",
+
+    "getWeatherHabitInsights": {
+      "description": "Analyze weather and environmental conditions to suggest habit adjustments. Returns proactive insights like 'Rainy day - try indoor workout instead.' Can fetch user's real habits if userId provided.",
+      "parameters": {
+        "location": "City name for weather analysis. Examples: 'Philadelphia', 'Denver', 'San Francisco'",
+        "userId": "Optional: User ID to fetch their actual tracked habits. If provided, will check their fitness/outdoor habits against conditions.",
+        "userHabits": "Optional: List of habit names if userId not provided. Examples: ['running', 'cycling', 'yoga']"
+      }
+    },
+    "getHabitRecommendation": {
+      "description": "Get a personalized recommendation for a specific habit based on current weather and environmental conditions. Use when user asks 'should I run today?' or 'is it good for outdoor yoga?'",
+      "parameters": {
+        "location": "City name for weather check. Examples: 'Philadelphia', 'New York'",
+        "habitName": "Name of the habit to check. Examples: 'running', 'cycling', 'outdoor yoga', 'hiking'",
+        "habitType": "Type of habit. Options: 'outdoor', 'indoor', 'any'"
+      }
+    },
+    "analyzeNewsMoodImpact": {
+      "description": "Analyze news headlines for emotional impact and determine best delivery approach. Better than human - protects user from overwhelming news when stressed.",
+      "parameters": {
+        "newsHeadlines": "Array of news headlines to analyze for mood impact",
+        "userMoodState": "Optional: Current user mood. Options: 'calm', 'happy', 'excited', 'anxious', 'stressed', 'sad', 'frustrated', 'tired', 'neutral'"
+      }
+    },
+    "getPositiveNewsOnly": {
+      "description": "Filter news to show only positive, uplifting stories. Use when user needs a mood boost or explicitly wants to avoid heavy news.",
+      "parameters": {
+        "newsHeadlines": "Array of news headlines to filter for positive content"
+      }
+    },
+    "shouldSkipNews": {
+      "description": "Determine if news should be skipped based on user mood and news content. Returns recommendation and reason.",
+      "parameters": {
+        "newsHeadlines": "Headlines to analyze",
+        "userMoodState": "Current user mood. Options: 'calm', 'happy', 'excited', 'anxious', 'stressed', 'sad', 'frustrated', 'tired', 'neutral'"
+      }
+    },
+    "getCommuteSuggestions": {
+      "description": "Get personalized suggestions for making commute time productive or enjoyable. Suggests podcasts, audiobooks, pep talks based on commute length and context.",
+      "parameters": {
+        "commuteTime": "Expected commute time in minutes. Examples: 15, 30, 45, 60",
+        "trafficSeverity": "Current traffic level. Options: 'light', 'moderate', 'heavy', 'severe'",
+        "hasUpcomingMeeting": "Whether user has a meeting shortly after arrival - triggers pep talk suggestions"
+      }
+    },
+    "suggestPreMeetingPepTalk": {
+      "description": "Offer a pep talk or confidence boost before an important meeting during commute. Use when user mentions nervousness about upcoming meeting.",
+      "parameters": {
+        "meetingType": "Type of meeting. Examples: 'presentation', 'interview', 'client call', 'performance review'",
+        "minutesUntilMeeting": "Minutes until the meeting starts"
+      }
+    },
+
+    "_comment_relationships": "=== RELATIONSHIP INTELLIGENCE TOOLS (Better Than Human) ===",
+
+    "addRelationship": {
+      "description": "Add a new relationship/contact to track. Use when user mentions a friend, family member, or important person they want to remember. Stores birthdays, interests, favorite teams for future insights.",
+      "parameters": {
+        "userId": "The user ID",
+        "name": "Person's name. Examples: 'John Smith', 'Mom', 'Sarah from work'",
+        "relationshipType": "Type of relationship. Options: 'family_parent', 'family_sibling', 'family_child', 'spouse', 'partner', 'friend_close', 'friend', 'colleague', 'mentor', 'other'",
+        "birthdayMonth": "Birthday month (1-12). Optional but enables birthday reminders.",
+        "birthdayDay": "Birthday day (1-31). Optional but enables birthday reminders.",
+        "interests": "Their interests/hobbies for gift suggestions. Examples: ['reading', 'golf', 'cooking']",
+        "favoriteTeams": "Their favorite sports teams for 'friend's team won' alerts. Examples: ['Eagles', 'Lakers', 'Yankees']"
+      }
+    },
+    "getRelationshipInfo": {
+      "description": "Get information about a specific relationship/contact including birthday, interests, favorite teams, and last contact date.",
+      "parameters": {
+        "userId": "The user ID",
+        "name": "Name of the person to look up"
+      }
+    },
+    "recordContact": {
+      "description": "Record that user had contact with someone. Use when they mention they talked to, called, or met with someone. Helps track relationship health.",
+      "parameters": {
+        "userId": "The user ID",
+        "name": "Name of the person they contacted"
+      }
+    },
+    "getUpcomingBirthdays": {
+      "description": "Get upcoming birthdays from tracked relationships. Better than human - we never forget a birthday! Use proactively or when user asks about birthdays.",
+      "parameters": {
+        "userId": "The user ID"
+      }
+    },
+    "getContactReminders": {
+      "description": "Get reminders about people user hasn't contacted in a while. Better than human - we track relationship health and gently nudge. Use for relationship check-ins.",
+      "parameters": {
+        "userId": "The user ID"
+      }
+    },
+    "getGiftSuggestions": {
+      "description": "Get gift suggestions for a person based on their tracked interests. Use when user needs gift ideas for birthdays, holidays, or special occasions.",
+      "parameters": {
+        "userId": "The user ID",
+        "name": "Name of the person",
+        "occasion": "The occasion. Examples: 'birthday', 'Christmas', 'thank you', 'anniversary'",
+        "budget": "Optional budget level. Options: 'budget', 'moderate', 'premium'"
+      }
+    },
+    "getRelationshipInsights": {
+      "description": "Get all relationship insights - birthdays, contact reminders, team updates ('friend's team won!'). Use for comprehensive relationship health check-in.",
+      "parameters": {
+        "userId": "The user ID"
+      }
+    },
+    "addInterestToRelationship": {
+      "description": "Add an interest to a person's profile. Helps with gift suggestions and conversation topics.",
+      "parameters": {
+        "userId": "The user ID",
+        "name": "Name of the person",
+        "interest": "The interest to add. Examples: 'cooking', 'hiking', 'sci-fi movies', 'gardening'"
+      }
+    },
+    "addFavoriteTeamToRelationship": {
+      "description": "Add a favorite sports team to a person's profile. Enables 'Your friend's team won!' notifications.",
+      "parameters": {
+        "userId": "The user ID",
+        "name": "Name of the person",
+        "team": "The sports team to add. Examples: 'Eagles', 'Lakers', 'Yankees', 'Manchester United'"
+      }
+    },
+
+    "_comment_superhuman": "Peter's Superhuman Research Tools - 'Better than Human' quantitative analysis",
+
+    "recordDecision": {
+      "description": "Record a decision with full context (options, factors, emotional state) for pattern analysis. BETTER THAN HUMAN: Tracks every decision for objective quality analysis over time.",
+      "parameters": {
+        "context": "What decision are you facing? Examples: 'Should I take the job offer?', 'Buy vs lease car'",
+        "options": "Array of options you're considering. Examples: ['Accept offer', 'Decline', 'Negotiate']",
+        "factors": "Factors influencing the decision. Examples: ['salary', 'commute', 'growth']",
+        "emotionalState": "Your current emotional state. Examples: 'calm', 'anxious', 'excited'"
+      }
+    },
+    "recordDecisionOutcome": {
+      "description": "Record the outcome of a previous decision for learning analysis.",
+      "parameters": {
+        "decisionId": "ID of the decision to update",
+        "choiceMade": "Which option you chose",
+        "outcome": "What happened as a result",
+        "satisfaction": "1-10 satisfaction score"
+      }
+    },
+    "analyzeDecisionQuality": {
+      "description": "Analyze your decision patterns - what times/conditions lead to best outcomes."
+    },
+    "recordSleepData": {
+      "description": "Track sleep for correlation with decisions, energy, and performance. BETTER THAN HUMAN: Finds hidden patterns in YOUR data.",
+      "parameters": {
+        "hoursSlept": "Hours of sleep (e.g., 7.5)",
+        "quality": "Sleep quality 1-10",
+        "bedtime": "When you went to bed (e.g., '22:30')",
+        "wakeTime": "When you woke up (e.g., '06:00')"
+      }
+    },
+    "analyzeSleepCorrelations": {
+      "description": "Analyze how YOUR sleep affects decisions, energy, and mood. Uses YOUR historical data."
+    },
+    "recordEnergyLevel": {
+      "description": "Track energy throughout the day for peak performance analysis.",
+      "parameters": {
+        "level": "Energy level 1-10",
+        "time": "Time of day (e.g., '14:00')",
+        "factors": "What might have contributed (e.g., ['good sleep', 'light meal'])"
+      }
+    },
+    "predictEnergy": {
+      "description": "Predict your energy at a specific time based on YOUR patterns.",
+      "parameters": {
+        "targetTime": "Time to predict (e.g., '14:00')"
+      }
+    },
+    "analyzePeakPerformance": {
+      "description": "Identify YOUR peak performance times for creative, analytical, and decision-making work."
+    },
+    "calculateLifestyleImpact": {
+      "description": "Calculate how a specific lifestyle factor impacts YOUR outcomes.",
+      "parameters": {
+        "factor": "Factor to analyze. Examples: 'sleep', 'exercise', 'caffeine'"
+      }
+    },
+    "scoreEvidenceQuality": {
+      "description": "Evaluate evidence quality using scientific methodology. BETTER THAN HUMAN: Applies rigorous research standards.",
+      "parameters": {
+        "claim": "The claim being evaluated",
+        "source": "Source of the evidence",
+        "evidence": "The evidence itself"
+      }
+    },
+    "synthesizeResearch": {
+      "description": "Synthesize multiple research sources into coherent findings. Like having a research assistant.",
+      "parameters": {
+        "topic": "Topic to synthesize research on",
+        "sources": "Array of sources/studies to synthesize"
+      }
+    },
+    "findCounterArguments": {
+      "description": "Find legitimate counter-arguments to a claim. BETTER THAN HUMAN: No confirmation bias.",
+      "parameters": {
+        "claim": "The claim to find counter-arguments for"
+      }
+    },
+    "verifyClaim": {
+      "description": "Verify a health, financial, or factual claim against evidence.",
+      "parameters": {
+        "claim": "Claim to verify",
+        "domain": "Domain: 'health', 'finance', 'science', 'general'"
+      }
+    },
+    "getBaseRate": {
+      "description": "Get base rate statistics for a scenario. BETTER THAN HUMAN: Provides objective probabilities.",
+      "parameters": {
+        "scenario": "The scenario to get base rates for. Examples: 'startup success', 'marriage lasting'"
+      }
+    },
+    "recordGoalProgress": {
+      "description": "Track progress toward a goal for prediction modeling.",
+      "parameters": {
+        "goalId": "ID of the goal",
+        "progress": "Current progress (number)",
+        "notes": "Any notes about progress"
+      }
+    },
+    "predictGoalSuccess": {
+      "description": "Predict probability of achieving a goal based on YOUR historical patterns.",
+      "parameters": {
+        "goalId": "ID of the goal to analyze"
+      }
+    },
+    "projectBehavioralTrajectory": {
+      "description": "Project where a habit or behavior will lead over time.",
+      "parameters": {
+        "behavior": "The behavior to project",
+        "timeframe": "How far to project (e.g., '6 months')"
+      }
+    },
+    "recordHabit": {
+      "description": "Record habit completion for survival analysis.",
+      "parameters": {
+        "habitName": "Name of the habit",
+        "completed": "Did you complete it today?"
+      }
+    },
+    "analyzeHabitSurvival": {
+      "description": "Analyze which habits survive and why. BETTER THAN HUMAN: Statistical survival analysis on YOUR data.",
+      "parameters": {
+        "habitId": "ID of habit to analyze"
+      }
+    },
+    "analyzeCounterfactual": {
+      "description": "Analyze 'what if' scenarios based on your data. 'What if I had slept 8 hours instead of 6?'",
+      "parameters": {
+        "scenario": "The counterfactual scenario to analyze"
+      }
+    },
+    "predictLifeEventImpact": {
+      "description": "Predict how a life event will impact your patterns (job change, move, etc.).",
+      "parameters": {
+        "event": "The life event",
+        "domain": "What domain to predict impact on. Examples: 'productivity', 'relationships', 'finances'"
+      }
+    },
+    "analyzeSECFiling": {
+      "description": "Analyze SEC filings with institutional-grade research. BETTER THAN HUMAN: Reads full filings, extracts key insights.",
+      "parameters": {
+        "ticker": "Stock ticker symbol (e.g., 'AAPL')",
+        "filingType": "Type of filing. Options: '10-K', '10-Q', '8-K'"
+      }
+    },
+    "trackInsiderTrading": {
+      "description": "Track insider trading activity for a stock. See what executives are doing with their shares.",
+      "parameters": {
+        "ticker": "Stock ticker symbol"
+      }
+    },
+    "analyzeOptionsFlow": {
+      "description": "Analyze unusual options activity. See what institutional traders are betting on.",
+      "parameters": {
+        "ticker": "Stock ticker symbol"
+      }
+    },
+    "bridgeMacroToPersonal": {
+      "description": "Connect macro economic events to YOUR personal situation. BETTER THAN HUMAN: Personalized economic analysis.",
+      "parameters": {
+        "event": "Macro event (e.g., 'Fed raising rates')",
+        "context": "Your relevant personal context"
+      }
+    },
+    "designExperiment": {
+      "description": "Design a personal A/B test with proper methodology. Test what actually works for YOU.",
+      "parameters": {
+        "hypothesis": "What you want to test (e.g., 'Morning exercise improves my focus')",
+        "intervention": "What you'll change (e.g., '30 min morning workout')",
+        "metric": "How you'll measure (e.g., 'Focus score 1-10')",
+        "duration": "Days to run the experiment (7-90)"
+      }
+    },
+    "recordExperimentData": {
+      "description": "Record a data point for a running experiment.",
+      "parameters": {
+        "value": "Your measurement for today",
+        "condition": "Are you in 'control' or 'treatment' phase?",
+        "notes": "Optional notes"
+      }
+    },
+    "analyzeExperiment": {
+      "description": "Analyze your experiment results with statistical rigor."
+    },
+    "createBelief": {
+      "description": "Create a Bayesian belief to track and update with evidence.",
+      "parameters": {
+        "statement": "The belief statement (e.g., 'I am a morning person')",
+        "initialProbability": "Your initial confidence (1-99%)"
+      }
+    },
+    "updateBelief": {
+      "description": "Update a belief with new evidence using Bayesian reasoning.",
+      "parameters": {
+        "beliefKeyword": "Keyword to find the belief",
+        "evidence": "New evidence encountered",
+        "direction": "Does it 'support', 'oppose', or is it 'neutral'?",
+        "strength": "How strong: 'weak', 'moderate', 'strong'"
+      }
+    },
+    "trackHypothesis": {
+      "description": "Track a hypothesis about yourself for systematic testing.",
+      "parameters": {
+        "hypothesis": "Your hypothesis",
+        "domain": "Domain: 'health', 'productivity', 'relationships', 'finances', 'habits', 'career', 'other'"
+      }
+    },
+    "updateHypothesis": {
+      "description": "Update hypothesis status with evidence or conclusion.",
+      "parameters": {
+        "hypothesisKeyword": "Keyword to find the hypothesis",
+        "evidence": "New evidence gathered",
+        "newStatus": "Optional: 'testing', 'confirmed', 'refuted', 'inconclusive'"
+      }
+    },
+    "detectConfounds": {
+      "description": "Detect confounding variables in observed correlations. BETTER THAN HUMAN: Objective bias detection.",
+      "parameters": {
+        "observation": "The correlation you observed (e.g., 'When I exercise, I sleep better')",
+        "domain": "Domain: 'health', 'productivity', 'finances', 'relationships', 'habits'"
+      }
+    },
+    "calculateEffectSize": {
+      "description": "Calculate effect size for a before/after comparison. Know if a change actually matters.",
+      "parameters": {
+        "beforeValues": "Array of measurements before the change",
+        "afterValues": "Array of measurements after the change",
+        "context": "What change are you measuring?"
+      }
+    },
+    "getLocalEconomics": {
+      "description": "Get local economic indicators for your area.",
+      "parameters": {
+        "location": "Your location (city or zip)"
+      }
+    },
+    "synthesizeIndustryTrends": {
+      "description": "Synthesize trends in a specific industry.",
+      "parameters": {
+        "industry": "Industry to analyze (e.g., 'technology', 'healthcare')"
+      }
+    },
+    "analyzeNewsSentiment": {
+      "description": "Analyze sentiment in news about a topic or company.",
+      "parameters": {
+        "topic": "Topic or company to analyze"
+      }
+    },
+    "recordSpending": {
+      "description": "Record spending to calculate YOUR personal inflation rate.",
+      "parameters": {
+        "category": "Category: 'housing', 'food', 'transportation', 'healthcare', 'utilities', etc.",
+        "amount": "Amount spent",
+        "description": "Optional: What was it for?"
+      }
+    },
+    "calculatePersonalInflation": {
+      "description": "Calculate YOUR personal inflation rate vs official CPI. See how YOUR costs compare."
+    },
+    "trackRelationship": {
+      "description": "Track a relationship for network analysis.",
+      "parameters": {
+        "name": "Person's name",
+        "relationship": "Type: 'family', 'friend', 'colleague', 'mentor', 'mentee', 'partner', 'acquaintance'",
+        "energyImpact": "How they affect your energy: 'draining', 'neutral', 'energizing'",
+        "influenceDomains": "What areas do they influence? (e.g., ['career', 'health'])"
+      }
+    },
+    "logInteraction": {
+      "description": "Log an interaction for relationship health analysis.",
+      "parameters": {
+        "name": "Person's name",
+        "type": "Type: 'in_person', 'call', 'video', 'text', 'email', 'social'",
+        "quality": "Quality 1-10",
+        "topic": "What did you discuss?"
+      }
+    },
+    "analyzeCommunicationPatterns": {
+      "description": "Analyze your communication patterns. Who do you reach out to when stressed? Who energizes you?"
+    },
+    "scoreRelationshipHealth": {
+      "description": "Score the health of a specific relationship.",
+      "parameters": {
+        "name": "Person's name"
+      }
+    },
+    "mapInfluence": {
+      "description": "Map who influences you in different life domains."
+    },
+    "analyzeNetworkGaps": {
+      "description": "Identify gaps in your support network. Where do you need more support?"
+    },
+
+    "_comment_nayan_wisdom": "=== NAYAN'S SUPERHUMAN WISDOM TOOLS ===",
+
+    "holdParadox": {
+      "description": "Track contradictory desires or values without trying to resolve them. Nayan holds both truths indefinitely. Use when someone expresses wanting two things that seem to conflict. Remembers the paradox for future reference.",
+      "parameters": {
+        "desire1": "First desire or value they want. Example: 'stability', 'career success', 'independence'",
+        "desire2": "Contradictory desire or value. Example: 'adventure', 'family time', 'connection'",
+        "context": "What surfaced this paradox. Example: 'talking about job offer', 'discussing relationship'",
+        "howLongHeld": "How long they've felt this tension. Example: 'years', 'since the kids were born', 'always'"
+      }
+    },
+
+    "mortalityPerspective": {
+      "description": "Provide concrete mortality awareness for clarity. Not morbid—clarifying. The Stoic memento mori made personal. Use when someone is caught up in short-term concerns or needs perspective on what matters.",
+      "parameters": {
+        "currentConcern": "What they are worried about or focused on. Example: 'work deadline', 'relationship drama', 'financial stress'",
+        "timeframe": "Timeframe of concern. Options: 'this-week', 'this-month', 'this-year', 'unspecified'",
+        "ageIfKnown": "User's age if known for more accurate calculations"
+      }
+    },
+
+    "generatePersonalKoan": {
+      "description": "Generate a personalized paradox or koan designed to break specific thinking patterns. Questions that dissolve problems rather than solve them. Use when someone is stuck in overthinking or a mental loop.",
+      "parameters": {
+        "stuckPattern": "The thinking pattern or problem they are stuck in. Example: 'perfectionism', 'fear of failure', 'analysis paralysis'",
+        "whatTheyveTrieds": "What approaches they've already tried. Example: 'making lists', 'talking to friends', 'research'",
+        "emotionalTone": "Their emotional state. Options: 'anxious', 'frustrated', 'stuck', 'overthinking', 'fearful', 'neutral'"
+      }
+    },
+
+    "trackEnough": {
+      "description": "Record when someone declares something is 'enough' and surface it when goalposts move. Hold the mirror to endless striving. Use when someone states what would satisfy them, or to check past statements.",
+      "parameters": {
+        "domain": "What domain this 'enough' relates to. Options: 'money', 'career', 'achievement', 'possessions', 'status', 'relationship', 'other'",
+        "enoughStatement": "What they said would be enough. Example: '$100k salary', 'manager title', 'a loving relationship'",
+        "isRecording": "True to record new 'enough' statement, false to check past statements against current"
+      }
+    },
+
+    "ancestralWisdom": {
+      "description": "Help connect to the wisdom of ancestors and lineage. What did they know that we have forgotten? Use when someone faces a challenge their ancestors also faced, or needs to feel connected to something larger.",
+      "parameters": {
+        "currentChallenge": "What they are facing. Example: 'starting over', 'financial hardship', 'loss', 'major decision'",
+        "knownAncestorExperience": "Any known experiences of grandparents/ancestors. Example: 'grandmother survived the war', 'grandfather immigrated alone'",
+        "culturalBackground": "Cultural heritage if known. Example: 'Irish', 'Mexican', 'Chinese', 'mixed'"
+      }
+    },
+
+    "trackWisdomIncubation": {
+      "description": "Track things the user needs to 'sit with' and return to them at the right moment. Perfect patience for things that need time. Use when someone explicitly says they need time with a question, or to check on incubating items.",
+      "parameters": {
+        "question": "The question or decision they need to sit with. Example: 'whether to leave my job', 'how I feel about having kids', 'what I want from life'",
+        "suggestedDuration": "How long this might need. Options: 'days', 'weeks', 'months', 'until-ready'",
+        "checkIn": "True if checking on incubating items, false if recording new one"
+      }
+    },
+
+    "_comment_maya_coaching": "=== MAYA'S SUPERHUMAN COACHING TOOLS ===",
+
+    "trackHabitDNA": {
+      "description": "Build a complete genetic profile of a habit: what makes it live, what kills it, optimal conditions. Use whenever a habit event occurs (started, maintained, struggled, broke, restarted, mastered) or to retrieve habit history.",
+      "parameters": {
+        "habitName": "Name of the habit. Example: 'morning meditation', 'daily exercise', 'journaling'",
+        "event": "What happened. Options: 'started', 'maintained', 'struggled', 'broke', 'restarted', 'mastered'",
+        "context": "Context around this event. Example: 'traveling', 'stressful week', 'after promotion'",
+        "triggerOrBarrier": "What helped or hurt. Example: 'accountability partner', 'weekend', 'evening fatigue'",
+        "emotionalState": "How they were feeling. Example: 'motivated', 'stressed', 'depressed', 'energized'",
+        "timeOfDay": "When this happens. Example: 'morning', 'after lunch', 'before bed'",
+        "checkHistory": "True to retrieve full habit history instead of recording"
+      }
+    },
+
+    "mapFriction": {
+      "description": "Track exactly where, when, and why habits encounter friction. Build a map of willpower failure points. Use when they mention struggling with a habit.",
+      "parameters": {
+        "habitName": "Which habit encountered friction. Example: 'gym', 'reading', 'cooking at home'",
+        "frictionType": "Type of friction. Options: 'time', 'location', 'energy', 'social', 'emotional', 'environmental', 'other'",
+        "description": "What specifically caused the friction. Example: 'too tired after work', 'gym is too far', 'no healthy food in house'",
+        "intensity": "How much it derailed you. Options: 'minor', 'moderate', 'major'",
+        "viewMap": "True to view friction map instead of recording new point"
+      }
+    },
+
+    "assessTendency": {
+      "description": "Dynamically assess their Four Tendency (Upholder/Questioner/Obliger/Rebel) from behavior patterns. Use when you observe tendency signals or they want to see their profile.",
+      "parameters": {
+        "signal": "Behavioral signal observed. Options: 'followed-own-rule', 'followed-external-rule', 'broke-own-rule', 'broke-external-rule', 'needed-accountability', 'resisted-external-pressure', 'questioned-why', 'just-did-it'",
+        "context": "Context of the signal. Example: 'they mentioned needing a gym buddy', 'they broke their own deadline'",
+        "getProfile": "True to get current tendency profile"
+      }
+    },
+
+    "detectKeystone": {
+      "description": "Identify keystone habits that cascade into other positive behaviors. Find their highest-leverage habits. Use when they mention one habit affecting others.",
+      "parameters": {
+        "observation": "Observation about habit correlations. Example: 'when I exercise, I eat better', 'good sleep makes me more productive'",
+        "primaryHabit": "The habit that might be keystone. Example: 'exercise', 'making the bed', 'morning routine'",
+        "affectedHabits": "Habits that improve when primary habit happens. Example: ['eating healthy', 'drinking water', 'mood']",
+        "viewKeystones": "True to view identified keystone habits"
+      }
+    },
+
+    "trackIdentityShift": {
+      "description": "Track evolution of identity statements over time. 'I am someone who...' is the deepest form of habit change. Use when they express identity or to view their evolution.",
+      "parameters": {
+        "statement": "Identity statement. Example: 'I am someone who exercises', 'I am someone who saves money', 'I am a reader'",
+        "domain": "Life domain. Options: 'health', 'productivity', 'relationships', 'finances', 'creativity', 'learning', 'other'",
+        "confidence": "How true it feels. Options: 'aspiring' (want to be), 'emerging' (starting to feel true), 'established' (mostly true), 'core' (just who I am)",
+        "viewEvolution": "True to view identity evolution over time"
+      }
+    },
+
+    "analyzeSetbackPattern": {
+      "description": "Deep pattern analysis of setbacks across years. Find common threads in every time they've fallen off. Use when they have a setback or want to see patterns.",
+      "parameters": {
+        "habitName": "Which habit had a setback. Example: 'gym', 'meditation', 'no sugar'",
+        "whatHappened": "What caused the setback. Example: 'skipped one day and never went back', 'vacation threw me off'",
+        "whenItHappened": "Time context. Example: 'weekend', 'evening', 'stressful period', 'winter'",
+        "emotionalTrigger": "Emotional state before the setback. Example: 'stressed', 'bored', 'lonely', 'anxious'",
+        "viewPatterns": "True to analyze patterns across all setbacks"
+      }
+    },
+
+    "conductHabitAutopsy": {
+      "description": "Deep post-mortem analysis for habits that died. Learn from every failure to prevent future deaths. Use when a habit has completely stopped.",
+      "parameters": {
+        "habitName": "The habit that died. Example: 'daily running', 'journaling', 'no screens before bed'",
+        "howLongItLasted": "How long the habit survived. Example: '2 weeks', '3 months', 'almost a year'",
+        "causeOfDeath": "What killed it. Example: 'travel', 'injury', 'lost motivation', 'too ambitious'",
+        "lastRites": "When did you last do it. Example: 'last month', 'before the holidays', 'before I moved'",
+        "lessonsLearned": "What you learned. Example: 'started too big', 'needed accountability', 'wrong time of day'",
+        "willResurrect": "Do you want to try this habit again someday?",
+        "viewPastAutopsies": "True to view past autopsies"
+      }
+    },
+
+    "_comment_jordan_planning": "=== JORDAN'S SUPERHUMAN PLANNING TOOLS ===",
+
+    "recallEventPatterns": {
+      "description": "Perfect memory for patterns across ALL events - budget tendencies, guest dynamics, emotional patterns, vendor preferences. Use to learn from past events or record new patterns.",
+      "parameters": {
+        "eventType": "Type of event. Example: 'wedding', 'birthday', 'vacation', 'dinner party'",
+        "patternType": "Type of pattern. Options: 'budget', 'timing', 'guest_dynamics', 'emotional', 'vendor', 'all'",
+        "recordPattern": "New pattern to record: {eventName, pattern, lesson}"
+      }
+    },
+
+    "getGuestInsights": {
+      "description": "Permanent guest profiles - dietary needs, accessibility, attendance patterns, relationship dynamics. Never forget a guest's needs.",
+      "parameters": {
+        "guestName": "Name of guest to look up. Example: 'Aunt Martha', 'John Smith'",
+        "updateGuest": "Update profile: {name, dietary, accessibility, note, avoidSeatingWith}",
+        "listAll": "True to list all known guests"
+      }
+    },
+
+    "detectMilestones": {
+      "description": "Detect celebrations humans forget - work anniversaries, friendship milestones, quiet win streaks, approaching transitions.",
+      "parameters": {
+        "recordMilestone": "New milestone: {type, description, date, recurring}",
+        "getUpcoming": "True to get upcoming milestones"
+      }
+    },
+
+    "captureEventMeaning": {
+      "description": "Remember what events MEANT, not just logistics - the emotional journey, meaningful speeches, lessons learned.",
+      "parameters": {
+        "eventName": "Name of the event",
+        "meaning": "What this event meant. Example: 'First time dad was proud of me'",
+        "memorableMoment": "A moment that stood out",
+        "lessonLearned": "What you learned from this event",
+        "recallEvent": "True to recall meaning of past event"
+      }
+    },
+
+    "checkCelebrationHealth": {
+      "description": "Track celebration balance - are they celebrating enough? Too much? Always for others? Notice joy gaps.",
+      "parameters": {
+        "recordCelebration": "Record: {what, forWhom (self/other/both), size (micro/small/medium/large)}",
+        "getBalance": "True to get celebration balance report"
+      }
+    },
+
+    "anticipateTransition": {
+      "description": "See life transitions coming from conversation patterns - empty nest, retirement, career change. Suggest planning before they ask.",
+      "parameters": {
+        "recordSignal": "Record signal: {type, signal, strength (weak/moderate/strong)}",
+        "getAnticipated": "True to get anticipated transitions"
+      }
+    },
+
+    "checkPlanningReadiness": {
+      "description": "Cross-team readiness check before major planning - financial health, calendar capacity, energy levels, emotional readiness.",
+      "parameters": {
+        "eventType": "What are you planning? Example: 'wedding', 'vacation', 'big purchase'",
+        "budget": "Estimated budget",
+        "timeframe": "When is this happening?"
+      }
+    },
+
+    "_comment_peter_analytics": "=== PETER'S SUPERHUMAN ANALYTICS TOOLS ===",
+
+    "revealBlindSpot": {
+      "description": "Surface patterns they may be avoiding or not seeing. Hold up a mirror to what they can't see themselves.",
+      "parameters": {
+        "domain": "Life domain. Options: 'spending', 'habits', 'relationships', 'time', 'health', 'career', 'general'",
+        "observation": "What pattern you've noticed they're avoiding",
+        "recordNew": "True to record a new blind spot observation",
+        "viewBlindSpots": "True to view known blind spots"
+      }
+    },
+
+    "simulateCounterfactual": {
+      "description": "Explore 'what if' scenarios based on past decisions. Learn from alternate paths not taken.",
+      "parameters": {
+        "originalDecision": "The decision that was made. Example: 'took the safe job instead of startup'",
+        "alternativePath": "What they could have done instead. Example: 'joined the startup'",
+        "domain": "Life domain",
+        "outcome": "What likely would have happened",
+        "lesson": "What this teaches",
+        "viewCounterfactuals": "True to view past counterfactuals"
+      }
+    },
+
+    "predictPattern": {
+      "description": "Project where current patterns are heading. See the trajectory before it arrives.",
+      "parameters": {
+        "pattern": "The pattern being tracked. Example: 'spending on subscriptions'",
+        "domain": "Life domain",
+        "currentTrajectory": "Current direction. Options: 'improving', 'declining', 'stable', 'volatile'",
+        "prediction": "Where this is heading",
+        "timeframe": "How long until prediction",
+        "viewPredictions": "True to view past predictions"
+      }
+    },
+
+    "scoreDecision": {
+      "description": "Rate decision quality over time. Learn what kinds of decisions you make well (and poorly).",
+      "parameters": {
+        "decision": "The decision made. Example: 'bought the expensive car'",
+        "domain": "Life domain",
+        "outcome": "How it turned out. Options: 'great', 'good', 'neutral', 'poor', 'bad'",
+        "processQuality": "How decision was made. Options: 'thoughtful', 'rushed', 'emotional', 'analytical', 'gut'",
+        "lesson": "What you learned",
+        "viewScores": "True to view decision scores"
+      }
+    },
+
+    "findCorrelation": {
+      "description": "Discover correlations across different life domains that you couldn't see yourself.",
+      "parameters": {
+        "factor1": "First factor. Example: 'sleep quality', 'exercise frequency'",
+        "factor2": "Second factor. Example: 'productivity', 'mood'",
+        "relationship": "How they relate. Options: 'positive', 'negative', 'complex', 'unknown'",
+        "strength": "Strength. Options: 'weak', 'moderate', 'strong'",
+        "insight": "What this means",
+        "viewCorrelations": "True to view known correlations"
+      }
+    },
+
+    "detectAnomaly": {
+      "description": "Flag unusual patterns that break from normal behavior. Sometimes anomalies are warnings, sometimes opportunities.",
+      "parameters": {
+        "anomaly": "What unusual pattern was detected. Example: 'spending 3x normal on restaurants'",
+        "domain": "Life domain",
+        "severity": "How significant. Options: 'info', 'warning', 'alert'",
+        "interpretation": "What this might mean",
+        "viewAnomalies": "True to view detected anomalies"
+      }
+    },
+
+    "archiveInsight": {
+      "description": "Store important insights for future reference. Build a personal knowledge base of what you've learned about yourself.",
+      "parameters": {
+        "insight": "The insight to archive. Example: 'I make better decisions in the morning'",
+        "domain": "Life domain",
+        "source": "How discovered. Options: 'observation', 'analysis', 'experiment', 'reflection', 'conversation'",
+        "importance": "How important. Options: 'low', 'medium', 'high', 'critical'",
+        "viewInsights": "True to view archived insights"
+      }
+    },
+
+    "listRoutines": {
+      "description": "Show what Ferni does automatically for the user. Call when user asks: 'what do you do for me?', 'show my routines', 'what are you taking care of?', 'list my automations', 'what's set up?'. Returns all active and paused routines with their triggers.",
+      "parameters": {}
+    },
+
+    "createRoutine": {
+      "description": "Set up a new automated routine for the user. Call when user says: 'remind me every morning to...', 'when I get home do...', 'set up a routine', 'every day at 7am...', 'can you check in with me each night?'. Creates scheduled messages, phrase triggers, or location-based routines.",
+      "parameters": {
+        "name": "Friendly name for the routine. Examples: 'Morning check-in', 'Evening gratitude', 'Water reminder'",
+        "triggerType": "What starts this routine. Options: 'time' (scheduled), 'phrase' (voice command), 'location' (arriving/leaving)",
+        "triggerValue": "The trigger details. For time: '7:00 AM' or '19:30'. For phrase: 'good morning' or 'time for bed'. For location: 'home' or 'office'",
+        "action": "What Ferni should say or do. Examples: 'Check in about how you slept', 'Remind you to drink water', 'Ask about your day'"
+      }
+    },
+
+    "runRoutine": {
+      "description": "Manually trigger a routine right now. Call when user says: 'run my morning routine', 'do my check-in now', 'trigger the water reminder'. Executes all actions in the routine immediately.",
+      "parameters": {
+        "routineName": "Name of the routine to run. Example: 'Morning check-in', 'Evening gratitude'"
+      }
+    },
+
+    "toggleRoutine": {
+      "description": "Pause or resume an automated routine. Call when user says: 'pause my morning routine', 'stop doing the water reminders', 'resume my check-ins', 'turn off the evening routine'. Keeps the routine but stops/starts it running.",
+      "parameters": {
+        "routineName": "Name of the routine. Example: 'Morning check-in'",
+        "action": "Whether to pause or resume. Options: 'pause', 'resume'"
+      }
+    },
+
+    "removeRoutine": {
+      "description": "Permanently delete an automated routine. Call when user says: 'delete my morning routine', 'remove that routine', 'I don't want the water reminders anymore'. This is permanent - the routine is gone.",
+      "parameters": {
+        "routineName": "Name of the routine to delete. Example: 'Morning check-in'"
+      }
+    },
+
+    "suggestRoutines": {
+      "description": "Suggest routine ideas the user might like. Call when user asks: 'what could you do for me?', 'give me routine ideas', 'what routines do you recommend?', 'help me automate something'. Returns popular template suggestions.",
+      "parameters": {}
+    },
+
+    "_comment_memory_tools": "=== MEMORY & INTELLIGENCE TOOLS ===",
+
+    "surfaceRelevantMemory": {
+      "description": "Proactively surface relevant memories based on the current conversation context. BETTER THAN HUMAN: automatically recalls related information from past conversations without being asked. Returns memories that enrich the current discussion.",
+      "parameters": {
+        "context": "Current conversation context or topic to find relevant memories for. Examples: 'discussing career change', 'talking about family', 'planning vacation'"
+      }
+    },
+    "predictUserNeed": {
+      "description": "Predict what the user might need based on patterns, time of day, and conversation context. BETTER THAN HUMAN: anticipates needs before they're expressed. Returns predicted needs with confidence levels.",
+      "parameters": {
+        "context": "Current conversation context. Examples: 'morning check-in', 'discussing stress', 'end of workday'"
+      }
+    },
+
+    "_comment_music_control_tools": "=== MUSIC CONTROL & MULTI-ROOM TOOLS ===",
+
+    "musicControl": {
+      "description": "Control music playback - pause, resume, skip, adjust volume. Use when user says 'pause the music', 'skip this song', 'turn it up', 'next track', 'stop playing'. Direct control over currently playing music.",
+      "parameters": {
+        "action": "Control action. Options: 'pause', 'resume', 'skip', 'previous', 'stop'",
+        "volume": "Optional: Volume level 0-100. Use when user says 'turn it up/down' or specifies a level"
+      }
+    },
+    "musicInfo": {
+      "description": "Get information about currently playing music - track name, artist, album, progress. Use when user asks 'what's playing?', 'who sings this?', 'what song is this?'. Returns current track details.",
+      "parameters": {}
+    },
+    "playMusicInRoom": {
+      "description": "Play music in a specific room or speaker. Use when user says 'play music in the kitchen', 'play in bedroom', 'start music on living room speaker'. For multi-room audio systems like Sonos.",
+      "parameters": {
+        "room": "Name of the room or speaker. Examples: 'kitchen', 'living room', 'bedroom', 'office'",
+        "query": "Optional: What to play. If not specified, resumes current music. Examples: 'jazz', 'my playlist', 'The Beatles'"
+      }
+    },
+    "transferToRoom": {
+      "description": "Transfer currently playing music to a different room or speaker. Use when user says 'move the music to the bedroom', 'transfer to kitchen', 'switch to the living room speaker'.",
+      "parameters": {
+        "targetRoom": "Room to transfer music to. Examples: 'kitchen', 'bedroom', 'patio'"
+      }
+    },
+    "setRoomVolume": {
+      "description": "Set volume for a specific room or speaker. Use when user says 'turn down the kitchen', 'make the bedroom quieter', 'set living room to 50%'.",
+      "parameters": {
+        "room": "Room or speaker name. Examples: 'kitchen', 'bedroom', 'living room'",
+        "volume": "Volume level 0-100. Examples: 30, 50, 75"
+      }
+    },
+    "listMusicRooms": {
+      "description": "List all available rooms/speakers in the multi-room audio system. Use when user asks 'what speakers do I have?', 'show my rooms', 'where can I play music?'. Returns available Sonos/smart speaker zones.",
+      "parameters": {}
+    },
+    "syncMusicRooms": {
+      "description": "Sync multiple rooms to play the same music together. Use when user says 'play everywhere', 'sync all rooms', 'party mode', 'group the speakers'. Creates a synchronized audio group.",
+      "parameters": {
+        "rooms": "Optional: Array of room names to sync. If not provided, syncs all available rooms. Examples: ['kitchen', 'living room']"
+      }
+    },
+    "discoverSpotifyDevices": {
+      "description": "Discover available Spotify Connect devices for playback. Use when user wants to know what devices they can play on, or troubleshooting playback issues. Returns list of active Spotify devices.",
+      "parameters": {}
+    },
+    "searchAppleMusic": {
+      "description": "Search Apple Music catalog for songs, artists, albums, or playlists. Use when user wants to find music on Apple Music specifically. Returns search results with playable content.",
+      "parameters": {
+        "query": "What to search for. Examples: 'Taylor Swift', 'chill vibes playlist', 'Abbey Road album', 'workout songs'"
       }
     }
   }

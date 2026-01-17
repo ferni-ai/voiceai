@@ -269,7 +269,7 @@ export function findInjectionPoints(
 export function injectDisfluency(
   text: string,
   emotion: CartesiaEmotion,
-  probability: number = 0.2
+  probability = 0.2
 ): DisfluencyInjection | null {
   // Roll for injection
   if (Math.random() > probability) {

@@ -32,7 +32,7 @@ export async function handleGetRituals(
   if (!userId) return;
 
   try {
-    const { getEngagementStore } = await import('../../services/engagement-store.js');
+    const { getEngagementStore } = await import('../../services/engagement/engagement-store.js');
     const store = await getEngagementStore();
     const profile = (await store.getProfile(userId)) as unknown as AnyRecord;
     const streaks = await store.getAllStreaks(userId);
@@ -74,7 +74,7 @@ export async function handleCreateRitual(
     const userId = body.userId || requireUserId(req, res, parsedUrl);
     if (!userId) return;
 
-    const { getEngagementStore } = await import('../../services/engagement-store.js');
+    const { getEngagementStore } = await import('../../services/engagement/engagement-store.js');
     const store = await getEngagementStore();
     const profile = (await store.getProfile(userId)) as unknown as AnyRecord;
 
@@ -115,7 +115,7 @@ export async function handleDeleteRitual(
   if (!userId) return;
 
   try {
-    const { getEngagementStore } = await import('../../services/engagement-store.js');
+    const { getEngagementStore } = await import('../../services/engagement/engagement-store.js');
     const store = await getEngagementStore();
     const profile = (await store.getProfile(userId)) as unknown as AnyRecord;
 
@@ -151,7 +151,7 @@ export async function handleCompleteRitual(
     const userId = body.userId || requireUserId(req, res, parsedUrl);
     if (!userId) return;
 
-    const { getEngagementStore } = await import('../../services/engagement-store.js');
+    const { getEngagementStore } = await import('../../services/engagement/engagement-store.js');
     const store = await getEngagementStore();
 
     // Check if ritual exists

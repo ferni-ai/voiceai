@@ -18,7 +18,7 @@ import {
   getVoicePresenceAnalytics,
   type TuningRecommendation,
   type VoicePresenceConfig,
-} from '../services/voice-presence-analytics.js';
+} from '../services/voice/voice-presence-analytics.js';
 import { createLogger } from '../utils/safe-logger.js';
 import { rateLimit, requireAdmin, requireAuth } from './auth-middleware.js';
 import { handleCorsPreflightIfNeeded, parseBody, sendError, sendJSON } from './helpers.js';

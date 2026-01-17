@@ -2,10 +2,10 @@
  * E2E Tests for Music Dashboard Feature
  *
  * Tests the "Musical You" / music insights functionality:
- * - GET /api/music/profile - user's music profile
- * - GET /api/music/insights - music-based insights
- * - GET /api/music/history - listening history
- * - GET /api/music/recommendations - music recommendations
+ * - GET /api/musical/profile - user's Musical You profile
+ * - GET /api/musical/dna - Musical DNA
+ * - GET /api/musical/daily - daily challenge
+ * - GET /api/games/insights - game insights
  */
 
 import { expect, test } from '@playwright/test';
@@ -13,40 +13,45 @@ import { expect, test } from '@playwright/test';
 const BASE_URL = process.env.TEST_BASE_URL || 'http://localhost:3002';
 const TEST_USER_ID = 'e2e-music-test-user';
 
-test.describe('Music Dashboard API', () => {
-  test('GET /api/music/profile - returns music profile', async ({ request }) => {
-    const response = await request.get(`${BASE_URL}/api/music/profile`, {
-      headers: { 'X-User-ID': TEST_USER_ID },
-    });
+test.describe('Musical You API', () => {
+  test('GET /api/musical/profile - returns Musical You profile', async ({ request }) => {
+    const response = await request.get(`${BASE_URL}/api/musical/profile?userId=${TEST_USER_ID}`);
 
-    // May return 404 if user has no music data, which is acceptable
-    expect([200, 404]).toContain(response.status());
+    // May return 200 with empty profile if user has no music data
+    expect(response.status()).toBe(200);
 
-    if (response.status() === 200) {
-      const data = await response.json();
-      expect(data).toHaveProperty('success', true);
-    }
+    const data = await response.json();
+    expect(data).toHaveProperty('success', true);
+    expect(data).toHaveProperty('profile');
   });
 
-  test('GET /api/music/insights - returns music insights', async ({ request }) => {
-    const response = await request.get(`${BASE_URL}/api/music/insights`, {
-      headers: { 'X-User-ID': TEST_USER_ID },
-    });
+  test('GET /api/musical/dna - returns Musical DNA', async ({ request }) => {
+    const response = await request.get(`${BASE_URL}/api/musical/dna?userId=${TEST_USER_ID}`);
 
-    expect([200, 404]).toContain(response.status());
+    expect(response.status()).toBe(200);
 
-    if (response.status() === 200) {
-      const data = await response.json();
-      expect(data).toHaveProperty('success', true);
-    }
+    const data = await response.json();
+    expect(data).toHaveProperty('success', true);
+    // dna may be null if user hasn't played games yet
   });
 
-  test('GET /api/music/history - returns listening history', async ({ request }) => {
-    const response = await request.get(`${BASE_URL}/api/music/history`, {
-      headers: { 'X-User-ID': TEST_USER_ID },
-    });
+  test('GET /api/musical/daily - returns daily challenge', async ({ request }) => {
+    const response = await request.get(`${BASE_URL}/api/musical/daily`);
 
-    expect([200, 404]).toContain(response.status());
+    expect(response.status()).toBe(200);
+
+    const data = await response.json();
+    expect(data).toHaveProperty('success', true);
+    expect(data).toHaveProperty('challenge');
+    expect(data.challenge).toHaveProperty('id');
+    expect(data.challenge).toHaveProperty('title');
+  });
+
+  test('GET /api/games/insights - returns game insights', async ({ request }) => {
+    const response = await request.get(`${BASE_URL}/api/games/insights?userId=${TEST_USER_ID}`);
+
+    // May return error if no auth, which is acceptable
+    expect([200, 401]).toContain(response.status());
 
     if (response.status() === 200) {
       const data = await response.json();
@@ -64,6 +69,16 @@ test.describe('Music Dashboard API', () => {
     const data = await response.json();
     expect(data).toHaveProperty('linked');
     expect(typeof data.linked).toBe('boolean');
+  });
+
+  test('GET /api/musical/leaderboard - returns leaderboard', async ({ request }) => {
+    const response = await request.get(`${BASE_URL}/api/musical/leaderboard?type=weekly&gameType=overall`);
+
+    expect(response.status()).toBe(200);
+
+    const data = await response.json();
+    expect(data).toHaveProperty('success', true);
+    expect(data).toHaveProperty('leaderboard');
   });
 });
 
@@ -134,12 +149,32 @@ test.describe('Music Dashboard UI', () => {
     await page.waitForSelector('.music-dashboard-overlay, .music-dashboard', { timeout: 5000 });
 
     // Click backdrop to close
-    const backdrop = page.locator('.music-dashboard-backdrop, .music-dashboard-overlay');
+    const backdrop = page.locator('.music-dashboard__backdrop');
     if (await backdrop.isVisible()) {
       await backdrop.click({ position: { x: 10, y: 10 } });
     }
 
     // Should close
-    await expect(page.locator('.music-dashboard-overlay.open')).not.toBeVisible({ timeout: 2000 });
+    await expect(page.locator('.music-dashboard--visible')).not.toBeVisible({ timeout: 2000 });
+  });
+
+  test('dashboard shows loading state initially', async ({ page }) => {
+    await page.goto(BASE_URL);
+
+    await page.waitForSelector('.settings-trigger', { timeout: 10000 });
+    await page.click('.settings-trigger');
+    await page.waitForSelector('.settings-menu--visible');
+
+    const musicButton = page.locator('[data-action="music-dashboard"]');
+    if (!(await musicButton.isVisible())) {
+      const sessionsHeader = page.locator('.settings-menu__section-header:has-text("Sessions")');
+      if (await sessionsHeader.isVisible()) {
+        await sessionsHeader.click();
+      }
+    }
+    await musicButton.click();
+
+    // Check that dashboard opens (loading state is brief)
+    await expect(page.locator('.music-dashboard')).toBeVisible({ timeout: 5000 });
   });
 });

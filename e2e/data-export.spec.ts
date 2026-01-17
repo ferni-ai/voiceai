@@ -1,146 +1,277 @@
 /**
- * E2E Tests for Data Export Feature
+ * Data Export E2E Tests
  *
- * Tests the data export / download your story functionality:
- * - Opening export panel
- * - Requesting data export
- * - Downloading exported data
+ * Tests the complete "Your Data" feature:
+ * - View exportable categories
+ * - Export data in JSON and CSV formats
+ * - Delete all data (GDPR)
  */
 
-import { expect, test } from '@playwright/test';
+import { test, expect } from '@playwright/test';
 
-const BASE_URL = process.env.TEST_BASE_URL || 'http://localhost:3002';
-const TEST_USER_ID = 'e2e-export-test-user';
+// Test user ID for consistent testing
+const TEST_USER_ID = 'e2e-test-user-data-export';
 
-test.describe('Data Export API', () => {
-  test('GET /api/export - returns export status or data', async ({ request }) => {
-    const response = await request.get(`${BASE_URL}/api/export`, {
-      headers: { 'X-User-ID': TEST_USER_ID },
+test.describe('Data Export Feature', () => {
+  test.describe('Categories API', () => {
+    test('GET /api/export/categories returns all categories', async ({ request }) => {
+      const response = await request.get(`/api/export/categories?userId=${TEST_USER_ID}`);
+
+      // Should return 200 even for new users (with empty counts)
+      expect(response.status()).toBe(200);
+
+      const data = await response.json();
+      expect(data.categories).toBeDefined();
+      expect(Array.isArray(data.categories)).toBe(true);
+
+      // Verify all expected categories are present
+      const categoryNames = data.categories.map((c: { category: string }) => c.category);
+      expect(categoryNames).toContain('Conversations');
+      expect(categoryNames).toContain('Insights');
+      expect(categoryNames).toContain('Rituals');
+      expect(categoryNames).toContain('Predictions');
+      expect(categoryNames).toContain('Mood History');
+      expect(categoryNames).toContain('Profile');
+      expect(categoryNames).toContain('Contacts');
+      expect(categoryNames).toContain('Trust Journey');
+      expect(categoryNames).toContain('Wellbeing');
+      expect(categoryNames).toContain('Habits');
+      expect(categoryNames).toContain('Productivity');
+
+      // Verify category structure
+      const firstCategory = data.categories[0];
+      expect(firstCategory).toHaveProperty('category');
+      expect(firstCategory).toHaveProperty('description');
+      expect(firstCategory).toHaveProperty('itemCount');
+      expect(firstCategory).toHaveProperty('exportable');
+      expect(typeof firstCategory.itemCount).toBe('number');
+      expect(typeof firstCategory.exportable).toBe('boolean');
     });
-
-    expect([200, 401, 404]).toContain(response.status());
   });
 
-  test('POST /api/export - requests data export', async ({ request }) => {
-    const response = await request.post(`${BASE_URL}/api/export`, {
-      headers: {
-        'X-User-ID': TEST_USER_ID,
-        'Content-Type': 'application/json',
-      },
-      data: {
-        format: 'json',
-        includeConversations: true,
-        includeInsights: true,
-      },
+  test.describe('Export API', () => {
+    test('POST /api/export returns JSON data', async ({ request }) => {
+      const response = await request.post('/api/export', {
+        data: {
+          userId: TEST_USER_ID,
+          format: 'json',
+          categories: ['Conversations', 'Insights'],
+        },
+      });
+
+      expect(response.status()).toBe(200);
+
+      // Check content type
+      const contentType = response.headers()['content-type'];
+      expect(contentType).toContain('application/json');
+
+      // Check content disposition (download)
+      const contentDisposition = response.headers()['content-disposition'];
+      expect(contentDisposition).toContain('attachment');
+      expect(contentDisposition).toContain('.json');
+
+      // Parse and verify structure
+      const data = await response.json();
+      expect(data).toHaveProperty('exportedAt');
+      expect(data).toHaveProperty('userId', TEST_USER_ID);
+      expect(data).toHaveProperty('version');
+      expect(data).toHaveProperty('categories');
     });
 
-    expect([200, 202, 401, 404]).toContain(response.status());
+    test('POST /api/export returns CSV data', async ({ request }) => {
+      const response = await request.post('/api/export', {
+        data: {
+          userId: TEST_USER_ID,
+          format: 'csv',
+          categories: ['Mood History'],
+        },
+      });
+
+      expect(response.status()).toBe(200);
+
+      // Check content type
+      const contentType = response.headers()['content-type'];
+      expect(contentType).toContain('text/csv');
+
+      // Check content disposition
+      const contentDisposition = response.headers()['content-disposition'];
+      expect(contentDisposition).toContain('.csv');
+
+      // Verify CSV structure
+      const text = await response.text();
+      expect(text).toContain('# Ferni Data Export');
+      expect(text).toContain('# User:');
+    });
+
+    test('POST /api/export handles empty categories gracefully', async ({ request }) => {
+      const response = await request.post('/api/export', {
+        data: {
+          userId: TEST_USER_ID,
+          format: 'json',
+          categories: [],
+        },
+      });
+
+      expect(response.status()).toBe(200);
+
+      const data = await response.json();
+      expect(data.categories).toEqual({});
+    });
+
+    test('POST /api/export handles all categories', async ({ request }) => {
+      const allCategories = [
+        'Conversations',
+        'Insights',
+        'Rituals',
+        'Predictions',
+        'Mood History',
+        'Profile',
+        'Contacts',
+        'Trust Journey',
+        'Wellbeing',
+        'Habits',
+        'Productivity',
+      ];
+
+      const response = await request.post('/api/export', {
+        data: {
+          userId: TEST_USER_ID,
+          format: 'json',
+          categories: allCategories,
+        },
+      });
+
+      expect(response.status()).toBe(200);
+
+      const data = await response.json();
+      expect(data).toHaveProperty('categories');
+
+      // All categories should be present (even if empty)
+      const exportedKeys = Object.keys(data.categories);
+      expect(exportedKeys.length).toBeGreaterThan(0);
+    });
+  });
+
+  test.describe('Delete API', () => {
+    test('DELETE /api/export/all requires confirmation', async ({ request }) => {
+      // Without confirmDelete, should fail
+      const response = await request.delete('/api/export/all', {
+        data: {
+          userId: TEST_USER_ID,
+          confirmDelete: false,
+        },
+      });
+
+      expect(response.status()).toBe(400);
+    });
+
+    test('DELETE /api/export/all deletes user data', async ({ request }) => {
+      // Create a separate test user for deletion test
+      const deleteTestUserId = 'e2e-delete-test-user';
+
+      // First delete the data
+      const response = await request.delete('/api/export/all', {
+        data: {
+          userId: deleteTestUserId,
+          confirmDelete: true,
+        },
+      });
+
+      expect(response.status()).toBe(200);
+
+      const data = await response.json();
+      expect(data.success).toBe(true);
+
+      // Verify data is deleted by fetching categories
+      const categoriesResponse = await request.get(`/api/export/categories?userId=${deleteTestUserId}`);
+      expect(categoriesResponse.status()).toBe(200);
+
+      const categories = await categoriesResponse.json();
+      // After deletion, all counts should be 0
+      for (const category of categories.categories) {
+        expect(category.itemCount).toBe(0);
+      }
+    });
+  });
+
+  test.describe('UI Integration', () => {
+    test.skip('Data Export modal shows all categories', async ({ page }) => {
+      // Navigate to app
+      await page.goto('/');
+
+      // Wait for app to load
+      await page.waitForSelector('[data-testid="settings-button"]', { timeout: 10000 });
+
+      // Open settings
+      await page.click('[data-testid="settings-button"]');
+
+      // Click on "Download Your Story" / Export option
+      await page.click('text=Your Data');
+
+      // Verify modal opens
+      await expect(page.locator('.data-export')).toBeVisible();
+
+      // Verify categories are shown
+      await expect(page.locator('.data-export__category')).toHaveCount(11);
+
+      // Verify format options
+      await expect(page.locator('[data-format="json"]')).toBeVisible();
+      await expect(page.locator('[data-format="csv"]')).toBeVisible();
+
+      // Verify action buttons
+      await expect(page.locator('.data-export__btn--primary')).toBeVisible();
+      await expect(page.locator('.data-export__btn--danger')).toBeVisible();
+
+      // Close modal
+      await page.click('.data-export__close');
+      await expect(page.locator('.data-export')).not.toBeVisible();
+    });
   });
 });
 
-test.describe('Data Export UI', () => {
-  test('opens data export from menu', async ({ page }) => {
-    await page.goto(BASE_URL);
+test.describe('GDPR Compliance', () => {
+  test('Export includes all user data categories', async ({ request }) => {
+    const response = await request.get(`/api/export/categories?userId=${TEST_USER_ID}`);
+    const data = await response.json();
 
-    await page.waitForSelector('.settings-trigger', { timeout: 10000 });
-    await page.click('.settings-trigger');
-    await page.waitForSelector('.settings-menu--visible');
+    // GDPR requires ability to export all personal data
+    // Verify we have categories for all data types
+    const requiredCategories = [
+      'Conversations', // Chat history
+      'Insights', // Cognitive data
+      'Profile', // Personal profile
+      'Contacts', // Relationship data
+      'Wellbeing', // Health-related data
+    ];
 
-    // Find and click Download Your Story (in Account section)
-    const exportButton = page.locator('[data-action="export"]');
-    if (!(await exportButton.isVisible())) {
-      // Expand Account section if collapsed
-      const accountHeader = page.locator('.settings-menu__section-header:has-text("Account")');
-      if (await accountHeader.isVisible()) {
-        await accountHeader.click();
-        await page.waitForTimeout(300);
-      }
+    const categoryNames = data.categories.map((c: { category: string }) => c.category);
+    for (const required of requiredCategories) {
+      expect(categoryNames).toContain(required);
     }
-
-    await exportButton.click();
-
-    // Verify export panel opened
-    await expect(
-      page.locator('.data-export-overlay, .data-export-panel, [data-panel="export"]')
-    ).toBeVisible({ timeout: 5000 });
   });
 
-  test('displays export options', async ({ page }) => {
-    await page.goto(BASE_URL);
+  test('Delete removes all user data', async ({ request }) => {
+    const gdprTestUserId = 'e2e-gdpr-test-user';
 
-    await page.waitForSelector('.settings-trigger', { timeout: 10000 });
-    await page.click('.settings-trigger');
-    await page.waitForSelector('.settings-menu--visible');
+    // Delete all data
+    const deleteResponse = await request.delete('/api/export/all', {
+      data: {
+        userId: gdprTestUserId,
+        confirmDelete: true,
+      },
+    });
 
-    const exportButton = page.locator('[data-action="export"]');
-    if (!(await exportButton.isVisible())) {
-      const accountHeader = page.locator('.settings-menu__section-header:has-text("Account")');
-      if (await accountHeader.isVisible()) {
-        await accountHeader.click();
-        await page.waitForTimeout(300);
-      }
-    }
+    expect(deleteResponse.status()).toBe(200);
 
-    await exportButton.click();
-    await page.waitForSelector('.data-export-overlay, .data-export-panel', { timeout: 5000 });
+    // Verify no data remains
+    const categoriesResponse = await request.get(`/api/export/categories?userId=${gdprTestUserId}`);
+    const categories = await categoriesResponse.json();
 
-    // Should show export options or download button
-    const panel = page.locator('.data-export-overlay, .data-export-panel');
-    await expect(panel).toBeVisible();
-  });
-
-  test('shows export/download button', async ({ page }) => {
-    await page.goto(BASE_URL);
-
-    await page.waitForSelector('.settings-trigger', { timeout: 10000 });
-    await page.click('.settings-trigger');
-    await page.waitForSelector('.settings-menu--visible');
-
-    const exportButton = page.locator('[data-action="export"]');
-    if (!(await exportButton.isVisible())) {
-      const accountHeader = page.locator('.settings-menu__section-header:has-text("Account")');
-      if (await accountHeader.isVisible()) {
-        await accountHeader.click();
-        await page.waitForTimeout(300);
-      }
-    }
-
-    await exportButton.click();
-    await page.waitForSelector('.data-export-overlay, .data-export-panel', { timeout: 5000 });
-
-    // Should have a download/export button
-    const downloadButton = page.locator(
-      'text=Download, text=Export, button:has-text("Download"), button:has-text("Export")'
+    // All categories should have 0 items
+    const totalItems = categories.categories.reduce(
+      (sum: number, c: { itemCount: number }) => sum + c.itemCount,
+      0
     );
-    await expect(downloadButton.first()).toBeVisible({ timeout: 3000 });
-  });
-
-  test('closes export panel on close button click', async ({ page }) => {
-    await page.goto(BASE_URL);
-
-    await page.waitForSelector('.settings-trigger', { timeout: 10000 });
-    await page.click('.settings-trigger');
-    await page.waitForSelector('.settings-menu--visible');
-
-    const exportButton = page.locator('[data-action="export"]');
-    if (!(await exportButton.isVisible())) {
-      const accountHeader = page.locator('.settings-menu__section-header:has-text("Account")');
-      if (await accountHeader.isVisible()) {
-        await accountHeader.click();
-        await page.waitForTimeout(300);
-      }
-    }
-
-    await exportButton.click();
-    await page.waitForSelector('.data-export-overlay, .data-export-panel', { timeout: 5000 });
-
-    // Click close button
-    const closeButton = page.locator('.data-export-close, .data-export-panel [aria-label="Close"]');
-    if (await closeButton.isVisible()) {
-      await closeButton.click();
-      await expect(
-        page.locator('.data-export-overlay.open, .data-export-panel--visible')
-      ).not.toBeVisible({ timeout: 2000 });
-    }
+    expect(totalItems).toBe(0);
   });
 });

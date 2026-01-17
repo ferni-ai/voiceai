@@ -19,7 +19,7 @@ import {
   type LifeGoal,
   type LifeMilestone,
   type RetirementPlan,
-} from '../../life-data-store.js';
+} from '../../stores/life-data-store.js';
 
 // ============================================================================
 // GOAL HANDLERS

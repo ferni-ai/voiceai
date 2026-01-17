@@ -158,8 +158,12 @@ describe('Cognitive Questions', () => {
     });
 
     it('should return deeper questions for deep depth', () => {
+      // Use many iterations because of significant randomness:
+      // - 40% chance of persona favorite (which may not be deep)
+      // - Pool includes both 'moderate' and 'deep' questions when conversationDepth='deep'
+      // - Random selection from potentially large pool
       let foundDeep = false;
-      for (let i = 0; i < 10; i++) {
+      for (let i = 0; i < 200; i++) {
         const question = generateCognitiveQuestion({
           personaId: 'ferni',
           topic: 'feelings',
@@ -173,19 +177,27 @@ describe('Cognitive Questions', () => {
         }
       }
 
+      // With 200 iterations, we should statistically find at least one deep question
       expect(foundDeep).toBe(true);
     });
 
     it('should use empathetic questions for high emotional weight', () => {
-      // Try many times as there is significant probability involved:
-      // - Only 3 empathetic questions added to pool (lines 509-510)
-      // - Depth filter removes 'deep' questions when conversationDepth is 'moderate'
-      // - 40% chance it picks a persona favorite instead (lines 537-543)
-      // - Random selection from potentially large pool
-      let emotionalCount = 0;
-      const iterations = 50;
+      // Test that an analytical persona (peter-john) can get emotional questions
+      // when emotionalWeight is high. This tests the feature that adds 3 empathetic
+      // questions to the pool when emotionalWeight > 0.7.
+      //
+      // Probability is complex due to:
+      // - 40% chance picks a persona favorite (all analytical for peter-john)
+      // - Random selection from pool (3 empathetic + many analytical)
+      // - Date.now() seeded randomness
+      //
+      // We just need to find at least one emotional question to prove the feature works.
+      let foundEmotional = false;
+      // Increased iterations because seededPick uses Date.now() as seed,
+      // and fast loop iterations can share the same millisecond timestamp
+      const maxIterations = 2000;
 
-      for (let i = 0; i < iterations; i++) {
+      for (let i = 0; i < maxIterations && !foundEmotional; i++) {
         const question = generateCognitiveQuestion({
           personaId: 'peter-john', // Analytical, but high emotion should add empathetic
           topic: 'grief',
@@ -194,13 +206,12 @@ describe('Cognitive Questions', () => {
         });
 
         if (question && question.expectedResponse === 'emotional') {
-          emotionalCount++;
+          foundEmotional = true;
         }
       }
 
-      // High emotional weight should surface emotional questions at least sometimes
-      // With empathetic questions in pool, we should see them >5% of the time
-      expect(emotionalCount).toBeGreaterThan(0);
+      // High emotional weight should allow emotional questions even for analytical personas
+      expect(foundEmotional).toBe(true);
     });
 
     it('should return action-oriented questions for pragmatic style', () => {

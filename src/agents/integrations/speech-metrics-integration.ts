@@ -39,7 +39,7 @@ export interface BackchannelEvent {
   wasTimely: boolean;
   category: 'acknowledgment' | 'encouragement' | 'empathy' | 'affirmation';
   userEmotion?: string;
-  mode: 'standard' | 'enhanced' | 'live' | 'adaptive';
+  mode: 'standard' | 'enhanced' | 'live' | 'adaptive' | 'llm';
 }
 
 export interface TurnPredictionEvent {

@@ -1,0 +1,343 @@
+name: BTH Capability Benchmarks
+
+# Runs BTH (Better Than Human) capability benchmarks weekly
+# Detects regressions in commitment detection, crisis detection, and reading between lines
+# Also runnable on-demand and on PRs touching BTH code
+
+on:
+  # Weekly run (Sunday at 2 AM UTC)
+  schedule:
+    - cron: '0 2 * * 0'
+
+  # On PRs touching BTH-related code
+  pull_request:
+    paths:
+      - 'src/services/bth-validation/**'
+      - 'src/agents/integrations/better-than-human-integration.ts'
+      - 'src/conversation/superhuman/**'
+      - 'src/services/superhuman/**'
+
+  # Manual trigger
+  workflow_dispatch:
+    inputs:
+      notify_on_success:
+        description: 'Send Slack notification even on success'
+        required: false
+        default: 'false'
+        type: boolean
+
+env:
+  NODE_VERSION: '20'
+  # Regression threshold - fail if F1 drops more than this
+  REGRESSION_THRESHOLD: '0.05'
+
+jobs:
+  benchmark:
+    name: BTH Capability Benchmark
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    outputs:
+      has_regressions: ${{ steps.benchmark.outputs.has_regressions }}
+      report_summary: ${{ steps.benchmark.outputs.report_summary }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2  # Need previous commit for comparison
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 9
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build
+        run: pnpm build:fast
+
+      - name: Run BTH Validation Tests
+        run: pnpm vitest run src/services/bth-validation/__tests__/ --reporter=verbose
+
+      - name: Run BTH Benchmarks
+        id: benchmark
+        run: |
+          # Create a script to run benchmarks and output results
+          cat > run-benchmarks.ts << 'EOF'
+          import { runFullBenchmark, formatBenchmarkReport } from './src/services/bth-validation/index.js';
+
+          async function main() {
+            console.log('🎯 Running BTH Capability Benchmarks...\n');
+
+            const report = await runFullBenchmark();
+            const formattedReport = formatBenchmarkReport(report);
+
+            console.log(formattedReport);
+
+            // Output for GitHub Actions
+            const summary = {
+              overallF1: report.overallF1Score,
+              overallAccuracy: report.overallAccuracy,
+              hasRegressions: report.hasRegressions,
+              regressionCount: report.regressions.length,
+              improvementCount: report.improvements.length,
+              capabilities: report.capabilities.map(c => ({
+                name: c.capability,
+                f1: c.f1Score,
+                trend: c.trend,
+                gapCount: c.knownGaps.length
+              }))
+            };
+
+            // Set outputs for GitHub Actions
+            const fs = await import('fs');
+            const outputFile = process.env.GITHUB_OUTPUT;
+            if (outputFile) {
+              fs.appendFileSync(outputFile, `has_regressions=${report.hasRegressions}\n`);
+              fs.appendFileSync(outputFile, `report_summary=${JSON.stringify(summary)}\n`);
+            }
+
+            // Exit with error if regressions detected
+            if (report.hasRegressions) {
+              console.error('\n❌ REGRESSIONS DETECTED!');
+              for (const reg of report.regressions) {
+                console.error(`  - ${reg.capability}: ${reg.previousF1.toFixed(2)} → ${reg.currentF1.toFixed(2)} (Δ${reg.delta.toFixed(2)})`);
+              }
+              process.exit(1);
+            }
+
+            console.log('\n✅ No regressions detected');
+            process.exit(0);
+          }
+
+          main().catch(err => {
+            console.error('Benchmark failed:', err);
+            process.exit(1);
+          });
+          EOF
+
+          # Run with tsx (TypeScript execution)
+          npx tsx run-benchmarks.ts
+
+      - name: Upload Benchmark Results
+        uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: bth-benchmark-results
+          path: |
+            bth-benchmark-*.json
+            run-benchmarks.ts
+          retention-days: 90
+
+      - name: Create Summary
+        if: always()
+        env:
+          HAS_REGRESSIONS: ${{ steps.benchmark.outputs.has_regressions }}
+          RUN_NUMBER: ${{ github.run_number }}
+          COMMIT_SHA: ${{ github.sha }}
+        run: |
+          echo "## 🎯 BTH Capability Benchmark Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [ "$HAS_REGRESSIONS" == "true" ]; then
+            echo "### ❌ Regressions Detected" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "One or more BTH capabilities have regressed. Please review the benchmark output above." >> $GITHUB_STEP_SUMMARY
+          else
+            echo "### ✅ All Capabilities Stable" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "No regressions detected in BTH capabilities." >> $GITHUB_STEP_SUMMARY
+          fi
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Capabilities Tested" >> $GITHUB_STEP_SUMMARY
+          echo "- Commitment Detection" >> $GITHUB_STEP_SUMMARY
+          echo "- Crisis Detection" >> $GITHUB_STEP_SUMMARY
+          echo "- Reading Between Lines" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "*Run: ${RUN_NUMBER} | Commit: ${COMMIT_SHA}*" >> $GITHUB_STEP_SUMMARY
+
+      - name: Comment on PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        env:
+          HAS_REGRESSIONS: ${{ steps.benchmark.outputs.has_regressions }}
+        with:
+          script: |
+            const hasRegressions = process.env.HAS_REGRESSIONS === 'true';
+            const runUrl = `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+
+            const body = hasRegressions
+              ? `❌ **BTH Benchmark Regressions Detected**\n\nOne or more BTH capabilities have regressed. Please review the [benchmark results](${runUrl}).`
+              : '✅ **BTH Benchmarks Passed**\n\nAll BTH capabilities are stable. No regressions detected.';
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: body
+            });
+
+  # Notify on scheduled runs
+  notify:
+    name: Notify Results
+    needs: benchmark
+    runs-on: ubuntu-latest
+    if: github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.notify_on_success == 'true')
+
+    steps:
+      - name: Send Slack Notification (Regression)
+        if: needs.benchmark.outputs.has_regressions == 'true'
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_BTH_WEBHOOK_URL }}
+          REPORT_SUMMARY: ${{ needs.benchmark.outputs.report_summary }}
+          RUN_ID: ${{ github.run_id }}
+          REPO: ${{ github.repository }}
+        run: |
+          if [ -z "$SLACK_WEBHOOK_URL" ]; then
+            echo "⚠️ SLACK_BTH_WEBHOOK_URL secret not configured, skipping notification"
+            exit 0
+          fi
+
+          # Build Slack message payload
+          cat > /tmp/slack-payload.json << EOF
+          {
+            "blocks": [
+              {
+                "type": "header",
+                "text": {
+                  "type": "plain_text",
+                  "text": "🚨 BTH Capability Regression Detected",
+                  "emoji": true
+                }
+              },
+              {
+                "type": "section",
+                "text": {
+                  "type": "mrkdwn",
+                  "text": "One or more BTH capabilities have regressed in the weekly benchmark."
+                }
+              },
+              {
+                "type": "section",
+                "fields": [
+                  {
+                    "type": "mrkdwn",
+                    "text": "*Status:*\n❌ Regressions Found"
+                  },
+                  {
+                    "type": "mrkdwn",
+                    "text": "*Run:*\n<https://github.com/${REPO}/actions/runs/${RUN_ID}|View Details>"
+                  }
+                ]
+              },
+              {
+                "type": "context",
+                "elements": [
+                  {
+                    "type": "mrkdwn",
+                    "text": "Capabilities tested: Commitment Detection, Crisis Detection, Reading Between Lines"
+                  }
+                ]
+              }
+            ]
+          }
+          EOF
+
+          curl -X POST -H 'Content-type: application/json' \
+            --data @/tmp/slack-payload.json \
+            "$SLACK_WEBHOOK_URL"
+
+      - name: Send Slack Notification (Success)
+        if: needs.benchmark.outputs.has_regressions != 'true' && (github.event_name == 'workflow_dispatch' && inputs.notify_on_success == 'true')
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_BTH_WEBHOOK_URL }}
+          REPORT_SUMMARY: ${{ needs.benchmark.outputs.report_summary }}
+          RUN_ID: ${{ github.run_id }}
+          REPO: ${{ github.repository }}
+        run: |
+          if [ -z "$SLACK_WEBHOOK_URL" ]; then
+            echo "⚠️ SLACK_BTH_WEBHOOK_URL secret not configured, skipping notification"
+            exit 0
+          fi
+
+          cat > /tmp/slack-payload.json << EOF
+          {
+            "blocks": [
+              {
+                "type": "header",
+                "text": {
+                  "type": "plain_text",
+                  "text": "✅ BTH Weekly Benchmark Passed",
+                  "emoji": true
+                }
+              },
+              {
+                "type": "section",
+                "text": {
+                  "type": "mrkdwn",
+                  "text": "All BTH capabilities are stable. No regressions detected."
+                }
+              },
+              {
+                "type": "section",
+                "fields": [
+                  {
+                    "type": "mrkdwn",
+                    "text": "*Status:*\n✅ All Stable"
+                  },
+                  {
+                    "type": "mrkdwn",
+                    "text": "*Run:*\n<https://github.com/${REPO}/actions/runs/${RUN_ID}|View Details>"
+                  }
+                ]
+              }
+            ]
+          }
+          EOF
+
+          curl -X POST -H 'Content-type: application/json' \
+            --data @/tmp/slack-payload.json \
+            "$SLACK_WEBHOOK_URL"
+
+      - name: Weekly Report Summary
+        env:
+          HAS_REGRESSIONS: ${{ needs.benchmark.outputs.has_regressions }}
+        run: |
+          echo "📊 Weekly BTH Benchmark Complete"
+          echo "Regressions: ${HAS_REGRESSIONS}"
+
+  # Store historical benchmark data
+  store-history:
+    name: Store Benchmark History
+    needs: benchmark
+    runs-on: ubuntu-latest
+    if: github.event_name == 'schedule' && needs.benchmark.outputs.has_regressions != 'true'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download benchmark results
+        uses: actions/download-artifact@v4
+        with:
+          name: bth-benchmark-results
+          path: ./benchmark-results
+
+      - name: Store to history (placeholder)
+        env:
+          REPORT_SUMMARY: ${{ needs.benchmark.outputs.report_summary }}
+        run: |
+          # In production, this would store results to:
+          # - Firestore for historical tracking
+          # - Or commit to a metrics branch
+          echo "Benchmark results would be stored here"
+          echo "Summary: ${REPORT_SUMMARY}"

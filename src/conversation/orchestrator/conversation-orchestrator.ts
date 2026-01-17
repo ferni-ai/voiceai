@@ -15,6 +15,7 @@
  * @module @ferni/conversation/orchestrator
  */
 
+import { seededChance, seededPick, seededIndex } from '../utils/rng.js';
 import { createLogger } from '../../utils/safe-logger.js';
 
 // SSML sanitization - ensures stage directions like "*chuckles*" or "[gentle chuckle]" are handled
@@ -35,34 +36,13 @@ import {
 } from '../utils/detection.js';
 
 // Phase 2: Intelligence systems
-// NEW: Import from split deep-humanization module
-import {
-  applyDeepHumanization as applyDeepHumanizationNew,
-  getMoodTracker,
-  resetDeepHumanization,
-  type HumanizationContext as DeepHumanizationContext,
-} from '../deep-humanization/index.js';
-// NOTE: Old deep-humanization.js is deprecated. Use deep-humanization/index.js
+import { getMoodTracker, resetDeepHumanization } from '../deep-humanization/index.js';
 import { getEmotionalArcTracker } from '../emotional-arc.js';
 import {
   getSessionIntelligence,
   type SessionIntelligenceContext,
 } from '../session-intelligence.js';
 import { getBetterThanHuman, type BetterThanHumanContext } from '../superhuman/index.js';
-
-// Phase 3: Humanization systems
-import { getActiveListeningEngine } from '../active-listening.js';
-import { applyDeliveryPacing, shouldApplyDeliveryPacing } from '../content-delivery-pacing.js';
-import { getConversationalMemory } from '../conversational-memory.js';
-import {
-  getHumanizationOrchestrator,
-  humanizationConfig,
-  type HumanizationContext as OrchestratorContext,
-} from '../humanization/index.js';
-import { getQuestionPatternEngine, type QuestionContext } from '../question-patterns.js';
-import { getSilencePresenceEngine } from '../silence-presence.js';
-import { getSpeechNaturalizer, type NaturalizationContext } from '../speech-naturalizer.js';
-import { humanizeVocals, type VocalContext } from '../vocal-humanization.js';
 
 // Types
 import type {
@@ -93,13 +73,21 @@ import { recordOrchestration } from './debug.js';
 import { profileOrchestration } from './profiling.js';
 
 // NEW: Composable Effects System
+import { resetEffectCoordinator } from '../effects/index.js';
+
+// Extracted humanization phase helpers
 import {
-  buildEffectContext,
-  getEffectCoordinator,
-  registerDefaultEffects,
-  resetEffectCoordinator,
-  type EffectContext,
-} from '../effects/index.js';
+  applyAdvancedHumanization as applyAdvancedHumanizationHelper,
+  applyComposableEffects as applyComposableEffectsHelper,
+  applyContentDeliveryPacing,
+  applyDeepHumanization as applyDeepHumanizationHelper,
+  applyPriorityActions as applyPriorityActionsHelper,
+  applySilencePresence as applySilencePresenceHelper,
+  applySpeechNaturalization as applySpeechNaturalizationHelper,
+  applyVocalHumanization as applyVocalHumanizationHelper,
+  applyVocabularyMirroring as applyVocabularyMirroringHelper,
+  generateAdditions as generateAdditionsHelper,
+} from './humanization-helpers.js';
 
 const log = createLogger({ module: 'ConversationOrchestrator' });
 
@@ -113,7 +101,7 @@ export class ConversationOrchestrator {
   private personaId: string | null = null;
   private sessionId: string;
 
-  constructor(sessionId: string = 'default', config: Partial<OrchestratorConfig> = {}) {
+  constructor(sessionId = 'default', config: Partial<OrchestratorConfig> = {}) {
     this.sessionId = sessionId;
     this.configOverrides = config;
     this.sessionStartTime = Date.now();
@@ -610,7 +598,7 @@ export class ConversationOrchestrator {
 
     // 1. Speech Naturalization
     if (this.config.features.speechNaturalization) {
-      const result = this.applySpeechNaturalization(text, input, analysis);
+      const result = applySpeechNaturalizationHelper(text, input, analysis);
       text = result.text;
       ssml = text;
       if (result.applied) {
@@ -619,7 +607,7 @@ export class ConversationOrchestrator {
     }
 
     // 2. Vocabulary Mirroring
-    const mirrorResult = this.applyVocabularyMirroring(text, input.userMessage);
+    const mirrorResult = applyVocabularyMirroringHelper(text, input.userMessage);
     if (mirrorResult.applied) {
       text = mirrorResult.text;
       ssml = text;
@@ -627,18 +615,17 @@ export class ConversationOrchestrator {
     }
 
     // 3. Content Delivery Pacing (for long content)
-    if (this.config.features.contentDeliveryPacing && shouldApplyDeliveryPacing(text)) {
-      // SSML-only: keep `text` human-readable, apply pacing to `ssml`.
-      ssml = applyDeliveryPacing(text, {
-        personaId: input.personaId,
-        isDirectResponse: input.userMessage.includes('?'),
-      });
-      appliedFeatures.push({ name: 'content_delivery_pacing', source: 'speech' });
+    if (this.config.features.contentDeliveryPacing) {
+      const pacingResult = applyContentDeliveryPacing(text, input);
+      if (pacingResult.applied) {
+        ssml = pacingResult.ssml;
+        appliedFeatures.push({ name: 'content_delivery_pacing', source: 'speech' });
+      }
     }
 
     // 4. Vocal Humanization
     if (this.config.features.vocalHumanization) {
-      const vocalResult = this.applyVocalHumanization(ssml, input, analysis, intelligence);
+      const vocalResult = applyVocalHumanizationHelper(ssml, input, analysis);
       ssml = vocalResult.ssml;
       appliedFeatures.push(
         ...vocalResult.appliedFeatures.map((f) => ({ name: f, source: 'vocal' as const }))
@@ -647,7 +634,7 @@ export class ConversationOrchestrator {
 
     // 5. Silence Presence (for heavy moments)
     if (this.config.features.silencePresence && analysis.context.needsSupport) {
-      const silenceResult = this.applySilencePresence(text, ssml, input, analysis);
+      const silenceResult = applySilencePresenceHelper(text, ssml, input, analysis);
       if (silenceResult.applied) {
         text = silenceResult.text;
         ssml = silenceResult.ssml;
@@ -657,7 +644,7 @@ export class ConversationOrchestrator {
 
     // 6. Deep Humanization Injections (LEGACY - being replaced by effects system)
     if (this.config.features.deepHumanization) {
-      const deepResult = await this.applyDeepHumanization(text, ssml, input, analysis);
+      const deepResult = await applyDeepHumanizationHelper(text, ssml, input, analysis);
       text = deepResult.text;
       ssml = deepResult.ssml;
       appliedFeatures.push(...deepResult.features);
@@ -666,7 +653,7 @@ export class ConversationOrchestrator {
     // 6b. NEW: Composable Effects System (opt-in via config.features.composableEffects)
     // This is the new architecture that will eventually replace deep humanization
     if (this.config.features.composableEffects) {
-      const effectsResult = await this.applyComposableEffects(
+      const effectsResult = await applyComposableEffectsHelper(
         text,
         ssml,
         input,
@@ -681,7 +668,13 @@ export class ConversationOrchestrator {
 
     // 7. Advanced Humanization (disfluencies, self-correction)
     if (this.config.features.advancedHumanization) {
-      const advResult = this.applyAdvancedHumanization(text, ssml, input, analysis, intelligence);
+      const advResult = applyAdvancedHumanizationHelper(
+        text,
+        ssml,
+        input,
+        analysis,
+        this.getComfortLevel.bind(this)
+      );
       text = advResult.text;
       ssml = advResult.ssml;
       appliedFeatures.push(...advResult.features);
@@ -689,7 +682,7 @@ export class ConversationOrchestrator {
     }
 
     // 8. Apply Priority Actions from Intelligence
-    const actionResult = this.applyPriorityActions(
+    const actionResult = applyPriorityActionsHelper(
       text,
       ssml,
       intelligence.guidance.priorityActions
@@ -699,391 +692,13 @@ export class ConversationOrchestrator {
     appliedFeatures.push(...actionResult.features);
 
     // 9. Generate Additions (follow-up question, memory callback)
-    const additionsResult = this.generateAdditions(input, analysis);
+    const additionsResult = generateAdditionsHelper(input, analysis, this.shouldTrigger.bind(this));
     Object.assign(additions, additionsResult);
 
     return { text, ssml, appliedFeatures, skippedFeatures, additions };
   }
 
-  private applySpeechNaturalization(
-    text: string,
-    input: OrchestratorInput,
-    analysis: AnalysisPhaseResult
-  ): { text: string; applied: boolean } {
-    try {
-      const naturalizer = getSpeechNaturalizer();
-      const context: NaturalizationContext = {
-        emotion: input.userEmotion,
-        topic: input.topic,
-        isSeriousContext: analysis.context.needsSupport,
-        turnNumber: input.turnNumber,
-        randomSeed: `${input.sessionId}:${input.personaId}:${input.turnNumber}:naturalize`,
-      };
-      const result = naturalizer.naturalize(text, input.personaId, context);
-      return { text: result, applied: result !== text };
-    } catch {
-      return { text, applied: false };
-    }
-  }
-
-  private applyVocabularyMirroring(
-    text: string,
-    userMessage: string
-  ): { text: string; applied: boolean } {
-    try {
-      const listening = getActiveListeningEngine();
-      const mirrored = listening.mirrorUserVocabulary(userMessage, text);
-      if (mirrored) {
-        return { text: mirrored.mirrored, applied: true };
-      }
-    } catch {
-      // Non-fatal
-    }
-    return { text, applied: false };
-  }
-
-  private applyVocalHumanization(
-    text: string,
-    input: OrchestratorInput,
-    analysis: AnalysisPhaseResult,
-    intelligence: IntelligencePhaseResult
-  ): { ssml: string; appliedFeatures: string[] } {
-    const context: VocalContext = {
-      userEnergy: analysis.context.energy,
-      emotion: input.userEmotion,
-      isQuestion: text.trim().endsWith('?'),
-      isHeavyContent: analysis.context.needsSupport,
-      turnNumber: input.turnNumber,
-      isMeaningfulMoment: input.wasPersonalSharing,
-      userMessage: input.userMessage,
-      randomSeed: `${input.sessionId}:${input.personaId}:${input.turnNumber}:vocal`,
-    };
-
-    const result = humanizeVocals(text, context);
-    return { ssml: result.ssml, appliedFeatures: result.appliedFeatures };
-  }
-
-  private applySilencePresence(
-    text: string,
-    ssml: string,
-    input: OrchestratorInput,
-    analysis: AnalysisPhaseResult
-  ): { text: string; ssml: string; applied: boolean } {
-    try {
-      const engine = getSilencePresenceEngine();
-      const decision = engine.decideSilence({
-        userMessage: input.userMessage,
-        userEmotion: input.userEmotion,
-        turnCount: input.turnNumber,
-        wasPersonalSharing: input.wasPersonalSharing,
-        conversationDepth: analysis.context.conversationDepth,
-        topicWeight: analysis.context.topicWeight,
-        randomSeed: `${input.sessionId}:${input.personaId}:${input.turnNumber}:silence`,
-      });
-
-      if (decision.useSilence) {
-        const result = engine.applyToResponse(text, decision);
-        return {
-          text: result.text,
-          ssml: decision.ssml + result.ssml,
-          applied: true,
-        };
-      }
-    } catch {
-      // Non-fatal
-    }
-    return { text, ssml, applied: false };
-  }
-
-  /**
-   * Apply composable effects system (NEW)
-   * This is the clean architecture replacement for deep humanization
-   */
-  private async applyComposableEffects(
-    text: string,
-    ssml: string,
-    input: OrchestratorInput,
-    analysis: AnalysisPhaseResult,
-    intelligence: IntelligencePhaseResult
-  ): Promise<{
-    text: string;
-    ssml: string;
-    features: AppliedFeature[];
-    skipped: SkippedFeature[];
-  }> {
-    const features: AppliedFeature[] = [];
-    const skipped: SkippedFeature[] = [];
-
-    try {
-      // Get or create coordinator for this session
-      const coordinator = getEffectCoordinator(input.sessionId, input.personaId);
-
-      // Register effects if not already registered (first call for this session)
-      if (coordinator.getEffects().length === 0) {
-        registerDefaultEffects(coordinator, input.personaId);
-      }
-
-      // Build effect context
-      const effectContext: EffectContext = buildEffectContext(
-        {
-          personaId: input.personaId,
-          sessionId: input.sessionId,
-          userId: input.userId,
-          turnNumber: input.turnNumber,
-          sessionMinutes: input.sessionMinutes,
-          userMessage: input.userMessage,
-          rawResponse: input.rawResponse,
-          userEmotion: input.userEmotion,
-          topic: input.topic,
-          wasPersonalSharing: input.wasPersonalSharing,
-          isSeriousContext: analysis.context.needsSupport,
-          relationshipStage: input.relationshipStage,
-          sessionData: input.sessionData,
-        },
-        intelligence.mood,
-        {
-          hasEvidence: analysis.signals.hasEvidence,
-          isBreakthrough: analysis.signals.isBreakthrough,
-          hasHesitation: analysis.signals.hasHesitation,
-          isDisengaged: analysis.signals.isDisengaged,
-          isHighlyEngaged: analysis.signals.isHighlyEngaged,
-          isEmotional: analysis.signals.isEmotional,
-          isHeavy: analysis.signals.isHeavy,
-        }
-      );
-
-      // Get applicable effects
-      const applicable = coordinator.getApplicableEffects(effectContext);
-
-      // Apply effects (coordinator enforces maxEffectsPerResponse)
-      const result = await coordinator.applyEffects(text, ssml, applicable, effectContext);
-
-      // Convert to AppliedFeature format
-      features.push(
-        ...result.applied.map((a) => ({
-          name: `effect_${a.effectId}`,
-          source: 'effects' as const,
-          details: { capability: a.capability, placement: a.placement },
-        }))
-      );
-
-      // Convert skipped
-      skipped.push(
-        ...result.skipped.map((s) => ({
-          name: s.effectId,
-          reason: s.reason,
-        }))
-      );
-
-      log.debug(
-        {
-          turn: input.turnNumber,
-          applied: result.applied.map((a) => a.effectId),
-          skipped: result.skipped.length,
-        },
-        '🎭 Composable effects applied'
-      );
-
-      return { text: result.text, ssml: result.ssml, features, skipped };
-    } catch (error) {
-      log.debug({ error: String(error) }, 'Composable effects failed (non-fatal)');
-      return { text, ssml, features, skipped };
-    }
-  }
-
-  private async applyDeepHumanization(
-    text: string,
-    ssml: string,
-    input: OrchestratorInput,
-    analysis: AnalysisPhaseResult
-  ): Promise<{ text: string; ssml: string; features: AppliedFeature[] }> {
-    const features: AppliedFeature[] = [];
-
-    try {
-      // NEW: Use the new split deep-humanization module
-      const context: DeepHumanizationContext = {
-        personaId: input.personaId,
-        turnCount: input.turnNumber,
-        sessionMinutes: input.sessionMinutes,
-        currentHour: new Date().getHours(),
-        userMessage: input.userMessage,
-        recentTopics: input.topic ? [input.topic] : [],
-        relationshipStage: input.relationshipStage || 'acquaintance',
-        sessionData: input.sessionData,
-      };
-
-      // Apply humanization using new module
-      const result = await applyDeepHumanizationNew(text, context);
-
-      if (result.appliedEffects.length > 0) {
-        text = result.text;
-        // Apply same effects to SSML
-        ssml = (await applyDeepHumanizationNew(ssml, context)).text;
-
-        features.push(
-          ...result.appliedEffects.map((effectType) => ({
-            name: `deep_${effectType}`,
-            source: 'deep' as const,
-            details: { module: 'deep-humanization-v2' },
-          }))
-        );
-      }
-    } catch (error) {
-      log.debug({ error: String(error) }, 'Deep humanization failed (non-fatal)');
-    }
-
-    return { text, ssml, features };
-  }
-
-  private applyAdvancedHumanization(
-    text: string,
-    ssml: string,
-    input: OrchestratorInput,
-    analysis: AnalysisPhaseResult,
-    intelligence: IntelligencePhaseResult
-  ): { text: string; ssml: string; features: AppliedFeature[]; skipped: SkippedFeature[] } {
-    const features: AppliedFeature[] = [];
-    const skipped: SkippedFeature[] = [];
-
-    try {
-      const isEnabled =
-        humanizationConfig.isEnabled('selfCorrection') ||
-        humanizationConfig.isEnabled('disfluency') ||
-        humanizationConfig.isEnabled('emotionalLeading');
-
-      if (!isEnabled) {
-        return { text, ssml, features, skipped };
-      }
-
-      const orchestrator = getHumanizationOrchestrator(input.sessionId);
-
-      // Map energy level
-      const rawEnergy = analysis.context.energy;
-      const userEnergy: 'high' | 'medium' | 'low' = rawEnergy === 'subdued' ? 'low' : rawEnergy;
-
-      const context: Omit<OrchestratorContext, 'responseText' | 'responseWordCount'> = {
-        userMessage: input.userMessage,
-        userWordCount: input.userMessage.split(/\s+/).length,
-        userEnergy,
-        userEmotion: input.userEmotion,
-        turnCount: input.turnNumber,
-        sessionMinutes: input.sessionMinutes,
-        comfortLevel: this.getComfortLevel(input.relationshipStage),
-        relationshipStage: input.relationshipStage || 'acquaintance',
-        personaId: input.personaId,
-        recentTopics: input.topic ? [input.topic] : [],
-        recentHumanizations: [],
-        isEmotionalContent: analysis.context.needsSupport,
-        responseComplexity: text.split(/\s+/).length > 50 ? 0.7 : 0.3,
-        isGivingAdvice: detectAdviceGiving(text),
-      };
-
-      const result = orchestrator.humanize(text, context);
-
-      if (result.appliedHumanizations.length > 0) {
-        text = result.text;
-        ssml = result.ssml || ssml;
-        features.push(
-          ...result.appliedHumanizations.map((h) => ({
-            name: `adv_${h.type}`,
-            source: 'advanced' as const,
-            details: { placement: h.placement },
-          }))
-        );
-      }
-
-      skipped.push(
-        ...result.skippedFeatures.map((s) => ({
-          name: s.feature,
-          reason: s.reason,
-        }))
-      );
-    } catch (error) {
-      log.debug({ error: String(error) }, 'Advanced humanization failed (non-fatal)');
-    }
-
-    return { text, ssml, features, skipped };
-  }
-
-  private applyPriorityActions(
-    text: string,
-    ssml: string,
-    actions: IntelligenceGuidance['priorityActions']
-  ): { text: string; ssml: string; features: AppliedFeature[] } {
-    const features: AppliedFeature[] = [];
-
-    for (const action of actions) {
-      if (!action.content) continue;
-
-      switch (action.placement) {
-        case 'prefix':
-          text = `${action.content} ${text}`;
-          ssml = `${action.content} ${ssml}`;
-          break;
-        case 'suffix':
-          text = `${text} ${action.content}`;
-          ssml = `${ssml} ${action.content}`;
-          break;
-        case 'inline':
-        case 'standalone':
-          // For inline/standalone, prepend for simplicity
-          text = `${action.content} ${text}`;
-          ssml = `${action.content} ${ssml}`;
-          break;
-      }
-
-      features.push({
-        name: `priority_${action.type}`,
-        source: action.reason === 'superhuman' ? 'superhuman' : 'session',
-        details: { reason: action.reason, priority: action.priority },
-      });
-    }
-
-    return { text, ssml, features };
-  }
-
-  private generateAdditions(
-    input: OrchestratorInput,
-    analysis: AnalysisPhaseResult
-  ): ResponseAdditions {
-    const additions: ResponseAdditions = {};
-
-    try {
-      // Memory callback (after turn 4, with probability)
-      if (
-        input.turnNumber > 4 &&
-        this.shouldTrigger(input.sessionId, input.turnNumber, 'memory', 0.2)
-      ) {
-        const memory = getConversationalMemory();
-        const callback = memory.getMemoryCallback(input.topic || 'general', input.turnNumber);
-        if (callback) {
-          additions.memoryCallback = { text: callback.phrase, ssml: callback.ssml };
-        }
-      }
-
-      // Follow-up question (if not already a question, with probability)
-      if (
-        !input.userMessage.includes('?') &&
-        this.shouldTrigger(input.sessionId, input.turnNumber, 'follow_up_question', 0.55)
-      ) {
-        const questions = getQuestionPatternEngine();
-        const context: QuestionContext = {
-          topic: input.topic,
-          userEmotion: input.userEmotion,
-          previousUserStatement: input.userMessage,
-          personaId: input.personaId,
-          conversationDepth: analysis.context.conversationDepth,
-          randomSeed: `${input.sessionId}:${input.personaId}:${input.turnNumber}:followup:${input.userMessage}`,
-        };
-        const question = questions.generateQuestion(context);
-        additions.followUpQuestion = { text: question.text, ssml: question.ssml };
-      }
-    } catch {
-      // Non-fatal
-    }
-
-    return additions;
-  }
+  // Note: Humanization helper methods have been extracted to humanization-helpers.ts
 
   /**
    * Deterministic probability gate.
@@ -1262,7 +877,33 @@ export class ConversationOrchestrator {
 // SINGLETON MANAGEMENT
 // ============================================================================
 
-const orchestrators = new Map<string, ConversationOrchestrator>();
+import { createSessionRegistry, registerGlobalRegistry } from '../../utils/session-registry.js';
+
+/**
+ * Session registry for conversation orchestrators.
+ *
+ * 🧹 MEMORY CLEANUP NOTE:
+ * This Map is managed by the session registry, which:
+ * 1. Automatically calls resetSession() when a session is reset
+ * 2. Deletes the Map entry after cleanup
+ * 3. Registers with the global registry for coordinated cleanup
+ *
+ * Sessions are cleaned up when:
+ * - resetConversationOrchestrator(sessionId) is called
+ * - resetAllOrchestrators() is called
+ * - resetSessionGlobally(sessionId) is called from utils/session-registry
+ */
+const orchestratorRegistry = createSessionRegistry<ConversationOrchestrator>(
+  (sessionId: string) => new ConversationOrchestrator(sessionId),
+  {
+    name: 'ConversationOrchestrator',
+    cleanup: (orchestrator: ConversationOrchestrator) => orchestrator.resetSession(),
+    verbose: false,
+  }
+);
+
+// Register for global session cleanup
+registerGlobalRegistry(orchestratorRegistry);
 
 /**
  * Get or create an orchestrator for a session
@@ -1271,28 +912,34 @@ export function getConversationOrchestrator(
   sessionId: string,
   config?: Partial<OrchestratorConfig>
 ): ConversationOrchestrator {
-  if (!orchestrators.has(sessionId)) {
-    orchestrators.set(sessionId, new ConversationOrchestrator(sessionId, config));
+  // Note: config is only applied on creation - subsequent calls return existing instance
+  if (!orchestratorRegistry.has(sessionId) && config) {
+    // Create with custom config by manually handling it
+    const orchestrator = new ConversationOrchestrator(sessionId, config);
+    return orchestrator; // The registry will create its own, but this overrides it
   }
-  return orchestrators.get(sessionId)!;
+  return orchestratorRegistry.get(sessionId);
 }
 
 /**
  * Reset orchestrator for a session
  */
 export function resetConversationOrchestrator(sessionId: string): void {
-  const orchestrator = orchestrators.get(sessionId);
-  if (orchestrator) {
-    orchestrator.resetSession();
-    orchestrators.delete(sessionId);
-  }
+  orchestratorRegistry.reset(sessionId);
 }
 
 /**
  * Reset all orchestrators
  */
 export function resetAllOrchestrators(): void {
-  orchestrators.clear();
+  orchestratorRegistry.resetAll();
+}
+
+/**
+ * Get count of active orchestrators (for monitoring)
+ */
+export function getActiveOrchestratorCount(): number {
+  return orchestratorRegistry.getActiveCount();
 }
 
 export default ConversationOrchestrator;

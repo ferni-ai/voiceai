@@ -67,3 +67,32 @@
   color: var(--color-text-secondary);
 }
 
+/* ============================================================================
+   DARK MODE - FAQ High Contrast
+   ============================================================================ */
+@media (prefers-color-scheme: dark) {
+  .section-faq {
+    background: var(--color-ferni-cinematic-dark, var(--color-text-primary));
+  }
+  
+  .faq-item {
+    border-bottom-color: rgba(255, 255, 255, 0.1);
+  }
+  
+  .faq-question {
+    color: var(--color-ferni-cinematic-text, var(--color-text-inverse));
+  }
+  
+  .faq-question:hover {
+    color: var(--color-highlight, var(--color-nayan));
+  }
+  
+  .faq-question svg {
+    color: var(--color-ferni-cinematic-text-muted, var(--color-text-muted));
+  }
+  
+  .faq-answer-inner {
+    color: var(--color-ferni-cinematic-text-secondary, var(--color-bg-secondary));
+  }
+}
+

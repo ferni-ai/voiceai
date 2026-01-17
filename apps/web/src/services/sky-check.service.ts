@@ -54,6 +54,11 @@ class SkyCheckService {
   private callbacks: SkyCheckServiceCallbacks = {};
   private initialized = false;
 
+  // Cache TTL for API calls - 5 minutes (weather doesn't change often)
+  private lastFetchTime = 0;
+  private readonly CACHE_TTL_MS = 5 * 60 * 1000;
+  private fetchInProgress: Promise<SkyCheckEntry[]> | null = null;
+
   /**
    * Initialize the service by loading from localStorage
    */
@@ -98,6 +103,12 @@ class SkyCheckService {
       
       if (result.ok) {
         log.info('Sky check recorded', { weather: weather.primary, energy: weather.energy });
+        
+        // 🤲 Sidekick: Dispatch sky check event for avatar sidekick
+        document.dispatchEvent(new CustomEvent('ferni:sky-check', {
+          detail: { weather: weather.primary, energy: weather.energy }
+        }));
+        
         this.callbacks.onSkyCheckRecorded?.(entry);
         return entry;
       } else {
@@ -113,31 +124,55 @@ class SkyCheckService {
   }
 
   /**
-   * Get sky check history
+   * Get sky check history (with TTL caching)
    */
-  async getHistory(days = 30): Promise<SkyCheckEntry[]> {
+  async getHistory(days = 30, forceRefresh = false): Promise<SkyCheckEntry[]> {
     this.initialize();
 
-    // Try to fetch from backend first
-    try {
-      const result = await apiGet<{ history: SkyCheckEntry[]; stats: { totalSkyChecks: number } }>(
-        '/api/sky-check/history',
-        { days: String(days) }
-      );
-      
-      if (result.ok && result.data?.history) {
-        this.history = result.data.history;
-        this.saveToStorage();
-        log.debug('Loaded history from backend', { count: this.history.length });
-        this.callbacks.onHistoryUpdated?.(this.history);
-        return this.history;
-      }
-    } catch (err) {
-      log.warn('Failed to fetch history from backend', err);
+    const now = Date.now();
+    const cacheValid = !forceRefresh && 
+      this.history.length > 0 && 
+      (now - this.lastFetchTime < this.CACHE_TTL_MS);
+
+    // Return cached if valid
+    if (cacheValid) {
+      return this.history;
     }
 
-    // Return local cache
-    return this.history;
+    // Dedupe concurrent requests
+    if (this.fetchInProgress) {
+      return this.fetchInProgress;
+    }
+
+    // Try to fetch from backend
+    this.fetchInProgress = (async () => {
+      try {
+        const result = await apiGet<{ history: SkyCheckEntry[]; stats: { totalSkyChecks: number } }>(
+          '/api/sky-check/history',
+          { days: String(days) }
+        );
+        
+        if (result.ok && result.data?.history) {
+          this.history = result.data.history;
+          this.lastFetchTime = now;
+          this.saveToStorage();
+          log.debug('Loaded history from backend', { count: this.history.length });
+          this.callbacks.onHistoryUpdated?.(this.history);
+          return this.history;
+        }
+      } catch (err) {
+        log.warn('Failed to fetch history from backend', err);
+      }
+
+      // Return local cache on error
+      return this.history;
+    })();
+
+    try {
+      return await this.fetchInProgress;
+    } finally {
+      this.fetchInProgress = null;
+    }
   }
 
   /**

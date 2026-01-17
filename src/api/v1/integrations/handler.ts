@@ -15,10 +15,56 @@ import type { URL } from 'url';
 import { z } from 'zod';
 import { createLogger } from '../../../utils/safe-logger.js';
 import { parseBody, sendJSON } from '../../helpers.js';
+import { requireAuth, type AuthContext } from '../../auth-middleware.js';
 
 // SECURITY: Schema for validating OAuth state parameter
 const OAuthStateSchema = z.object({
   userId: z.string().min(1),
+});
+
+// ============================================================================
+// REQUEST BODY VALIDATION SCHEMAS
+// ============================================================================
+
+const ExchangeTokenSchema = z.object({
+  publicToken: z.string().min(1, 'publicToken is required'),
+  institution: z
+    .object({
+      institution_id: z.string().optional(),
+      name: z.string().optional(),
+    })
+    .optional(),
+});
+
+const CreateSavingsGoalSchema = z.object({
+  name: z.string().min(1, 'name is required'),
+  targetAmount: z.number().positive('targetAmount must be positive'),
+  targetDate: z.string().min(1, 'targetDate is required'),
+  currentAmount: z.number().min(0).optional(),
+});
+
+const UpdateGoalProgressSchema = z.object({
+  currentAmount: z.number().min(0, 'currentAmount is required'),
+});
+
+const UpdateLocationSchema = z.object({
+  latitude: z.number().min(-90).max(90),
+  longitude: z.number().min(-180).max(180),
+  accuracy: z.number().min(0).optional(),
+});
+
+const SaveLocationSchema = z.object({
+  name: z.string().min(1, 'name is required'),
+  type: z.enum(['home', 'work', 'gym', 'social', 'travel', 'unknown']),
+  latitude: z.number().min(-90).max(90),
+  longitude: z.number().min(-180).max(180),
+});
+
+const AddImportantDateSchema = z.object({
+  personName: z.string().min(1, 'personName is required'),
+  date: z.string().regex(/^\d{2}-\d{2}$/, 'date must be in MM-DD format'),
+  type: z.enum(['birthday', 'anniversary', 'memorial', 'other']),
+  label: z.string().optional(),
 });
 
 // Biometrics
@@ -35,7 +81,7 @@ import {
 
 // Banking - lazy imports to avoid circular deps
 const getBankingServices = async () => {
-  const plaid = await import('../../../tools/plaid.js');
+  const plaid = await import('../../../tools/domains/finance/plaid.js');
   const prediction = await import('../../../services/finance/prediction.js');
   return { ...plaid, ...prediction };
 };
@@ -47,7 +93,7 @@ const getCalendarServices = async () => {
 
 // Calendar OAuth - direct import for token exchange
 const getCalendarOAuthServices = async () => {
-  return import('../../../services/google-calendar-oauth.js');
+  return import('../../../services/identity/google-calendar-oauth.js');
 };
 
 // Social Graph - lazy imports
@@ -77,6 +123,25 @@ function sendRedirect(res: ServerResponse, url: string): void {
   res.end();
 }
 
+/**
+ * Get target userId with IDOR protection.
+ * - Normal users can only access their own data (auth.userId)
+ * - Admins can optionally specify a different userId via query param
+ *
+ * @returns The userId to use for the operation
+ */
+function getTargetUserId(auth: AuthContext, parsedUrl: URL): string {
+  // Admins can query any user by passing userId in query param
+  if (auth.isAdmin) {
+    const requestedUserId = parsedUrl.searchParams.get('userId');
+    if (requestedUserId) {
+      return requestedUserId;
+    }
+  }
+  // Non-admins always use their authenticated userId
+  return auth.userId;
+}
+
 // ============================================================================
 // MAIN HANDLER
 // ============================================================================
@@ -96,16 +161,36 @@ export async function handleIntegrationsRoutes(
 
   log.debug({ pathname, method, subPath }, 'Integrations request');
 
+  // Handle CORS preflight
+  if (method === 'OPTIONS') {
+    res.writeHead(204, {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+      'Access-Control-Allow-Headers': 'Authorization, Content-Type, X-API-Key',
+      'Access-Control-Max-Age': '86400',
+    });
+    res.end();
+    return true;
+  }
+
+  // OAuth callback routes don't require auth (user is authenticating)
+  const isOAuthCallback =
+    subPath.includes('/callback') || subPath.includes('/connect') || subPath.includes('/auth');
+
+  // SECURITY: Require authentication for all non-OAuth routes
+  let auth: AuthContext | null = null;
+  if (!isOAuthCallback) {
+    auth = await requireAuth(req, res);
+    if (!auth) return true; // 401 already sent
+  }
+
   try {
     // =========================================================================
     // STATUS - All integrations
     // =========================================================================
     if (subPath === '/status' && method === 'GET') {
-      const userId = parsedUrl.searchParams.get('userId');
-      if (!userId) {
-        sendJson(res, 400, { error: 'userId is required' });
-        return true;
-      }
+      // auth is guaranteed non-null here since this is not an OAuth route
+      const userId = getTargetUserId(auth!, parsedUrl);
 
       const calendar = await getCalendarServices();
       const banking = await getBankingServices();
@@ -144,11 +229,7 @@ export async function handleIntegrationsRoutes(
     // =========================================================================
 
     if (subPath === '/biometrics/status' && method === 'GET') {
-      const userId = parsedUrl.searchParams.get('userId');
-      if (!userId) {
-        sendJson(res, 400, { error: 'userId is required' });
-        return true;
-      }
+      const userId = getTargetUserId(auth!, parsedUrl);
 
       const connected = await hasBiometricsConnectedAsync(userId);
       const platform = await getConnectedPlatformAsync(userId);
@@ -165,11 +246,8 @@ export async function handleIntegrationsRoutes(
 
     if (subPath.startsWith('/biometrics/connect/') && method === 'GET') {
       const platform = subPath.replace('/biometrics/connect/', '') as BiometricPlatform;
-      const userId = parsedUrl.searchParams.get('userId');
-      if (!userId) {
-        sendJson(res, 400, { error: 'userId is required' });
-        return true;
-      }
+      // For OAuth start, use the authenticated user's ID
+      const userId = getTargetUserId(auth!, parsedUrl);
 
       const validPlatforms: BiometricPlatform[] = [
         'healthkit',
@@ -237,12 +315,8 @@ export async function handleIntegrationsRoutes(
     }
 
     if (subPath === '/biometrics/sync' && method === 'POST') {
-      const body = await parseBody<Record<string, unknown>>(req);
-      const userId = body.userId as string;
-      if (!userId) {
-        sendJson(res, 400, { error: 'userId is required' });
-        return true;
-      }
+      // SECURITY: Use authenticated userId, ignore body.userId to prevent IDOR
+      const userId = getTargetUserId(auth!, parsedUrl);
 
       if (!(await hasBiometricsConnectedAsync(userId))) {
         sendJson(res, 400, { error: 'No biometrics connected' });
@@ -269,11 +343,7 @@ export async function handleIntegrationsRoutes(
     }
 
     if (subPath === '/biometrics/data' && method === 'GET') {
-      const userId = parsedUrl.searchParams.get('userId');
-      if (!userId) {
-        sendJson(res, 400, { error: 'userId is required' });
-        return true;
-      }
+      const userId = getTargetUserId(auth!, parsedUrl);
 
       const snapshot = getCurrentBiometrics(userId);
       if (snapshot) {
@@ -285,12 +355,8 @@ export async function handleIntegrationsRoutes(
     }
 
     if (subPath === '/biometrics/disconnect' && method === 'DELETE') {
-      const body = await parseBody<Record<string, unknown>>(req);
-      const userId = body.userId as string;
-      if (!userId) {
-        sendJson(res, 400, { error: 'userId is required' });
-        return true;
-      }
+      // SECURITY: Use authenticated userId, ignore body to prevent IDOR
+      const userId = getTargetUserId(auth!, parsedUrl);
 
       disconnectBiometrics(userId);
       log.info({ userId }, 'Biometrics disconnected');
@@ -303,11 +369,7 @@ export async function handleIntegrationsRoutes(
     // =========================================================================
 
     if (subPath === '/banking/status' && method === 'GET') {
-      const userId = parsedUrl.searchParams.get('userId');
-      if (!userId) {
-        sendJson(res, 400, { error: 'userId is required' });
-        return true;
-      }
+      const userId = getTargetUserId(auth!, parsedUrl);
 
       const banking = await getBankingServices();
       const connected = banking.hasLinkedAccounts(userId);
@@ -322,12 +384,8 @@ export async function handleIntegrationsRoutes(
     }
 
     if (subPath === '/banking/link-token' && method === 'POST') {
-      const body = await parseBody<Record<string, unknown>>(req);
-      const userId = body.userId as string;
-      if (!userId) {
-        sendJson(res, 400, { error: 'userId is required' });
-        return true;
-      }
+      // SECURITY: Use authenticated userId, ignore body to prevent IDOR
+      const userId = getTargetUserId(auth!, parsedUrl);
 
       const banking = await getBankingServices();
       const linkToken = await banking.createLinkToken(userId);
@@ -343,17 +401,18 @@ export async function handleIntegrationsRoutes(
     }
 
     if (subPath === '/banking/exchange-token' && method === 'POST') {
-      const body = await parseBody<Record<string, unknown>>(req);
-      const { userId, publicToken, institution } = body as {
-        userId: string;
-        publicToken: string;
-        institution?: { institution_id?: string; name?: string };
-      };
+      // SECURITY: Use authenticated userId, ignore body.userId to prevent IDOR
+      const userId = getTargetUserId(auth!, parsedUrl);
 
-      if (!userId || !publicToken) {
-        sendJson(res, 400, { error: 'userId and publicToken are required' });
+      const body = await parseBody<Record<string, unknown>>(req);
+      const validation = ExchangeTokenSchema.safeParse(body);
+      if (!validation.success) {
+        sendJson(res, 400, {
+          error: validation.error.issues[0]?.message || 'Invalid request body',
+        });
         return true;
       }
+      const { publicToken, institution } = validation.data;
 
       const banking = await getBankingServices();
       const accessToken = await banking.exchangePublicToken(publicToken);
@@ -384,11 +443,7 @@ export async function handleIntegrationsRoutes(
     }
 
     if (subPath === '/banking/disconnect' && method === 'DELETE') {
-      const userId = parsedUrl.searchParams.get('userId');
-      if (!userId) {
-        sendJson(res, 400, { error: 'userId is required' });
-        return true;
-      }
+      const userId = getTargetUserId(auth!, parsedUrl);
 
       const banking = await getBankingServices();
       const removed = banking.removeAccessToken(userId);
@@ -403,11 +458,7 @@ export async function handleIntegrationsRoutes(
     }
 
     if (subPath === '/banking/balances' && method === 'GET') {
-      const userId = parsedUrl.searchParams.get('userId');
-      if (!userId) {
-        sendJson(res, 400, { error: 'userId is required' });
-        return true;
-      }
+      const userId = getTargetUserId(auth!, parsedUrl);
 
       const banking = await getBankingServices();
       const tokenData = banking.getTokenData(userId);
@@ -431,11 +482,7 @@ export async function handleIntegrationsRoutes(
     }
 
     if (subPath === '/banking/transactions' && method === 'GET') {
-      const userId = parsedUrl.searchParams.get('userId');
-      if (!userId) {
-        sendJson(res, 400, { error: 'userId is required' });
-        return true;
-      }
+      const userId = getTargetUserId(auth!, parsedUrl);
 
       const days = parseInt(parsedUrl.searchParams.get('days') || '30');
       const limit = parseInt(parsedUrl.searchParams.get('limit') || '100');
@@ -474,11 +521,7 @@ export async function handleIntegrationsRoutes(
     }
 
     if (subPath === '/banking/spending-analysis' && method === 'GET') {
-      const userId = parsedUrl.searchParams.get('userId');
-      if (!userId) {
-        sendJson(res, 400, { error: 'userId is required' });
-        return true;
-      }
+      const userId = getTargetUserId(auth!, parsedUrl);
 
       const period = parsedUrl.searchParams.get('period') || 'month';
 
@@ -508,11 +551,7 @@ export async function handleIntegrationsRoutes(
     }
 
     if (subPath === '/banking/cash-flow' && method === 'GET') {
-      const userId = parsedUrl.searchParams.get('userId');
-      if (!userId) {
-        sendJson(res, 400, { error: 'userId is required' });
-        return true;
-      }
+      const userId = getTargetUserId(auth!, parsedUrl);
 
       const daysOut = parseInt(parsedUrl.searchParams.get('daysOut') || '14');
 
@@ -533,11 +572,7 @@ export async function handleIntegrationsRoutes(
     }
 
     if (subPath === '/banking/bills' && method === 'GET') {
-      const userId = parsedUrl.searchParams.get('userId');
-      if (!userId) {
-        sendJson(res, 400, { error: 'userId is required' });
-        return true;
-      }
+      const userId = getTargetUserId(auth!, parsedUrl);
 
       const banking = await getBankingServices();
       if (!banking.hasLinkedAccounts(userId)) {
@@ -551,11 +586,7 @@ export async function handleIntegrationsRoutes(
     }
 
     if (subPath === '/banking/income' && method === 'GET') {
-      const userId = parsedUrl.searchParams.get('userId');
-      if (!userId) {
-        sendJson(res, 400, { error: 'userId is required' });
-        return true;
-      }
+      const userId = getTargetUserId(auth!, parsedUrl);
 
       const banking = await getBankingServices();
       if (!banking.hasLinkedAccounts(userId)) {
@@ -569,11 +600,7 @@ export async function handleIntegrationsRoutes(
     }
 
     if (subPath === '/banking/anomalies' && method === 'GET') {
-      const userId = parsedUrl.searchParams.get('userId');
-      if (!userId) {
-        sendJson(res, 400, { error: 'userId is required' });
-        return true;
-      }
+      const userId = getTargetUserId(auth!, parsedUrl);
 
       const banking = await getBankingServices();
       if (!banking.hasLinkedAccounts(userId)) {
@@ -587,11 +614,7 @@ export async function handleIntegrationsRoutes(
     }
 
     if (subPath === '/banking/subscriptions' && method === 'GET') {
-      const userId = parsedUrl.searchParams.get('userId');
-      if (!userId) {
-        sendJson(res, 400, { error: 'userId is required' });
-        return true;
-      }
+      const userId = getTargetUserId(auth!, parsedUrl);
 
       const banking = await getBankingServices();
       if (!banking.hasLinkedAccounts(userId)) {
@@ -610,19 +633,16 @@ export async function handleIntegrationsRoutes(
     }
 
     if (subPath === '/banking/goals' && method === 'POST') {
+      const userId = getTargetUserId(auth!, parsedUrl);
       const body = await parseBody<Record<string, unknown>>(req);
-      const { userId, name, targetAmount, targetDate, currentAmount } = body as {
-        userId: string;
-        name: string;
-        targetAmount: number;
-        targetDate: string;
-        currentAmount?: number;
-      };
-
-      if (!userId || !name || !targetAmount || !targetDate) {
-        sendJson(res, 400, { error: 'userId, name, targetAmount, and targetDate are required' });
+      const validation = CreateSavingsGoalSchema.safeParse(body);
+      if (!validation.success) {
+        sendJson(res, 400, {
+          error: validation.error.issues[0]?.message || 'Invalid request body',
+        });
         return true;
       }
+      const { name, targetAmount, targetDate, currentAmount } = validation.data;
 
       const banking = await getBankingServices();
       const goal = banking.createSavingsGoal(
@@ -640,14 +660,17 @@ export async function handleIntegrationsRoutes(
 
     const goalMatch = subPath.match(/^\/banking\/goals\/([^/]+)$/);
     if (goalMatch && method === 'PATCH') {
+      const userId = getTargetUserId(auth!, parsedUrl);
       const goalId = goalMatch[1];
       const body = await parseBody<Record<string, unknown>>(req);
-      const { userId, currentAmount } = body as { userId: string; currentAmount: number };
-
-      if (!userId || currentAmount === undefined) {
-        sendJson(res, 400, { error: 'userId and currentAmount are required' });
+      const validation = UpdateGoalProgressSchema.safeParse(body);
+      if (!validation.success) {
+        sendJson(res, 400, {
+          error: validation.error.issues[0]?.message || 'Invalid request body',
+        });
         return true;
       }
+      const { currentAmount } = validation.data;
 
       const banking = await getBankingServices();
       const progress = banking.updateGoalProgress(userId, goalId, currentAmount);
@@ -663,11 +686,7 @@ export async function handleIntegrationsRoutes(
     }
 
     if (subPath === '/banking/insights' && method === 'GET') {
-      const userId = parsedUrl.searchParams.get('userId');
-      if (!userId) {
-        sendJson(res, 400, { error: 'userId is required' });
-        return true;
-      }
+      const userId = getTargetUserId(auth!, parsedUrl);
 
       const banking = await getBankingServices();
       if (!banking.hasLinkedAccounts(userId)) {
@@ -685,11 +704,7 @@ export async function handleIntegrationsRoutes(
     // =========================================================================
 
     if (subPath === '/calendar/status' && method === 'GET') {
-      const userId = parsedUrl.searchParams.get('userId');
-      if (!userId) {
-        sendJson(res, 400, { error: 'userId is required' });
-        return true;
-      }
+      const userId = getTargetUserId(auth!, parsedUrl);
 
       const cal = await getCalendarServices();
       const connected = await cal.hasCalendarConnected(userId);
@@ -705,11 +720,7 @@ export async function handleIntegrationsRoutes(
     }
 
     if (subPath === '/calendar/connect' && method === 'GET') {
-      const userId = parsedUrl.searchParams.get('userId');
-      if (!userId) {
-        sendJson(res, 400, { error: 'userId is required' });
-        return true;
-      }
+      const userId = getTargetUserId(auth!, parsedUrl);
 
       const cal = await getCalendarServices();
       const authUrl = cal.getCalendarAuthUrl(userId);
@@ -769,11 +780,7 @@ export async function handleIntegrationsRoutes(
     }
 
     if (subPath === '/calendar/events' && method === 'GET') {
-      const userId = parsedUrl.searchParams.get('userId');
-      if (!userId) {
-        sendJson(res, 400, { error: 'userId is required' });
-        return true;
-      }
+      const userId = getTargetUserId(auth!, parsedUrl);
 
       const hours = parseInt(parsedUrl.searchParams.get('hours') || '24');
 
@@ -799,18 +806,16 @@ export async function handleIntegrationsRoutes(
     }
 
     if (subPath === '/calendar/location' && method === 'POST') {
+      const userId = getTargetUserId(auth!, parsedUrl);
       const body = await parseBody<Record<string, unknown>>(req);
-      const { userId, latitude, longitude, accuracy } = body as {
-        userId: string;
-        latitude: number;
-        longitude: number;
-        accuracy?: number;
-      };
-
-      if (!userId || latitude === undefined || longitude === undefined) {
-        sendJson(res, 400, { error: 'userId, latitude, and longitude are required' });
+      const validation = UpdateLocationSchema.safeParse(body);
+      if (!validation.success) {
+        sendJson(res, 400, {
+          error: validation.error.issues[0]?.message || 'Invalid request body',
+        });
         return true;
       }
+      const { latitude, longitude, accuracy } = validation.data;
 
       const cal = await getCalendarServices();
       cal.updateLocation(userId, latitude, longitude, accuracy || 0);
@@ -821,19 +826,16 @@ export async function handleIntegrationsRoutes(
     }
 
     if (subPath === '/calendar/location/save' && method === 'POST') {
+      const userId = getTargetUserId(auth!, parsedUrl);
       const body = await parseBody<Record<string, unknown>>(req);
-      const { userId, name, type, latitude, longitude } = body as {
-        userId: string;
-        name: string;
-        type: 'home' | 'work' | 'gym' | 'social' | 'travel' | 'unknown';
-        latitude: number;
-        longitude: number;
-      };
-
-      if (!userId || !name || !type || latitude === undefined || longitude === undefined) {
-        sendJson(res, 400, { error: 'userId, name, type, latitude, and longitude are required' });
+      const validation = SaveLocationSchema.safeParse(body);
+      if (!validation.success) {
+        sendJson(res, 400, {
+          error: validation.error.issues[0]?.message || 'Invalid request body',
+        });
         return true;
       }
+      const { name, type, latitude, longitude } = validation.data;
 
       const cal = await getCalendarServices();
       cal.saveLocation(userId, name, type, latitude, longitude);
@@ -844,11 +846,7 @@ export async function handleIntegrationsRoutes(
     }
 
     if (subPath === '/calendar/disconnect' && method === 'DELETE') {
-      const userId = parsedUrl.searchParams.get('userId');
-      if (!userId) {
-        sendJson(res, 400, { error: 'userId is required' });
-        return true;
-      }
+      const userId = getTargetUserId(auth!, parsedUrl);
 
       const cal = await getCalendarServices();
       cal.disconnectCalendar(userId);
@@ -863,11 +861,7 @@ export async function handleIntegrationsRoutes(
     // =========================================================================
 
     if (subPath === '/social-graph/people' && method === 'GET') {
-      const userId = parsedUrl.searchParams.get('userId');
-      if (!userId) {
-        sendJson(res, 400, { error: 'userId is required' });
-        return true;
-      }
+      const userId = getTargetUserId(auth!, parsedUrl);
 
       const social = await getSocialGraphServices();
       const people = social.getImportantPeople(userId);
@@ -890,12 +884,8 @@ export async function handleIntegrationsRoutes(
 
     const personMatch = subPath.match(/^\/social-graph\/person\/([^/]+)$/);
     if (personMatch && method === 'GET') {
+      const userId = getTargetUserId(auth!, parsedUrl);
       const personId = personMatch[1];
-      const userId = parsedUrl.searchParams.get('userId');
-      if (!userId) {
-        sendJson(res, 400, { error: 'userId is required' });
-        return true;
-      }
 
       const social = await getSocialGraphServices();
       const person = social.getPerson(userId, personId);
@@ -911,14 +901,8 @@ export async function handleIntegrationsRoutes(
 
     const confirmMatch = subPath.match(/^\/social-graph\/person\/([^/]+)\/confirm$/);
     if (confirmMatch && method === 'POST') {
+      const userId = getTargetUserId(auth!, parsedUrl);
       const personId = confirmMatch[1];
-      const body = await parseBody<Record<string, unknown>>(req);
-      const userId = body.userId as string;
-
-      if (!userId) {
-        sendJson(res, 400, { error: 'userId is required' });
-        return true;
-      }
 
       const social = await getSocialGraphServices();
       const success = social.confirmImportantPerson(userId, personId);
@@ -934,24 +918,16 @@ export async function handleIntegrationsRoutes(
 
     const dateMatch = subPath.match(/^\/social-graph\/person\/([^/]+)\/date$/);
     if (dateMatch && method === 'POST') {
+      const userId = getTargetUserId(auth!, parsedUrl);
       const body = await parseBody<Record<string, unknown>>(req);
-      const { userId, personName, date, type, label } = body as {
-        userId: string;
-        personName: string;
-        date: string;
-        type: 'birthday' | 'anniversary' | 'memorial' | 'other';
-        label?: string;
-      };
-
-      if (!userId || !personName || !date || !type) {
-        sendJson(res, 400, { error: 'userId, personName, date (MM-DD), and type are required' });
+      const validation = AddImportantDateSchema.safeParse(body);
+      if (!validation.success) {
+        sendJson(res, 400, {
+          error: validation.error.issues[0]?.message || 'Invalid request body',
+        });
         return true;
       }
-
-      if (!/^\d{2}-\d{2}$/.test(date)) {
-        sendJson(res, 400, { error: 'Date must be in MM-DD format' });
-        return true;
-      }
+      const { personName, date, type, label } = validation.data;
 
       const social = await getSocialGraphServices();
       const success = social.addImportantDate(userId, personName, date, type, label);
@@ -966,11 +942,7 @@ export async function handleIntegrationsRoutes(
     }
 
     if (subPath === '/social-graph/dates' && method === 'GET') {
-      const userId = parsedUrl.searchParams.get('userId');
-      if (!userId) {
-        sendJson(res, 400, { error: 'userId is required' });
-        return true;
-      }
+      const userId = getTargetUserId(auth!, parsedUrl);
 
       const daysAhead = parseInt(parsedUrl.searchParams.get('daysAhead') || '7');
 
@@ -982,11 +954,7 @@ export async function handleIntegrationsRoutes(
     }
 
     if (subPath === '/social-graph/insights' && method === 'GET') {
-      const userId = parsedUrl.searchParams.get('userId');
-      if (!userId) {
-        sendJson(res, 400, { error: 'userId is required' });
-        return true;
-      }
+      const userId = getTargetUserId(auth!, parsedUrl);
 
       const social = await getSocialGraphServices();
       const withdrawals = social.detectWithdrawal(userId);
@@ -997,11 +965,7 @@ export async function handleIntegrationsRoutes(
     }
 
     if (subPath === '/social-graph/frequency' && method === 'GET') {
-      const userId = parsedUrl.searchParams.get('userId');
-      if (!userId) {
-        sendJson(res, 400, { error: 'userId is required' });
-        return true;
-      }
+      const userId = getTargetUserId(auth!, parsedUrl);
 
       const personName = parsedUrl.searchParams.get('personName');
       const days = parseInt(parsedUrl.searchParams.get('days') || '30');
@@ -1019,11 +983,7 @@ export async function handleIntegrationsRoutes(
     }
 
     if (subPath === '/social-graph/clear' && method === 'DELETE') {
-      const userId = parsedUrl.searchParams.get('userId');
-      if (!userId) {
-        sendJson(res, 400, { error: 'userId is required' });
-        return true;
-      }
+      const userId = getTargetUserId(auth!, parsedUrl);
 
       const confirm = parsedUrl.searchParams.get('confirm') === 'true';
       if (!confirm) {

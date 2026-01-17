@@ -178,8 +178,8 @@ class PredictionTrackerUI {
         </div>
       ` : ''}
 
-      <div class="pred-tracker__actions">
-        <button class="pred-tracker__btn pred-tracker__btn--primary">View All Predictions</button>
+      <div class="pred-tracker__actions" role="button" tabindex="0">
+        <button aria-label="${t('accessibility.viewAllPredictions')}" class="pred-tracker__btn pred-tracker__btn--primary">View All Predictions</button>
       </div>
     `;
 
@@ -240,8 +240,7 @@ class PredictionTrackerUI {
         align-items: center;
         justify-content: center;
         padding: var(--ma-rest, 21px);
-        background: var(--backdrop-page);
-        backdrop-filter: blur(var(--glass-blur-subtle, 8px));
+        background: rgba(44, 37, 32, 0.75);
         opacity: 0;
         visibility: hidden;
         transition: opacity ${DURATION.SLOW}ms ${EASING.STANDARD}, visibility ${DURATION.SLOW}ms;
@@ -251,13 +250,13 @@ class PredictionTrackerUI {
 
       .pred-tracker__wrapper {
         width: 100%;
-        max-width: 420px;
+        max-width: clamp(294px, 90vw, 420px);
         max-height: 85vh;
         overflow-y: auto;
-        background: var(--color-background-elevated, #fffdfb);
-        border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.05));
-        border-radius: var(--radius-xl, 1.5rem);
-        box-shadow: var(--shadow-2xl, 0 24px 48px rgba(44, 37, 32, 0.15));
+        background: var(--color-bg-elevated, #FFFDFB);
+        border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
+        border-radius: var(--radius-xl, 20px);
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.06);
       }
 
       .pred-tracker__header {
@@ -300,7 +299,7 @@ class PredictionTrackerUI {
       }
 
       .pred-tracker__ring {
-        width: 120px;
+        width: min(120px, 100%);
         height: 120px;
         margin: 0 auto var(--ma-breath, 13px);
         border-radius: 50%;

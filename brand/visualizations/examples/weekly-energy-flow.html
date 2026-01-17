@@ -1,0 +1,720 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Weekly Energy Flow | Ferni Insights</title>
+
+  <!-- Open Graph / Social Sharing -->
+  <meta property="og:title" content="Weekly Energy Flow | Ferni">
+  <meta property="og:description" content="See when your energy peaks and discover your most productive moments">
+  <meta property="og:type" content="website">
+
+  <!-- Design System Tokens (REQUIRED) -->
+  <link rel="stylesheet" href="../master-tokens.css">
+
+  <!-- Visualization System Styles -->
+  <link rel="stylesheet" href="../components.css">
+  <link rel="stylesheet" href="../animations.css">
+
+  <style>
+    /* ==========================================================================
+       WEEKLY ENERGY FLOW - Custom Styles
+       ========================================================================== */
+
+    .viz-page {
+      min-height: 100vh;
+      background: linear-gradient(
+        180deg,
+        var(--color-surface, #faf8f5) 0%,
+        var(--color-surface-elevated, #ffffff) 100%
+      );
+      color: var(--color-text, #2c2520);
+      font-family: var(--font-body, 'Inter', system-ui, sans-serif);
+    }
+
+    .viz-container {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: var(--space-xl, 3rem) var(--space-lg, 2rem);
+    }
+
+    .viz-header {
+      text-align: center;
+      margin-bottom: var(--space-xl, 3rem);
+    }
+
+    .viz-title {
+      font-family: var(--font-display, 'Fraunces', serif);
+      font-size: var(--text-4xl, 2.5rem);
+      font-weight: 600;
+      color: var(--color-text, #2c2520);
+      margin-bottom: var(--space-xs, 0.25rem);
+    }
+
+    .viz-subtitle {
+      font-size: var(--text-lg, 1.125rem);
+      color: var(--color-text-muted, #6b6560);
+    }
+
+    /* Energy Flow Chart */
+    .energy-chart {
+      background: var(--color-surface-elevated, #ffffff);
+      border-radius: var(--radius-lg, 1rem);
+      padding: var(--space-xl, 3rem);
+      box-shadow: var(--shadow-md, 0 4px 12px rgba(0,0,0,0.08));
+      margin-bottom: var(--space-lg, 2rem);
+    }
+
+    .energy-grid {
+      display: grid;
+      grid-template-columns: 50px repeat(24, 1fr);
+      gap: 2px;
+    }
+
+    .energy-row {
+      display: contents;
+    }
+
+    .day-label {
+      font-size: var(--text-sm, 0.875rem);
+      font-weight: 500;
+      color: var(--color-text-muted, #6b6560);
+      display: flex;
+      align-items: center;
+      padding-right: var(--space-sm, 0.5rem);
+    }
+
+    .energy-cell {
+      aspect-ratio: 1;
+      border-radius: 3px;
+      background: var(--color-border, #e0dcd8);
+      transition: all 0.2s ease;
+      cursor: pointer;
+    }
+
+    .energy-cell:hover {
+      transform: scale(1.3);
+      z-index: 10;
+      box-shadow: var(--shadow-md, 0 4px 8px rgba(0,0,0,0.15));
+    }
+
+    /* Energy levels - using green spectrum for positive energy */
+    .energy-cell[data-level="0"] { background: var(--color-surface, #faf8f5); }
+    .energy-cell[data-level="1"] { background: var(--color-ferni-tint, rgba(74, 103, 65, 0.2)); }
+    .energy-cell[data-level="2"] { background: var(--color-ferni-light, rgba(74, 103, 65, 0.4)); }
+    .energy-cell[data-level="3"] { background: var(--color-ferni, #4a6741); opacity: 0.7; }
+    .energy-cell[data-level="4"] { background: var(--color-ferni, #4a6741); }
+    .energy-cell[data-level="5"] { background: var(--kintsugi-gold, #c9a227); } /* Peak energy! */
+
+    /* Hour labels */
+    .hour-labels {
+      display: grid;
+      grid-template-columns: 50px repeat(24, 1fr);
+      gap: 2px;
+      margin-top: var(--space-xs, 0.25rem);
+    }
+
+    .hour-label {
+      font-size: 9px;
+      color: var(--color-text-muted, #6b6560);
+      text-align: center;
+    }
+
+    .hour-label.highlight {
+      color: var(--color-ferni, #4a6741);
+      font-weight: 600;
+    }
+
+    /* Legend */
+    .energy-legend {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: var(--space-sm, 0.5rem);
+      margin-top: var(--space-md, 1rem);
+      font-size: var(--text-sm, 0.875rem);
+      color: var(--color-text-muted, #6b6560);
+    }
+
+    .legend-scale {
+      display: flex;
+      gap: 2px;
+    }
+
+    .legend-cell {
+      width: 12px;
+      height: 12px;
+      border-radius: 2px;
+    }
+
+    /* Pattern highlight */
+    .pattern-highlight {
+      position: relative;
+    }
+
+    .pattern-highlight::after {
+      content: '';
+      position: absolute;
+      top: -4px;
+      right: -4px;
+      width: 8px;
+      height: 8px;
+      background: var(--kintsugi-gold, #c9a227);
+      border-radius: 50%;
+      animation: pulse-glow 2s infinite;
+    }
+
+    @keyframes pulse-glow {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.5; transform: scale(1.2); }
+    }
+
+    /* Insight Card */
+    .viz-insight-card {
+      background: linear-gradient(
+        135deg,
+        var(--color-ferni-tint, rgba(74, 103, 65, 0.08)) 0%,
+        var(--color-surface-elevated, #ffffff) 100%
+      );
+      border-left: 4px solid var(--color-ferni, #4a6741);
+      border-radius: var(--radius-md, 0.5rem);
+      padding: var(--space-lg, 2rem);
+      margin-bottom: var(--space-lg, 2rem);
+    }
+
+    .viz-insight-card h3 {
+      font-family: var(--font-display, 'Fraunces', serif);
+      font-size: var(--text-xl, 1.25rem);
+      color: var(--color-ferni, #4a6741);
+      margin-bottom: var(--space-sm, 0.5rem);
+      display: flex;
+      align-items: center;
+      gap: var(--space-xs, 0.25rem);
+    }
+
+    .viz-insight-card p {
+      font-size: var(--text-base, 1rem);
+      line-height: 1.7;
+      color: var(--color-text, #2c2520);
+    }
+
+    .insight-stat {
+      display: inline-flex;
+      align-items: baseline;
+      gap: 4px;
+      background: var(--color-surface, #faf8f5);
+      padding: 2px 8px;
+      border-radius: var(--radius-sm, 0.25rem);
+      margin: 0 2px;
+    }
+
+    .insight-stat strong {
+      font-size: var(--text-lg, 1.125rem);
+      color: var(--color-ferni, #4a6741);
+    }
+
+    /* Prompt Card */
+    .viz-prompt-card {
+      background: var(--color-surface-elevated, #ffffff);
+      border: 1px solid var(--color-border, #e0dcd8);
+      border-radius: var(--radius-md, 0.5rem);
+      padding: var(--space-xl, 3rem) var(--space-lg, 2rem);
+      text-align: center;
+      margin-bottom: var(--space-lg, 2rem);
+    }
+
+    .viz-prompt-card p {
+      font-family: var(--font-display, 'Fraunces', serif);
+      font-size: var(--text-xl, 1.25rem);
+      font-style: italic;
+      color: var(--color-text, #2c2520);
+      max-width: 500px;
+      margin: 0 auto;
+    }
+
+    /* Action Panel */
+    .viz-actions {
+      display: flex;
+      gap: var(--space-md, 1rem);
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .viz-action-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-sm, 0.5rem);
+      padding: var(--space-sm, 0.75rem) var(--space-lg, 1.5rem);
+      border-radius: var(--radius-full, 9999px);
+      font-size: var(--text-base, 1rem);
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      border: none;
+    }
+
+    .viz-action-btn.primary {
+      background: var(--color-ferni, #4a6741);
+      color: white;
+    }
+
+    .viz-action-btn.primary:hover {
+      background: var(--color-ferni-dark, #3d5a36);
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-lg, 0 8px 24px rgba(74, 103, 65, 0.25));
+    }
+
+    .viz-action-btn.secondary {
+      background: var(--color-surface, #faf8f5);
+      color: var(--color-text, #2c2520);
+      border: 1px solid var(--color-border, #e0dcd8);
+    }
+
+    .viz-action-btn.secondary:hover {
+      background: var(--color-surface-elevated, #ffffff);
+      border-color: var(--color-ferni, #4a6741);
+    }
+
+    /* Discovery callout */
+    .discovery-callout {
+      background: linear-gradient(
+        135deg,
+        var(--kintsugi-gold, #c9a227) 0%,
+        var(--color-surface-elevated, #ffffff) 100%
+      );
+      background-size: 100% 4px;
+      background-repeat: no-repeat;
+      background-position: top;
+      border-radius: var(--radius-md, 0.5rem);
+      padding: var(--space-lg, 2rem);
+      margin-top: var(--space-xl, 3rem);
+      text-align: center;
+    }
+
+    .discovery-callout h4 {
+      font-family: var(--font-display, 'Fraunces', serif);
+      font-size: var(--text-lg, 1.125rem);
+      color: var(--color-text, #2c2520);
+      margin-bottom: var(--space-sm, 0.5rem);
+    }
+
+    .discovery-callout p {
+      font-size: var(--text-sm, 0.875rem);
+      color: var(--color-text-muted, #6b6560);
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .viz-container {
+        padding: var(--space-md, 1rem);
+      }
+
+      .viz-title {
+        font-size: var(--text-2xl, 1.75rem);
+      }
+
+      .energy-chart {
+        padding: var(--space-md, 1rem);
+        overflow-x: auto;
+      }
+
+      .energy-grid {
+        min-width: 600px;
+      }
+    }
+
+    /* Dark Mode */
+    @media (prefers-color-scheme: dark) {
+      .viz-page {
+        background: var(--color-surface-dark, #1a1815);
+        color: var(--color-text-dark, #f5f3f0);
+      }
+
+      .energy-chart,
+      .viz-prompt-card {
+        background: var(--color-surface-elevated-dark, #252220);
+      }
+
+      .energy-cell[data-level="0"] {
+        background: var(--color-surface-dark, #1a1815);
+      }
+    }
+
+    /* Reduced Motion */
+    @media (prefers-reduced-motion: reduce) {
+      .energy-cell:hover {
+        transform: none;
+      }
+
+      .pattern-highlight::after {
+        animation: none;
+      }
+    }
+
+    /* Print */
+    @media print {
+      .viz-actions {
+        display: none;
+      }
+    }
+
+    /* Utilities */
+    .visually-hidden {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+  </style>
+</head>
+<body class="viz-page">
+  <div class="viz-container">
+
+    <!-- Header -->
+    <header class="viz-header viz-reveal">
+      <h1 class="viz-title">Your Weekly Energy Flow</h1>
+      <p class="viz-subtitle">January 4-10, 2026</p>
+    </header>
+
+    <!-- Main Visualization -->
+    <main>
+
+      <!-- ==========================================
+           PATTERN: Energy Heatmap
+           Shows hourly energy levels across the week
+           ========================================== -->
+      <section class="energy-chart viz-card viz-reveal" role="figure" aria-labelledby="chart-title" aria-describedby="chart-desc">
+        <h2 id="chart-title" class="visually-hidden">Weekly Energy Heatmap</h2>
+        <p id="chart-desc" class="visually-hidden">
+          Heatmap showing energy levels from 0-5 for each hour of each day this week.
+          Darker colors indicate higher energy. Golden highlights show peak moments.
+        </p>
+
+        <div class="energy-grid" id="energyGrid">
+          <!-- Generated by JavaScript using safe DOM methods -->
+        </div>
+
+        <div class="hour-labels" id="hourLabels">
+          <span class="hour-label"></span>
+          <!-- Generated by JavaScript using safe DOM methods -->
+        </div>
+
+        <div class="energy-legend">
+          <span>Low</span>
+          <div class="legend-scale">
+            <div class="legend-cell" style="background: var(--color-surface, #faf8f5);"></div>
+            <div class="legend-cell" style="background: var(--color-ferni-tint, rgba(74, 103, 65, 0.2));"></div>
+            <div class="legend-cell" style="background: var(--color-ferni-light, rgba(74, 103, 65, 0.4));"></div>
+            <div class="legend-cell" style="background: var(--color-ferni, #4a6741); opacity: 0.7;"></div>
+            <div class="legend-cell" style="background: var(--color-ferni, #4a6741);"></div>
+            <div class="legend-cell" style="background: var(--kintsugi-gold, #c9a227);"></div>
+          </div>
+          <span>Peak</span>
+        </div>
+
+        <!-- Hidden data table for accessibility -->
+        <table class="visually-hidden" id="dataTable">
+          <caption>Energy levels by day and hour</caption>
+          <thead>
+            <tr>
+              <th scope="col">Day</th>
+              <th scope="col">Peak Hour</th>
+              <th scope="col">Average Energy</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td>Monday</td><td>10 AM</td><td>3.2/5</td></tr>
+            <tr><td>Tuesday</td><td>10 AM</td><td>3.4/5</td></tr>
+            <tr><td>Wednesday</td><td>9 AM</td><td>2.8/5</td></tr>
+            <tr><td>Thursday</td><td>10 AM</td><td>3.5/5</td></tr>
+            <tr><td>Friday</td><td>11 AM</td><td>3.1/5</td></tr>
+            <tr><td>Saturday</td><td>11 AM</td><td>4.2/5</td></tr>
+            <tr><td>Sunday</td><td>10 AM</td><td>3.8/5</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <!-- ==========================================
+           INSIGHT: What the Pattern Reveals
+           ========================================== -->
+      <section class="viz-insight-card viz-reveal">
+        <h3>
+          <span aria-hidden="true">✨</span>
+          Your Energy Pattern
+        </h3>
+        <p>
+          Your energy consistently peaks between
+          <span class="insight-stat"><strong>9-11 AM</strong></span>,
+          especially on <span class="insight-stat"><strong>Saturdays</strong></span>
+          when you average <span class="insight-stat"><strong>4.2/5</strong> energy</span>.
+          <br><br>
+          You've had <span class="insight-stat"><strong>8</strong> golden hours</span> this week—moments
+          of peak focus and clarity. These often follow morning movement.
+        </p>
+      </section>
+
+      <!-- ==========================================
+           PROMPT: Reflection Question
+           ========================================== -->
+      <section class="viz-prompt-card viz-reveal">
+        <p>
+          "What if you protected 9-11 AM for your most important work?"
+        </p>
+      </section>
+
+      <!-- ==========================================
+           ACTION: What to Do Now
+           ========================================== -->
+      <section class="viz-actions viz-reveal">
+        <button class="viz-action-btn primary bth-action-btn" data-action="block-time">
+          <span aria-hidden="true">📅</span>
+          Block Morning Focus Time
+        </button>
+        <button class="viz-action-btn secondary bth-action-btn" data-action="share">
+          <span aria-hidden="true">📤</span>
+          Share Insight
+        </button>
+        <button class="viz-action-btn secondary bth-action-btn" data-action="compare">
+          <span aria-hidden="true">📊</span>
+          Compare Weeks
+        </button>
+      </section>
+
+      <!-- Discovery Callout -->
+      <aside class="discovery-callout viz-reveal">
+        <h4>🌟 Pattern Discovered</h4>
+        <p>Morning walks increase your 10 AM energy by 40% on average</p>
+      </aside>
+
+    </main>
+
+    <!-- Footer -->
+    <footer style="text-align: center; margin-top: var(--space-xl, 3rem); padding-top: var(--space-lg, 2rem); border-top: 1px solid var(--color-border, #e0dcd8); color: var(--color-text-muted, #6b6560); font-size: var(--text-sm, 0.875rem);">
+      <p>Generated by Ferni • <time datetime="2026-01-10">January 10, 2026</time></p>
+    </footer>
+
+  </div>
+
+  <!-- Ferni Visualization System -->
+  <script type="module">
+    import FerniViz from '../viz-system.js';
+
+    // Initialize visualization system
+    FerniViz.init({
+      enableTooltips: true,
+      enableAnimations: true,
+      enableDisclosure: true,
+      enableComparison: true,
+      enableIcons: true,
+      enableSharing: true,
+      debug: false
+    });
+
+    // Make the main chart shareable
+    document.querySelectorAll('.viz-card').forEach(card => {
+      FerniViz.makeShareable(card);
+    });
+
+    // Sample data - in production this would come from API
+    const ENERGY_DATA = {
+      days: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+      // 24 hours per day, energy levels 0-5
+      data: [
+        // Monday - typical work day
+        [0, 0, 0, 0, 0, 0, 1, 2, 3, 4, 4, 3, 2, 2, 2, 2, 3, 3, 2, 2, 1, 1, 0, 0],
+        // Tuesday - good day
+        [0, 0, 0, 0, 0, 0, 1, 2, 3, 5, 4, 3, 3, 2, 3, 3, 3, 2, 2, 1, 1, 1, 0, 0],
+        // Wednesday - mid-week dip
+        [0, 0, 0, 0, 0, 0, 1, 2, 4, 3, 3, 2, 2, 2, 2, 2, 2, 2, 1, 1, 1, 0, 0, 0],
+        // Thursday - recovery
+        [0, 0, 0, 0, 0, 0, 1, 3, 4, 5, 4, 3, 3, 2, 3, 3, 3, 2, 2, 2, 1, 1, 0, 0],
+        // Friday - wind down
+        [0, 0, 0, 0, 0, 0, 1, 2, 3, 4, 5, 3, 2, 2, 2, 2, 2, 2, 2, 1, 1, 1, 0, 0],
+        // Saturday - peak day (morning movement!)
+        [0, 0, 0, 0, 0, 0, 0, 2, 4, 5, 5, 5, 4, 3, 3, 4, 4, 3, 3, 2, 2, 1, 1, 0],
+        // Sunday - restful
+        [0, 0, 0, 0, 0, 0, 0, 1, 3, 5, 4, 4, 3, 3, 3, 3, 3, 2, 2, 2, 1, 1, 0, 0],
+      ]
+    };
+
+    // Helper to format hour string
+    function formatHour(hour) {
+      if (hour === 0) return '12 AM';
+      if (hour < 12) return hour + ' AM';
+      if (hour === 12) return '12 PM';
+      return (hour - 12) + ' PM';
+    }
+
+    // Helper to format short hour
+    function formatHourShort(hour) {
+      if (hour === 0) return '12a';
+      if (hour < 12) return hour + 'a';
+      if (hour === 12) return '12p';
+      return (hour - 12) + 'p';
+    }
+
+    // Render the energy grid using safe DOM methods
+    function renderEnergyGrid() {
+      const grid = document.getElementById('energyGrid');
+      const hourLabelsContainer = document.getElementById('hourLabels');
+
+      if (!grid || !hourLabelsContainer) return;
+
+      // Clear existing content using safe method
+      while (grid.firstChild) {
+        grid.removeChild(grid.firstChild);
+      }
+      while (hourLabelsContainer.firstChild) {
+        hourLabelsContainer.removeChild(hourLabelsContainer.firstChild);
+      }
+
+      // Add empty first label for hour labels row
+      const emptyLabel = document.createElement('span');
+      emptyLabel.className = 'hour-label';
+      hourLabelsContainer.appendChild(emptyLabel);
+
+      // Create rows for each day
+      ENERGY_DATA.days.forEach((day, dayIndex) => {
+        const row = document.createElement('div');
+        row.className = 'energy-row';
+
+        // Day label
+        const label = document.createElement('span');
+        label.className = 'day-label';
+        label.textContent = day;
+        row.appendChild(label);
+
+        // Energy cells for each hour
+        const dayData = ENERGY_DATA.data[dayIndex];
+        if (dayData) {
+          dayData.forEach((level, hour) => {
+            const cell = document.createElement('div');
+            cell.className = 'energy-cell';
+            cell.dataset.level = String(level);
+            cell.dataset.day = day;
+            cell.dataset.hour = String(hour);
+
+            // Mark peak hours (level 5)
+            if (level === 5) {
+              cell.classList.add('pattern-highlight');
+            }
+
+            // Tooltip - using title attribute (safe)
+            const hourStr = formatHour(hour);
+            cell.title = day + ' ' + hourStr + ': Energy ' + level + '/5';
+
+            // Accessibility
+            cell.setAttribute('role', 'gridcell');
+            cell.setAttribute('aria-label', day + ' ' + hourStr + ', energy level ' + level + ' out of 5');
+
+            row.appendChild(cell);
+          });
+        }
+
+        grid.appendChild(row);
+      });
+
+      // Hour labels (show every 3 hours)
+      for (let h = 0; h < 24; h++) {
+        const labelEl = document.createElement('span');
+        labelEl.className = 'hour-label';
+
+        if (h % 3 === 0) {
+          labelEl.textContent = formatHourShort(h);
+
+          // Highlight peak hours
+          if (h >= 9 && h <= 11) {
+            labelEl.classList.add('highlight');
+          }
+        }
+
+        hourLabelsContainer.appendChild(labelEl);
+      }
+    }
+
+    // Render on load
+    renderEnergyGrid();
+
+    // Action handlers
+    document.querySelectorAll('[data-action]').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const action = e.currentTarget.dataset.action;
+
+        switch (action) {
+          case 'block-time':
+            // Open Google Calendar with pre-filled event
+            const calendarUrl = 'https://calendar.google.com/calendar/r/eventedit?' +
+              'text=' + encodeURIComponent('🎯 Focus Time') +
+              '&details=' + encodeURIComponent('Protected focus time during peak energy hours. (Suggested by Ferni)') +
+              '&recur=' + encodeURIComponent('RRULE:FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR');
+            window.open(calendarUrl, '_blank');
+            break;
+
+          case 'share':
+            const chart = document.querySelector('.energy-chart');
+            if (chart && FerniViz.share) {
+              FerniViz.share(chart);
+            } else {
+              // Fallback: copy insight to clipboard
+              const insight = 'My energy peaks 9-11 AM. Protecting that time for deep work!';
+              navigator.clipboard.writeText(insight);
+              alert('Insight copied to clipboard!');
+            }
+            break;
+
+          case 'compare':
+            alert('Compare feature coming soon! This would show side-by-side weeks.');
+            break;
+        }
+      });
+    });
+
+    // Add keyboard navigation
+    const energyGrid = document.querySelector('.energy-grid');
+    if (energyGrid) {
+      energyGrid.addEventListener('keydown', (e) => {
+        const cells = Array.from(document.querySelectorAll('.energy-cell'));
+        const currentIndex = cells.indexOf(document.activeElement);
+
+        if (currentIndex === -1) return;
+
+        let newIndex = currentIndex;
+        switch (e.key) {
+          case 'ArrowRight':
+            newIndex = Math.min(currentIndex + 1, cells.length - 1);
+            break;
+          case 'ArrowLeft':
+            newIndex = Math.max(currentIndex - 1, 0);
+            break;
+          case 'ArrowDown':
+            newIndex = Math.min(currentIndex + 24, cells.length - 1);
+            break;
+          case 'ArrowUp':
+            newIndex = Math.max(currentIndex - 24, 0);
+            break;
+          default:
+            return;
+        }
+
+        e.preventDefault();
+        const targetCell = cells[newIndex];
+        if (targetCell) {
+          targetCell.focus();
+        }
+      });
+    }
+
+    // Make cells focusable
+    document.querySelectorAll('.energy-cell').forEach(cell => {
+      cell.tabIndex = 0;
+    });
+  </script>
+
+</body>
+</html>

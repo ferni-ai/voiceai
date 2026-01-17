@@ -28,7 +28,7 @@ if pgrep -q FerniVoice; then
     echo "📋 Test Checklist:"
     echo "  1. Look for 🎙️ icon in menubar"
     echo "  2. Click the icon to start a voice session"
-    echo "  3. Avatar should show initials (FN) not an eye"
+    echo "  3. Avatar should show initials (FE) not an eye"
     echo "  4. Aurora edge should animate around the window"
     echo "  5. Say 'Hi Ferni' to test voice"
     echo "  6. Right-click menubar for menu options"

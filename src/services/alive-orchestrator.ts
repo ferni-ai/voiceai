@@ -26,10 +26,7 @@ import {
   type SongSelectionContext,
 } from './games/game-intelligence.js';
 import type { GameResult, GameType } from './games/types.js';
-import {
-  getVoiceMusicBridge,
-  type VoiceMusicSuggestion,
-} from './music-intelligence/voice-music-bridge.js';
+import { getVoiceMusicBridge, type VoiceMusicSuggestion } from './musical-you/index.js';
 import { getAllOurSongs } from './trust-systems/our-songs.js';
 
 const log = getLogger();
@@ -83,7 +80,26 @@ export interface AliveOrchestratorConfig {
   speakCallback: (text: string, options?: { allowInterruptions?: boolean }) => void;
   /** Callback to play music */
   playMusicCallback?: (searchQuery: string) => Promise<void>;
+  /** Callback to send data messages to frontend (for behavior signals) */
+  sendDataMessage?: (type: string, payload: Record<string, unknown>) => Promise<void>;
 }
+
+// ============================================================================
+// BEHAVIOR MODE MAPPING
+// ============================================================================
+
+/**
+ * Map AliveEvent types to appropriate behavior modes
+ * This enables the bidirectional behavior system to react to "alive" moments
+ */
+const ALIVE_EVENT_TO_BEHAVIOR_MODE: Record<AliveEvent['type'], string | null> = {
+  voice_music_offer: 'exploration', // Curious, suggesting
+  our_song_callback: 'presence', // Warm memory sharing
+  musical_personality: 'exploration', // Sharing insights
+  game_milestone: 'celebration', // Celebrating achievement!
+  game_intensity_change: 'celebration', // Building excitement
+  first_turn_notice: 'presence', // Establishing connection
+};
 
 // ============================================================================
 // CONSTANTS
@@ -335,7 +351,7 @@ export class AliveOrchestrator {
         });
       }
     } catch (error) {
-      log.debug({ error: String(error) }, 'Failed to get our songs (non-critical)');
+      log.warn({ error: String(error) }, 'Failed to get our songs (non-critical)');
     }
 
     return null;
@@ -464,6 +480,21 @@ export class AliveOrchestrator {
       },
       '🌟 Alive event fired'
     );
+
+    // 🔄 BEHAVIOR SIGNAL INTEGRATION: Emit behavior mode based on event type
+    const behaviorMode = ALIVE_EVENT_TO_BEHAVIOR_MODE[event.type];
+    if (behaviorMode && this.config.sendDataMessage) {
+      void this.config
+        .sendDataMessage('behavior_signal', {
+          type: 'mode_shift',
+          mode: behaviorMode,
+          reason: `alive_${event.type}`,
+          timestamp: Date.now(),
+        })
+        .catch((err) => {
+          log.debug({ error: String(err) }, 'Failed to emit behavior signal from alive event');
+        });
+    }
 
     return event;
   }

@@ -17,6 +17,7 @@
 
 import { getLogger } from '../../utils/safe-logger.js';
 import type { AgentId } from '../agent-bus.js';
+import { cleanForFirestore } from '../../utils/firestore-utils.js';
 import {
   deleteUserContext,
   loadContext as loadContextFromFirestore,
@@ -238,8 +239,8 @@ export function getUserContext(userId: string): UserLifeContext {
     contextStore.set(userId, context);
 
     // Async load from Firestore to hydrate (fire and forget)
-    loadUserContextFromFirestore(userId).catch(() => {
-      // Silent - will use defaults until loaded
+    loadUserContextFromFirestore(userId).catch((e) => {
+      log.debug({ error: String(e), userId }, 'Firestore context load failed (using defaults)');
     });
   }
   return context;

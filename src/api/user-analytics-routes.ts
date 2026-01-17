@@ -10,7 +10,7 @@ import {
   getAnalyticsSummary,
   getCurrentConcurrent,
   initializeAnalytics,
-} from '../services/user-analytics.js';
+} from '../services/analytics/user-analytics.js';
 import { getLogger } from '../utils/safe-logger.js';
 
 const log = getLogger().child({ module: 'user-analytics-routes' });

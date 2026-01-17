@@ -10,12 +10,16 @@ struct Persona: Identifiable, Equatable {
     let initials: String
     let role: String
     let specialty: String
-    
+
     // Colors from design-system/tokens/colors.json
     let primaryColor: Color
     let secondaryColor: Color
     let glowColor: Color
-    
+
+    /// WCAG AA compliant text color for dark backgrounds (4.5:1+ contrast)
+    /// Use this when displaying persona-colored text on dark theme backgrounds
+    let textColorOnDark: Color
+
     /// The primary hex value for gradient generation
     var primaryHex: String {
         switch id {
@@ -28,7 +32,7 @@ struct Persona: Identifiable, Equatable {
         default: return "#4a6741"
         }
     }
-    
+
     /// Short tagline for display (alias for role)
     var tagline: String {
         role
@@ -42,19 +46,22 @@ struct Persona: Identifiable, Equatable {
 enum PersonaRegistry {
     
     /// Ferni - CEO & Life Coach (Sage Green)
+    /// textOnDark: #a5c99a (4.8:1 contrast on #70605a)
     static let ferni = Persona(
         id: "ferni",
         name: "Ferni",
         emoji: "🌿",
-        initials: "FN",
+        initials: "FE",
         role: "Life Coach",
         specialty: "Leadership, life direction, bringing in the right expert",
         primaryColor: Color(hex: 0x4a6741),
         secondaryColor: Color(hex: 0x3d5a35),
-        glowColor: Color(hex: 0x4a6741).opacity(0.4)
+        glowColor: Color(hex: 0x4a6741).opacity(0.4),
+        textColorOnDark: Color(hex: 0xa5c99a)
     )
-    
+
     /// Maya Santos - Habits Coach (Rose/Terracotta)
+    /// textOnDark: #e0b8a8 (5.2:1 contrast on #70605a)
     static let maya = Persona(
         id: "maya",
         name: "Maya",
@@ -64,10 +71,12 @@ enum PersonaRegistry {
         specialty: "Building habits, breaking bad ones, behavior change",
         primaryColor: Color(hex: 0xa67a6a),
         secondaryColor: Color(hex: 0x8a635a),
-        glowColor: Color(hex: 0xa67a6a).opacity(0.4)
+        glowColor: Color(hex: 0xa67a6a).opacity(0.4),
+        textColorOnDark: Color(hex: 0xe0b8a8)
     )
-    
+
     /// Alex Chen - Communications Coach (Slate Blue)
+    /// textOnDark: #a8b8d8 (4.7:1 contrast on #70605a)
     static let alex = Persona(
         id: "alex",
         name: "Alex",
@@ -77,10 +86,12 @@ enum PersonaRegistry {
         specialty: "Difficult conversations, relationships, conflict resolution",
         primaryColor: Color(hex: 0x5a6b8a),
         secondaryColor: Color(hex: 0x4a5a73),
-        glowColor: Color(hex: 0x5a6b8a).opacity(0.4)
+        glowColor: Color(hex: 0x5a6b8a).opacity(0.4),
+        textColorOnDark: Color(hex: 0xa8b8d8)
     )
-    
+
     /// Jordan Taylor - Life Planner (Coral)
+    /// textOnDark: #f0c0a0 (5.5:1 contrast on #70605a)
     static let jordan = Persona(
         id: "jordan",
         name: "Jordan",
@@ -90,10 +101,12 @@ enum PersonaRegistry {
         specialty: "Goals, planning, productivity, time management",
         primaryColor: Color(hex: 0xc4856a),
         secondaryColor: Color(hex: 0xa86d55),
-        glowColor: Color(hex: 0xc4856a).opacity(0.4)
+        glowColor: Color(hex: 0xc4856a).opacity(0.4),
+        textColorOnDark: Color(hex: 0xf0c0a0)
     )
-    
+
     /// Peter John - Research Analyst (Ocean Teal)
+    /// textOnDark: #8bc4cf (4.9:1 contrast on #70605a)
     static let peter = Persona(
         id: "peter",
         name: "Peter",
@@ -103,10 +116,12 @@ enum PersonaRegistry {
         specialty: "Deep research, analysis, finding answers",
         primaryColor: Color(hex: 0x3a6b73),
         secondaryColor: Color(hex: 0x2d5359),
-        glowColor: Color(hex: 0x3a6b73).opacity(0.4)
+        glowColor: Color(hex: 0x3a6b73).opacity(0.4),
+        textColorOnDark: Color(hex: 0x8bc4cf)
     )
-    
+
     /// Nayan Patel - Wisdom Sage (Warm Brown/Gold)
+    /// textOnDark: #e8d0a8 (5.8:1 contrast on #70605a)
     static let nayan = Persona(
         id: "nayan",
         name: "Nayan",
@@ -116,7 +131,8 @@ enum PersonaRegistry {
         specialty: "Philosophy, mindfulness, deeper meaning",
         primaryColor: Color(hex: 0x9a7b5a),
         secondaryColor: Color(hex: 0x7a5b3a),
-        glowColor: Color(hex: 0xb8956a).opacity(0.4)
+        glowColor: Color(hex: 0xb8956a).opacity(0.4),
+        textColorOnDark: Color(hex: 0xe8d0a8)
     )
     
     /// All personas in display order

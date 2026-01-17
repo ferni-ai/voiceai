@@ -1,15 +1,13 @@
 /**
- * Support Ferni - Unified Support Experience
+ * Support Ferni - Founders Fund Experience
  *
- * Combines subscription, billing, and tipping into one deeply meaningful
- * expression of our relationship. This isn't a transaction—it's how you
- * choose to support someone you care about.
+ * Philosophy: "We're not selling a product. We're inviting you to build something with us."
  *
  * Design Philosophy:
- * - "Support" is a relationship word, not a purchase word
- * - Every tier is a way of growing together
- * - Tipping is "planting seeds" for the future
- * - Billing is practical but warm
+ * - "Chip in" not "subscribe"
+ * - Features are thank-you perks, not unlocks
+ * - Free is celebrated, not a limitation
+ * - No pressure, no guilt, no urgency
  *
  * WCAG AA Compliant:
  * - Full keyboard navigation
@@ -21,13 +19,16 @@
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { t } from '../i18n/index.js';
 import { appState } from '../state/app.state.js';
+import { apiPost } from '../utils/api.js';
+import { openBillingPortal } from '../utils/billing.js';
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
+import { openFoundersJourney } from './founders-journey.ui.js';
 import { getStatus, loadStatus, type SubscriptionStatus } from './subscription.ui.js';
-import { toast } from './toast.ui.js';
+import { toast } from './whisper.ui.js';
 
 const log = createLogger('SupportFerniUI');
-const { trackedTimeout, clearAll: clearAllTimeouts } = createTimeoutTracker();
+const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
 
 // ============================================================================
 // ICONS (Lucide-style, brand compliant)
@@ -64,6 +65,12 @@ const ICONS = {
   externalLink: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
     <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" x2="21" y1="14" y2="3"/>
   </svg>`,
+  compass: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/>
+  </svg>`,
+  arrowRight: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>
+  </svg>`,
 };
 
 // ============================================================================
@@ -72,7 +79,7 @@ const ICONS = {
 
 let overlay: HTMLElement | null = null;
 let styleElement: HTMLStyleElement | null = null;
-let isLoading = false;
+let _isLoading = false;
 let selectedTipAmount = 0;
 let previouslyFocusedElement: HTMLElement | null = null;
 
@@ -88,39 +95,42 @@ interface TierInfo {
   features: string[];
 }
 
+// Default tier for fallback
+const DEFAULT_TIER: TierInfo = {
+  id: 'free',
+  name: 'Community',
+  tagline: 'Ferni is free. Really free.',
+  price: 'Free forever',
+  features: [
+    'Unlimited conversations with Ferni',
+    '7-minute heart-to-hearts',
+    'Full memory — I remember everything',
+  ],
+};
+
 const TIERS: TierInfo[] = [
-  {
-    id: 'free',
-    name: 'Ferni Forever',
-    tagline: 'Our friendship starts here',
-    price: 'Free',
-    features: [
-      'Unlimited conversations with Ferni',
-      '7-minute heart-to-hearts',
-      'I remember everything about you',
-    ],
-  },
+  DEFAULT_TIER,
   {
     id: 'friend',
-    name: 'Your Life Coach',
-    tagline: 'Deepen our connection',
-    price: '$9.99/mo',
-    features: ['Talk as long as you need', 'Meet my whole team', 'Unlock the cosmetics shop'],
+    name: 'Founding Member',
+    tagline: 'Chip in. Help us build this.',
+    price: '$10/mo',
+    features: ['Unlimited time (our thank you)', 'Meet the whole team', 'Your name on Founders Wall'],
   },
   {
     id: 'partner',
-    name: 'Partner in Growth',
-    tagline: "We're in this together",
-    price: '$19.99/mo',
-    features: ['Everything above, plus:', 'Exclusive looks & themes', 'Share with your family'],
+    name: 'Founding Patron',
+    tagline: "You're shaping what we become",
+    price: '$20/mo',
+    features: ['Everything above, plus:', 'Early access to features', 'Family sharing'],
   },
 ];
 
 const TIP_AMOUNTS = [
-  { amount: 3, label: '$3', impact: 'Buy me a coffee' },
   { amount: 5, label: '$5', impact: 'Plant a seed' },
-  { amount: 10, label: '$10', impact: 'Grow the garden' },
-  { amount: 25, label: '$25', impact: 'Nurture the forest' },
+  { amount: 10, label: '$10', impact: 'Sponsor a conversation' },
+  { amount: 25, label: '$25', impact: 'Help someone get started' },
+  { amount: 50, label: '$50', impact: 'Support the mission' },
 ];
 
 // ============================================================================
@@ -145,27 +155,42 @@ function prefersReducedMotion(): boolean {
 // ============================================================================
 
 export async function openSupportFerni(): Promise<void> {
+  log.info('Opening Support Ferni modal');
   saveFocus();
+  log.info('Focus saved');
+  
   injectStyles();
+  log.info('Styles injected');
+  
   cleanupOrphanedElements();
+  log.info('Orphaned elements cleaned up');
 
   // Load subscription status
+  log.info('Loading subscription status...');
   await loadStatus();
   const status = getStatus();
+  log.info('Subscription status loaded', { tier: status?.tier });
 
+  log.info('Creating overlay...');
   overlay = createOverlay(status);
+  log.info('Overlay created', { hasOverlay: !!overlay });
+  
   document.body.appendChild(overlay);
+  log.info('Overlay appended to body');
 
   // Animate in
   requestAnimationFrame(() => {
+    log.info('requestAnimationFrame callback executing');
     overlay?.classList.add('support-ferni-overlay--open');
+    log.info('Open class added to overlay');
 
     const closeBtn = overlay?.querySelector('.support-ferni-close') as HTMLElement;
     closeBtn?.focus();
+    log.info('Support Ferni modal fully opened');
   });
 }
 
-export function closeSupportFerni(): void {
+function closeSupportFerni(): void {
   if (!overlay) return;
 
   overlay.classList.remove('support-ferni-overlay--open');
@@ -180,6 +205,8 @@ export function closeSupportFerni(): void {
   );
 }
 
+export { closeSupportFerni };
+
 // ============================================================================
 // CREATE OVERLAY
 // ============================================================================
@@ -192,7 +219,7 @@ function createOverlay(status: SubscriptionStatus | null): HTMLElement {
   container.setAttribute('aria-labelledby', 'support-ferni-title');
 
   const currentTier = status?.tier || 'free';
-  const tierInfo = TIERS.find((t) => t.id === currentTier) || TIERS[0];
+  const tierInfo = TIERS.find((t) => t.id === currentTier) ?? DEFAULT_TIER;
 
   container.innerHTML = `
     <div class="support-ferni-backdrop" aria-hidden="true"></div>
@@ -207,6 +234,16 @@ function createOverlay(status: SubscriptionStatus | null): HTMLElement {
       </header>
 
       <div class="support-ferni-content">
+        <!-- Vision Journey Link -->
+        <button class="support-ferni-journey-btn" data-action="see-vision">
+          ${ICONS.compass}
+          <span>${t('support.seeVision')}</span>
+          ${ICONS.arrowRight}
+        </button>
+
+        <!-- Cost Transparency Section -->
+        ${renderCostTransparency()}
+
         <!-- Current Relationship Status -->
         <section class="support-ferni-section support-ferni-current">
           <div class="support-ferni-current-tier">
@@ -275,7 +312,14 @@ function createOverlay(status: SubscriptionStatus | null): HTMLElement {
 
   // Billing portal link
   const billingLink = container.querySelector('[data-action="billing"]');
-  billingLink?.addEventListener('click', () => void openBillingPortal());
+  billingLink?.addEventListener('click', () => void handleOpenBillingPortal());
+
+  // Vision journey button
+  const visionBtn = container.querySelector('[data-action="see-vision"]');
+  visionBtn?.addEventListener('click', () => {
+    closeSupportFerni();
+    void openFoundersJourney();
+  });
 
   return container;
 }
@@ -283,6 +327,47 @@ function createOverlay(status: SubscriptionStatus | null): HTMLElement {
 // ============================================================================
 // RENDER HELPERS
 // ============================================================================
+
+/**
+ * Render the cost transparency section.
+ * Shows users the real cost of running Ferni so they understand the value of contributions.
+ */
+function renderCostTransparency(): string {
+  return `
+    <section class="support-ferni-section support-ferni-cost-transparency">
+      <h3 class="support-ferni-section-title">
+        ${ICONS.infinity}
+        <span>${t('support.costTransparency.title')}</span>
+      </h3>
+      <div class="support-ferni-cost-breakdown">
+        <p class="support-ferni-cost-intro">
+          ${t('support.costTransparency.intro')}
+        </p>
+        <div class="support-ferni-cost-items">
+          <div class="support-ferni-cost-item" style="animation-delay: 0ms">
+            <span class="support-ferni-cost-label">${t('support.costTransparency.thinking')}</span>
+            <span class="support-ferni-cost-value">~$0.03</span>
+          </div>
+          <div class="support-ferni-cost-item" style="animation-delay: 80ms">
+            <span class="support-ferni-cost-label">${t('support.costTransparency.voice')}</span>
+            <span class="support-ferni-cost-value">~$0.02</span>
+          </div>
+          <div class="support-ferni-cost-item" style="animation-delay: 160ms">
+            <span class="support-ferni-cost-label">${t('support.costTransparency.infrastructure')}</span>
+            <span class="support-ferni-cost-value">~$0.01</span>
+          </div>
+          <div class="support-ferni-cost-item support-ferni-cost-total" style="animation-delay: 280ms">
+            <span class="support-ferni-cost-label">${t('support.costTransparency.total')}</span>
+            <span class="support-ferni-cost-value">~$0.06</span>
+          </div>
+        </div>
+        <p class="support-ferni-cost-note">
+          ${t('support.costTransparency.note')}
+        </p>
+      </div>
+    </section>
+  `;
+}
 
 function renderUpgradeOptions(currentTier: string): string {
   const upgradeTiers = TIERS.filter((t) => t.id !== 'free' && t.id !== currentTier);
@@ -293,9 +378,8 @@ function renderUpgradeOptions(currentTier: string): string {
       <div class="support-ferni-tiers">
         ${upgradeTiers
           .map(
-            (tier) => `
-          <button class="support-ferni-tier-card ${tier.id === 'friend' ? 'support-ferni-tier-card--popular' : ''}" data-upgrade-tier="${tier.id}">
-            ${tier.id === 'friend' ? '<span class="support-ferni-popular-badge">Most Chosen</span>' : ''}
+            (tier, index) => `
+          <button aria-label="Choose ${tier.name}" class="support-ferni-tier-card ${tier.id === 'friend' ? 'support-ferni-tier-card--highlighted' : ''}" data-upgrade-tier="${tier.id}" style="animation-delay: ${index * 100}ms">
             <div class="support-ferni-tier-header">
               <span class="support-ferni-tier-name">${tier.name}</span>
               <span class="support-ferni-tier-price">${tier.price}</span>
@@ -369,7 +453,7 @@ function renderPlantASeed(): string {
 function renderBillingLink(): string {
   return `
     <section class="support-ferni-section support-ferni-billing">
-      <button class="support-ferni-billing-btn" data-action="billing">
+      <button aria-label="${t('accessibility.edit')}" class="support-ferni-billing-btn" data-action="billing">
         ${ICONS.creditCard}
         <span>${t('support.manageBilling')}</span>
         ${ICONS.externalLink}
@@ -411,26 +495,20 @@ async function handleUpgrade(tier: string): Promise<void> {
     return;
   }
 
-  isLoading = true;
+  _isLoading = true;
   updateLoadingState(true);
 
   try {
-    const response = await fetch('/subscription/checkout', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        userId: deviceId,
-        device_id: deviceId,
-        tier,
-        successUrl: window.location.origin + '?upgrade=success&tier=' + tier,
-        cancelUrl: window.location.origin + '?upgrade=cancel',
-      }),
+    const response = await apiPost<{ url?: string }>('/subscription/checkout', {
+      userId: deviceId,
+      device_id: deviceId,
+      tier,
+      successUrl: window.location.origin + '?upgrade=success&tier=' + tier,
+      cancelUrl: window.location.origin + '?upgrade=cancel',
     });
 
-    const result = await response.json();
-
-    if (response.ok && result.url) {
-      window.location.href = result.url;
+    if (response.ok && response.data?.url) {
+      window.location.href = response.data.url;
     } else {
       toast.error("That didn't go through. Try again?");
     }
@@ -438,7 +516,7 @@ async function handleUpgrade(tier: string): Promise<void> {
     log.error('Upgrade failed:', error);
     toast.error("Hmm, that didn't work. Try again?");
   } finally {
-    isLoading = false;
+    _isLoading = false;
     updateLoadingState(false);
   }
 }
@@ -452,25 +530,19 @@ async function handlePlantSeed(): Promise<void> {
     return;
   }
 
-  isLoading = true;
+  _isLoading = true;
   updateLoadingState(true);
 
   try {
-    const response = await fetch('/api/garden/plant', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        userId: deviceId,
-        amountInCents: selectedTipAmount * 100,
-        successUrl: window.location.origin + '?tip=success',
-        cancelUrl: window.location.origin + '?tip=cancel',
-      }),
+    const response = await apiPost<{ url?: string }>('/api/garden/plant', {
+      userId: deviceId,
+      amountInCents: selectedTipAmount * 100,
+      successUrl: window.location.origin + '?tip=success',
+      cancelUrl: window.location.origin + '?tip=cancel',
     });
 
-    const result = await response.json();
-
-    if (response.ok && result.url) {
-      window.location.href = result.url;
+    if (response.ok && response.data?.url) {
+      window.location.href = response.data.url;
     } else {
       toast.error("Hmm, that didn't work. Try again?");
     }
@@ -478,36 +550,17 @@ async function handlePlantSeed(): Promise<void> {
     log.error('Plant seed failed:', error);
     toast.error("Hmm, that didn't work. Try again?");
   } finally {
-    isLoading = false;
+    _isLoading = false;
     updateLoadingState(false);
   }
 }
 
-async function openBillingPortal(): Promise<void> {
+async function handleOpenBillingPortal(): Promise<void> {
   const deviceId = appState.getState().deviceId;
   if (!deviceId) return;
 
-  try {
-    const response = await fetch('/subscription/billing-portal', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        userId: deviceId,
-        returnUrl: window.location.href,
-      }),
-    });
-
-    const result = await response.json();
-
-    if (response.ok && result.url) {
-      window.open(result.url, '_blank');
-    } else {
-      toast.error("Couldn't open billing. Try again?");
-    }
-  } catch (error) {
-    log.error('Billing portal failed:', error);
-    toast.error("Hmm, that didn't work. Try again?");
-  }
+  // Use the consolidated billing utility (opens in new tab by default)
+  await openBillingPortal(deviceId, { openInNewTab: true });
 }
 
 function updateLoadingState(loading: boolean): void {
@@ -543,6 +596,41 @@ function injectStyles(): void {
   styleElement = document.createElement('style');
   styleElement.id = 'support-ferni-styles';
   styleElement.textContent = `
+    /* Keyframes - Pixar-inspired animations */
+    @keyframes support-ferni-card-enter {
+      0% {
+        opacity: 0;
+        transform: scale(0.94) translateY(12px);
+      }
+      40% {
+        opacity: 1;
+        transform: scale(1.02) translateY(-4px);
+      }
+      100% {
+        transform: scale(1) translateY(0);
+      }
+    }
+
+    @keyframes support-ferni-item-reveal {
+      0% {
+        opacity: 0;
+        transform: translateY(8px);
+      }
+      100% {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes support-ferni-icon-breathe {
+      0%, 100% {
+        transform: scale(1);
+      }
+      50% {
+        transform: scale(1.03);
+      }
+    }
+
     /* Overlay */
     .support-ferni-overlay {
       position: fixed;
@@ -554,7 +642,7 @@ function injectStyles(): void {
       padding: var(--space-4, 16px);
       opacity: 0;
       pointer-events: none;
-      transition: opacity ${DURATION.SLOW}ms ${EASING.STANDARD};
+      transition: opacity ${DURATION.MODERATE}ms ${EASING.GENTLE};
     }
 
     .support-ferni-overlay--open {
@@ -565,22 +653,41 @@ function injectStyles(): void {
     .support-ferni-backdrop {
       position: absolute;
       inset: 0;
-      background: rgba(44, 37, 32, 0.7);
-      backdrop-filter: blur(var(--glass-blur-modal, 20px));
-      -webkit-backdrop-filter: blur(var(--glass-blur-modal, 20px));
+      background: rgba(44, 37, 32, 0.75);
     }
 
-    /* Card */
+    /* Card with Pixar-inspired entry */
     .support-ferni-card {
       position: relative;
-      background: var(--color-background-elevated, #FFFDFB);
-      border-radius: var(--radius-2xl, 24px);
-      box-shadow: var(--shadow-2xl);
-      max-width: 520px;
+      background: var(--color-bg-elevated, #FFFDFB);
+      border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
+      border-radius: var(--radius-xl, 20px);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.06);
+      max-width: clamp(364px, 90vw, 520px);
       width: 100%;
       max-height: 90vh;
       overflow-y: auto;
       padding: var(--space-8, 32px);
+      transform: scale(0.94) translateY(12px);
+      opacity: 0;
+    }
+
+    .support-ferni-overlay--open .support-ferni-card {
+      opacity: 1; /* Fallback in case animation fails */
+      transform: scale(1) translateY(0); /* Fallback in case animation fails */
+      animation: support-ferni-card-enter 500ms ${EASING.SPRING} forwards;
+    }
+
+    /* Subtle paper texture overlay */
+    .support-ferni-card::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      background: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+      opacity: 0.018;
+      mix-blend-mode: overlay;
+      pointer-events: none;
     }
 
     .support-ferni-close {
@@ -629,6 +736,7 @@ function injectStyles(): void {
       background: linear-gradient(135deg, var(--persona-tint), transparent);
       border-radius: var(--radius-full);
       color: var(--persona-primary, #4a6741);
+      animation: support-ferni-icon-breathe 4s ease-in-out infinite;
     }
 
     .support-ferni-icon svg {
@@ -638,12 +746,12 @@ function injectStyles(): void {
 
     .support-ferni-eyebrow {
       display: block;
-      font-size: 0.75rem;
-      font-weight: 600;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
+      font-size: 0.8125rem;
+      font-weight: 500;
+      letter-spacing: 0.04em;
       color: var(--persona-primary, #4a6741);
       margin-bottom: var(--space-2, 8px);
+      opacity: 0.85;
     }
 
     .support-ferni-title {
@@ -652,13 +760,14 @@ function injectStyles(): void {
       font-weight: 700;
       color: var(--color-text-primary);
       margin: 0 0 var(--space-2, 8px);
+      letter-spacing: -0.01em;
     }
 
     .support-ferni-subtitle {
       font-size: 1rem;
       color: var(--color-text-secondary);
       margin: 0;
-      line-height: 1.5;
+      line-height: 1.65;
     }
 
     /* Sections */
@@ -680,7 +789,7 @@ function injectStyles(): void {
     .support-ferni-tip-icon {
       width: 20px;
       height: 20px;
-      color: var(--persona-primary);
+      color: var(--persona-text);
     }
 
     .support-ferni-tip-icon svg {
@@ -742,12 +851,20 @@ function injectStyles(): void {
       border-radius: var(--radius-xl, 16px);
       cursor: pointer;
       text-align: left;
+      opacity: 0;
+      animation: support-ferni-item-reveal 400ms ${EASING.GENTLE} forwards;
       transition: all ${DURATION.FAST}ms ${EASING.STANDARD};
     }
 
     .support-ferni-tier-card:hover {
       border-color: var(--persona-primary);
       background: var(--color-background-elevated);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 16px rgba(74, 103, 65, 0.1);
+    }
+
+    .support-ferni-tier-card:active {
+      transform: scale(0.98) translateY(0);
     }
 
     .support-ferni-tier-card:focus {
@@ -755,23 +872,15 @@ function injectStyles(): void {
       box-shadow: 0 0 0 3px var(--persona-tint);
     }
 
-    .support-ferni-tier-card--popular {
-      border-color: var(--persona-primary);
-      background: linear-gradient(135deg, var(--persona-tint), transparent);
+    /* Highlighted tier - subtle emphasis without badge */
+    .support-ferni-tier-card--highlighted {
+      background: linear-gradient(135deg, var(--persona-tint), rgba(74, 103, 65, 0.03));
+      border-color: rgba(74, 103, 65, 0.15);
     }
 
-    .support-ferni-popular-badge {
-      position: absolute;
-      top: -10px;
-      left: 50%;
-      transform: translateX(-50%);
-      padding: var(--space-1, 4px) var(--space-3, 12px);
-      background: var(--persona-primary);
-      color: white;
-      font-size: 0.7rem;
-      font-weight: 600;
-      border-radius: var(--radius-full);
-      white-space: nowrap;
+    .support-ferni-tier-card--highlighted:hover {
+      border-color: var(--persona-primary);
+      background: linear-gradient(135deg, var(--persona-tint), rgba(74, 103, 65, 0.08));
     }
 
     .support-ferni-tier-header {
@@ -791,7 +900,7 @@ function injectStyles(): void {
     .support-ferni-tier-price {
       font-size: 1rem;
       font-weight: 600;
-      color: var(--persona-primary);
+      color: var(--persona-text);
     }
 
     .support-ferni-tier-features {
@@ -814,7 +923,7 @@ function injectStyles(): void {
     .support-ferni-tier-features svg {
       width: 16px;
       height: 16px;
-      color: var(--persona-primary);
+      color: var(--persona-text);
       flex-shrink: 0;
     }
 
@@ -857,6 +966,83 @@ function injectStyles(): void {
       color: var(--color-text-secondary);
     }
 
+    /* Cost Transparency Section */
+    .support-ferni-cost-transparency {
+      background: var(--color-background-secondary);
+      border-radius: var(--radius-xl, 16px);
+      padding: var(--space-4, 16px);
+    }
+
+    .support-ferni-cost-transparency .support-ferni-section-title {
+      margin-bottom: var(--space-3, 12px);
+    }
+
+    .support-ferni-cost-transparency .support-ferni-section-title svg {
+      width: 20px;
+      height: 20px;
+      color: var(--persona-text);
+    }
+
+    .support-ferni-cost-intro {
+      font-size: 0.875rem;
+      color: var(--color-text-secondary);
+      line-height: 1.5;
+      margin: 0 0 var(--space-3, 12px);
+    }
+
+    .support-ferni-cost-items {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-2, 8px);
+      margin-bottom: var(--space-3, 12px);
+    }
+
+    .support-ferni-cost-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: var(--space-2, 8px) var(--space-3, 12px);
+      background: var(--color-background-elevated);
+      border-radius: var(--radius-md, 8px);
+      opacity: 0;
+      animation: support-ferni-item-reveal 350ms ${EASING.GENTLE} forwards;
+    }
+
+    .support-ferni-cost-label {
+      font-size: 0.9rem;
+      color: var(--color-text-secondary);
+    }
+
+    .support-ferni-cost-value {
+      font-family: var(--font-mono, monospace);
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--color-text-primary);
+    }
+
+    .support-ferni-cost-total {
+      background: linear-gradient(135deg, var(--persona-tint), rgba(74, 103, 65, 0.05));
+      margin-top: var(--space-2, 8px);
+    }
+
+    .support-ferni-cost-total .support-ferni-cost-label {
+      font-weight: 600;
+      color: var(--color-text-primary);
+    }
+
+    .support-ferni-cost-total .support-ferni-cost-value {
+      color: var(--persona-primary);
+      font-size: 1rem;
+      font-weight: 700;
+    }
+
+    .support-ferni-cost-note {
+      font-size: 0.8125rem;
+      color: var(--color-text-muted);
+      line-height: 1.6;
+      margin: var(--space-3, 12px) 0 0;
+    }
+
     /* Tip Section */
     .support-ferni-tip-desc {
       font-size: 0.875rem;
@@ -881,12 +1067,17 @@ function injectStyles(): void {
       border: 2px solid transparent;
       border-radius: var(--radius-lg, 12px);
       cursor: pointer;
-      transition: all ${DURATION.FAST}ms ${EASING.STANDARD};
+      transition: all ${DURATION.FAST}ms ${EASING.SPRING};
     }
 
     .support-ferni-tip-btn:hover {
       background: var(--color-background-elevated);
       border-color: var(--persona-primary);
+      transform: translateY(-2px);
+    }
+
+    .support-ferni-tip-btn:active {
+      transform: scale(0.96) translateY(0);
     }
 
     .support-ferni-tip-btn:focus {
@@ -950,15 +1141,22 @@ function injectStyles(): void {
       background: var(--persona-primary);
       color: white;
       border: none;
-      border-radius: var(--radius-lg, 12px);
+      border-radius: var(--radius-full, 100px);
       font-size: 1rem;
       font-weight: 600;
       cursor: pointer;
-      transition: all ${DURATION.FAST}ms ${EASING.STANDARD};
+      transition: all ${DURATION.FAST}ms ${EASING.SPRING};
     }
 
     .support-ferni-plant-btn:hover:not(:disabled) {
       background: var(--persona-secondary);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(74, 103, 65, 0.25);
+    }
+
+    .support-ferni-plant-btn:active:not(:disabled) {
+      transform: scale(0.97) translateY(0);
+      box-shadow: 0 2px 8px rgba(74, 103, 65, 0.2);
     }
 
     .support-ferni-plant-btn:focus {
@@ -974,6 +1172,11 @@ function injectStyles(): void {
     .support-ferni-plant-btn svg {
       width: 20px;
       height: 20px;
+      transition: transform ${DURATION.FAST}ms ${EASING.SPRING};
+    }
+
+    .support-ferni-plant-btn:hover:not(:disabled) svg {
+      transform: rotate(-10deg) scale(1.1);
     }
 
     /* Billing Link */
@@ -1016,6 +1219,57 @@ function injectStyles(): void {
       opacity: 0.6;
     }
 
+    /* Vision Journey Button */
+    .support-ferni-journey-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: var(--space-2, 8px);
+      width: 100%;
+      padding: var(--space-4, 16px);
+      margin-bottom: var(--space-6, 24px);
+      background: linear-gradient(135deg, rgba(74, 103, 65, 0.06), transparent);
+      border: 1.5px solid rgba(74, 103, 65, 0.2);
+      border-radius: var(--radius-xl, 16px);
+      font-size: 0.9375rem;
+      font-weight: 500;
+      color: var(--persona-primary);
+      cursor: pointer;
+      transition: all ${DURATION.FAST}ms ${EASING.SPRING};
+    }
+
+    .support-ferni-journey-btn:hover {
+      background: var(--persona-tint);
+      border-color: var(--persona-primary);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 16px rgba(74, 103, 65, 0.12);
+    }
+
+    .support-ferni-journey-btn:active {
+      transform: scale(0.98) translateY(0);
+    }
+
+    .support-ferni-journey-btn:focus {
+      outline: none;
+      box-shadow: 0 0 0 3px var(--persona-tint);
+    }
+
+    .support-ferni-journey-btn svg {
+      width: 20px;
+      height: 20px;
+      transition: transform ${DURATION.FAST}ms ${EASING.SPRING};
+    }
+
+    .support-ferni-journey-btn:hover svg:last-child {
+      transform: translateX(3px);
+    }
+
+    .support-ferni-journey-btn svg:last-child {
+      width: 16px;
+      height: 16px;
+      opacity: 0.7;
+    }
+
     /* Footer */
     .support-ferni-footer {
       text-align: center;
@@ -1041,13 +1295,23 @@ function injectStyles(): void {
       to { transform: rotate(360deg); }
     }
 
-    /* Reduced motion */
+    /* Reduced motion - disable all animations for accessibility */
     @media (prefers-reduced-motion: reduce) {
-      .support-ferni-overlay {
-        transition: opacity 0ms;
+      .support-ferni-overlay,
+      .support-ferni-card,
+      .support-ferni-tier-card,
+      .support-ferni-cost-item,
+      .support-ferni-tip-btn,
+      .support-ferni-plant-btn,
+      .support-ferni-journey-btn {
+        animation: none !important;
+        transition: opacity 0ms, background 0ms, border-color 0ms !important;
+        transform: none !important;
+        opacity: 1 !important;
       }
-      .support-ferni-spinner {
-        animation: none;
+      .support-ferni-spinner,
+      .support-ferni-icon {
+        animation: none !important;
       }
     }
 
@@ -1067,7 +1331,7 @@ function injectStyles(): void {
     }
 
     /* Responsive */
-    @media (max-width: 480px) {
+    @media (max-width: clamp(336px, 90vw, 480px)) {
       .support-ferni-card {
         padding: var(--space-5, 20px);
         max-height: 85vh;
@@ -1089,9 +1353,26 @@ function injectStyles(): void {
 // EXPORTS
 // ============================================================================
 
+// ============================================================================
+// INITIALIZATION
+// ============================================================================
+
+/**
+ * Initialize Support Ferni UI event listeners
+ */
+export function initSupportFerniUI(): void {
+  // Listen for events to open support modal (from founders journey CTA)
+  document.addEventListener('ferni:open-support', () => {
+    void openSupportFerni();
+  });
+
+  log.debug('Support Ferni UI initialized');
+}
+
 export const supportFerniUI = {
   open: openSupportFerni,
   close: closeSupportFerni,
+  init: initSupportFerniUI,
 };
 
 export default supportFerniUI;

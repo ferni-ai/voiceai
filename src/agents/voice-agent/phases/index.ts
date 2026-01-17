@@ -7,8 +7,36 @@
  * @module voice-agent/phases
  */
 
-export * from './types.js';
+export type * from './types.js';
 export { loadVoiceDeps, getCachedVoiceDeps, areVoiceDepsLoaded } from './load-deps.js';
 export { loadPersonaPhase, getPrewarmedResources, loadPersonaLocally } from './load-persona.js';
 // buildTools removed - agents now build their own tools via direct domain imports
 export { connectToRoom, waitForParticipant, detectConnectionType } from './connect-room.js';
+
+// ============================================================================
+// NEW MODULAR PHASES (Dec 2024)
+// ============================================================================
+
+// Performance optimizations
+export {
+  initializePerformance,
+  type PerformanceConfig,
+  type PerformanceResult,
+} from './performance-init.js';
+
+// Tool setup
+export {
+  setupTools,
+  getLocalizedVoice,
+  type ToolSetupConfig,
+  type ToolSetupResult,
+  type VoiceLocalizationConfig,
+  type VoiceLocalizationResult,
+} from './tool-setup.js';
+
+// Connection state monitoring
+export {
+  setupConnectionMonitoring,
+  type ConnectionMonitorConfig,
+  type DisconnectInfo,
+} from './connection-state.js';

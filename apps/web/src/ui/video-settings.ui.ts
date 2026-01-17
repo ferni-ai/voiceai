@@ -221,19 +221,27 @@ class VideoSettingsUI {
           <p>${t('videoSettings.intro')}</p>
         </div>
 
+        <div class="video-settings__coming-soon">
+          <div class="video-settings__coming-soon-icon">${ICONS.video}</div>
+          <h3>Video Calls Coming Soon</h3>
+          <p>We're working on bringing video conversations to Ferni. For now, enjoy our voice-first experience with Ferni's expressive avatar.</p>
+        </div>
+
+        <!-- Video Controls (Hidden - Coming Soon)
         <div class="video-settings__controls">
           <h3>${t('videoSettings.controls.title')}</h3>
 
-          <button class="video-settings__control ${this.state.isVideoEnabled ? 'video-settings__control--active' : ''}" data-action="toggle-video">
+          <button aria-label="${t('accessibility.settings')}" class="video-settings__control ${this.state.isVideoEnabled ? 'video-settings__control--active' : ''}" data-action="toggle-video" disabled>
             <span class="video-settings__control-icon">${this.state.isVideoEnabled ? ICONS.video : ICONS.videoOff}</span>
             <span class="video-settings__control-label">${this.state.isVideoEnabled ? t('videoSettings.camera.on') : t('videoSettings.camera.off')}</span>
           </button>
 
-          <button class="video-settings__control ${this.state.isScreenSharing ? 'video-settings__control--active' : ''}" data-action="toggle-screen">
+          <button aria-label="${t('accessibility.settings')}" class="video-settings__control ${this.state.isScreenSharing ? 'video-settings__control--active' : ''}" data-action="toggle-screen" disabled>
             <span class="video-settings__control-icon">${ICONS.screen}</span>
             <span class="video-settings__control-label">${this.state.isScreenSharing ? t('videoSettings.screen.on') : t('videoSettings.screen.off')}</span>
           </button>
         </div>
+        -->
 
         <div class="video-settings__modes">
           <h3>${t('videoSettings.modes.title')}</h3>
@@ -241,7 +249,7 @@ class VideoSettingsUI {
             ${modeOptions
               .map(
                 (mode) => `
-              <button class="video-settings__mode ${this.state?.mode === mode.id ? 'video-settings__mode--active' : ''}" data-mode="${mode.id}">
+              <button aria-label="${t('accessibility.settings')}" class="video-settings__mode ${this.state?.mode === mode.id ? 'video-settings__mode--active' : ''}" data-mode="${mode.id}">
                 <span class="video-settings__mode-icon">${mode.icon}</span>
                 <span class="video-settings__mode-label">${mode.label}</span>
                 <span class="video-settings__mode-desc">${mode.desc}</span>
@@ -283,7 +291,7 @@ class VideoSettingsUI {
       </header>
       <div class="video-settings__error">
         <p>${message}</p>
-        <button class="video-settings__retry">${t('videoSettings.buttons.retry')}</button>
+        <button aria-label="${t('accessibility.settings')}" class="video-settings__retry">${t('videoSettings.buttons.retry')}</button>
       </div>
     `;
 
@@ -360,8 +368,7 @@ class VideoSettingsUI {
         align-items: center;
         justify-content: center;
         padding: var(--ma-rest, 21px);
-        background: var(--backdrop-page, rgba(44, 37, 32, 0.4));
-        backdrop-filter: blur(var(--glass-blur-subtle, 8px));
+        background: rgba(44, 37, 32, 0.75);
         opacity: 0;
         visibility: hidden;
         transition: opacity ${DURATION.SLOW}ms ${EASING.STANDARD}, visibility ${DURATION.SLOW}ms;
@@ -374,12 +381,13 @@ class VideoSettingsUI {
 
       .video-settings__wrapper {
         width: 100%;
-        max-width: 420px;
+        max-width: clamp(294px, 90vw, 420px);
         max-height: 90vh;
         overflow-y: auto;
-        background: var(--color-background-elevated, #fffdfb);
-        border-radius: var(--radius-xl, 1.5rem);
-        box-shadow: var(--shadow-2xl);
+        background: var(--color-bg-elevated, #FFFDFB);
+        border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
+        border-radius: var(--radius-xl, 20px);
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.06);
         transform: ${prefersReducedMotion() ? 'none' : 'scale(0.95)'};
         transition: transform ${DURATION.SLOW}ms ${EASING.SPRING};
       }
@@ -444,6 +452,44 @@ class VideoSettingsUI {
         font-size: var(--text-sm);
         color: var(--color-text-secondary);
         margin: 0 0 var(--ma-rest, 21px) 0;
+      }
+
+      .video-settings__coming-soon {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        padding: var(--ma-vastness, 89px) var(--ma-rest, 21px);
+      }
+
+      .video-settings__coming-soon-icon {
+        width: 48px;
+        height: 48px;
+        color: var(--color-text-muted, #756a5e);
+        margin-bottom: var(--space-4, 16px);
+        opacity: 0.6;
+      }
+
+      .video-settings__coming-soon-icon svg {
+        width: 100%;
+        height: 100%;
+      }
+
+      .video-settings__coming-soon h3 {
+        font-family: var(--font-display);
+        font-size: var(--text-lg, 1.125rem);
+        font-weight: var(--font-weight-semibold, 600);
+        color: var(--color-text-primary);
+        margin: 0 0 var(--space-2, 8px) 0;
+      }
+
+      .video-settings__coming-soon p {
+        font-family: var(--font-body);
+        font-size: var(--text-sm);
+        color: var(--color-text-secondary);
+        margin: 0;
+        max-width: 280px;
+        line-height: 1.5;
       }
 
       .video-settings__controls h3,
@@ -648,7 +694,7 @@ class VideoSettingsUI {
         background: var(--color-background-secondary, #60504a);
       }
 
-      @media (max-width: 480px) {
+      @media (max-width: clamp(336px, 90vw, 480px)) {
         .video-settings__wrapper {
           max-width: 100%;
           border-radius: var(--radius-xl) var(--radius-xl) 0 0;

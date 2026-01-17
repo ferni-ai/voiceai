@@ -120,9 +120,9 @@ class OptimizationAlertingService {
       // Import services dynamically
       const [{ toolUsageAnalytics }, { feedbackCollector }, { recommendationEngine }] =
         await Promise.all([
-          import('./tool-usage-analytics.js'),
-          import('../tools/feedback-collector.js'),
-          import('../tools/recommendation-engine.js'),
+          import('./analytics/tool-usage-analytics.js'),
+          import('../tools/optimization/feedback-collector.js'),
+          import('../tools/optimization/recommendation-engine.js'),
         ]);
 
       // Check tool error rates

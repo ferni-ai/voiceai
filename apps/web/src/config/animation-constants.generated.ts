@@ -3,7 +3,7 @@
  * 
  * 🎬 AUTO-GENERATED FROM design-system/tokens/animation.json
  * Do not edit directly - run: npm run build:animation-constants
- * Generated: 2025-12-18T16:55:53.968Z
+ * Generated: 2026-01-12T19:50:54.290Z
  * 
  * This file contains the generated constants. The main animation-constants.ts
  * imports and re-exports these along with manual additions.
@@ -75,7 +75,7 @@ export const PERSONA_ANIMATION_PROFILES = {
     thinkingStyle: 'curious-tilt',
     celebrationIntensity: 'warm',
   },
-  'peter-lynch': {
+  'peter-john': {
     timingMultiplier: 0.8,
     bounciness: 0.6,
     easingPreference: 'easeOutBack',
@@ -120,7 +120,7 @@ export const PERSONA_WAVEFORM_PROFILES = {
     smoothing: 0.7,
     speed: 1,
   },
-  'peter-lynch': {
+  'peter-john': {
     energy: 0.9,
     smoothing: 0.55,
     speed: 1.2,

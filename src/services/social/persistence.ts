@@ -13,6 +13,7 @@
 import { getLogger } from '../../utils/safe-logger.js';
 import type { UserStats, GameStats } from './leaderboards.js';
 import type { Challenge, TasteMatchSession } from './multiplayer-games.js';
+import { cleanForFirestore } from '../../utils/firestore-utils.js';
 
 const log = getLogger();
 
@@ -171,7 +172,7 @@ class SocialPersistence {
         await this.db
           .collection(this.COLLECTION_USER_STATS)
           .doc(userId)
-          .set(firestoreStats, { merge: true });
+          .set(cleanForFirestore(firestoreStats), { merge: true });
         log.debug({ userId, level: stats.level }, '💾 User stats saved');
       } catch (error) {
         log.error({ error: String(error), userId }, 'Failed to save user stats');
@@ -227,10 +228,7 @@ class SocialPersistence {
   /**
    * Get top users for leaderboard
    */
-  async getTopUsers(
-    limit: number = 100,
-    orderByField: string = 'totalScore'
-  ): Promise<UserStats[]> {
+  async getTopUsers(limit = 100, orderByField = 'totalScore'): Promise<UserStats[]> {
     await this.ensureInitialized();
 
     if (this.db) {
@@ -292,7 +290,7 @@ class SocialPersistence {
         await this.db
           .collection(this.COLLECTION_CHALLENGES)
           .doc(challenge.id)
-          .set(firestoreChallenge);
+          .set(cleanForFirestore(firestoreChallenge));
         log.debug({ challengeId: challenge.id }, '💾 Challenge saved');
       } catch (error) {
         log.error({ error: String(error) }, 'Failed to save challenge');
@@ -374,7 +372,7 @@ class SocialPersistence {
   /**
    * Get challenge history for a user
    */
-  async getChallengeHistory(userId: string, limit: number = 20): Promise<Challenge[]> {
+  async getChallengeHistory(userId: string, limit = 20): Promise<Challenge[]> {
     await this.ensureInitialized();
 
     if (this.db) {
@@ -452,7 +450,10 @@ class SocialPersistence {
 
     if (this.db) {
       try {
-        await this.db.collection(this.COLLECTION_TASTE_MATCH).doc(session.id).set(firestoreSession);
+        await this.db
+          .collection(this.COLLECTION_TASTE_MATCH)
+          .doc(session.id)
+          .set(cleanForFirestore(firestoreSession));
         log.debug({ sessionId: session.id }, '💾 Taste Match session saved');
       } catch (error) {
         log.error({ error: String(error) }, 'Failed to save Taste Match session');

@@ -11,40 +11,46 @@
 // BACKCHANNELING TIMING
 // ============================================================================
 
+/**
+ * Backchanneling configuration - IMPORTANT: Keep in sync with timing-config.ts
+ *
+ * TIMING FIX (Jan 2026): Significantly reduced to fix "all over the place" feel.
+ * Target: ~3-4 backchannels per minute (human parity) instead of ~6-8.
+ */
 export const BACKCHANNELING_CONFIG = {
   standard: {
-    minSpeechDuration: 5000,
-    pauseTriggerDuration: 1000,
-    cooldownPeriod: 10000,
-    maxPerTurn: 2,
-    baseProbability: 0.5,
-    emotionalProbability: 0.7,
+    minSpeechDuration: 7000, // 7s before backchannel (was 5s)
+    pauseTriggerDuration: 1500, // 1.5s pause required (was 1s)
+    cooldownPeriod: 15000, // 15s between backchannels (was 10s)
+    maxPerTurn: 1, // Max 1 per turn (was 2)
+    baseProbability: 0.15, // 15% chance (was 50%)
+    emotionalProbability: 0.25, // 25% for emotional (was 70%)
   },
   enhanced: {
-    minSpeechDuration: 3000,
-    pauseTriggerDuration: 800,
-    cooldownPeriod: 6000,
-    maxPerTurn: 3,
-    baseProbability: 0.6,
-    emotionalProbability: 0.8,
+    minSpeechDuration: 5500, // 5.5s before backchannel (was 3s)
+    pauseTriggerDuration: 2000, // 2s pause required (was 800ms)
+    cooldownPeriod: 15000, // 15s between backchannels (was 6s)
+    maxPerTurn: 1, // Max 1 per turn (was 3)
+    baseProbability: 0.2, // 20% chance (was 60%)
+    emotionalProbability: 0.35, // 35% for emotional (was 80%)
   },
   live: {
-    minSpeechDuration: 300,
-    pauseTriggerDuration: 200,
-    cooldownPeriod: 2000,
-    maxPerTurn: 5,
-    baseProbability: 0.25,
-    emotionalProbability: 0.4,
+    minSpeechDuration: 6000, // 6s before backchannel (was 300ms!)
+    pauseTriggerDuration: 200, // 200ms breath pause
+    cooldownPeriod: 15000, // 15s between backchannels (was 2s!)
+    maxPerTurn: 1, // Max 1 per turn (was 5!)
+    baseProbability: 0.15, // 15% chance (was 25%)
+    emotionalProbability: 0.25, // 25% for emotional (was 40%)
   },
   /** Timing adjustments for heavy topics */
   heavyTopicMultiplier: {
-    cooldown: 1.5,
-    pauseTrigger: 1.3,
+    cooldown: 1.2, // Less aggressive multiplier (was 1.5)
+    pauseTrigger: 1.2, // Less aggressive multiplier (was 1.3)
   },
   /** Timing adjustments for light topics */
   lightTopicMultiplier: {
-    cooldown: 0.8,
-    pauseTrigger: 0.8,
+    cooldown: 0.9, // Less reduction for light topics (was 0.8)
+    pauseTrigger: 0.9, // Less reduction for light topics (was 0.8)
   },
 } as const;
 
@@ -223,13 +229,17 @@ export const LATENCY_TARGETS_MS = {
 // FEEDBACK COORDINATION
 // ============================================================================
 
+/**
+ * Feedback coordination config
+ * TIMING FIX (Jan 2026): Reduced to prevent "all over the place" feel
+ */
 export const FEEDBACK_COORDINATION_CONFIG = {
-  /** Maximum feedback events per turn */
-  maxFeedbackPerTurn: 3,
-  /** Cooldown between feedback of same type (ms) */
-  sameFeedbackCooldownMs: 5000,
-  /** Probability of any single feedback */
-  baseFeedbackProbability: 0.3,
+  /** Maximum feedback events per turn - reduced from 3 to 2 */
+  maxFeedbackPerTurn: 2,
+  /** Cooldown between feedback of same type (ms) - increased from 5s to 10s */
+  sameFeedbackCooldownMs: 10000,
+  /** Probability of any single feedback - reduced from 0.3 to 0.15 */
+  baseFeedbackProbability: 0.15,
   /** Feedback types with priority (higher = more important) */
   feedbackPriority: {
     backchannel: 1,

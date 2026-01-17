@@ -53,7 +53,7 @@
       { "text": "I'm Peter.", "weight": 0.9, "newOnly": true },
       { "text": "Peter here. Peter John.", "weight": 0.6, "newOnly": true },
       {
-        "text": "I'm Peter—I help with research and digging into things.",
+        "text": "I'm Peter—the research and insights guy. I love finding patterns.",
         "weight": 0.5,
         "newOnly": true
       }

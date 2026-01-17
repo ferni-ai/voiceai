@@ -11,6 +11,7 @@
  */
 
 import { getLogger } from '../utils/safe-logger.js';
+import { cleanForFirestore } from '../utils/firestore-utils.js';
 
 const log = getLogger().child({ module: 'admin-activity' });
 
@@ -109,7 +110,7 @@ export async function recordActivity(
         createdAt: admin.firestore.Timestamp.now(),
       };
 
-      await firestoreClient.collection(COLLECTION).doc(newEvent.id).set(doc);
+      await firestoreClient.collection(COLLECTION).doc(newEvent.id).set(cleanForFirestore(doc));
       log.debug({ eventId: newEvent.id, type: newEvent.type }, 'Activity recorded to Firestore');
     } catch (error) {
       log.error({ error, event: newEvent }, 'Failed to persist activity to Firestore');

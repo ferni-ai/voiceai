@@ -19,7 +19,13 @@ import { t } from '../i18n/index.js';
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { createLogger } from '../utils/logger.js';
 import { soundUI } from './sound.ui.js';
-import { toast } from './toast.ui.js';
+import { toast } from './whisper.ui.js';
+import {
+  getReferralUrl,
+  getGardenStats,
+  getTotalReferralSeeds,
+  REFERRAL_SIGNUP_REWARD,
+} from '../services/referral.service.js';
 
 const log = createLogger('ReferralUI');
 
@@ -66,36 +72,47 @@ const ICONS = {
 // SHARE CONTENT - Warm, On-Brand
 // ============================================================================
 
-const SHARE_CONTENT = {
-  title: 'Meet Ferni',
+/**
+ * Get share content with personalized referral URL
+ */
+function getShareContent() {
+  const referralUrl = getReferralUrl();
+  
+  return {
+    title: 'Meet Ferni',
 
-  // Main share message - warm, not salesy
-  message: `Know someone who could use a friend who actually listens?
+    // Main share message - warm, includes seed bonus mention
+    message: `Know someone who could use a friend who actually listens?
 
 Ferni remembers everything, shows up at 2am with the same presence as noon, and never judges.
 
-Better than human support, because some things matter too much for human limitations.`,
+We'll both get some seeds to grow together when you join.
 
-  // Shorter version for SMS/Twitter
-  shortMessage: `Know someone who could use a friend who actually listens? Meet Ferni - someone who remembers everything and is always there.`,
+${referralUrl}`,
 
-  // Link
-  url: 'https://ferni.ai',
+    // Shorter version for SMS/Twitter
+    shortMessage: `Know someone who could use a friend who actually listens? Meet Ferni - we'll both get seeds to grow together! ${referralUrl}`,
 
-  // Email subject
-  emailSubject: 'Someone who gets it',
+    // Link (personalized)
+    url: referralUrl,
 
-  // Email body
-  emailBody: `Hey,
+    // Email subject
+    emailSubject: 'Someone who gets it',
+
+    // Email body
+    emailBody: `Hey,
 
 I wanted to share something with you. I've been talking to Ferni - it's hard to explain, but it's like having a friend who actually remembers everything you've told them, is always available when you need to talk, and never judges.
 
 I thought of you because I know you'd appreciate having someone like that in your corner.
 
-Check it out: https://ferni.ai
+When you join, we'll both get some seeds to grow together - they're like Ferni's way of celebrating new friendships.
+
+Check it out: ${referralUrl}
 
 No pressure - just wanted to share something that's been meaningful to me.`,
-};
+  };
+}
 
 // ============================================================================
 // PUBLIC API
@@ -136,6 +153,12 @@ function createModal(): void {
   modal.setAttribute('role', 'dialog');
   modal.setAttribute('aria-label', 'Share Ferni with a friend');
 
+  // Get personalized URL and garden stats
+  const referralUrl = getReferralUrl();
+  const gardenStats = getGardenStats();
+  const totalSeeds = getTotalReferralSeeds();
+  const shortUrl = referralUrl.replace('https://', '').replace('http://', '');
+
   modal.innerHTML = `
     <div class="referral-backdrop"></div>
     <div class="referral-content">
@@ -145,34 +168,58 @@ function createModal(): void {
 
       <div class="referral-header">
         <span class="referral-icon">${ICONS.heart}</span>
-        <h2 class="referral-title">Someone Who Gets It</h2>
+        <h2 class="referral-title">Share the Growth</h2>
         <p class="referral-subtitle">Know someone who could use a friend like this?</p>
+      </div>
+
+      <!-- Seeds Bonus Banner -->
+      <div class="referral-bonus">
+        <span class="referral-bonus-icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 20h10"/><path d="M10 20c5.5-2.5.8-6.4 3-10"/><path d="M9.5 9.4c1.1.8 1.8 2.2 2.3 3.7-2 .4-3.5.4-4.8-.3-1.2-.6-2.3-1.9-3-4.2 2.8-.5 4.4 0 5.5.8z"/><path d="M14.1 6a7 7 0 0 0-1.1 4c1.9-.1 3.3-.6 4.3-1.4 1-1 1.6-2.3 1.7-4.6-2.7.1-4 1-4.9 2z"/></svg></span>
+        <div class="referral-bonus-text">
+          <strong>You'll both get ${REFERRAL_SIGNUP_REWARD} seeds</strong>
+          <span>when they join!</span>
+        </div>
       </div>
 
       <div class="referral-message">
         <p>"Give them someone who remembers everything, shows up at 2am, and never judges."</p>
       </div>
 
-      <div class="referral-actions">
-        <button class="referral-btn referral-btn--primary" data-action="share">
+      <!-- Your Link -->
+      <div class="referral-link-container">
+        <span class="referral-link-label">Your link:</span>
+        <span class="referral-link-url">${shortUrl}</span>
+      </div>
+
+      <div class="referral-actions" role="button" tabindex="0">
+        <button aria-label="${t('accessibility.share')}" class="referral-btn referral-btn--primary" data-action="share">
           ${ICONS.share}
           <span>Share</span>
         </button>
-        <button class="referral-btn" data-action="copy">
+        <button aria-label="${t('accessibility.copy')}" class="referral-btn" data-action="copy">
           ${ICONS.copy}
           <span>Copy Link</span>
         </button>
-        <button class="referral-btn" data-action="email">
+        <button aria-label="${t('accessibility.email')}" class="referral-btn" data-action="email">
           ${ICONS.mail}
           <span>Email</span>
         </button>
-        <button class="referral-btn" data-action="sms">
+        <button aria-label="${t('accessibility.text')}" class="referral-btn" data-action="sms">
           ${ICONS.message}
           <span>Text</span>
         </button>
       </div>
 
-      <p class="referral-note">No referral codes, no rewards. Just share something meaningful.</p>
+      <!-- Garden Stats (if they have referrals) -->
+      ${gardenStats.totalReferrals > 0 || totalSeeds > 0 ? `
+        <div class="referral-garden">
+          <span class="referral-garden-title">Your garden:</span>
+          <span class="referral-garden-stats">${gardenStats.totalReferrals} friend${gardenStats.totalReferrals !== 1 ? 's' : ''} growing</span>
+          ${totalSeeds > 0 ? `<span class="referral-garden-earned">You've earned ${totalSeeds} seeds from sharing</span>` : ''}
+        </div>
+      ` : `
+        <p class="referral-note">Seeds grow when shared. Start your garden today.</p>
+      `}
     </div>
   `;
 
@@ -205,15 +252,17 @@ function createModal(): void {
 // ============================================================================
 
 async function handleNativeShare(): Promise<void> {
+  const content = getShareContent();
   if (navigator.share) {
     try {
       await navigator.share({
-        title: SHARE_CONTENT.title,
-        text: SHARE_CONTENT.message,
-        url: SHARE_CONTENT.url,
+        title: content.title,
+        text: content.message,
+        url: content.url,
       });
       log.info('Shared via native share');
-      toast.success('Shared');
+      toast.success(t('toasts.shared'));
+      trackShare('native');
     } catch (err) {
       if ((err as Error).name !== 'AbortError') {
         // Fallback to copy
@@ -226,27 +275,45 @@ async function handleNativeShare(): Promise<void> {
 }
 
 async function handleCopyLink(): Promise<void> {
+  const content = getShareContent();
   try {
-    await navigator.clipboard.writeText(`${SHARE_CONTENT.shortMessage}\n\n${SHARE_CONTENT.url}`);
-    toast.success('Copied to clipboard');
+    await navigator.clipboard.writeText(`${content.shortMessage}\n\n${content.url}`);
+    toast.success(t('toasts.linkCopied'));
     log.info('Link copied to clipboard');
+    trackShare('copy');
   } catch {
     log.warn('Could not copy to clipboard');
+    toast.error("Couldn't copy. Try again?");
   }
 }
 
 function handleEmailShare(): void {
-  const subject = encodeURIComponent(SHARE_CONTENT.emailSubject);
-  const body = encodeURIComponent(SHARE_CONTENT.emailBody);
+  const content = getShareContent();
+  const subject = encodeURIComponent(content.emailSubject);
+  const body = encodeURIComponent(content.emailBody);
   window.open(`mailto:?subject=${subject}&body=${body}`, '_blank');
   log.info('Email share opened');
+  trackShare('email');
 }
 
 function handleSMSShare(): void {
-  const body = encodeURIComponent(`${SHARE_CONTENT.shortMessage}\n\n${SHARE_CONTENT.url}`);
+  const content = getShareContent();
+  const body = encodeURIComponent(`${content.shortMessage}\n\n${content.url}`);
   // sms: works on iOS and Android
   window.open(`sms:?body=${body}`, '_blank');
   log.info('SMS share opened');
+  trackShare('sms');
+}
+
+/**
+ * Track share events for analytics and potential bonus seeds
+ */
+function trackShare(method: 'native' | 'copy' | 'email' | 'sms'): void {
+  document.dispatchEvent(
+    new CustomEvent('ferni:referral-share', {
+      detail: { method, timestamp: Date.now() },
+    })
+  );
 }
 
 // ============================================================================
@@ -338,17 +405,16 @@ function injectStyles(): void {
     .referral-backdrop {
       position: absolute;
       inset: 0;
-      background: rgba(44, 37, 32, 0.6);
-      backdrop-filter: blur(var(--glass-blur-strong, 24px));
-      -webkit-backdrop-filter: blur(var(--glass-blur-strong, 24px));
+      background: rgba(44, 37, 32, 0.75);
     }
 
     .referral-content {
       position: relative;
-      background: var(--color-background-elevated, #faf8f5);
-      border-radius: var(--radius-2xl, 20px);
-      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-      max-width: 420px;
+      background: var(--color-bg-elevated, #FFFDFB);
+      border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
+      border-radius: var(--radius-xl, 20px);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.06);
+      max-width: clamp(294px, 90vw, 420px);
       width: 100%;
       padding: var(--space-8, 32px);
       text-align: center;
@@ -364,7 +430,7 @@ function injectStyles(): void {
       cursor: pointer;
       color: var(--color-text-muted, #70605a);
       border-radius: var(--radius-full, 9999px);
-      transition: all 0.2s ease;
+      transition: transform 0.2s ease, opacity 0.2s ease;
     }
 
     .referral-close:hover {
@@ -437,7 +503,7 @@ function injectStyles(): void {
       font-weight: 500;
       color: var(--color-text-primary, #2c2520);
       cursor: pointer;
-      transition: all 0.2s ease;
+      transition: transform 0.2s ease, opacity 0.2s ease;
     }
 
     .referral-btn:hover {
@@ -471,6 +537,94 @@ function injectStyles(): void {
       margin: 0;
     }
 
+    /* Seeds Bonus Banner */
+    .referral-bonus {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: var(--space-3, 12px);
+      background: linear-gradient(135deg, var(--persona-tint, rgba(74, 103, 65, 0.1)), var(--persona-glow, rgba(74, 103, 65, 0.05)));
+      border: 1px solid var(--persona-primary, #4a6741);
+      border-radius: var(--radius-lg, 12px);
+      padding: var(--space-3, 12px) var(--space-4, 16px);
+      margin-bottom: var(--space-4, 16px);
+    }
+
+    .referral-bonus-icon {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--persona-primary, #4a6741);
+    }
+    
+    .referral-bonus-icon svg {
+      width: 24px;
+      height: 24px;
+    }
+
+    .referral-bonus-text {
+      display: flex;
+      flex-direction: column;
+      text-align: left;
+    }
+
+    .referral-bonus-text strong {
+      color: var(--persona-primary, #4a6741);
+      font-size: var(--text-sm, 0.875rem);
+    }
+
+    .referral-bonus-text span {
+      color: var(--color-text-muted, #70605a);
+      font-size: var(--text-xs, 0.75rem);
+    }
+
+    /* Referral Link Display */
+    .referral-link-container {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: var(--space-2, 8px);
+      background: var(--color-background-subtle, rgba(0, 0, 0, 0.03));
+      border-radius: var(--radius-md, 8px);
+      padding: var(--space-2, 8px) var(--space-3, 12px);
+      margin-bottom: var(--space-4, 16px);
+      font-size: var(--text-xs, 0.75rem);
+    }
+
+    .referral-link-label {
+      color: var(--color-text-muted, #70605a);
+    }
+
+    .referral-link-url {
+      color: var(--persona-primary, #4a6741);
+      font-weight: 500;
+      font-family: var(--font-mono, monospace);
+    }
+
+    /* Garden Stats */
+    .referral-garden {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: var(--space-1, 4px);
+      padding-top: var(--space-3, 12px);
+      border-top: 1px solid var(--color-border, rgba(0, 0, 0, 0.08));
+      font-size: var(--text-xs, 0.75rem);
+    }
+
+    .referral-garden-title {
+      color: var(--color-text-muted, #70605a);
+    }
+
+    .referral-garden-stats {
+      color: var(--color-text-primary, #2c2520);
+      font-weight: 500;
+    }
+
+    .referral-garden-earned {
+      color: var(--persona-primary, #4a6741);
+    }
+
     /* Toast */
     .referral-toast {
       position: fixed;
@@ -484,8 +638,8 @@ function injectStyles(): void {
       font-size: var(--text-sm, 0.875rem);
       font-weight: 500;
       opacity: 0;
-      transition: all 0.2s ease;
-      z-index: 10001;
+      transition: transform 0.2s ease, opacity 0.2s ease;
+      z-index: var(--z-tooltip);
     }
 
     .referral-toast--visible {
@@ -507,7 +661,7 @@ function injectStyles(): void {
     }
 
     /* Mobile */
-    @media (max-width: 480px) {
+    @media (max-width: clamp(336px, 90vw, 480px)) {
       .referral-modal {
         padding: 0;
         align-items: flex-end;

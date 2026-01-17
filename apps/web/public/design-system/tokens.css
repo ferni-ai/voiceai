@@ -4,7 +4,7 @@
  * Auto-generated from design tokens.
  * DO NOT EDIT DIRECTLY - modify tokens/*.json and rebuild.
  *
- * Build: 2025-12-15T21:43:37.856Z
+ * Build: 2026-01-12T19:50:53.896Z
  */
 
 /* ========================================
@@ -17,7 +17,29 @@
   --color-background-elevated: #70605a;
   --color-background-glass: rgba(230, 195, 160, 0.08);
   --color-background-overlay: rgba(88, 72, 64, 0.95);
-  --color-text-_wcag: All colors tested against #70605a elevated background for WCAG AA (4.5:1);
+  --color-glass-ultra-thin-background: rgba(255, 255, 255, 0.02);
+  --color-glass-ultra-thin-blur: 4px;
+  --color-glass-ultra-thin-border: rgba(255, 255, 255, 0.04);
+  --color-glass-thin-background: rgba(255, 255, 255, 0.04);
+  --color-glass-thin-blur: 8px;
+  --color-glass-thin-border: rgba(255, 255, 255, 0.06);
+  --color-glass-regular-background: rgba(255, 255, 255, 0.08);
+  --color-glass-regular-blur: 16px;
+  --color-glass-regular-border: rgba(255, 255, 255, 0.10);
+  --color-glass-thick-background: rgba(255, 255, 255, 0.12);
+  --color-glass-thick-blur: 24px;
+  --color-glass-thick-border: rgba(255, 255, 255, 0.14);
+  --color-glass-ultra-thick-background: rgba(255, 255, 255, 0.16);
+  --color-glass-ultra-thick-blur: 40px;
+  --color-glass-ultra-thick-border: rgba(255, 255, 255, 0.18);
+  --color-glass-chromatic-background: rgba(212, 168, 74, 0.06);
+  --color-glass-chromatic-blur: 20px;
+  --color-glass-chromatic-border: rgba(212, 168, 74, 0.12);
+  --color-tonal-surface1-background: rgba(230, 195, 160, 0.04);
+  --color-tonal-surface2-background: rgba(230, 195, 160, 0.08);
+  --color-tonal-surface3-background: rgba(230, 195, 160, 0.12);
+  --color-tonal-surface-hover-background: rgba(230, 195, 160, 0.16);
+  --color-tonal-surface-active-background: rgba(230, 195, 160, 0.20);
   --color-text-primary: #faf6f0;
   --color-text-secondary: #f0ebe4;
   --color-text-muted: #e8e2da;
@@ -32,23 +54,45 @@
   --color-accent-glow: rgba(212, 168, 74, 0.22);
   --color-accent-subtle: rgba(212, 168, 74, 0.08);
   --color-accent-text: #e8c870;
-  --color-accent-_text-note: Brighter gold for text usage - 4.0:1 contrast, use for large text/accents only;
   --color-semantic-success: #6bc48f;
   --color-semantic-success-glow: rgba(107, 196, 143, 0.22);
+  --color-semantic-success-tint: rgba(107, 196, 143, 0.12);
   --color-semantic-error: #e07575;
   --color-semantic-error-glow: rgba(224, 117, 117, 0.22);
+  --color-semantic-error-tint: rgba(224, 117, 117, 0.12);
   --color-semantic-warning: #e0b860;
   --color-semantic-warning-glow: rgba(224, 184, 96, 0.22);
+  --color-semantic-warning-tint: rgba(224, 184, 96, 0.12);
   --color-semantic-info: #7da6cf;
   --color-semantic-info-glow: rgba(125, 166, 207, 0.22);
+  --color-semantic-info-tint: rgba(125, 166, 207, 0.12);
+  --color-utility-focus-ring: rgba(212, 168, 74, 0.3);
+  --color-utility-focus-ring-subtle: rgba(212, 168, 74, 0.1);
+  --color-utility-backdrop: rgba(20, 16, 14, 0.7);
+  --color-utility-backdrop-light: rgba(20, 16, 14, 0.5);
+  --color-utility-scrim: rgba(20, 16, 14, 0.85);
   --color-natural-cedar: #a08060;
   --color-natural-cedar-light: #c4a882;
+  --color-natural-cedar-dark: #584840;
   --color-natural-moonlight: #e8e4dc;
   --color-natural-bamboo: #7a8660;
+  --color-natural-bamboo-light: #9aaa80;
   --color-natural-stone: #6b635a;
+  --color-natural-stone-light: #8a8278;
   --color-natural-moss: #5a7040;
+  --color-natural-moss-light: #7a9060;
   --color-natural-paper: #f0ebe2;
+  --color-natural-paper-cream: #faf8f5;
+  --color-natural-paper-sand: #f5f2ed;
   --color-natural-ink: #3a342e;
+  --color-natural-ink-light: #5c544a;
+  --color-natural-tea: #c4a77d;
+  --color-natural-tea-light: #d8c4a0;
+  --color-natural-forest-green: #2d4a35;
+  --color-natural-warm-amber: #d4a84a;
+  --color-natural-warm-amber-light: #e8c870;
+  --color-natural-highlight: #fff8e6;
+  --color-natural-highlight-glow: rgba(255, 248, 230, 0.6);
   color-scheme: dark;
 }
 
@@ -65,7 +109,29 @@
   --color-background-elevated: #70605a;
   --color-background-glass: rgba(230, 195, 160, 0.08);
   --color-background-overlay: rgba(88, 72, 64, 0.95);
-  --color-text-_wcag: All colors tested against #70605a elevated background for WCAG AA (4.5:1);
+  --color-glass-ultra-thin-background: rgba(255, 255, 255, 0.02);
+  --color-glass-ultra-thin-blur: 4px;
+  --color-glass-ultra-thin-border: rgba(255, 255, 255, 0.04);
+  --color-glass-thin-background: rgba(255, 255, 255, 0.04);
+  --color-glass-thin-blur: 8px;
+  --color-glass-thin-border: rgba(255, 255, 255, 0.06);
+  --color-glass-regular-background: rgba(255, 255, 255, 0.08);
+  --color-glass-regular-blur: 16px;
+  --color-glass-regular-border: rgba(255, 255, 255, 0.10);
+  --color-glass-thick-background: rgba(255, 255, 255, 0.12);
+  --color-glass-thick-blur: 24px;
+  --color-glass-thick-border: rgba(255, 255, 255, 0.14);
+  --color-glass-ultra-thick-background: rgba(255, 255, 255, 0.16);
+  --color-glass-ultra-thick-blur: 40px;
+  --color-glass-ultra-thick-border: rgba(255, 255, 255, 0.18);
+  --color-glass-chromatic-background: rgba(212, 168, 74, 0.06);
+  --color-glass-chromatic-blur: 20px;
+  --color-glass-chromatic-border: rgba(212, 168, 74, 0.12);
+  --color-tonal-surface1-background: rgba(230, 195, 160, 0.04);
+  --color-tonal-surface2-background: rgba(230, 195, 160, 0.08);
+  --color-tonal-surface3-background: rgba(230, 195, 160, 0.12);
+  --color-tonal-surface-hover-background: rgba(230, 195, 160, 0.16);
+  --color-tonal-surface-active-background: rgba(230, 195, 160, 0.20);
   --color-text-primary: #faf6f0;
   --color-text-secondary: #f0ebe4;
   --color-text-muted: #e8e2da;
@@ -80,23 +146,45 @@
   --color-accent-glow: rgba(212, 168, 74, 0.22);
   --color-accent-subtle: rgba(212, 168, 74, 0.08);
   --color-accent-text: #e8c870;
-  --color-accent-_text-note: Brighter gold for text usage - 4.0:1 contrast, use for large text/accents only;
   --color-semantic-success: #6bc48f;
   --color-semantic-success-glow: rgba(107, 196, 143, 0.22);
+  --color-semantic-success-tint: rgba(107, 196, 143, 0.12);
   --color-semantic-error: #e07575;
   --color-semantic-error-glow: rgba(224, 117, 117, 0.22);
+  --color-semantic-error-tint: rgba(224, 117, 117, 0.12);
   --color-semantic-warning: #e0b860;
   --color-semantic-warning-glow: rgba(224, 184, 96, 0.22);
+  --color-semantic-warning-tint: rgba(224, 184, 96, 0.12);
   --color-semantic-info: #7da6cf;
   --color-semantic-info-glow: rgba(125, 166, 207, 0.22);
+  --color-semantic-info-tint: rgba(125, 166, 207, 0.12);
+  --color-utility-focus-ring: rgba(212, 168, 74, 0.3);
+  --color-utility-focus-ring-subtle: rgba(212, 168, 74, 0.1);
+  --color-utility-backdrop: rgba(20, 16, 14, 0.7);
+  --color-utility-backdrop-light: rgba(20, 16, 14, 0.5);
+  --color-utility-scrim: rgba(20, 16, 14, 0.85);
   --color-natural-cedar: #a08060;
   --color-natural-cedar-light: #c4a882;
+  --color-natural-cedar-dark: #584840;
   --color-natural-moonlight: #e8e4dc;
   --color-natural-bamboo: #7a8660;
+  --color-natural-bamboo-light: #9aaa80;
   --color-natural-stone: #6b635a;
+  --color-natural-stone-light: #8a8278;
   --color-natural-moss: #5a7040;
+  --color-natural-moss-light: #7a9060;
   --color-natural-paper: #f0ebe2;
+  --color-natural-paper-cream: #faf8f5;
+  --color-natural-paper-sand: #f5f2ed;
   --color-natural-ink: #3a342e;
+  --color-natural-ink-light: #5c544a;
+  --color-natural-tea: #c4a77d;
+  --color-natural-tea-light: #d8c4a0;
+  --color-natural-forest-green: #2d4a35;
+  --color-natural-warm-amber: #d4a84a;
+  --color-natural-warm-amber-light: #e8c870;
+  --color-natural-highlight: #fff8e6;
+  --color-natural-highlight-glow: rgba(255, 248, 230, 0.6);
 }
 
 /* Theme: Zen Garden */
@@ -109,11 +197,33 @@
   --color-background-elevated: #fffdfb;
   --color-background-glass: rgba(139, 119, 91, 0.03);
   --color-background-overlay: rgba(250, 248, 245, 0.95);
-  --color-text-_wcag: All colors tested against #faf8f5 primary background for WCAG AA;
+  --color-glass-ultra-thin-background: rgba(255, 255, 255, 0.50);
+  --color-glass-ultra-thin-blur: 4px;
+  --color-glass-ultra-thin-border: rgba(44, 37, 32, 0.04);
+  --color-glass-thin-background: rgba(255, 255, 255, 0.60);
+  --color-glass-thin-blur: 8px;
+  --color-glass-thin-border: rgba(44, 37, 32, 0.06);
+  --color-glass-regular-background: rgba(255, 255, 255, 0.70);
+  --color-glass-regular-blur: 16px;
+  --color-glass-regular-border: rgba(44, 37, 32, 0.08);
+  --color-glass-thick-background: rgba(255, 255, 255, 0.80);
+  --color-glass-thick-blur: 24px;
+  --color-glass-thick-border: rgba(44, 37, 32, 0.10);
+  --color-glass-ultra-thick-background: rgba(255, 255, 255, 0.90);
+  --color-glass-ultra-thick-blur: 40px;
+  --color-glass-ultra-thick-border: rgba(44, 37, 32, 0.12);
+  --color-glass-chromatic-background: rgba(61, 90, 69, 0.06);
+  --color-glass-chromatic-blur: 20px;
+  --color-glass-chromatic-border: rgba(61, 90, 69, 0.12);
+  --color-tonal-surface1-background: rgba(44, 37, 32, 0.02);
+  --color-tonal-surface2-background: rgba(44, 37, 32, 0.04);
+  --color-tonal-surface3-background: rgba(44, 37, 32, 0.06);
+  --color-tonal-surface-hover-background: rgba(44, 37, 32, 0.08);
+  --color-tonal-surface-active-background: rgba(44, 37, 32, 0.12);
   --color-text-primary: #2c2520;
   --color-text-secondary: #5c544a;
-  --color-text-muted: #756a5e;
-  --color-text-dimmed: #857a6e;
+  --color-text-muted: #6b635a;
+  --color-text-dimmed: #756a5e;
   --color-text-inverse: #faf8f5;
   --color-border-subtle: rgba(44, 37, 32, 0.05);
   --color-border-medium: rgba(44, 37, 32, 0.10);
@@ -124,24 +234,46 @@
   --color-accent-glow: rgba(61, 90, 69, 0.15);
   --color-accent-subtle: rgba(61, 90, 69, 0.05);
   --color-accent-text: #3D5A45;
-  --color-accent-_text-note: Same as primary for light theme - good contrast on light backgrounds;
   --color-semantic-success: #3d7a52;
   --color-semantic-success-glow: rgba(61, 122, 82, 0.18);
+  --color-semantic-success-tint: rgba(61, 122, 82, 0.08);
   --color-semantic-error: #b5453a;
   --color-semantic-error-glow: rgba(181, 69, 58, 0.18);
+  --color-semantic-error-tint: rgba(181, 69, 58, 0.08);
   --color-semantic-warning: #a67c35;
   --color-semantic-warning-glow: rgba(166, 124, 53, 0.18);
+  --color-semantic-warning-tint: rgba(166, 124, 53, 0.08);
   --color-semantic-info: #3a6b9c;
   --color-semantic-info-glow: rgba(58, 107, 156, 0.18);
+  --color-semantic-info-tint: rgba(58, 107, 156, 0.08);
+  --color-utility-focus-ring: rgba(61, 90, 69, 0.3);
+  --color-utility-focus-ring-subtle: rgba(61, 90, 69, 0.1);
+  --color-utility-backdrop: rgba(44, 37, 32, 0.6);
+  --color-utility-backdrop-light: rgba(44, 37, 32, 0.4);
+  --color-utility-scrim: rgba(44, 37, 32, 0.8);
   --color-natural-wood: #a8896c;
   --color-natural-wood-light: #d4c4b0;
+  --color-natural-wood-dark: #8a7060;
   --color-natural-bamboo: #7a8f5a;
+  --color-natural-bamboo-light: #9aaf7a;
   --color-natural-stone: #8a8075;
+  --color-natural-stone-light: #a8a095;
   --color-natural-sand: #e8e0d5;
+  --color-natural-sand-light: #f5f0e8;
   --color-natural-moss: #5a7a3d;
+  --color-natural-moss-light: #7a9a5d;
   --color-natural-paper: #faf8f5;
+  --color-natural-paper-cream: #fffdfb;
+  --color-natural-paper-warm: #f5efe8;
   --color-natural-ink: #2c2520;
+  --color-natural-ink-light: #5c544a;
   --color-natural-tea: #c4a77d;
+  --color-natural-tea-light: #d8c4a0;
+  --color-natural-forest-green: #3d5a45;
+  --color-natural-warm-amber: #a67c35;
+  --color-natural-warm-amber-light: #c49a50;
+  --color-natural-highlight: #fff8e6;
+  --color-natural-highlight-glow: rgba(255, 248, 230, 0.5);
 }
 
 /* ========================================
@@ -150,6 +282,15 @@
 
 /* Persona: _description */
 [data-persona="_description"] {
+  --persona-primary: undefined;
+  --persona-secondary: undefined;
+  --persona-text: #ffffff;
+  --persona-glow: undefined;
+  --persona-tint: undefined;
+}
+
+/* Persona: _textOnDarkNote */
+[data-persona="_text-on-dark-note"] {
   --persona-primary: undefined;
   --persona-secondary: undefined;
   --persona-text: #ffffff;
@@ -297,11 +438,221 @@
    ======================================== */
 :root {
   --external-claude-primary: #D97757;
+  --external-claude-secondary: #B85F42;
   --external-claude-glow: rgba(217, 119, 87, 0.35);
+  --external-claude-gradient: linear-gradient(135deg, #B85F42, #D97757);
   --external-gemini-primary: #4285F4;
+  --external-gemini-secondary: #2B6AD9;
   --external-gemini-glow: rgba(66, 133, 244, 0.35);
+  --external-gemini-gradient: linear-gradient(135deg, #2B6AD9, #4285F4);
   --external-gpt-primary: #10A37F;
+  --external-gpt-secondary: #0B7A5E;
   --external-gpt-glow: rgba(16, 163, 127, 0.35);
+  --external-gpt-gradient: linear-gradient(135deg, #0B7A5E, #10A37F);
+  --external-google-primary: #4285F4;
+  --external-google-gradient: linear-gradient(135deg, #4285F4, #4285F4);
+  --external-apple-primary: #000000;
+  --external-apple-gradient: linear-gradient(135deg, #000000, #000000);
+  --external-spotify-primary: #1DB954;
+  --external-spotify-secondary: #191414;
+  --external-spotify-gradient: linear-gradient(135deg, #191414, #1DB954);
+  --external-slack-primary: #4A154B;
+  --external-slack-gradient: linear-gradient(135deg, #4A154B, #4A154B);
+}
+
+/* ========================================
+   MARKETPLACE CATEGORY COLORS
+   ======================================== */
+:root {
+  --category-mentorship-primary: #3a6b73;
+  --category-mentorship-secondary: #2d5359;
+  --category-mentorship-glow: rgba(58, 107, 115, 0.4);
+  --category-mentorship-gradient: linear-gradient(135deg, #2d5359, #3a6b73);
+  --category-mentorship-text: #3a6b73;
+  --category-mentorship-tint: rgba(58, 107, 115, 0.4);
+  --category-finance-primary: #4a5d8a;
+  --category-finance-secondary: #3a4d73;
+  --category-finance-glow: rgba(74, 93, 138, 0.4);
+  --category-finance-gradient: linear-gradient(135deg, #3a4d73, #4a5d8a);
+  --category-finance-text: #4a5d8a;
+  --category-finance-tint: rgba(74, 93, 138, 0.4);
+  --category-health-primary: #a67a6a;
+  --category-health-secondary: #8a635a;
+  --category-health-glow: rgba(166, 122, 106, 0.4);
+  --category-health-gradient: linear-gradient(135deg, #8a635a, #a67a6a);
+  --category-health-text: #a67a6a;
+  --category-health-tint: rgba(166, 122, 106, 0.4);
+  --category-productivity-primary: #b89a5a;
+  --category-productivity-secondary: #9a7d42;
+  --category-productivity-glow: rgba(184, 154, 90, 0.4);
+  --category-productivity-gradient: linear-gradient(135deg, #9a7d42, #b89a5a);
+  --category-productivity-text: #b89a5a;
+  --category-productivity-tint: rgba(184, 154, 90, 0.4);
+  --category-lifestyle-primary: #c4856a;
+  --category-lifestyle-secondary: #a86d55;
+  --category-lifestyle-glow: rgba(196, 133, 106, 0.4);
+  --category-lifestyle-gradient: linear-gradient(135deg, #a86d55, #c4856a);
+  --category-lifestyle-text: #c4856a;
+  --category-lifestyle-tint: rgba(196, 133, 106, 0.4);
+  --category-education-primary: #5a8a6a;
+  --category-education-secondary: #4a735a;
+  --category-education-glow: rgba(90, 138, 106, 0.4);
+  --category-education-gradient: linear-gradient(135deg, #4a735a, #5a8a6a);
+  --category-education-text: #5a8a6a;
+  --category-education-tint: rgba(90, 138, 106, 0.4);
+  --category-entertainment-primary: #8a6a7a;
+  --category-entertainment-secondary: #735a6a;
+  --category-entertainment-glow: rgba(138, 106, 122, 0.4);
+  --category-entertainment-gradient: linear-gradient(135deg, #735a6a, #8a6a7a);
+  --category-entertainment-text: #8a6a7a;
+  --category-entertainment-tint: rgba(138, 106, 122, 0.4);
+  --category-custom-primary: #8a7a6a;
+  --category-custom-secondary: #736a5a;
+  --category-custom-glow: rgba(138, 122, 106, 0.4);
+  --category-custom-gradient: linear-gradient(135deg, #736a5a, #8a7a6a);
+  --category-custom-text: #8a7a6a;
+  --category-custom-tint: rgba(138, 122, 106, 0.4);
+}
+
+/* ========================================
+   CINEMATIC COLORS (HERO SECTIONS)
+   ======================================== */
+:root {
+  /* Cinematic - Storytelling Colors */
+  --cinematic-black-primary: #0a0908;
+  --cinematic-black-deep: #141210;
+  --cinematic-black-rich: #1a1613;
+  --cinematic-text-hero: #ffffff;
+  --cinematic-text-hero-subtle: rgba(255, 255, 255, 0.9);
+  --cinematic-text-hero-muted: rgba(255, 255, 255, 0.7);
+  --cinematic-glow-warm: rgba(212, 168, 74, 0.4);
+  --cinematic-glow-cool: rgba(125, 166, 207, 0.4);
+  --cinematic-glow-magic: rgba(168, 139, 250, 0.35);
+}
+
+/* ========================================
+   GRADIENT SYSTEM
+   ======================================== */
+:root {
+  /* Gradient System */
+  --gradient-hero-light-start: #faf8f5;
+  --gradient-hero-light-end: #f5f2ed;
+  --gradient-hero-light: linear-gradient(180deg, #faf8f5 0%, #f5f2ed 100%);
+  --gradient-hero-dark-start: #584840;
+  --gradient-hero-dark-end: #3a302a;
+  --gradient-hero-dark: linear-gradient(180deg, #584840 0%, #3a302a 100%);
+  --gradient-warm-sunrise-start: #faf8f5;
+  --gradient-warm-sunrise-mid: #f5efe8;
+  --gradient-warm-sunrise-end: #f0ebe4;
+  --gradient-warm-sunrise: linear-gradient(180deg, #faf8f5 0%, #f5efe8 50%, #f0ebe4 100%);
+  --gradient-cool-evening-start: #584840;
+  --gradient-cool-evening-mid: #4a3a35;
+  --gradient-cool-evening-end: #3a2a25;
+  --gradient-cool-evening: linear-gradient(180deg, #584840 0%, #4a3a35 50%, #3a2a25 100%);
+  --gradient-accent-fade-start: rgba(61, 90, 69, 0.12);
+  --gradient-accent-fade-end: rgba(61, 90, 69, 0.02);
+  --gradient-accent-fade: linear-gradient(180deg, rgba(61, 90, 69, 0.12) 0%, rgba(61, 90, 69, 0.02) 100%);
+}
+
+/* ========================================
+   COMPARISON COLORS
+   ======================================== */
+:root {
+  /* Comparison Colors - Before/After, Good/Bad */
+  --comparison-before-background: #f5f2ed;
+  --comparison-before-border: rgba(44, 37, 32, 0.08);
+  --comparison-before-text: #756a5e;
+  --comparison-after-background: rgba(61, 90, 69, 0.06);
+  --comparison-after-border: rgba(61, 90, 69, 0.15);
+  --comparison-after-text: #3D5A45;
+  --comparison-after-glow: rgba(61, 90, 69, 0.12);
+  --comparison-bad-background: rgba(181, 69, 58, 0.06);
+  --comparison-bad-border: rgba(181, 69, 58, 0.15);
+  --comparison-bad-text: #b5453a;
+  --comparison-bad-hover: rgba(181, 69, 58, 0.12);
+  --comparison-good-background: rgba(61, 122, 82, 0.06);
+  --comparison-good-border: rgba(61, 122, 82, 0.15);
+  --comparison-good-text: #3d7a52;
+  --comparison-good-hover: rgba(61, 122, 82, 0.12);
+}
+
+/* ========================================
+   VISUALIZATION COLORS
+   Better Than Human data storytelling
+   ======================================== */
+:root {
+  /* Visualization Colors - Better Than Human Data Storytelling */
+
+  /* Kintsugi */
+  --viz-kintsugi-primary: #C9A227;
+  --viz-kintsugi-bright: #E5C84B;
+  --viz-kintsugi-deep: #9A7B1C;
+  --viz-kintsugi-subtle: #B8956A;
+  --viz-kintsugi-glow: rgba(201, 162, 39, 0.4);
+  --viz-kintsugi-tint: rgba(201, 162, 39, 0.12);
+  --viz-kintsugi-gradient-start: #C9A227;
+  --viz-kintsugi-gradient-end: #E5C84B;
+
+  /* River */
+  --viz-river-user: #3a6b73;
+  --viz-river-ferni: #4a6741;
+  --viz-river-silence: rgba(139, 119, 91, 0.3);
+  --viz-river-flow: rgba(58, 107, 115, 0.6);
+
+  /* Constellation */
+  --viz-constellation-node: #b8956a;
+  --viz-constellation-edge: rgba(184, 149, 106, 0.4);
+  --viz-constellation-highlight: #E5C84B;
+  --viz-constellation-cluster: rgba(166, 122, 106, 0.3);
+
+  /* Seasons */
+  --viz-seasons-spring: #7a9060;
+  --viz-seasons-summer: #C9A227;
+  --viz-seasons-autumn: #c4856a;
+  --viz-seasons-winter: #5a6b8a;
+
+  /* Energy */
+  --viz-energy-source: #4a6741;
+  --viz-energy-drain: #c4856a;
+  --viz-energy-neutral: #8a7a6a;
+  --viz-energy-flow: rgba(74, 103, 65, 0.5);
+
+  /* Growth */
+  --viz-growth-ring: rgba(74, 103, 65, 0.15);
+  --viz-growth-ring-active: #4a6741;
+  --viz-growth-milestone: #C9A227;
+  --viz-growth-potential: rgba(201, 162, 39, 0.3);
+
+  /* Moods */
+  --viz-moods-calm: #3D5A45;
+  --viz-moods-joyful: #c4956a;
+  --viz-moods-anxious: #b5453a;
+  --viz-moods-tired: #756a5e;
+  --viz-moods-focused: #3a6b73;
+  --viz-moods-reflective: #7a6a8a;
+  --viz-moods-stressed: #a54545;
+  --viz-moods-energized: #4a7a52;
+  --viz-moods-peaceful: #5a8a73;
+  --viz-moods-uncertain: #6a6a6a;
+
+  /* Status */
+  --viz-status-thriving: #3d7a52;
+  --viz-status-balanced: #3D5A45;
+  --viz-status-stretched: #a67c35;
+  --viz-status-depleted: #c67840;
+  --viz-status-critical: #b5453a;
+
+  /* Priority */
+  --viz-priority-high: #b5453a;
+  --viz-priority-medium: #a67c35;
+  --viz-priority-low: #756a5e;
+
+  /* Chapters */
+  --viz-chapters-growth: #3D5A45;
+  --viz-chapters-challenge: #b5453a;
+  --viz-chapters-transition: #c4956a;
+  --viz-chapters-celebration: #4a7a52;
+  --viz-chapters-reflection: #7a6a8a;
 }
 
 /* ========================================
@@ -422,15 +773,16 @@
   --space-3_5: 0.875rem;
 
   /* Semantic Spacing */
-  --spacing-2xs: 0.25rem;
-  --spacing-xs: 0.5rem;
-  --spacing-sm: 0.75rem;
-  --spacing-md: 1.25rem;
-  --spacing-lg: 2rem;
-  --spacing-xl: 3rem;
-  --spacing-2xl: 4rem;
-  --spacing-3xl: 6rem;
-  --spacing-4xl: 8rem;
+  --spacing-_documentation: Golden ratio (φ = 1.618) based spacing for harmonious visual rhythm;
+  --spacing-2xs: 0.125rem;
+  --spacing-xs: 0.25rem;
+  --spacing-sm: 0.5rem;
+  --spacing-md: 1rem;
+  --spacing-lg: 1.618rem;
+  --spacing-xl: 2.618rem;
+  --spacing-2xl: 4.236rem;
+  --spacing-3xl: 6.854rem;
+  --spacing-4xl: 11.09rem;
 
   /* Border Radius */
   --radius-none: 0;
@@ -479,10 +831,37 @@
   --container-6xl: 72rem;
   --container-7xl: 80rem;
   --container-full: 100%;
+
+  /* Gradient Tokens - Use instead of hardcoding linear-gradient() */
+  --gradient-surface-subtle: linear-gradient(180deg, var(--color-background-primary) 0%, var(--color-background-secondary) 100%);
+  --gradient-surface-warm: linear-gradient(135deg, var(--color-background-elevated) 0%, var(--color-background-secondary) 100%);
+  --gradient-surface-elevated: linear-gradient(180deg, var(--color-background-elevated) 0%, var(--color-background-tertiary) 100%);
+  --gradient-persona-glow: linear-gradient(135deg, var(--persona-tint) 0%, transparent 100%);
+  --gradient-persona-intense: linear-gradient(135deg, var(--persona-primary) 0%, var(--persona-secondary) 100%);
+  --gradient-persona-subtle: linear-gradient(135deg, var(--persona-tint) 0%, transparent 50%, transparent 100%);
+  --gradient-persona-radial: radial-gradient(circle at center, var(--persona-glow) 0%, transparent 70%);
+  --gradient-persona-spotlight: radial-gradient(ellipse at top, var(--persona-tint) 0%, transparent 50%);
+  --gradient-accent-primary: linear-gradient(135deg, var(--color-accent-primary) 0%, var(--color-accent-pressed) 100%);
+  --gradient-accent-hover: linear-gradient(135deg, var(--color-accent-hover) 0%, var(--color-accent-primary) 100%);
+  --gradient-accent-glow: linear-gradient(180deg, var(--color-accent-glow) 0%, transparent 100%);
+  --gradient-semantic-success: linear-gradient(135deg, var(--color-semantic-success) 0%, var(--color-semantic-successGlow) 100%);
+  --gradient-semantic-error: linear-gradient(135deg, var(--color-semantic-error) 0%, var(--color-semantic-errorGlow) 100%);
+  --gradient-semantic-warning: linear-gradient(135deg, var(--color-semantic-warning) 0%, var(--color-semantic-warningGlow) 100%);
+  --gradient-semantic-info: linear-gradient(135deg, var(--color-semantic-info) 0%, var(--color-semantic-infoGlow) 100%);
+  --gradient-shimmer: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.1) 50%, transparent 100%);
+  --gradient-fade-out: linear-gradient(180deg, var(--color-background-primary) 0%, transparent 100%);
+  --gradient-fade-in: linear-gradient(180deg, transparent 0%, var(--color-background-primary) 100%);
+  --gradient-vignette: radial-gradient(ellipse at center, transparent 40%, var(--color-background-overlay) 100%);
+  --gradient-glass-specular: linear-gradient(135deg, rgba(255,255,255,0.25) 0%, rgba(255,255,255,0.05) 40%, transparent 60%);
+  --gradient-glass-fresnel: linear-gradient(to bottom, rgba(255,255,255,0.1) 0%, transparent 30%, transparent 70%, rgba(255,255,255,0.05) 100%);
+  --gradient-glass-tint: linear-gradient(180deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.02) 100%);
+  --gradient-progress-bar: linear-gradient(90deg, var(--persona-secondary) 0%, var(--persona-primary) 100%);
+  --gradient-progress-shimmer: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.3) 50%, transparent 100%);
 }
 
 /* Shadows - Midnight Theme */
 [data-theme="midnight"] {
+  --shadow-2xs: 0 1px 2px rgba(0, 0, 0, 0.3), 0 1px 1px rgba(0, 0, 0, 0.4);
   --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.5);
   --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.4);
   --shadow-md: 0 4px 8px rgba(0, 0, 0, 0.35), 0 2px 4px rgba(0, 0, 0, 0.3);
@@ -495,6 +874,7 @@
 
 /* Shadows - Zen Theme */
 [data-theme="zen"] {
+  --shadow-2xs: 0 1px 2px rgba(0, 0, 0, 0.03), 0 1px 1px rgba(0, 0, 0, 0.04);
   --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.04);
   --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.06);
   --shadow-md: 0 4px 8px rgba(0, 0, 0, 0.08), 0 2px 4px rgba(0, 0, 0, 0.04);
@@ -535,6 +915,55 @@
   --glass-border-light: 1px solid rgba(0, 0, 0, 0.08);
   --glass-border-medium: 1px solid rgba(0, 0, 0, 0.12);
   --glass-inner-glow: inset 0 1px 0 0 rgba(255, 255, 255, 0.8);
+}
+
+/* Vibrancy - iOS-style saturation boost */
+:root {
+  --glass-vibrancy-none: saturate(1) contrast(1);
+  --glass-vibrancy-subtle: saturate(1.2) contrast(1.02);
+  --glass-vibrancy-medium: saturate(1.5) contrast(1.05);
+  --glass-vibrancy-high: saturate(1.8) contrast(1.1);
+  --glass-vibrancy-ultra: saturate(2) contrast(1.15);
+}
+
+/* Specular - Light reflection effects */
+:root {
+  --glass-specular-gradient: linear-gradient(135deg, rgba(255,255,255,0.25) 0%, rgba(255,255,255,0.05) 40%, transparent 60%);
+  --glass-specular-position: top left;
+  --glass-specular-size: 200% 200%;
+  --glass-shimmer-gradient: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.1) 50%, transparent 100%);
+  --glass-shimmer-animation: specularShimmer 3s ease-in-out infinite;
+  --glass-fresnel-light: linear-gradient(to bottom, rgba(255,255,255,0.15) 0%, transparent 30%, transparent 70%, rgba(255,255,255,0.05) 100%);
+  --glass-fresnel-dark: linear-gradient(to bottom, rgba(255,255,255,0.08) 0%, transparent 30%, transparent 70%, rgba(255,255,255,0.03) 100%);
+}
+
+/* Noise - Organic grain texture */
+:root {
+  --glass-noise-opacity-subtle: 0.015;
+  --glass-noise-opacity-medium: 0.025;
+  --glass-noise-opacity-visible: 0.04;
+  --glass-noise-texture: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+  --glass-noise-blend: overlay;
+}
+
+/* Interaction - Dynamic response */
+:root {
+  --glass-hover-blur-increase: 2px;
+  --glass-active-scale: 0.98;
+  --glass-focus-ring: 0 0 0 2px var(--persona-primary);
+  --glass-tilt-max: 5deg;
+  --glass-tilt-perspective: 1000px;
+  --glass-tilt-transition: transform 300ms cubic-bezier(0.34, 1.56, 0.64, 1);
+  --glass-ripple-duration: 600ms;
+  --glass-ripple-easing: cubic-bezier(0.16, 1, 0.3, 1);
+  --glass-ripple-color: rgba(255, 255, 255, 0.15);
+}
+
+/* Chromatic - Light refraction at edges */
+:root {
+  --glass-chromatic-offset: 0.5px;
+  --glass-chromatic-red: rgba(255, 0, 0, 0.03);
+  --glass-chromatic-blue: rgba(0, 0, 255, 0.03);
 }
 
 /* ========================================
@@ -626,6 +1055,24 @@
   0% { transform: scale(1); }
   50% { transform: scale(1.05); }
   100% { transform: scale(1); }
+}
+
+@keyframes avatarBreathe {
+  0%, 100% { transform: scale3d(1, 1, 1) translateY(0); }
+  40% { transform: scale3d(0.994, 1.012, 1) translateY(-2px); }
+  50% { transform: scale3d(0.994, 1.012, 1) translateY(-2px); }
+  90% { transform: scale3d(1, 1, 1) translateY(0); }
+}
+
+@keyframes avatarFloat {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  33% { transform: translateY(-4px) rotate(0.5deg); }
+  66% { transform: translateY(-2px) rotate(-0.5deg); }
+}
+
+@keyframes avatarGlowRing {
+  0%, 100% { opacity: 0.15; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(1.02); }
 }
 
 @keyframes shimmer {
@@ -946,6 +1393,577 @@
 
 
 /* ========================================
+   CIRCADIAN SYSTEM
+   Time-aware design that adapts to human rhythms
+   "Dark mode is not enough. Ferni knows the difference
+    between 10am focus and 2am presence."
+   ======================================== */
+
+:root {
+  /* Circadian CSS Variables - Updated by JavaScript based on time */
+  --circadian-warmth: 0;
+  --circadian-brightness: 1;
+  --circadian-animation-speed: 1;
+  --circadian-filter: none;
+
+  /* Circadian warmth filter formula */
+  --circadian-filter-computed: sepia(calc(var(--circadian-warmth) * 0.15)) saturate(calc(1 + var(--circadian-warmth) * 0.1));
+}
+
+/* Circadian Period Data Attributes */
+/* Apply [data-circadian="periodName"] to body for time-aware theming */
+
+[data-circadian="earlyMorning"] {
+  --circadian-warmth: 0.15;
+  --circadian-brightness: 0.95;
+  --circadian-animation-speed: 0.9;
+  --circadian-period-name: "Dawn";
+  --circadian-presence: "gentle awakening";
+  --circadian-filter: sepia(calc(var(--circadian-warmth) * 0.15)) saturate(calc(1 + var(--circadian-warmth) * 0.1));
+}
+
+[data-circadian="morning"] {
+  --circadian-warmth: 0.1;
+  --circadian-brightness: 1;
+  --circadian-animation-speed: 1.1;
+  --circadian-period-name: "Morning";
+  --circadian-presence: "fresh and energetic";
+  --circadian-filter: sepia(calc(var(--circadian-warmth) * 0.15)) saturate(calc(1 + var(--circadian-warmth) * 0.1));
+}
+
+[data-circadian="midday"] {
+  --circadian-warmth: 0;
+  --circadian-brightness: 1;
+  --circadian-animation-speed: 1;
+  --circadian-period-name: "Midday";
+  --circadian-presence: "clear and focused";
+  --circadian-filter: sepia(calc(var(--circadian-warmth) * 0.15)) saturate(calc(1 + var(--circadian-warmth) * 0.1));
+}
+
+[data-circadian="afternoon"] {
+  --circadian-warmth: 0.05;
+  --circadian-brightness: 1;
+  --circadian-animation-speed: 1;
+  --circadian-period-name: "Afternoon";
+  --circadian-presence: "productive calm";
+  --circadian-filter: sepia(calc(var(--circadian-warmth) * 0.15)) saturate(calc(1 + var(--circadian-warmth) * 0.1));
+}
+
+[data-circadian="evening"] {
+  --circadian-warmth: 0.2;
+  --circadian-brightness: 0.95;
+  --circadian-animation-speed: 0.9;
+  --circadian-period-name: "Evening";
+  --circadian-presence: "winding down";
+  --circadian-filter: sepia(calc(var(--circadian-warmth) * 0.15)) saturate(calc(1 + var(--circadian-warmth) * 0.1));
+}
+
+[data-circadian="night"] {
+  --circadian-warmth: 0.3;
+  --circadian-brightness: 0.85;
+  --circadian-animation-speed: 0.8;
+  --circadian-period-name: "Night";
+  --circadian-presence: "intimate and calm";
+  --circadian-filter: sepia(calc(var(--circadian-warmth) * 0.15)) saturate(calc(1 + var(--circadian-warmth) * 0.1));
+}
+
+[data-circadian="lateNight"] {
+  --circadian-warmth: 0.35;
+  --circadian-brightness: 0.8;
+  --circadian-animation-speed: 0.7;
+  --circadian-period-name: "Late Night";
+  --circadian-presence: "fully present at 2am";
+  --circadian-filter: sepia(calc(var(--circadian-warmth) * 0.15)) saturate(calc(1 + var(--circadian-warmth) * 0.1));
+}
+
+[data-circadian="deepNight"] {
+  --circadian-warmth: 0.25;
+  --circadian-brightness: 0.75;
+  --circadian-animation-speed: 0.6;
+  --circadian-period-name: "Deep Night";
+  --circadian-presence: "quiet companion";
+  --circadian-filter: sepia(calc(var(--circadian-warmth) * 0.15)) saturate(calc(1 + var(--circadian-warmth) * 0.1));
+}
+
+/* Circadian Animation Speed Modifiers */
+.circadian-aware {
+  animation-duration: calc(var(--base-duration, 1s) / var(--circadian-animation-speed, 1));
+}
+
+/* Apply circadian warmth filter to any element */
+.circadian-warm {
+  filter: var(--circadian-filter, none);
+  transition: filter 2s ease-in-out;
+}
+
+/* Late Night Presence - Extra warmth and slower animations */
+[data-circadian="lateNight"], [data-circadian="deepNight"] {
+  --color-bg-primary-circadian: color-mix(in oklch, var(--color-bg-primary) 95%, var(--color-warm) 5%);
+  --transition-duration-circadian: calc(var(--duration-normal, 200ms) * 1.3);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .circadian-aware {
+    animation-duration: 0s;
+  }
+}
+
+/* ========================================
+   BREATH-SYNC ANIMATION SYSTEM
+   "Traditional UI animations are robotic.
+    Ferni breathes with you."
+   ======================================== */
+
+:root {
+  /* Breath-Sync CSS Variables */
+  --breath-duration: 5000ms;
+  --breath-inhale: 40%;
+  --breath-hold: 20%;
+  --breath-exhale: 40%;
+  --breath-scale-min: 1;
+  --breath-scale-max: 1.03;
+  --breath-easing: cubic-bezier(0.4, 0.0, 0.6, 1);
+}
+
+/* Breath-Sync Keyframes */
+
+@keyframes breathSync-calm {
+  0% { transform: scale(1); opacity: 0.9; }
+  40% { transform: scale(1.03); opacity: 1; }
+  60% { transform: scale(1.03); opacity: 1; }
+  100% { transform: scale(1); opacity: 0.9; }
+}
+
+@keyframes breathSync-relaxed {
+  0% { transform: scale(1); opacity: 0.92; }
+  35% { transform: scale(1.02); opacity: 1; }
+  65% { transform: scale(1.02); opacity: 1; }
+  100% { transform: scale(1); opacity: 0.92; }
+}
+
+@keyframes breathSync-attentive {
+  0% { transform: scale(1); opacity: 0.88; }
+  45% { transform: scale(1.04); opacity: 1; }
+  55% { transform: scale(1.04); opacity: 1; }
+  100% { transform: scale(1); opacity: 0.88; }
+}
+
+@keyframes breathSync-concerned {
+  0% { transform: scale(0.98); opacity: 0.9; }
+  50% { transform: scale(1.02); opacity: 1; }
+  60% { transform: scale(1.02); opacity: 1; }
+  100% { transform: scale(0.98); opacity: 0.9; }
+}
+
+/* Breath-Sync Preset Data Attributes */
+/* Apply [data-breath="presetName"] to enable preset */
+
+[data-breath="calm"] {
+  --breath-duration: 5000ms;
+  --breath-inhale: 40%;
+  --breath-hold: 20%;
+  --breath-exhale: 40%;
+  --breath-scale-min: 1;
+  --breath-scale-max: 1.03;
+  --breath-easing: cubic-bezier(0.4, 0.0, 0.6, 1);
+}
+
+[data-breath="relaxed"] {
+  --breath-duration: 6000ms;
+  --breath-inhale: 35%;
+  --breath-hold: 30%;
+  --breath-exhale: 35%;
+  --breath-scale-min: 1;
+  --breath-scale-max: 1.02;
+  --breath-easing: cubic-bezier(0.33, 0.0, 0.67, 1);
+}
+
+[data-breath="attentive"] {
+  --breath-duration: 4000ms;
+  --breath-inhale: 45%;
+  --breath-hold: 10%;
+  --breath-exhale: 45%;
+  --breath-scale-min: 1;
+  --breath-scale-max: 1.04;
+  --breath-easing: cubic-bezier(0.4, 0.0, 0.2, 1);
+}
+
+[data-breath="concerned"] {
+  --breath-duration: 3500ms;
+  --breath-inhale: 50%;
+  --breath-hold: 10%;
+  --breath-exhale: 40%;
+  --breath-scale-min: 0.98;
+  --breath-scale-max: 1.02;
+  --breath-easing: cubic-bezier(0.5, 0.0, 0.3, 1);
+}
+
+/* Breath-Sync Utility Classes */
+.breath-sync {
+  animation: breathSync-calm var(--breath-duration, 5000ms) var(--breath-easing, ease-in-out) infinite;
+}
+
+.breath-sync-calm {
+  animation: breathSync-calm 5000ms cubic-bezier(0.4, 0.0, 0.6, 1) infinite;
+}
+
+.breath-sync-relaxed {
+  animation: breathSync-relaxed 6000ms cubic-bezier(0.33, 0.0, 0.67, 1) infinite;
+}
+
+.breath-sync-attentive {
+  animation: breathSync-attentive 4000ms cubic-bezier(0.4, 0.0, 0.2, 1) infinite;
+}
+
+.breath-sync-concerned {
+  animation: breathSync-concerned 3500ms cubic-bezier(0.5, 0.0, 0.3, 1) infinite;
+}
+
+/* Dynamic Breath-Sync - Uses CSS Variables */
+@keyframes breathSyncDynamic {
+  0% { transform: scale(var(--breath-scale-min, 1)); opacity: 0.9; }
+  40% { transform: scale(var(--breath-scale-max, 1.03)); opacity: 1; }
+  60% { transform: scale(var(--breath-scale-max, 1.03)); opacity: 1; }
+  100% { transform: scale(var(--breath-scale-min, 1)); opacity: 0.9; }
+}
+
+.breath-sync-dynamic {
+  animation: breathSyncDynamic var(--breath-duration, 5000ms) var(--breath-easing, ease-in-out) infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .breath-sync,
+  .breath-sync-calm,
+  .breath-sync-relaxed,
+  .breath-sync-attentive,
+  .breath-sync-concerned,
+  .breath-sync-dynamic {
+    animation: none;
+  }
+}
+
+/* ========================================
+   EMOTIONAL THEMING SYSTEM
+   "Apple gives you light/dark mode.
+    Ferni gives you emotional presence."
+   ======================================== */
+
+:root {
+  /* Emotional Theming CSS Variables */
+  --emotional-temperature: 0;
+  --emotional-warmth: 0.5;
+  --emotional-saturation: 1;
+  --emotional-animation-intensity: 1;
+  --emotional-filter: none;
+
+  /* Computed emotional filter */
+  --emotional-filter-computed: sepia(calc(var(--emotional-warmth) * 0.2)) saturate(var(--emotional-saturation, 1));
+}
+
+/* Emotional Theme Data Attributes */
+/* Apply [data-emotion="themeName"] for context-aware theming */
+
+[data-emotion="embrace"] {
+  --emotional-temperature: 0.4;
+  --emotional-warmth: 0.8;
+  --emotional-saturation: 0.9;
+  --emotional-animation-intensity: 0.7;
+  --emotional-state: "comfort";
+  --emotional-name: "Warm Embrace";
+  --emotional-filter: sepia(0.16000000000000003) saturate(0.9);
+}
+
+[data-emotion="energize"] {
+  --emotional-temperature: -0.1;
+  --emotional-warmth: 0.4;
+  --emotional-saturation: 1.1;
+  --emotional-animation-intensity: 1.3;
+  --emotional-state: "excited";
+  --emotional-name: "Morning Energy";
+  --emotional-filter: hue-rotate(-1deg) saturate(1.1);
+}
+
+[data-emotion="focus"] {
+  --emotional-temperature: -0.2;
+  --emotional-warmth: 0.3;
+  --emotional-saturation: 0.85;
+  --emotional-animation-intensity: 0.6;
+  --emotional-state: "thinking";
+  --emotional-name: "Deep Focus";
+  --emotional-filter: hue-rotate(-2deg) saturate(0.85);
+}
+
+[data-emotion="reflect"] {
+  --emotional-temperature: 0.1;
+  --emotional-warmth: 0.55;
+  --emotional-saturation: 0.8;
+  --emotional-animation-intensity: 0.5;
+  --emotional-state: "contemplative";
+  --emotional-name: "Quiet Reflection";
+  --emotional-filter: sepia(0.11000000000000001) saturate(0.8);
+}
+
+/* Emotional Theme Utilities */
+.emotion-aware {
+  transition: filter 1.5s ease-in-out, background 1.5s ease-in-out;
+}
+
+.emotion-filter {
+  filter: var(--emotional-filter, none);
+}
+
+/* Embrace - For comfort moments */
+[data-emotion="embrace"] .emotion-surface {
+  background: color-mix(in oklch, var(--color-bg-primary) 90%, #e6a96a 10%);
+}
+
+/* Energize - For high-energy moments */
+[data-emotion="energize"] .emotion-surface {
+  background: color-mix(in oklch, var(--color-bg-primary) 95%, var(--color-accent) 5%);
+}
+
+/* Focus - For deep work */
+[data-emotion="focus"] {
+  --shadow-strength: 0.5;
+  --border-strength: 0.7;
+}
+
+/* Reflect - For processing moments */
+[data-emotion="reflect"] {
+  --color-saturation-modifier: 0.85;
+}
+
+/* Animation Intensity based on emotional state */
+.emotion-animated {
+  animation-duration: calc(var(--base-duration, 1s) / var(--emotional-animation-intensity, 1));
+}
+
+/* ========================================
+   PERSONA AURA SYSTEM
+   "Google Material gives you color schemes.
+    Ferni personas have atmospheric presence."
+   ======================================== */
+
+:root {
+  /* Persona Aura CSS Variables */
+  --persona-aura-gradient: none;
+  --persona-aura-glow: transparent;
+  --persona-aura-spread: 0px;
+  --persona-aura-pulse: 5s;
+  --persona-aura-filter: none;
+}
+
+/* Aura Pulse Animation */
+@keyframes aura-pulse {
+  0%, 100% { opacity: 0.7; }
+  50% { opacity: 1; }
+}
+
+/* Persona Aura Data Attributes */
+/* Apply [data-persona="personaName"] for persona-specific atmosphere */
+
+[data-persona="ferni"] {
+  --persona-aura-gradient: radial-gradient(ellipse 120% 100% at 50% -20%, rgba(74, 103, 65, 0.15) 0%, transparent 70%);
+  --persona-aura-glow: rgba(74, 103, 65, 0.25);
+  --persona-aura-spread: 80px;
+  --persona-aura-pulse: 5s;
+  --persona-aura-filter: saturate(1.02);
+  --persona-presence: "grounding";
+}
+
+[data-persona="maya"] {
+  --persona-aura-gradient: radial-gradient(ellipse 120% 100% at 50% -20%, rgba(139, 90, 173, 0.15) 0%, transparent 70%);
+  --persona-aura-glow: rgba(139, 90, 173, 0.25);
+  --persona-aura-spread: 70px;
+  --persona-aura-pulse: 4s;
+  --persona-aura-filter: saturate(1.05);
+  --persona-presence: "energizing";
+}
+
+[data-persona="peter"] {
+  --persona-aura-gradient: radial-gradient(ellipse 120% 100% at 50% -20%, rgba(46, 125, 154, 0.12) 0%, transparent 70%);
+  --persona-aura-glow: rgba(46, 125, 154, 0.2);
+  --persona-aura-spread: 90px;
+  --persona-aura-pulse: 6s;
+  --persona-aura-filter: saturate(0.98);
+  --persona-presence: "clarifying";
+}
+
+[data-persona="jordan"] {
+  --persona-aura-gradient: radial-gradient(ellipse 120% 100% at 50% -20%, rgba(209, 122, 71, 0.15) 0%, transparent 70%);
+  --persona-aura-glow: rgba(209, 122, 71, 0.25);
+  --persona-aura-spread: 75px;
+  --persona-aura-pulse: 4.5s;
+  --persona-aura-filter: saturate(1.08);
+  --persona-presence: "exciting";
+}
+
+[data-persona="alex"] {
+  --persona-aura-gradient: radial-gradient(ellipse 120% 100% at 50% -20%, rgba(90, 143, 123, 0.12) 0%, transparent 70%);
+  --persona-aura-glow: rgba(90, 143, 123, 0.2);
+  --persona-aura-spread: 85px;
+  --persona-aura-pulse: 5.5s;
+  --persona-aura-filter: saturate(1.0);
+  --persona-presence: "calming";
+}
+
+[data-persona="nayan"] {
+  --persona-aura-gradient: radial-gradient(ellipse 120% 100% at 50% -20%, rgba(139, 107, 74, 0.15) 0%, transparent 70%);
+  --persona-aura-glow: rgba(139, 107, 74, 0.22);
+  --persona-aura-spread: 100px;
+  --persona-aura-pulse: 7s;
+  --persona-aura-filter: saturate(0.95) sepia(0.05);
+  --persona-presence: "deepening";
+}
+
+/* Aura Background - Apply to a pseudo-element or dedicated div */
+.persona-aura {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 50vh;
+  background: var(--persona-aura-gradient, none);
+  pointer-events: none;
+  z-index: -1;
+  animation: aura-pulse var(--persona-aura-pulse, 5s) ease-in-out infinite;
+  transition: background 1s ease-in-out;
+}
+
+/* Aura Glow - Ambient light around avatar */
+.persona-glow {
+  box-shadow: 0 0 var(--persona-aura-spread, 60px) var(--persona-aura-glow, transparent);
+  transition: box-shadow 0.6s ease-in-out;
+}
+
+/* Aura Filter - Subtle atmosphere adjustment */
+.persona-atmosphere {
+  filter: var(--persona-aura-filter, none);
+  transition: filter 0.8s ease-in-out;
+}
+
+/* ========================================
+   RELATIONSHIP DEPTH SYSTEM
+   "Apple treats every session the same.
+    Ferni UI grows with your relationship."
+   ======================================== */
+
+:root {
+  /* Relationship Depth CSS Variables */
+  --relationship-stage: "new";
+  --relationship-richness: 0.5;
+  --relationship-animation-complexity: 1;
+  --relationship-personalization: 0;
+}
+
+/* Relationship Stage Data Attributes */
+/* Apply [data-relationship="stageName"] for progressive UI richness */
+
+[data-relationship="new"] {
+  --relationship-stage: "new";
+  --relationship-richness: 0.5;
+  --relationship-animation-complexity: 0.5;
+  --relationship-personalization: 0.2;
+}
+
+[data-relationship="gettingToKnow"] {
+  --relationship-stage: "gettingToKnow";
+  --relationship-richness: 0.65;
+  --relationship-animation-complexity: 0.7;
+  --relationship-personalization: 0.4;
+}
+
+[data-relationship="buildingTrust"] {
+  --relationship-stage: "buildingTrust";
+  --relationship-richness: 0.8;
+  --relationship-animation-complexity: 0.85;
+  --relationship-personalization: 0.6;
+}
+
+[data-relationship="established"] {
+  --relationship-stage: "established";
+  --relationship-richness: 0.9;
+  --relationship-animation-complexity: 0.95;
+  --relationship-personalization: 0.8;
+}
+
+[data-relationship="deepPartnership"] {
+  --relationship-stage: "deepPartnership";
+  --relationship-richness: 1;
+  --relationship-animation-complexity: 1;
+  --relationship-personalization: 1;
+}
+
+/* Progressive UI Richness */
+
+.relationship-animation {
+  animation-iteration-count: calc(var(--relationship-animation-complexity, 1) * 1);
+}
+
+.relationship-shadow {
+  --shadow-multiplier: var(--relationship-richness, 0.5);
+  box-shadow: 0 4px calc(12px * var(--shadow-multiplier)) rgba(0, 0, 0, calc(0.1 * var(--shadow-multiplier)));
+}
+
+/* New User - Clean and focused */
+[data-relationship="new"] .advanced-feature {
+  display: none;
+}
+[data-relationship="new"] .relationship-decorative {
+  opacity: 0;
+}
+
+/* Getting to Know - Personality emerging */
+[data-relationship="gettingToKnow"] .growth-feature {
+  display: block;
+}
+[data-relationship="gettingToKnow"] .relationship-decorative {
+  opacity: 0.5;
+}
+
+/* Building Trust - Full team available */
+[data-relationship="buildingTrust"] .team-feature {
+  display: block;
+}
+[data-relationship="buildingTrust"] .relationship-decorative {
+  opacity: 0.75;
+}
+
+/* Established - Rich interactions */
+[data-relationship="established"] .advanced-feature {
+  display: block;
+}
+[data-relationship="established"] .relationship-decorative {
+  opacity: 0.9;
+}
+
+/* Deep Partnership - Full UI richness */
+[data-relationship="deepPartnership"] .relationship-decorative {
+  opacity: 1;
+}
+[data-relationship="deepPartnership"] .insight-preview {
+  display: block;
+}
+
+/* Relationship Depth Indicator */
+.relationship-indicator {
+  display: flex;
+  gap: 4px;
+}
+.relationship-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-text-muted);
+  opacity: 0.3;
+  transition: opacity 0.3s ease, background 0.3s ease;
+}
+.relationship-dot.filled {
+  opacity: 1;
+  background: var(--color-accent);
+}
+
+/* ========================================
    EFFECTS & MAGICAL UTILITIES
    ======================================== */
 /* Blur Utilities */
@@ -986,6 +2004,17 @@
   --glow-persona-ring: none;
   --glow-connection: 0 0 16px 0 var(--color-semantic-success-glow);
   --glow-thinking: 0 0 12px 2px var(--color-accent-glow);
+}
+
+/* Chromatic Aberration Effects */
+:root {
+  --effect-chromatic-red: #ff0000;
+  --effect-chromatic-red-tint: rgba(255, 0, 0, 0.2);
+  --effect-chromatic-cyan: #00ffff;
+  --effect-chromatic-cyan-tint: rgba(0, 255, 255, 0.2);
+  --effect-chromatic-offset-subtle: 1px;
+  --effect-chromatic-offset-normal: 2px;
+  --effect-chromatic-offset-strong: 4px;
 }
 
 /* ========================================
@@ -1182,6 +2211,174 @@
   -webkit-backdrop-filter: blur(var(--glass-blur-strong));
   border: var(--glass-border-medium);
   box-shadow: var(--glass-inner-glow);
+}
+
+/* ========================================
+   LIQUID GLASS - iOS 26 Inspired
+   Apple's new translucent, vibrant design
+   ======================================== */
+
+/* Liquid Glass Base - Use on modals, cards, overlays */
+.glass-liquid {
+  position: relative;
+  background: var(--glass-surface-2);
+  backdrop-filter: blur(var(--glass-blur-medium)) var(--glass-vibrancy-medium);
+  -webkit-backdrop-filter: blur(var(--glass-blur-medium)) var(--glass-vibrancy-medium);
+  border: var(--glass-border-light);
+  box-shadow: var(--glass-inner-glow);
+  overflow: hidden;
+  transition: 
+    backdrop-filter 300ms var(--ease-gentle),
+    transform 300ms var(--ease-spring),
+    box-shadow 300ms var(--ease-gentle);
+}
+
+/* Specular highlight layer (pseudo-element) */
+.glass-liquid::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--glass-specular-gradient);
+  background-size: var(--glass-specular-size);
+  background-position: var(--glass-specular-position);
+  opacity: 0.6;
+  pointer-events: none;
+  transition: opacity 300ms var(--ease-gentle);
+}
+
+/* Noise texture layer */
+.glass-liquid::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: var(--glass-noise-texture);
+  background-size: 128px 128px;
+  opacity: var(--glass-noise-opacity-subtle);
+  mix-blend-mode: var(--glass-noise-blend);
+  pointer-events: none;
+}
+
+/* Hover: Deeper blur, brighter specular */
+.glass-liquid:hover {
+  backdrop-filter: blur(calc(var(--glass-blur-medium) + var(--glass-hover-blur-increase))) var(--glass-vibrancy-high);
+  -webkit-backdrop-filter: blur(calc(var(--glass-blur-medium) + var(--glass-hover-blur-increase))) var(--glass-vibrancy-high);
+}
+
+.glass-liquid:hover::before {
+  opacity: 0.8;
+}
+
+/* Active: Slight press */
+.glass-liquid:active {
+  transform: scale(var(--glass-active-scale));
+}
+
+/* Focus: Persona-colored ring */
+.glass-liquid:focus-visible {
+  outline: none;
+  box-shadow: var(--glass-inner-glow), var(--glass-focus-ring);
+}
+
+/* Liquid Glass - Light variant */
+.glass-liquid-light {
+  background: var(--glass-surface-1);
+  backdrop-filter: blur(var(--glass-blur-subtle)) var(--glass-vibrancy-subtle);
+  -webkit-backdrop-filter: blur(var(--glass-blur-subtle)) var(--glass-vibrancy-subtle);
+}
+
+/* Liquid Glass - Heavy variant */
+.glass-liquid-heavy {
+  background: var(--glass-surface-3);
+  backdrop-filter: blur(var(--glass-blur-intense)) var(--glass-vibrancy-ultra);
+  -webkit-backdrop-filter: blur(var(--glass-blur-intense)) var(--glass-vibrancy-ultra);
+}
+
+/* Liquid Glass with Tilt Effect (3D) */
+.glass-liquid-tilt {
+  transform-style: preserve-3d;
+  perspective: var(--glass-tilt-perspective);
+  transition: var(--glass-tilt-transition);
+}
+
+.glass-liquid-tilt:hover {
+  /* JS should set --tilt-x and --tilt-y based on cursor position */
+  transform: rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg));
+}
+
+/* Liquid Glass with Shimmer Animation */
+.glass-liquid-shimmer::before {
+  background: var(--glass-shimmer-gradient);
+  background-size: 200% 100%;
+  animation: var(--glass-shimmer-animation);
+}
+
+@keyframes specularShimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* Liquid Glass with Fresnel Edge Effect */
+.glass-liquid-fresnel::before {
+  background: var(--glass-fresnel-light);
+}
+
+[data-theme="midnight"] .glass-liquid-fresnel::before {
+  background: var(--glass-fresnel-dark);
+}
+
+/* Liquid Glass with Chromatic Aberration */
+.glass-liquid-chromatic {
+  position: relative;
+}
+
+.glass-liquid-chromatic::before {
+  box-shadow: 
+    calc(var(--glass-chromatic-offset) * -1) 0 0 var(--glass-chromatic-red),
+    var(--glass-chromatic-offset) 0 0 var(--glass-chromatic-blue);
+}
+
+/* Liquid Glass Ripple Effect */
+.glass-liquid-ripple {
+  overflow: hidden;
+}
+
+.glass-liquid-ripple .ripple {
+  position: absolute;
+  border-radius: 50%;
+  background: var(--glass-ripple-color);
+  transform: scale(0);
+  animation: glassRipple var(--glass-ripple-duration) var(--glass-ripple-easing) forwards;
+  pointer-events: none;
+}
+
+@keyframes glassRipple {
+  to {
+    transform: scale(4);
+    opacity: 0;
+  }
+}
+
+/* Reduced Motion: Disable animations */
+@media (prefers-reduced-motion: reduce) {
+  .glass-liquid,
+  .glass-liquid::before,
+  .glass-liquid::after {
+    transition: none;
+    animation: none;
+  }
+  
+  .glass-liquid-tilt:hover {
+    transform: none;
+  }
+  
+  .glass-liquid-shimmer::before {
+    animation: none;
+  }
+  
+  .glass-liquid-ripple .ripple {
+    animation: none;
+    display: none;
+  }
 }
 
 /* ========================================
@@ -2425,4 +3622,1982 @@
   .toast-progress-bar { animation: none; transform: scaleX(0); }
   .toast-loading .toast-icon { animation: none; }
   .toast-container:hover .toast { transition: none; }
+}
+
+
+/* ========================================
+   MOTION TOKENS (FERNI ALIVE)
+   Breathing, blinking, gaze, speaking animations
+   ======================================== */
+:root {
+  /* Motion Easings - from ferni-alive.html */
+  --motion-ease-standard: cubic-bezier(0.4, 0.0, 0.2, 1);
+  --motion-ease-accelerate: cubic-bezier(0.4, 0.0, 1, 1);
+  --motion-ease-decelerate: cubic-bezier(0.0, 0.0, 0.2, 1);
+  --motion-ease-sharp: cubic-bezier(0.4, 0.0, 0.6, 1);
+  --motion-ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --motion-ease-spring-heavy: cubic-bezier(0.34, 1.8, 0.64, 1);
+  --motion-ease-spring-gentle: cubic-bezier(0.34, 1.2, 0.64, 1);
+  --motion-ease-expo-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --motion-ease-gentle: cubic-bezier(0.4, 0, 0.2, 1);
+  --motion-ease-organic: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  --motion-ease-anticipate: cubic-bezier(0.38, -0.4, 0.88, 0.65);
+  --motion-ease-bounce: cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  --motion-ease-elastic: cubic-bezier(0.5, 1.8, 0.5, 0.8);
+
+  /* Motion Durations */
+  --motion-duration-instant: 40ms;
+  --motion-duration-micro: 80ms;
+  --motion-duration-quick: 100ms;
+  --motion-duration-fast: 150ms;
+  --motion-duration-normal: 250ms;
+  --motion-duration-slow: 400ms;
+  --motion-duration-moderate: 450ms;
+  --motion-duration-deliberate: 600ms;
+  --motion-duration-dramatic: 800ms;
+  --motion-duration-celebration: 1000ms;
+  --motion-duration-glacial: 1500ms;
+
+  /* Breath Cycles */
+  --breath-idle-duration: 4000ms;
+  --breath-idle-scale-y: 1.018;
+  --breath-idle-scale-x: 0.994;
+  --breath-calm-duration: 5000ms;
+  --breath-calm-scale-y: 1.02;
+  --breath-calm-scale-x: 0.99;
+  --breath-excited-duration: 2500ms;
+  --breath-excited-scale-y: 1.025;
+  --breath-excited-scale-x: 0.985;
+  --breath-speaking-duration: 1800ms;
+  --breath-speaking-scale-y: 1.03;
+  --breath-speaking-scale-x: 0.98;
+  --breath-ring-delay: 300ms;
+
+  /* Blink Timing */
+  --blink-duration: 150ms;
+  --blink-interval-min: 3000ms;
+  --blink-interval-max: 7000ms;
+  --blink-lid-transition: 350ms;
+
+  /* Gaze Drift */
+  --gaze-drift-cycle: 8000ms;
+  --gaze-eyes-transition: 800ms;
+
+  /* Speaking Animation */
+  --speak-pulse-duration: 450ms;
+  --speak-sparkle-rotate: 600ms;
+
+  /* Glow Properties */
+  --glow-idle-blur: 20px;
+  --glow-idle-spread: 8px;
+  --glow-idle-opacity: 0.4;
+  --glow-idle-pulse: 4000ms;
+  --glow-active-blur: 30px;
+  --glow-active-spread: 12px;
+  --glow-active-opacity: 0.6;
+  --glow-active-pulse: 2000ms;
+  --glow-excited-blur: 40px;
+  --glow-excited-spread: 16px;
+  --glow-excited-opacity: 0.8;
+  --glow-excited-pulse: 1500ms;
+  --glow-calm-blur: 25px;
+  --glow-calm-spread: 10px;
+  --glow-calm-opacity: 0.35;
+  --glow-calm-pulse: 5000ms;
+  --glow-concern-blur: 22px;
+  --glow-concern-spread: 8px;
+  --glow-concern-opacity: 0.5;
+  --glow-concern-pulse: 3000ms;
+
+  /* Micro-Expression Durations */
+  --micro-recognition: 80ms;
+  --micro-concern-flash: 60ms;
+  --micro-delight-flash: 100ms;
+  --micro-warmth-pulse: 120ms;
+  --micro-interest-flash: 70ms;
+}
+
+/* Persona Timing Modifiers */
+[data-persona="ferni"] {
+  --persona-timing-multiplier: 1;
+  --persona-easing-preference: var(--motion-ease-gentle);
+}
+[data-persona="jack"] {
+  --persona-timing-multiplier: 1.2;
+  --persona-easing-preference: var(--motion-ease-gentle);
+}
+[data-persona="peter"] {
+  --persona-timing-multiplier: 0.85;
+  --persona-easing-preference: var(--motion-ease-spring);
+}
+[data-persona="alex"] {
+  --persona-timing-multiplier: 1;
+  --persona-easing-preference: var(--motion-ease-standard);
+}
+[data-persona="maya"] {
+  --persona-timing-multiplier: 0.95;
+  --persona-easing-preference: var(--motion-ease-standard);
+}
+[data-persona="jordan"] {
+  --persona-timing-multiplier: 0.8;
+  --persona-easing-preference: var(--motion-ease-spring);
+}
+[data-persona="nayan"] {
+  --persona-timing-multiplier: 1.1;
+  --persona-easing-preference: var(--motion-ease-gentle);
+}
+
+/* Animation Layer Priorities (for JS orchestration) */
+:root {
+  --layer-breathing-priority: 1;
+  --layer-breathing-cycle: 4000ms;
+  --layer-blinking-priority: 2;
+  --layer-gaze-drift-priority: 3;
+  --layer-gaze-drift-cycle: 8000ms;
+  --layer-anticipation-priority: 4;
+  --layer-expression-priority: 5;
+  --layer-speaking-priority: 6;
+}
+
+/* ========================================
+   GLOW COLORS (EMOTIONAL STATES)
+   Avatar emotional glow colors
+   ======================================== */
+:root {
+  /* Emotional Glow Colors */
+  --glow-color-neutral: #f5f5f5;
+  --glow-color-joy: #ffd700;
+  --glow-color-concern: #daa520;
+  --glow-color-excitement: #ff6b6b;
+  --glow-color-calm: #87ceeb;
+  --glow-color-empathy: #ffb6c1;
+  --glow-color-focus: #4fc3f7;
+  --glow-color-celebration: #ffc107;
+  --glow-color-wisdom: #b8956a;
+  --glow-color-love: #ff69b4;
+  --glow-color-protective: #deb887;
+
+  /* Glow Intensity Levels */
+  --glow-intensity-subtle-opacity: 0.3;
+  --glow-intensity-subtle-blur: 15px;
+  --glow-intensity-subtle-spread: 5px;
+  --glow-intensity-normal-opacity: 0.5;
+  --glow-intensity-normal-blur: 25px;
+  --glow-intensity-normal-spread: 10px;
+  --glow-intensity-strong-opacity: 0.7;
+  --glow-intensity-strong-blur: 35px;
+  --glow-intensity-strong-spread: 15px;
+  --glow-intensity-intense-opacity: 0.9;
+  --glow-intensity-intense-blur: 45px;
+  --glow-intensity-intense-spread: 20px;
+}
+
+/* Emotional Glow Gradient Classes */
+.glow-gradient-joyful-celebration {
+  --glow-gradient: linear-gradient(135deg, #ffd700, #ffc107);
+  box-shadow: 0 0 30px #ffd70040, 0 0 60px #ffc10730;
+}
+.glow-gradient-calm-focus {
+  --glow-gradient: linear-gradient(135deg, #87ceeb, #4fc3f7);
+  box-shadow: 0 0 30px #87ceeb40, 0 0 60px #4fc3f730;
+}
+.glow-gradient-warm-empathy {
+  --glow-gradient: linear-gradient(135deg, #ffb6c1, #deb887);
+  box-shadow: 0 0 30px #ffb6c140, 0 0 60px #deb88730;
+}
+.glow-gradient-excited-joy {
+  --glow-gradient: linear-gradient(135deg, #ff6b6b, #ffd700);
+  box-shadow: 0 0 30px #ff6b6b40, 0 0 60px #ffd70030;
+}
+.glow-gradient-wisdom-calm {
+  --glow-gradient: linear-gradient(135deg, #b8956a, #87ceeb);
+  box-shadow: 0 0 30px #b8956a40, 0 0 60px #87ceeb30;
+}
+
+/* Persona Glow Modifiers */
+[data-persona="ferni"] {
+  --persona-glow-hue-shift: 0deg;
+  --persona-glow-saturation: 1;
+}
+[data-persona="maya"] {
+  --persona-glow-hue-shift: -10deg;
+  --persona-glow-saturation: 0.95;
+}
+[data-persona="peter"] {
+  --persona-glow-hue-shift: 15deg;
+  --persona-glow-saturation: 1.1;
+}
+[data-persona="jordan"] {
+  --persona-glow-hue-shift: 5deg;
+  --persona-glow-saturation: 1.15;
+}
+[data-persona="alex"] {
+  --persona-glow-hue-shift: -5deg;
+  --persona-glow-saturation: 0.9;
+}
+[data-persona="nayan"] {
+  --persona-glow-hue-shift: 10deg;
+  --persona-glow-saturation: 0.85;
+}
+
+/* ========================================
+   WINDOW AVATAR
+   Scale variants, expressions, phonemes
+   ======================================== */
+:root {
+  /* Window Avatar - Default values */
+  --window-avatar-lid-top-cutoff: 0.12;
+  --window-avatar-lid-top-curve: 0;
+  --window-avatar-lid-bottom-cutoff: 0.12;
+  --window-avatar-lid-bottom-curve: 0;
+  --window-avatar-speak-min-cutoff: 0.1;
+  --window-avatar-speak-max-cutoff: 0.35;
+  --window-avatar-speak-volume-scale: 0.25;
+
+  /* Window Avatar - Animation Timing */
+  --window-avatar-mouth-idle: 200ms;
+  --window-avatar-mouth-speaking: 60ms;
+  --window-avatar-mouth-transition: 300ms;
+  --window-avatar-mouth-attack: 0.25;
+  --window-avatar-mouth-release: 0.12;
+  --window-avatar-brow-raise: 250ms;
+  --window-avatar-brow-lower: 400ms;
+  --window-avatar-brow-transition: 350ms;
+  --window-avatar-expression-transition: 300ms;
+  --window-avatar-micro-expression: 80ms;
+
+  /* Window Avatar - Shape Parameters */
+  --window-avatar-curve-tension: 0.3;
+  --window-avatar-curve-smooth: 0.5;
+  --window-avatar-curve-sharp: 0.15;
+}
+
+/* Window Avatar - Scale Variants */
+/* Based on window-avatar.json scale definitions */
+
+.window-avatar--tiny,
+.ferni-avatar--tiny {
+  --window-avatar-size: 28px;
+  --window-avatar-lid-visible: 0;
+  --window-avatar-lid-scale: 0;
+}
+.window-avatar--tiny .lid,
+.ferni-avatar--tiny .lid,
+.window-avatar--tiny .lid-top,
+.ferni-avatar--tiny .lid-top,
+.window-avatar--tiny .lid-bottom,
+.ferni-avatar--tiny .lid-bottom {
+  display: none; /* Eyes only at tiny size */
+}
+
+.window-avatar--small,
+.ferni-avatar--small {
+  --window-avatar-size: 52px;
+  --window-avatar-lid-scale: 0.8;
+  --window-avatar-lid-visible: 1;
+}
+.window-avatar--small .lid-shape,
+.ferni-avatar--small .lid-shape {
+  /* Reduced lid expression at small size */
+  transform: scaleY(0.8);
+}
+
+.window-avatar--medium,
+.ferni-avatar--medium,
+.ferni-avatar { /* Default size */
+  --window-avatar-size: 100px;
+  --window-avatar-lid-scale: 1;
+  --window-avatar-lid-visible: 1;
+}
+
+.window-avatar--large,
+.ferni-avatar--large {
+  --window-avatar-size: 200px;
+  --window-avatar-lid-scale: 1.2;
+  --window-avatar-lid-visible: 1;
+}
+.window-avatar--large .lid-shape,
+.ferni-avatar--large .lid-shape {
+  /* Enhanced expression at large size */
+  transform: scaleY(1.2);
+}
+
+/* Window Avatar - Expression Classes */
+/* Apply via data-expression attribute or class */
+
+.ferni-avatar[data-expression="neutral"],
+.window-avatar[data-expression="neutral"],
+.ferni-avatar--neutral {
+  --window-avatar-lid-top-cutoff: 0.12;
+  --window-avatar-lid-top-curve: 0;
+  --window-avatar-lid-top-asymmetry: 0;
+  --window-avatar-lid-bottom-cutoff: 0.12;
+  --window-avatar-lid-bottom-curve: 0;
+  --window-avatar-lid-bottom-asymmetry: 0;
+}
+
+.ferni-avatar[data-expression="surprised"],
+.window-avatar[data-expression="surprised"],
+.ferni-avatar--surprised {
+  --window-avatar-lid-top-cutoff: 0.06;
+  --window-avatar-lid-top-curve: 0.1;
+  --window-avatar-lid-top-asymmetry: 0;
+  --window-avatar-lid-bottom-cutoff: 0.18;
+  --window-avatar-lid-bottom-curve: 0;
+  --window-avatar-lid-bottom-asymmetry: 0;
+}
+
+.ferni-avatar[data-expression="sleepy"],
+.window-avatar[data-expression="sleepy"],
+.ferni-avatar--sleepy {
+  --window-avatar-lid-top-cutoff: 0.22;
+  --window-avatar-lid-top-curve: -0.15;
+  --window-avatar-lid-top-asymmetry: 0;
+  --window-avatar-lid-bottom-cutoff: 0.12;
+  --window-avatar-lid-bottom-curve: 0;
+  --window-avatar-lid-bottom-asymmetry: 0;
+}
+
+.ferni-avatar[data-expression="thinking"],
+.window-avatar[data-expression="thinking"],
+.ferni-avatar--thinking {
+  --window-avatar-lid-top-cutoff: 0.14;
+  --window-avatar-lid-top-curve: 0;
+  --window-avatar-lid-top-asymmetry: 0;
+  --window-avatar-lid-bottom-cutoff: 0.11;
+  --window-avatar-lid-bottom-curve: 0.05;
+  --window-avatar-lid-bottom-asymmetry: 0.08;
+}
+
+.ferni-avatar[data-expression="curious"],
+.window-avatar[data-expression="curious"],
+.ferni-avatar--curious {
+  --window-avatar-lid-top-cutoff: 0.1;
+  --window-avatar-lid-top-curve: 0.05;
+  --window-avatar-lid-top-asymmetry: 0.15;
+  --window-avatar-lid-bottom-cutoff: 0.13;
+  --window-avatar-lid-bottom-curve: 0;
+  --window-avatar-lid-bottom-asymmetry: 0.12;
+}
+
+.ferni-avatar[data-expression="skeptical"],
+.window-avatar[data-expression="skeptical"],
+.ferni-avatar--skeptical {
+  --window-avatar-lid-top-cutoff: 0.11;
+  --window-avatar-lid-top-curve: 0;
+  --window-avatar-lid-top-asymmetry: 0.25;
+  --window-avatar-lid-bottom-cutoff: 0.11;
+  --window-avatar-lid-bottom-curve: 0.08;
+  --window-avatar-lid-bottom-asymmetry: 0.2;
+}
+
+.ferni-avatar[data-expression="worried"],
+.window-avatar[data-expression="worried"],
+.ferni-avatar--worried {
+  --window-avatar-lid-top-cutoff: 0.13;
+  --window-avatar-lid-top-curve: -0.1;
+  --window-avatar-lid-top-asymmetry: 0.1;
+  --window-avatar-lid-bottom-cutoff: 0.09;
+  --window-avatar-lid-bottom-curve: 0.12;
+  --window-avatar-lid-bottom-asymmetry: 0.05;
+}
+
+.ferni-avatar[data-expression="happy"],
+.window-avatar[data-expression="happy"],
+.ferni-avatar--happy {
+  --window-avatar-lid-top-cutoff: 0.14;
+  --window-avatar-lid-top-curve: 0.08;
+  --window-avatar-lid-top-asymmetry: 0;
+  --window-avatar-lid-bottom-cutoff: 0.14;
+  --window-avatar-lid-bottom-curve: -0.2;
+  --window-avatar-lid-bottom-asymmetry: 0;
+}
+
+.ferni-avatar[data-expression="delighted"],
+.window-avatar[data-expression="delighted"],
+.ferni-avatar--delighted {
+  --window-avatar-lid-top-cutoff: 0.16;
+  --window-avatar-lid-top-curve: 0.12;
+  --window-avatar-lid-top-asymmetry: 0;
+  --window-avatar-lid-bottom-cutoff: 0.16;
+  --window-avatar-lid-bottom-curve: -0.3;
+  --window-avatar-lid-bottom-asymmetry: 0;
+}
+
+.ferni-avatar[data-expression="sad"],
+.window-avatar[data-expression="sad"],
+.ferni-avatar--sad {
+  --window-avatar-lid-top-cutoff: 0.12;
+  --window-avatar-lid-top-curve: -0.08;
+  --window-avatar-lid-top-asymmetry: 0.05;
+  --window-avatar-lid-bottom-cutoff: 0.1;
+  --window-avatar-lid-bottom-curve: 0.15;
+  --window-avatar-lid-bottom-asymmetry: 0;
+}
+
+.ferni-avatar[data-expression="excited"],
+.window-avatar[data-expression="excited"],
+.ferni-avatar--excited {
+  --window-avatar-lid-top-cutoff: 0.08;
+  --window-avatar-lid-top-curve: 0.1;
+  --window-avatar-lid-top-asymmetry: 0;
+  --window-avatar-lid-bottom-cutoff: 0.15;
+  --window-avatar-lid-bottom-curve: -0.18;
+  --window-avatar-lid-bottom-asymmetry: 0;
+}
+
+.ferni-avatar[data-expression="empathetic"],
+.window-avatar[data-expression="empathetic"],
+.ferni-avatar--empathetic {
+  --window-avatar-lid-top-cutoff: 0.13;
+  --window-avatar-lid-top-curve: 0.05;
+  --window-avatar-lid-top-asymmetry: 0.08;
+  --window-avatar-lid-bottom-cutoff: 0.12;
+  --window-avatar-lid-bottom-curve: -0.1;
+  --window-avatar-lid-bottom-asymmetry: 0.05;
+}
+
+.ferni-avatar[data-expression="contemplative"],
+.window-avatar[data-expression="contemplative"],
+.ferni-avatar--contemplative {
+  --window-avatar-lid-top-cutoff: 0.15;
+  --window-avatar-lid-top-curve: 0;
+  --window-avatar-lid-top-asymmetry: 0;
+  --window-avatar-lid-bottom-cutoff: 0.11;
+  --window-avatar-lid-bottom-curve: 0.03;
+  --window-avatar-lid-bottom-asymmetry: 0.1;
+}
+
+.ferni-avatar[data-expression="listening"],
+.window-avatar[data-expression="listening"],
+.ferni-avatar--listening {
+  --window-avatar-lid-top-cutoff: 0.11;
+  --window-avatar-lid-top-curve: 0.03;
+  --window-avatar-lid-top-asymmetry: 0;
+  --window-avatar-lid-bottom-cutoff: 0.12;
+  --window-avatar-lid-bottom-curve: -0.05;
+  --window-avatar-lid-bottom-asymmetry: 0;
+}
+
+/* Window Avatar - State Transitions */
+.ferni-avatar[data-state="connecting"],
+.window-avatar[data-state="connecting"] {
+  --window-avatar-lid-top-cutoff: 0.15;
+  --window-avatar-lid-top-curve: 0;
+  --window-avatar-lid-bottom-cutoff: 0.15;
+  --window-avatar-lid-bottom-curve: 0;
+}
+
+.ferni-avatar[data-state="thinking"],
+.window-avatar[data-state="thinking"] {
+  --window-avatar-lid-top-cutoff: 0.14;
+  --window-avatar-lid-top-curve: 0;
+  --window-avatar-lid-bottom-cutoff: 0.11;
+  --window-avatar-lid-bottom-curve: 0.05;
+}
+
+.ferni-avatar[data-state="listening"],
+.window-avatar[data-state="listening"] {
+  --window-avatar-lid-top-cutoff: 0.11;
+  --window-avatar-lid-top-curve: 0.03;
+  --window-avatar-lid-bottom-cutoff: 0.12;
+  --window-avatar-lid-bottom-curve: -0.05;
+}
+
+.ferni-avatar[data-state="speaking"],
+.window-avatar[data-state="speaking"] {
+  --window-avatar-lid-top-cutoff: 0.12;
+  --window-avatar-lid-top-curve: 0;
+}
+
+.ferni-avatar[data-state="farewell"],
+.window-avatar[data-state="farewell"] {
+  --window-avatar-lid-top-cutoff: 0.14;
+  --window-avatar-lid-top-curve: 0.05;
+  --window-avatar-lid-bottom-cutoff: 0.13;
+  --window-avatar-lid-bottom-curve: -0.15;
+}
+
+/* Window Avatar - Phoneme Shapes for Lip Sync */
+:root {
+  --phoneme-rest-open: 0;
+  --phoneme-rest-width: 1;
+  --phoneme-rest-roundness: 0;
+  --phoneme-a-open: 0.9;
+  --phoneme-a-width: 1.2;
+  --phoneme-a-roundness: 0.3;
+  --phoneme-e-open: 0.5;
+  --phoneme-e-width: 1.3;
+  --phoneme-e-roundness: 0.2;
+  --phoneme-i-open: 0.3;
+  --phoneme-i-width: 1.4;
+  --phoneme-i-roundness: 0.1;
+  --phoneme-o-open: 0.7;
+  --phoneme-o-width: 0.8;
+  --phoneme-o-roundness: 0.8;
+  --phoneme-u-open: 0.4;
+  --phoneme-u-width: 0.6;
+  --phoneme-u-roundness: 0.9;
+  --phoneme-m-open: 0;
+  --phoneme-m-width: 1;
+  --phoneme-m-roundness: 0;
+  --phoneme-f-open: 0.15;
+  --phoneme-f-width: 1.1;
+  --phoneme-f-roundness: 0.1;
+  --phoneme-th-open: 0.2;
+  --phoneme-th-width: 1;
+  --phoneme-th-roundness: 0.2;
+  --phoneme-l-open: 0.35;
+  --phoneme-l-width: 1.1;
+  --phoneme-l-roundness: 0.15;
+  --phoneme-w-open: 0.3;
+  --phoneme-w-width: 0.7;
+  --phoneme-w-roundness: 0.7;
+}
+
+/* Window Avatar - Brow Animation Keyframes */
+/* Brow = top lid - creates forehead/eyebrow expressions */
+
+@keyframes browRaise {
+  0% {
+    --window-avatar-lid-top-cutoff: 0.12;
+    transform: translateY(0);
+  }
+  50% {
+    --window-avatar-lid-top-cutoff: 0.06;
+    transform: translateY(-3px);
+  }
+  100% {
+    --window-avatar-lid-top-cutoff: 0.08;
+    transform: translateY(-2px);
+  }
+}
+
+@keyframes browLower {
+  0% {
+    --window-avatar-lid-top-cutoff: 0.12;
+    transform: translateY(0);
+  }
+  50% {
+    --window-avatar-lid-top-cutoff: 0.18;
+    transform: translateY(2px);
+  }
+  100% {
+    --window-avatar-lid-top-cutoff: 0.16;
+    transform: translateY(1px);
+  }
+}
+
+@keyframes browFurrow {
+  0% {
+    --window-avatar-lid-top-curve: 0;
+    transform: scaleY(1);
+  }
+  50% {
+    --window-avatar-lid-top-curve: -0.12;
+    transform: scaleY(0.95);
+  }
+  100% {
+    --window-avatar-lid-top-curve: -0.08;
+    transform: scaleY(0.97);
+  }
+}
+
+@keyframes browQuirk {
+  0% {
+    --window-avatar-lid-top-asymmetry: 0;
+  }
+  30% {
+    --window-avatar-lid-top-asymmetry: 0.3;
+  }
+  70% {
+    --window-avatar-lid-top-asymmetry: 0.25;
+  }
+  100% {
+    --window-avatar-lid-top-asymmetry: 0.2;
+  }
+}
+
+/* Window Avatar - Brow Animation Utility Classes */
+
+.ferni-avatar--brow-raise .lid-top,
+.window-avatar--brow-raise .lid-top {
+  animation: browRaise 250ms var(--motion-ease-spring, cubic-bezier(0.34, 1.56, 0.64, 1)) forwards;
+}
+
+.ferni-avatar--brow-lower .lid-top,
+.window-avatar--brow-lower .lid-top {
+  animation: browLower 400ms var(--motion-ease-gentle, cubic-bezier(0.25, 0.1, 0.25, 1)) forwards;
+}
+
+.ferni-avatar--brow-furrow .lid-top,
+.window-avatar--brow-furrow .lid-top {
+  animation: browFurrow 350ms var(--motion-ease-soft, cubic-bezier(0.4, 0, 0.2, 1)) forwards;
+}
+
+.ferni-avatar--brow-quirk .lid-top,
+.window-avatar--brow-quirk .lid-top {
+  animation: browQuirk 300ms var(--motion-ease-spring, cubic-bezier(0.34, 1.56, 0.64, 1)) forwards;
+}
+
+/* Micro-expression brow flash - subliminal 40-150ms */
+.ferni-avatar--brow-flash .lid-top,
+.window-avatar--brow-flash .lid-top {
+  animation: browRaise 80ms ease-out;
+}
+
+
+/* Window Avatar - Notification Badge */
+
+@keyframes badgeEntrance {
+  0% {
+    opacity: 0;
+    transform: scale(0) translateY(4px);
+  }
+  60% {
+    transform: scale(1.15) translateY(-2px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes badgePulse {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 currentColor;
+  }
+  50% {
+    transform: scale(1.05);
+    box-shadow: 0 0 0 4px transparent;
+  }
+}
+
+@keyframes badgeBounce {
+  0% {
+    transform: scale(1);
+  }
+  30% {
+    transform: scale(1.25);
+  }
+  50% {
+    transform: scale(0.9);
+  }
+  70% {
+    transform: scale(1.1);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+
+/* Base notification badge */
+.ferni-avatar__badge,
+.window-avatar__badge {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  font-family: var(--font-body);
+  font-weight: 600;
+  line-height: 1;
+  z-index: 10;
+  transition: transform 200ms var(--motion-ease-spring, cubic-bezier(0.34, 1.56, 0.64, 1)),
+              opacity 200ms ease-out;
+}
+
+/* Badge positioning */
+.ferni-avatar__badge--top-right,
+.window-avatar__badge--top-right {
+  top: -4px;
+  right: -4px;
+}
+
+.ferni-avatar__badge--top-left,
+.window-avatar__badge--top-left {
+  top: -4px;
+  left: -4px;
+}
+
+.ferni-avatar__badge--bottom-right,
+.window-avatar__badge--bottom-right {
+  bottom: -4px;
+  right: -4px;
+}
+
+.ferni-avatar__badge--bottom-left,
+.window-avatar__badge--bottom-left {
+  bottom: -4px;
+  left: -4px;
+}
+
+/* Badge sizes */
+.ferni-avatar__badge--dot,
+.window-avatar__badge--dot {
+  width: 8px;
+  height: 8px;
+  min-width: unset;
+  padding: 0;
+}
+
+.ferni-avatar__badge--small,
+.window-avatar__badge--small {
+  min-width: 16px;
+  height: 16px;
+  font-size: 10px;
+  padding: 0 4px;
+}
+
+.ferni-avatar__badge,
+.window-avatar__badge {
+  min-width: 20px;
+  height: 20px;
+  font-size: 11px;
+  padding: 0 6px;
+}
+
+/* Badge variants */
+.ferni-avatar__badge,
+.window-avatar__badge {
+  background: var(--color-semantic-error);
+  color: white;
+}
+
+.ferni-avatar__badge--subtle,
+.window-avatar__badge--subtle {
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border-medium);
+  color: var(--color-text-secondary);
+}
+
+.ferni-avatar__badge--success,
+.window-avatar__badge--success {
+  background: var(--color-semantic-success);
+  color: white;
+}
+
+.ferni-avatar__badge--persona,
+.window-avatar__badge--persona {
+  background: var(--persona-primary);
+  color: white;
+}
+
+/* Badge states */
+.ferni-avatar__badge--hidden,
+.window-avatar__badge--hidden {
+  opacity: 0;
+  transform: scale(0);
+  pointer-events: none;
+}
+
+.ferni-avatar__badge--visible,
+.window-avatar__badge--visible {
+  opacity: 1;
+  transform: scale(1);
+}
+
+/* Badge animations */
+.ferni-avatar__badge--animate-in,
+.window-avatar__badge--animate-in {
+  animation: badgeEntrance 300ms var(--ease-out-back) forwards;
+}
+
+.ferni-avatar__badge--pulse,
+.window-avatar__badge--pulse {
+  animation: badgePulse 1.5s ease-in-out infinite;
+}
+
+.ferni-avatar__badge--bounce,
+.window-avatar__badge--bounce {
+  animation: badgeBounce 400ms var(--ease-spring);
+}
+
+/* Container needs position relative for absolute badge positioning */
+.ferni-avatar--has-badge,
+.window-avatar--has-badge {
+  position: relative;
+}
+
+/* Scale-specific badge adjustments */
+.ferni-avatar--tiny .ferni-avatar__badge,
+.window-avatar--tiny .window-avatar__badge {
+  /* Smaller badge for tiny avatars */
+  min-width: 12px;
+  height: 12px;
+  font-size: 8px;
+  padding: 0 3px;
+  top: -2px;
+  right: -2px;
+}
+
+.ferni-avatar--tiny .ferni-avatar__badge--dot,
+.window-avatar--tiny .window-avatar__badge--dot {
+  width: 6px;
+  height: 6px;
+}
+
+.ferni-avatar--small .ferni-avatar__badge,
+.window-avatar--small .window-avatar__badge {
+  min-width: 14px;
+  height: 14px;
+  font-size: 9px;
+  padding: 0 3px;
+}
+
+.ferni-avatar--large .ferni-avatar__badge,
+.window-avatar--large .window-avatar__badge {
+  /* Larger badge for large avatars */
+  min-width: 24px;
+  height: 24px;
+  font-size: 13px;
+  padding: 0 8px;
+  top: -6px;
+  right: -6px;
+}
+
+.ferni-avatar--large .ferni-avatar__badge--dot,
+.window-avatar--large .window-avatar__badge--dot {
+  width: 12px;
+  height: 12px;
+}
+
+
+/* ========================================
+   ACCESSIBILITY - HIGH CONTRAST MODE
+   ======================================== */
+/* High contrast mode - for users who need enhanced visibility */
+@media (prefers-contrast: more) {
+  :root {
+    /* Boost text contrast */
+    --color-text-primary: #000000;
+    --color-text-secondary: #1a1a1a;
+    --color-text-muted: #333333;
+    
+    /* Remove subtle backgrounds */
+    --color-background-glass: transparent;
+    --glass-surface-1: rgba(255, 255, 255, 0.95);
+    --glass-surface-2: rgba(255, 255, 255, 0.98);
+    --glass-surface-3: #ffffff;
+    
+    /* Remove blur effects - they can hinder readability */
+    --glass-blur-subtle: 0px;
+    --glass-blur-medium: 0px;
+    --glass-blur-strong: 0px;
+    --glass-blur-intense: 0px;
+    
+    /* Stronger borders */
+    --color-border-subtle: rgba(0, 0, 0, 0.3);
+    --color-border-medium: rgba(0, 0, 0, 0.5);
+    --color-border-strong: rgba(0, 0, 0, 0.8);
+    
+    /* Simplified shadows */
+    --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.2);
+    --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.25);
+    --shadow-md: 0 4px 8px rgba(0, 0, 0, 0.3);
+    --shadow-lg: 0 8px 16px rgba(0, 0, 0, 0.35);
+    
+    /* Disable noise and complex effects */
+    --glass-noise-opacity-subtle: 0;
+    --glass-noise-opacity-medium: 0;
+    --glass-noise-opacity-visible: 0;
+    --glass-vibrancy-subtle: saturate(1) contrast(1);
+    --glass-vibrancy-medium: saturate(1) contrast(1);
+    --glass-vibrancy-high: saturate(1) contrast(1);
+    
+    /* Bolder focus rings */
+    --glass-focus-ring: 0 0 0 3px #000000;
+  }
+  
+  [data-theme="midnight"] {
+    --color-text-primary: #ffffff;
+    --color-text-secondary: #f0f0f0;
+    --color-text-muted: #e0e0e0;
+    
+    --glass-surface-1: rgba(0, 0, 0, 0.95);
+    --glass-surface-2: rgba(0, 0, 0, 0.98);
+    --glass-surface-3: #000000;
+    
+    --color-border-subtle: rgba(255, 255, 255, 0.3);
+    --color-border-medium: rgba(255, 255, 255, 0.5);
+    --color-border-strong: rgba(255, 255, 255, 0.8);
+    
+    --glass-focus-ring: 0 0 0 3px #ffffff;
+  }
+  
+  /* Ensure buttons have visible borders */
+  button, .btn {
+    border: 2px solid currentColor !important;
+  }
+  
+  /* Remove decorative gradients in high contrast */
+  .gradient-decorative,
+  [class*="gradient-"] {
+    background: none !important;
+    background-color: var(--color-background-primary) !important;
+  }
+}
+
+/* Forced colors mode (Windows High Contrast) */
+@media (forced-colors: active) {
+  :root {
+    /* Let the system handle colors */
+    --color-text-primary: CanvasText;
+    --color-text-secondary: CanvasText;
+    --color-background-primary: Canvas;
+    --color-background-elevated: Canvas;
+    --color-accent-primary: LinkText;
+    --color-border-medium: CanvasText;
+  }
+  
+  /* Ensure focus indicators are visible */
+  *:focus-visible {
+    outline: 2px solid Highlight !important;
+    outline-offset: 2px;
+  }
+  
+  /* Button styling for forced colors */
+  button, .btn {
+    border: 1px solid ButtonText;
+    background: ButtonFace;
+    color: ButtonText;
+  }
+  
+  button:hover, .btn:hover {
+    background: Highlight;
+    color: HighlightText;
+  }
+}
+
+/* Reduced transparency for users who prefer it */
+@media (prefers-reduced-transparency: reduce) {
+  :root {
+    /* Use solid backgrounds instead of translucent */
+    --glass-surface-1: var(--color-background-secondary);
+    --glass-surface-2: var(--color-background-tertiary);
+    --glass-surface-3: var(--color-background-elevated);
+    
+    /* Remove backdrop filters */
+    --glass-blur-subtle: 0px;
+    --glass-blur-medium: 0px;
+    --glass-blur-strong: 0px;
+    --glass-blur-intense: 0px;
+    
+    /* Solid overlays */
+    --backdrop-light: var(--color-background-overlay);
+    --backdrop-medium: var(--color-background-overlay);
+    --backdrop-heavy: var(--color-background-overlay);
+  }
+}
+
+/* ========================================
+   ORGANIC CONVERSATION FLOW
+   Flowing borders, breathing containers
+   ======================================== */
+/* ========================================
+   ORGANIC CONVERSATION FLOW
+
+   Better than Apple: Not rigid message boxes
+   Better than Google: Not disconnected bubbles
+
+   Philosophy: Chat interfaces feel mechanical - boxes floating in space.
+   Human conversation is a continuous river of dialogue, thoughts flowing
+   into each other, not disconnected rectangles.
+
+   Inspired by: Pixar's fluidity - water in Finding Nemo,
+   the organic blob shapes in Inside Out emotions
+   ======================================== */
+
+:root {
+  --conversation-message-radius-user: 24px 24px 8px 24px;
+  --conversation-message-radius-ai: 24px 24px 24px 8px;
+  --conversation-message-radius-system: 16px;
+  --conversation-breathing-duration: 5000ms;
+  --conversation-breathing-scale: 1.005;
+  --conversation-presence-color: var(--color-accent-subtle);
+  --conversation-connection-color: var(--color-border-subtle);
+  --conversation-connection-opacity: 0.3;
+  --conversation-enter-duration: 400ms;
+  --conversation-exit-duration: 300ms;
+}
+
+@keyframes containerBreathe {
+  0% { transform: scale(1); opacity: 0.98; }
+  50% { transform: scale(1.005); opacity: 1; }
+  100% { transform: scale(1); opacity: 0.98; }
+}
+
+@keyframes borderBreathe {
+  0% { opacity: 0.4; border-color: var(--color-border-subtle); }
+  50% { opacity: 0.8; border-color: var(--color-border-medium); }
+  100% { opacity: 0.4; border-color: var(--color-border-subtle); }
+}
+
+@keyframes presencePulse {
+  0% { box-shadow: 0 0 0 0 var(--color-accent-subtle); }
+  50% { box-shadow: 0 0 0 8px transparent; }
+  100% { box-shadow: 0 0 0 0 var(--color-accent-subtle); }
+}
+
+@keyframes thinkingRipple {
+  0% { transform: scale(0.8); opacity: 0.6; }
+  100% { transform: scale(1.5); opacity: 0; }
+}
+
+@keyframes activeGlow {
+  0% { box-shadow: 0 0 20px var(--persona-aura-glow); }
+  50% { box-shadow: 0 0 30px var(--persona-aura-glow); }
+  100% { box-shadow: 0 0 20px var(--persona-aura-glow); }
+}
+
+@keyframes messageEnter {
+  0% { opacity: 0; transform: translateY(20px) scale(0.95); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes messageExit {
+  0% { opacity: 1; transform: translateY(0) scale(1); }
+  100% { opacity: 0; transform: translateY(-10px) scale(0.98); }
+}
+
+@keyframes messageUpdate {
+  0% { background-color: var(--color-accent-subtle); }
+  100% { background-color: transparent; }
+}
+
+@keyframes connectionDraw {
+  0% { stroke-dashoffset: 100%; }
+  100% { stroke-dashoffset: 0%; }
+}
+
+/* Organic Message Shapes - asymmetric, flowing, human */
+.conversation-message {
+  position: relative;
+  padding: 16px 20px;
+  margin: 8px 0;
+  border-radius: var(--conversation-message-radius-ai);
+  background: var(--color-tonal-surface1-background);
+  animation: containerBreathe var(--conversation-breathing-duration) ease-in-out infinite;
+  will-change: transform, opacity;
+  transition: transform 200ms ease-out, box-shadow 200ms ease-out;
+}
+
+.conversation-message:hover {
+  animation-play-state: paused;
+  transform: scale(1.01);
+}
+
+.conversation-message--user {
+  border-radius: var(--conversation-message-radius-user);
+  background: linear-gradient(135deg, var(--color-tonal-surface2-background) 0%, var(--color-tonal-surface1-background) 100%);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.05);
+  margin-left: 40px;
+  margin-right: 0;
+}
+
+.conversation-message--ai {
+  border-radius: var(--conversation-message-radius-ai);
+  background: linear-gradient(135deg, var(--color-background-elevated) 0%, var(--color-background-tertiary) 100%);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.06), 0 2px 4px rgba(0,0,0,0.04);
+  margin-right: 40px;
+  margin-left: 0;
+}
+
+.conversation-message--system {
+  border-radius: var(--conversation-message-radius-system);
+  background: transparent;
+  text-align: center;
+  color: var(--color-text-muted);
+  font-size: 0.875rem;
+  animation: none;
+  margin: 16px 40px;
+}
+
+/* Flowing Borders - borders that breathe */
+.conversation-message--flowing {
+  border: 1px solid var(--color-border-subtle);
+  opacity: 0.6;
+}
+
+.conversation-message--active {
+  border: 1.5px solid var(--color-accent-primary);
+  box-shadow: 0 0 8px var(--color-accent-glow);
+}
+
+.conversation-message--breathing-border {
+  animation: borderBreathe 4s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+/* Connection Lines - visual threads between messages */
+.conversation-connection {
+  position: absolute;
+  left: 30px;
+  width: 2px;
+  background: var(--color-border-subtle);
+  opacity: 0.3;
+  transform-origin: top;
+}
+
+.conversation-connection--curved {
+  position: absolute;
+  pointer-events: none;
+  overflow: visible;
+}
+
+.conversation-connection--curved path {
+  fill: none;
+  stroke: var(--conversation-connection-color);
+  stroke-width: 2px;
+  opacity: var(--conversation-connection-opacity);
+  stroke-dasharray: 100%;
+  animation: connectionDraw 400ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+/* Breathing Containers - subtle life in static elements */
+.breathing-container {
+  animation: containerBreathe 5000ms cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+.breathing-container:hover {
+  animation-play-state: paused;
+  transform: scale(1.01);
+  transition: 200ms ease-out;
+}
+
+.breathing-container--active {
+  transform: scale(1);
+  box-shadow: 0 0 20px var(--color-accent-glow);
+}
+
+/* Presence Indicators - showing AI is here with you */
+.presence-indicator {
+  position: relative;
+  display: inline-block;
+}
+
+.presence-indicator--listening::after {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: inherit;
+  animation: presencePulse 2000ms ease-in-out infinite;
+}
+
+.presence-indicator--thinking {
+  position: relative;
+}
+
+.presence-indicator--thinking::before,
+.presence-indicator--thinking::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  border: 1px solid var(--color-accent-primary);
+  animation: thinkingRipple 1200ms cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+.presence-indicator--thinking::after {
+  animation-delay: 200ms;
+}
+
+.presence-indicator--active-glow {
+  animation: activeGlow 3000ms ease-in-out infinite;
+}
+
+/* Message Transitions - how messages enter and exit */
+.conversation-message-enter {
+  animation: messageEnter var(--conversation-enter-duration) cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+.conversation-message-exit {
+  animation: messageExit var(--conversation-exit-duration) ease-out forwards;
+}
+
+.conversation-message-update {
+  animation: messageUpdate 200ms ease-out;
+}
+
+/* Conversation Flow Container - the river of dialogue */
+.conversation-flow {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 16px;
+  position: relative;
+}
+
+.conversation-flow--connected {
+  /* Enables visual connection lines between messages */
+  --show-connections: 1;
+}
+
+.conversation-flow--connected .conversation-connection {
+  display: block;
+}
+
+.conversation-flow:not(.conversation-flow--connected) .conversation-connection {
+  display: none;
+}
+
+/* Reduced Motion - respect user preferences */
+@media (prefers-reduced-motion: reduce) {
+  .conversation-message,
+  .breathing-container,
+  .presence-indicator--listening::after,
+  .presence-indicator--thinking::before,
+  .presence-indicator--thinking::after,
+  .presence-indicator--active-glow {
+    animation: none;
+  }
+
+  .conversation-message-enter,
+  .conversation-message-exit {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+
+  .conversation-connection--curved path {
+    animation: none;
+    stroke-dashoffset: 0;
+  }
+}
+
+/* ========================================
+   MICRO-INTERACTIONS LIBRARY
+   Touch feedback, state animations, hover effects
+   ======================================== */
+/* ========================================
+   MICRO-INTERACTIONS LIBRARY
+
+   Better than Apple: More emotionally aware feedback
+   Better than Google: Warmer than Material's mechanical ripples
+
+   Philosophy: Micro-interactions are the soul of great UI.
+   Every tap, hover, and state change is an opportunity to delight.
+   We take Apple's touch feedback and add emotional warmth.
+
+   Inspired by: Apple's haptic feedback, Pixar's anticipation
+   and follow-through, but with human warmth
+   ======================================== */
+
+:root {
+  --micro-tap-duration: 200ms;
+  --micro-press-scale: 0.96;
+  --micro-release-scale: 1.02;
+  --micro-ripple-duration: 400ms;
+  --micro-success-duration: 400ms;
+  --micro-error-shake-distance: 8px;
+  --micro-loading-dots-duration: 1400ms;
+  --micro-skeleton-duration: 1500ms;
+  --micro-hover-lift: -2px;
+  --micro-hover-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  --micro-switch-duration: 200ms;
+  --micro-checkbox-duration: 150ms;
+  --micro-scroll-stagger: 100ms;
+}
+
+@keyframes tapPulse {
+  0% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(0.97); opacity: 0.9; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+@keyframes pressDown {
+  0% { transform: scale(1); }
+  100% { transform: scale(0.96); }
+}
+
+@keyframes releaseUp {
+  0% { transform: scale(0.96); }
+  50% { transform: scale(1.02); }
+  100% { transform: scale(1); }
+}
+
+@keyframes rippleExpand {
+  0% { transform: scale(0); opacity: 0.5; }
+  100% { transform: scale(2.5); opacity: 0; }
+}
+
+@keyframes longPressHold {
+  0% { transform: scale(1); box-shadow: none; }
+  100% { transform: scale(0.94); box-shadow: 0 0 20px var(--color-accent-glow); }
+}
+
+@keyframes successPop {
+  0% { transform: scale(0); opacity: 0; }
+  50% { transform: scale(1.2); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+@keyframes errorShake {
+  0% { transform: translateX(0); }
+  20% { transform: translateX(-8px); }
+  40% { transform: translateX(8px); }
+  60% { transform: translateX(-8px); }
+  80% { transform: translateX(8px); }
+  100% { transform: translateX(0); }
+}
+
+@keyframes warningPulse {
+  0% { transform: scale(1); opacity: 1; }
+  25% { transform: scale(1.05); opacity: 0.8; }
+  50% { transform: scale(1); opacity: 1; }
+  75% { transform: scale(1.05); opacity: 0.8; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+@keyframes loadingDots {
+  0% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+  100% { transform: translateY(0); }
+}
+
+@keyframes savedCheckmark {
+  0% { stroke-dashoffset: 24; }
+  100% { stroke-dashoffset: 0; }
+}
+
+@keyframes sentFlyAway {
+  0% { transform: translateX(0) translateY(0) scale(1); opacity: 1; }
+  100% { transform: translateX(30px) translateY(-20px) scale(0.5); opacity: 0; }
+}
+
+@keyframes copiedFlash {
+  0% { background-color: transparent; }
+  50% { background-color: var(--color-accent-subtle); }
+  100% { background-color: transparent; }
+}
+
+@keyframes heartPop {
+  0% { transform: scale(1); }
+  15% { transform: scale(1.3); }
+  30% { transform: scale(0.9); }
+  45% { transform: scale(1.2); }
+  60% { transform: scale(0.95); }
+  100% { transform: scale(1); }
+}
+
+@keyframes badgeBounce {
+  0% { transform: translateY(0); }
+  30% { transform: translateY(-4px); }
+  50% { transform: translateY(0); }
+  70% { transform: translateY(-2px); }
+  100% { transform: translateY(0); }
+}
+
+@keyframes indicatorPulse {
+  0% { box-shadow: 0 0 0 0 var(--color-accent-glow); }
+  50% { box-shadow: 0 0 10px 5px var(--color-accent-glow); }
+  100% { box-shadow: 0 0 0 0 var(--color-accent-glow); }
+}
+
+@keyframes skeletonShimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes dotsWave {
+  0% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+  100% { transform: translateY(0); }
+}
+
+@keyframes spinnerRotate {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+@keyframes fadeSlideUp {
+  0% { opacity: 0; transform: translateY(20px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes checkmarkDraw {
+  0% { stroke-dashoffset: 24; opacity: 0; }
+  50% { opacity: 1; }
+  100% { stroke-dashoffset: 0; opacity: 1; }
+}
+
+/* Touch Feedback - Haptic-style visual feedback */
+.touch-tap {
+  animation: tapPulse 200ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+.touch-press {
+  transform: scale(0.96);
+  transition: transform 100ms ease-out;
+}
+.touch-release {
+  animation: releaseUp 200ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.touch-ripple {
+  position: relative;
+  overflow: hidden;
+}
+.touch-ripple::after {
+  content: '';
+  position: absolute;
+  top: var(--ripple-y, 50%);
+  left: var(--ripple-x, 50%);
+  width: 100%;
+  height: 100%;
+  background: var(--color-accent-subtle);
+  border-radius: 50%;
+  transform: translate(-50%, -50%) scale(0);
+  opacity: 0;
+  pointer-events: none;
+}
+.touch-ripple.rippling::after {
+  animation: rippleExpand 400ms ease-out forwards;
+}
+.touch-long-press {
+  animation: longPressHold 800ms ease-in-out forwards;
+}
+
+/* State Feedback - Visual confirmation of state changes */
+.state-success {
+  animation: successPop 400ms cubic-bezier(0.34, 1.56, 0.64, 1);
+  color: var(--color-semantic-success);
+}
+.state-success::after {
+  box-shadow: 0 0 20px var(--color-semantic-success-glow);
+}
+.state-error {
+  animation: errorShake 400ms ease-out;
+  color: var(--color-semantic-error);
+}
+.state-warning {
+  animation: warningPulse 600ms ease-in-out;
+  color: var(--color-semantic-warning);
+}
+.state-info {
+  animation: infoSlide 300ms ease-out;
+  color: var(--color-semantic-info);
+}
+.state-loading .dot {
+  animation: loadingDots 1200ms ease-in-out infinite;
+}
+.state-loading .dot:nth-child(2) {
+  animation-delay: 150ms;
+}
+.state-loading .dot:nth-child(3) {
+  animation-delay: calc(150ms * 2);
+}
+
+/* Acknowledgments - Micro-celebrations for completed actions */
+.ack-saved {
+  animation: savedCheckmark 500ms ease-out forwards;
+}
+.ack-sent {
+  animation: sentFlyAway 400ms ease-out forwards;
+}
+.ack-copied {
+  animation: copiedFlash 300ms ease-out;
+}
+.ack-favorited {
+  animation: heartPop 500ms ease-out;
+  color: #e25555;
+}
+
+/* Attention Grabbers - Subtle animations to draw user attention */
+.attention-badge {
+  animation: badgeBounce 600ms cubic-bezier(0.34, 1.56, 0.64, 1);
+  animation-iteration-count: 2;
+}
+.attention-indicator {
+  animation: indicatorPulse 2000ms ease-in-out infinite;
+}
+.attention-shake {
+  animation: attentionShake 500ms ease-out;
+}
+@keyframes attentionShake {
+  0%, 100% { transform: translateX(0); }
+  20%, 60% { transform: translateX(-3px); }
+  40%, 80% { transform: translateX(3px); }
+}
+
+/* Loading Variants - Different loading states for different contexts */
+.loading-skeleton {
+  background: linear-gradient(90deg,
+    var(--color-bg-tertiary) 0%,
+    var(--color-bg-elevated) 50%,
+    var(--color-bg-tertiary) 100%);
+  background-size: 200% 100%;
+  animation: skeletonShimmer 1500ms ease-in-out infinite;
+}
+.loading-dots {
+  display: inline-flex;
+  gap: 4px;
+}
+.loading-dots .dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  animation: dotsWave 1400ms ease-in-out infinite;
+}
+.loading-dots .dot:nth-child(2) {
+  animation-delay: 100ms;
+}
+.loading-dots .dot:nth-child(3) {
+  animation-delay: calc(100ms * 2);
+}
+.loading-spinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--color-border-subtle);
+  border-top-color: var(--color-accent-primary);
+  border-radius: 50%;
+  animation: spinnerRotate 1000ms linear infinite;
+}
+.loading-breathing {
+  animation: loadingBreathe 2000ms ease-in-out infinite;
+}
+@keyframes loadingBreathe {
+  0%, 100% { transform: scale(0.95); opacity: 0.7; }
+  50% { transform: scale(1); opacity: 1; }
+}
+
+/* Hover Effects - Rich hover states beyond simple color changes */
+.hover-lift {
+  transition: transform 200ms ease-out, box-shadow 200ms ease-out;
+}
+.hover-lift:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+.hover-glow {
+  transition: box-shadow 250ms ease-out;
+}
+.hover-glow:hover {
+  box-shadow: 0 0 20px var(--color-accent-glow);
+}
+.hover-scale {
+  transition: transform 150ms ease-out;
+}
+.hover-scale:hover {
+  transform: scale(1.02);
+}
+.hover-border-glow {
+  transition: border-color 200ms ease-out, box-shadow 200ms ease-out;
+}
+.hover-border-glow:hover {
+  border-color: var(--color-accent-primary);
+  box-shadow: 0 0 0 2px var(--color-accent-glow);
+}
+
+/* Toggle Animations - Switch, checkbox, radio button animations */
+.toggle-switch {
+  --thumb-travel: 18px;
+  transition: background-color 200ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+.toggle-switch .thumb {
+  transition: transform 200ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+.toggle-switch.active .thumb {
+  transform: translateX(var(--thumb-travel));
+}
+.toggle-checkbox .checkmark {
+  stroke-dasharray: 24;
+  stroke-dashoffset: 24;
+  transition: stroke-dashoffset 150ms ease-out;
+}
+.toggle-checkbox.checked .checkmark {
+  stroke-dashoffset: 0;
+}
+.toggle-radio .dot {
+  transform: scale(0);
+  transition: transform 150ms ease-out;
+}
+.toggle-radio.selected .dot {
+  transform: scale(1);
+}
+
+/* Scroll Interactions - Scroll-linked micro-animations */
+.scroll-fade-in {
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 400ms ease-out, transform 400ms ease-out;
+}
+.scroll-fade-in.in-view {
+  opacity: 1;
+  transform: translateY(0);
+}
+.scroll-progress {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: var(--scroll-progress, 0%);
+  height: 3px;
+  background: var(--color-accent-primary);
+  z-index: 9999;
+  transition: width 50ms linear;
+}
+
+/* Reduced Motion - respect user preferences */
+@media (prefers-reduced-motion: reduce) {
+  .touch-tap,
+  .touch-press,
+  .touch-release,
+  .touch-ripple::after,
+  .touch-long-press,
+  .state-success,
+  .state-error,
+  .state-warning,
+  .state-loading .dot,
+  .ack-saved,
+  .ack-sent,
+  .ack-copied,
+  .ack-favorited,
+  .attention-badge,
+  .attention-indicator,
+  .attention-shake,
+  .loading-skeleton,
+  .loading-dots .dot,
+  .loading-spinner,
+  .loading-breathing,
+  .scroll-fade-in {
+    animation: none !important;
+  }
+
+  .hover-lift,
+  .hover-glow,
+  .hover-scale,
+  .hover-border-glow,
+  .toggle-switch .thumb,
+  .toggle-checkbox .checkmark,
+  .toggle-radio .dot {
+    transition: none !important;
+  }
+
+  .scroll-fade-in {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* ========================================
+   STATE LAYERS (MATERIAL 3 STYLE)
+   Hover, focus, pressed, dragged, disabled states
+   ======================================== */
+:root {
+  /* State Layer Opacities (Material 3 style) */
+  --state-opacity-hover: 0.08;
+  --state-opacity-focus: 0.12;
+  --state-opacity-pressed: 0.12;
+  --state-opacity-dragged: 0.16;
+  --state-opacity-selected: 0.12;
+  --state-opacity-activated: 0.12;
+
+  /* Disabled State Tokens */
+  --state-disabled-container-opacity: 0.12;
+  --state-disabled-content-opacity: 0.38;
+
+  /* State Transition Timings */
+  --state-transition-enter: 150ms cubic-bezier(0.0, 0.0, 0.2, 1);
+  --state-transition-exit: 75ms cubic-bezier(0.4, 0.0, 1, 1);
+  --state-transition-change: 200ms cubic-bezier(0.4, 0.0, 0.2, 1);
+
+  /* Ripple Effect Tokens */
+  --ripple-duration: 450ms;
+  --ripple-easing: cubic-bezier(0.4, 0, 0.2, 1);
+  --ripple-opacity-start: 0.24;
+  --ripple-opacity-end: 0;
+
+  /* Skeleton Loading Tokens */
+  --skeleton-pulse-duration: 1.5s;
+  --skeleton-shimmer-duration: 1.5s;
+}
+
+/* Focus Ring Styles */
+.focus-ring-default:focus-visible {
+  outline: 2px solid var(--color-accent-primary);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 2px var(--color-utility-focusRing);
+}
+
+.focus-ring-inset:focus-visible {
+  outline: 2px solid var(--color-accent-primary);
+  outline-offset: -2px;
+}
+
+.focus-ring-prominent:focus-visible {
+  outline: 3px solid var(--color-accent-primary);
+  outline-offset: 3px;
+  box-shadow: 0 0 0 3px var(--color-utility-focusRing), 0 0 8px var(--color-accent-glow);
+}
+
+.focus-ring-persona:focus-visible {
+  outline: 2px solid var(--persona-primary);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 2px var(--persona-glow);
+}
+
+/* Emotional State Overrides */
+[data-mood="calm"] {
+  --state-opacity-hover: 0.06;
+  --state-transition-enter: 300ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+[data-mood="energized"] {
+  --state-opacity-hover: 0.1;
+  --state-transition-enter: 150ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+[data-mood="stressed"] {
+  --state-opacity-hover: 0.05;
+  --state-transition-enter: 400ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+[data-mood="focused"] {
+  --state-opacity-hover: 0.08;
+  --state-transition-enter: 200ms cubic-bezier(0.4, 0, 0.6, 1);
+}
+
+
+/* ========================================
+   ICON SYSTEM (SF SYMBOLS-INSPIRED)
+   10 sizes, 8 weights, optical scaling
+   ======================================== */
+:root {
+  /* Icon Sizes */
+  --icon-size-2xs: 12px;
+  --icon-size-xs: 14px;
+  --icon-size-sm: 16px;
+  --icon-size-md: 20px;
+  --icon-size-lg: 24px;
+  --icon-size-xl: 28px;
+  --icon-size-2xl: 32px;
+  --icon-size-3xl: 40px;
+  --icon-size-4xl: 48px;
+  --icon-size-5xl: 64px;
+
+  /* Icon Stroke Weights */
+  --icon-stroke-ultraLight: 1px;
+  --icon-stroke-thin: 1.25px;
+  --icon-stroke-light: 1.5px;
+  --icon-stroke-regular: 1.75px;
+  --icon-stroke-medium: 2px;
+  --icon-stroke-semibold: 2.25px;
+  --icon-stroke-bold: 2.5px;
+  --icon-stroke-heavy: 3px;
+
+  /* Icon Colors */
+  --icon-color-default: var(--color-text-secondary);
+  --icon-color-muted: var(--color-text-muted);
+  --icon-color-primary: var(--color-text-primary);
+  --icon-color-accent: var(--color-accent-primary);
+  --icon-color-persona: var(--persona-primary);
+
+  /* Icon Animation Tokens */
+  --icon-press-scale: 0.85;
+  --icon-press-duration: 100ms;
+  --icon-hover-scale: 1.1;
+  --icon-hover-duration: 150ms;
+}
+
+/* ========================================
+   SHAPE SYSTEM (MATERIAL 3 STYLE)
+   Component-specific corner radius mappings
+   ======================================== */
+:root {
+  /* Corner Radius Scale */
+  --radius-none: 0px;
+  --radius-xs: 2px;
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-2xl: 20px;
+  --radius-3xl: 24px;
+  --radius-4xl: 28px;
+  --radius-5xl: 32px;
+  --radius-full: 9999px;
+
+  /* Component-Specific Radius */
+  --radius-button-sm: var(--radius-md);
+  --radius-button-md: var(--radius-md);
+  --radius-button-lg: var(--radius-lg);
+  --radius-button-fab: var(--radius-xl);
+  --radius-input: var(--radius-md);
+  --radius-search: var(--radius-full);
+  --radius-card: var(--radius-lg);
+  --radius-card-glass: var(--radius-xl);
+  --radius-dialog: var(--radius-4xl);
+  --radius-sheet-top: var(--radius-3xl);
+  --radius-chip: var(--radius-sm);
+  --radius-badge: var(--radius-full);
+  --radius-avatar: var(--radius-full);
+  --radius-tooltip: var(--radius-md);
+  --radius-toast: var(--radius-lg);
+}
+
+/* Persona Radius Adjustments */
+[data-persona="ferni"] {
+  --radius-multiplier: 1.1;
+}
+[data-persona="maya"] {
+  --radius-multiplier: 1;
+}
+[data-persona="peter"] {
+  --radius-multiplier: 0.85;
+}
+[data-persona="jordan"] {
+  --radius-multiplier: 1;
+}
+[data-persona="alex"] {
+  --radius-multiplier: 0.95;
+}
+[data-persona="nayan"] {
+  --radius-multiplier: 1.15;
+}
+
+/* ========================================
+   VISUALIZATION SYSTEM
+   Kintsugi, constellation, river, sankey, etc.
+   ======================================== */
+:root {
+  /* Visualization Shared Tokens */
+  --viz-transition-fast: 150ms ease-out;
+  --viz-transition-normal: 300ms ease-out;
+  --viz-transition-slow: 600ms ease-out;
+  --viz-transition-story: 1200ms cubic-bezier(0.4, 0, 0.2, 1);
+  --viz-tooltip-bg: var(--surface-elevated);
+  --viz-tooltip-radius: var(--radius-md);
+  --viz-tooltip-padding: 8px 12px;
+  --viz-legend-gap: 12px;
+  --viz-legend-swatch: 12px;
+
+  /* Kintsugi Animation Tokens */
+  --kintsugi-flow-duration: 1200ms;
+  --kintsugi-flow-stagger: 100ms;
+  --kintsugi-glow-duration: 2000ms;
+
+  /* Constellation Animation Tokens */
+  --constellation-twinkle-duration: 2000ms;
+  --constellation-draw-duration: 600ms;
+  --constellation-star-self: 24px;
+  --constellation-star-close: 12px;
+  --constellation-star-regular: 8px;
+
+  /* River Animation Tokens */
+  --river-flow-duration: 4000ms;
+  --river-ripple-duration: 1500ms;
+
+  /* Growth Rings Animation Tokens */
+  --growth-reveal-duration: 1500ms;
+  --growth-reveal-stagger: 150ms per ring;
+
+  /* Mood Calendar Tokens */
+  --mood-cell-size: 12px;
+  --mood-cell-gap: 3px;
+  --mood-cell-radius: 2px;
+}
+
+/* ========================================
+   EXTENDED COMPONENTS SYSTEM
+   30+ fully-specified component tokens
+   ======================================== */
+:root {
+  /* Extended Component Tokens */
+
+  /* Button Tokens */
+  --button-height-xs: 28px;
+  --button-padding-xs: 0 10px;
+  --button-font-xs: var(--text-xs);
+  --button-radius-xs: var(--radius-sm);
+  --button-icon-xs: 14px;
+  --button-height-sm: 32px;
+  --button-padding-sm: 0 12px;
+  --button-font-sm: var(--text-sm);
+  --button-radius-sm: var(--radius-md);
+  --button-icon-sm: 16px;
+  --button-height-md: 40px;
+  --button-padding-md: 0 16px;
+  --button-font-md: var(--text-base);
+  --button-radius-md: var(--radius-md);
+  --button-icon-md: 18px;
+  --button-height-lg: 48px;
+  --button-padding-lg: 0 24px;
+  --button-font-lg: var(--text-lg);
+  --button-radius-lg: var(--radius-lg);
+  --button-icon-lg: 20px;
+  --button-height-xl: 56px;
+  --button-padding-xl: 0 32px;
+  --button-font-xl: var(--text-xl);
+  --button-radius-xl: var(--radius-xl);
+  --button-icon-xl: 24px;
+  --button-press-duration: 100ms;
+  --button-release-duration: 200ms;
+
+  /* Input Tokens */
+  --input-height: 48px;
+  --input-padding: 12px 16px;
+  --input-radius: var(--radius-md);
+  --input-font: var(--text-base);
+  --input-height-sm: 36px;
+  --input-padding-sm: 8px 12px;
+  --input-height-md: 44px;
+  --input-padding-md: 10px 14px;
+  --input-height-lg: 52px;
+  --input-padding-lg: 12px 16px;
+
+  /* Card Tokens */
+  --card-padding-sm: 12px;
+  --card-radius-sm: var(--radius-md);
+  --card-padding-md: 16px;
+  --card-radius-md: var(--radius-lg);
+  --card-padding-lg: 24px;
+  --card-radius-lg: var(--radius-xl);
+
+  /* Toast Tokens */
+  --toast-padding: 12px 16px;
+  --toast-radius: var(--radius-lg);
+  --toast-min-width: 280px;
+  --toast-max-width: 420px;
+  --toast-gap: 12px;
+  --toast-enter-duration: 400ms;
+  --toast-exit-duration: 200ms;
+  --toast-duration-short: 2500ms;
+  --toast-duration-default: 4000ms;
+  --toast-duration-long: 6000ms;
+
+  /* Dialog Tokens */
+  --dialog-radius: var(--radius-2xl);
+  --dialog-max-width: 560px;
+  --dialog-width: calc(100vw - 48px);
+  --dialog-max-height: calc(100vh - 96px);
+  --dialog-header-padding: 24px 24px 16px;
+  --dialog-body-padding: 0 24px;
+  --dialog-footer-padding: 16px 24px 24px;
+  --dialog-footer-gap: 12px;
+  --dialog-enter-duration: 300ms;
+  --dialog-exit-duration: 200ms;
+
+  /* Avatar Tokens */
+  --avatar-size-xs: 24px;
+  --avatar-font-xs: 10px;
+  --avatar-size-sm: 32px;
+  --avatar-font-sm: 12px;
+  --avatar-size-md: 40px;
+  --avatar-font-md: 14px;
+  --avatar-size-lg: 48px;
+  --avatar-font-lg: 16px;
+  --avatar-size-xl: 64px;
+  --avatar-font-xl: 20px;
+  --avatar-size-2xl: 96px;
+  --avatar-font-2xl: 28px;
+  --avatar-radius: var(--radius-full);
+  --avatar-group-overlap: -8px;
+  --avatar-group-max-visible: 4;
+
+  /* Progress Tokens */
+  --progress-height: 4px;
+  --progress-radius: var(--radius-full);
+  --progress-bg: var(--tonal-surface-2);
+  --progress-circular-size: 40px;
+  --progress-circular-stroke: 4px;
 }

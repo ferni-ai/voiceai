@@ -24,7 +24,7 @@
 import { t } from '../../i18n/index.js';
 import { createLogger } from '../../utils/logger.js';
 import { trapFocus } from '../../utils/accessibility.js';
-import { toast } from '../toast.ui.js';
+import { toast } from '../whisper.ui.js';
 import { ICONS } from './icons.js';
 import { injectStyles, removeStyles } from './styles.js';
 import {
@@ -35,7 +35,6 @@ import {
   clearCache,
 } from './data.js';
 import {
-  renderLoading,
   renderSkeleton,
   renderError,
   renderContent,
@@ -107,14 +106,14 @@ function createJourneyPanel(): void {
           <h2 class="trust-journey-title" id="trust-journey-title">${t('trustJourney.title')}</h2>
           <p class="trust-journey-subtitle">${t('trustJourney.subtitle')}</p>
         </div>
-        <div class="trust-journey-actions">
-          <button class="trust-journey-action-btn" data-action="refresh" title="${t('accessibility.refreshData')}">
+        <div class="trust-journey-actions" role="button" tabindex="0">
+          <button aria-label="${t('accessibility.refresh')}" class="trust-journey-action-btn" data-action="refresh" title="${t('accessibility.refreshData')}">
             ${ICONS.refresh}
           </button>
-          <button class="trust-journey-action-btn" data-action="export" title="${t('accessibility.exportData')}">
+          <button aria-label="${t('accessibility.download')}" class="trust-journey-action-btn" data-action="export" title="${t('accessibility.exportData')}">
             ${ICONS.download}
           </button>
-          <button class="trust-journey-action-btn" data-action="close" title="${t('common.close')}">
+          <button aria-label="${t('accessibility.close')}" class="trust-journey-action-btn" data-action="close" title="${t('common.close')}">
             ${ICONS.close}
           </button>
         </div>
@@ -164,7 +163,7 @@ function handleOnlineStatusChange(): void {
 
 function handleContentClick(e: Event): void {
   const target = e.target as HTMLElement;
-  const actionEl = target.closest('[data-action]') as HTMLElement | null;
+  const actionEl = target.closest('[data-action]');
   const action = actionEl?.getAttribute('data-action');
 
   if (action === 'retry') {
@@ -172,7 +171,7 @@ function handleContentClick(e: Event): void {
   } else if (action === 'load-more') {
     loadMoreTimeline();
   } else if (action === 'filter') {
-    const filter = actionEl?.dataset.filter as TrustJourneyState['timelineFilter'];
+    const filter = (actionEl as HTMLElement | null)?.dataset.filter as TrustJourneyState['timelineFilter'];
     if (filter) {
       setTimelineFilter(filter);
     }

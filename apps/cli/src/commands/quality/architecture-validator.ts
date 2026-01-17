@@ -203,9 +203,25 @@ function extractImports(content: string): Array<{ line: number; path: string }> 
   // Track if we're inside a function body (where dynamic imports are intentional)
   let braceDepth = 0;
   let inTopLevel = true;
+  // Track if we're inside a block comment
+  let inBlockComment = false;
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
+
+    // Track block comments
+    if (line.includes('/*')) inBlockComment = true;
+    if (line.includes('*/')) inBlockComment = false;
+
+    // Skip lines that are in block comments or are single-line comments
+    // Also skip lines that appear to be inside JSDoc/code examples (start with ' *')
+    const trimmedLine = line.trim();
+    if (inBlockComment || trimmedLine.startsWith('//') || trimmedLine.startsWith('*')) {
+      // Still need to track brace depth for non-comment purposes
+      braceDepth += (line.match(/\{/g) || []).length;
+      braceDepth -= (line.match(/\}/g) || []).length;
+      continue;
+    }
 
     // Track brace depth to detect if we're in a function body
     // This is a simple heuristic - not perfect but catches most cases

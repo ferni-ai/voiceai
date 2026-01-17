@@ -15,11 +15,19 @@
 
 import type { IncomingMessage, ServerResponse } from 'http';
 import type { URL } from 'url';
+import { execFile } from 'child_process';
+import { promisify } from 'util';
 import { createLogger } from '../../../utils/safe-logger.js';
 import { rateLimit, requireAuth } from '../../auth-middleware.js';
 import { handleCorsPreflightIfNeeded, sendError, sendJSON } from '../../helpers.js';
 
 const log = createLogger({ module: 'AdminOperationsAPI' });
+
+// Safe async execFile (no shell injection risk)
+const execFileAsync = promisify(execFile);
+
+// GCP Configuration
+const GCP_PROJECT = process.env.GCP_PROJECT_ID || process.env.GOOGLE_CLOUD_PROJECT || 'johnb-2025';
 
 // Base path for these routes
 const BASE_PATH = '/api/v1/admin/operations';
@@ -61,6 +69,8 @@ interface CacheEntry<T> {
 const cache: {
   services?: CacheEntry<ServiceStatus[]>;
   metrics?: CacheEntry<OperationsMetrics>;
+  budget?: CacheEntry<BudgetStatus>;
+  billingAccount?: CacheEntry<string | null>;
 } = {};
 
 const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
@@ -106,6 +116,10 @@ interface BudgetStatus {
   currency: string;
   period: string;
   alertThresholds: number[];
+  /** Whether spend is estimated (true) or from actual billing data (false) */
+  estimated: boolean;
+  /** Data source: 'billing-api' | 'estimated' | 'fallback' */
+  source: 'billing-api' | 'estimated' | 'fallback';
 }
 
 interface OperationsData {
@@ -327,18 +341,188 @@ async function getMetrics(): Promise<OperationsMetrics> {
   return metrics;
 }
 
+/**
+ * Get billing account ID from GCP using gcloud CLI
+ * Cached for 5 minutes since this rarely changes
+ */
+async function getBillingAccount(): Promise<string | null> {
+  // Check cache
+  if (cache.billingAccount && Date.now() - cache.billingAccount.timestamp < CACHE_TTL) {
+    return cache.billingAccount.data;
+  }
+
+  try {
+    // Use gcloud CLI to get billing account for the project (safe: no shell interpolation)
+    const { stdout } = await execFileAsync('gcloud', [
+      'billing',
+      'projects',
+      'describe',
+      GCP_PROJECT,
+      '--format=value(billingAccountName)',
+    ]);
+
+    // Extract billing account ID (format: billingAccounts/XXXXXX-XXXXXX-XXXXXX)
+    const billingAccount = stdout.trim().replace('billingAccounts/', '');
+
+    // Update cache
+    cache.billingAccount = { data: billingAccount || null, timestamp: Date.now() };
+    return billingAccount || null;
+  } catch (error) {
+    log.debug(
+      { error: String(error) },
+      'Could not get billing account (gcloud may not be available)'
+    );
+    cache.billingAccount = { data: null, timestamp: Date.now() };
+    return null;
+  }
+}
+
+/**
+ * Estimate current month spend based on service usage
+ * Uses pricing estimates similar to costs-ai.ts
+ */
+function estimateCurrentMonthSpend(): number {
+  const now = new Date();
+  const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+  const dayOfMonth = now.getDate();
+  const monthProgress = dayOfMonth / daysInMonth;
+
+  // Base monthly estimates (conservative, based on typical Ferni usage)
+  const monthlyEstimates = {
+    // Cloud Run: ~$15-25/month for voice agent + UI server
+    cloudRun: 20,
+    // Firestore: ~$5-10/month for reads/writes/storage
+    firestore: 7,
+    // External APIs (Gemini, Cartesia, LiveKit): ~$10-20/month
+    externalApis: 15,
+    // Storage, networking, misc: ~$3-5/month
+    misc: 4,
+  };
+
+  const totalMonthly = Object.values(monthlyEstimates).reduce((a, b) => a + b, 0);
+
+  // Pro-rate based on current day of month
+  return Math.round(totalMonthly * monthProgress * 100) / 100;
+}
+
+/**
+ * Try to get budget info from GCP Billing Budget API
+ */
+async function queryGCPBudget(billingAccount: string): Promise<{
+  name: string;
+  limit: number;
+  thresholds: number[];
+} | null> {
+  try {
+    // Query budgets using gcloud CLI (safe: args passed as array)
+    const { stdout } = await execFileAsync('gcloud', [
+      'billing',
+      'budgets',
+      'list',
+      `--billing-account=${billingAccount}`,
+      '--format=json',
+    ]);
+
+    const budgets = JSON.parse(stdout);
+    if (!budgets || budgets.length === 0) {
+      return null;
+    }
+
+    // Find the first budget matching our project or main monthly budget
+    const budget =
+      budgets.find(
+        (b: { displayName?: string; budgetFilter?: { projects?: string[] } }) =>
+          b.displayName?.toLowerCase().includes('ferni') ||
+          b.displayName?.toLowerCase().includes('monthly') ||
+          b.budgetFilter?.projects?.some((p: string) => p.includes(GCP_PROJECT))
+      ) || budgets[0];
+
+    // Extract budget amount
+    const budgetAmount = budget.amount?.specifiedAmount?.units
+      ? parseFloat(budget.amount.specifiedAmount.units)
+      : budget.amount?.lastPeriodAmount
+        ? 0 // Last period amount - unknown exact limit
+        : 50; // Default fallback
+
+    // Extract threshold rules
+    const thresholds = (budget.thresholdRules || [])
+      .map((rule: { thresholdPercent?: number }) => (rule.thresholdPercent || 0) * 100)
+      .sort((a: number, b: number) => a - b);
+
+    return {
+      name: budget.displayName || 'GCP Budget',
+      limit: budgetAmount,
+      thresholds: thresholds.length > 0 ? thresholds : [50, 80, 100],
+    };
+  } catch (error) {
+    log.debug({ error: String(error) }, 'Could not query GCP budgets');
+    return null;
+  }
+}
+
+/**
+ * Get budget status with actual GCP data when available
+ * Falls back to estimates if gcloud CLI isn't available
+ */
 async function getBudgetStatus(): Promise<BudgetStatus> {
-  // In production, this would fetch from GCP Billing API
-  // For now, return configured budget with placeholder spend
-  return {
+  // Check cache first
+  if (cache.budget && Date.now() - cache.budget.timestamp < CACHE_TTL) {
+    return cache.budget.data;
+  }
+
+  // Default budget configuration
+  const defaultBudget = {
     name: 'Ferni Monthly Budget',
     limit: 50,
-    spent: 0, // Would come from billing API
-    percentage: 0,
-    currency: 'USD',
-    period: 'monthly',
     alertThresholds: [50, 80, 100],
   };
+
+  // Try to get billing account
+  const billingAccount = await getBillingAccount();
+
+  let budgetInfo = defaultBudget;
+  let source: 'billing-api' | 'estimated' | 'fallback' = 'fallback';
+
+  if (billingAccount) {
+    // Try to get actual budget from GCP
+    const gcpBudget = await queryGCPBudget(billingAccount);
+    if (gcpBudget) {
+      budgetInfo = {
+        name: gcpBudget.name,
+        limit: gcpBudget.limit || defaultBudget.limit,
+        alertThresholds: gcpBudget.thresholds,
+      };
+      source = 'billing-api';
+    } else {
+      source = 'estimated';
+    }
+  }
+
+  // Estimate current spend (real-time billing data requires BigQuery export)
+  const spent = estimateCurrentMonthSpend();
+  const percentage = budgetInfo.limit > 0 ? Math.round((spent / budgetInfo.limit) * 100) : 0;
+
+  const result: BudgetStatus = {
+    name: budgetInfo.name,
+    limit: budgetInfo.limit,
+    spent,
+    percentage,
+    currency: 'USD',
+    period: 'monthly',
+    alertThresholds: budgetInfo.alertThresholds,
+    estimated: true, // Spend is always estimated without BigQuery export
+    source,
+  };
+
+  // Update cache
+  cache.budget = { data: result, timestamp: Date.now() };
+
+  log.debug(
+    { source, spent, limit: budgetInfo.limit, hasBillingAccount: !!billingAccount },
+    'Budget status retrieved'
+  );
+
+  return result;
 }
 
 // ============================================================================

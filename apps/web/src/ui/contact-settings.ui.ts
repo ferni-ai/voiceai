@@ -16,11 +16,12 @@ import { DURATION, EASING } from '../config/animation-constants.js';
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import { getUserTimezone } from '../services/timezone.service.js';
+import { apiGet, apiPost } from '../utils/api.js';
 
 const log = createLogger('ContactSettingsUI');
 
 // FIX BUG: Track all setTimeout calls for proper cleanup
-const { trackedTimeout, clearAll: clearAllTimeouts } = createTimeoutTracker();
+const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
 
 // ============================================================================
 // HELPER FUNCTIONS
@@ -140,7 +141,7 @@ function injectStyles(): void {
     .contact-settings-overlay {
       position: fixed;
       inset: 0;
-      z-index: 10000;
+      z-index: var(--z-tooltip);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -157,19 +158,20 @@ function injectStyles(): void {
     .contact-settings-backdrop {
       position: absolute;
       inset: 0;
-      background: rgba(44, 37, 32, 0.4);
-      backdrop-filter: blur(var(--glass-blur-strong, 24px));
+      background: var(--color-utility-backdrop, rgba(44, 37, 32, 0.75));
+      backdrop-filter: blur(var(--glass-blur-subtle, 8px));
     }
 
     .contact-settings-modal {
       position: relative;
       width: 90%;
-      max-width: 440px;
+      max-width: clamp(308px, 90vw, 440px);
       max-height: 90vh;
       overflow-y: auto;
-      background: var(--color-background-elevated, #FFFDFB);
-      border-radius: var(--radius-2xl, 24px);
-      box-shadow: var(--shadow-2xl, 0 25px 50px -12px rgba(0, 0, 0, 0.25));
+      background: var(--color-bg-elevated, #FFFDFB);
+      border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
+      border-radius: 16px;
+      box-shadow: var(--shadow-xl, 0 16px 48px rgba(44, 37, 32, 0.2));
       transform: scale(0.95) translateY(10px);
       transition: transform ${DURATION.NORMAL}ms ${EASING.SPRING};
     }
@@ -179,16 +181,17 @@ function injectStyles(): void {
     }
 
     .contact-settings-header {
-      padding: 24px 24px 0;
+      padding: 1.5rem;
       text-align: center;
+      border-bottom: 1px solid rgba(44, 37, 32, 0.1);
     }
 
     .contact-settings-icon {
       width: 48px;
       height: 48px;
-      margin: 0 auto 12px;
+      margin: 0 auto 0.75rem;
       padding: 12px;
-      background: linear-gradient(135deg, var(--persona-primary, #4a6741), var(--persona-secondary, #3d5a35));
+      background: linear-gradient(135deg, var(--color-ferni, #4a6741), var(--color-ferni-dark, #3d5a35));
       border-radius: 50%;
       color: white;
     }
@@ -199,84 +202,84 @@ function injectStyles(): void {
     }
 
     .contact-settings-eyebrow {
-      font-size: 11px;
+      font-size: 0.75rem;
       font-weight: 600;
       text-transform: uppercase;
-      letter-spacing: 0.1em;
-      color: var(--color-text-secondary);
-      margin-bottom: 4px;
+      letter-spacing: 0.05em;
+      color: rgba(44, 37, 32, 0.6);
+      margin-bottom: 0.25rem;
     }
 
     .contact-settings-title {
-      font-size: 22px;
+      font-size: 1.25rem;
       font-weight: 600;
-      color: var(--color-text-primary, #2C2520);
-      margin: 0 0 8px;
+      color: var(--color-natural-ink, #2C2520);
+      margin: 0 0 0.5rem;
     }
 
     .contact-settings-subtitle {
-      font-size: 14px;
-      color: var(--color-text-secondary, #6B5B4F);
+      font-size: 0.875rem;
+      color: rgba(44, 37, 32, 0.7);
       line-height: 1.5;
       margin: 0;
     }
 
     .contact-settings-close {
       position: absolute;
-      top: 16px;
-      right: 16px;
+      top: 1rem;
+      right: 1rem;
       width: 32px;
       height: 32px;
-      padding: 0;
+      padding: 0.5rem;
       background: transparent;
       border: none;
-      border-radius: 50%;
+      border-radius: 8px;
       color: var(--color-text-muted, #9B8B7F);
       cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
-      transition: background ${DURATION.FAST}ms, color ${DURATION.FAST}ms;
+      transition: background 0.2s;
     }
 
     .contact-settings-close:hover {
-      background: rgba(0, 0, 0, 0.05);
-      color: var(--color-text-primary, #2C2520);
+      background: rgba(44, 37, 32, 0.1);
     }
 
     .contact-settings-close svg {
-      width: 18px;
-      height: 18px;
+      width: 20px;
+      height: 20px;
     }
 
     .contact-settings-content {
-      padding: 24px;
+      padding: 1.5rem;
     }
 
     .contact-settings-form {
       display: flex;
       flex-direction: column;
-      gap: 20px;
+      gap: 1.25rem;
     }
 
     .contact-settings-field {
       display: flex;
       flex-direction: column;
-      gap: 6px;
+      gap: 0.5rem;
     }
 
     .contact-settings-label {
       display: flex;
       align-items: center;
-      gap: 8px;
-      font-size: 13px;
+      gap: 0.5rem;
+      font-size: 0.875rem;
       font-weight: 500;
-      color: var(--color-text-secondary, #6B5B4F);
+      color: rgba(44, 37, 32, 0.8);
     }
 
     .contact-settings-label svg {
-      width: 16px;
-      height: 16px;
+      width: 18px;
+      height: 18px;
+      color: rgba(44, 37, 32, 0.5);
     }
 
     .contact-settings-input-wrapper {
@@ -287,56 +290,66 @@ function injectStyles(): void {
 
     .contact-settings-input {
       width: 100%;
-      padding: 12px 16px;
-      font-size: 16px;
-      border: 2px solid var(--color-border, rgba(0, 0, 0, 0.1));
-      border-radius: var(--radius-lg, 12px);
-      background: var(--color-background, #F5F1E8);
+      padding: 0.75rem 1rem;
+      font-size: 1rem;
+      font-family: inherit;
+      border: 2px solid rgba(44, 37, 32, 0.2);
+      border-radius: 8px;
+      background: var(--color-bg-elevated, #FFFDFB);
       color: var(--color-text-primary, #2C2520);
-      transition: border-color ${DURATION.FAST}ms, box-shadow ${DURATION.FAST}ms;
+      transition: all ${DURATION.FAST}ms;
     }
 
     .contact-settings-input:focus {
       outline: none;
-      border-color: var(--color-text-secondary);
-      box-shadow: 0 0 0 3px rgba(74, 103, 65, 0.1);
+      border-color: var(--color-ferni, #4a6741);
+      box-shadow: 0 0 0 3px rgba(74, 103, 65, 0.2);
     }
 
     .contact-settings-input::placeholder {
-      color: var(--color-text-muted, #9B8B7F);
+      color: rgba(44, 37, 32, 0.4);
     }
 
     .contact-settings-verified {
       position: absolute;
-      right: 12px;
+      right: 0.75rem;
       display: flex;
       align-items: center;
-      gap: 4px;
-      font-size: 12px;
-      color: var(--color-text-secondary);
+      gap: 0.25rem;
+      padding: 0.25rem 0.5rem;
+      background: rgba(74, 103, 65, 0.1);
+      border-radius: 999px;
+      font-size: 0.75rem;
+      font-weight: 500;
+      color: var(--color-ferni, #4a6741);
     }
 
     .contact-settings-verified svg {
-      width: 14px;
-      height: 14px;
+      width: 12px;
+      height: 12px;
     }
 
     .contact-settings-verify-btn {
-      margin-top: 8px;
-      padding: 8px 16px;
-      font-size: 13px;
+      margin-top: 0.5rem;
+      padding: 0.5rem 1rem;
+      font-family: inherit;
+      font-size: 0.875rem;
       font-weight: 500;
       background: transparent;
-      border: 1px solid var(--persona-primary, #4a6741);
-      border-radius: var(--radius-md, 8px);
-      color: var(--color-text-secondary);
+      border: 2px solid var(--color-ferni, #4a6741);
+      border-radius: 8px;
+      color: var(--color-ferni, #4a6741);
       cursor: pointer;
-      transition: background ${DURATION.FAST}ms, color ${DURATION.FAST}ms;
+      transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
     }
 
     .contact-settings-verify-btn:hover {
-      background: var(--persona-primary, #4a6741);
-      color: white;
+      background: rgba(74, 103, 65, 0.1);
+    }
+
+    .contact-settings-verify-btn:focus {
+      outline: 3px solid rgba(74, 103, 65, 0.5);
+      outline-offset: 2px;
     }
 
     .contact-settings-verify-btn:disabled {
@@ -345,69 +358,88 @@ function injectStyles(): void {
     }
 
     .contact-settings-verification {
-      margin-top: 12px;
-      padding: 16px;
+      margin-top: 0.75rem;
+      padding: 1rem;
       background: rgba(74, 103, 65, 0.05);
-      border-radius: var(--radius-md, 8px);
-      border: 1px solid rgba(74, 103, 65, 0.2);
+      border-radius: 8px;
+      border: 1px solid rgba(74, 103, 65, 0.15);
     }
 
     .contact-settings-verification-text {
-      font-size: 13px;
-      color: var(--color-text-secondary, #6B5B4F);
-      margin: 0 0 12px;
+      font-size: 0.875rem;
+      color: rgba(44, 37, 32, 0.7);
+      margin: 0 0 0.75rem;
     }
 
     .contact-settings-code-input {
       width: 100%;
-      padding: 12px 16px;
-      font-size: 20px;
+      padding: 0.75rem 1rem;
+      font-family: var(--font-mono, monospace);
+      font-size: 1.25rem;
       font-weight: 600;
       letter-spacing: 0.3em;
       text-align: center;
-      border: 2px solid var(--color-border, rgba(0, 0, 0, 0.1));
-      border-radius: var(--radius-md, 8px);
-      background: white;
+      border: 2px solid rgba(44, 37, 32, 0.2);
+      border-radius: 8px;
+      background: var(--color-bg-elevated, #FFFDFB);
+    }
+
+    .contact-settings-code-input:focus {
+      outline: none;
+      border-color: var(--color-ferni, #4a6741);
+      box-shadow: 0 0 0 3px rgba(74, 103, 65, 0.2);
     }
 
     .contact-settings-privacy {
       display: flex;
       align-items: flex-start;
-      gap: 12px;
-      padding: 16px;
-      background: rgba(74, 103, 65, 0.05);
-      border-radius: var(--radius-lg, 12px);
-      margin-top: 8px;
+      gap: 0.75rem;
+      padding: 1rem;
+      background: rgba(44, 37, 32, 0.03);
+      border-radius: 8px;
+      margin-top: 0.5rem;
     }
 
     .contact-settings-privacy-icon {
       flex-shrink: 0;
-      width: 20px;
-      height: 20px;
-      color: var(--color-text-secondary);
+      width: 18px;
+      height: 18px;
+      color: rgba(44, 37, 32, 0.5);
+      margin-top: 1px;
     }
 
     .contact-settings-privacy-text {
-      font-size: 12px;
-      color: var(--color-text-secondary, #6B5B4F);
+      font-size: 0.75rem;
+      color: rgba(44, 37, 32, 0.6);
       line-height: 1.5;
       margin: 0;
     }
 
     .contact-settings-actions {
       display: flex;
-      gap: 12px;
-      padding: 16px 24px 24px;
+      gap: 0.75rem;
+      padding: 1rem 1.5rem;
+      background: var(--color-warm-white, #FAF8F5);
+      border-radius: 0 0 16px 16px;
     }
 
     .contact-settings-btn {
       flex: 1;
-      padding: 14px 24px;
-      font-size: 15px;
-      font-weight: 600;
-      border-radius: var(--radius-lg, 12px);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0.75rem 1.5rem;
+      font-family: inherit;
+      font-size: 1rem;
+      font-weight: 500;
+      border-radius: 8px;
       cursor: pointer;
-      transition: transform ${DURATION.FAST}ms, box-shadow ${DURATION.FAST}ms;
+      transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    .contact-settings-btn:focus {
+      outline: 3px solid rgba(74, 103, 65, 0.5);
+      outline-offset: 2px;
     }
 
     .contact-settings-btn:active {
@@ -416,119 +448,128 @@ function injectStyles(): void {
 
     .contact-settings-btn--secondary {
       background: transparent;
-      border: 1px solid var(--color-border, rgba(0, 0, 0, 0.1));
-      color: var(--color-text-secondary, #6B5B4F);
+      border: 2px solid var(--color-ferni, #4a6741);
+      color: var(--color-ferni, #4a6741);
+    }
+
+    .contact-settings-btn--secondary:hover {
+      background: rgba(74, 103, 65, 0.1);
     }
 
     .contact-settings-btn--primary {
-      background: linear-gradient(135deg, var(--persona-primary, #4a6741), var(--persona-secondary, #3d5a35));
+      background: var(--color-ferni, #4a6741);
       border: none;
       color: white;
-      box-shadow: 0 4px 12px rgba(74, 103, 65, 0.3);
     }
 
     .contact-settings-btn--primary:hover {
-      box-shadow: 0 6px 16px rgba(74, 103, 65, 0.4);
+      background: var(--color-ferni-dark, #3d5a35);
+      transform: translateY(-1px);
     }
 
     .contact-settings-btn--primary:disabled {
-      opacity: 0.6;
+      opacity: 0.5;
       cursor: not-allowed;
+      transform: none;
     }
 
     .contact-settings-error {
-      padding: 12px 16px;
-      background: var(--color-error-bg, rgba(220, 38, 38, 0.1));
-      border-radius: var(--radius-md, 8px);
-      color: var(--color-error, #dc2626);
-      font-size: 13px;
-      margin-bottom: 16px;
+      padding: 0.75rem 1rem;
+      background: rgba(180, 60, 60, 0.1);
+      border-left: 4px solid var(--color-error, #b43c3c);
+      border-radius: 8px;
+      color: var(--color-error, #b43c3c);
+      font-size: 0.875rem;
+      margin-bottom: 1rem;
     }
 
     .contact-settings-success {
-      padding: 12px 16px;
+      padding: 0.75rem 1rem;
       background: rgba(74, 103, 65, 0.1);
-      border-radius: var(--radius-md, 8px);
-      color: var(--color-text-secondary);
-      font-size: 13px;
-      margin-bottom: 16px;
+      border-left: 4px solid var(--color-ferni, #4a6741);
+      border-radius: 8px;
+      color: var(--color-ferni, #4a6741);
+      font-size: 0.875rem;
+      margin-bottom: 1rem;
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 0.5rem;
     }
 
     .contact-settings-success svg {
       width: 16px;
       height: 16px;
+      flex-shrink: 0;
     }
 
     /* Quiet Hours Section */
     .contact-settings-section {
-      margin-top: 20px;
-      padding-top: 20px;
-      border-top: 1px solid var(--color-border, rgba(0, 0, 0, 0.08));
+      margin-top: 1.25rem;
+      padding-top: 1.25rem;
+      border-top: 1px solid rgba(44, 37, 32, 0.1);
     }
 
     .contact-settings-section-header {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      margin-bottom: 16px;
+      margin-bottom: 1rem;
     }
 
     .contact-settings-section-title {
       display: flex;
       align-items: center;
-      gap: 8px;
-      font-size: 14px;
+      gap: 0.5rem;
+      font-size: 1rem;
       font-weight: 600;
-      color: var(--color-text-primary, #2C2520);
+      color: var(--color-natural-ink, #2C2520);
     }
 
     .contact-settings-section-title svg {
       width: 18px;
       height: 18px;
-      color: var(--color-text-secondary);
+      color: rgba(44, 37, 32, 0.6);
     }
 
     .contact-settings-toggle {
       position: relative;
       width: 48px;
-      height: 26px;
-      background: var(--color-border, rgba(0, 0, 0, 0.15));
-      border-radius: 13px;
+      height: 28px;
+      background: rgba(44, 37, 32, 0.2);
+      border: none;
+      border-radius: 999px;
       cursor: pointer;
-      transition: background ${DURATION.FAST}ms;
+      transition: background 0.2s;
     }
 
     .contact-settings-toggle.active {
-      background: var(--persona-primary, #4a6741);
+      background: var(--color-ferni, #4a6741);
     }
 
     .contact-settings-toggle-knob {
       position: absolute;
       top: 3px;
       left: 3px;
-      width: 20px;
-      height: 20px;
-      background: white;
+      width: 22px;
+      height: 22px;
+      background: var(--color-bg-elevated, #FFFDFB);
       border-radius: 50%;
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
-      transition: transform ${DURATION.FAST}ms ${EASING.SPRING};
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
     }
 
     .contact-settings-toggle.active .contact-settings-toggle-knob {
-      transform: translateX(22px);
+      transform: translateX(20px);
     }
 
     .contact-settings-time-row {
       display: flex;
       align-items: center;
-      gap: 12px;
-      margin-top: 12px;
+      gap: 0.75rem;
+      margin-top: 0.75rem;
       opacity: 0.5;
       pointer-events: none;
-      transition: opacity ${DURATION.FAST}ms;
+      transition: opacity 0.2s;
     }
 
     .contact-settings-time-row.enabled {
@@ -537,51 +578,57 @@ function injectStyles(): void {
     }
 
     .contact-settings-time-label {
-      font-size: 13px;
-      color: var(--color-text-secondary, #6B5B4F);
-      min-width: 60px;
+      font-size: 0.875rem;
+      color: rgba(44, 37, 32, 0.7);
+      white-space: nowrap;
     }
 
     .contact-settings-time-select {
       flex: 1;
-      padding: 10px 12px;
-      font-size: 14px;
-      border: 2px solid var(--color-border, rgba(0, 0, 0, 0.1));
-      border-radius: var(--radius-md, 8px);
-      background: var(--color-background, #F5F1E8);
+      padding: 0.75rem 2.5rem 0.75rem 1rem;
+      font-family: inherit;
+      font-size: 1rem;
+      border: 2px solid rgba(44, 37, 32, 0.2);
+      border-radius: 8px;
+      background: var(--color-bg-elevated, #FFFDFB);
       color: var(--color-text-primary, #2C2520);
       cursor: pointer;
-      transition: border-color ${DURATION.FAST}ms;
+      appearance: none;
+      transition: all 0.2s;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%232C2520' opacity='0.5' d='M2 4l4 4 4-4'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 0.75rem center;
     }
 
     .contact-settings-time-select:focus {
       outline: none;
-      border-color: var(--color-text-secondary);
+      border-color: var(--color-ferni, #4a6741);
+      box-shadow: 0 0 0 3px rgba(74, 103, 65, 0.2);
     }
 
     .contact-settings-quiet-note {
-      margin-top: 12px;
-      font-size: 12px;
-      color: var(--color-text-muted, #9B8B7F);
-      line-height: 1.4;
+      margin-top: 0.75rem;
+      font-size: 0.75rem;
+      color: rgba(44, 37, 32, 0.6);
+      line-height: 1.5;
     }
 
     .contact-settings-timezone {
       display: flex;
       align-items: center;
-      gap: 8px;
-      margin-top: 8px;
-      padding: 10px 12px;
-      background: rgba(74, 103, 65, 0.05);
-      border-radius: var(--radius-md, 8px);
-      font-size: 12px;
-      color: var(--color-text-secondary, #6B5B4F);
+      gap: 0.5rem;
+      margin-top: 0.75rem;
+      padding: 0.5rem 0.75rem;
+      background: rgba(44, 37, 32, 0.03);
+      border-radius: 8px;
+      font-size: 0.75rem;
+      color: rgba(44, 37, 32, 0.6);
     }
 
     .contact-settings-timezone svg {
       width: 14px;
       height: 14px;
-      color: var(--color-text-secondary);
+      flex-shrink: 0;
     }
   `;
   document.head.appendChild(style);
@@ -606,10 +653,10 @@ function render(): void {
       <div class="contact-settings-icon">
         ${ICONS.heart}
       </div>
-      <p class="contact-settings-eyebrow">Stay Connected</p>
-      <h2 class="contact-settings-title">How can I reach you?</h2>
+      <p class="contact-settings-eyebrow">${t('contactSettings.eyebrow', 'Stay Connected')}</p>
+      <h2 class="contact-settings-title">${t('contactSettings.title', 'How can I reach you?')}</h2>
       <p class="contact-settings-subtitle">
-        Share your contact info so I can check in on you, celebrate your wins, and be there when you need support.
+        ${t('contactSettings.subtitle', "Share your contact info so I can check in, celebrate wins, and be there when you need me.")}
       </p>
     </div>
     
@@ -621,7 +668,7 @@ function render(): void {
         <div class="contact-settings-field">
           <label class="contact-settings-label">
             ${ICONS.phone}
-            Phone (for texts & calls)
+            ${t('contactSettings.phoneLabel', 'Text or call me')}
           </label>
           <div class="contact-settings-input-wrapper">
             <input 
@@ -634,19 +681,19 @@ function render(): void {
             />
             ${state.contactInfo.phoneVerified ? `
               <span class="contact-settings-verified">
-                ${ICONS.check} Verified
+                ${ICONS.check} ${t('contactSettings.verified', 'Verified')}
               </span>
             ` : ''}
           </div>
           ${!state.contactInfo.phoneVerified && state.contactInfo.phone ? `
-            <button type="button" class="contact-settings-verify-btn" id="verify-phone-btn" ${state.isVerifying ? 'disabled' : ''}>
-              ${state.isVerifying ? 'Sending code...' : 'Verify with code'}
+            <button aria-label="${t('accessibility.verifyPhone', 'Verify phone number')}" type="button" class="contact-settings-verify-btn" id="verify-phone-btn" ${state.isVerifying ? 'disabled' : ''}>
+              ${state.isVerifying ? t('contactSettings.sendingCode', 'Sending code...') : t('contactSettings.sendCode', 'Send me a code')}
             </button>
           ` : ''}
           ${state.isVerifying ? `
             <div class="contact-settings-verification">
               <p class="contact-settings-verification-text">
-                We sent a 6-digit code to ${state.pendingPhone}
+                ${t('contactSettings.codeSent', 'I sent a 6-digit code to')} ${state.pendingPhone}
               </p>
               <input 
                 type="text" 
@@ -663,7 +710,7 @@ function render(): void {
         <div class="contact-settings-field">
           <label class="contact-settings-label">
             ${ICONS.email}
-            Email (for updates & summaries)
+            ${t('contactSettings.emailLabel', 'Send me updates')}
           </label>
           <div class="contact-settings-input-wrapper">
             <input 
@@ -675,7 +722,7 @@ function render(): void {
             />
             ${state.contactInfo.emailVerified ? `
               <span class="contact-settings-verified">
-                ${ICONS.check} Verified
+                ${ICONS.check} ${t('contactSettings.verified', 'Verified')}
               </span>
             ` : ''}
           </div>
@@ -683,7 +730,7 @@ function render(): void {
         
         <div class="contact-settings-field">
           <label class="contact-settings-label">
-            What should I call you?
+            ${t('contactSettings.nameLabel', 'What should I call you?')}
           </label>
           <input 
             type="text" 
@@ -697,7 +744,7 @@ function render(): void {
         <div class="contact-settings-privacy">
           <span class="contact-settings-privacy-icon">${ICONS.shield}</span>
           <p class="contact-settings-privacy-text">
-            Your info is only used for caring check-ins. You can update your outreach preferences anytime, and we'll never spam you or share your data.
+            ${t('contactSettings.privacyNote', "I'll only use this for check-ins. Never spam, never shared.")}
           </p>
         </div>
 
@@ -706,7 +753,7 @@ function render(): void {
           <div class="contact-settings-section-header">
             <div class="contact-settings-section-title">
               ${ICONS.moon}
-              Quiet Hours
+              ${t('contactSettings.quietHours', 'Quiet Hours')}
             </div>
             <button 
               type="button" 
@@ -720,25 +767,24 @@ function render(): void {
           </div>
           
           <div class="contact-settings-time-row ${state.contactInfo.quietHoursEnabled !== false ? 'enabled' : ''}">
-            <span class="contact-settings-time-label">Don't call</span>
-            <select class="contact-settings-time-select" id="quiet-start">
+            <span class="contact-settings-time-label">${t('contactSettings.dontCall', "Don't call")}</span>
+            <select class="contact-settings-time-select" id="quiet-start" aria-label="${t('accessibility.quietHoursStart', 'Quiet hours start time')}">
               ${generateTimeOptions(state.contactInfo.quietHoursStart || '22:00')}
             </select>
-            <span class="contact-settings-time-label">until</span>
-            <select class="contact-settings-time-select" id="quiet-end">
+            <span class="contact-settings-time-label">${t('contactSettings.until', 'until')}</span>
+            <select class="contact-settings-time-select" id="quiet-end" aria-label="${t('accessibility.quietHoursEnd', 'Quiet hours end time')}">
               ${generateTimeOptions(state.contactInfo.quietHoursEnd || '08:00')}
             </select>
           </div>
           
           <p class="contact-settings-quiet-note">
-            I'll respect your quiet hours and won't call or text during sleep time. 
-            Urgent check-ins may still come through.
+            ${t('contactSettings.quietNote', "I'll stay quiet during these hours. If something feels urgent, I might still reach out.")}
           </p>
           
           ${state.contactInfo.timezone ? `
             <div class="contact-settings-timezone">
               ${ICONS.globe}
-              <span>Detected timezone: ${formatTimezone(state.contactInfo.timezone)}</span>
+              <span>${t('contactSettings.detectedTimezone', 'Your timezone')}: ${formatTimezone(state.contactInfo.timezone)}</span>
             </div>
           ` : ''}
         </div>
@@ -746,11 +792,11 @@ function render(): void {
     </div>
     
     <div class="contact-settings-actions">
-      <button class="contact-settings-btn contact-settings-btn--secondary" id="cancel-btn">
-        Maybe later
+      <button aria-label="${t('accessibility.maybeLater')}" class="contact-settings-btn contact-settings-btn--secondary" id="cancel-btn">
+        ${t('common.maybeLater', 'Later')}
       </button>
-      <button class="contact-settings-btn contact-settings-btn--primary" id="save-btn" ${state.isSaving ? 'disabled' : ''}>
-        ${state.isSaving ? t('common.saving') : 'Save'}
+      <button aria-label="${t('accessibility.save')}" class="contact-settings-btn contact-settings-btn--primary" id="save-btn" ${state.isSaving ? 'disabled' : ''}>
+        ${state.isSaving ? t('common.saving') : t('common.save', 'Save')}
       </button>
     </div>
   `;
@@ -828,32 +874,47 @@ function handleEscape(e: KeyboardEvent): void {
 
 async function loadContactInfo(): Promise<void> {
   state.isLoading = true;
-  const userId = localStorage.getItem('ferni_user_id') || 'default';
 
   try {
     // Load contact info
-    const response = await fetch(`/api/outreach/context?userId=${userId}`);
-    const data = await response.json();
+    const response = await apiGet<{
+      success?: boolean;
+      context?: {
+        personal?: {
+          phone?: string;
+          email?: string;
+          preferredName?: string;
+          phoneVerified?: boolean;
+          emailVerified?: boolean;
+        };
+      };
+    }>('/api/outreach/context');
 
-    if (data.success && data.context?.personal) {
+    if (response.ok && response.data?.success && response.data.context?.personal) {
       state.contactInfo = {
-        phone: data.context.personal.phone,
-        email: data.context.personal.email,
-        preferredName: data.context.personal.preferredName,
-        phoneVerified: data.context.personal.phoneVerified,
-        emailVerified: data.context.personal.emailVerified,
+        phone: response.data.context.personal.phone,
+        email: response.data.context.personal.email,
+        preferredName: response.data.context.personal.preferredName,
+        phoneVerified: response.data.context.personal.phoneVerified,
+        emailVerified: response.data.context.personal.emailVerified,
       };
     }
-    
+
     // Load user preferences (timezone, quiet hours)
     try {
-      const prefsResponse = await fetch(`/api/user/preferences?userId=${userId}`);
-      const prefsData = await prefsResponse.json();
-      
-      if (prefsData.success && prefsData.preferences) {
-        state.contactInfo.timezone = prefsData.preferences.timezone;
-        state.contactInfo.quietHoursStart = prefsData.preferences.quietHoursStart;
-        state.contactInfo.quietHoursEnd = prefsData.preferences.quietHoursEnd;
+      const prefsResponse = await apiGet<{
+        success?: boolean;
+        preferences?: {
+          timezone?: string;
+          quietHoursStart?: string;
+          quietHoursEnd?: string;
+        };
+      }>('/api/user/preferences');
+
+      if (prefsResponse.ok && prefsResponse.data?.success && prefsResponse.data.preferences) {
+        state.contactInfo.timezone = prefsResponse.data.preferences.timezone;
+        state.contactInfo.quietHoursStart = prefsResponse.data.preferences.quietHoursStart;
+        state.contactInfo.quietHoursEnd = prefsResponse.data.preferences.quietHoursEnd;
         state.contactInfo.quietHoursEnabled = true; // Enabled by default
       }
     } catch (prefsError) {
@@ -880,7 +941,6 @@ async function handleSave(): Promise<void> {
   state.success = undefined;
   render();
 
-  const userId = localStorage.getItem('ferni_user_id') || 'default';
   const phoneInput = modalContainer?.querySelector('#phone-input') as HTMLInputElement;
   const emailInput = modalContainer?.querySelector('#email-input') as HTMLInputElement;
   const nameInput = modalContainer?.querySelector('#name-input') as HTMLInputElement;
@@ -896,39 +956,24 @@ async function handleSave(): Promise<void> {
 
   try {
     // Save contact info
-    const personalResponse = await fetch('/api/user/contact', {
-      method: 'POST',
-      headers: { 
-        'Content-Type': 'application/json',
-        'X-User-Id': userId,
-      },
-      body: JSON.stringify({
-        userId,
-        phone,
-        email,
-        preferredName,
-        timezone: state.contactInfo.timezone || getUserTimezone(),
-      }),
+    const personalResponse = await apiPost<{ error?: string }>('/api/user/contact', {
+      phone,
+      email,
+      preferredName,
+      timezone: state.contactInfo.timezone || getUserTimezone(),
     });
 
     if (!personalResponse.ok) {
-      throw new Error('Failed to save contact info');
+      log.error({ status: personalResponse.status, error: personalResponse.error }, 'Failed to save contact info');
+      throw new Error(personalResponse.error || 'Failed to save contact info');
     }
 
     // Save quiet hours preferences (only if enabled)
     if (quietHoursEnabled) {
-      const prefsResponse = await fetch('/api/user/preferences', {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'X-User-Id': userId,
-        },
-        body: JSON.stringify({
-          userId,
-          timezone: state.contactInfo.timezone || getUserTimezone(),
-          quietHoursStart,
-          quietHoursEnd,
-        }),
+      const prefsResponse = await apiPost('/api/user/preferences', {
+        timezone: state.contactInfo.timezone || getUserTimezone(),
+        quietHoursStart,
+        quietHoursEnd,
       });
 
       if (!prefsResponse.ok) {
@@ -946,11 +991,11 @@ async function handleSave(): Promise<void> {
       quietHoursEnabled,
     };
     state.success = quietHoursEnabled 
-      ? `Saved! I'll respect your quiet hours (${formatHour(parseInt(quietHoursStart))} - ${formatHour(parseInt(quietHoursEnd))}).`
-      : 'Contact info saved! I\'ll use this to stay in touch.';
+      ? t('contactSettings.successWithQuiet', `Saved! I'll stay quiet ${formatHour(parseInt(quietHoursStart))} - ${formatHour(parseInt(quietHoursEnd))}.`)
+      : t('contactSettings.success', "Saved! I'll use this to stay in touch.");
     log.info({ quietHoursEnabled, quietHoursStart, quietHoursEnd }, 'Contact info and preferences saved');
   } catch (error) {
-    state.error = "Something went wrong. Try again?";
+    state.error = t('contactSettings.errorSave', "Couldn't save that. Try again?");
     log.error({ error }, 'Failed to save contact info');
   } finally {
     state.isSaving = false;
@@ -963,7 +1008,7 @@ async function handleSendVerification(): Promise<void> {
   const phone = phoneInput?.value.trim();
 
   if (!phone) {
-    state.error = 'Please enter a phone number first';
+    state.error = t('contactSettings.errorNoPhone', 'Add a phone number first');
     render();
     return;
   }
@@ -974,11 +1019,7 @@ async function handleSendVerification(): Promise<void> {
   render();
 
   try {
-    const response = await fetch('/api/outreach/verify-phone', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ phone }),
-    });
+    const response = await apiPost('/api/outreach/verify-phone', { phone });
 
     if (!response.ok) {
       throw new Error('Failed to send verification');
@@ -986,7 +1027,7 @@ async function handleSendVerification(): Promise<void> {
 
     log.info({ phone }, 'Verification code sent');
   } catch (error) {
-    state.error = "Couldn't send verification code. Try again?";
+    state.error = t('contactSettings.errorSendCode', "Couldn't send the code. Try again?");
     state.isVerifying = false;
     log.error({ error }, 'Failed to send verification');
   }
@@ -996,13 +1037,9 @@ async function handleSendVerification(): Promise<void> {
 
 async function handleVerifyCode(code: string): Promise<void> {
   try {
-    const response = await fetch('/api/outreach/verify-phone/confirm', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        phone: state.pendingPhone,
-        code,
-      }),
+    const response = await apiPost('/api/outreach/verify-phone/confirm', {
+      phone: state.pendingPhone,
+      code,
     });
 
     if (response.ok) {
@@ -1010,13 +1047,13 @@ async function handleVerifyCode(code: string): Promise<void> {
       state.contactInfo.phoneVerified = true;
       state.isVerifying = false;
       state.verificationCode = '';
-      state.success = 'Phone verified! You\'re all set.';
+      state.success = t('contactSettings.phoneVerified', "Got it! I'll know your number now.");
       log.info('Phone verified');
     } else {
-      state.error = "Invalid code. Try again?";
+      state.error = t('contactSettings.errorInvalidCode', "That code didn't work. Try again?");
     }
   } catch (error) {
-    state.error = "Verification failed. Try again?";
+    state.error = t('contactSettings.errorVerifyFailed', "Couldn't verify. Want another code?");
     log.error({ error }, 'Phone verification failed');
   }
 

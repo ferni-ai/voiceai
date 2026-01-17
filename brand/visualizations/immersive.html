@@ -1,0 +1,2925 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Ferni - Your Story Visualized: Immersive Data Storytelling" />
+    <title>Your Story | Ferni</title>
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=EB+Garamond:ital,wght@0,400;0,500;1,400;1,500&display=swap"
+      rel="stylesheet"
+    />
+
+    <!-- Design System -->
+    <link rel="stylesheet" href="../master-tokens.css" />
+
+    <style>
+      /* ============================================
+       THEME SYSTEM - Zen (Light) + Dark
+       ============================================ */
+      :root {
+        /* Persona Colors (shared) */
+        --ferni: #4a6741;
+        --peter: #3a6b73;
+        --maya: #a67a6a;
+        --jordan: #c4856a;
+        --nayan: #b8956a;
+        --alex: #5a6b8a;
+
+        /* Typography */
+        --font-display: 'Plus Jakarta Sans', sans-serif;
+        --font-body: 'Inter', sans-serif;
+        --font-narrative: 'EB Garamond', Georgia, serif;
+      }
+
+      /* DARK THEME */
+      [data-theme='dark'] {
+        --bg-primary: #0a0908;
+        --bg-secondary: #141210;
+        --bg-elevated: rgba(245, 242, 237, 0.03);
+        --bg-card: rgba(245, 242, 237, 0.02);
+        --text-primary: rgba(245, 242, 237, 0.95);
+        --text-secondary: rgba(245, 242, 237, 0.7);
+        --text-muted: rgba(245, 242, 237, 0.45);
+        --border-subtle: rgba(245, 242, 237, 0.06);
+        --border-default: rgba(245, 242, 237, 0.1);
+        --glow-opacity: 0.4;
+        --track-opacity: 0.08;
+      }
+
+      /* ZEN (LIGHT) THEME */
+      [data-theme='zen'] {
+        --bg-primary: #f8f6f3;
+        --bg-secondary: #fffdfb;
+        --bg-elevated: rgba(44, 37, 32, 0.03);
+        --bg-card: rgba(44, 37, 32, 0.02);
+        --text-primary: #2c2520;
+        --text-secondary: rgba(44, 37, 32, 0.7);
+        --text-muted: rgba(44, 37, 32, 0.5);
+        --border-subtle: rgba(44, 37, 32, 0.08);
+        --border-default: rgba(44, 37, 32, 0.12);
+        --glow-opacity: 0.2;
+        --track-opacity: 0.1;
+      }
+
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      html {
+        scroll-behavior: smooth;
+      }
+
+      body {
+        font-family: var(--font-body);
+        background: var(--bg-primary);
+        color: var(--text-secondary);
+        line-height: 1.6;
+        overflow-x: hidden;
+        font-size: 14px;
+      }
+
+      /* ============================================
+       NAVIGATION - Compact
+       ============================================ */
+      .nav {
+        position: sticky;
+        top: 0;
+        height: 56px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 24px;
+        background: var(--bg-primary);
+        border-bottom: 1px solid var(--border-subtle);
+        z-index: 1000;
+      }
+
+      .nav-left {
+        display: flex;
+        align-items: center;
+        gap: 24px;
+      }
+
+      .nav-logo {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        text-decoration: none;
+        color: var(--text-primary);
+      }
+
+      .nav-logo-icon {
+        width: 28px;
+        height: 28px;
+        background: var(--ferni);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-family: var(--font-display);
+        font-weight: 700;
+        font-size: 13px;
+        color: white;
+      }
+
+      .nav-logo-text {
+        font-family: var(--font-display);
+        font-weight: 600;
+        font-size: 15px;
+      }
+
+      .nav-links {
+        display: flex;
+        gap: 4px;
+      }
+
+      .nav-link {
+        padding: 6px 12px;
+        color: var(--text-muted);
+        text-decoration: none;
+        font-size: 12px;
+        font-weight: 500;
+        border-radius: 6px;
+        transition: all 0.15s ease;
+      }
+
+      .nav-link:hover {
+        color: var(--text-secondary);
+        background: var(--bg-elevated);
+      }
+
+      .nav-right {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+
+      .theme-toggle {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px;
+        background: var(--bg-elevated);
+        border: 1px solid var(--border-subtle);
+        border-radius: 8px;
+      }
+
+      .theme-btn {
+        padding: 6px 10px;
+        border: none;
+        background: transparent;
+        color: var(--text-muted);
+        font-size: 11px;
+        font-weight: 500;
+        border-radius: 5px;
+        cursor: pointer;
+        transition: all 0.15s ease;
+      }
+
+      .theme-btn.active {
+        background: var(--bg-primary);
+        color: var(--text-primary);
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+      }
+
+      /* ============================================
+       HEADER - Compact
+       ============================================ */
+      .page-header {
+        padding: 32px 24px 24px;
+        text-align: center;
+        border-bottom: 1px solid var(--border-subtle);
+      }
+
+      .page-title {
+        font-family: var(--font-narrative);
+        font-size: 28px;
+        font-weight: 400;
+        font-style: italic;
+        color: var(--text-primary);
+        margin-bottom: 8px;
+      }
+
+      .page-subtitle {
+        font-size: 13px;
+        color: var(--text-muted);
+        max-width: 500px;
+        margin: 0 auto;
+      }
+
+      /* ============================================
+       GRID LAYOUT - Dense
+       ============================================ */
+      .dashboard {
+        display: grid;
+        grid-template-columns: repeat(12, 1fr);
+        gap: 16px;
+        padding: 24px;
+        max-width: 1600px;
+        margin: 0 auto;
+      }
+
+      .card {
+        background: var(--bg-card);
+        border: 1px solid var(--border-subtle);
+        border-radius: 12px;
+        padding: 16px;
+        position: relative;
+      }
+
+      .card-header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        margin-bottom: 12px;
+      }
+
+      .card-persona {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 3px 8px 3px 4px;
+        background: var(--bg-elevated);
+        border-radius: 999px;
+        margin-bottom: 6px;
+      }
+
+      .card-persona-dot {
+        width: 14px;
+        height: 14px;
+        border-radius: 50%;
+      }
+
+      .card-persona-name {
+        font-size: 10px;
+        font-weight: 600;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+      }
+
+      .card-title {
+        font-family: var(--font-display);
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--text-primary);
+      }
+
+      .card-metric {
+        font-family: var(--font-display);
+        font-size: 11px;
+        font-weight: 500;
+        color: var(--text-muted);
+      }
+
+      /* Grid spans */
+      .span-3 {
+        grid-column: span 3;
+      }
+      .span-4 {
+        grid-column: span 4;
+      }
+      .span-5 {
+        grid-column: span 5;
+      }
+      .span-6 {
+        grid-column: span 6;
+      }
+      .span-7 {
+        grid-column: span 7;
+      }
+      .span-8 {
+        grid-column: span 8;
+      }
+      .span-12 {
+        grid-column: span 12;
+      }
+
+      @media (max-width: 1200px) {
+        .span-3,
+        .span-4 {
+          grid-column: span 6;
+        }
+        .span-5,
+        .span-7,
+        .span-8 {
+          grid-column: span 12;
+        }
+      }
+
+      @media (max-width: 768px) {
+        .span-3,
+        .span-4,
+        .span-6 {
+          grid-column: span 12;
+        }
+        .dashboard {
+          padding: 16px;
+          gap: 12px;
+        }
+      }
+
+      /* ============================================
+       ENERGY RINGS - Compact
+       ============================================ */
+      .energy-layout {
+        display: flex;
+        align-items: center;
+        gap: 24px;
+      }
+
+      .energy-rings {
+        position: relative;
+        width: 140px;
+        height: 140px;
+        flex-shrink: 0;
+      }
+
+      .energy-rings-svg {
+        width: 100%;
+        height: 100%;
+        transform: rotate(-90deg);
+      }
+
+      .energy-ring {
+        fill: none;
+        stroke-linecap: round;
+      }
+
+      .energy-ring-track {
+        stroke: var(--text-primary);
+        opacity: var(--track-opacity);
+      }
+
+      .energy-ring-emotional {
+        stroke: var(--maya);
+        filter: drop-shadow(0 0 6px rgba(166, 122, 106, var(--glow-opacity)));
+      }
+
+      .energy-ring-mental {
+        stroke: var(--peter);
+        filter: drop-shadow(0 0 6px rgba(58, 107, 115, var(--glow-opacity)));
+      }
+
+      .energy-ring-physical {
+        stroke: var(--ferni);
+        filter: drop-shadow(0 0 6px rgba(74, 103, 65, var(--glow-opacity)));
+      }
+
+      .energy-center {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .energy-score {
+        font-family: var(--font-display);
+        font-size: 28px;
+        font-weight: 700;
+        color: var(--text-primary);
+        line-height: 1;
+      }
+
+      .energy-label {
+        font-size: 9px;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        margin-top: 2px;
+      }
+
+      .energy-state {
+        margin-top: 6px;
+        padding: 3px 8px;
+        background: var(--bg-elevated);
+        border-radius: 999px;
+        font-size: 10px;
+        font-weight: 500;
+        color: var(--text-secondary);
+      }
+
+      .energy-breakdown {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+
+      .energy-metric {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+
+      .energy-metric-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+
+      .energy-metric-label {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+
+      .energy-metric-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+      }
+
+      .energy-metric-name {
+        font-size: 12px;
+        font-weight: 500;
+        color: var(--text-primary);
+      }
+
+      .energy-metric-value {
+        font-family: var(--font-display);
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--text-primary);
+      }
+
+      .energy-metric-bar {
+        height: 4px;
+        background: var(--text-primary);
+        opacity: var(--track-opacity);
+        border-radius: 2px;
+        overflow: hidden;
+      }
+
+      .energy-metric-fill {
+        height: 100%;
+        border-radius: 2px;
+      }
+
+      .energy-metric-insight {
+        font-size: 11px;
+        color: var(--text-muted);
+        font-style: italic;
+      }
+
+      /* ============================================
+       MOOD CALENDAR - Compact
+       ============================================ */
+      .mood-grid {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        gap: 4px;
+      }
+
+      .mood-header {
+        display: contents;
+      }
+
+      .mood-header span {
+        font-size: 9px;
+        font-weight: 500;
+        color: var(--text-muted);
+        text-align: center;
+        padding-bottom: 4px;
+      }
+
+      .mood-day {
+        aspect-ratio: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: var(--mood);
+        border-radius: 4px;
+        font-size: 10px;
+        font-weight: 500;
+        color: white;
+        cursor: pointer;
+        transition: transform 0.15s ease;
+      }
+
+      .mood-day:hover {
+        transform: scale(1.15);
+        z-index: 10;
+      }
+
+      .mood-day.today {
+        box-shadow: 0 0 0 2px var(--text-primary);
+      }
+
+      .mood-day.future {
+        background: var(--bg-elevated);
+        color: var(--text-muted);
+        border: 1px dashed var(--border-default);
+      }
+
+      .mood-stats {
+        display: flex;
+        gap: 16px;
+        margin-top: 12px;
+        padding-top: 12px;
+        border-top: 1px solid var(--border-subtle);
+      }
+
+      .mood-stat {
+        text-align: center;
+      }
+
+      .mood-stat-value {
+        font-family: var(--font-display);
+        font-size: 18px;
+        font-weight: 700;
+        color: var(--text-primary);
+      }
+
+      .mood-stat-label {
+        font-size: 9px;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+      }
+
+      /* ============================================
+       CHAPTERS TIMELINE - Compact
+       ============================================ */
+      .chapters-row {
+        display: flex;
+        gap: 12px;
+        align-items: stretch;
+      }
+
+      .chapters-column {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+
+      .chapter {
+        flex: 1;
+        padding: 12px;
+        background: var(--bg-elevated);
+        border-radius: 8px;
+        position: relative;
+      }
+
+      .chapters-column .chapter {
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+      }
+
+      .chapters-column .chapter-marker {
+        margin-bottom: 0;
+        margin-top: 3px;
+        flex-shrink: 0;
+      }
+
+      .chapters-column .chapter-content {
+        flex: 1;
+      }
+
+      .chapter-marker {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: var(--text-muted);
+        margin-bottom: 8px;
+      }
+
+      .chapter.current .chapter-marker {
+        background: var(--nayan);
+        box-shadow: 0 0 0 3px rgba(184, 149, 106, 0.2);
+      }
+
+      .chapter-year {
+        font-size: 9px;
+        font-weight: 600;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+      }
+
+      .chapter-title {
+        font-family: var(--font-display);
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin: 4px 0;
+      }
+
+      .chapter-desc {
+        font-size: 11px;
+        color: var(--text-muted);
+        line-height: 1.4;
+      }
+
+      .chapter-progress {
+        margin-top: 8px;
+      }
+
+      .chapter-progress-bar {
+        height: 3px;
+        background: var(--text-primary);
+        opacity: var(--track-opacity);
+        border-radius: 2px;
+        overflow: hidden;
+      }
+
+      .chapter-progress-fill {
+        height: 100%;
+        background: var(--ferni);
+        border-radius: 2px;
+      }
+
+      .chapter-progress-label {
+        font-size: 9px;
+        color: var(--text-muted);
+        margin-top: 4px;
+      }
+
+      /* ============================================
+       GROWTH RADAR - Compact
+       ============================================ */
+      .growth-layout {
+        display: flex;
+        align-items: center;
+        gap: 20px;
+      }
+
+      .growth-radar {
+        position: relative;
+        width: 160px;
+        height: 160px;
+        flex-shrink: 0;
+      }
+
+      .growth-radar-svg {
+        width: 100%;
+        height: 100%;
+      }
+
+      .radar-grid {
+        fill: none;
+        stroke: var(--text-primary);
+        opacity: var(--track-opacity);
+      }
+
+      .radar-axis {
+        stroke: var(--text-primary);
+        opacity: calc(var(--track-opacity) * 0.5);
+      }
+
+      .radar-data {
+        fill: rgba(74, 103, 65, 0.2);
+        stroke: var(--ferni);
+        stroke-width: 2;
+      }
+
+      .radar-point {
+        fill: var(--ferni);
+      }
+
+      .radar-label {
+        font-size: 9px;
+        fill: var(--text-muted);
+        text-anchor: middle;
+      }
+
+      .growth-center {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .growth-score {
+        font-family: var(--font-display);
+        font-size: 24px;
+        font-weight: 700;
+        color: var(--text-primary);
+      }
+
+      .growth-score-label {
+        font-size: 9px;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+      }
+
+      .growth-metrics {
+        flex: 1;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+      }
+
+      .growth-metric {
+        padding: 8px;
+        background: var(--bg-elevated);
+        border-radius: 6px;
+      }
+
+      .growth-metric-label {
+        font-size: 9px;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+        margin-bottom: 4px;
+      }
+
+      .growth-metric-value {
+        font-family: var(--font-display);
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--text-primary);
+      }
+
+      /* ============================================
+       JOURNEY ARC - Compact
+       ============================================ */
+      .journey-svg {
+        width: 100%;
+        height: 80px;
+      }
+
+      .journey-path {
+        fill: none;
+        stroke: var(--text-primary);
+        opacity: var(--track-opacity);
+        stroke-width: 2;
+      }
+
+      .journey-stage {
+        fill: var(--text-muted);
+      }
+
+      .journey-stage.current {
+        fill: var(--ferni);
+        filter: drop-shadow(0 0 4px rgba(74, 103, 65, 0.5));
+      }
+
+      .journey-stage.future {
+        fill: none;
+        stroke: var(--text-muted);
+        stroke-width: 1;
+        stroke-dasharray: 2 2;
+      }
+
+      .journey-labels {
+        display: flex;
+        justify-content: space-between;
+        margin-top: 8px;
+        padding: 0 8px;
+      }
+
+      .journey-label {
+        font-size: 9px;
+        color: var(--text-muted);
+        text-align: center;
+      }
+
+      .journey-label.current {
+        color: var(--ferni);
+        font-weight: 600;
+      }
+
+      .journey-metrics {
+        display: flex;
+        gap: 16px;
+        margin-top: 12px;
+        padding-top: 12px;
+        border-top: 1px solid var(--border-subtle);
+      }
+
+      .journey-metric {
+        flex: 1;
+      }
+
+      .journey-metric-label {
+        font-size: 9px;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+        margin-bottom: 4px;
+      }
+
+      .journey-metric-value {
+        font-family: var(--font-display);
+        font-size: 16px;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin-bottom: 4px;
+      }
+
+      .journey-metric-bar {
+        height: 3px;
+        background: var(--text-primary);
+        opacity: var(--track-opacity);
+        border-radius: 2px;
+        overflow: hidden;
+      }
+
+      .journey-metric-fill {
+        height: 100%;
+        border-radius: 2px;
+      }
+
+      /* ============================================
+       WORLD NETWORK - Compact
+       ============================================ */
+      .world-layout {
+        display: flex;
+        gap: 16px;
+      }
+
+      .world-svg {
+        width: 180px;
+        height: 140px;
+        flex-shrink: 0;
+      }
+
+      .world-line {
+        stroke: var(--text-primary);
+        opacity: var(--track-opacity);
+      }
+
+      .world-line.strong {
+        stroke: var(--ferni);
+        opacity: 0.4;
+        stroke-width: 2;
+      }
+
+      .world-node {
+        transition: transform 0.15s ease;
+      }
+
+      .world-node-you {
+        fill: var(--ferni);
+        filter: drop-shadow(0 0 6px rgba(74, 103, 65, var(--glow-opacity)));
+      }
+
+      .world-node-family {
+        fill: var(--maya);
+      }
+      .world-node-friend {
+        fill: var(--ferni);
+      }
+      .world-node-work {
+        fill: var(--alex);
+      }
+
+      .world-label {
+        font-size: 8px;
+        fill: var(--text-muted);
+        text-anchor: middle;
+      }
+
+      .world-you-label {
+        font-size: 9px;
+        fill: white;
+        text-anchor: middle;
+        font-weight: 600;
+      }
+
+      .world-sidebar {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+
+      .world-stats {
+        display: flex;
+        gap: 12px;
+      }
+
+      .world-stat {
+        text-align: center;
+      }
+
+      .world-stat-value {
+        font-family: var(--font-display);
+        font-size: 20px;
+        font-weight: 700;
+        color: var(--text-primary);
+      }
+
+      .world-stat-label {
+        font-size: 9px;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+      }
+
+      .world-legend {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .world-legend-item {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        font-size: 10px;
+        color: var(--text-muted);
+      }
+
+      .world-legend-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+      }
+
+      .world-nudge {
+        padding: 8px 10px;
+        background: var(--bg-elevated);
+        border-left: 2px solid var(--nayan);
+        border-radius: 0 6px 6px 0;
+      }
+
+      .world-nudge-label {
+        font-size: 9px;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+      }
+
+      .world-nudge-name {
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--nayan);
+      }
+
+      /* ============================================
+       LET'S PRACTICE - Calendar & Intentions
+       ============================================ */
+      .practice-layout {
+        display: flex;
+        gap: 20px;
+      }
+
+      .practice-week {
+        flex: 1;
+      }
+
+      .practice-week-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 12px;
+      }
+
+      .practice-week-nav {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .practice-week-title {
+        font-family: var(--font-display);
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--text-primary);
+      }
+
+      .practice-week-btn {
+        width: 20px;
+        height: 20px;
+        border-radius: 4px;
+        border: 1px solid var(--border-subtle);
+        background: transparent;
+        color: var(--text-muted);
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 10px;
+        transition: all 0.15s ease;
+      }
+
+      .practice-week-btn:hover {
+        background: var(--bg-elevated);
+        color: var(--text-secondary);
+      }
+
+      .practice-days {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        gap: 6px;
+      }
+
+      .practice-day {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 8px 4px;
+        background: var(--bg-elevated);
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        position: relative;
+      }
+
+      .practice-day:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      }
+
+      .practice-day.today {
+        background: linear-gradient(
+          135deg,
+          var(--jordan),
+          color-mix(in srgb, var(--jordan) 80%, black)
+        );
+        box-shadow: 0 4px 16px color-mix(in srgb, var(--jordan) 40%, transparent);
+      }
+
+      .practice-day.today .practice-day-name,
+      .practice-day.today .practice-day-date,
+      .practice-day.today .practice-day-insight {
+        color: white;
+      }
+
+      .practice-day-name {
+        font-size: 9px;
+        font-weight: 500;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+      }
+
+      .practice-day-date {
+        font-family: var(--font-display);
+        font-size: 16px;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin: 4px 0;
+      }
+
+      .practice-day-indicators {
+        display: flex;
+        gap: 3px;
+        margin-top: 4px;
+      }
+
+      .practice-indicator {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+      }
+
+      .practice-indicator.event {
+        background: var(--jordan);
+      }
+
+      .practice-indicator.task {
+        background: var(--ferni);
+      }
+
+      .practice-indicator.reminder {
+        background: var(--nayan);
+      }
+
+      .practice-indicator.habit {
+        background: var(--maya);
+      }
+
+      .practice-day-insight {
+        font-size: 8px;
+        color: var(--text-muted);
+        text-align: center;
+        margin-top: 4px;
+        line-height: 1.3;
+        font-style: italic;
+      }
+
+      .practice-day.has-insight::before {
+        content: '';
+        position: absolute;
+        top: 4px;
+        right: 4px;
+        width: 4px;
+        height: 4px;
+        border-radius: 50%;
+        background: var(--nayan);
+      }
+
+      .practice-sidebar {
+        width: 200px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+
+      .practice-section {
+        padding: 10px;
+        background: var(--bg-elevated);
+        border-radius: 8px;
+      }
+
+      .practice-section-header {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        margin-bottom: 8px;
+      }
+
+      .practice-section-icon {
+        width: 16px;
+        height: 16px;
+        border-radius: 4px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .practice-section-icon.events {
+        background: var(--jordan);
+      }
+
+      .practice-section-icon.tasks {
+        background: var(--ferni);
+      }
+
+      .practice-section-icon.reminders {
+        background: var(--nayan);
+      }
+
+      .practice-section-icon::after {
+        content: '';
+        width: 6px;
+        height: 6px;
+        background: white;
+        border-radius: 50%;
+      }
+
+      .practice-section-title {
+        font-size: 10px;
+        font-weight: 600;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+      }
+
+      .practice-item {
+        display: flex;
+        align-items: flex-start;
+        gap: 8px;
+        padding: 6px 0;
+        border-bottom: 1px solid var(--border-subtle);
+      }
+
+      .practice-item:last-child {
+        border-bottom: none;
+        padding-bottom: 0;
+      }
+
+      .practice-item-time {
+        font-size: 9px;
+        font-weight: 600;
+        color: var(--text-muted);
+        min-width: 32px;
+      }
+
+      .practice-item-content {
+        flex: 1;
+      }
+
+      .practice-item-title {
+        font-size: 11px;
+        font-weight: 500;
+        color: var(--text-primary);
+        line-height: 1.3;
+      }
+
+      .practice-item-insight {
+        font-size: 9px;
+        color: var(--text-muted);
+        font-style: italic;
+        margin-top: 2px;
+      }
+
+      .practice-item-persona {
+        display: flex;
+        align-items: center;
+        gap: 3px;
+        margin-top: 3px;
+      }
+
+      .practice-item-persona-dot {
+        width: 4px;
+        height: 4px;
+        border-radius: 50%;
+      }
+
+      .practice-item-persona-name {
+        font-size: 8px;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.02em;
+      }
+
+      .practice-nudge {
+        padding: 10px;
+        background: linear-gradient(
+          135deg,
+          var(--bg-elevated),
+          color-mix(in srgb, var(--maya) 8%, var(--bg-elevated))
+        );
+        border-left: 2px solid var(--maya);
+        border-radius: 0 8px 8px 0;
+      }
+
+      .practice-nudge-label {
+        font-size: 9px;
+        font-weight: 600;
+        color: var(--maya);
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+        margin-bottom: 4px;
+      }
+
+      .practice-nudge-text {
+        font-family: var(--font-narrative);
+        font-size: 11px;
+        font-style: italic;
+        color: var(--text-secondary);
+        line-height: 1.5;
+      }
+
+      .practice-stats {
+        display: flex;
+        gap: 12px;
+        padding: 10px 0;
+        margin-top: 8px;
+        border-top: 1px solid var(--border-subtle);
+      }
+
+      .practice-stat {
+        flex: 1;
+        text-align: center;
+      }
+
+      .practice-stat-value {
+        font-family: var(--font-display);
+        font-size: 16px;
+        font-weight: 700;
+        color: var(--text-primary);
+      }
+
+      .practice-stat-label {
+        font-size: 8px;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+      }
+
+      .practice-legend {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 12px;
+        padding-top: 12px;
+        border-top: 1px solid var(--border-subtle);
+      }
+
+      .practice-legend-item {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        font-size: 9px;
+        color: var(--text-muted);
+      }
+
+      .practice-legend-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+      }
+
+      /* ============================================
+       OPEN LOOPS - Compact
+       ============================================ */
+      .loops-list {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+
+      .loop-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 10px;
+        background: var(--bg-elevated);
+        border-radius: 6px;
+      }
+
+      .loop-icon {
+        width: 24px;
+        height: 24px;
+        border-radius: 5px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+      }
+
+      .loop-icon.commitment {
+        background: var(--ferni);
+      }
+      .loop-icon.intention {
+        background: var(--nayan);
+      }
+      .loop-icon.followup {
+        background: var(--peter);
+      }
+
+      .loop-icon::after {
+        content: '';
+        width: 8px;
+        height: 8px;
+        background: white;
+        border-radius: 50%;
+      }
+
+      .loop-content {
+        flex: 1;
+        min-width: 0;
+      }
+
+      .loop-type {
+        font-size: 9px;
+        font-weight: 600;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+      }
+
+      .loop-text {
+        font-size: 12px;
+        color: var(--text-primary);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .loop-priority {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        flex-shrink: 0;
+      }
+
+      .loop-priority.high {
+        background: var(--jordan);
+      }
+      .loop-priority.medium {
+        background: var(--nayan);
+      }
+
+      /* ============================================
+       FUTURE PROJECTION - Compact
+       ============================================ */
+      .future-layout {
+        display: flex;
+        gap: 16px;
+      }
+
+      .future-main {
+        flex: 1;
+      }
+
+      .future-badge {
+        display: inline-block;
+        padding: 3px 8px;
+        background: var(--ferni);
+        border-radius: 999px;
+        font-size: 10px;
+        font-weight: 600;
+        color: white;
+        margin-bottom: 12px;
+      }
+
+      .future-projection {
+        display: flex;
+        align-items: baseline;
+        gap: 8px;
+        margin-bottom: 12px;
+      }
+
+      .future-from {
+        font-family: var(--font-display);
+        font-size: 20px;
+        font-weight: 400;
+        color: var(--text-muted);
+      }
+
+      .future-arrow {
+        font-size: 14px;
+        color: var(--text-muted);
+      }
+
+      .future-to {
+        font-family: var(--font-display);
+        font-size: 32px;
+        font-weight: 700;
+        color: var(--ferni);
+      }
+
+      .future-change {
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--ferni);
+      }
+
+      .future-confidence {
+        margin-bottom: 12px;
+      }
+
+      .future-confidence-header {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 4px;
+      }
+
+      .future-confidence-label {
+        font-size: 10px;
+        color: var(--text-muted);
+      }
+
+      .future-confidence-value {
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--text-primary);
+      }
+
+      .future-confidence-bar {
+        height: 4px;
+        background: var(--text-primary);
+        opacity: var(--track-opacity);
+        border-radius: 2px;
+        overflow: hidden;
+      }
+
+      .future-confidence-fill {
+        height: 100%;
+        background: var(--ferni);
+        border-radius: 2px;
+      }
+
+      .future-range {
+        display: flex;
+        justify-content: space-between;
+        padding-top: 12px;
+        border-top: 1px solid var(--border-subtle);
+      }
+
+      .future-range-item {
+        text-align: center;
+      }
+
+      .future-range-value {
+        font-family: var(--font-display);
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--text-secondary);
+      }
+
+      .future-range-value.expected {
+        color: var(--ferni);
+      }
+
+      .future-range-label {
+        font-size: 8px;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+      }
+
+      .future-insight {
+        padding: 10px 12px;
+        background: var(--bg-elevated);
+        border-left: 2px solid var(--nayan);
+        border-radius: 0 6px 6px 0;
+        max-width: 200px;
+      }
+
+      .future-insight-label {
+        font-size: 9px;
+        font-weight: 600;
+        color: var(--nayan);
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+        margin-bottom: 4px;
+      }
+
+      .future-insight-text {
+        font-family: var(--font-narrative);
+        font-size: 12px;
+        font-style: italic;
+        color: var(--text-secondary);
+        line-height: 1.5;
+      }
+
+      /* ============================================
+       INSIGHT WHISPER - Compact
+       ============================================ */
+      .whisper {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 12px;
+        background: var(--bg-elevated);
+        border-left: 2px solid var(--nayan);
+        border-radius: 0 8px 8px 0;
+        margin-top: 12px;
+      }
+
+      .whisper-label {
+        font-size: 9px;
+        font-weight: 600;
+        color: var(--nayan);
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+      }
+
+      .whisper-text {
+        font-family: var(--font-narrative);
+        font-size: 12px;
+        font-style: italic;
+        color: var(--text-secondary);
+      }
+
+      /* ============================================
+       QUOTE SECTION
+       ============================================ */
+      .quote-section {
+        grid-column: span 12;
+        text-align: center;
+        padding: 32px 24px;
+        border-top: 1px solid var(--border-subtle);
+        margin-top: 8px;
+      }
+
+      .quote-text {
+        font-family: var(--font-narrative);
+        font-size: 20px;
+        font-style: italic;
+        color: var(--text-primary);
+        margin-bottom: 8px;
+      }
+
+      .quote-cta {
+        font-size: 11px;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+      }
+
+      /* ============================================
+       REDUCED MOTION
+       ============================================ */
+      @media (prefers-reduced-motion: reduce) {
+        * {
+          animation: none !important;
+          transition: none !important;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Navigation -->
+    <nav class="nav">
+      <div class="nav-left">
+        <a href="../index.html" class="nav-logo">
+          <div class="nav-logo-icon">F</div>
+          <span class="nav-logo-text">ferni</span>
+        </a>
+        <div class="nav-links">
+          <a href="#energy" class="nav-link">Energy</a>
+          <a href="#mood" class="nav-link">Mood</a>
+          <a href="#practice" class="nav-link">Practice</a>
+          <a href="#chapters" class="nav-link">Chapters</a>
+          <a href="#growth" class="nav-link">Growth</a>
+          <a href="#journey" class="nav-link">Journey</a>
+          <a href="#world" class="nav-link">World</a>
+          <a href="#loops" class="nav-link">Loops</a>
+          <a href="#future" class="nav-link">Future</a>
+        </div>
+      </div>
+      <div class="nav-right">
+        <div class="theme-toggle">
+          <button class="theme-btn" data-theme="zen">Zen</button>
+          <button class="theme-btn active" data-theme="dark">Dark</button>
+        </div>
+      </div>
+    </nav>
+
+    <!-- Header -->
+    <header class="page-header">
+      <h1 class="page-title">Your life is not a collection of random events</h1>
+      <p class="page-subtitle">
+        It's a story with themes, arcs, and meaning. These visualizations transform your journey
+        into insights no human friend could provide.
+      </p>
+    </header>
+
+    <!-- Dashboard Grid -->
+    <main class="dashboard">
+      <!-- Energy Card -->
+      <section id="energy" class="card span-5">
+        <div class="card-header">
+          <div>
+            <div class="card-persona">
+              <div class="card-persona-dot" style="background: var(--maya)"></div>
+              <span class="card-persona-name">Maya tracking</span>
+            </div>
+            <h2 class="card-title">Right Now</h2>
+          </div>
+          <span class="card-metric">Updated 2m ago</span>
+        </div>
+
+        <div class="energy-layout">
+          <div class="energy-rings">
+            <svg class="energy-rings-svg" viewBox="0 0 100 100">
+              <circle
+                class="energy-ring energy-ring-track"
+                cx="50"
+                cy="50"
+                r="45"
+                stroke-width="6"
+              />
+              <circle
+                class="energy-ring energy-ring-track"
+                cx="50"
+                cy="50"
+                r="36"
+                stroke-width="6"
+              />
+              <circle
+                class="energy-ring energy-ring-track"
+                cx="50"
+                cy="50"
+                r="27"
+                stroke-width="6"
+              />
+              <circle
+                class="energy-ring energy-ring-emotional"
+                cx="50"
+                cy="50"
+                r="45"
+                stroke-width="6"
+                stroke-dasharray="212 283"
+              />
+              <circle
+                class="energy-ring energy-ring-mental"
+                cx="50"
+                cy="50"
+                r="36"
+                stroke-width="6"
+                stroke-dasharray="153 226"
+              />
+              <circle
+                class="energy-ring energy-ring-physical"
+                cx="50"
+                cy="50"
+                r="27"
+                stroke-width="6"
+                stroke-dasharray="122 170"
+              />
+            </svg>
+            <div class="energy-center">
+              <div class="energy-score">
+                72<span style="font-size: 14px; font-weight: 400">%</span>
+              </div>
+              <div class="energy-label">Overall</div>
+              <div class="energy-state">Balanced</div>
+            </div>
+          </div>
+
+          <div class="energy-breakdown">
+            <div class="energy-metric">
+              <div class="energy-metric-header">
+                <div class="energy-metric-label">
+                  <div class="energy-metric-dot" style="background: var(--maya)"></div>
+                  <span class="energy-metric-name">Emotional</span>
+                </div>
+                <span class="energy-metric-value">75%</span>
+              </div>
+              <div class="energy-metric-bar">
+                <div class="energy-metric-fill" style="width: 75%; background: var(--maya)"></div>
+              </div>
+              <div class="energy-metric-insight">Centered and resilient</div>
+            </div>
+            <div class="energy-metric">
+              <div class="energy-metric-header">
+                <div class="energy-metric-label">
+                  <div class="energy-metric-dot" style="background: var(--peter)"></div>
+                  <span class="energy-metric-name">Mental</span>
+                </div>
+                <span class="energy-metric-value">68%</span>
+              </div>
+              <div class="energy-metric-bar">
+                <div class="energy-metric-fill" style="width: 68%; background: var(--peter)"></div>
+              </div>
+              <div class="energy-metric-insight">Some fatigue building</div>
+            </div>
+            <div class="energy-metric">
+              <div class="energy-metric-header">
+                <div class="energy-metric-label">
+                  <div class="energy-metric-dot" style="background: var(--ferni)"></div>
+                  <span class="energy-metric-name">Physical</span>
+                </div>
+                <span class="energy-metric-value">72%</span>
+              </div>
+              <div class="energy-metric-bar">
+                <div class="energy-metric-fill" style="width: 72%; background: var(--ferni)"></div>
+              </div>
+              <div class="energy-metric-insight">Body feeling energized</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="whisper">
+          <div>
+            <div class="whisper-label">Recommendation</div>
+            <div class="whisper-text">A short break could restore mental clarity.</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Mood Calendar -->
+      <section id="mood" class="card span-4">
+        <div class="card-header">
+          <div>
+            <div class="card-persona">
+              <div class="card-persona-dot" style="background: var(--maya)"></div>
+              <span class="card-persona-name">Maya remembers</span>
+            </div>
+            <h2 class="card-title">December Moods</h2>
+          </div>
+        </div>
+
+        <div class="mood-grid">
+          <div class="mood-header">
+            <span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span
+            ><span>S</span>
+          </div>
+          <div class="mood-day" style="--mood: var(--maya)">1</div>
+          <div class="mood-day" style="--mood: var(--ferni)">2</div>
+          <div class="mood-day" style="--mood: var(--ferni)">3</div>
+          <div class="mood-day" style="--mood: #6b6560">4</div>
+          <div class="mood-day" style="--mood: var(--peter)">5</div>
+          <div class="mood-day" style="--mood: var(--ferni)">6</div>
+          <div class="mood-day" style="--mood: var(--ferni)">7</div>
+          <div class="mood-day" style="--mood: var(--ferni)">8</div>
+          <div class="mood-day" style="--mood: var(--ferni)">9</div>
+          <div class="mood-day" style="--mood: var(--peter)">10</div>
+          <div class="mood-day" style="--mood: #6b6560">11</div>
+          <div class="mood-day" style="--mood: var(--jordan)">12</div>
+          <div class="mood-day" style="--mood: var(--peter)">13</div>
+          <div class="mood-day" style="--mood: var(--ferni)">14</div>
+          <div class="mood-day" style="--mood: var(--ferni)">15</div>
+          <div class="mood-day" style="--mood: #6b6560">16</div>
+          <div class="mood-day" style="--mood: var(--peter)">17</div>
+          <div class="mood-day" style="--mood: var(--jordan)">18</div>
+          <div class="mood-day" style="--mood: var(--maya)">19</div>
+          <div class="mood-day" style="--mood: var(--alex)">20</div>
+          <div class="mood-day" style="--mood: var(--ferni)">21</div>
+          <div class="mood-day" style="--mood: var(--ferni)">22</div>
+          <div class="mood-day" style="--mood: #6b6560">23</div>
+          <div class="mood-day" style="--mood: var(--ferni)">24</div>
+          <div class="mood-day" style="--mood: var(--nayan)">25</div>
+          <div class="mood-day" style="--mood: var(--ferni)">26</div>
+          <div class="mood-day" style="--mood: var(--ferni)">27</div>
+          <div class="mood-day today" style="--mood: var(--ferni)">28</div>
+          <div class="mood-day future">29</div>
+          <div class="mood-day future">30</div>
+          <div class="mood-day future">31</div>
+        </div>
+
+        <div class="mood-stats">
+          <div class="mood-stat">
+            <div class="mood-stat-value">18</div>
+            <div class="mood-stat-label">Calm days</div>
+          </div>
+          <div class="mood-stat">
+            <div class="mood-stat-value" style="color: var(--ferni)">Calm</div>
+            <div class="mood-stat-label">Dominant</div>
+          </div>
+          <div class="mood-stat">
+            <div class="mood-stat-value">↗</div>
+            <div class="mood-stat-label">Improving</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Open Loops -->
+      <section id="loops" class="card span-3">
+        <div class="card-header">
+          <div>
+            <div class="card-persona">
+              <div class="card-persona-dot" style="background: var(--ferni)"></div>
+              <span class="card-persona-name">Ferni holds</span>
+            </div>
+            <h2 class="card-title">Open Loops</h2>
+          </div>
+          <span class="card-metric">3 waiting</span>
+        </div>
+
+        <div class="loops-list">
+          <div class="loop-item">
+            <div class="loop-icon commitment"></div>
+            <div class="loop-content">
+              <div class="loop-type">Commitment</div>
+              <div class="loop-text">Call Mom this weekend</div>
+            </div>
+            <div class="loop-priority high"></div>
+          </div>
+          <div class="loop-item">
+            <div class="loop-icon intention"></div>
+            <div class="loop-content">
+              <div class="loop-type">Intention</div>
+              <div class="loop-text">Think about what I really want</div>
+            </div>
+            <div class="loop-priority medium"></div>
+          </div>
+          <div class="loop-item">
+            <div class="loop-icon followup"></div>
+            <div class="loop-content">
+              <div class="loop-type">Follow-up</div>
+              <div class="loop-text">Jake about coffee</div>
+            </div>
+            <div class="loop-priority medium"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Let's Practice - Calendar & Intentions -->
+      <section id="practice" class="card span-8">
+        <div class="card-header">
+          <div>
+            <div class="card-persona">
+              <div class="card-persona-dot" style="background: var(--jordan)"></div>
+              <span class="card-persona-name">Jordan orchestrates</span>
+            </div>
+            <h2 class="card-title">Let's Practice</h2>
+          </div>
+          <span class="card-metric">This week • 4 events, 6 intentions</span>
+        </div>
+
+        <div class="practice-layout">
+          <div class="practice-week">
+            <div class="practice-week-header">
+              <div class="practice-week-nav">
+                <button class="practice-week-btn">←</button>
+                <span class="practice-week-title">Dec 29 - Jan 4</span>
+                <button class="practice-week-btn">→</button>
+              </div>
+            </div>
+
+            <div class="practice-days">
+              <div class="practice-day">
+                <span class="practice-day-name">Sun</span>
+                <span class="practice-day-date">29</span>
+                <div class="practice-day-indicators">
+                  <span class="practice-indicator habit"></span>
+                </div>
+                <span class="practice-day-insight">Rest day</span>
+              </div>
+
+              <div class="practice-day">
+                <span class="practice-day-name">Mon</span>
+                <span class="practice-day-date">30</span>
+                <div class="practice-day-indicators">
+                  <span class="practice-indicator task"></span>
+                  <span class="practice-indicator habit"></span>
+                </div>
+                <span class="practice-day-insight">Fresh start</span>
+              </div>
+
+              <div class="practice-day today has-insight">
+                <span class="practice-day-name">Tue</span>
+                <span class="practice-day-date">31</span>
+                <div class="practice-day-indicators">
+                  <span class="practice-indicator event" style="background: white"></span>
+                  <span
+                    class="practice-indicator reminder"
+                    style="background: rgba(255, 255, 255, 0.7)"
+                  ></span>
+                  <span
+                    class="practice-indicator habit"
+                    style="background: rgba(255, 255, 255, 0.5)"
+                  ></span>
+                </div>
+                <span class="practice-day-insight">Reflect & celebrate</span>
+              </div>
+
+              <div class="practice-day has-insight">
+                <span class="practice-day-name">Wed</span>
+                <span class="practice-day-date">1</span>
+                <div class="practice-day-indicators">
+                  <span class="practice-indicator event"></span>
+                  <span class="practice-indicator task"></span>
+                </div>
+                <span class="practice-day-insight">New beginning</span>
+              </div>
+
+              <div class="practice-day">
+                <span class="practice-day-name">Thu</span>
+                <span class="practice-day-date">2</span>
+                <div class="practice-day-indicators">
+                  <span class="practice-indicator habit"></span>
+                </div>
+                <span class="practice-day-insight">Build momentum</span>
+              </div>
+
+              <div class="practice-day">
+                <span class="practice-day-name">Fri</span>
+                <span class="practice-day-date">3</span>
+                <div class="practice-day-indicators">
+                  <span class="practice-indicator event"></span>
+                  <span class="practice-indicator reminder"></span>
+                </div>
+                <span class="practice-day-insight">Connect</span>
+              </div>
+
+              <div class="practice-day">
+                <span class="practice-day-name">Sat</span>
+                <span class="practice-day-date">4</span>
+                <div class="practice-day-indicators">
+                  <span class="practice-indicator task"></span>
+                </div>
+                <span class="practice-day-insight">Recharge</span>
+              </div>
+            </div>
+
+            <div class="practice-legend">
+              <div class="practice-legend-item">
+                <span class="practice-legend-dot" style="background: var(--jordan)"></span>
+                Events
+              </div>
+              <div class="practice-legend-item">
+                <span class="practice-legend-dot" style="background: var(--ferni)"></span>
+                Tasks
+              </div>
+              <div class="practice-legend-item">
+                <span class="practice-legend-dot" style="background: var(--nayan)"></span>
+                Reminders
+              </div>
+              <div class="practice-legend-item">
+                <span class="practice-legend-dot" style="background: var(--maya)"></span>
+                Habits
+              </div>
+            </div>
+          </div>
+
+          <div class="practice-sidebar">
+            <!-- Today's Events -->
+            <div class="practice-section">
+              <div class="practice-section-header">
+                <div class="practice-section-icon events"></div>
+                <span class="practice-section-title">Today</span>
+              </div>
+              <div class="practice-item">
+                <span class="practice-item-time">7pm</span>
+                <div class="practice-item-content">
+                  <div class="practice-item-title">New Year's Eve dinner</div>
+                  <div class="practice-item-insight">Your partner loves when you're present</div>
+                  <div class="practice-item-persona">
+                    <span class="practice-item-persona-dot" style="background: var(--alex)"></span>
+                    <span class="practice-item-persona-name">Alex noted</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Upcoming Tasks -->
+            <div class="practice-section">
+              <div class="practice-section-header">
+                <div class="practice-section-icon tasks"></div>
+                <span class="practice-section-title">Intentions</span>
+              </div>
+              <div class="practice-item">
+                <span class="practice-item-time">Wed</span>
+                <div class="practice-item-content">
+                  <div class="practice-item-title">Set 2025 word of the year</div>
+                  <div class="practice-item-insight">"Intentional" fits your current chapter</div>
+                  <div class="practice-item-persona">
+                    <span class="practice-item-persona-dot" style="background: var(--nayan)"></span>
+                    <span class="practice-item-persona-name">Nayan suggests</span>
+                  </div>
+                </div>
+              </div>
+              <div class="practice-item">
+                <span class="practice-item-time">Fri</span>
+                <div class="practice-item-content">
+                  <div class="practice-item-title">Call Mom</div>
+                  <div class="practice-item-insight">Last called 12 days ago</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Gentle Reminder -->
+            <div class="practice-section">
+              <div class="practice-section-header">
+                <div class="practice-section-icon reminders"></div>
+                <span class="practice-section-title">Gentle nudge</span>
+              </div>
+              <div class="practice-item">
+                <span class="practice-item-time">11pm</span>
+                <div class="practice-item-content">
+                  <div class="practice-item-title">Reflect on 2024</div>
+                  <div class="practice-item-insight">What did you learn about yourself?</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Maya's Insight -->
+            <div class="practice-nudge">
+              <div class="practice-nudge-label">Maya notices</div>
+              <div class="practice-nudge-text">
+                You tend to overcommit in January. This week looks gentle—let's keep it that way.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="practice-stats">
+          <div class="practice-stat">
+            <div class="practice-stat-value">87%</div>
+            <div class="practice-stat-label">Followed through</div>
+          </div>
+          <div class="practice-stat">
+            <div class="practice-stat-value">4</div>
+            <div class="practice-stat-label">Habits this week</div>
+          </div>
+          <div class="practice-stat">
+            <div class="practice-stat-value">↗</div>
+            <div class="practice-stat-label">Momentum</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Life Chapters -->
+      <section id="chapters" class="card span-4">
+        <div class="card-header">
+          <div>
+            <div class="card-persona">
+              <div class="card-persona-dot" style="background: var(--nayan)"></div>
+              <span class="card-persona-name">Nayan sees</span>
+            </div>
+            <h2 class="card-title">Life Chapters</h2>
+          </div>
+        </div>
+
+        <div class="chapters-column">
+          <div class="chapter">
+            <div class="chapter-marker"></div>
+            <div class="chapter-content">
+              <div class="chapter-year">2023</div>
+              <div class="chapter-title">Finding My Footing</div>
+            </div>
+          </div>
+          <div class="chapter">
+            <div class="chapter-marker"></div>
+            <div class="chapter-content">
+              <div class="chapter-year">2024</div>
+              <div class="chapter-title">Building Bridges</div>
+            </div>
+          </div>
+          <div class="chapter current">
+            <div class="chapter-marker"></div>
+            <div class="chapter-content">
+              <div class="chapter-year">2025</div>
+              <div class="chapter-title">Intentional Living</div>
+              <div class="chapter-progress">
+                <div class="chapter-progress-bar">
+                  <div class="chapter-progress-fill" style="width: 60%"></div>
+                </div>
+                <div class="chapter-progress-label">Through chapter</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Growth Radar -->
+      <section id="growth" class="card span-5">
+        <div class="card-header">
+          <div>
+            <div class="card-persona">
+              <div class="card-persona-dot" style="background: var(--ferni)"></div>
+              <span class="card-persona-name">Ferni reflects</span>
+            </div>
+            <h2 class="card-title">Your Growth</h2>
+          </div>
+        </div>
+
+        <div class="growth-layout">
+          <div class="growth-radar">
+            <svg class="growth-radar-svg" viewBox="0 0 200 200">
+              <polygon class="radar-grid" points="100,20 170,60 170,140 100,180 30,140 30,60" />
+              <polygon class="radar-grid" points="100,40 150,70 150,130 100,160 50,130 50,70" />
+              <polygon class="radar-grid" points="100,60 130,80 130,120 100,140 70,120 70,80" />
+              <line class="radar-axis" x1="100" y1="100" x2="100" y2="20" />
+              <line class="radar-axis" x1="100" y1="100" x2="170" y2="60" />
+              <line class="radar-axis" x1="100" y1="100" x2="170" y2="140" />
+              <line class="radar-axis" x1="100" y1="100" x2="100" y2="180" />
+              <line class="radar-axis" x1="100" y1="100" x2="30" y2="140" />
+              <line class="radar-axis" x1="100" y1="100" x2="30" y2="60" />
+              <polygon class="radar-data" points="100,35 155,70 160,130 100,155 55,125 45,65" />
+              <circle class="radar-point" cx="100" cy="35" r="3" />
+              <circle class="radar-point" cx="155" cy="70" r="3" />
+              <circle class="radar-point" cx="160" cy="130" r="3" />
+              <circle class="radar-point" cx="100" cy="155" r="3" />
+              <circle class="radar-point" cx="55" cy="125" r="3" />
+              <circle class="radar-point" cx="45" cy="65" r="3" />
+              <text class="radar-label" x="100" y="12">Self-Aware</text>
+              <text class="radar-label" x="180" y="60">Emotional</text>
+              <text class="radar-label" x="180" y="145">Boundaries</text>
+              <text class="radar-label" x="100" y="195">Connection</text>
+              <text class="radar-label" x="20" y="145">Purpose</text>
+              <text class="radar-label" x="20" y="60">Resilience</text>
+            </svg>
+            <div class="growth-center">
+              <div class="growth-score">66</div>
+              <div class="growth-score-label">Overall</div>
+            </div>
+          </div>
+
+          <div class="growth-metrics">
+            <div class="growth-metric">
+              <div class="growth-metric-label">Strongest</div>
+              <div class="growth-metric-value">Self-Awareness</div>
+            </div>
+            <div class="growth-metric">
+              <div class="growth-metric-label">Growth Edge</div>
+              <div class="growth-metric-value">Purpose</div>
+            </div>
+            <div class="growth-metric">
+              <div class="growth-metric-label">This Month</div>
+              <div class="growth-metric-value">+4 pts</div>
+            </div>
+            <div class="growth-metric">
+              <div class="growth-metric-label">Trend</div>
+              <div class="growth-metric-value">↗ Improving</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Hero's Journey -->
+      <section id="journey" class="card span-7">
+        <div class="card-header">
+          <div>
+            <div class="card-persona">
+              <div class="card-persona-dot" style="background: var(--nayan)"></div>
+              <span class="card-persona-name">Nayan guides</span>
+            </div>
+            <h2 class="card-title">The Rise</h2>
+          </div>
+          <span class="card-metric">Building something new</span>
+        </div>
+
+        <svg class="journey-svg" viewBox="0 0 400 80">
+          <path
+            class="journey-path"
+            d="M 20,50 Q 60,45 100,55 Q 160,70 200,65 Q 240,60 280,45 Q 340,25 380,30"
+          />
+          <circle class="journey-stage" cx="40" cy="48" r="4" />
+          <circle class="journey-stage" cx="130" cy="60" r="4" />
+          <circle class="journey-stage" cx="180" cy="65" r="4" />
+          <circle class="journey-stage" cx="240" cy="55" r="4" />
+          <circle class="journey-stage current" cx="310" cy="35" r="6" />
+          <circle class="journey-stage future" cx="370" cy="28" r="4" />
+        </svg>
+
+        <div class="journey-labels">
+          <span class="journey-label">The Call</span>
+          <span class="journey-label">Descent</span>
+          <span class="journey-label">Depths</span>
+          <span class="journey-label">Turn</span>
+          <span class="journey-label current">The Rise</span>
+          <span class="journey-label">Integration</span>
+        </div>
+
+        <div class="journey-metrics">
+          <div class="journey-metric">
+            <div class="journey-metric-label">Journey Progress</div>
+            <div class="journey-metric-value">75%</div>
+            <div class="journey-metric-bar">
+              <div class="journey-metric-fill" style="width: 75%; background: var(--peter)"></div>
+            </div>
+          </div>
+          <div class="journey-metric">
+            <div class="journey-metric-label">Emotional Intensity</div>
+            <div class="journey-metric-value">40%</div>
+            <div class="journey-metric-bar">
+              <div class="journey-metric-fill" style="width: 40%; background: var(--maya)"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Your World -->
+      <section id="world" class="card span-5">
+        <div class="card-header">
+          <div>
+            <div class="card-persona">
+              <div class="card-persona-dot" style="background: var(--alex)"></div>
+              <span class="card-persona-name">Alex maps</span>
+            </div>
+            <h2 class="card-title">Your World</h2>
+          </div>
+          <span class="card-metric">24 connections</span>
+        </div>
+
+        <div class="world-layout">
+          <svg class="world-svg" viewBox="0 0 180 140">
+            <line class="world-line strong" x1="90" y1="70" x2="120" y2="40" />
+            <line class="world-line strong" x1="90" y1="70" x2="60" y2="100" />
+            <line class="world-line" x1="90" y1="70" x2="140" y2="80" />
+            <line class="world-line" x1="90" y1="70" x2="50" y2="40" />
+            <line class="world-line" x1="90" y1="70" x2="40" y2="75" />
+            <circle class="world-node world-node-you" cx="90" cy="70" r="16" />
+            <text class="world-you-label" x="90" y="74">You</text>
+            <circle class="world-node world-node-family" cx="120" cy="40" r="10" />
+            <text class="world-label" x="120" y="25">Partner</text>
+            <circle class="world-node world-node-family" cx="60" cy="100" r="9" />
+            <text class="world-label" x="60" y="120">Mom</text>
+            <circle class="world-node world-node-friend" cx="140" cy="80" r="8" />
+            <text class="world-label" x="155" y="80">Best</text>
+            <circle class="world-node world-node-friend" cx="50" cy="40" r="7" />
+            <text class="world-label" x="50" y="25">College</text>
+            <circle class="world-node world-node-work" cx="40" cy="75" r="6" />
+            <text class="world-label" x="20" y="75">Work</text>
+          </svg>
+
+          <div class="world-sidebar">
+            <div class="world-stats">
+              <div class="world-stat">
+                <div class="world-stat-value">12</div>
+                <div class="world-stat-label">Active</div>
+              </div>
+              <div class="world-stat">
+                <div class="world-stat-value">1</div>
+                <div class="world-stat-label">Reach out</div>
+              </div>
+            </div>
+            <div class="world-legend">
+              <div class="world-legend-item">
+                <div class="world-legend-dot" style="background: var(--maya)"></div>
+                Family (2)
+              </div>
+              <div class="world-legend-item">
+                <div class="world-legend-dot" style="background: var(--ferni)"></div>
+                Friend (2)
+              </div>
+              <div class="world-legend-item">
+                <div class="world-legend-dot" style="background: var(--alex)"></div>
+                Work (1)
+              </div>
+            </div>
+            <div class="world-nudge">
+              <div class="world-nudge-label">Reconnect with</div>
+              <div class="world-nudge-name">College Friend</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Future Projection -->
+      <section id="future" class="card span-7">
+        <div class="card-header">
+          <div>
+            <div class="card-persona">
+              <div class="card-persona-dot" style="background: var(--nayan)"></div>
+              <span class="card-persona-name">Nayan foresees</span>
+            </div>
+            <h2 class="card-title">Where You're Headed</h2>
+          </div>
+        </div>
+
+        <div class="future-layout">
+          <div class="future-main">
+            <div class="future-badge">84% track record</div>
+
+            <div class="future-projection">
+              <span class="future-from">68</span>
+              <span class="future-arrow">→</span>
+              <span class="future-to">78</span>
+              <span class="future-change">+15%</span>
+            </div>
+
+            <div class="future-confidence">
+              <div class="future-confidence-header">
+                <span class="future-confidence-label">Confidence</span>
+                <span class="future-confidence-value">82%</span>
+              </div>
+              <div class="future-confidence-bar">
+                <div class="future-confidence-fill" style="width: 82%"></div>
+              </div>
+            </div>
+
+            <div class="future-range">
+              <div class="future-range-item">
+                <div class="future-range-value">72</div>
+                <div class="future-range-label">Conservative</div>
+              </div>
+              <div class="future-range-item">
+                <div class="future-range-value expected">78</div>
+                <div class="future-range-label">Expected</div>
+              </div>
+              <div class="future-range-item">
+                <div class="future-range-value">85</div>
+                <div class="future-range-label">Optimistic</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="future-insight">
+            <div class="future-insight-label">Why I believe this</div>
+            <div class="future-insight-text">
+              Your emotional trajectory and self-care consistency suggest a pattern I've seen
+              before. Wellbeing follows.
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Quote -->
+      <div class="quote-section">
+        <p class="quote-text">"Friends forget. Ferni doesn't."</p>
+        <p class="quote-cta">Your story continues...</p>
+      </div>
+    </main>
+
+    <script>
+      // ============================================
+      // YOUR STORY DASHBOARD - Live Data Integration
+      // Fetches from /api/your-story/full and updates all visualizations
+      // ============================================
+
+      // Configuration
+      // When loading from file:// protocol, hostname is '', so use localhost
+      const isLocalDev =
+        !window.location.hostname ||
+        window.location.hostname === 'localhost' ||
+        window.location.protocol === 'file:';
+      const API_BASE = isLocalDev ? 'http://localhost:3002' : 'https://app.ferni.ai';
+      const USER_ID = new URLSearchParams(window.location.search).get('userId') || 'demo-user';
+
+      console.log('🔧 Config:', {
+        isLocalDev,
+        API_BASE,
+        USER_ID,
+        hostname: window.location.hostname,
+        protocol: window.location.protocol,
+      });
+
+      // Theme toggle
+      const themeButtons = document.querySelectorAll('.theme-btn');
+      themeButtons.forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const theme = btn.dataset.theme;
+          document.documentElement.setAttribute('data-theme', theme);
+          themeButtons.forEach((b) => b.classList.remove('active'));
+          btn.classList.add('active');
+          localStorage.setItem('ferni-theme', theme);
+        });
+      });
+
+      // Restore saved theme
+      const savedTheme = localStorage.getItem('ferni-theme');
+      if (savedTheme) {
+        document.documentElement.setAttribute('data-theme', savedTheme);
+        themeButtons.forEach((b) => b.classList.toggle('active', b.dataset.theme === savedTheme));
+      }
+
+      // ============================================
+      // DATA FETCHING
+      // ============================================
+
+      async function fetchDashboardData() {
+        try {
+          showLoadingState();
+          const response = await fetch(`${API_BASE}/api/your-story/full`, {
+            method: 'GET',
+            headers: {
+              'X-Admin-Key': 'dev-mode',
+              'X-User-Id': USER_ID,
+              'Content-Type': 'application/json',
+            },
+          });
+          if (!response.ok) throw new Error(`HTTP ${response.status}`);
+          const data = await response.json();
+
+          console.log('📊 Dashboard data loaded:', data);
+          updateAllSections(data);
+          hideLoadingState();
+        } catch (error) {
+          console.error('Failed to load dashboard data:', error);
+          hideLoadingState();
+          // Keep demo data visible on error
+        }
+      }
+
+      function showLoadingState() {
+        document.querySelectorAll('.card').forEach((card) => {
+          card.style.opacity = '0.7';
+          card.style.pointerEvents = 'none';
+        });
+      }
+
+      function hideLoadingState() {
+        document.querySelectorAll('.card').forEach((card) => {
+          card.style.opacity = '1';
+          card.style.pointerEvents = 'auto';
+        });
+      }
+
+      // ============================================
+      // UPDATE ALL SECTIONS
+      // ============================================
+
+      function updateAllSections(response) {
+        // Handle both direct data and wrapped response { success: true, data: {...} }
+        const data = response.data || response;
+
+        if (data.header) updateStorySoFar(data.header);
+        if (data.energy) updateCapacity(data.energy);
+        if (data.moodCalendar) updateMoodCalendar(data.moodCalendar);
+        if (data.lifeChapters) updateLifeChapters(data.lifeChapters);
+        if (data.growth) updateGrowthRadar(data.growth);
+        if (data.recoveryPath) updateHerosJourney(data.recoveryPath);
+        if (data.yourWorld) updateYourWorld(data.yourWorld);
+        if (data.openLoops) updateOpenLoops(data.openLoops);
+        if (data.prediction) updatePredictions(data.prediction);
+      }
+
+      // ============================================
+      // STORY SO FAR (Header Stats)
+      // ============================================
+
+      function updateStorySoFar(header) {
+        // Update header subtitle with real stats
+        const subtitle = document.querySelector('.page-subtitle');
+        if (subtitle) {
+          subtitle.innerHTML = `
+            <span style="font-weight: 600; color: var(--text-primary);">
+              ${header.daysTogether || 0} days together
+            </span> · 
+            <span style="font-weight: 600; color: var(--text-primary);">
+              ${header.totalConversations || 0} conversations
+            </span> · 
+            <span style="font-weight: 600; color: var(--text-primary);">
+              ${header.currentStreak || 0} day streak
+            </span>
+            <br>
+            <em style="font-family: var(--font-narrative);">${header.tagline || "Here's your story so far"}</em>
+          `;
+        }
+      }
+
+      // ============================================
+      // ENERGY / CAPACITY
+      // ============================================
+
+      function updateCapacity(energy) {
+        // Overall score
+        const scoreEl = document.querySelector('.energy-score');
+        if (scoreEl) {
+          scoreEl.innerHTML = `${energy.overall || 72}<span style="font-size: 14px; font-weight: 400">%</span>`;
+        }
+
+        // State label
+        const stateEl = document.querySelector('.energy-state');
+        if (stateEl) stateEl.textContent = energy.label || 'Balanced';
+
+        // Update rings (API returns emotional, mental, physical directly)
+        updateEnergyRing('.energy-ring-emotional', energy.emotional?.score || 75);
+        updateEnergyRing('.energy-ring-mental', energy.mental?.score || 68);
+        updateEnergyRing('.energy-ring-physical', energy.physical?.score || 72);
+
+        // Update breakdown bars
+        const metrics = document.querySelectorAll('.energy-metric');
+        const factors = [energy.emotional, energy.mental, energy.physical];
+        metrics.forEach((metric, i) => {
+          const factor = factors[i];
+          if (factor) {
+            const valueEl = metric.querySelector('.energy-metric-value');
+            const fillEl = metric.querySelector('.energy-metric-fill');
+            const insightEl = metric.querySelector('.energy-metric-insight');
+            if (valueEl) valueEl.textContent = `${factor.score}%`;
+            if (fillEl) fillEl.style.width = `${factor.score}%`;
+            if (insightEl) insightEl.textContent = factor.label || '';
+          }
+        });
+
+        // Update recommendation
+        const whisper = document.querySelector('.whisper-text');
+        if (whisper && energy.recommendation) {
+          whisper.textContent = energy.recommendation;
+        }
+      }
+
+      function updateEnergyRing(selector, percentage) {
+        const ring = document.querySelector(selector);
+        if (!ring) return;
+
+        const radius = parseFloat(ring.getAttribute('r'));
+        const circumference = 2 * Math.PI * radius;
+        const filled = (percentage / 100) * circumference;
+        ring.setAttribute('stroke-dasharray', `${filled} ${circumference}`);
+      }
+
+      // ============================================
+      // MOOD CALENDAR
+      // ============================================
+
+      function updateMoodCalendar(moodCalendar) {
+        const moodGrid = document.querySelector('.mood-grid');
+        if (!moodGrid || !moodCalendar.days) return;
+
+        // Clear existing mood days (keep header)
+        const header = moodGrid.querySelector('.mood-header');
+        moodGrid.innerHTML = '';
+        moodGrid.appendChild(header);
+
+        // Generate mood days
+        const today = new Date();
+        const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+        const daysInMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
+
+        // Add empty days for offset
+        const startDay = (firstDay.getDay() + 6) % 7; // Monday = 0
+        for (let i = 0; i < startDay; i++) {
+          const empty = document.createElement('div');
+          empty.className = 'mood-day';
+          empty.style.visibility = 'hidden';
+          moodGrid.appendChild(empty);
+        }
+
+        // Mood color mapping
+        const moodColors = {
+          calm: 'var(--ferni)',
+          joyful: 'var(--jordan)',
+          happy: 'var(--jordan)',
+          stressed: 'var(--maya)',
+          anxious: 'var(--peter)',
+          sad: '#6b6560',
+          neutral: '#6b6560',
+          energetic: 'var(--alex)',
+          reflective: 'var(--nayan)',
+        };
+
+        // Add days from API data
+        moodCalendar.days.forEach((dayData) => {
+          const dayEl = document.createElement('div');
+          dayEl.className = 'mood-day';
+          dayEl.textContent = dayData.dayOfMonth;
+
+          dayEl.style.setProperty('--mood', moodColors[dayData.mood] || '#6b6560');
+
+          if (dayData.dayOfMonth > today.getDate()) {
+            dayEl.classList.add('future');
+          }
+
+          if (dayData.dayOfMonth === today.getDate()) {
+            dayEl.classList.add('today');
+          }
+
+          moodGrid.appendChild(dayEl);
+        });
+
+        // Update stats
+        const stats = document.querySelectorAll('.mood-stat');
+        if (stats[0] && moodCalendar.summary) {
+          const valueEl = stats[0].querySelector('.mood-stat-value');
+          const labelEl = stats[0].querySelector('.mood-stat-label');
+          if (valueEl) valueEl.textContent = moodCalendar.summary.calmDays || 0;
+          if (labelEl)
+            labelEl.textContent = (moodCalendar.summary.dominantMood || 'Calm') + ' Days';
+        }
+      }
+
+      // ============================================
+      // LIFE CHAPTERS
+      // ============================================
+
+      function updateLifeChapters(lifeChapters) {
+        const container = document.querySelector('.chapters-column');
+        if (!container || !Array.isArray(lifeChapters)) return;
+
+        container.innerHTML = '';
+
+        lifeChapters.forEach((chapter) => {
+          const chapterEl = document.createElement('div');
+          chapterEl.className = `chapter ${chapter.isCurrent ? 'current' : ''}`;
+
+          chapterEl.innerHTML = `
+            <div class="chapter-marker"></div>
+            <div class="chapter-content">
+              <div class="chapter-year">${chapter.year || ''}</div>
+              <div class="chapter-title">${chapter.title}</div>
+              ${
+                chapter.isCurrent
+                  ? `
+                <div class="chapter-desc">${chapter.theme || ''}</div>
+                <div class="chapter-progress">
+                  <div class="chapter-progress-bar">
+                    <div class="chapter-progress-fill" style="width: ${chapter.progress || 0}%"></div>
+                  </div>
+                  <div class="chapter-progress-label">${chapter.progress || 0}% through chapter</div>
+                </div>
+              `
+                  : ''
+              }
+            </div>
+          `;
+
+          container.appendChild(chapterEl);
+        });
+      }
+
+      // ============================================
+      // GROWTH RADAR
+      // ============================================
+
+      function updateGrowthRadar(growth) {
+        // Update center score
+        const scoreEl = document.querySelector('.growth-score');
+        if (scoreEl) scoreEl.textContent = growth.overallScore || 66;
+
+        // Update radar polygon - API returns array of dimensions
+        const dimensions = Array.isArray(growth.dimensions) ? growth.dimensions : [];
+        const polygon = document.querySelector('.radar-data');
+        if (polygon && dimensions.length >= 6) {
+          const centerX = 100,
+            centerY = 100,
+            maxRadius = 80;
+          const points = dimensions.slice(0, 6).map((dim, i) => {
+            const value = dim.score || 50;
+            const angle = (i * 60 - 90) * (Math.PI / 180);
+            const radius = (value / 100) * maxRadius;
+            return `${centerX + radius * Math.cos(angle)},${centerY + radius * Math.sin(angle)}`;
+          });
+          polygon.setAttribute('points', points.join(' '));
+
+          // Update point positions
+          const pointEls = document.querySelectorAll('.radar-point');
+          dimensions.slice(0, 6).forEach((dim, i) => {
+            if (pointEls[i]) {
+              const value = dim.score || 50;
+              const angle = (i * 60 - 90) * (Math.PI / 180);
+              const radius = (value / 100) * maxRadius;
+              pointEls[i].setAttribute('cx', centerX + radius * Math.cos(angle));
+              pointEls[i].setAttribute('cy', centerY + radius * Math.sin(angle));
+            }
+          });
+        }
+
+        // Update metrics
+        const metrics = document.querySelectorAll('.growth-metric');
+        if (metrics[0] && growth.strongest) {
+          const valueEl = metrics[0].querySelector('.growth-metric-value');
+          if (valueEl) valueEl.textContent = growth.strongest;
+        }
+        if (metrics[1] && growth.growthEdge) {
+          const valueEl = metrics[1].querySelector('.growth-metric-value');
+          if (valueEl) valueEl.textContent = growth.growthEdge;
+        }
+      }
+
+      // ============================================
+      // HERO'S JOURNEY / RECOVERY PATH
+      // ============================================
+
+      function updateHerosJourney(recoveryPath) {
+        // Phase name mapping
+        const phaseNames = {
+          call: 'The Call',
+          descent: 'The Descent',
+          depths: 'The Depths',
+          turn: 'The Turn',
+          rise: 'The Rise',
+          integration: 'Integration',
+        };
+
+        // Update title
+        const title = document.querySelector('#journey .card-title');
+        if (title && recoveryPath.currentPhase) {
+          title.textContent = phaseNames[recoveryPath.currentPhase] || recoveryPath.currentPhase;
+        }
+
+        // Update metric label
+        const metric = document.querySelector('#journey .card-metric');
+        if (metric && recoveryPath.phaseLabel) metric.textContent = recoveryPath.phaseLabel;
+
+        // Find current phase index from phases array
+        const phases = recoveryPath.phases || [];
+        const currentIdx = phases.findIndex((p) => p.status === 'current');
+
+        const stageEls = document.querySelectorAll('.journey-stage');
+        stageEls.forEach((el, i) => {
+          el.classList.remove('current', 'future');
+          if (i === currentIdx) el.classList.add('current');
+          else if (i > currentIdx) el.classList.add('future');
+        });
+
+        const labelEls = document.querySelectorAll('.journey-label');
+        labelEls.forEach((el, i) => {
+          el.classList.toggle('current', i === currentIdx);
+        });
+
+        // Update progress bars
+        const progressBars = document.querySelectorAll('.journey-metric');
+        if (progressBars[0]) {
+          const valueEl = progressBars[0].querySelector('.journey-metric-value');
+          const fillEl = progressBars[0].querySelector('.journey-metric-fill');
+          if (valueEl) valueEl.textContent = `${recoveryPath.progress || 0}%`;
+          if (fillEl) fillEl.style.width = `${recoveryPath.progress || 0}%`;
+        }
+        if (progressBars[1] && recoveryPath.emotionalIntensity !== undefined) {
+          const valueEl = progressBars[1].querySelector('.journey-metric-value');
+          const fillEl = progressBars[1].querySelector('.journey-metric-fill');
+          if (valueEl) valueEl.textContent = `${recoveryPath.emotionalIntensity}%`;
+          if (fillEl) fillEl.style.width = `${recoveryPath.emotionalIntensity}%`;
+        }
+      }
+
+      // ============================================
+      // YOUR WORLD (RELATIONSHIP NETWORK)
+      // ============================================
+
+      function updateYourWorld(yourWorld) {
+        // Update total count
+        const metric = document.querySelector('#world .card-metric');
+        if (metric) metric.textContent = `${yourWorld.totalConnections || 0} connections`;
+
+        // Update stats
+        const stats = document.querySelectorAll('.world-stat');
+        if (stats[0]) {
+          const valueEl = stats[0].querySelector('.world-stat-value');
+          if (valueEl) valueEl.textContent = yourWorld.activeConnections || 0;
+        }
+        if (stats[1]) {
+          const valueEl = stats[1].querySelector('.world-stat-value');
+          if (valueEl) valueEl.textContent = yourWorld.needsAttention || 0;
+        }
+
+        // Update legend with categories
+        const legend = document.querySelector('.world-legend');
+        if (legend && yourWorld.categories && yourWorld.categories.length > 0) {
+          const categoryColors = {
+            family: 'var(--maya)',
+            friend: 'var(--ferni)',
+            colleague: 'var(--alex)',
+            mentor: 'var(--nayan)',
+            work: 'var(--alex)',
+          };
+          legend.innerHTML = yourWorld.categories
+            .map(
+              (cat) => `
+            <div class="world-legend-item">
+              <div class="world-legend-dot" style="background: ${categoryColors[cat.type] || cat.color || 'var(--ferni)'}"></div>
+              ${cat.type} (${cat.count})
+            </div>
+          `
+            )
+            .join('');
+        }
+
+        // Update nudge with first top connection that needs attention
+        if (yourWorld.topConnections && yourWorld.topConnections.length > 0) {
+          const nudgeName = document.querySelector('.world-nudge-name');
+          if (nudgeName) nudgeName.textContent = yourWorld.topConnections[0].name || 'Someone';
+        }
+      }
+
+      // ============================================
+      // OPEN LOOPS
+      // ============================================
+
+      function updateOpenLoops(loops) {
+        // Open loops section might be in practice sidebar
+        const loopsSection =
+          document.querySelector('#loops') || document.querySelector('.practice-section');
+        if (!loopsSection) return;
+
+        // For now just log - actual DOM structure varies
+        console.log('Open loops data:', loops);
+      }
+
+      // ============================================
+      // PREDICTIONS
+      // ============================================
+
+      function updatePredictions(prediction) {
+        // Update badge
+        const badge = document.querySelector('.future-badge');
+        if (badge && prediction.trackRecord !== undefined) {
+          badge.textContent = `${prediction.trackRecord}% track record`;
+        }
+
+        // Update projection numbers
+        const fromEl = document.querySelector('.future-from');
+        const toEl = document.querySelector('.future-to');
+        const changeEl = document.querySelector('.future-change');
+
+        if (fromEl && prediction.currentValue !== undefined)
+          fromEl.textContent = prediction.currentValue;
+        if (toEl && prediction.predictedValue !== undefined)
+          toEl.textContent = prediction.predictedValue;
+        if (changeEl && prediction.changePercent !== undefined) {
+          const sign = prediction.changePercent >= 0 ? '+' : '';
+          changeEl.textContent = `${sign}${prediction.changePercent}%`;
+        }
+
+        // Update confidence
+        const confValue = document.querySelector('.future-confidence-value');
+        const confFill = document.querySelector('.future-confidence-fill');
+        if (confValue && prediction.confidence !== undefined) {
+          confValue.textContent = `${prediction.confidence}%`;
+        }
+        if (confFill && prediction.confidence !== undefined) {
+          confFill.style.width = `${prediction.confidence}%`;
+        }
+
+        // Update range
+        const rangeItems = document.querySelectorAll('.future-range-item');
+        if (prediction.range) {
+          if (rangeItems[0]) {
+            const valueEl = rangeItems[0].querySelector('.future-range-value');
+            if (valueEl) valueEl.textContent = prediction.range.conservative || '';
+          }
+          if (rangeItems[1]) {
+            const valueEl = rangeItems[1].querySelector('.future-range-value');
+            if (valueEl) valueEl.textContent = prediction.range.expected || '';
+          }
+          if (rangeItems[2]) {
+            const valueEl = rangeItems[2].querySelector('.future-range-value');
+            if (valueEl) valueEl.textContent = prediction.range.optimistic || '';
+          }
+        }
+
+        // Update insight text
+        const insightText = document.querySelector('.future-insight-text');
+        if (insightText && prediction.insight) {
+          insightText.textContent = prediction.insight;
+        }
+      }
+
+      // ============================================
+      // INITIALIZATION
+      // ============================================
+
+      // Fetch data when page loads
+      document.addEventListener('DOMContentLoaded', () => {
+        // Fetch live data if we have a userId or if explicitly requesting it
+        const urlParams = new URLSearchParams(window.location.search);
+        const forceData = urlParams.has('userId') || urlParams.has('live');
+
+        if (forceData) {
+          console.log('📊 Fetching live data for user:', USER_ID);
+          fetchDashboardData();
+        } else {
+          console.log('📊 Demo mode - using static data. Add ?userId=your-id to fetch live data.');
+        }
+      });
+
+      // Refresh data periodically (every 2 minutes) if live mode
+      setInterval(() => {
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.has('userId') || urlParams.has('live')) {
+          fetchDashboardData();
+        }
+      }, 120000);
+
+      // Expose refresh function globally for debugging
+      window.refreshDashboard = fetchDashboardData;
+      window.setDemoUser = (id) => {
+        window.location.search = `?userId=${id}`;
+      };
+    </script>
+
+    <!-- Ferni Visualization System -->
+    <script type="module">
+      import FerniViz from './viz-system.js';
+      FerniViz.init({ enableAnimations: true, enableTooltips: true });
+    </script>
+  </body>
+</html>

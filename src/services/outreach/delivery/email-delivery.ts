@@ -12,6 +12,7 @@
 import { getCircuitBreaker } from '../../../utils/circuit-breaker.js';
 import { getLogger } from '../../../utils/safe-logger.js';
 import { validateEmailContent } from '../../brand/index.js';
+import { MAX_RETRIES as RESILIENCE_MAX_RETRIES } from '../../../config/resilience-config.js';
 
 const log = getLogger().child({ module: 'email-delivery' });
 
@@ -98,8 +99,8 @@ let config: EmailDeliveryConfig | null = null;
 const deliveryRecords = new Map<string, EmailDeliveryRecord>();
 const pendingRetries = new Map<string, NodeJS.Timeout>();
 
-// Retry configuration
-const MAX_RETRIES = 3;
+// Retry configuration (from centralized resilience-config)
+const MAX_RETRIES = RESILIENCE_MAX_RETRIES;
 const RETRY_DELAYS = [60_000, 300_000, 900_000]; // 1m, 5m, 15m
 
 // ============================================================================

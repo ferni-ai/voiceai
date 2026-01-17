@@ -5,7 +5,7 @@
  */
 
 // Export types
-export * from './types.js';
+export type * from './types.js';
 
 // Export storage and helpers
 export {

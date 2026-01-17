@@ -819,7 +819,7 @@ function generateVoicemailOpening(
     case 'building':
       return `Hey ${name}! It's ${displayName}.`;
 
-    case 'established':
+    case 'established': {
       // More casual, like calling a friend
       const establishedOpenings = [
         `Hey ${name}, it's ${displayName}.`,
@@ -827,8 +827,9 @@ function generateVoicemailOpening(
         `Hey, it's ${displayName}.`,
       ];
       return establishedOpenings[Math.floor(Math.random() * establishedOpenings.length)];
+    }
 
-    case 'deep':
+    case 'deep': {
       // Intimate, assumes comfort
       const deepOpenings = [
         `Hey ${name}.`, // Just their name, they know it's us
@@ -836,6 +837,7 @@ function generateVoicemailOpening(
         `Hey, it's ${displayName}. Had to call.`,
       ];
       return deepOpenings[Math.floor(Math.random() * deepOpenings.length)];
+    }
 
     default:
       return `Hey ${name}, it's ${displayName}.`;
@@ -941,21 +943,23 @@ function generateVoicemailClose(
     case 'building':
       return `No need to call back. Talk soon.`;
 
-    case 'established':
+    case 'established': {
       const establishedCloses = [
         `Anyway, just wanted you to know. Talk whenever.`,
         `That's it. Rooting for you.`,
         `Okay, that's all. Take care of yourself.`,
       ];
       return establishedCloses[Math.floor(Math.random() * establishedCloses.length)];
+    }
 
-    case 'deep':
+    case 'deep': {
       const deepCloses = [
         `Love you. Bye.`, // For very deep relationships
         `That's it. You know where I am.`,
         `Okay. Bye.`, // Simple, intimate
       ];
       return deepCloses[Math.floor(Math.random() * deepCloses.length)];
+    }
 
     default:
       return `Take care.`;
@@ -982,18 +986,20 @@ function generateVoicemailMainMessage(
         ? `I was thinking about ${commitment} and wanted to see how it went.`
         : `Just checking in to see how things are going.`;
 
-    case 'emotional_support':
+    case 'emotional_support': {
       if (hasPersonalContext) {
         return `Wanted you to know I'm holding that with you.`;
       }
       const emotionalState = context.context.emotionalState || 'going through a lot';
       return `I know you've been ${emotionalState}. Just wanted you to hear a friendly voice.`;
+    }
 
-    case 'celebration':
+    case 'celebration': {
       const achievementText = milestone || goal || 'what you did';
       return `I had to call because ${achievementText}? That's huge. I'm so proud of you.`;
+    }
 
-    case 'thinking_of_you':
+    case 'thinking_of_you': {
       if (hasPersonalContext) {
         // The personal context IS the point
         return `Just wanted you to know that.`;
@@ -1004,19 +1010,22 @@ function generateVoicemailMainMessage(
         `I don't need anything. Just wanted to say hi.`,
       ];
       return thinkingPhrases[Math.floor(Math.random() * thinkingPhrases.length)];
+    }
 
     case 'milestone_approaching':
-    case 'event_countdown':
+    case 'event_countdown': {
       const eventText = event || milestone || 'your big day';
       return `${eventText} is coming up. Just wanted to check in and see how you're feeling about it.`;
+    }
 
-    case 'reengagement':
+    case 'reengagement': {
       const reengagementPhrases = [
         `It's been a little while. Just wanted you to know I'm still here.`,
         `Haven't heard from you in a bit. No pressure - just wanted you to know I'm around.`,
         `I know it's been a minute. The door's always open.`,
       ];
       return reengagementPhrases[Math.floor(Math.random() * reengagementPhrases.length)];
+    }
 
     case 'habit_check':
       if (hasPersonalContext) {
@@ -1028,7 +1037,7 @@ function generateVoicemailMainMessage(
     // NEW TRIGGER TYPES - "Better Than Human" Features
     // ========================================================================
 
-    case 'pattern_acknowledgment':
+    case 'pattern_acknowledgment': {
       // We noticed something about their patterns (e.g., "Mondays are hard")
       const pattern = trigger.reason || 'a pattern';
       const patternPhrases = [
@@ -1037,8 +1046,9 @@ function generateVoicemailMainMessage(
         `I noticed ${pattern}. Wanted to check in before it hits.`,
       ];
       return patternPhrases[Math.floor(Math.random() * patternPhrases.length)];
+    }
 
-    case 'anniversary':
+    case 'anniversary': {
       // Relationship anniversaries, journey milestones
       const anniversary = milestone || 'our journey together';
       const anniversaryPhrases = [
@@ -1047,8 +1057,9 @@ function generateVoicemailMainMessage(
         `Can you believe it? ${anniversary}. I'm grateful for every conversation.`,
       ];
       return anniversaryPhrases[Math.floor(Math.random() * anniversaryPhrases.length)];
+    }
 
-    case 'streak_celebration':
+    case 'streak_celebration': {
       // Streak milestones (7 days, 30 days, 100 days)
       const streak = milestone || 'your streak';
       const streakPhrases = [
@@ -1057,8 +1068,9 @@ function generateVoicemailMainMessage(
         `${streak}! I'm literally beaming for you right now.`,
       ];
       return streakPhrases[Math.floor(Math.random() * streakPhrases.length)];
+    }
 
-    case 'goal_progress':
+    case 'goal_progress': {
       // Progress toward goals (80% there, almost done)
       const progress = goal || 'your goal';
       const progressPhrases = [
@@ -1067,8 +1079,9 @@ function generateVoicemailMainMessage(
         `${progress} is within reach. This call is your nudge.`,
       ];
       return progressPhrases[Math.floor(Math.random() * progressPhrases.length)];
+    }
 
-    case 'streak_at_risk':
+    case 'streak_at_risk': {
       // Gentle reminder that a streak might break
       const atRiskStreak = goal || commitment || 'your streak';
       const atRiskPhrases = [
@@ -1077,8 +1090,9 @@ function generateVoicemailMainMessage(
         `Just wanted to check in on ${atRiskStreak}. Whatever happens, you've already come so far.`,
       ];
       return atRiskPhrases[Math.floor(Math.random() * atRiskPhrases.length)];
+    }
 
-    case 'concern_check':
+    case 'concern_check': {
       // We detected something concerning in a previous conversation
       const concern = context.context.currentStruggles?.[0] || 'what you shared';
       const concernPhrases = [
@@ -1087,6 +1101,7 @@ function generateVoicemailMainMessage(
         `I wanted to follow up on ${concern}. No pressure to talk - just want you to know I care.`,
       ];
       return concernPhrases[Math.floor(Math.random() * concernPhrases.length)];
+    }
 
     default:
       if (trigger.reason) {

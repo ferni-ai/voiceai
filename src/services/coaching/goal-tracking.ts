@@ -543,11 +543,7 @@ export function getGoalStats(userId: string): GoalProfile['stats'] | null {
 /**
  * Get recent progress for a goal
  */
-export function getRecentProgress(
-  userId: string,
-  goalId: string,
-  days: number = 30
-): GoalProgress[] {
+export function getRecentProgress(userId: string, goalId: string, days = 30): GoalProgress[] {
   const profile = goalProfiles.get(userId);
   if (!profile) return [];
 

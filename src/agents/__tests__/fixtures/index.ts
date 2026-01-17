@@ -505,7 +505,7 @@ export type Injection = (typeof injections)[keyof typeof injections];
  */
 export function getRandomMessage(category: keyof typeof userMessages): string {
   const messages = userMessages[category];
-  const keys = Object.keys(messages) as (keyof typeof messages)[];
+  const keys = Object.keys(messages) as Array<keyof typeof messages>;
   const randomKey = keys[Math.floor(Math.random() * keys.length)];
   return messages[randomKey];
 }
@@ -516,7 +516,7 @@ export function getRandomMessage(category: keyof typeof userMessages): string {
 export function buildConversationHistory(
   messages: string[],
   startingRole: 'user' | 'assistant' = 'user'
-): { role: 'user' | 'assistant'; content: string; timestamp: number }[] {
+): Array<{ role: 'user' | 'assistant'; content: string; timestamp: number }> {
   return messages.map((content, index) => ({
     role: index % 2 === 0 ? startingRole : startingRole === 'user' ? 'assistant' : 'user',
     content,

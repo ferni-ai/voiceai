@@ -2,14 +2,26 @@
  * Relationship Stage Types - Consolidated
  *
  * This file consolidates all relationship stage definitions to prevent
- * inconsistencies across the codebase. There were previously two different
- * naming conventions:
+ * inconsistencies across the codebase.
  *
- * Legacy (UserProfile): new_acquaintance, getting_to_know, trusted_advisor, old_friend
- * Humanizing: stranger, acquaintance, friend, trusted_advisor
+ * ⚠️ IMPORTANT: There are TWO stage systems in Ferni:
+ *
+ * 1. **Team Unlock Stages** (UI, team member unlocking, feature gating)
+ *    - first-meeting, getting-started, building-trust, established, deep-partnership
+ *    - Tracked by: conversations, days, streak
+ *    - Files: relationship-stage.service.ts, team-unlock.service.ts, team-unlocks.ts
+ *
+ * 2. **Persona Behavior Stages** (how personas behave in conversation)
+ *    - stranger, acquaintance, friend, trusted_confidant
+ *    - Tracked by: turns, sessions, key moments, vulnerability
+ *    - Files: relationship-triggers.json, relationship-stages.json
+ *
+ * These systems are INTENTIONALLY DIFFERENT:
+ * - Team Unlock is slower (higher thresholds) for monetization/retention
+ * - Persona Behavior is faster (lower thresholds) for immediate warmth
  *
  * This file provides:
- * 1. A single canonical type
+ * 1. Type definitions for both systems
  * 2. Conversion utilities between formats
  * 3. Stage progression logic
  * 4. Type guards
@@ -18,11 +30,89 @@
  */
 
 // ============================================================================
-// CANONICAL RELATIONSHIP STAGE
+// TEAM UNLOCK STAGES (UI, monetization, team member unlocking)
 // ============================================================================
 
 /**
- * Canonical relationship stage - the single source of truth.
+ * Team Unlock Stage - Used for UI, team member unlocking, and feature gating.
+ *
+ * This is the PRIMARY stage system users see in the app.
+ *
+ * Stage Thresholds (MUST be kept in sync with):
+ * - apps/web/src/services/relationship-stage.service.ts
+ * - apps/web/src/services/team-unlock.service.ts
+ * - src/services/team-unlocks.ts
+ * - src/api/routes/relationship.ts
+ *
+ * | Stage           | Conversations | Days | Streak | Unlocks          |
+ * |-----------------|---------------|------|--------|------------------|
+ * | first-meeting   | 0             | 0    | 0      | Ferni            |
+ * | getting-started | 10            | 0    | 0      | +Maya            |
+ * | building-trust  | 15            | 5    | 3      | +Peter           |
+ * | established     | 30            | 21   | 7      | +Alex, +Jordan   |
+ * | deep-partnership| 60            | 45   | 14     | +Nayan (premium) |
+ */
+export type TeamUnlockStage =
+  | 'first-meeting'
+  | 'getting-started'
+  | 'building-trust'
+  | 'established'
+  | 'deep-partnership';
+
+export const TEAM_UNLOCK_THRESHOLDS: Record<
+  TeamUnlockStage,
+  { minConversations: number; minDays: number; minStreak: number }
+> = {
+  'first-meeting': { minConversations: 0, minDays: 0, minStreak: 0 },
+  'getting-started': { minConversations: 10, minDays: 0, minStreak: 0 },
+  'building-trust': { minConversations: 15, minDays: 5, minStreak: 3 },
+  established: { minConversations: 30, minDays: 21, minStreak: 7 },
+  'deep-partnership': { minConversations: 60, minDays: 45, minStreak: 14 },
+};
+
+export const TEAM_UNLOCK_STAGE_ORDER: TeamUnlockStage[] = [
+  'first-meeting',
+  'getting-started',
+  'building-trust',
+  'established',
+  'deep-partnership',
+];
+
+export const TEAM_UNLOCK_STAGE_LEVELS: Record<TeamUnlockStage, number> = {
+  'first-meeting': 1,
+  'getting-started': 2,
+  'building-trust': 3,
+  established: 4,
+  'deep-partnership': 5,
+};
+
+/**
+ * Check if a stage is at or beyond a target stage
+ */
+export function teamUnlockStageAtOrBeyond(
+  current: TeamUnlockStage,
+  target: TeamUnlockStage
+): boolean {
+  return TEAM_UNLOCK_STAGE_LEVELS[current] >= TEAM_UNLOCK_STAGE_LEVELS[target];
+}
+
+/**
+ * Type guard for TeamUnlockStage
+ */
+export function isTeamUnlockStage(value: unknown): value is TeamUnlockStage {
+  return typeof value === 'string' && TEAM_UNLOCK_STAGE_ORDER.includes(value as TeamUnlockStage);
+}
+
+// ============================================================================
+// PERSONA BEHAVIOR STAGES (conversation warmth/depth)
+// ============================================================================
+
+/**
+ * Persona Behavior Stage - Used for how personas engage in conversation.
+ *
+ * This is SEPARATE from Team Unlock stages because:
+ * - We want personas to feel warm quickly (lower thresholds)
+ * - Team unlocks are slower for retention/monetization (higher thresholds)
  *
  * Stage Descriptions:
  * - stranger: First 1-2 interactions. Still learning basics about each other.
@@ -33,7 +123,10 @@
  * Note: We use "trusted_confidant" instead of "trusted_advisor" to emphasize
  * the relationship aspect over the transactional advisory aspect.
  */
-export type RelationshipStage = 'stranger' | 'acquaintance' | 'friend' | 'trusted_confidant';
+export type PersonaBehaviorStage = 'stranger' | 'acquaintance' | 'friend' | 'trusted_confidant';
+
+// Keep legacy alias for backward compatibility
+export type RelationshipStage = PersonaBehaviorStage;
 
 /**
  * Numeric stage for comparisons and progression
@@ -117,7 +210,49 @@ export type HumanizingRelationshipStage =
   | 'trusted_advisor';
 
 // ============================================================================
-// CONVERSION UTILITIES
+// CROSS-SYSTEM STAGE MAPPING
+// ============================================================================
+
+/**
+ * Maps Team Unlock stages → Persona Behavior stages.
+ *
+ * This mapping exists because:
+ * - User might be at "building-trust" in UI (15 convos, 5 days, 3-day streak)
+ * - But we want the persona to behave as a "friend" (warm, personal)
+ *
+ * The mapping is INTENTIONALLY generous - we want warmth to come before
+ * unlocks. A user at "getting-started" already gets "acquaintance" warmth.
+ */
+export function teamUnlockToPersonaBehavior(unlock: TeamUnlockStage): PersonaBehaviorStage {
+  const mapping: Record<TeamUnlockStage, PersonaBehaviorStage> = {
+    'first-meeting': 'stranger',
+    'getting-started': 'acquaintance',
+    'building-trust': 'friend',
+    established: 'friend',
+    'deep-partnership': 'trusted_confidant',
+  };
+  return mapping[unlock];
+}
+
+/**
+ * Maps Persona Behavior stages → Team Unlock stages.
+ *
+ * This is the REVERSE mapping. Note that "friend" maps to "building-trust"
+ * even though "established" also uses "friend" behavior. This gives the
+ * minimum team unlock stage for that behavior level.
+ */
+export function personaBehaviorToTeamUnlock(behavior: PersonaBehaviorStage): TeamUnlockStage {
+  const mapping: Record<PersonaBehaviorStage, TeamUnlockStage> = {
+    stranger: 'first-meeting',
+    acquaintance: 'getting-started',
+    friend: 'building-trust',
+    trusted_confidant: 'deep-partnership',
+  };
+  return mapping[behavior];
+}
+
+// ============================================================================
+// CONVERSION UTILITIES (Legacy)
 // ============================================================================
 
 /**
@@ -252,6 +387,9 @@ export function getProgressToNextStage(
   }
 
   const nextStage = stages[currentIndex + 1];
+  if (!nextStage) {
+    return { nextStage: null, progress: 100, missingRequirements: [] };
+  }
   const threshold = STAGE_THRESHOLDS[nextStage];
   const missing: string[] = [];
 
@@ -367,7 +505,7 @@ export function isDeeperThan(stageA: RelationshipStage, stageB: RelationshipStag
 export function getNextStage(stage: RelationshipStage): RelationshipStage | null {
   const stages: RelationshipStage[] = ['stranger', 'acquaintance', 'friend', 'trusted_confidant'];
   const index = stages.indexOf(stage);
-  return index < stages.length - 1 ? stages[index + 1] : null;
+  return index < stages.length - 1 ? (stages[index + 1] ?? null) : null;
 }
 
 /**
@@ -376,7 +514,7 @@ export function getNextStage(stage: RelationshipStage): RelationshipStage | null
 export function getPreviousStage(stage: RelationshipStage): RelationshipStage | null {
   const stages: RelationshipStage[] = ['stranger', 'acquaintance', 'friend', 'trusted_confidant'];
   const index = stages.indexOf(stage);
-  return index > 0 ? stages[index - 1] : null;
+  return index > 0 ? (stages[index - 1] ?? null) : null;
 }
 
 // ============================================================================

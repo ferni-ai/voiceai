@@ -1,16 +1,13 @@
 /**
  * Music Intelligence Service
  *
- * Provides superhuman music capabilities including:
- * - Cross-session preference learning (Phase 1.7)
- * - Deep mood-to-music matching (Phase 2)
- * - Voice-based mood detection (Phase 5)
- * - Collaborative discovery (Phase 7)
+ * @deprecated This module has been consolidated into musical-you/
+ * Import from '../musical-you/index.js' instead.
  *
- * @module services/music-intelligence
+ * This file remains for backward compatibility.
  */
 
-// Phase 1.7: Cross-session music memory persistence
+// Re-export from consolidated location
 export {
   connectDJBoothToPersistence,
   flushMusicMemoryForSession,
@@ -19,13 +16,11 @@ export {
   musicMemoryToPreferences,
   preferencesToMusicMemory,
   saveUserMusicPreferences,
-} from './music-memory-persistence.js';
+} from '../musical-you/memory-persistence.js';
 
-// Phase 5: Voice → Music Bridge
-// Detects mood from voice and proactively offers music
 export {
   VoiceMusicBridge,
   getVoiceMusicBridge,
   resetVoiceMusicBridge,
   type VoiceMusicSuggestion,
-} from './voice-music-bridge.js';
+} from '../musical-you/voice-bridge.js';

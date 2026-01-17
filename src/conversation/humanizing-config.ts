@@ -14,6 +14,7 @@
  *   updateHumanizingConfig({ disfluency: { frequency: 0.2 } });
  */
 
+import { seededChance, seededIndex, seededPick } from './utils/rng.js';
 import { getLogger } from '../utils/safe-logger.js';
 
 // ============================================================================
@@ -289,7 +290,7 @@ export function shouldApplyFeature(
   if (!currentConfig.global.enabled) return false;
 
   const effectiveRate = getEffectiveRate(probability, turnNumber);
-  return Math.random() < effectiveRate;
+  return seededChance(`${Date.now()}:1`, effectiveRate);
 }
 
 // ============================================================================

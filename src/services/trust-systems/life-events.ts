@@ -18,6 +18,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
+import { indexLifeEvent } from '../data-layer/integrations/trust-integration.js';
 
 const log = createLogger({ module: 'LifeEvents' });
 
@@ -437,6 +438,14 @@ export function saveEvent(event: LifeEvent): void {
   const events = userEvents.get(event.userId) || [];
   events.push(event);
   userEvents.set(event.userId, events);
+
+  // Index to semantic memory
+  indexLifeEvent(event.userId, {
+    id: event.id,
+    event: event.description,
+    date: event.date.toISOString().split('T')[0],
+    significance: event.importance,
+  });
 
   log.info(
     {

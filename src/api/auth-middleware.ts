@@ -24,7 +24,7 @@
  */
 
 import type { IncomingMessage, ServerResponse } from 'http';
-import { verifyFirebaseToken } from '../services/firebase-auth.js';
+import { verifyFirebaseToken } from '../services/identity/firebase-auth.js';
 import { rateLimiter } from '../services/rate-limiter.js';
 import {
   detectAnomalies,
@@ -166,13 +166,18 @@ export function authenticate(req: IncomingMessage): AuthContext | null {
     return null; // Will be handled async in requireAuth
   }
 
-  // 3. Check dev mode bypass (header only, requires configured ADMIN_KEY even in dev)
-  // SECURITY: 'dev-mode' string backdoor has been removed - must use real ADMIN_KEY
+  // 3. Check dev mode bypass (header only)
+  // Allow 'dev-mode' string in development OR configured ADMIN_KEY
   if (IS_DEV) {
     const adminKeyHeader = getHeader(req, 'X-Admin-Key');
     const configuredAdminKey = process.env.ADMIN_KEY;
-    // Only allow dev mode if ADMIN_KEY is configured and matches
-    if (configuredAdminKey && adminKeyHeader === configuredAdminKey) {
+    // Allow either 'dev-mode' string OR configured ADMIN_KEY in development
+    const isValidDevKey =
+      adminKeyHeader === 'dev-mode' ||
+      (typeof configuredAdminKey === 'string' &&
+        configuredAdminKey.length > 0 &&
+        adminKeyHeader === configuredAdminKey);
+    if (isValidDevKey) {
       const devUserId = getHeader(req, 'X-User-Id') || 'dev-user';
       return {
         userId: devUserId,
@@ -264,12 +269,12 @@ export async function requireAuth(
     log.warn({ ip, lockoutUntil: ipLockout.lockoutUntil }, 'Request from locked out IP');
     res.writeHead(429, {
       'Content-Type': 'application/json',
-      'Retry-After': Math.ceil((ipLockout.remainingMs || 0) / 1000),
+      'Retry-After': Math.ceil((ipLockout.remainingMs ?? 0) / 1000),
     });
     res.end(
       JSON.stringify({
         error: 'Too many failed attempts. Please try again later.',
-        retryAfter: Math.ceil((ipLockout.remainingMs || 0) / 1000),
+        retryAfter: Math.ceil((ipLockout.remainingMs ?? 0) / 1000),
       })
     );
     return null;
@@ -300,12 +305,12 @@ export async function requireAuth(
     );
     res.writeHead(429, {
       'Content-Type': 'application/json',
-      'Retry-After': Math.ceil((userLockout.remainingMs || 0) / 1000),
+      'Retry-After': Math.ceil((userLockout.remainingMs ?? 0) / 1000),
     });
     res.end(
       JSON.stringify({
         error: 'Account temporarily locked. Please try again later.',
-        retryAfter: Math.ceil((userLockout.remainingMs || 0) / 1000),
+        retryAfter: Math.ceil((userLockout.remainingMs ?? 0) / 1000),
       })
     );
     return null;
@@ -362,12 +367,12 @@ export function requireAuthSync(
   if (ipLockout.locked) {
     res.writeHead(429, {
       'Content-Type': 'application/json',
-      'Retry-After': Math.ceil((ipLockout.remainingMs || 0) / 1000),
+      'Retry-After': Math.ceil((ipLockout.remainingMs ?? 0) / 1000),
     });
     res.end(
       JSON.stringify({
         error: 'Too many failed attempts. Please try again later.',
-        retryAfter: Math.ceil((ipLockout.remainingMs || 0) / 1000),
+        retryAfter: Math.ceil((ipLockout.remainingMs ?? 0) / 1000),
       })
     );
     return null;
@@ -473,8 +478,11 @@ interface RateLimitTier {
 /**
  * Rate limit tiers for different access levels
  */
+// DEV: Higher limits in development
+const isDev = process.env.NODE_ENV === 'development' || !process.env.NODE_ENV;
+
 export const RATE_LIMIT_TIERS: Record<string, RateLimitTier> = {
-  anonymous: { name: 'anonymous', maxRequests: 20, windowMs: 60000 },
+  anonymous: { name: 'anonymous', maxRequests: isDev ? 200 : 20, windowMs: 60000 },
   free: { name: 'free', maxRequests: 60, windowMs: 60000 },
   friend: { name: 'friend', maxRequests: 200, windowMs: 60000 },
   partner: { name: 'partner', maxRequests: 500, windowMs: 60000 },

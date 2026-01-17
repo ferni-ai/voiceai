@@ -226,7 +226,7 @@ class PushNotificationsService {
    * Schedule a notification for later
    */
   async scheduleNotification(notification: PushNotification): Promise<string> {
-    const id = notification.id || `notif-${Date.now()}`;
+    const id = notification.id ?? `notif-${Date.now()}`;
     
     if (isNative()) {
       await this.scheduleNativeNotification({ ...notification, id });
@@ -283,12 +283,12 @@ class PushNotificationsService {
    * Register callback for notification events
    */
   onNotification(type: NotificationType | 'all', callback: NotificationCallback): () => void {
-    const callbacks = this.callbacks.get(type) || [];
+    const callbacks = this.callbacks.get(type) ?? [];
     callbacks.push(callback);
     this.callbacks.set(type, callbacks);
 
     return () => {
-      const cbs = this.callbacks.get(type) || [];
+      const cbs = this.callbacks.get(type) ?? [];
       const idx = cbs.indexOf(callback);
       if (idx >= 0) cbs.splice(idx, 1);
     };
@@ -338,8 +338,8 @@ class PushNotificationsService {
       this.subscription = {
         endpoint: pushSubscription.endpoint,
         keys: {
-          p256dh: keys?.p256dh || '',
-          auth: keys?.auth || '',
+          p256dh: keys?.p256dh ?? '',
+          auth: keys?.auth ?? '',
         },
         platform: 'web',
       };
@@ -383,13 +383,13 @@ class PushNotificationsService {
       return;
     }
 
-    const template = NOTIFICATION_TEMPLATES[notification.type] || NOTIFICATION_TEMPLATES.general;
-    
+    const template = NOTIFICATION_TEMPLATES[notification.type] ?? NOTIFICATION_TEMPLATES.general;
+
     await this.swRegistration.showNotification(notification.title, {
       body: notification.body,
       icon: template.icon,
       badge: '/icons/badge-72.png',
-      tag: notification.id || template.tag,
+      tag: notification.id ?? template.tag,
       data: { ...notification.data, notificationId: notification.id, type: notification.type },
       // vibrate: notification.vibrate !== false ? [200, 100, 200] : undefined, // Not in NotificationOptions
       requireInteraction: notification.type === 'team_huddle',
@@ -422,9 +422,9 @@ class PushNotificationsService {
         log.debug('[PushNotifications] Native notification received:', notification);
         this.triggerCallbacks({
           id: notification.id,
-          type: (notification.data?.type as NotificationType) || 'general',
-          title: notification.title || '',
-          body: notification.body || '',
+          type: (notification.data?.type as NotificationType) ?? 'general',
+          title: notification.title ?? '',
+          body: notification.body ?? '',
           data: notification.data,
         });
       });
@@ -434,9 +434,9 @@ class PushNotificationsService {
         log.debug('[PushNotifications] Native notification action:', action);
         this.handleNotificationClick({
           id: action.notification.id,
-          type: (action.notification.data?.type as NotificationType) || 'general',
-          title: action.notification.title || '',
-          body: action.notification.body || '',
+          type: (action.notification.data?.type as NotificationType) ?? 'general',
+          title: action.notification.title ?? '',
+          body: action.notification.body ?? '',
           data: action.notification.data,
         });
       });
@@ -483,7 +483,7 @@ class PushNotificationsService {
       
       await LocalNotifications.schedule({
         notifications: [{
-          id: parseInt(notification.id.replace(/\D/g, '')) || Date.now(),
+          id: parseInt(notification.id.replace(/\D/g, '')) ?? Date.now(),
           title: notification.title,
           body: notification.body,
           extra: notification.data,
@@ -501,7 +501,7 @@ class PushNotificationsService {
       
       await LocalNotifications.schedule({
         notifications: [{
-          id: parseInt(notification.id.replace(/\D/g, '')) || Date.now(),
+          id: parseInt(notification.id.replace(/\D/g, '')) ?? Date.now(),
           title: notification.title,
           body: notification.body,
           extra: notification.data,
@@ -518,7 +518,7 @@ class PushNotificationsService {
     try {
       const { LocalNotifications } = await import('@capacitor/local-notifications');
       await LocalNotifications.cancel({
-        notifications: [{ id: parseInt(id.replace(/\D/g, '')) || 0 }],
+        notifications: [{ id: parseInt(id.replace(/\D/g, '')) ?? 0 }],
       });
     } catch (error) {
       log.warn('[PushNotifications] Cancel notification failed:', error);
@@ -574,11 +574,11 @@ class PushNotificationsService {
 
   private triggerCallbacks(notification: PushNotification): void {
     // Type-specific callbacks
-    const typeCallbacks = this.callbacks.get(notification.type) || [];
+    const typeCallbacks = this.callbacks.get(notification.type) ?? [];
     typeCallbacks.forEach(cb => cb(notification));
 
     // Global callbacks
-    const allCallbacks = this.callbacks.get('all') || [];
+    const allCallbacks = this.callbacks.get('all') ?? [];
     allCallbacks.forEach(cb => cb(notification));
   }
 

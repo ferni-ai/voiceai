@@ -17,7 +17,7 @@ import {
 } from '../../intelligence/superhuman-memory.js';
 import { indexUserMemories, type IndexingResult } from '../../memory/user-memory-indexer.js';
 import type { UserProfile } from '../../types/user-profile.js';
-import { removeUndefined } from '../../utils/firestore-utils.js';
+import { removeUndefined, cleanForFirestore } from '../../utils/firestore-utils.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import { ScheduledJob, type BaseJobConfig, type JobContext } from './base-job.js';
 
@@ -30,7 +30,7 @@ const log = getLogger();
 /**
  * Get active user profiles from Firestore
  */
-async function getActiveUserProfiles(limit: number = 100): Promise<UserProfile[]> {
+async function getActiveUserProfiles(limit = 100): Promise<UserProfile[]> {
   try {
     const { getFirestore } = await import('firebase-admin/firestore');
     const db = getFirestore();
@@ -60,7 +60,7 @@ async function getActiveUserProfiles(limit: number = 100): Promise<UserProfile[]
 /**
  * Get users who need memory re-indexing (profile updated since last index)
  */
-async function getUsersNeedingReindex(limit: number = 50): Promise<UserProfile[]> {
+async function getUsersNeedingReindex(limit = 50): Promise<UserProfile[]> {
   try {
     const { getFirestore } = await import('firebase-admin/firestore');
     const db = getFirestore();
@@ -201,9 +201,14 @@ export class UserMemoryReindexJob extends ScheduledJob<ReindexJobConfig, Reindex
     try {
       const { getFirestore } = await import('firebase-admin/firestore');
       const db = getFirestore();
-      await db.collection('bogle_users').doc(userId).update({
-        lastMemoryIndexAt: new Date().toISOString(),
-      });
+      await db
+        .collection('bogle_users')
+        .doc(userId)
+        .update(
+          cleanForFirestore({
+            lastMemoryIndexAt: new Date().toISOString(),
+          })
+        );
     } catch (error) {
       log.warn({ error, userId }, 'Could not mark user as indexed');
     }

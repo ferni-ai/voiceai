@@ -37,7 +37,7 @@ import { addClass, addListener, getElementById, removeClass } from '../utils/dom
 import { createLogger } from '../utils/logger.js';
 import { avatarFeedback } from './avatar-feedback.ui.js';
 import { marketplaceUI } from './marketplace.ui.js';
-import { toast } from './toast.ui.js';
+import { toast } from './whisper.ui.js';
 
 const log = createLogger('TeamUI');
 
@@ -84,11 +84,85 @@ function clearAllTrackedTimeouts(): void {
   activeTimeouts.clear();
 }
 
+// ============================================================================
+// AVATAR EYES - SVG Creation Helper
+// ============================================================================
+
+const SVG_NS = 'http://www.w3.org/2000/svg';
+
+/**
+ * Create eyes SVG element for team roster avatars.
+ * Uses safe DOM methods instead of innerHTML for security.
+ */
+function createAvatarEyesSVG(): SVGSVGElement {
+  const svg = document.createElementNS(SVG_NS, 'svg');
+  svg.setAttribute('class', 'team-avatar-eyes');
+  svg.setAttribute('viewBox', '0 0 100 100');
+  svg.setAttribute('aria-hidden', 'true');
+
+  // Defs with gradient
+  const defs = document.createElementNS(SVG_NS, 'defs');
+  const gradient = document.createElementNS(SVG_NS, 'linearGradient');
+  gradient.setAttribute('id', 'rosterEyeFill');
+  gradient.setAttribute('x1', '0%');
+  gradient.setAttribute('y1', '0%');
+  gradient.setAttribute('x2', '0%');
+  gradient.setAttribute('y2', '100%');
+
+  const stop1 = document.createElementNS(SVG_NS, 'stop');
+  stop1.setAttribute('offset', '0%');
+  stop1.setAttribute('stop-color', '#ffffff');
+  const stop2 = document.createElementNS(SVG_NS, 'stop');
+  stop2.setAttribute('offset', '100%');
+  stop2.setAttribute('stop-color', '#f0f0f0');
+
+  gradient.appendChild(stop1);
+  gradient.appendChild(stop2);
+  defs.appendChild(gradient);
+  svg.appendChild(defs);
+
+  // Left eye
+  const leftEye = document.createElementNS(SVG_NS, 'ellipse');
+  leftEye.setAttribute('class', 'eye-main eye-left');
+  leftEye.setAttribute('cx', '36');
+  leftEye.setAttribute('cy', '47');
+  leftEye.setAttribute('rx', '8');
+  leftEye.setAttribute('ry', '10');
+  leftEye.setAttribute('fill', 'url(#rosterEyeFill)');
+
+  const leftSparkle = document.createElementNS(SVG_NS, 'circle');
+  leftSparkle.setAttribute('class', 'sparkle sparkle-left');
+  leftSparkle.setAttribute('cx', '34');
+  leftSparkle.setAttribute('cy', '43');
+  leftSparkle.setAttribute('r', '2');
+  leftSparkle.setAttribute('fill', 'white');
+
+  // Right eye
+  const rightEye = document.createElementNS(SVG_NS, 'ellipse');
+  rightEye.setAttribute('class', 'eye-main eye-right');
+  rightEye.setAttribute('cx', '64');
+  rightEye.setAttribute('cy', '47');
+  rightEye.setAttribute('rx', '8');
+  rightEye.setAttribute('ry', '10');
+  rightEye.setAttribute('fill', 'url(#rosterEyeFill)');
+
+  const rightSparkle = document.createElementNS(SVG_NS, 'circle');
+  rightSparkle.setAttribute('class', 'sparkle sparkle-right');
+  rightSparkle.setAttribute('cx', '62');
+  rightSparkle.setAttribute('cy', '43');
+  rightSparkle.setAttribute('r', '2');
+  rightSparkle.setAttribute('fill', 'white');
+
+  svg.appendChild(leftEye);
+  svg.appendChild(leftSparkle);
+  svg.appendChild(rightEye);
+  svg.appendChild(rightSparkle);
+
+  return svg;
+}
+
 /** FIX BUG #57: ARIA live region for announcing handoff status to screen readers */
 let ariaLiveRegion: HTMLElement | null = null;
-
-/** WARM HANDOFF: Visual banter text element for displaying handoff banter */
-let banterTextElement: HTMLElement | null = null;
 
 // 🎬 Pixar Animation state
 let activeHoverAnimation: Animation | null = null;
@@ -247,16 +321,9 @@ export function initTeamUI(): void {
     cleanupFunctions.push(unsub2);
 
     // FIX BUG #57: Announce handoff start events to screen readers
-    // WARM HANDOFF: Also display banter text visually if available
-    const unsubStart = handoffService.onHandoffStart((toPersona, _fromPersona, banter) => {
+    const unsubStart = handoffService.onHandoffStart((toPersona, _fromPersona, _banter) => {
       const persona = getPersona(toPersona);
       announceToScreenReader(`Switching to ${persona.name}`);
-
-      // WARM HANDOFF: Display banter text if available
-      if (banter?.softOpen) {
-        log.debug('Showing soft open banter:', banter.softOpen);
-        showBanterText(banter.softOpen);
-      }
     });
     cleanupFunctions.push(unsubStart);
 
@@ -265,8 +332,6 @@ export function initTeamUI(): void {
     const unsubComplete = handoffService.onHandoffComplete((toPersona) => {
       const persona = getPersona(toPersona);
       announceToScreenReader(`Now speaking with ${persona.name}`);
-      // WARM HANDOFF: Hide any visible banter text
-      hideBanterText();
       // Fallback: ensure roster is updated (in case soft_open_complete wasn't sent)
       // This handles backward compatibility when there's no soft open banter
       setActiveTeamMember(toPersona);
@@ -275,16 +340,19 @@ export function initTeamUI(): void {
 
     // FIX BUG #57: Announce handoff failures
     // FIX BUG: Also clear visual switching states when handoff fails
-    const unsubFailed = handoffService.onHandoffFailed((error, targetPersona) => {
-      announceToScreenReader(`Switch failed. ${error}`);
-      hideBanterText();
+    // FIX AUDIT GAP: Now receives rollbackTo for more accurate screen reader announcements
+    const unsubFailed = handoffService.onHandoffFailed((error, targetPersona, rollbackTo) => {
+      const rollbackPersonaName = rollbackTo ? getPersona(rollbackTo).name : undefined;
+      const announcement = rollbackPersonaName
+        ? `Switch failed. ${error}. Staying with ${rollbackPersonaName}.`
+        : `Switch failed. ${error}`;
+      announceToScreenReader(announcement);
       clearSwitchingFeedback(targetPersona);
     });
     cleanupFunctions.push(unsubFailed);
 
     // FIX BUG: Handle handoff cancellation - clear visual states
     const unsubCancelled = handoffService.onHandoffCancelled((targetPersona, _reason) => {
-      hideBanterText();
       clearSwitchingFeedback(targetPersona);
     });
     cleanupFunctions.push(unsubCancelled);
@@ -535,67 +603,6 @@ function announceToScreenReader(message: string): void {
       ariaLiveRegion.textContent = message;
     }
   }, 50);
-}
-
-/**
- * WARM HANDOFF: Create the banter text display element.
- * Displays as a subtle caption during handoff transitions.
- */
-function createBanterTextElement(): void {
-  if (banterTextElement) return;
-
-  banterTextElement = document.createElement('div');
-  banterTextElement.id = 'handoff-banter-text';
-  banterTextElement.className = 'handoff-banter-text';
-  banterTextElement.style.cssText = `
-    position: fixed;
-    bottom: calc(var(--space-xl, 42px) * 2);
-    left: 50%;
-    transform: translateX(-50%);
-    max-width: 80%;
-    padding: var(--space-sm, 8px) var(--space-md, 16px);
-    background: var(--color-bg-glass, rgba(0, 0, 0, 0.6));
-    backdrop-filter: blur(var(--glass-blur-subtle, 8px));
-    border-radius: var(--radius-lg, 12px);
-    color: var(--color-text-secondary, #a0a0a0);
-    font-size: var(--font-size-sm, 0.875rem);
-    font-style: italic;
-    text-align: center;
-    opacity: 0;
-    transition: opacity var(--duration-normal, 200ms) var(--ease-out-expo, cubic-bezier(0.16, 1, 0.3, 1));
-    pointer-events: none;
-    z-index: var(--z-notification, 3000);
-  `;
-  document.body.appendChild(banterTextElement);
-}
-
-/**
- * WARM HANDOFF: Display banter text during handoff.
- * Shows the departing persona's warm sendoff message.
- */
-function showBanterText(text: string): void {
-  if (!banterTextElement) {
-    createBanterTextElement();
-  }
-  if (banterTextElement) {
-    banterTextElement.textContent = `"${text}"`;
-    banterTextElement.style.opacity = '1';
-
-    // Auto-hide after a delay (sync with handoff timing)
-    // Use FIRST_MEETING timing (400ms) + generous buffer for reading banter
-    trackedTimeout(() => {
-      hideBanterText();
-    }, HANDOFF_TIMING.FIRST_MEETING + 2500);
-  }
-}
-
-/**
- * WARM HANDOFF: Hide the banter text display.
- */
-function hideBanterText(): void {
-  if (banterTextElement) {
-    banterTextElement.style.opacity = '0';
-  }
 }
 
 /**
@@ -1094,7 +1101,8 @@ function createTeamMemberElement(agent: ApiAgent): HTMLElement {
   const classes = ['team-member'];
   if (agent.isCoordinator) classes.push('team-member--coach');
   if (isLocked) classes.push('team-member--locked');
-  if (memberStatus.progress > 0.5 && isLocked) classes.push('team-member--almost-unlocked');
+  // "Almost unlocked" at 80%+ - creates anticipation and excitement
+  if (memberStatus.progress >= 0.8 && isLocked) classes.push('team-member--almost-unlocked');
 
   element.className = classes.join(' ');
   element.setAttribute('data-persona-id', agent.id);
@@ -1128,16 +1136,17 @@ function createTeamMemberElement(agent: ApiAgent): HTMLElement {
   // Display first name only in roster for cleaner UI
   const displayName = getFirstName(agent.name);
 
-  // Lock icon SVG (Lucide icon style - 2px stroke, rounded)
-  const lockIcon = isLocked
-    ? `
-    <div class="team-lock-indicator" aria-hidden="true">
-      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-        <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
-      </svg>
-    </div>
-  `
+  // Mystery indicator - intriguing "?" that invites discovery (Better than a lock)
+  const mysteryIndicator = isLocked
+    ? `<div class="team-mystery-indicator" aria-hidden="true">?</div>`
+    : '';
+  
+  // Progress hint - shows conversations remaining on hover
+  const progressPercent = Math.round(memberStatus.progress * 100);
+  const progressHint = isLocked && memberStatus.progress > 0
+    ? `<div class="team-progress-hint">${progressPercent}% discovered</div>`
+    : isLocked
+    ? `<div class="team-progress-hint">Keep chatting to meet ${displayName}</div>`
     : '';
 
   // Progress ring for locked members (shows progress toward unlock)
@@ -1154,15 +1163,56 @@ function createTeamMemberElement(agent: ApiAgent): HTMLElement {
   `
       : '';
 
-  element.innerHTML = `
-    <div class="team-avatar-container">
-      <div class="team-avatar-ring"></div>
-      ${progressRing}
-      <div class="team-avatar${isLocked ? ' team-avatar--locked' : ''}" style="--persona-gradient: ${gradient};">${agent.initials}</div>
-      ${lockIcon}
-    </div>
-    <span class="team-name">${displayName}</span>
-  `;
+  // Build element structure using safe DOM methods
+  const avatarContainer = document.createElement('div');
+  avatarContainer.className = 'team-avatar-container';
+
+  const avatarRing = document.createElement('div');
+  avatarRing.className = 'team-avatar-ring';
+  avatarContainer.appendChild(avatarRing);
+
+  // Add progress ring if locked and has progress
+  if (progressRing) {
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = progressRing;
+    const progressSvg = tempDiv.firstElementChild;
+    if (progressSvg) avatarContainer.appendChild(progressSvg);
+  }
+
+  // Create avatar with eyes
+  const avatar = document.createElement('div');
+  avatar.className = `team-avatar${isLocked ? ' team-avatar--locked' : ''}`;
+  avatar.style.setProperty('--persona-gradient', gradient);
+
+  // Add eyes SVG to all avatars
+  const eyesSvg = createAvatarEyesSVG();
+  avatar.appendChild(eyesSvg);
+
+  avatarContainer.appendChild(avatar);
+
+  // Add mystery indicator if locked (replaces lock icon for better UX)
+  if (mysteryIndicator) {
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = mysteryIndicator;
+    const mysteryEl = tempDiv.firstElementChild;
+    if (mysteryEl) avatarContainer.appendChild(mysteryEl);
+  }
+  
+  // Add progress hint (shown on hover)
+  if (progressHint) {
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = progressHint;
+    const hintEl = tempDiv.firstElementChild;
+    if (hintEl) avatarContainer.appendChild(hintEl);
+  }
+
+  element.appendChild(avatarContainer);
+
+  // Add name
+  const nameSpan = document.createElement('span');
+  nameSpan.className = 'team-name';
+  nameSpan.textContent = displayName;
+  element.appendChild(nameSpan);
 
   return element;
 }
@@ -1546,8 +1596,11 @@ function updateTeamMemberLockStates(state: ReturnType<typeof teamUnlockService.g
     // Update classes
     if (isLocked) {
       addClass(element, 'team-member--locked');
-      if (status && status.progress > 0.5) {
+      // "Almost unlocked" at 80%+ - creates anticipation
+      if (status && status.progress >= 0.8) {
         addClass(element, 'team-member--almost-unlocked');
+      } else {
+        removeClass(element, 'team-member--almost-unlocked');
       }
     } else {
       removeClass(element, 'team-member--locked');
@@ -1573,10 +1626,19 @@ function updateTeamMemberLockStates(state: ReturnType<typeof teamUnlockService.g
       progressRing.setAttribute('stroke-dasharray', `${status.progress * 100}, 100`);
     }
 
-    // Update lock icon visibility
-    const lockIndicator = element.querySelector('.team-lock-indicator') as HTMLElement;
-    if (lockIndicator) {
-      lockIndicator.style.display = isLocked ? '' : 'none';
+    // Update mystery indicator visibility
+    const mysteryIndicator = element.querySelector('.team-mystery-indicator') as HTMLElement;
+    if (mysteryIndicator) {
+      mysteryIndicator.style.display = isLocked ? '' : 'none';
+    }
+    
+    // Update progress hint
+    const progressHint = element.querySelector('.team-progress-hint') as HTMLElement;
+    if (progressHint) {
+      progressHint.style.display = isLocked ? '' : 'none';
+      if (isLocked && status && status.progress > 0) {
+        progressHint.textContent = `${Math.round(status.progress * 100)}% discovered`;
+      }
     }
   }
 
@@ -2206,6 +2268,11 @@ function updateMagneticPull(element: HTMLElement, event: MouseEvent): void {
 /**
  * 🎬 Play step-forward animation when persona is selected.
  * Like a character stepping up to the spotlight.
+ * 
+ * FIX BUG: Added onfinish handler to clear transform after animation.
+ * Without this, fill: 'forwards' keeps scale(1.1) applied indefinitely,
+ * which distorts avatar shapes. The CSS breathing animation handles the
+ * active state, so we should reset transform to allow CSS to take over.
  */
 export function playStepForward(personaId: PersonaId): void {
   const element = teamMemberElements.get(personaId);
@@ -2217,7 +2284,7 @@ export function playStepForward(personaId: PersonaId): void {
   }
 
   // Step forward with squash/stretch
-  element.animate(
+  const animation = element.animate(
     [
       // Start: Normal position
       { transform: 'scale(1) translateY(0) translateZ(0)', offset: 0 },
@@ -2229,8 +2296,8 @@ export function playStepForward(personaId: PersonaId): void {
       { transform: 'scale(0.98, 1.04) translateY(-16px) translateZ(25px)', offset: 0.55 },
       // Land with squash
       { transform: 'scale(1.04, 0.96) translateY(-10px) translateZ(15px)', offset: 0.7 },
-      // Settle into spotlight position
-      { transform: 'scale(1.1) translateY(-8px) translateZ(10px)', offset: 1 },
+      // Settle back to normal (CSS breathing animation will take over)
+      { transform: 'scale(1) translateY(0)', offset: 1 },
     ],
     {
       duration: ANIMATION_PRESET.TEAM_SELECT.duration + DURATION.FAST,
@@ -2238,6 +2305,12 @@ export function playStepForward(personaId: PersonaId): void {
       fill: 'forwards',
     }
   );
+
+  // FIX BUG: Clear transform after animation so CSS can control the element
+  // This prevents the scale(1.1) from persisting and distorting avatar shapes
+  animation.onfinish = () => {
+    element.style.transform = '';
+  };
 }
 
 /**

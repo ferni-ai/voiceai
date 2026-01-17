@@ -16,8 +16,10 @@
 
 import { getLogger } from '../utils/safe-logger.js';
 import type { MemoryItem } from './advanced-retrieval.js';
-import { cosineSimilarity, embed } from './embeddings.js';
+import { embed } from './embeddings.js';
 import { err, memoryError, ok, type MemoryError, type Result } from './result.js';
+// Centralized cosine similarity - uses SIMD-ready implementation from rust-accelerator
+import { findSimilarPairs } from './rust-accelerator.js';
 
 const log = getLogger();
 
@@ -113,6 +115,9 @@ export class MemoryConsolidator {
 
   /**
    * Find memories that should be consolidated by topic
+   *
+   * Uses SIMD-accelerated findSimilarPairs for O(n²) pairwise comparison,
+   * then builds groups with same greedy semantics as original algorithm.
    */
   async findConsolidationCandidates(
     memories: MemoryItem[],
@@ -144,6 +149,25 @@ export class MemoryConsolidator {
 
     // Otherwise, group by semantic similarity
     const embeddings = await this.getOrComputeEmbeddings(eligibleMemories);
+
+    if (embeddings.length < 2) {
+      return groups;
+    }
+
+    // Get all similar pairs using SIMD-accelerated function
+    // findSimilarPairs guarantees firstIdx < secondIdx
+    const similarPairs = findSimilarPairs(embeddings, this.config.similarityThreshold);
+
+    // Build adjacency map: index → list of similar indices (j > i only)
+    const adjacencyFromLower = new Map<number, number[]>();
+    for (const pair of similarPairs) {
+      if (!adjacencyFromLower.has(pair.firstIdx)) {
+        adjacencyFromLower.set(pair.firstIdx, []);
+      }
+      adjacencyFromLower.get(pair.firstIdx)!.push(pair.secondIdx);
+    }
+
+    // Greedy grouping (same semantics as original O(n²) loop)
     const processed = new Set<string>();
 
     for (let i = 0; i < eligibleMemories.length; i++) {
@@ -152,13 +176,10 @@ export class MemoryConsolidator {
       const group: MemoryItem[] = [eligibleMemories[i]];
       processed.add(eligibleMemories[i].id);
 
-      // Find similar memories
-      for (let j = i + 1; j < eligibleMemories.length; j++) {
-        if (processed.has(eligibleMemories[j].id)) continue;
-
-        const similarity = cosineSimilarity(embeddings[i], embeddings[j]);
-
-        if (similarity >= this.config.similarityThreshold) {
+      // Add similar memories that come after this one in index order
+      const similar = adjacencyFromLower.get(i) || [];
+      for (const j of similar) {
+        if (!processed.has(eligibleMemories[j].id)) {
           group.push(eligibleMemories[j]);
           processed.add(eligibleMemories[j].id);
         }

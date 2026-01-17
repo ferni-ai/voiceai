@@ -309,9 +309,11 @@ describe('canSendOutreach', () => {
     vi.useRealTimers();
   });
 
-  it('should allow outreach by default', () => {
+  it('should block outreach by default (requires explicit opt-in)', () => {
+    // Default preferences have enabled: false to require explicit opt-in
     const result = canSendOutreach('new-user-123');
-    expect(result.allowed).toBe(true);
+    expect(result.allowed).toBe(false);
+    expect(result.reason).toBe('Outreach disabled for user');
   });
 
   it('should block outreach when disabled', () => {
@@ -343,7 +345,8 @@ describe('User Preferences', () => {
   it('should return default preferences for new user', () => {
     const prefs = getUserPreferences('brand-new-user');
 
-    expect(prefs.enabled).toBe(true);
+    // Default is disabled - requires explicit opt-in
+    expect(prefs.enabled).toBe(false);
     expect(prefs.maxPerDay).toBe(2);
     expect(prefs.maxPerWeek).toBe(5);
     expect(prefs.preferredMethod).toBe('any');

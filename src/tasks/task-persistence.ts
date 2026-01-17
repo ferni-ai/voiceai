@@ -12,7 +12,7 @@
  */
 
 import { createLogger } from '../utils/safe-logger.js';
-import { removeUndefined } from '../utils/firestore-utils.js';
+import { removeUndefined, cleanForFirestore } from '../utils/firestore-utils.js';
 
 const log = createLogger({ module: 'TaskPersistence' });
 
@@ -171,7 +171,7 @@ function markTaskRecorded(record: TaskRecord): void {
   const dedupeKey = `${record.userId}:${record.taskType}`;
   const contentHash = generateTaskContentHash(record);
 
-  dedupeIndex.set(dedupeKey, {
+  dedupeIndex.set(cleanForFirestore(dedupeKey), {
     timestamp: Date.now(),
     contentHash,
   });

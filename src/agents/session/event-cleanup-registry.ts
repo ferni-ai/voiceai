@@ -93,7 +93,12 @@ export function registerCleanup(
  * Register an event handler with automatic cleanup tracking.
  * Convenience wrapper for event emitter patterns.
  */
-export function registerEventHandler<T extends { on: Function; off: Function }>(
+export function registerEventHandler<
+  T extends {
+    on: (event: string, handler: (...args: unknown[]) => void) => void;
+    off: (event: string, handler: (...args: unknown[]) => void) => void;
+  },
+>(
   sessionId: string,
   emitter: T,
   event: string,
@@ -161,7 +166,7 @@ export async function runSessionCleanup(sessionId: string): Promise<{
   }
 
   // Run cleanup by type (events first, then timers, then others)
-  const order: CleanupHandler['type'][] = ['event', 'timer', 'subscription', 'resource'];
+  const order: Array<CleanupHandler['type']> = ['event', 'timer', 'subscription', 'resource'];
 
   for (const type of order) {
     const handlers = handlersByType.get(type) || [];
@@ -239,12 +244,26 @@ export function clearAllRegistries(): void {
 }
 
 /**
+ * Check if a session is currently in cleanup phase.
+ * Use this to prevent race conditions when accessing singletons during cleanup.
+ */
+export function isSessionCleaningUp(sessionId: string): boolean {
+  const registry = sessionRegistries.get(sessionId);
+  return registry?.isCleaningUp ?? false;
+}
+
+/**
  * Create a session-scoped cleanup tracker.
  * Provides a convenient API for tracking cleanups within a session.
  */
 export function createSessionCleanupTracker(sessionId: string) {
   return {
-    registerEvent: <T extends { on: Function; off: Function }>(
+    registerEvent: <
+      T extends {
+        on: (event: string, handler: (...args: unknown[]) => void) => void;
+        off: (event: string, handler: (...args: unknown[]) => void) => void;
+      },
+    >(
       emitter: T,
       event: string,
       handler: (...args: unknown[]) => void,
@@ -263,7 +282,7 @@ export function createSessionCleanupTracker(sessionId: string) {
       cleanup: () => void | Promise<void>
     ) => registerCleanup(sessionId, type, description, cleanup),
 
-    runCleanup: () => runSessionCleanup(sessionId),
+    runCleanup: async () => runSessionCleanup(sessionId),
 
     getStats: () => getRegistryStats(sessionId),
   };

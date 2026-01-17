@@ -1,0 +1,236 @@
+# Cloud Scheduler Jobs for Ferni
+#
+# These jobs replace in-process setInterval calls that run in the voice agent.
+# Moving them to Cloud Scheduler improves reliability and prevents memory leaks.
+#
+# To apply:
+#   gcloud scheduler jobs create http <job-name> \
+#     --schedule="<schedule>" \
+#     --uri="<uri>" \
+#     --http-method=POST \
+#     --location=us-central1 \
+#     --oidc-service-account-email=<service-account>
+#
+# Or use Terraform (see infra/scheduler.tf)
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cloud-scheduler-jobs
+data:
+  jobs: |
+    # ==========================================================================
+    # INTELLIGENCE WORKER JOBS
+    # ==========================================================================
+    
+    - name: intelligence-batch-processor
+      description: "Process pending intelligence events from queue"
+      schedule: "*/5 * * * *"  # Every 5 minutes
+      timezone: "America/Los_Angeles"
+      uri: "https://intelligence-worker-xxxxx.run.app/process-batch?limit=100"
+      httpMethod: POST
+      retryConfig:
+        retryCount: 3
+        minBackoffDuration: "30s"
+        maxBackoffDuration: "300s"
+      
+    - name: intelligence-pattern-batch
+      description: "Process pattern detection events specifically"
+      schedule: "*/10 * * * *"  # Every 10 minutes
+      timezone: "America/Los_Angeles"
+      uri: "https://intelligence-worker-xxxxx.run.app/process-batch?type=pattern_detection&limit=50"
+      httpMethod: POST
+      
+    # ==========================================================================
+    # ASYNC WORKER JOBS (Outreach)
+    # ==========================================================================
+    
+    - name: outreach-batch-processor
+      description: "Process pending outreach triggers"
+      schedule: "*/2 * * * *"  # Every 2 minutes
+      timezone: "America/Los_Angeles"
+      uri: "https://async-worker-xxxxx.run.app/process-batch?limit=100"
+      httpMethod: POST
+      retryConfig:
+        retryCount: 3
+        
+    - name: daily-outreach-job
+      description: "Run daily outreach job (thinking of you, check-ins)"
+      schedule: "0 10 * * *"  # 10 AM daily
+      timezone: "America/Los_Angeles"
+      uri: "https://async-worker-xxxxx.run.app/jobs/daily-outreach"
+      httpMethod: POST
+      retryConfig:
+        retryCount: 2
+        
+    # ==========================================================================
+    # BACKGROUND TASK JOBS
+    # ==========================================================================
+    
+    - name: background-task-processor
+      description: "Process pending background tasks (replaces in-process setInterval)"
+      schedule: "* * * * *"  # Every minute
+      timezone: "America/Los_Angeles"
+      uri: "https://ui-server-xxxxx.run.app/api/jobs/process-background-tasks"
+      httpMethod: POST
+      retryConfig:
+        retryCount: 2
+        minBackoffDuration: "10s"
+        
+    - name: scheduled-job-checker
+      description: "Check and trigger scheduled jobs"
+      schedule: "* * * * *"  # Every minute
+      timezone: "America/Los_Angeles"
+      uri: "https://ui-server-xxxxx.run.app/api/jobs/check-scheduled"
+      httpMethod: POST
+      
+    # ==========================================================================
+    # SESSION CLEANUP JOBS
+    # ==========================================================================
+    
+    - name: session-cleanup
+      description: "Clean up orphaned sessions to prevent memory leaks"
+      schedule: "*/5 * * * *"  # Every 5 minutes
+      timezone: "America/Los_Angeles"
+      uri: "https://ui-server-xxxxx.run.app/api/jobs/cleanup-sessions"
+      httpMethod: POST
+      
+    - name: old-task-cleanup
+      description: "Clean up old completed/failed tasks"
+      schedule: "0 3 * * *"  # 3 AM daily
+      timezone: "America/Los_Angeles"
+      uri: "https://ui-server-xxxxx.run.app/api/jobs/cleanup-old-tasks"
+      httpMethod: POST
+
+    - name: transcript-cleanup
+      description: "Clean up old transcripts, summaries, and group sessions based on TTL"
+      schedule: "0 2 * * *"  # 2 AM daily
+      timezone: "America/Los_Angeles"
+      uri: "https://ui-server-xxxxx.run.app/api/jobs/cleanup-transcripts"
+      httpMethod: POST
+      retryConfig:
+        retryCount: 2
+        minBackoffDuration: "60s"
+
+    - name: semantic-ttl-cleanup
+      description: "Clean up expired documents from semantic data store based on TTL policies"
+      schedule: "0 1 * * *"  # 1 AM daily
+      timezone: "America/Los_Angeles"
+      uri: "https://ui-server-xxxxx.run.app/api/jobs/ttl-cleanup"
+      httpMethod: POST
+      retryConfig:
+        retryCount: 2
+        minBackoffDuration: "60s"
+        maxBackoffDuration: "300s"
+
+    # ==========================================================================
+    # COLLECTIVE LEARNING JOBS
+    # ==========================================================================
+    
+    - name: community-insights-aggregation
+      description: "Aggregate community insights for collective learning"
+      schedule: "0 3 * * *"  # 3 AM daily
+      timezone: "America/Los_Angeles"
+      uri: "https://ui-server-xxxxx.run.app/api/jobs/aggregate-community-insights"
+      httpMethod: POST
+      retryConfig:
+        retryCount: 2
+        
+    - name: persona-metrics-rollup
+      description: "Roll up persona quality metrics"
+      schedule: "0 4 * * *"  # 4 AM daily
+      timezone: "America/Los_Angeles"
+      uri: "https://ui-server-xxxxx.run.app/api/jobs/rollup-persona-metrics"
+      httpMethod: POST
+      
+    # ==========================================================================
+    # TRUST SYSTEM JOBS
+    # ==========================================================================
+    
+    - name: trust-profile-sync
+      description: "Sync trust profiles from signals"
+      schedule: "0 */6 * * *"  # Every 6 hours
+      timezone: "America/Los_Angeles"
+      uri: "https://ui-server-xxxxx.run.app/api/jobs/sync-trust-profiles"
+      httpMethod: POST
+      
+    # ==========================================================================
+    # HEALTH & MONITORING JOBS
+    # ==========================================================================
+    
+    - name: voice-agent-health-check
+      description: "Health check voice agent (external monitoring)"
+      schedule: "*/5 * * * *"  # Every 5 minutes
+      timezone: "America/Los_Angeles"
+      uri: "http://34.134.186.63:8080/health/ready"
+      httpMethod: GET
+      attemptDeadline: "30s"
+      
+    - name: worker-health-check
+      description: "Health check async workers"
+      schedule: "*/5 * * * *"  # Every 5 minutes
+      timezone: "America/Los_Angeles"
+      uri: "https://async-worker-xxxxx.run.app/health"
+      httpMethod: GET
+
+    # ==========================================================================
+    # ADMIN REPORTING JOBS
+    # ==========================================================================
+
+    - name: daily-admin-report
+      description: "Send daily visitor and caller report to admin"
+      schedule: "0 8 * * *"  # 8 AM PT daily
+      timezone: "America/Los_Angeles"
+      uri: "https://john-bogle-ui-bmopaivmsq-uc.a.run.app/api/jobs/daily-admin-report"
+      httpMethod: POST
+      retryConfig:
+        retryCount: 2
+        minBackoffDuration: "60s"
+        maxBackoffDuration: "300s"
+
+---
+# Terraform configuration for creating these jobs
+# File: infra/scheduler.tf
+
+# terraform {
+#   required_providers {
+#     google = {
+#       source  = "hashicorp/google"
+#       version = "~> 5.0"
+#     }
+#   }
+# }
+# 
+# variable "project_id" {
+#   default = "johnb-2025"
+# }
+# 
+# variable "region" {
+#   default = "us-central1"
+# }
+# 
+# resource "google_cloud_scheduler_job" "intelligence_batch" {
+#   name        = "intelligence-batch-processor"
+#   description = "Process pending intelligence events from queue"
+#   schedule    = "*/5 * * * *"
+#   time_zone   = "America/Los_Angeles"
+#   region      = var.region
+# 
+#   http_target {
+#     http_method = "POST"
+#     uri         = "https://intelligence-worker-${var.project_id}.run.app/process-batch?limit=100"
+#     
+#     oidc_token {
+#       service_account_email = "cloud-scheduler@${var.project_id}.iam.gserviceaccount.com"
+#     }
+#   }
+# 
+#   retry_config {
+#     retry_count = 3
+#     min_backoff_duration = "30s"
+#     max_backoff_duration = "300s"
+#   }
+# }
+# 
+# # ... Additional job resources follow the same pattern
+

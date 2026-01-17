@@ -2,8 +2,12 @@
  * MCP Tool Integration for Agent Extensibility
  *
  * This module bridges MCP servers with the tool builder system.
- * It loads MCP tools from persona bundles and converts them into
- * LiveKit-compatible tool definitions.
+ * It loads MCP tools from persona bundles AND API-registered servers,
+ * then converts them into LiveKit-compatible tool definitions.
+ *
+ * Server Sources:
+ * 1. File-based: mcp.json in persona bundle directory
+ * 2. API-registered: Registered via /api/v2/developers/mcp-servers
  *
  * @module personas/bundles/mcp-integration
  */
@@ -13,16 +17,101 @@ import {
   connectToMCPServer,
   disconnectAllMCPServers,
   disconnectFromMCPServer,
-  getAutoConnectServers,
   getMCPConfig,
   getMCPConnection,
   getAllMCPConnections,
   callMCPTool,
-  type MCPConnection,
 } from './mcp-loader.js';
 import type { BundleMCPConfig, BundleMCPServer } from './types/commands.js';
+import {
+  loadDeveloperMCPServers,
+  type MCPServerConfig,
+} from '../../services/developer-mcp-registry.js';
 
 const log = getLogger();
+
+// ============================================================================
+// API SERVER CONVERSION
+// ============================================================================
+
+/**
+ * Convert API-registered MCPServerConfig to BundleMCPServer format
+ *
+ * This bridges the API format with the file-based format so both
+ * can be processed by the same connection logic.
+ */
+function convertAPIServerToBundleFormat(apiServer: MCPServerConfig): BundleMCPServer {
+  return {
+    id: apiServer.serverId || apiServer.name,
+    name: apiServer.name,
+    transport: apiServer.transport,
+    command: apiServer.command,
+    args: apiServer.args,
+    url: apiServer.endpoint, // API uses 'endpoint', bundle uses 'url'
+    env: apiServer.env,
+    autoConnect: apiServer.autoConnect ?? true,
+    timeout: apiServer.timeout,
+  };
+}
+
+/**
+ * Load API-registered MCP servers for a publisher/persona combination
+ *
+ * @param publisherId - Publisher ID (required for API servers)
+ * @param personaId - Optional persona ID to filter by
+ */
+async function loadAPIServers(
+  publisherId: string,
+  personaId?: string
+): Promise<BundleMCPServer[]> {
+  try {
+    const apiServers = await loadDeveloperMCPServers(publisherId, personaId);
+
+    if (apiServers.length === 0) {
+      return [];
+    }
+
+    const bundleServers = apiServers.map(convertAPIServerToBundleFormat);
+
+    log.info(
+      { publisherId, personaId, count: bundleServers.length },
+      'Loaded API-registered MCP servers'
+    );
+
+    return bundleServers;
+  } catch (error) {
+    log.error(
+      { publisherId, personaId, error: String(error) },
+      'Failed to load API-registered MCP servers'
+    );
+    return [];
+  }
+}
+
+/**
+ * Merge file-based and API-registered servers
+ *
+ * API servers can override file-based servers with the same name.
+ * This allows developers to customize default configurations via API.
+ */
+function mergeServers(
+  fileServers: BundleMCPServer[],
+  apiServers: BundleMCPServer[]
+): BundleMCPServer[] {
+  const serverMap = new Map<string, BundleMCPServer>();
+
+  // Add file servers first
+  for (const server of fileServers) {
+    serverMap.set(server.id, server);
+  }
+
+  // API servers override file-based
+  for (const server of apiServers) {
+    serverMap.set(server.id, server);
+  }
+
+  return Array.from(serverMap.values());
+}
 
 // ============================================================================
 // MCP TOOL INTEGRATION
@@ -45,45 +134,89 @@ export interface MCPToolDefinition {
 }
 
 /**
+ * Options for loading MCP tools
+ */
+export interface LoadMCPToolsOptions {
+  /** Persona ID */
+  personaId: string;
+  /** Bundle path (optional, will look up by personaId if not provided) */
+  bundlePath?: string;
+  /** Publisher ID - required to load API-registered servers */
+  publisherId?: string;
+}
+
+/**
  * Load MCP tools for a persona
  *
- * This connects to all auto-connect MCP servers defined in the persona's
- * mcp.json and returns tool definitions that can be integrated with the
- * main tool builder.
+ * This connects to all auto-connect MCP servers defined in:
+ * 1. The persona's mcp.json file (file-based)
+ * 2. API-registered servers for the publisher/persona (if publisherId provided)
+ *
+ * Returns tool definitions that can be integrated with the main tool builder.
  */
 export async function loadMCPToolsForPersona(
-  personaId: string,
-  bundlePath?: string
+  personaIdOrOptions: string | LoadMCPToolsOptions,
+  bundlePathDeprecated?: string
 ): Promise<MCPToolDefinition[]> {
+  // Support both old signature (personaId, bundlePath) and new options object
+  const options: LoadMCPToolsOptions =
+    typeof personaIdOrOptions === 'string'
+      ? { personaId: personaIdOrOptions, bundlePath: bundlePathDeprecated }
+      : personaIdOrOptions;
+
+  const { personaId, bundlePath, publisherId } = options;
+
   try {
-    // Get MCP config (uses bundlePath if provided, otherwise looks up by personaId)
-    let mcpConfig: BundleMCPConfig | null = null;
+    // ================================================================
+    // 1. Load file-based MCP config
+    // ================================================================
+    let fileConfig: BundleMCPConfig | null = null;
 
     if (bundlePath) {
-      mcpConfig = await getMCPConfig(bundlePath);
+      fileConfig = await getMCPConfig(bundlePath);
     } else {
       // Try to get bundle path from loader
       const { loadBundleById } = await import('./loader.js');
       const bundle = await loadBundleById(personaId);
       if (bundle?.bundlePath) {
-        mcpConfig = await getMCPConfig(bundle.bundlePath);
+        fileConfig = await getMCPConfig(bundle.bundlePath);
       }
     }
 
-    if (!mcpConfig) {
-      log.debug({ personaId }, 'No MCP config found for persona');
+    const fileServers = fileConfig?.servers || [];
+
+    // ================================================================
+    // 2. Load API-registered servers (if publisherId provided)
+    // ================================================================
+    let apiServers: BundleMCPServer[] = [];
+
+    if (publisherId) {
+      apiServers = await loadAPIServers(publisherId, personaId);
+    }
+
+    // ================================================================
+    // 3. Merge servers (API servers can override file-based)
+    // ================================================================
+    const allServers = mergeServers(fileServers, apiServers);
+
+    if (allServers.length === 0) {
+      log.debug({ personaId }, 'No MCP servers configured');
       return [];
     }
 
-    const autoConnectServers = getAutoConnectServers(mcpConfig);
+    // Filter to auto-connect servers
+    const autoConnectServers = allServers.filter((s) => s.autoConnect !== false);
+
     if (autoConnectServers.length === 0) {
       log.debug({ personaId }, 'No auto-connect MCP servers configured');
       return [];
     }
 
+    // ================================================================
+    // 4. Connect to servers and collect tools
+    // ================================================================
     const tools: MCPToolDefinition[] = [];
 
-    // Connect to each server and collect tools
     for (const server of autoConnectServers) {
       try {
         const connection = await connectToMCPServer(server);
@@ -118,7 +251,13 @@ export async function loadMCPToolsForPersona(
     }
 
     log.info(
-      { personaId, totalTools: tools.length, servers: autoConnectServers.length },
+      {
+        personaId,
+        totalTools: tools.length,
+        fileServers: fileServers.length,
+        apiServers: apiServers.length,
+        connectedServers: autoConnectServers.length,
+      },
       'MCP tools loaded for persona'
     );
 
@@ -135,10 +274,16 @@ export async function loadMCPToolsForPersona(
  * This creates llm.tool() instances that delegate to MCP servers
  */
 export async function buildMCPTools(
-  personaId: string,
-  bundlePath?: string
+  personaIdOrOptions: string | LoadMCPToolsOptions,
+  bundlePathDeprecated?: string
 ): Promise<Record<string, unknown>> {
-  const mcpToolDefs = await loadMCPToolsForPersona(personaId, bundlePath);
+  // Extract personaId for logging
+  const personaId =
+    typeof personaIdOrOptions === 'string'
+      ? personaIdOrOptions
+      : personaIdOrOptions.personaId;
+
+  const mcpToolDefs = await loadMCPToolsForPersona(personaIdOrOptions, bundlePathDeprecated);
 
   if (mcpToolDefs.length === 0) {
     return {};
@@ -198,33 +343,62 @@ export async function buildMCPTools(
 /**
  * Initialize MCP connections for a persona
  *
- * Call this when a session starts to connect to all auto-connect servers
+ * Call this when a session starts to connect to all auto-connect servers.
+ * Supports both file-based and API-registered MCP servers.
  */
 export async function initializeMCPConnections(
-  personaId: string,
-  bundlePath?: string
+  personaIdOrOptions: string | LoadMCPToolsOptions,
+  bundlePathDeprecated?: string
 ): Promise<{ connected: string[]; failed: string[] }> {
+  // Support both old signature and new options object
+  const options: LoadMCPToolsOptions =
+    typeof personaIdOrOptions === 'string'
+      ? { personaId: personaIdOrOptions, bundlePath: bundlePathDeprecated }
+      : personaIdOrOptions;
+
+  const { personaId, bundlePath, publisherId } = options;
   const result = { connected: [] as string[], failed: [] as string[] };
 
   try {
-    let mcpConfig: BundleMCPConfig | null = null;
+    // ================================================================
+    // 1. Load file-based MCP config
+    // ================================================================
+    let fileConfig: BundleMCPConfig | null = null;
 
     if (bundlePath) {
-      mcpConfig = await getMCPConfig(bundlePath);
+      fileConfig = await getMCPConfig(bundlePath);
     } else {
       const { loadBundleById } = await import('./loader.js');
       const bundle = await loadBundleById(personaId);
       if (bundle?.bundlePath) {
-        mcpConfig = await getMCPConfig(bundle.bundlePath);
+        fileConfig = await getMCPConfig(bundle.bundlePath);
       }
     }
 
-    if (!mcpConfig) {
+    const fileServers = fileConfig?.servers || [];
+
+    // ================================================================
+    // 2. Load API-registered servers (if publisherId provided)
+    // ================================================================
+    let apiServers: BundleMCPServer[] = [];
+
+    if (publisherId) {
+      apiServers = await loadAPIServers(publisherId, personaId);
+    }
+
+    // ================================================================
+    // 3. Merge and filter auto-connect servers
+    // ================================================================
+    const allServers = mergeServers(fileServers, apiServers);
+    const autoConnectServers = allServers.filter((s) => s.autoConnect !== false);
+
+    if (autoConnectServers.length === 0) {
       return result;
     }
 
-    const autoConnectServers = getAutoConnectServers(mcpConfig);
-
+    // ================================================================
+    // 4. Connect to servers
+    // ================================================================
     for (const server of autoConnectServers) {
       try {
         const connection = await connectToMCPServer(server);
@@ -243,6 +417,8 @@ export async function initializeMCPConnections(
         personaId,
         connected: result.connected.length,
         failed: result.failed.length,
+        fileServers: fileServers.length,
+        apiServers: apiServers.length,
       },
       'MCP connections initialized'
     );

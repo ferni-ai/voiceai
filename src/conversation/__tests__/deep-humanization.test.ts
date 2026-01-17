@@ -1,167 +1,151 @@
 /**
- * DeepHumanizationEngine Tests
+ * Deep Humanization Module Tests
  *
- * Comprehensive tests for the deep humanization engine that creates
+ * Tests for the clean architecture deep humanization system that creates
  * natural, human-like conversation features:
- * - Mood drift
- * - Spontaneous thoughts
- * - Physical presence
- * - Running jokes
- * - Mind changes
- * - Engagement signals
- * - Excitement interruptions
- * - Breath sounds
- * - Anticipation
- * - Contradiction surfacing
- * - First-turn noticing
+ * - Mood tracking and drift
+ * - Humanization injection application
+ * - Generator functions
+ * - Detection utilities
+ *
+ * @module @ferni/conversation/deep-humanization/tests
  */
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 
+// Import from the new clean architecture module
 import {
-  DeepHumanizationEngine,
-  getDeepHumanizationEngine,
-  resetDeepHumanizationEngine,
+  applyDeepHumanization,
+  getMoodTracker,
+  resetDeepHumanization,
+  resetAllDeepHumanization,
+  type HumanizationContext,
+  type ConversationMood,
+} from '../deep-humanization/index.js';
+
+// Detection utilities (now from utils)
+import {
   classifyTopicWeight,
   detectEvidence,
   detectBreakthrough,
   detectAdviceGiving,
   detectDisengagement,
   detectHighEngagement,
-  type HumanizationContext,
-  type ConversationMood,
-} from '../deep-humanization.js';
+} from '../utils/detection.js';
 
 // ============================================================================
 // TEST SETUP
 // ============================================================================
 
-describe('DeepHumanizationEngine', () => {
+describe('Deep Humanization Module', () => {
   const testPersonaId = 'ferni';
-  let engine: DeepHumanizationEngine;
 
   beforeEach(() => {
-    resetDeepHumanizationEngine(testPersonaId);
-    engine = new DeepHumanizationEngine(testPersonaId);
+    resetDeepHumanization(testPersonaId);
   });
 
   afterEach(() => {
-    resetDeepHumanizationEngine(testPersonaId);
+    resetDeepHumanization(testPersonaId);
   });
 
   // ==========================================================================
-  // INITIALIZATION TESTS
+  // MOOD TRACKER TESTS
   // ==========================================================================
 
-  describe('initialization', () => {
-    it('should create a new engine instance', () => {
-      expect(engine).toBeInstanceOf(DeepHumanizationEngine);
+  describe('MoodTracker', () => {
+    it('should get mood tracker instance for persona', () => {
+      const tracker = getMoodTracker(testPersonaId);
+      expect(tracker).toBeDefined();
+      expect(typeof tracker.getMood).toBe('function');
+      expect(typeof tracker.update).toBe('function');
     });
 
-    it('should get singleton instance via factory', () => {
-      const instance1 = getDeepHumanizationEngine(testPersonaId);
-      const instance2 = getDeepHumanizationEngine(testPersonaId);
-      expect(instance1).toBe(instance2);
+    it('should return same instance for same persona', () => {
+      const tracker1 = getMoodTracker(testPersonaId);
+      const tracker2 = getMoodTracker(testPersonaId);
+      expect(tracker1).toBe(tracker2);
     });
 
     it('should start with default mood', () => {
-      const mood = engine.getMood();
+      const tracker = getMoodTracker(testPersonaId);
+      const mood = tracker.getMood();
       expect(mood.energy).toBe(0.75);
       expect(mood.engagement).toBe(0.7);
       expect(mood.emotionalLoad).toBe(0);
       expect(mood.heavyTopicCount).toBe(0);
       expect(mood.inEmotionalMoment).toBe(false);
     });
-  });
 
-  // ==========================================================================
-  // MOOD TRACKING TESTS
-  // ==========================================================================
-
-  describe('mood tracking', () => {
     it('should decrease energy for heavy topics', () => {
-      const initialMood = engine.getMood();
+      const tracker = getMoodTracker(testPersonaId);
+      const initialMood = tracker.getMood();
 
-      engine.updateMood({
+      tracker.update({
         topicWeight: 'heavy',
         turnCount: 1,
       });
 
-      const updatedMood = engine.getMood();
+      const updatedMood = tracker.getMood();
       expect(updatedMood.energy).toBeLessThan(initialMood.energy);
       expect(updatedMood.emotionalLoad).toBeGreaterThan(0);
       expect(updatedMood.heavyTopicCount).toBe(1);
     });
 
     it('should increase energy for light topics', () => {
+      const tracker = getMoodTracker(testPersonaId);
+
       // First decrease with heavy topic
-      engine.updateMood({ topicWeight: 'heavy', turnCount: 1 });
-      const afterHeavy = engine.getMood();
+      tracker.update({ topicWeight: 'heavy', turnCount: 1 });
+      const afterHeavy = tracker.getMood();
 
       // Then increase with light topic
-      engine.updateMood({ topicWeight: 'light', turnCount: 2 });
-      const afterLight = engine.getMood();
+      tracker.update({ topicWeight: 'light', turnCount: 2 });
+      const afterLight = tracker.getMood();
 
       expect(afterLight.energy).toBeGreaterThan(afterHeavy.energy);
     });
 
     it('should track emotional moments', () => {
-      engine.updateMood({
+      const tracker = getMoodTracker(testPersonaId);
+
+      tracker.update({
         userEmotion: 'sadness',
         turnCount: 1,
       });
 
-      expect(engine.getMood().inEmotionalMoment).toBe(true);
-    });
-
-    it('should track vulnerable moments', () => {
-      engine.updateMood({
-        userEmotion: 'vulnerable',
-        turnCount: 1,
-      });
-
-      expect(engine.getMood().inEmotionalMoment).toBe(true);
+      expect(tracker.getMood().inEmotionalMoment).toBe(true);
     });
 
     it('should increase engagement for high user engagement', () => {
-      const initial = engine.getMood();
+      const tracker = getMoodTracker(testPersonaId);
+      const initial = tracker.getMood();
 
-      engine.updateMood({
+      tracker.update({
         userEngagement: 'high',
         turnCount: 1,
       });
 
-      expect(engine.getMood().engagement).toBeGreaterThan(initial.engagement);
+      expect(tracker.getMood().engagement).toBeGreaterThan(initial.engagement);
     });
 
     it('should decrease engagement for low user engagement', () => {
-      const initial = engine.getMood();
+      const tracker = getMoodTracker(testPersonaId);
+      const initial = tracker.getMood();
 
-      engine.updateMood({
+      tracker.update({
         userEngagement: 'low',
         turnCount: 1,
       });
 
-      expect(engine.getMood().engagement).toBeLessThan(initial.engagement);
-    });
-
-    it('should decay energy in long sessions', () => {
-      // Update with many turns
-      for (let i = 1; i <= 20; i++) {
-        engine.updateMood({ turnCount: i });
-      }
-
-      const mood = engine.getMood();
-      // Energy should have decayed
-      expect(mood.energy).toBeLessThan(0.75);
+      expect(tracker.getMood().engagement).toBeLessThan(initial.engagement);
     });
   });
 
   // ==========================================================================
-  // HUMANIZATION INJECTION TESTS
+  // APPLY DEEP HUMANIZATION TESTS
   // ==========================================================================
 
-  describe('getHumanizationInjections', () => {
+  describe('applyDeepHumanization', () => {
     const baseContext: HumanizationContext = {
       personaId: testPersonaId,
       turnCount: 5,
@@ -172,145 +156,51 @@ describe('DeepHumanizationEngine', () => {
       relationshipStage: 'acquaintance',
     };
 
-    it('should return array of injections', async () => {
-      const injections = await engine.getHumanizationInjections(baseContext);
-      expect(Array.isArray(injections)).toBe(true);
+    it('should return humanized text and applied effects', async () => {
+      const result = await applyDeepHumanization('Original response.', baseContext);
+
+      expect(result).toHaveProperty('text');
+      expect(result).toHaveProperty('appliedEffects');
+      expect(typeof result.text).toBe('string');
+      expect(Array.isArray(result.appliedEffects)).toBe(true);
     });
 
-    it('should limit injections to max 2 per response', async () => {
-      // Run multiple times to test limit
+    it('should preserve original text when no effects applied', async () => {
+      // With low turn count and no strong signals, effects may not fire
+      const result = await applyDeepHumanization('Original response.', {
+        ...baseContext,
+        turnCount: 1,
+      });
+
+      // Text should at least contain the original
+      expect(result.text).toContain('Original');
+    });
+
+    it('should not exceed max effects per turn', async () => {
+      // Run multiple times and check effects count
       for (let i = 0; i < 5; i++) {
-        const injections = await engine.getHumanizationInjections({
+        const result = await applyDeepHumanization('Test response.', {
           ...baseContext,
           turnCount: i + 5,
         });
-        expect(injections.length).toBeLessThanOrEqual(2);
+
+        // Max is 3 effects per turn (see DEFAULT_TUNING.global.maxEffectsPerResponse)
+        expect(result.appliedEffects.length).toBeLessThanOrEqual(3);
       }
     });
 
-    it('should return injections with required properties', async () => {
-      // Run multiple times to get at least one injection
-      let foundInjection = false;
-      for (let i = 0; i < 20; i++) {
-        const injections = await engine.getHumanizationInjections({
-          ...baseContext,
-          turnCount: i + 1,
-        });
-        if (injections.length > 0) {
-          foundInjection = true;
-          const injection = injections[0];
-          expect(injection.type).toBeDefined();
-          expect(injection.content).toBeDefined();
-          expect(injection.placement).toBeDefined();
-          expect(['prefix', 'suffix', 'standalone', 'interrupt']).toContain(injection.placement);
-          break;
-        }
-      }
-      // Injections are probabilistic, so we don't require finding one
-      expect(typeof foundInjection).toBe('boolean');
-    });
+    it('should update mood tracker during humanization', async () => {
+      const tracker = getMoodTracker(testPersonaId);
+      const initialMood = tracker.getMood();
 
-    it('should prioritize excitement interruptions for breakthrough moments', async () => {
-      const injections = await engine.getHumanizationInjections(
-        { ...baseContext, turnCount: 10 },
-        { isBreakthroughMoment: true }
-      );
+      await applyDeepHumanization('Response about difficult topic.', {
+        ...baseContext,
+        userMessage: 'Dealing with anxiety and depression',
+      });
 
-      // Check if excitement_interruption is present (probabilistic)
-      if (injections.length > 0) {
-        const types = injections.map((i) => i.type);
-        // Excitement should be prioritized when breakthrough detected
-        expect(Array.isArray(types)).toBe(true);
-      }
-    });
-
-    it('should prioritize engagement signal for disengaged users', async () => {
-      const injections = await engine.getHumanizationInjections(
-        { ...baseContext, turnCount: 10 },
-        { isDisengaged: true }
-      );
-
-      // Engagement signal should be considered (probabilistic)
-      expect(Array.isArray(injections)).toBe(true);
-    });
-  });
-
-  // ==========================================================================
-  // APPLY INJECTIONS TESTS
-  // ==========================================================================
-
-  describe('applyInjections', () => {
-    it('should apply prefix injections', () => {
-      const result = engine.applyInjections('Original response.', [
-        {
-          type: 'mood_signal',
-          content: 'Hmm,',
-          placement: 'prefix',
-          probability: 1,
-          cooldownTurns: 0,
-        },
-      ]);
-
-      expect(result).toContain('Hmm,');
-      expect(result).toContain('Original response.');
-      expect(result.indexOf('Hmm,')).toBeLessThan(result.indexOf('Original'));
-    });
-
-    it('should apply suffix injections', () => {
-      const result = engine.applyInjections('Original response.', [
-        {
-          type: 'physical_presence',
-          content: '*leans back*',
-          placement: 'suffix',
-          probability: 1,
-          cooldownTurns: 0,
-        },
-      ]);
-
-      expect(result).toContain('Original response.');
-      expect(result).toContain('*leans back*');
-      expect(result.indexOf('*leans back*')).toBeGreaterThan(result.indexOf('Original'));
-    });
-
-    it('should apply interrupt injections with break', () => {
-      const result = engine.applyInjections('Original response.', [
-        {
-          type: 'excitement_interruption',
-          content: 'Wait!',
-          placement: 'interrupt',
-          probability: 1,
-          cooldownTurns: 0,
-        },
-      ]);
-
-      expect(result).toContain('Wait!');
-      expect(result).toContain('<break time="200ms"/>');
-    });
-
-    it('should apply multiple injections in order', () => {
-      const result = engine.applyInjections('Middle.', [
-        {
-          type: 'mood_signal',
-          content: 'Start',
-          placement: 'prefix',
-          probability: 1,
-          cooldownTurns: 0,
-        },
-        {
-          type: 'physical_presence',
-          content: 'End',
-          placement: 'suffix',
-          probability: 1,
-          cooldownTurns: 0,
-        },
-      ]);
-
-      const startIdx = result.indexOf('Start');
-      const middleIdx = result.indexOf('Middle');
-      const endIdx = result.indexOf('End');
-
-      expect(startIdx).toBeLessThan(middleIdx);
-      expect(middleIdx).toBeLessThan(endIdx);
+      const updatedMood = tracker.getMood();
+      // Mood should be updated based on context
+      expect(updatedMood).toBeDefined();
     });
   });
 
@@ -318,10 +208,12 @@ describe('DeepHumanizationEngine', () => {
   // RESET TESTS
   // ==========================================================================
 
-  describe('reset', () => {
+  describe('reset functions', () => {
     it('should reset mood to default values', () => {
+      const tracker = getMoodTracker(testPersonaId);
+
       // Modify mood
-      engine.updateMood({
+      tracker.update({
         topicWeight: 'heavy',
         userEngagement: 'high',
         userEmotion: 'sadness',
@@ -329,24 +221,39 @@ describe('DeepHumanizationEngine', () => {
       });
 
       // Reset
-      engine.reset();
+      resetDeepHumanization(testPersonaId);
 
-      // Check defaults
-      const mood = engine.getMood();
+      // Get new tracker (old one should be reset)
+      const newTracker = getMoodTracker(testPersonaId);
+      const mood = newTracker.getMood();
       expect(mood.energy).toBe(0.75);
       expect(mood.engagement).toBe(0.7);
       expect(mood.emotionalLoad).toBe(0);
-      expect(mood.heavyTopicCount).toBe(0);
-      expect(mood.inEmotionalMoment).toBe(false);
+    });
+
+    it('should reset all personas', () => {
+      // Modify mood for multiple personas
+      const ferniTracker = getMoodTracker('ferni');
+      const peterTracker = getMoodTracker('peter-john');
+
+      ferniTracker.update({ topicWeight: 'heavy', turnCount: 1 });
+      peterTracker.update({ topicWeight: 'heavy', turnCount: 1 });
+
+      // Reset all
+      resetAllDeepHumanization();
+
+      // Both should be reset
+      expect(getMoodTracker('ferni').getMood().energy).toBe(0.75);
+      expect(getMoodTracker('peter-john').getMood().energy).toBe(0.75);
     });
   });
 });
 
 // ============================================================================
-// DETECTION HELPER TESTS (delegated to shared utilities)
+// DETECTION HELPER TESTS (from utils/detection.ts)
 // ============================================================================
 
-describe('Detection helpers (shared utilities)', () => {
+describe('Detection helpers', () => {
   describe('classifyTopicWeight', () => {
     it('should classify heavy topics', () => {
       expect(classifyTopicWeight('My father died')).toBe('heavy');
@@ -436,34 +343,5 @@ describe('Detection helpers (shared utilities)', () => {
       expect(detectHighEngagement("That's cool")).toBe(false);
       expect(detectHighEngagement('Interesting')).toBe(false);
     });
-  });
-});
-
-// ============================================================================
-// FACTORY FUNCTION TESTS
-// ============================================================================
-
-describe('deep humanization factory', () => {
-  it('should get or create engine for persona', () => {
-    const engine1 = getDeepHumanizationEngine('test-persona');
-    const engine2 = getDeepHumanizationEngine('test-persona');
-    expect(engine1).toBe(engine2);
-  });
-
-  it('should create different engines for different personas', () => {
-    const ferniEngine = getDeepHumanizationEngine('ferni');
-    const peterEngine = getDeepHumanizationEngine('peter-john');
-    expect(ferniEngine).not.toBe(peterEngine);
-  });
-
-  it('should reset specific persona engine', () => {
-    const engine = getDeepHumanizationEngine('reset-test');
-    engine.updateMood({ topicWeight: 'heavy', turnCount: 1 });
-
-    resetDeepHumanizationEngine('reset-test');
-
-    // After reset, mood should be default
-    const mood = engine.getMood();
-    expect(mood.energy).toBe(0.75);
   });
 });

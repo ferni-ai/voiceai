@@ -1,0 +1,1513 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="cedar">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Haptics | Ferni Design System</title>
+  <meta name="description" content="Ferni Design System - Brand tokens, components, and patterns for building human-centered AI experiences">
+
+  <!-- Fonts: Plus Jakarta Sans (display), Inter (body), JetBrains Mono (code) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+  <!-- Design Tokens (auto-generated from design-system/tokens/*.json) -->
+  <link rel="stylesheet" href="/css/tokens.css">
+  <link rel="stylesheet" href="/css/components.css">
+  <link rel="stylesheet" href="/css/docs.css">
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%233D5A45' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z'/><path d='M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12'/></svg>">
+</head>
+<body>
+  <div class="layout">
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <a href="/" class="logo">
+          <span class="logo-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"/>
+              <path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"/>
+            </svg>
+          </span>
+          <span class="logo-text">Ferni Design</span>
+        </a>
+        <span class="version-badge">v2.0</span>
+      </div>
+
+      <!-- Search -->
+      <div class="sidebar-search">
+        <input type="text" id="searchInput" placeholder="Search..." aria-label="Search documentation">
+        <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="11" cy="11" r="8"/>
+          <path d="m21 21-4.3-4.3"/>
+        </svg>
+      </div>
+
+      <nav class="sidebar-nav">
+        <div class="nav-section">
+          <span class="nav-section-title">Foundations</span>
+          <ul>
+            <li><a href="/" class="">Overview</a></li>
+            <li><a href="/colors/" class="">Colors</a></li>
+            <li><a href="/typography/" class="">Typography</a></li>
+            <li><a href="/spacing/" class="">Spacing</a></li>
+            <li><a href="/animation/" class="">Animation</a></li>
+            <li><a href="/physics/" class="">Physics</a></li>
+            <li><a href="/responsive/" class="">Responsive</a></li>
+            <li><a href="/effects/" class="">Effects</a></li>
+            <li><a href="/sequences/" class="">Sequences</a></li>
+            <li><a href="/motion/" class="">Motion</a></li>
+            <li><a href="/haptics/" class="active">Haptics</a></li>
+          </ul>
+        </div>
+
+        <div class="nav-section">
+          <span class="nav-section-title">Patterns</span>
+          <ul>
+            <li><a href="/feedback/" class="">Feedback</a></li>
+            <li><a href="/predictive-ui/" class="">Predictive UI</a></li>
+          </ul>
+        </div>
+
+        <div class="nav-section">
+          <span class="nav-section-title">Brand</span>
+          <ul>
+            <li><a href="/personas/" class="">Personas</a></li>
+            <li><a href="/personality/" class="">Personality</a></li>
+            <li><a href="/capabilities/" class="">Capabilities</a></li>
+            <li><a href="/voice/" class="">Voice & Tone</a></li>
+            <li><a href="/sounds-haptics/" class="">Sounds & Haptics</a></li>
+            <li><a href="/sonic-identity/" class="">Sonic Identity</a></li>
+            <li><a href="/rituals/" class="">Rituals</a></li>
+            <li><a href="/icons/" class="">Icons</a></li>
+            <li><a href="/expressions/" class="">Expressions</a></li>
+            <li><a href="/glow-colors/" class="">Glow Colors</a></li>
+            <li><a href="/window-avatar/" class="">Window Avatar</a></li>
+            <li><a href="/universe/" class="">Universe</a></li>
+            <li><a href="/visualizations/" class="">Visualizations</a></li>
+            <li><a href="/brand-guardrails/" class="">Brand Guardrails</a></li>
+            <li><a href="/brand-kit/" class="">Brand Kit</a></li>
+          </ul>
+        </div>
+
+        <div class="nav-section">
+          <span class="nav-section-title">Components</span>
+          <ul>
+            <li><a href="/components/" class="">Overview</a></li>
+            <li><a href="/components/avatar/" class="">Avatar</a></li>
+            <li><a href="/components/badge/" class="">Badge</a></li>
+            <li><a href="/components/buttons/" class="">Buttons</a></li>
+            <li><a href="/components/cards/" class="">Cards</a></li>
+            <li><a href="/components/dropdown/" class="">Dropdown</a></li>
+            <li><a href="/components/glass/" class="">Glass Surfaces</a></li>
+            <li><a href="/components/inputs/" class="">Inputs</a></li>
+            <li><a href="/components/modal/" class="">Modal</a></li>
+            <li><a href="/components/progress/" class="">Progress</a></li>
+            <li><a href="/components/tabs/" class="">Tabs</a></li>
+            <li><a href="/components/toast/" class="">Toast</a></li>
+            <li><a href="/components/tooltip/" class="">Tooltip</a></li>
+          </ul>
+        </div>
+
+        <div class="nav-section">
+          <span class="nav-section-title">Resources</span>
+          <ul>
+            <li><a href="https://developers.ferni.ai" target="_blank">Developer Docs</a></li>
+            <li><a href="https://marketplace.ferni.ai" target="_blank">Marketplace</a></li>
+            <li><a href="https://ferni.ai" target="_blank">Product</a></li>
+          </ul>
+        </div>
+      </nav>
+
+      <div class="sidebar-footer">
+        <button class="theme-preview-btn" onclick="toggleThemePreview()" aria-label="Toggle theme comparison">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="3" width="7" height="7"/>
+            <rect x="14" y="3" width="7" height="7"/>
+            <rect x="3" y="14" width="7" height="7"/>
+            <rect x="14" y="14" width="7" height="7"/>
+          </svg>
+          <span>Compare</span>
+        </button>
+        <div class="theme-toggle" onclick="toggleTheme()">
+          <svg class="sun-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="5"/>
+            <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+          </svg>
+          <svg class="moon-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+          </svg>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Theme Preview Modal -->
+    <div id="themePreviewModal" class="theme-preview-modal">
+      <div class="theme-preview-header">
+        <h3>Theme Comparison</h3>
+        <button class="close-preview" onclick="toggleThemePreview()" aria-label="Close preview">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M18 6L6 18M6 6l12 12"/>
+          </svg>
+        </button>
+      </div>
+      <div class="theme-preview-content">
+        <div class="theme-panel" data-theme="cedar">
+          <div class="theme-label">Cedar (Dark)</div>
+          <div class="theme-sample">
+            <div class="sample-card">
+              <div class="sample-avatar"></div>
+              <div class="sample-text">
+                <div class="sample-title"></div>
+                <div class="sample-body"></div>
+              </div>
+            </div>
+            <div class="sample-buttons">
+              <button class="sample-btn primary">Primary</button>
+              <button class="sample-btn secondary">Secondary</button>
+            </div>
+            <div class="sample-colors">
+              <div class="color-dot ferni"></div>
+              <div class="color-dot maya"></div>
+              <div class="color-dot peter"></div>
+              <div class="color-dot alex"></div>
+              <div class="color-dot jordan"></div>
+            </div>
+          </div>
+        </div>
+        <div class="theme-panel" data-theme="zen">
+          <div class="theme-label">Zen (Light)</div>
+          <div class="theme-sample">
+            <div class="sample-card">
+              <div class="sample-avatar"></div>
+              <div class="sample-text">
+                <div class="sample-title"></div>
+                <div class="sample-body"></div>
+              </div>
+            </div>
+            <div class="sample-buttons">
+              <button class="sample-btn primary">Primary</button>
+              <button class="sample-btn secondary">Secondary</button>
+            </div>
+            <div class="sample-colors">
+              <div class="color-dot ferni"></div>
+              <div class="color-dot maya"></div>
+              <div class="color-dot peter"></div>
+              <div class="color-dot alex"></div>
+              <div class="color-dot jordan"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Search Results -->
+    <div id="searchResults" class="search-results"></div>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      
+<div class="page-header">
+  <h1>Haptics</h1>
+  <p class="lead">Meaningful touch feedback for emotional connection. Every vibration communicates.</p>
+</div>
+
+<section class="doc-section">
+  <h2>Philosophy</h2>
+  <blockquote class="philosophy-quote">
+    "Haptics are not decoration—they're communication. Every vibration should feel intentional and human."
+  </blockquote>
+
+  <div class="principles-grid">
+    <div class="principle-card">
+      <h4>Meaningful, Not Decorative</h4>
+      <p>Every haptic should communicate something specific</p>
+    </div>
+    <div class="principle-card">
+      <h4>Warm, Not Clinical</h4>
+      <p>Organic patterns over mechanical buzzes</p>
+    </div>
+    <div class="principle-card">
+      <h4>Subtle by Default</h4>
+      <p>Reserve intensity for important moments</p>
+    </div>
+    <div class="principle-card">
+      <h4>Persona-Aware</h4>
+      <p>Haptics reflect each character's personality</p>
+    </div>
+    <div class="principle-card">
+      <h4>Respectful</h4>
+      <p>Honor system settings and user preferences</p>
+    </div>
+  </div>
+</section>
+
+<section class="doc-section">
+  <h2>Intensity Levels</h2>
+  <p>Standard 1-5 scale mapped to platform APIs.</p>
+
+  <table class="token-table">
+    <thead>
+      <tr>
+        <th>Level</th>
+        <th>Name</th>
+        <th>iOS API</th>
+        <th>Android API</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="token-value">1</span></td>
+        <td>Whisper</td>
+        <td><code>UIImpactFeedbackGenerator.light * 0.5</code></td>
+        <td><code>EFFECT_TICK</code></td>
+      </tr>
+      <tr>
+        <td><span class="token-value">2</span></td>
+        <td>Soft</td>
+        <td><code>UIImpactFeedbackGenerator.light</code></td>
+        <td><code>EFFECT_CLICK</code></td>
+      </tr>
+      <tr>
+        <td><span class="token-value">3</span></td>
+        <td>Medium</td>
+        <td><code>UIImpactFeedbackGenerator.medium</code></td>
+        <td><code>EFFECT_HEAVY_CLICK</code></td>
+      </tr>
+      <tr>
+        <td><span class="token-value">4</span></td>
+        <td>Strong</td>
+        <td><code>UIImpactFeedbackGenerator.heavy</code></td>
+        <td><code>EFFECT_DOUBLE_CLICK</code></td>
+      </tr>
+      <tr>
+        <td><span class="token-value">5</span></td>
+        <td>Emphasis</td>
+        <td><code>UINotificationFeedbackGenerator.success</code></td>
+        <td><code>VIBRATE(100)</code></td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+
+<section class="doc-section">
+  <h2>Base Patterns</h2>
+  <p>Fundamental haptic building blocks for common interactions.</p>
+
+  <div class="pattern-grid">
+    <div class="pattern-card">
+      <div class="pattern-header">
+        <h4>tap</h4>
+        <span class="pattern-duration">10ms</span>
+      </div>
+      <p class="pattern-description">Single crisp tap - basic interaction feedback</p>
+      <div class="pattern-waveform" data-waveform="1,0"></div>
+      <code class="use-case">Button press, selection</code>
+    </div>
+
+    <div class="pattern-card">
+      <div class="pattern-header">
+        <h4>softTap</h4>
+        <span class="pattern-duration">8ms</span>
+      </div>
+      <p class="pattern-description">Gentler tap - subtle acknowledgment</p>
+      <div class="pattern-waveform" data-waveform="0.5,0"></div>
+      <code class="use-case">Toggle off, dismiss</code>
+    </div>
+
+    <div class="pattern-card">
+      <div class="pattern-header">
+        <h4>doubleTap</h4>
+        <span class="pattern-duration">40ms</span>
+      </div>
+      <p class="pattern-description">Two quick taps - confirmation</p>
+      <div class="pattern-waveform" data-waveform="1,0,0,1,0"></div>
+      <code class="use-case">Selection confirmed, got it</code>
+    </div>
+
+    <div class="pattern-card">
+      <div class="pattern-header">
+        <h4>bump</h4>
+        <span class="pattern-duration">20ms</span>
+      </div>
+      <p class="pattern-description">Weighted tap - physical feedback</p>
+      <div class="pattern-waveform" data-waveform="0.3,1,0.5,0"></div>
+      <code class="use-case">Toggle on, snap to position</code>
+    </div>
+
+    <div class="pattern-card">
+      <div class="pattern-header">
+        <h4>click</h4>
+        <span class="pattern-duration">15ms</span>
+      </div>
+      <p class="pattern-description">Mechanical click - task complete</p>
+      <div class="pattern-waveform" data-waveform="1,0.2,0"></div>
+      <code class="use-case">Checkbox, item complete</code>
+    </div>
+  </div>
+</section>
+
+<section class="doc-section">
+  <h2>Organic Patterns</h2>
+  <p>Ferni's signature haptics - organic, human, breathing. These patterns feel alive.</p>
+
+  <div class="pattern-grid organic">
+    <div class="pattern-card featured">
+      <div class="pattern-header">
+        <h4>ferniBreath</h4>
+        <span class="pattern-duration">300ms</span>
+      </div>
+      <p class="pattern-description">Core Ferni breathing pattern - warm, grounding</p>
+      <div class="pattern-waveform organic" data-waveform="0.2,0.4,0.6,0.8,1,0.8,0.6,0.4,0.2,0" data-curve="sine"></div>
+      <code class="use-case">Connection established, presence confirmation</code>
+    </div>
+
+    <div class="pattern-card">
+      <div class="pattern-header">
+        <h4>warmPulse</h4>
+        <span class="pattern-duration">250ms</span>
+      </div>
+      <p class="pattern-description">Gentle warmth pulse - emotional acknowledgment</p>
+      <div class="pattern-waveform organic" data-waveform="0.3,0.6,1,0.6,0.3,0"></div>
+      <code class="use-case">Empathy moment, understanding</code>
+    </div>
+
+    <div class="pattern-card">
+      <div class="pattern-header">
+        <h4>heartbeat</h4>
+        <span class="pattern-duration">800ms</span>
+      </div>
+      <p class="pattern-description">Double-beat pulse - connection/love</p>
+      <div class="pattern-waveform organic" data-waveform="0.6,1,0,0,0.5,0.8,0,0,0"></div>
+      <code class="use-case">Deep connection, milestone</code>
+    </div>
+
+    <div class="pattern-card">
+      <div class="pattern-header">
+        <h4>slowBreath</h4>
+        <span class="pattern-duration">500ms</span>
+      </div>
+      <p class="pattern-description">Extended breath - calm, wisdom</p>
+      <div class="pattern-waveform organic" data-waveform="0.1,0.2,0.3,0.5,0.7,0.9,1,0.9,0.7,0.5,0.3,0.2,0.1,0"></div>
+      <code class="use-case">Sage persona, contemplation</code>
+    </div>
+
+    <div class="pattern-card">
+      <div class="pattern-header">
+        <h4>quickBreath</h4>
+        <span class="pattern-duration">200ms</span>
+      </div>
+      <p class="pattern-description">Short energetic breath - curiosity</p>
+      <div class="pattern-waveform organic" data-waveform="0.4,0.8,1,0.6,0.3,0"></div>
+      <code class="use-case">Researcher energy, discovery</code>
+    </div>
+  </div>
+</section>
+
+<section class="doc-section">
+  <h2>Celebration Patterns</h2>
+  <p>Positive feedback for wins and achievements.</p>
+
+  <div class="pattern-grid celebration">
+    <div class="pattern-card">
+      <div class="pattern-header">
+        <h4>smallWin</h4>
+        <span class="pattern-duration">200ms</span>
+      </div>
+      <p class="pattern-description">Quick sparkle - small achievement</p>
+      <code class="use-case">Task complete, streak continued</code>
+    </div>
+
+    <div class="pattern-card">
+      <div class="pattern-header">
+        <h4>bigWin</h4>
+        <span class="pattern-duration">400ms</span>
+      </div>
+      <p class="pattern-description">Celebration burst - major achievement</p>
+      <code class="use-case">Milestone reached, level up</code>
+    </div>
+
+    <div class="pattern-card">
+      <div class="pattern-header">
+        <h4>teamUnlock</h4>
+        <span class="pattern-duration">600ms</span>
+      </div>
+      <p class="pattern-description">Arrival pattern - new team member unlocked</p>
+      <code class="use-case">Team member unlock celebration</code>
+    </div>
+
+    <div class="pattern-card">
+      <div class="pattern-header">
+        <h4>streakAchieved</h4>
+        <span class="pattern-duration">500ms</span>
+      </div>
+      <p class="pattern-description">Rhythmic celebration - streak milestone</p>
+      <code class="use-case">7-day streak, 30-day streak</code>
+    </div>
+  </div>
+</section>
+
+<section class="doc-section">
+  <h2>Persona Haptic Signatures</h2>
+  <p>Each persona has a unique haptic signature reflecting their personality.</p>
+
+  <div class="persona-haptics-grid">
+    <div class="persona-haptic-card" style="--persona-color: var(--color-ferni)">
+      <div class="persona-header">
+        <span class="persona-avatar">F</span>
+        <h4>Ferni</h4>
+      </div>
+      <p class="persona-energy">Warm, grounding, nurturing - life coach energy</p>
+      <div class="haptic-signature">
+        <span class="signature-name">ferniBreath</span>
+        <span class="signature-duration">300ms</span>
+      </div>
+      <ul class="haptic-behaviors">
+        <li><strong>Speaking:</strong> ferniBreath</li>
+        <li><strong>Acknowledgment:</strong> doubleTap</li>
+        <li><strong>Insight:</strong> heartbeat</li>
+      </ul>
+    </div>
+
+    <div class="persona-haptic-card" style="--persona-color: var(--color-peter)">
+      <div class="persona-header">
+        <span class="persona-avatar">P</span>
+        <h4>Peter</h4>
+      </div>
+      <p class="persona-energy">Curious, energetic, quick - researcher energy</p>
+      <div class="haptic-signature">
+        <span class="signature-name">quickBreath</span>
+        <span class="signature-duration">200ms</span>
+      </div>
+      <ul class="haptic-behaviors">
+        <li><strong>Discovery:</strong> burst</li>
+        <li><strong>Thinking:</strong> rhythm</li>
+        <li><strong>Eureka:</strong> bigWin</li>
+      </ul>
+    </div>
+
+    <div class="persona-haptic-card" style="--persona-color: var(--color-alex)">
+      <div class="persona-header">
+        <span class="persona-avatar">A</span>
+        <h4>Alex</h4>
+      </div>
+      <p class="persona-energy">Clear, empathetic, smooth - communicator energy</p>
+      <div class="haptic-signature">
+        <span class="signature-name">warmPulse</span>
+        <span class="signature-duration">250ms</span>
+      </div>
+      <ul class="haptic-behaviors">
+        <li><strong>Guidance:</strong> leadTap</li>
+        <li><strong>Empathy:</strong> warmPulse</li>
+        <li><strong>Clarity:</strong> doubleTap</li>
+      </ul>
+    </div>
+
+    <div class="persona-haptic-card" style="--persona-color: var(--color-maya)">
+      <div class="persona-header">
+        <span class="persona-avatar">M</span>
+        <h4>Maya</h4>
+      </div>
+      <p class="persona-energy">Steady, rhythmic, reliable - architect energy</p>
+      <div class="haptic-signature">
+        <span class="signature-name">steadyRhythm</span>
+        <span class="signature-duration">300ms interval</span>
+      </div>
+      <ul class="haptic-behaviors">
+        <li><strong>Task Complete:</strong> click</li>
+        <li><strong>Habit Check:</strong> firmTap</li>
+        <li><strong>Progress:</strong> ramp</li>
+      </ul>
+    </div>
+
+    <div class="persona-haptic-card" style="--persona-color: var(--color-jordan)">
+      <div class="persona-header">
+        <span class="persona-avatar">J</span>
+        <h4>Jordan</h4>
+      </div>
+      <p class="persona-energy">Joyful, bouncy, celebratory - event planner energy</p>
+      <div class="haptic-signature">
+        <span class="signature-name">bounce</span>
+        <span class="signature-duration">250ms</span>
+      </div>
+      <ul class="haptic-behaviors">
+        <li><strong>Excitement:</strong> sparkle</li>
+        <li><strong>Countdown:</strong> tick</li>
+        <li><strong>Celebration:</strong> bigWin</li>
+      </ul>
+    </div>
+
+    <div class="persona-haptic-card" style="--persona-color: var(--color-nayan)">
+      <div class="persona-header">
+        <span class="persona-avatar">N</span>
+        <h4>Nayan</h4>
+      </div>
+      <p class="persona-energy">Deep, integrative, philosophical - wisdom energy</p>
+      <div class="haptic-signature">
+        <span class="signature-name">deepBreath</span>
+        <span class="signature-duration">600ms</span>
+      </div>
+      <ul class="haptic-behaviors">
+        <li><strong>Contemplation:</strong> slowBreath</li>
+        <li><strong>Integration:</strong> heartbeat</li>
+        <li><strong>Insight:</strong> warmPulse</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section class="doc-section">
+  <h2>Emotional Haptics</h2>
+  <p>Haptic responses to detected emotional states.</p>
+
+  <div class="emotional-haptics-grid">
+    <div class="emotion-card">
+      <h4>Empathy</h4>
+      <p class="emotion-character">"Like a gentle hand on shoulder"</p>
+      <span class="emotion-pattern">warmPulse @ 300ms</span>
+    </div>
+    <div class="emotion-card">
+      <h4>Encouragement</h4>
+      <p class="emotion-character">"Supportive energy"</p>
+      <span class="emotion-pattern">quickBreath @ 200ms</span>
+    </div>
+    <div class="emotion-card">
+      <h4>Understanding</h4>
+      <p class="emotion-character">"I get it"</p>
+      <span class="emotion-pattern">heartbeat @ 500ms</span>
+    </div>
+    <div class="emotion-card">
+      <h4>Concern</h4>
+      <p class="emotion-character">"Calming presence"</p>
+      <span class="emotion-pattern">slowBreath @ 400ms</span>
+    </div>
+    <div class="emotion-card">
+      <h4>Celebration</h4>
+      <p class="emotion-character">"Pure joy"</p>
+      <span class="emotion-pattern">bigWin @ 400ms</span>
+    </div>
+    <div class="emotion-card">
+      <h4>Curiosity</h4>
+      <p class="emotion-character">"Tell me more"</p>
+      <span class="emotion-pattern">quickBreath @ 180ms</span>
+    </div>
+  </div>
+</section>
+
+<section class="doc-section">
+  <h2>Ritual Haptics</h2>
+  <p>Haptics for brand ritual moments that create memorable experiences.</p>
+
+  <table class="token-table">
+    <thead>
+      <tr>
+        <th>Ritual</th>
+        <th>Duration</th>
+        <th>Character</th>
+        <th>Sequence</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>welcomeBack</strong></td>
+        <td>600ms</td>
+        <td>"Welcome home"</td>
+        <td><code>ferniBreath → pause:200 → doubleTap</code></td>
+      </tr>
+      <tr>
+        <td><strong>firstConversation</strong></td>
+        <td>800ms</td>
+        <td>"Nice to meet you"</td>
+        <td><code>slowBreath → pause:300 → warmPulse</code></td>
+      </tr>
+      <tr>
+        <td><strong>sessionEnd</strong></td>
+        <td>400ms</td>
+        <td>"Until next time"</td>
+        <td><code>ferniBreath → softTap</code></td>
+      </tr>
+      <tr>
+        <td><strong>handoff</strong></td>
+        <td>500ms</td>
+        <td>"Smooth transition"</td>
+        <td><code>softFade → pause:200 → personaSignature</code></td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+
+<section class="doc-section">
+  <h2>Accessibility</h2>
+  <div class="accessibility-callout">
+    <h4>Always Check System Settings</h4>
+    <code>UIAccessibility.isReduceMotionEnabled</code> and <code>isHapticsEnabled</code>
+  </div>
+
+  <div class="accessibility-grid">
+    <div class="a11y-card">
+      <h4>Reduced Motion</h4>
+      <p>Use single tap instead of patterns</p>
+    </div>
+    <div class="a11y-card">
+      <h4>Haptics Disabled</h4>
+      <p>Rely on visual/audio feedback only</p>
+    </div>
+    <div class="a11y-card">
+      <h4>Low Power Mode</h4>
+      <p>Reduce intensity by 50%</p>
+    </div>
+  </div>
+
+  <h4>Principles</h4>
+  <ul>
+    <li>Never make haptics the only feedback channel</li>
+    <li>Always pair with visual or audio feedback</li>
+    <li>Provide option to disable all haptics</li>
+    <li>Test with real devices, not simulators</li>
+  </ul>
+</section>
+
+<section class="doc-section">
+  <h2>Platform Implementation</h2>
+
+  <div class="platform-grid">
+    <div class="platform-card ios">
+      <h4>iOS</h4>
+      <code class="api">UIImpactFeedbackGenerator<br>UINotificationFeedbackGenerator<br>UISelectionFeedbackGenerator</code>
+      <p>Call <code>prepare()</code> before expected haptic to reduce latency. Use Core Haptics for complex waveforms.</p>
+    </div>
+
+    <div class="platform-card android">
+      <h4>Android</h4>
+      <code class="api">VibrationEffect<br>HapticFeedbackConstants</code>
+      <p>Min SDK 26. Use <code>VibrationEffect.createWaveform()</code> for complex patterns.</p>
+    </div>
+
+    <div class="platform-card web">
+      <h4>Web</h4>
+      <code class="api">Navigator.vibrate()</code>
+      <p>Limited support. Use visual pulse animations as fallback. Check <code>navigator.vibrate</code> availability.</p>
+    </div>
+  </div>
+</section>
+
+<style>
+.principles-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+
+.principle-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  padding: 1rem;
+}
+
+.principle-card h4 {
+  color: var(--color-ferni);
+  margin: 0 0 0.5rem;
+  font-size: 0.9rem;
+}
+
+.pattern-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+
+.pattern-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  padding: 1.25rem;
+}
+
+.pattern-card.featured {
+  border-color: var(--color-ferni);
+  background: linear-gradient(to bottom right, var(--color-surface), rgba(74, 103, 65, 0.05));
+}
+
+.pattern-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.pattern-header h4 {
+  margin: 0;
+  font-family: var(--font-mono);
+  color: var(--color-text);
+}
+
+.pattern-duration {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  background: var(--color-background);
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+}
+
+.pattern-description {
+  color: var(--color-text-secondary);
+  font-size: 0.875rem;
+  margin: 0.5rem 0;
+}
+
+.pattern-waveform {
+  height: 24px;
+  background: linear-gradient(90deg, var(--color-ferni) 0%, transparent 100%);
+  border-radius: 4px;
+  margin: 0.75rem 0;
+  opacity: 0.3;
+}
+
+.pattern-waveform.organic {
+  background: linear-gradient(90deg,
+    transparent 0%,
+    var(--color-ferni) 20%,
+    var(--color-ferni) 50%,
+    var(--color-ferni) 80%,
+    transparent 100%
+  );
+}
+
+.use-case {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  margin-top: 0.5rem;
+}
+
+.persona-haptics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1.25rem;
+  margin-top: 1.5rem;
+}
+
+.persona-haptic-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  padding: 1.25rem;
+  border-left: 4px solid var(--persona-color, var(--color-ferni));
+}
+
+.persona-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.persona-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--persona-color, var(--color-ferni));
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 0.875rem;
+}
+
+.persona-header h4 {
+  margin: 0;
+}
+
+.persona-energy {
+  color: var(--color-text-secondary);
+  font-size: 0.875rem;
+  font-style: italic;
+  margin: 0 0 1rem;
+}
+
+.haptic-signature {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  background: var(--color-background);
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+  margin-bottom: 1rem;
+}
+
+.signature-name {
+  font-family: var(--font-mono);
+  font-weight: 500;
+  color: var(--persona-color, var(--color-ferni));
+}
+
+.signature-duration {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+}
+
+.haptic-behaviors {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  font-size: 0.875rem;
+}
+
+.haptic-behaviors li {
+  padding: 0.25rem 0;
+  color: var(--color-text-secondary);
+}
+
+.emotional-haptics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+
+.emotion-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  padding: 1rem;
+  text-align: center;
+}
+
+.emotion-card h4 {
+  margin: 0 0 0.5rem;
+  color: var(--color-ferni);
+}
+
+.emotion-character {
+  font-style: italic;
+  color: var(--color-text-secondary);
+  font-size: 0.875rem;
+  margin: 0 0 0.75rem;
+}
+
+.emotion-pattern {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  background: var(--color-background);
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+}
+
+.accessibility-callout {
+  background: var(--color-background);
+  border: 1px solid var(--color-ferni);
+  border-radius: 8px;
+  padding: 1.25rem;
+  margin-bottom: 1.5rem;
+}
+
+.accessibility-callout h4 {
+  margin: 0 0 0.5rem;
+  color: var(--color-ferni);
+}
+
+.accessibility-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.a11y-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  padding: 1rem;
+}
+
+.a11y-card h4 {
+  margin: 0 0 0.5rem;
+  font-size: 0.9rem;
+}
+
+.a11y-card p {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: 0.875rem;
+}
+
+.platform-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.25rem;
+  margin-top: 1.5rem;
+}
+
+.platform-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  padding: 1.25rem;
+}
+
+.platform-card h4 {
+  margin: 0 0 0.75rem;
+}
+
+.platform-card .api {
+  display: block;
+  background: var(--color-background);
+  padding: 0.75rem;
+  border-radius: 6px;
+  margin-bottom: 0.75rem;
+  font-size: 0.8rem;
+}
+
+.platform-card p {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+}
+</style>
+
+    </main>
+  </div>
+
+  <style>
+    /* Search styles */
+    .sidebar-search {
+      padding: 0 var(--space-4);
+      margin-bottom: var(--space-4);
+      position: relative;
+    }
+    .sidebar-search input {
+      width: 100%;
+      padding: var(--space-2) var(--space-3);
+      padding-left: 36px;
+      background: var(--bg-subtle);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      color: var(--text-primary);
+      font-size: var(--text-sm);
+      font-family: var(--font-body);
+    }
+    .sidebar-search input:focus {
+      outline: none;
+      border-color: var(--color-accent);
+      box-shadow: 0 0 0 3px rgba(61, 90, 69, 0.1);
+    }
+    .sidebar-search input::placeholder {
+      color: var(--text-tertiary);
+    }
+    .search-icon {
+      position: absolute;
+      left: calc(var(--space-4) + 10px);
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-tertiary);
+      pointer-events: none;
+    }
+    .search-results {
+      position: fixed;
+      top: 80px;
+      left: 260px;
+      width: 400px;
+      max-height: 60vh;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border-default);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-lg);
+      overflow-y: auto;
+      z-index: 1000;
+      display: none;
+    }
+    .search-results.active {
+      display: block;
+    }
+    .search-result-item {
+      display: block;
+      padding: var(--space-3) var(--space-4);
+      border-bottom: 1px solid var(--border-subtle);
+      text-decoration: none;
+      color: var(--text-primary);
+      transition: background 0.15s;
+    }
+    .search-result-item:hover {
+      background: var(--bg-subtle);
+    }
+    .search-result-item:last-child {
+      border-bottom: none;
+    }
+    .search-result-title {
+      font-weight: 600;
+      margin-bottom: 2px;
+    }
+    .search-result-section {
+      font-size: var(--text-xs);
+      color: var(--text-tertiary);
+    }
+    .search-no-results {
+      padding: var(--space-4);
+      text-align: center;
+      color: var(--text-secondary);
+    }
+
+    /* Theme preview button */
+    .theme-preview-btn {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+      padding: var(--space-2) var(--space-3);
+      background: var(--bg-subtle);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      color: var(--text-secondary);
+      font-size: var(--text-xs);
+      font-family: var(--font-body);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .theme-preview-btn:hover {
+      background: var(--bg-elevated);
+      border-color: var(--color-accent);
+      color: var(--text-primary);
+    }
+
+    /* Theme preview modal */
+    .theme-preview-modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.8);
+      backdrop-filter: blur(8px);
+      z-index: 2000;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: var(--space-6);
+    }
+    .theme-preview-modal.active {
+      display: flex;
+    }
+    .theme-preview-header {
+      position: absolute;
+      top: var(--space-4);
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      align-items: center;
+      gap: var(--space-4);
+    }
+    .theme-preview-header h3 {
+      color: white;
+      margin: 0;
+    }
+    .close-preview {
+      background: rgba(255, 255, 255, 0.1);
+      border: none;
+      padding: var(--space-2);
+      border-radius: var(--radius-md);
+      color: white;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .close-preview:hover {
+      background: rgba(255, 255, 255, 0.2);
+    }
+    .theme-preview-content {
+      display: flex;
+      gap: var(--space-6);
+      max-width: 900px;
+      width: 100%;
+    }
+    .theme-panel {
+      flex: 1;
+      border-radius: var(--radius-xl);
+      overflow: hidden;
+    }
+    .theme-panel[data-theme="cedar"] {
+      background: #0c0a08;
+    }
+    .theme-panel[data-theme="zen"] {
+      background: #FFFDFB;
+    }
+    .theme-label {
+      padding: var(--space-3) var(--space-4);
+      font-weight: 600;
+      font-size: var(--text-sm);
+    }
+    .theme-panel[data-theme="cedar"] .theme-label {
+      color: #FAF8F5;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    .theme-panel[data-theme="zen"] .theme-label {
+      color: #2C2520;
+      border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+    }
+    .theme-sample {
+      padding: var(--space-5);
+    }
+    .sample-card {
+      display: flex;
+      gap: var(--space-4);
+      padding: var(--space-4);
+      border-radius: var(--radius-lg);
+      margin-bottom: var(--space-4);
+    }
+    .theme-panel[data-theme="cedar"] .sample-card {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .theme-panel[data-theme="zen"] .sample-card {
+      background: rgba(0, 0, 0, 0.02);
+      border: 1px solid rgba(0, 0, 0, 0.08);
+    }
+    .sample-avatar {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      background: #4a6741;
+    }
+    .sample-text {
+      flex: 1;
+    }
+    .sample-title {
+      height: 14px;
+      width: 60%;
+      border-radius: 4px;
+      margin-bottom: 8px;
+    }
+    .sample-body {
+      height: 10px;
+      width: 80%;
+      border-radius: 4px;
+    }
+    .theme-panel[data-theme="cedar"] .sample-title {
+      background: rgba(255, 255, 255, 0.15);
+    }
+    .theme-panel[data-theme="cedar"] .sample-body {
+      background: rgba(255, 255, 255, 0.08);
+    }
+    .theme-panel[data-theme="zen"] .sample-title {
+      background: rgba(0, 0, 0, 0.12);
+    }
+    .theme-panel[data-theme="zen"] .sample-body {
+      background: rgba(0, 0, 0, 0.06);
+    }
+    .sample-buttons {
+      display: flex;
+      gap: var(--space-2);
+      margin-bottom: var(--space-4);
+    }
+    .sample-btn {
+      padding: var(--space-2) var(--space-4);
+      border-radius: 9999px;
+      font-size: var(--text-sm);
+      font-weight: 600;
+      border: none;
+      cursor: default;
+    }
+    .sample-btn.primary {
+      background: #3D5A45;
+      color: white;
+    }
+    .sample-btn.secondary {
+      background: transparent;
+    }
+    .theme-panel[data-theme="cedar"] .sample-btn.secondary {
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: #FAF8F5;
+    }
+    .theme-panel[data-theme="zen"] .sample-btn.secondary {
+      border: 1px solid rgba(0, 0, 0, 0.2);
+      color: #2C2520;
+    }
+    .sample-colors {
+      display: flex;
+      gap: var(--space-2);
+    }
+    .color-dot {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+    }
+    .color-dot.ferni { background: #4a6741; }
+    .color-dot.maya { background: #a67a6a; }
+    .color-dot.peter { background: #3a6b73; }
+    .color-dot.alex { background: #5a6b8a; }
+    .color-dot.jordan { background: #c4856a; }
+
+    /* Copy button styles */
+    .code-block-wrapper {
+      position: relative;
+    }
+    .copy-btn {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding: 6px 10px;
+      background: var(--surface-secondary);
+      border: 1px solid var(--border-subtle);
+      border-radius: 6px;
+      color: var(--text-secondary);
+      font-size: 12px;
+      font-family: var(--font-body);
+      cursor: pointer;
+      opacity: 0;
+      transition: opacity 0.2s, background 0.2s;
+    }
+    .code-block-wrapper:hover .copy-btn {
+      opacity: 1;
+    }
+    .copy-btn:hover {
+      background: var(--surface-tertiary);
+      color: var(--text-primary);
+    }
+    .copy-btn.copied {
+      background: var(--color-success-subtle);
+      border-color: var(--color-success);
+      color: var(--color-success);
+    }
+    .copy-btn svg {
+      width: 14px;
+      height: 14px;
+    }
+    .copy-btn .check-icon {
+      display: none;
+    }
+    .copy-btn.copied .copy-icon {
+      display: none;
+    }
+    .copy-btn.copied .check-icon {
+      display: block;
+    }
+  </style>
+
+  <script>
+    // Theme toggle
+    function toggleTheme() {
+      var html = document.documentElement;
+      var current = html.getAttribute('data-theme');
+      var next = current === 'cedar' ? 'zen' : 'cedar';
+      html.setAttribute('data-theme', next);
+      localStorage.setItem('ferni-theme', next);
+    }
+
+    // Theme preview toggle
+    function toggleThemePreview() {
+      var modal = document.getElementById('themePreviewModal');
+      modal.classList.toggle('active');
+    }
+
+    // Close theme preview on escape
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') {
+        var modal = document.getElementById('themePreviewModal');
+        modal.classList.remove('active');
+        var searchResults = document.getElementById('searchResults');
+        searchResults.classList.remove('active');
+      }
+    });
+
+    // Search functionality
+    var searchIndex = [
+      { title: 'Overview', section: 'Foundations', url: '/' },
+      { title: 'Colors', section: 'Foundations', url: '/colors/' },
+      { title: 'Typography', section: 'Foundations', url: '/typography/' },
+      { title: 'Spacing', section: 'Foundations', url: '/spacing/' },
+      { title: 'Animation', section: 'Foundations', url: '/animation/' },
+      { title: 'Physics & Motion', section: 'Foundations', url: '/physics/' },
+      { title: 'Responsive', section: 'Foundations', url: '/responsive/' },
+      { title: 'Effects', section: 'Foundations', url: '/effects/' },
+      { title: 'Sequences', section: 'Foundations', url: '/sequences/' },
+      { title: 'Motion', section: 'Foundations', url: '/motion/' },
+      { title: 'Haptics', section: 'Foundations', url: '/haptics/' },
+      { title: 'Feedback', section: 'Patterns', url: '/feedback/' },
+      { title: 'Predictive UI', section: 'Patterns', url: '/predictive-ui/' },
+      { title: 'Personas', section: 'Brand', url: '/personas/' },
+      { title: 'Personality', section: 'Brand', url: '/personality/' },
+      { title: 'Capabilities', section: 'Brand', url: '/capabilities/' },
+      { title: 'Voice & Tone', section: 'Brand', url: '/voice/' },
+      { title: 'Sounds & Haptics', section: 'Brand', url: '/sounds-haptics/' },
+      { title: 'Sonic Identity', section: 'Brand', url: '/sonic-identity/' },
+      { title: 'Glow Colors', section: 'Brand', url: '/glow-colors/' },
+      { title: 'Window Avatar', section: 'Brand', url: '/window-avatar/' },
+      { title: 'Rituals', section: 'Brand', url: '/rituals/' },
+      { title: 'Icons', section: 'Brand', url: '/icons/' },
+      { title: 'Expressions', section: 'Brand', url: '/expressions/' },
+      { title: 'Universe', section: 'Brand', url: '/universe/' },
+      { title: 'Visualizations', section: 'Brand', url: '/visualizations/' },
+      { title: 'Brand Guardrails', section: 'Brand', url: '/brand-guardrails/' },
+      { title: 'Brand Kit', section: 'Brand', url: '/brand-kit/' },
+      { title: 'Components Overview', section: 'Components', url: '/components/' },
+      { title: 'Avatar', section: 'Components', url: '/components/avatar/' },
+      { title: 'Badge', section: 'Components', url: '/components/badge/' },
+      { title: 'Buttons', section: 'Components', url: '/components/buttons/' },
+      { title: 'Cards', section: 'Components', url: '/components/cards/' },
+      { title: 'Dropdown', section: 'Components', url: '/components/dropdown/' },
+      { title: 'Glass Surfaces', section: 'Components', url: '/components/glass/' },
+      { title: 'Inputs', section: 'Components', url: '/components/inputs/' },
+      { title: 'Modal', section: 'Components', url: '/components/modal/' },
+      { title: 'Progress', section: 'Components', url: '/components/progress/' },
+      { title: 'Tabs', section: 'Components', url: '/components/tabs/' },
+      { title: 'Toast', section: 'Components', url: '/components/toast/' },
+      { title: 'Tooltip', section: 'Components', url: '/components/tooltip/' },
+      { title: 'Spring Animations', section: 'Physics', url: '/physics/#springs' },
+      { title: 'Emotional Momentum', section: 'Physics', url: '/physics/#emotional-momentum' },
+      { title: 'Forbidden Words', section: 'Brand Guardrails', url: '/brand-guardrails/#language' },
+      { title: 'Color Rules', section: 'Brand Guardrails', url: '/brand-guardrails/#colors' },
+      { title: 'Accessibility Requirements', section: 'Brand Guardrails', url: '/brand-guardrails/#accessibility' },
+      { title: 'App Wake Ritual', section: 'Rituals', url: '/rituals/#rituals' },
+      { title: 'Celebration Rituals', section: 'Rituals', url: '/rituals/#rituals' }
+    ];
+
+    function performSearch(query) {
+      var results = document.getElementById('searchResults');
+      if (!query || query.length < 2) {
+        results.classList.remove('active');
+        return;
+      }
+
+      var lowerQuery = query.toLowerCase();
+      var matches = searchIndex.filter(function(item) {
+        return item.title.toLowerCase().indexOf(lowerQuery) !== -1 ||
+               item.section.toLowerCase().indexOf(lowerQuery) !== -1;
+      });
+
+      if (matches.length === 0) {
+        results.classList.add('active');
+        var noResults = document.createElement('div');
+        noResults.className = 'search-no-results';
+        noResults.textContent = 'No results found';
+        results.innerHTML = '';
+        results.appendChild(noResults);
+        return;
+      }
+
+      results.classList.add('active');
+      results.innerHTML = '';
+
+      matches.slice(0, 8).forEach(function(item) {
+        var link = document.createElement('a');
+        link.className = 'search-result-item';
+        link.href = item.url;
+
+        var titleDiv = document.createElement('div');
+        titleDiv.className = 'search-result-title';
+        titleDiv.textContent = item.title;
+
+        var sectionDiv = document.createElement('div');
+        sectionDiv.className = 'search-result-section';
+        sectionDiv.textContent = item.section;
+
+        link.appendChild(titleDiv);
+        link.appendChild(sectionDiv);
+        results.appendChild(link);
+      });
+    }
+
+    // Load saved theme
+    var saved = localStorage.getItem('ferni-theme');
+    if (saved) {
+      document.documentElement.setAttribute('data-theme', saved);
+    }
+
+    // Initialize search
+    document.addEventListener('DOMContentLoaded', function() {
+      var searchInput = document.getElementById('searchInput');
+      if (searchInput) {
+        searchInput.addEventListener('input', function(e) {
+          performSearch(e.target.value);
+        });
+
+        // Close search results when clicking outside
+        document.addEventListener('click', function(e) {
+          var results = document.getElementById('searchResults');
+          if (!e.target.closest('.sidebar-search') && !e.target.closest('.search-results')) {
+            results.classList.remove('active');
+          }
+        });
+      }
+    });
+
+    // Copy to clipboard functionality
+    document.addEventListener('DOMContentLoaded', function() {
+      const codeBlocks = document.querySelectorAll('pre');
+
+      codeBlocks.forEach(function(pre) {
+        // Create wrapper
+        const wrapper = document.createElement('div');
+        wrapper.className = 'code-block-wrapper';
+        pre.parentNode.insertBefore(wrapper, pre);
+        wrapper.appendChild(pre);
+
+        // Create copy button using safe DOM methods
+        const copyBtn = document.createElement('button');
+        copyBtn.className = 'copy-btn';
+        copyBtn.type = 'button';
+        copyBtn.setAttribute('aria-label', 'Copy code');
+
+        // Create copy icon SVG
+        const copyIcon = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        copyIcon.setAttribute('class', 'copy-icon');
+        copyIcon.setAttribute('viewBox', '0 0 24 24');
+        copyIcon.setAttribute('fill', 'none');
+        copyIcon.setAttribute('stroke', 'currentColor');
+        copyIcon.setAttribute('stroke-width', '2');
+        const copyPath1 = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+        copyPath1.setAttribute('x', '9');
+        copyPath1.setAttribute('y', '9');
+        copyPath1.setAttribute('width', '13');
+        copyPath1.setAttribute('height', '13');
+        copyPath1.setAttribute('rx', '2');
+        const copyPath2 = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        copyPath2.setAttribute('d', 'M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1');
+        copyIcon.appendChild(copyPath1);
+        copyIcon.appendChild(copyPath2);
+
+        // Create check icon SVG
+        const checkIcon = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        checkIcon.setAttribute('class', 'check-icon');
+        checkIcon.setAttribute('viewBox', '0 0 24 24');
+        checkIcon.setAttribute('fill', 'none');
+        checkIcon.setAttribute('stroke', 'currentColor');
+        checkIcon.setAttribute('stroke-width', '2');
+        const checkPath = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
+        checkPath.setAttribute('points', '20 6 9 17 4 12');
+        checkIcon.appendChild(checkPath);
+
+        // Create text span
+        const textSpan = document.createElement('span');
+        textSpan.className = 'copy-text';
+        textSpan.textContent = 'Copy';
+
+        // Assemble button
+        copyBtn.appendChild(copyIcon);
+        copyBtn.appendChild(checkIcon);
+        copyBtn.appendChild(textSpan);
+
+        wrapper.appendChild(copyBtn);
+
+        // Click handler
+        copyBtn.addEventListener('click', function() {
+          const code = pre.querySelector('code');
+          const text = code ? code.textContent : pre.textContent;
+
+          navigator.clipboard.writeText(text).then(function() {
+            copyBtn.classList.add('copied');
+            textSpan.textContent = 'Copied!';
+
+            setTimeout(function() {
+              copyBtn.classList.remove('copied');
+              textSpan.textContent = 'Copy';
+            }, 2000);
+          });
+        });
+      });
+    });
+  </script>
+</body>
+</html>

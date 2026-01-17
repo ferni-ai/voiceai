@@ -11,6 +11,7 @@
  */
 
 import { createLogger } from '../utils/logger.js';
+import { apiGet, apiPost } from '../utils/api.js';
 
 const log = createLogger('Monetization');
 
@@ -56,23 +57,6 @@ export interface UserMonetizationData {
 
 const API_BASE = '/api/monetization';
 
-async function apiCall<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
-  const response = await fetch(`${API_BASE}${endpoint}`, {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...options.headers,
-    },
-  });
-
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({ error: 'Unknown error' }));
-    throw new Error(error.error || `API error: ${response.status}`);
-  }
-
-  return response.json();
-}
-
 // ============================================================================
 // TIP JAR
 // ============================================================================
@@ -83,9 +67,16 @@ async function apiCall<T>(endpoint: string, options: RequestInit = {}): Promise<
 export async function getTipConfig(userId?: string): Promise<{
   config: TipConfig;
   stripeEnabled: boolean;
-}> {
+} | null> {
   const query = userId ? `?userId=${userId}` : '';
-  return apiCall(`/tip/config${query}`);
+  const response = await apiGet<{ config: TipConfig; stripeEnabled: boolean }>(
+    `${API_BASE}/tip/config${query}`
+  );
+  if (!response.ok || !response.data) {
+    log.error({ error: response.error }, 'Failed to get tip config');
+    return null;
+  }
+  return response.data;
 }
 
 /**
@@ -99,11 +90,17 @@ export async function createTip(params: {
   tipId: string;
   clientSecret: string;
   paymentIntentId: string;
-}> {
-  return apiCall('/tip', {
-    method: 'POST',
-    body: JSON.stringify(params),
-  });
+} | null> {
+  const response = await apiPost<{
+    tipId: string;
+    clientSecret: string;
+    paymentIntentId: string;
+  }>(`${API_BASE}/tip`, params);
+  if (!response.ok || !response.data) {
+    log.error({ error: response.error }, 'Failed to create tip');
+    return null;
+  }
+  return response.data;
 }
 
 /**
@@ -112,11 +109,16 @@ export async function createTip(params: {
 export async function completeTip(paymentIntentId: string): Promise<{
   success: boolean;
   thankYouMessage?: string;
-}> {
-  return apiCall('/tip/complete', {
-    method: 'POST',
-    body: JSON.stringify({ paymentIntentId }),
-  });
+} | null> {
+  const response = await apiPost<{
+    success: boolean;
+    thankYouMessage?: string;
+  }>(`${API_BASE}/tip/complete`, { paymentIntentId });
+  if (!response.ok || !response.data) {
+    log.error({ error: response.error }, 'Failed to complete tip');
+    return null;
+  }
+  return response.data;
 }
 
 // ============================================================================
@@ -134,11 +136,17 @@ export async function detectValue(params: {
   detected: boolean;
   event?: ValueEvent;
   prompt?: string;
-}> {
-  return apiCall('/value/detect', {
-    method: 'POST',
-    body: JSON.stringify(params),
-  });
+} | null> {
+  const response = await apiPost<{
+    detected: boolean;
+    event?: ValueEvent;
+    prompt?: string;
+  }>(`${API_BASE}/value/detect`, params);
+  if (!response.ok || !response.data) {
+    log.error({ error: response.error }, 'Failed to detect value');
+    return null;
+  }
+  return response.data;
 }
 
 /**
@@ -151,11 +159,16 @@ export async function contributeValue(params: {
 }): Promise<{
   clientSecret: string;
   paymentIntentId: string;
-}> {
-  return apiCall('/value/contribute', {
-    method: 'POST',
-    body: JSON.stringify(params),
-  });
+} | null> {
+  const response = await apiPost<{
+    clientSecret: string;
+    paymentIntentId: string;
+  }>(`${API_BASE}/value/contribute`, params);
+  if (!response.ok || !response.data) {
+    log.error({ error: response.error }, 'Failed to contribute value');
+    return null;
+  }
+  return response.data;
 }
 
 // ============================================================================
@@ -165,8 +178,13 @@ export async function contributeValue(params: {
 /**
  * Get Ferni Fund status
  */
-export async function getFundStatus(): Promise<FundStatus> {
-  return apiCall('/fund/status');
+export async function getFundStatus(): Promise<FundStatus | null> {
+  const response = await apiGet<FundStatus>(`${API_BASE}/fund/status`);
+  if (!response.ok || !response.data) {
+    log.error({ error: response.error }, 'Failed to get fund status');
+    return null;
+  }
+  return response.data;
 }
 
 /**
@@ -185,11 +203,20 @@ export async function contributeFund(params: {
     conversationsSponsored: number;
     message: string;
   };
-}> {
-  return apiCall('/fund/contribute', {
-    method: 'POST',
-    body: JSON.stringify(params),
-  });
+} | null> {
+  const response = await apiPost<{
+    clientSecret: string;
+    paymentIntentId: string;
+    impact: {
+      conversationsSponsored: number;
+      message: string;
+    };
+  }>(`${API_BASE}/fund/contribute`, params);
+  if (!response.ok || !response.data) {
+    log.error({ error: response.error }, 'Failed to contribute to fund');
+    return null;
+  }
+  return response.data;
 }
 
 /**
@@ -199,8 +226,17 @@ export async function getContributorImpact(userId: string): Promise<{
   totalContributedCents: number;
   conversationsSponsored: number;
   contributionCount: number;
-}> {
-  return apiCall(`/fund/impact?userId=${userId}`);
+} | null> {
+  const response = await apiGet<{
+    totalContributedCents: number;
+    conversationsSponsored: number;
+    contributionCount: number;
+  }>(`${API_BASE}/fund/impact?userId=${encodeURIComponent(userId)}`);
+  if (!response.ok || !response.data) {
+    log.error({ error: response.error }, 'Failed to get contributor impact');
+    return null;
+  }
+  return response.data;
 }
 
 // ============================================================================
@@ -210,8 +246,15 @@ export async function getContributorImpact(userId: string): Promise<{
 /**
  * Get user's monetization summary
  */
-export async function getUserMonetization(userId: string): Promise<UserMonetizationData> {
-  return apiCall(`/user?userId=${userId}`);
+export async function getUserMonetization(userId: string): Promise<UserMonetizationData | null> {
+  const response = await apiGet<UserMonetizationData>(
+    `${API_BASE}/user?userId=${encodeURIComponent(userId)}`
+  );
+  if (!response.ok || !response.data) {
+    log.error({ error: response.error }, 'Failed to get user monetization');
+    return null;
+  }
+  return response.data;
 }
 
 // ============================================================================
@@ -235,11 +278,23 @@ export async function getPartnerRecommendation(params: {
   };
   introduction?: string;
   disclosure?: string;
-}> {
-  return apiCall('/partners/recommend', {
-    method: 'POST',
-    body: JSON.stringify(params),
-  });
+} | null> {
+  const response = await apiPost<{
+    hasRecommendation: boolean;
+    partner?: {
+      id: string;
+      name: string;
+      description: string;
+      category: string;
+    };
+    introduction?: string;
+    disclosure?: string;
+  }>(`${API_BASE}/partners/recommend`, params);
+  if (!response.ok || !response.data) {
+    log.error({ error: response.error }, 'Failed to get partner recommendation');
+    return null;
+  }
+  return response.data;
 }
 
 /**
@@ -253,11 +308,16 @@ export async function recordPartnerClick(params: {
 }): Promise<{
   referralId: string;
   affiliateUrl: string | null;
-}> {
-  return apiCall('/partners/click', {
-    method: 'POST',
-    body: JSON.stringify(params),
-  });
+} | null> {
+  const response = await apiPost<{
+    referralId: string;
+    affiliateUrl: string | null;
+  }>(`${API_BASE}/partners/click`, params);
+  if (!response.ok || !response.data) {
+    log.error({ error: response.error }, 'Failed to record partner click');
+    return null;
+  }
+  return response.data;
 }
 
 /**
@@ -266,11 +326,13 @@ export async function recordPartnerClick(params: {
 export async function recordPartnerFeedback(
   partnerId: string,
   feedback: 'helpful' | 'not_helpful'
-): Promise<void> {
-  await apiCall('/partners/feedback', {
-    method: 'POST',
-    body: JSON.stringify({ partnerId, feedback }),
-  });
+): Promise<boolean> {
+  const response = await apiPost(`${API_BASE}/partners/feedback`, { partnerId, feedback });
+  if (!response.ok) {
+    log.error({ error: response.error }, 'Failed to record partner feedback');
+    return false;
+  }
+  return true;
 }
 
 // ============================================================================

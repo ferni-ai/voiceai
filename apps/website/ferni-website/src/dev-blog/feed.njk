@@ -1,0 +1,46 @@
+---
+permalink: /developers/blog/feed.xml
+eleventyExcludeFromCollections: true
+---
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom" xml:lang="en">
+  <title>Ferni Developer Blog</title>
+  <subtitle>Build voice-first AI experiences with Ferni. Tutorials, deep dives, and updates for developers.</subtitle>
+  <link href="https://developers.ferni.ai/developers/blog/feed.xml" rel="self" type="application/atom+xml"/>
+  <link href="https://developers.ferni.ai/developers/blog/" rel="alternate" type="text/html"/>
+  <updated>{{ collections.devPosts[0].date | rssDate }}</updated>
+  <id>https://developers.ferni.ai/developers/blog/</id>
+  <author>
+    <name>Ferni Developer Team</name>
+    <email>developers@ferni.ai</email>
+  </author>
+  <rights>© {{ "now" | date("yyyy") }} Ferni AI. All rights reserved.</rights>
+  <icon>https://developers.ferni.ai/images/favicon.ico</icon>
+  <logo>https://developers.ferni.ai/images/ferni-eyes-logo.svg</logo>
+  <category term="Voice AI"/>
+  <category term="Developer Tools"/>
+  <category term="API"/>
+  <category term="Tutorials"/>
+  {%- for post in collections.devPosts | reverse | slice(0, 20) %}
+  <entry>
+    <title>{{ post.data.title | escape }}</title>
+    <link href="https://developers.ferni.ai{{ post.url }}" rel="alternate" type="text/html"/>
+    <id>https://developers.ferni.ai{{ post.url }}</id>
+    <published>{{ post.date | rssDate }}</published>
+    <updated>{{ post.date | rssDate }}</updated>
+    {%- if post.data.author %}
+    <author>
+      <name>{{ post.data.author | escape }}</name>
+    </author>
+    {%- endif %}
+    {%- if post.data.category %}
+    <category term="{{ post.data.category | escape }}"/>
+    {%- endif %}
+    <summary type="html">{{ post.data.excerpt | escape }}</summary>
+    <content type="html">{{ post.templateContent | escape }}</content>
+    {%- if post.data.image %}
+    <media:thumbnail xmlns:media="http://search.yahoo.com/mrss/" url="https://developers.ferni.ai/images/dev-blog/{{ post.data.image }}"/>
+    {%- endif %}
+  </entry>
+  {%- endfor %}
+</feed>

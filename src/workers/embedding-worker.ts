@@ -14,11 +14,14 @@
  * to conversation turns.
  */
 
+/* eslint-disable no-restricted-imports -- Workers need direct service imports */
+/* eslint-disable no-await-in-loop -- Sequential processing required for embedding batches */
+
 import { LocalWorker, type WorkerConfig } from './base-worker.js';
 import { AsyncEvents, type EventPayload } from '../services/async-events/index.js';
 import { createLogger } from '../utils/safe-logger.js';
 
-const log = createLogger({ module: 'EmbeddingWorker' });
+const _log = createLogger({ module: 'EmbeddingWorker' });
 
 // ============================================================================
 // TYPES
@@ -44,6 +47,9 @@ export interface EmbeddingResult {
 // ============================================================================
 // WORKER IMPLEMENTATION
 // ============================================================================
+
+// Backpressure: max jobs in queue before rejecting new ones
+const MAX_QUEUE_DEPTH = 500;
 
 export class EmbeddingWorker extends LocalWorker {
   private jobQueue: Array<EmbeddingJob & { jobId: string }> = [];
@@ -96,6 +102,12 @@ export class EmbeddingWorker extends LocalWorker {
     userId?: string,
     sessionId?: string
   ): Promise<void> {
+    // Backpressure check
+    if (this.jobQueue.length >= MAX_QUEUE_DEPTH) {
+      this.log.warn({ queueDepth: this.jobQueue.length }, 'Backpressure: dropping embedding job');
+      return;
+    }
+
     const jobId = `single_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
 
     this.jobQueue.push({
@@ -115,13 +127,34 @@ export class EmbeddingWorker extends LocalWorker {
 
   /**
    * Queue a batch embedding generation
+   *
+   * NOTE: The data object can include callback and batchId for async result delivery.
+   * This enables the embedding-worker-integration to receive results via AsyncEvents.
    */
   private async handleBatchGeneration(
-    data: { texts: string[] },
+    data: { texts: string[]; callback?: string; batchId?: string },
     userId?: string,
     sessionId?: string
   ): Promise<void> {
-    const jobId = `batch_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
+    // Backpressure check
+    if (this.jobQueue.length >= MAX_QUEUE_DEPTH) {
+      this.log.warn(
+        { queueDepth: this.jobQueue.length },
+        'Backpressure: dropping batch embedding job'
+      );
+      // If callback specified, notify of rejection
+      if (data.callback && data.batchId) {
+        AsyncEvents.emit(data.callback as never, {
+          batchId: data.batchId,
+          embeddings: [],
+          error: 'Queue full - job rejected due to backpressure',
+        });
+      }
+      return;
+    }
+
+    // Use provided batchId or generate one
+    const jobId = data.batchId || `batch_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
 
     this.jobQueue.push({
       jobId,
@@ -130,6 +163,7 @@ export class EmbeddingWorker extends LocalWorker {
       userId,
       sessionId,
       priority: 'normal',
+      callback: data.callback, // CRITICAL: Pass callback through for async result delivery
     });
 
     this.embeddingStats.totalJobs++;
@@ -234,6 +268,7 @@ export class EmbeddingWorker extends LocalWorker {
       if (job.callback) {
         AsyncEvents.emit(job.callback as never, {
           jobId: job.jobId,
+          batchId: job.jobId, // Alias for embedding-worker-integration compatibility
           embeddings,
           durationMs,
           cacheHits,
@@ -242,6 +277,15 @@ export class EmbeddingWorker extends LocalWorker {
       }
     } catch (error) {
       this.log.warn({ jobId: job.jobId, error: String(error) }, 'Embedding job failed');
+      // Emit error callback if specified
+      if (job.callback) {
+        AsyncEvents.emit(job.callback as never, {
+          jobId: job.jobId,
+          batchId: job.jobId,
+          embeddings: [],
+          error: String(error),
+        });
+      }
     }
   }
 

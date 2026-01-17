@@ -95,3 +95,57 @@ export {
   type TeamReference,
   type TeamStory,
 } from './team-chemistry.js';
+
+// Persona LLM Expressions - dynamic expression generation for all personas
+export {
+  generatePersonaExpressions,
+  getPersonaExpression,
+  prewarmPersonaExpressions,
+  clearPersonaCache,
+  hasPersonaExpressionSupport,
+  PERSONA_CONFIGS,
+  MAYA_CONFIG,
+  JORDAN_CONFIG,
+  PETER_CONFIG,
+  ALEX_CONFIG,
+  NAYAN_CONFIG,
+  type PersonaExpressionConfig,
+  type PersonaTheme,
+  type ExpressionContext as PersonaExpressionContext,
+  type GeneratedExpression as PersonaGeneratedExpression,
+} from './persona-llm-expressions.js';
+
+// Persona Turn Personality - turn-level personality injection for all personas
+export {
+  sharedPersonality,
+  processPersonaTurn,
+  applyPersonaPersonalityToResponse,
+  hasPersonaTurnSupport,
+  type PersonaTurnInput,
+  type PersonaTurnResult,
+} from './persona-turn-personality.js';
+
+// LLM Advanced Humanization - dynamic subtext, aftercare, energy, affirmations
+export {
+  llmHumanization,
+  generateHumanizationLLM,
+  clearHumanizationCache,
+  type HumanizationType,
+  type HumanizationContext,
+  type GeneratedHumanization,
+} from './llm-advanced-humanization.js';
+
+// Cross-Persona Learning - share successful expressions across the team
+export {
+  crossPersonaLearning,
+  extractPattern,
+  adaptPatternToPersona,
+  learnFromExpression,
+  recordPatternEngagement,
+  getBestPatternsForPersona,
+  getPatternsFromPersona,
+  getPatternStats,
+  prunePatterns,
+  type LearnedPattern,
+  type PersonaVoice,
+} from './cross-persona-learning.js';

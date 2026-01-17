@@ -1,11 +1,24 @@
 /**
  * Natural Filler Injection
  *
- * Adds spontaneous speech disfluencies for human-like delivery.
- * Humans naturally use fillers like "um", "well", "you know" -
- * strategically adding these makes TTS output feel more authentic.
+ * DEPRECATED: Static filler injection replaced by LLM behavioral guidance.
+ * See: src/intelligence/context-builders/humanization/dynamic-speech-guidance.ts
+ *
+ * The new architecture:
+ * - Don't inject static fillers ("um", "well", "you know")
+ * - Let the LLM generate natural speech rhythms based on context
+ * - The LLM knows WHEN and HOW to use natural speech patterns
+ *
+ * Static filler injection was problematic because:
+ * - "Let me see" / "Let me think" sound robotic when repeated
+ * - Starting with "Well..." is an anti-pattern
+ * - Random filler injection sounds artificial
+ *
+ * The injectNaturalFillers function now returns text unchanged.
+ * The LLM generates appropriate speech patterns naturally.
  *
  * @module advanced-humanization/fillers
+ * @deprecated Use LLM behavioral guidance instead
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
@@ -19,19 +32,22 @@ const log = createLogger({ module: 'AdvancedHumanization' });
 
 /**
  * Fillers categorized by their conversational function
+ *
+ * HUMANIZATION FIX: Removed "Let me see/think" - too robotic.
+ * Keep only natural conversational sounds.
  */
 export const FILLERS = {
-  /** Thinking/hesitation fillers */
-  thinking: ['Hmm', 'Um', 'Let me see', 'Let me think'],
+  /** Thinking/hesitation fillers - natural sounds only */
+  thinking: ['Hmm', 'Um', 'Mm', 'Hm'],
 
   /** Transition fillers */
-  transition: ['So', 'Well', 'Okay so', 'Alright'],
+  transition: ['So', 'Okay so', 'Alright'],
 
   /** Connection/engagement fillers */
   connection: ['You know', 'I mean', 'Actually'],
 
-  /** Consideration fillers */
-  consideration: ['Well', 'I think', 'It seems like'],
+  /** Consideration fillers - removed "Well" at start (anti-pattern) */
+  consideration: ['I think', 'It seems like', 'Maybe'],
 } as const;
 
 /**
@@ -121,62 +137,26 @@ function getFillerForContext(
 /**
  * Inject natural fillers into text
  *
- * Adds conversational fillers like "um", "well", "you know" to make
- * TTS output sound more spontaneous and human-like.
+ * @deprecated DISABLED - LLM generates natural speech patterns from behavioral guidance.
+ * See: src/intelligence/context-builders/humanization/dynamic-speech-guidance.ts
  *
- * @param text - The text to inject fillers into
- * @param config - Filler configuration
- * @param personaId - Optional persona for filler style
- * @returns Text with fillers injected
+ * This function now returns text unchanged. The LLM generates contextually
+ * appropriate speech rhythms naturally based on:
+ * 1. What the user said
+ * 2. The persona's identity and voice
+ * 3. Behavioral guidance from dynamic-speech-guidance.ts
+ *
+ * @param text - The text (returned unchanged)
+ * @param _config - Unused
+ * @param _personaId - Unused
+ * @returns Text unchanged
  */
 export function injectNaturalFillers(
   text: string,
-  config: FillerConfig = DEFAULT_FILLER_CONFIG,
-  personaId?: string
+  _config: FillerConfig = DEFAULT_FILLER_CONFIG,
+  _personaId?: string
 ): string {
-  // Don't add fillers to very short responses
-  if (text.length < 50) return text;
-
-  // Don't add fillers if already has SSML emotion tags (complex response)
-  if (text.includes('<emotion')) return text;
-
-  let result = text;
-  let fillerCount = 0;
-  const sentences = text.split(/(?<=[.!?])\s+/);
-
-  // Process each sentence
-  const processedSentences = sentences.map((sentence, index) => {
-    // Skip first sentence if it's a greeting
-    if (index === 0 && /^(Hi|Hey|Hello|Good|Welcome)/i.test(sentence)) {
-      return sentence;
-    }
-
-    // Check for injection at sentence start
-    if (shouldInjectFiller(text, 0, config, fillerCount) && index > 0) {
-      const filler = getFillerForContext(personaId, 'start');
-      fillerCount++;
-      return `${filler}... <break time="150ms"/> ${sentence}`;
-    }
-
-    // Check for injection before important content
-    const importantMatch = sentence.match(/^(.{10,}?)(I think|The thing is|What I|Here's)/i);
-    if (importantMatch && shouldInjectFiller(text, importantMatch[1].length, config, fillerCount)) {
-      const filler = getFillerForContext(personaId, 'before_important');
-      fillerCount++;
-      return sentence.replace(
-        importantMatch[2],
-        `${filler}, <break time="100ms"/> ${importantMatch[2]}`
-      );
-    }
-
-    return sentence;
-  });
-
-  result = processedSentences.join(' ');
-
-  if (fillerCount > 0) {
-    log.debug({ fillerCount, personaId }, 'Injected natural fillers');
-  }
-
-  return result;
+  // DEPRECATED: No longer inject static fillers
+  // The LLM generates natural speech patterns based on behavioral guidance
+  return text;
 }

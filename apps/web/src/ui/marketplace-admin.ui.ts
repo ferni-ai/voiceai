@@ -24,12 +24,13 @@ import { t } from '../i18n/index.js';
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
-import { toast } from './toast.ui.js';
+import { toast } from './whisper.ui.js';
+import { getApiHeadersAsync } from '../utils/api-helpers.js';
 
 const log = createLogger('MarketplaceAdminUI');
 
 // FIX BUG: Track all setTimeout calls for proper cleanup
-const { trackedTimeout, clearAll: clearAllTimeouts } = createTimeoutTracker();
+const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
 
 // ============================================================================
 // TYPES
@@ -177,12 +178,14 @@ export function closeAdminQueue(): void {
 async function loadData(): Promise<void> {
   if (!adminSession) return;
 
-  const headers = {
-    'x-admin-id': adminSession.id,
-    'x-admin-name': adminSession.name,
-  };
-
   try {
+    const authHeaders = await getApiHeadersAsync();
+    const headers = {
+      ...authHeaders,
+      'x-admin-id': adminSession.id,
+      'x-admin-name': adminSession.name,
+    };
+
     const [queueRes, reviewsRes, statsRes] = await Promise.all([
       fetch('/api/admin/marketplace/queue', { headers }),
       fetch('/api/admin/marketplace/reviews/pending', { headers }),
@@ -237,15 +240,15 @@ function createContainer(): HTMLElement {
       </header>
 
       <nav class="admin-tabs" role="tablist">
-        <button role="tab" class="admin-tab admin-tab--active" data-tab="queue">
+        <button aria-label="Review Queue" role="tab" class="admin-tab admin-tab--active" data-tab="queue">
           ${ICONS.clock} Review Queue
           <span class="tab-badge">${state.queue.length}</span>
         </button>
-        <button role="tab" class="admin-tab" data-tab="reviews">
+        <button aria-label="Reviews" role="tab" class="admin-tab" data-tab="reviews">
           ${ICONS.star} Reviews
           <span class="tab-badge">${state.pendingReviews.length}</span>
         </button>
-        <button role="tab" class="admin-tab" data-tab="stats">
+        <button aria-label="Stats" role="tab" class="admin-tab" data-tab="stats">
           ${ICONS.barChart} Stats
         </button>
       </nav>
@@ -382,11 +385,11 @@ function renderQueueItem(item: QueueItem): string {
           .join('')}
       </div>
 
-      <div class="item-actions">
-        <button class="action-btn action-btn--reject" data-action="reject" data-item-id="${item.id}">
+      <div class="item-actions" role="button" tabindex="0">
+        <button aria-label="Reject" class="action-btn action-btn--reject" data-action="reject" data-item-id="${item.id}">
           ${ICONS.x} Reject
         </button>
-        <button class="action-btn action-btn--approve" data-action="approve" data-item-id="${item.id}">
+        <button aria-label="Confirm" class="action-btn action-btn--approve" data-action="approve" data-item-id="${item.id}">
           ${ICONS.check} Approve
         </button>
       </div>
@@ -440,11 +443,11 @@ function renderReviewItem(review: PendingReview): string {
       </div>
       ${review.title ? `<h4 class="review-title">${review.title}</h4>` : ''}
       <p class="review-body">${review.body}</p>
-      <div class="review-actions">
-        <button class="action-btn action-btn--reject" data-action="reject-review" data-review-id="${review.id}">
+      <div class="review-actions" role="button" tabindex="0">
+        <button aria-label="Reject" class="action-btn action-btn--reject" data-action="reject-review" data-review-id="${review.id}">
           Reject
         </button>
-        <button class="action-btn action-btn--approve" data-action="approve-review" data-review-id="${review.id}">
+        <button aria-label="Approve" class="action-btn action-btn--approve" data-action="approve-review" data-review-id="${review.id}">
           Approve
         </button>
       </div>
@@ -483,10 +486,11 @@ async function handleApprove(itemId: string): Promise<void> {
   if (!adminSession) return;
 
   try {
+    const authHeaders = await getApiHeadersAsync({ 'Content-Type': 'application/json' });
     const response = await fetch(`/api/admin/marketplace/item/${itemId}/approve`, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
+        ...authHeaders,
         'x-admin-id': adminSession.id,
         'x-admin-name': adminSession.name,
       },
@@ -514,10 +518,11 @@ async function handleReject(itemId: string): Promise<void> {
   if (!reason) return;
 
   try {
+    const authHeaders = await getApiHeadersAsync({ 'Content-Type': 'application/json' });
     const response = await fetch(`/api/admin/marketplace/item/${itemId}/reject`, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
+        ...authHeaders,
         'x-admin-id': adminSession.id,
         'x-admin-name': adminSession.name,
       },
@@ -545,10 +550,11 @@ async function handleModerateReview(
   if (!adminSession) return;
 
   try {
+    const authHeaders = await getApiHeadersAsync({ 'Content-Type': 'application/json' });
     const response = await fetch(`/api/admin/marketplace/reviews/${reviewId}/moderate`, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
+        ...authHeaders,
         'x-admin-id': adminSession.id,
         'x-admin-name': adminSession.name,
       },
@@ -616,14 +622,13 @@ function injectStyles(): void {
     .admin-backdrop {
       position: absolute;
       inset: 0;
-      background: rgba(44, 37, 32, 0.8);
-      backdrop-filter: blur(20px);
+      background: rgba(44, 37, 32, 0.75);
     }
 
     .admin-panel {
       position: relative;
       width: 100%;
-      max-width: 900px;
+      max-width: min(900px, 100%);
       margin: var(--space-8, 32px) auto;
       background: var(--color-background-elevated);
       border-radius: var(--radius-2xl);
@@ -710,7 +715,7 @@ function injectStyles(): void {
 
     .admin-tab--active {
       background: var(--persona-tint);
-      color: var(--persona-primary);
+      color: var(--persona-text);
     }
 
     .admin-tab svg {
@@ -797,7 +802,7 @@ function injectStyles(): void {
       justify-content: center;
       background: var(--persona-tint);
       border-radius: var(--radius-lg);
-      color: var(--persona-primary);
+      color: var(--persona-text);
     }
 
     .item-icon.agent {
@@ -892,9 +897,14 @@ function injectStyles(): void {
     .tag {
       font-size: 0.75rem;
       padding: var(--space-1, 4px) var(--space-2, 8px);
-      background: var(--color-background-tertiary);
+      background: var(--tonal-surface-2);
       color: var(--color-text-secondary);
       border-radius: var(--radius-full);
+      transition: background 0.15s ease-out;
+    }
+
+    .tag:hover {
+      background: var(--tonal-surface-3);
     }
 
     .item-actions, .review-actions {
@@ -1001,7 +1011,7 @@ function injectStyles(): void {
       margin-top: var(--space-1, 4px);
     }
 
-    @media (max-width: 768px) {
+    @media (max-width: clamp(538px, 90vw, 768px)) {
       .admin-panel {
         margin: 0;
         border-radius: 0;

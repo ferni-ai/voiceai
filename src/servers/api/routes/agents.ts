@@ -2,6 +2,7 @@
  * Agent Registry Routes
  *
  * Dynamic agent discovery and configuration.
+ * Includes both built-in team members and user-created custom agents.
  */
 
 import type { IncomingMessage, ServerResponse } from 'http';
@@ -9,8 +10,86 @@ import fs from 'fs';
 import path from 'path';
 import { rateLimit } from '../../../api/auth-middleware.js';
 import { createLogger } from '../../../utils/safe-logger.js';
+import { listCustomAgents } from '../../../services/custom-agent/custom-agent-persistence.service.js';
+import type { CustomAgent } from '../../../types/custom-agent-api.js';
 
 const log = createLogger({ module: 'AgentRoutes' });
+
+/**
+ * Transform custom agent to UI agent format
+ */
+function customAgentToUiAgent(agent: CustomAgent): {
+  id: string;
+  name: string;
+  initials: string;
+  subtitle: string;
+  role: 'coach' | 'team' | 'standalone';
+  roleId: string;
+  isCoordinator: boolean;
+  canHandoff: boolean;
+  handoffToolName: string;
+  entrancePhrase: string;
+  themeClass: string;
+  voiceId: string;
+  colors: { primary: string; secondary: string; gradient: string } | null;
+  isCustomAgent: boolean;
+  customAgentType: string;
+} {
+  // Get initials from display name or name
+  const displayName = agent.displayName || agent.name;
+  const initials = displayName
+    .split(' ')
+    .map((n) => n[0])
+    .join('')
+    .toUpperCase()
+    .slice(0, 2);
+
+  // Get type-specific subtitle
+  const typeSubtitles: Record<string, string> = {
+    legacy: 'Remembered Voice',
+    mentor: 'Personal Mentor',
+    twin: 'Digital Twin',
+    fictional: 'Fictional Character',
+    professional: 'Professional Assistant',
+  };
+
+  // Generate gradient from personality or use defaults
+  const warmth = agent.personality?.warmth || 0.5;
+  const energy = agent.personality?.energy || 0.5;
+
+  // Map warmth/energy to colors
+  // High warmth = warmer colors (oranges/reds)
+  // High energy = brighter colors
+  const baseHue = Math.round(30 + warmth * 30); // 30-60 (orange to yellow-orange)
+  const saturation = Math.round(40 + energy * 30); // 40-70%
+  const lightness = Math.round(35 + (1 - energy) * 15); // 35-50%
+
+  const primaryColor = `hsl(${baseHue}, ${saturation}%, ${lightness}%)`;
+  const secondaryColor = `hsl(${baseHue - 10}, ${saturation - 10}%, ${lightness - 10}%)`;
+  const gradient = `linear-gradient(135deg, ${secondaryColor}, ${primaryColor})`;
+
+  return {
+    id: agent.id,
+    name: displayName,
+    initials,
+    subtitle: typeSubtitles[agent.type] || 'Custom Agent',
+    role: 'standalone' as const, // Custom agents are standalone
+    roleId: `custom-${agent.type}`,
+    isCoordinator: false,
+    canHandoff: true,
+    handoffToolName: '', // Empty string for custom agents
+    entrancePhrase: agent.behaviors?.greetings?.[0] || `Hello, I'm ${displayName}.`,
+    themeClass: `theme-custom-${agent.type}`,
+    voiceId: agent.voice?.voiceId || '', // Empty string if no voice
+    colors: {
+      primary: primaryColor,
+      secondary: secondaryColor,
+      gradient,
+    },
+    isCustomAgent: true,
+    customAgentType: agent.type,
+  };
+}
 
 // Helper to parse JSON body
 function parseJsonBody(req: IncomingMessage): Promise<Record<string, unknown>> {
@@ -35,7 +114,7 @@ export async function handleAgentRoutes(
   res: ServerResponse,
   pathname: string
 ): Promise<boolean> {
-  // Get all available agents
+  // Get all available agents (including custom agents)
   if (pathname === '/api/agents' && req.method === 'GET') {
     try {
       const { AgentRegistry } = await import('../../../personas/registry/unified-registry.js');
@@ -58,7 +137,7 @@ export async function handleAgentRoutes(
         agents = agents.filter((a) => a.isCoordinator || !disabledAgents.includes(a.id));
       }
 
-      // Transform agents for UI consumption
+      // Transform built-in agents for UI consumption
       const uiAgents = agents.map((agent) => ({
         id: agent.id,
         name: agent.name,
@@ -75,21 +154,55 @@ export async function handleAgentRoutes(
         // Cast to extended manifest to access marketplace colors (optional field)
         colors:
           (agent.manifest as { marketplace?: { colors?: unknown } }).marketplace?.colors || null,
+        isCustomAgent: false,
       }));
 
-      // Sort: coordinator (Ferni) first, then alphabetically
+      // Fetch user's custom agents if user ID is provided
+      const userId = req.headers['x-user-id'] as string | undefined;
+      if (userId) {
+        try {
+          const customAgents = await listCustomAgents(userId);
+          // Only include active custom agents in the main roster
+          const activeCustomAgents = customAgents.filter(
+            (a) => a.status === 'active' && a.voice?.status === 'ready'
+          );
+
+          for (const customAgent of activeCustomAgents) {
+            // Push with type assertion to match uiAgents type
+            const customUiAgent = customAgentToUiAgent(customAgent) as (typeof uiAgents)[0];
+            uiAgents.push(customUiAgent);
+          }
+
+          log.debug(
+            { userId, customAgentCount: activeCustomAgents.length },
+            'Added custom agents to roster'
+          );
+        } catch (customErr) {
+          log.warn({ error: (customErr as Error).message }, 'Could not fetch custom agents');
+        }
+      }
+
+      // Sort: coordinator (Ferni) first, then built-in alphabetically, then custom agents
       uiAgents.sort((a, b) => {
         const aIsCoordinator = a.isCoordinator || a.id === 'ferni';
         const bIsCoordinator = b.isCoordinator || b.id === 'ferni';
 
         if (aIsCoordinator && !bIsCoordinator) return -1;
         if (!aIsCoordinator && bIsCoordinator) return 1;
+
+        // Custom agents come after built-in agents
+        const aIsCustom = 'isCustomAgent' in a && a.isCustomAgent;
+        const bIsCustom = 'isCustomAgent' in b && b.isCustomAgent;
+
+        if (!aIsCustom && bIsCustom) return -1;
+        if (aIsCustom && !bIsCustom) return 1;
+
         return a.name.localeCompare(b.name);
       });
 
       res.writeHead(200, {
         'Content-Type': 'application/json',
-        'Cache-Control': 'public, max-age=60',
+        'Cache-Control': 'private, max-age=30', // Private cache for user-specific data
       });
       res.end(
         JSON.stringify({
@@ -129,7 +242,11 @@ export async function handleAgentRoutes(
         config = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
       }
 
-      res.writeHead(200, { 'Content-Type': 'application/json' });
+      // Short cache for config (private, changes via admin actions)
+      res.writeHead(200, {
+        'Content-Type': 'application/json',
+        'Cache-Control': 'private, max-age=30',
+      });
       res.end(
         JSON.stringify({
           disabledAgents: config.disabledAgents || [],
@@ -164,7 +281,12 @@ export async function handleAgentRoutes(
         return true;
       }
 
-      res.writeHead(200, { 'Content-Type': 'application/json' });
+      // Edge cache for 1 hour (single agent data is static)
+      res.writeHead(200, {
+        'Content-Type': 'application/json',
+        'Cache-Control': 'public, max-age=3600, s-maxage=3600',
+        Vary: 'Accept-Encoding',
+      });
       res.end(
         JSON.stringify({
           id: agent.id,
@@ -268,7 +390,7 @@ export async function handleAgentRoutes(
       return true;
     }
 
-    const agentId = pathname.split('/')[3];
+    const agentId = pathname.split('/')[3] ?? '';
 
     try {
       const body = await parseJsonBody(req);
@@ -288,7 +410,7 @@ export async function handleAgentRoutes(
       if (enabled) {
         config.disabledAgents = config.disabledAgents.filter((id) => id !== agentId);
       } else {
-        if (!config.disabledAgents.includes(agentId)) {
+        if (agentId && !config.disabledAgents.includes(agentId)) {
           config.disabledAgents.push(agentId);
         }
       }

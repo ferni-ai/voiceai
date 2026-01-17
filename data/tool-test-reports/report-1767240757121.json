@@ -1,0 +1,73 @@
+{
+  "runAt": "2026-01-01T04:12:37.121Z",
+  "totalTools": 775,
+  "testedTools": 5,
+  "passed": 5,
+  "failed": 0,
+  "skipped": 0,
+  "coverage": 0.0064516129032258064,
+  "results": [
+    {
+      "toolId": "playMusic",
+      "probe": "Put on some tunes.",
+      "passed": true,
+      "actualToolCalled": "playMusic",
+      "llmResponse": "{\"fn\":\"playMusic\",\"args\":{}}\n",
+      "latencyMs": 409
+    },
+    {
+      "toolId": "searchAppleMusic",
+      "probe": "Play some new songs on Apple Music.",
+      "passed": true,
+      "actualToolCalled": "searchAppleMusic",
+      "llmResponse": "{\"fn\":\"searchAppleMusic\",\"args\":{}}",
+      "latencyMs": 409
+    },
+    {
+      "toolId": "rememberAboutUser",
+      "probe": "Hey Ferni, please remember that I prefer to be called Liz.",
+      "passed": true,
+      "actualToolCalled": "rememberAboutUser",
+      "llmResponse": "{\"fn\":\"rememberAboutUser\",\"args\":{\"propertyName\":\"preferred_name\",\"propertyValue\":\"Liz\"}}",
+      "latencyMs": 535
+    },
+    {
+      "toolId": "recallFromMemory",
+      "probe": "Hey Ferni, what was the name of that Italian restaurant we went to last month?",
+      "passed": true,
+      "actualToolCalled": "recallFromMemory",
+      "llmResponse": "{\"fn\":\"recallFromMemory\",\"args\":{}}\n",
+      "latencyMs": 464
+    },
+    {
+      "toolId": "updateMemory",
+      "probe": "Please update memory",
+      "passed": true,
+      "actualToolCalled": "updateMemory",
+      "llmResponse": "{\"fn\":\"updateMemory\",\"args\":{}}\n",
+      "latencyMs": 464
+    }
+  ],
+  "failures": [],
+  "summary": {
+    "byCategory": {
+      "core": {
+        "total": 5,
+        "passed": 5,
+        "failed": 0
+      }
+    },
+    "byPriority": {
+      "critical": {
+        "total": 4,
+        "passed": 4,
+        "failed": 0
+      },
+      "medium": {
+        "total": 1,
+        "passed": 1,
+        "failed": 0
+      }
+    }
+  }
+}

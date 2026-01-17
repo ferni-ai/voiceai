@@ -23,10 +23,22 @@ import {
   type CalendarEvent,
   type EventReminder,
   type CalendarDigest,
-} from '../services/calendar-reminders.js';
+} from '../services/scheduling/calendar-reminders.js';
 
 // Mock dependencies
 vi.mock('../utils/safe-logger.js', () => ({
+  createLogger: () => ({
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+    debug: vi.fn(),
+    child: () => ({
+      info: vi.fn(),
+      warn: vi.fn(),
+      error: vi.fn(),
+      debug: vi.fn(),
+    }),
+  }),
   getLogger: () => ({
     info: vi.fn(),
     warn: vi.fn(),

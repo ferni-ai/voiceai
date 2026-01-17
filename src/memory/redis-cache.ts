@@ -92,6 +92,16 @@ export class RedisCache {
   private readonly SESSION_TTL = 3600; // 1 hour
   private readonly ANALYSIS_TTL = 300; // 5 minutes
   private readonly RATE_TTL = 60; // 1 minute
+  private readonly PRESENCE_TTL = 120; // 2 minutes (heartbeat)
+  private readonly EMOTION_TTL = 300; // 5 minutes
+  private readonly BIOMARKER_TTL = 60; // 1 minute (very transient)
+  private readonly OUTREACH_SUPPRESS_TTL = 1800; // 30 minutes after session
+
+  // Log rate-limiting to prevent spam during Redis outages
+  private lastWarningTime = 0;
+  private warningCount = 0;
+  private readonly WARNING_INTERVAL_MS = 60_000; // Only log once per minute
+  private readonly WARNING_BATCH_SIZE = 10; // After this many, batch them
 
   constructor(config?: RedisConfig) {
     this.config = config || {
@@ -132,14 +142,17 @@ export class RedisCache {
       // Dynamic import of ioredis
       const Redis = (await import('ioredis')).default;
 
+      let redisClient: InstanceType<typeof Redis>;
+
       if (this.config.url) {
-        this.client = new Redis(this.config.url, {
+        redisClient = new Redis(this.config.url, {
           keyPrefix: this.config.keyPrefix,
           maxRetriesPerRequest: this.config.maxRetriesPerRequest,
           enableReadyCheck: this.config.enableReadyCheck,
-        }) as unknown as RedisClient;
+          lazyConnect: true, // Don't connect immediately, we'll test connection manually
+        });
       } else {
-        this.client = new Redis({
+        redisClient = new Redis({
           host: this.config.host,
           port: this.config.port,
           password: this.config.password,
@@ -147,10 +160,35 @@ export class RedisCache {
           keyPrefix: this.config.keyPrefix,
           maxRetriesPerRequest: this.config.maxRetriesPerRequest,
           enableReadyCheck: this.config.enableReadyCheck,
-        }) as unknown as RedisClient;
+          lazyConnect: true, // Don't connect immediately, we'll test connection manually
+        });
       }
 
-      // Test connection
+      // CRITICAL: Add error handler to prevent "Unhandled error event" crashes
+      // This is required by ioredis when Redis is not available locally
+      // FIX: Throttle error logging to prevent log spam (log once every 60 seconds per error type)
+      const loggedErrors = new Map<string, number>();
+      const ERROR_LOG_THROTTLE_MS = 60000; // 60 seconds
+
+      redisClient.on('error', (error) => {
+        const errorKey = String(error).split(':')[0]; // Group by error type (e.g., "AggregateError")
+        const lastLogged = loggedErrors.get(errorKey) || 0;
+        const now = Date.now();
+
+        if (now - lastLogged > ERROR_LOG_THROTTLE_MS) {
+          loggedErrors.set(errorKey, now);
+          getLogger().debug(
+            { error: String(error) },
+            'Redis connection error (non-blocking, throttled)'
+          );
+        }
+        // Silently ignore repeated errors within the throttle window
+      });
+
+      this.client = redisClient as unknown as RedisClient;
+
+      // Test connection - will throw if Redis unavailable
+      await redisClient.connect();
       await this.client.ping();
 
       this.initialized = true;
@@ -500,6 +538,46 @@ export class RedisCache {
   // ============================================================================
 
   /**
+   * Rate-limited warning logger to prevent log spam during Redis outages
+   */
+  private logWarningRateLimited(context: Record<string, unknown>, message: string): void {
+    const now = Date.now();
+    this.warningCount++;
+
+    // Reset counter if we're in a new time window
+    if (now - this.lastWarningTime > this.WARNING_INTERVAL_MS) {
+      if (this.warningCount > this.WARNING_BATCH_SIZE) {
+        // Log a summary of suppressed warnings
+        getLogger().warn(
+          { suppressedCount: this.warningCount - 1, windowMs: this.WARNING_INTERVAL_MS },
+          'Redis cache warnings suppressed (rate-limited)'
+        );
+      }
+      this.warningCount = 1;
+      this.lastWarningTime = now;
+      getLogger().warn(context, message);
+    } else if (this.warningCount <= this.WARNING_BATCH_SIZE) {
+      // Log first few warnings
+      getLogger().warn(context, message);
+    }
+    // Otherwise, suppress the log
+  }
+
+  // Keys that are non-critical and should fail completely silently
+  private static readonly SILENT_FAIL_KEY_PREFIXES = [
+    'presence:', // Presence tracking is nice-to-have, not critical
+    'biomarker:', // Voice biomarkers are supplementary
+    'emotion:', // Emotion state is cached but not critical
+  ];
+
+  /**
+   * Check if a key is non-critical and should fail silently
+   */
+  private shouldFailSilently(key: string): boolean {
+    return RedisCache.SILENT_FAIL_KEY_PREFIXES.some((prefix) => key.startsWith(prefix));
+  }
+
+  /**
    * Set a value with optional TTL
    * Fails silently if Redis unavailable
    */
@@ -518,7 +596,14 @@ export class RedisCache {
       }
       return true;
     } catch (error) {
-      getLogger().warn({ error: String(error), key }, 'Failed to set cache value (non-blocking)');
+      // Skip logging for non-critical keys to reduce noise
+      if (!this.shouldFailSilently(key)) {
+        // Use rate-limited logging to prevent spam during Redis outages
+        this.logWarningRateLimited(
+          { error: String(error), key },
+          'Failed to set cache value (non-blocking)'
+        );
+      }
       return false;
     }
   }
@@ -582,6 +667,515 @@ export class RedisCache {
         { error: String(error), key },
         'Failed to check cache key existence (non-blocking)'
       );
+      return false;
+    }
+  }
+
+  /**
+   * Increment a counter
+   * Returns 0 if Redis unavailable
+   */
+  async incr(key: string): Promise<number> {
+    if (!this.client) {
+      return 0;
+    }
+
+    try {
+      return await this.client.incr(key);
+    } catch (error) {
+      getLogger().warn({ error: String(error), key }, 'Failed to increment counter (non-blocking)');
+      return 0;
+    }
+  }
+
+  /**
+   * Set TTL on a key
+   * Returns false if Redis unavailable
+   */
+  async expire(key: string, seconds: number): Promise<boolean> {
+    if (!this.client) {
+      return false;
+    }
+
+    try {
+      const result = await this.client.expire(key, seconds);
+      return result > 0;
+    } catch (error) {
+      getLogger().warn({ error: String(error), key }, 'Failed to set TTL (non-blocking)');
+      return false;
+    }
+  }
+
+  // ============================================================================
+  // REAL-TIME EMOTIONAL STATE
+  // ============================================================================
+
+  /**
+   * Store user's current emotional state (detected from voice/conversation)
+   * Key: emotion:{userId}
+   */
+  async setEmotionalState(
+    userId: string,
+    state: {
+      primary: string;
+      secondary?: string;
+      intensity: number; // 0-1
+      confidence: number; // 0-1
+      triggers?: string[];
+      timestamp: string;
+    }
+  ): Promise<boolean> {
+    if (!this.client) return false;
+    try {
+      const key = `emotion:${userId}`;
+      await this.client.setex(key, this.EMOTION_TTL, JSON.stringify(state));
+      return true;
+    } catch (error) {
+      getLogger().warn({ error: String(error), userId }, 'Failed to set emotional state');
+      return false;
+    }
+  }
+
+  /**
+   * Get user's current emotional state
+   */
+  async getEmotionalState(userId: string): Promise<{
+    primary: string;
+    secondary?: string;
+    intensity: number;
+    confidence: number;
+    triggers?: string[];
+    timestamp: string;
+  } | null> {
+    if (!this.client) return null;
+    try {
+      const key = `emotion:${userId}`;
+      const value = await this.client.get(key);
+      return value ? JSON.parse(value) : null;
+    } catch {
+      return null;
+    }
+  }
+
+  // ============================================================================
+  // VOICE BIOMARKERS (Transient)
+  // ============================================================================
+
+  /**
+   * Store recent voice biomarker readings (very transient)
+   * Key: biomarker:{userId}
+   */
+  async setVoiceBiomarker(
+    userId: string,
+    biomarker: {
+      fatigue: number; // 0-1
+      stress: number; // 0-1
+      hydration?: number; // 0-1
+      pitch?: 'low' | 'normal' | 'high' | 'variable';
+      pace?: 'slow' | 'normal' | 'fast' | 'rushed';
+      strain?: boolean;
+      timestamp: string;
+    }
+  ): Promise<boolean> {
+    if (!this.client) return false;
+    try {
+      const key = `biomarker:${userId}`;
+      await this.client.setex(key, this.BIOMARKER_TTL, JSON.stringify(biomarker));
+      return true;
+    } catch (error) {
+      getLogger().warn({ error: String(error), userId }, 'Failed to set voice biomarker');
+      return false;
+    }
+  }
+
+  /**
+   * Get recent voice biomarker
+   */
+  async getVoiceBiomarker(userId: string): Promise<{
+    fatigue: number;
+    stress: number;
+    hydration?: number;
+    pitch?: 'low' | 'normal' | 'high' | 'variable';
+    pace?: 'slow' | 'normal' | 'fast' | 'rushed';
+    strain?: boolean;
+    timestamp: string;
+  } | null> {
+    if (!this.client) return null;
+    try {
+      const key = `biomarker:${userId}`;
+      const value = await this.client.get(key);
+      return value ? JSON.parse(value) : null;
+    } catch {
+      return null;
+    }
+  }
+
+  // ============================================================================
+  // USER PRESENCE (Is user currently in a session?)
+  // ============================================================================
+
+  /**
+   * Set user presence (call periodically during session as heartbeat)
+   * Key: presence:{userId}
+   */
+  async setUserPresence(
+    userId: string,
+    presence: {
+      sessionId: string;
+      personaId: string;
+      startedAt: string;
+      lastHeartbeat: string;
+      channel?: 'voice' | 'text' | 'web';
+    }
+  ): Promise<boolean> {
+    if (!this.client) return false;
+    try {
+      const key = `presence:${userId}`;
+      await this.client.setex(key, this.PRESENCE_TTL, JSON.stringify(presence));
+      return true;
+    } catch (error) {
+      getLogger().warn({ error: String(error), userId }, 'Failed to set presence');
+      return false;
+    }
+  }
+
+  /**
+   * Check if user is currently in a session
+   */
+  async getUserPresence(userId: string): Promise<{
+    sessionId: string;
+    personaId: string;
+    startedAt: string;
+    lastHeartbeat: string;
+    channel?: 'voice' | 'text' | 'web';
+  } | null> {
+    if (!this.client) return null;
+    try {
+      const key = `presence:${userId}`;
+      const value = await this.client.get(key);
+      return value ? JSON.parse(value) : null;
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * Clear user presence (on session end)
+   */
+  async clearUserPresence(userId: string): Promise<boolean> {
+    if (!this.client) return false;
+    try {
+      const key = `presence:${userId}`;
+      await this.client.del(key);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  /**
+   * Check if user is currently active (convenience method)
+   */
+  async isUserActive(userId: string): Promise<boolean> {
+    const presence = await this.getUserPresence(userId);
+    return presence !== null;
+  }
+
+  // ============================================================================
+  // OUTREACH SUPPRESSION
+  // ============================================================================
+
+  /**
+   * Suppress outreach for a user (e.g., just finished a session)
+   * Key: suppress_outreach:{userId}
+   */
+  async suppressOutreach(
+    userId: string,
+    reason: string,
+    durationSeconds?: number
+  ): Promise<boolean> {
+    if (!this.client) return false;
+    try {
+      const key = `suppress_outreach:${userId}`;
+      const data = {
+        reason,
+        until: new Date(
+          Date.now() + (durationSeconds || this.OUTREACH_SUPPRESS_TTL) * 1000
+        ).toISOString(),
+        setAt: new Date().toISOString(),
+      };
+      await this.client.setex(
+        key,
+        durationSeconds || this.OUTREACH_SUPPRESS_TTL,
+        JSON.stringify(data)
+      );
+      getLogger().debug({ userId, reason }, 'Outreach suppressed');
+      return true;
+    } catch (error) {
+      getLogger().warn({ error: String(error), userId }, 'Failed to suppress outreach');
+      return false;
+    }
+  }
+
+  /**
+   * Check if outreach is suppressed
+   */
+  async isOutreachSuppressed(userId: string): Promise<{
+    suppressed: boolean;
+    reason?: string;
+    until?: string;
+  }> {
+    if (!this.client) return { suppressed: false };
+    try {
+      const key = `suppress_outreach:${userId}`;
+      const value = await this.client.get(key);
+      if (!value) return { suppressed: false };
+      const data = JSON.parse(value);
+      return { suppressed: true, reason: data.reason, until: data.until };
+    } catch {
+      return { suppressed: false };
+    }
+  }
+
+  /**
+   * Clear outreach suppression
+   */
+  async clearOutreachSuppression(userId: string): Promise<boolean> {
+    if (!this.client) return false;
+    try {
+      const key = `suppress_outreach:${userId}`;
+      await this.client.del(key);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  // ============================================================================
+  // TOOL FAILURE TRACKING (for LLM feedback)
+  // ============================================================================
+
+  private readonly TOOL_FAILURE_TTL = 30; // 30 seconds - very short, just for current turn
+
+  /**
+   * Record a tool failure for the current session
+   * Key: tool_failure:{sessionId}
+   */
+  async recordToolFailure(
+    sessionId: string,
+    failure: {
+      toolName: string;
+      error: string;
+      timestamp: string;
+      attemptedAction?: string;
+    }
+  ): Promise<boolean> {
+    if (!this.client) return false;
+    try {
+      const key = `tool_failure:${sessionId}`;
+      const existing = await this.client.get(key);
+      const failures: Array<typeof failure> = existing ? JSON.parse(existing) : [];
+
+      // Add new failure (keep max 5 recent)
+      failures.push(failure);
+      if (failures.length > 5) {
+        failures.shift();
+      }
+
+      await this.client.setex(key, this.TOOL_FAILURE_TTL, JSON.stringify(failures));
+      return true;
+    } catch (error) {
+      getLogger().warn({ error: String(error), sessionId }, 'Failed to record tool failure');
+      return false;
+    }
+  }
+
+  /**
+   * Get recent tool failures for a session
+   */
+  async getRecentToolFailures(sessionId: string): Promise<
+    Array<{
+      toolName: string;
+      error: string;
+      timestamp: string;
+      attemptedAction?: string;
+    }>
+  > {
+    if (!this.client) return [];
+    try {
+      const key = `tool_failure:${sessionId}`;
+      const value = await this.client.get(key);
+      return value ? JSON.parse(value) : [];
+    } catch {
+      return [];
+    }
+  }
+
+  /**
+   * Clear tool failures for a session (after acknowledging them)
+   */
+  async clearToolFailures(sessionId: string): Promise<boolean> {
+    if (!this.client) return false;
+    try {
+      const key = `tool_failure:${sessionId}`;
+      await this.client.del(key);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  // ============================================================================
+  // PERSONA AFFINITY CACHE (Hot Path for Routing)
+  // ============================================================================
+
+  /**
+   * Cache persona affinity scores for fast routing decisions
+   * Key: affinity:{userId}
+   */
+  async setPersonaAffinityCache(
+    userId: string,
+    affinities: Array<{
+      personaId: string;
+      score: number;
+      topTopics: string[];
+    }>
+  ): Promise<boolean> {
+    if (!this.client) return false;
+    try {
+      const key = `affinity:${userId}`;
+      await this.client.setex(key, this.SESSION_TTL, JSON.stringify(affinities));
+      return true;
+    } catch (error) {
+      getLogger().warn({ error: String(error), userId }, 'Failed to cache persona affinity');
+      return false;
+    }
+  }
+
+  /**
+   * Get cached persona affinities
+   */
+  async getPersonaAffinityCache(userId: string): Promise<Array<{
+    personaId: string;
+    score: number;
+    topTopics: string[];
+  }> | null> {
+    if (!this.client) return null;
+    try {
+      const key = `affinity:${userId}`;
+      const value = await this.client.get(key);
+      return value ? JSON.parse(value) : null;
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * Get best persona for a topic (uses cached affinity)
+   */
+  async getBestPersonaForTopic(
+    userId: string,
+    topic: string
+  ): Promise<{ personaId: string; score: number } | null> {
+    const affinities = await this.getPersonaAffinityCache(userId);
+    if (!affinities) return null;
+
+    const topicLower = topic.toLowerCase();
+    let best: { personaId: string; score: number } | null = null;
+
+    for (const affinity of affinities) {
+      const hasMatchingTopic = affinity.topTopics.some(
+        (t) => t.toLowerCase().includes(topicLower) || topicLower.includes(t.toLowerCase())
+      );
+      if (hasMatchingTopic) {
+        if (!best || affinity.score > best.score) {
+          best = { personaId: affinity.personaId, score: affinity.score };
+        }
+      }
+    }
+
+    return best;
+  }
+
+  // ============================================================================
+  // ACTIVE CALL STATE
+  // ============================================================================
+
+  /**
+   * Store active call state (for outbound calls)
+   * Key: call:{callId}
+   */
+  async setActiveCall(
+    callId: string,
+    callState: {
+      userId: string;
+      contactName?: string;
+      purpose: string;
+      startedAt: string;
+      status: 'connecting' | 'in_progress' | 'wrapping_up';
+      personaId: string;
+    }
+  ): Promise<boolean> {
+    if (!this.client) return false;
+    try {
+      const key = `call:${callId}`;
+      await this.client.setex(key, 3600, JSON.stringify(callState)); // 1 hour max
+      return true;
+    } catch (error) {
+      getLogger().warn({ error: String(error), callId }, 'Failed to set active call');
+      return false;
+    }
+  }
+
+  /**
+   * Get active call state
+   */
+  async getActiveCall(callId: string): Promise<{
+    userId: string;
+    contactName?: string;
+    purpose: string;
+    startedAt: string;
+    status: 'connecting' | 'in_progress' | 'wrapping_up';
+    personaId: string;
+  } | null> {
+    if (!this.client) return null;
+    try {
+      const key = `call:${callId}`;
+      const value = await this.client.get(key);
+      return value ? JSON.parse(value) : null;
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * Update call status
+   */
+  async updateCallStatus(
+    callId: string,
+    status: 'connecting' | 'in_progress' | 'wrapping_up'
+  ): Promise<boolean> {
+    if (!this.client) return false;
+    try {
+      const call = await this.getActiveCall(callId);
+      if (!call) return false;
+      call.status = status;
+      return this.setActiveCall(callId, call);
+    } catch {
+      return false;
+    }
+  }
+
+  /**
+   * End call (remove from cache)
+   */
+  async endCall(callId: string): Promise<boolean> {
+    if (!this.client) return false;
+    try {
+      const key = `call:${callId}`;
+      await this.client.del(key);
+      return true;
+    } catch {
       return false;
     }
   }

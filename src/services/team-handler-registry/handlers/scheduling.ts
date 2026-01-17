@@ -18,7 +18,7 @@ import {
   getLifeDataStore,
   type CalendarEvent,
   type RecurringCheckIn,
-} from '../../life-data-store.js';
+} from '../../stores/life-data-store.js';
 
 // ============================================================================
 // EVENT SCHEDULING HANDLERS

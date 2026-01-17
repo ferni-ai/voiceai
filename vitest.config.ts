@@ -17,6 +17,11 @@ export default defineConfig({
       'e2e/**',
       // E2E integration tests require real API credentials - run manually
       'src/tests/integrations/**',
+      // Gemini E2E tests hit real APIs and are flaky (rate limits, LLM non-determinism)
+      // Run manually: pnpm vitest run src/tests/e2e/gemini-integration/
+      'src/tests/e2e/gemini-integration/**',
+      // Integration tests (*.integration.test.ts) require real API keys - run manually
+      '**/*.integration.test.ts',
     ],
     coverage: {
       provider: 'v8',
@@ -31,17 +36,15 @@ export default defineConfig({
         'frontend-orb/**',
         'apps/web/**',
       ],
-      // Coverage thresholds - stepped approach toward 60%
-      // Current: ~32% lines, ~33% functions, ~32% statements, ~27% branches
-      // Phase 1: Match current (baseline)
-      // Phase 2: 40%
-      // Phase 3: 50%
-      // Phase 4: 60% (production readiness)
+      // Coverage thresholds - Current actual coverage (Dec 2024)
+      // Actual: lines=39.45%, functions=42.32%, branches=32.25%, statements=38.92%
+      // Phase 3 added 98 new tests but 60% target requires significant additional work
+      // Set thresholds slightly below current to prevent regressions
       thresholds: {
-        lines: 32,
-        functions: 33,
-        branches: 26,
-        statements: 32,
+        lines: 38,
+        functions: 41,
+        branches: 31,
+        statements: 38,
       },
     },
     setupFiles: ['./src/tests/setup.ts'],

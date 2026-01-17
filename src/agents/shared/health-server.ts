@@ -9,6 +9,7 @@
  * Endpoints:
  * - GET /health - Liveness check (always returns 200 if server is up)
  * - GET /health/ready - Readiness check (200 only when workers can accept calls)
+ * - GET /health/workers - Background worker stats (trust, analytics, predictions, etc.)
  * - GET /health/crash-analytics - Crash analytics summary
  * - GET /api/cognitive - Current cognitive state (for dashboard)
  * - GET /api/cognitive/history - Recent cognitive events
@@ -17,6 +18,9 @@
  * - GET /api/metrics/sessions - Active sessions only
  * - GET /api/crash-analytics - Crash analytics summary (alias)
  * - GET /api/crash-analytics/history - Full crash event history
+ * - GET /api/diagnostics - Latency summary and bottleneck analysis
+ * - GET /api/diagnostics/pipeline - Pipeline stage breakdown with targets
+ * - GET /api/diagnostics/session?sessionId=<id> - Per-session diagnostics
  *
  * Deploy Script Integration:
  * The deploy script checks /health/ready before shifting traffic.
@@ -30,6 +34,22 @@ import {
   markHealthServerReady,
   type ReadinessState,
 } from './worker-readiness.js';
+/**
+ * Set CORS headers for internal monitoring API endpoints.
+ *
+ * NOTE: For user-facing APIs, use src/servers/shared/cors.ts which has
+ * proper origin validation and security checks.
+ *
+ * These endpoints (metrics, diagnostics, cache stats) use permissive CORS because:
+ * 1. Protected by network-level access (GCE firewall)
+ * 2. Used by internal dashboards and CLI tools from various origins
+ * 3. All data is read-only metrics (no mutations)
+ */
+function setMonitoringCorsHeaders(res: ServerResponse): void {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+}
 
 // Debug flag for startup logging
 const DEBUG_STARTUP =
@@ -43,7 +63,7 @@ let cognitiveBroadcast:
   | typeof import('../../services/cognitive-broadcast.js').cognitiveBroadcast
   | null = null;
 let persistenceMetrics:
-  | typeof import('../../services/persistence-metrics.js').persistenceMetrics
+  | typeof import('../../services/analytics/persistence-metrics.js').persistenceMetrics
   | null = null;
 let cognitiveWebSocket: typeof import('../../services/cognitive-websocket.js') | null = null;
 let sessionDataManager: ReturnType<
@@ -65,7 +85,7 @@ async function getCognitiveBroadcast() {
 async function getPersistenceMetrics() {
   if (!persistenceMetrics) {
     try {
-      const module = await import('../../services/persistence-metrics.js');
+      const module = await import('../../services/analytics/persistence-metrics.js');
       persistenceMetrics = module.persistenceMetrics;
     } catch {
       return null;
@@ -107,10 +127,7 @@ async function initWebSocketServer(httpServer: Server) {
 async function handleCognitiveAPI(url: string, res: ServerResponse): Promise<void> {
   const broadcast = await getCognitiveBroadcast();
 
-  // CORS headers for dashboard
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  setMonitoringCorsHeaders(res);
 
   if (!broadcast) {
     res.writeHead(503, { 'Content-Type': 'application/json' });
@@ -158,10 +175,7 @@ async function handleCognitiveAPI(url: string, res: ServerResponse): Promise<voi
 async function handleCacheAPI(url: string, res: ServerResponse): Promise<void> {
   const sdm = await getSessionDataManager();
 
-  // CORS headers for dashboard
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  setMonitoringCorsHeaders(res);
 
   if (!sdm) {
     res.writeHead(503, { 'Content-Type': 'application/json' });
@@ -192,13 +206,10 @@ async function handleCacheAPI(url: string, res: ServerResponse): Promise<void> {
  * Handle memory monitoring API requests
  */
 async function handleMemoryAPI(url: string, res: ServerResponse): Promise<void> {
-  // CORS headers
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  setMonitoringCorsHeaders(res);
 
   try {
-    const { getMemoryMonitor } = await import('../../services/memory-monitor.js');
+    const { getMemoryMonitor } = await import('../../services/memory/memory-monitor.js');
     const monitor = getMemoryMonitor();
 
     if (url === '/api/memory' || url === '/api/memory/metrics') {
@@ -258,12 +269,10 @@ async function handleMemoryAPI(url: string, res: ServerResponse): Promise<void> 
  * Handle watchdog API requests (container self-monitoring)
  */
 async function handleWatchdogAPI(res: ServerResponse): Promise<void> {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  setMonitoringCorsHeaders(res);
 
   try {
-    const { getHealthData } = await import('../../services/container-watchdog.js');
+    const { getHealthData } = await import('../../services/deployment/container-watchdog.js');
     const data = getHealthData();
 
     res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -285,13 +294,23 @@ async function handleWatchdogAPI(res: ServerResponse): Promise<void> {
  * Handle crash analytics API requests
  */
 async function handleCrashAnalyticsAPI(url: string, res: ServerResponse): Promise<void> {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  setMonitoringCorsHeaders(res);
 
   try {
     const { getCrashHistory } = await import('./shutdown-handler.js');
     const crashHistory = getCrashHistory();
+
+    // Also get session-level crash analytics if available
+    let sessionCrashSummary = null;
+    try {
+      const { getCrashSummary, getAllActiveSessions } = await import('./crash-analytics.js');
+      sessionCrashSummary = {
+        ...getCrashSummary(),
+        activeSessions: getAllActiveSessions(),
+      };
+    } catch {
+      // Crash analytics not initialized
+    }
 
     if (url === '/health/crash-analytics' || url === '/api/crash-analytics') {
       // Return crash analytics summary
@@ -305,6 +324,8 @@ async function handleCrashAnalyticsAPI(url: string, res: ServerResponse): Promis
             crashHistory,
             totalCrashes: crashHistory.length,
             lastCrash: crashHistory.length > 0 ? crashHistory[crashHistory.length - 1] : null,
+            // New: Session-level crash analytics
+            sessionCrashes: sessionCrashSummary,
             currentMemory: {
               heapUsedMB: Math.round(memUsage.heapUsed / 1024 / 1024),
               heapTotalMB: Math.round(memUsage.heapTotal / 1024 / 1024),
@@ -351,9 +372,7 @@ async function handleCrashAnalyticsAPI(url: string, res: ServerResponse): Promis
  * Handle session metrics API requests
  */
 async function handleSessionMetricsAPI(url: string, res: ServerResponse): Promise<void> {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  setMonitoringCorsHeaders(res);
 
   try {
     const { getSessionMetricsSummary, getRawSessionMetrics } = await import('./session-metrics.js');
@@ -382,10 +401,207 @@ async function handleSessionMetricsAPI(url: string, res: ServerResponse): Promis
 }
 
 /**
+ * Handle diagnostics API request - full pipeline breakdown
+ */
+async function handleDiagnosticsAPI(url: string, res: ServerResponse): Promise<void> {
+  setMonitoringCorsHeaders(res);
+
+  try {
+    // Import performance modules
+    const [
+      { getGlobalPerformanceSummary, getSessionPerformanceSummary },
+      { getQualityStats, getRecentAlerts },
+      { getSpeechMetricsSnapshot },
+    ] = await Promise.all([
+      import('../../services/performance/turn-profiler.js'),
+      import('../voice-agent/quality-degradation-monitor.js'),
+      import('../../speech/metrics/index.js'),
+    ]);
+
+    // Get session ID from query string if provided
+    const urlObj = new URL(url, 'http://localhost');
+    const sessionId = urlObj.searchParams.get('sessionId');
+
+    if (url === '/api/diagnostics' || url === '/api/diagnostics/summary') {
+      // Global summary
+      const turnPerf = getGlobalPerformanceSummary();
+      const speechMetrics = getSpeechMetricsSnapshot();
+
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(
+        JSON.stringify(
+          {
+            success: true,
+            data: {
+              overview: {
+                totalTurns: turnPerf.totalTurns,
+                avgTurnMs: Math.round(turnPerf.avgTurnMs),
+                avgTimeToFirstAudioMs: Math.round(turnPerf.avgTtfaMs),
+                slowTurnPercentage: `${turnPerf.slowTurnPercentage.toFixed(1)}%`,
+              },
+              topBottlenecks: turnPerf.topBottlenecks,
+              latency: {
+                avgAnalysisMs: speechMetrics.metrics.latency.avgAnalysisLatencyMs,
+                p99Ms: speechMetrics.metrics.latency.p99LatencyMs,
+                samples: speechMetrics.metrics.latency.sampleCount,
+              },
+              thresholds: {
+                excellent: '<300ms',
+                good: '<500ms',
+                acceptable: '<800ms',
+                slow: '<1500ms',
+                critical: '≥1500ms',
+              },
+              help: {
+                sessionDiagnostics: '/api/diagnostics/session?sessionId=<id>',
+                pipelineBreakdown: '/api/diagnostics/pipeline',
+              },
+            },
+            timestamp: new Date().toISOString(),
+          },
+          null,
+          2
+        )
+      );
+      return;
+    }
+
+    if (url.startsWith('/api/diagnostics/session') && sessionId) {
+      // Per-session diagnostics
+      const sessionSummary = getSessionPerformanceSummary(sessionId);
+      const qualityStats = getQualityStats(sessionId);
+      const alerts = getRecentAlerts(sessionId, 10);
+
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(
+        JSON.stringify(
+          {
+            success: true,
+            sessionId,
+            data: {
+              performance: sessionSummary || { message: 'No performance data for this session' },
+              quality: {
+                gemini: {
+                  avgLatencyMs: Math.round(qualityStats.gemini.avgLatencyMs),
+                  errorRate: `${(qualityStats.gemini.errorRate * 100).toFixed(1)}%`,
+                  samples: qualityStats.gemini.sampleCount,
+                },
+                cartesia: {
+                  avgLatencyMs: Math.round(qualityStats.cartesia.avgLatencyMs),
+                  errorRate: `${(qualityStats.cartesia.errorRate * 100).toFixed(1)}%`,
+                  samples: qualityStats.cartesia.sampleCount,
+                },
+                response: qualityStats.response,
+              },
+              recentAlerts: alerts.map((a) => ({
+                category: a.category,
+                severity: a.severity,
+                message: a.message,
+                time: new Date(a.timestamp).toISOString(),
+              })),
+            },
+            timestamp: new Date().toISOString(),
+          },
+          null,
+          2
+        )
+      );
+      return;
+    }
+
+    if (url === '/api/diagnostics/pipeline') {
+      // Pipeline stage breakdown with targets
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(
+        JSON.stringify(
+          {
+            success: true,
+            data: {
+              pipeline: [
+                {
+                  stage: 'STT (Speech-to-Text)',
+                  target: '<50ms',
+                  description: 'Transcribes user speech',
+                },
+                {
+                  stage: 'Message Analysis',
+                  target: '<50ms',
+                  description: 'Intent, emotion, safety checks',
+                },
+                {
+                  stage: 'Context Building',
+                  target: '<100ms',
+                  description: 'Memory, persona, tools context',
+                },
+                {
+                  stage: 'LLM (Gemini)',
+                  target: '<200ms TTFT',
+                  description: 'Generates response (biggest variable)',
+                },
+                {
+                  stage: 'TTS (Cartesia)',
+                  target: '<150ms TTFB',
+                  description: 'Text to speech synthesis',
+                },
+                {
+                  stage: 'Audio Playback',
+                  target: 'Immediate',
+                  description: 'WebRTC audio delivery',
+                },
+              ],
+              totalTarget: '<400ms to first audio',
+              commonIssues: [
+                {
+                  issue: 'Cold start',
+                  symptom: 'First response slow',
+                  fix: 'Instance warming up, wait for second turn',
+                },
+                {
+                  issue: 'Complex query',
+                  symptom: 'Variable delay',
+                  fix: 'LLM needs more tokens for nuanced response',
+                },
+                {
+                  issue: 'Tool execution',
+                  symptom: 'Pause before response',
+                  fix: 'Ferni checking calendar/habits/memories',
+                },
+                {
+                  issue: 'Network latency',
+                  symptom: 'Consistent delay',
+                  fix: 'Check your internet connection',
+                },
+              ],
+              debugTips: [
+                'Enable frontend logging: window.ferniLatency.enable()',
+                'View session summary: window.ferniLatency.summary()',
+                'View turn history: window.ferniLatency.history()',
+              ],
+            },
+            timestamp: new Date().toISOString(),
+          },
+          null,
+          2
+        )
+      );
+      return;
+    }
+
+    // Unknown diagnostics endpoint
+    res.writeHead(404, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ error: 'Unknown diagnostics endpoint' }));
+  } catch (error) {
+    log.error({ error: String(error), url }, 'Diagnostics API error');
+    res.writeHead(500, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ error: 'Diagnostics unavailable', details: String(error) }));
+  }
+}
+
+/**
  * Handle warmup API request - keeps worker hot for faster connections
  */
 async function handleWarmupAPI(res: ServerResponse): Promise<void> {
-  res.setHeader('Access-Control-Allow-Origin', '*');
+  setMonitoringCorsHeaders(res);
 
   try {
     const { warmupWorker } = await import('./session-metrics.js');
@@ -411,7 +627,7 @@ async function handleWarmupAPI(res: ServerResponse): Promise<void> {
  */
 async function handlePrometheusMetrics(res: ServerResponse): Promise<void> {
   try {
-    const { exportPrometheusMetrics } = await import('../../services/memory-monitor.js');
+    const { exportPrometheusMetrics } = await import('../../services/memory/memory-monitor.js');
     const metrics = await exportPrometheusMetrics();
     res.writeHead(200, { 'Content-Type': 'text/plain; version=0.0.4; charset=utf-8' });
     res.end(metrics);
@@ -428,10 +644,7 @@ async function handlePrometheusMetrics(res: ServerResponse): Promise<void> {
 async function handleMetricsAPI(url: string, res: ServerResponse): Promise<void> {
   const metrics = await getPersistenceMetrics();
 
-  // CORS headers for dashboard
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  setMonitoringCorsHeaders(res);
 
   if (!metrics) {
     res.writeHead(503, { 'Content-Type': 'application/json' });
@@ -536,6 +749,200 @@ export function startHealthCheckServer(serviceName = 'voice-agent'): void {
         return;
       }
 
+      // Worker health check - Aggregated stats from all background workers
+      if (url === '/health/workers') {
+        try {
+          const { getWorkerStats } = await import('../../workers/index.js');
+          const { AsyncEvents } = await import('../../services/async-events/index.js');
+
+          const workerStats = getWorkerStats();
+          const asyncStats = AsyncEvents.getStats();
+
+          // Determine overall worker health
+          let status: 'healthy' | 'degraded' | 'unhealthy' = 'healthy';
+
+          // Check for degraded conditions
+          if (asyncStats.queueLength > 500) {
+            status = 'degraded';
+          }
+          if (asyncStats.queueLength > 900 || asyncStats.dropped > 100) {
+            status = 'unhealthy';
+          }
+
+          const statusCode = status === 'unhealthy' ? 503 : 200;
+
+          res.writeHead(statusCode, { 'Content-Type': 'application/json' });
+          res.end(
+            JSON.stringify({
+              status,
+              service: serviceName,
+              workers: workerStats,
+              asyncEvents: {
+                queueLength: asyncStats.queueLength,
+                emitted: asyncStats.emitted,
+                processed: asyncStats.processed,
+                errors: asyncStats.errors,
+                dropped: asyncStats.dropped,
+              },
+              timestamp: new Date().toISOString(),
+            })
+          );
+        } catch (error) {
+          res.writeHead(503, { 'Content-Type': 'application/json' });
+          res.end(
+            JSON.stringify({
+              status: 'unavailable',
+              error: 'Workers not initialized',
+              timestamp: new Date().toISOString(),
+            })
+          );
+        }
+        return;
+      }
+
+      // Native Rust module health check - Monitor native vs JS fallback ratio
+      // Shows which Rust accelerated functions are being used and performance gains
+      if (url === '/health/native') {
+        try {
+          // Import native module metrics
+          const [perfModule, fftModule] = await Promise.all([
+            import('../../memory/rust-accelerator.js').catch(() => null),
+            import('../../speech/fft-analyzer/native-fft.js').catch(() => null),
+          ]);
+
+          // Collect metrics from both modules
+          const nativeStatus: Record<string, unknown> = {
+            service: serviceName,
+            status: 'ok',
+            modules: {},
+          };
+
+          // @ferni/perf metrics
+          if (perfModule) {
+            // Check all available native functions from rust-accelerator
+            const batchToolScoring = perfModule.isBatchToolScoringNativeAvailable?.() ?? false;
+            const injectionDedup = perfModule.isInjectionDeduplicationNativeAvailable?.() ?? false;
+            const messageAnalysis = perfModule.isMessageAnalysisNativeAvailable?.() ?? false;
+            const emotionalState = perfModule.isEmotionalStateNativeAvailable?.() ?? false;
+            const conversationDynamics =
+              perfModule.isConversationDynamicsNativeAvailable?.() ?? false;
+
+            // Consider native available if ANY function is available
+            const isPerfNative =
+              batchToolScoring ||
+              injectionDedup ||
+              messageAnalysis ||
+              emotionalState ||
+              conversationDynamics;
+
+            nativeStatus.modules = {
+              ...(nativeStatus.modules as object),
+              'rust-perf': {
+                available: isPerfNative,
+                functions: {
+                  batchToolScoring,
+                  injectionDeduplication: injectionDedup,
+                  messageAnalysis,
+                  emotionalState,
+                  conversationDynamics,
+                },
+              },
+            };
+          }
+
+          // @ferni/audio (FFT) metrics
+          if (fftModule) {
+            const fftInfo = fftModule.getNativeFftInfo?.();
+            const fftMetrics = fftModule.getFftMetrics?.();
+
+            nativeStatus.modules = {
+              ...(nativeStatus.modules as object),
+              'rust-audio': {
+                available: fftModule.isNativeFftAvailable?.() ?? false,
+                loadError: fftModule.getNativeFftLoadError?.() ?? null,
+                libraryInfo: fftInfo ?? null,
+                metrics: fftMetrics
+                  ? {
+                      calls: fftMetrics.calls,
+                      totalSamples: fftMetrics.totalSamples,
+                      totalTimeMs: fftMetrics.totalTimeMs?.toFixed(3),
+                      avgTimeMs: fftMetrics.avgTimeMs?.toFixed(3),
+                    }
+                  : null,
+              },
+            };
+          }
+
+          // Calculate overall status
+          const modules = nativeStatus.modules as Record<string, { available: boolean }>;
+          const perfAvailable = modules['rust-perf']?.available ?? false;
+          const audioAvailable = modules['rust-audio']?.available ?? false;
+
+          if (perfAvailable && audioAvailable) {
+            nativeStatus.status = 'fully_native';
+          } else if (perfAvailable || audioAvailable) {
+            nativeStatus.status = 'partially_native';
+          } else {
+            nativeStatus.status = 'js_fallback';
+          }
+
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(
+            JSON.stringify(
+              {
+                ...nativeStatus,
+                timestamp: new Date().toISOString(),
+              },
+              null,
+              2
+            )
+          );
+        } catch (err) {
+          res.writeHead(500, { 'Content-Type': 'application/json' });
+          res.end(
+            JSON.stringify({
+              status: 'error',
+              error: 'Could not get native module metrics',
+              message: String(err),
+              timestamp: new Date().toISOString(),
+            })
+          );
+        }
+        return;
+      }
+
+      // Gemini health check - Monitor LLM reliability and leakage rates
+      // Use this to monitor Gemini function calling health and decide if
+      // you need to switch to OpenAI Realtime
+      if (url === '/health/gemini') {
+        try {
+          const { getGeminiHealthMetrics } = await import('./function-call-telemetry.js');
+          const metrics = getGeminiHealthMetrics();
+
+          // Return 200 for healthy/degraded, 503 for unhealthy
+          const statusCode = metrics.status === 'unhealthy' ? 503 : 200;
+
+          res.writeHead(statusCode, { 'Content-Type': 'application/json' });
+          res.end(
+            JSON.stringify({
+              ...metrics,
+              service: serviceName,
+              endpoint: '/health/gemini',
+              timestamp: new Date().toISOString(),
+            })
+          );
+        } catch (err) {
+          res.writeHead(500, { 'Content-Type': 'application/json' });
+          res.end(
+            JSON.stringify({
+              error: 'Could not get Gemini health metrics',
+              message: String(err),
+            })
+          );
+        }
+        return;
+      }
+
       // Cognitive API endpoints
       if (url.startsWith('/api/cognitive')) {
         await handleCognitiveAPI(url, res);
@@ -587,6 +994,12 @@ export function startHealthCheckServer(serviceName = 'voice-agent'): void {
       // Warmup endpoint - keeps worker hot for faster connections
       if (url === '/health/warmup' || url === '/api/warmup') {
         await handleWarmupAPI(res);
+        return;
+      }
+
+      // Diagnostics endpoint - full pipeline breakdown
+      if (url.startsWith('/api/diagnostics')) {
+        await handleDiagnosticsAPI(url, res);
         return;
       }
 

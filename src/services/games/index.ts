@@ -489,3 +489,106 @@ export {
   type LibraryGameSession,
   type LibraryAvailability,
 } from './library-game-mode.js';
+
+// ============================================================================
+// 📝 THREE WORD DAY (Text-based reflection game)
+// ============================================================================
+
+export {
+  createInitialState as createThreeWordDayState,
+  processInput as processThreeWordDayInput,
+  getStartResult as getThreeWordDayStartResult,
+  describeStateForVoice as describeThreeWordDayState,
+  type ThreeWordDayState,
+  type ThreeWordDayResult,
+} from './three-word-day.js';
+
+// ============================================================================
+// 🎴 VALUES CARD SORT (Text-based values discovery game)
+// ============================================================================
+
+export {
+  createInitialState as createValuesCardSortState,
+  processInput as processValuesCardSortInput,
+  getStartResult as getValuesCardSortStartResult,
+  describeStateForVoice as describeValuesCardSortState,
+  getTopFiveValues,
+  type ValuesCardSortState,
+  type ValuesCardSortResult,
+  type ValueCard,
+} from './values-card-sort.js';
+
+// ============================================================================
+// 📰 HEADLINE WRITER (Text-based creative reflection game)
+// ============================================================================
+
+export {
+  createInitialState as createHeadlineWriterState,
+  processInput as processHeadlineWriterInput,
+  getStartResult as getHeadlineWriterStartResult,
+  describeStateForVoice as describeHeadlineWriterState,
+  getSessionHeadlines,
+  type HeadlineWriterState,
+  type HeadlineWriterResult,
+  type Headline,
+  type HeadlineTimeframe,
+  type HeadlineTone,
+} from './headline-writer.js';
+
+// ============================================================================
+// 😊 EMOJI STORY (Text-based emotional expression game)
+// ============================================================================
+
+export {
+  createInitialState as createEmojiStoryState,
+  processInput as processEmojiStoryInput,
+  getStartResult as getEmojiStoryStartResult,
+  describeStateForVoice as describeEmojiStoryState,
+  getEmojiStory,
+  type EmojiStoryState,
+  type EmojiStoryResult,
+} from './emoji-story.js';
+
+// ============================================================================
+// 📍 ONE WORD CHECK-IN (Quick reflection game)
+// ============================================================================
+
+export {
+  createInitialState as createOneWordCheckinState,
+  processInput as processOneWordCheckinInput,
+  getStartResult as getOneWordCheckinStartResult,
+  describeStateForVoice as describeOneWordCheckinState,
+  getCheckinResult,
+  type OneWordCheckinState,
+  type OneWordCheckinResult,
+} from './one-word-checkin.js';
+
+// ============================================================================
+// 🏆 TINY WIN TRACKER (Positivity practice game)
+// ============================================================================
+
+export {
+  createInitialState as createTinyWinTrackerState,
+  processInput as processTinyWinTrackerInput,
+  getStartResult as getTinyWinTrackerStartResult,
+  describeStateForVoice as describeTinyWinTrackerState,
+  getSessionWins,
+  type TinyWinTrackerState,
+  type TinyWinTrackerResult,
+  type TinyWin,
+} from './tiny-win-tracker.js';
+
+// ============================================================================
+// 🥠 FORTUNE COOKIE (Wisdom reflection game)
+// ============================================================================
+
+export {
+  createInitialState as createFortuneCookieState,
+  processInput as processFortuneCookieInput,
+  getStartResult as getFortuneCookieStartResult,
+  describeStateForVoice as describeFortuneCookieState,
+  getSessionFortunes,
+  type FortuneCookieState,
+  type FortuneCookieResult,
+  type Fortune,
+} from './fortune-cookie.js';

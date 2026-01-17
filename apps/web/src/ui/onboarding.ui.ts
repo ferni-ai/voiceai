@@ -64,7 +64,7 @@ function getDefaultSteps(): OnboardingStep[] {
     id,
     title: t(`onboarding.steps.${id}.title`),
     description: t(`onboarding.steps.${id}.description`),
-    icon: STEP_ICONS[id] || '',
+    icon: STEP_ICONS[id] ?? '',
     highlight: STEP_HIGHLIGHTS[id],
   }));
 }
@@ -214,9 +214,9 @@ class OnboardingUI {
           ${this.steps.map((_, i) => `<span class="onboarding__dot ${i === this.currentStep ? 'onboarding__dot--active' : ''}"></span>`).join('')}
         </div>
         
-        <div class="onboarding__actions">
+        <div class="onboarding__actions" role="button" tabindex="0">
           ${!isFirst ? `<button class="onboarding__btn onboarding__btn--secondary" data-action="prev">${t('onboarding.buttons.back')}</button>` : `<button class="onboarding__btn onboarding__btn--secondary" data-action="skip">${t('onboarding.buttons.skip')}</button>`}
-          <button class="onboarding__btn onboarding__btn--primary" data-action="next">${isLast ? t('onboarding.buttons.begin') : t('onboarding.buttons.next')}</button>
+          <button aria-label="${t('accessibility.next')}" class="onboarding__btn onboarding__btn--primary" data-action="next">${isLast ? t('onboarding.buttons.begin') : t('onboarding.buttons.next')}</button>
         </div>
       </div>
     `;
@@ -273,9 +273,7 @@ class OnboardingUI {
         align-items: center;
         justify-content: center;
         padding: var(--ma-silence, 34px);
-        background: var(--backdrop-page);
-        backdrop-filter: blur(var(--glass-blur-strong, 24px));
-        -webkit-backdrop-filter: blur(var(--glass-blur-strong, 24px));
+        background: rgba(44, 37, 32, 0.75);
         opacity: 0;
         visibility: hidden;
         transition: opacity ${DURATION.SLOW}ms ${EASING.STANDARD}, visibility ${DURATION.SLOW}ms;
@@ -285,12 +283,12 @@ class OnboardingUI {
 
       .onboarding__card {
         width: 100%;
-        max-width: 420px;
+        max-width: clamp(294px, 90vw, 420px);
         padding: var(--ma-vastness, 55px) var(--ma-silence, 34px);
-        background: var(--color-background-elevated, #fffdfb);
-        border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.05));
-        border-radius: var(--radius-2xl, 2rem);
-        box-shadow: var(--shadow-2xl, 0 24px 48px rgba(44, 37, 32, 0.15));
+        background: var(--color-bg-elevated, #FFFDFB);
+        border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
+        border-radius: var(--radius-xl, 20px);
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.06);
         text-align: center;
       }
 

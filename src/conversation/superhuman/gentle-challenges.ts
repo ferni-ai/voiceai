@@ -16,6 +16,7 @@
  * @module @ferni/superhuman/gentle-challenges
  */
 
+import { seededChance, seededFloat, seededIndex, seededPick } from '../utils/rng.js';
 import { createLogger } from '../../utils/safe-logger.js';
 
 const logger = createLogger({ module: 'GentleChallenges' });
@@ -365,10 +366,10 @@ export function detectChallengeOpportunity(context: ChallengeContext): Challenge
 
   // Build the challenge
   const templates = CHALLENGE_TEMPLATES[detectedType];
-  const leadIn = templates.leadIns[Math.floor(Math.random() * templates.leadIns.length)];
-  const challenge = templates.challenges[Math.floor(Math.random() * templates.challenges.length)];
+  const leadIn = seededPick(`${Date.now()}:1`, templates.leadIns) ?? templates.leadIns[0];
+  const challenge = seededPick(`${Date.now()}:2`, templates.challenges) ?? templates.challenges[0];
   const softLanding =
-    templates.softLandings[Math.floor(Math.random() * templates.softLandings.length)];
+    seededPick(`${Date.now()}:3`, templates.softLandings) ?? templates.softLandings[0];
 
   logger.debug({ type: detectedType, confidence, evidence }, '🪞 Challenge opportunity detected');
 
@@ -434,6 +435,6 @@ export function isGoodTimeToChallenge(context: ChallengeContext): boolean {
 export function getSoftChallenge(type: ChallengeType): string {
   const templates = CHALLENGE_TEMPLATES[type];
   if (!templates) return '';
-  const idx = Math.floor(Math.random() * templates.challenges.length);
+  const idx = seededIndex(`${Date.now()}:4`, templates.challenges.length);
   return templates.challenges[idx];
 }

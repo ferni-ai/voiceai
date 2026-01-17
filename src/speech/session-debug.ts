@@ -198,7 +198,7 @@ export function getSessionDebugInfo(sessionId: string): SpeechSessionDebugInfo |
       turnPredictions: metrics.turnPredictions,
       emotionsDetected: [...metrics.emotionsDetected],
       prosodyAnalyses: metrics.prosodyAnalyses,
-      anticipationHitRate: 0, // TODO: Get from service
+      anticipationHitRate: -1, // -1 indicates not yet tracked (future feature)
     },
     estimatedMemoryKB,
   };

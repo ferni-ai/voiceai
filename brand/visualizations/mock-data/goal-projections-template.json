@@ -1,0 +1,172 @@
+{
+  "$schema": "Goal Projections Mock Data Template",
+  "description": "Template for Monte Carlo projection visualizations",
+
+  "goals": [
+    {
+      "id": "coastal-home",
+      "name": "Coastal Home",
+      "category": "financial",
+      "persona": "nayan",
+      "currentValue": 425000,
+      "targetValue": 800000,
+      "unit": "USD",
+      "startDate": "2020-01-01",
+      "targetDate": null,
+      "historicalData": [
+        { "date": "2020-01", "value": 180000 },
+        { "date": "2021-01", "value": 220000 },
+        { "date": "2022-01", "value": 275000 },
+        { "date": "2023-01", "value": 340000 },
+        { "date": "2024-01", "value": 390000 },
+        { "date": "2024-12", "value": 425000 }
+      ],
+      "projections": {
+        "pessimistic": {
+          "value": 800000,
+          "date": "2031-06",
+          "confidence": 0.95,
+          "monthlyRequired": 4200,
+          "assumptions": "Market downturn, reduced savings rate"
+        },
+        "median": {
+          "value": 800000,
+          "date": "2029-03",
+          "confidence": 0.50,
+          "monthlyRequired": 5800,
+          "assumptions": "Current trajectory continues"
+        },
+        "optimistic": {
+          "value": 800000,
+          "date": "2027-06",
+          "confidence": 0.05,
+          "monthlyRequired": 7500,
+          "assumptions": "Bonus years, market gains"
+        }
+      },
+      "confidenceBands": [
+        { "percentile": 95, "values": [425000, 480000, 540000, 610000, 690000, 780000] },
+        { "percentile": 75, "values": [425000, 510000, 600000, 700000, 810000, 930000] },
+        { "percentile": 50, "values": [425000, 530000, 650000, 780000, 920000, 1080000] },
+        { "percentile": 25, "values": [425000, 560000, 710000, 880000, 1070000, 1290000] }
+      ],
+      "insight": "Shifting $300/month from subscriptions moves the median 8 months earlier. That's 8 more months of sunsets.",
+      "actionableSteps": [
+        { "action": "Review streaming subscriptions", "impact": "+$50/mo", "difficulty": "easy" },
+        { "action": "Negotiate phone plan", "impact": "+$30/mo", "difficulty": "easy" },
+        { "action": "Side project income", "impact": "+$500/mo", "difficulty": "medium" }
+      ]
+    },
+    {
+      "id": "spanish-fluency",
+      "name": "Spanish Fluency",
+      "category": "learning",
+      "persona": "nayan",
+      "currentValue": 45,
+      "targetValue": 85,
+      "unit": "proficiency-score",
+      "startDate": "2024-06-01",
+      "targetDate": "2025-08-01",
+      "historicalData": [
+        { "date": "2024-06", "value": 15 },
+        { "date": "2024-07", "value": 22 },
+        { "date": "2024-08", "value": 28 },
+        { "date": "2024-09", "value": 33 },
+        { "date": "2024-10", "value": 38 },
+        { "date": "2024-11", "value": 42 },
+        { "date": "2024-12", "value": 45 }
+      ],
+      "projections": {
+        "pessimistic": {
+          "value": 85,
+          "date": "2026-02",
+          "confidence": 0.95,
+          "dailyMinutes": 15,
+          "assumptions": "Frequent skipped days, no immersion"
+        },
+        "median": {
+          "value": 85,
+          "date": "2025-08",
+          "confidence": 0.50,
+          "dailyMinutes": 30,
+          "assumptions": "Current pace continues"
+        },
+        "optimistic": {
+          "value": 85,
+          "date": "2025-04",
+          "confidence": 0.15,
+          "dailyMinutes": 45,
+          "assumptions": "Daily practice + conversation partner"
+        }
+      },
+      "insight": "Your retention spikes when you practice before breakfast. Morning sessions are 40% more effective for you.",
+      "actionableSteps": [
+        { "action": "Find conversation partner", "impact": "+15%/mo", "difficulty": "medium" },
+        { "action": "Watch shows in Spanish", "impact": "+5%/mo", "difficulty": "easy" },
+        { "action": "Book immersion trip", "impact": "+25% jump", "difficulty": "hard" }
+      ]
+    },
+    {
+      "id": "marathon",
+      "name": "Run a Marathon",
+      "category": "health",
+      "persona": "maya",
+      "currentValue": 10,
+      "targetValue": 42.2,
+      "unit": "km-comfortable-distance",
+      "startDate": "2024-09-01",
+      "targetDate": "2026-03-15",
+      "historicalData": [
+        { "date": "2024-09", "value": 3 },
+        { "date": "2024-10", "value": 5 },
+        { "date": "2024-11", "value": 7 },
+        { "date": "2024-12", "value": 10 }
+      ],
+      "projections": {
+        "pessimistic": {
+          "value": 42.2,
+          "date": "2027-03",
+          "confidence": 0.95,
+          "weeklyKm": 20,
+          "assumptions": "Injuries, winter breaks"
+        },
+        "median": {
+          "value": 42.2,
+          "date": "2026-03",
+          "confidence": 0.50,
+          "weeklyKm": 35,
+          "assumptions": "Consistent training"
+        },
+        "optimistic": {
+          "value": 42.2,
+          "date": "2025-10",
+          "confidence": 0.20,
+          "weeklyKm": 50,
+          "assumptions": "Accelerated program, no injuries"
+        }
+      },
+      "insight": "Your running consistency is 3x higher when scheduled before work. Afternoon runs have an 80% skip rate.",
+      "actionableSteps": [
+        { "action": "Join running group", "impact": "Accountability +60%", "difficulty": "medium" },
+        { "action": "Sign up for half-marathon", "impact": "Motivation boost", "difficulty": "easy" },
+        { "action": "Hire running coach", "impact": "+20% efficiency", "difficulty": "medium" }
+      ]
+    }
+  ],
+
+  "dreamTimeline": {
+    "shortTerm": [
+      { "name": "50-day streak", "projected": "2025-01-03", "confidence": 0.85 },
+      { "name": "First 5K race", "projected": "2025-03-15", "confidence": 0.72 }
+    ],
+    "mediumTerm": [
+      { "name": "Spanish B2 level", "projected": "2025-08", "confidence": 0.65 },
+      { "name": "Half-marathon", "projected": "2025-10", "confidence": 0.55 }
+    ],
+    "longTerm": [
+      { "name": "Coastal home", "projected": "2029-03", "confidence": 0.50 },
+      { "name": "Marathon complete", "projected": "2026-03", "confidence": 0.50 },
+      { "name": "Sabbatical year", "projected": "2030-01", "confidence": 0.35 }
+    ]
+  }
+}

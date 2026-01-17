@@ -21,10 +21,17 @@
 ARG NODE_VERSION=20
 ARG PROJECT_ID=johnb-2025
 
+# LiveKit agents SDK version - update this when upgrading @livekit/agents packages
+# Check latest: https://www.npmjs.com/package/@livekit/agents
+ARG LIVEKIT_AGENTS_VERSION=1.0.31
+
 # ============================================================================
 # Stage 1: Build Backend TypeScript (with pnpm + esbuild)
 # ============================================================================
 FROM node:${NODE_VERSION}-slim AS backend-builder
+
+# Re-declare ARG after FROM to make it available in this stage
+ARG LIVEKIT_AGENTS_VERSION
 
 # Install git and enable pnpm
 RUN apt-get update && apt-get install -y --no-install-recommends git \
@@ -34,7 +41,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends git \
 WORKDIR /app
 
 # Copy package files and configs
-COPY package.json pnpm-lock.yaml* ./
+COPY package.json pnpm-lock.yaml* pnpm-workspace.yaml* ./
 COPY .npmrc ./
 COPY tsconfig.json ./
 COPY tsconfig.build.json ./
@@ -42,9 +49,32 @@ COPY tsconfig.build.json ./
 # Copy patches directory (required by pnpm-lock.yaml)
 COPY patches/ ./patches/
 
-# Install dependencies with pnpm
+# Copy workspace package files
+COPY apps/cli/package.json ./apps/cli/
+COPY apps/web/package.json ./apps/web/
+COPY apps/async/package.json ./apps/async/
+COPY apps/intelligence-worker/package.json ./apps/intelligence-worker/
+COPY packages/shared-types/package.json ./packages/shared-types/
+
+# Create stub package.json for packages not in build context (rust packages, design-system)
+RUN mkdir -p apps/rust-audio apps/rust-perf design-system && \
+    echo '{"name":"@ferni/audio","version":"0.1.0"}' > apps/rust-audio/package.json && \
+    echo '{"name":"@ferni/perf","version":"0.1.0"}' > apps/rust-perf/package.json && \
+    echo '{"name":"@ferni/design-system","version":"1.0.0"}' > design-system/package.json
+
+# Replace local file: dependencies with npm registry versions for Docker builds
+# Version is controlled by LIVEKIT_AGENTS_VERSION build arg (defined at top of file)
+RUN echo "Using @livekit/agents version: ^${LIVEKIT_AGENTS_VERSION}" && \
+    sed -i "s|\"file:../agents-js/agents\"|\"^${LIVEKIT_AGENTS_VERSION}\"|g" package.json && \
+    sed -i "s|\"file:../agents-js/plugins/cartesia\"|\"^${LIVEKIT_AGENTS_VERSION}\"|g" package.json && \
+    sed -i "s|\"file:../agents-js/plugins/deepgram\"|\"^${LIVEKIT_AGENTS_VERSION}\"|g" package.json && \
+    sed -i "s|\"file:../agents-js/plugins/google\"|\"^${LIVEKIT_AGENTS_VERSION}\"|g" package.json && \
+    sed -i "s|\"file:../agents-js/plugins/openai\"|\"^${LIVEKIT_AGENTS_VERSION}\"|g" package.json && \
+    sed -i "s|\"file:../agents-js/plugins/silero\"|\"^${LIVEKIT_AGENTS_VERSION}\"|g" package.json
+
+# Install dependencies with pnpm (no frozen lockfile since we modified package.json)
 RUN --mount=type=cache,target=/root/.local/share/pnpm/store \
-    pnpm install --frozen-lockfile --prefer-offline
+    pnpm install --prefer-offline --no-frozen-lockfile
 
 # Copy build script (now in apps/cli/) and source
 COPY apps/cli/src/commands/build/build-fast.ts ./apps/cli/src/commands/build/
@@ -68,6 +98,11 @@ WORKDIR /app
 # Copy design-system dist (needed for @design-system imports)
 COPY design-system/dist ./design-system/dist/
 
+# Copy essential brand assets (logos, favicons) from design-system/assets/
+# Note: These are included via gcloudignore exceptions
+COPY design-system/assets/logos ./design-system/assets/logos/
+COPY design-system/assets/favicons ./design-system/assets/favicons/
+
 # Copy frontend package files (npm-based)
 COPY apps/web/package.json apps/web/package-lock.json ./apps/web/
 
@@ -78,6 +113,15 @@ RUN --mount=type=cache,target=/root/.npm \
     npm ci --prefer-offline
 
 COPY apps/web/ ./
+
+# Create placeholder for symlinked brand directory (symlink points outside context)
+# The symlink apps/web/public/design-system/brand -> ../../../../design-system/docs/brand
+# won't work in Docker, so we create an empty directory
+# Use rm -rf to handle both file and directory cases, avoiding cache conflicts
+# Note: Using explicit date in echo to bust Kaniko cache layer
+# Force fresh layer with timestamp to avoid Kaniko cache issues
+ARG BUILD_TIMESTAMP=default
+RUN echo "Build: ${BUILD_TIMESTAMP}" && rm -rf public/design-system/brand 2>/dev/null || true && mkdir -p public/design-system/brand
 
 # Set env var for Vite build (bakes into the bundle)
 ENV VITE_ADMIN_API_KEY=${VITE_ADMIN_API_KEY}
@@ -103,15 +147,35 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/* \
     && corepack enable && corepack prepare pnpm@latest --activate
 
-# Copy package files and install production dependencies
-COPY package.json pnpm-lock.yaml* ./
+# Copy package files from builder stage (has file: deps replaced with npm versions)
+COPY --from=backend-builder /app/package.json ./
+COPY --from=backend-builder /app/pnpm-lock.yaml* ./
 COPY .npmrc ./
+COPY pnpm-workspace.yaml ./
 
 # Copy patches directory (required by pnpm-lock.yaml)
 COPY patches/ ./patches/
 
+# Copy workspace package stubs from builder
+COPY --from=backend-builder /app/apps/rust-audio/package.json ./apps/rust-audio/
+COPY --from=backend-builder /app/apps/rust-perf/package.json ./apps/rust-perf/
+COPY --from=backend-builder /app/design-system/package.json ./design-system/
+COPY --from=backend-builder /app/apps/cli/package.json ./apps/cli/
+COPY --from=backend-builder /app/apps/web/package.json ./apps/web/
+COPY --from=backend-builder /app/apps/async/package.json ./apps/async/
+COPY --from=backend-builder /app/apps/intelligence-worker/package.json ./apps/intelligence-worker/
+COPY --from=backend-builder /app/packages/shared-types/package.json ./packages/shared-types/
+
 RUN --mount=type=cache,target=/root/.local/share/pnpm/store \
-    pnpm install --frozen-lockfile --prefer-offline --prod || npm ci --omit=dev
+    pnpm install --prefer-offline --prod --no-frozen-lockfile && \
+    # Remove unnecessary files from node_modules to reduce image size (~30% reduction)
+    find node_modules -name "*.md" -delete 2>/dev/null || true && \
+    find node_modules -name "*.map" -delete 2>/dev/null || true && \
+    find node_modules -name "*.ts" ! -name "*.d.ts" -delete 2>/dev/null || true && \
+    find node_modules -name "CHANGELOG*" -delete 2>/dev/null || true && \
+    find node_modules -type d -name "test" -exec rm -rf {} + 2>/dev/null || true && \
+    find node_modules -type d -name "tests" -exec rm -rf {} + 2>/dev/null || true && \
+    find node_modules -type d -name "__tests__" -exec rm -rf {} + 2>/dev/null || true
 
 # UI server is compiled from TypeScript (src/servers/api/index.ts → dist/servers/api/index.js)
 
@@ -121,12 +185,16 @@ COPY --from=backend-builder /app/dist ./dist/
 # Copy persona bundles
 COPY src/personas/bundles ./src/personas/bundles/
 
+# Copy marketplace agents registry (for /api/marketplace/registry endpoint)
+COPY apps/marketplace-agents/registry.json ./apps/marketplace-agents/registry.json
+
 # Create frontend directory and copy built frontend
 RUN mkdir -p apps/web/dist
 COPY --from=frontend-builder /app/apps/web/dist ./apps/web/dist/
 
 # Copy pre-built ferni-speaker (from the pre-built image)
-RUN mkdir -p node_modules/ferni-speaker/models
+# Remove existing symlink/directory from pnpm install, then copy the pre-built version
+RUN rm -rf node_modules/ferni-speaker && mkdir -p node_modules/ferni-speaker/models
 COPY --from=speaker-prebuilt /speaker/ ./node_modules/ferni-speaker/
 
 # Verify what we have

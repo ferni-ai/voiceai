@@ -13,6 +13,7 @@
 import { getLogger } from '../../utils/safe-logger.js';
 import type { GameMemory, MusicMemory } from '../../types/user-profile.js';
 import { createEmptyGameMemory } from './game-persistence.js';
+import { cleanForFirestore } from '../../utils/firestore-utils.js';
 
 const log = getLogger();
 
@@ -41,7 +42,7 @@ export async function loadGameMemory(userId: string): Promise<GameMemory> {
   }
 
   try {
-    const { getEngagementStore } = await import('../engagement-store.js');
+    const { getEngagementStore } = await import('../engagement/engagement-store.js');
     const store = await getEngagementStore();
     const profile = await store.getProfile(userId);
 
@@ -74,7 +75,7 @@ export async function loadMusicMemory(userId: string): Promise<MusicMemory | nul
   }
 
   try {
-    const { getEngagementStore } = await import('../engagement-store.js');
+    const { getEngagementStore } = await import('../engagement/engagement-store.js');
     const store = await getEngagementStore();
     const profile = await store.getProfile(userId);
 
@@ -146,7 +147,7 @@ async function flushDirtyUsers(): Promise<void> {
   log.debug({ count: usersToSave.length }, '🎮 Flushing game memory to Firestore');
 
   try {
-    const { getEngagementStore } = await import('../engagement-store.js');
+    const { getEngagementStore } = await import('../engagement/engagement-store.js');
     const store = await getEngagementStore();
 
     for (const userId of usersToSave) {
@@ -174,7 +175,7 @@ async function flushDirtyUsers(): Promise<void> {
   } catch (error) {
     log.error({ error }, '🎮 Failed to get engagement store');
     // Re-add all users for retry
-    usersToSave.forEach((u) => dirtyUsers.add(u));
+    usersToSave.forEach((u) => dirtyUsers.add(cleanForFirestore(u)));
   }
 }
 
@@ -193,7 +194,7 @@ export async function forceSaveGameMemory(userId: string): Promise<void> {
   }
 
   try {
-    const { getEngagementStore } = await import('../engagement-store.js');
+    const { getEngagementStore } = await import('../engagement/engagement-store.js');
     const store = await getEngagementStore();
     const profile = await store.getProfile(userId);
 

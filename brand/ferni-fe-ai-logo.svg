@@ -1,67 +1,30 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 240" width="400" height="240">
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Primary FE AI logo with eyes design -->
+<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <!-- Subtle gradient for depth -->
-    <linearGradient id="ferniGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#4a6741"/>
-      <stop offset="100%" style="stop-color:#3d5a35"/>
+    <linearGradient id="orbGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#4a6741"/>
+      <stop offset="100%" stop-color="#3a5731"/>
     </linearGradient>
-    <!-- Soft shadow -->
-    <filter id="softShadow" x="-20%" y="-20%" width="140%" height="140%">
-      <feDropShadow dx="0" dy="4" stdDeviation="8" flood-color="#2C2520" flood-opacity="0.15"/>
-    </filter>
+    <linearGradient id="eyeFill" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="100%" stop-color="#f0f0f0"/>
+    </linearGradient>
   </defs>
-  
-  <!-- Main Ferni ellipse -->
-  <ellipse 
-    cx="200" 
-    cy="120" 
-    rx="180" 
-    ry="100" 
-    fill="url(#ferniGradient)"
-    filter="url(#softShadow)"
-  />
-  
-  <!-- FE circle (human/frontend element) -->
-  <circle 
-    cx="130" 
-    cy="120" 
-    r="45" 
-    fill="#5a6b5a"
-    opacity="0.85"
-  />
-  <text 
-    x="130" 
-    y="128" 
-    font-family="Inter, -apple-system, sans-serif" 
-    font-size="24" 
-    font-weight="600"
-    fill="#FFFDFB" 
-    text-anchor="middle"
-  >FE</text>
-  
-  <!-- AI circle (artificial intelligence element) -->
-  <circle 
-    cx="270" 
-    cy="120" 
-    r="45" 
-    fill="#FFFDFB"
-    opacity="0.9"
-  />
-  <circle 
-    cx="270" 
-    cy="120" 
-    r="43" 
-    fill="none"
-    stroke="#b8c4b4"
-    stroke-width="2"
-  />
-  <text 
-    x="270" 
-    y="128" 
-    font-family="Inter, -apple-system, sans-serif" 
-    font-size="24" 
-    font-weight="600"
-    fill="#4a6741" 
-    text-anchor="middle"
-  >AI</text>
+
+  <!-- Outer ring -->
+  <circle cx="50" cy="50" r="46" fill="none" stroke="#4a6741" stroke-width="1.5" opacity="0.35"/>
+
+  <!-- Circular background -->
+  <circle cx="50" cy="50" r="40" fill="url(#orbGradient)"/>
+
+  <!-- Left eye -->
+  <ellipse cx="36" cy="47" rx="8" ry="10" fill="url(#eyeFill)"/>
+  <circle cx="34" cy="43" r="2" fill="white"/>
+  <circle cx="36" cy="45" r="0.8" fill="white" opacity="0.7"/>
+
+  <!-- Right eye -->
+  <ellipse cx="64" cy="47" rx="8" ry="10" fill="url(#eyeFill)"/>
+  <circle cx="62" cy="43" r="2" fill="white"/>
+  <circle cx="64" cy="45" r="0.8" fill="white" opacity="0.7"/>
 </svg>

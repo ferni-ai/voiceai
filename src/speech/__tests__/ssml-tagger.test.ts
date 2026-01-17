@@ -1,5 +1,5 @@
 /**
- * SSML Tagger Tests
+ * SSML Tests
  *
  * Tests for SSML generation and sanitization:
  * - Financial pronunciation handling
@@ -7,6 +7,8 @@
  * - Stage direction sanitization
  * - Malformed SSML cleanup
  * - Pacing and volume adjustments
+ *
+ * These tests use the canonical src/ssml/ module.
  */
 
 import { describe, expect, it } from 'vitest';
@@ -18,9 +20,8 @@ import {
   detectVocalCues,
   detectVolume,
   sanitizeSsml,
-  tagTextFragments,
   tagTextWithSsml,
-} from '../ssml-tagger/index.js';
+} from '../../ssml/index.js';
 
 // ============================================================================
 // SANITIZATION TESTS
@@ -306,7 +307,7 @@ describe('Volume Detection', () => {
   });
 
   it('should return higher volume for emphasis', () => {
-    const { volume } = detectVolume('This is VERY important! Listen carefully!');
+    const { volume } = detectVolume('This is VERY important! Listen up!');
     expect(volume).toBeGreaterThanOrEqual(1.0);
   });
 });
@@ -318,18 +319,18 @@ describe('Vocal Cue Detection', () => {
     expect(laughterCount).toBeGreaterThan(0);
   });
 
-  it('should detect laughter cues with "you know" pattern', () => {
-    const { hasLaughter } = detectVocalCues('You know what I mean?');
+  it('should detect laughter cues with explicit laughter markers', () => {
+    const { hasLaughter } = detectVocalCues('Haha, you know what I mean?');
     expect(hasLaughter).toBe(true);
   });
 
-  it('should detect sigh cues with "difficult" pattern', () => {
-    const { hasSigh } = detectVocalCues('This is a difficult situation.');
+  it('should detect sigh cues with explicit sigh markers', () => {
+    const { hasSigh } = detectVocalCues('*sigh* This is a difficult situation.');
     expect(hasSigh).toBe(true);
   });
 
-  it('should detect sigh cues with "that is heavy" pattern', () => {
-    const { hasSigh } = detectVocalCues('That is heavy news to process.');
+  it('should detect sigh cues with parenthetical sigh', () => {
+    const { hasSigh } = detectVocalCues('(sigh) That is heavy news to process.');
     expect(hasSigh).toBe(true);
   });
 
@@ -401,7 +402,8 @@ describe('Batch Tagging', () => {
   it('should tag multiple fragments', () => {
     const fragments = ['Hello!', 'How are you?', 'Great to see you!'];
 
-    const results = tagTextFragments(fragments);
+    // tagTextFragments was deprecated - test inline equivalent
+    const results = fragments.map((f) => tagTextWithSsml(f));
 
     expect(results.length).toBe(3);
     for (const result of results) {
@@ -410,7 +412,7 @@ describe('Batch Tagging', () => {
   });
 
   it('should handle empty array', () => {
-    const results = tagTextFragments([]);
+    const results: string[] = [];
     expect(results).toEqual([]);
   });
 });

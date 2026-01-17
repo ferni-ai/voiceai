@@ -15,10 +15,10 @@
 import { createDomainExport } from '../../registry/loader.js';
 import type { ToolDefinition, ToolContext, ExternalService } from '../../registry/types.js';
 
-// Import legacy tool creators
-import { createPlaidTools } from '../../plaid.js';
-import { createPersonalFinanceTools } from '../../personal-finance.js';
-import { createCalculatorTools } from '../../calculators.js';
+// Import tool creators (now co-located in finance domain)
+import { createPlaidTools } from './plaid.js';
+import { createPersonalFinanceTools } from './personal-finance.js';
+import { createCalculatorTools } from './calculators.js';
 
 // ============================================================================
 // LEGACY TOOL WRAPPER

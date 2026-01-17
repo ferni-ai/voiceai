@@ -7,6 +7,7 @@
 
 import { createPersistenceStore, type PersistenceStore } from '../../services/persistence/index.js';
 import { getLogger } from '../../utils/safe-logger.js';
+import { cleanForFirestore } from '../../utils/firestore-utils.js';
 import type {
   Event,
   MajorPurchase,

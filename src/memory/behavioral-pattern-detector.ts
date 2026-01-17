@@ -12,8 +12,9 @@
  */
 
 import { createLogger } from '../utils/safe-logger.js';
+import { cleanForFirestore } from '../utils/firestore-utils.js';
 import type {
-  IBehavioralPatternDetector,
+  BehavioralPatternDetector as BehavioralPatternDetectorInterface,
   BehavioralPattern,
   PatternType,
   ConversationTurn,
@@ -241,7 +242,7 @@ interface DetectionAccumulator {
   }>;
 }
 
-export class BehavioralPatternDetector implements IBehavioralPatternDetector {
+export class BehavioralPatternDetectorImpl implements BehavioralPatternDetectorInterface {
   private patterns = new Map<string, BehavioralPattern[]>(); // userId -> patterns
 
   /**
@@ -473,12 +474,12 @@ export class BehavioralPatternDetector implements IBehavioralPatternDetector {
 // SINGLETON WITH PERSISTENCE
 // ============================================================================
 
-let defaultDetector: BehavioralPatternDetector | null = null;
+let defaultDetector: BehavioralPatternDetectorInterface | null = null;
 const loadedUsers = new Set<string>();
 
-export function getBehavioralPatternDetector(): BehavioralPatternDetector {
+export function getBehavioralPatternDetector(): BehavioralPatternDetectorInterface {
   if (!defaultDetector) {
-    defaultDetector = new BehavioralPatternDetector();
+    defaultDetector = new BehavioralPatternDetectorImpl();
   }
   return defaultDetector;
 }
@@ -541,7 +542,7 @@ export function resetBehavioralPatternDetector(): void {
 }
 
 export default {
-  BehavioralPatternDetector,
+  BehavioralPatternDetectorImpl,
   getBehavioralPatternDetector,
   loadPatternsFromPersistence,
   savePatternsToPeristence,

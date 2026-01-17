@@ -381,11 +381,11 @@ describe('Global State Functions', () => {
   });
 
   describe('endConversation', () => {
-    it('removes and returns state', () => {
+    it('removes and returns state', async () => {
       const state = getConversationState('global-test-end', 'user', 'agent');
       state.incrementTurn();
 
-      const finalState = endConversation('global-test-end');
+      const finalState = await endConversation('global-test-end');
       expect(finalState).not.toBeNull();
       expect(finalState!.flow.turnCount).toBe(1);
 
@@ -393,8 +393,9 @@ describe('Global State Functions', () => {
       expect(hasConversationState('global-test-end')).toBe(false);
     });
 
-    it('returns null for non-existing session', () => {
-      expect(endConversation('global-test-never-existed')).toBeNull();
+    it('returns null for non-existing session', async () => {
+      const result = await endConversation('global-test-never-existed');
+      expect(result).toBeNull();
     });
   });
 

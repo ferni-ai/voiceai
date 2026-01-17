@@ -119,8 +119,10 @@ export class NaturalnessFeedbackLoop {
 
   // In-memory storage for recent signals (would be persisted in production)
   private recentSignals: NaturalnessSignal[] = [];
-  private builderStats: Map<string, { total: number; scoreSum: number; positiveCount: number }> =
-    new Map();
+  private builderStats = new Map<
+    string,
+    { total: number; scoreSum: number; positiveCount: number }
+  >();
 
   static getInstance(): NaturalnessFeedbackLoop {
     if (!NaturalnessFeedbackLoop.instance) {

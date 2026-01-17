@@ -15,17 +15,21 @@ import type {
   FeedbackRecord,
   FeedbackSummary,
   Recommendation,
-} from '../types/optimization-types.js';
-import type {
   ToolCoOccurrence,
   ToolSequence,
   UserJourney,
   GapAnalysis,
   ConsolidationOpportunity,
   SessionData,
-} from '../tools/pattern-analyzer.js';
-import { removeUndefined } from '../utils/firestore-utils.js';
+} from '../types/optimization-types.js';
+import { removeUndefined, cleanForFirestore } from '../utils/firestore-utils.js';
 import { getLogger } from '../utils/safe-logger.js';
+import { registerInterval, clearNamedInterval } from '../utils/interval-manager.js';
+
+const log = getLogger();
+
+/** Interval name for optimization persistence flush */
+const OPTIMIZATION_PERSISTENCE_INTERVAL = 'optimization-persistence-flush';
 
 // ============================================================================
 // TYPES
@@ -132,22 +136,23 @@ class OptimizationPersistenceService {
       }
     }
 
-    // Start periodic flush
-    this.flushInterval = setInterval(() => {
-      this.flushAll().catch((err) =>
-        getLogger().warn({ err }, 'Failed to flush optimization buffers')
-      );
-    }, this.FLUSH_INTERVAL_MS);
+    // Start periodic flush using managed interval
+    registerInterval(
+      OPTIMIZATION_PERSISTENCE_INTERVAL,
+      () => {
+        this.flushAll().catch((err) =>
+          getLogger().warn({ err }, 'Failed to flush optimization buffers')
+        );
+      },
+      this.FLUSH_INTERVAL_MS
+    );
 
     this.initialized = true;
     getLogger().info('🗄️ Optimization persistence initialized');
   }
 
   async shutdown(): Promise<void> {
-    if (this.flushInterval) {
-      clearInterval(this.flushInterval);
-      this.flushInterval = null;
-    }
+    clearNamedInterval(OPTIMIZATION_PERSISTENCE_INTERVAL);
 
     await this.flushAll();
     getLogger().info('🗄️ Optimization persistence shut down');
@@ -216,10 +221,10 @@ class OptimizationPersistenceService {
         .collection(this.COLLECTIONS.FEEDBACK_SUMMARY)
         .doc(toolId)
         .set(
-          {
+          cleanForFirestore({
             ...summary,
             updatedAt: new Date().toISOString(),
-          },
+          }),
           { merge: true }
         );
     } catch (error) {
@@ -497,11 +502,16 @@ class OptimizationPersistenceService {
     if (!this.db) return;
 
     try {
-      await this.db.collection(this.COLLECTIONS.RECOMMENDATIONS).doc(id).update({
-        status,
-        implementedAt: implementedAt?.toISOString(),
-        updatedAt: new Date().toISOString(),
-      });
+      await this.db
+        .collection(this.COLLECTIONS.RECOMMENDATIONS)
+        .doc(id)
+        .update(
+          cleanForFirestore({
+            status,
+            implementedAt: implementedAt?.toISOString(),
+            updatedAt: new Date().toISOString(),
+          })
+        );
     } catch (error) {
       getLogger().error({ error, id, status }, 'Failed to update recommendation status');
     }

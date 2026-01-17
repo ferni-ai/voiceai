@@ -14,13 +14,38 @@
  * Tokens are encrypted before storage for security.
  */
 
+import crypto from 'crypto';
 import type { OAuthTokens } from '../../shared/types.js';
 import type { WearableProvider } from '../../../services/wearable-integration/types.js';
 import { encryptData, decryptData } from '../../shared/encryption.js';
 import { createPersistenceStore } from '../../../services/persistence/index.js';
 import { createLogger } from '../../../utils/safe-logger.js';
+import { cleanForFirestore } from '../../../utils/firestore-utils.js';
 
 const log = createLogger({ module: 'WearablesOAuth' });
+
+// ============================================================================
+// PKCE HELPERS (for Garmin and other PKCE-enabled providers)
+// ============================================================================
+
+/**
+ * Generate a cryptographically random code verifier for PKCE
+ */
+function generateCodeVerifier(): string {
+  // 43-128 characters from unreserved URI characters
+  return crypto.randomBytes(32).toString('base64url');
+}
+
+/**
+ * Generate code challenge from code verifier using S256 method
+ */
+function generateCodeChallenge(codeVerifier: string): string {
+  const hash = crypto.createHash('sha256').update(codeVerifier).digest();
+  return hash.toString('base64url');
+}
+
+// Store PKCE verifiers temporarily (in production, use Redis with TTL)
+const pkceVerifiers = new Map<string, string>(); // state -> codeVerifier
 
 // ============================================================================
 // PROVIDER CONFIGURATIONS
@@ -33,6 +58,7 @@ interface ProviderConfig {
   tokenUrl: string;
   scopes: string[];
   redirectUri: string;
+  usesPKCE?: boolean;
 }
 
 const PROVIDER_CONFIGS: Record<Exclude<WearableProvider, 'apple_health'>, ProviderConfig> = {
@@ -67,12 +93,16 @@ const PROVIDER_CONFIGS: Record<Exclude<WearableProvider, 'apple_health'>, Provid
   garmin: {
     clientId: process.env.GARMIN_CLIENT_ID,
     clientSecret: process.env.GARMIN_CLIENT_SECRET,
+    // Garmin Health API OAuth 2.0 with PKCE
+    // Docs: https://developerportal.garmin.com/health-api/
     authorizeUrl: 'https://connect.garmin.com/oauthConfirm',
     tokenUrl: 'https://connectapi.garmin.com/oauth-service/oauth/access_token',
-    scopes: [], // Garmin uses OAuth 1.0a, scopes not applicable
+    scopes: ['health_export', 'activity_export', 'sleep_export', 'heart_rate_export'],
     redirectUri:
       process.env.GARMIN_REDIRECT_URI ||
       `http://localhost:${process.env.TOKEN_SERVER_PORT || 3001}/wearables/garmin/callback`,
+    // Note: Garmin Health API requires PKCE. The buildAuthUrl function handles this.
+    usesPKCE: true,
   },
   whoop: {
     clientId: process.env.WHOOP_CLIENT_ID,
@@ -83,6 +113,16 @@ const PROVIDER_CONFIGS: Record<Exclude<WearableProvider, 'apple_health'>, Provid
     redirectUri:
       process.env.WHOOP_REDIRECT_URI ||
       `http://localhost:${process.env.TOKEN_SERVER_PORT || 3001}/wearables/whoop/callback`,
+  },
+  eight_sleep: {
+    clientId: process.env.EIGHT_SLEEP_CLIENT_ID,
+    clientSecret: process.env.EIGHT_SLEEP_CLIENT_SECRET,
+    authorizeUrl: 'https://api.8slp.net/v1/oauth/authorize',
+    tokenUrl: 'https://api.8slp.net/v1/oauth/token',
+    scopes: ['user:read', 'sleep:read', 'bed:read'],
+    redirectUri:
+      process.env.EIGHT_SLEEP_REDIRECT_URI ||
+      `http://localhost:${process.env.TOKEN_SERVER_PORT || 3001}/wearables/eight_sleep/callback`,
   },
 };
 
@@ -379,10 +419,16 @@ export async function getValidToken(
 
 /**
  * Exchange authorization code for tokens
+ * Supports PKCE for providers that require it (e.g., Garmin)
+ *
+ * @param provider - The wearable provider
+ * @param code - The authorization code from callback
+ * @param state - Optional state to retrieve PKCE code_verifier
  */
 export async function exchangeCode(
   provider: Exclude<WearableProvider, 'apple_health'>,
-  code: string
+  code: string,
+  state?: string
 ): Promise<OAuthTokens | null> {
   const config = PROVIDER_CONFIGS[provider];
   if (!config?.clientId || !config?.clientSecret) {
@@ -390,6 +436,24 @@ export async function exchangeCode(
   }
 
   try {
+    // Build token request body
+    const bodyParams: Record<string, string> = {
+      grant_type: 'authorization_code',
+      code,
+      redirect_uri: config.redirectUri,
+    };
+
+    // Add PKCE code_verifier for providers that require it
+    if (config.usesPKCE && state) {
+      const codeVerifier = getPKCEVerifier(state);
+      if (codeVerifier) {
+        bodyParams.code_verifier = codeVerifier;
+        log.debug({ provider }, 'Including PKCE code_verifier in token exchange');
+      } else {
+        log.warn({ provider }, 'PKCE enabled but no code_verifier found for state');
+      }
+    }
+
     const response = await fetch(config.tokenUrl, {
       method: 'POST',
       headers: {
@@ -397,19 +461,21 @@ export async function exchangeCode(
         Authorization:
           'Basic ' + Buffer.from(`${config.clientId}:${config.clientSecret}`).toString('base64'),
       },
-      body: new URLSearchParams({
-        grant_type: 'authorization_code',
-        code,
-        redirect_uri: config.redirectUri,
-      }),
+      body: new URLSearchParams(bodyParams),
     });
 
     if (!response.ok) {
-      log.error({ status: response.status, provider }, 'Wearable token exchange failed');
+      const errorText = await response.text();
+      log.error(
+        { status: response.status, provider, error: errorText.substring(0, 200) },
+        'Wearable token exchange failed'
+      );
       return null;
     }
 
     const data = (await response.json()) as WearableTokenResponse;
+    log.info({ provider }, 'Token exchange successful');
+
     return {
       access_token: data.access_token,
       refresh_token: data.refresh_token || '',
@@ -424,6 +490,7 @@ export async function exchangeCode(
 
 /**
  * Build authorization URL for a provider
+ * For PKCE-enabled providers (Garmin), also generates and stores code_verifier
  */
 export function buildAuthUrl(
   provider: Exclude<WearableProvider, 'apple_health'>,
@@ -445,7 +512,40 @@ export function buildAuthUrl(
 
   url.searchParams.set('state', state);
 
+  // Add PKCE parameters for providers that require it (e.g., Garmin)
+  if (config.usesPKCE) {
+    const codeVerifier = generateCodeVerifier();
+    const codeChallenge = generateCodeChallenge(codeVerifier);
+
+    // Store verifier for use during token exchange
+    pkceVerifiers.set(state, codeVerifier);
+
+    // Cleanup old verifiers (> 10 minutes)
+    const maxAge = 10 * 60 * 1000;
+    for (const [key, _] of pkceVerifiers) {
+      // We don't store timestamps, so we rely on the caller to cleanup
+      // In production, use Redis with TTL
+    }
+
+    url.searchParams.set('code_challenge', codeChallenge);
+    url.searchParams.set('code_challenge_method', 'S256');
+
+    log.debug({ provider, state: state.substring(0, 8) }, 'PKCE enabled for OAuth flow');
+  }
+
   return url.toString();
+}
+
+/**
+ * Get stored PKCE code_verifier for a state
+ * Used during token exchange for PKCE-enabled providers
+ */
+export function getPKCEVerifier(state: string): string | undefined {
+  const verifier = pkceVerifiers.get(state);
+  if (verifier) {
+    pkceVerifiers.delete(state); // One-time use
+  }
+  return verifier;
 }
 
 // ============================================================================

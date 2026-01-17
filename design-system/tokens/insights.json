@@ -1,0 +1,322 @@
+{
+  "_version": "1.0.0",
+  "_description": "Fidelity-inspired insights and data visualization tokens. Modern financial service aesthetics with Ferni's warmth.",
+
+  "insights": {
+    "_philosophy": "Financial apps inspire confidence through clarity. Ferni brings warmth to data without losing precision.",
+
+    "cards": {
+      "_description": "Insight cards that reveal patterns in user's life data",
+      "small": {
+        "width": "160px",
+        "height": "120px",
+        "padding": "16px",
+        "borderRadius": "16px",
+        "useCase": "Quick metrics, single stat"
+      },
+      "medium": {
+        "width": "340px",
+        "height": "200px",
+        "padding": "20px",
+        "borderRadius": "20px",
+        "useCase": "Charts, comparisons, trends"
+      },
+      "large": {
+        "width": "100%",
+        "height": "320px",
+        "padding": "24px",
+        "borderRadius": "24px",
+        "useCase": "Full dashboards, deep dives"
+      },
+      "hero": {
+        "width": "100%",
+        "height": "400px",
+        "padding": "32px",
+        "borderRadius": "28px",
+        "useCase": "Life narrative overview, major milestones"
+      }
+    },
+
+    "dataColors": {
+      "_description": "Semantic colors for data visualization, warmer than typical financial apps",
+      "positive": {
+        "primary": "#4A7C59",
+        "gradient": "linear-gradient(135deg, #4A7C59 0%, #6B9B7A 100%)",
+        "glow": "rgba(74, 124, 89, 0.3)"
+      },
+      "negative": {
+        "primary": "#9B6B6B",
+        "gradient": "linear-gradient(135deg, #9B6B6B 0%, #B88888 100%)",
+        "glow": "rgba(155, 107, 107, 0.3)"
+      },
+      "neutral": {
+        "primary": "#8B7355",
+        "gradient": "linear-gradient(135deg, #8B7355 0%, #A69076 100%)",
+        "glow": "rgba(139, 115, 85, 0.3)"
+      },
+      "highlight": {
+        "primary": "#C4A77D",
+        "gradient": "linear-gradient(135deg, #C4A77D 0%, #D4BC9A 100%)",
+        "glow": "rgba(196, 167, 125, 0.4)"
+      },
+      "series": {
+        "_description": "For multi-series charts, maintains warmth across data lines",
+        "1": "#4A7C59",
+        "2": "#6B8E9B",
+        "3": "#9B7B6B",
+        "4": "#7B6B9B",
+        "5": "#9B8B6B",
+        "6": "#6B9B8B"
+      }
+    },
+
+    "charts": {
+      "_description": "Chart-specific styling that feels alive, not sterile",
+      "lineChart": {
+        "strokeWidth": "3px",
+        "strokeLinecap": "round",
+        "animation": "drawIn 1.2s ease-out",
+        "hoverStrokeWidth": "4px",
+        "dotRadius": "5px",
+        "dotHoverRadius": "8px",
+        "areaOpacity": 0.15,
+        "gridOpacity": 0.08
+      },
+      "barChart": {
+        "borderRadius": "8px",
+        "hoverScale": 1.02,
+        "animation": "growUp 0.8s ease-out",
+        "gap": "8px",
+        "minBarWidth": "24px"
+      },
+      "donutChart": {
+        "strokeWidth": "24px",
+        "hoverStrokeWidth": "28px",
+        "innerRadius": "60%",
+        "animation": "spinReveal 1s ease-out",
+        "gap": "4px"
+      },
+      "sparkline": {
+        "strokeWidth": "2px",
+        "height": "40px",
+        "animation": "fadeDrawIn 0.6s ease-out",
+        "showEndDot": true
+      }
+    },
+
+    "metrics": {
+      "_description": "Single metric display with contextual comparison",
+      "large": {
+        "fontSize": "48px",
+        "fontWeight": "600",
+        "letterSpacing": "-0.02em",
+        "lineHeight": "1.1"
+      },
+      "medium": {
+        "fontSize": "32px",
+        "fontWeight": "600",
+        "letterSpacing": "-0.01em",
+        "lineHeight": "1.2"
+      },
+      "small": {
+        "fontSize": "24px",
+        "fontWeight": "500",
+        "letterSpacing": "0",
+        "lineHeight": "1.3"
+      },
+      "label": {
+        "fontSize": "12px",
+        "fontWeight": "500",
+        "letterSpacing": "0.04em",
+        "textTransform": "uppercase",
+        "opacity": 0.7
+      },
+      "delta": {
+        "fontSize": "14px",
+        "fontWeight": "500",
+        "positivePrefix": "+",
+        "negativePrefix": "",
+        "showArrow": true
+      }
+    },
+
+    "progressIndicators": {
+      "_description": "Progress rings and bars with celebratory animations",
+      "ring": {
+        "strokeWidth": "8px",
+        "backgroundOpacity": 0.15,
+        "animation": "ringFill 1s ease-out",
+        "celebrationThreshold": 0.9,
+        "celebrationAnimation": "pulseGlow 0.6s ease-in-out 3"
+      },
+      "bar": {
+        "height": "8px",
+        "borderRadius": "4px",
+        "animation": "barFill 0.8s ease-out",
+        "showMilestones": true,
+        "milestoneSize": "12px"
+      },
+      "steps": {
+        "dotSize": "12px",
+        "completedDotSize": "16px",
+        "lineThickness": "3px",
+        "animation": "stepComplete 0.4s spring"
+      }
+    }
+  },
+
+  "narrativeVisuals": {
+    "_philosophy": "Unlike Fidelity's pure data focus, Ferni weaves stories through visuals",
+
+    "timeline": {
+      "_description": "Life timeline visualization",
+      "nodeSize": {
+        "minor": "8px",
+        "standard": "12px",
+        "major": "20px",
+        "milestone": "32px"
+      },
+      "lineThickness": "2px",
+      "spacing": "80px",
+      "animation": "timelineReveal 1.5s stagger(0.1s)",
+      "colors": {
+        "past": "var(--color-stone)",
+        "present": "var(--color-accent)",
+        "future": "var(--color-moonlight)"
+      }
+    },
+
+    "constellation": {
+      "_description": "Relationship network as a constellation",
+      "nodeSize": {
+        "user": "40px",
+        "close": "24px",
+        "regular": "16px",
+        "distant": "10px"
+      },
+      "connectionOpacity": {
+        "strong": 0.6,
+        "medium": 0.3,
+        "weak": 0.1
+      },
+      "pulseAnimation": "constellationPulse 4s ease-in-out infinite",
+      "orbitAnimation": "gentleOrbit 20s linear infinite"
+    },
+
+    "garden": {
+      "_description": "Growth visualization as a living garden",
+      "plantStages": ["seed", "sprout", "growing", "blooming", "flourishing"],
+      "growthAnimation": "plantGrow 2s spring",
+      "swayAnimation": "gentleSway 3s ease-in-out infinite",
+      "particleCount": 12,
+      "particleType": "pollen"
+    }
+  },
+
+  "comparison": {
+    "_philosophy": "Show context without inducing anxiety - warm comparisons, not cold benchmarks",
+
+    "vsYesterday": {
+      "label": "vs yesterday",
+      "icon": "clock",
+      "emphasis": "low"
+    },
+    "vsLastWeek": {
+      "label": "vs last week",
+      "icon": "calendar",
+      "emphasis": "medium"
+    },
+    "vsLastMonth": {
+      "label": "vs last month",
+      "icon": "trend",
+      "emphasis": "high"
+    },
+    "vsAverage": {
+      "label": "your typical",
+      "icon": "baseline",
+      "emphasis": "medium"
+    },
+    "vsBestWeek": {
+      "label": "your best week",
+      "icon": "star",
+      "emphasis": "celebratory"
+    }
+  },
+
+  "animations": {
+    "_description": "Chart-specific animations with Ferni's organic feel",
+
+    "keyframes": {
+      "drawIn": {
+        "0%": { "strokeDashoffset": "100%" },
+        "100%": { "strokeDashoffset": "0%" }
+      },
+      "growUp": {
+        "0%": { "transform": "scaleY(0)", "transformOrigin": "bottom" },
+        "60%": { "transform": "scaleY(1.05)" },
+        "100%": { "transform": "scaleY(1)" }
+      },
+      "spinReveal": {
+        "0%": { "strokeDashoffset": "100%", "opacity": "0" },
+        "20%": { "opacity": "1" },
+        "100%": { "strokeDashoffset": "0%" }
+      },
+      "ringFill": {
+        "0%": { "strokeDashoffset": "100%" },
+        "80%": { "strokeDashoffset": "calc(100% - var(--progress))" },
+        "100%": { "strokeDashoffset": "calc(100% - var(--progress))" }
+      },
+      "pulseGlow": {
+        "0%, 100%": { "filter": "drop-shadow(0 0 8px var(--glow-color))" },
+        "50%": { "filter": "drop-shadow(0 0 20px var(--glow-color))" }
+      },
+      "timelineReveal": {
+        "0%": { "opacity": "0", "transform": "translateY(20px)" },
+        "100%": { "opacity": "1", "transform": "translateY(0)" }
+      },
+      "constellationPulse": {
+        "0%, 100%": { "opacity": "0.6" },
+        "50%": { "opacity": "1" }
+      },
+      "gentleOrbit": {
+        "0%": { "transform": "rotate(0deg) translateX(var(--orbit-radius)) rotate(0deg)" },
+        "100%": { "transform": "rotate(360deg) translateX(var(--orbit-radius)) rotate(-360deg)" }
+      },
+      "countUp": {
+        "_description": "Animated number counting",
+        "duration": "1.2s",
+        "easing": "ease-out",
+        "stagger": "0.05s"
+      }
+    }
+  },
+
+  "microInteractions": {
+    "_description": "Tiny delights in data interactions",
+
+    "tooltipReveal": {
+      "delay": "200ms",
+      "duration": "200ms",
+      "easing": "ease-out",
+      "transform": "translateY(-4px)",
+      "opacity": "0 → 1"
+    },
+    "dataPointHover": {
+      "scale": 1.2,
+      "duration": "150ms",
+      "easing": "spring(1, 80, 10)",
+      "glow": true
+    },
+    "legendToggle": {
+      "duration": "300ms",
+      "fadeOpacity": 0.3,
+      "strikethrough": true
+    },
+    "zoomGesture": {
+      "minScale": 0.5,
+      "maxScale": 3,
+      "friction": 0.92,
+      "snapPoints": [0.5, 1, 1.5, 2, 3]
+    }
+  }
+}

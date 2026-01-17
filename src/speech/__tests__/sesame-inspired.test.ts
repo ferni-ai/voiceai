@@ -293,8 +293,9 @@ describe('Sesame-Inspired Prosody', () => {
   describe('Rich Disfluencies', () => {
     it('should inject disfluencies probabilistically', () => {
       // Run multiple times to catch probabilistic behavior
+      // With 25% probability, running 30 times gives <0.002% chance of all failing
       let injected = false;
-      for (let i = 0; i < 10; i++) {
+      for (let i = 0; i < 30; i++) {
         resetDisfluencySession(`${testSessionId}-${i}`);
         const result = smartInjectDisfluency(
           `${testSessionId}-${i}`,

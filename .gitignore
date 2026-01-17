@@ -6,6 +6,9 @@ dist/
 
 # Environment variables
 .env
+.env.local
+.env.development
+.env.production
 
 # Logs
 *.log
@@ -21,6 +24,9 @@ latest-logs.txt
 *.env.local
 .plaid-tokens.json
 .forms.env
+
+# Local development data (contacts, etc.)
+.ferni/
 
 # Code Signing (NEVER commit these!)
 *.p12
@@ -50,8 +56,27 @@ Thumbs.db
 
 # TypeScript
 *.tsbuildinfo
+
+# ESLint cache
+.eslintcache
+
+# TypeScript build artifacts in source directories
+# (proper builds go to dist/ via tsconfig.json outDir)
+src/**/*.js
+src/**/*.js.map
+src/**/*.d.ts
+src/**/*.d.ts.map
+!src/**/*.config.js
+!src/**/vite.config.ts
+
 .spotify-tokens.json
+.spotify-token.json
 .spotify-device.json
+
+# Rust build artifacts
+**/target/
+apps/rust-audio/target/
+apps/rust-perf/target/
 
 # Generated design system files (rebuild with: npm run tokens:sync)
 frontend-typescript/src/config/sounds.generated.ts
@@ -59,6 +84,15 @@ frontend-typescript/src/config/persona-colors.generated.ts
 frontend-typescript/src/config/animation-constants.generated.ts
 frontend-typescript/public/design-system/manifest.json
 design-system/dist/
+design-system/storybook-static/
+
+# Brand docs - source of truth is design-system/brand/
+# apps/web/public/design-system/brand/ is a symlink -> ../../../../design-system/brand
+# These platform copies are created during capacitor sync / build
+apps/ios/ios/App/App/public/design-system/brand/
+apps/android/android/app/src/main/assets/public/design-system/brand/
+apps/electron/web/design-system/brand/
+apps/web/dist/design-system/brand/
 
 # Generated Tailwind config for promo site
 promo/ferni-website/tailwind.config.generated.js
@@ -74,18 +108,45 @@ test-results/
 coverage/
 src/agents/processors/turn-processor/
 Receipt-*.pdf
+test-reports/
+.nyc_output/
+
+# Debug captures & MCP artifacts
+.debug-captures/
+.playwright-mcp/
+.audit-reports/
+
+# Vendor dependencies (cloned separately, not submodules)
+vendor/
 
 # Promo website build output (Eleventy)
 promo/ferni-website/_site/
 promo/ferni-website/.cache/
+apps/website/ferni-website/_site/
+apps/website/ferni-website/.cache/
+
+# Firebase hosting cache
+**/.firebase/
 
 # Mobile app build outputs
 apps/android/android/app/build/
 apps/ios/ios/App/Pods/
 apps/electron/dist/
 
-# Marketplace agents (separate repo)
-marketplace-agents/
+# Marketplace agents (keep registry.json tracked for Docker builds)
+# Full agents are in separate submodules
+apps/marketplace-agents/agents/
 
 # Prevent accidental direct gcloud deploys - use npm run deploy instead
 # This comment reminds developers to use the deploy script
+apps/ios-native/.build/
+
+# ML Training outputs
+apps/ml-training/router/outputs/
+
+# ONNX Router Model (large binary)
+models/
+
+# Python virtual environments
+apps/ml-training/**/.venv*/
+**/.venv*/

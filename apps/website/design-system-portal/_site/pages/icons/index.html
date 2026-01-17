@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="cedar">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Icons | Ferni Design System</title>
+  <meta name="description" content="Ferni&#39;s icon system - warm, organic, and consistent">
+
+  <!-- Fonts: Plus Jakarta Sans (display), Inter (body), JetBrains Mono (code) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+  <!-- Design Tokens (auto-generated from design-system/tokens/*.json) -->
+  <link rel="stylesheet" href="/css/tokens.css">
+  <link rel="stylesheet" href="/css/components.css">
+  <link rel="stylesheet" href="/css/docs.css">
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌿</text></svg>">
+</head>
+<body>
+  <div class="layout">
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <a href="/" class="logo">
+          <span class="logo-icon">🌿</span>
+          <span class="logo-text">Ferni Design</span>
+        </a>
+        <span class="version-badge">v2.0</span>
+      </div>
+
+      <nav class="sidebar-nav">
+        <div class="nav-section">
+          <span class="nav-section-title">Foundations</span>
+          <ul>
+            <li><a href="/" class="">Overview</a></li>
+            <li><a href="/colors/" class="">Colors</a></li>
+            <li><a href="/typography/" class="">Typography</a></li>
+            <li><a href="/spacing/" class="">Spacing</a></li>
+            <li><a href="/animation/" class="">Animation</a></li>
+          </ul>
+        </div>
+
+        <div class="nav-section">
+          <span class="nav-section-title">Brand</span>
+          <ul>
+            <li><a href="/personas/" class="">Personas</a></li>
+            <li><a href="/capabilities/" class="">Capabilities</a></li>
+            <li><a href="/voice/" class="">Voice & Tone</a></li>
+            <li><a href="/icons/" class="">Icons</a></li>
+          </ul>
+        </div>
+
+        <div class="nav-section">
+          <span class="nav-section-title">Components</span>
+          <ul>
+            <li><a href="/components/" class="">Overview</a></li>
+            <li><a href="/components/avatar/" class="">Avatar</a></li>
+            <li><a href="/components/buttons/" class="">Buttons</a></li>
+            <li><a href="/components/cards/" class="">Cards</a></li>
+          </ul>
+        </div>
+
+        <div class="nav-section">
+          <span class="nav-section-title">Resources</span>
+          <ul>
+            <li><a href="https://developers.ferni.ai" target="_blank">Developer Docs</a></li>
+            <li><a href="https://marketplace.ferni.ai" target="_blank">Marketplace</a></li>
+            <li><a href="https://ferni.ai" target="_blank">Product</a></li>
+          </ul>
+        </div>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="theme-toggle" onclick="toggleTheme()">
+          <svg class="sun-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="5"/>
+            <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+          </svg>
+          <svg class="moon-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+          </svg>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      
+<h1>Icons</h1>
+<p class="lead">Icons should feel warm and organic, never cold or technical. They complement our natural, human-centered design language.</p>
+
+<section class="section">
+  <h2>Icon Style</h2>
+  <p>Our icons use rounded corners, consistent stroke widths, and organic shapes that echo the Ferni brand.</p>
+
+  <div class="style-comparison">
+    <div class="style-card good">
+      <h4>Ferni Style</h4>
+      <div class="icon-row">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"/>
+          <path d="M8 14s1.5 2 4 2 4-2 4-2"/>
+          <line x1="9" y1="9" x2="9.01" y2="9"/>
+          <line x1="15" y1="9" x2="15.01" y2="9"/>
+        </svg>
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+        </svg>
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"/>
+          <polyline points="12 6 12 12 16 14"/>
+        </svg>
+      </div>
+      <ul>
+        <li>2px stroke width</li>
+        <li>Rounded caps and joins</li>
+        <li>Organic curves</li>
+      </ul>
+    </div>
+
+    <div class="style-card bad">
+      <h4>Avoid</h4>
+      <div class="icon-row">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+          <rect x="3" y="3" width="18" height="18"/>
+        </svg>
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
+          <polygon points="12,2 22,22 2,22"/>
+        </svg>
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M2 2h20v20H2z"/>
+        </svg>
+      </div>
+      <ul>
+        <li>Sharp corners</li>
+        <li>Thin strokes</li>
+        <li>Harsh geometric shapes</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section class="section">
+  <h2>Persona Icons</h2>
+  <p>Each persona has a distinctive icon that reflects their character.</p>
+
+  <div class="persona-icons">
+    <div class="persona-icon" data-persona="ferni">
+      <span class="icon">🌿</span>
+      <span class="name">Ferni</span>
+      <span class="desc">Growth, nurturing</span>
+    </div>
+    <div class="persona-icon" data-persona="maya">
+      <span class="icon">🎯</span>
+      <span class="name">Maya</span>
+      <span class="desc">Focus, habits</span>
+    </div>
+    <div class="persona-icon" data-persona="peter">
+      <span class="icon">📊</span>
+      <span class="name">Peter</span>
+      <span class="desc">Analysis, wealth</span>
+    </div>
+    <div class="persona-icon" data-persona="jordan">
+      <span class="icon">🎉</span>
+      <span class="name">Jordan</span>
+      <span class="desc">Celebration, planning</span>
+    </div>
+    <div class="persona-icon" data-persona="alex">
+      <span class="icon">📅</span>
+      <span class="name">Alex</span>
+      <span class="desc">Time, productivity</span>
+    </div>
+    <div class="persona-icon" data-persona="nayan">
+      <span class="icon">🧘</span>
+      <span class="name">Nayan</span>
+      <span class="desc">Wisdom, reflection</span>
+    </div>
+  </div>
+</section>
+
+<section class="section">
+  <h2>UI Icons</h2>
+  <p>Common icons used throughout the Ferni interface.</p>
+
+  <div class="icon-grid">
+    <div class="icon-item">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+        <polyline points="9 22 9 12 15 12 15 22"/>
+      </svg>
+      <span>Home</span>
+    </div>
+    <div class="icon-item">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="11" cy="11" r="8"/>
+        <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+      </svg>
+      <span>Search</span>
+    </div>
+    <div class="icon-item">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="3"/>
+        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+      </svg>
+      <span>Settings</span>
+    </div>
+    <div class="icon-item">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+        <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+      </svg>
+      <span>Notifications</span>
+    </div>
+    <div class="icon-item">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+      </svg>
+      <span>Chat</span>
+    </div>
+    <div class="icon-item">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+      </svg>
+      <span>Security</span>
+    </div>
+    <div class="icon-item">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+      </svg>
+      <span>Activity</span>
+    </div>
+    <div class="icon-item">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="12" y1="5" x2="12" y2="19"/>
+        <line x1="5" y1="12" x2="19" y2="12"/>
+      </svg>
+      <span>Add</span>
+    </div>
+  </div>
+</section>
+
+<style>
+.style-comparison {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: var(--space-6);
+  margin-top: var(--space-6);
+}
+
+.style-card {
+  background: var(--bg-elevated);
+  border-radius: var(--radius-lg);
+  padding: var(--space-6);
+  border: 1px solid var(--border-subtle);
+}
+
+.style-card.good {
+  border-top: 3px solid var(--success);
+}
+
+.style-card.bad {
+  border-top: 3px solid var(--error);
+  opacity: 0.7;
+}
+
+.style-card h4 {
+  font-family: var(--font-display);
+  font-weight: var(--font-weight-semibold);
+  margin-bottom: var(--space-4);
+}
+
+.icon-row {
+  display: flex;
+  gap: var(--space-4);
+  margin-bottom: var(--space-4);
+  color: var(--text-primary);
+}
+
+.style-card ul {
+  list-style: none;
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+}
+
+.style-card ul li {
+  padding: var(--space-1) 0;
+}
+
+.persona-icons {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: var(--space-4);
+  margin-top: var(--space-6);
+}
+
+.persona-icon {
+  background: var(--bg-elevated);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+  text-align: center;
+  border: 1px solid var(--border-subtle);
+  transition: all var(--duration-normal) var(--ease-ease-out);
+}
+
+.persona-icon:hover {
+  transform: translateY(-2px);
+  border-color: var(--border-medium);
+}
+
+.persona-icon[data-persona="ferni"]:hover { border-color: var(--persona-ferni); }
+.persona-icon[data-persona="maya"]:hover { border-color: var(--persona-maya); }
+.persona-icon[data-persona="peter"]:hover { border-color: var(--persona-peter); }
+.persona-icon[data-persona="jordan"]:hover { border-color: var(--persona-jordan); }
+.persona-icon[data-persona="alex"]:hover { border-color: var(--persona-alex); }
+.persona-icon[data-persona="nayan"]:hover { border-color: var(--persona-nayan); }
+
+.persona-icon .icon {
+  font-size: 2.5rem;
+  display: block;
+  margin-bottom: var(--space-3);
+}
+
+.persona-icon .name {
+  font-family: var(--font-display);
+  font-weight: var(--font-weight-semibold);
+  display: block;
+  margin-bottom: var(--space-1);
+}
+
+.persona-icon .desc {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+
+.icon-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  gap: var(--space-4);
+  margin-top: var(--space-6);
+}
+
+.icon-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  background: var(--bg-elevated);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-subtle);
+  transition: all var(--duration-fast) var(--ease-ease-out);
+}
+
+.icon-item:hover {
+  border-color: var(--accent-primary);
+  color: var(--accent-primary);
+}
+
+.icon-item svg {
+  color: var(--text-primary);
+}
+
+.icon-item:hover svg {
+  color: var(--accent-primary);
+}
+
+.icon-item span {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+</style>
+
+    </main>
+  </div>
+
+  <script>
+    // Theme toggle
+    function toggleTheme() {
+      const html = document.documentElement;
+      const current = html.getAttribute('data-theme');
+      const next = current === 'cedar' ? 'zen' : 'cedar';
+      html.setAttribute('data-theme', next);
+      localStorage.setItem('ferni-theme', next);
+    }
+
+    // Load saved theme
+    const saved = localStorage.getItem('ferni-theme');
+    if (saved) {
+      document.documentElement.setAttribute('data-theme', saved);
+    }
+  </script>
+</body>
+</html>

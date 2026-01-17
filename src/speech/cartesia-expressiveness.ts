@@ -9,7 +9,13 @@
  * - Volume: 0.5 to 2.0 ratio
  * - Laughter: [laughter] tag
  * - Breaks: <break time="Xms"/> or <break time="Xs"/>
+ *
+ * Each persona has a unique "voice fingerprint" - their default emotion,
+ * speed, volume, and natural expressions that make them sound distinctly human.
  */
+
+// Import from standalone emotion-profiles to avoid circular deps
+import { getEmotionProfile, type PersonaEmotionProfile } from './emotion-profiles.js';
 
 // ============================================================================
 // EMOTION MAPPINGS
@@ -374,3 +380,166 @@ export function getEmotionInProgression(
   const index = Math.min(Math.floor((position / total) * emotions.length), emotions.length - 1);
   return emotions[index];
 }
+
+// ============================================================================
+// PERSONA VOICE FINGERPRINTS - Better Than Human
+// ============================================================================
+
+/**
+ * Apply persona's unique voice fingerprint to text.
+ * Each persona sounds distinctly human with their baseline emotion,
+ * speed, volume, and occasional nonverbal sounds.
+ *
+ * @param text - The text to enhance
+ * @param personaId - The persona to apply (e.g., 'ferni', 'maya-santos')
+ * @param options - Override default emotion or add intensity
+ * @returns SSML-enhanced text with persona fingerprint
+ */
+export function applyPersonaVoiceFingerprint(
+  text: string,
+  personaId: string,
+  options?: {
+    emotion?: string; // Override default emotion
+    intensity?: 'subtle' | 'normal' | 'strong'; // Emotion intensity
+    addNonverbal?: boolean; // Chance to add laughter/sounds
+  }
+): string {
+  const profile = getEmotionProfile(personaId);
+  const emotion = options?.emotion || profile.defaultEmotion;
+
+  // Build SSML prefix
+  let ssml = '';
+
+  // Apply speed and volume
+  ssml += `<speed ratio="${clampSpeed(profile.defaultSpeed).toFixed(2)}"/>`;
+  ssml += `<volume ratio="${clampVolume(profile.defaultVolume).toFixed(2)}"/>`;
+
+  // Apply emotion with intensity
+  if (emotion) {
+    const intensityPrefix =
+      options?.intensity === 'strong'
+        ? 'very '
+        : options?.intensity === 'subtle'
+          ? 'slightly '
+          : '';
+    ssml += `<emotion value="${intensityPrefix}${emotion}"/>`;
+  }
+
+  // Maybe add nonverbal sound at the beginning
+  if (options?.addNonverbal && Math.random() < profile.laughterFrequency) {
+    const nonverbal = randomFrom(profile.nonverbals);
+    return `${ssml + nonverbal} ${text}`;
+  }
+
+  return ssml + text;
+}
+
+/**
+ * Get a random emotion from persona's natural range.
+ * Use this to vary emotions while staying in-character.
+ */
+export function getRandomPersonaEmotion(personaId: string): string {
+  const profile = getEmotionProfile(personaId);
+  return randomFrom(profile.emotionRange);
+}
+
+/**
+ * Check if an emotion is in persona's natural range.
+ * Helps avoid jarring out-of-character moments.
+ */
+export function isEmotionInPersonaRange(personaId: string, emotion: string): boolean {
+  const profile = getEmotionProfile(personaId);
+  return profile.emotionRange.includes(emotion);
+}
+
+/**
+ * Get appropriate emotion for a moment, constrained to persona's range.
+ * Falls back to persona's default if the requested emotion isn't in their range.
+ */
+export function getPersonaAppropriateEmotion(personaId: string, requestedEmotion: string): string {
+  const profile = getEmotionProfile(personaId);
+
+  // If the requested emotion is in their range, use it
+  if (profile.emotionRange.includes(requestedEmotion)) {
+    return requestedEmotion;
+  }
+
+  // Find the closest emotion in their range
+  const emotionMappings: Record<string, string[]> = {
+    // If they want 'sad', look for these alternatives
+    sad: ['sympathetic', 'contemplative', 'calm'],
+    happy: ['affectionate', 'excited', 'proud', 'grateful'],
+    angry: ['determined', 'confident'],
+    scared: ['sympathetic', 'calm'],
+    surprised: ['curious', 'excited'],
+    excited: ['enthusiastic', 'happy', 'playful'],
+    contemplative: ['calm', 'curious', 'wistful'],
+  };
+
+  const alternatives = emotionMappings[requestedEmotion] || [];
+  for (const alt of alternatives) {
+    if (profile.emotionRange.includes(alt)) {
+      return alt;
+    }
+  }
+
+  // Fall back to their default
+  return profile.defaultEmotion;
+}
+
+/**
+ * Apply contextual emotion shift based on conversation moment.
+ * Stays within persona's emotional range.
+ */
+export function applyContextualEmotion(
+  text: string,
+  personaId: string,
+  context: {
+    isHeavyTopic?: boolean;
+    isCelebration?: boolean;
+    isQuestion?: boolean;
+    isLateNight?: boolean;
+    userEmotion?: string;
+  }
+): string {
+  const profile = getEmotionProfile(personaId);
+  let emotion = profile.defaultEmotion;
+  let speed = profile.defaultSpeed;
+  let volume = profile.defaultVolume;
+
+  // Adjust based on context
+  if (context.isHeavyTopic) {
+    emotion = getPersonaAppropriateEmotion(personaId, 'sympathetic');
+    speed *= 0.92; // Slower for heavy topics
+    volume *= 0.9; // Softer
+  } else if (context.isCelebration) {
+    emotion = getPersonaAppropriateEmotion(personaId, 'excited');
+    speed *= 1.08; // Faster when celebrating
+    volume *= 1.1; // Louder
+  } else if (context.isQuestion) {
+    emotion = getPersonaAppropriateEmotion(personaId, 'curious');
+  } else if (context.isLateNight) {
+    emotion = getPersonaAppropriateEmotion(personaId, 'calm');
+    speed *= 0.9;
+    volume *= 0.85;
+  }
+
+  // Mirror user's emotion if we can
+  if (context.userEmotion) {
+    const mirrored = getPersonaAppropriateEmotion(personaId, context.userEmotion);
+    if (mirrored !== profile.defaultEmotion) {
+      emotion = mirrored;
+    }
+  }
+
+  // Build SSML
+  let ssml = '';
+  ssml += `<speed ratio="${clampSpeed(speed).toFixed(2)}"/>`;
+  ssml += `<volume ratio="${clampVolume(volume).toFixed(2)}"/>`;
+  ssml += `<emotion value="${emotion}"/>`;
+
+  return ssml + text;
+}
+
+// Re-export PersonaEmotionProfile for use elsewhere
+export type { PersonaEmotionProfile };

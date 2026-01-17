@@ -7,6 +7,7 @@
  * @module @ferni/conversation/deep-humanization/generators/physical-presence
  */
 
+import { seededChance, seededIndex, seededPick } from '../../utils/rng.js';
 import type {
   HumanizationContext,
   ConversationMood,
@@ -42,7 +43,7 @@ export async function generatePhysicalPresence(
 ): Promise<GeneratorResult> {
   const probability = HUMANIZATION_CONFIG.probabilities.physicalPresence;
 
-  if (Math.random() > probability) {
+  if (!seededChance(`${Date.now()}:1`, probability)) {
     return null;
   }
 
@@ -64,7 +65,7 @@ export async function generatePhysicalPresence(
   }
 
   const cues = PRESENCE_CUES[type];
-  const content = cues[Math.floor(Math.random() * cues.length)];
+  const content = seededPick(`${Date.now()}:68`, cues) ?? cues[0];
 
   return {
     type: 'physical_presence',

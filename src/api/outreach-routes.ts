@@ -20,9 +20,10 @@
  * @module OutreachRoutes
  */
 
-import * as admin from 'firebase-admin';
+import admin from 'firebase-admin';
 import type { IncomingMessage, ServerResponse } from 'http';
 import type { UrlWithParsedQuery } from 'url';
+import { cleanForFirestore } from '../utils/firestore-utils.js';
 import {
   canSendOutreach,
   generateOutreachOpportunities,
@@ -257,6 +258,62 @@ export async function handleOutreachRoutes(
       return true;
     }
 
+    // GET /api/outreach/pending-checkin - Get pending check-in for badge UI
+    // Returns the most relevant check-in Ferni wants to have with the user
+    if (pathname === '/api/outreach/pending-checkin' && method === 'GET') {
+      const url = new URL(req.url || '', `http://${req.headers.host}`);
+      const userId = url.searchParams.get('userId');
+
+      if (!userId) {
+        sendJsonResponse(res, 400, { error: 'userId required' });
+        return true;
+      }
+
+      const dueItems = getDueItems(userId);
+      const { allowed } = canSendOutreach(userId);
+
+      // Find the most relevant check-in type item
+      const checkinTypes = [
+        'thinking_of_you',
+        'emotional_support',
+        'commitment_check',
+        'growth_reflection',
+      ];
+      const checkinItem = dueItems.find((item) => checkinTypes.includes(item.type));
+
+      if (!checkinItem || !allowed) {
+        sendJsonResponse(res, 200, {
+          hasCheckin: false,
+          checkin: null,
+        });
+        return true;
+      }
+
+      // Map outreach type to badge icon type
+      const iconTypes: Record<string, 'heart' | 'chat' | 'sparkle' | 'support'> = {
+        thinking_of_you: 'heart',
+        emotional_support: 'support',
+        commitment_check: 'chat',
+        growth_reflection: 'sparkle',
+        celebration: 'sparkle',
+      };
+
+      sendJsonResponse(res, 200, {
+        hasCheckin: true,
+        checkin: {
+          id: checkinItem.id,
+          type: checkinItem.type,
+          iconType: iconTypes[checkinItem.type] || 'heart',
+          preview:
+            checkinItem.message.slice(0, 50) + (checkinItem.message.length > 50 ? '...' : ''),
+          fullMessage: checkinItem.message,
+          priority: checkinItem.priority,
+          personaId: checkinItem.personaId || 'ferni',
+        },
+      });
+      return true;
+    }
+
     // GET /api/outreach/preferences - Get preferences
     if (pathname === '/api/outreach/preferences' && method === 'GET') {
       const url = new URL(req.url || '', `http://${req.headers.host}`);
@@ -428,7 +485,10 @@ export async function handleOutreachRoutes(
         if (phone !== undefined) updateData['contactInfo.phone'] = phone;
         if (email !== undefined) updateData['contactInfo.email'] = email;
 
-        await db.collection('profiles').doc(userId).set(updateData, { merge: true });
+        await db
+          .collection('profiles')
+          .doc(userId)
+          .set(cleanForFirestore(updateData), { merge: true });
 
         log.info({ userId, hasPhone: !!phone, hasEmail: !!email }, 'Updated contact info');
 

@@ -82,7 +82,7 @@
   "repair_after_conflict": {
     "check_in": {
       "phrases": [
-        "Did that land okay?",
+        "Was that helpful?",
         "I hope that was helpful and not preachy.",
         "Was that useful, or did I miss the mark?"
       ]

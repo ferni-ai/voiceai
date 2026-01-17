@@ -13,7 +13,7 @@
  * - DELETE /api/garden/subscription - Cancel monthly contribution
  */
 
-import * as admin from 'firebase-admin';
+import admin from 'firebase-admin';
 import type { IncomingMessage, ServerResponse } from 'http';
 import { createLogger } from '../utils/safe-logger.js';
 import { optionalAuthAsync, rateLimit } from './auth-middleware.js';
@@ -504,6 +504,670 @@ async function handleCancelMonthly(
 }
 
 // =============================================================================
+// FOUNDERS JOURNEY HANDLERS (New)
+// =============================================================================
+
+interface FounderStatsData {
+  totalFounders: number;
+  thisMonthFounders: number;
+  conversationsSupported: number;
+  conversationsThisMonth: number;
+  featuresUnlocked: string[];
+  monthlyRecurring: number;
+}
+
+interface FounderData {
+  id: string;
+  displayName: string | null;
+  initials: string;
+  joinedAt: string;
+  tier: 'seed' | 'sprout' | 'tree' | 'forest';
+  isEarlyBird: boolean;
+  badge?: 'og' | 'champion' | 'believer';
+}
+
+interface FounderStoryData {
+  id: string;
+  quote: string;
+  attribution: string;
+  memberSince: string;
+  theme: 'gratitude' | 'impact' | 'journey' | 'community';
+}
+
+interface MilestoneData {
+  id: string;
+  target: number;
+  current: number;
+  type: 'founders' | 'conversations' | 'features' | 'streak';
+  title: string;
+  celebration: string;
+  reached: boolean;
+  reachedAt?: string;
+}
+
+interface PersonalImpactData {
+  userId: string;
+  memberSince: string;
+  totalContributed: number;
+  conversationsEnabled: number;
+  percentileRank: number;
+  streak: number;
+  badges: Array<{ id: string; name: string; description: string; earnedAt: string; icon: string }>;
+  impact: {
+    conversationsThisMonth: number;
+    familiesHelped: number;
+    featuresYouUnlocked: string[];
+  };
+}
+
+// Mock data for founders journey (will be replaced with real Firestore queries)
+const MOCK_FOUNDER_STATS: FounderStatsData = {
+  totalFounders: 147,
+  thisMonthFounders: 23,
+  conversationsSupported: 62847,
+  conversationsThisMonth: 4521,
+  featuresUnlocked: ['voice-enrollment', 'spotify-integration', 'calendar-sync', 'habit-tracking'],
+  monthlyRecurring: 2340,
+};
+
+const MOCK_FOUNDERS: FounderData[] = [
+  {
+    id: 'f1',
+    displayName: 'Sarah',
+    initials: 'S',
+    joinedAt: '2024-01-15',
+    tier: 'forest',
+    isEarlyBird: true,
+    badge: 'og',
+  },
+  {
+    id: 'f2',
+    displayName: 'Michael',
+    initials: 'M',
+    joinedAt: '2024-02-01',
+    tier: 'forest',
+    isEarlyBird: true,
+    badge: 'champion',
+  },
+  {
+    id: 'f3',
+    displayName: null,
+    initials: 'JD',
+    joinedAt: '2024-02-14',
+    tier: 'forest',
+    isEarlyBird: true,
+  },
+  {
+    id: 't1',
+    displayName: 'Alex',
+    initials: 'A',
+    joinedAt: '2024-03-01',
+    tier: 'tree',
+    isEarlyBird: false,
+    badge: 'believer',
+  },
+  {
+    id: 't2',
+    displayName: 'Jordan',
+    initials: 'J',
+    joinedAt: '2024-03-15',
+    tier: 'tree',
+    isEarlyBird: false,
+  },
+  {
+    id: 's1',
+    displayName: 'Casey',
+    initials: 'C',
+    joinedAt: '2024-05-01',
+    tier: 'sprout',
+    isEarlyBird: false,
+  },
+  {
+    id: 's2',
+    displayName: null,
+    initials: 'RB',
+    joinedAt: '2024-05-15',
+    tier: 'sprout',
+    isEarlyBird: false,
+  },
+  {
+    id: 'sd1',
+    displayName: 'Jamie',
+    initials: 'J',
+    joinedAt: '2024-08-01',
+    tier: 'seed',
+    isEarlyBird: false,
+  },
+  {
+    id: 'sd2',
+    displayName: null,
+    initials: 'PQ',
+    joinedAt: '2024-08-15',
+    tier: 'seed',
+    isEarlyBird: false,
+  },
+];
+
+const MOCK_STORIES: FounderStoryData[] = [
+  {
+    id: 'story1',
+    quote:
+      "Ferni helped me process my dad's passing in ways I couldn't with anyone else. Having someone who remembers every conversation, every milestone... it's like having a friend with perfect memory.",
+    attribution: 'A founding member',
+    memberSince: '2024-02',
+    theme: 'gratitude',
+  },
+  {
+    id: 'story2',
+    quote:
+      "I've tried every productivity app out there. Ferni is different because it actually knows me - my patterns, my struggles, my wins. It's the first AI that feels genuinely helpful.",
+    attribution: 'Sarah',
+    memberSince: '2024-01',
+    theme: 'impact',
+  },
+  {
+    id: 'story3',
+    quote:
+      'Supporting this felt like backing something that could really matter. Not just another app, but a genuine attempt to make support accessible to everyone.',
+    attribution: 'A founding member',
+    memberSince: '2024-03',
+    theme: 'community',
+  },
+];
+
+const MOCK_MILESTONES: MilestoneData[] = [
+  {
+    id: 'm1',
+    target: 50,
+    current: 50,
+    type: 'founders',
+    title: 'First 50 Believers',
+    celebration: 'Our founding circle is complete!',
+    reached: true,
+    reachedAt: '2024-03-15',
+  },
+  {
+    id: 'm2',
+    target: 100,
+    current: 147,
+    type: 'founders',
+    title: 'Century Club',
+    celebration: '100 people believe in this vision',
+    reached: true,
+    reachedAt: '2024-06-01',
+  },
+  {
+    id: 'm3',
+    target: 50000,
+    current: 62847,
+    type: 'conversations',
+    title: '50K Conversations',
+    celebration: '50,000 meaningful conversations',
+    reached: true,
+    reachedAt: '2024-08-15',
+  },
+  {
+    id: 'm4',
+    target: 200,
+    current: 147,
+    type: 'founders',
+    title: 'Village Complete',
+    celebration: 'A village of 200 believers',
+    reached: false,
+  },
+];
+
+// ============================================================================
+// DATA SEEDING FUNCTIONS
+// ============================================================================
+
+/**
+ * Seed initial founders data to Firestore
+ * This is idempotent - it won't overwrite existing data
+ */
+async function seedFoundersData(): Promise<{
+  seeded: { founders: number; stories: number; milestones: number; stats: boolean };
+  skipped: boolean;
+}> {
+  const db = getFirestore();
+  if (!db) {
+    return { seeded: { founders: 0, stories: 0, milestones: 0, stats: false }, skipped: true };
+  }
+
+  const result = { founders: 0, stories: 0, milestones: 0, stats: false };
+
+  try {
+    // Seed founder_stats if not exists
+    const statsDoc = await db.collection('founder_stats').doc('current').get();
+    if (!statsDoc.exists) {
+      await db.collection('founder_stats').doc('current').set({
+        totalFounders: MOCK_FOUNDER_STATS.totalFounders,
+        thisMonthFounders: MOCK_FOUNDER_STATS.thisMonthFounders,
+        conversationsSupported: MOCK_FOUNDER_STATS.conversationsSupported,
+        conversationsThisMonth: MOCK_FOUNDER_STATS.conversationsThisMonth,
+        featuresUnlocked: MOCK_FOUNDER_STATS.featuresUnlocked,
+        monthlyRecurring: MOCK_FOUNDER_STATS.monthlyRecurring,
+        lastUpdated: new Date(),
+      });
+      result.stats = true;
+      log.info('Seeded founder_stats');
+    }
+
+    // Seed founders collection
+    const foundersSnap = await db.collection('founders').limit(1).get();
+    if (foundersSnap.empty) {
+      const batch = db.batch();
+      for (const founder of MOCK_FOUNDERS) {
+        const docRef = db.collection('founders').doc(founder.id);
+        batch.set(docRef, {
+          ...founder,
+          joinedAt: new Date(founder.joinedAt),
+          createdAt: new Date(),
+        });
+        result.founders++;
+      }
+      await batch.commit();
+      log.info({ count: result.founders }, 'Seeded founders');
+    }
+
+    // Seed founder_stories collection
+    const storiesSnap = await db.collection('founder_stories').limit(1).get();
+    if (storiesSnap.empty) {
+      const batch = db.batch();
+      for (const story of MOCK_STORIES) {
+        const docRef = db.collection('founder_stories').doc(story.id);
+        batch.set(docRef, {
+          ...story,
+          approved: true,
+          createdAt: new Date(),
+        });
+        result.stories++;
+      }
+      await batch.commit();
+      log.info({ count: result.stories }, 'Seeded founder_stories');
+    }
+
+    // Seed community_milestones collection
+    const milestonesSnap = await db.collection('community_milestones').limit(1).get();
+    if (milestonesSnap.empty) {
+      const batch = db.batch();
+      for (const milestone of MOCK_MILESTONES) {
+        const docRef = db.collection('community_milestones').doc(milestone.id);
+        batch.set(docRef, {
+          ...milestone,
+          reachedAt: milestone.reachedAt ? new Date(milestone.reachedAt) : null,
+          createdAt: new Date(),
+        });
+        result.milestones++;
+      }
+      await batch.commit();
+      log.info({ count: result.milestones }, 'Seeded community_milestones');
+    }
+
+    return { seeded: result, skipped: false };
+  } catch (error) {
+    log.error({ error: String(error) }, 'Failed to seed founders data');
+    return { seeded: result, skipped: true };
+  }
+}
+
+/**
+ * Admin endpoint to seed founders data
+ * POST /api/garden/admin/seed
+ */
+async function handleSeedFoundersData(req: IncomingMessage, res: ServerResponse): Promise<void> {
+  // Verify admin access
+  const adminKey = req.headers['x-admin-key'] as string | undefined;
+  const configuredAdminKey = process.env.ADMIN_KEY;
+  const isDev = process.env.NODE_ENV === 'development';
+
+  const isAdmin =
+    (configuredAdminKey && adminKey === configuredAdminKey) || (isDev && adminKey === 'dev-mode');
+
+  if (!isAdmin) {
+    sendError(res, 'Unauthorized', 401);
+    return;
+  }
+
+  const result = await seedFoundersData();
+  sendJSON(res, {
+    success: !result.skipped,
+    ...result,
+    message: result.skipped
+      ? 'Seeding skipped (no database or already seeded)'
+      : 'Founders data seeded successfully',
+  });
+}
+
+/**
+ * GET /api/garden/founder-stats
+ * Public community stats for the founders journey
+ */
+async function handleFounderStats(res: ServerResponse): Promise<void> {
+  const isDev = process.env.NODE_ENV === 'development';
+
+  try {
+    const db = getFirestore();
+    if (!db) {
+      // Return mock data when database unavailable (dev only)
+      if (isDev) {
+        sendJSON(res, MOCK_FOUNDER_STATS);
+      } else {
+        sendJSON(res, { error: 'Service temporarily unavailable' }, 503);
+      }
+      return;
+    }
+
+    // Query founder_stats collection for aggregated data
+    const statsDoc = await db.collection('founder_stats').doc('current').get();
+
+    if (!statsDoc.exists) {
+      // No stats document yet - seed data if in dev, return empty in prod
+      if (isDev) {
+        log.debug('No founder_stats document, seeding initial data');
+        await seedFoundersData();
+        sendJSON(res, MOCK_FOUNDER_STATS);
+      } else {
+        // Return empty stats in production (data should be seeded first)
+        sendJSON(res, {
+          totalFounders: 0,
+          thisMonthFounders: 0,
+          conversationsSupported: 0,
+          conversationsThisMonth: 0,
+          featuresUnlocked: [],
+          monthlyRecurring: 0,
+        });
+      }
+      return;
+    }
+
+    const data = statsDoc.data()!;
+    const stats: FounderStatsData = {
+      totalFounders: data.totalFounders ?? 0,
+      thisMonthFounders: data.thisMonthFounders ?? 0,
+      conversationsSupported: data.conversationsSupported ?? 0,
+      conversationsThisMonth: data.conversationsThisMonth ?? 0,
+      featuresUnlocked: data.featuresUnlocked ?? [],
+      monthlyRecurring: data.monthlyRecurring ?? 0,
+    };
+
+    sendJSON(res, stats);
+  } catch (error) {
+    log.error({ error: String(error) }, 'Failed to get founder stats');
+    if (isDev) {
+      sendJSON(res, MOCK_FOUNDER_STATS); // Graceful fallback in dev
+    } else {
+      sendJSON(res, { error: 'Failed to get founder stats' }, 500);
+    }
+  }
+}
+
+/**
+ * GET /api/garden/founders-wall
+ * Public founders gallery for the founders journey
+ */
+async function handleFoundersWall(res: ServerResponse): Promise<void> {
+  const isDev = process.env.NODE_ENV === 'development';
+
+  try {
+    const db = getFirestore();
+    if (!db) {
+      if (isDev) {
+        sendJSON(res, MOCK_FOUNDERS);
+      } else {
+        sendJSON(res, []);
+      }
+      return;
+    }
+
+    // Query founders collection, ordered by tier (forest > tree > sprout > seed) then joinedAt
+    const foundersSnap = await db.collection('founders').orderBy('joinedAt', 'asc').limit(50).get();
+
+    if (foundersSnap.empty) {
+      if (isDev) {
+        log.debug('No founders in collection, seeding initial data');
+        await seedFoundersData();
+        sendJSON(res, MOCK_FOUNDERS);
+      } else {
+        sendJSON(res, []);
+      }
+      return;
+    }
+
+    const founders: FounderData[] = foundersSnap.docs.map((doc) => {
+      const data = doc.data();
+      return {
+        id: doc.id,
+        displayName: data.displayName || null,
+        initials: data.initials || data.displayName?.[0] || 'F',
+        joinedAt: data.joinedAt?.toDate?.().toISOString?.() || data.joinedAt || '',
+        tier: data.tier || 'seed',
+        isEarlyBird: data.isEarlyBird || false,
+        badge: data.badge,
+      };
+    });
+
+    // Sort by tier priority (forest first)
+    const tierOrder = { forest: 0, tree: 1, sprout: 2, seed: 3 };
+    founders.sort((a, b) => (tierOrder[a.tier] ?? 4) - (tierOrder[b.tier] ?? 4));
+
+    sendJSON(res, founders);
+  } catch (error) {
+    log.error({ error: String(error) }, 'Failed to get founders wall');
+    if (isDev) {
+      sendJSON(res, MOCK_FOUNDERS);
+    } else {
+      sendJSON(res, { error: 'Failed to get founders wall' }, 500);
+    }
+  }
+}
+
+/**
+ * GET /api/garden/founder-stories
+ * Public testimonials for the founders journey
+ */
+async function handleFounderStories(res: ServerResponse): Promise<void> {
+  const isDev = process.env.NODE_ENV === 'development';
+
+  try {
+    const db = getFirestore();
+    if (!db) {
+      if (isDev) {
+        sendJSON(res, MOCK_STORIES);
+      } else {
+        sendJSON(res, []);
+      }
+      return;
+    }
+
+    // Query approved founder stories, most recent first
+    const storiesSnap = await db
+      .collection('founder_stories')
+      .where('approved', '==', true)
+      .orderBy('createdAt', 'desc')
+      .limit(10)
+      .get();
+
+    if (storiesSnap.empty) {
+      if (isDev) {
+        log.debug('No founder stories in collection, seeding initial data');
+        await seedFoundersData();
+        sendJSON(res, MOCK_STORIES);
+      } else {
+        sendJSON(res, []);
+      }
+      return;
+    }
+
+    const stories: FounderStoryData[] = storiesSnap.docs.map((doc) => {
+      const data = doc.data();
+      return {
+        id: doc.id,
+        quote: data.quote || '',
+        attribution: data.attribution || 'A founding member',
+        memberSince: data.memberSince || '',
+        theme: data.theme || 'gratitude',
+      };
+    });
+
+    sendJSON(res, stories);
+  } catch (error) {
+    log.error({ error: String(error) }, 'Failed to get founder stories');
+    if (isDev) {
+      sendJSON(res, MOCK_STORIES);
+    } else {
+      sendJSON(res, { error: 'Failed to get founder stories' }, 500);
+    }
+  }
+}
+
+/**
+ * GET /api/garden/milestones
+ * Public community milestones for the founders journey
+ */
+async function handleMilestones(res: ServerResponse): Promise<void> {
+  const isDev = process.env.NODE_ENV === 'development';
+
+  try {
+    const db = getFirestore();
+    if (!db) {
+      if (isDev) {
+        sendJSON(res, MOCK_MILESTONES);
+      } else {
+        sendJSON(res, []);
+      }
+      return;
+    }
+
+    // Query community milestones ordered by target
+    const milestonesSnap = await db
+      .collection('community_milestones')
+      .orderBy('target', 'asc')
+      .get();
+
+    if (milestonesSnap.empty) {
+      if (isDev) {
+        log.debug('No milestones in collection, seeding initial data');
+        await seedFoundersData();
+        sendJSON(res, MOCK_MILESTONES);
+      } else {
+        sendJSON(res, []);
+      }
+      return;
+    }
+
+    const milestones: MilestoneData[] = milestonesSnap.docs.map((doc) => {
+      const data = doc.data();
+      return {
+        id: doc.id,
+        target: data.target || 0,
+        current: data.current || 0,
+        type: data.type || 'founders',
+        title: data.title || '',
+        celebration: data.celebration || '',
+        reached: data.reached || false,
+        reachedAt: data.reachedAt?.toDate?.().toISOString?.() || data.reachedAt,
+      };
+    });
+
+    sendJSON(res, milestones);
+  } catch (error) {
+    log.error({ error: String(error) }, 'Failed to get milestones');
+    if (isDev) {
+      sendJSON(res, MOCK_MILESTONES);
+    } else {
+      sendJSON(res, { error: 'Failed to get milestones' }, 500);
+    }
+  }
+}
+
+/**
+ * GET /api/garden/personal-impact/:userId
+ * Personal impact stats for authenticated users
+ */
+async function handlePersonalImpact(res: ServerResponse, userId: string): Promise<void> {
+  try {
+    const db = getFirestore();
+
+    // Default impact data for new/non-contributing users
+    const defaultImpact: PersonalImpactData = {
+      userId,
+      memberSince: '',
+      totalContributed: 0,
+      conversationsEnabled: 0,
+      percentileRank: 100,
+      streak: 0,
+      badges: [],
+      impact: {
+        conversationsThisMonth: 0,
+        familiesHelped: 0,
+        featuresYouUnlocked: [],
+      },
+    };
+
+    if (!db) {
+      sendJSON(res, defaultImpact);
+      return;
+    }
+
+    // Query user's garden data
+    const userGardenDoc = await db.collection('user_gardens').doc(userId).get();
+
+    if (!userGardenDoc.exists) {
+      // User hasn't contributed yet
+      sendJSON(res, defaultImpact);
+      return;
+    }
+
+    const gardenData = userGardenDoc.data()!;
+
+    // Query user's impact metrics
+    const impactDoc = await db.collection('founder_impact').doc(userId).get();
+    const impactData = impactDoc.exists ? impactDoc.data()! : {};
+
+    // Query user's badges
+    const badgesSnap = await db
+      .collection('user_gardens')
+      .doc(userId)
+      .collection('badges')
+      .orderBy('earnedAt', 'desc')
+      .get();
+
+    const badges = badgesSnap.docs.map((doc) => {
+      const data = doc.data();
+      return {
+        id: doc.id,
+        name: data.name || '',
+        description: data.description || '',
+        earnedAt: data.earnedAt?.toDate?.().toISOString?.() || data.earnedAt || '',
+        icon: data.icon || 'star',
+      };
+    });
+
+    const personalImpact: PersonalImpactData = {
+      userId,
+      memberSince:
+        gardenData.firstSeedDate?.toDate?.().toISOString?.() || gardenData.firstSeedDate || '',
+      totalContributed: gardenData.totalSeeds || 0,
+      conversationsEnabled: impactData.conversationsEnabled || 0,
+      percentileRank: impactData.percentileRank ?? 100,
+      streak: gardenData.monthlyStreak || 0,
+      badges,
+      impact: {
+        conversationsThisMonth: impactData.conversationsThisMonth || 0,
+        familiesHelped: impactData.familiesHelped || 0,
+        featuresYouUnlocked: impactData.featuresYouUnlocked || [],
+      },
+    };
+
+    sendJSON(res, personalImpact);
+  } catch (error) {
+    log.error({ error: String(error), userId }, 'Failed to get personal impact');
+    sendError(res, 'Failed to get personal impact', 500);
+  }
+}
+
+// =============================================================================
 // MAIN HANDLER
 // =============================================================================
 
@@ -539,6 +1203,12 @@ export async function handleGardenRoutes(
     return true;
   }
 
+  // POST /api/garden/admin/seed - Admin endpoint to seed initial data
+  if (pathname === '/api/garden/admin/seed' && method === 'POST') {
+    await handleSeedFoundersData(req, res);
+    return true;
+  }
+
   // Auth strategy for garden routes:
   // 1. Try Firebase auth (preferred) - sets userId to Firebase UID
   // 2. Fall back to userId from query params or X-User-Id header (legacy device IDs)
@@ -551,9 +1221,10 @@ export async function handleGardenRoutes(
     return true;
   }
 
-  // If we have Firebase auth, update the header so handlers use Firebase UID consistently
+  // If we have Firebase auth, set the preferred header for downstream handlers
   if (auth) {
-    (req.headers as Record<string, string | string[] | undefined>)['x-user-id'] = auth.userId;
+    // SECURITY: Use x-firebase-uid (preferred over deprecated x-user-id)
+    (req.headers as Record<string, string | string[] | undefined>)['x-firebase-uid'] = auth.userId;
   }
 
   // GET /api/garden/user - Get user's garden
@@ -583,6 +1254,46 @@ export async function handleGardenRoutes(
   // DELETE /api/garden/subscription - Cancel monthly
   if (pathname === '/api/garden/subscription' && method === 'DELETE') {
     await handleCancelMonthly(req, res, userId);
+    return true;
+  }
+
+  // ============================================================================
+  // FOUNDERS JOURNEY ENDPOINTS (New)
+  // ============================================================================
+
+  // GET /api/garden/founder-stats - Public community stats
+  if (pathname === '/api/garden/founder-stats' && method === 'GET') {
+    await handleFounderStats(res);
+    return true;
+  }
+
+  // GET /api/garden/founders-wall - Public founders gallery
+  if (pathname === '/api/garden/founders-wall' && method === 'GET') {
+    await handleFoundersWall(res);
+    return true;
+  }
+
+  // GET /api/garden/founder-stories - Public testimonials
+  if (pathname === '/api/garden/founder-stories' && method === 'GET') {
+    await handleFounderStories(res);
+    return true;
+  }
+
+  // GET /api/garden/milestones - Public community milestones
+  if (pathname === '/api/garden/milestones' && method === 'GET') {
+    await handleMilestones(res);
+    return true;
+  }
+
+  // GET /api/garden/personal-impact/:userId - Personal impact (auth required)
+  if (pathname.startsWith('/api/garden/personal-impact/') && method === 'GET') {
+    const requestedUserId = pathname.split('/').pop();
+    // Security: Only allow users to view their own impact
+    if (requestedUserId !== userId) {
+      sendError(res, 'Unauthorized', 403);
+      return true;
+    }
+    await handlePersonalImpact(res, userId);
     return true;
   }
 

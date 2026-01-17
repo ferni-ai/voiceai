@@ -1,0 +1,1051 @@
+{
+  "$schema": "https://json-schema.org/draft-07/schema#",
+  "name": "Ferni Extended Component Library",
+  "description": "World-class component tokens rivaling Material 3 and Apple HIG - with Ferni soul",
+  "version": "2.0.0",
+
+  "_designPhilosophy": {
+    "principle": "Components should feel like they're breathing, not stamped from a mold",
+    "warmth": "Every component carries Ferni's warmth - no cold, clinical UI",
+    "accessibility": "WCAG AA minimum, AAA where possible",
+    "responsiveness": "All components work touch-first, adapt to pointer"
+  },
+
+  "button": {
+    "description": "Primary interaction element - the heartbeat of the UI",
+
+    "variants": {
+      "filled": {
+        "description": "High-emphasis actions - primary CTAs",
+        "background": "var(--color-accent-primary)",
+        "color": "white",
+        "border": "none",
+        "shadow": "var(--shadow-sm)",
+        "states": {
+          "hover": {
+            "background": "var(--color-accent-hover)",
+            "shadow": "var(--shadow-md)",
+            "transform": "translateY(-1px)"
+          },
+          "pressed": {
+            "background": "var(--color-accent-pressed)",
+            "shadow": "var(--shadow-xs)",
+            "transform": "translateY(0) scale(0.98)"
+          },
+          "focus": {
+            "outline": "2px solid var(--color-accent-primary)",
+            "outlineOffset": "2px"
+          },
+          "disabled": {
+            "background": "var(--state-disabled-container)",
+            "color": "var(--state-disabled-content)",
+            "cursor": "not-allowed"
+          }
+        }
+      },
+      "tonal": {
+        "description": "Medium-emphasis - secondary actions",
+        "background": "var(--tonal-surface-3)",
+        "color": "var(--color-accent-primary)",
+        "border": "none",
+        "states": {
+          "hover": {
+            "background": "var(--tonal-surface-hover)"
+          },
+          "pressed": {
+            "background": "var(--tonal-surface-active)"
+          }
+        }
+      },
+      "outlined": {
+        "description": "Low-emphasis with boundary",
+        "background": "transparent",
+        "color": "var(--color-accent-primary)",
+        "border": "1px solid var(--color-accent-primary)",
+        "states": {
+          "hover": {
+            "background": "var(--color-accent-subtle)"
+          },
+          "pressed": {
+            "background": "var(--color-accent-glow)"
+          }
+        }
+      },
+      "text": {
+        "description": "Lowest emphasis - inline actions",
+        "background": "transparent",
+        "color": "var(--color-accent-primary)",
+        "border": "none",
+        "padding": "8px 12px",
+        "states": {
+          "hover": {
+            "background": "var(--state-hover)"
+          }
+        }
+      },
+      "elevated": {
+        "description": "Floating action with shadow",
+        "background": "var(--color-bg-elevated)",
+        "color": "var(--color-accent-primary)",
+        "border": "none",
+        "shadow": "var(--shadow-md)",
+        "states": {
+          "hover": {
+            "shadow": "var(--shadow-lg)",
+            "transform": "translateY(-2px)"
+          }
+        }
+      },
+      "persona": {
+        "description": "Persona-tinted button",
+        "background": "var(--persona-primary)",
+        "color": "white",
+        "border": "none",
+        "shadow": "0 4px 12px var(--persona-glow)"
+      }
+    },
+
+    "sizes": {
+      "xs": {
+        "height": "28px",
+        "padding": "0 10px",
+        "fontSize": "var(--text-xs)",
+        "borderRadius": "var(--radius-sm)",
+        "iconSize": "14px"
+      },
+      "sm": {
+        "height": "32px",
+        "padding": "0 12px",
+        "fontSize": "var(--text-sm)",
+        "borderRadius": "var(--radius-md)",
+        "iconSize": "16px"
+      },
+      "md": {
+        "height": "40px",
+        "padding": "0 16px",
+        "fontSize": "var(--text-base)",
+        "borderRadius": "var(--radius-md)",
+        "iconSize": "18px"
+      },
+      "lg": {
+        "height": "48px",
+        "padding": "0 24px",
+        "fontSize": "var(--text-lg)",
+        "borderRadius": "var(--radius-lg)",
+        "iconSize": "20px"
+      },
+      "xl": {
+        "height": "56px",
+        "padding": "0 32px",
+        "fontSize": "var(--text-xl)",
+        "borderRadius": "var(--radius-xl)",
+        "iconSize": "24px"
+      }
+    },
+
+    "animation": {
+      "press": {
+        "duration": "100ms",
+        "easing": "var(--ease-spring)"
+      },
+      "release": {
+        "duration": "200ms",
+        "easing": "var(--ease-gentle)"
+      }
+    }
+  },
+
+  "input": {
+    "description": "Text input fields - where conversation begins",
+
+    "base": {
+      "height": "48px",
+      "padding": "12px 16px",
+      "background": "var(--color-bg-secondary)",
+      "border": "1px solid var(--color-border-subtle)",
+      "borderRadius": "var(--radius-md)",
+      "fontSize": "var(--text-base)",
+      "color": "var(--color-text-primary)",
+      "transition": "border-color var(--state-transition-change), box-shadow var(--state-transition-change)"
+    },
+
+    "variants": {
+      "filled": {
+        "background": "var(--tonal-surface-2)",
+        "border": "none",
+        "borderBottom": "2px solid var(--color-border-medium)"
+      },
+      "outlined": {
+        "background": "transparent",
+        "border": "1px solid var(--color-border-medium)"
+      },
+      "glass": {
+        "background": "var(--glass-thin-background)",
+        "backdropFilter": "blur(8px)",
+        "border": "1px solid var(--glass-thin-border)"
+      }
+    },
+
+    "states": {
+      "hover": {
+        "borderColor": "var(--color-border-strong)"
+      },
+      "focus": {
+        "borderColor": "var(--color-accent-primary)",
+        "boxShadow": "0 0 0 2px var(--color-accent-glow)"
+      },
+      "error": {
+        "borderColor": "var(--color-semantic-error)",
+        "boxShadow": "0 0 0 2px var(--color-semantic-errorGlow)"
+      },
+      "disabled": {
+        "opacity": 0.5,
+        "cursor": "not-allowed"
+      }
+    },
+
+    "label": {
+      "fontSize": "var(--text-sm)",
+      "color": "var(--color-text-secondary)",
+      "marginBottom": "6px",
+      "fontWeight": 500
+    },
+
+    "helperText": {
+      "fontSize": "var(--text-xs)",
+      "color": "var(--color-text-muted)",
+      "marginTop": "4px"
+    },
+
+    "sizes": {
+      "sm": { "height": "36px", "padding": "8px 12px", "fontSize": "var(--text-sm)" },
+      "md": { "height": "44px", "padding": "10px 14px", "fontSize": "var(--text-base)" },
+      "lg": { "height": "52px", "padding": "12px 16px", "fontSize": "var(--text-lg)" }
+    }
+  },
+
+  "textarea": {
+    "description": "Multi-line text input",
+    "extends": "input",
+    "minHeight": "100px",
+    "resize": "vertical",
+    "lineHeight": 1.5
+  },
+
+  "select": {
+    "description": "Dropdown selection",
+    "extends": "input",
+
+    "indicator": {
+      "icon": "chevron-down",
+      "size": "16px",
+      "color": "var(--color-text-secondary)",
+      "rotation": {
+        "closed": "0deg",
+        "open": "180deg"
+      }
+    },
+
+    "dropdown": {
+      "background": "var(--color-bg-elevated)",
+      "border": "1px solid var(--color-border-subtle)",
+      "borderRadius": "var(--radius-lg)",
+      "shadow": "var(--shadow-lg)",
+      "maxHeight": "280px",
+      "padding": "4px"
+    },
+
+    "option": {
+      "padding": "10px 12px",
+      "borderRadius": "var(--radius-sm)",
+      "states": {
+        "hover": { "background": "var(--state-hover)" },
+        "selected": { "background": "var(--color-accent-subtle)", "color": "var(--color-accent-primary)" }
+      }
+    }
+  },
+
+  "checkbox": {
+    "description": "Binary selection",
+
+    "base": {
+      "size": "20px",
+      "borderRadius": "var(--radius-xs)",
+      "border": "2px solid var(--color-border-medium)",
+      "background": "transparent",
+      "transition": "all var(--state-transition-change)"
+    },
+
+    "states": {
+      "hover": {
+        "borderColor": "var(--color-accent-primary)"
+      },
+      "checked": {
+        "background": "var(--color-accent-primary)",
+        "borderColor": "var(--color-accent-primary)"
+      },
+      "indeterminate": {
+        "background": "var(--color-accent-primary)",
+        "borderColor": "var(--color-accent-primary)"
+      },
+      "disabled": {
+        "opacity": 0.38
+      }
+    },
+
+    "checkmark": {
+      "color": "white",
+      "strokeWidth": "2px",
+      "animation": {
+        "duration": "150ms",
+        "easing": "var(--ease-spring)"
+      }
+    },
+
+    "label": {
+      "marginLeft": "10px",
+      "fontSize": "var(--text-base)",
+      "color": "var(--color-text-primary)"
+    }
+  },
+
+  "radio": {
+    "description": "Single selection from group",
+    "extends": "checkbox",
+
+    "base": {
+      "size": "20px",
+      "borderRadius": "var(--radius-full)"
+    },
+
+    "dot": {
+      "size": "10px",
+      "color": "white",
+      "animation": {
+        "duration": "150ms",
+        "easing": "var(--ease-spring)",
+        "scaleFrom": 0,
+        "scaleTo": 1
+      }
+    }
+  },
+
+  "switch": {
+    "description": "Toggle on/off states",
+
+    "track": {
+      "width": "52px",
+      "height": "32px",
+      "borderRadius": "var(--radius-full)",
+      "background": {
+        "off": "var(--tonal-surface-3)",
+        "on": "var(--color-accent-primary)"
+      },
+      "transition": "background var(--state-transition-change)"
+    },
+
+    "thumb": {
+      "size": "24px",
+      "borderRadius": "var(--radius-full)",
+      "background": "white",
+      "shadow": "var(--shadow-md)",
+      "offset": {
+        "off": "4px",
+        "on": "calc(100% - 28px)"
+      },
+      "transition": "transform 200ms var(--ease-spring)"
+    },
+
+    "states": {
+      "hover": {
+        "thumbScale": 1.1
+      },
+      "disabled": {
+        "opacity": 0.38
+      }
+    }
+  },
+
+  "slider": {
+    "description": "Range selection",
+
+    "track": {
+      "height": "4px",
+      "borderRadius": "var(--radius-full)",
+      "background": {
+        "inactive": "var(--tonal-surface-2)",
+        "active": "var(--color-accent-primary)"
+      }
+    },
+
+    "thumb": {
+      "size": "20px",
+      "borderRadius": "var(--radius-full)",
+      "background": "var(--color-accent-primary)",
+      "shadow": "var(--shadow-md)",
+      "states": {
+        "hover": { "scale": 1.15 },
+        "active": { "scale": 1.25, "shadow": "0 0 0 8px var(--color-accent-glow)" }
+      }
+    },
+
+    "marks": {
+      "size": "4px",
+      "color": "var(--color-border-medium)"
+    },
+
+    "valueLabel": {
+      "background": "var(--color-accent-primary)",
+      "color": "white",
+      "padding": "4px 8px",
+      "borderRadius": "var(--radius-sm)",
+      "fontSize": "var(--text-xs)"
+    }
+  },
+
+  "card": {
+    "description": "Content container - a canvas for stories",
+
+    "variants": {
+      "elevated": {
+        "background": "var(--color-bg-elevated)",
+        "shadow": "var(--shadow-md)",
+        "border": "none"
+      },
+      "filled": {
+        "background": "var(--tonal-surface-1)",
+        "shadow": "none",
+        "border": "none"
+      },
+      "outlined": {
+        "background": "var(--color-bg-primary)",
+        "shadow": "none",
+        "border": "1px solid var(--color-border-subtle)"
+      },
+      "glass": {
+        "background": "var(--glass-thin-background)",
+        "backdropFilter": "blur(var(--glass-blur-thin))",
+        "border": "1px solid var(--glass-thin-border)",
+        "shadow": "var(--glass-shadow-thin)"
+      },
+      "persona": {
+        "background": "var(--persona-tint)",
+        "border": "1px solid var(--persona-glow)",
+        "shadow": "0 8px 24px var(--persona-glow)"
+      }
+    },
+
+    "sizes": {
+      "sm": { "padding": "12px", "borderRadius": "var(--radius-md)" },
+      "md": { "padding": "16px", "borderRadius": "var(--radius-lg)" },
+      "lg": { "padding": "24px", "borderRadius": "var(--radius-xl)" }
+    },
+
+    "interactive": {
+      "cursor": "pointer",
+      "transition": "transform var(--transition-base), box-shadow var(--transition-base)",
+      "states": {
+        "hover": {
+          "transform": "translateY(-4px)",
+          "shadow": "var(--shadow-lg)"
+        },
+        "pressed": {
+          "transform": "translateY(-2px) scale(0.99)"
+        }
+      }
+    }
+  },
+
+  "dialog": {
+    "description": "Modal overlay - focused conversation",
+
+    "container": {
+      "background": "var(--color-bg-elevated)",
+      "borderRadius": "var(--radius-2xl)",
+      "shadow": "var(--shadow-2xl)",
+      "maxWidth": "560px",
+      "width": "calc(100vw - 48px)",
+      "maxHeight": "calc(100vh - 96px)"
+    },
+
+    "glass": {
+      "background": "var(--glass-thick-background)",
+      "backdropFilter": "blur(var(--glass-blur-thick))",
+      "border": "1px solid var(--glass-thick-border)"
+    },
+
+    "header": {
+      "padding": "24px 24px 16px",
+      "borderBottom": "none"
+    },
+
+    "body": {
+      "padding": "0 24px"
+    },
+
+    "footer": {
+      "padding": "16px 24px 24px",
+      "display": "flex",
+      "gap": "12px",
+      "justifyContent": "flex-end"
+    },
+
+    "backdrop": {
+      "background": "var(--color-utility-backdrop)",
+      "backdropFilter": "blur(4px)"
+    },
+
+    "animation": {
+      "enter": {
+        "duration": "300ms",
+        "easing": "var(--ease-spring)",
+        "from": { "opacity": 0, "scale": 0.9, "translateY": "20px" },
+        "to": { "opacity": 1, "scale": 1, "translateY": "0" }
+      },
+      "exit": {
+        "duration": "200ms",
+        "easing": "var(--ease-accelerate)",
+        "from": { "opacity": 1, "scale": 1 },
+        "to": { "opacity": 0, "scale": 0.95 }
+      }
+    }
+  },
+
+  "toast": {
+    "description": "Brief notifications - Ferni's voice in UI",
+
+    "container": {
+      "background": "var(--color-bg-elevated)",
+      "borderRadius": "var(--radius-lg)",
+      "shadow": "var(--shadow-lg)",
+      "padding": "12px 16px",
+      "display": "flex",
+      "alignItems": "center",
+      "gap": "12px",
+      "minWidth": "280px",
+      "maxWidth": "420px"
+    },
+
+    "variants": {
+      "success": {
+        "borderLeft": "4px solid var(--color-semantic-success)",
+        "iconColor": "var(--color-semantic-success)"
+      },
+      "error": {
+        "borderLeft": "4px solid var(--color-semantic-error)",
+        "iconColor": "var(--color-semantic-error)"
+      },
+      "warning": {
+        "borderLeft": "4px solid var(--color-semantic-warning)",
+        "iconColor": "var(--color-semantic-warning)"
+      },
+      "info": {
+        "borderLeft": "4px solid var(--color-semantic-info)",
+        "iconColor": "var(--color-semantic-info)"
+      },
+      "persona": {
+        "borderLeft": "4px solid var(--persona-primary)",
+        "iconColor": "var(--persona-primary)"
+      }
+    },
+
+    "animation": {
+      "enter": {
+        "duration": "400ms",
+        "easing": "var(--ease-spring)",
+        "from": { "opacity": 0, "translateY": "16px", "scale": 0.95 },
+        "to": { "opacity": 1, "translateY": "0", "scale": 1 }
+      },
+      "exit": {
+        "duration": "200ms",
+        "easing": "var(--ease-accelerate)",
+        "from": { "opacity": 1 },
+        "to": { "opacity": 0, "translateX": "100%" }
+      }
+    },
+
+    "duration": {
+      "short": 2500,
+      "default": 4000,
+      "long": 6000
+    }
+  },
+
+  "tabs": {
+    "description": "Navigation between related views",
+
+    "container": {
+      "borderBottom": "1px solid var(--color-border-subtle)"
+    },
+
+    "tab": {
+      "padding": "12px 16px",
+      "color": "var(--color-text-secondary)",
+      "fontWeight": 500,
+      "transition": "color var(--state-transition-change)"
+    },
+
+    "states": {
+      "hover": {
+        "color": "var(--color-text-primary)"
+      },
+      "selected": {
+        "color": "var(--color-accent-primary)"
+      }
+    },
+
+    "indicator": {
+      "height": "2px",
+      "background": "var(--color-accent-primary)",
+      "borderRadius": "2px 2px 0 0",
+      "animation": {
+        "duration": "250ms",
+        "easing": "var(--ease-standard)"
+      }
+    },
+
+    "variants": {
+      "primary": {
+        "indicator": "bottom"
+      },
+      "secondary": {
+        "background": "var(--tonal-surface-1)",
+        "borderRadius": "var(--radius-full)",
+        "indicator": "pill"
+      }
+    }
+  },
+
+  "chip": {
+    "description": "Compact element for filters, tags, selections",
+
+    "base": {
+      "height": "32px",
+      "padding": "0 12px",
+      "borderRadius": "var(--radius-full)",
+      "fontSize": "var(--text-sm)",
+      "fontWeight": 500,
+      "display": "inline-flex",
+      "alignItems": "center",
+      "gap": "6px"
+    },
+
+    "variants": {
+      "filled": {
+        "background": "var(--tonal-surface-2)",
+        "color": "var(--color-text-primary)"
+      },
+      "outlined": {
+        "background": "transparent",
+        "border": "1px solid var(--color-border-medium)",
+        "color": "var(--color-text-primary)"
+      },
+      "persona": {
+        "background": "var(--persona-tint)",
+        "color": "var(--persona-primary)",
+        "border": "1px solid var(--persona-glow)"
+      }
+    },
+
+    "states": {
+      "hover": { "background": "var(--tonal-surface-hover)" },
+      "selected": {
+        "background": "var(--color-accent-subtle)",
+        "color": "var(--color-accent-primary)",
+        "border": "1px solid var(--color-accent-primary)"
+      }
+    },
+
+    "dismissible": {
+      "paddingRight": "8px",
+      "closeIcon": {
+        "size": "16px",
+        "color": "var(--color-text-secondary)",
+        "hoverColor": "var(--color-text-primary)"
+      }
+    }
+  },
+
+  "avatar": {
+    "description": "User representation - not persona avatars (see personaAvatar)",
+
+    "sizes": {
+      "xs": { "size": "24px", "fontSize": "10px" },
+      "sm": { "size": "32px", "fontSize": "12px" },
+      "md": { "size": "40px", "fontSize": "14px" },
+      "lg": { "size": "48px", "fontSize": "16px" },
+      "xl": { "size": "64px", "fontSize": "20px" },
+      "2xl": { "size": "96px", "fontSize": "28px" }
+    },
+
+    "base": {
+      "borderRadius": "var(--radius-full)",
+      "background": "var(--tonal-surface-3)",
+      "color": "var(--color-text-secondary)",
+      "fontWeight": 600,
+      "display": "flex",
+      "alignItems": "center",
+      "justifyContent": "center",
+      "overflow": "hidden"
+    },
+
+    "status": {
+      "size": "25%",
+      "minSize": "8px",
+      "maxSize": "16px",
+      "borderWidth": "2px",
+      "borderColor": "var(--color-bg-primary)",
+      "colors": {
+        "online": "var(--color-semantic-success)",
+        "offline": "var(--color-text-muted)",
+        "busy": "var(--color-semantic-error)",
+        "away": "var(--color-semantic-warning)"
+      }
+    },
+
+    "group": {
+      "overlap": "-8px",
+      "maxVisible": 4,
+      "border": "2px solid var(--color-bg-primary)"
+    }
+  },
+
+  "progress": {
+    "description": "Progress indicators - linear and circular",
+
+    "linear": {
+      "height": "4px",
+      "borderRadius": "var(--radius-full)",
+      "background": "var(--tonal-surface-2)",
+      "fill": {
+        "background": "var(--color-accent-primary)",
+        "transition": "width 300ms var(--ease-standard)"
+      },
+      "indeterminate": {
+        "animation": "progress-indeterminate 1.5s ease-in-out infinite"
+      }
+    },
+
+    "circular": {
+      "sizes": {
+        "sm": { "size": "24px", "strokeWidth": "2px" },
+        "md": { "size": "40px", "strokeWidth": "3px" },
+        "lg": { "size": "64px", "strokeWidth": "4px" }
+      },
+      "track": {
+        "stroke": "var(--tonal-surface-2)"
+      },
+      "fill": {
+        "stroke": "var(--color-accent-primary)",
+        "strokeLinecap": "round"
+      },
+      "indeterminate": {
+        "animation": "progress-circular 1.4s ease-in-out infinite"
+      }
+    }
+  },
+
+  "tooltip": {
+    "description": "Contextual hints",
+
+    "container": {
+      "background": "var(--color-bg-overlay)",
+      "color": "var(--color-text-inverse)",
+      "padding": "6px 10px",
+      "borderRadius": "var(--radius-sm)",
+      "fontSize": "var(--text-xs)",
+      "fontWeight": 500,
+      "maxWidth": "200px"
+    },
+
+    "arrow": {
+      "size": "6px",
+      "color": "var(--color-bg-overlay)"
+    },
+
+    "animation": {
+      "duration": "150ms",
+      "easing": "var(--ease-standard)",
+      "delay": "400ms"
+    }
+  },
+
+  "divider": {
+    "description": "Visual separator",
+
+    "horizontal": {
+      "height": "1px",
+      "background": "var(--color-border-subtle)",
+      "margin": "16px 0"
+    },
+
+    "vertical": {
+      "width": "1px",
+      "background": "var(--color-border-subtle)",
+      "margin": "0 16px"
+    },
+
+    "variants": {
+      "subtle": { "background": "var(--color-border-subtle)" },
+      "medium": { "background": "var(--color-border-medium)" },
+      "strong": { "background": "var(--color-border-strong)" }
+    }
+  },
+
+  "menu": {
+    "description": "Dropdown and context menus",
+
+    "container": {
+      "background": "var(--color-bg-elevated)",
+      "borderRadius": "var(--radius-lg)",
+      "shadow": "var(--shadow-xl)",
+      "border": "1px solid var(--color-border-subtle)",
+      "padding": "4px",
+      "minWidth": "160px"
+    },
+
+    "item": {
+      "padding": "10px 12px",
+      "borderRadius": "var(--radius-sm)",
+      "fontSize": "var(--text-sm)",
+      "color": "var(--color-text-primary)",
+      "display": "flex",
+      "alignItems": "center",
+      "gap": "10px"
+    },
+
+    "states": {
+      "hover": { "background": "var(--state-hover)" },
+      "focus": { "background": "var(--state-focus)" },
+      "disabled": { "opacity": 0.38, "pointerEvents": "none" }
+    },
+
+    "divider": {
+      "height": "1px",
+      "background": "var(--color-border-subtle)",
+      "margin": "4px 0"
+    },
+
+    "subMenu": {
+      "indicator": {
+        "icon": "chevron-right",
+        "size": "14px"
+      }
+    }
+  },
+
+  "accordion": {
+    "description": "Expandable content sections",
+
+    "item": {
+      "borderBottom": "1px solid var(--color-border-subtle)"
+    },
+
+    "header": {
+      "padding": "16px 0",
+      "display": "flex",
+      "justifyContent": "space-between",
+      "alignItems": "center",
+      "cursor": "pointer",
+      "fontWeight": 500
+    },
+
+    "indicator": {
+      "icon": "chevron-down",
+      "size": "20px",
+      "transition": "transform 200ms var(--ease-standard)",
+      "expanded": { "transform": "rotate(180deg)" }
+    },
+
+    "content": {
+      "padding": "0 0 16px",
+      "animation": {
+        "expand": { "duration": "200ms", "easing": "var(--ease-decelerate)" },
+        "collapse": { "duration": "150ms", "easing": "var(--ease-accelerate)" }
+      }
+    }
+  },
+
+  "list": {
+    "description": "Vertical arrangement of items",
+
+    "item": {
+      "padding": "12px 16px",
+      "display": "flex",
+      "alignItems": "center",
+      "gap": "12px",
+      "borderRadius": "var(--radius-md)"
+    },
+
+    "states": {
+      "hover": { "background": "var(--state-hover)" },
+      "selected": { "background": "var(--color-accent-subtle)" }
+    },
+
+    "leading": {
+      "width": "40px",
+      "height": "40px",
+      "flexShrink": 0
+    },
+
+    "content": {
+      "flex": 1,
+      "minWidth": 0
+    },
+
+    "trailing": {
+      "flexShrink": 0
+    },
+
+    "divider": {
+      "inset": "68px"
+    }
+  },
+
+  "navigationBar": {
+    "description": "Bottom navigation for mobile",
+
+    "container": {
+      "height": "80px",
+      "background": "var(--color-bg-elevated)",
+      "borderTop": "1px solid var(--color-border-subtle)",
+      "display": "flex",
+      "justifyContent": "space-around",
+      "alignItems": "center",
+      "paddingBottom": "env(safe-area-inset-bottom)"
+    },
+
+    "item": {
+      "display": "flex",
+      "flexDirection": "column",
+      "alignItems": "center",
+      "gap": "4px",
+      "padding": "8px 12px",
+      "borderRadius": "var(--radius-lg)"
+    },
+
+    "icon": {
+      "size": "24px"
+    },
+
+    "label": {
+      "fontSize": "var(--text-xs)",
+      "fontWeight": 500
+    },
+
+    "states": {
+      "active": {
+        "iconColor": "var(--color-accent-primary)",
+        "labelColor": "var(--color-accent-primary)",
+        "background": "var(--color-accent-subtle)"
+      }
+    }
+  },
+
+  "sheet": {
+    "description": "Bottom sheet overlay",
+
+    "container": {
+      "background": "var(--color-bg-elevated)",
+      "borderRadius": "var(--radius-2xl) var(--radius-2xl) 0 0",
+      "maxHeight": "90vh"
+    },
+
+    "glass": {
+      "background": "var(--glass-thick-background)",
+      "backdropFilter": "blur(var(--glass-blur-thick))",
+      "border": "1px solid var(--glass-thick-border)"
+    },
+
+    "handle": {
+      "width": "32px",
+      "height": "4px",
+      "borderRadius": "var(--radius-full)",
+      "background": "var(--color-border-medium)",
+      "margin": "8px auto 16px"
+    },
+
+    "animation": {
+      "enter": {
+        "duration": "350ms",
+        "easing": "var(--ease-spring)"
+      },
+      "exit": {
+        "duration": "200ms",
+        "easing": "var(--ease-accelerate)"
+      }
+    }
+  },
+
+  "skeleton": {
+    "description": "Loading placeholder",
+
+    "base": {
+      "background": "var(--skeleton-background)",
+      "borderRadius": "var(--radius-md)",
+      "overflow": "hidden"
+    },
+
+    "animation": {
+      "shimmer": {
+        "gradient": "var(--skeleton-shimmer)",
+        "duration": "1.5s",
+        "backgroundSize": "200% 100%"
+      },
+      "pulse": {
+        "opacityRange": [0.5, 1],
+        "duration": "1.5s"
+      }
+    },
+
+    "variants": {
+      "text": { "height": "16px", "borderRadius": "var(--radius-xs)" },
+      "heading": { "height": "24px", "borderRadius": "var(--radius-sm)" },
+      "circular": { "borderRadius": "var(--radius-full)" },
+      "rectangular": { "borderRadius": "var(--radius-md)" }
+    }
+  },
+
+  "badge": {
+    "description": "Notification badges",
+
+    "base": {
+      "minWidth": "20px",
+      "height": "20px",
+      "padding": "0 6px",
+      "borderRadius": "var(--radius-full)",
+      "fontSize": "var(--text-xs)",
+      "fontWeight": 600,
+      "display": "inline-flex",
+      "alignItems": "center",
+      "justifyContent": "center"
+    },
+
+    "variants": {
+      "standard": {
+        "background": "var(--color-semantic-error)",
+        "color": "white"
+      },
+      "dot": {
+        "width": "8px",
+        "height": "8px",
+        "padding": 0,
+        "minWidth": "unset"
+      },
+      "outlined": {
+        "background": "transparent",
+        "border": "2px solid var(--color-semantic-error)",
+        "color": "var(--color-semantic-error)"
+      }
+    },
+
+    "animation": {
+      "enter": {
+        "duration": "200ms",
+        "easing": "var(--ease-spring)",
+        "from": { "scale": 0 },
+        "to": { "scale": 1 }
+      }
+    }
+  }
+}

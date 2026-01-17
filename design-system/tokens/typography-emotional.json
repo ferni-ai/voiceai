@@ -1,0 +1,288 @@
+{
+  "$schema": "https://json-schema.org/draft-07/schema#",
+  "description": "Ferni Emotional Typography Tokens - Typography that breathes with mood",
+
+  "_designPrinciples": {
+    "breathing": "Text subtly expands/contracts with emotional rhythm (1-2% scale)",
+    "moodWeight": "Font weight shifts with emotional intensity",
+    "personaVoice": "Each persona has distinct typographic personality",
+    "source": "Inspired by Bringhurst, Lupton, and human breath patterns"
+  },
+
+  "breathing": {
+    "_comment": "Subtle scale animation that mimics natural breathing rhythm",
+    "cycles": {
+      "calm": {
+        "inhale": {
+          "scale": 1.015,
+          "letterSpacing": "0.3px",
+          "duration": "2500ms"
+        },
+        "exhale": {
+          "scale": 1.0,
+          "letterSpacing": "0px",
+          "duration": "3000ms"
+        }
+      },
+      "energized": {
+        "inhale": {
+          "scale": 1.02,
+          "letterSpacing": "0.2px",
+          "duration": "1500ms"
+        },
+        "exhale": {
+          "scale": 1.0,
+          "letterSpacing": "0px",
+          "duration": "1800ms"
+        }
+      },
+      "stressed": {
+        "inhale": {
+          "scale": 1.01,
+          "letterSpacing": "0.1px",
+          "duration": "1200ms"
+        },
+        "exhale": {
+          "scale": 1.0,
+          "letterSpacing": "0px",
+          "duration": "1400ms"
+        }
+      },
+      "reflective": {
+        "inhale": {
+          "scale": 1.012,
+          "letterSpacing": "0.4px",
+          "duration": "3000ms"
+        },
+        "exhale": {
+          "scale": 1.0,
+          "letterSpacing": "0px",
+          "duration": "3500ms"
+        }
+      },
+      "playful": {
+        "inhale": {
+          "scale": 1.025,
+          "letterSpacing": "0.5px",
+          "duration": "1800ms"
+        },
+        "exhale": {
+          "scale": 1.0,
+          "letterSpacing": "0px",
+          "duration": "2000ms"
+        }
+      }
+    },
+    "rules": {
+      "_comment": "When and where breathing applies",
+      "applyTo": ["hero-text", "focus-elements", "avatar-labels"],
+      "neverOn": ["body-text", "navigation", "buttons", "form-labels"],
+      "maxScale": 1.03,
+      "minDuration": "1200ms",
+      "easingFunction": "cubic-bezier(0.4, 0, 0.2, 1)"
+    }
+  },
+
+  "moodWeights": {
+    "_comment": "Font weight shifts based on emotional state - subtle but perceptible",
+    "states": {
+      "calm": {
+        "headingWeight": 500,
+        "bodyWeight": 350,
+        "letterSpacing": "0.3px",
+        "lineHeightMultiplier": 1.1
+      },
+      "joyful": {
+        "headingWeight": 600,
+        "bodyWeight": 400,
+        "letterSpacing": "0.2px",
+        "lineHeightMultiplier": 1.05
+      },
+      "anxious": {
+        "headingWeight": 450,
+        "bodyWeight": 380,
+        "letterSpacing": "0px",
+        "lineHeightMultiplier": 1.0
+      },
+      "tired": {
+        "headingWeight": 400,
+        "bodyWeight": 350,
+        "letterSpacing": "0.4px",
+        "lineHeightMultiplier": 1.15
+      },
+      "focused": {
+        "headingWeight": 550,
+        "bodyWeight": 400,
+        "letterSpacing": "-0.2px",
+        "lineHeightMultiplier": 1.0
+      },
+      "reflective": {
+        "headingWeight": 450,
+        "bodyWeight": 360,
+        "letterSpacing": "0.5px",
+        "lineHeightMultiplier": 1.2
+      },
+      "stressed": {
+        "headingWeight": 500,
+        "bodyWeight": 400,
+        "letterSpacing": "0px",
+        "lineHeightMultiplier": 0.95
+      },
+      "energized": {
+        "headingWeight": 600,
+        "bodyWeight": 420,
+        "letterSpacing": "-0.3px",
+        "lineHeightMultiplier": 0.98
+      },
+      "peaceful": {
+        "headingWeight": 400,
+        "bodyWeight": 340,
+        "letterSpacing": "0.6px",
+        "lineHeightMultiplier": 1.25
+      },
+      "uncertain": {
+        "headingWeight": 450,
+        "bodyWeight": 370,
+        "letterSpacing": "0.2px",
+        "lineHeightMultiplier": 1.1
+      }
+    },
+    "transitions": {
+      "duration": "400ms",
+      "easing": "cubic-bezier(0.4, 0, 0.2, 1)",
+      "properties": ["font-weight", "letter-spacing", "line-height"]
+    }
+  },
+
+  "personaTypography": {
+    "_comment": "Each persona has a unique typographic voice that matches their personality",
+    "ferni": {
+      "displayName": "Ferni (Coordinator)",
+      "personality": "Warm, approachable, nurturing",
+      "headingWeight": 450,
+      "bodyWeight": 360,
+      "letterSpacingMultiplier": 1.05,
+      "lineHeightMultiplier": 1.12,
+      "preferredStyle": "rounded",
+      "accentUsage": "minimal"
+    },
+    "maya": {
+      "displayName": "Maya (Habit Coach)",
+      "personality": "Energetic, clear, motivating",
+      "headingWeight": 550,
+      "bodyWeight": 400,
+      "letterSpacingMultiplier": 0.95,
+      "lineHeightMultiplier": 1.0,
+      "preferredStyle": "crisp",
+      "accentUsage": "action-focused"
+    },
+    "peter": {
+      "displayName": "Peter (Research)",
+      "personality": "Precise, analytical, trustworthy",
+      "headingWeight": 500,
+      "bodyWeight": 400,
+      "letterSpacingMultiplier": 0.98,
+      "lineHeightMultiplier": 1.05,
+      "preferredStyle": "structured",
+      "accentUsage": "data-highlights"
+    },
+    "jordan": {
+      "displayName": "Jordan (Planning)",
+      "personality": "Organized, forward-thinking, optimistic",
+      "headingWeight": 500,
+      "bodyWeight": 380,
+      "letterSpacingMultiplier": 1.0,
+      "lineHeightMultiplier": 1.08,
+      "preferredStyle": "balanced",
+      "accentUsage": "milestones"
+    },
+    "alex": {
+      "displayName": "Alex (Communication)",
+      "personality": "Professional, efficient, diplomatic",
+      "headingWeight": 500,
+      "bodyWeight": 400,
+      "letterSpacingMultiplier": 0.97,
+      "lineHeightMultiplier": 1.02,
+      "preferredStyle": "clean",
+      "accentUsage": "key-points"
+    },
+    "nayan": {
+      "displayName": "Nayan (Wisdom)",
+      "personality": "Deep, contemplative, wise",
+      "headingWeight": 400,
+      "bodyWeight": 350,
+      "letterSpacingMultiplier": 1.1,
+      "lineHeightMultiplier": 1.2,
+      "preferredStyle": "spacious",
+      "accentUsage": "wisdom-highlights"
+    }
+  },
+
+  "conversationalFormatting": {
+    "_comment": "Typography rules for voice-first conversation display",
+    "userMessage": {
+      "fontWeight": 400,
+      "fontSize": "1rem",
+      "lineHeight": 1.5,
+      "maxWidth": "85%"
+    },
+    "aiMessage": {
+      "fontWeight": 400,
+      "fontSize": "1rem",
+      "lineHeight": 1.6,
+      "maxWidth": "90%"
+    },
+    "emphasis": {
+      "strong": {
+        "fontWeight": 600,
+        "color": "var(--color-text-primary)"
+      },
+      "gentle": {
+        "fontWeight": 500,
+        "color": "var(--color-text-secondary)"
+      }
+    },
+    "timing": {
+      "wordAppearDelay": "40ms",
+      "sentencePause": "200ms",
+      "paragraphPause": "400ms"
+    }
+  },
+
+  "accessibilityOverrides": {
+    "_comment": "Typography adjustments for accessibility",
+    "reducedMotion": {
+      "breathing": false,
+      "transitions": false,
+      "wordAppearAnimation": false
+    },
+    "highContrast": {
+      "minimumFontWeight": 400,
+      "minimumFontSize": "1rem",
+      "increaseLetterSpacing": true
+    },
+    "largeText": {
+      "scaleMultiplier": 1.25,
+      "lineHeightIncrease": 0.1
+    }
+  },
+
+  "cssVariableMapping": {
+    "_comment": "How these tokens map to CSS custom properties",
+    "breathing": {
+      "scaleVar": "--type-breathing-scale",
+      "letterSpacingVar": "--type-breathing-letter-spacing",
+      "durationVar": "--type-breathing-duration"
+    },
+    "moodWeights": {
+      "headingWeightVar": "--type-mood-heading-weight",
+      "bodyWeightVar": "--type-mood-body-weight",
+      "letterSpacingVar": "--type-mood-letter-spacing"
+    },
+    "persona": {
+      "headingWeightVar": "--persona-type-heading-weight",
+      "bodyWeightVar": "--persona-type-body-weight",
+      "letterSpacingMultiplierVar": "--persona-type-letter-spacing-mult"
+    }
+  }
+}

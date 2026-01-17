@@ -72,7 +72,7 @@ async function getServices(): Promise<ServiceConfig[]> {
   // Team Engagement
   try {
     const { getTeamEngagementService, shutdownTeamEngagementService } =
-      await import('../team-engagement.js');
+      await import('../engagement/team-engagement.js');
     services.push({
       name: 'team-engagement',
       initialize: async () => {
@@ -119,7 +119,7 @@ async function getServices(): Promise<ServiceConfig[]> {
   // Maya Notification Service
   try {
     const { initializeMayaNotificationService, shutdownEngagementNotificationService } =
-      await import('../engagement-notification-service.js');
+      await import('../engagement/engagement-notification-service.js');
     services.push({
       name: 'maya-notifications',
       initialize: async () => {
@@ -135,7 +135,7 @@ async function getServices(): Promise<ServiceConfig[]> {
   // Productivity Store
   try {
     const { initializeProductivityStore, shutdownProductivityStore } =
-      await import('../productivity-store.js');
+      await import('../stores/productivity-store.js');
     services.push({
       name: 'productivity-store',
       initialize: async () => {
@@ -151,7 +151,7 @@ async function getServices(): Promise<ServiceConfig[]> {
   // Maya Financial Store
   try {
     const { initializeMayaFinancialStore, shutdownMayaFinancialStore } =
-      await import('../financial-store.js');
+      await import('../stores/financial-store.js');
     services.push({
       name: 'financial-store',
       initialize: async () => {
@@ -200,7 +200,7 @@ async function getServices(): Promise<ServiceConfig[]> {
 
   // Background Tasks
   try {
-    const { getBackgroundTaskService } = await import('../background-tasks.js');
+    const { getBackgroundTaskService } = await import('../scheduling/background-tasks.js');
     services.push({
       name: 'background-tasks',
       initialize: async () => {
@@ -208,7 +208,7 @@ async function getServices(): Promise<ServiceConfig[]> {
         await service.initialize();
       },
       shutdown: async () => {
-        const { getBackgroundTaskService } = await import('../background-tasks.js');
+        const { getBackgroundTaskService } = await import('../scheduling/background-tasks.js');
         const service = getBackgroundTaskService();
         await service.shutdown();
       },

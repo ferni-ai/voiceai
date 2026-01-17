@@ -2,20 +2,18 @@ import SwiftUI
 
 // MARK: - Aurora Edge Animation (Like Gemini)
 
-/// Beautiful rotating gradient animation around the edges
-/// Inspired by Google Gemini's colorful edge effects
+/// Beautiful rotating gradient animation around the edges.
+/// Uses continuous timer animation - NEVER restarts on state changes.
+/// Fades opacity instead of restarting to prevent flickering.
 struct AuroraEdge: View {
     let persona: Persona
     let isActive: Bool
     let cornerRadius: CGFloat
-    
-    @State private var rotationAngle: Double = 0
-    @State private var colorPhase: Double = 0
-    
-    // Animation speeds
-    private let rotationDuration: Double = 4.0  // Full rotation time
-    private let colorShiftDuration: Double = 3.0  // Color cycle time
-    
+
+    // Continuous animation - NEVER restarts
+    @State private var time: Double = 0
+    @State private var isTimerRunning = false
+
     var body: some View {
         GeometryReader { geometry in
             ZStack {
@@ -30,8 +28,8 @@ struct AuroraEdge: View {
                         ),
                         lineWidth: 3
                     )
-                    .blur(radius: isActive ? 4 : 2)
-                
+                    .blur(radius: 4)
+
                 // Second layer with offset rotation for depth
                 RoundedRectangle(cornerRadius: cornerRadius)
                     .strokeBorder(
@@ -43,9 +41,9 @@ struct AuroraEdge: View {
                         ),
                         lineWidth: 2
                     )
-                    .blur(radius: isActive ? 6 : 3)
+                    .blur(radius: 6)
                     .opacity(0.6)
-                
+
                 // Glow effect
                 RoundedRectangle(cornerRadius: cornerRadius)
                     .stroke(
@@ -59,20 +57,27 @@ struct AuroraEdge: View {
                     )
             }
         }
+        // FADE opacity instead of restarting animation - NO FLICKER!
+        .opacity(isActive ? 1 : 0.3)
         .onAppear {
-            startAnimation()
-        }
-        .onChange(of: isActive) { active in
-            if active {
-                startAnimation()
-            }
+            startContinuousTimer()
         }
     }
-    
+
+    // Continuous rotation angle from time (90°/sec = 4sec per revolution)
+    private var rotationAngle: Double {
+        time * 90
+    }
+
+    // Color phase shifts smoothly over time
+    private var colorPhase: Double {
+        sin(time * 0.5) * 0.5 + 0.5  // 0-1 oscillation
+    }
+
     // Dynamic aurora colors based on persona and phase
     private var auroraColors: [Color] {
         let baseColors = personaAuroraColors
-        
+
         // Shift colors based on phase for dynamic effect
         let shiftAmount = Int(colorPhase * 3) % baseColors.count
         var shifted = baseColors
@@ -82,8 +87,18 @@ struct AuroraEdge: View {
                 shifted.append(first)
             }
         }
-        
+
         return shifted
+    }
+
+    // Start continuous timer that NEVER restarts
+    private func startContinuousTimer() {
+        guard !isTimerRunning else { return }
+        isTimerRunning = true
+
+        Timer.scheduledTimer(withTimeInterval: 1.0 / 30.0, repeats: true) { _ in
+            time += 1.0 / 30.0  // Advance time at 30fps
+        }
     }
     
     // Persona-specific aurora color palettes
@@ -168,65 +183,55 @@ struct AuroraEdge: View {
         }
     }
     
-    private func startAnimation() {
-        guard isActive else { return }
-        
-        // Continuous rotation
-        withAnimation(
-            .linear(duration: rotationDuration)
-            .repeatForever(autoreverses: false)
-        ) {
-            rotationAngle = 360
-        }
-        
-        // Color phase shift
-        withAnimation(
-            .easeInOut(duration: colorShiftDuration)
-            .repeatForever(autoreverses: true)
-        ) {
-            colorPhase = 1.0
-        }
-    }
 }
 
 // MARK: - Aurora Window Background
 
-/// Full window background with aurora effect
+/// Full window background with aurora effect.
+/// Uses continuous timer - NEVER restarts on state changes.
 struct AuroraBackground: View {
     let persona: Persona
     let isActive: Bool
-    
-    @State private var glowOpacity: Double = 0.3
-    
+
+    // Continuous animation - NEVER restarts
+    @State private var time: Double = 0
+    @State private var isTimerRunning = false
+
     var body: some View {
         ZStack {
             // Dark base
             Color(hex: 0x1a1612)
-            
-            // Subtle aurora glow in background
-            if isActive {
-                RadialGradient(
-                    colors: [
-                        persona.primaryColor.opacity(glowOpacity),
-                        persona.primaryColor.opacity(glowOpacity * 0.5),
-                        Color.clear
-                    ],
-                    center: .center,
-                    startRadius: 50,
-                    endRadius: 200
-                )
-                .blur(radius: 30)
-            }
+
+            // Subtle aurora glow in background - always present, fades with isActive
+            RadialGradient(
+                colors: [
+                    persona.primaryColor.opacity(glowOpacity),
+                    persona.primaryColor.opacity(glowOpacity * 0.5),
+                    Color.clear
+                ],
+                center: .center,
+                startRadius: 50,
+                endRadius: 200
+            )
+            .blur(radius: 30)
+            .opacity(isActive ? 1 : 0)  // Fade instead of conditional
         }
         .onAppear {
-            if isActive {
-                withAnimation(
-                    .easeInOut(duration: 2.0)
-                    .repeatForever(autoreverses: true)
-                ) {
-                    glowOpacity = 0.5
-                }
-            }
+            startContinuousTimer()
+        }
+    }
+
+    // Smooth oscillating glow (0.3 - 0.5)
+    private var glowOpacity: Double {
+        0.3 + sin(time * 1.5) * 0.1
+    }
+
+    private func startContinuousTimer() {
+        guard !isTimerRunning else { return }
+        isTimerRunning = true
+
+        Timer.scheduledTimer(withTimeInterval: 1.0 / 30.0, repeats: true) { _ in
+            time += 1.0 / 30.0
         }
     }
 }

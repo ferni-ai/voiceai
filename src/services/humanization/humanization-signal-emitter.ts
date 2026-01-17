@@ -579,10 +579,7 @@ export async function signalEmotionalBondDeepen(
 /**
  * Signal protective instinct activation
  */
-export async function signalProtectiveInstinct(
-  trigger: string,
-  intensity: number = 0.8
-): Promise<void> {
+export async function signalProtectiveInstinct(trigger: string, intensity = 0.8): Promise<void> {
   await emitHumanizationSignal({
     signalType: 'protective_instinct',
     protectionTrigger: trigger,
@@ -595,7 +592,7 @@ export async function signalProtectiveInstinct(
  */
 export async function signalSpontaneousDelight(
   delightType: string,
-  intensity: number = 0.7
+  intensity = 0.7
 ): Promise<void> {
   await emitHumanizationSignal({
     signalType: 'spontaneous_delight',
@@ -639,7 +636,7 @@ export async function signalSuperhumanObservation(
  */
 export async function signalVisibleVulnerability(
   vulnerabilityType: string,
-  intensity: number = 0.7
+  intensity = 0.7
 ): Promise<void> {
   await emitHumanizationSignal({
     signalType: 'visible_vulnerability',
@@ -651,10 +648,7 @@ export async function signalVisibleVulnerability(
 /**
  * Signal temporal emotional insight
  */
-export async function signalTemporalInsight(
-  insight: string,
-  intensity: number = 0.75
-): Promise<void> {
+export async function signalTemporalInsight(insight: string, intensity = 0.75): Promise<void> {
   await emitHumanizationSignal({
     signalType: 'temporal_insight',
     temporalInsight: insight,
@@ -665,10 +659,7 @@ export async function signalTemporalInsight(
 /**
  * Signal meta-relationship moment
  */
-export async function signalMetaRelationshipMoment(
-  type: string,
-  intensity: number = 0.8
-): Promise<void> {
+export async function signalMetaRelationshipMoment(type: string, intensity = 0.8): Promise<void> {
   await emitHumanizationSignal({
     signalType: 'meta_relationship_moment',
     metaRelationshipType: type,
@@ -679,7 +670,7 @@ export async function signalMetaRelationshipMoment(
 /**
  * Signal somatic presence cue
  */
-export async function signalSomaticPresence(cue: string, intensity: number = 0.5): Promise<void> {
+export async function signalSomaticPresence(cue: string, intensity = 0.5): Promise<void> {
   await emitHumanizationSignal({
     signalType: 'somatic_presence',
     somaticCue: cue,
@@ -690,7 +681,7 @@ export async function signalSomaticPresence(cue: string, intensity: number = 0.5
 /**
  * Signal anticipatory presence activation
  */
-export async function signalAnticipatoryPresence(intensity: number = 0.7): Promise<void> {
+export async function signalAnticipatoryPresence(intensity = 0.7): Promise<void> {
   await emitHumanizationSignal({
     signalType: 'anticipatory_presence',
     intensity,

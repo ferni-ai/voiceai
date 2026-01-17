@@ -11,9 +11,10 @@
 
 import type { UserProfile } from '../types/user-profile.js';
 import { getLogger } from '../utils/safe-logger.js';
+import { registerInterval, clearNamedInterval } from '../utils/interval-manager.js';
 
 // Import metrics for observability
-import { persistenceMetrics } from './persistence-metrics.js';
+import { persistenceMetrics } from './analytics/persistence-metrics.js';
 
 // Intelligence Engines
 import {
@@ -67,7 +68,10 @@ import {
 } from '../intelligence/cross-session-threader.js';
 
 // 🌟 Better Than Human capabilities
-import { getBetterThanHuman } from '../conversation/superhuman/index.js';
+import {
+  getBetterThanHuman,
+  getExistingBetterThanHumanForUser,
+} from '../conversation/superhuman/orchestrator.js';
 
 // ============================================================================
 // TYPES
@@ -286,17 +290,21 @@ export function exportIntelligenceState(userId: string): IntelligenceState {
 
   // 🌟 Better Than Human capabilities
   try {
-    // Note: We need a sessionId to get the orchestrator, but for export
-    // we export from any active session for this user
-    // The orchestrator persists per userId anyway
-    const bthOrchestrator = getBetterThanHuman(userId, `export-${Date.now()}`, 'ferni', 0);
-    const bthState = bthOrchestrator.export();
-    state.betterThanHuman = bthState;
-    engineCount++;
-    getLogger().debug(
-      { userId, sessionCount: bthState.sessionCount },
-      'Exported Better Than Human state'
-    );
+    // FIX: Use getExistingBetterThanHuman to avoid creating orphaned orchestrators
+    // that cause memory leaks. Each `export-{timestamp}` sessionId was creating
+    // a new orchestrator in the singleton Map that was never cleaned up.
+    const existingOrchestrator = getExistingBetterThanHumanForUser(userId);
+    if (existingOrchestrator) {
+      const bthState = existingOrchestrator.export();
+      state.betterThanHuman = bthState;
+      engineCount++;
+      getLogger().debug(
+        { userId, sessionCount: bthState.sessionCount },
+        'Exported Better Than Human state'
+      );
+    } else {
+      getLogger().debug({ userId }, 'No active Better Than Human session to export');
+    }
   } catch (error) {
     getLogger().debug({ error, userId }, 'No Better Than Human data');
   }
@@ -574,9 +582,12 @@ export function cleanupIntelligenceEngines(userId: string): void {
 // AUTO-SAVE MANAGER
 // ============================================================================
 
+function getAutoSaveIntervalName(userId: string): string {
+  return `intelligence-auto-save-${userId}`;
+}
+
 interface AutoSaveEntry {
   userId: string;
-  intervalId: ReturnType<typeof setInterval>;
   lastSave: Date;
   saveCallback: (userId: string) => Promise<void>;
 }
@@ -601,24 +612,27 @@ export function startAutoSave(
   // Clear existing auto-save if any
   stopAutoSave(userId);
 
-  const intervalId = setInterval(() => {
-    void (async () => {
-      try {
-        await saveCallback(userId);
-        const entry = autoSaveRegistry.get(userId);
-        if (entry) {
-          entry.lastSave = new Date();
+  registerInterval(
+    getAutoSaveIntervalName(userId),
+    () => {
+      void (async () => {
+        try {
+          await saveCallback(userId);
+          const entry = autoSaveRegistry.get(userId);
+          if (entry) {
+            entry.lastSave = new Date();
+          }
+          getLogger().debug({ userId }, 'Auto-saved intelligence state');
+        } catch (error) {
+          getLogger().warn({ error, userId }, 'Auto-save failed');
         }
-        getLogger().debug({ userId }, 'Auto-saved intelligence state');
-      } catch (error) {
-        getLogger().warn({ error, userId }, 'Auto-save failed');
-      }
-    })();
-  }, mergedConfig.autoSaveIntervalMs);
+      })();
+    },
+    mergedConfig.autoSaveIntervalMs
+  );
 
   autoSaveRegistry.set(userId, {
     userId,
-    intervalId,
     lastSave: new Date(),
     saveCallback,
   });
@@ -630,11 +644,25 @@ export function startAutoSave(
  * Stop auto-saving for a user
  */
 export function stopAutoSave(userId: string): void {
+  const intervalName = getAutoSaveIntervalName(userId);
   const entry = autoSaveRegistry.get(userId);
+
+  // Always try to clear the interval even if not in registry
+  // (handles edge cases where registry is out of sync)
+  const intervalCleared = clearNamedInterval(intervalName);
+
   if (entry) {
-    clearInterval(entry.intervalId);
     autoSaveRegistry.delete(userId);
-    getLogger().debug({ userId }, 'Stopped auto-save');
+    getLogger().info({ userId, intervalName, intervalCleared }, '🛑 Stopped auto-save for user');
+  } else if (intervalCleared) {
+    // Interval existed but wasn't in registry - still cleaned up
+    getLogger().warn(
+      { userId, intervalName },
+      '⚠️ Auto-save interval existed but was not in registry - cleaned up orphan'
+    );
+  } else {
+    // Neither existed - log for debugging memory leak issues
+    getLogger().debug({ userId, intervalName }, 'stopAutoSave called but no auto-save was active');
   }
 }
 
@@ -642,8 +670,8 @@ export function stopAutoSave(userId: string): void {
  * Stop all auto-saves (for shutdown)
  */
 export function stopAllAutoSaves(): void {
-  for (const [userId, entry] of autoSaveRegistry.entries()) {
-    clearInterval(entry.intervalId);
+  for (const [userId] of autoSaveRegistry.entries()) {
+    clearNamedInterval(getAutoSaveIntervalName(userId));
     getLogger().debug({ userId }, 'Stopped auto-save during shutdown');
   }
   autoSaveRegistry.clear();

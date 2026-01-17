@@ -142,7 +142,7 @@ describe('Spotify Integration', () => {
 
   describe('Auth Service Exports', () => {
     it('should export auth functions', async () => {
-      const module = await import('../services/spotify-auth.js');
+      const module = await import('../services/identity/spotify-auth.js');
 
       expect(module.getSpotifyAccessToken).toBeDefined();
       expect(module.isSpotifyConfigured).toBeDefined();
@@ -154,7 +154,7 @@ describe('Spotify Integration', () => {
 
   describe('Configuration Check', () => {
     it('should check Spotify credentials', async () => {
-      const { isSpotifyConfigured } = await import('../services/spotify-auth.js');
+      const { isSpotifyConfigured } = await import('../services/identity/spotify-auth.js');
       // Returns boolean based on env vars
       expect(typeof isSpotifyConfigured()).toBe('boolean');
     });
@@ -162,7 +162,7 @@ describe('Spotify Integration', () => {
 
   describe('Token Management', () => {
     it('should have token status functions', async () => {
-      const { getSpotifyTokenStatus } = await import('../services/spotify-auth.js');
+      const { getSpotifyTokenStatus } = await import('../services/identity/spotify-auth.js');
       const status = getSpotifyTokenStatus();
       expect(status).toHaveProperty('valid');
       expect(status).toHaveProperty('minutesRemaining');
@@ -228,7 +228,7 @@ describe('Google Calendar Integration', () => {
 
   describe('OAuth Service Exports', () => {
     it('should export OAuth functions', async () => {
-      const module = await import('../services/google-calendar-oauth.js');
+      const module = await import('../services/identity/google-calendar-oauth.js');
 
       expect(module.generateAuthUrl).toBeDefined();
       expect(module.exchangeCodeForTokens).toBeDefined();
@@ -240,14 +240,14 @@ describe('Google Calendar Integration', () => {
 
   describe('Configuration Check', () => {
     it('should verify OAuth config', async () => {
-      const { isOAuthConfigured } = await import('../services/google-calendar-oauth.js');
+      const { isOAuthConfigured } = await import('../services/identity/google-calendar-oauth.js');
       expect(typeof isOAuthConfigured()).toBe('boolean');
     });
   });
 
   describe('Calendar Operations', () => {
     it('should export calendar CRUD functions', async () => {
-      const module = await import('../services/google-calendar-oauth.js');
+      const module = await import('../services/identity/google-calendar-oauth.js');
 
       expect(module.listCalendars).toBeDefined();
       expect(module.createEvent).toBeDefined();
@@ -407,7 +407,7 @@ describe('Plaid Integration', () => {
 
   describe('API Functions', () => {
     it('should export Plaid API functions', async () => {
-      const module = await import('../tools/plaid.js');
+      const module = await import('../tools/domains/finance/plaid.js');
 
       expect(module.createLinkToken).toBeDefined();
       expect(module.exchangePublicToken).toBeDefined();
@@ -418,7 +418,7 @@ describe('Plaid Integration', () => {
 
   describe('Tool Factory', () => {
     it('should create Plaid tools', async () => {
-      const { createPlaidTools } = await import('../tools/plaid.js');
+      const { createPlaidTools } = await import('../tools/domains/finance/plaid.js');
 
       const tools = createPlaidTools();
       expect(tools).toBeDefined();
@@ -431,7 +431,8 @@ describe('Plaid Integration', () => {
 
   describe('Analysis Functions', () => {
     it('should export spending analysis', async () => {
-      const { analyzeSpending, formatSpendingForSpeech } = await import('../tools/plaid.js');
+      const { analyzeSpending, formatSpendingForSpeech } =
+        await import('../tools/domains/finance/plaid.js');
 
       expect(analyzeSpending).toBeDefined();
       expect(formatSpendingForSpeech).toBeDefined();
@@ -596,7 +597,7 @@ describe('API Integration Health', () => {
 
     // Spotify
     try {
-      const { isSpotifyConfigured } = await import('../services/spotify-auth.js');
+      const { isSpotifyConfigured } = await import('../services/identity/spotify-auth.js');
       healthStatus['spotify'] = isSpotifyConfigured();
     } catch {
       healthStatus['spotify'] = false;
@@ -604,8 +605,8 @@ describe('API Integration Health', () => {
 
     // Google Calendar
     try {
-      const { isGoogleCalendarConfigured } = await import('../services/google-calendar-oauth.js');
-      healthStatus['googleCalendar'] = isGoogleCalendarConfigured();
+      const { isOAuthConfigured } = await import('../services/identity/google-calendar-oauth.js');
+      healthStatus['googleCalendar'] = isOAuthConfigured();
     } catch {
       healthStatus['googleCalendar'] = false;
     }

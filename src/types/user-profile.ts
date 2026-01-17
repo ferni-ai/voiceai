@@ -312,6 +312,26 @@ export interface UserPreferences {
   locales?: string[];
   /** Whether the accent was auto-detected or manually set by user */
   accentAutoDetected?: boolean;
+
+  // 🔔 Reminder Settings
+  /** Settings for important date reminders (birthdays, anniversaries, etc.) */
+  reminderSettings?: {
+    enabled: boolean;
+    daysBefore: number;
+    channels: {
+      voice: boolean;
+      push: boolean;
+      email: boolean;
+    };
+    includeGiftSuggestions: boolean;
+    includeMessageDrafts: boolean;
+  };
+  /** Cached upcoming important dates to remind about */
+  upcomingReminders?: Array<{
+    type: string;
+    date: string;
+    contactName?: string;
+  }>;
 }
 
 /**
@@ -610,6 +630,20 @@ export interface UserProfile {
   // Voice Recognition - "Your voice sounds familiar"
   voiceSketch?: VoiceSketch; // Compact voice characteristics for cross-device recognition
 
+  // Onboarding State (synced across devices)
+  onboarding?: {
+    /** Steps completed */
+    completedSteps: Array<'welcome' | 'name' | 'preferences' | 'first_conversation'>;
+    /** User's name captured during onboarding */
+    userName?: string;
+    /** When onboarding started */
+    startedAt?: string;
+    /** When onboarding completed */
+    completedAt?: string;
+    /** Whether user has had their first conversation */
+    hasHadFirstConversation?: boolean;
+  };
+
   // Contact Information (for Alex's communication features)
   contactInfo?: {
     phone?: string; // E.164 format: +15551234567
@@ -618,6 +652,18 @@ export interface UserProfile {
     timezone?: string; // e.g., 'America/New_York'
     quietHoursStart?: number; // Hour (0-23) when do-not-disturb starts
     quietHoursEnd?: number; // Hour (0-23) when do-not-disturb ends
+  };
+
+  // 📍 Location (Better than Human - we remember where you are)
+  location?: {
+    city?: string; // e.g., "San Francisco"
+    regionCode?: string; // e.g., "CA"
+    countryCode?: string; // ISO 3166-1 alpha-2, e.g., "US"
+    latitude?: number; // From browser geolocation (precise)
+    longitude?: number; // From browser geolocation (precise)
+    source: 'browser-gps' | 'manual' | 'ip-geo' | 'timezone' | 'accept-language' | 'default';
+    confidence: 'high' | 'medium' | 'low';
+    lastUpdated: string; // ISO timestamp
   };
 
   // Timestamps
@@ -677,6 +723,28 @@ export interface UserProfile {
 
   // Custom data (for extensibility)
   customData?: Record<string, unknown>;
+
+  // ============================================================================
+  // EXTRACTED DETAILS (real-time learning from conversations)
+  // ============================================================================
+
+  /**
+   * Small details extracted from conversations (names, places, pets, etc.)
+   * Persisted in real-time to prevent data loss on unexpected disconnects.
+   * "Better than Human" - We remember every little thing you share.
+   */
+  extractedDetails?: Array<{
+    type:
+      | 'person_name'
+      | 'pet_name'
+      | 'place'
+      | 'company'
+      | 'date'
+      | 'amount'
+      | 'user_name'
+      | 'other';
+    value: string;
+  }>;
 
   // ============================================================================
   // HUMANIZING STATE (cross-session persona depth)
@@ -815,6 +883,74 @@ export interface UserProfile {
     delivered: boolean;
     deliveredAt?: Date;
     userReaction?: string;
+  }>;
+
+  // ============================================================================
+  // PROACTIVE INSIGHT GENERATION DATA
+  // For session-init-handler Phase 6.5 - Proactive Intelligence
+  // ============================================================================
+
+  /**
+   * Recent topics discussed across sessions (for proactive insight generation)
+   * Tracks frequency and sentiment to detect patterns worth surfacing
+   */
+  recentTopics?: Array<{
+    /** The topic discussed */
+    topic: string;
+    /** How many times this topic has come up */
+    frequency: number;
+    /** When this topic was last mentioned */
+    lastMentioned: Date;
+    /** Overall sentiment when discussing this topic */
+    sentiment?: 'positive' | 'negative' | 'neutral';
+    /** Which personas this topic came up with */
+    personaIds?: string[];
+  }>;
+
+  /**
+   * Emotional trend over recent sessions (for predictive emotional state)
+   * Enables anticipating user's emotional needs
+   */
+  emotionalTrend?: {
+    /** Overall direction of emotional state */
+    direction: 'improving' | 'declining' | 'stable';
+    /** Rate of change (-1 to 1, negative = declining) */
+    velocity: number;
+    /** Most frequent emotion in recent sessions */
+    dominantEmotion: string;
+    /** When this trend was calculated */
+    calculatedAt: Date;
+    /** Number of sessions used to calculate trend */
+    sampleSize: number;
+    /** Secondary emotions observed */
+    secondaryEmotions?: string[];
+  };
+
+  /**
+   * Open commitments user has made (for commitment tracking)
+   * Ferni can gently remind and support follow-through
+   */
+  openCommitments?: Array<{
+    /** Unique identifier */
+    id: string;
+    /** What the user committed to */
+    description: string;
+    /** When the commitment was made */
+    madeAt: Date;
+    /** Optional deadline */
+    dueDate?: Date;
+    /** Current status */
+    status: 'open' | 'in_progress' | 'completed' | 'missed' | 'abandoned';
+    /** Which persona was told about this commitment */
+    personaId?: string;
+    /** How important this commitment seems */
+    priority?: 'low' | 'medium' | 'high';
+    /** Context about why this matters to the user */
+    context?: string;
+    /** Number of times we've followed up */
+    followUpCount?: number;
+    /** Last time we checked in about this */
+    lastFollowUp?: Date;
   }>;
 
   // Financial Journey - Long-term progress tracking

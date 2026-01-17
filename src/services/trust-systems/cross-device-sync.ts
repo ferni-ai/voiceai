@@ -15,7 +15,7 @@
 
 import { getFirestore, FieldValue } from 'firebase-admin/firestore';
 import { createLogger } from '../../utils/safe-logger.js';
-import { removeUndefined } from '../../utils/firestore-utils.js';
+import { removeUndefined, cleanForFirestore } from '../../utils/firestore-utils.js';
 
 const log = createLogger({ module: 'CrossDeviceSync' });
 
@@ -109,7 +109,7 @@ export function getSyncState(userId: string): SyncState {
 // ============================================================================
 
 export function onSyncEvent(listener: SyncListener): () => void {
-  syncListeners.add(listener);
+  syncListeners.add(cleanForFirestore(listener));
   return () => syncListeners.delete(listener);
 }
 
@@ -161,7 +161,7 @@ export async function syncWrite(
 ): Promise<void> {
   const pendingKey = `${userId}:${systemId}`;
 
-  pendingUpdates.set(pendingKey, {
+  pendingUpdates.set(cleanForFirestore(pendingKey), {
     data,
     timestamp: Date.now(),
   });
@@ -202,7 +202,7 @@ async function performWrite(userId: string, systemId: string, data: unknown): Pr
         version: currentVersion + 1,
       };
 
-    await docRef.set(trustDoc);
+    await docRef.set(cleanForFirestore(trustDoc));
 
     emitSyncEvent({
       type: 'sync_complete',

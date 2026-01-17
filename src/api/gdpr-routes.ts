@@ -17,8 +17,10 @@ import type { IncomingMessage, ServerResponse } from 'http';
 import { maskEmail, maskPhoneNumber, stripPII } from '../services/privacy-crypto.js';
 import { recordDataAccess, recordSecurityEvent } from '../services/security-events.js';
 import { createLogger } from '../utils/safe-logger.js';
+import { registerInterval } from '../utils/interval-manager.js';
 import { rateLimit, requireAuth } from './auth-middleware.js';
 import { handleCorsPreflightIfNeeded, parseBody, sendError, sendJSON } from './helpers.js';
+import { cleanForFirestore } from '../utils/firestore-utils.js';
 
 const log = createLogger({ module: 'GDPR-API' });
 
@@ -117,6 +119,25 @@ interface UserDataExport {
     detectedCognitiveStyle?: string;
     expertiseAreas?: string[];
     preferredApproaches?: string[];
+  };
+  wellbeing?: {
+    profile?: {
+      totalSnapshots: number;
+      firstSnapshot?: string;
+      lastSnapshot?: string;
+      weeklyTrends: Array<{
+        dimension: string;
+        direction: string;
+        magnitude: number;
+      }>;
+    };
+    snapshots: Array<{
+      id: string;
+      timestamp: string;
+      source: string;
+      dimensions: Record<string, number>;
+      topic?: string;
+    }>;
   };
 }
 
@@ -253,7 +274,7 @@ async function handleExportRequest(
         exportedAt: now.toISOString(),
         userId,
         format: 'json',
-        version: '1.0',
+        version: '1.1',
         categories: [
           'profile',
           'conversations',
@@ -262,6 +283,7 @@ async function handleExportRequest(
           'family',
           'events',
           'preferences',
+          'wellbeing',
         ],
       },
     };
@@ -355,6 +377,38 @@ async function handleExportRequest(
       createdAt: g.createdAt.toISOString(),
     }));
 
+    // Add wellbeing data
+    try {
+      const { exportWellbeingData } = await import('../services/wellbeing-tracking/persistence.js');
+      const wellbeingData = await exportWellbeingData(userId);
+      if (wellbeingData) {
+        result.wellbeing = {
+          profile: wellbeingData.profile
+            ? {
+                totalSnapshots: wellbeingData.profile.totalSnapshots,
+                firstSnapshot: wellbeingData.profile.firstSnapshot?.toISOString(),
+                lastSnapshot: wellbeingData.profile.lastSnapshot?.toISOString(),
+                weeklyTrends: wellbeingData.profile.weeklyTrends.map((t) => ({
+                  dimension: t.dimension,
+                  direction: t.direction,
+                  magnitude: t.magnitude,
+                })),
+              }
+            : undefined,
+          snapshots: wellbeingData.snapshots.map((s) => ({
+            id: s.id,
+            timestamp: s.timestamp.toISOString(),
+            source: s.source,
+            dimensions: s.dimensions as Record<string, number>,
+            topic: s.topic,
+          })),
+        };
+      }
+    } catch (wellbeingError) {
+      log.warn({ error: String(wellbeingError), userId }, 'Failed to export wellbeing data');
+      // Continue without wellbeing data - non-fatal
+    }
+
     // Return the export
     const response: DataExportResult = {
       exportId,
@@ -374,12 +428,13 @@ async function handleExportRequest(
           (result.keyMoments?.length || 0) +
           (result.goals?.length || 0) +
           (result.familyMembers?.length || 0) +
-          (result.lifeEvents?.length || 0),
+          (result.lifeEvents?.length || 0) +
+          (result.wellbeing?.snapshots?.length || 0),
       },
     };
 
     // Store export for later download (in production, use a proper storage)
-    exportStorage.set(exportId, {
+    exportStorage.set(cleanForFirestore(exportId), {
       data: result,
       userId,
       expiresAt: new Date(now.getTime() + 24 * 60 * 60 * 1000),
@@ -461,6 +516,15 @@ async function handleDataSummary(
     const moments = await store.getKeyMoments(userId);
     const goals = await store.getGoals(userId);
 
+    // Get wellbeing data count
+    let wellbeingSnapshotCount = 0;
+    try {
+      const { getRecentSnapshots } = await import('../services/wellbeing-tracking/index.js');
+      wellbeingSnapshotCount = getRecentSnapshots(userId, 365).length;
+    } catch {
+      // Wellbeing data not available
+    }
+
     const summary = {
       userId,
       hasProfile: !!profile,
@@ -500,12 +564,17 @@ async function handleDataSummary(
         lifeEvents: {
           count: profile?.lifeEvents?.length || 0,
         },
+        wellbeing: {
+          snapshotCount: wellbeingSnapshotCount,
+          description: 'Mood, energy, and wellness tracking data',
+        },
       },
       retentionPolicy: {
         conversationSummaries: '1 year (or until deletion)',
         keyMoments: 'Indefinite (emotionally significant)',
         voiceSketch: 'Until deletion request',
         analyticsData: '90 days',
+        wellbeingData: 'Until deletion request',
       },
       rights: {
         export: '/api/gdpr/export',
@@ -565,12 +634,27 @@ async function handleAccountDeletion(
     // Delete profile and all associated data
     const deleted = await store.deleteProfile(userId);
 
+    // Delete wellbeing data
+    let wellbeingDeleted = false;
+    try {
+      const { deleteWellbeingData } = await import('../services/wellbeing-tracking/persistence.js');
+      wellbeingDeleted = await deleteWellbeingData(userId);
+      if (wellbeingDeleted) {
+        log.info({ userId: `${userId.substring(0, 8)}...` }, 'Wellbeing data deleted');
+      }
+    } catch (wellbeingErr) {
+      log.warn(
+        { error: String(wellbeingErr), userId: `${userId.substring(0, 8)}...` },
+        'Wellbeing data deletion failed (non-fatal)'
+      );
+    }
+
     // Also delete Firebase user if this is a Firebase UID
     // Firebase UIDs are 28 characters and don't start with 'device:'
     let firebaseDeleted = false;
     if (!userId.startsWith('device:') && userId.length >= 20) {
       try {
-        const { deleteFirebaseUser } = await import('../services/firebase-auth.js');
+        const { deleteFirebaseUser } = await import('../services/identity/firebase-auth.js');
         firebaseDeleted = await deleteFirebaseUser(userId);
         if (firebaseDeleted) {
           log.info({ userId: `${userId.substring(0, 8)}...` }, 'Firebase user deleted');
@@ -584,7 +668,7 @@ async function handleAccountDeletion(
       }
     }
 
-    if (deleted || firebaseDeleted) {
+    if (deleted || firebaseDeleted || wellbeingDeleted) {
       sendJSON(res, {
         success: true,
         message: 'Your account and all associated data have been deleted.',
@@ -593,6 +677,7 @@ async function handleAccountDeletion(
         details: {
           profileDeleted: deleted,
           firebaseDeleted,
+          wellbeingDeleted,
         },
       });
     } else {
@@ -813,7 +898,8 @@ const exportStorage = new Map<
 >();
 
 // Cleanup expired exports periodically
-setInterval(
+registerInterval(
+  'gdpr-export-cleanup',
   () => {
     const now = new Date();
     for (const [exportId, stored] of exportStorage) {

@@ -13,6 +13,7 @@ import { FieldValue, getFirestore } from 'firebase-admin/firestore';
 import { createLogger } from '../../utils/safe-logger.js';
 
 import type { ResponseEvaluation } from './types.js';
+import { cleanForFirestore } from '../../utils/firestore-utils.js';
 
 const log = createLogger({ module: 'EvalOpsPersistence' });
 
@@ -28,12 +29,12 @@ export async function persistEvaluation(evaluation: ResponseEvaluation): Promise
     const ref = db.collection('evalops_evaluations').doc(evaluation.id);
 
     await ref.set(
-      {
+      cleanForFirestore({
         ...evaluation,
         // Normalize Date for consistent ordering/queries
         timestampMs: evaluation.timestamp.getTime(),
         createdAt: FieldValue.serverTimestamp(),
-      },
+      }),
       { merge: true }
     );
   } catch (error) {

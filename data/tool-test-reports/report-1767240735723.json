@@ -1,0 +1,119 @@
+{
+  "runAt": "2026-01-01T04:12:15.723Z",
+  "totalTools": 775,
+  "testedTools": 5,
+  "passed": 0,
+  "failed": 5,
+  "skipped": 0,
+  "coverage": 0.0064516129032258064,
+  "results": [
+    {
+      "toolId": "playMusic",
+      "probe": "Please play music",
+      "passed": false,
+      "actualToolCalled": null,
+      "llmResponse": "",
+      "latencyMs": 131,
+      "error": "Error: [GoogleGenerativeAI Error]: Error fetching from https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent: [404 Not Found] models/gemini-1.5-flash is not found for API version v1beta, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods."
+    },
+    {
+      "toolId": "searchAppleMusic",
+      "probe": "Please search apple music",
+      "passed": false,
+      "actualToolCalled": null,
+      "llmResponse": "",
+      "latencyMs": 146,
+      "error": "Error: [GoogleGenerativeAI Error]: Error fetching from https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent: [404 Not Found] models/gemini-1.5-flash is not found for API version v1beta, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods."
+    },
+    {
+      "toolId": "rememberAboutUser",
+      "probe": "Please remember about user",
+      "passed": false,
+      "actualToolCalled": null,
+      "llmResponse": "",
+      "latencyMs": 132,
+      "error": "Error: [GoogleGenerativeAI Error]: Error fetching from https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent: [404 Not Found] models/gemini-1.5-flash is not found for API version v1beta, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods."
+    },
+    {
+      "toolId": "recallFromMemory",
+      "probe": "Please recall from memory",
+      "passed": false,
+      "actualToolCalled": null,
+      "llmResponse": "",
+      "latencyMs": 138,
+      "error": "Error: [GoogleGenerativeAI Error]: Error fetching from https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent: [404 Not Found] models/gemini-1.5-flash is not found for API version v1beta, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods."
+    },
+    {
+      "toolId": "updateMemory",
+      "probe": "Please update memory",
+      "passed": false,
+      "actualToolCalled": null,
+      "llmResponse": "",
+      "latencyMs": 140,
+      "error": "Error: [GoogleGenerativeAI Error]: Error fetching from https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent: [404 Not Found] models/gemini-1.5-flash is not found for API version v1beta, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods."
+    }
+  ],
+  "failures": [
+    {
+      "toolId": "playMusic",
+      "probe": "Please play music",
+      "passed": false,
+      "actualToolCalled": null,
+      "llmResponse": "",
+      "latencyMs": 131,
+      "error": "Error: [GoogleGenerativeAI Error]: Error fetching from https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent: [404 Not Found] models/gemini-1.5-flash is not found for API version v1beta, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods."
+    },
+    {
+      "toolId": "searchAppleMusic",
+      "probe": "Please search apple music",
+      "passed": false,
+      "actualToolCalled": null,
+      "llmResponse": "",
+      "latencyMs": 146,
+      "error": "Error: [GoogleGenerativeAI Error]: Error fetching from https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent: [404 Not Found] models/gemini-1.5-flash is not found for API version v1beta, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods."
+    },
+    {
+      "toolId": "rememberAboutUser",
+      "probe": "Please remember about user",
+      "passed": false,
+      "actualToolCalled": null,
+      "llmResponse": "",
+      "latencyMs": 132,
+      "error": "Error: [GoogleGenerativeAI Error]: Error fetching from https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent: [404 Not Found] models/gemini-1.5-flash is not found for API version v1beta, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods."
+    },
+    {
+      "toolId": "recallFromMemory",
+      "probe": "Please recall from memory",
+      "passed": false,
+      "actualToolCalled": null,
+      "llmResponse": "",
+      "latencyMs": 138,
+      "error": "Error: [GoogleGenerativeAI Error]: Error fetching from https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent: [404 Not Found] models/gemini-1.5-flash is not found for API version v1beta, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods."
+    },
+    {
+      "toolId": "updateMemory",
+      "probe": "Please update memory",
+      "passed": false,
+      "actualToolCalled": null,
+      "llmResponse": "",
+      "latencyMs": 140,
+      "error": "Error: [GoogleGenerativeAI Error]: Error fetching from https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent: [404 Not Found] models/gemini-1.5-flash is not found for API version v1beta, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods."
+    }
+  ],
+  "summary": {
+    "byCategory": {
+      "core": {
+        "total": 5,
+        "passed": 0,
+        "failed": 5
+      }
+    },
+    "byPriority": {
+      "medium": {
+        "total": 5,
+        "passed": 0,
+        "failed": 5
+      }
+    }
+  }
+}

@@ -39,6 +39,15 @@ import { trackToolUsage, isLifeCoachAnalyticsEnabled } from '../shared/index.js'
 import { z } from 'zod';
 
 import { getToolDescription } from '../../utils/tool-descriptions.js';
+
+// Cross-persona intelligence imports
+import {
+  addCrossPersonaInsight,
+  getInsightsForPersona,
+} from '../../../services/cross-persona-insights.js';
+
+// Superhuman services for relationship network
+import { buildNetworkContext } from '../../../services/superhuman/relationship-network.js';
 // ============================================================================
 // CONNECTION WISDOM DATABASE
 // ============================================================================
@@ -1240,6 +1249,153 @@ const shareConnectionWisdomDef: ToolDefinition = {
 };
 
 // ============================================================================
+// CROSS-PERSONA INTELLIGENCE TOOLS
+// ============================================================================
+
+const shareConnectionInsightDef: ToolDefinition = {
+  id: 'shareConnectionInsight',
+  name: 'Share Connection Insight',
+  description: 'Share connection/loneliness insight with another team member',
+  domain: 'connection',
+  tags: ['cross-persona', 'connection', 'team'],
+
+  create: (ctx: ToolContext): Tool => {
+    return llm.tool({
+      description: getToolDescription('shareConnectionInsight'),
+      parameters: z.object({
+        targetPersona: z
+          .enum(['maya', 'jordan', 'nayan', 'ferni', 'all'])
+          .describe('Who should know this'),
+        insight: z.string().describe('The connection-related insight'),
+        actionable: z.boolean().describe('Is there something specific they can help with?'),
+      }),
+      execute: async ({ targetPersona, insight, actionable }) => {
+        getLogger().info({ agentId: ctx.agentId, targetPersona }, 'Sharing connection insight');
+
+        try {
+          addCrossPersonaInsight(ctx.userId, {
+            source: 'ferni',
+            target: targetPersona,
+            content: `Connection insight: ${insight} | Actionable: ${actionable}`,
+            priority: actionable ? 'high' : 'normal',
+            category: 'connection',
+            proactive: true,
+            oneTime: false,
+          });
+
+          const targetName =
+            targetPersona === 'all'
+              ? 'the team'
+              : targetPersona.charAt(0).toUpperCase() + targetPersona.slice(1);
+
+          let response = `**Insight Shared with ${targetName}**\n\n`;
+
+          if (targetPersona === 'maya') {
+            response += `Maya can help build connection habits - small rituals that nurture relationships over time.`;
+          } else if (targetPersona === 'jordan') {
+            response += `Jordan can help plan social goals and milestones in your connection journey.`;
+          } else if (targetPersona === 'nayan') {
+            response += `Nayan can explore the deeper questions about belonging and what connection means to you.`;
+          }
+
+          return response;
+        } catch (error) {
+          getLogger().error({ error }, 'Failed to share connection insight');
+          return "I'll keep this in mind as we work together.";
+        }
+      },
+    });
+  },
+};
+
+const getRelationshipNetworkContextDef: ToolDefinition = {
+  id: 'getRelationshipNetworkContext',
+  name: 'Get Relationship Network Context',
+  description: "Get context about the user's relationship network from superhuman services",
+  domain: 'connection',
+  tags: ['cross-persona', 'relationships', 'network'],
+
+  create: (ctx: ToolContext): Tool => {
+    return llm.tool({
+      description: getToolDescription('getRelationshipNetworkContext'),
+      parameters: z.object({}),
+      execute: async () => {
+        getLogger().info({ agentId: ctx.agentId }, 'Getting relationship network context');
+
+        try {
+          const networkContext = await buildNetworkContext(ctx.userId);
+
+          if (!networkContext || networkContext === '') {
+            return "I don't have detailed relationship network data yet. As we talk more about the people in your life, I'll remember them.";
+          }
+
+          return `**Your Relationship Network**\n\n${networkContext}\n\nThis context helps me understand your social world better. Who's on your mind today?`;
+        } catch (error) {
+          getLogger().error({ error }, 'Failed to get relationship network');
+          return "Let's talk about the people in your life. I'll remember what you share.";
+        }
+      },
+    });
+  },
+};
+
+const flagConnectionConcernForMayaDef: ToolDefinition = {
+  id: 'flagConnectionConcernForMaya',
+  name: 'Flag Connection Concern for Maya',
+  description: 'Alert Maya when connection struggles might benefit from habit-based interventions',
+  domain: 'connection',
+  tags: ['cross-persona', 'habits', 'maya'],
+
+  create: (ctx: ToolContext): Tool => {
+    return llm.tool({
+      description: getToolDescription('flagConnectionConcernForMaya'),
+      parameters: z.object({
+        concern: z.string().describe('The connection concern'),
+        suggestedHabit: z.string().optional().describe('What kind of habit might help'),
+        urgency: z.enum(['low', 'medium', 'high']).describe('How urgent is this'),
+      }),
+      execute: async ({ concern, suggestedHabit, urgency }) => {
+        getLogger().info(
+          { agentId: ctx.agentId, concern, urgency },
+          'Flagging connection concern for Maya'
+        );
+
+        try {
+          let content = `Connection concern: ${concern}`;
+          if (suggestedHabit) {
+            content += ` | Suggested habit approach: ${suggestedHabit}`;
+          }
+
+          addCrossPersonaInsight(ctx.userId, {
+            source: 'ferni',
+            target: 'maya',
+            content,
+            priority: urgency === 'high' ? 'high' : 'normal',
+            category: 'connection_habit',
+            proactive: true,
+            oneTime: false,
+          });
+
+          let response = `**Concern Shared with Maya**\n\n`;
+          response += `Maya specializes in building sustainable habits. She now knows about this connection concern.\n\n`;
+
+          if (suggestedHabit) {
+            response += `I mentioned that ${suggestedHabit.toLowerCase()} might help. She can design a tiny, doable version.`;
+          } else {
+            response += `She can help design small, consistent rituals to strengthen your connections over time.`;
+          }
+
+          return response;
+        } catch (error) {
+          getLogger().error({ error }, 'Failed to flag concern for Maya');
+          return "I'll remember this. Building connection is a practice, not an event.";
+        }
+      },
+    });
+  },
+};
+
+// ============================================================================
 // DOMAIN TOOLS COLLECTION
 // ============================================================================
 
@@ -1263,6 +1419,10 @@ const connectionTools: ToolDefinition[] = [
   smallActsOfConnectionDef,
   // Wisdom
   shareConnectionWisdomDef,
+  // Cross-persona intelligence
+  shareConnectionInsightDef,
+  getRelationshipNetworkContextDef,
+  flagConnectionConcernForMayaDef,
 ];
 
 // ============================================================================

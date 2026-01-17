@@ -1,44 +1,55 @@
 /**
  * Input Component Stories
- * 
- * Form inputs following Ferni's design system.
  */
 
 import type { Meta, StoryObj } from '@storybook/html';
 
 interface InputProps {
-  label: string;
+  label?: string;
   placeholder?: string;
-  type?: 'text' | 'email' | 'password' | 'number';
-  helper?: string;
+  helperText?: string;
   error?: string;
+  success?: string;
+  size?: 'sm' | 'md' | 'lg';
+  type?: string;
   disabled?: boolean;
   required?: boolean;
 }
 
+const SIZE_CONFIG = {
+  sm: { padding: '8px 12px', fontSize: '14px', height: '36px' },
+  md: { padding: '10px 14px', fontSize: '15px', height: '44px' },
+  lg: { padding: '12px 16px', fontSize: '16px', height: '52px' },
+};
+
 const createInput = (props: InputProps): HTMLElement => {
   const container = document.createElement('div');
-  const hasError = !!props.error;
+  const size = props.size || 'md';
+  const sizeConfig = SIZE_CONFIG[size];
   
+  let borderColor = 'rgba(44, 37, 32, 0.15)';
+  let helperColor = '#8A847A';
+  
+  if (props.error) {
+    borderColor = '#a05454';
+    helperColor = '#a05454';
+  } else if (props.success) {
+    borderColor = '#4a6741';
+    helperColor = '#4a6741';
+  }
+
   container.innerHTML = `
-    <div class="ferni-input-group" style="
-      display: flex;
-      flex-direction: column;
-      gap: var(--space-1, 4px);
-      max-width: 320px;
-    ">
-      <label style="
-        font-family: var(--font-body, Inter, system-ui);
-        font-size: 0.875rem;
-        font-weight: 500;
-        color: var(--color-text-primary, #2C2520);
-        display: flex;
-        align-items: center;
-        gap: var(--space-1, 4px);
-      ">
-        ${props.label}
-        ${props.required ? '<span style="color: var(--color-error, #c45c5c);">*</span>' : ''}
-      </label>
+    <div style="width: 300px;">
+      ${props.label ? `
+        <label style="
+          display: block;
+          margin-bottom: 6px;
+          font-family: Inter, system-ui, sans-serif;
+          font-size: 14px;
+          font-weight: 500;
+          color: #2C2520;
+        ">${props.label}${props.required ? ' *' : ''}</label>
+      ` : ''}
       
       <input
         type="${props.type || 'text'}"
@@ -46,47 +57,34 @@ const createInput = (props: InputProps): HTMLElement => {
         ${props.disabled ? 'disabled' : ''}
         ${props.required ? 'required' : ''}
         style="
-          font-family: var(--font-body, Inter, system-ui);
-          font-size: 1rem;
-          padding: var(--space-3, 12px) var(--space-4, 16px);
-          border-radius: var(--radius-lg, 12px);
-          border: 1px solid ${hasError ? 'var(--color-error, #c45c5c)' : 'var(--color-border, #e8e0d8)'};
-          background: var(--color-background-elevated, #FFFDFB);
-          color: var(--color-text-primary, #2C2520);
-          transition: all 0.2s;
-          outline: none;
           width: 100%;
+          padding: ${sizeConfig.padding};
+          font-family: Inter, system-ui, sans-serif;
+          font-size: ${sizeConfig.fontSize};
+          color: #2C2520;
+          background: #FFFFFF;
+          border: 1px solid ${borderColor};
+          border-radius: 8px;
+          outline: none;
           box-sizing: border-box;
-          ${props.disabled ? 'opacity: 0.5; cursor: not-allowed;' : ''}
+          height: ${sizeConfig.height};
+          opacity: ${props.disabled ? '0.6' : '1'};
+          cursor: ${props.disabled ? 'not-allowed' : 'text'};
         "
-        onfocus="this.style.borderColor='var(--persona-primary, #4a6741)'; this.style.boxShadow='0 0 0 3px var(--persona-glow, rgba(74, 103, 65, 0.15))';"
-        onblur="this.style.borderColor='${hasError ? 'var(--color-error, #c45c5c)' : 'var(--color-border, #e8e0d8)'}'; this.style.boxShadow='none';"
       />
       
-      ${props.error ? `
+      ${props.error || props.success || props.helperText ? `
         <span style="
-          font-size: 0.75rem;
-          color: var(--color-error, #c45c5c);
-          display: flex;
-          align-items: center;
-          gap: var(--space-1, 4px);
-        ">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="12" cy="12" r="10"></circle>
-            <line x1="12" y1="8" x2="12" y2="12"></line>
-            <line x1="12" y1="16" x2="12.01" y2="16"></line>
-          </svg>
-          ${props.error}
-        </span>
-      ` : props.helper ? `
-        <span style="
-          font-size: 0.75rem;
-          color: var(--color-text-muted, #9a8b7a);
-        ">${props.helper}</span>
+          display: block;
+          margin-top: 6px;
+          font-family: Inter, system-ui, sans-serif;
+          font-size: 13px;
+          color: ${helperColor};
+        ">${props.error || props.success || props.helperText}</span>
       ` : ''}
     </div>
   `;
-  
+
   return container;
 };
 
@@ -95,14 +93,14 @@ const meta: Meta<InputProps> = {
   tags: ['autodocs'],
   render: (args) => createInput(args),
   argTypes: {
-    label: { control: 'text' },
-    placeholder: { control: 'text' },
+    size: {
+      control: { type: 'select' },
+      options: ['sm', 'md', 'lg'],
+    },
     type: {
       control: { type: 'select' },
-      options: ['text', 'email', 'password', 'number'],
+      options: ['text', 'email', 'password', 'search', 'tel', 'url'],
     },
-    helper: { control: 'text' },
-    error: { control: 'text' },
     disabled: { control: 'boolean' },
     required: { control: 'boolean' },
   },
@@ -113,52 +111,67 @@ type Story = StoryObj<InputProps>;
 
 export const Default: Story = {
   args: {
-    label: 'Email address',
-    placeholder: 'you@example.com',
-    type: 'email',
+    label: 'Email',
+    placeholder: 'Enter your email',
+    size: 'md',
   },
 };
 
-export const WithHelper: Story = {
+export const WithHelperText: Story = {
   args: {
-    label: 'Display name',
-    placeholder: 'How should we call you?',
-    helper: 'This is how Ferni will address you in conversations.',
+    label: 'Password',
+    type: 'password',
+    placeholder: 'Enter password',
+    helperText: 'Must be at least 8 characters',
   },
 };
 
 export const WithError: Story = {
   args: {
-    label: 'Email address',
-    placeholder: 'you@example.com',
-    type: 'email',
-    error: 'Please enter a valid email address.',
+    label: 'Email',
+    placeholder: 'Enter your email',
+    error: 'Please enter a valid email address',
   },
 };
 
-export const Required: Story = {
+export const WithSuccess: Story = {
   args: {
-    label: 'Full name',
-    placeholder: 'Enter your name',
-    required: true,
-    helper: 'Required for personalization.',
+    label: 'Username',
+    placeholder: 'Choose a username',
+    success: 'Username is available!',
   },
 };
 
 export const Disabled: Story = {
   args: {
-    label: 'Email (verified)',
-    placeholder: 'you@example.com',
+    label: 'Disabled Input',
+    placeholder: 'Cannot edit',
     disabled: true,
   },
 };
 
-export const Password: Story = {
+export const Required: Story = {
   args: {
-    label: 'Password',
-    placeholder: '••••••••',
-    type: 'password',
-    helper: 'Must be at least 8 characters.',
+    label: 'Required Field',
+    placeholder: 'This field is required',
+    required: true,
   },
 };
 
+export const Sizes: Story = {
+  render: () => {
+    const container = document.createElement('div');
+    container.style.cssText = 'display: flex; flex-direction: column; gap: 16px;';
+    
+    const sizes: Array<'sm' | 'md' | 'lg'> = ['sm', 'md', 'lg'];
+    sizes.forEach((size) => {
+      container.appendChild(createInput({ 
+        label: `Size: ${size.toUpperCase()}`, 
+        placeholder: 'Enter text',
+        size 
+      }));
+    });
+    
+    return container;
+  },
+};

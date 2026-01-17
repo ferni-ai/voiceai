@@ -18,6 +18,10 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
+// 🦀 Rust-accelerated word counting
+import { countWordsRust, isTokenCountingAvailable } from '../../memory/rust-accelerator.js';
+
+import { seededChance } from '../utils/rng.js';
 
 // Shared detection utilities
 import {
@@ -28,72 +32,82 @@ import {
 
 // Sub-modules
 import {
-  SelfCorrectionEngine,
+  type SelfCorrectionEngine,
   getSelfCorrectionEngine,
   resetSelfCorrectionEngine,
 } from './self-correction.js';
 
 import {
-  DisfluencyEngine,
+  type DisfluencyEngine,
   getDisfluencyEngine,
   resetDisfluencyEngine,
 } from './disfluency-injection.js';
 
 import {
-  PhoneticMirroringEngine,
+  type PhoneticMirroringEngine,
   getPhoneticMirroringEngine,
   resetPhoneticMirroringEngine,
 } from './phonetic-mirroring.js';
 
 import {
-  CatchingYourselfEngine,
+  type CatchingYourselfEngine,
   getCatchingYourselfEngine,
   resetCatchingYourselfEngine,
 } from './catching-yourself.js';
 
 // Phase 2: Session Dynamics
 import {
-  VocalFatigueEngine,
+  type VocalFatigueEngine,
   getVocalFatigueEngine,
   resetVocalFatigueEngine,
 } from './vocal-fatigue.js';
 
 import {
-  SessionDynamicsEngine,
+  type SessionDynamicsEngine,
   getSessionDynamicsEngine,
   resetSessionDynamicsEngine,
 } from './session-dynamics.js';
 
 import {
-  ComfortProgressionEngine,
+  type ComfortProgressionEngine,
   getComfortProgressionEngine,
   resetComfortProgressionEngine,
 } from './comfort-progression.js';
 
 // Phase 3: Advanced Listening
-import { VoicePrintEngine, getVoicePrintEngine, resetVoicePrintEngine } from './voice-print.js';
+import {
+  getVoicePrintEngine,
+  resetVoicePrintEngine,
+  type VoicePrintEngine,
+} from './voice-print.js';
 
 import {
-  AmbientAwarenessEngine,
+  type AmbientAwarenessEngine,
   getAmbientAwarenessEngine,
   resetAmbientAwarenessEngine,
 } from './ambient-awareness.js';
 
 // Phase 4: Emotional Leadership
 import {
-  EmotionalLeadingEngine,
+  type EmotionalLeadingEngine,
   getEmotionalLeadingEngine,
   resetEmotionalLeadingEngine,
 } from './emotional-leading.js';
 
 import {
-  BreathingSyncEngine,
+  type BreathingSyncEngine,
   getBreathingSyncEngine,
   resetBreathingSyncEngine,
 } from './breathing-sync.js';
 
 // Phase 5: Cross-Session Intelligence
-import { CrossSessionVoiceEngine, getCrossSessionVoiceEngine } from './cross-session-voice.js';
+import { type CrossSessionVoiceEngine, getCrossSessionVoiceEngine } from './cross-session-voice.js';
+
+// Phase 6: Voice Pattern Learning (cross-session preference learning)
+import { getVoicePatternEngine, resetVoicePatternEngine } from './voice-pattern-learning.js';
+
+// Phase 7: Rapport Scoring (conversational health tracking)
+import { resetRapportScorer } from '../rapport/index.js';
 
 // Types
 import type { HumanizationConfig, HumanizationContext, HumanizedResponseResult } from './types.js';
@@ -116,6 +130,57 @@ export * from './session-dynamics.js';
 export * from './types.js';
 export * from './vocal-fatigue.js';
 export * from './voice-print.js';
+
+// Rapport scoring - conversational health tracking
+export {
+  getActiveRapportScorerCount,
+  getAvailableStrategies,
+  getRapportScorer,
+  getStrategyContextInjection,
+  getStrategyTtsAdjustments,
+  RAPPORT_CONFIG,
+  RapportScorer,
+  rapportScorer,
+  resetRapportScorer,
+  selectRepairStrategy,
+  type EngagementObservation,
+  type EmotionalAlignmentObservation,
+  type FlowContinuityObservation,
+  type InterruptionObservation,
+  type RapportLevel,
+  type RapportScore,
+  type RapportScorerState,
+  type RapportSignal,
+  type RepairState,
+  type RepairStrategy,
+  type RepairStrategyType,
+  type TrustSignalObservation,
+  type TurnBalanceObservation,
+  type TurnObservation,
+} from '../rapport/index.js';
+
+// Voice pattern learning - cross-session preference learning
+export {
+  getActiveVoicePatternEngineCount,
+  getCurrentTimeOfDay,
+  getRecommendedAgentWpm,
+  getRecommendedTurnGap,
+  getVoicePatternEngine,
+  getVoicePatterns,
+  initializeVoicePatterns,
+  loadVoicePatterns,
+  persistVoicePatterns,
+  recordVoiceObservation,
+  resetVoicePatternEngine,
+  saveVoicePatterns,
+  voicePatternLearning,
+  VOICE_PATTERN_CONFIG,
+  type TimeOfDay,
+  type TimeOfDayPattern,
+  type VoiceObservation,
+  type VoicePatternData,
+  type VoicePatternEngine,
+} from './voice-pattern-learning.js';
 
 // Prosody bridge - connects voice agent audio to humanization
 export {
@@ -199,6 +264,9 @@ export {
 
 const logger = createLogger({ module: 'Humanization' });
 
+// Check Rust availability at module load
+const RUST_COUNTING_AVAILABLE = isTokenCountingAvailable();
+
 // ============================================================================
 // TYPES
 // ============================================================================
@@ -242,8 +310,8 @@ export interface HumanizationOrchestratorConfig {
 // ============================================================================
 
 const DEFAULT_ORCHESTRATOR_CONFIG: HumanizationOrchestratorConfig = {
-  maxPerResponse: 2, // Don't over-humanize
-  maxPerSession: 15,
+  maxPerResponse: 3, // Was 2 - Allow more natural speech patterns per response
+  maxPerSession: 25, // Was 15 - Humans are consistently human throughout
   features: {},
   debug: false,
 };
@@ -295,7 +363,10 @@ export class HumanizationOrchestrator {
    * Record a user message for learning
    */
   recordUserMessage(message: string): void {
-    const wordCount = message.split(/\s+/).length;
+    // 🦀 Use Rust for O(1) word counting when available
+    const wordCount = RUST_COUNTING_AVAILABLE
+      ? countWordsRust(message)
+      : message.split(/\s+/).length;
 
     // Learn phonetic patterns
     this.engines.phoneticMirroring.analyzeMessage(message);
@@ -330,10 +401,13 @@ export class HumanizationOrchestrator {
     }
 
     // Build full context
+    // 🦀 Use Rust for O(1) word counting when available
     const fullContext: HumanizationContext = {
       ...context,
       responseText: response,
-      responseWordCount: response.split(/\s+/).length,
+      responseWordCount: RUST_COUNTING_AVAILABLE
+        ? countWordsRust(response)
+        : response.split(/\s+/).length,
       responseComplexity: this.estimateComplexity(response),
       isGivingAdvice: this.detectAdviceGiving(response),
       isEmotionalContent: context.isEmotionalContent ?? this.detectEmotionalContent(response),
@@ -391,7 +465,10 @@ export class HumanizationOrchestrator {
     ) {
       // Apply config-based probability boost
       const baseProbability = globalConfig.probabilities.selfCorrection;
-      const shouldTry = Math.random() < baseProbability + 0.5; // Engine handles final probability
+      const shouldTry = seededChance(
+        `${this.sessionId}:${context.turnCount}:selfCorrection`,
+        baseProbability + 0.5
+      );
 
       if (shouldTry) {
         const selfCorrection = this.engines.selfCorrection.generate(fullContext);
@@ -441,7 +518,10 @@ export class HumanizationOrchestrator {
       comfortLevel >= globalConfig.comfortThresholds.allowDisfluency
     ) {
       const baseProbability = globalConfig.probabilities.disfluency;
-      const shouldTry = Math.random() < baseProbability + 0.5;
+      const shouldTry = seededChance(
+        `${this.sessionId}:${context.turnCount}:disfluency`,
+        baseProbability + 0.5
+      );
 
       if (shouldTry) {
         const disfluency = this.engines.disfluency.generate(fullContext);
@@ -481,7 +561,10 @@ export class HumanizationOrchestrator {
       globalConfig.features.catchingYourself
     ) {
       const baseProbability = globalConfig.probabilities.catchingYourself;
-      const shouldTry = Math.random() < baseProbability + 0.5;
+      const shouldTry = seededChance(
+        `${this.sessionId}:${context.turnCount}:catchingYourself`,
+        baseProbability + 0.5
+      );
 
       if (shouldTry) {
         // Update catching yourself state
@@ -725,7 +808,8 @@ export class HumanizationOrchestrator {
   private estimateComplexity(text: string): number {
     let complexity = 0.3;
 
-    const wordCount = text.split(/\s+/).length;
+    // 🦀 Use Rust for O(1) word counting when available
+    const wordCount = RUST_COUNTING_AVAILABLE ? countWordsRust(text) : text.split(/\s+/).length;
     if (wordCount > 50) complexity += 0.1;
     if (wordCount > 80) complexity += 0.15;
     if (wordCount > 120) complexity += 0.15;
@@ -799,6 +883,10 @@ export function resetHumanization(sessionId: string, userId?: string): void {
   resetEmotionalLeadingEngine(sessionId);
   resetBreathingSyncEngine(sessionId);
   // Phase 5 - don't reset cross-session by default
+  // Phase 6 - Voice pattern learning (session-scoped engine)
+  resetVoicePatternEngine(sessionId);
+  // Phase 7 - Rapport scoring (conversational health)
+  resetRapportScorer(sessionId);
 }
 
 /**

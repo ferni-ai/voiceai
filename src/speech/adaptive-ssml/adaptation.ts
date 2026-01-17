@@ -8,7 +8,7 @@
 
 import { sanitizeSsml, tagTextWithSsmlPersonaAware } from '../../ssml/index.js';
 import { getLogger } from '../../utils/safe-logger.js';
-import type { SpeechContext } from '../speech-context.js';
+import type { EnergyLevel, SpeechContext } from '../speech-context.js';
 import { makeVoiceAlive, type AliveVoiceContext } from './alive-voice.js';
 import {
   applySuperhmanVoice,
@@ -16,6 +16,24 @@ import {
   updateSuperhmanVoiceSession,
   type SuperhumanVoiceContext,
 } from './superhuman-voice.js';
+
+// ============================================================================
+// HELPERS
+// ============================================================================
+
+/**
+ * Map 3-level energy to 5-level for humanization system
+ */
+function mapTo5Level(energy: EnergyLevel): 'very_low' | 'low' | 'neutral' | 'elevated' | 'high' {
+  switch (energy) {
+    case 'low':
+      return 'low';
+    case 'high':
+      return 'elevated';
+    default:
+      return 'neutral';
+  }
+}
 
 // ============================================================================
 // TYPES
@@ -76,7 +94,7 @@ export function tagTextWithSsmlAdaptive(
   // Use persona-aware tagger (now the canonical source)
   // Default to 'ferni' if no personaId provided for consistent behavior
   const effectivePersonaId = personaId || 'ferni';
-  let tagged = tagTextWithSsmlPersonaAware(text, {
+  const tagged = tagTextWithSsmlPersonaAware(text, {
     personaId: effectivePersonaId,
     baseSpeed: context.baseSpeed * context.energyMultiplier,
     baseVolume: 1.0,
@@ -96,7 +114,12 @@ export function tagTextWithSsmlAdaptive(
     userEmotion: context.userEmotion,
     topicWeight: context.topicWeight,
     turnCount: context.turnCount,
-    userEnergy: context.userEnergy,
+    // Use extended 5-level energy for humanization if available
+    userEnergy: context.extendedUserEnergy || mapTo5Level(context.userEnergy),
+    // New humanization fields
+    isLateNight: context.isLateNight,
+    userJustLaughed: context.userJustLaughed,
+    randomSeed: context.randomSeed,
   };
 
   const aliveResult = makeVoiceAlive(tagged, aliveContext);

@@ -11,6 +11,8 @@
 
 import { getGCPProjectId } from '../../config/environment.js';
 import { createLogger } from '../../utils/safe-logger.js';
+import { cleanForFirestore } from '../../utils/firestore-utils.js';
+import { onCoachingInsightChange, onGrowthEdgeChange } from '../data-layer/hooks/coaching-hooks.js';
 
 const log = createLogger({ module: 'CoachingPersistence' });
 
@@ -257,9 +259,49 @@ export async function saveCoachingProfilesToFirestore(userId: string): Promise<b
     const bundle = await exportAllCoachingProfiles(userId);
 
     // Serialize dates for Firestore
-    const serialized = JSON.parse(JSON.stringify(bundle));
+    const serialized = structuredClone(bundle);
 
-    await firestoreClient.collection(COACHING_COLLECTION).doc(userId).set(serialized);
+    await firestoreClient
+      .collection(COACHING_COLLECTION)
+      .doc(userId)
+      .set(cleanForFirestore(serialized));
+
+    // Index key coaching insights to semantic memory
+    if (bundle.goalProfile?.goals?.length) {
+      const activeGoals = bundle.goalProfile.goals.filter((g) => g.status === 'active');
+      for (const goal of activeGoals.slice(0, 5)) {
+        void onGrowthEdgeChange(
+          userId,
+          goal.id,
+          {
+            area: goal.domain || 'general',
+            currentState: `Goal: ${goal.title}`,
+            targetState: goal.description || goal.title,
+            obstacles: goal.obstacles, // Already string[]
+            strategies: goal.milestones?.map((m) => m.title),
+          },
+          'update'
+        );
+      }
+    }
+
+    // Index obstacles as stuck patterns
+    if (bundle.obstacleProfile?.patterns?.length) {
+      for (const pattern of bundle.obstacleProfile.patterns.slice(0, 3)) {
+        void onCoachingInsightChange(
+          userId,
+          `obstacle_${pattern.type}`,
+          {
+            insight: `Recurring ${pattern.type} obstacle (seen ${pattern.frequency} times)`,
+            context: pattern.commonContexts?.join(', ') || '',
+            personaId: 'maya',
+            category: 'behavior',
+            actionable: true,
+          },
+          'update'
+        );
+      }
+    }
 
     log.info({ userId }, '💾 Saved coaching profiles to Firestore');
     return true;

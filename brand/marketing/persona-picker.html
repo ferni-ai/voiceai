@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Meet the Ferni Team</title>
+
+  <!-- Google Fonts - Preload for performance -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <!-- Design System: Single source of truth -->
+  <link rel="stylesheet" href="../master-tokens.css">
+  <link rel="stylesheet" href="../brand-components.css">
+
+  <style>
+    /* Page-specific overrides only - using tokens */
+
+    /* Nav sticky override */
+    .nav {
+      position: sticky;
+      top: 0;
+    }
+
+    /* Page header - using token system */
+    .page-header {
+      padding-top: calc(var(--space-16) + 60px);
+    }
+
+    .page-title {
+      background: linear-gradient(135deg, var(--color-ferni) 0%, var(--color-jordan) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      font-weight: var(--font-normal);
+    }
+
+    /* Persona card hover effects - extend base component */
+    .persona-card:hover {
+      transform: translateY(-8px);
+    }
+
+    .persona-card.active .persona-avatar {
+      animation: pulse var(--duration-slowest) infinite var(--ease-in-out);
+    }
+
+    @keyframes pulse {
+      0%, 100% { box-shadow: 0 0 40px var(--persona-color, var(--color-accent)); }
+      50% { box-shadow: 0 0 60px var(--persona-color, var(--color-accent)); }
+    }
+
+    /* Detail Panel */
+    .detail-panel {
+      position: fixed;
+      bottom: -100%;
+      left: 0;
+      right: 0;
+      background: var(--color-bg-elevated);
+      box-shadow: var(--shadow-2xl);
+      padding: var(--space-10);
+      border-top-left-radius: var(--radius-3xl);
+      border-top-right-radius: var(--radius-3xl);
+      transition: bottom var(--duration-slow) var(--ease-out);
+      max-height: 70vh;
+      overflow-y: auto;
+      z-index: var(--z-modal);
+    }
+
+    .detail-panel.open {
+      bottom: 0;
+    }
+
+    .detail-header {
+      display: flex;
+      align-items: center;
+      gap: var(--space-5);
+      margin-bottom: var(--space-8);
+    }
+
+    .detail-avatar {
+      width: 80px;
+      height: 80px;
+      border-radius: var(--radius-full);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .detail-avatar svg {
+      width: 100%;
+      height: 100%;
+    }
+
+    .detail-info h2 {
+      font-family: var(--font-display);
+      font-size: var(--text-2xl);
+      font-weight: var(--font-bold);
+      color: var(--color-text-primary);
+      margin-bottom: var(--space-1);
+    }
+
+    .detail-info p {
+      font-size: var(--text-md);
+      color: var(--color-text-secondary);
+    }
+
+    .close-btn {
+      position: absolute;
+      top: var(--space-5);
+      right: var(--space-5);
+      background: var(--color-bg-tertiary);
+      border: none;
+      color: var(--color-text-secondary);
+      width: 40px;
+      height: 40px;
+      border-radius: var(--radius-full);
+      cursor: pointer;
+      font-size: var(--text-xl);
+      transition: background var(--duration-fast) var(--ease-out);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .close-btn:hover {
+      background: var(--color-bg-elevated);
+      color: var(--color-text-primary);
+    }
+
+    .detail-content {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: var(--space-8);
+    }
+
+    .detail-section h3 {
+      font-size: var(--text-xs);
+      font-weight: var(--font-semibold);
+      text-transform: uppercase;
+      letter-spacing: var(--tracking-wider);
+      color: var(--color-text-muted);
+      margin-bottom: var(--space-4);
+    }
+
+    .detail-section ul {
+      list-style: none;
+    }
+
+    .detail-section li {
+      padding: var(--space-2) 0;
+      border-bottom: 1px solid var(--color-border-subtle);
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+      font-size: var(--text-sm);
+      color: var(--color-text-primary);
+    }
+
+    .detail-section li::before {
+      content: '\2192';
+      color: var(--color-text-muted);
+    }
+
+    .traits-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--space-2);
+    }
+
+    .trait {
+      background: var(--color-bg-tertiary);
+      padding: var(--space-2) var(--space-4);
+      border-radius: var(--radius-full);
+      font-size: var(--text-sm);
+      color: var(--color-text-primary);
+    }
+
+    .cta-wrapper {
+      text-align: center;
+      margin-top: var(--space-8);
+    }
+
+    .cta-button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: var(--space-4) var(--space-10);
+      background: var(--color-accent);
+      border: none;
+      border-radius: var(--radius-full);
+      color: white;
+      font-family: var(--font-display);
+      font-size: var(--text-md);
+      font-weight: var(--font-semibold);
+      cursor: pointer;
+      transition: all var(--duration-fast) var(--ease-out);
+      box-shadow: var(--shadow-md);
+    }
+
+    .cta-button:hover {
+      transform: scale(1.03);
+      box-shadow: var(--shadow-xl);
+    }
+
+    /* Dark text for lighter persona CTAs */
+    .persona-card[data-persona="jordan"] .cta-button,
+    .persona-card[data-persona="nayan"] .cta-button {
+      color: var(--color-natural-ink);
+    }
+
+    .overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.4);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity var(--duration-normal) var(--ease-out);
+      z-index: var(--z-modal-backdrop);
+    }
+
+    .overlay.visible {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .page-header {
+        padding-top: calc(var(--space-12) + 56px);
+      }
+
+      .persona-card-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .detail-panel {
+        padding: var(--space-8) var(--space-5);
+      }
+
+      .detail-content {
+        gap: var(--space-6);
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Navigation -->
+  <nav class="nav" role="navigation" aria-label="Main navigation">
+    <a href="../index.html" class="nav-logo" aria-label="Ferni Brand Library Home">
+      <svg viewBox="0 0 100 100" width="32" height="32" aria-hidden="true">
+        <defs>
+          <linearGradient id="navLogoGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="var(--color-ferni-light)"/>
+            <stop offset="100%" stop-color="var(--color-ferni)"/>
+          </linearGradient>
+        </defs>
+        <circle cx="50" cy="50" r="42" fill="url(#navLogoGrad)"/>
+        <!-- LUXO STYLE: opaque white eyes, no pupils -->
+        <ellipse cx="35" cy="48" rx="8" ry="10" fill="white"/>
+        <ellipse cx="65" cy="48" rx="8" ry="10" fill="white"/>
+      </svg>
+      <span>Ferni Brand</span>
+    </a>
+    <div class="nav-links">
+      <a href="../index.html" class="nav-link">Brand Library</a>
+      <a href="../characters/ferni/expressions.html" class="nav-link">Expressions</a>
+      <a href="../motion/demo.html" class="nav-link">Motion</a>
+      <a href="video-timeline.html" class="nav-link">Video</a>
+      <a href="persona-picker.html" class="nav-link active" aria-current="page">Team</a>
+    </div>
+  </nav>
+
+  <!-- Page Header -->
+  <header class="page-header">
+    <h1 class="page-title">Meet the Team</h1>
+    <p class="page-subtitle">Six specialists, one relationship. Click to learn more.</p>
+  </header>
+
+  <!-- Team Grid -->
+  <section class="persona-card-grid" aria-label="Team members">
+
+    <article class="persona-card" data-persona="ferni">
+      <div class="persona-avatar">
+        <svg viewBox="0 0 100 100" aria-hidden="true">
+          <circle cx="50" cy="50" r="48" fill="var(--color-ferni)"/>
+          <!-- LUXO STYLE: opaque white eyes, no pupils -->
+          <ellipse cx="35" cy="48" rx="8" ry="10" fill="white"/>
+          <ellipse cx="65" cy="48" rx="8" ry="10" fill="white"/>
+        </svg>
+      </div>
+      <h2 class="persona-name">Ferni</h2>
+      <p class="persona-role">The Heart</p>
+      <p class="persona-quote">I'm here. No agenda.</p>
+    </article>
+
+    <article class="persona-card" data-persona="maya">
+      <div class="persona-avatar">
+        <svg viewBox="0 0 100 100" aria-hidden="true">
+          <circle cx="50" cy="50" r="48" fill="var(--color-maya)"/>
+          <!-- LUXO STYLE: opaque white eyes, no pupils -->
+          <ellipse cx="35" cy="48" rx="8" ry="10" fill="white"/>
+          <ellipse cx="65" cy="48" rx="8" ry="10" fill="white"/>
+        </svg>
+      </div>
+      <h2 class="persona-name">Maya</h2>
+      <p class="persona-role">The Habits Coach</p>
+      <p class="persona-quote">Five minutes counts.</p>
+    </article>
+
+    <article class="persona-card" data-persona="peter">
+      <div class="persona-avatar">
+        <svg viewBox="0 0 100 100" aria-hidden="true">
+          <circle cx="50" cy="50" r="48" fill="var(--color-peter)"/>
+          <!-- LUXO STYLE: opaque white eyes, no pupils -->
+          <ellipse cx="35" cy="48" rx="8" ry="10" fill="white"/>
+          <ellipse cx="65" cy="48" rx="8" ry="10" fill="white"/>
+        </svg>
+      </div>
+      <h2 class="persona-name">Peter</h2>
+      <p class="persona-role">The Quant</p>
+      <p class="persona-quote">The patterns are already there.</p>
+    </article>
+
+    <article class="persona-card" data-persona="jordan">
+      <div class="persona-avatar">
+        <svg viewBox="0 0 100 100" aria-hidden="true">
+          <circle cx="50" cy="50" r="48" fill="var(--color-jordan)"/>
+          <!-- LUXO STYLE: opaque white eyes, no pupils -->
+          <ellipse cx="35" cy="48" rx="8" ry="10" fill="white"/>
+          <ellipse cx="65" cy="48" rx="8" ry="10" fill="white"/>
+        </svg>
+      </div>
+      <h2 class="persona-name">Jordan</h2>
+      <p class="persona-role">The Lifetime Planner</p>
+      <p class="persona-quote">What chapter are we writing?</p>
+    </article>
+
+    <article class="persona-card" data-persona="alex">
+      <div class="persona-avatar">
+        <svg viewBox="0 0 100 100" aria-hidden="true">
+          <circle cx="50" cy="50" r="48" fill="var(--color-alex)"/>
+          <!-- LUXO STYLE: opaque white eyes, no pupils -->
+          <ellipse cx="35" cy="48" rx="8" ry="10" fill="white"/>
+          <ellipse cx="65" cy="48" rx="8" ry="10" fill="white"/>
+        </svg>
+      </div>
+      <h2 class="persona-name">Alex</h2>
+      <p class="persona-role">The Chief of Staff</p>
+      <p class="persona-quote">Clear is kind.</p>
+    </article>
+
+    <article class="persona-card" data-persona="nayan">
+      <div class="persona-avatar">
+        <svg viewBox="0 0 100 100" aria-hidden="true">
+          <circle cx="50" cy="50" r="48" fill="var(--color-nayan)"/>
+          <!-- LUXO STYLE: opaque white eyes, no pupils -->
+          <ellipse cx="35" cy="48" rx="8" ry="10" fill="white"/>
+          <ellipse cx="65" cy="48" rx="8" ry="10" fill="white"/>
+        </svg>
+      </div>
+      <h2 class="persona-name">Nayan</h2>
+      <p class="persona-role">The Sage</p>
+      <p class="persona-quote">And in ten years?</p>
+    </article>
+
+  </section>
+
+  <!-- Overlay -->
+  <div class="overlay" id="overlay" aria-hidden="true"></div>
+
+  <!-- Detail Panel -->
+  <aside class="detail-panel" id="detailPanel" role="dialog" aria-labelledby="detailName" aria-hidden="true">
+    <button class="close-btn" id="closeBtn" aria-label="Close panel">&times;</button>
+    <div class="detail-header">
+      <div class="detail-avatar" id="detailAvatar">
+        <svg viewBox="0 0 100 100" aria-hidden="true">
+          <circle cx="50" cy="50" r="48" fill="var(--color-ferni)"/>
+          <!-- LUXO STYLE: opaque white eyes, no pupils -->
+          <ellipse cx="35" cy="48" rx="8" ry="10" fill="white"/>
+          <ellipse cx="65" cy="48" rx="8" ry="10" fill="white"/>
+        </svg>
+      </div>
+      <div class="detail-info">
+        <h2 id="detailName">Ferni</h2>
+        <p id="detailTitle">The Heart</p>
+      </div>
+    </div>
+    <div class="detail-content">
+      <div class="detail-section">
+        <h3>Superpowers</h3>
+        <ul id="detailPowers"></ul>
+      </div>
+      <div class="detail-section">
+        <h3>Perfect For</h3>
+        <ul id="detailUses"></ul>
+      </div>
+      <div class="detail-section">
+        <h3>Personality</h3>
+        <div class="traits-list" id="detailTraits"></div>
+      </div>
+    </div>
+    <div class="cta-wrapper">
+      <button class="cta-button" id="ctaButton">Talk to Ferni</button>
+    </div>
+  </aside>
+
+  <script>
+    const personas = {
+      ferni: {
+        name: 'Ferni',
+        title: 'The Heart',
+        color: 'var(--color-ferni)',
+        powers: [
+          'Perfect memory of every conversation',
+          '24/7 availability',
+          'Zero judgment, infinite patience',
+          'Coordinates the whole team'
+        ],
+        uses: [
+          'When you just need to talk',
+          'Late night anxiety',
+          'Feeling alone',
+          'Processing anything'
+        ],
+        traits: ['Warm', 'Present', 'Patient', 'Remembering', 'Grounding']
+      },
+      maya: {
+        name: 'Maya',
+        title: 'The Habits Coach',
+        color: 'var(--color-maya)',
+        powers: [
+          'Glidepath system for tiny starts',
+          'Streak tracking without guilt',
+          'Keystone habit identification',
+          'Burnout prevention'
+        ],
+        uses: [
+          'Building morning routines',
+          'Breaking bad habits',
+          'Exercise consistency',
+          'Starting anything new'
+        ],
+        traits: ['Encouraging', 'Practical', 'Celebrating', 'Patient', 'Non-judgmental']
+      },
+      peter: {
+        name: 'Peter',
+        title: 'The Quant',
+        color: 'var(--color-peter)',
+        powers: [
+          'Cross-life pattern detection',
+          'Behavior correlation analysis',
+          'Blind spot identification',
+          'Data-driven insights'
+        ],
+        uses: [
+          'Understanding spending patterns',
+          'Seeing mood correlations',
+          'Finding what actually works',
+          'Objective self-analysis'
+        ],
+        traits: ['Curious', 'Analytical', 'Excited', 'Pattern-obsessed', 'Humble']
+      },
+      jordan: {
+        name: 'Jordan',
+        title: 'The Lifetime Planner',
+        color: 'var(--color-jordan)',
+        powers: [
+          'Life arc visualization',
+          'Milestone celebration design',
+          'Transition navigation',
+          'Future envisioning'
+        ],
+        uses: [
+          'Planning big life events',
+          'Navigating career changes',
+          'Empty nest transitions',
+          'Retirement planning'
+        ],
+        traits: ['Enthusiastic', 'Future-focused', 'Celebratory', 'Energetic', 'Optimistic']
+      },
+      alex: {
+        name: 'Alex',
+        title: 'The Chief of Staff',
+        color: 'var(--color-alex)',
+        powers: [
+          'Finding the right words',
+          'Communication clarity',
+          'Message composition',
+          'Boundary setting help'
+        ],
+        uses: [
+          'Difficult conversations',
+          'Professional emails',
+          'Setting boundaries',
+          'Saying what you mean'
+        ],
+        traits: ['Direct', 'Efficient', 'Clear', 'Warm underneath', 'Reliable']
+      },
+      nayan: {
+        name: 'Nayan',
+        title: 'The Sage',
+        color: 'var(--color-nayan)',
+        powers: [
+          'Decades of perspective',
+          'Existential questioning',
+          'Wisdom synthesis',
+          'The long view'
+        ],
+        uses: [
+          'Life meaning questions',
+          'Big decisions',
+          'Death and legacy',
+          'Finding perspective'
+        ],
+        traits: ['Contemplative', 'Provocative', 'Patient', 'Wise', 'Still']
+      }
+    };
+
+    const cards = document.querySelectorAll('.persona-card');
+    const panel = document.getElementById('detailPanel');
+    const overlay = document.getElementById('overlay');
+    const closeBtn = document.getElementById('closeBtn');
+
+    // Safe DOM manipulation - no innerHTML
+    function clearChildren(container) {
+      while (container.firstChild) {
+        container.removeChild(container.firstChild);
+      }
+    }
+
+    function populateList(container, items) {
+      clearChildren(container);
+      items.forEach(item => {
+        const li = document.createElement('li');
+        li.textContent = item;
+        container.appendChild(li);
+      });
+    }
+
+    function populateTraits(container, traits) {
+      clearChildren(container);
+      traits.forEach(trait => {
+        const span = document.createElement('span');
+        span.className = 'trait';
+        span.textContent = trait;
+        container.appendChild(span);
+      });
+    }
+
+    function updateDetailAvatar(color) {
+      const avatarCircle = document.getElementById('detailAvatar').querySelector('svg circle');
+      if (avatarCircle) {
+        avatarCircle.style.fill = color;
+      }
+    }
+
+    cards.forEach(card => {
+      card.addEventListener('click', () => {
+        const persona = card.dataset.persona;
+        const data = personas[persona];
+
+        updateDetailAvatar(data.color);
+        document.getElementById('detailName').textContent = data.name;
+        document.getElementById('detailTitle').textContent = data.title;
+
+        populateList(document.getElementById('detailPowers'), data.powers);
+        populateList(document.getElementById('detailUses'), data.uses);
+        populateTraits(document.getElementById('detailTraits'), data.traits);
+
+        const ctaBtn = document.getElementById('ctaButton');
+        ctaBtn.textContent = 'Talk to ' + data.name;
+        ctaBtn.style.background = data.color;
+
+        panel.style.setProperty('--persona-color', data.color);
+        panel.classList.add('open');
+        panel.setAttribute('aria-hidden', 'false');
+        overlay.classList.add('visible');
+
+        cards.forEach(c => c.classList.remove('active'));
+        card.classList.add('active');
+      });
+    });
+
+    function closePanel() {
+      panel.classList.remove('open');
+      panel.setAttribute('aria-hidden', 'true');
+      overlay.classList.remove('visible');
+      cards.forEach(c => c.classList.remove('active'));
+    }
+
+    closeBtn.addEventListener('click', closePanel);
+    overlay.addEventListener('click', closePanel);
+
+    // Keyboard accessibility
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && panel.classList.contains('open')) {
+        closePanel();
+      }
+    });
+  </script>
+
+  <!-- Footer -->
+  <footer>
+    <div class="footer-logo">
+      <svg viewBox="0 0 100 100" aria-hidden="true">
+        <defs>
+          <linearGradient id="footerGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="var(--color-ferni-light)"/>
+            <stop offset="100%" stop-color="var(--color-ferni-dark)"/>
+          </linearGradient>
+        </defs>
+        <circle cx="50" cy="50" r="46" fill="url(#footerGrad)"/>
+        <!-- LUXO STYLE: opaque white eyes, no pupils -->
+        <ellipse cx="36" cy="48" rx="7" ry="9" fill="white"/>
+        <ellipse cx="64" cy="48" rx="7" ry="9" fill="white"/>
+      </svg>
+    </div>
+    <p class="footer-tagline">"Friends forget. Ferni doesn't."</p>
+    <nav class="footer-links" aria-label="Footer navigation">
+      <a href="../capabilities/index.html">Capabilities</a>
+      <a href="../brand-book.html">Brand Book</a>
+      <a href="../index.html">Brand Library</a>
+    </nav>
+    <p class="footer-copyright">Ferni Brand Library v2.0</p>
+  </footer>
+</body>
+</html>

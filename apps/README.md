@@ -1,42 +1,30 @@
-# Voice AI Native Apps
+# Ferni Voice Native Apps
 
-Native desktop and mobile applications for Voice AI - your AI life coach.
+Native desktop and mobile applications for Ferni Voice AI - your AI life coach.
 
 ## Supported Platforms
 
 | Platform | Technology | Status |
 |----------|------------|--------|
-| 🍎 macOS | Electron | ✅ Ready |
-| 🪟 Windows | Electron | ✅ Ready |
-| 🐧 Linux | Electron | ✅ Ready |
-| 📱 iOS | Capacitor | ✅ Ready |
-| 🤖 Android | Capacitor | ✅ Ready |
+| macOS | Electron | Ready |
+| Windows | Electron | Ready |
+| Linux | Electron | Ready |
+| iOS | Native Swift/SwiftUI | Ready |
+| Android | Native Kotlin/Compose | Ready |
 
 ## Structure
 
 ```
 apps/
-├── electron/     # Desktop app (macOS, Windows, Linux)
-├── ios/          # iOS app (Capacitor)
-├── android/      # Android app (Capacitor)
+├── electron/        # Desktop app (macOS, Windows, Linux)
+├── ios-native/      # Native iOS app (Swift/SwiftUI)
+├── android-native/  # Native Android app (Kotlin/Compose)
+├── web/             # Web frontend (shared with Electron)
+├── macos-menubar/   # macOS menu bar app
 └── README.md
 ```
 
 ## Quick Start
-
-### One-Command Build (All Platforms)
-
-```bash
-# From project root
-./scripts/build-apps.sh
-
-# Or specific platforms:
-./scripts/build-apps.sh --electron-only
-./scripts/build-apps.sh --ios-only
-./scripts/build-apps.sh --android-only
-./scripts/build-apps.sh --mobile-only    # iOS + Android
-./scripts/build-apps.sh --sync           # Just sync web assets
-```
 
 ### Desktop (Electron) - macOS, Windows, Linux
 
@@ -50,125 +38,128 @@ npm run build:win   # Windows NSIS + Portable
 npm run build:linux # Linux AppImage + DEB + RPM
 ```
 
-### iOS (Capacitor)
+### iOS (Native SwiftUI)
 
 ```bash
-cd apps/ios
-npm install
-npm run build  # Build web + sync iOS
-npm run open   # Open in Xcode
+cd apps/ios-native
+open FerniVoice.xcodeproj
+# Select your device/simulator in Xcode
+# Press Cmd+R to run
 ```
 
-### Android (Capacitor)
+**Requirements:**
+- Xcode 15+
+- iOS 16+ deployment target
+- LiveKit Swift SDK (via Swift Package Manager)
+
+### Android (Native Kotlin/Compose)
 
 ```bash
-cd apps/android
-npm install
-npm run build  # Build web + sync Android
-npm run open   # Open in Android Studio
+cd apps/android-native
+./gradlew assembleDebug    # Build debug APK
+./gradlew installDebug     # Install on connected device/emulator
 ```
 
-## Shared Web Assets
+Or open in Android Studio:
+1. Open `apps/android-native` folder
+2. Wait for Gradle sync
+3. Run on emulator or device
 
-All native apps use the same web frontend from `apps/web/`. The build process:
-
-1. Builds the TypeScript frontend (`npm run build` in apps/web)
-2. Copies/references the built assets
-3. Packages with the native wrapper
+**Requirements:**
+- Android Studio Hedgehog (2023.1.1)+
+- Kotlin 1.9.22
+- Min SDK 24 (Android 7.0)
+- Target SDK 34 (Android 14)
 
 ## Platform-Specific Features
 
-| Feature | Electron (Desktop) | iOS | Android |
-|---------|-------------------|-----|---------|
-| WebRTC/LiveKit | ✅ Full | ✅ WKWebView | ✅ WebView |
-| Haptics | ❌ N/A | ✅ Native | ✅ Native |
-| System Tray | ✅ Yes | ❌ N/A | ❌ N/A |
-| Background Audio | ✅ Yes | ✅ AVAudioSession | ✅ Foreground Service |
-| Auto-update | ✅ electron-updater | ✅ App Store | ✅ Play Store |
-| Code Signing | ✅ Notarization | ✅ Apple | ✅ Keystore |
-| Error Tracking | ✅ Sentry | ✅ Sentry | ✅ Sentry |
-| Bluetooth Audio | ✅ Yes | ✅ Yes | ✅ Yes |
-| Portrait Lock | ❌ N/A | ✅ Yes | ✅ Yes |
+| Feature | Electron | iOS Native | Android Native |
+|---------|----------|------------|----------------|
+| WebRTC/LiveKit | Full | Native SDK | Native SDK |
+| Haptics | N/A | Native UIKit | Native Vibration |
+| System Tray | Yes | N/A | N/A |
+| Background Audio | Yes | AVAudioSession | Foreground Service |
+| Auto-update | electron-updater | App Store | Play Store |
+| Code Signing | Notarization | Apple | Keystore |
+| Error Tracking | Sentry | Sentry | Sentry |
+| Portrait Lock | N/A | Yes | Yes |
+| 7-Layer Avatar | Canvas | SwiftUI | Jetpack Compose |
 
-## Native Features
+## Native App Architecture
 
-### Platform Detection
+### iOS (apps/ios-native/)
 
-The frontend automatically detects the platform and adapts:
-
-```typescript
-import { platform, isNative, isElectron, isIOS } from './utils/platform.js';
-
-// Check platform
-if (isNative()) {
-  // iOS or Android
-}
-if (isElectron()) {
-  // Desktop app
-}
+```
+FerniVoice/
+├── Models/
+│   ├── Persona.swift           # 6 personas with colors
+│   ├── VoiceState.swift        # State machine
+│   └── TranscriptMessage.swift # Chat message model
+├── Services/
+│   ├── LiveKitSession.swift    # LiveKit integration
+│   └── VoiceCallService.swift  # Audio session management
+├── Views/
+│   ├── ContentView.swift       # Main view
+│   ├── VoiceCallView.swift     # Call interface
+│   └── Components/             # Reusable UI
+└── Utils/
+    └── HapticManager.swift     # Haptic feedback
 ```
 
-### Native Haptics (iOS)
+### Android (apps/android-native/)
 
-The app uses native Capacitor Haptics for rich tactile feedback:
-
-```typescript
-import { haptic } from './utils/platform.js';
-
-haptic('light');    // Subtle tap
-haptic('medium');   // Standard feedback
-haptic('heavy');    // Strong impact
-haptic('success');  // Success notification
+```
+app/src/main/java/com/ferni/voice/
+├── models/
+│   ├── Persona.kt              # 6 personas with colors
+│   ├── VoiceState.kt           # State machine
+│   └── TranscriptMessage.kt    # Chat message model
+├── services/
+│   ├── LiveKitSession.kt       # LiveKit integration
+│   └── VoiceCallService.kt     # Foreground service
+├── ui/
+│   ├── theme/                  # Material3 theming
+│   ├── screens/                # Main screens
+│   └── components/             # Reusable UI
+└── util/
+    └── HapticFeedback.kt       # Haptic utilities
 ```
 
-### Audio Session (iOS)
+## Backend Connection
 
-The iOS app automatically configures AVAudioSession for optimal voice chat:
-- Play and record simultaneously
-- Bluetooth headset support
-- Background audio continuation
-- Proper ducking when receiving calls
+Both native apps connect to the same backend:
 
-## Development Tips
+| Endpoint | Purpose |
+|----------|---------|
+| `GET /health` | Health check |
+| `GET /token` | Get LiveKit token |
 
-### Live Reload
+Data channel messages (JSON):
+- `handoff_request` - Request persona switch
+- `handoff_started` - Server starting handoff
+- `handoff_complete` - Handoff finished
+- `emotion_event` - Avatar emotion trigger
 
-**Electron**: Automatically connects to Vite dev server at `localhost:3004`
+## Persona Colors
 
-**iOS/Android**: Update `capacitor.config.ts` with your local IP:
-```typescript
-server: {
-  url: 'http://192.168.x.x:3004',
-  cleartext: true,
-}
-```
+From `design-system/tokens/colors.json`:
 
-### Debugging
-
-**Electron**: DevTools are enabled by default in development
-
-**iOS**: Use Safari Developer Tools:
-1. Enable Safari Developer Menu (Safari → Settings → Advanced)
-2. Connect device or launch simulator
-3. Safari → Develop → [Device] → Voice AI
-
-**Android**: Use Chrome DevTools:
-1. Enable USB debugging on device (Developer Options)
-2. Connect device via USB
-3. Open `chrome://inspect` in Chrome
-4. Click "inspect" on your app's WebView
+| Persona | Color | Hex |
+|---------|-------|-----|
+| Ferni | Sage Green | #4a6741 |
+| Maya | Rose/Terracotta | #a67a6a |
+| Alex | Slate Blue | #5a6b8a |
+| Jordan | Coral | #c4856a |
+| Peter | Ocean Teal | #3a6b73 |
+| Nayan | Warm Brown | #9a7b5a |
 
 ## Build Pipeline
 
-For CI/CD, use these commands:
+For CI/CD, the GitHub Actions workflow builds all platforms:
 
 ```bash
-# Build all platforms
-./scripts/build-apps.sh
-
-# Or individually:
-cd apps/electron && npm run build:mac
-cd apps/ios && npm run build && npx cap copy ios
+# Triggered on version tags (v*) or manual dispatch
+# See .github/workflows/build-apps.yml
 ```
 
 ## Distribution
@@ -176,7 +167,7 @@ cd apps/ios && npm run build && npx cap copy ios
 ### macOS (Electron)
 
 1. Code sign with Developer ID: `export CSC_LINK=path/to/cert.p12`
-2. Notarize with Apple: set `APPLE_ID` and `APPLE_ID_PASSWORD`
+2. Notarize with Apple: set `APPLE_ID` and `APPLE_APP_SPECIFIC_PASSWORD`
 3. Build: `npm run build:mac`
 4. Output: `dist/Voice AI-*.dmg`
 
@@ -185,29 +176,25 @@ cd apps/ios && npm run build && npx cap copy ios
 1. Get code signing certificate (EV recommended for SmartScreen)
 2. Set environment: `$env:CSC_LINK = "path\to\cert.pfx"`
 3. Build: `npm run build:win`
-4. Output: `dist/Voice AI Setup-*.exe` + `dist/Voice AI-*-portable.exe`
-5. See `apps/electron/WINDOWS.md` for detailed guide
+4. Output: `dist/Voice AI Setup-*.exe`
 
 ### Linux (Electron)
 
 1. Build: `npm run build:linux`
-2. Output: `dist/Voice AI-*.AppImage`, `dist/voice-ai_*.deb`, `dist/voice-ai-*.rpm`
-3. AppImage is recommended for broad compatibility
+2. Output: `dist/Voice AI-*.AppImage`, `*.deb`, `*.rpm`
 
-### iOS
+### iOS (Native)
 
-1. Open in Xcode: `npm run open`
-2. Select your signing team in Xcode
+1. Open in Xcode: `open apps/ios-native/FerniVoice.xcodeproj`
+2. Select your signing team
 3. Archive: Product → Archive
 4. Distribute to App Store or TestFlight
 
-### Android
+### Android (Native)
 
 1. Generate signing key:
    ```bash
-   keytool -genkey -v -keystore voiceai.keystore -alias voiceai -keyalg RSA
+   keytool -genkey -v -keystore ferni-release.keystore -alias ferni -keyalg RSA -keysize 2048 -validity 10000
    ```
-2. Open in Android Studio: `npm run open`
-3. Build → Generate Signed Bundle/APK
-4. Upload to Google Play Console
-
+2. Build release: `./gradlew bundleRelease`
+3. Upload to Google Play Console

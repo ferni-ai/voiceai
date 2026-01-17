@@ -1,45 +1,35 @@
-<svg viewBox="0 0 320 80" xmlns="http://www.w3.org/2000/svg">
-  <!-- Horizontal Logo with Wordmark -->
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Horizontal logo with wordmark -->
+<svg viewBox="0 0 240 80" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <linearGradient id="wordmarkGradient" x1="0%" y1="100%" x2="100%" y2="0%">
-      <stop offset="0%" stop-color="#6366f1"/>
-      <stop offset="100%" stop-color="#8b5cf6"/>
+    <linearGradient id="orbGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#4a6741"/>
+      <stop offset="100%" stop-color="#3a5731"/>
     </linearGradient>
-    
-    <filter id="wordmarkGlow" x="-50%" y="-50%" width="200%" height="200%">
-      <feGaussianBlur stdDeviation="2" result="blur"/>
-      <feFlood flood-color="#8b5cf6" flood-opacity="0.3"/>
-      <feComposite in2="blur" operator="in"/>
-      <feMerge>
-        <feMergeNode/>
-        <feMergeNode in="SourceGraphic"/>
-      </feMerge>
-    </filter>
+    <linearGradient id="eyeFill" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="100%" stop-color="#f0f0f0"/>
+    </linearGradient>
   </defs>
-  
-  <!-- Logo orb -->
-  <g transform="translate(8, 8)">
-    <circle cx="32" cy="32" r="30" fill="none" stroke="url(#wordmarkGradient)" stroke-width="1" opacity="0.2"/>
-    <circle cx="32" cy="32" r="26" fill="url(#wordmarkGradient)" filter="url(#wordmarkGlow)"/>
-    
-    <!-- Sound wave -->
-    <g fill="none" stroke="white" stroke-linecap="round">
-      <circle cx="32" cy="32" r="4" fill="white"/>
-      <path d="M 25 32 Q 25 26, 32 26 Q 39 26, 39 32" stroke-width="2"/>
-      <path d="M 25 32 Q 25 38, 32 38 Q 39 38, 39 32" stroke-width="2"/>
-      <path d="M 20 32 Q 20 22, 32 22 Q 44 22, 44 32" stroke-width="1.5" opacity="0.6"/>
-      <path d="M 20 32 Q 20 42, 32 42 Q 44 42, 44 32" stroke-width="1.5" opacity="0.6"/>
-    </g>
-  </g>
-  
-  <!-- Wordmark text -->
-  <text x="88" y="52" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="36" font-weight="700" fill="url(#wordmarkGradient)" letter-spacing="-0.02em">
-    VoiceAI
-  </text>
-  
-  <!-- Tagline (optional) -->
-  <text x="88" y="68" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="11" font-weight="500" fill="#6366f1" opacity="0.7" letter-spacing="0.08em">
-    YOUR AI TEAM
-  </text>
-</svg>
 
+  <!-- Icon -->
+  <g transform="translate(8, 8)">
+    <!-- Outer ring -->
+    <circle cx="32" cy="32" r="30" fill="none" stroke="#4a6741" stroke-width="1" opacity="0.35"/>
+
+    <!-- Circular background -->
+    <circle cx="32" cy="32" r="26" fill="url(#orbGradient)"/>
+
+    <!-- Left eye -->
+    <ellipse cx="24" cy="30" rx="5" ry="6.5" fill="url(#eyeFill)"/>
+    <circle cx="22.5" cy="28" r="1.3" fill="white"/>
+
+    <!-- Right eye -->
+    <ellipse cx="40" cy="30" rx="5" ry="6.5" fill="url(#eyeFill)"/>
+    <circle cx="38.5" cy="28" r="1.3" fill="white"/>
+  </g>
+
+  <!-- Wordmark -->
+  <text x="88" y="48" font-family="'Plus Jakarta Sans', system-ui, sans-serif"
+    font-size="36" font-weight="700" fill="#2c2520" letter-spacing="-1">Ferni</text>
+</svg>

@@ -1,0 +1,21 @@
+{
+  "name": "ferni-figma-plugin",
+  "version": "0.1.0",
+  "description": "Ferni Design System for Figma - tokens, personas, animations, and linting",
+  "main": "dist/code.js",
+  "scripts": {
+    "build": "esbuild src/code.ts --bundle --minify --outfile=dist/code.js --target=es2020 && esbuild src/ui.tsx --bundle --minify --outfile=dist/ui.js --target=es2020 --loader:.css=css && cp src/ui.html dist/ui.html 2>/dev/null || echo '<!DOCTYPE html><html><head><meta charset=\"utf-8\"><title>Ferni</title></head><body><div id=\"root\"></div><script src=\"ui.js\"></script></body></html>' > dist/ui.html",
+    "build:analyze": "esbuild src/ui.tsx --bundle --metafile=meta.json --outfile=dist/ui.js",
+    "watch": "npm run build -- --watch",
+    "lint": "eslint src --ext .ts,.tsx"
+  },
+  "devDependencies": {
+    "@figma/plugin-typings": "^1.82.0",
+    "@types/react": "^18.0.0",
+    "@types/react-dom": "^18.0.0",
+    "esbuild": "^0.19.0",
+    "react": "^18.0.0",
+    "react-dom": "^18.0.0",
+    "typescript": "^5.3.0"
+  }
+}

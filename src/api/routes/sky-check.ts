@@ -70,7 +70,7 @@ export async function handleRecordSkyCheck(
       return;
     }
 
-    const { getEngagementStore } = await import('../../services/engagement-store.js');
+    const { getEngagementStore } = await import('../../services/engagement/engagement-store.js');
     const store = await getEngagementStore();
 
     const now = new Date().toISOString();
@@ -121,7 +121,7 @@ export async function handleGetSkyCheckHistory(
       return;
     }
 
-    const { getEngagementStore } = await import('../../services/engagement-store.js');
+    const { getEngagementStore } = await import('../../services/engagement/engagement-store.js');
     const store = await getEngagementStore();
     const history = await store.getWeatherHistory(userId, days);
 

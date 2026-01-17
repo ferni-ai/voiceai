@@ -40,3 +40,13 @@ export {
   render as renderModelConfig,
   setupEvents as setupModelConfigEvents,
 } from './ModelConfigSection.js';
+export {
+  cleanup as cleanupBTHValidation,
+  render as renderBTHValidation,
+  setupEvents as setupBTHValidationEvents,
+} from './BTHValidationSection.js';
+export {
+  cleanup as cleanupBlindEvaluation,
+  render as renderBlindEvaluation,
+  setupEvents as setupBlindEvaluationEvents,
+} from './BlindEvaluationPanel.js';

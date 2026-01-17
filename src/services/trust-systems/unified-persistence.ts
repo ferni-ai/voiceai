@@ -22,19 +22,29 @@
 
 import type { Firestore as FirestoreType } from '@google-cloud/firestore';
 import { getFirestoreDatabase, getGCPProjectId } from '../../config/environment.js';
+import { cleanForFirestore } from '../../utils/firestore-utils.js';
 import { createLogger } from '../../utils/safe-logger.js';
+import { registerInterval, clearNamedInterval } from '../../utils/interval-manager.js';
 
 const log = createLogger({ module: 'UnifiedTrustPersistence' });
 
 // Module-level Firestore instance (lazy initialized)
 let db: FirestoreType | null = null;
+// FIX: Promise-based singleton to prevent race condition
+let dbInitPromise: Promise<FirestoreType | null> | null = null;
 
 /**
  * Get Firestore connection (lazy initialized)
  */
 async function getFirestore(): Promise<FirestoreType | null> {
   if (db) return db;
+  if (dbInitPromise) return dbInitPromise;
 
+  dbInitPromise = initializeFirestore();
+  return dbInitPromise;
+}
+
+async function initializeFirestore(): Promise<FirestoreType | null> {
   try {
     const { Firestore } = await import('@google-cloud/firestore');
     db = new Firestore({
@@ -45,6 +55,7 @@ async function getFirestore(): Promise<FirestoreType | null> {
     return db;
   } catch (error) {
     log.warn({ error }, 'Firestore not available for unified persistence');
+    dbInitPromise = null; // Allow retry
     return null;
   }
 }
@@ -80,6 +91,12 @@ export interface UnifiedTrustProfile {
     media?: unknown;
     insights?: unknown;
     crossPersonaInsights?: unknown;
+    // New memory enhancement systems
+    tonalMemory?: unknown;
+    betweenSessionThinking?: unknown;
+    personaGrowth?: unknown;
+    curiosityMemory?: unknown;
+    conversationTexture?: unknown;
   };
 
   /** Metadata */
@@ -120,7 +137,6 @@ const DEFAULT_CONFIG: PersistenceConfig = {
 let config = { ...DEFAULT_CONFIG };
 const pendingChanges = new Map<string, Set<string>>(); // userId -> set of system names
 const profileCache = new Map<string, UnifiedTrustProfile>();
-let syncInterval: NodeJS.Timeout | null = null;
 let isInitialized = false;
 
 // ============================================================================
@@ -138,10 +154,14 @@ export function initializeUnifiedPersistence(customConfig?: Partial<PersistenceC
 
   config = { ...DEFAULT_CONFIG, ...customConfig };
 
-  // Start batch sync interval
-  syncInterval = setInterval(() => {
-    void flushPendingChanges();
-  }, config.batchSyncIntervalMs);
+  // Start batch sync interval using managed interval
+  registerInterval(
+    'unified-trust-persistence-sync',
+    () => {
+      void flushPendingChanges();
+    },
+    config.batchSyncIntervalMs
+  );
 
   isInitialized = true;
   log.info({ config }, '✅ Unified trust persistence initialized');
@@ -151,10 +171,7 @@ export function initializeUnifiedPersistence(customConfig?: Partial<PersistenceC
  * Shutdown the persistence system
  */
 export async function shutdownUnifiedPersistence(): Promise<void> {
-  if (syncInterval) {
-    clearInterval(syncInterval);
-    syncInterval = null;
-  }
+  clearNamedInterval('unified-trust-persistence-sync');
 
   // Flush any remaining changes
   await flushPendingChanges();
@@ -255,7 +272,7 @@ export async function saveSystemData(
     if (!pendingChanges.has(userId)) {
       pendingChanges.set(userId, new Set());
     }
-    pendingChanges.get(userId)!.add(systemName);
+    pendingChanges.get(userId)!.add(cleanForFirestore(systemName));
 
     // Check if we should force sync
     const userPending = pendingChanges.get(userId)!;
@@ -349,11 +366,11 @@ async function persistProfile(userId: string, profile: UnifiedTrustProfile): Pro
       .collection('trust')
       .doc('unified_profile')
       .set(
-        {
+        cleanForFirestore({
           ...profile,
           createdAt: profile.createdAt.toISOString(),
           updatedAt: new Date().toISOString(),
-        },
+        }),
         { merge: true }
       );
   } catch (error) {

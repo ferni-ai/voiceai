@@ -201,6 +201,8 @@ export interface MusicEvent {
   readonly artistName?: string;
   /** Duration in ms */
   readonly duration?: number;
+  /** Album artwork URL */
+  readonly albumArt?: string;
   /** Is this ambient/thinking music? */
   readonly isAmbient?: boolean;
   /** 💚 Is this a shared musical memory ("our song")? */
@@ -219,6 +221,8 @@ interface RawMusicStateMessage {
   readonly track?: {
     readonly name: string;
     readonly artist?: string;
+    readonly duration?: number;
+    readonly albumArt?: string;
   };
   readonly isAmbient?: boolean;
   readonly isOurSong?: boolean;
@@ -262,6 +266,8 @@ export function normalizeMusicMessage(data: unknown): MusicEvent | null {
     state: raw.state,
     trackName: raw.track?.name,
     artistName: raw.track?.artist,
+    duration: raw.track?.duration,
+    albumArt: raw.track?.albumArt,
     isAmbient: raw.isAmbient,
     isOurSong: raw.isOurSong,
     ourSongContext: raw.ourSongContext,
@@ -597,6 +603,47 @@ export function isExpressionMessage(data: unknown): data is ExpressionEvent {
     (data as Record<string, unknown>)['type'] === 'expression' &&
     'emoji' in data &&
     typeof (data as Record<string, unknown>)['emoji'] === 'string'
+  );
+}
+
+// ============================================================================
+// EXPRESSION UPDATE EVENTS (Luxo 100+ Expression System)
+// ============================================================================
+
+/**
+ * Expression update event - directly sets a Luxo expression by ID.
+ * Sent by agents to set avatar expressions from the 100+ expression system.
+ *
+ * This bypasses the emoji-to-expression mapping and directly uses
+ * expressions from design-system/tokens/expressions.json.
+ *
+ * @see apps/web/src/ui/luxo-expressions.ui.ts
+ * @see design-system/tokens/expressions.json
+ */
+export interface ExpressionUpdateEvent {
+  readonly type: 'expression_update';
+  /** Expression ID from the Luxo system (e.g., 'joyful', 'contemplating', 'supportive') */
+  readonly expression: string;
+  /** Optional intensity override (0-1) */
+  readonly intensity?: number;
+  /** Optional transition duration in ms (default: 300) */
+  readonly duration?: number;
+  /** Optional hold duration before returning to previous (0 = stay) */
+  readonly hold?: number;
+  readonly timestamp: number;
+}
+
+/**
+ * Type guard for expression update messages.
+ */
+export function isExpressionUpdateMessage(data: unknown): data is ExpressionUpdateEvent {
+  return (
+    typeof data === 'object' &&
+    data !== null &&
+    'type' in data &&
+    (data as Record<string, unknown>)['type'] === 'expression_update' &&
+    'expression' in data &&
+    typeof (data as Record<string, unknown>)['expression'] === 'string'
   );
 }
 

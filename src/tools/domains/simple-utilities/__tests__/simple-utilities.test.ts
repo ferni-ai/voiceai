@@ -367,4 +367,217 @@ describe('Simple Utilities Domain Tools', () => {
       }
     });
   });
+
+  // --------------------------------------------------------------------------
+  // Essentials Tools Tests
+  // --------------------------------------------------------------------------
+
+  describe('Essentials Tools', () => {
+    describe('whatCanYouDo', () => {
+      it('should return capabilities overview', async () => {
+        const whatCanYouDoDef = toolDefinitions.find((t) => t.id === 'whatCanYouDo');
+        expect(whatCanYouDoDef).toBeDefined();
+
+        const tool = whatCanYouDoDef!.create(mockContext);
+        const result = await tool.execute({ category: 'all', quickVersion: false });
+
+        expect(result).toBeDefined();
+        expect(typeof result).toBe('string');
+        expect(result).toContain('Ferni');
+      });
+
+      it('should handle quickVersion parameter', async () => {
+        const whatCanYouDoDef = toolDefinitions.find((t) => t.id === 'whatCanYouDo');
+        const tool = whatCanYouDoDef!.create(mockContext);
+        const result = await tool.execute({ category: 'all', quickVersion: true });
+
+        expect(result).toBeDefined();
+        expect(typeof result).toBe('string');
+        expect(result).toContain('Quick');
+      });
+    });
+
+    describe('quickCapture', () => {
+      it('should capture thoughts as tasks', async () => {
+        const quickCaptureDef = toolDefinitions.find((t) => t.id === 'quickCapture');
+        expect(quickCaptureDef).toBeDefined();
+
+        const tool = quickCaptureDef!.create(mockContext);
+        const result = await tool.execute({ thought: 'I need to call mom', urgency: 'soon' });
+
+        expect(result).toBeDefined();
+        expect(typeof result).toBe('string');
+        expect(result).toContain('task');
+      });
+
+      it('should capture thoughts as reminders with date keywords', async () => {
+        const quickCaptureDef = toolDefinitions.find((t) => t.id === 'quickCapture');
+        const tool = quickCaptureDef!.create(mockContext);
+        const result = await tool.execute({ thought: 'remind me to call mom tomorrow' });
+
+        expect(result).toBeDefined();
+        expect(typeof result).toBe('string');
+        expect(result).toContain('reminder');
+      });
+
+      it('should capture shopping items', async () => {
+        const quickCaptureDef = toolDefinitions.find((t) => t.id === 'quickCapture');
+        const tool = quickCaptureDef!.create(mockContext);
+        const result = await tool.execute({ thought: 'buy milk and eggs' });
+
+        expect(result).toBeDefined();
+        expect(typeof result).toBe('string');
+        expect(result).toContain('shopping');
+      });
+    });
+
+    describe('setPreference', () => {
+      it('should set temperature preference', async () => {
+        const setPreferenceDef = toolDefinitions.find((t) => t.id === 'setPreference');
+        expect(setPreferenceDef).toBeDefined();
+
+        const tool = setPreferenceDef!.create(mockContext);
+        const result = await tool.execute({ preferenceType: 'temperature', value: 'celsius' });
+
+        expect(result).toBeDefined();
+        expect(typeof result).toBe('string');
+        expect(result).toContain('Celsius');
+      });
+
+      it('should set nickname preference', async () => {
+        const setPreferenceDef = toolDefinitions.find((t) => t.id === 'setPreference');
+        const tool = setPreferenceDef!.create(mockContext);
+        const result = await tool.execute({ preferenceType: 'nickname', value: 'Alex' });
+
+        expect(result).toBeDefined();
+        expect(typeof result).toBe('string');
+        expect(result).toContain('Alex');
+      });
+    });
+
+    describe('getPreferences', () => {
+      it('should retrieve preferences', async () => {
+        const getPreferencesDef = toolDefinitions.find((t) => t.id === 'getPreferences');
+        expect(getPreferencesDef).toBeDefined();
+
+        const tool = getPreferencesDef!.create(mockContext);
+        const result = await tool.execute({});
+
+        expect(result).toBeDefined();
+        expect(typeof result).toBe('string');
+      });
+    });
+  });
+
+  // --------------------------------------------------------------------------
+  // Humor Tools Tests
+  // --------------------------------------------------------------------------
+
+  describe('Humor Tools', () => {
+    describe('tellJoke', () => {
+      it('should tell a joke', async () => {
+        const tellJokeDef = toolDefinitions.find((t) => t.id === 'tellJoke');
+        expect(tellJokeDef).toBeDefined();
+
+        const tool = tellJokeDef!.create(mockContext);
+        const result = await tool.execute({ category: 'any' });
+
+        expect(result).toBeDefined();
+        expect(typeof result).toBe('string');
+        // Jokes have setup and punchline
+        expect(result.length).toBeGreaterThan(10);
+      });
+
+      it('should tell a dad joke', async () => {
+        const tellJokeDef = toolDefinitions.find((t) => t.id === 'tellJoke');
+        const tool = tellJokeDef!.create(mockContext);
+        const result = await tool.execute({ category: 'dad' });
+
+        expect(result).toBeDefined();
+        expect(typeof result).toBe('string');
+      });
+    });
+
+    describe('getFunFact', () => {
+      it('should share a fun fact', async () => {
+        const getFunFactDef = toolDefinitions.find((t) => t.id === 'getFunFact');
+        expect(getFunFactDef).toBeDefined();
+
+        const tool = getFunFactDef!.create(mockContext);
+        const result = await tool.execute({ category: 'any' });
+
+        expect(result).toBeDefined();
+        expect(typeof result).toBe('string');
+        expect(result.length).toBeGreaterThan(10);
+      });
+
+      it('should share a science fact', async () => {
+        const getFunFactDef = toolDefinitions.find((t) => t.id === 'getFunFact');
+        const tool = getFunFactDef!.create(mockContext);
+        const result = await tool.execute({ category: 'science' });
+
+        expect(result).toBeDefined();
+        expect(typeof result).toBe('string');
+      });
+    });
+
+    describe('tellMiniStory', () => {
+      it('should tell a mini story', async () => {
+        const tellMiniStoryDef = toolDefinitions.find((t) => t.id === 'tellMiniStory');
+        expect(tellMiniStoryDef).toBeDefined();
+
+        const tool = tellMiniStoryDef!.create(mockContext);
+        const result = await tool.execute({ mood: 'any' });
+
+        expect(result).toBeDefined();
+        expect(typeof result).toBe('string');
+        expect(result.length).toBeGreaterThan(20);
+      });
+    });
+  });
+
+  // --------------------------------------------------------------------------
+  // Wind-Down Tools Tests
+  // --------------------------------------------------------------------------
+
+  describe('Wind-Down Tools', () => {
+    describe('windDown', () => {
+      it('should start wind-down routine', async () => {
+        const windDownDef = toolDefinitions.find((t) => t.id === 'windDown');
+        expect(windDownDef).toBeDefined();
+
+        const tool = windDownDef!.create(mockContext);
+        const result = await tool.execute({ style: 'gentle' });
+
+        expect(result).toBeDefined();
+        expect(typeof result).toBe('string');
+      });
+    });
+
+    describe('bedtimeCheckIn', () => {
+      it('should do bedtime check-in', async () => {
+        const bedtimeCheckInDef = toolDefinitions.find((t) => t.id === 'bedtimeCheckIn');
+        expect(bedtimeCheckInDef).toBeDefined();
+
+        const tool = bedtimeCheckInDef!.create(mockContext);
+        const result = await tool.execute({ focus: 'general' });
+
+        expect(result).toBeDefined();
+        expect(typeof result).toBe('string');
+      });
+    });
+
+    describe('sleepAffirmation', () => {
+      it('should give sleep affirmation', async () => {
+        const sleepAffirmationDef = toolDefinitions.find((t) => t.id === 'sleepAffirmation');
+        expect(sleepAffirmationDef).toBeDefined();
+
+        const tool = sleepAffirmationDef!.create(mockContext);
+        const result = await tool.execute({ theme: 'general' });
+
+        expect(result).toBeDefined();
+        expect(typeof result).toBe('string');
+      });
+    });
+  });
 });

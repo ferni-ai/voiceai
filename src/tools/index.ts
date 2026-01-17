@@ -47,12 +47,9 @@ import {
 } from './builder.js';
 import { getToolCategories, getToolDocumentation } from './categories.js';
 import { initializeTeamHandlers, shutdownTools } from './lifecycle.js';
-import {
-  cleanupStaleConversations,
-  composeToolResult,
-  createToolComposer,
-  getConversationState,
-} from './orchestration/index.js';
+import { createToolComposer } from './orchestrator/tool-composer.js';
+import { cleanupStaleConversations, getConversationState } from '../services/conversation-state.js';
+import { composeToolResult } from './exports/utilities.js';
 import { toolRegistry } from './registry/index.js';
 import { initializeToolRegistry } from './registry/loader.js';
 

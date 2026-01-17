@@ -1,7 +1,7 @@
 # Ferni AI
 
 <p align="center">
-  <img src="brand/logos/ferni-logo.svg" alt="Ferni AI" width="120" />
+  <img src="design-system/assets/logos/ferni-logo.svg" alt="Ferni AI" width="120" />
 </p>
 
 <p align="center">
@@ -242,7 +242,7 @@ Ferni uses a warm, earthy design language:
 | **Slate Blue** | `#5a6b8a` | Communications |
 | **Rose** | `#a67a6a` | Wellness |
 
-See [`design-system/brand/FERNI-BRAND-GUIDELINES.md`](./design-system/brand/FERNI-BRAND-GUIDELINES.md) for the full design system.
+See [`design-system/docs/brand/FERNI-BRAND-GUIDELINES.md`](./design-system/docs/brand/FERNI-BRAND-GUIDELINES.md) for the full design system.
 
 ---
 

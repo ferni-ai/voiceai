@@ -274,8 +274,8 @@ export function getLocale(): SupportedLocale {
  */
 export function getLocaleInfo(locale: SupportedLocale = currentLocale): LocaleInfo {
   const found = SUPPORTED_LOCALES.find((l) => l.code === locale);
-  // Fallback to en-US which is always first
-  return found ?? (SUPPORTED_LOCALES[0]);
+  // Fallback to en-US which is always first (guaranteed to exist)
+  return found ?? SUPPORTED_LOCALES[0]!;
 }
 
 /**
@@ -294,8 +294,17 @@ export function getDirection(): TextDirection {
 
 /**
  * Set the current locale
+ *
+ * @param locale - The locale to set
+ * @param options - Options for locale change behavior
+ * @param options.reload - Whether to reload the page (default: true for user-initiated changes)
  */
-export async function setLocale(locale: SupportedLocale): Promise<void> {
+export async function setLocale(
+  locale: SupportedLocale,
+  options: { reload?: boolean } = {}
+): Promise<void> {
+  const { reload = true } = options;
+
   if (!loadedTranslations.has(locale)) {
     await loadTranslations(locale);
   }
@@ -323,9 +332,31 @@ export async function setLocale(locale: SupportedLocale): Promise<void> {
     document.documentElement.classList.remove('rtl');
   }
 
-  // Notify listeners
+  // Handle locale change
   if (previousLocale !== locale) {
+    // Notify listeners first (for any cleanup/prep)
     localeChangeListeners.forEach((listener) => listener(locale));
+
+    if (reload) {
+      // Reload page to re-render all UI with new translations
+      // This is the most reliable approach since 70+ components use t()
+      // and don't individually subscribe to locale changes
+      log.info(`Locale changed from ${previousLocale} to ${locale}, reloading page`);
+      window.location.reload();
+    } else {
+      // No reload - dispatch DOM event for reactive UI components
+      // This enables voice-triggered language changes without disconnecting
+      log.info(`Locale changed from ${previousLocale} to ${locale} (no reload)`);
+      window.dispatchEvent(
+        new CustomEvent('ferni:locale-changed', {
+          detail: {
+            locale,
+            previousLocale,
+            direction: getDirection(),
+          },
+        })
+      );
+    }
   }
 }
 
@@ -385,7 +416,34 @@ function interpolate(str: string, params?: TranslationParams): string {
  * t('hero.headline') // "Better than"
  * t('time.minutesAgo', { n: 5 }) // "5 minutes ago"
  */
-export function t(key: string, params?: TranslationParams): string {
+export function t(
+  key: string,
+  paramsOrFallback?: TranslationParams | string,
+  fallbackOrParams?: string | TranslationParams
+): string {
+  // Handle overloaded signatures:
+  // t(key)
+  // t(key, params)
+  // t(key, fallback)
+  // t(key, params, fallback)
+  // t(key, fallback, params) - legacy pattern used in codebase
+  let params: TranslationParams | undefined;
+  let fallback: string | undefined;
+
+  if (typeof paramsOrFallback === 'string') {
+    // t(key, 'fallback text') or t(key, 'fallback', { params })
+    fallback = paramsOrFallback;
+    if (typeof fallbackOrParams === 'object') {
+      params = fallbackOrParams;
+    }
+  } else if (typeof paramsOrFallback === 'object') {
+    // t(key, { params }) or t(key, { params }, 'fallback')
+    params = paramsOrFallback;
+    if (typeof fallbackOrParams === 'string') {
+      fallback = fallbackOrParams;
+    }
+  }
+
   // Try current locale
   const translations = loadedTranslations.get(currentLocale);
   if (translations) {
@@ -396,8 +454,8 @@ export function t(key: string, params?: TranslationParams): string {
   }
 
   // Try fallback chain
-  for (const fallback of FALLBACK_CHAIN[currentLocale] || []) {
-    const fallbackTranslations = loadedTranslations.get(fallback);
+  for (const localefall of FALLBACK_CHAIN[currentLocale] || []) {
+    const fallbackTranslations = loadedTranslations.get(localefall);
     if (fallbackTranslations) {
       const value = getNestedValue(fallbackTranslations, key);
       if (value) {
@@ -415,7 +473,10 @@ export function t(key: string, params?: TranslationParams): string {
     }
   }
 
-  // Return key if nothing found
+  // Return fallback text or key if nothing found
+  if (fallback) {
+    return fallback;
+  }
   log.warn(`Missing translation: ${key}`);
   return key;
 }
@@ -502,10 +563,11 @@ export function formatRelativeTime(date: Date, baseDate: Date = new Date()): str
 
 /**
  * Initialize i18n with detected locale
+ * Note: Uses reload: false since this is initial setup, not a user-initiated change
  */
 export async function initI18n(): Promise<void> {
   const detected = detectLocale();
-  await setLocale(detected);
+  await setLocale(detected, { reload: false });
 }
 
 /**

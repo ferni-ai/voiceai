@@ -6,7 +6,8 @@
 
 import * as cartesia from '@livekit/agents-plugin-cartesia';
 import { getCanonicalPersonaId } from '../../personas/voice-registry.js';
-import { handoffEvents } from '../../tools/handoff/index.js';
+// Unified handoff module (Phase 3 migration)
+import { handoffEvents } from '../../handoff/index.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import { VOICES } from './config.js';
 import type { VoiceAgentId, VoiceConfig } from './types.js';
@@ -228,9 +229,14 @@ let voiceManagerInstance: VoiceManager | null = null;
 
 /**
  * Get the global voice manager instance.
- * @deprecated Use getSessionVoiceManager(sessionId) for session-scoped management
+ * @deprecated Use getSessionVoiceManager(sessionId) for session-scoped management.
+ * Will be removed in Q1 2025.
  */
 export function getVoiceManager(): VoiceManager {
+  getLogger().warn(
+    {},
+    '[DEPRECATED] getVoiceManager() is deprecated. Use getSessionVoiceManager(sessionId) instead. Will be removed in Q1 2025.'
+  );
   if (!voiceManagerInstance) {
     voiceManagerInstance = new VoiceManager();
   }
@@ -239,9 +245,14 @@ export function getVoiceManager(): VoiceManager {
 
 /**
  * Reset the global voice manager.
- * @deprecated Use resetSessionVoiceManager(sessionId) for session-scoped management
+ * @deprecated Use resetSessionVoiceManager(sessionId) for session-scoped management.
+ * Will be removed in Q1 2025.
  */
 export function resetVoiceManager(): void {
+  getLogger().warn(
+    {},
+    '[DEPRECATED] resetVoiceManager() is deprecated. Use resetSessionVoiceManager(sessionId) instead. Will be removed in Q1 2025.'
+  );
   if (voiceManagerInstance) {
     voiceManagerInstance.cleanup();
     voiceManagerInstance = null;

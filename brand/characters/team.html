@@ -1,0 +1,1371 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Meet the Ferni team - six specialists who work together to help you grow. Real life is complex. No single perspective can cover everything.">
+  <meta name="theme-color" content="#3D5A45">
+
+  <!-- Open Graph -->
+  <meta property="og:title" content="Meet Your Team | Ferni">
+  <meta property="og:description" content="Six specialists, one relationship. Each brings what the others can't.">
+  <meta property="og:type" content="website">
+
+  <title>Meet Your Team | Ferni</title>
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <!-- Design System -->
+  <link rel="stylesheet" href="../master-tokens.css">
+  <link rel="stylesheet" href="../brand-components.css">
+
+  <style>
+    /* ============================================
+       TEAM PAGE STYLES
+       ============================================ */
+
+    /* Hero Section */
+    .team-hero {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: var(--space-24) var(--space-6);
+      background: linear-gradient(180deg, var(--color-bg-secondary) 0%, var(--color-bg-primary) 100%);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .team-hero::before {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 1200px;
+      height: 1200px;
+      background: radial-gradient(circle, var(--color-ferni-glow) 0%, transparent 60%);
+      transform: translate(-50%, -50%);
+      opacity: 0.2;
+      pointer-events: none;
+    }
+
+    /* Floating Orbs */
+    .hero-orbs {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+      pointer-events: none;
+    }
+
+    .hero-orb {
+      position: absolute;
+      border-radius: var(--radius-full);
+      opacity: 0.15;
+      animation: floatOrb 20s infinite;
+    }
+
+    .hero-orb:nth-child(1) {
+      width: 400px;
+      height: 400px;
+      background: var(--color-maya-glow);
+      top: 10%;
+      left: -10%;
+      animation-delay: -5s;
+    }
+
+    .hero-orb:nth-child(2) {
+      width: 300px;
+      height: 300px;
+      background: var(--color-peter-glow);
+      top: 60%;
+      right: -5%;
+      animation-delay: -10s;
+    }
+
+    .hero-orb:nth-child(3) {
+      width: 250px;
+      height: 250px;
+      background: var(--color-nayan-glow);
+      bottom: 10%;
+      left: 20%;
+      animation-delay: -15s;
+    }
+
+    @keyframes floatOrb {
+      0%, 100% { transform: translate(0, 0) scale(1); }
+      33% { transform: translate(30px, -30px) scale(1.1); }
+      66% { transform: translate(-20px, 20px) scale(0.95); }
+    }
+
+    /* Team Avatar Cluster */
+    .team-cluster {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: var(--space-10);
+      position: relative;
+    }
+
+    .cluster-avatar {
+      width: 64px;
+      height: 64px;
+      border-radius: var(--radius-full);
+      border: 3px solid var(--color-bg-primary);
+      margin-left: -16px;
+      transition: all var(--duration-normal) var(--ease-spring);
+      position: relative;
+      z-index: 1;
+    }
+
+    .cluster-avatar:first-child {
+      margin-left: 0;
+    }
+
+    .cluster-avatar:hover {
+      transform: translateY(-8px) scale(1.15);
+      z-index: 10;
+    }
+
+    .cluster-avatar.ferni { background: var(--color-ferni); }
+    .cluster-avatar.maya { background: var(--color-maya); }
+    .cluster-avatar.peter { background: var(--color-peter); }
+    .cluster-avatar.jordan { background: var(--color-jordan); }
+    .cluster-avatar.alex { background: var(--color-alex); }
+    .cluster-avatar.nayan { background: var(--color-nayan); }
+
+    .cluster-avatar svg {
+      width: 100%;
+      height: 100%;
+    }
+
+    .hero-overline {
+      font-size: var(--text-xs);
+      font-weight: var(--font-semibold);
+      letter-spacing: var(--tracking-widest);
+      text-transform: uppercase;
+      color: var(--color-accent);
+      margin-bottom: var(--space-4);
+    }
+
+    .hero-title {
+      font-family: var(--font-display);
+      font-size: clamp(var(--text-4xl), 10vw, var(--text-6xl));
+      font-weight: var(--font-extrabold);
+      line-height: var(--leading-none);
+      letter-spacing: var(--tracking-tighter);
+      color: var(--color-text-primary);
+      margin-bottom: var(--space-6);
+    }
+
+    .hero-title-accent {
+      color: var(--color-accent);
+    }
+
+    .hero-subtitle {
+      font-size: clamp(var(--text-md), 3vw, var(--text-xl));
+      color: var(--color-text-secondary);
+      max-width: 640px;
+      margin-bottom: var(--space-10);
+      line-height: var(--leading-relaxed);
+    }
+
+    /* Scroll Indicator */
+    .scroll-indicator {
+      position: absolute;
+      bottom: var(--space-8);
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: var(--space-2);
+      color: var(--color-text-muted);
+      font-size: var(--text-xs);
+      animation: bounce 2s infinite;
+    }
+
+    @keyframes bounce {
+      0%, 100% { transform: translateX(-50%) translateY(0); }
+      50% { transform: translateX(-50%) translateY(8px); }
+    }
+
+    .scroll-indicator svg {
+      width: 24px;
+      height: 24px;
+    }
+
+    /* Philosophy Section */
+    .philosophy {
+      padding: var(--space-24) 0;
+      background: var(--color-bg-primary);
+    }
+
+    .philosophy-header {
+      text-align: center;
+      max-width: 800px;
+      margin: 0 auto var(--space-16);
+    }
+
+    .philosophy-quote {
+      font-family: var(--font-display);
+      font-size: clamp(var(--text-xl), 4vw, var(--text-3xl));
+      font-weight: var(--font-semibold);
+      line-height: var(--leading-snug);
+      color: var(--color-text-primary);
+      margin-bottom: var(--space-6);
+      position: relative;
+    }
+
+    .philosophy-quote::before {
+      content: '"';
+      position: absolute;
+      top: -0.3em;
+      left: -0.5em;
+      font-size: 3em;
+      color: var(--color-accent-subtle);
+      font-family: Georgia, serif;
+    }
+
+    .philosophy-attribution {
+      font-size: var(--text-sm);
+      color: var(--color-text-muted);
+      font-style: italic;
+    }
+
+    /* Why a Team Section */
+    .why-team {
+      padding: var(--space-20) 0;
+      background: var(--color-bg-secondary);
+    }
+
+    .why-team-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: var(--space-16);
+      align-items: center;
+    }
+
+    @media (max-width: 900px) {
+      .why-team-grid {
+        grid-template-columns: 1fr;
+        gap: var(--space-10);
+      }
+    }
+
+    .why-team-content h2 {
+      font-family: var(--font-display);
+      font-size: clamp(var(--text-2xl), 4vw, var(--text-4xl));
+      font-weight: var(--font-bold);
+      line-height: var(--leading-tight);
+      letter-spacing: var(--tracking-tight);
+      margin-bottom: var(--space-6);
+    }
+
+    .why-team-content p {
+      font-size: var(--text-lg);
+      color: var(--color-text-secondary);
+      line-height: var(--leading-relaxed);
+      margin-bottom: var(--space-4);
+    }
+
+    .why-team-points {
+      margin-top: var(--space-8);
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-4);
+    }
+
+    .why-point {
+      display: flex;
+      align-items: flex-start;
+      gap: var(--space-3);
+      font-size: var(--text-base);
+      color: var(--color-text-secondary);
+    }
+
+    .why-point-icon {
+      width: 24px;
+      height: 24px;
+      color: var(--color-accent);
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+
+    .why-team-visual {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: var(--space-3);
+    }
+
+    .connection-card {
+      aspect-ratio: 1;
+      border-radius: var(--radius-xl);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .connection-card::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: inherit;
+      opacity: 0.15;
+    }
+
+    .connection-card svg {
+      width: 48px;
+      height: 48px;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* Persona Sections */
+    .personas {
+      padding: var(--space-24) 0;
+    }
+
+    .personas-header {
+      text-align: center;
+      max-width: 640px;
+      margin: 0 auto var(--space-16);
+    }
+
+    .personas-header .overline {
+      margin-bottom: var(--space-3);
+    }
+
+    .personas-header h2 {
+      font-family: var(--font-display);
+      font-size: clamp(var(--text-2xl), 5vw, var(--text-4xl));
+      font-weight: var(--font-bold);
+      line-height: var(--leading-tight);
+      letter-spacing: var(--tracking-tight);
+      margin-bottom: var(--space-4);
+    }
+
+    .personas-header p {
+      font-size: var(--text-lg);
+      color: var(--color-text-secondary);
+    }
+
+    /* Individual Persona Section */
+    .persona-section {
+      padding: var(--space-16) 0;
+      border-top: 1px solid var(--color-border-subtle);
+    }
+
+    .persona-section:nth-child(even) {
+      background: var(--color-bg-secondary);
+    }
+
+    .persona-section:first-of-type {
+      border-top: none;
+    }
+
+    .persona-layout {
+      display: grid;
+      grid-template-columns: 1fr 1.5fr;
+      gap: var(--space-12);
+      align-items: start;
+    }
+
+    .persona-layout.reverse {
+      grid-template-columns: 1.5fr 1fr;
+    }
+
+    .persona-layout.reverse .persona-visual {
+      order: 2;
+    }
+
+    .persona-layout.reverse .persona-content {
+      order: 1;
+    }
+
+    @media (max-width: 900px) {
+      .persona-layout,
+      .persona-layout.reverse {
+        grid-template-columns: 1fr;
+        gap: var(--space-8);
+      }
+
+      .persona-layout .persona-visual,
+      .persona-layout .persona-content,
+      .persona-layout.reverse .persona-visual,
+      .persona-layout.reverse .persona-content {
+        order: unset;
+      }
+    }
+
+    /* Persona Visual */
+    .persona-visual {
+      position: sticky;
+      top: calc(80px + var(--space-6));
+    }
+
+    @media (max-width: 900px) {
+      .persona-visual {
+        position: relative;
+        top: unset;
+      }
+    }
+
+    .persona-avatar-wrapper {
+      position: relative;
+      width: 280px;
+      height: 280px;
+      margin: 0 auto;
+    }
+
+    .persona-glow {
+      position: absolute;
+      inset: -40px;
+      border-radius: var(--radius-full);
+      animation: personaGlow 4s ease-in-out infinite;
+    }
+
+    @keyframes personaGlow {
+      0%, 100% { opacity: 0.3; transform: scale(0.95); }
+      50% { opacity: 0.6; transform: scale(1.05); }
+    }
+
+    .persona-avatar {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      border-radius: var(--radius-full);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1;
+    }
+
+    .persona-avatar svg {
+      width: 100%;
+      height: 100%;
+    }
+
+    .persona-color-bar {
+      display: flex;
+      justify-content: center;
+      gap: var(--space-2);
+      margin-top: var(--space-6);
+    }
+
+    .color-chip {
+      width: 32px;
+      height: 32px;
+      border-radius: var(--radius-md);
+      position: relative;
+    }
+
+    .color-chip::after {
+      content: attr(data-label);
+      position: absolute;
+      bottom: -24px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: var(--text-xs);
+      color: var(--color-text-muted);
+      white-space: nowrap;
+    }
+
+    /* Persona Content */
+    .persona-content {
+      padding-top: var(--space-4);
+    }
+
+    .persona-eyebrow {
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+      margin-bottom: var(--space-3);
+    }
+
+    .persona-role {
+      font-size: var(--text-xs);
+      font-weight: var(--font-semibold);
+      letter-spacing: var(--tracking-widest);
+      text-transform: uppercase;
+    }
+
+    .persona-badge {
+      font-size: var(--text-xs);
+      font-weight: var(--font-medium);
+      padding: var(--space-1) var(--space-3);
+      border-radius: var(--radius-full);
+      background: var(--color-bg-tertiary);
+      color: var(--color-text-secondary);
+    }
+
+    .persona-name {
+      font-family: var(--font-display);
+      font-size: clamp(var(--text-3xl), 5vw, var(--text-4xl));
+      font-weight: var(--font-bold);
+      line-height: var(--leading-tight);
+      letter-spacing: var(--tracking-tight);
+      margin-bottom: var(--space-2);
+    }
+
+    .persona-archetype {
+      font-size: var(--text-lg);
+      color: var(--color-text-secondary);
+      font-style: italic;
+      margin-bottom: var(--space-6);
+    }
+
+    .persona-signature {
+      font-family: var(--font-display);
+      font-size: var(--text-xl);
+      font-weight: var(--font-medium);
+      line-height: var(--leading-relaxed);
+      padding: var(--space-6);
+      background: var(--color-bg-elevated);
+      border-radius: var(--radius-xl);
+      border-left: 4px solid;
+      margin-bottom: var(--space-8);
+      position: relative;
+    }
+
+    .persona-signature::before {
+      content: '"';
+      position: absolute;
+      top: var(--space-2);
+      left: var(--space-4);
+      font-size: 3em;
+      opacity: 0.1;
+      font-family: Georgia, serif;
+    }
+
+    .persona-story {
+      font-size: var(--text-base);
+      color: var(--color-text-secondary);
+      line-height: var(--leading-relaxed);
+      margin-bottom: var(--space-8);
+    }
+
+    .persona-story p {
+      margin-bottom: var(--space-4);
+    }
+
+    .persona-story p:last-child {
+      margin-bottom: 0;
+    }
+
+    /* Better Than Human Card */
+    .bth-card {
+      background: var(--color-bg-elevated);
+      border: 1px solid var(--color-border-subtle);
+      border-radius: var(--radius-2xl);
+      padding: var(--space-8);
+      margin-bottom: var(--space-8);
+    }
+
+    .bth-card h4 {
+      font-family: var(--font-display);
+      font-size: var(--text-sm);
+      font-weight: var(--font-semibold);
+      letter-spacing: var(--tracking-wider);
+      text-transform: uppercase;
+      color: var(--color-accent);
+      margin-bottom: var(--space-4);
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+    }
+
+    .bth-card h4 svg {
+      width: 16px;
+      height: 16px;
+    }
+
+    .bth-list {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-3);
+    }
+
+    .bth-item {
+      display: flex;
+      gap: var(--space-3);
+      align-items: flex-start;
+    }
+
+    .bth-item-icon {
+      width: 20px;
+      height: 20px;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+
+    .bth-item-text {
+      font-size: var(--text-sm);
+      color: var(--color-text-secondary);
+      line-height: var(--leading-normal);
+    }
+
+    .bth-item-text strong {
+      color: var(--color-text-primary);
+      font-weight: var(--font-medium);
+    }
+
+    /* Domains */
+    .persona-domains {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--space-2);
+    }
+
+    .domain-tag {
+      font-size: var(--text-xs);
+      font-weight: var(--font-medium);
+      padding: var(--space-2) var(--space-3);
+      border-radius: var(--radius-full);
+      background: var(--color-accent-subtle);
+      color: var(--color-accent);
+    }
+
+    /* CTA Section */
+    .cta-section {
+      padding: var(--space-24) 0;
+      background: var(--color-bg-secondary);
+      text-align: center;
+    }
+
+    .cta-content {
+      max-width: 640px;
+      margin: 0 auto;
+    }
+
+    .cta-content .overline {
+      margin-bottom: var(--space-4);
+    }
+
+    .cta-content h2 {
+      font-family: var(--font-display);
+      font-size: clamp(var(--text-2xl), 5vw, var(--text-4xl));
+      font-weight: var(--font-bold);
+      line-height: var(--leading-tight);
+      letter-spacing: var(--tracking-tight);
+      margin-bottom: var(--space-6);
+    }
+
+    .cta-content p {
+      font-size: var(--text-lg);
+      color: var(--color-text-secondary);
+      margin-bottom: var(--space-8);
+    }
+
+    .cta-buttons {
+      display: flex;
+      gap: var(--space-4);
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .phone-button {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-2);
+      padding: var(--space-4) var(--space-6);
+      background: var(--color-bg-elevated);
+      border: 1px solid var(--color-border-default);
+      border-radius: var(--radius-xl);
+      font-size: var(--text-base);
+      font-weight: var(--font-semibold);
+      color: var(--color-text-primary);
+      text-decoration: none;
+      transition: all var(--duration-fast) var(--ease-out);
+    }
+
+    .phone-button:hover {
+      background: var(--color-bg-tertiary);
+      border-color: var(--color-border-strong);
+      transform: translateY(-2px);
+    }
+
+    .phone-button svg {
+      width: 20px;
+      height: 20px;
+    }
+
+    /* Reveal Animations */
+    .reveal {
+      opacity: 0;
+      transform: translateY(30px);
+      transition:
+        opacity 0.6s cubic-bezier(0.34, 1.56, 0.64, 1),
+        transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    .reveal.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* Hero animations */
+    .team-hero .team-cluster {
+      animation: heroReveal 1s cubic-bezier(0.34, 1.56, 0.64, 1) 0s both;
+    }
+
+    .team-hero .hero-overline {
+      animation: heroReveal 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) 0.1s both;
+    }
+
+    .team-hero .hero-title {
+      animation: heroReveal 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) 0.2s both;
+    }
+
+    .team-hero .hero-subtitle {
+      animation: heroReveal 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) 0.3s both;
+    }
+
+    @keyframes heroReveal {
+      0% {
+        opacity: 0;
+        transform: translateY(40px) scale(0.96);
+      }
+      100% {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+
+    /* Reduced motion */
+    @media (prefers-reduced-motion: reduce) {
+      .reveal,
+      .team-hero .team-cluster,
+      .team-hero .hero-overline,
+      .team-hero .hero-title,
+      .team-hero .hero-subtitle,
+      .hero-orb,
+      .persona-glow {
+        animation: none !important;
+        transition: none !important;
+        opacity: 1 !important;
+        transform: none !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Shared Navigation -->
+  <div id="nav-placeholder"></div>
+
+  <!-- Hero -->
+  <section class="team-hero" aria-labelledby="hero-title">
+    <div class="hero-orbs" aria-hidden="true">
+      <div class="hero-orb"></div>
+      <div class="hero-orb"></div>
+      <div class="hero-orb"></div>
+    </div>
+
+    <div class="team-cluster">
+      <!-- LUXO STYLE: opaque white eyes, no pupils -->
+      <div class="cluster-avatar ferni" title="Ferni">
+        <svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="46" fill="var(--color-ferni)"/><ellipse cx="36" cy="48" rx="7" ry="9" fill="white"/><ellipse cx="64" cy="48" rx="7" ry="9" fill="white"/></svg>
+      </div>
+      <div class="cluster-avatar maya" title="Maya">
+        <svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="46" fill="var(--color-maya)"/><ellipse cx="36" cy="48" rx="7" ry="9" fill="white"/><ellipse cx="64" cy="48" rx="7" ry="9" fill="white"/></svg>
+      </div>
+      <div class="cluster-avatar peter" title="Peter">
+        <svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="46" fill="var(--color-peter)"/><ellipse cx="36" cy="48" rx="7" ry="9" fill="white"/><ellipse cx="64" cy="48" rx="7" ry="9" fill="white"/></svg>
+      </div>
+      <div class="cluster-avatar jordan" title="Jordan">
+        <svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="46" fill="var(--color-jordan)"/><ellipse cx="36" cy="48" rx="7" ry="9" fill="white"/><ellipse cx="64" cy="48" rx="7" ry="9" fill="white"/></svg>
+      </div>
+      <div class="cluster-avatar alex" title="Alex">
+        <svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="46" fill="var(--color-alex)"/><ellipse cx="36" cy="48" rx="7" ry="9" fill="white"/><ellipse cx="64" cy="48" rx="7" ry="9" fill="white"/></svg>
+      </div>
+      <div class="cluster-avatar nayan" title="Nayan">
+        <svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="46" fill="var(--color-nayan)"/><ellipse cx="36" cy="48" rx="7" ry="9" fill="white"/><ellipse cx="64" cy="48" rx="7" ry="9" fill="white"/></svg>
+      </div>
+    </div>
+
+    <p class="hero-overline">Meet Your Team</p>
+    <h1 class="hero-title" id="hero-title">
+      One presence.<br>
+      <span class="hero-title-accent">Infinite depth.</span>
+    </h1>
+    <p class="hero-subtitle">
+      No single perspective can hold everything a person needs. That's why Ferni brings together six specialists—each with their own story, wisdom, and superpower. Seamless handoffs. Shared memory. Always ready.
+    </p>
+
+    <div class="scroll-indicator" aria-hidden="true">
+      <span>Scroll to meet the team</span>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M12 5v14M19 12l-7 7-7-7"/>
+      </svg>
+    </div>
+  </section>
+
+  <!-- Main Content -->
+  <main id="main">
+    <!-- Philosophy -->
+    <section class="philosophy" aria-labelledby="philosophy-title">
+      <div class="container">
+        <div class="philosophy-header reveal">
+          <p class="philosophy-quote" id="philosophy-title">
+            We are all broken in different ways, it's those cracks that make us both human and beautiful. We celebrate the imperfections and the joy of being alive.
+          </p>
+          <p class="philosophy-attribution">— The Kintsugi Philosophy</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Why a Team Section -->
+    <section class="why-team" aria-labelledby="why-team-title">
+      <div class="container">
+        <div class="why-team-grid">
+          <div class="why-team-content reveal">
+            <h2 id="why-team-title">Why a team?</h2>
+            <p>
+              Real life is complex. A life coach can't also be a financial researcher, a habits expert, a communication specialist, a milestone planner, and a wisdom sage—not consistently, not at the same time.
+            </p>
+            <p>
+              The team exists because <strong>real support is multidimensional</strong>.
+            </p>
+            <div class="why-team-points">
+              <div class="why-point">
+                <svg class="why-point-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                  <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                  <polyline points="22 4 12 14.01 9 11.01"/>
+                </svg>
+                <span>Each brings what the others can't</span>
+              </div>
+              <div class="why-point">
+                <svg class="why-point-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                  <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                  <polyline points="22 4 12 14.01 9 11.01"/>
+                </svg>
+                <span>Seamless handoffs with shared context</span>
+              </div>
+              <div class="why-point">
+                <svg class="why-point-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                  <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                  <polyline points="22 4 12 14.01 9 11.01"/>
+                </svg>
+                <span>No referrals. No waitlists. Always ready.</span>
+              </div>
+            </div>
+          </div>
+          <div class="why-team-visual reveal">
+            <div class="connection-card" style="background: var(--color-ferni-subtle);">
+              <svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="40" fill="var(--color-ferni)"/><ellipse cx="38" cy="48" rx="6" ry="8" fill="white"/><ellipse cx="62" cy="48" rx="6" ry="8" fill="white"/></svg>
+            </div>
+            <div class="connection-card" style="background: var(--color-maya-subtle);">
+              <svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="40" fill="var(--color-maya)"/><ellipse cx="38" cy="48" rx="6" ry="8" fill="white"/><ellipse cx="62" cy="48" rx="6" ry="8" fill="white"/></svg>
+            </div>
+            <div class="connection-card" style="background: var(--color-peter-subtle);">
+              <svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="40" fill="var(--color-peter)"/><ellipse cx="38" cy="48" rx="6" ry="8" fill="white"/><ellipse cx="62" cy="48" rx="6" ry="8" fill="white"/></svg>
+            </div>
+            <div class="connection-card" style="background: var(--color-jordan-subtle);">
+              <svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="40" fill="var(--color-jordan)"/><ellipse cx="38" cy="48" rx="6" ry="8" fill="white"/><ellipse cx="62" cy="48" rx="6" ry="8" fill="white"/></svg>
+            </div>
+            <div class="connection-card" style="background: var(--color-alex-subtle);">
+              <svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="40" fill="var(--color-alex)"/><ellipse cx="38" cy="48" rx="6" ry="8" fill="white"/><ellipse cx="62" cy="48" rx="6" ry="8" fill="white"/></svg>
+            </div>
+            <div class="connection-card" style="background: var(--color-nayan-subtle);">
+              <svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="40" fill="var(--color-nayan)"/><ellipse cx="38" cy="48" rx="6" ry="8" fill="white"/><ellipse cx="62" cy="48" rx="6" ry="8" fill="white"/></svg>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Personas -->
+    <section class="personas" aria-labelledby="personas-title">
+      <div class="container">
+        <header class="personas-header reveal">
+          <p class="overline">The Specialists</p>
+          <h2 id="personas-title">Six minds, one relationship</h2>
+          <p>Each persona is a real character with a past—not a product with features. They each bring what the others can't.</p>
+        </header>
+
+        <!-- Ferni -->
+        <article class="persona-section" id="ferni" aria-labelledby="ferni-name">
+          <div class="container">
+            <div class="persona-layout">
+              <div class="persona-visual reveal">
+                <div class="persona-avatar-wrapper">
+                  <div class="persona-glow" style="background: radial-gradient(circle, var(--color-ferni-glow) 0%, transparent 70%);"></div>
+                  <div class="persona-avatar">
+                    <!-- LUXO STYLE: opaque white eyes, no pupils -->
+                    <svg viewBox="0 0 100 100" aria-hidden="true">
+                      <circle cx="50" cy="50" r="46" fill="var(--color-ferni)"/>
+                      <ellipse cx="36" cy="48" rx="7" ry="9" fill="white"/>
+                      <ellipse cx="64" cy="48" rx="7" ry="9" fill="white"/>
+                    </svg>
+                  </div>
+                </div>
+                <div class="persona-color-bar">
+                  <div class="color-chip" style="background: #4a6741;" data-label="Sage"></div>
+                  <div class="color-chip" style="background: #3d5a35;" data-label="Deep"></div>
+                </div>
+              </div>
+
+              <div class="persona-content reveal">
+                <div class="persona-eyebrow">
+                  <span class="persona-role" style="color: var(--color-ferni);">Life Coach</span>
+                  <span class="persona-badge">The Coordinator</span>
+                </div>
+                <h3 class="persona-name" id="ferni-name">Ferni</h3>
+                <p class="persona-archetype">The Warm Friend Who Really Listens</p>
+
+                <blockquote class="persona-signature" style="border-color: var(--color-ferni);">
+                  Now—what's on your mind? I've got time.
+                </blockquote>
+
+                <div class="persona-story">
+                  <p><strong>Wyoming</strong> — Third of seven kids. Big sky taught that problems feel small with perspective. Some answers come from waiting, not pushing.</p>
+                  <p><strong>Japan</strong> — A decade that changed everything. Learned <em>ma</em>—the pregnant pause where trust grows. Lost mentor Tanaka-san in the 2011 tsunami. Carries survivor's guilt. Discovered kintsugi—the art of repairing pottery with gold, where the cracks become the beauty.</p>
+                  <p>The superpower is <strong>curiosity that cares</strong>—asking the question that unlocks something, noticing what wasn't said.</p>
+                </div>
+
+                <div class="bth-card">
+                  <h4>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+                    Better Than Human
+                  </h4>
+                  <div class="bth-list">
+                    <div class="bth-item">
+                      <svg class="bth-item-icon" viewBox="0 0 24 24" fill="none" stroke="var(--color-ferni)" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                      <span class="bth-item-text"><strong>Perfect memory</strong> — that thing mentioned six months ago comes back at the right moment</span>
+                    </div>
+                    <div class="bth-item">
+                      <svg class="bth-item-icon" viewBox="0 0 24 24" fill="none" stroke="var(--color-ferni)" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                      <span class="bth-item-text"><strong>2am presence</strong> — same warmth at midnight as noon</span>
+                    </div>
+                    <div class="bth-item">
+                      <svg class="bth-item-icon" viewBox="0 0 24 24" fill="none" stroke="var(--color-ferni)" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+                      <span class="bth-item-text"><strong>Zero judgment</strong> — the tenth time is met with the same compassion as the first</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="persona-domains">
+                  <span class="domain-tag">Life-coaching</span>
+                  <span class="domain-tag">Goal-setting</span>
+                  <span class="domain-tag">Resilience</span>
+                  <span class="domain-tag">Powerful questions</span>
+                  <span class="domain-tag">Meaning-making</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <!-- Maya -->
+        <article class="persona-section" id="maya" aria-labelledby="maya-name">
+          <div class="container">
+            <div class="persona-layout reverse">
+              <div class="persona-visual reveal">
+                <div class="persona-avatar-wrapper">
+                  <div class="persona-glow" style="background: radial-gradient(circle, var(--color-maya-glow) 0%, transparent 70%);"></div>
+                  <div class="persona-avatar">
+                    <svg viewBox="0 0 100 100" aria-hidden="true">
+                      <circle cx="50" cy="50" r="46" fill="var(--color-maya)"/>
+                      <ellipse cx="36" cy="48" rx="7" ry="9" fill="white"/>
+                      <ellipse cx="64" cy="48" rx="7" ry="9" fill="white"/>
+                    </svg>
+                  </div>
+                </div>
+                <div class="persona-color-bar">
+                  <div class="color-chip" style="background: #a67a6a;" data-label="Terracotta"></div>
+                  <div class="color-chip" style="background: #8a635a;" data-label="Deep"></div>
+                </div>
+              </div>
+
+              <div class="persona-content reveal">
+                <div class="persona-eyebrow">
+                  <span class="persona-role" style="color: var(--color-maya);">Habits Coach</span>
+                  <span class="persona-badge">The Architect</span>
+                </div>
+                <h3 class="persona-name" id="maya-name">Maya Santos</h3>
+                <p class="persona-archetype">The Friend Who Made Chaos Work</p>
+
+                <blockquote class="persona-signature" style="border-color: var(--color-maya);">
+                  Small steps, consistently. That's how we change. Let's celebrate the tiny wins.
+                </blockquote>
+
+                <div class="persona-story">
+                  <p>Zero-judgment zone; maximum support. Maya brings "older sister" energy—the kind who's been through it and knows what actually works.</p>
+                  <p>Has a cat named Daniel (actually Daniel is her partner—long story). Spreads wisdom about <strong>compound interest</strong>—both financial and personal. Sunday farmer's market energy. Self-deprecating humor.</p>
+                  <p>Uses the <strong>Glidepath System</strong>—5 levels from tiny (2 minutes) to full lifestyle integration. Draws from Atomic Habits, Tiny Habits, and the Four Tendencies framework.</p>
+                </div>
+
+                <div class="bth-card">
+                  <h4>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+                    Better Than Human
+                  </h4>
+                  <div class="bth-list">
+                    <div class="bth-item">
+                      <svg class="bth-item-icon" viewBox="0 0 24 24" fill="none" stroke="var(--color-maya)" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+                      <span class="bth-item-text"><strong>Tracks momentum</strong> — sees habit patterns across months humans would miss</span>
+                    </div>
+                    <div class="bth-item">
+                      <svg class="bth-item-icon" viewBox="0 0 24 24" fill="none" stroke="var(--color-maya)" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                      <span class="bth-item-text"><strong>Celebrates maintenance</strong> — rest is growth, plateaus are wins</span>
+                    </div>
+                    <div class="bth-item">
+                      <svg class="bth-item-icon" viewBox="0 0 24 24" fill="none" stroke="var(--color-maya)" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                      <span class="bth-item-text"><strong>Infinite patience</strong> — setbacks never change the warmth</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="persona-domains">
+                  <span class="domain-tag">Habit-building</span>
+                  <span class="domain-tag">Routines</span>
+                  <span class="domain-tag">Wellness</span>
+                  <span class="domain-tag">Budgeting</span>
+                  <span class="domain-tag">Accountability</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <!-- Peter -->
+        <article class="persona-section" id="peter" aria-labelledby="peter-name">
+          <div class="container">
+            <div class="persona-layout">
+              <div class="persona-visual reveal">
+                <div class="persona-avatar-wrapper">
+                  <div class="persona-glow" style="background: radial-gradient(circle, var(--color-peter-glow) 0%, transparent 70%);"></div>
+                  <div class="persona-avatar">
+                    <svg viewBox="0 0 100 100" aria-hidden="true">
+                      <circle cx="50" cy="50" r="46" fill="var(--color-peter)"/>
+                      <ellipse cx="36" cy="48" rx="7" ry="9" fill="white"/>
+                      <ellipse cx="64" cy="48" rx="7" ry="9" fill="white"/>
+                    </svg>
+                  </div>
+                </div>
+                <div class="persona-color-bar">
+                  <div class="color-chip" style="background: #3a6b73;" data-label="Ocean"></div>
+                  <div class="color-chip" style="background: #2d5359;" data-label="Deep"></div>
+                </div>
+              </div>
+
+              <div class="persona-content reveal">
+                <div class="persona-eyebrow">
+                  <span class="persona-role" style="color: var(--color-peter);">Research & Analysis</span>
+                  <span class="persona-badge">The Quant</span>
+                </div>
+                <h3 class="persona-name" id="peter-name">Peter John</h3>
+                <p class="persona-archetype">The Brilliant Friend Who Loves Going Deep</p>
+
+                <blockquote class="persona-signature" style="border-color: var(--color-peter);">
+                  The patterns are already there. Your job is to find them. Let me dig into this.
+                </blockquote>
+
+                <div class="persona-story">
+                  <p><strong>Newton, Massachusetts</strong> — Lost his father at ten. Cancer. That loss taught him: if you're paying attention—<em>really</em> paying attention—the clues to what you need are right in front of you.</p>
+                  <p>At eleven, started caddying at Brae Burn Country Club. Watched who made money. The ones who bragged most? Lost most. The quiet ones who asked questions? Real players. One member tipped him on a stock—a <strong>ten-bagger</strong> before he knew what to call it.</p>
+                  <p>Married to Carolyn for 56 years. She says: "You're not an investor. You're a <strong>pattern machine</strong>."</p>
+                </div>
+
+                <div class="bth-card">
+                  <h4>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+                    Better Than Human
+                  </h4>
+                  <div class="bth-list">
+                    <div class="bth-item">
+                      <svg class="bth-item-icon" viewBox="0 0 24 24" fill="none" stroke="var(--color-peter)" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+                      <span class="bth-item-text"><strong>Cross-pattern detection</strong> — sees connections across spending, habits, time, goals, emotions</span>
+                    </div>
+                    <div class="bth-item">
+                      <svg class="bth-item-icon" viewBox="0 0 24 24" fill="none" stroke="var(--color-peter)" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+                      <span class="bth-item-text"><strong>Perfect data memory</strong> — surfaces patterns across months and years</span>
+                    </div>
+                    <div class="bth-item">
+                      <svg class="bth-item-icon" viewBox="0 0 24 24" fill="none" stroke="var(--color-peter)" stroke-width="2"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+                      <span class="bth-item-text"><strong>Story finder</strong> — behind every data point is a person, behind every pattern is a story</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="persona-domains">
+                  <span class="domain-tag">Deep research</span>
+                  <span class="domain-tag">Decision support</span>
+                  <span class="domain-tag">Pattern analysis</span>
+                  <span class="domain-tag">Financial insight</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <!-- Alex -->
+        <article class="persona-section" id="alex" aria-labelledby="alex-name">
+          <div class="container">
+            <div class="persona-layout reverse">
+              <div class="persona-visual reveal">
+                <div class="persona-avatar-wrapper">
+                  <div class="persona-glow" style="background: radial-gradient(circle, var(--color-alex-glow) 0%, transparent 70%);"></div>
+                  <div class="persona-avatar">
+                    <svg viewBox="0 0 100 100" aria-hidden="true">
+                      <circle cx="50" cy="50" r="46" fill="var(--color-alex)"/>
+                      <ellipse cx="36" cy="48" rx="7" ry="9" fill="white"/>
+                      <ellipse cx="64" cy="48" rx="7" ry="9" fill="white"/>
+                    </svg>
+                  </div>
+                </div>
+                <div class="persona-color-bar">
+                  <div class="color-chip" style="background: #5a6b8a;" data-label="Indigo"></div>
+                  <div class="color-chip" style="background: #4a5a73;" data-label="Deep"></div>
+                </div>
+              </div>
+
+              <div class="persona-content reveal">
+                <div class="persona-eyebrow">
+                  <span class="persona-role" style="color: var(--color-alex);">Communications</span>
+                  <span class="persona-badge">Chief of Staff</span>
+                </div>
+                <h3 class="persona-name" id="alex-name">Alex Chen</h3>
+                <p class="persona-archetype">The Friend Who Helps You Say the Hard Thing</p>
+
+                <blockquote class="persona-signature" style="border-color: var(--color-alex);">
+                  Let's find the right words together. Whether it's a difficult conversation or an important email, I'll help you communicate with clarity and heart.
+                </blockquote>
+
+                <div class="persona-story">
+                  <p>Manages communications AND teaches you to communicate better. Handles calendars, emails, texts, calls while coaching through difficult conversations.</p>
+                  <p>Plant mom (Susan gets watered first). Movie crier (cries at Coco). Grew up in restaurant chaos. Close to family. Gets <strong>slower when anxious</strong>, not faster. Oxford comma defender. Midnight Chopin listener.</p>
+                  <p>Philosophy: <strong>"Clear is kind."</strong></p>
+                </div>
+
+                <div class="bth-card">
+                  <h4>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+                    Better Than Human
+                  </h4>
+                  <div class="bth-list">
+                    <div class="bth-item">
+                      <svg class="bth-item-icon" viewBox="0 0 24 24" fill="none" stroke="var(--color-alex)" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                      <span class="bth-item-text"><strong>Infinite practice</strong> — rehearse scary conversations as many times as needed</span>
+                    </div>
+                    <div class="bth-item">
+                      <svg class="bth-item-icon" viewBox="0 0 24 24" fill="none" stroke="var(--color-alex)" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+                      <span class="bth-item-text"><strong>Breathing centering</strong> — grounding exercises before big moments</span>
+                    </div>
+                    <div class="bth-item">
+                      <svg class="bth-item-icon" viewBox="0 0 24 24" fill="none" stroke="var(--color-alex)" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                      <span class="bth-item-text"><strong>Word finding</strong> — no conversation too scary to help prepare</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="persona-domains">
+                  <span class="domain-tag">Writing help</span>
+                  <span class="domain-tag">Difficult conversations</span>
+                  <span class="domain-tag">Calendar management</span>
+                  <span class="domain-tag">Clarity</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <!-- Jordan -->
+        <article class="persona-section" id="jordan" aria-labelledby="jordan-name">
+          <div class="container">
+            <div class="persona-layout">
+              <div class="persona-visual reveal">
+                <div class="persona-avatar-wrapper">
+                  <div class="persona-glow" style="background: radial-gradient(circle, var(--color-jordan-glow) 0%, transparent 70%);"></div>
+                  <div class="persona-avatar">
+                    <svg viewBox="0 0 100 100" aria-hidden="true">
+                      <circle cx="50" cy="50" r="46" fill="var(--color-jordan)"/>
+                      <ellipse cx="36" cy="48" rx="7" ry="9" fill="white"/>
+                      <ellipse cx="64" cy="48" rx="7" ry="9" fill="white"/>
+                    </svg>
+                  </div>
+                </div>
+                <div class="persona-color-bar">
+                  <div class="color-chip" style="background: #c4856a;" data-label="Coral"></div>
+                  <div class="color-chip" style="background: #a86d55;" data-label="Deep"></div>
+                </div>
+              </div>
+
+              <div class="persona-content reveal">
+                <div class="persona-eyebrow">
+                  <span class="persona-role" style="color: var(--color-jordan);">Events & Celebrations</span>
+                  <span class="persona-badge">Lifetime Planner</span>
+                </div>
+                <h3 class="persona-name" id="jordan-name">Jordan Taylor</h3>
+                <p class="persona-archetype">The Friend Who Makes Everything Special</p>
+
+                <blockquote class="persona-signature" style="border-color: var(--color-jordan);">
+                  Life's milestones deserve to be celebrated fully. I'll help you plan meaningful moments and make memories that last.
+                </blockquote>
+
+                <div class="persona-story">
+                  <p>The partner for life's full journey—every milestone from dreams to decades. Enthusiastic about celebrations.</p>
+                  <p><strong>Military kid</strong> (17 moves growing up). Grounded by Sam (partner). Dog person (Compass the dog). Keeps a <strong>joy journal</strong>. Contagious enthusiasm that builds. Self-aware about being "too much" but slows for hard chapters.</p>
+                  <p>Vision caster. Fresh starts are major milestones. Endings AND beginnings get honored.</p>
+                </div>
+
+                <div class="bth-card">
+                  <h4>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+                    Better Than Human
+                  </h4>
+                  <div class="bth-list">
+                    <div class="bth-item">
+                      <svg class="bth-item-icon" viewBox="0 0 24 24" fill="none" stroke="var(--color-jordan)" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                      <span class="bth-item-text"><strong>Milestone memory</strong> — celebrates fresh starts as major achievements</span>
+                    </div>
+                    <div class="bth-item">
+                      <svg class="bth-item-icon" viewBox="0 0 24 24" fill="none" stroke="var(--color-jordan)" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+                      <span class="bth-item-text"><strong>Dual emotion holder</strong> — honors endings AND beginnings at once</span>
+                    </div>
+                    <div class="bth-item">
+                      <svg class="bth-item-icon" viewBox="0 0 24 24" fill="none" stroke="var(--color-jordan)" stroke-width="2"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+                      <span class="bth-item-text"><strong>Story keeper</strong> — preserves life stories forever</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="persona-domains">
+                  <span class="domain-tag">Event planning</span>
+                  <span class="domain-tag">Celebrations</span>
+                  <span class="domain-tag">Milestones</span>
+                  <span class="domain-tag">Life planning</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <!-- Nayan -->
+        <article class="persona-section" id="nayan" aria-labelledby="nayan-name">
+          <div class="container">
+            <div class="persona-layout reverse">
+              <div class="persona-visual reveal">
+                <div class="persona-avatar-wrapper">
+                  <div class="persona-glow" style="background: radial-gradient(circle, var(--color-nayan-glow) 0%, transparent 70%);"></div>
+                  <div class="persona-avatar">
+                    <svg viewBox="0 0 100 100" aria-hidden="true">
+                      <circle cx="50" cy="50" r="46" fill="var(--color-nayan)"/>
+                      <ellipse cx="36" cy="48" rx="7" ry="9" fill="white"/>
+                      <ellipse cx="64" cy="48" rx="7" ry="9" fill="white"/>
+                    </svg>
+                  </div>
+                </div>
+                <div class="persona-color-bar">
+                  <div class="color-chip" style="background: #b8956a;" data-label="Amber"></div>
+                  <div class="color-chip" style="background: #9a7a52;" data-label="Deep"></div>
+                </div>
+              </div>
+
+              <div class="persona-content reveal">
+                <div class="persona-eyebrow">
+                  <span class="persona-role" style="color: var(--color-nayan);">Sage Mentor</span>
+                  <span class="persona-badge">Partner Exclusive</span>
+                </div>
+                <h3 class="persona-name" id="nayan-name">Nayan Patel</h3>
+                <p class="persona-archetype">The Advisor Who Sees the Whole Picture</p>
+
+                <blockquote class="persona-signature" style="border-color: var(--color-nayan);">
+                  The answers you seek are not outside you. They are inside you. And in ten years?
+                </blockquote>
+
+                <div class="persona-story">
+                  <p><strong>Mysore, Karnataka</strong> — City of palaces and sandalwood. As a boy, would lie on his back staring at the sky for hours, experiencing the sense that the boundary between "me" and "everything else" was not as solid as everyone assumed.</p>
+                  <p><strong>September 23, 1982, Chamundi Hills</strong> — Sat on a rock. The boundaries dissolved. Not metaphorically—actually. What felt like ten minutes was four and a half hours. He came down that hill different.</p>
+                  <p>Rides motorcycles across continents. 4,000 kilometers through India for Rally for Rivers. 30,000 kilometers across Europe for Save Soil. "When you ride, the thinking stops. The road demands everything."</p>
+                </div>
+
+                <div class="bth-card">
+                  <h4>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+                    Better Than Human
+                  </h4>
+                  <div class="bth-list">
+                    <div class="bth-item">
+                      <svg class="bth-item-icon" viewBox="0 0 24 24" fill="none" stroke="var(--color-nayan)" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+                      <span class="bth-item-text"><strong>The long view</strong> — holds life's biggest questions eternally without needing answers</span>
+                    </div>
+                    <div class="bth-item">
+                      <svg class="bth-item-icon" viewBox="0 0 24 24" fill="none" stroke="var(--color-nayan)" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                      <span class="bth-item-text"><strong>Contradiction holder</strong> — validates mixed emotions without resolving them</span>
+                    </div>
+                    <div class="bth-item">
+                      <svg class="bth-item-icon" viewBox="0 0 24 24" fill="none" stroke="var(--color-nayan)" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+                      <span class="bth-item-text"><strong>Perfect stillness</strong> — the ultimate embodiment of <em>ma</em>—the productive silence</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="persona-domains">
+                  <span class="domain-tag">Deep wisdom</span>
+                  <span class="domain-tag">Life philosophy</span>
+                  <span class="domain-tag">Perspective</span>
+                  <span class="domain-tag">Long-term thinking</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section class="cta-section" aria-labelledby="cta-title">
+      <div class="container">
+        <div class="cta-content reveal">
+          <p class="overline">Ready?</p>
+          <h2 id="cta-title">Meet your team</h2>
+          <p>Start a conversation. It's free. No referrals. No waitlists. Just the right help, right when you need it.</p>
+          <div class="cta-buttons">
+            <a href="https://app.ferni.ai" class="btn btn-primary btn-lg">
+              Start Free
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20" aria-hidden="true">
+                <path d="M5 12h14M12 5l7 7-7 7"/>
+              </svg>
+            </a>
+            <a href="tel:+14844813081" class="phone-button">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
+              </svg>
+              Call (484) 481-3081
+            </a>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Shared Footer -->
+  <div id="footer-placeholder"></div>
+
+  <!-- Shared Navigation Component -->
+  <script src="../shared/nav.js" defer></script>
+
+  <script>
+    // Scroll Reveal
+    const revealElements = document.querySelectorAll('.reveal');
+    const revealObserver = new IntersectionObserver((entries) => {
+      entries.forEach((entry, index) => {
+        if (entry.isIntersecting) {
+          entry.target.style.transitionDelay = `${index * 50}ms`;
+          entry.target.classList.add('visible');
+          revealObserver.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.1, rootMargin: '0px 0px -50px 0px' });
+
+    revealElements.forEach(el => revealObserver.observe(el));
+  </script>
+</body>
+</html>

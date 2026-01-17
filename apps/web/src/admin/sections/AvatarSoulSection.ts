@@ -29,7 +29,7 @@ async function getAvatarSoul() {
 // RENDER
 // ============================================================================
 
-export async function render(): Promise<string> {
+export function render(): string {
   return `
     <div class="soul-section">
       <header class="soul-header">
@@ -89,21 +89,21 @@ export async function render(): Promise<string> {
           
           <div class="control-group">
             <label>Pupil Dilation</label>
-            <div class="control-buttons">
-              <button class="soul-btn" data-soul="pupil" data-value="CONTRACTED">Thinking</button>
-              <button class="soul-btn" data-soul="pupil" data-value="NEUTRAL">Neutral</button>
-              <button class="soul-btn" data-soul="pupil" data-value="INTERESTED">Interested</button>
-              <button class="soul-btn" data-soul="pupil" data-value="DILATED">Connected</button>
+            <div class="control-buttons" role="button" tabindex="0">
+              <button aria-label="Thinking" class="soul-btn" data-soul="pupil" data-value="CONTRACTED">Thinking</button>
+              <button aria-label="Neutral" class="soul-btn" data-soul="pupil" data-value="NEUTRAL">Neutral</button>
+              <button aria-label="Interested" class="soul-btn" data-soul="pupil" data-value="INTERESTED">Interested</button>
+              <button aria-label="Connected" class="soul-btn" data-soul="pupil" data-value="DILATED">Connected</button>
             </div>
           </div>
 
           <div class="control-group">
             <label>Gaze Direction</label>
-            <div class="control-buttons">
-              <button class="soul-btn" data-soul="gaze" data-value="center">Center</button>
-              <button class="soul-btn" data-soul="gaze" data-value="left">Left</button>
-              <button class="soul-btn" data-soul="gaze" data-value="right">Right</button>
-              <button class="soul-btn" data-soul="gaze" data-value="thinking">Think</button>
+            <div class="control-buttons" role="button" tabindex="0">
+              <button aria-label="Center" class="soul-btn" data-soul="gaze" data-value="center">Center</button>
+              <button aria-label="Left" class="soul-btn" data-soul="gaze" data-value="left">Left</button>
+              <button aria-label="Right" class="soul-btn" data-soul="gaze" data-value="right">Right</button>
+              <button aria-label="Think" class="soul-btn" data-soul="gaze" data-value="thinking">Think</button>
             </div>
           </div>
         </div>
@@ -118,20 +118,20 @@ export async function render(): Promise<string> {
           
           <div class="control-group">
             <label>Glow Type</label>
-            <div class="control-buttons">
-              <button class="soul-btn" data-soul="glow" data-value="none">None</button>
-              <button class="soul-btn soul-btn--warm" data-soul="glow" data-value="warmth">Warmth</button>
-              <button class="soul-btn soul-btn--joy" data-soul="glow" data-value="joy">Joy</button>
-              <button class="soul-btn soul-btn--concern" data-soul="glow" data-value="concern">Concern</button>
+            <div class="control-buttons" role="button" tabindex="0">
+              <button aria-label="None" class="soul-btn" data-soul="glow" data-value="none">None</button>
+              <button aria-label="Warmth" class="soul-btn soul-btn--warm" data-soul="glow" data-value="warmth">Warmth</button>
+              <button aria-label="Joy" class="soul-btn soul-btn--joy" data-soul="glow" data-value="joy">Joy</button>
+              <button aria-label="Concern" class="soul-btn soul-btn--concern" data-soul="glow" data-value="concern">Concern</button>
             </div>
           </div>
 
           <div class="control-group">
             <label>Protective Mode</label>
-            <div class="control-buttons">
-              <button class="soul-btn" data-soul="protective" data-value="mild">Mild</button>
-              <button class="soul-btn" data-soul="protective" data-value="moderate">Moderate</button>
-              <button class="soul-btn" data-soul="protective" data-value="significant">Full</button>
+            <div class="control-buttons" role="button" tabindex="0">
+              <button aria-label="Mild" class="soul-btn" data-soul="protective" data-value="mild">Mild</button>
+              <button aria-label="Moderate" class="soul-btn" data-soul="protective" data-value="moderate">Moderate</button>
+              <button aria-label="Full" class="soul-btn" data-soul="protective" data-value="significant">Full</button>
             </div>
           </div>
         </div>
@@ -146,20 +146,20 @@ export async function render(): Promise<string> {
           
           <div class="control-group">
             <label>Trigger Effect</label>
-            <div class="control-buttons">
-              <button class="soul-btn soul-btn--effect" data-soul="effect" data-value="memorySpark">Memory Spark</button>
-              <button class="soul-btn soul-btn--effect" data-soul="effect" data-value="anticipation">Anticipation</button>
-              <button class="soul-btn soul-btn--effect" data-soul="effect" data-value="comfortPulse">Comfort Pulse</button>
-              <button class="soul-btn soul-btn--effect" data-soul="effect" data-value="growthCelebration">Celebrate</button>
+            <div class="control-buttons" role="button" tabindex="0">
+              <button aria-label="Memory Spark" class="soul-btn soul-btn--effect" data-soul="effect" data-value="memorySpark">Memory Spark</button>
+              <button aria-label="Anticipation" class="soul-btn soul-btn--effect" data-soul="effect" data-value="anticipation">Anticipation</button>
+              <button aria-label="Comfort Pulse" class="soul-btn soul-btn--effect" data-soul="effect" data-value="comfortPulse">Comfort Pulse</button>
+              <button aria-label="Celebrate" class="soul-btn soul-btn--effect" data-soul="effect" data-value="growthCelebration">Celebrate</button>
             </div>
           </div>
 
           <div class="control-group">
             <label>Thinking Complexity</label>
-            <div class="control-buttons">
-              <button class="soul-btn" data-soul="thinking" data-value="simple">Simple</button>
-              <button class="soul-btn" data-soul="thinking" data-value="complex">Complex</button>
-              <button class="soul-btn" data-soul="thinking" data-value="deep">Deep</button>
+            <div class="control-buttons" role="button" tabindex="0">
+              <button aria-label="Simple" class="soul-btn" data-soul="thinking" data-value="simple">Simple</button>
+              <button aria-label="Complex" class="soul-btn" data-soul="thinking" data-value="complex">Complex</button>
+              <button aria-label="Deep" class="soul-btn" data-soul="thinking" data-value="deep">Deep</button>
             </div>
           </div>
         </div>
@@ -233,7 +233,7 @@ export async function render(): Promise<string> {
 
       .soul-preview-container {
         position: relative;
-        width: 140px;
+        width: min(140px, 100%);
         height: 140px;
         display: flex;
         align-items: center;
@@ -248,7 +248,7 @@ export async function render(): Promise<string> {
         background: radial-gradient(circle, rgba(196, 162, 101, 0) 0%, transparent 70%);
         filter: blur(20px);
         opacity: 0;
-        transition: all 0.5s ease-out;
+        transition: transform 0.5s ease-out, opacity 0.5s ease-out;
         pointer-events: none;
       }
 
@@ -284,7 +284,7 @@ export async function render(): Promise<string> {
 
       .soul-preview-avatar {
         position: relative;
-        width: 100px;
+        width: min(100px, 100%);
         height: 100px;
         border-radius: 50%;
         background: linear-gradient(180deg, var(--persona-primary, var(--color-ferni)), var(--persona-secondary, var(--color-ferni-dark)));
@@ -305,7 +305,7 @@ export async function render(): Promise<string> {
         font-size: 2.5rem;
         font-weight: bold;
         color: white;
-        z-index: 3;
+        z-index: var(--z-docked);
       }
 
       .soul-preview-eye {
@@ -363,7 +363,7 @@ export async function render(): Promise<string> {
         opacity: 0;
         transform: scale(0.5);
         pointer-events: none;
-        z-index: 1;
+        z-index: var(--z-docked);
       }
 
       .soul-preview-spark.active {
@@ -597,13 +597,15 @@ export async function render(): Promise<string> {
 export function setupEvents(): void {
   // Button clicks
   document.querySelectorAll('[data-soul]').forEach((btn) => {
-    btn.addEventListener('click', async (e) => {
-      const target = e.target as HTMLElement;
-      const action = target.getAttribute('data-soul');
-      const value = target.getAttribute('data-value');
-      if (action && value) {
-        await handleSoulAction(action, value);
-      }
+    btn.addEventListener('click', (e) => {
+      void (async () => {
+        const target = e.target as HTMLElement;
+        const action = target.getAttribute('data-soul');
+        const value = target.getAttribute('data-value');
+        if (action && value) {
+          await handleSoulAction(action, value);
+        }
+      })();
     });
   });
 
@@ -613,33 +615,39 @@ export function setupEvents(): void {
   const breathSlider = document.getElementById('adminBreathSlider') as HTMLInputElement;
 
   if (energySlider) {
-    energySlider.addEventListener('input', async () => {
-      const value = parseFloat(energySlider.value);
-      const display = document.getElementById('adminEnergyValue');
-      const statusDisplay = document.getElementById('adminSoulEnergy');
-      if (display) display.textContent = value.toString();
-      if (statusDisplay) statusDisplay.textContent = value.toString();
-      await handleSoulSlider('energy', value);
+    energySlider.addEventListener('input', () => {
+      void (async () => {
+        const value = parseFloat(energySlider.value);
+        const display = document.getElementById('adminEnergyValue');
+        const statusDisplay = document.getElementById('adminSoulEnergy');
+        if (display) display.textContent = value.toString();
+        if (statusDisplay) statusDisplay.textContent = value.toString();
+        await handleSoulSlider('energy', value);
+      })();
     });
   }
 
   if (warmthSlider) {
-    warmthSlider.addEventListener('input', async () => {
-      const value = parseFloat(warmthSlider.value);
-      const display = document.getElementById('adminWarmthValue');
-      const statusDisplay = document.getElementById('adminSoulWarmth');
-      if (display) display.textContent = value.toString();
-      if (statusDisplay) statusDisplay.textContent = value.toString();
-      await handleSoulSlider('warmth', value);
+    warmthSlider.addEventListener('input', () => {
+      void (async () => {
+        const value = parseFloat(warmthSlider.value);
+        const display = document.getElementById('adminWarmthValue');
+        const statusDisplay = document.getElementById('adminSoulWarmth');
+        if (display) display.textContent = value.toString();
+        if (statusDisplay) statusDisplay.textContent = value.toString();
+        await handleSoulSlider('warmth', value);
+      })();
     });
   }
 
   if (breathSlider) {
-    breathSlider.addEventListener('input', async () => {
-      const value = parseInt(breathSlider.value);
-      const display = document.getElementById('adminBreathValue');
-      if (display) display.textContent = value.toString();
-      await handleSoulSlider('breath', value);
+    breathSlider.addEventListener('input', () => {
+      void (async () => {
+        const value = parseInt(breathSlider.value);
+        const display = document.getElementById('adminBreathValue');
+        if (display) display.textContent = value.toString();
+        await handleSoulSlider('breath', value);
+      })();
     });
   }
 }
@@ -730,10 +738,11 @@ async function handleSoulSlider(type: string, value: number): Promise<void> {
       case 'warmth':
         soul.avatarSoul.recordInteraction(value);
         break;
-      case 'breath':
+      case 'breath': {
         const shimmerIntensity = (value - 8) / 16;
         soul.avatarSoul.flashShimmer(shimmerIntensity);
         break;
+      }
     }
   } catch (err) {
     log.error('Soul slider failed:', err);
@@ -760,7 +769,7 @@ function updateAdminSoulPreview(action: string, value: string): void {
           DILATED: '18px',
           CONNECTED: '18px',
         };
-        if (pupilStateEl) pupilStateEl.textContent = sizes[value] || '12px';
+        if (pupilStateEl) pupilStateEl.textContent = sizes[value] ?? '12px';
       }
       if (stateEl) stateEl.textContent = value.charAt(0) + value.slice(1).toLowerCase();
       break;
@@ -776,7 +785,7 @@ function updateAdminSoulPreview(action: string, value: string): void {
             joy: 'rgba(255, 215, 100, 0.6)',
             concern: 'rgba(154, 123, 90, 0.4)',
           };
-          glow.style.setProperty('--soul-glow-color', colors[value] || defaultColor);
+          glow.style.setProperty('--soul-glow-color', colors[value] ?? defaultColor);
           glow.classList.add('active');
         }
       }
@@ -800,7 +809,7 @@ function updateAdminSoulPreview(action: string, value: string): void {
           comfortPulse: 'Comfort',
           growthCelebration: 'Celebrate!',
         };
-        stateEl.textContent = labels[value] || value;
+        stateEl.textContent = labels[value] ?? value;
       }
       break;
 

@@ -320,7 +320,7 @@ function convertToolsToGeminiFormat(tools: TestToolDefinition[]): unknown[] {
 
 export class GeminiTestHarness {
   private config: GeminiTestConfig;
-  private systemPrompt: string = '';
+  private systemPrompt = '';
   private conversationHistory: ConversationTurn[] = [];
 
   constructor(config: GeminiTestConfig) {

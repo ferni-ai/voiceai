@@ -1,0 +1,9 @@
+# Rust build artifacts
+target/
+
+# NAPI build artifacts
+*.node
+# Note: index.js and index.d.ts are tracked in git (needed for Docker builds)
+
+# OS files
+.DS_Store

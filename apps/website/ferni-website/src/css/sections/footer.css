@@ -1,88 +1,827 @@
 /**
- * Footer Section
+ * FOOTER - PREMIUM EDITION
+ * Better than Apple. Human-first. On-brand.
+ * 
+ * Variants:
+ * - .footer (default): Light background for inner pages
+ * - .footer--bold: Dark background for landing page
  */
 
+/* ============================================================================
+   BASE FOOTER STRUCTURE
+   ============================================================================ */
+
 .footer {
-  background: var(--color-bg-primary);
-  padding: var(--space-20) 0 var(--space-10);
-  border-top: 1px solid var(--color-border-subtle);
+  background: var(--color-bg-primary, var(--color-bg-elevated));
+  border-top: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
 }
+
+.footer__inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 clamp(24px, 5vw, 64px);
+}
+
+/* ============================================================================
+   FOOTER HERO SECTION (CTA)
+   ============================================================================ */
+
+.footer__hero {
+  text-align: center;
+  padding: clamp(48px, 8vw, 80px) 0;
+  border-bottom: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
+}
+
+.footer__headline {
+  font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
+  font-size: clamp(1.75rem, 4vw, 2.5rem);
+  font-weight: 800;
+  color: var(--color-text-primary, var(--color-text-primary));
+  margin: 0 0 clamp(8px, 1.5vw, 12px);
+  letter-spacing: -0.02em;
+}
+
+.footer__subline {
+  font-family: var(--font-body, 'Inter', sans-serif);
+  font-size: clamp(0.9375rem, 1.3vw, 1.0625rem);
+  color: var(--color-text-secondary, var(--color-ink-light));
+  margin: 0 0 clamp(20px, 3vw, 28px);
+  max-width: 480px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.footer__cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 28px;
+  background: var(--color-ferni, var(--color-ferni));
+  color: var(--color-text-inverse);
+  font-family: var(--font-body, 'Inter', sans-serif);
+  font-size: var(--text-base);
+  font-weight: 600;
+  border-radius: var(--radius-md);
+  text-decoration: none;
+  transition: all var(--duration-fast, 150ms) var(--ease-out, cubic-bezier(0.25, 0.46, 0.45, 0.94));
+  box-shadow: 0 4px 16px rgba(74, 103, 65, 0.25);
+}
+
+.footer__cta:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(74, 103, 65, 0.35);
+}
+
+.footer__cta:active {
+  transform: translateY(0);
+}
+
+.footer__cta svg {
+  transition: transform var(--duration-fast, 150ms);
+}
+
+.footer__cta:hover svg {
+  transform: translateX(4px);
+}
+
+/* ============================================================================
+   FOOTER NAVIGATION
+   ============================================================================ */
+
+.footer__nav {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: clamp(24px, 4vw, 48px);
+  padding: clamp(40px, 6vw, 64px) 0;
+}
+
+.footer__nav-group {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(10px, 1.5vw, 14px);
+}
+
+.footer__nav-title {
+  font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
+  font-size: clamp(0.6875rem, 0.9vw, 0.75rem);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  /* WCAG AA: var(--color-text-muted) on var(--color-bg-elevated) = 4.7:1 contrast ratio */
+  color: var(--color-text-muted, var(--color-text-muted));
+  margin: 0 0 clamp(4px, 0.8vw, 8px);
+}
+
+.footer__nav-group a {
+  display: block;
+  font-family: var(--font-body, 'Inter', sans-serif);
+  font-size: clamp(0.875rem, 1.2vw, 0.9375rem);
+  /* WCAG AA: var(--color-text-secondary) on var(--color-bg-elevated) = 5.6:1 contrast ratio */
+  color: var(--color-text-secondary, var(--color-text-secondary));
+  text-decoration: none;
+  padding: 4px 0;
+  transition: color var(--duration-fast, 150ms);
+}
+
+.footer__nav-group a:hover {
+  color: var(--color-text-primary, var(--color-text-primary));
+}
+
+/* ============================================================================
+   FOOTER BOTTOM BAR
+   ============================================================================ */
+
+.footer__bottom {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: clamp(24px, 3vw, 32px) 0;
+  border-top: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
+}
+
+.footer__brand-mark {
+  display: flex;
+  align-items: center;
+  gap: clamp(10px, 1.5vw, 14px);
+}
+
+.footer__logo-text {
+  font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
+  font-size: clamp(1.125rem, 1.8vw, 1.375rem);
+  font-weight: 800;
+  color: var(--color-text-primary, var(--color-text-primary));
+  letter-spacing: -0.02em;
+}
+
+.footer__motto {
+  font-family: var(--font-body, 'Inter', sans-serif);
+  font-size: clamp(0.8125rem, 1.1vw, 0.875rem);
+  /* WCAG AA: var(--color-text-muted) on var(--color-bg-elevated) = 4.7:1 contrast ratio */
+  color: var(--color-text-muted, var(--color-text-muted));
+  font-style: italic;
+  padding-left: clamp(8px, 1.2vw, 12px);
+  border-left: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.12));
+}
+
+.footer__legal {
+  display: flex;
+  align-items: center;
+  gap: clamp(12px, 2vw, 20px);
+  font-family: var(--font-body, 'Inter', sans-serif);
+  font-size: clamp(0.75rem, 1vw, 0.8125rem);
+}
+
+.footer__legal span,
+.footer__legal a {
+  /* WCAG AA: var(--color-text-muted) on var(--color-bg-elevated) = 4.7:1 contrast ratio */
+  color: var(--color-text-muted, var(--color-text-muted));
+  text-decoration: none;
+  transition: color var(--duration-fast, 150ms);
+}
+
+.footer__legal a:hover {
+  color: var(--color-text-primary, var(--color-text-primary));
+}
+
+/* ============================================================================
+   DARK VARIANT (.footer--bold)
+   Used on landing page - dark sophisticated background
+   ============================================================================ */
+
+.footer--bold {
+  background: var(--color-dark-bg, var(--color-text-primary));
+  border-top-color: rgba(255, 255, 255, 0.08);
+}
+
+.footer--bold .footer__hero {
+  border-bottom-color: rgba(255, 255, 255, 0.08);
+  padding: clamp(64px, 10vw, 100px) 0;
+}
+
+.footer--bold .footer__headline {
+  font-size: clamp(2rem, 5vw, 3rem);
+  color: var(--color-bg-primary, var(--color-bg-elevated));
+}
+
+.footer--bold .footer__subline {
+  color: var(--color-dark-text-secondary, var(--color-bg-secondary));
+}
+
+.footer--bold .footer__nav-title {
+  color: var(--color-highlight, var(--color-nayan));
+}
+
+.footer--bold .footer__nav-group a {
+  color: var(--color-dark-text-secondary, var(--color-bg-secondary));
+}
+
+.footer--bold .footer__nav-group a:hover {
+  color: var(--color-bg-primary, var(--color-bg-elevated));
+}
+
+.footer--bold .footer__bottom {
+  border-top-color: rgba(255, 255, 255, 0.08);
+}
+
+.footer--bold .footer__logo-text {
+  color: var(--color-bg-primary, var(--color-bg-elevated));
+}
+
+.footer--bold .footer__motto {
+  color: var(--color-dark-text-muted, var(--color-text-muted));
+  border-left-color: rgba(255, 255, 255, 0.15);
+}
+
+.footer--bold .footer__legal span,
+.footer--bold .footer__legal a {
+  color: var(--color-dark-text-muted, var(--color-text-muted));
+}
+
+.footer--bold .footer__legal a:hover {
+  color: var(--color-bg-primary, var(--color-bg-elevated));
+}
+
+/* ============================================================================
+   MOBILE RESPONSIVE
+   ============================================================================ */
+
+@media (max-width: 768px) {
+  .footer__nav {
+    grid-template-columns: 1fr;
+    gap: clamp(28px, 5vw, 36px);
+    text-align: center;
+    padding: clamp(36px, 5vw, 48px) 0;
+  }
+  
+  .footer__nav-group {
+    gap: clamp(10px, 2vw, 14px);
+  }
+  
+  .footer__nav-title {
+    margin-bottom: clamp(6px, 1.2vw, 10px);
+  }
+  
+  .footer__bottom {
+    flex-direction: column;
+    gap: clamp(16px, 3vw, 24px);
+    text-align: center;
+    padding: clamp(28px, 4vw, 40px) 0;
+  }
+  
+  .footer__brand-mark {
+    flex-direction: column;
+    gap: 6px;
+  }
+  
+  .footer__motto {
+    padding-left: 0;
+    border-left: none;
+  }
+  
+  .footer__legal {
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: clamp(8px, 2vw, 16px);
+  }
+}
+
+/* Small mobile */
+@media (max-width: 640px) {
+  .footer__hero {
+    padding: clamp(36px, 6vw, 48px) 0;
+  }
+
+  .footer__headline {
+    font-size: clamp(1.5rem, 6vw, 1.875rem);
+  }
+
+  .footer__cta {
+    padding: 12px 24px;
+    font-size: var(--text-base);
+  }
+}
+
+/* ============================================================================
+   ACCESSIBILITY - Focus States
+   ============================================================================ */
+
+.footer__cta:focus-visible,
+.footer__nav-group a:focus-visible,
+.footer__legal a:focus-visible {
+  outline: 2px solid var(--color-ferni, var(--color-ferni));
+  outline-offset: 2px;
+  border-radius: var(--radius-xs);
+}
+
+.footer--bold .footer__cta:focus-visible,
+.footer--bold .footer__nav-group a:focus-visible,
+.footer--bold .footer__legal a:focus-visible {
+  outline-color: var(--color-highlight, var(--color-nayan));
+}
+
+/* ============================================================================
+   REDUCED MOTION
+   ============================================================================ */
+
+@media (prefers-reduced-motion: reduce) {
+  .footer__cta,
+  .footer__cta svg,
+  .footer__nav-group a,
+  .footer__legal a {
+    transition: none;
+  }
+  
+  .footer__cta:hover {
+    transform: none;
+  }
+}
+
+/* ============================================================================
+   LEGACY SUPPORT - Old class names (for backwards compatibility)
+   These map to the new structure but support old templates
+   ============================================================================ */
 
 .footer-grid {
   display: grid;
   grid-template-columns: 1fr 2fr;
-  gap: var(--space-16);
-  margin-bottom: var(--space-16);
+  gap: var(--space-16, 64px);
+  margin-bottom: var(--space-16, 64px);
 }
 
 @media (max-width: 768px) {
   .footer-grid {
     grid-template-columns: 1fr;
-    gap: var(--space-10);
+    gap: var(--space-10, 40px);
   }
 }
 
-/* Footer brand */
 .footer-brand .footer-logo {
   display: flex;
   align-items: center;
-  gap: var(--space-3);
+  gap: var(--space-3, 12px);
   font-family: var(--font-display);
-  font-size: var(--text-lg);
-  font-weight: var(--font-weight-bold);
+  font-size: var(--text-lg, 1.125rem);
+  font-weight: var(--font-weight-bold, 700);
   color: var(--color-text-primary);
-  margin-bottom: var(--space-3);
+  margin-bottom: var(--space-3, 12px);
+  text-decoration: none;
+}
+
+/* Footer avatar with Ferni eyes - MUST have fixed size to constrain SVG */
+.footer-avatar {
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  min-height: 44px;
+  background: linear-gradient(135deg, var(--color-accent, var(--color-ferni)) 0%, var(--color-accent-dark, var(--color-ferni-secondary)) 100%);
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 12px rgba(74, 103, 65, 0.3);
+}
+
+.footer-avatar .ferni-eyes-svg {
+  width: 28px;
+  height: 28px;
 }
 
 .footer-tagline {
   font-family: var(--font-body);
-  font-size: var(--text-base);
+  font-size: var(--text-base, 1rem);
   color: var(--color-text-muted);
 }
 
-/* Footer links */
 .footer-links {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: var(--space-8);
+  gap: var(--space-8, 32px);
 }
 
-@media (max-width: 480px) {
+@media (max-width: 640px) {
   .footer-links {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 1fr;
+    gap: var(--space-8, 32px);
   }
 }
 
-.footer-col h4 {
+.footer-column h4 {
   font-family: var(--font-display);
-  font-size: var(--text-xs);
-  font-weight: var(--font-weight-bold);
+  font-size: var(--text-xs, 0.75rem);
+  font-weight: var(--font-weight-bold, 700);
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--color-text-muted);
-  margin-bottom: var(--space-4);
+  margin-bottom: var(--space-4, 16px);
 }
 
-.footer-col a {
+.footer-column a {
   display: block;
   font-family: var(--font-body);
-  font-size: var(--text-base);
+  font-size: var(--text-base, 1rem);
   color: var(--color-text-secondary);
-  padding: var(--space-1_5) 0;
-  transition: color var(--duration-fast) var(--ease-ease-out);
+  padding: var(--space-1_5, 6px) 0;
+  transition: color var(--duration-fast, 150ms);
+  text-decoration: none;
 }
 
-.footer-col a:hover {
+.footer-column a:hover {
   color: var(--color-text-primary);
 }
 
-/* Footer bottom */
+.footer-content {
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  gap: var(--space-16, 64px);
+  padding: var(--space-16, 64px) 0;
+}
+
+@media (max-width: 768px) {
+  .footer-content {
+    grid-template-columns: 1fr;
+    gap: var(--space-10, 40px);
+  }
+}
+
 .footer-bottom {
-  padding-top: var(--space-10);
+  padding-top: var(--space-10, 40px);
   border-top: 1px solid var(--color-border-subtle);
   text-align: center;
   font-family: var(--font-body);
-  font-size: var(--text-sm);
+  font-size: var(--text-sm, 0.875rem);
   color: var(--color-text-dimmed);
 }
 
+/* ============================================================================
+   MEET YOUR TEAM SECTION
+   Shows the 6 AI personas with their brand colors
+   ============================================================================ */
+
+.footer-team {
+  text-align: center;
+  padding: clamp(48px, 8vw, 80px) 0 clamp(40px, 6vw, 60px);
+  border-bottom: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
+}
+
+.footer-team__title {
+  font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
+  font-size: clamp(1.5rem, 3vw, 2rem);
+  font-weight: 800;
+  color: var(--color-text-primary, var(--color-text-primary));
+  margin: 0 0 clamp(6px, 1vw, 10px);
+  letter-spacing: -0.02em;
+}
+
+.footer-team__subtitle {
+  font-family: var(--font-body, 'Inter', sans-serif);
+  font-size: clamp(0.875rem, 1.2vw, 1rem);
+  color: var(--color-text-secondary, var(--color-ink-light));
+  margin: 0 0 clamp(28px, 4vw, 40px);
+}
+
+.footer-team__avatars {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  gap: clamp(16px, 3vw, 32px);
+  flex-wrap: wrap;
+  max-width: 700px;
+  margin: 0 auto;
+}
+
+.team-avatar {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  text-decoration: none;
+  transition: transform var(--duration-fast, 150ms) var(--ease-out, ease-out);
+}
+
+.team-avatar:hover {
+  transform: translateY(-4px);
+}
+
+.team-avatar__orb {
+  width: clamp(52px, 8vw, 64px);
+  height: clamp(52px, 8vw, 64px);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  transition: box-shadow var(--duration-fast, 150ms), transform var(--duration-fast, 150ms);
+}
+
+.team-avatar:hover .team-avatar__orb {
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  transform: scale(1.05);
+}
+
+/* Outer ring animation on hover */
+.team-avatar__orb::before {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+  border: 2px solid currentColor;
+  opacity: 0;
+  transition: opacity var(--duration-fast, 150ms), transform var(--duration-fast, 150ms);
+  transform: scale(0.9);
+}
+
+.team-avatar:hover .team-avatar__orb::before {
+  opacity: 0.3;
+  transform: scale(1);
+}
+
+.team-avatar__orb .ferni-eyes-svg {
+  width: clamp(32px, 5vw, 40px);
+  height: clamp(32px, 5vw, 40px);
+}
+
+.team-avatar__name {
+  font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
+  font-size: clamp(0.8125rem, 1.1vw, 0.9375rem);
+  font-weight: 700;
+  color: var(--color-text-primary, var(--color-text-primary));
+  letter-spacing: -0.01em;
+}
+
+.team-avatar__role {
+  font-family: var(--font-body, 'Inter', sans-serif);
+  font-size: clamp(0.6875rem, 0.9vw, 0.75rem);
+  color: var(--color-text-muted, var(--color-text-muted));
+  margin-top: -4px;
+}
+
+/* Brand colors for each persona orb */
+.team-avatar--ferni .team-avatar__orb {
+  background: linear-gradient(135deg, var(--color-ferni) 0%, var(--color-ferni-secondary) 100%);
+  color: var(--color-ferni);
+  box-shadow: 0 4px 16px rgba(74, 103, 65, 0.25);
+}
+
+.team-avatar--maya .team-avatar__orb {
+  background: linear-gradient(135deg, var(--color-maya) 0%, var(--color-maya-muted) 100%);
+  color: var(--color-maya);
+  box-shadow: 0 4px 16px rgba(166, 122, 106, 0.25);
+}
+
+.team-avatar--peter .team-avatar__orb {
+  background: linear-gradient(135deg, var(--color-peter) 0%, var(--color-peter-dark) 100%);
+  color: var(--color-peter);
+  box-shadow: 0 4px 16px rgba(58, 107, 115, 0.25);
+}
+
+.team-avatar--jordan .team-avatar__orb {
+  background: linear-gradient(135deg, var(--color-jordan) 0%, var(--color-jordan-muted) 100%);
+  color: var(--color-jordan);
+  box-shadow: 0 4px 16px rgba(196, 133, 106, 0.25);
+}
+
+.team-avatar--alex .team-avatar__orb {
+  background: linear-gradient(135deg, var(--color-alex) 0%, var(--color-alex-dark) 100%);
+  color: var(--color-alex);
+  box-shadow: 0 4px 16px rgba(90, 107, 138, 0.25);
+}
+
+.team-avatar--nayan .team-avatar__orb {
+  background: linear-gradient(135deg, var(--color-nayan) 0%, var(--color-jack) 100%);
+  color: var(--color-nayan);
+  box-shadow: 0 4px 16px rgba(184, 149, 106, 0.25);
+}
+
+/* Team avatars mobile responsiveness */
+@media (max-width: 640px) {
+  .footer-team__avatars {
+    gap: clamp(12px, 4vw, 20px);
+  }
+
+  .team-avatar__orb {
+    width: clamp(44px, 12vw, 56px);
+    height: clamp(44px, 12vw, 56px);
+  }
+
+  .team-avatar__orb .ferni-eyes-svg {
+    width: clamp(26px, 7vw, 34px);
+    height: clamp(26px, 7vw, 34px);
+  }
+}
+
+/* ============================================================================
+   DARK MODE - System Preference Override
+   ============================================================================ */
+
+@media (prefers-color-scheme: dark) {
+  .footer:not(.footer--bold) {
+    background: var(--color-dark-bg, var(--color-text-primary));
+    border-top-color: rgba(255, 255, 255, 0.1);
+  }
+  
+  .footer:not(.footer--bold) .footer__hero {
+    border-bottom-color: rgba(255, 255, 255, 0.1);
+  }
+  
+  .footer:not(.footer--bold) .footer__headline {
+    color: var(--color-bg-primary, var(--color-bg-elevated));
+  }
+  
+  .footer:not(.footer--bold) .footer__subline {
+    color: var(--color-dark-text-secondary, var(--color-bg-secondary));
+  }
+  
+  .footer:not(.footer--bold) .footer__nav-title {
+    color: var(--color-highlight, var(--color-nayan));
+  }
+  
+  .footer:not(.footer--bold) .footer__nav-group a {
+    color: var(--color-dark-text-secondary, var(--color-bg-secondary));
+  }
+  
+  .footer:not(.footer--bold) .footer__nav-group a:hover {
+    color: var(--color-bg-primary, var(--color-bg-elevated));
+  }
+  
+  .footer:not(.footer--bold) .footer__bottom {
+    border-top-color: rgba(255, 255, 255, 0.1);
+  }
+  
+  .footer:not(.footer--bold) .footer__logo-text {
+    color: var(--color-bg-primary, var(--color-bg-elevated));
+  }
+  
+  .footer:not(.footer--bold) .footer__motto {
+    color: var(--color-dark-text-muted, var(--color-text-muted));
+    border-left-color: rgba(255, 255, 255, 0.15);
+  }
+  
+  .footer:not(.footer--bold) .footer__legal span,
+  .footer:not(.footer--bold) .footer__legal a {
+    color: var(--color-dark-text-muted, var(--color-text-muted));
+  }
+  
+  .footer:not(.footer--bold) .footer__legal a:hover {
+    color: var(--color-bg-primary, var(--color-bg-elevated));
+  }
+  
+  /* Legacy dark mode support */
+  .footer-brand .footer-logo {
+    color: var(--color-bg-primary, var(--color-bg-elevated));
+  }
+  
+  .footer-tagline {
+    color: var(--color-dark-text-muted, var(--color-text-muted));
+  }
+  
+  .footer-column h4 {
+    color: var(--color-highlight, var(--color-nayan));
+  }
+  
+  .footer-column a {
+    color: var(--color-dark-text-secondary, var(--color-bg-secondary));
+  }
+  
+  .footer-column a:hover {
+    color: var(--color-bg-primary, var(--color-bg-elevated));
+  }
+  
+  .footer-bottom {
+    border-top-color: rgba(255, 255, 255, 0.1);
+    color: var(--color-dark-text-muted, var(--color-text-muted));
+  }
+
+  /* Team section dark mode */
+  .footer-team {
+    border-bottom-color: rgba(255, 255, 255, 0.1);
+  }
+
+  .footer-team__title {
+    color: var(--color-bg-primary, var(--color-bg-elevated));
+  }
+
+  .footer-team__subtitle {
+    color: var(--color-dark-text-secondary, var(--color-bg-secondary));
+  }
+
+  .team-avatar__name {
+    color: var(--color-bg-primary, var(--color-bg-elevated));
+  }
+
+  .team-avatar__role {
+    color: var(--color-dark-text-muted, var(--color-text-muted));
+  }
+}
+
+/* ============================================================================
+   FOOTER INNER LAYOUT
+   Grid layout for brand + links sections
+   ============================================================================ */
+
+.footer-inner {
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  gap: clamp(32px, 6vw, 64px);
+  padding: clamp(40px, 6vw, 64px) 0;
+}
+
+@media (max-width: 768px) {
+  .footer-inner {
+    grid-template-columns: 1fr;
+    gap: clamp(32px, 5vw, 48px);
+  }
+}
+
+/* ============================================================================
+   FOOTER LOGO ICON
+   The Ferni eyes avatar in the footer brand section
+   ============================================================================ */
+
+.footer-logo-icon {
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  min-height: 44px;
+  background: linear-gradient(135deg, var(--color-ferni, var(--color-ferni)) 0%, var(--color-ferni-secondary) 100%);
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 12px rgba(74, 103, 65, 0.25);
+}
+
+.footer-logo-icon .ferni-eyes-svg {
+  width: 28px;
+  height: 28px;
+}
+
+.footer-logo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
+  font-size: clamp(1.125rem, 1.8vw, 1.375rem);
+  font-weight: 800;
+  color: var(--color-text-primary, var(--color-text-primary));
+  text-decoration: none;
+  letter-spacing: -0.02em;
+}
+
+.footer-logo:hover {
+  color: var(--color-ferni, var(--color-ferni));
+}
+
+/* ============================================================================
+   FOOTER SOCIAL LINKS
+   Row of social media icon links
+   ============================================================================ */
+
+.footer-social {
+  display: flex;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.social-link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  background: rgba(44, 37, 32, 0.06);
+  border-radius: var(--radius-md);
+  color: var(--color-text-secondary, var(--color-ink-light));
+  transition: all var(--duration-fast, 150ms) var(--ease-out, ease-out);
+}
+
+.social-link:hover {
+  background: var(--color-ferni, var(--color-ferni));
+  color: var(--color-text-inverse);
+  transform: translateY(-2px);
+}
+
+.social-link svg {
+  width: 18px;
+  height: 18px;
+}
+
+/* Dark mode for footer inner elements */
+@media (prefers-color-scheme: dark) {
+  .footer-logo {
+    color: var(--color-bg-primary, var(--color-bg-elevated));
+  }
+
+  .footer-logo:hover {
+    color: var(--color-highlight, var(--color-nayan));
+  }
+
+  .social-link {
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--color-dark-text-secondary, var(--color-bg-secondary));
+  }
+
+  .social-link:hover {
+    background: var(--color-highlight, var(--color-nayan));
+    color: var(--color-dark-bg, var(--color-text-primary));
+  }
+}

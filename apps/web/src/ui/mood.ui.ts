@@ -14,7 +14,7 @@ import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 const log = createLogger('MoodUI');
 
 // FIX BUG: Track all setTimeout calls for proper cleanup
-const { trackedTimeout, clearAll: clearAllTimeouts } = createTimeoutTracker();
+const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
 
 // ============================================================================
 // ICONS (Lucide SVG - 2px stroke, rounded corners)
@@ -47,6 +47,16 @@ interface MoodConfig {
 
 let currentMood: MoodConfig | null = null;
 let ambientElement: HTMLElement | null = null;
+
+// ============================================================================
+// FEATURE FLAGS
+// ============================================================================
+
+/**
+ * Disable holiday easter eggs (Santa hats, etc.) until we polish them.
+ * Set to true to re-enable holiday themes.
+ */
+const HOLIDAY_THEMES_ENABLED = false;
 
 // ============================================================================
 // MOOD CONFIGURATIONS
@@ -113,10 +123,12 @@ export function initMoodUI(): void {
   // Set initial mood based on time
   updateMood();
   
-  // Check for holiday
-  const holiday = detectHoliday();
-  if (holiday) {
-    applyHolidayTheme(holiday);
+  // Check for holiday (disabled until we polish the easter eggs)
+  if (HOLIDAY_THEMES_ENABLED) {
+    const holiday = detectHoliday();
+    if (holiday) {
+      applyHolidayTheme(holiday);
+    }
   }
   
   // Update mood periodically (every 30 minutes)
@@ -238,9 +250,165 @@ function applyHolidayTheme(holiday: Holiday): void {
     root.style.setProperty(`--holiday-color-${i + 1}`, color);
   });
   
+  // Add holiday decorations to avatar
+  if (holiday === 'christmas') {
+    addChristmasTreeDecoration();
+  }
+  
   // Show subtle holiday indicator - typography only
   showHolidayIndicator(theme.message);
   
+}
+
+/**
+ * Add Santa hat decoration SVG to the avatar.
+ * Uses SVG instead of emoji per design standards.
+ * Animation follows Ferni's Pixar-inspired character animation principles:
+ * - Anticipation → Action → Follow-through
+ * - Spring easing for playful bounce
+ * - Ambient breathing for life
+ */
+function addChristmasTreeDecoration(): void {
+  // Import animation constants inline to avoid circular deps
+  const EASING_SPRING = 'cubic-bezier(0.34, 1.56, 0.64, 1)';
+  const EASING_ANTICIPATE = 'cubic-bezier(0.38, -0.4, 0.88, 0.65)';
+  const EASING_GENTLE = 'cubic-bezier(0.25, 0.1, 0.25, 1)';
+  const DURATION_CELEBRATION = 800; // Ferni DURATION.CELEBRATION
+  
+  // Wait for avatar to be available
+  const tryAddDecoration = (): void => {
+    const avatar = document.getElementById('coachAvatar');
+    if (!avatar) {
+      // Retry after a short delay if avatar not ready
+      trackedTimeout(tryAddDecoration, 100);
+      return;
+    }
+    
+    // Check if decoration already exists
+    if (avatar.querySelector('.santa-hat-decoration')) return;
+    
+    // Create decoration container
+    const decoration = document.createElement('div');
+    decoration.className = 'santa-hat-decoration';
+    decoration.setAttribute('aria-hidden', 'true');
+    
+    // SVG Santa Hat - designed so avatar circle fits INSIDE the hat
+    // Fur band is an arc that wraps around the top of the avatar
+    // @design-tokens-ignore - Traditional holiday decoration colors (red/white Christmas theme)
+    decoration.innerHTML = `
+      <svg viewBox="0 0 150 90" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <!-- Main hat cone + droopy tip as single closed shape to prevent gaps -->
+        <path d="M25 75 
+                 Q30 50, 50 30
+                 Q65 18, 80 22
+                 Q92 26, 98 38
+                 Q115 28, 130 35
+                 Q142 44, 135 56
+                 Q130 64, 120 68
+                 L120 75
+                 Q75 73, 25 75
+                 Z" 
+              fill="#c41e3a" stroke="#a01830" stroke-width="1"/>
+        
+        <!-- Hat highlight on main cone -->
+        <path d="M35 68 Q40 45, 55 32 Q50 48, 38 65Z" 
+              fill="rgba(255,255,255,0.15)"/>
+        
+        <!-- Tip shine -->
+        <path d="M102 40 Q118 30, 132 38 Q120 40, 105 46Z" 
+              fill="rgba(255,255,255,0.12)"/>
+        
+        <!-- Fur trim band - arc shape that wraps around avatar's head -->
+        <!-- This curves DOWN on the sides to look like it wraps around -->
+        <path d="M10 72
+                 Q10 65, 20 68
+                 Q40 60, 75 58
+                 Q110 60, 130 68
+                 Q140 65, 140 72
+                 Q140 82, 130 85
+                 Q110 90, 75 90
+                 Q40 90, 20 85
+                 Q10 82, 10 72Z" 
+              fill="#fff" stroke="#e8e0d8" stroke-width="0.5"/>
+        
+        <!-- Fur fluff texture -->
+        <path d="M25 74 Q32 68, 40 74" stroke="#ddd5cd" stroke-width="1.2" fill="none" stroke-linecap="round"/>
+        <path d="M55 70 Q65 63, 75 70" stroke="#ddd5cd" stroke-width="1.2" fill="none" stroke-linecap="round"/>
+        <path d="M90 70 Q100 63, 110 70" stroke="#ddd5cd" stroke-width="1.2" fill="none" stroke-linecap="round"/>
+        <path d="M120 74 Q127 68, 134 74" stroke="#ddd5cd" stroke-width="1.2" fill="none" stroke-linecap="round"/>
+        
+        <!-- Pompom -->
+        <g class="pompom-group">
+          <circle cx="128" cy="52" r="11" fill="#fff" stroke="#e8e0d8" stroke-width="0.5"/>
+          <circle cx="124" cy="48" r="3" fill="#f8f5f2" opacity="0.9"/>
+          <circle cx="132" cy="55" r="2" fill="#f0ebe6" opacity="0.7"/>
+        </g>
+      </svg>
+    `;
+    
+    avatar.appendChild(decoration);
+    
+    // Check for reduced motion preference
+    const prefersReducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    
+    if (prefersReducedMotion) {
+      // Simple fade in for reduced motion
+      decoration.animate(
+        [{ opacity: 0 }, { opacity: 1 }],
+        { duration: 200, fill: 'forwards' }
+      );
+      return;
+    }
+    
+    // Ferni character animation: Anticipation → Action → Follow-through
+    requestAnimationFrame(() => {
+      // Phase 1: Anticipation (15% of duration) - hat rises slightly, tilts back
+      const anticipation = decoration.animate(
+        [
+          { transform: 'translateX(-50%) rotate(-12deg) translateY(-25px) scale(0.6)', opacity: 0 },
+          { transform: 'translateX(-50%) rotate(-5deg) translateY(-35px) scale(0.95)', opacity: 0.8 }
+        ],
+        {
+          duration: DURATION_CELEBRATION * 0.15,
+          easing: EASING_ANTICIPATE,
+          fill: 'forwards'
+        }
+      );
+      
+      anticipation.onfinish = () => {
+        // Phase 2: Action (55% of duration) - hat drops down with spring overshoot
+        const action = decoration.animate(
+          [
+            { transform: 'translateX(-50%) rotate(-5deg) translateY(-35px) scale(0.95)', opacity: 0.8 },
+            { transform: 'translateX(-50%) rotate(-15deg) translateY(4px) scale(1.02)', opacity: 1 }
+          ],
+          {
+            duration: DURATION_CELEBRATION * 0.55,
+            easing: EASING_SPRING,
+            fill: 'forwards'
+          }
+        );
+        
+        action.onfinish = () => {
+          // Phase 3: Follow-through (30% of duration) - settle into final position
+          decoration.animate(
+            [
+              { transform: 'translateX(-50%) rotate(-15deg) translateY(4px) scale(1.02)' },
+              { transform: 'translateX(-50%) rotate(-10deg) translateY(-2px) scale(0.99)' },
+              { transform: 'translateX(-50%) rotate(-12deg) translateY(0) scale(1)' }
+            ],
+            {
+              duration: DURATION_CELEBRATION * 0.30,
+              easing: EASING_GENTLE,
+              fill: 'forwards'
+            }
+          );
+        };
+      };
+    });
+  };
+  
+  tryAddDecoration();
 }
 
 /**
@@ -537,6 +705,7 @@ export function getCurrentTimeOfDay(): TimeOfDay {
  * Check if it's a holiday.
  */
 export function isHoliday(): boolean {
+  if (!HOLIDAY_THEMES_ENABLED) return false;
   return detectHoliday() !== null;
 }
 
@@ -544,6 +713,7 @@ export function isHoliday(): boolean {
  * Get current holiday.
  */
 export function getCurrentHoliday(): Holiday {
+  if (!HOLIDAY_THEMES_ENABLED) return null;
   return detectHoliday();
 }
 

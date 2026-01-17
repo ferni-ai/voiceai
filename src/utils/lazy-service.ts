@@ -16,6 +16,10 @@
  *   - Better tree-shaking (dynamic imports are separate chunks)
  */
 
+import { createLogger } from './safe-logger.js';
+
+const log = createLogger({ module: 'lazy-service' });
+
 type ServiceLoader<T> = () => Promise<T>;
 
 interface LazyServiceOptions {
@@ -43,11 +47,11 @@ export function lazyService<T>(
   if (preloadDelay > 0) {
     setTimeout(() => {
       if (!cachedService && !loadingPromise) {
-        if (debug) console.log(`[lazy-service] Preloading ${name}...`);
+        if (debug) log.debug({ name }, 'Preloading service...');
         loadingPromise = loader().then((service) => {
           cachedService = service;
           loadingPromise = null;
-          if (debug) console.log(`[lazy-service] Preloaded ${name}`);
+          if (debug) log.debug({ name }, 'Preloaded service');
           return service;
         });
       }
@@ -66,7 +70,7 @@ export function lazyService<T>(
     }
 
     // Load the service
-    if (debug) console.log(`[lazy-service] Loading ${name}...`);
+    if (debug) log.debug({ name }, 'Loading service...');
     const startTime = Date.now();
 
     loadingPromise = loader().then((service) => {
@@ -74,7 +78,7 @@ export function lazyService<T>(
       loadingPromise = null;
       if (debug) {
         const duration = Date.now() - startTime;
-        console.log(`[lazy-service] Loaded ${name} in ${duration}ms`);
+        log.debug({ name, duration }, 'Loaded service');
       }
       return service;
     });
@@ -83,76 +87,8 @@ export function lazyService<T>(
   };
 }
 
-/**
- * Lazy services registry for heavy/rarely-used services
- *
- * These services are loaded on-demand instead of at startup:
- * - Landing Intelligence (Gemini-powered, only used for marketing)
- * - Scientific Knowledge (large knowledge base)
- * - Predictive Insights (ML models)
- * - Wisdom Synthesis (complex aggregation)
- */
-export const lazyServices = {
-  /**
-   * Landing page optimization with Gemini
-   * Only used when someone visits the marketing site
-   */
-  landingIntelligence: lazyService(
-    async () => import('../services/landing-intelligence/index.js'),
-    {
-      name: 'landing-intelligence',
-      preloadDelay: 30000,
-    }
-  ),
+// NOTE: The lazyServices registry has been moved to src/services/lazy-registry.ts
+// to follow proper architecture (business logic belongs in services layer).
+// Use: services/lazy-registry.ts → lazyServices
 
-  /**
-   * Scientific knowledge base
-   * Only used for research-related queries
-   */
-  scientificKnowledge: lazyService(
-    async () => import('../services/scientific-knowledge/index.js'),
-    {
-      name: 'scientific-knowledge',
-    }
-  ),
-
-  /**
-   * Predictive insights engine
-   * Only used for analytics dashboards
-   */
-  predictiveInsights: lazyService(async () => import('../services/predictive-insights/index.js'), {
-    name: 'predictive-insights',
-  }),
-
-  /**
-   * Wisdom synthesis service
-   * Only used for wisdom aggregation jobs
-   */
-  wisdomSynthesis: lazyService(async () => import('../services/wisdom-synthesis/index.js'), {
-    name: 'wisdom-synthesis',
-  }),
-
-  /**
-   * Behavioral economics patterns
-   * Only used for nudge recommendations
-   */
-  behavioralEconomics: lazyService(
-    async () => import('../services/behavioral-economics/index.js'),
-    {
-      name: 'behavioral-economics',
-    }
-  ),
-
-  /**
-   * Somatic intelligence (body awareness)
-   * Only used for wellness coaching
-   */
-  somaticIntelligence: lazyService(
-    async () => import('../services/somatic-intelligence/index.js'),
-    {
-      name: 'somatic-intelligence',
-    }
-  ),
-};
-
-export type LazyServices = typeof lazyServices;
+export type { LazyServiceOptions };

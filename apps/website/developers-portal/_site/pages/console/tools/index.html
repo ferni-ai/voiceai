@@ -1,0 +1,700 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="cedar">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Custom Tools - Developer Console | Ferni Developers</title>
+  <meta name="description" content="Register and manage custom tools for your agents">
+
+  <!-- Fonts: Plus Jakarta Sans (display), Inter (body), JetBrains Mono (code) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23d4a84a' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='4 17 10 11 4 5'/><line x1='12' x2='20' y1='19' y2='19'/></svg>">
+
+  <!-- Open Graph -->
+  <meta property="og:title" content="Custom Tools - Developer Console | Ferni Developers">
+  <meta property="og:description" content="Register and manage custom tools for your agents">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://developers.ferni.ai/pages/console/tools/">
+
+  <!-- Styles -->
+  <link rel="stylesheet" href="/css/tokens.css">
+  <link rel="stylesheet" href="/css/components.css">
+  
+</head>
+<body>
+  <nav class="nav">
+  <div class="nav-inner">
+    <a href="/" class="nav-logo">
+      <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="16" cy="16" r="14" fill="var(--accent-primary)"/>
+        <path d="M10 12h12M10 16h8M10 20h10" stroke="var(--bg-code)" stroke-width="2" stroke-linecap="round"/>
+      </svg>
+      <span>Ferni</span>
+      <span class="nav-badge">Developers</span>
+    </a>
+    
+    <ul class="nav-links">
+      <li><a href="/getting-started/" >Getting Started</a></li>
+      <li><a href="/api/" >API Reference</a></li>
+      <li><a href="/sdk/" >SDK</a></li>
+      <li><a href="/examples/" >Examples</a></li>
+    </ul>
+    
+    <div class="nav-cta">
+      <a href="https://github.com/ferni-ai" class="btn btn-ghost" target="_blank" rel="noopener">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+        </svg>
+        GitHub
+      </a>
+      <a href="/console/" class="btn btn-primary">Console</a>
+    </div>
+  </div>
+</nav>
+
+
+  <main>
+    
+<section class="hero" style="padding-bottom: var(--space-12);">
+  <div class="container">
+    <div class="hero-eyebrow">Developer Console</div>
+    <h1>Custom <span class="accent">Tools</span></h1>
+    <p class="hero-subtitle">
+      Register custom tools that your agents can use via webhooks, MCP servers, or LLM prompts.
+    </p>
+  </div>
+</section>
+
+<!-- Authentication Gate -->
+<section id="auth-gate" class="section" style="padding-top: var(--space-8); padding-bottom: var(--space-8);">
+  <div class="container container-narrow">
+    <div style="background: var(--bg-elevated); border: 1px solid var(--border-medium); border-radius: var(--radius-2xl); padding: var(--space-12); text-align: center;">
+      <p style="color: var(--text-secondary);">Please sign in to manage your custom tools.</p>
+      <a href="/console/" class="btn btn-primary" style="margin-top: var(--space-4);">Go to Console</a>
+    </div>
+  </div>
+</section>
+
+<!-- Dashboard (shown after authentication) -->
+<section id="dashboard" class="section" style="background: var(--bg-secondary); padding-top: var(--space-16); display: none;">
+  <div class="container">
+    <!-- Header with back button -->
+    <div style="display: flex; align-items: center; gap: var(--space-4); margin-bottom: var(--space-8);">
+      <a href="/console/" class="btn btn-ghost" style="padding: var(--space-2);">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M19 12H5M12 19l-7-7 7-7"/>
+        </svg>
+      </a>
+      <div style="flex: 1;">
+        <h2 style="margin: 0;">Custom Tools</h2>
+        <p style="color: var(--text-secondary); margin: 0;">Extend agent capabilities with custom tools</p>
+      </div>
+      <button id="create-tool-btn" class="btn btn-primary">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="12" y1="5" x2="12" y2="19"/>
+          <line x1="5" y1="12" x2="19" y2="12"/>
+        </svg>
+        Add Tool
+      </button>
+    </div>
+
+    <!-- Tools list -->
+    <div id="tools-list">
+      <div class="loading-state">Loading your custom tools...</div>
+    </div>
+  </div>
+</section>
+
+<!-- Create/Edit Modal -->
+<div id="tool-modal" class="modal-overlay" style="display: none;">
+  <div class="modal" style="max-width: 700px;">
+    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-6);">
+      <h3 id="modal-title" style="margin: 0;">Add Custom Tool</h3>
+      <button id="close-modal-btn" class="btn btn-ghost" style="padding: var(--space-2);">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="18" y1="6" x2="6" y2="18"/>
+          <line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+      </button>
+    </div>
+
+    <form id="tool-form">
+      <input type="hidden" id="tool-id" name="id">
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-4);">
+        <div class="form-group">
+          <label for="tool-name">Tool Name (kebab-case)</label>
+          <input type="text" id="tool-name" name="name" required placeholder="my-custom-tool" pattern="[a-z0-9-]+">
+        </div>
+
+        <div class="form-group">
+          <label for="tool-display-name">Display Name</label>
+          <input type="text" id="tool-display-name" name="displayName" required placeholder="My Custom Tool">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="tool-description">Description</label>
+        <textarea id="tool-description" name="description" rows="2" placeholder="What does this tool do?"></textarea>
+      </div>
+
+      <div class="form-group">
+        <label for="tool-llm-description">LLM Description</label>
+        <textarea id="tool-llm-description" name="llmDescription" rows="2" placeholder="Description for the LLM to understand when to use this tool"></textarea>
+        <small style="color: var(--text-muted);">This helps the AI decide when to use your tool.</small>
+      </div>
+
+      <div class="form-group">
+        <label for="tool-execution-type">Execution Type</label>
+        <select id="tool-execution-type" name="executionType" required>
+          <option value="webhook">Webhook (HTTP call)</option>
+          <option value="mcp">MCP Server Tool</option>
+          <option value="prompt">LLM Prompt</option>
+        </select>
+      </div>
+
+      <!-- Webhook fields -->
+      <div id="webhook-fields">
+        <div class="form-group">
+          <label for="tool-url">Webhook URL</label>
+          <input type="url" id="tool-url" name="url" placeholder="https://your-api.com/tool">
+        </div>
+        <div class="form-group">
+          <label for="tool-method">HTTP Method</label>
+          <select id="tool-method" name="method">
+            <option value="POST">POST</option>
+            <option value="GET">GET</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- MCP fields -->
+      <div id="mcp-fields" style="display: none;">
+        <div class="form-group">
+          <label for="tool-server-id">MCP Server</label>
+          <select id="tool-server-id" name="serverId">
+            <option value="">Select a server...</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="tool-mcp-tool">MCP Tool Name</label>
+          <input type="text" id="tool-mcp-tool" name="mcpToolName" placeholder="tool-name-on-server">
+        </div>
+      </div>
+
+      <!-- Prompt fields -->
+      <div id="prompt-fields" style="display: none;">
+        <div class="form-group">
+          <label for="tool-prompt">Prompt Template</label>
+          <textarea id="tool-prompt" name="prompt" rows="4" placeholder="The prompt to execute when this tool is called. Use  for user input."></textarea>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="tool-parameters">Parameters Schema (JSON)</label>
+        <textarea id="tool-parameters" name="parameters" rows="4" placeholder='{"type": "object", "properties": {"query": {"type": "string"}}}'></textarea>
+        <small style="color: var(--text-muted);">JSON Schema defining the tool's input parameters.</small>
+      </div>
+
+      <div class="form-group">
+        <label style="display: flex; align-items: center; gap: var(--space-2); cursor: pointer;">
+          <input type="checkbox" id="tool-enabled" name="enabled" checked>
+          <span>Enabled</span>
+        </label>
+      </div>
+
+      <div style="display: flex; gap: var(--space-3); margin-top: var(--space-8);">
+        <button type="submit" class="btn btn-primary" style="flex: 1;">Save Tool</button>
+        <button type="button" id="cancel-btn" class="btn btn-secondary">Cancel</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<style>
+  .tool-card {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-xl);
+    padding: var(--space-6);
+    margin-bottom: var(--space-4);
+    display: flex;
+    align-items: center;
+    gap: var(--space-4);
+  }
+  .tool-icon {
+    width: 48px;
+    height: 48px;
+    background: var(--accent-subtle);
+    border-radius: var(--radius-lg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--accent-primary);
+    flex-shrink: 0;
+  }
+  .tool-info {
+    flex: 1;
+    min-width: 0;
+  }
+  .tool-info h4 {
+    margin: 0 0 var(--space-1) 0;
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+  }
+  .tool-info p {
+    margin: 0;
+    color: var(--text-secondary);
+    font-size: var(--text-sm);
+  }
+  .tool-meta {
+    font-size: var(--text-xs);
+    color: var(--text-muted);
+    margin-top: var(--space-2);
+  }
+  .tool-actions {
+    display: flex;
+    gap: var(--space-2);
+  }
+  .status-badge {
+    font-size: var(--text-xs);
+    font-weight: 600;
+    padding: var(--space-1) var(--space-2);
+    border-radius: var(--radius-sm);
+  }
+  .status-active {
+    background: var(--success);
+    color: white;
+  }
+  .status-disabled {
+    background: var(--bg-code);
+    color: var(--text-muted);
+  }
+  .type-badge {
+    font-size: var(--text-xs);
+    font-weight: 500;
+    padding: var(--space-1) var(--space-2);
+    border-radius: var(--radius-sm);
+    background: var(--bg-code);
+    color: var(--text-secondary);
+  }
+  .form-group {
+    margin-bottom: var(--space-4);
+  }
+  .form-group label {
+    display: block;
+    margin-bottom: var(--space-2);
+    font-weight: 500;
+  }
+  .form-group input, .form-group select, .form-group textarea {
+    width: 100%;
+    padding: var(--space-3);
+    border: 1px solid var(--border-medium);
+    border-radius: var(--radius-md);
+    background: var(--bg-primary);
+    font-size: var(--text-base);
+    font-family: inherit;
+  }
+  .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+    outline: none;
+    border-color: var(--accent-primary);
+  }
+  .form-group small {
+    display: block;
+    margin-top: var(--space-1);
+  }
+  .empty-state, .loading-state, .error-state {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-xl);
+    padding: var(--space-12);
+    text-align: center;
+    color: var(--text-muted);
+  }
+  .error-state {
+    border-color: var(--error);
+    color: var(--error);
+  }
+</style>
+
+<script src="/js/console-auth.js"></script>
+<script src="/js/developer-platform-v2.js"></script>
+<script>
+  // State
+  let currentTools = [];
+  let mcpServers = [];
+
+  // Show dashboard when authenticated
+  window.addEventListener('load', () => {
+    setTimeout(async () => {
+      const token = await window.getIdToken?.();
+      if (token) {
+        document.getElementById('auth-gate').style.display = 'none';
+        document.getElementById('dashboard').style.display = 'block';
+        loadTools();
+        loadMCPServers();
+      }
+    }, 1000);
+  });
+
+  // Load tools
+  async function loadTools() {
+    const container = document.getElementById('tools-list');
+    showLoading(container);
+
+    try {
+      const response = await window.customTools.list();
+      currentTools = response.data || [];
+      renderTools(currentTools);
+    } catch (error) {
+      showError(container, 'Failed to load tools: ' + error.message);
+    }
+  }
+
+  // Load MCP servers for dropdown
+  async function loadMCPServers() {
+    try {
+      const response = await window.mcpServers.list();
+      mcpServers = response.data || [];
+      populateMCPServerDropdown();
+    } catch (error) {
+      console.error('Failed to load MCP servers:', error);
+    }
+  }
+
+  function populateMCPServerDropdown() {
+    const select = document.getElementById('tool-server-id');
+    select.textContent = '';
+
+    const defaultOpt = document.createElement('option');
+    defaultOpt.value = '';
+    defaultOpt.textContent = 'Select a server...';
+    select.appendChild(defaultOpt);
+
+    mcpServers.forEach(server => {
+      const opt = document.createElement('option');
+      opt.value = server.id;
+      opt.textContent = server.name;
+      select.appendChild(opt);
+    });
+  }
+
+  // Render tools list
+  function renderTools(tools) {
+    const container = document.getElementById('tools-list');
+    container.textContent = '';
+
+    if (!tools || tools.length === 0) {
+      container.appendChild(createEmptyState(
+        'No custom tools registered yet. Add one to extend your agent capabilities.',
+        'Add Your First Tool',
+        openCreateModal
+      ));
+      return;
+    }
+
+    tools.forEach(tool => {
+      container.appendChild(createToolCard(tool));
+    });
+  }
+
+  // Create tool card
+  function createToolCard(tool) {
+    const card = document.createElement('div');
+    card.className = 'tool-card';
+
+    // Icon
+    const icon = document.createElement('div');
+    icon.className = 'tool-icon';
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('width', '24');
+    svg.setAttribute('height', '24');
+    svg.setAttribute('viewBox', '0 0 24 24');
+    svg.setAttribute('fill', 'none');
+    svg.setAttribute('stroke', 'currentColor');
+    svg.setAttribute('stroke-width', '2');
+    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    path.setAttribute('d', 'M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z');
+    svg.appendChild(path);
+    icon.appendChild(svg);
+    card.appendChild(icon);
+
+    // Info
+    const info = document.createElement('div');
+    info.className = 'tool-info';
+
+    const header = document.createElement('h4');
+    header.textContent = tool.displayName || tool.name;
+
+    const badge = createStatusBadge(tool.enabled ? 'active' : 'disabled');
+    header.appendChild(badge);
+
+    const typeBadge = document.createElement('span');
+    typeBadge.className = 'type-badge';
+    typeBadge.textContent = tool.executionType || 'webhook';
+    header.appendChild(typeBadge);
+
+    info.appendChild(header);
+
+    if (tool.description) {
+      const desc = document.createElement('p');
+      desc.textContent = tool.description;
+      info.appendChild(desc);
+    }
+
+    const meta = document.createElement('div');
+    meta.className = 'tool-meta';
+    meta.textContent = tool.name + ' • ' + (tool.callCount || 0) + ' calls • Updated: ' + formatTimestamp(tool.updatedAt);
+    info.appendChild(meta);
+
+    card.appendChild(info);
+
+    // Actions
+    const actions = document.createElement('div');
+    actions.className = 'tool-actions';
+
+    const testBtn = document.createElement('button');
+    testBtn.className = 'btn btn-ghost';
+    testBtn.textContent = 'Test';
+    testBtn.addEventListener('click', () => testTool(tool.id));
+    actions.appendChild(testBtn);
+
+    const editBtn = document.createElement('button');
+    editBtn.className = 'btn btn-ghost';
+    editBtn.textContent = 'Edit';
+    editBtn.addEventListener('click', () => openEditModal(tool));
+    actions.appendChild(editBtn);
+
+    const deleteBtn = document.createElement('button');
+    deleteBtn.className = 'btn btn-ghost btn-danger';
+    deleteBtn.textContent = 'Delete';
+    deleteBtn.addEventListener('click', () => deleteTool(tool.id, tool.displayName || tool.name));
+    actions.appendChild(deleteBtn);
+
+    card.appendChild(actions);
+
+    return card;
+  }
+
+  // Modal functions
+  function openCreateModal() {
+    document.getElementById('modal-title').textContent = 'Add Custom Tool';
+    document.getElementById('tool-form').reset();
+    document.getElementById('tool-id').value = '';
+    document.getElementById('tool-modal').style.display = 'flex';
+    updateExecutionTypeFields();
+  }
+
+  function openEditModal(tool) {
+    document.getElementById('modal-title').textContent = 'Edit Custom Tool';
+    document.getElementById('tool-id').value = tool.id;
+    document.getElementById('tool-name').value = tool.name || '';
+    document.getElementById('tool-display-name').value = tool.displayName || '';
+    document.getElementById('tool-description').value = tool.description || '';
+    document.getElementById('tool-llm-description').value = tool.llmDescription || '';
+    document.getElementById('tool-execution-type').value = tool.executionType || 'webhook';
+    document.getElementById('tool-url').value = tool.config?.url || '';
+    document.getElementById('tool-method').value = tool.config?.method || 'POST';
+    document.getElementById('tool-server-id').value = tool.config?.serverId || '';
+    document.getElementById('tool-mcp-tool').value = tool.config?.toolName || '';
+    document.getElementById('tool-prompt').value = tool.config?.prompt || '';
+    document.getElementById('tool-parameters').value = tool.parameters ? JSON.stringify(tool.parameters, null, 2) : '';
+    document.getElementById('tool-enabled').checked = tool.enabled !== false;
+    document.getElementById('tool-modal').style.display = 'flex';
+    updateExecutionTypeFields();
+  }
+
+  function closeModal() {
+    document.getElementById('tool-modal').style.display = 'none';
+  }
+
+  function updateExecutionTypeFields() {
+    const type = document.getElementById('tool-execution-type').value;
+    document.getElementById('webhook-fields').style.display = type === 'webhook' ? 'block' : 'none';
+    document.getElementById('mcp-fields').style.display = type === 'mcp' ? 'block' : 'none';
+    document.getElementById('prompt-fields').style.display = type === 'prompt' ? 'block' : 'none';
+  }
+
+  // Tool operations
+  async function saveTool(event) {
+    event.preventDefault();
+    const form = event.target;
+    const id = form.id.value;
+
+    const data = {
+      name: form.name.value,
+      displayName: form.displayName.value,
+      description: form.description.value,
+      llmDescription: form.llmDescription.value,
+      executionType: form.executionType.value,
+      enabled: form.enabled.checked,
+      config: {},
+    };
+
+    if (data.executionType === 'webhook') {
+      data.config = {
+        url: form.url.value,
+        method: form.method.value,
+      };
+    } else if (data.executionType === 'mcp') {
+      data.config = {
+        serverId: form.serverId.value,
+        toolName: form.mcpToolName.value,
+      };
+    } else if (data.executionType === 'prompt') {
+      data.config = {
+        prompt: form.prompt.value,
+      };
+    }
+
+    // Parse parameters JSON
+    if (form.parameters.value) {
+      try {
+        data.parameters = JSON.parse(form.parameters.value);
+      } catch (e) {
+        showToast('Invalid JSON in parameters schema', 'error');
+        return;
+      }
+    }
+
+    try {
+      if (id) {
+        await window.customTools.update(id, data);
+        showToast('Tool updated', 'success');
+      } else {
+        await window.customTools.create(data);
+        showToast('Tool created', 'success');
+      }
+      closeModal();
+      loadTools();
+    } catch (error) {
+      showToast('Failed to save: ' + error.message, 'error');
+    }
+  }
+
+  async function testTool(id) {
+    try {
+      showToast('Testing tool...', 'info');
+      const result = await window.customTools.test(id);
+      if (result.data?.success) {
+        showToast('Tool test successful!', 'success');
+      } else {
+        showToast('Tool test failed: ' + (result.data?.error || 'Unknown error'), 'error');
+      }
+    } catch (error) {
+      showToast('Test failed: ' + error.message, 'error');
+    }
+  }
+
+  async function deleteTool(id, name) {
+    if (!confirm('Are you sure you want to delete "' + name + '"? This cannot be undone.')) {
+      return;
+    }
+
+    try {
+      await window.customTools.delete(id);
+      showToast('Tool deleted', 'success');
+      loadTools();
+    } catch (error) {
+      showToast('Failed to delete: ' + error.message, 'error');
+    }
+  }
+
+  // Event listeners
+  document.getElementById('create-tool-btn').addEventListener('click', openCreateModal);
+  document.getElementById('close-modal-btn').addEventListener('click', closeModal);
+  document.getElementById('cancel-btn').addEventListener('click', closeModal);
+  document.getElementById('tool-form').addEventListener('submit', saveTool);
+  document.getElementById('tool-execution-type').addEventListener('change', updateExecutionTypeFields);
+</script>
+
+  </main>
+
+  <footer class="footer">
+  <div class="container">
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <a href="/" class="nav-logo">
+          <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="16" cy="16" r="14" fill="var(--accent-primary)"/>
+            <path d="M10 12h12M10 16h8M10 20h10" stroke="var(--bg-code)" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+          <span>Ferni Developers</span>
+        </a>
+        <p>Build voice AI agents with the same platform that powers Ferni's AI life coaching team.</p>
+      </div>
+      
+      <div class="footer-column">
+        <h4>Documentation</h4>
+        <ul class="footer-links">
+          <li><a href="/getting-started/">Getting Started</a></li>
+          <li><a href="/api/">API Reference</a></li>
+          <li><a href="/sdk/">SDK</a></li>
+          <li><a href="/examples/">Examples</a></li>
+        </ul>
+      </div>
+      
+      <div class="footer-column">
+        <h4>Resources</h4>
+        <ul class="footer-links">
+          <li><a href="/console/">Developer Console</a></li>
+          <li><a href="https://github.com/ferni-ai">GitHub</a></li>
+          <li><a href="https://discord.gg/ferni">Discord Community</a></li>
+        </ul>
+      </div>
+      
+      <div class="footer-column">
+        <h4>Company</h4>
+        <ul class="footer-links">
+          <li><a href="https://ferni.ai">Ferni.ai</a></li>
+          <li><a href="https://marketplace.ferni.ai">Marketplace</a></li>
+          <li><a href="https://ferni.ai/privacy">Privacy</a></li>
+          <li><a href="https://ferni.ai/terms">Terms</a></li>
+        </ul>
+      </div>
+    </div>
+    
+    <div class="footer-bottom">
+      <p>&copy; 2026 Ferni AI. All rights reserved.</p>
+      <p>API Status: <span style="color: var(--success);">●</span> Operational</p>
+    </div>
+  </div>
+</footer>
+
+
+  <!-- Theme Toggle Button -->
+  <button class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle theme">
+    <svg class="sun-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <circle cx="12" cy="12" r="5"/>
+      <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+    </svg>
+    <svg class="moon-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+    </svg>
+  </button>
+
+  <script>
+    // Theme toggle
+    function toggleTheme() {
+      const html = document.documentElement;
+      const current = html.getAttribute('data-theme');
+      const next = current === 'cedar' ? 'zen' : 'cedar';
+      html.setAttribute('data-theme', next);
+      localStorage.setItem('ferni-theme', next);
+    }
+
+    // Load saved theme
+    const saved = localStorage.getItem('ferni-theme');
+    if (saved) {
+      document.documentElement.setAttribute('data-theme', saved);
+    }
+  </script>
+
+  
+</body>
+</html>

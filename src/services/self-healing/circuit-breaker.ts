@@ -60,7 +60,7 @@ async function initializeIntegrations(): Promise<void> {
 
 // Trigger initialization (non-blocking)
 initializeIntegrations().catch((err) => {
-  log.debug({ error: String(err) }, 'Circuit breaker integrations init failed (non-critical)');
+  log.warn({ error: String(err) }, 'Circuit breaker integrations init failed (non-critical)');
 });
 
 export type CircuitState = 'closed' | 'open' | 'half_open';

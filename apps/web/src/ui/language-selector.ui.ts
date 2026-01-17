@@ -17,13 +17,27 @@ import {
 } from '../i18n/index.js';
 
 // Track setTimeout calls for memory leak prevention
-const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
+const { trackedTimeout } = createTimeoutTracker();
+
+// Default locale info for fallback (English US)
+const DEFAULT_LOCALE: LocaleInfo = {
+  code: 'en-US',
+  name: 'English (US)',
+  nativeName: 'English',
+  flag: '🇺🇸',
+  direction: 'ltr',
+};
+
+/** Get locale info with guaranteed fallback */
+function getLocaleInfo(code: SupportedLocale): LocaleInfo {
+  return SUPPORTED_LOCALES.find((l) => l.code === code) ?? DEFAULT_LOCALE;
+}
 
 // ============================================================================
 // STATE
 // ============================================================================
 
-let selectorElement: HTMLElement | null = null;
+let _selectorElement: HTMLElement | null = null;
 let isOpen = false;
 
 // ============================================================================
@@ -39,7 +53,7 @@ export function createLanguageSelector(): HTMLElement {
   container.setAttribute('data-lang-selector', '');
 
   const currentLocale = getLocale();
-  const currentLocaleInfo = SUPPORTED_LOCALES.find((l) => l.code === currentLocale) || SUPPORTED_LOCALES[0];
+  const currentLocaleInfo = getLocaleInfo(currentLocale);
 
   container.innerHTML = `
     <button
@@ -80,7 +94,7 @@ export function createLanguageSelector(): HTMLElement {
   // Set up event handlers
   setupEventHandlers(container);
 
-  selectorElement = container;
+  _selectorElement = container;
   return container;
 }
 
@@ -173,7 +187,7 @@ function toggleDropdown(container: HTMLElement, trigger: HTMLButtonElement, open
  * Update the display when locale changes
  */
 function updateDisplay(container: HTMLElement, locale: SupportedLocale): void {
-  const localeInfo = SUPPORTED_LOCALES.find((l) => l.code === locale) || SUPPORTED_LOCALES[0];
+  const localeInfo = getLocaleInfo(locale);
 
   // Update trigger
   const trigger = container.querySelector('.lang-selector-trigger');
@@ -228,7 +242,7 @@ function addStyles(): void {
       color: inherit;
       font-size: 0.875rem;
       cursor: pointer;
-      transition: all 0.2s ease;
+      transition: transform 0.2s ease, opacity 0.2s ease;
     }
 
     .lang-selector-trigger:hover {
@@ -265,20 +279,20 @@ function addStyles(): void {
       top: 100%;
       right: 0;
       margin-top: 0.5rem;
-      min-width: 180px;
+      min-width: min(180px, 100%);
       max-height: 300px;
       overflow-y: auto;
       padding: 0.5rem 0;
-      background: var(--bg-elevated, #1a1a2e);
-      border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.1));
+      background: var(--color-bg-elevated);
+      border: 1px solid var(--color-border-subtle);
       border-radius: 0.75rem;
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+      box-shadow: var(--shadow-lg);
       list-style: none;
       opacity: 0;
       visibility: hidden;
       transform: translateY(-0.5rem);
-      transition: all 0.2s ease;
-      z-index: 1000;
+      transition: transform 0.2s ease, opacity 0.2s ease;
+      z-index: var(--z-dropdown);
     }
 
     /* RTL support */
@@ -361,7 +375,7 @@ export function createCompactLanguageSelector(): HTMLElement {
   container.setAttribute('data-lang-selector', '');
 
   const currentLocale = getLocale();
-  const currentLocaleInfo = SUPPORTED_LOCALES.find((l) => l.code === currentLocale) || SUPPORTED_LOCALES[0];
+  const currentLocaleInfo = getLocaleInfo(currentLocale);
 
   container.innerHTML = `
     <button

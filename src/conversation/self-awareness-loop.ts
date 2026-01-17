@@ -25,10 +25,13 @@
  */
 
 import { createLogger } from '../utils/safe-logger.js';
+// 🦀 Rust-accelerated word counting
+import { countWordsRust, isTokenCountingAvailable } from '../memory/rust-accelerator.js';
 import { recordSelfAwarenessAssessment, recordSelfAwarePrompt } from './awareness-metrics.js';
 import { getMomentumTracker, type MomentumState } from './momentum-tracker.js';
 
 const log = createLogger({ module: 'self-awareness' });
+const RUST_COUNTING_AVAILABLE = isTokenCountingAvailable();
 
 // ============================================================================
 // TYPES
@@ -388,7 +391,8 @@ export class SelfAwarenessTracker {
 
     const reaction: UserReaction = {
       turn: this.state.reactions.length + 1,
-      wordCount: userText.split(/\s+/).length,
+      // 🦀 Rust-accelerated word counting
+      wordCount: RUST_COUNTING_AVAILABLE ? countWordsRust(userText) : userText.split(/\s+/).length,
       emotionalChange: context.emotionalChange || 0,
       topicContinued: context.topicContinued ?? true,
       questionAsked: context.questionAsked ?? /\?/.test(userText),

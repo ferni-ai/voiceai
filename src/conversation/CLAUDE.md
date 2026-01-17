@@ -1,0 +1,237 @@
+# Conversation Module
+
+> **We believe in making AI human, and the decisions we make will reflect that.**
+
+The conversation module is the largest subsystem (~26,500 lines) - responsible for making AI conversations feel genuinely human through humanization, emotional tracking, and natural dialogue patterns.
+
+---
+
+## 🏗️ Clean Architecture Refactoring (January 2026)
+
+The conversation module has undergone comprehensive clean architecture refactoring. Large monolithic files have been split into focused, testable modules.
+
+### ✅ Completed Refactoring
+
+| Original File | Lines | Status | New Module | Files |
+|--------------|-------|--------|------------|-------|
+| `humanizer.ts` | 1,292 | ✅ Done | `humanizer/` | 6 files |
+| `concern-detection.ts` | 880 | ✅ Done | `concern-detection/` | 5 files |
+| `question-patterns.ts` | 822 | ✅ Done | `question-patterns/` | 5 files |
+| `temporal-context.ts` | 769 | ✅ Done | `temporal-context/` | 4 files |
+| `emotional-arc.ts` | 760 | ✅ Done | `emotional-arc/` | 3 files |
+| `speech-naturalizer.ts` | 741 | ✅ Done | `speech-naturalizer/` | 5 files |
+| `humanization/voice-agent-integration.ts` | 927 | ✅ Done | `humanization/voice-agent-integration/` | 10 files |
+| `superhuman/orchestrator.ts` | 962 | ✅ Done | `superhuman/orchestrator/` | 5 files |
+
+**Total refactored:** ~7,153 lines → 43 focused modules
+
+### 📋 Architecture Improvements Added
+
+- **`interfaces/index.ts`** - Clean DI interfaces for all engines
+  - `IConcernDetector`
+  - `IEmotionalArcTracker`
+  - `IQuestionPatternEngine`
+  - `ITemporalContextEngine`
+  - `ISpeechNaturalizer`
+  - `ISessionIntelligence`
+- **DI Tokens** - `ConversationTokens` for dependency injection
+- **Backward Compatibility** - All original imports continue to work via re-export files
+
+### Module Structure Pattern
+
+Each refactored module follows this pattern:
+```
+module-name/
+├── types.ts       # Type definitions
+├── [data].ts      # Static data (templates, patterns)
+├── engine.ts      # Main class implementation
+└── index.ts       # Re-exports + singleton/registry
+```
+
+Backward compatibility is maintained via re-export files.
+
+---
+
+## Architecture Level
+
+```
+Level 70: conversation/        ← THIS LAYER (Domain)
+         ↓ imports from
+Level 60: services/
+Level 30: memory/
+Level 10: config/, utils/, types/
+```
+
+**Import rules:** Conversation can import from services, memory, config, utils. It CANNOT import from agents/ or api/.
+
+---
+
+## Directory Structure
+
+```
+conversation/
+├── index.ts                          # Main exports + unified API docs
+├── humanizing-config.ts              # All humanization config
+│
+├── humanization/                     # 🎭 Core humanization (12K+ lines)
+│   ├── voice-agent-integration.ts    # Main integration point
+│   ├── breathing-sync.ts             # Breath synchronization
+│   ├── disfluency-injection.ts       # Natural speech patterns
+│   ├── phonetic-mirroring.ts         # Mirror user's speech
+│   ├── self-correction.ts            # "I mean..." patterns
+│   ├── vocal-fatigue.ts              # Energy modeling
+│   ├── emotional-leading.ts          # Guide emotional tone
+│   ├── comfort-progression.ts        # Trust building over time
+│   └── voice-pattern-learning.ts     # Learn user preferences
+│
+├── deep-humanization/                # 🧠 Advanced behaviors
+│   ├── mood-tracker.ts               # Track emotional state
+│   ├── behavior-loader.ts            # Load behavior configs
+│   └── generators/                   # Dynamic content generation
+│
+├── active-listening/                 # 👂 Listening behaviors
+│   └── (backchannels, mirroring, silence)
+│
+├── conversational-memory/            # 💭 Conversation threading
+│   └── (callbacks, commitments, context)
+│
+├── effects/                          # ✨ Audio/visual effects
+│
+├── eval/                             # 📊 Quality evaluation
+│
+└── __tests__/                        # Unit tests
+```
+
+---
+
+## Key Components
+
+| Component | File | Purpose |
+|-----------|------|---------|
+| **Unified Integration** | `unified-integration.ts` | Session-based API (recommended) |
+| **Voice Agent Integration** | `humanization/voice-agent-integration.ts` | Connect to voice agent |
+| **Humanizer** | `humanizer.ts` | Main humanization orchestrator |
+| **Mood Tracker** | `deep-humanization/mood-tracker.ts` | Emotional state tracking |
+| **Config** | `humanizing-config.ts` | All tunable parameters |
+
+---
+
+## Humanization Techniques
+
+The module implements 20+ humanization techniques:
+
+| Category | Techniques |
+|----------|------------|
+| **Speech Naturalization** | Disfluency injection, self-correction, hedging, filler words |
+| **Voice Patterns** | Breathing sync, vocal fatigue, prosody matching |
+| **Emotional** | Mood tracking, emotional leading, comfort progression |
+| **Listening** | Backchannels, mirroring, silence handling |
+| **Memory** | Callbacks, threading, commitments |
+
+---
+
+## Integration Pattern
+
+```typescript
+// ✅ CORRECT - Use unified session API
+import {
+  initConversationSession,
+  humanizeAgentResponse,
+  cleanupConversationSession,
+} from './agents/integrations/conversation-session-integration.js';
+
+// At session start
+await initConversationSession({
+  sessionId,
+  userId,
+  personaId,
+  voiceId,
+});
+
+// For each response
+const humanized = await humanizeAgentResponse(sessionId, rawResponse, {
+  emotionalContext,
+  turnCount,
+});
+
+// At session end
+await cleanupConversationSession(sessionId);
+```
+
+```typescript
+// ❌ WRONG - Don't instantiate components directly
+import { Humanizer } from './humanizer.js';
+const h = new Humanizer(); // No session context!
+```
+
+---
+
+## Configuration
+
+All tuning happens in `humanizing-config.ts`:
+
+```typescript
+export const HUMANIZATION_CONFIG = {
+  disfluency: {
+    frequency: 0.15,        // 15% of sentences get disfluencies
+    types: ['um', 'uh', 'like', 'you know'],
+  },
+  breathSync: {
+    enabled: true,
+    adaptationRate: 0.1,    // How fast to sync
+  },
+  vocalFatigue: {
+    enabled: true,
+    threshold: 300,         // seconds before fatigue shows
+  },
+};
+```
+
+---
+
+## Testing
+
+```bash
+# Run all conversation tests
+pnpm vitest run src/conversation/__tests__/
+
+# Run humanization tests
+pnpm vitest run src/conversation/humanization/__tests__/
+
+# Run deep-humanization tests
+pnpm vitest run src/conversation/deep-humanization/__tests__/
+```
+
+---
+
+## Rules
+
+| ✅ Do | ❌ Don't |
+|-------|---------|
+| Use unified session API | Instantiate components directly |
+| Configure via `humanizing-config.ts` | Hardcode values in components |
+| Clean up sessions on end | Leave sessions orphaned |
+| Use session-scoped state | Use global state |
+| Test with emotional context | Test in isolation |
+
+---
+
+## Performance Notes
+
+- Humanization adds ~5-15ms per response
+- Mood tracking is async (non-blocking)
+- Voice pattern learning persists to Firestore
+- Session cleanup is automatic via TTL
+
+---
+
+## Related Docs
+
+- `docs/architecture/HUMANIZATION-ARCHITECTURE.md` - Full architecture
+- `docs/features/VOICE-HUMANIZATION.md` - Feature spec
+- `src/agents/CLAUDE.md` - Voice agent integration
+- `design-system/docs/brand/BETTER-THAN-HUMAN.md` - EQ philosophy
+
+---
+
+*Last updated: January 2026*

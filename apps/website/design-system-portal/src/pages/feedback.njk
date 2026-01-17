@@ -1,0 +1,722 @@
+---
+layout: layouts/base.njk
+title: Feedback Patterns
+permalink: /feedback/
+---
+
+<div class="page-header">
+  <h1>Feedback Patterns</h1>
+  <p class="lead">Toast notifications, whispers, and status feedback patterns. Small, cute, centered pills that feel like gentle whispers—not interruptions.</p>
+</div>
+
+<section class="section" id="toast-philosophy">
+  <h2>Toast Philosophy</h2>
+
+  <div class="principles-grid">
+    <div class="principle">Bottom-center (never corners)</div>
+    <div class="principle">Pill-shaped (fully rounded)</div>
+    <div class="principle">Text only (no icons in standard toasts)</div>
+    <div class="principle">Quick timing (in and out fast)</div>
+    <div class="principle">Unobtrusive but noticeable</div>
+  </div>
+</section>
+
+<section class="section" id="toast-demo">
+  <h2>Toast Types</h2>
+
+  <div class="toast-demo-container">
+    <div class="demo-area">
+      <div class="demo-phone">
+        <div class="phone-screen">
+          <div class="demo-toast" id="demoToast">Saved!</div>
+        </div>
+        <div class="phone-nav"></div>
+      </div>
+    </div>
+
+    <div class="toast-controls">
+      <button class="toast-trigger" data-type="info" data-message="Just a moment...">Info Toast</button>
+      <button class="toast-trigger" data-type="success" data-message="Saved!">Success Toast</button>
+      <button class="toast-trigger" data-type="warning" data-message="Add a name first">Warning Toast</button>
+      <button class="toast-trigger" data-type="error" data-message="Couldn't connect. Try again?">Error Toast</button>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="toast-specs">
+  <h2>Toast Specifications</h2>
+
+  <div class="specs-grid">
+    <div class="spec-card">
+      <h4>Position</h4>
+      <ul>
+        <li><strong>Placement:</strong> bottom-center</li>
+        <li><strong>Bottom offset:</strong> 80px</li>
+        <li><strong>Max width:</strong> calc(100vw - 48px)</li>
+        <li><strong>Transform:</strong> translateX(-50%)</li>
+      </ul>
+    </div>
+    <div class="spec-card">
+      <h4>Shape</h4>
+      <ul>
+        <li><strong>Border radius:</strong> var(--radius-full)</li>
+        <li><strong>Padding V:</strong> var(--space-2)</li>
+        <li><strong>Padding H:</strong> var(--space-4)</li>
+      </ul>
+    </div>
+    <div class="spec-card">
+      <h4>Typography</h4>
+      <ul>
+        <li><strong>Font:</strong> var(--font-body)</li>
+        <li><strong>Size:</strong> 13px</li>
+        <li><strong>Weight:</strong> 500</li>
+        <li><strong>White space:</strong> nowrap</li>
+      </ul>
+    </div>
+    <div class="spec-card">
+      <h4>Elevation</h4>
+      <ul>
+        <li><strong>Shadow:</strong> 0 2px 12px rgba(0,0,0,0.12)</li>
+        <li><strong>Z-index:</strong> 10001</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="toast-colors">
+  <h2>Toast Colors</h2>
+
+  <div class="color-cards">
+    <div class="color-card" style="--bg: var(--color-accent); --text: white">
+      <div class="color-preview">
+        <span class="preview-toast">Info message</span>
+      </div>
+      <div class="color-info">
+        <h4>Info / Success</h4>
+        <p>Default, neutral feedback & positive confirmation</p>
+        <code>var(--persona-primary)</code>
+      </div>
+    </div>
+    <div class="color-card" style="--bg: var(--color-warning); --text: white">
+      <div class="color-preview">
+        <span class="preview-toast">Warning message</span>
+      </div>
+      <div class="color-info">
+        <h4>Warning</h4>
+        <p>Caution, needs attention</p>
+        <code>var(--color-warning)</code>
+      </div>
+    </div>
+    <div class="color-card" style="--bg: var(--color-destructive); --text: white">
+      <div class="color-preview">
+        <span class="preview-toast">Error message</span>
+      </div>
+      <div class="color-info">
+        <h4>Error</h4>
+        <p>Something went wrong</p>
+        <code>var(--color-destructive)</code>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="toast-timing">
+  <h2>Toast Timing</h2>
+
+  <div class="timing-table">
+    <div class="timing-row">
+      <span class="timing-name">Default</span>
+      <span class="timing-value">2500ms</span>
+      <span class="timing-desc">Standard message duration</span>
+    </div>
+    <div class="timing-row">
+      <span class="timing-name">Short</span>
+      <span class="timing-value">2000ms</span>
+      <span class="timing-desc">Quick confirmations</span>
+    </div>
+    <div class="timing-row">
+      <span class="timing-name">Long</span>
+      <span class="timing-value">4000ms</span>
+      <span class="timing-desc">Important messages</span>
+    </div>
+    <div class="timing-row">
+      <span class="timing-name">Error</span>
+      <span class="timing-value">4000ms</span>
+      <span class="timing-desc">Errors need time to read</span>
+    </div>
+    <div class="timing-row">
+      <span class="timing-name">Persistent</span>
+      <span class="timing-value">∞</span>
+      <span class="timing-desc">Manual dismiss required</span>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="toast-animation">
+  <h2>Toast Animation</h2>
+
+  <div class="animation-grid">
+    <div class="animation-card">
+      <h4>Enter</h4>
+      <div class="anim-demo enter-demo">
+        <div class="demo-pill"></div>
+      </div>
+      <ul>
+        <li><strong>Duration:</strong> duration.slow</li>
+        <li><strong>Easing:</strong> spring</li>
+        <li><strong>From:</strong> opacity 0, Y +20px, scale 0.9</li>
+        <li><strong>To:</strong> opacity 1, Y 0, scale 1</li>
+      </ul>
+      <p class="description">Pop up with slight spring bounce</p>
+    </div>
+    <div class="animation-card">
+      <h4>Exit</h4>
+      <div class="anim-demo exit-demo">
+        <div class="demo-pill"></div>
+      </div>
+      <ul>
+        <li><strong>Duration:</strong> duration.normal</li>
+        <li><strong>Easing:</strong> standard</li>
+        <li><strong>From:</strong> opacity 1, Y 0, scale 1</li>
+        <li><strong>To:</strong> opacity 0, Y -10px, scale 0.95</li>
+      </ul>
+      <p class="description">Fade up and out quickly</p>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="whispers">
+  <h2>Whispers</h2>
+  <p>Even subtler than toasts—status updates near the avatar.</p>
+
+  <div class="whisper-specs">
+    <div class="whisper-demo">
+      <div class="demo-avatar"></div>
+      <div class="demo-whisper">Connecting...</div>
+    </div>
+    <div class="whisper-info">
+      <h4>Specifications</h4>
+      <ul>
+        <li><strong>Placement:</strong> Below avatar</li>
+        <li><strong>Offset:</strong> 8px</li>
+        <li><strong>Font size:</strong> 12px</li>
+        <li><strong>Font weight:</strong> 400</li>
+        <li><strong>Opacity:</strong> 0.7</li>
+        <li><strong>Duration:</strong> 2500ms</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="connection-status">
+  <h2>Connection Status</h2>
+  <p>Connection state indicators that provide feedback through avatar and sound.</p>
+
+  <div class="status-grid">
+    <div class="status-card">
+      <div class="status-avatar connecting"></div>
+      <h4>Connecting</h4>
+      <ul>
+        <li><strong>Avatar:</strong> pulse</li>
+        <li><strong>Message:</strong> none</li>
+        <li><strong>Sound:</strong> none</li>
+      </ul>
+    </div>
+    <div class="status-card">
+      <div class="status-avatar connected"></div>
+      <h4>Connected</h4>
+      <ul>
+        <li><strong>Avatar:</strong> settle</li>
+        <li><strong>Message:</strong> none</li>
+        <li><strong>Sound:</strong> connection-success</li>
+      </ul>
+    </div>
+    <div class="status-card">
+      <div class="status-avatar disconnected"></div>
+      <h4>Disconnected</h4>
+      <ul>
+        <li><strong>Avatar:</strong> fade</li>
+        <li><strong>Message:</strong> none</li>
+        <li><strong>Sound:</strong> none</li>
+      </ul>
+    </div>
+    <div class="status-card">
+      <div class="status-avatar error"></div>
+      <h4>Error</h4>
+      <ul>
+        <li><strong>Avatar:</strong> shake</li>
+        <li><strong>Message:</strong> "Connection lost"</li>
+        <li><strong>Sound:</strong> error-graceful</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="haptics">
+  <h2>Haptic Feedback</h2>
+
+  <div class="haptic-grid">
+    <div class="haptic-card">
+      <h4>Info</h4>
+      <code>softTap</code>
+    </div>
+    <div class="haptic-card">
+      <h4>Success</h4>
+      <code>success</code>
+    </div>
+    <div class="haptic-card">
+      <h4>Warning</h4>
+      <code>notification</code>
+    </div>
+    <div class="haptic-card">
+      <h4>Error</h4>
+      <code>error</code>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="accessibility">
+  <h2>Accessibility</h2>
+
+  <div class="a11y-specs">
+    <div class="a11y-item">
+      <span class="label">Role</span>
+      <code>alert</code>
+    </div>
+    <div class="a11y-item">
+      <span class="label">aria-live</span>
+      <code>polite</code>
+    </div>
+    <div class="a11y-item">
+      <span class="label">Reduced motion</span>
+      <span>Fade only, 150ms</span>
+    </div>
+  </div>
+</section>
+
+<style>
+.principles-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: var(--space-3);
+  margin: var(--space-6) 0;
+}
+
+.principles-grid .principle {
+  padding: var(--space-3) var(--space-4);
+  background: var(--glass-subtle-background);
+  border-radius: var(--radius-md);
+  border-left: 3px solid var(--color-accent);
+}
+
+.toast-demo-container {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-6);
+  margin: var(--space-6) 0;
+  align-items: center;
+}
+
+.demo-area {
+  display: flex;
+  justify-content: center;
+}
+
+.demo-phone {
+  width: 200px;
+  height: 380px;
+  background: var(--color-bg-primary);
+  border-radius: 24px;
+  border: 2px solid var(--color-border-subtle);
+  overflow: hidden;
+  position: relative;
+}
+
+.phone-screen {
+  height: calc(100% - 40px);
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding-bottom: 60px;
+}
+
+.phone-nav {
+  position: absolute;
+  bottom: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100px;
+  height: 4px;
+  background: var(--color-border-medium);
+  border-radius: var(--radius-full);
+}
+
+.demo-toast {
+  padding: var(--space-2) var(--space-4);
+  background: var(--color-accent);
+  color: white;
+  border-radius: var(--radius-full);
+  font-size: 13px;
+  font-weight: 500;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.12);
+  transition: all 0.3s ease;
+}
+
+.demo-toast.info { background: var(--color-accent); }
+.demo-toast.success { background: var(--color-accent); }
+.demo-toast.warning { background: var(--color-warning); }
+.demo-toast.error { background: var(--color-destructive); }
+
+.toast-controls {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.toast-trigger {
+  padding: var(--space-3) var(--space-4);
+  background: var(--glass-subtle-background);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.toast-trigger:hover {
+  background: var(--color-bg-elevated);
+}
+
+.specs-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: var(--space-4);
+  margin: var(--space-6) 0;
+}
+
+.spec-card {
+  padding: var(--space-4);
+  background: var(--glass-subtle-background);
+  border-radius: var(--radius-lg);
+}
+
+.spec-card h4 {
+  margin: 0 0 var(--space-3);
+  color: var(--color-accent);
+}
+
+.spec-card ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.spec-card li {
+  padding: var(--space-1) 0;
+  font-size: 0.9rem;
+}
+
+.color-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: var(--space-4);
+  margin: var(--space-6) 0;
+}
+
+.color-card {
+  background: var(--glass-subtle-background);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.color-preview {
+  padding: var(--space-6);
+  background: var(--color-bg-primary);
+  display: flex;
+  justify-content: center;
+}
+
+.preview-toast {
+  padding: var(--space-2) var(--space-4);
+  background: var(--bg);
+  color: var(--text);
+  border-radius: var(--radius-full);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.color-info {
+  padding: var(--space-4);
+}
+
+.color-info h4 {
+  margin: 0 0 var(--space-1);
+}
+
+.color-info p {
+  margin: 0 0 var(--space-2);
+  color: var(--color-text-secondary);
+  font-size: 0.9rem;
+}
+
+.color-info code {
+  font-size: 0.85rem;
+}
+
+.timing-table {
+  margin: var(--space-6) 0;
+}
+
+.timing-row {
+  display: grid;
+  grid-template-columns: 100px 80px 1fr;
+  gap: var(--space-4);
+  padding: var(--space-3);
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+
+.timing-name {
+  font-weight: 500;
+}
+
+.timing-value {
+  font-family: monospace;
+  color: var(--color-accent);
+}
+
+.timing-desc {
+  color: var(--color-text-secondary);
+}
+
+.animation-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: var(--space-4);
+  margin: var(--space-6) 0;
+}
+
+.animation-card {
+  padding: var(--space-4);
+  background: var(--glass-subtle-background);
+  border-radius: var(--radius-lg);
+}
+
+.animation-card h4 {
+  margin: 0 0 var(--space-3);
+}
+
+.anim-demo {
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: var(--space-3);
+  background: var(--color-bg-primary);
+  border-radius: var(--radius-md);
+}
+
+.demo-pill {
+  padding: var(--space-2) var(--space-4);
+  background: var(--color-accent);
+  border-radius: var(--radius-full);
+  width: 80px;
+  height: 24px;
+}
+
+.enter-demo .demo-pill {
+  animation: toastEnter 2s ease-in-out infinite;
+}
+
+.exit-demo .demo-pill {
+  animation: toastExit 2s ease-in-out infinite;
+}
+
+@keyframes toastEnter {
+  0%, 100% { opacity: 0; transform: translateY(20px) scale(0.9); }
+  50% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes toastExit {
+  0%, 50% { opacity: 1; transform: translateY(0) scale(1); }
+  100% { opacity: 0; transform: translateY(-10px) scale(0.95); }
+}
+
+.animation-card ul {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 var(--space-2);
+  font-size: 0.9rem;
+}
+
+.animation-card .description {
+  font-size: 0.85rem;
+  color: var(--color-text-secondary);
+  font-style: italic;
+}
+
+.whisper-specs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-6);
+  margin: var(--space-6) 0;
+  align-items: center;
+}
+
+.whisper-demo {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.demo-avatar {
+  width: 80px;
+  height: 80px;
+  background: var(--color-accent);
+  border-radius: 50%;
+}
+
+.demo-whisper {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  opacity: 0.7;
+}
+
+.whisper-info ul {
+  list-style: none;
+  padding: 0;
+  margin: var(--space-3) 0 0;
+}
+
+.whisper-info li {
+  padding: var(--space-1) 0;
+  font-size: 0.9rem;
+}
+
+.status-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: var(--space-4);
+  margin: var(--space-6) 0;
+}
+
+.status-card {
+  padding: var(--space-4);
+  background: var(--glass-subtle-background);
+  border-radius: var(--radius-lg);
+  text-align: center;
+}
+
+.status-avatar {
+  width: 50px;
+  height: 50px;
+  margin: 0 auto var(--space-3);
+  border-radius: 50%;
+  background: var(--color-accent);
+}
+
+.status-avatar.connecting {
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+.status-avatar.connected {
+  animation: settle 0.5s ease-out;
+}
+
+.status-avatar.disconnected {
+  opacity: 0.3;
+}
+
+.status-avatar.error {
+  animation: shake 0.5s ease-in-out;
+  background: var(--color-destructive);
+}
+
+@keyframes pulse {
+  0%, 100% { transform: scale(1); opacity: 0.7; }
+  50% { transform: scale(1.1); opacity: 1; }
+}
+
+@keyframes settle {
+  0% { transform: scale(0.97); }
+  50% { transform: scale(1.03); }
+  100% { transform: scale(1); }
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-4px); }
+  75% { transform: translateX(4px); }
+}
+
+.status-card h4 {
+  margin: 0 0 var(--space-2);
+}
+
+.status-card ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  font-size: 0.85rem;
+  text-align: left;
+}
+
+.haptic-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: var(--space-4);
+  margin: var(--space-6) 0;
+}
+
+.haptic-card {
+  padding: var(--space-4);
+  background: var(--glass-subtle-background);
+  border-radius: var(--radius-lg);
+  text-align: center;
+}
+
+.haptic-card h4 {
+  margin: 0 0 var(--space-2);
+}
+
+.a11y-specs {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: var(--space-4);
+  margin: var(--space-6) 0;
+}
+
+.a11y-item {
+  padding: var(--space-3);
+  background: var(--glass-subtle-background);
+  border-radius: var(--radius-md);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.a11y-item .label {
+  font-weight: 500;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const demoToast = document.getElementById('demoToast');
+  const triggers = document.querySelectorAll('.toast-trigger');
+
+  triggers.forEach(function(trigger) {
+    trigger.addEventListener('click', function() {
+      const type = this.getAttribute('data-type');
+      const message = this.getAttribute('data-message');
+
+      demoToast.textContent = message;
+      demoToast.className = 'demo-toast ' + type;
+
+      demoToast.style.animation = 'none';
+      void demoToast.offsetWidth;
+      demoToast.style.animation = 'toastEnter 0.3s ease-out';
+    });
+  });
+});
+</script>

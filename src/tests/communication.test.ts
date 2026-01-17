@@ -6,7 +6,10 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { parseScheduleTime, createCommunicationTools } from '../tools/communication.js';
+import {
+  parseScheduleTime,
+  createCommunicationTools,
+} from '../tools/domains/communication/index.js';
 
 // Mock the communication service to prevent real API calls
 vi.mock('../services/communication-service.js', () => ({
@@ -109,17 +112,19 @@ describe('Communication Tools', () => {
     it('should create all communication tools', () => {
       const tools = createCommunicationTools();
 
-      expect(tools.sendEmail).toBeDefined();
-      expect(tools.sendSMS).toBeDefined();
-      expect(tools.scheduleReminder).toBeDefined();
-      expect(tools.scheduleEvent).toBeDefined();
+      // Actual tool names in communication-tools.ts
+      expect(tools.draftEmail).toBeDefined();
+      expect(tools.sendApprovedEmail).toBeDefined();
+      expect(tools.sendTextMessage).toBeDefined();
+      expect(tools.makePhoneCall).toBeDefined();
     });
 
     it('should have proper tool descriptions', () => {
       const tools = createCommunicationTools();
 
-      expect(tools.sendEmail).toBeDefined();
-      expect(tools.sendSMS).toBeDefined();
+      // Check the actual tools have descriptions
+      expect(tools.draftEmail).toBeDefined();
+      expect(tools.sendTextMessage).toBeDefined();
     });
   });
 

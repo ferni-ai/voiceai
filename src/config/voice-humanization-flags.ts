@@ -63,6 +63,10 @@ export interface VoiceHumanizationFlags {
   /** Enable live backchanneling during user speech at breath pauses */
   enableLiveBackchanneling: boolean;
 
+  // Phase 7: LLM-Based Backchannels (Natural variation via LLM generation)
+  /** Enable LLM-generated backchannels instead of hardcoded phrase pools */
+  enableLLMBackchannels: boolean;
+
   // Rollout controls
   /** Percentage of sessions to enable (0-100) */
   rolloutPercentage: number;
@@ -104,10 +108,13 @@ const DEFAULT_FLAGS: VoiceHumanizationFlags = {
   // Phase 5: Preemptive - ENABLED for faster, more natural responses
   enableResponseAnticipation: true,
   useCachedResponses: true, // Use cached responses for instant feel
-  cacheConfidenceThreshold: 0.65, // 65% confidence (slightly lower for more natural flow)
+  cacheConfidenceThreshold: 0.55, // 55% confidence (lowered for more cache hits, faster response)
 
   // Phase 6: Live Backchanneling - ENABLED for "Better than Human" active listening
   enableLiveBackchanneling: true, // Soft "mm-hmm" during user speech at breath pauses
+
+  // Phase 7: LLM-Based Backchannels - ENABLED for natural variation
+  enableLLMBackchannels: true, // Let LLM generate contextual backchannels (no repetition!)
 
   // Rollout: 100% by default
   rolloutPercentage: 100,
@@ -123,7 +130,7 @@ const STAGING_FLAGS: VoiceHumanizationFlags = {
   enableVerboseLogging: true,
   rolloutPercentage: 100,
   useCachedResponses: true, // Test cached responses in staging
-  cacheConfidenceThreshold: 0.6,
+  cacheConfidenceThreshold: 0.5, // Lower in staging for more aggressive testing
 };
 
 /**
@@ -195,6 +202,8 @@ function applyEnvironmentOverrides(): void {
     'enableWordTimingRhythm',
     'enableResponseAnticipation',
     'useCachedResponses',
+    'enableLiveBackchanneling',
+    'enableLLMBackchannels',
     'enableVerboseLogging',
     'enableMetrics',
   ];

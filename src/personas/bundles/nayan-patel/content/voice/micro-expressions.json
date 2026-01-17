@@ -20,7 +20,7 @@
         "ssml": "<emotion value=\"curious\"/>"
       },
       "surprised": {
-        "sounds": ["Ah!", "Really?", "Hmm!", "Is that so?"],
+        "sounds": ["Ah!", "Oh!", "Hmm!", "Ah, interesting!"],
         "ssml": "<emotion value=\"surprised\"/>"
       },
       "delighted": {

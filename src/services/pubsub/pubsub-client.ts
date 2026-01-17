@@ -82,7 +82,8 @@ export type TopicName =
   | 'notifications'
   | 'memory-consolidation'
   | 'trust-updates'
-  | 'context-warmup';
+  | 'context-warmup'
+  | 'outreach-triggers';
 
 export interface PubSubMessage<T = unknown> {
   /** Message type for routing */
@@ -106,9 +107,11 @@ export interface PublishResult {
   timestamp: Date;
 }
 
-export interface SubscriptionHandler<T = unknown> {
-  (message: PubSubMessage<T>, ack: () => void, nack: () => void): Promise<void>;
-}
+export type SubscriptionHandler<T = unknown> = (
+  message: PubSubMessage<T>,
+  ack: () => void,
+  nack: () => void
+) => Promise<void>;
 
 export interface PubSubMetrics {
   messagesPublished: number;
@@ -156,6 +159,10 @@ const TOPIC_CONFIGS: Record<TopicName, { description: string; deadLetter: boolea
   'context-warmup': {
     description: 'Context cache warmup tasks',
     deadLetter: false,
+  },
+  'outreach-triggers': {
+    description: 'Proactive outreach trigger events',
+    deadLetter: true,
   },
 };
 

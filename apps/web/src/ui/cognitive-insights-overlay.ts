@@ -68,16 +68,14 @@ const STYLES = `
   .cognitive-insight {
     position: fixed;
     z-index: var(--z-notification);
-    max-width: 320px;
+    max-width: min(320px, 100%);
     padding: var(--ma-pause, 13px) var(--ma-rest, 21px);
-    background: var(--glass-surface-2, rgba(26, 26, 46, 0.8));
-    backdrop-filter: blur(var(--glass-blur-medium, 16px));
-    -webkit-backdrop-filter: blur(var(--glass-blur-medium, 16px));
-    border: 1px solid var(--color-border-subtle, rgba(255, 255, 255, 0.08));
+    background: var(--color-bg-elevated, #FFFDFB);
+    border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
     border-radius: var(--radius-lg, 1rem);
-    box-shadow: var(--shadow-lg, 0 8px 16px rgba(0, 0, 0, 0.3));
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.06);
     font-family: var(--font-body, 'Inter', sans-serif);
-    color: var(--color-text-primary, #faf6f0);
+    color: var(--color-text-primary, #2C2520);
     opacity: 0;
     transform: translateX(20px);
     transition: opacity 0.3s ease, transform 0.3s ease;

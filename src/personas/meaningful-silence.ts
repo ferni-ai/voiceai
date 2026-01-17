@@ -25,6 +25,99 @@ import { getMusicPlayer } from '../audio/index.js';
 import { getMusicConversationStarter, getSpontaneousMusicOffer } from '../services/dj-service.js';
 import type { PersonaConfig, StoryConfig } from './types.js';
 import { getCanonicalPersonaId } from './voice-registry.js';
+// Dynamic question generation - Better than Human approach
+import {
+  generateQuestion,
+  type GeneratedQuestion,
+  type QuestionContext,
+} from '../intelligence/dynamic-questions.js';
+// Coaching-level questions - memory-grounded, pattern-surfacing, anticipatory
+import { getCoachingQuestion } from '../intelligence/coaching-questions.js';
+import { getLogger } from '../utils/safe-logger.js';
+// Dynamic persona content loading
+import { loadSilenceResponses, type SilenceResponses } from '../services/persona-content-loader.js';
+// Trait-based dynamic responses (usage-tracked, avoids repetition)
+import { getDynamicSilenceResponseByPersonaId } from './dynamic-responses.js';
+// Dynamic presence expressions (replaces static "sitting with" phrases)
+import {
+  generatePresenceExpression,
+  isSittingWithCliche,
+  type PresenceContext,
+} from '../conversation/superhuman/dynamic-presence.js';
+
+const log = getLogger();
+
+// ============================================================================
+// DYNAMIC CONTENT CACHE
+// ============================================================================
+
+/** Cache for loaded silence responses per persona */
+const silenceContentCache = new Map<string, SilenceResponses | null>();
+
+/** Track recently used phrases to avoid repetition */
+const recentlyUsedPhrases = new Map<string, Set<string>>();
+const MAX_RECENT_PHRASES = 10;
+
+/** Track phrase usage for recency */
+function trackPhraseUsage(sessionId: string, phrase: string): void {
+  if (!sessionId) return;
+  if (!recentlyUsedPhrases.has(sessionId)) {
+    recentlyUsedPhrases.set(sessionId, new Set());
+  }
+  const used = recentlyUsedPhrases.get(sessionId)!;
+  used.add(phrase);
+  // Keep only recent phrases
+  if (used.size > MAX_RECENT_PHRASES) {
+    const arr = Array.from(used);
+    arr.shift();
+    recentlyUsedPhrases.set(sessionId, new Set(arr));
+  }
+}
+
+/** Check if phrase was recently used */
+function wasRecentlyUsed(sessionId: string, phrase: string): boolean {
+  if (!sessionId) return false;
+  return recentlyUsedPhrases.get(sessionId)?.has(phrase) ?? false;
+}
+
+/** Clear recency tracking for session */
+export function clearSilenceRecency(sessionId: string): void {
+  recentlyUsedPhrases.delete(sessionId);
+}
+
+/**
+ * Load silence responses for a persona with caching
+ * Falls back to hardcoded content if loading fails
+ */
+async function getSilenceContent(personaId: string): Promise<SilenceResponses | null> {
+  const canonicalId = getCanonicalPersonaId(personaId);
+
+  // Check cache first
+  if (silenceContentCache.has(canonicalId)) {
+    return silenceContentCache.get(canonicalId) || null;
+  }
+
+  try {
+    const content = await loadSilenceResponses(canonicalId);
+    silenceContentCache.set(canonicalId, content);
+    if (content) {
+      log.debug({ personaId: canonicalId }, 'Loaded dynamic silence content');
+    }
+    return content;
+  } catch (error) {
+    log.warn({ error: String(error), personaId: canonicalId }, 'Failed to load silence content');
+    silenceContentCache.set(canonicalId, null);
+    return null;
+  }
+}
+
+/**
+ * Get a random item from an array with fallback
+ */
+function _randomFromDynamic<T>(arr: T[] | undefined, fallback: T[]): T {
+  const source = arr && arr.length > 0 ? arr : fallback;
+  return source[Math.floor(Math.random() * source.length)];
+}
 
 // ============================================================================
 // TYPES
@@ -59,6 +152,8 @@ export interface SilenceContext {
   isGameActive?: boolean;
   /** 🎮 What game type is active? */
   activeGameType?: string;
+  /** Session ID for usage tracking (avoids repetition) */
+  sessionId?: string;
   /** 🎵 Is music currently playing? */
   isMusicPlaying?: boolean;
 }
@@ -100,17 +195,22 @@ const COMFORTABLE_PRESENCE = {
     '<emotion value="affectionate"/><break time="300ms"/>Still here with you.',
     '<break time="400ms"/>Whenever you\'re ready.',
     '<emotion value="affectionate"/><break time="400ms"/>I\'m listening. <break time="200ms"/>Even the silence.',
+    '<emotion value="affectionate"/><break time="300ms"/>Mm. <break time="200ms"/>',
+    '<break time="400ms"/>Yeah. <break time="200ms"/>I hear you.',
   ],
   afterHeavyTopic: [
     '<emotion value="affectionate"/><break time="500ms"/>That was a lot to share. <break time="300ms"/>Take all the time you need.',
-    '<emotion value="affectionate"/><break time="400ms"/>I hear you. <break time="300ms"/>Sometimes you just need to sit with it.',
+    '<emotion value="affectionate"/><break time="400ms"/>I hear you. <break time="300ms"/>There\'s no rush.',
     '<emotion value="affectionate"/><break time="500ms"/>It\'s okay. <break time="300ms"/>We don\'t have to talk.',
     '<emotion value="affectionate"/><break time="400ms"/>Thank you for trusting me with that. <break time="300ms"/>No pressure to say anything else.',
+    '<emotion value="affectionate"/><break time="500ms"/>That\'s heavy. <break time="300ms"/>I\'m here.',
+    '<emotion value="affectionate"/><break time="400ms"/>I felt that. <break time="200ms"/>',
   ],
   late_conversation: [
     '<emotion value="affectionate"/><break time="400ms"/>You know, I\'ve enjoyed this. <break time="200ms"/>Take your time.',
     '<emotion value="affectionate"/><break time="300ms"/>Been a good conversation. <break time="200ms"/>No need to rush.',
-    '<emotion value="affectionate"/><break time="400ms"/>Just sitting here with you. <break time="200ms"/>Nice.',
+    '<emotion value="affectionate"/><break time="400ms"/>This has been nice. <break time="200ms"/>',
+    '<emotion value="affectionate"/><break time="300ms"/>I\'m glad you called.',
   ],
 };
 
@@ -202,11 +302,17 @@ const GENTLE_OBSERVATIONS = {
 // HUMANIZATION FIX: "THINKING OUT LOUD" MOMENTS
 // Real humans don't tell jokes during silence - they process out loud
 // These create genuine connection through visible thought process
+//
+// NOTE: For SHORT processing delays (2-5s), use ProcessingIntelligence.
+// These responses are for EXTENDED SILENCES (10s+) when building relationship.
 // ============================================================================
 
 /**
  * Thinking out loud moments - what a real person would say
  * when they're genuinely processing alongside you
+ *
+ * @see ProcessingIntelligence for short processing delays (2-5s)
+ * These are for extended silence responses (10s+)
  */
 const THINKING_OUT_LOUD = {
   // When user shared something personal
@@ -220,7 +326,7 @@ const THINKING_OUT_LOUD = {
   afterQuestion: [
     '<emotion value="curious"/><break time="500ms"/>Hmm. <break time="400ms"/>Good question. <break time="300ms"/>Let me actually think about that.',
     '<emotion value="thoughtful"/><break time="600ms"/>You know, <break time="300ms"/>I want to give that the thought it deserves.',
-    '<emotion value="curious"/><break time="500ms"/>That\'s not a simple one, is it? <break time="400ms"/>I\'m sitting with it.',
+    '<emotion value="curious"/><break time="500ms"/>That\'s not a simple one, is it? <break time="400ms"/>Let me think.',
   ],
   // Generic processing
   general: [
@@ -437,6 +543,253 @@ const TOPIC_SPECIFIC_RESPONSES: Record<string, string[]> = {
 };
 
 // ============================================================================
+// SMART FALLBACK SYSTEM
+// Instead of random selection, use context-aware phrase assembly
+// ============================================================================
+
+/**
+ * Template fragments for dynamic assembly
+ * Combine: opener + context_reference + closer
+ */
+const SMART_FALLBACK_FRAGMENTS = {
+  openers: [
+    '<break time="400ms"/>Hmm.',
+    '<break time="500ms"/>You know...',
+    '<emotion value="thoughtful"/><break time="400ms"/>',
+    '<break time="300ms"/>',
+    '<emotion value="affectionate"/><break time="400ms"/>',
+  ],
+  contextReferences: {
+    // These use {topic} interpolation
+    // HUMANIZATION FIX: Removed "{topic}... that landed" - sounds like coaching jargon
+    withTopic: [
+      'that thing about {topic}...',
+      'what you said about {topic}...',
+      'I keep thinking about {topic}.',
+      "there's something about {topic} that sticks with me.",
+    ],
+    withName: ["{name}, I'm here.", 'still with you, {name}.', '{name}... take your time.'],
+    withTime: {
+      lateNight: ['late night thoughts hit different.', "it's quiet out there."],
+      earlyMorning: ['morning brain is good for this.', 'early hours, huh?'],
+      evening: ['end of day processing.', 'winding down but thinking hard.'],
+    },
+    // HUMANIZATION FIX: Removed "I'm sitting with this" - became therapy-speak crutch
+    // These are more varied and contextual
+    generic: [
+      'something in that.',
+      'the pause is part of it.',
+      'not going anywhere.',
+      'hmm.',
+      'yeah.',
+      "I'm here.",
+    ],
+  },
+  closers: {
+    inviting: [
+      '<break time="300ms"/>...whenever you\'re ready.',
+      '<break time="200ms"/>...no rush.',
+      '<break time="300ms"/>...I\'m curious.',
+    ],
+    presence: [
+      '', // Sometimes no closer is better
+      '<break time="200ms"/>...just here.',
+      '<break time="300ms"/>',
+    ],
+  },
+};
+
+/**
+ * Topic keywords for semantic matching
+ */
+const TOPIC_KEYWORDS: Record<string, string[]> = {
+  family: [
+    'mom',
+    'dad',
+    'parent',
+    'kid',
+    'son',
+    'daughter',
+    'brother',
+    'sister',
+    'family',
+    'relative',
+  ],
+  work: ['job', 'work', 'career', 'boss', 'colleague', 'office', 'meeting', 'project', 'deadline'],
+  money: ['money', 'invest', 'save', 'retire', 'budget', 'debt', 'income', 'expense', 'financial'],
+  health: ['health', 'doctor', 'medical', 'sick', 'pain', 'exercise', 'sleep', 'stress', 'anxiety'],
+  relationship: [
+    'relationship',
+    'partner',
+    'spouse',
+    'date',
+    'dating',
+    'love',
+    'breakup',
+    'marriage',
+  ],
+  loss: ['loss', 'grief', 'death', 'passed', 'miss', 'gone', 'funeral', 'memorial'],
+  growth: ['grow', 'change', 'improve', 'learn', 'develop', 'progress', 'goal', 'dream'],
+};
+
+/**
+ * Detect topic category from context
+ * Can be used for topic-specific phrase selection in future iterations
+ */
+function _detectTopicCategory(context: SilenceContext): string | null {
+  const textToSearch = [
+    context.lastUserMessage || '',
+    context.wasDiscussingTopic || '',
+    ...(context.topicsDiscussed || []),
+    ...(context.memorableMoments || []),
+  ]
+    .join(' ')
+    .toLowerCase();
+
+  for (const [category, keywords] of Object.entries(TOPIC_KEYWORDS)) {
+    if (keywords.some((kw) => textToSearch.includes(kw))) {
+      return category;
+    }
+  }
+  return null;
+}
+
+/**
+ * Interpolate template with context variables
+ */
+function interpolateTemplate(template: string, context: SilenceContext): string {
+  let result = template;
+
+  // Replace {topic}
+  const topic =
+    context.wasDiscussingTopic ||
+    (context.topicsDiscussed && context.topicsDiscussed[context.topicsDiscussed.length - 1]) ||
+    'what you shared';
+  result = result.replace(/\{topic\}/g, topic);
+
+  // Replace {name}
+  if (context.userName) {
+    result = result.replace(/\{name\}/g, context.userName);
+  } else {
+    // Remove name-based phrases if no name
+    result = result.replace(/\{name\}[^.]*\./g, '');
+  }
+
+  return result.trim();
+}
+
+/**
+ * Get time-based context reference
+ */
+function getTimeBasedReference(hour: number): string | null {
+  const refs = SMART_FALLBACK_FRAGMENTS.contextReferences.withTime;
+  if (hour >= 22 || hour < 6) {
+    return randomFrom(refs.lateNight);
+  } else if (hour >= 5 && hour < 9) {
+    return randomFrom(refs.earlyMorning);
+  } else if (hour >= 18 && hour < 22) {
+    return randomFrom(refs.evening);
+  }
+  return null;
+}
+
+/**
+ * Smart fallback: Generate contextually-aware response from fragments
+ *
+ * This creates variety by:
+ * 1. Picking fragments based on available context
+ * 2. Interpolating with real values (topic, name, time)
+ * 3. Avoiding recently used phrases
+ * 4. Assembling in different combinations
+ * 5. Using dynamic presence expressions (not static "sitting with")
+ */
+function generateSmartFallback(context: SilenceContext, invitesReply: boolean): string {
+  const sessionId = context.sessionId || 'default';
+  const fragments = SMART_FALLBACK_FRAGMENTS;
+
+  // 40% chance: Use dynamic presence expression instead of fragment assembly
+  // This adds more variety and context-awareness
+  if (Math.random() < 0.4) {
+    const presenceContext: PresenceContext = {
+      lastUserMessage: context.lastUserMessage,
+      mentionedDetails: context.memorableMoments,
+      emotionalTone: context.recentEmotionalTone === 'heavy' ? 'heavy' : 'neutral',
+      turnCount: context.turnCount,
+      isLateNight: (context.currentHour ?? 0) >= 22 || (context.currentHour ?? 0) < 5,
+      topic: context.wasDiscussingTopic,
+      sessionId,
+    };
+    const dynamicPresence = generatePresenceExpression(presenceContext);
+    trackPhraseUsage(sessionId, dynamicPresence);
+    return dynamicPresence;
+  }
+
+  // Pick opener (varies each time)
+  const opener = randomFrom(fragments.openers);
+
+  // Pick context reference based on what we know
+  let contextRef: string;
+  const hasContext =
+    context.wasDiscussingTopic || (context.topicsDiscussed && context.topicsDiscussed.length > 0);
+  const hasName = !!context.userName;
+  const hour = context.currentHour ?? new Date().getHours();
+
+  // Priority: topic > name > time > generic
+  if (hasContext && Math.random() < 0.7) {
+    contextRef = interpolateTemplate(randomFrom(fragments.contextReferences.withTopic), context);
+  } else if (hasName && Math.random() < 0.5) {
+    contextRef = interpolateTemplate(randomFrom(fragments.contextReferences.withName), context);
+  } else {
+    const timeRef = getTimeBasedReference(hour);
+    if (timeRef && Math.random() < 0.4) {
+      contextRef = timeRef;
+    } else {
+      contextRef = randomFrom(fragments.contextReferences.generic);
+    }
+  }
+
+  // Pick closer based on whether we want a reply
+  const closerOptions = invitesReply ? fragments.closers.inviting : fragments.closers.presence;
+  const closer = randomFrom(closerOptions);
+
+  // Assemble
+  let assembled = `${opener}${contextRef}${closer}`.trim();
+
+  // HUMANIZATION FIX: Check for "sitting with" cliche and replace if found
+  if (isSittingWithCliche(assembled)) {
+    const presenceContext: PresenceContext = {
+      lastUserMessage: context.lastUserMessage,
+      emotionalTone: context.recentEmotionalTone === 'heavy' ? 'heavy' : 'neutral',
+      sessionId,
+    };
+    assembled = generatePresenceExpression(presenceContext);
+  }
+
+  // Track usage
+  trackPhraseUsage(sessionId, assembled);
+
+  return assembled;
+}
+
+/**
+ * Get smart fallback with recency check
+ * If the assembled phrase was recently used, try again (up to 3 times)
+ */
+function getSmartFallbackWithRecency(context: SilenceContext, invitesReply: boolean): string {
+  const sessionId = context.sessionId || 'default';
+
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const phrase = generateSmartFallback(context, invitesReply);
+    if (!wasRecentlyUsed(sessionId, phrase)) {
+      return phrase;
+    }
+  }
+
+  // After 3 attempts, just return whatever we got
+  return generateSmartFallback(context, invitesReply);
+}
+
+// ============================================================================
 // MAIN FUNCTION - Get Meaningful Silence Response
 // ============================================================================
 
@@ -462,7 +815,11 @@ export function getMeaningfulSilenceResponse(
     isGameActive = false,
     activeGameType,
     isMusicPlaying = false,
+    sessionId = 'default-silence-session',
   } = context;
+
+  // Get canonical persona ID for dynamic responses
+  const canonicalPersonaId = getCanonicalPersonaId(persona.id);
 
   // -----------------------------------------------
   // 🎮 GAME ACTIVE - Handle differently!
@@ -538,10 +895,10 @@ export function getMeaningfulSilenceResponse(
       }
     }
 
-    // Otherwise, simple presence
+    // Otherwise, simple presence - use dynamic system for trait-based variation
     return {
       type: 'comfortable_presence',
-      text: randomFrom(COMFORTABLE_PRESENCE.general),
+      text: getDynamicSilenceResponseByPersonaId(canonicalPersonaId, sessionId, 'presence'),
       invitesReply: false,
     };
   }
@@ -584,11 +941,11 @@ export function getMeaningfulSilenceResponse(
       }
     }
 
-    // Ask a thoughtful question based on topics
-    const questions = getRelevantQuestions(topicsDiscussed);
+    // Ask a thoughtful question - persona-grounded, context-aware
+    // Uses dynamic generation with persona voice filtering
     return {
       type: 'thoughtful_question',
-      text: randomFrom(questions),
+      text: getThoughtfulQuestionSync(context, persona),
       invitesReply: true,
     };
   }
@@ -720,6 +1077,20 @@ export function getMeaningfulSilenceResponse(
     }
 
     // Share a gentle observation from the persona
+    // Try dynamic trait-based observation first for variety
+    const dynamicObservation = getDynamicSilenceResponseByPersonaId(
+      canonicalPersonaId,
+      sessionId,
+      'observation'
+    );
+    if (dynamicObservation && Math.random() < 0.5) {
+      return {
+        type: 'gentle_observation',
+        text: dynamicObservation,
+        invitesReply: false,
+      };
+    }
+    // Fall back to persona-specific observations
     const observations = getPersonaObservations(persona);
     return {
       type: 'gentle_observation',
@@ -765,10 +1136,10 @@ export function getMeaningfulSilenceResponse(
     };
   }
 
-  // Default to thoughtful question
+  // Default to thoughtful question - persona-grounded
   return {
     type: 'thoughtful_question',
-    text: randomFrom(THOUGHTFUL_QUESTIONS.general),
+    text: getThoughtfulQuestionSync(context, persona),
     invitesReply: true,
   };
 }
@@ -779,6 +1150,222 @@ export function getMeaningfulSilenceResponse(
 
 function randomFrom<T>(arr: T[]): T {
   return arr[Math.floor(Math.random() * arr.length)];
+}
+
+// ============================================================================
+// DYNAMIC QUESTION GENERATION
+// ============================================================================
+
+/**
+ * Convert SilenceContext to QuestionContext for dynamic question generation
+ */
+function silenceContextToQuestionContext(
+  context: SilenceContext,
+  persona: PersonaConfig,
+  sessionId: string
+): QuestionContext {
+  // Determine relationship stage from turn count (rough heuristic)
+  let relationshipStage: 'new' | 'building' | 'established' | 'deep' = 'new';
+  if (context.turnCount > 50) relationshipStage = 'deep';
+  else if (context.turnCount > 20) relationshipStage = 'established';
+  else if (context.turnCount > 5) relationshipStage = 'building';
+
+  // Infer silence reason
+  let silenceReason: 'processing' | 'distracted' | 'emotional' | 'thinking' | 'unknown' = 'unknown';
+  if (context.recentEmotionalTone === 'heavy') silenceReason = 'emotional';
+  else if (context.isGameActive) silenceReason = 'thinking';
+  else if (context.silenceDurationSeconds > 30) silenceReason = 'processing';
+
+  return {
+    personaId: getCanonicalPersonaId(persona.id),
+    userId: sessionId, // Use sessionId as userId proxy
+    sessionId,
+    knownFacts: context.memorableMoments || [],
+    recentTopics: context.topicsDiscussed,
+    relationshipStage,
+    conversationDepth: Math.min(10, context.turnCount / 5),
+    emotionalState:
+      context.recentEmotionalTone === 'heavy'
+        ? { primary: 'processing', intensity: 0.7 }
+        : undefined,
+    recentEmotionalTone: context.recentEmotionalTone,
+    hourOfDay: context.currentHour ?? new Date().getHours(),
+    isWeekend: context.isWeekend ?? false,
+    lastUserMessage: context.lastUserMessage,
+    silenceReason,
+    turnCount: context.turnCount,
+    // User's conversation boundaries (topics to avoid)
+    // Future: Load from user preferences at bogle_users/{userId}/preferences.conversationBoundaries
+    boundaries: [],
+  };
+}
+
+/**
+ * Get a thoughtful question using COACHING-LEVEL generation
+ *
+ * This is the "Better than Human" approach:
+ * 1. Memory-grounded (references past conversations)
+ * 2. Pattern-surfacing (notices recurring themes)
+ * 3. Mirror (reflects their words back meaningfully)
+ * 4. Anticipatory (senses what they need before they ask)
+ *
+ * Falls back to standard dynamic questions if coaching fails
+ */
+async function getDynamicThoughtfulQuestion(
+  context: SilenceContext,
+  persona: PersonaConfig,
+  sessionId: string,
+  options?: {
+    memories?: Array<{ topic: string; daysAgo: number; summary: string }>;
+    lastTranscript?: string;
+    voiceSignals?: {
+      pauseBeforeSpeaking?: boolean;
+      voiceDropped?: boolean;
+      shortAnswers?: boolean;
+      changedSubject?: boolean;
+    };
+  }
+): Promise<{ text: string; intent?: string; coachingType?: string }> {
+  try {
+    const questionContext = silenceContextToQuestionContext(context, persona, sessionId);
+
+    // Use coaching-level question generation with full context
+    const coachingQuestion = await getCoachingQuestion(questionContext, {
+      memories: options?.memories,
+      transcript: options?.lastTranscript || context.lastUserMessage,
+      signals: options?.voiceSignals,
+    });
+
+    log.info(
+      {
+        personaId: persona.id,
+        method: coachingQuestion.generationMethod,
+        intent: coachingQuestion.intent.seekingToUnderstand,
+        groundedIn: (
+          coachingQuestion as { groundedIn?: { memory?: string } }
+        ).groundedIn?.memory?.slice(0, 50),
+      },
+      '🧠 COACHING: Generated thoughtful question'
+    );
+
+    // Determine coaching type for tracking
+    let coachingType = 'standard';
+    if ((coachingQuestion as { groundedIn?: unknown }).groundedIn) {
+      coachingType = 'memory_grounded';
+    } else if (coachingQuestion.intent.timingReason?.includes('pattern')) {
+      coachingType = 'pattern_surfacing';
+    } else if (coachingQuestion.intent.timingReason?.includes('signal')) {
+      coachingType = 'anticipatory';
+    } else if (coachingQuestion.intent.timingReason?.includes('Observed')) {
+      coachingType = 'mirror';
+    }
+
+    return {
+      text: coachingQuestion.ssml,
+      intent: coachingQuestion.intent.seekingToUnderstand,
+      coachingType,
+    };
+  } catch (error) {
+    log.warn(
+      { error: String(error) },
+      'Coaching question generation failed, using standard dynamic'
+    );
+
+    // Fall back to standard dynamic question
+    try {
+      const questionContext = silenceContextToQuestionContext(context, persona, sessionId);
+      let questionType: 'deepening' | 'checking_in' | 'curious' | 'supportive' | 'silence_break' =
+        'silence_break';
+
+      if (context.recentEmotionalTone === 'heavy') {
+        questionType = 'supportive';
+      } else if (context.topicsDiscussed.length > 0 && context.turnCount > 5) {
+        questionType = 'deepening';
+      } else if (context.turnCount < 3) {
+        questionType = 'curious';
+      }
+
+      const generated = await generateQuestion(questionContext, questionType);
+      return {
+        text: generated.ssml,
+        intent: generated.intent.seekingToUnderstand,
+        coachingType: 'fallback_dynamic',
+      };
+    } catch {
+      // Final fallback to static questions
+      const questions = getRelevantQuestions(context.topicsDiscussed);
+      return { text: randomFrom(questions), coachingType: 'fallback_static' };
+    }
+  }
+}
+
+/**
+ * Get a thoughtful question synchronously (for backward compatibility)
+ * Uses cached/pre-generated questions when available
+ */
+function getThoughtfulQuestionSync(context: SilenceContext, persona: PersonaConfig): string {
+  // Use persona's cognitive profile to filter questions
+  const canonicalId = getCanonicalPersonaId(persona.id);
+  const sessionId = context.sessionId || 'default-silence-session';
+
+  // Select questions based on persona voice
+  const questions = getRelevantQuestions(context.topicsDiscussed);
+
+  // Persona-specific questions with SSML pauses for natural voice delivery
+  // These are carefully crafted per-persona and include voice timing
+  const personaQuestionStyle: Record<string, string[]> = {
+    ferni: [
+      '<break time="400ms"/>What\'s underneath that?',
+      '<break time="300ms"/>What would it mean if this worked out?',
+      '<break time="400ms"/>What\'s the story you\'re telling yourself here?',
+    ],
+    'peter-john': [
+      '<break time="300ms"/>What does the data tell you?',
+      '<break time="400ms"/>What\'s the pattern you\'re seeing?',
+      '<break time="300ms"/>What would make you change your mind?',
+    ],
+    'maya-santos': [
+      '<break time="400ms"/>What\'s one small thing that might help right now?',
+      '<break time="300ms"/>What does showing up look like for you today?',
+      '<break time="400ms"/>What habit is serving you well?',
+    ],
+    'alex-chen': [
+      '<break time="300ms"/>What\'s the next action here?',
+      '<break time="400ms"/>What would make this easier to handle?',
+      '<break time="300ms"/>What\'s blocking progress?',
+    ],
+    'jordan-taylor': [
+      '<break time="400ms"/>What are you looking forward to?',
+      '<break time="300ms"/>What would make this memorable?',
+      '<break time="400ms"/>What\'s worth celebrating here?',
+    ],
+    'nayan-patel': [
+      '<break time="500ms"/>What\'s the deeper truth here?',
+      '<break time="400ms"/>What does your intuition say?',
+      '<break time="500ms"/>Where is the wisdom in this?',
+    ],
+  };
+
+  // Use persona-specific SSML questions (60% chance for natural persona voice)
+  const personaQuestions = personaQuestionStyle[canonicalId];
+  if (personaQuestions && Math.random() < 0.6) {
+    return randomFrom(personaQuestions);
+  }
+
+  // Use dynamic trait-based questions (20% chance - avoids repetition via usage tracking)
+  if (Math.random() < 0.5) {
+    const dynamicQuestion = getDynamicSilenceResponseByPersonaId(
+      canonicalId,
+      sessionId,
+      'question'
+    );
+    if (dynamicQuestion) {
+      return dynamicQuestion;
+    }
+  }
+
+  // Fall back to topic-based questions
+  return randomFrom(questions);
 }
 
 /**
@@ -963,14 +1550,17 @@ function findRelevantStoryForSilence(stories: StoryConfig[], topic: string): Sto
 
 /**
  * Get time-aware response based on hour
+ *
+ * HUMANIZATION FIX: Removed weekend injection entirely.
+ * Random "weekend time moves differently" comments felt forced and robotic.
+ * The LLM naturally knows what day it is and can reference it contextually.
  */
-function getTimeAwareResponse(hour: number, isWeekend: boolean): string | null {
-  // Weekend awareness
-  if (isWeekend && Math.random() < 0.3) {
-    return randomFrom(TIME_AWARE_RESPONSES.weekend);
-  }
+function getTimeAwareResponse(hour: number, _isWeekend: boolean): string | null {
+  // REMOVED: Weekend awareness injection (30% random)
+  // This was causing robotic "consistent quotes about the weekend"
+  // Let the LLM handle weekend context naturally instead of injecting static phrases.
 
-  // Late night (10pm - 5am)
+  // Late night (10pm - 5am) - still useful for presence
   if (hour >= 22 || hour < 5) {
     return randomFrom(TIME_AWARE_RESPONSES.lateNight);
   }
@@ -1097,6 +1687,120 @@ function getThinkingOutLoudMoment(context: SilenceContext, _persona: PersonaConf
 
   // Generic thinking moment
   return randomFrom(THINKING_OUT_LOUD.general);
+}
+
+// ============================================================================
+// ASYNC DYNAMIC CONTENT HELPERS
+// ============================================================================
+
+/**
+ * Get a micro-story using dynamic content if available
+ */
+export async function getMicroStoryAsync(persona: PersonaConfig): Promise<string | null> {
+  const canonicalId = getCanonicalPersonaId(persona.id);
+  const dynamicContent = await getSilenceContent(canonicalId);
+
+  if (dynamicContent?.micro_stories && dynamicContent.micro_stories.length > 0) {
+    return randomFrom(dynamicContent.micro_stories);
+  }
+
+  // Fall back to static
+  return getPersonaMicroStory(persona);
+}
+
+/**
+ * Get a thoughtful question using dynamic content if available
+ */
+export async function getThoughtfulQuestionAsync(
+  persona: PersonaConfig,
+  topics: string[]
+): Promise<string> {
+  const canonicalId = getCanonicalPersonaId(persona.id);
+  const dynamicContent = await getSilenceContent(canonicalId);
+
+  // Try persona-specific voice questions first
+  if (dynamicContent?.thoughtful_questions?.persona_voice) {
+    const questions = dynamicContent.thoughtful_questions.persona_voice;
+    if (questions.length > 0 && Math.random() < 0.6) {
+      return randomFrom(questions);
+    }
+  }
+
+  // Try topic-specific questions
+  const topicLower = topics.map((t) => t.toLowerCase()).join(' ');
+
+  if (
+    topicLower.includes('family') ||
+    topicLower.includes('kid') ||
+    topicLower.includes('parent')
+  ) {
+    const familyQuestions =
+      dynamicContent?.thoughtful_questions?.family || THOUGHTFUL_QUESTIONS.family;
+    return randomFrom(familyQuestions);
+  }
+
+  if (topicLower.includes('work') || topicLower.includes('job') || topicLower.includes('career')) {
+    const workQuestions = dynamicContent?.thoughtful_questions?.work || THOUGHTFUL_QUESTIONS.work;
+    return randomFrom(workQuestions);
+  }
+
+  // Fall back to general
+  const generalQuestions =
+    dynamicContent?.thoughtful_questions?.general || THOUGHTFUL_QUESTIONS.general;
+  return randomFrom(generalQuestions);
+}
+
+/**
+ * Get a music offering using dynamic content if available
+ */
+export async function getMusicOfferingAsync(persona: PersonaConfig): Promise<string> {
+  const canonicalId = getCanonicalPersonaId(persona.id);
+  const dynamicContent = await getSilenceContent(canonicalId);
+
+  if (dynamicContent?.music_offerings && dynamicContent.music_offerings.length > 0) {
+    return randomFrom(dynamicContent.music_offerings);
+  }
+
+  return randomFrom(MUSIC_OFFERINGS);
+}
+
+/**
+ * Get time-aware response using dynamic content if available
+ *
+ * HUMANIZATION FIX: Removed weekend injection entirely.
+ * Let the LLM handle weekend context naturally instead of injecting static phrases.
+ */
+export async function getTimeAwareResponseAsync(
+  persona: PersonaConfig,
+  hour: number,
+  _isWeekend: boolean
+): Promise<string | null> {
+  const canonicalId = getCanonicalPersonaId(persona.id);
+  const dynamicContent = await getSilenceContent(canonicalId);
+
+  // REMOVED: Weekend awareness injection (30% random)
+  // This was causing robotic "consistent quotes about the weekend"
+
+  // Late night (10pm - 5am)
+  if (hour >= 22 || hour < 5) {
+    const lateNight = dynamicContent?.time_aware?.late_night || TIME_AWARE_RESPONSES.lateNight;
+    return randomFrom(lateNight);
+  }
+
+  // Early morning (5am - 8am)
+  if (hour >= 5 && hour < 8) {
+    const earlyMorning =
+      dynamicContent?.time_aware?.early_morning || TIME_AWARE_RESPONSES.earlyMorning;
+    return randomFrom(earlyMorning);
+  }
+
+  // Evening (6pm - 10pm)
+  if (hour >= 18 && hour < 22) {
+    const evening = dynamicContent?.time_aware?.evening || TIME_AWARE_RESPONSES.evening;
+    return randomFrom(evening);
+  }
+
+  return null;
 }
 
 // ============================================================================
@@ -1354,5 +2058,349 @@ export async function playAmbientMusicDuringSilence(): Promise<boolean> {
 export function stopAmbientMusic(): void {
   stopAmbient();
 }
+
+// ============================================================================
+// ASYNC VERSION WITH FULL LLM GENERATION
+// ============================================================================
+
+/**
+ * Get a meaningful silence response with full LLM-powered question generation
+ *
+ * This is the "Better than Human" version that:
+ * - Uses LLM to generate truly contextual questions
+ * - Grounds questions in persona voice
+ * - Tracks question intent (knows WHY it's asking)
+ * - Provides follow-up strategies for any response
+ *
+ * @param persona - The active persona
+ * @param context - Silence context
+ * @param sessionId - Session ID for deduplication
+ * @returns Promise<SilenceResponse> with dynamically generated content
+ */
+export async function getMeaningfulSilenceResponseAsync(
+  persona: PersonaConfig,
+  context: SilenceContext,
+  sessionId: string
+): Promise<SilenceResponse & { intent?: string }> {
+  const { silenceDurationSeconds, recentEmotionalTone, turnCount } = context;
+
+  // For short silences or heavy topics, use sync version (presence, not questions)
+  if (silenceDurationSeconds < 15 || recentEmotionalTone === 'heavy') {
+    return getMeaningfulSilenceResponse(persona, context);
+  }
+
+  // For longer silences, try dynamic question generation
+  if (silenceDurationSeconds >= 15 && silenceDurationSeconds < 40) {
+    try {
+      const { text, intent } = await getDynamicThoughtfulQuestion(context, persona, sessionId);
+      return {
+        type: 'thoughtful_question',
+        text,
+        invitesReply: true,
+        intent, // Expose intent so agent knows WHY it asked
+      };
+    } catch (error) {
+      log.warn({ error: String(error) }, 'Async question generation failed');
+    }
+  }
+
+  // Fall back to sync version
+  return getMeaningfulSilenceResponse(persona, context);
+}
+
+// ============================================================================
+// LLM-DRIVEN SILENCE RESPONSES (NEW!)
+// Instead of static phrases, let the LLM generate contextual responses
+// ============================================================================
+
+/**
+ * LLM instructions for silence responses
+ */
+export interface LLMSilenceInstructions {
+  /** Instructions for generateReply() */
+  instructions: string;
+  /** Whether to allow interruptions */
+  allowInterruptions: boolean;
+  /** Fallback text if LLM fails */
+  fallback: string;
+  /** Type of silence response */
+  type: SilenceResponseType;
+  /** Whether this invites a reply */
+  invitesReply: boolean;
+}
+
+/**
+ * Build LLM instructions for a contextual silence response
+ *
+ * Instead of picking from static phrases, let the LLM generate
+ * something that feels genuine and responsive to the moment.
+ *
+ * This is the sync version that uses fallback guidance. For dynamic
+ * persona-specific guidance, use buildLLMSilenceInstructionsAsync.
+ */
+export function buildLLMSilenceInstructions(
+  persona: PersonaConfig,
+  context: SilenceContext
+): LLMSilenceInstructions {
+  return buildLLMSilenceInstructionsInternal(persona, context, null);
+}
+
+/**
+ * Build LLM instructions with dynamic persona-specific content
+ *
+ * Loads persona-specific guidance templates from bundles for more
+ * natural, persona-voiced responses.
+ */
+export async function buildLLMSilenceInstructionsAsync(
+  persona: PersonaConfig,
+  context: SilenceContext
+): Promise<LLMSilenceInstructions> {
+  const canonicalId = getCanonicalPersonaId(persona.id);
+  const dynamicContent = await getSilenceContent(canonicalId);
+  return buildLLMSilenceInstructionsInternal(persona, context, dynamicContent);
+}
+
+/**
+ * Internal implementation for building LLM silence instructions
+ */
+function buildLLMSilenceInstructionsInternal(
+  persona: PersonaConfig,
+  context: SilenceContext,
+  dynamicContent: SilenceResponses | null
+): LLMSilenceInstructions {
+  const {
+    silenceDurationSeconds,
+    lastUserMessage,
+    recentEmotionalTone,
+    wasDiscussingTopic,
+    topicsDiscussed,
+    turnCount,
+    userName,
+    currentHour = new Date().getHours(),
+    isMusicPlaying,
+  } = context;
+
+  // Build context hints
+  const contextHints: string[] = [];
+
+  if (lastUserMessage) {
+    contextHints.push(`Last thing user said: "${lastUserMessage.slice(0, 100)}"`);
+  }
+
+  if (wasDiscussingTopic) {
+    contextHints.push(`You were discussing: ${wasDiscussingTopic}`);
+  } else if (topicsDiscussed && topicsDiscussed.length > 0) {
+    contextHints.push(`Topics this session: ${topicsDiscussed.slice(-3).join(', ')}`);
+  }
+
+  if (recentEmotionalTone === 'heavy') {
+    contextHints.push('The conversation has been heavy/emotional - be gentle');
+  }
+
+  if (userName) {
+    contextHints.push(`User's name: ${userName}`);
+  }
+
+  // CRITICAL: Tell the LLM when music is playing!
+  // Without this, the LLM doesn't know music was already started and may say
+  // "I can't play music" or offer to play music when it's already playing.
+  if (isMusicPlaying) {
+    contextHints.push(
+      'MUSIC IS CURRENTLY PLAYING - You already started music. Do NOT say you cannot play music. ' +
+        'Do NOT offer to play music. Simply enjoy the musical moment together. ' +
+        'You can comment on the music if appropriate, or just be present.'
+    );
+  }
+
+  // Time of day awareness
+  const timeHint =
+    currentHour >= 22 || currentHour < 6
+      ? "It's late night - gentle, soft energy"
+      : currentHour >= 6 && currentHour < 12
+        ? "It's morning - steady energy"
+        : '';
+
+  // Get usage rules from dynamic content or use defaults
+  const rules = dynamicContent?.usage_rules;
+  const firstThreshold = rules?.first_silence_threshold_sec ?? 12;
+  const secondThreshold = rules?.second_silence_threshold_sec ?? 25;
+  const questionMinTurns = rules?.thoughtful_question_min_turn_count ?? 5;
+
+  // Determine response type based on silence duration
+  let responseType: SilenceResponseType;
+  let responseGuidance: string;
+  let invitesReply = false;
+
+  // Check if we have content for a memory callback
+  const hasTopicsToReference =
+    (topicsDiscussed && topicsDiscussed.length > 0) || wasDiscussingTopic || lastUserMessage;
+
+  // Get dynamic guidance templates if available
+  const llmGuidance = dynamicContent?.llm_guidance;
+
+  // CRITICAL: Response guidance uses STRUCTURED COMMANDS only.
+  // NO conversational phrases that could be echoed as speech!
+  // Format: [TYPE] → [CONSTRAINTS]
+
+  if (silenceDurationSeconds < firstThreshold || recentEmotionalTone === 'heavy') {
+    // Short silence or heavy topic - just presence
+    responseType = 'comfortable_presence';
+    responseGuidance =
+      llmGuidance?.presence?.instruction_template?.replace(
+        '{duration}',
+        String(Math.round(silenceDurationSeconds))
+      ) || '[TYPE: soft_presence] → [MAX: 5 words OR silence]';
+    invitesReply = false;
+  } else if (silenceDurationSeconds < secondThreshold && hasTopicsToReference) {
+    // Medium silence WITH something to reference - use memory callback
+    responseType = 'memory_callback';
+    responseGuidance =
+      llmGuidance?.memory_callback?.instruction_template?.replace(
+        '{duration}',
+        String(Math.round(silenceDurationSeconds))
+      ) || '[TYPE: memory_reference] → [REF: something they shared] [NO: questions]';
+    invitesReply = false;
+  } else if (silenceDurationSeconds < secondThreshold) {
+    // Medium silence but NO topics to reference - fall back to presence
+    responseType = 'comfortable_presence';
+    responseGuidance =
+      llmGuidance?.presence?.instruction_template?.replace(
+        '{duration}',
+        String(Math.round(silenceDurationSeconds))
+      ) || '[TYPE: presence] → [MAX: 8 words] [TONE: warm]';
+    invitesReply = false;
+  } else if (turnCount >= questionMinTurns) {
+    // Longer silence, established conversation - thoughtful question
+    responseType = 'thoughtful_question';
+    responseGuidance =
+      llmGuidance?.thoughtful_question?.instruction_template?.replace(
+        '{duration}',
+        String(Math.round(silenceDurationSeconds))
+      ) || '[TYPE: curious_question] → [ABOUT: specific detail they shared] [NOT: generic]';
+    invitesReply = true;
+  } else {
+    // Early conversation, long silence - gentle check-in
+    responseType = 'warm_check_in';
+    responseGuidance =
+      llmGuidance?.check_in?.instruction_template?.replace(
+        '{duration}',
+        String(Math.round(silenceDurationSeconds))
+      ) || '[TYPE: check_in] → [STYLE: curious not concerned] [MAX: 10 words]';
+    invitesReply = true;
+  }
+
+  // Don't speak if music is playing and silence is short
+  const musicMinimumSec = rules?.music_playing_minimum_sec ?? 20;
+  if (isMusicPlaying && silenceDurationSeconds < musicMinimumSec) {
+    return {
+      instructions: '',
+      allowInterruptions: true,
+      fallback: '',
+      type: 'comfortable_presence',
+      invitesReply: false,
+    };
+  }
+
+  // Include actual conversation content, not just metadata
+  const conversationContext: string[] = [];
+
+  if (lastUserMessage) {
+    // Include more of their actual words for genuine reference
+    conversationContext.push(`They said: "${lastUserMessage.slice(0, 200)}"`);
+  }
+
+  if (context.memorableMoments && context.memorableMoments.length > 0) {
+    conversationContext.push(
+      `Key moments shared: ${context.memorableMoments.slice(0, 3).join('; ')}`
+    );
+  }
+
+  if (wasDiscussingTopic) {
+    conversationContext.push(`Topic: ${wasDiscussingTopic}`);
+  }
+
+  // Build STRUCTURED instructions that cannot be mistaken for speech
+  // Using [BRACKET] format that Gemini recognizes as meta-commands
+  const contextLine = conversationContext.length > 0 ? conversationContext.join(' | ') : '';
+  const hintsLine = contextHints.length > 0 ? contextHints.join('. ') : '';
+
+  const instructions = `[SITUATION: ${Math.round(silenceDurationSeconds)}s silence${contextLine ? ` | ${contextLine}` : ''}${hintsLine ? ` | ${hintsLine}` : ''}${timeHint ? ` | ${timeHint}` : ''}]
+${responseGuidance}
+[OUTPUT: plain text only, no quotes, no meta-commentary]`;
+
+  // Generate smart fallback instead of random static selection
+  const smartFallback = getSmartFallbackWithRecency(context, invitesReply);
+
+  return {
+    instructions,
+    allowInterruptions: true,
+    fallback: smartFallback,
+    type: responseType,
+    invitesReply,
+  };
+}
+
+/**
+ * Get LLM-driven silence response instructions (sync version)
+ *
+ * Use this with session.generateReply() for natural, contextual responses
+ * that feel genuinely responsive to the moment.
+ *
+ * @example
+ * const silenceInstructions = getLLMSilenceInstructions(persona, context);
+ * if (silenceInstructions.instructions) {
+ *   await session.generateReply({
+ *     instructions: silenceInstructions.instructions,
+ *     allowInterruptions: silenceInstructions.allowInterruptions
+ *   });
+ * }
+ */
+export function getLLMSilenceInstructions(
+  persona: PersonaConfig,
+  context: SilenceContext
+): LLMSilenceInstructions {
+  return buildLLMSilenceInstructions(persona, context);
+}
+
+/**
+ * Get LLM-driven silence response instructions (async version)
+ *
+ * This version loads persona-specific content from bundles for
+ * more natural, persona-voiced responses.
+ *
+ * @example
+ * const silenceInstructions = await getLLMSilenceInstructionsAsync(persona, context);
+ * if (silenceInstructions.instructions) {
+ *   await session.generateReply({
+ *     instructions: silenceInstructions.instructions,
+ *     allowInterruptions: silenceInstructions.allowInterruptions
+ *   });
+ * }
+ */
+export async function getLLMSilenceInstructionsAsync(
+  persona: PersonaConfig,
+  context: SilenceContext
+): Promise<LLMSilenceInstructions> {
+  return buildLLMSilenceInstructionsAsync(persona, context);
+}
+
+/**
+ * Preload silence content for a persona (call during initialization)
+ * This warms the cache so subsequent calls are fast.
+ */
+export async function preloadSilenceContent(personaId: string): Promise<void> {
+  await getSilenceContent(personaId);
+}
+
+/**
+ * Clear the silence content cache (for testing)
+ */
+export function clearSilenceContentCache(): void {
+  silenceContentCache.clear();
+}
+
+// Export types and utilities for other modules
+export { getDynamicThoughtfulQuestion, getSilenceContent, silenceContextToQuestionContext };
+export type { GeneratedQuestion, QuestionContext };
 
 export default getMeaningfulSilenceResponse;

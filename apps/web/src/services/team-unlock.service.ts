@@ -6,12 +6,19 @@
  *
  * Philosophy: "Get to know Ferni first" - Team unlocks naturally as
  * your friendship deepens. Subscribers skip the wait, free users earn it.
+ *
+ * FIX: Now syncs with backend API to get authoritative unlock state
+ * and bypass mode from BYPASS_TEAM_UNLOCKS env var.
  */
 
 import { createLogger } from '../utils/logger.js';
+import { apiGet } from '../utils/api.js';
 import { relationshipStageService, type RelationshipStage } from './relationship-stage.service.js';
 
 const log = createLogger('TeamUnlock');
+
+// API endpoint for team unlock state
+const TEAM_UNLOCK_API = '/api/relationship/team-unlocks';
 
 // ============================================================================
 // TYPES
@@ -62,6 +69,7 @@ export interface NextUnlockInfo {
   member: TeamMemberConfig;
   conversationsNeeded: number;
   daysNeeded: number;
+  streakNeeded: number;
 }
 
 // ============================================================================
@@ -141,13 +149,21 @@ export const TEAM_MEMBERS: TeamMemberConfig[] = [
  * relevant topics come up, making unlocks feel organic.
  *
  * Maya unlocks at 10 (not 2) so users know Ferni before meeting teammates.
+ *
+ * NOTE: These thresholds MUST match:
+ * - apps/web/src/services/relationship-stage.service.ts
+ * - src/services/team-unlocks.ts
+ * - src/api/routes/relationship.ts
  */
-const STAGE_THRESHOLDS: Record<RelationshipStage, { minConversations: number; minDays: number }> = {
-  'first-meeting': { minConversations: 0, minDays: 0 },
-  'getting-started': { minConversations: 10, minDays: 0 },
-  'building-trust': { minConversations: 15, minDays: 5 },
-  established: { minConversations: 30, minDays: 21 },
-  'deep-partnership': { minConversations: 60, minDays: 45 },
+const STAGE_THRESHOLDS: Record<
+  RelationshipStage,
+  { minConversations: number; minDays: number; minStreak: number }
+> = {
+  'first-meeting': { minConversations: 0, minDays: 0, minStreak: 0 },
+  'getting-started': { minConversations: 10, minDays: 0, minStreak: 0 },
+  'building-trust': { minConversations: 15, minDays: 5, minStreak: 3 },
+  established: { minConversations: 30, minDays: 21, minStreak: 7 },
+  'deep-partnership': { minConversations: 60, minDays: 45, minStreak: 14 },
 };
 
 const STAGE_ORDER: RelationshipStage[] = [
@@ -182,6 +198,17 @@ const almostThereListeners: Set<(member: TeamMemberConfig, progress: number) => 
 // Track which members we've already shown "almost there" for (to avoid spam)
 const almostThereShown = new Set<TeamMemberId>();
 const ALMOST_THERE_THRESHOLD = 0.8; // 80%
+
+/**
+ * FIX: Bypass mode from backend BYPASS_TEAM_UNLOCKS env var.
+ * null = no bypass, 'all' = all unlocked, string[] = specific members
+ */
+let bypassMode: null | 'all' | TeamMemberId[] = null;
+
+/**
+ * Track if we've synced with backend at least once
+ */
+let _hasSyncedWithBackend = false;
 
 // ============================================================================
 // PERSISTENCE HELPERS
@@ -255,6 +282,74 @@ function restoreAlmostThereTracking(persisted: PersistedUnlockState): void {
 }
 
 // ============================================================================
+// BACKEND SYNC
+// ============================================================================
+
+/**
+ * FIX: Fetch team unlock state from backend API.
+ * This syncs bypass mode and provides authoritative unlock state.
+ */
+async function syncWithBackend(userIdOverride?: string): Promise<void> {
+  try {
+    // Get userId from localStorage if not provided (same pattern as relationship-stage.service.ts)
+    const userId = userIdOverride || localStorage.getItem('ferni_user_id');
+    if (!userId) {
+      log.debug('No userId available for team unlock sync');
+      return;
+    }
+
+    const url = `${TEAM_UNLOCK_API}?userId=${userId}`;
+    const response = await apiGet<{
+      bypassMode?: string;
+      tier?: string;
+      unlockedTeamMembers?: string[];
+    }>(url);
+
+    if (!response.ok || !response.data) {
+      log.warn('Failed to sync team unlocks from backend:', response.status);
+      return;
+    }
+
+    const data = response.data;
+
+    // Update bypass mode from backend
+    if (data.bypassMode !== undefined) {
+      bypassMode = data.bypassMode as 'all' | TeamMemberId[] | null;
+      if (bypassMode) {
+        log.info('🔓 Backend bypass mode active:', bypassMode);
+      }
+    }
+
+    // Update subscription tier from backend
+    if (data.tier) {
+      subscriptionTier = data.tier as 'free' | 'friend' | 'partner';
+    }
+
+    _hasSyncedWithBackend = true;
+
+    // Update local state if backend has different data
+    void updateUnlockState();
+
+    log.debug('Synced team unlocks from backend', {
+      tier: data.tier,
+      unlockedCount: data.unlockedTeamMembers?.length,
+      bypassMode: data.bypassMode,
+    });
+  } catch (err) {
+    log.debug('Could not sync with backend (offline or error):', String(err));
+  }
+}
+
+/**
+ * FIX: Check if a member is bypassed via backend BYPASS_TEAM_UNLOCKS env var
+ */
+function isMemberBypassed(memberId: TeamMemberId): boolean {
+  if (bypassMode === null) return false;
+  if (bypassMode === 'all') return true;
+  return bypassMode.includes(memberId);
+}
+
+// ============================================================================
 // CORE LOGIC
 // ============================================================================
 
@@ -266,10 +361,20 @@ function getMemberUnlockStatus(
   member: TeamMemberConfig,
   stage: RelationshipStage,
   tier: 'free' | 'friend' | 'partner',
-  metrics: { totalConversations: number; daysSinceFirstMeeting: number }
+  metrics: {
+    totalConversations: number;
+    daysSinceFirstMeeting: number;
+    currentStreak: number;
+    longestStreak: number;
+  }
 ): MemberUnlockStatus {
   // Ferni always unlocked
   if (member.id === 'ferni') {
+    return { unlocked: true, progress: 1 };
+  }
+
+  // FIX: Check backend bypass mode first
+  if (isMemberBypassed(member.id)) {
     return { unlocked: true, progress: 1 };
   }
 
@@ -282,7 +387,7 @@ function getMemberUnlockStatus(
         unlocked: false,
         progress: calculateProgress(metrics, threshold),
         lockReason: "The sage speaks only to those who've proven their commitment.",
-        unlockHint: 'Reach deep partnership or upgrade to Partner tier.',
+        unlockHint: 'Reach deep partnership or become a Founding Patron.',
       };
     }
     return { unlocked: true, progress: 1 };
@@ -303,26 +408,46 @@ function getMemberUnlockStatus(
 }
 
 function calculateProgress(
-  metrics: { totalConversations: number; daysSinceFirstMeeting: number },
-  threshold: { minConversations: number; minDays: number }
+  metrics: {
+    totalConversations: number;
+    daysSinceFirstMeeting: number;
+    currentStreak: number;
+    longestStreak: number;
+  },
+  threshold: { minConversations: number; minDays: number; minStreak: number }
 ): number {
   if (threshold.minConversations === 0) return 1;
 
   const convProgress = Math.min(1, metrics.totalConversations / threshold.minConversations);
   const daysProgress =
     threshold.minDays > 0 ? Math.min(1, metrics.daysSinceFirstMeeting / threshold.minDays) : 1;
+  const streakProgress =
+    threshold.minStreak > 0
+      ? Math.min(1, Math.max(metrics.currentStreak, metrics.longestStreak) / threshold.minStreak)
+      : 1;
 
-  return (convProgress + daysProgress) / 2;
+  return (convProgress + daysProgress + streakProgress) / 3;
 }
 
 function getUnlockHint(
   _stage: RelationshipStage,
-  threshold: { minConversations: number; minDays: number }
+  threshold: { minConversations: number; minDays: number; minStreak: number }
 ): string {
-  if (threshold.minDays === 0) {
-    return `${threshold.minConversations} conversations to unlock`;
+  const parts: string[] = [];
+
+  if (threshold.minConversations > 0) {
+    parts.push(`${threshold.minConversations} conversations`);
   }
-  return `${threshold.minConversations} conversations over ${threshold.minDays} days`;
+  if (threshold.minDays > 0) {
+    parts.push(`${threshold.minDays} days`);
+  }
+  if (threshold.minStreak > 0) {
+    parts.push(`${threshold.minStreak}-day streak`);
+  }
+
+  if (parts.length === 0) return 'Keep talking to Ferni!';
+  if (parts.length === 1) return `${parts[0]} to unlock`;
+  return parts.join(', ');
 }
 
 // ============================================================================
@@ -331,9 +456,10 @@ function getUnlockHint(
 
 /**
  * Initialize team unlock service
- * FIX: Now loads persisted state from localStorage for immediate UI feedback
+ * FIX: Now loads persisted state from localStorage for immediate UI feedback,
+ * then syncs with backend for authoritative state and bypass mode.
  */
-export function initTeamUnlockService(): void {
+export function initTeamUnlockService(userId?: string): void {
   // FIX: Load persisted state first for immediate UI
   const persisted = loadPersistedState();
   if (persisted) {
@@ -349,8 +475,12 @@ export function initTeamUnlockService(): void {
     void updateUnlockState();
   });
 
-  // Initial state
+  // Initial state (from local data)
   void updateUnlockState();
+
+  // FIX: Sync with backend for authoritative state and bypass mode
+  // This runs async and updates state when complete
+  void syncWithBackend(userId);
 
   log.info('Team unlock service initialized');
 }
@@ -382,6 +512,8 @@ export function updateUnlockState(): TeamUnlockState {
   const metricsData = {
     totalConversations: metrics.totalConversations,
     daysSinceFirstMeeting: metrics.daysSinceFirstMeeting,
+    currentStreak: metrics.currentStreak,
+    longestStreak: metrics.longestStreak,
   };
 
   for (const member of TEAM_MEMBERS) {
@@ -397,6 +529,7 @@ export function updateUnlockState(): TeamUnlockState {
       }
     } else if (!nextUnlock) {
       const threshold = STAGE_THRESHOLDS[member.unlocksAt];
+      const bestStreak = Math.max(metricsData.currentStreak, metricsData.longestStreak);
       nextUnlock = {
         member,
         conversationsNeeded: Math.max(
@@ -404,6 +537,7 @@ export function updateUnlockState(): TeamUnlockState {
           threshold.minConversations - metricsData.totalConversations
         ),
         daysNeeded: Math.max(0, threshold.minDays - metricsData.daysSinceFirstMeeting),
+        streakNeeded: Math.max(0, threshold.minStreak - bestStreak),
       };
     }
   }
@@ -465,8 +599,45 @@ export function getUnlockState(): TeamUnlockState | null {
  * Check if a specific team member is unlocked
  */
 export function isTeamMemberUnlocked(memberId: TeamMemberId): boolean {
-  if (!currentState) return memberId === 'ferni';
+  // Ferni is always unlocked
+  if (memberId === 'ferni') return true;
+
+  // FIX: Check backend bypass mode
+  if (isMemberBypassed(memberId)) return true;
+
+  // Check local state
+  if (!currentState) return false;
   return currentState.unlockedMembers.has(memberId);
+}
+
+/**
+ * Check if the full core team is unlocked (all non-premium members).
+ * Used to gate features like the marketplace that require the full team experience.
+ */
+export function isFullTeamUnlocked(): boolean {
+  // Subscribers get all non-premium members immediately
+  if (subscriptionTier === 'friend' || subscriptionTier === 'partner') {
+    return true;
+  }
+  
+  // If state isn't ready yet, check persisted state
+  if (!currentState) {
+    const persisted = loadPersistedState();
+    if (persisted) {
+      // Subscribers (from persisted state) get all non-premium members
+      if (persisted.tier === 'friend' || persisted.tier === 'partner') {
+        return true;
+      }
+      // Check if all core team members are in the persisted unlocked list
+      const coreTeamIds = TEAM_MEMBERS.filter((m) => !m.premium).map((m) => m.id);
+      return coreTeamIds.every((id) => persisted.unlockedMembers.includes(id));
+    }
+    return false;
+  }
+  
+  // Core team = all non-premium members (Ferni, Maya, Peter, Alex, Jordan)
+  const coreTeam = TEAM_MEMBERS.filter((m) => !m.premium);
+  return coreTeam.every((member) => currentState!.unlockedMembers.has(member.id));
 }
 
 /**
@@ -546,22 +717,6 @@ export function onAlmostThere(
 // ============================================================================
 
 /**
- * Check if all core team members are unlocked.
- * Marketplace agents require the full team to be unlocked first.
- */
-export function isFullTeamUnlocked(): boolean {
-  if (!currentState) return false;
-
-  // Check that all team members are unlocked
-  for (const member of TEAM_MEMBERS) {
-    if (!currentState.unlockedMembers.has(member.id)) {
-      return false;
-    }
-  }
-  return true;
-}
-
-/**
  * Get CSS classes for a team member based on unlock status
  */
 export function getTeamMemberClasses(memberId: TeamMemberId): string[] {
@@ -598,19 +753,66 @@ export function getProgressText(memberId: TeamMemberId): string {
     return status.unlockHint ?? 'Keep talking to Ferni';
   }
 
-  const { conversationsNeeded, daysNeeded } = state.nextUnlock;
+  const { conversationsNeeded, daysNeeded, streakNeeded } = state.nextUnlock;
+  const parts: string[] = [];
 
-  if (conversationsNeeded > 0 && daysNeeded > 0) {
-    return `${conversationsNeeded} more conversation${conversationsNeeded === 1 ? '' : 's'}, ${daysNeeded} more day${daysNeeded === 1 ? '' : 's'}`;
-  }
   if (conversationsNeeded > 0) {
-    return `${conversationsNeeded} more conversation${conversationsNeeded === 1 ? '' : 's'}`;
+    parts.push(`${conversationsNeeded} more conversation${conversationsNeeded === 1 ? '' : 's'}`);
   }
   if (daysNeeded > 0) {
-    return `${daysNeeded} more day${daysNeeded === 1 ? '' : 's'}`;
+    parts.push(`${daysNeeded} more day${daysNeeded === 1 ? '' : 's'}`);
+  }
+  if (streakNeeded > 0) {
+    parts.push(`${streakNeeded}-day streak needed`);
   }
 
-  return 'Almost there!';
+  if (parts.length === 0) return 'Almost there!';
+  return parts.join(', ');
+}
+
+// ============================================================================
+// ADDITIONAL API
+// ============================================================================
+
+/**
+ * FIX: Force resync with backend API.
+ * Call this after login or when bypass mode may have changed.
+ */
+export async function resyncWithBackend(userId?: string): Promise<void> {
+  await syncWithBackend(userId);
+}
+
+/**
+ * FIX: Check if bypass mode is active.
+ */
+export function isBypassModeActive(): boolean {
+  return bypassMode !== null;
+}
+
+/**
+ * FIX: Get current bypass mode.
+ */
+export function getBypassMode(): null | 'all' | TeamMemberId[] {
+  return bypassMode;
+}
+
+// ============================================================================
+// TESTING UTILITIES
+// ============================================================================
+
+/**
+ * Reset module state for testing. ONLY use in test files.
+ * @internal
+ */
+export function _resetForTesting(): void {
+  currentState = null;
+  bypassMode = null;
+  subscriptionTier = 'free';
+  _hasSyncedWithBackend = false;
+  unlockListeners.clear();
+  memberUnlockListeners.clear();
+  almostThereListeners.clear();
+  almostThereShown.clear();
 }
 
 // ============================================================================
@@ -633,5 +835,8 @@ export const teamUnlockService = {
   clearNewlyUnlocked,
   getClasses: getTeamMemberClasses,
   getProgress: getProgressText,
+  resync: resyncWithBackend,
+  isBypassActive: isBypassModeActive,
+  getBypassMode,
   TEAM_MEMBERS,
 };

@@ -1,16 +1,21 @@
 /**
- * Data Export Service
+ * Data Export Service (Frontend)
  *
- * Handles GDPR-compliant data export and deletion.
- * Gathers data from localStorage and backend, formats for download.
+ * GDPR-compliant data export and deletion.
+ * This service calls the backend API for comprehensive data export,
+ * and also handles local storage cleanup.
+ *
+ * The backend is the single source of truth for what data exists.
+ * This frontend service handles:
+ * - Calling the backend export API
+ * - Triggering file downloads
+ * - Clearing localStorage (frontend-only data)
  */
 
 import { createLogger } from '../utils/logger.js';
+import { apiFetch } from '../utils/api-helpers.js';
+import { clearAllUserData, exportLocalStorage, STORAGE_KEYS } from '../config/storage-keys.js';
 import { ritualsService } from './rituals.service.js';
-import { 
-  relationshipStageService, 
-  getRelationshipStage,
-} from './relationship-stage.service.js';
 
 const log = createLogger('DataExport');
 
@@ -18,78 +23,18 @@ const log = createLogger('DataExport');
 // TYPES
 // ============================================================================
 
+export interface ExportableCategory {
+  category: string;
+  description: string;
+  itemCount: number;
+  exportable: boolean;
+}
+
 export interface ExportData {
   exportedAt: string;
   version: string;
-  categories: {
-    conversations?: ConversationExport[];
-    insights?: InsightExport[];
-    rituals?: RitualExport[];
-    predictions?: PredictionExport[];
-    moodHistory?: MoodExport[];
-    relationship?: RelationshipExport;
-    preferences?: PreferencesExport;
-  };
-}
-
-interface ConversationExport {
-  id: string;
-  date: string;
-  personaId: string;
-  personaName: string;
-  duration: number;
-  messageCount: number;
-  transcript?: string[];
-}
-
-interface InsightExport {
-  id: string;
-  content: string;
-  category: string;
-  learnedAt: string;
-  personaId: string;
-}
-
-interface RitualExport {
-  id: string;
-  name: string;
-  description: string;
-  frequency: string;
-  preferredTime: string;
-  streak: number;
-  createdAt: string;
-  completedDates: string[];
-}
-
-interface PredictionExport {
-  id: string;
-  question: string;
-  category: string;
-  userPrediction: number;
-  actualOutcome?: number;
-  status: string;
-  createdAt: string;
-}
-
-interface MoodExport {
-  date: string;
-  primary: string;
-  energy: string;
-  note?: string;
-}
-
-interface RelationshipExport {
-  stage: string;
-  daysKnown: number;
-  totalConversations: number;
-  lastConversation: string | null;
-  favoritePersona: string | null;
-}
-
-interface PreferencesExport {
-  theme: string;
-  notificationsEnabled: boolean;
-  spotifyLinked: boolean;
+  categories: Record<string, unknown>;
+  localStorageData?: Record<string, string | null>;
 }
 
 // ============================================================================
@@ -98,23 +43,58 @@ interface PreferencesExport {
 
 class DataExportService {
   /**
-   * Export user data in the specified format
+   * Export user data in the specified format.
+   * Calls the backend API and triggers a download.
    */
-  async exportData(
-    format: 'json' | 'csv',
-    categories: string[]
-  ): Promise<void> {
+  async exportData(format: 'json' | 'csv', categories: string[]): Promise<void> {
     log.info('Starting data export', { format, categories });
 
+    const userId = localStorage.getItem(STORAGE_KEYS.USER_ID);
+    if (!userId) {
+      log.warn('No user ID found, cannot export data');
+      throw new Error('Not signed in');
+    }
+
     try {
-      const data = await this.gatherData(categories);
-      
-      if (format === 'json') {
-        this.downloadJSON(data);
-      } else {
-        this.downloadCSV(data, categories);
+      // Call backend export API
+      const response = await apiFetch('/api/export', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId,
+          format,
+          categories,
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.text();
+        throw new Error(`Export failed: ${error}`);
       }
 
+      // Get the exported data as blob
+      let blob: Blob;
+
+      if (format === 'json') {
+        // For JSON, we want to also include localStorage data
+        const backendData = await response.json();
+        const localData = exportLocalStorage();
+
+        const enrichedData: ExportData = {
+          ...backendData,
+          localStorageData: localData,
+        };
+
+        blob = new Blob([JSON.stringify(enrichedData, null, 2)], {
+          type: 'application/json',
+        });
+      } else {
+        // For CSV, just use the backend response
+        blob = await response.blob();
+      }
+
+      // Trigger download
+      this.triggerDownload(blob, `ferni-data-${this.getDateString()}.${format}`);
       log.info('Data export completed successfully');
     } catch (err) {
       log.error('Data export failed', err);
@@ -123,35 +103,25 @@ class DataExportService {
   }
 
   /**
-   * Delete all user data (GDPR right to erasure)
+   * Delete all user data (GDPR right to erasure).
+   * Clears both backend data and localStorage.
    */
   async deleteAllData(): Promise<void> {
     log.warn('Starting data deletion');
 
+    const userId = localStorage.getItem(STORAGE_KEYS.USER_ID);
+
     try {
-      // Clear local storage items
-      const keysToRemove = [
-        'ferni_user_rituals',
-        'ferni_relationship_data',
-        'ferni_user_id',
-        'ferni_theme',
-        'ferni_notifications',
-        'ferni_onboarding_complete',
-        'ferni_spotify_linked',
-      ];
+      // 1. Clear all localStorage data
+      clearAllUserData(false); // false = don't preserve dev settings
 
-      for (const key of keysToRemove) {
-        localStorage.removeItem(key);
-      }
-
-      // Clear rituals service
+      // 2. Clear rituals service state
       ritualsService.clearAll();
 
-      // Try to delete from backend
-      const userId = localStorage.getItem('ferni_user_id');
+      // 3. Delete backend data (if we have a userId)
       if (userId) {
         try {
-          const response = await fetch('/api/export/all', {
+          const response = await apiFetch('/api/export/all', {
             method: 'DELETE',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ userId, confirmDelete: true }),
@@ -159,9 +129,11 @@ class DataExportService {
 
           if (response.ok) {
             log.info('Backend data deleted');
+          } else {
+            log.warn('Backend deletion returned non-OK status');
           }
         } catch (err) {
-          log.warn('Backend deletion failed, local data still cleared');
+          log.warn('Backend deletion failed, local data still cleared', err);
         }
       }
 
@@ -173,249 +145,112 @@ class DataExportService {
   }
 
   /**
-   * Gather data from all sources
+   * Get exportable categories from the backend.
+   * This shows what data exists and can be exported.
    */
-  private async gatherData(categories: string[]): Promise<ExportData> {
-    const data: ExportData = {
-      exportedAt: new Date().toISOString(),
-      version: '1.0',
-      categories: {},
-    };
-
-    // Gather conversations from backend
-    if (categories.includes('Conversations')) {
-      data.categories.conversations = await this.getConversations();
+  async getExportableCategories(): Promise<ExportableCategory[]> {
+    const userId = localStorage.getItem(STORAGE_KEYS.USER_ID);
+    if (!userId) {
+      return this.getDefaultCategories();
     }
 
-    // Gather insights/memories from backend
-    if (categories.includes('Insights')) {
-      data.categories.insights = await this.getInsights();
+    try {
+      const response = await apiFetch(`/api/export/categories?userId=${encodeURIComponent(userId)}`);
+
+      if (!response.ok) {
+        log.warn('Failed to get categories from API, using defaults');
+        return this.getDefaultCategories();
+      }
+
+      const data = await response.json();
+      return data.categories || this.getDefaultCategories();
+    } catch (err) {
+      log.warn('Error fetching categories', err);
+      return this.getDefaultCategories();
     }
+  }
 
-    // Gather rituals from local service
-    if (categories.includes('Rituals')) {
-      data.categories.rituals = this.getRituals();
-    }
-
-    // Gather predictions from backend
-    if (categories.includes('Predictions')) {
-      data.categories.predictions = await this.getPredictions();
-    }
-
-    // Gather mood history from backend
-    if (categories.includes('Mood History')) {
-      data.categories.moodHistory = await this.getMoodHistory();
-    }
-
-    // Always include relationship and preferences
-    data.categories.relationship = this.getRelationshipData();
-    data.categories.preferences = this.getPreferences();
-
-    return data;
+  /**
+   * Default categories when API is unavailable.
+   */
+  private getDefaultCategories(): ExportableCategory[] {
+    return [
+      {
+        category: 'Conversations',
+        description: 'All conversation transcripts and metadata',
+        itemCount: 0,
+        exportable: true,
+      },
+      {
+        category: 'Insights',
+        description: 'What Ferni has learned about you',
+        itemCount: 0,
+        exportable: true,
+      },
+      {
+        category: 'Rituals',
+        description: 'Daily practice history and streaks',
+        itemCount: 0,
+        exportable: true,
+      },
+      {
+        category: 'Predictions',
+        description: 'Your predictions and outcomes',
+        itemCount: 0,
+        exportable: true,
+      },
+      {
+        category: 'Mood History',
+        description: 'Emotional weather records',
+        itemCount: 0,
+        exportable: true,
+      },
+      {
+        category: 'Profile',
+        description: 'Your profile and preferences',
+        itemCount: 0,
+        exportable: true,
+      },
+      {
+        category: 'Contacts',
+        description: 'Your people and relationships',
+        itemCount: 0,
+        exportable: true,
+      },
+      {
+        category: 'Trust Journey',
+        description: 'Your growth, boundaries, and shared moments',
+        itemCount: 0,
+        exportable: true,
+      },
+      {
+        category: 'Wellbeing',
+        description: 'Wellness snapshots and trends',
+        itemCount: 0,
+        exportable: true,
+      },
+      {
+        category: 'Habits',
+        description: "Maya's habit coaching data",
+        itemCount: 0,
+        exportable: true,
+      },
+      {
+        category: 'Productivity',
+        description: 'Tasks, notes, and journal entries',
+        itemCount: 0,
+        exportable: true,
+      },
+    ];
   }
 
   // ============================================================================
-  // DATA GATHERERS
+  // HELPERS
   // ============================================================================
 
-  private async getConversations(): Promise<ConversationExport[]> {
-    try {
-      const userId = localStorage.getItem('ferni_user_id');
-      if (!userId) return [];
-
-      const response = await fetch(`/api/conversations?userId=${userId}&limit=100`);
-      if (!response.ok) return [];
-
-      const result = await response.json();
-      return (result.sessions || []).map((s: Record<string, unknown>) => ({
-        id: s.id,
-        date: s.date || s.startTime,
-        personaId: s.personaId,
-        personaName: s.personaName,
-        duration: s.duration,
-        messageCount: s.messageCount,
-        transcript: s.transcript || [],
-      }));
-    } catch {
-      return [];
-    }
-  }
-
-  private async getInsights(): Promise<InsightExport[]> {
-    try {
-      const userId = localStorage.getItem('ferni_user_id');
-      if (!userId) return [];
-
-      const response = await fetch(`/api/cognitive/memories?userId=${userId}`);
-      if (!response.ok) return [];
-
-      const result = await response.json();
-      return (result.memories || []).map((m: Record<string, unknown>) => ({
-        id: m.id,
-        content: m.content,
-        category: m.category,
-        learnedAt: m.timestamp,
-        personaId: m.personaId || 'ferni',
-      }));
-    } catch {
-      return [];
-    }
-  }
-
-  private getRituals(): RitualExport[] {
-    const rituals = ritualsService.getAllRituals();
-    return rituals.map(r => ({
-      id: r.id,
-      name: r.name,
-      description: r.description,
-      frequency: r.frequency,
-      preferredTime: r.preferredTime,
-      streak: r.streak,
-      createdAt: r.createdAt,
-      completedDates: r.completedDates,
-    }));
-  }
-
-  private async getPredictions(): Promise<PredictionExport[]> {
-    try {
-      const userId = localStorage.getItem('ferni_user_id');
-      if (!userId) return [];
-
-      const response = await fetch(`/api/predictions?userId=${userId}&limit=100`);
-      if (!response.ok) return [];
-
-      const result = await response.json();
-      return (result.predictions || []).map((p: Record<string, unknown>) => ({
-        id: p.id,
-        question: p.question,
-        category: p.category,
-        userPrediction: p.userPrediction,
-        actualOutcome: p.actualOutcome,
-        status: p.status,
-        createdAt: p.createdAt,
-      }));
-    } catch {
-      return [];
-    }
-  }
-
-  private async getMoodHistory(): Promise<MoodExport[]> {
-    try {
-      const userId = localStorage.getItem('ferni_user_id');
-      if (!userId) return [];
-
-      const response = await fetch(`/api/analytics/user?userId=${userId}`);
-      if (!response.ok) return [];
-
-      const result = await response.json();
-      return (result.moodTrends || []).map((m: Record<string, unknown>) => ({
-        date: m.date,
-        primary: m.mood,
-        energy: m.energy,
-        note: m.note,
-      }));
-    } catch {
-      return [];
-    }
-  }
-
-  private getRelationshipData(): RelationshipExport {
-    const stage = getRelationshipStage();
-    const metrics = relationshipStageService.getMetrics();
-    return {
-      stage,
-      daysKnown: metrics.daysSinceFirstMeeting,
-      totalConversations: metrics.totalConversations,
-      lastConversation: null, // Not tracked at metrics level
-      favoritePersona: null, // Not tracked at metrics level
-    };
-  }
-
-  private getPreferences(): PreferencesExport {
-    return {
-      theme: localStorage.getItem('ferni_theme') || 'system',
-      notificationsEnabled: localStorage.getItem('ferni_notifications') === 'true',
-      spotifyLinked: localStorage.getItem('ferni_spotify_linked') === 'true',
-    };
-  }
-
-  // ============================================================================
-  // DOWNLOAD HELPERS
-  // ============================================================================
-
-  private downloadJSON(data: ExportData): void {
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-    this.triggerDownload(blob, `ferni-data-${this.getDateString()}.json`);
-  }
-
-  private downloadCSV(data: ExportData, _categories: string[]): void {
-    const lines: string[] = [];
-    
-    // Add header
-    lines.push('Ferni Data Export');
-    lines.push(`Exported: ${data.exportedAt}`);
-    lines.push('');
-
-    // Export each category
-    if (data.categories.conversations?.length) {
-      lines.push('=== CONVERSATIONS ===');
-      lines.push('ID,Date,Persona,Duration (min),Messages');
-      for (const c of data.categories.conversations) {
-        lines.push(`${c.id},${c.date},${c.personaName},${c.duration},${c.messageCount}`);
-      }
-      lines.push('');
-    }
-
-    if (data.categories.rituals?.length) {
-      lines.push('=== RITUALS ===');
-      lines.push('ID,Name,Frequency,Time,Streak,Created');
-      for (const r of data.categories.rituals) {
-        lines.push(`${r.id},"${r.name}",${r.frequency},${r.preferredTime},${r.streak},${r.createdAt}`);
-      }
-      lines.push('');
-    }
-
-    if (data.categories.insights?.length) {
-      lines.push('=== INSIGHTS ===');
-      lines.push('ID,Category,Content,Learned At');
-      for (const i of data.categories.insights) {
-        lines.push(`${i.id},${i.category},"${i.content.replace(/"/g, '""')}",${i.learnedAt}`);
-      }
-      lines.push('');
-    }
-
-    if (data.categories.predictions?.length) {
-      lines.push('=== PREDICTIONS ===');
-      lines.push('ID,Category,Question,Your Prediction,Actual,Status,Created');
-      for (const p of data.categories.predictions) {
-        lines.push(`${p.id},${p.category},"${p.question.replace(/"/g, '""')}",${p.userPrediction},${p.actualOutcome ?? ''},${p.status},${p.createdAt}`);
-      }
-      lines.push('');
-    }
-
-    if (data.categories.moodHistory?.length) {
-      lines.push('=== MOOD HISTORY ===');
-      lines.push('Date,Mood,Energy,Note');
-      for (const m of data.categories.moodHistory) {
-        lines.push(`${m.date},${m.primary},${m.energy},"${(m.note || '').replace(/"/g, '""')}"`);
-      }
-      lines.push('');
-    }
-
-    // Relationship summary
-    if (data.categories.relationship) {
-      const r = data.categories.relationship;
-      lines.push('=== RELATIONSHIP ===');
-      lines.push(`Stage: ${r.stage}`);
-      lines.push(`Days Known: ${r.daysKnown}`);
-      lines.push(`Total Conversations: ${r.totalConversations}`);
-      lines.push('');
-    }
-
-    const blob = new Blob([lines.join('\n')], { type: 'text/csv' });
-    this.triggerDownload(blob, `ferni-data-${this.getDateString()}.csv`);
-  }
-
+  /**
+   * Trigger a file download in the browser.
+   */
   private triggerDownload(blob: Blob, filename: string): void {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -428,9 +263,11 @@ class DataExportService {
     log.info('Download triggered', { filename });
   }
 
+  /**
+   * Get date string for filename.
+   */
   private getDateString(): string {
-    const dateStr = new Date().toISOString().split('T')[0];
-    return dateStr ?? 'export';
+    return new Date().toISOString().split('T')[0] || 'export';
   }
 }
 
@@ -441,4 +278,3 @@ class DataExportService {
 export const dataExportService = new DataExportService();
 
 export default dataExportService;
-

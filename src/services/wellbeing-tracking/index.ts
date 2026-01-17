@@ -4,10 +4,20 @@
  * Phase 20: Continuous wellbeing assessment through conversation.
  * Tracks mood, energy, anxiety, connection, purpose, and sleep.
  *
+ * Data is persisted to Firestore for cross-session retention with
+ * in-memory caching for fast reads.
+ *
  * @module WellbeingTracking
  */
 
 import { getLogger } from '../../utils/safe-logger.js';
+import { cleanForFirestore } from '../../utils/firestore-utils.js';
+import {
+  persistSnapshot as saveToFirestore,
+  loadSnapshots as loadFromFirestore,
+  persistProfile as saveProfileToFirestore,
+  loadProfile as loadProfileFromFirestore,
+} from './persistence.js';
 
 const log = getLogger().child({ module: 'wellbeing-tracking' });
 
@@ -429,6 +439,7 @@ const DETECTION_PATTERNS: DetectionPattern[] = [
 
 /**
  * Record a wellbeing snapshot.
+ * Persists to both in-memory cache and Firestore.
  */
 export function recordSnapshot(
   userId: string,
@@ -453,7 +464,7 @@ export function recordSnapshot(
     notes: options?.notes,
   };
 
-  // Store snapshot
+  // Store snapshot in memory
   if (!snapshots.has(userId)) {
     snapshots.set(userId, []);
   }
@@ -461,6 +472,11 @@ export function recordSnapshot(
 
   // Update profile
   updateProfile(userId, snapshot);
+
+  // Persist to Firestore (async, non-blocking)
+  void saveToFirestore(userId, snapshot).catch((err) => {
+    log.warn({ error: String(err), userId }, 'Failed to persist snapshot to Firestore');
+  });
 
   log.debug({ userId, dimensions: Object.keys(dimensions) }, 'Wellbeing snapshot recorded');
 
@@ -501,6 +517,35 @@ export function detectWellbeing(message: string): DetectedWellbeing {
 
 /**
  * Get user's wellbeing profile.
+ * Loads from Firestore if not in memory cache.
+ */
+export async function getWellbeingProfileAsync(userId: string): Promise<WellbeingProfile> {
+  // Check memory cache first
+  if (userProfiles.has(userId)) {
+    return userProfiles.get(userId)!;
+  }
+
+  // Try to load from Firestore
+  const firestoreProfile = await loadProfileFromFirestore(userId);
+  if (firestoreProfile) {
+    userProfiles.set(userId, firestoreProfile);
+
+    // Also load snapshots into memory
+    const firestoreSnapshots = await loadFromFirestore(userId, 30);
+    if (firestoreSnapshots.length > 0) {
+      snapshots.set(userId, firestoreSnapshots);
+    }
+
+    return firestoreProfile;
+  }
+
+  // Create new profile
+  return getOrCreateProfile(userId);
+}
+
+/**
+ * Get user's wellbeing profile (sync version for backward compatibility).
+ * Note: For new code, prefer getWellbeingProfileAsync.
  */
 export function getWellbeingProfile(userId: string): WellbeingProfile {
   return getOrCreateProfile(userId);
@@ -681,7 +726,7 @@ export function getOverallScore(userId: string): number | null {
 
 function getOrCreateProfile(userId: string): WellbeingProfile {
   if (!userProfiles.has(userId)) {
-    userProfiles.set(userId, {
+    userProfiles.set(cleanForFirestore(userId), {
       userId,
       current: null,
       personalBaseline: null,
@@ -715,6 +760,11 @@ function updateProfile(userId: string, snapshot: WellbeingSnapshot): void {
   if (profile.totalSnapshots % 10 === 0) {
     updateBaseline(userId);
   }
+
+  // Persist profile to Firestore (async, non-blocking)
+  void saveProfileToFirestore(userId, profile).catch((err) => {
+    log.warn({ error: String(err), userId }, 'Failed to persist profile to Firestore');
+  });
 }
 
 function updateTrends(userId: string): void {
@@ -979,6 +1029,7 @@ export const wellbeingTracker = {
   record: recordSnapshot,
   detect: detectWellbeing,
   getProfile: getWellbeingProfile,
+  getProfileAsync: getWellbeingProfileAsync,
   getCurrent: getCurrentWellbeing,
   getQuestion: getAssessmentQuestion,
   getQuestions: getAssessmentQuestions,

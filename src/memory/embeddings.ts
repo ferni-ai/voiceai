@@ -7,23 +7,63 @@
  */
 
 import { getLogger } from '../utils/safe-logger.js';
-import { getCircuitBreaker } from '../utils/circuit-breaker.js';
+import {
+  getCircuitBreaker,
+  getRedisCircuitBreakerAsync,
+  type CircuitBreaker,
+} from '../utils/circuit-breaker.js';
+import {
+  getRequestCoalescer,
+  hashContent,
+  getAllCoalescerStats,
+  type CoalescerStats,
+} from '../utils/request-coalescer.js';
+// Centralized similarity operations - uses SIMD-ready implementation from rust-accelerator
+import {
+  cosineSimilarity,
+  type EmbeddingVector as RustEmbeddingVector,
+} from './rust-accelerator.js';
+
+// Re-export for backwards compatibility with existing consumers
+export { cosineSimilarity };
+export type { RustEmbeddingVector as EmbeddingVectorLike };
 
 // ============================================================================
-// CIRCUIT BREAKERS
+// CIRCUIT BREAKERS (Redis-backed for cross-instance coordination)
 // ============================================================================
 
-const openaiEmbeddingBreaker = getCircuitBreaker('openai-embeddings', {
+// Start with local breakers, upgrade to Redis async
+let openaiEmbeddingBreaker: CircuitBreaker = getCircuitBreaker('openai-embeddings', {
   failureThreshold: 5,
   resetTimeout: 30000,
   successThreshold: 2,
 });
 
-const googleEmbeddingBreaker = getCircuitBreaker('google-embeddings', {
+let googleEmbeddingBreaker: CircuitBreaker = getCircuitBreaker('google-embeddings', {
   failureThreshold: 5,
   resetTimeout: 30000,
   successThreshold: 2,
 });
+
+// Upgrade to Redis-backed breakers (non-blocking)
+// When one instance hits OpenAI rate limits, ALL instances back off
+void (async () => {
+  try {
+    openaiEmbeddingBreaker = await getRedisCircuitBreakerAsync('openai-embeddings', {
+      failureThreshold: 5,
+      resetTimeout: 30000,
+      successThreshold: 2,
+    });
+    googleEmbeddingBreaker = await getRedisCircuitBreakerAsync('google-embeddings', {
+      failureThreshold: 5,
+      resetTimeout: 30000,
+      successThreshold: 2,
+    });
+    getLogger().debug('Embedding circuit breakers upgraded to Redis-backed');
+  } catch {
+    // Keep using local breakers
+  }
+})();
 
 // ============================================================================
 // TYPES
@@ -404,29 +444,7 @@ export class LocalEmbeddings extends EmbeddingProvider {
 // SIMILARITY FUNCTIONS
 // ============================================================================
 
-/**
- * Calculate cosine similarity between two vectors
- */
-export function cosineSimilarity(a: number[], b: number[]): number {
-  if (a.length !== b.length) {
-    throw new Error(`Vector dimensions must match: ${a.length} vs ${b.length}`);
-  }
-
-  let dotProduct = 0;
-  let magnitudeA = 0;
-  let magnitudeB = 0;
-
-  for (let i = 0; i < a.length; i++) {
-    dotProduct += a[i] * b[i];
-    magnitudeA += a[i] * a[i];
-    magnitudeB += b[i] * b[i];
-  }
-
-  const magnitude = Math.sqrt(magnitudeA) * Math.sqrt(magnitudeB);
-  if (magnitude === 0) return 0;
-
-  return dotProduct / magnitude;
-}
+// Note: cosineSimilarity is imported from rust-accelerator.js (SIMD-accelerated)
 
 /**
  * Calculate Euclidean distance between two vectors
@@ -503,18 +521,100 @@ export function setEmbeddingProvider(provider: EmbeddingProvider): void {
   getLogger().info(`Set embedding provider: ${provider.model}`);
 }
 
+// ============================================================================
+// REQUEST COALESCER (Prevents duplicate concurrent API calls)
+// ============================================================================
+
 /**
- * Generate embeddings using the default provider
+ * Get the embedding coalescer instance.
+ * Uses registry pattern to ensure tests can reset the coalescer.
  */
-export async function embed(text: string): Promise<number[]> {
-  return getEmbeddingProvider().embed(text);
+function getEmbeddingCoalescer() {
+  return getRequestCoalescer<number[]>('embeddings', {
+    pendingTtlMs: 60000, // 60s max wait for embedding generation
+    maxPending: 10000, // Max concurrent pending requests
+  });
 }
 
 /**
- * Generate batch embeddings using the default provider
+ * Generate embeddings using the default provider with request coalescing.
+ *
+ * When multiple concurrent requests arrive for the same text, only one
+ * actual API call is made and all waiters share the result.
+ *
+ * @param text - Text to generate embedding for
+ * @returns The embedding vector
+ */
+export async function embed(text: string): Promise<number[]> {
+  const hash = hashContent(text);
+  // Clone the result to prevent mutation bugs when requests coalesce.
+  // Without cloning, all coalesced callers share the same array reference.
+  const result = await getEmbeddingCoalescer().execute(hash, () => getEmbeddingProvider().embed(text));
+  return [...result];
+}
+
+/**
+ * Generate batch embeddings using the default provider with deduplication.
+ *
+ * Deduplicates texts within the batch to avoid generating embeddings
+ * for the same text multiple times.
+ *
+ * @param texts - Array of texts to generate embeddings for
+ * @returns Array of embedding vectors (preserves original order)
  */
 export async function embedBatch(texts: string[]): Promise<number[][]> {
-  return getEmbeddingProvider().embedBatch(texts);
+  if (texts.length === 0) {
+    return [];
+  }
+
+  // Deduplicate texts while preserving order
+  const uniqueTexts: string[] = [];
+  const textToIndex = new Map<string, number>();
+  const originalToUnique: number[] = [];
+
+  for (const text of texts) {
+    const hash = hashContent(text);
+    let uniqueIndex = textToIndex.get(hash);
+
+    if (uniqueIndex === undefined) {
+      uniqueIndex = uniqueTexts.length;
+      uniqueTexts.push(text);
+      textToIndex.set(hash, uniqueIndex);
+    }
+
+    originalToUnique.push(uniqueIndex);
+  }
+
+  // Log deduplication stats
+  if (uniqueTexts.length < texts.length) {
+    getLogger().debug(
+      { original: texts.length, unique: uniqueTexts.length },
+      'Embedding batch deduplicated'
+    );
+  }
+
+  // Generate embeddings for unique texts
+  const uniqueEmbeddings = await getEmbeddingProvider().embedBatch(uniqueTexts);
+
+  // Map back to original order, cloning arrays for duplicates to prevent
+  // mutation bugs (if caller modifies their array, it shouldn't affect others)
+  const usedIndices = new Set<number>();
+  return originalToUnique.map((uniqueIndex) => {
+    const embedding = uniqueEmbeddings[uniqueIndex];
+    if (usedIndices.has(uniqueIndex)) {
+      // Clone for duplicates to prevent shared mutation
+      return [...embedding];
+    }
+    usedIndices.add(uniqueIndex);
+    return embedding;
+  });
+}
+
+/**
+ * Get embedding coalescer statistics for monitoring
+ */
+export function getEmbeddingCoalescerStats(): CoalescerStats | undefined {
+  return getAllCoalescerStats().find((s) => s.name === 'embeddings');
 }
 
 // ============================================================================
@@ -569,6 +669,7 @@ export default {
   findTopK,
   getEmbeddingProvider,
   setEmbeddingProvider,
+  getEmbeddingCoalescerStats,
   OpenAIEmbeddings,
   GoogleEmbeddings,
   VertexAIEmbeddings,

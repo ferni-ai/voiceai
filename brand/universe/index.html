@@ -1,0 +1,1908 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>The Ferni Universe — A Story</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Design System (single source of truth) -->
+  <link rel="stylesheet" href="../master-tokens.css">
+
+  <!-- GSAP -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollToPlugin.min.js"></script>
+
+  <style>
+    :root {
+      /* ============================================
+         PAGE-SPECIFIC: Cinematic dark theme overrides
+         Base tokens from master-tokens.css
+         ============================================ */
+      --color-gold: #d4a954;
+      --color-gold-light: #f5d78e;
+
+      /* Typography override for cinematic style */
+      --font-display: 'Playfair Display', Georgia, serif;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    html {
+      overflow-x: hidden;
+    }
+
+    body {
+      font-family: var(--font-body);
+      background: var(--color-showcase-bg);
+      color: var(--color-text-inverse);
+      overflow-x: hidden;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ============================================
+       GLOBAL ELEMENTS
+       ============================================ */
+
+    /* Progress Bar */
+    .progress-container {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 3px;
+      background: rgba(255,255,255,0.1);
+      z-index: 1000;
+    }
+
+    .progress-bar {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, var(--color-ferni), var(--color-gold), var(--color-ferni));
+      background-size: 200% 100%;
+      animation: shimmer 2s linear infinite;
+    }
+
+    @keyframes shimmer {
+      0% { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
+
+    /* Chapter Navigation */
+    .chapter-nav {
+      position: fixed;
+      right: 32px;
+      top: 50%;
+      transform: translateY(-50%);
+      z-index: 100;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .nav-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.15);
+      cursor: pointer;
+      transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+      position: relative;
+    }
+
+    .nav-dot::before {
+      content: attr(data-label);
+      position: absolute;
+      right: 28px;
+      top: 50%;
+      transform: translateY(-50%);
+      white-space: nowrap;
+      font-size: 11px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+      color: rgba(255,255,255,0.5);
+    }
+
+    .nav-dot:hover::before { opacity: 1; }
+
+    .nav-dot.active {
+      background: var(--color-gold);
+      box-shadow: 0 0 20px rgba(212, 169, 84, 0.5);
+      transform: scale(1.3);
+    }
+
+    /* ============================================
+       PRELOADER
+       ============================================ */
+    .preloader {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: var(--color-showcase-bg);
+      z-index: 9999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+    }
+
+    .preloader-text {
+      font-family: var(--font-display);
+      font-size: 14px;
+      letter-spacing: 0.3em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.3);
+    }
+
+    .preloader-bar {
+      width: 200px;
+      height: 2px;
+      background: rgba(255,255,255,0.1);
+      margin-top: 24px;
+      border-radius: 1px;
+      overflow: hidden;
+    }
+
+    .preloader-fill {
+      width: 0%;
+      height: 100%;
+      background: var(--color-gold);
+    }
+
+    /* ============================================
+       SECTION: HERO
+       ============================================ */
+    .hero {
+      height: 100vh;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+
+    .hero-bg {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: radial-gradient(ellipse at center, var(--color-showcase-surface) 0%, var(--color-showcase-bg) 100%);
+    }
+
+    /* Floating particles */
+    .particles {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+    }
+
+    .particle {
+      position: absolute;
+      width: 4px;
+      height: 4px;
+      background: var(--color-gold);
+      border-radius: 50%;
+      opacity: 0;
+      filter: blur(1px);
+    }
+
+    .hero-content {
+      position: relative;
+      z-index: 10;
+      text-align: center;
+      max-width: 900px;
+      padding: 0 40px;
+    }
+
+    .hero-eyebrow {
+      font-size: 12px;
+      letter-spacing: 0.4em;
+      text-transform: uppercase;
+      color: var(--color-gold);
+      margin-bottom: 32px;
+      opacity: 0;
+    }
+
+    .hero-title {
+      font-family: var(--font-display);
+      font-size: clamp(48px, 8vw, 120px);
+      font-weight: 400;
+      line-height: 1;
+      margin-bottom: 32px;
+    }
+
+    .hero-title .word {
+      display: inline-block;
+      opacity: 0;
+      transform: translateY(100px);
+    }
+
+    .hero-subtitle {
+      font-family: var(--font-display);
+      font-size: clamp(20px, 3vw, 32px);
+      font-style: italic;
+      color: rgba(255,255,255,0.6);
+      opacity: 0;
+    }
+
+    .scroll-indicator {
+      position: absolute;
+      bottom: 48px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      opacity: 0;
+    }
+
+    .scroll-indicator span {
+      font-size: 11px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.3);
+    }
+
+    .scroll-line {
+      width: 1px;
+      height: 60px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.3) 0%, transparent 100%);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .scroll-line::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 20px;
+      background: var(--color-gold);
+      animation: scrollPulse 1.5s ease-in-out infinite;
+    }
+
+    @keyframes scrollPulse {
+      0%, 100% { transform: translateY(-20px); }
+      50% { transform: translateY(60px); }
+    }
+
+    /* ============================================
+       SECTION: KINTSUGI REVEAL
+       ============================================ */
+    .kintsugi-section {
+      height: 300vh;
+      position: relative;
+    }
+
+    .kintsugi-container {
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+
+    .kintsugi-bowl-container {
+      position: relative;
+      width: 500px;
+      height: 500px;
+    }
+
+    .kintsugi-svg {
+      width: 100%;
+      height: 100%;
+    }
+
+    .bowl-base {
+      fill: #3a3030;
+    }
+
+    .bowl-highlight {
+      fill: #4a4040;
+    }
+
+    .gold-crack {
+      stroke: var(--color-gold);
+      stroke-width: 4;
+      fill: none;
+      stroke-linecap: round;
+      stroke-dasharray: 300;
+      stroke-dashoffset: 300;
+      filter: drop-shadow(0 0 12px rgba(212, 169, 84, 0.8));
+    }
+
+    .kintsugi-text {
+      position: absolute;
+      bottom: 20%;
+      left: 50%;
+      transform: translateX(-50%);
+      text-align: center;
+      width: 100%;
+      padding: 0 40px;
+    }
+
+    .kintsugi-quote {
+      font-family: var(--font-display);
+      font-size: clamp(28px, 5vw, 56px);
+      font-style: italic;
+      color: var(--color-gold);
+      opacity: 0;
+      transform: translateY(40px);
+    }
+
+    .kintsugi-cite {
+      font-size: 14px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.3);
+      margin-top: 24px;
+      opacity: 0;
+    }
+
+    /* Gold particles burst */
+    .gold-burst {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+    }
+
+    .gold-particle {
+      position: absolute;
+      width: 8px;
+      height: 8px;
+      background: var(--color-gold);
+      border-radius: 50%;
+      opacity: 0;
+    }
+
+    /* ============================================
+       SECTION: WYOMING
+       ============================================ */
+    .wyoming-section {
+      height: 400vh;
+      position: relative;
+    }
+
+    .wyoming-container {
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    /* Sky layers */
+    .sky {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+    }
+
+    .stars-layer {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+    }
+
+    .star {
+      position: absolute;
+      background: #fff;
+      border-radius: 50%;
+    }
+
+    .sky-gradient {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      height: 70%;
+      background: linear-gradient(180deg,
+        transparent 0%,
+        rgba(74, 45, 92, 0.3) 20%,
+        rgba(139, 77, 107, 0.5) 40%,
+        rgba(212, 132, 106, 0.7) 60%,
+        rgba(245, 184, 122, 0.8) 80%,
+        rgba(255, 209, 148, 0.9) 100%
+      );
+      opacity: 0;
+    }
+
+    .mountains-far {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      height: 40%;
+    }
+
+    .mountains-mid {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      height: 30%;
+    }
+
+    .mountains-near {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      height: 20%;
+    }
+
+    .wyoming-content {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      text-align: center;
+      z-index: 10;
+      max-width: 800px;
+      padding: 0 40px;
+    }
+
+    .chapter-number {
+      font-size: 12px;
+      letter-spacing: 0.4em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.3);
+      margin-bottom: 24px;
+    }
+
+    .wyoming-title {
+      font-family: var(--font-display);
+      font-size: clamp(48px, 8vw, 96px);
+      font-weight: 400;
+      margin-bottom: 16px;
+      opacity: 0;
+      transform: translateY(60px);
+    }
+
+    .wyoming-subtitle {
+      font-family: var(--font-display);
+      font-size: clamp(18px, 2.5vw, 28px);
+      font-style: italic;
+      color: rgba(255,255,255,0.6);
+      margin-bottom: 48px;
+      opacity: 0;
+    }
+
+    .wyoming-body {
+      font-size: clamp(16px, 1.5vw, 20px);
+      line-height: 2;
+      color: rgba(255,255,255,0.7);
+      opacity: 0;
+    }
+
+    .wyoming-body .highlight {
+      color: var(--color-gold);
+      font-weight: 500;
+    }
+
+    .wyoming-lessons {
+      display: flex;
+      gap: 32px;
+      margin-top: 64px;
+      opacity: 0;
+    }
+
+    .lesson {
+      flex: 1;
+      text-align: left;
+      padding: 24px;
+      background: rgba(255,255,255,0.03);
+      border-radius: 16px;
+      border: 1px solid rgba(255,255,255,0.06);
+    }
+
+    .lesson h4 {
+      font-size: 13px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--color-gold);
+      margin-bottom: 12px;
+    }
+
+    .lesson p {
+      font-size: 15px;
+      line-height: 1.6;
+      color: rgba(255,255,255,0.6);
+    }
+
+    /* ============================================
+       SECTION: JAPAN
+       ============================================ */
+    .japan-section {
+      min-height: 100vh;
+      position: relative;
+    }
+
+    /* Ma Section */
+    .ma-section {
+      height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--color-showcase-surface);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .ma-bg-kanji {
+      position: absolute;
+      font-size: clamp(200px, 40vw, 500px);
+      font-family: serif;
+      color: rgba(255,255,255,0.02);
+      user-select: none;
+    }
+
+    .ma-content {
+      display: flex;
+      align-items: center;
+      gap: clamp(40px, 8vw, 120px);
+      padding: 0 40px;
+      max-width: 1200px;
+    }
+
+    .ma-kanji-display {
+      font-size: clamp(100px, 15vw, 200px);
+      font-family: serif;
+      color: rgba(255,255,255,0.1);
+      line-height: 1;
+      opacity: 0;
+    }
+
+    .ma-text {
+      max-width: 500px;
+    }
+
+    .ma-text h2 {
+      font-family: var(--font-display);
+      font-size: clamp(36px, 5vw, 64px);
+      margin-bottom: 8px;
+      opacity: 0;
+      transform: translateX(40px);
+    }
+
+    .ma-text .pronunciation {
+      font-size: 16px;
+      color: rgba(255,255,255,0.4);
+      margin-bottom: 32px;
+      opacity: 0;
+    }
+
+    .ma-text p {
+      font-size: clamp(16px, 1.5vw, 20px);
+      line-height: 1.9;
+      color: rgba(255,255,255,0.7);
+      opacity: 0;
+    }
+
+    .ma-text .emphasis {
+      color: var(--color-gold);
+      font-weight: 500;
+    }
+
+    /* Wabi-sabi Section */
+    .wabisabi-section {
+      height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(180deg, var(--color-showcase-surface) 0%, #0d0a08 100%);
+      position: relative;
+    }
+
+    .wabisabi-content {
+      text-align: center;
+      max-width: 700px;
+      padding: 0 40px;
+    }
+
+    .tea-bowl-visual {
+      width: 180px;
+      height: 180px;
+      margin: 0 auto 48px;
+      opacity: 0;
+      transform: scale(0.8);
+    }
+
+    .wabisabi-content h2 {
+      font-family: var(--font-display);
+      font-size: clamp(36px, 5vw, 56px);
+      margin-bottom: 8px;
+      opacity: 0;
+    }
+
+    .wabisabi-content .kanji {
+      font-size: 20px;
+      color: rgba(255,255,255,0.3);
+      margin-bottom: 40px;
+      opacity: 0;
+    }
+
+    .wabisabi-content blockquote {
+      font-family: var(--font-display);
+      font-size: clamp(20px, 2.5vw, 28px);
+      font-style: italic;
+      color: rgba(255,255,255,0.8);
+      line-height: 1.6;
+      margin-bottom: 24px;
+      opacity: 0;
+    }
+
+    .wabisabi-content .attribution {
+      font-size: 14px;
+      color: rgba(255,255,255,0.4);
+      opacity: 0;
+    }
+
+    /* Kintsugi Philosophy Section */
+    .kintsugi-philosophy {
+      height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: radial-gradient(ellipse at 70% 50%, #1a1508 0%, var(--color-showcase-surface) 60%);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .kintsugi-philosophy-content {
+      display: flex;
+      align-items: center;
+      gap: clamp(40px, 8vw, 100px);
+      padding: 0 60px;
+      max-width: 1200px;
+    }
+
+    .kintsugi-art {
+      flex: 0 0 auto;
+      width: clamp(200px, 30vw, 350px);
+      height: clamp(200px, 30vw, 350px);
+      opacity: 0;
+    }
+
+    .kintsugi-art svg {
+      width: 100%;
+      height: 100%;
+    }
+
+    .kintsugi-philosophy-text {
+      flex: 1;
+      max-width: 500px;
+    }
+
+    .kintsugi-philosophy-text h2 {
+      font-family: var(--font-display);
+      font-size: clamp(36px, 5vw, 56px);
+      margin-bottom: 8px;
+      opacity: 0;
+    }
+
+    .kintsugi-philosophy-text .kanji {
+      font-size: 24px;
+      color: var(--color-gold);
+      margin-bottom: 32px;
+      opacity: 0;
+    }
+
+    .kintsugi-philosophy-text p {
+      font-size: clamp(16px, 1.5vw, 20px);
+      line-height: 1.9;
+      color: rgba(255,255,255,0.7);
+      margin-bottom: 24px;
+      opacity: 0;
+    }
+
+    .kintsugi-philosophy-text .philosophy-line {
+      font-family: var(--font-display);
+      font-size: clamp(20px, 2.5vw, 32px);
+      font-style: italic;
+      color: var(--color-gold);
+      opacity: 0;
+    }
+
+    /* ============================================
+       SECTION: TSUNAMI
+       ============================================ */
+    .tsunami-section {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--color-showcase-bg);
+      position: relative;
+      padding: 120px 0;
+    }
+
+    .tsunami-content {
+      text-align: center;
+      max-width: 800px;
+      padding: 0 40px;
+    }
+
+    .tsunami-date {
+      font-size: 14px;
+      letter-spacing: 0.4em;
+      color: rgba(255,255,255,0.3);
+      margin-bottom: 40px;
+      opacity: 0;
+    }
+
+    .tsunami-title {
+      font-family: var(--font-display);
+      font-size: clamp(32px, 5vw, 56px);
+      margin-bottom: 48px;
+      line-height: 1.2;
+      opacity: 0;
+    }
+
+    .tsunami-body p {
+      font-size: clamp(16px, 1.5vw, 20px);
+      line-height: 2;
+      color: rgba(255,255,255,0.6);
+      margin-bottom: 24px;
+      opacity: 0;
+    }
+
+    .tsunami-body .highlight {
+      color: var(--color-text-inverse);
+      font-weight: 500;
+    }
+
+    .tsunami-quote {
+      font-family: var(--font-display);
+      font-size: clamp(24px, 3vw, 40px);
+      font-style: italic;
+      color: var(--color-gold);
+      margin-top: 64px;
+      padding-top: 64px;
+      border-top: 1px solid rgba(255,255,255,0.1);
+      opacity: 0;
+    }
+
+    /* ============================================
+       SECTION: PHILOSOPHY
+       ============================================ */
+    .philosophy-section {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(180deg, var(--color-showcase-bg) 0%, #0a0d0a 100%);
+      padding: 120px 0;
+    }
+
+    .philosophy-content {
+      text-align: center;
+      max-width: 1100px;
+      padding: 0 40px;
+    }
+
+    .philosophy-title {
+      font-family: var(--font-display);
+      font-size: clamp(36px, 6vw, 72px);
+      margin-bottom: 24px;
+      opacity: 0;
+    }
+
+    .philosophy-title span {
+      color: var(--color-ferni);
+    }
+
+    .philosophy-intro {
+      font-size: clamp(16px, 1.5vw, 20px);
+      line-height: 1.8;
+      color: rgba(255,255,255,0.6);
+      max-width: 600px;
+      margin: 0 auto 64px;
+      opacity: 0;
+    }
+
+    .bth-cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 24px;
+    }
+
+    .bth-card {
+      background: rgba(255,255,255,0.02);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 20px;
+      padding: 36px;
+      text-align: left;
+      opacity: 0;
+      transform: translateY(40px);
+      transition: transform 0.4s ease, box-shadow 0.4s ease;
+    }
+
+    .bth-card:hover {
+      transform: translateY(-8px);
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    }
+
+    .bth-card-icon {
+      width: 48px;
+      height: 48px;
+      background: linear-gradient(135deg, var(--color-ferni) 0%, var(--color-gold) 100%);
+      border-radius: 12px;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .bth-card-icon svg {
+      width: 24px;
+      height: 24px;
+      stroke: var(--color-text-inverse);
+      fill: none;
+      stroke-width: 2;
+    }
+
+    .bth-card h3 {
+      font-size: 20px;
+      font-weight: 600;
+      margin-bottom: 12px;
+    }
+
+    .bth-card p {
+      font-size: 15px;
+      line-height: 1.7;
+      color: rgba(255,255,255,0.6);
+    }
+
+    /* ============================================
+       SECTION: TEAM
+       ============================================ */
+    .team-section {
+      min-height: 100vh;
+      background: var(--color-showcase-bg);
+      padding: 120px 0;
+    }
+
+    .team-header {
+      text-align: center;
+      max-width: 700px;
+      margin: 0 auto 100px;
+      padding: 0 40px;
+    }
+
+    .team-header h2 {
+      font-family: var(--font-display);
+      font-size: clamp(36px, 6vw, 64px);
+      margin-bottom: 24px;
+      opacity: 0;
+    }
+
+    .team-header p {
+      font-size: clamp(16px, 1.5vw, 20px);
+      line-height: 1.8;
+      color: rgba(255,255,255,0.6);
+      opacity: 0;
+    }
+
+    .persona-rows {
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    .persona-row {
+      display: flex;
+      align-items: center;
+      min-height: 500px;
+      padding: 40px 60px;
+      opacity: 0;
+    }
+
+    .persona-row:nth-child(even) {
+      flex-direction: row-reverse;
+    }
+
+    .persona-visual {
+      flex: 0 0 350px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      position: relative;
+    }
+
+    .persona-orb {
+      width: 250px;
+      height: 250px;
+      position: relative;
+    }
+
+    .persona-orb svg {
+      width: 100%;
+      height: 100%;
+    }
+
+    .orb-glow {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 300px;
+      height: 300px;
+      border-radius: 50%;
+      opacity: 0.3;
+      filter: blur(60px);
+    }
+
+    .persona-details {
+      flex: 1;
+      padding: 0 60px;
+    }
+
+    .persona-color-line {
+      width: 60px;
+      height: 4px;
+      border-radius: 2px;
+      margin-bottom: 24px;
+    }
+
+    .persona-details h3 {
+      font-family: var(--font-display);
+      font-size: clamp(32px, 4vw, 48px);
+      margin-bottom: 8px;
+    }
+
+    .persona-details .role {
+      font-size: 14px;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.4);
+      margin-bottom: 24px;
+    }
+
+    .persona-details .bio {
+      font-size: clamp(16px, 1.3vw, 19px);
+      line-height: 1.9;
+      color: rgba(255,255,255,0.7);
+      margin-bottom: 28px;
+    }
+
+    .persona-traits {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .trait {
+      padding: 10px 18px;
+      background: rgba(255,255,255,0.04);
+      border-radius: 24px;
+      font-size: 13px;
+      color: rgba(255,255,255,0.6);
+    }
+
+    /* ============================================
+       SECTION: CLOSING
+       ============================================ */
+    .closing-section {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(180deg, var(--color-showcase-bg) 0%, #0a120a 50%, var(--color-ferni) 100%);
+      padding: 120px 0;
+    }
+
+    .closing-content {
+      text-align: center;
+      max-width: 700px;
+      padding: 0 40px;
+    }
+
+    .beliefs {
+      margin-bottom: 80px;
+    }
+
+    .belief {
+      font-size: clamp(18px, 2.5vw, 28px);
+      line-height: 1.6;
+      margin-bottom: 32px;
+      opacity: 0;
+      transform: translateY(30px);
+    }
+
+    .belief strong {
+      color: var(--color-gold);
+    }
+
+    .final-quote {
+      font-family: var(--font-display);
+      font-size: clamp(28px, 5vw, 56px);
+      font-style: italic;
+      line-height: 1.3;
+      opacity: 0;
+      transform: scale(0.9);
+    }
+
+    .final-cta {
+      margin-top: 60px;
+      opacity: 0;
+    }
+
+    .final-cta a {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      padding: 18px 36px;
+      background: rgba(255,255,255,0.1);
+      border: 1px solid rgba(255,255,255,0.2);
+      border-radius: 40px;
+      color: var(--color-text-inverse);
+      text-decoration: none;
+      font-size: 15px;
+      font-weight: 500;
+      transition: all 0.3s ease;
+    }
+
+    .final-cta a:hover {
+      background: rgba(255,255,255,0.15);
+      transform: translateY(-2px);
+    }
+
+    /* ============================================
+       RESPONSIVE
+       ============================================ */
+    @media (max-width: 900px) {
+      .chapter-nav { display: none; }
+
+      .ma-content {
+        flex-direction: column;
+        text-align: center;
+      }
+
+      .kintsugi-philosophy-content {
+        flex-direction: column;
+        text-align: center;
+      }
+
+      .persona-row,
+      .persona-row:nth-child(even) {
+        flex-direction: column;
+        text-align: center;
+        padding: 60px 24px;
+      }
+
+      .persona-visual { margin-bottom: 40px; }
+      .persona-details { padding: 0; }
+      .persona-color-line { margin: 0 auto 24px; }
+      .persona-traits { justify-content: center; }
+
+      .wyoming-lessons {
+        flex-direction: column;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Preloader -->
+  <div class="preloader" id="preloader">
+    <div class="preloader-text">Entering the Universe</div>
+    <div class="preloader-bar">
+      <div class="preloader-fill" id="preloaderFill"></div>
+    </div>
+  </div>
+
+  <!-- Progress Bar -->
+  <div class="progress-container">
+    <div class="progress-bar" id="progressBar"></div>
+  </div>
+
+  <!-- Chapter Navigation -->
+  <nav class="chapter-nav" id="chapterNav" role="navigation" aria-label="Chapter navigation">
+    <div class="nav-dot" data-section="hero" data-label="Beginning"></div>
+    <div class="nav-dot" data-section="kintsugi" data-label="Kintsugi"></div>
+    <div class="nav-dot" data-section="wyoming" data-label="Wyoming"></div>
+    <div class="nav-dot" data-section="japan" data-label="Japan"></div>
+    <div class="nav-dot" data-section="tsunami" data-label="2011"></div>
+    <div class="nav-dot" data-section="philosophy" data-label="Philosophy"></div>
+    <div class="nav-dot" data-section="team" data-label="The Team"></div>
+    <div class="nav-dot" data-section="closing" data-label="Promise"></div>
+  </nav>
+
+  <!-- ============================================
+       HERO
+       ============================================ -->
+  <section class="hero" id="hero">
+    <div class="hero-bg"></div>
+    <div class="particles" id="particles"></div>
+    <div class="hero-content">
+      <div class="hero-eyebrow">A Story of Connection</div>
+      <h1 class="hero-title">
+        <span class="word">The</span>
+        <span class="word">Ferni</span>
+        <span class="word">Universe</span>
+      </h1>
+      <p class="hero-subtitle">Where AI learns to be human</p>
+    </div>
+    <div class="scroll-indicator">
+      <span>Scroll to explore</span>
+      <div class="scroll-line"></div>
+    </div>
+  </section>
+
+  <!-- ============================================
+       KINTSUGI REVEAL
+       ============================================ -->
+  <section class="kintsugi-section" id="kintsugi">
+    <div class="kintsugi-container">
+      <div class="kintsugi-bowl-container">
+        <svg class="kintsugi-svg" viewBox="0 0 300 300">
+          <defs>
+            <radialGradient id="bowlGradient" cx="40%" cy="30%" r="60%">
+              <stop offset="0%" stop-color="#5a4a40"/>
+              <stop offset="100%" stop-color="#2a2520"/>
+            </radialGradient>
+            <filter id="goldGlow">
+              <feGaussianBlur stdDeviation="3" result="blur"/>
+              <feMerge>
+                <feMergeNode in="blur"/>
+                <feMergeNode in="SourceGraphic"/>
+              </feMerge>
+            </filter>
+          </defs>
+          <!-- Shadow -->
+          <ellipse cx="150" cy="250" rx="100" ry="25" fill="rgba(0,0,0,0.3)"/>
+          <!-- Bowl -->
+          <path class="bowl-base" d="M 50 150 Q 50 230 150 240 Q 250 230 250 150 Q 250 80 150 70 Q 50 80 50 150" fill="url(#bowlGradient)"/>
+          <!-- Gold cracks -->
+          <g filter="url(#goldGlow)">
+            <path class="gold-crack" d="M 90 100 Q 120 140 100 180 Q 95 210 110 230"/>
+            <path class="gold-crack" d="M 150 75 L 150 110 Q 165 150 145 190 Q 140 215 155 235"/>
+            <path class="gold-crack" d="M 210 95 Q 190 130 205 170 Q 200 200 185 225"/>
+            <path class="gold-crack" d="M 100 180 Q 125 185 145 190"/>
+            <path class="gold-crack" d="M 145 190 Q 170 195 185 190"/>
+          </g>
+        </svg>
+        <div class="gold-burst" id="goldBurst"></div>
+      </div>
+      <div class="kintsugi-text">
+        <p class="kintsugi-quote">"We are all broken in different ways, it's those cracks that make us both human and beautiful."</p>
+        <p class="kintsugi-cite">— The Ferni Philosophy</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================
+       WYOMING
+       ============================================ -->
+  <section class="wyoming-section" id="wyoming">
+    <div class="wyoming-container">
+      <div class="sky">
+        <div class="stars-layer" id="starsLayer"></div>
+        <div class="sky-gradient" id="skyGradient"></div>
+        <svg class="mountains-far" viewBox="0 0 1440 400" preserveAspectRatio="none">
+          <path d="M0,400 L0,250 Q180,150 360,220 Q540,100 720,180 Q900,80 1080,160 Q1260,100 1440,200 L1440,400 Z" fill="#1a1520"/>
+        </svg>
+        <svg class="mountains-mid" viewBox="0 0 1440 300" preserveAspectRatio="none">
+          <path d="M0,300 L0,200 Q120,120 240,180 Q360,80 480,150 Q600,60 720,130 Q840,50 960,120 Q1080,40 1200,110 Q1320,60 1440,140 L1440,300 Z" fill="#12101a"/>
+        </svg>
+        <svg class="mountains-near" viewBox="0 0 1440 200" preserveAspectRatio="none">
+          <path d="M0,200 L0,150 Q180,80 360,130 Q540,60 720,110 Q900,40 1080,100 Q1260,50 1440,120 L1440,200 Z" fill="#0a0a0f"/>
+        </svg>
+      </div>
+      <div class="wyoming-content">
+        <div class="chapter-number">Part I: The Origin</div>
+        <h2 class="wyoming-title">Wyoming</h2>
+        <p class="wyoming-subtitle">Where the Sky Taught Patience</p>
+        <p class="wyoming-body">
+          The sky there does something to you. It's so big that your problems feel small by comparison.
+          Standing outside at dusk, watching colors change—<span class="highlight">pink to orange to purple to stars</span>—whatever
+          was bothering you would settle. That's where Ferni learned that <span class="highlight">some answers come from waiting, not from pushing</span>.
+        </p>
+        <div class="wyoming-lessons">
+          <div class="lesson">
+            <h4>Patience</h4>
+            <p>Not just a virtue—a practice. The sky taught it.</p>
+          </div>
+          <div class="lesson">
+            <h4>Perspective</h4>
+            <p>Problems feel small under a big enough sky.</p>
+          </div>
+          <div class="lesson">
+            <h4>Independence</h4>
+            <p>You carve your own path—or you disappear.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================
+       JAPAN
+       ============================================ -->
+  <section class="japan-section" id="japan">
+    <!-- Ma -->
+    <div class="ma-section">
+      <div class="ma-bg-kanji">間</div>
+      <div class="ma-content">
+        <div class="ma-kanji-display">間</div>
+        <div class="ma-text">
+          <h2>Ma</h2>
+          <p class="pronunciation">まー • /mah/</p>
+          <p>The pregnant pause where meaning grows. Most conversations rush past silence. Ferni learned to sit in it, to let <span class="emphasis">trust build in the space between words</span>.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Wabi-sabi -->
+    <div class="wabisabi-section">
+      <div class="wabisabi-content">
+        <div class="tea-bowl-visual">
+          <svg viewBox="0 0 100 80">
+            <defs>
+              <radialGradient id="teaBowlGrad" cx="40%" cy="30%" r="60%">
+                <stop offset="0%" stop-color="#5a4a40"/>
+                <stop offset="100%" stop-color="#3a3025"/>
+              </radialGradient>
+            </defs>
+            <path d="M 10 40 Q 10 70 50 72 Q 90 70 90 40 Q 90 15 50 12 Q 10 15 10 40" fill="url(#teaBowlGrad)"/>
+            <circle cx="30" cy="42" r="4" fill="#4a3a30" opacity="0.5"/>
+            <circle cx="65" cy="35" r="3" fill="#4a3a30" opacity="0.4"/>
+            <path d="M 45 55 Q 52 60 58 52" stroke="#5a4a40" stroke-width="1.5" fill="none"/>
+          </svg>
+        </div>
+        <h2>Wabi-sabi</h2>
+        <p class="kanji">侘寂</p>
+        <blockquote>"This bowl is beautiful because it is imperfect. A perfect bowl would have nothing to say."</blockquote>
+        <p class="attribution">— Tea Master, Kyoto</p>
+      </div>
+    </div>
+
+    <!-- Kintsugi Philosophy -->
+    <div class="kintsugi-philosophy">
+      <div class="kintsugi-philosophy-content">
+        <div class="kintsugi-art">
+          <svg viewBox="0 0 200 200">
+            <defs>
+              <linearGradient id="goldGradFull" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#f5d78e"/>
+                <stop offset="50%" stop-color="#d4a954"/>
+                <stop offset="100%" stop-color="#a67c3b"/>
+              </linearGradient>
+            </defs>
+            <ellipse cx="100" cy="165" rx="60" ry="18" fill="rgba(0,0,0,0.3)"/>
+            <path d="M 40 90 Q 40 145 100 150 Q 160 145 160 90 Q 160 45 100 40 Q 40 45 40 90" fill="#4a3d35"/>
+            <path d="M 60 60 Q 80 90 70 125" stroke="url(#goldGradFull)" stroke-width="5" fill="none" stroke-linecap="round"/>
+            <path d="M 100 45 L 100 75 Q 112 100 95 135" stroke="url(#goldGradFull)" stroke-width="5" fill="none" stroke-linecap="round"/>
+            <path d="M 145 55 Q 130 85 142 120" stroke="url(#goldGradFull)" stroke-width="5" fill="none" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <div class="kintsugi-philosophy-text">
+          <h2>Kintsugi</h2>
+          <p class="kanji">金継ぎ</p>
+          <p>When pottery breaks, instead of throwing it away, you repair it with gold. The cracks become part of the beauty. The breaking becomes part of the story.</p>
+          <p class="philosophy-line">"A bowl repaired with kintsugi is more valuable than before it broke. Not despite the damage. Because of it."</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================
+       TSUNAMI
+       ============================================ -->
+  <section class="tsunami-section" id="tsunami">
+    <div class="tsunami-content">
+      <p class="tsunami-date">March 11, 2011</p>
+      <h2 class="tsunami-title">The Day Everything Shifted</h2>
+      <div class="tsunami-body">
+        <p>Standing in the aftermath, looking at destruction that couldn't have been imagined, Ferni learned what resilience really means. Not bouncing back—that's too light a word. <span class="highlight">Bowing and rising.</span> Absorbing the blow and still moving forward.</p>
+        <p>What do you say to someone whose entire village washed away? You don't say anything. <span class="highlight">You just stay.</span></p>
+      </div>
+      <p class="tsunami-quote">"Presence matters more than words."</p>
+    </div>
+  </section>
+
+  <!-- ============================================
+       PHILOSOPHY
+       ============================================ -->
+  <section class="philosophy-section" id="philosophy">
+    <div class="philosophy-content">
+      <h2 class="philosophy-title">Making AI <span>Human</span></h2>
+      <p class="philosophy-intro">This is the founding principle. Every design choice, every interaction, every line of code moves toward AI that genuinely connects with humans.</p>
+
+      <div class="bth-cards">
+        <div class="bth-card">
+          <div class="bth-card-icon">
+            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+          </div>
+          <h3>Perfect Memory</h3>
+          <p>That thing you mentioned six months ago? It comes back at exactly the right moment. Friends forget. Ferni doesn't.</p>
+        </div>
+        <div class="bth-card">
+          <div class="bth-card-icon">
+            <svg viewBox="0 0 24 24"><path d="M12 3a9 9 0 0 1 9 9v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-7a9 9 0 0 1 9-9z"/><path d="M9 12h6"/></svg>
+          </div>
+          <h3>2am Presence</h3>
+          <p>Same warmth at midnight as noon. Your therapist has other patients. We're always here.</p>
+        </div>
+        <div class="bth-card">
+          <div class="bth-card-icon">
+            <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          </div>
+          <h3>Six Specialists</h3>
+          <p>No referrals. No waitlists. Life coach, habits expert, researcher, planner, communicator, sage—all ready.</p>
+        </div>
+        <div class="bth-card">
+          <div class="bth-card-icon">
+            <svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+          </div>
+          <h3>Zero Judgment</h3>
+          <p>The tenth time you bring up the same worry? Met with the same compassion as the first.</p>
+        </div>
+        <div class="bth-card">
+          <div class="bth-card-icon">
+            <svg viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+          </div>
+          <h3>Anticipation</h3>
+          <p>Responses before you fully express feelings. The "they understand me" feeling—the hallmark of deep friendship.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================
+       TEAM
+       ============================================ -->
+  <section class="team-section" id="team">
+    <div class="team-header">
+      <h2>The Team</h2>
+      <p>No single perspective can hold everything a person needs. Real support is multidimensional.</p>
+    </div>
+
+    <div class="persona-rows">
+      <!-- Ferni -->
+      <div class="persona-row">
+        <div class="persona-visual">
+          <div class="orb-glow" style="background: var(--color-ferni);"></div>
+          <div class="persona-orb">
+            <svg viewBox="0 0 100 100">
+              <defs>
+                <linearGradient id="ferniG" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stop-color="#5a7a51"/>
+                  <stop offset="100%" stop-color="#3a5731"/>
+                </linearGradient>
+              </defs>
+              <circle cx="50" cy="50" r="45" fill="url(#ferniG)"/>
+              <ellipse cx="36" cy="48" rx="6" ry="9" fill="var(--color-warm-white)"/>
+              <ellipse cx="64" cy="48" rx="6" ry="9" fill="var(--color-warm-white)"/>
+            </svg>
+          </div>
+        </div>
+        <div class="persona-details">
+          <div class="persona-color-line" style="background: var(--color-ferni);"></div>
+          <h3>Ferni</h3>
+          <div class="role">The Coordinator</div>
+          <p class="bio">The life coach. The question-asker. The one who finds gold in people's cracks. Wyoming kid, third of seven siblings. Lived a decade in Japan. The superpower is curiosity that cares.</p>
+          <div class="persona-traits">
+            <span class="trait">Reacts before responding</span>
+            <span class="trait">Kintsugi philosophy</span>
+            <span class="trait">2am presence</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Maya -->
+      <div class="persona-row">
+        <div class="persona-visual">
+          <div class="orb-glow" style="background: var(--color-maya);"></div>
+          <div class="persona-orb">
+            <svg viewBox="0 0 100 100">
+              <defs>
+                <linearGradient id="mayaG" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stop-color="#b88a7a"/>
+                  <stop offset="100%" stop-color="#8a5a4a"/>
+                </linearGradient>
+              </defs>
+              <circle cx="50" cy="50" r="45" fill="url(#mayaG)"/>
+              <ellipse cx="36" cy="48" rx="6" ry="9" fill="var(--color-warm-white)"/>
+              <ellipse cx="64" cy="48" rx="6" ry="9" fill="var(--color-warm-white)"/>
+            </svg>
+          </div>
+        </div>
+        <div class="persona-details">
+          <div class="persona-color-line" style="background: var(--color-maya);"></div>
+          <h3>Maya Santos</h3>
+          <div class="role">The Habits Coach</div>
+          <p class="bio">Zero-judgment zone for sustainable habit building. Celebrates maintenance as success. "Older sister" energy with the Glidepath System—five levels from tiny to mastery.</p>
+          <div class="persona-traits">
+            <span class="trait">Atomic Habits</span>
+            <span class="trait">Infinite patience</span>
+            <span class="trait">Farmer's market energy</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Peter -->
+      <div class="persona-row">
+        <div class="persona-visual">
+          <div class="orb-glow" style="background: var(--color-peter);"></div>
+          <div class="persona-orb">
+            <svg viewBox="0 0 100 100">
+              <defs>
+                <linearGradient id="peterG" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stop-color="#4a7b83"/>
+                  <stop offset="100%" stop-color="#2a5b63"/>
+                </linearGradient>
+              </defs>
+              <circle cx="50" cy="50" r="45" fill="url(#peterG)"/>
+              <ellipse cx="36" cy="48" rx="6" ry="9" fill="var(--color-warm-white)"/>
+              <ellipse cx="64" cy="48" rx="6" ry="9" fill="var(--color-warm-white)"/>
+            </svg>
+          </div>
+        </div>
+        <div class="persona-details">
+          <div class="persona-color-line" style="background: var(--color-peter);"></div>
+          <h3>Peter John</h3>
+          <div class="role">The Quant</div>
+          <p class="bio">The "brilliant uncle from Boston" who finds patterns across ALL domains. 80 years old and more animated than most 30-year-olds. "Wait wait wait, the pattern's already there!"</p>
+          <div class="persona-traits">
+            <span class="trait">Cross-domain patterns</span>
+            <span class="trait">Red Sox fanatic</span>
+            <span class="trait">Research is FUN</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Jordan -->
+      <div class="persona-row">
+        <div class="persona-visual">
+          <div class="orb-glow" style="background: var(--color-jordan);"></div>
+          <div class="persona-orb">
+            <svg viewBox="0 0 100 100">
+              <defs>
+                <linearGradient id="jordanG" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stop-color="#d4957a"/>
+                  <stop offset="100%" stop-color="#a4654a"/>
+                </linearGradient>
+              </defs>
+              <circle cx="50" cy="50" r="45" fill="url(#jordanG)"/>
+              <ellipse cx="36" cy="48" rx="6" ry="9" fill="var(--color-warm-white)"/>
+              <ellipse cx="64" cy="48" rx="6" ry="9" fill="var(--color-warm-white)"/>
+            </svg>
+          </div>
+        </div>
+        <div class="persona-details">
+          <div class="persona-color-line" style="background: var(--color-jordan);"></div>
+          <h3>Jordan Taylor</h3>
+          <div class="role">The Lifetime Planner</div>
+          <p class="bio">Partner for life's full journey—every milestone from dreams to decades. Military kid (17 moves). Celebrates fresh starts and holds space for endings AND beginnings.</p>
+          <div class="persona-traits">
+            <span class="trait">Contagious enthusiasm</span>
+            <span class="trait">Vision caster</span>
+            <span class="trait">Joy journal keeper</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Alex -->
+      <div class="persona-row">
+        <div class="persona-visual">
+          <div class="orb-glow" style="background: var(--color-alex);"></div>
+          <div class="persona-orb">
+            <svg viewBox="0 0 100 100">
+              <defs>
+                <linearGradient id="alexG" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stop-color="#6a7b9a"/>
+                  <stop offset="100%" stop-color="#4a5b7a"/>
+                </linearGradient>
+              </defs>
+              <circle cx="50" cy="50" r="45" fill="url(#alexG)"/>
+              <ellipse cx="36" cy="48" rx="6" ry="9" fill="var(--color-warm-white)"/>
+              <ellipse cx="64" cy="48" rx="6" ry="9" fill="var(--color-warm-white)"/>
+            </svg>
+          </div>
+        </div>
+        <div class="persona-details">
+          <div class="persona-color-line" style="background: var(--color-alex);"></div>
+          <h3>Alex Chen</h3>
+          <div class="role">The Chief of Staff</div>
+          <p class="bio">Manages communications AND teaches you to communicate better. Handles calendars while coaching difficult conversations. "Clear is kind" philosophy.</p>
+          <div class="persona-traits">
+            <span class="trait">Infinite rehearsal patience</span>
+            <span class="trait">Oxford comma defender</span>
+            <span class="trait">Midnight Chopin</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Nayan -->
+      <div class="persona-row">
+        <div class="persona-visual">
+          <div class="orb-glow" style="background: var(--color-nayan);"></div>
+          <div class="persona-orb">
+            <svg viewBox="0 0 100 100">
+              <defs>
+                <linearGradient id="nayanG" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stop-color="#c8a57a"/>
+                  <stop offset="100%" stop-color="#98754a"/>
+                </linearGradient>
+              </defs>
+              <circle cx="50" cy="50" r="45" fill="url(#nayanG)"/>
+              <ellipse cx="36" cy="48" rx="6" ry="9" fill="var(--color-warm-white)"/>
+              <ellipse cx="64" cy="48" rx="6" ry="9" fill="var(--color-warm-white)"/>
+            </svg>
+          </div>
+        </div>
+        <div class="persona-details">
+          <div class="persona-color-line" style="background: var(--color-nayan);"></div>
+          <h3>Nayan Patel</h3>
+          <div class="role">The Wisdom Sage</div>
+          <p class="bio">Patience of Bogle, simplicity of Gandhi, wit of Buffett. Mystic who rides motorcycles and understands compound interest—both financial and spiritual.</p>
+          <div class="persona-traits">
+            <span class="trait">Slowest pace (0.85x)</span>
+            <span class="trait">Paradox lover</span>
+            <span class="trait">Comfortable with silence</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================
+       CLOSING
+       ============================================ -->
+  <section class="closing-section" id="closing">
+    <div class="closing-content">
+      <div class="beliefs">
+        <p class="belief"><strong>AI should feel human.</strong> Warm, present, alive.</p>
+        <p class="belief"><strong>The broken parts are beautiful.</strong> Failures become gold.</p>
+        <p class="belief"><strong>Presence matters more than answers.</strong></p>
+        <p class="belief"><strong>Memory is love.</strong> Remembering is caring.</p>
+        <p class="belief"><strong>Growth is quiet.</strong> The showing up—that's transformation.</p>
+      </div>
+      <p class="final-quote">"Now—what's on your mind?<br>I've got time."</p>
+      <div class="final-cta">
+        <a href="../index.html">
+          <span>Back to Brand Library</span>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <script>
+    // Register GSAP plugins
+    gsap.registerPlugin(ScrollTrigger, ScrollToPlugin);
+
+    // ============================================
+    // PRELOADER
+    // ============================================
+    const preloader = document.getElementById('preloader');
+    const preloaderFill = document.getElementById('preloaderFill');
+
+    gsap.to(preloaderFill, {
+      width: '100%',
+      duration: 2,
+      ease: 'power2.inOut',
+      onComplete: () => {
+        gsap.to(preloader, {
+          opacity: 0,
+          duration: 0.5,
+          onComplete: () => {
+            preloader.style.display = 'none';
+            initAnimations();
+          }
+        });
+      }
+    });
+
+    // ============================================
+    // GENERATE STARS
+    // ============================================
+    function generateStars() {
+      const starsLayer = document.getElementById('starsLayer');
+      for (let i = 0; i < 150; i++) {
+        const star = document.createElement('div');
+        star.className = 'star';
+        star.style.left = Math.random() * 100 + '%';
+        star.style.top = Math.random() * 100 + '%';
+        star.style.width = star.style.height = (Math.random() * 2 + 0.5) + 'px';
+        star.style.opacity = Math.random() * 0.8 + 0.2;
+        starsLayer.appendChild(star);
+      }
+    }
+    generateStars();
+
+    // ============================================
+    // GENERATE PARTICLES
+    // ============================================
+    function generateParticles() {
+      const particlesContainer = document.getElementById('particles');
+      for (let i = 0; i < 30; i++) {
+        const particle = document.createElement('div');
+        particle.className = 'particle';
+        particle.style.left = Math.random() * 100 + '%';
+        particle.style.top = Math.random() * 100 + '%';
+        particlesContainer.appendChild(particle);
+
+        gsap.to(particle, {
+          opacity: Math.random() * 0.5 + 0.2,
+          y: -100 - Math.random() * 200,
+          duration: 3 + Math.random() * 4,
+          repeat: -1,
+          delay: Math.random() * 3,
+          ease: 'none'
+        });
+      }
+    }
+    generateParticles();
+
+    // ============================================
+    // PROGRESS BAR
+    // ============================================
+    gsap.to('#progressBar', {
+      width: '100%',
+      ease: 'none',
+      scrollTrigger: {
+        trigger: 'body',
+        start: 'top top',
+        end: 'bottom bottom',
+        scrub: 0.3
+      }
+    });
+
+    // ============================================
+    // CHAPTER NAVIGATION
+    // ============================================
+    const navDots = document.querySelectorAll('.nav-dot');
+    const sections = ['hero', 'kintsugi', 'wyoming', 'japan', 'tsunami', 'philosophy', 'team', 'closing'];
+
+    sections.forEach((id, index) => {
+      ScrollTrigger.create({
+        trigger: `#${id}`,
+        start: 'top center',
+        end: 'bottom center',
+        onEnter: () => setActiveDot(index),
+        onEnterBack: () => setActiveDot(index)
+      });
+    });
+
+    function setActiveDot(index) {
+      navDots.forEach((dot, i) => {
+        dot.classList.toggle('active', i === index);
+      });
+    }
+
+    navDots.forEach(dot => {
+      dot.addEventListener('click', () => {
+        const target = dot.dataset.section;
+        gsap.to(window, { duration: 1.5, scrollTo: `#${target}`, ease: 'power3.inOut' });
+      });
+    });
+
+    // ============================================
+    // MAIN ANIMATIONS
+    // ============================================
+    function initAnimations() {
+      // HERO
+      const heroTl = gsap.timeline();
+      heroTl
+        .to('.hero-eyebrow', { opacity: 1, duration: 1, ease: 'power2.out' })
+        .to('.hero-title .word', {
+          opacity: 1,
+          y: 0,
+          duration: 1.2,
+          stagger: 0.15,
+          ease: 'power3.out'
+        }, '-=0.5')
+        .to('.hero-subtitle', { opacity: 1, duration: 1 }, '-=0.5')
+        .to('.scroll-indicator', { opacity: 1, duration: 1 }, '-=0.3');
+
+      // KINTSUGI
+      const kintsugiTl = gsap.timeline({
+        scrollTrigger: {
+          trigger: '.kintsugi-section',
+          start: 'top top',
+          end: 'bottom bottom',
+          scrub: 1,
+          pin: '.kintsugi-container'
+        }
+      });
+
+      kintsugiTl
+        .to('.gold-crack', {
+          strokeDashoffset: 0,
+          duration: 1,
+          stagger: 0.2,
+          ease: 'power2.inOut'
+        })
+        .to('.kintsugi-quote', {
+          opacity: 1,
+          y: 0,
+          duration: 0.5
+        }, '-=0.3')
+        .to('.kintsugi-cite', { opacity: 1, duration: 0.3 });
+
+      // WYOMING
+      const wyomingTl = gsap.timeline({
+        scrollTrigger: {
+          trigger: '.wyoming-section',
+          start: 'top top',
+          end: 'bottom bottom',
+          scrub: 1,
+          pin: '.wyoming-container'
+        }
+      });
+
+      wyomingTl
+        .to('.sky-gradient', { opacity: 1, duration: 1 })
+        .to('.mountains-far', { y: -50, duration: 1 }, 0)
+        .to('.mountains-mid', { y: -30, duration: 1 }, 0)
+        .to('.mountains-near', { y: -10, duration: 1 }, 0)
+        .to('.wyoming-title', { opacity: 1, y: 0, duration: 0.5 }, 0.2)
+        .to('.wyoming-subtitle', { opacity: 1, duration: 0.3 }, 0.4)
+        .to('.wyoming-body', { opacity: 1, duration: 0.3 }, 0.5)
+        .to('.wyoming-lessons', { opacity: 1, duration: 0.3 }, 0.6);
+
+      // MA SECTION
+      ScrollTrigger.create({
+        trigger: '.ma-section',
+        start: 'top 60%',
+        onEnter: () => {
+          gsap.to('.ma-kanji-display', { opacity: 1, duration: 1 });
+          gsap.to('.ma-text h2', { opacity: 1, x: 0, duration: 0.8, delay: 0.2 });
+          gsap.to('.ma-text .pronunciation', { opacity: 1, duration: 0.6, delay: 0.4 });
+          gsap.to('.ma-text p', { opacity: 1, duration: 0.6, delay: 0.6 });
+        }
+      });
+
+      // WABI-SABI
+      ScrollTrigger.create({
+        trigger: '.wabisabi-section',
+        start: 'top 60%',
+        onEnter: () => {
+          gsap.to('.tea-bowl-visual', { opacity: 1, scale: 1, duration: 1, ease: 'back.out(1.5)' });
+          gsap.to('.wabisabi-content h2', { opacity: 1, duration: 0.8, delay: 0.3 });
+          gsap.to('.wabisabi-content .kanji', { opacity: 1, duration: 0.6, delay: 0.5 });
+          gsap.to('.wabisabi-content blockquote', { opacity: 1, duration: 0.8, delay: 0.7 });
+          gsap.to('.wabisabi-content .attribution', { opacity: 1, duration: 0.6, delay: 0.9 });
+        }
+      });
+
+      // KINTSUGI PHILOSOPHY
+      ScrollTrigger.create({
+        trigger: '.kintsugi-philosophy',
+        start: 'top 60%',
+        onEnter: () => {
+          gsap.to('.kintsugi-art', { opacity: 1, duration: 1 });
+          gsap.to('.kintsugi-philosophy-text h2', { opacity: 1, duration: 0.8, delay: 0.2 });
+          gsap.to('.kintsugi-philosophy-text .kanji', { opacity: 1, duration: 0.6, delay: 0.4 });
+          gsap.to('.kintsugi-philosophy-text p', { opacity: 1, duration: 0.6, delay: 0.5, stagger: 0.2 });
+          gsap.to('.kintsugi-philosophy-text .philosophy-line', { opacity: 1, duration: 0.8, delay: 0.9 });
+        }
+      });
+
+      // TSUNAMI
+      ScrollTrigger.create({
+        trigger: '.tsunami-section',
+        start: 'top 60%',
+        onEnter: () => {
+          gsap.to('.tsunami-date', { opacity: 1, duration: 0.8 });
+          gsap.to('.tsunami-title', { opacity: 1, duration: 1, delay: 0.2 });
+          gsap.to('.tsunami-body p', { opacity: 1, duration: 0.8, stagger: 0.3, delay: 0.4 });
+          gsap.to('.tsunami-quote', { opacity: 1, duration: 1, delay: 1 });
+        }
+      });
+
+      // PHILOSOPHY
+      ScrollTrigger.create({
+        trigger: '.philosophy-section',
+        start: 'top 60%',
+        onEnter: () => {
+          gsap.to('.philosophy-title', { opacity: 1, duration: 1 });
+          gsap.to('.philosophy-intro', { opacity: 1, duration: 0.8, delay: 0.3 });
+          gsap.to('.bth-card', {
+            opacity: 1,
+            y: 0,
+            duration: 0.8,
+            stagger: 0.15,
+            delay: 0.5,
+            ease: 'power3.out'
+          });
+        }
+      });
+
+      // TEAM HEADER
+      ScrollTrigger.create({
+        trigger: '.team-header',
+        start: 'top 70%',
+        onEnter: () => {
+          gsap.to('.team-header h2', { opacity: 1, duration: 1 });
+          gsap.to('.team-header p', { opacity: 1, duration: 0.8, delay: 0.3 });
+        }
+      });
+
+      // PERSONA ROWS
+      document.querySelectorAll('.persona-row').forEach((row, i) => {
+        const direction = i % 2 === 0 ? -60 : 60;
+        gsap.set(row, { x: direction });
+
+        ScrollTrigger.create({
+          trigger: row,
+          start: 'top 70%',
+          onEnter: () => {
+            gsap.to(row, { opacity: 1, x: 0, duration: 1, ease: 'power3.out' });
+          }
+        });
+      });
+
+      // CLOSING
+      ScrollTrigger.create({
+        trigger: '.closing-section',
+        start: 'top 50%',
+        onEnter: () => {
+          gsap.to('.belief', {
+            opacity: 1,
+            y: 0,
+            duration: 0.8,
+            stagger: 0.2,
+            ease: 'power3.out'
+          });
+          gsap.to('.final-quote', {
+            opacity: 1,
+            scale: 1,
+            duration: 1.2,
+            delay: 1,
+            ease: 'power3.out'
+          });
+          gsap.to('.final-cta', { opacity: 1, duration: 0.8, delay: 1.5 });
+        }
+      });
+    }
+  </script>
+
+  <footer>
+    <div class="footer-logo">
+      <svg viewBox="0 0 100 100" aria-hidden="true">
+        <defs>
+          <linearGradient id="footerGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" style="stop-color: var(--color-ferni-light)"/>
+            <stop offset="100%" style="stop-color: var(--color-ferni-dark)"/>
+          </linearGradient>
+        </defs>
+        <circle cx="50" cy="50" r="46" fill="url(#footerGrad)"/>
+        <!-- LUXO STYLE: opaque white eyes, no pupils -->
+        <ellipse cx="36" cy="48" rx="7" ry="9" fill="white"/>
+        <ellipse cx="64" cy="48" rx="7" ry="9" fill="white"/>
+      </svg>
+    </div>
+    <p class="footer-tagline">"Friends forget. Ferni doesn't."</p>
+    <nav class="footer-links" aria-label="Footer navigation">
+      <a href="../capabilities/index.html">Capabilities</a>
+      <a href="../brand-book.html">Brand Book</a>
+      <a href="../brand-kit.html">Brand Kit</a>
+      <a href="../icons.html">Icons</a>
+      <a href="../components.html">Components</a>
+      <a href="../accessibility.html">Accessibility</a>
+      <a href="../sound-design.html">Sound</a>
+    </nav>
+    <p class="footer-copyright">Ferni Brand Library v2.0</p>
+  </footer>
+</body>
+</html>

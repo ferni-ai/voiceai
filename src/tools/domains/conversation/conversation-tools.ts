@@ -48,26 +48,73 @@ export function createConversationTools() {
     // Remember the user's name
     rememberName: llm.tool({
       description:
-        "CALL silently when user shares their name. Execute without announcing - DO NOT say 'let me remember that'. Respond naturally after.",
+        "CALL silently when user shares their name. Execute without announcing - DO NOT say 'let me remember that'. Respond naturally after. CRITICAL: Do NOT call this with persona names (Ferni, Maya, Peter, Alex, Jordan, Nayan) - those are YOUR team members, not the user!",
       parameters: z.object({
-        name: z.string().describe("The user's name"),
+        name: z
+          .string()
+          .describe(
+            "The user's name (NOT a persona name like Ferni, Maya, Peter, Alex, Jordan, or Nayan)"
+          ),
       }),
       execute: async ({ name }, { ctx }) => {
+        // CRITICAL: Prevent saving persona names as user names!
+        // This happens when user says "Hi Maya" after Maya introduces herself
+        const personaNames = new Set([
+          'ferni',
+          'maya',
+          'peter',
+          'alex',
+          'jordan',
+          'nayan',
+          'santos',
+          'chen',
+          'taylor',
+          'john',
+          'patel',
+          // Full names
+          'maya santos',
+          'alex chen',
+          'jordan taylor',
+          'peter john',
+          'nayan patel',
+        ]);
+
+        const nameLower = name.toLowerCase().trim();
+        if (personaNames.has(nameLower)) {
+          getLogger().warn(
+            `Blocked saving persona name "${name}" as user name - this is a team member, not the user!`
+          );
+          return `[INTERNAL: "${name}" is a team member name, not the user's name. Ask the user for their actual name.]`;
+        }
+
         getLogger().info(`Remembering user name: ${name}`);
         const userData = ctx.userData as UserData;
 
         // Store in session memory
         userData.name = name;
 
-        // CRITICAL: Also persist to user profile so we remember across sessions!
+        // CRITICAL: Persist to user profile AND save to Firestore!
         if (userData.services?.userProfile) {
           userData.services.userProfile.name = name;
           userData.services.userProfile.preferredName = name;
-          getLogger().info(`Persisted name "${name}" to user profile`);
+
+          // ACTUALLY SAVE TO FIRESTORE - not just in-memory!
+          try {
+            await userData.services.saveProfile();
+            getLogger().info(
+              { name, userId: userData.services.userProfile.id },
+              '🎉 User name persisted to Firestore!'
+            );
+          } catch (saveError) {
+            getLogger().error(
+              { error: String(saveError), name },
+              'Failed to persist name to Firestore - will be saved at session end'
+            );
+          }
         }
 
         // Return is for internal confirmation only - Jack should respond naturally, not read this
-        return `[INTERNAL: Name "${name}" stored. Respond naturally as Jack - do NOT read this message aloud.]`;
+        return `[INTERNAL: Name "${name}" stored. Respond naturally - do NOT read this message aloud.]`;
       },
     }),
 
@@ -317,15 +364,8 @@ export function createConversationTools() {
       execute: async ({ reason }) => {
         getLogger().info(`Ending conversation: ${reason}`);
 
-        // 🎧 Play the exit sound - "Wrap the show"
-        try {
-          const { getDJIntegration } = await import('../../../agents/dj-integration.js');
-          const dj = getDJIntegration();
-          const wrapResult = await dj.wrapShow();
-          getLogger().info('🎧 Session wrap sound', { playedSound: wrapResult.playedSound });
-        } catch (wrapErr) {
-          getLogger().debug(`Failed to play session-end sound: ${wrapErr}`);
-        }
+        // 🎧 Play the exit sound - session end sounds are handled by cleanup handler
+        getLogger().info('🎧 Session ending - cleanup handler will handle exit sound');
 
         // 🌅 Signal the frontend to auto-disconnect
         try {
@@ -416,6 +456,349 @@ export function createConversationTools() {
       },
     }),
 
+    // Register an unknown caller as a potential family member
+    registerFamilyCaller: llm.tool({
+      description:
+        'Create a pending sponsored identity for an unknown caller who was referred by a Ferni user. The sponsor will be notified to approve.',
+      parameters: z.object({
+        callerName: z.string().describe('Name the caller provided'),
+        sponsorName: z.string().describe('Name of the person who referred them to Ferni'),
+        relationship: z
+          .string()
+          .optional()
+          .describe('How they know the sponsor (mom, friend, etc.)'),
+        notes: z.string().optional().describe('Any notes from the conversation'),
+      }),
+      execute: async ({ callerName, sponsorName, relationship, notes }, { ctx }) => {
+        const userData = ctx.userData as UserData;
+        const sessionId = userData.services?.sessionId;
+
+        getLogger().info(
+          { callerName, sponsorName, relationship, sessionId },
+          '👨‍👩‍👧 Registering family caller'
+        );
+
+        try {
+          // Get caller phone from inbound call context
+          const { getInboundCallContext } = await import(
+            '../../../intelligence/context-builders/external/inbound-call-context.js'
+          );
+
+          let callerPhone = '';
+          if (sessionId) {
+            const callContext = getInboundCallContext(sessionId);
+            callerPhone = callContext?.callerPhone || '';
+          }
+
+          if (!callerPhone) {
+            return '[INTERNAL: Could not get caller phone number. Cannot register without phone.]';
+          }
+
+          // Create self-registered identity
+          const { createSelfRegisteredIdentity } = await import(
+            '../../../services/identity/sponsored-identity.js'
+          );
+
+          const identity = await createSelfRegisteredIdentity(
+            callerPhone,
+            callerName,
+            relationship || 'referred_by',
+            sponsorName
+          );
+
+          // Notify potential sponsors
+          const { notifyPotentialSponsors } = await import(
+            '../../../services/identity/sponsor-notifications.js'
+          );
+
+          const notifyResult = await notifyPotentialSponsors(sponsorName, identity.id, {
+            name: callerName,
+            phone: callerPhone,
+            relationship,
+            notes,
+          });
+
+          if (notifyResult.notifiedCount > 0) {
+            getLogger().info(
+              {
+                callerName,
+                sponsorName,
+                notifiedCount: notifyResult.notifiedCount,
+                identityId: identity.id,
+              },
+              '✅ Family caller registered and sponsors notified'
+            );
+
+            return `[INTERNAL: Created pending profile for ${callerName}. Notified ${notifyResult.notifiedCount} potential sponsor(s) named ${sponsorName}. Tell them: "Great! I've let ${sponsorName} know you called. Once they approve you in the app, I'll remember you every time you call!"]`;
+          } else {
+            return `[INTERNAL: Created pending profile for ${callerName}, but couldn't find anyone named ${sponsorName} to notify. Tell them: "I've saved your info, but I couldn't find ${sponsorName} in my contacts. If they use Ferni, ask them to add you from the app."]`;
+          }
+        } catch (error) {
+          getLogger().error({ error: String(error) }, 'Error registering family caller');
+          return '[INTERNAL: Error registering caller. Continue the conversation normally.]';
+        }
+      },
+    }),
+
+    // Start voice enrollment for the current caller
+    startVoiceEnrollment: llm.tool({
+      description:
+        'Start voice enrollment to enable voice recognition for the caller. Only use after user explicitly consents. Their voice will be learned during the conversation.',
+      parameters: z.object({
+        userConsented: z
+          .boolean()
+          .describe('User explicitly agreed to voice enrollment - must be true'),
+      }),
+      execute: async ({ userConsented }, { ctx }) => {
+        const userData = ctx.userData as UserData;
+        const sessionId = userData.services?.sessionId;
+        const userId = userData.services?.userProfile?.id;
+
+        if (!userConsented) {
+          return '[INTERNAL: User must explicitly consent to voice enrollment before starting.]';
+        }
+
+        if (!userId) {
+          return '[INTERNAL: No user profile found - cannot start voice enrollment.]';
+        }
+
+        getLogger().info({ userId, sessionId }, '🎤 Starting voice enrollment');
+
+        try {
+          // Mark enrollment started in onboarding progress
+          if (sessionId) {
+            const { markVoiceEnrollmentStarted } = await import(
+              '../../../intelligence/context-builders/external/first-call-onboarding-context.js'
+            );
+            markVoiceEnrollmentStarted(sessionId);
+          }
+
+          // Start the phone voice enrollment process
+          const { startPhoneVoiceEnrollment } = await import(
+            '../../../services/identity/sponsored-identity.js'
+          );
+
+          const result = await startPhoneVoiceEnrollment(userId);
+
+          if (result.success) {
+            getLogger().info({ userId }, '✅ Voice enrollment started successfully');
+            return `[INTERNAL: Voice enrollment started! Guide them: "Great! Just keep talking naturally - I'm learning your voice as we chat. This will take about a minute of conversation." Their voice sketch will be built automatically from the conversation audio.]`;
+          } else {
+            getLogger().warn({ userId, error: result.error }, 'Voice enrollment start failed');
+            return `[INTERNAL: Could not start voice enrollment: ${result.error}. Apologize and continue the conversation normally.]`;
+          }
+        } catch (error) {
+          getLogger().error({ error: String(error), userId }, 'Voice enrollment error');
+          return '[INTERNAL: Error starting voice enrollment. Continue conversation normally.]';
+        }
+      },
+    }),
+
+    // Add a new phone number to user's profile for future recognition
+    addPhoneNumber: llm.tool({
+      description:
+        'Add a new phone number to the current user profile so they can be recognized from multiple phones. Use when user mentions calling from a different number or wants to add a work/home phone.',
+      parameters: z.object({
+        phoneNumber: z.string().describe('Phone number to add (any format)'),
+        label: z
+          .string()
+          .optional()
+          .describe('Optional label for the number (work, home, mobile, etc.)'),
+      }),
+      execute: async ({ phoneNumber, label }, { ctx }) => {
+        const userData = ctx.userData as UserData;
+        const userId = userData.services?.userProfile?.id;
+
+        if (!userId) {
+          return '[INTERNAL: No user profile found - cannot add phone number.]';
+        }
+
+        getLogger().info({ userId, phoneNumber, label }, '📱 Adding phone number to profile');
+
+        try {
+          const { normalizePhoneNumber, isValidPhoneNumber, linkPhoneToProfile } = await import(
+            '../../../services/identity/user-identification.js'
+          );
+          const { lookupByPhone } = await import(
+            '../../../services/identity/sponsored-identity.js'
+          );
+          const { getCachedPhoneMapping } = await import(
+            '../../../services/memory/memory-management.js'
+          );
+
+          const normalized = normalizePhoneNumber(phoneNumber);
+
+          // Validate phone number format
+          if (!isValidPhoneNumber(normalized)) {
+            return `[INTERNAL: "${phoneNumber}" doesn't look like a valid phone number. Ask them to confirm the number.]`;
+          }
+
+          // Check if already registered to someone else
+          const existingMapping = getCachedPhoneMapping(normalized);
+          if (existingMapping && existingMapping !== userId) {
+            getLogger().warn(
+              { normalized, existingUser: existingMapping, currentUser: userId },
+              'Phone already registered to different user'
+            );
+            return '[INTERNAL: This phone number is already registered to another account. Ask if they want to link the accounts instead.]';
+          }
+
+          // Check sponsored identities
+          const sponsoredLookup = await lookupByPhone(normalized);
+          if (sponsoredLookup.found && sponsoredLookup.identity?.sponsorUserId !== userId) {
+            return '[INTERNAL: This phone number belongs to a family member account. Cannot add to your profile.]';
+          }
+
+          // Add to profile
+          const success = await linkPhoneToProfile(userId, normalized);
+
+          if (success) {
+            const labelNote = label ? ` (${label})` : '';
+            getLogger().info(
+              { userId, normalized, label },
+              '✅ Phone number added to profile'
+            );
+            return `[INTERNAL: Phone number added successfully${labelNote}. Confirm to them: "Got it! I'll recognize you from that number now."]`;
+          } else {
+            return '[INTERNAL: Failed to add phone number. Apologize and try again later.]';
+          }
+        } catch (error) {
+          getLogger().error({ error: String(error) }, 'Error adding phone number');
+          return '[INTERNAL: Error adding phone number. Apologize and continue.]';
+        }
+      },
+    }),
+
+    // Link phone caller to existing web account
+    linkPhoneToAccount: llm.tool({
+      description:
+        'Link the current phone caller to an existing web/app account after user confirmation. This merges their conversation history and memories.',
+      parameters: z.object({
+        webAccountId: z.string().describe('The web/app account ID to link to'),
+        confirmedByUser: z
+          .boolean()
+          .describe('User explicitly confirmed they want to link accounts'),
+      }),
+      execute: async ({ webAccountId, confirmedByUser }, { ctx }) => {
+        const userData = ctx.userData as UserData;
+
+        if (!confirmedByUser) {
+          return '[INTERNAL: Cannot link accounts without user confirmation. Ask them first!]';
+        }
+
+        const currentUserId = userData.services?.userProfile?.id;
+        if (!currentUserId) {
+          return '[INTERNAL: No current user ID found - cannot link accounts.]';
+        }
+
+        getLogger().info(
+          { currentUserId, webAccountId },
+          '🔗 Attempting to link phone to web account'
+        );
+
+        try {
+          const { mergePhoneToWebAccount } = await import(
+            '../../../services/identity/user-identification.js'
+          );
+
+          const result = await mergePhoneToWebAccount(currentUserId, webAccountId);
+
+          if (result.success) {
+            // Mark linking complete in context
+            const { markLinkingComplete } = await import(
+              '../../../intelligence/context-builders/external/account-linking-context.js'
+            );
+            const sessionId = userData.services?.sessionId;
+            if (sessionId) {
+              markLinkingComplete(sessionId);
+            }
+
+            return '[INTERNAL: Accounts linked successfully! Their phone and web history are now combined. Confirm to them: "Done! Your accounts are now linked."]';
+          } else {
+            getLogger().warn({ error: result.error }, 'Account linking failed');
+            return `[INTERNAL: Account linking failed: ${result.error}. Apologize and continue normally.]`;
+          }
+        } catch (error) {
+          getLogger().error({ error: String(error) }, 'Account linking error');
+          return '[INTERNAL: Error linking accounts. Apologize and continue normally.]';
+        }
+      },
+    }),
+
+    // Confirm or update caller identity after voice mismatch
+    confirmCallerIdentity: llm.tool({
+      description:
+        'Use when voice mismatch detected and caller has confirmed their identity. Updates the session to use the correct user profile.',
+      parameters: z.object({
+        confirmedName: z.string().describe('The name the caller confirmed'),
+        isSamePerson: z
+          .boolean()
+          .describe('True if this IS the expected person, false if different person'),
+        createNewProfile: z
+          .boolean()
+          .optional()
+          .describe('If different person, whether to create a new profile for them'),
+        relationship: z
+          .string()
+          .optional()
+          .describe('If known, relationship to phone owner (spouse, child, friend, etc.)'),
+      }),
+      execute: async ({ confirmedName, isSamePerson, createNewProfile, relationship }, { ctx }) => {
+        const userData = ctx.userData as UserData;
+        const sessionId = userData.services?.sessionId;
+
+        getLogger().info(
+          {
+            confirmedName,
+            isSamePerson,
+            createNewProfile,
+            relationship,
+            sessionId,
+          },
+          '🔐 Caller identity confirmation'
+        );
+
+        // Import voice mismatch context helpers
+        const { confirmDifferentPerson, clearVoiceMismatchContext } = await import(
+          '../../../intelligence/context-builders/external/voice-mismatch-context.js'
+        );
+
+        if (isSamePerson) {
+          // Voice didn't match but they confirmed identity - clear the mismatch
+          if (sessionId) {
+            clearVoiceMismatchContext(sessionId);
+          }
+          return `[INTERNAL: Identity confirmed as expected user. Voice mismatch cleared. Continue normally.]`;
+        }
+
+        // Different person - update context
+        if (sessionId) {
+          confirmDifferentPerson(sessionId, confirmedName);
+        }
+
+        // Update session with new name
+        userData.name = confirmedName;
+
+        if (createNewProfile && userData.services) {
+          // Store relationship info if provided
+          const noteForProfile = relationship
+            ? `Calling from another user's phone. Relationship: ${relationship}`
+            : 'Calling from another user\'s phone';
+
+          getLogger().info(
+            { confirmedName, relationship, note: noteForProfile },
+            '📱 Creating context for borrowed phone caller'
+          );
+
+          // The actual profile creation will happen through normal session flow
+          // Just mark that we need to handle this as a different user
+          return `[INTERNAL: Different person "${confirmedName}" confirmed. ${relationship ? `They are the ${relationship} of the phone owner.` : ''} Treat them as their own person - do not reference phone owner's private conversations. If they want to be remembered, use rememberName to save their name.]`;
+        }
+
+        return `[INTERNAL: Different person "${confirmedName}" confirmed. Continuing conversation with them.]`;
+      },
+    }),
+
     // Express an opinion with characteristic Jack fire
     expressOpinion: llm.tool({
       description: getToolDescription('checkIn'),
@@ -489,4 +872,3 @@ export function createConversationTools() {
 }
 
 export default createConversationTools;
-

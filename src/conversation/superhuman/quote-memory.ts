@@ -9,7 +9,9 @@
  * @module conversation/superhuman/quote-memory
  */
 
+import { seededChance, seededPick, seededIndex } from '../utils/rng.js';
 import { createLogger } from '../../utils/safe-logger.js';
+import { cleanForFirestore } from '../../utils/firestore-utils.js';
 
 const log = createLogger({ module: 'QuoteMemory' });
 
@@ -148,7 +150,7 @@ export function extractQuote(
   }
 
   const userQuote: UserQuote = {
-    id: `quote_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+    id: `quote_${Date.now()}_${Date.now().toString(36).slice(-6)}`,
     userId,
     quote: quote.trim(),
     context: context.topics?.join(', ') || 'general conversation',
@@ -373,7 +375,7 @@ function generateQuoteIntro(quote: UserQuote, reason: string): string {
   };
 
   const options = intros[reason as keyof typeof intros] || intros['topic match'];
-  return options[Math.floor(Math.random() * options.length)];
+  return seededPick(`${Date.now()}:377`, options) ?? options[0];
 }
 
 /**

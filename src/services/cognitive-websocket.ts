@@ -13,6 +13,7 @@
 import { WebSocketServer, WebSocket } from 'ws';
 import type { Server } from 'node:http';
 import { getLogger } from '../utils/safe-logger.js';
+import { registerInterval, clearNamedInterval } from '../utils/interval-manager.js';
 import { cognitiveBroadcast, type CognitiveBroadcastEvent } from './cognitive-broadcast.js';
 
 const logger = getLogger();
@@ -106,23 +107,28 @@ export function initCognitiveWebSocket(httpServer: Server): WebSocketServer {
   });
 
   // Heartbeat to keep connections alive
-  heartbeatInterval = setInterval(() => {
-    const heartbeat = JSON.stringify({
-      type: 'heartbeat',
-      timestamp: new Date().toISOString(),
-      clientCount: clients.size,
-    });
+  registerInterval(
+    'cognitive-websocket-heartbeat',
+    () => {
+      const heartbeat = JSON.stringify({
+        type: 'heartbeat',
+        timestamp: new Date().toISOString(),
+        clientCount: clients.size,
+      });
 
-    Array.from(clients).forEach((client) => {
-      if (client.readyState === WebSocket.OPEN) {
-        try {
-          client.send(heartbeat);
-        } catch {
-          // Client disconnected
+      Array.from(clients).forEach((client) => {
+        if (client.readyState === WebSocket.OPEN) {
+          try {
+            client.send(heartbeat);
+          } catch {
+            // Client disconnected
+          }
         }
-      }
-    });
-  }, HEARTBEAT_INTERVAL);
+      });
+    },
+    HEARTBEAT_INTERVAL
+  );
+  heartbeatInterval = 1 as unknown as ReturnType<typeof setInterval>; // Marker
 
   return wss;
 }
@@ -133,7 +139,7 @@ export function initCognitiveWebSocket(httpServer: Server): WebSocketServer {
  */
 export function shutdownCognitiveWebSocket(): void {
   if (heartbeatInterval) {
-    clearInterval(heartbeatInterval);
+    clearNamedInterval('cognitive-websocket-heartbeat');
     heartbeatInterval = null;
   }
 

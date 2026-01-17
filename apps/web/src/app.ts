@@ -15,6 +15,8 @@ import {
   startAmbientCycle,
   toggleTheme,
 } from './theme/index.js';
+// Theme & Language Settings panel
+import { showThemeLanguageSettings } from './ui/theme-language-settings.ui.js';
 
 // State
 import {
@@ -25,10 +27,22 @@ import {
   setWrappingUp,
 } from './state/app.state.js';
 
+// ============================================================================
+// AMBIENT EXPERIENCE MANAGERS
+// Better than Apple: Time-aware, relationship-aware, persona-aware theming
+// ============================================================================
+import { circadianManager } from './services/circadian-manager.js';
+import { warmthManager } from './services/warmth-manager.js';
+import { personaAura } from './services/persona-aura.js';
+import { visualStorytellingService } from './services/visual-storytelling.service.js';
+
 // Services
 import { delightService } from './services/delight.service.js';
 import { checkAndClaimDemoSession, hasPendingClaim } from './services/demo-claim.service.js';
-import { getAuthToken } from './services/firebase-auth.service.js';
+import { getAuthState, getAuthToken } from './services/firebase-auth.service.js';
+import { initializeAuth } from './services/auth-init.service.js';
+import { showSignInGate } from './ui/sign-in-gate.ui.js';
+import { initGoogleOneTap, cancelOneTap } from './services/google-one-tap.service.js';
 import {
   audioService,
   connectionService,
@@ -39,11 +53,13 @@ import {
   spotifyService,
 } from './services/index.js';
 import { detectAndSyncTimezone } from './services/timezone.service.js';
+import { getLocation, updateFromBackend as _updateFromBackend } from './services/geolocation.service.js';
 // 🌱 Roadmap/Seed Economy - For streak rewards
 import { roadmapService } from './services/roadmap.service.js';
 
 // Core UI Components
 import { coachUI, initCoachUI } from './ui/coach.ui.js';
+import { expressiveEyes, initExpressiveEyes } from './ui/expressive-eyes.ui.js';
 import { controlsUI, initControlsUI } from './ui/controls.ui.js';
 import { initMessageUI, messageUI } from './ui/message.ui.js';
 import {
@@ -54,23 +70,32 @@ import {
 } from './ui/spotify.ui.js';
 import { initTeamUI, teamUI } from './ui/team.ui.js';
 import { initWaveformUI, waveformUI } from './ui/waveform.ui.js';
+// Relationship Management (Your People) - unified contact & gift management
+import { initYourPeopleUI as _initYourPeopleUI, openYourPeople } from './ui/your-people.ui.js';
+// openAddPerson available via Your People panel
+// Group Conversations - Team Roundtables and Conference Calls
+import { initGroupConversationUI } from './ui/group-conversation.ui.js';
+// Proactive Messages - In-app messages from intelligent outreach
+import { initProactiveMessages, refreshProactiveMessages } from './ui/proactive-messages.ui.js';
 
 // Premium UI Features
-import { celebrationsUI, initCelebrationsUI } from './ui/celebrations.ui.js';
-import { easterEggsUI, initEasterEggsUI } from './ui/easter-eggs.ui.js';
+import { celebrationsUI, initCelebrationsUI as _initCelebrationsUI } from './ui/celebrations.ui.js';
+import { easterEggsUI, initEasterEggsUI as _initEasterEggsUI } from './ui/easter-eggs.ui.js';
 import { gesturesUI, initGesturesUI } from './ui/gestures.ui.js';
-import { initPresenceUI, presenceUI } from './ui/presence.ui.js';
-import { initRippleUI, rippleUI } from './ui/ripple.ui.js';
+import { initPresenceUI as _initPresenceUI, presenceUI } from './ui/presence.ui.js';
+import { initRippleUI as _initRippleUI, rippleUI } from './ui/ripple.ui.js';
 import { initSoundUI, soundUI } from './ui/sound.ui.js';
 // Ambient Sounds - Background ambience for personalization
-import { dispose as disposeAmbientSounds, initAmbientSounds } from './services/ambient-sounds.service.js';
+import { dispose as disposeAmbientSounds, initAmbientSounds as _initAmbientSounds } from './services/ambient-sounds.service.js';
 // Brand Service - Client-side brand validation
-import { initBrandService } from './services/brand-service.js';
-import { initStatsUI, statsUI } from './ui/stats.ui.js';
+import { initBrandService as _initBrandService } from './services/brand-service.js';
+import { initStatsUI as _initStatsUI, statsUI } from './ui/stats.ui.js';
 // ✨ Micro-Interactions - Premium button & interactive effects
-import { initMicroInteractions, microInteractionsUI } from './ui/micro-interactions.ui.js';
+import { initMicroInteractions as _initMicroInteractions, microInteractionsUI } from './ui/micro-interactions.ui.js';
 // 📱 Mobile Delights - Magical mobile interactions (tilt, tap-to-look, haptics, etc.)
-import { disposeMobileDelights, initMobileDelights } from './ui/mobile-delights.ui.js';
+import { disposeMobileDelights, initMobileDelights as _initMobileDelights } from './ui/mobile-delights.ui.js';
+// 📱 Mobile Bottom Sheet - Zen Mode settings access
+import { disposeMobileBottomSheet, initMobileBottomSheet as _initMobileBottomSheet } from './ui/mobile-bottom-sheet.ui.js';
 // import { keyboardUI, initKeyboardUI } from './ui/keyboard.ui.js'; // Disabled for now
 import { avatarFeedback, initAvatarFeedback } from './ui/avatar-feedback.ui.js';
 import { connectionQualityUI, initConnectionQualityUI } from './ui/connection-quality.ui.js';
@@ -85,49 +110,74 @@ import { initTranscriptUI, transcriptUI } from './ui/transcript.ui.js';
 // Marketplace UI
 import { openAdminQueue as openMarketplaceAdmin } from './ui/marketplace-admin.ui.js';
 import { marketplaceUI, openMarketplace } from './ui/marketplace.ui.js';
-import { showIntegrationsSettings } from './ui/integrations-settings.ui.js';
+import { showIntegrationsSettings, getIntegrationsSettingsUI } from './ui/integrations-settings.ui.js';
+import { openDigitalTwinUI } from './ui/digital-twin.ui.js';
+import { openChronicle } from './ui/chronicle.ui.js';
 import { openCreativeYouDashboard } from './ui/creative-you-dashboard.ui.js';
+// 📔 Journal Capture - Auto-capture meaningful moments from conversations
+import { initJournalCapture as _initJournalCapture } from './services/journal-capture.service.js';
 // Admin UI (legacy - kept for backward compatibility)
 import { initAdminDashboard, injectAdminStyles } from './ui/admin.ui.js';
+// CLI Authentication (for ferni auth login)
+import { initCLIAuth } from './ui/cli-auth.ui.js';
 // New Unified Admin Portal
 import { initAdminPortal } from './admin/index.js';
 // Engagement UI
 import { engagementTriggerUI, initEngagementTriggerUI } from './ui/engagement-trigger.ui.js';
-import { getEngagementUI, initializeEngagementUI } from './ui/engagement.ui.js';
-import { getPredictionsUI, initializePredictionsUI } from './ui/predictions.ui.js';
+import { getEngagementUI, initializeEngagementUI as _initializeEngagementUI } from './ui/engagement.ui.js';
+import { getPredictionsUI, initializePredictionsUI as _initializePredictionsUI } from './ui/predictions.ui.js';
+import { getInsightsView, initializeInsightsView as _initializeInsightsView } from './ui/insights-view.ui.js';
 // Notifications & Celebrations
 import { initNotificationsUI, showStreakMilestone } from './ui/notifications.ui.js';
 import { celebrateStreak, isStreakMilestone } from './ui/streak-celebrations.ui.js';
 // Weather Effects - Seasonal ambient atmosphere (available via dev panel)
-import { dispose as disposeWeatherEffects, initWeatherEffects } from './ui/weather-effects.ui.js';
+import { dispose as disposeWeatherEffects, initWeatherEffects as _initWeatherEffects } from './ui/weather-effects.ui.js';
 // Ferni Moments - Character expressions
-import { dispose as disposeFerniMoments, initFerniMoments } from './ui/ferni-moments.ui.js';
+import { dispose as disposeFerniMoments, initFerniMoments as _initFerniMoments } from './ui/ferni-moments.ui.js';
+// Avatar Sidekicks - Expressive side icons (like "hands" holding props)
+import { avatarSidekicks as _avatarSidekicks, dispose as disposeSidekicks } from './ui/avatar-sidekicks.ui.js';
 // Ferni Milestones - Warm relationship celebrations
-import { initFerniMilestones } from './ui/ferni-milestones.ui.js';
+import { initFerniMilestones as _initFerniMilestones } from './ui/ferni-milestones.ui.js';
 // Connection Heart - Unified status + relationship indicator near avatar
-import { disposeConnectionHeart, initConnectionHeart } from './ui/connection-heart.ui.js';
+import { disposeConnectionHeart, initConnectionHeart as _initConnectionHeart } from './ui/connection-heart.ui.js';
 // Ferni Expressions - Character-level avatar expressions
-import { ferniExpressions, initFerniExpressions } from './ui/ferni-expressions.ui.js';
+import { ferniExpressions, initFerniExpressions as _initFerniExpressions } from './ui/ferni-expressions.ui.js';
 // Emotion ↔ Expression Bridge - Auto-maps emotions to expressions
-import { enableEmotionExpressionBridge } from './emotion/emotion-expression-bridge.js';
+import { enableEmotionExpressionBridge as _enableEmotionExpressionBridge } from './emotion/emotion-expression-bridge.js';
 // Logo Expressions - Animated logo that reacts to emotions
 import {
   disposeLogoExpressions,
-  hookIntoAvatarFeedback as hookLogoFeedback,
-  initLogoExpressions,
+  hookIntoAvatarFeedback as _hookLogoFeedback,
+  initLogoExpressions as _initLogoExpressions,
 } from './ui/logo-expressions.ui.js';
 // Celebration Service - Triggers milestone celebrations
-import { initCelebrationService } from './services/celebration.service.js';
+import { initCelebrationService as _initCelebrationService } from './services/celebration.service.js';
 // Ferni EQ - Superhuman emotional intelligence ("Better than Human")
-import { disposeFerniEQ, initFerniEQ } from './ui/better-than-human.ui.js';
+import { disposeFerniEQ, initFerniEQ as _initFerniEQ } from './ui/better-than-human.ui.js';
+// 🌟 Transcendent Animation Systems - Signature moments that surpass Apple, Google, and Pixar
+import { handleMomentTrigger, initTranscendentSystems, destroyTranscendentSystems } from './systems/index.js';
+// Humanization Bridge - Connects backend humanization signals to frontend EQ
+import { initHumanizationBridge as _initHumanizationBridge, disposeHumanizationBridge } from './services/humanization-bridge.service.js';
 // Proactive Outreach UI - "Thinking of You" notifications
-import { disposeProactiveOutreachUI as disposeProactiveOutreach, initProactiveOutreachUI } from './ui/proactive-outreach.ui.js';
+import { disposeProactiveOutreachUI as disposeProactiveOutreach, initProactiveOutreachUI as _initProactiveOutreachUI } from './ui/proactive-outreach.ui.js';
+// Team Insights UI - Cross-persona intelligence panel
+import { disposeTeamInsightsUI, initTeamInsightsUI as _initTeamInsightsUI, teamInsightsUI } from './ui/team-insights.ui.js';
+// Cross-Team Notifications - Real-time alerts from team insights
+import {
+  disposeCrossTeamNotifications,
+  initCrossTeamNotifications as _initCrossTeamNotifications,
+} from './services/cross-team-notifications.service.js';
+// Voice Events - Real-time voice-triggered UI changes (theme, navigation)
+import {
+  disposeVoiceEvents,
+  initVoiceEvents as _initVoiceEvents,
+} from './services/voice-events.service.js';
 // Avatar Soul - Pixar-quality "Better Than Human" visual animation system
-import { avatarSoul, disposeAvatarSoul, initAvatarSoul } from './ui/avatar-soul.ui.js';
+import { avatarSoul as _avatarSoul, disposeAvatarSoul, initAvatarSoul as _initAvatarSoul } from './ui/avatar-soul.ui.js';
 // Avatar Lamp - Luxo Jr. level body language animation
-import { avatarLamp, disposeAvatarLamp, initAvatarLamp } from './ui/avatar-lamp.ui.js';
+import { avatarLamp as _avatarLamp, disposeAvatarLamp, initAvatarLamp as _initAvatarLamp } from './ui/avatar-lamp.ui.js';
 // Ambient Life - Makes Ferni feel alive when idle
-import { disposeAmbientLife, initAmbientLife } from './ui/ambient-life.ui.js';
+import { disposeAmbientLife, initAmbientLife as _initAmbientLife } from './ui/ambient-life.ui.js';
 // Speech Event Dispatcher - Critical foundation for Ferni EQ
 import {
   dispatchAgentSpeechEnd,
@@ -136,12 +186,12 @@ import {
   dispatchUserSpeechEnd,
   dispatchUserSpeechStart,
   disposeSpeechEventDispatcher,
-  initSpeechEventDispatcher,
+  initSpeechEventDispatcher as _initSpeechEventDispatcher,
 } from './services/speech-event-dispatcher.js';
 // I18n - Internationalization and localization
 import { initI18n } from './i18n/index.js';
 // Mood Context - Time-based persona mood for "Better than Human"
-import { disposeMoodContext, initMoodContext } from './services/mood-context.service.js';
+import { disposeMoodContext, initMoodContext as _initMoodContext } from './services/mood-context.service.js';
 // Demo data for testing without backend
 import {
   disableDemoData,
@@ -151,17 +201,26 @@ import {
 } from './services/engagement-demo-data.js';
 // Environment detection
 import { shouldUseDemoData } from './utils/environment.js';
+import { getApiHeadersAsync, apiPost, apiGet } from './utils/api.js';
 
 // New Feature UIs (v2)
 import accentSettingsUI from './ui/accent-settings.ui.js';
 import { initAnalyticsDashboardUI } from './ui/analytics-dashboard.ui.js';
 import { initCognitiveInsightsUI } from './ui/cognitive-insights.ui.js';
+import { initGameBoard, destroyGameBoard } from './ui/game-board.ui.js';
 import { getCommandsPanelUI, setCommandsPersonaId } from './ui/commands.ui.js';
+import { getSanctuaryUI } from './ui/sanctuary.ui.js';
 import { initConversationHistoryUI } from './ui/conversation-history.ui.js';
 import { getDataExportUI, initDataExportUI } from './ui/data-export.ui.js';
 import { initPredictionTrackerUI } from './ui/prediction-tracker.ui.js';
 import { getRitualBuilderUI, initRitualBuilderUI } from './ui/ritual-builder.ui.js';
 import { getSettingsMenuUI, initSettingsMenuUI } from './ui/settings-menu.ui.js';
+import { initActivityUI, showActivity } from './ui/activity.ui.js';
+// New feature UIs - Memory Lane, Knowledge Quiz, Growth Journal, Pattern Insights
+import { memoryLaneUI } from './ui/memory-lane.ui.js';
+import { openKnowledgeQuiz } from './ui/knowledge-quiz.ui.js';
+import { openGrowthJournal } from './ui/growth-journal.ui.js';
+import { patternInsightsUI } from './ui/pattern-insights.ui.js';
 // Services for feature persistence
 import {
   conversationTracker,
@@ -173,12 +232,14 @@ import { getOnboardingUI, initOnboardingUI, startOnboardingIfNeeded } from './ui
 import { initPersonaTransitionUI } from './ui/persona-transition.ui.js';
 // 🎬 Cameo Roster - Team member pop-in animations in the roster
 import { initCameoRoster } from './ui/cameo-roster.ui.js';
-import { initRelationshipProgressUI } from './ui/relationship-progress.ui.js';
+import { initRelationshipProgressUI } from './ui/stage-celebration.ui.js';
 // Trust Journey is now integrated into journey.ui.ts - no separate init needed
 // Music Dashboard UI - "Musical You" insights
 import { showGamePicker } from './ui/game-picker.ui.js';
 import { musicDashboard } from './ui/music-dashboard.ui.js';
 import { initTeamHuddleUI } from './ui/team-huddle.ui.js';
+// Team Intro - Meet the team modal for mobile
+import { initTeamIntro, showTeamIntro } from './ui/team-intro.ui.js';
 // Push Notifications
 import { initPushNotifications } from './services/push-notifications.service.js';
 import {
@@ -191,10 +252,28 @@ import { openOutreachSchedule } from './ui/outreach-schedule.ui.js';
 import { openContactSettings } from './ui/contact-settings.ui.js';
 // Calendar Settings UI
 import { openCalendarSettings } from './ui/calendar-settings.ui.js';
+// Calendar View UI - Visual schedule display
+import { showCalendarView, setCalendarViewCallbacks } from './ui/calendar-view.ui.js';
+// Calendar Analytics UI - Insights dashboard
+// Calendar analytics is now integrated into calendar-view.ui.ts
 // Wearable Settings UI - Connected device management
 import { showWearableSettings } from './ui/wearable-settings.ui.js';
 // Video Settings UI - Video session controls
 import { showVideoSettings } from './ui/video-settings.ui.js';
+// LinkedIn Settings UI - Career milestone awareness
+import { initLinkedInSettings, showLinkedInSettings } from './ui/linkedin-settings.ui.js';
+// Vibe Controller UI - Unified Music, Lights, Temperature control
+import { show as showVibeController } from './ui/vibe-controller.ui.js';
+// Smart Home Settings UI - Connect Ecobee, Hue, LIFX
+import { showSmartHomeSettings } from './ui/smart-home-settings.ui.js';
+// Eight Sleep Settings UI - Smart mattress control
+import { showEightSleepSettings } from './ui/eight-sleep-settings.ui.js';
+// Oura Ring Settings UI - Sleep and readiness tracking
+import { showOuraSettings } from './ui/oura-settings.ui.js';
+// Apple Health Settings UI - iOS HealthKit sync
+import { showAppleHealthSettings } from './ui/apple-health-settings.ui.js';
+// LinkedIn connection for career awareness (used as fallback)
+import { connectLinkedIn, disconnectLinkedIn, handleLinkedInCallback } from './services/linkedin.service.js';
 // Group Coaching UI - Multi-participant sessions
 import { showGroupCoaching } from './ui/group-coaching.ui.js';
 // Voice Enrollment UI
@@ -205,15 +284,19 @@ import { initVoiceIdBadge } from './ui/voice-id-badge.ui.js';
 import { initSpeakerChangeIndicator } from './ui/speaker-change-indicator.ui.js';
 // Household Manager - Multi-user voice household management
 import { initHouseholdManager, showHouseholdManager } from './ui/household-manager.ui.js';
+import { FamilyIdentities } from './ui/family-identities.ui.js';
 // Conversation Memory Browser - Browse past conversations and memories
 import { initConversationMemory, showConversationMemory } from './ui/conversation-memory.ui.js';
 // Wellbeing Dashboard - "State of Me" visualization
 import { initWellbeingDashboard, showWellbeingDashboard } from './ui/wellbeing-dashboard.ui.js';
+// Life Context Dashboard - Cross-domain life synthesis (Phase 6)
+import { initLifeContextDashboard, showLifeContextDashboard } from './ui/life-context-dashboard.ui.js';
 // Service Health - Show degradation status to users
 import { initServiceHealthUI } from './ui/service-health.ui.js';
 // Monetization UIs - Support Ferni
 import { ferniFundUI } from './ui/ferni-fund.ui.js';
 import { journeyUI } from './ui/journey.ui.js';
+import { futureInsightsUI } from './ui/future-insights.ui.js';
 import { supportFerniUI } from './ui/support-ferni.ui.js';
 // Garden Widget - Seed Fund community contribution display
 // Garden widget removed - using simple menu option instead
@@ -225,8 +308,10 @@ import { referralUI } from './ui/referral.ui.js';
 import { growthJourneyService } from './services/growth-journey.service.js';
 // Voice Auth Service
 import { getVoiceAuthService } from './services/voice-auth.service.js';
-// Toast for notifications
-import { toast } from './ui/toast.ui.js';
+// Toast for notifications (legacy - use moments.whisper() for new code)
+import { toast } from './ui/whisper.ui.js';
+// Moments System - Unified feedback system (whisper, notice, celebration, milestone)
+import { initMomentsSystem, moments } from './ui/moments/index.js';
 // Subscription UI - human-centered monetization
 import {
   initSubscriptionUI,
@@ -239,11 +324,17 @@ import {
 import { initCosmeticsService } from './services/cosmetics.service.js';
 // Seeds Economy - earn seeds through engagement
 import { initSeedsEconomy } from './services/seeds-economy.service.js';
+// Referral Service - network effect seeds system
+import { initReferralService, processPendingReferral } from './services/referral.service.js';
 // Seeds UI - display balance and toast notifications
 import { initSeedsDisplay } from './ui/seeds-display.ui.js';
 import { initSeedsToast } from './ui/seeds-toast.ui.js';
 // Subscription Badge - subtle status indicator in header
 import { initSubscriptionBadge, subscriptionBadgeUI } from './ui/subscription-badge.ui.js';
+// Support Ferni - Founders Fund experience
+import { initSupportFerniUI } from './ui/support-ferni.ui.js';
+// Roadmap Panel - What's Growing feature voting
+import { initRoadmapPanelUI } from './ui/roadmap-panel.ui.js';
 // Structured logger
 import { createLogger } from './utils/logger.js';
 const log = createLogger('App');
@@ -254,7 +345,7 @@ import { initModalCoordinator, modalCoordinator } from './services/modal-coordin
 // 🎬 Character-quality Animation Orchestrator
 import {
   animatePersonaTransition,
-  initAnimationOrchestrator,
+  initAnimationOrchestrator as _initAnimationOrchestrator,
   playCharacterReaction,
 } from './ui/animation-orchestrator.ui.js';
 // ⚡ GSAP Performance Utilities
@@ -272,11 +363,11 @@ import { hideSplashScreen, initPlatform, isNative, platform } from './utils/plat
 import { initMagneticHover } from './ui/magnetic-hover.ui.js';
 
 // 🌟 Soul System - The living presence that makes people fall in love
-import { initSoul } from './ui/soul.ui.js';
+import { initSoul as _initSoul } from './ui/soul.ui.js';
 // 🎬 Narrative Director - Cinematic story beats for connection moments
 import { playBeat, updateNarrativeContext } from './narrative/narrative-director.js';
 // 🎭 Ritual Engine - Multi-sensory brand moments
-import { getRitualEngine, wireRitualEngineToApp } from './services/ritual-engine.service.js';
+import { getRitualEngine as _getRitualEngine, wireRitualEngineToApp as _wireRitualEngineToApp } from './services/ritual-engine.service.js';
 // 🧪 Soul test utilities (available as window.testSoul in dev)
 // NOTE: Test file imported dynamically to avoid build errors
 if (import.meta.env.DEV) {
@@ -329,6 +420,7 @@ import {
   showDataExport,
   showPredictionTracker,
   showTeamHuddle,
+  showYourStoryDashboard,
 } from './app/panel-methods.js';
 
 // Data message handlers (extracted for file size)
@@ -349,6 +441,30 @@ import {
 class VoiceAIApp {
   private isInitialized = false;
   private audioCleanup: (() => void) | null = null;
+  
+  // 🎵 Track connection/handoff time to filter out system sounds (stingers)
+
+  // FIX: Track event listeners to prevent memory leaks
+  // All document/window event listeners should be added via addTrackedListener()
+  // and will be automatically removed in dispose()
+  private trackedListeners: Array<{
+    target: EventTarget;
+    event: string;
+    handler: EventListener;
+  }> = [];
+
+  /**
+   * Add an event listener and track it for cleanup.
+   * Use this instead of direct addEventListener to prevent memory leaks.
+   */
+  private addTrackedListener(
+    target: EventTarget,
+    event: string,
+    handler: EventListener
+  ): void {
+    target.addEventListener(event, handler);
+    this.trackedListeners.push({ target, event, handler });
+  }
 
   /**
    * Initialize the application.
@@ -360,9 +476,41 @@ class VoiceAIApp {
       return;
     }
 
+    // Initialize crash reporter FIRST for comprehensive error capture
+    try {
+      const { initCrashReporter } = await import('./services/crash-reporter.service.js');
+      void initCrashReporter();
+    } catch (e) {
+      log.warn('Failed to initialize crash reporter:', e);
+    }
+
+    // Initialize disconnect diagnostics for detailed mic drop analysis
+    try {
+      const { initDisconnectDiagnostics, flushStoredDiagnostics } = await import('./services/disconnect-diagnostics.service.js');
+      void initDisconnectDiagnostics();
+      // Flush any diagnostics stored from previous session
+      void flushStoredDiagnostics();
+    } catch (e) {
+      log.warn('Failed to initialize disconnect diagnostics:', e);
+    }
+
+    // Initialize offline service (service worker, sync queue)
+    try {
+      const { initOfflineService } = await import('./services/offline.service.js');
+      void initOfflineService();
+    } catch (e) {
+      log.warn('Failed to initialize offline service:', e);
+    }
+
     // Check for admin route
     if (window.location.pathname === '/admin') {
       void this.initializeAdmin();
+      return;
+    }
+
+    // Check for CLI authentication route
+    if (window.location.pathname === '/cli-auth') {
+      initCLIAuth();
       return;
     }
 
@@ -385,6 +533,26 @@ class VoiceAIApp {
 
       // Initialize i18n (internationalization) - must await before UI init
       await initI18n();
+
+      // Check authentication - require sign-in before proceeding
+      // This matches iOS behavior where users must sign in with Apple/Google
+      // IMPORTANT: Must await auth initialization to restore any existing session
+      const authState = await initializeAuth();
+      if (!authState.isAuthenticated) {
+        log.info('User not authenticated, showing sign-in gate');
+        await showSignInGate();
+        log.info('User signed in, continuing app initialization');
+      } else {
+        log.info('User already authenticated', { uid: authState.uid?.slice(0, 8) });
+      }
+
+      // Initialize visual storytelling service (fetches user's ambient preferences)
+      // This integrates sleep patterns, relationship metrics, and milestones
+      if (authState.uid) {
+        visualStorytellingService.init(authState.uid).catch(err => {
+          log.warn({ error: err }, 'Failed to initialize visual storytelling service');
+        });
+      }
 
       // Initialize services (non-blocking)
       this.initializeServices();
@@ -412,6 +580,30 @@ class VoiceAIApp {
       const rosterContainer = document.querySelector('.entrance-roster');
       rosterContainer?.classList.add('entrance-complete');
 
+      // Also mark persona name as entrance-complete to ensure it stays visible
+      // after persona transitions (fixes opacity: 0 stuck state bug)
+      const personaNameEl = document.querySelector('.entrance-name');
+      personaNameEl?.classList.add('entrance-complete');
+
+      // CRITICAL FIX: CSS animations with fill:forwards override even !important rules.
+      // We must wait for animations to finish, then cancel them and commit final styles.
+      // Animation delay is 250ms + 400ms duration = 650ms total
+      setTimeout(() => {
+        const nameEl = document.querySelector('.entrance-name') as HTMLElement;
+        if (nameEl) {
+          // Cancel the CSS animation and force final styles
+          nameEl.getAnimations().forEach(a => a.cancel());
+          nameEl.style.setProperty('opacity', '1', 'important');
+          nameEl.style.setProperty('transform', 'none', 'important');
+        }
+        const subtitleEl = document.querySelector('.entrance-subtitle') as HTMLElement;
+        if (subtitleEl) {
+          subtitleEl.getAnimations().forEach(a => a.cancel());
+          subtitleEl.style.setProperty('opacity', '1', 'important');
+          subtitleEl.style.setProperty('transform', 'none', 'important');
+        }
+      }, 700); // 250ms delay + 400ms duration + 50ms buffer
+
       // Signal entrance complete to avatar feedback system
       avatarFeedback.setEntranceComplete();
     } catch (error) {
@@ -427,6 +619,9 @@ class VoiceAIApp {
    * We check subscription limits but present them warmly.
    */
   async connect(): Promise<void> {
+    // Cancel One-Tap if showing - never interrupt voice connection
+    cancelOneTap();
+
     const persona = appState.get('selectedPersona');
 
     // Check subscription limits FIRST (before any audio context setup)
@@ -690,6 +885,17 @@ class VoiceAIApp {
     // Step 8: Now perform the actual disconnect (gracefully)
     await this.performStandardDisconnect(true); // true = skip disconnect sound
 
+    // Step 9: 💰 Show conversation cost transparency ("tip jar")
+    // Give the user a moment to settle, then show the cost card
+    setTimeout(async () => {
+      try {
+        const { showConversationCost } = await import('./ui/conversation-cost.ui.js');
+        await showConversationCost();
+      } catch (e) {
+        log.debug('Cost display skipped', { error: String(e) });
+      }
+    }, 800);
+
     log.info('🌅 Goodbye ceremony complete');
   }
 
@@ -716,6 +922,9 @@ class VoiceAIApp {
     connectionQualityUI.hide();
     transcriptUI.hide();
     engagementTriggerUI.hide();
+
+    // Clean up game board UI
+    destroyGameBoard();
 
     // End session stats - get duration before ending
     const sessionStats = statsUI.getStats();
@@ -758,6 +967,7 @@ class VoiceAIApp {
 
     // Reset audio state
     setAudioState('idle');
+    expressiveEyes.setVoiceState('idle'); // 👀 Eyes return to idle breathing
 
     // Reset wrap-up state (conversation is over)
     setWrappingUp(false);
@@ -767,6 +977,9 @@ class VoiceAIApp {
 
     // Clear mood state (persona back to neutral)
     moodService.clearMood();
+
+    // Refresh proactive messages (conversation may have triggered new outreach)
+    refreshProactiveMessages();
   }
 
   /**
@@ -808,7 +1021,7 @@ class VoiceAIApp {
       document.body.style.height = 'auto';
       appContent.innerHTML = `
         <div id="adminDashboard" style="min-height: 100vh; background: #0d0d1a; color: #fff; overflow-y: auto; padding-bottom: 2rem;"></div>
-        <a href="/" style="position: fixed; top: 1rem; left: 1rem; color: #4a6741; text-decoration: none; font-size: 0.875rem; z-index: 1000;">
+        <a href="/" style="position: fixed; top: 1rem; left: 1rem; color: #4a6741; text-decoration: none; font-size: 0.875rem; z-index: var(--z-dropdown);">
           ← Back to App
         </a>
       `;
@@ -830,6 +1043,23 @@ class VoiceAIApp {
     // Initialize theme from stored preference or system
     initTheme();
 
+    // ========================================================================
+    // AMBIENT EXPERIENCE SYSTEM (Better than Apple/Google)
+    // Layered theming: Circadian (time) + Warmth (relationship) + Persona
+    // ========================================================================
+    
+    // 1. Circadian: Time-aware theming (dawn warmth, midday clarity, night intimacy)
+    circadianManager.injectStyles();
+    circadianManager.init();
+
+    // 2. Warmth: Relationship-based visual evolution (deepens as bond grows)
+    warmthManager.injectStyles();
+    warmthManager.init();
+
+    // 3. Persona Aura: Ambient glow reflecting the active team member
+    personaAura.injectStyles();
+    personaAura.init();
+
     // Start ambient warmth cycle (WALL-E style time-aware lighting)
     startAmbientCycle();
 
@@ -839,12 +1069,12 @@ class VoiceAIApp {
     // Wire up theme toggle button
     const toggleBtn = document.getElementById('themeToggle');
     if (toggleBtn) {
-      toggleBtn.addEventListener('click', () => {
+      this.addTrackedListener(toggleBtn, 'click', () => {
         toggleTheme();
       });
 
       // Add keyboard shortcut (T) for theme toggle
-      document.addEventListener('keydown', (e) => {
+      this.addTrackedListener(document, 'keydown', ((e: KeyboardEvent) => {
         if (e.key === 't' || e.key === 'T') {
           // Don't toggle if user is typing in an input
           if (
@@ -854,7 +1084,7 @@ class VoiceAIApp {
             toggleTheme();
           }
         }
-      });
+      }) as EventListener);
     }
 
     // Listen for theme changes (for analytics or other systems)
@@ -890,10 +1120,14 @@ class VoiceAIApp {
    * Initialize all services.
    * IMPORTANT: Services should NOT block UI initialization, especially on iOS.
    */
-  private initializeServices(): void {
+  private async initializeServices(): Promise<void> {
     // Initialize modal coordinator FIRST - gates all popups for first-time users
     // Philosophy: "First conversation IS the onboarding"
     initModalCoordinator();
+
+    // 🆔 CRITICAL: Ensure user profile exists early for Better Than Human memory
+    // This creates the Firestore profile on first visit so we can start remembering immediately
+    this.ensureProfileExists();
 
     // Initialize audio service (non-blocking - loads sounds in background)
     try {
@@ -915,6 +1149,20 @@ class VoiceAIApp {
       .catch((err) => {
         log.warn('Timezone detection failed:', err);
         // Continue anyway - default timezone will be used
+      });
+
+    // 📍 "Better than Human" - Initialize location awareness (non-blocking)
+    // Gets best-known location from localStorage/timezone - no permission prompt
+    void getLocation()
+      .then((loc) => {
+        if (loc.city) {
+          log.debug({ city: loc.city, source: loc.source }, '📍 Location loaded');
+        } else {
+          log.debug({ source: loc.source }, '📍 Location: no city yet (will detect from IP on connect)');
+        }
+      })
+      .catch((err) => {
+        log.debug('Location init skipped:', err);
       });
 
     // Initialize Spotify silently in the background
@@ -952,18 +1200,85 @@ class VoiceAIApp {
           // No error shown to user - not critical
         });
     }
+
+    // 🔐 Google One-Tap Sign-In - Gentle prompt for anonymous users
+    // Shows after 8 seconds, respects dismissals with progressive cooldown
+    initGoogleOneTap();
+
+    // 🧠 Better Than Human: Voice ↔ App Sync
+    // Track user activity in the app so voice agent knows context
+    try {
+      const { initAppContextTracking } = await import('./services/app-context-tracking.service.js');
+      initAppContextTracking();
+      log.debug('App context tracking initialized');
+    } catch (err) {
+      log.warn('App context tracking init failed:', err);
+      // Non-critical - continue without it
+    }
+  }
+
+  /**
+   * Ensure user profile exists in Firestore (early creation for Better Than Human memory)
+   * This creates the profile on first visit, BEFORE voice connection, so we can:
+   * 1. Start tracking identity immediately
+   * 2. Sync onboarding state across devices
+   * 3. Remember the user's name from wherever they enter it
+   */
+  private async ensureProfileExists(): Promise<void> {
+    try {
+      const { apiPost } = await import('./utils/api.js');
+      const { getDeviceId, getUserName } = await import('./state/app.state.js');
+
+      const deviceId = getDeviceId();
+      const userName = getUserName();
+
+      // Call the profile endpoint to ensure profile exists
+      const response = await apiPost<{ success: boolean; profile: unknown }>('/api/user/profile', {
+        deviceId,
+        name: userName || undefined, // Don't send null
+      });
+
+      if (response.ok && response.data) {
+        log.info('Profile ensured:', {
+          hasName: !!response.data.profile && typeof response.data.profile === 'object' && 'name' in response.data.profile,
+          deviceLinked: !!deviceId,
+        });
+      }
+    } catch (err) {
+      // Non-critical - profile will be created on voice connection
+      log.debug('Early profile creation skipped:', err);
+    }
   }
 
   /**
    * Safe UI initialization wrapper - catches errors so one module doesn't break the app.
+   * Supports both sync and async init functions.
    */
-  private safeInit(name: string, initFn: () => void): void {
+  private safeInit(name: string, initFn: () => void | Promise<void>): void {
     try {
-      initFn();
+      const result = initFn();
+      // Handle async functions - fire and forget but log errors
+      if (result instanceof Promise) {
+        result.catch((error) => {
+          log.error(`Failed to initialize ${name} (async):`, error);
+        });
+      }
     } catch (error) {
       log.error(`Failed to initialize ${name}:`, error);
       // Continue loading other modules
     }
+  }
+
+  /**
+   * Deferred initialization - loads module after a delay to not block first render.
+   * Use for non-critical features that can load after the UI is visible.
+   */
+  private deferredInit(name: string, delayMs: number, initFn: () => Promise<void>): void {
+    setTimeout(() => {
+      initFn().catch((error) => {
+        log.error(`Failed to initialize ${name} (deferred):`, error);
+      });
+    }, delayMs);
   }
 
   /**
@@ -979,10 +1294,17 @@ class VoiceAIApp {
       promoteAllToGPU('.waveform-bar, .btn');
     });
 
+    // System UI - Critical system-level UI components
+    this.safeInit('OfflineBanner', async () => {
+      const { initOfflineBanner } = await import('./ui/offline-banner.ui.js');
+      initOfflineBanner();
+    });
+
     // Core UI - Initialize in order of dependency (these are critical)
     this.safeInit('MessageUI', () => initMessageUI());
     this.safeInit('WaveformUI', () => initWaveformUI());
     this.safeInit('CoachUI', () => initCoachUI());
+    this.safeInit('ExpressiveEyes', () => initExpressiveEyes()); // 👀 Pixar-style eye expressions
     this.safeInit('TeamUI', () => initTeamUI());
     this.safeInit('SpotifyUI', () => initSpotifyUI());
     this.safeInit('ControlsUI', () =>
@@ -997,106 +1319,277 @@ class VoiceAIApp {
       })
     );
 
-    // Premium Features - Initialize all the delightful extras (non-critical)
-    this.safeInit('SoundUI', () => initSoundUI());
-    this.safeInit('AmbientSounds', () => initAmbientSounds()); // Personalization sound packs
-    this.safeInit('BrandService', () => initBrandService()); // Brand validation preload
-    this.safeInit('CelebrationsUI', () => initCelebrationsUI());
-    this.safeInit('StatsUI', () => initStatsUI());
-    this.safeInit('PresenceUI', () => initPresenceUI());
-    this.safeInit('RippleUI', () => initRippleUI());
-    this.safeInit('MicroInteractionsUI', () => initMicroInteractions()); // ✨ Premium button effects
-    this.safeInit('TranscriptUI', () => initTranscriptUI());
-    this.safeInit('ThinkingUI', () => initThinkingUI());
-    this.safeInit('ConnectionQualityUI', () => initConnectionQualityUI());
-    this.safeInit('EasterEggsUI', () => initEasterEggsUI());
-    this.safeInit('MoodUI', () => initMoodUI());
-    this.safeInit('AvatarFeedback', () => initAvatarFeedback()); // ✨ For music dancing!
-    // 📱 Mobile Delights - Tilt parallax, tap-to-look, haptics, pull-to-connect, immersive mode
-    this.safeInit('MobileDelights', () =>
-      initMobileDelights({
-        onConnectRequest: () => {
-          // Trigger connection when user pulls down on avatar
-          if (appState.get('connection') === 'disconnected') {
-            void this.connect();
+    // =========================================================================
+    // DEFERRED LOADING - Premium features loaded after first paint
+    // This significantly speeds up initial page load time
+    // =========================================================================
+    
+    // Essential extras - load after 100ms (needed early but not for first paint)
+    this.deferredInit('SoundUI', 100, async () => {
+      initSoundUI();
+    });
+    this.deferredInit('TranscriptUI', 100, async () => {
+      initTranscriptUI();
+    });
+    this.deferredInit('ThinkingUI', 100, async () => {
+      initThinkingUI();
+    });
+    this.deferredInit('ConnectionQualityUI', 100, async () => {
+      initConnectionQualityUI();
+    });
+    this.deferredInit('MoodUI', 100, async () => {
+      initMoodUI();
+    });
+    this.deferredInit('AvatarFeedback', 100, async () => {
+      initAvatarFeedback();
+    });
+
+    // Premium features - load after 300ms (nice to have)
+    this.deferredInit('AmbientSounds', 300, async () => {
+      const { initAmbientSounds } = await import('./services/ambient-sounds.service.js');
+      initAmbientSounds();
+    });
+    this.deferredInit('BrandService', 300, async () => {
+      const { initBrandService } = await import('./services/brand-service.js');
+      initBrandService();
+    });
+    this.deferredInit('CelebrationsUI', 300, async () => {
+      const { initCelebrationsUI } = await import('./ui/celebrations.ui.js');
+      initCelebrationsUI();
+    });
+    // 📊 Contextual Feedback - avatar-attached feedback during natural pauses
+    this.deferredInit('ContextualFeedbackUI', 300, async () => {
+      const { initContextualFeedbackUI } = await import('./ui/contextual-feedback.ui.js');
+      initContextualFeedbackUI();
+    });
+    // 📊 Feedback Insights Panel - user reflection on conversation patterns
+    this.deferredInit('FeedbackInsightsPanel', 300, async () => {
+      const { initFeedbackInsightsPanel } = await import('./ui/feedback-insights-panel.ui.js');
+      initFeedbackInsightsPanel();
+    });
+    // 📜 Music History - slide-out drawer showing recently played tracks
+    this.deferredInit('MusicHistoryUI', 300, async () => {
+      const { initMusicHistoryUI } = await import('./ui/music-history.ui.js');
+      initMusicHistoryUI();
+    });
+    // 🔖 Bookmark - double-tap avatar to save moments
+    this.deferredInit('BookmarkUI', 300, async () => {
+      const { initBookmarkUI } = await import('./ui/bookmark.ui.js');
+      initBookmarkUI();
+    });
+    // 🔥 Streak - DISABLED: Now consolidated into Connection Heart indicator
+    // The connection heart shows both streak (top-left fire badge) and milestones (bottom-right)
+    // Opening Journey modal shows full stats including streak, milestones, and relationship stage
+    // this.deferredInit('StreakUI', 300, async () => {
+    //   const { initStreakUI } = await import('./ui/streak.ui.js');
+    //   initStreakUI();
+    // });
+    this.deferredInit('StatsUI', 300, async () => {
+      const { initStatsUI } = await import('./ui/stats.ui.js');
+      initStatsUI();
+    });
+    this.deferredInit('PresenceUI', 300, async () => {
+      const { initPresenceUI } = await import('./ui/presence.ui.js');
+      initPresenceUI();
+    });
+    this.deferredInit('RippleUI', 300, async () => {
+      const { initRippleUI } = await import('./ui/ripple.ui.js');
+      initRippleUI();
+    });
+    this.deferredInit('MicroInteractionsUI', 300, async () => {
+      const { initMicroInteractions } = await import('./ui/micro-interactions.ui.js');
+      initMicroInteractions();
+    });
+    this.deferredInit('EasterEggsUI', 500, async () => {
+      const { initEasterEggsUI } = await import('./ui/easter-eggs.ui.js');
+      initEasterEggsUI();
+    });
+    // 🎂 Ferni Birthday - special celebration on June 15
+    this.deferredInit('FerniBirthdayUI', 500, async () => {
+      const { initFerniBirthdayUI } = await import('./ui/ferni-birthday.ui.js');
+      initFerniBirthdayUI();
+    });
+    // 🎨 Mood Backgrounds - subtle color shifts based on emotional mood
+    this.deferredInit('MoodBackgroundsUI', 200, async () => {
+      const { initMoodBackgroundsUI } = await import('./ui/mood-backgrounds.ui.js');
+      initMoodBackgroundsUI();
+    });
+    // 👆 Avatar Tap Reactions - tap avatar for laugh/wink reactions
+    this.deferredInit('AvatarTapReactionsUI', 400, async () => {
+      const { initAvatarTapReactionsUI } = await import('./ui/avatar-tap-reactions.ui.js');
+      initAvatarTapReactionsUI();
+    });
+    // 😴 Sleep Mode - gentle resting animation when idle
+    this.deferredInit('SleepModeUI', 1000, async () => {
+      const { initSleepModeUI } = await import('./ui/sleep-mode.ui.js');
+      initSleepModeUI();
+    });
+    // 📸 Memory Lane - "On This Day" memories and highlights
+    this.deferredInit('MemoryLaneUI', 500, async () => {
+      const { initMemoryLaneUI } = await import('./ui/memory-lane.ui.js');
+      initMemoryLaneUI();
+    });
+    // 📊 Pattern Insights - behavioral patterns visualization
+    this.deferredInit('PatternInsightsUI', 600, async () => {
+      const { initPatternInsightsUI } = await import('./ui/pattern-insights.ui.js');
+      initPatternInsightsUI();
+    });
+    // 💭 Check-in Badge - shows when Ferni is thinking of you
+    this.deferredInit('CheckinBadgeUI', 700, async () => {
+      const { initCheckinBadgeUI } = await import('./ui/checkin-badge.ui.js');
+      initCheckinBadgeUI();
+
+      // Listen for check-in acknowledgment to start conversation with context
+      window.addEventListener('ferni:checkin-acknowledged', ((event: CustomEvent<{ checkinId: string; message: string; type: string }>) => {
+        const { message, type } = event.detail;
+        log.info({ type, message: message.slice(0, 50) }, '💭 Check-in acknowledged, starting conversation');
+
+        // Store check-in context in sessionStorage for the conversation to pick up
+        if (message) {
+          try {
+            sessionStorage.setItem('ferni_checkin_context', JSON.stringify({ message, type }));
+          } catch {
+            // Ignore storage errors
           }
-        },
+        }
 
-        onPersonaSwipe: (direction) => {
-          // Integrated with gestures - persona switching handled there
-          const persona =
-            direction === 'left' ? gesturesUI.getNextPersona() : gesturesUI.getPreviousPersona();
-          this.selectPersona(persona);
-          soundUI.play('switch');
-        },
-      })
-    );
-    // Disabled: Eye peek-throughs removed - keeping just the zen blink
-    // this.safeInit('FerniEye', () => initFerniEye());
-    // 🌨️ Weather Effects - Seasonal ambient atmosphere (snow, rain, leaves, fireflies)
-    // Available via dev panel - not auto-started to keep things subtle
-    this.safeInit('WeatherEffects', () => {
+        // Start the connection if not already connected
+        if (!connectionService.isConnected()) {
+          void this.connect();
+        }
+      }) as EventListener);
+    });
+    // 🧠 Knowledge Quiz - "How Well Do You Know Me?" game
+    this.deferredInit('KnowledgeQuizUI', 800, async () => {
+      const { initKnowledgeQuizUI } = await import('./ui/knowledge-quiz.ui.js');
+      initKnowledgeQuizUI();
+    });
+    // 📔 Growth Journal - auto-generated reflections on your journey
+    this.deferredInit('GrowthJournalUI', 900, async () => {
+      const { initGrowthJournalUI } = await import('./ui/growth-journal.ui.js');
+      initGrowthJournalUI();
+    });
+
+    // Relationship features - load after 400ms
+    this.deferredInit('YourPeopleUI', 400, async () => {
+      const { initYourPeopleUI } = await import('./ui/your-people.ui.js');
+      initYourPeopleUI();
+    });
+    
+    // 📱 Mobile features - load after 200ms on mobile only
+    if (window.innerWidth <= 768) {
+      this.deferredInit('MobileDelights', 200, async () => {
+        const { initMobileDelights } = await import('./ui/mobile-delights.ui.js');
+        const { gesturesUI } = await import('./ui/gestures.ui.js');
+        initMobileDelights({
+          onConnectRequest: () => {
+            if (appState.get('connection') === 'disconnected') {
+              void this.connect();
+            }
+          },
+          onPersonaSwipe: (direction) => {
+            const persona =
+              direction === 'left' ? gesturesUI.getNextPersona() : gesturesUI.getPreviousPersona();
+            this.selectPersona(persona);
+            soundUI.play('switch');
+          },
+        });
+      });
+      this.deferredInit('MobileBottomSheet', 200, async () => {
+        const { initMobileBottomSheet } = await import('./ui/mobile-bottom-sheet.ui.js');
+        initMobileBottomSheet();
+      });
+    }
+
+    // 🌨️ Weather Effects - load after 1 second (purely decorative)
+    this.deferredInit('WeatherEffects', 1000, async () => {
+      const { initWeatherEffects } = await import('./ui/weather-effects.ui.js');
       initWeatherEffects();
-      // Weather can be triggered from dev panel or contextually - not always on
     });
-    // 🎭 Ferni Moments - Character expressions with time-of-day awareness
-    this.safeInit('FerniMoments', () => {
+    
+    // 🎭 Ferni Moments - load after 500ms
+    this.deferredInit('FerniMoments', 500, async () => {
+      const { initFerniMoments } = await import('./ui/ferni-moments.ui.js');
       initFerniMoments();
-      // Auto-aware of time-of-day, moments triggered contextually
+    });
+    
+    // 🤲 Avatar Sidekicks - load after 550ms (expressive side icons)
+    this.deferredInit('AvatarSidekicks', 550, async () => {
+      const { avatarSidekicks } = await import('./ui/avatar-sidekicks.ui.js');
+      avatarSidekicks.init();
     });
 
-    // 🎉 Ferni Milestones - Warm relationship celebrations
-    this.safeInit('FerniMilestones', () => {
+    // 🎉 Ferni Milestones - load after 600ms
+    this.deferredInit('FerniMilestones', 600, async () => {
+      const { initFerniMilestones } = await import('./ui/ferni-milestones.ui.js');
       initFerniMilestones();
-      // Tracks conversation streaks, team connections, sweet moments
     });
 
-    // 💚 Connection Heart - Status + relationship indicator near avatar
-    this.safeInit('ConnectionHeart', () => {
+    // 💚 Connection Heart - load after 200ms (visible UI element)
+    this.deferredInit('ConnectionHeart', 200, async () => {
+      const { initConnectionHeart } = await import('./ui/connection-heart.ui.js');
       initConnectionHeart();
     });
-    // 🎬 Ferni Expressions - Character-level eye expressions & reactions
-    this.safeInit('FerniExpressions', () => {
+    
+    // 🎬 Ferni Expressions - load after 300ms
+    this.deferredInit('FerniExpressions', 300, async () => {
+      const { initFerniExpressions } = await import('./ui/ferni-expressions.ui.js');
       initFerniExpressions();
-      // Creates lid overlay for eye expressions, sparkles, dramatic morphs
     });
 
-    // 🔗 Emotion ↔ Expression Bridge - Auto-triggers expressions on emotion changes
-    this.safeInit('EmotionExpressionBridge', () => {
+    // 🔗 Emotion ↔ Expression Bridge - load after 400ms
+    this.deferredInit('EmotionExpressionBridge', 400, async () => {
+      const { enableEmotionExpressionBridge } = await import('./emotion/emotion-expression-bridge.js');
       enableEmotionExpressionBridge();
-      // Automatically maps emotion state changes to ferni expressions
     });
 
-    // 🎨 Logo Expressions - Animated logo that reacts to emotions
-    this.safeInit('LogoExpressions', () => {
+    // 🎨 Logo Expressions - load after 400ms
+    this.deferredInit('LogoExpressions', 400, async () => {
+      const { initLogoExpressions, hookIntoAvatarFeedback } = await import('./ui/logo-expressions.ui.js');
       initLogoExpressions();
-      hookLogoFeedback();
-      // Logo will react to avatar emotion events
+      hookIntoAvatarFeedback();
     });
 
-    // 🎉 Celebration Service - Triggers milestone celebrations
-    this.safeInit('CelebrationService', () => {
+    // 🎉 Celebration Service - load after 600ms
+    this.deferredInit('CelebrationService', 600, async () => {
+      const { initCelebrationService } = await import('./services/celebration.service.js');
       initCelebrationService();
-      // Now you can call: celebrationService.smallWin(), .bigWin(), etc.
     });
 
-    // 🎤 Speech Event Dispatcher - Foundation for Ferni EQ (MUST be before FerniEQ)
-    this.safeInit('SpeechEventDispatcher', () => {
+    // 🎤 Speech Event Dispatcher - load after 300ms (needed before FerniEQ)
+    this.deferredInit('SpeechEventDispatcher', 300, async () => {
+      const { initSpeechEventDispatcher } = await import('./services/speech-event-dispatcher.js');
       initSpeechEventDispatcher();
-      // Dispatches: ferni:user-speech-start/end/pause, ferni:agent-speech-start/end
     });
 
-    // 🚀 Ferni EQ - Superhuman emotional intelligence ("Better than Human")
-    this.safeInit('FerniEQ', () => {
-      initFerniEQ();
-      // Micro-expressions, breath sync, active listening, concern detection
+    // 🚀 Ferni EQ - load after 500ms (depends on SpeechEventDispatcher)
+    this.deferredInit('FerniEQ', 500, async () => {
+      const { initFerniEQ } = await import('./ui/better-than-human.ui.js');
+      const { initHumanizationBridge } = await import('./services/humanization-bridge.service.js');
+      const { initProactiveOutreachUI } = await import('./ui/proactive-outreach.ui.js');
+      const { initTeamInsightsUI } = await import('./ui/team-insights.ui.js');
+      const { initCrossTeamNotifications } = await import('./services/cross-team-notifications.service.js');
+      const { initVoiceEvents } = await import('./services/voice-events.service.js');
 
-      // 💭 Proactive Outreach UI - "Thinking of You" notifications
+      initFerniEQ();
+      initHumanizationBridge();
       initProactiveOutreachUI();
-      // Shows outreach notifications when backend sends thinking_of_you moments
+      initTeamInsightsUI();
+
+      // 🌟 Transcendent Animation Systems - Initialize signature moments
+      // This must come after FerniEQ and HumanizationBridge
+      const { initTranscendentSystems: initTS } = await import('./systems/index.js');
+      initTS();
+
+      // Initialize cross-team notifications with userId if available
+      const userId = appState.get('deviceId');
+      if (userId) {
+        initCrossTeamNotifications(userId);
+        initVoiceEvents(userId);
+      }
 
       // Set up gentle check-in handler for significant concern detection
-      document.addEventListener('ferni:gentle-checkin', ((e: CustomEvent) => {
+      this.addTrackedListener(document, 'ferni:gentle-checkin', ((e: CustomEvent) => {
         const { level, triggers } = e.detail || {};
         log.info('🚀 Ferni EQ gentle check-in triggered', { level, triggers });
 
@@ -1111,104 +1604,107 @@ class VoiceAIApp {
       }) as EventListener);
     });
 
-    // ✨ Avatar Soul - Pixar-quality "Better Than Human" visual animations
-    this.safeInit('AvatarSoul', () => {
+    // ✨ Avatar Soul - load after 600ms
+    this.deferredInit('AvatarSoul', 600, async () => {
+      const { initAvatarSoul, avatarSoul } = await import('./ui/avatar-soul.ui.js');
       initAvatarSoul();
-      // Glow bleeding, anticipation shimmer, memory spark, comfort pulse
-      // Energy matching, relationship warmth, growth celebration, protective mode
-
-      // Wire up to track conversation interactions for relationship warmth
-      document.addEventListener('ferni:conversation-turn', () => {
+      this.addTrackedListener(document, 'ferni:conversation-turn', () => {
         avatarSoul.recordInteraction(0.5);
       });
     });
 
-    // 🎬 Avatar Lamp - Luxo Jr. level body language (bounce, tilt, nod, etc.)
-    this.safeInit('AvatarLamp', () => {
+    // 🎬 Avatar Lamp - load after 700ms
+    this.deferredInit('AvatarLamp', 700, async () => {
+      const { initAvatarLamp, avatarLamp } = await import('./ui/avatar-lamp.ui.js');
       initAvatarLamp();
-      // Breathing idle animation, bouncing, tilting, nodding
-      // Perk up, shrink, shake - pure body language expression
-
-      // Expose to window for dev panel testing
       if (typeof window !== 'undefined') {
         (window as unknown as Record<string, unknown>).__avatarLamp = avatarLamp;
       }
     });
 
-    // 🌿 Ambient Life - Makes Ferni feel alive when idle
-    this.safeInit('AmbientLife', () => {
+    // 🌿 Ambient Life - load after 800ms
+    this.deferredInit('AmbientLife', 800, async () => {
+      const { initAmbientLife } = await import('./ui/ambient-life.ui.js');
       initAmbientLife();
-      // Random blinks, glances, stretches, warmth pulses
-      // Creates presence even when not in conversation
     });
 
-    // 🌅 Mood Context - Time-based persona mood
-    this.safeInit('MoodContext', () => {
+    // 🌅 Mood Context - load after 400ms
+    this.deferredInit('MoodContext', 400, async () => {
+      const { initMoodContext } = await import('./services/mood-context.service.js');
       initMoodContext();
-      // Applies CSS classes: mood-early-morning, mood-morning, etc.
-      // Sets energy modifier for animations
-      // Handles special dates like tsunami anniversary
     });
 
-    // 🎬 Animation Orchestrator - Character-quality coordinated animations
-    this.safeInit('AnimationOrchestrator', () => initAnimationOrchestrator());
+    // 🎬 Animation Orchestrator - load after 500ms
+    this.deferredInit('AnimationOrchestrator', 500, async () => {
+      const { initAnimationOrchestrator } = await import('./ui/animation-orchestrator.ui.js');
+      initAnimationOrchestrator();
+    });
 
-    // 🌟 Soul System - Living presence with logo expressions, persona magic
-    this.safeInit('Soul', () => {
+    // 🌟 Soul System - load after 600ms
+    this.deferredInit('Soul', 600, async () => {
+      const { initSoul } = await import('./ui/soul.ui.js');
       void initSoul({
-        showFirstLaunch: false, // Already handled in initialize()
+        showFirstLaunch: false,
         enablePersonaMagic: true,
       });
     });
 
-    // 🎭 Ritual Engine - Multi-sensory brand moments (audio + glow + haptic)
-    this.safeInit('RitualEngine', () => {
-      // Wire ritual engine to app lifecycle events (ferni:connected, ferni:handoff, etc.)
+    // 🎭 Ritual Engine - load after 700ms
+    this.deferredInit('RitualEngine', 700, async () => {
+      const { wireRitualEngineToApp, getRitualEngine } = await import('./services/ritual-engine.service.js');
       wireRitualEngineToApp();
-      // Initialize the ritual engine (will wait for user interaction for audio context)
       void getRitualEngine().initialize();
     });
 
-    // 🌟 Living Favicon - Ferni's presence in the browser tab
-    // DISABLED: Animated favicon causing performance issues
-    // this.safeInit('FaviconManager', () => initFaviconManager());
-
-    // 🛠️ Dev Panel - Developer testing tools (lazy loaded for 17KB gzipped savings)
-    this.safeInit('DevPanel', async () => {
+    // 🛠️ Dev Panel - load after 1 second
+    this.deferredInit('DevPanel', 1000, async () => {
       const { initDevPanel } = await import('./ui/dev-panel.ui.js');
       initDevPanel();
     });
 
-    // 📊 Engagement UI - Daily practice, streaks, predictions
-    this.safeInit('EngagementUI', () => initializeEngagementUI());
-    this.safeInit('PredictionsUI', () => {
+    // 🔍 Debug Panels - load after 1.5 seconds
+    this.deferredInit('DebugPanels', 1500, async () => {
+      const [{ initInsightsDebugPanel }, { initTriggerDebugPanel }] = await Promise.all([
+        import('./ui/insights-debug-panel.ui.js'),
+        import('./ui/trigger-debug-panel.ui.js'),
+      ]);
+      initInsightsDebugPanel();
+      initTriggerDebugPanel();
+    });
+
+    // 📔 Journaling - load after 800ms
+    this.deferredInit('Journaling', 800, async () => {
+      const [{ initJournalingShortcut }, { initJournalCapture }] = await Promise.all([
+        import('./ui/digital-twin.ui.js'),
+        import('./services/journal-capture.service.js'),
+      ]);
+      initJournalingShortcut();
+      initJournalCapture();
+    });
+
+    // 📊 Engagement UI - load after 500ms
+    this.deferredInit('EngagementUI', 500, async () => {
+      const [{ initializeEngagementUI }, { initializeInsightsView }, { initializePredictionsUI }] = await Promise.all([
+        import('./ui/engagement.ui.js'),
+        import('./ui/insights-view.ui.js'),
+        import('./ui/predictions.ui.js'),
+      ]);
+      initializeEngagementUI();
+      initializeInsightsView();
       initializePredictionsUI();
       // Wire up prediction resolution callback
       getPredictionsUI().setOnResolutionSubmit(async (predictionId, actualValue) => {
         try {
-          const userId = localStorage.getItem('ferni_user_id');
-          const headers: HeadersInit = { 'Content-Type': 'application/json' };
-          if (userId) {
-            headers['X-User-ID'] = userId;
-          }
-
-          const response = await fetch(`/api/predictions/${predictionId}/actuals`, {
-            method: 'POST',
-            headers,
-            body: JSON.stringify({ userId, actuals: { result: actualValue } }),
+          // Use apiPost for proper Firebase auth
+          const postResponse = await apiPost(`/api/predictions/${predictionId}/actuals`, {
+            actuals: { result: actualValue },
           });
-          if (!response.ok) throw new Error('Failed to save');
+          if (!postResponse.ok) throw new Error('Failed to save');
 
-          // Refresh predictions data
-          const refreshResponse = await fetch(
-            `/api/predictions${userId ? `?userId=${userId}` : ''}`,
-            {
-              headers: userId ? { 'X-User-ID': userId } : {},
-            }
-          );
-          if (refreshResponse.ok) {
-            const data = await refreshResponse.json();
-            const predictions = data.predictions || [];
+          // Refresh predictions data using apiGet
+          const refreshResponse = await apiGet<{ predictions: Record<string, unknown>[]; stats?: { averageAccuracy?: number } }>('/api/predictions');
+          if (refreshResponse.ok && refreshResponse.data) {
+            const predictions = refreshResponse.data.predictions || [];
             getPredictionsUI().update({
               predictions: predictions.map((p: Record<string, unknown>) => ({
                 id: p.id as string,
@@ -1219,7 +1715,7 @@ class VoiceAIApp {
                 status: p.completedAt ? ('resolved' as const) : ('pending' as const),
                 createdAt: p.createdAt as string,
               })),
-              accuracy: data.stats?.averageAccuracy || null,
+              accuracy: refreshResponse.data.stats?.averageAccuracy || null,
               totalResolved: predictions.filter((p: Record<string, unknown>) => p.completedAt)
                 .length,
               currentStreak: 0,
@@ -1235,8 +1731,10 @@ class VoiceAIApp {
     });
     this.safeInit('EngagementTriggerUI', () =>
       initEngagementTriggerUI({
-        onEngagementClick: () => getEngagementUI().toggle(),
+        // Show InsightsView ("What I'm Noticing") - the relationship-focused daily check-in
+        onEngagementClick: () => getInsightsView().toggle(),
         onPredictionsClick: () => getPredictionsUI().toggle(),
+        onInsightsClick: () => teamInsightsUI.toggle(),
       })
     );
 
@@ -1245,6 +1743,7 @@ class VoiceAIApp {
 
     // 🆕 New Feature UIs (v2)
     this.safeInit('ConversationHistoryUI', () => initConversationHistoryUI());
+    this.safeInit('ActivityUI', () => initActivityUI());
     this.safeInit('AnalyticsDashboardUI', () => initAnalyticsDashboardUI());
     this.safeInit('CognitiveInsightsUI', () => initCognitiveInsightsUI());
 
@@ -1340,21 +1839,50 @@ class VoiceAIApp {
     // 🎬 Cameo Roster - Team member pop-in/out in the roster
     this.safeInit('CameoRoster', () => initCameoRoster());
     this.safeInit('TeamHuddleUI', () => initTeamHuddleUI());
+    // Team Intro - "Meet the Team" modal (used by mobile bottom sheet)
+    this.safeInit('TeamIntro', () => initTeamIntro());
     this.safeInit('RelationshipProgressUI', () => initRelationshipProgressUI());
+    // 🎙️ Group Conversations - Team Roundtables and Conference Calls with external people
+    this.safeInit('GroupConversationUI', () => initGroupConversationUI());
+    // 🎮 Game Board - Visual game state display for voice games
+    this.safeInit('GameBoardUI', () => initGameBoard());
+    // Proactive Messages - In-app messages from intelligent outreach
+    this.deferredInit('ProactiveMessagesUI', 500, async () => {
+      initProactiveMessages();
+    });
+    
+    // 📋 While You Were Away - Background agent results notification
+    this.deferredInit('WhileYouWereAwayUI', 600, async () => {
+      const { whileYouWereAwayUI } = await import('./ui/while-you-were-away.ui.js');
+      whileYouWereAwayUI.init();
+    });
+    
+    // 🏠 Ferni Hub - Your Day with Ferni (non-voice UI for background results)
+    this.deferredInit('FerniHubUI', 700, async () => {
+      const { ferniHubUI } = await import('./ui/ferni-hub.ui.js');
+      ferniHubUI.init();
+    });
+    
     // Trust Journey is now integrated into journey.ui.ts - no separate init needed
 
     // 🌱 Progressive Relationship Features - All quick wins in one init
     // Stage celebrations, trust signal cards, persona intros, feature hints, progress indicator
     this.safeInit('ProgressiveFeatures', () => {
       // Import dynamically to avoid circular deps
-      import('./services/progressive-features.service.js').then(({ initProgressiveFeatures }) => {
-        initProgressiveFeatures();
+      void import('./services/progressive-features.service.js').then(({ initProgressiveFeatures }) => {
+        void initProgressiveFeatures();
       });
     });
 
     // 💰 Subscription UI - Human-centered monetization
     // Philosophy: "Limits feel like natural breaks, not walls."
     this.safeInit('SubscriptionUI', () => initSubscriptionUI());
+
+    // 💚 Support Ferni / Founders Fund - Community-driven support
+    this.safeInit('SupportFerniUI', () => initSupportFerniUI());
+
+    // 🌱 Roadmap Panel - "What's Growing" feature voting
+    this.safeInit('RoadmapPanelUI', () => initRoadmapPanelUI());
 
     // 💰 Subscription Badge - Subtle status indicator in header
     this.safeInit('SubscriptionBadge', () => initSubscriptionBadge());
@@ -1365,22 +1893,57 @@ class VoiceAIApp {
     // 🌱 Seeds Economy - Earn seeds through natural engagement
     this.safeInit('SeedsEconomy', () => initSeedsEconomy());
 
+    // 🤝 Referral Service - Network effect seeds (check URL for ?ref= param)
+    this.safeInit('ReferralService', () => initReferralService());
+
     // 🌱 Seeds UI - Display balance and toast notifications
     this.safeInit('SeedsDisplay', () => initSeedsDisplay());
     this.safeInit('SeedsToast', () => initSeedsToast());
+
+    // 🎯 Moments System - Unified feedback (whisper, notice, celebration, milestone)
+    this.deferredInit('MomentsSystem', 500, async () => {
+      await initMomentsSystem();
+    });
 
     // 🌱 Growth Journey - Celebrate milestones as relationship deepens
     this.safeInit('GrowthJourney', () => {
       growthJourneyService.init();
 
       // Listen for new milestones to celebrate
-      document.addEventListener('ferni:milestone-celebrated', ((e: CustomEvent) => {
+      this.addTrackedListener(document, 'ferni:milestone-celebrated', ((e: CustomEvent) => {
         const { milestone } = e.detail;
         // Celebrate with warmth, not gamification
         presenceUI.bounce();
         soundUI.play('success');
         celebrationsUI.warmthGlow({ intensity: 'warm' });
         messageUI.show(milestone.title, 'success', 3000);
+      }) as EventListener);
+    });
+
+    // 📍 Location Prompt - "Better than Human" location awareness
+    // Listen for contextual location requests (e.g., when weather is mentioned)
+    this.safeInit('LocationPrompt', () => {
+      this.addTrackedListener(window, 'ferni:request-location', ((e: Event) => {
+        const customEvent = e as CustomEvent;
+        const { context } = customEvent.detail || {};
+        log.debug({ context }, '📍 Location request received');
+
+        (async () => {
+          try {
+            const { requestLocationWithWarmPrompt } = await import('./ui/location-prompt.ui.js');
+            const result = await requestLocationWithWarmPrompt(context || 'personalization');
+            
+            if (result.success && result.location?.city) {
+              log.info({ city: result.location.city }, '📍 Location obtained');
+              // Optionally notify the app that location is now available
+              window.dispatchEvent(new CustomEvent('ferni:location-updated', {
+                detail: { location: result.location }
+              }));
+            }
+          } catch (err) {
+            log.debug('📍 Location prompt dismissed or failed:', err);
+          }
+        })();
       }) as EventListener);
     });
 
@@ -1402,6 +1965,9 @@ class VoiceAIApp {
     // 🌈 Wellbeing Dashboard - "State of Me" visualization
     this.safeInit('WellbeingDashboard', () => initWellbeingDashboard());
 
+    // 📊 Life Context Dashboard - Cross-domain synthesis (Phase 6)
+    this.safeInit('LifeContextDashboard', () => initLifeContextDashboard());
+
     // 🏥 Service Health - Show degradation status to users
     this.safeInit('ServiceHealthUI', () => initServiceHealthUI());
 
@@ -1412,33 +1978,81 @@ class VoiceAIApp {
         onAnalyticsClick: () => void showAnalyticsDashboard(),
         onCognitiveClick: () => void showCognitiveInsights(),
         onRitualBuilderClick: () => getRitualBuilderUI().show(),
-        onCommandsClick: () => void getCommandsPanelUI().show(),
+        onCommandsClick: () => void getSanctuaryUI().open(),
         onPredictionTrackerClick: () => void showPredictionTracker(),
         onExportDataClick: () => void showDataExport(),
         onOnboardingClick: () => getOnboardingUI().start(),
-        onThemeToggle: () => toggleTheme(),
+        onThemeToggle: () => showThemeLanguageSettings(),
         onNotificationSettingsClick: () => showNotificationSettings(),
+        onSleepSettingsClick: () => void import('./ui/sleep-settings.ui.js').then(m => m.show()),
         onSpotifyClick: () => void triggerSpotifyLinkToggle(),
         onTeamHuddleClick: () => showTeamHuddle(),
+        onTeamObservationsClick: () => void import('./ui/team-observations-panel.ui.js').then(m => m.show()),
         // Trust Journey is now integrated into the unified Journey modal
         onTrustJourneyClick: () => journeyUI.open(),
         onMusicDashboardClick: () => void musicDashboard.show(),
         onPlayGamesClick: () => showGamePicker(),
         onOutreachScheduleClick: () => void openOutreachSchedule(),
         onContactSettingsClick: () => void openContactSettings(),
-        onCalendarSettingsClick: () => void openCalendarSettings(),
+        onCalendarSettingsClick: () => {
+          // Show calendar view (has connect button for disconnected users)
+          setCalendarViewCallbacks({
+            onConnectCalendar: () => {
+              // Redirect to Google OAuth flow
+              const userId = appState.get('deviceId') || 'anonymous';
+              window.location.href = `/auth/google/calendar?userId=${userId}`;
+            },
+          });
+          void showCalendarView();
+        },
         onVoiceEnrollmentClick: () => void showVoiceEnrollmentModal(),
         onSubscriptionClick: () => void supportFerniUI.open(),
         onBillingPortalClick: () => void this.openBillingPortal(),
         onHouseholdClick: () => void showHouseholdManager(),
+        onFamilyCallersClick: () => void FamilyIdentities.show(),
         onConversationMemoryClick: () => void showConversationMemory(),
         onWellbeingClick: () => void showWellbeingDashboard(),
+        onLifeContextClick: () => void showLifeContextDashboard(),
+        onTeamInsightsClick: () => teamInsightsUI.toggle(),
         onSupportFerniClick: () => void supportFerniUI.open(),
         onPersonalizeClick: () => personalizeUI.open(),
-        onYourJourneyClick: () => journeyUI.open(),
+        onYourStoryClick: () => void showYourStoryDashboard(),
+        onActivityClick: () => showActivity(),
+        onYourYearClick: () => {
+          // Open "Your Year with Ferni" visualization
+          console.log('[YourYear] Callback triggered, starting import...');
+          import('./ui/your-year-with-ferni.ui.js')
+            .then(({ openYourYearWithFerni }) => {
+              console.log('[YourYear] Module loaded successfully, opening...');
+              const userId = localStorage.getItem('ferni_user_id') || 'anonymous';
+              return openYourYearWithFerni(userId);
+            })
+            .then(() => {
+              console.log('[YourYear] Opened successfully');
+            })
+            .catch((err) => {
+              console.error('[YourYear] Error:', err?.message || err, err?.stack);
+            });
+        },
+        onFutureInsightsClick: () => futureInsightsUI.open(),
+        onDeepInsightsClick: () => {
+          // Open the Semantic Intelligence Panel (8-tab dashboard showing all superhuman insights)
+          import('./ui/semantic-intelligence-panel.ui.js').then(({ showSemanticIntelligencePanel }) => {
+            showSemanticIntelligencePanel();
+          });
+        },
         onShareFerniClick: () => referralUI.open(),
         onAccentSettingsClick: () => accentSettingsUI.open(),
         onWearableSettingsClick: () => void showWearableSettings(),
+        onLinkedInClick: () => {
+          initLinkedInSettings();
+          showLinkedInSettings();
+        },
+        onVibeControllerClick: () => void showVibeController(),
+        onSmartHomeClick: () => void showSmartHomeSettings(),
+        onEightSleepClick: () => void showEightSleepSettings(),
+        onOuraClick: () => void showOuraSettings(),
+        onAppleHealthClick: () => void showAppleHealthSettings(),
         onVideoSettingsClick: () => void showVideoSettings(),
         onGroupCoachingClick: () => void showGroupCoaching(),
         onMarketplaceAdminClick: () => {
@@ -1449,11 +2063,66 @@ class VoiceAIApp {
           }
         },
         onCreativeYouClick: () => {
-          const userId = this.bogleClient?.getUserId() || 'anonymous';
-          openCreativeYouDashboard(userId);
+          const userId = appState.get('deviceId') || 'anonymous';
+          void openCreativeYouDashboard(userId);
         },
         onDiscoverAgentsClick: () => void openMarketplace(),
+        onJournalClick: () => void openChronicle(),
+        onHubClick: () => {
+          // Open Ferni Hub - "Your Day with Ferni"
+          void import('./ui/ferni-hub.ui.js').then(({ show }) => {
+            void show();
+          });
+        },
+        onWhatIDoForYouClick: () => {
+          // Open "What I Do For You" - Ferni's care routines
+          void import('./ui/ferni-care/index.js').then(({ showFerniCareDashboard }) => {
+            showFerniCareDashboard();
+          });
+        },
         onConnectionsClick: () => void showIntegrationsSettings(),
+        onContactsClick: () => void openYourPeople(),
+        onGiftsClick: () => void openYourPeople(), // Gifts now integrated into relationship cards
+        // Warm menu callbacks
+        onTogetherSessionsClick: () => void showGroupCoaching(), // Combines group coaching + team huddles
+        onAllConnectionsClick: () => {
+          // Open the Connected Life panel (consolidates all integrations)
+          void import('./ui/connected-life.ui.js').then(({ showConnectedLife }) => {
+            void showConnectedLife({
+              onConnectAppleHealth: () => void showAppleHealthSettings(),
+              onConnectOura: () => void showOuraSettings(),
+              onConnectEightSleep: () => void showEightSleepSettings(),
+              onConnectWearables: () => void showWearableSettings(),
+              onConnectCalendar: () => void openCalendarSettings(),
+              onConnectLinkedIn: () => {
+                void initLinkedInSettings();
+                void showLinkedInSettings();
+              },
+              onConnectSpotify: () => void triggerSpotifyLinkToggle(),
+              onConnectEcobee: () => void showVibeController(), // Ecobee is in Vibe Controller
+              onOpenVibeController: () => void showVibeController(),
+            });
+          });
+        },
+        // New feature callbacks
+        onMemoryLaneClick: () => void memoryLaneUI.open(),
+        onPatternInsightsClick: () => {
+          // Show pattern insights in a modal container
+          const container = document.querySelector('.app-shell') as HTMLElement | null;
+          if (container) {
+            void patternInsightsUI.show(container);
+          }
+        },
+        onConversationInsightsClick: async () => {
+          // Show feedback insights panel (how conversations are resonating)
+          const { openFeedbackInsightsPanel } = await import('./ui/feedback-insights-panel.ui.js');
+          const userId = appState.get('firebaseUid');
+          if (userId) {
+            void openFeedbackInsightsPanel(userId);
+          }
+        },
+        onKnowledgeQuizClick: () => void openKnowledgeQuiz(),
+        onGrowthJournalClick: () => void openGrowthJournal(),
       });
 
       // Wire up Spotify state changes to menu
@@ -1470,15 +2139,112 @@ class VoiceAIApp {
     this.safeInit('NotificationSettingsUI', () => initNotificationSettingsUI());
     this.safeInit('PushNotifications', () => void initPushNotifications());
 
+    // 🔗 Integrations Settings - "Better than Human" connections (LinkedIn, Calendar, Health)
+    this.safeInit('IntegrationsSettingsUI', () => {
+      getIntegrationsSettingsUI().initialize();
+      getIntegrationsSettingsUI().setCallbacks({
+        onConnectLinkedIn: () => {
+          void connectLinkedIn();
+        },
+        onDisconnectLinkedIn: () => {
+          void disconnectLinkedIn();
+        },
+        onConnectCalendar: () => {
+          const userId = appState.get('deviceId') || 'anonymous';
+          window.location.href = `/auth/google/calendar?userId=${userId}`;
+        },
+        onConnectBiometrics: async (platform) => {
+          const userId = appState.get('deviceId') || 'anonymous';
+          log.info('Connect biometrics requested', { platform, userId });
+          
+          // Import biometrics service dynamically to avoid circular deps
+          const { connectBiometrics, isPlatformAvailable, getPlatformConfig } = await import(
+            './services/biometrics.service.js'
+          );
+          
+          // Type assertion - the callback provides a string but we know it's a valid platform
+          type BiometricsPlatform = Parameters<typeof connectBiometrics>[0];
+          const typedPlatform = platform as BiometricsPlatform;
+          
+          // Check if platform is available
+          if (!isPlatformAvailable(typedPlatform)) {
+            const config = getPlatformConfig(typedPlatform);
+            messageUI.show(
+              config?.name 
+                ? `${config.name} isn't available on this device` 
+                : 'Platform not available',
+              'warning',
+              3000
+            );
+            return;
+          }
+          
+          // Initiate OAuth connection
+          const result = await connectBiometrics(typedPlatform, userId);
+          
+          if (!result.success && result.error) {
+            messageUI.show(result.error, 'error', 4000);
+          }
+        },
+        onConnectBanking: async () => {
+          const userId = appState.get('deviceId') || 'anonymous';
+          log.info('Connect banking requested', { userId });
+          
+          // Import banking service dynamically to avoid circular deps
+          const { connectBanking } = await import('./services/banking.service.js');
+          
+          // Initiate Plaid Link flow
+          const result = await connectBanking(userId);
+          
+          if (result.success) {
+            messageUI.show('Bank connected!', 'success', 2500);
+          } else if (result.error && result.error !== 'User cancelled') {
+            messageUI.show(result.error, 'error', 4000);
+          }
+        },
+      });
+    });
+
     // 📬 Listen for push notification navigation events
-    window.addEventListener('ferni:open-engagement', () => {
-      getEngagementUI().show();
+    this.addTrackedListener(window, 'ferni:open-engagement', () => {
+      // Open InsightsView ("What I'm Noticing") - the relationship-focused view
+      void getInsightsView().show();
     });
-    window.addEventListener('ferni:open-predictions', () => {
-      getPredictionsUI().show();
+    this.addTrackedListener(window, 'ferni:open-predictions', () => {
+      void getPredictionsUI().show();
     });
-    window.addEventListener('ferni:open-team-huddle', () => {
-      showTeamHuddle();
+    this.addTrackedListener(window, 'ferni:open-team-huddle', () => {
+      void showTeamHuddle();
+    });
+    // 🔄 Persona Switch - connects dispatched events to actual handoff
+    // Multiple UI components dispatch this event (team-unlock-celebration, command-palette, etc.)
+    // but it wasn't triggering the voice agent handoff - this fixes that!
+    this.addTrackedListener(window, 'ferni:switch-persona', ((e: CustomEvent) => {
+      const personaId = e.detail?.personaId || e.detail?.persona;
+      if (personaId) {
+        log.info({ personaId }, '🔄 ferni:switch-persona event received, triggering selectPersona');
+        this.selectPersona(personaId as PersonaId);
+      }
+    }) as EventListener);
+    // 🎙️ Group Conversations - imported UI opens team roundtable or adds participant
+    this.addTrackedListener(window, 'ferni:start-roundtable', ((e: CustomEvent) => {
+      // Import dynamically to avoid circular deps
+      void import('./ui/group-conversation.ui.js').then((m) => {
+        void m.showTeamSelector(e.detail?.preselected);
+      });
+    }) as EventListener);
+    this.addTrackedListener(window, 'ferni:add-call-participant', () => {
+      void import('./ui/group-conversation.ui.js').then((m) => {
+        void m.showAddParticipant({
+          onAdd: (phoneNumber, name, relationship) => {
+            log.info({ phoneNumber, name, relationship }, 'Adding participant to call');
+            // TODO: Implement actual participant addition via connection service
+          },
+          onCancel: () => {
+            log.debug('Add participant cancelled');
+          },
+        });
+      });
     });
 
     // 🌱 Handle garden payment result routes (Stripe redirects here)
@@ -1513,29 +2279,113 @@ class VoiceAIApp {
       }, 800);
     }
 
+    // 📅 Handle Calendar OAuth callback
+    const calendarStatus = urlParams.get('calendar');
+    const calendarResult = urlParams.get('status');
+    const calendarError = urlParams.get('calendar_error');
+    if (calendarStatus && calendarResult === 'connected') {
+      setTimeout(() => {
+        const providerName = calendarStatus === 'google' ? 'Google Calendar' : 
+                             calendarStatus === 'apple' ? 'Apple Calendar' : 
+                             calendarStatus === 'outlook' ? 'Outlook Calendar' : 'Calendar';
+        toast.success(`${providerName} connected!`);
+        // Clean up the URL without reload
+        window.history.replaceState({}, '', window.location.pathname);
+      }, 500);
+    } else if (calendarError) {
+      setTimeout(() => {
+        toast.error("Couldn't connect calendar. Try again?");
+        // Clean up the URL without reload
+        window.history.replaceState({}, '', window.location.pathname);
+      }, 500);
+    }
+
+    // 💼 Handle LinkedIn OAuth callback
+    handleLinkedInCallback();
+
     // 📊 Dev Panel modal event listeners
-    window.addEventListener('ferni:open-analytics', () => {
+    this.addTrackedListener(window, 'ferni:open-analytics', () => {
       void showAnalyticsDashboard();
     });
-    window.addEventListener('ferni:open-history', () => {
+    this.addTrackedListener(window, 'ferni:open-history', () => {
       void showConversationHistory();
     });
-    window.addEventListener('ferni:open-insights', () => {
+    this.addTrackedListener(window, 'ferni:open-insights', () => {
       void showCognitiveInsights();
     });
-    window.addEventListener('ferni:start-tour', () => {
+    this.addTrackedListener(window, 'ferni:start-tour', () => {
       getOnboardingUI().start();
     });
-    window.addEventListener('ferni:open-daily-practice', () => {
-      // Daily check-in uses engagement UI rituals
-      getEngagementUI().show();
+    this.addTrackedListener(window, 'ferni:open-daily-practice', () => {
+      // Daily check-in - open the relationship-focused InsightsView
+      void getInsightsView().show();
     });
-    window.addEventListener('ferni:open-marketplace', () => {
+    this.addTrackedListener(window, 'ferni:open-sanctuary', () => {
+      // The Sanctuary - immersive guided practices experience
+      void getSanctuaryUI().open();
+    });
+    this.addTrackedListener(window, 'ferni:start-practice', async (e: Event) => {
+      // Practice started from Sanctuary
+      const customEvent = e as CustomEvent<{
+        practiceId: string;
+        prompt: string;
+        practice: { id: string; name: string };
+      }>;
+      const { practice, prompt } = customEvent.detail;
+      log.info('Practice started from Sanctuary', { id: practice.id, name: practice.name });
+
+      // Check if connected to agent
+      const { connectionService } = await import('./services/connection.service.js');
+      const roomState = connectionService.getRoomState();
+      const room = connectionService.getRoom();
+
+      if (!roomState.isConnected || !room?.localParticipant) {
+        messageUI.show('Connect to Ferni first to start a practice', 'info', 3000);
+        return;
+      }
+
+      // Send practice start request via data channel
+      const message = JSON.stringify({
+        type: 'practice_start_request',
+        commandId: practice.id,
+        commandName: practice.name,
+        prompt,
+        timestamp: Date.now(),
+      });
+
+      try {
+        await room.localParticipant.publishData(new TextEncoder().encode(message), {
+          reliable: true,
+        });
+        messageUI.show(`Starting "${practice.name}"...`, 'success', 2500);
+      } catch (err) {
+        log.error('Failed to start practice from Sanctuary', err);
+        messageUI.show("Couldn't start practice. Try asking Ferni directly!", 'error', 4000);
+      }
+    });
+    this.addTrackedListener(window, 'ferni:open-marketplace', () => {
       void marketplaceUI.open();
     });
 
+    // 📱 Mobile Bottom Sheet - Quick action event handlers
+    this.addTrackedListener(window, 'ferni:open-settings', () => {
+      void getSettingsMenuUI().show();
+    });
+    this.addTrackedListener(window, 'ferni:open-team', () => {
+      void showTeamIntro();
+    });
+    this.addTrackedListener(window, 'ferni:open-music', () => {
+      void musicDashboard.show();
+    });
+    this.addTrackedListener(window, 'ferni:open-calendar', () => {
+      void showCalendarView();
+    });
+    this.addTrackedListener(window, 'ferni:open-people', () => {
+      openYourPeople();
+    });
+
     // 🌱 Garden Widget - Plant seed flow integration
-    window.addEventListener('ferni:open-plant-seed', ((e: CustomEvent) => {
+    this.addTrackedListener(window, 'ferni:open-plant-seed', ((e: CustomEvent) => {
       const detail = e.detail as { type: 'one-time' | 'monthly' } | undefined;
       const userId = appState.get('deviceId');
       if (userId) {
@@ -1546,7 +2396,7 @@ class VoiceAIApp {
     }) as EventListener);
 
     // 💬 Dev Panel transcript injection
-    window.addEventListener('ferni:transcript', ((e: CustomEvent) => {
+    this.addTrackedListener(window, 'ferni:transcript', ((e: CustomEvent) => {
       const { type, text, isFinal } = e.detail;
       // transcriptUI.show() handles both user and agent messages
       // User messages are typically interim, agent messages are final
@@ -1558,7 +2408,7 @@ class VoiceAIApp {
     }) as EventListener);
 
     // 📶 Dev Panel connection quality simulation
-    window.addEventListener('ferni:connection-quality', ((e: CustomEvent) => {
+    this.addTrackedListener(window, 'ferni:connection-quality', ((e: CustomEvent) => {
       const { quality } = e.detail;
       // Map dev panel values to ConnectionQuality type
       const qualityMap: Record<string, 'excellent' | 'good' | 'fair' | 'poor' | 'disconnected'> = {
@@ -1573,7 +2423,7 @@ class VoiceAIApp {
     }) as EventListener);
 
     // 🎊 Dev Panel streak milestone simulation
-    window.addEventListener('ferni:streak-milestone', ((e: CustomEvent) => {
+    this.addTrackedListener(window, 'ferni:streak-milestone', ((e: CustomEvent) => {
       const { days, intensity } = e.detail;
       // Show streak notification UI
       showStreakMilestone('Daily Check-in', days, 'ferni');
@@ -1595,14 +2445,43 @@ class VoiceAIApp {
     // this.safeInit('AgentParticlesUI', () => void initAgentParticles());
 
     // 💚 Connection Heart - Listen for connect requests
-    window.addEventListener('ferni:request-connect', () => {
+    this.addTrackedListener(window, 'ferni:request-connect', () => {
       if (appState.get('connection') === 'disconnected') {
         void this.connect();
       }
     });
 
+    // ⌨️ Keyboard Shortcuts - Global hotkeys for power users
+    this.addTrackedListener(window, 'ferni:toggle-mute', () => {
+      if (appState.get('connection') === 'connected') {
+        this.toggleMute();
+      }
+    });
+
+    this.addTrackedListener(window, 'ferni:toggle-call', () => {
+      const connectionState = appState.get('connection');
+      if (connectionState === 'connected') {
+        void this.disconnect();
+      } else if (connectionState === 'disconnected') {
+        void this.connect();
+      }
+    });
+
+    this.addTrackedListener(window, 'ferni:escape', () => {
+      // First check if any modal is open (they have their own escape handlers)
+      const openModal = document.querySelector('[role="dialog"][aria-modal="true"]');
+      if (openModal) {
+        // Let the modal handle escape itself
+        return;
+      }
+      // If connected and no modal, end the call
+      if (appState.get('connection') === 'connected') {
+        void this.disconnect();
+      }
+    });
+
     // 🌅 Conversation End - Auto-disconnect after agent says goodbye
-    window.addEventListener('ferni:conversation-end-disconnect', (e) => {
+    this.addTrackedListener(window, 'ferni:conversation-end-disconnect', (e) => {
       if (appState.get('connection') === 'connected') {
         const detail = (e as CustomEvent<{ agentInitiated?: boolean; exitType?: string }>).detail;
 
@@ -1672,10 +2551,10 @@ class VoiceAIApp {
     // Marketplace button - opens agent marketplace modal
     const marketplaceBtn = document.getElementById('marketplaceBtn');
     if (marketplaceBtn) {
-      marketplaceBtn.addEventListener('click', (e) => {
+      this.addTrackedListener(marketplaceBtn, 'click', ((e: MouseEvent) => {
         e.stopPropagation(); // Prevent team roster from handling this
         void marketplaceUI.open();
-      });
+      }) as EventListener);
     }
   }
 
@@ -1705,6 +2584,7 @@ class VoiceAIApp {
     thinkingUI.setPersona(personaId); // Persona-specific thinking messages
     avatarFeedback.setPersona(personaId); // Persona-specific idle behaviors
     setCommandsPersonaId(personaId); // Update guided practices for new persona
+    getSanctuaryUI().setPersonaId(personaId); // Update sanctuary for new persona
 
     // Play sound
     soundUI.play('switch');
@@ -1729,6 +2609,10 @@ class VoiceAIApp {
       const greeting = greetingUI.getGreeting();
       messageUI.setHelper(greeting);
 
+      // 🌟 Transcendent: Recognition moment for returning users
+      // This creates the powerful "I see you, I remember you" moment
+      handleMomentTrigger('recognition');
+
       // Check for streak milestone - only for returning users
       const streakMilestone = greetingUI.checkStreakMilestone();
       if (streakMilestone) {
@@ -1741,11 +2625,12 @@ class VoiceAIApp {
         }, 2000);
       }
 
-      // Show streak badge if streak >= 3 - only for returning users
-      const streak = greetingUI.getStreak();
-      if (streak >= 3) {
-        this.showStreakBadge(streak);
-      }
+      // Show streak badge if streak >= 3 - DISABLED: Now shown in Connection Heart
+      // Streak is visible on the heart indicator (fire badge) and in Journey modal
+      // const streak = greetingUI.getStreak();
+      // if (streak >= 3) {
+      //   this.showStreakBadge(streak);
+      // }
     }
 
     // Ambient particles removed - keeping UI clean and human
@@ -1847,25 +2732,27 @@ class VoiceAIApp {
 
   /**
    * Show streak badge.
+   * @deprecated DISABLED: Streak now consolidated into Connection Heart indicator.
+   * The heart shows a fire badge (top-left) with streak count.
+   * Journey modal shows full stats when user taps the heart.
    */
-  private showStreakBadge(streak: number): void {
+  private showStreakBadge(_streak: number): void {
+    // DISABLED - streak now shown in Connection Heart
+    // The connection heart shows both streak and milestones
+    // return;
+
+    // Legacy code kept for reference:
     // Check if badge already exists
-    if (document.getElementById('streakBadge')) return;
-
-    const badge = document.createElement('div');
-    badge.id = 'streakBadge';
-    badge.className = 'streak-badge';
-    badge.innerHTML = `
-      <span class="streak-count">${streak}</span>
-      <span class="streak-label">day streak</span>
-    `;
-
-    document.body.appendChild(badge);
-
-    // Animate in after a delay
-    setTimeout(() => {
-      badge.classList.add('visible');
-    }, 1000);
+    // if (document.getElementById('streakBadge')) return;
+    // const badge = document.createElement('div');
+    // badge.id = 'streakBadge';
+    // badge.className = 'streak-badge';
+    // badge.innerHTML = `
+    //   <span class="streak-count">${streak}</span>
+    //   <span class="streak-label">day streak</span>
+    // `;
+    // document.body.appendChild(badge);
+    // setTimeout(() => badge.classList.add('visible'), 1000);
   }
 
   /**
@@ -1901,6 +2788,20 @@ class VoiceAIApp {
     const startTime = stats?.startTime;
     const durationMs = startTime ? Date.now() - startTime : 0;
     const minutesTalked = Math.max(1, Math.round(durationMs / 60000));
+
+    // 🤝 Process any pending referral on first/early conversation
+    // This ensures referrer gets credit after new user completes a meaningful conversation
+    const convCount = modalCoordinator.getConversationCount();
+    if (convCount <= 2) {
+      const referralResult = processPendingReferral();
+      if (referralResult.processed) {
+        log.info({ bonus: referralResult.bonusAwarded }, 'Referral bonus applied');
+        // Show toast after a short delay so it doesn't conflict with conversation end UI
+        setTimeout(() => {
+          toast.success(`+${referralResult.bonusAwarded} seeds from your friend!`);
+        }, 1500);
+      }
+    }
 
     try {
       const response = await fetch('/usage/conversation', {
@@ -2106,11 +3007,17 @@ class VoiceAIApp {
       onAudioTrack: (audioElement, _participantId, mediaStreamTrack) => {
         // Enable audio visualization using the MediaStreamTrack (works better for WebRTC)
         // Falls back to audio element if track not available
+        log.info('🎙️ onAudioTrack called - attaching visualization', {
+          hasMediaStreamTrack: !!mediaStreamTrack,
+          trackId: mediaStreamTrack?.id,
+          trackReadyState: mediaStreamTrack?.readyState,
+        });
         void this.attachAudioVisualization(audioElement, mediaStreamTrack);
         setAudioState('speaking');
         // Set speaking state directly - don't rely only on volume detection
         waveformUI.setSpeaking(true);
         presenceUI.setSpeaking(true);
+        expressiveEyes.setVoiceState('speaking'); // 👀 Pixar eyes react to speaking
         // Agent is speaking, so we're not in listening mode
         waveformUI.setListening(false);
 
@@ -2125,6 +3032,7 @@ class VoiceAIApp {
         // Agent stopped speaking
         waveformUI.setSpeaking(false);
         presenceUI.setSpeaking(false);
+        expressiveEyes.setVoiceState('listening'); // 👀 Eyes widen attentively
         setAudioState('listening');
         // Now we're listening for user input
         waveformUI.setListening(true);
@@ -2137,23 +3045,74 @@ class VoiceAIApp {
       },
 
       // 🎚️ Music track detected - attach for ducking control
+      // NOTE: Now Playing UI is shown by handleMusic() when music_state message arrives,
+      // NOT here. This callback ONLY handles Web Audio attachment for ducking.
       onMusicTrack: (audioElement, trackId) => {
-        log.info('🎚️ Music track detected, attaching for ducking', { trackId });
+        log.info('🎚️ Music track detected - attaching Web Audio for ducking', { trackId });
+
+        const isExpectingMusic = connectionService.isExpectingMusic();
+
+        // 🎚️ Attach ducking control AND start visualization
         void (async () => {
           try {
             const controller = getMusicAudioController();
             await controller.initialize();
             await controller.attachMusicTrack(audioElement, trackId);
+            
+            // 🎚️ DIAGNOSTIC: Log ducking readiness after attachment
+            const diagnostics = controller.getDuckingDiagnostics();
+            if (diagnostics.hasTrack && diagnostics.hasGainNode) {
+              log.info('🎚️ ✅ Music ducking READY', { trackId, ...diagnostics });
+            } else {
+              log.error('🎚️ ❌ Music ducking FAILED - track attachment did not succeed', { 
+                trackId, 
+                ...diagnostics,
+                hint: 'Ducking will NOT work! Check for Web Audio API errors.',
+              });
+            }
+
+            // 🎵 Start visualization loop to drive waveform with actual music audio
+            // This makes the waveform respond to real music levels instead of canned animation
+            if (isExpectingMusic) {
+              controller.startVisualization((volume) => {
+                // Route music volume to waveform for reactive visualization
+                waveformUI.setVolume(volume);
+              });
+              log.info('🎵 Music visualization started', { trackId });
+            }
           } catch (err) {
-            log.warn('Failed to attach music track for ducking', err);
+            log.error('🎚️ ❌ Failed to attach music track for ducking - DUCKING WILL NOT WORK', err);
           }
         })();
       },
 
-      // 🎚️ Music track ended
+      // 🎚️ Music track ended - hide Now Playing UI
       onMusicTrackEnd: (trackId) => {
-        log.debug('🎚️ Music track ended', { trackId });
+        log.info('🎚️ Music track ended', { trackId });
+
+        // 🎵 Stop music visualization loop
+        getMusicAudioController().stopVisualization();
+
         // Controller handles cleanup automatically via the returned cleanup function
+
+        // 🎵 Hide Now Playing UI when music track ends
+        void (async () => {
+          try {
+            const { nowPlayingUI } = await import('./ui/now-playing.ui.js');
+            const { waveformUI } = await import('./ui/waveform.ui.js');
+
+            log.info('🎵 Hiding Now Playing UI - music track ended');
+            nowPlayingUI.updateState('stopped');
+            nowPlayingUI.hide();
+            waveformUI.setMusicPlaying(false);
+
+            // Stop avatar dancing
+            avatarFeedback.stopDancing();
+            expressiveEyes.stopDancing(); // 👀 Eyes stop grooving
+          } catch (err) {
+            log.warn('Failed to hide Now Playing UI on track end', err);
+          }
+        })();
       },
 
       onLocalMicActive: (isActive) => {
@@ -2195,6 +3154,7 @@ class VoiceAIApp {
 
     handoffService.onHandoffStart((toPersona, _fromPersona) => {
       log.debug('onHandoffStart:', { toPersona });
+
       // Show shimmer effect on waveform
       waveformUI.setTransitioning(true);
 
@@ -2227,6 +3187,7 @@ class VoiceAIApp {
     // When handoff completes - agent is ready to speak
     handoffService.onHandoffComplete((toPersona) => {
       log.debug('onHandoffComplete:', { toPersona });
+
       // FIX BUG: Clear safety timeout
       if (handoffUITimeout) {
         clearTimeout(handoffUITimeout);
@@ -2250,8 +3211,9 @@ class VoiceAIApp {
     });
 
     // When handoff fails - hide indicator and show error
-    handoffService.onHandoffFailed((error, targetPersona) => {
-      log.error('onHandoffFailed:', { error, targetPersona });
+    // FIX AUDIT GAP #1: Now receives rollbackTo to restore waveform/avatar persona
+    handoffService.onHandoffFailed((error, targetPersona, rollbackTo) => {
+      log.error('onHandoffFailed:', { error, targetPersona, rollbackTo });
       // FIX BUG: Clear safety timeout
       if (handoffUITimeout) {
         clearTimeout(handoffUITimeout);
@@ -2259,6 +3221,14 @@ class VoiceAIApp {
       }
 
       waveformUI.setTransitioning(false);
+
+      // FIX AUDIT GAP #1: Restore waveform and other UI to rollback persona
+      if (rollbackTo) {
+        log.info('Restoring UI systems to rollback persona:', rollbackTo);
+        waveformUI.setPersona(rollbackTo);
+        gesturesUI.setCurrentPersona(rollbackTo);
+        this.updatePersonaTheme(rollbackTo);
+      }
 
       const handoffProgress = document.getElementById('handoffProgress');
       if (handoffProgress) {
@@ -2284,6 +3254,30 @@ class VoiceAIApp {
         handoffProgress.classList.add('hidden');
       }
       thinkingUI.hide();
+    });
+
+    // FIX AUDIT GAP #3: Subscribe to handoff progress for waveform visual feedback
+    // This provides visual progress indication on the waveform/avatar even when team roster is hidden
+    handoffService.onHandoffProgress((targetPersona, elapsedMs, timeoutMs) => {
+      log.debug('onHandoffProgress:', { targetPersona, elapsedMs, timeoutMs });
+
+      // Calculate progress percentage (0-100)
+      const progress = Math.min(100, Math.round((elapsedMs / timeoutMs) * 100));
+
+      // Update waveform with progress indication
+      // The waveform shimmer intensity can vary based on progress
+      if (progress > 50) {
+        // After halfway, intensify the shimmer to show progress
+        // (waveformUI already handles transitioning state, but this adds visual variety)
+        log.debug('Handoff progress:', `${progress}%`);
+      }
+
+      // Update the handoff progress element if present
+      const handoffProgress = document.getElementById('handoffProgress');
+      if (handoffProgress) {
+        // Add a data attribute for CSS-based progress visualization
+        handoffProgress.setAttribute('data-progress', String(progress));
+      }
     });
 
     // Main handoff callback (plays sounds, updates UI)
@@ -2319,6 +3313,7 @@ class VoiceAIApp {
       gesturesUI.setCurrentPersona(newPersona.id);
       statsUI.setPersona(newPersona.name);
       setCommandsPersonaId(newPersona.id); // Update guided practices for new persona
+      getSanctuaryUI().setPersonaId(newPersona.id); // Update sanctuary for new persona
       // Particles disabled for cleaner look
       // void agentParticlesUI.setPersona(newPersona.id);
 
@@ -2421,7 +3416,7 @@ class VoiceAIApp {
           if (result.awarded && result.seedsAwarded) {
             // Show seed reward notification
             const msg = result.message || `You earned ${result.seedsAwarded} seeds!`;
-            messageUI.show(`🌱 ${msg}`, 'success', 4000);
+            messageUI.show(msg, 'success', 4000);
           }
         });
       },
@@ -2436,25 +3431,38 @@ class VoiceAIApp {
     audioElement: HTMLAudioElement,
     mediaStreamTrack?: MediaStreamTrack
   ): Promise<void> {
+    log.info('🎚️ attachAudioVisualization called', {
+      hasMediaStreamTrack: !!mediaStreamTrack,
+      trackId: mediaStreamTrack?.id,
+      trackReadyState: mediaStreamTrack?.readyState,
+      hadPreviousCleanup: !!this.audioCleanup,
+    });
+
     // Clean up previous
     if (this.audioCleanup) {
+      log.debug('🧹 Cleaning up previous audio visualization');
       this.audioCleanup();
     }
 
     const volumeCallback = (volume: number) => {
       waveformUI.setVolume(volume);
       coachUI.setVolume(volume);
+      // 🔊 Bass speaker effect - avatar pulses with voice
+      presenceUI.setVoiceVolume(volume);
     };
 
     // Prefer MediaStreamTrack - works better for WebRTC streams
     if (mediaStreamTrack) {
+      log.debug('📡 Using MediaStreamTrack for visualization');
       this.audioCleanup = await audioService.attachVisualization(mediaStreamTrack, volumeCallback);
     } else {
+      log.debug('📻 Using audio element for visualization');
       this.audioCleanup = audioService.attachAudioElementVisualization(
         audioElement,
         volumeCallback
       );
     }
+    log.info('✅ Audio visualization attached successfully');
   }
 
   /**
@@ -2517,11 +3525,23 @@ class VoiceAIApp {
     // This prevents memory leaks from event listeners and timers
     disposeAmbientSounds();
     disposeMobileDelights();
+    disposeMobileBottomSheet();
     disposeFerniMoments();
+    disposeSidekicks();
     disposeConnectionHeart();
     disposeLogoExpressions();
     disposeFerniEQ();
+    destroyTranscendentSystems();
+    disposeHumanizationBridge();
     disposeProactiveOutreach();
+    disposeTeamInsightsUI();
+    disposeCrossTeamNotifications();
+    disposeVoiceEvents();
+
+    // 🔍 Insights Debug Panel cleanup
+    import('./ui/insights-debug-panel.ui.js')
+      .then(({ disposeInsightsDebugPanel }) => disposeInsightsDebugPanel())
+      .catch(() => { /* ignore if not loaded */ });
     disposeAvatarSoul();
     disposeAvatarLamp();
     disposeAmbientLife();
@@ -2529,6 +3549,19 @@ class VoiceAIApp {
     disposeMoodContext();
     disposeWeatherEffects();
     ferniExpressions.dispose();
+    
+    // Dispose ambient experience managers
+    circadianManager.dispose();
+    warmthManager.dispose();
+    personaAura.dispose();
+    visualStorytellingService.dispose();
+
+    // FIX: Clean up all tracked event listeners to prevent memory leaks
+    for (const { target, event, handler } of this.trackedListeners) {
+      target.removeEventListener(event, handler);
+    }
+    log.debug(`Cleaned up ${this.trackedListeners.length} tracked event listeners`);
+    this.trackedListeners = [];
 
     this.isInitialized = false;
   }

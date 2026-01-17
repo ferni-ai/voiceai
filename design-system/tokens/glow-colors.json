@@ -1,0 +1,158 @@
+{
+  "$schema": "./schema.json",
+  "meta": {
+    "name": "Ferni Emotional Glow Colors",
+    "description": "Color tokens for emotional glow states - used by avatar and UI elements",
+    "version": "1.0.0",
+    "source": "Defined for Ferni Alive animation system"
+  },
+
+  "glowColors": {
+    "_comment": "Emotional glow color palette for avatar states",
+
+    "neutral": {
+      "value": "#f5f5f5",
+      "description": "Default idle state - soft white glow",
+      "usage": "Resting, neutral presence"
+    },
+    "joy": {
+      "value": "#ffd700",
+      "description": "Happiness, delight - warm gold",
+      "usage": "Celebrations, positive moments, achievements"
+    },
+    "concern": {
+      "value": "#daa520",
+      "description": "Empathy, worry - goldenrod",
+      "usage": "When detecting distress, showing care"
+    },
+    "excitement": {
+      "value": "#ff6b6b",
+      "description": "High energy, enthusiasm - coral red",
+      "usage": "Exciting news, energetic conversations"
+    },
+    "calm": {
+      "value": "#87ceeb",
+      "description": "Peace, tranquility - sky blue",
+      "usage": "Breathing exercises, relaxation, grounding"
+    },
+    "empathy": {
+      "value": "#ffb6c1",
+      "description": "Compassion, understanding - light pink",
+      "usage": "Deep listening, emotional support"
+    },
+    "focus": {
+      "value": "#4fc3f7",
+      "description": "Concentration, attention - bright blue",
+      "usage": "Task focus, planning, productivity"
+    },
+    "celebration": {
+      "value": "#ffc107",
+      "description": "Achievement, success - amber",
+      "usage": "Milestones, wins, special occasions"
+    },
+    "wisdom": {
+      "value": "#b8956a",
+      "description": "Insight, reflection - warm tan",
+      "usage": "Nayan's wisdom moments, deep insights"
+    },
+    "love": {
+      "value": "#ff69b4",
+      "description": "Affection, warmth - hot pink",
+      "usage": "Connection, relationship moments"
+    },
+    "protective": {
+      "value": "#deb887",
+      "description": "Safety, security - burlywood",
+      "usage": "Reassurance, guardian moments"
+    }
+  },
+
+  "glowGradients": {
+    "_comment": "Compound glow gradients for complex emotional states",
+
+    "joyfulCelebration": {
+      "colors": ["#ffd700", "#ffc107"],
+      "description": "Joy + Celebration blend"
+    },
+    "calmFocus": {
+      "colors": ["#87ceeb", "#4fc3f7"],
+      "description": "Calm + Focus blend for productive relaxation"
+    },
+    "warmEmpathy": {
+      "colors": ["#ffb6c1", "#deb887"],
+      "description": "Empathy + Protective for deep support"
+    },
+    "excitedJoy": {
+      "colors": ["#ff6b6b", "#ffd700"],
+      "description": "Excitement + Joy for peak happiness"
+    },
+    "wisdomCalm": {
+      "colors": ["#b8956a", "#87ceeb"],
+      "description": "Wisdom + Calm for reflective moments"
+    }
+  },
+
+  "glowIntensity": {
+    "_comment": "Intensity levels for glow animations",
+
+    "subtle": {
+      "opacity": 0.3,
+      "blur": 15,
+      "spread": 5,
+      "description": "Barely visible, ambient"
+    },
+    "normal": {
+      "opacity": 0.5,
+      "blur": 25,
+      "spread": 10,
+      "description": "Standard presence"
+    },
+    "strong": {
+      "opacity": 0.7,
+      "blur": 35,
+      "spread": 15,
+      "description": "Enhanced emotional state"
+    },
+    "intense": {
+      "opacity": 0.9,
+      "blur": 45,
+      "spread": 20,
+      "description": "Peak emotional moment"
+    }
+  },
+
+  "personaGlowModifiers": {
+    "_comment": "Persona-specific glow color adjustments",
+
+    "ferni": {
+      "baseHue": 0,
+      "saturationMultiplier": 1.0,
+      "description": "Standard warm glow"
+    },
+    "maya": {
+      "baseHue": -10,
+      "saturationMultiplier": 0.95,
+      "description": "Slightly cooler, organized energy"
+    },
+    "peter": {
+      "baseHue": 15,
+      "saturationMultiplier": 1.1,
+      "description": "Warmer, more vibrant"
+    },
+    "jordan": {
+      "baseHue": 5,
+      "saturationMultiplier": 1.15,
+      "description": "Celebratory, saturated"
+    },
+    "alex": {
+      "baseHue": -5,
+      "saturationMultiplier": 0.9,
+      "description": "Professional, subtle"
+    },
+    "nayan": {
+      "baseHue": 10,
+      "saturationMultiplier": 0.85,
+      "description": "Wise, muted warmth"
+    }
+  }
+}

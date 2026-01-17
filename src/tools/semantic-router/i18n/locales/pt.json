@@ -1,0 +1,764 @@
+{
+  "$schema": "./locale.schema.json",
+  "$locale": "pt",
+  "$name": "Português",
+
+  "weather_current": {
+    "phrases": [
+      "como está o tempo",
+      "qual é o tempo",
+      "está chovendo",
+      "está frio",
+      "está quente",
+      "preciso de um guarda-chuva",
+      "devo levar um casaco"
+    ],
+    "patterns": [
+      "^(?:como|qual)\\s+(?:está|é)\\s+o\\s+(?:tempo|clima)",
+      "^(?:está|vai)\\s+(?:chovendo|chover|nevando|nevar)",
+      "^está\\s+(?:frio|quente|sol|nublado)"
+    ],
+    "keywords": [
+      { "word": "tempo", "weight": 1.0 },
+      { "word": "clima", "weight": 1.0 },
+      { "word": "chuva", "weight": 0.8 },
+      { "word": "chovendo", "weight": 0.8 },
+      { "word": "sol", "weight": 0.7 },
+      { "word": "nublado", "weight": 0.7 },
+      { "word": "frio", "weight": 0.6 },
+      { "word": "quente", "weight": 0.6 },
+      { "word": "guarda-chuva", "weight": 0.8 }
+    ],
+    "antiKeywords": ["email", "calendário", "reunião", "música"]
+  },
+
+  "weather_forecast": {
+    "phrases": [
+      "previsão do tempo",
+      "tempo esta semana",
+      "tempo amanhã",
+      "qual é a previsão",
+      "tempo nos próximos dias"
+    ],
+    "patterns": [
+      "^(?:qual\\s+é\\s+a|como\\s+é\\s+a)\\s+previsão",
+      "^(?:o\\s+)?tempo\\s+(?:para\\s+)?(?:esta|a\\s+próxima)\\s+semana",
+      "^vai\\s+(?:chover|nevar)\\s+(?:amanhã|esta\\s+semana)"
+    ],
+    "keywords": [
+      { "word": "previsão", "weight": 1.0 },
+      { "word": "semana", "weight": 0.7 },
+      { "word": "amanhã", "weight": 0.8 }
+    ],
+    "antiKeywords": ["agora", "atualmente"]
+  },
+
+  "calendar_list_events": {
+    "phrases": [
+      "o que tenho no calendário",
+      "ver meu calendário",
+      "minha agenda",
+      "o que tenho hoje",
+      "reuniões de hoje",
+      "quais reuniões tenho"
+    ],
+    "patterns": [
+      "^(?:o\\s+que\\s+tenho|mostra-me)\\s+(?:no\\s+)?(?:meu\\s+)?(?:calendário|agenda)",
+      "^(?:ver|verificar|mostrar)\\s+(?:meu\\s+)?(?:calendário|agenda)",
+      "^(?:quais?|alguma)\\s+(?:reuniões?|eventos?|compromissos?)\\s+(?:tenho\\s+)?(?:hoje|amanhã)"
+    ],
+    "keywords": [
+      { "word": "calendário", "weight": 1.0 },
+      { "word": "agenda", "weight": 0.9 },
+      { "word": "reunião", "weight": 0.8 },
+      { "word": "reuniões", "weight": 0.8 },
+      { "word": "compromisso", "weight": 0.8 }
+    ],
+    "antiKeywords": ["criar", "adicionar", "agendar", "cancelar", "deletar"]
+  },
+
+  "habit_track": {
+    "phrases": [
+      "eu fiz meu",
+      "eu completei",
+      "eu terminei",
+      "marcar hábito",
+      "registrar meu hábito",
+      "eu meditei",
+      "eu me exercitei",
+      "fui à academia"
+    ],
+    "patterns": [
+      "^eu\\s+(?:já\\s+)?(?:fiz|completei|terminei)\\s+(?:meu\\s+)?(.+)",
+      "^(?:marcar|registrar)\\s+(?:meu\\s+)?(?:hábito|(.+))\\s+(?:como\\s+)?(?:feito|completo)"
+    ],
+    "keywords": [
+      { "word": "feito", "weight": 0.8 },
+      { "word": "completei", "weight": 0.9 },
+      { "word": "terminei", "weight": 0.8 },
+      { "word": "meditei", "weight": 0.9 },
+      { "word": "exercitei", "weight": 0.9 },
+      { "word": "academia", "weight": 0.8 }
+    ],
+    "antiKeywords": ["criar", "adicionar", "novo", "sugerir", "ajuda", "que"]
+  },
+
+  "memory_save": {
+    "phrases": [
+      "lembra disso",
+      "lembra que",
+      "não esquece",
+      "guarda isso",
+      "anota que",
+      "tenha em mente"
+    ],
+    "patterns": [
+      "^(?:por\\s+favor\\s+)?(?:lembra|lembre-se)\\s+(?:que\\s+)?(.+)",
+      "^não\\s+(?:esquece|esqueça)\\s+(?:que\\s+)?(.+)",
+      "^(?:guarda|anota|registra)\\s+(?:que\\s+)?(.+)"
+    ],
+    "keywords": [
+      { "word": "lembra", "weight": 1.0 },
+      { "word": "esquece", "weight": 0.9 },
+      { "word": "guarda", "weight": 0.7 },
+      { "word": "anota", "weight": 0.7 }
+    ],
+    "antiKeywords": ["que", "quando", "quem", "me diz"]
+  },
+
+  "memory_recall": {
+    "phrases": [
+      "o que eu te disse",
+      "você lembra",
+      "o que você sabe sobre",
+      "qual é o meu",
+      "quem é meu",
+      "quando é meu"
+    ],
+    "patterns": [
+      "^(?:o\\s+que|quando|quem)\\s+eu\\s+te\\s+(?:disse|contei|mencionei)",
+      "^você\\s+(?:lembra|se\\s+lembra)\\s+(?:do\\s+que|quando|meu)",
+      "^(?:qual|o\\s+que|quem)\\s+é\\s+(?:o\\s+)?meu\\s+(.+)"
+    ],
+    "keywords": [
+      { "word": "lembra", "weight": 0.9 },
+      { "word": "sabe", "weight": 0.6 },
+      { "word": "disse", "weight": 0.8 }
+    ],
+    "antiKeywords": ["guarda", "anota", "não esquece"]
+  },
+
+  "grounding_exercise": {
+    "phrases": [
+      "estou ansioso",
+      "estou estressado",
+      "me sinto sobrecarregado",
+      "preciso me acalmar",
+      "me ajuda a relaxar",
+      "exercício de respiração",
+      "estou em pânico"
+    ],
+    "patterns": [
+      "^estou\\s+(?:muito\\s+)?(?:ansioso|estressado|sobrecarregado|em\\s+pânico)",
+      "^preciso\\s+(?:me\\s+)?(?:acalmar|relaxar)",
+      "^(?:me\\s+ajuda|pode\\s+me\\s+ajudar)\\s+a\\s+(?:me\\s+)?(?:acalmar|relaxar)"
+    ],
+    "keywords": [
+      { "word": "ansioso", "weight": 1.0 },
+      { "word": "ansiedade", "weight": 1.0 },
+      { "word": "estressado", "weight": 0.9 },
+      { "word": "pânico", "weight": 1.0 },
+      { "word": "acalmar", "weight": 0.8 },
+      { "word": "relaxar", "weight": 0.7 },
+      { "word": "respirar", "weight": 0.8 }
+    ],
+    "antiKeywords": []
+  },
+
+  "spotify_play": {
+    "phrases": ["coloca música", "toca música", "quero ouvir", "coloca um", "abre spotify"],
+    "patterns": [
+      "^(?:coloca|toca|reproduz)\\s+(?:algo\\s+de\\s+)?(.+)",
+      "^quero\\s+(?:ouvir|escutar)\\s+(.+)"
+    ],
+    "keywords": [
+      { "word": "coloca", "weight": 1.0 },
+      { "word": "toca", "weight": 0.9 },
+      { "word": "música", "weight": 0.8 },
+      { "word": "spotify", "weight": 0.9 },
+      { "word": "música", "weight": 0.7 },
+      { "word": "jazz", "weight": 0.8 },
+      { "word": "rock", "weight": 0.7 }
+    ],
+    "antiKeywords": ["para", "pausa", "próxima", "pula"]
+  },
+
+  "calendar_create_event": {
+    "phrases": [
+      "criar evento",
+      "adicionar ao calendário",
+      "agendar reunião",
+      "marcar compromisso",
+      "novo compromisso"
+    ],
+    "patterns": [
+      "^(?:criar|adicionar|agendar|marcar)\\s+(?:um|uma)?\\s*(?:evento|reunião|compromisso)",
+      "^(?:colocar|adicionar)\\s+(?:no\\s+)?(?:meu\\s+)?calendário"
+    ],
+    "keywords": [
+      { "word": "criar", "weight": 1.0 },
+      { "word": "adicionar", "weight": 0.9 },
+      { "word": "agendar", "weight": 0.9 },
+      { "word": "marcar", "weight": 0.8 }
+    ],
+    "antiKeywords": ["ver", "mostrar", "que", "quais"]
+  },
+
+  "info_time": {
+    "phrases": ["que horas são", "me diz a hora", "hora atual", "são quantas horas"],
+    "patterns": [
+      "^(?:que\\s+horas|são\\s+quantas\\s+horas)\\s*(?:são)?",
+      "^(?:me\\s+diz|me\\s+dá)\\s+a\\s+hora"
+    ],
+    "keywords": [
+      { "word": "hora", "weight": 1.0 },
+      { "word": "horas", "weight": 1.0 },
+      { "word": "tempo", "weight": 0.5 }
+    ],
+    "antiKeywords": ["tempo", "clima", "calendário", "reunião"]
+  },
+
+  "handoff": {
+    "phrases": ["passa para", "quero falar com", "posso falar com", "me conecta com", "muda para"],
+    "patterns": [
+      "^(?:passa|me\\s+conecta)\\s+(?:para|com)\\s+(.+)",
+      "^(?:quero|posso)\\s+falar\\s+com\\s+(.+)",
+      "^muda\\s+(?:me\\s+)?para\\s+(.+)"
+    ],
+    "keywords": [
+      { "word": "passa", "weight": 1.0 },
+      { "word": "falar", "weight": 0.7 },
+      { "word": "maya", "weight": 0.9 },
+      { "word": "peter", "weight": 0.9 },
+      { "word": "alex", "weight": 0.9 },
+      { "word": "jordan", "weight": 0.9 },
+      { "word": "nayan", "weight": 0.9 }
+    ],
+    "antiKeywords": []
+  },
+
+  "spotify_pause": {
+    "phrases": ["pausa", "pausa a música", "para a música", "para de tocar"],
+    "patterns": ["^(?:pausa|para)\\s+(?:a\\s+)?(?:música)?", "^para\\s+de\\s+tocar"],
+    "keywords": [
+      { "word": "pausa", "weight": 1.0 },
+      { "word": "para", "weight": 0.9 }
+    ],
+    "antiKeywords": ["toca", "coloca", "continua"]
+  },
+
+  "spotify_skip": {
+    "phrases": ["próxima música", "pula", "pula essa música", "próxima"],
+    "patterns": ["^(?:próxima|pula)\\s+(?:essa\\s+)?(?:música)?"],
+    "keywords": [
+      { "word": "próxima", "weight": 1.0 },
+      { "word": "pula", "weight": 1.0 }
+    ],
+    "antiKeywords": ["anterior", "volta"]
+  },
+
+  "set_timer": {
+    "phrases": ["coloca um timer", "timer de", "inicia um timer"],
+    "patterns": ["^(?:coloca|inicia)\\s+(?:um\\s+)?timer\\s+(?:de\\s+)?(.+)"],
+    "keywords": [
+      { "word": "timer", "weight": 1.0 },
+      { "word": "minutos", "weight": 0.7 }
+    ],
+    "antiKeywords": ["alarme", "lembrete"]
+  },
+
+  "set_reminder": {
+    "phrases": ["me lembra de", "coloca um lembrete", "lembrete para", "não esquece de me lembrar"],
+    "patterns": [
+      "^(?:me\\s+)?lembra\\s+(?:de\\s+)?(.+)",
+      "^(?:coloca|cria)\\s+(?:um\\s+)?lembrete\\s+(?:para\\s+)?(.+)"
+    ],
+    "keywords": [
+      { "word": "lembra", "weight": 1.0 },
+      { "word": "lembrete", "weight": 1.0 }
+    ],
+    "antiKeywords": ["timer", "alarme"]
+  },
+
+  "set_alarm": {
+    "phrases": ["coloca um alarme", "me acorda", "alarme para"],
+    "patterns": [
+      "^(?:coloca|configura)\\s+(?:um\\s+)?alarme\\s+(?:para\\s+)?(.+)",
+      "^me\\s+acorda\\s+(?:às?\\s+)?(.+)"
+    ],
+    "keywords": [
+      { "word": "alarme", "weight": 1.0 },
+      { "word": "acorda", "weight": 0.9 }
+    ],
+    "antiKeywords": ["timer", "lembrete"]
+  },
+
+  "burnout_assess": {
+    "phrases": [
+      "estou esgotado",
+      "estou com burnout",
+      "acho que estou com burnout",
+      "não aguento mais",
+      "estou exausto"
+    ],
+    "patterns": [
+      "^estou\\s+(?:muito\\s+)?(?:esgotado|com\\s+burnout|exausto)",
+      "^(?:acho|penso)\\s+(?:que\\s+)?(?:estou\\s+com|tenho)\\s+burnout"
+    ],
+    "keywords": [
+      { "word": "burnout", "weight": 1.0 },
+      { "word": "esgotado", "weight": 1.0 },
+      { "word": "exausto", "weight": 0.9 }
+    ],
+    "antiKeywords": []
+  },
+
+  "career_coaching": {
+    "phrases": [
+      "preciso de conselhos de carreira",
+      "ajuda com minha carreira",
+      "mudança de carreira",
+      "devo pedir demissão",
+      "pensando em um novo emprego"
+    ],
+    "patterns": [
+      "^(?:preciso|me\\s+ajuda)\\s+(?:com\\s+)?(?:minha\\s+)?carreira",
+      "^(?:devo|estou\\s+pensando\\s+em)\\s+(?:pedir\\s+demissão|mudar\\s+de)\\s+(?:emprego|carreira)"
+    ],
+    "keywords": [
+      { "word": "carreira", "weight": 1.0 },
+      { "word": "emprego", "weight": 0.8 },
+      { "word": "trabalho", "weight": 0.7 },
+      { "word": "demissão", "weight": 0.7 }
+    ],
+    "antiKeywords": []
+  },
+
+  "decision_help": {
+    "phrases": [
+      "me ajuda a decidir",
+      "não consigo decidir",
+      "devo",
+      "me ajuda a tomar uma decisão",
+      "estou indeciso"
+    ],
+    "patterns": [
+      "^(?:me\\s+ajuda\\s+a|não\\s+consigo)\\s+decidir",
+      "^devo\\s+(.+)",
+      "^estou\\s+(?:muito\\s+)?indeciso"
+    ],
+    "keywords": [
+      { "word": "decidir", "weight": 1.0 },
+      { "word": "decisão", "weight": 1.0 },
+      { "word": "indeciso", "weight": 0.8 }
+    ],
+    "antiKeywords": []
+  },
+
+  "dream_clarify": {
+    "phrases": [
+      "qual é meu sonho",
+      "me ajuda a encontrar meu sonho",
+      "não sei o que quero",
+      "clarear meus objetivos"
+    ],
+    "patterns": [
+      "^(?:qual\\s+é|me\\s+ajuda\\s+a\\s+encontrar)\\s+meu\\s+sonho",
+      "^não\\s+sei\\s+o\\s+que\\s+(?:eu\\s+)?quero"
+    ],
+    "keywords": [
+      { "word": "sonho", "weight": 1.0 },
+      { "word": "objetivo", "weight": 0.8 },
+      { "word": "visão", "weight": 0.7 }
+    ],
+    "antiKeywords": ["dormir", "pesadelo"]
+  },
+
+  "grief_support": {
+    "phrases": [
+      "perdi alguém",
+      "alguém morreu",
+      "estou de luto",
+      "meu ente querido faleceu",
+      "sinto tanta falta"
+    ],
+    "patterns": [
+      "^(?:acabei\\s+de\\s+)?perder\\s+(?:alguém|um\\s+ente\\s+querido)",
+      "^estou\\s+(?:de\\s+)?luto",
+      "^(?:minha|meu)\\s+(?:mãe|pai|avô|avó|amigo)\\s+(?:faleceu|morreu)"
+    ],
+    "keywords": [
+      { "word": "luto", "weight": 1.0 },
+      { "word": "perda", "weight": 0.9 },
+      { "word": "morreu", "weight": 1.0 },
+      { "word": "faleceu", "weight": 0.9 },
+      { "word": "falta", "weight": 0.6 }
+    ],
+    "antiKeywords": []
+  },
+
+  "anger_support": {
+    "phrases": [
+      "estou muito com raiva",
+      "estou furioso",
+      "não consigo controlar minha raiva",
+      "me ajuda com minha raiva"
+    ],
+    "patterns": [
+      "^estou\\s+(?:muito\\s+)?(?:com\\s+raiva|furioso|bravo)",
+      "^não\\s+consigo\\s+controlar\\s+minha\\s+raiva"
+    ],
+    "keywords": [
+      { "word": "raiva", "weight": 1.0 },
+      { "word": "furioso", "weight": 0.9 },
+      { "word": "bravo", "weight": 0.8 }
+    ],
+    "antiKeywords": []
+  },
+
+  "gratitude_practice": {
+    "phrases": [
+      "prática de gratidão",
+      "pelo que sou grato",
+      "me ajuda a ser grato",
+      "contar minhas bênçãos"
+    ],
+    "patterns": [
+      "^(?:vamos|me\\s+ajuda\\s+com)\\s+(?:uma\\s+)?(?:prática\\s+de\\s+)?gratidão",
+      "^(?:pelo\\s+que|de\\s+que)\\s+(?:sou|devo\\s+ser)\\s+grato"
+    ],
+    "keywords": [
+      { "word": "gratidão", "weight": 1.0 },
+      { "word": "grato", "weight": 1.0 },
+      { "word": "bênçãos", "weight": 0.7 }
+    ],
+    "antiKeywords": []
+  },
+
+  "self_compassion": {
+    "phrases": [
+      "sou muito duro comigo mesmo",
+      "me odeio",
+      "não sou bom o suficiente",
+      "me sinto um fracasso"
+    ],
+    "patterns": [
+      "^sou\\s+(?:muito\\s+)?duro\\s+comigo\\s+mesmo",
+      "^(?:eu\\s+)?me\\s+odeio",
+      "^não\\s+sou\\s+(?:bom\\s+)?o\\s+suficiente"
+    ],
+    "keywords": [
+      { "word": "duro", "weight": 0.6 },
+      { "word": "fracasso", "weight": 0.8 },
+      { "word": "compaixão", "weight": 1.0 }
+    ],
+    "antiKeywords": []
+  },
+
+  "loneliness_support": {
+    "phrases": [
+      "me sinto muito sozinho",
+      "me sinto isolado",
+      "não tenho amigos",
+      "ninguém me entende"
+    ],
+    "patterns": [
+      "^(?:estou|me\\s+sinto)\\s+(?:muito\\s+)?(?:sozinho|isolado)",
+      "^não\\s+tenho\\s+(?:amigos|ninguém)"
+    ],
+    "keywords": [
+      { "word": "sozinho", "weight": 1.0 },
+      { "word": "isolado", "weight": 0.9 },
+      { "word": "amigos", "weight": 0.6 }
+    ],
+    "antiKeywords": []
+  },
+
+  "sleep_help": {
+    "phrases": ["não consigo dormir", "me ajuda a dormir", "insônia", "problemas para dormir"],
+    "patterns": [
+      "^não\\s+consigo\\s+(?:pegar\\s+no\\s+sono|dormir)",
+      "^(?:me\\s+ajuda|preciso\\s+de\\s+ajuda)\\s+(?:para|a)\\s+dormir"
+    ],
+    "keywords": [
+      { "word": "dormir", "weight": 1.0 },
+      { "word": "sono", "weight": 1.0 },
+      { "word": "insônia", "weight": 1.0 },
+      { "word": "acordado", "weight": 0.7 }
+    ],
+    "antiKeywords": []
+  },
+
+  "motivation_boost": {
+    "phrases": [
+      "preciso de motivação",
+      "não estou motivado",
+      "me ajuda a começar",
+      "estou procrastinando"
+    ],
+    "patterns": [
+      "^(?:preciso|quero|não\\s+tenho)\\s+(?:mais\\s+)?motivação",
+      "^(?:não\\s+)?estou\\s+(?:muito\\s+)?(?:motivado|procrastinando)"
+    ],
+    "keywords": [
+      { "word": "motivação", "weight": 1.0 },
+      { "word": "procrastinando", "weight": 0.9 }
+    ],
+    "antiKeywords": []
+  },
+
+  "boundary_coaching": {
+    "phrases": [
+      "não consigo dizer não",
+      "me ajuda a colocar limites",
+      "pessoas se aproveitam de mim"
+    ],
+    "patterns": [
+      "^não\\s+consigo\\s+dizer\\s+não",
+      "^(?:me\\s+ajuda\\s+a|preciso)\\s+colocar\\s+limites"
+    ],
+    "keywords": [
+      { "word": "limites", "weight": 1.0 },
+      { "word": "não", "weight": 0.5 }
+    ],
+    "antiKeywords": []
+  },
+
+  "imposter_syndrome": {
+    "phrases": [
+      "me sinto uma fraude",
+      "síndrome do impostor",
+      "não mereço isso",
+      "vão descobrir que não sou bom o suficiente"
+    ],
+    "patterns": [
+      "^(?:me\\s+sinto|sou)\\s+(?:como\\s+)?(?:uma?\\s+)?(?:fraude|impostor)",
+      "^não\\s+mereço"
+    ],
+    "keywords": [
+      { "word": "impostor", "weight": 1.0 },
+      { "word": "fraude", "weight": 1.0 },
+      { "word": "mereço", "weight": 0.8 }
+    ],
+    "antiKeywords": []
+  },
+
+  "relationship_advice": {
+    "phrases": [
+      "conselhos de relacionamento",
+      "ajuda com meu relacionamento",
+      "problemas com meu parceiro",
+      "a gente briga o tempo todo"
+    ],
+    "patterns": [
+      "^(?:preciso|me\\s+ajuda)\\s+(?:com\\s+)?(?:meu\\s+)?relacionamento",
+      "^(?:problemas?|dificuldades?)\\s+com\\s+meu\\s+(?:parceiro|cônjuge|marido|esposa)"
+    ],
+    "keywords": [
+      { "word": "relacionamento", "weight": 1.0 },
+      { "word": "parceiro", "weight": 0.9 },
+      { "word": "cônjuge", "weight": 0.9 },
+      { "word": "casamento", "weight": 0.8 }
+    ],
+    "antiKeywords": []
+  },
+
+  "smart_home_lights": {
+    "phrases": [
+      "acende as luzes",
+      "apaga as luzes",
+      "diminui as luzes",
+      "luzes acesas",
+      "luzes apagadas"
+    ],
+    "patterns": ["^(?:acende|apaga)\\s+(?:as\\s+)?luzes?", "^luzes?\\s+(?:acesas?|apagadas?)"],
+    "keywords": [
+      { "word": "luzes", "weight": 1.0 },
+      { "word": "luz", "weight": 1.0 }
+    ],
+    "antiKeywords": []
+  },
+
+  "smart_home_thermostat": {
+    "phrases": [
+      "ajusta a temperatura",
+      "aumenta o aquecimento",
+      "diminui o ar",
+      "faz mais quente",
+      "faz mais frio"
+    ],
+    "patterns": [
+      "^(?:ajusta|muda)\\s+(?:a\\s+)?temperatura",
+      "^(?:aumenta|diminui)\\s+(?:o\\s+)?(?:aquecimento|ar|ar-condicionado)"
+    ],
+    "keywords": [
+      { "word": "temperatura", "weight": 1.0 },
+      { "word": "termostato", "weight": 1.0 },
+      { "word": "aquecimento", "weight": 0.8 },
+      { "word": "ar", "weight": 0.6 }
+    ],
+    "antiKeywords": ["tempo", "clima"]
+  },
+
+  "define_word": {
+    "phrases": ["define", "o que significa", "definição de", "o que quer dizer"],
+    "patterns": [
+      "^define\\s+(.+)",
+      "^o\\s+que\\s+(?:significa|quer\\s+dizer)\\s+(.+)",
+      "^(?:qual\\s+é\\s+a\\s+)?definição\\s+de\\s+(.+)"
+    ],
+    "keywords": [
+      { "word": "define", "weight": 1.0 },
+      { "word": "definição", "weight": 1.0 },
+      { "word": "significa", "weight": 0.9 }
+    ],
+    "antiKeywords": []
+  },
+
+  "translate": {
+    "phrases": [
+      "traduz",
+      "como se diz",
+      "o que é isso em",
+      "fala em espanhol",
+      "traduz para francês"
+    ],
+    "patterns": [
+      "^traduz\\s+(.+)",
+      "^como\\s+(?:se\\s+diz|fala)\\s+(.+)",
+      "^(?:o\\s+que\\s+é\\s+isso|fala)\\s+em\\s+(\\w+)"
+    ],
+    "keywords": [
+      { "word": "traduz", "weight": 1.0 },
+      { "word": "espanhol", "weight": 0.8 },
+      { "word": "francês", "weight": 0.8 }
+    ],
+    "antiKeywords": []
+  },
+
+  "calculate": {
+    "phrases": ["calcula", "quanto é", "qual é o resultado de", "problema de matemática"],
+    "patterns": [
+      "^calcula\\s+(.+)",
+      "^quanto\\s+(?:é|dá)\\s+(.+)",
+      "^qual\\s+(?:é\\s+o\\s+)?resultado\\s+de\\s+(.+)"
+    ],
+    "keywords": [
+      { "word": "calcula", "weight": 1.0 },
+      { "word": "matemática", "weight": 0.9 },
+      { "word": "mais", "weight": 0.7 }
+    ],
+    "antiKeywords": []
+  },
+
+  "news_update": {
+    "phrases": [
+      "quais são as notícias",
+      "notícias de hoje",
+      "últimas notícias",
+      "o que está acontecendo no mundo"
+    ],
+    "patterns": [
+      "^(?:quais\\s+são|me\\s+dá)\\s+(?:as\\s+)?(?:últimas\\s+)?notícias",
+      "^notícias\\s+(?:de\\s+)?hoje"
+    ],
+    "keywords": [
+      { "word": "notícias", "weight": 1.0 },
+      { "word": "manchetes", "weight": 0.9 }
+    ],
+    "antiKeywords": []
+  },
+
+  "get_directions": {
+    "phrases": ["como chegar em", "direções para", "rota para", "navega para"],
+    "patterns": [
+      "^(?:me\\s+dá\\s+)?(?:as\\s+)?direções\\s+(?:para|até)\\s+(.+)",
+      "^como\\s+(?:chegar|ir)\\s+(?:em|até|para)\\s+(.+)"
+    ],
+    "keywords": [
+      { "word": "direções", "weight": 1.0 },
+      { "word": "navega", "weight": 1.0 },
+      { "word": "rota", "weight": 0.9 }
+    ],
+    "antiKeywords": []
+  },
+
+  "book_search": {
+    "phrases": ["encontra um livro", "recomendação de livro", "sugere um livro", "o que devo ler"],
+    "patterns": [
+      "^(?:encontra|recomenda|sugere)\\s+(?:me\\s+)?(?:um\\s+)?livro",
+      "^o\\s+que\\s+(?:devo|posso)\\s+ler"
+    ],
+    "keywords": [
+      { "word": "livro", "weight": 1.0 },
+      { "word": "ler", "weight": 0.8 },
+      { "word": "leitura", "weight": 0.8 }
+    ],
+    "antiKeywords": []
+  },
+
+  "podcast_find": {
+    "phrases": [
+      "encontra um podcast",
+      "recomendação de podcast",
+      "sugere um podcast",
+      "qual podcast ouvir"
+    ],
+    "patterns": [
+      "^(?:encontra|recomenda|sugere)\\s+(?:me\\s+)?(?:um\\s+)?podcast",
+      "^qual\\s+podcast\\s+(?:devo|posso)\\s+ouvir"
+    ],
+    "keywords": [
+      { "word": "podcast", "weight": 1.0 },
+      { "word": "ouvir", "weight": 0.7 }
+    ],
+    "antiKeywords": []
+  },
+
+  "movie_recommend": {
+    "phrases": [
+      "recomenda um filme",
+      "que filme assistir",
+      "sugestão de filme",
+      "encontra um filme"
+    ],
+    "patterns": [
+      "^(?:recomenda|sugere|encontra)\\s+(?:me\\s+)?(?:um\\s+)?filme",
+      "^(?:que|qual)\\s+filme\\s+(?:devo|posso)\\s+assistir"
+    ],
+    "keywords": [
+      { "word": "filme", "weight": 1.0 },
+      { "word": "assistir", "weight": 0.7 }
+    ],
+    "antiKeywords": []
+  },
+
+  "restaurant_find": {
+    "phrases": [
+      "encontra um restaurante",
+      "onde comer",
+      "recomendação de restaurante",
+      "um lugar para jantar"
+    ],
+    "patterns": [
+      "^(?:encontra|recomenda)\\s+(?:me\\s+)?(?:um\\s+)?restaurante",
+      "^onde\\s+(?:devo|posso)\\s+(?:comer|jantar)"
+    ],
+    "keywords": [
+      { "word": "restaurante", "weight": 1.0 },
+      { "word": "comer", "weight": 0.8 },
+      { "word": "jantar", "weight": 0.7 }
+    ],
+    "antiKeywords": []
+  }
+}

@@ -15,9 +15,11 @@
 
 import { getColorsFromApiOrGenerate } from '../config/persona-colors.js';
 import { fetchAgents, type ApiAgent } from '../services/agents.service.js';
+import { apiGet, apiPost } from '../utils/api.js';
+import { getApiHeadersAsync } from '../utils/api-helpers.js';
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
-import { toast } from './toast.ui.js';
+import { toast } from './whisper.ui.js';
 
 // Avatar Soul integration - dynamically imported to avoid circular deps
 let avatarSoul: typeof import('./avatar-soul.ui.js') | null = null;
@@ -35,7 +37,7 @@ async function getAvatarSoul() {
 const log = createLogger('AdminUI');
 
 // FIX BUG: Track all setTimeout calls for proper cleanup
-const { trackedTimeout, clearAll: clearAllTimeouts } = createTimeoutTracker();
+const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
 
 // ============================================================================
 // ICONS (Lucide SVG - 2px stroke, rounded corners)
@@ -64,6 +66,26 @@ const ICONS = {
   </svg>`,
   sparkles: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
     <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/>
+  </svg>`,
+  // Quick actions icons (replacing emojis)
+  package: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="m7.5 4.27 9 5.15"/>
+    <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/>
+    <path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/>
+  </svg>`,
+  database: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <ellipse cx="12" cy="5" rx="9" ry="3"/>
+    <path d="M3 5V19A9 3 0 0 0 21 19V5"/>
+    <path d="M3 12A9 3 0 0 0 21 12"/>
+  </svg>`,
+  refresh: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+    <path d="M3 3v5h5"/>
+    <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/>
+    <path d="M16 16h5v5"/>
+  </svg>`,
+  check: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <polyline points="20 6 9 17 4 12"/>
   </svg>`,
 };
 
@@ -163,7 +185,7 @@ function renderError(message: string): string {
     <div class="admin-error">
       <h2>Error Loading Agents</h2>
       <p>${message}</p>
-      <button onclick="window.location.reload()">Retry</button>
+      <button aria-label="Retry" onclick="window.location.reload()">Retry</button>
     </div>
   `;
 }
@@ -176,14 +198,14 @@ function renderDashboard(): string {
     <div class="admin-dashboard">
       <header class="admin-header">
         <h1>Agent Management</h1>
-        <div class="admin-actions">
-          <button class="admin-btn admin-btn--primary" data-action="create">
+        <div class="admin-actions" role="button" tabindex="0">
+          <button aria-label="+ Create Agent" class="admin-btn admin-btn--primary" data-action="create">
             + Create Agent
           </button>
-          <button class="admin-btn" data-action="validate">
+          <button aria-label="Validate All" class="admin-btn" data-action="validate">
             Validate All
           </button>
-          <button class="admin-btn" data-action="refresh">
+          <button aria-label="Refresh" class="admin-btn" data-action="refresh">
             Refresh
           </button>
         </div>
@@ -215,17 +237,17 @@ function renderDashboard(): string {
 
       <section class="admin-section">
         <h2>Quick Actions</h2>
-        <div class="admin-quick-actions">
-          <div class="admin-action-card" data-action="upload">
-            <span class="admin-action-icon">📦</span>
+        <div class="admin-quick-actions" role="button" tabindex="0">
+          <div class="admin-action-card" role="button" tabindex="0" data-action="upload">
+            <span class="admin-action-icon" role="button" tabindex="0">${ICONS.package}</span>
             <span>Upload Bundle</span>
           </div>
-          <div class="admin-action-card" data-action="export">
-            <span class="admin-action-icon">💾</span>
+          <div class="admin-action-card" role="button" tabindex="0" data-action="export">
+            <span class="admin-action-icon" role="button" tabindex="0">${ICONS.database}</span>
             <span>Export Config</span>
           </div>
-          <div class="admin-action-card" data-action="migrate">
-            <span class="admin-action-icon">🔄</span>
+          <div class="admin-action-card" role="button" tabindex="0" data-action="migrate">
+            <span class="admin-action-icon" role="button" tabindex="0">${ICONS.refresh}</span>
             <span>Run Migration</span>
           </div>
         </div>
@@ -263,7 +285,7 @@ function renderAgentCard(agent: ApiAgent, isCoordinator: boolean): string {
         <div class="admin-agent-subtitle">${agent.subtitle || agent.roleId}</div>
       </div>
 
-      <div class="admin-agent-actions">
+      <div class="admin-agent-actions" role="button" tabindex="0">
         <button 
           class="admin-agent-edit" 
           data-action="edit" 
@@ -290,7 +312,7 @@ function renderAgentCard(agent: ApiAgent, isCoordinator: boolean): string {
               data-action="toggle"
               data-agent-id="${agent.id}"
             >
-            <span class="admin-toggle-slider"></span>
+            <span class="admin-toggle-slider" role="button" tabindex="0"></span>
           </label>
         `
             : ''
@@ -310,7 +332,7 @@ function renderTemplateCard(id: string, name: string, description: string): stri
         <div class="admin-template-name">${name}</div>
         <div class="admin-template-desc">${description}</div>
       </div>
-      <button class="admin-btn admin-btn--small" data-action="use-template" data-template="${id}">
+      <button aria-label="Use" class="admin-btn admin-btn--small" data-action="use-template" data-template="${id}">
         Use
       </button>
     </div>
@@ -320,9 +342,9 @@ function renderTemplateCard(id: string, name: string, description: string): stri
 function renderAgentDetailPanel(): string {
   return `
     <div class="admin-detail-panel" id="adminDetailPanel" hidden>
-      <div class="admin-detail-backdrop" data-action="close-panel"></div>
+      <div class="admin-detail-backdrop" data-action="close-panel" role="button" tabindex="0"></div>
       <div class="admin-detail-content">
-        <button class="admin-detail-close" data-action="close-panel">×</button>
+        <button aria-label="Close" class="admin-detail-close" data-action="close-panel">×</button>
         <div id="adminDetailBody">
           <!-- Populated when agent is selected -->
         </div>
@@ -341,8 +363,8 @@ function renderTTSMonitoringSection(): string {
         <div class="admin-tts-loading">Loading TTS stats...</div>
       </div>
 
-      <div class="admin-tts-actions">
-        <button class="admin-btn admin-btn--small" data-action="refresh-tts-stats">
+      <div class="admin-tts-actions" role="button" tabindex="0">
+        <button aria-label="Refresh" class="admin-btn admin-btn--small" data-action="refresh-tts-stats">
           Refresh Stats
         </button>
       </div>
@@ -355,12 +377,12 @@ async function loadTTSMonitoringStats(): Promise<void> {
   if (!container) return;
 
   try {
-    const response = await fetch('/api/v1/admin/tts-monitoring/stats');
-    if (!response.ok) {
+    const response = await apiGet<TTSStatsResponse>('/api/v1/admin/tts-monitoring/stats');
+    if (!response.ok || !response.data) {
       throw new Error('Failed to fetch TTS stats');
     }
 
-    const stats = await response.json();
+    const stats = response.data;
     container.innerHTML = renderTTSStatsContent(stats);
   } catch (err) {
     container.innerHTML = `
@@ -383,9 +405,9 @@ interface TTSStatsResponse {
 
 function renderTTSStatsContent(stats: TTSStatsResponse): string {
   const statusColors: Record<string, string> = {
-    healthy: 'var(--color-semantic-success, #48bb78)',
-    warning: 'var(--color-semantic-warning, #ed8936)',
-    critical: 'var(--color-semantic-error, #fc8181)',
+    healthy: 'var(--color-semantic-success)',
+    warning: 'var(--color-semantic-warning)',
+    critical: 'var(--color-semantic-error)',
   };
 
   const statusLabels: Record<string, string> = {
@@ -497,11 +519,11 @@ function renderAvatarSoulLab(): string {
         <div class="admin-soul-card">
           <h3>Pupil Dilation</h3>
           <p>Interest & connection signals</p>
-          <div class="admin-soul-buttons">
-            <button class="admin-btn admin-btn--small" data-soul-action="pupil" data-value="CONTRACTED">Thinking</button>
-            <button class="admin-btn admin-btn--small" data-soul-action="pupil" data-value="NEUTRAL">Neutral</button>
-            <button class="admin-btn admin-btn--small" data-soul-action="pupil" data-value="DILATED">Connected</button>
-            <button class="admin-btn admin-btn--small" data-soul-action="pupil" data-value="INTERESTED">Interested</button>
+          <div class="admin-soul-buttons" role="button" tabindex="0">
+            <button aria-label="Thinking" class="admin-btn admin-btn--small" data-soul-action="pupil" data-value="CONTRACTED">Thinking</button>
+            <button aria-label="Neutral" class="admin-btn admin-btn--small" data-soul-action="pupil" data-value="NEUTRAL">Neutral</button>
+            <button aria-label="Connected" class="admin-btn admin-btn--small" data-soul-action="pupil" data-value="DILATED">Connected</button>
+            <button aria-label="Interested" class="admin-btn admin-btn--small" data-soul-action="pupil" data-value="INTERESTED">Interested</button>
           </div>
         </div>
 
@@ -509,11 +531,11 @@ function renderAvatarSoulLab(): string {
         <div class="admin-soul-card">
           <h3>Emotional Glow</h3>
           <p>Glow bleeding for intense emotions</p>
-          <div class="admin-soul-buttons">
-            <button class="admin-btn admin-btn--small" data-soul-action="glow" data-value="none">None</button>
-            <button class="admin-btn admin-btn--small" data-soul-action="glow" data-value="warmth">Warmth</button>
-            <button class="admin-btn admin-btn--small" data-soul-action="glow" data-value="joy">Joy</button>
-            <button class="admin-btn admin-btn--small" data-soul-action="glow" data-value="concern">Concern</button>
+          <div class="admin-soul-buttons" role="button" tabindex="0">
+            <button aria-label="None" class="admin-btn admin-btn--small" data-soul-action="glow" data-value="none">None</button>
+            <button aria-label="Warmth" class="admin-btn admin-btn--small" data-soul-action="glow" data-value="warmth">Warmth</button>
+            <button aria-label="Joy" class="admin-btn admin-btn--small" data-soul-action="glow" data-value="joy">Joy</button>
+            <button aria-label="Concern" class="admin-btn admin-btn--small" data-soul-action="glow" data-value="concern">Concern</button>
           </div>
         </div>
 
@@ -521,11 +543,11 @@ function renderAvatarSoulLab(): string {
         <div class="admin-soul-card">
           <h3>One-Shot Effects</h3>
           <p>Trigger momentary animations</p>
-          <div class="admin-soul-buttons">
-            <button class="admin-btn admin-btn--small" data-soul-action="effect" data-value="memorySpark">Memory Spark</button>
-            <button class="admin-btn admin-btn--small" data-soul-action="effect" data-value="anticipation">Anticipation</button>
-            <button class="admin-btn admin-btn--small" data-soul-action="effect" data-value="comfortPulse">Comfort Pulse</button>
-            <button class="admin-btn admin-btn--small" data-soul-action="effect" data-value="growthCelebration">Celebrate Growth</button>
+          <div class="admin-soul-buttons" role="button" tabindex="0">
+            <button aria-label="Memory Spark" class="admin-btn admin-btn--small" data-soul-action="effect" data-value="memorySpark">Memory Spark</button>
+            <button aria-label="Anticipation" class="admin-btn admin-btn--small" data-soul-action="effect" data-value="anticipation">Anticipation</button>
+            <button aria-label="Comfort Pulse" class="admin-btn admin-btn--small" data-soul-action="effect" data-value="comfortPulse">Comfort Pulse</button>
+            <button aria-label="Celebrate Growth" class="admin-btn admin-btn--small" data-soul-action="effect" data-value="growthCelebration">Celebrate Growth</button>
           </div>
         </div>
 
@@ -533,10 +555,10 @@ function renderAvatarSoulLab(): string {
         <div class="admin-soul-card">
           <h3>Protective Mode</h3>
           <p>Avatar draws closer during distress</p>
-          <div class="admin-soul-buttons">
-            <button class="admin-btn admin-btn--small" data-soul-action="protective" data-value="mild">Mild</button>
-            <button class="admin-btn admin-btn--small" data-soul-action="protective" data-value="moderate">Moderate</button>
-            <button class="admin-btn admin-btn--small" data-soul-action="protective" data-value="significant">Full</button>
+          <div class="admin-soul-buttons" role="button" tabindex="0">
+            <button aria-label="Mild" class="admin-btn admin-btn--small" data-soul-action="protective" data-value="mild">Mild</button>
+            <button aria-label="Moderate" class="admin-btn admin-btn--small" data-soul-action="protective" data-value="moderate">Moderate</button>
+            <button aria-label="Full" class="admin-btn admin-btn--small" data-soul-action="protective" data-value="significant">Full</button>
           </div>
         </div>
 
@@ -544,10 +566,10 @@ function renderAvatarSoulLab(): string {
         <div class="admin-soul-card">
           <h3>Thought Processing</h3>
           <p>Visual patterns when thinking</p>
-          <div class="admin-soul-buttons">
-            <button class="admin-btn admin-btn--small" data-soul-action="thinking" data-value="simple">Simple</button>
-            <button class="admin-btn admin-btn--small" data-soul-action="thinking" data-value="complex">Complex</button>
-            <button class="admin-btn admin-btn--small" data-soul-action="thinking" data-value="deep">Deep</button>
+          <div class="admin-soul-buttons" role="button" tabindex="0">
+            <button aria-label="Simple" class="admin-btn admin-btn--small" data-soul-action="thinking" data-value="simple">Simple</button>
+            <button aria-label="Complex" class="admin-btn admin-btn--small" data-soul-action="thinking" data-value="complex">Complex</button>
+            <button aria-label="Deep" class="admin-btn admin-btn--small" data-soul-action="thinking" data-value="deep">Deep</button>
           </div>
         </div>
 
@@ -555,11 +577,11 @@ function renderAvatarSoulLab(): string {
         <div class="admin-soul-card">
           <h3>Gaze Patterns</h3>
           <p>Natural eye movements</p>
-          <div class="admin-soul-buttons">
-            <button class="admin-btn admin-btn--small" data-soul-action="gaze" data-value="center">Center</button>
-            <button class="admin-btn admin-btn--small" data-soul-action="gaze" data-value="left">Left</button>
-            <button class="admin-btn admin-btn--small" data-soul-action="gaze" data-value="right">Right</button>
-            <button class="admin-btn admin-btn--small" data-soul-action="gaze" data-value="thinking">Thinking</button>
+          <div class="admin-soul-buttons" role="button" tabindex="0">
+            <button aria-label="Center" class="admin-btn admin-btn--small" data-soul-action="gaze" data-value="center">Center</button>
+            <button aria-label="Left" class="admin-btn admin-btn--small" data-soul-action="gaze" data-value="left">Left</button>
+            <button aria-label="Right" class="admin-btn admin-btn--small" data-soul-action="gaze" data-value="right">Right</button>
+            <button aria-label="Thinking" class="admin-btn admin-btn--small" data-soul-action="gaze" data-value="thinking">Thinking</button>
           </div>
         </div>
 
@@ -591,7 +613,7 @@ function renderAvatarSoulLab(): string {
             <label>Breath Rate (BPM): <span id="breathValue">15</span></label>
             <input type="range" min="8" max="24" step="1" value="15" id="breathSlider" data-soul-slider="breath">
           </div>
-          <button class="admin-btn admin-btn--small" data-soul-action="breathSync" data-value="toggle" style="margin-top: var(--space-2, 8px)">Toggle Visualization</button>
+          <button aria-label="Toggle Visualization" class="admin-btn admin-btn--small" data-soul-action="breathSync" data-value="toggle" style="margin-top: var(--space-2, 8px)">Toggle Visualization</button>
         </div>
       </div>
     </section>
@@ -620,7 +642,7 @@ function renderAgentDetail(agent: ApiAgent): string {
       </div>
       <div class="admin-form-group">
         <label>Subtitle</label>
-        <input type="text" value="${agent.subtitle || ''}" data-field="subtitle">
+        <input type="text" value="${agent.subtitle ?? ''}" data-field="subtitle">
       </div>
       <div class="admin-form-group">
         <label>Initials</label>
@@ -649,9 +671,9 @@ function renderAgentDetail(agent: ApiAgent): string {
       <h3>Voice</h3>
       <div class="admin-form-group">
         <label>Voice ID</label>
-        <input type="text" value="${agent.voiceId || ''}" data-field="voiceId" readonly>
+        <input type="text" value="${agent.voiceId ?? ''}" data-field="voiceId" readonly>
       </div>
-      <button class="admin-btn" data-action="preview-voice" data-agent-id="${agent.id}">
+      <button aria-label="Volume" class="admin-btn" data-action="preview-voice" data-agent-id="${agent.id}">
         🔊 Preview Voice
       </button>
     </div>
@@ -660,19 +682,19 @@ function renderAgentDetail(agent: ApiAgent): string {
       <h3>Team Configuration</h3>
       <div class="admin-form-group">
         <label>Role ID</label>
-        <input type="text" value="${agent.roleId || ''}" data-field="roleId">
+        <input type="text" value="${agent.roleId ?? ''}" data-field="roleId">
       </div>
       <div class="admin-form-group">
         <label>Entrance Phrase</label>
-        <textarea data-field="entrancePhrase">${agent.entrancePhrase || ''}</textarea>
+        <textarea data-field="entrancePhrase">${agent.entrancePhrase ?? ''}</textarea>
       </div>
     </div>
 
-    <div class="admin-detail-actions">
-      <button class="admin-btn admin-btn--primary" data-action="save-agent" data-agent-id="${agent.id}">
+    <div class="admin-detail-actions" role="button" tabindex="0">
+      <button aria-label="Save Changes" class="admin-btn admin-btn--primary" data-action="save-agent" data-agent-id="${agent.id}">
         Save Changes
       </button>
-      <button class="admin-btn admin-btn--danger" data-action="delete-agent" data-agent-id="${agent.id}">
+      <button aria-label="Delete" class="admin-btn admin-btn--danger" data-action="delete-agent" data-agent-id="${agent.id}">
         Delete Agent
       </button>
     </div>
@@ -773,7 +795,7 @@ function updateSoulPreview(action: string, value: string): void {
           INTERESTED: '14px',
           CONNECTED: '16px',
         };
-        if (pupilStateEl) pupilStateEl.textContent = sizes[value] || '12px';
+        if (pupilStateEl) pupilStateEl.textContent = sizes[value] ?? '12px';
       }
       if (stateEl) stateEl.textContent = value.charAt(0) + value.slice(1).toLowerCase();
       break;
@@ -783,6 +805,7 @@ function updateSoulPreview(action: string, value: string): void {
         if (value === 'none') {
           glow.classList.remove('active');
         } else {
+          // @design-tokens-ignore - Preview glow colors for admin testing
           const defaultColor = 'rgba(196, 162, 101, 0.5)';
           const colors: Record<string, string> = {
             warmth: defaultColor,
@@ -1047,7 +1070,7 @@ function handleDragStart(e: DragEvent): void {
   state.draggedAgent = state.agents.find((a) => a.id === agentId) || null;
 
   card.classList.add('dragging');
-  e.dataTransfer?.setData('text/plain', agentId || '');
+  e.dataTransfer?.setData('text/plain', agentId ?? '');
 }
 
 function handleDragOver(e: DragEvent): void {
@@ -1139,11 +1162,13 @@ async function previewVoice(agentId: string): Promise<void> {
   toast.info(`Opening voice preview for ${agent.name}...`);
 
   try {
-    const response = await fetch(`/api/voice/preview/${agent.voiceId}`);
-    const data = await response.json();
+    const response = await apiGet<{ previewUrl: string }>(`/api/voice/preview/${agent.voiceId}`);
+    if (!response.ok || !response.data) {
+      throw new Error('Failed to get voice preview');
+    }
 
     // Open Cartesia playground in new tab
-    window.open(data.previewUrl, '_blank');
+    window.open(response.data.previewUrl, '_blank');
   } catch (err) {
     toast.error("Couldn't get voice URL");
   }
@@ -1151,15 +1176,12 @@ async function previewVoice(agentId: string): Promise<void> {
 
 async function toggleAgentEnabled(agentId: string, enabled: boolean): Promise<void> {
   try {
-    const response = await fetch(`/api/agents/${agentId}/enable`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ enabled }),
-    });
+    const response = await apiPost<{ success?: boolean }>(
+      `/api/agents/${agentId}/enable`,
+      { enabled }
+    );
 
-    const data = await response.json();
-
-    if (data.success) {
+    if (response.ok && response.data?.success) {
       toast.info(`${enabled ? 'Enabled' : 'Disabled'} ${agentId}`);
     } else {
       toast.error("Couldn't update agent");
@@ -1181,9 +1203,10 @@ async function saveAgentChanges(agentId: string): Promise<void> {
   });
 
   try {
+    const headers = await getApiHeadersAsync({ 'Content-Type': 'application/json' });
     const response = await fetch(`/api/agents/${agentId}`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      headers,
       body: JSON.stringify(changes),
     });
 
@@ -1210,15 +1233,9 @@ async function saveNewOrder(): Promise<void> {
     .filter(Boolean);
 
   try {
-    const response = await fetch('/api/team/order', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ order }),
-    });
+    const response = await apiPost<{ success?: boolean }>('/api/team/order', { order });
 
-    const data = await response.json();
-
-    if (data.success) {
+    if (response.ok && response.data?.success) {
       toast.info('Team order saved');
     } else {
       toast.error("Couldn't save order");
@@ -1243,18 +1260,17 @@ async function validateAllAgents(): Promise<void> {
   toast.info('Validating all agents...');
 
   try {
-    const response = await fetch('/api/agents/validate', {
-      method: 'POST',
-    });
+    const response = await apiPost<{ success?: boolean; output?: string; errors?: string[] }>(
+      '/api/agents/validate',
+      {}
+    );
 
-    const data = await response.json();
-
-    if (data.success) {
-      toast.info('✓ All agents valid!');
+    if (response.ok && response.data?.success) {
+      toast.success('All agents valid!');
     } else {
       toast.warning('Issues found (see console)');
-      log.debug('Validation output:', data.output);
-      if (data.errors) log.error('Validation errors:', data.errors);
+      log.debug('Validation output:', response.data?.output);
+      if (response.data?.errors) log.error('Validation errors:', response.data.errors);
     }
   } catch (err) {
     toast.error("Couldn't run validation");
@@ -1293,7 +1309,7 @@ export function injectAdminStyles(): void {
   styles.textContent = `
     .admin-dashboard {
       padding: 2rem;
-      max-width: 1200px;
+      max-width: min(1200px, 100%);
       margin: 0 auto;
       font-family: var(--font-body, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif);
       min-height: 100vh;
@@ -1349,7 +1365,7 @@ export function injectAdminStyles(): void {
       color: var(--color-text-primary);
       border-radius: 6px;
       cursor: pointer;
-      transition: all 0.2s;
+      transition: transform 0.2s, opacity 0.2s;
     }
 
     .admin-btn:hover {
@@ -1357,13 +1373,13 @@ export function injectAdminStyles(): void {
     }
 
     .admin-btn--primary {
-      background: var(--persona-primary, #4a6741);
+      background: var(--persona-primary);
       border-color: var(--color-text-secondary);
     }
 
     .admin-btn--danger {
-      background: var(--color-semantic-error, #c53030);
-      border-color: var(--color-semantic-error, #c53030);
+      background: var(--color-semantic-error);
+      border-color: var(--color-semantic-error);
     }
 
     .admin-btn--small {
@@ -1408,7 +1424,7 @@ export function injectAdminStyles(): void {
       background: rgba(255,255,255,0.05);
       border: 1px solid rgba(255,255,255,0.1);
       border-radius: 8px;
-      transition: all 0.2s;
+      transition: transform 0.2s, opacity 0.2s;
     }
 
     .admin-agent-card:hover {
@@ -1421,7 +1437,7 @@ export function injectAdminStyles(): void {
     }
 
     .admin-agent-card--coordinator {
-      border-color: var(--agent-primary, var(--persona-primary, #4a6741));
+      border-color: var(--agent-primary, var(--persona-primary));
       background: var(--persona-tint, rgba(74, 103, 65, 0.1));
     }
 
@@ -1511,7 +1527,7 @@ export function injectAdminStyles(): void {
     }
 
     .admin-toggle input:checked + .admin-toggle-slider {
-      background: var(--color-semantic-success, #48bb78);
+      background: var(--color-semantic-success);
     }
 
     .admin-toggle input:checked + .admin-toggle-slider::before {
@@ -1537,7 +1553,7 @@ export function injectAdminStyles(): void {
     .admin-template-icon {
       width: 32px;
       height: 32px;
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-text);
     }
 
     .admin-template-icon svg {
@@ -1549,7 +1565,7 @@ export function injectAdminStyles(): void {
       display: inline-flex;
       width: 16px;
       height: 16px;
-      color: var(--color-text-secondary, #6b5b4f);
+      color: var(--color-text-secondary);
     }
 
     .admin-edit-icon svg {
@@ -1563,7 +1579,7 @@ export function injectAdminStyles(): void {
       height: 20px;
       vertical-align: middle;
       margin-right: var(--space-2, 8px);
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-text);
     }
 
     .admin-sparkles-icon svg {
@@ -1600,7 +1616,7 @@ export function injectAdminStyles(): void {
       border: 1px solid rgba(255,255,255,0.1);
       border-radius: 8px;
       cursor: pointer;
-      transition: all 0.2s;
+      transition: transform 0.2s, opacity 0.2s;
     }
 
     .admin-action-card:hover {
@@ -1633,9 +1649,9 @@ export function injectAdminStyles(): void {
 
     .admin-detail-content {
       position: relative;
-      width: 400px;
+      width: min(400px, 100%);
       max-width: 90vw;
-      background: var(--color-background-elevated, #1a1a2e);
+      background: var(--color-background-elevated);
       overflow-y: auto;
       transform: translateX(100%);
       transition: transform 0.3s var(--ease-standard, ease);
@@ -1654,7 +1670,7 @@ export function injectAdminStyles(): void {
       color: var(--color-text-primary);
       font-size: 1.5rem;
       cursor: pointer;
-      z-index: 1;
+      z-index: var(--z-docked);
     }
 
     .admin-detail-header {
@@ -1781,19 +1797,19 @@ export function injectAdminStyles(): void {
     }
 
     .admin-error h2 {
-      color: var(--color-semantic-error, #fc8181);
+      color: var(--color-semantic-error);
     }
 
     /* TTS Monitoring Section */
     .admin-tts-monitoring {
-      background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(99, 102, 241, 0.05));
+      background: linear-gradient(135deg, rgba(58, 107, 115, 0.1), rgba(74, 103, 65, 0.05));
       padding: 1.5rem;
       border-radius: 12px;
       border: 1px solid rgba(59, 130, 246, 0.2);
     }
 
     .admin-tts-monitoring h2 {
-      color: var(--color-accent-primary, #3b82f6);
+      color: var(--color-accent-primary);
     }
 
     .admin-tts-stats {
@@ -1809,7 +1825,7 @@ export function injectAdminStyles(): void {
     .admin-tts-error {
       text-align: center;
       padding: 1rem;
-      color: var(--color-semantic-error, #fc8181);
+      color: var(--color-semantic-error);
       background: rgba(252, 129, 129, 0.1);
       border-radius: 8px;
     }
@@ -1821,7 +1837,7 @@ export function injectAdminStyles(): void {
       margin-bottom: 1rem;
     }
 
-    @media (max-width: 768px) {
+    @media (max-width: clamp(538px, 90vw, 768px)) {
       .admin-tts-grid {
         grid-template-columns: repeat(2, 1fr);
       }
@@ -1885,7 +1901,7 @@ export function injectAdminStyles(): void {
       padding: 0.125rem 0.375rem;
       border-radius: 4px;
       font-size: 0.8rem;
-      color: var(--color-semantic-error, #fc8181);
+      color: var(--color-semantic-error);
     }
 
     .admin-tts-pattern-list .count {
@@ -1904,7 +1920,7 @@ export function injectAdminStyles(): void {
     .admin-tts-last-issue h4 {
       margin: 0 0 0.5rem;
       font-size: 0.875rem;
-      color: var(--color-semantic-error, #fc8181);
+      color: var(--color-semantic-error);
     }
 
     .admin-tts-issue-info {
@@ -1930,7 +1946,7 @@ export function injectAdminStyles(): void {
     .admin-tts-no-issues {
       text-align: center;
       padding: 1rem;
-      color: var(--color-semantic-success, #48bb78);
+      color: var(--color-semantic-success);
       background: rgba(72, 187, 120, 0.1);
       border-radius: 8px;
       margin-top: 1rem;
@@ -1951,7 +1967,7 @@ export function injectAdminStyles(): void {
     }
 
     .admin-soul-lab h2 {
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-text);
     }
 
     /* Live Avatar Preview */
@@ -1967,7 +1983,7 @@ export function injectAdminStyles(): void {
 
     .admin-soul-preview-container {
       position: relative;
-      width: 120px;
+      width: min(120px, 100%);
       height: 120px;
       display: flex;
       align-items: center;
@@ -1981,7 +1997,7 @@ export function injectAdminStyles(): void {
       background: radial-gradient(circle, rgba(196, 162, 101, 0) 0%, transparent 70%);
       filter: blur(15px);
       opacity: 0;
-      transition: all 0.5s ease-out;
+      transition: transform 0.5s ease-out, opacity 0.5s ease-out;
       pointer-events: none;
     }
 
@@ -2020,13 +2036,13 @@ export function injectAdminStyles(): void {
       width: 80px;
       height: 80px;
       border-radius: 50%;
-      background: linear-gradient(180deg, var(--persona-primary, #4a6741), var(--persona-secondary, #3d5a35));
+      background: linear-gradient(180deg, var(--persona-primary), var(--persona-secondary));
       display: flex;
       align-items: center;
       justify-content: center;
       box-shadow: 0 0 30px rgba(74, 103, 65, 0.4);
       transition: transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.5s ease;
-      z-index: 2;
+      z-index: var(--z-docked);
     }
 
     .admin-soul-preview-avatar.protective {
@@ -2038,7 +2054,7 @@ export function injectAdminStyles(): void {
       font-size: 1.75rem;
       font-weight: bold;
       color: white;
-      z-index: 3;
+      z-index: var(--z-docked);
     }
 
     .admin-soul-preview-eye {
@@ -2061,7 +2077,7 @@ export function injectAdminStyles(): void {
       height: 12px;
       border-radius: 50%;
       background: radial-gradient(circle, #1a1612, #2c2520);
-      transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+      transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
     }
 
     .admin-soul-preview-pupil.contracted { width: 8px; height: 8px; }
@@ -2096,7 +2112,7 @@ export function injectAdminStyles(): void {
       opacity: 0;
       transform: scale(0.5);
       pointer-events: none;
-      z-index: 1;
+      z-index: var(--z-docked);
     }
 
     .admin-soul-preview-spark.active {
@@ -2128,7 +2144,7 @@ export function injectAdminStyles(): void {
     }
 
     .admin-soul-preview-status .status-value {
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-text);
       font-weight: 600;
     }
 
@@ -2162,7 +2178,7 @@ export function injectAdminStyles(): void {
       grid-column: span 2;
     }
 
-    @media (max-width: 640px) {
+    @media (max-width: clamp(448px, 90vw, 640px)) {
       .admin-soul-card--wide {
         grid-column: span 1;
       }
@@ -2199,7 +2215,7 @@ export function injectAdminStyles(): void {
       width: 18px;
       height: 18px;
       border-radius: 50%;
-      background: var(--persona-primary, #4a6741);
+      background: var(--persona-primary);
       cursor: pointer;
       transition: transform 0.2s;
     }

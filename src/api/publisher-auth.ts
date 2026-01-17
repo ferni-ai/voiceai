@@ -13,7 +13,7 @@
  */
 
 import type { IncomingMessage, ServerResponse } from 'http';
-import { removeUndefined } from '../utils/firestore-utils.js';
+import { removeUndefined, cleanForFirestore } from '../utils/firestore-utils.js';
 import { getLogger } from '../utils/safe-logger.js';
 import {
   generateApiKey,
@@ -52,6 +52,13 @@ export interface PublisherSession {
   publisherName: string;
   verified: boolean;
   keyType: 'live' | 'test';
+}
+
+/**
+ * Extended IncomingMessage with publisher session attached by middleware
+ */
+export interface AuthenticatedPublisherRequest extends IncomingMessage {
+  publisherSession?: PublisherSession;
 }
 
 interface FirestoreConfig {
@@ -165,7 +172,7 @@ export async function registerPublisher(
   };
 
   // Store in Firestore
-  await db.collection('publishers').doc(publisherId).set(publisher);
+  await db.collection('publishers').doc(publisherId).set(cleanForFirestore(publisher));
 
   // Generate initial test API key
   const apiKey = generateApiKey('test');
@@ -179,7 +186,7 @@ export async function registerPublisher(
     createdAt: new Date(),
   };
 
-  await db.collection('api_keys').doc(keyId).set(keyDoc);
+  await db.collection('api_keys').doc(keyId).set(cleanForFirestore(keyDoc));
 
   log.info({ publisherId, email, name }, 'Publisher registered');
 
@@ -243,7 +250,7 @@ export async function createApiKey(
     createdAt: new Date(),
   };
 
-  await db.collection('api_keys').doc(keyId).set(keyDoc);
+  await db.collection('api_keys').doc(keyId).set(cleanForFirestore(keyDoc));
 
   log.info({ publisherId, keyId, keyType, keyPrefix: keyDoc.keyPrefix }, 'API key created');
 
@@ -464,8 +471,7 @@ export async function requirePublisherAuth(
   }
 
   // Attach session to request for downstream handlers
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  (req as any).publisherSession = session;
+  (req as AuthenticatedPublisherRequest).publisherSession = session;
 
   return session;
 }
@@ -474,6 +480,5 @@ export async function requirePublisherAuth(
  * Get publisher session from request (after middleware)
  */
 export function getPublisherSession(req: IncomingMessage): PublisherSession | null {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return (req as any).publisherSession || null;
+  return (req as AuthenticatedPublisherRequest).publisherSession || null;
 }

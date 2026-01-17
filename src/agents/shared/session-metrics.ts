@@ -57,13 +57,13 @@ const MAX_SESSIONS = 100;
 const sessionMetrics: SessionMetric[] = [];
 
 // Current session being tracked
-const activeSessions: Map<
+const activeSessions = new Map<
   string,
   {
     startTime: number;
     phases: SessionPhaseMetric[];
   }
-> = new Map();
+>();
 
 // ============================================================================
 // TRACKING FUNCTIONS

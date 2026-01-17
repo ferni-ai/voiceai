@@ -1,0 +1,822 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="cedar">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Webhooks - Developer Console | Ferni Developers</title>
+  <meta name="description" content="Subscribe to agent events and receive real-time notifications">
+
+  <!-- Fonts: Plus Jakarta Sans (display), Inter (body), JetBrains Mono (code) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23d4a84a' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='4 17 10 11 4 5'/><line x1='12' x2='20' y1='19' y2='19'/></svg>">
+
+  <!-- Open Graph -->
+  <meta property="og:title" content="Webhooks - Developer Console | Ferni Developers">
+  <meta property="og:description" content="Subscribe to agent events and receive real-time notifications">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://developers.ferni.ai/pages/console/webhooks/">
+
+  <!-- Styles -->
+  <link rel="stylesheet" href="/css/tokens.css">
+  <link rel="stylesheet" href="/css/components.css">
+  
+</head>
+<body>
+  <nav class="nav">
+  <div class="nav-inner">
+    <a href="/" class="nav-logo">
+      <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="16" cy="16" r="14" fill="var(--accent-primary)"/>
+        <path d="M10 12h12M10 16h8M10 20h10" stroke="var(--bg-code)" stroke-width="2" stroke-linecap="round"/>
+      </svg>
+      <span>Ferni</span>
+      <span class="nav-badge">Developers</span>
+    </a>
+    
+    <ul class="nav-links">
+      <li><a href="/getting-started/" >Getting Started</a></li>
+      <li><a href="/api/" >API Reference</a></li>
+      <li><a href="/sdk/" >SDK</a></li>
+      <li><a href="/examples/" >Examples</a></li>
+    </ul>
+    
+    <div class="nav-cta">
+      <a href="https://github.com/ferni-ai" class="btn btn-ghost" target="_blank" rel="noopener">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+        </svg>
+        GitHub
+      </a>
+      <a href="/console/" class="btn btn-primary">Console</a>
+    </div>
+  </div>
+</nav>
+
+
+  <main>
+    
+<section class="hero" style="padding-bottom: var(--space-12);">
+  <div class="container">
+    <div class="hero-eyebrow">Developer Console</div>
+    <h1>Webhook <span class="accent">Subscriptions</span></h1>
+    <p class="hero-subtitle">
+      Subscribe to agent events and receive real-time notifications via HTTP webhooks.
+    </p>
+  </div>
+</section>
+
+<!-- Authentication Gate -->
+<section id="auth-gate" class="section" style="padding-top: var(--space-8); padding-bottom: var(--space-8);">
+  <div class="container container-narrow">
+    <div style="background: var(--bg-elevated); border: 1px solid var(--border-medium); border-radius: var(--radius-2xl); padding: var(--space-12); text-align: center;">
+      <p style="color: var(--text-secondary);">Please sign in to manage your webhooks.</p>
+      <a href="/console/" class="btn btn-primary" style="margin-top: var(--space-4);">Go to Console</a>
+    </div>
+  </div>
+</section>
+
+<!-- Dashboard (shown after authentication) -->
+<section id="dashboard" class="section" style="background: var(--bg-secondary); padding-top: var(--space-16); display: none;">
+  <div class="container">
+    <!-- Header with back button -->
+    <div style="display: flex; align-items: center; gap: var(--space-4); margin-bottom: var(--space-8);">
+      <a href="/console/" class="btn btn-ghost" style="padding: var(--space-2);">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M19 12H5M12 19l-7-7 7-7"/>
+        </svg>
+      </a>
+      <div style="flex: 1;">
+        <h2 style="margin: 0;">Webhooks</h2>
+        <p style="color: var(--text-secondary); margin: 0;">Receive real-time event notifications</p>
+      </div>
+      <button id="create-webhook-btn" class="btn btn-primary">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="12" y1="5" x2="12" y2="19"/>
+          <line x1="5" y1="12" x2="19" y2="12"/>
+        </svg>
+        Add Webhook
+      </button>
+    </div>
+
+    <!-- Webhooks list -->
+    <div id="webhooks-list">
+      <div class="loading-state">Loading your webhooks...</div>
+    </div>
+  </div>
+</section>
+
+<!-- Logs Modal -->
+<div id="logs-modal" class="modal-overlay" style="display: none;">
+  <div class="modal" style="max-width: 900px; max-height: 80vh; overflow: hidden; display: flex; flex-direction: column;">
+    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-6);">
+      <h3 id="logs-modal-title" style="margin: 0;">Delivery Logs</h3>
+      <button id="close-logs-btn" class="btn btn-ghost" style="padding: var(--space-2);">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="18" y1="6" x2="6" y2="18"/>
+          <line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+      </button>
+    </div>
+    <div id="logs-content" style="overflow-y: auto; flex: 1;">
+      <div class="loading-state">Loading logs...</div>
+    </div>
+  </div>
+</div>
+
+<!-- Create/Edit Modal -->
+<div id="webhook-modal" class="modal-overlay" style="display: none;">
+  <div class="modal" style="max-width: 600px;">
+    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-6);">
+      <h3 id="modal-title" style="margin: 0;">Add Webhook</h3>
+      <button id="close-modal-btn" class="btn btn-ghost" style="padding: var(--space-2);">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="18" y1="6" x2="6" y2="18"/>
+          <line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+      </button>
+    </div>
+
+    <form id="webhook-form">
+      <input type="hidden" id="webhook-id" name="id">
+
+      <div class="form-group">
+        <label for="webhook-name">Webhook Name</label>
+        <input type="text" id="webhook-name" name="name" required placeholder="My Webhook">
+      </div>
+
+      <div class="form-group">
+        <label for="webhook-url">Endpoint URL</label>
+        <input type="url" id="webhook-url" name="url" required placeholder="https://your-backend.com/webhooks/ferni">
+      </div>
+
+      <div class="form-group">
+        <label>Events to Subscribe</label>
+        <div id="events-checkboxes" style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-2); margin-top: var(--space-2);">
+          <!-- Events will be populated dynamically -->
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="webhook-secret">Webhook Secret (optional)</label>
+        <input type="password" id="webhook-secret" name="secret" placeholder="Leave empty to auto-generate">
+        <small style="color: var(--text-muted);">Used to sign payloads with HMAC-SHA256.</small>
+      </div>
+
+      <div class="form-group">
+        <label style="display: flex; align-items: center; gap: var(--space-2); cursor: pointer;">
+          <input type="checkbox" id="webhook-enabled" name="enabled" checked>
+          <span>Enabled</span>
+        </label>
+      </div>
+
+      <div style="display: flex; gap: var(--space-3); margin-top: var(--space-8);">
+        <button type="submit" class="btn btn-primary" style="flex: 1;">Save Webhook</button>
+        <button type="button" id="cancel-btn" class="btn btn-secondary">Cancel</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<style>
+  .webhook-card {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-xl);
+    padding: var(--space-6);
+    margin-bottom: var(--space-4);
+  }
+  .webhook-header {
+    display: flex;
+    align-items: center;
+    gap: var(--space-4);
+    margin-bottom: var(--space-4);
+  }
+  .webhook-icon {
+    width: 48px;
+    height: 48px;
+    background: var(--accent-subtle);
+    border-radius: var(--radius-lg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--accent-primary);
+    flex-shrink: 0;
+  }
+  .webhook-info {
+    flex: 1;
+    min-width: 0;
+  }
+  .webhook-info h4 {
+    margin: 0 0 var(--space-1) 0;
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+  }
+  .webhook-info p {
+    margin: 0;
+    color: var(--text-secondary);
+    font-size: var(--text-sm);
+    font-family: var(--font-mono);
+    word-break: break-all;
+  }
+  .webhook-actions {
+    display: flex;
+    gap: var(--space-2);
+  }
+  .webhook-events {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    margin-top: var(--space-3);
+    padding-top: var(--space-3);
+    border-top: 1px solid var(--border-subtle);
+  }
+  .event-tag {
+    font-size: var(--text-xs);
+    font-weight: 500;
+    padding: var(--space-1) var(--space-2);
+    border-radius: var(--radius-sm);
+    background: var(--bg-code);
+    color: var(--text-secondary);
+  }
+  .webhook-meta {
+    font-size: var(--text-xs);
+    color: var(--text-muted);
+    margin-top: var(--space-3);
+    display: flex;
+    gap: var(--space-4);
+  }
+  .status-badge {
+    font-size: var(--text-xs);
+    font-weight: 600;
+    padding: var(--space-1) var(--space-2);
+    border-radius: var(--radius-sm);
+  }
+  .status-active {
+    background: var(--success);
+    color: white;
+  }
+  .status-error {
+    background: var(--error);
+    color: white;
+  }
+  .status-disabled {
+    background: var(--bg-code);
+    color: var(--text-muted);
+  }
+  .form-group {
+    margin-bottom: var(--space-4);
+  }
+  .form-group label {
+    display: block;
+    margin-bottom: var(--space-2);
+    font-weight: 500;
+  }
+  .form-group input, .form-group select, .form-group textarea {
+    width: 100%;
+    padding: var(--space-3);
+    border: 1px solid var(--border-medium);
+    border-radius: var(--radius-md);
+    background: var(--bg-primary);
+    font-size: var(--text-base);
+  }
+  .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+    outline: none;
+    border-color: var(--accent-primary);
+  }
+  .form-group small {
+    display: block;
+    margin-top: var(--space-1);
+  }
+  .event-checkbox {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-2);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+  }
+  .event-checkbox:hover {
+    background: var(--bg-secondary);
+  }
+  .empty-state, .loading-state, .error-state {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-xl);
+    padding: var(--space-12);
+    text-align: center;
+    color: var(--text-muted);
+  }
+  .error-state {
+    border-color: var(--error);
+    color: var(--error);
+  }
+  .log-entry {
+    padding: var(--space-3);
+    border-bottom: 1px solid var(--border-subtle);
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+  }
+  .log-entry:last-child {
+    border-bottom: none;
+  }
+  .log-status {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .log-status.delivered {
+    background: var(--success);
+  }
+  .log-status.failed {
+    background: var(--error);
+  }
+  .log-status.pending {
+    background: var(--warning);
+  }
+  .log-details {
+    flex: 1;
+    min-width: 0;
+  }
+  .log-details .event-type {
+    font-weight: 500;
+    font-size: var(--text-sm);
+  }
+  .log-details .log-meta {
+    font-size: var(--text-xs);
+    color: var(--text-muted);
+  }
+</style>
+
+<script src="/js/console-auth.js"></script>
+<script src="/js/developer-platform-v2.js"></script>
+<script>
+  // Available event types
+  const EVENT_TYPES = [
+    'session.started',
+    'session.ended',
+    'conversation.turn.completed',
+    'conversation.transcript.ready',
+    'tool.called',
+    'tool.completed',
+    'tool.failed',
+    'persona.handoff',
+    'persona.installed',
+    'activity.created',
+    'workflow.step.completed',
+    'workflow.completed'
+  ];
+
+  // State
+  let currentWebhooks = [];
+
+  // Show dashboard when authenticated
+  window.addEventListener('load', () => {
+    setTimeout(async () => {
+      const token = await window.getIdToken?.();
+      if (token) {
+        document.getElementById('auth-gate').style.display = 'none';
+        document.getElementById('dashboard').style.display = 'block';
+        populateEventCheckboxes();
+        loadWebhooks();
+      }
+    }, 1000);
+  });
+
+  // Populate event checkboxes
+  function populateEventCheckboxes() {
+    const container = document.getElementById('events-checkboxes');
+    container.textContent = '';
+
+    EVENT_TYPES.forEach(event => {
+      const label = document.createElement('label');
+      label.className = 'event-checkbox';
+
+      const checkbox = document.createElement('input');
+      checkbox.type = 'checkbox';
+      checkbox.name = 'events';
+      checkbox.value = event;
+
+      const span = document.createElement('span');
+      span.textContent = event;
+
+      label.appendChild(checkbox);
+      label.appendChild(span);
+      container.appendChild(label);
+    });
+  }
+
+  // Load webhooks
+  async function loadWebhooks() {
+    const container = document.getElementById('webhooks-list');
+    showLoading(container);
+
+    try {
+      const response = await window.webhooks.list();
+      currentWebhooks = response.data || [];
+      renderWebhooks(currentWebhooks);
+    } catch (error) {
+      showError(container, 'Failed to load webhooks: ' + error.message);
+    }
+  }
+
+  // Render webhooks list
+  function renderWebhooks(webhooks) {
+    const container = document.getElementById('webhooks-list');
+    container.textContent = '';
+
+    if (!webhooks || webhooks.length === 0) {
+      container.appendChild(createEmptyState(
+        'No webhooks configured yet. Add one to receive event notifications.',
+        'Add Your First Webhook',
+        openCreateModal
+      ));
+      return;
+    }
+
+    webhooks.forEach(webhook => {
+      container.appendChild(createWebhookCard(webhook));
+    });
+  }
+
+  // Create webhook card
+  function createWebhookCard(webhook) {
+    const card = document.createElement('div');
+    card.className = 'webhook-card';
+
+    // Header
+    const header = document.createElement('div');
+    header.className = 'webhook-header';
+
+    // Icon
+    const icon = document.createElement('div');
+    icon.className = 'webhook-icon';
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('width', '24');
+    svg.setAttribute('height', '24');
+    svg.setAttribute('viewBox', '0 0 24 24');
+    svg.setAttribute('fill', 'none');
+    svg.setAttribute('stroke', 'currentColor');
+    svg.setAttribute('stroke-width', '2');
+    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    path.setAttribute('d', 'M18 16.98h-5.99c-1.1 0-1.95.68-2.42 1.7l-.63 1.32H6v-1.32c0-1.14-.93-2.08-2.07-2.08H3v-3.2h.93c1.14 0 2.07-.93 2.07-2.07v-.63h3.2v.63c0 1.14.93 2.07 2.07 2.07h5.73');
+    svg.appendChild(path);
+    const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    circle.setAttribute('cx', '18');
+    circle.setAttribute('cy', '18');
+    circle.setAttribute('r', '3');
+    svg.appendChild(circle);
+    icon.appendChild(svg);
+    header.appendChild(icon);
+
+    // Info
+    const info = document.createElement('div');
+    info.className = 'webhook-info';
+
+    const title = document.createElement('h4');
+    title.textContent = webhook.name;
+
+    const status = webhook.enabled ? (webhook.failureCount > 5 ? 'error' : 'active') : 'disabled';
+    const badge = createStatusBadge(status);
+    title.appendChild(badge);
+    info.appendChild(title);
+
+    const url = document.createElement('p');
+    url.textContent = webhook.url;
+    info.appendChild(url);
+
+    header.appendChild(info);
+
+    // Actions
+    const actions = document.createElement('div');
+    actions.className = 'webhook-actions';
+
+    const testBtn = document.createElement('button');
+    testBtn.className = 'btn btn-ghost';
+    testBtn.textContent = 'Test';
+    testBtn.addEventListener('click', () => testWebhook(webhook.id));
+    actions.appendChild(testBtn);
+
+    const logsBtn = document.createElement('button');
+    logsBtn.className = 'btn btn-ghost';
+    logsBtn.textContent = 'Logs';
+    logsBtn.addEventListener('click', () => showLogs(webhook.id, webhook.name));
+    actions.appendChild(logsBtn);
+
+    const editBtn = document.createElement('button');
+    editBtn.className = 'btn btn-ghost';
+    editBtn.textContent = 'Edit';
+    editBtn.addEventListener('click', () => openEditModal(webhook));
+    actions.appendChild(editBtn);
+
+    const deleteBtn = document.createElement('button');
+    deleteBtn.className = 'btn btn-ghost btn-danger';
+    deleteBtn.textContent = 'Delete';
+    deleteBtn.addEventListener('click', () => deleteWebhook(webhook.id, webhook.name));
+    actions.appendChild(deleteBtn);
+
+    header.appendChild(actions);
+    card.appendChild(header);
+
+    // Events
+    if (webhook.events && webhook.events.length > 0) {
+      const eventsDiv = document.createElement('div');
+      eventsDiv.className = 'webhook-events';
+
+      webhook.events.forEach(event => {
+        const tag = document.createElement('span');
+        tag.className = 'event-tag';
+        tag.textContent = event;
+        eventsDiv.appendChild(tag);
+      });
+
+      card.appendChild(eventsDiv);
+    }
+
+    // Meta
+    const meta = document.createElement('div');
+    meta.className = 'webhook-meta';
+
+    const deliveredSpan = document.createElement('span');
+    deliveredSpan.textContent = 'Delivered: ' + (webhook.deliveredCount || 0);
+    meta.appendChild(deliveredSpan);
+
+    const failedSpan = document.createElement('span');
+    failedSpan.textContent = 'Failed: ' + (webhook.failureCount || 0);
+    meta.appendChild(failedSpan);
+
+    const lastSpan = document.createElement('span');
+    lastSpan.textContent = 'Last delivery: ' + formatTimestamp(webhook.lastDeliveredAt);
+    meta.appendChild(lastSpan);
+
+    card.appendChild(meta);
+
+    return card;
+  }
+
+  // Modal functions
+  function openCreateModal() {
+    document.getElementById('modal-title').textContent = 'Add Webhook';
+    document.getElementById('webhook-form').reset();
+    document.getElementById('webhook-id').value = '';
+
+    // Uncheck all events
+    document.querySelectorAll('#events-checkboxes input[type="checkbox"]').forEach(cb => {
+      cb.checked = false;
+    });
+
+    document.getElementById('webhook-modal').style.display = 'flex';
+  }
+
+  function openEditModal(webhook) {
+    document.getElementById('modal-title').textContent = 'Edit Webhook';
+    document.getElementById('webhook-id').value = webhook.id;
+    document.getElementById('webhook-name').value = webhook.name || '';
+    document.getElementById('webhook-url').value = webhook.url || '';
+    document.getElementById('webhook-secret').value = ''; // Don't show secret
+    document.getElementById('webhook-enabled').checked = webhook.enabled !== false;
+
+    // Check appropriate events
+    document.querySelectorAll('#events-checkboxes input[type="checkbox"]').forEach(cb => {
+      cb.checked = webhook.events?.includes(cb.value) || false;
+    });
+
+    document.getElementById('webhook-modal').style.display = 'flex';
+  }
+
+  function closeModal() {
+    document.getElementById('webhook-modal').style.display = 'none';
+  }
+
+  // Logs modal
+  async function showLogs(webhookId, webhookName) {
+    document.getElementById('logs-modal-title').textContent = 'Delivery Logs - ' + webhookName;
+    document.getElementById('logs-modal').style.display = 'flex';
+
+    const container = document.getElementById('logs-content');
+    showLoading(container);
+
+    try {
+      const response = await window.webhooks.logs(webhookId, { limit: 50 });
+      renderLogs(response.data || []);
+    } catch (error) {
+      showError(container, 'Failed to load logs: ' + error.message);
+    }
+  }
+
+  function renderLogs(logs) {
+    const container = document.getElementById('logs-content');
+    container.textContent = '';
+
+    if (!logs || logs.length === 0) {
+      const empty = document.createElement('div');
+      empty.className = 'empty-state';
+      empty.textContent = 'No delivery logs yet.';
+      container.appendChild(empty);
+      return;
+    }
+
+    logs.forEach(log => {
+      const entry = document.createElement('div');
+      entry.className = 'log-entry';
+
+      const status = document.createElement('div');
+      status.className = 'log-status ' + log.status;
+      entry.appendChild(status);
+
+      const details = document.createElement('div');
+      details.className = 'log-details';
+
+      const eventType = document.createElement('div');
+      eventType.className = 'event-type';
+      eventType.textContent = log.eventType + (log.statusCode ? ' (' + log.statusCode + ')' : '');
+      details.appendChild(eventType);
+
+      const meta = document.createElement('div');
+      meta.className = 'log-meta';
+      meta.textContent = formatTimestamp(log.createdAt) + ' • Attempt ' + log.attempt;
+      if (log.error) {
+        meta.textContent += ' • ' + log.error;
+      }
+      details.appendChild(meta);
+
+      entry.appendChild(details);
+      container.appendChild(entry);
+    });
+  }
+
+  function closeLogsModal() {
+    document.getElementById('logs-modal').style.display = 'none';
+  }
+
+  // Webhook operations
+  async function saveWebhook(event) {
+    event.preventDefault();
+    const form = event.target;
+    const id = form.id.value;
+
+    // Get selected events
+    const selectedEvents = [];
+    document.querySelectorAll('#events-checkboxes input[type="checkbox"]:checked').forEach(cb => {
+      selectedEvents.push(cb.value);
+    });
+
+    if (selectedEvents.length === 0) {
+      showToast('Select at least one event', 'warning');
+      return;
+    }
+
+    const data = {
+      name: form.name.value,
+      url: form.url.value,
+      events: selectedEvents,
+      enabled: form.enabled.checked,
+    };
+
+    if (form.secret.value) {
+      data.secret = form.secret.value;
+    }
+
+    try {
+      if (id) {
+        await window.webhooks.update(id, data);
+        showToast('Webhook updated', 'success');
+      } else {
+        await window.webhooks.create(data);
+        showToast('Webhook created', 'success');
+      }
+      closeModal();
+      loadWebhooks();
+    } catch (error) {
+      showToast('Failed to save: ' + error.message, 'error');
+    }
+  }
+
+  async function testWebhook(id) {
+    try {
+      showToast('Sending test event...', 'info');
+      const result = await window.webhooks.test(id);
+      if (result.data?.success) {
+        showToast('Test event delivered!', 'success');
+      } else {
+        showToast('Test failed: ' + (result.data?.error || 'Unknown error'), 'error');
+      }
+      loadWebhooks();
+    } catch (error) {
+      showToast('Test failed: ' + error.message, 'error');
+    }
+  }
+
+  async function deleteWebhook(id, name) {
+    if (!confirm('Are you sure you want to delete "' + name + '"? This cannot be undone.')) {
+      return;
+    }
+
+    try {
+      await window.webhooks.delete(id);
+      showToast('Webhook deleted', 'success');
+      loadWebhooks();
+    } catch (error) {
+      showToast('Failed to delete: ' + error.message, 'error');
+    }
+  }
+
+  // Event listeners
+  document.getElementById('create-webhook-btn').addEventListener('click', openCreateModal);
+  document.getElementById('close-modal-btn').addEventListener('click', closeModal);
+  document.getElementById('cancel-btn').addEventListener('click', closeModal);
+  document.getElementById('webhook-form').addEventListener('submit', saveWebhook);
+  document.getElementById('close-logs-btn').addEventListener('click', closeLogsModal);
+</script>
+
+  </main>
+
+  <footer class="footer">
+  <div class="container">
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <a href="/" class="nav-logo">
+          <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="16" cy="16" r="14" fill="var(--accent-primary)"/>
+            <path d="M10 12h12M10 16h8M10 20h10" stroke="var(--bg-code)" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+          <span>Ferni Developers</span>
+        </a>
+        <p>Build voice AI agents with the same platform that powers Ferni's AI life coaching team.</p>
+      </div>
+      
+      <div class="footer-column">
+        <h4>Documentation</h4>
+        <ul class="footer-links">
+          <li><a href="/getting-started/">Getting Started</a></li>
+          <li><a href="/api/">API Reference</a></li>
+          <li><a href="/sdk/">SDK</a></li>
+          <li><a href="/examples/">Examples</a></li>
+        </ul>
+      </div>
+      
+      <div class="footer-column">
+        <h4>Resources</h4>
+        <ul class="footer-links">
+          <li><a href="/console/">Developer Console</a></li>
+          <li><a href="https://github.com/ferni-ai">GitHub</a></li>
+          <li><a href="https://discord.gg/ferni">Discord Community</a></li>
+        </ul>
+      </div>
+      
+      <div class="footer-column">
+        <h4>Company</h4>
+        <ul class="footer-links">
+          <li><a href="https://ferni.ai">Ferni.ai</a></li>
+          <li><a href="https://marketplace.ferni.ai">Marketplace</a></li>
+          <li><a href="https://ferni.ai/privacy">Privacy</a></li>
+          <li><a href="https://ferni.ai/terms">Terms</a></li>
+        </ul>
+      </div>
+    </div>
+    
+    <div class="footer-bottom">
+      <p>&copy; 2026 Ferni AI. All rights reserved.</p>
+      <p>API Status: <span style="color: var(--success);">●</span> Operational</p>
+    </div>
+  </div>
+</footer>
+
+
+  <!-- Theme Toggle Button -->
+  <button class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle theme">
+    <svg class="sun-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <circle cx="12" cy="12" r="5"/>
+      <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+    </svg>
+    <svg class="moon-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+    </svg>
+  </button>
+
+  <script>
+    // Theme toggle
+    function toggleTheme() {
+      const html = document.documentElement;
+      const current = html.getAttribute('data-theme');
+      const next = current === 'cedar' ? 'zen' : 'cedar';
+      html.setAttribute('data-theme', next);
+      localStorage.setItem('ferni-theme', next);
+    }
+
+    // Load saved theme
+    const saved = localStorage.getItem('ferni-theme');
+    if (saved) {
+      document.documentElement.setAttribute('data-theme', saved);
+    }
+  </script>
+
+  
+</body>
+</html>

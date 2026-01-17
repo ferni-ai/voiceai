@@ -19,7 +19,7 @@ import type { Room } from '@livekit/rtc-node';
 import {
   getSpeakerChangeDetector,
   type SpeakerChangeEvent,
-} from '../../services/voice-speaker-change.js';
+} from '../../services/voice/voice-speaker-change.js';
 import { diag } from '../../services/diagnostic-logger.js';
 
 // ============================================================================
@@ -96,7 +96,8 @@ export async function identifyUser(
     if (jobMetadata) {
       const metadata = JSON.parse(jobMetadata);
 
-      const { identifyFromMetadata } = await import('../../services/user-identification.js');
+      const { identifyFromMetadata } =
+        await import('../../services/identity/user-identification.js');
       const identification = await identifyFromMetadata(metadata);
 
       userId = identification.userId;
@@ -144,7 +145,7 @@ export async function identifyUser(
   // Configure music playback mode for phone calls
   if (identificationSource === 'phone') {
     try {
-      const { setStreamIntoCall } = await import('../../tools/spotify.js');
+      const { setStreamIntoCall } = await import('../../tools/domains/entertainment/spotify.js');
       setStreamIntoCall(true);
     } catch (e) {
       diag.debug('Failed to set stream-into-call mode', { error: String(e) });
@@ -195,12 +196,31 @@ async function startIdentitySession(
     // WORLD AWARENESS: Pre-warm world context cache
     // "Better Than Human" - Ferni already knows what's happening
     // Weather, news, sports, holidays - all pre-fetched
+    // TikTok-style: Uses IP-detected location for personalization
     // ===============================================
     try {
       const { initWorldAwareness } =
         await import('../../services/world-awareness/session-integration.js');
+
+      // Extract IP-detected location from metadata (TikTok-style personalization)
+      const ipLocation =
+        metadata.city || metadata.regionCode || metadata.countryCode
+          ? {
+              city: metadata.city as string | undefined,
+              regionCode: metadata.regionCode as string | undefined,
+              countryCode: metadata.countryCode as string | undefined,
+            }
+          : undefined;
+
+      if (ipLocation?.city) {
+        diag.session('📍 IP location detected', {
+          city: ipLocation.city,
+          region: ipLocation.regionCode,
+        });
+      }
+
       // Fire and forget - don't block on this
-      void initWorldAwareness(identityResult.identityContext.userId, null);
+      void initWorldAwareness(identityResult.identityContext.userId, null, ipLocation);
       diag.session('🌍 World awareness initialized');
     } catch (worldErr) {
       diag.debug('World awareness init failed (non-fatal)', { error: String(worldErr) });
@@ -257,8 +277,8 @@ function setupSpeakerChangeDetection(
           ),
           { reliable: true }
         )
-        .catch(() => {
-          /* ignore publish errors */
+        .catch((e) => {
+          diag.debug('Speaker change publish failed (non-critical)', { error: String(e) });
         });
 
       // Trigger identity re-evaluation on speaker change

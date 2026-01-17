@@ -98,7 +98,7 @@ jobs:
           cd frontend-typescript && npm ci && npm run build
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: staging-build-${{ needs.context.outputs.short_sha }}
           path: |

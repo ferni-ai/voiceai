@@ -28,7 +28,7 @@ import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 const log = createLogger('AccountButtonUI');
 
 // FIX BUG: Track all setTimeout calls for proper cleanup
-const { trackedTimeout, clearAll: clearAllTimeouts } = createTimeoutTracker();
+const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
 
 // ============================================================================
 // ELEMENT REFERENCES
@@ -80,6 +80,39 @@ export function initAccountButtonUI(): void {
   // Create the button
   createAccountButton();
 
+  // Listen for One-Tap success - show warm confirmation toast
+  const handleOneTapSuccess = (): void => {
+    // Refresh button state (auth state callback will handle this)
+    if (currentAuthState) {
+      updateButtonState(currentAuthState);
+    }
+    // Show warm confirmation toast
+    import('./whisper.ui.js').then(({ toast }) => {
+      toast.success("Got it! I'll remember you now.");
+    });
+  };
+
+  window.addEventListener('ferni:one-tap-success', handleOneTapSuccess);
+  cleanupFunctions.push(() => {
+    window.removeEventListener('ferni:one-tap-success', handleOneTapSuccess);
+  });
+
+  // Listen for One-Tap errors - show friendly error toast
+  const handleOneTapError = (event: Event): void => {
+    const customEvent = event as CustomEvent<{ error: string }>;
+    const errorMessage = customEvent.detail?.error ?? 'Something went wrong';
+    log.warn('One-Tap sign-in failed:', errorMessage);
+
+    import('./whisper.ui.js').then(({ toast }) => {
+      toast.error(errorMessage);
+    });
+  };
+
+  window.addEventListener('ferni:one-tap-error', handleOneTapError);
+  cleanupFunctions.push(() => {
+    window.removeEventListener('ferni:one-tap-error', handleOneTapError);
+  });
+
   log.debug('Account button UI initialized');
 }
 
@@ -104,7 +137,7 @@ function createAccountButton(): void {
   container.innerHTML = `
     <button class="account-button" aria-label="${t('accessibility.accountSettings')}">
       ${LUCIDE_USER_ICON}
-      <span class="account-button-text">Remember me</span>
+      <span class="account-button-text" role="button" tabindex="0">Remember me</span>
     </button>
   `;
 
@@ -113,7 +146,7 @@ function createAccountButton(): void {
     position: 'fixed',
     top: 'var(--space-4, 16px)',
     right: 'var(--space-4, 16px)',
-    zIndex: '100',
+    zIndex: 'var(--z-docked)',
   });
 
   // Style the button
@@ -170,15 +203,15 @@ function updateButtonState(state: AuthState): void {
 
   if (state.isLinked) {
     // Show user info
-    textSpan.textContent = state.displayName || state.email?.split('@')[0] || 'Account';
-    button.setAttribute('aria-label', `Account menu for ${state.email || 'linked account'}`);
+    textSpan.textContent = state.displayName ?? state.email?.split('@')[0] ?? 'Account';
+    button.setAttribute('aria-label', `Account menu for ${state.email ?? 'linked account'}`);
   } else if (state.isAuthenticated) {
     // Anonymous user - warm invitation to be remembered
-    textSpan.textContent = 'Remember me';
+    textSpan.textContent = t('ui.accountbutton.rememberMe');
     button.setAttribute('aria-label', 'Let Ferni remember you across devices');
   } else {
     // Not configured or error
-    textSpan.textContent = 'Remember me';
+    textSpan.textContent = t('ui.accountbutton.rememberMe');
     button.setAttribute('aria-label', 'Let Ferni remember you across devices');
   }
 }
@@ -211,12 +244,12 @@ function showLinkAccountModal(): void {
       </header>
       
       <div class="account-modal-content">
-        <div class="social-buttons">
-          <button class="social-btn google-btn" data-provider="google">
+        <div class="social-buttons" role="button" tabindex="0">
+          <button aria-label="${t('accessibility.continueWithGoogle')}" class="social-btn google-btn" data-provider="google">
             ${GOOGLE_ICON}
             <span>Continue with Google</span>
           </button>
-          <button class="social-btn apple-btn" data-provider="apple">
+          <button aria-label="${t('accessibility.continueWithApple')}" class="social-btn apple-btn" data-provider="apple">
             ${APPLE_ICON}
             <span>Continue with Apple</span>
           </button>
@@ -235,7 +268,7 @@ function showLinkAccountModal(): void {
             <label for="account-password">Password</label>
             <input type="password" id="account-password" name="password" required minlength="6" autocomplete="new-password" />
           </div>
-          <button type="submit" class="submit-btn">Remember me</button>
+          <button aria-label="${t('accessibility.rememberMe')}" type="submit" class="submit-btn">Remember me</button>
         </form>
         
         <p class="privacy-note">
@@ -255,7 +288,7 @@ function showLinkAccountModal(): void {
       
       <div class="account-modal-error" style="display: none;">
         <p class="error-message"></p>
-        <button class="retry-btn">Try Again</button>
+        <button aria-label="${t('accessibility.tryAgain')}" class="retry-btn">Try Again</button>
       </div>
     </div>
   `;
@@ -303,7 +336,7 @@ function applyModalStyles(overlay: HTMLElement): void {
       display: flex;
       align-items: center;
       justify-content: center;
-      z-index: 1000;
+      z-index: var(--z-dropdown);
       opacity: 0;
       transition: opacity ${DURATION.NORMAL}ms ${EASING.STANDARD};
     }
@@ -313,13 +346,12 @@ function applyModalStyles(overlay: HTMLElement): void {
     .account-modal-backdrop {
       position: absolute;
       inset: 0;
-      background: rgba(44, 37, 32, 0.4);
-      backdrop-filter: blur(var(--glass-blur-strong, 24px));
+      background: rgba(44, 37, 32, 0.75);
     }
     .account-modal-card {
       position: relative;
       width: 90%;
-      max-width: 400px;
+      max-width: min(400px, 100%);
       background: var(--color-background-elevated, #FFFDFB);
       border-radius: var(--radius-2xl, 24px);
       box-shadow: var(--shadow-2xl, 0 24px 48px rgba(0,0,0,0.2));
@@ -648,9 +680,9 @@ function showAccountMenu(): void {
   menu.innerHTML = `
     <div class="account-menu-item account-info">
       <span class="account-label">I'll remember you as</span>
-      <span class="account-email">${currentAuthState.email || currentAuthState.displayName || 'You'}</span>
+      <span class="account-email">${currentAuthState.email ?? currentAuthState.displayName ?? 'You'}</span>
     </div>
-    <button class="account-menu-item" data-action="signout">Forget this device</button>
+    <button aria-label="${t('accessibility.forgetThisDevice')}" class="account-menu-item" data-action="signout">Forget this device</button>
   `;
 
   Object.assign(menu.style, {
@@ -661,8 +693,8 @@ function showAccountMenu(): void {
     borderRadius: 'var(--radius-lg, 12px)',
     boxShadow: 'var(--shadow-lg, 0 8px 24px rgba(0,0,0,0.15))',
     overflow: 'hidden',
-    zIndex: '101',
-    minWidth: '200px',
+    zIndex: 'var(--z-dropdown)',
+    minWidth: 'min(200px, 100%)',
   });
 
   const style = document.createElement('style');

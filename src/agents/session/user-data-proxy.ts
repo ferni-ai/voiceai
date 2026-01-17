@@ -19,7 +19,7 @@ import type { LaughterDetectionResult } from '../../speech/voice-humanization.js
 import type { EnglishAccent, VoicePreference } from '../../config/voice-accents.js';
 import type { VoiceEmotionResult } from '../../speech/audio-prosody.js';
 import type { VoiceEmotionModulation } from '../../speech/emotion-matching.js';
-import type { MoodState } from '../../intelligence/context-builders/persona-mood.js';
+import type { MoodState } from '../../intelligence/context-builders/personas/persona-mood.js';
 import type { UserBundleState } from '../../personas/bundles/index.js';
 import type { SessionStateManager } from './session-state.js';
 
@@ -42,6 +42,8 @@ interface DirectFields {
   // Voice preferences
   voicePreference?: VoicePreference;
   preferredAccent?: EnglishAccent;
+  /** Preferred language for speech recognition validation (e.g., 'ja', 'es', 'en') */
+  preferredLanguage?: string;
 
   // Voice humanization - rapid changing state
   detectedLaughter?: LaughterDetectionResult;
@@ -99,6 +101,21 @@ interface DirectFields {
     peopleMentioned?: string[];
     sessionCount?: number;
   };
+
+  // Phase 5: Anticipatory Triggers
+  anticipatoryIntelligence?: import('../../intelligence/triggers/index.js').AnticipatoryIntelligence;
+  triggerProfile?: import('../../intelligence/triggers/index.js').UserTriggerProfile;
+  pendingAnticipatoryResult?: {
+    detection: import('../../intelligence/triggers/index.js').SignalDetectionResult;
+    firedAt: number;
+    verbalResponse: string;
+    anticipatedOutcome: string;
+  } | null;
+  anticipatoryFiringsThisSession?: number;
+  lastAnticipatoryFiringAt?: number;
+
+  // Phase 6: Life Context Synthesis
+  lifeContextSnapshot?: import('../../intelligence/triggers/index.js').LifeContextSnapshot;
 }
 
 /**
@@ -123,6 +140,8 @@ export interface UserData {
   // Voice preferences
   voicePreference?: VoicePreference;
   preferredAccent?: EnglishAccent;
+  /** Preferred language for speech recognition validation (e.g., 'ja', 'es', 'en') */
+  preferredLanguage?: string;
 
   // Timing
   userSpeakingStartTime?: number;
@@ -225,8 +244,26 @@ export interface UserData {
   // Silence intelligence
   lastSilenceAnalysis?: SilenceAnalysis;
 
+  // Phase 5: Anticipatory Triggers
+  anticipatoryIntelligence?: import('../../intelligence/triggers/index.js').AnticipatoryIntelligence;
+  triggerProfile?: import('../../intelligence/triggers/index.js').UserTriggerProfile;
+  pendingAnticipatoryResult?: {
+    detection: import('../../intelligence/triggers/index.js').SignalDetectionResult;
+    firedAt: number;
+    verbalResponse: string;
+    anticipatedOutcome: string;
+  } | null;
+  anticipatoryFiringsThisSession?: number;
+  lastAnticipatoryFiringAt?: number;
+
+  // Phase 6: Life Context Synthesis
+  lifeContextSnapshot?: import('../../intelligence/triggers/index.js').LifeContextSnapshot;
+
   // Access to underlying state manager (for new code)
   readonly __stateManager?: SessionStateManager;
+
+  /** Index signature for extensibility (compatible with PersonaSessionData) */
+  [key: string]: unknown;
 }
 
 // ============================================================================

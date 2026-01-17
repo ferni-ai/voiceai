@@ -16,7 +16,7 @@ import { t } from '../i18n/index.js';
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { createLogger } from '../utils/logger.js';
 import { apiGet } from '../utils/api.js';
-import { openOutreachSchedule } from './outreach-schedule.ui.js';
+import { showNotificationSettings } from './notification-settings.ui.js';
 
 const log = createLogger('NextCheckin');
 
@@ -290,8 +290,8 @@ class NextCheckinWidget {
         if (item) {
           this.nextOutreach = {
             id: item.id,
-            personaId: item.personaId || 'ferni',
-            personaName: item.personaName || getPersonaName(item.personaId || 'ferni'),
+            personaId: item.personaId ?? 'ferni',
+            personaName: item.personaName ?? getPersonaName(item.personaId ?? 'ferni'),
             scheduledFor: new Date(item.scheduledFor),
             type: item.type,
             channel: item.channel,
@@ -326,7 +326,7 @@ class NextCheckinWidget {
       return;
     }
 
-    const color = PERSONA_COLORS[this.nextOutreach.personaId] || PERSONA_COLORS.ferni;
+    const color = PERSONA_COLORS[this.nextOutreach.personaId] ?? PERSONA_COLORS.ferni;
     const initial = this.nextOutreach.personaName.charAt(0);
     const timeStr = formatRelativeTime(this.nextOutreach.scheduledFor);
 
@@ -357,15 +357,15 @@ class NextCheckinWidget {
       </div>
     `;
 
-    // Bind click handler
+    // Bind click handler - opens the consolidated Notifications panel with Upcoming tab
     const widget = this.element.querySelector('.next-checkin-widget');
     widget?.addEventListener('click', () => {
-      openOutreachSchedule();
+      showNotificationSettings({ tab: 'upcoming' });
     });
     widget?.addEventListener('keydown', (e) => {
       if ((e as KeyboardEvent).key === 'Enter' || (e as KeyboardEvent).key === ' ') {
         e.preventDefault();
-        openOutreachSchedule();
+        showNotificationSettings({ tab: 'upcoming' });
       }
     });
   }
@@ -395,7 +395,7 @@ function getPersonaName(personaId: string): string {
     jordan: 'Jordan',
     nayan: 'Nayan',
   };
-  return names[personaId] || 'Ferni';
+  return names[personaId] ?? 'Ferni';
 }
 
 function formatRelativeTime(date: Date): string {

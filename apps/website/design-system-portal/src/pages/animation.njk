@@ -1,0 +1,156 @@
+---
+layout: layouts/base.njk
+title: Animation
+description: Animation tokens and motion principles for the Ferni Design System
+permalink: /animation/
+---
+
+<h1>Animation</h1>
+<p class="lead">
+  Motion that feels alive. Our animations are inspired by natural movement - breathing, stretching, settling into place.
+</p>
+
+<section class="section">
+  <h2>Motion Principles</h2>
+
+  <div class="demo-container">
+    <div class="card" style="max-width: 280px;">
+      <div class="card__body">
+        <h4 style="margin-top: 0;">Purposeful</h4>
+        <p style="margin-bottom: 0;">Every animation serves a purpose - guiding attention, providing feedback, or creating delight.</p>
+      </div>
+    </div>
+    <div class="card" style="max-width: 280px;">
+      <div class="card__body">
+        <h4 style="margin-top: 0;">Natural</h4>
+        <p style="margin-bottom: 0;">Movements follow organic rhythms. Spring physics, overshoot, and gentle settling.</p>
+      </div>
+    </div>
+    <div class="card" style="max-width: 280px;">
+      <div class="card__body">
+        <h4 style="margin-top: 0;">Respectful</h4>
+        <p style="margin-bottom: 0;">Never block the user. Animations are short enough to feel responsive, never tedious.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section">
+  <h2>Easing Functions</h2>
+  <p class="section-intro">Hover over each box to see the easing in action.</p>
+
+  <div class="animation-demos">
+    <div class="animation-demo">
+      <div class="animation-demo-box ease-out"></div>
+      <div class="animation-demo-label">ease-out</div>
+      <div style="font-size: var(--text-xs); color: var(--text-dimmed); margin-top: var(--space-2);">Quick start, smooth end</div>
+    </div>
+    <div class="animation-demo">
+      <div class="animation-demo-box ease-spring"></div>
+      <div class="animation-demo-label">ease-spring</div>
+      <div style="font-size: var(--text-xs); color: var(--text-dimmed); margin-top: var(--space-2);">Bouncy overshoot</div>
+    </div>
+    <div class="animation-demo">
+      <div class="animation-demo-box ease-gentle"></div>
+      <div class="animation-demo-label">ease-gentle</div>
+      <div style="font-size: var(--text-xs); color: var(--text-dimmed); margin-top: var(--space-2);">Subtle, graceful</div>
+    </div>
+  </div>
+
+  <pre><code>/* Easing functions */
+--ease-out: cubic-bezier(0.16, 1, 0.3, 1);      /* Quick exit, smooth land */
+--ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1); /* Bounce and overshoot */
+--ease-gentle: cubic-bezier(0.4, 0, 0.2, 1);    /* Subtle, graceful */</code></pre>
+</section>
+
+<section class="section">
+  <h2>Durations</h2>
+
+  <div class="spacing-scale">
+    <div class="spacing-sample">
+      <div class="spacing-sample-label">duration-fast</div>
+      <div class="spacing-sample-bar" style="width: 25px;"></div>
+      <div class="spacing-sample-value">100ms - Micro-interactions, hovers</div>
+    </div>
+    <div class="spacing-sample">
+      <div class="spacing-sample-label">duration-normal</div>
+      <div class="spacing-sample-bar" style="width: 50px;"></div>
+      <div class="spacing-sample-value">200ms - Standard transitions</div>
+    </div>
+    <div class="spacing-sample">
+      <div class="spacing-sample-label">duration-slow</div>
+      <div class="spacing-sample-bar" style="width: 75px;"></div>
+      <div class="spacing-sample-value">300ms - Page transitions, modals</div>
+    </div>
+    <div class="spacing-sample">
+      <div class="spacing-sample-label">duration-slower</div>
+      <div class="spacing-sample-bar" style="width: 125px;"></div>
+      <div class="spacing-sample-value">500ms - Celebration, emphasis</div>
+    </div>
+  </div>
+
+  <pre><code>--duration-fast: 100ms;   /* Micro-interactions */
+--duration-normal: 200ms; /* Standard transitions */
+--duration-slow: 300ms;   /* Page transitions */
+--duration-slower: 500ms; /* Celebration moments */</code></pre>
+</section>
+
+<section class="section">
+  <h2>Common Patterns</h2>
+
+  <h3>Hover Lift</h3>
+  <p>Cards and buttons lift slightly on hover to indicate interactivity.</p>
+
+  <div class="demo-container">
+    <div class="card card--interactive" style="max-width: 200px; cursor: pointer;">
+      <div class="card__body" style="text-align: center;">
+        <p style="margin: 0;">Hover me</p>
+      </div>
+    </div>
+  </div>
+
+  <pre><code>.card {
+  transition: transform var(--duration-normal) var(--ease-out),
+              box-shadow var(--duration-normal) var(--ease-out);
+}
+
+.card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-lg);
+}</code></pre>
+
+  <h3>Button States</h3>
+  <p>Buttons have distinct hover and active states.</p>
+
+  <div class="demo-container">
+    <button class="btn btn--primary">Primary Button</button>
+    <button class="btn btn--secondary">Secondary</button>
+    <button class="btn btn--ghost">Ghost</button>
+  </div>
+
+  <pre><code>.button {
+  transition: all var(--duration-fast) var(--ease-gentle);
+}
+
+.button:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+
+.button:active {
+  transform: translateY(0);
+}</code></pre>
+</section>
+
+<section class="section">
+  <h2>Pixar Principles</h2>
+  <p class="section-intro">We apply the 12 Principles of Animation to create motion that feels alive.</p>
+
+  <ul>
+    <li><strong>Anticipation</strong> - A brief pause before action telegraphs intent</li>
+    <li><strong>Follow-through</strong> - Elements settle after moving, like a spring</li>
+    <li><strong>Ease in/out</strong> - Natural acceleration and deceleration</li>
+    <li><strong>Secondary action</strong> - Subtle supporting animations enhance the main action</li>
+    <li><strong>Timing</strong> - Speed conveys weight and character</li>
+  </ul>
+</section>

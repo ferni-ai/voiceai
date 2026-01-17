@@ -1,0 +1,3174 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="cedar">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Brand Kit | Ferni Design System</title>
+  <meta name="description" content="Download Ferni brand assets - logos, avatars, colors, typography, and guidelines for press and partners">
+
+  <!-- Fonts: Plus Jakarta Sans (display), Inter (body), JetBrains Mono (code) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+  <!-- Design Tokens (auto-generated from design-system/tokens/*.json) -->
+  <link rel="stylesheet" href="/css/tokens.css">
+  <link rel="stylesheet" href="/css/components.css">
+  <link rel="stylesheet" href="/css/docs.css">
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%233D5A45' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z'/><path d='M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12'/></svg>">
+</head>
+<body>
+  <div class="layout">
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <a href="/" class="logo">
+          <span class="logo-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"/>
+              <path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"/>
+            </svg>
+          </span>
+          <span class="logo-text">Ferni Design</span>
+        </a>
+        <span class="version-badge">v2.0</span>
+      </div>
+
+      <!-- Search -->
+      <div class="sidebar-search">
+        <input type="text" id="searchInput" placeholder="Search..." aria-label="Search documentation">
+        <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="11" cy="11" r="8"/>
+          <path d="m21 21-4.3-4.3"/>
+        </svg>
+      </div>
+
+      <nav class="sidebar-nav">
+        <div class="nav-section">
+          <span class="nav-section-title">Foundations</span>
+          <ul>
+            <li><a href="/" class="">Overview</a></li>
+            <li><a href="/colors/" class="">Colors</a></li>
+            <li><a href="/typography/" class="">Typography</a></li>
+            <li><a href="/spacing/" class="">Spacing</a></li>
+            <li><a href="/animation/" class="">Animation</a></li>
+            <li><a href="/physics/" class="">Physics</a></li>
+            <li><a href="/responsive/" class="">Responsive</a></li>
+            <li><a href="/effects/" class="">Effects</a></li>
+            <li><a href="/sequences/" class="">Sequences</a></li>
+            <li><a href="/motion/" class="">Motion</a></li>
+            <li><a href="/haptics/" class="">Haptics</a></li>
+          </ul>
+        </div>
+
+        <div class="nav-section">
+          <span class="nav-section-title">Patterns</span>
+          <ul>
+            <li><a href="/feedback/" class="">Feedback</a></li>
+            <li><a href="/predictive-ui/" class="">Predictive UI</a></li>
+          </ul>
+        </div>
+
+        <div class="nav-section">
+          <span class="nav-section-title">Brand</span>
+          <ul>
+            <li><a href="/personas/" class="">Personas</a></li>
+            <li><a href="/personality/" class="">Personality</a></li>
+            <li><a href="/capabilities/" class="">Capabilities</a></li>
+            <li><a href="/voice/" class="">Voice & Tone</a></li>
+            <li><a href="/sounds-haptics/" class="">Sounds & Haptics</a></li>
+            <li><a href="/sonic-identity/" class="">Sonic Identity</a></li>
+            <li><a href="/rituals/" class="">Rituals</a></li>
+            <li><a href="/icons/" class="">Icons</a></li>
+            <li><a href="/expressions/" class="">Expressions</a></li>
+            <li><a href="/glow-colors/" class="">Glow Colors</a></li>
+            <li><a href="/window-avatar/" class="">Window Avatar</a></li>
+            <li><a href="/universe/" class="">Universe</a></li>
+            <li><a href="/visualizations/" class="">Visualizations</a></li>
+            <li><a href="/brand-guardrails/" class="">Brand Guardrails</a></li>
+            <li><a href="/brand-kit/" class="active">Brand Kit</a></li>
+          </ul>
+        </div>
+
+        <div class="nav-section">
+          <span class="nav-section-title">Components</span>
+          <ul>
+            <li><a href="/components/" class="">Overview</a></li>
+            <li><a href="/components/avatar/" class="">Avatar</a></li>
+            <li><a href="/components/badge/" class="">Badge</a></li>
+            <li><a href="/components/buttons/" class="">Buttons</a></li>
+            <li><a href="/components/cards/" class="">Cards</a></li>
+            <li><a href="/components/dropdown/" class="">Dropdown</a></li>
+            <li><a href="/components/glass/" class="">Glass Surfaces</a></li>
+            <li><a href="/components/inputs/" class="">Inputs</a></li>
+            <li><a href="/components/modal/" class="">Modal</a></li>
+            <li><a href="/components/progress/" class="">Progress</a></li>
+            <li><a href="/components/tabs/" class="">Tabs</a></li>
+            <li><a href="/components/toast/" class="">Toast</a></li>
+            <li><a href="/components/tooltip/" class="">Tooltip</a></li>
+          </ul>
+        </div>
+
+        <div class="nav-section">
+          <span class="nav-section-title">Resources</span>
+          <ul>
+            <li><a href="https://developers.ferni.ai" target="_blank">Developer Docs</a></li>
+            <li><a href="https://marketplace.ferni.ai" target="_blank">Marketplace</a></li>
+            <li><a href="https://ferni.ai" target="_blank">Product</a></li>
+          </ul>
+        </div>
+      </nav>
+
+      <div class="sidebar-footer">
+        <button class="theme-preview-btn" onclick="toggleThemePreview()" aria-label="Toggle theme comparison">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="3" width="7" height="7"/>
+            <rect x="14" y="3" width="7" height="7"/>
+            <rect x="3" y="14" width="7" height="7"/>
+            <rect x="14" y="14" width="7" height="7"/>
+          </svg>
+          <span>Compare</span>
+        </button>
+        <div class="theme-toggle" onclick="toggleTheme()">
+          <svg class="sun-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="5"/>
+            <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+          </svg>
+          <svg class="moon-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+          </svg>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Theme Preview Modal -->
+    <div id="themePreviewModal" class="theme-preview-modal">
+      <div class="theme-preview-header">
+        <h3>Theme Comparison</h3>
+        <button class="close-preview" onclick="toggleThemePreview()" aria-label="Close preview">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M18 6L6 18M6 6l12 12"/>
+          </svg>
+        </button>
+      </div>
+      <div class="theme-preview-content">
+        <div class="theme-panel" data-theme="cedar">
+          <div class="theme-label">Cedar (Dark)</div>
+          <div class="theme-sample">
+            <div class="sample-card">
+              <div class="sample-avatar"></div>
+              <div class="sample-text">
+                <div class="sample-title"></div>
+                <div class="sample-body"></div>
+              </div>
+            </div>
+            <div class="sample-buttons">
+              <button class="sample-btn primary">Primary</button>
+              <button class="sample-btn secondary">Secondary</button>
+            </div>
+            <div class="sample-colors">
+              <div class="color-dot ferni"></div>
+              <div class="color-dot maya"></div>
+              <div class="color-dot peter"></div>
+              <div class="color-dot alex"></div>
+              <div class="color-dot jordan"></div>
+            </div>
+          </div>
+        </div>
+        <div class="theme-panel" data-theme="zen">
+          <div class="theme-label">Zen (Light)</div>
+          <div class="theme-sample">
+            <div class="sample-card">
+              <div class="sample-avatar"></div>
+              <div class="sample-text">
+                <div class="sample-title"></div>
+                <div class="sample-body"></div>
+              </div>
+            </div>
+            <div class="sample-buttons">
+              <button class="sample-btn primary">Primary</button>
+              <button class="sample-btn secondary">Secondary</button>
+            </div>
+            <div class="sample-colors">
+              <div class="color-dot ferni"></div>
+              <div class="color-dot maya"></div>
+              <div class="color-dot peter"></div>
+              <div class="color-dot alex"></div>
+              <div class="color-dot jordan"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Search Results -->
+    <div id="searchResults" class="search-results"></div>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      
+<article class="brand-kit-page">
+  <!-- Hero Section with Download -->
+  <header class="kit-hero">
+    <div class="hero-content">
+      <h1>Ferni Brand Kit</h1>
+      <p class="hero-lead">Everything you need to represent Ferni correctly. Download logos, colors, typography, and guidelines for press, partners, and developers.</p>
+      <button class="download-all-btn" id="downloadKit">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+          <polyline points="7,10 12,15 17,10"/>
+          <line x1="12" y1="15" x2="12" y2="3"/>
+        </svg>
+        Download Complete Kit
+      </button>
+      <p class="hero-note">Includes all logos, icons, color specs, and guidelines as a ZIP file</p>
+    </div>
+
+    <!-- Floating Brand Elements -->
+    <div class="hero-avatars">
+      <svg class="floating-orb orb-1" viewBox="0 0 60 60" width="60" height="60">
+        <circle cx="30" cy="30" r="28" fill="#4a6741" opacity="0.9"/>
+        <ellipse cx="22" cy="29" rx="4" ry="6" fill="white"/>
+        <ellipse cx="38" cy="29" rx="4" ry="6" fill="white"/>
+      </svg>
+      <svg class="floating-orb orb-2" viewBox="0 0 40 40" width="40" height="40">
+        <circle cx="20" cy="20" r="18" fill="#a67a6a" opacity="0.8"/>
+        <ellipse cx="15" cy="19" rx="2.5" ry="4" fill="white"/>
+        <ellipse cx="25" cy="19" rx="2.5" ry="4" fill="white"/>
+      </svg>
+      <svg class="floating-orb orb-3" viewBox="0 0 35 35" width="35" height="35">
+        <circle cx="17.5" cy="17.5" r="16" fill="#3a6b73" opacity="0.7"/>
+        <ellipse cx="13" cy="17" rx="2" ry="3.5" fill="white"/>
+        <ellipse cx="22" cy="17" rx="2" ry="3.5" fill="white"/>
+      </svg>
+    </div>
+  </header>
+
+  <!-- Quick Jump Navigation -->
+  <nav class="kit-nav">
+    <a href="#logos" class="kit-nav-link">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="10"/>
+      </svg>
+      Logos
+    </a>
+    <a href="#avatars" class="kit-nav-link">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="4"/>
+        <path d="M16 8v5a3 3 0 0 0 6 0v-1a10 10 0 1 0-3.92 7.94"/>
+      </svg>
+      Avatars
+    </a>
+    <a href="#colors" class="kit-nav-link">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="13.5" cy="6.5" r="2.5"/>
+        <circle cx="6.5" cy="12" r="2.5"/>
+        <circle cx="17.5" cy="12" r="2.5"/>
+        <circle cx="12" cy="18.5" r="2.5"/>
+      </svg>
+      Colors
+    </a>
+    <a href="#typography" class="kit-nav-link">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <polyline points="4 7 4 4 20 4 20 7"/>
+        <line x1="9" y1="20" x2="15" y2="20"/>
+        <line x1="12" y1="4" x2="12" y2="20"/>
+      </svg>
+      Typography
+    </a>
+    <a href="#guidelines" class="kit-nav-link">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+        <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+      </svg>
+      Guidelines
+    </a>
+  </nav>
+
+  <!-- Logos Section -->
+  <section class="section" id="logos">
+    <div class="section-header">
+      <div>
+        <h2>Logos</h2>
+        <p class="section-desc">Primary logo marks for digital and print use. Available in SVG and multiple PNG sizes.</p>
+      </div>
+    </div>
+
+    <div class="asset-grid">
+      <!-- Primary Logo -->
+      <div class="asset-card">
+        <div class="asset-preview light-bg">
+          <svg viewBox="0 0 100 100" width="80" height="80">
+            <defs>
+              <linearGradient id="orbGrad1" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#5a7a51"/>
+                <stop offset="100%" stop-color="#3d5a35"/>
+              </linearGradient>
+            </defs>
+            
+            <circle cx="50" cy="50" r="45" fill="url(#orbGrad1)"/>
+            <ellipse cx="36" cy="48" rx="7" ry="10" fill="white"/>
+            <ellipse cx="64" cy="48" rx="7" ry="10" fill="white"/>
+          </svg>
+        </div>
+        <div class="asset-info">
+          <div class="asset-name">Primary Logo</div>
+          <div class="asset-meta">Full color, light backgrounds</div>
+          <div class="asset-formats">
+            <a href="/assets/logos/ferni-logo.svg" class="format-tag" download>SVG</a>
+            <a href="/assets/logos/ferni-logo-512.png" class="format-tag" download>PNG</a>
+            <a href="/assets/logos/ferni-logo-1024.png" class="format-tag" download>PNG @2x</a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Dark Background Logo -->
+      <div class="asset-card">
+        <div class="asset-preview dark-bg">
+          <svg viewBox="0 0 100 100" width="80" height="80">
+            <defs>
+              <linearGradient id="orbGrad2" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#6a9a61"/>
+                <stop offset="100%" stop-color="#4a7a45"/>
+              </linearGradient>
+            </defs>
+            <circle cx="50" cy="50" r="45" fill="url(#orbGrad2)"/>
+            <ellipse cx="36" cy="48" rx="7" ry="10" fill="white"/>
+            <ellipse cx="64" cy="48" rx="7" ry="10" fill="white"/>
+          </svg>
+        </div>
+        <div class="asset-info">
+          <div class="asset-name">Logo on Dark</div>
+          <div class="asset-meta">For dark backgrounds</div>
+          <div class="asset-formats">
+            <a href="/assets/logos/ferni-logo-dark.svg" class="format-tag" download>SVG</a>
+            <a href="/assets/logos/ferni-logo-dark-512.png" class="format-tag" download>PNG</a>
+            <a href="/assets/logos/ferni-logo-dark-1024.png" class="format-tag" download>PNG @2x</a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Simple Logo -->
+      <div class="asset-card">
+        <div class="asset-preview light-bg">
+          <svg viewBox="0 0 100 100" width="80" height="80">
+            <circle cx="50" cy="50" r="45" fill="#4a6741"/>
+            <ellipse cx="36" cy="48" rx="7" ry="10" fill="white"/>
+            <ellipse cx="64" cy="48" rx="7" ry="10" fill="white"/>
+          </svg>
+        </div>
+        <div class="asset-info">
+          <div class="asset-name">Simple Logo</div>
+          <div class="asset-meta">Flat color version</div>
+          <div class="asset-formats">
+            <a href="/assets/logos/ferni-logo-simple.svg" class="format-tag" download>SVG</a>
+            <a href="/assets/logos/ferni-logo-simple-512.png" class="format-tag" download>PNG</a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Monochrome Logo -->
+      <div class="asset-card">
+        <div class="asset-preview light-bg">
+          <svg viewBox="0 0 100 100" width="80" height="80">
+            <circle cx="50" cy="50" r="45" fill="var(--text-primary)" opacity="0.85"/>
+            <ellipse cx="36" cy="48" rx="7" ry="10" fill="var(--bg-primary)"/>
+            <ellipse cx="64" cy="48" rx="7" ry="10" fill="var(--bg-primary)"/>
+          </svg>
+        </div>
+        <div class="asset-info">
+          <div class="asset-name">Monochrome</div>
+          <div class="asset-meta">Single color applications</div>
+          <div class="asset-formats">
+            <a href="/assets/logos/ferni-logo-mono.svg" class="format-tag" download>SVG</a>
+            <a href="/assets/logos/ferni-logo-mono-512.png" class="format-tag" download>PNG</a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Wordmark -->
+      <div class="asset-card">
+        <div class="asset-preview light-bg">
+          <div class="wordmark-preview">
+            <svg viewBox="0 0 50 50" width="40" height="40">
+              <circle cx="25" cy="25" r="23" fill="#4a6741"/>
+              <ellipse cx="18" cy="24" rx="3.5" ry="5" fill="white"/>
+              <ellipse cx="32" cy="24" rx="3.5" ry="5" fill="white"/>
+            </svg>
+            <span class="wordmark-text">Ferni</span>
+          </div>
+        </div>
+        <div class="asset-info">
+          <div class="asset-name">Logo + Wordmark</div>
+          <div class="asset-meta">Horizontal lockup</div>
+          <div class="asset-formats">
+            <a href="/assets/logos/ferni-wordmark.svg" class="format-tag" download>SVG</a>
+            <a href="/assets/logos/ferni-wordmark-512.png" class="format-tag" download>PNG</a>
+          </div>
+        </div>
+      </div>
+
+      <!-- App Icon -->
+      <div class="asset-card">
+        <div class="asset-preview gradient-bg">
+          <svg viewBox="0 0 100 100" width="70" height="70">
+            <rect width="100" height="100" rx="22" fill="#4a6741"/>
+            <ellipse cx="36" cy="48" rx="8" ry="11" fill="white"/>
+            <ellipse cx="64" cy="48" rx="8" ry="11" fill="white"/>
+          </svg>
+        </div>
+        <div class="asset-info">
+          <div class="asset-name">App Icon</div>
+          <div class="asset-meta">iOS & Android app stores</div>
+          <div class="asset-formats">
+            <a href="/assets/icons/app-icon-1024.svg" class="format-tag" download>SVG</a>
+            <a href="/assets/icons/app-icon-ios-1024.png" class="format-tag" download>iOS</a>
+            <a href="/assets/icons/app-icon-android-512.png" class="format-tag" download>Android</a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Favicon -->
+      <div class="asset-card">
+        <div class="asset-preview light-bg">
+          <div class="favicon-sizes">
+            <svg viewBox="0 0 32 32" width="48" height="48">
+              <circle cx="16" cy="16" r="15" fill="#4a6741"/>
+              <ellipse cx="11" cy="15" rx="2.5" ry="3.5" fill="white"/>
+              <ellipse cx="21" cy="15" rx="2.5" ry="3.5" fill="white"/>
+            </svg>
+            <svg viewBox="0 0 32 32" width="32" height="32">
+              <circle cx="16" cy="16" r="15" fill="#4a6741"/>
+              <ellipse cx="11" cy="15" rx="2.5" ry="3.5" fill="white"/>
+              <ellipse cx="21" cy="15" rx="2.5" ry="3.5" fill="white"/>
+            </svg>
+            <svg viewBox="0 0 32 32" width="16" height="16">
+              <circle cx="16" cy="16" r="15" fill="#4a6741"/>
+              <ellipse cx="11" cy="15" rx="2.5" ry="3.5" fill="white"/>
+              <ellipse cx="21" cy="15" rx="2.5" ry="3.5" fill="white"/>
+            </svg>
+          </div>
+        </div>
+        <div class="asset-info">
+          <div class="asset-name">Favicon</div>
+          <div class="asset-meta">Browser & bookmark icons</div>
+          <div class="asset-formats">
+            <a href="/assets/favicons/favicon.svg" class="format-tag" download>SVG</a>
+            <a href="/assets/favicons/favicon-16.png" class="format-tag" download>16px</a>
+            <a href="/assets/favicons/favicon-32.png" class="format-tag" download>32px</a>
+            <a href="/assets/favicons/favicon-192.png" class="format-tag" download>192px</a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Social Preview -->
+      <div class="asset-card">
+        <div class="asset-preview social-bg">
+          <div class="social-preview-mock">
+            <svg viewBox="0 0 100 100" width="40" height="40">
+              <circle cx="50" cy="50" r="45" fill="#4a6741"/>
+              <ellipse cx="36" cy="48" rx="7" ry="10" fill="white"/>
+              <ellipse cx="64" cy="48" rx="7" ry="10" fill="white"/>
+            </svg>
+            <span>Ferni</span>
+          </div>
+        </div>
+        <div class="asset-info">
+          <div class="asset-name">Social Preview</div>
+          <div class="asset-meta">Open Graph & Twitter cards</div>
+          <div class="asset-formats">
+            <a href="/assets/social/og-image.png" class="format-tag" download>OG 1200x630</a>
+            <a href="/assets/social/twitter-card.png" class="format-tag" download>Twitter</a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Logo Usage Rules -->
+    <div class="usage-rules">
+      <div class="rule do">
+        <div class="rule-header">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="20 6 9 17 4 12"/>
+          </svg>
+          <h5>Do</h5>
+        </div>
+        <ul>
+          <li>Maintain clear space equal to the eye width around the logo</li>
+          <li>Use on solid backgrounds or simple gradients</li>
+          <li>Keep eyes as <strong>opaque white</strong> (Luxo-style, no pupils)</li>
+          <li>Use provided color variations for different backgrounds</li>
+          <li>Maintain the aspect ratio when scaling</li>
+        </ul>
+      </div>
+      <div class="rule dont">
+        <div class="rule-header">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18"/>
+            <line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+          <h5>Don't</h5>
+        </div>
+        <ul>
+          <li><strong>Never add pupils</strong> to the eyes (breaks Luxo style)</li>
+          <li>Stretch, distort, or rotate the orb</li>
+          <li>Place on busy, patterned, or photographic backgrounds</li>
+          <li>Add shadows, effects, or 3D treatments</li>
+          <li>Change the orb shape from a perfect circle</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Clear Space Diagram -->
+    <div class="clear-space-diagram">
+      <h4>Clear Space Requirements</h4>
+      <div class="diagram-wrapper">
+        <div class="diagram-visual">
+          <div class="clear-zone">
+            <svg viewBox="0 0 100 100" width="100" height="100">
+              <circle cx="50" cy="50" r="45" fill="#4a6741"/>
+              <ellipse cx="36" cy="48" rx="7" ry="10" fill="white"/>
+              <ellipse cx="64" cy="48" rx="7" ry="10" fill="white"/>
+            </svg>
+            <div class="measure-x" title="Eye width = minimum clear space"></div>
+            <div class="measure-y" title="Eye width = minimum clear space"></div>
+          </div>
+        </div>
+        <p class="diagram-caption">Minimum clear space around logo = width of one eye (X). This ensures the logo maintains visual breathing room in all contexts.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Persona Avatars Section -->
+  <section class="section" id="avatars">
+    <div class="section-header">
+      <div>
+        <h2>Persona Avatars</h2>
+        <p class="section-desc">The Ferni team — 6 specialized AI companions. Each shares the Luxo-style eye design but with distinct colors.</p>
+      </div>
+    </div>
+
+    <div class="persona-grid">
+      
+
+      
+      <div class="persona-card" data-color="#4a6741" style="--persona-accent: #4a6741">
+        <div class="persona-avatar-wrapper">
+          <svg viewBox="0 0 100 100" width="80" height="80" class="persona-avatar-svg">
+            
+            <circle cx="50" cy="50" r="45" fill="#4a6741"/>
+            <ellipse class="eye-left" cx="36" cy="48" rx="7" ry="10" fill="white"/>
+            <ellipse class="eye-right" cx="64" cy="48" rx="7" ry="10" fill="white"/>
+          </svg>
+          <div class="persona-glow"></div>
+        </div>
+        <div class="persona-info">
+          <h4 class="persona-name">Ferni</h4>
+          <span class="persona-role">Coordinator</span>
+          <p class="persona-desc">Team leader, emotional triage, handoffs</p>
+          <div class="persona-color-info">
+            <code class="color-hex">#4a6741</code>
+            <code class="color-rgb">RGB 74, 103, 65</code>
+          </div>
+        </div>
+        <div class="persona-actions">
+          <a href="/assets/avatars/ferni-avatar.svg" class="format-tag" download>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="7,10 12,15 17,10"/>
+              <line x1="12" y1="15" x2="12" y2="3"/>
+            </svg>
+            SVG
+          </a>
+          <button class="copy-btn" data-copy-text="#4a6741" title="Copy color">
+            <svg class="copy-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+            </svg>
+            <svg class="check-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: none;">
+              <polyline points="20 6 9 17 4 12"/>
+            </svg>
+            <span class="copy-text">Copy</span>
+          </button>
+        </div>
+      </div>
+      
+      <div class="persona-card" data-color="#a67a6a" style="--persona-accent: #a67a6a">
+        <div class="persona-avatar-wrapper">
+          <svg viewBox="0 0 100 100" width="80" height="80" class="persona-avatar-svg">
+            
+            <circle cx="50" cy="50" r="45" fill="#a67a6a"/>
+            <ellipse class="eye-left" cx="36" cy="48" rx="7" ry="10" fill="white"/>
+            <ellipse class="eye-right" cx="64" cy="48" rx="7" ry="10" fill="white"/>
+          </svg>
+          <div class="persona-glow"></div>
+        </div>
+        <div class="persona-info">
+          <h4 class="persona-name">Maya</h4>
+          <span class="persona-role">Habits Coach</span>
+          <p class="persona-desc">Tiny Habits expert, behavior design</p>
+          <div class="persona-color-info">
+            <code class="color-hex">#a67a6a</code>
+            <code class="color-rgb">RGB 166, 122, 106</code>
+          </div>
+        </div>
+        <div class="persona-actions">
+          <a href="/assets/avatars/maya-avatar.svg" class="format-tag" download>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="7,10 12,15 17,10"/>
+              <line x1="12" y1="15" x2="12" y2="3"/>
+            </svg>
+            SVG
+          </a>
+          <button class="copy-btn" data-copy-text="#a67a6a" title="Copy color">
+            <svg class="copy-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+            </svg>
+            <svg class="check-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: none;">
+              <polyline points="20 6 9 17 4 12"/>
+            </svg>
+            <span class="copy-text">Copy</span>
+          </button>
+        </div>
+      </div>
+      
+      <div class="persona-card" data-color="#3a6b73" style="--persona-accent: #3a6b73">
+        <div class="persona-avatar-wrapper">
+          <svg viewBox="0 0 100 100" width="80" height="80" class="persona-avatar-svg">
+            
+            <circle cx="50" cy="50" r="45" fill="#3a6b73"/>
+            <ellipse class="eye-left" cx="36" cy="48" rx="7" ry="10" fill="white"/>
+            <ellipse class="eye-right" cx="64" cy="48" rx="7" ry="10" fill="white"/>
+          </svg>
+          <div class="persona-glow"></div>
+        </div>
+        <div class="persona-info">
+          <h4 class="persona-name">Peter</h4>
+          <span class="persona-role">Money Guide</span>
+          <p class="persona-desc">Financial wisdom, data analysis</p>
+          <div class="persona-color-info">
+            <code class="color-hex">#3a6b73</code>
+            <code class="color-rgb">RGB 58, 107, 115</code>
+          </div>
+        </div>
+        <div class="persona-actions">
+          <a href="/assets/avatars/peter-avatar.svg" class="format-tag" download>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="7,10 12,15 17,10"/>
+              <line x1="12" y1="15" x2="12" y2="3"/>
+            </svg>
+            SVG
+          </a>
+          <button class="copy-btn" data-copy-text="#3a6b73" title="Copy color">
+            <svg class="copy-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+            </svg>
+            <svg class="check-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: none;">
+              <polyline points="20 6 9 17 4 12"/>
+            </svg>
+            <span class="copy-text">Copy</span>
+          </button>
+        </div>
+      </div>
+      
+      <div class="persona-card" data-color="#c4856a" style="--persona-accent: #c4856a">
+        <div class="persona-avatar-wrapper">
+          <svg viewBox="0 0 100 100" width="80" height="80" class="persona-avatar-svg">
+            
+            <circle cx="50" cy="50" r="45" fill="#c4856a"/>
+            <ellipse class="eye-left" cx="36" cy="48" rx="7" ry="10" fill="white"/>
+            <ellipse class="eye-right" cx="64" cy="48" rx="7" ry="10" fill="white"/>
+          </svg>
+          <div class="persona-glow"></div>
+        </div>
+        <div class="persona-info">
+          <h4 class="persona-name">Jordan</h4>
+          <span class="persona-role">Life Planner</span>
+          <p class="persona-desc">Goals, milestones, celebrations</p>
+          <div class="persona-color-info">
+            <code class="color-hex">#c4856a</code>
+            <code class="color-rgb">RGB 196, 133, 106</code>
+          </div>
+        </div>
+        <div class="persona-actions">
+          <a href="/assets/avatars/jordan-avatar.svg" class="format-tag" download>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="7,10 12,15 17,10"/>
+              <line x1="12" y1="15" x2="12" y2="3"/>
+            </svg>
+            SVG
+          </a>
+          <button class="copy-btn" data-copy-text="#c4856a" title="Copy color">
+            <svg class="copy-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+            </svg>
+            <svg class="check-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: none;">
+              <polyline points="20 6 9 17 4 12"/>
+            </svg>
+            <span class="copy-text">Copy</span>
+          </button>
+        </div>
+      </div>
+      
+      <div class="persona-card" data-color="#5a6b8a" style="--persona-accent: #5a6b8a">
+        <div class="persona-avatar-wrapper">
+          <svg viewBox="0 0 100 100" width="80" height="80" class="persona-avatar-svg">
+            
+            <circle cx="50" cy="50" r="45" fill="#5a6b8a"/>
+            <ellipse class="eye-left" cx="36" cy="48" rx="7" ry="10" fill="white"/>
+            <ellipse class="eye-right" cx="64" cy="48" rx="7" ry="10" fill="white"/>
+          </svg>
+          <div class="persona-glow"></div>
+        </div>
+        <div class="persona-info">
+          <h4 class="persona-name">Alex</h4>
+          <span class="persona-role">Chief of Staff</span>
+          <p class="persona-desc">Communication, scheduling, productivity</p>
+          <div class="persona-color-info">
+            <code class="color-hex">#5a6b8a</code>
+            <code class="color-rgb">RGB 90, 107, 138</code>
+          </div>
+        </div>
+        <div class="persona-actions">
+          <a href="/assets/avatars/alex-avatar.svg" class="format-tag" download>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="7,10 12,15 17,10"/>
+              <line x1="12" y1="15" x2="12" y2="3"/>
+            </svg>
+            SVG
+          </a>
+          <button class="copy-btn" data-copy-text="#5a6b8a" title="Copy color">
+            <svg class="copy-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+            </svg>
+            <svg class="check-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: none;">
+              <polyline points="20 6 9 17 4 12"/>
+            </svg>
+            <span class="copy-text">Copy</span>
+          </button>
+        </div>
+      </div>
+      
+      <div class="persona-card" data-color="#b8956a" style="--persona-accent: #b8956a">
+        <div class="persona-avatar-wrapper">
+          <svg viewBox="0 0 100 100" width="80" height="80" class="persona-avatar-svg">
+            
+            <circle cx="50" cy="50" r="45" fill="#b8956a"/>
+            <ellipse class="eye-left" cx="36" cy="48" rx="7" ry="10" fill="white"/>
+            <ellipse class="eye-right" cx="64" cy="48" rx="7" ry="10" fill="white"/>
+          </svg>
+          <div class="persona-glow"></div>
+        </div>
+        <div class="persona-info">
+          <h4 class="persona-name">Nayan</h4>
+          <span class="persona-role">Wisdom Elder</span>
+          <p class="persona-desc">Philosophy, perspective, life wisdom</p>
+          <div class="persona-color-info">
+            <code class="color-hex">#b8956a</code>
+            <code class="color-rgb">RGB 184, 149, 106</code>
+          </div>
+        </div>
+        <div class="persona-actions">
+          <a href="/assets/avatars/nayan-avatar.svg" class="format-tag" download>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="7,10 12,15 17,10"/>
+              <line x1="12" y1="15" x2="12" y2="3"/>
+            </svg>
+            SVG
+          </a>
+          <button class="copy-btn" data-copy-text="#b8956a" title="Copy color">
+            <svg class="copy-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+            </svg>
+            <svg class="check-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: none;">
+              <polyline points="20 6 9 17 4 12"/>
+            </svg>
+            <span class="copy-text">Copy</span>
+          </button>
+        </div>
+      </div>
+      
+    </div>
+
+    <!-- Team Portrait -->
+    <div class="team-portrait">
+      <h4>Team Portrait</h4>
+      <div class="team-portrait-preview">
+        <div class="portrait-row">
+          
+          <svg viewBox="0 0 60 60" width="50" height="50" class="team-orb" style="animation-delay: 0.1s">
+            <circle cx="30" cy="30" r="28" fill="#4a6741"/>
+            <ellipse cx="22" cy="29" rx="4" ry="6" fill="white"/>
+            <ellipse cx="38" cy="29" rx="4" ry="6" fill="white"/>
+          </svg>
+          
+          <svg viewBox="0 0 60 60" width="50" height="50" class="team-orb" style="animation-delay: 0.2s">
+            <circle cx="30" cy="30" r="28" fill="#a67a6a"/>
+            <ellipse cx="22" cy="29" rx="4" ry="6" fill="white"/>
+            <ellipse cx="38" cy="29" rx="4" ry="6" fill="white"/>
+          </svg>
+          
+          <svg viewBox="0 0 60 60" width="50" height="50" class="team-orb" style="animation-delay: 0.30000000000000004s">
+            <circle cx="30" cy="30" r="28" fill="#3a6b73"/>
+            <ellipse cx="22" cy="29" rx="4" ry="6" fill="white"/>
+            <ellipse cx="38" cy="29" rx="4" ry="6" fill="white"/>
+          </svg>
+          
+          <svg viewBox="0 0 60 60" width="50" height="50" class="team-orb" style="animation-delay: 0.4s">
+            <circle cx="30" cy="30" r="28" fill="#c4856a"/>
+            <ellipse cx="22" cy="29" rx="4" ry="6" fill="white"/>
+            <ellipse cx="38" cy="29" rx="4" ry="6" fill="white"/>
+          </svg>
+          
+          <svg viewBox="0 0 60 60" width="50" height="50" class="team-orb" style="animation-delay: 0.5s">
+            <circle cx="30" cy="30" r="28" fill="#5a6b8a"/>
+            <ellipse cx="22" cy="29" rx="4" ry="6" fill="white"/>
+            <ellipse cx="38" cy="29" rx="4" ry="6" fill="white"/>
+          </svg>
+          
+          <svg viewBox="0 0 60 60" width="50" height="50" class="team-orb" style="animation-delay: 0.6000000000000001s">
+            <circle cx="30" cy="30" r="28" fill="#b8956a"/>
+            <ellipse cx="22" cy="29" rx="4" ry="6" fill="white"/>
+            <ellipse cx="38" cy="29" rx="4" ry="6" fill="white"/>
+          </svg>
+          
+        </div>
+      </div>
+      <div class="asset-formats centered">
+        <a href="/assets/team-portrait.svg" class="format-tag" download>SVG</a>
+        <a href="/assets/team-portrait.png" class="format-tag" download>PNG</a>
+        <a href="/assets/team-portrait-wide.png" class="format-tag" download>Wide 1200x400</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Color Palette Section -->
+  <section class="section" id="colors">
+    <div class="section-header">
+      <div>
+        <h2>Color Palette</h2>
+        <p class="section-desc">Official brand and persona colors. Click any swatch to copy the hex value.</p>
+      </div>
+    </div>
+
+    <!-- Core Brand Colors -->
+    <h3 class="subsection-title">Core Brand Colors</h3>
+    <div class="color-grid">
+      
+
+      
+      <div class="color-card" data-color="#3D5A45">
+        <span class="copy-hint">Click to copy</span>
+        <div class="color-swatch" style="background: #3D5A45;"></div>
+        <div class="color-info">
+          <div class="color-name">Accent (CTA)</div>
+          <div class="color-values">
+            <code class="color-value hex">#3D5A45</code>
+            <span class="color-value rgb">RGB 61, 90, 69</span>
+          </div>
+          <p class="color-usage">Buttons, links, primary actions</p>
+        </div>
+      </div>
+      
+      <div class="color-card" data-color="#4a6741">
+        <span class="copy-hint">Click to copy</span>
+        <div class="color-swatch" style="background: #4a6741;"></div>
+        <div class="color-info">
+          <div class="color-name">Ferni Green</div>
+          <div class="color-values">
+            <code class="color-value hex">#4a6741</code>
+            <span class="color-value rgb">RGB 74, 103, 65</span>
+          </div>
+          <p class="color-usage">Ferni persona, brand primary</p>
+        </div>
+      </div>
+      
+      <div class="color-card" data-color="#2C2520">
+        <span class="copy-hint">Click to copy</span>
+        <div class="color-swatch" style="background: #2C2520;"></div>
+        <div class="color-info">
+          <div class="color-name">Natural Ink</div>
+          <div class="color-values">
+            <code class="color-value hex">#2C2520</code>
+            <span class="color-value rgb">RGB 44, 37, 32</span>
+          </div>
+          <p class="color-usage">Primary text, high contrast</p>
+        </div>
+      </div>
+      
+      <div class="color-card" data-color="#FAF8F5">
+        <span class="copy-hint">Click to copy</span>
+        <div class="color-swatch" style="background: #FAF8F5;"></div>
+        <div class="color-info">
+          <div class="color-name">Warm White</div>
+          <div class="color-values">
+            <code class="color-value hex">#FAF8F5</code>
+            <span class="color-value rgb">RGB 250, 248, 245</span>
+          </div>
+          <p class="color-usage">Light theme backgrounds</p>
+        </div>
+      </div>
+      
+      <div class="color-card" data-color="#c9a227">
+        <span class="copy-hint">Click to copy</span>
+        <div class="color-swatch" style="background: #c9a227;"></div>
+        <div class="color-info">
+          <div class="color-name">Kintsugi Gold</div>
+          <div class="color-values">
+            <code class="color-value hex">#c9a227</code>
+            <span class="color-value rgb">RGB 201, 162, 39</span>
+          </div>
+          <p class="color-usage">Premium features, highlights</p>
+        </div>
+      </div>
+      
+      <div class="color-card" data-color="#1a1612">
+        <span class="copy-hint">Click to copy</span>
+        <div class="color-swatch" style="background: #1a1612;"></div>
+        <div class="color-info">
+          <div class="color-name">Cedar Night</div>
+          <div class="color-values">
+            <code class="color-value hex">#1a1612</code>
+            <span class="color-value rgb">RGB 26, 22, 18</span>
+          </div>
+          <p class="color-usage">Dark theme background</p>
+        </div>
+      </div>
+      
+    </div>
+
+    <!-- Persona Colors -->
+    <h3 class="subsection-title">Persona Colors</h3>
+    <div class="color-grid">
+      
+
+      
+      <div class="color-card" data-color="#4a6741">
+        <span class="copy-hint">Click to copy</span>
+        <div class="color-swatch" style="background: #4a6741;"></div>
+        <div class="color-info">
+          <div class="color-name">Ferni</div>
+          <div class="color-values">
+            <code class="color-value hex">#4a6741</code>
+            <span class="color-value rgb">RGB 74, 103, 65</span>
+          </div>
+        </div>
+      </div>
+      
+      <div class="color-card" data-color="#a67a6a">
+        <span class="copy-hint">Click to copy</span>
+        <div class="color-swatch" style="background: #a67a6a;"></div>
+        <div class="color-info">
+          <div class="color-name">Maya</div>
+          <div class="color-values">
+            <code class="color-value hex">#a67a6a</code>
+            <span class="color-value rgb">RGB 166, 122, 106</span>
+          </div>
+        </div>
+      </div>
+      
+      <div class="color-card" data-color="#3a6b73">
+        <span class="copy-hint">Click to copy</span>
+        <div class="color-swatch" style="background: #3a6b73;"></div>
+        <div class="color-info">
+          <div class="color-name">Peter</div>
+          <div class="color-values">
+            <code class="color-value hex">#3a6b73</code>
+            <span class="color-value rgb">RGB 58, 107, 115</span>
+          </div>
+        </div>
+      </div>
+      
+      <div class="color-card" data-color="#c4856a">
+        <span class="copy-hint">Click to copy</span>
+        <div class="color-swatch" style="background: #c4856a;"></div>
+        <div class="color-info">
+          <div class="color-name">Jordan</div>
+          <div class="color-values">
+            <code class="color-value hex">#c4856a</code>
+            <span class="color-value rgb">RGB 196, 133, 106</span>
+          </div>
+        </div>
+      </div>
+      
+      <div class="color-card" data-color="#5a6b8a">
+        <span class="copy-hint">Click to copy</span>
+        <div class="color-swatch" style="background: #5a6b8a;"></div>
+        <div class="color-info">
+          <div class="color-name">Alex</div>
+          <div class="color-values">
+            <code class="color-value hex">#5a6b8a</code>
+            <span class="color-value rgb">RGB 90, 107, 138</span>
+          </div>
+        </div>
+      </div>
+      
+      <div class="color-card" data-color="#b8956a">
+        <span class="copy-hint">Click to copy</span>
+        <div class="color-swatch" style="background: #b8956a;"></div>
+        <div class="color-info">
+          <div class="color-name">Nayan</div>
+          <div class="color-values">
+            <code class="color-value hex">#b8956a</code>
+            <span class="color-value rgb">RGB 184, 149, 106</span>
+          </div>
+        </div>
+      </div>
+      
+    </div>
+
+    <!-- Semantic Colors -->
+    <h3 class="subsection-title">Semantic Colors</h3>
+    <div class="color-grid">
+      
+
+      
+      <div class="color-card" data-color="#6bc48f">
+        <span class="copy-hint">Click to copy</span>
+        <div class="color-swatch" style="background: #6bc48f;"></div>
+        <div class="color-info">
+          <div class="color-name">Success</div>
+          <div class="color-values">
+            <code class="color-value hex">#6bc48f</code>
+            <span class="color-value rgb">RGB 107, 196, 143</span>
+          </div>
+          <p class="color-usage">Positive outcomes</p>
+        </div>
+      </div>
+      
+      <div class="color-card" data-color="#e07575">
+        <span class="copy-hint">Click to copy</span>
+        <div class="color-swatch" style="background: #e07575;"></div>
+        <div class="color-info">
+          <div class="color-name">Error</div>
+          <div class="color-values">
+            <code class="color-value hex">#e07575</code>
+            <span class="color-value rgb">RGB 224, 117, 117</span>
+          </div>
+          <p class="color-usage">Errors, destructive</p>
+        </div>
+      </div>
+      
+      <div class="color-card" data-color="#e0b860">
+        <span class="copy-hint">Click to copy</span>
+        <div class="color-swatch" style="background: #e0b860;"></div>
+        <div class="color-info">
+          <div class="color-name">Warning</div>
+          <div class="color-values">
+            <code class="color-value hex">#e0b860</code>
+            <span class="color-value rgb">RGB 224, 184, 96</span>
+          </div>
+          <p class="color-usage">Caution, attention</p>
+        </div>
+      </div>
+      
+      <div class="color-card" data-color="#7da6cf">
+        <span class="copy-hint">Click to copy</span>
+        <div class="color-swatch" style="background: #7da6cf;"></div>
+        <div class="color-info">
+          <div class="color-name">Info</div>
+          <div class="color-values">
+            <code class="color-value hex">#7da6cf</code>
+            <span class="color-value rgb">RGB 125, 166, 207</span>
+          </div>
+          <p class="color-usage">Neutral information</p>
+        </div>
+      </div>
+      
+    </div>
+
+    <!-- Color Accessibility -->
+    <div class="color-accessibility">
+      <h4>Accessibility Notes</h4>
+      <div class="accessibility-grid">
+        <div class="a11y-item">
+          <div class="a11y-sample" style="background: #2C2520; color: #FAF8F5;">
+            <span>Aa</span>
+          </div>
+          <div class="a11y-info">
+            <strong>Natural Ink on Warm White</strong>
+            <span class="a11y-ratio">Contrast: 12.6:1 AAA</span>
+          </div>
+        </div>
+        <div class="a11y-item">
+          <div class="a11y-sample" style="background: #3D5A45; color: white;">
+            <span>Aa</span>
+          </div>
+          <div class="a11y-info">
+            <strong>White on Accent</strong>
+            <span class="a11y-ratio">Contrast: 5.8:1 AA</span>
+          </div>
+        </div>
+        <div class="a11y-item">
+          <div class="a11y-sample" style="background: #1a1612; color: #FAF8F5;">
+            <span>Aa</span>
+          </div>
+          <div class="a11y-info">
+            <strong>Warm White on Cedar Night</strong>
+            <span class="a11y-ratio">Contrast: 14.2:1 AAA</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Typography Section -->
+  <section class="section" id="typography">
+    <div class="section-header">
+      <div>
+        <h2>Typography</h2>
+        <p class="section-desc">Official typefaces for all Ferni communications. All fonts are available free from Google Fonts.</p>
+      </div>
+    </div>
+
+    <div class="typography-grid">
+      <!-- Display Font -->
+      <div class="font-card">
+        <div class="font-badge">Display</div>
+        <div class="font-sample display-sample">Plus Jakarta Sans</div>
+        <div class="font-specimen">
+          <span class="specimen-light">Light — 300</span>
+          <span class="specimen-regular">Regular — 400</span>
+          <span class="specimen-medium">Medium — 500</span>
+          <span class="specimen-semibold">SemiBold — 600</span>
+          <span class="specimen-bold">Bold — 700</span>
+          <span class="specimen-extrabold">ExtraBold — 800</span>
+        </div>
+        <div class="font-meta">
+          <p class="font-usage">Headlines, titles, buttons, navigation, emphasis</p>
+          <code class="font-var">font-family: var(--font-display);</code>
+        </div>
+        <a href="https://fonts.google.com/specimen/Plus+Jakarta+Sans" target="_blank" rel="noopener" class="font-link">
+          Download from Google Fonts
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+            <polyline points="15 3 21 3 21 9"/>
+            <line x1="10" y1="14" x2="21" y2="3"/>
+          </svg>
+        </a>
+      </div>
+
+      <!-- Body Font -->
+      <div class="font-card">
+        <div class="font-badge">Body</div>
+        <div class="font-sample body-sample">Inter — The perfect body text</div>
+        <div class="font-specimen body-specimen">
+          <span class="specimen-light">Light — 300</span>
+          <span class="specimen-regular">Regular — 400</span>
+          <span class="specimen-medium">Medium — 500</span>
+          <span class="specimen-semibold">SemiBold — 600</span>
+          <span class="specimen-bold">Bold — 700</span>
+        </div>
+        <div class="font-meta">
+          <p class="font-usage">Body text, paragraphs, UI elements, forms, descriptions</p>
+          <code class="font-var">font-family: var(--font-body);</code>
+        </div>
+        <a href="https://fonts.google.com/specimen/Inter" target="_blank" rel="noopener" class="font-link">
+          Download from Google Fonts
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+            <polyline points="15 3 21 3 21 9"/>
+            <line x1="10" y1="14" x2="21" y2="3"/>
+          </svg>
+        </a>
+      </div>
+
+      <!-- Mono Font -->
+      <div class="font-card">
+        <div class="font-badge">Mono</div>
+        <div class="font-sample mono-sample">JetBrains Mono</div>
+        <div class="font-specimen mono-specimen">
+          <span class="specimen-regular">Regular — 400</span>
+          <span class="specimen-medium">Medium — 500</span>
+          <span class="specimen-bold">Bold — 700</span>
+        </div>
+        <div class="font-meta">
+          <p class="font-usage">Code, technical content, data tables, timestamps</p>
+          <code class="font-var">font-family: var(--font-mono);</code>
+        </div>
+        <a href="https://fonts.google.com/specimen/JetBrains+Mono" target="_blank" rel="noopener" class="font-link">
+          Download from Google Fonts
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+            <polyline points="15 3 21 3 21 9"/>
+            <line x1="10" y1="14" x2="21" y2="3"/>
+          </svg>
+        </a>
+      </div>
+    </div>
+
+    <!-- Type Scale -->
+    <div class="type-scale-section">
+      <h4>Type Scale</h4>
+      <div class="type-scale">
+        <div class="scale-item">
+          <span class="scale-size text-xs">12px / 0.75rem</span>
+          <span class="scale-label">XS</span>
+          <span class="scale-sample text-xs">The quick brown fox jumps over</span>
+        </div>
+        <div class="scale-item">
+          <span class="scale-size text-sm">14px / 0.875rem</span>
+          <span class="scale-label">SM</span>
+          <span class="scale-sample text-sm">The quick brown fox jumps over</span>
+        </div>
+        <div class="scale-item">
+          <span class="scale-size text-base">16px / 1rem</span>
+          <span class="scale-label">Base</span>
+          <span class="scale-sample text-base">The quick brown fox jumps over</span>
+        </div>
+        <div class="scale-item">
+          <span class="scale-size text-lg">18px / 1.125rem</span>
+          <span class="scale-label">LG</span>
+          <span class="scale-sample text-lg">The quick brown fox jumps over</span>
+        </div>
+        <div class="scale-item">
+          <span class="scale-size text-xl">20px / 1.25rem</span>
+          <span class="scale-label">XL</span>
+          <span class="scale-sample text-xl">The quick brown fox jumps</span>
+        </div>
+        <div class="scale-item">
+          <span class="scale-size text-2xl">24px / 1.5rem</span>
+          <span class="scale-label">2XL</span>
+          <span class="scale-sample text-2xl">The quick brown fox</span>
+        </div>
+        <div class="scale-item">
+          <span class="scale-size text-3xl">30px / 1.875rem</span>
+          <span class="scale-label">3XL</span>
+          <span class="scale-sample text-3xl">The quick brown fox</span>
+        </div>
+        <div class="scale-item">
+          <span class="scale-size text-4xl">36px / 2.25rem</span>
+          <span class="scale-label">4XL</span>
+          <span class="scale-sample text-4xl">The quick brown</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Guidelines & Documentation Section -->
+  <section class="section" id="guidelines">
+    <div class="section-header">
+      <div>
+        <h2>Guidelines & Documentation</h2>
+        <p class="section-desc">In-depth resources for proper brand usage and implementation.</p>
+      </div>
+    </div>
+
+    <div class="guidelines-grid">
+      <!-- Brand Guidelines -->
+      <a href="/universe/" class="guideline-card">
+        <div class="guideline-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+            <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+          </svg>
+        </div>
+        <h3>Universe Bible</h3>
+        <p>The complete Ferni story, philosophy, mission, and character backgrounds. Essential for understanding the brand.</p>
+        <span class="guideline-link-text">
+          Read Story
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="9 18 15 12 9 6"/>
+          </svg>
+        </span>
+      </a>
+
+      <!-- Expression System -->
+      <a href="/expressions/" class="guideline-card">
+        <div class="guideline-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"/>
+            <path d="M8 14s1.5 2 4 2 4-2 4-2"/>
+            <line x1="9" y1="9" x2="9.01" y2="9"/>
+            <line x1="15" y1="9" x2="15.01" y2="9"/>
+          </svg>
+        </div>
+        <h3>Expression System</h3>
+        <p>100+ avatar expressions organized in 12 families. Animation principles and the Luxo-style eye documentation.</p>
+        <span class="guideline-link-text">
+          View Expressions
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="9 18 15 12 9 6"/>
+          </svg>
+        </span>
+      </a>
+
+      <!-- Data Visualizations -->
+      <a href="/visualizations/" class="guideline-card">
+        <div class="guideline-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="20" x2="18" y2="10"/>
+            <line x1="12" y1="20" x2="12" y2="4"/>
+            <line x1="6" y1="20" x2="6" y2="14"/>
+          </svg>
+        </div>
+        <h3>Data Visualization</h3>
+        <p>Chart patterns, color accessibility, animation principles for presenting data in the Ferni style.</p>
+        <span class="guideline-link-text">
+          View Patterns
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="9 18 15 12 9 6"/>
+          </svg>
+        </span>
+      </a>
+
+      <!-- Motion Language -->
+      <a href="/animations/" class="guideline-card">
+        <div class="guideline-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/>
+          </svg>
+        </div>
+        <h3>Motion Language</h3>
+        <p>Animation timing, easing curves, and the 12 principles of Ferni motion inspired by Pixar guidelines.</p>
+        <span class="guideline-link-text">
+          Explore Motion
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="9 18 15 12 9 6"/>
+          </svg>
+        </span>
+      </a>
+
+      <!-- Design Tokens -->
+      <a href="/colors/" class="guideline-card">
+        <div class="guideline-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="13.5" cy="6.5" r="2.5"/>
+            <circle cx="6.5" cy="12" r="2.5"/>
+            <circle cx="17.5" cy="12" r="2.5"/>
+            <circle cx="12" cy="18.5" r="2.5"/>
+          </svg>
+        </div>
+        <h3>Design Tokens</h3>
+        <p>CSS custom properties with all colors, spacing, typography, and animation values. The single source of truth.</p>
+        <span class="guideline-link-text">
+          View Tokens
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="9 18 15 12 9 6"/>
+          </svg>
+        </span>
+      </a>
+
+      <!-- Luxo-Style Eyes -->
+      <div class="guideline-card luxo-highlight">
+        <div class="guideline-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"/>
+            <ellipse cx="9" cy="11" rx="2" ry="3" fill="currentColor"/>
+            <ellipse cx="15" cy="11" rx="2" ry="3" fill="currentColor"/>
+          </svg>
+        </div>
+        <h3>Luxo-Style Eyes</h3>
+        <p>The defining feature: <strong>opaque white eyes with NO pupils</strong>. Expression comes from eye SHAPE, inspired by Pixar's Luxo Jr.</p>
+        <div class="luxo-demo">
+          <svg viewBox="0 0 60 30" width="120" height="60">
+            <ellipse cx="15" cy="15" rx="7" ry="10" fill="white" stroke="var(--accent-primary)" stroke-width="1"/>
+            <ellipse cx="45" cy="15" rx="7" ry="10" fill="white" stroke="var(--accent-primary)" stroke-width="1"/>
+          </svg>
+          <span class="luxo-label">Correct: Opaque white, no pupils</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="kit-footer">
+    <div class="footer-content">
+      <div class="footer-brand">
+        <svg viewBox="0 0 60 60" width="40" height="40">
+          <circle cx="30" cy="30" r="28" fill="#4a6741"/>
+          <ellipse cx="22" cy="29" rx="4" ry="6" fill="white"/>
+          <ellipse cx="38" cy="29" rx="4" ry="6" fill="white"/>
+        </svg>
+        <span class="footer-brand-name">Ferni</span>
+      </div>
+      <p class="footer-contact">Questions about brand usage? Contact <a href="mailto:brand@ferni.ai">brand@ferni.ai</a></p>
+      <p class="footer-copyright">2025 Ferni. All rights reserved.</p>
+    </div>
+  </footer>
+</article>
+
+<style>
+/* ================================================
+   Brand Kit Page Styles
+   ================================================ */
+
+.brand-kit-page {
+  max-width: 100%;
+}
+
+/* Hero Section */
+.kit-hero {
+  position: relative;
+  text-align: center;
+  padding: var(--space-20) var(--space-8) var(--space-16);
+  background: linear-gradient(180deg, var(--bg-secondary) 0%, var(--bg-primary) 100%);
+  overflow: hidden;
+}
+
+.hero-content {
+  position: relative;
+  z-index: 2;
+}
+
+.kit-hero h1 {
+  font-family: var(--font-display);
+  font-size: var(--text-5xl);
+  font-weight: var(--font-weight-bold);
+  letter-spacing: -0.02em;
+  margin-bottom: var(--space-4);
+}
+
+.hero-lead {
+  font-size: var(--text-lg);
+  color: var(--text-secondary);
+  max-width: 600px;
+  margin: 0 auto var(--space-8);
+  line-height: var(--leading-relaxed);
+}
+
+.download-all-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  background: var(--accent-primary);
+  color: white;
+  padding: var(--space-4) var(--space-8);
+  border-radius: var(--radius-lg);
+  border: none;
+  cursor: pointer;
+  font-weight: var(--font-weight-semibold);
+  font-size: var(--text-base);
+  font-family: var(--font-body);
+  transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+  box-shadow: 0 4px 16px rgba(74, 103, 65, 0.25);
+}
+
+.download-all-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(74, 103, 65, 0.35);
+}
+
+.hero-note {
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+  margin-top: var(--space-3);
+}
+
+/* Floating Avatars */
+.hero-avatars {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.floating-orb {
+  position: absolute;
+  animation: floatOrb 6s ease-in-out infinite;
+}
+
+.orb-1 {
+  top: 15%;
+  right: 10%;
+  animation-delay: 0s;
+}
+
+.orb-2 {
+  bottom: 20%;
+  left: 8%;
+  animation-delay: -2s;
+}
+
+.orb-3 {
+  top: 30%;
+  left: 15%;
+  animation-delay: -4s;
+}
+
+@keyframes floatOrb {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50% { transform: translateY(-15px) rotate(3deg); }
+}
+
+/* Quick Jump Navigation */
+.kit-nav {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  padding: var(--space-6) var(--space-4);
+  background: var(--bg-elevated);
+  border-bottom: 1px solid var(--border-subtle);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.kit-nav-link {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-full);
+  text-decoration: none;
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+  font-weight: var(--font-weight-medium);
+  transition: all 0.2s var(--ease-spring);
+}
+
+.kit-nav-link:hover {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+}
+
+/* Section Styles */
+.section {
+  padding: var(--space-16) var(--space-8);
+  max-width: 1200px;
+  margin: 0 auto;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.section-header {
+  margin-bottom: var(--space-8);
+}
+
+.section-header h2 {
+  font-family: var(--font-display);
+  font-size: var(--text-3xl);
+  font-weight: var(--font-weight-bold);
+  margin-bottom: var(--space-2);
+}
+
+.section-desc {
+  font-size: var(--text-base);
+  color: var(--text-secondary);
+}
+
+.subsection-title {
+  font-size: var(--text-lg);
+  font-weight: var(--font-weight-semibold);
+  margin: var(--space-10) 0 var(--space-4);
+  color: var(--text-secondary);
+}
+
+/* Asset Grid */
+.asset-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: var(--space-6);
+}
+
+.asset-card {
+  background: var(--bg-elevated);
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+  border: 1px solid var(--border-subtle);
+  transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.asset-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-xl);
+  border-color: var(--accent-primary);
+}
+
+.asset-preview {
+  height: 160px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-6);
+}
+
+.asset-preview.light-bg {
+  background: var(--bg-secondary);
+}
+
+.asset-preview.dark-bg {
+  background: #1a1612;
+}
+
+.asset-preview.gradient-bg {
+  background: linear-gradient(135deg, #4a6741 0%, #3d5a35 100%);
+}
+
+.asset-preview.social-bg {
+  background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-tertiary) 100%);
+}
+
+.asset-info {
+  padding: var(--space-5);
+  border-top: 1px solid var(--border-subtle);
+}
+
+.asset-name {
+  font-weight: var(--font-weight-semibold);
+  font-size: var(--text-base);
+  margin-bottom: var(--space-1);
+}
+
+.asset-meta {
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+  margin-bottom: var(--space-3);
+}
+
+.asset-formats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.asset-formats.centered {
+  justify-content: center;
+  margin-top: var(--space-4);
+}
+
+.format-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-2) var(--space-3);
+  background: var(--bg-secondary);
+  border-radius: var(--radius-md);
+  font-size: var(--text-xs);
+  font-weight: var(--font-weight-medium);
+  color: var(--text-secondary);
+  text-decoration: none;
+  transition: all 0.15s;
+}
+
+.format-tag:hover {
+  background: var(--accent-primary);
+  color: white;
+}
+
+/* Wordmark Preview */
+.wordmark-preview {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.wordmark-text {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: var(--text-3xl);
+  color: var(--text-primary);
+}
+
+/* Favicon Sizes */
+.favicon-sizes {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--space-4);
+}
+
+/* Social Preview Mock */
+.social-preview-mock {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  background: var(--bg-primary);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+}
+
+.social-preview-mock span {
+  font-family: var(--font-display);
+  font-weight: var(--font-weight-bold);
+  font-size: var(--text-lg);
+}
+
+/* Usage Rules */
+.usage-rules {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: var(--space-6);
+  margin-top: var(--space-10);
+}
+
+.rule {
+  background: var(--bg-elevated);
+  border-radius: var(--radius-xl);
+  padding: var(--space-6);
+}
+
+.rule.do {
+  border-left: 4px solid var(--success);
+}
+
+.rule.dont {
+  border-left: 4px solid var(--error);
+}
+
+.rule-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-4);
+}
+
+.rule-header h5 {
+  font-size: var(--text-lg);
+  font-weight: var(--font-weight-semibold);
+}
+
+.rule.do .rule-header { color: var(--success); }
+.rule.dont .rule-header { color: var(--error); }
+
+.rule ul {
+  list-style: none;
+  padding: 0;
+}
+
+.rule li {
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  margin-bottom: var(--space-2);
+  padding-left: var(--space-5);
+  position: relative;
+}
+
+.rule li::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 8px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.rule.do li::before { background: var(--success); }
+.rule.dont li::before { background: var(--error); }
+
+/* Clear Space Diagram */
+.clear-space-diagram {
+  background: var(--bg-elevated);
+  border-radius: var(--radius-xl);
+  padding: var(--space-8);
+  margin-top: var(--space-10);
+}
+
+.clear-space-diagram h4 {
+  font-size: var(--text-lg);
+  font-weight: var(--font-weight-semibold);
+  margin-bottom: var(--space-6);
+}
+
+.diagram-wrapper {
+  display: flex;
+  align-items: center;
+  gap: var(--space-8);
+  flex-wrap: wrap;
+}
+
+.diagram-visual {
+  flex: 0 0 auto;
+}
+
+.clear-zone {
+  position: relative;
+  padding: 30px;
+  border: 2px dashed var(--accent-primary);
+  border-radius: var(--radius-lg);
+  background: var(--bg-secondary);
+}
+
+.measure-x, .measure-y {
+  position: absolute;
+  background: var(--accent-primary);
+}
+
+.measure-x {
+  height: 2px;
+  width: 30px;
+  top: 50%;
+  right: -32px;
+  transform: translateY(-50%);
+}
+
+.measure-y {
+  width: 2px;
+  height: 30px;
+  bottom: -32px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.measure-x::after, .measure-y::after {
+  content: 'X';
+  position: absolute;
+  font-size: var(--text-xs);
+  font-weight: var(--font-weight-bold);
+  color: var(--accent-primary);
+}
+
+.measure-x::after {
+  right: -16px;
+  top: -8px;
+}
+
+.measure-y::after {
+  bottom: -16px;
+  left: 6px;
+}
+
+.diagram-caption {
+  flex: 1;
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  line-height: var(--leading-relaxed);
+}
+
+/* Persona Grid */
+.persona-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: var(--space-6);
+}
+
+.persona-card {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-xl);
+  padding: var(--space-6);
+  transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.persona-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-xl);
+  border-color: var(--persona-accent);
+}
+
+.persona-avatar-wrapper {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  margin-bottom: var(--space-4);
+}
+
+.persona-avatar-svg {
+  transition: transform 0.3s var(--ease-spring);
+}
+
+.persona-card:hover .persona-avatar-svg {
+  transform: scale(1.05);
+}
+
+.persona-glow {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle, var(--persona-accent) 0%, transparent 70%);
+  opacity: 0;
+  transition: opacity 0.3s;
+  pointer-events: none;
+  filter: blur(20px);
+}
+
+.persona-card:hover .persona-glow {
+  opacity: 0.2;
+}
+
+.persona-info {
+  text-align: center;
+}
+
+.persona-name {
+  font-family: var(--font-display);
+  font-size: var(--text-xl);
+  font-weight: var(--font-weight-bold);
+  margin-bottom: var(--space-1);
+}
+
+.persona-role {
+  display: inline-block;
+  padding: var(--space-1) var(--space-3);
+  background: var(--persona-accent);
+  color: white;
+  border-radius: var(--radius-full);
+  font-size: var(--text-xs);
+  font-weight: var(--font-weight-medium);
+  margin-bottom: var(--space-2);
+}
+
+.persona-desc {
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+  margin-bottom: var(--space-4);
+}
+
+.persona-color-info {
+  display: flex;
+  justify-content: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+}
+
+.color-hex, .color-rgb {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  background: var(--bg-code);
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-sm);
+}
+
+.persona-actions {
+  display: flex;
+  justify-content: center;
+  gap: var(--space-2);
+}
+
+.copy-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-2) var(--space-3);
+  background: var(--bg-secondary);
+  border: none;
+  border-radius: var(--radius-md);
+  font-size: var(--text-xs);
+  font-weight: var(--font-weight-medium);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.copy-btn:hover {
+  background: var(--accent-primary);
+  color: white;
+}
+
+.copy-btn.copied {
+  background: var(--success);
+  color: white;
+}
+
+.copy-btn .check-icon {
+  display: none;
+}
+
+.copy-btn.copied .copy-icon {
+  display: none;
+}
+
+.copy-btn.copied .check-icon {
+  display: block;
+}
+
+/* Team Portrait */
+.team-portrait {
+  background: var(--bg-elevated);
+  border-radius: var(--radius-xl);
+  padding: var(--space-8);
+  margin-top: var(--space-10);
+  text-align: center;
+}
+
+.team-portrait h4 {
+  font-size: var(--text-lg);
+  font-weight: var(--font-weight-semibold);
+  margin-bottom: var(--space-6);
+}
+
+.portrait-row {
+  display: flex;
+  justify-content: center;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+}
+
+.team-orb {
+  animation: gentleBounce 3s ease-in-out infinite;
+}
+
+@keyframes gentleBounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+
+/* Color Grid */
+.color-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: var(--space-4);
+}
+
+.color-card {
+  background: var(--bg-elevated);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  border: 1px solid var(--border-subtle);
+  cursor: pointer;
+  position: relative;
+  transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.color-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+}
+
+.copy-hint {
+  position: absolute;
+  top: var(--space-2);
+  right: var(--space-2);
+  padding: var(--space-1) var(--space-2);
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(4px);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-xs);
+  font-weight: var(--font-weight-medium);
+  color: var(--text-secondary);
+  opacity: 0;
+  transform: translateY(-4px);
+  transition: all 0.2s ease;
+  pointer-events: none;
+  z-index: 10;
+}
+
+.color-card:hover .copy-hint {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.color-card.copied .copy-hint {
+  background: var(--accent-primary);
+  color: white;
+}
+
+.color-card.copied {
+  animation: copyPulse 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes copyPulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.02); }
+  100% { transform: scale(1); }
+}
+
+.color-swatch {
+  height: 80px;
+}
+
+.color-info {
+  padding: var(--space-4);
+}
+
+.color-name {
+  font-weight: var(--font-weight-semibold);
+  font-size: var(--text-sm);
+  margin-bottom: var(--space-2);
+}
+
+.color-values {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.color-value {
+  font-size: var(--text-xs);
+}
+
+.color-value.hex {
+  font-family: var(--font-mono);
+  color: var(--text-primary);
+}
+
+.color-value.rgb {
+  color: var(--text-muted);
+}
+
+.color-usage {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  margin-top: var(--space-2);
+}
+
+/* Accessibility Section */
+.color-accessibility {
+  background: var(--bg-elevated);
+  border-radius: var(--radius-xl);
+  padding: var(--space-8);
+  margin-top: var(--space-10);
+}
+
+.color-accessibility h4 {
+  font-size: var(--text-lg);
+  font-weight: var(--font-weight-semibold);
+  margin-bottom: var(--space-6);
+}
+
+.accessibility-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: var(--space-4);
+}
+
+.a11y-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+.a11y-sample {
+  width: 60px;
+  height: 60px;
+  border-radius: var(--radius-lg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--text-xl);
+  font-weight: var(--font-weight-bold);
+}
+
+.a11y-info {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.a11y-info strong {
+  font-size: var(--text-sm);
+}
+
+.a11y-ratio {
+  font-size: var(--text-xs);
+  color: var(--success);
+  font-weight: var(--font-weight-medium);
+}
+
+/* Typography Grid */
+.typography-grid {
+  display: grid;
+  gap: var(--space-6);
+}
+
+.font-card {
+  background: var(--bg-elevated);
+  border-radius: var(--radius-xl);
+  padding: var(--space-8);
+  border: 1px solid var(--border-subtle);
+}
+
+.font-badge {
+  display: inline-block;
+  padding: var(--space-1) var(--space-3);
+  background: var(--accent-subtle);
+  color: var(--accent-text);
+  border-radius: var(--radius-full);
+  font-size: var(--text-xs);
+  font-weight: var(--font-weight-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: var(--space-4);
+}
+
+.font-sample {
+  font-size: var(--text-4xl);
+  font-weight: 800;
+  margin-bottom: var(--space-4);
+  color: var(--text-primary);
+}
+
+.font-sample.display-sample {
+  font-family: var(--font-display);
+}
+
+.font-sample.body-sample {
+  font-family: var(--font-body);
+  font-weight: 400;
+}
+
+.font-sample.mono-sample {
+  font-family: var(--font-mono);
+  font-weight: 400;
+}
+
+.font-specimen {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+  margin-bottom: var(--space-6);
+  padding-bottom: var(--space-6);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.font-specimen span {
+  font-family: var(--font-display);
+  font-size: var(--text-sm);
+}
+
+.body-specimen span {
+  font-family: var(--font-body);
+}
+
+.mono-specimen span {
+  font-family: var(--font-mono);
+}
+
+.specimen-light { font-weight: 300; }
+.specimen-regular { font-weight: 400; }
+.specimen-medium { font-weight: 500; }
+.specimen-semibold { font-weight: 600; }
+.specimen-bold { font-weight: 700; }
+.specimen-extrabold { font-weight: 800; }
+
+.font-meta {
+  margin-bottom: var(--space-4);
+}
+
+.font-usage {
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+  margin-bottom: var(--space-2);
+}
+
+.font-var {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  background: var(--bg-code);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+  display: inline-block;
+}
+
+.font-link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--accent-primary);
+  font-size: var(--text-sm);
+  font-weight: var(--font-weight-medium);
+  text-decoration: none;
+}
+
+.font-link:hover {
+  text-decoration: underline;
+}
+
+/* Type Scale */
+.type-scale-section {
+  background: var(--bg-elevated);
+  border-radius: var(--radius-xl);
+  padding: var(--space-8);
+  margin-top: var(--space-10);
+}
+
+.type-scale-section h4 {
+  font-size: var(--text-lg);
+  font-weight: var(--font-weight-semibold);
+  margin-bottom: var(--space-6);
+}
+
+.type-scale {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.scale-item {
+  display: grid;
+  grid-template-columns: 140px 60px 1fr;
+  gap: var(--space-4);
+  align-items: center;
+  padding: var(--space-3);
+  background: var(--bg-secondary);
+  border-radius: var(--radius-md);
+}
+
+.scale-size {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+
+.scale-label {
+  font-weight: var(--font-weight-semibold);
+  font-size: var(--text-sm);
+  color: var(--accent-primary);
+}
+
+.scale-sample {
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.text-xs { font-size: 12px; }
+.text-sm { font-size: 14px; }
+.text-base { font-size: 16px; }
+.text-lg { font-size: 18px; }
+.text-xl { font-size: 20px; }
+.text-2xl { font-size: 24px; }
+.text-3xl { font-size: 30px; }
+.text-4xl { font-size: 36px; }
+
+/* Guidelines Grid */
+.guidelines-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: var(--space-6);
+}
+
+.guideline-card {
+  display: block;
+  background: var(--bg-elevated);
+  border-radius: var(--radius-xl);
+  padding: var(--space-6);
+  border: 1px solid var(--border-subtle);
+  text-decoration: none;
+  color: inherit;
+  transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.guideline-card:hover {
+  transform: translateY(-4px);
+  border-color: var(--accent-primary);
+  box-shadow: var(--shadow-xl);
+}
+
+.guideline-card.luxo-highlight {
+  background: linear-gradient(135deg, var(--bg-elevated) 0%, var(--accent-subtle) 100%);
+  border-color: var(--accent-primary);
+}
+
+.guideline-icon {
+  width: 48px;
+  height: 48px;
+  background: var(--accent-subtle);
+  border-radius: var(--radius-lg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: var(--space-4);
+}
+
+.guideline-icon svg {
+  width: 24px;
+  height: 24px;
+  color: var(--accent-primary);
+}
+
+.guideline-card h3 {
+  font-size: var(--text-lg);
+  font-weight: var(--font-weight-semibold);
+  margin-bottom: var(--space-2);
+}
+
+.guideline-card p {
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  margin-bottom: var(--space-4);
+  line-height: var(--leading-relaxed);
+}
+
+.guideline-link-text {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  color: var(--accent-primary);
+  font-size: var(--text-sm);
+  font-weight: var(--font-weight-medium);
+}
+
+/* Luxo Demo */
+.luxo-demo {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-4);
+  background: var(--bg-primary);
+  border-radius: var(--radius-lg);
+  margin-top: var(--space-4);
+}
+
+.luxo-label {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+
+/* Footer */
+.kit-footer {
+  text-align: center;
+  padding: var(--space-12) var(--space-8);
+  border-top: 1px solid var(--border-subtle);
+  background: var(--bg-secondary);
+}
+
+.footer-content {
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.footer-brand {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-6);
+}
+
+.footer-brand-name {
+  font-family: var(--font-display);
+  font-weight: var(--font-weight-bold);
+  font-size: var(--text-2xl);
+}
+
+.footer-contact {
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  margin-bottom: var(--space-2);
+}
+
+.footer-contact a {
+  color: var(--accent-primary);
+  text-decoration: none;
+}
+
+.footer-contact a:hover {
+  text-decoration: underline;
+}
+
+.footer-copyright {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .kit-hero {
+    padding: var(--space-12) var(--space-4);
+  }
+
+  .kit-hero h1 {
+    font-size: var(--text-3xl);
+  }
+
+  .kit-nav {
+    gap: var(--space-2);
+  }
+
+  .kit-nav-link {
+    padding: var(--space-2);
+    font-size: var(--text-xs);
+  }
+
+  .kit-nav-link svg {
+    display: none;
+  }
+
+  .section {
+    padding: var(--space-10) var(--space-4);
+  }
+
+  .asset-grid,
+  .persona-grid,
+  .guidelines-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .color-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .scale-item {
+    grid-template-columns: 1fr;
+    gap: var(--space-1);
+  }
+
+  .diagram-wrapper {
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .floating-orb {
+    display: none;
+  }
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  // Color copy functionality
+  document.querySelectorAll('.color-card').forEach(function(card) {
+    card.addEventListener('click', async function() {
+      var colorValue = card.dataset.color;
+      var copyHint = card.querySelector('.copy-hint');
+
+      try {
+        await navigator.clipboard.writeText(colorValue);
+
+        copyHint.textContent = 'Copied!';
+        card.classList.add('copied');
+
+        setTimeout(function() {
+          copyHint.textContent = 'Click to copy';
+          card.classList.remove('copied');
+        }, 1500);
+      } catch (err) {
+        // Fallback for older browsers
+        var textarea = document.createElement('textarea');
+        textarea.value = colorValue;
+        textarea.style.position = 'fixed';
+        textarea.style.opacity = '0';
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+
+        copyHint.textContent = 'Copied!';
+        card.classList.add('copied');
+
+        setTimeout(function() {
+          copyHint.textContent = 'Click to copy';
+          card.classList.remove('copied');
+        }, 1500);
+      }
+    });
+  });
+
+  // Persona card copy buttons - using safe DOM manipulation
+  document.querySelectorAll('.persona-card .copy-btn').forEach(function(btn) {
+    btn.addEventListener('click', async function(e) {
+      e.stopPropagation();
+      var colorValue = btn.dataset.copyText;
+      var copyTextSpan = btn.querySelector('.copy-text');
+
+      try {
+        await navigator.clipboard.writeText(colorValue);
+
+        // Update button state safely
+        btn.classList.add('copied');
+        copyTextSpan.textContent = 'Copied!';
+
+        setTimeout(function() {
+          btn.classList.remove('copied');
+          copyTextSpan.textContent = 'Copy';
+        }, 1500);
+      } catch (err) {
+        console.error('Copy failed:', err);
+      }
+    });
+  });
+
+  // Download kit button (placeholder)
+  var downloadBtn = document.getElementById('downloadKit');
+  if (downloadBtn) {
+    downloadBtn.addEventListener('click', function() {
+      // In production, this would trigger a ZIP download
+      alert('Complete brand kit download coming soon!\n\nFor now, download individual assets from each section.');
+    });
+  }
+
+  // Smooth scroll for navigation
+  document.querySelectorAll('.kit-nav-link').forEach(function(link) {
+    link.addEventListener('click', function(e) {
+      var href = link.getAttribute('href');
+      if (href.startsWith('#')) {
+        e.preventDefault();
+        var target = document.querySelector(href);
+        if (target) {
+          target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }
+    });
+  });
+
+  // Animate team orbs on hover
+  var teamOrbs = document.querySelectorAll('.team-orb');
+  teamOrbs.forEach(function(orb, index) {
+    orb.addEventListener('mouseenter', function() {
+      orb.style.animation = 'none';
+      orb.style.transform = 'translateY(-12px) scale(1.1)';
+    });
+    orb.addEventListener('mouseleave', function() {
+      orb.style.transform = '';
+      orb.style.animation = 'gentleBounce 3s ease-in-out infinite ' + (index * 0.1) + 's';
+    });
+  });
+
+  // Highlight active nav on scroll
+  var sections = document.querySelectorAll('.section[id]');
+  var navLinks = document.querySelectorAll('.kit-nav-link');
+
+  var observer = new IntersectionObserver(function(entries) {
+    entries.forEach(function(entry) {
+      if (entry.isIntersecting) {
+        var id = entry.target.id;
+        navLinks.forEach(function(link) {
+          link.classList.remove('active');
+          if (link.getAttribute('href') === '#' + id) {
+            link.classList.add('active');
+          }
+        });
+      }
+    });
+  }, { threshold: 0.3, rootMargin: '-80px 0px 0px 0px' });
+
+  sections.forEach(function(section) {
+    observer.observe(section);
+  });
+});
+</script>
+
+    </main>
+  </div>
+
+  <style>
+    /* Search styles */
+    .sidebar-search {
+      padding: 0 var(--space-4);
+      margin-bottom: var(--space-4);
+      position: relative;
+    }
+    .sidebar-search input {
+      width: 100%;
+      padding: var(--space-2) var(--space-3);
+      padding-left: 36px;
+      background: var(--bg-subtle);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      color: var(--text-primary);
+      font-size: var(--text-sm);
+      font-family: var(--font-body);
+    }
+    .sidebar-search input:focus {
+      outline: none;
+      border-color: var(--color-accent);
+      box-shadow: 0 0 0 3px rgba(61, 90, 69, 0.1);
+    }
+    .sidebar-search input::placeholder {
+      color: var(--text-tertiary);
+    }
+    .search-icon {
+      position: absolute;
+      left: calc(var(--space-4) + 10px);
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-tertiary);
+      pointer-events: none;
+    }
+    .search-results {
+      position: fixed;
+      top: 80px;
+      left: 260px;
+      width: 400px;
+      max-height: 60vh;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border-default);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-lg);
+      overflow-y: auto;
+      z-index: 1000;
+      display: none;
+    }
+    .search-results.active {
+      display: block;
+    }
+    .search-result-item {
+      display: block;
+      padding: var(--space-3) var(--space-4);
+      border-bottom: 1px solid var(--border-subtle);
+      text-decoration: none;
+      color: var(--text-primary);
+      transition: background 0.15s;
+    }
+    .search-result-item:hover {
+      background: var(--bg-subtle);
+    }
+    .search-result-item:last-child {
+      border-bottom: none;
+    }
+    .search-result-title {
+      font-weight: 600;
+      margin-bottom: 2px;
+    }
+    .search-result-section {
+      font-size: var(--text-xs);
+      color: var(--text-tertiary);
+    }
+    .search-no-results {
+      padding: var(--space-4);
+      text-align: center;
+      color: var(--text-secondary);
+    }
+
+    /* Theme preview button */
+    .theme-preview-btn {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+      padding: var(--space-2) var(--space-3);
+      background: var(--bg-subtle);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      color: var(--text-secondary);
+      font-size: var(--text-xs);
+      font-family: var(--font-body);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .theme-preview-btn:hover {
+      background: var(--bg-elevated);
+      border-color: var(--color-accent);
+      color: var(--text-primary);
+    }
+
+    /* Theme preview modal */
+    .theme-preview-modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.8);
+      backdrop-filter: blur(8px);
+      z-index: 2000;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: var(--space-6);
+    }
+    .theme-preview-modal.active {
+      display: flex;
+    }
+    .theme-preview-header {
+      position: absolute;
+      top: var(--space-4);
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      align-items: center;
+      gap: var(--space-4);
+    }
+    .theme-preview-header h3 {
+      color: white;
+      margin: 0;
+    }
+    .close-preview {
+      background: rgba(255, 255, 255, 0.1);
+      border: none;
+      padding: var(--space-2);
+      border-radius: var(--radius-md);
+      color: white;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .close-preview:hover {
+      background: rgba(255, 255, 255, 0.2);
+    }
+    .theme-preview-content {
+      display: flex;
+      gap: var(--space-6);
+      max-width: 900px;
+      width: 100%;
+    }
+    .theme-panel {
+      flex: 1;
+      border-radius: var(--radius-xl);
+      overflow: hidden;
+    }
+    .theme-panel[data-theme="cedar"] {
+      background: #0c0a08;
+    }
+    .theme-panel[data-theme="zen"] {
+      background: #FFFDFB;
+    }
+    .theme-label {
+      padding: var(--space-3) var(--space-4);
+      font-weight: 600;
+      font-size: var(--text-sm);
+    }
+    .theme-panel[data-theme="cedar"] .theme-label {
+      color: #FAF8F5;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    .theme-panel[data-theme="zen"] .theme-label {
+      color: #2C2520;
+      border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+    }
+    .theme-sample {
+      padding: var(--space-5);
+    }
+    .sample-card {
+      display: flex;
+      gap: var(--space-4);
+      padding: var(--space-4);
+      border-radius: var(--radius-lg);
+      margin-bottom: var(--space-4);
+    }
+    .theme-panel[data-theme="cedar"] .sample-card {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .theme-panel[data-theme="zen"] .sample-card {
+      background: rgba(0, 0, 0, 0.02);
+      border: 1px solid rgba(0, 0, 0, 0.08);
+    }
+    .sample-avatar {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      background: #4a6741;
+    }
+    .sample-text {
+      flex: 1;
+    }
+    .sample-title {
+      height: 14px;
+      width: 60%;
+      border-radius: 4px;
+      margin-bottom: 8px;
+    }
+    .sample-body {
+      height: 10px;
+      width: 80%;
+      border-radius: 4px;
+    }
+    .theme-panel[data-theme="cedar"] .sample-title {
+      background: rgba(255, 255, 255, 0.15);
+    }
+    .theme-panel[data-theme="cedar"] .sample-body {
+      background: rgba(255, 255, 255, 0.08);
+    }
+    .theme-panel[data-theme="zen"] .sample-title {
+      background: rgba(0, 0, 0, 0.12);
+    }
+    .theme-panel[data-theme="zen"] .sample-body {
+      background: rgba(0, 0, 0, 0.06);
+    }
+    .sample-buttons {
+      display: flex;
+      gap: var(--space-2);
+      margin-bottom: var(--space-4);
+    }
+    .sample-btn {
+      padding: var(--space-2) var(--space-4);
+      border-radius: 9999px;
+      font-size: var(--text-sm);
+      font-weight: 600;
+      border: none;
+      cursor: default;
+    }
+    .sample-btn.primary {
+      background: #3D5A45;
+      color: white;
+    }
+    .sample-btn.secondary {
+      background: transparent;
+    }
+    .theme-panel[data-theme="cedar"] .sample-btn.secondary {
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: #FAF8F5;
+    }
+    .theme-panel[data-theme="zen"] .sample-btn.secondary {
+      border: 1px solid rgba(0, 0, 0, 0.2);
+      color: #2C2520;
+    }
+    .sample-colors {
+      display: flex;
+      gap: var(--space-2);
+    }
+    .color-dot {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+    }
+    .color-dot.ferni { background: #4a6741; }
+    .color-dot.maya { background: #a67a6a; }
+    .color-dot.peter { background: #3a6b73; }
+    .color-dot.alex { background: #5a6b8a; }
+    .color-dot.jordan { background: #c4856a; }
+
+    /* Copy button styles */
+    .code-block-wrapper {
+      position: relative;
+    }
+    .copy-btn {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding: 6px 10px;
+      background: var(--surface-secondary);
+      border: 1px solid var(--border-subtle);
+      border-radius: 6px;
+      color: var(--text-secondary);
+      font-size: 12px;
+      font-family: var(--font-body);
+      cursor: pointer;
+      opacity: 0;
+      transition: opacity 0.2s, background 0.2s;
+    }
+    .code-block-wrapper:hover .copy-btn {
+      opacity: 1;
+    }
+    .copy-btn:hover {
+      background: var(--surface-tertiary);
+      color: var(--text-primary);
+    }
+    .copy-btn.copied {
+      background: var(--color-success-subtle);
+      border-color: var(--color-success);
+      color: var(--color-success);
+    }
+    .copy-btn svg {
+      width: 14px;
+      height: 14px;
+    }
+    .copy-btn .check-icon {
+      display: none;
+    }
+    .copy-btn.copied .copy-icon {
+      display: none;
+    }
+    .copy-btn.copied .check-icon {
+      display: block;
+    }
+  </style>
+
+  <script>
+    // Theme toggle
+    function toggleTheme() {
+      var html = document.documentElement;
+      var current = html.getAttribute('data-theme');
+      var next = current === 'cedar' ? 'zen' : 'cedar';
+      html.setAttribute('data-theme', next);
+      localStorage.setItem('ferni-theme', next);
+    }
+
+    // Theme preview toggle
+    function toggleThemePreview() {
+      var modal = document.getElementById('themePreviewModal');
+      modal.classList.toggle('active');
+    }
+
+    // Close theme preview on escape
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') {
+        var modal = document.getElementById('themePreviewModal');
+        modal.classList.remove('active');
+        var searchResults = document.getElementById('searchResults');
+        searchResults.classList.remove('active');
+      }
+    });
+
+    // Search functionality
+    var searchIndex = [
+      { title: 'Overview', section: 'Foundations', url: '/' },
+      { title: 'Colors', section: 'Foundations', url: '/colors/' },
+      { title: 'Typography', section: 'Foundations', url: '/typography/' },
+      { title: 'Spacing', section: 'Foundations', url: '/spacing/' },
+      { title: 'Animation', section: 'Foundations', url: '/animation/' },
+      { title: 'Physics & Motion', section: 'Foundations', url: '/physics/' },
+      { title: 'Responsive', section: 'Foundations', url: '/responsive/' },
+      { title: 'Effects', section: 'Foundations', url: '/effects/' },
+      { title: 'Sequences', section: 'Foundations', url: '/sequences/' },
+      { title: 'Motion', section: 'Foundations', url: '/motion/' },
+      { title: 'Haptics', section: 'Foundations', url: '/haptics/' },
+      { title: 'Feedback', section: 'Patterns', url: '/feedback/' },
+      { title: 'Predictive UI', section: 'Patterns', url: '/predictive-ui/' },
+      { title: 'Personas', section: 'Brand', url: '/personas/' },
+      { title: 'Personality', section: 'Brand', url: '/personality/' },
+      { title: 'Capabilities', section: 'Brand', url: '/capabilities/' },
+      { title: 'Voice & Tone', section: 'Brand', url: '/voice/' },
+      { title: 'Sounds & Haptics', section: 'Brand', url: '/sounds-haptics/' },
+      { title: 'Sonic Identity', section: 'Brand', url: '/sonic-identity/' },
+      { title: 'Glow Colors', section: 'Brand', url: '/glow-colors/' },
+      { title: 'Window Avatar', section: 'Brand', url: '/window-avatar/' },
+      { title: 'Rituals', section: 'Brand', url: '/rituals/' },
+      { title: 'Icons', section: 'Brand', url: '/icons/' },
+      { title: 'Expressions', section: 'Brand', url: '/expressions/' },
+      { title: 'Universe', section: 'Brand', url: '/universe/' },
+      { title: 'Visualizations', section: 'Brand', url: '/visualizations/' },
+      { title: 'Brand Guardrails', section: 'Brand', url: '/brand-guardrails/' },
+      { title: 'Brand Kit', section: 'Brand', url: '/brand-kit/' },
+      { title: 'Components Overview', section: 'Components', url: '/components/' },
+      { title: 'Avatar', section: 'Components', url: '/components/avatar/' },
+      { title: 'Badge', section: 'Components', url: '/components/badge/' },
+      { title: 'Buttons', section: 'Components', url: '/components/buttons/' },
+      { title: 'Cards', section: 'Components', url: '/components/cards/' },
+      { title: 'Dropdown', section: 'Components', url: '/components/dropdown/' },
+      { title: 'Glass Surfaces', section: 'Components', url: '/components/glass/' },
+      { title: 'Inputs', section: 'Components', url: '/components/inputs/' },
+      { title: 'Modal', section: 'Components', url: '/components/modal/' },
+      { title: 'Progress', section: 'Components', url: '/components/progress/' },
+      { title: 'Tabs', section: 'Components', url: '/components/tabs/' },
+      { title: 'Toast', section: 'Components', url: '/components/toast/' },
+      { title: 'Tooltip', section: 'Components', url: '/components/tooltip/' },
+      { title: 'Spring Animations', section: 'Physics', url: '/physics/#springs' },
+      { title: 'Emotional Momentum', section: 'Physics', url: '/physics/#emotional-momentum' },
+      { title: 'Forbidden Words', section: 'Brand Guardrails', url: '/brand-guardrails/#language' },
+      { title: 'Color Rules', section: 'Brand Guardrails', url: '/brand-guardrails/#colors' },
+      { title: 'Accessibility Requirements', section: 'Brand Guardrails', url: '/brand-guardrails/#accessibility' },
+      { title: 'App Wake Ritual', section: 'Rituals', url: '/rituals/#rituals' },
+      { title: 'Celebration Rituals', section: 'Rituals', url: '/rituals/#rituals' }
+    ];
+
+    function performSearch(query) {
+      var results = document.getElementById('searchResults');
+      if (!query || query.length < 2) {
+        results.classList.remove('active');
+        return;
+      }
+
+      var lowerQuery = query.toLowerCase();
+      var matches = searchIndex.filter(function(item) {
+        return item.title.toLowerCase().indexOf(lowerQuery) !== -1 ||
+               item.section.toLowerCase().indexOf(lowerQuery) !== -1;
+      });
+
+      if (matches.length === 0) {
+        results.classList.add('active');
+        var noResults = document.createElement('div');
+        noResults.className = 'search-no-results';
+        noResults.textContent = 'No results found';
+        results.innerHTML = '';
+        results.appendChild(noResults);
+        return;
+      }
+
+      results.classList.add('active');
+      results.innerHTML = '';
+
+      matches.slice(0, 8).forEach(function(item) {
+        var link = document.createElement('a');
+        link.className = 'search-result-item';
+        link.href = item.url;
+
+        var titleDiv = document.createElement('div');
+        titleDiv.className = 'search-result-title';
+        titleDiv.textContent = item.title;
+
+        var sectionDiv = document.createElement('div');
+        sectionDiv.className = 'search-result-section';
+        sectionDiv.textContent = item.section;
+
+        link.appendChild(titleDiv);
+        link.appendChild(sectionDiv);
+        results.appendChild(link);
+      });
+    }
+
+    // Load saved theme
+    var saved = localStorage.getItem('ferni-theme');
+    if (saved) {
+      document.documentElement.setAttribute('data-theme', saved);
+    }
+
+    // Initialize search
+    document.addEventListener('DOMContentLoaded', function() {
+      var searchInput = document.getElementById('searchInput');
+      if (searchInput) {
+        searchInput.addEventListener('input', function(e) {
+          performSearch(e.target.value);
+        });
+
+        // Close search results when clicking outside
+        document.addEventListener('click', function(e) {
+          var results = document.getElementById('searchResults');
+          if (!e.target.closest('.sidebar-search') && !e.target.closest('.search-results')) {
+            results.classList.remove('active');
+          }
+        });
+      }
+    });
+
+    // Copy to clipboard functionality
+    document.addEventListener('DOMContentLoaded', function() {
+      const codeBlocks = document.querySelectorAll('pre');
+
+      codeBlocks.forEach(function(pre) {
+        // Create wrapper
+        const wrapper = document.createElement('div');
+        wrapper.className = 'code-block-wrapper';
+        pre.parentNode.insertBefore(wrapper, pre);
+        wrapper.appendChild(pre);
+
+        // Create copy button using safe DOM methods
+        const copyBtn = document.createElement('button');
+        copyBtn.className = 'copy-btn';
+        copyBtn.type = 'button';
+        copyBtn.setAttribute('aria-label', 'Copy code');
+
+        // Create copy icon SVG
+        const copyIcon = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        copyIcon.setAttribute('class', 'copy-icon');
+        copyIcon.setAttribute('viewBox', '0 0 24 24');
+        copyIcon.setAttribute('fill', 'none');
+        copyIcon.setAttribute('stroke', 'currentColor');
+        copyIcon.setAttribute('stroke-width', '2');
+        const copyPath1 = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+        copyPath1.setAttribute('x', '9');
+        copyPath1.setAttribute('y', '9');
+        copyPath1.setAttribute('width', '13');
+        copyPath1.setAttribute('height', '13');
+        copyPath1.setAttribute('rx', '2');
+        const copyPath2 = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        copyPath2.setAttribute('d', 'M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1');
+        copyIcon.appendChild(copyPath1);
+        copyIcon.appendChild(copyPath2);
+
+        // Create check icon SVG
+        const checkIcon = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        checkIcon.setAttribute('class', 'check-icon');
+        checkIcon.setAttribute('viewBox', '0 0 24 24');
+        checkIcon.setAttribute('fill', 'none');
+        checkIcon.setAttribute('stroke', 'currentColor');
+        checkIcon.setAttribute('stroke-width', '2');
+        const checkPath = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
+        checkPath.setAttribute('points', '20 6 9 17 4 12');
+        checkIcon.appendChild(checkPath);
+
+        // Create text span
+        const textSpan = document.createElement('span');
+        textSpan.className = 'copy-text';
+        textSpan.textContent = 'Copy';
+
+        // Assemble button
+        copyBtn.appendChild(copyIcon);
+        copyBtn.appendChild(checkIcon);
+        copyBtn.appendChild(textSpan);
+
+        wrapper.appendChild(copyBtn);
+
+        // Click handler
+        copyBtn.addEventListener('click', function() {
+          const code = pre.querySelector('code');
+          const text = code ? code.textContent : pre.textContent;
+
+          navigator.clipboard.writeText(text).then(function() {
+            copyBtn.classList.add('copied');
+            textSpan.textContent = 'Copied!';
+
+            setTimeout(function() {
+              copyBtn.classList.remove('copied');
+              textSpan.textContent = 'Copy';
+            }, 2000);
+          });
+        });
+      });
+    });
+  </script>
+</body>
+</html>

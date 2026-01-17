@@ -1,14 +1,14 @@
 /**
  * Subscription Badge UI - Subtle status indicator
  *
- * Philosophy: Status should be informative, not intrusive.
- * Shows tier and usage for free users in a warm, unobtrusive way.
+ * Philosophy: Founders Fund - Ferni is free forever.
+ * Status is informative and welcoming, never guilting or gatekeeping.
  *
  * Design: Small pill badge that appears near the header
  * - Trial: Shows time remaining (e.g., "5:32 left")
- * - Free tier: Shows conversations remaining
- * - Paid tier: Shows tier name
- * - Clicking opens upgrade modal
+ * - Community (free): Shows "Community" - warm, not limiting
+ * - Founding Member/Patron: Shows gratitude, not privilege
+ * - Clicking opens Founders Fund modal
  */
 
 import { DURATION, EASING } from '../config/animation-constants.js';
@@ -21,11 +21,12 @@ import {
   showUpgradeModal,
   type SubscriptionStatus,
 } from './subscription.ui.js';
+import { apiGet } from '../utils/api.js';
 
 const log = createLogger('SubBadge');
 
 // FIX BUG: Track all setTimeout calls for proper cleanup
-const { trackedTimeout, clearAll: clearAllTimeouts } = createTimeoutTracker();
+const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
 
 // ============================================================================
 // TYPES
@@ -205,12 +206,12 @@ async function refreshTrialStatus(): Promise<void> {
 
   try {
     const sessionTimeMs = sessionStartTime ? Date.now() - sessionStartTime : 0;
-    const response = await fetch(
+    const response = await apiGet<TrialStatus>(
       `/subscription/trial?userId=${encodeURIComponent(deviceId)}&sessionTime=${sessionTimeMs}`
     );
 
-    if (response.ok) {
-      currentTrialStatus = (await response.json()) as TrialStatus;
+    if (response.ok && response.data) {
+      currentTrialStatus = response.data;
       log.debug('Trial status fetched:', currentTrialStatus);
     }
   } catch (error) {
@@ -341,36 +342,36 @@ function updateBadgeDisplay(status: SubscriptionStatus | null): void {
   badgeElement.classList.remove('subscription-badge--hidden');
 
   if (status.tier === 'free') {
-    // Show conversations remaining - check both possible locations
-    const remaining = status.usage?.conversationsRemaining ?? status.conversationsRemaining ?? 5;
-    const isLow = remaining <= 2;
-
+    // Founders Fund philosophy: Ferni is FREE FOREVER
+    // Don't show "conversations remaining" - that contradicts our message
+    // Instead, show a warm invitation to support if they want to
     badgeElement.innerHTML = `
       <span class="subscription-badge__icon">${ICONS.sparkle}</span>
-      <span class="subscription-badge__text">${remaining} left</span>
+      <span class="subscription-badge__text">Community</span>
     `;
-    badgeElement.classList.toggle('subscription-badge--low', isLow);
+    badgeElement.classList.remove('subscription-badge--low');
     badgeElement.classList.remove('subscription-badge--premium');
     badgeElement.setAttribute(
       'aria-label',
-      `${remaining} conversation${remaining !== 1 ? 's' : ''} remaining this month. Click to upgrade.`
+      'Community member. Want to help us grow? Click to learn more.'
     );
   } else {
-    // Show tier name for paid users
-    const tierNames: Record<string, string> = {
-      friend: 'Life Coach',
-      partner: 'Partner',
+    // Show tier name for Founders with gratitude
+    const tierDisplay: Record<string, { short: string; full: string }> = {
+      friend: { short: 'Founder', full: 'Founding Member' },
+      partner: { short: 'Patron', full: 'Founding Patron' },
     };
+    const display = tierDisplay[status.tier] || { short: status.tier, full: status.tier };
 
     badgeElement.innerHTML = `
-      <span class="subscription-badge__icon">${ICONS.infinity}</span>
-      <span class="subscription-badge__text">${tierNames[status.tier] || status.tier}</span>
+      <span class="subscription-badge__icon">${ICONS.sparkle}</span>
+      <span class="subscription-badge__text">${display.short}</span>
     `;
     badgeElement.classList.remove('subscription-badge--low');
     badgeElement.classList.add('subscription-badge--premium');
     badgeElement.setAttribute(
       'aria-label',
-      `${tierNames[status.tier] || status.tier} plan. Click to manage.`
+      `${display.full}. Thank you for believing in us! Click to manage.`
     );
   }
 
@@ -487,32 +488,40 @@ function injectStyles(): void {
       50% { opacity: 0.7; }
     }
     
-    /* Dark theme */
-    @media (prefers-color-scheme: dark) {
-      .subscription-badge {
-        background: var(--color-background-secondary, rgba(58, 51, 48, 0.8));
-        border-color: var(--color-border-subtle, rgba(255, 255, 255, 0.1));
-        color: var(--color-text-secondary, #e8e2da);
-      }
-      
-      .subscription-badge:hover {
-        background: var(--color-background-tertiary, #4a4540);
-      }
-      
-      .subscription-badge--low {
-        background: rgba(202, 138, 4, 0.15);
-        color: #fcd34d;
-      }
-      
-      .subscription-badge--premium {
-        background: rgba(106, 138, 97, 0.2);
-        color: #8ab07f;
-      }
-      
-      .subscription-badge--trial {
-        background: linear-gradient(135deg, rgba(74, 103, 65, 0.15), rgba(106, 138, 97, 0.2));
-        color: #8ab07f;
-      }
+    /* Dark theme - use data-theme attribute (not prefers-color-scheme) */
+    [data-theme="midnight"] .subscription-badge {
+      background: var(--color-background-secondary);
+      border-color: var(--color-border-subtle);
+      color: var(--color-text-secondary);
+    }
+    
+    [data-theme="midnight"] .subscription-badge:hover {
+      background: var(--color-background-tertiary);
+    }
+    
+    [data-theme="midnight"] .subscription-badge--low {
+      background: rgba(224, 184, 96, 0.15);
+      color: var(--color-semantic-warning);
+    }
+    
+    [data-theme="midnight"] .subscription-badge--premium {
+      background: rgba(106, 138, 97, 0.2);
+      border-color: rgba(106, 138, 97, 0.4);
+      /* Use accent text for readability on dark background */
+      color: var(--color-accent-text);
+    }
+    
+    [data-theme="midnight"] .subscription-badge--premium .subscription-badge__icon {
+      color: var(--color-accent-text);
+    }
+    
+    [data-theme="midnight"] .subscription-badge--trial {
+      background: linear-gradient(135deg, rgba(74, 103, 65, 0.15), rgba(106, 138, 97, 0.2));
+      color: var(--color-accent-text);
+    }
+    
+    [data-theme="midnight"] .subscription-badge--trial .subscription-badge__icon {
+      color: var(--color-accent-text);
     }
     
     /* Reduced motion */
@@ -525,7 +534,7 @@ function injectStyles(): void {
     }
     
     /* Mobile - slightly larger touch target */
-    @media (max-width: 768px) {
+    @media (max-width: clamp(538px, 90vw, 768px)) {
       .subscription-badge {
         padding: var(--space-2, 8px) var(--space-3, 12px);
         font-size: 0.8125rem;

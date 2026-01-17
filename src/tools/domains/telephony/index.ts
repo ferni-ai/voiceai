@@ -6,7 +6,7 @@
  *
  * DOMAIN: telephony
  * TOOLS:
- *   Calling: callUser, scheduleCallback
+ *   Calling: callUser, scheduleCallback, callOnBehalf
  *
  * REQUIREMENTS:
  *   - LiveKit server with SIP Trunk configured
@@ -17,7 +17,10 @@ import { createDomainExport } from '../../registry/loader.js';
 import type { ToolDefinition, ToolContext, ExternalService } from '../../registry/types.js';
 
 // Import legacy tool creator
-import { createTelephonyTools } from '../../telephony.js';
+import { createTelephonyTools } from './telephony.js';
+
+// Import on-behalf call tool
+import { createCallOnBehalfTool } from './call-on-behalf.js';
 
 // ============================================================================
 // LEGACY TOOL WRAPPER
@@ -66,6 +69,29 @@ function getTelephonyToolDefinitions(): ToolDefinition[] {
       legacyTools.scheduleCallback,
       { tags: ['callback', 'schedule'], requiredServices: ['twilio'] }
     ),
+    // On-behalf calls: agent calls third party (doctor, restaurant, etc.)
+    {
+      id: 'callOnBehalf',
+      name: 'Call On Behalf',
+      description:
+        'Call a third party on behalf of the user (doctor, restaurant, business) and handle the conversation autonomously',
+      domain: 'telephony',
+      tags: ['telephony', 'outbound', 'autonomous', 'on-behalf'],
+      requiredServices: ['twilio'],
+      create: (ctx: ToolContext) => createCallOnBehalfTool(ctx),
+    },
+    // Personal conversational calls: agent calls family/friends for the user
+    // This is an alias for callOnBehalf with personal call defaults
+    {
+      id: 'callAndConverse',
+      name: 'Call and Converse',
+      description:
+        'Have Ferni call someone (family, friend) and have a real two-way conversation, then report back',
+      domain: 'telephony',
+      tags: ['telephony', 'outbound', 'personal', 'conversation'],
+      requiredServices: ['twilio'],
+      create: (ctx: ToolContext) => createCallOnBehalfTool(ctx),
+    },
   ];
 }
 

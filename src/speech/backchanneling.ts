@@ -163,25 +163,25 @@ export class BackchannelingSystem {
 
   /**
    * Get engagement phrase for encouraging user to continue
+   *
+   * "Better Than Human" Philosophy:
+   * - Presence, not commands ("I'm here" vs "Tell me more")
+   * - Soft sounds that blend, not interrupt
    */
   getEngagementPhrase(emotion: EmotionResult): string {
     if (emotion.distressLevel > 0.6) {
+      // For distress, pure presence is best
       const supportPhrases = [
         "I'm listening. Take your time.",
-        'Tell me more about that.',
-        'Go on. I want to understand.',
-        "I'm here. Keep going.",
+        "I'm here.",
+        'Take your time.',
+        "I'm with you.",
       ];
       return supportPhrases[Math.floor(Math.random() * supportPhrases.length)];
     }
 
-    const neutralPhrases = [
-      'Tell me more.',
-      'Go on.',
-      "I'm following.",
-      'Continue.',
-      "I'm listening.",
-    ];
+    // Neutral: soft presence sounds, not commands
+    const neutralPhrases = ["I'm here.", 'Mm-hmm.', 'Yeah.', "I'm with you."];
 
     return neutralPhrases[Math.floor(Math.random() * neutralPhrases.length)];
   }
@@ -235,13 +235,8 @@ export function getSessionBackchannelingSystem(sessionId: string): Backchannelin
 }
 
 /**
- * Remove a session's backchanneling system (on session end)
+ * Reset and remove a session's backchanneling system (on session end)
  */
-export function removeSessionBackchannelingSystem(sessionId: string): void {
+export function resetSessionBackchannelingSystem(sessionId: string): void {
   sessionBackchannelingSystems.delete(sessionId);
 }
-
-/**
- * Alias for removeSessionBackchannelingSystem (preferred naming)
- */
-export const resetSessionBackchannelingSystem = removeSessionBackchannelingSystem;

@@ -12,6 +12,7 @@
  * - Topic relevance scoring
  */
 
+import { seededChance, seededPick, seededIndex } from './utils/rng.js';
 import { getLogger } from '../utils/safe-logger.js';
 import type { PersonaConfig, StoryConfig } from '../personas/types.js';
 import type { EmotionalArc } from './emotional-arc.js';
@@ -366,10 +367,10 @@ export class StoryTimingEngine {
         `On the subject of ${context.currentTopic}, let me share something...`,
         `${context.currentTopic}... you know, that brings up a memory...`,
       ];
-      return topicTransitions[Math.floor(Math.random() * topicTransitions.length)];
+      return seededPick(`${Date.now()}:370`, topicTransitions) ?? topicTransitions[0];
     }
 
-    return transitions[Math.floor(Math.random() * transitions.length)];
+    return seededPick(`${Date.now()}:373`, transitions) ?? transitions[0];
   }
 }
 

@@ -1,0 +1,108 @@
+<!-- Values Alignment Radar Visualization Component -->
+<!-- Stated values vs actual behavior -->
+
+<section id="values-radar" class="story-section">
+  <header class="story-section-header">
+    <p class="story-section-overline">Values Alignment</p>
+    <h2 class="story-section-title">Values Radar</h2>
+    <p class="story-section-description">
+      We all have values we state and values we live. The gap between them is where growth hides. This radar shows both shapes.
+    </p>
+  </header>
+
+  <div class="bth-callout">
+    <div class="bth-callout-icon">F</div>
+    <div class="bth-callout-content">
+      <div class="bth-callout-title">Better Than Human</div>
+      <div class="bth-callout-text">
+        Friends take you at your word. Ferni gently notices when actions and stated values diverge - not to judge, but to help you align.
+      </div>
+    </div>
+  </div>
+
+  <div class="story-card">
+    <div class="story-card-header">
+      <div>
+        <h3 class="story-card-title">Living Your Values</h3>
+        <p class="story-card-subtitle">Stated importance vs observed behavior</p>
+      </div>
+    </div>
+
+    <div class="radar-container">
+      <div class="radar-chart">
+        <svg viewBox="0 0 300 300">
+          <!-- Grid circles -->
+          <circle class="radar-grid" cx="150" cy="150" r="120"/>
+          <circle class="radar-grid" cx="150" cy="150" r="90"/>
+          <circle class="radar-grid" cx="150" cy="150" r="60"/>
+          <circle class="radar-grid" cx="150" cy="150" r="30"/>
+
+          <!-- Axis lines (6 values) -->
+          <line class="radar-axis" x1="150" y1="150" x2="150" y2="30"/>
+          <line class="radar-axis" x1="150" y1="150" x2="254" y2="90"/>
+          <line class="radar-axis" x1="150" y1="150" x2="254" y2="210"/>
+          <line class="radar-axis" x1="150" y1="150" x2="150" y2="270"/>
+          <line class="radar-axis" x1="150" y1="150" x2="46" y2="210"/>
+          <line class="radar-axis" x1="150" y1="150" x2="46" y2="90"/>
+
+          <!-- Labels -->
+          <text class="radar-label" x="150" y="18" fill="var(--text-secondary)">Health</text>
+          <text class="radar-label" x="268" y="90" fill="var(--text-secondary)" text-anchor="start">Family</text>
+          <text class="radar-label" x="268" y="220" fill="var(--text-secondary)" text-anchor="start">Growth</text>
+          <text class="radar-label" x="150" y="290" fill="var(--text-secondary)">Creativity</text>
+          <text class="radar-label" x="32" y="220" fill="var(--text-secondary)" text-anchor="end">Rest</text>
+          <text class="radar-label" x="32" y="90" fill="var(--text-secondary)" text-anchor="end">Career</text>
+
+          <!-- Stated values (outer shape - Nayan gold) -->
+          <polygon class="radar-stated"
+                   points="150,42 234,99 234,201 150,258 66,201 66,99"
+                   fill="rgba(184, 149, 106, 0.2)" stroke="var(--color-nayan)" stroke-width="2"/>
+
+          <!-- Actual behavior (inner shape - Ferni green) -->
+          <polygon class="radar-actual"
+                   points="150,66 210,105 222,189 150,234 90,177 78,105"
+                   fill="rgba(74, 103, 65, 0.2)" stroke="var(--color-ferni)" stroke-width="2"/>
+
+          <!-- Data points - Stated (Nayan gold) -->
+          <circle cx="150" cy="42" r="4" fill="var(--color-nayan)"/>
+          <circle cx="234" cy="99" r="4" fill="var(--color-nayan)"/>
+          <circle cx="234" cy="201" r="4" fill="var(--color-nayan)"/>
+          <circle cx="150" cy="258" r="4" fill="var(--color-nayan)"/>
+          <circle cx="66" cy="201" r="4" fill="var(--color-nayan)"/>
+          <circle cx="66" cy="99" r="4" fill="var(--color-nayan)"/>
+
+          <!-- Data points - Actual (Ferni green) -->
+          <circle cx="150" cy="66" r="4" fill="var(--color-ferni)"/>
+          <circle cx="210" cy="105" r="4" fill="var(--color-ferni)"/>
+          <circle cx="222" cy="189" r="4" fill="var(--color-ferni)"/>
+          <circle cx="150" cy="234" r="4" fill="var(--color-ferni)"/>
+          <circle cx="90" cy="177" r="4" fill="var(--color-ferni)"/>
+          <circle cx="78" cy="105" r="4" fill="var(--color-ferni)"/>
+        </svg>
+      </div>
+
+      <div class="radar-legend">
+        <div class="radar-legend-item">
+          <div class="radar-legend-line" style="background: var(--color-nayan);"></div>
+          <span class="radar-legend-text">Stated</span>
+        </div>
+        <div class="radar-legend-item">
+          <div class="radar-legend-line" style="background: var(--color-ferni);"></div>
+          <span class="radar-legend-text">Observed</span>
+        </div>
+
+        <div class="radar-insight">
+          <div class="radar-insight-text">
+            Biggest gap: Health. You say it's important, but only 2 of 12 weeks showed consistent attention to it.
+          </div>
+        </div>
+
+        <div class="radar-insight" style="background: rgba(74, 103, 65, 0.1);">
+          <div class="radar-insight-text">
+            Strongest alignment: Family. Your actions match your words - 87% alignment.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>

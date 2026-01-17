@@ -18,7 +18,7 @@
  * @module types/openapi/schema-generator
  */
 
-import { z } from 'zod';
+import type { z } from 'zod';
 
 // ============================================================================
 // TYPES

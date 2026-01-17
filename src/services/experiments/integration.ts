@@ -14,6 +14,7 @@
 
 import { getLogger } from '../../utils/safe-logger.js';
 import { getAgentEvolution, type PersonaExperiment } from '../../intelligence/agent-evolution.js';
+import { cleanForFirestore } from '../../utils/firestore-utils.js';
 import {
   sendExperimentConclusionAlert,
   getBanditVariant,

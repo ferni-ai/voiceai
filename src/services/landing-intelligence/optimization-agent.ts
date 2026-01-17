@@ -14,7 +14,7 @@
  */
 
 import { getFirestore } from 'firebase-admin/firestore';
-import { removeUndefined } from '../../utils/firestore-utils.js';
+import { removeUndefined, cleanForFirestore } from '../../utils/firestore-utils.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { generateJSON, generateText } from './gemini-client.js';
 import type { VisitorIntent } from './intent-detector.js';

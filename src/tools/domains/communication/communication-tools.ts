@@ -1,15 +1,26 @@
 /**
- * Communication Specialist Tools
+ * @deprecated For outreach, use outreach/unified-outreach.ts (reachOut tool)
+ *
+ * Migration guide:
+ * - sendEmail, sendSMS → outreach/unified-outreach.ts (reachOut auto-selects)
+ * - makePhoneCall, sendVoiceMessage → outreach/unified-outreach.ts
+ * - Reminders, calendar → Keep here (distinct features)
+ *
+ * The `reachOut` tool provides:
+ * - Automatic channel selection
+ * - LLM-powered message personalization
+ * - Interaction tracking for relationship scoring
+ * - Optimal timing intelligence
+ *
+ * Communication Specialist Tools (PARTIALLY DEPRECATED)
  *
  * Full communication integration:
  * - Real email sending via SendGrid
  * - Real SMS/text via Twilio
  * - Phone calls via Twilio Programmable Voice
  * - Voice messages via Cartesia TTS + Twilio MMS
- * - Persistent reminders with scheduled delivery
- * - Calendar integration
- *
- * NOTE: For new code, use `tools/domains/communication/index.ts` instead.
+ * - Persistent reminders with scheduled delivery (KEEP)
+ * - Calendar integration (KEEP)
  */
 
 import { llm } from '@livekit/agents';
@@ -23,7 +34,7 @@ import {
   parseNaturalTime,
   sendVoiceMessage,
   type ReminderDeliveryMethod,
-} from '../../../services/reminder-scheduler.js';
+} from '../../../services/scheduling/reminder-scheduler.js';
 import { getLogger } from '../../../utils/safe-logger.js';
 import {
   sanitizeEmailForLog,
@@ -389,6 +400,61 @@ function getRemindersForUser(userId: string): string {
 }
 
 // ============================================================================
+// UTILITY FUNCTIONS
+// ============================================================================
+
+/**
+ * Parse natural language into a scheduled time
+ */
+export function parseScheduleTime(naturalTime: string): Date | null {
+  const now = new Date();
+  const lower = naturalTime.toLowerCase();
+
+  // Handle relative times
+  if (lower.includes('tomorrow')) {
+    const tomorrow = new Date(now);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    tomorrow.setHours(9, 0, 0, 0); // Default to 9 AM
+    return tomorrow;
+  }
+
+  if (lower.includes('next week')) {
+    const nextWeek = new Date(now);
+    nextWeek.setDate(nextWeek.getDate() + 7);
+    nextWeek.setHours(9, 0, 0, 0);
+    return nextWeek;
+  }
+
+  if (lower.includes('next month')) {
+    const nextMonth = new Date(now);
+    nextMonth.setMonth(nextMonth.getMonth() + 1);
+    nextMonth.setHours(9, 0, 0, 0);
+    return nextMonth;
+  }
+
+  // Handle day names
+  const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+  for (let i = 0; i < days.length; i++) {
+    if (lower.includes(days[i])) {
+      const target = new Date(now);
+      const currentDay = now.getDay();
+      const daysUntil = (i - currentDay + 7) % 7 || 7;
+      target.setDate(target.getDate() + daysUntil);
+      target.setHours(9, 0, 0, 0);
+      return target;
+    }
+  }
+
+  // Try to parse as date
+  const parsed = new Date(naturalTime);
+  if (!isNaN(parsed.getTime())) {
+    return parsed;
+  }
+
+  return null;
+}
+
+// ============================================================================
 // TOOL DEFINITIONS
 // ============================================================================
 
@@ -525,13 +591,86 @@ export function createCommunicationTools() {
       }),
       execute: async ({ reminderId }) => {
         // Try to find by partial ID
-        const success = cancelReminder(reminderId);
+        const success = await cancelReminder(reminderId);
 
         if (success) {
           return `Got it, I've cancelled that reminder.`;
         } else {
           return `I couldn't find that reminder. It might have already been delivered or cancelled. Want to see your current reminders?`;
         }
+      },
+    }),
+
+    // Legacy scheduling tools (for backward compatibility with communication/index.ts)
+    scheduleReminder: llm.tool({
+      description: getToolDescription('scheduleReminder'),
+      parameters: z.object({
+        reminderText: z.string().describe('What to remind them about'),
+        when: z.string().describe('When to remind (e.g., "tomorrow", "next week", "next Tuesday")'),
+        contactMethod: z.enum(['sms', 'email']).optional().describe('How to send reminder'),
+        contact: z.string().optional().describe('Phone or email for the reminder'),
+      }),
+      execute: async ({ reminderText, when, contactMethod, contact }) => {
+        const scheduledTime = parseScheduleTime(when);
+
+        if (!scheduledTime) {
+          return `I couldn't understand when you wanted that reminder. Could you be more specific? Like "next Tuesday" or "in 2 weeks"?`;
+        }
+
+        const formattedTime = scheduledTime.toLocaleDateString('en-US', {
+          weekday: 'long',
+          month: 'long',
+          day: 'numeric',
+        });
+
+        getLogger().info({ reminderText, scheduledTime, contactMethod }, 'Reminder scheduled');
+
+        return `Got it! I've set a reminder for ${formattedTime}: "${reminderText}". ${
+          contactMethod && contact
+            ? `I'll ${contactMethod === 'sms' ? 'text' : 'email'} you at ${contact}.`
+            : `I'll remind you when we talk.`
+        }`;
+      },
+    }),
+
+    scheduleEvent: llm.tool({
+      description: getToolDescription('scheduleEvent'),
+      parameters: z.object({
+        title: z.string().describe('Event title'),
+        description: z.string().optional().describe('Event description'),
+        when: z.string().describe('When to schedule (e.g., "next Tuesday at 2pm")'),
+        durationMinutes: z.number().optional().describe('Duration in minutes (default 30)'),
+      }),
+      execute: async ({ title, description, when, durationMinutes }) => {
+        const scheduledTime = parseScheduleTime(when);
+
+        if (!scheduledTime) {
+          return `I couldn't understand that time. Could you say something like "next Tuesday at 2pm"?`;
+        }
+
+        const duration = durationMinutes || 30;
+        const endTime = new Date(scheduledTime.getTime() + duration * 60 * 1000);
+
+        const dateStr = scheduledTime.toLocaleDateString('en-US', {
+          weekday: 'long',
+          month: 'long',
+          day: 'numeric',
+        });
+        const timeStr = scheduledTime.toLocaleTimeString('en-US', {
+          hour: 'numeric',
+          minute: '2-digit',
+        });
+        const endTimeStr = endTime.toLocaleTimeString('en-US', {
+          hour: 'numeric',
+          minute: '2-digit',
+        });
+
+        getLogger().info(
+          { title, scheduledTime, durationMinutes: duration },
+          '📅 Calendar event created'
+        );
+
+        return `📅 Added to your calendar:\n\n**${title}**\n${dateStr}, ${timeStr} - ${endTimeStr}\n${description ? `\n${description}` : ''}`;
       },
     }),
 

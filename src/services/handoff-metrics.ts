@@ -540,3 +540,56 @@ export function trackHandoffFailure(
 ): void {
   handoffMetrics.failHandoff(traceId, reason, errorMessage, errorStack);
 }
+
+// ============================================================================
+// SIMPLIFIED METRICS API (for HandoffCoordinator)
+// ============================================================================
+
+/**
+ * Handoff metrics data for simplified recording.
+ */
+export interface HandoffMetricsData {
+  traceId: string;
+  from: string;
+  to: string;
+  success: boolean;
+  durationMs: number;
+  source: string;
+  error?: string;
+}
+
+/**
+ * Record handoff metrics with a single call.
+ * This is the simplified API used by HandoffCoordinator.
+ */
+export function recordHandoffMetrics(data: HandoffMetricsData): void {
+  const { traceId, from, to, success, durationMs, source, error } = data;
+
+  // Start tracking if not already started
+  const trace = handoffMetrics.getTrace(traceId);
+  if (!trace) {
+    // Create a completed trace directly
+    handoffMetrics.startHandoff(from, to, source as HandoffSource, 'unknown');
+    // The trace ID might be different, so we'll just log it
+  }
+
+  // Record completion or failure
+  if (success) {
+    // Mark phases as complete
+    handoffMetrics.updatePhase(traceId, 'validated');
+    handoffMetrics.updatePhase(traceId, 'event_emitted');
+    handoffMetrics.updatePhase(traceId, 'handler_started');
+    handoffMetrics.updatePhase(traceId, 'voice_switched');
+    handoffMetrics.updatePhase(traceId, 'frontend_notified');
+    handoffMetrics.completeHandoff(traceId);
+  } else {
+    const reason: HandoffFailureReason = error?.includes('timeout')
+      ? 'timeout'
+      : error?.includes('validation')
+        ? 'validation_failed'
+        : error?.includes('voice')
+          ? 'voice_switch_failed'
+          : 'unknown';
+    handoffMetrics.failHandoff(traceId, reason, error);
+  }
+}

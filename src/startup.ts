@@ -27,6 +27,8 @@ import {
 } from './services/persistence/lifecycle.js';
 import { initializeTeamHandlers, shutdownTools } from './tools/index.js';
 import { getLogger } from './utils/safe-logger.js';
+import { registerInterval } from './utils/interval-manager.js';
+import { recordStartupMetrics, startMetricsLogging } from './services/performance-metrics.js';
 
 // ============================================================================
 // STATE
@@ -110,6 +112,32 @@ export async function startup(): Promise<AppConfig> {
     );
   }
 
+  // Initialize Redis Pub/Sub for cross-instance communication
+  // This enables cache invalidation broadcasts and real-time session events
+  logger.info('Initializing Redis Pub/Sub...');
+  const pubsubStart = Date.now();
+  try {
+    const { initializeRedisPubSub, subscribeToCacheInvalidation } = await import(
+      './services/redis-pubsub.js'
+    );
+    const pubsubReady = await initializeRedisPubSub();
+    if (pubsubReady) {
+      // Subscribe to cache invalidation events
+      subscribeToCacheInvalidation(async (message) => {
+        logger.debug(
+          { cacheType: message.data.cacheType, keys: message.data.keys },
+          'Cache invalidation received'
+        );
+        // Invalidations are handled by individual cache subscribers
+      });
+      logger.info(`✓ Redis Pub/Sub ready (${Date.now() - pubsubStart}ms)`);
+    } else {
+      logger.info(`✓ Redis Pub/Sub skipped (Redis not available)`);
+    }
+  } catch (pubsubErr) {
+    logger.warn(`Redis Pub/Sub init failed (non-fatal): ${pubsubErr}`);
+  }
+
   // Initialize services (prewarm)
   logger.info('Initializing services...');
   const svcStart = Date.now();
@@ -166,6 +194,36 @@ export async function startup(): Promise<AppConfig> {
   logger.info('Starting schedulers...');
   startReminderScheduler(60000); // Check every minute
   startProactiveScheduler({ checkIntervalMs: 300000 }); // Check every 5 minutes
+
+  // Start scheduled actions worker (for workflow routine reminders)
+  try {
+    const { startScheduledActionsWorker } = await import('./services/workflows/scheduled-actions.js');
+    await startScheduledActionsWorker();
+    logger.info('📅 Scheduled actions worker started');
+  } catch (error) {
+    logger.warn({ error: String(error) }, 'Failed to start scheduled actions worker');
+  }
+
+  // Start calendar trigger worker (for calendar-based workflow triggers)
+  try {
+    const { startCalendarTriggerWorker } = await import('./services/workflows/calendar-trigger-worker.js');
+    startCalendarTriggerWorker();
+    logger.info('📅 Calendar trigger worker started');
+  } catch (error) {
+    logger.warn({ error: String(error) }, 'Failed to start calendar trigger worker');
+  }
+
+  // Start scheduled outreach executor (for multiOutreach scheduled messages)
+  try {
+    const { startScheduledOutreachExecutor } = await import(
+      './services/outreach/scheduled-outreach-executor.js'
+    );
+    startScheduledOutreachExecutor({ pollIntervalMs: 60000 }); // Check every minute
+    logger.info('✓ Scheduled outreach executor running');
+  } catch (err) {
+    logger.warn(`Scheduled outreach executor failed to start (non-fatal): ${err}`);
+  }
+
   logger.info('✓ Schedulers running');
 
   // ============================================================================
@@ -196,7 +254,8 @@ export async function startup(): Promise<AppConfig> {
     const { processScheduledTriggers } = await import('./services/outreach/daily-outreach-job.js');
 
     // Run scheduled trigger check every 30 minutes
-    setInterval(
+    registerInterval(
+      'outreach-trigger-scheduler',
       () => {
         processScheduledTriggers().catch((err) => {
           logger.debug({ error: String(err) }, 'Scheduled triggers check failed (non-fatal)');
@@ -207,6 +266,17 @@ export async function startup(): Promise<AppConfig> {
     logger.info('✓ Outreach trigger scheduler running (30min intervals)');
   } catch (outreachErr) {
     logger.warn(`Intelligent Outreach Engine startup failed (non-fatal): ${outreachErr}`);
+  }
+
+  // Start Calendar Briefing Job (Morning notifications for users with calendars)
+  // Alex delivers personalized morning briefings about upcoming meetings
+  logger.info('Starting Calendar Briefing Job...');
+  try {
+    const { startCalendarBriefingJob } = await import('./tasks/scheduled/calendar-briefing-job.js');
+    startCalendarBriefingJob();
+    logger.info('✓ Calendar Briefing Job running (15min intervals)');
+  } catch (briefingErr) {
+    logger.warn(`Calendar Briefing Job startup failed (non-fatal): ${briefingErr}`);
   }
 
   // ============================================================================
@@ -267,12 +337,32 @@ export async function startup(): Promise<AppConfig> {
         }),
 
       // Tool usage analytics - not needed for first greeting
-      import('./services/tool-usage-analytics.js')
+      import('./services/analytics/tool-usage-analytics.js')
         .then(({ toolUsageAnalytics }) => toolUsageAnalytics.initialize())
         .then(() => {
           logger.debug('✓ Tool usage analytics ready (deferred)');
           return 'tool_analytics';
         }),
+
+      // Predictive Intelligence ML system - not needed for first greeting
+      // This initializes Markov chains, time series, and reinforcement learning
+      import('./intelligence/predictive/index.js')
+        .then(({ initializePredictiveIntelligence }) => initializePredictiveIntelligence())
+        .then(() => {
+          logger.debug('✓ Predictive Intelligence ML system ready (deferred)');
+          return 'predictive_intelligence';
+        }),
+
+      // Semantic Data Layer TTL Cleanup - run on startup to clear expired data
+      // This ensures stale data is cleaned up after restarts
+      import('./services/data-layer/ttl-cleanup.js').then(async ({ runTTLCleanup }) => {
+        const result = await runTTLCleanup({ dryRun: false });
+        logger.debug(
+          { deletedCount: result.totalDeleted },
+          '✓ TTL cleanup completed (deferred)'
+        );
+        return 'ttl_cleanup';
+      }),
     ]);
 
     const failures = deferredInits.filter((r) => r.status === 'rejected');
@@ -305,7 +395,23 @@ export async function startup(): Promise<AppConfig> {
   }
 
   initialized = true;
-  logger.info(`✅ Voice AI ready! (total startup: ${Date.now() - startupStart}ms)`);
+  const totalStartupTime = Date.now() - startupStart;
+  logger.info(`✅ Voice AI ready! (total startup: ${totalStartupTime}ms)`);
+
+  // Record startup metrics for observability
+  recordStartupMetrics([
+    { name: 'config', durationMs: memStart - startupStart },
+    { name: 'memory', durationMs: svcStart - memStart },
+    { name: 'services', durationMs: bundleStart - svcStart },
+    { name: 'personas', durationMs: workerStart - bundleStart },
+    { name: 'workers', durationMs: parallelStart - workerStart },
+    { name: 'essential', durationMs: Date.now() - parallelStart },
+  ]);
+
+  // Start periodic metrics logging (every 60s in production)
+  if (config.environment === 'production') {
+    startMetricsLogging(60_000);
+  }
 
   return config;
 }
@@ -326,6 +432,22 @@ export async function shutdown(): Promise<void> {
     stopReminderScheduler();
     stopProactiveScheduler();
 
+    // Stop scheduled actions worker
+    try {
+      const { stopScheduledActionsWorker } = await import('./services/workflows/scheduled-actions.js');
+      stopScheduledActionsWorker();
+    } catch {
+      // Ignore if not running
+    }
+
+    // Stop calendar trigger worker
+    try {
+      const { stopCalendarTriggerWorker } = await import('./services/workflows/calendar-trigger-worker.js');
+      stopCalendarTriggerWorker();
+    } catch {
+      // Ignore if not running
+    }
+
     // Stop background workers
     logger.info('Stopping background workers...');
     try {
@@ -334,6 +456,16 @@ export async function shutdown(): Promise<void> {
       logger.info('✓ Background workers stopped');
     } catch (error) {
       logger.warn(`Background workers stop failed (non-fatal): ${error}`);
+    }
+
+    // Shutdown Redis Pub/Sub
+    logger.info('Shutting down Redis Pub/Sub...');
+    try {
+      const { shutdownRedisPubSub } = await import('./services/redis-pubsub.js');
+      await shutdownRedisPubSub();
+      logger.info('✓ Redis Pub/Sub stopped');
+    } catch (error) {
+      logger.warn(`Redis Pub/Sub shutdown failed (non-fatal): ${error}`);
     }
 
     // Save community insights before shutdown
@@ -360,11 +492,21 @@ export async function shutdown(): Promise<void> {
     // Flush tool usage analytics before shutdown
     logger.info('Flushing tool usage analytics...');
     try {
-      const { toolUsageAnalytics } = await import('./services/tool-usage-analytics.js');
+      const { toolUsageAnalytics } = await import('./services/analytics/tool-usage-analytics.js');
       await toolUsageAnalytics.shutdown();
       logger.info('✓ Tool usage analytics flushed');
     } catch (error) {
       logger.warn(`Tool usage analytics flush failed (non-fatal): ${error}`);
+    }
+
+    // Shutdown Predictive Intelligence ML system (flush learned patterns)
+    logger.info('Shutting down Predictive Intelligence...');
+    try {
+      const { shutdownPredictiveIntelligence } = await import('./intelligence/predictive/index.js');
+      await shutdownPredictiveIntelligence();
+      logger.info('✓ Predictive Intelligence shut down');
+    } catch (error) {
+      logger.warn(`Predictive Intelligence shutdown failed (non-fatal): ${error}`);
     }
 
     // Shutdown all persistence services (flush all pending data)

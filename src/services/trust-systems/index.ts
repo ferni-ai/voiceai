@@ -20,9 +20,14 @@
 // ============================================================================
 
 export {
+  buildDeflectionContext,
   detectUnsaidSignals,
+  exportUnsaidProfile,
   getAvoidedTopics,
+  getDeflectionStats,
   getUnsaidProfile,
+  importUnsaidProfile,
+  recordDeflectionPattern,
   recordDidShare,
   shouldAvoidTopic,
   type UnsaidSignal,
@@ -30,19 +35,28 @@ export {
 } from './reading-between-lines.js';
 
 export {
+  buildProtectiveMemoryContext,
   checkBoundary,
+  detectBoundarySoftening,
   detectNewBoundary,
   exportBoundaries,
   getActiveBoundaries,
+  getBoundarySoftening,
+  getPrematureAdviceRecords,
   getProbingDepth,
   importBoundaries,
   isTopicOffLimits,
   recordBoundaryRespect,
+  // Protective Memory enhancements
+  recordPrematureAdvice,
   recordUserReopened,
+  shouldAvoidAdviceAbout,
   updateProbingTolerance,
   type Boundary,
   type BoundaryCheckResult,
   type BoundaryProfile,
+  type BoundarySoftening,
+  type PrematureAdviceRecord,
 } from './boundary-memory.js';
 
 export {
@@ -134,12 +148,19 @@ export {
 // ============================================================================
 
 import {
+  buildDeflectionContext,
   detectUnsaidSignals,
   getAvoidedTopics,
+  recordDeflectionPattern,
   type UnsaidSignal,
 } from './reading-between-lines.js';
 
-import { checkBoundary, detectNewBoundary, type BoundaryCheckResult } from './boundary-memory.js';
+import {
+  buildProtectiveMemoryContext,
+  checkBoundary,
+  detectNewBoundary,
+  type BoundaryCheckResult,
+} from './boundary-memory.js';
 
 import {
   generateGrowthReflection,
@@ -166,6 +187,15 @@ import {
   type ThinkingOfYouMoment,
 } from './thinking-of-you.js';
 
+// New "Better Than Human" imports (Dec 2025)
+import {
+  detectFirstTimeVulnerability,
+  recordVulnerabilityShare,
+  type FirstTimeVulnerabilityResult,
+} from './first-time-vulnerability.js';
+
+import { buildLinguisticContext, recordLinguisticPatterns } from './linguistic-mirroring.js';
+
 /**
  * Unified trust context for a conversation turn
  */
@@ -190,6 +220,19 @@ export interface TrustContext {
 
   /** Topics to avoid */
   topicsToAvoid: string[];
+
+  // New "Better Than Human" (Dec 2025)
+  /** First-time vulnerability detection */
+  firstTimeVulnerability: FirstTimeVulnerabilityResult | null;
+
+  /** Linguistic mirroring context */
+  linguisticContext: string;
+
+  /** Protective memory context */
+  protectiveMemory: string;
+
+  /** P4 FIX: Cross-session deflection pattern awareness */
+  deflectionContext: string;
 }
 
 /**
@@ -215,6 +258,13 @@ export function buildTrustContext(
     previousMessages: context.previousMessages,
     topicBeforeThis: context.recentTopic,
   });
+
+  // 1.5. P4 FIX: Record deflection patterns for cross-session tracking
+  for (const signal of unsaidSignals) {
+    if (signal.type === 'deflection' || signal.type === 'topic_avoidance') {
+      recordDeflectionPattern(userId, signal);
+    }
+  }
 
   // 2. Check boundaries for AI response
   let boundaryCheck: BoundaryCheckResult | null = null;
@@ -284,6 +334,35 @@ export function buildTrustContext(
   // 9. Get topics to avoid
   const topicsToAvoid = getAvoidedTopics(userId);
 
+  // ============================================================================
+  // NEW "BETTER THAN HUMAN" CAPABILITIES (Dec 2025)
+  // ============================================================================
+
+  // 10. First-time vulnerability detection
+  const firstTimeVulnerability = detectFirstTimeVulnerability(userId, userMessage);
+
+  // Record if detected (auto-acknowledgment tracking)
+  if (firstTimeVulnerability) {
+    recordVulnerabilityShare(
+      userId,
+      firstTimeVulnerability,
+      firstTimeVulnerability.suggestedAcknowledgment
+    );
+  }
+
+  // 11. Record linguistic patterns for mirroring
+  recordLinguisticPatterns(userId, userMessage, {
+    topic: context.currentTopic,
+    emotion: context.detectedEmotion,
+  });
+
+  // 12. Build context strings
+  const linguisticContext = buildLinguisticContext(userId);
+  const protectiveMemory = buildProtectiveMemoryContext(userId);
+
+  // P4 FIX: Build cross-session deflection awareness
+  const deflectionContext = buildDeflectionContext(userId);
+
   return {
     unsaidSignals,
     boundaryCheck,
@@ -292,6 +371,11 @@ export function buildTrustContext(
     celebrationOpportunity,
     pendingOutreach,
     topicsToAvoid,
+    // New capabilities
+    firstTimeVulnerability,
+    linguisticContext,
+    protectiveMemory,
+    deflectionContext,
   };
 }
 
@@ -803,6 +887,171 @@ export {
   type VoiceAwareContext,
   type VoiceEmotionSignal as VoiceAwareEmotionSignal,
 } from './voice-aware-detection.js';
+
+// ============================================================================
+// BETWEEN-SESSION THINKING (Continuous Presence)
+// ============================================================================
+
+export {
+  clearUserThinking,
+  detectThinkingWorthy,
+  getAllUnsurfacedThinking,
+  getThinkingMomentToSurface,
+  getThinkingRecordsForPersistence,
+  incrementSessionCount,
+  loadThinkingRecords,
+  markThinkingSurfaced,
+  recordThinkingMoment,
+  type ThinkingMoment,
+  type ThinkingRecord,
+  type ThinkingType,
+} from './between-session-thinking.js';
+
+// ============================================================================
+// TONAL MEMORY (Remember HOW things were said)
+// ============================================================================
+
+export {
+  clearSessionState as clearTonalSessionState,
+  clearTonalProfile,
+  detectRecurringPatterns as detectTonalPatterns,
+  getAllTopicPatterns,
+  getBestInsight as getBestTonalInsight,
+  getTonalDescription,
+  getTonalProfileForPersistence,
+  hasTonalMemory,
+  loadTonalProfile,
+  markInsightSurfaced as markTonalInsightSurfaced,
+  recordTonalObservation,
+  type TonalInsight,
+  type TonalMemoryProfile,
+  type TonalSignature,
+  type TopicTonalPattern,
+} from './tonal-memory.js';
+
+// ============================================================================
+// PERSONA GROWTH (Mutual Growth - Level 5)
+// ============================================================================
+
+export {
+  clearAllUserGrowth,
+  clearPersonaGrowth,
+  detectGrowthOpportunity,
+  getAllGrowthProfiles,
+  getGrowthMomentToShare,
+  getPersonaGrowthForPersistence,
+  loadPersonaGrowthProfile,
+  markGrowthShared,
+  recordPersonaGrowth,
+  type GrowthMoment,
+  type GrowthType,
+  type PersonaGrowthProfile,
+  type PersonaGrowthRecord,
+} from './persona-growth.js';
+
+// ============================================================================
+// "BETTER THAN HUMAN" CAPABILITIES (New - Dec 2025)
+// ============================================================================
+
+// First-Time Vulnerability Detection
+export {
+  buildFirstTimeVulnerabilityContext,
+  buildVulnerabilityAwarenessContext,
+  detectFirstTimeVulnerability,
+  firstTimeVulnerability,
+  getHighestVulnerabilityLevel,
+  getVulnerabilityProfile,
+  hasSharedAboutTopic,
+  loadVulnerabilityProfile,
+  recordVulnerabilityShare,
+  saveVulnerabilityProfile,
+  type FirstTimeVulnerabilityResult,
+  type TopicVulnerability,
+  type VulnerabilityLevel,
+  type VulnerabilityProfile,
+  type VulnerabilityThreshold,
+} from './first-time-vulnerability.js';
+
+// Linguistic Mirroring - Learn and use their vocabulary
+export {
+  adaptResponseStyle,
+  buildLinguisticContext,
+  getLinguisticProfile,
+  getTheirWordFor,
+  isWordAvoided,
+  linguisticMirroring,
+  loadLinguisticProfile,
+  recordLinguisticPatterns,
+  saveLinguisticProfile,
+  type AvoidedWord,
+  type FormalityLevel,
+  type LinguisticProfile,
+  type SignaturePhrase,
+  type SpeechPatterns,
+} from './linguistic-mirroring.js';
+
+// Ambient Context Detection - Understand environment from audio
+export {
+  ambientContext,
+  analyzeAmbientAudio,
+  buildAmbientContext,
+  getAmbientResponse,
+  recordAmbientSignal,
+  type AmbientContext,
+  type AmbientResponse,
+  type AmbientSignal,
+  type AmbientSignalType,
+  type Environment,
+} from './ambient-context.js';
+
+// ============================================================================
+// CURIOSITY MEMORY - Follow Through on Passing Mentions
+// ============================================================================
+
+export {
+  clearSessionState as clearCuriositySessionState,
+  clearUserMentions,
+  detectPassingMentions,
+  getAllUnfollowedMentions,
+  getCuriosityProfileForPersistence,
+  getFollowUpOpportunity,
+  getMentionsByType,
+  loadCuriosityProfile,
+  markFollowedUp,
+  recordPassingMention,
+  type CuriosityProfile,
+  type FollowUpOpportunity,
+  type MentionType,
+  type PassingMention,
+} from './curiosity-memory.js';
+
+// ============================================================================
+// CONVERSATION TEXTURE - The "feel" of past conversations
+// ============================================================================
+
+export {
+  clearUserTexture,
+  compareToUsual,
+  detectDepth,
+  detectTone,
+  finalizeSessionTexture,
+  getRecentTextureSummary,
+  getTextureProfileForPersistence,
+  getUsualTextureSummary,
+  loadTextureProfile,
+  recordDepthSignal,
+  recordMemorableMoment,
+  recordToneSignal,
+  recordTopics,
+  startSessionTexture,
+  type ConversationRhythm,
+  type ConversationTextureProfile,
+  type ConversationTextureSnapshot,
+  type ConversationTone,
+  type DepthLevel,
+  type EnergyPattern,
+  type TextureComparison,
+} from './conversation-texture.js';
 
 // ============================================================================
 // DEFAULT EXPORT

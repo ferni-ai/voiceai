@@ -18,6 +18,12 @@
 import type { SpeechCharacteristics } from '../personas/types.js';
 import type { UserProfile } from '../types/user-profile.js';
 import { getLogger } from '../utils/safe-logger.js';
+import { stripSSML } from '../utils/text-utils.js';
+// 🦀 Rust-accelerated word counting
+import { countWordsRust, isTokenCountingAvailable } from '../memory/rust-accelerator.js';
+
+const log = getLogger();
+const RUST_COUNTING_AVAILABLE = isTokenCountingAvailable();
 
 // Extracted session-manager modules
 import {
@@ -37,10 +43,10 @@ import { withTimeout } from './session-manager/utils.js';
 import { validateUserId } from './session-manager/validation.js';
 
 // Real-time memory - persist turns as they happen, never lose data
-import * as realtimeMemory from './realtime-memory.js';
+import * as realtimeMemory from './memory/realtime-memory.js';
 
 // Voice authentication - household identification
-import { getActiveSession, startHouseholdSession } from './voice-household.js';
+import { getActiveSession, startHouseholdSession } from './voice/voice-household.js';
 
 // Cross-persona insights - load team intelligence for new sessions
 import { loadInsights as loadCrossPersonaInsights } from './cross-persona-insights.js';
@@ -126,7 +132,7 @@ import { getPersonalizer } from './profile-personalizer.js';
 import type { CreateSessionOptions, SessionServices } from './types.js';
 
 // Handoff state (per-session, not global)
-import { createHandoffState, initializeFromPersistedData } from '../tools/handoff-state.js';
+import { createHandoffState, initializeFromPersistedData } from './handoff/handoff-state.js';
 
 // Intelligence persistence - unified save/load for all learning engines
 import {
@@ -138,7 +144,8 @@ import {
 } from './intelligence-persistence.js';
 
 // Persistence metrics for observability
-import { persistenceMetrics } from './persistence-metrics.js';
+import { persistenceMetrics } from './analytics/persistence-metrics.js';
+import { cleanForFirestore } from '../utils/firestore-utils.js';
 
 // ============================================================================
 // SESSION STATE
@@ -200,9 +207,11 @@ export async function createSessionServices(
 ): Promise<SessionServices> {
   // Handle both calling conventions
   let sessionId: string;
+  let userName: string | undefined;
   if (typeof sessionIdOrOptions === 'object') {
     sessionId = sessionIdOrOptions.sessionId;
     userId = sessionIdOrOptions.userId;
+    userName = sessionIdOrOptions.userName;
     isReturningUser = sessionIdOrOptions.isReturningUser;
     personaSpeech = sessionIdOrOptions.personaSpeech;
     personaEnergy = sessionIdOrOptions.personaEnergy;
@@ -222,67 +231,115 @@ export async function createSessionServices(
   // Track humanizing state updates during session
   const humanizingStateUpdates: HumanizingStateUpdate[] = [];
 
-  // Load or create user profile
-  // FIX BUG #session-13: Validate userId format before profile operations
+  // ============================================================================
+  // 🚀 FAST SESSION INIT: Only load profile synchronously, everything else is background
+  // OLD: Sequential waterfall (~500-800ms) - profile → context → intelligence → insights → social
+  // NEW: Parallel (~100-200ms) - profile only blocking, rest in background
+  // ============================================================================
+
   let userProfile: UserProfile | null = null;
   const validatedUserId = validateUserId(userId);
+
   if (validatedUserId) {
-    userProfile = await global.store.getProfile(validatedUserId);
+    // ⚡ PERFORMANCE: Use Redis-backed profile cache for faster session start
+    // Cache hit: ~5-20ms vs Firestore: ~100-500ms
+    const { getProfileWithCache, cacheProfile, invalidateProfile } =
+      await import('./data-layer/profile-cache.js');
+
+    // BLOCKING: Load profile with cache-through pattern (Redis → Firestore)
+    userProfile = await getProfileWithCache(validatedUserId, async (uid) => {
+      return global.store.getProfile(uid);
+    });
+
     if (!userProfile) {
       const { createUserProfile } = await import('../types/user-profile.js');
-      userProfile = createUserProfile(validatedUserId);
+      // CRITICAL: Pass userName from onboarding so Ferni remembers their name!
+      userProfile = createUserProfile(validatedUserId, userName);
       await global.store.saveProfile(userProfile);
+      // Cache the new profile
+      void cacheProfile(validatedUserId, userProfile);
+      getLogger().info(
+        { userId: validatedUserId, name: userName || '(none)' },
+        '🆕 Created new user profile with name from onboarding'
+      );
+    } else if (!userProfile.name && userName) {
+      // Existing profile without a name, but we now have one - update it!
+      userProfile.name = userName;
+      await global.store.saveProfile(userProfile);
+      // Invalidate cache so next session gets updated profile
+      void invalidateProfile(validatedUserId);
+      getLogger().info(
+        { userId: validatedUserId, name: userName },
+        '✨ Updated existing profile with name from onboarding'
+      );
     }
     isReturningUser = userProfile.totalConversations > 0;
 
-    // 🔴 REALTIME MEMORY: Enrich profile with recent conversation context
-    // If the legacy lastConversationSummary is missing but we have realtime data,
-    // pull from the realtime conversation store
-    if (isReturningUser && !userProfile.lastConversationSummary) {
-      try {
-        const lastContext = await realtimeMemory.getLastConversationContext(validatedUserId);
-        if (lastContext) {
-          const summary =
-            lastContext.summary || realtimeMemory.buildQuickSummary(lastContext.turns);
-          if (summary) {
-            userProfile.lastConversationSummary = summary;
-            getLogger().info(
-              { userId: validatedUserId, summary: summary.slice(0, 50) },
-              '🔴 REALTIME: Enriched profile with last conversation context'
-            );
-          }
-        }
-      } catch (error) {
-        getLogger().debug(
-          { error: String(error), userId: validatedUserId },
-          'Could not load realtime conversation context (non-blocking)'
-        );
-      }
-    }
+    // NON-BLOCKING: Start intelligent loader for on-demand domain loading
+    import('./data-layer/intelligent-loader.js')
+      .then(({ getIntelligentLoader }) => {
+        const loader = getIntelligentLoader(validatedUserId, sessionId);
+        loader.initializeSession().catch(() => {
+          // Non-critical - domains load on-demand anyway
+        });
+      })
+      .catch(() => {
+        // Module load failure - non-critical
+      });
 
-    // FIX: Load intelligence state from profile for returning users
+    // NON-BLOCKING: Background enrichment tasks (fire and forget)
     if (isReturningUser) {
-      try {
-        loadIntelligenceFromProfile(validatedUserId, userProfile);
-        getLogger().info({ userId: validatedUserId }, '🧠 Loaded intelligence state from profile');
-      } catch (error) {
-        getLogger().warn({ error, userId: validatedUserId }, 'Failed to load intelligence state');
-      }
-    }
+      // Load intelligence state in background
+      // Use setTimeout(0) for compatibility with ESLint no-undef rule for setImmediate
+      setTimeout(() => {
+        try {
+          loadIntelligenceFromProfile(validatedUserId, userProfile!);
+          getLogger().debug(
+            { userId: validatedUserId },
+            '🧠 Intelligence state loaded (background)'
+          );
+        } catch {
+          // Non-critical
+        }
+      }, 0);
 
-    // Load cross-persona insights (team intelligence)
-    try {
-      await loadCrossPersonaInsights(validatedUserId);
-      getLogger().debug({ userId: validatedUserId }, '💡 Loaded cross-persona insights');
-    } catch {
-      // Non-critical
-    }
+      // Enrich with realtime memory context (background)
+      realtimeMemory
+        .getLastConversationContext(validatedUserId)
+        .then((lastContext) => {
+          if (lastContext && userProfile && !userProfile.lastConversationSummary) {
+            const summary =
+              lastContext.summary || realtimeMemory.buildQuickSummary(lastContext.turns);
+            if (summary) userProfile.lastConversationSummary = summary;
+          }
+        })
+        .catch(() => {
+          /* Non-critical */
+        });
 
-    // Initialize unified trust persistence for this session
-    try {
-      await onSessionStartUnified(validatedUserId, sessionId);
-    } catch {
-      // Non-critical
+      // Load cross-persona insights (background)
+      loadCrossPersonaInsights(validatedUserId).catch(() => {
+        /* Non-critical */
+      });
+
+      // Load social graph (background)
+      import('./social-graph/index.js')
+        .then(async ({ loadGraphFromFirestore }) => loadGraphFromFirestore(validatedUserId))
+        .catch(() => {
+          /* Non-critical */
+        });
+
+      // Initialize trust persistence (background)
+      onSessionStartUnified(validatedUserId, sessionId).catch(() => {
+        /* Non-critical */
+      });
+
+      // Pre-warm embeddings (background)
+      import('../agents/shared/performance/session-optimizations.js')
+        .then(async ({ optimizeSessionStart }) => optimizeSessionStart(sessionId, validatedUserId))
+        .catch(() => {
+          /* Non-critical */
+        });
     }
   } else if (userId) {
     getLogger().warn(
@@ -441,19 +498,15 @@ export async function createSessionServices(
       let primingMemories: Array<import('../memory/advanced-retrieval.js').MemoryItem> = [];
       try {
         // Build memory index from user profile (fast if already built)
-        await buildMemoryIndex(validatedUserId, userProfile);
+        buildMemoryIndex(validatedUserId, userProfile);
 
         // Get salient memories for session priming (commitments, emotional moments, recent topics)
-        primingMemories = await getConversationPrimingMemories(
-          validatedUserId,
-          personaId || 'ferni',
-          {
-            maxMemories: 5,
-            includeCommitments: true,
-            includeRecentTopics: true,
-            sessionCount: userProfile.totalConversations || 0,
-          }
-        );
+        primingMemories = getConversationPrimingMemories(validatedUserId, personaId || 'ferni', {
+          maxMemories: 5,
+          includeCommitments: true,
+          includeRecentTopics: true,
+          sessionCount: userProfile.totalConversations || 0,
+        });
 
         if (primingMemories.length > 0) {
           getLogger().info(
@@ -832,7 +885,11 @@ export async function createSessionServices(
           if (validatedUserId) {
             const wpmTracker = getSessionWPMTracker(sessionId);
             const avgWPM = wpmTracker.getAverageWPM();
-            const currentWPM = content.split(/\s+/).length / (durationMs / 60000) || avgWPM;
+            // 🦀 Rust-accelerated word counting
+            const contentWordCount = RUST_COUNTING_AVAILABLE
+              ? countWordsRust(content)
+              : content.split(/\s+/).length;
+            const currentWPM = contentWordCount / (durationMs / 60000) || avgWPM;
 
             // Determine pace relative to user's baseline
             const paceRatio = avgWPM > 0 ? currentWPM / avgWPM : 1;
@@ -880,10 +937,13 @@ export async function createSessionServices(
       // This happens in the background (fire-and-forget) to avoid blocking
       if (validatedUserId && realtimeConversationId) {
         const now = turn.timestamp || new Date();
+        // 🧹 ISSUE-005 FIX: Strip SSML from assistant turns before persisting
+        // Raw SSML tags like <break time="200ms"/> should not appear in memory
+        const cleanContent = role === 'assistant' ? stripSSML(content) : content;
         realtimeMemory
           .persistTurn(validatedUserId, realtimeConversationId, {
             role,
-            content,
+            content: cleanContent,
             timestamp: now,
             metadata: durationMs ? { durationMs } : undefined,
           })
@@ -1295,17 +1355,51 @@ export async function createSessionServices(
         return { insights: [], highPriorityCount: 0 };
       }
 
+      // Get insights from existing proactive engine
       const insights = proactiveEngine.getUndeliveredInsights();
-      const highPriorityCount = insights.filter((i) => i.priority === 'high').length;
+      let highPriorityCount = insights.filter((i) => i.priority === 'high').length;
       const nextInsight = proactiveEngine.getNextInsight();
-      const suggestedConversationStarter = nextInsight?.message;
+      let suggestedConversationStarter = nextInsight?.message;
+      let suggestedInsightId = nextInsight?.id;
+
+      // V3.2: Also check the new Semantic Intelligence Insight Broker
+      if (userId) {
+        try {
+          const { getInsightsToSurface, markInsightSurfaced } =
+            await import('./superhuman/semantic-intelligence/insight-broker.js');
+
+          const semanticInsights = await getInsightsToSurface(userId, {
+            isSessionStart: true,
+            hourOfDay: new Date().getHours(),
+          });
+
+          // Count high priority semantic insights
+          const semanticHighPriority = semanticInsights.filter(
+            (i) => i.priority === 'high' || i.priority === 'critical'
+          );
+          highPriorityCount += semanticHighPriority.length;
+
+          // If no suggestion from proactive engine, use top semantic insight
+          if (!suggestedConversationStarter && semanticInsights.length > 0) {
+            const topInsight = semanticInsights[0];
+            suggestedConversationStarter = topInsight.insight;
+            suggestedInsightId = topInsight.id;
+
+            // Mark as surfaced (non-blocking)
+            void markInsightSurfaced(userId, topInsight.id);
+          }
+        } catch (e) {
+          // Semantic insights are optional enhancement
+          log.debug({ error: String(e) }, 'Semantic insights not available');
+        }
+      }
 
       return {
         insights,
         highPriorityCount,
         suggestedConversationStarter,
         // Include insight ID for delivery tracking
-        suggestedInsightId: nextInsight?.id,
+        suggestedInsightId,
       };
     },
 
@@ -1500,6 +1594,13 @@ export async function createSessionServices(
     endSession: async () => {
       getLogger().info(`Ending session: ${sessionId}`);
       const sessionEndStartTime = Date.now();
+
+      // FIX: Stop auto-save FIRST to prevent race conditions during session end
+      // Auto-save running during final saves can cause data corruption or double-writes
+      if (validatedUserId) {
+        stopAutoSave(validatedUserId);
+        getLogger().debug({ userId: validatedUserId }, 'Stopped auto-save at session start');
+      }
 
       if (validatedUserId && userProfile) {
         try {
@@ -2000,11 +2101,7 @@ export async function createSessionServices(
         }
       }
 
-      // FIX: Stop auto-save before cleanup
-      if (validatedUserId) {
-        stopAutoSave(validatedUserId);
-        getLogger().debug({ userId: validatedUserId }, 'Stopped auto-save');
-      }
+      // NOTE: Auto-save already stopped at session start (line ~1515)
 
       // Cleanup core components
       removeHistoryTracker(sessionId);
@@ -2071,7 +2168,7 @@ export async function createSessionServices(
       // Clear life data cache
       if (userId) {
         try {
-          const { getLifeDataStore } = await import('./life-data-store.js');
+          const { getLifeDataStore } = await import('./stores/life-data-store.js');
           getLifeDataStore().clearUserCache(userId);
         } catch (error) {
           getLogger().debug({ error }, 'Failed to clear life data cache (non-blocking)');

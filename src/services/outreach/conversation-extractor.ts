@@ -528,7 +528,7 @@ export async function processExtractionResults(
   for (const commitment of extraction.commitments || []) {
     if (commitment.confidence >= 0.7) {
       try {
-        await addCommitment(userId, {
+        addCommitment(userId, {
           what: commitment.what,
           when: commitment.when || addDays(new Date(), 1),
           checkInTime: commitment.checkInTime,
@@ -561,7 +561,7 @@ export async function processExtractionResults(
   for (const emotion of extraction.emotions || []) {
     if (emotion.confidence >= 0.7) {
       try {
-        await updateEmotionalState(userId, emotion.state, emotion.trigger);
+        updateEmotionalState(userId, emotion.state, emotion.trigger);
 
         // If struggling, consider an outreach trigger
         if (emotion.state === 'struggling' && emotion.intensity !== 'low') {
@@ -586,7 +586,7 @@ export async function processExtractionResults(
   for (const event of extraction.events || []) {
     if (event.confidence >= 0.7 && event.date) {
       try {
-        await addLifeEvent(userId, {
+        addLifeEvent(userId, {
           type: event.type,
           description: event.description,
           date: event.date,
@@ -617,7 +617,7 @@ export async function processExtractionResults(
   // Process wins
   for (const win of extraction.wins || []) {
     try {
-      await addWin(userId, {
+      addWin(userId, {
         description: win,
         category: 'general',
         significance: 'medium',
@@ -645,7 +645,7 @@ export async function processExtractionResults(
   // Process struggles
   for (const struggle of extraction.struggles || []) {
     try {
-      await addStruggle(userId, {
+      addStruggle(userId, {
         description: struggle,
         category: 'general',
         startDate: new Date(),

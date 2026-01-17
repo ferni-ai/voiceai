@@ -18,14 +18,24 @@ import { createLogger } from '../utils/safe-logger.js';
 const log = createLogger({ module: 'VoiceIds' });
 
 // =============================================================================
-// CARTESIA MODEL
+// CARTESIA CONFIGURATION
 // =============================================================================
 
 /**
  * Cartesia model from environment variable.
  * sonic-3 is the latest with best quality.
  */
-export const CARTESIA_MODEL = process.env.CARTESIA_MODEL || 'sonic-3';
+export const CARTESIA_MODEL = process.env.CARTESIA_MODEL || 'sonic-3-latest';
+
+/**
+ * Cartesia API version for all TTS requests
+ */
+export const CARTESIA_API_VERSION = process.env.CARTESIA_API_VERSION || '2024-06-10';
+
+/**
+ * Cartesia API URL
+ */
+export const CARTESIA_API_URL = process.env.CARTESIA_API_URL || 'https://api.cartesia.ai';
 
 // =============================================================================
 // CANONICAL VOICE IDS
@@ -39,20 +49,23 @@ export const VOICE_IDS = {
   // Ferni (life coach) - Dec 2024
   FERNI: 'fdeb5d75-4f2e-4224-9e98-6aa6aa1188bc',
 
-  // Peter John (insights quant) - Updated Dec 2024
+  // Peter John (insights quant) - Synced from .env Dec 2024
   PETER_JOHN: '3f04e815-3260-4f50-8fd9-af9c657be4c2',
 
   // Alex Chen (communications specialist) - Verified Dec 2024
   ALEX_CHEN: '81c164d9-7baa-419d-9f9a-6b18100a01ee',
 
-  // Maya Santos (spend & save coach) - Updated Dec 2024
-  MAYA_SANTOS: 'eef47c0d-cb49-4160-a4a0-6b97ed4c81e6',
+  // Maya Santos (spend & save coach) - Synced from .env Dec 2024
+  MAYA_SANTOS: '11175483-5332-496c-8c01-ca527ce04e4a',
 
   // Jordan Taylor (event planner) - Verified Dec 2024
   JORDAN_TAYLOR: 'b2d14370-c56b-4bdd-a6a3-71abe1b6e345',
 
   // Nayan Patel (lifetime advisor / sage) - Updated Dec 2024
   NAYAN_PATEL: '52f0a563-2a2a-4c4a-ab4f-000eaaed32b3',
+
+  // Joel Dickson (Vanguard life mentor) - Added Jan 2025
+  JOEL_DICKSON: '3ebcd114-d280-4eed-a238-b9323a6b8e52',
 
   // Generic advisor fallback
   GENERIC: '79a125e8-cd45-4c13-8a67-188112f4dd22',
@@ -89,6 +102,7 @@ export function getVoiceIdForPersona(personaId: string): string {
       process.env.NAYAN_PATEL_VOICE_ID ||
       process.env.NAYAN_VOICE_ID ||
       process.env.PETER_LYNCH_VOICE_ID,
+    'joel-dickson': process.env.JOEL_DICKSON_VOICE_ID,
     'generic-advisor': process.env.GENERIC_ADVISOR_VOICE_ID,
   };
 
@@ -133,6 +147,14 @@ export function getVoiceIdForPersona(personaId: string): string {
     guru: VOICE_IDS.NAYAN_PATEL,
     mystic: VOICE_IDS.NAYAN_PATEL,
     'lifetime-advisor': VOICE_IDS.NAYAN_PATEL,
+
+    // Joel Dickson aliases
+    'joel-dickson': VOICE_IDS.JOEL_DICKSON,
+    joel: VOICE_IDS.JOEL_DICKSON,
+    dickson: VOICE_IDS.JOEL_DICKSON,
+    'dr-dickson': VOICE_IDS.JOEL_DICKSON,
+    'vanguard-mentor': VOICE_IDS.JOEL_DICKSON,
+    'life-mentor': VOICE_IDS.JOEL_DICKSON,
 
     // Generic
     'generic-advisor': VOICE_IDS.GENERIC,
@@ -196,6 +218,7 @@ export function logVoiceIdAssignments(): void {
     'maya-santos',
     'jordan-taylor',
     'nayan-patel',
+    'joel-dickson',
   ];
 
   for (const persona of personas) {

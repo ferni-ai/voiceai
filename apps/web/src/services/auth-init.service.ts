@@ -5,10 +5,13 @@
  * This should be called early in app startup, before any API calls.
  *
  * Flow:
- * 1. Initialize Firebase Auth (creates anonymous account if needed)
+ * 1. Initialize Firebase Auth (check for existing session)
  * 2. Subscribe to auth state changes
  * 3. Update app state with auth info
  * 4. Trigger migration if device user is upgrading to Firebase
+ *
+ * Note: Users must sign in with Google or Apple before using the app.
+ * No anonymous accounts are created.
  *
  * @module AuthInitService
  */
@@ -92,7 +95,7 @@ async function requestMigration(deviceId: string, firebaseUid: string): Promise<
       localStorage.setItem('ferni_migrated_uid', firebaseUid);
       log.info('Migration successful');
     } else {
-      const error = await response.json().catch(() => ({ error: 'Unknown' }));
+      const error = (await response.json().catch(() => ({ error: 'Unknown' }))) as { error?: string };
       log.warn('Migration failed', { status: response.status, error });
     }
   } catch (error) {
@@ -174,11 +177,10 @@ export function isAuthInitialized(): boolean {
 if (typeof window !== 'undefined') {
   // Use requestIdleCallback if available for non-blocking init
   if ('requestIdleCallback' in window) {
-    (window as Window & { requestIdleCallback: (cb: () => void) => void }).requestIdleCallback(
-      () => {
-        void initializeAuth();
-      }
-    );
+    const windowWithIdle = window as Window & { requestIdleCallback: (cb: () => void) => void };
+    windowWithIdle.requestIdleCallback(() => {
+      void initializeAuth();
+    });
   } else {
     // Fallback to setTimeout
     setTimeout(() => {

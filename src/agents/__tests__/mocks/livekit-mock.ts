@@ -73,7 +73,7 @@ export function createMockParticipant(overrides: Partial<MockParticipant> = {}):
 /**
  * Create a mock local participant (the agent)
  */
-export function createMockLocalParticipant(identity: string = 'voice-agent'): MockParticipant {
+export function createMockLocalParticipant(identity = 'voice-agent'): MockParticipant {
   return createMockParticipant({
     identity,
     name: 'Voice Agent',
@@ -85,7 +85,7 @@ export function createMockLocalParticipant(identity: string = 'voice-agent'): Mo
  * Create a mock remote participant (the user)
  */
 export function createMockRemoteParticipant(
-  identity: string = 'test-user',
+  identity = 'test-user',
   metadata?: Record<string, unknown>
 ): MockParticipant {
   return createMockParticipant({
@@ -104,11 +104,11 @@ export function createMockRemoteParticipant(
  */
 export class MockRoom extends EventEmitter {
   public name: string;
-  public sid: string = `RM_${Math.random().toString(36).slice(2)}`;
+  public sid = `RM_${Math.random().toString(36).slice(2)}`;
   public state: 'disconnected' | 'connecting' | 'connected' = 'disconnected';
   public localParticipant: MockParticipant;
-  public remoteParticipants: Map<string, MockParticipant> = new Map();
-  public isConnected: boolean = false;
+  public remoteParticipants = new Map<string, MockParticipant>();
+  public isConnected = false;
 
   private autoConnect: boolean;
 
@@ -131,7 +131,9 @@ export class MockRoom extends EventEmitter {
     this.emit('connectionStateChanged', 'connecting');
 
     // Simulate connection delay
-    await new Promise((resolve) => setTimeout(resolve, 10));
+    await new Promise<void>((resolve) => {
+      setTimeout(resolve, 10);
+    });
 
     this.state = 'connected';
     this.isConnected = true;
@@ -189,7 +191,7 @@ export class MockRoom extends EventEmitter {
  * Create a mock room with a user already connected
  */
 export function createMockRoomWithUser(
-  userId: string = 'test-user',
+  userId = 'test-user',
   userMetadata?: Record<string, unknown>
 ): MockRoom {
   const room = new MockRoom({ name: 'test-room' });
@@ -206,8 +208,8 @@ export function createMockRoomWithUser(
  * Mock VoicePipelineAgent for testing conversation flows
  */
 export class MockVoicePipelineAgent extends EventEmitter {
-  public isStarted: boolean = false;
-  public isSpeaking: boolean = false;
+  public isStarted = false;
+  public isSpeaking = false;
   public currentUtterance: string | null = null;
 
   private options: MockVoicePipelineOptions;
@@ -223,7 +225,9 @@ export class MockVoicePipelineAgent extends EventEmitter {
       throw new Error('Mock pipeline start failure');
     }
 
-    await new Promise((resolve) => setTimeout(resolve, 10));
+    await new Promise<void>((resolve) => {
+      setTimeout(resolve, 10);
+    });
     this.isStarted = true;
     this.emit('agentStarted');
   }
@@ -336,9 +340,9 @@ export interface MockJobContext {
  * Create a mock job context for entry() function testing
  */
 export function createMockJobContext(
-  jobId: string = `job-${Date.now()}`,
-  roomName: string = 'test-room',
-  participantId: string = 'test-user',
+  jobId = `job-${Date.now()}`,
+  roomName = 'test-room',
+  participantId = 'test-user',
   metadata?: Record<string, unknown>
 ): MockJobContext {
   const room = new MockRoom({ name: roomName });

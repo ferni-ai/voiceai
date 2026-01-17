@@ -57,7 +57,7 @@ export async function identifyUserFromMetadata(
   try {
     const parsed = JSON.parse(metadata);
 
-    const { identifyFromMetadata } = await import('../../services/user-identification.js');
+    const { identifyFromMetadata } = await import('../../services/identity/user-identification.js');
     const identification = await identifyFromMetadata(parsed);
 
     userId = identification.userId;
@@ -185,7 +185,7 @@ export async function resetSessionState(): Promise<void> {
  */
 export async function configureMusicPlayback(identificationSource: string): Promise<void> {
   if (identificationSource === 'phone') {
-    const { setStreamIntoCall } = await import('../../tools/spotify.js');
+    const { setStreamIntoCall } = await import('../../tools/domains/entertainment/spotify.js');
     setStreamIntoCall(true);
     getLogger().debug('Music configured for phone call streaming');
   }

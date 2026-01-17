@@ -19,13 +19,24 @@
  * @module voice-agent/transcript-handler
  */
 
-import type { voice } from '@livekit/agents';
-import { log } from '@livekit/agents';
+import { log, type voice } from '@livekit/agents';
 import type { Room } from '@livekit/rtc-node';
 import { TextEncoder } from 'node:util';
-import { getDJBooth } from '../../audio/index.js';
+import {
+  detectFeedbackFromResponse,
+  extractMusicPreferences,
+  getDJController,
+  hasMusicContext,
+  hasPendingMusicFeedback,
+  recordMusicFeedback,
+} from '../../audio/index.js';
 import { getSessionFlags } from '../../config/voice-humanization-flags.js';
-import { setHumanListeningResult } from '../../intelligence/context-builders/human-listening.js';
+import { setHumanListeningResult } from '../../intelligence/context-builders/emotional/human-listening.js';
+import {
+  extractPreferences,
+  hasPreferenceContent,
+  type ExtractedPreference,
+} from '../../intelligence/preference-extractor.js';
 import {
   extractMemorableMoments,
   mergeMemorableMoments,
@@ -36,38 +47,91 @@ import type { ConversationManager } from '../../services/conversation-manager.js
 import { diag } from '../../services/diagnostic-logger.js';
 import { checkTrialStatus } from '../../services/first-taste-trial.js';
 import type { SessionServices } from '../../services/index.js';
-import { recordCacheAttempt, recordLatency } from '../../services/voice-humanization-metrics.js';
+import {
+  recordCacheAttempt,
+  recordLatency,
+} from '../../services/voice/voice-humanization-metrics.js';
 import { getHumanListeningPipeline } from '../../speech/human-listening-pipeline.js';
 import { getResponseAnticipationService } from '../../speech/response-anticipation.js';
 import {
   processPartialTranscript as processSesamePartial,
   startNewTurn as startSesameTurn,
 } from '../../speech/sesame-inspired/index.js';
-import type { ConversationContext as FeedbackContext } from '../../tools/feedback-collector.js';
+import {
+  addAvoidTopic,
+  addFavoriteTeam,
+  addNewsInterest,
+  addToWatchlist,
+  saveLocation,
+  setAllergies,
+} from '../../tools/domains/information/preferences/index.js';
+import type { ConversationContext as FeedbackContext } from '../../tools/optimization/feedback-collector.js';
+import { fireAndForget, safeFireAndForget } from '../../utils/safe-fire-and-forget.js';
 import { trackConversationTurn } from '../integrations/speech-metrics-integration.js';
 import type { IntegrationResult as VoiceHumanizationIntegration } from '../integrations/voice-humanization-integration.js';
 import type { UserData } from '../shared/types.js';
 import {
-  validateTranscript,
-  isLikelyNoise,
-  type ValidationContext,
-} from './transcript-validator.js';
-import {
   analyzeTurnSignals,
-  updateSessionState,
   handleInterruption,
+  updateSessionState,
   type TurnContext,
 } from './human-turn-intelligence.js';
 import {
-  processDailyCheckIn,
+  isLikelyNoise,
+  validateTranscript,
+  type ValidationContext,
+} from './transcript-validator.js';
+// 🦀 Rust-accelerated word counting
+import { countWordsRust, isTokenCountingAvailable } from '../../memory/rust-accelerator.js';
+import {
+  createTeamHuddleTrigger,
+  detectTeamHuddleRequest,
+} from '../../services/engagement/engagement-conversation-triggers.js';
+import { getTrailingSsml, senseInterrupt } from '../../speech/graceful-interrupt/index.js';
+import {
   cleanupStaleCheckIns,
+  processDailyCheckIn,
   type DailyCheckInContext,
 } from './daily-checkin-handler.js';
+// E2E Latency tracking - diagnose OpenAI vs TTS vs our code
 import {
-  detectTeamHuddleRequest,
-  createTeamHuddleTrigger,
-} from '../../services/engagement-conversation-triggers.js';
+  startTurn as startLatencyTurn,
+  markProcessingStarted,
+} from '../shared/e2e-latency-tracker.js';
+
+// Check Rust availability at module load
+const RUST_COUNTING_AVAILABLE = isTokenCountingAvailable();
+// Better Than Human - Transcript processing integration
+import { processTranscriptForBetterThanHuman } from '../integrations/better-than-human-integration.js';
+// Phase 5: Anticipatory Triggers - "Better than Human" early signal detection
+import {
+  learnFromUtterance,
+  processPartialInput as processAnticipatoryInput,
+  recordAnticipatoryOutcome,
+  type VoiceProsodyCue,
+} from '../../intelligence/triggers/index.js';
+// Semantic Router - pre-LLM tool routing for high-confidence requests
+import {
+  isSemanticRoutingEnabled,
+  routeTranscript,
+} from '../../tools/semantic-router/integration/index.js';
+// Unified Anticipation Pipeline - "Better Than Human" anticipation during speech
+import { getAnticipationPipeline } from '../../speech/anticipation/index.js';
+// Speech Orchestrator integration for micro-reactions
+import { isOrchestratorEnabled } from '../integrations/speech-orchestrator-integration.js';
+// Speech coordination for centralized speech management
+import { coordinatedSay } from '../../speech/coordination/index.js';
+// Tool updater for mid-session tool updates (OpenAI Realtime)
+import { updateAgentTools, supportsToolUpdates } from '../shared/tool-updater.js';
+import { createLogger } from '../../utils/safe-logger.js';
 // PersonaIdString is just a string alias, defined locally to avoid import issues
+
+// Phase 17: Active Listening Memory Capture - "Better Than Human" real-time entity extraction
+import {
+  processIncrementalCapture,
+  getNextConfirmation,
+  type IncrementalCaptureInput,
+} from '../../memory/capture/active-listening-capture.js';
 
 // ============================================================================
 // TYPES
@@ -98,7 +162,10 @@ export interface TranscriptHandlerContext {
   dynamicToolLoader: {
     processMessage: (message: string) => Promise<string[]>;
     getLoadedDomains: () => string[];
+    getCurrentTools: () => Record<string, unknown>;
   };
+  /** Voice agent reference for tool updates */
+  agent: voice.Agent<UserData>;
   /** Auto optimizer for feedback collection */
   autoOptimizer: {
     processUserMessage: (
@@ -121,12 +188,57 @@ export interface TranscriptHandlerContext {
  * echo → transcribes "how are you" → matches cached response → says "I'm doing
  * well, thanks for asking!").
  *
- * 2 seconds is enough for:
+ * NEW: Uses adaptive echo window from SpeechCoordinator when available.
+ * Falls back to 2000ms if coordination system unavailable.
+ *
+ * Legacy 2 seconds accounts for:
  * - Audio buffer flush (~200-500ms)
  * - Speech-to-text processing (~500-1000ms)
  * - Network latency buffer (~200ms)
  */
-const ECHO_PREVENTION_COOLDOWN_MS = 2000;
+const ECHO_PREVENTION_COOLDOWN_MS_DEFAULT = 2000;
+
+/**
+ * Get adaptive echo prevention window.
+ * Uses learned timing from SpeechCoordinator when available.
+ *
+ * CRITICAL FIX: Now content-aware! Pass userTranscript to enable
+ * intelligent detection of legitimate requests vs echoes.
+ *
+ * @param lastUtteranceDurationMs - Duration of last agent utterance
+ * @param userTranscript - The user's transcript for content-aware detection
+ */
+function getEchoPreventioncooldownMs(
+  lastUtteranceDurationMs?: number,
+  userTranscript?: string
+): number {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { getAdaptiveEchoWindow } = require('../../speech/coordination/index.js') as {
+      getAdaptiveEchoWindow: (duration?: number, transcript?: string) => number;
+    };
+    return getAdaptiveEchoWindow(lastUtteranceDurationMs, userTranscript);
+  } catch {
+    // Fall back to default if coordination module unavailable
+    return ECHO_PREVENTION_COOLDOWN_MS_DEFAULT;
+  }
+}
+
+/**
+ * Record echo detection for adaptive learning.
+ * Call this when we detect what appears to be agent echo being picked up.
+ */
+function recordEchoDetectionForLearning(sessionId: string, delayMs: number): void {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { recordEchoDetected } = require('../../speech/coordination/index.js') as {
+      recordEchoDetected: (sessionId: string, delayMs: number) => void;
+    };
+    recordEchoDetected(sessionId, delayMs);
+  } catch {
+    // Ignore if coordination module unavailable
+  }
+}
 
 export interface TranscriptEvent {
   transcript: string;
@@ -165,6 +277,8 @@ export function createTranscriptHandler(ctx: TranscriptHandlerContext): Transcri
     silenceContext,
     dynamicToolLoader,
     autoOptimizer,
+    sendDataMessage,
+    agent,
   } = ctx;
 
   const handler = (event: TranscriptEvent): void => {
@@ -185,7 +299,28 @@ export function createTranscriptHandler(ctx: TranscriptHandlerContext): Transcri
           trigger: microInterrupt.trigger,
           transcript: event.transcript.slice(0, 30),
         });
+        // Set hard interrupt type for more deliberate recovery
+        userData.interruptType = 'hard';
         // The onInterrupt callback handles the actual interruption
+      }
+
+      // ===============================================
+      // GRACEFUL INTERRUPT: Pre-emptive trailing
+      // Sense when user is about to interrupt and inject
+      // trailing-off SSML before the hard cut happens
+      // ===============================================
+      const interruptSense = senseInterrupt(sessionId, event.transcript, isAgentSpeaking);
+      if (interruptSense.shouldTrail) {
+        const trailingSsml = getTrailingSsml(sessionId);
+        if (trailingSsml) {
+          diag.state('🎭 Injecting pre-emptive trailing', {
+            trigger: interruptSense.trigger,
+            trailing: trailingSsml.slice(0, 30),
+          });
+          // The trailing SSML will be picked up by the TTS stream
+          // via the transcription node's response wrapper
+          userData.pendingTrailingSsml = trailingSsml;
+        }
       }
     }
 
@@ -246,6 +381,50 @@ export function createTranscriptHandler(ctx: TranscriptHandlerContext): Transcri
       sendPartialTranscript(room, event.transcript);
 
       // ===============================================
+      // 👂 PHASE 17: ACTIVE LISTENING MEMORY CAPTURE
+      // Extract entities, dates, commitments in real-time as user speaks
+      // "Better Than Human" - capture what they're saying before they finish
+      // ===============================================
+      if (userId) {
+        try {
+          const turnStartTime = (userData as Record<string, unknown>).turnStartTime;
+        const captureInput: IncrementalCaptureInput = {
+            userId,
+            sessionId,
+            partialTranscript: event.transcript,
+            isFinal: false,
+            turnNumber: userData.turnCount || 0,
+            elapsedMs: Date.now() - (typeof turnStartTime === 'number' ? turnStartTime : Date.now()),
+            topicContext: userData.lastTopic,
+            emotionalContext: userData.lastEmotionAnalysis
+              ? {
+                  primary: userData.lastEmotionAnalysis.primary,
+                  intensity: userData.lastEmotionAnalysis.intensity,
+                }
+              : undefined,
+          };
+
+          const immediateCaptured = processIncrementalCapture(captureInput);
+
+          if (immediateCaptured.length > 0) {
+            diag.state('👂 Active listening: Captured items from partial', {
+              count: immediateCaptured.length,
+              types: immediateCaptured.map((i) => i.type),
+            });
+
+            // Check if we should ask a confirmation question
+            const nextConfirmation = getNextConfirmation(sessionId);
+            if (nextConfirmation && !conversationManager.isAgentSpeaking()) {
+              // Store for potential use in response (don't interrupt flow)
+              (userData as Record<string, unknown>).pendingConfirmation = nextConfirmation;
+            }
+          }
+        } catch {
+          // Active listening is non-critical - don't block transcript processing
+        }
+      }
+
+      // ===============================================
       // SESAME-INSPIRED ANTICIPATORY PROSODY
       // Pre-compute response prosody while user is still speaking
       // This enables faster, more natural responses
@@ -266,6 +445,218 @@ export function createTranscriptHandler(ctx: TranscriptHandlerContext): Transcri
       } catch {
         // Sesame processing is non-critical
       }
+
+      // ===============================================
+      // 🎭 UNIFIED ANTICIPATION PIPELINE ("Better Than Human")
+      // Process partial transcript through anticipation pipeline to:
+      // - Predict user intent (celebration, question, emotional share, etc.)
+      // - Anticipate emotional trajectory (rising excitement, falling sadness)
+      // - Prepare prosody adjustments for response (speed, emotion, micro-reactions)
+      // ===============================================
+      if (isOrchestratorEnabled()) {
+        try {
+          // Get anticipation pipeline for this session
+          const pipeline = getAnticipationPipeline(sessionId);
+
+          // Process the partial transcript
+          const anticipation = pipeline.process({
+            sessionId,
+            partialTranscript: event.transcript,
+            isSpeaking: true,
+            tone: userData.voiceEmotion?.primary as
+              | 'neutral'
+              | 'excited'
+              | 'sad'
+              | 'frustrated'
+              | 'curious'
+              | undefined,
+          });
+
+          // If actionable, store for use in response preparation
+          if (anticipation?.isActionable) {
+            // Store on userData for turn handler to use
+            (
+              userData as UserData & { anticipatedProsody?: typeof anticipation.prosody }
+            ).anticipatedProsody = anticipation.prosody;
+
+            diag.state('🎭 Anticipation pipeline result', {
+              intent: anticipation.intent.intent,
+              intentConfidence: anticipation.intent.confidence.toFixed(2),
+              emotionTrajectory: anticipation.emotion.trajectory,
+              emotionConfidence: anticipation.emotion.confidence.toFixed(2),
+              speedMultiplier: anticipation.prosody.speedMultiplier.toFixed(2),
+              microReaction: !!anticipation.prosody.microReactionSsml,
+            });
+
+            // ===============================================
+            // 🚀 BETTER THAN HUMAN: Send anticipation to frontend BEFORE turn completes
+            // This enables the avatar to show emotional response while user is still speaking
+            // ===============================================
+            if (sendDataMessage && anticipation.emotion.confidence > 0.5) {
+              // Determine urgency from trajectory
+              const urgency =
+                anticipation.emotion.trajectory.includes('distress') ||
+                anticipation.emotion.trajectory.includes('crisis')
+                  ? 'high'
+                  : anticipation.emotion.trajectory.includes('stable')
+                    ? 'low'
+                    : 'normal';
+
+              void sendDataMessage('anticipation_signal', {
+                intent: anticipation.intent.intent,
+                intentConfidence: anticipation.intent.confidence,
+                emotionTrajectory: anticipation.emotion.trajectory,
+                predictedEmotion:
+                  anticipation.emotion.anticipatedEmotion || anticipation.emotion.trajectory,
+                emotionConfidence: anticipation.emotion.confidence,
+                urgency,
+                timestamp: Date.now(),
+              }).catch(() => {
+                // Non-critical
+              });
+
+              diag.state('🚀 Anticipation signal sent to frontend', {
+                intent: anticipation.intent.intent,
+                trajectory: anticipation.emotion.trajectory,
+              });
+            }
+          }
+        } catch {
+          // Anticipation pipeline processing is non-critical
+        }
+      }
+
+      // ===============================================
+      // 🧠 ANTICIPATORY TRIGGERS (Phase 5)
+      // "Better than Human" - Fire early responses before full expression
+      // Detects vulnerability, distress, celebration, etc. from partial input
+      // ===============================================
+      if (userData.anticipatoryIntelligence && !conversationManager.isAgentSpeaking()) {
+        try {
+          // Convert voice emotion to VoiceProsodyCue format if available
+          let voiceProsody: { cues: VoiceProsodyCue[]; overallScore: number } | undefined;
+          if (userData.voiceEmotion) {
+            const cues: VoiceProsodyCue[] = [];
+            const confidence = userData.voiceEmotion.confidence || 0.5;
+            // Map emotion to prosody cues
+            if (userData.voiceEmotion.primary === 'sad') {
+              cues.push({
+                type: 'tremor',
+                intensity: confidence,
+                typicalMeaning: 'vulnerability',
+                reliability: 0.7,
+                observations: 1,
+              });
+            }
+            if (
+              userData.voiceEmotion.primary === 'angry' ||
+              userData.voiceEmotion.primary === 'sad'
+            ) {
+              cues.push({
+                type: 'pitch_change',
+                direction: 'irregular',
+                intensity: confidence,
+                typicalMeaning: 'distress',
+                reliability: 0.6,
+                observations: 1,
+              });
+            }
+            // Add pause detection if we have breath pause data
+            if (userData.isInBreathPause) {
+              cues.push({
+                type: 'pause',
+                intensity: 0.6,
+                typicalMeaning: 'processing',
+                reliability: 0.5,
+                observations: 1,
+              });
+            }
+            voiceProsody = {
+              cues,
+              overallScore: confidence,
+            };
+          }
+
+          // Check session-level safeguards
+          const now = Date.now();
+          const firingsThisSession = userData.anticipatoryFiringsThisSession ?? 0;
+          const lastFiringAt = userData.lastAnticipatoryFiringAt ?? 0;
+          const cooldownMs =
+            (userData.anticipatoryIntelligence.safeguards?.minSecondsBetween ?? 120) * 1000;
+          const maxPerSession = userData.anticipatoryIntelligence.safeguards?.maxPerSession ?? 3;
+
+          // Skip if we've exceeded session limits
+          if (firingsThisSession < maxPerSession && now - lastFiringAt > cooldownMs) {
+            const result = processAnticipatoryInput(
+              sessionId,
+              event.transcript,
+              userData.anticipatoryIntelligence,
+              voiceProsody,
+              userData.lastTopic
+            );
+
+            if (result.shouldFire && result.verbalResponse) {
+              // Speak the anticipatory response via coordinated speech
+              void coordinatedSay(sessionId, result.verbalResponse, { allowInterruptions: true });
+
+              // Send avatar cue to frontend
+              if (ctx.sendDataMessage && result.responseTemplate?.nonVerbal) {
+                void ctx.sendDataMessage('avatar_cue', {
+                  type: 'anticipatory_response',
+                  ...result.responseTemplate.nonVerbal,
+                  anticipatedOutcome: result.anticipatedOutcome,
+                });
+              }
+
+              // Update session-level tracking
+              userData.anticipatoryFiringsThisSession = firingsThisSession + 1;
+              userData.lastAnticipatoryFiringAt = now;
+
+              // Store pending result for outcome recording when final transcript arrives
+              // Only store if we have a detection result
+              if (result.detection) {
+                userData.pendingAnticipatoryResult = {
+                  detection: result.detection,
+                  firedAt: now,
+                  verbalResponse: result.verbalResponse,
+                  anticipatedOutcome: result.anticipatedOutcome || 'unknown',
+                };
+              }
+
+              diag.session('🔮 Anticipatory trigger fired', {
+                anticipatedOutcome: result.anticipatedOutcome,
+                confidence: result.confidence.toFixed(2),
+                partialTranscript: event.transcript.slice(0, 50),
+              });
+            }
+          }
+        } catch {
+          // Anticipatory trigger processing is non-critical
+        }
+      }
+
+      // ===============================================
+      // 🚀 SPECULATIVE CONTEXT PREFETCH
+      // Start building context while user is still speaking
+      // Saves ~150ms on final response
+      // ===============================================
+      if (event.transcript.length > 20 && userId) {
+        // Use .then() to avoid await in non-async context
+        import('../shared/performance/session-optimizations.js')
+          .then(({ startSpeculativePrefetch }) => {
+            startSpeculativePrefetch(sessionId, event.transcript, async (text) => {
+              const { getRAGContext } = await import('../../memory/semantic-rag.js');
+              return getRAGContext(text, {
+                topK: 3,
+                userId,
+                minScore: 0.3,
+              });
+            });
+          })
+          .catch(() => {
+            // Prefetch is non-critical
+          });
+      }
     }
 
     // ===============================================
@@ -284,6 +675,11 @@ export function createTranscriptHandler(ctx: TranscriptHandlerContext): Transcri
     // FINAL TRANSCRIPT PROCESSING
     // ===============================================
     if (event.isFinal && event.transcript) {
+      // 📊 E2E LATENCY: Start tracking this turn
+      // This helps diagnose whether pauses are OpenAI, TTS, or our code
+      const turnId = startLatencyTurn(sessionId, event.transcript);
+      markProcessingStarted(sessionId);
+
       // ===============================================
       // 🧠 INTELLIGENT NOISE/ECHO FILTERING
       // Validate transcript before treating as user turn
@@ -317,6 +713,42 @@ export function createTranscriptHandler(ctx: TranscriptHandlerContext): Transcri
       const cleanedTranscript = validation.cleanedTranscript || event.transcript;
 
       // ===============================================
+      // 🌍 LANGUAGE DETECTION (First few utterances)
+      // Detect user's language from speech patterns
+      // Fire-and-forget since this handler is sync
+      // ===============================================
+      void (async () => {
+        try {
+          // Lazy import to avoid circular dependencies
+          const { accumulateForDetection, updateDetectedLanguage, initializeSessionLanguage } =
+            await import('../../services/language/index.js');
+
+          // Initialize session language if not already done
+          const preferredLang = userData.preferredLanguage as string | undefined;
+          initializeSessionLanguage(
+            sessionId,
+            userData.userId,
+            preferredLang as Parameters<typeof initializeSessionLanguage>[2]
+          );
+
+          // Accumulate for detection (returns result after 2+ utterances)
+          const detection = accumulateForDetection(sessionId, cleanedTranscript);
+          if (detection && detection.confidence >= 0.7) {
+            const updated = updateDetectedLanguage(sessionId, detection);
+            if (updated) {
+              userData.preferredLanguage = detection.detectedLanguage;
+              diag.state('🌍 Language auto-detected', {
+                detected: detection.detectedLanguage,
+                confidence: detection.confidence.toFixed(2),
+              });
+            }
+          }
+        } catch {
+          // Language detection is non-critical - silently continue
+        }
+      })();
+
+      // ===============================================
       // 🧠 HUMAN TURN INTELLIGENCE (Final)
       // Full analysis now that we have the complete utterance
       // ===============================================
@@ -338,7 +770,10 @@ export function createTranscriptHandler(ctx: TranscriptHandlerContext): Transcri
       userData.lastUserMessage = cleanedTranscript;
 
       // Update session state for learning user's patterns
-      const wordCount = cleanedTranscript.split(/\s+/).filter((w: string) => w.length > 0).length;
+      // 🦀 Use Rust for O(1) word counting, JS fallback otherwise
+      const wordCount = RUST_COUNTING_AVAILABLE
+        ? countWordsRust(cleanedTranscript)
+        : cleanedTranscript.split(/\s+/).filter((w: string) => w.length > 0).length;
       updateSessionState(sessionId, {
         sentenceLength: wordCount,
         emotionalIntensity: userData.lastEmotionAnalysis?.intensity,
@@ -357,6 +792,157 @@ export function createTranscriptHandler(ctx: TranscriptHandlerContext): Transcri
         isUrgent: finalTurnSignals.isUrgent,
       });
 
+      // ===============================================
+      // 🔄 WORKFLOW PHRASE TRIGGER CHECK
+      // Check if this transcript matches any phrase-triggered routines
+      // Fire-and-forget since routine execution is independent
+      // ===============================================
+      if (userData.userId) {
+        const userId = userData.userId;
+        void (async () => {
+          try {
+            const { getWorkflowEngine } = await import('../../services/workflows/workflow-engine.js');
+            const engine = getWorkflowEngine(userId);
+            const triggered = await engine.handlePhraseTrigger(cleanedTranscript);
+            if (triggered) {
+              diag.state('🔄 Routine triggered by phrase', {
+                routineName: triggered.name,
+                transcript: cleanedTranscript.slice(0, 30),
+              });
+            }
+          } catch {
+            // Phrase trigger check is non-critical - silently continue
+          }
+        })();
+      }
+
+      // ===============================================
+      // 🧠 ANTICIPATORY TRIGGER OUTCOME RECORDING
+      // Learn from the completed utterance to improve predictions
+      // ===============================================
+      if (userData.pendingAnticipatoryResult && userData.triggerProfile) {
+        try {
+          // Determine user reaction based on how they continued
+          // If they continued speaking on a related topic, we likely guessed right
+          // If they changed topic or seemed annoyed, we likely guessed wrong
+          let userReaction: 'appreciated' | 'continued' | 'ignored' | 'corrected' | 'annoyed' =
+            'continued';
+
+          // Simple heuristics for reaction detection
+          const response = cleanedTranscript.toLowerCase();
+          if (
+            response.includes('thank') ||
+            response.includes('exactly') ||
+            response.includes('yes')
+          ) {
+            userReaction = 'appreciated';
+          } else if (
+            response.includes('no') ||
+            response.includes("that's not") ||
+            response.includes("i wasn't")
+          ) {
+            userReaction = 'corrected';
+          } else if (response.includes('anyway') || response.includes('moving on')) {
+            userReaction = 'ignored';
+          }
+
+          // Record outcome for learning
+          const updatedProfile = recordAnticipatoryOutcome(
+            userData.triggerProfile,
+            sessionId,
+            userData.pendingAnticipatoryResult.detection,
+            userReaction,
+            'space_creating', // Default response type
+            userData.voiceEmotion?.confidence ?? 0,
+            userReaction === 'appreciated' || userReaction === 'continued'
+          );
+
+          // Also learn from the completed utterance
+          const { anticipatedOutcome } = userData.pendingAnticipatoryResult;
+          const profileWithLearning = learnFromUtterance(updatedProfile, {
+            fullUtterance: cleanedTranscript,
+            actualOutcome: (anticipatedOutcome || 'processing') as
+              | 'vulnerability'
+              | 'distress'
+              | 'celebration'
+              | 'processing'
+              | 'avoidance'
+              | 'request',
+            voiceCues: userData.voiceEmotion
+              ? [
+                  {
+                    type: 'pitch_change' as const,
+                    direction: 'irregular' as const,
+                    intensity: userData.voiceEmotion.confidence ?? 0.5,
+                    typicalMeaning: 'distress' as const,
+                    reliability: 0.6,
+                    observations: 1,
+                  },
+                ]
+              : [],
+            sessionId,
+            activatedTriggers: [],
+          });
+
+          // Update profile for session-end save
+          userData.triggerProfile = profileWithLearning;
+          userData.anticipatoryIntelligence = profileWithLearning.anticipatoryIntelligence;
+
+          diag.session('🔮 Anticipatory outcome recorded', {
+            anticipatedOutcome: userData.pendingAnticipatoryResult.anticipatedOutcome,
+            userReaction,
+            timeSinceFiring: Date.now() - userData.pendingAnticipatoryResult.firedAt,
+          });
+        } catch {
+          // Outcome recording is non-critical
+        } finally {
+          // Clear pending result
+          userData.pendingAnticipatoryResult = null;
+        }
+      }
+
+      // 📊 MUSIC TRANSITION FEEDBACK
+      // If music recently ended, record user's response for per-user learning
+      // This helps the system learn what transition types work for each user
+      if (hasPendingMusicFeedback()) {
+        try {
+          // Auto-detect feedback signals from what the user said
+          const detectedFeedback = detectFeedbackFromResponse(cleanedTranscript);
+
+          // Also use voice emotion if available
+          // Note: 'calm' is not a valid VoiceEmotionType, using 'neutral' as base
+          const voiceTone =
+            userData.voiceEmotion?.primary === 'happy' ||
+            (userData.voiceEmotion?.valence ?? 0) > 0.3
+              ? 'warmer'
+              : userData.voiceEmotion?.primary === 'neutral'
+                ? 'calmer'
+                : 'neutral';
+
+          const feedbackRecorded = recordMusicFeedback(
+            {
+              ...detectedFeedback,
+              voiceTone: voiceTone as 'warmer' | 'calmer' | 'neutral',
+              continuedSession: true,
+            },
+            sessionId
+          );
+
+          if (feedbackRecorded) {
+            diag.state('📊 Music feedback recorded from user response', {
+              transcript: cleanedTranscript.slice(0, 50),
+              wasPositive: detectedFeedback.wasPositive,
+              voiceTone,
+            });
+          }
+        } catch (feedbackErr) {
+          // Non-critical, don't block transcript processing
+          diag.debug('📊 Music feedback recording failed (non-critical)', {
+            error: String(feedbackErr),
+          });
+        }
+      }
+
       // 🚀 RESPONSE ANTICIPATION CACHE BYPASS
       // If we have a high-confidence cached response, say it immediately
       // This provides instant-feeling responses for common patterns (greetings, etc.)
@@ -372,16 +958,26 @@ export function createTranscriptHandler(ctx: TranscriptHandlerContext): Transcri
       // - STT processing delay
       // - Network latency
       // NOTE: lastAgentSpeechEnd and timeSinceAgentSpoke already calculated above
-      const isInEchoCooldown = timeSinceAgentSpoke < ECHO_PREVENTION_COOLDOWN_MS;
+      // CRITICAL FIX: Use content-aware echo window that checks transcript content
+      // This prevents blocking legitimate user requests like "Could you check the news?"
+      const adaptiveEchoCooldown = getEchoPreventioncooldownMs(
+        userData.lastAgentUtteranceDurationMs,
+        event.transcript // Pass transcript for content-aware detection
+      );
+      const isInEchoCooldown = timeSinceAgentSpoke < adaptiveEchoCooldown;
 
       // Skip cache if currently speaking OR within cooldown window
       const shouldSkipCache = isAgentCurrentlySpeaking || isInEchoCooldown;
       const cached = !shouldSkipCache ? getCachedResponseIfAvailable(sessionId) : null;
 
       if (isInEchoCooldown && !isAgentCurrentlySpeaking) {
-        diag.state('⚡ CACHE BYPASS SKIPPED - Echo prevention cooldown', {
+        // Record this as potential echo for learning
+        recordEchoDetectionForLearning(sessionId, timeSinceAgentSpoke);
+
+        diag.state('⚡ CACHE BYPASS SKIPPED - Adaptive echo prevention', {
           timeSinceAgentSpokeMs: timeSinceAgentSpoke,
-          cooldownMs: ECHO_PREVENTION_COOLDOWN_MS,
+          adaptiveCooldownMs: adaptiveEchoCooldown,
+          lastUtteranceDurationMs: userData.lastAgentUtteranceDurationMs,
           transcript: event.transcript.slice(0, 30),
         });
       }
@@ -392,14 +988,19 @@ export function createTranscriptHandler(ctx: TranscriptHandlerContext): Transcri
           response: cached.response.slice(0, 50),
         });
 
-        // Say the cached response immediately (with SSML if available)
+        // Say the cached response immediately (with SSML if available) via coordinated speech
         try {
-          session.say(cached.ssml || cached.response, { allowInterruptions: true });
+          coordinatedSay(sessionId, cached.ssml || cached.response, { allowInterruptions: true });
 
-          // Track that we used a cached response
-          if (services && typeof services.addTurn === 'function') {
-            services.addTurn('assistant', cached.response);
-          }
+          // Track that we used a cached response (+ on-behalf call capture)
+          import('./agent-turn-recorder.js')
+            .then(({ recordAgentTurn }) => recordAgentTurn(sessionId, services, cached.response))
+            .catch(() => {
+              // Fallback
+              if (services && typeof services.addTurn === 'function') {
+                services.addTurn('assistant', cached.response);
+              }
+            });
           if (userData) {
             userData.lastAgentResponse = cached.response;
             userData.lastAgentResponseTime = Date.now();
@@ -416,7 +1017,8 @@ export function createTranscriptHandler(ctx: TranscriptHandlerContext): Transcri
         // Cooldown skip is logged above already
       }
 
-      processFinalTranscript({
+      // Fire and forget - async but we don't await in the sync handler
+      void processFinalTranscript({
         event,
         room,
         session,
@@ -430,6 +1032,9 @@ export function createTranscriptHandler(ctx: TranscriptHandlerContext): Transcri
         silenceContext,
         dynamicToolLoader,
         autoOptimizer,
+        agent,
+      }).catch((err) => {
+        diag.warn('processFinalTranscript error', { error: String(err) });
       });
     }
   };
@@ -564,7 +1169,9 @@ export function getCachedResponseIfAvailable(
 /**
  * Process final transcript with all necessary processing steps
  */
-function processFinalTranscript(ctx: TranscriptHandlerContext & { event: TranscriptEvent }): void {
+async function processFinalTranscript(
+  ctx: TranscriptHandlerContext & { event: TranscriptEvent }
+): Promise<void> {
   const {
     event,
     session,
@@ -578,7 +1185,286 @@ function processFinalTranscript(ctx: TranscriptHandlerContext & { event: Transcr
     silenceContext,
     dynamicToolLoader,
     autoOptimizer,
+    agent,
   } = ctx;
+
+  // ===============================================
+  // 🧠 DYNAMIC MEMORY CAPTURE: LLM-powered extraction
+  // Uses temporal decoupling: fast capture (< 50ms) + async deep extraction
+  // Extracts entities, relationships, emotions, dates, topics
+  // Deep LLM extraction runs in background worker
+  // ===============================================
+  try {
+    if (!userId) {
+      diag.debug('Skipping memory capture - no userId');
+    } else {
+      const { fastCapture, recordTurn } = await import('../../memory/dynamic/index.js');
+      const captureResult = await fastCapture({
+        userId,
+        sessionId,
+        turnNumber: 0, // Transcript handler doesn't track turn numbers
+        transcript: event.transcript,
+        personaId: userData.personaId,
+      });
+
+      // 🧠 CRITICAL: Record to STM buffer for session context
+      recordTurn(sessionId, userId, captureResult, event.transcript, 0);
+
+      // Log capture results for debugging
+      if (captureResult.mentionedEntities.length > 0 || captureResult.asyncJobId) {
+        diag.state('🧠 Dynamic memory: Fast capture complete', {
+          entityCount: captureResult.mentionedEntities.length,
+          topicHints: captureResult.topicHints,
+          asyncJobId: captureResult.asyncJobId,
+          captureTimeMs: captureResult.captureTimeMs,
+        });
+      }
+    }
+  } catch (captureError) {
+    // Non-fatal - memory capture is enhancement, not critical
+    diag.warn('Memory capture error', { error: String(captureError) });
+  }
+
+  // ===============================================
+  // 👂 PHASE 17: ACTIVE LISTENING - FINAL CAPTURE
+  // Process final transcript to capture any remaining items
+  // Entities, dates, commitments extracted in real-time
+  // ===============================================
+  if (userId && event.transcript) {
+    try {
+      const finalTurnStartTime = (userData as Record<string, unknown>).turnStartTime;
+      const captureInput: IncrementalCaptureInput = {
+        userId,
+        sessionId,
+        partialTranscript: event.transcript,
+        isFinal: true,
+        turnNumber: userData.turnCount || 0,
+        elapsedMs: Date.now() - (typeof finalTurnStartTime === 'number' ? finalTurnStartTime : Date.now()),
+        topicContext: userData.lastTopic,
+        emotionalContext: userData.lastEmotionAnalysis
+          ? {
+              primary: userData.lastEmotionAnalysis.primary,
+              intensity: userData.lastEmotionAnalysis.intensity,
+            }
+          : undefined,
+      };
+
+      const finalCaptured = processIncrementalCapture(captureInput);
+
+      if (finalCaptured.length > 0) {
+        diag.state('👂 Active listening: Final capture complete', {
+          count: finalCaptured.length,
+          types: finalCaptured.map((i) => i.type),
+        });
+      }
+    } catch {
+      // Active listening is non-critical
+    }
+  }
+
+  // ===============================================
+  // 🧵 THREAD RECORDING: Record user message for cross-channel continuity
+  // This enables seamless conversation flow: SMS → Voice → Push
+  // ===============================================
+  if (userId && event.transcript) {
+    try {
+      const { recordUserMessage } =
+        await import('../../services/conversation-thread/thread-recorder.js');
+      void recordUserMessage({
+        userId,
+        sessionId,
+        personaId: sessionPersona.id as import('../../personas/types.js').PersonaId,
+        threadId: userData.threadId,
+        content: event.transcript,
+        sentiment:
+          userData.lastEmotionAnalysis?.primary === 'happy'
+            ? 'positive'
+            : userData.lastEmotionAnalysis?.primary === 'sad'
+              ? 'negative'
+              : 'neutral',
+        topics: userData.recentTopics,
+      });
+    } catch (threadErr) {
+      // Non-fatal - thread recording is enhancement
+      diag.debug('Thread recording error', { error: String(threadErr) });
+    }
+  }
+
+  // ===============================================
+  // 🔴 CRITICAL FIX: Record user turn for memory persistence
+  // This was MISSING - causing all user speech to be lost!
+  // Without this, learning engine gets no data, summaries are empty,
+  // and Ferni never remembers what users say.
+  // ===============================================
+  // For on-behalf calls, also captures for superhuman analysis
+  if (event.transcript) {
+    import('./agent-turn-recorder.js')
+      .then(({ recordUserTurn }) => recordUserTurn(sessionId, services, event.transcript))
+      .catch(() => {
+        // Fallback
+        if (services && typeof services.addTurn === 'function') {
+          services.addTurn('user', event.transcript);
+        }
+      });
+    diag.debug('📝 User turn recorded for memory', {
+      preview: event.transcript.slice(0, 50),
+      sessionId,
+    });
+  }
+
+  // ===============================================
+  // 🎯 DIRECT TOOL ROUTING (Surgical Pre-LLM Execution)
+  // HIGH-CONFIDENCE ONLY: Music, weather, handoff - obvious intents
+  // This fixes the "Gemini returns nothing" bug for clear tool requests
+  // Unlike full semantic routing, this has very low false positive rate
+  // ===============================================
+  if (event.transcript) {
+    try {
+      const { routeDirectly, isDirectRoutingEnabled } = await import('./direct-tool-router.js');
+
+      if (isDirectRoutingEnabled()) {
+        const directResult = await routeDirectly(event.transcript, {
+          userId: userId || 'anonymous',
+          sessionId,
+          personaId: sessionPersona.id,
+          recentTopics: userData.recentTopics,
+          lastAgentMessage: userData.lastAgentResponse,
+          userLocation: userData.userLocation,
+        });
+
+        if (directResult.handled) {
+          diag.state('🎯 Direct router handled transcript', {
+            toolId: directResult.toolId,
+            confidence: directResult.confidence,
+            intent: directResult.intent,
+          });
+
+          // Track turn count and user message
+          userData.turnCount = (userData.turnCount || 0) + 1;
+          userData.lastUserMessage = event.transcript;
+
+          // 🚫 DEDUPLICATION: Mark tool as executed to prevent LLM from also calling it
+          // This prevents double-execution when:
+          // 1. Direct router executes tool
+          // 2. LLM (OpenAI native function calling or JSON workaround) also tries to call same tool
+          if (directResult.toolId) {
+            try {
+              const { markToolExecutedBySemanticRouter } = await import(
+                '../shared/tool-call-sanitizer.js'
+              );
+              markToolExecutedBySemanticRouter(sessionId, directResult.toolId);
+            } catch {
+              // Non-critical - deduplication is defensive
+            }
+          }
+
+          // 🛑 EARLY RETURN: Skip LLM processing to prevent double-response
+          // Previously we let LLM "respond naturally" but this caused issues:
+          // 1. LLM didn't know tool was already executed
+          // 2. With JSON prompts, LLM output JSON instead of natural speech
+          // 3. Even with OpenAI native function calling, LLM might call the tool again
+          // The tool result provides the response (e.g., music starts playing)
+          return;
+        }
+      }
+    } catch (directRouteError) {
+      // Non-fatal - fall through to semantic routing / Gemini
+      diag.debug('Direct routing error (non-blocking)', { error: String(directRouteError) });
+    }
+  }
+
+  // ===============================================
+  // 🎯 SEMANTIC ROUTING (Pre-LLM Tool Execution)
+  // Route high-confidence tool requests BEFORE Gemini processes
+  // This bypasses the LLM entirely for deterministic tool calls
+  // ===============================================
+  if (isSemanticRoutingEnabled() && event.transcript) {
+    try {
+      // Build voice prosody context from userData (Better Than Human)
+      const voiceProsody = userData.voiceEmotion
+        ? {
+            stressLevel: userData.voiceEmotion.stressLevel,
+            arousal: userData.voiceEmotion.arousal,
+            valence: userData.voiceEmotion.valence,
+            anxietyMarkers: userData.voiceEmotion.anxietyMarkers ? ['detected'] : undefined,
+            voiceTremor: userData.voiceEmotion.prosody?.breathiness
+              ? userData.voiceEmotion.prosody.breathiness > 0.7
+              : undefined,
+          }
+        : undefined;
+
+      // Calculate WPM from prosody if available
+      const wordsPerMinute = userData.voiceEmotion?.prosody?.speechRate;
+
+      // Build detected emotion from voice analysis
+      const detectedEmotion = userData.voiceEmotion
+        ? {
+            emotion: String(userData.voiceEmotion.primary),
+            intensity: userData.voiceEmotion.confidence,
+            valence: userData.voiceEmotion.valence,
+            source: 'voice' as const,
+          }
+        : undefined;
+
+      const routingResult = await routeTranscript(event.transcript, {
+        userId: userId || 'anonymous',
+        sessionId,
+        personaId: sessionPersona.id,
+        session,
+        // ConversationHistory and recentTools are optional
+        conversationHistory: [],
+        recentTools: [],
+        // Better Than Human: Voice prosody signals
+        voiceProsody,
+        wordsPerMinute,
+        detectedEmotion,
+      });
+
+      // If semantic router handled it, skip normal processing
+      if (routingResult.handled) {
+        diag.state('🎯 Semantic router handled transcript', {
+          toolId: routingResult.toolId,
+          confidence: routingResult.confidence,
+          // Better Than Human features
+          emotionalArc: routingResult.emotionalArc?.trend,
+          prosodyBoost: routingResult.prosodyBoost?.boostedTools?.slice(0, 2),
+          hasIntervention: !!routingResult.suggestedIntervention,
+        });
+
+        // Still track the turn count and user message
+        userData.turnCount = (userData.turnCount || 0) + 1;
+        userData.lastUserMessage = event.transcript;
+
+        // If there's a suggested intervention, store it for potential use
+        if (routingResult.suggestedIntervention) {
+          userData.suggestedIntervention = routingResult.suggestedIntervention;
+          diag.state('🧠 Proactive intervention suggested', {
+            type: routingResult.suggestedIntervention.type,
+            urgency: routingResult.suggestedIntervention.urgency,
+          });
+        }
+
+        return; // Skip Gemini processing
+      }
+
+      // Log if routing was attempted but not handled
+      if (routingResult.attempted) {
+        diag.state('🎯 Semantic routing attempted, passing to Gemini', {
+          confidence: routingResult.confidence,
+          emotionalTrend: routingResult.emotionalArc?.trend,
+          boostedTools: routingResult.prosodyBoost?.boostedTools?.slice(0, 2),
+        });
+
+        // Store prosody boost for Gemini context injection
+        if (routingResult.prosodyBoost?.boostedTools?.length) {
+          userData.prosodyBoost = routingResult.prosodyBoost;
+        }
+      }
+    } catch (routingError) {
+      // Non-fatal - let Gemini handle
+      diag.warn('Semantic routing error', { error: String(routingError) });
+    }
+  }
 
   // ===============================================
   // SESAME-INSPIRED: START NEW TURN
@@ -607,6 +1493,44 @@ function processFinalTranscript(ctx: TranscriptHandlerContext & { event: Transcr
   // Run human listening pipeline
   processHumanListeningPipeline(event.transcript, userData, sessionId);
 
+  // 🌟 Better Than Human transcript processing
+  // Detects: first-time vulnerability, emotional contradictions, patterns, linguistic style
+  processBetterThanHumanTranscript(event.transcript, userData, sessionId, sessionPersona.id);
+
+  // 🎵 Music Preference Extraction
+  // Detects: "I love jazz", "I don't like country", "Taylor Swift is my favorite"
+  // Music preferences are now learned automatically via music-user-learning.ts
+  // using Thompson Sampling for preference optimization
+  if (hasMusicContext(event.transcript)) {
+    const extractedPrefs = extractMusicPreferences(event.transcript);
+    if (extractedPrefs.length > 0) {
+      // Preferences are stored via the music learning persistence system
+      diag.state('🎵 Extracted music preferences from conversation', {
+        count: extractedPrefs.length,
+        preferences: extractedPrefs.map((p) => `${p.type} ${p.category}: ${p.value}`),
+      });
+    }
+  }
+
+  // 🧠 General Preference Extraction
+  // Detects: sports teams, stocks, news interests, avoid topics, locations, allergies
+  // Learns preferences from natural conversation without explicit commands
+  if (userId && hasPreferenceContent(event.transcript)) {
+    const extractedPrefs = extractPreferences(event.transcript);
+    if (extractedPrefs.length > 0) {
+      // Fire-and-forget: save each preference to the appropriate store
+      for (const pref of extractedPrefs) {
+        fireAndForget(async () => {
+          await saveExtractedPreference(userId, pref);
+        }, 'preference-extraction');
+      }
+      diag.state('🧠 Extracted general preferences from conversation', {
+        count: extractedPrefs.length,
+        preferences: extractedPrefs.map((p) => `${p.category}: ${p.value}`),
+      });
+    }
+  }
+
   // Extract memorable moments
   const newMoments = extractMemorableMoments(event.transcript);
   if (newMoments.length > 0) {
@@ -621,26 +1545,107 @@ function processFinalTranscript(ctx: TranscriptHandlerContext & { event: Transcr
   }
 
   // Update context with last user message
+  // NOTE: Data capture now runs BEFORE semantic routing (see above) to ensure
+  // we capture everything regardless of how the request is handled
   silenceContext.lastUserMessage = event.transcript;
+
+  // ===============================================
+  // SYNC SILENCE CONTEXT WITH CONVERSATION STATE
+  // This enables dynamic, context-aware silence responses
+  // instead of generic repeated questions
+  // ===============================================
+
+  // Sync topics discussed from userData
+  if (userData.recentTopics && userData.recentTopics.length > 0) {
+    silenceContext.topicsDiscussed = [...userData.recentTopics];
+  } else if (userData.lastTopic && !silenceContext.topicsDiscussed.includes(userData.lastTopic)) {
+    silenceContext.topicsDiscussed = [
+      userData.lastTopic,
+      ...silenceContext.topicsDiscussed.slice(0, 9), // Keep last 10 topics
+    ];
+  }
+
+  // Sync current topic being discussed
+  if (userData.lastTopic) {
+    silenceContext.wasDiscussingTopic = userData.lastTopic;
+  }
+
+  // Sync emotional tone from emotion analysis
+  if (userData.lastEmotionAnalysis) {
+    const { primary, intensity, distressLevel } = userData.lastEmotionAnalysis;
+
+    // Determine emotional tone: heavy if distressed/intense, light if positive, neutral otherwise
+    if ((distressLevel ?? 0) > 0.4 || (intensity ?? 0) > 0.7) {
+      silenceContext.recentEmotionalTone = 'heavy';
+    } else if (
+      primary === 'happy' ||
+      primary === 'excited' ||
+      primary === 'joyful' ||
+      primary === 'amused'
+    ) {
+      silenceContext.recentEmotionalTone = 'light';
+    } else {
+      silenceContext.recentEmotionalTone = 'neutral';
+    }
+  }
+
+  // Sync last agent message for context
+  if (userData.lastAgentResponse) {
+    silenceContext.lastAgentMessage = userData.lastAgentResponse;
+  }
+
+  diag.state('Silence context synced', {
+    topicsDiscussed: silenceContext.topicsDiscussed.slice(0, 3),
+    emotionalTone: silenceContext.recentEmotionalTone,
+    wasDiscussingTopic: silenceContext.wasDiscussingTopic,
+  });
 
   // Process game topic change detection
   processGameTopicChange(event.transcript, silenceContext, sessionId);
 
   // Dynamic tool loading based on conversation topic
+  // When new domains are loaded, update the agent's tools for OpenAI Realtime
   if (dynamicToolLoader) {
+    const toolUpdaterLog = createLogger({ module: 'DynamicToolUpdate' });
     dynamicToolLoader
       .processMessage(event.transcript)
-      .then((loadedDomains) => {
+      .then(async (loadedDomains) => {
         if (loadedDomains.length > 0) {
           diag.tool('Dynamic domains loaded based on user message', {
             transcript: event.transcript.slice(0, 50),
             loadedDomains,
             totalLoadedDomains: dynamicToolLoader.getLoadedDomains().length,
           });
+
+          // 🔧 MID-SESSION TOOL UPDATE: Register new tools with LLM
+          // - OpenAI Realtime: Uses native updateTools() API
+          // - Gemini: Injects system message about new tools
+          if (supportsToolUpdates() && agent) {
+            try {
+              const newTools = dynamicToolLoader.getCurrentTools();
+              const updated = await updateAgentTools(agent, newTools, {
+                domains: loadedDomains,
+              });
+              if (updated) {
+                toolUpdaterLog.info(
+                  {
+                    loadedDomains,
+                    newToolCount: Object.keys(newTools).length,
+                  },
+                  '🔧 Agent tools updated mid-session'
+                );
+              }
+            } catch (updateError) {
+              toolUpdaterLog.warn(
+                { error: String(updateError) },
+                'Failed to update agent tools mid-session'
+              );
+            }
+          }
         }
       })
       .catch((error) => {
-        getLogger().warn({ error }, 'Failed to process message for dynamic tool loading');
+        toolUpdaterLog.warn({ error }, 'Failed to process message for dynamic tool loading');
       });
   }
 
@@ -675,53 +1680,53 @@ function processTrialStatus(
     return;
   }
 
-  void (async () => {
-    try {
-      const sessionDurationMs = Date.now() - services.sessionStartTime;
-      const trialStatus = await checkTrialStatus(userId, sessionDurationMs);
+  fireAndForget(async () => {
+    const sessionDurationMs = Date.now() - services.sessionStartTime;
+    const trialStatus = await checkTrialStatus(userId, sessionDurationMs);
 
-      // Update userData with latest trial status
-      userData.trialStatus = {
-        inTrial: trialStatus.inTrial,
+    // Update userData with latest trial status
+    userData.trialStatus = {
+      inTrial: trialStatus.inTrial,
+      timeRemainingMs: trialStatus.timeRemainingMs,
+      approachingEnd: trialStatus.approachingEnd,
+      trialEnded: trialStatus.trialEnded,
+    };
+
+    // If trial is ending and we should show transition, inject it
+    if (trialStatus.showTransition && trialStatus.transitionPrompt) {
+      userData.hasSpokenTrialEndPrompt = true;
+      diag.session('Trial ending - speaking transition prompt', {
         timeRemainingMs: trialStatus.timeRemainingMs,
-        approachingEnd: trialStatus.approachingEnd,
         trialEnded: trialStatus.trialEnded,
-      };
+      });
 
-      // If trial is ending and we should show transition, inject it
-      if (trialStatus.showTransition && trialStatus.transitionPrompt) {
-        userData.hasSpokenTrialEndPrompt = true;
-        diag.session('Trial ending - speaking transition prompt', {
-          timeRemainingMs: trialStatus.timeRemainingMs,
-          trialEnded: trialStatus.trialEnded,
-        });
-
-        // Speak the transition prompt after the agent's next response
-        setTimeout(() => {
-          try {
-            if (session && !conversationManager.isAgentSpeaking()) {
-              session.say(trialStatus.transitionPrompt!, { allowInterruptions: true });
-            } else if (session) {
-              // Agent is speaking - retry after another delay
-              setTimeout(() => {
-                try {
-                  if (session && !conversationManager.isAgentSpeaking()) {
-                    session.say(trialStatus.transitionPrompt!, { allowInterruptions: true });
-                  }
-                } catch {
-                  // Ignore retry errors
+      // Speak the transition prompt after the agent's next response via coordinated speech
+      setTimeout(() => {
+        try {
+          if (session && !conversationManager.isAgentSpeaking()) {
+            coordinatedSay(sessionId, trialStatus.transitionPrompt!, {
+              allowInterruptions: true,
+            });
+          } else if (session) {
+            // Agent is speaking - retry after another delay
+            setTimeout(() => {
+              try {
+                if (session && !conversationManager.isAgentSpeaking()) {
+                  coordinatedSay(sessionId, trialStatus.transitionPrompt!, {
+                    allowInterruptions: true,
+                  });
                 }
-              }, 3000);
-            }
-          } catch (sayErr) {
-            diag.warn('Failed to speak trial transition', { error: String(sayErr) });
+              } catch {
+                // Ignore retry errors
+              }
+            }, 3000);
           }
-        }, 2000);
-      }
-    } catch (trialErr) {
-      diag.warn('Trial status check failed (non-fatal)', { error: String(trialErr) });
+        } catch (sayErr) {
+          diag.warn('Failed to speak trial transition', { error: String(sayErr) });
+        }
+      }, 2000);
     }
-  })();
+  }, 'trial-status-check');
 }
 
 /**
@@ -732,8 +1737,8 @@ function processHumanListeningPipeline(
   userData: UserData,
   sessionId: string
 ): void {
-  void (async () => {
-    try {
+  safeFireAndForget(
+    async () => {
       const pipeline = getHumanListeningPipeline(sessionId);
 
       // Get prosody features from voice emotion if available
@@ -780,10 +1785,61 @@ function processHumanListeningPipeline(
           assessment: listeningResult.overallAssessment.slice(0, 100),
         });
       }
-    } catch (listeningErr) {
-      diag.warn('Human listening pipeline error', { error: String(listeningErr) });
-    }
-  })();
+    },
+    { context: 'human-listening-pipeline' }
+  );
+}
+
+/**
+ * Process Better Than Human transcript analysis
+ * Detects first-time vulnerability, emotional contradictions, patterns, linguistic style
+ */
+function processBetterThanHumanTranscript(
+  transcript: string,
+  userData: UserData,
+  sessionId: string,
+  personaId: string
+): void {
+  safeFireAndForget(
+    async () => {
+      const result = await processTranscriptForBetterThanHuman(
+        {
+          transcript,
+          isFinal: true,
+          emotion: userData.lastEmotionAnalysis?.primary,
+          emotionIntensity: userData.lastEmotionAnalysis?.intensity,
+          topic: userData.lastTopic,
+        },
+        {
+          userId: userData.userId || '',
+          sessionId,
+          personaId,
+          turnCount: userData.turnCount || 0,
+        }
+      );
+
+      // Store results in userData for context building
+      if (result.vulnerability?.isFirstTime) {
+        (userData as Record<string, unknown>).betterThanHumanVulnerability = result.vulnerability;
+        diag.state('💎 First-time vulnerability detected', {
+          category: result.vulnerability.category,
+          level: result.vulnerability.level.toFixed(2),
+        });
+      }
+
+      if (result.contradiction?.detected) {
+        (userData as Record<string, unknown>).betterThanHumanContradiction = result.contradiction;
+        diag.state('🎭 Emotional contradiction detected', {
+          emotions: result.contradiction.emotions.join(' + '),
+        });
+      }
+
+      if (result.patterns?.insights && result.patterns.insights.length > 0) {
+        (userData as Record<string, unknown>).betterThanHumanPatterns = result.patterns;
+      }
+    },
+    { context: 'better-than-human-transcript' }
+  );
 }
 
 /**
@@ -794,131 +1850,101 @@ function processGameTopicChange(
   silenceContext: SilenceContext,
   sessionId: string
 ): void {
-  void (async () => {
-    try {
-      const {
-        isSessionGameActive,
-        getSessionGameType,
-        detectTopicChange,
-        getSessionGameEngine,
-        resetSessionGameActivity,
-      } = await import('../../services/games/index.js');
+  fireAndForget(async () => {
+    const {
+      isSessionGameActive,
+      getSessionGameType,
+      detectTopicChange,
+      getSessionGameEngine,
+      resetSessionGameActivity,
+    } = await import('../../services/games/index.js');
 
-      if (isSessionGameActive(sessionId)) {
-        type GameType = import('../../services/games/types.js').GameType;
-        const gameType = getSessionGameType(sessionId) as GameType | null;
-        const hasChangedTopic = detectTopicChange(transcript, gameType);
+    if (isSessionGameActive(sessionId)) {
+      type GameType = import('../../services/games/types.js').GameType;
+      const gameType = getSessionGameType(sessionId) as GameType | null;
+      const hasChangedTopic = detectTopicChange(transcript, gameType);
 
-        if (hasChangedTopic) {
-          // User seems to have moved on from the game
-          const engine = getSessionGameEngine(sessionId);
-          const gameSession = engine.endGame();
-          resetSessionGameActivity(sessionId);
+      if (hasChangedTopic) {
+        // User seems to have moved on from the game
+        const engine = getSessionGameEngine(sessionId);
+        const gameSession = engine.endGame();
+        resetSessionGameActivity(sessionId);
 
-          diag.state('Game auto-ended due to topic change', {
-            gameType,
-            score: gameSession.score,
-            rounds: gameSession.roundsPlayed,
-          });
-        }
-
-        // Update silence context to reflect game state
-        silenceContext.isGameActive = isSessionGameActive(sessionId);
-        silenceContext.activeGameType = getSessionGameType(sessionId) || undefined;
+        diag.state('Game auto-ended due to topic change', {
+          gameType,
+          score: gameSession.score,
+          rounds: gameSession.roundsPlayed,
+        });
       }
-    } catch {
-      // Games module not loaded - that's fine
+
+      // Update silence context to reflect game state
+      silenceContext.isGameActive = isSessionGameActive(sessionId);
+      silenceContext.activeGameType = getSessionGameType(sessionId) || undefined;
     }
-  })();
+  }, 'game-topic-change');
 }
 
 /**
  * Process voice identity for trust/identity context
  */
 function processVoiceIdentity(sessionId: string, transcript: string, userData: UserData): void {
-  void (async () => {
-    try {
-      const { onUserMessage } =
-        await import('../../services/trust-and-identity/voice-agent-integration.js');
-      const emotionalIntensity = userData?.lastEmotionAnalysis?.intensity ?? 0;
-      const identityUpdate = await onUserMessage(sessionId, transcript, emotionalIntensity);
+  fireAndForget(async () => {
+    const { onUserMessage } =
+      await import('../../services/trust-and-identity/voice-agent-integration.js');
+    const emotionalIntensity = userData?.lastEmotionAnalysis?.intensity ?? 0;
+    const identityUpdate = await onUserMessage(sessionId, transcript, emotionalIntensity);
 
-      if (identityUpdate.shouldAskForContact ?? false) {
-        diag.state('Identity: Should ask for contact', {
-          reason: identityUpdate.contactAskReason ?? 'unknown',
-        });
-      }
-
-      if (identityUpdate.requiresVerification ?? false) {
-        diag.state('Identity: Verification required', {
-          reason: 'Speaker or content change detected',
-        });
-      }
-    } catch (identityErr) {
-      diag.warn('Identity message processing failed', { error: String(identityErr) });
+    if (identityUpdate.shouldAskForContact ?? false) {
+      diag.state('Identity: Should ask for contact', {
+        reason: identityUpdate.contactAskReason ?? 'unknown',
+      });
     }
-  })();
+
+    if (identityUpdate.requiresVerification ?? false) {
+      diag.state('Identity: Verification required', {
+        reason: 'Speaker or content change detected',
+      });
+    }
+  }, 'voice-identity-processing');
 }
 
 /**
  * Process DJ session flow tracking
+ * Note: Topic and emotion tracking is now handled by the emotional-arc.ts system
  */
 function processDJSessionFlow(transcript: string, userData: UserData): void {
-  void (async () => {
-    try {
-      const booth = getDJBooth();
-      if (!booth) return;
+  fireAndForget(async () => {
+    const djController = getDJController();
 
-      // Track topics discussed for session summary
-      const topicKeywords: Record<string, string[]> = {
-        work: ['work', 'job', 'boss', 'meeting', 'project', 'deadline', 'office'],
-        family: ['mom', 'dad', 'sister', 'brother', 'family', 'kids', 'parents'],
-        health: ['health', 'exercise', 'gym', 'doctor', 'sleep', 'tired', 'sick'],
-        finances: ['money', 'budget', 'save', 'invest', 'bills', 'debt', 'salary'],
-        relationships: ['dating', 'relationship', 'partner', 'friend', 'boyfriend', 'girlfriend'],
-        goals: ['goal', 'dream', 'plan', 'future', 'want to', 'hope to', 'wish'],
-        stress: ['stress', 'anxious', 'worried', 'overwhelmed', 'burned out'],
-      };
+    // Topic tracking is now handled by emotional-arc.ts and conversation-state.ts
+    // which provide more sophisticated analysis than keyword matching
+    const transcriptLower = transcript.toLowerCase();
+    
+    // Simple topic detection for debugging (actual tracking done elsewhere)
+    const topicKeywords: Record<string, string[]> = {
+      work: ['work', 'job', 'boss', 'meeting', 'project', 'deadline', 'office'],
+      family: ['mom', 'dad', 'sister', 'brother', 'family', 'kids', 'parents'],
+      health: ['health', 'exercise', 'gym', 'doctor', 'sleep', 'tired', 'sick'],
+    };
 
-      const transcriptLower = transcript.toLowerCase();
-      for (const [topic, keywords] of Object.entries(topicKeywords)) {
-        if (keywords.some((kw) => transcriptLower.includes(kw))) {
-          booth.trackTopic(topic);
-          diag.state('Session flow: tracked topic', { topic });
-          break;
-        }
+    for (const [topic, keywords] of Object.entries(topicKeywords)) {
+      if (keywords.some((kw) => transcriptLower.includes(kw))) {
+        diag.state('Session flow: detected topic', { topic });
+        break;
       }
-
-      // Track emotional moments
-      const emotionKeywords: Record<string, string[]> = {
-        happy: ['happy', 'excited', 'great', 'amazing', 'wonderful', 'love'],
-        sad: ['sad', 'upset', 'miss', 'hurt', 'lonely'],
-        anxious: ['anxious', 'worried', 'nervous', 'scared', 'fear'],
-        grateful: ['grateful', 'thankful', 'appreciate', 'blessed'],
-      };
-
-      for (const [emotion, keywords] of Object.entries(emotionKeywords)) {
-        if (keywords.some((kw) => transcriptLower.includes(kw))) {
-          booth.trackEmotion(emotion);
-          diag.state('Session flow: tracked emotion', { emotion });
-          break;
-        }
-      }
-
-      // "OUR SONGS" - Process user speech during music for meaningful moments
-      if (booth.isPlayingMusic()) {
-        const voiceEmotion = userData.voiceEmotion?.primary || undefined;
-        booth.processUserSpeechDuringMusic(transcript, voiceEmotion, userData.lastTopic);
-        diag.state('Processed user speech during music for "Our Songs"', {
-          transcript: transcript.slice(0, 50),
-          emotion: voiceEmotion,
-        });
-      }
-    } catch (e) {
-      // Session flow tracking is non-critical
-      getLogger().debug({ error: String(e) }, 'Session flow tracking error (non-critical)');
     }
-  })();
+
+    // Process speech during music for "Our Songs" memories
+    if (djController.isMusicActive()) {
+      const voiceEmotion = userData.voiceEmotion?.primary || undefined;
+      // Music memories are now stored via music-memory-integration.ts
+      diag.state('User speech during music', {
+        hasEmotion: !!voiceEmotion,
+        transcript: transcript.slice(0, 50),
+        emotion: voiceEmotion,
+      });
+    }
+  }, 'dj-session-flow-tracking');
 }
 
 /**
@@ -955,20 +1981,16 @@ function processDailyCheckInTranscript(
   }
 
   // Process asynchronously (non-blocking)
-  void (async () => {
-    try {
-      const recorded = await processDailyCheckIn(transcript, checkInCtx, sendDataMessage);
+  fireAndForget(async () => {
+    const recorded = await processDailyCheckIn(transcript, checkInCtx, sendDataMessage);
 
-      if (recorded) {
-        diag.state('✅ Daily check-in recorded successfully', { sessionId });
+    if (recorded) {
+      diag.state('✅ Daily check-in recorded successfully', { sessionId });
 
-        // Clean up stale sessions periodically
-        cleanupStaleCheckIns();
-      }
-    } catch (error) {
-      diag.warn('Daily check-in processing error', { error: String(error) });
+      // Clean up stale sessions periodically
+      cleanupStaleCheckIns();
     }
-  })();
+  }, 'daily-check-in-processing');
 }
 
 /**
@@ -1042,7 +2064,7 @@ function processTeamHuddleDetection(
         data: trigger.data,
       };
 
-      sendDataMessage?.('engagement_trigger', message);
+      void sendDataMessage?.('engagement_trigger', message);
 
       diag.info('Team huddle trigger sent', {
         triggerType: trigger.type,
@@ -1051,6 +2073,272 @@ function processTeamHuddleDetection(
     }
   } catch (err) {
     diag.debug('Team huddle detection error (non-fatal)', { error: String(err) });
+  }
+}
+
+// ============================================================================
+// PREFERENCE EXTRACTION HELPERS
+// ============================================================================
+
+/**
+ * Save an extracted preference to the appropriate storage
+ * 🧠 Enables "Better than Human" - Ferni learns from natural conversation
+ */
+async function saveExtractedPreference(userId: string, pref: ExtractedPreference): Promise<void> {
+  try {
+    switch (pref.category) {
+      // =======================================================================
+      // ORIGINAL CATEGORIES (specific storage functions)
+      // =======================================================================
+      case 'sports_team':
+        await addFavoriteTeam(userId, {
+          name: pref.value,
+          league: pref.context || 'Unknown',
+          priority: 'secondary', // Auto-extracted = secondary, explicit = primary
+        });
+        diag.info('🏈 Learned favorite team from conversation', {
+          team: pref.value,
+          league: pref.context,
+        });
+        break;
+
+      case 'stock_watchlist':
+        await addToWatchlist(userId, pref.value);
+        diag.info('📈 Learned stock interest from conversation', { ticker: pref.value });
+        break;
+
+      case 'news_interest':
+        await addNewsInterest(userId, pref.value);
+        diag.info('📰 Learned news interest from conversation', { topic: pref.value });
+        break;
+
+      case 'avoid_topic':
+        await addAvoidTopic(userId, pref.value);
+        diag.info('🚫 Learned topic to avoid from conversation', { topic: pref.value });
+        break;
+
+      case 'home_location':
+        await saveLocation(userId, { name: 'Home', address: pref.value });
+        diag.info('🏠 Learned home location from conversation', { location: pref.value });
+        break;
+
+      case 'work_location':
+        await saveLocation(userId, { name: 'Work', address: pref.value });
+        diag.info('💼 Learned work location from conversation', { location: pref.value });
+        break;
+
+      case 'allergy':
+        await setAllergies(userId, [pref.value], 'add');
+        diag.info('🤧 Learned allergy from conversation', { allergy: pref.value });
+        break;
+
+      case 'health_condition':
+        // Health conditions are sensitive - log but don't auto-store without confirmation
+        diag.info('🏥 Detected health condition mention (not auto-stored)', {
+          condition: pref.value,
+        });
+        break;
+
+      // =======================================================================
+      // NEW "BETTER THAN HUMAN" LIFESTYLE PREFERENCES
+      // Stored in Firestore: bogle_users/{userId}/lifestyle_preferences/{category}
+      // =======================================================================
+      case 'music_genre':
+      case 'music_artist':
+        await saveLifestylePreference(userId, 'music', pref.category, pref.value, pref.isNegative);
+        diag.info(`🎵 Learned music preference from conversation`, {
+          type: pref.category,
+          value: pref.value,
+          isNegative: pref.isNegative,
+        });
+        break;
+
+      case 'movie_genre':
+      case 'tv_show':
+        await saveLifestylePreference(
+          userId,
+          'entertainment',
+          pref.category,
+          pref.value,
+          pref.isNegative
+        );
+        diag.info(`🎬 Learned entertainment preference from conversation`, {
+          type: pref.category,
+          value: pref.value,
+          isNegative: pref.isNegative,
+        });
+        break;
+
+      case 'cuisine_preference':
+      case 'dietary_restriction':
+      case 'drink_preference':
+      case 'restaurant_favorite':
+        await saveLifestylePreference(userId, 'food', pref.category, pref.value, pref.isNegative);
+        diag.info(`🍽️ Learned food preference from conversation`, {
+          type: pref.category,
+          value: pref.value,
+          isNegative: pref.isNegative,
+        });
+        break;
+
+      case 'exercise_routine':
+      case 'wellness_practice':
+      case 'sleep_pattern':
+        await saveLifestylePreference(
+          userId,
+          'wellness',
+          pref.category,
+          pref.value,
+          pref.isNegative
+        );
+        diag.info(`🏋️ Learned wellness preference from conversation`, {
+          type: pref.category,
+          value: pref.value,
+        });
+        break;
+
+      case 'travel_style':
+      case 'bucket_list_destination':
+      case 'favorite_place':
+        await saveLifestylePreference(userId, 'travel', pref.category, pref.value, pref.isNegative);
+        diag.info(`✈️ Learned travel preference from conversation`, {
+          type: pref.category,
+          value: pref.value,
+        });
+        break;
+
+      case 'learning_goal':
+      case 'skill_building':
+        await saveLifestylePreference(
+          userId,
+          'learning',
+          pref.category,
+          pref.value,
+          pref.isNegative
+        );
+        diag.info(`📚 Learned learning goal from conversation`, {
+          type: pref.category,
+          value: pref.value,
+        });
+        break;
+
+      case 'communication_preference':
+      case 'social_style':
+      case 'pet_preference':
+        await saveLifestylePreference(userId, 'social', pref.category, pref.value, pref.isNegative);
+        diag.info(`👥 Learned social preference from conversation`, {
+          type: pref.category,
+          value: pref.value,
+        });
+        break;
+
+      case 'productivity_style':
+      case 'morning_routine':
+      case 'shopping_preference':
+        await saveLifestylePreference(
+          userId,
+          'daily_life',
+          pref.category,
+          pref.value,
+          pref.isNegative
+        );
+        diag.info(`🛠️ Learned daily life preference from conversation`, {
+          type: pref.category,
+          value: pref.value,
+        });
+        break;
+
+      default:
+        diag.debug('Unknown preference category', { category: pref.category, value: pref.value });
+    }
+  } catch (error) {
+    diag.warn('Failed to save extracted preference', {
+      category: pref.category,
+      value: pref.value,
+      error: String(error),
+    });
+  }
+}
+
+/**
+ * Save a lifestyle preference to Firestore
+ * Stores in: bogle_users/{userId}/lifestyle_preferences/{domain}
+ *
+ * Each domain (music, food, wellness, etc.) has arrays for:
+ * - likes: things the user enjoys
+ * - dislikes: things the user doesn't enjoy
+ * - preferences: specific preference items with metadata
+ */
+async function saveLifestylePreference(
+  userId: string,
+  domain: string,
+  category: string,
+  value: string,
+  isNegative?: boolean
+): Promise<void> {
+  try {
+    const { getFirestoreStore } = await import('../../memory/firestore-store.js');
+    const store = getFirestoreStore();
+    const db = await store.getDatabase();
+
+    const docRef = db
+      .collection('bogle_users')
+      .doc(userId)
+      .collection('lifestyle_preferences')
+      .doc(domain);
+
+    const doc = await docRef.get();
+    const data = doc.exists ? (doc.data() as Record<string, unknown>) : {};
+
+    // Get or initialize arrays
+    const likes = (data.likes as string[]) || [];
+    const dislikes = (data.dislikes as string[]) || [];
+    const preferences =
+      (data.preferences as Array<{ category: string; value: string; timestamp: string }>) || [];
+
+    // Add to appropriate list
+    if (isNegative) {
+      if (!dislikes.includes(value)) {
+        dislikes.push(value);
+      }
+    } else {
+      if (!likes.includes(value)) {
+        likes.push(value);
+      }
+    }
+
+    // Also store with metadata
+    const existingPrefIndex = preferences.findIndex(
+      (p) => p.category === category && p.value === value
+    );
+    if (existingPrefIndex === -1) {
+      preferences.push({
+        category,
+        value,
+        timestamp: new Date().toISOString(),
+      });
+    }
+
+    await docRef.set(
+      {
+        likes,
+        dislikes,
+        preferences,
+        updatedAt: new Date().toISOString(),
+      },
+      { merge: true }
+    );
+
+    diag.debug('Saved lifestyle preference to Firestore', { userId, domain, category, value });
+  } catch (error) {
+    // Non-fatal - preference saving shouldn't break the session
+    diag.debug('Could not save lifestyle preference to Firestore', {
+      userId,
+      domain,
+      category,
+      value,
+      error: String(error),
+    });
   }
 }
 

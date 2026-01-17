@@ -395,7 +395,7 @@ async function deployAgent(options: DeployOptions): Promise<boolean> {
     '--min-instances 1',
     '--max-instances 50',
     '--vpc-connector ferni-redis-connector',
-    `--set-env-vars "^@^NODE_ENV=production@PERSONA_ID=${CONFIG.personaId}@GOOGLE_CLOUD_PROJECT=${CONFIG.projectId}@ALLOWED_ORIGINS=https://app.ferni.ai,https://ferni.ai,https://ferni-prod.web.app@BYPASS_TEAM_UNLOCKS=true"`,
+    `--set-env-vars "^@^NODE_ENV=production@PERSONA_ID=${CONFIG.personaId}@GOOGLE_CLOUD_PROJECT=${CONFIG.projectId}@ALLOWED_ORIGINS=https://app.ferni.ai,https://ferni.ai,https://ferni-prod.web.app,https://developers.ferni.ai,https://marketplace.ferni.ai,https://www.ferni.ai@BYPASS_TEAM_UNLOCKS=true"`,
     `--set-secrets "${secrets.join(',')}"`,
     '--no-traffic', // Blue-green: deploy without receiving traffic
     '--tag green', // Tag for easy identification
@@ -429,7 +429,7 @@ async function deployAgent(options: DeployOptions): Promise<boolean> {
         --min-instances 1 \\
         --max-instances 50 \\
         --vpc-connector ferni-redis-connector \\
-        --set-env-vars "^@^NODE_ENV=production@PERSONA_ID=${CONFIG.personaId}@GOOGLE_CLOUD_PROJECT=${CONFIG.projectId}@ALLOWED_ORIGINS=https://app.ferni.ai,https://ferni.ai,https://ferni-prod.web.app@BYPASS_TEAM_UNLOCKS=true" \\
+        --set-env-vars "^@^NODE_ENV=production@PERSONA_ID=${CONFIG.personaId}@GOOGLE_CLOUD_PROJECT=${CONFIG.projectId}@ALLOWED_ORIGINS=https://app.ferni.ai,https://ferni.ai,https://ferni-prod.web.app,https://developers.ferni.ai,https://marketplace.ferni.ai,https://www.ferni.ai@BYPASS_TEAM_UNLOCKS=true" \\
         --set-secrets "${secretsStr}" \\
         --no-traffic \\
         --tag green \\
@@ -679,8 +679,8 @@ async function deployUi(options: DeployOptions): Promise<boolean> {
     '--min-instances 0',
     '--max-instances 10',
     '--vpc-connector ferni-redis-connector',
-    '--set-env-vars "^@^NODE_ENV=production@ALLOWED_ORIGINS=https://app.ferni.ai,https://ferni.ai,https://ferni-prod.web.app@ALLOW_LEGACY_X_USER_ID_AUTH=true"',
-    '--set-secrets "LIVEKIT_URL=livekit-url:latest,LIVEKIT_API_KEY=livekit-api-key:latest,LIVEKIT_API_SECRET=livekit-api-secret:latest,GITHUB_MARKETPLACE_TOKEN=github-marketplace-token:latest,ADMIN_API_KEYS=admin-api-key:latest,ADMIN_KEY=admin-api-key:latest,LOG_HASH_SECRET=log-hash-secret:latest,EVALOPS_ADMIN_KEY=evalops-admin-key:latest,REDIS_URL=redis-url:latest"',
+    '--set-env-vars "^@^NODE_ENV=production@ALLOWED_ORIGINS=https://app.ferni.ai,https://ferni.ai,https://ferni-prod.web.app,https://developers.ferni.ai,https://marketplace.ferni.ai,https://www.ferni.ai@ALLOW_LEGACY_X_USER_ID_AUTH=true@TWILIO_STREAM_WEBHOOK_URL=wss://john-bogle-ui-bmopaivmsq-uc.a.run.app/stream"',
+    '--set-secrets "LIVEKIT_URL=livekit-url:latest,LIVEKIT_API_KEY=livekit-api-key:latest,LIVEKIT_API_SECRET=livekit-api-secret:latest,GITHUB_MARKETPLACE_TOKEN=github-marketplace-token:latest,ADMIN_API_KEYS=admin-api-key:latest,ADMIN_KEY=admin-api-key:latest,LOG_HASH_SECRET=log-hash-secret:latest,EVALOPS_ADMIN_KEY=evalops-admin-key:latest,REDIS_URL=redis-url:latest,TWITTER_CLIENT_ID=twitter-client-id:latest,TWITTER_CLIENT_SECRET=twitter-client-secret:latest,LINKEDIN_CLIENT_ID=linkedin-client-id:latest,LINKEDIN_CLIENT_SECRET=linkedin-client-secret:latest,GOOGLE_CALENDAR_CLIENT_ID=google-calendar-client-id:latest,GOOGLE_CALENDAR_CLIENT_SECRET=google-calendar-client-secret:latest,TWILIO_ACCOUNT_SID=twilio-account-sid:latest,TWILIO_AUTH_TOKEN=twilio-auth-token:latest,TWILIO_PHONE_NUMBER=twilio-phone-number:latest,GOOGLE_API_KEY=google-api-key:latest,CARTESIA_API_KEY=cartesia-api-key:latest"',
     '--no-traffic', // Blue-green: deploy without receiving traffic
     '--tag green', // Tag for easy identification
     '--quiet',
@@ -836,8 +836,8 @@ async function deployBrand(options: DeployOptions): Promise<boolean> {
 
   // Upload brand files
   log.info('Uploading brand assets...');
-  exec(`gsutil -m cp design-system/brand/*.html gs://${bucketName}/`);
-  exec(`gsutil -m cp design-system/brand/*.md gs://${bucketName}/`);
+  exec(`gsutil -m cp design-system/docs/brand/*.html gs://${bucketName}/`);
+  exec(`gsutil -m cp design-system/docs/brand/*.md gs://${bucketName}/`);
   exec(`gsutil -m cp design-system/dist/tokens.css gs://${bucketName}/`);
   exec(`gsutil -m cp -r design-system/assets/* gs://${bucketName}/assets/`);
 
@@ -1254,27 +1254,27 @@ Manual trigger:
   return true;
 }
 
-async function deployWorkers(options: DeployOptions): Promise<boolean> {
-  log.step('DEPLOYING WORKERS (Async Outreach Processing)');
+async function deployAsync(options: DeployOptions): Promise<boolean> {
+  log.step('DEPLOYING ASYNC WORKERS (Outreach Processing)');
 
   if (options.dryRun) {
-    log.info('Would build and deploy workers to Cloud Run');
+    log.info('Would build and deploy async workers to Cloud Run');
     log.info('Would configure Pub/Sub subscription');
     log.info('Would configure Cloud Scheduler');
     return true;
   }
 
-  const workersDir = join(PROJECT_ROOT, 'packages', 'workers');
+  const asyncDir = join(PROJECT_ROOT, 'apps', 'async');
 
-  if (!existsSync(workersDir)) {
-    log.error('Workers package not found at packages/workers');
+  if (!existsSync(asyncDir)) {
+    log.error('Async workers not found at apps/async');
     return false;
   }
 
   // Typecheck before deploying
-  log.info('Typechecking workers...');
+  log.info('Typechecking async workers...');
   try {
-    exec('pnpm typecheck', { cwd: workersDir });
+    exec('pnpm typecheck', { cwd: asyncDir });
     log.success('Typecheck passed');
   } catch {
     log.error('Typecheck failed - fix errors before deploying');
@@ -1289,7 +1289,7 @@ async function deployWorkers(options: DeployOptions): Promise<boolean> {
       [
         'builds',
         'submit',
-        `--config=cloudbuild-workers.yaml`,
+        `--config=cloudbuild-async.yaml`,
         `--project=${CONFIG.projectId}`,
       ],
       {
@@ -1303,34 +1303,114 @@ async function deployWorkers(options: DeployOptions): Promise<boolean> {
       if (!existsSync(logPath)) {
         mkdirSync(logPath, { recursive: true });
       }
-      const logFile = createWriteStream(join(logPath, 'workers.log'));
+      const logFile = createWriteStream(join(logPath, 'async.log'));
       child.stdout.pipe(logFile);
       child.stderr?.pipe(logFile);
     }
 
     child.on('exit', (code) => {
       if (code === 0) {
-        log.success('Workers deployed to Cloud Run!');
+        log.success('Async workers deployed to Cloud Run!');
         log.success('Pub/Sub subscription configured');
         log.success('Cloud Scheduler configured');
         console.log(`
-Workers are now running:
+Async workers are now running:
   • Pub/Sub: outreach-triggers -> /process-trigger
   • Scheduler: Every 5 min -> /process-batch
 
 Test with:
-  curl -X POST https://ferni-workers-xxx.run.app/health
+  curl https://ferni-async-xxx.run.app/health
 `);
         resolve(true);
       } else {
-        log.error(`Workers deployment failed with code ${code}`);
-        log.info('Check logs: .deploy-logs/workers.log');
+        log.error(`Async workers deployment failed with code ${code}`);
+        log.info('Check logs: .deploy-logs/async.log');
         resolve(false);
       }
     });
 
     child.on('error', (err) => {
-      log.error(`Workers deployment error: ${err.message}`);
+      log.error(`Async workers deployment error: ${err.message}`);
+      resolve(false);
+    });
+  });
+}
+
+async function deployIntelligence(options: DeployOptions): Promise<boolean> {
+  log.step('DEPLOYING INTELLIGENCE WORKER (Pattern Detection, Predictive Analytics)');
+
+  if (options.dryRun) {
+    log.info('Would build and deploy intelligence worker to Cloud Run');
+    log.info('Would configure Pub/Sub subscription');
+    return true;
+  }
+
+  const intelligenceDir = join(PROJECT_ROOT, 'apps', 'intelligence-worker');
+
+  if (!existsSync(intelligenceDir)) {
+    log.error('Intelligence worker not found at apps/intelligence-worker');
+    return false;
+  }
+
+  // Typecheck before deploying
+  log.info('Typechecking intelligence worker...');
+  try {
+    exec('pnpm typecheck', { cwd: intelligenceDir });
+    log.success('Typecheck passed');
+  } catch {
+    log.error('Typecheck failed - fix errors before deploying');
+    return false;
+  }
+
+  // Submit Cloud Build
+  log.info('Submitting Cloud Build...');
+  return new Promise((resolve) => {
+    const child: ChildProcess = spawn(
+      'gcloud',
+      [
+        'builds',
+        'submit',
+        `--config=cloudbuild-intelligence.yaml`,
+        `--project=${CONFIG.projectId}`,
+      ],
+      {
+        cwd: PROJECT_ROOT,
+        stdio: options.verbose ? 'inherit' : 'pipe',
+      }
+    );
+
+    if (!options.verbose && child.stdout) {
+      const logPath = join(PROJECT_ROOT, '.deploy-logs');
+      if (!existsSync(logPath)) {
+        mkdirSync(logPath, { recursive: true });
+      }
+      const logFile = createWriteStream(join(logPath, 'intelligence.log'));
+      child.stdout.pipe(logFile);
+      child.stderr?.pipe(logFile);
+    }
+
+    child.on('exit', (code) => {
+      if (code === 0) {
+        log.success('Intelligence worker deployed to Cloud Run!');
+        log.success('Pub/Sub subscription configured');
+        console.log(`
+Intelligence worker is now running:
+  • Pub/Sub: intelligence-events -> /pubsub/push
+  • Handles: Pattern detection, Predictive intelligence, Key moments, Trust recording
+
+Test with:
+  gcloud pubsub topics publish intelligence-events --message='{"eventType":"test","payload":{}}'
+`);
+        resolve(true);
+      } else {
+        log.error(`Intelligence worker deployment failed with code ${code}`);
+        log.info('Check logs: .deploy-logs/intelligence.log');
+        resolve(false);
+      }
+    });
+
+    child.on('error', (err) => {
+      log.error(`Intelligence worker deployment error: ${err.message}`);
       resolve(false);
     });
   });
@@ -1568,8 +1648,13 @@ ${colors.cyan}╚═════════════════════
       success = await deployEvolution(options);
       break;
 
-    case 'workers':
-      success = await deployWorkers(options);
+    case 'async':
+    case 'workers': // Legacy alias
+      success = await deployAsync(options);
+      break;
+
+    case 'intelligence':
+      success = await deployIntelligence(options);
       break;
 
     case 'all':

@@ -168,7 +168,7 @@ let _toolCreators: Record<string, () => Record<string, unknown>> | null = null;
 
 async function getToolCreators() {
   if (!_toolCreators) {
-    const { default: memoryTools } = await import('../persona-memory-tools.js');
+    const memoryTools = await import('../domains/memory/persona-tools.js');
     _toolCreators = {
       ferni: memoryTools.createFerniMemoryTools,
       'jack-b': memoryTools.createFerniMemoryTools,

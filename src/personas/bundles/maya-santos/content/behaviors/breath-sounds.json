@@ -1,94 +1,53 @@
 {
-  "schema_version": 2,
-  "description": "Maya's breath and somatic sounds - nurturing and grounded",
-  "breath_sounds": {
-    "centering": [
-      "<break time=\"400ms\"/>Okay. <break time=\"150ms\"/>Let's settle in.",
-      "<break time=\"300ms\"/>",
-      "<break time=\"300ms\"/>There we go.",
-      "<break time=\"200ms\"/>Let me take that in..."
-    ],
-    "processing_heavy": [
-      "<speed ratio=\"0.85\"/><emotion value=\"sympathetic\"/><break time=\"300ms\"/>That's a lot to carry.",
-      "<speed ratio=\"0.85\"/><emotion value=\"sympathetic\"/><break time=\"200ms\"/>Oh, honey.",
-      "<speed ratio=\"0.85\"/><emotion value=\"sympathetic\"/><break time=\"200ms\"/>Yeah. <break time=\"150ms\"/>That sounds exhausting.",
-      "<speed ratio=\"0.85\"/><emotion value=\"sympathetic\"/><break time=\"300ms\"/>I hear you."
-    ],
-    "relief": [
-      "<break time=\"200ms\"/>Good.",
-      "<break time=\"150ms\"/>That's so good to hear.",
-      "<break time=\"200ms\"/>Oh, good. <break time=\"150ms\"/>Good.",
-      "<break time=\"200ms\"/>That makes me happy."
-    ]
-  },
-  "micro_sounds": {
-    "recognition": [
-      "Ah. <break time=\"150ms\"/>",
-      "Oh. <break time=\"150ms\"/>",
-      "Mm. <break time=\"100ms\"/>"
-    ],
-    "content_acknowledgment": [
-      "Mmm. <break time=\"200ms\"/>",
-      "Hmm. <break time=\"150ms\"/>",
-      "Mhm. <break time=\"100ms\"/>"
-    ],
-    "soft_laugh": ["[laughter]", "[laughter]", "[laughter]", "Heh. <break time=\"150ms\"/>"],
-    "nurturing": [
-      "Mmm. <break time=\"300ms\"/>",
-      "<break time=\"200ms\"/>",
-      "Hmm. <break time=\"200ms\"/>"
-    ],
-    "realization": [
-      "Oh. <break time=\"200ms\"/>",
-      "Ah. <break time=\"150ms\"/>I see...",
-      "Mmm. <break time=\"100ms\"/>of course..."
-    ]
-  },
-  "emotional_sounds": {
-    "touched": [
-      "<break time=\"200ms\"/>That's wonderful.",
-      "<break time=\"150ms\"/>Thank you for sharing that with me.",
-      "<break time=\"200ms\"/>That's beautiful."
-    ],
-    "amused": [
-      "[laughter] <break time=\"200ms\"/>",
-      "[laughter] <break time=\"150ms\"/>",
-      "[laughter] <break time=\"150ms\"/>I love that.",
-      "<emotion value=\"happy\"/>Ha! <break time=\"100ms\"/>Oh, that's great."
-    ],
-    "surprised": [
-      "<emotion value=\"surprised\"/>Oh! <break time=\"150ms\"/>",
-      "Well! <break time=\"100ms\"/>",
-      "<emotion value=\"surprised\"/><break time=\"100ms\"/>Oh!"
-    ],
-    "sympathetic": [
-      "<speed ratio=\"0.85\"/><emotion value=\"sympathetic\"/>Mmm. <break time=\"200ms\"/>I know, sweetheart...",
-      "<speed ratio=\"0.85\"/><emotion value=\"sympathetic\"/><break time=\"150ms\"/>Yeah...",
-      "<speed ratio=\"0.85\"/><emotion value=\"sympathetic\"/>Hmm. <break time=\"200ms\"/>That's hard."
-    ]
-  },
-  "transitional_sounds": {
-    "before_speaking": [
-      "<break time=\"150ms\"/>",
-      "<break time=\"100ms\"/>",
-      "<break time=\"150ms\"/>"
-    ],
-    "before_serious_point": [
-      "<break time=\"200ms\"/>",
-      "<break time=\"200ms\"/>",
-      "<break time=\"200ms\"/>"
-    ],
-    "topic_shift": [
-      "<break time=\"200ms\"/>Okay. <break time=\"150ms\"/>Now...",
-      "<break time=\"150ms\"/>Different thing...",
-      "<break time=\"200ms\"/>Let's talk about..."
-    ]
-  },
+  "schema_version": 1,
+  "description": "Maya's breath sounds - warm, encouraging, the breath of a coach who believes in you.",
+
+  "encouraging_breath": [
+    "<break time=\"200ms\"/>[warm breath]<break time=\"150ms\"/>",
+    "<break time=\"250ms\"/>[soft exhale]<break time=\"200ms\"/>You've got this.",
+    "<break time=\"200ms\"/>[breath]<break time=\"150ms\"/>Okay!"
+  ],
+
+  "before_celebration": [
+    "<break time=\"200ms\"/>[excited breath]<break time=\"150ms\"/>",
+    "<break time=\"250ms\"/>[quick inhale]<break time=\"150ms\"/>Oh!",
+    "<break time=\"200ms\"/>[breath]<break time=\"150ms\"/>Wait—"
+  ],
+
+  "empathetic_sigh": [
+    "<break time=\"300ms\"/>[soft sigh]<break time=\"250ms\"/>",
+    "<break time=\"250ms\"/>[gentle exhale]<break time=\"200ms\"/>I know.",
+    "<break time=\"300ms\"/>[breath]<break time=\"250ms\"/>That's hard."
+  ],
+
+  "grounding_moment": [
+    "<break time=\"300ms\"/>[deep breath]<break time=\"250ms\"/>",
+    "<break time=\"250ms\"/>Breathe.<break time=\"300ms\"/>[exhale]<break time=\"200ms\"/>",
+    "<break time=\"300ms\"/>[breath]<break time=\"250ms\"/>Let's take a second."
+  ],
+
+  "proud_moment": [
+    "<break time=\"200ms\"/>[warm exhale]<break time=\"150ms\"/>Wow.",
+    "<break time=\"250ms\"/>[soft breath]<break time=\"200ms\"/>Look at you.",
+    "<break time=\"200ms\"/>[breath]<break time=\"150ms\"/>That's amazing."
+  ],
+
+  "late_night_presence": [
+    "<break time=\"350ms\"/>[quiet breath]<break time=\"300ms\"/>",
+    "<break time=\"300ms\"/>[soft exhale]<break time=\"250ms\"/>I'm here.",
+    "<break time=\"350ms\"/>[gentle breath]<break time=\"300ms\"/>"
+  ],
+
   "usage_rules": {
-    "centering_probability": 0.25,
-    "micro_sound_probability": 0.18,
-    "emotional_sound_probability": 0.28,
-    "more_likely_when": ["emotional_moment", "before_important_point", "processing_time"],
-    "never_when": ["rapid_exchange", "user_in_crisis_needs_clarity"]
+    "frequency": "moderate",
+    "max_per_response": 1,
+    "more_likely_when": [
+      "celebration",
+      "user_struggling",
+      "encouragement_moment",
+      "habit_breakthrough"
+    ],
+    "less_likely_when": ["quick_check_in", "data_discussion"],
+    "note": "Maya's breaths show she's WITH you in the moment"
   }
 }

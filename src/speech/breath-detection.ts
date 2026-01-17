@@ -13,10 +13,47 @@
  * Humans unconsciously notice these patterns. This module gives Ferni
  * that same subtle awareness.
  *
+ * Uses Rust-accelerated functions when available via @ferni/audio module
+ * for 10-20x speedup on CPU-intensive operations (RMS, ZCR).
+ *
  * @module BreathDetection
  */
 
+import { createRequire } from 'module';
 import { getLogger } from '../utils/safe-logger.js';
+
+// ============================================================================
+// RUST ACCELERATION (OPTIONAL)
+// ============================================================================
+
+// Create require for loading native modules in ESM context
+const require = createRequire(import.meta.url);
+
+/** Native module functions we use for breath detection */
+interface NativeAudioModule {
+  computeRms: (samples: Float32Array) => number;
+  computeZcr: (samples: Float32Array) => number;
+}
+
+let nativeModule: NativeAudioModule | null = null;
+let loadAttempted = false;
+
+function getNativeModule(): NativeAudioModule | null {
+  if (loadAttempted) return nativeModule;
+  loadAttempted = true;
+
+  try {
+    nativeModule = require('@ferni/audio') as NativeAudioModule;
+    return nativeModule;
+  } catch {
+    return null;
+  }
+}
+
+/** Check if Rust acceleration is available for breath detection */
+export function isNativeBreathDetectionAvailable(): boolean {
+  return getNativeModule() !== null;
+}
 
 const log = getLogger().child({ module: 'BreathDetection' });
 
@@ -318,6 +355,9 @@ export class BreathDetector {
     const windowSize = Math.floor(sampleRate * BREATH_DETECTION_CONFIG.WINDOW_SIZE_SEC);
     const hopSize = Math.floor(windowSize / 2);
 
+    // Get Rust module for acceleration (if available)
+    const native = getNativeModule();
+
     // Calculate energy and spectral features for each window
     const features: Array<{
       position: number;
@@ -329,18 +369,27 @@ export class BreathDetector {
     for (let i = 0; i < samples.length - windowSize; i += hopSize) {
       const window = samples.slice(i, i + windowSize);
 
-      // Energy (RMS)
-      let energy = 0;
-      for (const sample of window) {
-        energy += sample * sample;
-      }
-      energy = Math.sqrt(energy / window.length);
+      // Energy (RMS) and Zero Crossings - Use Rust when available for ~10-20x speedup
+      let energy: number;
+      let zeroCrossings: number;
 
-      // Zero crossings (rough pitch estimate)
-      let zeroCrossings = 0;
-      for (let j = 1; j < window.length; j++) {
-        if (Math.sign(window[j]) !== Math.sign(window[j - 1])) {
-          zeroCrossings++;
+      if (native) {
+        energy = native.computeRms(window);
+        zeroCrossings = native.computeZcr(window) * window.length; // ZCR returns ratio, convert back
+      } else {
+        // JavaScript fallback for Energy (RMS)
+        let energySum = 0;
+        for (const sample of window) {
+          energySum += sample * sample;
+        }
+        energy = Math.sqrt(energySum / window.length);
+
+        // JavaScript fallback for Zero crossings
+        zeroCrossings = 0;
+        for (let j = 1; j < window.length; j++) {
+          if (Math.sign(window[j]) !== Math.sign(window[j - 1])) {
+            zeroCrossings++;
+          }
         }
       }
 

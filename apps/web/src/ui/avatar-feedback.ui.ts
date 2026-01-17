@@ -196,11 +196,9 @@ function createStatusWhisperElement(): void {
     white-space: nowrap;
     opacity: 0;
     pointer-events: none;
-    z-index: 5;
-    box-shadow: var(--shadow-md, 0 1px 3px rgba(44,37,32,0.04), 0 4px 12px rgba(44,37,32,0.06));
-    backdrop-filter: blur(var(--glass-blur-subtle, 8px));
-    -webkit-backdrop-filter: blur(var(--glass-blur-subtle, 8px));
-    transition: 
+    z-index: var(--z-docked);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+    transition:
       opacity 0.35s cubic-bezier(0.4, 0, 0.2, 1),
       transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
     will-change: opacity, transform;

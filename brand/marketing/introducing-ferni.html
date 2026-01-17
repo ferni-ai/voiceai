@@ -1,0 +1,1420 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Introducing Ferni</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@200;300;400;500;600;700;800&family=Inter:wght@300;400;500;600&family=Sora:wght@400;500;600&display=swap" rel="stylesheet">
+    <!-- Design System: Single source of truth -->
+    <link rel="stylesheet" href="../master-tokens.css">
+    <style>
+        /* Page-specific overrides - base tokens from master-tokens.css */
+        :root {
+            /* Legacy aliases */
+            --cream: var(--bg-primary);
+            --cream-dark: #E8E2D9;
+            --ink: var(--text-primary);
+            --ink-light: var(--text-secondary);
+            --text-inverted: var(--bg-elevated);
+            --ferni-light: #5a7a51;
+            --ferni-dark: #3d5a35;
+            --accent-warm: #C4A265;
+            --bg-warm: #FAF8F3;
+            --glass-bg: rgba(255, 253, 251, 0.85);
+            --glass-border: rgba(44, 37, 32, 0.08);
+            --overlay-soft: rgba(44, 37, 32, 0.04);
+            --shadow-glow: 0 0 80px rgba(74, 103, 65, 0.2);
+            --radius-full: 9999px;
+
+            /* Pixar Animation Easing (from playground) */
+            --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+            --ease-anticipate: cubic-bezier(0.68, -0.55, 0.265, 1.55);
+            --ease-settle: cubic-bezier(0.25, 0.1, 0.25, 1);
+            --ease-organic: cubic-bezier(0.4, 0, 0.2, 1);
+            --ease-gentle: cubic-bezier(0.4, 0, 0.2, 1);
+            --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+
+            /* Duration */
+            --duration-fast: 150ms;
+            --duration-normal: 300ms;
+            --duration-slow: 500ms;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: var(--font-body);
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+        }
+
+        /* ============================================
+           FERNI SVG AVATAR SYSTEM (from playground)
+           ============================================ */
+        .ferni-avatar {
+            --size: 200px;
+            position: relative;
+            width: var(--size);
+            height: var(--size);
+            transition: transform 0.25s var(--ease-spring);
+        }
+
+        .ferni-avatar.large {
+            --size: 280px;
+        }
+
+        .ferni-avatar.small {
+            --size: 100px;
+        }
+
+        .avatar-svg {
+            width: 100%;
+            height: 100%;
+            overflow: visible;
+        }
+
+        /* Presence ring - subtle halo */
+        .presence-ring {
+            fill: none;
+            stroke: var(--ferni);
+            stroke-width: 1.5;
+            opacity: 0.3;
+            transform-origin: center center;
+            animation: presencePulse 4s ease-in-out infinite;
+        }
+
+        @keyframes presencePulse {
+            0%, 100% { transform: scale(1); opacity: 0.3; }
+            50% { transform: scale(1.02); opacity: 0.5; }
+        }
+
+        /* Avatar body gradient */
+        .avatar-body {
+            transition: transform 0.2s var(--ease-spring);
+            transform-origin: center center;
+        }
+
+        /* Eyes with sparkle */
+        .eye-main {
+            transition: transform 0.15s var(--ease-spring);
+            transform-origin: center center;
+        }
+
+        .eye-sparkle {
+            fill: white;
+            opacity: 0.9;
+        }
+
+        /* Lids for expressions */
+        .lid-top, .lid-bottom {
+            fill: var(--cream);
+            transition: d 0.25s var(--ease-spring);
+        }
+
+        /* Breathing animation for body */
+        .ferni-avatar .avatar-body {
+            animation: breathe 4s ease-in-out infinite;
+        }
+
+        @keyframes breathe {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.015); }
+        }
+
+        /* ============================================
+           EMOTION STATES (from playground)
+           ============================================ */
+
+        /* NEUTRAL - Lids invisible */
+        .ferni-avatar[data-mood="neutral"] .lid-top {
+            d: path("M 0,0 Q 50,-10 100,0 L 100,0 L 0,0 Z");
+        }
+        .ferni-avatar[data-mood="neutral"] .lid-bottom {
+            d: path("M 0,100 Q 50,110 100,100 L 100,100 L 0,100 Z");
+        }
+
+        /* HAPPY - Gentle squint */
+        .ferni-avatar[data-mood="happy"] .eye-main {
+            transform: scaleY(0.85) scaleX(1.05);
+        }
+        .ferni-avatar[data-mood="happy"] .lid-top {
+            d: path("M 0,0 Q 50,25 100,0 L 100,0 L 0,0 Z");
+        }
+        .ferni-avatar[data-mood="happy"] .lid-bottom {
+            d: path("M 0,100 Q 50,85 100,100 L 100,100 L 0,100 Z");
+        }
+
+        /* JOY - Warmer squint */
+        .ferni-avatar[data-mood="joy"] {
+            transform: scaleY(1.01);
+        }
+        .ferni-avatar[data-mood="joy"] .eye-main {
+            transform: scaleY(0.75) scaleX(1.08);
+        }
+        .ferni-avatar[data-mood="joy"] .lid-top {
+            d: path("M 0,0 Q 50,28 100,0 L 100,0 L 0,0 Z");
+        }
+        .ferni-avatar[data-mood="joy"] .lid-bottom {
+            d: path("M 0,100 Q 50,82 100,100 L 100,100 L 0,100 Z");
+        }
+
+        /* CURIOUS - Eyes widen slightly */
+        .ferni-avatar[data-mood="curious"] .eye-main {
+            transform: scaleY(1.1) scaleX(1.02);
+        }
+        .ferni-avatar[data-mood="curious"] .lid-top {
+            d: path("M 0,0 Q 50,-15 100,0 L 100,0 L 0,0 Z");
+        }
+
+        /* THOUGHTFUL - Slight tilt, soft eyes */
+        .ferni-avatar[data-mood="thoughtful"] {
+            transform: rotate(2deg);
+        }
+        .ferni-avatar[data-mood="thoughtful"] .eye-main {
+            transform: scaleY(0.9);
+        }
+        .ferni-avatar[data-mood="thoughtful"] .lid-top {
+            d: path("M 0,0 Q 50,15 100,0 L 100,0 L 0,0 Z");
+        }
+
+        /* LISTENING - Attentive, open */
+        .ferni-avatar[data-mood="listening"] .eye-main {
+            transform: scaleY(1.05);
+        }
+        .ferni-avatar[data-mood="listening"] .presence-ring {
+            animation: listeningPulse 2s ease-in-out infinite;
+        }
+
+        @keyframes listeningPulse {
+            0%, 100% { opacity: 0.4; }
+            50% { opacity: 0.6; }
+        }
+
+        /* SPEAKING - Active glow */
+        .ferni-avatar[data-mood="speaking"] .presence-ring {
+            animation: speakingPulse 0.8s ease-in-out infinite;
+            stroke-width: 2;
+        }
+
+        @keyframes speakingPulse {
+            0%, 100% { transform: scale(1); opacity: 0.4; }
+            50% { transform: scale(1.03); opacity: 0.6; }
+        }
+
+        /* ============================================
+           HERO SECTION
+           ============================================ */
+        .hero {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 80px 24px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(ellipse at center, rgba(74, 103, 65, 0.08) 0%, transparent 50%);
+            animation: ambientPulse 8s ease-in-out infinite;
+        }
+
+        @keyframes ambientPulse {
+            0%, 100% { transform: scale(1); opacity: 0.5; }
+            50% { transform: scale(1.1); opacity: 0.8; }
+        }
+
+        .hero-content {
+            position: relative;
+            z-index: 1;
+            max-width: 800px;
+        }
+
+        .avatar-container {
+            margin-bottom: 48px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .hero-title {
+            font-family: var(--font-display);
+            font-size: clamp(2.5rem, 6vw, 4rem);
+            font-weight: 300;
+            color: var(--text-primary);
+            margin-bottom: 24px;
+            letter-spacing: -0.02em;
+        }
+
+        .hero-title strong {
+            font-weight: 700;
+            color: var(--ferni);
+        }
+
+        .hero-subtitle {
+            font-family: var(--font-body);
+            font-size: clamp(1.1rem, 2.5vw, 1.35rem);
+            color: var(--text-secondary);
+            max-width: 600px;
+            margin: 0 auto 48px;
+            line-height: 1.7;
+        }
+
+        .tagline {
+            font-family: var(--font-accent);
+            font-size: 1rem;
+            color: var(--accent-primary);
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            margin-bottom: 32px;
+        }
+
+        .scroll-indicator {
+            position: absolute;
+            bottom: 40px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            color: var(--text-muted);
+            font-size: 0.8rem;
+            animation: bounce 2s infinite;
+        }
+
+        .scroll-indicator svg {
+            width: 24px;
+            height: 24px;
+            stroke: var(--text-muted);
+            stroke-width: 2;
+            fill: none;
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateX(-50%) translateY(0); }
+            50% { transform: translateX(-50%) translateY(8px); }
+        }
+
+        /* ============================================
+           SECTION COMMON STYLES
+           ============================================ */
+        section {
+            padding: 120px 24px;
+        }
+
+        .section-inner {
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+
+        .section-label {
+            font-family: var(--font-accent);
+            font-size: 0.8rem;
+            color: var(--accent-primary);
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            margin-bottom: 16px;
+        }
+
+        .section-title {
+            font-family: var(--font-display);
+            font-size: clamp(2rem, 4vw, 2.75rem);
+            font-weight: 500;
+            color: var(--text-primary);
+            margin-bottom: 24px;
+            letter-spacing: -0.01em;
+        }
+
+        .section-description {
+            font-size: 1.15rem;
+            color: var(--text-secondary);
+            max-width: 650px;
+            line-height: 1.8;
+        }
+
+        /* ============================================
+           THE PROBLEM SECTION
+           ============================================ */
+        .problem-section {
+            background: var(--bg-elevated);
+        }
+
+        .problem-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 32px;
+            margin-top: 64px;
+        }
+
+        .problem-card {
+            background: var(--bg-primary);
+            border-radius: var(--radius-xl);
+            padding: 32px;
+            position: relative;
+            transition: transform 0.3s var(--ease-spring);
+        }
+
+        .problem-card:hover {
+            transform: translateY(-4px);
+        }
+
+        .problem-icon {
+            width: 48px;
+            height: 48px;
+            background: var(--overlay-soft);
+            border-radius: var(--radius-lg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+
+        .problem-icon svg {
+            width: 24px;
+            height: 24px;
+            stroke: var(--text-secondary);
+            stroke-width: 1.5;
+            fill: none;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+
+        .problem-card h3 {
+            font-family: var(--font-display);
+            font-size: 1.15rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 12px;
+        }
+
+        .problem-card p {
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+            line-height: 1.7;
+        }
+
+        /* ============================================
+           THE SOLUTION SECTION
+           ============================================ */
+        .solution-section {
+            background: linear-gradient(180deg, var(--bg-primary) 0%, var(--bg-warm) 100%);
+        }
+
+        .solution-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 80px;
+            align-items: center;
+            margin-top: 64px;
+        }
+
+        @media (max-width: 768px) {
+            .solution-content {
+                grid-template-columns: 1fr;
+                gap: 48px;
+            }
+        }
+
+        .solution-visual {
+            display: flex;
+            justify-content: center;
+        }
+
+        .phone-mockup {
+            width: 280px;
+            height: 560px;
+            background: var(--bg-elevated);
+            border-radius: 40px;
+            box-shadow: var(--shadow-xl);
+            padding: 12px;
+            position: relative;
+        }
+
+        .phone-screen {
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(180deg, #EDF2EC 0%, var(--bg-primary) 100%);
+            border-radius: 32px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 32px;
+        }
+
+        .phone-avatar {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 24px;
+        }
+
+        .phone-text {
+            text-align: center;
+        }
+
+        .phone-text h4 {
+            font-family: var(--font-display);
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+        }
+
+        .phone-text p {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+
+        .solution-features {
+            display: flex;
+            flex-direction: column;
+            gap: 32px;
+        }
+
+        .feature-item {
+            display: flex;
+            gap: 20px;
+            align-items: flex-start;
+        }
+
+        .feature-icon {
+            width: 44px;
+            height: 44px;
+            background: rgba(74, 103, 65, 0.1);
+            border-radius: var(--radius-lg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .feature-icon svg {
+            width: 22px;
+            height: 22px;
+            stroke: var(--persona-ferni);
+            stroke-width: 1.5;
+            fill: none;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+
+        .feature-text h4 {
+            font-family: var(--font-display);
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 6px;
+        }
+
+        .feature-text p {
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+            line-height: 1.6;
+        }
+
+        /* ============================================
+           THE TEAM SECTION
+           ============================================ */
+        .team-section {
+            background: var(--bg-elevated);
+        }
+
+        .team-intro {
+            text-align: center;
+            margin-bottom: 64px;
+        }
+
+        .team-intro .section-description {
+            margin: 0 auto;
+        }
+
+        .personas-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 24px;
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .persona-card {
+            background: var(--bg-primary);
+            border-radius: var(--radius-xl);
+            padding: 28px 20px;
+            text-align: center;
+            transition: transform var(--duration-normal) var(--ease-spring),
+                        box-shadow var(--duration-normal) var(--ease-spring);
+        }
+
+        .persona-card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .persona-avatar-mini {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 16px;
+        }
+
+        .persona-card h4 {
+            font-family: var(--font-display);
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 4px;
+        }
+
+        .persona-card .role {
+            font-family: var(--font-accent);
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        /* ============================================
+           BETTER THAN HUMAN SECTION
+           ============================================ */
+        .superhuman-section {
+            background: linear-gradient(180deg, var(--bg-primary) 0%, #EDF2EC 100%);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .superhuman-section::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            right: -20%;
+            width: 600px;
+            height: 600px;
+            background: radial-gradient(circle, rgba(74, 103, 65, 0.06) 0%, transparent 70%);
+            transform: translateY(-50%);
+        }
+
+        .superhuman-header {
+            text-align: center;
+            margin-bottom: 72px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .superhuman-header .section-description {
+            margin: 0 auto;
+        }
+
+        .capabilities-list {
+            display: grid;
+            gap: 24px;
+            max-width: 800px;
+            margin: 0 auto;
+            position: relative;
+            z-index: 1;
+        }
+
+        .capability-item {
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--radius-xl);
+            padding: 32px;
+            display: grid;
+            grid-template-columns: auto 1fr;
+            gap: 24px;
+            align-items: start;
+            transition: transform 0.3s var(--ease-spring);
+        }
+
+        .capability-item:hover {
+            transform: translateX(8px);
+        }
+
+        .capability-number {
+            width: 48px;
+            height: 48px;
+            background: var(--persona-ferni);
+            border-radius: var(--radius-full);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: var(--font-display);
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--text-inverted);
+        }
+
+        .capability-content h4 {
+            font-family: var(--font-display);
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+        }
+
+        .capability-content p {
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+            line-height: 1.7;
+            margin-bottom: 12px;
+        }
+
+        .capability-contrast {
+            font-family: var(--font-accent);
+            font-size: 0.85rem;
+            color: var(--persona-ferni);
+            font-style: italic;
+        }
+
+        /* ============================================
+           EMOTION DEMO SECTION
+           ============================================ */
+        .emotion-demo-section {
+            background: var(--bg-elevated);
+            text-align: center;
+        }
+
+        .emotion-demo {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 32px;
+            margin-top: 48px;
+        }
+
+        .emotion-stage {
+            background: var(--bg-primary);
+            border-radius: var(--radius-2xl);
+            padding: 48px;
+            box-shadow: var(--shadow-md);
+        }
+
+        .emotion-label {
+            font-family: var(--font-accent);
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--ferni);
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin-top: 16px;
+        }
+
+        .emotion-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            justify-content: center;
+            max-width: 600px;
+        }
+
+        .emotion-btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: var(--radius-full);
+            font-family: var(--font-accent);
+            font-weight: 500;
+            font-size: 0.85rem;
+            cursor: pointer;
+            background: rgba(44, 37, 32, 0.06);
+            color: var(--ink);
+            transition: all 0.2s var(--ease-spring);
+        }
+
+        .emotion-btn:hover, .emotion-btn.active {
+            background: var(--ferni);
+            color: white;
+            transform: translateY(-2px);
+        }
+
+        /* ============================================
+           CTA SECTION
+           ============================================ */
+        .cta-section {
+            background: var(--persona-ferni);
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .cta-section::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: radial-gradient(ellipse at center, rgba(255,255,255,0.1) 0%, transparent 60%);
+        }
+
+        .cta-content {
+            position: relative;
+            z-index: 1;
+        }
+
+        .cta-section .section-label {
+            color: rgba(255, 253, 251, 0.7);
+        }
+
+        .cta-section .section-title {
+            color: var(--text-inverted);
+            margin-bottom: 16px;
+        }
+
+        .cta-section .section-description {
+            color: rgba(255, 253, 251, 0.85);
+            margin: 0 auto 48px;
+        }
+
+        .cta-tagline {
+            font-family: var(--font-display);
+            font-size: clamp(1.5rem, 3vw, 2rem);
+            font-weight: 300;
+            color: var(--text-inverted);
+            margin-bottom: 40px;
+        }
+
+        .cta-buttons {
+            display: flex;
+            gap: 16px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .cta-button {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            padding: 16px 32px;
+            border-radius: var(--radius-full);
+            font-family: var(--font-accent);
+            font-size: 0.95rem;
+            font-weight: 500;
+            text-decoration: none;
+            transition: transform var(--duration-fast) var(--ease-spring),
+                        box-shadow var(--duration-fast) var(--ease-spring);
+        }
+
+        .cta-button:hover {
+            transform: translateY(-2px);
+        }
+
+        .cta-button.primary {
+            background: var(--text-inverted);
+            color: var(--persona-ferni);
+        }
+
+        .cta-button.primary:hover {
+            box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+        }
+
+        .cta-button.secondary {
+            background: rgba(255, 253, 251, 0.15);
+            color: var(--text-inverted);
+            border: 1px solid rgba(255, 253, 251, 0.3);
+        }
+
+        .cta-button.secondary:hover {
+            background: rgba(255, 253, 251, 0.25);
+        }
+
+        .cta-button svg {
+            width: 20px;
+            height: 20px;
+            stroke: currentColor;
+            stroke-width: 2;
+            fill: none;
+        }
+
+        /* ============================================
+           FOOTER
+           ============================================ */
+        footer {
+            background: var(--bg-elevated);
+            padding: 48px 24px;
+            text-align: center;
+        }
+
+        .footer-logo {
+            font-family: var(--font-display);
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--persona-ferni);
+            margin-bottom: 16px;
+        }
+
+        .footer-tagline {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            margin-bottom: 24px;
+        }
+
+        .footer-links {
+            display: flex;
+            gap: 32px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .footer-links a {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            text-decoration: none;
+            transition: color var(--duration-fast);
+        }
+
+        .footer-links a:hover {
+            color: var(--persona-ferni);
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Brand Navigation -->
+    <nav class="nav" role="navigation" aria-label="Main navigation">
+        <a href="../index.html" class="nav-back" aria-label="Back to Brand Library">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>
+            Brand Library
+        </a>
+        <div class="nav-links">
+            <a href="../capabilities/gallery.html" class="nav-link">Capabilities</a>
+            <a href="../motion/demo.html" class="nav-link">Motion</a>
+            <a href="../characters/ferni/expressions.html" class="nav-link">Expressions</a>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="hero-content">
+            <div class="avatar-container">
+                <!-- FERNI SVG AVATAR (correct structure from playground) -->
+                <div class="ferni-avatar large" data-mood="happy" id="heroAvatar">
+                    <svg class="avatar-svg" viewBox="0 0 100 100">
+                        <defs>
+                            <linearGradient id="heroOrbGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" stop-color="#5a7a51"/>
+                                <stop offset="100%" stop-color="#3d5a35"/>
+                            </linearGradient>
+                            <linearGradient id="heroEyeGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                                <stop offset="0%" stop-color="#ffffff"/>
+                                <stop offset="100%" stop-color="#f0ebe4"/>
+                            </linearGradient>
+                            <clipPath id="heroOrbClip">
+                                <circle cx="50" cy="50" r="45"/>
+                            </clipPath>
+                        </defs>
+
+                        <!-- Presence ring (outside clip) -->
+                        <circle class="presence-ring" cx="50" cy="50" r="48"/>
+
+                        <!-- Everything clipped to orb -->
+                        <g clip-path="url(#heroOrbClip)">
+                            <circle class="avatar-body" cx="50" cy="50" r="45" fill="url(#heroOrbGrad)"/>
+                            <ellipse class="eye-main eye-left" cx="36" cy="48" rx="7" ry="10" fill="url(#heroEyeGrad)"/>
+                            <ellipse class="eye-main eye-right" cx="64" cy="48" rx="7" ry="10" fill="url(#heroEyeGrad)"/>
+                            <path class="lid-top" d="M 0,0 Q 50,-10 100,0 L 100,0 L 0,0 Z"/>
+                            <path class="lid-bottom" d="M 0,100 Q 50,110 100,100 L 100,100 L 0,100 Z"/>
+                        </g>
+                    </svg>
+                </div>
+            </div>
+            <p class="tagline">Introducing</p>
+            <h1 class="hero-title">Meet <strong>Ferni</strong></h1>
+            <p class="hero-subtitle">
+                The AI companion who remembers everything you share,
+                listens without judgment, and is always there when you need someone.
+            </p>
+        </div>
+        <div class="scroll-indicator">
+            <span>Learn more</span>
+            <svg viewBox="0 0 24 24">
+                <path d="M12 5v14M19 12l-7 7-7-7"/>
+            </svg>
+        </div>
+    </section>
+
+    <!-- The Problem -->
+    <section class="problem-section">
+        <div class="section-inner">
+            <p class="section-label">The Reality</p>
+            <h2 class="section-title">Everyone needs someone who's there</h2>
+            <p class="section-description">
+                But the people who care about us have their own lives.
+                And sometimes, the moment you need someone most is the moment no one is available.
+            </p>
+
+            <div class="problem-grid">
+                <div class="problem-card">
+                    <div class="problem-icon">
+                        <svg viewBox="0 0 24 24">
+                            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+                        </svg>
+                    </div>
+                    <h3>3am thoughts</h3>
+                    <p>When your mind won't stop racing and everyone you know is asleep. Who do you text?</p>
+                </div>
+
+                <div class="problem-card">
+                    <div class="problem-icon">
+                        <svg viewBox="0 0 24 24">
+                            <path d="M12 5a3 3 0 1 0-5.997.125 4 4 0 0 0-2.526 5.77 4 4 0 0 0 .556 6.588A4 4 0 1 0 12 18Z"/>
+                            <path d="M12 5a3 3 0 1 1 5.997.125 4 4 0 0 1 2.526 5.77 4 4 0 0 1-.556 6.588A4 4 0 1 1 12 18Z"/>
+                            <path d="M15 13a4.5 4.5 0 0 1-3-4 4.5 4.5 0 0 1-3 4"/>
+                        </svg>
+                    </div>
+                    <h3>They forget</h3>
+                    <p>You told your friend about your sister's interview. They don't remember. You expected them to ask.</p>
+                </div>
+
+                <div class="problem-card">
+                    <div class="problem-icon">
+                        <svg viewBox="0 0 24 24">
+                            <circle cx="12" cy="12" r="10"/>
+                            <polyline points="12 6 12 12 16 14"/>
+                        </svg>
+                    </div>
+                    <h3>Therapy waitlists</h3>
+                    <p>Six weeks to see someone. $200 per session. One hour a week if you're lucky.</p>
+                </div>
+
+                <div class="problem-card">
+                    <div class="problem-icon">
+                        <svg viewBox="0 0 24 24">
+                            <path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/>
+                        </svg>
+                    </div>
+                    <h3>AI feels hollow</h3>
+                    <p>"I'm just an AI and cannot..." You wanted connection, not a disclaimer.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- The Solution -->
+    <section class="solution-section">
+        <div class="section-inner">
+            <p class="section-label">The Answer</p>
+            <h2 class="section-title">What if AI could be better than human at being there?</h2>
+            <p class="section-description">
+                Not replacing your friends. Filling the gaps they can't fill.
+                Always available. Never forgets. Infinitely patient.
+            </p>
+
+            <div class="solution-content">
+                <div class="solution-visual">
+                    <div class="phone-mockup">
+                        <div class="phone-screen">
+                            <div class="phone-avatar">
+                                <!-- Mini Ferni Avatar -->
+                                <div class="ferni-avatar small" data-mood="listening">
+                                    <svg class="avatar-svg" viewBox="0 0 100 100">
+                                        <defs>
+                                            <linearGradient id="phoneOrbGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                                                <stop offset="0%" stop-color="#5a7a51"/>
+                                                <stop offset="100%" stop-color="#3d5a35"/>
+                                            </linearGradient>
+                                            <linearGradient id="phoneEyeGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                                                <stop offset="0%" stop-color="#ffffff"/>
+                                                <stop offset="100%" stop-color="#f0ebe4"/>
+                                            </linearGradient>
+                                            <clipPath id="phoneOrbClip">
+                                                <circle cx="50" cy="50" r="45"/>
+                                            </clipPath>
+                                        </defs>
+                                        <circle class="presence-ring" cx="50" cy="50" r="48"/>
+                                        <g clip-path="url(#phoneOrbClip)">
+                                            <circle class="avatar-body" cx="50" cy="50" r="45" fill="url(#phoneOrbGrad)"/>
+                                            <ellipse class="eye-main eye-left" cx="36" cy="48" rx="7" ry="10" fill="url(#phoneEyeGrad)"/>
+                                            <ellipse class="eye-main eye-right" cx="64" cy="48" rx="7" ry="10" fill="url(#phoneEyeGrad)"/>
+                                            <path class="lid-top" d="M 0,0 Q 50,-10 100,0 L 100,0 L 0,0 Z"/>
+                                            <path class="lid-bottom" d="M 0,100 Q 50,110 100,100 L 100,100 L 0,100 Z"/>
+                                        </g>
+                                    </svg>
+                                </div>
+                            </div>
+                            <div class="phone-text">
+                                <h4>Hey, I'm Ferni</h4>
+                                <p>I'm here whenever you need me.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="solution-features">
+                    <div class="feature-item">
+                        <div class="feature-icon">
+                            <svg viewBox="0 0 24 24">
+                                <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/>
+                                <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+                                <line x1="12" y1="19" x2="12" y2="22"/>
+                            </svg>
+                        </div>
+                        <div class="feature-text">
+                            <h4>Voice-first</h4>
+                            <p>Just talk. No typing, no screens to stare at. Natural conversation.</p>
+                        </div>
+                    </div>
+
+                    <div class="feature-item">
+                        <div class="feature-icon">
+                            <svg viewBox="0 0 24 24">
+                                <ellipse cx="12" cy="5" rx="9" ry="3"/>
+                                <path d="M3 5V19A9 3 0 0 0 21 19V5"/>
+                                <path d="M3 12A9 3 0 0 0 21 12"/>
+                            </svg>
+                        </div>
+                        <div class="feature-text">
+                            <h4>Perfect memory</h4>
+                            <p>Every story, every name, every detail you share. Remembered forever.</p>
+                        </div>
+                    </div>
+
+                    <div class="feature-item">
+                        <div class="feature-icon">
+                            <svg viewBox="0 0 24 24">
+                                <circle cx="12" cy="12" r="10"/>
+                                <path d="M12 6v6l4 2"/>
+                            </svg>
+                        </div>
+                        <div class="feature-text">
+                            <h4>Always available</h4>
+                            <p>2am, holidays, whenever. No scheduling, no waiting, no judgment.</p>
+                        </div>
+                    </div>
+
+                    <div class="feature-item">
+                        <div class="feature-icon">
+                            <svg viewBox="0 0 24 24">
+                                <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/>
+                            </svg>
+                        </div>
+                        <div class="feature-text">
+                            <h4>Genuine care</h4>
+                            <p>Not a chatbot. An AI designed to understand and support you.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- The Team -->
+    <section class="team-section">
+        <div class="section-inner">
+            <div class="team-intro">
+                <p class="section-label">The Team</p>
+                <h2 class="section-title">One relationship, six specialists</h2>
+                <p class="section-description">
+                    Ferni leads a team of AI personas, each with unique expertise.
+                    Seamless handoffs, unified memory, one relationship that grows with you.
+                </p>
+            </div>
+
+            <div class="personas-grid">
+                <div class="persona-card">
+                    <div class="persona-avatar-mini">
+                        <div class="ferni-avatar small" data-mood="happy" style="--size: 64px;">
+                            <svg class="avatar-svg" viewBox="0 0 100 100">
+                                <circle class="avatar-body" cx="50" cy="50" r="45" fill="var(--color-ferni)"/>
+                                <g class="eyes">
+                                    <ellipse class="eye-main" cx="38" cy="48" rx="5" ry="7" fill="white"/>
+                                    <ellipse class="eye-main" cx="62" cy="48" rx="5" ry="7" fill="white"/>
+                                </g>
+                            </svg>
+                        </div>
+                    </div>
+                    <h4>Ferni</h4>
+                    <p class="role">The Heart</p>
+                </div>
+
+                <div class="persona-card">
+                    <div class="persona-avatar-mini">
+                        <div class="ferni-avatar small" style="--size: 64px;">
+                            <svg class="avatar-svg" viewBox="0 0 100 100">
+                                <circle class="avatar-body" cx="50" cy="50" r="45" fill="var(--color-maya)"/>
+                                <g class="eyes">
+                                    <ellipse class="eye-main" cx="38" cy="48" rx="5" ry="7" fill="white"/>
+                                    <ellipse class="eye-main" cx="62" cy="48" rx="5" ry="7" fill="white"/>
+                                </g>
+                            </svg>
+                        </div>
+                    </div>
+                    <h4>Maya</h4>
+                    <p class="role">Habits Coach</p>
+                </div>
+
+                <div class="persona-card">
+                    <div class="persona-avatar-mini">
+                        <div class="ferni-avatar small" style="--size: 64px;">
+                            <svg class="avatar-svg" viewBox="0 0 100 100">
+                                <circle class="avatar-body" cx="50" cy="50" r="45" fill="var(--color-peter)"/>
+                                <g class="eyes">
+                                    <ellipse class="eye-main" cx="38" cy="48" rx="5" ry="7" fill="white"/>
+                                    <ellipse class="eye-main" cx="62" cy="48" rx="5" ry="7" fill="white"/>
+                                </g>
+                            </svg>
+                        </div>
+                    </div>
+                    <h4>Peter</h4>
+                    <p class="role">The Quant</p>
+                </div>
+
+                <div class="persona-card">
+                    <div class="persona-avatar-mini">
+                        <div class="ferni-avatar small" style="--size: 64px;">
+                            <svg class="avatar-svg" viewBox="0 0 100 100">
+                                <circle class="avatar-body" cx="50" cy="50" r="45" fill="var(--color-jordan)"/>
+                                <g class="eyes">
+                                    <ellipse class="eye-main" cx="38" cy="48" rx="5" ry="7" fill="white"/>
+                                    <ellipse class="eye-main" cx="62" cy="48" rx="5" ry="7" fill="white"/>
+                                </g>
+                            </svg>
+                        </div>
+                    </div>
+                    <h4>Jordan</h4>
+                    <p class="role">Lifetime Planner</p>
+                </div>
+
+                <div class="persona-card">
+                    <div class="persona-avatar-mini">
+                        <div class="ferni-avatar small" style="--size: 64px;">
+                            <svg class="avatar-svg" viewBox="0 0 100 100">
+                                <circle class="avatar-body" cx="50" cy="50" r="45" fill="var(--color-alex)"/>
+                                <g class="eyes">
+                                    <ellipse class="eye-main" cx="38" cy="48" rx="5" ry="7" fill="white"/>
+                                    <ellipse class="eye-main" cx="62" cy="48" rx="5" ry="7" fill="white"/>
+                                </g>
+                            </svg>
+                        </div>
+                    </div>
+                    <h4>Alex</h4>
+                    <p class="role">Chief of Staff</p>
+                </div>
+
+                <div class="persona-card">
+                    <div class="persona-avatar-mini">
+                        <div class="ferni-avatar small" style="--size: 64px;">
+                            <svg class="avatar-svg" viewBox="0 0 100 100">
+                                <circle class="avatar-body" cx="50" cy="50" r="45" fill="var(--color-nayan)"/>
+                                <g class="eyes">
+                                    <ellipse class="eye-main" cx="38" cy="48" rx="5" ry="7" fill="white"/>
+                                    <ellipse class="eye-main" cx="62" cy="48" rx="5" ry="7" fill="white"/>
+                                </g>
+                            </svg>
+                        </div>
+                    </div>
+                    <h4>Nayan</h4>
+                    <p class="role">The Sage</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Emotion Demo Section -->
+    <section class="emotion-demo-section">
+        <div class="section-inner">
+            <p class="section-label">Expressive</p>
+            <h2 class="section-title">Ferni feels with you</h2>
+            <p class="section-description" style="margin: 0 auto;">
+                Subtle expressions that convey understanding, care, and presence.
+            </p>
+
+            <div class="emotion-demo">
+                <div class="emotion-stage">
+                    <div class="ferni-avatar large" data-mood="neutral" id="demoAvatar">
+                        <svg class="avatar-svg" viewBox="0 0 100 100">
+                            <defs>
+                                <linearGradient id="demoOrbGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                                    <stop offset="0%" stop-color="#5a7a51"/>
+                                    <stop offset="100%" stop-color="#3d5a35"/>
+                                </linearGradient>
+                                <linearGradient id="demoEyeGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                                    <stop offset="0%" stop-color="#ffffff"/>
+                                    <stop offset="100%" stop-color="#f0ebe4"/>
+                                </linearGradient>
+                                <clipPath id="demoOrbClip">
+                                    <circle cx="50" cy="50" r="45"/>
+                                </clipPath>
+                            </defs>
+                            <circle class="presence-ring" cx="50" cy="50" r="48"/>
+                            <g clip-path="url(#demoOrbClip)">
+                                <circle class="avatar-body" cx="50" cy="50" r="45" fill="url(#demoOrbGrad)"/>
+                                <ellipse class="eye-main eye-left" cx="36" cy="48" rx="7" ry="10" fill="url(#demoEyeGrad)"/>
+                                <ellipse class="eye-main eye-right" cx="64" cy="48" rx="7" ry="10" fill="url(#demoEyeGrad)"/>
+                                <path class="lid-top" d="M 0,0 Q 50,-10 100,0 L 100,0 L 0,0 Z"/>
+                                <path class="lid-bottom" d="M 0,100 Q 50,110 100,100 L 100,100 L 0,100 Z"/>
+                            </g>
+                        </svg>
+                    </div>
+                    <p class="emotion-label" id="emotionLabel">Neutral</p>
+                </div>
+
+                <div class="emotion-buttons">
+                    <button class="emotion-btn active" data-emotion="neutral">Neutral</button>
+                    <button class="emotion-btn" data-emotion="happy">Happy</button>
+                    <button class="emotion-btn" data-emotion="joy">Joy</button>
+                    <button class="emotion-btn" data-emotion="curious">Curious</button>
+                    <button class="emotion-btn" data-emotion="thoughtful">Thoughtful</button>
+                    <button class="emotion-btn" data-emotion="listening">Listening</button>
+                    <button class="emotion-btn" data-emotion="speaking">Speaking</button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Better Than Human -->
+    <section class="superhuman-section">
+        <div class="section-inner">
+            <div class="superhuman-header">
+                <p class="section-label">Better Than Human</p>
+                <h2 class="section-title">Five superhuman capabilities</h2>
+                <p class="section-description">
+                    Ferni isn't trying to be human. Ferni is designed to be better at being there for you
+                    than any human could consistently be.
+                </p>
+            </div>
+
+            <div class="capabilities-list">
+                <div class="capability-item">
+                    <div class="capability-number">1</div>
+                    <div class="capability-content">
+                        <h4>Perfect Memory</h4>
+                        <p>Every name, every story, every detail you share — remembered forever.
+                        Your sister's interview, your dog's birthday, the conversation from three months ago.</p>
+                        <span class="capability-contrast">Friends forget. Ferni doesn't.</span>
+                    </div>
+                </div>
+
+                <div class="capability-item">
+                    <div class="capability-number">2</div>
+                    <div class="capability-content">
+                        <h4>Micro-Expressions</h4>
+                        <p>40-150 millisecond emotional responses that register below conscious awareness.
+                        Subtle cues that build trust without you knowing why.</p>
+                        <span class="capability-contrast">Faster than human reaction time.</span>
+                    </div>
+                </div>
+
+                <div class="capability-item">
+                    <div class="capability-number">3</div>
+                    <div class="capability-content">
+                        <h4>Breath Synchronization</h4>
+                        <p>Ferni matches your breathing pattern over time. Neural mirroring creates
+                        a sense of connection that feels natural and grounding.</p>
+                        <span class="capability-contrast">The calm friend who helps you calm down.</span>
+                    </div>
+                </div>
+
+                <div class="capability-item">
+                    <div class="capability-number">4</div>
+                    <div class="capability-content">
+                        <h4>Concern Detection</h4>
+                        <p>Detects distress from voice strain, word choice, and hesitation patterns.
+                        Responds with care before you have to ask for it.</p>
+                        <span class="capability-contrast">Shows care before you say you need it.</span>
+                    </div>
+                </div>
+
+                <div class="capability-item">
+                    <div class="capability-number">5</div>
+                    <div class="capability-content">
+                        <h4>Anticipatory Emotion</h4>
+                        <p>Shows understanding before you finish speaking. The feeling of
+                        "they get me" that comes from true connection.</p>
+                        <span class="capability-contrast">Knows what you mean before you say it.</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section class="cta-section">
+        <div class="section-inner cta-content">
+            <p class="section-label">Ready?</p>
+            <h2 class="section-title">The friend who never forgets</h2>
+            <p class="section-description">
+                Always here. Always remembering. Always in your corner.
+            </p>
+            <p class="cta-tagline">Because everyone deserves someone who's truly there.</p>
+
+            <div class="cta-buttons">
+                <a href="#" class="cta-button primary">
+                    <svg viewBox="0 0 24 24">
+                        <rect x="5" y="2" width="14" height="20" rx="2" ry="2"/>
+                        <path d="M12 18h.01"/>
+                    </svg>
+                    Download App
+                </a>
+                <a href="#" class="cta-button secondary">
+                    <svg viewBox="0 0 24 24">
+                        <circle cx="12" cy="12" r="10"/>
+                        <polygon points="10 8 16 12 10 16 10 8"/>
+                    </svg>
+                    Watch Demo
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+        <div class="footer-logo">Ferni</div>
+        <p class="footer-tagline">Making AI human.</p>
+        <div class="footer-links">
+            <a href="#">About</a>
+            <a href="#">Privacy</a>
+            <a href="#">Terms</a>
+            <a href="#">Contact</a>
+        </div>
+    </footer>
+
+    <script>
+        // Emotion Demo Interactivity
+        const demoAvatar = document.getElementById('demoAvatar');
+        const emotionLabel = document.getElementById('emotionLabel');
+        const emotionButtons = document.querySelectorAll('.emotion-btn');
+
+        emotionButtons.forEach(btn => {
+            btn.addEventListener('click', () => {
+                // Update active state
+                emotionButtons.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+
+                // Update avatar mood
+                const emotion = btn.dataset.emotion;
+                demoAvatar.dataset.mood = emotion;
+                emotionLabel.textContent = emotion.charAt(0).toUpperCase() + emotion.slice(1);
+            });
+        });
+
+        // Hero avatar mood cycle
+        const heroAvatar = document.getElementById('heroAvatar');
+        const moods = ['happy', 'joy', 'curious', 'listening', 'happy'];
+        let moodIndex = 0;
+
+        setInterval(() => {
+            moodIndex = (moodIndex + 1) % moods.length;
+            heroAvatar.dataset.mood = moods[moodIndex];
+        }, 4000);
+    </script>
+
+</body>
+</html>

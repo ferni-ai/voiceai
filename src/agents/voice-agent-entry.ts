@@ -53,6 +53,103 @@ import type { BundleRuntimeEngine } from '../personas/bundles/runtime.js';
 // Centralized model configuration (toggle models via admin UI or model-config.json)
 import { modelConfig } from '../services/model-config.js';
 
+// FinOps cost tracking for session economics
+import { finops } from '../services/observability/finops.js';
+
+// Multi-agent system for natural persona handoffs
+// Each persona gets its own Gemini session + TTS voice
+import { initializeMultiAgentSession, handleHandoffFromDataChannel } from './multi-agent/index.js';
+// Group conversations - Team Roundtables and Conference Calls
+import {
+  createGroupVoiceIntegration,
+  type GroupVoiceIntegration,
+} from './group-conversation/voice-integration.js';
+// handoffEvents is imported dynamically at runtime from '../tools/handoff/index.js'
+// FIX: Import retry counter cleanup for WeakMap session GC
+import { clearRetryCounter } from './shared/sanitizer/index.js';
+// Speech coordination for centralized speech management
+import {
+  coordinatedSay,
+  initializeSpeechCoordination,
+  cleanupSpeechCoordination,
+} from '../speech/coordination/index.js';
+// Centralized generateReply gateway - handles session readiness
+import { prewarmSessionAsync, generateReply } from './shared/generate-reply-gateway.js';
+// Inject generateReply into semantic router (avoids architecture violation)
+import { setGenerateReplyFunction } from '../tools/semantic-router/integration/transcript-integration.js';
+// Location preference service - set active session for native tool location fallback
+import {
+  setCurrentActiveSession,
+  clearCurrentActiveSession,
+} from '../tools/domains/information/location-preference.js';
+
+// Development telemetry for E2E observability
+import { logPipelineStage, type StageType } from './shared/dev-telemetry.js';
+
+// ============================================================================
+// FEATURE FLAGS
+// ============================================================================
+
+/**
+ * Multi-agent mode: Each persona runs as a separate agent with its own Gemini session.
+ * This enables natural handoffs where both personas speak with their real voices.
+ *
+ * DEFAULT: true (multi-agent mode is now the standard for proper handoffs)
+ * Set MULTI_AGENT_MODE=false in environment to disable (not recommended).
+ *
+ * NOTE: Multi-agent mode is implemented in ./multi-agent/. See CLAUDE.md there for details.
+ * The full integration replaces the single-session approach with the orchestrator pattern.
+ */
+const MULTI_AGENT_MODE = process.env.MULTI_AGENT_MODE !== 'false';
+
+// Model provider abstraction - centralizes all model-specific behavior
+import { getModelProvider, isUsingOpenAI } from './model-provider/index.js';
+
+// Get provider early for module-level logging
+const modelProvider = getModelProvider();
+
+// Log multi-agent status at module load
+if (MULTI_AGENT_MODE) {
+  process.stderr.write(
+    `[voice-agent-entry] 🎭 MULTI_AGENT_MODE enabled - Using multi-agent orchestrator\n`
+  );
+} else {
+  process.stderr.write(
+    `[voice-agent-entry] ⚠️ MULTI_AGENT_MODE disabled - Handoffs will NOT update LLM persona!\n`
+  );
+}
+
+// Inject generateReply into semantic router at module load
+// This resolves the architecture violation: tools (Level 70) must not import from agents (Level 100)
+setGenerateReplyFunction(generateReply);
+
+// Inject model provider info into personas layer at module load
+// This resolves the architecture violation: personas (Level 70) must not import from agents (Level 100)
+import { configureModelProvider } from '../personas/bundles/model-provider-config.js';
+configureModelProvider(() => {
+  const provider = getModelProvider();
+  return {
+    id: provider.id,
+    logPrefix: provider.getLogPrefix(),
+    promptModules: provider.getPromptModules(),
+  };
+});
+
+/**
+ * Dev telemetry helper - logs pipeline stages in development mode
+ */
+const isDev = process.env.NODE_ENV === 'development' || process.env.DEV_TELEMETRY === 'true';
+function devStage(stage: string, type: StageType = 'processing'): void {
+  if (isDev) {
+    logPipelineStage(stage, type);
+  }
+}
+
+// Log LLM provider
+process.stderr.write(
+  `[voice-agent-entry] ${modelProvider.getLogPrefix()} Using ${modelProvider.displayName}\n`
+);
+
 // ============================================================================
 // LIGHTWEIGHT VOICE AGENT REF (For Handoff Support)
 // ============================================================================
@@ -73,8 +170,25 @@ function createLightweightVoiceAgentRef(
   let bundleRuntime: BundleRuntimeEngine | undefined;
 
   return {
-    setPersona(persona: unknown): void {
-      const p = persona as PersonaConfig;
+    /**
+     * Set persona - supports two signatures:
+     * 1. setPersona(personaConfig: PersonaConfig) - full persona config with systemPrompt
+     * 2. setPersona(personaId: string, instructions: string) - direct ID + instructions
+     */
+    setPersona(personaOrId: unknown, instructions?: string): void {
+      // Handle both signatures
+      if (typeof personaOrId === 'string' && typeof instructions === 'string') {
+        // Signature 2: setPersona(personaId, instructions)
+        // CRITICAL: This is how coordinator-adapter calls us during handoff!
+        agent._instructions = instructions;
+        process.stderr.write(
+          `[voice-agent-entry] 🎭 LLM instructions updated for ${personaOrId} (${instructions.length} chars)\n`
+        );
+        return;
+      }
+
+      // Signature 1: setPersona(personaConfig)
+      const p = personaOrId as PersonaConfig;
       currentPersona = p;
 
       // CRITICAL: Update the agent's instructions for the new persona
@@ -161,6 +275,25 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
   const lightweightResilience = await import('./shared/lightweight-resilience.js');
   const { withResilience, humanizeError } = lightweightResilience;
 
+  // Import crash analytics for session tracking
+  const crashAnalyticsModule = await import('./shared/crash-analytics.js');
+  const {
+    registerSession,
+    updateSessionState,
+    unregisterSession,
+    recordCrash,
+    recordConnectionDrop: _recordConnectionDrop,
+    markOperationPending: _markOperationPending,
+  } = crashAnalyticsModule;
+
+  // Register session immediately for crash tracking
+  registerSession(sessionId, {
+    sessionId,
+    roomName,
+    userId: undefined, // Will be updated when metadata is parsed
+    personaId: undefined, // Will be updated when persona is loaded
+  });
+
   let currentPhase:
     | 'deps'
     | 'persona'
@@ -185,6 +318,7 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
     // =========================================================================
     // STEP 1: LOAD VOICE DEPENDENCIES
     // =========================================================================
+    devStage('voice_deps_loading');
     e2e.resourceLoading('voice-dependencies');
     const depsStart = Date.now();
     await withResilience(async () => loadVoiceDeps(), {
@@ -197,13 +331,26 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
     // =========================================================================
     // STEP 2: GET PERSONA
     // =========================================================================
+    devStage('persona_loading');
     currentPhase = 'persona';
 
     // Parse metadata for persona ID
     let metadata: Record<string, unknown> = {};
+
+    // DEBUG: Log raw job metadata to trace persona_id flow
+    process.stderr.write(
+      `[voice-agent-entry] 🔍 DEBUG: Raw job.metadata = ${ctx.job.metadata || '(empty)'}\n`
+    );
+    process.stderr.write(
+      `[voice-agent-entry] 🔍 DEBUG: Raw room.metadata = ${ctx.job.room?.metadata || '(empty)'}\n`
+    );
+
     if (ctx.job.metadata) {
       try {
         metadata = JSON.parse(ctx.job.metadata);
+        process.stderr.write(
+          `[voice-agent-entry] 🔍 DEBUG: Parsed job metadata keys: ${Object.keys(metadata).join(', ')}\n`
+        );
       } catch (e) {
         process.stderr.write(`[voice-agent-entry] Failed to parse job.metadata: ${e}\n`);
       }
@@ -219,8 +366,225 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
       }
     }
 
+    // =========================================================================
+    // CALL TYPE DETECTION (INBOUND OR ON-BEHALF)
+    // =========================================================================
+    const callType = metadata.type as string | undefined;
+
+    // =========================================================================
+    // INBOUND CALL DETECTION
+    // =========================================================================
+    // If this is an inbound call (someone calling Ferni via phone),
+    // set up the inbound call context with caller identity.
+    // The inbound-call-context builder will inject caller info, recognition status, etc.
+    if (callType === 'inbound_call') {
+      process.stderr.write(
+        `[voice-agent-entry] 📞 INBOUND CALL DETECTED - setting up caller context\n`
+      );
+      process.stderr.write(
+        `[voice-agent-entry] 📞 Caller context: ${JSON.stringify({
+          callSid: metadata.callSid,
+          callerPhone: metadata.callerPhone
+            ? `${String(metadata.callerPhone).slice(0, 4)}****`
+            : 'unknown',
+          callerName: metadata.callerName,
+          isKnownCaller: metadata.isKnownCaller,
+          isSponsored: !!metadata.sponsoredIdentityId,
+        })}\n`
+      );
+
+      // Set up inbound call context for the context builder to pick up
+      try {
+        const { setInboundCallContext } =
+          await import('../intelligence/context-builders/external/inbound-call-context.js');
+
+        const inboundContext = {
+          callSid: (metadata.callSid as string) || '',
+          callerPhone: (metadata.callerPhone as string) || '',
+          callerName: metadata.callerName as string | undefined,
+          userId: metadata.userId as string | undefined,
+          sponsoredIdentityId: metadata.sponsoredIdentityId as string | undefined,
+          sponsorUserId: metadata.sponsorUserId as string | undefined,
+          isKnownCaller: (metadata.isKnownCaller as boolean) || false,
+          isVoiceEnrolled: (metadata.isVoiceEnrolled as boolean) || false,
+          relationship: metadata.relationship as string | undefined,
+          notes: metadata.notes as string | undefined,
+          accessLevel: metadata.accessLevel as 'full' | 'limited' | 'supervised' | undefined,
+          allowedPersonas: metadata.allowedPersonas as string[] | undefined,
+        };
+
+        // Store with sessionId for context builder lookup
+        setInboundCallContext(sessionId, inboundContext);
+
+        // Also store with room name for fallback
+        const roomName = ctx.job.room?.name;
+        if (roomName) {
+          setInboundCallContext(roomName, inboundContext);
+        }
+
+        process.stderr.write(
+          `[voice-agent-entry] 📞 Inbound call context set for sessionId: ${sessionId}\n`
+        );
+
+        // For sponsored identities, use their familyUserId for memory storage
+        // This gives them their own conversation history and relationship with Ferni
+        if (metadata.sponsoredIdentityId) {
+          // Use familyUserId from metadata (passed from inbound routes)
+          if (metadata.familyUserId) {
+            metadata.user_id = metadata.familyUserId as string;
+            process.stderr.write(
+              `[voice-agent-entry] 📞 Using familyUserId for memory: ${metadata.familyUserId}\n`
+            );
+          } else {
+            // Fallback to generated familyUserId (backward compatibility)
+            metadata.user_id = `family_${metadata.sponsoredIdentityId}`;
+            process.stderr.write(
+              `[voice-agent-entry] 📞 Using generated familyUserId: family_${metadata.sponsoredIdentityId}\n`
+            );
+          }
+        } else if (metadata.userId) {
+          // Non-sponsored caller - use their phone-based userId
+          metadata.user_id = metadata.userId;
+        }
+      } catch (error) {
+        process.stderr.write(`[voice-agent-entry] ⚠️ Failed to set inbound context: ${error}\n`);
+        // Continue anyway - the agent will still work, just without specialized context
+      }
+      // Continue with standard voice agent flow - don't return early
+    }
+
+    // =========================================================================
+    // ON-BEHALF CALL DETECTION
+    // =========================================================================
+    // If this is an on-behalf call (calling someone on behalf of user),
+    // set up the outbound call context and let the standard voice agent handle it.
+    // The outbound-call-context builder will inject call purpose, script, etc.
+    if (callType === 'on_behalf_call') {
+      process.stderr.write(
+        `[voice-agent-entry] 📞 ON-BEHALF CALL DETECTED - using standard agent with outbound context\n`
+      );
+      process.stderr.write(
+        `[voice-agent-entry] 📞 Call context: ${JSON.stringify({
+          callId: metadata.callId,
+          contactName: (metadata.contact as Record<string, unknown>)?.name,
+          purpose: metadata.purpose,
+          callType: metadata.callType,
+        })}\n`
+      );
+
+      // Set up outbound call context for the context builder to pick up
+      // The outbound-call-context builder will inject call purpose, script, compliance, etc.
+      // CRITICAL: Store with BOTH roomName and sessionId since context builder uses sessionId
+      try {
+        const { setOutboundCallContext } =
+          await import('../intelligence/context-builders/external/outbound-call-context.js');
+        const roomNameForContext = ctx.job.room?.name || `call-${metadata.callId}`;
+        const outboundContext = {
+          callId: metadata.callId as string,
+          recipientName:
+            ((metadata.contact as Record<string, unknown>)?.name as string) || 'Unknown',
+          recipientPhone: ((metadata.contact as Record<string, unknown>)?.phone as string) || '',
+          purpose: (metadata.purpose as string) || 'General call',
+          callType:
+            (metadata.callType as 'healthcare' | 'restaurant' | 'business' | 'personal') ||
+            'business',
+          objective: (metadata.objective as string) || (metadata.purpose as string) || '',
+          script: (metadata.script as string) || '',
+          complianceScript: (metadata.complianceScript as string) || '',
+          mustConfirm: (metadata.mustConfirm as string[]) || [],
+          mustNotDo: (metadata.mustNotDo as string[]) || [],
+          informationToGather: (metadata.informationToGather as string[]) || [],
+          userName: (metadata.userName as string) || 'the user',
+          originalSessionId: (metadata.originalSessionId as string) || '',
+        };
+        // Store with roomName (for legacy lookups)
+        setOutboundCallContext(roomNameForContext, outboundContext);
+        // Also store with sessionId (for context builder lookups)
+        setOutboundCallContext(sessionId, outboundContext);
+        process.stderr.write(
+          `[voice-agent-entry] 📞 Outbound call context set for room: ${roomNameForContext}, sessionId: ${sessionId}\n`
+        );
+      } catch (error) {
+        process.stderr.write(`[voice-agent-entry] ⚠️ Failed to set outbound context: ${error}\n`);
+        // Continue anyway - the agent will still work, just without specialized context
+      }
+      // Continue with standard voice agent flow - don't return early
+    }
+
+    // =========================================================================
+    // PROACTIVE OUTREACH CALL DETECTION
+    // =========================================================================
+    // If this is a proactive outreach call (Ferni reaching out to check in),
+    // set up the proactive session context so the agent knows WHY it's calling.
+    if (callType === 'proactive_outreach') {
+      process.stderr.write(
+        `[voice-agent-entry] 📞 PROACTIVE OUTREACH DETECTED - setting up check-in context\n`
+      );
+      process.stderr.write(
+        `[voice-agent-entry] 📞 Outreach context: ${JSON.stringify({
+          triggerType: metadata.triggerType,
+          triggerReason: metadata.triggerReason,
+          daysSinceLastSession: metadata.daysSinceLastSession,
+        })}\n`
+      );
+
+      // Set up proactive session context for the context builder to pick up
+      try {
+        const { setProactiveSessionContext } =
+          await import('../intelligence/context-builders/external/proactive-session-context.js');
+
+        const proactiveContext = {
+          // Cast to the expected type from proactive-session-context
+          triggerType: ((metadata.triggerType as string) ||
+            'silence') as import('../intelligence/context-builders/external/proactive-session-context.js').ProactiveTriggerType,
+          triggerReason: (metadata.triggerReason as string) || 'Proactive check-in',
+          daysSinceLastSession: metadata.daysSinceLastSession as number | undefined,
+          lastMood: metadata.lastMood as string | undefined,
+          lastSessionSummary: metadata.lastSessionSummary as string | undefined,
+          relatedDate: metadata.relatedDate as
+            | { type: string; date: Date; description: string }
+            | undefined,
+          relatedCommitment: metadata.relatedCommitment as
+            | { summary: string; madeOn: Date; dueDate?: Date }
+            | undefined,
+          openerStyle:
+            (metadata.openerStyle as
+              | 'warm'
+              | 'celebratory'
+              | 'gentle'
+              | 'supportive'
+              | 'curious') || 'warm',
+          suggestedOpener: metadata.suggestedOpener as string | undefined,
+          avoidances: metadata.avoidances as string[] | undefined,
+          initiatingPersona: (metadata.persona_id as string) || 'ferni',
+        };
+
+        // Store with sessionId for context builder lookup
+        setProactiveSessionContext(sessionId, proactiveContext);
+
+        // Also store with room name for fallback
+        const roomName = ctx.job.room?.name;
+        if (roomName) {
+          setProactiveSessionContext(roomName, proactiveContext);
+        }
+
+        process.stderr.write(
+          `[voice-agent-entry] 📞 Proactive session context set for sessionId: ${sessionId}\n`
+        );
+      } catch (error) {
+        process.stderr.write(`[voice-agent-entry] ⚠️ Failed to set proactive context: ${error}\n`);
+        // Continue anyway - the agent will still work, just without specialized context
+      }
+      // Continue with standard voice agent flow - don't return early
+    }
+
     const personaId = (metadata.persona_id as string) || process.env.PERSONA_ID || 'ferni';
+    // 🔗 Developer Platform: Extract publisher ID for marketplace/custom personas
+    const publisherId = (metadata.publisher_id as string) || undefined;
     process.stderr.write(`[voice-agent-entry] Resolved personaId: ${personaId}\n`);
+    if (publisherId) {
+      process.stderr.write(`[voice-agent-entry] 🔗 Publisher ID: ${publisherId}\n`);
+    }
 
     e2e.resourceLoading(`persona:${personaId}`);
     const personaStart = Date.now();
@@ -285,43 +649,100 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
       desiredUserExperience: 'feeling heard and supported',
     };
 
-    const sessionPersona = (persona || {
+    // Build fallback persona with all required fields
+    // NOTE: This is only used when the persona bundle fails to load
+    // In normal operation, personas come from the registry with full configs
+    const fallbackPersona: PersonaConfig = {
       id: personaId,
       name: personaName,
-      voice: { voiceId: defaultVoice.voiceId, provider: defaultVoice.provider },
+      description: `${personaName} is a warm and supportive life coach.`,
+      voice: { voiceId: defaultVoice.voiceId, provider: 'cartesia' as const },
       systemPrompt: cachedPrompt || `You are ${personaId}, a warm and supportive life coach.`,
-      personality: { warmth: 0.7, humor: 0.4, directness: 0.6, energy: 0.6 },
-      speechCharacteristics: { baseSpeedMultiplier: 1.0, pauseMultiplier: 1.0 },
+      personality: {
+        warmth: 0.7,
+        humorLevel: 0.4,
+        humorStyle: ['observational', 'self-deprecating'],
+        directness: 0.6,
+        energy: 0.6,
+        tangentFrequency: 0.3,
+        traits: ['empathetic', 'supportive', 'curious'],
+        boundaries: ['Never give medical/legal/financial advice'],
+      },
+      speechCharacteristics: {
+        baseSpeedMultiplier: 1.0,
+        pauseMultiplier: 1.0,
+        speedVariation: 0.15,
+        thinkingSoundFrequency: 0.4,
+        emphasisStyle: 'moderate',
+        sentenceEndingStyle: 'natural',
+        minimumEnergy: 0.8,
+        maximumEnergy: 1.1,
+      },
       communication: defaultCommunication,
       identity: defaultIdentity,
-    }) as unknown as PersonaConfig;
+      knowledge: {
+        domains: ['life-coaching', 'personal-growth'],
+        qualifiedTopics: [
+          'goal-setting',
+          'habits',
+          'motivation',
+          'relationships',
+          'work-life-balance',
+        ],
+        outOfScopeTopics: ['medical-diagnosis', 'legal-advice', 'financial-advice'],
+        outOfScopeResponse:
+          "That's outside my expertise. I'd recommend speaking with a qualified professional for that.",
+      },
+    };
 
-    // Ensure communication and identity are present even if persona exists but is missing them
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    if (!(sessionPersona as any).communication) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (sessionPersona as any).communication = defaultCommunication;
-    }
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    if (!(sessionPersona as any).identity) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (sessionPersona as any).identity = defaultIdentity;
-    }
+    // Use provided persona or fallback, ensuring required fields are present
+    const sessionPersona: PersonaConfig = persona
+      ? {
+          ...fallbackPersona, // Defaults
+          ...persona, // Override with actual persona
+          // Ensure critical nested objects exist
+          communication: persona.communication ?? defaultCommunication,
+          identity: persona.identity ?? defaultIdentity,
+          knowledge: persona.knowledge ?? fallbackPersona.knowledge,
+        }
+      : fallbackPersona;
 
     // ✅ FULL RICH PROMPT - Load persona-specific system prompt from bundles
     // Uses loadSystemPrompt() which handles all personas (ferni, maya-santos, alex-chen, etc.)
-    const { loadSystemPrompt } = await import('./personas/prompt-loader.js');
-    let systemPrompt = await loadSystemPrompt(sessionPersona.id);
+    const { loadSystemPrompt, loadModelBaseInstructions } =
+      await import('./personas/prompt-loader.js');
 
-    // Inject thought signature protocol for better function calling (Vertex AI best practice)
-    // @see https://docs.cloud.google.com/vertex-ai/generative-ai/docs/multimodal/function-calling
-    const { getThoughtSignatureProtocol } =
-      await import('../tools/utils/function-calling-config.js');
-    const thoughtProtocol = getThoughtSignatureProtocol(sessionPersona.id);
-    systemPrompt = `${systemPrompt}\n\n${thoughtProtocol}`;
+    // Load TWO levels of instructions:
+    // 1. Model-level: Foundational rules (tool format, honesty, platform context)
+    // 2. Agent-level: Full persona prompt (identity, detailed tools, personality)
+    const [baseInstructions, systemPrompt] = await Promise.all([
+      loadModelBaseInstructions(),
+      loadSystemPrompt(sessionPersona.id),
+    ]);
+
+    // =========================================================================
+    // DATE/TIME AWARENESS - Critical for grounding agent in reality
+    // This is injected into model-level instructions so the agent knows
+    // the date/time from the VERY FIRST MOMENT (including greeting)
+    // =========================================================================
+    const sessionStartTime = new Date();
+    const dateTimeContext = `
+---
+
+## Current Date & Time
+
+Today is ${sessionStartTime.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}.
+The current time is ${sessionStartTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}.
+
+Use this awareness naturally - don't announce it unless asked, just BE present in the moment.
+If someone asks what day it is, what time it is, or what the date is, you know the answer.
+`;
+
+    // Start with date/time context (user awareness added after session init)
+    let modelBaseInstructions = baseInstructions + dateTimeContext;
 
     process.stderr.write(
-      `[voice-agent-entry] Using RICH prompt + thought protocol (${systemPrompt.length} chars, ~${Math.round(systemPrompt.length / 4)} tokens) 🎉\n`
+      `[voice-agent-entry] Loaded prompts - Model base: ${modelBaseInstructions.length} chars (includes date/time), Full persona: ${systemPrompt.length} chars\n`
     );
 
     process.stderr.write(`[voice-agent-entry] Using persona: ${sessionPersona.name}\n`);
@@ -329,6 +750,7 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
     // =========================================================================
     // STEP 3: CONNECT TO ROOM
     // =========================================================================
+    devStage('room_connecting');
     currentPhase = 'connect';
     e2e.sessionConnecting(roomName, ctx.job.participant?.identity || 'unknown');
     const connectStart = Date.now();
@@ -351,6 +773,7 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
     // =========================================================================
     // STEP 4: INITIALIZE SESSION SERVICES
     // =========================================================================
+    devStage('session_services', 'context');
     currentPhase = 'services';
     process.stderr.write(`[voice-agent-entry] 📦 Initializing session services...\n`);
 
@@ -374,15 +797,27 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
       sessionId,
     });
 
+    // Update crash analytics with user context
+    updateSessionState(sessionId, {
+      state: 'active',
+    });
+    // Store userId/personaId for crash context (these are simple values, not SessionSnapshot fields)
+    registerSession(sessionId, {
+      sessionId,
+      roomName,
+      userId: userId || undefined,
+      personaId: sessionPersona.id,
+    });
+
     // Initialize session services (trust profiles, trial status, etc.)
     const {
       services,
       isReturningUser,
-      isTrialUser,
-      isFirstConversation,
-      trialStatus,
+      isTrialUser: _isTrialUser,
+      isFirstConversation: _isFirstConversation,
+      trialStatus: _trialStatus,
       userData,
-      sessionStateManager,
+      sessionStateManager: _sessionStateManager,
       stopPeriodicSync,
     } = await initializeSession({
       sessionId,
@@ -391,6 +826,8 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
       userAccent,
       sessionPersona,
       room: ctx.room,
+      // 🔗 Developer Platform: Pass publisher ID for MCP loading and webhook dispatch
+      publisherId,
     });
 
     if (stopPeriodicSync) {
@@ -408,9 +845,453 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
         (customData?.lastTopicsPerPersona as Record<string, string> | undefined),
     });
 
-    process.stderr.write(
-      `[voice-agent-entry] 📦 Services initialized (userId: ${userId || 'anonymous'}, returning: ${isReturningUser})\n`
-    );
+    // =========================================================================
+    // DIAGNOSTIC: Comprehensive identity diagnostics at session start
+    // This helps debug why Ferni might not "remember" the user
+    // =========================================================================
+    try {
+      const { logDiagnostics, generateDiagnostics } =
+        await import('../services/identity/identity-error-handler.js');
+      logDiagnostics(userId ?? undefined, services.userProfile ?? null, sessionId);
+
+      // Also log detailed diagnostics to stderr for debugging
+      const diagnostics = generateDiagnostics(userId ?? undefined, services.userProfile ?? null);
+      process.stderr.write(
+        `[voice-agent-entry] 📦 Services initialized (userId: ${userId || 'anonymous'}, returning: ${isReturningUser})\n`
+      );
+      process.stderr.write(
+        `[voice-agent-entry] 🔍 IDENTITY DIAGNOSTICS:\n` +
+          `  - userId: ${userId || 'MISSING!'}\n` +
+          `  - userIdFormat: ${diagnostics.userIdFormat}\n` +
+          `  - hasProfile: ${diagnostics.hasProfile ? 'YES' : 'NO!'}\n` +
+          `  - hasName: ${diagnostics.hasName ? `YES (${services.userProfile?.name || services.userProfile?.preferredName || userName})` : 'NO!'}\n` +
+          `  - hasVoiceSketch: ${diagnostics.hasVoiceSketch ? 'YES (cross-device ready)' : 'NO'}\n` +
+          `  - isReturningUser: ${diagnostics.isReturningUser}\n` +
+          `  - totalConversations: ${diagnostics.totalConversations}\n` +
+          `  - onboardingComplete: ${diagnostics.onboardingComplete}\n` +
+          `  - lastConversationSummary: ${services.userProfile?.lastConversationSummary ? `YES (${services.userProfile.lastConversationSummary.slice(0, 40)}...)` : 'NO!'}\n` +
+          `  - lastContact: ${services.userProfile?.lastContact || 'NEVER'}\n` +
+          `  - issues: ${diagnostics.issues.length > 0 ? diagnostics.issues.join(', ') : 'NONE ✅'}\n`
+      );
+    } catch (diagError) {
+      // Non-fatal - just log basic info if diagnostics fail
+      process.stderr.write(
+        `[voice-agent-entry] 📦 Services initialized (userId: ${userId || 'anonymous'}, returning: ${isReturningUser})\n`
+      );
+    }
+
+    // =========================================================================
+    // USER AWARENESS - Enhance model instructions with user context
+    // Now that we have services.userProfile, add user awareness to instructions
+    // This makes the agent aware of WHO they're talking to from the first moment
+    // =========================================================================
+    if (services.userProfile) {
+      const profile = services.userProfile;
+      const userAwareness: string[] = [];
+
+      // User's name
+      if (profile.name || profile.preferredName || userName) {
+        const name = profile.preferredName || profile.name || userName;
+        userAwareness.push(`You're talking to ${name}.`);
+      }
+
+      // Relationship context
+      if (isReturningUser && profile.totalConversations) {
+        const convCount = profile.totalConversations;
+        if (convCount === 1) {
+          userAwareness.push("You've talked once before.");
+        } else if (convCount < 5) {
+          userAwareness.push(
+            `You've talked ${convCount} times - still getting to know each other.`
+          );
+        } else if (convCount < 20) {
+          userAwareness.push(`You've had ${convCount} conversations - a growing friendship.`);
+        } else {
+          userAwareness.push(
+            `You've had ${convCount} conversations together - you know each other well.`
+          );
+        }
+
+        // Last conversation time
+        if (profile.lastContact) {
+          const lastContactDate = new Date(profile.lastContact);
+          const daysSince = Math.floor(
+            (sessionStartTime.getTime() - lastContactDate.getTime()) / (24 * 60 * 60 * 1000)
+          );
+          if (daysSince === 0) {
+            userAwareness.push('You talked earlier today.');
+          } else if (daysSince === 1) {
+            userAwareness.push('You talked yesterday.');
+          } else if (daysSince < 7) {
+            userAwareness.push(`Last talked ${daysSince} days ago.`);
+          } else if (daysSince < 30) {
+            userAwareness.push(
+              `It's been about ${Math.round(daysSince / 7)} weeks since you last talked.`
+            );
+          } else {
+            userAwareness.push(
+              `It's been a while - about ${Math.round(daysSince / 30)} month${daysSince > 45 ? 's' : ''} since you last talked.`
+            );
+          }
+        }
+      } else if (!isReturningUser) {
+        userAwareness.push(
+          'This is your first conversation with them - be welcoming but not overwhelming.'
+        );
+      }
+
+      // Key relationship facts (if available)
+      const { relationshipStage } = profile;
+      if (relationshipStage && relationshipStage !== 'new_acquaintance') {
+        const stageDescriptions: Record<string, string> = {
+          getting_to_know: "You're still getting to know each other.",
+          trusted_advisor: 'They trust you and share openly.',
+          old_friend: "You're old friends - deep relationship.",
+        };
+        if (stageDescriptions[relationshipStage]) {
+          userAwareness.push(stageDescriptions[relationshipStage]);
+        }
+      }
+
+      // =========================================================================
+      // BETTER THAN HUMAN #1: Last Conversation Context
+      // A human friend might vaguely remember "oh we talked recently"
+      // Ferni remembers EXACTLY what you talked about
+      // =========================================================================
+      if (isReturningUser && profile.lastConversationSummary) {
+        userAwareness.push(`Last time you talked about: ${profile.lastConversationSummary}`);
+      }
+
+      // =========================================================================
+      // BETTER THAN HUMAN #2: Emotional Memory (via mood tracking)
+      // A human friend might not notice you were struggling last time
+      // Ferni remembers and checks in
+      // =========================================================================
+      if (profile.humanizingState?.lastMood) {
+        const { lastMood } = profile.humanizingState;
+        // Map moods to emotional context
+        const moodContext: Record<string, string> = {
+          tired_but_present: 'Last time they seemed a bit tired - be gentle.',
+          reflective: 'Last time they were in a reflective mood.',
+          philosophical: 'Last time they were in a thoughtful, philosophical space.',
+          energized: 'Last time they were full of energy!',
+          grounded: 'Last time they seemed calm and grounded.',
+          playful: 'Last time they were in a playful mood.',
+          nostalgic: 'Last time they were feeling nostalgic.',
+        };
+        if (moodContext[lastMood]) {
+          userAwareness.push(moodContext[lastMood]);
+        }
+      }
+
+      // =========================================================================
+      // BETTER THAN HUMAN #3: Key Life Events Awareness
+      // A human friend might forget important dates and events
+      // Ferni remembers milestones, challenges, and celebrations
+      // =========================================================================
+      if (profile.lifeEvents && profile.lifeEvents.length > 0) {
+        // Find recent events (within last 30 days that are in progress or upcoming)
+        const relevantEvents = profile.lifeEvents
+          .filter((event) => {
+            // Focus on active or upcoming events
+            return (
+              event.status === 'in_progress' ||
+              event.status === 'upcoming' ||
+              event.status === 'planning'
+            );
+          })
+          .slice(0, 2); // Max 2 events
+
+        for (const event of relevantEvents) {
+          const eventTypes: Record<string, string> = {
+            wedding: 'preparing for a wedding',
+            baby: 'expecting or has a new baby',
+            graduation: 'graduation coming up',
+            career_change: 'going through a career change',
+            relocation: 'moving/relocating',
+            loss: 'dealing with a loss',
+            celebration: 'has something to celebrate',
+          };
+          const eventContext = eventTypes[event.type];
+          if (eventContext) {
+            userAwareness.push(`Life context: ${event.title || eventContext}`);
+          }
+        }
+      }
+
+      // =========================================================================
+      // BETTER THAN HUMAN #4: Goals & Concerns Awareness
+      // Know what matters to them right now
+      // =========================================================================
+      if (profile.goals && profile.goals.length > 0) {
+        const topGoal = profile.goals[0];
+        userAwareness.push(`Current goal: ${topGoal}`);
+      }
+      if (profile.primaryConcerns && profile.primaryConcerns.length > 0) {
+        const topConcern = profile.primaryConcerns[0];
+        userAwareness.push(`On their mind: ${topConcern}`);
+      }
+
+      if (userAwareness.length > 0) {
+        modelBaseInstructions += `
+---
+
+## Who You're Talking To
+
+${userAwareness.join('\n')}
+
+Use this awareness naturally. Don't announce what you know - just BE a friend who remembers.
+Reference past context when relevant, but don't force it. Let the conversation flow.
+`;
+        // DETAILED LOGGING: Show exactly what "Better Than Human" context is being injected
+        process.stderr.write(
+          `[voice-agent-entry] 👤 BETTER THAN HUMAN - User awareness injected (${userAwareness.length} facts):\n`
+        );
+        userAwareness.forEach((fact, i) => {
+          process.stderr.write(`[voice-agent-entry]   ${i + 1}. ${fact}\n`);
+        });
+      } else {
+        process.stderr.write(
+          `[voice-agent-entry] 👤 No user awareness facts available (new user or empty profile)\n`
+        );
+      }
+
+      // =========================================================================
+      // BETTER THAN HUMAN #5: Calendar Awareness (Non-blocking)
+      // A human friend doesn't know your schedule. Ferni does.
+      // This runs in background - if calendar loads fast enough, it enhances greeting.
+      // =========================================================================
+      if (userId) {
+        // Fire-and-forget calendar fetch (don't block session start)
+        void (async () => {
+          try {
+            const { getAmbientCalendarContext } =
+              await import('../services/calendar/ambient-calendar-awareness.js');
+            const calendarContext = await getAmbientCalendarContext(userId);
+
+            if (calendarContext.isCalendarConnected) {
+              const calendarAwareness: string[] = [];
+
+              // Next meeting awareness
+              if (
+                calendarContext.nextMeeting.event &&
+                calendarContext.nextMeeting.minutesUntil !== null
+              ) {
+                const minutes = calendarContext.nextMeeting.minutesUntil;
+                const meetingTitle = calendarContext.nextMeeting.event.title;
+
+                if (minutes <= 15) {
+                  calendarAwareness.push(
+                    `⏰ They have "${meetingTitle}" in ${minutes} minutes - be mindful of time.`
+                  );
+                } else if (minutes <= 60) {
+                  calendarAwareness.push(
+                    `📅 They have "${meetingTitle}" in about ${Math.round(minutes / 15) * 15} minutes.`
+                  );
+                }
+              }
+
+              // Just ended meeting (great for follow-up)
+              if (
+                calendarContext.justEndedMeeting.event &&
+                calendarContext.justEndedMeeting.minutesSince !== null
+              ) {
+                const minutes = calendarContext.justEndedMeeting.minutesSince;
+                const meetingTitle = calendarContext.justEndedMeeting.event.title;
+
+                if (minutes <= 15) {
+                  calendarAwareness.push(
+                    `💬 They just finished "${meetingTitle}" - could be a natural topic.`
+                  );
+                }
+              }
+
+              // Busy day awareness
+              if (calendarContext.remainingMeetingsToday >= 4) {
+                calendarAwareness.push(
+                  `📊 They have ${calendarContext.remainingMeetingsToday} more meetings today - busy day.`
+                );
+              }
+
+              if (calendarAwareness.length > 0) {
+                // Store in userData for use in turn-handler injection (turn 0-1)
+                userData.calendarAwareness = calendarAwareness.join(' ');
+                // DETAILED LOGGING: Show calendar awareness being stored
+                process.stderr.write(
+                  `[voice-agent-entry] 📅 BETTER THAN HUMAN - Calendar awareness loaded (${calendarAwareness.length} insights):\n`
+                );
+                calendarAwareness.forEach((insight, i) => {
+                  process.stderr.write(`[voice-agent-entry]   ${i + 1}. ${insight}\n`);
+                });
+              } else {
+                process.stderr.write(
+                  `[voice-agent-entry] 📅 Calendar connected but no relevant insights (no upcoming/recent meetings)\n`
+                );
+              }
+            } else {
+              process.stderr.write(
+                `[voice-agent-entry] 📅 Calendar not connected for user ${userId}\n`
+              );
+            }
+          } catch (calErr) {
+            // Calendar not connected or fetch failed - log but don't block
+            process.stderr.write(
+              `[voice-agent-entry] 📅 Calendar fetch failed (non-critical): ${String(calErr)}\n`
+            );
+          }
+        })();
+      }
+    } else {
+      // NO USER PROFILE - This is why Ferni doesn't "remember" the user!
+      process.stderr.write(
+        `[voice-agent-entry] ⚠️ NO USER PROFILE! Ferni cannot remember this user.\n` +
+          `  - userId was: ${userId || 'NONE PROVIDED'}\n` +
+          `  - This means: No name, no conversation history, no memory.\n` +
+          `  - Check: Is userId being passed from the frontend? Is it valid format?\n`
+      );
+    }
+
+    // =========================================================================
+    // VOICE VERIFICATION FOR INBOUND CALLS (Borrowed Phone Detection)
+    // When someone calls from a known phone but sounds different, gracefully verify.
+    // This enables "Hey, I was expecting John - is this someone else?"
+    // =========================================================================
+    if (
+      callType === 'inbound_call' &&
+      metadata.isKnownCaller &&
+      services.userProfile?.voiceSketch
+    ) {
+      try {
+        const { registerForVoiceVerification, shouldSetupVoiceVerification } =
+          await import('../services/voice/inbound-voice-verification.js');
+
+        const verificationCheck = shouldSetupVoiceVerification(
+          services.userProfile,
+          true, // isInboundCall
+          metadata.isKnownCaller as boolean
+        );
+
+        if (verificationCheck.shouldSetup && verificationCheck.voiceSketch) {
+          registerForVoiceVerification(
+            sessionId,
+            userId || '',
+            verificationCheck.userName || (metadata.callerName as string) || 'the caller',
+            verificationCheck.voiceSketch
+          );
+
+          // Add cleanup handler
+          const { cleanupVoiceVerification } =
+            await import('../services/voice/inbound-voice-verification.js');
+          cleanupHandlers.push(() => cleanupVoiceVerification(sessionId));
+
+          process.stderr.write(
+            `[voice-agent-entry] 🎤 Voice verification registered for inbound call ` +
+              `(expected: ${verificationCheck.userName || 'known caller'}, ` +
+              `sketch confidence: ${verificationCheck.voiceSketch.confidence.toFixed(2)})\n`
+          );
+        }
+      } catch (voiceVerifyErr) {
+        // Non-fatal - just skip voice verification
+        process.stderr.write(
+          `[voice-agent-entry] ⚠️ Voice verification setup failed (non-fatal): ${String(voiceVerifyErr)}\n`
+        );
+      }
+    }
+
+    // =========================================================================
+    // BETTER THAN HUMAN #6: Cross-Channel Thread Continuity
+    // When user responds to our outreach (SMS, push, email) via voice call,
+    // we pick up exactly where we left off - across channels.
+    // ⚡ PERF FIX: Made non-blocking - thread context loads in background
+    // If it loads fast enough, it's available on first turn. Otherwise, second turn.
+    // =========================================================================
+    if (userId) {
+      // ⚡ NON-BLOCKING: Thread context and recording init run in background
+      void (async () => {
+        try {
+          const { buildThreadContext } =
+            await import('../intelligence/context-builders/session/thread-context.js');
+          const threadContext = await buildThreadContext(
+            userId,
+            personaId as import('../personas/types.js').PersonaId,
+            {
+              sessionId,
+              fromNotification: metadata.fromNotification === true,
+            }
+          );
+
+          if (threadContext) {
+            // Store thread context for injection on first turn
+            userData.threadContext = threadContext.content;
+            userData.threadId = threadContext.threadId;
+            userData.isOutreachResponse = threadContext.isOutreachResponse;
+
+            process.stderr.write(
+              `[voice-agent-entry] 🧵 THREAD CONTEXT - Cross-channel continuity enabled:\n` +
+                `  - threadId: ${threadContext.threadId || 'new'}\n` +
+                `  - isOutreachResponse: ${threadContext.isOutreachResponse}\n` +
+                `  - priority: ${threadContext.priority}\n`
+            );
+
+            // Note: modelBaseInstructions already compiled, thread context will be injected on first turn via userData
+            if (threadContext.isOutreachResponse) {
+              process.stderr.write(
+                `[voice-agent-entry] 🧵 Thread context ready for first turn injection (outreach response)\n`
+              );
+            }
+          } else {
+            process.stderr.write(`[voice-agent-entry] 🧵 No active thread context for user\n`);
+          }
+
+          // Initialize thread recording for this session (after context loads)
+          try {
+            const { initializeThreadRecording, cleanupThreadRecording } =
+              await import('../services/conversation-thread/thread-recorder.js');
+            const threadInit = await initializeThreadRecording(
+              userId,
+              sessionId,
+              personaId as import('../personas/types.js').PersonaId,
+              {
+                existingThreadId: userData.threadId,
+                isOutreachResponse: userData.isOutreachResponse,
+              }
+            );
+
+            // Store thread ID in userData for use in transcript/response recording
+            userData.threadId = threadInit.threadId;
+
+            // Add cleanup handler
+            cleanupHandlers.push(() => {
+              cleanupThreadRecording(sessionId);
+            });
+
+            process.stderr.write(
+              `[voice-agent-entry] 🧵 Thread recording initialized (threadId: ${threadInit.threadId}, isNew: ${threadInit.isNew})\n`
+            );
+          } catch (threadRecordErr) {
+            process.stderr.write(
+              `[voice-agent-entry] 🧵 Thread recording init failed (non-critical): ${String(threadRecordErr)}\n`
+            );
+          }
+        } catch (threadErr) {
+          process.stderr.write(
+            `[voice-agent-entry] 🧵 Thread context fetch failed (non-critical): ${String(threadErr)}\n`
+          );
+        }
+      })();
+    }
+
+    // Start FinOps cost tracking for this session
+    // Determine tier from user profile subscription
+    const userSubTier = services.userProfile?.subscription?.tier || 'free';
+    const finopsTier =
+      userSubTier === 'partner' ? 'partner' : userSubTier === 'friend' ? 'friend' : 'free';
+    finops.startSession({
+      sessionId,
+      userId,
+      tier: finopsTier,
+    });
+    process.stderr.write(`[voice-agent-entry] FinOps tracking started (tier: ${finopsTier})\n`);
 
     // Register session with SessionDataManager for proper cache cleanup
     // This is CRITICAL for preventing memory leaks - when session ends,
@@ -438,7 +1319,10 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
         sessionId,
         enablePubSub,
         enableSpeculativeTTS: true,
-        enableBatchedAnalysis: true,
+        // 🚨 DISABLED: batchedAnalysis makes redundant LLM calls per turn
+        // The turn processor already does emotion/intent detection
+        // This was doubling API costs! Re-enable only if you need it for specific analytics.
+        enableBatchedAnalysis: false,
         enableParallelMemory: true,
         enableContextCache: true,
         enableProfiling: true,
@@ -471,15 +1355,38 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
     // =========================================================================
     // STEP 5: CREATE SESSION
     // =========================================================================
+    devStage('session_creation');
     currentPhase = 'session';
     e2e.resourceLoading('agent-session');
     const sessionStart = Date.now();
 
-    // Load external VAD for user activity detection
-    // Note: Gemini also has built-in turn detection, but we need VAD for DJ Booth etc.
-    const { silero } = getVoiceDeps();
-    type VADType = Awaited<ReturnType<typeof import('@livekit/agents-plugin-silero').VAD.load>>;
-    const vad: VADType = await silero.VAD.load();
+    // ⚡ OPTIMIZATION: Skip Silero VAD by default - Gemini/OpenAI have built-in turn detection
+    // The VAD was adding 200-400ms to session start for no real benefit.
+    // Gemini's 'realtime_llm' and OpenAI's 'server_vad' handle user speaking detection.
+    // DJ Booth ducking is triggered by UserStateChanged events from the LLM, not VAD.
+    //
+    // FALLBACK: Set USE_LOCAL_VAD=true to load Silero VAD as redundancy/fallback
+    // This adds latency but provides backup if LLM turn detection has issues.
+    const USE_LOCAL_VAD = process.env.USE_LOCAL_VAD === 'true';
+    let vad:
+      | Awaited<ReturnType<typeof import('@livekit/agents-plugin-silero').VAD.load>>
+      | undefined;
+
+    if (USE_LOCAL_VAD) {
+      try {
+        const vadLoadStart = Date.now();
+        const { silero } = getVoiceDeps();
+        vad = await silero.VAD.load();
+        process.stderr.write(
+          `[voice-agent-entry] 🎙️ Silero VAD loaded as fallback in ${Date.now() - vadLoadStart}ms\n`
+        );
+      } catch (vadErr) {
+        process.stderr.write(
+          `[voice-agent-entry] ⚠️ VAD fallback load failed (non-fatal): ${vadErr}\n`
+        );
+        // Continue without VAD - LLM turn detection will still work
+      }
+    }
 
     // =========================================================================
     // VOICE LOCALIZATION (International Accent Support)
@@ -492,7 +1399,8 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
     // 🌍 For non-American accents, get a localized voice
     if (userAccent && userAccent !== 'american') {
       try {
-        const { getLocalizedVoiceId } = await import('../services/cartesia-voice-localization.js');
+        const { getLocalizedVoiceId } =
+          await import('../services/voice/cartesia-voice-localization.js');
         const localizationResult = await getLocalizedVoiceId(sessionPersona.id, userAccent);
         effectiveVoiceId = localizationResult.voiceId;
         isLocalizedVoice = localizationResult.isLocalized;
@@ -506,8 +1414,27 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
       }
     }
 
+    // ⚡ OPTIMIZATION: Parallelize independent module loads
+    // These imports don't depend on each other, so run them concurrently
+    process.stderr.write(`[voice-agent-entry] ⚡ Starting parallel module loads...\n`);
+    const parallelLoadStart = Date.now();
+
+    const subscriptionTier =
+      (services.userProfile?.subscription?.tier as 'free' | 'friend' | 'partner') || 'free';
+
+    const [voiceManager, toolOrchestratorModule, ferniAgentModule, functionCallingModule] =
+      await Promise.all([
+        import('../speech/voice-manager.js'),
+        import('../tools/orchestrator/voice-agent-integration.js'),
+        import('./personas/ferni-agent.js'),
+        import('../tools/utils/function-calling-config.js'),
+      ]);
+
+    process.stderr.write(
+      `[voice-agent-entry] ⚡ Parallel module loads complete in ${Date.now() - parallelLoadStart}ms\n`
+    );
+
     // Create TTS with localized voice using PersonaAwareTTS (with voice switching support)
-    const voiceManager = await import('../speech/voice-manager.js');
     const tts = voiceManager.createPersonaAwareTTS(sessionPersona.name, {
       ...voiceConfig,
       voiceId: effectiveVoiceId,
@@ -519,24 +1446,23 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
     const sessionVoiceManager = voiceManager.getSessionVoiceManager(sessionId);
     sessionVoiceManager.initialize();
 
-    try {
-      const { registerSessionTTS } = await import('../api/session-accent-routes.js');
-      registerSessionTTS(sessionId, tts, sessionPersona.id, userAccent || 'american');
-    } catch {
-      // Non-critical - accent changes just won't work mid-session
-    }
+    // Fire-and-forget TTS registration (non-blocking)
+    void (async () => {
+      try {
+        const { registerSessionTTS } = await import('../api/session-accent-routes.js');
+        registerSessionTTS(sessionId, tts, sessionPersona.id, userAccent || 'american');
+      } catch {
+        // Non-critical - accent changes just won't work mid-session
+      }
+    })();
 
     // Get voice deps for session creation
     const { voice, google, genai } = getVoiceDeps();
 
-    // Create FerniAgent with ORCHESTRATOR-selected tools (not legacy 89 tools)
-    process.stderr.write(`[voice-agent-entry] Getting tools from orchestrator...\n`);
-
-    // Import and use the tool orchestrator
+    // Initialize orchestrator if not already done (should be warm from prewarm)
     const { getToolsForAgent, initializeToolOrchestrator, isOrchestratorInitialized } =
-      await import('../tools/orchestrator/voice-agent-integration.js');
+      toolOrchestratorModule;
 
-    // Initialize orchestrator if not already done
     if (!isOrchestratorInitialized()) {
       try {
         await initializeToolOrchestrator();
@@ -547,15 +1473,60 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
       }
     }
 
+    // Extract IP-detected location from metadata (TikTok-style personalization)
+    const userLocation =
+      metadata.city || metadata.regionCode || metadata.countryCode
+        ? {
+            city: metadata.city as string | undefined,
+            regionCode: metadata.regionCode as string | undefined,
+            countryCode: metadata.countryCode as string | undefined,
+          }
+        : undefined;
+
+    // DEBUG: Log received geo data (always log for debugging)
+    process.stderr.write(
+      `[voice-agent-entry] 📍 Geo metadata received: city=${metadata.city || 'none'}, region=${metadata.regionCode || 'none'}, country=${metadata.countryCode || 'none'}\n`
+    );
+
+    if (userLocation?.city) {
+      process.stderr.write(
+        `[voice-agent-entry] 📍 User location: ${userLocation.city}, ${userLocation.regionCode || userLocation.countryCode}\n`
+      );
+    } else {
+      process.stderr.write(`[voice-agent-entry] 📍 No city in metadata (location unavailable)\n`);
+    }
+
+    // Store userLocation in userData so it flows through to TTS context
+    // This enables weather tool to use IP-detected location as fallback
+    userData.userLocation = userLocation;
+
+    // Set current active session for native tool location fallback
+    // Native llm.tool() functions don't receive userId/userLocation context,
+    // so they can use getCurrentSessionLocation() to access the current session's location.
+    const formattedLocation = userLocation?.city
+      ? userLocation.regionCode
+        ? `${userLocation.city}, ${userLocation.regionCode}`
+        : userLocation.city
+      : undefined;
+    setCurrentActiveSession(userId || 'anonymous', formattedLocation, sessionId);
+
     // Get tools from orchestrator
-    const subscriptionTier =
-      (services.userProfile?.subscription?.tier as 'free' | 'friend' | 'partner') || 'free';
+    // ⚡ FAST PATH: Skip semantic router on session start - we have no user input yet!
+    // This reduces tool loading from ~5-7s to <500ms. Full semantic routing happens
+    // on first turn when we actually have user context to match against.
     const { tools: orchestratorTools, meta: toolsMeta } = await getToolsForAgent({
       persona: { id: sessionPersona.id, displayName: sessionPersona.name },
       userId: userId || 'anonymous',
       userProfile: services.userProfile,
       subscriptionTier,
       initialTranscript: '', // Session start - no transcript yet
+      // Pass services for dev mode bypass (synced from frontend dev panel via data channel)
+      services: services as { devMode?: { enabled: boolean; bypassUnlocks: boolean } },
+      // IP-detected location for weather, local content
+      userLocation,
+      // ⚡ PERF FIX: Use fast path to skip semantic router (5-7s → <500ms)
+      fastPath: true,
+      sessionId,
     });
 
     process.stderr.write(
@@ -565,10 +1536,17 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
     // Create agent with persona-specific system prompt and orchestrator-selected tools
     // NOTE: FerniAgent is the main agent class used for ALL personas. The persona identity
     // comes from the system prompt (loaded above via loadSystemPrompt), not the class name.
-    const { FerniAgent } = await import('./personas/ferni-agent.js');
+    const { FerniAgent } = ferniAgentModule;
+
+    // DEBUG: Log tools being passed to agent
+    const toolNames = Object.keys(orchestratorTools || {});
     process.stderr.write(
       `[voice-agent-entry] Creating agent for ${sessionPersona.id} with ${toolsMeta.toolCount} orchestrator tools\n`
     );
+    process.stderr.write(
+      `[voice-agent-entry] 🔧 Tool names (ALL ${toolNames.length}): ${toolNames.join(', ')}\n`
+    );
+
     const agent = new FerniAgent(systemPrompt, {
       skipGreeting: true, // Greeting handled by generateAndSpeakGreeting below
       tools: orchestratorTools, // Use orchestrator-selected tools
@@ -576,58 +1554,81 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
 
     // FIX: Create lightweight VoiceAgentRef for handoff support
     // This enables LLM instruction updates during persona handoffs
+    // NOTE: Cast needed to access internal _instructions property (not in public API)
+    // The LiveKit SDK doesn't expose a setInstructions() method, so we access it directly
     const voiceAgentRef = createLightweightVoiceAgentRef(
       agent as unknown as { _instructions?: string },
       sessionPersona
     );
-    process.stderr.write(
-      `[voice-agent-entry] 🎭 VoiceAgentRef created for handoff support\n`
-    );
+    process.stderr.write(`[voice-agent-entry] 🎭 VoiceAgentRef created for handoff support\n`);
 
     // Agent owns instructions and tools - don't duplicate instructions on RealtimeModel
-    // Import function calling config following Vertex AI best practices
-    const { buildToolConfig } = await import('../tools/utils/function-calling-config.js');
+    const { buildToolConfig } = functionCallingModule;
 
     // Build tool config based on context (crisis mode, new user, etc.)
-    const isNewUser = !services.userProfile || (services.userProfile.totalConversations ?? 0) < 3;
+    const _isNewUser = !services.userProfile || (services.userProfile.totalConversations ?? 0) < 3;
     const isCrisis = userData.lastEmotionAnalysis?.distressLevel
       ? userData.lastEmotionAnalysis.distressLevel > 0.7
       : false;
 
     const toolConfig = buildToolConfig({
       environment: 'production',
-      isNewUser,
+      // TEMPORARILY DISABLED: isNewUser restrictions were limiting tools too aggressively
+      // isNewUser,
       isCrisis,
     });
 
+    const allowedTools = toolConfig.functionCallingConfig.allowedFunctionNames;
     process.stderr.write(
-      `[voice-agent-entry] 🔧 Function calling config: mode=${toolConfig.functionCallingConfig.mode}, isNewUser=${isNewUser}, isCrisis=${isCrisis}\n`
+      `[voice-agent-entry] 🔧 Function calling config: mode=${toolConfig.functionCallingConfig.mode}, isCrisis=${isCrisis}\n`
+    );
+    process.stderr.write(
+      `[voice-agent-entry] 🔧 Allowed tools: ${allowedTools ? allowedTools.join(', ') : 'ALL (no restrictions)'}\n`
     );
 
     // Get centralized model config (toggle via admin UI or model-config.json)
     const geminiConfig = modelConfig.getDefault();
-    process.stderr.write(`[voice-agent-entry] 🤖 Using model: ${geminiConfig.model}\n`);
+
+    // =========================================================================
+    // LLM SELECTION: Use ModelProvider abstraction
+    // =========================================================================
+    // The ModelProvider handles all model-specific configuration, eliminating
+    // scattered environment variable checks. See src/agents/model-provider/
+    process.stderr.write(
+      `[voice-agent-entry] ${modelProvider.getLogPrefix()} Creating LLM model via ${modelProvider.displayName}...\n`
+    );
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const llm: any = await modelProvider.createLLMModel({
+      model: geminiConfig.model,
+      instructions: modelBaseInstructions,
+      temperature: geminiConfig.temperature,
+    });
+
+    process.stderr.write(
+      `[voice-agent-entry] ${modelProvider.getLogPrefix()} LLM model created (text → Cartesia TTS)\n`
+    );
+    process.stderr.write(
+      `[voice-agent-entry] 🎭 Instructions: Model=${modelBaseInstructions.length} chars, Agent=${systemPrompt.length} chars\n`
+    );
 
     session = new voice.AgentSession({
+      // ⚡ OPTIMIZATION: Use provider's turn detection setting
+      // Different providers have different built-in turn detection mechanisms
+      turnDetection: modelProvider.getSessionTurnDetection(),
+      // vad is now undefined - not needed with realtime turn detection
       vad,
-      llm: new google.beta.realtime.RealtimeModel({
-        model: geminiConfig.model,
-        modalities: [genai.Modality.TEXT],
-        temperature: geminiConfig.temperature,
-        language: geminiConfig.language,
-        // Vertex AI Function Calling best practice: explicit toolConfig
-        // @see https://docs.cloud.google.com/vertex-ai/generative-ai/docs/multimodal/function-calling
-        toolConfig: toolConfig,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      } as any),
+      llm,
       tts,
       userData,
       voiceOptions: {
         allowInterruptions: true,
-        minEndpointingDelay: 400,
-        maxEndpointingDelay: 1200,
+        // UPDATED Jan 2026: Ultra-tight delays for natural conversation
+        // Human turn-taking gaps are 200-400ms - we should match that
+        minEndpointingDelay: 150, // Was 250ms - be snappier
+        maxEndpointingDelay: 450, // Was 800ms - don't wait too long
         minInterruptionWords: 1,
-        minInterruptionDuration: 300,
+        minInterruptionDuration: 150, // Was 200ms - faster interrupt detection
         preemptiveGeneration: true,
       },
     });
@@ -635,9 +1636,23 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
     e2e.resourceLoaded('agent-session', Date.now() - sessionStart);
     process.stderr.write(`[voice-agent-entry] Session created in ${Date.now() - sessionStart}ms\n`);
 
+    // FIX: Add cleanup handler for retry counter WeakMap
+    // While WeakMap will GC when session is collected, explicit cleanup ensures
+    // immediate memory release and is better practice for session-scoped state
+    if (session) {
+      cleanupHandlers.push(() => {
+        try {
+          clearRetryCounter(session);
+        } catch {
+          /* ignore - session may already be cleaned up */
+        }
+      });
+    }
+
     // =========================================================================
     // STEP 6: SET UP ALL HANDLERS
     // =========================================================================
+    devStage('handlers_setup');
     currentPhase = 'handlers';
     process.stderr.write(`[voice-agent-entry] 🔌 Setting up handlers...\n`);
 
@@ -648,7 +1663,7 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
       { createTranscriptHandler },
       { setupSessionStateHandlers },
       { setupToolTrackingHandler },
-      { createHandoffHandler },
+      { createEventHandler }, // NEW: Uses coordinator-based handoff system
       { registerCameoHandlers },
       { generateAndSpeakGreeting },
       { handleSessionCleanup },
@@ -658,7 +1673,7 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
       import('./voice-agent/transcript-handler.js'),
       import('./voice-agent/session-state-handler.js'),
       import('./voice-agent/tool-tracking-handler.js'),
-      import('./shared/handoff-handler.js'),
+      import('./shared/handoff/event-handler.js'), // NEW: Coordinator-based
       import('./shared/cameo-handler.js'),
       import('./voice-agent/greeting-handler.js'),
       import('./voice-agent/cleanup-handler.js'),
@@ -730,14 +1745,64 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
       // Non-critical - extensibility is optional
     }
 
+    // =========================================================================
+    // PRE-SESSION BRIEFING - Make Ferni aware of time, date, context
+    // ⚡ OPTIMIZATION: Non-blocking! Set fallback immediately, upgrade in background.
+    // GUARANTEE: Agent ALWAYS gets datetime awareness, even if full briefing fails
+    // =========================================================================
+    // Set fallback datetime awareness IMMEDIATELY (non-blocking)
+    const now = new Date();
+    const dateStr = now.toLocaleDateString('en-US', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    });
+    const timeStr = now.toLocaleTimeString('en-US', {
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true,
+    });
+    userData.preSessionBriefing = `[YOUR AWARENESS - ${dateStr}]\nIt's ${timeStr}.\nUse this awareness naturally - don't announce it, just BE present in the moment.`;
+
+    // Generate full briefing in background (upgrades the fallback)
+    void (async () => {
+      try {
+        const { generatePreSessionBriefing } = await import('../services/pre-session-briefing.js');
+        const briefing = await generatePreSessionBriefing(userId, {
+          name: userData.userName || userData.name,
+          lastConversation: userData.lastConversationDate
+            ? new Date(userData.lastConversationDate)
+            : undefined,
+        });
+        // Upgrade to full briefing (will be used in subsequent turns)
+        userData.preSessionBriefing = briefing.formatted;
+        process.stderr.write(
+          `[voice-agent-entry] 📋 Pre-session briefing generated (${briefing.temporal.timeOfDay}, ${briefing.cultural.season})\n`
+        );
+      } catch (briefingErr) {
+        // Fallback already set, just log
+        process.stderr.write(
+          `[voice-agent-entry] Pre-session briefing failed, using fallback datetime: ${String(briefingErr)}\n`
+        );
+      }
+    })();
+
     // Wait for participant before starting session
-    process.stderr.write(`[voice-agent-entry] 👤 Waiting for participant...\n`);
+    // Multi-agent mode REQUIRES participant, so wait longer when enabled
+    const participantTimeout = MULTI_AGENT_MODE ? 10000 : 2000;
+    process.stderr.write(
+      `[voice-agent-entry] 👤 Waiting for participant (${participantTimeout}ms timeout, MULTI_AGENT_MODE=${MULTI_AGENT_MODE})...\n`
+    );
     const participant = await Promise.race([
       ctx.waitForParticipant(),
       new Promise<null>((resolve) => {
         setTimeout(() => {
+          process.stderr.write(
+            `[voice-agent-entry] 👤 Participant wait timed out after ${participantTimeout}ms\n`
+          );
           resolve(null);
-        }, 2000);
+        }, participantTimeout);
       }),
     ]);
 
@@ -745,21 +1810,399 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
       process.stderr.write(`[voice-agent-entry] 👤 Participant joined: ${participant.identity}\n`);
     }
 
+    // =========================================================================
+    // MULTI-AGENT MODE (Experimental)
+    // When enabled, each persona runs as a separate agent with its own Gemini session.
+    // This provides natural handoffs with real voices and no prompt leakage.
+    // =========================================================================
+    if (MULTI_AGENT_MODE && participant) {
+      process.stderr.write(`[voice-agent-entry] 🎭 Starting multi-agent session\n`);
+
+      try {
+        const multiAgentResult = await initializeMultiAgentSession({
+          ctx,
+          room: ctx.room!,
+          userParticipant: participant,
+          initialPersonaId: sessionPersona.id,
+          services,
+          userData,
+          sessionId,
+          userId,
+          // ⚡ FAST-AGENT-JOIN: Defer handler wiring until after greeting starts
+          // This saves ~500ms by wiring handlers in background after user hears greeting
+          deferHandlers: true,
+          onHandoffComplete: (from, to) => {
+            process.stderr.write(`[voice-agent-entry] 🎭 Handoff complete: ${from} → ${to}\n`);
+            // Notify frontend
+            const encoder = new TextEncoder();
+            void ctx.room?.localParticipant?.publishData(
+              encoder.encode(
+                JSON.stringify({
+                  type: 'handoff_complete',
+                  from,
+                  target: to,
+                  timestamp: Date.now(),
+                })
+              ),
+              { reliable: true }
+            );
+          },
+        });
+
+        // FIX: Verify the orchestrator has an active agent before proceeding
+        // If start() failed silently, we should fall back to single-agent mode
+        const activePersona = multiAgentResult.orchestrator.getCurrentPersonaId();
+
+        // Initialize group conversation integration for Team Roundtables and Conference Calls
+        let groupConversationIntegration: GroupVoiceIntegration | null = null;
+        if (ctx.room && participant) {
+          groupConversationIntegration = createGroupVoiceIntegration({
+            ctx,
+            room: ctx.room,
+            userParticipant: participant,
+            sessionId,
+            userId,
+            webhookBaseUrl: process.env.WEBHOOK_BASE_URL ?? 'https://api.ferni.ai',
+            // createRoundtableAgent will be provided when roundtable starts
+          });
+          process.stderr.write(
+            `[voice-agent-entry] 🎙️ Group conversation integration initialized\n`
+          );
+        }
+        if (!activePersona) {
+          // FIX: Notify frontend before falling back to single-agent mode
+          // This prevents UI confusion where frontend expects multi-agent behavior
+          const encoder = new TextEncoder();
+          await ctx.room?.localParticipant?.publishData(
+            encoder.encode(
+              JSON.stringify({
+                type: 'multi_agent_unavailable',
+                reason: 'Orchestrator has no active agent after initialization',
+                fallbackMode: 'single-agent',
+                timestamp: Date.now(),
+              })
+            ),
+            { reliable: true }
+          );
+          throw new Error(
+            'Multi-agent orchestrator has no active agent after initialization - falling back to single-agent'
+          );
+        }
+        process.stderr.write(
+          `[voice-agent-entry] 🎭 Multi-agent orchestrator ready with active persona: ${activePersona}\n`
+        );
+
+        // FIX: Handoff locking to prevent concurrent handoff requests
+        // Without this, multiple handoff requests can race and cause undefined behavior
+        // Uses promise-based mutex pattern to handle async race conditions
+        let handoffInProgress = false;
+        let handoffPromise: Promise<void> = Promise.resolve();
+        let releaseHandoffLock: (() => void) | null = null;
+
+        /**
+         * Acquires the handoff lock. Returns true if acquired, false if already locked.
+         * Uses promise chaining to ensure proper async synchronization.
+         */
+        const acquireHandoffLock = async (): Promise<boolean> => {
+          // Wait for any previous handoff to complete
+          await handoffPromise;
+          // Double-check after await (prevents race where two waiters both proceed)
+          if (handoffInProgress) {
+            return false;
+          }
+          handoffInProgress = true;
+          // Create new promise for waiters
+          handoffPromise = new Promise<void>((resolve) => {
+            releaseHandoffLock = resolve;
+          });
+          return true;
+        };
+
+        /**
+         * Releases the handoff lock, allowing next waiter to proceed.
+         */
+        const releaseHandoff = (): void => {
+          handoffInProgress = false;
+          if (releaseHandoffLock) {
+            releaseHandoffLock();
+            releaseHandoffLock = null;
+          }
+        };
+
+        // Set up data channel handler for multi-agent handoffs
+        const dataHandler = (data: Uint8Array, _participant?: { identity: string }): void => {
+          void (async () => {
+            try {
+              const decoder = new TextDecoder();
+              const rawMessage = decoder.decode(data);
+              process.stderr.write(
+                `[voice-agent-entry] 📨 Data received: ${rawMessage.slice(0, 200)}\n`
+              );
+              const message = JSON.parse(rawMessage);
+
+              // Handle group conversation messages
+              if (message.type?.startsWith('group_') && groupConversationIntegration) {
+                await groupConversationIntegration.handleDataChannelMessage(message);
+                return; // Group messages are fully handled
+              }
+
+              if (message.type === 'handoff_request') {
+                // FIX: Acquire handoff lock to prevent concurrent handoffs (async-safe)
+                const acquired = await acquireHandoffLock();
+                if (!acquired) {
+                  process.stderr.write(
+                    `[voice-agent-entry] 🔒 Handoff already in progress, ignoring request for ${message.target}\n`
+                  );
+                  return;
+                }
+
+                try {
+                  process.stderr.write(
+                    `[voice-agent-entry] 🎭 Multi-agent handoff request: ${message.target}\n`
+                  );
+
+                  // Send handoff_acknowledged immediately (frontend expects this)
+                  const encoder = new TextEncoder();
+                  const currentPersonaId = multiAgentResult.orchestrator.getCurrentPersonaId();
+                  await ctx.room?.localParticipant?.publishData(
+                    encoder.encode(
+                      JSON.stringify({
+                        type: 'handoff_acknowledged',
+                        target: message.target,
+                        success: true,
+                        timestamp: Date.now(),
+                      })
+                    ),
+                    { reliable: true }
+                  );
+
+                  // FIX: Send handoff_started to trigger frontend transitioning state
+                  // Frontend expects: acknowledged → started → complete
+                  // Without this, frontend doesn't set isTransitioning=true and logs out-of-order warning
+                  await ctx.room?.localParticipant?.publishData(
+                    encoder.encode(
+                      JSON.stringify({
+                        type: 'handoff_started',
+                        target: message.target,
+                        newAgent: message.target,
+                        previousAgent: currentPersonaId,
+                        timestamp: Date.now(),
+                      })
+                    ),
+                    { reliable: true }
+                  );
+
+                  const result = await handleHandoffFromDataChannel(
+                    multiAgentResult.orchestrator,
+                    message.target,
+                    message.reason || 'User requested via UI',
+                    services
+                  );
+                  if (!result.success) {
+                    process.stderr.write(
+                      `[voice-agent-entry] 🎭 Handoff failed: ${result.error}\n`
+                    );
+                    // Send handoff_failed to frontend with rollbackTo for UI recovery
+                    await ctx.room?.localParticipant?.publishData(
+                      encoder.encode(
+                        JSON.stringify({
+                          type: 'handoff_failed',
+                          target: message.target,
+                          error: result.error,
+                          rollbackTo: currentPersonaId,
+                          timestamp: Date.now(),
+                        })
+                      ),
+                      { reliable: true }
+                    );
+                  }
+                } finally {
+                  releaseHandoff();
+                }
+              }
+            } catch {
+              // Ignore non-JSON messages
+            }
+          })();
+        };
+
+        if (ctx.room) {
+          ctx.room.on('dataReceived', dataHandler);
+          process.stderr.write(
+            `[voice-agent-entry] 📡 Data channel handler registered on room: ${ctx.room.name}\n`
+          );
+        } else {
+          process.stderr.write(
+            `[voice-agent-entry] ⚠️ WARNING: ctx.room is null, data channel won't work!\n`
+          );
+        }
+
+        // FIX: Wire LLM-triggered handoffs (from tools) to the orchestrator
+        // The handoff tools call executeHandoff() which emits voiceSwitch events.
+        // In multi-agent mode, we need to route these to orchestrator.handoff()
+        const voiceSwitchHandler = (event: {
+          persona: { id: string };
+          previousAgentId?: string;
+        }) => {
+          void (async () => {
+            const targetPersonaId = event.persona?.id;
+            if (!targetPersonaId) {
+              process.stderr.write(`[voice-agent-entry] 🎭 voiceSwitch event missing persona ID\n`);
+              return;
+            }
+
+            // FIX: Acquire handoff lock to prevent concurrent handoffs (async-safe, shared with dataHandler)
+            const acquired = await acquireHandoffLock();
+            if (!acquired) {
+              process.stderr.write(
+                `[voice-agent-entry] 🔒 Handoff already in progress, ignoring LLM request for ${targetPersonaId}\n`
+              );
+              return;
+            }
+
+            try {
+              const currentPersonaId =
+                event.previousAgentId || multiAgentResult.orchestrator.getCurrentPersonaId();
+              process.stderr.write(
+                `[voice-agent-entry] 🎭 LLM-triggered handoff via voiceSwitch: ${currentPersonaId || 'unknown'} → ${targetPersonaId}\n`
+              );
+
+              // FIX: Send frontend events for LLM-triggered handoffs too
+              // Frontend needs these to properly track transitioning state
+              const encoder = new TextEncoder();
+              await ctx.room?.localParticipant?.publishData(
+                encoder.encode(
+                  JSON.stringify({
+                    type: 'handoff_started',
+                    target: targetPersonaId,
+                    newAgent: targetPersonaId,
+                    previousAgent: currentPersonaId,
+                    timestamp: Date.now(),
+                  })
+                ),
+                { reliable: true }
+              );
+
+              const result = await handleHandoffFromDataChannel(
+                multiAgentResult.orchestrator,
+                targetPersonaId,
+                'LLM requested handoff',
+                services
+              );
+
+              if (!result.success) {
+                process.stderr.write(
+                  `[voice-agent-entry] 🎭 LLM handoff failed: ${result.error}\n`
+                );
+                // Send failure event to frontend
+                await ctx.room?.localParticipant?.publishData(
+                  encoder.encode(
+                    JSON.stringify({
+                      type: 'handoff_failed',
+                      target: targetPersonaId,
+                      error: result.error,
+                      rollbackTo: currentPersonaId,
+                      timestamp: Date.now(),
+                    })
+                  ),
+                  { reliable: true }
+                );
+              }
+
+              // Emit handoffHandlerComplete so executeHandoff() knows it completed
+              handoffEvents.emit('handoffHandlerComplete', {
+                targetId: targetPersonaId,
+                success: result.success,
+                greetingSpoken: result.success,
+                instructionsUpdated: result.success,
+                error: result.error,
+              });
+            } finally {
+              releaseHandoff();
+            }
+          })();
+        };
+
+        handoffEvents.on('voiceSwitch', voiceSwitchHandler);
+        process.stderr.write(
+          `[voice-agent-entry] 🎭 voiceSwitch handler registered for LLM-triggered handoffs\n`
+        );
+
+        // Wait for disconnect
+        await new Promise<void>((resolve) => {
+          ctx.room?.once('disconnected', () => {
+            process.stderr.write(`[voice-agent-entry] 🎭 Room disconnected\n`);
+            resolve();
+          });
+        });
+
+        // Cleanup
+        handoffEvents.off('voiceSwitch', voiceSwitchHandler);
+        if (groupConversationIntegration) {
+          await groupConversationIntegration.cleanup();
+          process.stderr.write(`[voice-agent-entry] 🎙️ Group conversation cleaned up\n`);
+        }
+        await multiAgentResult.cleanup();
+        process.stderr.write(`[voice-agent-entry] 🎭 Multi-agent session ended\n`);
+
+        // CRITICAL: Stop auto-save interval to prevent memory leak
+        // The auto-save was continuing to run every 30 seconds after session end
+        if (userId) {
+          try {
+            const { stopAutoSave } = await import('../services/intelligence-persistence.js');
+            stopAutoSave(userId);
+            process.stderr.write(`[voice-agent-entry] 🛑 Stopped auto-save for user ${userId}\n`);
+          } catch (autoSaveErr) {
+            process.stderr.write(
+              `[voice-agent-entry] ⚠️ Failed to stop auto-save: ${autoSaveErr}\n`
+            );
+          }
+        }
+
+        // CRITICAL: Unregister session from crash analytics to prevent memory leak
+        // This was missing, causing activeSessions to remain at 2 after job completion
+        unregisterSession(sessionId, 'multi_agent_clean_exit');
+        return;
+      } catch (err) {
+        process.stderr.write(
+          `[voice-agent-entry] 🎭 Multi-agent mode failed, falling back to single-agent: ${err}\n`
+        );
+        // FIX: Notify frontend before falling back to single-agent mode
+        // This prevents UI confusion where frontend expects multi-agent behavior
+        try {
+          const encoder = new TextEncoder();
+          await ctx.room?.localParticipant?.publishData(
+            encoder.encode(
+              JSON.stringify({
+                type: 'multi_agent_unavailable',
+                reason: String(err),
+                fallbackMode: 'single-agent',
+                timestamp: Date.now(),
+              })
+            ),
+            { reliable: true }
+          );
+        } catch {
+          // Ignore - room may not be available
+        }
+        // Fall through to single-agent mode
+      }
+    }
+
     // MUSIC HANDLER - Initialize music player
     const musicResult = await setupMusicHandler({
       room: ctx.room,
-      session,
       services,
       sessionPersona: sessionPersona,
       conversationManager,
+      sessionId,
+      userId: userData.userId,
     });
-    cleanupHandlers.push(musicResult.clearTimers);
-    process.stderr.write(
-      `[voice-agent-entry] 🎵 Music handler initialized: ${musicResult.initialized}\n`
-    );
+    cleanupHandlers.push(musicResult.cleanup);
+    process.stderr.write(`[voice-agent-entry] 🎵 Music handler initialized\n`);
 
     // =========================================================================
-    // PHONE CALL DETECTION & NOISE CANCELLATION
+    // CONNECTION TYPE DETECTION & KRISP NOISE CANCELLATION
     // =========================================================================
     const jobMetadata = ctx.job?.metadata || '';
     const isWebConnection = jobMetadata.includes('"source":"web"');
@@ -769,18 +2212,31 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
         participant?.identity?.includes('sip') ||
         jobMetadata.includes('"source":"phone"'));
 
-    // Start the session with phone-specific noise cancellation
+    // Enable Krisp-powered noise cancellation for ALL connections (web + phone)
+    // This dramatically improves STT accuracy by removing background noise
+    // @see https://docs.livekit.io/agents/noise-cancellation/
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let inputOptions: any = undefined;
-    if (isPhoneCall) {
-      try {
-        const { TelephonyBackgroundVoiceCancellation } =
-          await import('@livekit/noise-cancellation-node');
-        inputOptions = { noiseCancellation: TelephonyBackgroundVoiceCancellation() };
-        process.stderr.write(`[voice-agent-entry] 📞 Phone call - noise cancellation enabled\n`);
-      } catch {
-        process.stderr.write(`[voice-agent-entry] Noise cancellation not available (non-fatal)\n`);
+    try {
+      const noiseCancellation = await import('@livekit/noise-cancellation-node');
+      if (isPhoneCall) {
+        // Phone calls: Use telephony-optimized noise cancellation
+        inputOptions = {
+          noiseCancellation: noiseCancellation.TelephonyBackgroundVoiceCancellation(),
+        };
+        process.stderr.write(
+          `[voice-agent-entry] 📞 Phone call - telephony noise cancellation enabled\n`
+        );
+      } else {
+        // Web connections: Use Krisp BVC (Background Voice Cancellation)
+        // This is the BEST option for web - removes AC, fans, keyboard, etc.
+        inputOptions = { noiseCancellation: noiseCancellation.BackgroundVoiceCancellation() };
+        process.stderr.write(
+          `[voice-agent-entry] 🔇 Web connection - Krisp BVC noise cancellation enabled\n`
+        );
       }
+    } catch (err) {
+      process.stderr.write(`[voice-agent-entry] ⚠️ Noise cancellation not available: ${err}\n`);
     }
 
     await session.start({ agent, room: ctx.room, inputOptions });
@@ -790,27 +2246,94 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
     );
 
     // =========================================================================
+    // PREWARM: Use gateway for proper session readiness tracking (provider-dependent)
+    // =========================================================================
+    // The gateway tracks session readiness state. Other generateReply calls
+    // will wait or skip based on whether the session is warmed up.
+    // This is fire-and-forget - the session can accept calls immediately, but
+    // they'll be queued/skipped until prewarm completes.
+    // =========================================================================
+    if (modelProvider.needsPrewarm()) {
+      process.stderr.write(
+        `[voice-agent-entry] 🔥 Starting prewarm via gateway (${modelProvider.id})...\n`
+      );
+      prewarmSessionAsync(session, sessionId);
+    }
+
+    // =========================================================================
+    // STEP 5b: INITIALIZE SPEECH COORDINATION
+    // This enables centralized speech management to prevent overlap
+    // =========================================================================
+    try {
+      initializeSpeechCoordination({
+        session,
+        sessionId,
+        personaId,
+        userId: userId || undefined,
+      });
+      process.stderr.write(`[voice-agent-entry] 🎤 Speech coordination initialized\n`);
+      cleanupHandlers.push(() => {
+        cleanupSpeechCoordination(sessionId);
+      });
+    } catch (coordErr) {
+      process.stderr.write(
+        `[voice-agent-entry] ⚠️ Speech coordination init failed (non-critical): ${coordErr}\n`
+      );
+    }
+
+    // DEBUG: Verify tools are registered with the agent
+    // NOTE: Cast needed to access internal _tools property (not in public API)
+    // This is only for debug logging - production code doesn't depend on it
+    const agentTools = (agent as unknown as { _tools?: Record<string, unknown> })?._tools;
+    const registeredToolCount = agentTools ? Object.keys(agentTools).length : 0;
+    process.stderr.write(
+      `[voice-agent-entry] ✅ Agent registered with ${registeredToolCount} tools\n`
+    );
+
+    // =========================================================================
     // DEBUG LOGGING (disabled in production for performance)
     // Set DEBUG_VOICE_AGENT=true to enable verbose logging
     // =========================================================================
     const debugEnabled = process.env.DEBUG_VOICE_AGENT === 'true';
 
+    // 🔍 ALWAYS log native function call attempts (helps diagnose tool issues)
+    // This logs when Gemini tries to use native function calling API
+    const nativeFnCallsHandler = (event: unknown) => {
+      const eventData = event as { calls?: Array<{ name: string; arguments?: unknown }> };
+      const calls = eventData?.calls || [];
+      const callNames = calls.map((c) => c.name).join(', ') || 'unknown';
+      process.stderr.write(`\n🔧 [NATIVE TOOL CALL] Gemini attempting: ${callNames}\n`);
+      process.stderr.write(
+        `🔧 [NATIVE TOOL CALL] Full event: ${JSON.stringify(event, null, 2)}\n\n`
+      );
+    };
+    session.on(
+      'function_calls_collected' as Parameters<typeof session.on>[0],
+      nativeFnCallsHandler
+    );
+    cleanupTracker.register('event', 'native_function_calls handler', () => {
+      session.off?.('function_calls_collected', nativeFnCallsHandler);
+    });
+
     if (debugEnabled) {
       process.stderr.write(`[voice-agent-entry] 🔍 Debug logging ENABLED\n`);
-
-      // Hook into function calls collected (before execution)
-      const fnCallsHandler = (event: unknown) => {
-        const eventData = event as { calls?: Array<{ name: string }> };
-        const callNames = eventData?.calls?.map((c) => c.name).join(', ') || 'unknown';
-        process.stderr.write(`📥 [FUNCTION CALLS] ${callNames}\n`);
-      };
-      session.on('function_calls_collected' as Parameters<typeof session.on>[0], fnCallsHandler);
-      cleanupTracker.register('event', 'function_calls_collected handler', () => {
-        session.off?.('function_calls_collected', fnCallsHandler);
-      });
     }
 
     // TOOL TRACKING HANDLER
+    // Create sendDataMessage helper for behavior signal emission
+    const sendDataMessage = async (
+      type: string,
+      payload: Record<string, unknown>
+    ): Promise<void> => {
+      try {
+        const message = JSON.stringify({ type, ...payload });
+        const data = new TextEncoder().encode(message);
+        await ctx.room.localParticipant?.publishData(data, { reliable: true });
+      } catch {
+        // Non-critical - silently ignore errors
+      }
+    };
+
     setupToolTrackingHandler({
       session,
       userData,
@@ -818,22 +2341,89 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
       sessionPersona: sessionPersona,
       sessionId,
       debugEnabled: true,
+      // 🔄 BEHAVIOR SIGNAL INTEGRATION: Pass sendDataMessage for frontend signaling
+      sendDataMessage,
     });
 
-    // SESSION STATE HANDLERS (silence detection, engagement)
+    // SESSION STATE HANDLERS (silence detection, engagement, idle timeout)
     const { silenceContext } = setupSessionStateHandlers({
       session,
       sessionPersona: sessionPersona,
       conversationManager,
       userData,
       sessionId,
+      // Idle timeout callback - disconnect after extended silence
+      onIdleTimeout: () => {
+        void (async () => {
+          process.stderr.write(
+            `[voice-agent-entry] ⏰ Idle timeout - disconnecting session ${sessionId}\n`
+          );
+          try {
+            // Signal frontend that we're disconnecting due to idle
+            const { sendFrontendSignal } = await import('../services/frontend-signal.js');
+            await sendFrontendSignal('conversation_end', {
+              reason: 'idle_timeout',
+              disconnectDelay: 0, // Disconnect immediately after TTS finishes
+              timestamp: Date.now(),
+            });
+          } catch {
+            // Non-critical - still disconnect
+          }
+          try {
+            // Disconnect the room
+            if (ctx.room.isConnected) {
+              await ctx.room.disconnect();
+            }
+          } catch (disconnectErr) {
+            process.stderr.write(`[voice-agent-entry] ⚠️ Error disconnecting: ${disconnectErr}\n`);
+          }
+        })();
+      },
     });
 
     // TRANSCRIPT HANDLER
-    const { autoOptimizer } = await import('../tools/auto-optimizer.js');
-    const { patternAnalyzer } = await import('../tools/pattern-analyzer.js');
-    const { feedbackCollector } = await import('../tools/feedback-collector.js');
+    const { autoOptimizer } = await import('../tools/optimization/auto-optimizer.js');
+    const { patternAnalyzer } = await import('../tools/optimization/pattern-analyzer.js');
+    const { feedbackCollector } = await import('../tools/optimization/feedback-collector.js');
     const { dynamicToolLoader } = await import('../tools/dynamic-loader.js');
+
+    // Initialize dynamic loader with essential domains (telephony, communication, etc.)
+    // This MUST happen before first user message to prevent race conditions
+    // NOTE: Pass undefined for services to use EnvironmentServiceRegistry (checks env vars)
+    // SessionServices is NOT a ServiceRegistry and doesn't have .has() method
+    await dynamicToolLoader.initialize({
+      userId: userId || 'anonymous',
+      agentId: sessionPersona.id,
+      agentDisplayName: sessionPersona.displayName || sessionPersona.id,
+      sessionId,
+      services: undefined, // Uses EnvironmentServiceRegistry which checks env vars
+    });
+
+    // 🔧 CRITICAL: Update agent with essential tools loaded by dynamic loader
+    // The dynamic loader loads entertainment (music), information (weather), etc.
+    // These need to be registered with the agent/OpenAI immediately!
+    try {
+      const { updateAgentTools, supportsToolUpdates } = await import('./shared/tool-updater.js');
+      if (supportsToolUpdates()) {
+        const essentialTools = dynamicToolLoader.getCurrentTools();
+        const essentialDomains = dynamicToolLoader.getLoadedDomains();
+        if (Object.keys(essentialTools).length > 0) {
+          const updated = await updateAgentTools(agent, essentialTools, {
+            domains: essentialDomains,
+          });
+          if (updated) {
+            process.stderr.write(
+              `\n🔧 Essential tools registered with agent (${Object.keys(essentialTools).length} tools)\n`
+            );
+          }
+        }
+      }
+    } catch (toolUpdateError) {
+      process.stderr.write(
+        `\n⚠️ Failed to update agent with essential tools: ${toolUpdateError}\n`
+      );
+    }
+
     const transcriptHandler = createTranscriptHandler({
       room: ctx.room,
       session,
@@ -847,38 +2437,57 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
       silenceContext,
       dynamicToolLoader,
       autoOptimizer,
+      agent,
     });
-    session.on(voice.AgentSessionEventTypes.UserInputTranscribed, (event: unknown) => {
+    // Store handler reference for cleanup (prevents memory leak)
+    const userInputTranscribedHandler = (event: unknown) => {
       const evt = event as { transcript?: string; isFinal?: boolean };
       if (evt.isFinal) {
-        process.stderr.write(`\n📝 [STT] FINAL: "${evt.transcript}"\n`);
+        process.stderr.write(`\n[STT] FINAL: "${evt.transcript}"\n`);
+
+        // FinOps: Estimate STT duration from word count (~150 WPM average)
+        // This is an approximation; actual duration would require audio timestamps
+        if (evt.transcript) {
+          const wordCount = evt.transcript.split(/\s+/).filter((w) => w.length > 0).length;
+          const estimatedDurationSeconds = (wordCount / 150) * 60; // 150 WPM = 2.5 words/sec
+          finops.recordSTTCost({
+            durationSeconds: Math.max(1, estimatedDurationSeconds), // Minimum 1 second
+            userId,
+            sessionId,
+          });
+        }
       } else if (evt.transcript && evt.transcript.length > 5) {
-        process.stderr.write(`📝 [STT] partial: "${evt.transcript}"\n`);
+        process.stderr.write(`[STT] partial: "${evt.transcript}"\n`);
       }
       transcriptHandler.handler(
         event as import('./voice-agent/transcript-handler.js').TranscriptEvent
       );
+    };
+    session.on(voice.AgentSessionEventTypes.UserInputTranscribed, userInputTranscribedHandler);
+
+    // Register cleanup for UserInputTranscribed handler
+    cleanupHandlers.push(() => {
+      try {
+        session.off(voice.AgentSessionEventTypes.UserInputTranscribed, userInputTranscribedHandler);
+      } catch {
+        // Session may already be disposed
+      }
     });
 
     // HANDOFF HANDLER
-    // FIX: Now using voiceAgentRef to enable LLM instruction updates during handoffs
-    const handoffHandler = createHandoffHandler({
+    // NEW: Coordinator-based handoff handler with intelligent banter
+    const eventHandlerResult = createEventHandler({
       ctx,
       session,
       tts: session.tts as { switchVoice?: (name: string, id: string) => void },
       services,
       userData,
-      getVoiceAgentRef: () => voiceAgentRef, // FIX: Enable persona/instruction switching
+      getVoiceAgentRef: () =>
+        voiceAgentRef as { setPersona: (personaId: string, instructions: string) => void } | null,
+      sessionId, // CRITICAL: Must match data-channel-handler's sessionId
+      initialAgent: sessionPersona.id, // CRITICAL: State manager needs to know starting persona!
     });
-    const wrappedHandoffHandler = (data: Parameters<typeof handoffHandler>[0]) => {
-      void handoffHandler(data).catch((err) => {
-        process.stderr.write(`[voice-agent-entry] Handoff handler error: ${err}\n`);
-      });
-    };
-    handoffEvents.on('voiceSwitch', wrappedHandoffHandler);
-    cleanupTracker.register('event', 'handoffEvents.voiceSwitch', () => {
-      void handoffEvents.off('voiceSwitch', wrappedHandoffHandler);
-    });
+    cleanupTracker.register('event', 'handoffEvents.voiceSwitch', eventHandlerResult.cleanup);
 
     // CAMEO HANDLERS
     // FIX: Now using voiceAgentRef to enable LLM instruction updates during cameos
@@ -889,7 +2498,8 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
         tts: session.tts as { switchVoice?: (name: string, id: string) => void },
         hostPersonaId: sessionPersona.id,
         hostVoiceId: sessionPersona.voice.voiceId,
-        getVoiceAgentRef: () => voiceAgentRef as unknown as import('./shared/cameo-handler.js').CameoVoiceAgentRef,
+        getVoiceAgentRef: () =>
+          voiceAgentRef as unknown as import('./shared/cameo-handler.js').CameoVoiceAgentRef,
         hostPersona: sessionPersona,
       });
       if (cleanupCameoHandlers) {
@@ -901,20 +2511,27 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
     }
 
     // DATA CHANNEL HANDLER (frontend communication)
+    // FIX BUG: Pass voiceAgentRef so UI-initiated handoffs can update LLM instructions
+    // Without this, clicking a persona in the UI changes the voice but keeps the LLM identity!
+    // CRITICAL: Pass tts so the actual Cartesia voice can be changed during handoff!
     const dataChannelResult = setupDataChannelHandler({
       room: ctx.room,
+      ctx, // Pass JobContext for coordinator adapter fallback creation
       session,
       services,
       sessionPersona,
       userId,
       sessionId,
-      voiceAgentRef: undefined,
+      voiceAgentRef,
+      tts: session.tts as {
+        switchVoice?: (name: string, voiceId: string, accent?: string) => void;
+      },
     });
     cleanupHandlers.push(dataChannelResult.cleanup);
     process.stderr.write(`[voice-agent-entry] 📡 Data channel handler set up\n`);
 
     // FRONTEND PUBLISHER
-    let frontendPublisherReady = false;
+    let _frontendPublisherReady = false;
     try {
       const { initializeFrontendPublisher, getFrontendPublisher } =
         await import('./realtime/index.js');
@@ -927,7 +2544,7 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
           await publisher.sendData(type, data ?? {});
         }
       });
-      frontendPublisherReady = true;
+      _frontendPublisherReady = true;
       process.stderr.write(`[voice-agent-entry] 📤 Frontend publisher initialized\n`);
 
       // =========================================================================
@@ -1048,6 +2665,10 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
           | 'friend'
           | 'trusted_advisor'
           | undefined,
+        // Pass userProfile for superhuman memory callbacks (birthdays, growth celebrations, etc.)
+        userProfile: services.userProfile
+          ? { humanMemory: services.userProfile.humanMemory }
+          : undefined,
       });
 
       if (conversationSession) {
@@ -1134,12 +2755,13 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
     // =========================================================================
     // STEP 7: GREETING
     // =========================================================================
+    devStage('greeting', 'tts');
     currentPhase = 'greeting';
     process.stderr.write(`[voice-agent-entry] 🎤 Speaking greeting...\n`);
 
     // Use the full greeting handler for best experience
     try {
-      await generateAndSpeakGreeting({
+      const greetingResult = await generateAndSpeakGreeting({
         sessionPersona: sessionPersona,
         services,
         userData,
@@ -1152,13 +2774,25 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
         session,
         tagGreeting: (text) => text, // Simple passthrough - full SSML tagging not needed for lightweight
       });
+
+      // Store greeting text so LLM knows what it said (prevents confusion/duplicate greetings)
+      if (greetingResult.greeting) {
+        userData.greetingText = greetingResult.greeting;
+        userData.greetingInjected = false; // Will be injected on first turn
+      }
     } catch (greetingErr) {
-      // Fallback to simple greeting
+      // Fallback to simple greeting via coordinated speech
       process.stderr.write(
         `[voice-agent-entry] Greeting handler failed, using fallback: ${greetingErr}\n`
       );
       const fallbackGreeting = `Hey there! I'm ${sessionPersona.name}. How can I help you today?`;
-      await session.say(fallbackGreeting).waitForPlayout();
+      // FIX: Disable interruptions for greeting - iOS background noise was cutting it off
+      coordinatedSay(sessionId, fallbackGreeting, { allowInterruptions: false });
+      // Store fallback greeting too
+      userData.greetingText = fallbackGreeting;
+      userData.greetingInjected = false;
+      // OPTIMIZATION: Removed 2s blocking delay - greeting plays asynchronously
+      // The session continues initializing while greeting plays (non-blocking)
     }
 
     process.stderr.write(
@@ -1168,6 +2802,7 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
     // =========================================================================
     // STEP 8: RUN UNTIL DISCONNECT
     // =========================================================================
+    devStage('session_running');
     currentPhase = 'running';
 
     // Monitor connection state with cleanup tracking
@@ -1195,15 +2830,76 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
       ctx.room.off('reconnected', reconnectedHandler);
     });
 
-    // Wait for disconnect
+    // Wait for disconnect - capture the reason with full diagnostics
     await new Promise<void>((resolve) => {
-      ctx.room.on('disconnected', () => {
-        process.stderr.write(`[voice-agent-entry] 🔌 Disconnected\n`);
+      ctx.room.on('disconnected', (reason?: unknown) => {
+        const disconnectReason = String(reason || 'unknown');
+        const sessionDurationMs = Date.now() - startTime;
+
+        // 🚨 ENHANCED DISCONNECT DIAGNOSTICS
+        void (async () => {
+          try {
+            // Import diagnostics module for rich context
+            const { logDisconnect, analyzeDisconnect } =
+              await import('./shared/disconnect-diagnostics.js');
+            const { recordConnectionDrop } = await import('./shared/crash-analytics.js');
+
+            // Get participant count if available
+            const participantCount = ctx.room.remoteParticipants?.size ?? 0;
+
+            // Log with full diagnostic context
+            logDisconnect({
+              sessionId,
+              roomName,
+              reason: disconnectReason,
+              durationMs: sessionDurationMs,
+              turnCount: session?.turnCount,
+              participantCount: participantCount + 1, // +1 for agent
+              wasActive: sessionDurationMs > 30000, // Consider active if > 30s
+              userId,
+              personaId: persona?.id,
+            });
+
+            // Also record in crash analytics
+            const analysis = analyzeDisconnect({
+              sessionId,
+              roomName,
+              reason: disconnectReason,
+              durationMs: sessionDurationMs,
+            });
+            recordConnectionDrop(sessionId, disconnectReason, analysis.wasGraceful);
+          } catch (e) {
+            // Fallback to basic logging if diagnostics fail
+            process.stderr.write(
+              `[voice-agent-entry] 🔌 Disconnected (reason: ${disconnectReason}, duration: ${sessionDurationMs}ms)\n`
+            );
+            process.stderr.write(
+              `[voice-agent-entry] Failed to capture disconnect diagnostics: ${e}\n`
+            );
+          }
+        })();
+
         resolve();
       });
     });
 
     e2e.sessionEnded(jobId, 'disconnected', Date.now() - startTime);
+
+    // End FinOps cost tracking and record final costs
+    const sessionDurationMs = Date.now() - startTime;
+    const sessionDurationMinutes = sessionDurationMs / 60000;
+    finops.recordLiveKitCost({
+      durationMinutes: sessionDurationMinutes,
+      userId,
+      sessionId,
+      tier: finopsTier,
+    });
+    const finopsSession = finops.endSession(sessionId);
+    if (finopsSession) {
+      process.stderr.write(
+        `[voice-agent-entry] 💰 FinOps: Session cost $${finopsSession.totalCost.toFixed(4)} (${sessionDurationMinutes.toFixed(1)} min, tier: ${finopsSession.tier})\n`
+      );
+    }
 
     // Run event cleanup registry (cleans up all registered event handlers)
     process.stderr.write(`[voice-agent-entry] 🧹 Running event cleanup registry...\n`);
@@ -1211,6 +2907,9 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
     process.stderr.write(
       `[voice-agent-entry] 🧹 Registry cleanup: ${registryResult.cleaned} cleaned, ${registryResult.errors} errors, ${registryResult.totalDurationMs}ms\n`
     );
+
+    // Clear current active session (used by native tools for location fallback)
+    clearCurrentActiveSession();
 
     // Run cleanup
     process.stderr.write(`[voice-agent-entry] 🧹 Running cleanup handlers...\n`);
@@ -1225,9 +2924,9 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
       autoOptimizer,
       feedbackCollector,
       dataChannelCleanup: dataChannelResult.cleanup,
-      handoffHandler: wrappedHandoffHandler,
+      handoffHandler: eventHandlerResult.handler,
       cameoCleanup: undefined,
-      musicCleanup: musicResult.clearTimers,
+      musicCleanup: musicResult.cleanup,
       userData,
       stopPeriodicSync,
     });
@@ -1242,10 +2941,19 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
     }
 
     process.stderr.write(`[voice-agent-entry] Session ended cleanly.\n`);
+
+    // Unregister session from crash analytics (clean exit)
+    unregisterSession(sessionId, 'clean_exit');
   } catch (error) {
     const errObj = error instanceof Error ? error : new Error(String(error));
     e2e.captureError('SESSION', errObj, { jobId, roomName, phase: currentPhase });
     process.stderr.write(`[voice-agent-entry] ERROR in phase ${currentPhase}: ${error}\n`);
+
+    // Record crash in crash analytics
+    recordCrash('uncaught_exception', errObj, sessionId, {
+      roomName,
+      connectionState: currentPhase,
+    });
 
     // Try AI diagnosis
     try {
@@ -1269,7 +2977,8 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
         const humanized = humanizeError(errObj);
         if (humanized.shouldNotifyUser) {
           try {
-            await session.say(humanized.userMessage);
+            // Use coordinated speech for error messages
+            coordinatedSay(sessionId, humanized.userMessage, { allowInterruptions: true });
           } catch {
             /* can't speak */
           }
@@ -1307,5 +3016,8 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
     } catch {
       /* ignore */
     }
+
+    // Unregister session from crash analytics (crash exit)
+    unregisterSession(sessionId, `crash_in_${currentPhase}`);
   }
 }

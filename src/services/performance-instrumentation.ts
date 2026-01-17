@@ -20,8 +20,12 @@
  */
 
 import { getLogger } from '../utils/safe-logger.js';
+import { registerInterval, clearNamedInterval, hasInterval } from '../utils/interval-manager.js';
 
 const log = getLogger();
+
+/** Interval name for performance instrumentation checks */
+const PERF_INSTRUMENTATION_INTERVAL = 'perf-instrumentation-check';
 
 // ============================================================================
 // MEMORY ALERT CONFIGURATION
@@ -126,7 +130,12 @@ export class PerformanceInstrumentation {
   // Memory alert state
   private alertConfig: MemoryAlertConfig = { ...DEFAULT_ALERT_CONFIG };
   private memoryAlerts: MemoryAlert[] = [];
-  private autoCheckInterval: ReturnType<typeof setInterval> | null = null;
+
+  // Bounds to prevent unbounded memory growth in long-running processes
+  private static readonly MAX_MEMORY_SNAPSHOTS = 1000;
+  private static readonly MAX_COMPLETED_PHASES = 500;
+  private static readonly MAX_TOOL_LOAD_METRICS = 200;
+  private static readonly MAX_MEMORY_ALERTS = 100;
   private lastAlertLevel: 'none' | 'warning' | 'critical' = 'none';
 
   constructor() {
@@ -156,6 +165,10 @@ export class PerformanceInstrumentation {
     };
 
     this.memorySnapshots.push(snapshot);
+    // Evict oldest snapshots to prevent unbounded growth
+    if (this.memorySnapshots.length > PerformanceInstrumentation.MAX_MEMORY_SNAPSHOTS) {
+      this.memorySnapshots.shift();
+    }
 
     // Update peak if this is higher
     if (!this.peakMemory || snapshot.heapUsedMB > this.peakMemory.heapUsedMB) {
@@ -215,6 +228,10 @@ export class PerformanceInstrumentation {
     }
 
     this.completedPhases.push(phase);
+    // Evict oldest phases to prevent unbounded growth
+    if (this.completedPhases.length > PerformanceInstrumentation.MAX_COMPLETED_PHASES) {
+      this.completedPhases.shift();
+    }
     this.phases.delete(name);
 
     log.debug(
@@ -261,6 +278,10 @@ export class PerformanceInstrumentation {
       loadTimeMs,
       loadedAt: new Date(),
     });
+    // Evict oldest metrics to prevent unbounded growth
+    if (this.toolLoadMetrics.length > PerformanceInstrumentation.MAX_TOOL_LOAD_METRICS) {
+      this.toolLoadMetrics.shift();
+    }
 
     if (isLazy) {
       this.lazyLoadedDomains++;
@@ -385,13 +406,17 @@ export class PerformanceInstrumentation {
    * Start automatic memory monitoring
    */
   startAutoMonitoring(): void {
-    if (this.autoCheckInterval) {
+    if (hasInterval(PERF_INSTRUMENTATION_INTERVAL)) {
       return; // Already running
     }
 
-    this.autoCheckInterval = setInterval(() => {
-      this.checkMemoryThresholds();
-    }, this.alertConfig.checkIntervalMs);
+    registerInterval(
+      PERF_INSTRUMENTATION_INTERVAL,
+      () => {
+        this.checkMemoryThresholds();
+      },
+      this.alertConfig.checkIntervalMs
+    );
 
     log.info(
       { intervalMs: this.alertConfig.checkIntervalMs },
@@ -403,11 +428,8 @@ export class PerformanceInstrumentation {
    * Stop automatic memory monitoring
    */
   stopAutoMonitoring(): void {
-    if (this.autoCheckInterval) {
-      clearInterval(this.autoCheckInterval);
-      this.autoCheckInterval = null;
-      log.info('⏹️ Automatic memory monitoring stopped');
-    }
+    clearNamedInterval(PERF_INSTRUMENTATION_INTERVAL);
+    log.info('⏹️ Automatic memory monitoring stopped');
   }
 
   /**
@@ -468,9 +490,9 @@ export class PerformanceInstrumentation {
 
     this.memoryAlerts.push(alert);
 
-    // Keep only last 50 alerts
-    if (this.memoryAlerts.length > 50) {
-      this.memoryAlerts = this.memoryAlerts.slice(-50);
+    // Keep only last N alerts to prevent unbounded growth
+    if (this.memoryAlerts.length > PerformanceInstrumentation.MAX_MEMORY_ALERTS) {
+      this.memoryAlerts = this.memoryAlerts.slice(-PerformanceInstrumentation.MAX_MEMORY_ALERTS);
     }
 
     // Log the alert

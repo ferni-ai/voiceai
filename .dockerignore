@@ -8,41 +8,76 @@
 
 # Large directories
 # Apps - exclude large subdirs but keep apps/cli/ for build scripts
+# and apps/web/ for UI server (frontend build)
 apps/android/
+apps/android-native/
 apps/electron/
 apps/ios/
+apps/ios-native/
 apps/macos-menubar/
 apps/marketing/
 apps/marketplace-agents/
-apps/web/
+!apps/marketplace-agents/registry.json
+apps/shared/
+# apps/web/ - INCLUDED for UI server frontend build
+# Only exclude build artifacts and node_modules
+apps/web/node_modules/
+apps/web/dist/
+apps/web/test-results/
 apps/website/
 # NOTE: apps/cli/ is intentionally NOT excluded (needed for Dockerfile.agent build)
 ferni-speaker-build/
 promo/
 functions/
-# Design system - only keep dist/
+# Design system - only keep dist/ and essential brand assets
 design-system/.storybook/
 design-system/assets/
+!design-system/assets/logos/
+!design-system/assets/favicons/
 design-system/choreography/
 design-system/node_modules/
 design-system/preview/
 design-system/stories/
-design-system/tests/
+design-system/tests/**
 design-system/tokens/
+design-system/playground/
+design-system/site/
+design-system/dashboard/
 design-system/*.js
 design-system/*.ts
 design-system/*.json
 design-system/*.md
+# Brand - only keep logos and favicons (exclude 27MB of social media exports)
+# Note: logos/ and favicons/ must be INCLUDED for Dockerfile.ui COPY commands
+design-system/brand/exports/
+design-system/brand/icons/
+design-system/brand/social/
+# Keep *.md files - Dockerfile.ui copies them
+
+# Test files (5.2MB) - not needed in production
+src/tests/
+**/*.test.ts
+**/*.spec.ts
 
 # Node modules (rebuilt in Docker)
 node_modules/
 */node_modules/
 **/node_modules/
 
-# Build outputs (at root level only, preserve design-system/dist)
-/dist/
+# Build outputs - rebuilt in Docker, exclude local copy (saves 300MB!)
+# Use specific path to only exclude root dist/, not design-system/dist/
+/dist
 frontend-typescript/dist/
 coverage/
+
+# Root level test directory  
+tests/
+
+# Deploy logs
+.deploy-logs/
+
+# Audit reports
+.audit-reports/
 
 # Git
 .git/
@@ -70,8 +105,48 @@ __tests__/
 # Misc
 .DS_Store
 *.log
-data/
 # Allow needed scripts
 # scripts/ - not ignoring anymore, need build-fast.ts and patch-livekit-timeout.js
 marketplace-agents/
 ferni-speaker/
+
+# Large unused directories
+# Use /brand/ to only match root level, not design-system/brand/
+/brand/
+vendor/
+infra/
+# Use /infrastructure/ to only match root level, not src/personality/infrastructure/
+/infrastructure/
+KMS/
+
+# Test/debug artifacts (root level)
+playwright-report/
+test-reports/
+test-results/
+.debug-captures/
+coverage/
+.nyc_output/
+
+# Apps build artifacts
+apps/web/.firebase/
+apps/web/bundle-stats.html
+apps/web/stats.html
+apps/web/design-*.html
+
+# iOS/Android build caches (if patterns above don't catch nested .build)
+**/.build/
+**/build/intermediates/
+
+# ML Training (large model files)
+apps/ml-training/
+
+# Models directory (ONNX models, 3.7GB)
+models/
+
+# Python virtual environments
+.venv/
+.venv*/
+**/.venv/
+**/.venv*/
+*.pyc
+__pycache__/

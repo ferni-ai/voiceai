@@ -13,7 +13,7 @@
  *
  * // Run the job
  * const results = await runDailyOutreachJob();
- * console.log('Outreach job completed:', results);
+ * log.info({ results }, 'Outreach job completed');
  * ```
  *
  * @module DailyOutreachJob
@@ -21,9 +21,25 @@
 
 import type { UserProfile } from '../../types/user-profile.js';
 import { createLogger } from '../../utils/safe-logger.js';
-import { getOutreachDecisionEngine } from './decision-engine.js';
+import { getOutreachDecisionEngine, type OutreachPriority } from './decision-engine.js';
 import { evaluateLifeRhythmOutreach, triggerLifeRhythmOutreach } from './life-rhythm-outreach.js';
 import { getOutreachOrchestrator } from './outreach-orchestrator.js';
+import {
+  checkStreaksAtRisk,
+  checkMilestonesToCelebrate,
+  checkSetbackRecoveryNeeded,
+  publishStreakProtectionAlert,
+  publishMilestoneCelebration,
+  publishSetbackRecoveryTrigger,
+} from './maya-habit-outreach.js';
+import { getPendingCheckIns, recordCheckInSent } from './onboarding-checkin-arc.js';
+import {
+  updateReengagementState,
+  getPendingReengagements,
+  recordReengagementSent,
+  type ReengagementType,
+} from './reengagement-arc.js';
+import { recordOutreachEvent } from './outreach-analytics.js';
 
 const log = createLogger({ module: 'DailyOutreachJob' });
 
@@ -128,6 +144,115 @@ export async function runDailyOutreachJob(
               byType['life_rhythm'] = (byType['life_rhythm'] || 0) + 1;
             }
           }
+
+          // 🌱 MAYA HABIT OUTREACH: Streak protection, milestones, setback recovery
+          try {
+            const mayaResults = await evaluateMayaHabitOutreach(profile.id);
+            outreachSent += mayaResults.sent;
+            if (mayaResults.sent > 0) {
+              for (const [type, count] of Object.entries(mayaResults.byType)) {
+                byType[type] = (byType[type] || 0) + count;
+              }
+            }
+          } catch (mayaError) {
+            log.debug(
+              { userId: profile.id, error: String(mayaError) },
+              'Maya habit outreach error (non-fatal)'
+            );
+          }
+
+          // 🔮 ML PREDICTION-DRIVEN OUTREACH: Act on ML predictions
+          // This is "Better than Human" - we reach out BEFORE they know they need us
+          try {
+            const { evaluatePredictionDrivenOutreach } =
+              await import('./prediction-driven-outreach.js');
+            const mlDecision = await evaluatePredictionDrivenOutreach(profile.id, profile);
+
+            if (mlDecision.shouldReach && mlDecision.channel === 'voice_call') {
+              // High confidence: Trigger proactive voice call
+              const voiceOutreach = await orchestrator.triggerProactiveCall(
+                profile.id,
+                mlDecision.personaId || 'ferni',
+                {
+                  trigger: mlDecision.trigger || 'ml_prediction',
+                  message: mlDecision.message,
+                  confidence: mlDecision.confidence,
+                  metadata: mlDecision.context,
+                }
+              );
+              if (voiceOutreach) {
+                outreachSent++;
+                byType['ml_voice_call'] = (byType['ml_voice_call'] || 0) + 1;
+                log.info(
+                  {
+                    userId: profile.id,
+                    trigger: mlDecision.trigger,
+                    confidence: mlDecision.confidence,
+                  },
+                  '📞 ML-driven proactive voice call triggered'
+                );
+              }
+            } else if (mlDecision.shouldReach && mlDecision.channel === 'push') {
+              // Medium confidence: Send push notification
+              const pushOutreach = await orchestrator.sendPushNotification(
+                profile.id,
+                mlDecision.message || "I've been thinking about you...",
+                {
+                  trigger: mlDecision.trigger,
+                  personaId: mlDecision.personaId,
+                  metadata: mlDecision.context,
+                }
+              );
+              if (pushOutreach) {
+                outreachSent++;
+                byType['ml_push'] = (byType['ml_push'] || 0) + 1;
+                log.info(
+                  {
+                    userId: profile.id,
+                    trigger: mlDecision.trigger,
+                    confidence: mlDecision.confidence,
+                  },
+                  '🔔 ML-driven push notification sent'
+                );
+              }
+            } else if (mlDecision.updateAppInsights) {
+              // Low confidence: Just update app insights (passive)
+              byType['ml_insight_update'] = (byType['ml_insight_update'] || 0) + 1;
+            }
+          } catch (mlError) {
+            log.debug(
+              { userId: profile.id, error: String(mlError) },
+              'ML prediction outreach error (non-fatal)'
+            );
+          }
+
+          // 🎓 ONBOARDING ARC: Check-ins during first 14 days
+          try {
+            const onboardingResult = await evaluateOnboardingOutreach(profile.id);
+            if (onboardingResult.sent > 0) {
+              outreachSent += onboardingResult.sent;
+              byType['onboarding'] = (byType['onboarding'] || 0) + onboardingResult.sent;
+            }
+          } catch (onboardingError) {
+            log.debug(
+              { userId: profile.id, error: String(onboardingError) },
+              'Onboarding outreach error (non-fatal)'
+            );
+          }
+
+          // 🔄 RE-ENGAGEMENT ARC: Reconnect with silent users
+          try {
+            const reengagementResult = await evaluateReengagementOutreach(profile);
+            if (reengagementResult.sent > 0) {
+              outreachSent += reengagementResult.sent;
+              byType['reengagement'] = (byType['reengagement'] || 0) + reengagementResult.sent;
+            }
+          } catch (reengagementError) {
+            log.debug(
+              { userId: profile.id, error: String(reengagementError) },
+              'Re-engagement outreach error (non-fatal)'
+            );
+          }
         }
 
         // Rate limiting delay
@@ -214,11 +339,274 @@ export async function processScheduledTriggers(): Promise<{
 }
 
 // ============================================================================
+// MAYA HABIT OUTREACH EVALUATION
+// ============================================================================
+
+interface MayaHabitOutreachResult {
+  sent: number;
+  byType: Record<string, number>;
+}
+
+/**
+ * Evaluate and trigger Maya's habit-specific outreach for a user
+ *
+ * Checks for:
+ * 1. Streaks at risk (evening alert before midnight)
+ * 2. Milestones to celebrate (7, 21, 30, 66, 100 days)
+ * 3. Setback recovery needed (3+ days missed after 5+ day streak)
+ */
+async function evaluateMayaHabitOutreach(userId: string): Promise<MayaHabitOutreachResult> {
+  const result: MayaHabitOutreachResult = { sent: 0, byType: {} };
+  const hour = new Date().getHours();
+
+  try {
+    // 1. STREAK PROTECTION (Evening check - 6pm to 10pm optimal)
+    if (hour >= 18 && hour <= 22) {
+      const atRisk = await checkStreaksAtRisk(userId);
+      if (atRisk.atRisk) {
+        for (const habit of atRisk.habits.slice(0, 2)) {
+          // Max 2 alerts per day
+          const sent = await publishStreakProtectionAlert({
+            userId,
+            habitId: habit.id,
+            habitName: habit.name,
+            streakDays: habit.streakDays,
+            reason: `Protect ${habit.streakDays}-day streak on "${habit.name}"`,
+          });
+          if (sent) {
+            result.sent++;
+            result.byType['streak_protection'] = (result.byType['streak_protection'] || 0) + 1;
+          }
+        }
+      }
+    }
+
+    // 2. MILESTONE CELEBRATION (Morning check - 8am to 11am optimal)
+    if (hour >= 8 && hour <= 11) {
+      const milestones = await checkMilestonesToCelebrate(userId);
+      for (const milestone of milestones.slice(0, 2)) {
+        // Max 2 celebrations per day
+        const sent = await publishMilestoneCelebration(
+          userId,
+          milestone.habitId,
+          milestone.habitName,
+          milestone.days
+        );
+        if (sent) {
+          result.sent++;
+          result.byType['milestone_celebration'] =
+            (result.byType['milestone_celebration'] || 0) + 1;
+        }
+      }
+    }
+
+    // 3. SETBACK RECOVERY (Afternoon check - 2pm to 5pm optimal)
+    if (hour >= 14 && hour <= 17) {
+      const setbacks = await checkSetbackRecoveryNeeded(userId);
+      for (const setback of setbacks.slice(0, 1)) {
+        // Max 1 setback outreach per day
+        const sent = await publishSetbackRecoveryTrigger(
+          userId,
+          setback.habitId,
+          setback.habitName,
+          setback.daysMissed,
+          setback.previousStreak
+        );
+        if (sent) {
+          result.sent++;
+          result.byType['setback_recovery'] = (result.byType['setback_recovery'] || 0) + 1;
+        }
+      }
+    }
+  } catch (error) {
+    log.debug({ userId, error: String(error) }, 'Maya habit outreach evaluation failed');
+  }
+
+  return result;
+}
+
+// ============================================================================
+// ONBOARDING ARC EVALUATION
+// ============================================================================
+
+interface OnboardingOutreachResult {
+  sent: number;
+  checkInsProcessed: string[];
+}
+
+/**
+ * Evaluate and trigger onboarding check-ins for a user
+ *
+ * Creates triggers for any pending check-ins in the onboarding arc (first 14 days).
+ * Check-ins are then processed by the decision engine's normal flow.
+ */
+async function evaluateOnboardingOutreach(userId: string): Promise<OnboardingOutreachResult> {
+  const result: OnboardingOutreachResult = { sent: 0, checkInsProcessed: [] };
+
+  try {
+    // Get pending check-ins from the onboarding arc service
+    const pendingCheckIns = await getPendingCheckIns(userId);
+
+    if (pendingCheckIns.length === 0) {
+      return result;
+    }
+
+    log.debug(
+      { userId, pendingCount: pendingCheckIns.length },
+      '🎓 Found pending onboarding check-ins'
+    );
+
+    // Use the decision engine to create triggers (it handles ML timing)
+    const engine = getOutreachDecisionEngine();
+    const triggerIds = await engine.checkOnboardingTriggers(userId);
+
+    // Mark check-ins as processed (triggers will be sent by the decision engine)
+    for (const checkIn of pendingCheckIns) {
+      result.checkInsProcessed.push(checkIn.type);
+      // Note: We don't mark as sent yet - that happens when the trigger is actually processed
+      // The decision engine will call markOnboardingCheckInSent after successful delivery
+    }
+
+    result.sent = triggerIds.length;
+
+    if (result.sent > 0) {
+      log.info(
+        { userId, triggerCount: result.sent, checkInTypes: result.checkInsProcessed },
+        '🎓 Created onboarding triggers'
+      );
+    }
+  } catch (error) {
+    log.debug({ userId, error: String(error) }, 'Onboarding outreach evaluation failed');
+  }
+
+  return result;
+}
+
+// ============================================================================
+// RE-ENGAGEMENT ARC EVALUATION
+// ============================================================================
+
+interface ReengagementOutreachResult {
+  sent: number;
+  types: ReengagementType[];
+}
+
+/**
+ * Evaluate and trigger re-engagement outreach for a user
+ *
+ * Updates the user's re-engagement state based on their last conversation,
+ * then checks for pending re-engagements and creates triggers for them.
+ */
+async function evaluateReengagementOutreach(
+  profile: UserProfile
+): Promise<ReengagementOutreachResult> {
+  const result: ReengagementOutreachResult = { sent: 0, types: [] };
+
+  if (!profile.id) return result;
+
+  try {
+    // Get last conversation date from profile
+    const lastConversationDate = profile.customData?.lastConversationDate
+      ? new Date(profile.customData.lastConversationDate as string)
+      : profile.updatedAt
+        ? new Date(profile.updatedAt)
+        : null;
+
+    if (!lastConversationDate) {
+      return result;
+    }
+
+    // Update re-engagement state
+    const state = updateReengagementState(profile.id, lastConversationDate, {
+      interests: profile.customData?.interests as string[] | undefined,
+      preferredPersona: profile.customData?.preferredPersona as string | undefined,
+      name: profile.name,
+      totalConversations: profile.customData?.totalConversations as number | undefined,
+    });
+
+    // Skip if user is active or in respect_space stage
+    if (state.stage === 'active' || state.stage === 'respect_space') {
+      return result;
+    }
+
+    // Get pending re-engagements
+    const pending = await getPendingReengagements(profile.id);
+
+    if (pending.length === 0) {
+      return result;
+    }
+
+    log.debug(
+      { userId: profile.id, pendingCount: pending.length, stage: state.stage },
+      '🔄 Found pending re-engagements'
+    );
+
+    // Use the decision engine to create triggers
+    const engine = getOutreachDecisionEngine();
+
+    for (const reengagement of pending) {
+      // Map priority string to OutreachPriority type
+      const priorityMap: Record<string, OutreachPriority> = {
+        high: 'high',
+        medium: 'medium',
+        low: 'low',
+      };
+      const priority: OutreachPriority = priorityMap[reengagement.priority] || 'medium';
+
+      // Create a trigger for this re-engagement
+      const trigger = {
+        type: 'reengagement' as const,
+        userId: profile.id,
+        persona: reengagement.persona,
+        priority,
+        reason: reengagement.reason,
+        suggestedTime: reengagement.scheduledFor,
+        context: {
+          reengagementType: reengagement.type,
+          message: reengagement.message,
+          daysSilent: state.daysSinceLastConversation,
+        },
+      };
+
+      engine.addTrigger(trigger);
+
+      // Record that we sent this re-engagement
+      recordReengagementSent(profile.id, reengagement.type);
+
+      // Record in analytics
+      recordOutreachEvent({
+        id: reengagement.id,
+        userId: profile.id,
+        type: `reengagement_${reengagement.type}`,
+        channel: 'push', // Default channel
+        delivered: true,
+      });
+
+      result.sent++;
+      result.types.push(reengagement.type);
+    }
+
+    if (result.sent > 0) {
+      log.info(
+        { userId: profile.id, sent: result.sent, types: result.types, stage: state.stage },
+        '🔄 Created re-engagement triggers'
+      );
+    }
+  } catch (error) {
+    log.debug({ userId: profile.id, error: String(error) }, 'Re-engagement evaluation failed');
+  }
+
+  return result;
+}
+
+// ============================================================================
 // HELPERS
 // ============================================================================
 
 function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
+  return new Promise<void>((resolve) => {
+    setTimeout(resolve, ms);
+  });
 }
 
 // ============================================================================

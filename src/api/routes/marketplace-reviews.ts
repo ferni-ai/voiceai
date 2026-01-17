@@ -20,6 +20,7 @@ import {
   createReview,
   deleteReview,
   flagReview,
+  getReview,
   getReviewStats,
   listReviews,
   updateReview,
@@ -27,6 +28,7 @@ import {
   type CreateReviewInput,
   type UpdateReviewInput,
 } from '../../marketplace/reviews/index.js';
+import { getAgent, getTool } from '../../marketplace/index.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import { parseBody, sendJSON } from '../helpers.js';
 
@@ -46,6 +48,9 @@ function sendJson(res: ServerResponse, status: number, data: unknown): void {
 }
 
 function getUserId(req: IncomingMessage): string | null {
+  // SECURITY: Prioritize Firebase auth over deprecated x-user-id
+  const firebaseUid = req.headers['x-firebase-uid'] as string | undefined;
+  if (firebaseUid) return firebaseUid;
   return (req.headers['x-user-id'] as string) || null;
 }
 
@@ -276,9 +281,33 @@ export async function handleReviewsRoutes(
         return true;
       }
 
-      // TODO: Verify publisher owns the item being reviewed
+      // Get the review to find the item being reviewed
+      const existingReview = getReview(reviewId);
+      if (!existingReview) {
+        sendJson(res, 404, { error: 'Review not found' });
+        return true;
+      }
+
+      // Verify publisher owns the item being reviewed
+      const itemId = existingReview.itemId;
+      const tool = getTool(itemId);
+      const agent = getAgent(itemId);
+      const item = tool || agent;
+
+      if (!item) {
+        sendJson(res, 404, { error: 'Reviewed item not found' });
+        return true;
+      }
+
+      // Verify the publisher ID matches the item's publisher
+      if (item.publisher.id !== publisherId) {
+        log.warn({ reviewId, publisherId, itemPublisherId: item.publisher.id }, 'Unauthorized publisher response attempt');
+        sendJson(res, 403, { error: 'Not authorized to respond to this review' });
+        return true;
+      }
+
       const review = addPublisherResponse(reviewId, publisherId, body.body);
-      log.info({ reviewId, publisherId }, 'Publisher response added');
+      log.info({ reviewId, publisherId, itemId }, 'Publisher response added');
       sendJson(res, 200, { review });
       return true;
     } catch (error) {

@@ -12,6 +12,8 @@
  */
 
 import { getLogger } from '../../utils/safe-logger.js';
+import { registerInterval, hasInterval } from '../../utils/interval-manager.js';
+import { cleanForFirestore } from '../../utils/firestore-utils.js';
 import {
   getAgentEvolution,
   saveAgentEvolutionToFirestore,
@@ -496,8 +498,7 @@ const scheduledExperiments = new Map<
   { experimentId: string; personaId: string; schedule: ExperimentSchedule }
 >();
 
-/** Timer for schedule checking */
-let scheduleCheckTimer: NodeJS.Timeout | null = null;
+const EXPERIMENT_SCHEDULE_CHECKER_INTERVAL = 'experiment-schedule-checker';
 
 /**
  * Schedule an experiment to start/stop at specific times
@@ -507,11 +508,15 @@ export function scheduleExperiment(
   personaId: string,
   schedule: ExperimentSchedule
 ): void {
-  scheduledExperiments.set(experimentId, { experimentId, personaId, schedule });
+  scheduledExperiments.set(cleanForFirestore(experimentId), { experimentId, personaId, schedule });
 
-  // Ensure schedule checker is running
-  if (!scheduleCheckTimer) {
-    scheduleCheckTimer = setInterval(() => void checkSchedules(), 60000); // Check every minute
+  // Ensure schedule checker is running using managed interval
+  if (!hasInterval(EXPERIMENT_SCHEDULE_CHECKER_INTERVAL)) {
+    registerInterval(
+      EXPERIMENT_SCHEDULE_CHECKER_INTERVAL,
+      () => void checkSchedules(),
+      60000 // Check every minute
+    );
     logger.info('Experiment schedule checker started');
   }
 

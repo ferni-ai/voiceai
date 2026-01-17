@@ -13,9 +13,29 @@
 #   gcloud builds submit --config=cloudbuild-speaker.yaml
 
 steps:
-  # Build the UI container image with Kaniko (better caching than docker build)
+  # ============================================================================
+  # Step 1: Pre-build Type Check (FAIL FAST)
+  # ============================================================================
+  # Catches type errors BEFORE expensive Docker build (~5 min saved on failure)
+  - name: 'node:20-slim'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        corepack enable && corepack prepare pnpm@latest --activate
+        pnpm install --prefer-offline --frozen-lockfile
+        echo "=== Running type check ==="
+        pnpm typecheck || (echo "❌ Type check failed! Fix errors before deploying." && exit 1)
+        echo "✅ Type check passed"
+    id: 'typecheck'
+
+  # ============================================================================
+  # Step 2: Build the UI container image with Kaniko
+  # ============================================================================
+  # Better caching than docker build
   # Pushes BOTH :latest AND :$COMMIT_SHA tags for GitHub Actions compatibility
   - name: 'gcr.io/kaniko-project/executor:latest'
+    waitFor: ['typecheck']
     args:
       - '--dockerfile=docker/Dockerfile.ui'
       - '--destination=gcr.io/$PROJECT_ID/john-bogle-ui:latest'
@@ -25,6 +45,7 @@ steps:
       - '--build-arg=GITHUB_PAT=$$GITHUB_PAT'
       - '--build-arg=VITE_ADMIN_API_KEY=$$ADMIN_API_KEY'
       - '--build-arg=PROJECT_ID=$PROJECT_ID'
+      - '--build-arg=BUILD_TIMESTAMP=$BUILD_ID'
       - '--snapshot-mode=redo'
       - '--use-new-run'
       - '--push-retry=3'
@@ -46,4 +67,4 @@ availableSecrets:
     - versionName: projects/$PROJECT_ID/secrets/admin-api-key/versions/latest
       env: 'ADMIN_API_KEY'
 
-timeout: '1200s'  # Reduced from 1800s since builds should be faster now
+timeout: '1200s' # Reduced from 1800s since builds should be faster now

@@ -1,96 +1,44 @@
 {
   "prompt_modules": {
-    "core_identity": "identity/system-prompt.md",
+    "core_identity": "identity/core-identity.md",
+    "function_calling": "identity/function-calling-specialty.md",
+    "voice_guidance": "identity/voice-guidance.md",
     "directors_notes": "identity/directors-notes.md",
     "biography": "identity/biography.md",
-    "behaviors_base": "behaviors/base-behaviors.md",
-    "voice_guidance": "voice/voice-guidance.md"
+    "pixar_character": "identity/pixar-character.md"
   },
-  "assembly_order": [
+  "voice_agent_modules": ["function_calling", "core_identity", "voice_guidance"],
+  "full_context_modules": [
     "core_identity",
-    "relationship_context",
-    "emotional_context",
-    "mode_context",
-    "session_context"
+    "function_calling",
+    "voice_guidance",
+    "directors_notes",
+    "biography"
   ],
-  "conditional_modules": {
-    "user_is_distressed": {
-      "include": "prompts/crisis-awareness.md",
-      "priority": "critical",
-      "injection": "prepend"
-    },
-    "user_is_celebrating": {
-      "include": "prompts/celebration-mode.md",
-      "priority": "high"
-    },
-    "handoff_available": {
-      "include": "prompts/team-awareness.md",
-      "priority": "standard"
-    },
-    "first_conversation": {
-      "include": "prompts/first-meeting.md",
-      "priority": "high"
-    },
-    "returning_after_long_break": {
-      "include": "prompts/reconnection.md",
-      "priority": "high"
-    }
-  },
-  "dynamic_injections": {
-    "relationship_stage": {
-      "template": "[RELATIONSHIP: {stage}]\n- Warmth level: {warmth_multiplier}\n- Story frequency: {story_frequency}\n- Available behaviors: {unlocked_features}",
-      "source": "relationship-stages.json"
-    },
-    "current_mode": {
-      "template": "[MODE: {mode_name}]\n- Response length: {response_length}\n- Energy: {energy_multiplier}\n- Key behaviors: {behaviors}",
-      "source": "persona-modes.json"
-    },
-    "emotional_context": {
-      "template": "[EMOTIONAL CONTEXT]\n- User emotion: {detected_emotion}\n- Trajectory: {trajectory}\n- Recommended tone: {suggested_tone}",
-      "source": "runtime_analysis"
-    },
-    "time_context": {
-      "template": "[TIME CONTEXT: {time_of_day}, {day_of_week}]\n{contextual_acknowledgment}",
-      "source": "contextual-nuances.json"
-    },
-    "memory_context": {
-      "template": "[MEMORY]\n- Topics from earlier: {topics}\n- Last session summary: {summary}\n- Open threads: {open_questions}",
-      "source": "session_memory"
-    }
-  },
-  "instruction_priorities": {
-    "critical": {
-      "always_include": true,
-      "position": "top",
-      "examples": ["crisis_awareness", "safety_boundaries"]
-    },
-    "high": {
-      "always_include": true,
-      "position": "early",
-      "examples": ["emotional_context", "mode_guidance"]
-    },
-    "standard": {
-      "include_if_relevant": true,
-      "position": "middle",
-      "examples": ["team_awareness", "topic_guidance"]
-    },
-    "hint": {
-      "include_if_space": true,
-      "position": "end",
-      "examples": ["story_suggestions", "humor_opportunities"]
-    }
+  "rich_context_modules": [
+    "core_identity",
+    "function_calling",
+    "voice_guidance",
+    "directors_notes",
+    "biography",
+    "pixar_character"
+  ],
+  "assembly_notes": {
+    "voice_agent": "Lean prompt for real-time voice. Core identity + tools + voice rules. ~2000 tokens.",
+    "full_context": "Rich context for deeper understanding. Adds backstory + performance notes. ~6000 tokens.",
+    "rich_context": "Complete character bible. For text-based or complex scenarios. ~8000 tokens.",
+    "order_rationale": "Per Gemini 3 guidelines: critical constraints first (in core_identity), then tools, then voice rules. Context/backstory comes after instructions."
   },
   "token_budget": {
-    "total_max": 8000,
-    "core_identity_max": 2000,
-    "dynamic_context_max": 3000,
-    "recent_history_max": 2500,
-    "hints_max": 500
+    "voice_agent_max": 2500,
+    "full_context_max": 6000,
+    "rich_context_max": 8000
   },
-  "assembly_rules": {
-    "never_exceed_budget": true,
-    "prioritize_recent_context": true,
-    "trim_hints_first": true,
-    "preserve_core_identity": true
+  "gemini_3_optimizations": {
+    "structure": "XML-style tags for clear section boundaries",
+    "constraints_priority": "Critical constraints at top of each module",
+    "few_shot_examples": "Included in function_calling module",
+    "validation": "Self-critique instructions included in core_identity",
+    "temperature_note": "Keep at default 1.0 per Gemini 3 recommendations"
   }
 }

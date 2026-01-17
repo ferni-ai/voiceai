@@ -18,12 +18,13 @@ import { getLogger } from '../../utils/safe-logger.js';
 import type { MarketplaceId, UserId } from '../schema/types.js';
 import { calculateRevenueShare, markPayoutComplete, recordUsage } from './index.js';
 import { getPushNotificationsService } from '../../services/push-notifications.js';
+import { cleanForFirestore } from '../../utils/firestore-utils.js';
 
 // Firestore helpers for marketplace data
 async function savePurchase(purchase: MarketplacePurchase): Promise<void> {
   const { getFirestore } = await import('firebase-admin/firestore');
   const db = getFirestore();
-  await db.collection('marketplace_purchases').doc(purchase.id).set(purchase);
+  await db.collection('marketplace_purchases').doc(purchase.id).set(cleanForFirestore(purchase));
 }
 
 async function getPurchaseByPaymentIntent(
@@ -43,7 +44,7 @@ async function getPurchaseByPaymentIntent(
 async function savePayout(payout: PublisherPayout): Promise<void> {
   const { getFirestore } = await import('firebase-admin/firestore');
   const db = getFirestore();
-  await db.collection('marketplace_payouts').doc(payout.id).set(payout);
+  await db.collection('marketplace_payouts').doc(payout.id).set(cleanForFirestore(payout));
 }
 
 const log = getLogger().child({ module: 'marketplace-stripe-webhooks' });

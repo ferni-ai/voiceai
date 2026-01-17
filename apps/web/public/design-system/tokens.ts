@@ -6,7 +6,7 @@
  */
 
 export type ThemeName = 'midnight' | 'zen';
-export type PersonaId = '_description' | 'ferni' | 'jack' | 'peter' | 'alex' | 'maya' | 'jordan' | 'nayan' | '_marketplace_description' | 'eli' | 'marcus' | 'kenji' | 'carmen' | 'amara' | 'sasha' | 'ray';
+export type PersonaId = '_description' | '_textOnDarkNote' | 'ferni' | 'jack' | 'peter' | 'alex' | 'maya' | 'jordan' | 'nayan' | '_marketplace_description' | 'eli' | 'marcus' | 'kenji' | 'carmen' | 'amara' | 'sasha' | 'ray';
 
 export interface ThemeMeta {
   name: string;
@@ -27,7 +27,7 @@ export const THEMES: Record<ThemeName, ThemeMeta> = {
   }
 };
 
-export const PERSONA_IDS: PersonaId[] = ["_description","ferni","jack","peter","alex","maya","jordan","nayan","_marketplace_description","eli","marcus","kenji","carmen","amara","sasha","ray"];
+export const PERSONA_IDS: PersonaId[] = ["_description","_textOnDarkNote","ferni","jack","peter","alex","maya","jordan","nayan","_marketplace_description","eli","marcus","kenji","carmen","amara","sasha","ray"];
 
 // ============================================================================
 // PIXAR ANIMATION CONSTANTS
@@ -135,7 +135,7 @@ export interface PersonaAnimationProfile {
   celebrationIntensity: string;
 }
 
-export type PersonaAnimationId = 'ferni' | 'peter-lynch' | 'alex-chen' | 'maya-santos' | 'jordan-taylor';
+export type PersonaAnimationId = 'ferni' | 'peter-john' | 'alex-chen' | 'maya-santos' | 'jordan-taylor';
 
 /**
  * Persona ID mapping - maps legacy frontend IDs to canonical design system IDs.
@@ -146,7 +146,7 @@ export const PERSONA_ID_MAPPING: Record<string, PersonaAnimationId> = {
   "comm-specialist": "alex-chen",
   "spend-save": "maya-santos",
   "event-planner": "jordan-taylor",
-  "peter-lynch": "peter-lynch",
+  "peter-john": "peter-john",
   "ferni": "ferni",
   "alex-chen": "alex-chen",
   "maya-santos": "maya-santos",
@@ -174,7 +174,7 @@ export const PERSONA_ANIMATION_PROFILES: Record<PersonaAnimationId, PersonaAnima
     "thinkingStyle": "curious-tilt",
     "celebrationIntensity": "warm"
   },
-  "peter-lynch": {
+  "peter-john": {
     "description": "Energetic, practical, quick - like Linguini's nervous energy",
     "timingMultiplier": 0.8,
     "bounciness": 0.6,
@@ -274,7 +274,7 @@ export const WAVEFORM_PROFILES: Record<string, WaveformProfile> = {
     "smoothing": 0.7,
     "speed": 1
   },
-  "peter-lynch": {
+  "peter-john": {
     "energy": 0.9,
     "smoothing": 0.55,
     "speed": 1.2
@@ -352,7 +352,7 @@ export const PARTICLE_PROFILES: Record<string, ParticleProfile> = {
     "wobble": true,
     "description": "Warm welcoming energy"
   },
-  "peter-lynch": {
+  "peter-john": {
     "speed": {
       "min": 1,
       "max": 3
@@ -1148,4 +1148,1129 @@ export function safeAnimate(
     return;
   }
   element.classList.add(animationClass);
+}
+
+// ============================================================================
+// INSIGHTS - Fidelity-Style Financial Visualizations
+// ============================================================================
+
+/**
+ * Insight card size configurations.
+ */
+export const INSIGHT_CARDS = {
+  "_description": "Insight cards that reveal patterns in user's life data",
+  "small": {
+    "width": "160px",
+    "height": "120px",
+    "padding": "16px",
+    "borderRadius": "16px",
+    "useCase": "Quick metrics, single stat"
+  },
+  "medium": {
+    "width": "340px",
+    "height": "200px",
+    "padding": "20px",
+    "borderRadius": "20px",
+    "useCase": "Charts, comparisons, trends"
+  },
+  "large": {
+    "width": "100%",
+    "height": "320px",
+    "padding": "24px",
+    "borderRadius": "24px",
+    "useCase": "Full dashboards, deep dives"
+  },
+  "hero": {
+    "width": "100%",
+    "height": "400px",
+    "padding": "32px",
+    "borderRadius": "28px",
+    "useCase": "Life narrative overview, major milestones"
+  }
+};
+
+/**
+ * Data visualization colors (warm, not cold financial blue).
+ */
+export const DATA_COLORS = {
+  "_description": "Semantic colors for data visualization, warmer than typical financial apps",
+  "positive": {
+    "primary": "#4A7C59",
+    "gradient": "linear-gradient(135deg, #4A7C59 0%, #6B9B7A 100%)",
+    "glow": "rgba(74, 124, 89, 0.3)"
+  },
+  "negative": {
+    "primary": "#9B6B6B",
+    "gradient": "linear-gradient(135deg, #9B6B6B 0%, #B88888 100%)",
+    "glow": "rgba(155, 107, 107, 0.3)"
+  },
+  "neutral": {
+    "primary": "#8B7355",
+    "gradient": "linear-gradient(135deg, #8B7355 0%, #A69076 100%)",
+    "glow": "rgba(139, 115, 85, 0.3)"
+  },
+  "highlight": {
+    "primary": "#C4A77D",
+    "gradient": "linear-gradient(135deg, #C4A77D 0%, #D4BC9A 100%)",
+    "glow": "rgba(196, 167, 125, 0.4)"
+  },
+  "series": {
+    "1": "#4A7C59",
+    "2": "#6B8E9B",
+    "3": "#9B7B6B",
+    "4": "#7B6B9B",
+    "5": "#9B8B6B",
+    "6": "#6B9B8B",
+    "_description": "For multi-series charts, maintains warmth across data lines"
+  }
+};
+
+/**
+ * Chart style configurations.
+ */
+export const CHART_STYLES = {
+  "_description": "Chart-specific styling that feels alive, not sterile",
+  "lineChart": {
+    "strokeWidth": "3px",
+    "strokeLinecap": "round",
+    "animation": "drawIn 1.2s ease-out",
+    "hoverStrokeWidth": "4px",
+    "dotRadius": "5px",
+    "dotHoverRadius": "8px",
+    "areaOpacity": 0.15,
+    "gridOpacity": 0.08
+  },
+  "barChart": {
+    "borderRadius": "8px",
+    "hoverScale": 1.02,
+    "animation": "growUp 0.8s ease-out",
+    "gap": "8px",
+    "minBarWidth": "24px"
+  },
+  "donutChart": {
+    "strokeWidth": "24px",
+    "hoverStrokeWidth": "28px",
+    "innerRadius": "60%",
+    "animation": "spinReveal 1s ease-out",
+    "gap": "4px"
+  },
+  "sparkline": {
+    "strokeWidth": "2px",
+    "height": "40px",
+    "animation": "fadeDrawIn 0.6s ease-out",
+    "showEndDot": true
+  }
+};
+
+/**
+ * Metric display configurations.
+ */
+export const METRIC_STYLES = {
+  "_description": "Single metric display with contextual comparison",
+  "large": {
+    "fontSize": "48px",
+    "fontWeight": "600",
+    "letterSpacing": "-0.02em",
+    "lineHeight": "1.1"
+  },
+  "medium": {
+    "fontSize": "32px",
+    "fontWeight": "600",
+    "letterSpacing": "-0.01em",
+    "lineHeight": "1.2"
+  },
+  "small": {
+    "fontSize": "24px",
+    "fontWeight": "500",
+    "letterSpacing": "0",
+    "lineHeight": "1.3"
+  },
+  "label": {
+    "fontSize": "12px",
+    "fontWeight": "500",
+    "letterSpacing": "0.04em",
+    "textTransform": "uppercase",
+    "opacity": 0.7
+  },
+  "delta": {
+    "fontSize": "14px",
+    "fontWeight": "500",
+    "positivePrefix": "+",
+    "negativePrefix": "",
+    "showArrow": true
+  }
+};
+
+/**
+ * Progress indicator configurations.
+ */
+export const PROGRESS_INDICATORS = {
+  "_description": "Progress rings and bars with celebratory animations",
+  "ring": {
+    "strokeWidth": "8px",
+    "backgroundOpacity": 0.15,
+    "animation": "ringFill 1s ease-out",
+    "celebrationThreshold": 0.9,
+    "celebrationAnimation": "pulseGlow 0.6s ease-in-out 3"
+  },
+  "bar": {
+    "height": "8px",
+    "borderRadius": "4px",
+    "animation": "barFill 0.8s ease-out",
+    "showMilestones": true,
+    "milestoneSize": "12px"
+  },
+  "steps": {
+    "dotSize": "12px",
+    "completedDotSize": "16px",
+    "lineThickness": "3px",
+    "animation": "stepComplete 0.4s spring"
+  }
+};
+
+/**
+ * Narrative visualization configurations.
+ */
+export const NARRATIVE_VISUALS = {
+  "_philosophy": "Unlike Fidelity's pure data focus, Ferni weaves stories through visuals",
+  "timeline": {
+    "_description": "Life timeline visualization",
+    "nodeSize": {
+      "minor": "8px",
+      "standard": "12px",
+      "major": "20px",
+      "milestone": "32px"
+    },
+    "lineThickness": "2px",
+    "spacing": "80px",
+    "animation": "timelineReveal 1.5s stagger(0.1s)",
+    "colors": {
+      "past": "var(--color-stone)",
+      "present": "var(--color-accent)",
+      "future": "var(--color-moonlight)"
+    }
+  },
+  "constellation": {
+    "_description": "Relationship network as a constellation",
+    "nodeSize": {
+      "user": "40px",
+      "close": "24px",
+      "regular": "16px",
+      "distant": "10px"
+    },
+    "connectionOpacity": {
+      "strong": 0.6,
+      "medium": 0.3,
+      "weak": 0.1
+    },
+    "pulseAnimation": "constellationPulse 4s ease-in-out infinite",
+    "orbitAnimation": "gentleOrbit 20s linear infinite"
+  },
+  "garden": {
+    "_description": "Growth visualization as a living garden",
+    "plantStages": [
+      "seed",
+      "sprout",
+      "growing",
+      "blooming",
+      "flourishing"
+    ],
+    "growthAnimation": "plantGrow 2s spring",
+    "swayAnimation": "gentleSway 3s ease-in-out infinite",
+    "particleCount": 12,
+    "particleType": "pollen"
+  }
+};
+
+/**
+ * Comparison label configurations.
+ */
+export const COMPARISON_LABELS = {
+  "_philosophy": "Show context without inducing anxiety - warm comparisons, not cold benchmarks",
+  "vsYesterday": {
+    "label": "vs yesterday",
+    "icon": "clock",
+    "emphasis": "low"
+  },
+  "vsLastWeek": {
+    "label": "vs last week",
+    "icon": "calendar",
+    "emphasis": "medium"
+  },
+  "vsLastMonth": {
+    "label": "vs last month",
+    "icon": "trend",
+    "emphasis": "high"
+  },
+  "vsAverage": {
+    "label": "your typical",
+    "icon": "baseline",
+    "emphasis": "medium"
+  },
+  "vsBestWeek": {
+    "label": "your best week",
+    "icon": "star",
+    "emphasis": "celebratory"
+  }
+};
+
+/**
+ * Insight micro-interactions.
+ */
+export const INSIGHT_INTERACTIONS = {
+  "_description": "Tiny delights in data interactions",
+  "tooltipReveal": {
+    "delay": "200ms",
+    "duration": "200ms",
+    "easing": "ease-out",
+    "transform": "translateY(-4px)",
+    "opacity": "0 → 1"
+  },
+  "dataPointHover": {
+    "scale": 1.2,
+    "duration": "150ms",
+    "easing": "spring(1, 80, 10)",
+    "glow": true
+  },
+  "legendToggle": {
+    "duration": "300ms",
+    "fadeOpacity": 0.3,
+    "strikethrough": true
+  },
+  "zoomGesture": {
+    "minScale": 0.5,
+    "maxScale": 3,
+    "friction": 0.92,
+    "snapPoints": [
+      0.5,
+      1,
+      1.5,
+      2,
+      3
+    ]
+  }
+};
+
+// ============================================================================
+// PHYSICS - Emotional Spring System (Beyond Apple)
+// ============================================================================
+
+/**
+ * Spring configurations with emotional context.
+ */
+export interface SpringConfig {
+  tension: number;
+  friction: number;
+  mass: number;
+  useCase: string;
+  emotionalContext: string;
+}
+
+export type SpringType = 'snappy' | 'gentle' | 'bouncy' | 'heavy' | 'ethereal' | 'organic';
+
+/**
+ * Emotional spring configurations.
+ */
+export const SPRINGS: Record<SpringType, SpringConfig> = {
+  "snappy": {
+    "tension": 400,
+    "friction": 30,
+    "mass": 1,
+    "useCase": "Quick confirmations, toggles, micro-interactions",
+    "emotionalContext": "efficient, responsive"
+  },
+  "gentle": {
+    "tension": 170,
+    "friction": 26,
+    "mass": 1,
+    "useCase": "Modal appearances, card expansions",
+    "emotionalContext": "calm, welcoming"
+  },
+  "bouncy": {
+    "tension": 300,
+    "friction": 10,
+    "mass": 1,
+    "useCase": "Celebrations, achievements, delightful moments",
+    "emotionalContext": "joyful, playful"
+  },
+  "heavy": {
+    "tension": 120,
+    "friction": 40,
+    "mass": 2,
+    "useCase": "Important decisions, serious content, warnings",
+    "emotionalContext": "weighty, significant"
+  },
+  "ethereal": {
+    "tension": 80,
+    "friction": 20,
+    "mass": 0.5,
+    "useCase": "Ambient elements, background particles, dreamy states",
+    "emotionalContext": "floating, dreamlike"
+  },
+  "organic": {
+    "tension": 200,
+    "friction": 22,
+    "mass": 1.2,
+    "useCase": "Avatar movements, natural gestures",
+    "emotionalContext": "alive, breathing"
+  }
+};
+
+/**
+ * Get spring config by emotional type.
+ */
+export function createEmotionalSpring(type: SpringType): SpringConfig {
+  return SPRINGS[type] || SPRINGS.gentle;
+}
+
+/**
+ * Momentum configurations for gesture-driven UI.
+ */
+export const MOMENTUM = {
+  "_description": "Momentum preservation for gesture-driven UI",
+  "scroll": {
+    "deceleration": 0.998,
+    "velocityThreshold": 0.5,
+    "rubberBandEffect": true,
+    "rubberBandStiffness": 0.55,
+    "snapToPoints": true
+  },
+  "swipe": {
+    "velocityThreshold": 500,
+    "distanceThreshold": "30%",
+    "completeAnimation": "spring(gentle)",
+    "cancelAnimation": "spring(snappy)"
+  },
+  "drag": {
+    "friction": 0.92,
+    "velocityMultiplier": 1.2,
+    "releaseSpring": "spring(gentle)",
+    "boundarySpring": "spring(bouncy)"
+  },
+  "throw": {
+    "_description": "For dismissible cards, carousel items",
+    "minVelocity": 300,
+    "friction": 0.95,
+    "gravityY": 0,
+    "bounceOnEdge": true
+  }
+};
+
+/**
+ * Gravity effect configurations.
+ */
+export const GRAVITY = {
+  "_description": "Gravity effects for falling, settling elements",
+  "light": {
+    "acceleration": 200,
+    "bounce": 0.4,
+    "useCase": "Gentle settling, soft landings"
+  },
+  "normal": {
+    "acceleration": 980,
+    "bounce": 0.3,
+    "useCase": "Standard physics"
+  },
+  "heavy": {
+    "acceleration": 1500,
+    "bounce": 0.1,
+    "useCase": "Dramatic impacts, importance"
+  },
+  "floating": {
+    "acceleration": 50,
+    "bounce": 0.6,
+    "useCase": "Dreamy, underwater feel"
+  }
+};
+
+/**
+ * Magnetic snap behaviors.
+ */
+export const MAGNETISM = {
+  "_description": "Magnetic snap behaviors for precision interactions",
+  "snap": {
+    "distance": "20px",
+    "strength": 0.8,
+    "animation": "spring(snappy)"
+  },
+  "attract": {
+    "distance": "100px",
+    "strength": 0.3,
+    "curve": "exponential"
+  },
+  "repel": {
+    "distance": "50px",
+    "strength": 0.5,
+    "curve": "linear"
+  }
+};
+
+/**
+ * Collision configurations.
+ */
+export const COLLISION = {
+  "_description": "Element collision behaviors",
+  "bounce": {
+    "restitution": 0.6,
+    "friction": 0.1
+  },
+  "soft": {
+    "restitution": 0.2,
+    "friction": 0.5
+  },
+  "stick": {
+    "restitution": 0,
+    "friction": 1
+  }
+};
+
+/**
+ * Emotional momentum carryover - UI carries emotional weight from previous interactions.
+ */
+export const EMOTIONAL_MOMENTUM = {
+  "_philosophy": "UI carries emotional weight from previous interactions",
+  "carryover": {
+    "_description": "How emotional state affects subsequent animations",
+    "afterCelebration": {
+      "springModifier": "bouncy",
+      "duration": "5s",
+      "particleBoost": 1.5
+    },
+    "afterSeriousContent": {
+      "springModifier": "heavy",
+      "duration": "10s",
+      "colorShift": "muted"
+    },
+    "afterQuietMoment": {
+      "springModifier": "ethereal",
+      "duration": "8s",
+      "motionReduction": 0.7
+    },
+    "afterHighEnergy": {
+      "springModifier": "snappy",
+      "duration": "3s",
+      "transitionSpeed": 1.2
+    }
+  },
+  "contextualWeight": {
+    "_description": "Element weight based on content importance",
+    "critical": {
+      "mass": 2.5,
+      "spring": "heavy",
+      "entranceDelay": "200ms",
+      "requiresAcknowledgment": true
+    },
+    "important": {
+      "mass": 1.5,
+      "spring": "gentle",
+      "entranceDelay": "100ms"
+    },
+    "standard": {
+      "mass": 1,
+      "spring": "gentle",
+      "entranceDelay": "0ms"
+    },
+    "ambient": {
+      "mass": 0.5,
+      "spring": "ethereal",
+      "entranceDelay": "0ms"
+    }
+  }
+};
+
+/**
+ * Fluid motion configurations.
+ */
+export const FLUID_MOTION = {
+  "_philosophy": "Fluid dynamics for organic, living interfaces",
+  "wave": {
+    "_description": "Wave propagation through UI elements",
+    "speed": "300px/s",
+    "amplitude": "8px",
+    "frequency": "0.5Hz",
+    "damping": 0.95,
+    "useCase": "Loading states, ambient motion"
+  },
+  "ripple": {
+    "_description": "Touch ripple effects",
+    "speed": "600px/s",
+    "opacity": 0.12,
+    "scale": 2.5,
+    "duration": "600ms",
+    "easing": "ease-out"
+  },
+  "morphing": {
+    "_description": "Smooth shape transitions",
+    "duration": "400ms",
+    "easing": "cubic-bezier(0.4, 0, 0.2, 1)",
+    "preserveArea": true,
+    "useCase": "FAB to dialog, card to detail"
+  },
+  "breathing": {
+    "_description": "Subtle scale oscillation for living elements",
+    "scale": [
+      0.98,
+      1.02
+    ],
+    "duration": "4s",
+    "easing": "ease-in-out",
+    "sync": "userBreathRate"
+  }
+};
+
+/**
+ * Spatial depth layer configurations.
+ */
+export const SPATIAL_LAYERS = {
+  "background": {
+    "z": -100,
+    "blur": "8px",
+    "scale": 0.95,
+    "parallaxFactor": 0.3
+  },
+  "surface": {
+    "z": 0,
+    "blur": "0",
+    "scale": 1,
+    "parallaxFactor": 0.5
+  },
+  "elevated": {
+    "z": 50,
+    "blur": "0",
+    "scale": 1,
+    "parallaxFactor": 0.7,
+    "shadow": "var(--shadow-md)"
+  },
+  "floating": {
+    "z": 100,
+    "blur": "0",
+    "scale": 1.02,
+    "parallaxFactor": 0.9,
+    "shadow": "var(--shadow-lg)"
+  },
+  "overlay": {
+    "z": 200,
+    "blur": "0",
+    "scale": 1,
+    "parallaxFactor": 1,
+    "shadow": "var(--shadow-xl)"
+  }
+};
+
+/**
+ * Parallax configuration.
+ */
+export const PARALLAX = {
+  "_description": "Depth-based motion parallax",
+  "sensitivity": 0.02,
+  "maxOffset": "20px",
+  "smoothing": 0.1,
+  "gyroscopeEnabled": true
+};
+
+/**
+ * Haptic feedback patterns.
+ */
+export const HAPTIC_PATTERNS = {
+  "success": {
+    "type": "notification",
+    "intensity": 0.8,
+    "pattern": [
+      10,
+      50,
+      10
+    ]
+  },
+  "warning": {
+    "type": "warning",
+    "intensity": 0.6,
+    "pattern": [
+      20,
+      30,
+      20,
+      30,
+      20
+    ]
+  },
+  "error": {
+    "type": "error",
+    "intensity": 1,
+    "pattern": [
+      50,
+      100,
+      50
+    ]
+  },
+  "selection": {
+    "type": "selection",
+    "intensity": 0.3,
+    "pattern": [
+      5
+    ]
+  },
+  "impact": {
+    "light": {
+      "type": "impactLight",
+      "intensity": 0.4
+    },
+    "medium": {
+      "type": "impactMedium",
+      "intensity": 0.6
+    },
+    "heavy": {
+      "type": "impactHeavy",
+      "intensity": 0.9
+    }
+  },
+  "heartbeat": {
+    "_description": "For intimate moments, empathy",
+    "type": "custom",
+    "pattern": [
+      30,
+      80,
+      30,
+      200
+    ],
+    "repeat": 2
+  },
+  "breathing": {
+    "_description": "Synced with breath visualization",
+    "type": "custom",
+    "inhale": {
+      "duration": "4s",
+      "intensity": "0→0.3"
+    },
+    "exhale": {
+      "duration": "6s",
+      "intensity": "0.3→0"
+    }
+  }
+};
+
+/**
+ * Gesture recognition signatures.
+ */
+export const GESTURE_SIGNATURES = {
+  "swipeUp": {
+    "direction": [
+      0,
+      -1
+    ],
+    "minVelocity": 300,
+    "minDistance": 50
+  },
+  "swipeDown": {
+    "direction": [
+      0,
+      1
+    ],
+    "minVelocity": 300,
+    "minDistance": 50
+  },
+  "swipeLeft": {
+    "direction": [
+      -1,
+      0
+    ],
+    "minVelocity": 300,
+    "minDistance": 50
+  },
+  "swipeRight": {
+    "direction": [
+      1,
+      0
+    ],
+    "minVelocity": 300,
+    "minDistance": 50
+  },
+  "pinchIn": {
+    "type": "pinch",
+    "direction": "in",
+    "minScale": 0.7
+  },
+  "pinchOut": {
+    "type": "pinch",
+    "direction": "out",
+    "minScale": 1.3
+  },
+  "longPress": {
+    "duration": "500ms",
+    "maxMovement": 10
+  },
+  "doubleTap": {
+    "interval": "300ms",
+    "maxDistance": 30
+  },
+  "twoFingerTap": {
+    "fingers": 2,
+    "duration": "100ms"
+  },
+  "forcePress": {
+    "force": 0.5,
+    "duration": "200ms"
+  }
+};
+
+/**
+ * Gesture combo patterns.
+ */
+export const GESTURE_COMBOS = {
+  "_description": "Gesture combinations for power users",
+  "quickActions": {
+    "gesture": "longPress + swipeUp",
+    "action": "showQuickMenu"
+  },
+  "secretMenu": {
+    "gesture": "twoFingerTap × 3",
+    "action": "showDevPanel"
+  }
+};
+
+// ============================================================================
+// PREDICTIVE UI - Anticipatory Interface Patterns
+// ============================================================================
+
+/**
+ * Skeleton loading styles.
+ */
+export const SKELETON_STYLES = {
+  "shimmerSpeed": "1.5s",
+  "shimmerAngle": "-20deg",
+  "shimmerGradient": "linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.08) 50%, transparent 100%)",
+  "pulseOpacity": [
+    0.04,
+    0.08
+  ],
+  "pulseDuration": "2s",
+  "borderRadius": "inherit"
+};
+
+/**
+ * Ghost content placeholder shapes.
+ */
+export const GHOST_CONTENT = {
+  "_description": "Placeholder shapes that hint at incoming content structure",
+  "textLine": {
+    "height": "1em",
+    "width": "random(60%, 90%)",
+    "marginBottom": "0.5em"
+  },
+  "avatar": {
+    "size": "40px",
+    "shape": "circle"
+  },
+  "card": {
+    "aspectRatio": "16/9",
+    "borderRadius": "16px"
+  },
+  "button": {
+    "width": "120px",
+    "height": "44px",
+    "borderRadius": "22px"
+  }
+};
+
+/**
+ * Progressive reveal configuration.
+ */
+export const PROGRESSIVE_REVEAL = {
+  "_description": "Content appears in priority order",
+  "staggerDelay": "50ms",
+  "priorityOrder": [
+    "heading",
+    "primaryAction",
+    "body",
+    "metadata",
+    "secondaryActions"
+  ],
+  "animation": "fadeSlideIn 300ms ease-out"
+};
+
+/**
+ * Anticipation configurations.
+ */
+export const ANTICIPATION = {
+  "_description": "UI prepares for likely next actions",
+  "hoverIntent": {
+    "_description": "Detect hover trajectory to preload content",
+    "detectionRadius": "100px",
+    "velocityThreshold": "50px/s",
+    "preloadDelay": "100ms",
+    "visualHint": {
+      "opacity": 0.02,
+      "scale": 1.005,
+      "transition": "150ms ease-out"
+    }
+  },
+  "scrollAnticipation": {
+    "_description": "Preload content in scroll direction",
+    "lookAheadDistance": "2 viewports",
+    "velocityMultiplier": 1.5,
+    "preloadThreshold": "0.5 viewports"
+  },
+  "timeBasedPreload": {
+    "_description": "Load content based on typical usage patterns",
+    "morningContent": [
+      "calendar",
+      "weather",
+      "priorities"
+    ],
+    "eveningContent": [
+      "reflections",
+      "tomorrow-prep",
+      "wind-down"
+    ],
+    "weekendContent": [
+      "weekly-review",
+      "personal-goals",
+      "relationships"
+    ]
+  },
+  "contextualPreload": {
+    "_description": "Load based on detected intent",
+    "afterGoalDiscussion": [
+      "goal-tracker",
+      "milestone-history"
+    ],
+    "afterEmotionalConversation": [
+      "mood-insights",
+      "journal"
+    ],
+    "afterSchedulingTalk": [
+      "calendar",
+      "reminders"
+    ]
+  }
+};
+
+/**
+ * Suggestion UI configurations.
+ */
+export const SUGGESTION = {
+  "_description": "Proactive UI suggestions",
+  "bubble": {
+    "maxWidth": "280px",
+    "padding": "12px 16px",
+    "borderRadius": "16px",
+    "background": "var(--glass-regular-background)",
+    "backdropBlur": "var(--glass-regular-blur)",
+    "entranceAnimation": "bubbleIn 400ms spring(gentle)",
+    "dismissAnimation": "bubbleOut 200ms ease-in",
+    "position": "contextual"
+  },
+  "nudge": {
+    "_description": "Subtle directional hints",
+    "arrowSize": "8px",
+    "pulseAnimation": "nudgePulse 2s ease-in-out infinite",
+    "maxOccurrences": 3,
+    "cooldown": "1 hour"
+  },
+  "spotlight": {
+    "_description": "Highlight suggested action",
+    "glowRadius": "20px",
+    "glowOpacity": 0.15,
+    "glowColor": "var(--color-accent)",
+    "pulseAnimation": "spotlightPulse 3s ease-in-out infinite",
+    "dimBackground": true,
+    "dimOpacity": 0.4
+  }
+};
+
+/**
+ * Adaptation configurations - UI learns from user patterns.
+ */
+export const ADAPTATION = {
+  "_description": "UI adapts to user patterns over time",
+  "frequencyBoost": {
+    "_description": "Frequently used features become more prominent",
+    "threshold": "5 uses / week",
+    "boost": {
+      "position": "elevated",
+      "size": 1.1,
+      "showShortcut": true
+    }
+  },
+  "timeOptimization": {
+    "_description": "Features optimize for when they're most used",
+    "trackUsageTime": true,
+    "showAtOptimalTime": true,
+    "hideWhenIrrelevant": true
+  },
+  "sequenceDetection": {
+    "_description": "Detect common action sequences",
+    "minSequenceLength": 2,
+    "confidenceThreshold": 0.7,
+    "suggestNext": true,
+    "createShortcut": {
+      "threshold": "10 occurrences",
+      "prompt": true
+    }
+  }
+};
+
+/**
+ * Loading stage configurations.
+ */
+export const LOADING_STAGES = {
+  "instant": {
+    "maxDuration": "100ms",
+    "show": "nothing",
+    "comment": "Too fast to show anything"
+  },
+  "fast": {
+    "duration": "100ms-300ms",
+    "show": "subtle-pulse",
+    "comment": "Brief acknowledgment"
+  },
+  "normal": {
+    "duration": "300ms-1s",
+    "show": "skeleton",
+    "comment": "Standard loading"
+  },
+  "slow": {
+    "duration": "1s-5s",
+    "show": "skeleton + progress",
+    "comment": "Show we're working"
+  },
+  "extended": {
+    "duration": "5s+",
+    "show": "skeleton + progress + message",
+    "messages": [
+      "Still working on that...",
+      "Almost there...",
+      "Thanks for waiting..."
+    ],
+    "messageInterval": "3s"
+  }
+};
+
+/**
+ * Loading progress indicator styles.
+ */
+export const LOADING_PROGRESS = {
+  "determinate": {
+    "animation": "smooth-fill",
+    "showPercentage": true,
+    "milestones": [
+      25,
+      50,
+      75,
+      100
+    ],
+    "milestoneAnimation": "pulse"
+  },
+  "indeterminate": {
+    "animation": "wave",
+    "speed": "1.5s",
+    "segments": 3
+  }
+};
+
+/**
+ * UI intelligence configurations.
+ */
+export const UI_INTELLIGENCE = {
+  "_philosophy": "UI that learns from the user, not just serves them",
+  "patterns": {
+    "usageTracking": {
+      "granularity": "action",
+      "retention": "30 days",
+      "aggregation": [
+        "daily",
+        "weekly",
+        "monthly"
+      ],
+      "privacy": "local-only"
+    },
+    "preferenceInference": {
+      "minDataPoints": 10,
+      "confidenceThreshold": 0.8,
+      "categories": [
+        "interaction-speed",
+        "information-density",
+        "visual-complexity",
+        "feature-usage"
+      ]
+    }
+  },
+  "personalization": {
+    "_description": "UI adapts to individual preferences",
+    "informationDensity": {
+      "minimal": {
+        "spacing": 1.5,
+        "fontSize": 1.1,
+        "itemsPerView": 3
+      },
+      "balanced": {
+        "spacing": 1,
+        "fontSize": 1,
+        "itemsPerView": 5
+      },
+      "dense": {
+        "spacing": 0.8,
+        "fontSize": 0.95,
+        "itemsPerView": 8
+      }
+    },
+    "interactionSpeed": {
+      "deliberate": {
+        "animationSpeed": 0.8,
+        "holdDuration": 1.2,
+        "tooltipDelay": "400ms"
+      },
+      "balanced": {
+        "animationSpeed": 1,
+        "holdDuration": 1,
+        "tooltipDelay": "300ms"
+      },
+      "quick": {
+        "animationSpeed": 1.3,
+        "holdDuration": 0.7,
+        "tooltipDelay": "150ms"
+      }
+    },
+    "visualComplexity": {
+      "calm": {
+        "particles": 0,
+        "gradients": "subtle",
+        "animations": "minimal"
+      },
+      "balanced": {
+        "particles": "light",
+        "gradients": "moderate",
+        "animations": "standard"
+      },
+      "rich": {
+        "particles": "full",
+        "gradients": "vibrant",
+        "animations": "expressive"
+      }
+    }
+  }
+};
+
+/**
+ * Get loading state based on duration.
+ */
+export function getLoadingState(durationMs: number): 'instant' | 'fast' | 'normal' | 'slow' | 'extended' {
+  if (durationMs < 100) return 'instant';
+  if (durationMs < 300) return 'fast';
+  if (durationMs < 1000) return 'normal';
+  if (durationMs < 5000) return 'slow';
+  return 'extended';
+}
+
+/**
+ * Get personalization settings based on user preference.
+ */
+export function getPersonalization(
+  density: 'minimal' | 'balanced' | 'dense',
+  speed: 'deliberate' | 'balanced' | 'quick',
+  complexity: 'calm' | 'balanced' | 'rich'
+) {
+  return {
+    density: UI_INTELLIGENCE.personalization?.informationDensity?.[density] || {},
+    speed: UI_INTELLIGENCE.personalization?.interactionSpeed?.[speed] || {},
+    complexity: UI_INTELLIGENCE.personalization?.visualComplexity?.[complexity] || {},
+  };
 }

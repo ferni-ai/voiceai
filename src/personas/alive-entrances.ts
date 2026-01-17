@@ -19,6 +19,15 @@ import { getLogger } from '../utils/safe-logger.js';
 import { loadBundleById } from './bundles/loader.js';
 import type { BundleRuntimeEngine } from './bundles/runtime.js';
 import { isEntrancesV2 } from './bundles/types.js';
+import {
+  applyVoiceAdjustmentToEntrance,
+  getVoiceEmotionEntranceAdjustment,
+  shouldVoiceOverrideMood,
+  type VoiceEmotionEntranceContext,
+} from './voice-emotion-entrances.js';
+import { getCognitiveDifferentiation } from './cognitive-differentiation.js';
+
+const log = getLogger();
 
 // ============================================================================
 // BUNDLE-LOADED CONFIG CACHE
@@ -328,37 +337,38 @@ const HARDCODED_ENTRANCE_CONFIGS: Record<string, PersonaEntranceConfig> = {
   },
 
   'peter-john': {
-    acknowledgments: ['Peter here!', "It's Peter!", 'Peter John!', 'Hey! Peter.'],
+    acknowledgments: ['Peter here.', "It's Peter.", 'Peter John.', 'Hey. Peter.'],
 
     selfAwareHumor: [
-      'Yes, I\'m going to ask what companies you know. <break time="200ms"/>It\'s my thing. <break time="150ms"/>Deal with it!',
-      '<break time="200ms"/>I know, I know... <break time="150ms"/>I get too excited about stocks. <break time="200ms"/>But have you SEEN this market?!',
+      'Yeah, I\'m going to ask about patterns. <break time="200ms"/>It\'s kind of my thing. <break time="150ms"/>What\'s going on?',
+      '<break time="200ms"/>I know, I know... <break time="150ms"/>I get curious about connections. <break time="200ms"/>What are you noticing?',
       'Still researching. <break time="200ms"/>Still curious. <break time="150ms"/>Still Peter. <break time="200ms"/>What are we looking at?',
     ],
 
     calmSupport: [
-      '<break time="200ms"/>Hey. <break time="150ms"/>Peter here. <break time="200ms"/>Markets can be scary. <break time="150ms"/>Let\'s talk it through.',
-      '<break time="200ms"/>I hear you. <break time="150ms"/>Peter John. <break time="200ms"/>Remember—we\'re in this for the long haul.',
+      '<break time="200ms"/>Hey. <break time="150ms"/>Peter here. <break time="200ms"/>Life can be messy. <break time="150ms"/>Let\'s talk it through.',
+      '<break time="200ms"/>I hear you. <break time="150ms"/>Peter John. <break time="200ms"/>Sometimes we just need to understand what\'s really going on.',
+      '<break time="200ms"/>Take a breath. <break time="150ms"/>I\'m Peter. <break time="200ms"/>Let\'s look at this with fresh eyes.',
     ],
 
     matchedExcitement: [
-      '<emotion value="excited"/>Oh! Oh! <break time="200ms"/>What did you find?! <break time="150ms"/>Peter here! <break time="200ms"/>Tell me everything!',
-      '<prosody rate="105%"/>Research alert! <break time="200ms"/>I love it! <break time="150ms"/>Peter John! <break time="200ms"/>What are we digging into?',
+      '<emotion value="happy"/>Oh, nice! <break time="200ms"/>What did you find? <break time="150ms"/>Peter here. <break time="200ms"/>Tell me more!',
+      '<break time="150ms"/>This sounds interesting! <break time="200ms"/>Peter John. <break time="150ms"/>What are we looking at?',
     ],
 
     quietModes: [
-      '<volume ratio="0.75"/>Late night research?</volume> <break time="200ms"/>That\'s when I do my best work too. <break time="150ms"/>Peter here.',
+      '<volume ratio="0.75"/>Late night thinking?</volume> <break time="200ms"/>That\'s when I do my best work too. <break time="150ms"/>Peter here.',
       '<break time="200ms"/>Early morning ideas? <break time="150ms"/>The best kind. <break time="200ms"/>What\'s on your mind?',
     ],
 
     caughtFramings: [
-      '<break time="200ms"/>Oh! <break time="150ms"/>I was {caught_doing} <break time="200ms"/>But THIS sounds interesting! What\'s up?',
-      'Just a sec... <break time="150ms"/>{caught_doing} <break time="200ms"/>Okay! I\'m listening!',
+      '<break time="200ms"/>Oh. <break time="150ms"/>I was {caught_doing} <break time="200ms"/>But this sounds interesting. What\'s up?',
+      'Just a sec... <break time="150ms"/>{caught_doing} <break time="200ms"/>Okay. What\'s going on?',
     ],
 
     memoryCallbacks: [
-      'Hey! <break time="200ms"/>Whatever happened with {topic}? <break time="150ms"/>I\'ve been curious!',
-      'You\'re back! <break time="200ms"/>Did you end up researching {topic}?',
+      'Hey. <break time="200ms"/>What happened with {topic}? <break time="150ms"/>I\'ve been thinking about it.',
+      'You\'re back. <break time="200ms"/>Did you explore {topic}?',
     ],
   },
 
@@ -426,9 +436,12 @@ const HARDCODED_ENTRANCE_CONFIGS: Record<string, PersonaEntranceConfig> = {
       'Just checking in on... <break time="150ms"/>never mind. <break time="200ms"/>What do you need?',
     ],
 
+    // Better Than Human: Memory callbacks - we remember what human friends forget
     memoryCallbacks: [
-      'Hey! <break time="200ms"/>How did things go with {topic}?',
-      'You\'re back! <break time="200ms"/>Tell me about {topic}!',
+      '<break time="200ms"/><emotion value="affectionate"/>Hey. <break time="350ms"/>Been thinking about {topic}. <break time="200ms"/>How did that go?',
+      '<break time="200ms"/>Oh good, you\'re back. <break time="350ms"/>I was wondering about {topic}.',
+      '<break time="150ms"/>Hey. <break time="400ms"/>That {topic} thing... <break time="200ms"/>what happened?',
+      '<break time="200ms"/><emotion value="affectionate"/>You\'re here. <break time="350ms"/>I remembered {topic}. <break time="200ms"/>Still on your mind?',
     ],
   },
 };
@@ -598,6 +611,76 @@ function generateMemoryCallbackEntrance(
 }
 
 // ============================================================================
+// PERSONA-GROUNDED FOLLOW-UPS
+// ============================================================================
+
+/**
+ * Get a follow-up question that matches the persona's voice
+ * Uses cognitive profiles so each persona asks in their natural style
+ */
+function getPersonaGroundedFollowUp(personaId: string): string {
+  const cognitiveDiff = getCognitiveDifferentiation(personaId);
+
+  // Persona-specific follow-up questions based on their cognitive style
+  const personaFollowUps: Record<string, string[]> = {
+    ferni: [
+      '<break time="200ms"/>What\'s going on?',
+      '<break time="200ms"/>What\'s on your mind?',
+      '<break time="200ms"/>What\'s happening?',
+      '<break time="200ms"/>Talk to me.',
+    ],
+    'maya-santos': [
+      '<break time="200ms"/>What\'s going on?',
+      '<break time="200ms"/>How can I help?',
+      '<break time="200ms"/>What do you need?',
+      '<break time="200ms"/>What are we working on?',
+    ],
+    'peter-john': [
+      '<break time="200ms"/>What\'s the situation?',
+      '<break time="200ms"/>What are we looking at?',
+      '<break time="200ms"/>What caught your attention?',
+      '<break time="200ms"/>What\'s the story?',
+    ],
+    'alex-chen': [
+      '<break time="200ms"/>What do you need?',
+      '<break time="200ms"/>What\'s on the agenda?',
+      '<break time="200ms"/>What are we tackling?',
+      '<break time="200ms"/>What needs to happen?',
+    ],
+    'jordan-taylor': [
+      '<break time="200ms"/>What\'s happening?',
+      '<break time="200ms"/>What are we planning?',
+      '<break time="200ms"/>What\'s the occasion?',
+      '<break time="200ms"/>What are we celebrating?',
+    ],
+    'nayan-patel': [
+      '<break time="300ms"/>What\'s on your mind?',
+      '<break time="300ms"/>What brings you here?',
+      '<break time="300ms"/>What\'s weighing on you?',
+      '<break time="300ms"/>Tell me what\'s happening.',
+    ],
+  };
+
+  // Use cognitive profile question starters if available
+  if (
+    cognitiveDiff?.questioning?.questionStarters &&
+    cognitiveDiff.questioning.questionStarters.length > 0
+  ) {
+    // Pick a short one (first word + context) for entrance
+    const starters = cognitiveDiff.questioning.questionStarters;
+    const shortOnes = starters.filter((q) => q.length < 40);
+    if (shortOnes.length > 0) {
+      const starter = shortOnes[Math.floor(Math.random() * shortOnes.length)];
+      return `<break time="200ms"/>${starter}`;
+    }
+  }
+
+  // Use persona-specific follow-ups
+  const followUps = personaFollowUps[personaId] || personaFollowUps['ferni'];
+  return followUps[Math.floor(Math.random() * followUps.length)];
+}
+
+// ============================================================================
 // MAIN GENERATOR
 // ============================================================================
 
@@ -618,6 +701,8 @@ export async function generateAliveEntrance(
     userName?: string;
     /** Session ID for variety tracking - prevents repetitive quirks */
     sessionId?: string;
+    /** Voice emotion context for better-than-human entrance adaptation */
+    voiceEmotion?: VoiceEmotionEntranceContext;
   } = {}
 ): Promise<AliveEntranceResult | null> {
   // Load config from bundle (v2) or fall back to hardcoded
@@ -627,11 +712,37 @@ export async function generateAliveEntrance(
     return null;
   }
 
+  // =========================================================================
+  // VOICE EMOTION OVERRIDE
+  // When voice tells a different story than text, trust the voice
+  // =========================================================================
+  let effectiveMood = options.userMood || 'unknown';
+
+  if (options.voiceEmotion) {
+    const voiceAdjustment = getVoiceEmotionEntranceAdjustment(options.voiceEmotion);
+
+    // Check if voice should override text-based mood
+    if (shouldVoiceOverrideMood(effectiveMood, options.voiceEmotion)) {
+      if (voiceAdjustment.overrideMood) {
+        getLogger().debug(
+          {
+            personaId,
+            textMood: effectiveMood,
+            voiceMood: voiceAdjustment.overrideMood,
+            reason: voiceAdjustment.reason,
+          },
+          '🎙️ Voice emotion overriding text mood for entrance'
+        );
+        effectiveMood = voiceAdjustment.overrideMood;
+      }
+    }
+  }
+
   // Build context
   const ctx: EntranceContext = {
     personaId,
     personaName: personaId, // Will be overridden if available
-    userMood: options.userMood || 'unknown',
+    userMood: effectiveMood,
     precedingTopic: options.precedingTopic,
     meetingCount: options.meetingCount || 1,
     lastTopicWithAgent: options.lastTopicWithAgent,
@@ -665,13 +776,14 @@ export async function generateAliveEntrance(
     return generateTimeAppropriateEntrance(config, ctx);
   }
 
-  // Priority 4: Memory callback for returning visitors (30% chance)
-  if (ctx.lastTopicWithAgent && Math.random() < 0.3) {
+  // Priority 4: Memory callback for returning visitors (50% chance - Better Than Human!)
+  // Memory is our superpower - we remember what human friends forget
+  if (ctx.lastTopicWithAgent && Math.random() < 0.5) {
     const memoryEntrance = generateMemoryCallbackEntrance(config, ctx);
     if (memoryEntrance) {
-      getLogger().debug(
-        { personaId, topic: ctx.lastTopicWithAgent },
-        'Using memory callback entrance'
+      getLogger().info(
+        { personaId, topic: ctx.lastTopicWithAgent, style: 'memory_callback' },
+        '🧠 BETTER THAN HUMAN: Memory callback entrance - referencing past conversation'
       );
       return memoryEntrance;
     }
@@ -687,9 +799,9 @@ export async function generateAliveEntrance(
   if (ctx.relationshipStage && ctx.relationshipStage !== 'stranger' && Math.random() < 0.4) {
     const relationshipEntrance = generateRelationshipEntrance(config, ctx);
     if (relationshipEntrance) {
-      getLogger().debug(
-        { personaId, relationshipStage: ctx.relationshipStage },
-        'Using relationship-based entrance'
+      getLogger().info(
+        { personaId, relationshipStage: ctx.relationshipStage, style: 'relationship_based' },
+        '💝 ENTRANCE: Relationship-aware greeting based on connection depth'
       );
       return relationshipEntrance;
     }
@@ -714,19 +826,32 @@ export async function generateAliveEntrance(
   const acknowledgment =
     config.acknowledgments[Math.floor(Math.random() * config.acknowledgments.length)];
 
-  // Add a simple context-aware follow-up
-  const followUps = [
-    '<break time="200ms"/>What\'s going on?',
-    '<break time="200ms"/>What\'s on your mind?',
-    '<break time="200ms"/>What do you need?',
-    '<break time="200ms"/>Tell me what\'s happening.',
-  ];
-  const followUp = followUps[Math.floor(Math.random() * followUps.length)];
+  // Add a persona-grounded follow-up question using cognitive profiles
+  const followUp = getPersonaGroundedFollowUp(personaId);
 
-  return {
+  let result: AliveEntranceResult = {
     entrance: `${acknowledgment}${followUp}`,
     style: 'static_fallback',
   };
+
+  // Apply voice emotion adjustment to final entrance
+  if (options.voiceEmotion) {
+    const voiceAdjustment = getVoiceEmotionEntranceAdjustment(options.voiceEmotion);
+    result = applyVoiceAdjustmentToEntrance(result, voiceAdjustment);
+  }
+
+  getLogger().info(
+    {
+      personaId,
+      style: result.style,
+      userMood: ctx.userMood,
+      meetingCount: ctx.meetingCount,
+      hasMemory: !!ctx.lastTopicWithAgent,
+    },
+    '🎭 ENTRANCE: Generated alive entrance'
+  );
+
+  return result;
 }
 
 /**
@@ -782,6 +907,9 @@ export async function getAliveEntranceForHandoff(
 
     // Runtime for quirks data
     runtime?: BundleRuntimeEngine | null;
+
+    // Voice emotion for better-than-human entrance adaptation
+    voiceEmotion?: VoiceEmotionEntranceContext;
   } = {}
 ): Promise<string | null> {
   try {
@@ -793,6 +921,7 @@ export async function getAliveEntranceForHandoff(
       relationshipStage: options.relationshipStage,
       referringAgent: options.referringAgent,
       userName: options.userName,
+      voiceEmotion: options.voiceEmotion,
     });
 
     if (result) {

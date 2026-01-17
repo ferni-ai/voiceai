@@ -19,6 +19,8 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
+import { onCorrelationInsightChange } from '../data-layer/hooks/better-than-human-hooks.js';
+import { onRelationshipNetworkChange } from '../data-layer/hooks/superhuman-hooks.js';
 
 const log = createLogger({ module: 'SocialGraph' });
 
@@ -145,7 +147,7 @@ export function recordMention(
   context: string,
   sentiment: number,
   topics: string[] = [],
-  emotionalWeight: number = 0.5
+  emotionalWeight = 0.5
 ): Person {
   const graph = getOrCreateGraph(userId);
 
@@ -223,7 +225,8 @@ export function extractNames(text: string): Array<{ name: string; context: strin
     let match;
     while ((match = pattern.exec(text)) !== null) {
       const name = match[match.length - 1] || match[1];
-      if (name && name.length > 1 && !isCommonWord(name)) {
+      // ISSUE-006 FIX: Use stricter name validation to filter speech recognition errors
+      if (name && isLikelyRealName(name)) {
         // Get surrounding context
         const start = Math.max(0, match.index - 30);
         const end = Math.min(text.length, match.index + match[0].length + 30);
@@ -261,42 +264,202 @@ export function extractNames(text: string): Array<{ name: string; context: strin
 }
 
 function isCommonWord(word: string): boolean {
+  // Comprehensive list of words that should NOT be treated as names
+  // Includes common words, speech recognition errors, and filler words
   const commonWords = new Set([
+    // Pronouns
     'i',
     'me',
     'my',
+    'mine',
+    'myself',
     'you',
     'your',
+    'yours',
+    'yourself',
+    'he',
+    'him',
+    'his',
+    'she',
+    'her',
+    'hers',
     'we',
+    'us',
+    'our',
+    'ours',
     'they',
     'them',
+    'their',
+    'theirs',
     'it',
+    'its',
+    // Demonstratives
     'this',
     'that',
+    'these',
+    'those',
+    // Articles
     'the',
     'a',
     'an',
+    // Conjunctions
     'and',
     'or',
     'but',
     'so',
+    'yet',
+    'for',
+    'nor',
+    // Common adverbs
     'just',
     'really',
     'very',
+    'quite',
+    'always',
+    'never',
+    'often',
+    'sometimes',
+    'usually',
+    'actually',
+    'basically',
+    'literally',
+    'probably',
+    'maybe',
+    'perhaps',
+    // Time words
     'today',
     'yesterday',
     'tomorrow',
-    'here',
-    'there',
     'now',
     'then',
+    'soon',
+    'later',
+    'always',
+    'never',
+    // Place words
+    'here',
+    'there',
+    'where',
+    'somewhere',
+    'anywhere',
+    'everywhere',
+    'nowhere',
+    // Question words
     'what',
     'when',
     'where',
     'why',
     'how',
+    'which',
+    'who',
+    'whom',
+    'whose',
+    // COMMON SPEECH RECOGNITION ERRORS (ISSUE-006 fix)
+    'bought',
+    'brought',
+    'thought',
+    'got',
+    'going',
+    'gonna',
+    'wanna',
+    'gotta',
+    'kinda',
+    'sorta',
+    'hear',
+    'heard',
+    // Common verbs often misrecognized as names
+    'said',
+    'says',
+    'told',
+    'asked',
+    'called',
+    'went',
+    'came',
+    'made',
+    'took',
+    'gave',
+    'had',
+    'has',
+    'have',
+    'been',
+    'being',
+    'was',
+    'were',
+    'are',
+    'is',
+    'will',
+    'would',
+    'could',
+    'should',
+    'might',
+    'must',
+    'shall',
+    'can',
+    'may',
+    // Interjections
+    'oh',
+    'ah',
+    'um',
+    'uh',
+    'hmm',
+    'wow',
+    'ooh',
+    'oops',
+    'yeah',
+    'yep',
+    'nope',
+    'okay',
+    'ok',
+    'well',
+    'like',
+    // Generic nouns
+    'thing',
+    'things',
+    'stuff',
+    'something',
+    'nothing',
+    'everything',
+    'someone',
+    'anyone',
+    'everyone',
+    'nobody',
+    'somebody',
+    'anybody',
+    'everybody',
+    'people',
+    'person',
+    'way',
+    'time',
+    'day',
+    'week',
+    'month',
+    'year',
   ]);
   return commonWords.has(word.toLowerCase());
+}
+
+/**
+ * Additional validation for potential names
+ * Catches edge cases that isCommonWord might miss
+ */
+function isLikelyRealName(word: string): boolean {
+  if (!word || word.length < 2) return false;
+
+  // Must start with a letter
+  if (!/^[A-Za-z]/.test(word)) return false;
+
+  // Names are typically 2-15 characters
+  if (word.length > 15) return false;
+
+  // Reject if all lowercase (names typically have first letter capitalized in proper context)
+  // But allow this since transcription might lowercase everything
+
+  // Reject if it looks like a verb ending (-ing, -ed, -tion)
+  if (/(?:ing|ed|tion|ness|ment|able|ible|ous|ive|ful|less)$/i.test(word)) {
+    return false;
+  }
+
+  return !isCommonWord(word);
 }
 
 // ============================================================================
@@ -408,7 +571,7 @@ export function detectSentimentPatterns(userId: string): RelationshipPattern[] {
 /**
  * Get upcoming important dates
  */
-export function getUpcomingDates(userId: string, daysAhead: number = 7): ImportantDate[] {
+export function getUpcomingDates(userId: string, daysAhead = 7): ImportantDate[] {
   const graph = userGraphs.get(userId);
   if (!graph) return [];
 
@@ -733,6 +896,265 @@ export function clearSocialGraph(userId: string): void {
   log.info({ userId }, 'Social graph cleared');
 }
 
+// ============================================================================
+// PERSISTENCE (for real-time saving)
+// ============================================================================
+
+/**
+ * Get the in-memory graph for a user (for persistence)
+ */
+export function getUserGraph(userId: string): UserSocialGraph | undefined {
+  return userGraphs.get(userId);
+}
+
+/**
+ * Serialize graph for storage
+ */
+export function serializeGraph(graph: UserSocialGraph): object {
+  return {
+    userId: graph.userId,
+    people: Array.from(graph.people.entries()).map(([id, person]) => ({
+      ...person,
+      lastMentioned: person.lastMentioned.toISOString(),
+      createdAt: person.createdAt.toISOString(),
+      updatedAt: person.updatedAt.toISOString(),
+    })),
+    mentions: graph.mentions.slice(-100).map((m) => ({
+      ...m,
+      timestamp: m.timestamp.toISOString(),
+    })),
+    patterns: graph.patterns,
+    lastAnalysis: graph.lastAnalysis.toISOString(),
+  };
+}
+
+/**
+ * Persist graph to Firestore
+ */
+export async function persistGraphToFirestore(
+  userId: string,
+  graph: UserSocialGraph
+): Promise<void> {
+  try {
+    const { getFirestoreDb } = await import('../superhuman/firestore-utils.js');
+    const db = getFirestoreDb();
+    if (!db) {
+      log.warn({ userId }, 'Cannot persist social graph - no Firestore connection');
+      return;
+    }
+
+    const serialized = serializeGraph(graph);
+    await db
+      .collection('bogle_users')
+      .doc(userId)
+      .collection('social_graph')
+      .doc('current')
+      .set(
+        {
+          ...serialized,
+          updatedAt: new Date(),
+        },
+        { merge: true }
+      );
+
+    // Index key relationships for "Better Than Human" recall
+    // "We know who matters to you"
+    const importantPeople = Array.from(graph.people.values()).filter(
+      (p) => p.importance >= 0.5 || p.isConfirmedImportant
+    );
+    for (const person of importantPeople.slice(0, 10)) {
+      void onRelationshipNetworkChange(
+        userId,
+        `person_${person.id}`,
+        {
+          person: person.name,
+          relationship: person.relationship,
+          connectionStrength:
+            person.importance >= 0.8
+              ? 'core'
+              : person.importance >= 0.6
+                ? 'strong'
+                : person.importance >= 0.4
+                  ? 'moderate'
+                  : 'weak',
+          lastContact: person.lastMentioned?.toISOString(),
+          notes: person.notes?.join('. '),
+        },
+        'update'
+      );
+    }
+
+    // Index relationship patterns as correlations
+    for (const pattern of graph.patterns.filter((p) => p.confidence >= 0.7)) {
+      void onCorrelationInsightChange(
+        userId,
+        `rel_pattern_${pattern.personId}`,
+        {
+          connection: pattern.description,
+          domainA: 'relationships',
+          domainB: 'emotional_state',
+          strength: pattern.confidence >= 0.85 ? 'strong' : 'moderate',
+          examples: [
+            `${pattern.personName}: ${pattern.pattern === 'positive_correlation' ? 'positive' : 'negative'} effect on mood`,
+          ],
+          implications: pattern.description,
+          discoveredAt: new Date().toISOString(),
+        },
+        'update'
+      );
+    }
+
+    log.debug({ userId, peopleCount: graph.people.size }, 'Social graph persisted');
+  } catch (error) {
+    log.error({ userId, error: String(error) }, 'Failed to persist social graph');
+  }
+}
+
+/**
+ * Load graph from Firestore
+ */
+export async function loadGraphFromFirestore(userId: string): Promise<void> {
+  try {
+    const { getFirestoreDb } = await import('../superhuman/firestore-utils.js');
+    const db = getFirestoreDb();
+    if (!db) return;
+
+    const doc = await db
+      .collection('bogle_users')
+      .doc(userId)
+      .collection('social_graph')
+      .doc('current')
+      .get();
+
+    if (!doc.exists) return;
+
+    const data = doc.data();
+    if (!data) return;
+
+    // Reconstruct the graph
+    const graph: UserSocialGraph = {
+      userId,
+      people: new Map(),
+      mentions: [],
+      patterns: data.patterns || [],
+      lastAnalysis: new Date(data.lastAnalysis || 0),
+    };
+
+    // Reconstruct people
+    for (const personData of data.people || []) {
+      const person: Person = {
+        ...personData,
+        lastMentioned: new Date(personData.lastMentioned),
+        createdAt: new Date(personData.createdAt),
+        updatedAt: new Date(personData.updatedAt),
+      };
+      graph.people.set(person.id, person);
+    }
+
+    // Reconstruct mentions
+    graph.mentions = (data.mentions || []).map((m: Record<string, unknown>) => ({
+      ...m,
+      timestamp: new Date(m.timestamp as string),
+    }));
+
+    userGraphs.set(userId, graph);
+    log.info({ userId, peopleCount: graph.people.size }, 'Social graph loaded from Firestore');
+  } catch (error) {
+    log.error({ userId, error: String(error) }, 'Failed to load social graph from Firestore');
+  }
+}
+
+// ============================================================================
+// CACHE MANAGEMENT (for memory efficiency)
+// ============================================================================
+
+/**
+ * Get all people from the social graph
+ */
+export function getAllPeople(userId: string): Person[] {
+  const graph = userGraphs.get(userId);
+  if (!graph) return [];
+  return Array.from(graph.people.values());
+}
+
+/**
+ * Get all social insights
+ */
+export function getSocialInsights(userId: string): SocialInsight[] {
+  const graph = userGraphs.get(userId);
+  if (!graph) return [];
+  return generateSocialInsights(userId);
+}
+
+/**
+ * Clear all cached social graphs (for memory management)
+ * Call this on app shutdown or when memory pressure is high
+ */
+export function clearAllSocialGraphs(): void {
+  const count = userGraphs.size;
+  userGraphs.clear();
+  log.info({ count }, 'All social graphs cleared from memory');
+}
+
+/**
+ * Get count of cached graphs (for monitoring)
+ */
+export function getCachedGraphCount(): number {
+  return userGraphs.size;
+}
+
+/**
+ * Prune old mentions from a user's graph
+ * Keeps only mentions from last N days
+ */
+export function pruneMentions(userId: string, retentionDays = 90): number {
+  const graph = userGraphs.get(userId);
+  if (!graph) return 0;
+
+  const cutoffDate = new Date();
+  cutoffDate.setDate(cutoffDate.getDate() - retentionDays);
+  const cutoffTime = cutoffDate.getTime();
+
+  const originalCount = graph.mentions.length;
+  graph.mentions = graph.mentions.filter((m) => m.timestamp.getTime() > cutoffTime);
+
+  const pruned = originalCount - graph.mentions.length;
+  if (pruned > 0) {
+    log.debug({ userId, pruned, remaining: graph.mentions.length }, 'Pruned old mentions');
+  }
+
+  return pruned;
+}
+
+/**
+ * Cleanup graphs for inactive users (no mentions in last N days)
+ * Call this periodically to prevent memory growth
+ */
+export function cleanupInactiveGraphs(inactiveDays = 7): number {
+  const cutoffDate = new Date();
+  cutoffDate.setDate(cutoffDate.getDate() - inactiveDays);
+  const cutoffTime = cutoffDate.getTime();
+
+  let cleaned = 0;
+  for (const [userId, graph] of userGraphs) {
+    // Check if last analysis is too old
+    if (graph.lastAnalysis.getTime() < cutoffTime) {
+      // Check if any recent mentions
+      const hasRecentMentions = graph.mentions.some((m) => m.timestamp.getTime() > cutoffTime);
+      if (!hasRecentMentions) {
+        userGraphs.delete(userId);
+        cleaned++;
+      }
+    }
+  }
+
+  if (cleaned > 0) {
+    log.info({ cleaned, remaining: userGraphs.size }, 'Cleaned up inactive social graphs');
+  }
+
+  return cleaned;
+}
+
 export default {
   recordMention,
   extractNames,
@@ -743,8 +1165,18 @@ export default {
   generateSocialInsights,
   generateSuperhumanMoment,
   getImportantPeople,
+  getAllPeople,
+  getSocialInsights,
   getPerson,
   confirmImportantPerson,
   getMentionFrequency,
   clearSocialGraph,
+  clearAllSocialGraphs,
+  getCachedGraphCount,
+  pruneMentions,
+  cleanupInactiveGraphs,
+  getUserGraph,
+  serializeGraph,
+  persistGraphToFirestore,
+  loadGraphFromFirestore,
 };

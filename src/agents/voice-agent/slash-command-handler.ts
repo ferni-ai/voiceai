@@ -97,7 +97,7 @@ export async function handleSlashCommand(ctx: SlashCommandContext): Promise<Slas
       // Inject error message as context for LLM to handle gracefully
       turnCtx.addMessage({
         role: 'system',
-        content: `[COMMAND ERROR] The user invoked /${commandId} but it failed: ${result.error}. Please acknowledge the issue gracefully and offer to help another way.`,
+        content: `[INTERNAL GUIDANCE - DO NOT SPEAK THIS] The user tried /${commandId} but it failed: ${result.error}. Acknowledge gracefully and offer to help another way.`,
       });
       return { handled: true, commandId, error: result.error }; // Still handled - LLM will respond about the error
     }
@@ -106,7 +106,7 @@ export async function handleSlashCommand(ctx: SlashCommandContext): Promise<Slas
     if (result.prompt) {
       turnCtx.addMessage({
         role: 'system',
-        content: `[SLASH COMMAND: /${commandId}]\n${result.prompt}`,
+        content: `[INTERNAL GUIDANCE - DO NOT SPEAK THIS]\nUser invoked /${commandId}. Follow this guidance:\n${result.prompt}`,
       });
     }
 

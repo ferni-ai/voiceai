@@ -1,0 +1,1569 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ferni Capabilities - Everything Your Best Friend Can't Do</title>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500&display=swap" rel="stylesheet">
+  <!-- Design System: Single source of truth -->
+  <link rel="stylesheet" href="../master-tokens.css">
+  <link rel="stylesheet" href="../brand-components.css">
+  <style>
+    /* Page-specific overrides - base tokens from master-tokens.css */
+    :root {
+      /* Capabilities-specific category colors - mapped to persona palette */
+      --communication: var(--color-alex);
+      --calendar: var(--color-jordan);
+      --productivity: var(--color-peter);
+      --finance: var(--color-peter-light);
+      --habits: var(--color-maya);
+      --health: var(--color-ferni-light);
+      --research: var(--color-ferni);
+      --entertainment: var(--color-jordan);
+      --home: var(--color-nayan-dark);
+      --travel: var(--color-alex-light);
+      --planning: var(--color-nayan);
+
+      /* Persona color aliases (referencing master-tokens.css) */
+      --glow-ferni: var(--color-ferni-glow);
+      --ferni-light: var(--color-ferni-light);
+      --ferni-dark: var(--color-ferni-dark);
+      --ferni: var(--color-ferni);
+      --maya: var(--color-maya);
+      --peter: var(--color-peter);
+      --jordan: var(--color-jordan);
+      --alex: var(--color-alex);
+      --nayan: var(--color-nayan);
+    }
+
+    /* Cedar Night (Dark) - inherits from master-tokens.css [data-theme="dark"] */
+    /* Dark theme variables are provided by master-tokens.css - no page-specific overrides needed */
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: var(--font-body);
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      line-height: 1.6;
+      min-height: 100vh;
+      transition: background 0.3s ease, color 0.3s ease;
+    }
+
+    /* Navigation */
+    .nav {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 100;
+      background: var(--glass-bg-light);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border-subtle);
+      padding: 12px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    [data-theme="dark"] .nav {
+      background: var(--glass-bg-dark);
+    }
+
+    .nav-left {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .nav-logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+      color: var(--text-primary);
+    }
+
+    .nav-logo svg {
+      width: 32px;
+      height: 32px;
+    }
+
+    .nav-logo span {
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: 16px;
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 24px;
+    }
+
+    .nav-links a {
+      text-decoration: none;
+      color: var(--text-secondary);
+      font-size: 14px;
+      font-weight: 500;
+      transition: color 0.2s;
+    }
+
+    .nav-links a:hover {
+      color: var(--text-primary);
+    }
+
+    .nav-links a.active {
+      color: var(--ferni);
+    }
+
+    .theme-toggle {
+      background: var(--bg-elevated);
+      border: 1px solid var(--border-subtle);
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: var(--shadow-sm);
+      transition: all 0.3s var(--ease-spring);
+    }
+
+    .theme-toggle:hover {
+      transform: scale(1.1);
+      box-shadow: var(--shadow-md);
+    }
+
+    .theme-toggle svg {
+      width: 18px;
+      height: 18px;
+      color: var(--text-secondary);
+    }
+
+    .sun-icon { display: none; }
+    .moon-icon { display: block; }
+    [data-theme="dark"] .sun-icon { display: block; }
+    [data-theme="dark"] .moon-icon { display: none; }
+
+    /* Hero */
+    .hero {
+      padding: 120px 40px 60px;
+      text-align: center;
+      background: linear-gradient(180deg, var(--bg-warm) 0%, var(--bg-primary) 100%);
+    }
+
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--ferni);
+      color: var(--color-text-inverse);
+      padding: 8px 16px;
+      border-radius: var(--radius-full);
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 24px;
+    }
+
+    .hero-badge svg {
+      width: 16px;
+      height: 16px;
+    }
+
+    .hero h1 {
+      font-family: var(--font-display);
+      font-size: 56px;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      line-height: 1.1;
+      margin-bottom: 20px;
+      max-width: 800px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    .hero h1 .highlight {
+      background: linear-gradient(135deg, var(--ferni) 0%, var(--peter) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .hero-subtitle {
+      font-size: 20px;
+      color: var(--text-secondary);
+      max-width: 600px;
+      margin: 0 auto 32px;
+    }
+
+    .hero-stats {
+      display: flex;
+      justify-content: center;
+      gap: 48px;
+      flex-wrap: wrap;
+    }
+
+    .stat {
+      text-align: center;
+    }
+
+    .stat-value {
+      font-family: var(--font-display);
+      font-size: 36px;
+      font-weight: 800;
+      color: var(--ferni);
+    }
+
+    .stat-label {
+      font-size: 13px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    /* Section Navigation */
+    .section-nav {
+      position: sticky;
+      top: 60px;
+      z-index: 50;
+      background: var(--bg-primary);
+      border-bottom: 1px solid var(--border-subtle);
+      padding: 16px 40px;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .section-nav-inner {
+      display: flex;
+      gap: 12px;
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    .section-btn {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 18px;
+      border: 1px solid var(--border-medium);
+      border-radius: var(--radius-full);
+      background: var(--bg-elevated);
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.2s;
+    }
+
+    .section-btn:hover {
+      border-color: var(--ferni);
+      color: var(--ferni);
+    }
+
+    .section-btn.active {
+      background: var(--ferni);
+      border-color: var(--ferni);
+      color: var(--color-text-inverse);
+    }
+
+    .section-btn svg {
+      width: 16px;
+      height: 16px;
+    }
+
+    /* Main Container */
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 60px 40px;
+    }
+
+    /* Section */
+    .section {
+      margin-bottom: 80px;
+    }
+
+    .section-header {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 32px;
+    }
+
+    .section-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: var(--radius-md);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--color-text-inverse);
+    }
+
+    .section-icon svg {
+      width: 24px;
+      height: 24px;
+    }
+
+    .section-title {
+      font-family: var(--font-display);
+      font-size: 28px;
+      font-weight: 700;
+    }
+
+    .section-subtitle {
+      font-size: 15px;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+
+    /* Capability Grid */
+    .capability-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 20px;
+    }
+
+    .capability-card {
+      background: var(--bg-elevated);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      transition: all 0.3s var(--ease-out);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .capability-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: var(--card-accent, var(--ferni));
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+
+    .capability-card:hover {
+      transform: translateY(-4px);
+      box-shadow: var(--shadow-lg);
+    }
+
+    .capability-card:hover::before {
+      opacity: 1;
+    }
+
+    .capability-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: var(--radius-sm);
+      background: color-mix(in srgb, var(--card-accent, var(--ferni)) 12%, transparent);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 16px;
+    }
+
+    .capability-icon svg {
+      width: 20px;
+      height: 20px;
+      color: var(--card-accent, var(--ferni));
+    }
+
+    .capability-card h3 {
+      font-family: var(--font-display);
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+
+    .capability-card p {
+      font-size: 14px;
+      color: var(--text-secondary);
+      line-height: 1.5;
+    }
+
+    /* Superhuman Section */
+    .superhuman-section {
+      background: linear-gradient(135deg, var(--color-ferni-subtle) 0%, var(--color-peter-subtle) 100%);
+      border-radius: var(--radius-xl);
+      padding: 60px;
+      margin-bottom: 80px;
+    }
+
+    .superhuman-header {
+      text-align: center;
+      margin-bottom: 48px;
+    }
+
+    .superhuman-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: linear-gradient(135deg, var(--ferni) 0%, var(--peter) 100%);
+      color: var(--color-text-inverse);
+      padding: 10px 20px;
+      border-radius: var(--radius-full);
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 20px;
+    }
+
+    .superhuman-title {
+      font-family: var(--font-display);
+      font-size: 36px;
+      font-weight: 800;
+      margin-bottom: 12px;
+    }
+
+    .superhuman-subtitle {
+      font-size: 18px;
+      color: var(--text-secondary);
+      max-width: 600px;
+      margin: 0 auto;
+    }
+
+    .superhuman-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 24px;
+    }
+
+    .superhuman-card {
+      background: var(--bg-elevated);
+      border-radius: var(--radius-lg);
+      padding: 28px;
+      border: 1px solid var(--border-subtle);
+      transition: all 0.3s var(--ease-out);
+    }
+
+    .superhuman-card:hover {
+      transform: translateY(-4px);
+      box-shadow: var(--shadow-lg);
+    }
+
+    .superhuman-card-header {
+      display: flex;
+      align-items: flex-start;
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+
+    .superhuman-card-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: var(--radius-md);
+      background: linear-gradient(135deg, var(--ferni) 0%, var(--peter) 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .superhuman-card-icon svg {
+      width: 24px;
+      height: 24px;
+      color: var(--color-text-inverse);
+    }
+
+    .superhuman-card h3 {
+      font-family: var(--font-display);
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+
+    .superhuman-card .limitation {
+      font-size: 13px;
+      color: var(--maya);
+      font-style: italic;
+    }
+
+    .superhuman-card p {
+      font-size: 14px;
+      color: var(--text-secondary);
+      line-height: 1.6;
+    }
+
+    /* Persona Section */
+    .persona-section {
+      margin-bottom: 80px;
+    }
+
+    .persona-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+      gap: 24px;
+    }
+
+    .persona-card {
+      background: var(--bg-elevated);
+      border-radius: var(--radius-xl);
+      padding: 32px;
+      border: 1px solid var(--border-subtle);
+      display: flex;
+      gap: 24px;
+      transition: all 0.3s var(--ease-out);
+    }
+
+    .persona-card:hover {
+      transform: translateY(-4px);
+      box-shadow: var(--shadow-lg);
+    }
+
+    .persona-avatar {
+      width: 80px;
+      height: 80px;
+      flex-shrink: 0;
+    }
+
+    .persona-avatar svg {
+      width: 100%;
+      height: 100%;
+    }
+
+    .persona-info h3 {
+      font-family: var(--font-display);
+      font-size: 20px;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    .persona-role {
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 12px;
+    }
+
+    .persona-card p {
+      font-size: 14px;
+      color: var(--text-secondary);
+      line-height: 1.5;
+      margin-bottom: 16px;
+    }
+
+    .persona-powers {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .persona-power {
+      background: var(--bg-primary);
+      padding: 6px 12px;
+      border-radius: var(--radius-full);
+      font-size: 12px;
+      color: var(--text-secondary);
+    }
+
+    /* Verticals Section */
+    .verticals-section {
+      background: var(--bg-elevated);
+      border-radius: var(--radius-xl);
+      padding: 60px;
+      margin-bottom: 80px;
+      border: 1px solid var(--border-subtle);
+    }
+
+    .verticals-header {
+      text-align: center;
+      margin-bottom: 48px;
+    }
+
+    .verticals-title {
+      font-family: var(--font-display);
+      font-size: 32px;
+      font-weight: 800;
+      margin-bottom: 12px;
+    }
+
+    .verticals-subtitle {
+      font-size: 18px;
+      color: var(--text-secondary);
+    }
+
+    .verticals-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+    }
+
+    .vertical-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 16px 20px;
+      background: var(--bg-primary);
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border-subtle);
+      transition: all 0.2s;
+    }
+
+    .vertical-item:hover {
+      border-color: var(--ferni);
+      transform: translateX(4px);
+    }
+
+    .vertical-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: var(--radius-sm);
+      background: color-mix(in srgb, var(--ferni) 12%, transparent);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .vertical-icon svg {
+      width: 16px;
+      height: 16px;
+      color: var(--ferni);
+    }
+
+    .vertical-item span {
+      font-size: 14px;
+      font-weight: 500;
+    }
+
+    /* CTA Section */
+    .cta-section {
+      text-align: center;
+      padding: 80px 40px;
+      background: linear-gradient(180deg, var(--bg-primary) 0%, var(--bg-warm) 100%);
+    }
+
+    .cta-quote {
+      font-family: var(--font-display);
+      font-size: 32px;
+      font-weight: 700;
+      font-style: italic;
+      color: var(--ferni);
+      margin-bottom: 24px;
+    }
+
+    .cta-tagline {
+      font-size: 20px;
+      color: var(--text-secondary);
+      margin-bottom: 32px;
+    }
+
+    .cta-buttons {
+      display: flex;
+      justify-content: center;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .cta-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 14px 28px;
+      border-radius: var(--radius-full);
+      font-size: 15px;
+      font-weight: 600;
+      text-decoration: none;
+      transition: all 0.3s var(--ease-spring);
+    }
+
+    .cta-btn-primary {
+      background: var(--ferni);
+      color: var(--color-text-inverse);
+    }
+
+    .cta-btn-primary:hover {
+      background: var(--ferni-dark);
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-lg);
+    }
+
+    .cta-btn-secondary {
+      background: var(--bg-elevated);
+      color: var(--text-primary);
+      border: 1px solid var(--border-medium);
+    }
+
+    .cta-btn-secondary:hover {
+      border-color: var(--ferni);
+      transform: translateY(-2px);
+    }
+
+    /* Footer */
+    footer {
+      text-align: center;
+      padding: 40px;
+      color: var(--text-muted);
+      font-size: 14px;
+    }
+
+    footer a {
+      color: var(--ferni);
+      text-decoration: none;
+    }
+
+    /* Responsive */
+    @media (max-width: 900px) {
+      .hero h1 { font-size: 40px; }
+      .nav-links { display: none; }
+      .container { padding: 40px 24px; }
+      .superhuman-section { padding: 40px 24px; }
+      .verticals-section { padding: 40px 24px; }
+    }
+
+    @media (max-width: 600px) {
+      .hero h1 { font-size: 32px; }
+      .hero-stats { gap: 32px; }
+      .stat-value { font-size: 28px; }
+      .persona-card { flex-direction: column; text-align: center; }
+      .persona-avatar { margin: 0 auto; }
+      .persona-powers { justify-content: center; }
+    }
+  </style>
+</head>
+<body>
+  <!-- Shared Navigation (injected by nav.js) -->
+  <div id="nav-placeholder"></div>
+
+  <!-- Hero -->
+  <section class="hero">
+    <div class="hero-badge">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+      The Complete Laundry List
+    </div>
+    <h1>Everything Your <span class="highlight">Best Friend Can't Do</span></h1>
+    <p class="hero-subtitle">Six specialists. Always available. No referrals, no waitlists, no judgment.</p>
+    <div class="hero-stats">
+      <div class="stat">
+        <div class="stat-value">50+</div>
+        <div class="stat-label">Practical Actions</div>
+      </div>
+      <div class="stat">
+        <div class="stat-value">6</div>
+        <div class="stat-label">Specialist Personas</div>
+      </div>
+      <div class="stat">
+        <div class="stat-value">19</div>
+        <div class="stat-label">Superhuman Services</div>
+      </div>
+      <div class="stat">
+        <div class="stat-value">25+</div>
+        <div class="stat-label">Verticals Displaced</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Section Navigation -->
+  <div class="section-nav">
+    <div class="section-nav-inner">
+      <button class="section-btn active" onclick="scrollToSection('actions')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+        Practical Actions
+      </button>
+      <button class="section-btn" onclick="scrollToSection('personas')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        6 Personas
+      </button>
+      <button class="section-btn" onclick="scrollToSection('superhuman')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+        19 Superhuman Services
+      </button>
+      <button class="section-btn" onclick="scrollToSection('verticals')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+        Displaced Verticals
+      </button>
+    </div>
+  </div>
+
+  <!-- Main Content -->
+  <main id="main" class="container">
+
+    <!-- Practical Actions -->
+    <section id="actions" class="section">
+
+      <!-- Communication -->
+      <div class="section-header">
+        <div class="section-icon" style="background: var(--communication);">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+        </div>
+        <div>
+          <h2 class="section-title">Communication & Outreach</h2>
+          <p class="section-subtitle">Calls, texts, emails, and difficult conversations</p>
+        </div>
+      </div>
+      <div class="capability-grid" style="--card-accent: var(--communication);">
+        <div class="capability-card">
+          <div class="capability-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72"/></svg></div>
+          <h3>Make Phone Calls</h3>
+          <p>Call restaurants, doctors, and businesses on your behalf. No more hold music.</p>
+        </div>
+        <div class="capability-card">
+          <div class="capability-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div>
+          <h3>Send Text Messages</h3>
+          <p>Draft and send SMS to your contacts. "Text my family I'm running late."</p>
+        </div>
+        <div class="capability-card">
+          <div class="capability-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></div>
+          <h3>Compose Emails</h3>
+          <p>Write and send emails via Gmail. "Email Sarah about the meeting reschedule."</p>
+        </div>
+        <div class="capability-card">
+          <div class="capability-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg></div>
+          <h3>Leave Voicemails</h3>
+          <p>Record and leave messages when businesses don't pick up.</p>
+        </div>
+        <div class="capability-card">
+          <div class="capability-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/></svg></div>
+          <h3>Batch Outreach</h3>
+          <p>Contact multiple people at once. "Tell the team practice is canceled."</p>
+        </div>
+        <div class="capability-card">
+          <div class="capability-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg></div>
+          <h3>Practice Conversations</h3>
+          <p>Role-play difficult talks before they happen. Salary negotiations, breakups, boundaries.</p>
+        </div>
+      </div>
+
+      <!-- Calendar & Scheduling -->
+      <div class="section-header" style="margin-top: 60px;">
+        <div class="section-icon" style="background: var(--calendar);">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        </div>
+        <div>
+          <h2 class="section-title">Calendar & Scheduling</h2>
+          <p class="section-subtitle">Never miss a meeting, appointment, or commitment</p>
+        </div>
+      </div>
+      <div class="capability-grid" style="--card-accent: var(--calendar);">
+        <div class="capability-card">
+          <div class="capability-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/></svg></div>
+          <h3>Create Events</h3>
+          <p>Add meetings, appointments, and reminders to your calendar.</p>
+        </div>
+        <div class="capability-card">
+          <div class="capability-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></div>
+          <h3>Find Free Time</h3>
+          <p>Analyze your schedule to suggest optimal meeting times.</p>
+        </div>
+        <div class="capability-card">
+          <div class="capability-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/></svg></div>
+          <h3>Book Appointments</h3>
+          <p>Schedule with doctors, salons, restaurants. We handle the calls.</p>
+        </div>
+        <div class="capability-card">
+          <div class="capability-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></div>
+          <h3>Smart Reminders</h3>
+          <p>Time-based and location-based reminders that actually work.</p>
+        </div>
+        <div class="capability-card">
+          <div class="capability-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg></div>
+          <h3>Conflict Detection</h3>
+          <p>Catch double-bookings before they happen. Suggest resolutions.</p>
+        </div>
+        <div class="capability-card">
+          <div class="capability-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
+          <h3>Morning Briefings</h3>
+          <p>Daily overview of schedule, weather, and priorities.</p>
+        </div>
+      </div>
+
+      <!-- Finance -->
+      <div class="section-header" style="margin-top: 60px;">
+        <div class="section-icon" style="background: var(--finance);">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+        </div>
+        <div>
+          <h2 class="section-title">Financial Management</h2>
+          <p class="section-subtitle">Track spending, build wealth, never miss a bill</p>
+        </div>
+      </div>
+      <div class="capability-grid" style="--card-accent: var(--finance);">
+        <div class="capability-card">
+          <div class="capability-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg></div>
+          <h3>Track Spending</h3>
+          <p>Connect to bank accounts via Plaid. See where your money goes.</p>
+        </div>
+        <div class="capability-card">
+          <div class="capability-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg></div>
+          <h3>Budget Monitoring</h3>
+          <p>Alerts when categories exceed limits. No surprises.</p>
+        </div>
+        <div class="capability-card">
+          <div class="capability-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/></svg></div>
+          <h3>Bill Reminders</h3>
+          <p>Never miss a payment. Track due dates and amounts.</p>
+        </div>
+        <div class="capability-card">
+          <div class="capability-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg></div>
+          <h3>Investment Research</h3>
+          <p>Stock lookups, market news, portfolio analysis. Peter loves this stuff.</p>
+        </div>
+        <div class="capability-card">
+          <div class="capability-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83"/></svg></div>
+          <h3>Retirement Planning</h3>
+          <p>Model savings scenarios. "Can I retire at 55?"</p>
+        </div>
+        <div class="capability-card">
+          <div class="capability-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/></svg></div>
+          <h3>Subscription Tracking</h3>
+          <p>Know every recurring charge. Cancel what you don't use.</p>
+        </div>
+      </div>
+
+      <!-- Habits -->
+      <div class="section-header" style="margin-top: 60px;">
+        <div class="section-icon" style="background: var(--habits);">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+        </div>
+        <div>
+          <h2 class="section-title">Habit Coaching</h2>
+          <p class="section-subtitle">Build sustainable habits using behavior science</p>
+        </div>
+      </div>
+      <div class="capability-grid" style="--card-accent: var(--habits);">
+        <div class="capability-card">
+          <div class="capability-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg></div>
+          <h3>Streak Tracking</h3>
+          <p>Visual progress on habit chains. Maya celebrates every day.</p>
+        </div>
+        <div class="capability-card">
+          <div class="capability-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/></svg></div>
+          <h3>Glidepath System</h3>
+          <p>5-stage progression from tiny (2 min) to mastery. No overwhelm.</p>
+        </div>
+        <div class="capability-card">
+          <div class="capability-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg></div>
+          <h3>Habit Stacking</h3>
+          <p>"After [CURRENT], I will [NEW]." Links new habits to existing routines.</p>
+        </div>
+        <div class="capability-card">
+          <div class="capability-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></div>
+          <h3>Zero-Judgment Zone</h3>
+          <p>Missed a day? Maya helps you restart. No shame, ever.</p>
+        </div>
+        <div class="capability-card">
+          <div class="capability-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></div>
+          <h3>Keystone Habits</h3>
+          <p>Find high-impact habits that cascade other changes.</p>
+        </div>
+        <div class="capability-card">
+          <div class="capability-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></div>
+          <h3>Four Tendencies</h3>
+          <p>Upholder, Questioner, Obliger, Rebel. Customized strategies for each.</p>
+        </div>
+      </div>
+
+      <!-- Health & Wellness -->
+      <div class="section-header" style="margin-top: 60px;">
+        <div class="section-icon" style="background: var(--health);">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+        </div>
+        <div>
+          <h2 class="section-title">Health & Wellness</h2>
+          <p class="section-subtitle">Medications, sleep, stress, and mental health</p>
+        </div>
+      </div>
+      <div class="capability-grid" style="--card-accent: var(--health);">
+        <div class="capability-card">
+          <div class="capability-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/></svg></div>
+          <h3>Medication Reminders</h3>
+          <p>Never miss a dose. Time-specific reminders with context.</p>
+        </div>
+        <div class="capability-card">
+          <div class="capability-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 18a5 5 0 0 0-10 0"/><line x1="12" y1="2" x2="12" y2="9"/></svg></div>
+          <h3>Sleep Analysis</h3>
+          <p>Track patterns and get personalized improvement suggestions.</p>
+        </div>
+        <div class="capability-card">
+          <div class="capability-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>
+          <h3>Stress Detection</h3>
+          <p>Notice burnout signals before you hit crisis. Ferni cares.</p>
+        </div>
+        <div class="capability-card">
+          <div class="capability-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg></div>
+          <h3>Mental Health Check-ins</h3>
+          <p>Regular emotional temperature readings. No judgment.</p>
+        </div>
+        <div class="capability-card">
+          <div class="capability-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 3a3 3 0 0 0-3 3v12a3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3H6a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3V6a3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3h12a3 3 0 0 0 3-3 3 3 0 0 0-3-3z"/></svg></div>
+          <h3>Breathing Exercises</h3>
+          <p>Guided calm during anxiety. 4-7-8 breathing, box breathing, and more.</p>
+        </div>
+        <div class="capability-card">
+          <div class="capability-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/></svg></div>
+          <h3>Hydration Tracking</h3>
+          <p>Gentle water reminders throughout the day.</p>
+        </div>
+      </div>
+
+      <!-- Entertainment -->
+      <div class="section-header" style="margin-top: 60px;">
+        <div class="section-icon" style="background: var(--entertainment);">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="5.5" cy="17.5" r="2.5"/><circle cx="17.5" cy="15.5" r="2.5"/><path d="M8 17V5l12-2v12"/></svg>
+        </div>
+        <div>
+          <h2 class="section-title">Entertainment</h2>
+          <p class="section-subtitle">Music, movies, podcasts, and fun</p>
+        </div>
+      </div>
+      <div class="capability-grid" style="--card-accent: var(--entertainment);">
+        <div class="capability-card">
+          <div class="capability-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="5.5" cy="17.5" r="2.5"/><circle cx="17.5" cy="15.5" r="2.5"/><path d="M8 17V5l12-2v12"/></svg></div>
+          <h3>Play Music</h3>
+          <p>Spotify integration. "Play something for focus" or "90s hip hop."</p>
+        </div>
+        <div class="capability-card">
+          <div class="capability-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"/><line x1="7" y1="2" x2="7" y2="22"/><line x1="17" y1="2" x2="17" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/></svg></div>
+          <h3>Movie Suggestions</h3>
+          <p>Personalized recommendations based on your mood and taste.</p>
+        </div>
+        <div class="capability-card">
+          <div class="capability-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 11a9 9 0 0 1 9 9"/><path d="M4 4a16 16 0 0 1 16 16"/><circle cx="5" cy="19" r="1"/></svg></div>
+          <h3>Podcast Discovery</h3>
+          <p>Suggest and queue episodes relevant to your interests.</p>
+        </div>
+        <div class="capability-card">
+          <div class="capability-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg></div>
+          <h3>Reading Lists</h3>
+          <p>Book recommendations and tracking. "What should I read next?"</p>
+        </div>
+      </div>
+
+      <!-- Smart Home -->
+      <div class="section-header" style="margin-top: 60px;">
+        <div class="section-icon" style="background: var(--home);">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+        </div>
+        <div>
+          <h2 class="section-title">Smart Home</h2>
+          <p class="section-subtitle">Lights, thermostat, locks, and automations</p>
+        </div>
+      </div>
+      <div class="capability-grid" style="--card-accent: var(--home);">
+        <div class="capability-card">
+          <div class="capability-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg></div>
+          <h3>Control Lights</h3>
+          <p>Brightness, color, scenes. "Dim the living room to 50%."</p>
+        </div>
+        <div class="capability-card">
+          <div class="capability-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z"/></svg></div>
+          <h3>Thermostat</h3>
+          <p>Temperature adjustments. "Make it warmer in here."</p>
+        </div>
+        <div class="capability-card">
+          <div class="capability-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>
+          <h3>Lock Control</h3>
+          <p>Check door status and lock/unlock. "Is the front door locked?"</p>
+        </div>
+        <div class="capability-card">
+          <div class="capability-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg></div>
+          <h3>Apple Shortcuts</h3>
+          <p>Trigger custom automations. "Run my bedtime routine."</p>
+        </div>
+      </div>
+
+      <!-- Travel -->
+      <div class="section-header" style="margin-top: 60px;">
+        <div class="section-icon" style="background: var(--travel);">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+        </div>
+        <div>
+          <h2 class="section-title">Travel & Logistics</h2>
+          <p class="section-subtitle">Flights, hotels, reservations, and trip planning</p>
+        </div>
+      </div>
+      <div class="capability-grid" style="--card-accent: var(--travel);">
+        <div class="capability-card">
+          <div class="capability-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8"/></svg></div>
+          <h3>Flight Search</h3>
+          <p>Find and compare options. "Flights to Tokyo in March."</p>
+        </div>
+        <div class="capability-card">
+          <div class="capability-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg></div>
+          <h3>Hotel Research</h3>
+          <p>Accommodation recommendations based on preferences.</p>
+        </div>
+        <div class="capability-card">
+          <div class="capability-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/></svg></div>
+          <h3>Restaurant Reservations</h3>
+          <p>Book tables at local spots. We'll call if needed.</p>
+        </div>
+        <div class="capability-card">
+          <div class="capability-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg></div>
+          <h3>Package Tracking</h3>
+          <p>Monitor all your deliveries in one place.</p>
+        </div>
+        <div class="capability-card">
+          <div class="capability-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/></svg></div>
+          <h3>Itinerary Planning</h3>
+          <p>Build day-by-day schedules for trips. Jordan loves this.</p>
+        </div>
+        <div class="capability-card">
+          <div class="capability-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div>
+          <h3>Currency Conversion</h3>
+          <p>Exchange rates and calculations on the fly.</p>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- Personas Section -->
+    <section id="personas" class="persona-section">
+      <div class="section-header">
+        <div class="section-icon" style="background: var(--ferni);">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        </div>
+        <div>
+          <h2 class="section-title">The Team: 6 Specialist Personas</h2>
+          <p class="section-subtitle">No single perspective can hold everything. That's why we have a team.</p>
+        </div>
+      </div>
+
+      <div class="persona-grid">
+        <!-- Ferni -->
+        <div class="persona-card">
+          <div class="persona-avatar">
+            <svg viewBox="0 0 100 100">
+              <defs><linearGradient id="ferniG" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color: var(--color-ferni-light)"/><stop offset="100%" style="stop-color: var(--color-ferni-dark)"/></linearGradient></defs>
+              <circle cx="50" cy="50" r="45" fill="url(#ferniG)"/>
+              <ellipse cx="36" cy="48" rx="7" ry="10" fill="white"/><ellipse cx="64" cy="48" rx="7" ry="10" fill="white"/>
+            </svg>
+          </div>
+          <div class="persona-info">
+            <h3>Ferni</h3>
+            <div class="persona-role" style="color: var(--ferni);">The Life Coach</div>
+            <p>Deep conversations, emotional support, curiosity. Asks the question you've been avoiding. Available at 2am with noon warmth.</p>
+            <div class="persona-powers">
+              <span class="persona-power">Perfect memory</span>
+              <span class="persona-power">Zero judgment</span>
+              <span class="persona-power">Kintsugi wisdom</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Maya -->
+        <div class="persona-card">
+          <div class="persona-avatar">
+            <svg viewBox="0 0 100 100">
+              <defs><linearGradient id="mayaG" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color: var(--color-maya-light)"/><stop offset="100%" style="stop-color: var(--color-maya-dark)"/></linearGradient></defs>
+              <circle cx="50" cy="50" r="45" fill="url(#mayaG)"/>
+              <ellipse cx="36" cy="48" rx="7" ry="10" fill="white"/><ellipse cx="64" cy="48" rx="7" ry="10" fill="white"/>
+            </svg>
+          </div>
+          <div class="persona-info">
+            <h3>Maya</h3>
+            <div class="persona-role" style="color: var(--maya);">The Habits Coach</div>
+            <p>Behavior change, routine building, accountability. Celebrates maintenance as success. Infinite patience for setbacks.</p>
+            <div class="persona-powers">
+              <span class="persona-power">Glidepath system</span>
+              <span class="persona-power">Habit stacking</span>
+              <span class="persona-power">Four Tendencies</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Peter -->
+        <div class="persona-card">
+          <div class="persona-avatar">
+            <svg viewBox="0 0 100 100">
+              <defs><linearGradient id="peterG" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color: var(--color-peter-light)"/><stop offset="100%" style="stop-color: var(--color-peter-dark)"/></linearGradient></defs>
+              <circle cx="50" cy="50" r="45" fill="url(#peterG)"/>
+              <ellipse cx="36" cy="48" rx="7" ry="10" fill="white"/><ellipse cx="64" cy="48" rx="7" ry="10" fill="white"/>
+            </svg>
+          </div>
+          <div class="persona-info">
+            <h3>Peter</h3>
+            <div class="persona-role" style="color: var(--peter);">The Quant</div>
+            <p>Data, research, pattern recognition. Sees connections across spending, habits, time, goals. Finds the story in numbers.</p>
+            <div class="persona-powers">
+              <span class="persona-power">Cross-domain analysis</span>
+              <span class="persona-power">Market research</span>
+              <span class="persona-power">Pattern surfacing</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Jordan -->
+        <div class="persona-card">
+          <div class="persona-avatar">
+            <svg viewBox="0 0 100 100">
+              <defs><linearGradient id="jordanG" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color: var(--color-jordan-light)"/><stop offset="100%" style="stop-color: var(--color-jordan-dark)"/></linearGradient></defs>
+              <circle cx="50" cy="50" r="45" fill="url(#jordanG)"/>
+              <ellipse cx="36" cy="48" rx="7" ry="10" fill="white"/><ellipse cx="64" cy="48" rx="7" ry="10" fill="white"/>
+            </svg>
+          </div>
+          <div class="persona-info">
+            <h3>Jordan</h3>
+            <div class="persona-role" style="color: var(--jordan);">The Lifetime Planner</div>
+            <p>Milestones, celebrations, long-term vision. Breaks decade dreams into weekly actions. Preserves life stories forever.</p>
+            <div class="persona-powers">
+              <span class="persona-power">Celebration mastery</span>
+              <span class="persona-power">Vision casting</span>
+              <span class="persona-power">Fresh start energy</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Alex -->
+        <div class="persona-card">
+          <div class="persona-avatar">
+            <svg viewBox="0 0 100 100">
+              <defs><linearGradient id="alexG" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color: var(--color-alex-light)"/><stop offset="100%" style="stop-color: var(--color-alex-dark)"/></linearGradient></defs>
+              <circle cx="50" cy="50" r="45" fill="url(#alexG)"/>
+              <ellipse cx="36" cy="48" rx="7" ry="10" fill="white"/><ellipse cx="64" cy="48" rx="7" ry="10" fill="white"/>
+            </svg>
+          </div>
+          <div class="persona-info">
+            <h3>Alex</h3>
+            <div class="persona-role" style="color: var(--alex);">The Chief of Staff</div>
+            <p>Communication, calendar, organization. Manages inbox AND coaches difficult conversations. "Clear is kind."</p>
+            <div class="persona-powers">
+              <span class="persona-power">Inbox management</span>
+              <span class="persona-power">Conversation rehearsal</span>
+              <span class="persona-power">Conflict resolution</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Nayan -->
+        <div class="persona-card">
+          <div class="persona-avatar">
+            <svg viewBox="0 0 100 100">
+              <defs><linearGradient id="nayanG" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color: var(--color-nayan-light)"/><stop offset="100%" style="stop-color: var(--color-nayan-dark)"/></linearGradient></defs>
+              <circle cx="50" cy="50" r="45" fill="url(#nayanG)"/>
+              <ellipse cx="36" cy="48" rx="7" ry="10" fill="white"/><ellipse cx="64" cy="48" rx="7" ry="10" fill="white"/>
+            </svg>
+          </div>
+          <div class="persona-info">
+            <h3>Nayan</h3>
+            <div class="persona-role" style="color: var(--nayan);">The Wisdom Sage</div>
+            <p>Perspective, philosophy, life's big questions. Holds questions without needing answers. Perfect stillness.</p>
+            <div class="persona-powers">
+              <span class="persona-power">Paradox comfort</span>
+              <span class="persona-power">Long-term thinking</span>
+              <span class="persona-power">Silence mastery</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Superhuman Services -->
+    <section id="superhuman" class="superhuman-section">
+      <div class="superhuman-header">
+        <div class="superhuman-badge">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+          19 Superhuman Services
+        </div>
+        <h2 class="superhuman-title">Beyond What Any Human Friend Can Do</h2>
+        <p class="superhuman-subtitle">These capabilities go beyond what even your best friend can consistently provide.</p>
+      </div>
+
+      <div class="superhuman-grid">
+        <div class="superhuman-card">
+          <div class="superhuman-card-header">
+            <div class="superhuman-card-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></div>
+            <div>
+              <h3>Commitment Keeper</h3>
+              <div class="limitation">Friends forget promises</div>
+            </div>
+          </div>
+          <p>Tracks every intention, decision, and goal you've ever made. Surfaces them at the right moment.</p>
+        </div>
+
+        <div class="superhuman-card">
+          <div class="superhuman-card-header">
+            <div class="superhuman-card-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg></div>
+            <div>
+              <h3>Predictive Coaching</h3>
+              <div class="limitation">Can't see patterns objectively</div>
+            </div>
+          </div>
+          <p>Anticipates struggles before they happen based on your patterns and history.</p>
+        </div>
+
+        <div class="superhuman-card">
+          <div class="superhuman-card-header">
+            <div class="superhuman-card-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg></div>
+            <div>
+              <h3>Life Narrative</h3>
+              <div class="limitation">Hard to maintain perspective</div>
+            </div>
+          </div>
+          <p>Builds the coherent story of your journey. Connects past to present to future.</p>
+        </div>
+
+        <div class="superhuman-card">
+          <div class="superhuman-card-header">
+            <div class="superhuman-card-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78"/></svg></div>
+            <div>
+              <h3>Values Alignment</h3>
+              <div class="limitation">Friends avoid confrontation</div>
+            </div>
+          </div>
+          <p>Gently detects when your actions conflict with your stated values.</p>
+        </div>
+
+        <div class="superhuman-card">
+          <div class="superhuman-card-header">
+            <div class="superhuman-card-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>
+            <div>
+              <h3>Emotional First Aid</h3>
+              <div class="limitation">Takes time to respond</div>
+            </div>
+          </div>
+          <p>Rapid-response crisis protocols. No waiting for a callback.</p>
+        </div>
+
+        <div class="superhuman-card">
+          <div class="superhuman-card-header">
+            <div class="superhuman-card-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/></svg></div>
+            <div>
+              <h3>Relationship Network</h3>
+              <div class="limitation">Can't track everyone</div>
+            </div>
+          </div>
+          <p>Maps all your relationships with context and sentiment. Never forget a connection.</p>
+        </div>
+
+        <div class="superhuman-card">
+          <div class="superhuman-card-header">
+            <div class="superhuman-card-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/></svg></div>
+            <div>
+              <h3>Capacity Guardian</h3>
+              <div class="limitation">Often too late for burnout</div>
+            </div>
+          </div>
+          <p>Monitors your energy levels. Prevents burnout before crisis.</p>
+        </div>
+
+        <div class="superhuman-card">
+          <div class="superhuman-card-header">
+            <div class="superhuman-card-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9z"/></svg></div>
+            <div>
+              <h3>Dream Keeper</h3>
+              <div class="limitation">Dreams get buried</div>
+            </div>
+          </div>
+          <p>Guards your long-term aspirations. Keeps them alive when life gets busy.</p>
+        </div>
+
+        <div class="superhuman-card">
+          <div class="superhuman-card-header">
+            <div class="superhuman-card-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="16 12 12 8 8 12"/><line x1="12" y1="16" x2="12" y2="8"/></svg></div>
+            <div>
+              <h3>Perfect Timing</h3>
+              <div class="limitation">Can't track readiness</div>
+            </div>
+          </div>
+          <p>Learns when you're most receptive to feedback. Delivers insights at the right moment.</p>
+        </div>
+
+        <div class="superhuman-card">
+          <div class="superhuman-card-header">
+            <div class="superhuman-card-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg></div>
+            <div>
+              <h3>Silence Interpreter</h3>
+              <div class="limitation">Fill every silence</div>
+            </div>
+          </div>
+          <p>Knows if your silence is processing, emotional, or exhausted. Responds accordingly.</p>
+        </div>
+
+        <div class="superhuman-card">
+          <div class="superhuman-card-header">
+            <div class="superhuman-card-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg></div>
+            <div>
+              <h3>First-Time Vulnerability</h3>
+              <div class="limitation">Miss the significance</div>
+            </div>
+          </div>
+          <p>Detects when you share something for the first time. Honors that moment.</p>
+        </div>
+
+        <div class="superhuman-card">
+          <div class="superhuman-card-header">
+            <div class="superhuman-card-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg></div>
+            <div>
+              <h3>Linguistic Mirroring</h3>
+              <div class="limitation">Impose own language</div>
+            </div>
+          </div>
+          <p>Learns YOUR emotion vocabulary. Uses your words, not ours.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Verticals -->
+    <section id="verticals" class="verticals-section">
+      <div class="verticals-header">
+        <h2 class="verticals-title">Your Life Assistant, Supercharged</h2>
+        <p class="verticals-subtitle">Coaching, guidance, and administrative support in one always-available companion</p>
+      </div>
+
+      <div class="verticals-grid">
+        <!-- Coaching & Guidance -->
+        <div class="vertical-item" style="--card-accent: var(--maya);">
+          <div class="vertical-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></div>
+          <span>Life Coaches</span>
+        </div>
+        <div class="vertical-item" style="--card-accent: var(--alex);">
+          <div class="vertical-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></div>
+          <span>Executive Coaches</span>
+        </div>
+        <div class="vertical-item" style="--card-accent: var(--jordan);">
+          <div class="vertical-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg></div>
+          <span>Career Coaches</span>
+        </div>
+        <div class="vertical-item" style="--card-accent: var(--maya);">
+          <div class="vertical-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg></div>
+          <span>Wellness Coaches</span>
+        </div>
+        <div class="vertical-item" style="--card-accent: var(--peter);">
+          <div class="vertical-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20v-6M6 20V10M18 20V4"/></svg></div>
+          <span>Performance Coaches</span>
+        </div>
+        <div class="vertical-item" style="--card-accent: var(--nayan);">
+          <div class="vertical-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg></div>
+          <span>Therapist Support</span>
+        </div>
+        <div class="vertical-item" style="--card-accent: var(--jordan);">
+          <div class="vertical-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></div>
+          <span>Leadership Coaches</span>
+        </div>
+        <div class="vertical-item" style="--card-accent: var(--maya);">
+          <div class="vertical-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
+          <span>Relationship Coaches</span>
+        </div>
+
+        <!-- Life Assistant / Admin Support -->
+        <div class="vertical-item" style="--card-accent: var(--alex);">
+          <div class="vertical-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
+          <span>Personal Assistants</span>
+        </div>
+        <div class="vertical-item" style="--card-accent: var(--alex);">
+          <div class="vertical-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg></div>
+          <span>Executive Assistants</span>
+        </div>
+        <div class="vertical-item" style="--card-accent: var(--ferni);">
+          <div class="vertical-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>
+          <span>Scheduling Software</span>
+        </div>
+        <div class="vertical-item" style="--card-accent: var(--peter);">
+          <div class="vertical-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></div>
+          <span>Task Management</span>
+        </div>
+        <div class="vertical-item" style="--card-accent: var(--alex);">
+          <div class="vertical-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></div>
+          <span>Email Management</span>
+        </div>
+        <div class="vertical-item" style="--card-accent: var(--peter);">
+          <div class="vertical-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M21 15l-3-3m0 0l-3 3m3-3v6"/></svg></div>
+          <span>CRM Systems</span>
+        </div>
+
+        <!-- Self-Improvement -->
+        <div class="vertical-item" style="--card-accent: var(--maya);">
+          <div class="vertical-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/></svg></div>
+          <span>Habit Apps</span>
+        </div>
+        <div class="vertical-item" style="--card-accent: var(--nayan);">
+          <div class="vertical-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg></div>
+          <span>Meditation Apps</span>
+        </div>
+        <div class="vertical-item" style="--card-accent: var(--ferni);">
+          <div class="vertical-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></div>
+          <span>Journaling Apps</span>
+        </div>
+        <div class="vertical-item" style="--card-accent: var(--jordan);">
+          <div class="vertical-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
+          <span>Goal Tracking</span>
+        </div>
+
+        <!-- Smart Companion -->
+        <div class="vertical-item" style="--card-accent: var(--ferni);">
+          <div class="vertical-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33"/></svg></div>
+          <span>Voice Assistants</span>
+        </div>
+        <div class="vertical-item" style="--card-accent: var(--alex);">
+          <div class="vertical-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div>
+          <span>AI Chatbots</span>
+        </div>
+        <div class="vertical-item" style="--card-accent: var(--maya);">
+          <div class="vertical-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>
+          <span>Employee Wellness</span>
+        </div>
+        <div class="vertical-item" style="--card-accent: var(--jordan);">
+          <div class="vertical-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/></svg></div>
+          <span>Accountability Partners</span>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- CTA -->
+  <section class="cta-section">
+    <p class="cta-quote">"Friends forget. Ferni doesn't."</p>
+    <p class="cta-tagline">Your executive assistant on steroids. Always here. Always remembering.</p>
+    <div class="cta-buttons">
+      <a href="../index.html" class="cta-btn cta-btn-primary">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M15 18l-6-6 6-6"/></svg>
+        Back to Brand Library
+      </a>
+      <a href="../universe-bible.html" class="cta-btn cta-btn-secondary">
+        Read the Universe Bible
+      </a>
+    </div>
+  </section>
+
+  <!-- Shared Footer (injected by nav.js) -->
+  <div id="footer-placeholder"></div>
+
+  <!-- Shared Navigation Component -->
+  <script src="../shared/nav.js" defer></script>
+
+  <script>
+    // Section Navigation (page-specific)
+    function scrollToSection(id) {
+      const el = document.getElementById(id);
+      if (el) {
+        const offset = 140; // Account for sticky nav
+        const y = el.getBoundingClientRect().top + window.pageYOffset - offset;
+        window.scrollTo({ top: y, behavior: 'smooth' });
+      }
+
+      // Update active state
+      document.querySelectorAll('.section-btn').forEach(btn => btn.classList.remove('active'));
+      event.target.closest('.section-btn').classList.add('active');
+    }
+
+    // Update nav on scroll
+    const sections = ['actions', 'personas', 'superhuman', 'verticals'];
+    window.addEventListener('scroll', () => {
+      const scrollPos = window.scrollY + 200;
+
+      sections.forEach(id => {
+        const section = document.getElementById(id);
+        if (section) {
+          const top = section.offsetTop;
+          const bottom = top + section.offsetHeight;
+
+          if (scrollPos >= top && scrollPos < bottom) {
+            document.querySelectorAll('.section-btn').forEach(btn => {
+              btn.classList.remove('active');
+              if (btn.textContent.toLowerCase().includes(id.substring(0, 4))) {
+                btn.classList.add('active');
+              }
+            });
+          }
+        }
+      });
+    });
+  </script>
+</body>
+</html>

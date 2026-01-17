@@ -49,6 +49,8 @@ export const CANONICAL_IDS = {
   BUDGETER: 'maya-santos',
   PLANNER: 'jordan-taylor',
   SAGE: 'nayan-patel',
+  // Standalone personas (not part of Ferni team)
+  JOEL_DICKSON: 'joel-dickson',
 } as const;
 
 export type CanonicalPersonaId = (typeof CANONICAL_IDS)[keyof typeof CANONICAL_IDS];
@@ -75,6 +77,7 @@ export const CANONICAL_TO_FRONTEND: Record<CanonicalPersonaId, CanonicalPersonaI
   'maya-santos': 'maya-santos',
   'jordan-taylor': 'jordan-taylor',
   'nayan-patel': 'nayan-patel',
+  'joel-dickson': 'joel-dickson',
 };
 
 /**
@@ -89,6 +92,7 @@ export const FRONTEND_TO_CANONICAL: Record<CanonicalPersonaId, CanonicalPersonaI
   'maya-santos': 'maya-santos',
   'jordan-taylor': 'jordan-taylor',
   'nayan-patel': 'nayan-patel',
+  'joel-dickson': 'joel-dickson',
 };
 
 /**
@@ -164,6 +168,14 @@ export const ALIAS_TO_CANONICAL: Record<string, CanonicalPersonaId> = {
   wisdom: 'nayan-patel',
   'lifetime-advisor': 'nayan-patel',
   'spiritual-guide': 'nayan-patel',
+
+  // Joel Dickson (Vanguard Life Mentor - Standalone)
+  'joel-dickson': 'joel-dickson',
+  joel: 'joel-dickson',
+  dickson: 'joel-dickson',
+  'dr-dickson': 'joel-dickson',
+  'vanguard-mentor': 'joel-dickson',
+  'life-mentor': 'joel-dickson',
 };
 
 // ============================================================================
@@ -235,6 +247,7 @@ export const DISPLAY_NAMES: Record<CanonicalPersonaId, string> = {
   'maya-santos': 'Maya',
   'jordan-taylor': 'Jordan',
   'nayan-patel': 'Nayan',
+  'joel-dickson': 'Joel',
 };
 
 export function getDisplayName(id: string): string {
@@ -278,24 +291,67 @@ export function validateAndLog(id: string, context: string): CanonicalPersonaId 
 
 /**
  * Check if two IDs refer to the same persona (handles all formats).
+ *
+ * NOTE: For marketplace agents not in ALIAS_TO_CANONICAL, this compares IDs directly.
+ * For core team members, it resolves aliases before comparison.
  */
 export function isSamePersona(id1: string, id2: string): boolean {
-  return toCanonical(id1) === toCanonical(id2);
+  const normalized1 = id1.toLowerCase().trim();
+  const normalized2 = id2.toLowerCase().trim();
+
+  // First try direct comparison (handles marketplace agents)
+  if (normalized1 === normalized2) {
+    return true;
+  }
+
+  // For core team, resolve aliases and compare
+  const canonical1 = ALIAS_TO_CANONICAL[normalized1];
+  const canonical2 = ALIAS_TO_CANONICAL[normalized2];
+
+  // If both are in alias map, compare canonical forms
+  if (canonical1 && canonical2) {
+    return canonical1 === canonical2;
+  }
+
+  // If one is in alias map, compare against normalized form
+  if (canonical1) {
+    return canonical1 === normalized2;
+  }
+  if (canonical2) {
+    return canonical2 === normalized1;
+  }
+
+  // Neither in alias map - already compared normalized forms above
+  return false;
 }
+
+// Ferni (coach) aliases for direct matching - avoids toCanonical warnings for marketplace agents
+const FERNI_ALIASES = new Set(['ferni', 'fern', 'jack-b', 'coach', 'life-coach', 'jackie']);
 
 /**
  * Check if an ID refers to the coach (Ferni).
+ *
+ * NOTE: This directly checks against known Ferni aliases instead of using toCanonical()
+ * to avoid warning spam when marketplace agent IDs are passed through.
+ * Marketplace agents are NOT the coach, so we return false for unknown IDs.
  */
 export function isCoach(id: string): boolean {
-  return toCanonical(id) === 'ferni';
+  const normalized = id.toLowerCase().trim();
+  return FERNI_ALIASES.has(normalized);
 }
 
 /**
- * Check if an ID refers to a team member (not coach).
+ * Check if an ID refers to a core team member (not coach, not marketplace agent).
+ *
+ * NOTE: Returns false for marketplace agents since they're not part of the core Ferni team.
+ * To check if something is a valid agent at all, use AgentRegistry.hasAgent() instead.
  */
 export function isTeamMember(id: string): boolean {
-  const canonical = toCanonical(id);
-  return canonical !== 'ferni' && ALL_CANONICAL_IDS.includes(canonical);
+  const normalized = id.toLowerCase().trim();
+  const canonical = ALIAS_TO_CANONICAL[normalized];
+
+  // Must be in alias map and not ferni to be a core team member
+  return canonical !== undefined && canonical !== 'ferni' && ALL_CANONICAL_IDS.includes(canonical);
 }
 
 // ============================================================================

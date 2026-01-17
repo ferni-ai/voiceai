@@ -1,17 +1,19 @@
 /**
  * Alex Agent - Communication Coach & Executive Support
  *
+ * Extends PersonaVoiceAgent for shared TTS processing (sanitization, FinOps, interrupt handling).
  * Clean LiveKit 1.0 Implementation with direct domain imports.
  *
  * @see https://docs.livekit.io/agents/build/agents-handoffs
  */
 
-import { llm, voice } from '@livekit/agents';
+import { llm } from '@livekit/agents';
 import { z } from 'zod';
 
 import { createLogger } from '../../utils/safe-logger.js';
 import type { ToolContext } from '../../tools/registry/types.js';
 import { loadSystemPrompt } from './prompt-loader.js';
+import { PersonaVoiceAgent, type PersonaVoiceAgentOptions } from './ferni-agent.js';
 
 const log = createLogger({ module: 'AlexAgent' });
 
@@ -37,14 +39,8 @@ import { getToolDescription } from '../../tools/utils/tool-descriptions.js';
 // TYPES
 // ============================================================================
 
-interface AlexSessionData {
-  userId?: string;
-  userName?: string;
-  personaId?: string;
-  [key: string]: unknown;
-}
-
-type ToolSet = llm.ToolContext<AlexSessionData>;
+// AlexAgent uses PersonaVoiceAgent's session data type
+type ToolSet = llm.ToolContext<Record<string, unknown>>;
 
 // ============================================================================
 // TOOL BUILDING HELPERS
@@ -151,12 +147,13 @@ function buildHandoffTools(): ToolSet {
 /**
  * Alex Chen - Communication Coach & Executive Support
  *
+ * Extends PersonaVoiceAgent for shared TTS processing.
  * Rich system prompt loaded from bundles/alex-chen/identity/system-prompt.md
  */
-export class AlexAgent extends voice.Agent<AlexSessionData> {
+export class AlexAgent extends PersonaVoiceAgent {
   private static systemPromptCache: string | null = null;
 
-  constructor(systemPrompt: string, chatCtx?: llm.ChatContext) {
+  constructor(systemPrompt: string, options?: PersonaVoiceAgentOptions) {
     const memoryTools = buildMemoryTools('alex-chen');
     const communicationTools = buildCommunicationTools();
     const handoffTools = buildHandoffTools();
@@ -169,20 +166,21 @@ export class AlexAgent extends voice.Agent<AlexSessionData> {
       ...conversationTools,
     } as ToolSet;
 
-    super({
-      instructions: systemPrompt,
-      chatCtx,
+    // Pass tools to PersonaVoiceAgent (which passes to voice.Agent)
+    super(systemPrompt, {
+      ...options,
       tools: allTools,
+      skipGreeting: true, // Greeting handled by handoff-handler.ts
     });
 
-    process.stderr.write(`[AlexAgent] Initialized with ${Object.keys(allTools).length} tools\n`);
+    log.info({ totalTools: Object.keys(allTools).length }, 'AlexAgent initialized');
   }
 
   static async create(chatCtx?: llm.ChatContext): Promise<AlexAgent> {
     if (!AlexAgent.systemPromptCache) {
       AlexAgent.systemPromptCache = await loadSystemPrompt('alex-chen');
     }
-    return new AlexAgent(AlexAgent.systemPromptCache, chatCtx);
+    return new AlexAgent(AlexAgent.systemPromptCache, { chatCtx });
   }
 
   /**
@@ -194,7 +192,7 @@ export class AlexAgent extends voice.Agent<AlexSessionData> {
   }
 
   async onExit(): Promise<void> {
-    process.stderr.write(`[AlexAgent] Transitioning to another agent\n`);
+    log.debug('Transitioning to another agent');
   }
 }
 

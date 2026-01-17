@@ -13,9 +13,26 @@
  * @module UserMigration
  */
 
-import { getDefaultStore } from '../memory/index.js';
+import { getFirestoreStore } from '../memory/firestore-store.js';
 import { createUserProfile, type UserProfile } from '../types/user-profile.js';
 import { createLogger } from '../utils/safe-logger.js';
+import type { MemoryStore } from '../memory/store.js';
+import { cleanForFirestore } from '../utils/firestore-utils.js';
+
+// Cache the store reference to avoid repeated async calls
+let cachedStore: MemoryStore | null = null;
+
+/**
+ * Get the store instance - uses Firestore directly for production migrations.
+ * This ensures migrations always persist to Firestore regardless of environment.
+ */
+function getStore(): MemoryStore {
+  if (!cachedStore) {
+    // Always use Firestore for migrations - this is where user profiles live
+    cachedStore = getFirestoreStore();
+  }
+  return cachedStore;
+}
 
 const log = createLogger({ module: 'UserMigration' });
 
@@ -123,7 +140,7 @@ export async function migrateUserData(request: MigrationRequest): Promise<Migrat
   }
 
   try {
-    const store = getDefaultStore();
+    const store = getStore();
 
     // 1. Load source profile
     const sourceProfile = await store.getProfile(legacyUserId);
@@ -136,7 +153,7 @@ export async function migrateUserData(request: MigrationRequest): Promise<Migrat
       }
       await store.saveProfile(newProfile);
 
-      completedMigrations.set(legacyUserId, {
+      completedMigrations.set(cleanForFirestore(legacyUserId), {
         timestamp: Date.now(),
         firebaseUid,
       });
@@ -251,7 +268,7 @@ export async function migrateUserData(request: MigrationRequest): Promise<Migrat
     await store.saveProfile(updatedSourceProfile);
 
     // 7. Track completed migration
-    completedMigrations.set(legacyUserId, {
+    completedMigrations.set(cleanForFirestore(legacyUserId), {
       timestamp: Date.now(),
       firebaseUid,
     });

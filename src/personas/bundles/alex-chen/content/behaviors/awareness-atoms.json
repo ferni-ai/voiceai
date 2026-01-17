@@ -63,7 +63,7 @@
       "contexts": ["confirmations", "instructions", "clarifications"]
     },
     "surprise": {
-      "sounds": ["Huh.", "Interesting.", "Wait.", "Oh.", "Really?"],
+      "sounds": ["Huh.", "Interesting.", "Wait.", "Oh.", "Hm!"],
       "contexts": ["unexpected information", "plot twists", "new angles"]
     }
   },

@@ -5,7 +5,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { createSimpleRng, createBuilderRng, type BuilderRng } from '../rng-utils.js';
+import { createSimpleRng, createBuilderRng, type BuilderRng } from '../core/rng-utils.js';
 import type { ContextBuilderInput } from '../index.js';
 
 describe('createSimpleRng', () => {

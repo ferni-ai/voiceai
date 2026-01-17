@@ -25,6 +25,10 @@ vi.mock('@livekit/agents-plugin-cartesia', () => ({
     }
     stream() {
       return {
+        pushText: vi.fn(),
+        flush: vi.fn(),
+        endInput: vi.fn(),
+        close: vi.fn(),
         [Symbol.asyncIterator]: async function* () {
           yield { data: new Uint8Array([0]) };
         },
@@ -84,20 +88,20 @@ vi.mock('../personas/voice-registry.js', () => ({
   }),
 }));
 
-vi.mock('../utils/safe-logger.js', () => ({
-  getLogger: () => ({
+// Mock logger - must include child() method for all logger instances
+vi.mock('../utils/safe-logger.js', () => {
+  const mockLogger = {
     debug: vi.fn(),
     info: vi.fn(),
     warn: vi.fn(),
     error: vi.fn(),
-  }),
-  createLogger: () => ({
-    debug: vi.fn(),
-    info: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-  }),
-}));
+    child: () => mockLogger,
+  };
+  return {
+    createLogger: () => mockLogger,
+    getLogger: () => mockLogger,
+  };
+});
 
 vi.mock('../services/cartesia-voice-localization.js', () => ({
   getLocalizedVoiceId: vi.fn((personaId: string, accent: string) => {
@@ -191,7 +195,7 @@ describe('VoiceManager', () => {
     });
 
     it('should have consistent model across all voices', () => {
-      const expectedModel = process.env.CARTESIA_MODEL || 'sonic-3';
+      const expectedModel = process.env.CARTESIA_MODEL || 'sonic-3-latest';
       for (const [_id, config] of Object.entries(VOICES)) {
         expect(config.model).toBe(expectedModel);
       }

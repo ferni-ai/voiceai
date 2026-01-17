@@ -13,10 +13,47 @@
  * Real humans notice when someone's voice "deflates" at the end of a thought.
  * This module gives Ferni that awareness.
  *
+ * Uses Rust-accelerated functions when available via @ferni/audio module
+ * for 10-20x speedup on CPU-intensive operations (RMS, ZCR).
+ *
  * @module EnergyDynamics
  */
 
+import { createRequire } from 'module';
 import { getLogger } from '../utils/safe-logger.js';
+
+// ============================================================================
+// RUST ACCELERATION (OPTIONAL)
+// ============================================================================
+
+// Create require for loading native modules in ESM context
+const require = createRequire(import.meta.url);
+
+/** Native module functions we use for energy dynamics detection */
+interface NativeAudioModule {
+  computeRms: (samples: Float32Array) => number;
+  computeZcr: (samples: Float32Array) => number;
+}
+
+let nativeModule: NativeAudioModule | null = null;
+let loadAttempted = false;
+
+function getNativeModule(): NativeAudioModule | null {
+  if (loadAttempted) return nativeModule;
+  loadAttempted = true;
+
+  try {
+    nativeModule = require('@ferni/audio') as NativeAudioModule;
+    return nativeModule;
+  } catch {
+    return null;
+  }
+}
+
+/** Check if Rust acceleration is available for energy dynamics detection */
+export function isNativeEnergyDynamicsAvailable(): boolean {
+  return getNativeModule() !== null;
+}
 
 const log = getLogger().child({ module: 'EnergyDynamics' });
 
@@ -238,6 +275,9 @@ export class EnergyDynamicsTracker {
 
     if (numSegments < 2) return [];
 
+    // Get Rust module for acceleration (if available)
+    const native = getNativeModule();
+
     const segments: EnergySegment[] = [];
 
     for (let i = 0; i < numSegments; i++) {
@@ -245,20 +285,30 @@ export class EnergyDynamicsTracker {
       const end = start + samplesPerSegment;
       const segment = samples.slice(start, end);
 
-      // Calculate RMS energy
-      let sum = 0;
-      for (const sample of segment) {
-        sum += sample * sample;
-      }
-      const rms = Math.sqrt(sum / segment.length);
+      // Calculate RMS energy and Zero Crossings - Use Rust when available
+      let rms: number;
+      let zeroCrossings: number;
 
-      // Estimate speech rate from zero crossings
-      let zeroCrossings = 0;
-      for (let j = 1; j < segment.length; j++) {
-        if (Math.sign(segment[j]) !== Math.sign(segment[j - 1])) {
-          zeroCrossings++;
+      if (native) {
+        rms = native.computeRms(segment);
+        zeroCrossings = native.computeZcr(segment) * segment.length; // ZCR returns ratio
+      } else {
+        // JavaScript fallback for RMS
+        let sum = 0;
+        for (const sample of segment) {
+          sum += sample * sample;
+        }
+        rms = Math.sqrt(sum / segment.length);
+
+        // JavaScript fallback for Zero crossings
+        zeroCrossings = 0;
+        for (let j = 1; j < segment.length; j++) {
+          if (Math.sign(segment[j]) !== Math.sign(segment[j - 1])) {
+            zeroCrossings++;
+          }
         }
       }
+
       const speechRate = (zeroCrossings / segment.length) * sampleRate;
 
       segments.push({

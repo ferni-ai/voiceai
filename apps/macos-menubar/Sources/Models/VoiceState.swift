@@ -46,13 +46,16 @@ enum VoiceState: Equatable {
     }
     
     /// Breathing animation intensity multiplier
+    /// NOTE: All active states use same intensity - no listening/speaking distinction
     var breathingIntensity: Double {
         switch self {
-        case .speaking: return 1.5
-        case .listening: return 1.2
-        case .thinking: return 0.8
-        case .connected: return 1.0
-        default: return 0.6
+        case .connected, .listening, .speaking:
+            // All active conversation states use same intensity
+            return 1.0
+        case .thinking:
+            return 0.8
+        default:
+            return 0.6
         }
     }
 }

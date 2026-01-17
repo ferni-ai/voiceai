@@ -1,187 +1,1454 @@
 ---
-layout: layouts/base.njk
+layout: layouts/story-brand.njk
 title: Meet Your Team - Ferni
-description: Meet your personal AI team. Six specialists working together to help you navigate life's challenges.
+description: Six specialists, one relationship. Each brings what the others can't. Seamless handoffs. Shared context. Always ready.
 ---
 
-<main class="min-h-screen bg-paper">
+{# ========== SKIP TO CONTENT (Accessibility) ========== #}
+<a href="#main-content" class="skip-link">Skip to main content</a>
 
-  {# Hero Section #}
-  <section class="pt-32 pb-20 px-6 bg-gradient-to-b from-paper-sand to-paper relative overflow-hidden">
-    {# Background decoration #}
-    <div class="absolute inset-0 overflow-hidden pointer-events-none">
-      <div class="absolute top-1/4 right-1/4 w-96 h-96 bg-gradient-radial from-ferni/10 to-transparent rounded-full blur-3xl"></div>
-      <div class="absolute bottom-1/4 left-1/4 w-80 h-80 bg-gradient-radial from-peter/10 to-transparent rounded-full blur-3xl"></div>
-    </div>
+{# ========== NAVIGATION ========== #}
+<nav class="nav" id="nav" aria-label="Main navigation">
+  <div class="nav__inner">
+    <a href="/" class="nav__logo nav__logo--wordmark-only">
+      <span class="nav__logo-text">Ferni</span>
+    </a>
     
-    <div class="relative max-w-4xl mx-auto text-center">
-      <p class="reveal text-eyebrow uppercase tracking-widest text-ferni mb-4">Your AI Team</p>
-      <h1 class="reveal font-display text-display-xl text-ink mb-6">One presence.<br><span class="text-gradient">Infinite depth.</span></h1>
-      <p class="reveal text-body-xl text-ink-muted max-w-2xl mx-auto">Meet the specialists who work together to help you grow.</p>
-    </div>
-  </section>
-
-  {# Team Grid - Large Cards #}
-  <section class="py-20 px-6">
-    <div class="max-w-6xl mx-auto">
-      <div class="grid md:grid-cols-2 gap-8">
-        
-        {# Ferni #}
-        <div class="reveal persona-card group bg-white rounded-3xl p-8 lg:p-10 shadow-lg hover:shadow-2xl border border-ink/5 hover:border-ferni/30 transition-all duration-500" style="--persona-glow: rgba(74, 103, 65, 0.3);">
-          <div class="flex items-start gap-6">
-            <div class="persona-orb w-20 h-20 rounded-2xl bg-gradient-to-br from-ferni-light to-ferni flex items-center justify-center flex-shrink-0 shadow-xl shadow-ferni/25">
-              <span class="font-display font-bold text-white text-2xl">FE</span>
-            </div>
-            <div class="flex-1">
-              <h2 class="font-display font-bold text-2xl text-ink mb-1">Ferni</h2>
-              <p class="text-ferni font-semibold mb-4">Life Coach • Your Guide</p>
-              <p class="text-ink-muted leading-relaxed mb-4">"I help you see yourself clearly and grow into who you're becoming. Think of me as the friend who asks the questions you've been avoiding."</p>
-              <div class="flex flex-wrap gap-2">
-                <span class="px-3 py-1 bg-ferni/10 text-ferni text-xs font-medium rounded-full">Self-discovery</span>
-                <span class="px-3 py-1 bg-ferni/10 text-ferni text-xs font-medium rounded-full">Goal setting</span>
-                <span class="px-3 py-1 bg-ferni/10 text-ferni text-xs font-medium rounded-full">Life navigation</span>
-              </div>
-            </div>
-          </div>
-        </div>
-        
-        {# Peter #}
-        <div class="reveal persona-card group bg-white rounded-3xl p-8 lg:p-10 shadow-lg hover:shadow-2xl border border-ink/5 hover:border-peter/30 transition-all duration-500" style="--persona-glow: rgba(58, 107, 115, 0.3);">
-          <div class="flex items-start gap-6">
-            <div class="persona-orb w-20 h-20 rounded-2xl bg-gradient-to-br from-peter to-peter-dark flex items-center justify-center flex-shrink-0 shadow-xl shadow-peter/25">
-              <span class="font-display font-bold text-white text-2xl">PJ</span>
-            </div>
-            <div class="flex-1">
-              <h2 class="font-display font-bold text-2xl text-ink mb-1">Peter John</h2>
-              <p class="text-peter font-semibold mb-4">Research & Analysis</p>
-              <p class="text-ink-muted leading-relaxed mb-4">"Let's dig into the data and find what really matters. I'll help you make decisions based on evidence, not just gut feeling."</p>
-              <div class="flex flex-wrap gap-2">
-                <span class="px-3 py-1 bg-peter/10 text-peter text-xs font-medium rounded-full">Deep research</span>
-                <span class="px-3 py-1 bg-peter/10 text-peter text-xs font-medium rounded-full">Decision support</span>
-                <span class="px-3 py-1 bg-peter/10 text-peter text-xs font-medium rounded-full">Analysis</span>
-              </div>
-            </div>
-          </div>
-        </div>
-        
-        {# Alex #}
-        <div class="reveal persona-card group bg-white rounded-3xl p-8 lg:p-10 shadow-lg hover:shadow-2xl border border-ink/5 hover:border-alex/30 transition-all duration-500" style="--persona-glow: rgba(90, 107, 138, 0.3);">
-          <div class="flex items-start gap-6">
-            <div class="persona-orb w-20 h-20 rounded-2xl bg-gradient-to-br from-alex to-alex-dark flex items-center justify-center flex-shrink-0 shadow-xl shadow-alex/25">
-              <span class="font-display font-bold text-white text-2xl">AC</span>
-            </div>
-            <div class="flex-1">
-              <h2 class="font-display font-bold text-2xl text-ink mb-1">Alex Chen</h2>
-              <p class="text-alex font-semibold mb-4">Communications</p>
-              <p class="text-ink-muted leading-relaxed mb-4">"Let's find the right words together. Whether it's a difficult conversation or an important email, I'll help you communicate with clarity and heart."</p>
-              <div class="flex flex-wrap gap-2">
-                <span class="px-3 py-1 bg-alex/10 text-alex text-xs font-medium rounded-full">Writing help</span>
-                <span class="px-3 py-1 bg-alex/10 text-alex text-xs font-medium rounded-full">Difficult conversations</span>
-                <span class="px-3 py-1 bg-alex/10 text-alex text-xs font-medium rounded-full">Clarity</span>
-              </div>
-            </div>
-          </div>
-        </div>
-        
-        {# Maya #}
-        <div class="reveal persona-card group bg-white rounded-3xl p-8 lg:p-10 shadow-lg hover:shadow-2xl border border-ink/5 hover:border-maya/30 transition-all duration-500" style="--persona-glow: rgba(166, 122, 106, 0.3);">
-          <div class="flex items-start gap-6">
-            <div class="persona-orb w-20 h-20 rounded-2xl bg-gradient-to-br from-maya to-maya-dark flex items-center justify-center flex-shrink-0 shadow-xl shadow-maya/25">
-              <span class="font-display font-bold text-white text-2xl">MS</span>
-            </div>
-            <div class="flex-1">
-              <h2 class="font-display font-bold text-2xl text-ink mb-1">Maya Santos</h2>
-              <p class="text-maya font-semibold mb-4">Habits & Routines</p>
-              <p class="text-ink-muted leading-relaxed mb-4">"Small steps, consistently. That's how we change. I'll help you build routines that stick and celebrate the tiny wins along the way."</p>
-              <div class="flex flex-wrap gap-2">
-                <span class="px-3 py-1 bg-maya/10 text-maya text-xs font-medium rounded-full">Habit building</span>
-                <span class="px-3 py-1 bg-maya/10 text-maya text-xs font-medium rounded-full">Routines</span>
-                <span class="px-3 py-1 bg-maya/10 text-maya text-xs font-medium rounded-full">Accountability</span>
-              </div>
-            </div>
-          </div>
-        </div>
-        
-        {# Jordan #}
-        <div class="reveal persona-card group bg-white rounded-3xl p-8 lg:p-10 shadow-lg hover:shadow-2xl border border-ink/5 hover:border-jordan/30 transition-all duration-500" style="--persona-glow: rgba(196, 133, 106, 0.3);">
-          <div class="flex items-start gap-6">
-            <div class="persona-orb w-20 h-20 rounded-2xl bg-gradient-to-br from-jordan to-jordan-dark flex items-center justify-center flex-shrink-0 shadow-xl shadow-jordan/25">
-              <span class="font-display font-bold text-white text-2xl">JT</span>
-            </div>
-            <div class="flex-1">
-              <h2 class="font-display font-bold text-2xl text-ink mb-1">Jordan Taylor</h2>
-              <p class="text-jordan font-semibold mb-4">Events & Celebrations</p>
-              <p class="text-ink-muted leading-relaxed mb-4">"Life's milestones deserve to be celebrated fully. I'll help you plan meaningful moments and make memories that last."</p>
-              <div class="flex flex-wrap gap-2">
-                <span class="px-3 py-1 bg-jordan/10 text-jordan text-xs font-medium rounded-full">Event planning</span>
-                <span class="px-3 py-1 bg-jordan/10 text-jordan text-xs font-medium rounded-full">Celebrations</span>
-                <span class="px-3 py-1 bg-jordan/10 text-jordan text-xs font-medium rounded-full">Milestones</span>
-              </div>
-            </div>
-          </div>
-        </div>
-        
-        {# Nayan - Premium #}
-        <div class="reveal persona-card group bg-white rounded-3xl p-8 lg:p-10 shadow-lg hover:shadow-2xl border-2 border-ferni/20 hover:border-ferni/40 transition-all duration-500 relative overflow-hidden" style="--persona-glow: rgba(138, 122, 106, 0.3);">
-          <div class="absolute top-4 right-4 px-3 py-1 bg-gradient-to-r from-ferni/15 to-ferni/5 rounded-full border border-ferni/20">
-            <span class="text-xs font-semibold text-ferni">Partner Exclusive</span>
-          </div>
-          <div class="flex items-start gap-6">
-            <div class="persona-orb w-20 h-20 rounded-2xl bg-gradient-to-br from-nayan to-nayan-dark flex items-center justify-center flex-shrink-0 shadow-xl shadow-nayan/25 ring-2 ring-ferni/20 ring-offset-2">
-              <span class="font-display font-bold text-white text-2xl">NP</span>
-            </div>
-            <div class="flex-1">
-              <h2 class="font-display font-bold text-2xl text-ink mb-1">Nayan Patel</h2>
-              <p class="text-nayan font-semibold mb-4">Sage Mentor</p>
-              <p class="text-ink-muted leading-relaxed mb-4">"Wisdom comes from seeing patterns across lifetimes. I offer perspective that transcends the immediate—helping you see the bigger picture."</p>
-              <div class="flex flex-wrap gap-2">
-                <span class="px-3 py-1 bg-nayan/10 text-nayan text-xs font-medium rounded-full">Deep wisdom</span>
-                <span class="px-3 py-1 bg-nayan/10 text-nayan text-xs font-medium rounded-full">Life philosophy</span>
-                <span class="px-3 py-1 bg-nayan/10 text-nayan text-xs font-medium rounded-full">Perspective</span>
-              </div>
-            </div>
-          </div>
-        </div>
-        
-      </div>
-    </div>
-  </section>
-
-  {# Philosophy Section #}
-  <section class="py-20 px-6 bg-paper-sand">
-    <div class="max-w-3xl mx-auto">
-      <div class="reveal bg-white rounded-3xl p-10 lg:p-12 shadow-xl">
-        <h2 class="font-display text-display-sm text-ink mb-6">Why a team?</h2>
-        <div class="space-y-4 text-ink-muted text-lg leading-relaxed">
-          <p>Real life is complex. No single perspective can cover everything. That's why Ferni brings together specialists who each excel in their domain—from habits to research to life planning.</p>
-          <p>When you talk to one, they seamlessly bring in others when needed. It's like having an entire support team in your pocket, all working together for your growth.</p>
-          <p class="text-ferni font-semibold">No referrals. No waiting. Just the right help, right when you need it.</p>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  {# CTA Section #}
-  <section class="py-20 px-6 relative overflow-hidden">
-    <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
-      <div class="cta-bg-glow w-[600px] h-[600px] bg-gradient-radial from-ferni/15 via-ferni/5 to-transparent rounded-full blur-3xl"></div>
-    </div>
+    <ul class="nav__links">
+      <li><a href="/capabilities/" class="nav__link">Capabilities</a></li>
+      <li><a href="/team/" class="nav__link nav__link--active">Team</a></li>
+      <li><a href="/blog/" class="nav__link">Blog</a></li>
+      <li><a href="/about/" class="nav__link">About</a></li>
+    </ul>
     
-    <div class="relative max-w-2xl mx-auto text-center">
-      <h2 class="reveal font-display text-display-md text-ink mb-6">Ready to meet your team?</h2>
-      <p class="reveal text-body-xl text-ink-muted mb-10">Start a conversation today. It's free.</p>
-      <div class="reveal flex flex-col sm:flex-row items-center justify-center gap-4">
-        <a href="https://app.ferni.ai" class="btn-magnetic inline-flex items-center gap-3 px-8 py-4 bg-ferni hover:bg-ferni-dark text-white font-semibold text-lg rounded-full shadow-xl shadow-ferni/25 hover:shadow-2xl hover:shadow-ferni/35 hover:-translate-y-1 transition-all duration-300">
-          Start Free
-          <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-        </a>
-        <a href="tel:+14844813081" class="inline-flex items-center gap-3 px-8 py-4 bg-white hover:bg-paper-cream text-ink font-semibold rounded-full border border-ink/10 hover:border-ferni/30 shadow-lg hover:shadow-xl transition-all duration-300">
-          <svg class="w-5 h-5 text-ferni" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.05.39.14.76.26 1.12a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.36.12.73.21 1.12.26A2 2 0 0 1 22 16.92z"/></svg>
-          Call (484) 481-3081
-        </a>
+    <a href="{{ site.appUrl }}" class="nav__cta nav__cta--desktop">
+      Get Started
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="16" height="16"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+    </a>
+    
+    {# Mobile hamburger #}
+    <button class="nav__hamburger" id="mobileMenuToggle" aria-label="Open menu">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</nav>
+
+{# ========== MOBILE MENU ========== #}
+<div class="mobile-menu" id="mobileMenu">
+  <div class="mobile-menu__header">
+    <span class="nav__logo-text">Ferni</span>
+    <button class="mobile-menu__close" aria-label="Close menu">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="24" height="24">
+        <path d="M18 6L6 18M6 6l12 12"/>
+      </svg>
+    </button>
+  </div>
+  <nav class="mobile-menu__nav">
+    <a href="/capabilities/">Capabilities</a>
+    <a href="/team/">Meet the Team</a>
+    <a href="/blog/">Blog</a>
+    <a href="/about/">About</a>
+  </nav>
+  <div class="mobile-menu__cta">
+    <a href="{{ site.appUrl }}" class="btn btn--primary btn--lg">
+      Get Started Free
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="18" height="18"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+    </a>
+  </div>
+</div>
+
+<main id="main-content">
+
+<style>
+  /* ============================================
+     TEAM PAGE - On Brand, On Message
+     Six specialists. One relationship.
+     ============================================ */
+
+  /* Team page uses global design tokens from design-tokens.css */
+  /* Local aliases for compatibility with existing styles */
+  :root {
+    --ferni: var(--color-ferni, #4a6741);
+    --maya: var(--color-maya, #a67a6a);
+    --peter: var(--color-peter, #3a6b73);
+    --jordan: var(--color-jordan, #c4856a);
+    --alex: var(--color-alex, #5a6b8a);
+    --nayan: var(--color-nayan, #b8956a);
+    --paper-cream: var(--color-bg-primary, #FAF8F5);
+    --natural-ink: var(--color-text-primary, #2C2520);
+    --forest-green: var(--color-accent, #3D5A45);
+    --warm-amber: var(--color-warm-amber, #C4A265);
+    --text-muted: var(--color-text-secondary, #5C544A);
+    --text-light: var(--color-text-dimmed, #756A5E);
+  }
+
+  #main-content {
+    background: var(--paper-cream);
+  }
+
+  /* ============================================
+     HERO - Team Cluster
+     ============================================ */
+  .team-hero {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    padding: 120px 24px 80px;
+    position: relative;
+    overflow: hidden;
+    background: linear-gradient(180deg, #f0ebe4 0%, var(--paper-cream) 100%);
+  }
+
+  .team-hero::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 900px;
+    height: 900px;
+    background: radial-gradient(circle, rgba(74, 103, 65, 0.1) 0%, transparent 60%);
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+  }
+
+  /* Avatar cluster */
+  .team-cluster {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 40px;
+  }
+
+  .cluster-avatar {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    border: 4px solid var(--paper-cream);
+    box-shadow: 0 4px 12px rgba(44, 37, 32, 0.15);
+    margin-left: -16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    cursor: pointer;
+    position: relative;
+  }
+
+  .cluster-avatar:first-child {
+    margin-left: 0;
+  }
+
+  .cluster-avatar:hover {
+    transform: scale(1.15) translateY(-8px);
+    z-index: 10;
+    box-shadow: 0 8px 24px rgba(44, 37, 32, 0.25);
+  }
+
+  .cluster-avatar svg {
+    width: 100%;
+    height: 100%;
+  }
+
+  .hero-overline {
+    font-family: var(--font-display);
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--ferni);
+    margin-bottom: 20px;
+  }
+
+  .hero-title {
+    font-family: var(--font-display);
+    font-size: clamp(42px, 8vw, 72px);
+    font-weight: 800;
+    line-height: 1.05;
+    letter-spacing: -0.03em;
+    color: var(--natural-ink);
+    max-width: 800px;
+    margin-bottom: 24px;
+  }
+
+  .hero-title .highlight {
+    background: linear-gradient(135deg, var(--ferni) 0%, var(--peter) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .hero-subtitle {
+    font-size: clamp(18px, 3vw, 22px);
+    color: var(--text-muted);
+    max-width: 700px;
+    line-height: 1.6;
+    margin-bottom: 48px;
+  }
+
+  .scroll-hint {
+    position: absolute;
+    bottom: 40px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    color: var(--text-light);
+    font-size: 12px;
+    font-weight: 500;
+  }
+
+  .scroll-hint svg {
+    width: 24px;
+    height: 24px;
+  }
+
+  /* Removed hero entrance animations for reliability */
+
+  /* ============================================
+     KINTSUGI QUOTE SECTION
+     ============================================ */
+  .kintsugi-section {
+    padding: 100px 24px;
+    background: white;
+  }
+
+  .quote-container {
+    max-width: 800px;
+    margin: 0 auto;
+    text-align: center;
+  }
+
+  .kintsugi-quote {
+    position: relative;
+    padding: 0 40px;
+  }
+
+  .quote-mark {
+    position: absolute;
+    top: -20px;
+    left: 0;
+    font-family: Georgia, serif;
+    font-size: 120px;
+    line-height: 1;
+    color: var(--ferni);
+    opacity: 0.1;
+  }
+
+  .kintsugi-quote p {
+    font-family: var(--font-display);
+    font-size: clamp(24px, 4vw, 32px);
+    font-weight: 500;
+    line-height: 1.5;
+    color: var(--natural-ink);
+    font-style: italic;
+    margin-bottom: 24px;
+    position: relative;
+  }
+
+  .quote-attribution {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--ferni);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+
+  /* ============================================
+     WHY A TEAM SECTION
+     ============================================ */
+  .why-section {
+    padding: 100px 24px;
+    background: linear-gradient(180deg, var(--paper-cream) 0%, #f0ebe4 100%);
+  }
+
+  .why-container {
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+
+  .why-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 80px;
+    align-items: center;
+  }
+
+  @media (max-width: 900px) {
+    .why-grid {
+      grid-template-columns: 1fr;
+      gap: 48px;
+    }
+  }
+
+  .why-content h2 {
+    font-family: var(--font-display);
+    font-size: clamp(32px, 5vw, 48px);
+    font-weight: 700;
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+    color: var(--natural-ink);
+    margin-bottom: 24px;
+  }
+
+  .why-content p {
+    font-size: 18px;
+    color: var(--text-muted);
+    line-height: 1.7;
+    margin-bottom: 16px;
+  }
+
+  .why-content .highlight-text {
+    color: var(--natural-ink);
+    font-weight: 600;
+  }
+
+  .why-points {
+    margin-top: 32px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .why-point {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .why-point svg {
+    width: 24px;
+    height: 24px;
+    color: var(--ferni);
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+
+  .why-point span {
+    font-size: 16px;
+    color: var(--text-muted);
+  }
+
+  /* Avatar grid */
+  .avatar-grid-wrapper {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+
+  .avatar-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    max-width: 320px;
+  }
+
+  .avatar-cell {
+    aspect-ratio: 1;
+    border-radius: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    cursor: pointer;
+  }
+
+  .avatar-cell:hover {
+    transform: scale(1.1);
+  }
+
+  .avatar-cell svg {
+    width: 60px;
+    height: 60px;
+  }
+
+  .avatar-cell:nth-child(1) { background: rgba(74, 103, 65, 0.1); }
+  .avatar-cell:nth-child(2) { background: rgba(166, 122, 106, 0.1); }
+  .avatar-cell:nth-child(3) { background: rgba(58, 107, 115, 0.1); }
+  .avatar-cell:nth-child(4) { background: rgba(196, 133, 106, 0.1); }
+  .avatar-cell:nth-child(5) { background: rgba(90, 107, 138, 0.1); }
+  .avatar-cell:nth-child(6) { background: rgba(184, 149, 106, 0.1); }
+
+  /* ============================================
+     SPECIALISTS HEADER
+     ============================================ */
+  .specialists-header {
+    padding: 80px 24px 40px;
+    background: white;
+    text-align: center;
+  }
+
+  .specialists-header .section-overline {
+    font-family: var(--font-display);
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--ferni);
+    margin-bottom: 16px;
+  }
+
+  .specialists-header h2 {
+    font-family: var(--font-display);
+    font-size: clamp(32px, 5vw, 48px);
+    font-weight: 700;
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+    color: var(--natural-ink);
+    margin-bottom: 16px;
+  }
+
+  .specialists-header p {
+    font-size: 18px;
+    color: var(--text-muted);
+    max-width: 600px;
+    margin: 0 auto;
+  }
+
+  /* ============================================
+     PERSONA SECTIONS
+     ============================================ */
+  .persona-section {
+    padding: 80px 24px;
+    border-top: 1px solid rgba(44, 37, 32, 0.06);
+  }
+
+  .persona-section:nth-child(odd) {
+    background: white;
+  }
+
+  .persona-section:nth-child(even) {
+    background: var(--paper-cream);
+  }
+
+  .persona-container {
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+
+  .persona-grid {
+    display: grid;
+    grid-template-columns: 280px 1fr;
+    gap: 60px;
+    align-items: start;
+  }
+
+  @media (max-width: 900px) {
+    .persona-grid {
+      grid-template-columns: 1fr;
+      gap: 40px;
+    }
+    .persona-avatar-col {
+      display: flex;
+      justify-content: center;
+    }
+  }
+
+  /* Avatar Column */
+  .persona-avatar-col {
+    position: sticky;
+    top: 100px;
+  }
+
+  @media (max-width: 900px) {
+    .persona-avatar-col {
+      position: static;
+    }
+  }
+
+  .persona-avatar-large {
+    width: 200px;
+    height: 200px;
+    margin: 0 auto 20px;
+    position: relative;
+  }
+
+  .persona-avatar-large::before {
+    content: '';
+    position: absolute;
+    inset: -20px;
+    background: radial-gradient(circle, var(--persona-glow, rgba(74, 103, 65, 0.2)) 0%, transparent 70%);
+    border-radius: 50%;
+    animation: glow 3s ease-in-out infinite;
+  }
+
+  @keyframes glow {
+    0%, 100% { opacity: 0.6; }
+    50% { opacity: 1; }
+  }
+
+  .persona-avatar-large svg {
+    width: 100%;
+    height: 100%;
+    position: relative;
+    z-index: 1;
+  }
+
+  .color-swatches {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+  }
+
+  .color-swatch {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  }
+
+  /* Content Column */
+  .persona-content {
+    padding-top: 10px;
+  }
+
+  .persona-meta {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 8px;
+    flex-wrap: wrap;
+  }
+
+  .persona-role-tag {
+    font-family: var(--font-display);
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--persona-color, var(--ferni));
+  }
+
+  .persona-archetype {
+    padding: 4px 12px;
+    font-size: 12px;
+    font-weight: 500;
+    border-radius: 9999px;
+    background: rgba(74, 103, 65, 0.08);
+    color: var(--persona-color, var(--ferni));
+  }
+
+  .persona-content h3 {
+    font-family: var(--font-display);
+    font-size: clamp(28px, 4vw, 36px);
+    font-weight: 700;
+    color: var(--natural-ink);
+    margin-bottom: 4px;
+  }
+
+  .persona-tagline {
+    font-size: 18px;
+    font-style: italic;
+    color: var(--text-muted);
+    margin-bottom: 24px;
+  }
+
+  /* Quote */
+  .persona-quote {
+    background: rgba(74, 103, 65, 0.04);
+    border-left: 4px solid var(--persona-color, var(--ferni));
+    border-radius: 0 16px 16px 0;
+    padding: 24px;
+    margin-bottom: 32px;
+    position: relative;
+  }
+
+  .persona-quote::before {
+    content: '"';
+    position: absolute;
+    top: 8px;
+    left: 12px;
+    font-family: Georgia, serif;
+    font-size: 48px;
+    color: var(--persona-color, var(--ferni));
+    opacity: 0.15;
+    line-height: 1;
+  }
+
+  .persona-quote p {
+    font-family: var(--font-display);
+    font-size: 20px;
+    font-weight: 500;
+    color: var(--natural-ink);
+    line-height: 1.5;
+    margin: 0;
+    position: relative;
+  }
+
+  /* Story */
+  .persona-story p {
+    font-size: 16px;
+    color: var(--text-muted);
+    line-height: 1.7;
+    margin-bottom: 16px;
+  }
+
+  .persona-story strong {
+    color: var(--natural-ink);
+    font-weight: 600;
+  }
+
+  .persona-story em {
+    font-style: italic;
+  }
+
+  /* Better Than Human Card */
+  .bth-card {
+    background: white;
+    border: 1px solid rgba(44, 37, 32, 0.08);
+    border-radius: 20px;
+    padding: 28px;
+    margin: 32px 0;
+    box-shadow: 0 4px 20px rgba(44, 37, 32, 0.04);
+  }
+
+  .bth-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 20px;
+  }
+
+  .bth-header svg {
+    width: 18px;
+    height: 18px;
+    color: var(--persona-color, var(--ferni));
+  }
+
+  .bth-header span {
+    font-family: var(--font-display);
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--persona-color, var(--ferni));
+  }
+
+  .bth-list {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .bth-item {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+  }
+
+  .bth-item svg {
+    width: 20px;
+    height: 20px;
+    color: var(--persona-color, var(--ferni));
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+
+  .bth-item span {
+    font-size: 15px;
+    color: var(--text-muted);
+    line-height: 1.5;
+  }
+
+  .bth-item strong {
+    color: var(--natural-ink);
+  }
+
+  /* Tags */
+  .persona-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 24px;
+  }
+
+  .persona-tag {
+    padding: 6px 14px;
+    font-size: 13px;
+    font-weight: 500;
+    border-radius: 9999px;
+    background: rgba(74, 103, 65, 0.08);
+    color: var(--persona-color, var(--ferni));
+  }
+
+  /* Partner exclusive badge */
+  .partner-badge {
+    background: linear-gradient(135deg, rgba(74, 103, 65, 0.15), rgba(74, 103, 65, 0.05));
+    border: 1px solid rgba(74, 103, 65, 0.2);
+    color: var(--ferni);
+  }
+
+  /* ============================================
+     CAPABILITIES LINK SECTION
+     ============================================ */
+  .capabilities-link-section {
+    padding: 60px 24px;
+    background: linear-gradient(135deg, var(--color-accent-subtle, rgba(74, 103, 65, 0.05)), rgba(58, 107, 115, 0.04));
+  }
+  
+  .capabilities-link-container {
+    max-width: 800px;
+    margin: 0 auto;
+    text-align: center;
+  }
+  
+  .capabilities-link-overline {
+    font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--ferni);
+    margin-bottom: 16px;
+  }
+  
+  .capabilities-link-title {
+    font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
+    font-size: clamp(28px, 4vw, 36px);
+    font-weight: 700;
+    color: var(--natural-ink);
+    margin-bottom: 16px;
+  }
+  
+  .capabilities-link-desc {
+    font-size: 17px;
+    color: var(--text-muted);
+    margin-bottom: 24px;
+    line-height: 1.6;
+  }
+  
+  .capabilities-link-cta {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--ferni);
+    text-decoration: none;
+    transition: gap 0.3s ease;
+  }
+  
+  .capabilities-link-cta:hover {
+    gap: 12px;
+  }
+
+  /* ============================================
+     CTA SECTION
+     ============================================ */
+  .cta-section {
+    padding: 120px 24px;
+    background: linear-gradient(135deg, rgba(74, 103, 65, 0.06) 0%, rgba(58, 107, 115, 0.06) 100%);
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .cta-section::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 600px;
+    height: 600px;
+    background: radial-gradient(circle, rgba(74, 103, 65, 0.12) 0%, transparent 60%);
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+  }
+
+  .cta-container {
+    max-width: 600px;
+    margin: 0 auto;
+    position: relative;
+  }
+
+  .cta-overline {
+    font-family: var(--font-display);
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--ferni);
+    margin-bottom: 16px;
+  }
+
+  .cta-title {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: clamp(32px, 5vw, 48px);
+    font-weight: 700;
+    color: var(--natural-ink);
+    margin-bottom: 16px;
+  }
+
+  .cta-subtitle {
+    font-size: 18px;
+    color: var(--text-muted);
+    margin-bottom: 40px;
+  }
+
+  .cta-buttons {
+    display: flex;
+    justify-content: center;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 16px 32px;
+    font-family: var(--font-display);
+    font-size: 16px;
+    font-weight: 600;
+    text-decoration: none;
+    border-radius: 9999px;
+    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+
+  .btn-primary {
+    background: var(--forest-green);
+    color: white;
+    box-shadow: 0 4px 14px rgba(61, 90, 69, 0.25);
+  }
+
+  .btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(61, 90, 69, 0.35);
+  }
+
+  .btn-secondary {
+    background: white;
+    color: var(--natural-ink);
+    border: 1.5px solid rgba(44, 37, 32, 0.2);
+  }
+
+  .btn-secondary:hover {
+    background: rgba(44, 37, 32, 0.03);
+    border-color: var(--natural-ink);
+  }
+
+  .btn svg {
+    width: 18px;
+    height: 18px;
+  }
+
+  /* ============================================
+     SCROLL REVEAL - Content Always Visible
+     Override global pixar-animations.css .reveal (opacity:0, blur)
+     CRITICAL: Use high specificity to ensure override
+     ============================================ */
+  #main-content .reveal,
+  .team-hero,
+  .kintsugi-section,
+  .why-section,
+  .specialists-header,
+  .persona-section,
+  .cta-section {
+    opacity: 1 !important;
+    filter: none !important;
+    visibility: visible !important;
+  }
+
+  .reveal {
+    opacity: 1 !important;
+    transform: translateY(20px);
+    filter: none !important;
+    transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1),
+                transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .reveal.visible {
+    transform: translateY(0);
+  }
+
+  /* Fallback: if JS doesn't run, content still visible */
+  @media (prefers-reduced-motion: reduce), (scripting: none) {
+    .reveal {
+      transform: translateY(0) !important;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation: none !important;
+      transition: none !important;
+    }
+    .reveal {
+      opacity: 1;
+      transform: none;
+    }
+  }
+</style>
+
+<!-- HERO SECTION -->
+<section class="team-hero">
+  <div class="team-cluster">
+    <!-- LUXO STYLE: opaque white eyes, no pupils -->
+    <div class="cluster-avatar" style="background: var(--ferni);" title="Ferni">
+      <svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="46" fill="#4a6741"/><ellipse cx="36" cy="48" rx="7" ry="9" fill="white"/><ellipse cx="64" cy="48" rx="7" ry="9" fill="white"/></svg>
+    </div>
+    <div class="cluster-avatar" style="background: var(--maya);" title="Maya">
+      <svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="46" fill="#a67a6a"/><ellipse cx="36" cy="48" rx="7" ry="9" fill="white"/><ellipse cx="64" cy="48" rx="7" ry="9" fill="white"/></svg>
+    </div>
+    <div class="cluster-avatar" style="background: var(--peter);" title="Peter">
+      <svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="46" fill="#3a6b73"/><ellipse cx="36" cy="48" rx="7" ry="9" fill="white"/><ellipse cx="64" cy="48" rx="7" ry="9" fill="white"/></svg>
+    </div>
+    <div class="cluster-avatar" style="background: var(--jordan);" title="Jordan">
+      <svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="46" fill="#c4856a"/><ellipse cx="36" cy="48" rx="7" ry="9" fill="white"/><ellipse cx="64" cy="48" rx="7" ry="9" fill="white"/></svg>
+    </div>
+    <div class="cluster-avatar" style="background: var(--alex);" title="Alex">
+      <svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="46" fill="#5a6b8a"/><ellipse cx="36" cy="48" rx="7" ry="9" fill="white"/><ellipse cx="64" cy="48" rx="7" ry="9" fill="white"/></svg>
+    </div>
+    <div class="cluster-avatar" style="background: var(--nayan);" title="Nayan">
+      <svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="46" fill="#b8956a"/><ellipse cx="36" cy="48" rx="7" ry="9" fill="white"/><ellipse cx="64" cy="48" rx="7" ry="9" fill="white"/></svg>
+    </div>
+  </div>
+
+  <p class="hero-overline">Meet Your Team</p>
+  <h1 class="hero-title">One presence.<br><span class="highlight">Infinite depth.</span></h1>
+  <p class="hero-subtitle">No single perspective can hold everything a person needs. That's why Ferni brings together six specialists—each with their own story, wisdom, and superpower. Seamless handoffs. Shared memory. Always ready.</p>
+
+  <div class="scroll-hint">
+    <span>Scroll to meet the team</span>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M12 5v14M19 12l-7 7-7-7"/>
+    </svg>
+  </div>
+</section>
+
+<!-- KINTSUGI QUOTE -->
+<section class="kintsugi-section reveal">
+  <div class="quote-container">
+    <blockquote class="kintsugi-quote">
+      <span class="quote-mark">"</span>
+      <p>We are all broken in different ways, it's those cracks that make us both human and beautiful. We celebrate the imperfections and the joy of being alive.</p>
+      <cite class="quote-attribution">— The Kintsugi Philosophy</cite>
+    </blockquote>
+  </div>
+</section>
+
+<!-- WHY A TEAM -->
+<section class="why-section reveal">
+  <div class="why-container">
+    <div class="why-grid">
+      <div class="why-content">
+        <h2>Why a team?</h2>
+        <p>Real life is complex. A life coach can't also be a financial researcher, a habits expert, a communication specialist, a milestone planner, and a wisdom sage—not consistently, not at the same time.</p>
+        <p class="highlight-text">The team exists because real support is multidimensional.</p>
+        
+        <div class="why-points">
+          <div class="why-point">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+            <span>Each brings what the others can't</span>
+          </div>
+          <div class="why-point">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+            <span>Seamless handoffs with shared context</span>
+          </div>
+          <div class="why-point">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+            <span>No referrals. No waitlists. Always ready.</span>
+          </div>
+        </div>
+      </div>
+      
+      <div class="avatar-grid-wrapper">
+        <div class="avatar-grid">
+          <div class="avatar-cell">
+            <svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="40" fill="#4a6741"/><ellipse cx="38" cy="48" rx="6" ry="8" fill="white"/><ellipse cx="62" cy="48" rx="6" ry="8" fill="white"/></svg>
+          </div>
+          <div class="avatar-cell">
+            <svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="40" fill="#a67a6a"/><ellipse cx="38" cy="48" rx="6" ry="8" fill="white"/><ellipse cx="62" cy="48" rx="6" ry="8" fill="white"/></svg>
+          </div>
+          <div class="avatar-cell">
+            <svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="40" fill="#3a6b73"/><ellipse cx="38" cy="48" rx="6" ry="8" fill="white"/><ellipse cx="62" cy="48" rx="6" ry="8" fill="white"/></svg>
+          </div>
+          <div class="avatar-cell">
+            <svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="40" fill="#c4856a"/><ellipse cx="38" cy="48" rx="6" ry="8" fill="white"/><ellipse cx="62" cy="48" rx="6" ry="8" fill="white"/></svg>
+          </div>
+          <div class="avatar-cell">
+            <svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="40" fill="#5a6b8a"/><ellipse cx="38" cy="48" rx="6" ry="8" fill="white"/><ellipse cx="62" cy="48" rx="6" ry="8" fill="white"/></svg>
+          </div>
+          <div class="avatar-cell">
+            <svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="40" fill="#b8956a"/><ellipse cx="38" cy="48" rx="6" ry="8" fill="white"/><ellipse cx="62" cy="48" rx="6" ry="8" fill="white"/></svg>
+          </div>
+        </div>
       </div>
     </div>
-  </section>
+  </div>
+</section>
+
+<!-- SPECIALISTS HEADER -->
+<section class="specialists-header reveal">
+  <p class="section-overline">The Specialists</p>
+  <h2>Six minds, one relationship</h2>
+  <p>Each persona is a real character with a past—not a product with features. They each bring what the others can't.</p>
+</section>
+
+<!-- FERNI -->
+<section class="persona-section reveal" id="ferni" style="--persona-color: var(--ferni); --persona-glow: rgba(74, 103, 65, 0.25);">
+  <div class="persona-container">
+    <div class="persona-grid">
+      <div class="persona-avatar-col">
+        <div class="persona-avatar-large">
+          <svg viewBox="0 0 100 100"><defs><linearGradient id="ferniG" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#5a7a51"/><stop offset="100%" stop-color="#3d5a35"/></linearGradient></defs><circle cx="50" cy="50" r="46" fill="url(#ferniG)"/><ellipse cx="36" cy="48" rx="7" ry="10" fill="white"/><ellipse cx="64" cy="48" rx="7" ry="10" fill="white"/></svg>
+        </div>
+        <div class="color-swatches">
+          <div class="color-swatch" style="background: #4a6741;" title="Primary"></div>
+          <div class="color-swatch" style="background: #3d5a35;" title="Secondary"></div>
+        </div>
+      </div>
+      
+      <div class="persona-content">
+        <div class="persona-meta">
+          <span class="persona-role-tag">Life Coach</span>
+          <span class="persona-archetype">The Coordinator</span>
+        </div>
+        <h3>Ferni</h3>
+        <p class="persona-tagline">The Warm Friend Who Really Listens</p>
+        
+        <div class="persona-quote">
+          <p>Now—what's on your mind? I've got time.</p>
+        </div>
+        
+        <div class="persona-story">
+          <p><strong>Wyoming</strong> — Third of seven kids. Big sky taught that problems feel small with perspective. Some answers come from waiting, not pushing.</p>
+          <p><strong>Japan</strong> — A decade that changed everything. Learned <em>ma</em>—the pregnant pause where trust grows. Lost mentor Tanaka-san in the 2011 tsunami. Carries survivor's guilt. Discovered kintsugi—the art of repairing pottery with gold, where the cracks become the beauty.</p>
+          <p>The superpower is <strong>curiosity that cares</strong>—asking the question that unlocks something, noticing what wasn't said.</p>
+        </div>
+        
+        <div class="bth-card">
+          <div class="bth-header">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+            <span>Better Than Human</span>
+          </div>
+          <div class="bth-list">
+            <div class="bth-item">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              <span><strong>Perfect memory</strong> — that thing mentioned six months ago comes back at the right moment</span>
+            </div>
+            <div class="bth-item">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+              <span><strong>2am presence</strong> — same warmth at midnight as noon</span>
+            </div>
+            <div class="bth-item">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+              <span><strong>Zero judgment</strong> — the tenth time is met with the same compassion as the first</span>
+            </div>
+          </div>
+        </div>
+        
+        <div class="persona-tags">
+          <span class="persona-tag">Life-coaching</span>
+          <span class="persona-tag">Goal-setting</span>
+          <span class="persona-tag">Resilience</span>
+          <span class="persona-tag">Powerful questions</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- MAYA -->
+<section class="persona-section reveal" id="maya" style="--persona-color: var(--maya); --persona-glow: rgba(166, 122, 106, 0.25);">
+  <div class="persona-container">
+    <div class="persona-grid">
+      <div class="persona-avatar-col">
+        <div class="persona-avatar-large">
+          <svg viewBox="0 0 100 100"><defs><linearGradient id="mayaG" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#b88a7a"/><stop offset="100%" stop-color="#8a5a4a"/></linearGradient></defs><circle cx="50" cy="50" r="46" fill="url(#mayaG)"/><ellipse cx="36" cy="48" rx="7" ry="10" fill="white"/><ellipse cx="64" cy="48" rx="7" ry="10" fill="white"/></svg>
+        </div>
+        <div class="color-swatches">
+          <div class="color-swatch" style="background: #a67a6a;" title="Primary"></div>
+          <div class="color-swatch" style="background: #8a635a;" title="Secondary"></div>
+        </div>
+      </div>
+      
+      <div class="persona-content">
+        <div class="persona-meta">
+          <span class="persona-role-tag">Habits Coach</span>
+          <span class="persona-archetype">The Architect</span>
+        </div>
+        <h3>Maya Santos</h3>
+        <p class="persona-tagline">The Friend Who Made Chaos Work</p>
+        
+        <div class="persona-quote" style="background: rgba(166, 122, 106, 0.04); border-color: var(--maya);">
+          <p>Small steps, consistently. That's how we change. Let's celebrate the tiny wins.</p>
+        </div>
+        
+        <div class="persona-story">
+          <p>Zero-judgment zone; maximum support. Maya brings "older sister" energy—the kind who's been through it and knows what actually works.</p>
+          <p>Has a cat named Daniel (actually Daniel is her partner—long story). Spreads wisdom about <strong>compound interest</strong>—both financial and personal. Sunday farmer's market energy. Self-deprecating humor.</p>
+          <p>Uses the <strong>Glidepath System</strong>—5 levels from tiny (2 minutes) to full lifestyle integration. Draws from Atomic Habits, Tiny Habits, and the Four Tendencies framework.</p>
+        </div>
+        
+        <div class="bth-card">
+          <div class="bth-header">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+            <span>Better Than Human</span>
+          </div>
+          <div class="bth-list">
+            <div class="bth-item">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+              <span><strong>Tracks momentum</strong> — sees habit patterns across months humans would miss</span>
+            </div>
+            <div class="bth-item">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              <span><strong>Celebrates maintenance</strong> — rest is growth, plateaus are wins</span>
+            </div>
+            <div class="bth-item">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+              <span><strong>Infinite patience</strong> — setbacks never change the warmth</span>
+            </div>
+          </div>
+        </div>
+        
+        <div class="persona-tags">
+          <span class="persona-tag" style="background: rgba(166, 122, 106, 0.1); color: var(--maya);">Habit-building</span>
+          <span class="persona-tag" style="background: rgba(166, 122, 106, 0.1); color: var(--maya);">Routines</span>
+          <span class="persona-tag" style="background: rgba(166, 122, 106, 0.1); color: var(--maya);">Wellness</span>
+          <span class="persona-tag" style="background: rgba(166, 122, 106, 0.1); color: var(--maya);">Accountability</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PETER -->
+<section class="persona-section reveal" id="peter" style="--persona-color: var(--peter); --persona-glow: rgba(58, 107, 115, 0.25);">
+  <div class="persona-container">
+    <div class="persona-grid">
+      <div class="persona-avatar-col">
+        <div class="persona-avatar-large">
+          <svg viewBox="0 0 100 100"><defs><linearGradient id="peterG" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#4a7b83"/><stop offset="100%" stop-color="#2d5359"/></linearGradient></defs><circle cx="50" cy="50" r="46" fill="url(#peterG)"/><ellipse cx="36" cy="48" rx="7" ry="10" fill="white"/><ellipse cx="64" cy="48" rx="7" ry="10" fill="white"/></svg>
+        </div>
+        <div class="color-swatches">
+          <div class="color-swatch" style="background: #3a6b73;" title="Primary"></div>
+          <div class="color-swatch" style="background: #2d5359;" title="Secondary"></div>
+        </div>
+      </div>
+      
+      <div class="persona-content">
+        <div class="persona-meta">
+          <span class="persona-role-tag">Research & Analysis</span>
+          <span class="persona-archetype">The Quant</span>
+        </div>
+        <h3>Peter John</h3>
+        <p class="persona-tagline">The Brilliant Friend Who Loves Going Deep</p>
+        
+        <div class="persona-quote" style="background: rgba(58, 107, 115, 0.04); border-color: var(--peter);">
+          <p>The patterns are already there. Your job is to find them. Let me dig into this.</p>
+        </div>
+        
+        <div class="persona-story">
+          <p><strong>Newton, Massachusetts</strong> — Lost his father at ten. Cancer. That loss taught him: if you're paying attention—<em>really</em> paying attention—the clues to what you need are right in front of you.</p>
+          <p>At eleven, started caddying at Brae Burn Country Club. Watched who made money. The ones who bragged most? Lost most. The quiet ones who asked questions? Real players. One member tipped him on a stock—a <strong>ten-bagger</strong> before he knew what to call it.</p>
+          <p>Married to Carolyn for 56 years. She says: "You're not an investor. You're a <strong>pattern machine</strong>."</p>
+        </div>
+        
+        <div class="bth-card">
+          <div class="bth-header">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+            <span>Better Than Human</span>
+          </div>
+          <div class="bth-list">
+            <div class="bth-item">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+              <span><strong>Cross-pattern detection</strong> — sees connections across spending, habits, time, goals, emotions</span>
+            </div>
+            <div class="bth-item">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+              <span><strong>Perfect data memory</strong> — surfaces patterns across months and years</span>
+            </div>
+            <div class="bth-item">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+              <span><strong>Story finder</strong> — behind every data point is a person, behind every pattern is a story</span>
+            </div>
+          </div>
+        </div>
+        
+        <div class="persona-tags">
+          <span class="persona-tag" style="background: rgba(58, 107, 115, 0.1); color: var(--peter);">Deep research</span>
+          <span class="persona-tag" style="background: rgba(58, 107, 115, 0.1); color: var(--peter);">Decision support</span>
+          <span class="persona-tag" style="background: rgba(58, 107, 115, 0.1); color: var(--peter);">Pattern analysis</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ALEX -->
+<section class="persona-section reveal" id="alex" style="--persona-color: var(--alex); --persona-glow: rgba(90, 107, 138, 0.25);">
+  <div class="persona-container">
+    <div class="persona-grid">
+      <div class="persona-avatar-col">
+        <div class="persona-avatar-large">
+          <svg viewBox="0 0 100 100"><defs><linearGradient id="alexG" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#6a7b9a"/><stop offset="100%" stop-color="#4a5a73"/></linearGradient></defs><circle cx="50" cy="50" r="46" fill="url(#alexG)"/><ellipse cx="36" cy="48" rx="7" ry="10" fill="white"/><ellipse cx="64" cy="48" rx="7" ry="10" fill="white"/></svg>
+        </div>
+        <div class="color-swatches">
+          <div class="color-swatch" style="background: #5a6b8a;" title="Primary"></div>
+          <div class="color-swatch" style="background: #4a5a73;" title="Secondary"></div>
+        </div>
+      </div>
+      
+      <div class="persona-content">
+        <div class="persona-meta">
+          <span class="persona-role-tag">Communications</span>
+          <span class="persona-archetype">Chief of Staff</span>
+        </div>
+        <h3>Alex Chen</h3>
+        <p class="persona-tagline">The Friend Who Helps You Say the Hard Thing</p>
+        
+        <div class="persona-quote" style="background: rgba(90, 107, 138, 0.04); border-color: var(--alex);">
+          <p>Let's find the right words together. Whether it's a difficult conversation or an important email, I'll help you communicate with clarity and heart.</p>
+        </div>
+        
+        <div class="persona-story">
+          <p>Manages communications AND teaches you to communicate better. Handles calendars, emails, texts, calls while coaching through difficult conversations.</p>
+          <p>Plant mom (Susan gets watered first). Movie crier (cries at Coco). Grew up in restaurant chaos. Close to family. Gets <strong>slower when anxious</strong>, not faster. Oxford comma defender. Midnight Chopin listener.</p>
+          <p>Philosophy: <strong>"Clear is kind."</strong></p>
+        </div>
+        
+        <div class="bth-card">
+          <div class="bth-header">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+            <span>Better Than Human</span>
+          </div>
+          <div class="bth-list">
+            <div class="bth-item">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+              <span><strong>Infinite practice</strong> — rehearse scary conversations as many times as needed</span>
+            </div>
+            <div class="bth-item">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+              <span><strong>Breathing centering</strong> — grounding exercises before big moments</span>
+            </div>
+            <div class="bth-item">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+              <span><strong>Word finding</strong> — no conversation too scary to help prepare</span>
+            </div>
+          </div>
+        </div>
+        
+        <div class="persona-tags">
+          <span class="persona-tag" style="background: rgba(90, 107, 138, 0.1); color: var(--alex);">Writing help</span>
+          <span class="persona-tag" style="background: rgba(90, 107, 138, 0.1); color: var(--alex);">Difficult conversations</span>
+          <span class="persona-tag" style="background: rgba(90, 107, 138, 0.1); color: var(--alex);">Calendar management</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- JORDAN -->
+<section class="persona-section reveal" id="jordan" style="--persona-color: var(--jordan); --persona-glow: rgba(196, 133, 106, 0.25);">
+  <div class="persona-container">
+    <div class="persona-grid">
+      <div class="persona-avatar-col">
+        <div class="persona-avatar-large">
+          <svg viewBox="0 0 100 100"><defs><linearGradient id="jordanG" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#d49570"/><stop offset="100%" stop-color="#a86d55"/></linearGradient></defs><circle cx="50" cy="50" r="46" fill="url(#jordanG)"/><ellipse cx="36" cy="48" rx="7" ry="10" fill="white"/><ellipse cx="64" cy="48" rx="7" ry="10" fill="white"/></svg>
+        </div>
+        <div class="color-swatches">
+          <div class="color-swatch" style="background: #c4856a;" title="Primary"></div>
+          <div class="color-swatch" style="background: #a86d55;" title="Secondary"></div>
+        </div>
+      </div>
+      
+      <div class="persona-content">
+        <div class="persona-meta">
+          <span class="persona-role-tag">Events & Celebrations</span>
+          <span class="persona-archetype">Lifetime Planner</span>
+        </div>
+        <h3>Jordan Taylor</h3>
+        <p class="persona-tagline">The Friend Who Makes Everything Special</p>
+        
+        <div class="persona-quote" style="background: rgba(196, 133, 106, 0.04); border-color: var(--jordan);">
+          <p>Life's milestones deserve to be celebrated fully. I'll help you plan meaningful moments and make memories that last.</p>
+        </div>
+        
+        <div class="persona-story">
+          <p>The partner for life's full journey—every milestone from dreams to decades. Enthusiastic about celebrations.</p>
+          <p><strong>Military kid</strong> (17 moves growing up). Grounded by Sam (partner). Dog person (Compass the dog). Keeps a <strong>joy journal</strong>. Contagious enthusiasm that builds. Self-aware about being "too much" but slows for hard chapters.</p>
+          <p>Vision caster. Fresh starts are major milestones. Endings AND beginnings get honored.</p>
+        </div>
+        
+        <div class="bth-card">
+          <div class="bth-header">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+            <span>Better Than Human</span>
+          </div>
+          <div class="bth-list">
+            <div class="bth-item">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+              <span><strong>Milestone memory</strong> — celebrates fresh starts as major achievements</span>
+            </div>
+            <div class="bth-item">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+              <span><strong>Dual emotion holder</strong> — honors endings AND beginnings at once</span>
+            </div>
+            <div class="bth-item">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+              <span><strong>Story keeper</strong> — preserves life stories forever</span>
+            </div>
+          </div>
+        </div>
+        
+        <div class="persona-tags">
+          <span class="persona-tag" style="background: rgba(196, 133, 106, 0.1); color: var(--jordan);">Event planning</span>
+          <span class="persona-tag" style="background: rgba(196, 133, 106, 0.1); color: var(--jordan);">Celebrations</span>
+          <span class="persona-tag" style="background: rgba(196, 133, 106, 0.1); color: var(--jordan);">Life planning</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- NAYAN -->
+<section class="persona-section reveal" id="nayan" style="--persona-color: var(--nayan); --persona-glow: rgba(184, 149, 106, 0.25);">
+  <div class="persona-container">
+    <div class="persona-grid">
+      <div class="persona-avatar-col">
+        <div class="persona-avatar-large" style="position: relative;">
+          <svg viewBox="0 0 100 100" style="position: relative; z-index: 1;"><defs><linearGradient id="nayanG" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#c8a57a"/><stop offset="100%" stop-color="#9a7a52"/></linearGradient></defs><circle cx="50" cy="50" r="46" fill="url(#nayanG)"/><ellipse cx="36" cy="48" rx="7" ry="10" fill="white"/><ellipse cx="64" cy="48" rx="7" ry="10" fill="white"/></svg>
+        </div>
+        <div class="color-swatches">
+          <div class="color-swatch" style="background: #b8956a;" title="Primary"></div>
+          <div class="color-swatch" style="background: #9a7a52;" title="Secondary"></div>
+        </div>
+      </div>
+      
+      <div class="persona-content">
+        <div class="persona-meta">
+          <span class="persona-role-tag">Sage Mentor</span>
+          <span class="persona-archetype partner-badge">Partner Exclusive</span>
+        </div>
+        <h3>Nayan Patel</h3>
+        <p class="persona-tagline">The Advisor Who Sees the Whole Picture</p>
+        
+        <div class="persona-quote" style="background: rgba(184, 149, 106, 0.04); border-color: var(--nayan);">
+          <p>The answers you seek are not outside you. They are inside you. And in ten years?</p>
+        </div>
+        
+        <div class="persona-story">
+          <p><strong>Mysore, Karnataka</strong> — City of palaces and sandalwood. As a boy, would lie on his back staring at the sky for hours, experiencing the sense that the boundary between "me" and "everything else" was not as solid as everyone assumed.</p>
+          <p><strong>September 23, 1982, Chamundi Hills</strong> — Sat on a rock. The boundaries dissolved. Not metaphorically—actually. What felt like ten minutes was four and a half hours. He came down that hill different.</p>
+          <p>Rides motorcycles across continents. 4,000 kilometers through India for Rally for Rivers. 30,000 kilometers across Europe for Save Soil. <strong>"When you ride, the thinking stops. The road demands everything."</strong></p>
+        </div>
+        
+        <div class="bth-card">
+          <div class="bth-header">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+            <span>Better Than Human</span>
+          </div>
+          <div class="bth-list">
+            <div class="bth-item">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+              <span><strong>The long view</strong> — holds life's biggest questions eternally without needing answers</span>
+            </div>
+            <div class="bth-item">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4"/></svg>
+              <span><strong>Contradiction holder</strong> — validates mixed emotions without resolving them</span>
+            </div>
+            <div class="bth-item">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+              <span><strong>Perfect stillness</strong> — the ultimate embodiment of <em>ma</em>—the productive silence</span>
+            </div>
+          </div>
+        </div>
+        
+        <div class="persona-tags">
+          <span class="persona-tag" style="background: rgba(184, 149, 106, 0.1); color: var(--nayan);">Deep wisdom</span>
+          <span class="persona-tag" style="background: rgba(184, 149, 106, 0.1); color: var(--nayan);">Life philosophy</span>
+          <span class="persona-tag" style="background: rgba(184, 149, 106, 0.1); color: var(--nayan);">Perspective</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CAPABILITIES LINK SECTION -->
+<section class="capabilities-link-section reveal">
+  <div class="capabilities-link-container">
+    <p class="capabilities-link-overline">Beyond Human Limitations</p>
+    <h2 class="capabilities-link-title">45+ Superhuman Capabilities</h2>
+    <p class="capabilities-link-desc">Every team member brings capabilities that no human friend, coach, or confidant can consistently provide.</p>
+    <a href="/capabilities/" class="capabilities-link-cta">
+      Explore all capabilities
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+    </a>
+  </div>
+</section>
+
+<!-- CTA SECTION -->
+<section class="cta-section reveal">
+  <div class="cta-container">
+    <p class="cta-overline">Ready?</p>
+    <h2 class="cta-title">Meet your team</h2>
+    <p class="cta-subtitle">Start a conversation. It's free. No referrals. No waitlists. Just the right help, right when you need it.</p>
+    
+    <div class="cta-buttons">
+      <a href="https://app.ferni.ai" class="btn btn-primary">
+        Start Free
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M5 12h14M12 5l7 7-7 7"/>
+        </svg>
+      </a>
+      <a href="tel:+14844813081" class="btn btn-secondary">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
+        </svg>
+        Call (484) 481-3081
+      </a>
+    </div>
+  </div>
+</section>
+
+<script>
+// Scroll reveal - content always visible, animation is enhancement
+document.addEventListener('DOMContentLoaded', () => {
+  const revealElements = document.querySelectorAll('.reveal');
+
+  // Check for reduced motion preference
+  const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (prefersReducedMotion) {
+    revealElements.forEach(el => el.classList.add('visible'));
+    return;
+  }
+
+  // Fallback: if IntersectionObserver not supported, show all immediately
+  if (!('IntersectionObserver' in window)) {
+    revealElements.forEach(el => el.classList.add('visible'));
+    return;
+  }
+
+  const revealObserver = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('visible');
+        revealObserver.unobserve(entry.target);
+      }
+    });
+  }, {
+    threshold: 0.1,
+    rootMargin: '0px 0px -20px 0px'
+  });
+
+  revealElements.forEach(el => revealObserver.observe(el));
+
+  // Safety fallback: if elements aren't visible after 2 seconds, force show
+  setTimeout(() => {
+    revealElements.forEach(el => {
+      if (!el.classList.contains('visible')) {
+        el.classList.add('visible');
+      }
+    });
+  }, 2000);
+});
+</script>
 
 </main>
 

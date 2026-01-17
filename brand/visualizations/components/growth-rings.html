@@ -1,0 +1,121 @@
+<!-- Growth Rings Visualization Component -->
+<!-- Tree rings showing periods of growth -->
+
+<section id="growth-rings" class="story-section">
+  <header class="story-section-header">
+    <p class="story-section-overline">Personal Growth</p>
+    <h2 class="story-section-title">Growth Rings</h2>
+    <p class="story-section-description">
+      Like a tree, your growth leaves rings. Wide rings mark seasons of rapid development. Thin rings mark consolidation. Both are necessary.
+    </p>
+  </header>
+
+  <div class="bth-callout">
+    <div class="bth-callout-icon">F</div>
+    <div class="bth-callout-content">
+      <div class="bth-callout-title">Better Than Human</div>
+      <div class="bth-callout-text">
+        Friends see who you are now. Ferni sees the layers of who you've become - each year's growth ring adding strength and wisdom.
+      </div>
+    </div>
+  </div>
+
+  <div class="story-card">
+    <div class="story-card-header">
+      <div>
+        <h3 class="story-card-title">Your Growth Story</h3>
+        <p class="story-card-subtitle">5 years of personal evolution</p>
+      </div>
+    </div>
+
+    <div class="growth-rings-container">
+      <div class="growth-rings">
+        <svg viewBox="0 0 200 200">
+          <defs>
+            <!-- Brand Persona Colors: Ferni, Nayan, Peter, Maya, Alex -->
+            <linearGradient id="ring2024" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" style="stop-color: var(--color-ferni)"/>
+              <stop offset="100%" style="stop-color: var(--color-ferni-dark)"/>
+            </linearGradient>
+            <linearGradient id="ring2023" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" style="stop-color: var(--color-nayan)"/>
+              <stop offset="100%" style="stop-color: var(--color-nayan-dark)"/>
+            </linearGradient>
+            <linearGradient id="ring2022" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" style="stop-color: var(--color-peter)"/>
+              <stop offset="100%" style="stop-color: var(--color-peter-dark)"/>
+            </linearGradient>
+            <linearGradient id="ring2021" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" style="stop-color: var(--color-maya)"/>
+              <stop offset="100%" style="stop-color: var(--color-maya-dark)"/>
+            </linearGradient>
+            <linearGradient id="ring2020" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" style="stop-color: var(--color-alex)"/>
+              <stop offset="100%" style="stop-color: var(--color-alex-dark)"/>
+            </linearGradient>
+          </defs>
+
+          <!-- Outer to inner rings -->
+          <!-- 2020 - Thin ring (challenging year) -->
+          <circle class="growth-ring" cx="100" cy="100" r="90"
+                  stroke="url(#ring2020)" stroke-width="8" opacity="0.7"/>
+
+          <!-- 2021 - Medium ring (recovery) -->
+          <circle class="growth-ring" cx="100" cy="100" r="75"
+                  stroke="url(#ring2021)" stroke-width="12" opacity="0.75"/>
+
+          <!-- 2022 - Wide ring (breakthrough year) -->
+          <circle class="growth-ring" cx="100" cy="100" r="58"
+                  stroke="url(#ring2022)" stroke-width="18" opacity="0.8"/>
+
+          <!-- 2023 - Medium ring (consolidation) -->
+          <circle class="growth-ring" cx="100" cy="100" r="38"
+                  stroke="url(#ring2023)" stroke-width="14" opacity="0.85"/>
+
+          <!-- 2024 - Growing ring (current year) -->
+          <circle class="growth-ring" cx="100" cy="100" r="22"
+                  stroke="url(#ring2024)" stroke-width="16" opacity="0.9"/>
+
+          <!-- Core (Nayan gold) -->
+          <circle cx="100" cy="100" r="8" fill="var(--color-nayan)"/>
+        </svg>
+
+        <div class="growth-center">
+          <div class="growth-year">2024</div>
+          <div class="growth-label">Present</div>
+        </div>
+      </div>
+
+      <div class="growth-legend">
+        <div class="growth-legend-item">
+          <div class="growth-legend-ring" style="background: var(--color-ferni);"></div>
+          <div class="growth-legend-info">
+            <span class="growth-legend-year">2024</span>
+            <span class="growth-legend-theme">Intentional growth</span>
+          </div>
+        </div>
+        <div class="growth-legend-item">
+          <div class="growth-legend-ring" style="background: var(--color-nayan);"></div>
+          <div class="growth-legend-info">
+            <span class="growth-legend-year">2023</span>
+            <span class="growth-legend-theme">Consolidating gains</span>
+          </div>
+        </div>
+        <div class="growth-legend-item">
+          <div class="growth-legend-ring" style="background: var(--color-peter);"></div>
+          <div class="growth-legend-info">
+            <span class="growth-legend-year">2022</span>
+            <span class="growth-legend-theme">Breakthrough year</span>
+          </div>
+        </div>
+        <div class="growth-legend-item">
+          <div class="growth-legend-ring" style="background: var(--color-maya);"></div>
+          <div class="growth-legend-info">
+            <span class="growth-legend-year">2021</span>
+            <span class="growth-legend-theme">Finding footing</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>

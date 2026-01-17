@@ -1,0 +1,844 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ferni Visualization Audit - Gap Analysis & Roadmap</title>
+  <style>
+    /* Midnight Theme (Default) */
+    :root {
+      --bg-primary: #2C2520;
+      --bg-secondary: #3a3330;
+      --bg-elevated: #4a4340;
+      --text-primary: #f5f0eb;
+      --text-secondary: rgba(245, 240, 235, 0.7);
+      --text-muted: rgba(245, 240, 235, 0.5);
+      --accent-primary: #d4a574;
+      --accent-secondary: #c97b7b;
+      --ferni-green: #7dad7a;
+      --border-subtle: rgba(245, 240, 235, 0.1);
+      --border-medium: rgba(245, 240, 235, 0.2);
+
+      /* Status colors */
+      --status-exists: #7dad7a;
+      --status-gap: #c97b7b;
+      --status-improve: #d4a574;
+      --status-new: #7a9dad;
+    }
+
+    /* Zen Theme (Light) */
+    [data-theme="zen"] {
+      --bg-primary: #f8f4ef;
+      --bg-secondary: #efe9e1;
+      --bg-elevated: #fff;
+      --text-primary: #2C2520;
+      --text-secondary: rgba(44, 37, 32, 0.7);
+      --text-muted: rgba(44, 37, 32, 0.5);
+      --accent-primary: #3D5A45;
+      --accent-secondary: #8b5a5a;
+      --ferni-green: #4a6741;
+      --border-subtle: rgba(44, 37, 32, 0.1);
+      --border-medium: rgba(44, 37, 32, 0.2);
+
+      --status-exists: #4a6741;
+      --status-gap: #8b5a5a;
+      --status-improve: #8b7355;
+      --status-new: #5a7a8b;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      line-height: 1.6;
+      min-height: 100vh;
+    }
+
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 3rem 2rem;
+    }
+
+    /* Header */
+    .header {
+      text-align: center;
+      margin-bottom: 4rem;
+    }
+
+    .header-badge {
+      display: inline-block;
+      background: var(--accent-primary);
+      color: var(--bg-primary);
+      padding: 0.5rem 1rem;
+      border-radius: 100px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      margin-bottom: 1.5rem;
+    }
+
+    h1 {
+      font-family: Georgia, 'Times New Roman', serif;
+      font-style: italic;
+      font-size: 2.5rem;
+      font-weight: 400;
+      margin-bottom: 1rem;
+      color: var(--text-primary);
+    }
+
+    .subtitle {
+      color: var(--text-secondary);
+      font-size: 1.125rem;
+      max-width: 700px;
+      margin: 0 auto;
+    }
+
+    /* Theme Toggle */
+    .theme-toggle {
+      position: fixed;
+      top: 1.5rem;
+      right: 1.5rem;
+      display: flex;
+      gap: 0.5rem;
+      background: var(--bg-elevated);
+      padding: 0.5rem;
+      border-radius: 100px;
+      border: 1px solid var(--border-subtle);
+      z-index: 100;
+    }
+
+    .theme-toggle button {
+      background: transparent;
+      border: none;
+      padding: 0.5rem 1rem;
+      border-radius: 100px;
+      cursor: pointer;
+      color: var(--text-secondary);
+      font-size: 0.875rem;
+      transition: all 0.2s;
+    }
+
+    .theme-toggle button.active {
+      background: var(--accent-primary);
+      color: var(--bg-primary);
+    }
+
+    /* Section */
+    .section {
+      margin-bottom: 4rem;
+    }
+
+    .section-header {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      margin-bottom: 2rem;
+    }
+
+    .section-badge {
+      background: var(--bg-elevated);
+      padding: 0.375rem 0.75rem;
+      border-radius: 100px;
+      font-size: 0.6875rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--accent-primary);
+      border: 1px solid var(--border-subtle);
+    }
+
+    h2 {
+      font-family: Georgia, 'Times New Roman', serif;
+      font-style: italic;
+      font-size: 1.75rem;
+      font-weight: 400;
+      color: var(--text-primary);
+    }
+
+    .section-desc {
+      color: var(--text-secondary);
+      margin-bottom: 2rem;
+      max-width: 800px;
+    }
+
+    /* Stats Grid */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1.5rem;
+      margin-bottom: 3rem;
+    }
+
+    .stat-card {
+      background: var(--bg-secondary);
+      border-radius: 16px;
+      padding: 1.5rem;
+      text-align: center;
+      border: 1px solid var(--border-subtle);
+    }
+
+    .stat-number {
+      font-size: 2.5rem;
+      font-weight: 700;
+      margin-bottom: 0.25rem;
+    }
+
+    .stat-number.exists { color: var(--status-exists); }
+    .stat-number.gap { color: var(--status-gap); }
+    .stat-number.improve { color: var(--status-improve); }
+    .stat-number.new { color: var(--status-new); }
+
+    .stat-label {
+      color: var(--text-secondary);
+      font-size: 0.875rem;
+    }
+
+    /* Comparison Table */
+    .comparison-table {
+      width: 100%;
+      border-collapse: collapse;
+      background: var(--bg-secondary);
+      border-radius: 16px;
+      overflow: hidden;
+      border: 1px solid var(--border-subtle);
+    }
+
+    .comparison-table th,
+    .comparison-table td {
+      padding: 1rem 1.25rem;
+      text-align: left;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .comparison-table th {
+      background: var(--bg-elevated);
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-secondary);
+    }
+
+    .comparison-table tr:last-child td {
+      border-bottom: none;
+    }
+
+    .comparison-table tr:hover td {
+      background: var(--bg-elevated);
+    }
+
+    .status-badge {
+      display: inline-block;
+      padding: 0.25rem 0.75rem;
+      border-radius: 100px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+
+    .status-badge.exists {
+      background: rgba(125, 173, 122, 0.2);
+      color: var(--status-exists);
+    }
+
+    .status-badge.gap {
+      background: rgba(201, 123, 123, 0.2);
+      color: var(--status-gap);
+    }
+
+    .status-badge.improve {
+      background: rgba(212, 165, 116, 0.2);
+      color: var(--status-improve);
+    }
+
+    .status-badge.new {
+      background: rgba(122, 157, 173, 0.2);
+      color: var(--status-new);
+    }
+
+    .viz-name {
+      font-weight: 500;
+      color: var(--text-primary);
+    }
+
+    .viz-desc {
+      font-size: 0.875rem;
+      color: var(--text-secondary);
+      margin-top: 0.25rem;
+    }
+
+    .checkmark {
+      color: var(--status-exists);
+    }
+
+    .x-mark {
+      color: var(--status-gap);
+    }
+
+    /* Roadmap */
+    .roadmap-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1.5rem;
+    }
+
+    .roadmap-card {
+      background: var(--bg-secondary);
+      border-radius: 16px;
+      padding: 1.5rem;
+      border: 1px solid var(--border-subtle);
+    }
+
+    .roadmap-phase {
+      font-size: 0.6875rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--accent-primary);
+      margin-bottom: 0.75rem;
+    }
+
+    .roadmap-title {
+      font-family: Georgia, 'Times New Roman', serif;
+      font-style: italic;
+      font-size: 1.25rem;
+      margin-bottom: 1rem;
+      color: var(--text-primary);
+    }
+
+    .roadmap-list {
+      list-style: none;
+    }
+
+    .roadmap-list li {
+      padding: 0.5rem 0;
+      border-bottom: 1px solid var(--border-subtle);
+      color: var(--text-secondary);
+      font-size: 0.875rem;
+    }
+
+    .roadmap-list li:last-child {
+      border-bottom: none;
+    }
+
+    /* Philosophy Cards */
+    .philosophy-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 2rem;
+      margin-bottom: 3rem;
+    }
+
+    .philosophy-card {
+      background: var(--bg-secondary);
+      border-radius: 16px;
+      padding: 2rem;
+      border: 1px solid var(--border-subtle);
+    }
+
+    .philosophy-card h3 {
+      font-family: Georgia, 'Times New Roman', serif;
+      font-style: italic;
+      font-size: 1.25rem;
+      margin-bottom: 1rem;
+      color: var(--text-primary);
+    }
+
+    .philosophy-card p {
+      color: var(--text-secondary);
+      margin-bottom: 1rem;
+    }
+
+    .philosophy-card ul {
+      list-style: none;
+    }
+
+    .philosophy-card li {
+      padding: 0.375rem 0;
+      color: var(--text-secondary);
+      font-size: 0.875rem;
+    }
+
+    .philosophy-card li::before {
+      content: "→ ";
+      color: var(--accent-primary);
+    }
+
+    /* Quote */
+    .quote-section {
+      background: linear-gradient(135deg, var(--bg-elevated), var(--bg-secondary));
+      border-radius: 24px;
+      padding: 3rem;
+      text-align: center;
+      margin: 4rem 0;
+      border: 1px solid var(--border-subtle);
+    }
+
+    .quote-text {
+      font-family: Georgia, 'Times New Roman', serif;
+      font-style: italic;
+      font-size: 1.5rem;
+      color: var(--text-primary);
+      max-width: 700px;
+      margin: 0 auto 1rem;
+    }
+
+    .quote-source {
+      color: var(--text-muted);
+      font-size: 0.875rem;
+    }
+
+    /* Responsive */
+    @media (max-width: 1024px) {
+      .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+      .roadmap-grid {
+        grid-template-columns: 1fr;
+      }
+      .philosophy-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .stats-grid {
+        grid-template-columns: 1fr;
+      }
+      .comparison-table {
+        font-size: 0.875rem;
+      }
+      .comparison-table th,
+      .comparison-table td {
+        padding: 0.75rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Theme Toggle -->
+  <div class="theme-toggle">
+    <span style="color: var(--text-muted); font-size: 0.75rem; padding: 0.5rem;">THEME</span>
+    <button id="theme-midnight" class="active">Midnight</button>
+    <button id="theme-zen">Zen</button>
+  </div>
+
+  <div class="container">
+    <!-- Header -->
+    <header class="header">
+      <div class="header-badge">Visualization Audit</div>
+      <h1>From Metrics to Meaning</h1>
+      <p class="subtitle">
+        A comprehensive analysis of Ferni's current visualizations vs the storytelling
+        showcase, identifying gaps and opportunities to differentiate from Apple & Google.
+      </p>
+    </header>
+
+    <!-- Executive Summary Stats -->
+    <section class="section">
+      <div class="section-header">
+        <span class="section-badge">Executive Summary</span>
+        <h2>Current State</h2>
+      </div>
+
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-number exists">14</div>
+          <div class="stat-label">Existing Visualizations</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-number new">12</div>
+          <div class="stat-label">New Storytelling Charts</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-number improve">8</div>
+          <div class="stat-label">Can Be Enhanced</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-number gap">6</div>
+          <div class="stat-label">Critical Gaps</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Philosophy Comparison -->
+    <section class="section">
+      <div class="section-header">
+        <span class="section-badge">Design Philosophy</span>
+        <h2>Metrics vs Meaning</h2>
+      </div>
+
+      <div class="philosophy-grid">
+        <div class="philosophy-card">
+          <h3>Current App (Metrics-Focused)</h3>
+          <p>Shows <em>what happened</em> with numbers and stats:</p>
+          <ul>
+            <li>Progress percentages (67% complete)</li>
+            <li>Streak counters (14 days)</li>
+            <li>Accuracy scores (78% correct)</li>
+            <li>Total counts (42 conversations)</li>
+            <li>Trend indicators (↑ 12%)</li>
+          </ul>
+        </div>
+        <div class="philosophy-card">
+          <h3>Storytelling Showcase (Meaning-Focused)</h3>
+          <p>Shows <em>what it means</em> with narrative:</p>
+          <ul>
+            <li>Life Seasons (You're in a season of Growth)</li>
+            <li>Conversation River (Topics flowing through time)</li>
+            <li>The Mirror (What you say vs what I notice)</li>
+            <li>Ripple Effects (Better sleep cascaded into everything)</li>
+            <li>Unfinished Stories (Story arcs you started but haven't resolved)</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- Quote -->
+    <div class="quote-section">
+      <p class="quote-text">
+        "Apple and Google show you data. Ferni shows you yourself."
+      </p>
+      <p class="quote-source">— The differentiating principle</p>
+    </div>
+
+    <!-- Gap Analysis Table -->
+    <section class="section">
+      <div class="section-header">
+        <span class="section-badge">Gap Analysis</span>
+        <h2>Visualization Comparison</h2>
+      </div>
+      <p class="section-desc">
+        Comparing existing app visualizations with the storytelling showcase concepts.
+        Status indicates whether the visualization exists, needs improvement, has a gap, or is new.
+      </p>
+
+      <table class="comparison-table">
+        <thead>
+          <tr>
+            <th>Visualization</th>
+            <th>In App?</th>
+            <th>In Showcase?</th>
+            <th>Status</th>
+            <th>Historical</th>
+            <th>Current</th>
+            <th>Predictive</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- Existing in App -->
+          <tr>
+            <td>
+              <div class="viz-name">Progress Ring</div>
+              <div class="viz-desc">Relationship stage percentage</div>
+            </td>
+            <td><span class="checkmark">✓</span></td>
+            <td><span class="x-mark">✗</span></td>
+            <td><span class="status-badge improve">Enhance</span></td>
+            <td><span class="checkmark">✓</span></td>
+            <td><span class="checkmark">✓</span></td>
+            <td><span class="x-mark">✗</span></td>
+          </tr>
+          <tr>
+            <td>
+              <div class="viz-name">Trust Journey Timeline</div>
+              <div class="viz-desc">Milestone events over time</div>
+            </td>
+            <td><span class="checkmark">✓</span></td>
+            <td><span class="checkmark">✓</span> Turning Points</td>
+            <td><span class="status-badge improve">Enhance</span></td>
+            <td><span class="checkmark">✓</span></td>
+            <td><span class="checkmark">✓</span></td>
+            <td><span class="x-mark">✗</span></td>
+          </tr>
+          <tr>
+            <td>
+              <div class="viz-name">Voice Journal Calendar</div>
+              <div class="viz-desc">Daily entry tracking</div>
+            </td>
+            <td><span class="checkmark">✓</span></td>
+            <td><span class="x-mark">✗</span></td>
+            <td><span class="status-badge exists">Exists</span></td>
+            <td><span class="checkmark">✓</span></td>
+            <td><span class="checkmark">✓</span></td>
+            <td><span class="x-mark">✗</span></td>
+          </tr>
+          <tr>
+            <td>
+              <div class="viz-name">Wellbeing Dashboard</div>
+              <div class="viz-desc">Multi-dimension wellness scores</div>
+            </td>
+            <td><span class="checkmark">✓</span></td>
+            <td><span class="x-mark">✗</span></td>
+            <td><span class="status-badge improve">Enhance</span></td>
+            <td><span class="checkmark">✓</span></td>
+            <td><span class="checkmark">✓</span></td>
+            <td><span class="checkmark">✓</span></td>
+          </tr>
+          <tr>
+            <td>
+              <div class="viz-name">Waveform Visualization</div>
+              <div class="viz-desc">Real-time emotion during speech</div>
+            </td>
+            <td><span class="checkmark">✓</span></td>
+            <td><span class="x-mark">✗</span></td>
+            <td><span class="status-badge exists">Exists</span></td>
+            <td><span class="x-mark">✗</span></td>
+            <td><span class="checkmark">✓</span></td>
+            <td><span class="x-mark">✗</span></td>
+          </tr>
+          <tr>
+            <td>
+              <div class="viz-name">Predictions UI</div>
+              <div class="viz-desc">Prediction accuracy gamification</div>
+            </td>
+            <td><span class="checkmark">✓</span></td>
+            <td><span class="checkmark">✓</span> Anticipation</td>
+            <td><span class="status-badge improve">Enhance</span></td>
+            <td><span class="checkmark">✓</span></td>
+            <td><span class="x-mark">✗</span></td>
+            <td><span class="checkmark">✓</span></td>
+          </tr>
+          <tr>
+            <td>
+              <div class="viz-name">Relationship Insights</div>
+              <div class="viz-desc">Multi-view relationship analytics</div>
+            </td>
+            <td><span class="checkmark">✓</span></td>
+            <td><span class="checkmark">✓</span> Constellation</td>
+            <td><span class="status-badge improve">Enhance</span></td>
+            <td><span class="checkmark">✓</span></td>
+            <td><span class="checkmark">✓</span></td>
+            <td><span class="x-mark">✗</span></td>
+          </tr>
+
+          <!-- New in Showcase (Gaps) -->
+          <tr>
+            <td>
+              <div class="viz-name">Life Seasons</div>
+              <div class="viz-desc">Emotional seasons wheel - growth, rest, release, expansion</div>
+            </td>
+            <td><span class="x-mark">✗</span></td>
+            <td><span class="checkmark">✓</span></td>
+            <td><span class="status-badge gap">Gap</span></td>
+            <td><span class="checkmark">✓</span></td>
+            <td><span class="checkmark">✓</span></td>
+            <td><span class="checkmark">✓</span></td>
+          </tr>
+          <tr>
+            <td>
+              <div class="viz-name">Conversation River</div>
+              <div class="viz-desc">Topics flowing through time as streams</div>
+            </td>
+            <td><span class="x-mark">✗</span></td>
+            <td><span class="checkmark">✓</span></td>
+            <td><span class="status-badge gap">Gap</span></td>
+            <td><span class="checkmark">✓</span></td>
+            <td><span class="checkmark">✓</span></td>
+            <td><span class="x-mark">✗</span></td>
+          </tr>
+          <tr>
+            <td>
+              <div class="viz-name">The Mirror</div>
+              <div class="viz-desc">What you say vs what Ferni notices</div>
+            </td>
+            <td><span class="x-mark">✗</span></td>
+            <td><span class="checkmark">✓</span></td>
+            <td><span class="status-badge gap">Gap</span></td>
+            <td><span class="checkmark">✓</span></td>
+            <td><span class="checkmark">✓</span></td>
+            <td><span class="x-mark">✗</span></td>
+          </tr>
+          <tr>
+            <td>
+              <div class="viz-name">Energy Flow Sankey</div>
+              <div class="viz-desc">Where emotional energy goes and what gives back</div>
+            </td>
+            <td><span class="x-mark">✗</span></td>
+            <td><span class="checkmark">✓</span></td>
+            <td><span class="status-badge gap">Gap</span></td>
+            <td><span class="checkmark">✓</span></td>
+            <td><span class="checkmark">✓</span></td>
+            <td><span class="x-mark">✗</span></td>
+          </tr>
+          <tr>
+            <td>
+              <div class="viz-name">The Unsaid</div>
+              <div class="viz-desc">Topics mentioned once, never returned to</div>
+            </td>
+            <td><span class="x-mark">✗</span></td>
+            <td><span class="checkmark">✓</span></td>
+            <td><span class="status-badge gap">Gap</span></td>
+            <td><span class="checkmark">✓</span></td>
+            <td><span class="x-mark">✗</span></td>
+            <td><span class="x-mark">✗</span></td>
+          </tr>
+          <tr>
+            <td>
+              <div class="viz-name">Growth Rings</div>
+              <div class="viz-desc">Tree ring visualization of growth periods</div>
+            </td>
+            <td><span class="x-mark">✗</span></td>
+            <td><span class="checkmark">✓</span></td>
+            <td><span class="status-badge gap">Gap</span></td>
+            <td><span class="checkmark">✓</span></td>
+            <td><span class="checkmark">✓</span></td>
+            <td><span class="x-mark">✗</span></td>
+          </tr>
+          <tr>
+            <td>
+              <div class="viz-name">Values Alignment Radar</div>
+              <div class="viz-desc">Stated values vs actual conversations</div>
+            </td>
+            <td><span class="x-mark">✗</span></td>
+            <td><span class="checkmark">✓</span></td>
+            <td><span class="status-badge new">New</span></td>
+            <td><span class="checkmark">✓</span></td>
+            <td><span class="checkmark">✓</span></td>
+            <td><span class="x-mark">✗</span></td>
+          </tr>
+          <tr>
+            <td>
+              <div class="viz-name">Ripple Effects</div>
+              <div class="viz-desc">Cause and effect cascades</div>
+            </td>
+            <td><span class="x-mark">✗</span></td>
+            <td><span class="checkmark">✓</span></td>
+            <td><span class="status-badge new">New</span></td>
+            <td><span class="checkmark">✓</span></td>
+            <td><span class="checkmark">✓</span></td>
+            <td><span class="checkmark">✓</span></td>
+          </tr>
+          <tr>
+            <td>
+              <div class="viz-name">Unfinished Stories</div>
+              <div class="viz-desc">Story arcs in progress with completion %</div>
+            </td>
+            <td><span class="x-mark">✗</span></td>
+            <td><span class="checkmark">✓</span></td>
+            <td><span class="status-badge new">New</span></td>
+            <td><span class="checkmark">✓</span></td>
+            <td><span class="checkmark">✓</span></td>
+            <td><span class="checkmark">✓</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- Implementation Roadmap -->
+    <section class="section">
+      <div class="section-header">
+        <span class="section-badge">Implementation Roadmap</span>
+        <h2>Path Forward</h2>
+      </div>
+
+      <div class="roadmap-grid">
+        <div class="roadmap-card">
+          <div class="roadmap-phase">Phase 1: Quick Wins</div>
+          <div class="roadmap-title">Enhance Existing</div>
+          <ul class="roadmap-list">
+            <li>Add narrative labels to Progress Ring ("You're building trust")</li>
+            <li>Convert Trust Journey to Turning Points style</li>
+            <li>Add pattern match % to Predictions UI</li>
+            <li>Replace relationship stats with Constellation view</li>
+          </ul>
+        </div>
+        <div class="roadmap-card">
+          <div class="roadmap-phase">Phase 2: Core Storytelling</div>
+          <div class="roadmap-title">Build New Views</div>
+          <ul class="roadmap-list">
+            <li>Implement Life Seasons in Insights Hub</li>
+            <li>Add Conversation River to topic tracking</li>
+            <li>Build The Mirror view in weekly summary</li>
+            <li>Create Energy Flow dashboard section</li>
+          </ul>
+        </div>
+        <div class="roadmap-card">
+          <div class="roadmap-phase">Phase 3: Deep Intelligence</div>
+          <div class="roadmap-title">Advanced Narratives</div>
+          <ul class="roadmap-list">
+            <li>The Unsaid detection + gentle surfacing</li>
+            <li>Growth Rings long-term view</li>
+            <li>Values Alignment analysis</li>
+            <li>Unfinished Stories tracking</li>
+            <li>Ripple Effects causality engine</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- Key Principles -->
+    <section class="section">
+      <div class="section-header">
+        <span class="section-badge">Design Principles</span>
+        <h2>Storytelling Standards</h2>
+      </div>
+
+      <div class="philosophy-grid">
+        <div class="philosophy-card">
+          <h3>Every Visualization Must...</h3>
+          <ul>
+            <li>Tell a story, not just show data</li>
+            <li>Use human language ("You're in a season of Growth")</li>
+            <li>Show meaning before metrics</li>
+            <li>Connect to emotional journey</li>
+            <li>Support both Midnight and Zen themes</li>
+          </ul>
+        </div>
+        <div class="philosophy-card">
+          <h3>Never Show...</h3>
+          <ul>
+            <li>Raw numbers without context</li>
+            <li>Percentages without narrative</li>
+            <li>Charts that require interpretation</li>
+            <li>Data that doesn't serve growth</li>
+            <li>Metrics that could cause anxiety</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- Final Quote -->
+    <div class="quote-section">
+      <p class="quote-text">
+        "The goal isn't to show users more data.
+        It's to help them feel truly known."
+      </p>
+      <p class="quote-source">— Ferni Design Philosophy</p>
+    </div>
+  </div>
+
+  <script>
+    // Theme toggle functionality
+    const midnight = document.getElementById('theme-midnight');
+    const zen = document.getElementById('theme-zen');
+
+    midnight.addEventListener('click', () => {
+      document.documentElement.removeAttribute('data-theme');
+      midnight.classList.add('active');
+      zen.classList.remove('active');
+      localStorage.setItem('ferni-theme', 'midnight');
+    });
+
+    zen.addEventListener('click', () => {
+      document.documentElement.setAttribute('data-theme', 'zen');
+      zen.classList.add('active');
+      midnight.classList.remove('active');
+      localStorage.setItem('ferni-theme', 'zen');
+    });
+
+    // Restore saved theme
+    const savedTheme = localStorage.getItem('ferni-theme');
+    if (savedTheme === 'zen') {
+      zen.click();
+    }
+  </script>
+</body>
+</html>

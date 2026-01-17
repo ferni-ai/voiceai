@@ -39,15 +39,17 @@ See [CURRENT-STATE-SUMMARY.md](./CURRENT-STATE-SUMMARY.md) for authoritative sta
 | **Progress Analytics**   | 🔄 Partial | `analytics-dashboard.ui.ts` - UI complete, needs real data aggregation |
 | **Prediction Accuracy**  | 🔄 Partial | `prediction-tracker.ui.ts` - Tracks prediction outcomes                |
 
-### Section 2: Insights (5 items)
+### Section 2: Grow (Insights & Growth) (7 items)
 
 | Item                    | Status        | Notes                                                                   |
 | ----------------------- | ------------- | ----------------------------------------------------------------------- |
+| **Your Journey**        | ✅ Working    | `relationship-progress.ui.ts` - Relationship stage progress             |
+| **How You're Growing**  | 🔄 Partial    | `analytics-dashboard.ui.ts` - UI complete, needs data aggregation       |
+| **My Predictions**      | 🔄 Partial    | `prediction-tracker.ui.ts` - Prediction accuracy tracking               |
+| **What We Notice**      | ✅ Working    | `team-insights.ui.ts` - Cross-persona team insights (NEW Dec 2024)      |
 | **What I've Learned**   | ✅ Working    | `cognitive-insights.ui.ts` - Shows detected patterns                    |
-| **Memory Browser**      | 🔄 Partial    | `conversation-memory.ui.ts` - UI complete, memory service needs work    |
-| **Wellbeing Dashboard** | 🚧 Scaffolded | `wellbeing-dashboard.ui.ts` - Beautiful UI, backend not fully wired     |
-| **Musical You**         | ✅ Working    | `music-dashboard.ui.ts` - Music game insights                           |
-| **Team Huddles**        | 🔄 Partial    | `team-huddle.ui.ts` - UI exists, multi-persona feature needs refinement |
+| **Your Wellbeing**      | 🚧 Scaffolded | `wellbeing-dashboard.ui.ts` - Beautiful UI, backend not fully wired     |
+| **Your World**          | ✅ Working    | `life-context.ui.ts` - Life context dashboard                           |
 
 ### Section 3: Fun (1 item)
 

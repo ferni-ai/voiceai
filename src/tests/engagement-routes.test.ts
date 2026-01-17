@@ -46,7 +46,7 @@ const mockStore = {
   recordWeather: vi.fn(),
 };
 
-vi.mock('../services/engagement-store.js', () => ({
+vi.mock('../services/engagement/engagement-store.js', () => ({
   getEngagementStore: vi.fn(() => Promise.resolve(mockStore)),
 }));
 
@@ -55,8 +55,21 @@ const mockHistoryService = {
   getHistory: vi.fn(),
 };
 
-vi.mock('../services/conversation-history.js', () => ({
+vi.mock('../services/stores/conversation-history.js', () => ({
   getConversationHistoryService: vi.fn(() => mockHistoryService),
+}));
+
+// Mock daily rituals service
+const mockRitualsService = {
+  recordCompletionAsync: vi.fn(),
+};
+
+vi.mock('../services/daily-rituals.js', () => ({
+  getDailyRitualsService: vi.fn(() => mockRitualsService),
+  PERSONA_RITUALS: {
+    'ferni-sky-check': { personaId: 'ferni', name: 'Sky Check' },
+    'ritual-1': { personaId: 'ferni', name: 'Test Ritual' },
+  },
 }));
 
 import { handleConversationsRoutes } from '../api/routes/conversations.js';
@@ -332,6 +345,11 @@ describe('Rituals Routes', () => {
     mockStore.getWeatherHistory.mockResolvedValue([
       { date: '2024-03-15', weather: { primary: 'sunny' } },
     ]);
+    mockRitualsService.recordCompletionAsync.mockResolvedValue({
+      newStreak: 6,
+      isNewRecord: false,
+      celebration: null,
+    });
   });
 
   describe('GET /api/rituals', () => {

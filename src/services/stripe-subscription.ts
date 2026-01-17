@@ -28,6 +28,7 @@ import {
   needsUsageReset,
 } from '../types/subscription.js';
 import { createLogger } from '../utils/safe-logger.js';
+import { finops } from './observability/finops.js';
 
 const log = createLogger({ module: 'StripeSubscription' });
 
@@ -54,6 +55,17 @@ interface StripeSubscription {
   current_period_end: number;
   trial_end: number | null;
   metadata: Record<string, string>;
+}
+
+interface StripeSubscriptionWithItems extends StripeSubscription {
+  items: {
+    data: Array<{
+      price: {
+        unit_amount: number | null;
+        recurring?: { interval: string };
+      };
+    }>;
+  };
 }
 
 interface StripeCheckoutSession {
@@ -103,6 +115,11 @@ interface StripeClient {
   };
   subscriptions: {
     retrieve: (id: string) => Promise<StripeSubscription>;
+    list: (params: {
+      status?: string;
+      limit?: number;
+      expand?: string[];
+    }) => AsyncIterable<StripeSubscriptionWithItems>;
   };
   webhooks: {
     constructEvent: (payload: string | Buffer, signature: string, secret: string) => StripeEvent;
@@ -165,8 +182,13 @@ export function isStripeConfigured(): boolean {
   return !!(
     process.env.STRIPE_SECRET_KEY &&
     process.env.STRIPE_WEBHOOK_SECRET &&
-    // Support both naming conventions for backward compatibility
-    (process.env.STRIPE_PRICE_FRIEND ||
+    // Support multiple naming conventions for backward compatibility
+    // New: STRIPE_PRICE_FOUNDING_MEMBER / STRIPE_PRICE_FOUNDING_PATRON
+    // Old: STRIPE_PRICE_FRIEND / STRIPE_PRICE_PARTNER
+    // Legacy: STRIPE_FRIEND_PRICE_ID / STRIPE_PARTNER_PRICE_ID
+    (process.env.STRIPE_PRICE_FOUNDING_MEMBER ||
+      process.env.STRIPE_PRICE_FOUNDING_PATRON ||
+      process.env.STRIPE_PRICE_FRIEND ||
       process.env.STRIPE_FRIEND_PRICE_ID ||
       process.env.STRIPE_PRICE_PARTNER ||
       process.env.STRIPE_PARTNER_PRICE_ID)
@@ -527,6 +549,12 @@ export async function recordConversation(
       approachingLimit: false,
       atLimit: false,
       teamAccess: 'ferni-only',
+      // Soft cap fields (default for unknown user)
+      softConversationCap: 30,
+      conversationsUsed: 0,
+      approachingSoftCap: false,
+      pastSoftCap: false,
+      softCapMessage: null,
     };
   }
 
@@ -585,6 +613,12 @@ export async function getUsageStatus(userId: string): Promise<UsageStatus> {
       approachingLimit: false,
       atLimit: false,
       teamAccess: 'ferni-only',
+      // Soft cap fields (default for new user)
+      softConversationCap: 30,
+      conversationsUsed: 0,
+      approachingSoftCap: false,
+      pastSoftCap: false,
+      softCapMessage: null,
     };
   }
 
@@ -733,6 +767,76 @@ export async function handleWebhookEvent(event: StripeEvent): Promise<void> {
     default:
       log.debug({ type: event.type }, 'Unhandled webhook event type');
   }
+
+  // After any subscription-related event, sync MRR to FinOps
+  if (
+    event.type.startsWith('customer.subscription.') ||
+    event.type.startsWith('checkout.session.')
+  ) {
+    try {
+      await syncMRRToFinOps();
+    } catch (err) {
+      log.warn({ error: String(err) }, 'Failed to sync MRR to FinOps (non-fatal)');
+    }
+  }
+}
+
+// ============================================================================
+// FINOPS MRR SYNC
+// ============================================================================
+
+/**
+ * Sync Monthly Recurring Revenue from Stripe to FinOps.
+ * Calculates MRR from all active subscriptions.
+ */
+export async function syncMRRToFinOps(): Promise<{ mrr: number; subscriptionCount: number }> {
+  if (!isStripeConfigured()) {
+    log.debug('Stripe not configured, skipping MRR sync');
+    return { mrr: 0, subscriptionCount: 0 };
+  }
+
+  const stripe = await getStripe();
+  let mrr = 0;
+  let subscriptionCount = 0;
+
+  // Fetch all active subscriptions and sum up MRR
+  // Use iteration to handle pagination
+  for await (const subscription of stripe.subscriptions.list({
+    status: 'active',
+    limit: 100,
+    expand: ['data.items.data.price'],
+  })) {
+    subscriptionCount++;
+
+    // Sum up the MRR from subscription items
+    for (const item of subscription.items.data) {
+      const { price } = item;
+      if (price && price.unit_amount) {
+        // Convert to monthly amount
+        if (price.recurring?.interval === 'month') {
+          mrr += price.unit_amount / 100; // Stripe stores in cents
+        } else if (price.recurring?.interval === 'year') {
+          mrr += price.unit_amount / 100 / 12; // Convert annual to monthly
+        }
+      }
+    }
+  }
+
+  // Also count trialing subscriptions (will convert)
+  for await (const subscription of stripe.subscriptions.list({
+    status: 'trialing',
+    limit: 100,
+    expand: ['data.items.data.price'],
+  })) {
+    // Count trialing but don't add to MRR (not yet paying)
+    subscriptionCount++;
+  }
+
+  // Update FinOps with the calculated MRR
+  finops.setMonthlyRevenue(mrr);
+
+  log.info({ mrr, subscriptionCount }, 'Synced MRR to FinOps');
+  return { mrr, subscriptionCount };
 }
 
 // ============================================================================

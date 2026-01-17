@@ -1,0 +1,535 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "ferni-haptics-expanded",
+  "version": "1.0.0",
+  "description": "Expanded haptic feedback patterns for Ferni - Apple Taptic Engine level design",
+  
+  "meta": {
+    "created": "2026-01-15",
+    "philosophy": "Haptics should feel like a gentle touch from a friend, not a mechanical buzz",
+    "references": [
+      "Apple Haptic Design Guidelines",
+      "Android Haptic Feedback Best Practices",
+      "Ferni Brand Guidelines - Touch section"
+    ]
+  },
+
+  "platformMapping": {
+    "ios": {
+      "engine": "Core Haptics / UIFeedbackGenerator",
+      "capabilities": ["impact", "selection", "notification", "custom"],
+      "maxDuration": "5s",
+      "minIntensity": 0.1,
+      "maxIntensity": 1.0
+    },
+    "android": {
+      "engine": "VibrationEffect / HapticFeedbackConstants",
+      "capabilities": ["click", "tick", "heavyClick", "doubleClick", "custom"],
+      "maxDuration": "5s"
+    },
+    "web": {
+      "engine": "Vibration API (limited)",
+      "capabilities": ["pattern-only"],
+      "fallback": "audio-visual feedback"
+    }
+  },
+
+  "primitives": {
+    "description": "Base haptic building blocks",
+    
+    "impacts": {
+      "light": {
+        "ios": { "type": "impact", "style": "light", "intensity": 0.5 },
+        "android": { "type": "EFFECT_CLICK" },
+        "description": "Gentle tap, like touching a button"
+      },
+      "medium": {
+        "ios": { "type": "impact", "style": "medium", "intensity": 0.7 },
+        "android": { "type": "EFFECT_CLICK" },
+        "description": "Confident tap, confirming an action"
+      },
+      "heavy": {
+        "ios": { "type": "impact", "style": "heavy", "intensity": 0.9 },
+        "android": { "type": "EFFECT_HEAVY_CLICK" },
+        "description": "Strong tap, emphasizing importance"
+      },
+      "soft": {
+        "ios": { "type": "impact", "style": "soft", "intensity": 0.4 },
+        "android": { "type": "EFFECT_TICK" },
+        "description": "Cushioned tap, warm and inviting"
+      },
+      "rigid": {
+        "ios": { "type": "impact", "style": "rigid", "intensity": 0.6 },
+        "android": { "type": "EFFECT_CLICK" },
+        "description": "Crisp tap, precise and intentional"
+      }
+    },
+    
+    "selections": {
+      "tick": {
+        "ios": { "type": "selection" },
+        "android": { "type": "EFFECT_TICK" },
+        "description": "Subtle selection feedback"
+      }
+    },
+    
+    "notifications": {
+      "success": {
+        "ios": { "type": "notification", "style": "success" },
+        "android": { "type": "EFFECT_DOUBLE_CLICK" },
+        "description": "Positive outcome confirmation"
+      },
+      "warning": {
+        "ios": { "type": "notification", "style": "warning" },
+        "android": { "type": "EFFECT_CLICK", "repeat": 2 },
+        "description": "Attention needed"
+      },
+      "error": {
+        "ios": { "type": "notification", "style": "error" },
+        "android": { "type": "EFFECT_HEAVY_CLICK", "repeat": 2 },
+        "description": "Something went wrong"
+      }
+    }
+  },
+
+  "patterns": {
+    "description": "Composed haptic patterns for Ferni interactions",
+    
+    "connection": {
+      "description": "When Ferni connects or comes alive",
+      "emotional_intent": "Warm embrace, like a friend arriving",
+      "ios": {
+        "type": "custom",
+        "events": [
+          { "time": 0, "type": "hapticContinuous", "intensity": 0.3, "sharpness": 0.2, "duration": 0.2 },
+          { "time": 0.15, "type": "hapticTransient", "intensity": 0.5, "sharpness": 0.4 },
+          { "time": 0.25, "type": "hapticTransient", "intensity": 0.7, "sharpness": 0.5 }
+        ]
+      },
+      "android": {
+        "type": "pattern",
+        "pattern": [0, 50, 30, 80],
+        "amplitudes": [0, 80, 0, 150]
+      },
+      "duration": 350
+    },
+    
+    "disconnect": {
+      "description": "When session ends gracefully",
+      "emotional_intent": "Gentle goodbye, not abrupt",
+      "ios": {
+        "type": "custom",
+        "events": [
+          { "time": 0, "type": "hapticTransient", "intensity": 0.5, "sharpness": 0.5 },
+          { "time": 0.1, "type": "hapticContinuous", "intensity": 0.3, "sharpness": 0.3, "duration": 0.2 }
+        ]
+      },
+      "android": {
+        "type": "pattern",
+        "pattern": [0, 80, 50, 50],
+        "amplitudes": [0, 120, 0, 60]
+      },
+      "duration": 300
+    },
+    
+    "messageSent": {
+      "description": "User message acknowledged",
+      "emotional_intent": "I heard you",
+      "ios": {
+        "type": "impact",
+        "style": "soft",
+        "intensity": 0.4
+      },
+      "android": {
+        "type": "EFFECT_TICK"
+      },
+      "duration": 50
+    },
+    
+    "thinking": {
+      "description": "Ferni is processing",
+      "emotional_intent": "Thoughtful consideration, not mechanical",
+      "ios": {
+        "type": "custom",
+        "events": [
+          { "time": 0, "type": "hapticContinuous", "intensity": 0.15, "sharpness": 0.1, "duration": 0.5 }
+        ],
+        "loop": true,
+        "loopInterval": 800
+      },
+      "android": {
+        "type": "pattern",
+        "pattern": [0, 30, 300, 30],
+        "amplitudes": [0, 40, 0, 40],
+        "loop": true
+      },
+      "duration": 500,
+      "note": "Use sparingly, max 3 seconds"
+    },
+    
+    "handoff": {
+      "description": "Persona transition",
+      "emotional_intent": "Smooth passing of the baton",
+      "ios": {
+        "type": "custom",
+        "events": [
+          { "time": 0, "type": "hapticTransient", "intensity": 0.4, "sharpness": 0.3 },
+          { "time": 0.15, "type": "hapticContinuous", "intensity": 0.2, "sharpness": 0.2, "duration": 0.15 },
+          { "time": 0.35, "type": "hapticTransient", "intensity": 0.6, "sharpness": 0.5 }
+        ]
+      },
+      "android": {
+        "type": "pattern",
+        "pattern": [0, 40, 100, 30, 80, 60],
+        "amplitudes": [0, 80, 0, 50, 0, 120]
+      },
+      "duration": 450
+    },
+    
+    "celebrationSmall": {
+      "description": "Small win, followed through on something",
+      "emotional_intent": "Warm congratulations",
+      "ios": {
+        "type": "custom",
+        "events": [
+          { "time": 0, "type": "hapticTransient", "intensity": 0.5, "sharpness": 0.4 },
+          { "time": 0.08, "type": "hapticTransient", "intensity": 0.6, "sharpness": 0.5 },
+          { "time": 0.18, "type": "hapticTransient", "intensity": 0.7, "sharpness": 0.6 }
+        ]
+      },
+      "android": {
+        "type": "pattern",
+        "pattern": [0, 30, 50, 35, 50, 40],
+        "amplitudes": [0, 100, 0, 120, 0, 140]
+      },
+      "duration": 280
+    },
+    
+    "celebrationBig": {
+      "description": "Major milestone, breakthrough moment",
+      "emotional_intent": "Joy and pride, like a warm hug",
+      "ios": {
+        "type": "custom",
+        "events": [
+          { "time": 0, "type": "hapticTransient", "intensity": 0.6, "sharpness": 0.5 },
+          { "time": 0.1, "type": "hapticTransient", "intensity": 0.7, "sharpness": 0.6 },
+          { "time": 0.2, "type": "hapticTransient", "intensity": 0.8, "sharpness": 0.7 },
+          { "time": 0.35, "type": "hapticContinuous", "intensity": 0.4, "sharpness": 0.3, "duration": 0.2 },
+          { "time": 0.6, "type": "hapticTransient", "intensity": 0.9, "sharpness": 0.8 }
+        ]
+      },
+      "android": {
+        "type": "pattern",
+        "pattern": [0, 40, 60, 45, 60, 50, 100, 30, 80, 60],
+        "amplitudes": [0, 120, 0, 140, 0, 160, 0, 80, 0, 180]
+      },
+      "duration": 700
+    },
+    
+    "milestone": {
+      "description": "Reaching a significant milestone (10th convo, 1 year, etc)",
+      "emotional_intent": "Marking a special moment together",
+      "ios": {
+        "type": "custom",
+        "events": [
+          { "time": 0, "type": "hapticContinuous", "intensity": 0.3, "sharpness": 0.2, "duration": 0.15 },
+          { "time": 0.2, "type": "hapticTransient", "intensity": 0.6, "sharpness": 0.5 },
+          { "time": 0.35, "type": "hapticTransient", "intensity": 0.7, "sharpness": 0.6 },
+          { "time": 0.5, "type": "hapticTransient", "intensity": 0.8, "sharpness": 0.7 },
+          { "time": 0.65, "type": "hapticContinuous", "intensity": 0.5, "sharpness": 0.4, "duration": 0.25 }
+        ]
+      },
+      "android": {
+        "type": "pattern",
+        "pattern": [0, 80, 100, 40, 80, 50, 80, 60, 100, 100],
+        "amplitudes": [0, 60, 0, 120, 0, 140, 0, 160, 0, 100]
+      },
+      "duration": 900
+    },
+    
+    "buttonPress": {
+      "description": "Standard button tap",
+      "emotional_intent": "Confident confirmation",
+      "ios": {
+        "type": "impact",
+        "style": "medium",
+        "intensity": 0.6
+      },
+      "android": {
+        "type": "EFFECT_CLICK"
+      },
+      "duration": 30
+    },
+    
+    "buttonPressAccent": {
+      "description": "Primary/CTA button tap",
+      "emotional_intent": "This matters",
+      "ios": {
+        "type": "impact",
+        "style": "medium",
+        "intensity": 0.8
+      },
+      "android": {
+        "type": "EFFECT_HEAVY_CLICK"
+      },
+      "duration": 40
+    },
+    
+    "toggleOn": {
+      "description": "Toggle switched on",
+      "emotional_intent": "Enabling something good",
+      "ios": {
+        "type": "custom",
+        "events": [
+          { "time": 0, "type": "hapticTransient", "intensity": 0.4, "sharpness": 0.3 },
+          { "time": 0.06, "type": "hapticTransient", "intensity": 0.6, "sharpness": 0.6 }
+        ]
+      },
+      "android": {
+        "type": "pattern",
+        "pattern": [0, 20, 40, 30],
+        "amplitudes": [0, 80, 0, 120]
+      },
+      "duration": 100
+    },
+    
+    "toggleOff": {
+      "description": "Toggle switched off",
+      "emotional_intent": "Gently stepping back",
+      "ios": {
+        "type": "custom",
+        "events": [
+          { "time": 0, "type": "hapticTransient", "intensity": 0.5, "sharpness": 0.4 },
+          { "time": 0.06, "type": "hapticTransient", "intensity": 0.3, "sharpness": 0.2 }
+        ]
+      },
+      "android": {
+        "type": "pattern",
+        "pattern": [0, 25, 40, 15],
+        "amplitudes": [0, 100, 0, 60]
+      },
+      "duration": 90
+    },
+    
+    "selectionChange": {
+      "description": "Scrolling through options, picker selection",
+      "emotional_intent": "Subtle acknowledgment of choice",
+      "ios": {
+        "type": "selection"
+      },
+      "android": {
+        "type": "EFFECT_TICK"
+      },
+      "duration": 10
+    },
+    
+    "sliderTick": {
+      "description": "Moving through slider steps",
+      "emotional_intent": "Tactile feedback on position",
+      "ios": {
+        "type": "impact",
+        "style": "light",
+        "intensity": 0.3
+      },
+      "android": {
+        "type": "EFFECT_TICK"
+      },
+      "duration": 15
+    },
+    
+    "success": {
+      "description": "Action completed successfully",
+      "emotional_intent": "That worked perfectly",
+      "ios": {
+        "type": "notification",
+        "style": "success"
+      },
+      "android": {
+        "type": "EFFECT_DOUBLE_CLICK"
+      },
+      "duration": 100
+    },
+    
+    "warning": {
+      "description": "Attention needed, but not critical",
+      "emotional_intent": "Gentle heads up",
+      "ios": {
+        "type": "notification",
+        "style": "warning"
+      },
+      "android": {
+        "type": "pattern",
+        "pattern": [0, 40, 80, 40],
+        "amplitudes": [0, 100, 0, 100]
+      },
+      "duration": 200
+    },
+    
+    "error": {
+      "description": "Something went wrong",
+      "emotional_intent": "Oops, but we'll figure it out",
+      "ios": {
+        "type": "notification",
+        "style": "error"
+      },
+      "android": {
+        "type": "pattern",
+        "pattern": [0, 50, 100, 50, 100, 50],
+        "amplitudes": [0, 150, 0, 150, 0, 150]
+      },
+      "duration": 400
+    },
+    
+    "empathyResponse": {
+      "description": "Ferni acknowledging emotional content",
+      "emotional_intent": "I feel with you",
+      "ios": {
+        "type": "custom",
+        "events": [
+          { "time": 0, "type": "hapticContinuous", "intensity": 0.25, "sharpness": 0.15, "duration": 0.3 }
+        ]
+      },
+      "android": {
+        "type": "pattern",
+        "pattern": [0, 150],
+        "amplitudes": [0, 50]
+      },
+      "duration": 300
+    },
+    
+    "concernDetected": {
+      "description": "Ferni detecting user distress",
+      "emotional_intent": "I'm here, I noticed",
+      "ios": {
+        "type": "custom",
+        "events": [
+          { "time": 0, "type": "hapticContinuous", "intensity": 0.2, "sharpness": 0.1, "duration": 0.15 },
+          { "time": 0.2, "type": "hapticTransient", "intensity": 0.4, "sharpness": 0.3 }
+        ]
+      },
+      "android": {
+        "type": "pattern",
+        "pattern": [0, 80, 100, 40],
+        "amplitudes": [0, 40, 0, 80]
+      },
+      "duration": 280
+    },
+    
+    "breathSync": {
+      "description": "Subtle pulse matching user breathing (use rarely)",
+      "emotional_intent": "We're in sync",
+      "ios": {
+        "type": "custom",
+        "events": [
+          { "time": 0, "type": "hapticContinuous", "intensity": 0.15, "sharpness": 0.1, "duration": 0.8 }
+        ],
+        "loop": true,
+        "loopInterval": 4000
+      },
+      "android": {
+        "type": "pattern",
+        "pattern": [0, 400],
+        "amplitudes": [0, 30],
+        "loop": true
+      },
+      "duration": 800,
+      "note": "EXPERIMENTAL - Use only in focus/meditation modes"
+    },
+    
+    "streakContinue": {
+      "description": "Continuing a streak",
+      "emotional_intent": "You're on a roll",
+      "ios": {
+        "type": "custom",
+        "events": [
+          { "time": 0, "type": "hapticTransient", "intensity": 0.5, "sharpness": 0.5 },
+          { "time": 0.1, "type": "hapticTransient", "intensity": 0.6, "sharpness": 0.6 }
+        ]
+      },
+      "android": {
+        "type": "pattern",
+        "pattern": [0, 30, 60, 40],
+        "amplitudes": [0, 100, 0, 120]
+      },
+      "duration": 150
+    },
+    
+    "teamUnlock": {
+      "description": "New persona becomes available",
+      "emotional_intent": "Welcome to the family",
+      "ios": {
+        "type": "custom",
+        "events": [
+          { "time": 0, "type": "hapticTransient", "intensity": 0.4, "sharpness": 0.3 },
+          { "time": 0.1, "type": "hapticContinuous", "intensity": 0.3, "sharpness": 0.2, "duration": 0.2 },
+          { "time": 0.35, "type": "hapticTransient", "intensity": 0.6, "sharpness": 0.5 },
+          { "time": 0.5, "type": "hapticTransient", "intensity": 0.8, "sharpness": 0.7 }
+        ]
+      },
+      "android": {
+        "type": "pattern",
+        "pattern": [0, 40, 70, 100, 100, 50, 80, 60],
+        "amplitudes": [0, 80, 0, 60, 0, 120, 0, 160]
+      },
+      "duration": 600
+    }
+  },
+
+  "accessibility": {
+    "reduceHaptics": {
+      "description": "Settings for users who prefer reduced haptic feedback",
+      "patterns": {
+        "all": {
+          "intensityMultiplier": 0.5,
+          "durationMultiplier": 0.7,
+          "omitContinuous": true
+        }
+      }
+    },
+    "alternativeFeedback": {
+      "description": "When haptics unavailable, provide alternatives",
+      "visual": "Brief flash or scale animation",
+      "audio": "Use corresponding sound from sonic identity"
+    }
+  },
+
+  "implementation": {
+    "ios": {
+      "import": "import CoreHaptics",
+      "setup": "let hapticEngine = try CHHapticEngine()",
+      "example": "// See implementation guide"
+    },
+    "android": {
+      "import": "import android.os.VibrationEffect",
+      "permission": "android.permission.VIBRATE",
+      "example": "// See implementation guide"
+    },
+    "react-native": {
+      "package": "react-native-haptic-feedback",
+      "example": "// See implementation guide"
+    }
+  },
+
+  "guidelines": {
+    "dos": [
+      "Use haptics to reinforce emotional moments",
+      "Match haptic intensity to action importance",
+      "Keep patterns short (< 1 second for most)",
+      "Test on real devices, not simulators",
+      "Provide alternatives when haptics unavailable"
+    ],
+    "donts": [
+      "Never use haptics as the sole feedback",
+      "Avoid continuous vibration > 3 seconds",
+      "Don't haptic every UI element",
+      "Never use jarring patterns",
+      "Don't assume all devices support haptics"
+    ],
+    "emotionalMapping": {
+      "warmth": "Use soft impacts, longer durations",
+      "excitement": "Use sharper impacts, rhythmic patterns",
+      "calm": "Use gentle continuous, low intensity",
+      "attention": "Use notification patterns, higher intensity"
+    }
+  }
+}

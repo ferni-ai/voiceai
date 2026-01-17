@@ -1,0 +1,45 @@
+{
+  "postFile": "week-3-preview.md",
+  "title": "Week 3: Testing, Deployment, and Going to Production",
+  "date": "2026-01-18T00:00:00.000Z",
+  "snippets": {
+    "twitter": {
+      "platform": "twitter",
+      "text": "📚 Week 3: Testing, Deployment, and Going to Production\n\nhttps://developers.ferni.ai/developers/blog/week-3-preview/\n\n#VoiceAI #Developers",
+      "length": null
+    },
+    "twitterThread": {
+      "platform": "twitter_thread",
+      "tweets": [
+        {
+          "text": "🧵 Week 3: Testing, Deployment, and Going to Production\n\nA thread on what you'll learn:\n\n👇",
+          "type": "hook"
+        },
+        {
+          "text": "Next week we cover everything you need to ship your voice AI to real users - testing strategies, deployment patterns, and production monitoring.\n\nLet's dive in...",
+          "type": "summary"
+        },
+        {
+          "text": "📖 Read the full post:\nhttps://developers.ferni.ai/developers/blog/week-3-preview/\n\n#VoiceAI #Developers",
+          "type": "cta"
+        }
+      ],
+      "totalTweets": 3
+    },
+    "linkedin": {
+      "platform": "linkedin",
+      "text": "Week 3: Testing, Deployment, and Going to Production\n\nNext week we cover everything you need to ship your voice AI to real users - testing strategies, deployment patterns, and production monitoring.\n\nThis is part of our ongoing series helping developers build with voice AI.\n\nKey takeaways:\n• Practical code examples you can use today\n• Real-world patterns from production systems\n• Best practices from the Ferni team\n\nRead the full post: https://developers.ferni.ai/developers/blog/week-3-preview/\n\n#VoiceAI #Developers",
+      "length": 520
+    },
+    "discord": {
+      "platform": "discord",
+      "text": "📝 **Week 3: Testing, Deployment, and Going to Production**\n\nNext week we cover everything you need to ship your voice AI to real users - testing strategies, deployment patterns, and production monitoring.\n\n🔗 **Read more:** https://developers.ferni.ai/developers/blog/week-3-preview/\n\n---\n*3 min read • Roadmap*",
+      "length": 312
+    },
+    "threads": {
+      "platform": "threads",
+      "text": "Week 3: Testing, Deployment, and Going to Production\n\nNext week we cover everything you need to ship your voice AI to real users - testing strategies, deployment patterns, and production monitoring.\n\nRead more 👉 https://developers.ferni.ai/developers/blog/week-3-preview/",
+      "length": 272
+    }
+  }
+}

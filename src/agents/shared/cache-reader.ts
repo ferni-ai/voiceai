@@ -83,7 +83,7 @@ interface WarmupStatus {
 // ============================================================================
 
 let _personaCache: Record<string, PersonaCacheEntry> | null = null;
-let _cacheLoadedAt: number = 0;
+let _cacheLoadedAt = 0;
 
 /**
  * Load and cache persona configs from file.

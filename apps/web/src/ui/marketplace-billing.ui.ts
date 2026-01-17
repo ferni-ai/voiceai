@@ -21,14 +21,15 @@ import { DURATION, EASING } from '../config/animation-constants.js';
 import { appState } from '../state/app.state.js';
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
+import { apiGet } from '../utils/api.js';
 
 // toast is available if needed for error messages
-// import { toast } from './toast.ui.js';
+// import { toast } from './whisper.ui.js';
 
 const log = createLogger('BillingUI');
 
 // FIX BUG: Track all setTimeout calls for proper cleanup
-const { trackedTimeout, clearAll: clearAllTimeouts } = createTimeoutTracker();
+const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
 
 // ============================================================================
 // TYPES
@@ -232,11 +233,13 @@ async function loadBillingData(): Promise<void> {
   if (!deviceId) return;
 
   try {
-    const response = await fetch(`/api/marketplace/usage?userId=${encodeURIComponent(deviceId)}`);
-    if (response.ok) {
-      const data = await response.json();
-      state.usage = data.usage || [];
-      state.tier = data.tier || 'free';
+    const response = await apiGet<{
+      usage?: UsageSummary[];
+      tier?: 'free' | 'friend' | 'partner';
+    }>(`/api/marketplace/usage?userId=${encodeURIComponent(deviceId)}`);
+    if (response.ok && response.data) {
+      state.usage = response.data.usage || [];
+      state.tier = response.data.tier || 'free';
       log.debug('Billing data loaded:', { usage: state.usage.length });
     }
   } catch (error) {
@@ -298,7 +301,7 @@ function renderDashboard(): void {
         <span class="tier-name">${tierConfig.name} Plan</span>
         <span class="tier-desc">${tierConfig.description}</span>
       </div>
-      ${state.tier === 'free' ? `<button class="tier-upgrade">Upgrade</button>` : ''}
+      ${state.tier === 'free' ? `<button aria-label="${t('accessibility.upgrade')}" class="tier-upgrade">Upgrade</button>` : ''}
     </div>
 
     <!-- Overall Usage Summary -->
@@ -478,10 +481,11 @@ export function createUsageIndicator(): HTMLElement {
     if (!deviceId) return;
 
     try {
-      const response = await fetch(`/api/marketplace/usage/summary?userId=${encodeURIComponent(deviceId)}`);
-      if (response.ok) {
-        const data = await response.json();
-        const percent = data.usagePercentage || 0;
+      const response = await apiGet<{ usagePercentage?: number }>(
+        `/api/marketplace/usage/summary?userId=${encodeURIComponent(deviceId)}`
+      );
+      if (response.ok && response.data) {
+        const percent = response.data.usagePercentage || 0;
 
         indicator.innerHTML = `
           <div class="usage-mini-bar">
@@ -534,8 +538,7 @@ function injectStyles(): void {
     .billing-backdrop {
       position: absolute;
       inset: 0;
-      background: var(--backdrop-heavy, rgba(44, 37, 32, 0.7));
-      backdrop-filter: blur(var(--glass-blur-modal, 20px));
+      background: rgba(44, 37, 32, 0.75);
     }
 
     .billing-panel {
@@ -543,7 +546,7 @@ function injectStyles(): void {
       background: var(--color-background-elevated);
       border-radius: var(--radius-2xl, 24px);
       box-shadow: var(--shadow-2xl);
-      max-width: 600px;
+      max-width: clamp(420px, 90vw, 600px);
       width: 100%;
       max-height: 85vh;
       overflow-y: auto;
@@ -708,7 +711,7 @@ function injectStyles(): void {
     .usage-card-icon {
       width: 20px;
       height: 20px;
-      color: var(--persona-primary);
+      color: var(--persona-text);
     }
 
     .usage-card-icon svg {
@@ -907,7 +910,7 @@ function injectStyles(): void {
     }
 
     /* Responsive */
-    @media (max-width: 600px) {
+    @media (max-width: clamp(420px, 90vw, 600px)) {
       .usage-cards {
         grid-template-columns: 1fr;
       }

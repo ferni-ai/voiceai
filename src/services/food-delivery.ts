@@ -19,7 +19,7 @@
 
 import { getFirestoreDatabase, getGCPProjectId, getConfig } from '../config/environment.js';
 import { getCircuitBreaker } from '../utils/circuit-breaker.js';
-import { removeUndefined } from '../utils/firestore-utils.js';
+import { removeUndefined, cleanForFirestore } from '../utils/firestore-utils.js';
 import { getLogger } from '../utils/safe-logger.js';
 import { runBackground, runBackgroundBatch } from '../utils/background-task.js';
 import type { Firestore as FirestoreType } from '@google-cloud/firestore';
@@ -488,12 +488,20 @@ export async function searchDeliveryRestaurants(
 // ============================================================================
 
 let db: FirestoreType | null = null;
+// FIX: Promise-based singleton to prevent race condition
+let dbInitPromise: Promise<FirestoreType | null> | null = null;
 const DELIVERY_ORDERS_COLLECTION = 'delivery_orders';
 const ORDER_HISTORY_COLLECTION = 'delivery_order_history';
 
 async function getFirestore(): Promise<FirestoreType | null> {
   if (db) return db;
+  if (dbInitPromise) return dbInitPromise;
 
+  dbInitPromise = initializeFirestore();
+  return dbInitPromise;
+}
+
+async function initializeFirestore(): Promise<FirestoreType | null> {
   try {
     const { Firestore } = await import('@google-cloud/firestore');
     db = new Firestore({
@@ -504,6 +512,7 @@ async function getFirestore(): Promise<FirestoreType | null> {
     return db;
   } catch (error) {
     getLogger().warn({ error }, 'Firestore not available for food delivery, using in-memory only');
+    dbInitPromise = null; // Allow retry
     return null;
   }
 }

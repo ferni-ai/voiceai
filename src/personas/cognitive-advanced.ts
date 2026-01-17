@@ -19,6 +19,7 @@ import type {
   CognitiveContext,
 } from './cognitive-types.js';
 import { getCognitiveProfile } from './cognitive-profiles.js';
+import { cleanForFirestore } from '../utils/firestore-utils.js';
 
 const log = getLogger();
 
@@ -929,7 +930,7 @@ export class CognitiveLearningTracker {
 
       if (persisted) {
         const learning = fromPersistedLearning(persisted);
-        this.learnings.set(key, {
+        this.learnings.set(cleanForFirestore(key), {
           userId,
           personaId,
           ...learning,
@@ -940,10 +941,10 @@ export class CognitiveLearningTracker {
         );
       }
 
-      this.loadedUsers.add(key);
+      this.loadedUsers.add(cleanForFirestore(key));
     } catch (error) {
       log.warn({ error, userId, personaId }, 'Failed to load cognitive learning, starting fresh');
-      this.loadedUsers.add(key);
+      this.loadedUsers.add(cleanForFirestore(key));
     }
   }
 
@@ -952,7 +953,7 @@ export class CognitiveLearningTracker {
    */
   private scheduleSave(userId: string, personaId: string): void {
     const key = `${userId}_${personaId}`;
-    this.pendingSaves.add(key);
+    this.pendingSaves.add(cleanForFirestore(key));
 
     // Debounce saves - wait 5 seconds after last change
     if (this.saveTimeout) {
@@ -1376,7 +1377,7 @@ export class KnowledgeStateTracker {
         state.skipExplanationFor.push(topic);
       }
       if (!existing) {
-        state.topicsExplained.set(topic, {
+        state.topicsExplained.set(cleanForFirestore(topic), {
           firstExplained: new Date(),
           timesRevisited: 0,
           understandingLevel: 'expert',
@@ -1411,7 +1412,7 @@ export class KnowledgeStateTracker {
       }
     } else {
       // First time explaining
-      state.topicsExplained.set(topic, {
+      state.topicsExplained.set(cleanForFirestore(topic), {
         firstExplained: new Date(),
         timesRevisited: 0,
         understandingLevel: 'introduced',

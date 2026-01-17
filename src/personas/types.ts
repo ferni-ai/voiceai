@@ -470,5 +470,8 @@ export type PartialPersonaConfig = Partial<PersonaConfig> & Pick<PersonaConfig, 
  */
 export type PersonaId = string;
 
+/** Alias for PersonaConfig - backward compatibility */
+export type Persona = PersonaConfig;
+
 /** Map of available personas */
 export type PersonaRegistry = Map<PersonaId, PersonaConfig>;

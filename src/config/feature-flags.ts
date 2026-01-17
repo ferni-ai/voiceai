@@ -91,6 +91,18 @@ export interface FeatureFlags {
     crossSessionThreading: boolean;
     /** Proactive insights */
     proactiveInsights: boolean;
+    /** Native Rust audio processing (zero-allocation, lower GC pressure) */
+    nativeAudioProcessing: boolean;
+    /** Native Rust embedding operations (SIMD-accelerated cosine similarity) */
+    nativeEmbeddings: boolean;
+    /** Pre-warm context builders at session start for faster first turn */
+    contextBuilderPrewarm: boolean;
+    /** Use worker threads for embedding operations */
+    embeddingWorkerIntegration: boolean;
+    /** Batch summarization in SummarizationWorker */
+    batchedSummarization: boolean;
+    /** Pre-STT audio processing (Rust: AGC, noise suppression, bandwidth extension) */
+    preSTTAudioProcessing: boolean;
   };
 
   /**
@@ -207,6 +219,22 @@ export interface FeatureFlags {
     /** Actually deliver outreach messages */
     delivery: boolean;
   };
+
+  /**
+   * Easter eggs and special moments
+   */
+  easterEggs: {
+    /** Master switch for all easter eggs */
+    enabled: boolean;
+    /** Holiday greetings (Christmas, New Year, etc.) */
+    holidayGreetings: boolean;
+    /** Seasonal messages */
+    seasonalMessages: boolean;
+    /** Achievement celebrations */
+    achievements: boolean;
+    /** Random fun moments */
+    randomMoments: boolean;
+  };
 }
 
 // ============================================================================
@@ -241,6 +269,16 @@ const DEFAULT_FLAGS: FeatureFlags = {
     geminiEmotionAnalysis: false, // Disabled by default - enable with ENABLE_GEMINI_EMOTION=true
     crossSessionThreading: true,
     proactiveInsights: true,
+    nativeAudioProcessing: process.env.USE_NATIVE_AUDIO !== 'false', // Enabled by default, disable with USE_NATIVE_AUDIO=false
+    nativeEmbeddings: process.env.USE_NATIVE_EMBEDDINGS !== 'false', // Enabled by default, disable with USE_NATIVE_EMBEDDINGS=false
+    /** Pre-warm context builders at session start for faster first turn */
+    contextBuilderPrewarm: process.env.DISABLE_CONTEXT_PREWARM !== 'true', // Enabled by default
+    /** Use worker threads for embedding operations */
+    embeddingWorkerIntegration: process.env.DISABLE_EMBEDDING_WORKER !== 'true', // Enabled by default
+    /** Batch summarization in SummarizationWorker */
+    batchedSummarization: process.env.DISABLE_BATCHED_SUMMARIZATION !== 'true', // Enabled by default
+    /** Pre-STT audio processing (Rust: AGC, noise suppression, bandwidth extension) */
+    preSTTAudioProcessing: process.env.USE_PRE_STT_PROCESSING !== 'false', // Enabled by default
   },
   personalJourney: {
     enabled: true,
@@ -292,6 +330,13 @@ const DEFAULT_FLAGS: FeatureFlags = {
     triggerProcessing: false, // Disabled - no automatic trigger processing
     delivery: true, // Enabled - actually make calls when user requests
   },
+  easterEggs: {
+    enabled: true, // Master switch for easter eggs
+    holidayGreetings: false, // DISABLED - Holiday greetings are too aggressive right now
+    seasonalMessages: true, // Seasonal awareness
+    achievements: true, // Milestone celebrations
+    randomMoments: true, // Fun random moments
+  },
 };
 
 // ============================================================================
@@ -323,6 +368,7 @@ const ENV_MAPPINGS: Record<string, string> = {
   ENABLE_AB_TESTING: 'experimental.abTesting',
   ENABLE_VOICE_EMOTION: 'experimental.voiceEmotionDetection',
   ENABLE_GEMINI_EMOTION: 'experimental.geminiEmotionAnalysis',
+  USE_PRE_STT_PROCESSING: 'experimental.preSTTAudioProcessing',
 
   // Audio
   ENABLE_MUSIC: 'audio.musicEnabled',
@@ -372,6 +418,13 @@ const ENV_MAPPINGS: Record<string, string> = {
   OUTREACH_SYSTEM_INIT: 'outreach.systemInitialization',
   OUTREACH_TRIGGER_PROCESSING: 'outreach.triggerProcessing',
   OUTREACH_DELIVERY: 'outreach.delivery',
+
+  // Easter Eggs
+  EASTER_EGGS_ENABLED: 'easterEggs.enabled',
+  EASTER_EGGS_HOLIDAYS: 'easterEggs.holidayGreetings',
+  EASTER_EGGS_SEASONAL: 'easterEggs.seasonalMessages',
+  EASTER_EGGS_ACHIEVEMENTS: 'easterEggs.achievements',
+  EASTER_EGGS_RANDOM: 'easterEggs.randomMoments',
 };
 
 // ============================================================================
@@ -399,13 +452,18 @@ function setNestedValue(obj: Record<string, any>, path: string, value: boolean):
   let current = obj;
 
   for (let i = 0; i < parts.length - 1; i++) {
-    if (!(parts[i] in current)) {
-      current[parts[i]] = {};
+    const part = parts[i];
+    if (!part) continue; // Guard for noUncheckedIndexedAccess
+    if (!(part in current)) {
+      current[part] = {};
     }
-    current = current[parts[i]];
+    current = current[part];
   }
 
-  current[parts[parts.length - 1]] = value;
+  const lastPart = parts[parts.length - 1];
+  if (lastPart) {
+    current[lastPart] = value;
+  }
 }
 
 /**
@@ -428,7 +486,7 @@ function getNestedValue(obj: Record<string, any>, path: string): boolean | undef
  */
 function loadFeatureFlags(): FeatureFlags {
   // Start with defaults
-  const flags: FeatureFlags = JSON.parse(JSON.stringify(DEFAULT_FLAGS));
+  const flags: FeatureFlags = structuredClone(DEFAULT_FLAGS);
 
   // Override from environment variables
   let overrideCount = 0;
@@ -792,4 +850,40 @@ export function isOutreachTriggerCreationEnabled(): boolean {
 export function isOutreachSystemInitEnabled(): boolean {
   const flags = getFeatureFlags();
   return flags.outreach.enabled && flags.outreach.systemInitialization;
+}
+
+// ============================================================================
+// EASTER EGG HELPERS
+// ============================================================================
+
+export type EasterEggFeature =
+  | 'holidayGreetings'
+  | 'seasonalMessages'
+  | 'achievements'
+  | 'randomMoments';
+
+/**
+ * Check if easter eggs are enabled
+ */
+export function isEasterEggsEnabled(): boolean {
+  const flags = getFeatureFlags();
+  return flags.easterEggs.enabled;
+}
+
+/**
+ * Check if a specific easter egg feature is enabled
+ */
+export function isEasterEggFeatureEnabled(feature: EasterEggFeature): boolean {
+  const flags = getFeatureFlags();
+  if (!flags.easterEggs.enabled) return false;
+  return flags.easterEggs[feature] === true;
+}
+
+/**
+ * Check if holiday greetings are enabled
+ * Used by easter-eggs.ts
+ */
+export function isHolidayGreetingsEnabled(): boolean {
+  const flags = getFeatureFlags();
+  return flags.easterEggs.enabled && flags.easterEggs.holidayGreetings;
 }

@@ -1,11 +1,18 @@
 {
-  "generated": "2025-12-15T21:43:39.609Z",
+  "generated": "2026-01-12T19:50:54.839Z",
   "tokens": {
     "css": "tokens.css",
     "ts": "tokens.ts"
   },
   "assets": {
     "logos": [
+      "README.md",
+      "ferni-avatar-full-animated.svg",
+      "ferni-avatar-full.svg",
+      "ferni-eyes-logo-animated.svg",
+      "ferni-eyes-logo.svg",
+      "ferni-eyes-only.svg",
+      "ferni-favicon.svg",
       "ferni-logo-1024.png",
       "ferni-logo-128.png",
       "ferni-logo-16.png",
@@ -47,6 +54,7 @@
       "ferni-logo-simple-96.png",
       "ferni-logo-simple.svg",
       "ferni-logo-stones.svg",
+      "ferni-logo.lottie.json",
       "ferni-logo.svg",
       "ferni-text-logo.svg",
       "logo-dark-bg.svg",
@@ -55,7 +63,8 @@
       "logo-monochrome-light.svg",
       "logo-primary.svg",
       "logo-wordmark-horizontal.svg",
-      "logo-wordmark-stacked.svg"
+      "logo-wordmark-stacked.svg",
+      "personas"
     ],
     "icons": [
       "app-icon-1024.png",
@@ -77,7 +86,8 @@
       "app-icon-android.svg",
       "app-icon-ios-simple.svg",
       "app-icon-orb-1024.svg",
-      "app-icon-orb-simple-1024.svg"
+      "app-icon-orb-simple-1024.svg",
+      "png"
     ],
     "favicons": [
       "favicon-144.png",
@@ -90,7 +100,8 @@
       "favicon-32.svg",
       "favicon-48.png",
       "favicon-512.png",
-      "favicon-96.png"
+      "favicon-96.png",
+      "ferni-orb.svg"
     ],
     "sounds": [
       "README.md",
@@ -110,9 +121,11 @@
     "AI-LANDING-GUIDELINES.md",
     "BETTER-THAN-HUMAN.md",
     "BRAND-POSITIONING-EXPLORATION.md",
+    "BRAND-SYSTEM.md",
     "BRAND-VOICE-GUIDE.md",
     "COMMUNITY-FUNDED-BRAND-STRATEGY.md",
     "COMPONENT-DECISION-TREES.md",
+    "DESIGN-INSPIRATION-MATRIX.md",
     "FERNI-2025-DESIGN-DIRECTION.md",
     "FERNI-BRAND-GUIDELINES.md",
     "FERNI-DATA-VISUALIZATION.md",
@@ -128,33 +141,7 @@
     "FERNI-UNIVERSE-BIBLE.md",
     "README.md",
     "SOUND-ASSET-MANIFEST.md",
-    "brand-book.html",
-    "exports",
-    "favicons",
-    "ferni-design-tokens.css",
-    "ferni-fe-ai-aurora.svg",
-    "ferni-fe-ai-gradient-dark.svg",
-    "ferni-fe-ai-gradient.svg",
-    "ferni-fe-ai-logo-minimal.svg",
-    "ferni-fe-ai-logo-with-wordmark.svg",
-    "ferni-fe-ai-logo.svg",
-    "ferni-fe-ai-neon.svg",
-    "ferni-fe-ai-ocean.svg",
-    "ferni-fe-ai-sunset.svg",
-    "ferni-robot-celebrating.svg",
-    "ferni-robot-hugging.svg",
-    "ferni-robot-icon.svg",
-    "ferni-robot-listening.svg",
-    "ferni-robot-mascot.svg",
-    "ferni-robot-thinking.svg",
-    "ferni-walle-bot.svg",
-    "ferni-walle-curious.svg",
-    "ferni-walle-happy.svg",
-    "ferni-walle-icon.svg",
-    "ferni-walle-sage.svg",
-    "ferni-walle-sticker.svg",
-    "icons",
-    "logos",
-    "social"
+    "SPEAKING-SYSTEM.md",
+    "WINDOW-AVATAR-BRAND-GUIDE.md"
   ]
 }

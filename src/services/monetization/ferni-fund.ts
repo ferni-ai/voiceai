@@ -11,7 +11,7 @@
  * allows generous users to feel they're helping others.
  */
 
-import * as admin from 'firebase-admin';
+import admin from 'firebase-admin';
 import {
   SPONSORED_MESSAGES,
   THANK_YOU_MESSAGES,
@@ -20,6 +20,7 @@ import {
   type SponsoredConversation,
 } from '../../types/monetization.js';
 import { createLogger } from '../../utils/safe-logger.js';
+import { cleanForFirestore } from '../../utils/firestore-utils.js';
 
 const log = createLogger({ module: 'FerniFund' });
 
@@ -34,8 +35,8 @@ const fund: FerniFund = {
   totalContributors: 0,
 };
 
-const contributions: Map<string, FundContribution> = new Map();
-const sponsoredConversations: Map<string, SponsoredConversation> = new Map();
+const contributions = new Map<string, FundContribution>();
+const sponsoredConversations = new Map<string, SponsoredConversation>();
 const contributorUserIds = new Set<string>();
 
 // Cost per sponsored conversation (for tracking purposes)
@@ -91,7 +92,7 @@ async function updateGardenStats(params: {
     const statsRef = db.collection('garden_stats').doc(monthKey);
     batch.set(
       statsRef,
-      {
+      cleanForFirestore({
         totalAmount: admin.firestore.FieldValue.increment(amountDollars),
         totalSeeds: admin.firestore.FieldValue.increment(amountDollars),
         uniqueContributors: admin.firestore.FieldValue.increment(1), // May double-count, but that's OK
@@ -99,7 +100,7 @@ async function updateGardenStats(params: {
           ? admin.firestore.FieldValue.increment(1)
           : admin.firestore.FieldValue.increment(0),
         lastUpdated: admin.firestore.FieldValue.serverTimestamp(),
-      },
+      }),
       { merge: true }
     );
 
@@ -107,13 +108,13 @@ async function updateGardenStats(params: {
     const userRef = db.collection('user_gardens').doc(userId);
     batch.set(
       userRef,
-      {
+      cleanForFirestore({
         totalSeeds: admin.firestore.FieldValue.increment(amountDollars),
         seedsThisMonth: admin.firestore.FieldValue.increment(amountDollars),
         isMonthlyGardener: isMonthly || admin.firestore.FieldValue.increment(0), // Keep existing if not monthly
         lastSeedDate: admin.firestore.FieldValue.serverTimestamp(),
         updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-      },
+      }),
       { merge: true }
     );
 

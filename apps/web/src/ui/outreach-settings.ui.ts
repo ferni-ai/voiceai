@@ -14,7 +14,7 @@ import { apiGet, apiPost } from '../utils/api.js';
 const log = createLogger('OutreachSettings');
 
 // FIX BUG: Track all setTimeout calls for proper cleanup
-const { trackedTimeout, clearAll: clearAllTimeouts } = createTimeoutTracker();
+const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
 
 // ============================================================================
 // TYPES
@@ -76,25 +76,26 @@ const ICONS = {
 
 let settingsPanel: HTMLElement | null = null;
 let isOpen = false;
+// OPT-OUT BY DEFAULT: Users must explicitly enable proactive outreach
 let currentPreferences: OutreachPreferences = {
-  enabled: true,
+  enabled: false, // DISABLED by default - user must opt in
   channels: {
-    sms: true,
-    email: true,
+    sms: false, // Disabled until user explicitly enables
+    email: false, // Disabled until user explicitly enables
     call: false,
   },
   quietHours: {
-    enabled: true,
+    enabled: true, // Keep quiet hours ON for protection
     start: '22:00',
     end: '07:00',
   },
-  frequency: 'balanced',
+  frequency: 'minimal', // Start with minimal frequency
   triggerTypes: {
-    commitments: true,
-    emotional: true,
-    celebrations: true,
-    thinkingOfYou: true,
-    reminders: true,
+    commitments: true, // User-requested commitments should be allowed
+    emotional: false, // Disabled until user opts in
+    celebrations: false, // Disabled until user opts in
+    thinkingOfYou: false, // Disabled until user opts in
+    reminders: true, // User-requested reminders should be allowed
   },
 };
 
@@ -117,10 +118,10 @@ async function loadPreferences(): Promise<void> {
 
     if (response.ok && response.data?.success && response.data.preferences) {
       const data = response.data;
-      // Merge with defaults
+      // Merge with defaults - OPT-OUT BY DEFAULT
       currentPreferences = {
         ...currentPreferences,
-        enabled: data.outreachEnabled ?? true,
+        enabled: data.outreachEnabled ?? false,
         channels: {
           sms: data.allowedChannels?.includes('sms') ?? true,
           email: data.allowedChannels?.includes('email') ?? true,
@@ -204,10 +205,10 @@ function createSettingsPanel(): HTMLElement {
       <div class="outreach-settings-content">
         <!-- Master Toggle -->
         <section class="outreach-settings-section">
-          <div class="outreach-settings-toggle-row outreach-settings-master">
-            <div class="outreach-settings-toggle-info">
-              <span class="outreach-settings-toggle-label">Proactive Outreach</span>
-              <span class="outreach-settings-toggle-desc">Allow me to reach out to you between conversations</span>
+          <div class="outreach-settings-toggle-row outreach-settings-master" role="button" tabindex="0">
+            <div class="outreach-settings-toggle-info" role="button" tabindex="0">
+              <span class="outreach-settings-toggle-label" role="button" tabindex="0">Proactive Outreach</span>
+              <span class="outreach-settings-toggle-desc" role="button" tabindex="0">Allow me to reach out to you between conversations</span>
             </div>
             <label class="outreach-settings-switch">
               <input type="checkbox" id="outreach-enabled" ${currentPreferences.enabled ? 'checked' : ''}>
@@ -275,10 +276,10 @@ function createSettingsPanel(): HTMLElement {
           
           <!-- Quiet Hours -->
           <section class="outreach-settings-section">
-            <div class="outreach-settings-toggle-row">
-              <div class="outreach-settings-toggle-info">
-                <span class="outreach-settings-toggle-label">Quiet Hours</span>
-                <span class="outreach-settings-toggle-desc">No outreach during these times</span>
+            <div class="outreach-settings-toggle-row" role="button" tabindex="0">
+              <div class="outreach-settings-toggle-info" role="button" tabindex="0">
+                <span class="outreach-settings-toggle-label" role="button" tabindex="0">Quiet Hours</span>
+                <span class="outreach-settings-toggle-desc" role="button" tabindex="0">No outreach during these times</span>
               </div>
               <label class="outreach-settings-switch">
                 <input type="checkbox" id="quiet-hours-enabled" ${currentPreferences.quietHours.enabled ? 'checked' : ''}>
@@ -358,7 +359,7 @@ function createSettingsPanel(): HTMLElement {
       </div>
       
       <footer class="outreach-settings-footer">
-        <button class="outreach-settings-save">Save Preferences</button>
+        <button aria-label="${t('accessibility.savePreferences')}" class="outreach-settings-save">Save Preferences</button>
       </footer>
     </div>
   `;
@@ -443,19 +444,21 @@ function setupEventListeners(panel: HTMLElement): void {
   });
 
   // Save button
-  panel.querySelector('.outreach-settings-save')?.addEventListener('click', async () => {
-    const saveBtn = panel.querySelector('.outreach-settings-save') as HTMLButtonElement;
-    saveBtn.textContent = t('common.saving');
-    saveBtn.disabled = true;
+  panel.querySelector('.outreach-settings-save')?.addEventListener('click', () => {
+    void (async () => {
+      const saveBtn = panel.querySelector('.outreach-settings-save') as HTMLButtonElement;
+      saveBtn.textContent = t('common.saving');
+      saveBtn.disabled = true;
 
-    await savePreferences();
+      await savePreferences();
 
-    saveBtn.textContent = t('common.saved');
-    trackedTimeout(() => {
-      saveBtn.textContent = t('buttons.savePreferences');
-      saveBtn.disabled = false;
-      close();
-    }, 1000);
+      saveBtn.textContent = t('common.saved');
+      trackedTimeout(() => {
+        saveBtn.textContent = t('buttons.savePreferences');
+        saveBtn.disabled = false;
+        close();
+      }, 1000);
+    })();
   });
 }
 
@@ -464,7 +467,7 @@ function getStyles(): string {
     .outreach-settings-overlay {
       position: fixed;
       inset: 0;
-      z-index: 10000;
+      z-index: var(--z-tooltip);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -481,18 +484,18 @@ function getStyles(): string {
     .outreach-settings-backdrop {
       position: absolute;
       inset: 0;
-      background: rgba(44, 37, 32, 0.4);
-      backdrop-filter: blur(var(--glass-blur-strong, 24px));
+      background: rgba(44, 37, 32, 0.75);
     }
 
     .outreach-settings-card {
       position: relative;
       width: 90%;
-      max-width: 500px;
+      max-width: clamp(350px, 90vw, 500px);
       max-height: 85vh;
-      background: var(--color-background-elevated);
-      border-radius: var(--radius-2xl);
-      box-shadow: var(--shadow-2xl);
+      background: var(--color-bg-elevated, #FFFDFB);
+      border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
+      border-radius: var(--radius-xl, 20px);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.06);
       display: flex;
       flex-direction: column;
       transform: scale(0.95);

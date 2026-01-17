@@ -1,0 +1,582 @@
+---
+layout: layouts/base.njk
+title: Avatar Component
+description: Expressive persona avatars with emotion states and animations
+permalink: /components/avatar/
+---
+
+<article class="component-page">
+  <header class="page-header">
+    <nav class="breadcrumb">
+      <a href="/components/">Components</a>
+      <span>/</span>
+      <span>Avatar</span>
+    </nav>
+    <h1>Avatar</h1>
+    <p class="lead">Expressive persona avatars that bring AI companions to life through color, animation, and emotional states.</p>
+  </header>
+
+  <section class="section">
+    <h2>Persona Avatars</h2>
+    <p>Each AI persona has a distinct avatar color that reflects their personality and expertise.</p>
+
+    <div class="demo-container">
+      <div class="avatar-showcase">
+        <div class="avatar avatar--ferni">
+          <span class="avatar-initial">F</span>
+        </div>
+        <div class="avatar avatar--peter">
+          <span class="avatar-initial">P</span>
+        </div>
+        <div class="avatar avatar--maya">
+          <span class="avatar-initial">M</span>
+        </div>
+        <div class="avatar avatar--alex">
+          <span class="avatar-initial">A</span>
+        </div>
+        <div class="avatar avatar--jordan">
+          <span class="avatar-initial">J</span>
+        </div>
+        <div class="avatar avatar--nayan">
+          <span class="avatar-initial">N</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="code-block">
+      <pre><code>&lt;div class="avatar avatar--ferni"&gt;
+  &lt;span class="avatar-initial"&gt;F&lt;/span&gt;
+&lt;/div&gt;
+
+&lt;div class="avatar avatar--maya"&gt;
+  &lt;span class="avatar-initial"&gt;M&lt;/span&gt;
+&lt;/div&gt;</code></pre>
+    </div>
+  </section>
+
+  <section class="section">
+    <h2>Sizes</h2>
+    <p>Avatars come in four sizes to fit different contexts.</p>
+
+    <div class="demo-container">
+      <div class="avatar-sizes">
+        <div class="size-demo">
+          <div class="avatar avatar--ferni avatar--xs">
+            <span class="avatar-initial">F</span>
+          </div>
+          <span class="size-label">xs (24px)</span>
+        </div>
+        <div class="size-demo">
+          <div class="avatar avatar--ferni avatar--sm">
+            <span class="avatar-initial">F</span>
+          </div>
+          <span class="size-label">sm (32px)</span>
+        </div>
+        <div class="size-demo">
+          <div class="avatar avatar--ferni avatar--md">
+            <span class="avatar-initial">F</span>
+          </div>
+          <span class="size-label">md (48px)</span>
+        </div>
+        <div class="size-demo">
+          <div class="avatar avatar--ferni avatar--lg">
+            <span class="avatar-initial">F</span>
+          </div>
+          <span class="size-label">lg (72px)</span>
+        </div>
+        <div class="size-demo">
+          <div class="avatar avatar--ferni avatar--xl">
+            <span class="avatar-initial">F</span>
+          </div>
+          <span class="size-label">xl (96px)</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="code-block">
+      <pre><code>&lt;div class="avatar avatar--ferni avatar--xs"&gt;...&lt;/div&gt;
+&lt;div class="avatar avatar--ferni avatar--sm"&gt;...&lt;/div&gt;
+&lt;div class="avatar avatar--ferni avatar--md"&gt;...&lt;/div&gt;  {# default #}
+&lt;div class="avatar avatar--ferni avatar--lg"&gt;...&lt;/div&gt;
+&lt;div class="avatar avatar--ferni avatar--xl"&gt;...&lt;/div&gt;</code></pre>
+    </div>
+  </section>
+
+  <section class="section">
+    <h2>Speaking State</h2>
+    <p>When a persona is speaking, the avatar displays a pulsing glow effect to indicate activity.</p>
+
+    <div class="demo-container">
+      <div class="avatar-showcase">
+        <div class="avatar avatar--ferni avatar--lg avatar--speaking">
+          <span class="avatar-initial">F</span>
+        </div>
+        <div class="avatar avatar--maya avatar--lg avatar--speaking">
+          <span class="avatar-initial">M</span>
+        </div>
+        <div class="avatar avatar--peter avatar--lg avatar--speaking">
+          <span class="avatar-initial">P</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="code-block">
+      <pre><code>&lt;div class="avatar avatar--ferni avatar--speaking"&gt;
+  &lt;span class="avatar-initial"&gt;F&lt;/span&gt;
+&lt;/div&gt;</code></pre>
+    </div>
+  </section>
+
+  <section class="section">
+    <h2>Listening State</h2>
+    <p>When a persona is listening, the avatar shows a subtle breathing animation.</p>
+
+    <div class="demo-container">
+      <div class="avatar-showcase">
+        <div class="avatar avatar--ferni avatar--lg avatar--listening">
+          <span class="avatar-initial">F</span>
+        </div>
+        <div class="avatar avatar--alex avatar--lg avatar--listening">
+          <span class="avatar-initial">A</span>
+        </div>
+        <div class="avatar avatar--jordan avatar--lg avatar--listening">
+          <span class="avatar-initial">J</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="code-block">
+      <pre><code>&lt;div class="avatar avatar--ferni avatar--listening"&gt;
+  &lt;span class="avatar-initial"&gt;F&lt;/span&gt;
+&lt;/div&gt;</code></pre>
+    </div>
+  </section>
+
+  <section class="section">
+    <h2>Thinking State</h2>
+    <p>When a persona is processing or thinking, a shimmer effect indicates cognitive activity.</p>
+
+    <div class="demo-container">
+      <div class="avatar-showcase">
+        <div class="avatar avatar--peter avatar--lg avatar--thinking">
+          <span class="avatar-initial">P</span>
+        </div>
+        <div class="avatar avatar--nayan avatar--lg avatar--thinking">
+          <span class="avatar-initial">N</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="code-block">
+      <pre><code>&lt;div class="avatar avatar--peter avatar--thinking"&gt;
+  &lt;span class="avatar-initial"&gt;P&lt;/span&gt;
+&lt;/div&gt;</code></pre>
+    </div>
+  </section>
+
+  <section class="section">
+    <h2>Avatar with Ring</h2>
+    <p>Add a colored ring for emphasis or to indicate selection.</p>
+
+    <div class="demo-container">
+      <div class="avatar-showcase">
+        <div class="avatar avatar--ferni avatar--lg avatar--ring">
+          <span class="avatar-initial">F</span>
+        </div>
+        <div class="avatar avatar--maya avatar--lg avatar--ring">
+          <span class="avatar-initial">M</span>
+        </div>
+        <div class="avatar avatar--alex avatar--lg avatar--ring">
+          <span class="avatar-initial">A</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="code-block">
+      <pre><code>&lt;div class="avatar avatar--ferni avatar--ring"&gt;
+  &lt;span class="avatar-initial"&gt;F&lt;/span&gt;
+&lt;/div&gt;</code></pre>
+    </div>
+  </section>
+
+  <section class="section">
+    <h2>CSS Custom Properties</h2>
+    <p>Avatar styling uses design tokens for consistent theming.</p>
+
+    <div class="tokens-table">
+      <table>
+        <thead>
+          <tr>
+            <th>Token</th>
+            <th>Description</th>
+            <th>Default</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>--avatar-size-xs</code></td>
+            <td>Extra small size</td>
+            <td>24px</td>
+          </tr>
+          <tr>
+            <td><code>--avatar-size-sm</code></td>
+            <td>Small size</td>
+            <td>32px</td>
+          </tr>
+          <tr>
+            <td><code>--avatar-size-md</code></td>
+            <td>Medium size (default)</td>
+            <td>48px</td>
+          </tr>
+          <tr>
+            <td><code>--avatar-size-lg</code></td>
+            <td>Large size</td>
+            <td>72px</td>
+          </tr>
+          <tr>
+            <td><code>--avatar-size-xl</code></td>
+            <td>Extra large size</td>
+            <td>96px</td>
+          </tr>
+          <tr>
+            <td><code>--persona-{name}</code></td>
+            <td>Persona background color</td>
+            <td>See personas page</td>
+          </tr>
+          <tr>
+            <td><code>--persona-{name}-glow</code></td>
+            <td>Persona glow color</td>
+            <td>rgba variant</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="section">
+    <h2>Full CSS</h2>
+
+    <div class="code-block">
+      <pre><code>.avatar {
+  --avatar-size: var(--avatar-size-md, 48px);
+
+  width: var(--avatar-size);
+  height: var(--avatar-size);
+  border-radius: var(--radius-full);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-inverse);
+  transition: all var(--duration-normal) var(--ease-ease-out);
+}
+
+/* Persona colors */
+.avatar--ferni { background: var(--persona-ferni); }
+.avatar--peter { background: var(--persona-peter); }
+.avatar--maya { background: var(--persona-maya); }
+.avatar--alex { background: var(--persona-alex); }
+.avatar--jordan { background: var(--persona-jordan); }
+.avatar--nayan { background: var(--persona-nayan); }
+
+/* Sizes */
+.avatar--xs { --avatar-size: 24px; font-size: 10px; }
+.avatar--sm { --avatar-size: 32px; font-size: 12px; }
+.avatar--md { --avatar-size: 48px; font-size: 18px; }
+.avatar--lg { --avatar-size: 72px; font-size: 28px; }
+.avatar--xl { --avatar-size: 96px; font-size: 36px; }
+
+/* Speaking state - pulsing glow */
+.avatar--speaking {
+  animation: avatar-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes avatar-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 var(--persona-glow, rgba(74, 103, 65, 0.4)); }
+  50% { box-shadow: 0 0 20px 8px var(--persona-glow, rgba(74, 103, 65, 0.4)); }
+}
+
+/* Listening state - breathing */
+.avatar--listening {
+  animation: avatar-breathe 3s ease-in-out infinite;
+}
+
+@keyframes avatar-breathe {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+}
+
+/* Thinking state - shimmer */
+.avatar--thinking {
+  animation: avatar-shimmer 2s ease-in-out infinite;
+}
+
+@keyframes avatar-shimmer {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+/* Ring */
+.avatar--ring {
+  box-shadow: 0 0 0 3px var(--bg-primary), 0 0 0 5px currentColor;
+}</code></pre>
+    </div>
+  </section>
+
+  <section class="section">
+    <h2>Accessibility</h2>
+    <div class="guidelines-grid">
+      <div class="guideline-card">
+        <h4>Color Contrast</h4>
+        <p>Avatar initials meet WCAG AA contrast requirements against all persona colors.</p>
+      </div>
+      <div class="guideline-card">
+        <h4>Reduced Motion</h4>
+        <p>All animations respect <code>prefers-reduced-motion</code> and will be disabled when requested.</p>
+      </div>
+      <div class="guideline-card">
+        <h4>Screen Readers</h4>
+        <p>Include proper <code>aria-label</code> attributes to describe the persona to assistive technology.</p>
+      </div>
+    </div>
+
+    <div class="code-block">
+      <pre><code>&lt;div
+  class="avatar avatar--ferni"
+  role="img"
+  aria-label="Ferni, Chief of Staff"
+&gt;
+  &lt;span class="avatar-initial" aria-hidden="true"&gt;F&lt;/span&gt;
+&lt;/div&gt;</code></pre>
+    </div>
+  </section>
+</article>
+
+<style>
+.component-page {
+  max-width: var(--container-max);
+}
+
+.breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+  margin-bottom: var(--space-4);
+}
+
+.breadcrumb a {
+  color: var(--accent-primary);
+  text-decoration: none;
+}
+
+.breadcrumb a:hover {
+  text-decoration: underline;
+}
+
+.page-header h1 {
+  font-family: var(--font-display);
+  font-size: var(--text-4xl);
+  font-weight: var(--font-weight-bold);
+  letter-spacing: -0.02em;
+  margin-bottom: var(--space-4);
+}
+
+.demo-container {
+  background: var(--bg-secondary);
+  border-radius: var(--radius-xl);
+  padding: var(--space-8);
+  margin: var(--space-6) 0;
+}
+
+.avatar-showcase {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-6);
+  flex-wrap: wrap;
+}
+
+.avatar-sizes {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: var(--space-8);
+  flex-wrap: wrap;
+}
+
+.size-demo {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.size-label {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+
+/* Avatar Styles */
+.avatar {
+  --avatar-size: 48px;
+  width: var(--avatar-size);
+  height: var(--avatar-size);
+  border-radius: var(--radius-full);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+  font-weight: var(--font-weight-semibold);
+  color: white;
+  transition: all var(--duration-normal) var(--ease-ease-out);
+}
+
+.avatar--ferni { background: var(--persona-ferni); --persona-glow: var(--persona-ferni-glow); }
+.avatar--peter { background: var(--persona-peter); --persona-glow: var(--persona-peter-glow); }
+.avatar--maya { background: var(--persona-maya); --persona-glow: var(--persona-maya-glow); }
+.avatar--alex { background: var(--persona-alex); --persona-glow: var(--persona-alex-glow); }
+.avatar--jordan { background: var(--persona-jordan); --persona-glow: var(--persona-jordan-glow); }
+.avatar--nayan { background: var(--persona-nayan); --persona-glow: var(--persona-nayan-glow); }
+
+.avatar--xs { --avatar-size: 24px; font-size: 10px; }
+.avatar--sm { --avatar-size: 32px; font-size: 12px; }
+.avatar--md { --avatar-size: 48px; font-size: 18px; }
+.avatar--lg { --avatar-size: 72px; font-size: 28px; }
+.avatar--xl { --avatar-size: 96px; font-size: 36px; }
+
+.avatar--speaking {
+  animation: avatar-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes avatar-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 var(--persona-glow, rgba(74, 103, 65, 0.4)); }
+  50% { box-shadow: 0 0 20px 8px var(--persona-glow, rgba(74, 103, 65, 0.4)); }
+}
+
+.avatar--listening {
+  animation: avatar-breathe 3s ease-in-out infinite;
+}
+
+@keyframes avatar-breathe {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+}
+
+.avatar--thinking {
+  animation: avatar-shimmer 2s ease-in-out infinite;
+}
+
+@keyframes avatar-shimmer {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+.avatar--ring {
+  box-shadow: 0 0 0 3px var(--bg-primary), 0 0 0 5px currentColor;
+}
+
+.code-block {
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+  margin: var(--space-4) 0;
+  overflow-x: auto;
+}
+
+.code-block pre {
+  margin: 0;
+}
+
+.code-block code {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  line-height: var(--leading-relaxed);
+  color: var(--text-primary);
+}
+
+.tokens-table {
+  margin: var(--space-6) 0;
+  overflow-x: auto;
+}
+
+.tokens-table table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.tokens-table th,
+.tokens-table td {
+  text-align: left;
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.tokens-table th {
+  font-weight: var(--font-weight-semibold);
+  background: var(--bg-secondary);
+}
+
+.tokens-table code {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  background: var(--bg-tertiary);
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-sm);
+}
+
+.guidelines-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: var(--space-5);
+  margin: var(--space-6) 0;
+}
+
+.guideline-card {
+  background: var(--bg-secondary);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+}
+
+.guideline-card h4 {
+  font-family: var(--font-display);
+  font-weight: var(--font-weight-semibold);
+  margin-bottom: var(--space-2);
+  color: var(--accent-text);
+}
+
+.guideline-card p {
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+  line-height: var(--leading-relaxed);
+}
+
+.guideline-card code {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  background: var(--bg-tertiary);
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-sm);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .avatar--speaking,
+  .avatar--listening,
+  .avatar--thinking {
+    animation: none;
+  }
+}
+
+@media (max-width: 768px) {
+  .page-header h1 {
+    font-size: var(--text-3xl);
+  }
+
+  .avatar-sizes {
+    gap: var(--space-4);
+  }
+}
+</style>

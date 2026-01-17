@@ -17,7 +17,7 @@ const hasRealGcpCredentials = Boolean(
 
 // We need to dynamically import to get fresh module state
 async function getValidationModule() {
-  const mod = await import('../services/startup-validation.js');
+  const mod = await import('../services/deployment/startup-validation.js');
   return mod;
 }
 

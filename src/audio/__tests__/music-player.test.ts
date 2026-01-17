@@ -94,6 +94,8 @@ describe('Music Player Types', () => {
         isInitialized: false,
         isAmbientMode: false,
         isChangingTrack: false,
+        wasExplicitlyStopped: false,
+        explicitStopTime: null,
       };
 
       expect(state.isPlaying).toBe(false);
@@ -105,6 +107,8 @@ describe('Music Player Types', () => {
       expect(state.isInitialized).toBe(false);
       expect(state.isAmbientMode).toBe(false);
       expect(state.isChangingTrack).toBe(false);
+      expect(state.wasExplicitlyStopped).toBe(false);
+      expect(state.explicitStopTime).toBeNull();
     });
 
     it('should support playing state with track', () => {
@@ -123,6 +127,8 @@ describe('Music Player Types', () => {
         isInitialized: true,
         isAmbientMode: false,
         isChangingTrack: false,
+        wasExplicitlyStopped: false,
+        explicitStopTime: null,
       };
 
       expect(playingState.isPlaying).toBe(true);
@@ -141,6 +147,8 @@ describe('Music Player Types', () => {
         isInitialized: true,
         isAmbientMode: true, // Ambient music
         isChangingTrack: false,
+        wasExplicitlyStopped: false,
+        explicitStopTime: null,
       };
 
       expect(duckedState.isDucked).toBe(true);
@@ -161,6 +169,8 @@ describe('Music Player Types', () => {
         isInitialized: true,
         isAmbientMode: false,
         isChangingTrack: false,
+        wasExplicitlyStopped: false,
+        explicitStopTime: null,
       };
 
       expect(state.queue).toHaveLength(2);
@@ -243,7 +253,7 @@ describe('Music Player Singleton', () => {
     const { getMusicPlayer, resetMusicPlayer } = await import('../music-player.js');
 
     const player1 = getMusicPlayer();
-    resetMusicPlayer();
+    await resetMusicPlayer();
     const player2 = getMusicPlayer();
 
     expect(player1).not.toBe(player2);

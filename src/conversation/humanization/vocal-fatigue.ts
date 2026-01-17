@@ -19,6 +19,7 @@
  * @module @ferni/humanization/vocal-fatigue
  */
 
+import { seededChance, seededIndex, seededPick } from '../utils/rng.js';
 import { createLogger } from '../../utils/safe-logger.js';
 
 const logger = createLogger({ module: 'VocalFatigue' });
@@ -478,7 +479,7 @@ export class VocalFatigueEngine {
 
     // Probability based on fatigue level
     const probability = this.state.fatigueLevel * 0.4;
-    return Math.random() < probability;
+    return seededChance(`${Date.now()}:1`, probability);
   }
 
   private chooseFatigueExpression(): string {
@@ -487,7 +488,7 @@ export class VocalFatigueEngine {
       FATIGUE_EXPRESSIONS[category as keyof typeof FATIGUE_EXPRESSIONS] ||
       FATIGUE_EXPRESSIONS.subtle;
 
-    return expressions[Math.floor(Math.random() * expressions.length)];
+    return seededPick(`${Date.now()}:491`, expressions) ?? expressions[0];
   }
 
   private getFatigueExpressionSsml(): string {
@@ -495,7 +496,7 @@ export class VocalFatigueEngine {
     const ssmlExpressions =
       FATIGUE_SSML[category as keyof typeof FATIGUE_SSML] || FATIGUE_SSML.subtle;
 
-    return ssmlExpressions[Math.floor(Math.random() * ssmlExpressions.length)];
+    return seededPick(`${Date.now()}:499`, ssmlExpressions) ?? ssmlExpressions[0];
   }
 }
 

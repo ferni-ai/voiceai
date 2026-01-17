@@ -20,7 +20,7 @@
  */
 
 import type { IncomingMessage, ServerResponse } from 'http';
-import { getDORAMetricsService } from '../services/dora-metrics.js';
+import { getDORAMetricsService } from '../services/analytics/dora-metrics.js';
 import { createLogger } from '../utils/safe-logger.js';
 import { rateLimit, requireAdmin, requireAuth } from './auth-middleware.js';
 import { handleCorsPreflightIfNeeded, parseBody, sendError, sendJSON } from './helpers.js';
@@ -289,7 +289,7 @@ export async function handleDORARoutes(
     return true;
   } catch (error) {
     log.error({ error }, 'DORA API error');
-    sendError(res, error instanceof Error ? error.message : 'Internal error', 500);
+    sendError(res, 'Internal server error', 500);
     return true;
   }
 }

@@ -25,7 +25,8 @@ import type { ToolDefinition, ToolDomain } from '../registry/types.js';
 // Import advanced systems
 import { abTestingService, type ExperimentAssignment } from '../ab-testing.js';
 import { deprecationService, type DeprecationRecord } from '../deprecation.js';
-import { semanticRouter, type SemanticMatch } from '../semantic-router.js';
+// Migrated to new semantic router module
+import { semanticRouter, type SemanticMatch } from '../semantic-router/compat.js';
 import { versioningService } from '../versioning.js';
 
 const log = getLogger();

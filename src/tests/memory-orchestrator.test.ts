@@ -6,7 +6,7 @@
  * @module tests/memory-orchestrator
  */
 
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, beforeAll, vi } from 'vitest';
 import {
   MemoryOrchestrator,
   getMemoryOrchestrator,
@@ -25,6 +25,7 @@ import {
   resetEmotionalThreading,
   NaturalReferenceGenerator,
   getNaturalReferenceGenerator,
+  configureEmotionalMemoryEngines,
   type RecallContext,
   type MemoryItem,
   type ConversationTurn,
@@ -35,6 +36,88 @@ import {
 // ============================================================================
 
 const TEST_USER_ID = 'test-user-memory-orch';
+
+// Mock emotional memory engines for DI (required before using MemoryOrchestrator)
+const mockUserEmotionEngines = new Map<string, ReturnType<typeof createMockUserEmotionEngine>>();
+const mockBondingEngines = new Map<string, ReturnType<typeof createMockBondingEngine>>();
+
+function createMockUserEmotionEngine() {
+  return {
+    startSession: vi.fn(),
+    recordMoment: vi.fn().mockReturnValue('moment-id'),
+    resolveEmotion: vi.fn(),
+    markFollowedUp: vi.fn(),
+    buildEmotionalContext: vi.fn().mockReturnValue({
+      recentEmotions: [],
+      patterns: [],
+      unresolvedConcerns: [],
+      celebratableWins: [],
+      emotionalTrajectory: 'stable',
+      checkInSuggestions: [],
+    }),
+    detectPatterns: vi.fn().mockReturnValue([]),
+    getCheckInSuggestions: vi.fn().mockReturnValue([]),
+    formatForPrompt: vi.fn().mockReturnValue(''),
+    exportMoments: vi.fn().mockReturnValue([]),
+    importMoments: vi.fn(),
+    getStats: vi.fn().mockReturnValue({}),
+  };
+}
+
+function createMockBondingEngine() {
+  return {
+    setPersonaId: vi.fn(),
+    recordSessionEnd: vi.fn(),
+    recordEvent: vi.fn(),
+    updateConcern: vi.fn(),
+    getBondMetrics: vi.fn().mockReturnValue({
+      warmth: 0.5,
+      trust: 0.5,
+      protectiveness: 0.3,
+      admiration: 0.3,
+      concern: 0,
+      stage: 'getting_to_know',
+    }),
+    getBond: vi.fn().mockReturnValue({
+      warmth: 0.5,
+      trust: 0.5,
+      protectiveness: 0.3,
+      admiration: 0.3,
+      concern: 0,
+      stage: 'getting_to_know',
+    }),
+    getGreetingModifier: vi.fn().mockReturnValue(null),
+    getEmotionalMemoryCallback: vi.fn().mockReturnValue(null),
+    getBondPhrase: vi.fn().mockReturnValue(null),
+    getRelationshipStage: vi.fn().mockReturnValue('getting_to_know'),
+    export: vi.fn().mockReturnValue({}),
+    import: vi.fn(),
+  };
+}
+
+// Configure DI before any tests run
+beforeAll(() => {
+  configureEmotionalMemoryEngines({
+    getUserEmotionEngine: (userId: string) => {
+      if (!mockUserEmotionEngines.has(userId)) {
+        mockUserEmotionEngines.set(userId, createMockUserEmotionEngine());
+      }
+      return mockUserEmotionEngines.get(userId)!;
+    },
+    getBondingEngine: (userId: string) => {
+      if (!mockBondingEngines.has(userId)) {
+        mockBondingEngines.set(userId, createMockBondingEngine());
+      }
+      return mockBondingEngines.get(userId)!;
+    },
+    removeUserEmotionEngine: (userId: string) => {
+      mockUserEmotionEngines.delete(userId);
+    },
+    clearBondingEngine: (userId: string) => {
+      mockBondingEngines.delete(userId);
+    },
+  });
+});
 
 function createMockProfile() {
   return {

@@ -67,10 +67,37 @@ export { analyzeRhythm, applyRhythmVariations, hasSignificantVariation } from '.
 export { humanizeText } from './pipeline.js';
 
 // ============================================================================
+// PERSONA VOICE FINGERPRINTS (Better Than Human)
+// ============================================================================
+
+export {
+  applyContextualEmotion,
+  applyPersonaVoiceFingerprint,
+  getPersonaAppropriateEmotion,
+  getRandomPersonaEmotion,
+  isEmotionInPersonaRange,
+} from '../cartesia-expressiveness.js';
+
+// Emotion profiles - from standalone file to avoid circular deps
+// PersonaEmotionProfile type is canonical here (cartesia-expressiveness re-exports it)
+export {
+  getEmotionProfile,
+  PERSONA_EMOTION_PROFILES,
+  type PersonaEmotionProfile,
+} from '../emotion-profiles.js';
+
+// ============================================================================
 // DEFAULT EXPORT (For backwards compatibility)
 // ============================================================================
 
 import { addBreathGroupPauses } from './breath-groups.js';
+import {
+  applyContextualEmotion,
+  applyPersonaVoiceFingerprint,
+  getPersonaAppropriateEmotion,
+  getRandomPersonaEmotion,
+} from '../cartesia-expressiveness.js';
+import { getEmotionProfile, PERSONA_EMOTION_PROFILES } from '../emotion-profiles.js';
 import { getEmotionTransition, mapContextToEmotion } from './emotions.js';
 import { injectNaturalFillers } from './fillers.js';
 import { humanizeText } from './pipeline.js';
@@ -83,6 +110,14 @@ export default {
   ALL_CARTESIA_EMOTIONS,
   mapContextToEmotion,
   getEmotionTransition,
+
+  // Persona voice fingerprints (Better Than Human)
+  PERSONA_EMOTION_PROFILES,
+  getEmotionProfile,
+  applyPersonaVoiceFingerprint,
+  applyContextualEmotion,
+  getPersonaAppropriateEmotion,
+  getRandomPersonaEmotion,
 
   // Filler system
   injectNaturalFillers,

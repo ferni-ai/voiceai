@@ -7,11 +7,11 @@
  * - Transaction history
  */
 
-export { createPlaidTools } from '../plaid.js';
+export { createPlaidTools } from './finance/plaid.js';
 export {
   storeAccessToken,
   getStoredAccessToken,
   hasLinkedAccounts,
   getTokenData,
   removeAccessToken,
-} from '../plaid-store.js';
+} from './finance/plaid-store.js';

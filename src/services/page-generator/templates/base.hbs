@@ -1,0 +1,1226 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="{{theme}}" data-persona="{{agent.id}}">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="description" content="{{seo.description}}">
+  <meta name="theme-color" content="{{brand.primary}}">
+
+  <!-- iOS Safari specific -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Meet {{agent.displayName}}">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="format-detection" content="telephone=no">
+
+  <title>{{seo.title}}</title>
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/svg+xml" href="{{favicon}}">
+  <meta name="msapplication-TileColor" content="{{brand.primary}}">
+
+  <!-- Open Graph / Social -->
+  <meta property="og:title" content="{{seo.title}}">
+  <meta property="og:description" content="{{seo.description}}">
+  <meta property="og:type" content="website">
+  {{#if seo.ogImage}}
+  <meta property="og:image" content="{{seo.ogImage}}">
+  {{/if}}
+  <meta name="twitter:card" content="{{seo.twitterCard}}">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  {{#if brand.fonts.display.urls}}
+  <style>
+    {{#each brand.fonts.display.urls}}
+    @font-face {
+      font-family: '{{../brand.fonts.display.family}}';
+      src: url('{{this.url}}') format('woff2');
+      font-weight: {{this.weight}};
+      font-style: {{#if this.style}}{{this.style}}{{else}}normal{{/if}};
+      font-display: swap;
+    }
+    {{/each}}
+  </style>
+  {{else}}
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  {{/if}}
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+
+  <!-- LiveKit Client -->
+  <script src="https://cdn.jsdelivr.net/npm/livekit-client@2.0.0/dist/livekit-client.umd.min.js"></script>
+  <script>
+    if (typeof LivekitClient !== 'undefined') {
+      window.LivekitClient = LivekitClient;
+      window.LiveKit = LivekitClient;
+    }
+  </script>
+
+  <style>
+    /* ========================================================================
+       DESIGN TOKENS
+       ======================================================================== */
+    :root {
+      /* Background colors */
+      --color-background-primary: #FAFAF9;
+      --color-background-secondary: #F5F5F4;
+      --color-background-tertiary: #E7E5E4;
+      --color-background-elevated: #FFFFFF;
+      --color-background-glass: rgba(255, 255, 255, 0.85);
+
+      /* Text colors */
+      --color-text-primary: #1C1917;
+      --color-text-secondary: #44403C;
+      --color-text-muted: #78716C;
+      --color-text-dimmed: #A8A29E;
+
+      /* Border colors */
+      --color-border-subtle: rgba(0, 0, 0, 0.05);
+      --color-border-medium: rgba(0, 0, 0, 0.1);
+      --color-border-strong: rgba(0, 0, 0, 0.15);
+
+      /* Accent colors - from brand */
+      --color-accent-primary: {{brand.primary}};
+      --color-accent-hover: {{brand.secondary}};
+      --color-accent-glow: {{brand.glow}};
+
+      /* Semantic colors */
+      --color-semantic-success: #16a34a;
+      --color-semantic-error: #dc2626;
+      --color-semantic-warning: #f59e0b;
+      --color-semantic-info: #0891b2;
+
+      /* Default persona colors */
+      --persona-primary: {{brand.primary}};
+      --persona-secondary: {{brand.secondary}};
+      --persona-glow: {{brand.glow}};
+      --persona-bg-tint: {{brand.tint}};
+
+      /* Gradients */
+      --gradient-radial: radial-gradient(ellipse 80% 50% at 50% -10%, var(--persona-glow) 0%, transparent 60%);
+      --gradient-orb: {{brand.gradientOrb}};
+
+      /* Spacing - Golden Ratio */
+      --space-xs: 0.25rem;
+      --space-sm: 0.5rem;
+      --space-md: 1rem;
+      --space-lg: 1.618rem;
+      --space-xl: 2.618rem;
+      --space-2xl: 4.236rem;
+
+      /* Typography */
+      --font-display: {{#if brand.fonts.display.family}}'{{brand.fonts.display.family}}'{{else}}'Inter'{{/if}}, -apple-system, BlinkMacSystemFont, sans-serif;
+      --font-body: {{#if brand.fonts.body.family}}'{{brand.fonts.body.family}}'{{else}}'Inter'{{/if}}, -apple-system, BlinkMacSystemFont, sans-serif;
+      --font-serif: 'Instrument Serif', Georgia, serif;
+
+      /* Type scale */
+      --text-xs: 0.75rem;
+      --text-sm: 0.875rem;
+      --text-base: 1rem;
+      --text-lg: 1.125rem;
+      --text-xl: 1.25rem;
+      --text-2xl: 1.5rem;
+      --text-3xl: 1.875rem;
+      --text-4xl: 2.25rem;
+
+      /* Borders */
+      --radius-sm: 0.5rem;
+      --radius-md: 0.75rem;
+      --radius-lg: 1rem;
+      --radius-xl: 1.25rem;
+      --radius-full: 9999px;
+
+      /* Shadows */
+      --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04), 0 1px 3px rgba(0, 0, 0, 0.06);
+      --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.06), 0 2px 4px -2px rgba(0, 0, 0, 0.04);
+      --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -4px rgba(0, 0, 0, 0.04);
+      --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.06);
+
+      /* Transitions */
+      --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+      --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
+      --transition-fast: 150ms var(--ease-out-quart);
+      --transition-base: 200ms var(--ease-out-quart);
+      --transition-slow: 350ms var(--ease-out-expo);
+
+      /* Z-Index */
+      --z-base: 1;
+      --z-elevated: 10;
+      --z-modal: 100;
+      --z-toast: 1000;
+    }
+
+    /* Persona Theme */
+    {{{personaCss}}}
+
+    /* ========================================================================
+       BASE STYLES
+       ======================================================================== */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html {
+      padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+    }
+
+    * {
+      -webkit-tap-highlight-color: transparent;
+      -webkit-touch-callout: none;
+    }
+
+    html, body {
+      position: relative;
+      width: 100%;
+      min-height: 100%;
+      overflow-x: hidden;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    body {
+      font-family: var(--font-body);
+      font-size: var(--text-base);
+      line-height: 1.6;
+      color: var(--color-text-primary);
+      background: linear-gradient(180deg, #fafaf9 0%, #f5f5f4 100%);
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    /* ========================================================================
+       APP CONTAINER
+       ======================================================================== */
+    #app {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ========================================================================
+       HEADER
+       ======================================================================== */
+    .header {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: var(--z-elevated);
+      padding: var(--space-md) var(--space-lg);
+      background: rgba(255, 255, 255, 0.7);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--color-border-subtle);
+      transform: translateY(-100%);
+      transition: transform 0.3s var(--ease-out-expo);
+    }
+
+    .header.is-visible {
+      transform: translateY(0);
+    }
+
+    .header-content {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .header-badge {
+      font-size: var(--text-xs);
+      font-weight: 600;
+      color: var(--persona-primary);
+      background: var(--persona-bg-tint);
+      padding: 0.25rem 0.75rem;
+      border-radius: var(--radius-full);
+    }
+
+    /* ========================================================================
+       HERO SECTION
+       ======================================================================== */
+    .hero {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: var(--space-2xl) var(--space-lg);
+      text-align: center;
+      min-height: 100vh;
+    }
+
+    .hero-content {
+      max-width: 600px;
+    }
+
+    /* ========================================================================
+       AVATAR
+       ======================================================================== */
+    .avatar-wrapper {
+      position: relative;
+      margin-bottom: var(--space-lg);
+    }
+
+    .avatar-container {
+      position: relative;
+      width: 140px;
+      height: 140px;
+      margin: 0 auto;
+    }
+
+    .avatar {
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      background: var(--gradient-orb);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow:
+        0 8px 32px var(--persona-glow),
+        0 24px 64px rgba(0, 0, 0, 0.1),
+        inset 0 -8px 32px rgba(0, 0, 0, 0.15),
+        inset 0 4px 0 rgba(255, 255, 255, 0.15);
+      transition: transform 0.3s var(--ease-out-expo);
+    }
+
+    .avatar:hover {
+      transform: scale(1.02);
+    }
+
+    .avatar-text {
+      font-family: var(--font-display);
+      font-size: 3rem;
+      font-weight: 700;
+      color: #FFFFFF;
+      text-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    }
+
+    .avatar-ring {
+      position: absolute;
+      inset: -8px;
+      border-radius: 50%;
+      border: 2.5px solid var(--persona-primary);
+      opacity: 0.6;
+      transition: all 0.3s var(--ease-out-expo);
+    }
+
+    #coach.is-connected .avatar-ring {
+      opacity: 0.9;
+      border-color: var(--persona-primary);
+    }
+
+    #coach.is-speaking .avatar-ring {
+      animation: speakingRing 1.2s ease-in-out infinite;
+    }
+
+    @keyframes speakingRing {
+      0%, 100% {
+        transform: scale(1);
+        opacity: 0.6;
+        box-shadow: 0 0 0 transparent;
+      }
+      50% {
+        transform: scale(1.02);
+        opacity: 0.9;
+        box-shadow: 0 0 15px var(--persona-glow);
+      }
+    }
+
+    #coach.is-listening .avatar-ring {
+      animation: listeningRing 2s ease-in-out infinite;
+    }
+
+    @keyframes listeningRing {
+      0%, 100% {
+        transform: scale(1);
+        opacity: 0.5;
+      }
+      50% {
+        transform: scale(1.01);
+        opacity: 0.7;
+      }
+    }
+
+    .status-indicator {
+      position: absolute;
+      bottom: 8px;
+      right: 8px;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      border: 3px solid #FAFAF9;
+      background: #A8A29E;
+      box-shadow: var(--shadow-sm);
+      transition: background 0.3s ease;
+    }
+
+    .status-indicator.status-connected {
+      background: var(--color-semantic-success);
+      box-shadow: 0 0 8px rgba(22, 163, 74, 0.4);
+    }
+
+    .status-indicator.status-connecting {
+      background: var(--color-semantic-warning);
+    }
+
+    /* ========================================================================
+       WAVEFORM
+       ======================================================================== */
+    .waveform-container {
+      height: 60px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      margin: var(--space-md) 0;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+
+    .waveform-container.is-active {
+      opacity: 1;
+    }
+
+    .waveform-bar {
+      width: 4px;
+      height: 4px;
+      background: linear-gradient(180deg, var(--persona-primary) 0%, var(--persona-secondary) 100%);
+      border-radius: 2px;
+      transition: height 0.05s ease-out;
+    }
+
+    /* ========================================================================
+       TYPOGRAPHY
+       ======================================================================== */
+    .hero-title {
+      font-family: var(--font-display);
+      font-size: var(--text-4xl);
+      font-weight: 700;
+      line-height: 1.2;
+      margin-bottom: var(--space-sm);
+      color: var(--color-text-primary);
+    }
+
+    .hero-title .accent {
+      color: var(--persona-primary);
+    }
+
+    .hero-subtitle {
+      font-size: var(--text-lg);
+      color: var(--color-text-secondary);
+      margin-bottom: var(--space-lg);
+      max-width: 480px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    /* ========================================================================
+       BUTTONS
+       ======================================================================== */
+    .btn-primary {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: var(--space-sm);
+      padding: 1rem 2rem;
+      font-family: var(--font-display);
+      font-size: var(--text-base);
+      font-weight: 600;
+      color: #FFFFFF;
+      background: var(--gradient-orb);
+      border: none;
+      border-radius: var(--radius-full);
+      cursor: pointer;
+      box-shadow:
+        0 1px 2px rgba(0, 0, 0, 0.1),
+        0 4px 8px rgba(0, 0, 0, 0.08),
+        0 8px 16px rgba(0, 0, 0, 0.06),
+        inset 0 1px 0 rgba(255, 255, 255, 0.25);
+      transition: all 0.2s var(--ease-out-expo);
+    }
+
+    .btn-primary:hover:not(:disabled) {
+      transform: translateY(-1px);
+      box-shadow:
+        0 2px 4px rgba(0, 0, 0, 0.08),
+        0 8px 16px rgba(0, 0, 0, 0.08),
+        0 16px 32px rgba(0, 0, 0, 0.06),
+        0 0 40px -8px var(--persona-glow),
+        inset 0 1px 0 rgba(255, 255, 255, 0.3);
+    }
+
+    .btn-primary:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .btn-secondary {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: var(--space-sm);
+      padding: 1rem 2rem;
+      font-family: var(--font-display);
+      font-size: var(--text-base);
+      font-weight: 600;
+      color: var(--color-text-secondary);
+      background: rgba(255, 255, 255, 0.8);
+      border: 1px solid var(--color-border-medium);
+      border-radius: var(--radius-full);
+      cursor: pointer;
+      backdrop-filter: blur(12px);
+      transition: all 0.2s var(--ease-out-expo);
+    }
+
+    .btn-secondary:hover:not(:disabled) {
+      background: rgba(255, 255, 255, 0.95);
+      border-color: var(--color-border-strong);
+    }
+
+    /* ========================================================================
+       KEYBOARD HINT
+       ======================================================================== */
+    .keyboard-hint {
+      margin-top: var(--space-md);
+      font-size: var(--text-sm);
+      color: var(--color-text-muted);
+    }
+
+    .keyboard-hint kbd {
+      display: inline-block;
+      padding: 0.15rem 0.5rem;
+      font-family: var(--font-body);
+      font-size: var(--text-xs);
+      background: var(--color-background-secondary);
+      border: 1px solid var(--color-border-medium);
+      border-radius: var(--radius-sm);
+      box-shadow: 0 1px 0 var(--color-border-medium);
+    }
+
+    @media (max-width: 768px) {
+      .keyboard-hint {
+        display: none;
+      }
+    }
+
+    /* ========================================================================
+       THINKING INDICATOR
+       ======================================================================== */
+    .thinking-float {
+      display: none;
+      align-items: center;
+      gap: var(--space-sm);
+      padding: var(--space-sm) var(--space-md);
+      background: rgba(255, 255, 255, 0.9);
+      border-radius: var(--radius-full);
+      box-shadow: var(--shadow-md);
+      margin-top: var(--space-md);
+    }
+
+    .thinking-float.is-visible {
+      display: flex;
+    }
+
+    .thinking-dots {
+      display: flex;
+      gap: 4px;
+    }
+
+    .thinking-dot {
+      width: 6px;
+      height: 6px;
+      background: var(--persona-primary);
+      border-radius: 50%;
+      animation: thinkingBounce 1.4s ease-in-out infinite;
+    }
+
+    .thinking-dot:nth-child(2) {
+      animation-delay: 0.2s;
+    }
+
+    .thinking-dot:nth-child(3) {
+      animation-delay: 0.4s;
+    }
+
+    @keyframes thinkingBounce {
+      0%, 80%, 100% {
+        transform: translateY(0);
+      }
+      40% {
+        transform: translateY(-6px);
+      }
+    }
+
+    .thinking-text {
+      font-size: var(--text-sm);
+      color: var(--color-text-muted);
+    }
+
+    /* ========================================================================
+       CONTENT SECTIONS
+       ======================================================================== */
+    .section {
+      padding: var(--space-2xl) var(--space-lg);
+    }
+
+    .section-alt {
+      background: var(--color-background-secondary);
+    }
+
+    .section-container {
+      max-width: 1000px;
+      margin: 0 auto;
+    }
+
+    .section-header {
+      text-align: center;
+      margin-bottom: var(--space-xl);
+    }
+
+    .section-title {
+      font-family: var(--font-display);
+      font-size: var(--text-2xl);
+      font-weight: 700;
+      margin-bottom: var(--space-sm);
+    }
+
+    .section-subtitle {
+      color: var(--color-text-secondary);
+    }
+
+    /* Quote */
+    .quote {
+      text-align: center;
+      max-width: 700px;
+      margin: 0 auto;
+    }
+
+    .quote-text {
+      font-family: var(--font-serif);
+      font-size: var(--text-2xl);
+      font-style: italic;
+      line-height: 1.5;
+      color: var(--color-text-secondary);
+      margin-bottom: var(--space-md);
+    }
+
+    .quote-author {
+      font-weight: 600;
+      color: var(--persona-primary);
+    }
+
+    /* Cards */
+    .card-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: var(--space-lg);
+    }
+
+    .card {
+      background: rgba(255, 255, 255, 0.9);
+      border: 1px solid var(--color-border-subtle);
+      border-radius: var(--radius-lg);
+      padding: var(--space-lg);
+      box-shadow: var(--shadow-sm);
+      transition: all 0.2s var(--ease-out-expo);
+    }
+
+    .card:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-md);
+    }
+
+    .card-icon {
+      width: 48px;
+      height: 48px;
+      color: var(--persona-primary);
+      margin-bottom: var(--space-md);
+    }
+
+    .card-title {
+      font-family: var(--font-display);
+      font-size: var(--text-lg);
+      font-weight: 600;
+      margin-bottom: var(--space-sm);
+    }
+
+    .card-text {
+      color: var(--color-text-secondary);
+      margin-bottom: var(--space-md);
+    }
+
+    .card-link {
+      display: inline-block;
+      font-weight: 600;
+      color: var(--persona-primary);
+      background: none;
+      border: none;
+      cursor: pointer;
+      transition: color 0.2s ease;
+    }
+
+    .card-link:hover {
+      color: var(--persona-secondary);
+    }
+
+    /* CTA */
+    .cta {
+      text-align: center;
+      padding: var(--space-2xl) var(--space-lg);
+      background: linear-gradient(180deg, var(--persona-bg-tint) 0%, transparent 100%);
+    }
+
+    .cta-headline {
+      font-family: var(--font-display);
+      font-size: var(--text-3xl);
+      font-weight: 700;
+      margin-bottom: var(--space-sm);
+    }
+
+    .cta-text {
+      color: var(--color-text-secondary);
+      margin-bottom: var(--space-lg);
+      max-width: 500px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    .cta-btn {
+      margin-bottom: var(--space-lg);
+    }
+
+    .trust-badges {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: var(--space-lg);
+    }
+
+    .trust-badge {
+      display: flex;
+      align-items: center;
+      gap: var(--space-sm);
+      color: var(--color-text-muted);
+      font-size: var(--text-sm);
+    }
+
+    .trust-icon {
+      width: 20px;
+      height: 20px;
+    }
+
+    /* ========================================================================
+       FOOTER
+       ======================================================================== */
+    .footer {
+      padding: var(--space-xl) var(--space-lg);
+      background: rgba(255, 255, 255, 0.7);
+      border-top: 1px solid var(--color-border-subtle);
+      text-align: center;
+    }
+
+    .footer-links {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: var(--space-md);
+      margin-bottom: var(--space-md);
+    }
+
+    .footer-link {
+      color: var(--color-text-muted);
+      text-decoration: none;
+      font-size: var(--text-sm);
+      transition: color 0.2s ease;
+    }
+
+    .footer-link:hover {
+      color: var(--persona-primary);
+    }
+
+    .footer-disclaimer {
+      font-size: var(--text-xs);
+      color: var(--color-text-muted);
+      max-width: 600px;
+      margin: 0 auto var(--space-sm);
+    }
+
+    .footer-copyright {
+      font-size: var(--text-xs);
+      color: var(--color-text-dimmed);
+    }
+
+    /* ========================================================================
+       STATUS ISLAND (Dynamic Island inspired)
+       ======================================================================== */
+    .status-island {
+      position: fixed;
+      top: var(--space-md);
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: var(--z-toast);
+      pointer-events: none;
+    }
+
+    .status-pill {
+      display: none;
+      padding: var(--space-sm) var(--space-md);
+      background: rgba(0, 0, 0, 0.8);
+      color: #FFFFFF;
+      font-size: var(--text-sm);
+      border-radius: var(--radius-full);
+      backdrop-filter: blur(20px);
+    }
+
+    .status-pill.is-visible {
+      display: block;
+      animation: pillSlideIn 0.3s var(--ease-out-expo);
+    }
+
+    @keyframes pillSlideIn {
+      from {
+        opacity: 0;
+        transform: translateY(-10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    /* ========================================================================
+       RESPONSIVE
+       ======================================================================== */
+    @media (max-width: 768px) {
+      .hero {
+        padding: var(--space-xl) var(--space-md);
+      }
+
+      .hero-title {
+        font-size: var(--text-3xl);
+      }
+
+      .hero-subtitle {
+        font-size: var(--text-base);
+      }
+
+      .avatar-container {
+        width: 120px;
+        height: 120px;
+      }
+
+      .avatar-text {
+        font-size: 2.5rem;
+      }
+
+      .quote-text {
+        font-size: var(--text-xl);
+      }
+    }
+
+    /* ========================================================================
+       CUSTOM CSS
+       ======================================================================== */
+    {{#if customCss}}
+    {{{customCss}}}
+    {{/if}}
+  </style>
+</head>
+
+<body data-persona="{{agent.id}}">
+  <!-- Status Island -->
+  <div class="status-island" id="statusIsland">
+    <div id="messageContainer" class="status-pill">
+      <p id="messageText"></p>
+    </div>
+  </div>
+
+  <!-- Header -->
+  <header class="header" id="header">
+    <div class="header-content">
+      {{#if brand.logoUrl}}
+      <img src="{{brand.logoUrl}}" alt="Logo" height="30">
+      {{else}}
+      <div></div>
+      {{/if}}
+      <span class="header-badge">AI Preview</span>
+    </div>
+  </header>
+
+  <div id="app">
+    <!-- Hero Section -->
+    <section class="hero">
+      <div class="hero-content" id="coach">
+        <!-- Avatar -->
+        <div class="avatar-wrapper">
+          <div class="avatar-container">
+            <div id="avatarRing" class="avatar-ring"></div>
+            <div id="coachAvatar" class="avatar">
+              <span id="avatarText" class="avatar-text">{{agent.initials}}</span>
+            </div>
+            <div id="statusIndicator" class="status-indicator status-disconnected"></div>
+          </div>
+        </div>
+
+        <!-- Agent Info -->
+        <h1 class="hero-title">Meet <span class="accent">{{agent.displayName}}</span></h1>
+        <p class="hero-subtitle">{{agent.tagline}}</p>
+
+        <!-- Waveform -->
+        <div id="waveformContainer" class="waveform-container">
+          <div class="waveform-bars" id="waveformBars"></div>
+        </div>
+
+        <!-- Connect Button -->
+        <button id="connectBtn" class="btn-primary" type="button">
+          Start conversation
+        </button>
+        <button id="disconnectBtn" class="btn-secondary" type="button" style="display: none;">
+          End conversation
+        </button>
+
+        <!-- Thinking Indicator -->
+        <div class="thinking-float" id="thinkingFloat">
+          <div class="thinking-dots">
+            <span class="thinking-dot"></span>
+            <span class="thinking-dot"></span>
+            <span class="thinking-dot"></span>
+          </div>
+          <span class="thinking-text">Thinking</span>
+        </div>
+      </div>
+
+      <p class="keyboard-hint">Press <kbd>Space</kbd> to connect</p>
+    </section>
+
+    <!-- Quote Section -->
+    <section class="section section-alt">
+      <div class="section-container">
+        <div class="quote">
+          <p class="quote-text">"{{agent.tagline}}"</p>
+          <p class="quote-author">{{agent.name}}</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section class="cta">
+      <div class="section-container">
+        <h2 class="cta-headline">Ready to talk?</h2>
+        <p class="cta-text">{{agent.displayName}} is ready when you are. Start a conversation now.</p>
+        <button class="btn-primary cta-btn" onclick="document.getElementById('connectBtn').click(); window.scrollTo({top: 0, behavior: 'smooth'});">
+          Start conversation
+        </button>
+
+        <div class="trust-badges">
+          <div class="trust-badge">
+            <svg class="trust-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+            </svg>
+            <span>Private & Secure</span>
+          </div>
+          <div class="trust-badge">
+            <svg class="trust-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"/>
+              <polyline points="12 6 12 12 16 14"/>
+            </svg>
+            <span>Available 24/7</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <div class="footer-links">
+        <a href="#" class="footer-link">About</a>
+        <a href="#" class="footer-link">Privacy</a>
+        <a href="#" class="footer-link">Terms</a>
+      </div>
+      <p class="footer-disclaimer">
+        This is an AI demonstration. {{agent.name}} is an AI persona powered by Ferni.
+      </p>
+      <p class="footer-copyright">Powered by Ferni AI</p>
+    </footer>
+  </div>
+
+  <!-- Connection Management Script -->
+  <script>
+    (function() {
+      'use strict';
+
+      // ========================================
+      // CONFIG
+      // ========================================
+      const CONFIG = {
+        tokenServerUrl: '{{deployment.tokenEndpoint}}',
+        livekitUrl: '{{deployment.livekitUrl}}',
+        persona: '{{agent.id}}',
+        personaName: '{{agent.name}}',
+        waveformBars: 9,
+      };
+
+      console.log('🔧 Agent Config:', CONFIG);
+
+      // ========================================
+      // HELPERS
+      // ========================================
+      function generateRoomId() {
+        return `${CONFIG.persona}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      }
+
+      function getDeviceId() {
+        let deviceId = localStorage.getItem('voiceai_deviceId');
+        if (!deviceId) {
+          deviceId = `device-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+          localStorage.setItem('voiceai_deviceId', deviceId);
+        }
+        return deviceId;
+      }
+
+      function getUsername() {
+        return localStorage.getItem('voiceai_userName') || 'User';
+      }
+
+      // ========================================
+      // STATE
+      // ========================================
+      let room = null;
+      let isConnected = false;
+      let currentState = 'idle';
+      const BAR_COUNT = 9;
+
+      // ========================================
+      // DOM ELEMENTS
+      // ========================================
+      const connectBtn = document.getElementById('connectBtn');
+      const disconnectBtn = document.getElementById('disconnectBtn');
+      const statusIndicator = document.getElementById('statusIndicator');
+      const waveformContainer = document.getElementById('waveformContainer');
+      const waveformBars = document.getElementById('waveformBars');
+      const coach = document.getElementById('coach');
+      const thinkingFloat = document.getElementById('thinkingFloat');
+      const header = document.getElementById('header');
+      const messageContainer = document.getElementById('messageContainer');
+      const messageText = document.getElementById('messageText');
+
+      // Create waveform bars
+      for (let i = 0; i < BAR_COUNT; i++) {
+        const bar = document.createElement('div');
+        bar.className = 'waveform-bar';
+        waveformBars.appendChild(bar);
+      }
+      const bars = waveformBars.querySelectorAll('.waveform-bar');
+
+      // ========================================
+      // UI UPDATES
+      // ========================================
+      function updateUI(state) {
+        currentState = state;
+
+        switch (state) {
+          case 'connecting':
+            statusIndicator.className = 'status-indicator status-connecting';
+            connectBtn.disabled = true;
+            connectBtn.textContent = 'Connecting...';
+            break;
+
+          case 'connected':
+            statusIndicator.className = 'status-indicator status-connected';
+            coach.classList.add('is-connected');
+            connectBtn.style.display = 'none';
+            disconnectBtn.style.display = 'inline-flex';
+            waveformContainer.classList.add('is-active');
+            break;
+
+          case 'speaking':
+            coach.classList.add('is-speaking');
+            coach.classList.remove('is-listening');
+            thinkingFloat.classList.remove('is-visible');
+            break;
+
+          case 'listening':
+            coach.classList.add('is-listening');
+            coach.classList.remove('is-speaking');
+            thinkingFloat.classList.remove('is-visible');
+            break;
+
+          case 'thinking':
+            coach.classList.remove('is-speaking', 'is-listening');
+            thinkingFloat.classList.add('is-visible');
+            break;
+
+          case 'disconnected':
+          default:
+            statusIndicator.className = 'status-indicator status-disconnected';
+            coach.classList.remove('is-connected', 'is-speaking', 'is-listening');
+            connectBtn.style.display = 'inline-flex';
+            connectBtn.disabled = false;
+            connectBtn.textContent = 'Start conversation';
+            disconnectBtn.style.display = 'none';
+            waveformContainer.classList.remove('is-active');
+            thinkingFloat.classList.remove('is-visible');
+            resetWaveform();
+            break;
+        }
+      }
+
+      function resetWaveform() {
+        bars.forEach(bar => bar.style.height = '4px');
+      }
+
+      function showMessage(text, duration = 3000) {
+        messageText.textContent = text;
+        messageContainer.classList.add('is-visible');
+        setTimeout(() => {
+          messageContainer.classList.remove('is-visible');
+        }, duration);
+      }
+
+      // ========================================
+      // LIVEKIT CONNECTION
+      // ========================================
+      async function connect() {
+        if (isConnected || !window.LivekitClient) {
+          console.error('LiveKit not loaded or already connected');
+          return;
+        }
+
+        updateUI('connecting');
+
+        try {
+          const roomId = generateRoomId();
+          const deviceId = getDeviceId();
+          const userName = getUsername();
+
+          // Request token (GET with query params)
+          const tokenParams = new URLSearchParams({
+            room: roomId,
+            username: userName,
+            device_id: deviceId,
+            persona_id: CONFIG.persona,
+          });
+          const response = await fetch(`${CONFIG.tokenServerUrl}?${tokenParams}`);
+
+          if (!response.ok) {
+            throw new Error(`Token request failed: ${response.status}`);
+          }
+
+          const { token, url: serverUrl } = await response.json();
+
+          // Create room
+          room = new LivekitClient.Room({
+            adaptiveStream: true,
+            dynacast: true,
+            audioCaptureDefaults: {
+              echoCancellation: true,
+              noiseSuppression: true,
+              autoGainControl: true,
+            },
+          });
+
+          // Event handlers
+          room.on(LivekitClient.RoomEvent.Connected, () => {
+            console.log('✅ Connected to room');
+            isConnected = true;
+            updateUI('connected');
+            showMessage('Connected! Say hello.');
+          });
+
+          room.on(LivekitClient.RoomEvent.Disconnected, () => {
+            console.log('❌ Disconnected from room');
+            isConnected = false;
+            updateUI('disconnected');
+          });
+
+          room.on(LivekitClient.RoomEvent.TrackSubscribed, (track, publication, participant) => {
+            if (track.kind === 'audio') {
+              const audio = track.attach();
+              document.body.appendChild(audio);
+              updateUI('speaking');
+            }
+          });
+
+          room.on(LivekitClient.RoomEvent.TrackUnsubscribed, (track) => {
+            if (track.kind === 'audio') {
+              track.detach().forEach(el => el.remove());
+            }
+          });
+
+          room.on(LivekitClient.RoomEvent.ActiveSpeakersChanged, (speakers) => {
+            const agentSpeaking = speakers.some(s => !s.isLocal);
+            if (agentSpeaking) {
+              updateUI('speaking');
+            } else if (isConnected) {
+              updateUI('listening');
+            }
+          });
+
+          // Connect
+          await room.connect(serverUrl, token);
+
+          // Enable microphone
+          await room.localParticipant.setMicrophoneEnabled(true);
+
+        } catch (error) {
+          console.error('Connection error:', error);
+          showMessage('Connection failed. Try again?', 4000);
+          updateUI('disconnected');
+        }
+      }
+
+      async function disconnect() {
+        if (room) {
+          await room.disconnect();
+          room = null;
+        }
+        isConnected = false;
+        updateUI('disconnected');
+      }
+
+      // ========================================
+      // EVENT LISTENERS
+      // ========================================
+      connectBtn.addEventListener('click', connect);
+      disconnectBtn.addEventListener('click', disconnect);
+
+      // Keyboard shortcut
+      document.addEventListener('keydown', (e) => {
+        if (e.code === 'Space' && !e.target.closest('input, textarea, button')) {
+          e.preventDefault();
+          if (isConnected) {
+            disconnect();
+          } else {
+            connect();
+          }
+        }
+      });
+
+      // Header scroll behavior
+      let lastScroll = 0;
+      window.addEventListener('scroll', () => {
+        const currentScroll = window.scrollY;
+        if (currentScroll > 100) {
+          header.classList.add('is-visible');
+        } else {
+          header.classList.remove('is-visible');
+        }
+        lastScroll = currentScroll;
+      }, { passive: true });
+
+      console.log('✅ Agent page initialized');
+    })();
+  </script>
+
+  {{#if customJs}}
+  <script>
+    {{{customJs}}}
+  </script>
+  {{/if}}
+</body>
+</html>

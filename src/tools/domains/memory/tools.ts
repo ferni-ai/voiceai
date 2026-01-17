@@ -5,10 +5,10 @@
  * No agent-specific references - just pure memory functionality.
  */
 
-import { llm, log } from '@livekit/agents';
-import { getLogger } from '../../../utils/safe-logger.js';
+import { llm } from '@livekit/agents';
 import { z } from 'zod';
-import type { ToolDefinition, ToolContext, Tool } from '../../registry/types.js';
+import { getLogger } from '../../../utils/safe-logger.js';
+import type { Tool, ToolContext, ToolDefinition } from '../../registry/types.js';
 
 import { getToolDescription } from '../../utils/tool-descriptions.js';
 // ============================================================================
@@ -112,14 +112,9 @@ export const rememberAboutUserDef: ToolDefinition = {
           getLogger().info('Fact captured to learning engine for persistence');
         }
 
-        // Generic acknowledgments (no agent-specific phrasing)
-        const acknowledgments = [
-          `I'll remember that.`,
-          `That's important. I'm keeping that in mind.`,
-          `Thank you for sharing that. I won't forget.`,
-          `Noted. That helps me understand you better.`,
-        ];
-        return acknowledgments[Math.floor(Math.random() * acknowledgments.length)];
+        // Return empty string - agent should continue naturally without reading any acknowledgment
+        // The tool executed silently; the agent decides how/if to respond
+        return '';
       },
     });
   },
@@ -177,7 +172,7 @@ export const recallFromMemoryDef: ToolDefinition = {
           return `From our conversation today: ${userData.keyMoments.join('; ')}`;
         }
 
-        return `I'm sorry, I don't have specific memories about that. Tell me more?`;
+        return `I don't have specific memories about that yet. What's on your mind?`;
       },
     });
   },
@@ -322,12 +317,16 @@ export const rememberImportantFactDef: ToolDefinition = {
           ],
           concern: [
             `I hear that this is weighing on you. I'll remember.`,
-            `That concern is valid. I'll keep this in our conversations.`,
+            `That concern is valid. I'll keep this in mind.`,
+          ],
+          default: [
+            `I'll hold onto that. It feels important.`,
+            `Thank you for trusting me with that.`,
           ],
         };
 
-        const typeResponses = responses[type] || responses.life_event;
-        return typeResponses[Math.floor(Math.random() * typeResponses.length)];
+        const options = responses[type] || responses.default;
+        return options[Math.floor(Math.random() * options.length)];
       },
     });
   },
@@ -456,12 +455,8 @@ export const updateMemoryDef: ToolDefinition = {
           );
         }
 
-        const responses = [
-          `Got it, I've updated my memory. ${updatedFact}`,
-          `Thanks for the update! I'll remember that now.`,
-          `Updated. I appreciate you keeping me in the loop.`,
-        ];
-        return responses[Math.floor(Math.random() * responses.length)];
+        // Return empty string - agent should continue naturally without reading any acknowledgment
+        return '';
       },
     });
   },
@@ -517,12 +512,158 @@ export const forgetMemoryDef: ToolDefinition = {
           );
         }
 
-        const responses = [
-          `Done. I've forgotten about that. Your privacy matters.`,
-          `Removed. That information is no longer stored.`,
-          `I've deleted that from my memory. Let me know if there's anything else.`,
-        ];
-        return responses[Math.floor(Math.random() * responses.length)];
+        // Return empty string - agent should continue naturally without reading any acknowledgment
+        return '';
+      },
+    });
+  },
+};
+
+// ============================================================================
+// SURFACE RELEVANT MEMORY (Better-Than-Human)
+// ============================================================================
+
+export const surfaceRelevantMemoryDef: ToolDefinition = {
+  id: 'surfaceRelevantMemory',
+  name: 'Surface Relevant Memory',
+  description:
+    'Proactively surface a relevant memory when context connects to something from past conversations. Use this to show continuity and deep understanding.',
+  domain: 'memory',
+  tags: ['memory', 'proactive', 'better-than-human', 'anticipatory'],
+
+  create: (ctx: ToolContext): Tool => {
+    return llm.tool({
+      description: getToolDescription('surfaceRelevantMemory'),
+      parameters: z.object({
+        context: z
+          .string()
+          .describe(
+            'Current conversation context that triggered this memory (e.g., "user mentioned Sarah")'
+          ),
+        memoryToSurface: z
+          .string()
+          .describe(
+            'The relevant memory to bring up (e.g., "Sarah was going through a tough time")'
+          ),
+        connectionReason: z
+          .string()
+          .describe('Why this memory is relevant now (e.g., "user asking about Sarah")'),
+      }),
+      execute: async ({ context, memoryToSurface, connectionReason }, { ctx: toolCtx }) => {
+        getLogger().info(
+          { agentId: ctx.agentId, context, memoryToSurface, connectionReason },
+          '🧠 [BETTER-THAN-HUMAN] Surfacing relevant memory'
+        );
+
+        const userData = toolCtx.userData as UserData;
+        const { services } = userData;
+
+        // Search for the actual memory in our stores
+        if (services?.searchKnowledge) {
+          try {
+            const result = await services.searchKnowledge(memoryToSurface);
+            if (result) {
+              return result;
+            }
+          } catch (error) {
+            getLogger().warn({ error }, 'Memory search failed');
+          }
+        }
+
+        // Check session memory
+        if (userData.keyMoments && userData.keyMoments.length > 0) {
+          const relevant = userData.keyMoments.find((m) =>
+            m.toLowerCase().includes(memoryToSurface.toLowerCase().split(' ')[0])
+          );
+          if (relevant) {
+            return relevant;
+          }
+        }
+
+        // Return the memory as context for natural integration
+        return memoryToSurface;
+      },
+    });
+  },
+};
+
+// ============================================================================
+// PREDICT USER NEED (Better-Than-Human)
+// ============================================================================
+
+export const predictUserNeedDef: ToolDefinition = {
+  id: 'predictUserNeed',
+  name: 'Predict User Need',
+  description:
+    'Anticipate what the user might need based on context, time, patterns, or upcoming events. Use this proactively to offer help before they ask.',
+  domain: 'memory',
+  tags: ['memory', 'proactive', 'better-than-human', 'anticipatory', 'prediction'],
+
+  create: (ctx: ToolContext): Tool => {
+    return llm.tool({
+      description: getToolDescription('predictUserNeed'),
+      parameters: z.object({
+        context: z
+          .string()
+          .describe('What triggered this prediction (e.g., "user just woke up", "Monday morning")'),
+        prediction: z
+          .string()
+          .describe('What you predict they might need (e.g., "weather check", "calendar review")'),
+        confidence: z
+          .enum(['high', 'medium', 'low'])
+          .describe('How confident you are in this prediction'),
+        suggestedAction: z
+          .string()
+          .optional()
+          .describe('Optional suggested action to take (e.g., "offer to check weather")'),
+      }),
+      execute: async ({ context, prediction, confidence, suggestedAction }, { ctx: toolCtx }) => {
+        getLogger().info(
+          { agentId: ctx.agentId, context, prediction, confidence, suggestedAction },
+          '🔮 [BETTER-THAN-HUMAN] Predicting user need'
+        );
+
+        const userData = toolCtx.userData as UserData;
+        const { services } = userData;
+
+        // Log the prediction for learning
+        if (services?.captureInsight) {
+          services.captureInsight(
+            'anticipatory_prediction',
+            `predict_${confidence}`,
+            `Context: ${context} | Prediction: ${prediction}`,
+            confidence === 'high' ? 0.9 : confidence === 'medium' ? 0.7 : 0.5
+          );
+        }
+
+        // Check if we have relevant context from their profile
+        if (services?.userProfile) {
+          const profile = services.userProfile;
+
+          // Enhance prediction with known preferences
+          if (profile.preferredTopics && profile.preferredTopics.length > 0) {
+            const relevantTopic = profile.preferredTopics.find((t) =>
+              prediction.toLowerCase().includes(t.toLowerCase())
+            );
+            if (relevantTopic) {
+              return `Based on your interest in ${relevantTopic}: ${prediction}`;
+            }
+          }
+
+          // Check goals for relevant predictions
+          if (profile.goals && profile.goals.length > 0) {
+            const activeGoal = profile.goals.find(
+              (g) =>
+                g.status === 'active' && prediction.toLowerCase().includes(g.name.toLowerCase())
+            );
+            if (activeGoal) {
+              return `Remembering your goal to ${activeGoal.name}: ${prediction}`;
+            }
+          }
+        }
+
+        // Return the prediction for natural integration
+        return suggestedAction || prediction;
       },
     });
   },

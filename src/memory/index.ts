@@ -47,10 +47,13 @@ export {
   type EmbeddingResult,
 } from './embeddings.js';
 
+// Internal import for embedding provider validation
+import { getEmbeddingProvider as getInternalEmbeddingProvider } from './embeddings.js';
+
 // Vector store interface (unified)
 export {
   isVectorStore,
-  type IVectorStore,
+  type VectorStoreContract,
   type VectorDocument,
   type VectorFilter,
   type VectorSearchOptions,
@@ -170,6 +173,7 @@ export {
 
 // Embedding Cache (performance)
 export {
+  configureEmbeddingCacheMetrics,
   embedBatchCached,
   embedCached,
   EmbeddingCache,
@@ -179,6 +183,43 @@ export {
   type CacheStats,
   type EmbeddingCacheConfig,
 } from './embedding-cache.js';
+
+// Semantic Memory Cache (performance - "Better than Human" optimization)
+export {
+  configureSemanticCache,
+  findSimilarCached,
+  storeInSemanticCache,
+  withSemanticCache,
+  clearUserSemanticCache,
+  clearAllSemanticCaches,
+  invalidateSemanticCache,
+  getSemanticCacheStats,
+  resetSemanticCacheStats,
+  getUserCacheInfo,
+  type CachedQuery,
+  type SemanticCacheConfig,
+  type CacheStats as SemanticCacheStats,
+  type CacheLookupResult,
+} from './semantic-memory-cache.js';
+
+// Predictive Cache Warming (80%+ cache hit rate for anticipated queries)
+export {
+  configurePredictiveWarming,
+  configureMemoryRetrieval,
+  setupMemoryFetcher,
+  detectTimeSignals,
+  predictQueries,
+  warmCacheForSession,
+  warmCacheForHandoff,
+  type PersonaId as PredictivePersonaId,
+  type TimeOfDay,
+  type DayOfWeek,
+  type SessionSignals,
+  type PredictedQuery,
+  type WarmingResult,
+  type PredictiveCacheConfig,
+  type MemoryRetrievalFn,
+} from './predictive-cache-warming.js';
 
 // Memory Consolidation (long-term memory management)
 export {
@@ -234,6 +275,42 @@ export {
   type MergeResult,
 } from './memory-deduplication.js';
 
+// LSH Deduplication (O(n) approximate matching)
+export {
+  exactJaccardSimilarity,
+  findDuplicatesLSH,
+  isNativeLshAvailable,
+  LSHIndex,
+  type DuplicatePair,
+  type LSHConfig,
+} from './lsh-deduplication.js';
+
+// ============================================================================
+// RUST-ACCELERATED OPERATIONS (SIMD-optimized for batch processing)
+// ============================================================================
+
+export {
+  // Euclidean distance (SIMD-accelerated for batches)
+  batchEuclideanDistance,
+  batchEuclideanDistanceF32,
+  euclideanDistanceF32,
+
+  // Vector normalization (SIMD-accelerated)
+  normalizeVector,
+  normalizeVectorF32,
+  batchNormalizeVectorsF32,
+  vectorNormF32,
+
+  // Centroid computation (SIMD-accelerated)
+  computeCentroidF32,
+
+  // Cosine similarity (already Rust-accelerated)
+  batchCosineSimilarity,
+
+  // Native module availability check
+  isRustAvailable,
+} from './rust-accelerator.js';
+
 // Memory Metrics (observability)
 export {
   checkMemoryHealthAlerts,
@@ -251,21 +328,46 @@ export {
   type StorageMetrics,
 } from './memory-metrics.js';
 
+// Tiered Memory Storage (Phase 2.3 optimization - 10x faster hot data retrieval)
+export {
+  clearAccessRecords,
+  getFromHotTier,
+  getMemoriesTiered,
+  getMemoryTiered,
+  getTieredMemoryConfig,
+  getTieredMemoryStats,
+  getUserAccessRecords,
+  recordMemoryAccess,
+  removeFromHotTier,
+  resetTieredMemoryStats,
+  runDemotionCheck,
+  setTieredMemoryConfig,
+  storeInHotTier,
+  type MemoryAccessRecord,
+  type TieredMemoryConfig,
+  type TieredMemoryStats,
+} from './tiered-memory-storage.js';
+
 // ============================================================================
 // UNIFIED EMOTIONAL MEMORY (coordinates user emotions + bonding)
 // ============================================================================
 
 export {
+  areEmotionalMemoryEnginesConfigured,
   clearAllUnifiedEmotionalMemories,
   clearUnifiedEmotionalMemory,
+  configureEmotionalMemoryEngines,
   getUnifiedEmotionalMemory,
   UnifiedEmotionalMemory,
   type EmotionalBond,
   type EmotionalCheckIn,
   type EmotionalContext as UnifiedEmotionalContext,
   type EmotionalMemoryConfig,
+  type EmotionalMemoryEngineFactories,
   type EmotionalMoment,
   type EmotionalPattern,
+  type BondingEngine,
+  type UserEmotionEngine,
   type RelationshipStage,
   type UnifiedEmotionalState,
   type UserEmotionalContext,
@@ -291,31 +393,31 @@ export type {
   // Associative Memory
   AssociativeTrigger,
   TriggeredMemory,
-  IAssociativeMemory,
+  AssociativeMemoryService,
   // Communication Preferences
   PreferenceDimension,
   InteractionPreference,
   ApproachGuidance,
-  ICommunicationPreferences,
+  CommunicationPreferencesService,
   // Behavioral Patterns
   PatternType,
   BehavioralPattern,
-  IBehavioralPatternDetector,
+  BehavioralPatternDetector,
   // Emotional Threading
   EmotionalThread,
   SessionEmotionalContext,
-  IEmotionalThreading,
+  EmotionalThreadingService,
   // Signal Extraction
   ExtractedSignals,
-  IHumanSignalExtractor,
+  HumanSignalExtractor,
   // Natural References
   ReferenceStyle,
   GeneratedReference,
-  INaturalReferenceGenerator,
+  NaturalReferenceGenerator,
   // Orchestrator
   OrchestratedMemory,
   RecallContext,
-  IMemoryOrchestrator,
+  MemoryOrchestrator,
   // Container
   MemoryContainer,
   MemoryContainerConfig,
@@ -346,7 +448,7 @@ export {
 
 // Natural Reference Generator (human-sounding memory callbacks)
 export {
-  NaturalReferenceGenerator,
+  NaturalReferenceGeneratorImpl,
   getNaturalReferenceGenerator,
   resetNaturalReferenceGenerator,
   generateNaturalReference,
@@ -361,7 +463,7 @@ export {
 
 // Behavioral Pattern Detector (meta-patterns across conversations)
 export {
-  BehavioralPatternDetector,
+  BehavioralPatternDetectorImpl,
   getBehavioralPatternDetector,
   loadPatternsFromPersistence,
   savePatternsToPeristence,
@@ -375,12 +477,115 @@ export {
   resetFirestoreMemoryPersistence,
 } from './firestore-memory-persistence.js';
 
+// Extended Firestore Persistence (sessions, tool logs, bonds, voice, intents, cache, metrics)
+export {
+  // Configuration
+  configureFirestoreExtended,
+  // Session state
+  saveSessionState,
+  getSessionState,
+  getRecentSessions,
+  type SessionState,
+  // Tool execution logs
+  logToolExecution,
+  getToolExecutions,
+  type ToolExecution,
+  // Persona bonds
+  savePersonaBond,
+  getPersonaBond,
+  getAllPersonaBonds,
+  type PersonaBond,
+  // Voice profile
+  saveVoiceProfile,
+  getVoiceProfile,
+  type VoiceProfile,
+  // User intents
+  logUserIntent,
+  getRecentIntents,
+  type UserIntent,
+  // Superhuman cache
+  setCachedInsight,
+  getCachedInsight,
+  type CachedInsight,
+  // Quality metrics
+  saveQualityMetrics,
+  getQualityMetrics,
+  type QualityMetrics,
+  // GDPR
+  deleteAllExtendedUserData,
+} from './firestore-extended-persistence.js';
+
 // Memory Orchestrator (unified entry point)
 export {
-  MemoryOrchestrator,
+  MemoryOrchestratorImpl,
   getMemoryOrchestrator,
   resetMemoryOrchestrator,
 } from './orchestrator.js';
+
+// Superhuman Signal Router (routes extracted signals to superhuman services)
+export { routeSignalsToSuperhuman } from './superhuman-signal-router.js';
+
+// ============================================================================
+// UNIFIED ENTITY STORE (Better Than Human Memory)
+// ============================================================================
+
+// The unified entity store replaces fragmented collections:
+// - user_contacts, contact_relationships, relationship_network
+// - relationship_nodes, guest_profiles, network/relationships
+//
+// All people, places, events, and concepts are now stored as unified entities
+// with deduplication, alias resolution, and cross-domain queries.
+
+export {
+  // Types
+  type Entity,
+  type EntityType,
+  type EntitySource,
+  type RelationshipType,
+  type Mention,
+  type MentionType,
+  type ExtractedFact,
+  type EntityRelationship,
+  type EdgeType,
+  type EntityQuery,
+  type EntityQueryResult,
+  type PersonCaptureInput,
+  type CaptureContext,
+  type CaptureResult,
+  // Storage
+  createEntity,
+  getEntity,
+  updateEntity,
+  deleteEntity,
+  findEntityByAlias,
+  searchEntities,
+  getAllEntities,
+  getEntitiesByType,
+  createMention,
+  getMentionsForEntity,
+  getRecentMentions,
+  upsertRelationship,
+  getRelationshipsForEntity,
+  recordMention,
+  hasEntityStore,
+  getEntityStoreStats,
+  // Resolver
+  resolvePerson,
+  mergeEntities,
+  whatDoWeKnowAbout,
+  type ResolvedEntity,
+  // Integration
+  isEntityStoreReady,
+  initializeEntityStore,
+  capturePersonEntity,
+  captureMultiplePeople,
+  findContactForTelephony,
+  getAllContacts,
+  getEntityStoreHealth,
+  // Migration
+  migrateUser,
+  migrateAllUsers,
+} from './entity-store/index.js';
 
 // ============================================================================
 // STORE TYPE DETECTION
@@ -535,70 +740,103 @@ export interface MemorySystemResult {
   usePersistentVectors: boolean;
 }
 
+// ============================================================================
+// REHYDRATION - DEPRECATED
+// ============================================================================
+//
+// ⚠️ THIS FUNCTION IS DEPRECATED AND SHOULD NOT BE USED
+//
+// Historical context (Dec 2024):
+// - This function was designed for in-memory VectorStore in development
+// - In production, we use FirestoreVectorStore which is PERSISTENT
+// - Embeddings are stored directly in Firestore's `vectors` collection
+// - They survive restarts - NO REHYDRATION NEEDED
+//
+// Why it was removed:
+// 1. UNNECESSARY: FirestoreVectorStore already persists embeddings
+// 2. DOESN'T SCALE: O(users × summaries) queries at startup
+// 3. BLOCKS STARTUP: Prevented workers from accepting calls
+// 4. CAUSED OUTAGE: Dec 2024 startup hang incident
+//
+// If you need embeddings for a specific user, load them on-demand:
+// - User connects → Load their embeddings into session cache
+// - NOT: Startup → Load ALL users' embeddings
+//
+// See: docs/architecture/MEMORY-MANAGEMENT.md
+// ============================================================================
+
 /**
- * Rehydrate conversation embeddings from Firestore into vector store
- * This ensures semantic search works across server restarts
+ * @deprecated DO NOT USE - FirestoreVectorStore is persistent, no rehydration needed.
+ *
+ * This function only existed for the in-memory VectorStore used in development.
+ * In production, embeddings are stored in Firestore and persist across restarts.
+ *
+ * If you need to pre-warm embeddings for a specific user, use:
+ * - `loadUserEmbeddingsIntoSession(userId)` (when user connects)
+ *
+ * NOT this function (which tried to load ALL users at startup).
  */
 export async function rehydrateConversationEmbeddings(
-  store: MemoryStore,
-  vectorStore: VectorStore | FirestoreVectorStore
+  _store: MemoryStore,
+  _vectorStore: VectorStore | FirestoreVectorStore
 ): Promise<number> {
-  getLogger().info('Rehydrating conversation embeddings from storage...');
-
-  let rehydratedCount = 0;
-
-  try {
-    // Get all user profiles (with pagination for scale)
-    const profiles = await store.listProfiles({ limit: 500 });
-
-    for (const profile of profiles) {
-      try {
-        // Get summaries for this user
-        const summaries = await store.getSummaries(profile.id, { limit: 100 });
-
-        for (const summary of summaries) {
-          // Only rehydrate if summary has an embedding
-          if (summary.embedding && summary.embedding.length > 0) {
-            const summaryText = [
-              ...summary.mainTopics,
-              ...summary.keyPoints,
-              summary.emotionalArc,
-            ].join(' ');
-
-            // Add to vector store (either persistent or in-memory)
-            if ('addDocument' in vectorStore) {
-              await vectorStore.addDocument({
-                id: `conversation_${summary.id}`,
-                text: summaryText,
-                embedding: summary.embedding,
-                metadata: {
-                  source: 'conversation',
-                  category: 'summary',
-                  userId: profile.id,
-                  topics: summary.mainTopics,
-                  timestamp: summary.timestamp,
-                },
-              });
-              rehydratedCount++;
-            }
-          }
-        }
-      } catch (profileError) {
-        getLogger().debug(`Error rehydrating for user ${profile.id}: ${profileError}`);
-      }
-    }
-
-    getLogger().info(`Rehydrated ${rehydratedCount} conversation embeddings`);
-  } catch (error) {
-    getLogger().warn(`Conversation rehydration failed (non-blocking): ${error}`);
-  }
-
-  return rehydratedCount;
+  getLogger().warn(
+    '⚠️ rehydrateConversationEmbeddings() is DEPRECATED and does nothing. ' +
+      'FirestoreVectorStore is persistent - no rehydration needed. ' +
+      'This function will be removed in a future version.'
+  );
+  return 0;
 }
 
 // Cache for memory system result (idempotent initialization)
 let cachedMemorySystem: MemorySystemResult | null = null;
 let initializingPromise: Promise<MemorySystemResult> | null = null;
+
+/**
+ * Validate that embedding provider dimensions match vector store configuration.
+ * Logs a warning if there's a mismatch, which could cause silent search quality issues.
+ *
+ * Known dimensions:
+ * - Google text-embedding-004: 768
+ * - OpenAI text-embedding-3-small: 1536
+ * - OpenAI text-embedding-3-large: 3072
+ * - Local hash fallback: 384
+ */
+function validateEmbeddingDimensions(usePersistentVectors: boolean): void {
+  try {
+    const provider = getInternalEmbeddingProvider();
+    const providerDimensions = provider.dimensions;
+    const providerModel = provider.model;
+
+    // FirestoreVectorStore defaults to 768 (Google's text-embedding-004)
+    const vectorStoreDimensions = usePersistentVectors ? 768 : 768;
+
+    if (providerDimensions !== vectorStoreDimensions) {
+      getLogger().warn(
+        {
+          providerModel,
+          providerDimensions,
+          vectorStoreDimensions,
+          usePersistentVectors,
+          risk: 'SEARCH_QUALITY_DEGRADED',
+          recommendation:
+            providerDimensions === 1536
+              ? 'Consider using GOOGLE_API_KEY for matching dimensions, or update Firestore vector index'
+              : 'Ensure embedding provider and vector store dimensions match',
+        },
+        '⚠️ Embedding dimension mismatch detected - semantic search quality may be affected'
+      );
+    } else {
+      getLogger().debug(
+        { providerModel, dimensions: providerDimensions },
+        'Embedding dimensions validated successfully'
+      );
+    }
+  } catch (error) {
+    // Don't fail initialization if validation fails - just log
+    getLogger().debug({ error: String(error) }, 'Could not validate embedding dimensions');
+  }
+}
 
 /**
  * Initialize the complete memory system
@@ -680,10 +918,36 @@ async function doInitializeMemorySystem(config?: MemorySystemConfig): Promise<Me
   // Set the active vector store for semantic RAG operations
   setActiveVectorStore(vectorStore);
 
+  // Validate embedding dimensions match between provider and vector store
+  validateEmbeddingDimensions(usePersistentVectors);
+
   // Initialize Redis cache (if available)
   let redisCache: ReturnType<typeof import('./redis-cache.js').getRedisCache> | null = null;
   if (config?.enableRedis !== false) {
     redisCache = await initializeRedisCache();
+  }
+
+  // PERFORMANCE OPTIMIZATION: Enable embedding cache persistence when Redis is available
+  // Embeddings are expensive (~50-100ms per generation) but stable for the same text.
+  // With Redis persistence, embeddings survive container restarts and are shared across instances.
+  if (redisCache && redisCache.isConnected()) {
+    try {
+      const { getEmbeddingCache } = await import('./embedding-cache.js');
+      const embeddingCache = getEmbeddingCache({
+        persistentCache: true,
+        redisUrl:
+          process.env.REDIS_URL ||
+          `redis://${process.env.REDIS_HOST || 'localhost'}:${process.env.REDIS_PORT || '6379'}`,
+        ttlMs: 24 * 60 * 60 * 1000, // 24 hours - embeddings don't change
+        maxSize: 15000, // Increased for production traffic
+      });
+      getLogger().info('🚀 Embedding cache persistence enabled via Redis');
+    } catch (error) {
+      getLogger().debug(
+        { error: String(error) },
+        'Embedding cache Redis persistence not available'
+      );
+    }
   }
 
   // Index persona content
@@ -698,17 +962,25 @@ async function doInitializeMemorySystem(config?: MemorySystemConfig): Promise<Me
     }
   }
 
-  // Rehydrate conversation embeddings from storage
-  // This ensures semantic search for past conversations works after restart
-  if (config?.rehydrateConversations !== false) {
-    try {
-      const rehydrated = await rehydrateConversationEmbeddings(store, vectorStore);
-      if (rehydrated > 0) {
-        getLogger().info(`Rehydrated ${rehydrated} conversation embeddings for semantic search`);
-      }
-    } catch (error) {
-      getLogger().warn(`Conversation embedding rehydration failed (non-blocking): ${error}`);
-    }
+  // NOTE: Rehydration is deprecated and disabled.
+  // FirestoreVectorStore is persistent - embeddings survive restarts.
+  // The rehydrateConversations config option is kept for backward compatibility
+  // but does nothing. See rehydrateConversationEmbeddings() JSDoc for details.
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // 🧠 ENTITY STORE: Initialize unified Better Than Human memory
+  // This is the new entity-centric memory system that eliminates fragmentation
+  // ═══════════════════════════════════════════════════════════════════════════
+  try {
+    const { initializeEntityStoreIntegration } = await import('./entity-store/integration.js');
+    await initializeEntityStoreIntegration();
+    getLogger().info('✅ Entity store (Better Than Human memory) initialized');
+  } catch (error) {
+    // Non-fatal - legacy memory system will continue to work
+    getLogger().warn(
+      { error: String(error) },
+      '⚠️ Entity store initialization failed (legacy memory will be used)'
+    );
   }
 
   getLogger().info(
@@ -716,6 +988,108 @@ async function doInitializeMemorySystem(config?: MemorySystemConfig): Promise<Me
   );
 
   return { store, vectorStore, redisCache, storeType, usePersistentVectors };
+}
+
+// ============================================================================
+// HEALTH CHECK HELPER
+// ============================================================================
+
+export interface MemorySystemHealth {
+  overall: 'healthy' | 'degraded' | 'unhealthy';
+  initialized: boolean;
+  stores: {
+    primary: { healthy: boolean; type: StoreType; details?: string };
+    vector: { healthy: boolean; usingFallback: boolean; cacheSize: number; details?: string };
+    redis: { enabled: boolean; healthy: boolean; details?: string };
+  };
+  embedding: {
+    provider: string;
+    dimensions: number;
+    dimensionMatch: boolean;
+  };
+}
+
+/**
+ * Get unified health status of all memory system components.
+ * Useful for monitoring dashboards and alerting.
+ */
+export async function getMemorySystemHealth(): Promise<MemorySystemHealth> {
+  const isInit = cachedMemorySystem !== null;
+
+  // Default unhealthy state if not initialized
+  if (!isInit) {
+    return {
+      overall: 'unhealthy',
+      initialized: false,
+      stores: {
+        primary: { healthy: false, type: 'memory', details: 'Not initialized' },
+        vector: { healthy: false, usingFallback: true, cacheSize: 0, details: 'Not initialized' },
+        redis: { enabled: false, healthy: false, details: 'Not initialized' },
+      },
+      embedding: {
+        provider: 'unknown',
+        dimensions: 0,
+        dimensionMatch: false,
+      },
+    };
+  }
+
+  const { storeType, vectorStore, usePersistentVectors } = cachedMemorySystem!;
+
+  // Check vector store health
+  let vectorHealth: MemorySystemHealth['stores']['vector'];
+  if ('getHealth' in vectorStore && typeof vectorStore.getHealth === 'function') {
+    const health = vectorStore.getHealth() as {
+      healthy: boolean;
+      usingFallback: boolean;
+      cacheSize: number;
+      fallbackReason?: string;
+    };
+    vectorHealth = {
+      healthy: health.healthy,
+      usingFallback: health.usingFallback,
+      cacheSize: health.cacheSize,
+      details: health.usingFallback ? health.fallbackReason : undefined,
+    };
+  } else {
+    vectorHealth = { healthy: true, usingFallback: false, cacheSize: 0 };
+  }
+
+  // Check embedding provider
+  const provider = getInternalEmbeddingProvider();
+  const providerDimensions = provider.dimensions;
+  const expectedDimensions = usePersistentVectors ? 768 : 768;
+  const dimensionMatch = providerDimensions === expectedDimensions;
+
+  // Determine overall health
+  let overall: 'healthy' | 'degraded' | 'unhealthy' = 'healthy';
+  if (vectorHealth.usingFallback) {
+    overall = 'degraded';
+  }
+  if (!dimensionMatch) {
+    overall = overall === 'healthy' ? 'degraded' : overall;
+  }
+  if (!vectorHealth.healthy && !vectorHealth.usingFallback) {
+    overall = 'unhealthy';
+  }
+
+  return {
+    overall,
+    initialized: true,
+    stores: {
+      primary: { healthy: true, type: storeType },
+      vector: vectorHealth,
+      redis: {
+        enabled: redisCacheEnabled,
+        healthy: redisCacheEnabled, // Assume healthy if enabled
+      },
+    },
+    embedding: {
+      provider: provider.model,
+      dimensions: providerDimensions,
+      dimensionMatch,
+    },
+  };
 }
 
 // ============================================================================
@@ -789,6 +1163,7 @@ export async function shutdownMemorySystem(): Promise<void> {
 export default {
   initializeMemorySystem,
   shutdownMemorySystem,
+  getMemorySystemHealth,
   createStore,
   detectStoreType,
   shouldUseRedis,

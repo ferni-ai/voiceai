@@ -8,7 +8,7 @@
  */
 
 import { createLogger } from '../../utils/logger.js';
-import { toast } from '../../ui/toast.ui.js';
+import { toast } from '../../ui/whisper.ui.js';
 import {
   ICON_CHART,
   ICON_PAUSE,
@@ -152,12 +152,12 @@ export async function render(): Promise<string> {
       </div>
 
       <!-- Actions -->
-      <div class="experiments-actions">
-        <button class="admin-btn primary" data-action="create-experiment">
+      <div class="experiments-actions" role="button" tabindex="0">
+        <button aria-label="Add" class="admin-btn primary" data-action="create-experiment">
           <span class="admin-icon">${iconSm(ICON_PLUS)}</span>
           New Experiment
         </button>
-        <button class="admin-btn" data-action="refresh-experiments">
+        <button aria-label="Refresh" class="admin-btn" data-action="refresh-experiments">
           <span class="admin-icon">${iconSm(ICON_REFRESH)}</span>
           Refresh
         </button>
@@ -427,7 +427,7 @@ export async function render(): Promise<string> {
         margin: 0;
       }
 
-      @media (max-width: 768px) {
+      @media (max-width: clamp(538px, 90vw, 768px)) {
         .experiments-summary {
           grid-template-columns: repeat(2, 1fr);
         }
@@ -470,7 +470,7 @@ function renderExperimentCard(exp: WebExperiment): string {
               (v) => `
             <div class="variant-card ${analysis.winner === v.id ? 'winner' : ''}">
               <div class="variant-name">
-                ${v.name || v.id}
+                ${v.name ?? v.id}
                 ${analysis.winner === v.id ? '<span class="winner-badge">Winner</span>' : ''}
               </div>
               <div class="variant-stats">
@@ -513,7 +513,7 @@ function renderExperimentCard(exp: WebExperiment): string {
             .map(
               (v) => `
             <div class="variant-card">
-              <div class="variant-name">${v.name || v.id}</div>
+              <div class="variant-name">${v.name ?? v.id}</div>
               <div class="variant-stats">
                 <div class="variant-stat">
                   <div class="variant-stat-value">${v.weight}%</div>
@@ -528,11 +528,11 @@ function renderExperimentCard(exp: WebExperiment): string {
       `
       }
 
-      <div class="experiment-actions">
+      <div class="experiment-actions" role="button" tabindex="0">
         ${
           exp.status === 'draft'
             ? `
-          <button class="admin-btn" data-action="start-experiment" data-id="${exp.id}">
+          <button aria-label="Play" class="admin-btn" data-action="start-experiment" data-id="${exp.id}">
             <span class="admin-icon">${iconSm(ICON_PLAY)}</span>
             Start
           </button>
@@ -542,14 +542,14 @@ function renderExperimentCard(exp: WebExperiment): string {
         ${
           exp.status === 'running'
             ? `
-          <button class="admin-btn" data-action="pause-experiment" data-id="${exp.id}">
+          <button aria-label="Pause" class="admin-btn" data-action="pause-experiment" data-id="${exp.id}">
             <span class="admin-icon">${iconSm(ICON_PAUSE)}</span>
             Pause
           </button>
           ${
             analysis?.isSignificant
               ? `
-            <button class="admin-btn primary" data-action="ship-winner" data-id="${exp.id}" data-winner="${analysis.winner}">
+            <button aria-label="Ship" class="admin-btn primary" data-action="ship-winner" data-id="${exp.id}" data-winner="${analysis.winner}">
               <span class="admin-icon">${iconSm(ICON_SUCCESS)}</span>
               Ship ${analysis.winner}
             </button>
@@ -562,7 +562,7 @@ function renderExperimentCard(exp: WebExperiment): string {
         ${
           exp.status === 'paused'
             ? `
-          <button class="admin-btn" data-action="start-experiment" data-id="${exp.id}">
+          <button aria-label="Play" class="admin-btn" data-action="start-experiment" data-id="${exp.id}">
             <span class="admin-icon">${iconSm(ICON_PLAY)}</span>
             Resume
           </button>
@@ -578,9 +578,10 @@ function renderExperimentCard(exp: WebExperiment): string {
  * Setup event handlers for the experiments section
  */
 export function setupEvents(): void {
-  document.addEventListener('click', async (e) => {
-    const target = e.target as HTMLElement;
-    const button = target.closest('[data-action]') as HTMLElement;
+  document.addEventListener('click', (e) => {
+    void (async () => {
+      const target = e.target as HTMLElement;
+      const button = target.closest('[data-action]') as HTMLElement;
 
     if (!button) return;
 
@@ -620,6 +621,7 @@ export function setupEvents(): void {
         toast.info('Create experiment coming soon!');
         break;
     }
+    })();
   });
 }
 

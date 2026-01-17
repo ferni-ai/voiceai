@@ -13,8 +13,9 @@
  */
 
 import { createLogger } from '../utils/safe-logger.js';
+import { cleanForFirestore } from '../utils/firestore-utils.js';
 import type {
-  IAssociativeMemory,
+  AssociativeMemoryService,
   AssociativeTrigger,
   TriggeredMemory,
   MemoryItem,
@@ -145,7 +146,7 @@ const REFERENCE_TEMPLATES: Record<AssociativeTrigger['triggerType'], string[]> =
 // ASSOCIATIVE MEMORY IMPLEMENTATION
 // ============================================================================
 
-export class AssociativeMemory implements IAssociativeMemory {
+export class AssociativeMemory implements AssociativeMemoryService {
   private config: AssociativeConfig;
   private triggers = new Map<string, AssociativeTrigger[]>(); // userId -> triggers
   private memories = new Map<string, MemoryItem>(); // memoryId -> memory

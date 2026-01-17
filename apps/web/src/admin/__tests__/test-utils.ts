@@ -216,28 +216,28 @@ type MockResponses = {
  * Create a mock fetch function for admin APIs
  */
 export function createMockFetch(responses: MockResponses): typeof fetch {
-  return async (input: RequestInfo | URL): Promise<Response> => {
+  return (input: RequestInfo | URL): Promise<Response> => {
     // Safely extract URL string from various input types
-    const url = typeof input === 'string' 
-      ? input 
-      : input instanceof URL 
-        ? input.href 
+    const url = typeof input === 'string'
+      ? input
+      : input instanceof URL
+        ? input.href
         : input.url;
 
     for (const [endpoint, { status, body }] of Object.entries(responses)) {
       if (url.includes(endpoint)) {
-        return new Response(JSON.stringify(body), {
+        return Promise.resolve(new Response(JSON.stringify(body), {
           status,
           headers: { 'Content-Type': 'application/json' },
-        });
+        }));
       }
     }
 
     // Default: 404
-    return new Response(JSON.stringify({ error: 'Not found' }), {
+    return Promise.resolve(new Response(JSON.stringify({ error: 'Not found' }), {
       status: 404,
       headers: { 'Content-Type': 'application/json' },
-    });
+    }));
   };
 }
 
@@ -391,7 +391,7 @@ export function usesDesignTokens(html: string): { valid: boolean; violations: st
 
   // Check for hardcoded hex colors
   const hexPattern = /#[0-9a-fA-F]{3,6}\b/g;
-  const hexMatches = html.match(hexPattern) || [];
+  const hexMatches = html.match(hexPattern) ?? [];
   hexMatches.forEach((match) => {
     // Allow pure black/white as occasional exceptions
     if (match !== '#fff' && match !== '#000') {
@@ -401,14 +401,14 @@ export function usesDesignTokens(html: string): { valid: boolean; violations: st
 
   // Check for hardcoded rgba (excluding opacity-only usage)
   const rgbaPattern = /rgba?\(\s*\d+\s*,\s*\d+\s*,\s*\d+/g;
-  const rgbaMatches = html.match(rgbaPattern) || [];
+  const rgbaMatches = html.match(rgbaPattern) ?? [];
   rgbaMatches.forEach((match) => {
     violations.push(`Hardcoded rgba: ${match}...)`);
   });
 
   // Check for hardcoded pixel values in common properties (excluding 0px)
   const pxPattern = /:\s*[1-9]\d*px/g;
-  const pxMatches = html.match(pxPattern) || [];
+  const pxMatches = html.match(pxPattern) ?? [];
   // This is a soft check - log but don't fail
   if (pxMatches.length > 10) {
     violations.push(

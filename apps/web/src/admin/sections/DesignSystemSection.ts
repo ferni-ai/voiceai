@@ -23,7 +23,7 @@ const log = createLogger('DesignSystemSection');
 /**
  * Render the design system section
  */
-export async function render(): Promise<string> {
+export function render(): string {
   log.debug('Rendering design system section');
 
   return `
@@ -48,7 +48,7 @@ export async function render(): Promise<string> {
           <button class="demo-btn" data-emotion="excited" aria-label="Set avatar emotion to excited">Excited</button>
           <button class="demo-btn" data-emotion="calm" aria-label="Set avatar emotion to calm">Calm</button>
         </div>
-        <div class="avatar-reactions">
+        <div class="avatar-reactions" role="button" tabindex="0">
           <button class="demo-btn demo-btn--small" data-reaction="nod" aria-label="Trigger nod reaction">Nod</button>
           <button class="demo-btn demo-btn--small" data-reaction="shake" aria-label="Trigger shake reaction">Shake</button>
           <button class="demo-btn demo-btn--small" data-reaction="bounce" aria-label="Trigger bounce reaction">Bounce</button>
@@ -113,19 +113,19 @@ export async function render(): Promise<string> {
           Animation Presets
         </h2>
         <div class="presets-grid">
-          <button class="preset-demo" data-preset="buttonPress">
+          <button aria-label="Button Press ms" class="preset-demo" data-preset="buttonPress">
             <span class="preset-name">Button Press</span>
             <span class="preset-timing">${ANIMATION_PRESET.BUTTON_PRESS.duration}ms</span>
           </button>
-          <button class="preset-demo" data-preset="celebration">
+          <button aria-label="Reaction Dramatic ms" class="preset-demo" data-preset="celebration">
             <span class="preset-name">Reaction Dramatic</span>
             <span class="preset-timing">${ANIMATION_PRESET.REACTION_DRAMATIC.duration}ms</span>
           </button>
-          <button class="preset-demo" data-preset="fadeIn">
+          <button aria-label="Fade ms" class="preset-demo" data-preset="fadeIn">
             <span class="preset-name">Fade</span>
             <span class="preset-timing">${ANIMATION_PRESET.FADE.duration}ms</span>
           </button>
-          <button class="preset-demo" data-preset="slideUp">
+          <button aria-label="Slide ms" class="preset-demo" data-preset="slideUp">
             <span class="preset-name">Slide</span>
             <span class="preset-timing">${ANIMATION_PRESET.SLIDE.duration}ms</span>
           </button>
@@ -150,7 +150,7 @@ export async function render(): Promise<string> {
           ${renderSoulFeature('Memory Spark', '800ms', 'Acknowledges shared history')}
         </div>
 
-        <div class="soul-actions">
+        <div class="soul-actions" role="button" tabindex="0">
           <a href="#avatar-soul" class="soul-action-btn" data-navigate="avatar-soul">
             Open Avatar Soul Lab →
           </a>
@@ -168,7 +168,7 @@ export async function render(): Promise<string> {
         gap: var(--space-4, 1rem);
       }
 
-      @media (max-width: 1024px) {
+      @media (max-width: min(1024px, 100%)) {
         .design-section {
           grid-template-columns: 1fr;
         }
@@ -178,7 +178,7 @@ export async function render(): Promise<string> {
         grid-column: span 2;
       }
 
-      @media (max-width: 1024px) {
+      @media (max-width: min(1024px, 100%)) {
         .design-avatar {
           grid-column: span 1;
         }
@@ -358,7 +358,7 @@ export async function render(): Promise<string> {
 
       .timing-label,
       .easing-label {
-        min-width: 100px;
+        min-width: min(100px, 100%);
         font-weight: 600;
         font-size: 0.875rem;
       }
@@ -397,7 +397,7 @@ export async function render(): Promise<string> {
       .easing-desc {
         font-size: 0.75rem;
         color: var(--color-text-muted, #756A5E);
-        min-width: 150px;
+        min-width: min(150px, 100%);
       }
 
       .easing-preview {
@@ -461,7 +461,7 @@ export async function render(): Promise<string> {
         gap: var(--space-3, 0.75rem);
       }
 
-      @media (max-width: 600px) {
+      @media (max-width: clamp(420px, 90vw, 600px)) {
         .colors-grid {
           grid-template-columns: repeat(2, 1fr);
         }
@@ -565,7 +565,7 @@ export async function render(): Promise<string> {
         border: 1px solid rgba(74, 103, 65, 0.3);
       }
 
-      @media (max-width: 1024px) {
+      @media (max-width: min(1024px, 100%)) {
         .design-soul {
           grid-column: span 1;
         }
@@ -602,7 +602,7 @@ export async function render(): Promise<string> {
         margin-bottom: var(--space-4, 1rem);
       }
 
-      @media (max-width: 900px) {
+      @media (max-width: min(900px, 100%)) {
         .soul-features-grid {
           grid-template-columns: repeat(2, 1fr);
         }

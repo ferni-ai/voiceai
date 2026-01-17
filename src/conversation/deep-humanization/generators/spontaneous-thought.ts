@@ -7,6 +7,7 @@
  * @module @ferni/conversation/deep-humanization/generators/spontaneous-thought
  */
 
+import { seededChance, seededIndex, seededPick } from '../../utils/rng.js';
 import type {
   HumanizationContext,
   ConversationMood,
@@ -78,7 +79,7 @@ export async function generateSpontaneousThought(
   // Higher probability when user is highly engaged
   const adjustedProbability = signals.isHighlyEngaged ? probability * 1.3 : probability;
 
-  if (Math.random() > adjustedProbability) {
+  if (!seededChance(`${Date.now()}:1`, adjustedProbability)) {
     return null;
   }
 
@@ -105,7 +106,7 @@ export async function generateSpontaneousThought(
     }
   }
 
-  const content = thoughts[Math.floor(Math.random() * thoughts.length)];
+  const content = seededPick(`${Date.now()}:109`, thoughts) ?? thoughts[0];
 
   return {
     type: 'spontaneous_thought',

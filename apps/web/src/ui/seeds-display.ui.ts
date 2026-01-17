@@ -9,18 +9,24 @@
 
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { getSeedBalance } from '../services/cosmetics.service.js';
+import { t } from '../i18n/index.js';
 import {
+  claimDailyBonus,
   getCurrentStreak,
   getNextStreakMilestone,
   isDailyBonusAvailable,
 } from '../services/seeds-economy.service.js';
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
+import { moments } from './moments/index.js';
+import { openGardenDashboard } from './garden-dashboard.ui.js';
+import { openGiftSeeds } from './gift-seeds.ui.js';
+import { openReferral } from './referral.ui.js';
 
 const log = createLogger('SeedsDisplay');
 
 // FIX BUG: Track all setTimeout calls for proper cleanup
-const { trackedTimeout, clearAll: clearAllTimeouts } = createTimeoutTracker();
+const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
 
 // ============================================================================
 // STATE
@@ -45,6 +51,18 @@ const ICONS = {
     <path d="M12 8v13"/>
     <path d="M19 12v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7"/>
     <path d="M7.5 8a2.5 2.5 0 0 1 0-5A4.8 4.8 0 0 1 12 8a4.8 4.8 0 0 1 4.5-5 2.5 2.5 0 0 1 0 5"/>
+  </svg>`,
+  seedling: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M12 22V12"/>
+    <path d="M12 12c0-3-2.5-5-6-5 0 3 2 6 6 6Z"/>
+    <path d="M12 8c0-3 2.5-5 6-5 0 3-2 6-6 6"/>
+  </svg>`,
+  share: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="18" cy="5" r="3"/>
+    <circle cx="6" cy="12" r="3"/>
+    <circle cx="18" cy="19" r="3"/>
+    <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/>
+    <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
   </svg>`,
 };
 
@@ -248,6 +266,51 @@ function injectStyles(): void {
       font-size: 0.75rem;
       color: var(--color-text-muted, rgba(44, 37, 32, 0.6));
     }
+
+    /* Action buttons */
+    .seeds-actions {
+      display: flex;
+      gap: var(--space-2, 8px);
+      margin-top: var(--space-2, 8px);
+      padding-top: var(--space-3, 12px);
+      border-top: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
+    }
+
+    .seeds-action-btn {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: var(--space-2, 8px);
+      padding: var(--space-2, 8px) var(--space-3, 12px);
+      background: var(--color-background-subtle, rgba(0, 0, 0, 0.03));
+      border: none;
+      border-radius: var(--radius-lg, 12px);
+      font-size: 0.8125rem;
+      font-weight: 500;
+      color: var(--color-text-secondary, rgba(44, 37, 32, 0.7));
+      cursor: pointer;
+      transition: all ${DURATION.NORMAL}ms ${EASING.STANDARD};
+    }
+
+    .seeds-action-btn:hover {
+      background: var(--color-background-hover, rgba(0, 0, 0, 0.06));
+      color: var(--color-text-primary, #2C2520);
+    }
+
+    .seeds-action-btn svg {
+      width: 16px;
+      height: 16px;
+    }
+
+    .seeds-action-btn--primary {
+      background: var(--persona-tint, rgba(74, 103, 65, 0.08));
+      color: var(--persona-primary, #4a6741);
+    }
+
+    .seeds-action-btn--primary:hover {
+      background: var(--persona-glow, rgba(74, 103, 65, 0.15));
+    }
   `;
   document.head.appendChild(style);
 }
@@ -312,7 +375,7 @@ export function renderSeedsSettingsCard(): string {
             ? `
           <div class="seeds-daily-bonus" data-daily-bonus>
             <span class="seeds-daily-bonus-icon">${ICONS.gift}</span>
-            <span class="seeds-daily-bonus-text">Daily bonus available!</span>
+            <span class="seeds-daily-bonus-text">A little something</span>
           </div>
         `
             : ''
@@ -321,10 +384,10 @@ export function renderSeedsSettingsCard(): string {
 
       <div class="seeds-settings-row">
         <div class="seeds-settings-value">
-          <span style="color: var(--persona-primary)">${ICONS.seed}</span>
+          <span style="color: var(--persona-primary, #4a6741)">${ICONS.seed}</span>
           <span class="seeds-settings-value-text" data-seeds-amount>${balance.toLocaleString()}</span>
         </div>
-        <span class="seeds-settings-info">seeds to spend</span>
+        <span class="seeds-settings-info">seeds to share</span>
       </div>
 
       ${
@@ -335,7 +398,7 @@ export function renderSeedsSettingsCard(): string {
             <span style="color: var(--color-semantic-warning)">${ICONS.flame}</span>
             <span class="seeds-settings-value-text">${streak}</span>
           </div>
-          <span class="seeds-settings-info">day streak</span>
+          <span class="seeds-settings-info">days in a row</span>
         </div>
       `
           : ''
@@ -353,6 +416,21 @@ export function renderSeedsSettingsCard(): string {
       `
           : ''
       }
+
+      <div class="seeds-actions" role="group" tabindex="0">
+        <button aria-label="${t('accessibility.myGarden')}" class="seeds-action-btn seeds-action-btn--primary" data-action="garden">
+          ${ICONS.seedling}
+          <span>My Garden</span>
+        </button>
+        <button aria-label="${t('accessibility.shareSeedsWithFriends')}" class="seeds-action-btn" data-action="gift">
+          ${ICONS.gift}
+          <span>Share</span>
+        </button>
+        <button aria-label="${t('accessibility.bringAFriendToFerni')}" class="seeds-action-btn" data-action="invite">
+          ${ICONS.share}
+          <span>Bring a friend</span>
+        </button>
+      </div>
     </div>
   `;
 }
@@ -393,6 +471,72 @@ export function animateSeedsAdded(amount: number): void {
 // ============================================================================
 
 /**
+ * Handle daily bonus click - claim seeds immediately
+ */
+function handleDailyBonusClick(e: Event): void {
+  e.preventDefault();
+  e.stopPropagation();
+
+  const result = claimDailyBonus();
+  if (result.claimed) {
+    moments.whisper(t('toasts.resultamountSeeds'), { type: 'success' });
+    updateSeedsDisplay();
+
+    // Re-render the card to remove the bonus button
+    const card = document.querySelector('[data-seeds-card]');
+    if (card) {
+      card.outerHTML = renderSeedsSettingsCard();
+      // Re-attach click handler if daily bonus still available (shouldn't be)
+      bindDailyBonusHandler();
+    }
+  } else {
+    moments.whisper(result.reason || 'Already claimed today', { type: 'info' });
+  }
+}
+
+/**
+ * Bind click handler to daily bonus button
+ */
+function bindDailyBonusHandler(): void {
+  const dailyBonusBtn = document.querySelector('[data-daily-bonus]');
+  if (dailyBonusBtn) {
+    dailyBonusBtn.addEventListener('click', handleDailyBonusClick);
+  }
+}
+
+/**
+ * Bind click handlers to action buttons
+ */
+function bindActionHandlers(): void {
+  // Garden button
+  const gardenBtn = document.querySelector('[data-action="garden"]');
+  if (gardenBtn && !gardenBtn.hasAttribute('data-bound')) {
+    gardenBtn.setAttribute('data-bound', 'true');
+    gardenBtn.addEventListener('click', () => {
+      openGardenDashboard();
+    });
+  }
+
+  // Gift button
+  const giftBtn = document.querySelector('[data-action="gift"]');
+  if (giftBtn && !giftBtn.hasAttribute('data-bound')) {
+    giftBtn.setAttribute('data-bound', 'true');
+    giftBtn.addEventListener('click', () => {
+      openGiftSeeds();
+    });
+  }
+
+  // Invite button
+  const inviteBtn = document.querySelector('[data-action="invite"]');
+  if (inviteBtn && !inviteBtn.hasAttribute('data-bound')) {
+    inviteBtn.setAttribute('data-bound', 'true');
+    inviteBtn.addEventListener('click', () => {
+      openReferral();
+    });
+  }
+}
+
+/**
  * Initialize seeds display listeners
  */
 export function initSeedsDisplay(): void {
@@ -410,6 +554,18 @@ export function initSeedsDisplay(): void {
   document.addEventListener('ferni:cosmetics-change', () => {
     updateSeedsDisplay();
   });
+
+  // Bind click handlers when DOM is ready
+  // Use MutationObserver to catch dynamically rendered content
+  const observer = new MutationObserver(() => {
+    bindDailyBonusHandler();
+    bindActionHandlers();
+  });
+  observer.observe(document.body, { childList: true, subtree: true });
+
+  // Also try immediately in case already rendered
+  bindDailyBonusHandler();
+  bindActionHandlers();
 
   isInitialized = true;
   log.info('Seeds display initialized');

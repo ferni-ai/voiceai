@@ -14,15 +14,12 @@
  * @module voice-agent/greeting-handler
  */
 
-import type { voice } from '@livekit/agents';
-import { log } from '@livekit/agents';
+import { log, type voice } from '@livekit/agents';
 import { isMusicEnabled } from '../../config/environment.js';
 import {
   getPersonaMemories,
   normalizePersonaId,
-} from '../../intelligence/context-builders/persona-memory.js';
-import { generateAliveGreeting } from '../../personas/alive-greetings.js';
-import { generateAliveIntro } from '../../personas/alive-intros.js';
+} from '../../intelligence/context-builders/personas/persona-memory.js';
 import type { BundleRuntimeEngine } from '../../personas/bundles/index.js';
 import { generateGreeting, type PersonaMemoryForGreeting } from '../../personas/greetings.js';
 import { convertFromUserProfileEvents } from '../../personas/shared/life-events.js';
@@ -36,9 +33,13 @@ import {
 } from '../../services/humanizing-state.js';
 import type { SessionServices } from '../../services/index.js';
 import type { SpeechContext } from '../../speech/types/index.js';
-import { getDJIntegration } from '../dj-integration.js';
+import { getDJController } from '../../audio/dj-controller.js';
 import type { UserData } from '../shared/types.js';
 import { weaveProactiveIntoGreeting } from '../shared/utilities-integration.js';
+// NOTE: conversation-priming is imported dynamically in generateAndSpeakGreeting
+import { logPrimingApplied } from '../shared/function-call-telemetry.js';
+// Speech coordination for centralized speech management
+import { routeSpeech, SpeechPriority } from '../../speech/coordination/index.js';
 
 // ============================================================================
 // TYPES
@@ -198,84 +199,20 @@ export async function generateAndSpeakGreeting(ctx: GreetingContext): Promise<Gr
 
   // ===============================================
   // HOLISTIC PERSONALITY: Use greetings.json directly
-  // The "alive" greeting systems were adding too much drama.
-  // greetings.json has well-crafted, grounded greetings.
+  // greetings.json has well-crafted, grounded Pixar-style greetings.
   // ===============================================
   if (!greeting && bundleRuntime) {
-    // DISABLED: Alive greetings were making Ferni too dramatic
-    // The greetings.json already has good Pixar-style greetings
-    // If you want to re-enable, set ENABLE_ALIVE_GREETINGS=true in env
-    const enableAliveGreetings = process.env.ENABLE_ALIVE_GREETINGS === 'true';
-
-    if (enableAliveGreetings) {
-      // PRIORITY 1: Try "caught in a moment" greeting (highest personality)
-      try {
-        const aliveResult = await generateAliveGreeting(bundleRuntime, sessionPersona, {
-          userName: userData.name,
-          isReturningUser,
-          relationshipStage: services.userProfile?.relationshipStage as
-            | 'stranger'
-            | 'acquaintance'
-            | 'friend'
-            | 'trusted_advisor'
-            | undefined,
-          lastConversationSummary: services.userProfile?.lastConversationSummary,
-          usedGreetings: services.userProfile?.humanizingState?.usedGreetings,
-        });
-        if (aliveResult) {
-          greeting = aliveResult.greeting;
-          diag.session('Using alive greeting (caught in a moment)', {
-            style: aliveResult.style,
-            components: Object.keys(aliveResult.components).filter(
-              (k) => aliveResult.components[k as keyof typeof aliveResult.components]
-            ),
-          });
-        }
-      } catch (e) {
-        diag.warn('Alive greeting failed, trying alternatives', { error: String(e) });
-      }
-
-      // PRIORITY 2: Try "alive intro" (warm recognition for returning users)
-      if (!greeting && isReturningUser) {
-        try {
-          const introResult = await generateAliveIntro(bundleRuntime, sessionPersona, {
-            userName: userData.name,
-            isReturningUser,
-            relationshipStage: services.userProfile?.relationshipStage as
-              | 'stranger'
-              | 'acquaintance'
-              | 'friend'
-              | 'trusted_advisor'
-              | undefined,
-            meetingCount: services.userProfile?.totalConversations,
-            lastTopic: services.userProfile?.lastConversationSummary?.slice(0, 50),
-          });
-          if (introResult) {
-            greeting = introResult.intro;
-            hasReferencedLastConversation = !!services.userProfile?.lastConversationSummary;
-            diag.session('Using alive intro (warm recognition)', {
-              style: introResult.style,
-            });
-          }
-        } catch (e) {
-          diag.warn('Alive intro failed, trying bundle greeting', { error: String(e) });
-        }
-      }
-    }
-
     // Bundle runtime standard greeting (uses greetings.json)
-    if (!greeting) {
-      const result = await generateBundleGreeting(
-        bundleRuntime,
-        services,
-        userData,
-        isReturningUser,
-        sessionPersona,
-        personaMemories
-      );
-      greeting = result.greeting;
-      hasReferencedLastConversation = result.hasReferencedLastConversation;
-    }
+    const result = await generateBundleGreeting(
+      bundleRuntime,
+      services,
+      userData,
+      isReturningUser,
+      sessionPersona,
+      personaMemories
+    );
+    greeting = result.greeting;
+    hasReferencedLastConversation = result.hasReferencedLastConversation;
   } else if (!greeting) {
     // Standard greeting without bundle - include persona memories and proactive context
     const result = await generateStandardGreeting(
@@ -394,10 +331,23 @@ export async function generateAndSpeakGreeting(ctx: GreetingContext): Promise<Gr
     enhanced: enhancedGreeting.substring(0, 100) + (enhancedGreeting.length > 100 ? '...' : ''),
   });
 
-  // Speak the greeting
+  // Speak the greeting via coordinated speech system
+  // FIX: Disable interruptions for initial greeting to prevent iOS background noise from cutting off
+  // The greeting is the first thing users hear - must be reliable across all devices
   try {
-    session.say(enhancedGreeting);
-    diag.tts('Greeting spoken');
+    const speakResult = await routeSpeech(sessionId, enhancedGreeting, {
+      priority: SpeechPriority.RESPONSE,
+      source: 'direct',
+      allowInterruptions: false, // CRITICAL: Greeting must complete on mobile/iOS
+    });
+    if (speakResult.accepted) {
+      diag.tts('Greeting spoken via coordinator');
+    } else {
+      diag.warn('Greeting not accepted by coordinator', { reason: speakResult.reason });
+      // Fallback to direct speech if coordinator rejects
+      session.say(enhancedGreeting);
+      diag.tts('Greeting spoken (fallback)');
+    }
 
     // Track greeting usage to prevent repetition across sessions
     trackGreetingUsage(services, greeting);
@@ -405,10 +355,21 @@ export async function generateAndSpeakGreeting(ctx: GreetingContext): Promise<Gr
     diag.error('Greeting failed', { error: String(e) });
   }
 
-  // Add to conversation history
+  // Add to conversation history (internal tracking)
   if (services && typeof services.addTurn === 'function') {
     services.addTurn('assistant', greeting);
   }
+
+  // =========================================================================
+  // PRIMING DISABLED - chatCtx.addMessage causes turns to be spoken aloud
+  // TODO: Find alternative approach that doesn't trigger TTS
+  // Options to explore:
+  // 1. Add priming examples directly into system prompt
+  // 2. Use a different LiveKit API that marks turns as "historical"
+  // 3. Filter priming content in the TTS sanitizer
+  // =========================================================================
+  // const personaId = sessionPersona?.id || 'ferni';
+  // diag.debug('🎯 PRIMING: Disabled - exploring alternative approaches');
 
   return {
     greeting,
@@ -733,7 +694,7 @@ async function generateGreetingWithContext(
   });
 
   // Track if greeting referenced last conversation
-  let hasReferencedLastConversation = greeting.toLowerCase().includes('last time');
+  const hasReferencedLastConversation = greeting.toLowerCase().includes('last time');
 
   // If we have a thread starter and didn't use it in greeting, append it
   if (threadStarter && !hasReferencedLastConversation) {
@@ -888,43 +849,23 @@ async function appendMusicCallback(
  */
 async function applyDJIntro(
   greeting: string,
-  sessionPersona: PersonaConfig,
-  userId: string | undefined,
-  userData: UserData,
-  services: SessionServices,
-  isReturningUser: boolean
+  _sessionPersona: PersonaConfig,
+  _userId: string | undefined,
+  _userData: UserData,
+  _services: SessionServices,
+  _isReturningUser: boolean
 ): Promise<string> {
+  // DJ intro functionality has been simplified
+  // The new DJ Controller architecture focuses on music playback,
+  // not greeting generation. Session sounds are handled by session-sounds.ts
   try {
-    const dj = getDJIntegration();
-    dj.setPersona(sessionPersona.id);
-
-    const djIntroResult = await dj.openShow({
-      personaId: sessionPersona.id,
-      userId: userId || undefined,
-      userName: userData.name || services.userProfile?.name,
-      isFirstSession: !isReturningUser,
-      sessionCount: services.userProfile?.totalConversations || 0,
-      musicHistory: services.userProfile?.musicMemory,
-      lastSessionTopics: services.userProfile?.lastConversationSummary
-        ? [services.userProfile.lastConversationSummary.slice(0, 100)]
-        : undefined,
-    });
-
-    // For first-time users or music callbacks, DJ intro may REPLACE the greeting
-    if (djIntroResult.shouldReplaceGreeting && djIntroResult.phrase) {
-      diag.session('🎧 Using DJ intro as greeting', {
-        type: djIntroResult.intro.introType,
-        playedSound: djIntroResult.playedSound,
-      });
-      return djIntroResult.phrase;
-    } else if (djIntroResult.playedSound && djIntroResult.intro.delayMs) {
-      // Sound played - add a small delay before greeting for timing
-      await new Promise<void>((resolve) => {
-        setTimeout(resolve, djIntroResult.intro.delayMs);
-      });
+    // Initialize DJ Controller for this session (if needed for later music)
+    const djController = getDJController();
+    if (!djController.getState().isInitialized) {
+      diag.debug('DJ Controller will be initialized when music handler runs');
     }
   } catch (djError) {
-    diag.warn('🎧 DJ intro failed (non-fatal)', { error: String(djError) });
+    diag.warn('🎧 DJ Controller check failed (non-fatal)', { error: String(djError) });
   }
 
   return greeting;

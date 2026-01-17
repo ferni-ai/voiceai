@@ -1,0 +1,319 @@
+{
+  "$schema": "https://json-schema.org/draft-07/schema#",
+  "description": "Ferni Emotional Color Tokens - Colors that respond to mood and time",
+
+  "_designPrinciples": {
+    "moodResponsive": "Colors shift subtly based on emotional state",
+    "timeFading": "Older memories desaturate (Gurney's atmospheric perspective)",
+    "personaHarmony": "Smooth color transitions between personas (Albers)",
+    "source": "Inspired by Josef Albers, James Gurney, and human color perception"
+  },
+
+  "moodPalettes": {
+    "_comment": "How base colors shift based on emotional state",
+    "states": {
+      "calm": {
+        "hueShift": -5,
+        "saturationMultiplier": 0.85,
+        "lightnessShift": 3,
+        "warmth": "cool",
+        "description": "Cooler, less saturated, slightly lighter"
+      },
+      "joyful": {
+        "hueShift": 10,
+        "saturationMultiplier": 1.15,
+        "lightnessShift": 5,
+        "warmth": "warm",
+        "description": "Warmer, more saturated, brighter"
+      },
+      "anxious": {
+        "hueShift": 15,
+        "saturationMultiplier": 0.9,
+        "lightnessShift": -5,
+        "warmth": "tense",
+        "description": "Shifted toward reds, muted, darker"
+      },
+      "tired": {
+        "hueShift": 0,
+        "saturationMultiplier": 0.7,
+        "lightnessShift": -10,
+        "warmth": "neutral",
+        "description": "Desaturated, dimmed"
+      },
+      "focused": {
+        "hueShift": -10,
+        "saturationMultiplier": 1.1,
+        "lightnessShift": 0,
+        "warmth": "cool",
+        "description": "Cooler, slightly more saturated"
+      },
+      "reflective": {
+        "hueShift": -15,
+        "saturationMultiplier": 0.8,
+        "lightnessShift": 5,
+        "warmth": "twilight",
+        "description": "Shifted toward purples, soft"
+      },
+      "stressed": {
+        "hueShift": 5,
+        "saturationMultiplier": 0.75,
+        "lightnessShift": -8,
+        "warmth": "muted",
+        "description": "Slightly warmer, but muted and darker"
+      },
+      "energized": {
+        "hueShift": 5,
+        "saturationMultiplier": 1.2,
+        "lightnessShift": 8,
+        "warmth": "vibrant",
+        "description": "Warmer, more saturated, brighter"
+      },
+      "peaceful": {
+        "hueShift": -20,
+        "saturationMultiplier": 0.75,
+        "lightnessShift": 10,
+        "warmth": "serene",
+        "description": "Cooler, soft, lighter"
+      },
+      "uncertain": {
+        "hueShift": 0,
+        "saturationMultiplier": 0.85,
+        "lightnessShift": 0,
+        "warmth": "neutral",
+        "description": "Slightly desaturated, neutral"
+      }
+    },
+    "transitions": {
+      "duration": "600ms",
+      "easing": "cubic-bezier(0.4, 0, 0.2, 1)",
+      "stagger": "50ms"
+    }
+  },
+
+  "timeFading": {
+    "_comment": "Atmospheric perspective for memories - older = more faded (Gurney)",
+    "periods": {
+      "now": {
+        "saturation": 1.0,
+        "opacity": 1.0,
+        "blur": "0px",
+        "description": "Full saturation, fully present"
+      },
+      "today": {
+        "saturation": 0.95,
+        "opacity": 0.98,
+        "blur": "0px",
+        "description": "Nearly full, very recent"
+      },
+      "yesterday": {
+        "saturation": 0.9,
+        "opacity": 0.95,
+        "blur": "0.5px",
+        "description": "Slightly faded"
+      },
+      "thisWeek": {
+        "saturation": 0.85,
+        "opacity": 0.9,
+        "blur": "0.5px",
+        "description": "Noticeably faded"
+      },
+      "lastWeek": {
+        "saturation": 0.75,
+        "opacity": 0.85,
+        "blur": "1px",
+        "description": "Soft memory"
+      },
+      "thisMonth": {
+        "saturation": 0.65,
+        "opacity": 0.8,
+        "blur": "1px",
+        "description": "Fading memory"
+      },
+      "lastMonth": {
+        "saturation": 0.55,
+        "opacity": 0.75,
+        "blur": "1.5px",
+        "description": "Distant memory"
+      },
+      "thisQuarter": {
+        "saturation": 0.45,
+        "opacity": 0.7,
+        "blur": "2px",
+        "description": "Soft, atmospheric"
+      },
+      "older": {
+        "saturation": 0.35,
+        "opacity": 0.6,
+        "blur": "2px",
+        "description": "Very faded, like old photographs"
+      },
+      "ancient": {
+        "saturation": 0.25,
+        "opacity": 0.5,
+        "blur": "3px",
+        "description": "Nearly sepia, very distant"
+      }
+    },
+    "colorShiftByAge": {
+      "_comment": "Older memories shift toward sepia/warm tones",
+      "recentHueShift": 0,
+      "oldHueShift": 25,
+      "ancientHueShift": 35
+    }
+  },
+
+  "personaTransitions": {
+    "_comment": "Albers-inspired harmonic color transitions between personas",
+    "bridgeColors": {
+      "ferni-to-maya": {
+        "from": "#4a6741",
+        "bridge": "#7a8866",
+        "to": "#a67a6a",
+        "steps": 5,
+        "duration": "800ms"
+      },
+      "ferni-to-peter": {
+        "from": "#4a6741",
+        "bridge": "#4a6959",
+        "to": "#3a6b73",
+        "steps": 4,
+        "duration": "600ms"
+      },
+      "ferni-to-jordan": {
+        "from": "#4a6741",
+        "bridge": "#8a7a55",
+        "to": "#c4856a",
+        "steps": 6,
+        "duration": "900ms"
+      },
+      "ferni-to-alex": {
+        "from": "#4a6741",
+        "bridge": "#4a6a64",
+        "to": "#5a6b8a",
+        "steps": 5,
+        "duration": "700ms"
+      },
+      "ferni-to-nayan": {
+        "from": "#4a6741",
+        "bridge": "#8a8a55",
+        "to": "#b8956a",
+        "steps": 5,
+        "duration": "800ms"
+      },
+      "maya-to-peter": {
+        "from": "#a67a6a",
+        "bridge": "#6a7a72",
+        "to": "#3a6b73",
+        "steps": 5,
+        "duration": "700ms"
+      },
+      "maya-to-jordan": {
+        "from": "#a67a6a",
+        "bridge": "#b5806a",
+        "to": "#c4856a",
+        "steps": 3,
+        "duration": "400ms"
+      },
+      "peter-to-alex": {
+        "from": "#3a6b73",
+        "bridge": "#4a6b80",
+        "to": "#5a6b8a",
+        "steps": 4,
+        "duration": "500ms"
+      },
+      "jordan-to-nayan": {
+        "from": "#c4856a",
+        "bridge": "#be8a6a",
+        "to": "#b8956a",
+        "steps": 3,
+        "duration": "400ms"
+      }
+    },
+    "defaultTransition": {
+      "steps": 5,
+      "duration": "700ms",
+      "easing": "cubic-bezier(0.4, 0, 0.2, 1)"
+    }
+  },
+
+  "simultaneousContrast": {
+    "_comment": "Albers: colors change appearance based on neighbors",
+    "rules": {
+      "avoidClash": {
+        "description": "When two persona colors are adjacent, apply subtle adjustment",
+        "saturationReduction": 0.1,
+        "lightnessAdjustment": 5
+      },
+      "enhanceHarmony": {
+        "description": "When colors are harmonious, enhance both slightly",
+        "saturationBoost": 0.05,
+        "contrastEnhance": 3
+      }
+    },
+    "contextAdjustments": {
+      "darkBackground": {
+        "lightnessBoost": 10,
+        "saturationBoost": 0.1
+      },
+      "lightBackground": {
+        "lightnessReduction": 5,
+        "saturationReduction": 0.05
+      }
+    }
+  },
+
+  "emotionalColorMapping": {
+    "_comment": "Direct mapping of emotions to color associations",
+    "emotions": {
+      "love": { "hue": 350, "saturation": 75, "lightness": 60 },
+      "joy": { "hue": 45, "saturation": 85, "lightness": 65 },
+      "trust": { "hue": 200, "saturation": 60, "lightness": 50 },
+      "fear": { "hue": 270, "saturation": 40, "lightness": 35 },
+      "surprise": { "hue": 30, "saturation": 90, "lightness": 70 },
+      "sadness": { "hue": 220, "saturation": 35, "lightness": 40 },
+      "disgust": { "hue": 100, "saturation": 30, "lightness": 35 },
+      "anger": { "hue": 0, "saturation": 80, "lightness": 45 },
+      "anticipation": { "hue": 35, "saturation": 70, "lightness": 60 },
+      "hope": { "hue": 160, "saturation": 55, "lightness": 55 },
+      "gratitude": { "hue": 85, "saturation": 50, "lightness": 50 },
+      "contentment": { "hue": 140, "saturation": 40, "lightness": 55 }
+    }
+  },
+
+  "cssVariableMapping": {
+    "_comment": "How these tokens map to CSS custom properties",
+    "moodPalette": {
+      "primaryVar": "--mood-color-primary",
+      "secondaryVar": "--mood-color-secondary",
+      "accentVar": "--mood-color-accent",
+      "backgroundVar": "--mood-color-background"
+    },
+    "timeFading": {
+      "saturationVar": "--time-fade-saturation",
+      "opacityVar": "--time-fade-opacity",
+      "blurVar": "--time-fade-blur"
+    },
+    "transition": {
+      "bridgeColorVar": "--persona-transition-bridge",
+      "progressVar": "--persona-transition-progress"
+    }
+  },
+
+  "accessibilityRequirements": {
+    "_comment": "Ensure emotional colors meet accessibility standards",
+    "contrastMinimum": {
+      "normalText": 4.5,
+      "largeText": 3.0,
+      "uiComponents": 3.0
+    },
+    "colorBlindSafe": {
+      "avoidRedGreenAlone": true,
+      "useShapeAndPattern": true,
+      "provideTextAlternatives": true
+    },
+    "reducedMotion": {
+      "disableColorTransitions": false,
+      "instantTransitions": true
+    }
+  }
+}

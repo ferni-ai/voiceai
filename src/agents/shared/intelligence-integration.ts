@@ -31,8 +31,8 @@ import {
 } from '../../personas/moment-detection.js';
 import type { MomentDetectionResult } from '../../personas/unified-moment-detection.js';
 import {
-  PersonaIntelligenceEngine,
   getPersonaIntelligence,
+  type PersonaIntelligenceEngine,
 } from '../../personas/persona-intelligence.js';
 import {
   analyzePredictively,

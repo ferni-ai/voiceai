@@ -17,6 +17,7 @@
 import { DURATION, EASING, prefersReducedMotion } from '../config/animation-constants.js';
 import { apiGet, apiPost } from '../utils/api.js';
 import { createLogger } from '../utils/logger.js';
+import { t } from '../i18n/index.js';
 import {
   createAnimationConfig,
   escapeHtml,
@@ -302,7 +303,7 @@ class CommandsPanelUI {
       <div class="ferni-commands__error">
         <h3>${COMMANDS_COPY.error.title}</h3>
         <p>${COMMANDS_COPY.error.message}</p>
-        <button class="ferni-commands__retry engagement-btn-primary" type="button">
+        <button aria-label="${t('accessibility.copy')}" class="ferni-commands__retry engagement-btn-primary" type="button">
           ${COMMANDS_COPY.error.retry}
         </button>
       </div>
@@ -524,18 +525,23 @@ class CommandsPanelUI {
         visibility: visible;
       }
 
+      /* Hide settings trigger when commands panel is open */
+      .ferni-commands--visible ~ .settings-trigger,
+      body:has(.ferni-commands--visible) .settings-trigger {
+        opacity: 0;
+        pointer-events: none;
+      }
+
       .ferni-commands__backdrop {
         position: absolute;
         inset: 0;
-        background: var(--color-background-overlay);
-        backdrop-filter: blur(var(--glass-blur-subtle));
-        -webkit-backdrop-filter: blur(var(--glass-blur-subtle));
+        background: rgba(44, 37, 32, 0.75);
       }
 
       .ferni-commands__wrapper {
         position: relative;
         width: 100%;
-        max-width: 380px;
+        max-width: min(380px, 100%);
         height: 100%;
         display: flex;
         flex-direction: column;
@@ -848,7 +854,7 @@ class CommandsPanelUI {
       /* ========================================
          MOBILE RESPONSIVE
          ======================================== */
-      @media (max-width: 480px) {
+      @media (max-width: clamp(336px, 90vw, 480px)) {
         .ferni-commands__wrapper {
           max-width: 100%;
         }

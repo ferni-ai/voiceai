@@ -66,7 +66,7 @@ export class FerniError extends Error {
     this.retryable = options.retryable ?? false;
 
     // Capture stack trace
-    if (Error.captureStackTrace) {
+    if (typeof Error.captureStackTrace === 'function') {
       Error.captureStackTrace(this, this.constructor);
     }
   }
@@ -238,7 +238,8 @@ export class ExternalServiceError extends FerniError {
       },
       cause: options.cause,
       userMessage: `I'm having trouble connecting to ${service}. Please try again later.`,
-      severity: options.statusCode && options.statusCode >= 500 ? 'high' : 'medium',
+      severity:
+        typeof options.statusCode === 'number' && options.statusCode >= 500 ? 'high' : 'medium',
       retryable: true,
     });
   }

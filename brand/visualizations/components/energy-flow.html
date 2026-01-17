@@ -1,0 +1,129 @@
+<!-- Energy Flow Sankey Visualization Component -->
+<!-- Where your emotional energy goes -->
+
+<section id="energy-flow" class="story-section">
+  <header class="story-section-header">
+    <p class="story-section-overline">Energy Distribution</p>
+    <h2 class="story-section-title">Energy Flow</h2>
+    <p class="story-section-description">
+      Your emotional energy is finite. This Sankey diagram shows where it flows - from sources to sinks, from givers to takers.
+    </p>
+  </header>
+
+  <div class="bth-callout">
+    <div class="bth-callout-icon">F</div>
+    <div class="bth-callout-content">
+      <div class="bth-callout-title">Better Than Human</div>
+      <div class="bth-callout-text">
+        Friends see you're tired. Ferni traces the exact pathways of energy drain - which commitments take more than they give, which relationships replenish.
+      </div>
+    </div>
+  </div>
+
+  <div class="story-card">
+    <div class="story-card-header">
+      <div>
+        <h3 class="story-card-title">Your Energy Budget</h3>
+        <p class="story-card-subtitle">How 100% of your emotional energy flows each week</p>
+      </div>
+    </div>
+
+    <div class="sankey-container">
+      <svg class="sankey-svg" viewBox="0 0 800 300" preserveAspectRatio="xMidYMid meet">
+        <defs>
+          <!-- Brand Persona Colors: Peter (Work), Maya (Family), Ferni (Self), Jordan (Stress) -->
+          <linearGradient id="flowWork" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" style="stop-color: var(--color-peter)"/>
+            <stop offset="100%" style="stop-color: var(--color-peter-dark)"/>
+          </linearGradient>
+          <linearGradient id="flowFamily" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" style="stop-color: var(--color-maya)"/>
+            <stop offset="100%" style="stop-color: var(--color-maya-dark)"/>
+          </linearGradient>
+          <linearGradient id="flowSelf" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" style="stop-color: var(--color-ferni)"/>
+            <stop offset="100%" style="stop-color: var(--color-ferni-dark)"/>
+          </linearGradient>
+          <linearGradient id="flowStress" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" style="stop-color: var(--color-jordan)"/>
+            <stop offset="100%" style="stop-color: var(--color-jordan-dark)"/>
+          </linearGradient>
+        </defs>
+
+        <!-- Source labels (left) -->
+        <text x="20" y="60" class="sankey-label" fill="var(--text-secondary)" font-size="12">Sleep</text>
+        <text x="20" y="120" class="sankey-label" fill="var(--text-secondary)" font-size="12">Relationships</text>
+        <text x="20" y="180" class="sankey-label" fill="var(--text-secondary)" font-size="12">Exercise</text>
+        <text x="20" y="240" class="sankey-label" fill="var(--text-secondary)" font-size="12">Purpose</text>
+
+        <!-- Source nodes (Ferni green, Jordan coral, Ferni green, Nayan gold) -->
+        <rect class="sankey-node" x="80" y="45" width="8" height="40" fill="var(--color-ferni)" rx="2"/>
+        <rect class="sankey-node" x="80" y="105" width="8" height="35" fill="var(--color-jordan)" rx="2"/>
+        <rect class="sankey-node" x="80" y="165" width="8" height="25" fill="var(--color-ferni)" rx="2"/>
+        <rect class="sankey-node" x="80" y="225" width="8" height="30" fill="var(--color-nayan)" rx="2"/>
+
+        <!-- Destination labels (right) -->
+        <text x="700" y="50" class="sankey-label" fill="var(--text-secondary)" font-size="12" text-anchor="start">Work</text>
+        <text x="700" y="110" class="sankey-label" fill="var(--text-secondary)" font-size="12" text-anchor="start">Family</text>
+        <text x="700" y="170" class="sankey-label" fill="var(--text-secondary)" font-size="12" text-anchor="start">Self-Care</text>
+        <text x="700" y="230" class="sankey-label" fill="var(--text-secondary)" font-size="12" text-anchor="start">Stress</text>
+
+        <!-- Destination nodes (Peter, Maya, Ferni, Jordan) -->
+        <rect class="sankey-node" x="692" y="35" width="8" height="45" fill="var(--color-peter)" rx="2"/>
+        <rect class="sankey-node" x="692" y="95" width="8" height="35" fill="var(--color-maya)" rx="2"/>
+        <rect class="sankey-node" x="692" y="155" width="8" height="25" fill="var(--color-ferni)" rx="2"/>
+        <rect class="sankey-node" x="692" y="215" width="8" height="35" fill="var(--color-jordan)" rx="2"/>
+
+        <!-- Flow paths (curved Bezier) -->
+        <!-- Sleep to Work -->
+        <path class="sankey-flow" fill="url(#flowWork)"
+              d="M88,50 C250,50 550,40 692,40 L692,65 C550,65 250,75 88,75 Z"/>
+
+        <!-- Sleep to Self-Care -->
+        <path class="sankey-flow" fill="url(#flowSelf)"
+              d="M88,75 C250,75 550,160 692,160 L692,175 C550,175 250,85 88,85 Z"/>
+
+        <!-- Relationships to Family -->
+        <path class="sankey-flow" fill="url(#flowFamily)"
+              d="M88,110 C250,110 550,100 692,100 L692,125 C550,125 250,135 88,135 Z"/>
+
+        <!-- Exercise to Self-Care -->
+        <path class="sankey-flow" fill="url(#flowSelf)"
+              d="M88,170 C250,170 550,165 692,165 L692,180 C550,180 250,185 88,185 Z"/>
+
+        <!-- Purpose to Work -->
+        <path class="sankey-flow" fill="url(#flowWork)"
+              d="M88,230 C250,230 550,55 692,55 L692,75 C550,75 250,250 88,250 Z"/>
+
+        <!-- Stress drains (from various sources) -->
+        <path class="sankey-flow" fill="url(#flowStress)"
+              d="M88,135 C200,135 550,220 692,220 L692,245 C550,245 200,140 88,140 Z"/>
+
+        <!-- Values (percentages) -->
+        <text x="100" y="65" class="sankey-value" fill="var(--text-muted)" font-size="10">30%</text>
+        <text x="100" y="125" class="sankey-value" fill="var(--text-muted)" font-size="10">25%</text>
+        <text x="100" y="180" class="sankey-value" fill="var(--text-muted)" font-size="10">15%</text>
+        <text x="100" y="245" class="sankey-value" fill="var(--text-muted)" font-size="10">20%</text>
+      </svg>
+    </div>
+
+    <div class="river-legend">
+      <div class="river-legend-item">
+        <div class="river-legend-dot" style="background: var(--color-peter);"></div>
+        <span>Work (35%)</span>
+      </div>
+      <div class="river-legend-item">
+        <div class="river-legend-dot" style="background: var(--color-maya);"></div>
+        <span>Family (25%)</span>
+      </div>
+      <div class="river-legend-item">
+        <div class="river-legend-dot" style="background: var(--color-ferni);"></div>
+        <span>Self (15%)</span>
+      </div>
+      <div class="river-legend-item">
+        <div class="river-legend-dot" style="background: var(--color-jordan);"></div>
+        <span>Stress (25%)</span>
+      </div>
+    </div>
+  </div>
+</section>

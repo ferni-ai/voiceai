@@ -29,6 +29,7 @@ import {
   ALL_TOOL_DOMAINS,
   DOMAIN_TO_CATEGORY,
   EmptyServiceRegistry,
+  EnvironmentServiceRegistry,
   validateToolDefinition,
   validateToolSetSpec,
   type RegistryEvent,
@@ -361,6 +362,19 @@ export class ToolRegistry {
   buildToolSet(spec: ToolSetSpec, ctx: ToolContext): ToolSetResult {
     const startTime = Date.now();
 
+    // Use EnvironmentServiceRegistry if services not provided
+    const services = ctx.services ?? new EnvironmentServiceRegistry();
+
+    // Log which services are available (helps debug tools being skipped)
+    const serviceStatus = {
+      twilio: services.has('twilio'),
+      plaid: services.has('plaid'),
+      spotify: services.has('spotify'),
+      firebase: services.has('firebase'),
+      googleCalendar: services.has('google-calendar'),
+    };
+    getLogger().debug({ serviceStatus }, '🔧 Building tool set with service availability');
+
     // Validate spec
     const specErrors = validateToolSetSpec(spec);
     if (specErrors.length > 0) {
@@ -388,7 +402,7 @@ export class ToolRegistry {
 
       // Check required services
       if (def.requiredServices) {
-        const missingServices = def.requiredServices.filter((s) => !ctx.services.has(s));
+        const missingServices = def.requiredServices.filter((s) => !services.has(s));
         if (missingServices.length > 0) {
           skipped.push({
             toolId: def.id,
@@ -496,13 +510,13 @@ export class ToolRegistry {
    */
   buildSimple(domains: ToolDomain[], ctx: Partial<ToolContext> = {}): Record<string, Tool> {
     // Note: We spread ctx first, then override with defaults for missing values
-    // This ensures ctx.services = undefined doesn't overwrite our EmptyServiceRegistry
+    // Use EnvironmentServiceRegistry to check actual env vars for service availability
     const fullCtx: ToolContext = {
       ...ctx,
       userId: ctx.userId || 'default',
       agentId: ctx.agentId || 'default',
       agentDisplayName: ctx.agentDisplayName || 'Agent',
-      services: ctx.services || new EmptyServiceRegistry(),
+      services: ctx.services || new EnvironmentServiceRegistry(),
     };
 
     const result = this.buildToolSet({ domains }, fullCtx);
@@ -651,6 +665,7 @@ export {
   assertTool,
   DOMAIN_TO_CATEGORY,
   EmptyServiceRegistry,
+  EnvironmentServiceRegistry,
   isTool,
   type BaseTool,
   type RegistryQueryOptions,

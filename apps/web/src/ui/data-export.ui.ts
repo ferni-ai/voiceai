@@ -117,14 +117,14 @@ class DataExportUI {
       <div class="data-export__format">
         <label>Export format</label>
         <div class="data-export__format-options">
-          <button class="data-export__format-btn data-export__format-btn--active" data-format="json">JSON</button>
-          <button class="data-export__format-btn" data-format="csv">CSV</button>
+          <button aria-label="${t('accessibility.json')}" class="data-export__format-btn data-export__format-btn--active" data-format="json">JSON</button>
+          <button aria-label="${t('accessibility.csv')}" class="data-export__format-btn" data-format="csv">CSV</button>
         </div>
       </div>
 
-      <div class="data-export__actions">
-        <button class="data-export__btn data-export__btn--danger">Delete All Data</button>
-        <button class="data-export__btn data-export__btn--primary">Export Selected</button>
+      <div class="data-export__actions" role="button" tabindex="0">
+        <button aria-label="${t('accessibility.delete')}" class="data-export__btn data-export__btn--danger">Delete All Data</button>
+        <button aria-label="${t('accessibility.exportSelected')}" class="data-export__btn data-export__btn--primary">Export Selected</button>
       </div>
 
       <div class="data-export__footer">
@@ -194,9 +194,7 @@ class DataExportUI {
         align-items: center;
         justify-content: center;
         padding: var(--ma-rest, 21px);
-        background: var(--backdrop-page);
-        backdrop-filter: blur(var(--glass-blur-subtle));
-        -webkit-backdrop-filter: blur(var(--glass-blur-subtle));
+        background: rgba(44, 37, 32, 0.75);
         opacity: 0;
         visibility: hidden;
         transition: opacity ${DURATION.SLOW}ms ${EASING.STANDARD}, visibility ${DURATION.SLOW}ms;
@@ -206,11 +204,11 @@ class DataExportUI {
 
       .data-export__wrapper {
         width: 100%;
-        max-width: 480px;
-        background: var(--color-background-elevated, #fffdfb);
-        border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.05));
-        border-radius: var(--radius-xl, 1.5rem);
-        box-shadow: var(--shadow-2xl, 0 24px 48px rgba(44, 37, 32, 0.15));
+        max-width: clamp(336px, 90vw, 480px);
+        background: var(--color-bg-elevated, #FFFDFB);
+        border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
+        border-radius: var(--radius-xl, 20px);
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.06);
         overflow: hidden;
       }
 
@@ -261,7 +259,7 @@ class DataExportUI {
 
       .data-export__categories {
         padding: 0 var(--ma-silence, 34px);
-        max-height: 240px;
+        max-height: 320px;
         overflow-y: auto;
       }
 

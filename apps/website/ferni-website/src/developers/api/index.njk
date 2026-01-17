@@ -1,0 +1,644 @@
+---
+layout: layouts/base.njk
+title: API Reference | Ferni Developer Platform
+description: Complete API documentation for the Ferni Developer Platform. MCP Servers, Custom Tools, Webhooks, Workflows, Activities, and OAuth.
+isDocs: true
+---
+
+<style>
+  :root {
+    --dev-bg: #0f172a;
+    --dev-surface: #1e293b;
+    --dev-border: #334155;
+    --dev-accent: #38bdf8;
+    --dev-accent-hover: #0ea5e9;
+    --dev-text: #e2e8f0;
+    --dev-text-muted: #94a3b8;
+    --dev-code-bg: #1e1e2e;
+  }
+
+  body {
+    background: var(--dev-bg);
+    color: var(--dev-text);
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  }
+
+  .dev-nav {
+    background: var(--dev-surface);
+    border-bottom: 1px solid var(--dev-border);
+    padding: 1rem 2rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  .dev-nav-brand {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    text-decoration: none;
+    color: var(--dev-text);
+    font-weight: 600;
+    font-size: 1.1rem;
+  }
+
+  .dev-nav-brand svg {
+    width: 32px;
+    height: 32px;
+  }
+
+  .dev-nav-links {
+    display: flex;
+    gap: 2rem;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  .dev-nav-links a {
+    color: var(--dev-text-muted);
+    text-decoration: none;
+    font-size: 0.9rem;
+    font-weight: 500;
+    transition: color 0.2s;
+  }
+
+  .dev-nav-links a:hover,
+  .dev-nav-links a.active {
+    color: var(--dev-accent);
+  }
+
+  .api-header {
+    background: linear-gradient(135deg, var(--dev-surface) 0%, var(--dev-bg) 100%);
+    border-bottom: 1px solid var(--dev-border);
+    padding: 4rem 2rem;
+    text-align: center;
+  }
+
+  .api-header h1 {
+    font-size: 2.5rem;
+    font-weight: 700;
+    margin: 0 0 1rem;
+    color: var(--dev-text);
+  }
+
+  .api-header p {
+    font-size: 1.1rem;
+    color: var(--dev-text-muted);
+    max-width: 600px;
+    margin: 0 auto;
+  }
+
+  .api-content {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 3rem 2rem;
+  }
+
+  .api-section {
+    margin-bottom: 3rem;
+  }
+
+  .api-section h2 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin: 0 0 1rem;
+    color: var(--dev-text);
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .api-section-icon {
+    font-size: 1.25rem;
+  }
+
+  .api-section > p {
+    color: var(--dev-text-muted);
+    margin-bottom: 1.5rem;
+  }
+
+  .endpoint-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: var(--dev-surface);
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid var(--dev-border);
+  }
+
+  .endpoint-table th,
+  .endpoint-table td {
+    padding: 1rem;
+    text-align: left;
+  }
+
+  .endpoint-table th {
+    background: rgba(0,0,0,0.2);
+    font-weight: 600;
+    font-size: 0.85rem;
+    color: var(--dev-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .endpoint-table td {
+    border-top: 1px solid var(--dev-border);
+  }
+
+  .endpoint-table tr:hover td {
+    background: rgba(56, 189, 248, 0.05);
+  }
+
+  .method {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.8rem;
+    font-weight: 600;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    display: inline-block;
+    min-width: 60px;
+    text-align: center;
+  }
+
+  .method-get { background: rgba(74, 222, 128, 0.2); color: #4ade80; }
+  .method-post { background: rgba(56, 189, 248, 0.2); color: #38bdf8; }
+  .method-put { background: rgba(251, 191, 36, 0.2); color: #fbbf24; }
+  .method-delete { background: rgba(248, 113, 113, 0.2); color: #f87171; }
+
+  .endpoint-path {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.9rem;
+    color: var(--dev-text);
+  }
+
+  .endpoint-desc {
+    color: var(--dev-text-muted);
+    font-size: 0.9rem;
+  }
+
+  .base-url {
+    background: var(--dev-code-bg);
+    border: 1px solid var(--dev-border);
+    border-radius: 8px;
+    padding: 1rem 1.5rem;
+    margin-bottom: 2rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+
+  .base-url-label {
+    font-size: 0.85rem;
+    color: var(--dev-text-muted);
+    font-weight: 500;
+  }
+
+  .base-url-value {
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--dev-accent);
+  }
+
+  .auth-note {
+    background: rgba(56, 189, 248, 0.1);
+    border: 1px solid rgba(56, 189, 248, 0.3);
+    border-radius: 8px;
+    padding: 1rem 1.5rem;
+    margin-bottom: 2rem;
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+  }
+
+  .auth-note-icon {
+    font-size: 1.25rem;
+    flex-shrink: 0;
+  }
+
+  .auth-note-content h4 {
+    margin: 0 0 0.25rem;
+    font-size: 0.95rem;
+    color: var(--dev-text);
+  }
+
+  .auth-note-content p {
+    margin: 0;
+    font-size: 0.9rem;
+    color: var(--dev-text-muted);
+  }
+
+  .auth-note-content code {
+    background: rgba(0,0,0,0.3);
+    padding: 0.125rem 0.375rem;
+    border-radius: 4px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.85rem;
+  }
+
+  .dev-footer {
+    background: var(--dev-surface);
+    border-top: 1px solid var(--dev-border);
+    padding: 2rem;
+    text-align: center;
+  }
+
+  .dev-footer p {
+    color: var(--dev-text-muted);
+    font-size: 0.9rem;
+    margin: 0;
+  }
+
+  .dev-footer a {
+    color: var(--dev-accent);
+    text-decoration: none;
+  }
+
+  .dev-footer a:hover {
+    text-decoration: underline;
+  }
+
+  @media (max-width: 768px) {
+    .dev-nav {
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .endpoint-table {
+      display: block;
+      overflow-x: auto;
+    }
+
+    .base-url {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 0.5rem;
+    }
+  }
+</style>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+<nav class="dev-nav">
+  <a href="/developers/" class="dev-nav-brand">
+    <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <!-- LUXO STYLE: opaque white eyes, no pupils -->
+      <circle cx="50" cy="50" r="45" fill="#4a6741"/>
+      <ellipse cx="36" cy="48" rx="7" ry="9" fill="white"/>
+      <ellipse cx="64" cy="48" rx="7" ry="9" fill="white"/>
+      <path d="M30 70 Q50 82 70 70" stroke="white" stroke-width="4" stroke-linecap="round" fill="none"/>
+    </svg>
+    <span>Ferni Developers</span>
+  </a>
+  <ul class="dev-nav-links">
+    <li><a href="/developers/">Docs</a></li>
+    <li><a href="/developers/api/" class="active">API Reference</a></li>
+    <li><a href="/developers/blog/">Blog</a></li>
+    <li><a href="https://github.com/ferni-ai" target="_blank" rel="noopener">GitHub</a></li>
+  </ul>
+</nav>
+
+<header class="api-header">
+  <h1>API Reference</h1>
+  <p>Complete documentation for all Ferni Developer Platform v2 endpoints.</p>
+</header>
+
+<main class="api-content">
+  <div class="base-url">
+    <span class="base-url-label">Base URL</span>
+    <code class="base-url-value">https://api.ferni.ai/api/v2/developers</code>
+  </div>
+
+  <div class="auth-note">
+    <span class="auth-note-icon">🔑</span>
+    <div class="auth-note-content">
+      <h4>Authentication Required</h4>
+      <p>All endpoints require authentication via <code>Authorization: Bearer pk_live_xxx</code> header. Get your API key from the <a href="/developers/getting-started/" style="color: var(--dev-accent);">Getting Started guide</a>.</p>
+    </div>
+  </div>
+
+  <section class="api-section">
+    <h2><span class="api-section-icon">🔌</span> MCP Servers</h2>
+    <p>Register and manage external Model Context Protocol servers.</p>
+
+    <table class="endpoint-table">
+      <thead>
+        <tr>
+          <th>Method</th>
+          <th>Endpoint</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="method method-post">POST</span></td>
+          <td class="endpoint-path">/mcp-servers</td>
+          <td class="endpoint-desc">Register a new MCP server</td>
+        </tr>
+        <tr>
+          <td><span class="method method-get">GET</span></td>
+          <td class="endpoint-path">/mcp-servers</td>
+          <td class="endpoint-desc">List all your MCP servers</td>
+        </tr>
+        <tr>
+          <td><span class="method method-get">GET</span></td>
+          <td class="endpoint-path">/mcp-servers/:id</td>
+          <td class="endpoint-desc">Get server details</td>
+        </tr>
+        <tr>
+          <td><span class="method method-put">PUT</span></td>
+          <td class="endpoint-path">/mcp-servers/:id</td>
+          <td class="endpoint-desc">Update server configuration</td>
+        </tr>
+        <tr>
+          <td><span class="method method-delete">DELETE</span></td>
+          <td class="endpoint-path">/mcp-servers/:id</td>
+          <td class="endpoint-desc">Delete a server</td>
+        </tr>
+        <tr>
+          <td><span class="method method-post">POST</span></td>
+          <td class="endpoint-path">/mcp-servers/:id/test</td>
+          <td class="endpoint-desc">Test server connection</td>
+        </tr>
+        <tr>
+          <td><span class="method method-get">GET</span></td>
+          <td class="endpoint-path">/mcp-servers/:id/tools</td>
+          <td class="endpoint-desc">List discovered tools</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="api-section">
+    <h2><span class="api-section-icon">🛠️</span> Custom Tools</h2>
+    <p>Create webhook, MCP, or prompt-based tools for voice agents.</p>
+
+    <table class="endpoint-table">
+      <thead>
+        <tr>
+          <th>Method</th>
+          <th>Endpoint</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="method method-post">POST</span></td>
+          <td class="endpoint-path">/tools</td>
+          <td class="endpoint-desc">Create a new tool</td>
+        </tr>
+        <tr>
+          <td><span class="method method-get">GET</span></td>
+          <td class="endpoint-path">/tools</td>
+          <td class="endpoint-desc">List all your tools</td>
+        </tr>
+        <tr>
+          <td><span class="method method-get">GET</span></td>
+          <td class="endpoint-path">/tools/:id</td>
+          <td class="endpoint-desc">Get tool details</td>
+        </tr>
+        <tr>
+          <td><span class="method method-put">PUT</span></td>
+          <td class="endpoint-path">/tools/:id</td>
+          <td class="endpoint-desc">Update tool configuration</td>
+        </tr>
+        <tr>
+          <td><span class="method method-delete">DELETE</span></td>
+          <td class="endpoint-path">/tools/:id</td>
+          <td class="endpoint-desc">Delete a tool</td>
+        </tr>
+        <tr>
+          <td><span class="method method-post">POST</span></td>
+          <td class="endpoint-path">/tools/:id/test</td>
+          <td class="endpoint-desc">Test tool execution</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="api-section">
+    <h2><span class="api-section-icon">🔔</span> Webhooks</h2>
+    <p>Subscribe to real-time events from voice agent sessions.</p>
+
+    <table class="endpoint-table">
+      <thead>
+        <tr>
+          <th>Method</th>
+          <th>Endpoint</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="method method-post">POST</span></td>
+          <td class="endpoint-path">/webhooks</td>
+          <td class="endpoint-desc">Create a webhook subscription</td>
+        </tr>
+        <tr>
+          <td><span class="method method-get">GET</span></td>
+          <td class="endpoint-path">/webhooks</td>
+          <td class="endpoint-desc">List all your webhooks</td>
+        </tr>
+        <tr>
+          <td><span class="method method-get">GET</span></td>
+          <td class="endpoint-path">/webhooks/:id</td>
+          <td class="endpoint-desc">Get webhook details</td>
+        </tr>
+        <tr>
+          <td><span class="method method-put">PUT</span></td>
+          <td class="endpoint-path">/webhooks/:id</td>
+          <td class="endpoint-desc">Update webhook configuration</td>
+        </tr>
+        <tr>
+          <td><span class="method method-delete">DELETE</span></td>
+          <td class="endpoint-path">/webhooks/:id</td>
+          <td class="endpoint-desc">Delete a webhook</td>
+        </tr>
+        <tr>
+          <td><span class="method method-post">POST</span></td>
+          <td class="endpoint-path">/webhooks/:id/test</td>
+          <td class="endpoint-desc">Send a test event</td>
+        </tr>
+        <tr>
+          <td><span class="method method-get">GET</span></td>
+          <td class="endpoint-path">/webhooks/:id/logs</td>
+          <td class="endpoint-desc">View delivery logs</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="api-section">
+    <h2><span class="api-section-icon">⚡</span> Workflows</h2>
+    <p>Build multi-step automations with branching and parallel execution.</p>
+
+    <table class="endpoint-table">
+      <thead>
+        <tr>
+          <th>Method</th>
+          <th>Endpoint</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="method method-post">POST</span></td>
+          <td class="endpoint-path">/workflows</td>
+          <td class="endpoint-desc">Create a new workflow</td>
+        </tr>
+        <tr>
+          <td><span class="method method-get">GET</span></td>
+          <td class="endpoint-path">/workflows</td>
+          <td class="endpoint-desc">List all your workflows</td>
+        </tr>
+        <tr>
+          <td><span class="method method-get">GET</span></td>
+          <td class="endpoint-path">/workflows/:id</td>
+          <td class="endpoint-desc">Get workflow details</td>
+        </tr>
+        <tr>
+          <td><span class="method method-put">PUT</span></td>
+          <td class="endpoint-path">/workflows/:id</td>
+          <td class="endpoint-desc">Update workflow definition</td>
+        </tr>
+        <tr>
+          <td><span class="method method-delete">DELETE</span></td>
+          <td class="endpoint-path">/workflows/:id</td>
+          <td class="endpoint-desc">Delete a workflow</td>
+        </tr>
+        <tr>
+          <td><span class="method method-post">POST</span></td>
+          <td class="endpoint-path">/workflows/:id/execute</td>
+          <td class="endpoint-desc">Execute workflow</td>
+        </tr>
+        <tr>
+          <td><span class="method method-post">POST</span></td>
+          <td class="endpoint-path">/workflows/:id/test</td>
+          <td class="endpoint-desc">Test workflow (dry run)</td>
+        </tr>
+        <tr>
+          <td><span class="method method-get">GET</span></td>
+          <td class="endpoint-path">/workflows/:id/executions</td>
+          <td class="endpoint-desc">List execution history</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="api-section">
+    <h2><span class="api-section-icon">📊</span> Activities</h2>
+    <p>Track custom metrics and query historical activity data.</p>
+
+    <table class="endpoint-table">
+      <thead>
+        <tr>
+          <th>Method</th>
+          <th>Endpoint</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="method method-post">POST</span></td>
+          <td class="endpoint-path">/activities</td>
+          <td class="endpoint-desc">Log a new activity</td>
+        </tr>
+        <tr>
+          <td><span class="method method-get">GET</span></td>
+          <td class="endpoint-path">/activities</td>
+          <td class="endpoint-desc">Query activities</td>
+        </tr>
+        <tr>
+          <td><span class="method method-get">GET</span></td>
+          <td class="endpoint-path">/activities/stats</td>
+          <td class="endpoint-desc">Get aggregate statistics</td>
+        </tr>
+        <tr>
+          <td><span class="method method-get">GET</span></td>
+          <td class="endpoint-path">/activities/:id</td>
+          <td class="endpoint-desc">Get activity details</td>
+        </tr>
+        <tr>
+          <td><span class="method method-put">PUT</span></td>
+          <td class="endpoint-path">/activities/:id</td>
+          <td class="endpoint-desc">Update activity</td>
+        </tr>
+        <tr>
+          <td><span class="method method-delete">DELETE</span></td>
+          <td class="endpoint-path">/activities/:id</td>
+          <td class="endpoint-desc">Delete activity</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="api-section">
+    <h2><span class="api-section-icon">🔐</span> OAuth</h2>
+    <p>Integrate external services using your own OAuth applications.</p>
+
+    <table class="endpoint-table">
+      <thead>
+        <tr>
+          <th>Method</th>
+          <th>Endpoint</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="method method-post">POST</span></td>
+          <td class="endpoint-path">/oauth/providers</td>
+          <td class="endpoint-desc">Register OAuth provider</td>
+        </tr>
+        <tr>
+          <td><span class="method method-get">GET</span></td>
+          <td class="endpoint-path">/oauth/providers</td>
+          <td class="endpoint-desc">List providers</td>
+        </tr>
+        <tr>
+          <td><span class="method method-get">GET</span></td>
+          <td class="endpoint-path">/oauth/providers/:id</td>
+          <td class="endpoint-desc">Get provider details</td>
+        </tr>
+        <tr>
+          <td><span class="method method-put">PUT</span></td>
+          <td class="endpoint-path">/oauth/providers/:id</td>
+          <td class="endpoint-desc">Update provider</td>
+        </tr>
+        <tr>
+          <td><span class="method method-delete">DELETE</span></td>
+          <td class="endpoint-path">/oauth/providers/:id</td>
+          <td class="endpoint-desc">Delete provider</td>
+        </tr>
+        <tr>
+          <td><span class="method method-post">POST</span></td>
+          <td class="endpoint-path">/oauth/authorize</td>
+          <td class="endpoint-desc">Start OAuth flow</td>
+        </tr>
+        <tr>
+          <td><span class="method method-get">GET</span></td>
+          <td class="endpoint-path">/oauth/callback</td>
+          <td class="endpoint-desc">OAuth callback</td>
+        </tr>
+        <tr>
+          <td><span class="method method-get">GET</span></td>
+          <td class="endpoint-path">/oauth/tokens</td>
+          <td class="endpoint-desc">List tokens</td>
+        </tr>
+        <tr>
+          <td><span class="method method-delete">DELETE</span></td>
+          <td class="endpoint-path">/oauth/tokens/:id</td>
+          <td class="endpoint-desc">Revoke token</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+</main>
+
+<footer class="dev-footer">
+  <p>&copy; {{ 'now' | date('yyyy') }} Ferni AI. <a href="/developers/">Docs</a> · <a href="/developers/api/">API Reference</a> · <a href="/developers/blog/">Blog</a> · <a href="https://ferni.ai">ferni.ai</a></p>
+</footer>

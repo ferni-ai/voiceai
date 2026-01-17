@@ -61,7 +61,7 @@ describe('Graceful Degradation', () => {
         audioData: Float32Array;
       }
 
-      const audioCache: Map<string, CachedAudio> = new Map([
+      const audioCache = new Map<string, CachedAudio>([
         ['fallback_greeting', { text: 'Hello', audioData: new Float32Array(320) }],
         ['fallback_sorry', { text: "I'm sorry", audioData: new Float32Array(320) }],
       ]);
@@ -194,7 +194,9 @@ describe('Retry Patterns', () => {
 
             const delay = baseDelay * Math.pow(2, i);
             delays.push(delay);
-            await new Promise((resolve) => setTimeout(resolve, delay));
+            await new Promise<void>((resolve) => {
+              setTimeout(resolve, delay);
+            });
           }
         }
         throw new Error('Should not reach here');
@@ -280,7 +282,9 @@ describe('Retry Patterns', () => {
               throw lastError;
             }
 
-            await new Promise((resolve) => setTimeout(resolve, 10));
+            await new Promise<void>((resolve) => {
+              setTimeout(resolve, 10);
+            });
           }
         }
 
@@ -638,7 +642,9 @@ describe('Recovery Verification', () => {
           consecutiveSuccesses = 0;
         }
 
-        await new Promise((resolve) => setTimeout(resolve, 10));
+        await new Promise<void>((resolve) => {
+          setTimeout(resolve, 10);
+        });
       }
 
       return false;

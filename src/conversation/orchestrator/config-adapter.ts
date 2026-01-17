@@ -25,7 +25,7 @@ import {
   applyPreset as applyHumanizingPreset,
   getHumanizingConfig,
   getPersonaHumanizingConfig,
-  HUMANIZING_PRESETS,
+  type HUMANIZING_PRESETS,
   type HumanizingConfig,
 } from '../humanizing-config.js';
 

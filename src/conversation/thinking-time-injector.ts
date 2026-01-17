@@ -18,6 +18,11 @@
  * COORDINATION: Uses ThinkingPhraseCoordinator to prevent duplicate
  * "good question" phrases from multiple systems.
  *
+ * NOTE: This module injects pauses INTO the AI's RESPONSE text.
+ * For filling dead air BEFORE the response (LLM processing delays),
+ * use ProcessingIntelligence instead.
+ *
+ * @see src/intelligence/processing-intelligence.ts for dead air/processing delays
  * @module conversation/thinking-time-injector
  */
 

@@ -8,6 +8,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
+import { cleanForFirestore } from '../../utils/firestore-utils.js';
 
 const log = createLogger({ module: 'EffectMemory' });
 
@@ -56,7 +57,7 @@ export interface EffectResponse {
 // ============================================================================
 
 class CrossSessionEffectMemory {
-  private profiles: Map<string, UserEffectProfile> = new Map();
+  private profiles = new Map<string, UserEffectProfile>();
 
   /**
    * Get or create user effect profile

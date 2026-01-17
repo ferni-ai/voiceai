@@ -17,6 +17,7 @@ import type { OutreachPriority, OutreachTriggerType } from './decision-engine.js
 import { loadOutreachProfile, saveOutreachProfile } from './firestore-persistence.js';
 import type { OutreachChannel } from './persona-voice-generator.js';
 import { getTimingProfile } from './timing-intelligence.js';
+import { cleanForFirestore } from '../../utils/firestore-utils.js';
 
 // ============================================================================
 // TYPES
@@ -547,6 +548,25 @@ export function getContentTypeFromTrigger(triggerType: OutreachTriggerType): Con
     scheduled: 'reminder',
     seasonal: 'casual',
     anniversary: 'celebration',
+    // New trust-based triggers
+    check_in: 'casual', // General check-in
+    shared_memory: 'casual', // Callback to shared experiences
+    growth_reflection: 'emotional', // Reflecting on their journey
+    personal_share: 'casual', // Sharing Ferni with a friend
+
+    // Onboarding triggers (first 14 days)
+    onboarding_welcome: 'casual', // Welcome and invitation
+    onboarding_nextday: 'casual', // Day 2 check-in
+    onboarding_topic_deepdive: 'casual', // Deeper exploration
+    onboarding_first_week: 'celebration', // First week reflection
+    onboarding_momentum: 'accountability', // Momentum/habit nudge
+    onboarding_two_week: 'celebration', // Two-week celebration
+
+    // Group outreach triggers
+    planning: 'reminder', // Team helps with planning
+    team_insight: 'information', // Multiple perspectives sharing insights
+    collaborative_support: 'emotional', // Team support for tough situations
+    team_roundtable: 'casual', // Voice call with multiple personas
   };
 
   return mapping[triggerType] || 'casual';

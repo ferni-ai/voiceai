@@ -17,17 +17,17 @@
  *   npm run tools:report -- route "query" # Semantic routing demo
  */
 
-import { toolUsageAnalytics } from '../services/tool-usage-analytics.js';
+import { toolUsageAnalytics } from '../services/analytics/tool-usage-analytics.js';
 import { toolRegistry } from '../tools/registry/index.js';
 import { initializeToolRegistry } from '../tools/registry/loader.js';
 import { deprecationService } from '../tools/deprecation.js';
 import { versioningService } from '../tools/versioning.js';
 import { abTestingService } from '../tools/ab-testing.js';
-import { semanticRouter } from '../tools/semantic-router.js';
-import { recommendationEngine } from '../tools/recommendation-engine.js';
-import { autoOptimizer } from '../tools/auto-optimizer.js';
-import { patternAnalyzer } from '../tools/pattern-analyzer.js';
-import { feedbackCollector } from '../tools/feedback-collector.js';
+import { semanticRouter } from '../tools/semantic-router/compat.js';
+import { recommendationEngine } from '../tools/optimization/recommendation-engine.js';
+import { autoOptimizer } from '../tools/optimization/auto-optimizer.js';
+import { patternAnalyzer } from '../tools/optimization/pattern-analyzer.js';
+import { feedbackCollector } from '../tools/optimization/feedback-collector.js';
 
 // ============================================================================
 // COLORS FOR CONSOLE OUTPUT
@@ -390,11 +390,11 @@ async function demonstrateSemanticRouting(query: string): Promise<void> {
     }
   }
 
-  // Show domains
-  const domains = semanticRouter.getDomainsForQuery(query);
-  console.log(color('\n📦 DOMAINS TO LOAD', 'bright'));
+  // Show domains (extracted from match results)
+  const matchedDomains = [...new Set(matches.map((m) => m.toolId.split('_')[0] || 'general'))];
+  console.log(color('\n📦 RELEVANT DOMAINS', 'bright'));
   console.log(color('─'.repeat(40), 'dim'));
-  console.log(`  ${domains.join(', ') || 'None'}`);
+  console.log(`  ${matchedDomains.join(', ') || 'None'}`);
 
   console.log(color('\n═'.repeat(60), 'dim'));
 }

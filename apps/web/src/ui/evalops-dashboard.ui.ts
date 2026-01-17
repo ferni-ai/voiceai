@@ -14,17 +14,18 @@
  */
 
 import { t } from '../i18n/index.js';
+import { getApiHeadersAsync } from '../utils/api-helpers.js';
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import { DURATION, EASING } from '../config/animation-constants.js';
 // Note: appState imported for future use with evalops state sync
 import type { AppState as _AppState } from '../state/app.state.js';
-import { toast } from './toast.ui.js';
+import { toast } from './whisper.ui.js';
 
 const log = createLogger('EvalOpsDashboard');
 
 // FIX BUG: Track all setTimeout calls for proper cleanup
-const { trackedTimeout, clearAll: clearAllTimeouts } = createTimeoutTracker();
+const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
 
 // ============================================================================
 // TYPES
@@ -130,21 +131,39 @@ const ICONS = {
 // API CALLS
 // ============================================================================
 
+/**
+ * Get admin key for EvalOps API requests.
+ * 
+ * SECURITY: Only falls back to 'dev-mode' in development environment.
+ */
+function getAdminKey(): string {
+  const storedKey = localStorage.getItem('admin_key') || localStorage.getItem('ferni_admin_key');
+  if (storedKey) return storedKey;
+  
+  // SECURITY: import.meta.env.DEV is false in production builds
+  if (import.meta.env.DEV) {
+    return 'dev-mode';
+  }
+  
+  return '';
+}
+
 async function fetchDashboardData(): Promise<void> {
   state.loading = true;
   renderContent();
 
+  const adminKey = getAdminKey();
+  
   try {
+    const authHeaders = await getApiHeadersAsync();
+    const headers = { ...authHeaders, 'x-admin-key': adminKey };
+
     // Fetch health data
-    const healthRes = await fetch('/api/evalops/health', {
-      headers: { 'x-admin-key': 'dev-mode' },
-    });
+    const healthRes = await fetch('/api/evalops/health', { headers });
     const healthData = await healthRes.json();
 
     // Fetch scenarios
-    const scenariosRes = await fetch('/api/evalops/scenarios/stats', {
-      headers: { 'x-admin-key': 'dev-mode' },
-    });
+    const scenariosRes = await fetch('/api/evalops/scenarios/stats', { headers });
     const scenariosData = await scenariosRes.json();
 
     // Generate mock persona health from fingerprint data
@@ -186,17 +205,15 @@ async function fetchDashboardData(): Promise<void> {
 
 async function runQuickCheck(personaId: string, response: string): Promise<void> {
   try {
+    const authHeaders = await getApiHeadersAsync({ 'Content-Type': 'application/json' });
     const res = await fetch('/api/evalops/quick-check', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-admin-key': 'dev-mode',
-      },
+      headers: { ...authHeaders, 'x-admin-key': getAdminKey() },
       body: JSON.stringify({ persona_id: personaId, response }),
     });
     const data = await res.json();
     log.info('Quick check result:', data);
-    
+
     // Update UI with toast
     toast.info(`Voice score: ${data.score}% (${data.status})`);
   } catch (error) {
@@ -232,8 +249,8 @@ function createDashboardHTML(): string {
           <span class="eyebrow">QUALITY ASSURANCE</span>
           <h2>EvalOps Dashboard</h2>
         </div>
-        <div class="header-actions">
-          <button class="refresh-btn" title="${t('accessibility.refreshData')}">
+        <div class="header-actions" role="button" tabindex="0">
+          <button aria-label="Refresh" class="refresh-btn" title="${t('accessibility.refreshData')}">
             ${ICONS.refresh}
           </button>
           <button class="close-btn" aria-label="${t('common.close')}">
@@ -243,23 +260,23 @@ function createDashboardHTML(): string {
       </header>
       
       <nav class="evalops-tabs">
-        <button class="tab-btn ${state.activeTab === 'overview' ? 'active' : ''}" data-tab="overview">
+        <button aria-label="Overview" class="tab-btn ${state.activeTab === 'overview' ? 'active' : ''}" data-tab="overview">
           ${ICONS.chart}
           <span>Overview</span>
         </button>
-        <button class="tab-btn ${state.activeTab === 'personas' ? 'active' : ''}" data-tab="personas">
+        <button aria-label="User profile" class="tab-btn ${state.activeTab === 'personas' ? 'active' : ''}" data-tab="personas">
           ${ICONS.user}
           <span>Personas</span>
         </button>
-        <button class="tab-btn ${state.activeTab === 'scenarios' ? 'active' : ''}" data-tab="scenarios">
+        <button aria-label="Scenarios" class="tab-btn ${state.activeTab === 'scenarios' ? 'active' : ''}" data-tab="scenarios">
           ${ICONS.list}
           <span>Scenarios</span>
         </button>
-        <button class="tab-btn ${state.activeTab === 'flagged' ? 'active' : ''}" data-tab="flagged">
+        <button aria-label="Flagged" class="tab-btn ${state.activeTab === 'flagged' ? 'active' : ''}" data-tab="flagged">
           ${ICONS.flag}
           <span>Flagged</span>
         </button>
-        <button class="tab-btn ${state.activeTab === 'config' ? 'active' : ''}" data-tab="config">
+        <button aria-label="Settings" class="tab-btn ${state.activeTab === 'config' ? 'active' : ''}" data-tab="config">
           ${ICONS.settings}
           <span>Config</span>
         </button>
@@ -299,7 +316,7 @@ function renderContent(): void {
       <div class="evalops-error">
         ${ICONS.alert}
         <p>${state.error}</p>
-        <button class="retry-btn" onclick="window.evalopsDashboard?.refresh()">Try Again</button>
+        <button aria-label="Try Again" class="retry-btn" onclick="window.evalopsDashboard?.refresh()">Try Again</button>
       </div>
     `;
     return;
@@ -398,14 +415,14 @@ function renderOverviewTab(): string {
       
       <div class="overview-section">
         <h3>Quick Actions</h3>
-        <div class="quick-actions">
-          <button class="action-btn" data-action="run-critical">
+        <div class="quick-actions" role="button" tabindex="0">
+          <button aria-label="Play" class="action-btn" data-action="run-critical">
             ${ICONS.play} Run Critical Tests
           </button>
-          <button class="action-btn" data-action="run-full">
+          <button aria-label="Play" class="action-btn" data-action="run-full">
             ${ICONS.play} Run Full Suite
           </button>
-          <button class="action-btn" data-action="export">
+          <button aria-label="Download" class="action-btn" data-action="export">
             ${ICONS.download} Export Report
           </button>
         </div>
@@ -446,11 +463,11 @@ function renderPersonasTab(): string {
               </div>
             </div>
             
-            <div class="persona-actions">
-              <button class="persona-action-btn" data-action="test-voice" data-persona="${p.personaId}">
+            <div class="persona-actions" role="button" tabindex="0">
+              <button aria-label="Test Voice" class="persona-action-btn" data-action="test-voice" data-persona="${p.personaId}">
                 ${ICONS.mic} Test Voice
               </button>
-              <button class="persona-action-btn" data-action="view-fingerprint" data-persona="${p.personaId}">
+              <button aria-label="Search" class="persona-action-btn" data-action="view-fingerprint" data-persona="${p.personaId}">
                 ${ICONS.search} View Fingerprint
               </button>
             </div>
@@ -484,7 +501,7 @@ function renderScenariosTab(): string {
                   <span class="scenario-status">${s.passed ? ICONS.check : ICONS.alert}</span>
                   <span class="scenario-name">${s.name}</span>
                   <span class="scenario-score">${s.score}%</span>
-                  <button class="scenario-run-btn" data-scenario="${s.scenarioId}" title="${t('titles.runScenario')}">
+                  <button aria-label="Play" class="scenario-run-btn" data-scenario="${s.scenarioId}" title="${t('titles.runScenario')}">
                     ${ICONS.play}
                   </button>
                 </div>
@@ -494,8 +511,8 @@ function renderScenariosTab(): string {
         `).join('')}
       </div>
       
-      <div class="scenarios-actions">
-        <button class="action-btn action-btn--primary" data-action="run-all-scenarios">
+      <div class="scenarios-actions" role="button" tabindex="0">
+        <button aria-label="Play" class="action-btn action-btn--primary" data-action="run-all-scenarios">
           ${ICONS.play} Run All Scenarios
         </button>
       </div>
@@ -534,9 +551,9 @@ function renderFlaggedTab(): string {
               <strong>Response:</strong> ${f.aiResponse.slice(0, 150)}...
             </div>
           </div>
-          <div class="flagged-actions">
-            <button class="flagged-action" data-action="view-full" data-id="${f.id}">View Full</button>
-            <button class="flagged-action" data-action="mark-reviewed" data-id="${f.id}">Mark Reviewed</button>
+          <div class="flagged-actions" role="button" tabindex="0">
+            <button aria-label="View Full" class="flagged-action" data-action="view-full" data-id="${f.id}">View Full</button>
+            <button aria-label="Mark Reviewed" class="flagged-action" data-action="mark-reviewed" data-id="${f.id}">Mark Reviewed</button>
           </div>
         </div>
       `).join('')}
@@ -557,7 +574,7 @@ function renderConfigTab(): string {
           </div>
           <label class="toggle">
             <input type="checkbox" ${state.config.enabled ? 'checked' : ''} data-config="enabled">
-            <span class="toggle-slider"></span>
+            <span class="toggle-slider" role="button" tabindex="0"></span>
           </label>
         </div>
         
@@ -657,7 +674,7 @@ function attachListeners(): void {
 
   // Refresh button
   container.querySelector('.refresh-btn')?.addEventListener('click', () => {
-    fetchDashboardData();
+    void fetchDashboardData();
   });
 
   // Tab buttons
@@ -686,17 +703,17 @@ function attachContentListeners(): void {
     // Note: data-config attribute available for future per-key toggle handling
     if (el instanceof HTMLInputElement && el.type === 'checkbox') {
       el.addEventListener('change', () => {
-        toggleEvaluation(el.checked);
+        void toggleEvaluation(el.checked);
       });
     }
-    
+
     if (el instanceof HTMLInputElement && el.type === 'range') {
       el.addEventListener('input', () => {
         const rangeValue = el.parentElement?.querySelector('.range-value');
         if (rangeValue) rangeValue.textContent = `${el.value}%`;
       });
       el.addEventListener('change', () => {
-        updateSampleRate(parseInt(el.value, 10));
+        void updateSampleRate(parseInt(el.value, 10));
       });
     }
   });
@@ -717,7 +734,7 @@ function attachContentListeners(): void {
         case 'test-voice':
           if (personaId) {
             const testResponse = 'This is a test response to evaluate voice consistency.';
-            runQuickCheck(personaId, testResponse);
+            void runQuickCheck(personaId, testResponse);
           }
           break;
         case 'view-fingerprint':
@@ -766,10 +783,10 @@ export function showEvalOpsDashboard(): void {
   
   // Attach listeners
   attachListeners();
-  
+
   // Fetch data
-  fetchDashboardData();
-  
+  void fetchDashboardData();
+
   // Animate in
   requestAnimationFrame(() => {
     container?.classList.add('evalops-container--visible');
@@ -821,7 +838,7 @@ function injectStyles(): void {
     .evalops-container {
       position: fixed;
       inset: 0;
-      z-index: 10000;
+      z-index: var(--z-tooltip);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -836,16 +853,15 @@ function injectStyles(): void {
     .evalops-backdrop {
       position: absolute;
       inset: 0;
-      background: rgba(44, 37, 32, 0.6);
-      backdrop-filter: blur(var(--glass-blur-medium, 16px));
+      background: rgba(44, 37, 32, 0.75);
     }
     
     .evalops-modal {
       position: relative;
       width: 90%;
-      max-width: 1000px;
+      max-width: min(1000px, 100%);
       max-height: 85vh;
-      background: var(--color-background-elevated, #FFFDFB);
+      background: var(--color-background-elevated);
       border-radius: var(--radius-2xl, 20px);
       box-shadow: var(--shadow-2xl, 0 25px 50px -12px rgba(0,0,0,0.25));
       display: flex;
@@ -871,7 +887,7 @@ function injectStyles(): void {
       font-size: 11px;
       font-weight: 600;
       letter-spacing: 0.1em;
-      color: var(--color-text-muted, #666);
+      color: var(--color-text-muted);
       text-transform: uppercase;
     }
     
@@ -879,7 +895,7 @@ function injectStyles(): void {
       margin: var(--space-1, 4px) 0 0;
       font-size: 20px;
       font-weight: 600;
-      color: var(--color-text-primary, #2C2520);
+      color: var(--color-text-primary);
     }
     
     .header-actions {
@@ -893,7 +909,7 @@ function injectStyles(): void {
       cursor: pointer;
       padding: var(--space-2, 8px);
       border-radius: var(--radius-md, 8px);
-      color: var(--color-text-secondary, #444);
+      color: var(--color-text-secondary);
       transition: background ${DURATION.FAST}ms;
     }
     
@@ -906,7 +922,7 @@ function injectStyles(): void {
       gap: var(--space-1, 4px);
       padding: var(--space-2, 8px) var(--space-6, 24px);
       border-bottom: 1px solid var(--color-border, rgba(0,0,0,0.1));
-      background: var(--color-background-subtle, #F8F6F4);
+      background: var(--color-background-subtle);
     }
     
     .tab-btn {
@@ -919,7 +935,7 @@ function injectStyles(): void {
       border-radius: var(--radius-md, 8px);
       cursor: pointer;
       font-size: 14px;
-      color: var(--color-text-secondary, #666);
+      color: var(--color-text-secondary);
       transition: all ${DURATION.FAST}ms;
     }
     
@@ -943,12 +959,12 @@ function injectStyles(): void {
     .evalops-footer {
       padding: var(--space-3, 12px) var(--space-6, 24px);
       border-top: 1px solid var(--color-border, rgba(0,0,0,0.1));
-      background: var(--color-background-subtle, #F8F6F4);
+      background: var(--color-background-subtle);
     }
     
     .status-text {
       font-size: 13px;
-      color: var(--color-text-muted, #666);
+      color: var(--color-text-muted);
     }
     
     /* Overview Tab */
@@ -992,12 +1008,12 @@ function injectStyles(): void {
       display: block;
       font-size: 24px;
       font-weight: 600;
-      color: var(--color-text-primary, #2C2520);
+      color: var(--color-text-primary);
     }
     
     .card-label {
       font-size: 13px;
-      color: var(--color-text-muted, #666);
+      color: var(--color-text-muted);
     }
     
     .card-trend {
@@ -1032,7 +1048,7 @@ function injectStyles(): void {
       width: 40px;
       height: 40px;
       border-radius: 50%;
-      background: var(--persona-primary, #4a6741);
+      background: var(--persona-primary);
       color: white;
       display: flex;
       align-items: center;
@@ -1059,14 +1075,14 @@ function injectStyles(): void {
     
     .score-fill {
       height: 100%;
-      background: var(--persona-primary, #4a6741);
+      background: var(--persona-primary);
       border-radius: 3px;
       transition: width ${DURATION.SLOW}ms ${EASING.STANDARD};
     }
     
     .persona-score {
       font-size: 12px;
-      color: var(--color-text-muted, #666);
+      color: var(--color-text-muted);
     }
     
     /* Quick Actions */
@@ -1094,13 +1110,13 @@ function injectStyles(): void {
     }
     
     .action-btn--primary {
-      background: var(--persona-primary, #4a6741);
+      background: var(--persona-primary);
       color: white;
       border-color: transparent;
     }
     
     .action-btn--primary:hover {
-      background: var(--persona-secondary, #3d5a35);
+      background: var(--persona-secondary);
     }
     
     /* Config Tab */
@@ -1112,7 +1128,7 @@ function injectStyles(): void {
       font-size: 16px;
       font-weight: 600;
       margin-bottom: var(--space-4, 16px);
-      color: var(--color-text-primary, #2C2520);
+      color: var(--color-text-primary);
     }
     
     .config-row {
@@ -1130,12 +1146,12 @@ function injectStyles(): void {
     .label-text {
       display: block;
       font-weight: 500;
-      color: var(--color-text-primary, #2C2520);
+      color: var(--color-text-primary);
     }
     
     .label-desc {
       font-size: 13px;
-      color: var(--color-text-muted, #666);
+      color: var(--color-text-muted);
     }
     
     /* Toggle Switch */
@@ -1154,7 +1170,7 @@ function injectStyles(): void {
     .toggle-slider {
       position: absolute;
       inset: 0;
-      background: var(--color-border, #ccc);
+      background: var(--color-border);
       border-radius: 26px;
       cursor: pointer;
       transition: ${DURATION.FAST}ms;
@@ -1173,7 +1189,7 @@ function injectStyles(): void {
     }
     
     .toggle input:checked + .toggle-slider {
-      background: var(--persona-primary, #4a6741);
+      background: var(--persona-primary);
     }
     
     .toggle input:checked + .toggle-slider:before {
@@ -1188,7 +1204,7 @@ function injectStyles(): void {
     }
     
     .config-input input[type="range"] {
-      width: 150px;
+      width: min(150px, 100%);
       accent-color: var(--color-text-secondary);
     }
     
@@ -1206,13 +1222,13 @@ function injectStyles(): void {
       justify-content: center;
       padding: var(--space-12, 48px);
       text-align: center;
-      color: var(--color-text-muted, #666);
+      color: var(--color-text-muted);
     }
     
     .spinner {
       width: 32px;
       height: 32px;
-      border: 3px solid var(--color-border, #ccc);
+      border: 3px solid var(--color-border);
       border-top-color: var(--color-text-secondary);
       border-radius: 50%;
       animation: spin 0.8s linear infinite;
@@ -1229,13 +1245,13 @@ function injectStyles(): void {
       left: 50%;
       transform: translateX(-50%) translateY(20px);
       padding: var(--space-3, 12px) var(--space-6, 24px);
-      background: var(--color-text-primary, #2C2520);
+      background: var(--color-text-primary);
       color: white;
       border-radius: var(--radius-full, 999px);
       font-size: 14px;
       opacity: 0;
       transition: all ${DURATION.SLOW}ms ${EASING.STANDARD};
-      z-index: 10001;
+      z-index: var(--z-tooltip);
     }
     
     .evalops-toast--visible {
@@ -1307,7 +1323,7 @@ function injectStyles(): void {
     .metric-label {
       flex: 1;
       font-size: 13px;
-      color: var(--color-text-muted, #666);
+      color: var(--color-text-muted);
     }
     
     .metric-bar {
@@ -1320,7 +1336,7 @@ function injectStyles(): void {
     
     .metric-fill {
       height: 100%;
-      background: var(--persona-primary, #4a6741);
+      background: var(--persona-primary);
       transition: width ${DURATION.SLOW}ms;
     }
     
@@ -1343,7 +1359,7 @@ function injectStyles(): void {
     .persona-action-btn {
       flex: 1;
       padding: var(--space-2, 8px);
-      background: var(--color-background-subtle, #F8F6F4);
+      background: var(--color-background-subtle);
       border: none;
       border-radius: var(--radius-md, 8px);
       cursor: pointer;
@@ -1364,17 +1380,17 @@ function injectStyles(): void {
       font-size: 16px;
       font-weight: 600;
       margin-bottom: var(--space-4, 16px);
-      color: var(--color-text-primary, #2C2520);
+      color: var(--color-text-primary);
     }
     
     /* Scenarios Tab */
     .scenarios-summary {
       padding: var(--space-3, 12px);
-      background: var(--color-background-subtle, #F8F6F4);
+      background: var(--color-background-subtle);
       border-radius: var(--radius-md, 8px);
       margin-bottom: var(--space-4, 16px);
       font-size: 14px;
-      color: var(--color-text-muted, #666);
+      color: var(--color-text-muted);
     }
     
     .divider {
@@ -1389,7 +1405,7 @@ function injectStyles(): void {
       font-size: 14px;
       font-weight: 600;
       margin-bottom: var(--space-2, 8px);
-      color: var(--color-text-secondary, #444);
+      color: var(--color-text-secondary);
     }
     
     .scenario-item {
@@ -1402,7 +1418,7 @@ function injectStyles(): void {
     }
     
     .scenario-item:hover {
-      background: var(--color-background-subtle, #F8F6F4);
+      background: var(--color-background-subtle);
     }
     
     .scenario-item--passed .scenario-status { color: var(--color-semantic-success); }
@@ -1415,7 +1431,7 @@ function injectStyles(): void {
     
     .scenario-score {
       font-size: 13px;
-      color: var(--color-text-muted, #666);
+      color: var(--color-text-muted);
     }
     
     .scenario-run-btn {
@@ -1423,7 +1439,7 @@ function injectStyles(): void {
       border: none;
       cursor: pointer;
       padding: var(--space-1, 4px);
-      color: var(--color-text-muted, #666);
+      color: var(--color-text-muted);
       opacity: 0;
       transition: opacity ${DURATION.FAST}ms;
     }

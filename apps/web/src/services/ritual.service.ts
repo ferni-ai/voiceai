@@ -386,12 +386,12 @@ export class RitualEngine {
     await this.audioService.play(step.sound, { volume });
   }
   
-  private async executeHapticStep(step: HapticStep): Promise<void> {
+  private executeHapticStep(step: HapticStep): void {
     if (!this.hapticsService || !this.config.hapticsEnabled) {
       log.debug('Haptics disabled or unavailable');
       return;
     }
-    
+
     log.debug('Playing haptic', { pattern: step.pattern, intensity: step.intensity });
     this.hapticsService.play(step.pattern, { intensity: step.intensity });
   }
@@ -418,7 +418,7 @@ export class RitualEngine {
     await Promise.all(step.steps.map(s => this.executeStep(s, context)));
   }
   
-  private async executeUIStep(step: UIStep): Promise<void> {
+  private executeUIStep(step: UIStep): void {
     log.debug('UI step', { action: step.action, element: step.element });
     // UI steps are handled by emitting events that UI components listen to
     // This could dispatch to a UI service when implemented

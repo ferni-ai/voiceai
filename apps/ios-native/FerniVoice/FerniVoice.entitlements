@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- Sign In with Apple -->
+	<key>com.apple.developer.applesignin</key>
+	<array>
+		<string>Default</string>
+	</array>
+	
+	<!-- HealthKit -->
+	<key>com.apple.developer.healthkit</key>
+	<true/>
+	<key>com.apple.developer.healthkit.access</key>
+	<array/>
+	<key>com.apple.developer.healthkit.background-delivery</key>
+	<true/>
+	
+	<!-- HomeKit -->
+	<key>com.apple.developer.homekit</key>
+	<true/>
+	
+	<!-- Siri -->
+	<key>com.apple.developer.siri</key>
+	<true/>
+	
+	<!-- Push Notifications -->
+	<key>aps-environment</key>
+	<string>development</string>
+	
+	<!-- App Groups (for sharing data with widgets and watch) -->
+	<key>com.apple.security.application-groups</key>
+	<array>
+		<string>group.com.ferni.shared</string>
+	</array>
+	
+	<!-- Keychain Access Groups -->
+	<key>keychain-access-groups</key>
+	<array>
+		<string>$(AppIdentifierPrefix)com.ferni.FerniVoice</string>
+	</array>
+</dict>
+</plist>

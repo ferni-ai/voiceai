@@ -65,6 +65,19 @@ interface RawRegistryAgent {
   downloads?: number;
   rating?: number;
   featured?: boolean;
+  // Publisher verification info
+  publisher?: {
+    name?: string;
+    verified?: boolean;
+    profileUrl?: string;
+  };
+  // Trust level
+  trust_level?: 'official' | 'verified' | 'community';
+  // Permission requirements
+  permissions?: {
+    required?: string[];
+    optional?: string[];
+  };
   // Nested marketplace format (legacy)
   requirements?: {
     voice_id_env?: string;
@@ -80,6 +93,16 @@ interface RawRegistryAgent {
       secondary?: string;
       gradient?: string;
       glow?: string;
+    };
+    publisher?: {
+      name?: string;
+      verified?: boolean;
+      profileUrl?: string;
+    };
+    trust_level?: 'official' | 'verified' | 'community';
+    permissions?: {
+      required?: string[];
+      optional?: string[];
     };
   };
 }
@@ -100,6 +123,42 @@ interface RawRegistry {
   }>;
   updated_at: string;
 }
+
+/**
+ * Publisher information for marketplace agents
+ */
+export interface PublisherInfo {
+  name: string;
+  verified: boolean;
+  profileUrl?: string;
+}
+
+/**
+ * Trust level for marketplace agents
+ * - 'official': Built by Ferni team
+ * - 'verified': Publisher identity verified, code reviewed
+ * - 'community': Community-contributed, not reviewed
+ */
+export type TrustLevel = 'official' | 'verified' | 'community';
+
+/**
+ * Permission scopes that agents can request
+ */
+export type PermissionScope =
+  | 'user:profile:read'
+  | 'user:profile:write'
+  | 'user:memory:read'
+  | 'user:memory:write'
+  | 'user:calendar:read'
+  | 'user:calendar:write'
+  | 'user:contacts:read'
+  | 'user:habits:read'
+  | 'user:habits:write'
+  | 'user:finance:read'
+  | 'user:health:read'
+  | 'conversation:history:read'
+  | 'conversation:current:read'
+  | 'notifications:send';
 
 /**
  * Registry entry for a marketplace agent (normalized for UI)
@@ -127,6 +186,15 @@ export interface MarketplaceAgent {
   downloads?: number;
   rating?: number;
   reviewCount?: number;
+  /** Publisher information with verification status */
+  publisher: PublisherInfo;
+  /** Trust level based on verification and review status */
+  trustLevel: TrustLevel;
+  /** Permission scopes this agent requires/requests */
+  permissions: {
+    required: PermissionScope[];
+    optional: PermissionScope[];
+  };
 }
 
 /**
@@ -216,11 +284,14 @@ type MarketplaceSource = 'proxy' | 'local' | 'github';
 
 /**
  * Get the appropriate marketplace source based on environment.
- * Development uses local files, production uses the proxy.
+ * Development uses local files (from public/voiceai-agents/), production uses the proxy.
  */
 function getMarketplaceSource(): MarketplaceSource {
-  // Always use proxy - local voiceai-agents files have been removed
-  // to consolidate the codebase. The proxy backend handles all marketplace requests.
+  // Development: use local files from public folder (no UI server dependency)
+  // Production: use proxy to backend API
+  if (import.meta.env?.DEV) {
+    return 'local';
+  }
   return 'proxy';
 }
 
@@ -261,6 +332,9 @@ let registryCache: MarketplaceRegistry | null = null;
 let registryCacheTime = 0;
 let installedAgentsCache: Map<string, InstalledAgent> | null = null;
 
+/** Request deduplication - prevent parallel fetches */
+let fetchInProgress: Promise<MarketplaceRegistry> | null = null;
+
 // ============================================================================
 // REGISTRY FUNCTIONS
 // ============================================================================
@@ -280,20 +354,39 @@ const FALLBACK_COLORS = { primary: '#4a6741', secondary: '#3d5a35' };
  */
 function normalizeAgent(raw: RawRegistryAgent): MarketplaceAgent {
   // Get colors from flat format, nested format, or defaults
-  const rawColors = raw.colors || raw.marketplace?.colors;
-  const colors = rawColors || DEFAULT_AGENT_COLORS[raw.id] || FALLBACK_COLORS;
-  const primaryColor = colors.primary || FALLBACK_COLORS.primary;
-  const secondaryColor = colors.secondary || FALLBACK_COLORS.secondary;
+  const rawColors = raw.colors ?? raw.marketplace?.colors;
+  const colors = rawColors ?? DEFAULT_AGENT_COLORS[raw.id] ?? FALLBACK_COLORS;
+  const primaryColor = colors.primary ?? FALLBACK_COLORS.primary;
+  const secondaryColor = colors.secondary ?? FALLBACK_COLORS.secondary;
+
+  // Extract publisher info from flat or nested format
+  const rawPublisher = raw.publisher ?? raw.marketplace?.publisher;
+  const publisher: PublisherInfo = {
+    name: rawPublisher?.name ?? raw.author,
+    verified: rawPublisher?.verified ?? false,
+    profileUrl: rawPublisher?.profileUrl,
+  };
+
+  // Extract trust level from flat or nested format
+  const trustLevel: TrustLevel =
+    raw.trust_level ?? raw.marketplace?.trust_level ?? 'community';
+
+  // Extract permissions from flat or nested format
+  const rawPermissions = raw.permissions ?? raw.marketplace?.permissions;
+  const permissions: { required: PermissionScope[]; optional: PermissionScope[] } = {
+    required: (rawPermissions?.required ?? []) as PermissionScope[],
+    optional: (rawPermissions?.optional ?? []) as PermissionScope[],
+  };
 
   return {
     id: raw.id,
     name: raw.name,
-    display_name: raw.display_name || raw.name,
+    display_name: raw.display_name ?? raw.name,
     description: raw.description,
-    short_description: raw.short_description || raw.description.split('.')[0] + '.',
+    short_description: raw.short_description ?? raw.description.split('.')[0] + '.',
     category: raw.category,
-    tags: raw.tags || [],
-    icon: raw.icon || raw.marketplace?.icon || '🤖',
+    tags: raw.tags ?? [],
+    icon: raw.icon ?? raw.marketplace?.icon ?? '🤖',
     version: raw.version,
     author: raw.author,
     license: raw.license,
@@ -305,15 +398,18 @@ function normalizeAgent(raw: RawRegistryAgent): MarketplaceAgent {
         `linear-gradient(135deg, ${secondaryColor}, ${primaryColor})`,
       glow: ('glow' in colors && colors.glow) || `rgba(${hexToRgb(primaryColor)}, 0.3)`,
     },
-    path: raw.path || `agents/${raw.id}`,
-    featured: raw.featured || raw.marketplace?.featured,
-    downloads: raw.downloads || raw.marketplace?.downloads,
-    rating: raw.rating || raw.marketplace?.rating,
+    path: raw.path ?? `agents/${raw.id}`,
+    featured: raw.featured ?? raw.marketplace?.featured,
+    downloads: raw.downloads ?? raw.marketplace?.downloads,
+    rating: raw.rating ?? raw.marketplace?.rating,
+    publisher,
+    trustLevel,
+    permissions,
   };
 }
 
 /**
- * Fetch the marketplace registry
+ * Fetch the marketplace registry (with caching and request deduplication)
  */
 export async function fetchRegistry(forceRefresh = false): Promise<MarketplaceRegistry> {
   const now = Date.now();
@@ -323,41 +419,59 @@ export async function fetchRegistry(forceRefresh = false): Promise<MarketplaceRe
     return registryCache;
   }
 
-  try {
-    const response = await fetch(REGISTRY_URL, {
-      headers: {
-        Accept: 'application/json',
-        'Cache-Control': 'no-cache',
-      },
-    });
+  // Dedupe concurrent requests
+  if (fetchInProgress) {
+    return fetchInProgress;
+  }
 
-    if (!response.ok) {
-      throw new Error(`Failed to fetch registry: ${response.status}`);
+  fetchInProgress = (async () => {
+    try {
+      const response = await fetch(REGISTRY_URL, {
+        headers: {
+          Accept: 'application/json',
+          'Cache-Control': 'no-cache',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch registry: ${response.status}`);
+      }
+
+      const rawRegistry = (await response.json()) as RawRegistry;
+
+      // Normalize the registry format for our UI
+      registryCache = {
+        version: rawRegistry.version,
+        updated_at: rawRegistry.updated_at,
+        agents: rawRegistry.agents.map(normalizeAgent),
+        categories: rawRegistry.categories ?? [],
+      };
+      registryCacheTime = now;
+
+      log.info(`Loaded ${registryCache.agents.length} agents from registry`);
+      return registryCache;
+    } catch (err) {
+      log.error('Failed to fetch registry:', err);
+
+      // Return stale cache if available, otherwise empty registry
+      if (registryCache) {
+        log.debug('Using stale registry cache after error');
+        return registryCache;
+      }
+
+      return {
+        version: '0.0.0',
+        updated_at: new Date().toISOString(),
+        agents: [],
+        categories: [],
+      };
     }
+  })();
 
-    const rawRegistry = (await response.json()) as RawRegistry;
-
-    // Normalize the registry format for our UI
-    registryCache = {
-      version: rawRegistry.version,
-      updated_at: rawRegistry.updated_at,
-      agents: rawRegistry.agents.map(normalizeAgent),
-      categories: rawRegistry.categories || [],
-    };
-    registryCacheTime = now;
-
-    log.info(`Loaded ${registryCache.agents.length} agents from registry`);
-    return registryCache;
-  } catch (err) {
-    log.error('Failed to fetch registry:', err);
-
-    // Return empty registry on error
-    return {
-      version: '0.0.0',
-      updated_at: new Date().toISOString(),
-      agents: [],
-      categories: [],
-    };
+  try {
+    return await fetchInProgress;
+  } finally {
+    fetchInProgress = null;
   }
 }
 
@@ -537,7 +651,7 @@ export function getInstalledAgentIds(): Set<string> {
  */
 export function getInstalledAgent(agentId: string): InstalledAgent | null {
   const installed = loadInstalledAgents();
-  return installed.get(agentId) || null;
+  return installed.get(agentId) ?? null;
 }
 
 // ============================================================================
@@ -551,28 +665,28 @@ export function marketplaceAgentToPersonaConfig(
   agent: MarketplaceAgent,
   manifest: PersonaManifest | null
 ): PersonaConfig {
-  const colors = manifest?.marketplace?.colors || agent.colors;
+  const colors = manifest?.marketplace?.colors ?? agent.colors;
   const entrancePhrase =
-    manifest?.team?.handoff_phrases?.receive?.[0] || `${agent.name} here. How can I help?`;
+    manifest?.team?.handoff_phrases?.receive?.[0] ?? `${agent.name} here. How can I help?`;
 
   return {
     id: agent.id as PersonaId,
     name: agent.name,
     initials: agent.name.slice(0, 2).toUpperCase(),
-    subtitle: manifest?.role?.id?.replace(/-/g, ' ') || agent.category,
+    subtitle: manifest?.role?.id?.replace(/-/g, ' ') ?? agent.category,
     role: 'standalone', // Marketplace agents are standalone by default
     quotes: [], // Would need to fetch from knowledge files
     helperText: agent.short_description,
     themeClass: `persona-${agent.id}`,
     colors: {
-      primary: colors.primary || '#666666',
-      secondary: colors.secondary || '#444444',
-      glow: colors.glow || `rgba(${hexToRgb(colors.primary || '#666666')}, 0.3)`,
+      primary: colors.primary ?? '#666666',
+      secondary: colors.secondary ?? '#444444',
+      glow: colors.glow ?? `rgba(${hexToRgb(colors.primary ?? '#666666')}, 0.3)`,
       gradient:
-        colors.gradient ||
-        `linear-gradient(135deg, ${colors.secondary || '#444444'}, ${colors.primary || '#666666'})`,
+        colors.gradient ??
+        `linear-gradient(135deg, ${colors.secondary ?? '#444444'}, ${colors.primary ?? '#666666'})`,
     },
-    skills: (manifest?.role?.domains || agent.tags).slice(0, 4).map((d) => ({
+    skills: (manifest?.role?.domains ?? agent.tags).slice(0, 4).map((d) => ({
       icon: '',
       name: d.replace(/-/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase()),
     })),

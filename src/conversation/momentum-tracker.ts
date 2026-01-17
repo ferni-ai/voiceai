@@ -15,6 +15,7 @@
  * @module conversation/momentum-tracker
  */
 
+import { seededChance, seededPick, seededIndex } from './utils/rng.js';
 import { createLogger } from '../utils/safe-logger.js';
 import { recordMomentumTransition, recordMomentumVelocity } from './awareness-metrics.js';
 
@@ -589,7 +590,7 @@ export class ConversationMomentumTracker {
   getCue(): string | null {
     const cues = this.profile.cues[this.currentState];
     if (!cues || cues.length === 0) return null;
-    return cues[Math.floor(Math.random() * cues.length)];
+    return seededPick(`${Date.now()}:593`, cues) ?? cues[0];
   }
 
   /**

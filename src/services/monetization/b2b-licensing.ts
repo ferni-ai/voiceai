@@ -27,9 +27,9 @@ const log = createLogger({ module: 'B2BLicensing' });
 // IN-MEMORY STORAGE (Replace with DB in production)
 // ============================================================================
 
-const organizations: Map<string, Organization> = new Map();
-const invites: Map<string, OrganizationInvite> = new Map();
-const userOrgMembership: Map<string, string> = new Map(); // userId -> orgId
+const organizations = new Map<string, Organization>();
+const invites = new Map<string, OrganizationInvite>();
+const userOrgMembership = new Map<string, string>(); // userId -> orgId
 
 // ============================================================================
 // ORGANIZATION MANAGEMENT

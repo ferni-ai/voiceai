@@ -26,7 +26,8 @@ describe('Banking Integration API', () => {
 
   describe('Connection Flow', () => {
     it('GET /status - should return banking connection status', async () => {
-      const { hasLinkedAccounts, getTokenData } = await import('../../tools/plaid.js');
+      const { hasLinkedAccounts, getTokenData } =
+        await import('../../tools/domains/finance/plaid.js');
 
       const connected = hasLinkedAccounts(testUserId);
       const tokenData = connected ? getTokenData(testUserId) : null;
@@ -36,7 +37,7 @@ describe('Banking Integration API', () => {
     });
 
     it('POST /link-token - should generate link token when configured', async () => {
-      const { createLinkToken } = await import('../../tools/plaid.js');
+      const { createLinkToken } = await import('../../tools/domains/finance/plaid.js');
 
       const linkToken = await createLinkToken(testUserId);
 
@@ -48,7 +49,8 @@ describe('Banking Integration API', () => {
     });
 
     it('POST /exchange-token - should handle token exchange flow', async () => {
-      const { exchangePublicToken, storeAccessToken } = await import('../../tools/plaid.js');
+      const { exchangePublicToken, storeAccessToken } =
+        await import('../../tools/domains/finance/plaid.js');
 
       // Test with mock token (will fail without real Plaid, but tests the flow)
       const result = await exchangePublicToken('mock-public-token');
@@ -59,7 +61,8 @@ describe('Banking Integration API', () => {
     });
 
     it('DELETE /disconnect - should handle disconnect', async () => {
-      const { removeAccessToken, storeAccessToken } = await import('../../tools/plaid.js');
+      const { removeAccessToken, storeAccessToken } =
+        await import('../../tools/domains/finance/plaid.js');
 
       // First store a mock token
       storeAccessToken(testUserId, 'mock-access-token');
@@ -75,7 +78,7 @@ describe('Banking Integration API', () => {
   describe('Financial Data (Simulated)', () => {
     it('GET /balances - should handle balance requests', async () => {
       const { getAccountBalances, getTokenData, hasLinkedAccounts } =
-        await import('../../tools/plaid.js');
+        await import('../../tools/domains/finance/plaid.js');
 
       if (!hasLinkedAccounts(testUserId)) {
         console.log('⚠️ Balance check skipped (no linked account)');
@@ -93,7 +96,7 @@ describe('Banking Integration API', () => {
 
     it('GET /transactions - should handle transaction requests', async () => {
       const { getTransactions, getTokenData, hasLinkedAccounts } =
-        await import('../../tools/plaid.js');
+        await import('../../tools/domains/finance/plaid.js');
 
       if (!hasLinkedAccounts(testUserId)) {
         console.log('⚠️ Transaction check skipped (no linked account)');
@@ -119,7 +122,7 @@ describe('Banking Integration API', () => {
     });
 
     it('GET /spending-analysis - should analyze spending', async () => {
-      const { analyzeSpending } = await import('../../tools/plaid.js');
+      const { analyzeSpending } = await import('../../tools/domains/finance/plaid.js');
 
       // Test with mock transactions (need name or merchant_name field and pending: false)
       const mockTransactions = [

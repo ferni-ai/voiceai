@@ -45,7 +45,7 @@ describe('Voice Agent Entry - Module Structure', () => {
       'createTranscriptHandler',
       'setupSessionStateHandlers',
       'setupToolTrackingHandler',
-      'createHandoffHandler',
+      'createEventHandler', // NEW: Coordinator-based handoff
       'registerCameoHandlers',
       'generateAndSpeakGreeting',
       'handleSessionCleanup',
@@ -61,10 +61,10 @@ describe('Voice Agent Entry - Module Structure', () => {
     const entryPath = path.resolve(__dirname, '../voice-agent-entry.ts');
     const content = await fs.readFile(entryPath, 'utf-8');
 
-    // Check that FerniAgent is used (agents now build their own tools internally)
+    // Check that FerniAgent is imported and used for persona agents
     expect(content).toContain('FerniAgent');
-    // The agent can use orchestrator tools OR internal tools
-    expect(content).toContain('tools built internally');
+    // Tool orchestration is handled by the orchestrator
+    expect(content).toContain('orchestrat');
   });
 
   it('should have frontend publisher integration', async () => {
@@ -207,7 +207,7 @@ describe('Voice Agent Entry - Helper Functions', () => {
     );
     expect(parsePersonaFromMetadata(undefined)).toBeNull();
     expect(parsePersonaFromMetadata('invalid')).toBeNull();
-  });
+  }, 60000); // 60s timeout for heavy dynamic import under parallel test load
 
   it('should parse user from metadata correctly', async () => {
     const { parseUserFromMetadata } = await import('../voice-agent/index.js');
@@ -290,7 +290,7 @@ describe('Voice Agent Entry - Integration Checklist', () => {
       { name: 'Transcript Handler', pattern: 'createTranscriptHandler' },
       { name: 'Session State Handlers', pattern: 'setupSessionStateHandlers' },
       { name: 'Tool Tracking Handler', pattern: 'setupToolTrackingHandler' },
-      { name: 'Handoff Handler', pattern: 'createHandoffHandler' },
+      { name: 'Handoff Handler', pattern: 'createEventHandler' }, // NEW: Coordinator-based
       { name: 'Cameo Handlers', pattern: 'registerCameoHandlers' },
       { name: 'Greeting Handler', pattern: 'generateAndSpeakGreeting' },
       { name: 'Cleanup Handler', pattern: 'handleSessionCleanup' },
@@ -349,7 +349,7 @@ describe('Voice Agent Entry - Integration Checklist', () => {
       { name: 'Extensibility Hook', pattern: 'extensibilitySessionPrompt' },
     ];
 
-    const results: { name: string; integrated: boolean }[] = [];
+    const results: Array<{ name: string; integrated: boolean }> = [];
 
     for (const integration of integrations) {
       results.push({

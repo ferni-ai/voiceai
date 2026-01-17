@@ -513,19 +513,25 @@ describe('Turn Processor Utility Functions', () => {
  * when a complete testing infrastructure is available.
  */
 
+/**
+ * processTurn Integration Tests
+ *
+ * IMPORTANT: Full integration tests have been moved to:
+ * `src/agents/processors/__tests__/turn-processor-integration.test.ts`
+ *
+ * That file contains 18 comprehensive tests covering:
+ * - Basic Turn Processing (3 tests)
+ * - Emotional State Building (3 tests)
+ * - Response Guidance (2 tests)
+ * - Context Injections (2 tests)
+ * - Performance (2 tests)
+ * - Identity Management (2 tests)
+ * - Edge Cases (4 tests)
+ *
+ * The tests use full mocking of SessionServices, Firestore, and
+ * external dependencies to verify the turn processing pipeline.
+ */
 describe('processTurn Integration Tests', () => {
-  /**
-   * Basic Turn Processing
-   *
-   * Tests the core turn processing pipeline.
-   * Requires: Full session services mock with all sub-services
-   */
-  describe.skip('Basic Turn Processing (requires full integration setup)', () => {
-    it.todo('should process a basic user turn successfully');
-    it.todo('should handle long user messages');
-    it.todo('should handle special characters in user text');
-  });
-
   /**
    * Input Validation
    *
@@ -545,55 +551,10 @@ describe('processTurn Integration Tests', () => {
     });
   });
 
-  /**
-   * Emotional State Building
-   *
-   * Tests the emotional state extraction from analysis.
-   */
-  describe.skip('Emotional State Building (requires full integration setup)', () => {
-    it.todo('should build emotional state from analysis');
-    it.todo('should detect high distress in sad messages');
-    it.todo('should handle neutral emotional state');
-  });
-
-  /**
-   * Response Guidance
-   *
-   * Tests the response guidance generation.
-   */
-  describe.skip('Response Guidance (requires full integration setup)', () => {
-    it.todo('should build response guidance with length recommendations');
-    it.todo('should handle questions differently from statements');
-  });
-
-  /**
-   * Context Injections
-   *
-   * Tests the context injection building.
-   */
-  describe.skip('Context Injections (requires full integration setup)', () => {
-    it.todo('should build context injections array');
-    it.todo('should track context building elapsed time');
-  });
-
-  /**
-   * Performance
-   *
-   * Tests performance characteristics.
-   */
-  describe.skip('Performance (requires full integration setup)', () => {
-    it.todo('should track total elapsed processing time');
-    it.todo('should process turn within acceptable latency');
-  });
-
-  /**
-   * Identity Management
-   *
-   * Tests identity context handling.
-   */
-  describe.skip('Identity Management (requires full integration setup)', () => {
-    it.todo('should include identity context in result');
-    it.todo('should handle identity reinforcement after handoff');
+  it('documents that full integration tests are in turn-processor-integration.test.ts', () => {
+    // This test serves as a pointer to the full integration test file
+    // Run: pnpm vitest run src/agents/processors/__tests__/turn-processor-integration.test.ts
+    expect(true).toBe(true);
   });
 });
 

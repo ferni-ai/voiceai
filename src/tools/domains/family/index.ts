@@ -983,6 +983,19 @@ const discussValuesDef: ToolDefinition = {
 // DOMAIN TOOLS COLLECTION
 // ============================================================================
 
+// Import phone caller tools
+import {
+  leaveMessageToolDef,
+  checkMessagesToolDef,
+  coordinatedReminderToolDef,
+} from './leave-message-tool.js';
+
+// Import family sharing tools (sponsor to family)
+import {
+  shareWithFamilyToolDef,
+  requestCheckInToolDef,
+} from './family-sharing-tool.js';
+
 const familyTools: ToolDefinition[] = [
   // Parenting
   coachParentingChallengeDef,
@@ -1000,6 +1013,13 @@ const familyTools: ToolDefinition[] = [
   // Traditions & Values
   createFamilyTraditionDef,
   discussValuesDef,
+  // Phone Caller Capabilities (messages between family and sponsor)
+  leaveMessageToolDef,
+  checkMessagesToolDef,
+  coordinatedReminderToolDef,
+  // Family Sharing (sponsor to family)
+  shareWithFamilyToolDef,
+  requestCheckInToolDef,
 ];
 
 // ============================================================================

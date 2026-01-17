@@ -17,6 +17,12 @@
  * @module conversation/thinking-phrase-coordinator
  */
 
+import { seededChance, seededIndex, seededPick } from './utils/rng.js';
+import {
+  generateContent,
+  getContentWithFallback,
+  type ContentContext,
+} from '../services/llm-dynamic-content.js';
 import { createLogger } from '../utils/safe-logger.js';
 
 const log = createLogger({ module: 'thinking-coordinator' });
@@ -304,13 +310,36 @@ class ThinkingPhraseCoordinator {
 
   /**
    * Select an appropriate phrase based on context.
+   * Now LLM-powered with fallback to templates!
    */
   private selectPhrase(request: ThinkingPhraseRequest): string | null {
     const personaId = request.personaId || 'default';
     const phrases = THINKING_PHRASES[personaId] || THINKING_PHRASES.default;
     const context = request.context || {};
 
-    // Determine which phrase category to use
+    // Apply probability - don't always use a phrase
+    const probability = this.calculateProbability(request);
+    if (!seededChance(`${Date.now()}:1`, probability)) {
+      return null;
+    }
+
+    // Try LLM-generated content first (from cache)
+    const llmContext: ContentContext = {
+      contentType: 'thinking_phrase',
+      personaId: request.personaId,
+      emotion:
+        context.emotionalIntensity && context.emotionalIntensity > 0.5 ? 'emotional' : undefined,
+      topic: context.topic,
+      userMessage: context.topic, // Use topic as proxy for what user said
+    };
+
+    const llmContent = getContentWithFallback(llmContext);
+    if (llmContent.source === 'llm' && llmContent.content) {
+      log.debug({ source: 'llm' }, '🧠 Using LLM-generated thinking phrase');
+      return llmContent.content;
+    }
+
+    // Fallback to template-based selection
     let candidates: string[];
 
     if (context.emotionalIntensity && context.emotionalIntensity > 0.6) {
@@ -323,14 +352,8 @@ class ThinkingPhraseCoordinator {
       candidates = phrases.general;
     }
 
-    // Apply probability - don't always use a phrase
-    const probability = this.calculateProbability(request);
-    if (Math.random() > probability) {
-      return null;
-    }
-
-    // Random selection
-    return candidates[Math.floor(Math.random() * candidates.length)];
+    // Random selection from templates
+    return seededPick(`${Date.now()}:356`, candidates) ?? candidates[0];
   }
 
   /**

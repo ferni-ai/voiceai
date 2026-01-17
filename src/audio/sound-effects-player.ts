@@ -13,8 +13,8 @@
  * Uses its own BackgroundAudioPlayer instance to avoid any interference
  * with music playback or triggering music-related callbacks.
  *
- * ⚠️ TEMPORARILY DISABLED: fluent-ffmpeg inside LiveKit's BackgroundAudioPlayer
- * can throw unhandled errors that crash the process. Disable until fixed upstream.
+ * 🔧 FIX (Dec 2024): Re-enabled with proper error handling for fluent-ffmpeg errors.
+ * The music player handles these same errors gracefully with .catch() - applying same fix here.
  */
 
 import { voice } from '@livekit/agents';
@@ -26,9 +26,9 @@ import { createLogger } from '../utils/safe-logger.js';
 
 const log = createLogger({ module: 'SoundEffectsPlayer' });
 
-// ⚠️ SAFETY FLAG: Disable sound effects to prevent ffmpeg crashes
-// Set to true when LiveKit fixes the fluent-ffmpeg error handling
-const SOUND_EFFECTS_ENABLED = false;
+// 🔧 RE-ENABLED: Sound effects now work with proper error handling
+// fluent-ffmpeg errors are caught gracefully (same pattern as music player)
+const SOUND_EFFECTS_ENABLED = true;
 
 // Extract BackgroundAudioPlayer from the voice namespace
 const { BackgroundAudioPlayer } = voice;
@@ -55,9 +55,9 @@ class SoundEffectsPlayer {
    * Must be called before playing any sounds
    */
   async initialize(room: Room, session?: AgentSession): Promise<boolean> {
-    // ⚠️ SAFETY: Skip initialization when disabled to prevent FFmpeg crashes
+    // Check if sound effects are enabled
     if (!SOUND_EFFECTS_ENABLED) {
-      log.info('🔊 Sound effects disabled - skipping initialization (using verbal fallbacks)');
+      log.info('🔊 Sound effects disabled - using verbal fallbacks');
       return false;
     }
 
@@ -93,7 +93,6 @@ class SoundEffectsPlayer {
    * Returns false if sound effects are disabled globally
    */
   isInitialized(): boolean {
-    // ⚠️ SAFETY: Return false when disabled to force verbal fallbacks
     if (!SOUND_EFFECTS_ENABLED) {
       return false;
     }
@@ -116,9 +115,8 @@ class SoundEffectsPlayer {
    * @returns Promise<boolean> - true if sound started playing
    */
   async playSound(url: string, volume = 0.5): Promise<boolean> {
-    // ⚠️ SAFETY: Sound effects disabled due to fluent-ffmpeg crashes
     if (!SOUND_EFFECTS_ENABLED) {
-      log.debug('🔊 Sound effects disabled (SOUND_EFFECTS_ENABLED=false)');
+      log.debug('🔊 Sound effects disabled');
       return false;
     }
 
@@ -127,11 +125,24 @@ class SoundEffectsPlayer {
       return false;
     }
 
+    // 🚨 CRASH-FIX: Check if room is still connected before playing
+    if (this.room && !this.room.isConnected) {
+      log.error(
+        {
+          roomIsConnected: this.room.isConnected,
+        },
+        '🚨 [CRASH-FIX] Cannot play sound - LiveKit room is disconnected'
+      );
+      return false;
+    }
+
     try {
       this.isPlaying = true;
 
-      // Download if it's a remote URL
+      // Resolve the audio path
       let audioPath: string = url;
+
+      // Download if it's a remote URL
       if (url.startsWith('http://') || url.startsWith('https://')) {
         const downloadedPath = await this.downloadSound(url);
         if (!downloadedPath) {
@@ -140,26 +151,86 @@ class SoundEffectsPlayer {
         }
         audioPath = downloadedPath;
       }
-
-      // Play through BackgroundAudioPlayer using the same API as MusicPlayer
-      // { source: path, volume } is the options object
-      this.currentPlayHandle = this.audioPlayer.play({ source: audioPath, volume }, false);
-
-      // Wait for completion using waitForPlayout (same as MusicPlayer)
-      await this.currentPlayHandle.waitForPlayout();
-
-      // Cleanup temp file if we downloaded it
-      if (audioPath !== url && audioPath.includes(os.tmpdir())) {
-        try {
-          fs.unlinkSync(audioPath);
-        } catch {
-          // Ignore cleanup errors
+      // Handle local file paths (e.g., /sounds/connect.mp3)
+      else if (url.startsWith('/') && !url.startsWith('//')) {
+        const resolvedPath = this.resolveLocalSoundPath(url);
+        if (!resolvedPath) {
+          log.warn('🔊 Sound file not found', { url });
+          this.isPlaying = false;
+          return false;
         }
+        audioPath = resolvedPath;
+        log.debug({ url, resolvedPath }, '🔊 Resolved local sound path');
       }
 
-      this.isPlaying = false;
-      this.currentPlayHandle = null;
-      log.debug('🔊 Sound effect completed', { url });
+      // Play through BackgroundAudioPlayer
+      // 🚨 CRASH-FIX: Wrap in try-catch for room disconnect during playback
+      log.info({ url, volume }, '🔊 Playing sound effect');
+      try {
+        this.currentPlayHandle = this.audioPlayer.play({ source: audioPath, volume }, false);
+      } catch (playError) {
+        log.error(
+          {
+            error: String(playError),
+            url,
+            roomIsConnected: this.room?.isConnected,
+          },
+          '🚨 [CRASH-FIX] audioPlayer.play() threw - room likely disconnected'
+        );
+        this.isPlaying = false;
+        // Cleanup temp file if we downloaded it
+        if (audioPath !== url && audioPath.includes(os.tmpdir())) {
+          try {
+            fs.unlinkSync(audioPath);
+          } catch {
+            // Ignore cleanup errors
+          }
+        }
+        return false;
+      }
+
+      // 🔧 FIX: Handle fluent-ffmpeg errors gracefully (same pattern as music player)
+      // Use .then()/.catch() instead of await to handle "Output stream closed" errors
+      const playStartTime = Date.now();
+      this.currentPlayHandle
+        .waitForPlayout()
+        .then(() => {
+          // Sound completed successfully
+          this.isPlaying = false;
+          this.currentPlayHandle = null;
+          log.debug('🔊 Sound effect completed', { url, durationMs: Date.now() - playStartTime });
+
+          // Cleanup temp file if we downloaded it
+          if (audioPath !== url && audioPath.includes(os.tmpdir())) {
+            try {
+              fs.unlinkSync(audioPath);
+            } catch {
+              // Ignore cleanup errors
+            }
+          }
+        })
+        .catch((err: unknown) => {
+          // fluent-ffmpeg can throw "Output stream closed" when sounds end abruptly
+          // This is NOT fatal - the sound likely played fine
+          this.isPlaying = false;
+          this.currentPlayHandle = null;
+          const elapsedMs = Date.now() - playStartTime;
+          log.debug(
+            { url, error: String(err), elapsedMs },
+            '🔊 Sound effect waitForPlayout error (non-fatal, sound likely played)'
+          );
+
+          // Cleanup temp file anyway
+          if (audioPath !== url && audioPath.includes(os.tmpdir())) {
+            try {
+              fs.unlinkSync(audioPath);
+            } catch {
+              // Ignore cleanup errors
+            }
+          }
+        });
+
+      // Return true immediately - sound is playing (we don't await completion)
       return true;
     } catch (error) {
       this.isPlaying = false;
@@ -189,6 +260,53 @@ class SoundEffectsPlayer {
       log.warn('🔊 Error downloading sound', { url, error: String(error) });
       return null;
     }
+  }
+
+  /**
+   * Resolve a local sound file path (e.g., /sounds/connect.mp3)
+   * Tries multiple locations for dev vs production environments
+   */
+  private resolveLocalSoundPath(url: string): string | null {
+    const cwd = process.cwd();
+
+    // Try multiple locations - different depending on environment:
+    // 1. Production (Docker): /app/sounds/ - sounds copied to container root
+    // 2. Development: apps/web/public/sounds/
+    // 3. dist builds: sounds copied to dist/sounds/
+    const possiblePaths = [
+      // Production: absolute path in Docker container
+      `/app${url}`,
+      // Also check relative to cwd (backup for Docker)
+      path.join(cwd, url),
+      // Sounds might be in /app/sounds directly (Docker copies them here)
+      path.join(cwd, 'sounds', path.basename(url)),
+      // Development: sounds are in apps/web/public
+      path.join(cwd, 'apps/web/public', url),
+      // Also try from src directory (development builds)
+      path.join(cwd, 'src', '..', 'apps/web/public', url),
+      // dist/sounds (if sounds are copied to dist during build)
+      path.join(cwd, 'dist', url),
+      path.join(cwd, 'dist', 'sounds', path.basename(url)),
+      // public folder at project root
+      path.join(cwd, 'public', url),
+      path.join(cwd, 'public', 'sounds', path.basename(url)),
+      // apps/web deployment (monorepo)
+      path.join(cwd, 'apps', 'web', 'public', url),
+      // absolute path as-is (in case url is already a full path)
+      url,
+    ];
+
+    for (const p of possiblePaths) {
+      try {
+        if (fs.existsSync(p)) {
+          return p;
+        }
+      } catch {
+        // Ignore access errors, try next path
+      }
+    }
+
+    return null;
   }
 
   /**

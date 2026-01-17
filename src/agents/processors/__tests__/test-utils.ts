@@ -52,7 +52,7 @@ export const createMockAnalysis = (overrides = {}) => ({
 /**
  * Create mock session services
  */
-// eslint-disable-next-line @typescript-eslint/explicit-function-return-type
+
 export const createMockServices = (overrides = {}): Record<string, unknown> => ({
   sessionId: 'test-session-123',
   userId: 'test-user-456',
@@ -343,7 +343,7 @@ export const setupTurnProcessorMocks = () => {
 
   // Cross-persona insights
   vi.mock('../../../services/cross-persona-insights.js', () => ({
-    loadInsights: vi.fn(() => Promise.resolve([])),
+    loadInsights: vi.fn(async () => Promise.resolve([])),
     formatInsightsForPrompt: vi.fn(() => ''),
   }));
 
@@ -374,18 +374,18 @@ export const setupTurnProcessorMocks = () => {
 
   // Health awareness
   vi.mock('../../../services/health-awareness/voice-biometrics.js', () => ({
-    analyzeVoiceHealth: vi.fn(() => Promise.resolve({})),
+    analyzeVoiceHealth: vi.fn(async () => Promise.resolve({})),
   }));
 
   // Identity
   vi.mock('../../../services/identity/human-first-2fa.js', () => ({
-    processUserMessage: vi.fn(() => Promise.resolve({})),
+    processUserMessage: vi.fn(async () => Promise.resolve({})),
   }));
 
   // Value capture
   vi.mock('../../../services/monetization/value-capture.js', () => ({
     valueCapture: {
-      capture: vi.fn(() => Promise.resolve(null)),
+      capture: vi.fn(async () => Promise.resolve(null)),
     },
   }));
 
@@ -396,7 +396,7 @@ export const setupTurnProcessorMocks = () => {
 
   // Outreach
   vi.mock('../../../services/outreach/conversation-extractor.js', () => ({
-    extractAndProcess: vi.fn(() => Promise.resolve(undefined)),
+    extractAndProcess: vi.fn(async () => Promise.resolve(undefined)),
   }));
 };
 
@@ -440,7 +440,10 @@ export const createMockTurnProcessorResult = (
 /**
  * Wait for all pending promises/timers
  */
-export const flushPromises = () => new Promise((resolve) => setImmediate(resolve));
+export const flushPromises = async () =>
+  new Promise<void>((resolve) => {
+    setTimeout(resolve, 0);
+  });
 
 /**
  * Create an emotional user message scenario

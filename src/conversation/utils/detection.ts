@@ -12,8 +12,11 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
+// 🦀 Rust-accelerated word counting
+import { countWordsRust, isTokenCountingAvailable } from '../../memory/rust-accelerator.js';
 
 const log = createLogger({ module: 'ConversationDetection' });
+const RUST_COUNTING_AVAILABLE = isTokenCountingAvailable();
 
 // ============================================================================
 // TYPES
@@ -76,6 +79,53 @@ export const HEAVY_CONTENT_PATTERNS = [
   /\b(fired|laid off|bankrupt|homeless)\b/i,
   /\b(diagnosis|cancer|terminal|chronic)\b/i,
   /\b(depression|anxiety|panic)\b/i,
+] as const;
+
+/**
+ * Keywords that suggest heavy content
+ * Used for detailed detection (returns which keywords were found)
+ */
+export const HEAVY_CONTENT_KEYWORDS = [
+  // Emotional/Crisis
+  'suicide',
+  'kill',
+  'die',
+  'death',
+  'dying',
+  'dead',
+  'abuse',
+  'abused',
+  'trauma',
+  'traumatic',
+  'depressed',
+  'depression',
+  'hopeless',
+  'worthless',
+  'panic',
+  'terrified',
+  'devastated',
+  // Life events
+  'divorce',
+  'cancer',
+  'diagnosed',
+  'terminal',
+  'fired',
+  'bankrupt',
+  'homeless',
+  'miscarriage',
+  'stillborn',
+  // Relationship
+  'cheated',
+  'affair',
+  'betrayed',
+  'estranged',
+  'disowned',
+  // Disclosure markers
+  'never told anyone',
+  'first time saying',
+  'secret',
+  'ashamed',
+  'embarrassed to admit',
 ] as const;
 
 /**
@@ -281,7 +331,10 @@ export function detectUserEnergy(userMessage: string): EnergyLevel {
   }
 
   // Word count and punctuation analysis
-  const wordCount = userMessage.split(/\s+/).length;
+  // 🦀 Rust-accelerated word counting
+  const wordCount = RUST_COUNTING_AVAILABLE
+    ? countWordsRust(userMessage)
+    : userMessage.split(/\s+/).length;
   const exclamationCount = (userMessage.match(/!/g) || []).length;
   const questionCount = (userMessage.match(/\?/g) || []).length;
   const capsRatio = (userMessage.match(/[A-Z]/g) || []).length / Math.max(userMessage.length, 1);
@@ -332,7 +385,10 @@ export function detectUserEnergyDetailed(userMessage: string): DetectionResult<E
     }
   }
 
-  const wordCount = userMessage.split(/\s+/).length;
+  // 🦀 Rust-accelerated word counting
+  const wordCount = RUST_COUNTING_AVAILABLE
+    ? countWordsRust(userMessage)
+    : userMessage.split(/\s+/).length;
   const exclamationCount = (userMessage.match(/!/g) || []).length;
 
   if (exclamationCount >= 2) {
@@ -412,6 +468,30 @@ export function detectEmotionalContent(text: string): boolean {
  */
 export function detectHeavyContent(text: string): boolean {
   return HEAVY_CONTENT_PATTERNS.some((p) => p.test(text));
+}
+
+/**
+ * Detect heavy content and return which keywords were found
+ * Useful when you need to know *what* was detected, not just *if*
+ *
+ * @param text - The text to analyze
+ * @returns Array of keywords found in the text
+ *
+ * @example
+ * detectHeavyContentKeywords("dealing with depression") // ['depression']
+ * detectHeavyContentKeywords("had a great day!") // []
+ */
+export function detectHeavyContentKeywords(text: string): string[] {
+  const found: string[] = [];
+  const lowerText = text.toLowerCase();
+
+  for (const keyword of HEAVY_CONTENT_KEYWORDS) {
+    if (lowerText.includes(keyword.toLowerCase())) {
+      found.push(keyword);
+    }
+  }
+
+  return found;
 }
 
 /**
@@ -520,7 +600,10 @@ export function detectEngagementLevel(userMessage: string): DetectionResult<Enga
   }
 
   // Medium engagement by default
-  const wordCount = userMessage.split(/\s+/).length;
+  // 🦀 Rust-accelerated word counting
+  const wordCount = RUST_COUNTING_AVAILABLE
+    ? countWordsRust(userMessage)
+    : userMessage.split(/\s+/).length;
   if (wordCount > 30) {
     signals.push('substantial_response');
     return { detected: true, value: 'medium', confidence: 0.6, signals };
@@ -591,6 +674,7 @@ export default {
   // Content detection
   detectEmotionalContent,
   detectHeavyContent,
+  detectHeavyContentKeywords,
   detectEvidence,
   detectBreakthrough,
   detectAdviceGiving,
@@ -609,6 +693,7 @@ export default {
   LOW_ENERGY_PATTERNS,
   EMOTIONAL_CONTENT_PATTERNS,
   HEAVY_CONTENT_PATTERNS,
+  HEAVY_CONTENT_KEYWORDS,
   LIGHT_CONTENT_PATTERNS,
   EVIDENCE_PATTERNS,
   BREAKTHROUGH_PATTERNS,

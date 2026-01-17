@@ -106,3 +106,6 @@ export {
   wrapError,
   type SessionPhase,
 } from './errors.js';
+
+// Inference Executor
+export { InProcessInferenceExecutor } from './inference-executor.js';

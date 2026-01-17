@@ -8,12 +8,24 @@
 import { describe, it, expect } from 'vitest';
 
 import {
-  migrateUserProfile,
-  isLegacyProfile,
-  isCompositeProfile,
-  ensureCompositeProfile,
-  toLegacyProfile,
-} from '../types/profile/migration.js';
+  detectProfileFormat,
+  migrateToComposite,
+  migrateToLegacy,
+  createUnifiedProfile,
+} from '../types/migration/profile-migrator.js';
+
+// Canonical function aliases for readability in tests
+const migrateUserProfile = migrateToComposite;
+const toLegacyProfile = migrateToLegacy;
+const isLegacyProfile = (p: unknown): p is UserProfile => detectProfileFormat(p) === 'legacy';
+const isCompositeProfile = (p: unknown): p is CompositeUserProfile =>
+  detectProfileFormat(p) === 'composite';
+const ensureCompositeProfile = (p: UserProfile | CompositeUserProfile): CompositeUserProfile => {
+  const format = detectProfileFormat(p);
+  if (format === 'composite') return p as CompositeUserProfile;
+  if (format === 'legacy') return migrateToComposite(p as UserProfile);
+  throw new Error('Unknown profile format');
+};
 
 import { createCommunicationProfile } from '../types/profile/communication.js';
 import { createConversationMemory } from '../types/profile/conversation-memory.js';

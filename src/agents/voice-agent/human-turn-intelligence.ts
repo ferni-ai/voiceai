@@ -18,8 +18,31 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
+import {
+  analyzeTurnBoundary,
+  hasDisfluencies,
+  countWordsRust,
+  isTurnAnalysisAvailable,
+  isFluencyAnalysisAvailable,
+  isTokenCountingAvailable,
+} from '../../memory/rust-accelerator.js';
 
 const log = createLogger({ module: 'HumanTurnIntelligence' });
+
+// Check Rust availability at module load - will be used for fast path
+const RUST_TURN_AVAILABLE = isTurnAnalysisAvailable();
+const RUST_FLUENCY_AVAILABLE = isFluencyAnalysisAvailable();
+const RUST_COUNTING_AVAILABLE = isTokenCountingAvailable();
+
+if (RUST_TURN_AVAILABLE) {
+  log.info('🦀 Rust turn analysis enabled (Aho-Corasick O(n) matching)');
+}
+if (RUST_FLUENCY_AVAILABLE) {
+  log.info('🦀 Rust fluency analysis enabled (disfluency detection)');
+}
+if (RUST_COUNTING_AVAILABLE) {
+  log.info('🦀 Rust token counting enabled (byte-level counting)');
+}
 
 // ============================================================================
 // TYPES
@@ -108,17 +131,39 @@ const COMPLETION_MARKERS = [
   /\b(right|you know\?|make sense\?)\s*$/i, // Question seeking response
 ];
 
+/**
+ * Action request patterns - these indicate a COMPLETE turn requesting an action
+ * Even if they start with "Yeah" or "Okay", an action request is complete
+ */
+const ACTION_REQUEST_MARKERS = [
+  // Music requests
+  /\b(play|put on|start|queue)\s+(some\s+)?(more\s+)?(music|songs?|tunes?)/i,
+  /\b(play|put on)\s+.+\s+(music|by\s+)/i,
+  // Weather requests
+  /\b(check|what('s| is)|how('s| is))\s+(the\s+)?weather/i,
+  // Communication requests
+  /\b(call|text|message|email)\s+/i,
+  // Calendar/reminder requests
+  /\b(set|create|schedule|remind)\s+(a\s+)?(reminder|meeting|appointment|event)/i,
+  // Handoff requests
+  /\b(talk to|speak with|switch to|transfer to|let me talk to)\s+(maya|peter|alex|jordan|nayan|ferni)/i,
+  // Generic action verbs at the end
+  /\b(play|check|get|find|search|look up|tell me)\s+\w+$/i,
+];
+
 /** Phrases that indicate urgency */
 const URGENCY_MARKERS = [
   /\b(help|urgent|emergency|need to|have to|quickly|asap|right now)\b/i,
   /!{2,}/, // Multiple exclamation marks
 ];
 
-/** Back-channel responses for different contexts */
+/** Back-channel responses for different contexts
+ * "Better Than Human" Philosophy: Presence sounds, not commands or questions
+ */
 const BACKCHANNELS = {
-  neutral: ['Mmhmm.', 'Yeah.', 'I see.', 'Okay.', 'Right.'],
+  neutral: ['Mmhmm.', 'Yeah.', 'Mm.', 'Okay.'],
   empathetic: ['I hear you.', 'Yeah.', 'Mmm.', 'Of course.'],
-  encouraging: ['Yeah!', 'Go on.', 'Tell me more.', 'Okay.'],
+  encouraging: ['Yeah!', "I'm here.", "I'm with you."],
   understanding: ['I get it.', 'Makes sense.', 'Yeah.', 'Right.'],
 };
 
@@ -197,6 +242,16 @@ export function clearSessionState(sessionId: string): void {
   sessionStates.delete(sessionId);
 }
 
+/**
+ * Get the current average speech rate for a session
+ * Used by the personality system for context-aware expression generation
+ */
+export function getAverageSpeechRate(sessionId: string): number | undefined {
+  const state = sessionStates.get(sessionId);
+  if (!state || state.sampleCount === 0) return undefined;
+  return Math.round(state.avgSpeechRate);
+}
+
 // ============================================================================
 // MAIN ANALYSIS FUNCTION
 // ============================================================================
@@ -212,23 +267,43 @@ export function analyzeTurnSignals(sessionId: string, context: TurnContext): Tur
   const transcript = context.transcript.trim();
 
   // =========================================================================
-  // SIGNAL DETECTION
+  // SIGNAL DETECTION (Rust-accelerated when available)
   // =========================================================================
 
-  // Check for hesitation (thinking sounds)
-  const isHesitating = HESITATION_MARKERS.some((pattern) => pattern.test(transcript));
+  let isHesitating: boolean;
+  let hasContinuationMarker: boolean;
+  let hasCompletionMarker: boolean;
+  let wordCount: number;
 
-  // Check for continuation signals (and, but, so...)
-  const hasContinuationMarker = CONTINUATION_MARKERS.some((pattern) => pattern.test(transcript));
+  // Use Rust for O(n) multi-pattern matching vs O(n*m) JS regex loops
+  if (RUST_TURN_AVAILABLE && RUST_FLUENCY_AVAILABLE && RUST_COUNTING_AVAILABLE) {
+    // 🦀 FAST PATH: Single Rust call scans all patterns at once
+    const turnAnalysis = analyzeTurnBoundary(transcript);
 
-  // Check for completion signals (punctuation, closing phrases)
-  const hasCompletionMarker = COMPLETION_MARKERS.some((pattern) => pattern.test(transcript));
+    // Map Rust results to our signal categories
+    hasContinuationMarker = turnAnalysis.likelyContinuing || turnAnalysis.continuationCount > 0;
+    hasCompletionMarker = turnAnalysis.likelyTurnComplete || turnAnalysis.turnFinalCount > 0;
 
-  // Check for urgency
+    // Check for hesitation using fluency analysis (detects um, uh, er, etc.)
+    isHesitating = hasDisfluencies(transcript);
+
+    // Fast word count
+    wordCount = countWordsRust(transcript);
+  } else {
+    // 🐢 SLOW PATH: JS regex fallback (10+ pattern tests)
+    isHesitating = HESITATION_MARKERS.some((pattern) => pattern.test(transcript));
+    hasContinuationMarker = CONTINUATION_MARKERS.some((pattern) => pattern.test(transcript));
+    hasCompletionMarker = COMPLETION_MARKERS.some((pattern) => pattern.test(transcript));
+    wordCount = transcript.split(/\s+/).filter((w) => w.length > 0).length;
+  }
+
+  // Check for urgency (not in Rust yet - few patterns, fast in JS)
   const isUrgent = URGENCY_MARKERS.some((pattern) => pattern.test(transcript));
 
-  // Word count analysis
-  const wordCount = transcript.split(/\s+/).filter((w) => w.length > 0).length;
+  // Check for action requests - these should always be treated as complete turns
+  // "Yeah, play some morning music." is a complete action request, not a partial thought
+  const isActionRequest = ACTION_REQUEST_MARKERS.some((pattern) => pattern.test(transcript));
+
   const isSentenceLengthNormal = wordCount >= state.avgSentenceLength * 0.5;
 
   // Emotional state analysis
@@ -246,9 +321,15 @@ export function analyzeTurnSignals(sessionId: string, context: TurnContext): Tur
   if (context.isFinal) completionConfidence += 0.2;
   if (isSentenceLengthNormal) completionConfidence += 0.1;
 
+  // Action requests are ALWAYS complete - boost confidence significantly
+  // This prevents the system from waiting when user says "play some music"
+  if (isActionRequest) completionConfidence += 0.4;
+
   // Negative signals (user might continue)
   if (isHesitating) completionConfidence -= 0.25;
-  if (hasContinuationMarker) completionConfidence -= 0.4;
+  // Don't penalize continuation markers for action requests
+  // "Yeah, play some music" starts with "Yeah" but is still a complete request
+  if (hasContinuationMarker && !isActionRequest) completionConfidence -= 0.4;
   if (!context.isFinal) completionConfidence -= 0.2;
 
   // Silence duration factor
@@ -307,24 +388,24 @@ export function analyzeTurnSignals(sessionId: string, context: TurnContext): Tur
   // RESPONSE TIMING CALCULATION
   // =========================================================================
 
-  // Base delay on their rhythm
-  let recommendedDelay = 200; // Minimum
+  // Base delay on their rhythm - keep it tight for snappy conversation
+  let recommendedDelay = 150; // Minimum - was 200ms
 
-  // Emotional adjustment
+  // Emotional adjustment - reduced to stay responsive
   if (context.emotion === 'sad' || context.emotion === 'anxious') {
-    recommendedDelay += 400; // Give space
+    recommendedDelay += 200; // Was 400ms - still give space but not too much
   } else if (isUrgent || context.emotion === 'excited') {
-    recommendedDelay = 100; // Quick response
+    recommendedDelay = 80; // Was 100ms - quick response
   }
 
-  // Hesitation adjustment
+  // Hesitation adjustment - reduced significantly
   if (isHesitating && !context.isFinal) {
-    recommendedDelay += 600; // Wait for them to finish thinking
+    recommendedDelay += 250; // Was 600ms - still wait but not forever
   }
 
-  // Low confidence adjustment
+  // Low confidence adjustment - reduced
   if (completionConfidence < 0.6) {
-    recommendedDelay += 300; // Not sure they're done
+    recommendedDelay += 150; // Was 300ms - not sure they're done but stay engaged
   }
 
   // =========================================================================
@@ -342,15 +423,20 @@ export function analyzeTurnSignals(sessionId: string, context: TurnContext): Tur
   // RESULT
   // =========================================================================
 
+  // Action requests should be marked as complete even with lower confidence threshold
+  // because they are explicit commands that don't need continuation
+  const isComplete = context.isFinal && (completionConfidence > 0.6 || isActionRequest);
+
   const result: TurnSignals = {
-    isComplete: context.isFinal && completionConfidence > 0.6,
+    isComplete,
     completionConfidence,
     shouldBackchannel,
     backchannelSuggestion,
-    wantsToContinue: hasContinuationMarker || (isHesitating && completionConfidence < 0.5),
-    isUrgent,
+    // Action requests don't want to continue - they want the action executed
+    wantsToContinue: !isActionRequest && (hasContinuationMarker || (isHesitating && completionConfidence < 0.5)),
+    isUrgent: isUrgent || isActionRequest, // Action requests have implicit urgency
     isHesitating,
-    recommendedDelay,
+    recommendedDelay: isActionRequest ? 80 : recommendedDelay, // Respond faster to action requests
     shouldYieldFloor,
   };
 

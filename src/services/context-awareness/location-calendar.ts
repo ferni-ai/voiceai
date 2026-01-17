@@ -22,7 +22,7 @@ import {
   generateAuthUrl,
   exchangeCodeForTokens,
   type CalendarEvent as GoogleCalendarEvent,
-} from '../google-calendar-oauth.js';
+} from '../identity/google-calendar-oauth.js';
 
 const log = createLogger({ module: 'LocationCalendar' });
 
@@ -156,13 +156,13 @@ function getOrCreateState(userId: string): UserContextState {
  * Get Google Calendar OAuth authorization URL
  * @deprecated Use generateAuthUrl() from google-calendar-oauth.ts instead
  */
-export { generateAuthUrl as getCalendarAuthUrl } from '../google-calendar-oauth.js';
+export { generateAuthUrl as getCalendarAuthUrl } from '../identity/google-calendar-oauth.js';
 
 /**
  * Exchange authorization code for tokens
  * @deprecated Use exchangeCodeForTokens() from google-calendar-oauth.ts instead
  */
-export { exchangeCodeForTokens as exchangeCalendarCode } from '../google-calendar-oauth.js';
+export { exchangeCodeForTokens as exchangeCalendarCode } from '../identity/google-calendar-oauth.js';
 
 // Re-import for default export
 const getCalendarAuthUrl = generateAuthUrl;
@@ -199,7 +199,7 @@ async function getValidAccessToken(userId: string): Promise<string | null> {
  */
 export async function fetchUpcomingEvents(
   userId: string,
-  hoursAhead: number = 24
+  hoursAhead = 24
 ): Promise<CalendarEvent[]> {
   // Check if calendar is connected via shared OAuth service
   if (!(await isCalendarConfigured(userId))) {

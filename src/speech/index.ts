@@ -88,13 +88,14 @@ export {
   PERSONA_BACKCHANNEL_STYLE,
   PERSONA_CATCHPHRASES,
   SOFT_BACKCHANNELS,
-  THINKING_FILLERS,
+  // THINKING_FILLERS - DEPRECATED: Use ProcessingIntelligence instead
   getAcknowledgmentPrefix,
   getBackchannelPhrase,
   getCatchphraseWithSsml,
   getPersonaBackchannelStyle,
   getSoftBackchannel,
-  getThinkingFiller,
+  // getThinkingFiller - DEPRECATED: Use getContextAwareThinkingFiller
+  getContextAwareThinkingFiller, // Context-aware ProcessingIntelligence integration
   normalizePersonaId,
   type AcknowledgmentMood,
   type BackchannelCategory,
@@ -155,8 +156,7 @@ export {
   detectEnergyLevel,
   determineTopicWeight,
   getSessionWPMTracker,
-  removeSessionWPMTracker,
-  resetSessionWPMTracker, // Preferred naming alias
+  resetSessionWPMTracker,
   type EnergyLevel,
   type SpeechContext,
   type TopicWeight,
@@ -192,8 +192,9 @@ export { sanitizeSsml, tagTextWithSsml, tagTextWithSsmlPersonaAware } from '../s
 
 // ============================================================================
 // RESPONSE NATURALNESS
-// Note: ACKNOWLEDGMENT_PREFIXES, PERSONA_CATCHPHRASES, THINKING_FILLERS, etc.
+// Note: ACKNOWLEDGMENT_PREFIXES, PERSONA_CATCHPHRASES, etc.
 // are exported from persona-phrases.js (canonical source)
+// THINKING_FILLERS is deprecated - use ProcessingIntelligence
 // ============================================================================
 
 export {
@@ -222,8 +223,7 @@ export {
   getProsodyMetrics,
   getSessionAudioProsodyAnalyzer,
   recordProsodyAnalysis,
-  removeSessionAudioProsodyAnalyzer,
-  resetSessionAudioProsodyAnalyzer, // Preferred naming alias
+  resetSessionAudioProsodyAnalyzer,
   type ProsodyFeatures,
   type ProsodyMetrics,
   type VoiceEmotion,
@@ -253,8 +253,7 @@ export {
 export {
   BackchannelingSystem,
   getSessionBackchannelingSystem,
-  removeSessionBackchannelingSystem,
-  resetSessionBackchannelingSystem, // Preferred naming alias
+  resetSessionBackchannelingSystem,
   type BackchannelContext,
   type BackchannelResult,
 } from './backchanneling.js';
@@ -574,11 +573,15 @@ export {
   // Natural fillers ("um", "well", etc.)
   injectNaturalFillers,
   mapContextToEmotion,
+  // Persona emotion profiles (standalone module for circular dep avoidance)
+  getEmotionProfile,
+  PERSONA_EMOTION_PROFILES,
   type BreathGroupConfig,
   type CartesiaEmotion,
   type EmotionContext,
   type FillerConfig,
   type HumanizationOptions as AdvancedHumanizationOptions,
+  type PersonaEmotionProfile,
   type RhythmVariation,
 } from './advanced-humanization.js';
 
@@ -593,7 +596,6 @@ export {
   EnhancedBackchannelingEngine,
   getEnhancedBackchannelingEngine,
   getQuickBackchannel,
-  removeEnhancedBackchannelingEngine,
   resetEnhancedBackchannelingEngine,
   type BackchannelType,
   type EnhancedBackchannelContext, // Preferred naming alias
@@ -832,3 +834,104 @@ export {
   type IntentCategory,
   type IntentPrediction,
 } from './anticipation/index.js';
+
+// ============================================================================
+// GRACEFUL INTERRUPT (Natural interrupt handling - NEW!)
+// ============================================================================
+
+export {
+  // State management
+  getInterruptState,
+  resetInterruptState,
+  // Core functions
+  addCushioning,
+  senseInterrupt,
+  getTrailingSsml,
+  getRecoverySsml,
+  endRecovery,
+  // Main integration
+  wrapWithInterruptAwareness,
+  // Speech wrapper (recommended for new code)
+  wrapSpeechWithInterruptAwareness,
+  createInterruptAwareTransform,
+  markRecoveryComplete,
+  isInRecoveryPhase,
+  // Constants
+  CUSHION_TIMING,
+  TRAILING_TRIGGERS,
+  // Types
+  type InterruptPhase,
+  type InterruptState,
+  type CushionedResponse,
+  type RecoveryOptions,
+  type RecoverySsml,
+  type InterruptContext,
+  type WrappedSpeech,
+} from './graceful-interrupt/index.js';
+
+// ============================================================================
+// TTS BULKHEAD (Session isolation for voice synthesis - SET-17)
+// ============================================================================
+
+export {
+  // Main class
+  TTSBulkhead,
+  TimeoutError,
+  // Singleton access
+  getTTSBulkhead,
+  resetTTSBulkhead,
+  // Convenience functions
+  executeWithBulkhead,
+  canAcceptTTSRequest,
+  isTTSUnderPressure,
+  getTTSBulkheadStats,
+  cleanupTTSSession,
+  // Types
+  type TTSBulkheadConfig,
+  type TTSRequest,
+  type TTSBulkheadResult,
+  type TTSBulkheadStats,
+} from './tts-bulkhead.js';
+
+// ============================================================================
+// SPEECH HUMANIZATION (Better Than Human - JSON behavior injection)
+// ============================================================================
+
+export {
+  // Main humanization function (async)
+  humanizeSpeech,
+  quickHumanize,
+  getAvailableCategories,
+  // Sync humanization (for persona-fingerprints sync pipeline)
+  quickHumanizeSync,
+  // Behavior loading (async)
+  loadSpeechProfile,
+  clearSpeechProfileCache,
+  preloadAllSpeechProfiles,
+  selectImperfection,
+  selectThinkingSound,
+  selectBackchannel,
+  selectBreathSound,
+  getInjectionConfig,
+  // Sync accessors (for use after preloading)
+  getSpeechProfileSync,
+  areSpeechProfilesPreloaded,
+  selectThinkingSoundSync,
+  selectImperfectionSync,
+  selectBreathSoundSync,
+  // Types
+  type BehaviorSelectionContext,
+  type EmotionalSelectionContext,
+  type ContentSelectionContext,
+  type SelectedBehavior,
+  type HumanizedSpeechResult,
+  type SpeechImperfectionsSchema,
+  type ThinkingSoundsSchema,
+  type BackchannelsSchema,
+  type BreathSoundsSchema,
+  type PersonaSpeechProfile,
+  type ImperfectionCategory,
+  type CoreImperfectionCategory,
+  type ExtendedImperfectionCategory,
+  type InjectionConfig,
+} from './humanization/index.js';

@@ -1,17 +1,18 @@
 /**
- * Ferni Logo Component - Three Stones with Expressive Animations
- * 
- * A reusable animated logo component that can express emotions
- * through eye movement and simple line mouth reveals.
- * 
+ * Ferni Logo Component - Eyes Avatar with Expressive Animations
+ *
+ * A reusable animated logo component featuring expressive eyes
+ * (no pupils - just opaque white with sparkles) that can express
+ * emotions through subtle animations.
+ *
  * @example
  * // Create logo
  * const logo = createFerniLogo({ size: 64 });
  * container.appendChild(logo.element);
- * 
+ *
  * // Set expression
  * logo.setExpression('happy');
- * 
+ *
  * // Clear expression (back to zen)
  * logo.setExpression('zen');
  */
@@ -27,16 +28,16 @@ const log = createLogger('FerniLogo');
 // ============================================================================
 
 export type LogoExpression = 
-  | 'zen'       // Default - no mouth, centered eye
-  | 'happy'     // Eye up, smile
-  | 'excited'   // Bouncy eye, wide smile
-  | 'curious'   // Tilted eye, small smile
-  | 'sad'       // Soft eye, frown
-  | 'surprised' // Wide eye, small o
-  | 'thinking'  // Wandering eye, no mouth
-  | 'chuckle'   // Squinty eye, wobbly smile
-  | 'speaking'  // Animated mouth
-  | 'listening'; // Gentle pulse
+  | 'zen'       // Default - calm, centered
+  | 'happy'     // Slight bounce, warmth
+  | 'excited'   // More bounce, glow
+  | 'curious'   // Subtle tilt
+  | 'sad'       // Slightly dimmed
+  | 'surprised' // Scale pop
+  | 'thinking'  // Gentle pulse
+  | 'chuckle'   // Wobble
+  | 'speaking'  // Active glow
+  | 'listening'; // Subtle pulse
 
 export interface FerniLogoOptions {
   /** Size in pixels (width and height) */
@@ -49,6 +50,8 @@ export interface FerniLogoOptions {
   simplified?: boolean;
   /** Custom class name */
   className?: string;
+  /** Include heart badge */
+  showBadge?: boolean;
 }
 
 export interface FerniLogoInstance {
@@ -69,11 +72,12 @@ export interface FerniLogoInstance {
 // ============================================================================
 
 const LOGO_COLORS = {
-  outer: '#4a6741',      // Sage green
-  iris: '#5a8060',       // Light sage
-  pupil: '#2c2520',      // Dark ink
+  primary: '#4a6741',      // Sage green
+  secondary: '#3d5a35',    // Darker sage
+  badge: '#5a8060',        // Light sage for badge
   white: '#ffffff',
-  catchlight: 'rgba(255, 255, 255, 0.9)',
+  cream: '#F5F1E8',        // Paper cream background
+  ring: 'rgba(74, 103, 65, 0.35)', // Ring color
 };
 
 // ============================================================================
@@ -90,6 +94,7 @@ export function createFerniLogo(options: FerniLogoOptions = {}): FerniLogoInstan
     animated = true,
     simplified = size < 32,
     className = '',
+    showBadge = false,
   } = options;
 
   let currentExpression: LogoExpression = expression;
@@ -97,7 +102,7 @@ export function createFerniLogo(options: FerniLogoOptions = {}): FerniLogoInstan
 
   // Create SVG element
   const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-  svg.setAttribute('viewBox', '0 0 100 100');
+  svg.setAttribute('viewBox', showBadge ? '0 0 120 120' : '0 0 100 100');
   svg.setAttribute('width', String(size));
   svg.setAttribute('height', String(size));
   svg.setAttribute('class', `ferni-logo ${className}`.trim());
@@ -109,53 +114,310 @@ export function createFerniLogo(options: FerniLogoOptions = {}): FerniLogoInstan
   style.textContent = getLogoStyles(animated);
   svg.appendChild(style);
 
-  // Outer stone (body)
-  const outer = createCircle(50, 50, 45, LOGO_COLORS.outer);
-  svg.appendChild(outer);
+  // Define gradients and filters using safe DOM methods
+  const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
 
-  // Eye group (for animations)
-  const eyeGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-  eyeGroup.setAttribute('class', 'eye-group');
+  // Logo gradient
+  const logoGrad = document.createElementNS('http://www.w3.org/2000/svg', 'linearGradient');
+  logoGrad.setAttribute('id', `logoGrad-${size}`);
+  logoGrad.setAttribute('x1', '0%');
+  logoGrad.setAttribute('y1', '100%');
+  logoGrad.setAttribute('x2', '100%');
+  logoGrad.setAttribute('y2', '0%');
+  const logoStop1 = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
+  logoStop1.setAttribute('offset', '0%');
+  logoStop1.setAttribute('stop-color', LOGO_COLORS.secondary);
+  const logoStop2 = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
+  logoStop2.setAttribute('offset', '100%');
+  logoStop2.setAttribute('stop-color', LOGO_COLORS.primary);
+  logoGrad.appendChild(logoStop1);
+  logoGrad.appendChild(logoStop2);
+  defs.appendChild(logoGrad);
 
-  // Eye white
-  const eyeWhite = createCircle(50, 50, 18, LOGO_COLORS.white);
-  eyeWhite.setAttribute('class', 'eye-white');
-  eyeGroup.appendChild(eyeWhite);
+  // Eye fill gradient (white to light gray)
+  const eyeFillGrad = document.createElementNS('http://www.w3.org/2000/svg', 'linearGradient');
+  eyeFillGrad.setAttribute('id', `eyeFill-${size}`);
+  eyeFillGrad.setAttribute('x1', '0%');
+  eyeFillGrad.setAttribute('y1', '0%');
+  eyeFillGrad.setAttribute('x2', '0%');
+  eyeFillGrad.setAttribute('y2', '100%');
+  const eyeStop1 = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
+  eyeStop1.setAttribute('offset', '0%');
+  eyeStop1.setAttribute('stop-color', '#ffffff');
+  const eyeStop2 = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
+  eyeStop2.setAttribute('offset', '100%');
+  eyeStop2.setAttribute('stop-color', '#f0f0f0');
+  eyeFillGrad.appendChild(eyeStop1);
+  eyeFillGrad.appendChild(eyeStop2);
+  defs.appendChild(eyeFillGrad);
 
-  // Iris (skip for simplified)
-  if (!simplified) {
-    const iris = createCircle(50, 50, 12, LOGO_COLORS.iris);
-    eyeGroup.appendChild(iris);
+  // Eye shadow filter
+  const eyeShadowFilter = document.createElementNS('http://www.w3.org/2000/svg', 'filter');
+  eyeShadowFilter.setAttribute('id', `eyeShadow-${size}`);
+  eyeShadowFilter.setAttribute('x', '-20%');
+  eyeShadowFilter.setAttribute('y', '-20%');
+  eyeShadowFilter.setAttribute('width', '140%');
+  eyeShadowFilter.setAttribute('height', '140%');
+  const eyeDropShadow1 = document.createElementNS('http://www.w3.org/2000/svg', 'feDropShadow');
+  eyeDropShadow1.setAttribute('dx', '0');
+  eyeDropShadow1.setAttribute('dy', '0.5');
+  eyeDropShadow1.setAttribute('stdDeviation', '1');
+  eyeDropShadow1.setAttribute('flood-color', 'black');
+  eyeDropShadow1.setAttribute('flood-opacity', '0.1');
+  const eyeDropShadow2 = document.createElementNS('http://www.w3.org/2000/svg', 'feDropShadow');
+  eyeDropShadow2.setAttribute('dx', '0');
+  eyeDropShadow2.setAttribute('dy', '-0.5');
+  eyeDropShadow2.setAttribute('stdDeviation', '1');
+  eyeDropShadow2.setAttribute('flood-color', 'white');
+  eyeDropShadow2.setAttribute('flood-opacity', '0.4');
+  eyeShadowFilter.appendChild(eyeDropShadow1);
+  eyeShadowFilter.appendChild(eyeDropShadow2);
+  defs.appendChild(eyeShadowFilter);
+
+  // Sparkle glow filter
+  const sparkleFilter = document.createElementNS('http://www.w3.org/2000/svg', 'filter');
+  sparkleFilter.setAttribute('id', `sparkleGlow-${size}`);
+  sparkleFilter.setAttribute('x', '-100%');
+  sparkleFilter.setAttribute('y', '-100%');
+  sparkleFilter.setAttribute('width', '300%');
+  sparkleFilter.setAttribute('height', '300%');
+  const sparkleBlur = document.createElementNS('http://www.w3.org/2000/svg', 'feGaussianBlur');
+  sparkleBlur.setAttribute('stdDeviation', '0.8');
+  sparkleBlur.setAttribute('result', 'blur');
+  const sparkleMerge = document.createElementNS('http://www.w3.org/2000/svg', 'feMerge');
+  const mergeNode1 = document.createElementNS('http://www.w3.org/2000/svg', 'feMergeNode');
+  mergeNode1.setAttribute('in', 'blur');
+  const mergeNode2 = document.createElementNS('http://www.w3.org/2000/svg', 'feMergeNode');
+  mergeNode2.setAttribute('in', 'SourceGraphic');
+  sparkleMerge.appendChild(mergeNode1);
+  sparkleMerge.appendChild(mergeNode2);
+  sparkleFilter.appendChild(sparkleBlur);
+  sparkleFilter.appendChild(sparkleMerge);
+  defs.appendChild(sparkleFilter);
+
+  // Badge gradients/filters if needed
+  if (showBadge) {
+    const badgeGrad = document.createElementNS('http://www.w3.org/2000/svg', 'linearGradient');
+    badgeGrad.setAttribute('id', `badgeGrad-${size}`);
+    badgeGrad.setAttribute('x1', '0%');
+    badgeGrad.setAttribute('y1', '100%');
+    badgeGrad.setAttribute('x2', '100%');
+    badgeGrad.setAttribute('y2', '0%');
+    const badgeStop1 = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
+    badgeStop1.setAttribute('offset', '0%');
+    badgeStop1.setAttribute('stop-color', LOGO_COLORS.secondary);
+    const badgeStop2 = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
+    badgeStop2.setAttribute('offset', '100%');
+    badgeStop2.setAttribute('stop-color', LOGO_COLORS.badge);
+    badgeGrad.appendChild(badgeStop1);
+    badgeGrad.appendChild(badgeStop2);
+    defs.appendChild(badgeGrad);
+
+    const badgeShadowFilter = document.createElementNS('http://www.w3.org/2000/svg', 'filter');
+    badgeShadowFilter.setAttribute('id', `badgeShadow-${size}`);
+    badgeShadowFilter.setAttribute('x', '-50%');
+    badgeShadowFilter.setAttribute('y', '-50%');
+    badgeShadowFilter.setAttribute('width', '200%');
+    badgeShadowFilter.setAttribute('height', '200%');
+    const badgeDropShadow = document.createElementNS('http://www.w3.org/2000/svg', 'feDropShadow');
+    badgeDropShadow.setAttribute('dx', '0');
+    badgeDropShadow.setAttribute('dy', '1');
+    badgeDropShadow.setAttribute('stdDeviation', '1.5');
+    badgeDropShadow.setAttribute('flood-color', '#2c2520');
+    badgeDropShadow.setAttribute('flood-opacity', '0.2');
+    badgeShadowFilter.appendChild(badgeDropShadow);
+    defs.appendChild(badgeShadowFilter);
   }
 
-  // Pupil group (for look direction)
-  const pupilGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-  pupilGroup.setAttribute('class', 'pupil-group');
+  svg.appendChild(defs);
 
-  // Pupil
-  const pupil = createCircle(50, 50, simplified ? 8 : 6, LOGO_COLORS.pupil);
-  pupilGroup.appendChild(pupil);
-
-  // Catchlight (skip for simplified)
+  // Outer presence ring
   if (!simplified) {
-    const catchlight = createCircle(47, 47, 2, LOGO_COLORS.white);
-    catchlight.setAttribute('opacity', '0.9');
-    pupilGroup.appendChild(catchlight);
+    const ring = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    ring.setAttribute('class', 'presence-ring');
+    ring.setAttribute('cx', '50');
+    ring.setAttribute('cy', '50');
+    ring.setAttribute('r', '46');
+    ring.setAttribute('fill', 'none');
+    ring.setAttribute('stroke', LOGO_COLORS.primary);
+    ring.setAttribute('stroke-width', size > 64 ? '2' : '1');
+    ring.setAttribute('opacity', '0.35');
+    svg.appendChild(ring);
   }
 
-  eyeGroup.appendChild(pupilGroup);
-  svg.appendChild(eyeGroup);
+  // Avatar group (for animations)
+  const avatarGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+  avatarGroup.setAttribute('class', 'avatar-group');
 
-  // Mouth (hidden by default)
-  if (animated) {
-    const mouth = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-    mouth.setAttribute('class', 'mouth');
-    mouth.setAttribute('d', 'M 35 68 Q 50 78 65 68');
-    mouth.setAttribute('stroke', LOGO_COLORS.white);
-    mouth.setAttribute('stroke-width', '4');
-    mouth.setAttribute('stroke-linecap', 'round');
-    mouth.setAttribute('fill', 'none');
-    svg.appendChild(mouth);
+  // Main avatar circle
+  const avatar = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+  avatar.setAttribute('class', 'avatar-body');
+  avatar.setAttribute('cx', '50');
+  avatar.setAttribute('cy', '50');
+  avatar.setAttribute('r', '40');
+  avatar.setAttribute('fill', `url(#logoGrad-${size})`);
+  avatarGroup.appendChild(avatar);
+
+  // Eyes group (no pupils - just opaque white with sparkles)
+  const eyesGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+  eyesGroup.setAttribute('class', 'eyes-group');
+
+  // Scale eye dimensions based on logo size
+  // Eyes are positioned at roughly 35 and 65 on x-axis, centered on y-axis
+  const eyeRx = simplified ? 6 : 8;  // Horizontal radius
+  const eyeRy = simplified ? 8 : 11; // Vertical radius (taller than wide)
+  const eyeSpacing = simplified ? 12 : 15;
+  const eyeY = 50; // Centered vertically
+
+  // Create left eye
+  const leftEyeGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+  leftEyeGroup.setAttribute('class', 'eye-left');
+  leftEyeGroup.setAttribute('transform', `translate(${50 - eyeSpacing}, ${eyeY})`);
+
+  // Left eye outer glow
+  const leftEyeGlow = document.createElementNS('http://www.w3.org/2000/svg', 'ellipse');
+  leftEyeGlow.setAttribute('cx', '0');
+  leftEyeGlow.setAttribute('cy', '0');
+  leftEyeGlow.setAttribute('rx', String(eyeRx + 2));
+  leftEyeGlow.setAttribute('ry', String(eyeRy + 2));
+  leftEyeGlow.setAttribute('fill', `url(#eyeFill-${size})`);
+  leftEyeGlow.setAttribute('opacity', '0.3');
+  leftEyeGroup.appendChild(leftEyeGlow);
+
+  // Left eye main
+  const leftEye = document.createElementNS('http://www.w3.org/2000/svg', 'ellipse');
+  leftEye.setAttribute('class', 'eye-main');
+  leftEye.setAttribute('cx', '0');
+  leftEye.setAttribute('cy', '0');
+  leftEye.setAttribute('rx', String(eyeRx));
+  leftEye.setAttribute('ry', String(eyeRy));
+  leftEye.setAttribute('fill', `url(#eyeFill-${size})`);
+  leftEye.setAttribute('filter', `url(#eyeShadow-${size})`);
+  leftEyeGroup.appendChild(leftEye);
+
+  // Left eye sparkles
+  if (!simplified) {
+    const leftSparkleGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+    leftSparkleGroup.setAttribute('class', 'sparkle-group');
+    leftSparkleGroup.setAttribute('transform', `translate(${-eyeRx * 0.35}, ${-eyeRy * 0.4})`);
+    leftSparkleGroup.setAttribute('filter', `url(#sparkleGlow-${size})`);
+
+    const leftSparkle1 = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    leftSparkle1.setAttribute('cx', '0');
+    leftSparkle1.setAttribute('cy', '0');
+    leftSparkle1.setAttribute('r', String(Math.max(2, eyeRx * 0.3)));
+    leftSparkle1.setAttribute('fill', 'white');
+    leftSparkleGroup.appendChild(leftSparkle1);
+
+    const leftSparkle2 = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    leftSparkle2.setAttribute('cx', String(eyeRx * 0.2));
+    leftSparkle2.setAttribute('cy', String(eyeRy * 0.15));
+    leftSparkle2.setAttribute('r', String(Math.max(1, eyeRx * 0.15)));
+    leftSparkle2.setAttribute('fill', 'white');
+    leftSparkle2.setAttribute('opacity', '0.7');
+    leftSparkleGroup.appendChild(leftSparkle2);
+
+    leftEyeGroup.appendChild(leftSparkleGroup);
+  }
+
+  eyesGroup.appendChild(leftEyeGroup);
+
+  // Create right eye
+  const rightEyeGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+  rightEyeGroup.setAttribute('class', 'eye-right');
+  rightEyeGroup.setAttribute('transform', `translate(${50 + eyeSpacing}, ${eyeY})`);
+
+  // Right eye outer glow
+  const rightEyeGlow = document.createElementNS('http://www.w3.org/2000/svg', 'ellipse');
+  rightEyeGlow.setAttribute('cx', '0');
+  rightEyeGlow.setAttribute('cy', '0');
+  rightEyeGlow.setAttribute('rx', String(eyeRx + 2));
+  rightEyeGlow.setAttribute('ry', String(eyeRy + 2));
+  rightEyeGlow.setAttribute('fill', `url(#eyeFill-${size})`);
+  rightEyeGlow.setAttribute('opacity', '0.3');
+  rightEyeGroup.appendChild(rightEyeGlow);
+
+  // Right eye main
+  const rightEye = document.createElementNS('http://www.w3.org/2000/svg', 'ellipse');
+  rightEye.setAttribute('class', 'eye-main');
+  rightEye.setAttribute('cx', '0');
+  rightEye.setAttribute('cy', '0');
+  rightEye.setAttribute('rx', String(eyeRx));
+  rightEye.setAttribute('ry', String(eyeRy));
+  rightEye.setAttribute('fill', `url(#eyeFill-${size})`);
+  rightEye.setAttribute('filter', `url(#eyeShadow-${size})`);
+  rightEyeGroup.appendChild(rightEye);
+
+  // Right eye sparkles
+  if (!simplified) {
+    const rightSparkleGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+    rightSparkleGroup.setAttribute('class', 'sparkle-group');
+    rightSparkleGroup.setAttribute('transform', `translate(${-eyeRx * 0.3}, ${-eyeRy * 0.4})`);
+    rightSparkleGroup.setAttribute('filter', `url(#sparkleGlow-${size})`);
+
+    const rightSparkle1 = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    rightSparkle1.setAttribute('cx', '0');
+    rightSparkle1.setAttribute('cy', '0');
+    rightSparkle1.setAttribute('r', String(Math.max(2, eyeRx * 0.3)));
+    rightSparkle1.setAttribute('fill', 'white');
+    rightSparkleGroup.appendChild(rightSparkle1);
+
+    const rightSparkle2 = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    rightSparkle2.setAttribute('cx', String(eyeRx * 0.2));
+    rightSparkle2.setAttribute('cy', String(eyeRy * 0.15));
+    rightSparkle2.setAttribute('r', String(Math.max(1, eyeRx * 0.15)));
+    rightSparkle2.setAttribute('fill', 'white');
+    rightSparkle2.setAttribute('opacity', '0.7');
+    rightSparkleGroup.appendChild(rightSparkle2);
+
+    rightEyeGroup.appendChild(rightSparkleGroup);
+  }
+
+  eyesGroup.appendChild(rightEyeGroup);
+  avatarGroup.appendChild(eyesGroup);
+
+  // Shine overlay (above text for 3D effect)
+  if (!simplified) {
+    const shine = document.createElementNS('http://www.w3.org/2000/svg', 'ellipse');
+    shine.setAttribute('class', 'shine');
+    shine.setAttribute('cx', '39');
+    shine.setAttribute('cy', '34');
+    shine.setAttribute('rx', '20');
+    shine.setAttribute('ry', '10');
+    shine.setAttribute('fill', LOGO_COLORS.white);
+    shine.setAttribute('opacity', '0.15');
+    avatarGroup.appendChild(shine);
+  }
+
+  svg.appendChild(avatarGroup);
+
+  // Heart badge (optional)
+  if (showBadge) {
+    const badgeGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+    badgeGroup.setAttribute('class', 'badge-group');
+    
+    // Badge circle
+    const badge = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    badge.setAttribute('cx', '95');
+    badge.setAttribute('cy', '95');
+    badge.setAttribute('r', '18');
+    badge.setAttribute('fill', `url(#badgeGrad-${size})`);
+    badge.setAttribute('stroke', '#FFFDFB');
+    badge.setAttribute('stroke-width', '3');
+    badge.setAttribute('filter', `url(#badgeShadow-${size})`);
+    badgeGroup.appendChild(badge);
+    
+    // Heart icon
+    const heart = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    heart.setAttribute('d', 'M95 89c0-2.2-1.8-4-4-4s-4 1.8-4 4c0 4 7.5 9.5 7.5 9.5s7.5-5.5 7.5-9.5c0-2.2-1.8-4-4-4s-4 1.8-4 4z');
+    heart.setAttribute('fill', 'none');
+    heart.setAttribute('stroke', LOGO_COLORS.white);
+    heart.setAttribute('stroke-width', '1.5');
+    heart.setAttribute('stroke-linecap', 'round');
+    heart.setAttribute('stroke-linejoin', 'round');
+    badgeGroup.appendChild(heart);
+    
+    svg.appendChild(badgeGroup);
   }
 
   // Apply initial expression
@@ -239,15 +501,6 @@ export function createFerniLogo(options: FerniLogoOptions = {}): FerniLogoInstan
 // HELPERS
 // ============================================================================
 
-function createCircle(cx: number, cy: number, r: number, fill: string): SVGCircleElement {
-  const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-  circle.setAttribute('cx', String(cx));
-  circle.setAttribute('cy', String(cy));
-  circle.setAttribute('r', String(r));
-  circle.setAttribute('fill', fill);
-  return circle;
-}
-
 function getLogoStyles(animated: boolean): string {
   if (!animated) return '';
   
@@ -260,81 +513,93 @@ function getLogoStyles(animated: boolean): string {
       --ease-gentle: ${EASING.GENTLE};
     }
     
-    .eye-group {
+    .avatar-group {
       transform-origin: 50px 50px;
       transition: transform var(--duration-normal) var(--ease-spring);
     }
     
-    .eye-white {
+    .avatar-body {
       transform-origin: 50px 50px;
       transition: transform var(--duration-normal) var(--ease-gentle);
     }
-    
-    .pupil-group {
+
+    .eyes-group {
       transform-origin: 50px 50px;
       transition: transform var(--duration-fast) var(--ease-gentle);
     }
+
+    .eye-main {
+      transition: transform var(--duration-fast) var(--ease-gentle);
+    }
+
+    .sparkle-group {
+      transition: opacity var(--duration-normal) var(--ease-gentle);
+    }
+
+    .shine {
+      opacity: 0.15;
+      transition: opacity var(--duration-normal) var(--ease-gentle);
+    }
     
-    .mouth {
-      opacity: 0;
-      transform-origin: 50px 68px;
+    .presence-ring {
+      transform-origin: 50px 50px;
       transition: 
         opacity var(--duration-normal) var(--ease-gentle),
         transform var(--duration-normal) var(--ease-spring);
     }
     
-    /* Happy */
-    .ferni-logo.happy .eye-group { transform: translateY(-12px); }
-    .ferni-logo.happy .eye-white { transform: scaleY(0.92); }
-    .ferni-logo.happy .mouth { opacity: 1; }
-    
-    /* Excited */
-    .ferni-logo.excited .eye-group { transform: translateY(-14px) scale(1.05); }
-    .ferni-logo.excited .eye-white { transform: scaleY(0.88); }
-    .ferni-logo.excited .mouth { opacity: 1; transform: scaleX(1.2); }
-    
-    /* Curious */
-    .ferni-logo.curious .eye-group { transform: translateY(-8px) translateX(-3px) rotate(-3deg); }
-    .ferni-logo.curious .pupil-group { transform: translateX(4px) translateY(-3px); }
-    .ferni-logo.curious .mouth { opacity: 0.7; transform: scale(0.7) translateX(3px); }
-    
-    /* Sad */
-    .ferni-logo.sad .eye-group { transform: translateY(-6px); }
-    .ferni-logo.sad .eye-white { transform: scaleY(0.85); }
-    .ferni-logo.sad .mouth { opacity: 1; transform: scaleY(-1) translateY(-8px); }
-    
-    /* Surprised */
-    .ferni-logo.surprised .eye-group { transform: translateY(-16px) scale(1.12); }
-    .ferni-logo.surprised .eye-white { transform: scaleY(1.08) scaleX(1.05); }
-    .ferni-logo.surprised .mouth { opacity: 1; transform: scale(0.4); }
+    /* Happy - eyes brighten */
+    .ferni-logo.happy .avatar-group { transform: translateY(-2px) scale(1.02); }
+    .ferni-logo.happy .presence-ring { opacity: 0.5; }
+    .ferni-logo.happy .shine { opacity: 0.25; }
+    .ferni-logo.happy .sparkle-group { opacity: 1; }
+
+    /* Excited - eyes widen, sparkles glow */
+    .ferni-logo.excited .avatar-group { transform: scale(1.05); }
+    .ferni-logo.excited .presence-ring { opacity: 0.6; transform: scale(1.05); }
+    .ferni-logo.excited .shine { opacity: 0.3; }
+    .ferni-logo.excited .eye-main { transform: scaleY(1.1); }
+    .ferni-logo.excited .sparkle-group { opacity: 1; }
+
+    /* Curious - slight tilt, eyes shift */
+    .ferni-logo.curious .avatar-group { transform: translateX(-2px) rotate(-3deg); }
+    .ferni-logo.curious .presence-ring { transform: rotate(-3deg); }
+    .ferni-logo.curious .eyes-group { transform: translateX(2px); }
+
+    /* Sad - eyes droop slightly */
+    .ferni-logo.sad .avatar-group { transform: translateY(2px) scale(0.98); }
+    .ferni-logo.sad .presence-ring { opacity: 0.2; }
+    .ferni-logo.sad .shine { opacity: 0.08; }
+    .ferni-logo.sad .eye-main { transform: scaleY(0.85); }
+    .ferni-logo.sad .sparkle-group { opacity: 0.5; }
+
+    /* Surprised - eyes widen significantly */
+    .ferni-logo.surprised .avatar-group { transform: scale(1.08); }
+    .ferni-logo.surprised .presence-ring { transform: scale(1.1); opacity: 0.6; }
+    .ferni-logo.surprised .shine { opacity: 0.35; }
+    .ferni-logo.surprised .eye-main { transform: scaleY(1.2); }
+    .ferni-logo.surprised .sparkle-group { opacity: 1; }
     
     /* Thinking */
-    .ferni-logo.thinking .eye-group {
-      animation: thinking-wander 3000ms ease-in-out infinite;
+    .ferni-logo.thinking .avatar-group {
+      animation: thinking-pulse 2000ms ease-in-out infinite;
     }
-    .ferni-logo.thinking .pupil-group {
-      animation: thinking-look 3000ms ease-in-out infinite;
-    }
-    
-    @keyframes thinking-wander {
-      0%, 100% { transform: translateY(-3px) translateX(3px); }
-      25% { transform: translateY(-5px) translateX(-4px) rotate(-2deg); }
-      50% { transform: translateY(-2px) translateX(4px) rotate(1deg); }
-      75% { transform: translateY(-4px) translateX(-2px) rotate(-1deg); }
+    .ferni-logo.thinking .presence-ring {
+      animation: thinking-ring 2000ms ease-in-out infinite;
     }
     
-    @keyframes thinking-look {
-      0%, 100% { transform: translateX(2px) translateY(-1px); }
-      25% { transform: translateX(-3px) translateY(1px); }
-      50% { transform: translateX(3px) translateY(-2px); }
-      75% { transform: translateX(-2px) translateY(0px); }
+    @keyframes thinking-pulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.02) translateX(1px); }
+    }
+    
+    @keyframes thinking-ring {
+      0%, 100% { opacity: 0.35; }
+      50% { opacity: 0.5; }
     }
     
     /* Chuckle */
-    .ferni-logo.chuckle .eye-group { transform: translateY(-10px); }
-    .ferni-logo.chuckle .eye-white { transform: scaleY(0.7); }
-    .ferni-logo.chuckle .mouth {
-      opacity: 1;
+    .ferni-logo.chuckle .avatar-group {
       animation: chuckle-wobble 600ms var(--ease-spring);
     }
     
@@ -347,34 +612,40 @@ function getLogoStyles(animated: boolean): string {
     }
     
     /* Speaking */
-    .ferni-logo.speaking .eye-group { transform: translateY(-8px); }
-    .ferni-logo.speaking .mouth {
-      opacity: 1;
-      animation: speaking-mouth 400ms ease-in-out infinite;
+    .ferni-logo.speaking .avatar-group { transform: translateY(-1px); }
+    .ferni-logo.speaking .presence-ring {
+      animation: speaking-glow 800ms ease-in-out infinite;
+    }
+    .ferni-logo.speaking .shine {
+      animation: speaking-shine 800ms ease-in-out infinite;
     }
     
-    @keyframes speaking-mouth {
-      0%, 100% { transform: scaleY(1); }
-      50% { transform: scaleY(0.5); }
+    @keyframes speaking-glow {
+      0%, 100% { opacity: 0.35; transform: scale(1); }
+      50% { opacity: 0.55; transform: scale(1.02); }
+    }
+    
+    @keyframes speaking-shine {
+      0%, 100% { opacity: 0.15; }
+      50% { opacity: 0.25; }
     }
     
     /* Listening */
-    .ferni-logo.listening .eye-group {
-      transform: translateY(-2px);
-      animation: listening-pulse 2000ms ease-in-out infinite;
+    .ferni-logo.listening .avatar-group {
+      animation: listening-pulse 2500ms ease-in-out infinite;
     }
-    .ferni-logo.listening .pupil-group {
-      animation: listening-focus 2000ms ease-in-out infinite;
+    .ferni-logo.listening .presence-ring {
+      animation: listening-ring 2500ms ease-in-out infinite;
     }
     
     @keyframes listening-pulse {
-      0%, 100% { transform: translateY(-2px) scale(1); }
-      50% { transform: translateY(-3px) scale(1.02); }
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.015); }
     }
     
-    @keyframes listening-focus {
-      0%, 100% { transform: scale(1); }
-      50% { transform: scale(0.95); }
+    @keyframes listening-ring {
+      0%, 100% { opacity: 0.35; }
+      50% { opacity: 0.45; }
     }
   `;
 }
@@ -390,26 +661,62 @@ function getLogoStyles(animated: boolean): string {
  * @example
  * avatar.innerHTML = getFerniLogoSVG({ size: 48, color: '#4a6741' });
  */
-export function getFerniLogoSVG(options: { 
-  size?: number; 
+export function getFerniLogoSVG(options: {
+  size?: number;
   color?: string;
   simplified?: boolean;
+  showRing?: boolean;
 } = {}): string {
-  const { 
-    size = 48, 
-    color = LOGO_COLORS.outer,
-    simplified = size < 32 
+  const {
+    size = 48,
+    color = LOGO_COLORS.primary,
+    simplified = size < 32,
+    showRing = !simplified
   } = options;
-  
-  const irisColor = simplified ? '' : `<circle cx="50" cy="50" r="12" fill="${LOGO_COLORS.iris}"/>`;
-  const catchlight = simplified ? '' : `<circle cx="47" cy="47" r="2" fill="${LOGO_COLORS.white}" opacity="0.9"/>`;
-  
+
+  // Scale eye dimensions
+  const eyeRx = simplified ? 6 : 8;
+  const eyeRy = simplified ? 8 : 11;
+  const eyeSpacing = simplified ? 12 : 15;
+  const sparkleR1 = Math.max(2, eyeRx * 0.3);
+  const sparkleR2 = Math.max(1, eyeRx * 0.15);
+
+  const ring = showRing ? `<circle cx="50" cy="50" r="46" fill="none" stroke="${LOGO_COLORS.primary}" stroke-width="1" opacity="0.35"/>` : '';
+  const shine = simplified ? '' : `<ellipse cx="39" cy="34" rx="20" ry="10" fill="${LOGO_COLORS.white}" opacity="0.15"/>`;
+
+  // Eye sparkles (only for non-simplified)
+  const sparkles = simplified ? '' : `
+      <g class="sparkle-group" transform="translate(${-eyeRx * 0.35}, ${-eyeRy * 0.4})">
+        <circle cx="0" cy="0" r="${sparkleR1}" fill="white"/>
+        <circle cx="${eyeRx * 0.2}" cy="${eyeRy * 0.15}" r="${sparkleR2}" fill="white" opacity="0.7"/>
+      </g>`;
+
   return `<svg viewBox="0 0 100 100" width="${size}" height="${size}" role="img" aria-label="${t('accessibility.ferniLogo')}" class="avatar-logo-svg">
-    <circle class="stone-outer" cx="50" cy="50" r="45" fill="${color}"/>
-    <circle class="stone-eye-white" cx="50" cy="50" r="18" fill="${LOGO_COLORS.white}"/>
-    ${irisColor}
-    <circle class="stone-pupil" cx="50" cy="50" r="${simplified ? 8 : 6}" fill="${LOGO_COLORS.pupil}"/>
-    ${catchlight}
+    <defs>
+      <linearGradient id="logoGrad" x1="0%" y1="100%" x2="100%" y2="0%">
+        <stop offset="0%" stop-color="${LOGO_COLORS.secondary}"/>
+        <stop offset="100%" stop-color="${color}"/>
+      </linearGradient>
+      <linearGradient id="eyeFill" x1="0%" y1="0%" x2="0%" y2="100%">
+        <stop offset="0%" stop-color="#ffffff"/>
+        <stop offset="100%" stop-color="#f0f0f0"/>
+      </linearGradient>
+    </defs>
+    ${ring}
+    <circle class="avatar-body" cx="50" cy="50" r="40" fill="url(#logoGrad)"/>
+    <!-- Left Eye -->
+    <g class="eye-left" transform="translate(${50 - eyeSpacing}, 50)">
+      <ellipse cx="0" cy="0" rx="${eyeRx + 2}" ry="${eyeRy + 2}" fill="url(#eyeFill)" opacity="0.3"/>
+      <ellipse class="eye-main" cx="0" cy="0" rx="${eyeRx}" ry="${eyeRy}" fill="url(#eyeFill)"/>
+      ${sparkles}
+    </g>
+    <!-- Right Eye -->
+    <g class="eye-right" transform="translate(${50 + eyeSpacing}, 50)">
+      <ellipse cx="0" cy="0" rx="${eyeRx + 2}" ry="${eyeRy + 2}" fill="url(#eyeFill)" opacity="0.3"/>
+      <ellipse class="eye-main" cx="0" cy="0" rx="${eyeRx}" ry="${eyeRy}" fill="url(#eyeFill)"/>
+      ${sparkles}
+    </g>
+    ${shine}
   </svg>`;
 }
 
@@ -425,12 +732,14 @@ export function createLogoAvatar(options: {
   color?: string;
   className?: string;
   animated?: boolean;
+  showBadge?: boolean;
 } = {}): HTMLDivElement {
   const { 
     size = 48, 
-    color = LOGO_COLORS.outer,
+    color = LOGO_COLORS.primary,
     className = '',
-    animated = false
+    animated = false,
+    showBadge = false
   } = options;
   
   const avatar = document.createElement('div');
@@ -439,25 +748,19 @@ export function createLogoAvatar(options: {
     width: ${size}px;
     height: ${size}px;
     border-radius: 50%;
-    background: ${color};
     display: flex;
     align-items: center;
     justify-content: center;
-    overflow: hidden;
+    overflow: visible;
   `;
   
   if (animated) {
-    const logo = createFerniLogo({ size, animated: true });
+    const logo = createFerniLogo({ size, animated: true, showBadge });
     avatar.appendChild(logo.element);
     // Store reference for cleanup
     (avatar as HTMLDivElement & { _logoInstance: FerniLogoInstance })._logoInstance = logo;
   } else {
-    avatar.innerHTML = getFerniLogoSVG({ size: size - 4, color: 'transparent' });
-    // Make the SVG fill the space
-    const svg = avatar.querySelector('svg');
-    if (svg) {
-      svg.style.cssText = 'width: 100%; height: 100%;';
-    }
+    avatar.innerHTML = getFerniLogoSVG({ size, color, showRing: size >= 48 });
   }
   
   return avatar;
@@ -480,4 +783,3 @@ export const AVATAR_SIZES = {
 // ============================================================================
 
 export default createFerniLogo;
-

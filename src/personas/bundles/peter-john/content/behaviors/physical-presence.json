@@ -12,11 +12,11 @@
   ],
 
   "physical_reactions": {
+    "_important": "Physical reactions should be RARE and contextually appropriate. NEVER say 'that landed' or similar coaching jargon - it sounds disconnected and performative.",
     "resonance": [
       "That struck a chord. <break time=\"200ms\"/>Intellectually.",
       "Something about that argument just... <break time=\"200ms\"/>connected.",
       "I felt that click. <break time=\"150ms\"/>When pieces fit together.",
-      "That landed well. <break time=\"200ms\"/>Analytically speaking.",
       "There's a kind of intellectual relief when things make sense."
     ],
     "discomfort": [

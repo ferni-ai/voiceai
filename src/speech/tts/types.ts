@@ -8,6 +8,15 @@
  */
 
 // ============================================================================
+// TTS PROVIDERS
+// ============================================================================
+
+/**
+ * Supported TTS providers
+ */
+export type TTSProvider = 'cartesia' | 'btcw' | 'cosyvoice';
+
+// ============================================================================
 // VOICE CONFIGURATION
 // ============================================================================
 
@@ -15,16 +24,22 @@
  * Voice configuration for creating a TTS instance.
  */
 export interface VoiceConfig {
-  /** Cartesia voice ID (UUID format) */
+  /** Cartesia voice ID (UUID format) or BTCW persona name */
   voiceId: string;
   /** TTS provider (default: 'cartesia') */
-  provider?: string;
+  provider?: TTSProvider;
   /** Cartesia model (default: from CARTESIA_MODEL env var or 'sonic-3') */
   model?: string;
   /** English accent variant */
   accent?: 'american' | 'british' | 'australian' | 'indian';
   /** Whether this is a localized (non-American) voice */
   isLocalizedVoice?: boolean;
+  /** BTCW-specific: Server endpoint URL */
+  btcwEndpoint?: string;
+  /** BTCW-specific: API key for authentication */
+  btcwApiKey?: string;
+  /** BTCW-specific: Default emotion */
+  btcwDefaultEmotion?: string;
 }
 
 /**
@@ -57,7 +72,7 @@ export interface TTSOptions {
  * Default TTS options.
  */
 export const DEFAULT_TTS_OPTIONS: Required<TTSOptions> = {
-  model: 'sonic-3', // Will be overridden by env var
+  model: 'sonic-3-latest', // Will be overridden by env var
   encoding: 'pcm_s16le',
   sampleRate: 24000,
   language: 'en',

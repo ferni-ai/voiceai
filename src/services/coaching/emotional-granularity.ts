@@ -448,7 +448,7 @@ export function getGranularityScore(userId: string): number {
 
 export function getTopEmotionWords(
   userId: string,
-  limit: number = 5
+  limit = 5
 ): Array<{ word: string; count: number }> {
   const profile = getOrCreateProfile(userId);
   return Array.from(profile.emotionWordsUsed.entries())

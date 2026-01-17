@@ -7,8 +7,9 @@
  * PERSISTENCE: Uses Firestore for event storage and analytics aggregation.
  */
 
-import * as admin from 'firebase-admin';
+import admin from 'firebase-admin';
 import { getLogger } from '../../utils/safe-logger.js';
+import { cleanForFirestore } from '../../utils/firestore-utils.js';
 
 const log = getLogger();
 
@@ -130,10 +131,12 @@ async function saveEventToFirestore(event: GameEvent): Promise<void> {
   if (!db) return;
 
   try {
-    await db.collection(EVENTS_COLLECTION).add({
-      ...event,
-      timestamp: event.timestamp,
-    });
+    await db.collection(EVENTS_COLLECTION).add(
+      cleanForFirestore({
+        ...event,
+        timestamp: event.timestamp,
+      })
+    );
   } catch (error) {
     log.warn({ error, eventType: event.type }, 'Failed to save game event to Firestore');
   }
@@ -149,7 +152,7 @@ async function incrementCounter(field: string, amount = 1): Promise<void> {
   try {
     const counterRef = db.collection(COUNTERS_COLLECTION).doc('global');
     await counterRef.set(
-      { [field]: admin.firestore.FieldValue.increment(amount) },
+      cleanForFirestore({ [field]: admin.firestore.FieldValue.increment(amount) }),
       { merge: true }
     );
   } catch (error) {

@@ -10,7 +10,7 @@
  */
 
 import { FieldValue, getFirestore } from 'firebase-admin/firestore';
-import { removeUndefined } from '../../utils/firestore-utils.js';
+import { removeUndefined, cleanForFirestore } from '../../utils/firestore-utils.js';
 import { createLogger } from '../../utils/safe-logger.js';
 
 const log = createLogger({ module: 'VariantLibrary' });
@@ -390,14 +390,14 @@ export async function setCurrentDefault(experimentId: string, variantId: string)
     .collection('variant_library')
     .doc(experimentId)
     .set(
-      {
+      cleanForFirestore({
         currentDefault: variantId,
         updatedAt: FieldValue.serverTimestamp(),
         history: FieldValue.arrayUnion({
           variantId,
           promotedAt: new Date().toISOString(),
         }),
-      },
+      }),
       { merge: true }
     );
 

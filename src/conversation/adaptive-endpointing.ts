@@ -21,8 +21,15 @@
  */
 
 import { getLogger } from '../utils/safe-logger.js';
+// 🦀 Rust-accelerated word counting
+import { countWordsRust, isTokenCountingAvailable } from '../memory/rust-accelerator.js';
+
+import { detectHeavyContentKeywords as detectHeavyContent } from './utils/detection.js';
 
 const log = getLogger().child({ module: 'adaptive-endpointing' });
+
+// Check Rust availability at module load
+const RUST_COUNTING_AVAILABLE = isTokenCountingAvailable();
 
 // ============================================================================
 // TYPES
@@ -86,83 +93,36 @@ export interface UserSpeakingProfile {
 // CONSTANTS
 // ============================================================================
 
-/** Base endpointing delays in milliseconds */
+/** Base endpointing delays in milliseconds - TIGHTENED Jan 2026 */
 const BASE_DELAYS = {
-  min: 400,
-  max: 1200,
+  min: 200, // Was 400ms - human turn gaps are 200-400ms
+  max: 500, // Was 1200ms - don't wait too long
 };
 
-/** Adjustments for different contexts */
+/** Adjustments for different contexts - REDUCED for snappier turns */
 const ADJUSTMENTS = {
-  // Topic weight
-  heavyTopic: { minAdd: 300, maxAdd: 600 },
-  mediumTopic: { minAdd: 100, maxAdd: 200 },
+  // Topic weight - reduced by ~50%
+  heavyTopic: { minAdd: 150, maxAdd: 300 }, // Was 300/600
+  mediumTopic: { minAdd: 50, maxAdd: 100 }, // Was 100/200
 
-  // Sentence completeness
-  incompleteThought: { minAdd: 400, maxAdd: 700 },
-  partialThought: { minAdd: 200, maxAdd: 400 },
+  // Sentence completeness - reduced significantly
+  incompleteThought: { minAdd: 150, maxAdd: 300 }, // Was 400/700
+  partialThought: { minAdd: 100, maxAdd: 200 }, // Was 200/400
 
-  // Emotional intensity
-  highEmotion: { minAdd: 200, maxAdd: 400 },
-  crisisLevel: { minAdd: 400, maxAdd: 800 },
+  // Emotional intensity - reduced
+  highEmotion: { minAdd: 100, maxAdd: 200 }, // Was 200/400
+  crisisLevel: { minAdd: 200, maxAdd: 400 }, // Was 400/800
 
   // Speaking rate
-  slowSpeaker: { minAdd: 200, maxAdd: 300 }, // <100 WPM
-  fastSpeaker: { minSub: 100, maxSub: 150 }, // >160 WPM
+  slowSpeaker: { minAdd: 100, maxAdd: 150 }, // Was 200/300
+  fastSpeaker: { minSub: 100, maxSub: 150 }, // Keep same
 
-  // Conversation phase
-  supporting: { minAdd: 150, maxAdd: 300 }, // Give space in support mode
+  // Conversation phase - reduced
+  supporting: { minAdd: 75, maxAdd: 150 }, // Was 150/300
 
-  // Utterance type
-  incompleteUtterance: { minAdd: 300, maxAdd: 500 },
+  // Utterance type - reduced
+  incompleteUtterance: { minAdd: 150, maxAdd: 250 }, // Was 300/500
 };
-
-/** Keywords that suggest heavy content needing more processing time */
-const HEAVY_CONTENT_KEYWORDS = [
-  // Emotional
-  'suicide',
-  'kill',
-  'die',
-  'death',
-  'dying',
-  'dead',
-  'abuse',
-  'abused',
-  'trauma',
-  'traumatic',
-  'depressed',
-  'depression',
-  'hopeless',
-  'worthless',
-  'panic',
-  'terrified',
-  'devastated',
-
-  // Life events
-  'divorce',
-  'cancer',
-  'diagnosed',
-  'terminal',
-  'fired',
-  'bankrupt',
-  'homeless',
-  'miscarriage',
-  'stillborn',
-
-  // Relationship
-  'cheated',
-  'affair',
-  'betrayed',
-  'estranged',
-  'disowned',
-
-  // Disclosure
-  'never told anyone',
-  'first time saying',
-  'secret',
-  'ashamed',
-  'embarrassed to admit',
-];
 
 /** Signals that suggest incomplete thought */
 const INCOMPLETE_SIGNALS = [
@@ -300,21 +260,8 @@ export function calculateEndpointingDelay(
   };
 }
 
-/**
- * Detect heavy content in user speech.
- */
-export function detectHeavyContent(text: string): string[] {
-  const found: string[] = [];
-  const lowerText = text.toLowerCase();
-
-  for (const keyword of HEAVY_CONTENT_KEYWORDS) {
-    if (lowerText.includes(keyword.toLowerCase())) {
-      found.push(keyword);
-    }
-  }
-
-  return found;
-}
+// Re-export for backwards compatibility
+export { detectHeavyContentKeywords as detectHeavyContent } from './utils/detection.js';
 
 /**
  * Estimate sentence completeness from text.
@@ -343,7 +290,8 @@ export function estimateSentenceCompleteness(text: string): number {
   }
 
   // Basic heuristic: longer = more likely complete
-  const wordCount = trimmed.split(/\s+/).length;
+  // 🦀 Use Rust for O(1) word counting when available
+  const wordCount = RUST_COUNTING_AVAILABLE ? countWordsRust(trimmed) : trimmed.split(/\s+/).length;
   if (wordCount >= 10) return 0.7;
   if (wordCount >= 5) return 0.6;
   if (wordCount >= 3) return 0.5;

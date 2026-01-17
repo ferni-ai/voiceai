@@ -18,6 +18,7 @@ import type { URL } from 'url';
 import { requireAdmin } from '../../auth-middleware.js';
 import { createLogger } from '../../../utils/safe-logger.js';
 import { handleAdminAgentsRoutes } from './agents.js';
+import { handleBTHAnalyticsRoutes } from './bth-analytics.js';
 import { handleAdminDashboardRoutes } from './dashboard.js';
 import { handleAdminDiagnosticsRoutes } from './diagnostics.js';
 import { handleAdminExperimentsRoutes } from './experiments.js';
@@ -102,6 +103,11 @@ export async function handleAdminRoutes(
     return handleAdminModelConfigRoutes(req, res, pathname, parsedUrl);
   }
 
+  // Better Than Human Analytics (superhuman capability effectiveness)
+  if (pathname.startsWith(`${BASE_PATH}/bth`)) {
+    return handleBTHAnalyticsRoutes(req, res, pathname, parsedUrl);
+  }
+
   // Route not matched
   return false;
 }
@@ -110,6 +116,7 @@ export default { handleAdminRoutes };
 
 // Re-export sub-routes for direct access if needed
 export { handleAdminAgentsRoutes } from './agents.js';
+export { handleBTHAnalyticsRoutes } from './bth-analytics.js';
 export { getRecentActivity, handleAdminDashboardRoutes, recordActivity } from './dashboard.js';
 export { handleAdminDiagnosticsRoutes, recordHandoffEvent } from './diagnostics.js';
 export { handleAdminExperimentsRoutes } from './experiments.js';

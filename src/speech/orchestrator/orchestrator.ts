@@ -24,7 +24,7 @@ import type {
 import {
   getAcknowledgmentPrefix,
   getCatchphraseWithSsml,
-  getThinkingFiller,
+  getContextAwareThinkingFiller,
   normalizePersonaId,
 } from '../persona-phrases.js';
 import { hasVoiceDataLoaded, loadPersonaVoiceData } from '../persona-voice-loader.js';
@@ -447,10 +447,23 @@ export class SpeechOrchestrator {
   /**
    * Get a natural thinking filler for LLM processing delays
    *
+   * Uses ProcessingIntelligence for context-aware phrase composition.
+   *
+   * @param options - Optional context for phrase composition
    * @returns SSML-formatted thinking filler
    */
-  getThinkingFiller(): string {
-    return getThinkingFiller(this.personaId);
+  getThinkingFiller(options?: {
+    type?: 'thinking' | 'emotional' | 'tool_call' | 'memory_recall';
+    weight?: 'light' | 'medium' | 'heavy';
+    emotionalState?: { primary: string; intensity: number };
+    hourOfDay?: number;
+  }): string {
+    return getContextAwareThinkingFiller(this.personaId, {
+      type: options?.type ?? 'thinking',
+      weight: options?.weight ?? 'medium',
+      emotionalState: options?.emotionalState,
+      hourOfDay: options?.hourOfDay ?? new Date().getHours(),
+    });
   }
 
   // ==========================================================================

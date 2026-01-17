@@ -12,6 +12,7 @@
  */
 
 import { EventEmitter } from 'events';
+import { clearNamedInterval, registerInterval } from '../../utils/interval-manager.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import type { AgentId } from '../agent-bus.js';
 import {
@@ -33,167 +34,44 @@ import {
   type OutreachTone,
   type RelationshipStage,
 } from './persona-voice-generator.js';
+import {
+  getTimingRecommendation,
+  type TimeSlot,
+  type DayOfWeek,
+} from '../contacts/optimal-timing.js';
+import { cleanForFirestore } from '../../utils/firestore-utils.js';
+import {
+  getPendingCheckIns,
+  recordCheckInSent,
+  type CheckInType,
+} from './onboarding-checkin-arc.js';
+import {
+  onNeedsTeamSupport,
+  onNeedsTeamRoundtable,
+  onNeedsMultiplePerspectives,
+} from './superhuman-outreach-bridge.js';
 
-// ============================================================================
-// TYPES
-// ============================================================================
+// Redis cache for real-time session suppression
+import { getRedisCache } from '../../memory/redis-cache.js';
 
-export type OutreachTriggerType =
-  // Task-driven triggers
-  | 'commitment_check' // User said they'd do something
-  | 'goal_milestone' // Progress toward a goal
-  | 'streak_at_risk' // About to break a streak
-  | 'streak_celebration' // Hit a streak milestone (7, 30, 100 days)
-  | 'goal_progress' // Making progress toward goal (80% there)
-  | 'habit_check' // Routine/habit check-in
-  | 'appointment_reminder' // Upcoming appointment
-  | 'event_countdown' // Event approaching
-  | 'milestone_approaching' // Life milestone coming up
+// Re-export types from dedicated types module
+export type {
+  OutreachTriggerType,
+  OutreachPriority,
+  OutreachTrigger,
+  OutreachDecision,
+  UserOutreachState,
+  DecisionEngineConfig,
+} from './decision-engine-types.js';
 
-  // Emotional triggers
-  | 'emotional_support' // Detected stress/struggle
-  | 'celebration' // Achievement unlocked
-  | 'concern_check' // Follow up on something concerning
-
-  // Connection triggers
-  | 'reengagement' // Haven't heard from user
-  | 'thinking_of_you' // Random kindness
-  | 'follow_up' // Explicit follow-up request
-  | 'accountability' // Agreed accountability check
-
-  // Content triggers
-  | 'content_share' // Relevant content found
-  | 'insight_discovery' // AI noticed something helpful
-
-  // Pattern-based triggers ("Better than Human")
-  | 'pattern_acknowledgment' // "Mondays seem hard for you"
-  | 'life_rhythm_prediction' // Deep understanding: predicted low mood/energy
-
-  // Time-based triggers
-  | 'scheduled' // User requested specific time
-  | 'seasonal' // Holiday/season check-in
-  | 'anniversary'; // Relationship milestone (30 days, 100 conversations)
-
-export type OutreachPriority = 'low' | 'medium' | 'high' | 'urgent';
-
-export interface OutreachTrigger {
-  id: string;
-  type: OutreachTriggerType;
-  userId: string;
-  priority: OutreachPriority;
-
-  // What triggered this
-  reason: string;
-  context?: Record<string, unknown>;
-
-  // Optional specifics
-  commitment?: string;
-  milestone?: string;
-  goal?: string;
-  event?: string;
-
-  // Timing preferences
-  suggestedTime?: Date;
-  expiresAt?: Date;
-
-  // Who should handle this
-  suggestedPersona?: AgentId;
-  lastPersona?: AgentId;
-  wasRecentConversation?: boolean;
-
-  // Created
-  createdAt: Date;
-}
-
-export interface OutreachDecision {
-  trigger: OutreachTrigger;
-  decision: 'send' | 'skip' | 'defer';
-  skipReason?: string;
-  deferUntil?: Date;
-  decidedAt: Date; // When this decision was made
-
-  // If sending
-  persona?: AgentId;
-  channel?: OutreachChannel;
-  scheduledFor?: Date;
-  generatedMessage?: GeneratedOutreach;
-}
-
-export interface UserOutreachState {
-  userId: string;
-
-  // Permissions
-  outreachEnabled: boolean;
-  allowedChannels: OutreachChannel[];
-
-  // Preferences
-  preferences: {
-    quietHoursStart: string; // "22:00"
-    quietHoursEnd: string; // "08:00"
-    timezone: string;
-    maxPerDay: number;
-    maxPerWeek: number;
-    preferredChannel?: OutreachChannel;
-    neverDuring?: string[]; // ["morning meditation", "family dinner"]
-  };
-
-  // Learned patterns
-  patterns: {
-    preferredHours: number[];
-    preferredDays: number[];
-    responseRateByChannel: Record<OutreachChannel, number>;
-    avgResponseTimeMs: number;
-  };
-
-  // Current state
-  counters: {
-    outreachToday: number;
-    outreachThisWeek: number;
-    lastOutreachDate?: Date;
-  };
-
-  // Relationship
-  relationshipStage: RelationshipStage;
-  lastPersona?: AgentId;
-  lastConversationDate?: Date;
-
-  // Life context (aggregated)
-  context: {
-    emotionalState?: string;
-    recentTopics?: string[];
-    recentWins?: string[];
-    currentStruggles?: string[];
-    upcomingEvents?: Array<{ date: Date; description: string }>;
-    interests?: string[];
-  };
-}
-
-export interface DecisionEngineConfig {
-  // Timing
-  checkIntervalMs: number;
-  defaultQuietHoursStart: string;
-  defaultQuietHoursEnd: string;
-
-  // Rate limits
-  defaultMaxPerDay: number;
-  defaultMaxPerWeek: number;
-
-  // Relationship-based permissions
-  relationshipPermissions: {
-    new: { allowedChannels: OutreachChannel[]; maxPerWeek: number };
-    building: { allowedChannels: OutreachChannel[]; maxPerWeek: number };
-    established: { allowedChannels: OutreachChannel[]; maxPerWeek: number };
-    deep: { allowedChannels: OutreachChannel[]; maxPerWeek: number };
-  };
-
-  // Priority windows (how quickly to send based on priority)
-  priorityWindows: {
-    urgent: number; // ms to send within
-    high: number;
-    medium: number;
-    low: number;
-  };
-}
+import type {
+  OutreachTriggerType,
+  OutreachPriority,
+  OutreachTrigger,
+  OutreachDecision,
+  UserOutreachState,
+  DecisionEngineConfig,
+} from './decision-engine-types.js';
 
 // ============================================================================
 // DEFAULT CONFIGURATION
@@ -235,6 +113,60 @@ const DEFAULT_CONFIG: DecisionEngineConfig = {
 };
 
 // ============================================================================
+// ML TIMING HELPERS (Thompson Sampling integration)
+// ============================================================================
+
+/** Convert hour number to TimeSlot for ML timing */
+function hourToTimeSlot(hour: number): TimeSlot {
+  if (hour >= 5 && hour < 11) return 'morning';
+  if (hour >= 11 && hour < 14) return 'midday';
+  if (hour >= 14 && hour < 17) return 'afternoon';
+  if (hour >= 17 && hour < 21) return 'evening';
+  return 'night';
+}
+
+/** Convert day number (0=Sunday) to DayOfWeek for ML timing */
+function dayNumberToName(day: number): DayOfWeek {
+  const days: DayOfWeek[] = [
+    'sunday',
+    'monday',
+    'tuesday',
+    'wednesday',
+    'thursday',
+    'friday',
+    'saturday',
+  ];
+  return days[day] || 'monday';
+}
+
+/** Convert DayOfWeek back to day number */
+function dayNameToNumber(day: DayOfWeek): number {
+  const map: Record<DayOfWeek, number> = {
+    sunday: 0,
+    monday: 1,
+    tuesday: 2,
+    wednesday: 3,
+    thursday: 4,
+    friday: 5,
+    saturday: 6,
+  };
+  return map[day];
+}
+
+/** Get representative hour for a TimeSlot */
+function timeSlotToHour(slot: TimeSlot): number {
+  const map: Record<TimeSlot, number> = {
+    early_morning: 7,
+    morning: 9,
+    midday: 12,
+    afternoon: 15,
+    evening: 18,
+    night: 21,
+  };
+  return map[slot];
+}
+
+// ============================================================================
 // STORAGE
 // ============================================================================
 
@@ -250,7 +182,7 @@ const log = getLogger().child({ service: 'outreach-decision-engine' });
 
 class OutreachDecisionEngine extends EventEmitter {
   private config: DecisionEngineConfig;
-  private intervalId: NodeJS.Timeout | null = null;
+  private intervalId: (() => void) | null = null;
   private running = false;
 
   constructor(config: Partial<DecisionEngineConfig> = {}) {
@@ -273,16 +205,18 @@ class OutreachDecisionEngine extends EventEmitter {
     log.info('🧠 Outreach Decision Engine started');
 
     // Process triggers on interval
-    this.intervalId = setInterval(() => {
-      void this.processPendingTriggers();
-    }, this.config.checkIntervalMs);
+    this.intervalId = registerInterval(
+      'outreach-decision-engine-triggers',
+      () => {
+        void this.processPendingTriggers();
+      },
+      this.config.checkIntervalMs
+    );
   }
 
   stop(): void {
-    if (this.intervalId) {
-      clearInterval(this.intervalId);
-      this.intervalId = null;
-    }
+    clearNamedInterval('outreach-decision-engine-triggers');
+    this.intervalId = null;
     this.running = false;
     log.info('🧠 Outreach Decision Engine stopped');
   }
@@ -366,6 +300,90 @@ class OutreachDecisionEngine extends EventEmitter {
     return undefined;
   }
 
+  /**
+   * Check for pending onboarding check-ins and create triggers
+   * Should be called periodically by the scheduled job
+   */
+  async checkOnboardingTriggers(userId: string): Promise<string[]> {
+    const createdTriggerIds: string[] = [];
+
+    try {
+      // Get pending check-ins from the onboarding arc service
+      const pendingCheckIns = await getPendingCheckIns(userId);
+
+      if (pendingCheckIns.length === 0) {
+        return createdTriggerIds;
+      }
+
+      log.info(
+        { userId, pendingCount: pendingCheckIns.length },
+        '🎓 Found pending onboarding check-ins'
+      );
+
+      // Map check-in types to trigger types
+      const checkInTypeToTrigger: Record<CheckInType, OutreachTriggerType> = {
+        welcome_followup: 'onboarding_welcome',
+        next_day_check: 'onboarding_nextday',
+        topic_deepdive: 'onboarding_topic_deepdive',
+        first_week_reflection: 'onboarding_first_week',
+        momentum_check: 'onboarding_momentum',
+        two_week_celebration: 'onboarding_two_week',
+        habit_nudge: 'onboarding_momentum',
+        win_celebration: 'celebration',
+      };
+
+      for (const checkIn of pendingCheckIns) {
+        // Create a trigger for this check-in
+        const triggerType = checkInTypeToTrigger[checkIn.type] || 'check_in';
+
+        const triggerId = this.addTrigger({
+          type: triggerType,
+          userId,
+          priority: checkIn.priority,
+          reason: checkIn.reason,
+          context: {
+            checkInType: checkIn.type,
+            scheduledFor: checkIn.scheduledFor,
+          },
+          suggestedTime: checkIn.scheduledFor,
+          // Use the persona from the check-in (usually ferni for onboarding)
+          suggestedPersona: checkIn.persona as AgentId,
+        });
+
+        createdTriggerIds.push(triggerId);
+
+        log.debug(
+          { userId, checkInType: checkIn.type, triggerId },
+          '🎓 Created onboarding trigger'
+        );
+      }
+
+      return createdTriggerIds;
+    } catch (error) {
+      log.error({ error: String(error), userId }, 'Failed to check onboarding triggers');
+      return createdTriggerIds;
+    }
+  }
+
+  /**
+   * Mark an onboarding check-in as sent (called after successful outreach)
+   */
+  markOnboardingCheckInSent(
+    userId: string,
+    checkInType: CheckInType,
+    responseReceived = false
+  ): void {
+    try {
+      recordCheckInSent(userId, checkInType, responseReceived);
+      log.debug({ userId, checkInType, responseReceived }, '✅ Onboarding check-in marked as sent');
+    } catch (error) {
+      log.warn(
+        { error: String(error), userId, checkInType },
+        'Failed to mark onboarding check-in as sent'
+      );
+    }
+  }
+
   // ============================================================================
   // USER STATE MANAGEMENT
   // ============================================================================
@@ -381,8 +399,8 @@ class OutreachDecisionEngine extends EventEmitter {
       userStateStore.set(userId, state);
 
       // Async load from Firestore to hydrate (fire and forget)
-      this.loadUserStateFromFirestore(userId).catch(() => {
-        // Silent - will use defaults until loaded
+      this.loadUserStateFromFirestore(userId).catch((e) => {
+        log.debug({ error: String(e), userId }, 'Firestore state load failed (using defaults)');
       });
     }
     return state;
@@ -484,7 +502,8 @@ class OutreachDecisionEngine extends EventEmitter {
   private createDefaultUserState(userId: string): UserOutreachState {
     return {
       userId,
-      outreachEnabled: true,
+      // OPT-OUT BY DEFAULT: Users must explicitly enable proactive outreach
+      outreachEnabled: false,
       allowedChannels: ['email', 'sms'],
 
       preferences: {
@@ -575,6 +594,25 @@ class OutreachDecisionEngine extends EventEmitter {
       return this.createDecision(trigger, 'skip', 'Outreach disabled for user');
     }
 
+    // Decision 1.5: Check Redis session suppression (user in session or just finished)
+    try {
+      const redis = getRedisCache();
+      const suppression = await redis.isOutreachSuppressed(trigger.userId);
+      if (suppression.suppressed) {
+        // Defer until suppression expires (30 min from session end typically)
+        const deferTime = new Date(Date.now() + 30 * 60 * 1000);
+        return this.createDecision(
+          trigger,
+          'defer',
+          `Session suppression: ${suppression.reason || 'user in/recently in session'}`,
+          deferTime
+        );
+      }
+    } catch (redisErr) {
+      // Redis unavailable - proceed without suppression check
+      log.debug({ error: String(redisErr) }, 'Redis suppression check failed (proceeding)');
+    }
+
     // Decision 2: Rate limit check
     if (state.counters.outreachToday >= state.preferences.maxPerDay) {
       return this.createDecision(trigger, 'defer', 'Daily limit reached', this.getNextDay(now));
@@ -584,8 +622,22 @@ class OutreachDecisionEngine extends EventEmitter {
       return this.createDecision(trigger, 'defer', 'Weekly limit reached', this.getNextWeek(now));
     }
 
-    // Decision 3: Is this a good time?
-    const timingDecision = this.evaluateTiming(state, trigger, now);
+    // Decision 3: Check for GROUP OUTREACH triggers
+    // These are handled by the group outreach system, not single-persona flow
+    if (this.isGroupOutreachTrigger(trigger, state)) {
+      await this.routeToGroupOutreach(trigger, state);
+      // Mark as sent (group outreach handles its own delivery)
+      this.recordOutreach(trigger.userId);
+      return {
+        trigger,
+        decision: 'send',
+        decidedAt: now,
+        // Group outreach - no single persona/channel
+      };
+    }
+
+    // Decision 4: Is this a good time?
+    const timingDecision = await this.evaluateTiming(state, trigger, now);
     if (timingDecision.defer) {
       return this.createDecision(
         trigger,
@@ -595,7 +647,7 @@ class OutreachDecisionEngine extends EventEmitter {
       );
     }
 
-    // Decision 4: Select persona
+    // Decision 5: Select persona
     const persona =
       trigger.suggestedPersona ||
       (selectPersonaForOutreach(
@@ -604,13 +656,13 @@ class OutreachDecisionEngine extends EventEmitter {
         trigger.wasRecentConversation
       ) as AgentId);
 
-    // Decision 5: Select channel
+    // Decision 6: Select channel
     const channel = this.selectChannel(trigger, state);
     if (!channel) {
       return this.createDecision(trigger, 'skip', 'No suitable channel available');
     }
 
-    // Decision 6: Generate the message
+    // Decision 7: Generate the message
     const context = this.buildOutreachContext(trigger, state);
     const tone = this.determineTone(trigger);
     const generatedMessage = generateOutreach(persona, context, channel, tone);
@@ -710,11 +762,11 @@ class OutreachDecisionEngine extends EventEmitter {
   // TIMING EVALUATION
   // ============================================================================
 
-  private evaluateTiming(
+  private async evaluateTiming(
     state: UserOutreachState,
     trigger: OutreachTrigger,
     now: Date
-  ): { defer: boolean; reason?: string; deferUntil?: Date } {
+  ): Promise<{ defer: boolean; reason?: string; deferUntil?: Date }> {
     const hour = now.getHours();
     const day = now.getDay();
 
@@ -735,14 +787,61 @@ class OutreachDecisionEngine extends EventEmitter {
       return { defer: true, reason: 'Quiet hours', deferUntil };
     }
 
-    // Check learned patterns (unless urgent)
+    // Check timing patterns (unless urgent/high priority)
     if (trigger.priority !== 'urgent' && trigger.priority !== 'high') {
+      // Try ML timing first (Thompson Sampling)
+      try {
+        const mlRecommendation = await getTimingRecommendation(state.userId, 'self', 'user');
+
+        // Use ML if we have enough data (not in 'learning' phase)
+        if (mlRecommendation.confidenceLevel !== 'learning') {
+          // Check if current time slot matches ML recommendation
+          const currentSlot = hourToTimeSlot(hour);
+          const currentDayName = dayNumberToName(day);
+
+          const isRecommendedNow =
+            mlRecommendation.recommendedTimeSlot === currentSlot &&
+            mlRecommendation.recommendedDay === currentDayName;
+
+          if (!isRecommendedNow) {
+            // ML says this isn't a good time - defer to recommended time
+            log.debug(
+              {
+                userId: state.userId,
+                currentSlot,
+                currentDay: currentDayName,
+                confidence: mlRecommendation.confidenceLevel,
+              },
+              '📊 ML timing: deferring to better time'
+            );
+            return {
+              defer: true,
+              reason: 'ML timing - not optimal time',
+              deferUntil: mlRecommendation.suggestedSendTime,
+            };
+          }
+
+          // ML says now is a good time
+          log.debug(
+            { userId: state.userId, currentSlot, currentDay: currentDayName },
+            '📊 ML timing: current time is optimal'
+          );
+          return { defer: false };
+        }
+      } catch (mlError) {
+        log.debug(
+          { error: String(mlError), userId: state.userId },
+          'ML timing check failed, using static patterns'
+        );
+      }
+
+      // Fallback to static patterns
       const isPreferredHour = state.patterns.preferredHours.includes(hour);
       const isPreferredDay = state.patterns.preferredDays.includes(day);
 
       if (!isPreferredHour || !isPreferredDay) {
         // Find next optimal time
-        const deferUntil = this.findNextOptimalTime(state, now);
+        const deferUntil = await this.findNextOptimalTime(state, now);
         return { defer: true, reason: 'Not optimal time', deferUntil };
       }
     }
@@ -750,11 +849,63 @@ class OutreachDecisionEngine extends EventEmitter {
     return { defer: false };
   }
 
-  private findNextOptimalTime(state: UserOutreachState, now: Date): Date {
+  private async findNextOptimalTime(state: UserOutreachState, now: Date): Promise<Date> {
     const result = new Date(now);
     const currentHour = now.getHours();
     const currentDay = now.getDay();
 
+    // Try ML timing first (Thompson Sampling) - uses 'self' contactId for user-level timing
+    try {
+      const mlRecommendation = await getTimingRecommendation(state.userId, 'self', 'user');
+
+      // Use ML if we have enough data (not in 'learning' phase)
+      if (mlRecommendation.confidenceLevel !== 'learning') {
+        // The recommendation already includes the best send time
+        // Just use it directly if it's in the future
+        if (mlRecommendation.suggestedSendTime > now) {
+          log.debug(
+            {
+              userId: state.userId,
+              day: mlRecommendation.recommendedDay,
+              slot: mlRecommendation.recommendedTimeSlot,
+              confidence: mlRecommendation.confidenceLevel,
+            },
+            '📊 ML timing: using learned optimal time'
+          );
+          return mlRecommendation.suggestedSendTime;
+        }
+
+        // If suggested time is in the past, calculate next occurrence
+        const mlDay = dayNameToNumber(mlRecommendation.recommendedDay);
+        const mlHour = timeSlotToHour(mlRecommendation.recommendedTimeSlot);
+
+        // Calculate days until recommended day (at least 1 day since today's time has passed)
+        let daysUntil = (mlDay - currentDay + 7) % 7;
+        if (daysUntil === 0) {
+          daysUntil = 7; // Same day, defer to next week
+        }
+
+        result.setDate(result.getDate() + daysUntil);
+        result.setHours(mlHour, 0, 0, 0);
+        log.debug(
+          {
+            userId: state.userId,
+            day: mlRecommendation.recommendedDay,
+            slot: mlRecommendation.recommendedTimeSlot,
+            confidence: mlRecommendation.confidenceLevel,
+          },
+          '📊 ML timing: using learned optimal time (next occurrence)'
+        );
+        return result;
+      }
+    } catch (mlError) {
+      log.debug(
+        { error: String(mlError), userId: state.userId },
+        'ML timing unavailable, using static patterns'
+      );
+    }
+
+    // Fallback to static patterns if ML confidence is low or unavailable
     // Try to find a good hour today
     const nextGoodHourToday = state.patterns.preferredHours.find((h) => h > currentHour);
     if (nextGoodHourToday !== undefined && state.patterns.preferredDays.includes(currentDay)) {
@@ -855,6 +1006,20 @@ class OutreachDecisionEngine extends EventEmitter {
       commitment_check: 'sms',
       habit_check: 'sms',
       thinking_of_you: 'sms',
+      check_in: 'sms',
+
+      // Trust-based triggers work well as texts (personal, non-intrusive)
+      growth_reflection: 'sms',
+      shared_memory: 'sms',
+      life_rhythm_prediction: 'sms',
+
+      // Onboarding check-ins (gentle texts, not too intrusive)
+      onboarding_welcome: 'sms',
+      onboarding_nextday: 'sms',
+      onboarding_topic_deepdive: 'sms',
+      onboarding_first_week: 'sms',
+      onboarding_momentum: 'sms',
+      onboarding_two_week: 'email', // Longer, more celebratory - email fits better
 
       // Detailed stuff goes to email
       content_share: 'email',
@@ -863,6 +1028,115 @@ class OutreachDecisionEngine extends EventEmitter {
     };
 
     return channelMap[type] || null;
+  }
+
+  // ============================================================================
+  // GROUP OUTREACH ROUTING
+  // ============================================================================
+
+  /**
+   * Determine if a trigger should use group outreach (multiple personas)
+   */
+  private isGroupOutreachTrigger(trigger: OutreachTrigger, state: UserOutreachState): boolean {
+    // Explicit group outreach types
+    const groupTriggerTypes: OutreachTriggerType[] = [
+      'team_insight',
+      'collaborative_support',
+      'planning',
+      'team_roundtable',
+    ];
+
+    if (groupTriggerTypes.includes(trigger.type)) {
+      return true;
+    }
+
+    // Escalate to group support for severe situations
+    if (trigger.type === 'emotional_support' && trigger.priority === 'urgent') {
+      return true;
+    }
+
+    // Escalate celebratory moments for deep relationships
+    if (trigger.type === 'celebration' && state.relationshipStage === 'deep') {
+      return true;
+    }
+
+    // Complex planning that benefits from multiple perspectives
+    if (trigger.type === 'milestone_approaching' && trigger.context?.complexity === 'high') {
+      return true;
+    }
+
+    return false;
+  }
+
+  /**
+   * Route trigger to appropriate group outreach handler
+   */
+  private async routeToGroupOutreach(
+    trigger: OutreachTrigger,
+    state: UserOutreachState
+  ): Promise<void> {
+    const preferredName = this.getUserNameFromContext(trigger.userId, state);
+
+    log.info(
+      { userId: trigger.userId, type: trigger.type, priority: trigger.priority },
+      '👥 Routing to group outreach'
+    );
+
+    switch (trigger.type) {
+      case 'team_roundtable':
+        await onNeedsTeamRoundtable(trigger.userId, {
+          topic: String(trigger.context?.topic || trigger.reason),
+          reason: trigger.reason,
+          suggestedPersonas: trigger.context?.personas as string[] | undefined,
+          collaborationMode: trigger.context?.mode as 'discussion' | 'brainstorm' | 'support' | undefined,
+          preferredName,
+        });
+        break;
+
+      case 'team_insight':
+        await onNeedsMultiplePerspectives(trigger.userId, {
+          topic: String(trigger.context?.topic || trigger.reason),
+          insightSummary: trigger.reason,
+          preferredName,
+        });
+        break;
+
+      case 'collaborative_support':
+      case 'emotional_support':
+        await onNeedsTeamSupport(trigger.userId, {
+          type: trigger.priority === 'urgent' ? 'crisis' : 'complex_challenge',
+          description: trigger.reason,
+          preferredName,
+          currentStruggles: state.context.currentStruggles,
+        });
+        break;
+
+      case 'celebration':
+        await onNeedsTeamSupport(trigger.userId, {
+          type: 'celebration',
+          description: trigger.milestone || trigger.reason,
+          preferredName,
+        });
+        break;
+
+      case 'planning':
+      case 'milestone_approaching':
+        await onNeedsTeamRoundtable(trigger.userId, {
+          topic: trigger.milestone || trigger.event || trigger.reason,
+          reason: trigger.reason,
+          collaborationMode: 'brainstorm',
+          preferredName,
+        });
+        break;
+
+      default:
+        // Fallback to team support
+        await onNeedsTeamSupport(trigger.userId, {
+          type: 'complex_challenge',
+          description: trigger.reason,
+          preferredName,
+        });
+    }
   }
 
   // ============================================================================
@@ -949,6 +1223,11 @@ class OutreachDecisionEngine extends EventEmitter {
       reengagement: 'casual',
       appointment_reminder: 'informative',
       event_countdown: 'celebratory',
+      // Trust-based triggers
+      growth_reflection: 'encouraging', // Warm reflection on their journey
+      shared_memory: 'casual', // Intimate callback to shared moments
+      life_rhythm_prediction: 'supportive', // Proactive support before struggle
+      check_in: 'casual', // General friendly check-in
     };
 
     if (trigger.priority === 'urgent') {

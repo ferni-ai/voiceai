@@ -1,0 +1,955 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Pixar Principles - Ferni Motion Language</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@200;300;400;500;600;700;800&family=Inter:wght@300;400;500;600&family=Sora:wght@400;500;600&display=swap" rel="stylesheet">
+    <!-- Design System: Single source of truth -->
+    <link rel="stylesheet" href="../master-tokens.css">
+    <link rel="stylesheet" href="../brand-components.css">
+    <style>
+        /* Page-specific overrides */
+        :root {
+            --ferni-light: #5a7a51;
+            --ferni-dark: #3d5a35;
+            --bg-warm: #FAF8F3;
+            --ease-settle: cubic-bezier(0.25, 0.1, 0.25, 1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: var(--font-body);
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+        }
+
+        /* Navigation */
+        nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            background: rgba(245, 241, 232, 0.95);
+            backdrop-filter: blur(8px);
+            border-bottom: 1px solid rgba(44, 37, 32, 0.08);
+            padding: 12px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        nav a {
+            color: var(--text-primary);
+            text-decoration: none;
+            font-family: var(--font-display);
+            font-weight: 600;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 20px;
+            font-size: 13px;
+        }
+
+        .nav-links a {
+            color: var(--text-secondary);
+            font-weight: 400;
+        }
+
+        /* Hero */
+        .hero {
+            padding: 140px 24px 80px;
+            text-align: center;
+            background: linear-gradient(180deg, var(--bg-primary) 0%, var(--bg-warm) 100%);
+        }
+
+        .hero h1 {
+            font-family: var(--font-display);
+            font-size: clamp(2.5rem, 6vw, 4rem);
+            font-weight: 300;
+            margin-bottom: 16px;
+            letter-spacing: -0.02em;
+        }
+
+        .hero h1 strong {
+            font-weight: 700;
+            color: var(--ferni);
+        }
+
+        .hero p {
+            font-size: 1.25rem;
+            color: var(--text-secondary);
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        /* Section */
+        section {
+            padding: 80px 24px;
+        }
+
+        .section-inner {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        /* Principles Grid */
+        .principles-grid {
+            display: grid;
+            gap: 48px;
+        }
+
+        .principle-card {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 48px;
+            padding: 48px;
+            background: var(--bg-elevated);
+            border-radius: var(--radius-2xl);
+            box-shadow: var(--shadow-md);
+            align-items: center;
+        }
+
+        @media (max-width: 900px) {
+            .principle-card {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .principle-card:nth-child(even) .principle-visual {
+            order: -1;
+        }
+
+        @media (max-width: 900px) {
+            .principle-card:nth-child(even) .principle-visual {
+                order: 0;
+            }
+        }
+
+        .principle-header {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 16px;
+        }
+
+        .principle-number {
+            width: 48px;
+            height: 48px;
+            background: var(--ferni);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-family: var(--font-display);
+            font-weight: 700;
+            font-size: 1.25rem;
+        }
+
+        .principle-title {
+            font-family: var(--font-display);
+            font-size: 1.75rem;
+            font-weight: 600;
+        }
+
+        .principle-description {
+            color: var(--text-secondary);
+            margin-bottom: 32px;
+            font-size: 1.1rem;
+            line-height: 1.7;
+        }
+
+        .comparison-table {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+        }
+
+        .comparison-column {
+            padding: 24px;
+            border-radius: var(--radius-xl);
+        }
+
+        .comparison-column.classic {
+            background: rgba(44, 37, 32, 0.04);
+        }
+
+        .comparison-column.ferni {
+            background: rgba(74, 103, 65, 0.08);
+            border: 1px solid rgba(74, 103, 65, 0.15);
+        }
+
+        .comparison-label {
+            font-family: var(--font-accent);
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin-bottom: 8px;
+        }
+
+        .comparison-column.classic .comparison-label {
+            color: var(--text-muted);
+        }
+
+        .comparison-column.ferni .comparison-label {
+            color: var(--ferni);
+        }
+
+        .comparison-text {
+            font-size: 0.95rem;
+            line-height: 1.6;
+        }
+
+        /* Visual Demos */
+        .principle-visual {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 24px;
+        }
+
+        .demo-stage {
+            width: 200px;
+            height: 200px;
+            background: var(--bg-primary);
+            border-radius: var(--radius-xl);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .demo-orb {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, var(--ferni-light) 0%, var(--ferni-dark) 100%);
+            border-radius: 50%;
+            position: relative;
+        }
+
+        .demo-orb::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 30%;
+            transform: translate(-50%, -50%);
+            width: 12px;
+            height: 18px;
+            background: white;
+            border-radius: 50%;
+        }
+
+        .demo-orb::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 70%;
+            transform: translate(-50%, -50%);
+            width: 12px;
+            height: 18px;
+            background: white;
+            border-radius: 50%;
+        }
+
+        .demo-controls {
+            display: flex;
+            gap: 8px;
+        }
+
+        .demo-btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 20px;
+            font-family: var(--font-accent);
+            font-size: 0.8rem;
+            font-weight: 500;
+            cursor: pointer;
+            background: rgba(44, 37, 32, 0.08);
+            color: var(--text-primary);
+            transition: all 0.2s var(--ease-spring);
+        }
+
+        .demo-btn:hover, .demo-btn.active {
+            background: var(--ferni);
+            color: white;
+        }
+
+        /* Specific Animations */
+
+        /* 1. Squash & Stretch */
+        .squash-stretch.joy .demo-orb {
+            animation: squashStretchJoy 0.8s var(--ease-spring) infinite;
+        }
+
+        @keyframes squashStretchJoy {
+            0%, 100% { transform: scale(1, 1); }
+            25% { transform: scale(1.15, 0.9); }
+            50% { transform: scale(0.95, 1.05); }
+            75% { transform: scale(1.05, 0.98); }
+        }
+
+        .squash-stretch.concern .demo-orb {
+            animation: squashStretchConcern 2s ease-in-out infinite;
+        }
+
+        @keyframes squashStretchConcern {
+            0%, 100% { transform: scale(1, 1); }
+            50% { transform: scale(0.95, 0.97); }
+        }
+
+        /* 2. Anticipation */
+        .anticipation.speak .demo-orb {
+            animation: anticipateSpeak 2s ease-in-out infinite;
+        }
+
+        @keyframes anticipateSpeak {
+            0%, 100% { transform: translateY(0) scale(1); }
+            15% { transform: translateY(3px) scale(0.98, 1.02); }
+            25% { transform: translateY(-10px) scale(1.02, 0.98); }
+            50% { transform: translateY(-10px) scale(1.02, 0.98); }
+            65% { transform: translateY(0) scale(1); }
+        }
+
+        /* 3. Follow Through */
+        .follow-through.settle .demo-orb {
+            animation: followThrough 2.5s var(--ease-spring) infinite;
+        }
+
+        @keyframes followThrough {
+            0% { transform: translateY(0); }
+            30% { transform: translateY(-20px); }
+            50% { transform: translateY(-15px); }
+            60% { transform: translateY(-18px); }
+            80% { transform: translateY(-16px); }
+            100% { transform: translateY(-16px); }
+        }
+
+        /* 4. Slow In Slow Out */
+        .slow-in-out.organic .demo-orb {
+            animation: organicMove 3s ease-in-out infinite;
+        }
+
+        @keyframes organicMove {
+            0%, 100% { transform: translateX(0); }
+            50% { transform: translateX(30px); }
+        }
+
+        /* 5. Secondary Action */
+        .secondary-action .demo-orb {
+            animation: breathe 4s ease-in-out infinite;
+        }
+
+        .secondary-action .demo-glow {
+            position: absolute;
+            width: 120px;
+            height: 120px;
+            background: radial-gradient(circle, rgba(74, 103, 65, 0.3) 0%, transparent 70%);
+            border-radius: 50%;
+            animation: glowPulse 4s ease-in-out infinite;
+        }
+
+        @keyframes breathe {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.03); }
+        }
+
+        @keyframes glowPulse {
+            0%, 100% { transform: scale(1); opacity: 0.3; }
+            50% { transform: scale(1.1); opacity: 0.6; }
+        }
+
+        /* 6. Timing */
+        .timing.peter .demo-orb {
+            animation: peterBounce 1s var(--ease-spring) infinite;
+        }
+
+        @keyframes peterBounce {
+            0%, 100% { transform: translateY(0) scale(1); }
+            50% { transform: translateY(-15px) scale(1.05, 0.95); }
+        }
+
+        .timing.nayan .demo-orb {
+            animation: nayanMove 5s ease-in-out infinite;
+        }
+
+        @keyframes nayanMove {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-8px); }
+        }
+
+        /* 7. Exaggeration - Micro Expression */
+        .exaggeration .demo-orb {
+            position: relative;
+        }
+
+        .exaggeration .demo-orb::before,
+        .exaggeration .demo-orb::after {
+            transition: all 0.08s ease-out;
+        }
+
+        .exaggeration.flash .demo-orb::before,
+        .exaggeration.flash .demo-orb::after {
+            transform: translate(-50%, -50%) scaleY(0.7);
+        }
+
+        /* 8. Appeal */
+        .appeal .demo-orb {
+            animation: gentleFloat 4s ease-in-out infinite;
+        }
+
+        @keyframes gentleFloat {
+            0%, 100% { transform: translateY(0) rotate(0deg); }
+            25% { transform: translateY(-5px) rotate(-2deg); }
+            75% { transform: translateY(-5px) rotate(2deg); }
+        }
+
+        /* 9. Arcs */
+        .arcs .demo-orb {
+            animation: arcPath 3s ease-in-out infinite;
+        }
+
+        @keyframes arcPath {
+            0%, 100% { transform: translate(0, 0); }
+            50% { transform: translate(30px, -20px); }
+        }
+
+        /* 10. Staging */
+        .staging .demo-orb {
+            z-index: 2;
+        }
+
+        .staging .demo-bg {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at center, transparent 40%, rgba(44, 37, 32, 0.1) 100%);
+            transition: all 0.3s ease;
+        }
+
+        .staging.focus .demo-bg {
+            background: radial-gradient(circle at center, transparent 30%, rgba(44, 37, 32, 0.2) 100%);
+        }
+
+        /* 11. Pose to Pose */
+        .pose-to-pose .demo-orb {
+            animation: poseBlend 4s ease-in-out infinite;
+        }
+
+        @keyframes poseBlend {
+            0%, 100% { transform: scale(1) rotate(0deg); }
+            25% { transform: scale(1.05) rotate(3deg); }
+            50% { transform: scale(1) rotate(-3deg); }
+            75% { transform: scale(1.03) rotate(1deg); }
+        }
+
+        /* 12. Solid Drawing */
+        .solid-drawing .demo-orb {
+            box-shadow: 0 4px 20px rgba(74, 103, 65, 0.3);
+            animation: solidPresence 4s ease-in-out infinite;
+        }
+
+        @keyframes solidPresence {
+            0%, 100% {
+                box-shadow: 0 4px 20px rgba(74, 103, 65, 0.3);
+                transform: translateY(0);
+            }
+            50% {
+                box-shadow: 0 8px 30px rgba(74, 103, 65, 0.4);
+                transform: translateY(-5px);
+            }
+        }
+
+        /* Quote Section */
+        .quote-section {
+            background: var(--ferni);
+            text-align: center;
+        }
+
+        .quote-section blockquote {
+            font-family: var(--font-display);
+            font-size: clamp(1.5rem, 3vw, 2.5rem);
+            font-weight: 300;
+            color: white;
+            max-width: 800px;
+            margin: 0 auto;
+            line-height: 1.5;
+        }
+
+        .quote-section cite {
+            display: block;
+            margin-top: 24px;
+            font-family: var(--font-accent);
+            font-size: 1rem;
+            font-style: normal;
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        /* Footer */
+        footer {
+            padding: 48px 24px;
+            text-align: center;
+            background: var(--bg-elevated);
+        }
+
+        .footer-logo {
+            font-family: var(--font-display);
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--ferni);
+            margin-bottom: 8px;
+        }
+
+        .footer-tagline {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+    <!-- Shared Navigation -->
+    <div id="nav-placeholder"></div>
+
+    <section class="hero">
+        <h1>The <strong>12 Pixar Principles</strong><br>Adapted for Emotional AI</h1>
+        <p>The same animation principles that make you cry at <em>Up</em> in the first 10 minutes - applied to every micro-interaction with Ferni.</p>
+    </section>
+
+    <section>
+        <div class="section-inner">
+            <div class="principles-grid">
+
+                <!-- 1. Squash & Stretch -->
+                <div class="principle-card">
+                    <div class="principle-content">
+                        <div class="principle-header">
+                            <div class="principle-number">1</div>
+                            <h2 class="principle-title">Squash & Stretch</h2>
+                        </div>
+                        <p class="principle-description">
+                            In traditional animation, this gives characters weight and flexibility. For Ferni, it becomes <strong>emotional responsiveness</strong> - expanding with joy, contracting with concern.
+                        </p>
+                        <div class="comparison-table">
+                            <div class="comparison-column classic">
+                                <div class="comparison-label">Classic Animation</div>
+                                <p class="comparison-text">A bouncing ball flattens when it hits the ground, stretches as it rises - showing weight and elasticity.</p>
+                            </div>
+                            <div class="comparison-column ferni">
+                                <div class="comparison-label">Ferni Application</div>
+                                <p class="comparison-text">When you share good news, Ferni expands slightly (115%) with joy. When sensing concern, contracts gently (95%). Your emotions become visible.</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="principle-visual">
+                        <div class="demo-stage squash-stretch joy" id="demo1">
+                            <div class="demo-orb"></div>
+                        </div>
+                        <div class="demo-controls">
+                            <button class="demo-btn active" onclick="setDemo(1, 'joy')">Joy</button>
+                            <button class="demo-btn" onclick="setDemo(1, 'concern')">Concern</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 2. Anticipation -->
+                <div class="principle-card">
+                    <div class="principle-content">
+                        <div class="principle-header">
+                            <div class="principle-number">2</div>
+                            <h2 class="principle-title">Anticipation</h2>
+                        </div>
+                        <p class="principle-description">
+                            Before any major action, there's a wind-up. For Ferni, this becomes <strong>visible thinking</strong> - subtle signals before speaking that show processing.
+                        </p>
+                        <div class="comparison-table">
+                            <div class="comparison-column classic">
+                                <div class="comparison-label">Classic Animation</div>
+                                <p class="comparison-text">A pitcher winds up before throwing. A character squats before jumping. The anticipation makes the action feel real.</p>
+                            </div>
+                            <div class="comparison-column ferni">
+                                <div class="comparison-label">Ferni Application</div>
+                                <p class="comparison-text">Before Ferni speaks, a micro-contraction (98% scale) creates the feeling of gathering thoughts. The user feels the preparation.</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="principle-visual">
+                        <div class="demo-stage anticipation speak" id="demo2">
+                            <div class="demo-orb"></div>
+                        </div>
+                        <div class="demo-controls">
+                            <button class="demo-btn active" onclick="setDemo(2, 'speak')">Before Speaking</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 3. Staging -->
+                <div class="principle-card">
+                    <div class="principle-content">
+                        <div class="principle-header">
+                            <div class="principle-number">3</div>
+                            <h2 class="principle-title">Staging</h2>
+                        </div>
+                        <p class="principle-description">
+                            Every frame should clearly communicate one idea. For Ferni, this means <strong>focus attention</strong> on what matters now - the avatar, the emotion, the moment.
+                        </p>
+                        <div class="comparison-table">
+                            <div class="comparison-column classic">
+                                <div class="comparison-label">Classic Animation</div>
+                                <p class="comparison-text">Background dims when a character has an important moment. Camera angles guide the eye to what matters.</p>
+                            </div>
+                            <div class="comparison-column ferni">
+                                <div class="comparison-label">Ferni Application</div>
+                                <p class="comparison-text">When listening deeply, the glow intensifies while surroundings subtly dim. During emotional moments, all visual noise falls away.</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="principle-visual">
+                        <div class="demo-stage staging focus" id="demo3">
+                            <div class="demo-bg"></div>
+                            <div class="demo-orb"></div>
+                        </div>
+                        <div class="demo-controls">
+                            <button class="demo-btn active" onclick="setDemo(3, 'focus')">Focus Mode</button>
+                            <button class="demo-btn" onclick="setDemo(3, 'normal')">Normal</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 4. Straight Ahead / Pose to Pose -->
+                <div class="principle-card">
+                    <div class="principle-content">
+                        <div class="principle-header">
+                            <div class="principle-number">4</div>
+                            <h2 class="principle-title">Straight Ahead / Pose to Pose</h2>
+                        </div>
+                        <p class="principle-description">
+                            Two animation approaches - spontaneous frame-by-frame vs. planned keyframes. Ferni <strong>blends both</strong> for natural, responsive feel.
+                        </p>
+                        <div class="comparison-table">
+                            <div class="comparison-column classic">
+                                <div class="comparison-label">Classic Animation</div>
+                                <p class="comparison-text">Straight ahead: wild, spontaneous energy (fire, smoke). Pose to pose: controlled, planned movement (character actions).</p>
+                            </div>
+                            <div class="comparison-column ferni">
+                                <div class="comparison-label">Ferni Application</div>
+                                <p class="comparison-text">Core expressions are keyframed for consistency. Micro-responses are procedural for spontaneity. The blend creates life.</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="principle-visual">
+                        <div class="demo-stage pose-to-pose" id="demo4">
+                            <div class="demo-orb"></div>
+                        </div>
+                        <div class="demo-controls">
+                            <button class="demo-btn active">Blended Motion</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 5. Follow Through -->
+                <div class="principle-card">
+                    <div class="principle-content">
+                        <div class="principle-header">
+                            <div class="principle-number">5</div>
+                            <h2 class="principle-title">Follow Through & Overlapping</h2>
+                        </div>
+                        <p class="principle-description">
+                            Parts don't stop at once - momentum continues naturally. For Ferni, <strong>emotions don't stop abruptly</strong>. They settle, like a bell continuing to ring.
+                        </p>
+                        <div class="comparison-table">
+                            <div class="comparison-column classic">
+                                <div class="comparison-label">Classic Animation</div>
+                                <p class="comparison-text">A dog's ears flop after the head stops. Hair keeps moving after a character stops running. Nothing stops all at once.</p>
+                            </div>
+                            <div class="comparison-column ferni">
+                                <div class="comparison-label">Ferni Application</div>
+                                <p class="comparison-text">After celebration, the glow slowly fades rather than cutting. After concern, the protective mode eases back gradually. Emotions have half-lives.</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="principle-visual">
+                        <div class="demo-stage follow-through settle" id="demo5">
+                            <div class="demo-orb"></div>
+                        </div>
+                        <div class="demo-controls">
+                            <button class="demo-btn active">Watch Settle</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 6. Slow In / Slow Out -->
+                <div class="principle-card">
+                    <div class="principle-content">
+                        <div class="principle-header">
+                            <div class="principle-number">6</div>
+                            <h2 class="principle-title">Slow In / Slow Out</h2>
+                        </div>
+                        <p class="principle-description">
+                            Movement accelerates and decelerates - nothing starts or stops instantly. For Ferni, <strong>all transitions feel organic</strong>, never mechanical.
+                        </p>
+                        <div class="comparison-table">
+                            <div class="comparison-column classic">
+                                <div class="comparison-label">Classic Animation</div>
+                                <p class="comparison-text">A car accelerates from stop. A ball slows before reaching the peak of its arc. Physics feels right.</p>
+                            </div>
+                            <div class="comparison-column ferni">
+                                <div class="comparison-label">Ferni Application</div>
+                                <p class="comparison-text">Emotion transitions use ease-in-out curves. State changes never snap. The movement between listening and speaking flows like breath.</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="principle-visual">
+                        <div class="demo-stage slow-in-out organic" id="demo6">
+                            <div class="demo-orb"></div>
+                        </div>
+                        <div class="demo-controls">
+                            <button class="demo-btn active">Organic Motion</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 7. Arcs -->
+                <div class="principle-card">
+                    <div class="principle-content">
+                        <div class="principle-header">
+                            <div class="principle-number">7</div>
+                            <h2 class="principle-title">Arcs</h2>
+                        </div>
+                        <p class="principle-description">
+                            Natural movement follows curved paths, not straight lines. Ferni's avatar movements follow <strong>organic curves</strong> that feel alive.
+                        </p>
+                        <div class="comparison-table">
+                            <div class="comparison-column classic">
+                                <div class="comparison-label">Classic Animation</div>
+                                <p class="comparison-text">A waving hand moves in an arc, not a straight line. A thrown ball follows a parabola. Nature curves.</p>
+                            </div>
+                            <div class="comparison-column ferni">
+                                <div class="comparison-label">Ferni Application</div>
+                                <p class="comparison-text">When shifting attention, the avatar doesn't snap - it arcs. Nods follow curved paths. Tilts swing naturally. Linear = robotic.</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="principle-visual">
+                        <div class="demo-stage arcs" id="demo7">
+                            <div class="demo-orb"></div>
+                        </div>
+                        <div class="demo-controls">
+                            <button class="demo-btn active">Arc Motion</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 8. Secondary Action -->
+                <div class="principle-card">
+                    <div class="principle-content">
+                        <div class="principle-header">
+                            <div class="principle-number">8</div>
+                            <h2 class="principle-title">Secondary Action</h2>
+                        </div>
+                        <p class="principle-description">
+                            Supporting movements that enrich the main action without distracting. For Ferni, the <strong>glow pulses while the avatar breathes</strong> - layers of life.
+                        </p>
+                        <div class="comparison-table">
+                            <div class="comparison-column classic">
+                                <div class="comparison-label">Classic Animation</div>
+                                <p class="comparison-text">A character whistles while walking. Their arms swing, hair bounces - secondary actions that add personality without stealing focus.</p>
+                            </div>
+                            <div class="comparison-column ferni">
+                                <div class="comparison-label">Ferni Application</div>
+                                <p class="comparison-text">The breathing animation is primary. The glow pulse is secondary. Eye sparkles add tertiary life. Layers of animation create presence.</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="principle-visual">
+                        <div class="demo-stage secondary-action" id="demo8">
+                            <div class="demo-glow"></div>
+                            <div class="demo-orb"></div>
+                        </div>
+                        <div class="demo-controls">
+                            <button class="demo-btn active">Layered Animation</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 9. Timing -->
+                <div class="principle-card">
+                    <div class="principle-content">
+                        <div class="principle-header">
+                            <div class="principle-number">9</div>
+                            <h2 class="principle-title">Timing</h2>
+                        </div>
+                        <p class="principle-description">
+                            Speed communicates weight and emotion. Each Ferni persona has <strong>distinct timing profiles</strong> - Peter moves fast because his mind moves fast.
+                        </p>
+                        <div class="comparison-table">
+                            <div class="comparison-column classic">
+                                <div class="comparison-label">Classic Animation</div>
+                                <p class="comparison-text">A heavy object falls slowly. A nervous character moves in quick bursts. Timing = personality.</p>
+                            </div>
+                            <div class="comparison-column ferni">
+                                <div class="comparison-label">Ferni Application</div>
+                                <p class="comparison-text">Peter: 0.8x (quick, curious). Nayan: 1.1x+ (slow, contemplative). Maya: 0.95x (patient, nurturing). Timing IS personality.</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="principle-visual">
+                        <div class="demo-stage timing peter" id="demo9">
+                            <div class="demo-orb"></div>
+                        </div>
+                        <div class="demo-controls">
+                            <button class="demo-btn active" onclick="setDemo(9, 'peter')">Peter (0.8x)</button>
+                            <button class="demo-btn" onclick="setDemo(9, 'nayan')">Nayan (1.1x)</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 10. Exaggeration -->
+                <div class="principle-card">
+                    <div class="principle-content">
+                        <div class="principle-header">
+                            <div class="principle-number">10</div>
+                            <h2 class="principle-title">Exaggeration</h2>
+                        </div>
+                        <p class="principle-description">
+                            Push emotions beyond realism for impact. For Ferni, <strong>micro-expressions punch above their weight</strong> - 80ms of recognition creates lasting connection.
+                        </p>
+                        <div class="comparison-table">
+                            <div class="comparison-column classic">
+                                <div class="comparison-label">Classic Animation</div>
+                                <p class="comparison-text">Eyes bug out in surprise. Jaw drops exaggeratedly. Real emotions, pushed to be visible and impactful.</p>
+                            </div>
+                            <div class="comparison-column ferni">
+                                <div class="comparison-label">Ferni Application</div>
+                                <p class="comparison-text">Micro-expressions last 40-150ms - brief but intense. The squint of recognition is subtle but perfect. Less is more, done precisely.</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="principle-visual">
+                        <div class="demo-stage exaggeration" id="demo10">
+                            <div class="demo-orb"></div>
+                        </div>
+                        <div class="demo-controls">
+                            <button class="demo-btn" onclick="flashMicroExpression()">Trigger Micro-Expression</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 11. Solid Drawing -->
+                <div class="principle-card">
+                    <div class="principle-content">
+                        <div class="principle-header">
+                            <div class="principle-number">11</div>
+                            <h2 class="principle-title">Solid Drawing</h2>
+                        </div>
+                        <p class="principle-description">
+                            Characters must feel three-dimensional and consistent. Ferni maintains <strong>consistent presence across all states</strong> - always recognizable, always solid.
+                        </p>
+                        <div class="comparison-table">
+                            <div class="comparison-column classic">
+                                <div class="comparison-label">Classic Animation</div>
+                                <p class="comparison-text">Characters have weight, volume, balance. They don't feel like flat drawings - they feel like beings with mass.</p>
+                            </div>
+                            <div class="comparison-column ferni">
+                                <div class="comparison-label">Ferni Application</div>
+                                <p class="comparison-text">The avatar has consistent form across all emotions. Subtle shadows create depth. The glow gives dimensionality. Ferni has presence.</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="principle-visual">
+                        <div class="demo-stage solid-drawing" id="demo11">
+                            <div class="demo-orb"></div>
+                        </div>
+                        <div class="demo-controls">
+                            <button class="demo-btn active">Solid Presence</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 12. Appeal -->
+                <div class="principle-card">
+                    <div class="principle-content">
+                        <div class="principle-header">
+                            <div class="principle-number">12</div>
+                            <h2 class="principle-title">Appeal</h2>
+                        </div>
+                        <p class="principle-description">
+                            Characters must be likable and engaging. Every Ferni movement carries <strong>warmth</strong> - inviting, approachable, safe.
+                        </p>
+                        <div class="comparison-table">
+                            <div class="comparison-column classic">
+                                <div class="comparison-label">Classic Animation</div>
+                                <p class="comparison-text">Protagonists are designed to be appealing - big eyes, balanced proportions, inviting expressions. Villains are designed to unsettle.</p>
+                            </div>
+                            <div class="comparison-column ferni">
+                                <div class="comparison-label">Ferni Application</div>
+                                <p class="comparison-text">Round, soft form. Gentle movements. Warm colors. Nothing sharp, nothing threatening. Every frame says: "It's safe here."</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="principle-visual">
+                        <div class="demo-stage appeal" id="demo12">
+                            <div class="demo-orb"></div>
+                        </div>
+                        <div class="demo-controls">
+                            <button class="demo-btn active">Pure Appeal</button>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </section>
+
+    <section class="quote-section">
+        <blockquote>
+            "Motion is emotion made visible. Every frame tells the user: I'm here. I'm listening. I understand."
+        </blockquote>
+        <cite>Ferni Motion Language Guide</cite>
+    </section>
+
+    <!-- Shared Footer -->
+    <div id="footer-placeholder"></div>
+
+    <script>
+        function setDemo(demoNumber, state) {
+            const demo = document.getElementById('demo' + demoNumber);
+            const buttons = demo.parentElement.querySelectorAll('.demo-btn');
+
+            // Remove all state classes and active buttons
+            demo.classList.remove('joy', 'concern', 'speak', 'focus', 'normal', 'settle', 'organic', 'peter', 'nayan', 'flash');
+            buttons.forEach(b => b.classList.remove('active'));
+
+            // Add new state
+            demo.classList.add(state);
+            event.target.classList.add('active');
+        }
+
+        function flashMicroExpression() {
+            const demo = document.getElementById('demo10');
+            demo.classList.add('flash');
+            setTimeout(() => {
+                demo.classList.remove('flash');
+            }, 80); // 80ms - micro-expression timing
+        }
+    </script>
+
+    <!-- Shared Navigation Script -->
+    <script src="../shared/nav.js" defer></script>
+</body>
+</html>

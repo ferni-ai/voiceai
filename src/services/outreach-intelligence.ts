@@ -29,8 +29,9 @@ import {
   scheduleCall,
   getUserContactInfo,
   setUserContactInfo,
-} from '../tools/proactive-outreach.js';
+} from './outreach/user-contact.js';
 import { AgentRole } from '../personas/index.js';
+import { cleanForFirestore } from '../utils/firestore-utils.js';
 
 // ============================================================================
 // TYPES
@@ -214,7 +215,7 @@ async function loadUserData(userId: string): Promise<void> {
 
     // Rehydrate engagement
     if (data.engagement) {
-      engagementStore.set(userId, {
+      engagementStore.set(cleanForFirestore(userId), {
         ...data.engagement,
         lastInteraction: new Date(data.engagement.lastInteraction),
       });
@@ -401,7 +402,8 @@ export function getOutreachMemoryStats(): {
 // ============================================================================
 
 const DEFAULT_PREFERENCES: UserOutreachPreferences = {
-  enabled: true,
+  // OPT-OUT BY DEFAULT: Users must explicitly enable proactive outreach
+  enabled: false,
   preferredMethod: 'sms',
   preferredTimes: {
     morning: true,
@@ -738,7 +740,7 @@ export function getPreferences(userId: string): UserOutreachPreferences {
  */
 export function setPreferences(userId: string, prefs: Partial<UserOutreachPreferences>): void {
   const existing = getPreferences(userId);
-  preferencesStore.set(userId, { ...existing, ...prefs });
+  preferencesStore.set(cleanForFirestore(userId), { ...existing, ...prefs });
 
   // Persist to Firestore
   persistUserData(userId);
@@ -945,7 +947,8 @@ export async function executeOutreach(
   }
 
   // Execute immediately (using the proactive outreach functions)
-  const { textUser, emailUser, callUser } = await import('../tools/proactive-outreach.js');
+  const { textUser, emailUser, callUser } =
+    await import('../tools/domains/proactive/outreach/index.js');
 
   let result;
   switch (method) {

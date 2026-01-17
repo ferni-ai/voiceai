@@ -13,6 +13,7 @@
  * @module @ferni/superhuman/spontaneous-delight
  */
 
+import { seededChance, seededIndex, seededPick } from '../utils/rng.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import {
   getBetterThanHumanContentSync,
@@ -181,7 +182,7 @@ export class SpontaneousDelightEngine {
   private delightHistory: Array<{ type: DelightType; turn: number; date: Date }> = [];
   private lastDelightTurn = 0;
 
-  constructor(userId: string, personaId: string = 'ferni') {
+  constructor(userId: string, personaId = 'ferni') {
     this.userId = userId;
     this.personaId = personaId;
   }
@@ -217,7 +218,7 @@ export class SpontaneousDelightEngine {
 
     // Base probability varies by type
     const probability = this.getProbability(type, context);
-    if (Math.random() > probability) {
+    if (!seededChance(`${Date.now()}:1`, probability)) {
       return { shouldEmit: false };
     }
 
@@ -285,7 +286,7 @@ export class SpontaneousDelightEngine {
 
     if (filtered.length === 0) return candidates[0]; // Fall back if all used
 
-    return filtered[Math.floor(Math.random() * filtered.length)];
+    return seededPick(`${Date.now()}:289`, filtered) ?? filtered[0];
   }
 
   private getProbability(type: DelightType, context: DelightContext): number {
@@ -321,7 +322,7 @@ export class SpontaneousDelightEngine {
 
     // Fall back to hardcoded phrases
     const phrases = DELIGHT_PHRASES[type];
-    return phrases[Math.floor(Math.random() * phrases.length)];
+    return seededPick(`${Date.now()}:325`, phrases) ?? phrases[0];
   }
 
   /**
@@ -342,7 +343,7 @@ export class VisibleVulnerabilityEngine {
   private personaId: string;
   private lastVulnerabilityTurn = 0;
 
-  constructor(userId: string, personaId: string = 'ferni') {
+  constructor(userId: string, personaId = 'ferni') {
     this.userId = userId;
     this.personaId = personaId;
   }
@@ -368,7 +369,7 @@ export class VisibleVulnerabilityEngine {
 
     // Get probability based on type
     const probability = this.getProbability(type, context);
-    if (Math.random() > probability) {
+    if (!seededChance(`${Date.now()}:2`, probability)) {
       return { shouldExpress: false };
     }
 
@@ -382,7 +383,7 @@ export class VisibleVulnerabilityEngine {
     // Fall back to hardcoded phrases
     if (!phrase) {
       const phrases = VULNERABILITY_PHRASES[type];
-      phrase = phrases[Math.floor(Math.random() * phrases.length)];
+      phrase = seededPick(`${Date.now()}:386`, phrases) ?? phrases[0];
     }
 
     this.lastVulnerabilityTurn = turnCount;
@@ -425,7 +426,7 @@ export class VisibleVulnerabilityEngine {
 
     // Deeply personal
     if (context.deeplyPersonal) {
-      return Math.random() < 0.5 ? 'asking_for_help' : 'honesty';
+      return seededChance(`${Date.now()}:429`, 0.5) ? 'asking_for_help' : 'honesty';
     }
 
     return null;
@@ -464,7 +465,7 @@ export class ProtectiveInstinctsEngine {
   private userId: string;
   private personaId: string;
 
-  constructor(userId: string, personaId: string = 'ferni') {
+  constructor(userId: string, personaId = 'ferni') {
     this.userId = userId;
     this.personaId = personaId;
   }
@@ -589,7 +590,7 @@ export class ProtectiveInstinctsEngine {
     // Fall back to hardcoded phrases
     if (!phrase) {
       const phrases = PROTECTIVE_PHRASES[type];
-      phrase = phrases[Math.floor(Math.random() * phrases.length)];
+      phrase = seededPick(`${Date.now()}:593`, phrases) ?? phrases[0];
     }
 
     // Higher severity or deeper relationship = more direct intervention

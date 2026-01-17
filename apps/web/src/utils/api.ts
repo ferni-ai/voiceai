@@ -13,14 +13,62 @@
  * - PRIMARY: Firebase Auth token (Authorization: Bearer header)
  * - FALLBACK: X-User-Id header for user identification (migration)
  * - DEV MODE: X-Admin-Key: dev-mode to bypass auth
+ *
+ * ⚠️ IMPORTANT: Response Type Pattern
+ * -----------------------------------
+ * All api* functions return a WRAPPER object, NOT the raw data:
+ *
+ *   { ok: boolean; data?: T; error?: string; status: number; retries?: number; offline?: boolean }
+ *
+ * The generic type T describes what's inside .data, not the response itself!
+ *
+ * ✅ CORRECT usage:
+ *   const response = await apiGet<{ users: User[] }>('/api/users');
+ *   if (!response.ok || !response.data) {
+ *     throw new Error(response.error || 'Failed');
+ *   }
+ *   return response.data; // ← Access .data to get { users: User[] }
+ *
+ * ❌ WRONG (causes type errors):
+ *   const response = await apiGet<{ users: User[] }>('/api/users');
+ *   return response; // ← response is the wrapper, not { users: User[] }
  */
 
 import { getAuthToken, getFirebaseUid, initAuth } from '../services/firebase-auth.service.js';
-import { isDevelopment } from './environment.js';
 import { createLogger } from './logger.js';
 import { fetchWithRetry, isOffline, type FetchRetryOptions } from './fetch-retry.js';
 
 const log = createLogger('API');
+
+// ============================================================================
+// TYPES
+// ============================================================================
+
+/**
+ * Standard response wrapper returned by all api* functions.
+ * The generic T describes what's inside .data, NOT the response itself.
+ *
+ * @example
+ * // T = { users: User[] } means response.data is { users: User[] }
+ * const response: ApiResponse<{ users: User[] }> = await apiGet('/api/users');
+ * if (response.ok && response.data) {
+ *   console.log(response.data.users); // ← Access .data for the typed payload
+ * }
+ */
+export interface ApiResponse<T> {
+  /** Whether the request succeeded (2xx status) */
+  ok: boolean;
+  /** The typed payload - only present when ok is true */
+  data?: T;
+  /** Error message when ok is false */
+  error?: string;
+  /** HTTP status code */
+  status: number;
+  /** Number of retry attempts (0 if succeeded first try) */
+  retries?: number;
+  /** True if request failed due to offline status */
+  offline?: boolean;
+}
 
 // Track if we've ensured auth is ready
 let authReadyPromise: Promise<void> | null = null;
@@ -79,8 +127,10 @@ export function getDeviceId(): string | null {
 export function getApiHeaders(includeJson = true): HeadersInit {
   const headers: HeadersInit = {};
 
-  // In development mode, add admin key to bypass auth
-  if (isDevelopment()) {
+  // SECURITY: Only add dev-mode key when Vite's DEV flag is true
+  // This flag is ONLY true during `vite dev` builds, never in production
+  // Using import.meta.env.DEV is more secure than hostname detection
+  if (import.meta.env.DEV) {
     headers['X-Admin-Key'] = 'dev-mode';
   }
 
@@ -146,12 +196,14 @@ const DEFAULT_RETRY_OPTIONS: FetchRetryOptions = {
 /**
  * Make an authenticated GET request with self-healing retry logic.
  * Automatically retries on transient failures with exponential backoff.
+ *
+ * @returns ApiResponse<T> - Check .ok and access .data for the typed payload
  */
 export async function apiGet<T = unknown>(
   path: string,
   params?: Record<string, string>,
   retryOptions?: Partial<FetchRetryOptions>
-): Promise<{ ok: boolean; data?: T; error?: string; status: number; retries?: number; offline?: boolean }> {
+): Promise<ApiResponse<T>> {
   // Early exit if offline
   if (isOffline()) {
     log.warn('API GET skipped: device is offline', { path });
@@ -224,12 +276,14 @@ export async function apiGet<T = unknown>(
 /**
  * Make an authenticated POST request with self-healing retry logic.
  * Automatically retries on transient failures with exponential backoff.
+ *
+ * @returns ApiResponse<T> - Check .ok and access .data for the typed payload
  */
 export async function apiPost<T = unknown>(
   path: string,
   body?: unknown,
   retryOptions?: Partial<FetchRetryOptions>
-): Promise<{ ok: boolean; data?: T; error?: string; status: number; retries?: number; offline?: boolean }> {
+): Promise<ApiResponse<T>> {
   // Early exit if offline
   if (isOffline()) {
     log.warn('API POST skipped: device is offline', { path });
@@ -295,14 +349,165 @@ export async function apiPost<T = unknown>(
 }
 
 /**
+ * Make an authenticated PUT request with self-healing retry logic.
+ * Automatically retries on transient failures with exponential backoff.
+ */
+export async function apiPut<T = unknown>(
+  path: string,
+  body?: unknown,
+  retryOptions?: Partial<FetchRetryOptions>
+): Promise<{ ok: boolean; data?: T; error?: string; status: number; retries?: number; offline?: boolean }> {
+  // Early exit if offline
+  if (isOffline()) {
+    log.warn('API PUT skipped: device is offline', { path });
+    return { ok: false, error: 'Device is offline', status: 0, offline: true };
+  }
+
+  try {
+    const url = new URL(path, window.location.origin);
+
+    // Always include userId in body if not already present
+    const userId = getUserId();
+    const bodyWithUser = body && typeof body === 'object'
+      ? { userId, ...(body as Record<string, unknown>) }
+      : body;
+
+    // Get async headers with Firebase auth token
+    const headers = await getApiHeadersAsync(true);
+
+    // Use fetchWithRetry for self-healing
+    const result = await fetchWithRetry<T>(
+      url.toString(),
+      {
+        method: 'PUT',
+        headers,
+        body: JSON.stringify(bodyWithUser),
+      },
+      { ...DEFAULT_RETRY_OPTIONS, ...retryOptions }
+    );
+
+    if (result.error) {
+      // 401 errors are expected before auth completes - use debug level
+      if (result.status === 401) {
+        log.debug('API PUT unauthorized (auth pending)', { path });
+      } else {
+        log.warn('API PUT failed', { 
+          path, 
+          status: result.status, 
+          error: result.error.message,
+          retries: result.retries 
+        });
+      }
+      return {
+        ok: false,
+        error: result.error.message,
+        status: result.status ?? 0,
+        retries: result.retries,
+        offline: result.offline,
+      };
+    }
+
+    if (result.retries > 0) {
+      log.debug('API PUT succeeded after retry', { path, retries: result.retries });
+    }
+
+    return { 
+      ok: true, 
+      data: result.data!, 
+      status: result.status ?? 200,
+      retries: result.retries,
+    };
+  } catch (err) {
+    log.error('API PUT error', { path, error: err });
+    return { ok: false, error: String(err), status: 0 };
+  }
+}
+
+/**
+ * Make an authenticated PATCH request with self-healing retry logic.
+ * Automatically retries on transient failures with exponential backoff.
+ */
+export async function apiPatch<T = unknown>(
+  path: string,
+  body?: unknown,
+  retryOptions?: Partial<FetchRetryOptions>
+): Promise<{ ok: boolean; data?: T; error?: string; status: number; retries?: number; offline?: boolean }> {
+  // Early exit if offline
+  if (isOffline()) {
+    log.warn('API PATCH skipped: device is offline', { path });
+    return { ok: false, error: 'Device is offline', status: 0, offline: true };
+  }
+
+  try {
+    const url = new URL(path, window.location.origin);
+
+    // Always include userId in body if not already present
+    const userId = getUserId();
+    const bodyWithUser = body && typeof body === 'object'
+      ? { userId, ...(body as Record<string, unknown>) }
+      : body;
+
+    // Get async headers with Firebase auth token
+    const headers = await getApiHeadersAsync(true);
+
+    // Use fetchWithRetry for self-healing
+    const result = await fetchWithRetry<T>(
+      url.toString(),
+      {
+        method: 'PATCH',
+        headers,
+        body: JSON.stringify(bodyWithUser),
+      },
+      { ...DEFAULT_RETRY_OPTIONS, ...retryOptions }
+    );
+
+    if (result.error) {
+      if (result.status === 401) {
+        log.debug('API PATCH unauthorized (auth pending)', { path });
+      } else {
+        log.warn('API PATCH failed', { 
+          path, 
+          status: result.status, 
+          error: result.error.message,
+          retries: result.retries 
+        });
+      }
+      return {
+        ok: false,
+        error: result.error.message,
+        status: result.status ?? 0,
+        retries: result.retries,
+        offline: result.offline,
+      };
+    }
+
+    if (result.retries > 0) {
+      log.debug('API PATCH succeeded after retry', { path, retries: result.retries });
+    }
+
+    return { 
+      ok: true, 
+      data: result.data!, 
+      status: result.status ?? 200,
+      retries: result.retries,
+    };
+  } catch (err) {
+    log.error('API PATCH error', { path, error: err });
+    return { ok: false, error: String(err), status: 0 };
+  }
+}
+
+/**
  * Make an authenticated DELETE request with self-healing retry logic.
  * Automatically retries on transient failures with exponential backoff.
+ *
+ * @returns ApiResponse<T> - Check .ok and access .data for the typed payload
  */
 export async function apiDelete<T = unknown>(
   path: string,
   params?: Record<string, string>,
   retryOptions?: Partial<FetchRetryOptions>
-): Promise<{ ok: boolean; data?: T; error?: string; status: number; retries?: number; offline?: boolean }> {
+): Promise<ApiResponse<T>> {
   // Early exit if offline
   if (isOffline()) {
     log.warn('API DELETE skipped: device is offline', { path });
@@ -378,5 +583,6 @@ export default {
   getApiHeaders,
   get: apiGet,
   post: apiPost,
+  put: apiPut,
   delete: apiDelete,
 };

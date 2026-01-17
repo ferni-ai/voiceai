@@ -421,7 +421,7 @@ async function loadHabitsFromSources(userId: string): Promise<void> {
 
   try {
     // Try to load from engagement store
-    const { getEngagementStore } = await import('../engagement-store.js');
+    const { getEngagementStore } = await import('../engagement/engagement-store.js');
     const store = await getEngagementStore();
     const streaks = await store.getAllStreaks(userId);
 

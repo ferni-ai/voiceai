@@ -1,48 +1,59 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
-  <!-- Ferni Orb Logo - 1024x1024 -->
+  <!-- Ferni Avatar - High-res App Icon 1024x1024 -->
   <defs>
-    <linearGradient id="orbGradient" x1="0%" y1="100%" x2="100%" y2="0%">
+    <linearGradient id="avatarGrad1024" x1="0%" y1="100%" x2="100%" y2="0%">
       <stop offset="0%" stop-color="#3d5a35"/>
-      <stop offset="40%" stop-color="#4a6741"/>
-      <stop offset="100%" stop-color="#5a7a4d"/>
+      <stop offset="100%" stop-color="#4a6741"/>
     </linearGradient>
-    <radialGradient id="orbHighlight" cx="35%" cy="25%" r="40%">
-      <stop offset="0%" stop-color="rgba(255,255,255,0.4)"/>
-      <stop offset="100%" stop-color="rgba(255,255,255,0)"/>
-    </radialGradient>
-    
-    <filter id="orbGlow" x="-50%" y="-50%" width="200%" height="200%">
-      <feGaussianBlur stdDeviation="40.96" result="blur"/>
-      <feFlood flood-color="#4a6741" flood-opacity="0.35"/>
-      <feComposite in2="blur" operator="in"/>
-      <feMerge>
-        <feMergeNode/>
-        <feMergeNode in="SourceGraphic"/>
-      </feMerge>
+    <linearGradient id="badgeGrad1024" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#3d5a35"/>
+      <stop offset="100%" stop-color="#5a8060"/>
+    </linearGradient>
+    <filter id="shadow1024" x="-50%" y="-50%" width="200%" height="200%">
+      <feDropShadow dx="0" dy="4" stdDeviation="8" flood-color="#2c2520" flood-opacity="0.25"/>
+    </filter>
+    <filter id="avatarGlow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="8" result="blur"/>
+      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
     </filter>
   </defs>
-
-  <rect width="1024" height="1024" rx="192" fill="#F5F1E8"/>
   
-    <circle cx="512" cy="512" r="422.83008" fill="none" stroke="#4a6741" stroke-width="1" opacity="0.15"/>
-    <circle cx="512" cy="512" r="381.91104000000007" fill="none" stroke="#4a6741" stroke-width="1" opacity="0.1"/>
-
-  <!-- Main orb -->
-  <circle cx="512" cy="512" r="340.992" fill="url(#orbGradient)" filter="url(#orbGlow)"/>
-
-  <!-- Top highlight -->
-  <circle cx="512" cy="512" r="340.992" fill="url(#orbHighlight)"/>
-
-  <!-- Waveform bars -->
-  <g>
-    <rect x="334" y="486.4256" width="12" height="51.14880000000001" rx="6" fill="rgba(255,255,255,0.95)"/>
-    <rect x="377" y="473.6384" width="12" height="76.7232" rx="6" fill="rgba(255,255,255,0.95)"/>
-    <rect x="420" y="460.8512" width="12" height="102.29760000000002" rx="6" fill="rgba(255,255,255,0.95)"/>
-    <rect x="463" y="452.3264" width="12" height="119.34720000000002" rx="6" fill="rgba(255,255,255,0.95)"/>
-    <rect x="506" y="443.8016" width="12" height="136.3968" rx="6" fill="rgba(255,255,255,0.95)"/>
-    <rect x="549" y="452.3264" width="12" height="119.34720000000002" rx="6" fill="rgba(255,255,255,0.95)"/>
-    <rect x="592" y="460.8512" width="12" height="102.29760000000002" rx="6" fill="rgba(255,255,255,0.95)"/>
-    <rect x="635" y="473.6384" width="12" height="76.7232" rx="6" fill="rgba(255,255,255,0.95)"/>
-    <rect x="678" y="486.4256" width="12" height="51.14880000000001" rx="6" fill="rgba(255,255,255,0.95)"/>
-  </g>
+  <!-- Background with rounded corners for iOS -->
+  <rect width="1024" height="1024" rx="180" fill="#F5F1E8"/>
+  
+  <!-- Outer presence ring -->
+  <circle cx="512" cy="512" r="400" fill="none" stroke="#4a6741" stroke-width="6" opacity="0.35"/>
+  
+  <!-- Main avatar circle with subtle glow -->
+  <circle cx="512" cy="512" r="350" fill="url(#avatarGrad1024)" filter="url(#avatarGlow)"/>
+  
+  <!-- FE Text -->
+  <text 
+    x="512" 
+    y="512" 
+    text-anchor="middle" 
+    dominant-baseline="central"
+    font-family="'Plus Jakarta Sans', 'SF Pro Display', system-ui, sans-serif"
+    font-size="256"
+    font-weight="800"
+    fill="white"
+    letter-spacing="-8">
+    <tspan dy="16">FE</tspan>
+  </text>
+  
+  <!-- Shine overlay - ABOVE the text -->
+  <ellipse cx="400" cy="360" rx="180" ry="90" fill="white" opacity="0.15"/>
+  
+  <!-- Heart badge background -->
+  <circle cx="792" cy="792" r="96" fill="url(#badgeGrad1024)" stroke="#FFFDFB" stroke-width="16" filter="url(#shadow1024)"/>
+  
+  <!-- Heart icon - centered in badge -->
+  <path 
+    d="M792 764c0-13.2-10.8-24-24-24s-24 10.8-24 24c0 24 44 56 44 56s44-32 44-56c0-13.2-10.8-24-24-24s-24 10.8-24 24z"
+    fill="none"
+    stroke="white"
+    stroke-width="8"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
 </svg>

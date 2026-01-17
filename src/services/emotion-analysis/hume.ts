@@ -12,29 +12,13 @@
  */
 
 import { getLogger } from '../../utils/safe-logger.js';
+import { registerInterval, clearNamedInterval } from '../../utils/interval-manager.js';
 import { getDefaultModel } from '../model-config.js';
 
 const logger = getLogger().child({ service: 'VoiceEmotion' });
 
-// Dynamic import for Gemini SDK
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-let GoogleGenerativeAI: any;
-let geminiLoaded = false;
-
-async function loadGeminiSDK(): Promise<boolean> {
-  if (geminiLoaded) return !!GoogleGenerativeAI;
-  try {
-    const importFn = new Function('specifier', 'return import(specifier)');
-    const module = await importFn('@google/generative-ai');
-    GoogleGenerativeAI = module.GoogleGenerativeAI;
-    geminiLoaded = true;
-    return true;
-  } catch {
-    logger.debug('Gemini SDK not available for emotion analysis');
-    geminiLoaded = true;
-    return false;
-  }
-}
+// Use centralized Gemini config
+import { getGeminiClient, isGeminiConfigured } from '../../config/gemini-config.js';
 
 // ============================================================================
 // Types
@@ -131,8 +115,6 @@ export interface HumeEmotionPoint {
 // Configuration
 // ============================================================================
 
-const GEMINI_API_KEY = process.env.GOOGLE_API_KEY || process.env.GEMINI_API_KEY;
-
 // Use centralized model config (toggle via admin UI or model-config.json)
 function getGeminiModel(): string {
   return getDefaultModel();
@@ -218,21 +200,17 @@ export async function analyzeVoiceEmotion(
   audioBuffer: ArrayBuffer,
   sessionId: string
 ): Promise<HumeEmotionResult | null> {
-  if (!GEMINI_API_KEY) {
-    logger.debug('Google API key not configured, using fallback');
-    return generateFallbackResult();
-  }
-
-  // Load Gemini SDK
-  const hasSDK = await loadGeminiSDK();
-  if (!hasSDK || !GoogleGenerativeAI) {
-    logger.debug('Gemini SDK not available, using fallback');
+  if (!isGeminiConfigured()) {
+    logger.debug('Gemini not configured, using fallback');
     return generateFallbackResult();
   }
 
   try {
-    const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
-    const model = genAI.getGenerativeModel({ model: getGeminiModel() });
+    const genAI = await getGeminiClient();
+    if (!genAI) {
+      logger.debug('Gemini client not available, using fallback');
+      return generateFallbackResult();
+    }
 
     // Convert audio buffer to base64
     const base64Audio = Buffer.from(audioBuffer).toString('base64');
@@ -241,18 +219,21 @@ export async function analyzeVoiceEmotion(
     const mimeType = 'audio/wav';
 
     // Send audio to Gemini for analysis
-    const result = await model.generateContent([
-      EMOTION_ANALYSIS_PROMPT,
-      {
-        inlineData: {
-          mimeType,
-          data: base64Audio,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const result = await (genAI as any).models.generateContent({
+      model: getGeminiModel(),
+      contents: [
+        { text: EMOTION_ANALYSIS_PROMPT },
+        {
+          inlineData: {
+            mimeType,
+            data: base64Audio,
+          },
         },
-      },
-    ]);
+      ],
+    });
 
-    const response = result.response;
-    const text = response.text();
+    const text = result.text ?? '';
 
     // Parse Gemini response
     const emotionResult = parseGeminiResponse(text);
@@ -340,8 +321,8 @@ export async function startEmotionStream(
   sessionId: string,
   onEmotion: (result: HumeEmotionResult) => void
 ): Promise<{ sendAudio: (audio: ArrayBuffer) => void; stop: () => void }> {
-  if (!GEMINI_API_KEY) {
-    logger.debug('Google API key not configured, streaming disabled');
+  if (!isGeminiConfigured()) {
+    logger.debug('Gemini not configured, streaming disabled');
     return {
       sendAudio: () => {},
       stop: () => {},
@@ -356,34 +337,39 @@ export async function startEmotionStream(
   let audioBuffer: ArrayBuffer[] = [];
   let isProcessing = false;
   let stopped = false;
+  const intervalName = `hume-emotion-stream-${sessionId}`;
 
-  // Process accumulated audio periodically
-  const processInterval = setInterval(async () => {
-    if (stopped || isProcessing || audioBuffer.length === 0) return;
+  // Process accumulated audio periodically using managed interval
+  registerInterval(
+    intervalName,
+    async () => {
+      if (stopped || isProcessing || audioBuffer.length === 0) return;
 
-    isProcessing = true;
-    try {
-      // Combine audio chunks
-      const totalLength = audioBuffer.reduce((sum, buf) => sum + buf.byteLength, 0);
-      const combined = new Uint8Array(totalLength);
-      let offset = 0;
-      for (const buf of audioBuffer) {
-        combined.set(new Uint8Array(buf), offset);
-        offset += buf.byteLength;
+      isProcessing = true;
+      try {
+        // Combine audio chunks
+        const totalLength = audioBuffer.reduce((sum, buf) => sum + buf.byteLength, 0);
+        const combined = new Uint8Array(totalLength);
+        let offset = 0;
+        for (const buf of audioBuffer) {
+          combined.set(new Uint8Array(buf), offset);
+          offset += buf.byteLength;
+        }
+        audioBuffer = [];
+
+        // Analyze combined audio
+        const result = await analyzeVoiceEmotion(combined.buffer, sessionId);
+        if (result) {
+          onEmotion(result);
+        }
+      } catch (e) {
+        logger.debug({ error: String(e) }, 'Emotion stream processing error');
+      } finally {
+        isProcessing = false;
       }
-      audioBuffer = [];
-
-      // Analyze combined audio
-      const result = await analyzeVoiceEmotion(combined.buffer, sessionId);
-      if (result) {
-        onEmotion(result);
-      }
-    } catch (e) {
-      logger.debug({ error: String(e) }, 'Emotion stream processing error');
-    } finally {
-      isProcessing = false;
-    }
-  }, 3000); // Analyze every 3 seconds
+    },
+    3000 // Analyze every 3 seconds
+  );
 
   return {
     sendAudio: (audio: ArrayBuffer) => {
@@ -393,7 +379,7 @@ export async function startEmotionStream(
     },
     stop: () => {
       stopped = true;
-      clearInterval(processInterval);
+      clearNamedInterval(intervalName);
       audioBuffer = [];
     },
   };

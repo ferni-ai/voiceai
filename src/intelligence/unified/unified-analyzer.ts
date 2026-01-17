@@ -864,4 +864,10 @@ export async function analyzeUnified(input: UnifiedAnalysisInput): Promise<Unifi
   return UnifiedAnalyzer.getInstance().analyze(input);
 }
 
+/**
+ * Alias for analyzeUnified - backward compatibility with old unified-analyzer.ts
+ * @deprecated Use analyzeUnified() instead
+ */
+export const analyze = analyzeUnified;
+
 export default UnifiedAnalyzer;

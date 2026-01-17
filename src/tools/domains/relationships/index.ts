@@ -20,6 +20,10 @@ import { getLogger } from '../../../utils/safe-logger.js';
 import { z } from 'zod';
 
 import { getToolDescription } from '../../utils/tool-descriptions.js';
+import {
+  generateToolQuestions,
+  formatQuestionsForResponse,
+} from '../../utils/dynamic-tool-questions.js';
 // ============================================================================
 // RELATIONSHIP HEALTH TOOLS
 // ============================================================================
@@ -50,35 +54,43 @@ const assessRelationshipHealthDef: ToolDefinition = {
           'Assessing relationship health'
         );
 
-        const dimensions = [
-          {
-            name: 'Trust',
-            question: `How much do you trust ${personName}? How much do they trust you?`,
-          },
-          {
-            name: 'Communication',
-            question: `How openly can you communicate? Are there topics you avoid?`,
-          },
-          {
-            name: 'Reciprocity',
-            question: `Does the giving and receiving feel balanced over time?`,
-          },
-          { name: 'Emotional Safety', question: `Can you be vulnerable without fear of judgment?` },
-          { name: 'Growth', question: `Does this relationship help you both grow as people?` },
-          { name: 'Joy', question: `How often do you feel genuine joy in each other's company?` },
-        ];
+        // Generate persona-grounded questions for relationship health
+        const generated = generateToolQuestions({
+          personaId: ctx.agentId,
+          domain: 'relationships',
+          focus: specificConcern?.toLowerCase().includes('trust')
+            ? 'trust'
+            : specificConcern?.toLowerCase().includes('communicat')
+              ? 'communication'
+              : specificConcern?.toLowerCase().includes('conflict')
+                ? 'conflict'
+                : 'connection',
+          specificContext: personName,
+          emotionalTone: 'gentle',
+        });
 
         let response = `Let's reflect on your relationship with ${personName}. `;
         if (specificConcern) {
           response += `You mentioned: "${specificConcern}" - let's explore that. `;
         }
-        response += `\n\nConsider these dimensions:\n`;
+        response += '\n\n';
 
+        // Use key dimensions with dynamic questions
+        const dimensions = [
+          { name: 'Trust', question: 'How much do you trust each other?' },
+          { name: 'Communication', question: 'How openly can you communicate?' },
+          { name: 'Reciprocity', question: 'Does the giving and receiving feel balanced?' },
+          { name: 'Emotional Safety', question: 'Can you be vulnerable without fear?' },
+          { name: 'Growth', question: 'Does this relationship help you both grow?' },
+          { name: 'Joy', question: 'How often do you feel genuine joy together?' },
+        ];
+
+        response += 'Consider these dimensions:\n';
         dimensions.forEach((d, i) => {
           response += `\n${i + 1}. **${d.name}**: ${d.question}`;
         });
 
-        response += `\n\nWhich of these feels most important to explore right now?`;
+        response += `\n\n${generated.closingPrompt}`;
 
         return response;
       },

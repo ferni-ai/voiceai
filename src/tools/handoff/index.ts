@@ -3,13 +3,28 @@
  *
  * Agent handoff system for transitioning between team members.
  *
- * NEW SYSTEM (Agent-Agnostic):
- *   import { buildHandoffTools, executeHandoff } from './handoff/index.js';
- *   const { tools } = await buildHandoffTools('ferni');
+ * ## Recommended: Unified Handoff Module
  *
- * LEGACY SYSTEM (Deprecated):
- *   import { createHandoffTools } from './handoff/index.js';
- *   const tools = createHandoffTools();
+ * For state management, use the new unified module:
+ * ```typescript
+ * import {
+ *   getCurrentAgent,
+ *   startHandoff,
+ *   completeHandoff,
+ *   isHandoffAllowed,
+ *   handoffEvents,
+ * } from '../../handoff/index.js';
+ * ```
+ *
+ * ## This Module: Specialized Functionality
+ *
+ * This module provides specialized handoff functionality:
+ * - Tool building: `buildHandoffTools()`, `getHandoffToolsForAgent()`
+ * - Detection: `shouldHandoffToAlex()`, `shouldHandoffToMaya()`, etc.
+ * - Coordination: `HandoffCoordinator`, `HandoffTransaction`
+ * - Validation: `validateHandoffPreconditions()`, `quickValidate()`
+ *
+ * @see src/handoff/index.ts for unified state management
  */
 
 // Type exports
@@ -170,3 +185,121 @@ export {
   // Type export
   type HandoffSessionState,
 } from './session-state.js';
+
+// =============================================================================
+// NEW UNIFIED HANDOFF SYSTEM (v2 - December 2024)
+// =============================================================================
+
+/**
+ * New unified handoff system that addresses the "massive transfer issues":
+ * - Voice ID resolution: Single source of truth
+ * - Pre-validation: Fail fast before starting
+ * - Transaction pattern: Atomic commit/rollback
+ * - Event sequencing: Guaranteed order
+ * - State management: Session-scoped only
+ * - Coordinator: Single orchestration point
+ *
+ * @example
+ * import { HandoffCoordinator, validateHandoffPreconditions } from './handoff/index.js';
+ *
+ * // Create coordinator for session
+ * const coordinator = new HandoffCoordinator({
+ *   sessionId,
+ *   // IMPORTANT: Use personaId (not voiceUUID) for VoiceManager.switchVoice()!
+ *   onVoiceSwitch: async (voiceUUID, personaId) => voiceManager.switchVoice(personaId),
+ *   onLLMUpdate: async (personaId, instructions) => agent.setPersona(personaId, instructions),
+ *   onUINotify: (event) => sendDataMessage(event),
+ * });
+ *
+ * // Execute handoff
+ * const result = await coordinator.execute({
+ *   targetAgent: 'peter-john',
+ *   reason: 'User wants research help',
+ *   userProfile,
+ * });
+ */
+
+// Voice ID Resolution
+export {
+  resolveVoiceId,
+  resolveVoiceIdOrThrow,
+  canResolveVoiceId,
+  getAllVoiceIds,
+  type VoiceIdResolutionResult,
+  type VoiceIdResolved,
+  type VoiceIdResolutionError,
+  type VoiceIdSource,
+  type VoiceIdInput,
+} from './voice-id-resolver.js';
+
+// Pre-Handoff Validation
+export {
+  validateHandoffPreconditions,
+  quickValidate,
+  getValidationErrorMessage,
+  areErrorsRecoverable,
+  type ValidationResult,
+  type ValidationSuccess,
+  type ValidationFailure,
+  type ValidationError,
+  type ValidationErrorCode,
+  type ValidationOptions,
+} from './pre-validation.js';
+
+// Transaction Pattern
+export {
+  HandoffTransaction,
+  createTransaction,
+  createStateStep,
+  createVoiceSwitchStep,
+  createInstructionsStep,
+  createNotificationStep,
+  type TransactionStep,
+  type TransactionState,
+  type TransactionResult,
+  type StepResult,
+} from './handoff-transaction.js';
+
+// Event Sequencing
+export {
+  EventSequencer,
+  createEventSequencer,
+  SequenceGenerator,
+  sequenceGenerator,
+  EVENT_ORDER,
+  TERMINAL_EVENTS,
+  getExpectedPreviousEvent,
+  isTerminalEvent,
+  type SequencedEvent,
+  type HandoffEventType,
+  type EventHandler,
+  type SequencerState,
+} from './event-sequencer.js';
+
+// Unified State Management (replaces global state.ts)
+export {
+  HandoffStateManager,
+  getHandoffManager,
+  hasHandoffManager,
+  removeHandoffManager,
+  type HandoffStateSnapshot,
+  type StateChangeType,
+  type StateChangeEvent,
+  type HandoffRecord,
+} from './handoff-state-manager.js';
+
+// Handoff Coordinator (single orchestration point)
+export {
+  HandoffCoordinator,
+  createHandoffCoordinator,
+  type HandoffRequest,
+  type HandoffResult as CoordinatorHandoffResult,
+  type CoordinatorConfig,
+  type VoiceSwitchCallback,
+  type LLMUpdateCallback,
+  type UINotifyCallback,
+  // Banter hooks for intelligent transitions
+  type BanterContext,
+  type BeforeVoiceSwitchCallback,
+  type AfterVoiceSwitchCallback,
+} from './handoff-coordinator.js';

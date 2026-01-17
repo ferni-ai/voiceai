@@ -13,6 +13,7 @@ export {
   ALL_TOOL_DOMAINS,
   DOMAIN_TO_CATEGORY,
   EmptyServiceRegistry,
+  EnvironmentServiceRegistry,
   ToolRegistry,
   assertTool,
   buildToolSet,

@@ -210,14 +210,14 @@ export function calculateDemoPredictionAccuracy(): number | null {
 // ============================================================================
 
 // Persona colors from design system - use CSS variable references
-const PERSONA_COLORS: Record<string, string> = {
+const PERSONA_COLORS = {
   'ferni': 'var(--persona-ferni-primary, #4a6741)',
   'maya-santos': 'var(--persona-maya-primary, #a67a6a)',
   'peter-john': 'var(--persona-peter-primary, #3a6b73)',
   'alex-chen': 'var(--persona-alex-primary, #5a6b8a)',
   'jordan-taylor': 'var(--persona-jordan-primary, #c4856a)',
   'nayan-patel': 'var(--persona-nayan-primary, #b8956a)',
-};
+} as const satisfies Record<string, string>;
 
 const DEMO_TEAM_HUDDLE_PARTICIPANTS: TeamHuddleParticipant[] = [
   {
@@ -247,16 +247,16 @@ export const DEMO_TEAM_HUDDLES: TeamHuddleData[] = [
   {
     id: 'demo-huddle-weekly',
     title: 'Weekly Team Check-in',
-    intro: "The team wanted to check in on your week. Here's what they're noticing about your progress:",
+    intro: "The team wanted to share something with you. Here's what they're noticing:",
     participants: DEMO_TEAM_HUDDLE_PARTICIPANTS,
-    outro: "That's the team's take. What stands out to you?",
+    outro: "That's what they're seeing. What stands out to you?",
     scheduledAt: new Date().toISOString(),
     type: 'weekly',
   },
   {
     id: 'demo-huddle-milestone',
     title: 'Milestone Celebration',
-    intro: "We noticed something worth celebrating. The whole team wanted to acknowledge your progress:",
+    intro: "We noticed something worth celebrating. Everyone wanted to acknowledge your progress:",
     participants: [
       {
         personaId: 'ferni',
@@ -290,9 +290,18 @@ export const DEMO_TEAM_HUDDLES: TeamHuddleData[] = [
  * Get a demo team huddle (weekly check-in by default)
  */
 export function getDemoTeamHuddle(type: 'weekly' | 'milestone' | 'special' = 'weekly'): TeamHuddleData {
-  const huddle = DEMO_TEAM_HUDDLES.find(h => h.type === type) ?? DEMO_TEAM_HUDDLES[0];
-  // Assert non-null since we have a fallback
-  const baseHuddle = huddle;
+  const firstHuddle = DEMO_TEAM_HUDDLES[0];
+  const huddle = DEMO_TEAM_HUDDLES.find(h => h.type === type) ?? firstHuddle;
+  // Default fallback in case array is empty (shouldn't happen with our data)
+  const baseHuddle = huddle ?? {
+    id: 'default',
+    title: 'Team Check-in',
+    intro: 'Your team wanted to share some thoughts:',
+    participants: [],
+    outro: "That's what they're seeing.",
+    type: 'weekly' as const,
+    scheduledAt: new Date().toISOString(),
+  };
   return {
     id: baseHuddle.id,
     title: baseHuddle.title,

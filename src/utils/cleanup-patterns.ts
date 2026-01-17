@@ -56,7 +56,8 @@
  * ```
  */
 
-import type { EventEmitter } from 'events';
+// EventEmitter type kept for documentation purposes
+type _EventEmitter = typeof import('events').EventEmitter;
 
 /**
  * Interface for objects that can have event listeners
@@ -135,6 +136,7 @@ export class CleanupManager {
     if (this.disposed) {
       throw new Error('CleanupManager already disposed');
     }
+    // eslint-disable-next-line no-restricted-globals -- CleanupManager IS the cleanup mechanism
     const id = setInterval(callback, ms);
     this.items.push({ type: 'interval', id });
     return id;
@@ -159,6 +161,7 @@ export class CleanupManager {
     );
     if (index !== -1) {
       const item = this.items[index];
+      if (!item) return false; // Guard for noUncheckedIndexedAccess
       if (item.type === 'timer') {
         clearTimeout(item.id);
       } else if (item.type === 'interval') {
@@ -180,6 +183,7 @@ export class CleanupManager {
     // Process in reverse order (LIFO)
     for (let i = this.items.length - 1; i >= 0; i--) {
       const item = this.items[i];
+      if (!item) continue; // Guard for noUncheckedIndexedAccess
       try {
         switch (item.type) {
           case 'listener':

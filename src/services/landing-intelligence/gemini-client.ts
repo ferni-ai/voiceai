@@ -13,81 +13,44 @@
 import { createLogger } from '../../utils/safe-logger.js';
 import { getDefaultModel } from '../model-config.js';
 
-// Dynamic import for optional Gemini dependency
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-let GoogleGenerativeAI: any;
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-let HarmBlockThreshold: any;
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-let HarmCategory: any;
-
-// Try to load @google/generative-ai, but don't fail if not installed
-async function loadGeminiSDK(): Promise<boolean> {
-  try {
-    // Use Function constructor to avoid TypeScript static analysis
-    // This is a pattern for optional dependencies
-    const importFn = new Function('specifier', 'return import(specifier)');
-    const module = await importFn('@google/generative-ai');
-    GoogleGenerativeAI = module.GoogleGenerativeAI;
-    HarmBlockThreshold = module.HarmBlockThreshold;
-    HarmCategory = module.HarmCategory;
-    return true;
-  } catch {
-    log.warn('Gemini SDK not available - AI features will use fallbacks');
-    return false;
-  }
-}
-
-let sdkLoaded = false;
-let sdkLoadPromise: Promise<boolean> | null = null;
-
-async function ensureSDKLoaded(): Promise<boolean> {
-  if (sdkLoaded) return !!GoogleGenerativeAI;
-  if (sdkLoadPromise) return sdkLoadPromise;
-
-  sdkLoadPromise = loadGeminiSDK().then((result) => {
-    sdkLoaded = true;
-    return result;
-  });
-
-  return sdkLoadPromise;
-}
+// Use centralized Gemini config
+import {
+  getGeminiClient,
+  isGeminiConfigured,
+  getGeminiConfigStatus,
+} from '../../config/gemini-config.js';
 
 const log = createLogger({ module: 'LandingGemini' });
 
 // ============================================================================
-// CONFIGURATION
+// TYPES
 // ============================================================================
 
-const GEMINI_API_KEY = process.env.GOOGLE_API_KEY || process.env.GEMINI_API_KEY;
+// Type for the Gemini client (using interface to avoid dependency on @google/genai types)
+interface GeminiClient {
+  getGenerativeModel: (config: {
+    model: string;
+    safetySettings?: unknown;
+    generationConfig?: Record<string, unknown>;
+  }) => {
+    generateContent: (prompt: string) => Promise<{
+      response: { text: () => string };
+    }>;
+  };
+}
+
+// ============================================================================
+// CONFIGURATION
+// ============================================================================
 
 // Use centralized model config (toggle via admin UI or model-config.json)
 function getModelName(): string {
   return getDefaultModel();
 }
 
-// Safety settings - created dynamically when SDK is loaded
-function getSafetySettings() {
-  if (!HarmCategory || !HarmBlockThreshold) return [];
-
-  return [
-    {
-      category: HarmCategory.HARM_CATEGORY_HARASSMENT,
-      threshold: HarmBlockThreshold.BLOCK_ONLY_HIGH,
-    },
-    {
-      category: HarmCategory.HARM_CATEGORY_HATE_SPEECH,
-      threshold: HarmBlockThreshold.BLOCK_ONLY_HIGH,
-    },
-    {
-      category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
-      threshold: HarmBlockThreshold.BLOCK_ONLY_HIGH,
-    },
-    {
-      category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
-      threshold: HarmBlockThreshold.BLOCK_ONLY_HIGH,
-    },
-  ];
+// Safety settings for content generation (permissive for landing page use)
+function getSafetySettings(): unknown[] {
+  return []; // Use default safety settings
 }
 
 // Generation config for fast responses
@@ -99,25 +62,23 @@ const GENERATION_CONFIG = {
 };
 
 // ============================================================================
-// CLIENT INITIALIZATION
+// CLIENT INITIALIZATION (uses centralized config)
 // ============================================================================
 
-let genAI: any = null;
+// Cached client
+let cachedClient: GeminiClient | null = null;
 
-async function getClient(): Promise<any | null> {
-  const hasSDK = await ensureSDKLoaded();
-  if (!hasSDK || !GoogleGenerativeAI) {
+async function getClient(): Promise<GeminiClient | null> {
+  if (cachedClient) return cachedClient;
+
+  if (!isGeminiConfigured()) {
+    log.warn({ status: getGeminiConfigStatus() }, 'Gemini not configured for landing page');
     return null;
   }
 
-  if (!genAI) {
-    if (!GEMINI_API_KEY) {
-      log.warn('GOOGLE_API_KEY or GEMINI_API_KEY not set');
-      return null;
-    }
-    genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
-  }
-  return genAI;
+  // Cast from unknown to GeminiClient (centralized config returns unknown for flexibility)
+  cachedClient = (await getGeminiClient()) as GeminiClient | null;
+  return cachedClient;
 }
 
 // ============================================================================
@@ -230,9 +191,9 @@ IMPORTANT: Return ONLY valid JSON. No markdown, no code blocks, just the JSON ob
     const timeoutMs = options.timeout || 5000;
     const result = await Promise.race([
       model.generateContent(fullPrompt),
-      new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error('Gemini timeout')), timeoutMs)
-      ),
+      new Promise<never>((_, reject) => {
+        setTimeout(() => reject(new Error('Gemini timeout')), timeoutMs);
+      }),
     ]);
 
     const { response } = result;
@@ -280,9 +241,9 @@ export async function generateText(
 
     const result = await Promise.race([
       model.generateContent(prompt),
-      new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error('Gemini timeout')), timeoutMs)
-      ),
+      new Promise<never>((_, reject) => {
+        setTimeout(() => reject(new Error('Gemini timeout')), timeoutMs);
+      }),
     ]);
 
     const { response } = result;

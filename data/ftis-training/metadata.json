@@ -1,0 +1,38 @@
+{
+  "version": "1.0.0",
+  "createdAt": "2026-01-15T20:52:09.324Z",
+  "splits": {
+    "train": 8160,
+    "validation": 1020,
+    "test": 1020
+  },
+  "totalExamples": 10200,
+  "uniqueTools": 25,
+  "tools": [
+    "breatheWithMe",
+    "clarifyCareerGoals",
+    "createHabit",
+    "endCall",
+    "getHabits",
+    "getWeather",
+    "groundingExercise",
+    "groundingForTrauma",
+    "handoffToAlex",
+    "handoffToFerni",
+    "handoffToMaya",
+    "handoffToNayan",
+    "handoffToPeter",
+    "logHabitCompletion",
+    "manageAppointment",
+    "navigateConflict",
+    "playMusic",
+    "processGrief",
+    "recallFromMemory",
+    "reflectOnRelationship",
+    "rememberAboutUser",
+    "reviewCommitments",
+    "setReminder",
+    "trackCommitment",
+    "trackJobApplication"
+  ]
+}

@@ -17,7 +17,7 @@ import { fileURLToPath } from 'url';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, '..', '..', '..', '..', '..');
 
-const LOGO_SVG = join(ROOT, 'brand/logos/ferni-logo.svg');
+const LOGO_SVG = join(ROOT, 'design-system/assets/logos/ferni-logo.svg');
 const MARKETING_DIR = join(ROOT, 'apps/marketing/assets');
 
 // Colors from brand

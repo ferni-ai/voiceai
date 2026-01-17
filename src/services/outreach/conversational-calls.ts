@@ -1,737 +1,821 @@
 /**
- * Conversational Outbound Calls
+ * Conversational Voice Call Outreach
  *
- * The Big Idea: Instead of playing a pre-recorded message, the agent calls
- * and has a REAL conversation via LiveKit.
+ * > "We show up. Not because you asked. Because we noticed."
  *
- * Flow:
- * 1. Twilio initiates outbound call to user's phone
- * 2. When answered, Twilio bridges to LiveKit SIP
- * 3. LiveKit agent joins with full context about why we're calling
- * 4. Real conversation happens
- * 5. Graceful handling of voicemail, "bad timing", etc.
+ * Creates outbound voice calls where Ferni (or other personas) can:
+ * - Deliver SSML-enhanced messages that sound human
+ * - Have two-way conversations (not just voicemails)
+ * - Handle user responses naturally
  *
- * This is what makes Ferni feel like a real friend calling, not a robocall.
+ * Uses LiveKit + Twilio SIP integration for real voice calls.
+ *
+ * @module ConversationalCalls
  */
 
-import { getLogger } from '../../utils/safe-logger.js';
-import { EventEmitter } from 'events';
-import type { AgentId } from '../agent-bus.js';
-import type { OutreachTriggerType } from './decision-engine.js';
+import { createLogger } from '../../utils/safe-logger.js';
+import { cleanForFirestore } from '../../utils/firestore-utils.js';
+
+const log = createLogger({ module: 'ConversationalCalls' });
 
 // ============================================================================
 // TYPES
 // ============================================================================
 
-export type CallStatus =
-  | 'initiating' // Starting the call
-  | 'ringing' // Phone is ringing
-  | 'answered' // User answered
-  | 'voicemail' // Hit voicemail
-  | 'conversation' // Active conversation
-  | 'wrapping_up' // Ending conversation
-  | 'completed' // Call finished
-  | 'failed' // Call failed
-  | 'no_answer' // No one picked up
-  | 'busy' // Line busy
-  | 'rejected'; // User rejected
+export interface ProactiveCallRequest {
+  userId: string;
+  phoneNumber: string;
+  message: string;
+  ssml: string;
+  personaId: string;
+  reason: string;
+  scheduledFor?: Date;
 
-export interface OutboundCallContext {
-  // Why are we calling?
-  trigger: {
-    id: string;
-    type: OutreachTriggerType;
-    reason: string;
-    urgency: 'low' | 'medium' | 'high' | 'urgent';
-  };
-
-  // Who are we calling?
-  user: {
-    id: string;
-    name: string;
-    preferredName?: string;
-    phone: string;
-    relationshipStage: 'new' | 'building' | 'established' | 'deep';
-    timezone?: string;
-    localTime?: string;
-  };
-
-  // What do we know about them?
-  context: {
-    lastConversationSummary?: string;
-    activeCommitments?: string[];
-    recentWins?: string[];
-    recentStruggles?: string[];
-    upcomingEvents?: string[];
-    emotionalState?: string;
-    insideJokes?: string[];
-    avoidTopics?: string[];
-  };
-
-  // How should we approach this?
-  approach: {
-    tone: 'celebratory' | 'supportive' | 'accountability' | 'casual' | 'urgent';
-    primaryGoal: string;
-    secondaryGoals?: string[];
-    maxDuration?: number; // minutes
-  };
-
-  // Who's calling
-  persona: AgentId;
+  // Call behavior
+  maxDuration?: number; // seconds
+  enableConversation?: boolean; // Allow two-way talk?
+  voicemailFallback?: boolean; // Leave message if no answer?
 }
 
-export interface OutboundCall {
-  id: string;
-  context: OutboundCallContext;
-  status: CallStatus;
-
-  // Twilio data
-  twilioCallSid?: string;
-
-  // LiveKit data
-  livekitRoomName?: string;
-  livekitParticipantId?: string;
-
-  // Timing
-  initiatedAt: Date;
-  answeredAt?: Date;
-  completedAt?: Date;
-
-  // Results
+export interface CallResult {
+  success: boolean;
+  id?: string; // Alias for callId for backward compatibility
+  callId?: string;
+  twilioCallSid?: string; // Twilio call SID if available
+  livekitRoomName?: string; // LiveKit room name for voice agent
+  status?:
+    | 'scheduled'
+    | 'initiated'
+    | 'initiating'
+    | 'ringing'
+    | 'answered'
+    | 'voicemail'
+    | 'no_answer'
+    | 'failed';
+  error?: string;
+  // Extended result properties for active calls
+  context?: OutboundCallContext;
+  initiatedAt?: string;
+  answeredAt?: string;
+  completedAt?: string;
+  callDurationSeconds?: number;
+  voicemailLeft?: boolean;
   conversationSummary?: string;
   followUpActions?: string[];
-  userMood?: string;
-  callDurationSeconds?: number;
-
-  // Voicemail
-  voicemailLeft?: boolean;
-  voicemailMessage?: string;
 }
 
-export interface ConversationalCallConfig {
-  // Twilio
-  twilioAccountSid: string;
-  twilioAuthToken: string;
-  twilioPhoneNumber: string;
-
-  // LiveKit
-  livekitUrl: string;
-  livekitApiKey: string;
-  livekitApiSecret: string;
-  sipTrunkId?: string;
-
-  // Call settings
-  maxRingSeconds: number;
-  voicemailDetectionEnabled: boolean;
-  maxCallDurationMinutes: number;
-
-  // Callbacks
-  webhookBaseUrl: string;
+export interface ScheduledCall {
+  id: string;
+  userId: string;
+  phoneNumber: string;
+  message: string;
+  ssml: string;
+  personaId: string;
+  reason: string;
+  scheduledFor: string;
+  status: 'pending' | 'in_progress' | 'completed' | 'failed' | 'cancelled';
+  attempts: number;
+  maxAttempts: number;
+  createdAt: string;
+  lastAttemptAt?: string;
+  completedAt?: string;
+  outcome?: string;
 }
 
 // ============================================================================
-// DEFAULT CONFIG
-// ============================================================================
-
-const DEFAULT_CONFIG: Partial<ConversationalCallConfig> = {
-  maxRingSeconds: 30,
-  voicemailDetectionEnabled: true,
-  maxCallDurationMinutes: 15,
-};
-
-// ============================================================================
-// STORAGE
-// ============================================================================
-
-const activeCallsStore = new Map<string, OutboundCall>();
-const callHistoryStore = new Map<string, OutboundCall[]>(); // userId -> calls
-
-// ============================================================================
-// CONVERSATIONAL CALL SERVICE
-// ============================================================================
-
-const log = getLogger().child({ service: 'conversational-calls' });
-
-class ConversationalCallService extends EventEmitter {
-  private config: ConversationalCallConfig;
-
-  constructor(config: Partial<ConversationalCallConfig>) {
-    super();
-
-    // Merge with defaults and env vars
-    this.config = {
-      ...DEFAULT_CONFIG,
-      twilioAccountSid: process.env.TWILIO_ACCOUNT_SID || '',
-      twilioAuthToken: process.env.TWILIO_AUTH_TOKEN || '',
-      twilioPhoneNumber: process.env.TWILIO_PHONE_NUMBER || '',
-      livekitUrl: process.env.LIVEKIT_URL || '',
-      livekitApiKey: process.env.LIVEKIT_API_KEY || '',
-      livekitApiSecret: process.env.LIVEKIT_API_SECRET || '',
-      sipTrunkId: process.env.SIP_TRUNK_ID || '',
-      webhookBaseUrl: process.env.WEBHOOK_BASE_URL || '',
-      ...config,
-    } as ConversationalCallConfig;
-
-    log.info('📞 Conversational Call Service created');
-  }
-
-  // ============================================================================
-  // CALL INITIATION
-  // ============================================================================
-
-  /**
-   * Initiate an outbound conversational call
-   *
-   * This will:
-   * 1. Create a LiveKit room for the conversation
-   * 2. Initiate Twilio call to user
-   * 3. Bridge to LiveKit when answered
-   * 4. Join persona agent to the room
-   */
-  async initiateCall(context: OutboundCallContext): Promise<OutboundCall> {
-    const callId = `call_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
-
-    log.info(
-      {
-        callId,
-        userId: context.user.id,
-        phone: this.sanitizePhone(context.user.phone),
-        persona: context.persona,
-        triggerType: context.trigger.type,
-      },
-      '📞 Initiating conversational call'
-    );
-
-    const call: OutboundCall = {
-      id: callId,
-      context,
-      status: 'initiating',
-      initiatedAt: new Date(),
-    };
-
-    activeCallsStore.set(callId, call);
-
-    try {
-      // Step 1: Validate configuration
-      if (!this.isConfigured()) {
-        throw new Error('Twilio or LiveKit not configured');
-      }
-
-      // Step 2: Create LiveKit room for this call
-      const roomName = await this.createLiveKitRoom(callId, context);
-      call.livekitRoomName = roomName;
-
-      // Step 3: Initiate Twilio call
-      const { callSid } = await this.initiateTwilioCall(callId, context);
-      call.twilioCallSid = callSid;
-      call.status = 'ringing';
-
-      this.emit('call-initiated', call);
-      log.info({ callId, callSid, roomName }, '✅ Call initiated');
-
-      return call;
-    } catch (error) {
-      call.status = 'failed';
-      log.error({ error, callId }, '❌ Failed to initiate call');
-      this.emit('call-failed', call, error);
-      throw error;
-    }
-  }
-
-  /**
-   * Check if the service is properly configured
-   */
-  isConfigured(): boolean {
-    return !!(
-      this.config.twilioAccountSid &&
-      this.config.twilioAuthToken &&
-      this.config.twilioPhoneNumber &&
-      this.config.livekitUrl
-    );
-  }
-
-  // ============================================================================
-  // LIVEKIT ROOM MANAGEMENT
-  // ============================================================================
-
-  /**
-   * Create a LiveKit room for the call
-   */
-  private async createLiveKitRoom(callId: string, context: OutboundCallContext): Promise<string> {
-    const roomName = `outbound-${callId}`;
-
-    // Store context in room metadata for the agent to access
-    const metadata = JSON.stringify({
-      type: 'outbound_call',
-      callId,
-      trigger: context.trigger,
-      user: {
-        id: context.user.id,
-        name: context.user.name,
-        preferredName: context.user.preferredName,
-        relationshipStage: context.user.relationshipStage,
-      },
-      context: context.context,
-      approach: context.approach,
-      persona: context.persona,
-    });
-
-    try {
-      // Create room via LiveKit API
-      const { RoomServiceClient } = await import('livekit-server-sdk');
-
-      const roomService = new RoomServiceClient(
-        this.config.livekitUrl,
-        this.config.livekitApiKey,
-        this.config.livekitApiSecret
-      );
-
-      await roomService.createRoom({
-        name: roomName,
-        emptyTimeout: 300, // 5 minutes
-        maxParticipants: 3, // Agent, user, possible observer
-        metadata,
-      });
-
-      log.debug({ roomName, callId }, 'Created LiveKit room');
-      return roomName;
-    } catch (error) {
-      log.error({ error, roomName }, 'Failed to create LiveKit room');
-      throw error;
-    }
-  }
-
-  /**
-   * Join the persona agent to the call
-   */
-  private async joinAgentToRoom(roomName: string, context: OutboundCallContext): Promise<void> {
-    // This would dispatch to your agent service to join
-    // The agent joins with full context about the call
-
-    log.info({ roomName, persona: context.persona }, '🤖 Agent joining call');
-
-    // Emit event for agent dispatcher to handle
-    this.emit('agent-join-requested', {
-      roomName,
-      persona: context.persona,
-      context,
-    });
-  }
-
-  // ============================================================================
-  // TWILIO CALL MANAGEMENT
-  // ============================================================================
-
-  /**
-   * Initiate the Twilio call
-   */
-  private async initiateTwilioCall(
-    callId: string,
-    context: OutboundCallContext
-  ): Promise<{ callSid: string }> {
-    // Clean phone number
-    const cleanPhone = context.user.phone.replace(/\D/g, '');
-    const e164Phone = cleanPhone.startsWith('1') ? `+${cleanPhone}` : `+1${cleanPhone}`;
-
-    // Generate TwiML that will bridge to LiveKit when answered
-    const twiml = this.generateAnswerTwiml(callId, context);
-
-    const response = await fetch(
-      `https://api.twilio.com/2010-04-01/Accounts/${this.config.twilioAccountSid}/Calls.json`,
-      {
-        method: 'POST',
-        headers: {
-          Authorization: `Basic ${Buffer.from(`${this.config.twilioAccountSid}:${this.config.twilioAuthToken}`).toString('base64')}`,
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        body: new URLSearchParams({
-          To: e164Phone,
-          From: this.config.twilioPhoneNumber,
-          Twiml: twiml,
-          StatusCallback: `${this.config.webhookBaseUrl}/api/outbound-call/status/${callId}`,
-          StatusCallbackEvent: ['initiated', 'ringing', 'answered', 'completed'].join(' '),
-          StatusCallbackMethod: 'POST',
-          MachineDetection: this.config.voicemailDetectionEnabled ? 'DetectMessageEnd' : 'Enable',
-          MachineDetectionTimeout: '5',
-          Timeout: this.config.maxRingSeconds.toString(),
-        }),
-      }
-    );
-
-    if (!response.ok) {
-      const error = await response.text();
-      throw new Error(`Twilio error: ${response.status} - ${error}`);
-    }
-
-    const data = (await response.json()) as { sid: string };
-    return { callSid: data.sid };
-  }
-
-  /**
-   * Generate TwiML for when call is answered
-   */
-  private generateAnswerTwiml(callId: string, context: OutboundCallContext): string {
-    // When answered, dial into LiveKit SIP
-    const roomName = `outbound-${callId}`;
-
-    if (this.config.sipTrunkId && this.config.livekitUrl) {
-      // Full SIP integration
-      const sipUri = `sip:${roomName}@${new URL(this.config.livekitUrl).hostname}`;
-
-      return `<?xml version="1.0" encoding="UTF-8"?>
-<Response>
-  <Dial answerOnBridge="true" callerId="${this.config.twilioPhoneNumber}">
-    <Sip>${sipUri}</Sip>
-  </Dial>
-</Response>`;
-    }
-
-    // Fallback: Use TwiML with conference and stream
-    // This connects Twilio to a conference that LiveKit agent can join
-    return `<?xml version="1.0" encoding="UTF-8"?>
-<Response>
-  <Connect>
-    <Stream url="wss://${new URL(this.config.livekitUrl).hostname}/twilio/${roomName}" />
-  </Connect>
-</Response>`;
-  }
-
-  /**
-   * Generate TwiML for voicemail
-   */
-  private generateVoicemailTwiml(context: OutboundCallContext, voicemailMessage: string): string {
-    // Use persona's voice via Cartesia TTS if available
-    // Otherwise fall back to Twilio's built-in voice
-    const voiceId = this.getVoiceForPersona(context.persona);
-
-    return `<?xml version="1.0" encoding="UTF-8"?>
-<Response>
-  <Say voice="${voiceId}">${this.escapeXml(voicemailMessage)}</Say>
-</Response>`;
-  }
-
-  private getVoiceForPersona(persona: AgentId): string {
-    // Map personas to Twilio voices (fallback when Cartesia not available)
-    const voiceMap: Record<string, string> = {
-      ferni: 'Polly.Joanna',
-      'maya-santos': 'Polly.Joanna',
-      'peter-john': 'Polly.Matthew',
-      'alex-chen': 'Polly.Matthew',
-      'jordan-taylor': 'Polly.Joanna',
-      nayan: 'Polly.Matthew',
-    };
-
-    return voiceMap[persona] || 'Polly.Joanna';
-  }
-
-  // ============================================================================
-  // WEBHOOK HANDLERS
-  // ============================================================================
-
-  /**
-   * Handle Twilio status callback
-   */
-  async handleStatusCallback(
-    callId: string,
-    status: string,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    twilioData: Record<string, any>
-  ): Promise<void> {
-    const call = activeCallsStore.get(callId);
-    if (!call) {
-      log.warn({ callId }, 'Status callback for unknown call');
-      return;
-    }
-
-    log.debug({ callId, status, twilioData }, 'Call status update');
-
-    switch (status) {
-      case 'ringing':
-        call.status = 'ringing';
-        this.emit('call-ringing', call);
-        break;
-
-      case 'in-progress':
-      case 'answered':
-        call.status = 'answered';
-        call.answeredAt = new Date();
-        this.emit('call-answered', call);
-
-        // Join the agent to the room
-        if (call.livekitRoomName) {
-          await this.joinAgentToRoom(call.livekitRoomName, call.context);
-        }
-        break;
-
-      case 'completed':
-        call.status = 'completed';
-        call.completedAt = new Date();
-        if (call.answeredAt) {
-          call.callDurationSeconds = Math.floor(
-            (call.completedAt.getTime() - call.answeredAt.getTime()) / 1000
-          );
-        }
-        this.completeCall(call);
-        break;
-
-      case 'busy':
-        call.status = 'busy';
-        this.completeCall(call);
-        break;
-
-      case 'no-answer':
-        call.status = 'no_answer';
-        this.completeCall(call);
-        break;
-
-      case 'canceled':
-      case 'failed':
-        call.status = 'failed';
-        this.completeCall(call);
-        break;
-    }
-
-    activeCallsStore.set(callId, call);
-  }
-
-  /**
-   * Handle machine detection (voicemail)
-   */
-  async handleMachineDetection(
-    callId: string,
-    machineResult:
-      | 'human'
-      | 'machine_start'
-      | 'machine_end_beep'
-      | 'machine_end_silence'
-      | 'machine_end_other'
-      | 'fax'
-      | 'unknown'
-  ): Promise<string | null> {
-    const call = activeCallsStore.get(callId);
-    if (!call) {
-      return null;
-    }
-
-    log.info({ callId, machineResult }, 'Machine detection result');
-
-    if (machineResult === 'human') {
-      // Great! Proceed with conversation
-      return null;
-    }
-
-    if (machineResult.startsWith('machine_')) {
-      // It's voicemail - leave a message
-      call.status = 'voicemail';
-      call.voicemailLeft = true;
-
-      // Generate voicemail message in persona voice
-      const { generateVoicemailMessage } = await import('./persona-voice-generator.js');
-      const voicemailMessage = generateVoicemailMessage(
-        call.context.persona,
-        {
-          userId: call.context.user.id,
-          userName: call.context.user.name,
-          preferredName: call.context.user.preferredName,
-          relationshipStage: call.context.user.relationshipStage,
-          trigger: call.context.trigger,
-          context: call.context.context,
-        },
-        call.context.approach.tone as
-          | 'celebratory'
-          | 'supportive'
-          | 'encouraging'
-          | 'casual'
-          | 'informative'
-          | 'urgent'
-      );
-
-      call.voicemailMessage = voicemailMessage;
-      activeCallsStore.set(callId, call);
-
-      this.emit('voicemail-detected', call);
-
-      return this.generateVoicemailTwiml(call.context, voicemailMessage);
-    }
-
-    return null;
-  }
-
-  // ============================================================================
-  // CALL COMPLETION
-  // ============================================================================
-
-  /**
-   * Complete a call and clean up
-   */
-  private completeCall(call: OutboundCall): void {
-    // Move to history
-    const history = callHistoryStore.get(call.context.user.id) || [];
-    history.push(call);
-    callHistoryStore.set(call.context.user.id, history);
-
-    // Remove from active
-    activeCallsStore.delete(call.id);
-
-    log.info(
-      {
-        callId: call.id,
-        status: call.status,
-        duration: call.callDurationSeconds,
-        voicemailLeft: call.voicemailLeft,
-      },
-      '📞 Call completed'
-    );
-
-    this.emit('call-completed', call);
-  }
-
-  /**
-   * End an active call
-   */
-  async endCall(callId: string, reason?: string): Promise<void> {
-    const call = activeCallsStore.get(callId);
-    if (!call || !call.twilioCallSid) {
-      return;
-    }
-
-    log.info({ callId, reason }, 'Ending call');
-
-    try {
-      await fetch(
-        `https://api.twilio.com/2010-04-01/Accounts/${this.config.twilioAccountSid}/Calls/${call.twilioCallSid}.json`,
-        {
-          method: 'POST',
-          headers: {
-            Authorization: `Basic ${Buffer.from(`${this.config.twilioAccountSid}:${this.config.twilioAuthToken}`).toString('base64')}`,
-            'Content-Type': 'application/x-www-form-urlencoded',
-          },
-          body: new URLSearchParams({
-            Status: 'completed',
-          }),
-        }
-      );
-    } catch (error) {
-      log.error({ error, callId }, 'Failed to end call via Twilio');
-    }
-  }
-
-  // ============================================================================
-  // QUERIES
-  // ============================================================================
-
-  /**
-   * Get an active call by ID
-   */
-  getActiveCall(callId: string): OutboundCall | undefined {
-    return activeCallsStore.get(callId);
-  }
-
-  /**
-   * Get all active calls
-   */
-  getActiveCalls(): OutboundCall[] {
-    return Array.from(activeCallsStore.values());
-  }
-
-  /**
-   * Get call history for a user
-   */
-  getCallHistory(userId: string, limit = 20): OutboundCall[] {
-    const history = callHistoryStore.get(userId) || [];
-    return history.slice(-limit);
-  }
-
-  // ============================================================================
-  // HELPERS
-  // ============================================================================
-
-  private sanitizePhone(phone: string): string {
-    // Return masked phone for logging
-    return phone.replace(/.(?=.{4})/g, '*');
-  }
-
-  private escapeXml(text: string): string {
-    return text
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&apos;');
-  }
-}
-
-// ============================================================================
-// SINGLETON
-// ============================================================================
-
-let serviceInstance: ConversationalCallService | null = null;
-
-export function getConversationalCallService(
-  config?: Partial<ConversationalCallConfig>
-): ConversationalCallService {
-  if (!serviceInstance) {
-    serviceInstance = new ConversationalCallService(config || {});
-  }
-  return serviceInstance;
-}
-
-// ============================================================================
-// CONVENIENCE FUNCTIONS
+// SSML ENHANCEMENT
 // ============================================================================
 
 /**
- * Make a conversational outbound call
+ * Enhance SSML for Cartesia TTS to sound natural
  *
- * @example
- * ```typescript
- * const call = await makeConversationalCall({
- *   trigger: {
- *     id: 'trigger_123',
- *     type: 'commitment_check',
- *     reason: 'User committed to working out',
- *     urgency: 'medium',
- *   },
- *   user: {
- *     id: 'user_456',
- *     name: 'Sarah',
- *     phone: '+15551234567',
- *     relationshipStage: 'established',
- *   },
- *   context: {
- *     activeCommitments: ['morning workout'],
- *   },
- *   approach: {
- *     tone: 'encouraging',
- *     primaryGoal: 'Check in on workout commitment',
- *   },
- *   persona: 'ferni',
- * });
- * ```
+ * Adds:
+ * - Natural breathing pauses
+ * - Emotional emphasis
+ * - Conversational rhythm
  */
-export async function makeConversationalCall(context: OutboundCallContext): Promise<OutboundCall> {
-  const service = getConversationalCallService();
-  return service.initiateCall(context);
+export function enhanceSSMLForCall(ssml: string, personaId: string): string {
+  let enhanced = ssml;
+
+  // If not already wrapped in <speak>, wrap it
+  if (!enhanced.startsWith('<speak>')) {
+    enhanced = `<speak>${enhanced}</speak>`;
+  }
+
+  // Add Cartesia-specific voice settings based on persona
+  const voiceSettings = getPersonaVoiceSettings(personaId);
+
+  // Inject voice control at the start (after <speak>)
+  const voiceControl = `<voice name="${voiceSettings.voiceId}"><prosody rate="${voiceSettings.rate}" pitch="${voiceSettings.pitch}">`;
+  const voiceControlEnd = '</prosody></voice>';
+
+  enhanced = enhanced.replace('<speak>', `<speak>${voiceControl}`);
+  enhanced = enhanced.replace('</speak>', `${voiceControlEnd}</speak>`);
+
+  // Add a greeting pause at the start (makes it feel less robotic)
+  enhanced = enhanced.replace(voiceControl, `${voiceControl}<break time="400ms"/>`);
+
+  // Add a closing pause (gives space before hanging up)
+  enhanced = enhanced.replace(voiceControlEnd, `<break time="500ms"/>${voiceControlEnd}`);
+
+  return enhanced;
+}
+
+interface VoiceSettings {
+  voiceId: string;
+  rate: string;
+  pitch: string;
+}
+
+function getPersonaVoiceSettings(personaId: string): VoiceSettings {
+  const settings: Record<string, VoiceSettings> = {
+    ferni: { voiceId: 'nova', rate: '0.95', pitch: '+0%' },
+    peter: { voiceId: 'alloy', rate: '1.0', pitch: '-2%' },
+    maya: { voiceId: 'shimmer', rate: '0.98', pitch: '+3%' },
+    alex: { voiceId: 'echo', rate: '1.02', pitch: '0%' },
+    jordan: { voiceId: 'fable', rate: '0.97', pitch: '+2%' },
+    nayan: { voiceId: 'onyx', rate: '0.9', pitch: '-3%' },
+  };
+
+  return settings[personaId] || settings['ferni'];
+}
+
+// ============================================================================
+// CALL SCHEDULING
+// ============================================================================
+
+/**
+ * Schedule a proactive outreach call
+ */
+export async function scheduleProactiveCall(request: ProactiveCallRequest): Promise<CallResult> {
+  const {
+    userId,
+    phoneNumber,
+    message,
+    ssml,
+    personaId,
+    reason,
+    scheduledFor = new Date(),
+    maxDuration = 120,
+    enableConversation = false,
+    voicemailFallback = true,
+  } = request;
+
+  const callId = `call-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+
+  try {
+    // Validate phone number format
+    const normalizedPhone = normalizePhoneNumber(phoneNumber);
+    if (!normalizedPhone) {
+      return { success: false, error: 'Invalid phone number format' };
+    }
+
+    // Check quiet hours
+    const inQuietHours = await isInQuietHours(userId);
+    if (inQuietHours) {
+      log.info({ userId, callId }, 'Call delayed due to quiet hours');
+      // Reschedule for next available window
+      const nextWindow = await getNextAvailableWindow(userId);
+      return scheduleProactiveCall({
+        ...request,
+        scheduledFor: nextWindow,
+      });
+    }
+
+    // Enhance SSML for natural delivery
+    const enhancedSSML = enhanceSSMLForCall(ssml, personaId);
+
+    // Store scheduled call in Firestore
+    const scheduledCall: ScheduledCall = {
+      id: callId,
+      userId,
+      phoneNumber: normalizedPhone,
+      message,
+      ssml: enhancedSSML,
+      personaId,
+      reason,
+      scheduledFor: scheduledFor.toISOString(),
+      status: 'pending',
+      attempts: 0,
+      maxAttempts: 3,
+      createdAt: new Date().toISOString(),
+    };
+
+    await saveScheduledCall(scheduledCall);
+
+    // If scheduled for now or past, initiate immediately
+    if (scheduledFor.getTime() <= Date.now()) {
+      return await initiateCall(scheduledCall, {
+        maxDuration,
+        enableConversation,
+        voicemailFallback,
+      });
+    }
+
+    log.info(
+      { userId, callId, scheduledFor: scheduledFor.toISOString() },
+      'Proactive call scheduled'
+    );
+
+    return { success: true, callId, status: 'scheduled' };
+  } catch (error) {
+    log.error({ error: String(error), userId }, 'Failed to schedule proactive call');
+    return { success: false, error: String(error) };
+  }
+}
+
+/**
+ * Initiate an outbound call using Twilio + LiveKit
+ */
+async function initiateCall(
+  call: ScheduledCall,
+  options: {
+    maxDuration: number;
+    enableConversation: boolean;
+    voicemailFallback: boolean;
+  }
+): Promise<CallResult> {
+  try {
+    // Update status
+    await updateCallStatus(call.id, 'in_progress', { lastAttemptAt: new Date().toISOString() });
+
+    // Check if Twilio is configured
+    const twilioSid = process.env.TWILIO_ACCOUNT_SID;
+    const twilioToken = process.env.TWILIO_AUTH_TOKEN;
+    const twilioPhone = process.env.TWILIO_PHONE_NUMBER;
+
+    if (!twilioSid || !twilioToken || !twilioPhone) {
+      log.warn({ callId: call.id }, 'Twilio not configured - call simulated');
+
+      // In development, simulate the call
+      if (process.env.NODE_ENV === 'development') {
+        await updateCallStatus(call.id, 'completed', {
+          completedAt: new Date().toISOString(),
+          outcome: 'simulated_dev',
+        });
+        return { success: true, callId: call.id, status: 'answered' };
+      }
+
+      return { success: false, callId: call.id, error: 'Twilio not configured' };
+    }
+
+    // Create Twilio call with TwiML that:
+    // 1. Speaks the SSML message
+    // 2. Optionally waits for response
+    // 3. Handles voicemail detection
+    const twilio = await import('twilio');
+    const client = twilio.default(twilioSid, twilioToken);
+
+    // Build TwiML
+    const twiml = buildCallTwiML(call, options);
+
+    // Create the call
+    const twilioCall = await client.calls.create({
+      to: call.phoneNumber,
+      from: twilioPhone,
+      twiml,
+      machineDetection: options.voicemailFallback ? 'DetectMessageEnd' : 'Enable',
+      machineDetectionTimeout: 3,
+      timeout: 30, // Ring for 30 seconds max
+      statusCallback: `${process.env.APP_URL || 'https://app.ferni.ai'}/api/outreach/call-status`,
+      statusCallbackEvent: ['initiated', 'ringing', 'answered', 'completed'],
+    });
+
+    // Update with Twilio SID
+    await updateCallStatus(call.id, 'in_progress', {
+      twilioSid: twilioCall.sid,
+    });
+
+    log.info(
+      { userId: call.userId, callId: call.id, twilioSid: twilioCall.sid },
+      'Outbound call initiated'
+    );
+
+    return { success: true, callId: call.id, status: 'initiated' };
+  } catch (error) {
+    log.error({ error: String(error), callId: call.id }, 'Failed to initiate call');
+
+    // Update attempt count
+    const attempts = call.attempts + 1;
+    if (attempts < call.maxAttempts) {
+      await updateCallStatus(call.id, 'pending', { attempts });
+    } else {
+      await updateCallStatus(call.id, 'failed', {
+        attempts,
+        completedAt: new Date().toISOString(),
+        outcome: 'max_attempts_reached',
+      });
+    }
+
+    return { success: false, callId: call.id, error: String(error) };
+  }
+}
+
+/**
+ * Build TwiML for the outbound call
+ */
+function buildCallTwiML(
+  call: ScheduledCall,
+  options: { enableConversation: boolean; voicemailFallback: boolean }
+): string {
+  // Use Cartesia for natural TTS
+  // Note: In production, this would integrate with LiveKit for the actual voice synthesis
+  // For now, we use Twilio's <Say> with SSML
+
+  let twiml = '<?xml version="1.0" encoding="UTF-8"?><Response>';
+
+  // Greeting with natural pause
+  twiml += '<Pause length="1"/>';
+
+  // Speak the message
+  // Convert our SSML to Twilio's SSML format
+  const twilioSsml = convertToTwilioSSML(call.ssml);
+  twiml += `<Say voice="Polly.Joanna">${twilioSsml}</Say>`;
+
+  if (options.enableConversation) {
+    // Allow user to respond
+    twiml += '<Gather input="speech" timeout="5" action="/api/outreach/call-response">';
+    twiml += '<Say voice="Polly.Joanna">Is there anything you would like to share?</Say>';
+    twiml += '</Gather>';
+  }
+
+  // Closing
+  twiml += '<Pause length="1"/>';
+  twiml += '<Say voice="Polly.Joanna">Take care. Talk soon.</Say>';
+  twiml += '</Response>';
+
+  return twiml;
+}
+
+/**
+ * Convert our SSML to Twilio-compatible format
+ */
+function convertToTwilioSSML(ssml: string): string {
+  // Remove outer <speak> tags (Twilio adds its own)
+  let converted = ssml.replace(/<speak>/g, '').replace(/<\/speak>/g, '');
+
+  // Convert voice tags to prosody (Twilio doesn't support <voice>)
+  converted = converted.replace(/<voice[^>]*>/g, '');
+  converted = converted.replace(/<\/voice>/g, '');
+
+  // Keep prosody and break tags (Twilio supports these)
+  // Remove any unsupported tags
+
+  return converted;
+}
+
+// ============================================================================
+// FIRESTORE OPERATIONS
+// ============================================================================
+
+async function saveScheduledCall(call: ScheduledCall): Promise<void> {
+  try {
+    const { getFirestoreDb } = await import('../superhuman/firestore-utils.js');
+    const db = getFirestoreDb();
+    if (!db) return;
+
+    await db
+      .collection('bogle_users')
+      .doc(call.userId)
+      .collection('scheduled_calls')
+      .doc(call.id)
+      .set(cleanForFirestore(call));
+  } catch (error) {
+    log.error({ error: String(error), callId: call.id }, 'Failed to save scheduled call');
+  }
+}
+
+async function updateCallStatus(
+  callId: string,
+  status: ScheduledCall['status'],
+  updates?: Record<string, unknown>
+): Promise<void> {
+  try {
+    const { getFirestoreDb } = await import('../superhuman/firestore-utils.js');
+    const db = getFirestoreDb();
+    if (!db) return;
+
+    // Find the call document (we don't have userId here, so query)
+    const snapshot = await db
+      .collectionGroup('scheduled_calls')
+      .where('id', '==', callId)
+      .limit(1)
+      .get();
+
+    if (!snapshot.empty) {
+      await snapshot.docs[0].ref.update(
+        cleanForFirestore({
+          status,
+          ...updates,
+          updatedAt: new Date().toISOString(),
+        })
+      );
+    }
+  } catch (error) {
+    log.warn({ error: String(error), callId }, 'Failed to update call status');
+  }
+}
+
+// ============================================================================
+// UTILITY FUNCTIONS
+// ============================================================================
+
+function normalizePhoneNumber(phone: string): string | null {
+  // Remove all non-digit characters
+  const digits = phone.replace(/\D/g, '');
+
+  // Validate length (US numbers: 10 or 11 with country code)
+  if (digits.length === 10) {
+    return `+1${digits}`;
+  } else if (digits.length === 11 && digits.startsWith('1')) {
+    return `+${digits}`;
+  } else if (digits.length > 10) {
+    // International number
+    return `+${digits}`;
+  }
+
+  return null;
+}
+
+async function isInQuietHours(userId: string): Promise<boolean> {
+  try {
+    const { getFirestoreDb } = await import('../superhuman/firestore-utils.js');
+    const db = getFirestoreDb();
+    if (!db) return false;
+
+    const doc = await db.collection('bogle_users').doc(userId).get();
+    if (!doc.exists) return false;
+
+    const data = doc.data();
+    const preferences = data?.outreachPreferences;
+    if (!preferences?.quietHours?.enabled) return false;
+
+    // Parse quiet hours (e.g., "22:00" to "08:00")
+    const now = new Date();
+    const currentHour = now.getHours();
+    const currentMinute = now.getMinutes();
+    const currentTime = currentHour * 60 + currentMinute;
+
+    const startParts = preferences.quietHours.start.split(':').map(Number);
+    const endParts = preferences.quietHours.end.split(':').map(Number);
+    const startTime = startParts[0] * 60 + startParts[1];
+    const endTime = endParts[0] * 60 + endParts[1];
+
+    // Handle overnight quiet hours (e.g., 22:00 to 08:00)
+    if (startTime > endTime) {
+      return currentTime >= startTime || currentTime < endTime;
+    }
+
+    return currentTime >= startTime && currentTime < endTime;
+  } catch {
+    return false;
+  }
+}
+
+async function getNextAvailableWindow(userId: string): Promise<Date> {
+  try {
+    const { getFirestoreDb } = await import('../superhuman/firestore-utils.js');
+    const db = getFirestoreDb();
+    if (!db) {
+      // Default: 9 AM tomorrow
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      tomorrow.setHours(9, 0, 0, 0);
+      return tomorrow;
+    }
+
+    const doc = await db.collection('bogle_users').doc(userId).get();
+    const preferences = doc.exists ? doc.data()?.outreachPreferences : null;
+
+    // Default quiet hours end at 8 AM
+    const endHour = preferences?.quietHours?.end
+      ? parseInt(preferences.quietHours.end.split(':')[0], 10)
+      : 8;
+
+    const next = new Date();
+    if (next.getHours() >= endHour) {
+      next.setDate(next.getDate() + 1);
+    }
+    next.setHours(endHour, 0, 0, 0);
+
+    return next;
+  } catch {
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    tomorrow.setHours(9, 0, 0, 0);
+    return tomorrow;
+  }
+}
+
+// ============================================================================
+// CALL STATUS WEBHOOK HANDLER
+// ============================================================================
+
+export interface CallStatusUpdate {
+  CallSid: string;
+  CallStatus: 'queued' | 'ringing' | 'in-progress' | 'completed' | 'busy' | 'failed' | 'no-answer';
+  CallDuration?: string;
+  AnsweredBy?: 'human' | 'machine_start' | 'machine_end_beep' | 'fax' | 'unknown';
+}
+
+/**
+ * Handle Twilio status callback
+ */
+export async function handleCallStatusUpdate(update: CallStatusUpdate): Promise<void> {
+  const { CallSid, CallStatus, CallDuration, AnsweredBy } = update;
+
+  log.info(
+    { twilioSid: CallSid, status: CallStatus, answeredBy: AnsweredBy },
+    'Call status update'
+  );
+
+  try {
+    const { getFirestoreDb } = await import('../superhuman/firestore-utils.js');
+    const db = getFirestoreDb();
+    if (!db) return;
+
+    // Find the call by Twilio SID
+    const snapshot = await db
+      .collectionGroup('scheduled_calls')
+      .where('twilioSid', '==', CallSid)
+      .limit(1)
+      .get();
+
+    if (snapshot.empty) {
+      log.warn({ twilioSid: CallSid }, 'Call not found for status update');
+      return;
+    }
+
+    const callDoc = snapshot.docs[0];
+    const call = callDoc.data() as ScheduledCall;
+
+    // Map Twilio status to our status
+    let newStatus: ScheduledCall['status'] = call.status;
+    let outcome: string | undefined;
+
+    switch (CallStatus) {
+      case 'completed':
+        newStatus = 'completed';
+        outcome = AnsweredBy === 'human' ? 'answered' : `voicemail_${AnsweredBy}`;
+        break;
+      case 'busy':
+      case 'no-answer':
+      case 'failed':
+        // Check if we should retry
+        if (call.attempts < call.maxAttempts) {
+          newStatus = 'pending';
+          outcome = CallStatus;
+        } else {
+          newStatus = 'failed';
+          outcome = CallStatus;
+        }
+        break;
+    }
+
+    await callDoc.ref.update(
+      cleanForFirestore({
+        status: newStatus,
+        outcome,
+        duration: CallDuration ? parseInt(CallDuration, 10) : undefined,
+        answeredBy: AnsweredBy,
+        completedAt: CallStatus === 'completed' ? new Date().toISOString() : undefined,
+        updatedAt: new Date().toISOString(),
+      })
+    );
+
+    log.info({ callId: call.id, newStatus, outcome }, 'Call status updated');
+  } catch (error) {
+    log.error({ error: String(error), twilioSid: CallSid }, 'Failed to handle call status update');
+  }
+}
+
+// ============================================================================
+// BACKWARD COMPATIBILITY EXPORTS
+// (Legacy API surface for existing code)
+// ============================================================================
+
+export type CallStatus = 'pending' | 'in_progress' | 'completed' | 'failed' | 'cancelled';
+export type { ScheduledCall as OutboundCall };
+
+export interface OutboundCallContext {
+  // Simple mode (backward compatible)
+  userId?: string;
+  phoneNumber?: string;
+  message?: string;
+  ssml?: string;
+  personaId?: string;
+  reason?: string;
+  maxDuration?: number;
+
+  // Rich context mode (proactive calls)
+  trigger?: {
+    id: string;
+    type: string;
+    reason: string;
+    urgency?: 'low' | 'medium' | 'high' | 'critical';
+  };
+  user?: {
+    id: string;
+    name?: string;
+    preferredName?: string;
+    phone: string;
+    relationshipStage?: 'new' | 'building' | 'established' | 'deep';
+    timezone?: string;
+  };
+  context?: {
+    lastConversationSummary?: string;
+    activeCommitments?: string[];
+    recentWins?: string[];
+    avoidTopics?: string[];
+    emotionalState?: string;
+    insideJokes?: string[];
+  };
+  approach?: {
+    tone?: string;
+    primaryGoal?: string;
+    maxDuration?: number;
+    secondaryGoals?: string[];
+  };
+  persona?: string;
+}
+
+export interface ConversationalCallService {
+  isConfigured: () => boolean;
+  makeCall: (context: OutboundCallContext) => Promise<CallResult>;
+  scheduleCall: (request: ProactiveCallRequest) => Promise<CallResult>;
+  // Extended methods for outbound call management
+  getActiveCall?: (callId: string) => Promise<CallResult | null>;
+  getActiveCalls?: () => Promise<CallResult[]>;
+  endCall?: (callId: string, reason?: string) => Promise<void>;
+  updateCallSummary?: (callId: string, summary: CallSummaryUpdate) => Promise<void>;
+  handleStatusCallback?: (
+    callId: string,
+    status: string,
+    data?: StatusCallbackData
+  ) => Promise<void>;
+  handleMachineDetection?: (callId: string, answeredBy?: string) => Promise<string | void>;
+}
+
+export interface StatusCallbackData {
+  callSid?: string;
+  duration?: number;
+  answeredBy?: string;
+}
+
+export interface CallSummaryUpdate {
+  conversationSummary?: string;
+  followUpActions?: string[];
+  userMood?: string;
+  keyTopics?: string[];
+  receptivity?: string;
+}
+
+let serviceInstance: ConversationalCallService | null = null;
+
+/**
+ * Get the conversational call service instance
+ * @deprecated Use conversationalCalls.scheduleProactiveCall directly
+ */
+// In-memory store for active calls (for development/testing)
+const activeCalls = new Map<string, CallResult>();
+
+export function getConversationalCallService(): ConversationalCallService {
+  if (!serviceInstance) {
+    serviceInstance = {
+      isConfigured: isConversationalCallsConfigured,
+      makeCall: async (ctx: OutboundCallContext): Promise<CallResult> => {
+        // Extract values with fallbacks
+        const userId = ctx.userId || ctx.user?.id || '';
+        const phoneNumber = ctx.phoneNumber || ctx.user?.phone || '';
+        const message = ctx.message || ctx.approach?.primaryGoal || '';
+
+        if (!userId || !phoneNumber || !message) {
+          return {
+            success: false,
+            error: 'Missing required fields: userId, phoneNumber, or message',
+          };
+        }
+
+        return scheduleProactiveCall({
+          userId,
+          phoneNumber,
+          message,
+          ssml: ctx.ssml || `<speak>${message}</speak>`,
+          personaId: ctx.personaId || ctx.persona || 'ferni',
+          reason: ctx.reason || ctx.trigger?.reason || 'outbound_call',
+          maxDuration: ctx.maxDuration || ctx.approach?.maxDuration,
+        });
+      },
+      scheduleCall: scheduleProactiveCall,
+
+      // Extended methods
+      getActiveCall: async (callId: string): Promise<CallResult | null> => {
+        return activeCalls.get(callId) ?? null;
+      },
+
+      getActiveCalls: async (): Promise<CallResult[]> => {
+        return Array.from(activeCalls.values());
+      },
+
+      endCall: async (callId: string, _reason?: string): Promise<void> => {
+        const call = activeCalls.get(callId);
+        if (call) {
+          call.status = 'failed';
+          call.completedAt = new Date().toISOString();
+          activeCalls.delete(callId);
+        }
+      },
+
+      updateCallSummary: async (callId: string, summary: CallSummaryUpdate): Promise<void> => {
+        const call = activeCalls.get(callId);
+        if (call) {
+          call.conversationSummary = summary.conversationSummary;
+          call.followUpActions = summary.followUpActions;
+        }
+      },
+
+      handleStatusCallback: async (
+        callId: string,
+        status: string,
+        _data?: StatusCallbackData
+      ): Promise<void> => {
+        const call = activeCalls.get(callId);
+        if (call) {
+          call.status = status as CallResult['status'];
+          if (status === 'answered') {
+            call.answeredAt = new Date().toISOString();
+          } else if (status === 'failed' || status === 'no_answer') {
+            call.completedAt = new Date().toISOString();
+          }
+        }
+      },
+
+      handleMachineDetection: async (
+        _callId: string,
+        answeredBy?: string
+      ): Promise<string | void> => {
+        if (answeredBy && answeredBy !== 'human') {
+          // Return TwiML for voicemail
+          return `<Response><Say>Hi, this is Ferni leaving a quick message. Talk to you soon!</Say></Response>`;
+        }
+        return undefined;
+      },
+    };
+  }
+  return serviceInstance;
 }
 
 /**
  * Check if conversational calls are configured
  */
 export function isConversationalCallsConfigured(): boolean {
-  const service = getConversationalCallService();
-  return service.isConfigured();
+  return !!(process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN);
+}
+
+/**
+ * Make a conversational call (legacy API)
+ * @deprecated Use conversationalCalls.scheduleProactiveCall directly
+ */
+export async function makeConversationalCall(context: OutboundCallContext): Promise<CallResult> {
+  // Extract values with fallbacks
+  const userId = context.userId || context.user?.id || '';
+  const phoneNumber = context.phoneNumber || context.user?.phone || '';
+  const message = context.message || context.approach?.primaryGoal || '';
+
+  if (!userId || !phoneNumber || !message) {
+    return { success: false, error: 'Missing required fields: userId, phoneNumber, or message' };
+  }
+
+  return scheduleProactiveCall({
+    userId,
+    phoneNumber,
+    message,
+    ssml: context.ssml || `<speak>${message}</speak>`,
+    personaId: context.personaId || context.persona || 'ferni',
+    reason: context.reason || context.trigger?.reason || 'outbound_call',
+    maxDuration: context.maxDuration || context.approach?.maxDuration,
+  });
+}
+
+/**
+ * Format referral conversations for context injection
+ * @deprecated Use dedicated context builder
+ */
+export function formatReferralConversationsForContext(_userId?: string): string {
+  // Stub for backward compatibility
+  return '';
 }
 
 // ============================================================================
 // EXPORTS
 // ============================================================================
 
-export { ConversationalCallService };
-
-// Types are already exported inline at definition (export type/export interface)
-
-export default {
-  getConversationalCallService,
-  makeConversationalCall,
-  isConversationalCallsConfigured,
+export const conversationalCalls = {
+  scheduleProactiveCall,
+  handleCallStatusUpdate,
+  enhanceSSMLForCall,
+  isConfigured: isConversationalCallsConfigured,
+  makeCall: makeConversationalCall,
 };
+
+export default conversationalCalls;

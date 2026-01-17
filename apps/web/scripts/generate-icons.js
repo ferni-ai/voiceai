@@ -2,7 +2,7 @@
 /**
  * Icon Generation Script
  *
- * Generates all PWA icons from the master orb design.
+ * Generates all PWA icons from the Three Stones design.
  * Uses sharp for high-quality PNG conversion.
  *
  * Usage:
@@ -22,104 +22,100 @@ const ICONS_DIR = join(__dirname, '../public/icons');
 const PUBLIC_DIR = join(__dirname, '../public');
 
 // ============================================================================
-// SVG TEMPLATES - The Ferni orb design with voice waveform
+// SVG TEMPLATES - The Ferni Three Stones design (zen eye)
 // ============================================================================
 
 /**
- * Generate the Ferni orb logo SVG at any size
- * The orb that embodies the human spirit with voice waveform bars
+ * Generate the Ferni Three Stones logo SVG at any size
+ * Represents: outer stone (grounding), eye white (clarity), pupil (awareness)
  * @param {number} size - Icon size in pixels
  * @param {object} options - Customization options
  */
-function generateOrbLogoSVG(size, options = {}) {
+function generateThreeStonesSVG(size, options = {}) {
   const {
     background = '#F5F1E8',  // Paper cream
-    orbColor = '#4a6741',    // Sage green
     rounded = true,
-    cornerRadius = size >= 32 ? Math.round(size * 0.1875) : Math.round(size * 0.15),
-    showGlow = size >= 64,
-    showRings = size >= 128,
+    circular = false,  // Use rounded rectangle by default (brand standard)
+    cornerRadius = size >= 32 ? Math.round(size * 0.1875) : Math.round(size * 0.1875),
+    showGlow = size >= 32,
+    showGlowRing = size >= 32,
   } = options;
 
   const center = size / 2;
-  const orbRadius = size * 0.333; // Orb takes up 2/3 of the icon
+  const stoneRadius = size * 0.343;  // Outer stone radius
+  const eyeWhiteRadius = stoneRadius * 0.41;  // Eye white
+  const irisRadius = stoneRadius * 0.273;  // Iris (slightly larger for visibility)
+  const pupilRadius = stoneRadius * 0.136;  // Pupil
+  const catchlightRadius = size >= 64 ? stoneRadius * 0.055 : stoneRadius * 0.055;
 
-  // Waveform bar dimensions scaled to size
-  const barWidth = Math.max(2, Math.round(size * 0.012));
-  const barGap = Math.max(3, Math.round(size * 0.03));
-  const barHeights = [0.375, 0.5625, 0.75, 0.875, 1, 0.875, 0.75, 0.5625, 0.375];
-  const maxBarHeight = orbRadius * 0.4;
-
-  const bgShape = rounded
-    ? `<rect width="${size}" height="${size}" rx="${cornerRadius}" fill="${background}"/>`
-    : `<rect width="${size}" height="${size}" fill="${background}"/>`;
+  // Rounded rectangle background (brand standard)
+  let bgShape;
+  if (circular && rounded) {
+    bgShape = `<circle cx="${center}" cy="${center}" r="${center}" fill="${background}"/>`;
+  } else if (rounded) {
+    bgShape = `<rect width="${size}" height="${size}" rx="${cornerRadius}" fill="${background}"/>`;
+  } else {
+    bgShape = `<rect width="${size}" height="${size}" fill="${background}"/>`;
+  }
 
   const glowFilter = showGlow ? `
-    <filter id="orbGlow" x="-50%" y="-50%" width="200%" height="200%">
-      <feGaussianBlur stdDeviation="${size * 0.04}" result="blur"/>
-      <feFlood flood-color="${orbColor}" flood-opacity="0.35"/>
-      <feComposite in2="blur" operator="in"/>
-      <feMerge>
-        <feMergeNode/>
-        <feMergeNode in="SourceGraphic"/>
-      </feMerge>
+    <filter id="glowFilter${size}" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="${Math.max(2, size * 0.01)}" result="blur"/>
+      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
     </filter>` : '';
 
-  const rings = showRings ? `
-    <circle cx="${center}" cy="${center}" r="${orbRadius * 1.24}" fill="none" stroke="${orbColor}" stroke-width="1" opacity="0.15"/>
-    <circle cx="${center}" cy="${center}" r="${orbRadius * 1.12}" fill="none" stroke="${orbColor}" stroke-width="1" opacity="0.1"/>` : '';
+  const glowRing = showGlowRing ? `
+  <circle cx="${center}" cy="${center}" r="${stoneRadius * 1.1}" fill="none" stroke="#4a6741" stroke-width="${Math.max(0.5, size * 0.003)}" opacity="0.25"/>` : '';
 
-  // Generate waveform bars
-  const totalBarsWidth = (barHeights.length - 1) * barGap + barHeights.length * barWidth;
-  const startX = center - totalBarsWidth / 2;
-
-  const waveformBars = barHeights.map((heightRatio, i) => {
-    const barHeight = maxBarHeight * heightRatio;
-    const x = startX + i * (barWidth + barGap);
-    const y = center - barHeight / 2;
-    const rx = barWidth / 2;
-    return `<rect x="${x}" y="${y}" width="${barWidth}" height="${barHeight}" rx="${rx}" fill="rgba(255,255,255,0.95)"/>`;
-  }).join('\n    ');
+  // Catchlight position offset
+  const catchlightOffset = stoneRadius * 0.16;
 
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${size} ${size}" width="${size}" height="${size}">
-  <!-- Ferni Orb Logo - ${size}x${size} -->
+  <!-- Ferni Three Stones Logo - ${size}x${size} -->
   <defs>
-    <linearGradient id="orbGradient" x1="0%" y1="100%" x2="100%" y2="0%">
-      <stop offset="0%" stop-color="#3d5a35"/>
-      <stop offset="40%" stop-color="#4a6741"/>
-      <stop offset="100%" stop-color="#5a7a4d"/>
-    </linearGradient>
-    <radialGradient id="orbHighlight" cx="35%" cy="25%" r="40%">
-      <stop offset="0%" stop-color="rgba(255,255,255,0.4)"/>
-      <stop offset="100%" stop-color="rgba(255,255,255,0)"/>
+    <radialGradient id="stoneGrad${size}" cx="40%" cy="40%">
+      <stop offset="0%" stop-color="#5a8060"/>
+      <stop offset="70%" stop-color="#4a6741"/>
+      <stop offset="100%" stop-color="#3d5a35"/>
     </radialGradient>
-    ${glowFilter}
+    <radialGradient id="catchlightGrad${size}" cx="30%" cy="30%">
+      <stop offset="0%" stop-color="white" stop-opacity="0.9"/>
+      <stop offset="100%" stop-color="white" stop-opacity="0"/>
+    </radialGradient>${glowFilter}
   </defs>
 
+  <!-- Background -->
   ${bgShape}
-  ${rings}
+  ${glowRing}
+  <!-- Outer Stone: Body -->
+  <circle cx="${center}" cy="${center}" r="${stoneRadius}" fill="url(#stoneGrad${size})"${showGlow ? ` filter="url(#glowFilter${size})"` : ''}/>
 
-  <!-- Main orb -->
-  <circle cx="${center}" cy="${center}" r="${orbRadius}" fill="url(#orbGradient)"${showGlow ? ' filter="url(#orbGlow)"' : ''}/>
+  <!-- Middle Stone: Eye White -->
+  <circle cx="${center}" cy="${center}" r="${eyeWhiteRadius}" fill="white"/>
 
-  <!-- Top highlight -->
-  <circle cx="${center}" cy="${center}" r="${orbRadius}" fill="url(#orbHighlight)"/>
+  <!-- Iris -->
+  <circle cx="${center}" cy="${center}" r="${irisRadius}" fill="#5a8060"/>
 
-  <!-- Waveform bars -->
-  <g>
-    ${waveformBars}
-  </g>
+  <!-- Inner Stone: Pupil -->
+  <circle cx="${center}" cy="${center}" r="${pupilRadius}" fill="#2c2520"/>
+
+  <!-- Catchlight (life spark) -->
+  <circle cx="${center - catchlightOffset}" cy="${center - catchlightOffset}" r="${catchlightRadius}" fill="url(#catchlightGrad${size})"/>
+  ${size >= 64 ? `
+  <!-- Secondary catchlight -->
+  <circle cx="${center + catchlightOffset * 0.5}" cy="${center + catchlightOffset * 0.4}" r="${catchlightRadius * 0.4}" fill="white" opacity="0.4"/>` : ''}
 </svg>`;
 }
 
 /**
- * Generate maskable icon (more padding, fills safe zone)
+ * Generate maskable icon (safe zone design - full bleed for OS masking)
  */
 function generateMaskableSVG(size) {
-  return generateOrbLogoSVG(size, {
+  return generateThreeStonesSVG(size, {
     rounded: false,
+    circular: false,  // Maskable needs square background for OS to apply its own mask
     showGlow: false,
-    showRings: false,
+    showGlowRing: false,
   });
 }
 
@@ -128,13 +124,10 @@ function generateMaskableSVG(size) {
  */
 function generateSafariPinnedSVG() {
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16">
-  <!-- Safari Pinned Tab - Monochrome Orb -->
+  <!-- Safari Pinned Tab - Monochrome Three Stones -->
   <circle cx="8" cy="8" r="6" fill="black"/>
-  <rect x="4" y="6.5" width="1" height="3" rx="0.5" fill="white"/>
-  <rect x="5.5" y="5.5" width="1" height="5" rx="0.5" fill="white"/>
-  <rect x="7" y="4.5" width="1" height="7" rx="0.5" fill="white"/>
-  <rect x="8.5" y="5.5" width="1" height="5" rx="0.5" fill="white"/>
-  <rect x="10" y="6.5" width="1" height="3" rx="0.5" fill="white"/>
+  <circle cx="8" cy="8" r="2.5" fill="white"/>
+  <circle cx="8" cy="8" r="1.2" fill="black"/>
 </svg>`;
 }
 
@@ -143,35 +136,119 @@ function generateSafariPinnedSVG() {
  */
 function generateOGImageSVG() {
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" width="1200" height="630">
-  <!-- Open Graph Image -->
+  <!-- Open Graph Image - Three Stones -->
   <defs>
-    <linearGradient id="ogOrbGradient" x1="0%" y1="100%" x2="100%" y2="0%">
-      <stop offset="0%" stop-color="#3d5a35"/>
-      <stop offset="40%" stop-color="#4a6741"/>
-      <stop offset="100%" stop-color="#5a7a4d"/>
-    </linearGradient>
+    <radialGradient id="stoneGradOG" cx="40%" cy="40%">
+      <stop offset="0%" stop-color="#5a8060"/>
+      <stop offset="70%" stop-color="#4a6741"/>
+      <stop offset="100%" stop-color="#3d5a35"/>
+    </radialGradient>
+    <filter id="glowFilterOG" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="4" result="blur"/>
+      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+    </filter>
+    <radialGradient id="catchlightGradOG" cx="30%" cy="30%">
+      <stop offset="0%" stop-color="white" stop-opacity="0.9"/>
+      <stop offset="100%" stop-color="white" stop-opacity="0"/>
+    </radialGradient>
   </defs>
 
+  <!-- Background -->
   <rect width="1200" height="630" fill="#F5F1E8"/>
 
-  <!-- Orb Logo -->
+  <!-- Three Stones Logo -->
   <g transform="translate(600, 250)">
-    <circle cx="0" cy="0" r="100" fill="url(#ogOrbGradient)"/>
-    <!-- Waveform bars -->
-    <rect x="-36" y="-12" width="4" height="24" rx="2" fill="rgba(255,255,255,0.95)"/>
-    <rect x="-27" y="-18" width="4" height="36" rx="2" fill="rgba(255,255,255,0.95)"/>
-    <rect x="-18" y="-24" width="4" height="48" rx="2" fill="rgba(255,255,255,0.95)"/>
-    <rect x="-9" y="-28" width="4" height="56" rx="2" fill="rgba(255,255,255,0.95)"/>
-    <rect x="0" y="-32" width="4" height="64" rx="2" fill="rgba(255,255,255,0.95)"/>
-    <rect x="9" y="-28" width="4" height="56" rx="2" fill="rgba(255,255,255,0.95)"/>
-    <rect x="18" y="-24" width="4" height="48" rx="2" fill="rgba(255,255,255,0.95)"/>
-    <rect x="27" y="-18" width="4" height="36" rx="2" fill="rgba(255,255,255,0.95)"/>
-    <rect x="36" y="-12" width="4" height="24" rx="2" fill="rgba(255,255,255,0.95)"/>
+    <!-- Outer glow ring -->
+    <circle cx="0" cy="0" r="110" fill="none" stroke="#4a6741" stroke-width="2" opacity="0.25"/>
+    
+    <!-- Outer Stone: Body -->
+    <circle cx="0" cy="0" r="100" fill="url(#stoneGradOG)" filter="url(#glowFilterOG)"/>
+    
+    <!-- Middle Stone: Eye White -->
+    <circle cx="0" cy="0" r="41" fill="white"/>
+    
+    <!-- Iris -->
+    <circle cx="0" cy="0" r="27" fill="#5a8060"/>
+    
+    <!-- Inner Stone: Pupil -->
+    <circle cx="0" cy="0" r="13" fill="#2c2520"/>
+    
+    <!-- Catchlight (life spark) -->
+    <circle cx="-8" cy="-8" r="5.5" fill="url(#catchlightGradOG)"/>
+    
+    <!-- Secondary catchlight -->
+    <circle cx="7" cy="5" r="2" fill="white" opacity="0.4"/>
   </g>
 
   <!-- Text -->
   <text x="600" y="430" font-family="system-ui, -apple-system, sans-serif" font-size="72" font-weight="700" fill="#2c2520" text-anchor="middle">Ferni</text>
   <text x="600" y="490" font-family="system-ui, -apple-system, sans-serif" font-size="28" font-weight="400" fill="#5a5550" text-anchor="middle">Your AI Life Coach</text>
+</svg>`;
+}
+
+/**
+ * Generate animated favicon SVG (breathing effect)
+ */
+function generateAnimatedFaviconSVG() {
+  return `<svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+  <!-- Ferni Animated Favicon - Three Stones with Breathing -->
+  <defs>
+    <style>
+      @keyframes breathe {
+        0%, 100% { transform: scale(1); }
+        50% { transform: scale(1.03); }
+      }
+      @keyframes glow {
+        0%, 100% { opacity: 0.2; }
+        50% { opacity: 0.45; }
+      }
+      @keyframes catchlightPulse {
+        0%, 100% { opacity: 0.9; }
+        50% { opacity: 0.7; }
+      }
+      .stone-body {
+        animation: breathe 4s ease-in-out infinite;
+        transform-origin: center;
+      }
+      .glow-ring {
+        animation: glow 4s ease-in-out infinite;
+      }
+      .catchlight {
+        animation: catchlightPulse 4s ease-in-out infinite;
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .stone-body, .glow-ring, .catchlight { animation: none; }
+      }
+    </style>
+
+    <radialGradient id="stoneGradAnim" cx="40%" cy="40%">
+      <stop offset="0%" stop-color="#5a8060"/>
+      <stop offset="70%" stop-color="#4a6741"/>
+      <stop offset="100%" stop-color="#3d5a35"/>
+    </radialGradient>
+  </defs>
+
+  <!-- Background with rounded corners -->
+  <rect width="32" height="32" rx="6" fill="#F5F1E8"/>
+
+  <!-- Glow ring -->
+  <circle class="glow-ring" cx="16" cy="16" r="12.5" fill="none" stroke="#4a6741" stroke-width="0.5" opacity="0.3"/>
+
+  <!-- Outer Stone: Body -->
+  <circle class="stone-body" cx="16" cy="16" r="11" fill="url(#stoneGradAnim)"/>
+
+  <!-- Middle Stone: Eye White -->
+  <circle cx="16" cy="16" r="4.5" fill="white"/>
+
+  <!-- Iris -->
+  <circle cx="16" cy="16" r="3" fill="#5a8060"/>
+
+  <!-- Inner Stone: Pupil -->
+  <circle cx="16" cy="16" r="1.5" fill="#2c2520"/>
+
+  <!-- Catchlight (life spark) -->
+  <circle class="catchlight" cx="14.8" cy="14.8" r="0.6" fill="white" opacity="0.9"/>
 </svg>`;
 }
 
@@ -181,38 +258,39 @@ function generateOGImageSVG() {
 
 const SVG_FILES = [
   // Favicons (in public/)
-  { path: 'favicon.svg', generator: () => generateOrbLogoSVG(32, { showGlow: false }), dir: PUBLIC_DIR },
-  { path: 'apple-touch-icon.svg', generator: () => generateOrbLogoSVG(180, { cornerRadius: 0 }), dir: PUBLIC_DIR },
-  { path: 'logo-icon.svg', generator: () => generateOrbLogoSVG(64), dir: PUBLIC_DIR },
-  { path: 'ferni-avatar.svg', generator: () => generateOrbLogoSVG(200, { rounded: false, background: 'transparent' }), dir: PUBLIC_DIR },
+  { path: 'favicon.svg', generator: () => generateThreeStonesSVG(32), dir: PUBLIC_DIR },
+  { path: 'favicon-animated.svg', generator: generateAnimatedFaviconSVG, dir: PUBLIC_DIR },
+  { path: 'apple-touch-icon.svg', generator: () => generateThreeStonesSVG(192, { cornerRadius: 38 }), dir: PUBLIC_DIR },
+  { path: 'logo-icon.svg', generator: () => generateThreeStonesSVG(64), dir: PUBLIC_DIR },
+  { path: 'ferni-avatar.svg', generator: () => generateThreeStonesSVG(200, { rounded: false, background: 'transparent' }), dir: PUBLIC_DIR },
 
   // Favicons (in public/icons/)
-  { path: 'favicon-16.svg', generator: () => generateOrbLogoSVG(16, { showGlow: false, showRings: false }), dir: ICONS_DIR },
-  { path: 'favicon-32.svg', generator: () => generateOrbLogoSVG(32, { showGlow: false }), dir: ICONS_DIR },
+  { path: 'favicon-16.svg', generator: () => generateThreeStonesSVG(16, { showGlow: false, showGlowRing: false }), dir: ICONS_DIR },
+  { path: 'favicon-32.svg', generator: () => generateThreeStonesSVG(32), dir: ICONS_DIR },
 
   // App icons
-  { path: 'icon-base.svg', generator: () => generateOrbLogoSVG(512), dir: ICONS_DIR },
-  { path: 'icon-1024.svg', generator: () => generateOrbLogoSVG(1024), dir: ICONS_DIR },
-  { path: 'app-icon-1024.svg', generator: () => generateOrbLogoSVG(1024), dir: ICONS_DIR },
-  { path: 'app-icon-orb-1024.svg', generator: () => generateOrbLogoSVG(1024), dir: ICONS_DIR },
-  { path: 'app-icon-orb-simple-1024.svg', generator: () => generateOrbLogoSVG(1024, { showGlow: false, showRings: false }), dir: ICONS_DIR },
+  { path: 'icon-base.svg', generator: () => generateThreeStonesSVG(512), dir: ICONS_DIR },
+  { path: 'icon-1024.svg', generator: () => generateThreeStonesSVG(1024), dir: ICONS_DIR },
+  { path: 'app-icon-1024.svg', generator: () => generateThreeStonesSVG(1024), dir: ICONS_DIR },
+  { path: 'app-icon-orb-1024.svg', generator: () => generateThreeStonesSVG(1024), dir: ICONS_DIR },
+  { path: 'app-icon-orb-simple-1024.svg', generator: () => generateThreeStonesSVG(1024, { showGlow: false, showGlowRing: false }), dir: ICONS_DIR },
 
   // Android icons
-  { path: 'android-chrome-192.svg', generator: () => generateOrbLogoSVG(192), dir: ICONS_DIR },
-  { path: 'android-chrome-512.svg', generator: () => generateOrbLogoSVG(512), dir: ICONS_DIR },
-  { path: 'app-icon-android.svg', generator: () => generateOrbLogoSVG(512, { rounded: false }), dir: ICONS_DIR },
+  { path: 'android-chrome-192.svg', generator: () => generateThreeStonesSVG(192, { cornerRadius: 36 }), dir: ICONS_DIR },
+  { path: 'android-chrome-512.svg', generator: () => generateThreeStonesSVG(512, { cornerRadius: 96 }), dir: ICONS_DIR },
+  { path: 'app-icon-android.svg', generator: () => generateThreeStonesSVG(512, { rounded: false }), dir: ICONS_DIR },
   { path: 'app-icon-android-background.svg', generator: () => `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 108 108"><rect width="108" height="108" fill="#F5F1E8"/></svg>`, dir: ICONS_DIR },
 
-  // iOS icons
-  { path: 'apple-touch-icon.svg', generator: () => generateOrbLogoSVG(180, { cornerRadius: 0 }), dir: ICONS_DIR },
-  { path: 'app-icon-ios-simple.svg', generator: () => generateOrbLogoSVG(1024, { cornerRadius: 0, showGlow: false }), dir: ICONS_DIR },
+  // iOS icons (square background - iOS applies its own mask)
+  { path: 'apple-touch-icon.svg', generator: () => generateThreeStonesSVG(180, { circular: false, cornerRadius: 0 }), dir: ICONS_DIR },
+  { path: 'app-icon-ios-simple.svg', generator: () => generateThreeStonesSVG(1024, { circular: false, cornerRadius: 0, showGlow: false }), dir: ICONS_DIR },
 
   // Maskable icons (for PWA)
   { path: 'maskable-icon.svg', generator: () => generateMaskableSVG(512), dir: ICONS_DIR },
 
   // Special icons
   { path: 'safari-pinned-tab.svg', generator: generateSafariPinnedSVG, dir: ICONS_DIR },
-  { path: 'mstile-150.svg', generator: () => generateOrbLogoSVG(150), dir: ICONS_DIR },
+  { path: 'mstile-150.svg', generator: () => generateThreeStonesSVG(150, { cornerRadius: 28 }), dir: ICONS_DIR },
   { path: 'og-image.svg', generator: generateOGImageSVG, dir: ICONS_DIR },
 ];
 
@@ -240,6 +318,7 @@ const PNG_SIZES = [
   { name: 'apple-touch-icon-180x180.png', size: 180, cornerRadius: 0 },
 
   // Standard icons
+  { name: 'icon-72x72.png', size: 72 },
   { name: 'icon-192x192.png', size: 192 },
   { name: 'icon-256x256.png', size: 256 },
   { name: 'icon-512x512.png', size: 512 },
@@ -258,7 +337,7 @@ const PNG_SIZES = [
 // ============================================================================
 
 async function main() {
-  console.log('🔮 Generating Ferni orb icons...\n');
+  console.log('🪨 Generating Ferni Three Stones icons...\n');
 
   // Generate SVG files
   console.log('📝 Generating SVG files...');
@@ -292,10 +371,10 @@ async function main() {
   for (const png of PNG_SIZES) {
     const svg = png.maskable
       ? generateMaskableSVG(png.size)
-      : generateOrbLogoSVG(png.size, {
+      : generateThreeStonesSVG(png.size, {
           cornerRadius: png.cornerRadius,
           showGlow: png.size >= 64,
-          showRings: png.size >= 128,
+          showGlowRing: png.size >= 64,
         });
 
     const pngPath = join(ICONS_DIR, png.name);
@@ -308,7 +387,7 @@ async function main() {
   }
 
   // Generate root apple-touch-icon.png
-  const appleTouchSvg = generateOrbLogoSVG(180, { cornerRadius: 0 });
+  const appleTouchSvg = generateThreeStonesSVG(180, { cornerRadius: 0 });
   await sharp(Buffer.from(appleTouchSvg))
     .png()
     .toFile(join(PUBLIC_DIR, 'apple-touch-icon.png'));
@@ -321,8 +400,8 @@ async function main() {
     .toFile(join(ICONS_DIR, 'og-image.png'));
   console.log('  ✓ og-image.png');
 
-  console.log('\n✅ All orb icons generated successfully!');
-  console.log('   Don\'t forget to commit the changes.');
+  console.log('\n✅ All Three Stones icons generated successfully!');
+  console.log('   The zen eye is ready. 🧘');
 }
 
 main().catch(console.error);

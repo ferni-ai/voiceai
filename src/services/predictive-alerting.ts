@@ -12,6 +12,7 @@
  */
 
 import { createLogger } from '../utils/safe-logger.js';
+import { registerInterval, clearNamedInterval } from '../utils/interval-manager.js';
 import { SlackNotificationService } from './slack-notifications.js';
 
 const log = createLogger({ module: 'PredictiveAlerting' });
@@ -91,7 +92,7 @@ interface PredictiveAlert {
 let config = { ...DEFAULT_CONFIG };
 const metrics = new Map<string, MetricSeries>();
 const lastAlerts = new Map<string, number>();
-let predictionInterval: NodeJS.Timeout | null = null;
+const PREDICTION_INTERVAL_NAME = 'predictive-alerting';
 let slackService: SlackNotificationService | null = null;
 let isRunning = false;
 
@@ -119,12 +120,14 @@ export function registerMetric(
 }
 
 /**
- * Record a data point for a metric
+ * Record a data point for a metric.
+ * If the metric isn't registered yet, silently ignore (will be registered when service starts).
  */
 export function recordMetricValue(name: string, value: number): void {
   const series = metrics.get(name);
   if (!series) {
-    log.warn({ name }, 'Metric not registered, ignoring');
+    // Silently ignore - metric will be registered when predictive alerting starts
+    // This prevents log spam when the service hasn't been initialized yet
     return;
   }
 
@@ -389,10 +392,19 @@ export function startPredictiveAlerting(userConfig?: Partial<PredictiveConfig>):
   registerMetric('error_rate', 0.05, 'upper'); // Alert when error rate will hit 5%
   registerMetric('latency_p99', 2000, 'upper'); // Alert when P99 will hit 2000ms
 
+  // Call quality metrics (registered for predictive alerting integration)
+  registerMetric('connection_success_rate', 95, 'lower'); // Alert when drops below 95%
+  registerMetric('disconnect_rate', 5, 'upper'); // Alert when rises above 5%
+  registerMetric('first_response_time', 3000, 'upper'); // Alert when response time exceeds 3s
+
   // Start prediction loop
-  predictionInterval = setInterval(() => {
-    runPredictions().catch((e) => log.error({ error: String(e) }, 'Prediction loop failed'));
-  }, config.predictionIntervalMs);
+  registerInterval(
+    PREDICTION_INTERVAL_NAME,
+    () => {
+      runPredictions().catch((e) => log.error({ error: String(e) }, 'Prediction loop failed'));
+    },
+    config.predictionIntervalMs
+  );
 
   log.info('🔮 Predictive alerting started');
 }
@@ -400,10 +412,7 @@ export function startPredictiveAlerting(userConfig?: Partial<PredictiveConfig>):
 export function stopPredictiveAlerting(): void {
   if (!isRunning) return;
 
-  if (predictionInterval) {
-    clearInterval(predictionInterval);
-    predictionInterval = null;
-  }
+  clearNamedInterval(PREDICTION_INTERVAL_NAME);
 
   isRunning = false;
   log.info('Predictive alerting stopped');

@@ -13,9 +13,9 @@
  *
  * @module live-backchanneling-integration
  *
- * @note STATUS: IMPLEMENTED BUT NOT INTEGRATED
- * This integration is complete but not yet wired into the voice agent.
- * To integrate: export from index.ts and call from voice-agent's audio pipeline.
+ * @note STATUS: INTEGRATED ✅
+ * This integration is exported from index.ts. Use initializeLiveBackchanneling()
+ * in the voice agent's audio pipeline setup to enable live backchanneling.
  */
 
 import type { voice } from '@livekit/agents';
@@ -27,6 +27,8 @@ import {
 } from '../../speech/live-backchanneling/index.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import { trackBackchannelEvent } from './speech-metrics-integration.js';
+// Speech coordination for centralized speech management
+import { coordinatedSay } from '../../speech/coordination/index.js';
 
 const log = getLogger().child({ module: 'LiveBackchannelingIntegration' });
 
@@ -143,7 +145,7 @@ export function initializeLiveBackchanneling<T>(
 
     // Check for breath pause and potentially emit backchannel
     if (breathDetector.isBreathPause()) {
-      tryEmitLiveBackchannel();
+      void tryEmitLiveBackchannel();
     }
   };
 
@@ -177,7 +179,8 @@ export function initializeLiveBackchanneling<T>(
       try {
         // Say the backchannel with interruptions allowed (so it can overlap)
         // The phrase already has SSML for soft volume
-        await session.say(result.phrase, { allowInterruptions: true });
+        // Use coordinated speech for proper queue management
+        coordinatedSay(sessionId, result.phrase, { allowInterruptions: true });
 
         state.lastBackchannelAt = Date.now();
 
@@ -199,7 +202,7 @@ export function initializeLiveBackchanneling<T>(
           '🎤 Live backchannel emitted during breath pause'
         );
       } catch (err) {
-        log.debug({ error: String(err) }, 'Live backchannel emission failed (non-critical)');
+        log.warn({ error: String(err) }, 'Live backchannel emission failed (non-critical)');
       }
     }
   };

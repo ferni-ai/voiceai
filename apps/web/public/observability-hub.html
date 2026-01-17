@@ -677,10 +677,26 @@
     // ========================================
     // DATA FETCHING
     // ========================================
+    
+    /**
+     * Get admin key for API requests.
+     * SECURITY: Only falls back to 'dev-mode' on localhost (development).
+     */
+    function getAdminKey() {
+      const storedKey = localStorage.getItem('ferni_admin_key') || localStorage.getItem('admin_key');
+      if (storedKey) return storedKey;
+      
+      const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+      if (isLocalhost) return 'dev-mode';
+      
+      console.warn('No admin key found. Set localStorage.ferni_admin_key for admin access.');
+      return '';
+    }
+    
     async function fetchData() {
       try {
         const response = await fetch('/api/observability?window=60', {
-          headers: { 'x-admin-key': 'dev-mode' }
+          headers: { 'x-admin-key': getAdminKey() }
         });
         if (!response.ok) throw new Error('Failed to fetch data');
         data = await response.json();

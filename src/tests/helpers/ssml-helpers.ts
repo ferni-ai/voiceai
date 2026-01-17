@@ -23,10 +23,11 @@ export function stripSsmlTags(text: string): string {
 
 /**
  * Check if text contains a phrase (ignoring SSML tags)
+ * Case-insensitive since pronunciation guides use mixed case for emphasis
  */
 export function containsTextIgnoringSsml(ssmlText: string, searchPhrase: string): boolean {
   const stripped = stripSsmlTags(ssmlText);
-  return stripped.includes(searchPhrase);
+  return stripped.toLowerCase().includes(searchPhrase.toLowerCase());
 }
 
 /**

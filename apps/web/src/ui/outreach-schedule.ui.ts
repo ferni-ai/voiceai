@@ -12,11 +12,12 @@ import { t } from '../i18n/index.js';
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import { DURATION } from '../config/animation-constants.js';
+import { apiGet, apiPost, apiDelete } from '../utils/api.js';
 
 const log = createLogger('OutreachScheduleUI');
 
 // FIX BUG: Track all setTimeout calls for proper cleanup
-const { trackedTimeout, clearAll: clearAllTimeouts } = createTimeoutTracker();
+const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
 
 // ============================================================================
 // TYPES
@@ -96,7 +97,7 @@ const STYLES = `
 .outreach-schedule-overlay {
   position: fixed;
   inset: 0;
-  z-index: 10000;
+  z-index: var(--z-tooltip);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -113,18 +114,18 @@ const STYLES = `
 .outreach-schedule-backdrop {
   position: absolute;
   inset: 0;
-  background: rgba(44, 37, 32, 0.5);
-  backdrop-filter: blur(var(--glass-blur-medium, 16px));
+  background: rgba(44, 37, 32, 0.75);
 }
 
 .outreach-schedule-modal {
   position: relative;
   width: 90%;
-  max-width: 560px;
+  max-width: clamp(392px, 90vw, 560px);
   max-height: 80vh;
-  background: var(--color-background-elevated, #FFFDFB);
-  border-radius: var(--radius-2xl, 20px);
-  box-shadow: var(--shadow-2xl, 0 25px 50px -12px rgba(0,0,0,0.25));
+  background: var(--color-bg-elevated, #FFFDFB);
+  border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
+  border-radius: var(--radius-xl, 20px);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.06);
   display: flex;
   flex-direction: column;
   transform: scale(0.95);
@@ -439,8 +440,8 @@ const STYLES = `
 }
 
 .outreach-item-status.responded {
-  background: var(--persona-glow, rgba(139, 92, 246, 0.1));
-  color: var(--persona-primary, #7c3aed);
+  background: var(--persona-glow, rgba(74, 103, 65, 0.1));
+  color: var(--persona-primary, #4a6741);
 }
 
 .outreach-item-status.failed {
@@ -552,11 +553,11 @@ function createModal(): void {
           </button>
         </div>
         <div class="outreach-schedule-tabs">
-          <button class="outreach-schedule-tab active" data-tab="upcoming">
+          <button aria-label="${t('accessibility.upcoming')}" class="outreach-schedule-tab active" data-tab="upcoming">
             ${ICONS.calendar}
             Upcoming
           </button>
-          <button class="outreach-schedule-tab" data-tab="history">
+          <button aria-label="${t('accessibility.history')}" class="outreach-schedule-tab" data-tab="history">
             ${ICONS.history}
             History
           </button>
@@ -639,10 +640,9 @@ async function loadData(): Promise<void> {
 
 async function fetchUpcomingOutreach(): Promise<ScheduledOutreach[]> {
   try {
-    const response = await fetch('/api/outreach/upcoming');
-    if (!response.ok) throw new Error('Failed to fetch');
-    const data = await response.json();
-    return data.upcoming || [];
+    const response = await apiGet<{ upcoming?: ScheduledOutreach[] }>('/api/outreach/upcoming');
+    if (!response.ok || !response.data) return [];
+    return response.data.upcoming ?? [];
   } catch {
     // Return empty array - real data will appear when outreach is scheduled
     return [];
@@ -651,10 +651,9 @@ async function fetchUpcomingOutreach(): Promise<ScheduledOutreach[]> {
 
 async function fetchOutreachHistory(): Promise<OutreachHistory[]> {
   try {
-    const response = await fetch('/api/outreach/history?limit=20');
-    if (!response.ok) throw new Error('Failed to fetch');
-    const data = await response.json();
-    return data.history || [];
+    const response = await apiGet<{ history?: OutreachHistory[] }>('/api/outreach/history?limit=20');
+    if (!response.ok || !response.data) return [];
+    return response.data.history ?? [];
   } catch {
     // Return empty array - real history will appear after outreach is sent
     return [];
@@ -711,17 +710,17 @@ function renderUpcomingItem(item: ScheduledOutreach): string {
       </div>
       <p class="outreach-item-preview">${item.preview.body}</p>
       <p class="outreach-item-reason">"${item.reason}"</p>
-      <div class="outreach-item-actions">
-        <button class="outreach-item-btn outreach-item-btn--preview" data-action="preview" data-id="${item.id}">
+      <div class="outreach-item-actions" role="button" tabindex="0">
+        <button aria-label="${t('accessibility.preview')}" class="outreach-item-btn outreach-item-btn--preview" data-action="preview" data-id="${item.id}">
           ${ICONS.eye} Preview
         </button>
         ${item.canReschedule ? `
-          <button class="outreach-item-btn outreach-item-btn--reschedule" data-action="reschedule" data-id="${item.id}">
+          <button aria-label="${t('accessibility.edit')}" class="outreach-item-btn outreach-item-btn--reschedule" data-action="reschedule" data-id="${item.id}">
             ${ICONS.edit} Reschedule
           </button>
         ` : ''}
         ${item.canCancel ? `
-          <button class="outreach-item-btn outreach-item-btn--cancel" data-action="cancel" data-id="${item.id}">
+          <button aria-label="${t('accessibility.delete')}" class="outreach-item-btn outreach-item-btn--cancel" data-action="cancel" data-id="${item.id}">
             ${ICONS.trash} Cancel
           </button>
         ` : ''}
@@ -802,9 +801,9 @@ async function handleAction(action: string, outreachId: string): Promise<void> {
 async function showPreview(outreachId: string): Promise<void> {
   // Fetch the outreach details
   try {
-    const response = await fetch(`/api/outreach/pending?userId=default`);
-    const data = await response.json();
-    const item = data.pending?.find((p: ScheduledOutreach) => p.id === outreachId);
+    const response = await apiGet<{ pending?: ScheduledOutreach[] }>(`/api/outreach/pending`);
+    if (!response.ok || !response.data) return;
+    const item = response.data.pending?.find((p: ScheduledOutreach) => p.id === outreachId);
 
     if (!item) {
       log.warn({ outreachId }, 'Outreach not found for preview');
@@ -821,10 +820,10 @@ async function showPreview(outreachId: string): Promise<void> {
       <div class="outreach-preview-modal" data-persona="${personaId}">
         <header class="outreach-preview-header">
           <div class="outreach-preview-persona">
-            ${(item.persona || item.personaId || 'F').charAt(0).toUpperCase()}
+            ${(item.personaId || 'F').charAt(0).toUpperCase()}
           </div>
           <div>
-            <h3 class="outreach-preview-title">${item.persona || getPersonaName(item.personaId)}</h3>
+            <h3 class="outreach-preview-title">${getPersonaName(item.personaId)}</h3>
             <span class="outreach-preview-channel">${(item.channel || 'sms').toUpperCase()} • ${item.type.replace(/_/g, ' ')}</span>
           </div>
           <button class="outreach-preview-close" aria-label="${t('common.close')}">${ICONS.close}</button>
@@ -834,7 +833,7 @@ async function showPreview(outreachId: string): Promise<void> {
           <div class="outreach-preview-message">${item.preview?.body || item.reason}</div>
         </div>
         <footer class="outreach-preview-footer">
-          <span class="outreach-preview-time">${ICONS.clock} Scheduled for ${formatTime(new Date(item.scheduledFor || item.suggestedTime))}</span>
+          <span class="outreach-preview-time">${ICONS.clock} Scheduled for ${formatTime(new Date(item.scheduledFor))}</span>
         </footer>
       </div>
     `;
@@ -873,7 +872,7 @@ function getPersonaName(personaId: string): string {
     jordan: 'Jordan Taylor',
     nayan: 'Nayan Patel',
   };
-  return names[personaId] || 'Ferni';
+  return names[personaId] ?? 'Ferni';
 }
 
 function addPreviewStyles(): void {
@@ -885,7 +884,7 @@ function addPreviewStyles(): void {
     .outreach-preview-overlay {
       position: fixed;
       inset: 0;
-      z-index: 10001;
+      z-index: var(--z-tooltip);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -896,15 +895,16 @@ function addPreviewStyles(): void {
     .outreach-preview-backdrop {
       position: absolute;
       inset: 0;
-      background: rgba(0,0,0,0.5);
+      background: rgba(44, 37, 32, 0.75);
     }
     .outreach-preview-modal {
       position: relative;
       width: 90%;
-      max-width: 420px;
-      background: var(--color-background-elevated, #FFFDFB);
-      border-radius: 16px;
-      box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+      max-width: clamp(294px, 90vw, 420px);
+      background: var(--color-bg-elevated, #FFFDFB);
+      border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
+      border-radius: var(--radius-xl, 20px);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.06);
       transform: scale(0.95);
       transition: transform 200ms ease;
     }
@@ -971,7 +971,7 @@ function addPreviewStyles(): void {
     .outreach-reschedule-overlay {
       position: fixed;
       inset: 0;
-      z-index: 10001;
+      z-index: var(--z-tooltip);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -982,7 +982,7 @@ function addPreviewStyles(): void {
     .outreach-reschedule-modal {
       position: relative;
       width: 90%;
-      max-width: 360px;
+      max-width: min(360px, 100%);
       background: var(--color-background-elevated, #FFFDFB);
       border-radius: 16px;
       padding: 24px;
@@ -1043,17 +1043,17 @@ async function showReschedule(outreachId: string): Promise<void> {
     <div class="outreach-reschedule-modal">
       <h3 class="outreach-reschedule-title">Reschedule check-in</h3>
       <div class="outreach-reschedule-options">
-        <button class="outreach-reschedule-option" data-time="${in1Hour.toISOString()}">
+        <button aria-label="${t('accessibility.in1Hour')}" class="outreach-reschedule-option" data-time="${in1Hour.toISOString()}">
           In 1 hour (${in1Hour.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })})
         </button>
-        <button class="outreach-reschedule-option" data-time="${in3Hours.toISOString()}">
+        <button aria-label="${t('accessibility.in3Hours')}" class="outreach-reschedule-option" data-time="${in3Hours.toISOString()}">
           In 3 hours (${in3Hours.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })})
         </button>
-        <button class="outreach-reschedule-option" data-time="${tomorrow.toISOString()}">
+        <button aria-label="${t('accessibility.tomorrowMorning900Am')}" class="outreach-reschedule-option" data-time="${tomorrow.toISOString()}">
           Tomorrow morning (9:00 AM)
         </button>
       </div>
-      <button class="outreach-reschedule-cancel">Cancel</button>
+      <button aria-label="${t('accessibility.cancel')}" class="outreach-reschedule-cancel">Cancel</button>
     </div>
   `;
 
@@ -1077,10 +1077,9 @@ async function showReschedule(outreachId: string): Promise<void> {
       const newTime = (btn as HTMLElement).dataset.time;
       try {
         // Call API to reschedule
-        const response = await fetch(`/api/outreach/reschedule`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ triggerId: outreachId, newTime }),
+        const response = await apiPost<{ success?: boolean }>(`/api/outreach/reschedule`, {
+          triggerId: outreachId,
+          newTime,
         });
 
         if (response.ok) {
@@ -1103,9 +1102,7 @@ async function cancelOutreach(outreachId: string): Promise<void> {
   }
 
   try {
-    const response = await fetch(`/api/outreach/pending/${outreachId}`, {
-      method: 'DELETE',
-    });
+    const response = await apiDelete<{ success?: boolean }>(`/api/outreach/pending/${outreachId}`);
 
     if (response.ok) {
       // Refresh the list

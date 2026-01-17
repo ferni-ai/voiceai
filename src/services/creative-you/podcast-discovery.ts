@@ -103,7 +103,8 @@ interface CuratedEpisode {
   discussionPrompts: string[];
 }
 
-const CURATED_PODCASTS: CuratedPodcast[] = [
+// Exported for use by intelligent curator
+export const CURATED_PODCASTS: CuratedPodcast[] = [
   {
     id: 'huberman-lab',
     title: 'Huberman Lab',
@@ -170,7 +171,8 @@ const CURATED_PODCASTS: CuratedPodcast[] = [
   },
 ];
 
-const CURATED_EPISODES: CuratedEpisode[] = [
+// Exported for use by intelligent curator
+export const CURATED_EPISODES: CuratedEpisode[] = [
   // Huberman Lab
   {
     id: 'huberman-sleep',
@@ -704,8 +706,9 @@ export function getLearningTracks(): LearningTrack[] {
   return [
     {
       id: 'productivity-mastery',
-      title: 'Productivity Mastery',
-      description: 'Science-backed strategies for focus, energy, and getting things done',
+      title: 'Getting Things Done (For Real)',
+      description:
+        'Not another productivity hack list. This is about understanding your brain—why focus fades, how sleep changes everything, and what actually sticks.',
       episodes: [
         CURATED_EPISODES.find((e) => e.id === 'huberman-sleep'),
         CURATED_EPISODES.find((e) => e.id === 'huberman-focus'),
@@ -724,8 +727,9 @@ export function getLearningTracks(): LearningTrack[] {
     },
     {
       id: 'mindfulness-journey',
-      title: 'Mindfulness Journey',
-      description: 'Start or deepen your meditation and mindfulness practice',
+      title: 'Starting to Slow Down',
+      description:
+        "If meditation feels intimidating or you've tried and it didn't stick—start here. Gentle, practical, no judgment.",
       episodes: [
         CURATED_EPISODES.find((e) => e.id === 'tenpercent-beginner'),
         CURATED_EPISODES.find((e) => e.id === 'shetty-overthinking'),
@@ -744,8 +748,9 @@ export function getLearningTracks(): LearningTrack[] {
     },
     {
       id: 'understanding-yourself',
-      title: 'Understanding Yourself',
-      description: 'Insights into why we think and behave the way we do',
+      title: 'Why You Do What You Do',
+      description:
+        'Ever wonder why you make certain choices? Why some patterns keep repeating? These episodes pull back the curtain.',
       episodes: [
         CURATED_EPISODES.find((e) => e.id === 'hidden-brain-decisions'),
         CURATED_EPISODES.find((e) => e.id === 'shetty-overthinking'),
@@ -760,6 +765,109 @@ export function getLearningTracks(): LearningTrack[] {
       totalDuration: 95,
       category: 'psychology',
       difficulty: 'beginner',
+    },
+    {
+      id: 'relationships-connection',
+      title: 'Love, Boundaries & Connection',
+      description:
+        'Why we attach the way we do, how to say no without guilt, and what loneliness teaches us. For anyone working on their relationships—including the one with themselves.',
+      episodes: [
+        CURATED_EPISODES.find((e) => e.id === 'shetty-attachment'),
+        CURATED_EPISODES.find((e) => e.id === 'shetty-boundaries'),
+        CURATED_EPISODES.find((e) => e.id === 'hidden-brain-relationships'),
+      ]
+        .filter((e): e is CuratedEpisode => e !== undefined)
+        .map((e) =>
+          curatedToEpisode(
+            e,
+            CURATED_PODCASTS.find((p) => p.id === e.podcastId)
+          )
+        ),
+      totalDuration: 140,
+      category: 'psychology',
+      difficulty: 'intermediate',
+    },
+    {
+      id: 'building-something',
+      title: 'Building Something From Nothing',
+      description:
+        'Stories of people who started with an idea and made it real. Not hustle porn—just honest accounts of what it actually takes.',
+      episodes: [
+        CURATED_EPISODES.find((e) => e.id === 'hibt-airbnb'),
+        CURATED_EPISODES.find((e) => e.id === 'hibt-spanx'),
+      ]
+        .filter((e): e is CuratedEpisode => e !== undefined)
+        .map((e) =>
+          curatedToEpisode(
+            e,
+            CURATED_PODCASTS.find((p) => p.id === e.podcastId)
+          )
+        ),
+      totalDuration: 105,
+      category: 'business',
+      difficulty: 'beginner',
+    },
+    {
+      id: 'big-questions',
+      title: 'The Big Questions',
+      description:
+        'Meaning, freedom, mortality. The stuff that keeps you up at night. No answers here—just better questions.',
+      episodes: [
+        CURATED_EPISODES.find((e) => e.id === 'philosophize-existentialism'),
+        CURATED_EPISODES.find((e) => e.id === 'philosophize-nietzsche'),
+      ]
+        .filter((e): e is CuratedEpisode => e !== undefined)
+        .map((e) =>
+          curatedToEpisode(
+            e,
+            CURATED_PODCASTS.find((p) => p.id === e.podcastId)
+          )
+        ),
+      totalDuration: 85,
+      category: 'philosophy',
+      difficulty: 'intermediate',
+    },
+    {
+      id: 'anxiety-toolkit',
+      title: 'When Anxiety Hits',
+      description:
+        'Not about fixing yourself. About understanding what anxiety is trying to tell you, and finding some gentler ways through.',
+      episodes: [
+        CURATED_EPISODES.find((e) => e.id === 'tenpercent-anxiety'),
+        CURATED_EPISODES.find((e) => e.id === 'tenpercent-compassion'),
+        CURATED_EPISODES.find((e) => e.id === 'shetty-overthinking'),
+      ]
+        .filter((e): e is CuratedEpisode => e !== undefined)
+        .map((e) =>
+          curatedToEpisode(
+            e,
+            CURATED_PODCASTS.find((p) => p.id === e.podcastId)
+          )
+        ),
+      totalDuration: 125,
+      category: 'mindfulness',
+      difficulty: 'beginner',
+    },
+    {
+      id: 'dopamine-motivation',
+      title: "Understanding Your Brain's Reward System",
+      description:
+        "Why you can't stop scrolling, why cold showers work, and how dopamine actually controls motivation. Brain science that you can use.",
+      episodes: [
+        CURATED_EPISODES.find((e) => e.id === 'huberman-dopamine'),
+        CURATED_EPISODES.find((e) => e.id === 'huberman-habits'),
+        CURATED_EPISODES.find((e) => e.id === 'huberman-cold'),
+      ]
+        .filter((e): e is CuratedEpisode => e !== undefined)
+        .map((e) =>
+          curatedToEpisode(
+            e,
+            CURATED_PODCASTS.find((p) => p.id === e.podcastId)
+          )
+        ),
+      totalDuration: 280,
+      category: 'science',
+      difficulty: 'advanced',
     },
   ];
 }
@@ -800,22 +908,52 @@ function formatListenTime(minutes: number): string {
   return mins > 0 ? `${hours}h ${mins}m` : `${hours}h`;
 }
 
+/**
+ * Generate podcast recommendation reasons that feel intentional
+ *
+ * BRAND PRINCIPLES:
+ * - Never generic ("Good podcast", "Check it out")
+ * - Always feels like Ferni picked this FOR you
+ * - Warm but not performative
+ */
 function getRecommendationReason(episode: CuratedEpisode, recentTopics: string[]): string {
-  // Find matching topic
+  // Find matching topic - use warm, friend-like language
   const matchingTopic = recentTopics.find((t) =>
     episode.topics.some((et) => et.toLowerCase().includes(t.toLowerCase()))
   );
 
   if (matchingTopic) {
-    return `Based on your interest in ${matchingTopic}`;
+    const topicPhrases = [
+      `This came to mind when you mentioned ${matchingTopic}.`,
+      `Remember when we talked about ${matchingTopic}? Give this a listen.`,
+      `Something about ${matchingTopic} that might land with you.`,
+      `I keep thinking about what you said about ${matchingTopic}. This connects.`,
+    ];
+    return topicPhrases[Math.floor(Math.random() * topicPhrases.length)];
   }
 
-  // Mood-based reasons
+  // Mood-based reasons (intentional, not generic)
   const moodReasons: Record<string, string[]> = {
-    learn: ['Something interesting to learn today', 'Expand your knowledge with this episode'],
-    chill: ['A relaxing listen for you', 'Wind down with this episode'],
-    inspire: ['Some inspiration for your day', 'This one might spark something'],
-    reflect: ['Food for thought', 'Something to reflect on'],
+    learn: [
+      'This one made me pause and think.',
+      'Might shift how you see things.',
+      'Worth your attention.',
+    ],
+    chill: [
+      'For when you need to decompress.',
+      'Gentle on the brain.',
+      'Easy listen, but stays with you.',
+    ],
+    inspire: [
+      'This one might spark something.',
+      'Needed this today. Maybe you do too.',
+      'For when you need a lift.',
+    ],
+    reflect: [
+      'One to sit with.',
+      'Take your time with this one.',
+      'No easy answers here. Just good questions.',
+    ],
   };
 
   const reasons = moodReasons[episode.mood];

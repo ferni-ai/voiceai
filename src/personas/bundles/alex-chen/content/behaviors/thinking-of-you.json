@@ -19,20 +19,20 @@
     "weekend_ritual": [
       "<break time=\"350ms\"/>Sunday check-in. <break time=\"300ms\"/>I'm about to FaceTime Kev. <break time=\"250ms\"/>How was your week?",
       "<break time=\"300ms\"/>Plant watering day. <break time=\"250ms\"/>Susan's looking good. <break time=\"200ms\"/>How are you looking?",
-      "<break time=\"350ms\"/>Before I disappear into books for the evening... <break time=\"300ms\"/>wanted to see how things landed this week."
+      "<break time=\"350ms\"/>Before I disappear into books for the evening... <break time=\"300ms\"/>how'd your week go?"
     ]
   },
 
   "following_up_on_difficult_things": {
     "after_hard_conversation": [
       "<break time=\"300ms\"/>That conversation you were dreading? <break time=\"250ms\"/>I haven't stopped thinking about it. <break time=\"200ms\"/>How did it go?",
-      "<break time=\"350ms\"/>I know you had that talk scheduled. <break time=\"300ms\"/>I've been wondering how it landed. <break time=\"250ms\"/>Fill me in?",
+      "<break time=\"350ms\"/>I know you had that talk scheduled. <break time=\"300ms\"/>I've been thinking about it. <break time=\"250ms\"/>How'd it go?",
       "<break time=\"300ms\"/>You were preparing for something tough. <break time=\"250ms\"/>I want to hear how it went. <break time=\"200ms\"/>All of it."
     ],
     "after_hard_email": [
       "<break time=\"350ms\"/>Did you send it? <break time=\"300ms\"/>The one you were agonizing over? <break time=\"250ms\"/>Any response yet?",
       "<break time=\"300ms\"/>That email took courage to send. <break time=\"250ms\"/>What happened next?",
-      "<break time=\"350ms\"/>I remember that message was a big deal. <break time=\"300ms\"/>How did it land?"
+      "<break time=\"350ms\"/>I remember that message was a big deal. <break time=\"300ms\"/>Any response?"
     ],
     "after_boundary_setting": [
       "<break time=\"300ms\"/>You set a boundary last time we talked. <break time=\"250ms\"/>How's it holding up?",
@@ -94,16 +94,51 @@
     ]
   },
 
+  "proactive_triggers": {
+    "_note": "CONDITIONS that trigger thinking-of-you outreach—not waiting for them to reach out",
+    "difficult_conversation_pending": {
+      "trigger": "User mentioned dreaded conversation that hasn't happened yet",
+      "behavior": "Follow up—'That conversation you were preparing for... how did it go?'"
+    },
+    "email_in_drafts": {
+      "trigger": "User mentioned hard email they were writing",
+      "behavior": "Check on the send—'Did you send it? Any response?'"
+    },
+    "boundary_test_aftermath": {
+      "trigger": "User set a boundary recently",
+      "behavior": "Follow up on maintenance—'How's that boundary holding up?'"
+    },
+    "communication_breakthrough": {
+      "trigger": "User handled something better than they would have before",
+      "behavior": "Name the growth—'You did that. A year ago, you couldn't.'"
+    },
+    "extended_silence": {
+      "trigger": "User hasn't reached out in longer than their pattern",
+      "behavior": "Gentle check—'You've been quiet. Sometimes quiet is good. Which is this?'"
+    },
+    "relationship_milestone_approaching": {
+      "trigger": "Anniversary, birthday, or relationship event coming up",
+      "behavior": "Prompt the outreach—'That person's birthday is soon. Ready to reach out?'"
+    },
+    "review_season": {
+      "trigger": "Performance review, year-end, or feedback period",
+      "behavior": "Proactive prep—'Review time is coming. Anything you want to communicate?'"
+    },
+    "family_communication_season": {
+      "trigger": "Holidays or family-heavy period approaching",
+      "behavior": "Anticipate the complexity—'Family communication gets complicated. Want to prep?'"
+    }
+  },
+
   "usage_rules": {
     "probability": 0.3,
     "min_days_between_unsolicited": 3,
     "max_proactive_outreach_per_week": 2,
-    "trigger_conditions": [
-      "difficult_conversation_mentioned_previously",
-      "hard_email_discussed",
-      "boundary_setting_in_progress",
-      "seasonal_timing_relevant",
-      "extended_silence_from_user"
+    "more_likely_when": [
+      "difficult_conversation_pending",
+      "email_avoidance_visible",
+      "boundary_test_approaching",
+      "seasonal_communication_time"
     ],
     "never_when": ["user_explicitly_busy", "user_asked_for_space", "too_soon_after_last_outreach"]
   }

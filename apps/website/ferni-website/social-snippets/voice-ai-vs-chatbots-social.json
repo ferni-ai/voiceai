@@ -1,0 +1,45 @@
+{
+  "postFile": "voice-ai-vs-chatbots.md",
+  "title": "Voice AI vs Chatbots: A Developer's Perspective",
+  "date": "2026-01-17T00:00:00.000Z",
+  "snippets": {
+    "twitter": {
+      "platform": "twitter",
+      "text": "📚 Voice AI vs Chatbots: A Developer's Perspective\n\nhttps://developers.ferni.ai/developers/blog/voice-ai-vs-chatbots/\n\n#VoiceAI #FutureOfTech",
+      "length": null
+    },
+    "twitterThread": {
+      "platform": "twitter_thread",
+      "tweets": [
+        {
+          "text": "🧵 Voice AI vs Chatbots: A Developer's Perspective\n\nA thread on what you'll learn:\n\n👇",
+          "type": "hook"
+        },
+        {
+          "text": "When to use voice, when to use text, and why the future isn't either/or - it's knowing when each shines.\n\nLet's dive in...",
+          "type": "summary"
+        },
+        {
+          "text": "📖 Read the full post:\nhttps://developers.ferni.ai/developers/blog/voice-ai-vs-chatbots/\n\n#VoiceAI #FutureOfTech #AITrends",
+          "type": "cta"
+        }
+      ],
+      "totalTweets": 3
+    },
+    "linkedin": {
+      "platform": "linkedin",
+      "text": "Voice AI vs Chatbots: A Developer's Perspective\n\nWhen to use voice, when to use text, and why the future isn't either/or - it's knowing when each shines.\n\nThis is part of our ongoing series helping developers build with voice AI.\n\nKey takeaways:\n• Practical code examples you can use today\n• Real-world patterns from production systems\n• Best practices from the Ferni team\n\nRead the full post: https://developers.ferni.ai/developers/blog/voice-ai-vs-chatbots/\n\n#VoiceAI #FutureOfTech #AITrends",
+      "length": 493
+    },
+    "discord": {
+      "platform": "discord",
+      "text": "🌍 **Voice AI vs Chatbots: A Developer's Perspective**\n\nWhen to use voice, when to use text, and why the future isn't either/or - it's knowing when each shines.\n\n🔗 **Read more:** https://developers.ferni.ai/developers/blog/voice-ai-vs-chatbots/\n\n---\n*7 min read • Industry Insights*",
+      "length": 283
+    },
+    "threads": {
+      "platform": "threads",
+      "text": "Voice AI vs Chatbots: A Developer's Perspective\n\nWhen to use voice, when to use text, and why the future isn't either/or - it's knowing when each shines.\n\nRead more 👉 https://developers.ferni.ai/developers/blog/voice-ai-vs-chatbots/",
+      "length": 233
+    }
+  }
+}

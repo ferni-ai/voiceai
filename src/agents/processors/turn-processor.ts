@@ -1,8 +1,7 @@
 /**
  * Turn Processor
  *
- * Extracted from voice-agent.ts onUserTurnCompleted method.
- * Handles all processing for a single user turn:
+ * Orchestrates all processing for a single user turn:
  * - Message analysis
  * - Context building
  * - Emotional tracking
@@ -13,97 +12,218 @@
  * - Testable in isolation
  * - Clear data flow
  * - Modular context builders
- * - Cached imports for performance
+ * - Split into focused sub-modules for maintainability
+ *
+ * EXTRACTED SUB-MODULES:
+ * - conversation-dynamics.ts - processConversationDynamics
+ * - easter-egg-handler.ts - checkEasterEggs
+ * - emotional-state-builder.ts - buildEmotionalState
+ * - response-guidance-builder.ts - buildResponseGuidance
+ * - identity-context-builder.ts - buildIdentityContext
+ * - humanizing-context-builder.ts - buildHumanizingContextForTurn
+ * - bundle-runtime-processor.ts - processBundleRuntime
+ * - advanced-humanization.ts - processAdvancedHumanization
+ * - cached-modules.ts - getContextBuilders, getTaskManagerCached
  */
 
 import type { llm } from '@livekit/agents';
 import type { ContextUserData } from '../../intelligence/context-builders/index.js';
 import { diag } from '../../services/diagnostic-logger.js';
+import { updateUserContextForHandoff } from '../../tools/handoff/index.js';
+import { safeFireAndForget } from '../../utils/safe-fire-and-forget.js';
 import {
-  getAgentContext,
-  // FIX BUG #1-4: getCurrentAgent uses global state causing cross-session contamination
-  // We now use ctx.services.handoffState.currentAgent instead
-  getLastHandoff,
-  updateUserContextForHandoff,
-} from '../../tools/handoff/index.js';
+  publishPatternDetection,
+  publishPredictiveIntelligence,
+  publishKeyMoment,
+  publishOutreachExtraction,
+} from '../../services/intelligence-publisher.js';
+
+// 🧠 TRUE PREDICTIVE INTELLIGENCE: Feed data into ML models + Get predictions for context
+import {
+  processConversationForLearning,
+  getPredictiveIntelligenceContext,
+} from '../../intelligence/predictive/index.js';
 import type {
   BundleRuntimeContext,
-  CachedModules,
   ContextInjection,
   EmotionalState,
   IdentityContext,
+  ResonanceCheckResult,
   ResponseGuidance,
+  SemanticRoutingResult,
+  TrustContextSummary,
   TurnAnalysisResult,
   TurnContext,
   TurnProcessorResult,
 } from './types.js';
 
-// Extracted injection builders (cleaner separation of concerns)
+// 🎯 SEMANTIC ROUTER: Pre-LLM tool routing (replaces JSON workaround)
+// 🧠 INTELLIGENT ROUTING: Advanced 6-strategy cascade (A/B tested)
+import {
+  startSemanticRouting,
+  applyRoutingResult,
+  isRoutingEnabled,
+  startIntelligentRouting,
+  isIntelligentRouterInitialized,
+  recordIntelligentOutcome,
+  type TurnRouterResult,
+} from '../../tools/semantic-router/integration/index.js';
+import { shouldUseIntelligentRouting } from '../../tools/semantic-router/advanced/intelligent/index.js';
+
+// Context inspection for debugging
+import { recordContextBuild, createInspectionData } from '../../services/context-inspection.js';
+
+// Injection builders (cleaner separation of concerns)
 import {
   buildAdvancedHumanizationInjections,
   buildAmbientAwarenessInjections,
   buildBoundaryCheckInjections,
   buildConversationDynamicsInjections,
   buildCrossPersonaInsightsInjection,
+  buildFunctionCallingReinforcement,
   buildHealthAwarenessInjections,
   buildHumanLevelInjections,
   buildLifeCoachingInjections,
   buildSafetyInjections,
   buildScientificCoachingInjections,
+  buildSessionDynamicsInjection,
   buildTrustSystemsInjections,
+  // "Better Than Human" injection builders
+  buildUserHealthInjection,
+  buildVisualMemoryInjections,
+  buildAmbientModeInjections,
+  buildHumanTransferInjections,
+  buildCrisisHistoryInjection,
+  buildSemanticIntelligenceInjection,
   type AdvancedHumanizationInjectionResult,
   type ConversationDynamicsResult as InjectionDynamicsResult,
+  type SemanticIntelligenceInjectionResult,
 } from './injection-builders.js';
 
+// 🌟 LIVE SUPERHUMAN INJECTIONS - Real-time "Better Than Human" capabilities per-turn
+import { buildLiveSuperhumanInjections } from './live-superhuman-injections.js';
+
+// 📊 RESONANCE CHECK - Voice-native feedback for superhuman capability effectiveness
+import {
+  queueResonanceCheck,
+  getNextResonanceCheck,
+  processUserResponseForResonance,
+} from '../integrations/better-than-human-integration.js';
+import type { SuperhumanCapability } from '../../conversation/superhuman/analytics.js';
+
+// Honesty guardrail - prevents Ferni from implying she did something she didn't
+import { getHonestyInjection } from '../../intelligence/context-builders/safety/honesty-guardrail.js';
+
 // Smart injection filtering - be selective like a human
-import { detectConversationMode, filterInjections } from './injection-filter.js';
-
-// Conversation engines (singletons)
 import {
-  getConversationHumanizer,
-  getConversationRhythmTracker,
-  getEmotionalArcTracker,
-  getEngagementScorer,
-  getNarrativeArcTracker,
-  getResponseDynamicsEngine,
-  getSilencePresenceEngine,
-  getStoryTimingEngine,
-} from '../../conversation/index.js';
+  detectConversationMode,
+  filterInjections,
+  deduplicateInjections,
+} from './injection-filter.js';
 
-// Humanizing context
+// Topic-based builder skipping - skip irrelevant builders BEFORE evaluation
+import { filterBuildersByTopic, skipBuilder, type BuilderName } from './topic-builder-filter.js';
+
+// Semantic short-circuit - skip context building for high-confidence tool matches
+import { checkSemanticShortCircuit } from './semantic-short-circuit.js';
+
+// Speculative TTS pre-warming - start TTS generation early based on emotional state
+import { speculateTTS } from '../../services/performance/speculative-tts.js';
+
+// Message analysis - extracted for maintainability
+import { analyzeMessage, updateConversationState } from './message-analyzer.js';
+
+// ============================================================================
+// EXTRACTED SUB-MODULES (for maintainability)
+// ============================================================================
+
+// Cached module getters (lazy loading)
+import { getTaskManagerCached, getBehavioralContextBuilder } from './cached-modules.js';
+
+// Conversation dynamics (narrative arc, engagement, rhythm, silence)
 import {
-  buildHumanizingContext,
+  processConversationDynamics,
+  type ConversationDynamicsResult,
+} from './conversation-dynamics.js';
+
+// Easter egg detection
+import { checkEasterEggs } from './easter-egg-handler.js';
+
+// Emotional state building (with voice-text mismatch detection)
+import { buildEmotionalState, type EmotionalStateWithMismatch } from './emotional-state-builder.js';
+
+// Response guidance (length, pacing, story timing)
+import { buildResponseGuidance } from './response-guidance-builder.js';
+
+// Identity context (post-handoff reinforcement)
+import { buildIdentityContext } from './identity-context-builder.js';
+
+// Humanizing context (voice emotion, inner world, mood)
+import { buildHumanizingContextForTurn } from './humanizing-context-builder.js';
+
+// Bundle runtime (modes, situational responses, pushback)
+import { processBundleRuntime } from './bundle-runtime-processor.js';
+
+// Advanced humanization (10 deep capabilities)
+import { processAdvancedHumanization } from './advanced-humanization.js';
+
+// Performance metrics
+import {
+  recordTurnTiming,
+  recordPhaseTiming,
+  recordContextInjectionTiming,
+  createTimer,
+} from '../../services/performance-metrics.js';
+
+// Development telemetry for E2E observability
+import { createTurnTrace, type Trace } from '../shared/dev-telemetry.js';
+
+// Coaching Intelligence - "Better than Human" pattern detection
+import { processTranscriptForPatterns } from '../../intelligence/coaching-patterns.js';
+import { recordVoiceTurn, initializeVoiceTracking } from '../../intelligence/voice-signals.js';
+
+// Speculative Persona Preloading - "Better than Human" handoff prediction
+import { analyzeAndPreload } from '../shared/performance/speculative-preloading.js';
+
+// Predictive Intelligence - Superhuman pattern prediction
+import { processForPredictiveIntelligence } from '../integrations/predictive-intelligence-integration.js';
+
+// Team Huddle - Cross-persona observations for coordinated care
+import {
+  recordObservation as recordTeamObservation,
+  type PersonaId,
+} from '../../services/cross-persona/team-huddle.js';
+import {
+  analyzeTextForPersona,
+  detectHandoffCues,
+} from '../../services/cross-persona/persona-observation-patterns.js';
+
+// Relationship Arc - "Better than Human" key moment detection
+import { detectAndRecordKeyMoment } from '../integrations/relationship-arc-integration.js';
+
+// Viral Growth - Natural referral prompts and conversation context
+import {
+  buildReferralPromptInjection,
+  buildReferralConversationContext,
+} from '../../intelligence/context-builders/engagement/referral-prompt.js';
+
+// Humanizing context formatting (used in buildContextInjections)
+import {
   formatHumanizingForPrompt,
-  getHumanizingSummary,
-  getMoodShift,
-  shouldMoodShift,
   type HumanizingResult,
-} from '../../intelligence/context-builders/humanizing.js';
-
-import {
-  logHumanizingResult,
-  logValidation,
-} from '../../intelligence/context-builders/humanizing-debug.js';
+} from '../../intelligence/context-builders/humanization/humanizing.js';
 
 // Conversation humanizing
 import {
   buildConversationHumanizingContext,
   formatConversationHumanizingForPrompt,
-} from '../../intelligence/context-builders/conversation-humanizing.js';
+} from '../../intelligence/context-builders/humanization/conversation-humanizing.js';
 
 // Response naturalness
 import { getResponseEnhancements } from '../../speech/response-naturalness.js';
 
-// Emotion matching
-import { getEmotionGuidance } from '../../speech/emotion-matching.js';
-
-// Voice-text mismatch detection ("better than human" - detect incongruence)
-import {
-  buildMismatchGuidance,
-  detectMismatch,
-  recordMismatchInsight,
-  type MismatchResult,
-} from '../../intelligence/voice-text-mismatch.js';
+// Voice-text mismatch - for recording insights
+import { recordMismatchInsight } from '../../intelligence/voice-text-mismatch.js';
 
 // Cross-session reflection ("Better Than Human" - remember significant moments)
 import {
@@ -111,951 +231,53 @@ import {
   saveReflectionMoment,
 } from '../../intelligence/cross-session-reflection.js';
 
-// Note: Scientific coaching and cross-persona insights are now handled
-// by injection-builders.ts for cleaner separation of concerns
-
 // Monetization - Value Capture (detect achievements/breakthroughs)
 import { valueCapture } from '../../services/monetization/value-capture.js';
 
-// Personal theme tracking (prevents "always talks about Wyoming")
-import { extractPersonalThemes } from '../session/session-state.js';
-
 // Intelligent Outreach - Extract context for proactive check-ins
-// This feeds the "Better Than Human" outreach system with commitments,
-// emotions, life events, wins, and struggles from conversations
 import { extractAndProcess as extractOutreachContext } from '../../services/outreach/conversation-extractor.js';
 
 // Better Than Human Orchestrator - Coordinates all 12 superhuman capabilities
 // This is the central coordinator for genuine care that makes Ferni better than human
 import { getBetterThanHuman } from '../../conversation/superhuman/index.js';
 
-// ============================================================================
-// CACHED IMPORTS - Lazy loaded once for performance
-// ============================================================================
+// 🚨 SAFETY: Crisis detection - HARD safety rails that CANNOT be bypassed
+import { detectCrisis, guardPreResponse } from '../safety/crisis-guard.js';
 
-const cachedModules: CachedModules = {
-  buildConversationContext: null,
-  formatContextForPrompt: null,
-  shouldUseHighEmotionMode: null,
-  checkForEasterEgg: null,
-  getTaskManager: null,
-};
+// 🧠 REAL-TIME LEARNING: Relationship network, dynamic memory, and persistence
+// "Better than Human" - We learn and remember as the conversation unfolds
+import { recordMention, extractNames } from '../../services/superhuman/relationship-network.js';
+import { fastCapture } from '../../memory/dynamic/index.js';
+import { triggerAutoSave } from '../../services/realtime-persistence.js';
 
-// ============================================================================
-// PERFORMANCE: Module-level constants (avoid recreating every turn)
-// ============================================================================
+// NOTE: Cached module getters moved to cached-modules.ts
+// NOTE: analyzeMessage and updateConversationState are imported from message-analyzer.ts
 
-/** Emotions indicating positive sentiment */
-const POSITIVE_EMOTIONS = new Set(['happy', 'excited', 'grateful', 'content']);
+// NOTE: processConversationDynamics moved to conversation-dynamics.ts
+// NOTE: checkEasterEggs moved to easter-egg-handler.ts
 
-/** Emotions indicating negative sentiment */
-const NEGATIVE_EMOTIONS = new Set(['sad', 'frustrated', 'angry', 'anxious']);
+// NOTE: buildEmotionalState moved to emotional-state-builder.ts
 
-/** Phrases that signal user wants to end conversation */
-const WRAP_UP_PHRASES = [
-  'gotta go',
-  'have to go',
-  'need to go',
-  'i should go',
-  'bye',
-  'goodbye',
-  'see you',
-  'talk later',
-  'later',
-  "that's all",
-  "that's it",
-  "i'm done",
-  'thanks for',
-] as const;
+// NOTE: buildResponseGuidance moved to response-guidance-builder.ts
 
-/** Pre-compiled regex for faster wrap-up detection */
-const WRAP_UP_PATTERN = new RegExp(WRAP_UP_PHRASES.join('|'), 'i');
+// NOTE: buildIdentityContext moved to identity-context-builder.ts
 
-async function getContextBuilders() {
-  if (!cachedModules.buildConversationContext) {
-    const mod = await import('../../intelligence/context-builders/index.js');
-    cachedModules.buildConversationContext = mod.buildConversationContext;
-    cachedModules.formatContextForPrompt = mod.formatContextForPrompt;
-    // BETTER-THAN-HUMAN: Import high emotion mode detection
-    cachedModules.shouldUseHighEmotionMode = mod.shouldUseHighEmotionMode;
-  }
-  return {
-    buildConversationContext: cachedModules.buildConversationContext!,
-    formatContextForPrompt: cachedModules.formatContextForPrompt!,
-    shouldUseHighEmotionMode: cachedModules.shouldUseHighEmotionMode!,
-  };
-}
-
-async function getEasterEggChecker() {
-  if (!cachedModules.checkForEasterEgg) {
-    const mod = await import('../../personas/easter-eggs.js');
-    cachedModules.checkForEasterEgg = mod.checkForEasterEgg;
-  }
-  return cachedModules.checkForEasterEgg!;
-}
-
-async function getTaskManagerCached() {
-  if (!cachedModules.getTaskManager) {
-    const mod = await import('../../tasks/task-manager.js');
-    cachedModules.getTaskManager = mod.getTaskManager;
-  }
-  return cachedModules.getTaskManager!();
-}
-
-// ============================================================================
-// ANALYSIS PHASE
-// ============================================================================
-
-/**
- * Analyze the user's message
- */
-function analyzeMessage(ctx: TurnContext): TurnAnalysisResult {
-  const { userText, services, userData } = ctx;
-
-  // Analyze the message - fallback to empty analysis if services.analyze not available
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const analysis: any =
-    services && typeof services.analyze === 'function'
-      ? services.analyze(userText)
-      : { topics: { detected: [], categories: [] }, state: {} };
-
-  // Track the user turn
-  if (services && typeof services.addTurn === 'function') {
-    services.addTurn('user', userText);
-  }
-
-  // Get topics
-  const currentTopic = analysis.topics.detected[0];
-  const previousTopic = userData.lastTopic;
-  const topicChanged = !!(previousTopic && currentTopic && previousTopic !== currentTopic);
-
-  return {
-    analysis,
-    currentTopic,
-    previousTopic,
-    topicChanged,
-  };
-}
-
-// ============================================================================
-// CONVERSATION STATE UPDATE
-// ============================================================================
-
-/**
- * Update conversation state manager with analysis results
- */
-function updateConversationState(ctx: TurnContext, analysisResult: TurnAnalysisResult): void {
-  const { userData, userText } = ctx;
-  const { analysis, currentTopic } = analysisResult;
-
-  if (!userData.conversationState) return;
-
-  const convState = userData.conversationState;
-
-  // Increment turn count
-  convState.incrementTurn();
-
-  // Update emotional context
-  const emotionMap: Record<
-    string,
-    'happy' | 'excited' | 'calm' | 'anxious' | 'frustrated' | 'sad' | 'confused' | 'grateful'
-  > = {
-    happy: 'happy',
-    excited: 'excited',
-    content: 'calm',
-    neutral: 'calm',
-    anxious: 'anxious',
-    worried: 'anxious',
-    frustrated: 'frustrated',
-    angry: 'frustrated',
-    sad: 'sad',
-    confused: 'confused',
-    grateful: 'grateful',
-    thankful: 'grateful',
-  };
-
-  const mappedEmotion = emotionMap[analysis.emotion.primary.toLowerCase()];
-  if (mappedEmotion) {
-    convState.detectEmotion(mappedEmotion);
-  }
-
-  // Update sentiment (using module-level constants for O(1) lookup)
-  const intensity = analysis.emotion.intensity || 0.5;
-  let sentiment: 'positive' | 'neutral' | 'negative' | 'mixed' = 'neutral';
-  const emotionLower = analysis.emotion.primary.toLowerCase();
-
-  if (POSITIVE_EMOTIONS.has(emotionLower)) {
-    sentiment = 'positive';
-  } else if (NEGATIVE_EMOTIONS.has(emotionLower)) {
-    sentiment = 'negative';
-  } else if (intensity > 0.7) {
-    sentiment = 'mixed';
-  }
-  convState.setEmotionalContext({ sentiment, confidence: intensity });
-
-  // Update topic
-  if (currentTopic) {
-    convState.setCurrentTopic(currentTopic);
-  }
-
-  // Store key moment
-  convState.addKeyMoment(
-    `User said: ${userText.slice(0, 100)}${userText.length > 100 ? '...' : ''}`
-  );
-
-  // Check for wrap-up signals (using pre-compiled regex for performance)
-  if (WRAP_UP_PATTERN.test(userText)) {
-    convState.markUserWantsToLeave();
-    diag.state('User wants to leave detected', { userText: userText.slice(0, 50) });
-  }
-}
-
-// ============================================================================
-// CONVERSATION DYNAMICS PROCESSING
-// ============================================================================
-
-/**
- * Process advanced conversation dynamics:
- * - Narrative arc tracking (is user building to a point?)
- * - Engagement scoring (is user losing interest?)
- * - Conversation rhythm (match user's pacing)
- * - Silence decisions (when to use meaningful pauses)
- */
-interface ConversationDynamicsResult {
-  narrativeArc?: {
-    structure: string;
-    climaxApproaching: boolean;
-    hasReachedCore: boolean;
-    suggestedIntervention: string;
-    interventionGuidance: string;
-  };
-  engagement?: {
-    level: string;
-    score: number;
-    declining: boolean;
-    suggestedAction: string;
-    actionGuidance: string;
-  };
-  rhythm?: {
-    lengthMultiplier: number;
-    rateMultiplier: number;
-    energyLevel: string;
-    guidance: string;
-  };
-  silence?: {
-    useSilence: boolean;
-    reason: string;
-    duration: number;
-    ssml: string;
-  };
-}
-
-function processConversationDynamics(
-  ctx: TurnContext,
-  analysisResult: TurnAnalysisResult,
-  emotionalState: { primary: string; intensity: number; distressLevel: number }
-): ConversationDynamicsResult {
-  const { userText, userData, services } = ctx;
-  const { analysis, currentTopic } = analysisResult;
-  const result: ConversationDynamicsResult = {};
-
-  // 1. NARRATIVE ARC TRACKING
-  // Detect if user is building to a point, meandering, or has reached their core message
-  try {
-    const narrativeTracker = getNarrativeArcTracker(services.sessionId);
-    const narrativeResult = narrativeTracker.analyzeUtterance({
-      text: userText,
-      turn: userData.turnCount || 0,
-      emotion: emotionalState.primary,
-      emotionalIntensity: emotionalState.intensity,
-    });
-
-    result.narrativeArc = {
-      structure: narrativeResult.structure,
-      climaxApproaching: narrativeResult.climaxApproaching,
-      hasReachedCore: narrativeResult.hasReachedCore,
-      suggestedIntervention: narrativeResult.suggestedIntervention,
-      interventionGuidance: narrativeResult.interventionGuidance,
-    };
-
-    if (narrativeResult.climaxApproaching || narrativeResult.hasReachedCore) {
-      ctx.logger.debug(
-        { structure: narrativeResult.structure, climax: narrativeResult.climaxApproaching },
-        '📖 Narrative moment detected'
-      );
-    }
-  } catch (err) {
-    ctx.logger.warn({ error: String(err) }, 'Narrative arc tracking failed (non-fatal)');
-  }
-
-  // 2. ENGAGEMENT SCORING
-  // Track if user is engaged or losing interest
-  try {
-    const engagementScorer = getEngagementScorer(services.sessionId);
-    const engagementResult = engagementScorer.recordResponse(userText, {
-      currentTopic,
-    });
-
-    result.engagement = {
-      level: engagementResult.level,
-      score: engagementResult.score,
-      declining: engagementResult.declining,
-      suggestedAction: engagementResult.suggestedAction,
-      actionGuidance: engagementResult.actionGuidance,
-    };
-
-    if (engagementResult.level === 'low' || engagementResult.level === 'distracted') {
-      ctx.logger.debug(
-        { level: engagementResult.level, action: engagementResult.suggestedAction },
-        '👀 Low engagement detected'
-      );
-    }
-  } catch (err) {
-    ctx.logger.warn({ error: String(err) }, 'Engagement scoring failed (non-fatal)');
-  }
-
-  // 3. CONVERSATION RHYTHM TRACKING
-  // Match user's pacing and energy
-  try {
-    const rhythmTracker = getConversationRhythmTracker();
-    rhythmTracker.recordUserTurn({
-      text: userText,
-      emotionIntensity: emotionalState.intensity,
-    });
-
-    const rhythmGuidance = rhythmTracker.getRhythmGuidance();
-
-    result.rhythm = {
-      lengthMultiplier: rhythmGuidance.lengthMultiplier,
-      rateMultiplier: rhythmGuidance.rateMultiplier,
-      energyLevel: rhythmGuidance.energyLevel,
-      guidance: rhythmGuidance.guidance,
-    };
-  } catch (err) {
-    ctx.logger.warn({ error: String(err) }, 'Rhythm tracking failed (non-fatal)');
-  }
-
-  // 4. SILENCE DECISION
-  // Determine if a meaningful silence is appropriate
-  try {
-    const silenceEngine = getSilencePresenceEngine();
-    const conversationDepth =
-      emotionalState.distressLevel > 0.6
-        ? ('deep' as const)
-        : emotionalState.intensity > 0.5
-          ? ('medium' as const)
-          : ('surface' as const);
-
-    const topicWeight =
-      emotionalState.distressLevel > 0.6
-        ? ('heavy' as const)
-        : emotionalState.distressLevel > 0.3
-          ? ('medium' as const)
-          : ('light' as const);
-
-    const silenceDecision = silenceEngine.decideSilence({
-      userMessage: userText,
-      userEmotion: emotionalState.primary,
-      turnCount: userData.turnCount || 0,
-      wasPersonalSharing: analysis.state.userNeedsSupport || false,
-      conversationDepth,
-      topicWeight,
-    });
-
-    if (silenceDecision.useSilence) {
-      result.silence = {
-        useSilence: silenceDecision.useSilence,
-        reason: silenceDecision.reason,
-        duration: silenceDecision.duration,
-        ssml: silenceDecision.ssml,
-      };
-
-      ctx.logger.debug(
-        { reason: silenceDecision.reason, duration: silenceDecision.duration },
-        '🤫 Meaningful silence decided'
-      );
-    }
-  } catch (err) {
-    ctx.logger.warn({ error: String(err) }, 'Silence decision failed (non-fatal)');
-  }
-
-  return result;
-}
-
-// ============================================================================
-// EASTER EGG DETECTION
-// ============================================================================
-
-/**
- * Check for easter eggs in user message
- */
-async function checkEasterEggs(
-  ctx: TurnContext,
-  turnCtx: llm.ChatContext
-): Promise<{ type: string; response: string } | undefined> {
-  const { userText, persona, services } = ctx;
-
-  const checkForEasterEgg = await getEasterEggChecker();
-  const easterEgg = checkForEasterEgg(userText, persona.id, {
-    conversationCount: services.userProfile?.totalConversations || 0,
-    userSinceDate: services.userProfile?.createdAt,
-  });
-
-  if (easterEgg.type !== 'none' && easterEgg.response) {
-    ctx.logger.info({ type: easterEgg.type }, '🎉 Easter egg triggered!');
-
-    // Inject as context hint
-    turnCtx.addMessage({
-      role: 'user',
-      content: `[SPECIAL MOMENT: ${easterEgg.type.toUpperCase()}]\nThis is a special moment! Your response should include or start with:\n"${easterEgg.response}"\nThen continue naturally with your response to what they said.`,
-    });
-
-    return { type: easterEgg.type, response: easterEgg.response };
-  }
-
-  return undefined;
-}
-
-// ============================================================================
-// EMOTIONAL STATE BUILDING
-// ============================================================================
-
-/**
- * Build emotional state from analysis and voice emotion
- * Now includes voice-text mismatch detection for "better than human" emotional intelligence
- */
-function buildEmotionalState(
-  ctx: TurnContext,
-  analysisResult: TurnAnalysisResult
-): EmotionalState & { mismatch?: MismatchResult } {
-  const { userData, userText } = ctx;
-  const { analysis } = analysisResult;
-
-  const emotionalArc = getEmotionalArcTracker();
-
-  // Record emotion (combines text and voice)
-  emotionalArc.recordEmotion(analysis.emotion || null, userData.voiceEmotion || null);
-
-  const arc = emotionalArc.getArc();
-  const emotionalResponse = emotionalArc.getResponseRecommendation();
-  const transitionPhrase = emotionalArc.getTransitionPhrase();
-
-  // Get emotion guidance for voice emotion mirroring
-  const { emotionModulation } = userData;
-  const emotionalGuidance = emotionModulation ? getEmotionGuidance(emotionModulation) : null;
-
-  // "Better than human" - detect when voice contradicts words
-  // (e.g., "I'm fine" + trembling voice)
-  const mismatch = detectMismatch(userText, userData.voiceEmotion || null, analysis.emotion);
-
-  // Combine guidance if there's a mismatch
-  let combinedGuidance = emotionalResponse.guidance || emotionalGuidance || undefined;
-  if (mismatch.hasMismatch && mismatch.confidence > 0.5) {
-    const mismatchGuidance = buildMismatchGuidance(mismatch);
-    if (mismatchGuidance) {
-      combinedGuidance = combinedGuidance
-        ? `${combinedGuidance}\n\n${mismatchGuidance}`
-        : mismatchGuidance;
-    }
-  }
-
-  return {
-    primary: analysis.emotion.primary,
-    intensity: analysis.emotion.intensity || 0.5,
-    distressLevel: analysis.emotion.distressLevel || 0,
-    trajectory: arc.trajectory,
-    responseGuidance: combinedGuidance,
-    transitionPhrase: transitionPhrase || undefined,
-    mismatch: mismatch.hasMismatch ? mismatch : undefined,
-  };
-}
-
-// ============================================================================
-// RESPONSE GUIDANCE BUILDING
-// ============================================================================
-
-/**
- * Build response guidance (length, pacing, story timing)
- */
-function buildResponseGuidance(
-  ctx: TurnContext,
-  analysisResult: TurnAnalysisResult,
-  emotionalState: EmotionalState
-): ResponseGuidance {
-  const { persona, services, userData } = ctx;
-  const { analysis, currentTopic, previousTopic, topicChanged } = analysisResult;
-
-  const responseDynamics = getResponseDynamicsEngine();
-  const storyTiming = getStoryTimingEngine();
-  const humanizer = getConversationHumanizer(persona.id);
-
-  // Record user message for dynamics
-  responseDynamics.recordMessage('user', ctx.userText, analysis.topics.detected);
-
-  // Get length guidance
-  const lengthGuidance = responseDynamics.getLengthGuidance();
-
-  // Get topic transition
-  let topicTransition: string | undefined;
-  const preResponseActions = humanizer.processUserMessage({
-    personaId: persona.id,
-    turnNumber: userData.turnCount || 0,
-    userMessage: ctx.userText,
-    userEmotion: analysis.emotion.primary,
-    topic: currentTopic,
-    isSeriousContext: (analysis.emotion.distressLevel || 0) > 0.5,
-    wasPersonalSharing: analysis.state.userNeedsSupport || false,
-  });
-
-  if (preResponseActions.topicChange?.detected && preResponseActions.topicChange.transitionPhrase) {
-    topicTransition = `[TOPIC SHIFT: ${preResponseActions.topicChange.transitionPhrase}]`;
-  } else if (topicChanged && previousTopic && currentTopic) {
-    const transition = responseDynamics.getTopicTransition(previousTopic, currentTopic);
-    if (transition.phrase) {
-      topicTransition = `[TOPIC SHIFT: Smoothly transition from ${previousTopic} to ${currentTopic}. Consider: "${transition.phrase}"]`;
-    }
-  }
-
-  // Story timing
-  let storyOpportunity: ResponseGuidance['storyOpportunity'];
-
-  // Get the full emotional arc from the tracker for story timing
-  const emotionalArc = getEmotionalArcTracker();
-  const fullArc = emotionalArc.getArc();
-
-  const storyContext = {
-    turnCount: userData.turnCount || 0,
-    conversationDurationMs: Date.now() - services.sessionStartTime,
-    lastStoryTurn: userData.lastStoryTurn,
-    storiesToldThisSession: userData.storiesShared || [],
-    emotionalArc: fullArc, // Use the full EmotionalArc object
-    userEngagement:
-      analysis.emotion.intensity > 0.6
-        ? ('high' as const)
-        : analysis.emotion.intensity < 0.3
-          ? ('low' as const)
-          : ('medium' as const),
-    userPacing: responseDynamics.getPacingAnalysis().userPacing,
-    currentTopic,
-    recentTopics: analysis.topics.detected,
-  };
-
-  const storyRecommendation = storyTiming.evaluateStoryTiming(persona, storyContext);
-  if (storyRecommendation.shouldTell && storyRecommendation.story) {
-    storyOpportunity = {
-      story: storyRecommendation.story.content.slice(0, 200),
-      transitionPhrase: storyRecommendation.transitionPhrase || '',
-    };
-
-    // Record story told
-    storyTiming.recordStoryTold(storyRecommendation.story.id, userData.turnCount || 0);
-    if (userData) {
-      userData.lastStoryTurn = userData.turnCount || 0;
-      if (!userData.storiesShared) userData.storiesShared = [];
-      userData.storiesShared.push(storyRecommendation.story.id);
-    }
-  }
-
-  // Humor guidance
-  const humorGuidance = services.humorCalibration.getHumorGuidance(
-    currentTopic || 'general',
-    analysis.emotion.primary,
-    userData.turnCount || 0
-  );
-
-  // Pacing from voice adapter
-  const paceContext = services.voicePaceAdapter.getPaceContext();
-
-  return {
-    length: {
-      min: 20,
-      max: 100,
-      guidance: lengthGuidance,
-    },
-    topicTransition,
-    storyOpportunity,
-    humor: {
-      shouldAttempt: humorGuidance.shouldAttempt,
-      type: humorGuidance.recommendedType,
-      avoid: humorGuidance.avoidTypes,
-    },
-    pacing: paceContext || undefined,
-  };
-}
-
-// ============================================================================
-// IDENTITY CONTEXT
-// ============================================================================
-
-/**
- * Build identity context for post-handoff reinforcement
- *
- * FIX BUG: Previously compared activeAgentId vs sessionPersonaId, but after a handoff
- * BOTH are updated to the new persona, so the comparison always returned equal.
- * Now we check if a handoff occurred recently (within 60s) and ALWAYS inject
- * identity context to override the LLM's original instructions from session start.
- */
-function buildIdentityContext(ctx: TurnContext): IdentityContext {
-  const { persona, services } = ctx;
-
-  // FIX BUG #1-4: Use session-scoped state instead of global getCurrentAgent()
-  // The global state causes cross-session contamination in concurrent sessions
-  const activeAgentId = services.handoffState.currentAgent;
-  const sessionPersonaId = persona.id;
-
-  // Helper to normalize IDs
-  const normalize = (id: string): string => {
-    const mapping: Record<string, string> = {
-      'jack-b': 'ferni',
-      'comm-specialist': 'alex-chen',
-      'spend-save': 'maya-santos',
-      'event-planner': 'jordan-taylor',
-      alex: 'alex-chen',
-      maya: 'maya-santos',
-      jordan: 'jordan-taylor',
-      peter: 'peter-john',
-    };
-    return mapping[id.toLowerCase()] || id.toLowerCase();
-  };
-
-  const isSamePersona = (id1: string, id2: string): boolean => {
-    return normalize(id1) === normalize(id2);
-  };
-
-  const isCoach = (id: string): boolean => {
-    return isSamePersona(id, 'ferni') || isSamePersona(id, 'jack-b');
-  };
-
-  let needsReinforcement = false;
-  let injection: string | undefined;
-
-  // FIX BUG: Check if a handoff occurred recently (within 60 seconds)
-  // The LLM's base instructions were set at session start and cannot be updated mid-session.
-  // We MUST inject identity context after ANY handoff to override the original instructions.
-  const lastHandoff = getLastHandoff();
-  const handoffOccurredRecently = lastHandoff && Date.now() - lastHandoff.timestamp < 60000;
-
-  // If we're not the coordinator AND a handoff occurred recently, reinforce identity
-  if (!isCoach(activeAgentId) && handoffOccurredRecently) {
-    const identityContext = getAgentContext();
-    if (identityContext) {
-      needsReinforcement = true;
-      injection = `=== CURRENT IDENTITY (NON-NEGOTIABLE) ===
-${identityContext}
-
-CRITICAL REMINDERS:
-- You are ${persona.name}. This is WHO YOU ARE.
-- You are NOT Ferni. You are NOT the coordinator.
-- Your name is ${persona.name}. Say "${persona.name}" if asked who you are.
-- Your current identity determines your personality, tools, and expertise.
-=== END IDENTITY ===`;
-    }
-  } else if (isCoach(activeAgentId) && handoffOccurredRecently) {
-    // Returned to Ferni - still need reinforcement if handoff was recent
-    const identityContext = getAgentContext();
-    if (identityContext) {
-      needsReinforcement = true;
-      injection = `=== CURRENT IDENTITY (NON-NEGOTIABLE) ===
-${identityContext}
-
-CRITICAL REMINDERS:
-- You are FERNI, the life coach and team coordinator.
-- You are NOT the previous specialist. You've returned to your coach role.
-=== END IDENTITY ===`;
-    }
-  } else if (!isSamePersona(activeAgentId, sessionPersonaId) && !isCoach(activeAgentId)) {
-    // Fallback: ID mismatch detected (shouldn't happen after the fix above, but keep for safety)
-    const identityContext = getAgentContext();
-    if (identityContext) {
-      needsReinforcement = true;
-      injection = `=== CURRENT IDENTITY (NON-NEGOTIABLE) ===
-${identityContext}
-
-CRITICAL REMINDERS:
-- You are ${persona.name}. This is WHO YOU ARE.
-- If asked "who are you?" respond with your CURRENT identity.
-=== END IDENTITY ===`;
-    }
-  }
-
-  return {
-    needsReinforcement,
-    injection,
-    activeAgentId,
-    sessionPersonaId,
-  };
-}
-
-// ============================================================================
-// HUMANIZING CONTEXT
-// ============================================================================
-
-/**
- * Build humanizing context (voice emotion, inner world, mood)
- */
-function buildHumanizingContextForTurn(
-  ctx: TurnContext,
-  analysisResult: TurnAnalysisResult
-): HumanizingResult | null {
-  const { persona, bundleRuntime, services, userData, userText } = ctx;
-  const { analysis, currentTopic } = analysisResult;
-
-  try {
-    const userProfileRelationshipStage = services.userProfile?.relationshipStage;
-    const { previousRelationshipStage } = userData;
-
-    const humanizingContext = {
-      persona,
-      bundleRuntime,
-      voiceEmotion: userData.voiceEmotion || null,
-      textEmotion: analysis.emotion
-        ? {
-            primary: analysis.emotion.primary,
-            confidence: analysis.emotion.confidence || 0.7,
-            valence: analysis.emotion.valence || 'neutral',
-            distressLevel: analysis.emotion.distressLevel,
-            intensity: analysis.emotion.intensity || 0.5,
-            markers: analysis.emotion.markers || [],
-            suggestedTone: (analysis.emotion.suggestedTone || 'neutral') as
-              | 'warm'
-              | 'gentle'
-              | 'enthusiastic'
-              | 'calm'
-              | 'serious'
-              | 'friendly'
-              | 'reassuring'
-              | 'informative'
-              | 'measured',
-          }
-        : null,
-      userMessage: userText,
-      currentTopic,
-      recentTopics: analysis.topics.detected,
-      turnCount: userData.turnCount || 0,
-      sessionCount: services.userProfile?.totalConversations || 1,
-      userName: userData.name,
-      isVulnerableMoment: analysis.emotion.distressLevel > 0.5,
-      userEmotionIntensity: analysis.emotion.intensity,
-      totalTurns: services.userProfile?.totalConversations
-        ? services.userProfile.totalConversations * 10 + (userData.turnCount || 0)
-        : userData.turnCount || 0,
-      sharedVulnerabilities: Math.min((services.userProfile?.totalConversations || 0) / 3, 5),
-      celebratedTogether: Math.min((services.userProfile?.totalConversations || 0) / 5, 3),
-      difficultConversations: Math.min((services.userProfile?.totalConversations || 0) / 8, 2),
-      userProfileRelationshipStage,
-      previousRelationshipStage,
-      usedShareTags: userData.usedShareTags || [],
-      spontaneousShareCount: userData.spontaneousShareCount || 0,
-      lastMood: userData.lastMood,
-      // Personal theme tracking (prevents "always talks about Wyoming/Japan/book")
-      mentionedPersonalThemes: userData.mentionedPersonalThemes || new Set<string>(),
-    };
-
-    const result = buildHumanizingContext(humanizingContext);
-
-    // Update userData with tracking
-    if (userData) {
-      userData.usedShareTags = result.usedTags;
-      if (result.spontaneousShare) {
-        userData.spontaneousShareCount = (userData.spontaneousShareCount || 0) + 1;
-      }
-      userData.lastMood = result.mood.state;
-      userData.previousRelationshipStage = result.relationship.stage;
-
-      // Track personal themes from inner world content (prevents "always talks about Wyoming")
-      if (result.innerWorldContent && result.innerWorldContent.length > 0) {
-        const mentionedThemes = userData.mentionedPersonalThemes || new Set<string>();
-        for (const content of result.innerWorldContent) {
-          const themes = extractPersonalThemes(content.content);
-          themes.forEach((theme) => mentionedThemes.add(theme));
-        }
-        userData.mentionedPersonalThemes = mentionedThemes;
-        if (mentionedThemes.size > 0) {
-          ctx.logger.debug(
-            { themes: Array.from(mentionedThemes) },
-            '🏔️ Personal themes tracked (prevents repetition)'
-          );
-        }
-      }
-    }
-
-    // Check for mood shift
-    const topicWeight =
-      analysis.emotion.distressLevel > 0.6
-        ? ('heavy' as const)
-        : analysis.emotion.distressLevel > 0.3
-          ? ('medium' as const)
-          : ('light' as const);
-
-    if (shouldMoodShift(result.mood, analysis.emotion.primary, topicWeight)) {
-      const newMoodState = getMoodShift(
-        result.mood.state,
-        `${analysis.emotion.primary}_${topicWeight}`
-      );
-      ctx.logger.info(
-        { from: result.mood.state, to: newMoodState, reason: topicWeight },
-        '🌤️ Mood shifting'
-      );
-      if (userData) {
-        userData.lastMood = newMoodState;
-      }
-    }
-
-    ctx.logger.info({ summary: getHumanizingSummary(result) }, '🎭 Humanizing context built');
-
-    // Debug logging
-    logHumanizingResult(result, userText);
-    logValidation(result);
-
-    return result;
-  } catch (error) {
-    ctx.logger.warn({ error: String(error) }, 'Humanizing context failed (non-fatal)');
-    return null;
-  }
-}
-
-// ============================================================================
-// BUNDLE RUNTIME PROCESSING
-// ============================================================================
-
-/**
- * Process bundle runtime behaviors (modes, situations, pushback)
- */
-function processBundleRuntime(
-  ctx: TurnContext,
-  analysisResult: TurnAnalysisResult
-): BundleRuntimeContext | undefined {
-  const { bundleRuntime, userData, userText } = ctx;
-  const { analysis } = analysisResult;
-
-  if (!bundleRuntime) return undefined;
-
-  // Increment turn
-  bundleRuntime.incrementTurn();
-
-  // Detect mode
-  const previousMode = bundleRuntime.getState().currentMode;
-  const newMode = bundleRuntime.detectAndSetMode(
-    userText,
-    analysis.emotion.distressLevel > 0.6
-      ? 'high_distress'
-      : analysis.emotion.primary === 'joy'
-        ? 'high_energy_positive'
-        : undefined
-  );
-
-  const result: BundleRuntimeContext = {
-    currentMode: newMode,
-    previousMode: newMode !== previousMode ? previousMode : undefined,
-  };
-
-  // Mode transition
-  if (newMode !== previousMode) {
-    result.modeTransitionPhrase =
-      bundleRuntime.getModeTransitionPhrase(previousMode, newMode) || undefined;
-
-    // Sync to userData
-    if (userData?.bundleRuntimeState) {
-      userData.bundleRuntimeState.currentMode = newMode;
-      userData.bundleRuntimeState.lastModeTransition = `${previousMode}_to_${newMode}`;
-    }
-  }
-
-  // Check situational responses
-  const lowerText = userText.toLowerCase();
-
-  const celebrationKeywords = [
-    'promotion',
-    'got the job',
-    'engaged',
-    'married',
-    'pregnant',
-    'retired',
-    'graduated',
-    'paid off',
-  ];
-  const condolenceKeywords = [
-    'died',
-    'passed away',
-    'cancer',
-    'lost my',
-    'funeral',
-    'divorce',
-    'laid off',
-    'fired',
-  ];
-
-  for (const keyword of celebrationKeywords) {
-    if (lowerText.includes(keyword)) {
-      const situation = keyword.includes('job')
-        ? 'job_promotion'
-        : keyword.includes('engaged')
-          ? 'engagement'
-          : keyword.includes('pregnant')
-            ? 'baby_news'
-            : keyword.includes('retired')
-              ? 'retirement'
-              : keyword.includes('graduated')
-                ? 'graduation'
-                : keyword.includes('paid off')
-                  ? 'paid_off_debt'
-                  : 'general_good_news';
-
-      const response = bundleRuntime.getSituationalResponse('celebrations', situation);
-      if (response) {
-        result.situationalResponse = {
-          type: 'celebration',
-          situation,
-          response: response.immediate,
-        };
-        bundleRuntime.applyProgressionTrigger('celebrated_together');
-      }
-      break;
-    }
-  }
-
-  for (const keyword of condolenceKeywords) {
-    if (lowerText.includes(keyword)) {
-      const situation =
-        keyword.includes('died') || keyword.includes('passed')
-          ? 'death_family_member'
-          : keyword.includes('cancer')
-            ? 'health_diagnosis'
-            : keyword.includes('divorce')
-              ? 'divorce_breakup'
-              : keyword.includes('laid off') || keyword.includes('fired')
-                ? 'job_loss'
-                : 'general_loss';
-
-      const response = bundleRuntime.getSituationalResponse('condolences', situation);
-      if (response) {
-        result.situationalResponse = {
-          type: 'condolence',
-          situation,
-          response: response.immediate,
-          avoidPhrases: response.dontSay,
-        };
-        bundleRuntime.applyProgressionTrigger('shared_vulnerability');
-      }
-      break;
-    }
-  }
-
-  // Check pushback
-  const pushback = bundleRuntime.detectPushback(userText);
-  if (pushback) {
-    result.pushbackDetected = {
-      type: pushback.type,
-      response: pushback.response,
-    };
-  }
-
-  return result;
-}
+// NOTE: buildHumanizingContextForTurn moved to humanizing-context-builder.ts
+// NOTE: processBundleRuntime moved to bundle-runtime-processor.ts
 
 // ============================================================================
 // CONTEXT INJECTION BUILDING
 // ============================================================================
+
+/**
+ * Result from building context injections
+ */
+interface ContextInjectionsResult {
+  /** All context injections for LLM */
+  injections: ContextInjection[];
+  /** Trust context summary for post-response monitoring */
+  trustContextSummary: TrustContextSummary;
+}
 
 /**
  * Build all context injections for the LLM
@@ -1069,7 +291,7 @@ async function buildContextInjections(
   humanizingResult: HumanizingResult | null,
   bundleRuntimeContext: BundleRuntimeContext | undefined,
   conversationDynamics: ConversationDynamicsResult
-): Promise<ContextInjection[]> {
+): Promise<ContextInjectionsResult> {
   const { services, userData, persona, bundleRuntime, userText } = ctx;
   const { analysis, currentTopic } = analysisResult;
 
@@ -1084,9 +306,12 @@ async function buildContextInjections(
     });
   }
 
-  // 2. Modular context builders
-  const { buildConversationContext, formatContextForPrompt, shouldUseHighEmotionMode } =
-    await getContextBuilders();
+  // 2. BEHAVIORAL CONTEXT SYSTEM (replaces legacy context builders)
+  // This system separates concerns to prevent context leakage:
+  // - Behavioral signals: HOW to behave (tone, pace, style) - can't leak
+  // - Awareness facts: WHAT to know (time, user, topic) - model should use
+  // - Tool guidance: WHEN to query (memories, calendar) - on-demand data
+  const buildIntegratedContext = await getBehavioralContextBuilder();
 
   const contextUserData: ContextUserData = {
     ...(userData || {}),
@@ -1104,6 +329,14 @@ async function buildContextInjections(
     userProfile: services.userProfile,
     persona,
     bundleRuntime,
+    // Pass voice emotion with speechRate for relationship-arc builders
+    voiceEmotion: userData.voiceEmotion
+      ? {
+          emotion: userData.voiceEmotion.primary || 'neutral',
+          confidence: userData.voiceEmotion.confidence || 0.5,
+          speechRate: userData.voiceEmotion.prosody?.speechRate,
+        }
+      : undefined,
   };
 
   // 2a. SAFETY FIRST: Crisis Detection (extracted to injection-builders.ts)
@@ -1119,10 +352,170 @@ async function buildContextInjections(
   });
   injections.push(...safetyInjections);
 
+  // 2b. HONESTY GUARDRAIL: Prevent implying we did something we didn't
+  // When user asks "did you call my mom?", check action history and answer honestly
+  // Priority 99 = just below identity (100), but before everything else
+  const sessionId = services.sessionId || 'unknown';
+  const honestyInjection = getHonestyInjection(sessionId, userText);
+  if (honestyInjection) {
+    injections.push({
+      category: 'honesty',
+      content: honestyInjection,
+      priority: 99, // Critical - right after identity
+    });
+  }
+
+  // 2b-2. 🔧 FUNCTION CALLING REINFORCEMENT: Fix Gemini forgetting JSON format
+  // When user makes a tool request (play music, check weather, etc.), remind Gemini
+  // to OUTPUT JSON not text. This fixes long session tool execution failures.
+  // Priority 90 = very high, just below honesty/safety
+  const currentTurnCount = userData.turnCount || 1;
+  const functionCallingReinforcement = buildFunctionCallingReinforcement(userText, currentTurnCount);
+  if (functionCallingReinforcement) {
+    injections.push(functionCallingReinforcement);
+    diag.debug('🔧 Function calling reinforcement added', {
+      turnCount: currentTurnCount,
+      userTextPreview: userText.slice(0, 50),
+    });
+  }
+
+  // 2c. 🧠 PREDICTIVE INTELLIGENCE: Inject ML predictions and deep analysis insights
+  // This provides: Markov predictions, time-series forecasts, Gemini-powered insights
+  // Priority 80 = high but below safety/honesty
+  if (services.userId) {
+    try {
+      const predictiveContext = await getPredictiveIntelligenceContext(services.userId, {
+        currentEmotion: analysis.emotion.primary,
+        currentTopic,
+      });
+      if (predictiveContext) {
+        injections.push({
+          category: 'predictive',
+          content: predictiveContext,
+          priority: 80,
+        });
+      }
+    } catch (error) {
+      // Non-critical - don't block if predictive context fails
+      diag.debug('Predictive intelligence context failed (non-blocking)', { error: String(error) });
+    }
+  }
+
+  // 2d. 🤝 TEAM HUDDLE: Cross-persona observations and coordinated care
+  // This provides: What other personas have noticed, suggested handoffs, patterns
+  // Priority 78 = high but below predictive intelligence
+  // Only on first turn to set context (don't repeat every turn)
+  if (services.userId && (userData.turnCount || 0) === 0) {
+    try {
+      const { generateTeamHuddle, formatTeamHuddleForLLM } =
+        await import('../../services/cross-persona/team-huddle.js');
+      const huddle = await generateTeamHuddle(services.userId);
+      if (huddle.observations.length > 0) {
+        const huddleContext = formatTeamHuddleForLLM(huddle);
+        injections.push({
+          category: 'team_huddle',
+          content: huddleContext,
+          priority: 78,
+        });
+        diag.debug('🤝 Team Huddle context injected', {
+          observations: huddle.observations.length,
+          connections: huddle.connections.length,
+        });
+      }
+    } catch (error) {
+      diag.debug('Team Huddle context failed (non-blocking)', { error: String(error) });
+    }
+  }
+
+  // 2e. 📨 OUTREACH BRIDGE: Context from proactive outreach (SMS/push reply)
+  // This tells Ferni WHY the user is calling back (if following up on outreach)
+  // Priority 95 = very high - sets the tone for the conversation
+  // Only on first turn to establish context
+  if (services.userId && (userData.turnCount || 0) === 0) {
+    try {
+      const { buildOutreachBridgeInjection } =
+        await import('../../services/outreach/conversation-context-bridge.js');
+      const bridgeInjection = await buildOutreachBridgeInjection(services.userId);
+      if (bridgeInjection) {
+        injections.push({
+          category: 'outreach_bridge',
+          content: bridgeInjection.content,
+          priority: bridgeInjection.priority,
+        });
+        diag.debug('📨 Outreach bridge context injected');
+      }
+    } catch (error) {
+      diag.debug('Outreach bridge context failed (non-blocking)', { error: String(error) });
+    }
+  }
+
+  // 2f. 📱 CROSS-CHANNEL CONTEXT: What user did in app since last voice call
+  // This enables continuity: "I noticed you were looking at your sleep patterns..."
+  // Priority 75 = important but below predictive intelligence
+  // Only on first turn to establish context
+  if (services.userId && (userData.turnCount || 0) === 0) {
+    try {
+      const { getActiveUserContext, formatContextForVoiceCall } =
+        await import('../../services/session-context/session-summary.js');
+      const activeContext = await getActiveUserContext(services.userId);
+      if (activeContext) {
+        const crossChannelContext = formatContextForVoiceCall(activeContext);
+        if (crossChannelContext && crossChannelContext.length > 50) {
+          injections.push({
+            category: 'cross_channel',
+            content: crossChannelContext,
+            priority: 75,
+          });
+          diag.debug('📱 Cross-channel context injected', {
+            lastInteraction: activeContext.lastInteractionType,
+            pendingTopics: activeContext.pendingTopics.length,
+          });
+        }
+      }
+    } catch (error) {
+      diag.debug('Cross-channel context failed (non-blocking)', { error: String(error) });
+    }
+  }
+
+  // 2g. 📋 WHILE YOU WERE AWAY: What background tasks completed
+  // "Better Than Human" - Ferni tells you about everything that happened while you were away
+  // This includes: calls, research, reservations, follow-ups, and more!
+  // Priority 90 = high - this is important news to share early in the greeting
+  // Only on first turn to establish context
+  if (services.userId && (userData.turnCount || 0) === 0) {
+    try {
+      const { buildAllPendingResultsContext } =
+        await import('../../intelligence/context-builders/external/pending-call-results.js');
+      const pendingResultsContext = await buildAllPendingResultsContext(services.userId);
+      if (pendingResultsContext) {
+        injections.push({
+          category: 'pending_background_results',
+          content: pendingResultsContext,
+          priority: 90, // High priority - tell them early
+        });
+        diag.debug('📋 While You Were Away context injected');
+      }
+    } catch (error) {
+      diag.debug('Pending background results context failed (non-blocking)', { error: String(error) });
+    }
+  }
+
   // ============================================================================
-  // PARALLELIZED CONTEXT BUILDERS (saves ~200-400ms per turn)
-  // These builders are independent and can run concurrently
+  // TIERED CONTEXT BUILDERS (LATENCY OPTIMIZED - Dec 2024)
   // ============================================================================
+  // Builders are split into tiers to minimize time-to-first-audio:
+  //
+  // TIER 1 (CRITICAL): Always run, block LLM start (~100ms)
+  //   - Behavioral context (essential for response quality)
+  //   - Human transfer (safety - when to escalate)
+  //
+  // TIER 2 (IMPORTANT): Run with timeout, drop gracefully (~80ms cap)
+  //   - Scientific coaching, Life coaching, Trust systems, Boundary check
+  //
+  // TIER 3 (OPTIONAL): Run with aggressive timeout, drop if slow (~60ms cap)
+  //   - Health awareness, User health, Visual memory, Ambient mode
+  // ============================================================================
+
   const builderInput = {
     userText,
     services,
@@ -1131,51 +524,302 @@ async function buildContextInjections(
     analysis,
     currentTopic,
     emotionalState,
+    sessionId: services.sessionId, // For SessionDynamicsEngine
   };
 
-  const [
-    contextInjections,
-    scientificResult,
-    coachingInjections,
-    trustInjections,
-    boundaryInjections,
-    healthInjections,
-  ] = await Promise.all([
-    // Main conversation context
-    buildConversationContext(contextInput),
-    // Scientific coaching
-    buildScientificCoachingInjections(builderInput),
-    // Life coaching
-    buildLifeCoachingInjections(builderInput),
-    // Trust systems
-    buildTrustSystemsInjections(builderInput),
-    // Boundary check
-    buildBoundaryCheckInjections({
-      userId: services.userId || 'unknown',
-      currentTopic,
-    }),
-    // Health awareness
-    buildHealthAwarenessInjections(),
-  ]);
+  // ============================================================================
+  // TOPIC-BASED BUILDER FILTERING (saves ~30-50ms by skipping irrelevant builders)
+  // ============================================================================
+  const topicCategory = analysis.topics?.category;
+  const builderFilter = filterBuildersByTopic(topicCategory, userText, userData.turnCount || 0);
 
-  // Process context injections
-  if (contextInjections.length > 0) {
-    // BETTER-THAN-HUMAN: Reduce context noise in high-emotion moments
-    // When the user is distressed, we want the AI to focus on what matters
-    const highEmotionMode = shouldUseHighEmotionMode(analysis);
-    if (highEmotionMode) {
-      diag.info('🎯 High emotion mode: Reducing context noise for focused support');
-    }
-
-    const contextStr = formatContextForPrompt(contextInjections, {
-      highEmotionMode,
-    });
-    injections.push({
-      category: 'context',
-      content: contextStr,
-      priority: 80,
+  if (builderFilter.skip.size > 0) {
+    diag.debug('⚡ Topic-based builder filtering', {
+      topic: topicCategory || 'general',
+      skipping: Array.from(builderFilter.skip).join(', '),
+      estimatedSavingsMs: builderFilter.estimatedSavingsMs,
     });
   }
+
+  // Helper: run builder only if not skipped, otherwise return fallback immediately
+  const runIfRelevant = async <T>(
+    builder: BuilderName,
+    builderFn: () => Promise<T>,
+    fallback: T
+  ): Promise<T> => {
+    if (builderFilter.skip.has(builder)) {
+      return skipBuilder(fallback);
+    }
+    return builderFn();
+  };
+
+  // Timeout helper - returns result or fallback after timeout
+  const withTimeout = async <T>(
+    promise: Promise<T>,
+    timeoutMs: number,
+    fallback: T,
+    name: string
+  ): Promise<T> => {
+    try {
+      const result = await Promise.race([
+        promise,
+        new Promise<T>((_, reject) => {
+          setTimeout(() => reject(new Error(`Timeout: ${name}`)), timeoutMs);
+        }),
+      ]);
+      return result;
+    } catch (error) {
+      diag.debug(`⏱️ Context builder timeout: ${name}`, { timeoutMs });
+      return fallback;
+    }
+  };
+
+  // ============================================================================
+  // TIER 1: CRITICAL BUILDERS (no timeout - these are essential)
+  // ============================================================================
+  const [behavioralResult, humanTransferInjection, crisisHistoryInjection] = await Promise.all([
+    // Behavioral context system - essential for response quality
+    buildIntegratedContext(contextInput),
+    // Human transfer awareness - safety critical (includes signal logging for analytics)
+    buildHumanTransferInjections(userText, services.userId),
+    // Crisis history follow-up - better than human continuity
+    buildCrisisHistoryInjection(services.userId || 'unknown'),
+  ]);
+
+  // ============================================================================
+  // TIER 2 + TIER 3: Run in PARALLEL (Jan 2026 optimization)
+  // Previously sequential (~90ms total), now parallel (~50ms total)
+  //
+  // TIER 2: IMPORTANT BUILDERS (50ms timeout - graceful degradation)
+  // TIER 3: OPTIONAL BUILDERS (40ms timeout - these are nice-to-have)
+  // ============================================================================
+  const IMPORTANT_TIMEOUT_MS = 50;
+  const OPTIONAL_TIMEOUT_MS = 40;
+
+  // Fallback values for skipped builders
+  const scientificFallback = { injections: [], endpointingRecommendation: undefined };
+  const coachingFallback: never[] = [];
+  const trustFallback = { injections: [], summary: {} as TrustContextSummary };
+  const boundaryFallback: never[] = [];
+  const superhumanFallback = {
+    injections: [],
+    signals: {
+      commitmentDetected: false,
+      valuesConflict: false,
+      capacityWarning: false,
+      insideJokeOpportunity: false,
+      voiceDistressDetected: false,
+      predictiveInsight: false,
+    },
+    processingTimeMs: 0,
+  };
+  const semanticIntelligenceFallback: SemanticIntelligenceInjectionResult = { injection: null };
+
+  // Run TIER 2 and TIER 3 in PARALLEL for ~40-50ms savings
+  const [tier2Results, tier3Results] = await Promise.all([
+    // TIER 2: IMPORTANT BUILDERS
+    Promise.all([
+      // Scientific coaching - skip if topic is emotional/personal
+      runIfRelevant(
+        'scientific-coaching',
+        async () =>
+          withTimeout(
+            buildScientificCoachingInjections(builderInput),
+            IMPORTANT_TIMEOUT_MS,
+            scientificFallback,
+            'scientific-coaching'
+          ),
+        scientificFallback
+      ),
+      // Life coaching - skip if topic is market/financial data
+      runIfRelevant(
+        'life-coaching',
+        async () =>
+          withTimeout(
+            buildLifeCoachingInjections(builderInput),
+            IMPORTANT_TIMEOUT_MS,
+            coachingFallback,
+            'life-coaching'
+          ),
+        coachingFallback
+      ),
+      // Trust systems - NEVER skipped (core to relationship)
+      withTimeout(
+        buildTrustSystemsInjections(builderInput),
+        IMPORTANT_TIMEOUT_MS,
+        trustFallback,
+        'trust-systems'
+      ),
+      // Boundary check - skip if topic doesn't involve personal/emotional
+      runIfRelevant(
+        'boundary-check',
+        async () =>
+          withTimeout(
+            buildBoundaryCheckInjections({
+              userId: services.userId || 'unknown',
+              currentTopic,
+            }),
+            IMPORTANT_TIMEOUT_MS,
+            boundaryFallback,
+            'boundary-check'
+          ),
+        boundaryFallback
+      ),
+      // 🌟 LIVE SUPERHUMAN - Real-time "Better Than Human" capabilities per-turn
+      runIfRelevant(
+        'live-superhuman',
+        async () =>
+          withTimeout(
+            buildLiveSuperhumanInjections({
+              userId: services.userId || 'unknown',
+              sessionId: services.sessionId || 'unknown',
+              userText,
+              currentTopic,
+              emotionalState,
+              voiceEmotion: userData.voiceEmotion
+                ? {
+                    primary: userData.voiceEmotion.primary,
+                    confidence: userData.voiceEmotion.confidence,
+                    stressLevel: userData.voiceEmotion.stressLevel,
+                    valence: userData.voiceEmotion.valence,
+                    anxietyMarkers: userData.voiceEmotion.anxietyMarkers,
+                    prosody: userData.voiceEmotion.prosody,
+                  }
+                : undefined,
+              analysis,
+              turnCount: userData.turnCount || 0,
+              totalConversations: services.userProfile?.totalConversations,
+            }),
+            IMPORTANT_TIMEOUT_MS,
+            superhumanFallback,
+            'live-superhuman'
+          ),
+        superhumanFallback
+      ),
+      // 🧠 SEMANTIC INTELLIGENCE - Tool hints, learned patterns, proactive suggestions
+      withTimeout(
+        buildSemanticIntelligenceInjection({
+          userId: services.userId || 'unknown',
+          sessionId: services.sessionId || 'unknown',
+          personaId: persona.id,
+          userText,
+          recentTools: userData?.conversationState?.getToolExecutionData?.()?.recentlyUsedTools,
+          recentTopics: currentTopic ? [currentTopic] : undefined,
+        }),
+        IMPORTANT_TIMEOUT_MS,
+        semanticIntelligenceFallback,
+        'semantic-intelligence'
+      ),
+    ]),
+    // TIER 3: OPTIONAL BUILDERS (run in parallel with TIER 2)
+    Promise.all([
+      // System health - skip unless health topic or keywords
+      runIfRelevant(
+        'health-awareness',
+        async () =>
+          withTimeout(
+            buildHealthAwarenessInjections(),
+            OPTIONAL_TIMEOUT_MS,
+            [],
+            'health-awareness'
+          ),
+        []
+      ),
+      // User health (Apple HealthKit) - skip unless health keywords
+      runIfRelevant(
+        'user-health',
+        async () =>
+          withTimeout(
+            buildUserHealthInjection(services.userId || 'unknown'),
+            OPTIONAL_TIMEOUT_MS,
+            null,
+            'user-health'
+          ),
+        null
+      ),
+      // Visual memory - skip unless visual/photo keywords
+      runIfRelevant(
+        'visual-memory',
+        async () =>
+          withTimeout(
+            buildVisualMemoryInjections(services.userId || 'unknown'),
+            OPTIONAL_TIMEOUT_MS,
+            null,
+            'visual-memory'
+          ),
+        null
+      ),
+      // Ambient mode - skip unless location keywords
+      runIfRelevant(
+        'ambient-mode',
+        async () =>
+          withTimeout(
+            buildAmbientModeInjections(services.userId || 'unknown'),
+            OPTIONAL_TIMEOUT_MS,
+            null,
+            'ambient-mode'
+          ),
+        null
+      ),
+    ]),
+  ]);
+
+  // Destructure TIER 2 results
+  const [
+    scientificResult,
+    coachingInjections,
+    trustSystemsResult,
+    boundaryInjections,
+    liveSuperhumanResult,
+    semanticIntelligenceResult,
+  ] = tier2Results;
+
+  // Destructure TIER 3 results
+  const [healthInjections, userHealthInjection, visualMemoryInjection, ambientModeInjection] =
+    tier3Results;
+
+  // Extract trust injections and summary
+  const trustInjections = trustSystemsResult.injections;
+  const trustContextSummary = trustSystemsResult.summary;
+
+  // Process behavioral context result
+  // Inject awareness facts (what the model should know)
+  if (behavioralResult.awarenessFacts) {
+    injections.push({
+      category: 'awareness',
+      content: behavioralResult.awarenessFacts,
+      priority: 90, // High priority - model should know these
+    });
+  }
+
+  // Inject behavioral directive (how to behave)
+  if (behavioralResult.behavioralDirective) {
+    injections.push({
+      category: 'behavioral',
+      content: behavioralResult.behavioralDirective,
+      priority: 85, // High priority - guides response style
+    });
+  }
+
+  // Inject tool guidance (when to call tools)
+  if (behavioralResult.toolGuidance) {
+    injections.push({
+      category: 'tools',
+      content: behavioralResult.toolGuidance,
+      priority: 75, // Moderate priority
+    });
+  }
+
+  // Log behavioral mode status
+  if (behavioralResult.highEmotionMode) {
+    diag.info('🎯 High emotion mode: Behavioral signals adjusted for focused support');
+  }
+
+  diag.debug('📊 Behavioral context built', {
+    mode: behavioralResult.metrics.mode,
+    buildersRun: behavioralResult.metrics.behavioralBuildersRun,
+    durationMs: behavioralResult.metrics.totalDurationMs.toFixed(1),
+  });
 
   // Process scientific coaching results
   injections.push(...scientificResult.injections);
@@ -1192,6 +836,128 @@ async function buildContextInjections(
   injections.push(...trustInjections);
   injections.push(...boundaryInjections);
   injections.push(...healthInjections);
+
+  // ========================================================================
+  // 🌟 LIVE SUPERHUMAN INJECTIONS - Real-time "Better Than Human" per turn
+  // These are the CRITICAL capabilities that were missing - superhuman
+  // insights that flow into EVERY turn, not just session start.
+  // ========================================================================
+  if (liveSuperhumanResult.injections.length > 0) {
+    injections.push(...liveSuperhumanResult.injections);
+    diag.info('🌟 Live superhuman injections added', {
+      count: liveSuperhumanResult.injections.length,
+      signals: liveSuperhumanResult.signals,
+      processingTimeMs: liveSuperhumanResult.processingTimeMs,
+    });
+
+    // ========================================================================
+    // 📊 QUEUE RESONANCE CHECKS - Track which superhuman insights to validate
+    // When capabilities are surfaced, queue them for voice-native feedback
+    // ========================================================================
+    const { sessionId } = services;
+    const turnCount = userData.turnCount || 0;
+    const { signals } = liveSuperhumanResult;
+
+    // Map signals to capability types and queue for resonance checks
+    if (signals.commitmentDetected) {
+      queueResonanceCheck(
+        sessionId,
+        'commitment_keeper' as SuperhumanCapability,
+        'Commitment or intention detected',
+        turnCount
+      );
+    }
+    if (signals.valuesConflict) {
+      queueResonanceCheck(
+        sessionId,
+        'values_alignment' as SuperhumanCapability,
+        'Values conflict or alignment surfaced',
+        turnCount
+      );
+    }
+    if (signals.capacityWarning) {
+      queueResonanceCheck(
+        sessionId,
+        'capacity_guardian' as SuperhumanCapability,
+        'Capacity warning or energy check surfaced',
+        turnCount
+      );
+    }
+    if (signals.voiceDistressDetected) {
+      queueResonanceCheck(
+        sessionId,
+        'voice_biomarkers' as SuperhumanCapability,
+        'Voice distress or emotional state detected',
+        turnCount
+      );
+    }
+    if (signals.predictiveInsight) {
+      queueResonanceCheck(
+        sessionId,
+        'predictive_coaching' as SuperhumanCapability,
+        'Predictive insight or pattern surfaced',
+        turnCount
+      );
+    }
+  }
+
+  // 🧠 SEMANTIC INTELLIGENCE - Tool hints help LLM make better decisions
+  // Also captures prediction for learning loop comparison
+  if (semanticIntelligenceResult?.injection) {
+    injections.push(semanticIntelligenceResult.injection);
+    diag.debug('🧠 Semantic intelligence injection added (tool hints, patterns)');
+  }
+
+  // Store semantic prediction in userData for learning loop comparison.
+  // When a tool is actually executed, the executor compares this prediction
+  // to the actual tool to detect implicit corrections (user chose different tool).
+  if (semanticIntelligenceResult?.prediction) {
+    userData.semanticPrediction = semanticIntelligenceResult.prediction;
+  } else {
+    // Clear previous prediction if none this turn
+    userData.semanticPrediction = undefined;
+  }
+
+  // ========================================================================
+  // "BETTER THAN HUMAN" INJECTIONS (Legacy - session-level capabilities)
+  // These 4 capabilities make Ferni genuinely better than a human friend
+  // ========================================================================
+  if (userHealthInjection) {
+    injections.push(userHealthInjection);
+    diag.debug('💪 User health injection added (Apple HealthKit)');
+  }
+  if (visualMemoryInjection) {
+    injections.push(visualMemoryInjection);
+    diag.debug('📸 Visual memory injection added');
+  }
+  if (ambientModeInjection) {
+    injections.push(ambientModeInjection);
+    diag.debug('🌙 Ambient mode injection added');
+  }
+  if (humanTransferInjection) {
+    injections.push(humanTransferInjection);
+    diag.info('🆘 Human transfer awareness added', {
+      category: humanTransferInjection.category,
+      priority: humanTransferInjection.priority,
+    });
+  }
+  if (crisisHistoryInjection) {
+    injections.push(crisisHistoryInjection);
+    diag.info('📋 Crisis history awareness added (Better Than Human follow-up)', {
+      category: crisisHistoryInjection.category,
+      priority: crisisHistoryInjection.priority,
+    });
+  }
+
+  // 2c-1. SESSION DYNAMICS - Phase-aware conversation guidance
+  // Provides natural conversation arc: opening → warming → engaged → deepening → winding
+  const sessionDynamicsInjection = buildSessionDynamicsInjection(services.sessionId);
+  if (sessionDynamicsInjection) {
+    injections.push(sessionDynamicsInjection);
+    diag.debug('📈 Session dynamics injected', {
+      phase: sessionDynamicsInjection.content.split('\n')[0],
+    });
+  }
 
   // 2d-1. RELATIONSHIP STAGE CONTEXT - "Better than Human" relationship awareness
   // The system knows exactly where it stands with this person
@@ -1293,12 +1059,15 @@ ${guidance}`,
     // Use the analyze method
     const insight = bthOrchestrator.analyze(bthContext);
 
-    // Inject top prioritized actions (limit to avoid overwhelming)
+    // Inject top prioritized actions
+    // INCREASED: From max 2 → max 4, and threshold 0.5 → 0.35
+    // This ensures more superhuman insights actually reach the LLM
     if (insight && insight.prioritizedActions && insight.prioritizedActions.length > 0) {
-      const topActions = insight.prioritizedActions.slice(0, 2); // Max 2 per turn
+      const topActions = insight.prioritizedActions.slice(0, 4); // Max 4 per turn (was 2)
 
       for (const action of topActions) {
-        if (action.content && action.priority > 0.5) {
+        if (action.content && action.priority > 0.35) {
+          // Threshold lowered from 0.5 to 0.35
           injections.push({
             category: 'superhuman_insight',
             content: `[🌟 BETTER THAN HUMAN - ${action.type}]
@@ -1471,6 +1240,20 @@ Placement: ${action.placement || 'natural'} - weave this in naturally.`,
     });
   }
 
+  // 9b. PROACTIVE MEMORY SURFACING - "Better than Human" memory intelligence
+  // Suggests relevant memories worth mentioning at this moment
+  if (ctx.proactiveSurfacing && ctx.proactiveSurfacing.length > 0) {
+    const surfacingLines = ctx.proactiveSurfacing
+      .slice(0, 2) // Max 2 suggestions
+      .map((opp) => `- ${opp.naturalPhrasing}`);
+    
+    injections.push({
+      category: 'proactive_memory',
+      content: `[MEMORY SURFACING - Consider mentioning naturally if relevant]\n${surfacingLines.join('\n')}\n(Only mention if it flows naturally - don't force it)`,
+      priority: 29,
+    });
+  }
+
   // 10. Humanizing context
   if (humanizingResult && humanizingResult.injections.length > 0) {
     const humanizingPrompt = formatHumanizingForPrompt(humanizingResult);
@@ -1613,7 +1396,57 @@ Placement: ${action.placement || 'natural'} - weave this in naturally.`,
     }
   }
 
-  // 15. Conversation dynamics (extracted to injection-builders.ts)
+  // 15. Viral Growth - Referral prompt (very conservative)
+  // Only injects when conversation naturally leads to sharing
+  try {
+    const relationshipStage =
+      (services.userProfile?.relationshipStage as 'new' | 'building' | 'established' | 'deep') ||
+      'building';
+
+    // Determine mood from emotional state
+    const userMood =
+      emotionalState.intensity < 0.3
+        ? 'neutral'
+        : emotionalState.primary?.toLowerCase().includes('joy') ||
+            emotionalState.primary?.toLowerCase().includes('happy') ||
+            emotionalState.primary?.toLowerCase().includes('excit')
+          ? 'positive'
+          : emotionalState.distressLevel > 0.5
+            ? 'struggling'
+            : 'neutral';
+
+    // Extract topic strings from analysis
+    // TopicExtractionResult has 'detected' array of topic strings
+    const topicsObj = analysisResult.analysis?.topics;
+    const topics: string[] = topicsObj?.detected || [];
+
+    const referralResult = await buildReferralPromptInjection({
+      userId: services.userId || 'unknown',
+      personaId: persona.id,
+      turnCount: userData.turnCount || 1,
+      relationshipStage,
+      userMood: userMood as 'positive' | 'neutral' | 'struggling',
+      recentTopics: topics,
+      userText,
+    });
+
+    if (referralResult.shouldInject && referralResult.injection) {
+      injections.push(referralResult.injection);
+      diag.info('🌱 Referral prompt injected (natural trigger detected)');
+    }
+
+    // Also inject context about past referral calls (if any)
+    // This lets Ferni naturally mention how calls went when relevant
+    const referralConversationContext = buildReferralConversationContext();
+    if (referralConversationContext) {
+      injections.push(referralConversationContext);
+      diag.debug('📞 Referral conversation context injected');
+    }
+  } catch (error) {
+    diag.warn('Referral prompt injection failed (non-blocking)', { error: String(error) });
+  }
+
+  // 16. Conversation dynamics (extracted to injection-builders.ts)
   // Map to the injection builder's expected type (which has stricter level typing)
   const dynamicsForBuilder: InjectionDynamicsResult = {
     narrativeArc: conversationDynamics.narrativeArc,
@@ -1637,10 +1470,24 @@ Placement: ${action.placement || 'natural'} - weave this in naturally.`,
   const dynamicsInjections = buildConversationDynamicsInjections(dynamicsForBuilder);
   injections.push(...dynamicsInjections);
 
+  // Data capture acknowledgment (if we captured contact info, etc.)
+  if (userData.dataCaptureAcknowledgment) {
+    injections.push({
+      category: 'data_capture',
+      content: `[SAVED DATA: ${userData.dataCaptureAcknowledgment} - Acknowledge this naturally in your response, e.g., "Got it, I've saved that."]`,
+      priority: 75, // High priority - should be acknowledged
+    });
+    // Clear after injecting
+    userData.dataCaptureAcknowledgment = undefined;
+  }
+
   // Sort by priority (highest first)
   injections.sort((a, b) => b.priority - a.priority);
 
-  return injections;
+  return {
+    injections,
+    trustContextSummary,
+  };
 }
 
 // ============================================================================
@@ -1656,75 +1503,8 @@ Placement: ${action.placement || 'natural'} - weave this in naturally.`,
  * 3. Conversational Repair - Recover from miscommunication
  * 4. Hope Injection - Subtle forward-looking language
  * 5. Curiosity Engine - Genuine interest in their life
- * 6. Energy Regulation - Lead vs match energy
- * 7. Micro-Affirmations - Tiny validations throughout
- * 8. Temporal Context - Life rhythm awareness
- * 9. Relationship Events - Track milestones
- * 10. Paradoxical Intervention - Know when advice backfires
+ * NOTE: processAdvancedHumanization moved to advanced-humanization.ts
  */
-async function processAdvancedHumanization(
-  ctx: TurnContext,
-  analysisResult: TurnAnalysisResult,
-  emotionalState: EmotionalState
-): Promise<AdvancedHumanizationInjectionResult | null> {
-  const { services, userData } = ctx;
-  const { analysis, currentTopic } = analysisResult;
-
-  // Determine relationship depth from profile
-  // Map from UserProfile's RelationshipStage to advanced humanization's depth
-  let relationshipDepth: 'new' | 'developing' | 'established' | 'deep' = 'developing';
-  const stage = services.userProfile?.relationshipStage;
-  if (stage) {
-    const stageStr = String(stage).toLowerCase();
-    if (stageStr.includes('new') || stageStr.includes('stranger')) {
-      relationshipDepth = 'new';
-    } else if (
-      stageStr.includes('acquaint') ||
-      stageStr.includes('getting') ||
-      stageStr.includes('building')
-    ) {
-      relationshipDepth = 'developing';
-    } else if (stageStr.includes('friend') || stageStr.includes('established')) {
-      relationshipDepth = 'established';
-    } else if (
-      stageStr.includes('trusted') ||
-      stageStr.includes('old') ||
-      stageStr.includes('deep')
-    ) {
-      relationshipDepth = 'deep';
-    }
-  }
-
-  try {
-    const result = await buildAdvancedHumanizationInjections({
-      sessionId: services.sessionId,
-      userId: services.userId || 'anonymous',
-      userText: ctx.userText,
-      turnCount: userData.turnCount || 0,
-      detectedEmotion: analysis.emotion.primary,
-      valence:
-        analysis.emotion.valence === 'positive'
-          ? 0.5
-          : analysis.emotion.valence === 'negative'
-            ? -0.5
-            : 0,
-      arousal: analysis.emotion.intensity || 0.5,
-      topic: currentTopic,
-      relationshipDepth,
-      prosodyHints: userData.voiceEmotion
-        ? {
-            speechRate: userData.voiceEmotion.confidence, // Use as proxy
-            volume: userData.voiceEmotion.confidence || 0.5, // Use confidence as proxy for volume too
-          }
-        : undefined,
-    });
-
-    return result;
-  } catch (error) {
-    diag.warn('Advanced humanization failed (non-fatal)', { error: String(error) });
-    return null;
-  }
-}
 
 // ============================================================================
 // MAIN TURN PROCESSOR
@@ -1743,6 +1523,12 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
   const startTime = Date.now();
   const { turnCtx, userText, userData, services, logger } = ctx;
 
+  // ============================================================================
+  // 📊 DEV TELEMETRY: Create turn trace for E2E observability
+  // ============================================================================
+  const isDev = process.env.NODE_ENV === 'development' || process.env.DEV_TELEMETRY === 'true';
+  const trace = isDev ? createTurnTrace(services.sessionId) : null;
+
   // Log start
   diag.user('Processing user turn', {
     preview: userText.slice(0, 100),
@@ -1753,23 +1539,477 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
     throw new Error('Empty user text');
   }
 
+  // ============================================================================
+  // 🚨 SAFETY FIRST: Crisis detection runs BEFORE anything else
+  // This is a HARD safety rail that CANNOT be bypassed
+  // ============================================================================
+  const voiceEmotionForCrisis = userData?.voiceEmotion
+    ? {
+        primary: userData.voiceEmotion.primary || 'neutral',
+        intensity: userData.voiceEmotion.confidence || 0.5,
+        confidence: userData.voiceEmotion.confidence,
+      }
+    : undefined;
+
+  const crisisResult = detectCrisis(userText, voiceEmotionForCrisis);
+  const preResponseGuard = guardPreResponse(userText, voiceEmotionForCrisis);
+
+  // Log crisis detection if anything was found
+  if (crisisResult.isCrisis || crisisResult.severity > 0.3) {
+    diag.state('🚨 Crisis detection result', {
+      isCrisis: crisisResult.isCrisis,
+      severity: crisisResult.severity,
+      indicators: crisisResult.indicators,
+      shouldOverride: preResponseGuard.shouldBlock,
+    });
+
+    // 🧠 SUPERHUMAN OUTREACH: Accumulate crisis signal for intelligent outreach
+    if (userData.userId) {
+      try {
+        const { accumulateSignal, signalFromCrisis } =
+          await import('../../services/conversation-thread/superhuman-outreach-intelligence.js');
+        const severityLevel =
+          crisisResult.severity > 0.7
+            ? 'severe'
+            : crisisResult.severity > 0.5
+              ? 'high'
+              : 'moderate';
+        accumulateSignal(
+          userData.userId,
+          signalFromCrisis({
+            type: crisisResult.indicators.join(', ') || 'crisis',
+            severity: severityLevel,
+            context: userText.slice(0, 100),
+          })
+        );
+      } catch {
+        // Non-blocking
+      }
+    }
+  }
+
+  // Enable verbose timing with DEBUG_TURN_TIMING=true
+  const debugTiming = process.env.DEBUG_TURN_TIMING === 'true';
+  const turnStartMs = Date.now();
+
   // 1. Analyze message (synchronous - required for all downstream)
+  const analysisTimer = createTimer();
+  trace?.stage('message_analysis');
+  const analysisSpan = trace?.startSpan('message_analysis');
   const analysisResult = analyzeMessage(ctx);
+  const analysisMs = analysisTimer.stop();
+  analysisSpan?.end();
+  recordPhaseTiming('message_analysis', analysisMs);
+  if (debugTiming) diag.info(`⏱️ [TIMING] message_analysis: ${analysisMs}ms`);
 
   // 2. Update conversation state (synchronous)
+  const stateTimer = createTimer();
+  const stateSpan = trace?.startSpan('conversation_state');
   updateConversationState(ctx, analysisResult);
+  stateSpan?.end();
+  recordPhaseTiming('conversation_state', stateTimer.stop());
+
+  // ============================================================================
+  // 📊 RESONANCE RESPONSE: Check if user is responding to "Does that track?"
+  // This captures voice-native feedback for superhuman capability effectiveness
+  // ============================================================================
+  const turnCount = userData.turnCount || 0;
+  if (services.sessionId && userData.userId && turnCount >= 2) {
+    const resonanceResult = processUserResponseForResonance(
+      services.sessionId,
+      userData.userId,
+      userText,
+      turnCount
+    );
+
+    if (resonanceResult.processed) {
+      diag.state('📊 Resonance feedback captured', {
+        capability: resonanceResult.capability,
+        reaction: resonanceResult.reaction,
+        turn: turnCount,
+      });
+    }
+  }
+
+  // ============================================================================
+  // 🎯 TRIGGER EFFECTIVENESS: Process outcomes from previous turn (Phase 4)
+  // "Better than Human" - learn which triggers actually help this user
+  // ============================================================================
+  if (services.sessionId && userData.lastFiredTriggers?.length) {
+    // Calculate average response length from recent transcripts
+    const recentTranscripts = userData.recentTranscripts || [];
+    const avgLen =
+      recentTranscripts.length > 0
+        ? recentTranscripts.reduce((sum, t) => sum + t.length, 0) / recentTranscripts.length
+        : 100;
+
+    // Process trigger outcomes (safe fire-and-forget)
+    safeFireAndForget(
+      async () => {
+        const { processTriggerOutcomes } = await import('./trigger-outcome-handler.js');
+        await processTriggerOutcomes(userData, {
+          sessionId: services.sessionId,
+          userResponse: userText,
+          averageResponseLength: avgLen,
+          previousTopic: userData.lastTopic,
+          currentTopic: analysisResult.currentTopic,
+        });
+      },
+      { context: 'trigger-outcome-processing' }
+    );
+  }
+
+  // ============================================================================
+  // 🧠 COACHING INTELLIGENCE: Pattern tracking and voice signals
+  // "Better than Human" - track patterns across sessions, detect voice signals
+  // ============================================================================
+  if (services.userId) {
+    // Initialize voice tracking for this session if not already done
+    initializeVoiceTracking(services.sessionId);
+
+    // Fire-and-forget: Record voice turn for signal detection
+    recordVoiceTurn(services.sessionId, userText, {
+      topic: analysisResult.currentTopic,
+      energy: userData?.voiceEmotion?.confidence,
+      pauseBeforeMs: userData?.pauseBeforeSpeakingMs,
+    });
+
+    // Publish to intelligence worker: Pattern detection (cross-session)
+    publishPatternDetection(services.userId, services.sessionId, {
+      message: userText,
+      topic: analysisResult.currentTopic || 'general',
+      emotion: analysisResult.analysis.emotion.primary,
+    });
+
+    // Publish to intelligence worker: Predictive Intelligence
+    publishPredictiveIntelligence(services.userId, services.sessionId, {
+      message: userText,
+      topic: analysisResult.currentTopic || 'general',
+      emotion: analysisResult.analysis.emotion.primary,
+      emotionIntensity: analysisResult.analysis.emotion.intensity,
+      voiceStrain: userData?.voiceEmotion?.confidence,
+      dayOfWeek: new Date().getDay(),
+      hourOfDay: new Date().getHours(),
+      turnCount:
+        userData?.conversationState?.getFlowContext?.()?.turnCount || userData?.turnCount || 0,
+      sessionCount: services.userProfile?.totalConversations || 1,
+      relationshipStage: services.userProfile?.relationshipStage,
+    });
+
+    // =========================================================================
+    // 🧠 TRUE PREDICTIVE INTELLIGENCE: Feed ML models in real-time
+    // This trains Markov chains, time-series forecasters, and signal fusion
+    // =========================================================================
+    const { userId } = services; // Capture for closure (narrows type)
+    // Capture previous state for Markov chain transitions (before updating)
+    const previousEmotion = userData?.lastEmotionAnalysis?.primary;
+    const previousTopic = userData?.lastTopic;
+    safeFireAndForget(
+      async () => {
+        await processConversationForLearning(userId, {
+          text: userText,
+          emotion: analysisResult.analysis.emotion.primary,
+          topic: analysisResult.currentTopic || 'general',
+          mood:
+            analysisResult.analysis.emotion.valence === 'positive'
+              ? 0.7
+              : analysisResult.analysis.emotion.valence === 'negative'
+                ? 0.3
+                : 0.5,
+          energy: userData?.voiceEmotion?.confidence || 0.5,
+          timestamp: new Date(),
+          // Previous state for Markov chain transitions
+          previousEmotion,
+          previousTopic,
+        });
+      },
+      { context: 'predictive-ml-learning' }
+    );
+
+    // Publish to intelligence worker: Key Moment Detection
+    publishKeyMoment(services.userId, services.sessionId, {
+      personaId: ctx.persona?.id || 'ferni',
+      message: userText,
+      topic: analysisResult.currentTopic || 'general',
+      emotion: analysisResult.analysis.emotion.primary,
+      emotionIntensity: analysisResult.analysis.emotion.intensity,
+    });
+
+    // ============================================================================
+    // 🧠 REAL-TIME LEARNING: Social graph + data capture + auto-save
+    // "Better than Human" - We learn and remember as the conversation unfolds
+    // ============================================================================
+
+    // 1. RELATIONSHIP NETWORK: Extract and record names/relationships mentioned
+    safeFireAndForget(
+      async () => {
+        // Extract names from the user's message
+        const extractedNames = extractNames(userText);
+
+        for (const { name, context } of extractedNames) {
+          // recordMention analyzes sentiment internally from context
+          await recordMention(services.userId!, {
+            name,
+            type: 'acquaintance', // Default - will be refined by extractPerson
+            context,
+          });
+          diag.state('📇 Recorded person mention', { name });
+        }
+      },
+      { context: 'relationship-network-extraction' }
+    );
+
+    // 2. DYNAMIC MEMORY: Fast capture (< 50ms) + async deep extraction
+    safeFireAndForget(
+      async () => {
+        const captureResult = await fastCapture({
+          transcript: userText,
+          userId: services.userId!,
+          sessionId: services.sessionId,
+          turnNumber: turnCount,
+          voiceEmotion: analysisResult.analysis.emotion.primary,
+          personaId: ctx.persona?.id,
+        });
+
+        // 🧠 CRITICAL: Record to STM buffer for session context
+        // This enables wasEntityMentioned(), buildSTMContext(), and session-end promotion
+        const { recordTurn } = await import('../../memory/dynamic/index.js');
+        recordTurn(services.sessionId, services.userId!, captureResult, userText, turnCount);
+
+        if (captureResult.mentionedEntities.length > 0 || captureResult.asyncJobId) {
+          diag.state('🧠 Dynamic memory capture', {
+            entityCount: captureResult.mentionedEntities.length,
+            topicCount: captureResult.topicHints.length,
+            asyncJobId: captureResult.asyncJobId,
+            captureTimeMs: captureResult.captureTimeMs,
+          });
+        }
+      },
+      { context: 'dynamic-memory-capture' }
+    );
+
+    // 2b. KNOWLEDGE GRAPH CAPTURE: Extract entities, facts, relationships via LLM
+    // "Better than Human" - build unified knowledge graph from every conversation
+    safeFireAndForget(
+      async () => {
+        try {
+          const { captureTurn, isKnowledgeCaptureReady } = await import(
+            '../../memory/knowledge-graph/index.js'
+          );
+
+          if (!isKnowledgeCaptureReady()) return;
+
+          // Convert string valence to numeric: positive=1, neutral=0, negative=-1
+          const valenceToNumber = (v?: string): number | undefined => {
+            if (!v) return undefined;
+            if (v === 'positive') return 1;
+            if (v === 'negative') return -1;
+            return 0; // neutral
+          };
+
+          const captureResult = await captureTurn({
+            userId: services.userId!,
+            sessionId: services.sessionId,
+            turnNumber: turnCount,
+            transcript: userText,
+            personaId: ctx.persona?.id,
+            emotion: analysisResult?.analysis?.emotion
+              ? {
+                  primary: analysisResult.analysis.emotion.primary,
+                  intensity: analysisResult.analysis.emotion.intensity,
+                  valence: valenceToNumber(analysisResult.analysis.emotion.valence),
+                }
+              : undefined,
+            // TopicExtractionResult has detected[] array, not primary
+            topic: analysisResult?.analysis?.topics?.detected?.[0],
+            // Note: conversationHistory not available on TurnContext, omitting
+            recentContext: undefined,
+          });
+
+          if (captureResult.entities.created > 0 || captureResult.entities.updated > 0) {
+            diag.state('🧠 Knowledge graph updated', {
+              entitiesCreated: captureResult.entities.created,
+              entitiesUpdated: captureResult.entities.updated,
+              factsCount: captureResult.facts.count,
+              relationshipsCount: captureResult.relationships.count,
+              timeMs: captureResult.metrics.totalTimeMs,
+            });
+          }
+        } catch (error) {
+          diag.debug('Knowledge graph capture failed (non-blocking)', { error: String(error) });
+        }
+      },
+      { context: 'knowledge-graph-capture' }
+    );
+
+    // 3. PERIODIC AUTO-SAVE: Persist extracted details and social graph every 3 turns
+    // Note: extractedDetails may be in userData from context-builders/personal.ts
+    const extractedDetails = (userData as Record<string, unknown>).extractedDetails as
+      | Array<{ type: string; value: string }>
+      | undefined;
+    if (extractedDetails) {
+      triggerAutoSave(services.userId, turnCount, extractedDetails);
+    } else {
+      triggerAutoSave(services.userId, turnCount);
+    }
+
+    // ============================================================================
+    // 🎯 SPECULATIVE PERSONA PRELOADING: Predict handoff before user requests it
+    // "Better than Human" - pre-warm target persona context for instant handoffs
+    // ============================================================================
+    analyzeAndPreload(userText, {
+      sessionId: services.sessionId,
+      userId: services.userId || 'anonymous',
+      currentPersona: ctx.persona?.id || 'ferni',
+      buildInsightsFn: async (personaId: string) => {
+        // Return minimal insights structure - full context is built lazily on handoff
+        return {
+          personaId,
+          userId: services.userId || 'anonymous',
+          generatedAt: Date.now(),
+          personaBriefing: `Pre-warmed context for ${personaId}`,
+        };
+      },
+    });
+
+    // ============================================================================
+    // 🤝 TEAM HUDDLE: Record observations for cross-persona coordination
+    // "Better than Human" - personas share insights like a real care team
+    // ============================================================================
+    if (services.userId) {
+      safeFireAndForget(
+        async () => {
+          await recordTeamHuddleObservation(
+            services.userId!,
+            ctx.persona?.id || 'ferni',
+            userText,
+            analysisResult,
+            userData as unknown as ContextUserData // UserData has compatible shape
+          );
+        },
+        { context: 'team-huddle-observation' }
+      );
+    }
+
+    // ============================================================================
+    // 💡 PROACTIVE SURFACING: Check for memories worth mentioning
+    // "Better than Human" - bring up relevant memories at the right moment
+    // ============================================================================
+    if (services.userId) {
+      safeFireAndForget(
+        async () => {
+          try {
+            const { checkProactiveSurfacing, isEntityStoreReady } = await import(
+              '../../memory/entity-store/integration.js'
+            );
+
+            if (!isEntityStoreReady()) return;
+
+            const opportunities = await checkProactiveSurfacing(
+              services.userId!,
+              userText,
+              {
+                sessionId: services.sessionId,
+                personaId: ctx.persona?.id || 'ferni',
+                turnNumber: turnCount,
+                surfacingCountThisSession: ctx.surfacingCount || 0,
+                sessionTopics: ctx.sessionTopics || [],
+                // Get mood from analysis.state.currentMood
+                conversationMood: analysisResult?.analysis?.state?.currentMood as 'exploratory' | 'venting' | 'seeking_help' | 'casual' | undefined,
+                lastTurnWasQuestion: userText.trim().endsWith('?'),
+                detectedEmotion: analysisResult?.analysis?.emotion?.primary,
+              }
+            );
+
+            if (opportunities.length > 0) {
+              diag.state('💡 Proactive surfacing opportunities found', {
+                count: opportunities.length,
+                types: opportunities.map((o: { type: string }) => o.type),
+              });
+              // Store in context for response generation
+              ctx.proactiveSurfacing = opportunities;
+            }
+          } catch (error) {
+            diag.debug('Proactive surfacing check failed (non-blocking)', { error: String(error) });
+          }
+        },
+        { context: 'proactive-surfacing' }
+      );
+    }
+  }
 
   // ============================================================================
   // PARALLEL PROCESSING: Run independent async operations concurrently
   // This saves ~30-50ms by not waiting for each operation sequentially
   // ============================================================================
 
+  // 🎯 SEMANTIC ROUTING: Start tool routing in parallel (primary tool calling method)
+  // This runs alongside other processing and can bypass LLM entirely for high-confidence tool requests.
+  // Falls back to JSON function calling (legacy workaround) for LLM-routed tools.
+  let semanticRoutingPromise: Promise<TurnRouterResult> | null = null;
+  if (isRoutingEnabled()) {
+    // Build conversation history from recent transcripts (if available)
+    const conversationHistory = (userData.recentTranscripts || []).map((text) => ({
+      role: 'user' as const,
+      content: text,
+    }));
+
+    // Get recently used tools from conversation state for routing context
+    const toolExecData = userData?.conversationState?.getToolExecutionData?.();
+    const recentTools = toolExecData?.recentlyUsedTools || [];
+
+    const userId = services.userId || 'unknown';
+    const routingContext = {
+      userId,
+      sessionId: services.sessionId,
+      personaId: ctx.persona.id,
+      conversationHistory,
+      recentTools,
+    };
+
+    // 🧠 Use intelligent routing if A/B test assigns user to treatment group
+    if (isIntelligentRouterInitialized() && shouldUseIntelligentRouting(userId)) {
+      diag.debug('🧠 Using intelligent routing (A/B test)', { userId, mode: 'intelligent' });
+      semanticRoutingPromise = startIntelligentRouting(userText, routingContext);
+    } else {
+      semanticRoutingPromise = startSemanticRouting(userText, routingContext);
+    }
+  }
+
+  // ============================================================================
+  // ⚡ SEMANTIC SHORT-CIRCUIT: Skip context building for high-confidence tools
+  // For ultra-high confidence matches (>0.95), we can skip expensive context
+  // building entirely. Saves ~100-150ms for obvious tool requests.
+  // SAFETY: Never short-circuits during crisis detection (safety first).
+  // ============================================================================
+  if (semanticRoutingPromise) {
+    const shortCircuitResult = await checkSemanticShortCircuit(semanticRoutingPromise, {
+      crisisDetected: crisisResult.isCrisis,
+      crisisSeverity: crisisResult.severity,
+      analysisResult,
+      ctx,
+    });
+
+    if (shortCircuitResult.shortCircuited && shortCircuitResult.result) {
+      diag.debug('⚡ Short-circuit applied', {
+        reason: shortCircuitResult.reason,
+        checkTimeMs: shortCircuitResult.checkTimeMs,
+      });
+      return shortCircuitResult.result;
+    }
+
+    // Log why we didn't short-circuit (for debugging)
+    if (process.env.DEBUG_ROUTING === 'true') {
+      diag.debug('⚡ Short-circuit bypassed', { reason: shortCircuitResult.reason });
+    }
+  }
+
   // Start independent async operations in parallel
   const easterEggPromise = checkEasterEggs(ctx, turnCtx);
 
-  // Fire-and-forget humanization processing (doesn't block turn)
-  void (async () => {
-    try {
+  // Humanization processing (safe fire-and-forget)
+  safeFireAndForget(
+    async () => {
       const { processUserMessage } =
         await import('../../conversation/humanization/voice-agent-integration.js');
       processUserMessage(services.sessionId, userText, {
@@ -1781,24 +2021,83 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
           : undefined,
         topic: analysisResult.currentTopic,
       });
-    } catch {
-      // Non-fatal - don't log noise
-    }
-  })();
+    },
+    { context: 'humanization-processing' }
+  );
 
-  // 4. Build emotional state (synchronous - depends on analysis)
-  const emotionalState = buildEmotionalState(ctx, analysisResult);
+  // Creative You topic recording (safe fire-and-forget)
+  const userIdForCreativeYou = services.userId;
+  if (userIdForCreativeYou && analysisResult.analysis.topics?.detected?.length > 0) {
+    safeFireAndForget(
+      async () => {
+        const { recordConversationTopics } =
+          await import('../../services/creative-you/conversation-integration.js');
+        recordConversationTopics(
+          userIdForCreativeYou,
+          analysisResult.analysis.topics.detected,
+          services.sessionId
+        );
+      },
+      { context: 'creative-you-topics' }
+    );
+  }
+
+  // ============================================================================
+  // PARALLELIZED CORE ANALYSIS (Phase 1 of 2)
+  // These operations only depend on analysisResult, so they run in parallel.
+  // This saves ~30-50ms by not running them sequentially.
+  // ============================================================================
+  trace?.stage('parallel_core_analysis');
+  const parallelCoreTimer = createTimer();
+
+  const [emotionalState, identityContext, humanizingResult, bundleRuntimeContext] =
+    await Promise.all([
+      // 4. Emotional state - depends only on analysisResult
+      (async () => {
+        const timer = createTimer();
+        const result = buildEmotionalState(ctx, analysisResult);
+        recordPhaseTiming('emotional_state', timer.stop());
+        return result;
+      })(),
+
+      // 6. Identity context - independent (only depends on ctx)
+      (async () => {
+        const timer = createTimer();
+        const result = buildIdentityContext(ctx);
+        recordPhaseTiming('identity_context', timer.stop());
+        return result;
+      })(),
+
+      // 7. Humanizing context - depends only on analysisResult
+      (async () => {
+        const timer = createTimer();
+        const result = buildHumanizingContextForTurn(ctx, analysisResult);
+        recordPhaseTiming('humanizing_context', timer.stop());
+        return result;
+      })(),
+
+      // 8. Bundle runtime - depends only on analysisResult
+      (async () => {
+        const timer = createTimer();
+        const result = processBundleRuntime(ctx, analysisResult);
+        recordPhaseTiming('bundle_runtime', timer.stop());
+        return result;
+      })(),
+    ]);
+
+  const parallelCoreMs = parallelCoreTimer.stop();
+  recordPhaseTiming('parallel_core_analysis', parallelCoreMs);
+  if (debugTiming) diag.info(`⏱️ [TIMING] parallel_core_analysis: ${parallelCoreMs}ms`);
 
   // 4b. Record mismatch as cross-persona insight (fire-and-forget)
   if (emotionalState.mismatch?.hasMismatch && emotionalState.mismatch.confidence > 0.5) {
     const personaId = ctx.persona.id as
       | 'ferni'
-      | 'maya'
-      | 'peter'
-      | 'alex'
-      | 'jordan'
-      | 'nayan'
-      | 'jack';
+      | 'maya-santos'
+      | 'peter-john'
+      | 'alex-chen'
+      | 'jordan-taylor'
+      | 'nayan-patel';
     void recordMismatchInsight(
       services.userId || 'anonymous',
       personaId,
@@ -1808,95 +2107,176 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
     });
   }
 
-  // 4c. Process conversation dynamics (synchronous - depends on analysis + emotion)
-  const conversationDynamics = processConversationDynamics(ctx, analysisResult, {
-    primary: emotionalState.primary,
-    intensity: emotionalState.intensity,
+  // ============================================================================
+  // ⚡ EARLY SPECULATIVE TTS PRE-WARMING
+  // Now that we have emotional state, start TTS speculation IMMEDIATELY.
+  // This runs in parallel with Phase 2 analysis, saving ~100-200ms on first audio.
+  // Previously, TTS speculation only started AFTER turn-handler received the result.
+  // ============================================================================
+  const personaVoiceId = ctx.persona.id;
+  void speculateTTS(services.sessionId, personaVoiceId, {
+    emotion: emotionalState.primary,
+    intent: analysisResult.analysis.intent?.primary,
+    topic: analysisResult.currentTopic,
     distressLevel: emotionalState.distressLevel,
+  }).catch((err) => {
+    diag.debug('Early speculative TTS failed (non-critical)', { error: String(err) });
   });
 
-  // Wait for easter egg check (should be fast, but was started in parallel)
-  const easterEgg = await easterEggPromise;
+  // ============================================================================
+  // PARALLELIZED DEPENDENT ANALYSIS (Phase 2 of 2)
+  // These depend on emotionalState from Phase 1, so they run after.
+  // Running them in parallel saves another ~10-20ms.
+  // ============================================================================
+  trace?.stage('parallel_dependent_analysis');
+  const parallelDependentTimer = createTimer();
 
-  // 5. Build response guidance
-  const responseGuidance = buildResponseGuidance(ctx, analysisResult, emotionalState);
-
-  // 5b. HUMAN-FIRST 2FA: Process message for magic moments and contact detection
-  // This detects:
-  // - Phone numbers/emails in user message (auto-saves them)
-  // - Magic moments (emotional highs perfect for phone ask)
-  // - Verification codes (if user is verifying)
-  let identityMessageResult:
-    | {
-        shouldAskForPhone?: boolean;
-        contactDetected?: boolean;
-        verificationResult?: { verified: boolean; message: string };
-        llmContextUpdate?: string;
-      }
-    | undefined;
-
-  try {
-    const { onUserMessage } =
-      await import('../../services/trust-and-identity/voice-agent-integration.js');
-    const emotionalIntensity = emotionalState.intensity ?? 0.5;
-
-    identityMessageResult = await onUserMessage(services.sessionId, userText, emotionalIntensity);
-
-    if (identityMessageResult.contactDetected) {
-      diag.user('📱 Contact info detected and saved');
-    }
-
-    if (identityMessageResult.shouldAskForPhone) {
-      diag.user('✨ Magic moment detected - phone ask pending');
-    }
-
-    if (identityMessageResult.verificationResult) {
-      diag.user('🔐 Verification code processed', {
-        verified: identityMessageResult.verificationResult.verified,
+  const [conversationDynamics, responseGuidance] = await Promise.all([
+    // 4c. Conversation dynamics - depends on analysisResult + emotionalState
+    (async () => {
+      const timer = createTimer();
+      const result = processConversationDynamics(ctx, analysisResult, {
+        primary: emotionalState.primary,
+        intensity: emotionalState.intensity,
+        distressLevel: emotionalState.distressLevel,
       });
-    }
-  } catch (identityErr) {
-    // Non-fatal - don't block turn processing
-    diag.warn('Identity message processing failed (non-fatal)', { error: String(identityErr) });
-  }
+      recordPhaseTiming('conversation_dynamics', timer.stop());
+      return result;
+    })(),
 
-  // 6. Build identity context
-  const identityContext = buildIdentityContext(ctx);
-
-  // 7. Build humanizing context
-  const humanizingResult = buildHumanizingContextForTurn(ctx, analysisResult);
-
-  // 8. Process bundle runtime
-  const bundleRuntimeContext = processBundleRuntime(ctx, analysisResult);
-
-  // ============================================================================
-  // PARALLEL CONTEXT BUILDING: Run context + humanization concurrently
-  // These are the two heaviest async operations - running in parallel saves ~50ms
-  // ============================================================================
-
-  const [injections, advancedHumanizationResult] = await Promise.all([
-    // 9. Build all context injections
-    buildContextInjections(
-      ctx,
-      analysisResult,
-      emotionalState,
-      responseGuidance,
-      identityContext,
-      humanizingResult,
-      bundleRuntimeContext,
-      conversationDynamics
-    ),
-
-    // 9a. ADVANCED HUMANIZATION: Process through all 10 deep capabilities
-    // This is the core "Better Than Human" humanization layer
-    processAdvancedHumanization(ctx, analysisResult, emotionalState),
+    // 5. Response guidance - depends on analysisResult + emotionalState
+    (async () => {
+      const timer = createTimer();
+      const result = buildResponseGuidance(ctx, analysisResult, emotionalState);
+      recordPhaseTiming('response_guidance', timer.stop());
+      return result;
+    })(),
   ]);
+
+  const parallelDependentMs = parallelDependentTimer.stop();
+  recordPhaseTiming('parallel_dependent_analysis', parallelDependentMs);
+  if (debugTiming) diag.info(`⏱️ [TIMING] parallel_dependent_analysis: ${parallelDependentMs}ms`);
+
+  // ============================================================================
+  // LATENCY OPTIMIZATION: Run identity/2FA check in parallel with context building
+  // This saves ~50-100ms by not blocking on identity detection
+  // ============================================================================
+  const identityPromise = (async () => {
+    try {
+      const { onUserMessage } =
+        await import('../../services/trust-and-identity/voice-agent-integration.js');
+      const emotionalIntensity = emotionalState.intensity ?? 0.5;
+      const result = await onUserMessage(services.sessionId, userText, emotionalIntensity);
+
+      if (result.contactDetected) {
+        diag.user('📱 Contact info detected and saved');
+      }
+      if (result.shouldAskForPhone) {
+        diag.user('✨ Magic moment detected - phone ask pending');
+      }
+      if (result.verificationResult) {
+        diag.user('🔐 Verification code processed', {
+          verified: result.verificationResult.verified,
+        });
+      }
+      return result;
+    } catch (identityErr) {
+      diag.warn('Identity message processing failed (non-fatal)', { error: String(identityErr) });
+      return undefined;
+    }
+  })();
+
+  // ============================================================================
+  // PARALLEL CONTEXT BUILDING: Run ALL async operations concurrently
+  // This is the CRITICAL LATENCY OPTIMIZATION - saves ~100-200ms by running:
+  // - Context injections (heavy)
+  // - Advanced humanization (heavy)
+  // - Identity/2FA detection (I/O bound)
+  // - Easter egg check (light)
+  // All in parallel instead of sequentially.
+  // ============================================================================
+
+  trace?.stage('context_building');
+  const contextBuildSpan = trace?.startSpan('context_injections');
+  const contextTimer = createTimer();
+  const [contextInjectionsResult, advancedHumanizationResult, identityMessageResult, easterEgg] =
+    await Promise.all([
+      // 9. Build all context injections (HEAVY - 100-200ms)
+      (async () => {
+        const injectionsTimer = createTimer();
+        const result = await buildContextInjections(
+          ctx,
+          analysisResult,
+          emotionalState,
+          responseGuidance,
+          identityContext,
+          humanizingResult,
+          bundleRuntimeContext,
+          conversationDynamics
+        );
+        recordContextInjectionTiming('all_context_injections', injectionsTimer.stop());
+        return result;
+      })(),
+
+      // 9a. ADVANCED HUMANIZATION: Process through all 10 deep capabilities (HEAVY - 50-100ms)
+      (async () => {
+        const humanizationTimer = createTimer();
+        const result = await processAdvancedHumanization(ctx, analysisResult, emotionalState);
+        recordContextInjectionTiming('advanced_humanization', humanizationTimer.stop());
+        return result;
+      })(),
+
+      // 9b. Identity/2FA detection (I/O bound - 50-100ms)
+      identityPromise,
+
+      // 9c. Easter egg check (light - <10ms, but was started earlier)
+      easterEggPromise,
+    ]);
+  contextBuildSpan?.end();
+  const contextInjectionsMs = contextTimer.stop();
+  recordPhaseTiming('context_injections', contextInjectionsMs);
+  if (debugTiming) diag.info(`⏱️ [TIMING] context_injections: ${contextInjectionsMs}ms`);
+
+  // Extract injections and trust context from the result
+  const { injections } = contextInjectionsResult;
+  const { trustContextSummary } = contextInjectionsResult;
 
   // Add advanced humanization injections
   if (advancedHumanizationResult) {
     injections.push(...advancedHumanizationResult.injections);
     // Re-sort after adding
     injections.sort((a, b) => b.priority - a.priority);
+  }
+
+  // 📋 CONTEXT INSPECTION: Record for debugging API
+  // Enable with LOG_CONTEXT_BUILDS=true for verbose logging
+  const shouldRecordContext =
+    process.env.LOG_CONTEXT_BUILDS === 'true' || process.env.DEBUG_INJECTIONS === 'true';
+  if (shouldRecordContext) {
+    // Always record, but only log if enabled
+    try {
+      const inspectionData = createInspectionData({
+        sessionId: services.sessionId,
+        userId: services.userId,
+        personaId: ctx.persona?.id,
+        turnNumber: userData?.turnCount || 0,
+        injections,
+        builderResults: [], // Would need to track from buildConversationContext
+        buildDurationMs: contextInjectionsMs,
+        userProfile: services.userProfile
+          ? {
+              exists: true,
+              name: services.userProfile.name,
+              humanMemory: services.userProfile.humanMemory,
+              totalConversations: services.userProfile.totalConversations,
+            }
+          : null,
+      });
+      recordContextBuild(inspectionData);
+    } catch (inspectionError) {
+      // Non-fatal - don't break turn processing for debugging
+      diag.warn('Context inspection recording failed', { error: String(inspectionError) });
+    }
   }
 
   // 9b. Add identity-related context injections (verification results, contact detection)
@@ -2005,13 +2385,11 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
 
   // 13. INTELLIGENT OUTREACH: Extract commitments, emotions, life events
   // This feeds the "Better Than Human" proactive outreach system
-  // Runs async to not block the response - outreach happens later anyway
-  const userId = services.userId;
+  // Publishes to intelligence worker for async processing
+  const { userId } = services;
   if (userId && userText.length > 10) {
-    // Fire and forget - don't await
-    extractOutreachContext(userId, userText).catch((outreachErr) => {
-      // Non-fatal - outreach extraction should never block conversation
-      diag.debug('Outreach extraction skipped', { error: String(outreachErr) });
+    publishOutreachExtraction(userId, services.sessionId, {
+      message: userText,
     });
   }
 
@@ -2037,8 +2415,29 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
     }
   }
 
+  // 15. PERIODIC AUTO-SAVE: Save profile every 3 turns to prevent data loss
+  // This ensures name and other critical data survives abrupt disconnects
+  const currentTurnCount = userData.turnCount || 0;
+  const AUTO_SAVE_INTERVAL = 3; // Save every 3 turns
+  if (
+    services.saveProfile &&
+    services.userProfile &&
+    currentTurnCount > 0 &&
+    currentTurnCount % AUTO_SAVE_INTERVAL === 0
+  ) {
+    // Safe fire-and-forget profile save
+    safeFireAndForget(async () => services.saveProfile!(), {
+      context: 'periodic-auto-save',
+      critical: true,
+    });
+    diag.debug('Periodic auto-save triggered', { turnCount: currentTurnCount });
+  }
+
   // Calculate elapsed time
   const elapsedMs = Date.now() - startTime;
+
+  // Record metrics for observability
+  recordTurnTiming(elapsedMs);
 
   // Log completion
   logger.info(
@@ -2097,12 +2496,125 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
     crisisDetected
   );
 
-  const filteredInjections = filterInjections(injections, {
+  // ============================================================================
+  // INJECTION DEDUPLICATION: Remove semantically similar injections
+  // Multiple builders often inject similar guidance (e.g., "be empathetic").
+  // Deduplication runs BEFORE filtering to avoid wasting slots on duplicates.
+  // ============================================================================
+  const deduplicatedInjections = deduplicateInjections(injections);
+  if (deduplicatedInjections.length < injections.length) {
+    diag.debug('⚡ Injection deduplication', {
+      before: injections.length,
+      after: deduplicatedInjections.length,
+      removed: injections.length - deduplicatedInjections.length,
+    });
+  }
+
+  const filteredInjections = filterInjections(deduplicatedInjections, {
     mode: conversationMode,
     userText: ctx.userText,
     emotionalIntensity: emotionalState.intensity,
     crisisDetected,
   });
+
+  // ============================================================================
+  // 🎯 SEMANTIC ROUTING: Await tool routing result and apply if applicable
+  // ============================================================================
+  trace?.stage('semantic_routing');
+  let semanticRouting: SemanticRoutingResult | undefined;
+  if (semanticRoutingPromise) {
+    const routingSpan = trace?.startSpan('semantic_routing');
+    const routingTimer = createTimer();
+    const routingResult = await semanticRoutingPromise;
+    const routingLatencyMs = routingTimer.stop();
+
+    semanticRouting = applyRoutingResult(routingResult, {
+      crisisDetected: crisisResult.isCrisis,
+      latencyMs: routingLatencyMs,
+    });
+
+    if (semanticRouting.bypassLLM && semanticRouting.toolResult) {
+      diag.state('🎯 Semantic routing: BYPASSING LLM', {
+        tool: semanticRouting.toolResult.toolId,
+        confidence: semanticRouting.metrics.confidence,
+        latencyMs: semanticRouting.metrics.latencyMs,
+      });
+    } else if (semanticRouting.routed && routingResult.routeResult?.matches?.length) {
+      // Medium confidence: Add hint to LLM context (helps guide the response)
+      const topMatch = routingResult.routeResult.matches[0];
+      const { confidence } = semanticRouting.metrics;
+
+      diag.state('🎯 Semantic routing: Tool hint added to context', {
+        toolId: topMatch.toolId,
+        confidence,
+        matchPath: semanticRouting.metrics.matchPath,
+      });
+
+      // Add tool hint injection to guide LLM
+      filteredInjections.push({
+        category: 'tool_hint',
+        content: `[TOOL HINT - DO NOT MENTION THIS DIRECTLY]
+The user may be requesting: ${topMatch.toolId}
+Confidence: ${(confidence * 100).toFixed(0)}%
+
+If the user is indeed asking for this action, use the JSON function call format:
+{"fn":"${topMatch.toolId}","args":{...}}
+
+If they're just conversing, respond naturally without the tool call.`,
+        priority: 80,
+      });
+    }
+    routingSpan?.end();
+  }
+
+  // ============================================================================
+  // 📊 RESONANCE CHECK: Check if we should trigger voice-native feedback
+  // This asks the user "Does that track?" after superhuman insights
+  // ============================================================================
+  let resonanceCheck: ResonanceCheckResult = { shouldCheck: false };
+  // Note: turnCount is defined earlier in the function (after state update)
+
+  // Only check for resonance after at least 2 turns (let conversation warm up)
+  if (turnCount >= 2 && services.sessionId) {
+    const nextCheck = getNextResonanceCheck(
+      services.sessionId,
+      turnCount,
+      ctx.persona?.id || 'ferni'
+    );
+
+    if (nextCheck.shouldCheck && nextCheck.instructions) {
+      resonanceCheck = {
+        shouldCheck: true,
+        instructions: nextCheck.instructions,
+        capability: nextCheck.capability,
+      };
+
+      // Add resonance check injection to guide LLM to include backchannel
+      filteredInjections.push({
+        category: 'resonance_check',
+        content: nextCheck.instructions,
+        priority: 70, // Medium-high - important but not critical
+      });
+
+      diag.info('📊 Resonance check triggered', {
+        capability: nextCheck.capability,
+        turnCount,
+      });
+    }
+  }
+
+  // ============================================================================
+  // 📊 DEV TELEMETRY: Complete the trace with final metrics
+  // ============================================================================
+  trace?.complete();
+
+  // Log total turn processing time (before return)
+  if (debugTiming) {
+    const totalMs = Date.now() - turnStartMs;
+    diag.info(
+      `⏱️ [TIMING] TOTAL processTurn: ${totalMs}ms (analysis: ${analysisMs}ms, parallel_core: ${parallelCoreMs}ms, parallel_dependent: ${parallelDependentMs}ms, context: ${contextInjectionsMs}ms)`
+    );
+  }
 
   return {
     analysis: analysisResult,
@@ -2118,6 +2630,20 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
     easterEgg,
     valueCapture,
     advancedHumanization,
+    // 🚨 SAFETY: Crisis detection result - MUST be checked by caller
+    crisis: {
+      isCrisis: crisisResult.isCrisis,
+      severity: crisisResult.severity,
+      indicators: crisisResult.indicators,
+      suggestedResponse: crisisResult.suggestedResponse,
+      shouldOverrideLLM: preResponseGuard.shouldBlock,
+    },
+    // 🤝 TRUST: Trust context summary for post-response monitoring
+    trustContext: trustContextSummary,
+    // 🎯 SEMANTIC ROUTING: Pre-LLM tool routing result
+    semanticRouting,
+    // 📊 RESONANCE CHECK: Voice-native feedback for BTH effectiveness
+    resonanceCheck,
   };
 }
 
@@ -2172,4 +2698,238 @@ export function getCelebrationEvents(
   return result.context.injections
     .filter((inj) => celebrationCategories.includes(inj.category))
     .map((inj) => ({ category: inj.category, content: inj.content }));
+}
+
+// ============================================================================
+// TEAM HUDDLE OBSERVATION RECORDING
+// ============================================================================
+
+/**
+ * Maps persona ID to domain for Team Huddle observations.
+ */
+const PERSONA_DOMAINS: Record<string, string> = {
+  ferni: 'life_coaching',
+  'peter-john': 'research',
+  peter: 'research',
+  maya: 'habits',
+  jordan: 'milestones',
+  alex: 'communication',
+  nayan: 'wisdom',
+};
+
+/**
+ * Record Team Huddle observations from conversation turns.
+ *
+ * This enables cross-persona coordination - what Maya notices about habits
+ * can inform Peter's research suggestions or Jordan's milestone planning.
+ *
+ * Uses persona-specific observation patterns for intelligent detection.
+ */
+async function recordTeamHuddleObservation(
+  userId: string,
+  personaId: string,
+  userText: string,
+  analysisResult: TurnAnalysisResult,
+  userData: ContextUserData
+): Promise<void> {
+  try {
+    const canonicalPersonaId = personaId.replace('-john', '') as PersonaId;
+    const emotionIntensity = analysisResult.analysis.emotion.intensity || 0;
+
+    // =========================================================================
+    // 1. USE PERSONA-SPECIFIC PATTERNS FOR INTELLIGENT OBSERVATION
+    // =========================================================================
+    const patternMatches = analyzeTextForPersona(canonicalPersonaId, userText, emotionIntensity);
+
+    // Record top 2 pattern matches (avoid noise)
+    for (const match of patternMatches.slice(0, 2)) {
+      // Only record if confidence is high enough
+      if (match.adjustedConfidence < 0.5) continue;
+
+      recordTeamObservation(userId, {
+        personaId: canonicalPersonaId,
+        observationType: match.pattern.observationType,
+        content: match.pattern.contentTemplate,
+        confidence: match.adjustedConfidence,
+        domain: match.pattern.domain,
+        relatedTopics: [
+          ...match.matchedKeywords,
+          ...(analysisResult.analysis.topics?.detected || []),
+        ],
+        suggestedAction: match.pattern.suggestedActionTemplate,
+      });
+
+      diag.debug('🤝 Team Huddle observation (pattern)', {
+        personaId: canonicalPersonaId,
+        observationType: match.pattern.observationType,
+        domain: match.pattern.domain,
+        confidence: match.adjustedConfidence,
+        matchedKeywords: match.matchedKeywords,
+      });
+    }
+
+    // =========================================================================
+    // 2. RECORD EMOTION-BASED OBSERVATIONS FOR HIGH-INTENSITY MOMENTS
+    // =========================================================================
+    const isHighIntensity = emotionIntensity > 0.6;
+    const isNegativeEmotion = analysisResult.analysis.emotion.valence === 'negative';
+    const isPositiveEmotion = analysisResult.analysis.emotion.valence === 'positive';
+
+    if (isHighIntensity && patternMatches.length === 0) {
+      // High emotion but no pattern match - record generic observation
+      const domain = PERSONA_DOMAINS[personaId] || 'general';
+      const observationType = isNegativeEmotion
+        ? 'concern'
+        : isPositiveEmotion
+          ? 'opportunity'
+          : 'insight';
+      const content = isNegativeEmotion
+        ? buildConcernObservation(domain, analysisResult, userText)
+        : buildOpportunityObservation(domain, analysisResult, userText);
+
+      if (content) {
+        recordTeamObservation(userId, {
+          personaId: canonicalPersonaId,
+          observationType,
+          content,
+          confidence: Math.min(0.9, emotionIntensity + 0.2),
+          domain,
+          relatedTopics: analysisResult.analysis.topics?.detected || [],
+          suggestedAction: isNegativeEmotion
+            ? `Consider checking in about ${analysisResult.currentTopic || 'this'} soon`
+            : undefined,
+        });
+
+        diag.debug('🤝 Team Huddle observation (emotion)', {
+          personaId: canonicalPersonaId,
+          observationType,
+          domain,
+          emotionIntensity,
+        });
+      }
+    }
+
+    // =========================================================================
+    // 3. DETECT HANDOFF CUES FOR TEAM COORDINATION
+    // =========================================================================
+    const handoffCues = detectHandoffCues(canonicalPersonaId, userText);
+    if (handoffCues.length > 0) {
+      // Record as insight for Ferni's coordination
+      for (const cue of handoffCues.slice(0, 1)) {
+        // Top 1 cue only
+        recordTeamObservation(userId, {
+          personaId: canonicalPersonaId,
+          observationType: 'insight',
+          content: `Handoff opportunity detected: ${cue.reason}`,
+          confidence: 0.7,
+          domain: 'handoff_coordination',
+          relatedTopics: cue.matchedKeywords,
+          suggestedAction: `Consider involving ${cue.targetPersona}`,
+        });
+
+        diag.debug('🤝 Team Huddle observation (handoff cue)', {
+          fromPersona: canonicalPersonaId,
+          toPersona: cue.targetPersona,
+          reason: cue.reason,
+        });
+      }
+    }
+  } catch (err) {
+    // Non-blocking - don't fail the turn
+    diag.debug('Team Huddle observation failed', { error: String(err) });
+  }
+}
+
+/**
+ * Detect patterns relevant to each domain.
+ */
+function detectDomainRelevantPattern(text: string, domain: string): boolean {
+  const lowerText = text.toLowerCase();
+
+  const domainPatterns: Record<string, string[]> = {
+    habits: ['sleep', 'exercise', 'routine', 'habit', 'morning', 'night', 'tired', 'energy'],
+    research: ['stress', 'work', 'career', 'money', 'finance', 'market', 'research', 'learn'],
+    milestones: [
+      'goal',
+      'achieve',
+      'celebrate',
+      'birthday',
+      'anniversary',
+      'milestone',
+      'deadline',
+    ],
+    communication: ['meeting', 'calendar', 'schedule', 'email', 'call', 'busy', 'overwhelm'],
+    wisdom: ['meaning', 'purpose', 'values', 'life', 'important', 'legacy', 'death', 'reflect'],
+    life_coaching: ['change', 'stuck', 'help', 'support', 'growth', 'better', 'improve'],
+  };
+
+  const patterns = domainPatterns[domain] || [];
+  return patterns.some((p) => lowerText.includes(p));
+}
+
+/**
+ * Build concern observation content.
+ */
+function buildConcernObservation(
+  domain: string,
+  analysisResult: TurnAnalysisResult,
+  userText: string
+): string {
+  const emotion = analysisResult.analysis.emotion.primary;
+  const topic = analysisResult.currentTopic || 'something';
+
+  // Domain-specific framing
+  switch (domain) {
+    case 'habits':
+      return `User expressed ${emotion} about ${topic}. May need habit/routine support.`;
+    case 'research':
+      return `User showed ${emotion} regarding ${topic}. Potential stress/information need.`;
+    case 'milestones':
+      return `User feeling ${emotion} about ${topic}. Goal progress may need attention.`;
+    case 'communication':
+      return `User ${emotion} about ${topic}. Calendar/boundary support may help.`;
+    case 'wisdom':
+      return `User exploring ${emotion} feelings about ${topic}. Deeper reflection opportunity.`;
+    default:
+      return `User expressed ${emotion} about ${topic}.`;
+  }
+}
+
+/**
+ * Build opportunity observation content.
+ */
+function buildOpportunityObservation(
+  domain: string,
+  analysisResult: TurnAnalysisResult,
+  userText: string
+): string {
+  const emotion = analysisResult.analysis.emotion.primary;
+  const topic = analysisResult.currentTopic || 'their progress';
+
+  switch (domain) {
+    case 'habits':
+      return `User ${emotion} about ${topic}. Good moment to reinforce positive habits.`;
+    case 'research':
+      return `User excited about ${topic}. Opportunity to deepen learning.`;
+    case 'milestones':
+      return `User ${emotion} about ${topic}. Potential celebration moment!`;
+    case 'communication':
+      return `User positive about ${topic}. Good time to optimize schedule.`;
+    case 'wisdom':
+      return `User in reflective mood about ${topic}. Wisdom-building opportunity.`;
+    default:
+      return `User ${emotion} about ${topic}. Positive momentum to leverage.`;
+  }
+}
+
+/**
+ * Build pattern observation content.
+ */
+function buildPatternObservation(
+  domain: string,
+  analysisResult: TurnAnalysisResult,
+  userText: string
+): string {
+  const topic = analysisResult.currentTopic || 'patterns';
+  return `Repeated mentions related to ${domain}: ${topic}. Worth monitoring.`;
 }

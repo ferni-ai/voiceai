@@ -154,10 +154,13 @@ export {
 
 const personaRegistry: PersonaRegistry = new Map();
 
-// Generic advisor persona (fallback when bundles aren't loaded)
+// ============================================================================
+// TEMPLATE PERSONAS (NOT for production use)
+// These exist as templates for creating new personas via extendPersona().
+// See src/personas/generic-advisor/index.ts for usage documentation.
+// For production, use bundle-based personas loaded via initializeFromBundles().
+// ============================================================================
 personaRegistry.set('generic-advisor', GENERIC_ADVISOR_PERSONA);
-
-// Wellness coach persona (created from generic-advisor template)
 personaRegistry.set('wellness-coach', WELLNESS_COACH_PERSONA);
 
 // NOTE: Main personas (peter-john, alex-chen, maya-santos, jordan-taylor, ferni, nayan-patel)

@@ -13,7 +13,18 @@ personaSecondary: "#A67B5B"
   <div class="container">
     <div class="persona-detail-content">
       <div class="persona-detail-avatar">
-        <span style="font-family: var(--font-display); font-size: 3.5rem; font-weight: 800; color: white;">C</span>
+        {# LUXO STYLE: Opaque white ellipse eyes, NO pupils, NO mouth #}
+        <svg viewBox="0 0 100 100" width="100%" height="100%">
+          <defs>
+            <linearGradient id="carmenDetailGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" style="stop-color: #D4A373"/>
+              <stop offset="100%" style="stop-color: #A67B5B"/>
+            </linearGradient>
+          </defs>
+          <circle cx="50" cy="50" r="45" fill="url(#carmenDetailGrad)"/>
+          <ellipse cx="36" cy="48" rx="7" ry="10" fill="white"/>
+          <ellipse cx="64" cy="48" rx="7" ry="10" fill="white"/>
+        </svg>
       </div>
       <div class="persona-detail-info">
         <h1>Carmen</h1>
@@ -60,7 +71,7 @@ personaSecondary: "#A67B5B"
           <p style="color: var(--text-secondary); line-height: var(--leading-relaxed); margin-top: var(--space-4);">
             Parenting is the hardest job with no manual. Carmen gets that you're doing your best
             with what you have, and she's here to help you think through the tough moments, celebrate
-            the wins, and remember to take care of yourself too. No perfect parent advice—just real
+            the wins, and remember to take care of yourself too. No perfect parent rules—just real
             support from someone who understands the chaos.
           </p>
         </div>

@@ -4,6 +4,8 @@
  * Tests the analytics worker's integration with community insights and agent evolution.
  */
 
+/* eslint-disable no-await-in-loop -- Test loops intentionally sequential */
+
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 // Mock functions need to be declared before vi.mock

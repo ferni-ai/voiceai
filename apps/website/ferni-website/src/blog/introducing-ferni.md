@@ -6,8 +6,8 @@ authorInitials: 'FE'
 authorColor: '#4a6741'
 date: 2025-01-15
 category: 'Announcements'
-image: 'introducing-ferni.jpg'
-imageAlt: 'Ferni AI coaching interface'
+image: 'introducing-ferni.png'
+imageAlt: 'Six organic shapes in gentle constellation representing the Ferni team'
 readTime: 4
 ---
 
@@ -48,7 +48,7 @@ We're not interested in your data. We're interested in your growth.
 
 ## Try It Today
 
-Ferni is free to start. Just [open the web app](https://app.ferni.ai) or call **1 (484) 481-3081**.
+Ferni is free. Really free. Just [open the web app](https://app.ferni.ai) or call **1 (484) 481-3081**.
 
 No sign-up required. No credit card. Just a conversation.
 

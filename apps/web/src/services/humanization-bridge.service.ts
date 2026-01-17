@@ -19,9 +19,14 @@ import { emotionState } from '../emotion/emotion-state.js';
 import type { DataMessage } from '../types/events.js';
 import { ferni, playMicroExpression } from '../ui/better-than-human.ui.js';
 import { ferniExpressions } from '../ui/ferni-expressions.ui.js';
+import { showMemoryFeedback } from '../ui/memory-feedback.ui.js';
 import { createLogger } from '../utils/logger.js';
+import { getFirebaseUid } from './firebase-auth.service.js';
 
 const log = createLogger('HumanizationBridge');
+
+// Track last surfaced memory for feedback collection
+let lastSurfacedMemory: { id: string; content: string } | null = null;
 
 // ============================================================================
 // TYPES - Humanization Signal Events from Backend
@@ -88,6 +93,7 @@ export interface HumanizationSignalEvent extends DataMessage {
   predictedNeed?: string; // venting, advice, validation, etc.
   emotionalTrajectory?: string; // escalating, de_escalating, etc.
   memoryType?: string; // event, goal, person, etc.
+  memoryId?: string; // ID for feedback tracking
 }
 
 /**
@@ -227,7 +233,7 @@ function handleHumanizationSignal(event: HumanizationSignalEvent): void {
       handleConcernDetected(event.concernLevel, event.concernType, event.recommendedApproach);
       break;
     case 'proactive_memory':
-      handleProactiveMemory(event.memoryType, event.content);
+      handleProactiveMemory(event.memoryType, event.content, event.memoryId);
       break;
     case 'voice_state_detected':
       handleVoiceStateDetected(event.voiceState, intensity);
@@ -659,8 +665,8 @@ function handleConcernDetected(
  * Proactive memory surfacing
  * Ferni remembered something before the user mentioned it
  */
-function handleProactiveMemory(memoryType?: string, content?: string): void {
-  log.info('🧠 Proactive memory:', { memoryType, content });
+function handleProactiveMemory(memoryType?: string, content?: string, memoryId?: string): void {
+  log.info('🧠 Proactive memory:', { memoryType, content, memoryId });
 
   // Show the "remembering" moment - this is the magic
   playMicroExpression('memory_spark');
@@ -693,10 +699,27 @@ function handleProactiveMemory(memoryType?: string, content?: string): void {
     }
   }, 300);
 
+  // Track for feedback collection
+  if (memoryId && content) {
+    lastSurfacedMemory = { id: memoryId, content };
+
+    // Show feedback UI after a brief delay (let the memory be spoken first)
+    setTimeout(() => {
+      const userId = getFirebaseUid();
+      if (userId && lastSurfacedMemory) {
+        showMemoryFeedback({
+          memoryId: lastSurfacedMemory.id,
+          memoryContent: lastSurfacedMemory.content,
+          userId,
+        });
+      }
+    }, 3000); // Show 3 seconds after memory surfaces
+  }
+
   // Dispatch for UI systems
   document.dispatchEvent(
     new CustomEvent('ferni:proactive-memory', {
-      detail: { memoryType, content },
+      detail: { memoryType, content, memoryId },
     })
   );
 }

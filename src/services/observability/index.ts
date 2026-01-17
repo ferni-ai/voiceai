@@ -33,6 +33,15 @@ export {
 } from './memory-health.js';
 export { costMetrics, type CostSnapshot, type CostEvent } from './cost-tracking.js';
 export {
+  finops,
+  type FinOpsSnapshot,
+  type SessionCost,
+  type UserCostSummary,
+  type FinOpsAlert,
+  type FinOpsThresholds,
+  PRICING,
+} from './finops.js';
+export {
   errorMetrics,
   type ErrorSnapshot,
   type ErrorEvent,
@@ -47,3 +56,13 @@ export {
   type PersonaUsageEvent,
 } from './persona-health.js';
 export { observabilityHub, type ObservabilitySnapshot, type Alert } from './hub.js';
+export {
+  resilienceMetrics,
+  type ResilienceSnapshot,
+  type WorkerEvent,
+  type CleanupEvent,
+  type QueueMetric,
+  type CircuitBreakerEvent,
+  type HealthCheckEvent,
+  type ScalingEvent,
+} from './resilience-metrics.js';

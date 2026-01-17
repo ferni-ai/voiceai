@@ -1,0 +1,119 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" width="1200" height="630">
+  <!-- Ferni OG Image - Social Media Preview -->
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FAF6F0"/>
+      <stop offset="100%" stop-color="#F0EBE4"/>
+    </linearGradient>
+    <linearGradient id="avatarGradOG" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#3d5a35"/>
+      <stop offset="100%" stop-color="#4a6741"/>
+    </linearGradient>
+    <linearGradient id="badgeGradOG" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#3d5a35"/>
+      <stop offset="100%" stop-color="#5a8060"/>
+    </linearGradient>
+    <filter id="avatarShadow" x="-50%" y="-50%" width="200%" height="200%">
+      <feDropShadow dx="0" dy="8" stdDeviation="20" flood-color="#2c2520" flood-opacity="0.15"/>
+    </filter>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="1200" height="630" fill="url(#bgGrad)"/>
+  
+  <!-- Subtle ambient orb in background -->
+  <circle cx="300" cy="315" r="400" fill="#4a6741" opacity="0.03"/>
+  
+  <!-- Avatar group (centered vertically, offset left) -->
+  <g transform="translate(250, 315)" filter="url(#avatarShadow)">
+    <!-- Outer presence ring -->
+    <circle cx="0" cy="0" r="160" fill="none" stroke="#4a6741" stroke-width="2.5" opacity="0.35"/>
+    
+    <!-- Main avatar circle -->
+    <circle cx="0" cy="0" r="140" fill="url(#avatarGradOG)"/>
+    
+    <!-- FE Text -->
+    <text 
+      x="0" 
+      y="0" 
+      text-anchor="middle" 
+      dominant-baseline="central"
+      font-family="'Plus Jakarta Sans', 'SF Pro Display', system-ui, sans-serif"
+      font-size="100"
+      font-weight="800"
+      fill="white"
+      letter-spacing="-3">
+      <tspan dy="6">FE</tspan>
+    </text>
+    
+    <!-- Shine overlay - ABOVE text -->
+    <ellipse cx="-25" cy="-40" rx="70" ry="35" fill="white" opacity="0.15"/>
+    
+    <!-- Heart badge -->
+    <circle cx="112" cy="112" r="36" fill="url(#badgeGradOG)" stroke="#FFFDFB" stroke-width="5"/>
+    
+    <!-- Heart icon - centered -->
+    <path 
+      d="M112 102c0-5-4-9-9-9s-9 4-9 9c0 9 17 21 17 21s17-12 17-21c0-5-4-9-9-9s-9 4-9 9z"
+      fill="none"
+      stroke="white"
+      stroke-width="2.5"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+    />
+  </g>
+  
+  <!-- Text content -->
+  <g transform="translate(520, 200)">
+    <!-- Tagline -->
+    <text 
+      font-family="'Plus Jakarta Sans', 'SF Pro Display', system-ui, sans-serif"
+      font-size="24"
+      font-weight="500"
+      fill="#4a6741"
+      letter-spacing="3"
+      text-transform="uppercase">LIFE COACHING</text>
+    
+    <!-- Title -->
+    <text 
+      y="70"
+      font-family="'Plus Jakarta Sans', 'SF Pro Display', system-ui, sans-serif"
+      font-size="72"
+      font-weight="800"
+      fill="#2C2520"
+      letter-spacing="-2">Ferni</text>
+    
+    <!-- Subtitle -->
+    <text 
+      y="150"
+      font-family="'Inter', system-ui, sans-serif"
+      font-size="28"
+      font-weight="400"
+      fill="#70605a">Better than human.</text>
+    
+    <!-- Description -->
+    <text 
+      y="210"
+      font-family="'Inter', system-ui, sans-serif"
+      font-size="20"
+      font-weight="400"
+      fill="#9a8a7a">Your personal team that listens, remembers,</text>
+    <text 
+      y="240"
+      font-family="'Inter', system-ui, sans-serif"
+      font-size="20"
+      font-weight="400"
+      fill="#9a8a7a">and shows up at 2am with the same warmth as noon.</text>
+  </g>
+  
+  <!-- URL at bottom -->
+  <text 
+    x="600" 
+    y="580"
+    text-anchor="middle"
+    font-family="'Inter', system-ui, sans-serif"
+    font-size="18"
+    font-weight="500"
+    fill="#9a8a7a">ferni.ai</text>
+</svg>
+

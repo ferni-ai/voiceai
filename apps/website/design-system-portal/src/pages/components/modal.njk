@@ -1,0 +1,474 @@
+---
+layout: layouts/base.njk
+title: Modal Component
+description: Dialogs and modal overlays for focused interactions
+permalink: /components/modal/
+---
+
+<article class="component-page">
+  <header class="page-header">
+    <nav class="breadcrumb">
+      <a href="/components/">Components</a>
+      <span>/</span>
+      <span>Modal</span>
+    </nav>
+    <h1>Modal</h1>
+    <p class="lead">Focused dialog windows that overlay the interface for important interactions, confirmations, and form submissions.</p>
+  </header>
+
+  <section class="section">
+    <h2>Basic Modal</h2>
+
+    <div class="demo-block">
+      <h3>Standard Dialog</h3>
+      <p class="demo-description">A centered modal with title, content, and action buttons.</p>
+      <div class="demo-area">
+        <button class="btn btn-primary" id="open-basic-modal">Open Modal</button>
+      </div>
+      <div class="code-block">
+        <pre><code>&lt;div class="modal-backdrop"&gt;
+  &lt;div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title"&gt;
+    &lt;header class="modal-header"&gt;
+      &lt;h2 id="modal-title"&gt;Modal Title&lt;/h2&gt;
+      &lt;button class="modal-close" aria-label="Close"&gt;&times;&lt;/button&gt;
+    &lt;/header&gt;
+    &lt;div class="modal-body"&gt;
+      &lt;p&gt;Modal content goes here...&lt;/p&gt;
+    &lt;/div&gt;
+    &lt;footer class="modal-footer"&gt;
+      &lt;button class="btn btn-secondary"&gt;Cancel&lt;/button&gt;
+      &lt;button class="btn btn-primary"&gt;Confirm&lt;/button&gt;
+    &lt;/footer&gt;
+  &lt;/div&gt;
+&lt;/div&gt;</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <h2>Modal Sizes</h2>
+
+    <div class="demo-block">
+      <h3>Size Variants</h3>
+      <p class="demo-description">Small for confirmations, medium for forms, large for complex content.</p>
+      <div class="demo-area" style="gap: var(--space-4);">
+        <button class="btn btn-secondary" id="open-sm-modal">Small</button>
+        <button class="btn btn-secondary" id="open-md-modal">Medium</button>
+        <button class="btn btn-secondary" id="open-lg-modal">Large</button>
+      </div>
+      <div class="code-block">
+        <pre><code>.modal-sm { max-width: 320px; }  /* Confirmations */
+.modal-md { max-width: 480px; }  /* Default */
+.modal-lg { max-width: 640px; }  /* Complex content */
+.modal-xl { max-width: 800px; }  /* Full forms */</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <h2>Confirmation Dialog</h2>
+
+    <div class="demo-block">
+      <h3>Destructive Action</h3>
+      <p class="demo-description">Use for irreversible actions with clear warning styling.</p>
+      <div class="demo-area">
+        <button class="btn btn-error" id="open-confirm-modal">Delete Item</button>
+      </div>
+      <div class="code-block">
+        <pre><code>&lt;div class="modal modal-sm"&gt;
+  &lt;header class="modal-header"&gt;
+    &lt;h2&gt;Delete this item?&lt;/h2&gt;
+  &lt;/header&gt;
+  &lt;div class="modal-body"&gt;
+    &lt;p&gt;This action cannot be undone. The item will be permanently removed.&lt;/p&gt;
+  &lt;/div&gt;
+  &lt;footer class="modal-footer"&gt;
+    &lt;button class="btn btn-secondary"&gt;Cancel&lt;/button&gt;
+    &lt;button class="btn btn-error"&gt;Delete&lt;/button&gt;
+  &lt;/footer&gt;
+&lt;/div&gt;</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <h2>Modal with Form</h2>
+
+    <div class="demo-block">
+      <h3>Form Dialog</h3>
+      <p class="demo-description">Modals containing form inputs for data collection.</p>
+      <div class="demo-area">
+        <button class="btn btn-primary" id="open-form-modal">Add New Item</button>
+      </div>
+      <div class="code-block">
+        <pre><code>&lt;div class="modal modal-md"&gt;
+  &lt;header class="modal-header"&gt;
+    &lt;h2&gt;Add New Item&lt;/h2&gt;
+    &lt;button class="modal-close"&gt;&times;&lt;/button&gt;
+  &lt;/header&gt;
+  &lt;div class="modal-body"&gt;
+    &lt;div class="form-group"&gt;
+      &lt;label&gt;Name&lt;/label&gt;
+      &lt;input type="text" class="input" placeholder="Enter name"&gt;
+    &lt;/div&gt;
+    &lt;div class="form-group"&gt;
+      &lt;label&gt;Description&lt;/label&gt;
+      &lt;textarea class="textarea" rows="3"&gt;&lt;/textarea&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+  &lt;footer class="modal-footer"&gt;
+    &lt;button class="btn btn-secondary"&gt;Cancel&lt;/button&gt;
+    &lt;button class="btn btn-primary"&gt;Save&lt;/button&gt;
+  &lt;/footer&gt;
+&lt;/div&gt;</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <h2>CSS Implementation</h2>
+
+    <div class="code-block standalone">
+      <pre><code>/* Backdrop */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-4);
+  z-index: var(--z-modal);
+  animation: backdrop-fade-in var(--duration-normal) var(--ease-ease-out);
+}
+
+@keyframes backdrop-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Modal */
+.modal {
+  background: var(--bg-elevated);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-xl);
+  width: 100%;
+  max-width: 480px;
+  max-height: calc(100vh - var(--space-8));
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  animation: modal-slide-in var(--duration-slow) var(--ease-spring);
+}
+
+@keyframes modal-slide-in {
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+/* Header */
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-5) var(--space-6);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.modal-header h2 {
+  font-family: var(--font-display);
+  font-size: var(--text-lg);
+  font-weight: var(--font-weight-semibold);
+  margin: 0;
+}
+
+.modal-close {
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: transparent;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  font-size: var(--text-xl);
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--duration-fast) var(--ease-ease-out);
+}
+
+.modal-close:hover {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+}
+
+/* Body */
+.modal-body {
+  padding: var(--space-6);
+  overflow-y: auto;
+  flex: 1;
+}
+
+.modal-body p {
+  color: var(--text-secondary);
+  line-height: var(--leading-relaxed);
+}
+
+/* Footer */
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-6);
+  border-top: 1px solid var(--border-subtle);
+  background: var(--bg-secondary);
+}
+
+/* Sizes */
+.modal-sm { max-width: 320px; }
+.modal-md { max-width: 480px; }
+.modal-lg { max-width: 640px; }
+.modal-xl { max-width: 800px; }
+
+/* Glass variant */
+.modal-glass {
+  background: var(--bg-glass);
+  backdrop-filter: blur(var(--glass-blur-heavy));
+  border: 1px solid var(--border-glass);
+}</code></pre>
+    </div>
+  </section>
+
+  <section class="section">
+    <h2>Accessibility</h2>
+
+    <div class="a11y-guidelines">
+      <div class="a11y-item">
+        <h4>Focus Trap</h4>
+        <p>Focus is trapped within the modal. Tab cycles through focusable elements without leaving.</p>
+      </div>
+      <div class="a11y-item">
+        <h4>Escape to Close</h4>
+        <p>Pressing Escape dismisses the modal. Click outside (backdrop) also closes it.</p>
+      </div>
+      <div class="a11y-item">
+        <h4>ARIA Attributes</h4>
+        <p>Use <code>role="dialog"</code>, <code>aria-modal="true"</code>, and <code>aria-labelledby</code> for the title.</p>
+      </div>
+      <div class="a11y-item">
+        <h4>Focus Restoration</h4>
+        <p>When closed, focus returns to the element that triggered the modal.</p>
+      </div>
+    </div>
+  </section>
+</article>
+
+<!-- Demo Modals -->
+<div class="modal-backdrop demo-modal" id="basic-modal" style="display: none;">
+  <div class="modal modal-md" role="dialog" aria-modal="true">
+    <header class="modal-header">
+      <h2>Modal Title</h2>
+      <button class="modal-close" aria-label="Close">&times;</button>
+    </header>
+    <div class="modal-body">
+      <p>This is a standard modal dialog. It can contain any content - text, forms, images, or other components.</p>
+      <p>Click outside or press Escape to close.</p>
+    </div>
+    <footer class="modal-footer">
+      <button class="btn btn-secondary modal-cancel">Cancel</button>
+      <button class="btn btn-primary modal-confirm">Confirm</button>
+    </footer>
+  </div>
+</div>
+
+<div class="modal-backdrop demo-modal" id="sm-modal" style="display: none;">
+  <div class="modal modal-sm" role="dialog" aria-modal="true">
+    <header class="modal-header">
+      <h2>Small Modal</h2>
+      <button class="modal-close" aria-label="Close">&times;</button>
+    </header>
+    <div class="modal-body">
+      <p>Perfect for quick confirmations.</p>
+    </div>
+    <footer class="modal-footer">
+      <button class="btn btn-primary modal-confirm">OK</button>
+    </footer>
+  </div>
+</div>
+
+<div class="modal-backdrop demo-modal" id="md-modal" style="display: none;">
+  <div class="modal modal-md" role="dialog" aria-modal="true">
+    <header class="modal-header">
+      <h2>Medium Modal</h2>
+      <button class="modal-close" aria-label="Close">&times;</button>
+    </header>
+    <div class="modal-body">
+      <p>The default size, suitable for most dialogs and simple forms.</p>
+    </div>
+    <footer class="modal-footer">
+      <button class="btn btn-secondary modal-cancel">Cancel</button>
+      <button class="btn btn-primary modal-confirm">Continue</button>
+    </footer>
+  </div>
+</div>
+
+<div class="modal-backdrop demo-modal" id="lg-modal" style="display: none;">
+  <div class="modal modal-lg" role="dialog" aria-modal="true">
+    <header class="modal-header">
+      <h2>Large Modal</h2>
+      <button class="modal-close" aria-label="Close">&times;</button>
+    </header>
+    <div class="modal-body">
+      <p>Use for complex content, multi-step forms, or when you need more breathing room.</p>
+      <p>This size works well for displaying detailed information or larger forms with multiple sections.</p>
+    </div>
+    <footer class="modal-footer">
+      <button class="btn btn-secondary modal-cancel">Cancel</button>
+      <button class="btn btn-primary modal-confirm">Save Changes</button>
+    </footer>
+  </div>
+</div>
+
+<div class="modal-backdrop demo-modal" id="confirm-modal" style="display: none;">
+  <div class="modal modal-sm" role="dialog" aria-modal="true">
+    <header class="modal-header">
+      <h2>Delete this item?</h2>
+    </header>
+    <div class="modal-body">
+      <p>This action cannot be undone. The item will be permanently removed.</p>
+    </div>
+    <footer class="modal-footer">
+      <button class="btn btn-secondary modal-cancel">Cancel</button>
+      <button class="btn btn-error modal-confirm">Delete</button>
+    </footer>
+  </div>
+</div>
+
+<div class="modal-backdrop demo-modal" id="form-modal" style="display: none;">
+  <div class="modal modal-md" role="dialog" aria-modal="true">
+    <header class="modal-header">
+      <h2>Add New Item</h2>
+      <button class="modal-close" aria-label="Close">&times;</button>
+    </header>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">Name</label>
+        <input type="text" class="input" placeholder="Enter name">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Description</label>
+        <textarea class="textarea" rows="3" placeholder="Enter description"></textarea>
+      </div>
+    </div>
+    <footer class="modal-footer">
+      <button class="btn btn-secondary modal-cancel">Cancel</button>
+      <button class="btn btn-primary modal-confirm">Save</button>
+    </footer>
+  </div>
+</div>
+
+<style>
+.component-page { max-width: var(--container-max); }
+.page-header { margin-bottom: var(--space-12); }
+.breadcrumb { display: flex; align-items: center; gap: var(--space-2); font-size: var(--text-sm); color: var(--text-muted); margin-bottom: var(--space-4); }
+.breadcrumb a { color: var(--accent-text); text-decoration: none; }
+.breadcrumb a:hover { text-decoration: underline; }
+.page-header h1 { font-family: var(--font-display); font-size: var(--text-4xl); font-weight: var(--font-weight-bold); letter-spacing: -0.02em; margin-bottom: var(--space-4); }
+
+.demo-block { margin-top: var(--space-8); background: var(--bg-elevated); border: 1px solid var(--border-subtle); border-radius: var(--radius-xl); overflow: hidden; }
+.demo-block h3 { font-family: var(--font-display); font-size: var(--text-lg); font-weight: var(--font-weight-semibold); padding: var(--space-5) var(--space-6) 0; }
+.demo-description { font-size: var(--text-sm); color: var(--text-muted); padding: var(--space-2) var(--space-6) var(--space-4); }
+.demo-area { padding: var(--space-8) var(--space-6); background: var(--bg-secondary); display: flex; align-items: center; justify-content: center; flex-wrap: wrap; }
+
+.code-block { background: var(--bg-tertiary); border-top: 1px solid var(--border-subtle); }
+.code-block.standalone { background: var(--bg-elevated); border: 1px solid var(--border-subtle); border-radius: var(--radius-xl); margin-top: var(--space-6); }
+.code-block pre { margin: 0; padding: var(--space-4) var(--space-6); overflow-x: auto; }
+.code-block code { font-family: var(--font-mono); font-size: var(--text-sm); color: var(--text-secondary); line-height: var(--leading-relaxed); }
+
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: var(--space-2); padding: var(--space-2) var(--space-4); border-radius: var(--radius-md); font-family: var(--font-body); font-weight: var(--font-weight-semibold); font-size: var(--text-sm); cursor: pointer; transition: all var(--duration-fast) var(--ease-ease-out); border: none; }
+.btn-primary { background: var(--accent-primary); color: var(--text-inverse); }
+.btn-primary:hover { background: var(--accent-hover); transform: translateY(-1px); }
+.btn-secondary { background: var(--bg-tertiary); color: var(--text-primary); border: 1px solid var(--border-medium); }
+.btn-secondary:hover { background: var(--bg-secondary); border-color: var(--border-strong); }
+.btn-error { background: var(--error); color: white; }
+.btn-error:hover { opacity: 0.9; }
+
+.modal-backdrop { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.4); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; padding: var(--space-4); z-index: 1000; }
+.modal { background: var(--bg-elevated); border-radius: var(--radius-xl); box-shadow: var(--shadow-xl); width: 100%; max-height: calc(100vh - var(--space-8)); overflow: hidden; display: flex; flex-direction: column; animation: modal-slide-in 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); }
+.modal-sm { max-width: 320px; }
+.modal-md { max-width: 480px; }
+.modal-lg { max-width: 640px; }
+.modal-header { display: flex; align-items: center; justify-content: space-between; padding: var(--space-5) var(--space-6); border-bottom: 1px solid var(--border-subtle); }
+.modal-header h2 { font-family: var(--font-display); font-size: var(--text-lg); font-weight: var(--font-weight-semibold); margin: 0; }
+.modal-close { width: 32px; height: 32px; border: none; background: transparent; border-radius: var(--radius-md); cursor: pointer; font-size: var(--text-xl); color: var(--text-muted); display: flex; align-items: center; justify-content: center; transition: all var(--duration-fast) var(--ease-ease-out); }
+.modal-close:hover { background: var(--bg-secondary); color: var(--text-primary); }
+.modal-body { padding: var(--space-6); overflow-y: auto; flex: 1; }
+.modal-body p { color: var(--text-secondary); line-height: var(--leading-relaxed); margin-bottom: var(--space-3); }
+.modal-body p:last-child { margin-bottom: 0; }
+.modal-footer { display: flex; justify-content: flex-end; gap: var(--space-3); padding: var(--space-4) var(--space-6); border-top: 1px solid var(--border-subtle); background: var(--bg-secondary); }
+
+.form-group { margin-bottom: var(--space-4); }
+.form-group:last-child { margin-bottom: 0; }
+.form-label { display: block; font-size: var(--text-sm); font-weight: var(--font-weight-medium); color: var(--text-secondary); margin-bottom: var(--space-2); }
+.input, .textarea { width: 100%; padding: var(--space-3) var(--space-4); font-family: var(--font-body); font-size: var(--text-sm); color: var(--text-primary); background: var(--bg-tertiary); border: 1px solid var(--border-medium); border-radius: var(--radius-md); transition: all var(--duration-fast) var(--ease-ease-out); }
+.input:focus, .textarea:focus { outline: none; border-color: var(--accent-primary); box-shadow: 0 0 0 3px var(--accent-subtle); }
+.textarea { resize: vertical; min-height: 80px; }
+
+@keyframes modal-slide-in { from { opacity: 0; transform: scale(0.95) translateY(10px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+
+.a11y-guidelines { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: var(--space-5); margin-top: var(--space-6); }
+.a11y-item { background: var(--bg-elevated); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: var(--space-5); }
+.a11y-item h4 { font-family: var(--font-display); font-weight: var(--font-weight-semibold); margin-bottom: var(--space-2); color: var(--accent-text); }
+.a11y-item p { font-size: var(--text-sm); color: var(--text-secondary); line-height: var(--leading-relaxed); }
+.a11y-item code { background: var(--bg-secondary); padding: var(--space-1) var(--space-2); border-radius: var(--radius-sm); font-family: var(--font-mono); font-size: var(--text-xs); }
+
+@media (max-width: 768px) { .page-header h1 { font-size: var(--text-3xl); } }
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  var modalTriggers = {
+    'open-basic-modal': 'basic-modal',
+    'open-sm-modal': 'sm-modal',
+    'open-md-modal': 'md-modal',
+    'open-lg-modal': 'lg-modal',
+    'open-confirm-modal': 'confirm-modal',
+    'open-form-modal': 'form-modal'
+  };
+
+  Object.keys(modalTriggers).forEach(function(triggerId) {
+    var trigger = document.getElementById(triggerId);
+    var modal = document.getElementById(modalTriggers[triggerId]);
+
+    if (trigger && modal) {
+      trigger.addEventListener('click', function() {
+        modal.style.display = 'flex';
+      });
+    }
+  });
+
+  document.querySelectorAll('.demo-modal').forEach(function(modal) {
+    modal.addEventListener('click', function(e) {
+      if (e.target === modal || e.target.classList.contains('modal-close') ||
+          e.target.classList.contains('modal-cancel') || e.target.classList.contains('modal-confirm')) {
+        modal.style.display = 'none';
+      }
+    });
+  });
+
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+      document.querySelectorAll('.demo-modal').forEach(function(modal) {
+        modal.style.display = 'none';
+      });
+    }
+  });
+});
+</script>

@@ -1,0 +1,659 @@
+/* =======================================================
+   PIXAR ANIMATION POLISH - Apple-Level Micro-interactions
+   =======================================================
+   
+   Implements the 12 Principles of Animation for web:
+   - Squash & Stretch
+   - Anticipation
+   - Follow-through & Overlapping Action
+   - Slow In / Slow Out
+   - Arcs
+   - Secondary Action
+   - Appeal
+   
+   All animations respect prefers-reduced-motion.
+   =======================================================
+*/
+
+/* ===== EASING CURVES (from animation.json) ===== */
+:root {
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-spring-bouncy: cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  --ease-expo-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-organic: cubic-bezier(0.4, 0.2, 0.2, 1.1);
+  --ease-playful: cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  --ease-gentle: cubic-bezier(0.25, 0.1, 0.25, 1);
+  --ease-anticipate: cubic-bezier(0.38, -0.4, 0.88, 0.65);
+}
+
+/* =======================================================
+   1. HERO ORB - Alive & Breathing
+   =======================================================
+*/
+
+/* Base breathing animation - avatar feels ALIVE */
+/* NOTE: Animation only on __orb, NOT container - container animation causes layering artifacts */
+.hero-ferni__orb,
+[data-hero-orb] {
+  animation: avatarBreathe 5000ms ease-in-out infinite;
+  will-change: transform;
+}
+
+@keyframes avatarBreathe {
+  0%, 100% {
+    transform: scale3d(1, 1, 1) translateY(0);
+  }
+  40% {
+    transform: scale3d(0.994, 1.012, 1) translateY(-2px);
+  }
+  50% {
+    transform: scale3d(0.994, 1.012, 1) translateY(-2px);
+  }
+  90% {
+    transform: scale3d(1, 1, 1) translateY(0);
+  }
+}
+
+/* Gentle float effect - like balloons in Up */
+.hero-ferni__orb {
+  animation: 
+    avatarBreathe 5000ms ease-in-out infinite,
+    avatarFloat 8000ms ease-in-out infinite;
+}
+
+@keyframes avatarFloat {
+  0%, 100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  33% {
+    transform: translateY(-4px) rotate(0.5deg);
+  }
+  66% {
+    transform: translateY(-2px) rotate(-0.5deg);
+  }
+}
+
+/* Glow ring pulses with breathing */
+.hero-ferni__orb::after {
+  content: '';
+  position: absolute;
+  inset: -8px;
+  border-radius: 50% !important; /* Explicit circular shape */
+  background: radial-gradient(circle, var(--color-ferni-glow, rgba(74, 103, 65, 0.3)) 0%, transparent 70%);
+  animation: avatarGlowRing 5000ms ease-in-out infinite;
+  pointer-events: none;
+  z-index: -1;
+}
+
+/* Ensure hero-ferni container has no layering - prevent "box" artifact */
+.hero-ferni {
+  /* No animation on container - only animate __orb child */
+  animation: none !important;
+  will-change: auto !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  border: none !important;
+  filter: none !important;
+  backdrop-filter: none !important;
+  /* Disable compositor layer creation on container */
+  transform: none !important;
+}
+
+@keyframes avatarGlowRing {
+  0%, 100% {
+    opacity: 0.15;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.35;
+    transform: scale(1.02);
+  }
+}
+
+/* =======================================================
+   2. BUTTON MICRO-INTERACTIONS - Pixar Joy
+   =======================================================
+*/
+
+/* All buttons get spring physics */
+.btn {
+  transition: 
+    transform 150ms var(--ease-spring),
+    box-shadow 200ms var(--ease-expo-out),
+    background-color 150ms ease;
+  will-change: transform;
+}
+
+/* Anticipation on hover (wind-up before action) */
+.btn:hover {
+  animation: buttonAnticipate 150ms var(--ease-anticipate) forwards;
+}
+
+@keyframes buttonAnticipate {
+  0% {
+    transform: scale(1) translateY(0);
+  }
+  40% {
+    transform: scale(0.98) translateY(1px); /* Wind-up */
+  }
+  100% {
+    transform: scale(1.02) translateY(-2px); /* Spring release */
+  }
+}
+
+/* Squash on press */
+.btn:active {
+  transform: scale(0.96) translateY(1px) !important;
+  transition-duration: 50ms;
+}
+
+/* Primary button gets special glow */
+.btn--primary:hover {
+  box-shadow: 
+    0 8px 24px var(--color-ferni-glow, rgba(74, 103, 65, 0.35)),
+    0 0 40px var(--color-ferni-glow, rgba(74, 103, 65, 0.15));
+}
+
+/* CTA buttons - extra joy bounce on click */
+.btn--primary:active {
+  animation: buttonJoyBounce 400ms var(--ease-spring) forwards;
+}
+
+@keyframes buttonJoyBounce {
+  0% { transform: scale(0.96); }
+  40% { transform: scale(1.02); }
+  60% { transform: scale(0.99); }
+  80% { transform: scale(1.01); }
+  100% { transform: scale(1); }
+}
+
+/* =======================================================
+   3. CARD INTERACTIONS - Lift & Settle
+   =======================================================
+*/
+
+.card,
+.team-card,
+.persona-card,
+.pricing-card,
+.use-case,
+.memory-demo__card {
+  transition: 
+    transform 200ms var(--ease-spring),
+    box-shadow 200ms var(--ease-expo-out),
+    border-color 150ms ease;
+  will-change: transform;
+}
+
+/* Hover lift with spring overshoot */
+.card:hover,
+.team-card:hover,
+.persona-card:hover,
+.use-case:hover {
+  transform: translateY(-4px) scale(1.005);
+  box-shadow: var(--shadow-xl, 0 12px 32px rgba(0, 0, 0, 0.15));
+}
+
+/* Press down - feels tactile */
+.card:active,
+.team-card:active,
+.persona-card:active {
+  transform: translateY(-2px) scale(0.995);
+  transition-duration: 50ms;
+}
+
+/* =======================================================
+   4. PERSONA CARDS - Character-Specific Animations
+   =======================================================
+*/
+
+/* Each persona has unique timing from animation.json */
+.team-card[data-persona="ferni"] { --persona-timing: 1.0; --persona-bounce: 0.7; }
+.team-card[data-persona="peter"] { --persona-timing: 0.8; --persona-bounce: 0.6; }
+.team-card[data-persona="alex"] { --persona-timing: 1.1; --persona-bounce: 0.5; }
+.team-card[data-persona="maya"] { --persona-timing: 0.95; --persona-bounce: 0.4; }
+.team-card[data-persona="jordan"] { --persona-timing: 0.85; --persona-bounce: 0.8; }
+.team-card[data-persona="nayan"] { --persona-timing: 1.2; --persona-bounce: 0.3; }
+
+/* Persona avatar breathes */
+.team-card__avatar,
+.persona-card__avatar {
+  animation: avatarBreathe calc(5000ms * var(--persona-timing, 1)) ease-in-out infinite;
+}
+
+/* Curious tilt on hover (WALL-E examining something) */
+.team-card:hover .team-card__avatar,
+.persona-card:hover .persona-card__avatar {
+  animation: curiousTilt 600ms var(--ease-organic) forwards;
+}
+
+@keyframes curiousTilt {
+  0% { transform: rotate(0deg) translateX(0); }
+  30% { transform: rotate(-4deg) translateX(-2px); }
+  60% { transform: rotate(3deg) translateX(1px); }
+  100% { transform: rotate(0deg) translateX(0); }
+}
+
+/* =======================================================
+   5. SCROLL REVEAL - Cinematic Entrances
+   =======================================================
+*/
+
+/* Progressive enhancement: content visible by default (no JS required) */
+.reveal {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  filter: none;
+  transition:
+    opacity 700ms var(--ease-expo-out),
+    transform 700ms var(--ease-expo-out),
+    filter 300ms ease;
+  will-change: opacity, transform, filter;
+}
+
+/* Only hide and animate when JavaScript has loaded */
+html.loaded .reveal:not(.visible):not(.is-visible) {
+  opacity: 0;
+  transform: translateY(30px) scale(0.98);
+  filter: blur(3px);
+}
+
+html.loaded .reveal.visible,
+html.loaded .reveal.is-visible {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  filter: blur(0);
+}
+
+/* Staggered reveal for grids */
+.stagger > .reveal:nth-child(1) { transition-delay: 0ms; }
+.stagger > .reveal:nth-child(2) { transition-delay: 80ms; }
+.stagger > .reveal:nth-child(3) { transition-delay: 160ms; }
+.stagger > .reveal:nth-child(4) { transition-delay: 240ms; }
+.stagger > .reveal:nth-child(5) { transition-delay: 320ms; }
+.stagger > .reveal:nth-child(6) { transition-delay: 400ms; }
+
+/* Direction variants */
+.reveal-left {
+  transform: translateX(-30px) scale(0.98);
+}
+
+.reveal-right {
+  transform: translateX(30px) scale(0.98);
+}
+
+.reveal-scale {
+  transform: scale(0.9);
+}
+
+.reveal-left.visible,
+.reveal-right.visible,
+.reveal-scale.visible {
+  transform: translateX(0) scale(1);
+}
+
+/* =======================================================
+   6. FAQ ACCORDION - Organic Open/Close
+   =======================================================
+*/
+
+/* Icon rotates with anticipation */
+.faq-item .faq-icon,
+details .faq-icon {
+  transition: transform 200ms var(--ease-spring);
+}
+
+details[open] .faq-icon {
+  transform: rotate(45deg);
+}
+
+/* Content expands organically */
+details .faq-content,
+.faq-item .faq-content {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 300ms var(--ease-expo-out);
+  overflow: hidden;
+}
+
+details[open] .faq-content {
+  grid-template-rows: 1fr;
+}
+
+details .faq-content > * {
+  overflow: hidden;
+}
+
+/* Summary has hover feedback */
+details summary {
+  transition: background-color 150ms ease;
+}
+
+details summary:hover {
+  background-color: var(--color-bg-hover, rgba(0, 0, 0, 0.02));
+}
+
+/* =======================================================
+   7. MEMORY TIMELINE - Story Transitions
+   =======================================================
+*/
+
+.memory-demo__moment {
+  transition: all 400ms var(--ease-organic);
+}
+
+.memory-demo__card {
+  transition: 
+    box-shadow 400ms ease,
+    transform 300ms var(--ease-spring);
+}
+
+/* Ferni card pulses subtly */
+.memory-demo__card--ferni {
+  animation: memoryPulse 15s ease-in-out infinite;
+}
+
+@keyframes memoryPulse {
+  0%, 100% {
+    box-shadow: 0 4px 12px rgba(74, 103, 65, 0.1);
+  }
+  50% {
+    box-shadow: 0 4px 24px rgba(74, 103, 65, 0.2);
+  }
+}
+
+/* Text updates with fade-slide */
+.memory-demo__date,
+.memory-demo__text {
+  transition: 
+    opacity 300ms ease,
+    transform 300ms var(--ease-expo-out);
+}
+
+/* =======================================================
+   8. 2AM SECTION - Magical Night Atmosphere
+   =======================================================
+*/
+
+.section-2am {
+  position: relative;
+  overflow: hidden;
+}
+
+/* Floating dust particles */
+.section-2am::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: 
+    radial-gradient(1px 1px at 10% 20%, rgba(255,255,255,0.15), transparent),
+    radial-gradient(1px 1px at 30% 50%, rgba(255,255,255,0.1), transparent),
+    radial-gradient(1.5px 1.5px at 50% 10%, rgba(255,255,255,0.2), transparent),
+    radial-gradient(1px 1px at 70% 60%, rgba(255,255,255,0.12), transparent),
+    radial-gradient(1px 1px at 90% 30%, rgba(255,255,255,0.08), transparent);
+  background-size: 100% 100%;
+  animation: dustFloat 20s linear infinite;
+  pointer-events: none;
+  opacity: 0.6;
+}
+
+@keyframes dustFloat {
+  0% {
+    transform: translateY(0);
+  }
+  100% {
+    transform: translateY(-20px);
+  }
+}
+
+/* Blinking clock colon */
+.time-colon,
+.section-2am .time-display span:nth-child(2) {
+  animation: colonBlink 1s ease-in-out infinite;
+}
+
+@keyframes colonBlink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+/* Warm presence glow at 2am */
+.section-2am .ferni-avatar,
+.section-2am [data-ferni-avatar] {
+  animation: warmPresence 4s ease-in-out infinite;
+}
+
+@keyframes warmPresence {
+  0%, 100% {
+    box-shadow: 0 0 30px rgba(74, 103, 65, 0.3);
+    transform: scale(1);
+  }
+  50% {
+    box-shadow: 0 0 45px rgba(74, 103, 65, 0.4);
+    transform: scale(1.01);
+  }
+}
+
+/* =======================================================
+   9. GRADIENT TEXT - Shimmer Effect
+   =======================================================
+*/
+
+.text-gradient,
+.hero__headline-accent,
+.gradient-text {
+  background: linear-gradient(
+    135deg,
+    var(--color-ferni-secondary) 0%,
+    var(--color-ferni-secondary) 25%,
+    var(--color-ferni) 50%,
+    var(--color-ferni) 75%,
+    var(--color-ferni) 100%
+  );
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.text-gradient-alive,
+.hero__headline-accent {
+  animation: gradientShift 6s ease infinite;
+}
+
+@keyframes gradientShift {
+  0%, 100% { background-position: 0% center; }
+  50% { background-position: 100% center; }
+}
+
+/* =======================================================
+   10. LOADING STATES - Skeleton & Shimmer
+   =======================================================
+*/
+
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    rgba(245, 242, 237, 1) 0%,
+    rgba(235, 230, 223, 1) 20%,
+    rgba(245, 242, 237, 1) 40%,
+    rgba(245, 242, 237, 1) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+  border-radius: var(--radius-sm);
+}
+
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* Button loading spinner */
+.btn-loading {
+  position: relative;
+  pointer-events: none;
+}
+
+.btn-loading::after {
+  content: '';
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  border: 2px solid transparent;
+  border-top-color: currentColor;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* =======================================================
+   11. SHOWCASE CHAT - Conversation Animations
+   =======================================================
+*/
+
+.showcase__app-bubble {
+  animation: bubbleAppear 300ms var(--ease-expo-out) forwards;
+  opacity: 0;
+  transform: translateY(8px);
+}
+
+.showcase__app-bubble:nth-child(1) { animation-delay: 100ms; }
+.showcase__app-bubble:nth-child(2) { animation-delay: 200ms; }
+.showcase__app-bubble:nth-child(3) { animation-delay: 300ms; }
+.showcase__app-bubble:nth-child(4) { animation-delay: 400ms; }
+
+@keyframes bubbleAppear {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Insight badge shimmer */
+.bubble-insight {
+  position: relative;
+  overflow: hidden;
+}
+
+.bubble-insight::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.1),
+    transparent
+  );
+  animation: insightShimmer 3s ease-in-out infinite;
+}
+
+@keyframes insightShimmer {
+  0%, 100% { left: -100%; }
+  50% { left: 100%; }
+}
+
+/* =======================================================
+   12. DARK MODE ANIMATION ADJUSTMENTS
+   =======================================================
+*/
+
+@media (prefers-color-scheme: dark) {
+  /* Glow effects are brighter in dark mode */
+  .hero-ferni__orb::after {
+    opacity: 0.25;
+  }
+  
+  @keyframes avatarGlowRing {
+    0%, 100% {
+      opacity: 0.25;
+      transform: scale(1);
+    }
+    50% {
+      opacity: 0.45;
+      transform: scale(1.02);
+    }
+  }
+  
+  /* Dust particles more visible */
+  .section-2am::before {
+    opacity: 0.8;
+  }
+  
+  /* Skeleton shimmer for dark mode */
+  .skeleton {
+    background: linear-gradient(
+      90deg,
+      rgba(58, 51, 46, 1) 0%,
+      rgba(68, 61, 54, 1) 20%,
+      rgba(58, 51, 46, 1) 40%,
+      rgba(58, 51, 46, 1) 100%
+    );
+  }
+}
+
+/* =======================================================
+   13. REDUCED MOTION
+   =======================================================
+*/
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .reveal,
+  html.loaded .reveal,
+  html.loaded .reveal:not(.visible):not(.is-visible) {
+    opacity: 1 !important;
+    transform: none !important;
+    filter: none !important;
+  }
+  
+  .hero-ferni,
+  .hero-ferni__orb,
+  [data-hero-orb],
+  .team-card__avatar,
+  .persona-card__avatar {
+    animation: none !important;
+  }
+  
+  .text-gradient-alive,
+  .hero__headline-accent {
+    animation: none !important;
+  }
+  
+  .skeleton {
+    animation: none !important;
+  }
+  
+  /* Keep functional state changes */
+  .btn:hover,
+  .card:hover {
+    transform: none !important;
+  }
+}
+
+/* =======================================================
+   14. MAGNETIC CURSOR (Desktop Only)
+   =======================================================
+*/
+
+@media (hover: hover) and (pointer: fine) {
+  .btn--magnetic {
+    transition: transform 150ms var(--ease-gentle);
+  }
+}
+

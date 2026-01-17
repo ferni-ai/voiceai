@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300" width="400" height="300">
+  <title>Ferni Team</title>
+  <desc>The complete Ferni team: 6 AI specialists working together</desc>
+
+  <!-- Background -->
+  <rect width="400" height="300" fill="#FAF8F5"/>
+
+  <!-- Ferni (center) -->
+  <g transform="translate(200, 100)">
+    <circle cx="0" cy="0" r="35" fill="#4A6741"/>
+    <ellipse cx="-10" cy="-3" rx="5" ry="6.5" fill="white"/>
+    <ellipse cx="10" cy="-3" rx="5" ry="6.5" fill="white"/>
+  </g>
+
+  <!-- Maya (left) -->
+  <g transform="translate(80, 180)">
+    <circle cx="0" cy="0" r="30" fill="#A67A6A"/>
+    <ellipse cx="-8" cy="-2" rx="4" ry="5.5" fill="white"/>
+    <ellipse cx="8" cy="-2" rx="4" ry="5.5" fill="white"/>
+  </g>
+
+  <!-- Peter (right) -->
+  <g transform="translate(320, 180)">
+    <circle cx="0" cy="0" r="30" fill="#3A6B73"/>
+    <ellipse cx="-8" cy="-2" rx="4" ry="5.5" fill="white"/>
+    <ellipse cx="8" cy="-2" rx="4" ry="5.5" fill="white"/>
+  </g>
+
+  <!-- Jordan (center-left bottom) -->
+  <g transform="translate(140, 250)">
+    <circle cx="0" cy="0" r="25" fill="#C4856A"/>
+    <ellipse cx="-7" cy="-2" rx="3.5" ry="4.5" fill="white"/>
+    <ellipse cx="7" cy="-2" rx="3.5" ry="4.5" fill="white"/>
+  </g>
+
+  <!-- Alex (center bottom) -->
+  <g transform="translate(200, 240)">
+    <circle cx="0" cy="0" r="25" fill="#5A6B8A"/>
+    <ellipse cx="-7" cy="-2" rx="3.5" ry="4.5" fill="white"/>
+    <ellipse cx="7" cy="-2" rx="3.5" ry="4.5" fill="white"/>
+  </g>
+
+  <!-- Nayan (center-right bottom) -->
+  <g transform="translate(260, 250)">
+    <circle cx="0" cy="0" r="25" fill="#B8956A"/>
+    <ellipse cx="-7" cy="-2" rx="3.5" ry="4.5" fill="white"/>
+    <ellipse cx="7" cy="-2" rx="3.5" ry="4.5" fill="white"/>
+  </g>
+</svg>

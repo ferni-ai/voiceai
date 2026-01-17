@@ -1,0 +1,255 @@
+{
+  "$schema": "https://json-schema.org/draft-07/schema#",
+  "description": "Ferni State Layer Tokens - Material 3-inspired interaction states with emotional awareness",
+
+  "_designPhilosophy": {
+    "principle": "States should feel alive, not mechanical. Every interaction is a micro-conversation.",
+    "source": "Material 3 state layers + Ferni emotional intelligence",
+    "wcagCompliance": "All states maintain WCAG AA contrast ratios"
+  },
+
+  "stateOpacity": {
+    "_description": "Opacity overlays for interaction states - applied on top of surface colors",
+    "_usage": "Use with rgba(var(--state-color), var(--state-opacity-*))",
+
+    "hover": {
+      "value": 0.08,
+      "description": "Subtle acknowledgment - 'I see you'"
+    },
+    "focus": {
+      "value": 0.12,
+      "description": "Active attention - 'I'm listening'"
+    },
+    "pressed": {
+      "value": 0.12,
+      "description": "Confirmation - 'Got it'"
+    },
+    "dragged": {
+      "value": 0.16,
+      "description": "In motion - 'Moving with you'"
+    },
+    "selected": {
+      "value": 0.12,
+      "description": "Chosen - 'This one matters'"
+    },
+    "activated": {
+      "value": 0.12,
+      "description": "Active state - 'On and ready'"
+    }
+  },
+
+  "disabledStates": {
+    "_description": "Disabled states reduce presence without losing identity",
+
+    "container": {
+      "opacity": 0.12,
+      "description": "Container becomes whisper-quiet"
+    },
+    "content": {
+      "opacity": 0.38,
+      "description": "Content fades but remains legible"
+    },
+    "cursor": "not-allowed",
+    "pointerEvents": "none"
+  },
+
+  "stateColors": {
+    "_description": "Colors used for state overlays - context-aware",
+
+    "onSurface": {
+      "light": "44, 37, 32",
+      "dark": "250, 248, 245",
+      "_note": "RGB values for rgba() usage"
+    },
+    "onPrimary": {
+      "light": "255, 255, 255",
+      "dark": "255, 255, 255"
+    },
+    "onAccent": {
+      "light": "255, 255, 255",
+      "dark": "255, 255, 255"
+    },
+    "persona": {
+      "_note": "Uses --persona-primary RGB values",
+      "usage": "var(--persona-state-color)"
+    }
+  },
+
+  "emotionalStates": {
+    "_description": "Ferni-unique: States that respond to emotional context",
+
+    "calm": {
+      "hoverOpacity": 0.06,
+      "transitionDuration": "300ms",
+      "easing": "cubic-bezier(0.4, 0, 0.2, 1)",
+      "_note": "Slower, gentler transitions when user is calm"
+    },
+    "energized": {
+      "hoverOpacity": 0.10,
+      "transitionDuration": "150ms",
+      "easing": "cubic-bezier(0.34, 1.56, 0.64, 1)",
+      "_note": "Snappier, more responsive when user is energized"
+    },
+    "stressed": {
+      "hoverOpacity": 0.05,
+      "transitionDuration": "400ms",
+      "easing": "cubic-bezier(0.4, 0, 0.2, 1)",
+      "_note": "Calmer, less stimulating when user is stressed"
+    },
+    "focused": {
+      "hoverOpacity": 0.08,
+      "transitionDuration": "200ms",
+      "easing": "cubic-bezier(0.4, 0, 0.6, 1)",
+      "_note": "Precise, minimal distraction when user is focused"
+    }
+  },
+
+  "focusRing": {
+    "_description": "High-visibility focus indicators for accessibility",
+
+    "default": {
+      "width": "2px",
+      "offset": "2px",
+      "style": "solid",
+      "color": "var(--color-accent-primary)",
+      "shadow": "0 0 0 2px var(--color-utility-focusRing)"
+    },
+    "inset": {
+      "width": "2px",
+      "offset": "-2px",
+      "style": "solid",
+      "color": "var(--color-accent-primary)"
+    },
+    "prominent": {
+      "width": "3px",
+      "offset": "3px",
+      "style": "solid",
+      "color": "var(--color-accent-primary)",
+      "shadow": "0 0 0 3px var(--color-utility-focusRing), 0 0 8px var(--color-accent-glow)"
+    },
+    "persona": {
+      "width": "2px",
+      "offset": "2px",
+      "style": "solid",
+      "color": "var(--persona-primary)",
+      "shadow": "0 0 0 2px var(--persona-glow)"
+    }
+  },
+
+  "stateTransitions": {
+    "_description": "Timing for state changes - feels natural, not robotic",
+
+    "enter": {
+      "duration": "150ms",
+      "easing": "cubic-bezier(0.0, 0.0, 0.2, 1)",
+      "_note": "Quick entry - responsive acknowledgment"
+    },
+    "exit": {
+      "duration": "75ms",
+      "easing": "cubic-bezier(0.4, 0.0, 1, 1)",
+      "_note": "Fast exit - clean release"
+    },
+    "change": {
+      "duration": "200ms",
+      "easing": "cubic-bezier(0.4, 0.0, 0.2, 1)",
+      "_note": "State-to-state transitions"
+    }
+  },
+
+  "ripple": {
+    "_description": "Material-style ripple effects with Ferni warmth",
+
+    "duration": "450ms",
+    "easing": "cubic-bezier(0.4, 0, 0.2, 1)",
+    "scale": {
+      "start": 0,
+      "end": 2.5
+    },
+    "opacity": {
+      "start": 0.24,
+      "end": 0
+    },
+    "color": {
+      "surface": "var(--state-color-onSurface)",
+      "primary": "var(--color-accent-primary)",
+      "persona": "var(--persona-primary)"
+    },
+    "bounded": {
+      "_note": "Ripple contained within element bounds",
+      "overflow": "hidden"
+    },
+    "unbounded": {
+      "_note": "Ripple extends beyond element (for icons)",
+      "overflow": "visible",
+      "scale": 1.2
+    }
+  },
+
+  "skeleton": {
+    "_description": "Loading skeleton states - content anticipation",
+
+    "background": {
+      "light": "rgba(44, 37, 32, 0.08)",
+      "dark": "rgba(250, 248, 245, 0.08)"
+    },
+    "shimmer": {
+      "gradient": "linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.15) 50%, transparent 100%)",
+      "duration": "1.5s",
+      "easing": "ease-in-out"
+    },
+    "pulse": {
+      "opacity": {
+        "min": 0.5,
+        "max": 1
+      },
+      "duration": "1.5s",
+      "easing": "ease-in-out"
+    },
+    "borderRadius": "var(--radius-md)"
+  },
+
+  "validation": {
+    "_description": "Form validation states",
+
+    "error": {
+      "borderColor": "var(--color-semantic-error)",
+      "backgroundColor": "var(--color-semantic-errorTint)",
+      "textColor": "var(--color-semantic-error)",
+      "iconColor": "var(--color-semantic-error)",
+      "focusRing": "0 0 0 2px var(--color-semantic-errorGlow)"
+    },
+    "success": {
+      "borderColor": "var(--color-semantic-success)",
+      "backgroundColor": "var(--color-semantic-successTint)",
+      "textColor": "var(--color-semantic-success)",
+      "iconColor": "var(--color-semantic-success)",
+      "focusRing": "0 0 0 2px var(--color-semantic-successGlow)"
+    },
+    "warning": {
+      "borderColor": "var(--color-semantic-warning)",
+      "backgroundColor": "var(--color-semantic-warningTint)",
+      "textColor": "var(--color-semantic-warning)",
+      "iconColor": "var(--color-semantic-warning)",
+      "focusRing": "0 0 0 2px var(--color-semantic-warningGlow)"
+    }
+  },
+
+  "cssVariables": {
+    "_description": "CSS custom property mappings for runtime state application",
+
+    "stateLayer": {
+      "--state-hover": "rgba(var(--state-color), 0.08)",
+      "--state-focus": "rgba(var(--state-color), 0.12)",
+      "--state-pressed": "rgba(var(--state-color), 0.12)",
+      "--state-dragged": "rgba(var(--state-color), 0.16)",
+      "--state-selected": "rgba(var(--state-color), 0.12)",
+      "--state-disabled-container": "rgba(var(--state-color), 0.12)",
+      "--state-disabled-content": "rgba(var(--state-color), 0.38)"
+    },
+    "transitions": {
+      "--state-transition-enter": "150ms cubic-bezier(0.0, 0.0, 0.2, 1)",
+      "--state-transition-exit": "75ms cubic-bezier(0.4, 0.0, 1, 1)",
+      "--state-transition-change": "200ms cubic-bezier(0.4, 0.0, 0.2, 1)"
+    }
+  }
+}

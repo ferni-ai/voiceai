@@ -76,7 +76,7 @@ export async function evolutionScheduler(
     const personaIds = [
       'ferni',
       'jack-bogle',
-      'peter-lynch',
+      'peter-john',
       'maya-santos',
       'jordan-taylor',
       'alex-chen',

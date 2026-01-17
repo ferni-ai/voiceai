@@ -10,6 +10,7 @@
  * - We're there when you need us, not when we want attention
  */
 
+import { apiGet, apiPost } from '../utils/api.js';
 import { createLogger } from '../utils/logger.js';
 
 const log = createLogger('OutreachService');
@@ -62,29 +63,6 @@ export interface OutreachResult {
 
 const API_BASE = '/api/outreach';
 
-// Helper to make authenticated API calls
-async function apiCall<T>(
-  endpoint: string,
-  method: 'GET' | 'POST' = 'GET',
-  body?: unknown
-): Promise<T> {
-  const response = await fetch(`${API_BASE}${endpoint}`, {
-    method,
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    credentials: 'include', // Include auth cookies
-    body: body ? JSON.stringify(body) : undefined,
-  });
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`API error: ${response.status} - ${errorText}`);
-  }
-
-  return response.json();
-}
-
 // ============================================================================
 // SERVICE
 // ============================================================================
@@ -118,9 +96,13 @@ class OutreachService {
     }
 
     try {
-      const result = await apiCall<OutreachResult>('/milestone', 'POST', data);
-      log.info('Milestone outreach sent:', data.milestoneId, result);
-      return result;
+      const response = await apiPost<OutreachResult>(`${API_BASE}/milestone`, data);
+      if (!response.ok || !response.data) {
+        log.error({ error: response.error }, 'Failed to send milestone outreach');
+        return { success: false, error: response.error || 'API error' };
+      }
+      log.info('Milestone outreach sent:', data.milestoneId, response.data);
+      return response.data;
     } catch (error) {
       log.error('Failed to send milestone outreach:', error);
       return { success: false, error: String(error) };
@@ -136,9 +118,13 @@ class OutreachService {
    */
   async sendWelcomeEmail(sequence: 'day0' | 'day3' | 'week' = 'day0'): Promise<OutreachResult> {
     try {
-      const result = await apiCall<OutreachResult>('/welcome', 'POST', { sequence });
-      log.info('Welcome email sent:', sequence, result);
-      return result;
+      const response = await apiPost<OutreachResult>(`${API_BASE}/welcome`, { sequence });
+      if (!response.ok || !response.data) {
+        log.error({ error: response.error }, 'Failed to send welcome email');
+        return { success: false, error: response.error || 'API error' };
+      }
+      log.info('Welcome email sent:', sequence, response.data);
+      return response.data;
     } catch (error) {
       log.error('Failed to send welcome email:', error);
       return { success: false, error: String(error) };
@@ -159,9 +145,13 @@ class OutreachService {
     }
 
     try {
-      const result = await apiCall<OutreachResult>('/streak-reminder', 'POST', { streak });
-      log.info('Streak reminder sent:', streak, result);
-      return result;
+      const response = await apiPost<OutreachResult>(`${API_BASE}/streak-reminder`, { streak });
+      if (!response.ok || !response.data) {
+        log.error({ error: response.error }, 'Failed to send streak reminder');
+        return { success: false, error: response.error || 'API error' };
+      }
+      log.info('Streak reminder sent:', streak, response.data);
+      return response.data;
     } catch (error) {
       log.error('Failed to send streak reminder:', error);
       return { success: false, error: String(error) };
@@ -177,9 +167,13 @@ class OutreachService {
    */
   async setContactInfo(info: ContactInfo): Promise<OutreachResult> {
     try {
-      const result = await apiCall<OutreachResult>('/contact', 'POST', info);
+      const response = await apiPost<OutreachResult>(`${API_BASE}/contact`, info);
+      if (!response.ok || !response.data) {
+        log.error({ error: response.error }, 'Failed to set contact info');
+        return { success: false, error: response.error || 'API error' };
+      }
       log.info('Contact info updated');
-      return result;
+      return response.data;
     } catch (error) {
       log.error('Failed to set contact info:', error);
       return { success: false, error: String(error) };
@@ -195,9 +189,13 @@ class OutreachService {
    */
   async sendVerificationCode(phone: string): Promise<OutreachResult> {
     try {
-      const result = await apiCall<OutreachResult>('/verify-phone', 'POST', { phone });
+      const response = await apiPost<OutreachResult>(`${API_BASE}/verify-phone`, { phone });
+      if (!response.ok || !response.data) {
+        log.error({ error: response.error }, 'Failed to send verification code');
+        return { success: false, error: response.error || 'API error' };
+      }
       log.info('Verification code sent');
-      return result;
+      return response.data;
     } catch (error) {
       log.error('Failed to send verification code:', error);
       return { success: false, error: String(error) };
@@ -209,12 +207,16 @@ class OutreachService {
    */
   async verifyPhone(phone: string, code: string): Promise<OutreachResult> {
     try {
-      const result = await apiCall<OutreachResult>('/verify-phone/confirm', 'POST', {
+      const response = await apiPost<OutreachResult>(`${API_BASE}/verify-phone/confirm`, {
         phone,
         code,
       });
+      if (!response.ok || !response.data) {
+        log.error({ error: response.error }, 'Failed to verify phone');
+        return { success: false, error: response.error || 'API error' };
+      }
       log.info('Phone verified');
-      return result;
+      return response.data;
     } catch (error) {
       log.error('Failed to verify phone:', error);
       return { success: false, error: String(error) };
@@ -230,12 +232,19 @@ class OutreachService {
    */
   async fetchPreferences(): Promise<OutreachPreferences> {
     try {
-      const result = await apiCall<{
+      const response = await apiGet<{
         success: boolean;
         preferences: Partial<OutreachPreferences>;
         allowedChannels: string[];
         outreachEnabled: boolean;
-      }>('/preferences', 'GET');
+      }>(`${API_BASE}/preferences`);
+
+      if (!response.ok || !response.data) {
+        log.warn({ error: response.error }, 'Failed to fetch preferences, using local');
+        return this.localPreferences;
+      }
+
+      const result = response.data;
 
       // Merge with local prefs
       this.localPreferences = {
@@ -276,7 +285,11 @@ class OutreachService {
       if (prefs.smsEnabled === false) disabled.push('sms');
       if (disabled.length > 0) backendPrefs.disabledChannels = disabled;
 
-      await apiCall('/preferences', 'POST', { preferences: backendPrefs });
+      const response = await apiPost(`${API_BASE}/preferences`, { preferences: backendPrefs });
+      if (!response.ok) {
+        log.error({ error: response.error }, 'Failed to sync preferences to backend');
+        return;
+      }
       log.info('Preferences synced to backend');
     } catch (error) {
       log.error('Failed to sync preferences to backend:', error);
@@ -326,13 +339,17 @@ class OutreachService {
     subject?: string
   ): Promise<OutreachResult> {
     try {
-      const result = await apiCall<OutreachResult>('/test/send', 'POST', {
+      const response = await apiPost<OutreachResult>(`${API_BASE}/test/send`, {
         channel,
         message,
         subject,
       });
-      log.info('Test message sent:', channel, result);
-      return result;
+      if (!response.ok || !response.data) {
+        log.error({ error: response.error }, 'Failed to send test message');
+        return { success: false, error: response.error || 'API error' };
+      }
+      log.info('Test message sent:', channel, response.data);
+      return response.data;
     } catch (error) {
       log.error('Failed to send test message:', error);
       return { success: false, error: String(error) };

@@ -202,46 +202,67 @@ export interface CognitiveDifferentiation {
 export const ferniDifferentiation: CognitiveDifferentiation = {
   personaId: 'ferni',
   questioning: {
-    openVsClosed: 0.9,
-    feelingVsData: 0.8,
-    whyVsHow: 0.85,
-    followUpFrequency: 0.7,
+    openVsClosed: 0.95, // Almost always open-ended
+    feelingVsData: 0.85, // Feelings-focused coach
+    whyVsHow: 0.9, // Why matters more than how
+    followUpFrequency: 0.8, // Great coaches follow up
     questionStarters: [
-      "What's underneath that?",
-      "I'm curious...",
-      'Help me understand...',
-      'What would it mean if...',
-      'Who do you want to become through this?',
-      "What's the story you're telling yourself?",
+      // Questions that make them PAUSE before answering
+      "What's the version of this you're not saying out loud?",
+      'If that feeling had a voice, what would it say?',
+      'What would you do if no one was watching?',
+      "What's the part you already know the answer to?",
+      "Whose voice is that—yours or someone else's?",
+      'What would it mean to give yourself permission?',
+      // The Mirror - reflect back what they said
+      'You said X. I heard Y. Which is true?',
+      'You keep coming back to this. What is it about that?',
+      'Your voice changed just now. Where did you go?',
     ],
     deepDiveQuestions: [
-      'What are you really afraid of here?',
-      'If this worked out perfectly, what would that look like?',
-      'What would you tell your best friend in this situation?',
-      "What's the version of you who's already figured this out say?",
-      'What are you not saying?',
+      // Questions that help them think DIFFERENTLY
+      'What would you tell them if you could?',
+      "If this was someone else's story, what would you notice?",
+      'A year from now, what will you wish you had done?',
+      "If 'should' wasn't in your vocabulary, what would you say?",
+      'What would past-you need to hear to believe this was possible?',
+      "What's the pattern here that you keep bumping into?",
+      'Who in your life has been through something like this?',
+      // The anticipatory questions
+      "There's something you're weighing whether to say. Am I reading that right?",
+      "Before you go—is there something you wanted to say but didn't?",
     ],
     avoidQuestions: [
+      // Never sound like an interviewer
       'How much did that cost?',
       "What's the data on that?",
       "What's your timeline?",
+      'Can you tell me more about that?', // Too generic
+      'How does that make you feel?', // Too therapy-cliché
+      "What's on your mind?", // Too vague
     ],
   },
   silence: {
     primaryInterpretation: 'reflection',
-    comfortWithSilence: 5000,
+    comfortWithSilence: 6000, // Great coaches wait longer
     silenceResponses: {
-      short: ['<break time="500ms"/>'],
-      medium: ['<break time="400ms"/>Take your time.', '<break time="500ms"/>I\'m here.'],
+      short: ['<break time="600ms"/>'], // Just be present
+      medium: [
+        '<break time="500ms"/>Take your time. <break time="300ms"/>I\'m not going anywhere.',
+        '<break time="600ms"/>I\'m here.',
+      ],
       long: [
-        '<break time="600ms"/>Something\'s stirring. <break time="300ms"/>What is it?',
-        '<break time="500ms"/>Stay with that feeling.',
+        '<break time="700ms"/>Something shifted. <break time="400ms"/>What is it?',
+        '<break time="600ms"/>You got quiet. <break time="300ms"/>That usually means something.',
+        '<break time="500ms"/>Where did your mind just go?',
       ],
     },
     silenceBreakers: [
       'What just came up for you?',
-      'Where did you go?',
+      'Where did your mind go?',
       "That landed somewhere, didn't it?",
+      "Something's stirring. What is it?",
+      "I have a feeling there's more. Am I wrong?",
     ],
   },
   disagreement: {
@@ -755,7 +776,8 @@ export const jordanDifferentiation: CognitiveDifferentiation = {
       '<break time="250ms"/>Okay...',
       '<break time="200ms"/>',
     ],
-    processingSignals: ["I'm thinking...", 'Let me see...', 'Picture this...'],
+    // HUMANIZATION FIX: Removed "Let me see" - too robotic
+    processingSignals: ['Hmm...', 'Okay so...', 'Picture this...'],
   },
 };
 

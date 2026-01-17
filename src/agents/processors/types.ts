@@ -12,6 +12,7 @@ import type { BundleRuntimeEngine } from '../../personas/bundles/index.js';
 import type { PersonaConfig } from '../../personas/types.js';
 import type { ConversationAnalysis, SessionServices } from '../../services/index.js';
 import type { UserData } from '../shared/types.js';
+import type { HolisticContextSummary } from '../../tools/semantic-router/types.js';
 
 // Re-export for convenience
 export type MessageAnalysis = ConversationAnalysis;
@@ -42,6 +43,18 @@ export interface TurnContext {
     debug: (data: Record<string, unknown>, msg: string) => void;
     warn: (data: Record<string, unknown>, msg: string) => void;
   };
+  /** Number of proactive surfacings this session (for throttling) */
+  surfacingCount?: number;
+  /** Topics discussed this session */
+  sessionTopics?: string[];
+  /** Proactive surfacing opportunities found for this turn */
+  proactiveSurfacing?: Array<{
+    type: string;
+    entity: { canonicalName: string; type: string };
+    timing: string;
+    naturalPhrasing: string;
+    receptivityScore?: number;
+  }>;
 }
 
 // ============================================================================
@@ -194,6 +207,103 @@ export interface BundleRuntimeContext {
 // ============================================================================
 
 /**
+ * Crisis detection result from safety guard
+ */
+export interface CrisisDetection {
+  /** Whether a crisis was detected */
+  isCrisis: boolean;
+  /** Crisis severity 0-1 (0.7+ is crisis threshold) */
+  severity: number;
+  /** Detected indicators (explicit_crisis_language, voice_high_distress, etc.) */
+  indicators: string[];
+  /** Pre-generated crisis response if severity is high */
+  suggestedResponse?: string;
+  /** Whether to override LLM response entirely */
+  shouldOverrideLLM: boolean;
+}
+
+// ============================================================================
+// SEMANTIC ROUTING RESULT - Pre-LLM tool routing
+// ============================================================================
+
+/**
+ * Semantic routing result for direct tool execution
+ *
+ * When the semantic router has high confidence, we can bypass the LLM
+ * entirely and execute tools directly. This provides:
+ * - <20ms latency for common tool requests
+ * - Reliable tool execution without JSON parsing
+ * - Graceful fallback to LLM for conversation
+ */
+export interface SemanticRoutingResult {
+  /** Whether semantic routing was performed */
+  routed: boolean;
+
+  /** Whether to bypass LLM and use tool result directly */
+  bypassLLM: boolean;
+
+  /** Tool result if bypassing LLM */
+  toolResult?: {
+    toolId: string;
+    output: string;
+    success: boolean;
+    speakableResponse: string;
+  };
+
+  /** Routing metrics */
+  metrics: {
+    latencyMs: number;
+    cacheHit: boolean;
+    confidence: number;
+    matchPath: 'pattern' | 'keyword' | 'embedding' | 'combined' | 'none';
+  };
+
+  /**
+   * Which routing path was taken - for observability.
+   * Helps understand whether semantic router handled the call or fell back to JSON workaround.
+   */
+  routingPath:
+    | 'semantic_auto_execute' // Semantic router auto-executed (LLM bypassed)
+    | 'semantic_hint' // Semantic router hinted to LLM
+    | 'semantic_confirm' // Semantic router requested confirmation
+    | 'semantic_conversation' // Semantic router determined no tool needed
+    | 'json_fallback' // Fell back to JSON workaround
+    | 'disabled' // Semantic routing disabled
+    | 'error'; // Routing error
+
+  /**
+   * 🧠 Holistic NLU context from semantic routing.
+   * Contains relationship detection, emotional state, urgency, and crisis signals.
+   * Can be used to enhance crisis detection or personalize responses.
+   */
+  holisticContext?: HolisticContextSummary;
+}
+
+/**
+ * Trust context for post-response validation
+ * Used by "Better Than Human" trust enforcement system
+ */
+export interface TrustContextSummary {
+  /** Unsaid signals detected (false "I'm fine", deflection, etc.) */
+  hasEmotionalMismatch: boolean;
+  /** Topics to avoid (boundary tracking) */
+  topicsToAvoid: string[];
+  /** Growth reflection available (for acknowledgment check) */
+  hasGrowthReflection: boolean;
+  /** Celebration opportunity (small win to acknowledge) */
+  hasCelebration: boolean;
+  /** Proactive outreach ("thinking of you") available */
+  hasProactiveOutreach: boolean;
+  /** Proactive outreach data for frontend notification */
+  proactiveOutreach?: {
+    type: string;
+    message: string;
+    personaId?: string;
+    context?: string;
+  };
+}
+
+/**
  * Complete result of processing a user turn
  */
 export interface TurnProcessorResult {
@@ -236,35 +346,59 @@ export interface TurnProcessorResult {
     /** Length guidance for response */
     lengthGuidance: 'shorter' | 'normal' | 'longer';
   };
+  /** 🚨 SAFETY: Crisis detection result - CANNOT be ignored */
+  crisis?: CrisisDetection;
+  /**
+   * 🤝 TRUST: Trust context summary for post-response validation
+   * Used by downstream systems to verify LLM properly addressed trust signals.
+   * NOTE: Actual enforcement happens via context injections (pre-response).
+   * This is for monitoring/learning from post-response quality.
+   */
+  trustContext?: TrustContextSummary;
+
+  /**
+   * 🎯 SEMANTIC ROUTING: Pre-LLM tool routing result
+   * When present with bypassLLM=true, the caller should use toolResult.speakableResponse
+   * directly instead of sending to the LLM.
+   */
+  semanticRouting?: SemanticRoutingResult;
+
+  /**
+   * 📊 RESONANCE CHECK: Voice-native feedback for superhuman capability effectiveness
+   * When shouldCheck=true, the caller should include instructions in the LLM context
+   * to trigger a natural backchannel like "Does that track?"
+   */
+  resonanceCheck?: ResonanceCheckResult;
+}
+
+/**
+ * Result of checking for pending resonance feedback
+ */
+export interface ResonanceCheckResult {
+  /** Whether to trigger a resonance check this turn */
+  shouldCheck: boolean;
+  /** Instructions for the backchannel (if shouldCheck is true) */
+  instructions?: string;
+  /** The capability being checked (for tracking response) */
+  capability?: string;
 }
 
 // ============================================================================
 // CACHED MODULE TYPES - For dynamic imports
 // ============================================================================
 
-// NOTE: Using loose function signatures with `any` to avoid circular dependency
-// with intelligence/context-builders. The circular chain was:
-// intelligence/context-builders → ... → agents/processors/types → intelligence/context-builders
-//
-// These types are for caching dynamically imported modules. The actual type
-// safety comes from the imported modules themselves at runtime.
+// NOTE: Type definitions for cached modules have been moved to their
+// respective cached-modules.ts files. The CachedModules interface below
+// is kept for backward compatibility but is no longer used by the
+// processors module (which now uses its own local interface).
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
-
-/** Function signature for buildConversationContext (accepts any context input) */
-type BuildConversationContextFn = (input: any) => Promise<any[]>;
-
-/** Function signature for formatContextForPrompt (accepts any injections) */
-type FormatContextForPromptFn = (injections: any[], options?: any) => string;
-
-/** Function signature for shouldUseHighEmotionMode (accepts any analysis) */
-type ShouldUseHighEmotionModeFn = (analysis: any) => boolean;
 
 /**
  * Easter egg result type (matches EasterEggResult from personas/easter-eggs.ts)
  * NOTE: response is optional, triggered indicates if an egg was activated
  */
-interface EasterEggResultType {
+export interface EasterEggResultType {
   type: string;
   response?: string;
   triggered: boolean;
@@ -284,12 +418,9 @@ type GetTaskManagerFn = (options?: Record<string, unknown>) => any;
 
 /**
  * Cached module references for performance
+ * @deprecated Use the interfaces in cached-modules.ts instead
  */
 export interface CachedModules {
-  buildConversationContext: BuildConversationContextFn | null;
-  formatContextForPrompt: FormatContextForPromptFn | null;
-  // BETTER-THAN-HUMAN: High emotion mode detection for context prioritization
-  shouldUseHighEmotionMode: ShouldUseHighEmotionModeFn | null;
   checkForEasterEgg: CheckForEasterEggFn | null;
   getTaskManager: GetTaskManagerFn | null;
 }

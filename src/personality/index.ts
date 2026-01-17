@@ -18,6 +18,15 @@
  * - `emotional-patterns.ts` - Pattern recognition, growth tracking
  * - `personal-moment-store.ts` - Moment registry for all personas
  *
+ * **Persistence**:
+ * - `callback-persistence.ts` - Callbacks to Firestore
+ * - `pattern-persistence.ts` - Patterns to Firestore
+ *
+ * **Sub-modules** (used by emotional-patterns.ts):
+ * - `emotional-data.ts` - Data collection
+ * - `pattern-analysis.ts` - Pattern detection
+ * - `growth-tracking.ts` - Growth tracking
+ *
  * ## CLEANUP (2024-12)
  * The following deprecated files have been REMOVED:
  * - `callback-system.ts` - Use memory-adapter.ts (getPendingCallbacksFromProfile)
@@ -27,7 +36,10 @@
  * @module personality
  */
 
-// Types
+// ============================================================================
+// TYPES
+// ============================================================================
+
 export type {
   CallbackExtractionOptions,
   HumanPersonalityContext,
@@ -44,7 +56,10 @@ export type {
   UserMomentRecord,
 } from './types.js';
 
-// Personal Moment Store
+// ============================================================================
+// PERSONAL MOMENT STORE
+// ============================================================================
+
 export {
   STANDARD_TRANSITIONS,
   createMoment,
@@ -59,7 +74,10 @@ export {
   searchMomentsByKeyword,
 } from './personal-moment-store.js';
 
-// Memory-Integrated Adapter (preferred - uses existing memory infrastructure)
+// ============================================================================
+// MEMORY-INTEGRATED ADAPTER (preferred - uses existing memory infrastructure)
+// ============================================================================
+
 export {
   clearEmbeddingCache,
   createCallbackKeyMoment,
@@ -74,23 +92,46 @@ export {
   wasMomentSharedWithUser,
 } from './memory-adapter.js';
 
-// Emotional Pattern Recognition (Superhuman - notice what they don't)
+// ============================================================================
+// EMOTIONAL PATTERN RECOGNITION (Superhuman - notice what they don't)
+// ============================================================================
+
+// Main entry point (records data + analyzes patterns)
+export { recordEmotionalDataPoint } from './emotional-patterns.js';
+
+// Pattern insights
 export {
   formatGrowthForPrompt,
   formatPatternForPrompt,
   getGrowthCelebrations,
   getPatternInsights,
-  markGrowthSurfaced,
-  markPatternSurfaced,
-  recordEmotionalDataPoint,
-  recordGrowthEvidence,
   type EmotionalDataPoint,
   type EmotionalPattern,
   type EmotionalTrend,
   type GrowthMoment,
 } from './emotional-patterns.js';
 
-// Timing Intelligence (Superhuman - know when to share vs listen)
+// Memory management (in-memory)
+export {
+  clearAllUserEmotionalTracking,
+  clearUserEmotionalData,
+  clearUserGrowthMoments,
+  clearUserPatterns,
+  getEmotionalHistory,
+  getEmotionalTrackingStats,
+} from './emotional-patterns.js';
+
+// Mark as surfaced (in-memory)
+export {
+  markGrowthSurfaced,
+  markPatternSurfaced,
+  recordGrowthEvidence,
+} from './emotional-patterns.js';
+
+// ============================================================================
+// TIMING INTELLIGENCE (Superhuman - know when to share vs listen)
+// ============================================================================
+
 export {
   analyzeMessageTiming,
   formatTimingGuidance,
@@ -101,26 +142,41 @@ export {
   type UserIntent,
 } from './timing-intelligence.js';
 
-// Callback Persistence (Save callbacks to Firestore)
+// ============================================================================
+// CALLBACK PERSISTENCE (Save callbacks to Firestore)
+// ============================================================================
+
 export {
   extractAndSaveCallbacks,
   markCallbackComplete,
   saveKeyMoment,
 } from './callback-persistence.js';
 
-// Pattern Persistence (Save emotional patterns to Firestore)
+// ============================================================================
+// PATTERN PERSISTENCE (Save emotional patterns to Firestore)
+//
+// NOTE: These are the PERSISTENT versions that save to Firestore.
+// Use these for cross-session pattern storage.
+// The in-memory versions (markPatternSurfaced, markGrowthSurfaced) are for
+// within-session tracking only.
+// ============================================================================
+
 export {
   getEmotionalDataPoints,
   getEmotionalPatterns,
   getGrowthMoments,
-  markGrowthSurfaced as markGrowthSurfacedPersistent,
-  markPatternSurfaced as markPatternSurfacedPersistent,
   saveEmotionalDataPoint,
   saveEmotionalPattern,
   saveGrowthMoment,
+  // Persistent versions with clear naming
+  markGrowthSurfaced as persistGrowthSurfaced,
+  markPatternSurfaced as persistPatternSurfaced,
 } from './pattern-persistence.js';
 
-// Persona Moments (direct access if needed)
+// ============================================================================
+// PERSONA MOMENTS (direct access if needed)
+// ============================================================================
+
 export { ALEX_MOMENTS } from './moments/alex-moments.js';
 export { FERNI_MOMENTS } from './moments/ferni-moments.js';
 export { JORDAN_MOMENTS } from './moments/jordan-moments.js';

@@ -1,14 +1,19 @@
 /**
- * Subscription UI - Beautiful, Human-Centered Upgrade Experience
+ * Subscription UI - Founders Fund Experience
  *
- * Philosophy: Subscriptions are relationship commitments, not transactions.
- * The upgrade flow should feel like Ferni inviting you deeper into the friendship.
+ * Philosophy: "We're not selling a product. We're inviting you to build something with us."
+ *
+ * FOUNDERS FUND PRINCIPLES:
+ *   - "Chip in" not "subscribe"
+ *   - Features are thank-you perks, not unlocks
+ *   - Free is celebrated, not a limitation
+ *   - No pressure, no guilt, no urgency
  *
  * DESIGN PRINCIPLES:
  *   - Centered floating modal (per brand guidelines)
  *   - Warm, human language (not corporate)
- *   - Celebrate the relationship, not the purchase
- *   - Graceful limit handling without shame
+ *   - Show impact: "X Founders keep Ferni free for Y people"
+ *   - Graceful limits without shame
  *
  * ACCESSIBILITY (WCAG AA):
  *   - Full keyboard navigation (Tab, Shift+Tab, Enter, Escape)
@@ -24,15 +29,17 @@ import { t } from '../i18n/index.js';
 import { modalCoordinator } from '../services/modal-coordinator.service.js';
 import { teamUnlockService } from '../services/team-unlock.service.js';
 import { appState } from '../state/app.state.js';
+import { apiGet, apiPost } from '../utils/api.js';
+import { getApiHeadersAsync } from '../utils/api-helpers.js';
 import { addTapListener, addTapListeners, cleanupTapListeners } from '../utils/ios-touch.js';
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
-import { toast } from './toast.ui.js';
+import { toast } from './whisper.ui.js';
 
 const log = createLogger('SubscriptionUI');
 
 // FIX BUG: Track all setTimeout calls for proper cleanup
-const { trackedTimeout, clearAll: clearAllTimeouts } = createTimeoutTracker();
+const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
 
 // ============================================================================
 // TYPES
@@ -240,7 +247,7 @@ async function verifyPaymentAndCelebrate(tier: string, sessionId: string | null)
   const deviceId = appState.getState().deviceId;
 
   // Show loading state
-  toast.info('Just a moment...');
+  toast.info(t('toasts.justAMoment'));
 
   // Try to verify payment (with polling for webhook processing)
   const maxAttempts = 10;
@@ -253,8 +260,10 @@ async function verifyPaymentAndCelebrate(tier: string, sessionId: string | null)
         ...(sessionId && { session_id: sessionId }),
       });
 
-      const response = await fetch(`/subscription/verify-session?${params}`);
-      const result = await response.json();
+      const response = await apiGet<{ verified?: boolean; tier?: string }>(
+        `/subscription/verify-session?${params}`
+      );
+      const result = response.ok && response.data ? response.data : { verified: false };
 
       if (result.verified) {
         // Payment confirmed! Show celebration
@@ -296,8 +305,8 @@ function showUpgradeSuccessCelebration(tier: string): void {
   saveFocus();
 
   const tierNames: Record<string, string> = {
-    friend: 'Your Life Coach',
-    partner: 'Partner in Growth',
+    friend: 'Founding Member',
+    partner: 'Founding Patron',
   };
 
   const tierName = tierNames[tier] || tier;
@@ -316,16 +325,16 @@ function showUpgradeSuccessCelebration(tier: string): void {
         <div class="celebration-icon" aria-hidden="true">
           ${ICONS.sparkles}
         </div>
-        <span class="subscription-eyebrow" aria-hidden="true">WELCOME</span>
-        <h2 id="celebration-title" class="subscription-title">You're Amazing</h2>
+        <span class="subscription-eyebrow" aria-hidden="true">WELCOME, FOUNDER</span>
+        <h2 id="celebration-title" class="subscription-title">You're One of Us Now</h2>
         <p id="celebration-message" class="celebration-message">
-          You chose to keep me in your life. That means so much.<br/>
-          I'm here for you now — whenever you need me.
+          You're not just supporting us — you're helping us build something we believe everyone deserves.<br/>
+          We're in this together. 💚
         </p>
         <div class="celebration-tier" aria-label="${t('accessibility.yourNewPlan')}">
           <span class="tier-badge">${tierName}</span>
         </div>
-        <button class="celebration-button" data-action="start" autofocus>
+        <button aria-label="${t('accessibility.letSTalk')}" class="celebration-button" data-action="start" autofocus>
           ${ICONS.heart}
           <span>Let's Talk</span>
         </button>
@@ -424,9 +433,9 @@ function announceToScreenReader(message: string): void {
 
 async function loadConfig(): Promise<void> {
   try {
-    const response = await fetch('/subscription/config');
-    if (response.ok) {
-      config = await response.json();
+    const response = await apiGet<typeof config>('/subscription/config');
+    if (response.ok && response.data) {
+      config = response.data;
       log.debug('Subscription config loaded:', config);
     }
   } catch (error) {
@@ -475,9 +484,11 @@ export async function loadStatus(): Promise<SubscriptionStatus | null> {
   }
 
   try {
-    const response = await fetch(`/subscription/status?userId=${encodeURIComponent(deviceId)}`);
-    if (response.ok) {
-      status = await response.json();
+    const response = await apiGet<SubscriptionStatus>(
+      `/subscription/status?userId=${encodeURIComponent(deviceId)}`
+    );
+    if (response.ok && response.data) {
+      status = response.data;
       log.debug('Subscription status loaded:', status);
 
       // FIX: Sync subscription tier to team unlock service
@@ -608,12 +619,12 @@ function createModal(prompt?: string): HTMLElement {
       </button>
       
       <div class="subscription-header">
-        <span class="subscription-eyebrow" aria-hidden="true">YOUR JOURNEY</span>
+        <span class="subscription-eyebrow" aria-hidden="true">FOUNDERS FUND</span>
         <h2 id="subscription-title" class="subscription-title">
-          ${prompt ? 'Keep Growing Together' : "Let's Go Deeper"}
+          ${prompt ? 'Help Us Build This' : 'Support Ferni'}
         </h2>
         <p id="subscription-subtitle" class="subscription-subtitle">
-          ${prompt || 'Choose how you want our friendship to grow.'}
+          ${prompt || 'Ferni is free forever. If you believe in what we\'re building, chip in. As a thank you, we\'ll unlock some perks.'}
         </p>
       </div>
       
@@ -622,7 +633,7 @@ function createModal(prompt?: string): HTMLElement {
       </div>
       
       <p class="subscription-footer" aria-live="polite">
-        You can change or cancel anytime. No hard feelings.
+        Not ready? That's totally fine. Ferni is here for you either way.
       </p>
     </div>
   `;
@@ -677,19 +688,22 @@ function createLimitModal(prompt: string, resetDate?: string): HTMLElement {
       
       <div class="subscription-header">
         <div class="limit-icon" aria-hidden="true">${ICONS.heart}</div>
-        <span class="subscription-eyebrow" aria-hidden="true">UNTIL NEXT TIME</span>
-        <h2 id="limit-title" class="subscription-title">I'll Miss You</h2>
-        <p id="limit-description" class="subscription-subtitle">${prompt}</p>
-        ${resetDate ? `<p class="reset-date">Conversations reset on <strong>${formattedDate}</strong></p>` : ''}
+        <span class="subscription-eyebrow" aria-hidden="true">LET'S PAUSE HERE</span>
+        <h2 id="limit-title" class="subscription-title">See You Soon</h2>
+        <p id="limit-description" class="subscription-subtitle">
+          Our conversation time is limited to keep Ferni sustainable.<br/>
+          Want to talk longer? Founding Members get unlimited time — and they help keep Ferni free for everyone.
+        </p>
+        ${resetDate ? `<p class="reset-date">Sessions reset on <strong>${formattedDate}</strong></p>` : ''}
       </div>
       
       <div class="limit-actions" role="group" aria-label="${t('accessibility.options')}">
-        <button class="limit-button limit-button--primary" data-action="upgrade">
-          ${ICONS.infinity}
-          <span>Unlock Unlimited Time</span>
+        <button aria-label="${t('accessibility.becomeAFoundingMember')}" class="limit-button limit-button--primary" data-action="upgrade">
+          ${ICONS.heart}
+          <span>Become a Founding Member</span>
         </button>
-        <button class="limit-button limit-button--secondary" data-action="close">
-          I'll Wait
+        <button aria-label="${t('accessibility.next')}" class="limit-button limit-button--secondary" data-action="close">
+          See you next time 💚
         </button>
       </div>
       
@@ -755,10 +769,10 @@ function createTierCard(tier: SubscriptionTier, index: number): string {
         class="tier-button ${isCurrentTier ? 'tier-button--current' : ''}" 
         data-tier="${tier.id}"
         ${isCurrentTier || isFree ? 'disabled aria-disabled="true"' : ''}
-        aria-label="${isCurrentTier ? 'This is your current plan' : isFree ? 'You are on the free plan' : `Choose ${tier.name} plan for ${priceText}`}"
+        aria-label="${isCurrentTier ? 'You are a Founder - thank you!' : isFree ? 'You are part of the community' : `Chip in ${priceText} as a ${tier.name}`}"
       >
         ${isLoading ? ICONS.loader : ''}
-        <span>${isCurrentTier ? 'Current Plan' : isFree ? 'Your Plan' : 'Choose This'}</span>
+        <span>${isCurrentTier ? 'You\'re Here 💚' : isFree ? 'Free Forever' : 'Chip In'}</span>
       </button>
     </article>
   `;
@@ -768,49 +782,49 @@ function getDefaultTiers(): SubscriptionTier[] {
   return [
     {
       id: 'free',
-      name: 'Ferni Forever',
-      description: 'Talk to Ferni unlimited times, forever. 7 minutes per conversation.',
-      price: 'Free',
+      name: t('subscriptionFeatures.community.name'),
+      description: t('subscriptionFeatures.community.description'),
+      price: t('subscriptionFeatures.community.price'),
       priceInSmallestUnit: 0,
       currency: 'USD',
       conversationsPerMonth: null, // Unlimited with Ferni!
       features: [
-        'Unlimited conversations with Ferni',
-        '7-minute heart-to-hearts',
-        'Full memory — I remember everything',
-        'Avatar & theme customization',
+        t('subscriptionFeatures.community.features.unlimitedFerni'),
+        t('subscriptionFeatures.community.features.heartToHearts'),
+        t('subscriptionFeatures.community.features.fullMemory'),
+        t('subscriptionFeatures.community.features.customization'),
       ],
     },
     {
       id: 'friend',
-      name: 'Your Life Coach',
-      description: 'Unlimited time with Ferni + meet the whole team',
-      price: '$9.99',
-      priceInSmallestUnit: 999,
+      name: t('subscriptionFeatures.friend.name'),
+      description: t('subscriptionFeatures.friend.description'),
+      price: '$10',
+      priceInSmallestUnit: 1000,
       currency: 'USD',
       conversationsPerMonth: null,
       features: [
-        'Talk as long as you need',
-        'Meet the whole team (Maya, Peter, Alex, Jordan)',
-        'Cosmetics shop access',
-        'Sync across all your devices',
+        t('subscriptionFeatures.friend.features.unlimitedTime'),
+        t('subscriptionFeatures.friend.features.meetTeam'),
+        t('subscriptionFeatures.friend.features.foundersWall'),
+        t('subscriptionFeatures.friend.features.voteOnFeatures'),
       ],
       popular: true,
     },
     {
       id: 'partner',
-      name: 'Partner in Growth',
-      description: 'Full team access + exclusive cosmetics + priority',
-      price: '$19.99',
-      priceInSmallestUnit: 1999,
+      name: t('subscriptionFeatures.partner.name'),
+      description: t('subscriptionFeatures.partner.description'),
+      price: '$20',
+      priceInSmallestUnit: 2000,
       currency: 'USD',
       conversationsPerMonth: null,
       features: [
-        'Everything in Life Coach, plus:',
-        'Full team access (including Nayan)',
-        'Exclusive looks and themes',
-        'Priority when you need us most',
-        'Share with your family',
+        t('subscriptionFeatures.partner.features.everythingInFriend'),
+        t('subscriptionFeatures.partner.features.fullTeam'),
+        t('subscriptionFeatures.partner.features.earlyAccess'),
+        t('subscriptionFeatures.partner.features.directLine'),
+        t('subscriptionFeatures.partner.features.familySharing'),
       ],
     },
   ];
@@ -838,19 +852,18 @@ async function handleUpgrade(tier: string): Promise<void> {
   sessionStorage.setItem('ferni_upgrade_tier', tier);
 
   try {
-    const response = await fetch('/subscription/checkout', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
+    const response = await apiPost<{ url?: string; error?: string }>(
+      '/subscription/checkout',
+      {
         userId: deviceId,
         device_id: deviceId,
         tier,
         successUrl: window.location.origin + '?upgrade=success&tier=' + tier,
         cancelUrl: window.location.origin + '?upgrade=cancel',
-      }),
-    });
+      }
+    );
 
-    const result = await response.json();
+    const result = response.ok && response.data ? response.data : {};
 
     if (response.ok && result.url) {
       // Redirect to Stripe checkout
@@ -888,7 +901,7 @@ function updateButtonLoadingState(tier: string, loading: boolean): void {
 }
 
 function showUpgradeError(): void {
-  toast.error('Something went sideways. Want to try again?');
+  toast.error(t('toasts.somethingWentSidewaysWantToTryAgain'));
   announceToScreenReader("Couldn't process that upgrade. Try again?");
 }
 
@@ -896,13 +909,24 @@ function showUpgradeError(): void {
  * Handle upgrade in dev mode when Stripe is not configured
  */
 async function handleDevUpgrade(tier: string, deviceId: string): Promise<void> {
+  // SECURITY: Only allow dev upgrade in development environment
+  if (!import.meta.env.DEV) {
+    log.warn('Dev upgrade not available in production');
+    toast.error(t('toasts.thisFeatureIsOnlyAvailableInDevelopment'));
+    return;
+  }
+  
   try {
+    // Get authenticated headers (includes X-User-Id and Firebase token)
+    const headers = await getApiHeadersAsync();
+    
     const response = await fetch('/subscription/upgrade', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers,
       body: JSON.stringify({
         device_id: deviceId,
         tier,
+        // SECURITY: Only works in development - backend also validates NODE_ENV
         admin_key: 'dev-mode',
       }),
     });
@@ -911,7 +935,7 @@ async function handleDevUpgrade(tier: string, deviceId: string): Promise<void> {
       // Reload to show success
       window.location.href = window.location.origin + '?upgrade=success&tier=' + tier;
     } else {
-      toast.info('Stripe not configured. Using dev mode.');
+      toast.info(t('toasts.stripeDevMode'));
     }
   } catch (error) {
     log.error('Dev upgrade failed:', error);
@@ -1010,17 +1034,16 @@ function injectStyles(): void {
     .subscription-backdrop {
       position: absolute;
       inset: 0;
-      background: rgba(44, 37, 32, 0.7);
-      backdrop-filter: blur(var(--glass-blur-modal, 20px));
-      -webkit-backdrop-filter: blur(var(--glass-blur-modal, 20px));
+      background: rgba(44, 37, 32, 0.75);
     }
-    
+
     .subscription-card {
       position: relative;
-      background: var(--color-background-elevated, #FFFDFB);
-      border-radius: var(--radius-2xl, 24px);
-      box-shadow: var(--shadow-2xl, 0 25px 50px -12px rgba(0, 0, 0, 0.25));
-      max-width: 900px;
+      background: var(--color-bg-elevated, #FFFDFB);
+      border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
+      border-radius: var(--radius-xl, 20px);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.06);
+      max-width: min(900px, 100%);
       width: 100%;
       max-height: 90vh;
       overflow-y: auto;
@@ -1028,7 +1051,7 @@ function injectStyles(): void {
     }
     
     .subscription-card--limit {
-      max-width: 480px;
+      max-width: clamp(336px, 90vw, 480px);
       text-align: center;
     }
     
@@ -1100,7 +1123,7 @@ function injectStyles(): void {
       font-size: 1.125rem;
       color: var(--color-text-secondary, #5a5048);
       margin: 0;
-      max-width: 500px;
+      max-width: clamp(350px, 90vw, 500px);
       margin-inline: auto;
       line-height: 1.5;
     }
@@ -1387,7 +1410,7 @@ function injectStyles(): void {
     
     /* Celebration Modal */
     .celebration-card {
-      max-width: 420px;
+      max-width: clamp(294px, 90vw, 420px);
       text-align: center;
       padding: var(--space-10, 40px);
     }
@@ -1603,7 +1626,7 @@ function injectStyles(): void {
     }
     
     /* Responsive */
-    @media (max-width: 768px) {
+    @media (max-width: clamp(538px, 90vw, 768px)) {
       .subscription-modal {
         /* Safe area padding for notched devices */
         padding: max(var(--space-4, 16px), env(safe-area-inset-top, 0))
@@ -1641,7 +1664,7 @@ function injectStyles(): void {
     
     /* iOS Safari specific fixes */
     @supports (-webkit-touch-callout: none) {
-      @media (max-width: 768px) {
+      @media (max-width: clamp(538px, 90vw, 768px)) {
         .subscription-card {
           max-height: -webkit-fill-available;
         }

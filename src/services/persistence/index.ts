@@ -15,7 +15,8 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
-import { removeUndefined } from '../../utils/firestore-utils.js';
+import { removeUndefined, cleanForFirestore } from '../../utils/firestore-utils.js';
+import { registerInterval, clearNamedInterval } from '../../utils/interval-manager.js';
 import type { Firestore as FirestoreType } from '@google-cloud/firestore';
 
 const log = createLogger({ module: 'PersistenceLayer' });
@@ -85,11 +86,19 @@ export interface PersistenceStore<T> {
 
 let db: FirestoreType | null = null;
 let dbInitAttempted = false;
+// FIX: Promise-based singleton to prevent race condition
+let dbInitPromise: Promise<FirestoreType | null> | null = null;
 
 async function getFirestore(): Promise<FirestoreType | null> {
   if (db) return db;
   if (dbInitAttempted) return null;
+  if (dbInitPromise) return dbInitPromise;
 
+  dbInitPromise = initializeFirestore();
+  return dbInitPromise;
+}
+
+async function initializeFirestore(): Promise<FirestoreType | null> {
   dbInitAttempted = true;
 
   try {
@@ -102,6 +111,7 @@ async function getFirestore(): Promise<FirestoreType | null> {
     return db;
   } catch (error) {
     log.warn({ error }, 'Firestore not available for persistence layer');
+    dbInitPromise = null; // Allow retry
     return null;
   }
 }
@@ -127,22 +137,22 @@ export function createPersistenceStore<T>(config: PersistenceConfig): Persistenc
   // In-memory cache
   const cache = new Map<string, T>();
   const dirty = new Set<string>();
-  let syncTimer: NodeJS.Timeout | null = null;
+  const intervalName = `persistence-sync-${collection}`;
   let isShutdown = false;
 
-  // Start sync interval
+  // Start sync interval using managed interval
   const startSyncInterval = () => {
-    if (syncTimer) return;
-    syncTimer = setInterval(() => {
-      void flushAll();
-    }, syncIntervalMs);
+    registerInterval(
+      intervalName,
+      () => {
+        void flushAll();
+      },
+      syncIntervalMs
+    );
   };
 
   const stopSyncInterval = () => {
-    if (syncTimer) {
-      clearInterval(syncTimer);
-      syncTimer = null;
-    }
+    clearNamedInterval(intervalName);
   };
 
   // Flush all dirty data
@@ -216,11 +226,11 @@ export function createPersistenceStore<T>(config: PersistenceConfig): Persistenc
         : firestore.collection('bogle_users').doc(userId).collection(collection).doc(documentId);
 
       await docRef.set(
-        {
+        cleanForFirestore({
           ...data,
           _updatedAt: new Date().toISOString(),
           _userId: userId,
-        },
+        }),
         { merge: true }
       );
 

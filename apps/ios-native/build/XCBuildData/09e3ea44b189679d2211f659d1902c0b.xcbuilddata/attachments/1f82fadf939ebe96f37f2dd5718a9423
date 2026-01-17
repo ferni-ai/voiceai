@@ -1,0 +1,4 @@
+module GoogleUtilities_Reachability {
+umbrella "/Users/sethford/Library/Developer/Xcode/DerivedData/FerniVoice-gmmrbswmbdzcpmewiqefhbwjbjhd/SourcePackages/checkouts/GoogleUtilities/GoogleUtilities/Reachability/Public"
+export *
+}

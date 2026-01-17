@@ -218,11 +218,11 @@ async function handleCameoStartAsync(
   // Get persona colors - FIX BUG: Use CSS variables as fallbacks instead of hardcoded hex
   const persona = getPersona(personaId as PersonaId);
   const colors = persona.colors || getPersonaColorConfig(personaId);
-  const primaryColor = colors?.primary || 'var(--persona-primary, #4a6741)';
-  const glowColor = colors?.glow || 'var(--persona-glow, rgba(74, 103, 65, 0.5))';
+  const primaryColor = colors?.primary ?? 'var(--persona-primary, #4a6741)';
+  const glowColor = colors?.glow ?? 'var(--persona-glow, rgba(74, 103, 65, 0.5))';
   const gradient =
-    colors?.gradient ||
-    `linear-gradient(135deg, ${colors?.secondary || 'var(--persona-secondary, #3d5a35)'}, ${primaryColor})`;
+    colors?.gradient ??
+    `linear-gradient(135deg, ${colors?.secondary ?? 'var(--persona-secondary, #3d5a35)'}, ${primaryColor})`;
 
   // Create the cameo avatar element with persona colors
   cameoElement = createCameoElement(
@@ -643,7 +643,7 @@ function injectCameoRosterStyles(): void {
       border-radius: 50%;
       border: 2px solid var(--cameo-color);
       animation: cameo-halo-pulse 1.2s ease-in-out infinite;
-      z-index: 1;
+      z-index: var(--z-docked);
     }
 
     /* Glow on avatar - matches persona color */
@@ -687,7 +687,7 @@ function injectCameoRosterStyles(): void {
     }
 
     /* Mobile: ensure cameo is visible */
-    @media (max-width: 767px) {
+    @media (max-width: clamp(537px, 90vw, 767px)) {
       .team-member--cameo {
         /* Ensure visible on mobile too */
         display: flex !important;
@@ -701,7 +701,7 @@ function injectCameoRosterStyles(): void {
     }
     
     /* Even on tiny screens, show the cameo name */
-    @media (max-width: 380px) {
+    @media (max-width: min(380px, 100%)) {
       .team-member--cameo .team-name {
         display: block !important;
         font-size: 8px;

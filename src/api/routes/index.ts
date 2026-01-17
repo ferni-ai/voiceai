@@ -12,6 +12,12 @@ export type { AnyRecord, Pattern, UIMemory, Weather } from './types.js';
 // Conversation routes
 export { handleConversationsRoutes, handleGetConversations } from './conversations.js';
 
+// Conversation threads routes (Better Than Human - track ongoing topics)
+export { handleConversationThreadsRoutes } from './conversation-threads.js';
+
+// Commitments routes (Better Than Human - never forget what you said you'd do)
+export { handleCommitmentsRoutes } from './commitments.js';
+
 // Analytics routes
 export { handleAnalyticsRoutes, handleGetUserAnalytics } from './analytics.js';
 
@@ -40,6 +46,9 @@ export {
 
 // Team routes
 export { handleGetHuddles, handleTeamRoutes } from './team.js';
+
+// Team insights routes (What We Notice - cross-persona intelligence)
+export { handleTeamInsightsRoutes } from './team-insights.js';
 
 // Data export/delete routes
 export {
@@ -82,3 +91,9 @@ export { handleGroupCoachingRoutes } from './group-coaching.js';
 
 // Landing page AI routes (AI-powered landing features)
 export { handleLandingAIRoutes } from './landing-ai.js';
+
+// Marketplace reviews routes
+export { handleReviewsRoutes as handleMarketplaceReviewsRoutes } from './marketplace-reviews.js';
+
+// Family routes (sponsored identity approvals)
+export { familyRouter, handleGetPendingApprovals, handleApproveFamily, handleRejectFamily } from './family.js';

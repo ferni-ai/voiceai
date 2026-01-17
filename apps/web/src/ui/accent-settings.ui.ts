@@ -21,7 +21,7 @@ import { apiGet, apiPost } from '../utils/api.js';
 const log = createLogger('AccentSettingsUI');
 
 // FIX BUG: Track all setTimeout calls for proper cleanup
-const { trackedTimeout, clearAll: clearAllTimeouts } = createTimeoutTracker();
+const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
 
 // ============================================================================
 // TYPES
@@ -52,6 +52,7 @@ interface AccentSettingsState {
 // ============================================================================
 
 // SVG flag icons (brand-compliant, no emojis)
+// @design-tokens-ignore - Official country flag colors must be exact
 const FLAG_SVGS = {
   us: `<svg viewBox="0 0 24 16" fill="none" xmlns="http://www.w3.org/2000/svg">
     <rect width="24" height="16" fill="#B22234"/>
@@ -164,7 +165,7 @@ function injectStyles(): void {
     .accent-settings-overlay {
       position: fixed;
       inset: 0;
-      z-index: 10000;
+      z-index: var(--z-tooltip);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -181,19 +182,19 @@ function injectStyles(): void {
     .accent-settings-backdrop {
       position: absolute;
       inset: 0;
-      background: rgba(44, 37, 32, 0.4);
-      backdrop-filter: blur(var(--glass-blur-strong, 24px));
+      background: rgba(44, 37, 32, 0.75);
     }
 
     .accent-settings-modal {
       position: relative;
       width: 90%;
-      max-width: 420px;
+      max-width: clamp(294px, 90vw, 420px);
       max-height: 90vh;
       overflow-y: auto;
-      background: var(--color-background-elevated, #FFFDFB);
-      border-radius: var(--radius-2xl, 24px);
-      box-shadow: var(--shadow-2xl, 0 25px 50px -12px rgba(0, 0, 0, 0.25));
+      background: var(--color-bg-elevated, #FFFDFB);
+      border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
+      border-radius: var(--radius-xl, 20px);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.06);
       transform: scale(0.95) translateY(10px);
       transition: transform ${DURATION.NORMAL}ms ${EASING.SPRING};
     }
@@ -485,8 +486,8 @@ function injectStyles(): void {
     }
 
     .accent-message.error {
-      background: rgba(220, 53, 69, 0.1);
-      color: #dc3545;
+      background: var(--color-error-tint, rgba(220, 53, 69, 0.1));
+      color: var(--color-error, #dc3545);
     }
 
     .accent-message.success {
@@ -558,7 +559,7 @@ function injectStyles(): void {
     }
 
     /* Responsive */
-    @media (max-width: 480px) {
+    @media (max-width: clamp(336px, 90vw, 480px)) {
       .accent-settings-modal {
         max-width: 100%;
         max-height: 100%;
@@ -627,7 +628,7 @@ function render(): void {
               ? `
             <div class="accent-detected-badge">
               ${ICONS.sparkle}
-              <span>We detected you might prefer ${ACCENT_OPTIONS.find((o) => o.value === state.detectedAccent)?.label || 'American English'}</span>
+              <span>We detected you might prefer ${ACCENT_OPTIONS.find((o) => o.value === state.detectedAccent)?.label ?? 'American English'}</span>
             </div>
           `
               : ''
@@ -636,7 +637,7 @@ function render(): void {
           <div class="accent-options">
             ${ACCENT_OPTIONS.map(
               (option) => `
-              <button class="accent-option ${state.currentAccent === option.value ? 'selected' : ''}" 
+              <button aria-label="${t('accessibility.confirm')}" class="accent-option ${state.currentAccent === option.value ? 'selected' : ''}" 
                       data-accent="${option.value}">
                 <span class="accent-option-flag">${option.flagSvg}</span>
                 <div class="accent-option-info">
@@ -654,15 +655,15 @@ function render(): void {
               <span class="accent-auto-detect-icon">${ICONS.globe}</span>
               <span class="accent-auto-detect-label">Auto-detect from location</span>
             </div>
-            <button class="accent-toggle ${state.autoDetected ? 'on' : ''}" data-action="toggle-auto">
-              <span class="accent-toggle-knob"></span>
+            <button aria-label="${t('accessibility.toggle')}" class="accent-toggle ${state.autoDetected ? 'on' : ''}" data-action="toggle-auto">
+              <span class="accent-toggle-knob" role="button" tabindex="0"></span>
             </button>
           </div>
 
           ${state.error ? `<div class="accent-message error">${state.error}</div>` : ''}
           ${state.success ? `<div class="accent-message success">${state.success}</div>` : ''}
 
-          <button class="accent-save-btn" ${state.isSaving ? 'disabled' : ''}>
+          <button aria-label="${t('accessibility.save')}" class="accent-save-btn" ${state.isSaving ? 'disabled' : ''}>
             ${state.isSaving ? t('common.saving') : 'Save Preference'}
           </button>
         </div>
@@ -716,7 +717,7 @@ function bindEvents(): void {
 
   // Save button
   const saveBtn = modalContainer.querySelector('.accent-save-btn');
-  saveBtn?.addEventListener('click', savePreference);
+  saveBtn?.addEventListener('click', () => { void savePreference(); });
 
   // Escape key
   document.addEventListener('keydown', handleKeyDown);
@@ -740,8 +741,8 @@ async function loadCurrentPreference(): Promise<void> {
     const response = await apiGet<{ accent?: EnglishAccent; autoDetected?: boolean }>('/api/user/accent');
 
     if (response.ok && response.data) {
-      state.currentAccent = response.data.accent || 'american';
-      state.detectedAccent = response.data.accent || 'american';
+      state.currentAccent = response.data.accent ?? 'american';
+      state.detectedAccent = response.data.accent ?? 'american';
       state.autoDetected = response.data.autoDetected ?? true;
       log.debug('Loaded accent preference:', response.data);
     }
@@ -768,7 +769,7 @@ async function savePreference(): Promise<void> {
     });
 
     if (!response.ok) {
-      throw new Error(response.data?.error || response.error || 'Failed to save preference');
+      throw new Error(response.data?.error ?? response.error ?? 'Failed to save preference');
     }
 
     log.info('Accent preference saved:', state.currentAccent);

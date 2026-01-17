@@ -15,6 +15,7 @@
 import { createSessionId, type SessionId } from '../types/branded.js';
 import type { UserProfile } from '../types/user-profile.js';
 import { getLogger } from '../utils/safe-logger.js';
+import { registerInterval, clearNamedInterval } from '../utils/interval-manager.js';
 
 import { ContextManager } from './context-manager.class.js';
 
@@ -168,14 +169,16 @@ export function startRegistryCleanup(): void {
     return; // Already running
   }
 
-  cleanupIntervalId = setInterval(() => {
-    cleanupExpiredSessions();
-  }, CLEANUP_INTERVAL_MS);
+  const clearFn = registerInterval(
+    'context-registry-cleanup',
+    () => {
+      cleanupExpiredSessions();
+    },
+    CLEANUP_INTERVAL_MS
+  );
 
-  // Don't prevent process exit
-  if (cleanupIntervalId.unref) {
-    cleanupIntervalId.unref();
-  }
+  // Store a marker so we know cleanup is running (registerInterval handles tracking)
+  cleanupIntervalId = 1 as unknown as ReturnType<typeof setInterval>;
 
   getLogger().debug('Started ContextManager registry cleanup interval');
 }
@@ -186,7 +189,7 @@ export function startRegistryCleanup(): void {
  */
 export function stopRegistryCleanup(): void {
   if (cleanupIntervalId !== null) {
-    clearInterval(cleanupIntervalId);
+    clearNamedInterval('context-registry-cleanup');
     cleanupIntervalId = null;
     getLogger().debug('Stopped ContextManager registry cleanup interval');
   }

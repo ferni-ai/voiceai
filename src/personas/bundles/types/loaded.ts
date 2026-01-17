@@ -72,8 +72,14 @@ export interface LoadedPersonaBundle {
   /** Phase 4: Hooks - lifecycle event handlers */
   getHooks?: () => Promise<BundleAgentHooks | null>;
 
-  /** Phase 5: MCP Config - external tool server configuration */
-  getMCPConfig?: () => Promise<BundleMCPConfig | null>;
+  /** Phase 5: MCP Config - external tool server configuration
+   * @param options.publisherId - Publisher ID for loading API-registered MCP servers
+   * @param options.personaId - Persona ID for filtering API-registered servers
+   */
+  getMCPConfig?: (options?: {
+    publisherId?: string;
+    personaId?: string;
+  }) => Promise<BundleMCPConfig | null>;
 
   // Hot reload support
   reload: () => Promise<void>;

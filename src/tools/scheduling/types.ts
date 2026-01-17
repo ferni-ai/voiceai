@@ -15,7 +15,9 @@ export type AppointmentType =
   | 'salon'
   | 'spa'
   | 'vet'
+  | 'veterinary'
   | 'service'
+  | 'general_service'
   | 'consultation'
   | 'meeting'
   | 'other';

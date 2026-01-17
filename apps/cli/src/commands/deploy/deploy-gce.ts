@@ -1,19 +1,40 @@
 #!/usr/bin/env npx tsx
 /**
- * GCE Blue-Green Deployment Script
+ * GCE Deployment Script
  *
  * RECOMMENDED: Use the Ferni CLI instead of calling this directly:
- *   ferni deploy gce           # Deploy to production GCE
+ *   ferni deploy gce           # Deploy to single VM (legacy)
+ *   ferni deploy gce --mig     # Deploy to Managed Instance Group (auto-scaling)
  *   ferni deploy gce --dry-run # Preview what would happen
  *
- * Deploys the voice agent to GCE with zero-downtime blue-green strategy.
+ * Deploys the voice agent to GCE with zero-downtime strategy.
  *
  * Why GCE instead of Cloud Run?
  * - WebRTC requires UDP for real-time voice (Cloud Run only supports TCP)
  * - LiveKit workers need persistent connections
  * - Better audio quality with direct UDP transport
  *
- * Blue-Green Strategy:
+ * DEPLOYMENT MODES:
+ *
+ * 1. Managed Instance Group (--mig) - RECOMMENDED for production:
+ *    - Auto-scaling: 2-5 instances based on CPU utilization
+ *    - Rolling updates with health checks
+ *    - Automatic instance replacement on failure
+ *    - Zero-downtime deployments
+ *
+ * 2. Single VM Blue-Green (default) - Legacy mode:
+ *    - Single VM with blue-green container swap
+ *    - Manual scaling only
+ *    - Good for development/testing
+ *
+ * MIG Deployment Flow:
+ * 1. Build and push Docker image
+ * 2. Create new instance template with new image
+ * 3. Trigger rolling update on MIG
+ * 4. Wait for all instances to be healthy
+ * 5. Clean up old templates
+ *
+ * Blue-Green Strategy (legacy):
  * 1. Build and push Docker image
  * 2. SSH to GCE VM
  * 3. Pull new image
@@ -40,9 +61,15 @@ const CONFIG = {
   region: process.env.GCP_REGION || 'us-central1',
   zone: process.env.GCP_ZONE || 'us-central1-a',
 
-  // GCE Instance
+  // GCE Instance (legacy single-VM mode)
   instanceName: process.env.GCE_INSTANCE || 'voiceai-agent-gce',
   instanceIp: process.env.GCE_IP || '34.134.186.63',
+
+  // Managed Instance Group (auto-scaling mode)
+  migName: 'voiceai-agent-mig',
+  migTemplatePrefix: 'voiceai-agent-template',
+  migMinInstances: 2,
+  migMaxInstances: 5,
 
   // Container settings
   imageName: 'gcr.io/johnb-2025/voiceai-agent',
@@ -192,14 +219,34 @@ function getSecrets(): Record<string, string> {
     'cartesia-api-key',
     'deepgram-api-key',
     'elevenlabs-api-key',
+    // Music/Spotify secrets (for music playback)
+    'spotify-client-id',
+    'spotify-client-secret',
+    'spotify-refresh-token',
+    // Research/information secrets
+    'finnhub-api-key',
+    'alpha-vantage-key',
+    'newsdata-api-key',
     // Notification secrets (for ferni runtime watch)
     'slack-webhook-url',
     'sendgrid-api-key',
     'twilio-account-sid',
     'twilio-auth-token',
     'twilio-from-number',
+    'twilio-phone-number',
     'ferni-alert-email',
     'ferni-alert-phone',
+    // Post-TTS audio enhancement control
+    'post-tts-enhancement-enabled',
+    'post-tts-pitch-drift',
+    'post-tts-amplitude-jitter',
+    'post-tts-noise-floor',
+    'post-tts-micro-pitch',
+    // SIP trunk for outbound conversational calls
+    'sip-trunk-id',
+    'sip-domain',
+    // Gemini API configuration
+    'use-vertex-ai',
   ];
 
   const secrets: Record<string, string> = {};
@@ -228,6 +275,59 @@ function formatEnvVars(secrets: Record<string, string>): string {
   return Object.entries(secrets)
     .map(([key, value]) => `-e ${key}="${value}"`)
     .join(' ');
+}
+
+// ============================================================================
+// ENV VAR VALIDATION (Prevents deploying broken containers)
+// ============================================================================
+
+/**
+ * Critical environment variables that MUST be present for production.
+ * The deploy will fail if any of these are missing.
+ */
+const CRITICAL_ENV_VARS = [
+  { name: 'LIVEKIT_URL', source: 'secrets', purpose: 'Voice agent connection' },
+  { name: 'LIVEKIT_API_KEY', source: 'secrets', purpose: 'LiveKit authentication' },
+  { name: 'LIVEKIT_API_SECRET', source: 'secrets', purpose: 'LiveKit authentication' },
+  { name: 'GOOGLE_CLOUD_PROJECT', source: 'hardcoded', purpose: 'Firestore persistence' },
+  { name: 'OPENAI_API_KEY', source: 'secrets', purpose: 'LLM for conversations' },
+  { name: 'CARTESIA_API_KEY', source: 'secrets', purpose: 'Text-to-speech' },
+] as const;
+
+/**
+ * Validates that all critical env vars will be present in the container.
+ * @throws Error if any critical env var is missing
+ */
+function validateEnvVars(secrets: Record<string, string>): void {
+  log.substep('Validating critical environment variables...');
+
+  const missing: string[] = [];
+
+  for (const envVar of CRITICAL_ENV_VARS) {
+    if (envVar.source === 'secrets') {
+      if (!secrets[envVar.name]) {
+        missing.push(`${envVar.name} (${envVar.purpose})`);
+      }
+    }
+    // Hardcoded vars are added by the deploy script, so they're always present
+  }
+
+  if (missing.length > 0) {
+    log.error('🚨 CRITICAL: Missing required secrets!');
+    log.error('================================================================================');
+    for (const v of missing) {
+      log.error(`  ❌ ${v}`);
+    }
+    log.error('================================================================================');
+    log.error('');
+    log.error('To fix: Add the missing secrets to GCP Secret Manager:');
+    log.error(`  gcloud secrets create <secret-name> --project=${CONFIG.projectId}`);
+    log.error(`  echo -n "value" | gcloud secrets versions add <secret-name> --data-file=-`);
+    log.error('');
+    throw new Error(`Missing ${missing.length} critical secret(s). Deploy aborted.`);
+  }
+
+  log.success(`All ${CRITICAL_ENV_VARS.length} critical env vars validated ✓`);
 }
 
 // ============================================================================
@@ -386,11 +486,17 @@ function deployToSlot(
     GOOGLE_CLOUD_PROJECT: CONFIG.projectId,
     // Firebase needs FIREBASE_PROJECT_ID for initialization
     FIREBASE_PROJECT_ID: CONFIG.projectId,
+    // GCS bucket for voice messages and audio storage
+    GCS_BUCKET_NAME: 'ferni-voice-audio-3235',
+    // GCS bucket specifically for voice calls (Cartesia TTS → Twilio playback)
+    GCS_VOICE_BUCKET: 'ferni-voice-audio-3235',
     // Redis connection - using Docker host gateway to reach the Redis sidecar
     REDIS_HOST: '172.17.0.1',
     REDIS_PORT: String(CONFIG.redisPort),
     // Enable Pub/Sub for background task offloading
     PUBSUB_ENABLED: 'true',
+    // Enable OpenAI Realtime API (more reliable function calling than Gemini)
+    USE_OPENAI_REALTIME: 'true',
   });
 
   // Start the new container
@@ -435,8 +541,13 @@ function promoteSlot(
     NODE_ENV: 'production',
     GOOGLE_CLOUD_PROJECT: CONFIG.projectId,
     FIREBASE_PROJECT_ID: CONFIG.projectId,
+    GCS_BUCKET_NAME: 'ferni-voice-audio-3235',
+    // GCS bucket specifically for voice calls (Cartesia TTS → Twilio playback)
+    GCS_VOICE_BUCKET: 'ferni-voice-audio-3235',
     REDIS_HOST: '172.17.0.1',
     REDIS_PORT: String(CONFIG.redisPort),
+    // Enable OpenAI Realtime API (more reliable function calling than Gemini)
+    USE_OPENAI_REALTIME: 'true',
   });
 
   // Use "blue" as the production container name for consistency
@@ -558,6 +669,175 @@ EOF'`, { silent: true });
   return result;
 }
 
+// ============================================================================
+// MANAGED INSTANCE GROUP (MIG) DEPLOYMENT
+// ============================================================================
+
+/**
+ * Deploy to Managed Instance Group with rolling update
+ * This is the preferred method for auto-scaling deployments
+ */
+async function deployToMig(image: string, secrets: Record<string, string>): Promise<void> {
+  log.step('Deploying to Managed Instance Group');
+
+  const timestamp = Date.now();
+  const templateName = `${CONFIG.migTemplatePrefix}-${timestamp}`;
+
+  // Build environment variables for container template
+  const envVarsArray: string[] = [];
+  for (const [key, value] of Object.entries(secrets)) {
+    envVarsArray.push(`${key}=${value}`);
+  }
+  // Add standard env vars
+  envVarsArray.push('NODE_ENV=production');
+  envVarsArray.push(`GOOGLE_CLOUD_PROJECT=${CONFIG.projectId}`);
+  envVarsArray.push(`FIREBASE_PROJECT_ID=${CONFIG.projectId}`);
+  envVarsArray.push('GCS_BUCKET_NAME=ferni-voice-audio-3235');
+  envVarsArray.push('REDIS_URL=redis://10.237.188.163:6379'); // Redis internal IP
+  envVarsArray.push('PUBSUB_ENABLED=true');
+  envVarsArray.push('PORT=8080');
+  // Disable post-TTS audio enhancement (causing issues in production)
+  envVarsArray.push('POST_TTS_ENHANCEMENT_ENABLED=false');
+
+  const envVarsString = envVarsArray.join(',');
+
+  // Step 1: Create new instance template with the new image
+  log.substep(`Creating new instance template: ${templateName}`);
+  exec(`gcloud compute instance-templates create-with-container ${templateName} \
+    --machine-type=e2-standard-4 \
+    --container-image=${image} \
+    --container-restart-policy=always \
+    --container-env="${envVarsString}" \
+    --tags=voiceai-agent \
+    --service-account=1031920444452-compute@developer.gserviceaccount.com \
+    --scopes=cloud-platform \
+    --metadata=google-logging-enabled=true \
+    --network=default \
+    --project=${CONFIG.projectId} \
+    --quiet 2>&1`, { silent: true });
+
+  log.success(`Instance template created: ${templateName}`);
+
+  // Step 2: Start rolling update
+  log.substep('Starting rolling update...');
+  exec(`gcloud compute instance-groups managed rolling-action start-update ${CONFIG.migName} \
+    --version=template=${templateName} \
+    --zone=${CONFIG.zone} \
+    --project=${CONFIG.projectId} \
+    --max-surge=1 \
+    --max-unavailable=0 \
+    --quiet`);
+
+  log.success('Rolling update initiated');
+
+  // Step 3: Wait for rolling update to complete
+  log.substep('Waiting for rolling update to complete...');
+  let completed = false;
+  const maxAttempts = 60; // 10 minutes max
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      const status = exec(
+        `gcloud compute instance-groups managed describe ${CONFIG.migName} \
+          --zone=${CONFIG.zone} \
+          --project=${CONFIG.projectId} \
+          --format="value(status.isStable)"`,
+        { silent: true }
+      ).trim();
+
+      if (status === 'True') {
+        completed = true;
+        break;
+      }
+
+      // Get current status
+      const instanceList = exec(
+        `gcloud compute instance-groups managed list-instances ${CONFIG.migName} \
+          --zone=${CONFIG.zone} \
+          --project=${CONFIG.projectId} \
+          --format="table(name,status,healthState,currentAction)" 2>/dev/null || true`,
+        { silent: true }
+      );
+
+      log.substep(`Update in progress (attempt ${attempt}/${maxAttempts})...`);
+      console.log(instanceList.trim());
+    } catch {
+      // Continue waiting
+    }
+
+    await sleep(10000); // Check every 10 seconds
+  }
+
+  if (!completed) {
+    log.error('Rolling update did not complete in time');
+    throw new Error('Rolling update timeout');
+  }
+
+  log.success('Rolling update completed successfully');
+
+  // Step 4: Clean up old templates (keep last 3)
+  log.substep('Cleaning up old instance templates...');
+  try {
+    const templates = exec(
+      `gcloud compute instance-templates list \
+        --filter="name~'^${CONFIG.migTemplatePrefix}'" \
+        --format="value(name)" \
+        --sort-by=~creationTimestamp \
+        --project=${CONFIG.projectId}`,
+      { silent: true }
+    )
+      .trim()
+      .split('\n')
+      .filter(Boolean);
+
+    // Keep the 3 most recent templates
+    const templatesToDelete = templates.slice(3);
+    for (const template of templatesToDelete) {
+      log.substep(`Deleting old template: ${template}`);
+      exec(`gcloud compute instance-templates delete ${template} --project=${CONFIG.projectId} --quiet`, {
+        silent: true,
+      });
+    }
+
+    if (templatesToDelete.length > 0) {
+      log.success(`Deleted ${templatesToDelete.length} old template(s)`);
+    }
+  } catch {
+    log.warn('Could not clean up old templates');
+  }
+}
+
+/**
+ * Get current MIG status
+ */
+function getMigStatus(): { healthy: number; total: number; isStable: boolean } {
+  try {
+    const result = exec(
+      `gcloud compute instance-groups managed list-instances ${CONFIG.migName} \
+        --zone=${CONFIG.zone} \
+        --project=${CONFIG.projectId} \
+        --format="csv[no-heading](healthState)"`,
+      { silent: true }
+    );
+
+    const healthStates = result.trim().split('\n').filter(Boolean);
+    const healthy = healthStates.filter((s) => s === 'HEALTHY').length;
+
+    const isStable =
+      exec(
+        `gcloud compute instance-groups managed describe ${CONFIG.migName} \
+          --zone=${CONFIG.zone} \
+          --project=${CONFIG.projectId} \
+          --format="value(status.isStable)"`,
+        { silent: true }
+      ).trim() === 'True';
+
+    return { healthy, total: healthStates.length, isStable };
+  } catch {
+    return { healthy: 0, total: 0, isStable: false };
+  }
+}
+
 function rollback(): void {
   log.step('Rolling Back');
 
@@ -583,6 +863,7 @@ function rollback(): void {
   const targetSlot = currentSlot === 'blue' ? 'green' : 'blue';
 
   const secrets = getSecrets();
+  validateEnvVars(secrets); // Ensure rollback also has all required vars
   deployToSlot(previousImage, targetSlot, secrets);
 
   const port = targetSlot === 'blue' ? CONFIG.bluePort : CONFIG.greenPort;
@@ -601,21 +882,95 @@ function rollback(): void {
 }
 
 // ============================================================================
+// SAFETY CHECKS
+// ============================================================================
+
+/**
+ * Check for conflicting deployments that could cause LiveKit job routing issues.
+ *
+ * CRITICAL: LiveKit dispatches jobs to ALL registered workers. Having both a
+ * standalone VM and MIG running causes job conflicts (ROOM_CLOSED errors).
+ *
+ * See: docs/architecture/LIVEKIT-AUTOSCALING.md
+ */
+function checkForConflictingDeployments(useMig: boolean): { hasConflict: boolean; message: string } {
+  log.substep('Checking for conflicting deployments...');
+
+  try {
+    // Get all voice agent instances
+    const output = exec(
+      `gcloud compute instances list --project=${CONFIG.projectId} --filter="name~voiceai-agent" --format="value(name,status)"`,
+      { silent: true }
+    );
+
+    const instances = output
+      .trim()
+      .split('\n')
+      .filter(Boolean)
+      .map((line) => {
+        const [name, status] = line.split(/\s+/);
+        return { name: name ?? '', status: status ?? '' };
+      })
+      .filter((i) => i.status === 'RUNNING');
+
+    const standaloneVm = instances.find((i) => i.name === CONFIG.instanceName);
+    const migInstances = instances.filter((i) => i.name.startsWith(CONFIG.migName));
+
+    // Check for conflicts
+    if (useMig && standaloneVm) {
+      return {
+        hasConflict: true,
+        message: `⚠️  CONFLICT DETECTED!\n\n` +
+          `You're deploying to MIG but the standalone VM (${CONFIG.instanceName}) is running.\n` +
+          `Both would register with LiveKit, causing job routing conflicts.\n\n` +
+          `To fix, stop the standalone VM first:\n` +
+          `  gcloud compute instances stop ${CONFIG.instanceName} --zone=${CONFIG.zone}\n\n` +
+          `Or delete it entirely:\n` +
+          `  gcloud compute instances delete ${CONFIG.instanceName} --zone=${CONFIG.zone}`,
+      };
+    }
+
+    if (!useMig && migInstances.length > 0) {
+      return {
+        hasConflict: true,
+        message: `⚠️  CONFLICT DETECTED!\n\n` +
+          `You're deploying to standalone VM but MIG instances are running:\n` +
+          `  ${migInstances.map((i) => i.name).join('\n  ')}\n\n` +
+          `Both would register with LiveKit, causing job routing conflicts.\n\n` +
+          `To fix, delete the MIG first:\n` +
+          `  gcloud compute instance-groups managed delete ${CONFIG.migName} --zone=${CONFIG.zone}`,
+      };
+    }
+
+    log.success('No conflicting deployments found');
+    return { hasConflict: false, message: '' };
+  } catch (error) {
+    // If we can't check, warn but continue
+    log.warn(`Could not check for conflicts: ${error instanceof Error ? error.message : error}`);
+    return { hasConflict: false, message: '' };
+  }
+}
+
+// ============================================================================
 // MAIN
 // ============================================================================
 
 async function main(): Promise<void> {
-  console.log(`
-${colors.bold}${colors.magenta}╔═══════════════════════════════════════════════════════════╗
-║           GCE BLUE-GREEN DEPLOYMENT                       ║
-╚═══════════════════════════════════════════════════════════╝${colors.reset}
-`);
-
   const args = process.argv.slice(2);
   const isDryRun = args.includes('--dry-run');
   const isRollback = args.includes('--rollback');
   const forceCloudBuild = args.includes('--cloud-build');
-  
+  const useMig = args.includes('--mig');
+  const skipConflictCheck = args.includes('--force');
+
+  const headerText = useMig ? 'GCE MANAGED INSTANCE GROUP DEPLOYMENT' : 'GCE BLUE-GREEN DEPLOYMENT';
+
+  console.log(`
+${colors.bold}${colors.magenta}╔═══════════════════════════════════════════════════════════╗
+║           ${headerText.padEnd(43)}║
+╚═══════════════════════════════════════════════════════════╝${colors.reset}
+`);
+
   // Auto-detect if local Docker is available
   let useCloudBuild = forceCloudBuild;
   if (!useCloudBuild) {
@@ -637,8 +992,27 @@ ${colors.bold}${colors.magenta}╔═══════════════�
 
   // Show configuration
   log.info(`Project: ${CONFIG.projectId}`);
-  log.info(`Instance: ${CONFIG.instanceName} (${CONFIG.instanceIp})`);
+  if (useMig) {
+    log.info(`MIG: ${CONFIG.migName} (${CONFIG.migMinInstances}-${CONFIG.migMaxInstances} instances)`);
+    const migStatus = getMigStatus();
+    log.info(`Current status: ${migStatus.healthy}/${migStatus.total} healthy, stable: ${migStatus.isStable}`);
+  } else {
+    log.info(`Instance: ${CONFIG.instanceName} (${CONFIG.instanceIp})`);
+  }
   log.info(`Zone: ${CONFIG.zone}`);
+
+  // Check for conflicting deployments (standalone VM + MIG = bad)
+  if (!skipConflictCheck) {
+    const conflict = checkForConflictingDeployments(useMig);
+    if (conflict.hasConflict) {
+      console.log(`\n${colors.red}${colors.bold}${conflict.message}${colors.reset}\n`);
+      log.error('Deploy aborted due to conflicting deployments');
+      log.info('Use --force to skip this check (NOT RECOMMENDED)');
+      process.exit(1);
+    }
+  } else {
+    log.warn('Skipping conflict check (--force). This may cause LiveKit job routing issues!');
+  }
 
   if (isRollback) {
     if (isDryRun) {
@@ -648,6 +1022,58 @@ ${colors.bold}${colors.magenta}╔═══════════════�
     rollback();
     return;
   }
+
+  // Fetch secrets
+  const secrets = getSecrets();
+  if (Object.keys(secrets).length === 0) {
+    log.error('No secrets found - cannot deploy');
+    process.exit(1);
+  }
+  log.success(`Loaded ${Object.keys(secrets).length} secrets`);
+
+  // Validate all critical env vars are present BEFORE deploying
+  validateEnvVars(secrets);
+
+  // =========================================================================
+  // MIG DEPLOYMENT PATH
+  // =========================================================================
+  if (useMig) {
+    if (isDryRun) {
+      log.info(`Would build image using ${useCloudBuild ? 'Cloud Build' : 'local Docker'}`);
+      log.info(`Would create new instance template`);
+      log.info(`Would trigger rolling update on ${CONFIG.migName}`);
+      log.info('Would wait for all instances to be healthy');
+      log.info('Would clean up old instance templates');
+      return;
+    }
+
+    // Build and push
+    const image = buildAndPush(useCloudBuild);
+
+    // Deploy to MIG with rolling update
+    await deployToMig(image, secrets);
+
+    // Get final status
+    const finalStatus = getMigStatus();
+
+    console.log(`
+${colors.bold}${colors.green}╔═══════════════════════════════════════════════════════════╗
+║           MIG DEPLOYMENT COMPLETE                          ║
+╚═══════════════════════════════════════════════════════════╝${colors.reset}
+
+  ${colors.cyan}Service:${colors.reset}      ${CONFIG.containerName}
+  ${colors.cyan}MIG:${colors.reset}          ${CONFIG.migName}
+  ${colors.cyan}Image:${colors.reset}        ${image}
+  ${colors.cyan}Instances:${colors.reset}    ${finalStatus.healthy}/${finalStatus.total} healthy
+  ${colors.cyan}Auto-scale:${colors.reset}   ${CONFIG.migMinInstances}-${CONFIG.migMaxInstances} instances
+  ${colors.cyan}Status:${colors.reset}       ${finalStatus.isStable ? colors.green + 'STABLE' : colors.yellow + 'UPDATING'}${colors.reset}
+`);
+    return;
+  }
+
+  // =========================================================================
+  // SINGLE VM BLUE-GREEN DEPLOYMENT PATH (Legacy)
+  // =========================================================================
 
   // Determine deployment slot
   const currentSlot = getCurrentSlot();
@@ -666,14 +1092,6 @@ ${colors.bold}${colors.magenta}╔═══════════════�
     log.info('Would perform disk cleanup (remove old images, truncate logs)');
     return;
   }
-
-  // Fetch secrets
-  const secrets = getSecrets();
-  if (Object.keys(secrets).length === 0) {
-    log.error('No secrets found - cannot deploy');
-    process.exit(1);
-  }
-  log.success(`Loaded ${Object.keys(secrets).length} secrets`);
 
   // Ensure Redis sidecar is running
   await ensureRedisRunning();
@@ -701,6 +1119,27 @@ ${colors.bold}${colors.magenta}╔═══════════════�
     }
 
     process.exit(1);
+  }
+
+  // Post-deploy verification: Ensure container actually has critical env vars
+  log.substep('Verifying container environment...');
+  const containerName = `${CONFIG.containerName}-${targetSlot}`;
+  try {
+    const envCheck = ssh(
+      `docker exec ${containerName} printenv GOOGLE_CLOUD_PROJECT 2>/dev/null || echo ""`,
+      { silent: true }
+    );
+    if (!envCheck.trim()) {
+      log.error('🚨 CRITICAL: Container is missing GOOGLE_CLOUD_PROJECT!');
+      log.error('This indicates a deploy script bug. Please report this issue.');
+      log.substep(`Stopping misconfigured ${targetSlot} container...`);
+      ssh(`docker stop ${containerName} 2>/dev/null || true`, { silent: true });
+      ssh(`docker rm ${containerName} 2>/dev/null || true`, { silent: true });
+      process.exit(1);
+    }
+    log.success('Container environment verified ✓');
+  } catch (e) {
+    log.warn('Could not verify container environment (continuing anyway)');
   }
 
   // Promote the new slot to production port 8080

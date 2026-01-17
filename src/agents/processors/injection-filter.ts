@@ -25,8 +25,20 @@ import type { ContextInjection } from './types.js';
 
 /**
  * Categories that ALWAYS get through (non-negotiable)
+ *
+ * These are "Better than Human" capabilities that should NEVER be filtered:
+ * - safety/crisis: Life-safety
+ * - identity: Persona consistency
+ * - boundaries: Respecting user's sensitive topics (trust system)
+ * - unsaid: Detecting what user isn't saying (emotional mismatches, permission seeking)
  */
-const ESSENTIAL_CATEGORIES = new Set(['safety', 'crisis_response', 'identity']);
+const ESSENTIAL_CATEGORIES = new Set([
+  'safety',
+  'crisis_response',
+  'identity',
+  'boundaries', // Trust: Topics to avoid - critical for user safety/comfort
+  'unsaid', // Trust: Emotional mismatches, permission seeking - "Better than Human" listening
+]);
 
 /**
  * Categories that are NICE-TO-HAVE but can be dropped
@@ -45,14 +57,22 @@ const OPTIONAL_CATEGORIES = new Set([
 ]);
 
 /**
- * Maximum injections to allow per turn
+ * Maximum injections to allow per turn (default)
+ * LATENCY OPTIMIZATION: Reduced from 8 to 6 - fewer injections = faster LLM TTFT
  */
-const MAX_INJECTIONS = 8;
+const MAX_INJECTIONS = 6;
 
 /**
- * Maximum total characters for all injections
+ * Maximum total characters for all injections (default)
+ * LATENCY OPTIMIZATION: Reduced from 2000 to 1500 - smaller context = faster LLM TTFT
  */
-const MAX_TOTAL_CHARS = 2000;
+const MAX_TOTAL_CHARS = 1500;
+
+/**
+ * FAST MODE: For casual/simple exchanges - even more aggressive limits
+ */
+const FAST_MODE_MAX_INJECTIONS = 3;
+const FAST_MODE_MAX_CHARS = 600;
 
 // ============================================================================
 // CONVERSATION MODES
@@ -161,13 +181,27 @@ function getPriorityCategories(mode: ConversationMode): Set<string> {
         'humanizing',
         'response_length',
         'pacing',
+        // Trust system categories - critical for emotional conversations
+        'proactive_outreach', // "I've been thinking about you" moments
+        'celebration', // Small win celebrations
+        'growth', // Growth reflections
+        'callback', // Referencing past moments
       ]);
 
     case 'practical':
       return new Set(['context', 'tasks', 'response_length', 'coaching']);
 
     case 'deep':
-      return new Set(['coaching', 'context', 'humanizing', 'response_length']);
+      return new Set([
+        'coaching',
+        'context',
+        'humanizing',
+        'response_length',
+        // Trust system categories - valuable for deep conversations
+        'proactive_outreach',
+        'growth', // Reflect their evolution in deep talks
+        'callback', // Reference past conversations
+      ]);
 
     case 'casual':
       return new Set([
@@ -196,6 +230,10 @@ export interface FilterOptions {
 
 /**
  * Filter injections to only what's relevant for this turn
+ *
+ * LATENCY OPTIMIZATION (Dec 2024):
+ * - Uses "fast mode" for casual conversations with aggressive limits
+ * - Reduces context size to minimize LLM time-to-first-token
  */
 export function filterInjections(
   injections: ContextInjection[],
@@ -206,9 +244,6 @@ export function filterInjections(
     return injections;
   }
 
-  const maxInjections = options.maxInjections ?? MAX_INJECTIONS;
-  const maxChars = options.maxChars ?? MAX_TOTAL_CHARS;
-
   // Detect mode if not provided
   const mode =
     options.mode ??
@@ -217,6 +252,13 @@ export function filterInjections(
       options.emotionalIntensity,
       options.crisisDetected
     );
+
+  // LATENCY OPTIMIZATION: Use aggressive limits for casual/simple exchanges
+  // Casual conversations don't need heavy context - just respond naturally
+  const isFastMode = mode === 'casual';
+  const maxInjections =
+    options.maxInjections ?? (isFastMode ? FAST_MODE_MAX_INJECTIONS : MAX_INJECTIONS);
+  const maxChars = options.maxChars ?? (isFastMode ? FAST_MODE_MAX_CHARS : MAX_TOTAL_CHARS);
 
   const priorityCategories = getPriorityCategories(mode);
   const filtered: ContextInjection[] = [];
@@ -261,12 +303,134 @@ export function filterInjections(
   // Log what we filtered
   if (process.env.DEBUG_INJECTIONS === 'true') {
     const removed = injections.length - filtered.length;
+    const fastModeStr = isFastMode ? ' [FAST MODE]' : '';
     process.stderr.write(
-      `[INJECTION FILTER] Mode: ${mode}, Kept: ${filtered.length}/${injections.length}, Removed: ${removed}\n`
+      `[INJECTION FILTER] Mode: ${mode}${fastModeStr}, Kept: ${filtered.length}/${injections.length}, Removed: ${removed}, Chars: ${totalChars}/${maxChars}\n`
     );
   }
 
   return filtered;
+}
+
+// ============================================================================
+// SEMANTIC DEDUPLICATION
+// ============================================================================
+
+/**
+ * Common phrases that appear across multiple builders.
+ * These are normalized forms used for similarity matching.
+ */
+const SEMANTIC_CLUSTERS: readonly string[][] = [
+  // Empathy/listening cluster
+  ['empathy', 'empathetic', 'listen', 'understand', 'presence', 'supportive', 'validate'],
+  // Safety/crisis cluster
+  ['crisis', 'safety', 'emergency', 'urgent', 'distress', 'harm'],
+  // Response style cluster
+  ['brief', 'concise', 'short', 'succinct', 'keep it short'],
+  // Acknowledgment cluster
+  ['acknowledge', 'recognize', 'notice', 'aware', 'see that'],
+  // Pacing cluster
+  ['pause', 'slow', 'space', 'breath', 'gentle'],
+  // Celebration cluster
+  ['celebrate', 'congratulate', 'proud', 'achievement', 'milestone', 'win'],
+];
+
+/**
+ * Extract key words from injection content for similarity matching.
+ * Uses lightweight tokenization - no embeddings needed for speed.
+ */
+function extractKeywords(content: string): Set<string> {
+  const words = content
+    .toLowerCase()
+    .replace(/[^\w\s]/g, ' ')
+    .split(/\s+/)
+    .filter((w) => w.length > 3); // Skip short words
+
+  return new Set(words);
+}
+
+/**
+ * Compute Jaccard similarity between two keyword sets.
+ * Returns value between 0 (no overlap) and 1 (identical).
+ */
+function jaccardSimilarity(a: Set<string>, b: Set<string>): number {
+  if (a.size === 0 && b.size === 0) return 0;
+
+  const intersection = new Set([...a].filter((x) => b.has(x)));
+  const union = new Set([...a, ...b]);
+
+  return intersection.size / union.size;
+}
+
+/**
+ * Check if two injections are semantically similar based on keyword overlap.
+ * Also considers semantic clusters for known related terms.
+ */
+function areSemanticallySimilar(a: ContextInjection, b: ContextInjection): boolean {
+  // Same category is a strong signal of overlap
+  if (a.category === b.category) return true;
+
+  const keywordsA = extractKeywords(a.content);
+  const keywordsB = extractKeywords(b.content);
+
+  // Direct Jaccard similarity > 0.4 means significant overlap
+  const directSimilarity = jaccardSimilarity(keywordsA, keywordsB);
+  if (directSimilarity > 0.4) return true;
+
+  // Check if both injections belong to the same semantic cluster
+  for (const cluster of SEMANTIC_CLUSTERS) {
+    const clusterSet = new Set(cluster);
+    const aHasCluster = [...keywordsA].some((w) => clusterSet.has(w));
+    const bHasCluster = [...keywordsB].some((w) => clusterSet.has(w));
+
+    if (aHasCluster && bHasCluster) {
+      // Both mention words from the same cluster - likely similar
+      return true;
+    }
+  }
+
+  return false;
+}
+
+/**
+ * Deduplicate semantically similar injections.
+ * Keeps the highest-priority injection from each cluster of similar injections.
+ *
+ * Performance: O(n²) but n is typically < 30, so this is ~microseconds
+ */
+export function deduplicateInjections(injections: ContextInjection[]): ContextInjection[] {
+  if (injections.length <= 1) return injections;
+
+  // Sort by priority (highest first) so we keep the best from each cluster
+  const sorted = [...injections].sort((a, b) => b.priority - a.priority);
+
+  const kept: ContextInjection[] = [];
+  const skipped = new Set<number>();
+
+  for (let i = 0; i < sorted.length; i++) {
+    if (skipped.has(i)) continue;
+
+    const current = sorted[i];
+    kept.push(current);
+
+    // Find all similar injections and mark them as skipped
+    for (let j = i + 1; j < sorted.length; j++) {
+      if (skipped.has(j)) continue;
+
+      if (areSemanticallySimilar(current, sorted[j])) {
+        skipped.add(j);
+      }
+    }
+  }
+
+  // Log deduplication results
+  if (process.env.DEBUG_INJECTIONS === 'true' && skipped.size > 0) {
+    process.stderr.write(
+      `[INJECTION DEDUP] Removed ${skipped.size} semantically similar injections\n`
+    );
+  }
+
+  return kept;
 }
 
 // ============================================================================
@@ -275,6 +439,7 @@ export function filterInjections(
 
 export default {
   filterInjections,
+  deduplicateInjections,
   detectConversationMode,
   ESSENTIAL_CATEGORIES,
   OPTIONAL_CATEGORIES,

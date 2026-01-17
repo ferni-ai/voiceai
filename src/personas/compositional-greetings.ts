@@ -301,22 +301,76 @@ function fillPlaceholders(text: string, ctx: GreetingContext): string {
     .replace(/{caughtDoing}/g, ctx.caughtDoing || '');
 }
 
-function addPauses(parts: string[]): string {
+/**
+ * Add pauses between parts with "Better Than Human" humanization
+ *
+ * Creates a greeting that feels like someone arriving:
+ * 1. BREATH: Subtle breath sound ~30% of the time
+ * 2. SPEED ARC: Opener is slower, then settles to normal pace
+ * 3. LANDING: Patient pause at the end
+ */
+function addPauses(parts: string[], isLateNight = false): string {
   // Filter out empty parts
   const nonEmpty = parts.filter((p) => p.trim());
 
-  // Join with natural pauses
-  return nonEmpty.reduce((acc, part, i) => {
-    if (i === 0) return part;
+  if (nonEmpty.length === 0) return '';
 
-    // Vary pause duration for natural rhythm
-    const pauseMs = 150 + Math.floor(Math.random() * 100); // 150-250ms
-    return `${acc} <break time="${pauseMs}ms"/>${part}`;
-  }, '');
+  let result = '';
+
+  // 1. BREATH BEFORE WORDS (~30%, higher for late night)
+  const breathChance = isLateNight ? 0.5 : 0.3;
+  if (Math.random() < breathChance) {
+    const breaths = isLateNight
+      ? [
+          '<break time="60ms"/>[soft breath]<break time="80ms"/>',
+          '<break time="70ms"/>[quiet breath]<break time="70ms"/>',
+        ]
+      : [
+          '<break time="40ms"/>[breath]<break time="60ms"/>',
+          '<break time="50ms"/>[soft breath]<break time="70ms"/>',
+          '<break time="40ms"/>',
+        ];
+    result += breaths[Math.floor(Math.random() * breaths.length)];
+  } else {
+    // Small settling pause
+    result += '<break time="40ms"/>';
+  }
+
+  // 2. BUILD PARTS WITH SPEED ARC
+  nonEmpty.forEach((part, i) => {
+    if (i === 0) {
+      // First part (opener) is SLOWER - the "landing" feel
+      const speed = isLateNight ? 0.85 : 0.9;
+      result += `<speed ratio="${speed}"/>${part}`;
+    } else if (i === nonEmpty.length - 1) {
+      // Last part (question/closer) at normal pace
+      const pauseMs = 150 + Math.floor(Math.random() * 80); // 150-230ms
+      result += `<break time="${pauseMs}ms"/><speed ratio="1.0"/>${part}`;
+    } else {
+      // Middle parts - gradual speed increase
+      const pauseMs = 120 + Math.floor(Math.random() * 60); // 120-180ms
+      const speed = 0.92 + i * 0.03; // Gradually faster
+      result += `<break time="${pauseMs}ms"/><speed ratio="${speed.toFixed(2)}"/>${part}`;
+    }
+  });
+
+  // 3. LANDING PAUSE - patient presence after question
+  const landingMs = isLateNight
+    ? 500 + Math.floor(Math.random() * 150) // 500-650ms for late night
+    : 400 + Math.floor(Math.random() * 120); // 400-520ms normally
+  result += `<break time="${landingMs}ms"/>`;
+
+  return result;
 }
 
 /**
  * Compose a greeting from atomic building blocks
+ *
+ * "BETTER THAN HUMAN" - Compositional greetings now have:
+ * - Breath before words (~30%)
+ * - Speed arc (slower opener → normal question)
+ * - Patient landing pause after question
+ * - Time-of-day awareness (softer for late night)
  */
 export function composeGreeting(
   ctx: GreetingContext,
@@ -335,8 +389,11 @@ export function composeGreeting(
     .filter(Boolean)
     .map((part) => fillPlaceholders(part!, ctx));
 
-  // Add natural pauses between parts
-  return addPauses(parts);
+  // Determine if late night for softer pacing
+  const isLateNight = ctx.timeOfDay === 'late_night' || ctx.timeOfDay === 'early_morning';
+
+  // Add humanized pauses with breath, speed arc, and landing
+  return addPauses(parts, isLateNight);
 }
 
 // ============================================================================

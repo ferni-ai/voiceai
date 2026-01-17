@@ -16,10 +16,10 @@
  * @see apps/BETTER-THAN-HUMAN-PLAN.md for full architecture
  */
 
-import * as admin from 'firebase-admin';
+import admin from 'firebase-admin';
 import type { IncomingMessage, ServerResponse } from 'http';
 import { createLogger } from '../utils/safe-logger.js';
-import { removeUndefined } from '../utils/firestore-utils.js';
+import { removeUndefined, cleanForFirestore } from '../utils/firestore-utils.js';
 import { optionalAuthAsync, rateLimit } from './auth-middleware.js';
 import { API_ERRORS } from './error-messages.js';
 import {
@@ -60,21 +60,10 @@ export interface RoadmapSuggestion {
   updatedAt: Date;
 }
 
-export interface UserSeeds {
-  userId: string;
-  balance: number;
-  lifetimePlanted: number;
-  lifetimeEarned: number;
-  featuresUnlocked: string[];
-  earnedFrom: {
-    conversations: number;
-    streaks: number;
-    referrals: number;
-    feedback: number;
-    suggestionsAccepted: number;
-    featuresBloomed: number;
-  };
-}
+// Import UserSeeds from service layer (clean architecture)
+// Re-export for backward compatibility
+import { type UserSeeds } from '../services/seed-economy.js';
+export type { UserSeeds };
 
 export interface FeatureStats {
   featureId: string;
@@ -139,7 +128,9 @@ function getFirestore(): admin.firestore.Firestore | null {
   initAttempted = true;
 
   try {
-    if (admin.apps.length === 0) {
+    // Check if admin.apps exists and has length (handles undefined case)
+    const { apps } = admin;
+    if (!apps || apps.length === 0) {
       const projectId =
         process.env.GCP_PROJECT_ID ||
         process.env.FIREBASE_PROJECT_ID ||
@@ -336,7 +327,7 @@ export async function checkStreakReward(
 
           // Mark milestone as claimed
           if (!streakRewardsDoc.exists) {
-            transaction.set(streakRewardsRef, {
+            transaction.set(cleanForFirestore(streakRewardsRef), {
               claimedMilestones: [milestone],
               lastClaimed: admin.firestore.FieldValue.serverTimestamp(),
             });
@@ -481,27 +472,23 @@ async function handleVote(
         return { success: false, error: 'Insufficient seeds', balance: currentBalance };
       }
 
-      // Check if user already voted on this feature
-      const existingVoteQuery = await db
-        .collection('roadmap_votes')
-        .where('userId', '==', userId)
-        .where('featureId', '==', featureId)
-        .limit(1)
-        .get();
+      // Check if user already voted on this feature (using deterministic ID)
+      const voteId = `${userId}_${featureId}`;
+      const existingVoteRef = db.collection('feature_votes').doc(voteId);
+      const existingVoteDoc = await transaction.get(existingVoteRef);
 
-      if (!existingVoteQuery.empty) {
+      if (existingVoteDoc.exists) {
         // Update existing vote
-        const existingVoteDoc = existingVoteQuery.docs[0];
-        const existingSeeds = existingVoteDoc.data().seedsPlanted || 0;
+        const existingSeeds = existingVoteDoc.data()?.seedsPlanted || 0;
         const additionalSeeds = seeds;
 
         if (currentBalance < additionalSeeds) {
           return { success: false, error: 'Insufficient seeds', balance: currentBalance };
         }
 
-        transaction.update(existingVoteDoc.ref, {
+        transaction.update(existingVoteRef, {
           seedsPlanted: admin.firestore.FieldValue.increment(additionalSeeds),
-          reason: reason || existingVoteDoc.data().reason,
+          reason: reason || existingVoteDoc.data()?.reason,
           updatedAt: admin.firestore.FieldValue.serverTimestamp(),
         });
 
@@ -533,24 +520,23 @@ async function handleVote(
         const featureStatsRef = db.collection('roadmap_feature_stats').doc(featureId);
         transaction.set(
           featureStatsRef,
-          {
+          cleanForFirestore({
             totalSeeds: admin.firestore.FieldValue.increment(additionalSeeds),
             updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-          },
+          }),
           { merge: true }
         );
 
         return {
           success: true,
-          voteId: existingVoteDoc.id,
+          voteId,
           totalSeedsPlanted: existingSeeds + additionalSeeds,
           newBalance: currentBalance - additionalSeeds,
         };
       }
 
-      // Create new vote
-      const voteRef = db.collection('roadmap_votes').doc();
-      transaction.set(voteRef, {
+      // Create new vote (using deterministic ID)
+      transaction.set(cleanForFirestore(existingVoteRef), {
         userId,
         featureId,
         seedsPlanted: seeds,
@@ -587,17 +573,17 @@ async function handleVote(
       const featureStatsRef = db.collection('roadmap_feature_stats').doc(featureId);
       transaction.set(
         featureStatsRef,
-        {
+        cleanForFirestore({
           totalSeeds: admin.firestore.FieldValue.increment(seeds),
           uniqueVoters: admin.firestore.FieldValue.increment(1),
           updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-        },
+        }),
         { merge: true }
       );
 
       return {
         success: true,
-        voteId: voteRef.id,
+        voteId,
         totalSeedsPlanted: seeds,
         newBalance: currentBalance - seeds,
       };
@@ -634,38 +620,40 @@ async function handleUnvote(
     }
 
     const result = await db.runTransaction(async (transaction) => {
-      // Find user's vote for this feature
-      const voteQuery = await db
-        .collection('roadmap_votes')
-        .where('userId', '==', userId)
-        .where('featureId', '==', featureId)
-        .limit(1)
-        .get();
+      // Find user's vote for this feature (using deterministic ID)
+      const voteId = `${userId}_${featureId}`;
+      const voteRef = db.collection('feature_votes').doc(voteId);
+      const voteDoc = await transaction.get(voteRef);
 
-      if (voteQuery.empty) {
+      if (!voteDoc.exists) {
         return { success: false, error: 'Vote not found' };
       }
 
-      const voteDoc = voteQuery.docs[0];
-      const seedsPlanted = voteDoc.data().seedsPlanted || 0;
+      const seedsPlanted = voteDoc.data()?.seedsPlanted || 0;
       const refund = Math.floor(seedsPlanted * UNVOTE_REFUND_PERCENT);
 
       // Delete vote
-      transaction.delete(voteDoc.ref);
+      transaction.delete(voteRef);
 
       // Refund seeds
       const userSeedsRef = db.collection('user_seeds').doc(userId);
-      transaction.update(userSeedsRef, {
-        balance: admin.firestore.FieldValue.increment(refund),
-      });
+      transaction.update(
+        userSeedsRef,
+        cleanForFirestore({
+          balance: admin.firestore.FieldValue.increment(refund),
+        })
+      );
 
       // Update feature stats
       const featureStatsRef = db.collection('roadmap_feature_stats').doc(featureId);
-      transaction.update(featureStatsRef, {
-        totalSeeds: admin.firestore.FieldValue.increment(-seedsPlanted),
-        uniqueVoters: admin.firestore.FieldValue.increment(-1),
-        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-      });
+      transaction.update(
+        featureStatsRef,
+        cleanForFirestore({
+          totalSeeds: admin.firestore.FieldValue.increment(-seedsPlanted),
+          uniqueVoters: admin.firestore.FieldValue.increment(-1),
+          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        })
+      );
 
       return {
         success: true,
@@ -703,8 +691,10 @@ async function handleGetUserVotes(
       return;
     }
 
+    // Query feature_votes using a prefix scan on the deterministic ID pattern
+    // IDs are formatted as `${userId}_${featureId}`, so we can filter by prefix
     const votesSnapshot = await db
-      .collection('roadmap_votes')
+      .collection('feature_votes')
       .where('userId', '==', userId)
       .orderBy('createdAt', 'desc')
       .get();
@@ -786,7 +776,7 @@ async function handleSuggest(
 
       // Create suggestion
       const suggestionRef = db.collection('roadmap_suggestions').doc();
-      transaction.set(suggestionRef, {
+      transaction.set(cleanForFirestore(suggestionRef), {
         userId,
         title,
         description,
@@ -1056,81 +1046,10 @@ export async function handleRoadmapRoutes(
 }
 
 // =============================================================================
-// SEED EARNING (Called from session cleanup)
+// SEED EARNING - Re-exported from service layer (clean architecture)
 // =============================================================================
 
-/**
- * Award seeds to a user for completing a conversation.
- * Called from the voice agent cleanup handler.
- *
- * @param userId - User to award seeds to
- * @param seedsToAward - Number of seeds to award (default: 1)
- * @param source - Source of seed earning (for analytics)
- */
-export async function awardSeedsForConversation(
-  userId: string,
-  seedsToAward = 1,
-  source: 'conversation' | 'streak' | 'referral' = 'conversation'
-): Promise<{ success: boolean; newBalance?: number; error?: string }> {
-  if (!userId) {
-    return { success: false, error: 'User ID required' };
-  }
-
-  try {
-    const db = getFirestore();
-    if (!db) {
-      log.warn({ userId }, 'Firestore not initialized, skipping seed award');
-      return { success: false, error: 'Database not available' };
-    }
-    const userSeedsRef = db.collection('user_seeds').doc(userId);
-
-    let newBalance = 0;
-
-    await db.runTransaction(async (transaction) => {
-      const userSeedsDoc = await transaction.get(userSeedsRef);
-      const userSeeds = userSeedsDoc.exists
-        ? (userSeedsDoc.data() as UserSeeds)
-        : {
-            userId,
-            balance: 10, // New users start with 10 seeds
-            lifetimePlanted: 0,
-            lifetimeEarned: 10,
-            featuresUnlocked: [],
-            earnedFrom: {
-              conversations: 0,
-              streaks: 0,
-              referrals: 0,
-              feedback: 0,
-              suggestionsAccepted: 0,
-              featuresBloomed: 0,
-            },
-          };
-
-      // Update balance and tracking
-      userSeeds.balance += seedsToAward;
-      userSeeds.lifetimeEarned += seedsToAward;
-
-      // Track source of earning
-      if (source === 'conversation') {
-        userSeeds.earnedFrom.conversations += seedsToAward;
-      } else if (source === 'streak') {
-        userSeeds.earnedFrom.streaks += seedsToAward;
-      } else if (source === 'referral') {
-        userSeeds.earnedFrom.referrals += seedsToAward;
-      }
-
-      newBalance = userSeeds.balance;
-
-      transaction.set(userSeedsRef, userSeeds, { merge: true });
-    });
-
-    log.info({ userId, seedsToAward, source, newBalance }, 'Seeds awarded');
-
-    return { success: true, newBalance };
-  } catch (error) {
-    log.error({ error, userId }, 'Failed to award seeds');
-    return { success: false, error: 'Database error' };
-  }
-}
+// Re-export for backward compatibility - callers should import from services/seed-economy.js directly
+export { awardSeedsForConversation } from '../services/seed-economy.js';
 
 export default handleRoadmapRoutes;

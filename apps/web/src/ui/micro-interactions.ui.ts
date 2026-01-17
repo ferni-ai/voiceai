@@ -22,6 +22,7 @@ import {
   EASING,
   ANIMATION_PRESET,
 } from '../config/animation-constants.js';
+import { imperfect, type ImperfectionValues } from '../systems/imperfection.js';
 
 // Track setTimeout calls for memory leak prevention
 const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
@@ -68,75 +69,107 @@ export function initMicroInteractions(): void {
 
 /**
  * Handle mouse down on interactive elements.
- * Creates the "anticipation" squash effect.
+ * Creates the "anticipation" squash effect with organic imperfection.
  */
 function handleMouseDown(e: MouseEvent): void {
   const target = e.target as HTMLElement;
   // Guard: ensure target is an Element with closest method
   if (!target || typeof target.closest !== 'function') return;
   const button = target.closest('.btn, button, [role="button"]') as HTMLElement;
-  
+
   if (!button || button.hasAttribute('disabled')) return;
   if (prefersReducedMotion) return;
-  
+
   // Cancel any existing animations
   cancelAnimations(button);
-  
+
+  // Generate unique imperfection for this button press
+  // Using element's position as seed for deterministic but varied results
+  const seed = button.getBoundingClientRect().left + button.getBoundingClientRect().top;
+  const variation = imperfect.generate({
+    seed,
+    intensity: 'subtle',
+    types: ['timing', 'amplitude', 'rotation'],
+  });
+
+  // Apply imperfection to squash values
+  const scaleX = 0.96 * variation.amplitudeMultiplier;
+  const scaleY = 0.92 * variation.amplitudeMultiplier;
+  const rotation = variation.rotationOffset;
+
   // Anticipation squash - like pressing down on something squishy
+  // With subtle organic variation to feel handcrafted
   const squashAnim = button.animate([
-    { transform: 'scale(1)', offset: 0 },
-    { transform: 'scale(0.96, 0.92)', offset: 1 },
+    { transform: 'scale(1) rotate(0deg)', offset: 0 },
+    { transform: `scale(${scaleX}, ${scaleY}) rotate(${rotation}deg)`, offset: 1 },
   ], {
-    duration: ANIMATION_PRESET.BUTTON_PRESS.duration,
+    duration: ANIMATION_PRESET.BUTTON_PRESS.duration * variation.durationMultiplier,
     easing: EASING.STANDARD, // Clean press, not anticipation curve
     fill: 'forwards',
   });
-  
+
+  // Store variation for release animation
+  (button as unknown as { _pressVariation: ImperfectionValues })._pressVariation = variation;
+
   trackAnimation(button, squashAnim);
 }
 
 /**
- * Handle mouse up - the satisfying "pop" release.
+ * Handle mouse up - the satisfying "pop" release with organic follow-through.
  */
 function handleMouseUp(e: MouseEvent): void {
   const target = e.target as HTMLElement;
   // Guard: ensure target is an Element with closest method
   if (!target || typeof target.closest !== 'function') return;
   const button = target.closest('.btn, button, [role="button"]') as HTMLElement;
-  
+
   if (!button || button.hasAttribute('disabled')) return;
   if (prefersReducedMotion) return;
-  
+
   // Cancel squash animation
   cancelAnimations(button);
-  
+
+  // Get stored variation from press, or generate new one
+  const stored = (button as unknown as { _pressVariation?: ImperfectionValues })._pressVariation;
+  const variation = stored ?? imperfect.generate({
+    seed: Date.now(),
+    intensity: 'subtle',
+    types: ['timing', 'amplitude', 'rotation'],
+  });
+
+  // Apply imperfection to pop values - more variation in release for energy
+  const ampMult = variation.amplitudeMultiplier;
+  const rot = variation.rotationOffset;
+
   // Pop release with overshoot - Pixar-style follow-through
+  // Organic variation makes each press feel unique
   const popAnim = button.animate([
-    // Starting from squashed state
-    { transform: 'scale(0.96, 0.92)', offset: 0 },
-    // Quick stretch up (release energy)
-    { transform: 'scale(1.04, 1.08)', offset: 0.3 },
+    // Starting from squashed state (match press end state)
+    { transform: `scale(${0.96 * ampMult}, ${0.92 * ampMult}) rotate(${rot}deg)`, offset: 0 },
+    // Quick stretch up (release energy) - amplified by imperfection
+    { transform: `scale(${1.04 * ampMult}, ${1.08 * ampMult}) rotate(${-rot * 0.5}deg)`, offset: 0.3 },
     // Overshoot past neutral
-    { transform: 'scale(1.06, 1.04)', offset: 0.5 },
+    { transform: `scale(${1.06 * ampMult}, ${1.04 * ampMult}) rotate(${rot * 0.3}deg)`, offset: 0.5 },
     // Settle with undershoot
-    { transform: 'scale(0.99, 1.01)', offset: 0.75 },
+    { transform: `scale(${0.99 * ampMult}, ${1.01 * ampMult}) rotate(${-rot * 0.1}deg)`, offset: 0.75 },
     // Back to neutral
-    { transform: 'scale(1)', offset: 1 },
+    { transform: 'scale(1) rotate(0deg)', offset: 1 },
   ], {
-    duration: ANIMATION_PRESET.BUTTON_RELEASE.duration,
+    duration: ANIMATION_PRESET.BUTTON_RELEASE.duration * variation.durationMultiplier,
     easing: EASING.SPRING, // Bouncy spring
     fill: 'forwards',
   });
-  
+
   trackAnimation(button, popAnim);
-  
+
   // Play pop sound if available
   void playButtonSound();
-  
-  // Clear animation tracking after it completes
+
+  // Clear animation tracking and stored variation after it completes
   popAnim.onfinish = () => {
     removeAnimation(button, popAnim);
     button.style.transform = '';
+    delete (button as unknown as { _pressVariation?: ImperfectionValues })._pressVariation;
   };
 }
 
@@ -276,14 +309,22 @@ export function celebrateConfetti(
   `;
   document.body.appendChild(container);
   
-  // Create confetti particles
+  // Create confetti particles with organic imperfection
   for (let i = 0; i < particleCount; i++) {
     const particle = document.createElement('div');
     const color = colors[Math.floor(Math.random() * colors.length)] ?? colors[0];
-    const size = 6 + Math.random() * 8;
-    const angle = (Math.PI * 2 * i) / particleCount + (Math.random() - 0.5) * 0.5;
-    const velocity = 150 + Math.random() * 200;
-    const rotation = Math.random() * 720 - 360;
+
+    // Use imperfection engine for organic variation
+    const variation = imperfect.generate({
+      seed: i * 17 + centerX, // Unique seed per particle
+      intensity: 'organic',
+      types: ['timing', 'amplitude', 'path', 'rotation'],
+    });
+
+    const size = (6 + Math.random() * 8) * variation.amplitudeMultiplier;
+    const angle = (Math.PI * 2 * i) / particleCount + variation.pathDeviationX * 0.5;
+    const velocity = (150 + Math.random() * 200) * variation.amplitudeMultiplier;
+    const rotation = (Math.random() * 720 - 360) + variation.rotationOffset * 10;
     
     particle.style.cssText = `
       position: absolute;
@@ -297,11 +338,12 @@ export function celebrateConfetti(
     
     container.appendChild(particle);
     
-    // Calculate end position
-    const endX = Math.cos(angle) * velocity;
+    // Calculate end position with organic path deviation
+    const pathDeviation = variation.pathDeviationY * 30; // Subtle curve in trajectory
+    const endX = Math.cos(angle) * velocity + pathDeviation;
     const endY = Math.sin(angle) * velocity - 100; // Arc upward
-    
-    // Animate with physics-like trajectory
+
+    // Animate with physics-like trajectory and organic timing
     particle.animate([
       {
         transform: 'translate(0, 0) rotate(0deg) scale(1)',
@@ -309,9 +351,10 @@ export function celebrateConfetti(
         offset: 0,
       },
       {
-        transform: `translate(${endX * 0.5}px, ${endY * 0.3 - 50}px) rotate(${rotation * 0.5}deg) scale(1.1)`,
+        // Mid-flight with organic path deviation
+        transform: `translate(${endX * 0.5 + pathDeviation * 0.5}px, ${endY * 0.3 - 50}px) rotate(${rotation * 0.5}deg) scale(${1.1 * variation.amplitudeMultiplier})`,
         opacity: 1,
-        offset: 0.3,
+        offset: 0.3 + variation.timingOffset * 0.001, // Slight timing variation
       },
       {
         transform: `translate(${endX}px, ${endY + 200}px) rotate(${rotation}deg) scale(0.5)`,
@@ -319,7 +362,8 @@ export function celebrateConfetti(
         offset: 1,
       },
     ], {
-      duration: duration + Math.random() * DURATION.DELIBERATE,
+      // Each particle has unique timing for organic feel
+      duration: (duration + Math.random() * DURATION.DELIBERATE) * variation.durationMultiplier,
       easing: EASING.ORGANIC,
       fill: 'forwards',
     });

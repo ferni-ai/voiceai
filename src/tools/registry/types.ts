@@ -31,10 +31,12 @@ export type ToolDomain =
   | 'life-planning' // Goals, milestones, life events, celebrations
   | 'wellness' // Health tracking, medications, wellness check-ins
   | 'entertainment' // Music, media, leisure activities
+  | 'vibe' // Unified environment control (music, lights, temperature)
   | 'information' // News, weather, sports, search
   | 'wisdom' // Quotes, principles, educational content
   | 'handoff' // Agent-to-agent handoff tools
   | 'telephony' // Phone calls, callbacks
+  | 'voice-enrollment' // Voice enrollment for phone callers
   | 'grief' // Grief support and processing tools
   | 'meaning' // Meaning and purpose exploration tools
   | 'relationships' // Relationship guidance and support tools
@@ -49,6 +51,7 @@ export type ToolDomain =
   | 'awareness' // World awareness - time, context, environment
   | 'engagement' // Daily rituals, games, streaks, team interactions
   | 'simple-utilities' // Everyday helpers: timers, tip calculator, unit conversions
+  | 'routines' // Ferni's care routines - "What I Do For You"
   // Life Coaching Domains
   | 'crisis' // Crisis support, grounding, safety planning
   | 'health' // Exercise, nutrition, sleep, energy management
@@ -62,6 +65,7 @@ export type ToolDomain =
   | 'legal-admin' // Documents, estate planning, insurance
   | 'games' // Interactive music games, Name That Tune, etc.
   | 'cameo' // Team member pop-in cameos during conversations
+  | 'group-conversation' // Team roundtables, conference calls with external participants
   | 'second-chances' // Fresh starts, reinvention, rebuilding after setbacks
   | 'connection' // Loneliness, friendship, belonging, community
   | 'difficult-conversations' // Preparing for and having hard conversations
@@ -73,7 +77,77 @@ export type ToolDomain =
   | 'workflow-mastery' // Workflow optimization, process improvement, efficiency
   | 'habit-persistence' // Habit tracking persistence and behavioral insights
   | 'milestone-mastery' // Milestone tracking and achievement recognition
-  | 'developer'; // Developer tools: CLI commands, file editing, bash
+  | 'developer' // Developer tools: CLI commands, file editing, bash
+  | 'behavior' // Behavior control: modes, pacing, processing, presence
+  | 'life-thesis' // Life thesis: capturing and recalling "why" across all life domains
+  | 'marketing' // Social media management: content generation, publishing, analytics
+  | 'referral' // Viral growth via voice calls
+  | 'smart-home' // Home Assistant, smart lights, thermostats, locks, scenes
+  | 'webhooks' // Webhook automations: IFTTT, Zapier, Home Assistant, Siri Shortcuts
+  | 'books' // Book tracking, recommendations, reading lists
+  | 'podcasts' // Podcast discovery, listening history, recommendations
+  | 'video' // Video content recommendations and tracking
+  // New Life Coaching Domains (Expansion)
+  | 'boundaries' // Boundary setting, people pleasing, saying no
+  | 'social-skills' // Adult friendship, conversation, social anxiety
+  | 'body-relationship' // Body image, diet culture, intuitive eating
+  | 'anger' // Anger management, healthy expression, repair
+  | 'shame' // Understanding, processing, and healing from shame
+  | 'envy' // Understanding and transforming envy
+  | 'resentment' // Processing and releasing resentments
+  | 'caregiver' // Supporting caregivers of aging/ill loved ones
+  | 'divorce' // Navigating divorce - legal, emotional, parenting
+  | 'new-parent' // Adjusting to parenthood
+  | 'empty-nest' // When children leave home
+  | 'infidelity' // Betrayal recovery and trust rebuilding
+  | 'health-diagnosis' // Chronic illness, diagnosis adjustment
+  | 'job-loss' // Unemployment emotional support
+  | 'sobriety' // Recovery and addiction support
+  | 'sandwich-generation' // Caring for kids AND aging parents
+  | 'blended-family' // Step-parenting and family merging
+  | 'coming-out' // LGBTQ+ identity journey
+  | 'faith-transition' // Religious/spiritual changes
+  | 'dating' // Modern dating, online dating, red flags
+  | 'neurodiversity' // ADHD, autism, executive function support
+  | 'trauma-support' // Trauma-informed support, trigger management
+  | 'procrastination' // Root cause analysis, getting started
+  | 'digital-wellness' // Screen time, social media, phone addiction
+  | 'perfectionism' // Perfectionism, imposter syndrome, good enough
+  | 'intimacy' // Sexual wellness, desire, communication
+  | 'burnout-recovery' // Burnout recovery, rest as skill
+  | 'chronic-conditions' // Chronic illness, energy management
+  | 'midlife' // Midlife transition, aging, legacy
+  | 'breakup-recovery' // Divorce recovery, rebuilding after breakup
+  | 'scheduling' // Scheduled messages, calls, emails
+  | 'concierge' // AI-powered outreach: hotel quotes, restaurant reservations, appointments
+  | 'travel' // Travel planning, flights, hotels, trip suggestions
+  | 'settings' // User preferences: language, voice, session settings
+  | 'insights' // Analytics summaries, progress tracking, weekly reviews
+  | 'nayan-wisdom' // Nayan's superhuman wisdom: paradox keeper, mortality perspective, koans, enough tracker
+  | 'maya-coaching' // Maya's superhuman coaching: habit DNA, friction mapping, tendencies, keystones, identity shifts
+  | 'superhuman-communication' // Alex's 10 superhuman communication capabilities
+  | 'jordan-planning' // Jordan's superhuman planning: event patterns, guest intelligence, milestone detection
+  | 'peter-analytics' // Peter's superhuman analytics: blind spots, counterfactuals, pattern predictions
+  | 'local-search' // Local search: nearby restaurants, services, places
+  // Developer Platform
+  | 'developer-custom' // API-registered custom tools from Developer Platform
+  // Life Automation Domains
+  | 'commerce' // Grocery ordering, subscription management
+  | 'documents' // Receipts, warranties, IDs, expiration tracking
+  | 'email-intelligence' // Email prioritization, follow-ups, unsubscribe
+  | 'meal-planning' // Recipes, weekly plans, shopping lists
+  | 'projects' // Multi-task projects with templates
+  | 'social-events' // Birthdays, anniversaries, gift tracking
+  | 'transportation' // Uber/Lyft rides, commute tracking
+  | 'vehicle' // Maintenance schedules, registration alerts
+  | 'workflows' // Custom automations, IFTTT-style triggers
+  // CEO Coaching Domain
+  | 'ceo-coaching' // CEO personal coaching: briefings, wins, energy, priorities, decisions
+  // Intelligence Domains
+  | 'event-intelligence' // Event intelligence: context-aware event management
+  | 'habit-intelligence' // Habit intelligence: behavioral insights, pattern detection
+  | 'pattern-analytics' // Pattern analytics: behavioral patterns, insights
+  | 'wisdom-intelligence'; // Wisdom intelligence: philosophical insights, life wisdom
 
 /**
  * All available tool domains
@@ -89,10 +163,12 @@ export const ALL_TOOL_DOMAINS: readonly ToolDomain[] = [
   'life-planning',
   'wellness',
   'entertainment',
+  'vibe',
   'information',
   'wisdom',
   'handoff',
   'telephony',
+  'voice-enrollment',
   'grief',
   'meaning',
   'relationships',
@@ -120,6 +196,7 @@ export const ALL_TOOL_DOMAINS: readonly ToolDomain[] = [
   'legal-admin',
   'games',
   'cameo',
+  'group-conversation',
   'second-chances',
   'connection',
   'difficult-conversations',
@@ -129,9 +206,85 @@ export const ALL_TOOL_DOMAINS: readonly ToolDomain[] = [
   'pattern-mastery',
   'timeless-perspective',
   'workflow-mastery',
+  'life-thesis',
   'habit-persistence',
   'milestone-mastery',
   'developer',
+  'behavior',
+  'marketing',
+  'referral',
+  'smart-home',
+  'webhooks',
+  'books',
+  'podcasts',
+  'video',
+  // New Life Coaching Domains (Expansion)
+  'boundaries',
+  'social-skills',
+  'body-relationship',
+  'anger',
+  'shame',
+  'envy',
+  'resentment',
+  'caregiver',
+  'divorce',
+  'new-parent',
+  'empty-nest',
+  'infidelity',
+  'health-diagnosis',
+  'job-loss',
+  'sobriety',
+  'sandwich-generation',
+  'blended-family',
+  'coming-out',
+  'faith-transition',
+  'dating',
+  'neurodiversity',
+  'trauma-support',
+  'procrastination',
+  'digital-wellness',
+  'perfectionism',
+  'intimacy',
+  'burnout-recovery',
+  'chronic-conditions',
+  'midlife',
+  'breakup-recovery',
+  'scheduling',
+  'concierge',
+  'travel',
+  'settings',
+  'insights',
+  // Nayan's Superhuman Wisdom
+  'nayan-wisdom',
+  // Maya's Superhuman Coaching
+  'maya-coaching',
+  // Alex's Superhuman Communication
+  'superhuman-communication',
+  // Jordan's Superhuman Planning
+  'jordan-planning',
+  // Peter's Superhuman Analytics
+  'peter-analytics',
+  // Local Search
+  'local-search',
+  // Developer Platform
+  'developer-custom',
+  // Life Automation Domains
+  'commerce',
+  'documents',
+  'email-intelligence',
+  'meal-planning',
+  'projects',
+  'social-events',
+  'transportation',
+  'vehicle',
+  'workflows',
+  // CEO Coaching
+  'ceo-coaching',
+  // Intelligence Domains
+  'event-intelligence',
+  'habit-intelligence',
+  'pattern-analytics',
+  'wisdom-intelligence',
 ] as const;
 
 // ============================================================================
@@ -160,6 +313,7 @@ export const DOMAIN_TO_CATEGORY: Record<ToolDomain, ToolCategory> = {
   productivity: 'productivity',
   communication: 'communication',
   telephony: 'communication',
+  'voice-enrollment': 'core', // Voice enrollment for phone callers
   habits: 'lifestyle',
   wellness: 'lifestyle',
   'life-planning': 'lifestyle',
@@ -168,6 +322,7 @@ export const DOMAIN_TO_CATEGORY: Record<ToolDomain, ToolCategory> = {
   information: 'information',
   wisdom: 'information',
   entertainment: 'entertainment',
+  vibe: 'entertainment', // Unified environment control
   // Emotional/wisdom domains
   grief: 'lifestyle',
   meaning: 'lifestyle',
@@ -196,6 +351,7 @@ export const DOMAIN_TO_CATEGORY: Record<ToolDomain, ToolCategory> = {
   'legal-admin': 'productivity',
   games: 'entertainment',
   cameo: 'core', // Team cameos should be available to coordinators
+  'group-conversation': 'core', // Team roundtables and conference calls
   'second-chances': 'lifestyle', // Core to Ferni's identity - fresh starts and rebuilding
   connection: 'lifestyle', // Loneliness, friendship, belonging - epidemic-level need
   'difficult-conversations': 'lifestyle', // Preparing for and having hard conversations with grace
@@ -208,6 +364,78 @@ export const DOMAIN_TO_CATEGORY: Record<ToolDomain, ToolCategory> = {
   'habit-persistence': 'lifestyle', // Habit tracking persistence
   'milestone-mastery': 'lifestyle', // Achievement tracking
   developer: 'productivity', // Developer tools for coding and CLI
+  behavior: 'core', // Behavior control - core to how Ferni speaks
+  'life-thesis': 'lifestyle', // Life thesis - cross-persona motivation capture
+  marketing: 'communication', // Social media management and content publishing
+  referral: 'communication', // Voice referral calls for viral growth
+  'smart-home': 'productivity', // Home Assistant integration for smart home control
+  webhooks: 'productivity', // Webhook automations for IFTTT, Zapier, etc.
+  books: 'entertainment', // Book tracking, recommendations, reading lists
+  podcasts: 'entertainment', // Podcast discovery, listening history
+  video: 'entertainment', // Video content recommendations and tracking
+  // New Life Coaching Domains (Expansion)
+  boundaries: 'lifestyle', // Boundary setting, people pleasing recovery
+  'social-skills': 'lifestyle', // Adult friendship, conversation skills
+  'body-relationship': 'lifestyle', // Body image healing, intuitive eating
+  anger: 'lifestyle', // Anger management and healthy expression
+  shame: 'lifestyle', // Understanding and healing from shame
+  envy: 'lifestyle', // Understanding and transforming envy
+  resentment: 'lifestyle', // Processing and releasing resentments
+  caregiver: 'lifestyle', // Supporting caregivers
+  divorce: 'lifestyle', // Navigating divorce
+  'new-parent': 'lifestyle', // Parenthood transition
+  'empty-nest': 'lifestyle', // Kids leaving home
+  infidelity: 'lifestyle', // Betrayal recovery
+  'health-diagnosis': 'lifestyle', // Chronic illness
+  'job-loss': 'lifestyle', // Unemployment support
+  sobriety: 'lifestyle', // Recovery support
+  'sandwich-generation': 'lifestyle', // Multi-gen caregiving
+  'blended-family': 'lifestyle', // Step-families
+  'coming-out': 'lifestyle', // LGBTQ+ identity
+  'faith-transition': 'lifestyle', // Spiritual changes
+  dating: 'lifestyle', // Modern dating navigation
+  neurodiversity: 'lifestyle', // ADHD, autism support
+  'trauma-support': 'lifestyle', // Trauma-informed support
+  procrastination: 'productivity', // Overcoming procrastination
+  'digital-wellness': 'lifestyle', // Healthy tech relationship
+  perfectionism: 'lifestyle', // Perfectionism and imposter syndrome
+  intimacy: 'lifestyle', // Sexual wellness and intimacy
+  'burnout-recovery': 'lifestyle', // Recovering from burnout
+  'chronic-conditions': 'lifestyle', // Living well with chronic illness
+  midlife: 'lifestyle', // Midlife transitions and aging
+  'breakup-recovery': 'lifestyle', // Healing from relationship endings
+  scheduling: 'communication', // Scheduled messages, calls, emails
+  concierge: 'communication', // AI-powered outreach: hotels, restaurants, appointments
+  travel: 'lifestyle', // Travel planning, flights, hotels
+  settings: 'core', // User preferences: language, voice, session settings
+  insights: 'core', // Analytics summaries, progress tracking, weekly reviews
+  // Nayan's Superhuman Wisdom
+  'nayan-wisdom': 'information', // Nayan's superhuman wisdom tools (paradox keeper, mortality perspective, etc.)
+  'maya-coaching': 'lifestyle', // Maya's superhuman coaching tools (habit DNA, friction mapping, etc.)
+  'superhuman-communication': 'communication', // Alex's 10 superhuman communication capabilities
+  'jordan-planning': 'lifestyle', // Jordan's superhuman planning tools
+  'peter-analytics': 'information', // Peter's superhuman analytics tools
+  'local-search': 'information', // Local search for nearby restaurants, services, places
+  // Developer Platform
+  'developer-custom': 'core', // API-registered custom tools from Developer Platform
+  // Life Automation Domains
+  commerce: 'productivity', // Grocery ordering, subscription management
+  documents: 'productivity', // Receipts, warranties, IDs, expiration tracking
+  'email-intelligence': 'communication', // Email prioritization, follow-ups, unsubscribe
+  'meal-planning': 'lifestyle', // Recipes, weekly plans, shopping lists
+  projects: 'productivity', // Multi-task projects with templates
+  'social-events': 'lifestyle', // Birthdays, anniversaries, gift tracking
+  transportation: 'lifestyle', // Uber/Lyft rides, commute tracking
+  vehicle: 'lifestyle', // Maintenance schedules, registration alerts
+  workflows: 'productivity', // Custom automations, IFTTT-style triggers
+  routines: 'lifestyle', // Ferni's care routines - "What I Do For You"
+  // CEO Coaching
+  'ceo-coaching': 'productivity', // CEO personal coaching: briefings, wins, priorities, decisions
+  // Intelligence Domains
+  'event-intelligence': 'productivity', // Event intelligence: context-aware event management
+  'habit-intelligence': 'lifestyle', // Habit intelligence: behavioral insights, pattern detection
+  'pattern-analytics': 'information', // Pattern analytics: behavioral patterns, insights
+  'wisdom-intelligence': 'information', // Wisdom intelligence: philosophical insights, life wisdom
 };
 
 // ============================================================================
@@ -222,13 +450,15 @@ export type ExternalService =
   | 'google-calendar' // Google Calendar API
   | 'google-contacts' // Google Contacts API
   | 'spotify' // Music streaming
+  | 'sonos' // Sonos speakers
   | 'sendgrid' // Email service
   | 'twilio' // SMS/phone service
   | 'openweather' // Weather API
   | 'newsapi' // News aggregation
   | 'alpha-vantage' // Stock data
   | 'finnhub' // Financial data
-  | 'firebase'; // Firestore/Auth
+  | 'firebase' // Firestore/Auth
+  | 'ecobee'; // Ecobee thermostat
 
 // ============================================================================
 // TOOL DEFINITION
@@ -253,11 +483,21 @@ export interface ToolContext {
   /** Agent's manifest configuration */
   agentManifest?: AgentManifestRef;
 
-  /** Initialized external services */
-  services: ServiceRegistry;
+  /** Initialized external services (defaults to EnvironmentServiceRegistry if not provided) */
+  services?: ServiceRegistry;
 
   /** Optional domain-specific configuration from manifest */
   domainConfig?: Record<string, unknown>;
+
+  /**
+   * User's detected location from IP geolocation (TikTok-style personalization)
+   * Used for weather defaults, local content hints, topic suggestions
+   */
+  userLocation?: {
+    city?: string;
+    regionCode?: string; // State/province
+    countryCode?: string;
+  };
 }
 
 /**
@@ -626,6 +866,48 @@ export class EmptyServiceRegistry implements ServiceRegistry {
   }
 }
 
+/**
+ * Environment-based service registry
+ *
+ * Checks environment variables to determine if services are available.
+ * Use this instead of EmptyServiceRegistry to enable tools that require
+ * external services like Twilio, Plaid, etc.
+ */
+export class EnvironmentServiceRegistry implements ServiceRegistry {
+  private serviceChecks: Record<ExternalService, () => boolean> = {
+    twilio: () => !!(process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN),
+    plaid: () => !!(process.env.PLAID_CLIENT_ID && process.env.PLAID_SECRET),
+    'google-calendar': () => !!process.env.GOOGLE_CALENDAR_CREDENTIALS,
+    'google-contacts': () => !!process.env.GOOGLE_CONTACTS_CREDENTIALS,
+    spotify: () => !!(process.env.SPOTIFY_CLIENT_ID && process.env.SPOTIFY_CLIENT_SECRET),
+    sonos: () => !!(process.env.SONOS_CLIENT_ID && process.env.SONOS_CLIENT_SECRET),
+    sendgrid: () => !!process.env.SENDGRID_API_KEY,
+    openweather: () => !!process.env.OPENWEATHER_API_KEY,
+    newsapi: () => !!process.env.NEWS_API_KEY,
+    'alpha-vantage': () => !!process.env.ALPHA_VANTAGE_API_KEY,
+    finnhub: () => !!process.env.FINNHUB_API_KEY,
+    firebase: () => !!process.env.GOOGLE_CLOUD_PROJECT,
+    ecobee: () => !!process.env.ECOBEE_API_KEY,
+  };
+
+  has(service: ExternalService): boolean {
+    const check = this.serviceChecks[service];
+    return check ? check() : false;
+  }
+
+  get<T>(service: ExternalService): T {
+    if (!this.has(service)) {
+      throw new Error(`Service not available: ${service}`);
+    }
+    // Services would be instantiated here in a full implementation
+    throw new Error(`Service ${service} not implemented in get()`);
+  }
+
+  getOptional<T>(): T | undefined {
+    return undefined;
+  }
+}
+
 // ============================================================================
 // EXPORTS
 // ============================================================================
@@ -636,5 +918,6 @@ export default {
   validateToolDefinition,
   validateToolSetSpec,
   EmptyServiceRegistry,
+  EnvironmentServiceRegistry,
 };
 // CI trigger: 1765115360

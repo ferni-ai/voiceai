@@ -26,12 +26,12 @@ import {
 } from '../services/cosmetics.service.js';
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
-import { toast } from './toast.ui.js';
+import { toast } from './whisper.ui.js';
 
 const log = createLogger('PersonalizeUI');
 
 // FIX BUG: Track all setTimeout calls for proper cleanup
-const { trackedTimeout, clearAll: clearAllTimeouts } = createTimeoutTracker();
+const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
 
 // ============================================================================
 // STATE
@@ -53,7 +53,7 @@ const styles = `
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 10000;
+  z-index: var(--z-tooltip);
   opacity: 0;
   pointer-events: none;
   transition: opacity ${DURATION.MODERATE}ms ${EASING.STANDARD};
@@ -67,18 +67,18 @@ const styles = `
 .personalize-backdrop {
   position: absolute;
   inset: 0;
-  background: rgba(44, 37, 32, 0.4);
-  backdrop-filter: blur(var(--glass-blur-strong, 24px));
+  background: rgba(44, 37, 32, 0.75);
 }
 
 .personalize-card {
   position: relative;
-  background: var(--color-background-elevated, #FFFDFB);
-  border-radius: var(--radius-2xl, 24px);
+  background: var(--color-bg-elevated, #FFFDFB);
+  border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
+  border-radius: var(--radius-xl, 20px);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.06);
   width: calc(100% - 32px);
-  max-width: 700px;
+  max-width: clamp(490px, 90vw, 700px);
   max-height: 90vh;
-  box-shadow: var(--shadow-2xl);
   transform: scale(0.95);
   transition: transform ${DURATION.MODERATE}ms ${EASING.SPRING};
   display: flex;
@@ -357,7 +357,7 @@ const styles = `
 }
 
 /* Responsive */
-@media (max-width: 600px) {
+@media (max-width: clamp(420px, 90vw, 600px)) {
   .personalize-header {
     padding: var(--space-6, 24px) var(--space-5, 20px);
   }
@@ -646,7 +646,7 @@ function renderItemAction(
 
   if (isOwned) {
     return `
-      <button class="personalize-item-action" data-action="equip" data-item-id="${item.id}">
+      <button aria-label="${t('accessibility.useThis')}" class="personalize-item-action" data-action="equip" data-item-id="${item.id}">
         Use This
       </button>
     `;
@@ -654,7 +654,7 @@ function renderItemAction(
 
   if (item.priceInSeeds === null) {
     return `
-      <button class="personalize-item-action" data-action="equip" data-item-id="${item.id}">
+      <button aria-label="${t('accessibility.useThis')}" class="personalize-item-action" data-action="equip" data-item-id="${item.id}">
         Use This
       </button>
     `;
@@ -662,14 +662,14 @@ function renderItemAction(
 
   if (!canBuy) {
     return `
-      <button class="personalize-item-action" disabled>
+      <button aria-label="${t('accessibility.needMoreSeeds')}" class="personalize-item-action" disabled>
         Need more Seeds
       </button>
     `;
   }
 
   return `
-    <button class="personalize-item-action" data-action="buy" data-item-id="${item.id}">
+    <button aria-label="${t('accessibility.getThis')}" class="personalize-item-action" data-action="buy" data-item-id="${item.id}">
       Get This
     </button>
   `;
@@ -713,14 +713,14 @@ function handlePurchase(itemId: string): void {
     toast.success("It's yours!");
     equipCosmetic(itemId);
   } else {
-    toast.error('Could not complete');
+    toast.error(t('toasts.couldNotComplete'));
   }
 }
 
 function handleEquip(itemId: string): void {
   const success = equipCosmetic(itemId);
   if (success) {
-    toast.success('Updated!');
+    toast.success(t('toasts.updated'));
   }
 }
 

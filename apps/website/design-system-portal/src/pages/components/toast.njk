@@ -1,0 +1,905 @@
+---
+layout: layouts/base.njk
+title: Toast Component
+description: Non-intrusive feedback notifications with human-friendly messaging
+permalink: /components/toast/
+---
+
+<article class="component-page">
+  <header class="page-header">
+    <nav class="breadcrumb">
+      <a href="/components/">Components</a>
+      <span>/</span>
+      <span>Toast</span>
+    </nav>
+    <h1>Toast</h1>
+    <p class="lead">Non-intrusive feedback notifications that feel like Ferni's brief voice in the UI. Warm, human, and SHORT.</p>
+  </header>
+
+  <section class="section">
+    <h2>Toast Philosophy</h2>
+    <p>Toasts are Ferni's brief voice in UI feedback. They should feel like a supportive friend, not enterprise software. Keep them warm, human, and concise.</p>
+
+    <div class="philosophy-grid">
+      <div class="philosophy-card do">
+        <h4>Do</h4>
+        <ul>
+          <li>Use contractions ("Couldn't" not "Could not")</li>
+          <li>Keep it short (under 10 words ideal)</li>
+          <li>Use human tone ("That didn't work")</li>
+          <li>Offer recovery for errors ("Try again?")</li>
+        </ul>
+      </div>
+      <div class="philosophy-card dont">
+        <h4>Don't</h4>
+        <ul>
+          <li>Say "Please" (too formal)</li>
+          <li>Use "successfully" (redundant)</li>
+          <li>Show technical errors to users</li>
+          <li>Write more than one sentence</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <h2>Toast Types</h2>
+
+    <div class="demo-block">
+      <h3>Success Toast</h3>
+      <p class="demo-description">Confirmations and celebrations. Auto-dismisses in 2.5s.</p>
+      <div class="demo-area toast-demo-area">
+        <div class="toast toast-success">
+          <svg class="toast-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="20 6 9 17 4 12"/>
+          </svg>
+          <span class="toast-message">Saved!</span>
+        </div>
+      </div>
+      <div class="code-block">
+        <pre><code>toast.success('Saved!');
+toast.success(`${name} added!`);
+toast.success("Got it! I'll remember that.");</code></pre>
+      </div>
+    </div>
+
+    <div class="demo-block">
+      <h3>Info Toast</h3>
+      <p class="demo-description">Status updates and neutral information. Auto-dismisses in 2.5s.</p>
+      <div class="demo-area toast-demo-area">
+        <div class="toast toast-info">
+          <svg class="toast-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"/>
+            <line x1="12" y1="16" x2="12" y2="12"/>
+            <line x1="12" y1="8" x2="12.01" y2="8"/>
+          </svg>
+          <span class="toast-message">Just a moment...</span>
+        </div>
+      </div>
+      <div class="code-block">
+        <pre><code>toast.info('Just a moment...');
+toast.info('Checking...');
+toast.info('Syncing your data');</code></pre>
+      </div>
+    </div>
+
+    <div class="demo-block">
+      <h3>Warning Toast</h3>
+      <p class="demo-description">Soft alerts that guide action. Auto-dismisses in 2.5s.</p>
+      <div class="demo-area toast-demo-area">
+        <div class="toast toast-warning">
+          <svg class="toast-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+            <line x1="12" y1="9" x2="12" y2="13"/>
+            <line x1="12" y1="17" x2="12.01" y2="17"/>
+          </svg>
+          <span class="toast-message">Add a name first</span>
+        </div>
+      </div>
+      <div class="code-block">
+        <pre><code>toast.warning('Add a name first');
+toast.warning('Your voice profile needs a refresh');
+toast.warning('Running low on tokens');</code></pre>
+      </div>
+    </div>
+
+    <div class="demo-block">
+      <h3>Error Toast</h3>
+      <p class="demo-description">Failures with recovery options. Stays longer (4s) for reading time.</p>
+      <div class="demo-area toast-demo-area">
+        <div class="toast toast-error">
+          <svg class="toast-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"/>
+            <line x1="15" y1="9" x2="9" y2="15"/>
+            <line x1="9" y1="9" x2="15" y2="15"/>
+          </svg>
+          <span class="toast-message">Couldn't save that. Try again?</span>
+        </div>
+      </div>
+      <div class="code-block">
+        <pre><code>toast.error("Couldn't save that. Try again?");
+toast.error("That didn't work. Retry?");
+toast.error("Lost connection. Retry?");</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <h2>Message Examples</h2>
+
+    <div class="examples-table">
+      <table>
+        <thead>
+          <tr>
+            <th>Wrong</th>
+            <th>Right</th>
+            <th>Why</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="wrong">"Payment failed. Please try again."</td>
+            <td class="right">"Payment didn't go through. Try again?"</td>
+            <td>More human, no "please"</td>
+          </tr>
+          <tr>
+            <td class="wrong">"Failed to save changes"</td>
+            <td class="right">"Couldn't save that"</td>
+            <td>Use contractions</td>
+          </tr>
+          <tr>
+            <td class="wrong">"Voice enrollment complete successfully!"</td>
+            <td class="right">"Got it! I'll know your voice now."</td>
+            <td>Drop "successfully", add warmth</td>
+          </tr>
+          <tr>
+            <td class="wrong">"Error: Connection timeout"</td>
+            <td class="right">"Lost connection. Retry?"</td>
+            <td>Human tone, offer action</td>
+          </tr>
+          <tr>
+            <td class="wrong">"Please enter a valid email"</td>
+            <td class="right">"Enter a valid email"</td>
+            <td>Avoid "please"</td>
+          </tr>
+          <tr>
+            <td class="wrong">"Operation completed successfully"</td>
+            <td class="right">"Done!"</td>
+            <td>Keep it short</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="section">
+    <h2>Positioning</h2>
+
+    <div class="position-demo">
+      <div class="position-grid">
+        <div class="position-option" data-position="top-left">
+          <div class="position-indicator"></div>
+          <span>Top Left</span>
+        </div>
+        <div class="position-option" data-position="top-center">
+          <div class="position-indicator"></div>
+          <span>Top Center</span>
+        </div>
+        <div class="position-option active" data-position="top-right">
+          <div class="position-indicator"></div>
+          <span>Top Right (Default)</span>
+        </div>
+        <div class="position-option" data-position="bottom-left">
+          <div class="position-indicator"></div>
+          <span>Bottom Left</span>
+        </div>
+        <div class="position-option" data-position="bottom-center">
+          <div class="position-indicator"></div>
+          <span>Bottom Center</span>
+        </div>
+        <div class="position-option" data-position="bottom-right">
+          <div class="position-indicator"></div>
+          <span>Bottom Right</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <h2>Animation</h2>
+
+    <div class="demo-block">
+      <h3>Enter & Exit</h3>
+      <p class="demo-description">Toasts slide in from the edge and fade out gracefully.</p>
+      <div class="demo-area animation-demo">
+        <button class="btn btn-primary trigger-toast">Show Toast</button>
+        <div class="toast-container" id="toast-container">
+          <!-- Toast template for cloning -->
+          <template id="toast-template-success">
+            <div class="toast toast-success">
+              <svg class="toast-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="20 6 9 17 4 12"/>
+              </svg>
+              <span class="toast-message"></span>
+            </div>
+          </template>
+          <template id="toast-template-info">
+            <div class="toast toast-info">
+              <svg class="toast-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"/>
+                <line x1="12" y1="16" x2="12" y2="12"/>
+                <line x1="12" y1="8" x2="12.01" y2="8"/>
+              </svg>
+              <span class="toast-message"></span>
+            </div>
+          </template>
+          <template id="toast-template-warning">
+            <div class="toast toast-warning">
+              <svg class="toast-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                <line x1="12" y1="9" x2="12" y2="13"/>
+                <line x1="12" y1="17" x2="12.01" y2="17"/>
+              </svg>
+              <span class="toast-message"></span>
+            </div>
+          </template>
+          <template id="toast-template-error">
+            <div class="toast toast-error">
+              <svg class="toast-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"/>
+                <line x1="15" y1="9" x2="9" y2="15"/>
+                <line x1="9" y1="9" x2="15" y2="15"/>
+              </svg>
+              <span class="toast-message"></span>
+            </div>
+          </template>
+        </div>
+      </div>
+      <div class="code-block">
+        <pre><code>.toast-enter {
+  animation: toast-slide-in var(--duration-normal) var(--ease-spring);
+}
+
+.toast-exit {
+  animation: toast-fade-out var(--duration-fast) var(--ease-ease-out);
+}
+
+@keyframes toast-slide-in {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes toast-fade-out {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <h2>Timing</h2>
+
+    <div class="timing-table">
+      <table>
+        <thead>
+          <tr>
+            <th>Type</th>
+            <th>Duration</th>
+            <th>Rationale</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="type-badge success">Success</span></td>
+            <td>2.5s</td>
+            <td>Quick confirmation, user knows what happened</td>
+          </tr>
+          <tr>
+            <td><span class="type-badge info">Info</span></td>
+            <td>2.5s</td>
+            <td>Status updates are glanceable</td>
+          </tr>
+          <tr>
+            <td><span class="type-badge warning">Warning</span></td>
+            <td>2.5s</td>
+            <td>Soft alerts don't need long reading time</td>
+          </tr>
+          <tr>
+            <td><span class="type-badge error">Error</span></td>
+            <td>4s</td>
+            <td>Longer for reading + deciding on action</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="section">
+    <h2>CSS Implementation</h2>
+
+    <div class="code-block standalone">
+      <pre><code>.toast {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  background: var(--bg-elevated);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  font-size: var(--text-sm);
+  font-family: var(--font-body);
+  color: var(--text-primary);
+  max-width: 360px;
+}
+
+.toast-success {
+  border-left: 3px solid var(--success);
+}
+
+.toast-success .toast-icon {
+  color: var(--success);
+}
+
+.toast-info {
+  border-left: 3px solid var(--info);
+}
+
+.toast-info .toast-icon {
+  color: var(--info);
+}
+
+.toast-warning {
+  border-left: 3px solid var(--warning);
+}
+
+.toast-warning .toast-icon {
+  color: var(--warning);
+}
+
+.toast-error {
+  border-left: 3px solid var(--error);
+}
+
+.toast-error .toast-icon {
+  color: var(--error);
+}
+
+/* Toast Container */
+.toast-container {
+  position: fixed;
+  top: var(--space-4);
+  right: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  z-index: var(--z-toast);
+}
+
+/* Reduced Motion */
+@media (prefers-reduced-motion: reduce) {
+  .toast {
+    animation: none;
+  }
+}</code></pre>
+    </div>
+  </section>
+
+  <section class="section">
+    <h2>Accessibility</h2>
+
+    <div class="a11y-guidelines">
+      <div class="a11y-item">
+        <h4>ARIA Live Regions</h4>
+        <p>Toast containers use <code>role="status"</code> and <code>aria-live="polite"</code> for screen reader announcements.</p>
+      </div>
+      <div class="a11y-item">
+        <h4>Focus Management</h4>
+        <p>Toasts don't steal focus. Users can continue their current task while being informed.</p>
+      </div>
+      <div class="a11y-item">
+        <h4>Color + Icon</h4>
+        <p>Status is conveyed through both color AND icon shape. Never rely on color alone.</p>
+      </div>
+      <div class="a11y-item">
+        <h4>Dismissible</h4>
+        <p>Error toasts should be dismissible via click or Escape key for users who've read them.</p>
+      </div>
+    </div>
+  </section>
+</article>
+
+<style>
+.component-page {
+  max-width: var(--container-max);
+}
+
+.page-header {
+  margin-bottom: var(--space-12);
+}
+
+.breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+  margin-bottom: var(--space-4);
+}
+
+.breadcrumb a {
+  color: var(--accent-text);
+  text-decoration: none;
+}
+
+.breadcrumb a:hover {
+  text-decoration: underline;
+}
+
+.page-header h1 {
+  font-family: var(--font-display);
+  font-size: var(--text-4xl);
+  font-weight: var(--font-weight-bold);
+  letter-spacing: -0.02em;
+  margin-bottom: var(--space-4);
+}
+
+.philosophy-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: var(--space-6);
+  margin-top: var(--space-6);
+}
+
+.philosophy-card {
+  background: var(--bg-elevated);
+  border-radius: var(--radius-lg);
+  padding: var(--space-6);
+}
+
+.philosophy-card.do {
+  border-left: 4px solid var(--success);
+}
+
+.philosophy-card.dont {
+  border-left: 4px solid var(--error);
+}
+
+.philosophy-card h4 {
+  font-family: var(--font-display);
+  font-weight: var(--font-weight-semibold);
+  margin-bottom: var(--space-4);
+}
+
+.philosophy-card.do h4 {
+  color: var(--success);
+}
+
+.philosophy-card.dont h4 {
+  color: var(--error);
+}
+
+.philosophy-card ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.philosophy-card li {
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  padding: var(--space-2) 0;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.philosophy-card li:last-child {
+  border-bottom: none;
+}
+
+.demo-block {
+  margin-top: var(--space-8);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+}
+
+.demo-block h3 {
+  font-family: var(--font-display);
+  font-size: var(--text-lg);
+  font-weight: var(--font-weight-semibold);
+  padding: var(--space-5) var(--space-6) 0;
+}
+
+.demo-description {
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+  padding: var(--space-2) var(--space-6) var(--space-4);
+}
+
+.demo-area {
+  padding: var(--space-8) var(--space-6);
+  background: var(--bg-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.toast-demo-area {
+  min-height: 80px;
+}
+
+.toast {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  background: var(--bg-elevated);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  font-size: var(--text-sm);
+  font-family: var(--font-body);
+  color: var(--text-primary);
+  max-width: 360px;
+}
+
+.toast-success {
+  border-left: 3px solid var(--success);
+}
+
+.toast-success .toast-icon {
+  color: var(--success);
+}
+
+.toast-info {
+  border-left: 3px solid var(--info);
+}
+
+.toast-info .toast-icon {
+  color: var(--info);
+}
+
+.toast-warning {
+  border-left: 3px solid var(--warning);
+}
+
+.toast-warning .toast-icon {
+  color: var(--warning);
+}
+
+.toast-error {
+  border-left: 3px solid var(--error);
+}
+
+.toast-error .toast-icon {
+  color: var(--error);
+}
+
+.code-block {
+  background: var(--bg-tertiary);
+  border-top: 1px solid var(--border-subtle);
+}
+
+.code-block.standalone {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-xl);
+  margin-top: var(--space-6);
+}
+
+.code-block pre {
+  margin: 0;
+  padding: var(--space-4) var(--space-6);
+  overflow-x: auto;
+}
+
+.code-block code {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  line-height: var(--leading-relaxed);
+}
+
+.examples-table {
+  margin-top: var(--space-6);
+  overflow-x: auto;
+}
+
+.examples-table table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--text-sm);
+}
+
+.examples-table th {
+  text-align: left;
+  font-family: var(--font-display);
+  font-weight: var(--font-weight-semibold);
+  padding: var(--space-3) var(--space-4);
+  background: var(--bg-secondary);
+  border-bottom: 2px solid var(--border-medium);
+}
+
+.examples-table td {
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--border-subtle);
+  vertical-align: top;
+}
+
+.examples-table .wrong {
+  color: var(--error);
+  text-decoration: line-through;
+  opacity: 0.8;
+}
+
+.examples-table .right {
+  color: var(--success);
+  font-weight: var(--font-weight-medium);
+}
+
+.position-demo {
+  margin-top: var(--space-6);
+}
+
+.position-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-4);
+  max-width: 500px;
+  margin: 0 auto;
+}
+
+.position-option {
+  background: var(--bg-elevated);
+  border: 2px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
+  text-align: center;
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--ease-ease-out);
+}
+
+.position-option:hover {
+  border-color: var(--accent-primary);
+}
+
+.position-option.active {
+  border-color: var(--accent-primary);
+  background: var(--accent-subtle);
+}
+
+.position-indicator {
+  width: 12px;
+  height: 12px;
+  background: var(--accent-primary);
+  border-radius: var(--radius-sm);
+  margin: 0 auto var(--space-2);
+}
+
+.position-option span {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+
+.animation-demo {
+  flex-direction: column;
+  gap: var(--space-4);
+  position: relative;
+  min-height: 120px;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-md);
+  font-family: var(--font-body);
+  font-weight: var(--font-weight-semibold);
+  font-size: var(--text-sm);
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--ease-ease-out);
+  border: none;
+}
+
+.btn-primary {
+  background: var(--accent-primary);
+  color: var(--text-inverse);
+}
+
+.btn-primary:hover {
+  background: var(--accent-hover);
+  transform: translateY(-1px);
+}
+
+.toast-container {
+  position: absolute;
+  top: var(--space-4);
+  right: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.timing-table {
+  margin-top: var(--space-6);
+  overflow-x: auto;
+}
+
+.timing-table table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--text-sm);
+}
+
+.timing-table th {
+  text-align: left;
+  font-family: var(--font-display);
+  font-weight: var(--font-weight-semibold);
+  padding: var(--space-3) var(--space-4);
+  background: var(--bg-secondary);
+  border-bottom: 2px solid var(--border-medium);
+}
+
+.timing-table td {
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.type-badge {
+  display: inline-block;
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-xs);
+  font-weight: var(--font-weight-medium);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.type-badge.success {
+  background: rgba(var(--success-rgb), 0.15);
+  color: var(--success);
+}
+
+.type-badge.info {
+  background: rgba(var(--info-rgb), 0.15);
+  color: var(--info);
+}
+
+.type-badge.warning {
+  background: rgba(var(--warning-rgb), 0.15);
+  color: var(--warning);
+}
+
+.type-badge.error {
+  background: rgba(var(--error-rgb), 0.15);
+  color: var(--error);
+}
+
+.a11y-guidelines {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: var(--space-5);
+  margin-top: var(--space-6);
+}
+
+.a11y-item {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+}
+
+.a11y-item h4 {
+  font-family: var(--font-display);
+  font-weight: var(--font-weight-semibold);
+  margin-bottom: var(--space-2);
+  color: var(--accent-text);
+}
+
+.a11y-item p {
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  line-height: var(--leading-relaxed);
+}
+
+.a11y-item code {
+  background: var(--bg-secondary);
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+}
+
+@media (max-width: 768px) {
+  .page-header h1 {
+    font-size: var(--text-3xl);
+  }
+
+  .philosophy-grid,
+  .position-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .examples-table {
+    font-size: var(--text-xs);
+  }
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  var triggerBtn = document.querySelector('.trigger-toast');
+  var container = document.getElementById('toast-container');
+
+  if (triggerBtn && container) {
+    triggerBtn.addEventListener('click', function() {
+      var types = ['success', 'info', 'warning', 'error'];
+      var messages = {
+        success: 'Saved!',
+        info: 'Just a moment...',
+        warning: 'Add a name first',
+        error: "Couldn't save that. Try again?"
+      };
+
+      var type = types[Math.floor(Math.random() * types.length)];
+      var template = document.getElementById('toast-template-' + type);
+
+      if (template) {
+        var clone = template.content.cloneNode(true);
+        var messageEl = clone.querySelector('.toast-message');
+        var toastEl = clone.querySelector('.toast');
+
+        if (messageEl) {
+          messageEl.textContent = messages[type];
+        }
+
+        if (toastEl) {
+          toastEl.style.animation = 'toast-slide-in 0.3s ease-out';
+        }
+
+        container.appendChild(clone);
+
+        var addedToast = container.lastElementChild;
+        var duration = type === 'error' ? 4000 : 2500;
+
+        setTimeout(function() {
+          if (addedToast && addedToast.parentNode) {
+            addedToast.style.animation = 'toast-fade-out 0.2s ease-out forwards';
+            setTimeout(function() {
+              if (addedToast.parentNode) {
+                addedToast.remove();
+              }
+            }, 200);
+          }
+        }, duration);
+      }
+    });
+  }
+});
+</script>
+
+<style>
+@keyframes toast-slide-in {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes toast-fade-out {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+</style>

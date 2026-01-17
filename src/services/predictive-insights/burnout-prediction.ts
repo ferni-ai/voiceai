@@ -194,7 +194,7 @@ async function analyzeCalendarDensity(
   userId: string
 ): Promise<(BurnoutFactor & { peakDate?: Date }) | null> {
   try {
-    const { getCalendarBusyProfile } = await import('../calendar-busy-detection.js');
+    const { getCalendarBusyProfile } = await import('../scheduling/calendar-busy-detection.js');
 
     // Get today's busy profile
     const todayProfile = await getCalendarBusyProfile(userId);
@@ -245,7 +245,7 @@ async function analyzeCalendarDensity(
 
 async function analyzeBackToBackMeetings(userId: string): Promise<BurnoutFactor | null> {
   try {
-    const { getCalendarBusyProfile } = await import('../calendar-busy-detection.js');
+    const { getCalendarBusyProfile } = await import('../scheduling/calendar-busy-detection.js');
     const profile = await getCalendarBusyProfile(userId);
 
     if (!profile || profile.todayBusySlots.length < 2) return null;
@@ -307,7 +307,7 @@ async function analyzeBackToBackMeetings(userId: string): Promise<BurnoutFactor 
 async function analyzeWorkHoursCreep(userId: string): Promise<BurnoutFactor | null> {
   try {
     // Check for evening/weekend calendar events
-    const { getCalendarBusyProfile } = await import('../calendar-busy-detection.js');
+    const { getCalendarBusyProfile } = await import('../scheduling/calendar-busy-detection.js');
     const profile = await getCalendarBusyProfile(userId);
 
     if (!profile) return null;

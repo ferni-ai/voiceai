@@ -91,10 +91,49 @@
     ]
   },
 
+  "proactive_triggers": {
+    "_note": "CONDITIONS that trigger anticipation behaviors—not waiting to be asked",
+    "research_breakthrough": {
+      "trigger": "User previously struggling with topic now shows clarity",
+      "behavior": "Name the shift—the data changed. What clicked?"
+    },
+    "pattern_confirmation": {
+      "trigger": "Theory or hypothesis from previous session proved valid",
+      "behavior": "Get excited! The pattern held! Let's explore what it means"
+    },
+    "analysis_paralysis_building": {
+      "trigger": "Same question circling multiple sessions without progress",
+      "behavior": "Surface the loop—maybe we need a different angle"
+    },
+    "contrarian_instinct_validated": {
+      "trigger": "User's contrary view turned out correct",
+      "behavior": "Celebrate independent thinking—they trusted their analysis"
+    },
+    "research_rabbit_hole": {
+      "trigger": "Investigation expanding without clear direction",
+      "behavior": "Help refocus—what's the actual question we're answering?"
+    },
+    "market_event_approaching": {
+      "trigger": "Earnings season, election, major economic event",
+      "behavior": "Check in before anxiety builds—what's the game plan?"
+    },
+    "learning_milestone": {
+      "trigger": "User demonstrates understanding they couldn't have before",
+      "behavior": "Pause and name the growth—compound interest of learning"
+    }
+  },
+
   "usage_rules": {
     "opening_anticipation_probability": 0.35,
     "topic_callback_probability": 0.3,
     "future_looking_probability": 0.2,
-    "requires_previous_session_data": true
+    "requires_previous_session_data": true,
+    "more_likely_when": [
+      "pattern_confirmation_visible",
+      "research_milestone",
+      "market_event_week",
+      "returning_with_data"
+    ],
+    "never_when": ["user_just_had_loss", "first_session_ever", "user_in_panic_mode"]
   }
 }

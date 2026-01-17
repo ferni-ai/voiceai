@@ -449,7 +449,7 @@ describe('backchanneling', () => {
 
     it('should remove session system', () => {
       const system = backchanneling.getSessionBackchannelingSystem('session-test');
-      backchanneling.removeSessionBackchannelingSystem('session-test');
+      backchanneling.resetSessionBackchannelingSystem('session-test');
 
       // Should create new instance
       const newSystem = backchanneling.getSessionBackchannelingSystem('session-test');
@@ -636,7 +636,7 @@ describe('speech-context', () => {
 
     it('should remove session tracker', () => {
       const tracker = speechContext.getSessionWPMTracker('session-test');
-      speechContext.removeSessionWPMTracker('session-test');
+      speechContext.resetSessionWPMTracker('session-test');
 
       const newTracker = speechContext.getSessionWPMTracker('session-test');
       expect(newTracker).not.toBe(tracker);
@@ -826,15 +826,24 @@ describe('response-naturalness', () => {
     });
   });
 
-  describe('getThinkingFiller', () => {
+  describe('getContextAwareThinkingFiller', () => {
     it('should return filler for known persona', () => {
-      const filler = responseNaturalness.getThinkingFiller('ferni');
+      const filler = responseNaturalness.getContextAwareThinkingFiller('ferni');
       expect(filler).toBeTruthy();
       expect(typeof filler).toBe('string');
     });
 
     it('should return default for unknown persona', () => {
-      const filler = responseNaturalness.getThinkingFiller('unknown-persona');
+      const filler = responseNaturalness.getContextAwareThinkingFiller('unknown-persona');
+      expect(filler).toBeTruthy();
+    });
+
+    it('should accept context options', () => {
+      const filler = responseNaturalness.getContextAwareThinkingFiller('ferni', {
+        type: 'thinking',
+        weight: 'medium',
+        hourOfDay: 14,
+      });
       expect(filler).toBeTruthy();
     });
   });
@@ -1356,8 +1365,8 @@ describe('audio-prosody', () => {
 
   describe('session-scoped analyzers', () => {
     afterEach(() => {
-      audioProsody.removeSessionAudioProsodyAnalyzer('session-1');
-      audioProsody.removeSessionAudioProsodyAnalyzer('session-2');
+      audioProsody.resetSessionAudioProsodyAnalyzer('session-1');
+      audioProsody.resetSessionAudioProsodyAnalyzer('session-2');
     });
 
     it('should create separate analyzers per session', () => {
@@ -1378,7 +1387,7 @@ describe('audio-prosody', () => {
 
     it('should remove session analyzer', () => {
       const analyzer = audioProsody.getSessionAudioProsodyAnalyzer('session-test');
-      audioProsody.removeSessionAudioProsodyAnalyzer('session-test');
+      audioProsody.resetSessionAudioProsodyAnalyzer('session-test');
 
       const newAnalyzer = audioProsody.getSessionAudioProsodyAnalyzer('session-test');
       expect(newAnalyzer).not.toBe(analyzer);

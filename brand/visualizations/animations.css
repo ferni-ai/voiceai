@@ -1,0 +1,500 @@
+/**
+ * FERNI VISUALIZATION ANIMATIONS
+ * ==============================
+ * Apple/Pixar-level animation system for data storytelling.
+ * These animations transform static data into emotional experiences.
+ *
+ * Philosophy:
+ * - Every animation serves the insight, not decoration
+ * - Entrance animations reveal data progressively (progressive disclosure)
+ * - Micro-interactions provide feedback and delight
+ * - Performance optimized (transform/opacity only where possible)
+ *
+ * Usage: Import alongside master-tokens.css in visualization pages
+ */
+
+/* ============================================
+   ANIMATION TIMING TOKENS
+   ============================================ */
+:root {
+  /* Visualization-specific durations */
+  --viz-duration-reveal: 800ms;
+  --viz-duration-draw: 1200ms;
+  --viz-duration-pulse: 2000ms;
+  --viz-duration-orbit: 20s;
+  --viz-duration-flow: 3000ms;
+  --viz-duration-stagger: 100ms;
+
+  /* Visualization-specific easings */
+  --viz-ease-reveal: cubic-bezier(0.16, 1, 0.3, 1);
+  --viz-ease-draw: cubic-bezier(0.4, 0, 0.2, 1);
+  --viz-ease-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --viz-ease-elastic: cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  --viz-ease-organic: cubic-bezier(0.25, 0.1, 0.25, 1);
+}
+
+/* ============================================
+   CHART ENTRANCE ANIMATIONS
+   Progressive reveal for data visualization
+   ============================================ */
+
+/* Fade in from bottom (default) */
+@keyframes vizFadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Scale in from center */
+@keyframes vizScaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Draw line (for SVG paths) */
+@keyframes vizDrawLine {
+  from {
+    stroke-dashoffset: var(--path-length, 1000);
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+/* Grow bar (for bar charts) */
+@keyframes vizGrowBar {
+  from {
+    transform: scaleY(0);
+    transform-origin: bottom;
+  }
+  to {
+    transform: scaleY(1);
+    transform-origin: bottom;
+  }
+}
+
+/* Radial reveal (for pie/donut charts) */
+@keyframes vizRadialReveal {
+  from {
+    stroke-dashoffset: var(--circumference, 628);
+  }
+  to {
+    stroke-dashoffset: var(--target-offset, 0);
+  }
+}
+
+/* Constellation node pop-in */
+@keyframes vizNodePopIn {
+  0% {
+    opacity: 0;
+    transform: scale(0);
+  }
+  70% {
+    transform: scale(1.2);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* River flow animation */
+@keyframes vizRiverFlow {
+  from {
+    stroke-dashoffset: 100;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+/* Kintsugi gold repair line */
+@keyframes vizGoldRepair {
+  from {
+    stroke-dashoffset: var(--path-length, 500);
+    filter: drop-shadow(0 0 0 var(--kintsugi-glow, rgba(201, 162, 39, 0)));
+  }
+  to {
+    stroke-dashoffset: 0;
+    filter: drop-shadow(0 0 8px var(--kintsugi-glow, rgba(201, 162, 39, 0.4)));
+  }
+}
+
+/* Growth ring expand */
+@keyframes vizRingExpand {
+  from {
+    transform: scale(0);
+    opacity: 0;
+  }
+  60% {
+    opacity: 0.8;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* Seasons carousel slide */
+@keyframes vizSeasonSlide {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+/* ============================================
+   MICRO-INTERACTION ANIMATIONS
+   Delightful feedback for user actions
+   ============================================ */
+
+/* Hover lift */
+@keyframes vizHoverLift {
+  to {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.1);
+  }
+}
+
+/* Pulse glow (for active states) */
+@keyframes vizPulseGlow {
+  0%, 100% {
+    filter: drop-shadow(0 0 4px var(--glow-color, var(--kintsugi-glow)));
+    transform: scale(1);
+  }
+  50% {
+    filter: drop-shadow(0 0 12px var(--glow-color, var(--kintsugi-glow)));
+    transform: scale(1.02);
+  }
+}
+
+/* Gentle breathe (for emphasis) */
+@keyframes vizBreathe {
+  0%, 100% {
+    opacity: 0.7;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.05);
+  }
+}
+
+/* Data point highlight */
+@keyframes vizHighlight {
+  0% {
+    transform: scale(1);
+    filter: brightness(1);
+  }
+  50% {
+    transform: scale(1.3);
+    filter: brightness(1.2);
+  }
+  100% {
+    transform: scale(1);
+    filter: brightness(1);
+  }
+}
+
+/* Tooltip appear */
+@keyframes vizTooltipIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Action panel slide in */
+@keyframes vizActionPanelIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Button press */
+@keyframes vizButtonPress {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(0.95);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* ============================================
+   AMBIENT ANIMATIONS
+   Subtle movement for immersion
+   ============================================ */
+
+/* Floating (for decorative elements) */
+@keyframes vizFloat {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+/* Orbit (for constellation connections) */
+@keyframes vizOrbit {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Shimmer (for gold elements) */
+@keyframes vizShimmer {
+  0% {
+    background-position: -200% center;
+  }
+  100% {
+    background-position: 200% center;
+  }
+}
+
+/* Gentle sway (for organic feel) */
+@keyframes vizSway {
+  0%, 100% {
+    transform: rotate(-2deg);
+  }
+  50% {
+    transform: rotate(2deg);
+  }
+}
+
+/* Ripple (for interaction feedback) */
+@keyframes vizRipple {
+  0% {
+    transform: scale(0);
+    opacity: 0.5;
+  }
+  100% {
+    transform: scale(2);
+    opacity: 0;
+  }
+}
+
+/* ============================================
+   SCROLL-TRIGGERED REVEAL CLASSES
+   Apply these to elements for IntersectionObserver reveals
+   ============================================ */
+
+/* Base state: hidden */
+.viz-reveal {
+  opacity: 0;
+  transform: translateY(30px);
+  transition: opacity var(--viz-duration-reveal) var(--viz-ease-reveal),
+              transform var(--viz-duration-reveal) var(--viz-ease-reveal);
+}
+
+.viz-reveal.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Scale variant */
+.viz-reveal-scale {
+  opacity: 0;
+  transform: scale(0.9);
+  transition: opacity var(--viz-duration-reveal) var(--viz-ease-reveal),
+              transform var(--viz-duration-reveal) var(--viz-ease-bounce);
+}
+
+.viz-reveal-scale.is-visible {
+  opacity: 1;
+  transform: scale(1);
+}
+
+/* Staggered children */
+.viz-stagger > * {
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity var(--duration-normal, 250ms) var(--viz-ease-reveal),
+              transform var(--duration-normal, 250ms) var(--viz-ease-reveal);
+}
+
+.viz-stagger.is-visible > *:nth-child(1) { transition-delay: calc(var(--viz-duration-stagger) * 0); }
+.viz-stagger.is-visible > *:nth-child(2) { transition-delay: calc(var(--viz-duration-stagger) * 1); }
+.viz-stagger.is-visible > *:nth-child(3) { transition-delay: calc(var(--viz-duration-stagger) * 2); }
+.viz-stagger.is-visible > *:nth-child(4) { transition-delay: calc(var(--viz-duration-stagger) * 3); }
+.viz-stagger.is-visible > *:nth-child(5) { transition-delay: calc(var(--viz-duration-stagger) * 4); }
+.viz-stagger.is-visible > *:nth-child(6) { transition-delay: calc(var(--viz-duration-stagger) * 5); }
+.viz-stagger.is-visible > *:nth-child(7) { transition-delay: calc(var(--viz-duration-stagger) * 6); }
+.viz-stagger.is-visible > *:nth-child(8) { transition-delay: calc(var(--viz-duration-stagger) * 7); }
+.viz-stagger.is-visible > *:nth-child(9) { transition-delay: calc(var(--viz-duration-stagger) * 8); }
+.viz-stagger.is-visible > *:nth-child(10) { transition-delay: calc(var(--viz-duration-stagger) * 9); }
+.viz-stagger.is-visible > *:nth-child(11) { transition-delay: calc(var(--viz-duration-stagger) * 10); }
+.viz-stagger.is-visible > *:nth-child(12) { transition-delay: calc(var(--viz-duration-stagger) * 11); }
+
+.viz-stagger.is-visible > * {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* ============================================
+   SVG PATH DRAWING UTILITIES
+   ============================================ */
+
+/* Apply to SVG paths that should draw on scroll */
+.viz-draw-path {
+  stroke-dasharray: var(--path-length, 1000);
+  stroke-dashoffset: var(--path-length, 1000);
+  transition: stroke-dashoffset var(--viz-duration-draw) var(--viz-ease-draw);
+}
+
+.viz-draw-path.is-visible {
+  stroke-dashoffset: 0;
+}
+
+/* Gold repair line specific */
+.viz-gold-repair {
+  stroke-dasharray: var(--path-length, 500);
+  stroke-dashoffset: var(--path-length, 500);
+  transition: stroke-dashoffset var(--viz-duration-draw) var(--viz-ease-draw),
+              filter 0.5s ease-out;
+  filter: drop-shadow(0 0 0 transparent);
+}
+
+.viz-gold-repair.is-visible {
+  stroke-dashoffset: 0;
+  filter: drop-shadow(0 0 6px var(--kintsugi-glow, rgba(201, 162, 39, 0.4)));
+}
+
+/* ============================================
+   INTERACTIVE ELEMENT STATES
+   ============================================ */
+
+/* Hoverable data point */
+.viz-interactive {
+  cursor: pointer;
+  transition: transform var(--duration-fast, 150ms) var(--viz-ease-bounce),
+              filter var(--duration-fast, 150ms) ease-out;
+}
+
+.viz-interactive:hover {
+  transform: scale(1.1);
+  filter: brightness(1.1);
+}
+
+.viz-interactive:active {
+  transform: scale(0.95);
+}
+
+/* Focus ring for accessibility */
+.viz-interactive:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--color-accent-muted, rgba(61, 90, 69, 0.3));
+}
+
+/* Clickable card */
+.viz-card-interactive {
+  transition: transform var(--duration-normal, 250ms) var(--viz-ease-bounce),
+              box-shadow var(--duration-normal, 250ms) ease-out,
+              border-color var(--duration-fast, 150ms) ease-out;
+}
+
+.viz-card-interactive:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.08);
+  border-color: var(--kintsugi-gold, #C9A227);
+}
+
+/* ============================================
+   REDUCED MOTION SUPPORT
+   ============================================ */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  .viz-reveal,
+  .viz-reveal-scale,
+  .viz-stagger > * {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+
+  .viz-draw-path,
+  .viz-gold-repair {
+    stroke-dashoffset: 0;
+    transition: none;
+  }
+}
+
+/* ============================================
+   ANIMATION UTILITY CLASSES
+   ============================================ */
+
+/* Apply continuous animations */
+.viz-animate-float {
+  animation: vizFloat 3s ease-in-out infinite;
+}
+
+.viz-animate-breathe {
+  animation: vizBreathe var(--viz-duration-pulse) ease-in-out infinite;
+}
+
+.viz-animate-pulse {
+  animation: vizPulseGlow var(--viz-duration-pulse) ease-in-out infinite;
+}
+
+.viz-animate-shimmer {
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.4) 50%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  animation: vizShimmer 2s ease-in-out infinite;
+}
+
+/* One-time animations (add via JS on trigger) */
+.viz-play-highlight {
+  animation: vizHighlight 0.6s var(--viz-ease-bounce);
+}
+
+.viz-play-press {
+  animation: vizButtonPress 0.2s ease-out;
+}
+
+.viz-play-ripple {
+  animation: vizRipple 0.6s ease-out forwards;
+}

@@ -11,7 +11,7 @@
  * 7. Admin dashboard
  */
 
-import { setUserContactInfo, textUser, initializeProactiveOutreach } from '../../../../../src/tools/proactive-outreach.js';
+import { setUserContactInfo, textUser, initializeProactiveOutreach } from '../../../../../src/tools/domains/proactive/outreach/index.js';
 import { detectContactInfo, processMessageForOnboarding, getConfirmationMessage } from '../../../../../src/services/contact-onboarding.js';
 import { extractCommitments, analyzeConversationForOutreach, setPreferences, getPreferences } from '../../../../../src/services/outreach-intelligence.js';
 import { recordCheckIn, createGoal, updateGoalProgress, startGoalMonitoring, stopGoalMonitoring } from '../../../../../src/services/goal-outreach-integration.js';

@@ -170,7 +170,14 @@ export async function preloadCommonPersonaVoice(): Promise<void> {
     'alex-chen',
   ];
 
-  await Promise.all(commonPersonas.map(async (id) => loadPersonaVoiceData(id).catch(() => null)));
+  await Promise.all(
+    commonPersonas.map(async (id) =>
+      loadPersonaVoiceData(id).catch((err) => {
+        log.warn({ personaId: id, error: String(err) }, 'Failed to preload voice data');
+        return null;
+      })
+    )
+  );
 
   log.info({ count: voiceDataCache.size }, 'Preloaded persona voice data');
 }

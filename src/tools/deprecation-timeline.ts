@@ -131,13 +131,7 @@ export const DEPRECATION_SCHEDULE: DeprecationEntry[] = [
     replacement: 'buildAgentTools() or domains/life-planning/',
     category: 'tool-creator',
   },
-  {
-    name: 'createSmallTalkTools',
-    deprecatedIn: '2.0',
-    removeIn: '3.0',
-    replacement: 'buildAgentTools() with conversation domain',
-    category: 'tool-creator',
-  },
+  // NOTE: createSmallTalkTools was REMOVED in Dec 2024 (small-talk.ts deleted)
   {
     name: 'createWellnessTools',
     deprecatedIn: '2.0',

@@ -1,14 +1,33 @@
 /**
  * Voice Configuration
  *
- * Voice configurations for all personas.
+ * Voice configurations for all personas with Cartesia Sonic-3 expressiveness settings.
  * Voice IDs are loaded dynamically from the voice registry.
  * Model is imported from config/voice-ids.ts (single source of truth).
+ *
+ * Each persona has:
+ * - defaultEmotion: Their baseline emotional state
+ * - emotionRange: Natural emotions they express
+ * - defaultSpeed: Speech pace (0.6-1.5)
+ * - defaultVolume: Volume (0.5-2.0)
+ * - laughterFrequency: How often they laugh
  */
 
 import { CARTESIA_MODEL } from '../../config/voice-ids.js';
 import { getVoiceId } from '../../personas/voice-registry.js';
 import type { VoiceAgentId, VoiceConfig } from './types.js';
+
+// ============================================================================
+// PERSONA EMOTION PROFILES - Re-exported from standalone module
+// ============================================================================
+
+// Re-export from emotion-profiles.ts to avoid circular dependencies
+// The canonical source is now speech/emotion-profiles.ts
+export {
+  getEmotionProfile,
+  PERSONA_EMOTION_PROFILES,
+  type PersonaEmotionProfile,
+} from '../emotion-profiles.js';
 
 // ============================================================================
 // VOICE CONFIGURATION

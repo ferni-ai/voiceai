@@ -16,6 +16,13 @@ import type {
   WordAssociationState,
   WouldYouRatherState,
   StoryBuilderState,
+  ThreeWordDayState,
+  ValuesCardSortState,
+  HeadlineWriterState,
+  EmojiStoryState,
+  OneWordCheckinState,
+  TinyWinTrackerState,
+  FortuneCookieState,
 } from './text-game-types.js';
 import {
   createInitialState as createTicTacToeState,
@@ -49,6 +56,48 @@ import {
   describeStateForVoice as describeStoryBuilderState,
   getStartResult as getStoryBuilderStart,
 } from './story-builder.js';
+import {
+  createInitialState as createThreeWordDayState,
+  processInput as processThreeWordDayInput,
+  describeStateForVoice as describeThreeWordDayState,
+  getStartResult as getThreeWordDayStart,
+} from './three-word-day.js';
+import {
+  createInitialState as createValuesCardSortState,
+  processInput as processValuesCardSortInput,
+  describeStateForVoice as describeValuesCardSortState,
+  getStartResult as getValuesCardSortStart,
+} from './values-card-sort.js';
+import {
+  createInitialState as createHeadlineWriterState,
+  processInput as processHeadlineWriterInput,
+  describeStateForVoice as describeHeadlineWriterState,
+  getStartResult as getHeadlineWriterStart,
+} from './headline-writer.js';
+import {
+  createInitialState as createEmojiStoryState,
+  processInput as processEmojiStoryInput,
+  describeStateForVoice as describeEmojiStoryState,
+  getStartResult as getEmojiStoryStart,
+} from './emoji-story.js';
+import {
+  createInitialState as createOneWordCheckinState,
+  processInput as processOneWordCheckinInput,
+  describeStateForVoice as describeOneWordCheckinState,
+  getStartResult as getOneWordCheckinStart,
+} from './one-word-checkin.js';
+import {
+  createInitialState as createTinyWinTrackerState,
+  processInput as processTinyWinTrackerInput,
+  describeStateForVoice as describeTinyWinTrackerState,
+  getStartResult as getTinyWinTrackerStart,
+} from './tiny-win-tracker.js';
+import {
+  createInitialState as createFortuneCookieState,
+  processInput as processFortuneCookieInput,
+  describeStateForVoice as describeFortuneCookieState,
+  getStartResult as getFortuneCookieStart,
+} from './fortune-cookie.js';
 
 const log = getLogger();
 
@@ -110,10 +159,31 @@ export class TextGameEngine implements TextGameEngineContract {
       case 'story-builder':
         return Promise.resolve(this.startStoryBuilder(config));
 
+      case 'three-word-day':
+        return Promise.resolve(this.startThreeWordDay(config));
+
+      case 'values-card-sort':
+        return Promise.resolve(this.startValuesCardSort());
+
+      case 'headline-writer':
+        return Promise.resolve(this.startHeadlineWriter(config));
+
+      case 'emoji-story':
+        return Promise.resolve(this.startEmojiStory(config));
+
+      case 'one-word-checkin':
+        return Promise.resolve(this.startOneWordCheckin(config));
+
+      case 'tiny-win-tracker':
+        return Promise.resolve(this.startTinyWinTracker());
+
+      case 'fortune-cookie':
+        return Promise.resolve(this.startFortuneCookie());
+
       default:
         return Promise.resolve({
           message:
-            'I don\'t know that game. Try "tic-tac-toe", "20 questions", "word association", "would you rather", or "story builder"!',
+            'I don\'t know that game. Try "tic-tac-toe", "three word day", "values card sort", or any of our reflection games!',
           gameOver: false,
         });
     }
@@ -144,6 +214,27 @@ export class TextGameEngine implements TextGameEngineContract {
 
       case 'story-builder':
         return Promise.resolve(this.handleStoryBuilderMove(input));
+
+      case 'three-word-day':
+        return Promise.resolve(this.handleThreeWordDayMove(input));
+
+      case 'values-card-sort':
+        return Promise.resolve(this.handleValuesCardSortMove(input));
+
+      case 'headline-writer':
+        return Promise.resolve(this.handleHeadlineWriterMove(input));
+
+      case 'emoji-story':
+        return Promise.resolve(this.handleEmojiStoryMove(input));
+
+      case 'one-word-checkin':
+        return Promise.resolve(this.handleOneWordCheckinMove(input));
+
+      case 'tiny-win-tracker':
+        return Promise.resolve(this.handleTinyWinTrackerMove(input));
+
+      case 'fortune-cookie':
+        return Promise.resolve(this.handleFortuneCookieMove(input));
 
       default:
         return Promise.resolve({
@@ -182,6 +273,41 @@ export class TextGameEngine implements TextGameEngineContract {
       case 'story-builder': {
         const storyBuilderState = this.state.gameData as StoryBuilderState;
         return describeStoryBuilderState(storyBuilderState);
+      }
+
+      case 'three-word-day': {
+        const threeWordDayState = this.state.gameData as ThreeWordDayState;
+        return describeThreeWordDayState(threeWordDayState);
+      }
+
+      case 'values-card-sort': {
+        const valuesCardSortState = this.state.gameData as ValuesCardSortState;
+        return describeValuesCardSortState(valuesCardSortState);
+      }
+
+      case 'headline-writer': {
+        const headlineWriterState = this.state.gameData as HeadlineWriterState;
+        return describeHeadlineWriterState(headlineWriterState);
+      }
+
+      case 'emoji-story': {
+        const emojiStoryState = this.state.gameData as EmojiStoryState;
+        return describeEmojiStoryState(emojiStoryState);
+      }
+
+      case 'one-word-checkin': {
+        const oneWordCheckinState = this.state.gameData as OneWordCheckinState;
+        return describeOneWordCheckinState(oneWordCheckinState);
+      }
+
+      case 'tiny-win-tracker': {
+        const tinyWinTrackerState = this.state.gameData as TinyWinTrackerState;
+        return describeTinyWinTrackerState(tinyWinTrackerState);
+      }
+
+      case 'fortune-cookie': {
+        const fortuneCookieState = this.state.gameData as FortuneCookieState;
+        return describeFortuneCookieState(fortuneCookieState);
       }
 
       default:
@@ -421,6 +547,277 @@ export class TextGameEngine implements TextGameEngineContract {
       message: result.message,
       gameOver: result.gameOver,
       winner: result.winner,
+    };
+  }
+
+  // ============================================================================
+  // THREE WORD DAY IMPLEMENTATION
+  // ============================================================================
+
+  private startThreeWordDay(config?: Record<string, unknown>): TextGameResult {
+    const promptType = config?.promptType as ThreeWordDayState['promptType'] | undefined;
+    const customPrompt = config?.customPrompt as string | undefined;
+    const gameData = createThreeWordDayState(promptType, customPrompt);
+
+    this.state = {
+      gameType: 'three-word-day',
+      status: 'active',
+      startedAt: Date.now(),
+      lastActivityAt: Date.now(),
+      gameData,
+    };
+
+    const startResult = getThreeWordDayStart(gameData);
+    return {
+      message: startResult.message,
+      gameOver: startResult.gameOver,
+    };
+  }
+
+  private handleThreeWordDayMove(input: string): TextGameResult {
+    const currentState = this.state.gameData as ThreeWordDayState;
+    const result = processThreeWordDayInput(currentState, input);
+
+    this.state.gameData = result.newState;
+
+    if (result.gameOver) {
+      this.state.status = 'completed';
+    }
+
+    return {
+      message: result.message,
+      gameOver: result.gameOver,
+    };
+  }
+
+  // ============================================================================
+  // VALUES CARD SORT IMPLEMENTATION
+  // ============================================================================
+
+  private startValuesCardSort(): TextGameResult {
+    const gameData = createValuesCardSortState();
+
+    this.state = {
+      gameType: 'values-card-sort',
+      status: 'active',
+      startedAt: Date.now(),
+      lastActivityAt: Date.now(),
+      gameData,
+    };
+
+    const startResult = getValuesCardSortStart(gameData);
+    return {
+      message: startResult.message,
+      gameOver: startResult.gameOver,
+    };
+  }
+
+  private handleValuesCardSortMove(input: string): TextGameResult {
+    const currentState = this.state.gameData as ValuesCardSortState;
+    const result = processValuesCardSortInput(currentState, input);
+
+    this.state.gameData = result.newState;
+
+    if (result.gameOver) {
+      this.state.status = 'completed';
+    }
+
+    return {
+      message: result.message,
+      gameOver: result.gameOver,
+    };
+  }
+
+  // ============================================================================
+  // HEADLINE WRITER IMPLEMENTATION
+  // ============================================================================
+
+  private startHeadlineWriter(config?: Record<string, unknown>): TextGameResult {
+    const timeframe = config?.timeframe as HeadlineWriterState['currentTimeframe'] | undefined;
+    const gameData = createHeadlineWriterState(timeframe);
+
+    this.state = {
+      gameType: 'headline-writer',
+      status: 'active',
+      startedAt: Date.now(),
+      lastActivityAt: Date.now(),
+      gameData,
+    };
+
+    const startResult = getHeadlineWriterStart(gameData);
+    return {
+      message: startResult.message,
+      gameOver: startResult.gameOver,
+    };
+  }
+
+  private handleHeadlineWriterMove(input: string): TextGameResult {
+    const currentState = this.state.gameData as HeadlineWriterState;
+    const result = processHeadlineWriterInput(currentState, input);
+
+    this.state.gameData = result.newState;
+
+    if (result.gameOver) {
+      this.state.status = 'completed';
+    }
+
+    return {
+      message: result.message,
+      gameOver: result.gameOver,
+    };
+  }
+
+  // ============================================================================
+  // EMOJI STORY IMPLEMENTATION
+  // ============================================================================
+
+  private startEmojiStory(config?: Record<string, unknown>): TextGameResult {
+    const topic = config?.topic as EmojiStoryState['topic'] | undefined;
+    const gameData = createEmojiStoryState(topic);
+
+    this.state = {
+      gameType: 'emoji-story',
+      status: 'active',
+      startedAt: Date.now(),
+      lastActivityAt: Date.now(),
+      gameData,
+    };
+
+    const startResult = getEmojiStoryStart(gameData);
+    return {
+      message: startResult.message,
+      gameOver: startResult.gameOver,
+    };
+  }
+
+  private handleEmojiStoryMove(input: string): TextGameResult {
+    const currentState = this.state.gameData as EmojiStoryState;
+    const result = processEmojiStoryInput(currentState, input);
+
+    this.state.gameData = result.newState;
+
+    if (result.gameOver) {
+      this.state.status = 'completed';
+    }
+
+    return {
+      message: result.message,
+      gameOver: result.gameOver,
+    };
+  }
+
+  // ============================================================================
+  // ONE WORD CHECK-IN IMPLEMENTATION
+  // ============================================================================
+
+  private startOneWordCheckin(config?: Record<string, unknown>): TextGameResult {
+    const context = config?.context as OneWordCheckinState['context'] | undefined;
+    const gameData = createOneWordCheckinState(context);
+
+    this.state = {
+      gameType: 'one-word-checkin',
+      status: 'active',
+      startedAt: Date.now(),
+      lastActivityAt: Date.now(),
+      gameData,
+    };
+
+    const startResult = getOneWordCheckinStart(gameData);
+    return {
+      message: startResult.message,
+      gameOver: startResult.gameOver,
+    };
+  }
+
+  private handleOneWordCheckinMove(input: string): TextGameResult {
+    const currentState = this.state.gameData as OneWordCheckinState;
+    const result = processOneWordCheckinInput(currentState, input);
+
+    this.state.gameData = result.newState;
+
+    if (result.gameOver) {
+      this.state.status = 'completed';
+    }
+
+    return {
+      message: result.message,
+      gameOver: result.gameOver,
+    };
+  }
+
+  // ============================================================================
+  // TINY WIN TRACKER IMPLEMENTATION
+  // ============================================================================
+
+  private startTinyWinTracker(): TextGameResult {
+    const gameData = createTinyWinTrackerState();
+
+    this.state = {
+      gameType: 'tiny-win-tracker',
+      status: 'active',
+      startedAt: Date.now(),
+      lastActivityAt: Date.now(),
+      gameData,
+    };
+
+    const startResult = getTinyWinTrackerStart(gameData);
+    return {
+      message: startResult.message,
+      gameOver: startResult.gameOver,
+    };
+  }
+
+  private handleTinyWinTrackerMove(input: string): TextGameResult {
+    const currentState = this.state.gameData as TinyWinTrackerState;
+    const result = processTinyWinTrackerInput(currentState, input);
+
+    this.state.gameData = result.newState;
+
+    if (result.gameOver) {
+      this.state.status = 'completed';
+    }
+
+    return {
+      message: result.message,
+      gameOver: result.gameOver,
+    };
+  }
+
+  // ============================================================================
+  // FORTUNE COOKIE IMPLEMENTATION
+  // ============================================================================
+
+  private startFortuneCookie(): TextGameResult {
+    const gameData = createFortuneCookieState();
+
+    this.state = {
+      gameType: 'fortune-cookie',
+      status: 'active',
+      startedAt: Date.now(),
+      lastActivityAt: Date.now(),
+      gameData,
+    };
+
+    const startResult = getFortuneCookieStart(gameData);
+    return {
+      message: startResult.message,
+      gameOver: startResult.gameOver,
+    };
+  }
+
+  private handleFortuneCookieMove(input: string): TextGameResult {
+    const currentState = this.state.gameData as FortuneCookieState;
+    const result = processFortuneCookieInput(currentState, input);
+
+    this.state.gameData = result.newState;
+
+    if (result.gameOver) {
+      this.state.status = 'completed';
+    }
+
+    return {
+      message: result.message,
+      gameOver: result.gameOver,
     };
   }
 }

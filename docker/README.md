@@ -70,21 +70,66 @@ For GCP Cloud Build, see:
 
 ## Environment Variables
 
+### ⚠️ IMPORTANT: Dev vs Production LiveKit Projects
+
+We have **TWO** separate LiveKit projects to prevent local dev workers from stealing production jobs:
+
+| Environment | LiveKit Project | Subdomain | Use |
+|-------------|----------------|-----------|-----|
+| **Development** | `ferni-dev` (p_1gcwootg9al) | `dev-8sm1ba0z.livekit.cloud` | Local dev |
+| **Production** | `ferni` (test-rvg91u1z) | `test-rvg91u1z.livekit.cloud` | GCE deployment |
+
+### Local Development Setup
+
+Create a `.env` file in the project root with **development** credentials:
+
+```bash
+# .env (for local development)
+NODE_ENV=development
+
+# DEVELOPMENT LiveKit (ferni-dev project)
+LIVEKIT_URL=wss://dev-8sm1ba0z.livekit.cloud
+LIVEKIT_API_KEY=<get-from-livekit-cloud-dashboard>
+LIVEKIT_API_SECRET=<get-from-livekit-cloud-dashboard>
+
+# Use dev agent name to distinguish from production
+AGENT_NAME=voice-agent-dev
+
+GOOGLE_API_KEY=your-gemini-key
+CARTESIA_API_KEY=your-cartesia-key
+PERSONA_ID=ferni
+```
+
+Get dev credentials from: https://cloud.livekit.io/projects/p_1gcwootg9al/settings/keys
+
+### Production (GCE)
+
+Production credentials are stored in **Google Cloud Secret Manager** and injected at runtime.
+The deploy script (`ferni deploy gce`) handles this automatically.
+
+```bash
+# Production uses these (from Secret Manager):
+LIVEKIT_URL=wss://test-rvg91u1z.livekit.cloud
+LIVEKIT_API_KEY=<from-secret-manager>
+LIVEKIT_API_SECRET=<from-secret-manager>
+AGENT_NAME=voice-agent
+```
+
 ### Required for Voice Agent
 
 ```bash
-LIVEKIT_URL=wss://your-livekit-server.com
+LIVEKIT_URL=wss://dev-8sm1ba0z.livekit.cloud  # Use dev for local
 LIVEKIT_API_KEY=your-api-key
 LIVEKIT_API_SECRET=your-api-secret
 GOOGLE_API_KEY=your-gemini-key
 CARTESIA_API_KEY=your-cartesia-key
-PERSONA_ID=ferni  # or jack-bogle, peter-lynch, etc.
+PERSONA_ID=ferni  # or jack-bogle, peter-john, etc.
 ```
 
 ### Required for UI Server
 
 ```bash
-LIVEKIT_URL=wss://your-livekit-server.com
+LIVEKIT_URL=wss://dev-8sm1ba0z.livekit.cloud  # Use dev for local
 LIVEKIT_API_KEY=your-api-key
 LIVEKIT_API_SECRET=your-api-secret
 GCP_PROJECT_ID=your-project

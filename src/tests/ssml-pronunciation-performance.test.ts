@@ -107,7 +107,8 @@ describe('SSML Pronunciation Processor Performance', () => {
 
     it('should correctly replace Japanese terms', () => {
       const result = applyPronunciationsOptimized('Find your ikigai');
-      expect(result).toContain('ee-kee-guy');
+      // Pronunciation uses uppercase for emphasis: ee-kee-GUY
+      expect(result.toLowerCase()).toContain('ee-kee-guy');
     });
 
     it('should handle multiple terms', () => {

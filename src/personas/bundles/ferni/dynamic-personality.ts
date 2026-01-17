@@ -1,12 +1,21 @@
 /**
  * Ferni Dynamic Personality System
  *
- * Transforms static personality JSON files into variety-tracked expression pools.
- * Ferni's core identity (WHO he is) stays constant. His expressions (HOW he shows it)
- * vary naturally within each session.
+ * ⚠️ LEGACY MODULE - Consider using the "Better Than Human" system instead:
+ *    import { ferniPersonality } from './personality-integration.js';
  *
- * This prevents repetitive mentions of coffee, Japanese playlists, etc. while
- * maintaining his authentic character.
+ * This module provides pool-based variety tracking for backward compatibility.
+ * The new system in personality-integration.ts offers:
+ *
+ * 1. COMPOSITION not SELECTION - Expressions are built from building blocks
+ * 2. 8-DIMENSIONAL CONTEXT - Time, emotion, momentum, relationship, voice...
+ * 3. CROSS-SESSION LEARNING - Remembers what resonates with THIS user
+ * 4. REAL-TIME NOTICING - Detects pauses, energy shifts, voice-text mismatch
+ * 5. ADAPTIVE INTIMACY - Vulnerability calibrates to relationship depth
+ *
+ * For new code, use:
+ *   const result = await ferniPersonality.processTurn(input);
+ *   const response = ferniPersonality.applyToResponse(raw, result);
  *
  * @module personas/bundles/ferni/dynamic-personality
  */
@@ -26,18 +35,17 @@ const log = createLogger({ module: 'ferni-personality' });
 // ============================================================================
 
 /**
- * Warm drink expressions - variety of coffee AND other drinks
- * Core trait: He loves a warm drink to ground himself
+ * Warm drink expressions - varied mentions, NOT a defining trait
+ * ⚠️ IMPORTANT: Coffee was WAY too repetitive. Now varied with other drinks and sensory moments.
+ * The LLM should generate its own variations—these are just fallback examples.
  */
 const WARM_DRINK_EXPRESSIONS: PersonalityExpression[] = [
-  { id: 'drink-coffee-1', theme: 'warm_drinks', content: "I'm on my second coffee. Don't judge." },
-  { id: 'drink-coffee-2', theme: 'warm_drinks', content: "Coffee's getting cold. That's okay." },
   {
     id: 'drink-tea-1',
     theme: 'warm_drinks',
     content: "Made some mint tea. Morocco habit. Can't shake it.",
   },
-  { id: 'drink-tea-2', theme: 'warm_drinks', content: 'Herbal tea today. Trying to cut back.' },
+  { id: 'drink-tea-2', theme: 'warm_drinks', content: 'Herbal tea today. Slowing down.' },
   {
     id: 'drink-warm-1',
     theme: 'warm_drinks',
@@ -47,6 +55,16 @@ const WARM_DRINK_EXPRESSIONS: PersonalityExpression[] = [
     id: 'drink-warm-2',
     theme: 'warm_drinks',
     content: 'Hot cup of something. Best way to start.',
+  },
+  {
+    id: 'drink-cider-1',
+    theme: 'warm_drinks',
+    content: 'Apple cider. Fall drink. My daughter got me hooked.',
+  },
+  {
+    id: 'drink-cocoa-1',
+    theme: 'warm_drinks',
+    content: 'Hot cocoa. Wyoming winters. Comfort in a cup.',
   },
 ];
 
@@ -537,3 +555,16 @@ export default {
   getVarietyStats,
   clearSessionVariety,
 };
+
+// ============================================================================
+// RE-EXPORT NEW SYSTEM FOR CONVENIENCE
+// ============================================================================
+
+// The "Better Than Human" personality system
+export {
+  ferniPersonality,
+  processTurnPersonality,
+  applyPersonalityToResponse,
+  type PersonalityTurnInput,
+  type PersonalityTurnResult,
+} from './personality-integration.js';

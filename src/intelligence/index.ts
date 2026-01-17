@@ -27,6 +27,7 @@ export {
   // Main analyzer
   UnifiedAnalyzer,
   analyzeUnified,
+  analyze, // Backward-compat alias for analyzeUnified
   type UnifiedAnalysisInput,
   type UnifiedAnalysisResult,
   type EmotionSignal,
@@ -35,6 +36,92 @@ export {
   type MismatchSignal,
   type ResponseGuidance,
 } from './unified/unified-analyzer.js';
+
+// ============================================================================
+// UNIFIED INTELLIGENCE API (Levels 2-5)
+// ============================================================================
+
+export {
+  // Session lifecycle
+  initIntelligenceSession,
+  cleanupIntelligence,
+  // Main API
+  getIntelligenceForTurn,
+  // Domain signals
+  recordDomainSignal,
+  // Insight tracking
+  markInsightSurfaced,
+  recordInsightReaction,
+  // Utility exports
+  getDomainSignals,
+  wasInsightSurfaced,
+  getInsightReaction,
+  getAllCorrelations,
+  hasProactiveInsight,
+  getTopProactiveInsight,
+  clearIntelligenceCaches,
+  // Types
+  type SurfaceMoment,
+  type DomainSignal,
+  type ImmediateContext,
+  type ContextWindow,
+  type CrossDomainCorrelation,
+  type ProactiveIntelligenceInsight,
+  type IntelligenceForTurnResult,
+  type IntelligenceOptions,
+} from './unified-intelligence-api.js';
+
+// ============================================================================
+// CONTEXT ASSEMBLER (Level 2) - "Knows what matters RIGHT NOW"
+// ============================================================================
+
+export {
+  assembleContext,
+  selectContextForTurn,
+  formatAssembledContextForPrompt,
+  clearContextCache,
+  invalidateContext,
+  contextAssembler,
+  type AssemblyOptions,
+  type TodayContext,
+  type RecentContext,
+  type RelationshipContext,
+  type CapacityContext,
+} from './context-assembler.js';
+
+// ============================================================================
+// CROSS-DOMAIN CORRELATOR (Level 4) - "Connects dots humans miss"
+// ============================================================================
+
+export {
+  recordDomainSignal as recordCorrelationSignal,
+  getCorrelations,
+  getRelevantCorrelations,
+  markCorrelationSurfaced,
+  formatCorrelationsForPrompt,
+  clearCorrelatorState,
+  getCrossCorrelator,
+  crossDomainCorrelator,
+  type CorrelationDomain,
+  type CorrelationFilterOptions,
+} from './patterns/cross-domain-correlator.js';
+
+// ============================================================================
+// PROACTIVE ENGINE (Level 5) - "Decides WHEN to share insights"
+// ============================================================================
+
+export {
+  checkProactiveTriggers,
+  initProactiveSession,
+  cleanupProactiveSession,
+  getProactivePreferences,
+  updateProactivePreferences,
+  clearProactiveState,
+  proactiveEngine,
+  type InsightCategory,
+  type ProactiveTriggerResult,
+  type ProactivePreferences,
+} from './proactive/proactive-engine.js';
 
 export {
   // THE superhuman signal
@@ -350,6 +437,60 @@ export {
 } from './agent-evolution.js';
 
 // ============================================================================
+// COACHING INTELLIGENCE - "Better Than Human" Question Generation
+// ============================================================================
+
+// Coaching Questions - Memory-grounded, pattern-surfacing, anticipatory
+export {
+  getCoachingQuestion,
+  generateMemoryGroundedQuestion,
+  generatePatternQuestion,
+  generateMirror,
+  getAnticipatoryQuestion,
+  detectPatterns,
+  type MemoryGroundedQuestion,
+  type PatternObservation,
+  type MirrorReflection,
+  type AnticipatedNeed,
+} from './coaching-questions.js';
+
+// Pattern Tracking - Cross-session pattern detection
+export {
+  processTranscriptForPatterns,
+  getUserPatterns,
+  getPatternsToSurface,
+  getPatternForSilence,
+  markPatternSurfaced,
+  generatePatternSurfacingQuestion,
+  type UserPattern,
+  type PatternType,
+  type PatternContext,
+  type PatternObservation as StoredPatternObservation,
+} from './coaching-patterns.js';
+
+// Voice Signals - Anticipatory question triggers
+export {
+  analyzeVoiceSignals,
+  getAnticipatedNeed as getAnticipatedNeedFromSignals,
+  initializeVoiceTracking,
+  recordVoiceTurn,
+  getVoiceSignalsForTurn,
+  clearVoiceHistory,
+  type VoiceSignals,
+  type SignalContext,
+  type AnticipatedNeed as VoiceAnticipatedNeed,
+} from './voice-signals.js';
+
+// Memory Loader - Load memories for coaching questions
+export {
+  loadCoachingMemories,
+  getMemoriesForTopic,
+  getSuggestedFollowUps,
+  type CoachingMemory,
+  type CoachingMemoryContext,
+} from './coaching-memory-loader.js';
+
+// ============================================================================
 // CONTEXT BUILDERS - Modular conversation intelligence injection
 // ============================================================================
 
@@ -423,35 +564,20 @@ export {
 } from './emotional-memory.js';
 
 // ============================================================================
-// UNIFIED ANALYSIS PIPELINE - Single entry point for complete analysis
-// ============================================================================
-
-export {
-  analyzeUserMessage,
-  buildResponseContext,
-  combineEmotionAnalysis,
-  detectBehavioralSignals,
-  type AnalysisInput,
-  type AnalysisResult,
-  type BehavioralSignals,
-  type CombinedEmotionAnalysis,
-  type ResponseContext as PipelineResponseContext,
-} from './analysis-pipeline.js';
-
-// ============================================================================
 // UNIFIED ANALYZER - Recommended single entry point for complete analysis
 // ============================================================================
 
-export {
-  analyze,
-  analyzeSync,
-  type CombinedEmotion,
-  type DeepUnderstandingInsights,
-  type UnifiedAnalysisInput as LegacyUnifiedAnalysisInput,
-  type UnifiedAnalysisResult as LegacyUnifiedAnalysisResult,
-  type BehavioralSignals as UnifiedBehavioralSignals,
-  type ResponseGuidance as UnifiedResponseGuidance,
-} from './unified-analyzer.js';
+// ============================================================================
+// LEGACY UNIFIED ANALYZER (DEPRECATED)
+// ============================================================================
+// The root unified-analyzer.ts has been consolidated into ./unified/unified-analyzer.ts
+// Use analyzeUnified() from './unified/unified-analyzer.js' instead.
+// The following exports were removed:
+// - analyze (now exported from ./unified/ as backward-compat alias)
+// - analyzeSync (was unused - use synchronous emotion detection if needed)
+// - CombinedEmotion, DeepUnderstandingInsights, LegacyUnifiedAnalysisInput,
+//   LegacyUnifiedAnalysisResult, UnifiedBehavioralSignals, UnifiedResponseGuidance
+//   (internal types that were never imported externally)
 
 // ============================================================================
 // COMBINED ANALYSIS
@@ -950,3 +1076,39 @@ export default {
   analyzeMessage,
   resetIntelligence,
 };
+
+// ============================================================================
+// SEMANTIC DATA CAPTURE ROUTER ("Better than Human" - passive learning)
+// ============================================================================
+//
+// ⚠️ DEPRECATED: The static definition-based data capture has been replaced by
+// the new dynamic memory extraction system in src/memory/dynamic/
+//
+// NEW SYSTEM:
+//   import { fastCapture } from '../memory/dynamic/index.js';
+//   const result = await fastCapture({ userId, sessionId, transcript, ... });
+//
+// The new system provides:
+// - L1: STM Buffer (in-memory, current session)
+// - L2: Firestore (LLM-extracted entities, facts, relationships)
+// - L3: Spanner Graph (long-term relationship storage)
+//
+// These exports are kept for backwards compatibility ONLY.
+// ============================================================================
+
+/**
+ * @deprecated Use fastCapture from src/memory/dynamic/index.js instead.
+ * Contact extraction only - for full entity extraction use fastCapture.
+ */
+export { processDataCapture, captureDataBetterThanHuman } from './data-capture/index.js';
+
+/**
+ * @deprecated Static definitions removed. Dynamic LLM extraction handles all patterns.
+ */
+export { allDataCaptureDefinitions } from './data-capture/definitions/index.js';
+
+export type {
+  DataCaptureDefinition,
+  DataCaptureContext,
+  DataCaptureResult,
+} from './data-capture/types.js';

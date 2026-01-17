@@ -21,8 +21,17 @@
  * @see https://docs.livekit.io/agents/build/agents-handoffs
  */
 
-// Main orchestrator
-export { FerniAgent, createFerniAgent } from './ferni-agent.js';
+// Main orchestrator - PersonaVoiceAgent is the canonical name
+// FerniAgent is a backwards-compatibility alias
+export {
+  PersonaVoiceAgent,
+  createPersonaVoiceAgent,
+  // Backwards compatibility aliases
+  FerniAgent,
+  createFerniAgent,
+  type FerniAgentOptions,
+  type PersonaVoiceAgentOptions,
+} from './ferni-agent.js';
 
 // Team members - export both classes and async factory functions
 export { MayaAgent, createMayaAgent } from './maya-agent.js';

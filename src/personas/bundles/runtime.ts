@@ -203,19 +203,18 @@ export class BundleRuntimeEngine {
 
   /**
    * Update time context for the current session
-   * FIX BUG #bundle-8: Support user timezone offset
    *
-   * @param userTimezoneOffset - Offset in minutes from UTC (e.g., -480 for PST)
+   * @param userTimezoneOffset - Offset in minutes from UTC (e.g., -480 for PST, +60 for CET)
+   *                            Positive = ahead of UTC, Negative = behind UTC
    */
   updateTimeContext(userTimezoneOffset?: number): void {
     let now = new Date();
 
-    // FIX BUG #bundle-8: Adjust for user's timezone if provided
-    if (userTimezoneOffset !== undefined) {
-      // Get UTC time
-      const utc = now.getTime() + now.getTimezoneOffset() * 60000;
-      // Apply user's timezone offset
-      now = new Date(utc + userTimezoneOffset * 60000);
+    // Apply user's timezone offset if provided
+    // NOTE: Date.getTime() is already UTC milliseconds - no conversion needed
+    if (userTimezoneOffset !== undefined && Number.isFinite(userTimezoneOffset)) {
+      // Simply add the offset in minutes to get local time for the user
+      now = new Date(now.getTime() + userTimezoneOffset * 60000);
     }
 
     const hour = now.getHours();

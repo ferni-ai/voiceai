@@ -42,15 +42,24 @@
 
 # ===================
 
-# Apps - Electron, iOS, Android builds (1.4GB)
+# Apps - Electron, iOS, Android builds (1.4GB+)
 # Exclude large subdirs but keep apps/cli/ for build scripts
 apps/android/
+apps/android-native/
 apps/electron/
 apps/ios/
+apps/ios-native/
 apps/macos-menubar/
 apps/marketing/
-apps/marketplace-agents/
-apps/web/
+# Keep apps/marketplace-agents/registry.json for Dockerfile.ui
+apps/marketplace-agents/agents/
+apps/shared/
+# apps/web - keep for UI server build (frontend code)
+# Only exclude large generated/cache directories
+apps/web/dist/
+apps/web/node_modules/
+apps/web/test-results/
+# Keep: apps/web/src/, apps/web/public/, apps/web/scripts/, apps/web/tests/
 apps/website/
 # NOTE: apps/cli/ is intentionally NOT excluded (needed for Dockerfile.agent build)
 
@@ -71,20 +80,36 @@ functions/
 # Explicitly exclude each subdir except dist
 
 design-system/.storybook/
-design-system/assets/
+# design-system/assets/ - allow logos and favicons for UI build
+design-system/assets/icons/
+design-system/assets/social/
+design-system/assets/sounds/
 design-system/choreography/
 design-system/node_modules/
 design-system/preview/
 design-system/stories/
-design-system/tests/
+design-system/tests/**
 design-system/tokens/
+design-system/playground/
+design-system/site/
+design-system/dashboard/
+# Brand - only keep logos and favicons (exclude 27MB of social media exports)
+# Note: logos/ and favicons/ must be INCLUDED for Dockerfile.ui COPY commands
+design-system/brand/exports/
+design-system/brand/icons/
+design-system/brand/social/
+# Keep *.md files - Dockerfile.ui copies them
 
 # Exclude root files
 
-design-system/_.js
-design-system/_.ts
-design-system/_.json
-design-system/_.md
+# Only exclude root-level files (not in dist/)
+design-system/*.js
+design-system/*.ts
+design-system/*.json
+design-system/*.md
+
+# Test files (5.2MB) - not needed in production
+src/tests/
 
 # ===================
 
@@ -102,14 +127,21 @@ node_modules/
 
 # ===================
 
-# Use /dist/ to only match root dist, preserve design-system/dist
+# Use /dist to only match root dist (saves 300MB!), preserve design-system/dist
 
-/dist/
+/dist
 frontend-typescript/dist/
 coverage/
 .nyc_output/
-playwright-report/
-test-results/
+
+# Root level test directory
+tests/
+
+# Deploy logs
+.deploy-logs/
+
+# Audit reports
+.audit-reports/
 
 # ===================
 
@@ -180,7 +212,8 @@ temp/
 # BUT include persona bundle markdown files (system prompts, bios, etc.)
 !src/personas/bundles/**/*.md
 docs/
-/brand/
+# Note: /brand/ exclusion removed for design-system/brand access via symlink
+# /brand/
 reference/
 
 # ===================
@@ -191,18 +224,30 @@ reference/
 
 e2e/
 **tests**/
-_.test.ts
-_.spec.ts
-jest.config._
-playwright.config._
+*.test.ts
+*.spec.ts
+jest.config.*
+playwright.config.*
+playwright-report/
+test-reports/
+test-results/
+.debug-captures/
+coverage/
+.nyc_output/
+
+# Apps build artifacts
+apps/web/.firebase/
+apps/web/*.html
+!apps/web/index.html
 
 # ===================
 
-# MARKETPLACE (separate repo)
+# MARKETPLACE (keep registry.json for builds)
 
 # ===================
 
-marketplace-agents/
+# Exclude agents subdir but keep registry.json
+# marketplace-agents/ - removed to allow registry.json
 
 # ===================
 
@@ -219,8 +264,39 @@ ferni-speaker/
 
 # ===================
 
-data/
+# Note: data/ exclusion removed - apps/web/src/data/ needs to be included
 # scripts/ - now allowing for build-fast.ts
 # !scripts/patch-livekit-timeout.js
-_.tgz
-_.tar.gz
+*.tgz
+*.tar.gz
+
+# Large unused directories
+# Use /brand/ to only match root level, not design-system/brand/
+/brand/
+vendor/
+infra/
+# Use /infrastructure/ to only match root level, not src/personality/infrastructure/
+/infrastructure/
+KMS/
+
+# iOS/Android build caches
+**/.build/
+**/build/intermediates/
+
+# Rust build artifacts
+apps/rust-audio/target/
+apps/rust-perf/target/
+
+# ML Training (large model files)
+apps/ml-training/
+
+# Models directory (ONNX models, 3.7GB)
+models/
+
+# Python virtual environments
+.venv/
+.venv*/
+**/.venv/
+**/.venv*/
+*.pyc
+__pycache__/

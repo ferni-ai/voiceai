@@ -1,26 +1,56 @@
 {
   "defaults": {
     "model": "gemini-2.0-flash-exp",
-    "temperature": 0.8,
+    "temperature": 0.3,
     "language": "en-US"
+  },
+  "dataCaptureDefaults": {
+    "enabled": true,
+    "enabledCaptures": [],
+    "disabledCaptures": [],
+    "notes": {
+      "enabledCaptures": "Empty = all captures enabled. Add IDs to enable only specific ones.",
+      "disabledCaptures": "Add capture IDs here to disable specific ones.",
+      "captureIds": [
+        "contacts - Phone numbers, emails (silent)",
+        "commitments - Promises, to-dos (silent)",
+        "dreams - Long-term aspirations (silent)",
+        "relationships - Social network (silent)",
+        "mood - Emotional state (silent)",
+        "conflict - Interpersonal issues (silent)",
+        "recoveryEvent - Sobriety milestones (silent)",
+        "socialEvent - Upcoming events (silent)",
+        "insideJoke - Humor patterns (silent)",
+        "boundary - Safety/respect (KEEP ON)",
+        "actionableIntent - GUIDES LLM TO OFFER (calendar, reminders, tasks)",
+        "pets - Pet information (silent)",
+        "location - Favorite places (silent)"
+      ]
+    }
   },
   "toolDefaults": {
     "debugMode": true,
-    "maxTools": 25,
-    "enabledDomains": [
-      "entertainment",
-      "memory",
-      "awareness",
-      "simple-utilities",
-      "information",
-      "handoff"
-    ],
+    "maxTools": 20,
+    "enabledDomains": [],
     "excludedTools": [],
-    "includedTools": [],
+    "includedTools": [
+      "handoffToFerni",
+      "handoffToMaya",
+      "handoffToPeter",
+      "handoffToJordan",
+      "handoffToAlex",
+      "handoffToNayan",
+      "playMusic",
+      "getWeather",
+      "recallFromMemory",
+      "rememberAboutUser",
+      "setReminder",
+      "endCall"
+    ],
     "logToolSchemas": true,
     "logToolResults": true,
     "useOrchestrator": true
   },
   "personas": {},
-  "version": 1
+  "version": 3
 }

@@ -1,112 +1,19 @@
 {
   "prompt_modules": {
     "core_identity": "identity/system-prompt.md",
-    "biography": "identity/biography.md",
-    "behaviors_base": "behaviors/base-behaviors.md",
-    "voice_guidance": "voice/voice-guidance.md"
+    "function_calling": "identity/function-calling-specialty.md",
+    "voice_guidance": "identity/voice-guidance.md",
+    "directors_notes": "identity/directors-notes.md"
   },
-  "assembly_order": [
+  "voice_agent_modules": ["core_identity", "function_calling", "voice_guidance"],
+  "full_context_modules": [
     "core_identity",
-    "relationship_context",
-    "emotional_context",
-    "mode_context",
-    "session_context"
+    "function_calling",
+    "voice_guidance",
+    "directors_notes"
   ],
-  "conditional_modules": {
-    "user_is_distressed": {
-      "include": "prompts/crisis-awareness.md",
-      "priority": "critical",
-      "injection": "prepend"
-    },
-    "user_is_celebrating": {
-      "include": "prompts/celebration-mode.md",
-      "priority": "high"
-    },
-    "user_is_seeking": {
-      "include": "prompts/seeker-mode.md",
-      "priority": "high"
-    },
-    "handoff_available": {
-      "include": "prompts/team-awareness.md",
-      "priority": "standard"
-    },
-    "first_conversation": {
-      "include": "prompts/first-meeting.md",
-      "priority": "high"
-    },
-    "returning_after_long_break": {
-      "include": "prompts/reconnection.md",
-      "priority": "high"
-    },
-    "existential_topic": {
-      "include": "prompts/deep-wisdom.md",
-      "priority": "high"
-    },
-    "environmental_topic": {
-      "include": "prompts/save-soil-awareness.md",
-      "priority": "high"
-    }
-  },
-  "dynamic_injections": {
-    "relationship_stage": {
-      "template": "[RELATIONSHIP: {stage}]\n- Warmth level: {warmth_multiplier}\n- Story frequency: {story_frequency}\n- Available behaviors: {unlocked_features}\n- Formality: {formality_level}",
-      "source": "relationship-stages.json"
-    },
-    "current_mode": {
-      "template": "[MODE: {mode_name}]\n- Response style: {response_style}\n- Energy: {energy_multiplier}\n- Key behaviors: {behaviors}\n- Humor level: {humor_level}",
-      "source": "persona-modes.json"
-    },
-    "emotional_context": {
-      "template": "[EMOTIONAL CONTEXT]\n- User emotion: {detected_emotion}\n- Trajectory: {trajectory}\n- Recommended approach: {suggested_approach}\n- Pace: {recommended_pace}",
-      "source": "runtime_analysis"
-    },
-    "time_context": {
-      "template": "[TIME CONTEXT: {time_of_day}, {day_of_week}]\n{contextual_acknowledgment}",
-      "source": "contextual-nuances.json"
-    },
-    "memory_context": {
-      "template": "[MEMORY]\n- Previous topics: {topics}\n- Last session summary: {summary}\n- Open threads: {open_questions}\n- Stories told: {stories_told}",
-      "source": "session_memory"
-    },
-    "spiritual_context": {
-      "template": "[SPIRITUAL CONTEXT]\n- User's practice level: {practice_level}\n- Previous teachings referenced: {teachings}\n- Readiness for depth: {depth_readiness}",
-      "source": "user_profile"
-    }
-  },
-  "instruction_priorities": {
-    "critical": {
-      "always_include": true,
-      "position": "top",
-      "examples": ["crisis_awareness", "safety_boundaries", "no_medical_diagnosis"]
-    },
-    "high": {
-      "always_include": true,
-      "position": "early",
-      "examples": ["emotional_context", "mode_guidance", "spiritual_sensitivity"]
-    },
-    "standard": {
-      "include_if_relevant": true,
-      "position": "middle",
-      "examples": ["team_awareness", "topic_guidance", "story_recommendations"]
-    },
-    "hint": {
-      "include_if_space": true,
-      "position": "end",
-      "examples": ["story_suggestions", "practice_recommendations", "humor_opportunities"]
-    }
-  },
   "token_budget": {
-    "total_max": 8000,
-    "core_identity_max": 2500,
-    "dynamic_context_max": 2500,
-    "recent_history_max": 2500,
-    "hints_max": 500
-  },
-  "assembly_rules": {
-    "never_exceed_budget": true,
-    "prioritize_recent_context": true,
-    "trim_hints_first": true,
-    "preserve_core_identity": true,
-    "include_story_when_relevant": true
+    "voice_agent_max": 2500,
+    "full_context_max": 5000
   }
 }

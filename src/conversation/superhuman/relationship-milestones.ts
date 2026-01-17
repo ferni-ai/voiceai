@@ -9,6 +9,7 @@
  * @module conversation/superhuman/relationship-milestones
  */
 
+import { seededChance, seededPick, seededIndex } from '../utils/rng.js';
 import { createLogger } from '../../utils/safe-logger.js';
 
 const log = createLogger({ module: 'RelationshipMilestones' });
@@ -295,10 +296,10 @@ export function checkMilestones(userId: string): RelationshipMilestone[] {
           type: milestoneType,
           value: threshold,
           label: `${threshold} ${config.unit}`,
-          celebration: celebrations[Math.floor(Math.random() * celebrations.length)],
+          celebration: seededPick(`${Date.now()}:299`, celebrations) ?? celebrations[0],
           reflection:
             reflections.length > 0
-              ? reflections[Math.floor(Math.random() * reflections.length)]
+              ? (seededPick(`${Date.now()}:302`, reflections) ?? reflections[0])
               : undefined,
         });
 

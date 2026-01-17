@@ -70,6 +70,18 @@ service cloud.firestore {
       match /utility_preferences/{prefId} {
         allow read, write: if isOwner(userId) || isServiceAccount();
       }
+      
+      // Group conversation sessions (Team Roundtables, Conference Calls)
+      // Stores session metadata, participants, and transcripts
+      match /group_sessions/{sessionId} {
+        allow read, write: if isOwner(userId) || isServiceAccount();
+      }
+      
+      // Social graph (people mentioned in conversations)
+      // "Better than Human" - relationship network intelligence
+      match /social_graph/{docId} {
+        allow read, write: if isOwner(userId) || isServiceAccount();
+      }
     }
     
     // ============================================================================
@@ -283,9 +295,122 @@ service cloud.firestore {
     }
 
     // ============================================================================
+    // DEVELOPER PLATFORM v2 - MCP Servers
+    // ============================================================================
+
+    match /developer_mcp_servers/{serverId} {
+      // Publishers can read/write their own MCP server registrations
+      allow read: if isSignedIn() && resource.data.publisherId == request.auth.uid;
+      allow create: if isSignedIn() && request.resource.data.publisherId == request.auth.uid;
+      allow update: if isSignedIn() && resource.data.publisherId == request.auth.uid;
+      allow delete: if isSignedIn() && resource.data.publisherId == request.auth.uid;
+      // Service accounts and admins have full access
+      allow read, write: if isServiceAccount() || isAdmin();
+    }
+
+    // ============================================================================
+    // DEVELOPER PLATFORM v2 - Custom Tools
+    // ============================================================================
+
+    match /developer_tools/{toolId} {
+      // Publishers can read/write their own custom tools
+      allow read: if isSignedIn() && resource.data.publisherId == request.auth.uid;
+      allow create: if isSignedIn() && request.resource.data.publisherId == request.auth.uid;
+      allow update: if isSignedIn() && resource.data.publisherId == request.auth.uid;
+      allow delete: if isSignedIn() && resource.data.publisherId == request.auth.uid;
+      // Service accounts and admins have full access
+      allow read, write: if isServiceAccount() || isAdmin();
+    }
+
+    // ============================================================================
+    // DEVELOPER PLATFORM v2 - Webhooks
+    // ============================================================================
+
+    match /developer_webhooks/{webhookId} {
+      // Publishers can read/write their own webhook subscriptions
+      allow read: if isSignedIn() && resource.data.publisherId == request.auth.uid;
+      allow create: if isSignedIn() && request.resource.data.publisherId == request.auth.uid;
+      allow update: if isSignedIn() && resource.data.publisherId == request.auth.uid;
+      allow delete: if isSignedIn() && resource.data.publisherId == request.auth.uid;
+      // Service accounts and admins have full access
+      allow read, write: if isServiceAccount() || isAdmin();
+    }
+
+    match /developer_webhook_logs/{logId} {
+      // Publishers can read logs for their webhooks
+      allow read: if isSignedIn() && resource.data.publisherId == request.auth.uid;
+      // Only service accounts can write logs
+      allow write: if isServiceAccount();
+      // Admins can read all
+      allow read: if isAdmin();
+    }
+
+    // ============================================================================
+    // DEVELOPER PLATFORM v2 - Activities
+    // ============================================================================
+
+    match /developer_activities/{activityId} {
+      // Publishers can read/write their own activities
+      allow read: if isSignedIn() && resource.data.publisherId == request.auth.uid;
+      allow create: if isSignedIn() && request.resource.data.publisherId == request.auth.uid;
+      allow update: if isSignedIn() && resource.data.publisherId == request.auth.uid;
+      allow delete: if isSignedIn() && resource.data.publisherId == request.auth.uid;
+      // Service accounts and admins have full access
+      allow read, write: if isServiceAccount() || isAdmin();
+    }
+
+    // ============================================================================
+    // DEVELOPER PLATFORM v2 - Workflows
+    // ============================================================================
+
+    match /developer_workflows/{workflowId} {
+      // Publishers can read/write their own workflows
+      allow read: if isSignedIn() && resource.data.publisherId == request.auth.uid;
+      allow create: if isSignedIn() && request.resource.data.publisherId == request.auth.uid;
+      allow update: if isSignedIn() && resource.data.publisherId == request.auth.uid;
+      allow delete: if isSignedIn() && resource.data.publisherId == request.auth.uid;
+      // Service accounts and admins have full access
+      allow read, write: if isServiceAccount() || isAdmin();
+    }
+
+    match /workflow_executions/{executionId} {
+      // Publishers can read executions for their workflows
+      allow read: if isSignedIn() && resource.data.publisherId == request.auth.uid;
+      // Only service accounts can create/update executions (workflow engine)
+      allow write: if isServiceAccount();
+      // Admins can read all
+      allow read: if isAdmin();
+    }
+
+    // ============================================================================
+    // DEVELOPER PLATFORM v2 - OAuth Providers
+    // ============================================================================
+
+    match /developer_oauth_providers/{providerId} {
+      // Publishers can read/write their own OAuth providers
+      allow read: if isSignedIn() && resource.data.publisherId == request.auth.uid;
+      allow create: if isSignedIn() && request.resource.data.publisherId == request.auth.uid;
+      allow update: if isSignedIn() && resource.data.publisherId == request.auth.uid;
+      allow delete: if isSignedIn() && resource.data.publisherId == request.auth.uid;
+      // Service accounts and admins have full access
+      allow read, write: if isServiceAccount() || isAdmin();
+    }
+
+    match /developer_oauth_tokens/{tokenId} {
+      // Users can read their own OAuth tokens
+      allow read: if isSignedIn() && resource.data.userId == request.auth.uid;
+      // Publishers can read tokens for their providers
+      allow read: if isSignedIn() && resource.data.publisherId == request.auth.uid;
+      // Only service accounts can write tokens (OAuth flow)
+      allow write: if isServiceAccount();
+      // Admins can read all
+      allow read: if isAdmin();
+    }
+
+    // ============================================================================
     // DEFAULT DENY - Everything else is blocked
     // ============================================================================
-    
+
     match /{document=**} {
       allow read, write: if false;
     }

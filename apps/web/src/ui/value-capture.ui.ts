@@ -17,12 +17,12 @@ import { DURATION, EASING } from '../config/animation-constants.js';
 import { contributeValue, formatAmount, loadStripe } from '../services/monetization.service.js';
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
-import { toast } from './toast.ui.js';
+import { toast } from './whisper.ui.js';
 
 const log = createLogger('ValueCaptureUI');
 
 // FIX BUG: Track all setTimeout calls for proper cleanup
-const { trackedTimeout, clearAll: clearAllTimeouts } = createTimeoutTracker();
+const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
 
 // ============================================================================
 // TYPES
@@ -123,7 +123,7 @@ const styles = `
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 10000;
+  z-index: var(--z-tooltip);
   opacity: 0;
   pointer-events: none;
   transition: opacity ${DURATION.MODERATE}ms ${EASING.STANDARD};
@@ -137,18 +137,18 @@ const styles = `
 .value-capture-backdrop {
   position: absolute;
   inset: 0;
-  background: rgba(44, 37, 32, 0.4);
-  backdrop-filter: blur(var(--glass-blur-strong, 24px));
+  background: rgba(44, 37, 32, 0.75);
 }
 
 .value-capture-card {
   position: relative;
-  background: var(--color-background-elevated, #FFFDFB);
-  border-radius: var(--radius-2xl, 24px);
+  background: var(--color-bg-elevated, #FFFDFB);
+  border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
+  border-radius: var(--radius-xl, 20px);
   padding: var(--space-8, 32px);
-  max-width: 420px;
+  max-width: clamp(294px, 90vw, 420px);
   width: calc(100% - 32px);
-  box-shadow: var(--shadow-2xl);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.06);
   transform: scale(0.9);
   transition: transform ${DURATION.MODERATE}ms ${EASING.SPRING};
   overflow: hidden;
@@ -169,7 +169,7 @@ const styles = `
   border-radius: 50%;
   color: var(--color-text-muted);
   transition: background ${DURATION.FAST}ms;
-  z-index: 10;
+  z-index: var(--z-docked);
 }
 
 .value-capture-close:hover {
@@ -592,11 +592,11 @@ function renderCelebration(
         inputmode="decimal"
       />
 
-      <button class="value-capture-submit-btn" disabled>
+      <button aria-label="${t('accessibility.share')}" class="value-capture-submit-btn" disabled>
         Share the Win
       </button>
 
-      <button class="value-capture-skip-btn">
+      <button aria-label="${t('accessibility.justCelebrateThisMoment')}" class="value-capture-skip-btn">
         Just celebrate this moment
       </button>
 
@@ -717,6 +717,7 @@ async function processContribution(amountCents: number): Promise<void> {
       throw new Error('Stripe not available');
     }
 
+    if (!result) throw new Error('No result from contribute');
     // @ts-expect-error - Stripe types
     const { error } = await stripe.confirmPayment({
       clientSecret: result.clientSecret,

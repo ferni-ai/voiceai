@@ -20,7 +20,9 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
+import { indexSmallWin } from '../data-layer/integrations/trust-integration.js';
 import { createPersistenceStore, type PersistenceStore } from '../persistence/index.js';
+import { cleanForFirestore } from '../../utils/firestore-utils.js';
 
 const log = createLogger({ module: 'CelebrationMomentum' });
 
@@ -256,6 +258,13 @@ export function recordWin(
   profile.wins.push(trackedWin);
   profile.totalWins++;
 
+  // Index to semantic memory
+  indexSmallWin(userId, {
+    id: trackedWin.id,
+    win: trackedWin.description,
+    effort: trackedWin.type,
+  });
+
   // Update counts
   const now = new Date();
   const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
@@ -288,6 +297,21 @@ export function recordWin(
     },
     '🎯 Win recorded'
   );
+
+  // Memory Lane: Capture celebration as potential memory (non-blocking)
+  void (async () => {
+    try {
+      const { captureCelebration } = await import('../memory-lane/real-time-collector.js');
+      void captureCelebration({
+        userId,
+        celebrationId: trackedWin.id,
+        description: trackedWin.description,
+        type: trackedWin.type,
+      });
+    } catch {
+      // Memory capture is optional
+    }
+  })();
 
   return trackedWin;
 }

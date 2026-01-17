@@ -14,9 +14,10 @@
  * PERSISTENCE: Onboarding state is persisted to Firestore to survive restarts.
  */
 
-import * as admin from 'firebase-admin';
+import admin from 'firebase-admin';
 import type { UserProfile } from '../types/user-profile.js';
 import { getLogger } from '../utils/safe-logger.js';
+import { cleanForFirestore } from '../utils/firestore-utils.js';
 
 // ============================================================================
 // FIRESTORE SETUP
@@ -267,7 +268,7 @@ class RitualOnboardingService {
     if (!db) return;
 
     try {
-      await db.collection(ONBOARDING_COLLECTION).doc(userId).set(state);
+      await db.collection(ONBOARDING_COLLECTION).doc(userId).set(cleanForFirestore(state));
     } catch (error) {
       this.logger.error({ error, userId }, 'Failed to save onboarding state');
     }

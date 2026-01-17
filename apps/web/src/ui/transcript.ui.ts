@@ -3,15 +3,40 @@
  * 
  * Shows what's being said in real-time with elegant typography
  * and smooth animations.
+ * 
+ * MOBILE BEHAVIOR: Transcription is OFF by default on iOS/mobile devices
+ * to provide a cleaner, more immersive experience. Users can enable it
+ * via Settings menu.
  */
 
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
+import { PREFERENCE_KEYS } from '../config/storage-keys.js';
 
 const log = createLogger('TranscriptUI');
 
 // FIX BUG: Track all setTimeout calls for proper cleanup
-const { trackedTimeout, clearAll: clearAllTimeouts } = createTimeoutTracker();
+const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
+
+// ============================================================================
+// MOBILE DETECTION
+// ============================================================================
+
+/**
+ * Detect if user is on iOS device
+ */
+function isIOSDevice(): boolean {
+  return /iPad|iPhone|iPod/.test(navigator.userAgent) || 
+    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+}
+
+/**
+ * Detect if user is on mobile device
+ */
+function isMobileDevice(): boolean {
+  return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
+    window.innerWidth <= 768;
+}
 
 // ============================================================================
 // STATE
@@ -20,6 +45,53 @@ const { trackedTimeout, clearAll: clearAllTimeouts } = createTimeoutTracker();
 let container: HTMLElement | null = null;
 let textElement: HTMLElement | null = null;
 let hideTimeout: ReturnType<typeof setTimeout> | null = null;
+let isEnabled = true; // Will be set during init based on platform and user preference
+
+// ============================================================================
+// PREFERENCE MANAGEMENT
+// ============================================================================
+
+/**
+ * Get whether transcription should be enabled based on user preference.
+ * Default: OFF on iOS/mobile, ON for desktop
+ */
+function getTranscriptionPreference(): boolean {
+  const stored = localStorage.getItem(PREFERENCE_KEYS.SHOW_TRANSCRIPTION);
+  
+  if (stored !== null) {
+    // User has explicitly set a preference
+    return stored === 'true';
+  }
+  
+  // Default behavior: OFF on iOS/mobile for cleaner UX
+  if (isIOSDevice() || isMobileDevice()) {
+    return false;
+  }
+  
+  // Desktop default: ON
+  return true;
+}
+
+/**
+ * Set transcription visibility preference
+ */
+export function setTranscriptionEnabled(enabled: boolean): void {
+  isEnabled = enabled;
+  localStorage.setItem(PREFERENCE_KEYS.SHOW_TRANSCRIPTION, String(enabled));
+  log.info(`Transcription ${enabled ? 'enabled' : 'disabled'}`);
+  
+  // If disabling while visible, hide immediately
+  if (!enabled && container?.classList.contains('visible')) {
+    hide();
+  }
+}
+
+/**
+ * Get current transcription enabled state
+ */
+export function isTranscriptionEnabled(): boolean {
+  return isEnabled;
+}
 
 // ============================================================================
 // INITIALIZATION
@@ -34,6 +106,9 @@ export function initTranscriptUI(): void {
     return;
   }
   
+  // Load user preference (defaults to OFF on mobile)
+  isEnabled = getTranscriptionPreference();
+  log.info(`Transcription initialized: ${isEnabled ? 'enabled' : 'disabled'} (mobile: ${isMobileDevice()}, iOS: ${isIOSDevice()})`);
 }
 
 // ============================================================================
@@ -43,8 +118,13 @@ export function initTranscriptUI(): void {
 /**
  * Show transcript with text (interim or final)
  * Now part of Status Island - no layout shift
+ * 
+ * Respects user preference - won't show if transcription is disabled
  */
 export function showTranscript(text: string, isFinal = false): void {
+  // Respect user preference - skip if transcription is disabled
+  if (!isEnabled) return;
+  
   if (!container || !textElement) return;
   
   // Clear any pending hide
@@ -145,5 +225,8 @@ export const transcriptUI = {
   hide,
   clear,
   dispose,
+  // Transcription preference controls
+  setEnabled: setTranscriptionEnabled,
+  isEnabled: isTranscriptionEnabled,
 };
 

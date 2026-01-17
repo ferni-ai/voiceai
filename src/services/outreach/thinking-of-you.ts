@@ -30,6 +30,8 @@
 import { getAnticipatoryPresence } from '../../conversation/superhuman/anticipatory-presence.js';
 import type { UserProfile } from '../../types/user-profile.js';
 import { createLogger } from '../../utils/safe-logger.js';
+import { getCognitiveDifferentiation } from '../../personas/cognitive-differentiation.js';
+import { generateQuestion, type QuestionContext } from '../../intelligence/dynamic-questions.js';
 
 const log = createLogger({ module: 'ThinkingOfYou' });
 
@@ -103,13 +105,19 @@ export interface ThinkingOfYouConfig {
   };
 }
 
+export interface RecentWin {
+  description: string;
+  date?: Date;
+  category?: string;
+}
+
 export interface UserOutreachContext {
   profile: UserProfile;
   daysSinceLastContact: number;
   daysSinceLastOutreach: number;
   emotionalState: 'thriving' | 'stable' | 'struggling';
   upcomingEvents: Array<{ date: Date; description: string }>;
-  recentWins: string[];
+  recentWins: RecentWin[];
   relationshipStage: 'stranger' | 'acquaintance' | 'friend' | 'trusted_advisor';
   outreachCountThisWeek: number;
 }
@@ -118,17 +126,18 @@ export interface UserOutreachContext {
 // PERSONA OUTREACH VOICES
 // ============================================================================
 
-const PERSONA_VOICES: Record<
-  PersonaId,
-  {
-    signaturePhrases: string[];
-    emojiStyle: string[];
-    closingStyle: string;
-    toneDescription: string;
-  }
-> = {
+interface PersonaVoice {
+  signaturePhrases: string[];
+  openers: string[]; // For dynamic generation
+  emojiStyle: string[];
+  closingStyle: string;
+  toneDescription: string;
+}
+
+const PERSONA_VOICES: Record<PersonaId, PersonaVoice> = {
   ferni: {
     signaturePhrases: ['Hey!', 'Just thinking about you', 'No agenda', 'How are you really doing?'],
+    openers: ['Hey', 'Just thinking about you', 'No agenda - just wanted to say'],
     emojiStyle: ['🌱', '💚', '🌟'],
     closingStyle: 'Rooting for you, Ferni',
     toneDescription: 'warm, coach-like, grounded',
@@ -140,6 +149,7 @@ const PERSONA_VOICES: Record<
       'How did the morning go?',
       'Keeping momentum',
     ],
+    openers: ['Quick check-in', 'Thinking about you', 'Hey'],
     emojiStyle: ['✅', '💪', '🌅'],
     closingStyle: 'Cheering you on, Maya',
     toneDescription: 'supportive, practical, routine-focused',
@@ -150,6 +160,7 @@ const PERSONA_VOICES: Record<
       'This made me think of you',
       'You might find this useful',
     ],
+    openers: ['Hey', 'Something made me think of you', 'I found something'],
     emojiStyle: ['🔍', '📚'],
     closingStyle: 'Happy exploring, Peter',
     toneDescription: 'intellectually curious, enthusiastic about ideas',
@@ -160,6 +171,7 @@ const PERSONA_VOICES: Record<
       "Just wanted to make sure you're set",
       "Here's what you need to know",
     ],
+    openers: ['Quick heads up', 'Just wanted to check', 'Hey'],
     emojiStyle: ['📅', '✉️'],
     closingStyle: 'Best, Alex',
     toneDescription: 'professional, polished, helpful',
@@ -170,6 +182,7 @@ const PERSONA_VOICES: Record<
       "Let's make this amazing",
       "Everything's coming together",
     ],
+    openers: ['Hey!', 'Exciting things ahead', 'I was just thinking'],
     emojiStyle: ['🎉', '🗓️', '✨'],
     closingStyle: "Let's make it memorable! Jordan",
     toneDescription: 'enthusiastic, detail-oriented, celebratory',
@@ -180,6 +193,7 @@ const PERSONA_VOICES: Record<
       'Something occurred to me',
       'The market reminded me of our chat',
     ],
+    openers: ['Been thinking about you', 'Something occurred to me', 'Ah'],
     emojiStyle: ['📈', '🎯'],
     closingStyle: 'Stay the course, Nayan',
     toneDescription: 'wise, measured, grandfatherly',
@@ -294,7 +308,7 @@ const TEMPLATES: Record<ThinkingOfYouTrigger, Array<(ctx: UserOutreachContext) =
 
 export class ThinkingOfYouEngine {
   private config: ThinkingOfYouConfig;
-  private pendingOutreach: Map<string, ThinkingOfYouOutreach> = new Map();
+  private pendingOutreach = new Map<string, ThinkingOfYouOutreach>();
   private outreachHistory: ThinkingOfYouOutreach[] = [];
 
   constructor(config?: Partial<ThinkingOfYouConfig>) {
@@ -595,7 +609,7 @@ export class ThinkingOfYouEngine {
   // ==========================================================================
 
   /**
-   * Generate the outreach message
+   * Generate the outreach message (static/fallback version)
    */
   generateMessage(
     trigger: ThinkingOfYouTrigger,
@@ -617,6 +631,105 @@ export class ThinkingOfYouEngine {
     }
 
     return message;
+  }
+
+  /**
+   * Generate a dynamic outreach message using LLM
+   *
+   * This is the "Better than Human" version that creates truly personalized
+   * outreach based on what we know about the user.
+   *
+   * @param trigger - Type of outreach
+   * @param persona - Persona sending the message
+   * @param context - User context
+   * @returns Promise<string> with dynamic message
+   */
+  async generateDynamicMessage(
+    trigger: ThinkingOfYouTrigger,
+    persona: PersonaId,
+    context: UserOutreachContext
+  ): Promise<string> {
+    try {
+      const voice = PERSONA_VOICES[persona];
+
+      // Map trigger to question type
+      const triggerToQuestionType: Record<
+        ThinkingOfYouTrigger,
+        'celebratory' | 'supportive' | 'curious' | 'checking_in'
+      > = {
+        random_kindness: 'checking_in',
+        relevant_content: 'curious',
+        anniversary: 'celebratory',
+        seasonal: 'checking_in',
+        after_silence: 'checking_in',
+        milestone_reflection: 'celebratory',
+        life_event_check: 'curious',
+        appreciation: 'celebratory',
+        humor: 'curious',
+        pending_followup: 'curious',
+        hard_date_approaching: 'supportive',
+      };
+
+      // Build context for dynamic generation
+      const questionContext: QuestionContext = {
+        personaId: persona,
+        userId: context.profile.id || 'unknown',
+        sessionId: `outreach-${Date.now()}`,
+        knownFacts: [
+          ...(context.profile.preferredTopics || []).map((t) => `Interested in: ${t}`),
+          ...(context.profile.goals || []).map((g) => `Goal: ${g.name}`),
+          ...(context.recentWins || []).map((w) => `Recent win: ${w.description}`),
+        ],
+        recentTopics: context.profile.preferredTopics || [],
+        currentWin: context.recentWins?.[0]?.description,
+        relationshipStage: context.daysSinceLastContact > 30 ? 'building' : 'established',
+        conversationDepth: 5,
+        emotionalState:
+          context.emotionalState === 'struggling'
+            ? { primary: 'processing', intensity: 0.7 }
+            : undefined,
+        hourOfDay: new Date().getHours(),
+        isWeekend: new Date().getDay() === 0 || new Date().getDay() === 6,
+        turnCount: 0,
+        boundaries: [],
+      };
+
+      const questionType = triggerToQuestionType[trigger];
+      const generated = await generateQuestion(questionContext, questionType);
+
+      log.debug(
+        { persona, trigger, intent: generated.intent.seekingToUnderstand },
+        '💭 Generated dynamic outreach message'
+      );
+
+      // Format for SMS/push (remove SSML, keep short)
+      let message = generated.text
+        .replace(/<[^>]+>/g, '') // Remove SSML tags
+        .trim();
+
+      // Add persona opener if appropriate
+      const openers = voice.openers;
+      if (openers.length > 0 && Math.random() < 0.4) {
+        const opener = openers[Math.floor(Math.random() * openers.length)];
+        message = `${opener}... ${message}`;
+      }
+
+      // Add emoji occasionally
+      if (Math.random() < 0.3) {
+        const emoji = voice.emojiStyle[Math.floor(Math.random() * voice.emojiStyle.length)];
+        if (!message.includes(emoji)) {
+          message = `${message} ${emoji}`;
+        }
+      }
+
+      return message;
+    } catch (error) {
+      log.warn(
+        { error: String(error), trigger, persona },
+        'Dynamic outreach generation failed, using static'
+      );
+      return this.generateMessage(trigger, persona, context);
+    }
   }
 
   // ==========================================================================

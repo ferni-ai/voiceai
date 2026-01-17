@@ -257,20 +257,23 @@ src/speech/                  ← Voice/audio processing
 └── ...
 ```
 
-### Migration from speech/ssml-tagger
+### Migration from speech/ssml-tagger (COMPLETED)
 
-The `src/speech/ssml-tagger/` module is **deprecated**. Migrate as follows:
+The `src/speech/ssml-tagger/` module has been **removed**. Import from `src/ssml/` instead:
 
-| Deprecated Import                                                            | New Import                                                     |
-| ---------------------------------------------------------------------------- | -------------------------------------------------------------- |
-| `import { tagTextWithSsml } from '../speech/ssml-tagger'`                    | `import { tagTextWithSsmlPersonaAware } from '../ssml'`        |
-| `import { sanitizeSsml } from '../speech/ssml-tagger'`                       | `import { sanitizeSsml } from '../ssml'`                       |
-| `import { detectEmotion } from '../speech/ssml-tagger'`                      | `import { detectEmotion } from '../ssml'`                      |
-| `import { FINANCIAL_PRONUNCIATIONS } from '../speech/ssml-tagger/constants'` | `import { FINANCIAL_PRONUNCIATIONS } from '../ssml/constants'` |
+```typescript
+// ✅ CORRECT - Import from canonical src/ssml/ module
+import {
+  tagTextWithSsmlPersonaAware,
+  sanitizeSsml,
+  detectEmotion,
+  FINANCIAL_PRONUNCIATIONS,
+} from '../ssml/index.js';
+```
 
-### Jack Bogle-Specific Code
+### Jack Bogle-Specific Code (COMPLETED)
 
-Jack Bogle (Peter John) specific speech patterns are in the persona bundle:
+Jack Bogle (Peter John) specific speech patterns are now in the persona bundle:
 
 ```typescript
 // ✅ CORRECT - Import from persona bundle
@@ -279,9 +282,6 @@ import {
   addCatchphraseEmphasis,
   addWisdomCadence,
 } from '../personas/bundles/peter-john/speech-traits.js';
-
-// ❌ DEPRECATED - Don't import from ssml-tagger
-import { addCatchphraseEmphasis } from '../speech/ssml-tagger/jack-bogle.js';
 ```
 
 ## Constants Reference

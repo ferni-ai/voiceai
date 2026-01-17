@@ -29,7 +29,10 @@ const PROJECT_ROOT = join(__dirname, "..", "..", "..", "..", "..");
 // ============================================================================
 
 const CONFIG = {
-  entry: join(PROJECT_ROOT, 'src/agents/voice-agent-child.ts'),
+  // Use the COMPILED JS file from dist/ as entry point
+  // This is AFTER build:fast runs, so all .ts files have been compiled to .js
+  // Using source .ts files would fail because imports use .js extensions
+  entry: join(PROJECT_ROOT, 'dist/agents/voice-agent-entry.js'),
   outfile: join(PROJECT_ROOT, 'dist/agents/voice-agent-bundle.js'),
   target: 'es2022' as const,
   format: 'esm' as const,
@@ -95,6 +98,10 @@ const CONFIG = {
     // Other external deps
     'dotenv',
     'dotenv/config',
+    // Native modules (can't be bundled)
+    'onnxruntime-node',
+    '@xenova/transformers',
+    'sharp',
   ],
 };
 
@@ -152,6 +159,9 @@ ${colors.cyan}╚═════════════════════
       treeShaking: true,
       external: CONFIG.external,
       logLevel: 'warning',
+      
+      // Handle JSON imports (for seed-data.json etc.)
+      loader: { '.json': 'json' },
 
       // Add banner to identify this as a bundle
       banner: {

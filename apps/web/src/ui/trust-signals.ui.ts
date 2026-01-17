@@ -34,7 +34,7 @@ import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 const log = createLogger('TrustSignals');
 
 // FIX BUG: Track all setTimeout calls for proper cleanup
-const { trackedTimeout, clearAll: clearAllTimeouts } = createTimeoutTracker();
+const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
 
 // ============================================================================
 // TYPES
@@ -509,7 +509,7 @@ function injectStyles(): void {
       display: flex;
       flex-direction: column;
       gap: var(--space-3, 12px);
-      max-width: 380px;
+      max-width: min(380px, 100%);
       width: calc(100vw - var(--space-8, 32px));
       pointer-events: none;
     }
@@ -674,7 +674,14 @@ function injectStyles(): void {
     /* ========================================================================
        MOBILE
        ======================================================================== */
-    @media (max-width: 480px) {
+    /* MOBILE: Hide trust signals - too intrusive on small screens */
+    @media (max-width: 768px) {
+      .trust-signals-container {
+        display: none !important;
+      }
+    }
+    
+    @media (max-width: clamp(336px, 90vw, 480px)) {
       .trust-signals-container {
         top: auto;
         bottom: var(--space-20, 80px);

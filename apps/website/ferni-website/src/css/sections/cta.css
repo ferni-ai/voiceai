@@ -38,16 +38,37 @@
   flex-wrap: wrap;
 }
 
-@media (max-width: 480px) {
+@media (max-width: 640px) {
   .cta-buttons {
     flex-direction: column;
     align-items: center;
   }
-  
+
   .cta-buttons .btn {
     width: 100%;
     max-width: 280px;
     justify-content: center;
+  }
+}
+
+/* ============================================================================
+   DARK MODE - CTA High Contrast
+   ============================================================================ */
+@media (prefers-color-scheme: dark) {
+  .section-cta {
+    background: linear-gradient(
+      145deg,
+      var(--color-ferni-cinematic-deep, var(--color-bg-dark-elevated)) 0%,
+      var(--color-ferni-cinematic-dark, var(--color-text-primary)) 100%
+    );
+  }
+  
+  .cta-headline {
+    color: var(--color-ferni-cinematic-text, var(--color-text-inverse));
+  }
+  
+  .cta-body {
+    color: var(--color-ferni-cinematic-text-secondary, var(--color-bg-secondary));
   }
 }
 

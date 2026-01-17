@@ -182,44 +182,31 @@ describe('Natural Fillers', () => {
       expect(result).toBe(taggedText);
     });
 
-    it('should potentially add fillers to longer text', () => {
-      // Run multiple times due to probability
+    it('should return text unchanged (filler injection deprecated)', () => {
+      // DEPRECATED: Static filler injection has been replaced by LLM behavioral guidance.
+      // See: src/intelligence/context-builders/humanization/dynamic-speech-guidance.ts
+      //
+      // The LLM now generates natural speech patterns based on context,
+      // rather than having fillers randomly injected.
       const longText =
         'This is a much longer response. I think we should consider the implications. The thing is, there are many factors to consider here.';
-      let foundFiller = false;
-      for (let i = 0; i < 50; i++) {
-        const result = injectNaturalFillers(longText, { probability: 0.8, maxPerResponse: 2 });
-        if (
-          result.includes('Hmm') ||
-          result.includes('Um') ||
-          result.includes('Well') ||
-          result.includes('So')
-        ) {
-          foundFiller = true;
-          break;
-        }
-      }
-      // With 80% probability, we should find a filler in 50 tries
-      expect(foundFiller).toBe(true);
+      const result = injectNaturalFillers(longText, { probability: 0.8, maxPerResponse: 2 });
+
+      // Function now returns text unchanged
+      expect(result).toBe(longText);
     });
 
-    it('should not add more than maxPerResponse fillers', () => {
+    it('should return text unchanged regardless of config (deprecated)', () => {
+      // DEPRECATED: Filler injection no longer happens
       const longText =
         'First sentence here. Second sentence here. Third sentence here. Fourth sentence here. Fifth sentence here.';
       const result = injectNaturalFillers(longText, {
-        probability: 1.0, // Always add
+        probability: 1.0,
         maxPerResponse: 1,
       });
 
-      // Count fillers
-      const fillerPatterns = ['Hmm', 'Um', 'Well', 'So', 'Okay', 'Let me see', 'You know'];
-      let fillerCount = 0;
-      for (const filler of fillerPatterns) {
-        const matches = result.match(new RegExp(filler, 'g'));
-        if (matches) fillerCount += matches.length;
-      }
-
-      expect(fillerCount).toBeLessThanOrEqual(2); // Allow for natural "So" in text
+      // Function returns text unchanged
+      expect(result).toBe(longText);
     });
   });
 });

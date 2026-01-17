@@ -68,7 +68,7 @@ export type SignalEmitCallback = (signal: TrustSignalPayload) => void;
 // ============================================================================
 
 let emitCallback: SignalEmitCallback | null = null;
-let recentSignals: Map<string, number> = new Map(); // Deduplication
+const recentSignals = new Map<string, number>(); // Deduplication
 const SIGNAL_COOLDOWN_MS = 60000; // Don't repeat same signal type for 60s
 
 // ============================================================================
@@ -349,7 +349,7 @@ export function processContextForSignals(trustContext: TrustContext, personaId?:
 /**
  * Truncate message to reasonable length for UI display.
  */
-function truncateMessage(message: string, maxLength: number = 150): string {
+function truncateMessage(message: string, maxLength = 150): string {
   if (message.length <= maxLength) {
     return message;
   }

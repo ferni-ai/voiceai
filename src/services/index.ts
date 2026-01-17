@@ -26,6 +26,21 @@ export type {
   IntentResult,
   PromptContext,
   SessionServices,
+  // Session sub-interfaces (Interface Segregation)
+  SessionAnalysisMethods,
+  SessionContextMethods,
+  SessionCore,
+  SessionHandoff,
+  SessionHumanization,
+  SessionInsightMethods,
+  SessionIntelligence,
+  SessionLifecycleMethods,
+  SessionMemory,
+  SessionPriming,
+  SessionSearchMethods,
+  SessionSpeechMethods,
+  SessionSuperhuman,
+  SessionThreadMethods,
   SpeechContext,
   UserProfile,
 } from './types.js';
@@ -57,7 +72,7 @@ export {
   type StartupCapabilities,
   type ValidationConfig,
   type ValidationResult,
-} from './startup-validation.js';
+} from './deployment/startup-validation.js';
 
 // ============================================================================
 // INTELLIGENCE PERSISTENCE
@@ -86,7 +101,7 @@ export {
   withMetrics,
   withMetricsSync,
   type PersistenceMetricsSnapshot,
-} from './persistence-metrics.js';
+} from './analytics/persistence-metrics.js';
 
 // ============================================================================
 // ERROR TRACKING
@@ -142,7 +157,7 @@ export {
 // SHUTDOWN
 // ============================================================================
 
-export { shutdownServices } from './shutdown.js';
+export { shutdownServices } from './deployment/shutdown.js';
 
 // ============================================================================
 // CONVERSATION STATE (Tool Orchestration)
@@ -182,7 +197,7 @@ export {
   type AuthAction as UserAuthAction,
   type AuthContext as UserAuthContext,
   type ConfidenceLevel as UserConfidenceLevel,
-} from './user-identification.js';
+} from './identity/user-identification.js';
 
 // ============================================================================
 // VOICE MEMORY & IDENTIFICATION
@@ -196,14 +211,14 @@ export {
   type VoiceSearchResult,
   type VoiceSimilarityResult,
   type VoiceSketch,
-} from './voice-memory.js';
+} from './memory/voice-memory.js';
 
 export {
   identifyWithVoice,
   mergeVoiceSketch,
   type VoiceIdentificationResult,
   type VoiceVerificationResult,
-} from './voice-identification.js';
+} from './voice/voice-identification.js';
 
 // ============================================================================
 // NATURAL AUTHENTICATION
@@ -220,7 +235,7 @@ export {
   type AuthAction,
   type AuthContext,
   type ConfidenceLevel,
-} from './natural-auth.js';
+} from './identity/natural-auth.js';
 
 // ============================================================================
 // PRODUCTIVITY DATA STORE
@@ -237,7 +252,7 @@ export {
   type ProductivityData,
   type RoutineData,
   type TaskData,
-} from './productivity-store.js';
+} from './stores/productivity-store.js';
 
 // ============================================================================
 // COLLECTIVE LEARNING
@@ -247,7 +262,7 @@ export {
   getCollectiveLearningStore,
   initializeCollectiveLearning,
   shutdownCollectiveLearning,
-} from './collective-learning-store.js';
+} from './memory/collective-learning-store.js';
 
 // ============================================================================
 // TEAM MANAGEMENT
@@ -274,7 +289,7 @@ export {
   type GamificationProfile,
   type LeaderboardEntry,
   type MoodLog,
-} from './gamification-store.js';
+} from './engagement/gamification-store.js';
 
 // ============================================================================
 // MAYA NOTIFICATIONS
@@ -287,7 +302,7 @@ export {
   type MayaNotificationPreferences,
   type MayaNotificationRequest,
   type MayaNotificationType,
-} from './engagement-notification-service.js';
+} from './engagement/engagement-notification-service.js';
 
 // ============================================================================
 // MEMORY MANAGEMENT
@@ -311,7 +326,7 @@ export {
   type ProactiveMemory,
   type PruningConfig,
   type PruningResult,
-} from './memory-management.js';
+} from './memory/memory-management.js';
 
 // ============================================================================
 // BACKGROUND TASKS
@@ -331,7 +346,7 @@ export {
   type TaskStatus,
   type Workflow,
   type WorkflowStep,
-} from './background-tasks.js';
+} from './scheduling/background-tasks.js';
 
 // ============================================================================
 // REMINDER SCHEDULER
@@ -351,7 +366,7 @@ export {
   type ReminderDeliveryMethod,
   type ScheduledReminder,
   type VoiceMessage,
-} from './reminder-scheduler.js';
+} from './scheduling/reminder-scheduler.js';
 
 // ============================================================================
 // AGENT BUS & LIFE DATA
@@ -365,31 +380,28 @@ export {
   type LifeMilestone,
   type LifePortfolio,
   type RetirementPlan,
-} from './life-data-store.js';
+} from './stores/life-data-store.js';
 
 // ============================================================================
-// DJ & MUSIC SERVICES
+// DJ & MUSIC SERVICES (NEW ARCHITECTURE)
 // ============================================================================
 
+// DJ orchestration is now handled by the DJController
+// Re-export from audio module for backward compatibility
 export {
-  DJOrchestrator,
-  getDJOrchestrator,
-  resetDJOrchestrator,
-  type DJPersonaStyle,
-  type SessionContext as DJSessionContext,
-  type SessionIntro,
-  type SessionOutro,
-} from './dj-orchestrator.js';
+  getDJController,
+  resetDJController,
+  PERSONA_DJ_STYLES as DJ_PERSONA_STYLES,
+  type PersonaDJStyle as DJPersonaStyle,
+} from '../audio/index.js';
 
-export { getDJSessionService, resetDJSessionService } from './dj-session.service.js';
-
+// Legacy DJ service functions - re-exported from dj-service.js
 export {
-  DJ_PERSONA_STYLES,
   getContextualMusicSuggestion,
   getCrossSessionMusicCallback,
   getDJStyle,
   getMusicAppreciationComment,
-  getMusicConversationStarter,
+  getMusicConversationStarter as getDJMusicConversationStarter,
   getMusicDiscoveryOffer,
   getMusicElementAppreciation,
   getQueueTeaser,
@@ -402,7 +414,7 @@ export {
   startProactiveScheduler,
   stopProactiveScheduler,
   type ProactiveNotification,
-} from './proactive-scheduler.js';
+} from './scheduling/proactive-scheduler.js';
 
 // ============================================================================
 // RE-EXPORTS FROM OTHER MODULES (for backward compatibility)
@@ -440,7 +452,7 @@ export {
   parseAcceptLanguage,
   type GeoDetectionOptions,
   type GeoDetectionResult,
-} from './geo-detection.js';
+} from './identity/geo-detection.js';
 
 // ============================================================================
 // CARTESIA VOICE LOCALIZATION (International Accents)
@@ -457,7 +469,7 @@ export {
   preWarmLocalizedVoices,
   type LocalizationResult,
   type LocalizedVoice,
-} from './cartesia-voice-localization.js';
+} from './voice/cartesia-voice-localization.js';
 
 // ============================================================================
 // TEAM CAMEO SYSTEM (Team member "pop-in" feature)
@@ -511,7 +523,7 @@ export {
   runCriticalHealthChecks,
   type HealthCheckResult,
   type SystemHealthReport,
-} from './health-checks.js';
+} from './deployment/health-checks.js';
 
 // ============================================================================
 // LANDING INTELLIGENCE (Gemini-powered landing page optimization)
@@ -563,7 +575,7 @@ import {
   getActiveSessionIds as _getActiveSessionIds,
   getSessionServices as _getSessionServices,
 } from './session-manager.js';
-import { shutdownServices as _shutdownServices } from './shutdown.js';
+import { shutdownServices as _shutdownServices } from './deployment/shutdown.js';
 
 // ============================================================================
 // ASYNC EVENTS (Fire-and-Forget Event System)
@@ -593,6 +605,98 @@ export {
   type SearchRequest,
   type SearchResult,
 } from './context-service/index.js';
+
+// ============================================================================
+// WRITE-AHEAD LOG (Non-blocking Firestore Writes)
+// ============================================================================
+
+export {
+  initializeFirestoreWAL,
+  shutdownFirestoreWAL,
+  queueUserProfileUpdate,
+  queueUserProfileSet,
+  queueSubcollectionWrite,
+  queueMemoryWrite,
+  queueSessionWrite,
+  queueHighPriorityWrite,
+  queueDeletion,
+  queueAnalyticsEvent,
+  flushUserWrites,
+  flushAllWrites,
+  getWALStatistics,
+  isWALHealthy,
+  type WritePriority,
+} from './firestore-wal-integration.js';
+
+export {
+  WriteAheadLog,
+  getWriteAheadLog,
+  queueWrite,
+  queueSet,
+  queueUpdate,
+  queueMerge,
+  queueDelete,
+  flushWrites,
+  getWALStats,
+  type WALEntry,
+  type WALStats,
+  type WALConfig,
+} from './write-ahead-log.js';
+
+// ============================================================================
+// LIFE AUTOMATION SERVICES (NEW - Phase 1 Foundation)
+// ============================================================================
+
+// Integration Hub - Central API management
+export { IntegrationHub, getIntegrationHub, INTEGRATIONS } from './integrations/index.js';
+
+// Email Intelligence
+export { EmailIntelligence, FollowUpTracker, UnsubscribeDetector } from './email/index.js';
+
+// Action Engine - Two-phase transactional execution
+export {
+  ActionEngine,
+  getActionEngine,
+  registerActionType,
+  getActionTypeConfig,
+} from './actions/action-engine.js';
+
+export type {
+  Action,
+  ActionPayload,
+  ActionType,
+  ActionStatus,
+  ActionResult,
+  ActionTypeConfig,
+  ActionExecutionContext,
+  ActionConfirmationDetails,
+  ActionPriority,
+  GroceryOrderPayload,
+  UberRidePayload,
+  LyftRidePayload,
+} from './actions/action-types.js';
+
+// Subscription Detector - Detect recurring subscriptions from transactions
+export {
+  SubscriptionDetector,
+  getSubscriptionDetector,
+  resetSubscriptionDetector,
+  type PlaidTransaction,
+  type DetectedSubscription,
+} from './subscriptions/subscription-detector.js';
+
+// Meal Planner - Recipe and meal planning
+export { MealPlanner, getMealPlanner } from './meals/meal-planner.js';
+
+// Workflow Engine - Automation workflows
+export {
+  WorkflowEngine,
+  getWorkflowEngine,
+  resetWorkflowEngine,
+  WORKFLOW_TEMPLATES,
+  type WorkflowContext,
+  type ActionResult as WorkflowActionResult,
+} from './workflows/workflow-engine.js';
 
 export default {
   initializeServices: _initializeServices,

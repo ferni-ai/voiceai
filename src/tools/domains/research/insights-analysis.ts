@@ -29,7 +29,7 @@ import {
   type SavingsGoalData,
   type SpendingTriggerData,
   type SpendingLimitData,
-} from '../../../services/financial-store.js';
+} from '../../../services/stores/financial-store.js';
 
 // ============================================================================
 // TYPES FOR CROSS-DOMAIN ANALYSIS
@@ -689,7 +689,7 @@ Let me dig into this specific connection. Based on your data patterns:
 There's likely an underlying factor (stress, energy, life events) that affects BOTH domains. When that factor shifts, both areas shift.
 
 **What Would Help:**
-Tell me more about what's happening in both areas. The more specific you are, the better I can find the real connection.`;
+What's been happening in both areas lately? The more specific you are, the better I can find the real connection.`;
       },
     }),
 

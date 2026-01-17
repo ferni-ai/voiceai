@@ -25,3 +25,11 @@ export {
   outreachScheduler,
   outreachSchedulerHttp,
 } from './outreach-scheduler.js';
+
+// Export founder stats auto-update functions
+export {
+  autoUpdateFounderStats,
+  resetWeeklyFounderCounters,
+  resetMonthlyFounderCounters,
+  recalculateFounderStats,
+} from './src/auto-update-stats.js';

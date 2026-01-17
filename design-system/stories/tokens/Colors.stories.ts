@@ -22,7 +22,7 @@ type Story = StoryObj;
 const personaColors = [
   { name: 'Ferni', id: 'ferni', primary: '#4a6741', secondary: '#3d5a35' },
   { name: 'Jack', id: 'jack-bogle', primary: '#9a7b5a', secondary: '#7d6348' },
-  { name: 'Peter', id: 'peter-lynch', primary: '#3a6b73', secondary: '#2d5359' },
+  { name: 'Peter', id: 'peter-john', primary: '#3a6b73', secondary: '#2d5359' },
   { name: 'Alex', id: 'alex-chen', primary: '#5a6b8a', secondary: '#4a5a73' },
   { name: 'Maya', id: 'maya-santos', primary: '#a67a6a', secondary: '#8a635a' },
   { name: 'Jordan', id: 'jordan-taylor', primary: '#c4856a', secondary: '#a86d55' },

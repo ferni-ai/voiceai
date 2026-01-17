@@ -13,7 +13,7 @@
  * - Locked milestones shown as mysteries to discover
  *
  * CONSOLIDATES:
- * - relationship-progress.ui.ts (progress ring, stats, stage)
+ * - stage-celebration.ui.ts (celebrations only, progress redirects here)
  * - journey.ui.ts (milestones scrapbook)
  * 
  * ENTRY POINTS:
@@ -25,7 +25,7 @@ import { t } from '../i18n/index.js';
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { 
   relationshipStageService, 
-  STAGE_NAMES,
+  getTranslatedStageName,
 } from '../services/relationship-stage.service.js';
 import { trapFocus } from '../utils/accessibility.js';
 import { createLogger } from '../utils/logger.js';
@@ -36,9 +36,11 @@ import {
   getProgress,
   getTotalMilestonesCount,
 } from './ferni-milestones.ui.js';
+import { JOURNEY_ICONS } from './icons/journey-icons.js';
+import { injectJourneyStyles } from './journey/styles.js';
 import { shareJourneySummaryCard } from './milestone-card.ui.js';
 import { soundUI } from './sound.ui.js';
-import { toast } from './toast.ui.js';
+import { toast } from './whisper.ui.js';
 import { fetchJourneyData, loadFromCache } from './trust-journey/data.js';
 import type { TrustJourneyData } from './trust-journey/types.js';
 
@@ -103,111 +105,8 @@ const STAGE_DESCRIPTIONS: Record<string, { tagline: string; description: string 
   },
 };
 
-const ICONS = {
-  heart: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
-  </svg>`,
-  heartBroken: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M19.5 12.572l-7.5 7.428l-7.5-7.428A5 5 0 1 1 12 5.006a5 5 0 1 1 7.5 7.566z"/>
-    <path d="M12 5.006V12l-2 2l2 3"/>
-  </svg>`,
-  heartFilled: `<svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
-  </svg>`,
-  phone: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
-  </svg>`,
-  loader: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-    <line x1="12" y1="2" x2="12" y2="6"/>
-    <line x1="12" y1="18" x2="12" y2="22"/>
-    <line x1="4.93" y1="4.93" x2="7.76" y2="7.76"/>
-    <line x1="16.24" y1="16.24" x2="19.07" y2="19.07"/>
-    <line x1="2" y1="12" x2="6" y2="12"/>
-    <line x1="18" y1="12" x2="22" y2="12"/>
-    <line x1="4.93" y1="19.07" x2="7.76" y2="16.24"/>
-    <line x1="16.24" y1="7.76" x2="19.07" y2="4.93"/>
-  </svg>`,
-  alertCircle: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-    <circle cx="12" cy="12" r="10"/>
-    <line x1="12" y1="8" x2="12" y2="12"/>
-    <line x1="12" y1="16" x2="12.01" y2="16"/>
-  </svg>`,
-  share: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-    <circle cx="18" cy="5" r="3"/>
-    <circle cx="6" cy="12" r="3"/>
-    <circle cx="18" cy="19" r="3"/>
-    <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/>
-    <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
-  </svg>`,
-  team: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-    <circle cx="9" cy="7" r="4"/>
-    <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
-    <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-  </svg>`,
-  conversation: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-  </svg>`,
-  discovery: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
-  </svg>`,
-  sweet: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9z"/>
-  </svg>`,
-  close: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-    <line x1="18" y1="6" x2="6" y2="18"/>
-    <line x1="6" y1="6" x2="18" y2="18"/>
-  </svg>`,
-  lock: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
-    <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-  </svg>`,
-  star: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
-  </svg>`,
-  check: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-    <polyline points="20 6 9 17 4 12"/>
-  </svg>`,
-  messageCircle: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/>
-  </svg>`,
-  calendar: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M8 2v4"/><path d="M16 2v4"/>
-    <rect width="18" height="18" x="3" y="4" rx="2"/>
-    <path d="M3 10h18"/>
-  </svg>`,
-  flame: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/>
-  </svg>`,
-  chevronDown: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-    <path d="m6 9 6 6 6-6"/>
-  </svg>`,
-  // Trust Journey icons
-  sparkles: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-    <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/>
-    <path d="M5 3v4"/><path d="M19 17v4"/><path d="M3 5h4"/><path d="M17 19h4"/>
-  </svg>`,
-  trophy: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/>
-    <path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/>
-    <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/>
-    <path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/>
-  </svg>`,
-  leaf: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"/>
-    <path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"/>
-  </svg>`,
-  shield: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/>
-  </svg>`,
-  messageHeart: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/>
-    <path d="M12 9c-.5-1-1.5-1.5-2.5-1.5-1.4 0-2.5 1-2.5 2.5 0 2.5 5 5 5 5s5-2.5 5-5c0-1.5-1.1-2.5-2.5-2.5-1 0-2 .5-2.5 1.5Z"/>
-  </svg>`,
-  clock: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-    <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
-  </svg>`,
-};
+// Icons imported from centralized module
+const ICONS = JOURNEY_ICONS;
 
 const CATEGORY_META: Record<string, { icon: string; title: string; color: string }> = {
   relationship: {
@@ -290,7 +189,7 @@ export function closeJourney(): void {
   );
 
   soundUI.play('click');
-  animateOut(journeyModal).then(() => {
+  void animateOut(journeyModal).then(() => {
     journeyModal?.remove();
     journeyModal = null;
     isOpen = false;
@@ -385,7 +284,7 @@ function createModal(): void {
   const stageMetrics = relationshipStageService.getMetrics();
   const stageProgress = relationshipStageService.getProgressToNextStage();
   const stageInfo = STAGE_DESCRIPTIONS[stage] ?? STAGE_DESCRIPTIONS['first-meeting'];
-  const stageName = STAGE_NAMES[stage] ?? 'First Meeting';
+  const stageName = getTranslatedStageName(stage);
   const progressPercent = Math.round(stageProgress.progress * 100);
 
   // Get current connection state
@@ -403,7 +302,8 @@ function createModal(): void {
   const grouped: Record<string, typeof milestones> = {};
   for (const m of milestones) {
     if (!grouped[m.category]) grouped[m.category] = [];
-    grouped[m.category].push(m);
+    const categoryGroup = grouped[m.category];
+    if (categoryGroup) categoryGroup.push(m);
   }
 
   // Calculate streak info
@@ -428,26 +328,14 @@ function createModal(): void {
       </header>
 
       <div class="journey-body">
+        <!-- Journey Map - Visual Path (Better than Apple Progress) -->
+        ${renderJourneyMap(stage, progressPercent)}
+        
         <!-- Progress Overview Section -->
         <section class="journey-progress-overview">
-          <div class="journey-progress-ring-container">
-            <svg class="journey-progress-ring" viewBox="0 0 120 120">
-              <circle class="journey-progress-ring__bg" cx="60" cy="60" r="52" />
-              <circle 
-                class="journey-progress-ring__fill" 
-                cx="60" cy="60" r="52"
-                stroke-dasharray="${2 * Math.PI * 52}"
-                stroke-dashoffset="${2 * Math.PI * 52 * (1 - progressPercent / 100)}"
-              />
-            </svg>
-            <div class="journey-progress-ring__text">
-              <span class="journey-progress-ring__percent">${progressPercent}%</span>
-              <span class="journey-progress-ring__label">progress</span>
-            </div>
-          </div>
-          
           <h2 class="journey-stage-name">${stageName}</h2>
           <p class="journey-stage-tagline">${stageInfo?.tagline ?? 'Just getting started'}</p>
+          <p class="journey-stage-description">${stageInfo?.description ?? ''}</p>
           
           <div class="journey-stats-row">
             <div class="journey-stat">
@@ -469,7 +357,7 @@ function createModal(): void {
           
           ${stageProgress.nextStage ? `
             <div class="journey-next-stage">
-              <span class="journey-next-stage__label">Next: ${STAGE_NAMES[stageProgress.nextStage]}</span>
+              <span class="journey-next-stage__label">Next: ${getTranslatedStageName(stageProgress.nextStage)}</span>
               <span class="journey-next-stage__req">${stageProgress.requirement}</span>
             </div>
           ` : `
@@ -488,7 +376,7 @@ function createModal(): void {
               ${ICONS.sparkles}
               <span>What I've Noticed</span>
             </h3>
-            <span class="journey-insights-toggle">${ICONS.chevronDown}</span>
+            <span class="journey-insights-toggle" role="button" tabindex="0">${ICONS.chevronDown}</span>
           </div>
           <div class="journey-insights-body">
             <!-- Loading state - will be replaced with actual data -->
@@ -505,7 +393,7 @@ function createModal(): void {
           <div class="journey-milestones-header" role="button" tabindex="0" aria-expanded="true">
             <h3 class="journey-milestones-title">Milestones</h3>
             <span class="journey-milestones-count">${celebrated}/${total}</span>
-            <span class="journey-milestones-toggle">${ICONS.chevronDown}</span>
+            <span class="journey-milestones-toggle" role="button" tabindex="0">${ICONS.chevronDown}</span>
           </div>
           <div class="journey-milestones-body">
             ${Object.entries(grouped)
@@ -525,8 +413,8 @@ function createModal(): void {
     </div>
   `;
 
-  // Inject styles
-  injectStyles();
+  // Inject styles (from journey/styles.ts)
+  injectJourneyStyles();
   
   // Load trust insights data asynchronously
   void loadTrustInsights();
@@ -535,7 +423,7 @@ function createModal(): void {
   journeyModal.querySelector('.journey-backdrop')?.addEventListener('click', closeJourney);
   journeyModal.querySelector('.journey-close')?.addEventListener('click', closeJourney);
   journeyModal.querySelector('.journey-share')?.addEventListener('click', () => {
-    shareJourney(celebrated, total, streak, totalDays);
+    void shareJourney(celebrated, total, streak, totalDays);
   });
 
   // Milestones toggle (collapsible section)
@@ -576,7 +464,7 @@ function createModal(): void {
   document.addEventListener('keydown', handleEscape);
 
   document.body.appendChild(journeyModal);
-  animateIn(journeyModal);
+  void animateIn(journeyModal);
 }
 
 // ============================================================================
@@ -613,7 +501,7 @@ function renderConnectionBanner(state: ConnectionState): string {
             <span class="journey-connection__text">Connection lost</span>
             <p class="journey-connection__subtext">Something went wrong, but we can try again.</p>
           </div>
-          <button class="journey-connect-btn journey-connect-btn--retry">
+          <button aria-label="${t('accessibility.reconnect')}" class="journey-connect-btn journey-connect-btn--retry">
             ${ICONS.phone}
             <span>Reconnect</span>
           </button>
@@ -630,7 +518,7 @@ function renderConnectionBanner(state: ConnectionState): string {
             <span class="journey-connection__text">We're not connected</span>
             <p class="journey-connection__subtext">Start a conversation to continue our journey together.</p>
           </div>
-          <button class="journey-connect-btn">
+          <button aria-label="${t('accessibility.startTalking')}" class="journey-connect-btn">
             ${ICONS.phone}
             <span>Start talking</span>
           </button>
@@ -805,7 +693,7 @@ function renderTrustInsights(): void {
   const insightsBody = journeyModal.querySelector('.journey-insights-body');
   if (!insightsBody) return;
 
-  const { trustScore, growthMoments, winsCelebrated, boundariesRespected, sharedMoments, growthPatterns, recentWins, timeline } = trustInsightsData;
+  const { trustScore: _trustScore, growthMoments, winsCelebrated, boundariesRespected, sharedMoments, growthPatterns, recentWins, timeline } = trustInsightsData;
 
   // Check if we have any meaningful data
   const hasData = growthMoments > 0 || winsCelebrated > 0 || sharedMoments > 0 || growthPatterns.length > 0;
@@ -976,6 +864,70 @@ function escapeHtml(text: string): string {
   return div.innerHTML;
 }
 
+// ============================================================================
+// JOURNEY MAP - Visual Path (Better than Apple's Linear Progress)
+// Shows all relationship stages as a horizontal path with "you are here"
+// ============================================================================
+
+const STAGE_ORDER = [
+  'first-meeting',
+  'getting-started', 
+  'building-trust',
+  'established',
+  'deep-partnership',
+] as const;
+
+const STAGE_LABELS: Record<string, string> = {
+  'first-meeting': 'First Meeting',
+  'getting-started': 'Getting Started',
+  'building-trust': 'Building Trust',
+  'established': 'Established',
+  'deep-partnership': 'Deep Partnership',
+};
+
+/**
+ * Render horizontal journey map showing all stages
+ * Current stage has "you are here" indicator with breathing animation
+ */
+function renderJourneyMap(currentStage: string, progressPercent: number): string {
+  const currentIndex = STAGE_ORDER.indexOf(currentStage as typeof STAGE_ORDER[number]);
+  
+  return `
+    <section class="journey-map-section">
+      <div class="journey-map" role="navigation" aria-label="Your relationship journey">
+        <div class="journey-map__path">
+          ${STAGE_ORDER.map((stage, index) => {
+            const isPast = index < currentIndex;
+            const isCurrent = index === currentIndex;
+            const isFuture = index > currentIndex;
+            const stateClass = isPast ? 'journey-map__stage--past' : isCurrent ? 'journey-map__stage--current' : 'journey-map__stage--future';
+            
+            // Calculate connector fill
+            const connectorFill = isPast ? 100 : isCurrent ? progressPercent : 0;
+            
+            return `
+              ${index > 0 ? `
+                <div class="journey-map__connector ${isPast ? 'journey-map__connector--filled' : ''}">
+                  <div class="journey-map__connector-fill" style="--fill-progress: ${connectorFill}%"></div>
+                </div>
+              ` : ''}
+              <div class="journey-map__stage ${stateClass}" role="listitem" tabindex="0" aria-label="${STAGE_LABELS[stage]}${isCurrent ? ' - current stage' : ''}">
+                <div class="journey-map__node">
+                  ${isCurrent ? '<div class="journey-map__pulse"></div>' : ''}
+                  <div class="journey-map__node-inner"></div>
+                </div>
+                <span class="journey-map__label">${STAGE_LABELS[stage]}</span>
+                ${isCurrent ? '<span class="journey-map__here">You are here</span>' : ''}
+              </div>
+            `;
+          }).join('')}
+        </div>
+        <p class="journey-map__hint">Every conversation brings us closer</p>
+      </div>
+    </section>
+  `;
+}
+
 function renderCategory(category: string, items: ReturnType<typeof getMilestones>): string {
   const meta = CATEGORY_META[category] ?? CATEGORY_META.relationship;
   if (!meta) return '';
@@ -983,7 +935,7 @@ function renderCategory(category: string, items: ReturnType<typeof getMilestones
   const celebratedInCategory = items.filter((m) => m.celebrated).length;
 
   return `
-    <section class="journey-category">
+    <section class="journey-category" data-category="${category}">
       <header class="journey-category__header">
         <span class="journey-category__icon" style="color: ${meta.color}">
           ${meta.icon}
@@ -991,19 +943,27 @@ function renderCategory(category: string, items: ReturnType<typeof getMilestones
         <h3 class="journey-category__title">${meta.title}</h3>
         <span class="journey-category__count">${celebratedInCategory}/${items.length}</span>
       </header>
-      <div class="journey-category__items">
-        ${items.map((m) => renderMilestone(m, meta.color)).join('')}
+      <div class="journey-scrapbook">
+        ${items.map((m) => renderMilestoneCard(m, meta.color)).join('')}
       </div>
     </section>
   `;
 }
 
-function renderMilestone(milestone: ReturnType<typeof getMilestones>[0], color: string): string {
+/**
+ * Render milestone as a polaroid-style scrapbook card
+ * Celebrated milestones show full details with warm glow
+ * Locked milestones are mysterious silhouettes inviting discovery
+ */
+function renderMilestoneCard(milestone: ReturnType<typeof getMilestones>[0], color: string): string {
   const isCelebrated = milestone.celebrated;
   const hasProgress = milestone.target && milestone.progress !== undefined;
   const progressPercent = hasProgress
     ? Math.min(100, Math.round(((milestone.progress ?? 0) / (milestone.target ?? 1)) * 100))
     : 0;
+
+  // Random slight rotation for organic scrapbook feel
+  const rotation = (Math.random() * 4 - 2).toFixed(2);
 
   // Format celebration date
   let dateStr = '';
@@ -1012,33 +972,56 @@ function renderMilestone(milestone: ReturnType<typeof getMilestones>[0], color: 
     dateStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   }
 
-  return `
-    <div class="journey-milestone ${isCelebrated ? 'journey-milestone--celebrated' : 'journey-milestone--locked'}" 
-         style="--milestone-color: ${color}">
-      <div class="journey-milestone__status">
-        ${isCelebrated ? ICONS.check : ICONS.lock}
-      </div>
-      <div class="journey-milestone__content">
-        <h4 class="journey-milestone__name">
-          ${isCelebrated ? milestone.name : '???'}
-        </h4>
-        <p class="journey-milestone__message">
-          ${isCelebrated ? milestone.message : milestone.subtitle || 'Keep exploring...'}
-        </p>
-        ${
-          hasProgress && !isCelebrated
-            ? `
-          <div class="journey-milestone__progress">
-            <div class="journey-milestone__progress-bar" style="width: ${progressPercent}%"></div>
-            <span class="journey-milestone__progress-text">${milestone.progress}/${milestone.target}</span>
+  // Emoji/icon for the milestone type (or mystery for locked)
+  const milestoneEmoji = isCelebrated && milestone.emoji ? milestone.emoji : '✨';
+
+  if (isCelebrated) {
+    // Celebrated - full polaroid with details
+    return `
+      <div class="journey-polaroid journey-polaroid--celebrated" 
+           style="--milestone-color: ${color}; --rotate: ${rotation}deg"
+           tabindex="0"
+           role="button"
+           aria-label="${milestone.name}">
+        <div class="journey-polaroid__image">
+          <div class="journey-polaroid__glow"></div>
+          <span class="journey-polaroid__emoji">${milestoneEmoji}</span>
+        </div>
+        <div class="journey-polaroid__caption">
+          <span class="journey-polaroid__title">${escapeHtml(milestone.name)}</span>
+          <p class="journey-polaroid__message">${escapeHtml(milestone.message)}</p>
+          <div class="journey-polaroid__footer">
+            ${dateStr ? `<span class="journey-polaroid__date">${dateStr}</span>` : ''}
+            ${milestone.personaId ? `<span class="journey-polaroid__persona">with ${milestone.personaId}</span>` : ''}
           </div>
-        `
-            : ''
-        }
-        ${dateStr ? `<span class="journey-milestone__date">${dateStr}</span>` : ''}
+        </div>
       </div>
-    </div>
-  `;
+    `;
+  } else {
+    // Locked - mysterious silhouette card
+    return `
+      <div class="journey-polaroid journey-polaroid--locked" 
+           style="--milestone-color: ${color}; --rotate: ${rotation}deg"
+           tabindex="0"
+           role="button"
+           aria-label="Mystery milestone - keep exploring to discover">
+        <div class="journey-polaroid__image journey-polaroid__image--mystery">
+          <span class="journey-polaroid__mystery-icon">?</span>
+        </div>
+        <div class="journey-polaroid__caption">
+          <span class="journey-polaroid__title">${milestone.subtitle || 'Keep exploring...'}</span>
+          ${hasProgress ? `
+            <div class="journey-polaroid__progress">
+              <div class="journey-polaroid__progress-fill" style="width: ${progressPercent}%"></div>
+            </div>
+            <span class="journey-polaroid__hint">${progressPercent}% discovered</span>
+          ` : `
+            <span class="journey-polaroid__hint">A mystery awaits</span>
+          `}
+        </div>
+      </div>
+    `;
+  }
 }
 
 // ============================================================================
@@ -1148,1216 +1131,15 @@ async function animateOut(modal: HTMLElement): Promise<void> {
   await Promise.all(animations.map((a) => a.finished));
 }
 
-// ============================================================================
-// STYLES
-// ============================================================================
+// NOTE: Styles extracted to journey/styles.ts (~1,200 lines of CSS)
+// Import: injectJourneyStyles() from './journey/styles.js'
 
-function injectStyles(): void {
-  if (document.getElementById('journey-ui-styles')) return;
-
-  const style = document.createElement('style');
-  style.id = 'journey-ui-styles';
-  style.textContent = `
-    .journey-modal {
-      position: fixed;
-      inset: 0;
-      z-index: var(--z-modal, 10000);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: var(--space-4, 16px);
-    }
-
-    .journey-backdrop {
-      position: absolute;
-      inset: 0;
-      background: var(--backdrop-heavy, rgba(44, 37, 32, 0.6));
-      backdrop-filter: blur(var(--glass-blur-strong, 24px));
-      -webkit-backdrop-filter: blur(var(--glass-blur-strong, 24px));
-    }
-
-    .journey-content {
-      position: relative;
-      background: var(--color-background-elevated, #faf8f5);
-      border-radius: var(--radius-2xl, 20px);
-      box-shadow: var(--shadow-2xl, 0 25px 50px -12px rgba(0, 0, 0, 0.25));
-      max-width: 600px;
-      width: 100%;
-      max-height: 85vh;
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-    }
-
-    .journey-header {
-      display: flex;
-      align-items: flex-start;
-      justify-content: space-between;
-      padding: var(--space-6, 24px);
-      border-bottom: 1px solid var(--color-border, rgba(0, 0, 0, 0.08));
-    }
-
-    .journey-header__text {
-      flex: 1;
-    }
-
-    .journey-eyebrow {
-      display: block;
-      font-size: var(--text-xs, 0.75rem);
-      font-weight: 600;
-      letter-spacing: 0.1em;
-      color: var(--persona-primary, #4a6741);
-      margin-bottom: var(--space-1, 4px);
-    }
-
-    .journey-title {
-      font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
-      font-size: var(--text-2xl, 1.5rem);
-      font-weight: 700;
-      color: var(--color-text-primary, #2c2520);
-      margin: 0;
-      line-height: 1.2;
-    }
-
-    .journey-subtitle {
-      font-size: var(--text-sm, 0.875rem);
-      color: var(--color-text-muted, #70605a);
-      margin: var(--space-2, 8px) 0 0;
-    }
-
-    .journey-close {
-      background: none;
-      border: none;
-      padding: var(--space-2, 8px);
-      margin: calc(var(--space-2, 8px) * -1);
-      cursor: pointer;
-      color: var(--color-text-muted, #70605a);
-      border-radius: var(--radius-full, 9999px);
-      transition: all ${DURATION.FAST}ms ${EASING.STANDARD};
-    }
-
-    .journey-close:hover {
-      background: var(--color-background-hover, rgba(0, 0, 0, 0.05));
-      color: var(--color-text-primary, #2c2520);
-    }
-    
-    .journey-close:focus-visible {
-      outline: 2px solid var(--persona-primary, #4a6741);
-      outline-offset: 2px;
-    }
-
-    .journey-body {
-      flex: 1;
-      overflow-y: auto;
-      padding: var(--space-4, 16px) var(--space-6, 24px);
-    }
-
-    /* ===== PROGRESS OVERVIEW ===== */
-    .journey-progress-overview {
-      text-align: center;
-      padding-bottom: var(--space-5, 20px);
-      margin-bottom: var(--space-4, 16px);
-      border-bottom: 1px solid var(--color-border, rgba(0, 0, 0, 0.08));
-    }
-
-    .journey-progress-ring-container {
-      position: relative;
-      width: 120px;
-      height: 120px;
-      margin: 0 auto var(--space-4, 16px);
-    }
-
-    .journey-progress-ring {
-      width: 100%;
-      height: 100%;
-      transform: rotate(-90deg);
-    }
-
-    .journey-progress-ring__bg {
-      fill: none;
-      stroke: var(--color-background-subtle, rgba(0, 0, 0, 0.08));
-      stroke-width: 8;
-    }
-
-    .journey-progress-ring__fill {
-      fill: none;
-      stroke: var(--persona-primary, #4a6741);
-      stroke-width: 8;
-      stroke-linecap: round;
-      transition: stroke-dashoffset ${DURATION.DRAMATIC}ms ${EASING.SPRING};
-    }
-
-    .journey-progress-ring__text {
-      position: absolute;
-      inset: 0;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .journey-progress-ring__percent {
-      font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
-      font-size: var(--text-2xl, 1.5rem);
-      font-weight: 700;
-      color: var(--color-text-primary, #2c2520);
-      line-height: 1;
-    }
-
-    .journey-progress-ring__label {
-      font-size: var(--text-xs, 0.75rem);
-      color: var(--color-text-muted, #70605a);
-      margin-top: 2px;
-    }
-
-    .journey-stage-name {
-      font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
-      font-size: var(--text-xl, 1.25rem);
-      font-weight: 700;
-      color: var(--color-text-primary, #2c2520);
-      margin: 0 0 var(--space-1, 4px);
-    }
-
-    .journey-stage-tagline {
-      font-size: var(--text-sm, 0.875rem);
-      color: var(--color-text-secondary, #5a4d47);
-      margin: 0 0 var(--space-4, 16px);
-    }
-
-    .journey-stats-row {
-      display: flex;
-      justify-content: center;
-      gap: var(--space-6, 24px);
-      margin-bottom: var(--space-4, 16px);
-    }
-
-    .journey-stat {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: var(--space-1, 4px);
-    }
-
-    .journey-stat__icon {
-      color: var(--color-text-muted, #70605a);
-      margin-bottom: var(--space-1, 4px);
-    }
-
-    .journey-stat__icon svg {
-      width: 20px;
-      height: 20px;
-    }
-
-    .journey-stat__value {
-      font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
-      font-size: var(--text-lg, 1.125rem);
-      font-weight: 700;
-      color: var(--color-text-primary, #2c2520);
-      line-height: 1;
-    }
-
-    .journey-stat__label {
-      font-size: var(--text-xs, 0.75rem);
-      color: var(--color-text-muted, #70605a);
-    }
-
-    .journey-next-stage {
-      background: var(--color-background-subtle, rgba(0, 0, 0, 0.03));
-      border-radius: var(--radius-lg, 12px);
-      padding: var(--space-3, 12px) var(--space-4, 16px);
-      display: inline-block;
-    }
-
-    .journey-next-stage__label {
-      display: block;
-      font-size: var(--text-sm, 0.875rem);
-      font-weight: 600;
-      color: var(--persona-primary, #4a6741);
-    }
-
-    .journey-next-stage__req {
-      display: block;
-      font-size: var(--text-xs, 0.75rem);
-      color: var(--color-text-muted, #70605a);
-      margin-top: var(--space-1, 4px);
-    }
-
-    .journey-next-stage--max {
-      background: linear-gradient(135deg, 
-        color-mix(in srgb, var(--persona-primary) 8%, transparent) 0%,
-        color-mix(in srgb, var(--persona-primary) 3%, transparent) 100%
-      );
-    }
-
-    .journey-next-stage__icon {
-      display: inline-block;
-      width: 14px;
-      height: 14px;
-      vertical-align: middle;
-      margin-left: var(--space-1, 4px);
-      color: var(--persona-primary, #4a6741);
-    }
-
-    .journey-next-stage__icon svg {
-      width: 100%;
-      height: 100%;
-    }
-
-    @supports not (background: color-mix(in srgb, red 50%, blue)) {
-      .journey-next-stage--max {
-        background: linear-gradient(135deg, rgba(74, 103, 65, 0.08) 0%, rgba(74, 103, 65, 0.03) 100%);
-      }
-    }
-
-    /* ===== MILESTONES SECTION (Collapsible) ===== */
-    .journey-milestones-section {
-      margin-top: var(--space-4, 16px);
-    }
-
-    .journey-milestones-header {
-      display: flex;
-      align-items: center;
-      gap: var(--space-2, 8px);
-      padding: var(--space-3, 12px);
-      margin: 0 calc(var(--space-3, 12px) * -1);
-      border-radius: var(--radius-lg, 12px);
-      cursor: pointer;
-      transition: background ${DURATION.FAST}ms ${EASING.STANDARD};
-    }
-
-    .journey-milestones-header:hover {
-      background: var(--color-background-hover, rgba(0, 0, 0, 0.03));
-    }
-
-    .journey-milestones-header:focus-visible {
-      outline: 2px solid var(--persona-primary, #4a6741);
-      outline-offset: 2px;
-    }
-
-    .journey-milestones-title {
-      flex: 1;
-      font-size: var(--text-base, 1rem);
-      font-weight: 600;
-      color: var(--color-text-primary, #2c2520);
-      margin: 0;
-    }
-
-    .journey-milestones-count {
-      font-size: var(--text-sm, 0.875rem);
-      color: var(--color-text-muted, #70605a);
-      background: var(--color-background-subtle, rgba(0, 0, 0, 0.05));
-      padding: var(--space-1, 4px) var(--space-2, 8px);
-      border-radius: var(--radius-full, 9999px);
-    }
-
-    .journey-milestones-toggle {
-      color: var(--color-text-muted, #70605a);
-      transition: transform ${DURATION.FAST}ms ${EASING.STANDARD};
-    }
-
-    .journey-milestones-header.collapsed .journey-milestones-toggle {
-      transform: rotate(-90deg);
-    }
-
-    .journey-milestones-body {
-      max-height: 2000px;
-      overflow: hidden;
-      transition: max-height ${DURATION.MODERATE}ms ${EASING.STANDARD},
-                  opacity ${DURATION.FAST}ms ${EASING.STANDARD};
-    }
-
-    .journey-milestones-body.collapsed {
-      max-height: 0;
-      opacity: 0.5;
-    }
-
-    .journey-category {
-      margin-bottom: var(--space-6, 24px);
-    }
-
-    .journey-category:last-child {
-      margin-bottom: 0;
-    }
-
-    .journey-category__header {
-      display: flex;
-      align-items: center;
-      gap: var(--space-2, 8px);
-      margin-bottom: var(--space-3, 12px);
-    }
-
-    .journey-category__icon {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .journey-category__title {
-      font-size: var(--text-sm, 0.875rem);
-      font-weight: 600;
-      color: var(--color-text-primary, #2c2520);
-      margin: 0;
-      flex: 1;
-    }
-
-    .journey-category__count {
-      font-size: var(--text-xs, 0.75rem);
-      color: var(--color-text-muted, #70605a);
-      background: var(--color-background-subtle, rgba(0, 0, 0, 0.05));
-      padding: var(--space-1, 4px) var(--space-2, 8px);
-      border-radius: var(--radius-full, 9999px);
-    }
-
-    .journey-category__items {
-      display: flex;
-      flex-direction: column;
-      gap: var(--space-2, 8px);
-    }
-
-    .journey-milestone {
-      display: flex;
-      align-items: flex-start;
-      gap: var(--space-3, 12px);
-      padding: var(--space-3, 12px);
-      background: var(--color-background-subtle, rgba(0, 0, 0, 0.02));
-      border-radius: var(--radius-lg, 12px);
-      transition: all ${DURATION.FAST}ms ${EASING.STANDARD};
-    }
-
-    .journey-milestone--celebrated {
-      background: var(--milestone-bg-celebrated, linear-gradient(135deg, 
-        color-mix(in srgb, var(--persona-primary, #4a6741) 8%, transparent) 0%,
-        color-mix(in srgb, var(--persona-primary, #4a6741) 2%, transparent) 100%
-      ));
-      border: 1px solid var(--milestone-border-celebrated, color-mix(in srgb, var(--persona-primary, #4a6741) 15%, transparent));
-    }
-    
-    /* Fallback for browsers without color-mix support */
-    @supports not (background: color-mix(in srgb, red 50%, blue)) {
-      .journey-milestone--celebrated {
-        background: linear-gradient(135deg, rgba(74, 103, 65, 0.08) 0%, rgba(74, 103, 65, 0.02) 100%);
-        border-color: rgba(74, 103, 65, 0.15);
-      }
-    }
-
-    .journey-milestone--locked {
-      opacity: 0.7;
-    }
-
-    .journey-milestone__status {
-      flex-shrink: 0;
-      width: 28px;
-      height: 28px;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: var(--color-background-elevated, #fff);
-      border: 2px solid var(--milestone-color, var(--persona-primary));
-      color: var(--milestone-color, var(--persona-primary));
-    }
-
-    .journey-milestone--locked .journey-milestone__status {
-      border-color: var(--color-text-muted, #70605a);
-      color: var(--color-text-muted, #70605a);
-      opacity: 0.5;
-    }
-
-    .journey-milestone__content {
-      flex: 1;
-      min-width: 0;
-    }
-
-    .journey-milestone__name {
-      font-size: var(--text-sm, 0.875rem);
-      font-weight: 600;
-      color: var(--color-text-primary, #2c2520);
-      margin: 0;
-    }
-
-    .journey-milestone--locked .journey-milestone__name {
-      color: var(--color-text-muted, #70605a);
-    }
-
-    .journey-milestone__message {
-      font-size: var(--text-sm, 0.875rem);
-      color: var(--color-text-secondary, #5a4d47);
-      margin: var(--space-1, 4px) 0 0;
-      line-height: 1.4;
-    }
-
-    .journey-milestone--locked .journey-milestone__message {
-      font-style: italic;
-      color: var(--color-text-muted, #70605a);
-    }
-
-    .journey-milestone__progress {
-      position: relative;
-      height: 4px;
-      background: var(--color-background-subtle, rgba(0, 0, 0, 0.1));
-      border-radius: var(--radius-full, 9999px);
-      margin-top: var(--space-2, 8px);
-      overflow: hidden;
-    }
-
-    .journey-milestone__progress-bar {
-      position: absolute;
-      top: 0;
-      left: 0;
-      height: 100%;
-      background: var(--milestone-color, var(--persona-primary));
-      border-radius: var(--radius-full, 9999px);
-      transition: width ${DURATION.SLOW}ms ${EASING.STANDARD};
-    }
-
-    .journey-milestone__progress-text {
-      position: absolute;
-      right: 0;
-      top: calc(100% + 4px);
-      font-size: var(--text-xs, 0.75rem);
-      color: var(--color-text-muted, #70605a);
-    }
-
-    .journey-milestone__date {
-      display: block;
-      font-size: var(--text-xs, 0.75rem);
-      color: var(--color-text-muted, #70605a);
-      margin-top: var(--space-2, 8px);
-    }
-
-    .journey-footer {
-      padding: var(--space-4, 16px) var(--space-6, 24px);
-      border-top: 1px solid var(--color-border, rgba(0, 0, 0, 0.08));
-      text-align: center;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: var(--space-3, 12px);
-    }
-
-    .journey-footer p {
-      font-size: var(--text-sm, 0.875rem);
-      color: var(--color-text-muted, #70605a);
-      margin: 0;
-    }
-
-    .journey-share {
-      display: inline-flex;
-      align-items: center;
-      gap: var(--space-2, 8px);
-      padding: var(--space-2, 8px) var(--space-4, 16px);
-      background: var(--persona-primary, #4a6741);
-      color: white;
-      border: none;
-      border-radius: var(--radius-full, 9999px);
-      font-size: var(--text-sm, 0.875rem);
-      font-weight: 500;
-      cursor: pointer;
-      transition: all ${DURATION.FAST}ms ${EASING.STANDARD};
-    }
-
-    .journey-share:hover {
-      background: var(--persona-secondary, #3d5a35);
-      transform: scale(1.02);
-    }
-
-    .journey-share:active {
-      transform: scale(0.98);
-    }
-    
-    .journey-share:focus-visible {
-      outline: 2px solid var(--color-background-elevated, #fff);
-      outline-offset: 2px;
-    }
-
-    .journey-share svg {
-      width: 16px;
-      height: 16px;
-    }
-
-    /* ===== CONNECTION BANNER ===== */
-    .journey-connection {
-      display: flex;
-      align-items: center;
-      gap: var(--space-3, 12px);
-      padding: var(--space-4, 16px);
-      border-radius: var(--radius-xl, 16px);
-      margin-bottom: var(--space-5, 20px);
-      transition: all ${DURATION.SLOW}ms ${EASING.STANDARD};
-    }
-
-    .journey-connection__icon {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-shrink: 0;
-    }
-
-    .journey-connection__icon svg {
-      width: 28px;
-      height: 28px;
-    }
-
-    .journey-connection__icon--spin svg {
-      animation: journey-spin 1.5s linear infinite;
-    }
-
-    @keyframes journey-spin {
-      from { transform: rotate(0deg); }
-      to { transform: rotate(360deg); }
-    }
-
-    .journey-connection__content {
-      flex: 1;
-      min-width: 0;
-    }
-
-    .journey-connection__text {
-      font-size: var(--text-base, 1rem);
-      font-weight: 600;
-      color: var(--color-text-primary, #2c2520);
-    }
-
-    .journey-connection__subtext {
-      font-size: var(--text-sm, 0.875rem);
-      color: var(--color-text-secondary, #5a4d47);
-      margin: var(--space-1, 4px) 0 0;
-    }
-
-    /* Connected state - green, happy */
-    .journey-connection--connected {
-      background: var(--connection-bg-connected, linear-gradient(135deg,
-        color-mix(in srgb, var(--persona-primary, #4a6741) 12%, transparent) 0%,
-        color-mix(in srgb, var(--persona-primary, #4a6741) 4%, transparent) 100%
-      ));
-      border: 1px solid var(--connection-border-connected, color-mix(in srgb, var(--persona-primary, #4a6741) 25%, transparent));
-    }
-    
-    @supports not (background: color-mix(in srgb, red 50%, blue)) {
-      .journey-connection--connected {
-        background: linear-gradient(135deg, rgba(74, 103, 65, 0.12) 0%, rgba(74, 103, 65, 0.04) 100%);
-        border-color: rgba(74, 103, 65, 0.25);
-      }
-    }
-
-    .journey-connection--connected .journey-connection__icon {
-      color: var(--persona-primary, #4a6741);
-    }
-
-    .journey-connection--connected .journey-connection__text {
-      color: var(--persona-primary, #4a6741);
-    }
-
-    /* Connecting state - amber/warm */
-    .journey-connection--connecting {
-      background: var(--connection-bg-connecting, linear-gradient(135deg,
-        color-mix(in srgb, var(--color-warning, #d4a574) 12%, transparent) 0%,
-        color-mix(in srgb, var(--color-warning, #d4a574) 4%, transparent) 100%
-      ));
-      border: 1px solid var(--connection-border-connecting, color-mix(in srgb, var(--color-warning, #d4a574) 25%, transparent));
-    }
-    
-    @supports not (background: color-mix(in srgb, red 50%, blue)) {
-      .journey-connection--connecting {
-        background: linear-gradient(135deg, rgba(212, 165, 116, 0.12) 0%, rgba(212, 165, 116, 0.04) 100%);
-        border-color: rgba(212, 165, 116, 0.25);
-      }
-    }
-
-    .journey-connection--connecting .journey-connection__icon {
-      color: var(--color-warning, #d4a574);
-    }
-
-    .journey-connection--connecting .journey-connection__text {
-      color: var(--color-warning-dark, #b8864e);
-    }
-
-    /* Disconnected state - muted gray */
-    .journey-connection--disconnected {
-      background: var(--connection-bg-disconnected, linear-gradient(135deg,
-        color-mix(in srgb, var(--color-text-muted, #70605a) 8%, transparent) 0%,
-        color-mix(in srgb, var(--color-text-muted, #70605a) 2%, transparent) 100%
-      ));
-      border: 1px solid var(--connection-border-disconnected, color-mix(in srgb, var(--color-text-muted, #70605a) 15%, transparent));
-    }
-    
-    @supports not (background: color-mix(in srgb, red 50%, blue)) {
-      .journey-connection--disconnected {
-        background: linear-gradient(135deg, rgba(112, 96, 90, 0.08) 0%, rgba(112, 96, 90, 0.02) 100%);
-        border-color: rgba(112, 96, 90, 0.15);
-      }
-    }
-
-    .journey-connection--disconnected .journey-connection__icon {
-      color: var(--color-text-muted, #9a8a82);
-    }
-
-    /* Error state - red, but not alarming */
-    .journey-connection--error {
-      background: var(--connection-bg-error, linear-gradient(135deg,
-        color-mix(in srgb, var(--color-error, #c44b4b) 8%, transparent) 0%,
-        color-mix(in srgb, var(--color-error, #c44b4b) 2%, transparent) 100%
-      ));
-      border: 1px solid var(--connection-border-error, color-mix(in srgb, var(--color-error, #c44b4b) 20%, transparent));
-    }
-    
-    @supports not (background: color-mix(in srgb, red 50%, blue)) {
-      .journey-connection--error {
-        background: linear-gradient(135deg, rgba(196, 75, 75, 0.08) 0%, rgba(196, 75, 75, 0.02) 100%);
-        border-color: rgba(196, 75, 75, 0.2);
-      }
-    }
-
-    .journey-connection--error .journey-connection__icon {
-      color: var(--color-error, #c44b4b);
-    }
-
-    .journey-connection--error .journey-connection__text {
-      color: var(--color-error, #c44b4b);
-    }
-
-    /* Connect button */
-    .journey-connect-btn {
-      display: inline-flex;
-      align-items: center;
-      gap: var(--space-2, 8px);
-      padding: var(--space-3, 12px) var(--space-5, 20px);
-      background: var(--persona-primary, #4a6741);
-      color: white;
-      border: none;
-      border-radius: var(--radius-full, 9999px);
-      font-size: var(--text-sm, 0.875rem);
-      font-weight: 600;
-      cursor: pointer;
-      transition: all ${DURATION.FAST}ms ${EASING.STANDARD};
-      flex-shrink: 0;
-    }
-
-    .journey-connect-btn:hover {
-      background: var(--persona-secondary, #3d5a35);
-      transform: scale(1.03);
-    }
-
-    .journey-connect-btn:active {
-      transform: scale(0.98);
-    }
-    
-    .journey-connect-btn:focus-visible {
-      outline: 2px solid var(--color-background-elevated, #fff);
-      outline-offset: 2px;
-    }
-
-    .journey-connect-btn svg {
-      width: 18px;
-      height: 18px;
-    }
-
-    /* Retry button variant */
-    .journey-connect-btn--retry {
-      background: var(--color-error, #c44b4b);
-    }
-
-    .journey-connect-btn--retry:hover {
-      background: var(--color-error-dark, #a33d3d);
-    }
-
-    /* Dark theme */
-    [data-theme="midnight"] .journey-backdrop {
-      background: var(--backdrop-heavy-dark, rgba(8, 8, 12, 0.8));
-    }
-
-    [data-theme="midnight"] .journey-content {
-      background: var(--color-background-elevated, #1a1a1f);
-    }
-
-    [data-theme="midnight"] .journey-title {
-      color: var(--color-text-primary, #faf6f0);
-    }
-
-    [data-theme="midnight"] .journey-milestone--celebrated {
-      background: linear-gradient(135deg, rgba(107, 143, 94, 0.15) 0%, rgba(107, 143, 94, 0.05) 100%);
-      border-color: rgba(107, 143, 94, 0.25);
-    }
-
-    [data-theme="midnight"] .journey-connection--connected {
-      background: linear-gradient(135deg, rgba(107, 143, 94, 0.15) 0%, rgba(107, 143, 94, 0.05) 100%);
-      border-color: rgba(107, 143, 94, 0.3);
-    }
-
-    [data-theme="midnight"] .journey-connection--connected .journey-connection__icon,
-    [data-theme="midnight"] .journey-connection--connected .journey-connection__text {
-      color: var(--persona-primary, #6b8f5e);
-    }
-
-    [data-theme="midnight"] .journey-connection--disconnected {
-      background: linear-gradient(135deg, rgba(122, 122, 122, 0.1) 0%, rgba(122, 122, 122, 0.02) 100%);
-      border-color: rgba(122, 122, 122, 0.2);
-    }
-
-    [data-theme="midnight"] .journey-connection--error {
-      background: linear-gradient(135deg, rgba(224, 96, 96, 0.12) 0%, rgba(224, 96, 96, 0.03) 100%);
-      border-color: rgba(224, 96, 96, 0.25);
-    }
-
-    [data-theme="midnight"] .journey-connection__text {
-      color: var(--color-text-primary, #faf6f0);
-    }
-
-    [data-theme="midnight"] .journey-connection__subtext {
-      color: var(--color-text-secondary, #c0b8b0);
-    }
-
-    [data-theme="midnight"] .journey-connect-btn {
-      background: var(--persona-primary, #6b8f5e);
-    }
-
-    [data-theme="midnight"] .journey-connect-btn:hover {
-      background: var(--persona-secondary, #5a7d4e);
-    }
-
-    /* Dark theme - Progress Overview */
-    [data-theme="midnight"] .journey-progress-ring__bg {
-      stroke: rgba(255, 255, 255, 0.1);
-    }
-
-    [data-theme="midnight"] .journey-progress-ring__fill {
-      stroke: var(--persona-primary, #6b8f5e);
-    }
-
-    [data-theme="midnight"] .journey-progress-ring__percent,
-    [data-theme="midnight"] .journey-stage-name,
-    [data-theme="midnight"] .journey-stat__value {
-      color: var(--color-text-primary, #faf6f0);
-    }
-
-    [data-theme="midnight"] .journey-progress-ring__label,
-    [data-theme="midnight"] .journey-stage-tagline,
-    [data-theme="midnight"] .journey-stat__label,
-    [data-theme="midnight"] .journey-stat__icon,
-    [data-theme="midnight"] .journey-next-stage__req {
-      color: var(--color-text-muted, #a09890);
-    }
-
-    [data-theme="midnight"] .journey-next-stage {
-      background: rgba(255, 255, 255, 0.05);
-    }
-
-    [data-theme="midnight"] .journey-next-stage--max {
-      background: linear-gradient(135deg, rgba(107, 143, 94, 0.12) 0%, rgba(107, 143, 94, 0.04) 100%);
-    }
-
-    [data-theme="midnight"] .journey-milestones-title {
-      color: var(--color-text-primary, #faf6f0);
-    }
-
-    [data-theme="midnight"] .journey-milestones-header:hover {
-      background: rgba(255, 255, 255, 0.05);
-    }
-
-    [data-theme="midnight"] .journey-progress-overview {
-      border-bottom-color: rgba(255, 255, 255, 0.1);
-    }
-
-    /* Mobile - sheet animation from bottom */
-    @media (max-width: 640px) {
-      .journey-modal {
-        padding: 0;
-        align-items: flex-end;
-      }
-
-      .journey-content {
-        max-height: 90vh;
-        border-radius: var(--radius-2xl, 20px) var(--radius-2xl, 20px) 0 0;
-      }
-
-      .journey-header {
-        padding: var(--space-4, 16px);
-      }
-
-      .journey-body {
-        padding: var(--space-3, 12px) var(--space-4, 16px);
-      }
-    }
-
-    /* ===== TRUST INSIGHTS SECTION ===== */
-    .journey-insights-section {
-      margin-bottom: var(--space-4, 16px);
-    }
-
-    .journey-insights-header {
-      display: flex;
-      align-items: center;
-      gap: var(--space-3, 12px);
-      padding: var(--space-3, 12px) var(--space-4, 16px);
-      background: var(--color-background-elevated, rgba(255, 255, 255, 0.5));
-      border-radius: var(--radius-lg, 12px);
-      cursor: pointer;
-      transition: all ${DURATION.FAST}ms ${EASING.STANDARD};
-    }
-
-    .journey-insights-header:hover {
-      background: var(--color-background-hover, rgba(0, 0, 0, 0.03));
-    }
-
-    .journey-insights-header:focus-visible {
-      outline: 2px solid var(--persona-primary, #4a6741);
-      outline-offset: 2px;
-    }
-
-    .journey-insights-title {
-      display: flex;
-      align-items: center;
-      gap: var(--space-2, 8px);
-      flex: 1;
-      font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
-      font-size: var(--text-base, 1rem);
-      font-weight: 600;
-      color: var(--color-text-primary, #2c2520);
-      margin: 0;
-    }
-
-    .journey-insights-title svg {
-      color: var(--persona-primary, #4a6741);
-    }
-
-    .journey-insights-toggle {
-      color: var(--color-text-muted, #70605a);
-      transition: transform ${DURATION.NORMAL}ms ${EASING.STANDARD};
-    }
-
-    .journey-insights-header.collapsed .journey-insights-toggle {
-      transform: rotate(-90deg);
-    }
-
-    .journey-insights-body {
-      padding: var(--space-4, 16px) 0;
-      transition: all ${DURATION.NORMAL}ms ${EASING.STANDARD};
-    }
-
-    .journey-insights-body.collapsed {
-      display: none;
-    }
-
-    /* Loading state */
-    .journey-insights-loading {
-      text-align: center;
-      padding: var(--space-4, 16px);
-    }
-
-    .journey-insights-skeleton {
-      height: 20px;
-      background: linear-gradient(90deg, 
-        var(--color-background-subtle, rgba(0,0,0,0.05)) 25%, 
-        var(--color-background-hover, rgba(0,0,0,0.1)) 50%, 
-        var(--color-background-subtle, rgba(0,0,0,0.05)) 75%
-      );
-      background-size: 200% 100%;
-      border-radius: var(--radius-sm, 4px);
-      animation: skeleton-shimmer 1.5s infinite;
-      margin-bottom: var(--space-2, 8px);
-    }
-
-    .journey-insights-skeleton--short {
-      width: 60%;
-      margin: 0 auto;
-    }
-
-    @keyframes skeleton-shimmer {
-      0% { background-position: -200% 0; }
-      100% { background-position: 200% 0; }
-    }
-
-    .journey-insights-loading-text {
-      font-size: var(--text-sm, 0.875rem);
-      color: var(--color-text-muted, #70605a);
-      margin-top: var(--space-3, 12px);
-    }
-
-    /* Empty state */
-    .journey-insights-empty {
-      text-align: center;
-      padding: var(--space-6, 24px) var(--space-4, 16px);
-    }
-
-    .journey-insights-empty__icon {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      width: 48px;
-      height: 48px;
-      border-radius: var(--radius-full, 9999px);
-      background: color-mix(in srgb, var(--persona-primary, #4a6741) 12%, transparent);
-      color: var(--persona-primary, #4a6741);
-      margin-bottom: var(--space-3, 12px);
-    }
-
-    @supports not (background: color-mix(in srgb, red 50%, blue)) {
-      .journey-insights-empty__icon {
-        background: rgba(74, 103, 65, 0.12);
-      }
-    }
-
-    .journey-insights-empty__title {
-      font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
-      font-size: var(--text-lg, 1.125rem);
-      font-weight: 600;
-      color: var(--color-text-primary, #2c2520);
-      margin: 0 0 var(--space-2, 8px);
-    }
-
-    .journey-insights-empty__text {
-      font-size: var(--text-sm, 0.875rem);
-      color: var(--color-text-muted, #70605a);
-      line-height: 1.5;
-      max-width: 280px;
-      margin: 0 auto;
-    }
-
-    /* Trust Stats Grid */
-    .journey-trust-stats {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: var(--space-3, 12px);
-      margin-bottom: var(--space-5, 20px);
-    }
-
-    .journey-trust-stat {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      padding: var(--space-3, 12px);
-      background: var(--color-background-elevated, rgba(255, 255, 255, 0.5));
-      border-radius: var(--radius-lg, 12px);
-      text-align: center;
-    }
-
-    .journey-trust-stat__icon {
-      color: var(--persona-primary, #4a6741);
-      margin-bottom: var(--space-2, 8px);
-    }
-
-    .journey-trust-stat__icon svg {
-      width: 24px;
-      height: 24px;
-    }
-
-    .journey-trust-stat__value {
-      font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
-      font-size: var(--text-xl, 1.25rem);
-      font-weight: 700;
-      color: var(--color-text-primary, #2c2520);
-      line-height: 1;
-    }
-
-    .journey-trust-stat__label {
-      font-size: var(--text-xs, 0.75rem);
-      color: var(--color-text-muted, #70605a);
-      margin-top: var(--space-1, 4px);
-    }
-
-    /* Trust Sections */
-    .journey-trust-section {
-      margin-bottom: var(--space-4, 16px);
-    }
-
-    .journey-trust-section__title {
-      font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
-      font-size: var(--text-sm, 0.875rem);
-      font-weight: 600;
-      color: var(--color-text-secondary, #5a4d47);
-      margin: 0 0 var(--space-3, 12px);
-    }
-
-    /* Growth Patterns */
-    .journey-growth-patterns {
-      display: flex;
-      flex-wrap: wrap;
-      gap: var(--space-2, 8px);
-    }
-
-    .journey-growth-tag {
-      display: inline-flex;
-      align-items: center;
-      gap: var(--space-1, 4px);
-      padding: var(--space-2, 8px) var(--space-3, 12px);
-      background: color-mix(in srgb, var(--persona-primary, #4a6741) 10%, transparent);
-      color: var(--persona-primary, #4a6741);
-      border-radius: var(--radius-full, 9999px);
-      font-size: var(--text-sm, 0.875rem);
-      font-weight: 500;
-    }
-
-    @supports not (background: color-mix(in srgb, red 50%, blue)) {
-      .journey-growth-tag {
-        background: rgba(74, 103, 65, 0.1);
-      }
-    }
-
-    .journey-growth-tag__count {
-      font-size: var(--text-xs, 0.75rem);
-      opacity: 0.7;
-    }
-
-    /* Recent Wins */
-    .journey-wins-list {
-      display: flex;
-      flex-direction: column;
-      gap: var(--space-3, 12px);
-    }
-
-    .journey-win-item {
-      display: flex;
-      align-items: flex-start;
-      gap: var(--space-3, 12px);
-      padding: var(--space-3, 12px);
-      background: var(--color-background-elevated, rgba(255, 255, 255, 0.5));
-      border-radius: var(--radius-lg, 12px);
-    }
-
-    .journey-win-item__icon {
-      color: var(--color-warning, #d4a574);
-      flex-shrink: 0;
-    }
-
-    .journey-win-item__content {
-      flex: 1;
-      min-width: 0;
-    }
-
-    .journey-win-item__type {
-      display: block;
-      font-size: var(--text-sm, 0.875rem);
-      font-weight: 600;
-      color: var(--color-text-primary, #2c2520);
-    }
-
-    .journey-win-item__desc {
-      font-size: var(--text-sm, 0.875rem);
-      color: var(--color-text-muted, #70605a);
-      margin: var(--space-1, 4px) 0 0;
-      line-height: 1.4;
-    }
-
-    /* Timeline Peek */
-    .journey-timeline-peek {
-      display: flex;
-      flex-direction: column;
-      gap: var(--space-2, 8px);
-    }
-
-    .journey-timeline-item {
-      display: flex;
-      align-items: center;
-      gap: var(--space-3, 12px);
-      padding: var(--space-2, 8px) var(--space-3, 12px);
-      background: var(--color-background-elevated, rgba(255, 255, 255, 0.3));
-      border-radius: var(--radius-md, 8px);
-      border-left: 3px solid var(--persona-primary, #4a6741);
-    }
-
-    .journey-timeline-item--win { border-left-color: var(--color-warning, #d4a574); }
-    .journey-timeline-item--boundary { border-left-color: var(--color-info, #3a6b73); }
-    .journey-timeline-item--callback { border-left-color: var(--color-maya, #a67a6a); }
-    .journey-timeline-item--outreach { border-left-color: var(--color-nayan, #b8956a); }
-
-    .journey-timeline-item__date {
-      font-size: var(--text-xs, 0.75rem);
-      color: var(--color-text-muted, #70605a);
-      white-space: nowrap;
-      min-width: 80px;
-    }
-
-    .journey-timeline-item__title {
-      font-size: var(--text-sm, 0.875rem);
-      color: var(--color-text-primary, #2c2520);
-      font-weight: 500;
-      flex: 1;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-
-    /* Dark theme - Trust Insights */
-    [data-theme="midnight"] .journey-insights-header {
-      background: rgba(255, 255, 255, 0.05);
-    }
-
-    [data-theme="midnight"] .journey-insights-header:hover {
-      background: rgba(255, 255, 255, 0.08);
-    }
-
-    [data-theme="midnight"] .journey-insights-title {
-      color: var(--color-text-primary, #faf6f0);
-    }
-
-    [data-theme="midnight"] .journey-insights-empty__icon {
-      background: rgba(107, 143, 94, 0.15);
-    }
-
-    [data-theme="midnight"] .journey-insights-empty__title {
-      color: var(--color-text-primary, #faf6f0);
-    }
-
-    [data-theme="midnight"] .journey-trust-stat {
-      background: rgba(255, 255, 255, 0.05);
-    }
-
-    [data-theme="midnight"] .journey-trust-stat__value {
-      color: var(--color-text-primary, #faf6f0);
-    }
-
-    [data-theme="midnight"] .journey-trust-section__title {
-      color: var(--color-text-secondary, #c0b8b0);
-    }
-
-    [data-theme="midnight"] .journey-growth-tag {
-      background: rgba(107, 143, 94, 0.15);
-      color: var(--persona-primary, #6b8f5e);
-    }
-
-    [data-theme="midnight"] .journey-win-item {
-      background: rgba(255, 255, 255, 0.05);
-    }
-
-    [data-theme="midnight"] .journey-win-item__type {
-      color: var(--color-text-primary, #faf6f0);
-    }
-
-    [data-theme="midnight"] .journey-timeline-item {
-      background: rgba(255, 255, 255, 0.03);
-    }
-
-    [data-theme="midnight"] .journey-timeline-item__title {
-      color: var(--color-text-primary, #faf6f0);
-    }
-
-    /* Reduced motion */
-    @media (prefers-reduced-motion: reduce) {
-      .journey-milestone,
-      .journey-close,
-      .journey-share,
-      .journey-connection,
-      .journey-connect-btn,
-      .journey-milestone__progress-bar,
-      .journey-insights-skeleton {
-        transition: none;
-        animation: none;
-      }
-      
-      .journey-connection__icon--spin svg {
-        animation: none;
-      }
-    }
-  `;
-
-  document.head.appendChild(style);
-}
 
 // ============================================================================
 // GLOBAL EVENT LISTENER - For backwards compatibility
 // ============================================================================
 
-// Listen for ferni:open-journey event (fired by relationship-progress.ui.ts fallback)
+// Listen for ferni:open-journey event (fired by stage-celebration.ui.ts fallback)
 if (typeof window !== 'undefined') {
   window.addEventListener('ferni:open-journey', () => {
     openJourney();

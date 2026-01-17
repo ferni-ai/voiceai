@@ -174,15 +174,16 @@ export function generatePresenceSignal(context: PresenceContext): PresenceSignal
   }
 
   // Interruption recovery: start softer, more gentle
-  let initialVolume = SOFT_ATTACK_CONFIG.initialVolume;
-  let initialSpeed = SOFT_ATTACK_CONFIG.initialSpeed;
+  let { initialVolume } = SOFT_ATTACK_CONFIG;
+  let { initialSpeed } = SOFT_ATTACK_CONFIG;
 
   if (isInterruptionRecovery) {
     initialVolume = 0.8; // Even softer after interruption
     initialSpeed = 0.9; // Slower, more deliberate
-    presenceSSML =
-      '<break time="150ms"/><volume ratio="0.8"/>' +
-      presenceSSML.replace('<break time="', '<break time="');
+    presenceSSML = `<break time="150ms"/><volume ratio="0.8"/>${presenceSSML.replace(
+      '<break time="',
+      '<break time="'
+    )}`;
   }
 
   // Early turns (building rapport): warmer, softer

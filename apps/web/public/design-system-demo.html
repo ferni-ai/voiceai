@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ferni Design System - Enhanced Components</title>
+  <style>
+    :root {
+      --color-bg-primary: #0a0a0f;
+      --color-bg-secondary: #12121a;
+      --color-bg-elevated: #1a1a25;
+      --color-text-primary: #f0f0f5;
+      --color-text-secondary: #a0a0b0;
+      --color-accent: #3D5A45;
+      --color-ferni: #4a6741;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--color-bg-primary);
+      color: var(--color-text-primary);
+      min-height: 100vh;
+      padding: 2rem;
+    }
+
+    h1 {
+      font-size: 2.5rem;
+      margin-bottom: 0.5rem;
+      background: linear-gradient(135deg, #4a6741, #6a9961);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .subtitle {
+      color: var(--color-text-secondary);
+      margin-bottom: 3rem;
+      font-size: 1.1rem;
+    }
+
+    .section {
+      background: var(--color-bg-secondary);
+      border-radius: 16px;
+      padding: 2rem;
+      margin-bottom: 2rem;
+    }
+
+    .section h2 {
+      font-size: 1.5rem;
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .section h2::before {
+      content: '';
+      width: 4px;
+      height: 1.5rem;
+      background: var(--color-ferni);
+      border-radius: 2px;
+    }
+
+    .demo-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1.5rem;
+      margin-top: 1.5rem;
+    }
+
+    .demo-card {
+      background: var(--color-bg-elevated);
+      border-radius: 12px;
+      padding: 1.5rem;
+      transition: transform 0.3s cubic-bezier(0.5, 1.5, 0.5, 1);
+    }
+
+    .demo-card:hover {
+      transform: scale(1.02);
+    }
+
+    .demo-card h3 {
+      font-size: 1rem;
+      color: var(--color-text-secondary);
+      margin-bottom: 0.75rem;
+    }
+
+    /* Spring Animation Demo */
+    .spring-demo {
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .spring-ball {
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.7rem;
+      font-weight: 600;
+      color: white;
+      text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+    }
+
+    .spring-ball.snappy { background: linear-gradient(135deg, #ff6b6b, #ee5a5a); }
+    .spring-ball.gentle { background: linear-gradient(135deg, #4ecdc4, #45b7aa); }
+    .spring-ball.bouncy { background: linear-gradient(135deg, #ffe66d, #ffd93d); }
+    .spring-ball.heavy { background: linear-gradient(135deg, #6c5ce7, #5b4cdb); }
+    .spring-ball.ethereal { background: linear-gradient(135deg, #a8e6cf, #88d8b0); }
+
+    /* Insight Cards */
+    .insight-card {
+      background: linear-gradient(135deg, rgba(74, 103, 65, 0.1), rgba(74, 103, 65, 0.05));
+      border: 1px solid rgba(74, 103, 65, 0.2);
+      border-radius: 12px;
+      padding: 1.25rem;
+    }
+
+    .insight-value {
+      font-size: 2.5rem;
+      font-weight: 700;
+      color: var(--color-ferni);
+    }
+
+    .insight-label {
+      color: var(--color-text-secondary);
+      font-size: 0.875rem;
+      margin-top: 0.25rem;
+    }
+
+    .sparkline {
+      height: 40px;
+      margin-top: 1rem;
+      display: flex;
+      align-items: flex-end;
+      gap: 3px;
+    }
+
+    .sparkline-bar {
+      flex: 1;
+      background: linear-gradient(to top, rgba(74, 103, 65, 0.3), rgba(74, 103, 65, 0.8));
+      border-radius: 2px;
+      transition: height 0.5s cubic-bezier(0.5, 1.5, 0.5, 1);
+    }
+
+    /* Breathing Guide */
+    .breathing-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1.5rem;
+    }
+
+    .breathing-orb {
+      width: 120px;
+      height: 120px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 30% 30%, rgba(74, 103, 65, 0.8), rgba(74, 103, 65, 0.3));
+      box-shadow: 0 0 60px rgba(74, 103, 65, 0.4);
+      animation: breathe 12s ease-in-out infinite;
+    }
+
+    @keyframes breathe {
+      0%, 100% { transform: scale(1); opacity: 0.7; }
+      33% { transform: scale(1.3); opacity: 1; }
+      50% { transform: scale(1.3); opacity: 1; }
+      83% { transform: scale(1); opacity: 0.7; }
+    }
+
+    .breathing-phase {
+      font-size: 1.25rem;
+      color: var(--color-ferni);
+      font-weight: 500;
+    }
+
+    .breathing-buttons {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .breathing-btn {
+      padding: 0.5rem 1rem;
+      border: 1px solid rgba(74, 103, 65, 0.3);
+      background: transparent;
+      color: var(--color-text-secondary);
+      border-radius: 20px;
+      cursor: pointer;
+      font-size: 0.875rem;
+      transition: all 0.2s;
+    }
+
+    .breathing-btn:hover, .breathing-btn.active {
+      background: var(--color-ferni);
+      color: white;
+      border-color: var(--color-ferni);
+    }
+
+    /* Narrative Visuals */
+    .timeline {
+      display: flex;
+      align-items: center;
+      gap: 0;
+      padding: 1rem 0;
+      overflow-x: auto;
+    }
+
+    .timeline-node {
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: var(--color-ferni);
+      flex-shrink: 0;
+      position: relative;
+      cursor: pointer;
+      transition: all 0.3s cubic-bezier(0.5, 1.5, 0.5, 1);
+    }
+
+    .timeline-node:hover {
+      transform: scale(1.5);
+      box-shadow: 0 0 20px rgba(74, 103, 65, 0.6);
+    }
+
+    .timeline-node.major {
+      width: 24px;
+      height: 24px;
+      background: linear-gradient(135deg, #4a6741, #6a9961);
+    }
+
+    .timeline-line {
+      height: 2px;
+      background: linear-gradient(to right, rgba(74, 103, 65, 0.2), rgba(74, 103, 65, 0.5));
+      flex: 1;
+      min-width: 30px;
+    }
+
+    /* Constellation */
+    .constellation {
+      position: relative;
+      height: 200px;
+      background: radial-gradient(circle at center, rgba(74, 103, 65, 0.05), transparent);
+      border-radius: 12px;
+    }
+
+    .constellation-node {
+      position: absolute;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: var(--color-ferni);
+      box-shadow: 0 0 10px rgba(74, 103, 65, 0.5);
+      animation: twinkle 3s ease-in-out infinite;
+    }
+
+    @keyframes twinkle {
+      0%, 100% { opacity: 0.6; transform: scale(1); }
+      50% { opacity: 1; transform: scale(1.2); }
+    }
+
+    .constellation-node:nth-child(1) { left: 20%; top: 30%; animation-delay: 0s; }
+    .constellation-node:nth-child(2) { left: 50%; top: 20%; animation-delay: 0.5s; width: 18px; height: 18px; }
+    .constellation-node:nth-child(3) { left: 75%; top: 40%; animation-delay: 1s; }
+    .constellation-node:nth-child(4) { left: 35%; top: 60%; animation-delay: 1.5s; }
+    .constellation-node:nth-child(5) { left: 60%; top: 70%; animation-delay: 2s; width: 14px; height: 14px; }
+
+    .constellation-line {
+      position: absolute;
+      height: 1px;
+      background: linear-gradient(to right, rgba(74, 103, 65, 0.3), rgba(74, 103, 65, 0.1));
+      transform-origin: left center;
+    }
+
+    /* Garden */
+    .garden {
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+      gap: 2rem;
+      padding: 2rem;
+      background: linear-gradient(to top, rgba(74, 103, 65, 0.1), transparent);
+      border-radius: 12px;
+    }
+
+    .plant {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .plant-visual {
+      position: relative;
+    }
+
+    .plant-stem {
+      width: 3px;
+      background: linear-gradient(to top, #2d5a27, #4a6741);
+      border-radius: 2px;
+      margin: 0 auto;
+    }
+
+    .plant-leaves {
+      position: absolute;
+      bottom: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+    }
+
+    .plant-leaf {
+      width: 20px;
+      height: 10px;
+      background: var(--color-ferni);
+      border-radius: 50% 50% 50% 50% / 0% 0% 100% 100%;
+      position: absolute;
+    }
+
+    .plant-label {
+      font-size: 0.75rem;
+      color: var(--color-text-secondary);
+      text-align: center;
+    }
+
+    .plant.seed .plant-stem { height: 10px; }
+    .plant.sprout .plant-stem { height: 25px; }
+    .plant.growing .plant-stem { height: 45px; }
+    .plant.blooming .plant-stem { height: 65px; }
+    .plant.thriving .plant-stem { height: 85px; }
+
+    /* Predictive UI */
+    .preload-indicator {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+
+    .preload-tag {
+      padding: 0.375rem 0.75rem;
+      background: rgba(74, 103, 65, 0.15);
+      border: 1px solid rgba(74, 103, 65, 0.25);
+      border-radius: 16px;
+      font-size: 0.8rem;
+      color: var(--color-ferni);
+    }
+
+    .skeleton {
+      background: linear-gradient(90deg,
+        rgba(255,255,255,0.05) 25%,
+        rgba(255,255,255,0.1) 50%,
+        rgba(255,255,255,0.05) 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.5s infinite;
+      border-radius: 8px;
+    }
+
+    @keyframes shimmer {
+      0% { background-position: -200% 0; }
+      100% { background-position: 200% 0; }
+    }
+
+    .skeleton.text { height: 16px; width: 80%; margin-bottom: 8px; }
+    .skeleton.text.short { width: 40%; }
+    .skeleton.avatar { width: 48px; height: 48px; border-radius: 50%; }
+
+    .description {
+      color: var(--color-text-secondary);
+      font-size: 0.9rem;
+      line-height: 1.6;
+      margin-bottom: 1rem;
+    }
+  </style>
+</head>
+<body>
+  <h1>Ferni Design System</h1>
+  <p class="subtitle">Enhanced components that go beyond Material Design 3 and Apple HIG</p>
+
+  <!-- Emotional Springs -->
+  <div class="section">
+    <h2>Emotional Springs</h2>
+    <p class="description">Physics-based animations with emotional context. Each spring type carries different emotional weight - click to see the spring animation.</p>
+    <div class="spring-demo">
+      <div class="spring-ball snappy" onclick="animateSpring(this, 'snappy')">Snappy</div>
+      <div class="spring-ball gentle" onclick="animateSpring(this, 'gentle')">Gentle</div>
+      <div class="spring-ball bouncy" onclick="animateSpring(this, 'bouncy')">Bouncy</div>
+      <div class="spring-ball heavy" onclick="animateSpring(this, 'heavy')">Heavy</div>
+      <div class="spring-ball ethereal" onclick="animateSpring(this, 'ethereal')">Ethereal</div>
+    </div>
+  </div>
+
+  <!-- Insight Cards (Fidelity-style) -->
+  <div class="section">
+    <h2>Fidelity-Style Insight Cards</h2>
+    <p class="description">Financial-grade data visualization with warm aesthetics. Numbers animate up on scroll, sparklines show trends.</p>
+    <div class="demo-grid">
+      <div class="insight-card">
+        <div class="insight-value" id="streak-count">0</div>
+        <div class="insight-label">Day Streak</div>
+        <div class="sparkline" id="sparkline-1"></div>
+      </div>
+      <div class="insight-card">
+        <div class="insight-value" id="conversations">0</div>
+        <div class="insight-label">Conversations This Week</div>
+        <div class="sparkline" id="sparkline-2"></div>
+      </div>
+      <div class="insight-card">
+        <div class="insight-value" id="growth">0%</div>
+        <div class="insight-label">Growth Score</div>
+        <div class="sparkline" id="sparkline-3"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Breathing Guide -->
+  <div class="section">
+    <h2>Breathing Guide</h2>
+    <p class="description">Synced with haptics for multi-sensory grounding. 5 patterns: Box, Relaxing, Energizing, Sleep, Focus.</p>
+    <div class="breathing-container">
+      <div class="breathing-orb" id="breathing-orb"></div>
+      <div class="breathing-phase" id="breathing-phase">Breathe In...</div>
+      <div class="breathing-buttons">
+        <button class="breathing-btn active" data-pattern="box">Box (4-4-4-4)</button>
+        <button class="breathing-btn" data-pattern="relaxing">Relaxing (4-2-6-2)</button>
+        <button class="breathing-btn" data-pattern="energizing">Energizing (4-0-4-0)</button>
+        <button class="breathing-btn" data-pattern="sleep">Sleep (4-7-8-0)</button>
+        <button class="breathing-btn" data-pattern="focus">Focus (4-4-4-2)</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Narrative Visuals -->
+  <div class="section">
+    <h2>Narrative Visuals</h2>
+    <p class="description">Three ways to visualize personal growth: Timeline (life events), Constellation (relationships), Garden (habits).</p>
+    <div class="demo-grid">
+      <div class="demo-card">
+        <h3>Timeline</h3>
+        <div class="timeline">
+          <div class="timeline-node"></div>
+          <div class="timeline-line"></div>
+          <div class="timeline-node major"></div>
+          <div class="timeline-line"></div>
+          <div class="timeline-node"></div>
+          <div class="timeline-line"></div>
+          <div class="timeline-node"></div>
+          <div class="timeline-line"></div>
+          <div class="timeline-node major"></div>
+          <div class="timeline-line"></div>
+          <div class="timeline-node"></div>
+        </div>
+      </div>
+      <div class="demo-card">
+        <h3>Constellation</h3>
+        <div class="constellation">
+          <div class="constellation-node"></div>
+          <div class="constellation-node"></div>
+          <div class="constellation-node"></div>
+          <div class="constellation-node"></div>
+          <div class="constellation-node"></div>
+        </div>
+      </div>
+      <div class="demo-card" style="grid-column: 1 / -1;">
+        <h3>Habit Garden</h3>
+        <div class="garden">
+          <div class="plant seed">
+            <div class="plant-visual">
+              <div class="plant-stem"></div>
+            </div>
+            <div class="plant-label">Seed</div>
+          </div>
+          <div class="plant sprout">
+            <div class="plant-visual">
+              <div class="plant-stem"></div>
+            </div>
+            <div class="plant-label">Sprout</div>
+          </div>
+          <div class="plant growing">
+            <div class="plant-visual">
+              <div class="plant-stem"></div>
+            </div>
+            <div class="plant-label">Growing</div>
+          </div>
+          <div class="plant blooming">
+            <div class="plant-visual">
+              <div class="plant-stem"></div>
+            </div>
+            <div class="plant-label">Blooming</div>
+          </div>
+          <div class="plant thriving">
+            <div class="plant-visual">
+              <div class="plant-stem"></div>
+            </div>
+            <div class="plant-label">Thriving</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Predictive UI -->
+  <div class="section">
+    <h2>Predictive UI</h2>
+    <p class="description">Anticipatory loading based on time of day and user context. Skeleton loaders match content structure.</p>
+    <div class="demo-grid">
+      <div class="demo-card">
+        <h3>Time-Based Preloads (Evening)</h3>
+        <div class="preload-indicator">
+          <span class="preload-tag">reflections</span>
+          <span class="preload-tag">tomorrow-prep</span>
+          <span class="preload-tag">wind-down</span>
+        </div>
+      </div>
+      <div class="demo-card">
+        <h3>Skeleton Loading</h3>
+        <div style="display: flex; gap: 1rem; align-items: flex-start;">
+          <div class="skeleton avatar"></div>
+          <div style="flex: 1;">
+            <div class="skeleton text"></div>
+            <div class="skeleton text"></div>
+            <div class="skeleton text short"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Spring animations
+    const springConfigs = {
+      snappy: { tension: 400, friction: 25, mass: 0.8 },
+      gentle: { tension: 120, friction: 14, mass: 1.0 },
+      bouncy: { tension: 300, friction: 10, mass: 0.9 },
+      heavy: { tension: 200, friction: 20, mass: 2.5 },
+      ethereal: { tension: 80, friction: 8, mass: 0.5 }
+    };
+
+    function animateSpring(el, type) {
+      const config = springConfigs[type];
+      const duration = 1000 / (config.tension / 100);
+
+      el.style.transform = 'scale(0.7)';
+      el.style.transition = `transform ${duration}ms cubic-bezier(0.5, 1.8, 0.5, 1)`;
+
+      setTimeout(() => {
+        el.style.transform = 'scale(1)';
+      }, 50);
+    }
+
+    // Animated count-up
+    function animateValue(id, start, end, duration, suffix = '') {
+      const el = document.getElementById(id);
+      const range = end - start;
+      const startTime = performance.now();
+
+      function update(currentTime) {
+        const elapsed = currentTime - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        const eased = 1 - Math.pow(1 - progress, 3);
+        const current = Math.round(start + range * eased);
+        el.textContent = current + suffix;
+
+        if (progress < 1) {
+          requestAnimationFrame(update);
+        }
+      }
+
+      requestAnimationFrame(update);
+    }
+
+    // Initialize sparklines
+    function createSparkline(id, values) {
+      const container = document.getElementById(id);
+      const max = Math.max(...values);
+
+      values.forEach((v, i) => {
+        const bar = document.createElement('div');
+        bar.className = 'sparkline-bar';
+        bar.style.height = '0%';
+        container.appendChild(bar);
+
+        setTimeout(() => {
+          bar.style.height = `${(v / max) * 100}%`;
+        }, i * 100);
+      });
+    }
+
+    // Breathing animation
+    const phases = ['Breathe In...', 'Hold...', 'Breathe Out...', 'Pause...'];
+    let phaseIndex = 0;
+
+    setInterval(() => {
+      phaseIndex = (phaseIndex + 1) % phases.length;
+      document.getElementById('breathing-phase').textContent = phases[phaseIndex];
+    }, 3000);
+
+    // Initialize on load
+    window.addEventListener('load', () => {
+      // Animate values
+      setTimeout(() => {
+        animateValue('streak-count', 0, 47, 1500);
+        animateValue('conversations', 0, 12, 1200);
+        animateValue('growth', 0, 84, 1800, '%');
+      }, 500);
+
+      // Create sparklines
+      createSparkline('sparkline-1', [3, 5, 4, 7, 6, 8, 7, 9, 8, 10]);
+      createSparkline('sparkline-2', [2, 3, 1, 4, 3, 2, 3, 4, 5, 4]);
+      createSparkline('sparkline-3', [60, 62, 65, 68, 70, 72, 75, 78, 80, 84]);
+    });
+
+    // Breathing pattern buttons
+    document.querySelectorAll('.breathing-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.breathing-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+      });
+    });
+  </script>
+</body>
+</html>

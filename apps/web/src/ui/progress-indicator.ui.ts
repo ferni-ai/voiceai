@@ -26,16 +26,20 @@ import { t } from '../i18n/index.js';
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import { DURATION, EASING, prefersReducedMotion } from '../config/animation-constants.js';
-import { 
-  relationshipStageService, 
-  STAGE_NAMES,
+import {
+  relationshipStageService,
+  getTranslatedStageName,
   type RelationshipStage,
 } from '../services/relationship-stage.service.js';
+import {
+  enhanceProgressIndicatorWithNarrative,
+  injectStorytellingStyles,
+} from './visualization-storytelling.js';
 
 const log = createLogger('ProgressIndicator');
 
 // FIX BUG: Track all setTimeout calls for proper cleanup
-const { trackedTimeout, clearAll: clearAllTimeouts } = createTimeoutTracker();
+const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
 
 // ============================================================================
 // ICONS (Lucide-style SVG)
@@ -101,9 +105,10 @@ let updateInterval: ReturnType<typeof setInterval> | null = null;
  */
 export function initProgressIndicator(): void {
   if (isInitialized) return;
-  
+
   cleanupOrphanedElements();
   injectStyles();
+  injectStorytellingStyles(); // Enhanced narrative styles
   createIndicator();
   
   // Subscribe to stage changes
@@ -215,35 +220,37 @@ export function collapse(): void {
 
 function updateIndicator(): void {
   if (!indicator) return;
-  
+
   const stage = relationshipStageService.getStage();
   const metrics = relationshipStageService.getMetrics();
   const progress = relationshipStageService.getProgressToNextStage();
-  const stageName = STAGE_NAMES[stage];
+  const stageName = getTranslatedStageName(stage);
   const stageDesc = STAGE_DESCRIPTIONS[stage];
-  
+
   const progressPercent = Math.round(progress.progress * 100);
   const isMaxStage = progress.nextStage === null;
-  
+
   if (isExpanded) {
     renderExpanded(stage, stageName, stageDesc, metrics, progress, progressPercent, isMaxStage);
   } else {
     renderCollapsed(stageName, progressPercent, isMaxStage);
+    // Enhance with narrative storytelling (replaces raw % with meaningful narrative)
+    enhanceProgressIndicatorWithNarrative(indicator, stage, progressPercent, metrics.daysSinceFirstMeeting);
   }
 }
 
 function renderCollapsed(stageName: string, progressPercent: number, isMaxStage: boolean): void {
   if (!indicator) return;
   
-  const circumference = 2 * Math.PI * 14; // radius = 14
+  const circumference = 2 * Math.PI * 16; // radius = 16 (increased from 14)
   const strokeDashoffset = circumference - (circumference * progressPercent / 100);
   
   indicator.innerHTML = `
     <div class="progress-collapsed">
       <div class="progress-ring">
-        <svg width="36" height="36" viewBox="0 0 36 36">
-          <circle class="progress-ring-bg" cx="18" cy="18" r="14" />
-          <circle class="progress-ring-fill" cx="18" cy="18" r="14" 
+        <svg width="40" height="40" viewBox="0 0 40 40">
+          <circle class="progress-ring-bg" cx="20" cy="20" r="16" />
+          <circle class="progress-ring-fill" cx="20" cy="20" r="16" 
                   style="stroke-dasharray: ${circumference}; stroke-dashoffset: ${strokeDashoffset}" />
         </svg>
         <span class="progress-ring-icon">${isMaxStage ? ICONS.sparkles : ICONS.heart}</span>
@@ -268,7 +275,7 @@ function renderExpanded(
 ): void {
   if (!indicator) return;
   
-  const circumference = 2 * Math.PI * 40; // radius = 40
+  const circumference = 2 * Math.PI * 36; // radius = 36 (reduced from 40 for better proportion)
   const strokeDashoffset = circumference - (circumference * progressPercent / 100);
   
   indicator.innerHTML = `
@@ -282,9 +289,9 @@ function renderExpanded(
       
       <!-- Progress ring -->
       <div class="progress-ring-large">
-        <svg width="100" height="100" viewBox="0 0 100 100">
-          <circle class="progress-ring-bg" cx="50" cy="50" r="40" />
-          <circle class="progress-ring-fill" cx="50" cy="50" r="40" 
+        <svg width="88" height="88" viewBox="0 0 88 88">
+          <circle class="progress-ring-bg" cx="44" cy="44" r="36" />
+          <circle class="progress-ring-fill" cx="44" cy="44" r="36" 
                   style="stroke-dasharray: ${circumference}; stroke-dashoffset: ${strokeDashoffset}" />
         </svg>
         <div class="progress-ring-center">
@@ -325,7 +332,7 @@ function renderExpanded(
       <!-- Next stage -->
       ${!isMaxStage && progress.nextStage ? `
         <div class="progress-next">
-          <span class="progress-next-label">Next: ${STAGE_NAMES[progress.nextStage]}</span>
+          <span class="progress-next-label">Next: ${getTranslatedStageName(progress.nextStage)}</span>
           <p class="progress-next-requirement">${progress.requirement}</p>
         </div>
       ` : `
@@ -423,14 +430,15 @@ function injectStyles(): void {
     .progress-collapsed {
       display: flex;
       align-items: center;
-      gap: var(--space-2, 8px);
-      padding: var(--space-2, 8px) var(--space-3, 12px);
+      gap: var(--space-3, 12px);
+      padding: var(--space-3, 12px) var(--space-4, 16px);
     }
     
     .progress-ring {
       position: relative;
-      width: 36px;
-      height: 36px;
+      width: 40px;
+      height: 40px;
+      flex-shrink: 0;
     }
     
     .progress-ring svg {
@@ -440,13 +448,13 @@ function injectStyles(): void {
     .progress-ring-bg {
       fill: none;
       stroke: var(--color-background-tertiary, #E8E0D5);
-      stroke-width: 4;
+      stroke-width: 3.5;
     }
     
     .progress-ring-fill {
       fill: none;
       stroke: var(--persona-primary, #4a6741);
-      stroke-width: 4;
+      stroke-width: 3.5;
       stroke-linecap: round;
       transition: stroke-dashoffset ${DURATION.CELEBRATION}ms ${EASING.EXPO_OUT};
     }
@@ -460,18 +468,19 @@ function injectStyles(): void {
     }
     
     .progress-ring-icon svg {
-      width: 16px;
-      height: 16px;
+      width: 18px;
+      height: 18px;
     }
     
     .progress-collapsed-text {
       display: flex;
       flex-direction: column;
+      gap: 2px;
     }
     
     .progress-stage-name {
       font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
-      font-size: var(--text-sm, 14px);
+      font-size: 15px;
       font-weight: var(--font-weight-semibold, 600);
       color: var(--color-text-primary, #2C2520);
       line-height: 1.2;
@@ -482,11 +491,20 @@ function injectStyles(): void {
       font-size: var(--text-xs, 12px);
       color: var(--color-text-muted, #756A5E);
     }
-    
+
+    .progress-narrative {
+      font-family: var(--font-body, 'Inter', sans-serif);
+      font-size: var(--text-xs, 12px);
+      color: var(--persona-primary, #4a6741);
+      font-style: italic;
+      cursor: help;
+    }
+
     .progress-expand-icon {
       color: var(--color-text-muted, #756A5E);
       opacity: 0.5;
       transition: opacity ${DURATION.FAST}ms;
+      flex-shrink: 0;
     }
     
     .progress-indicator:hover .progress-expand-icon {
@@ -502,15 +520,15 @@ function injectStyles(): void {
        EXPANDED STATE
        ======================================================================== */
     .progress-expanded {
-      width: 260px;
-      padding: var(--space-4, 16px);
+      width: min(280px, calc(100vw - var(--space-8, 32px)));
+      padding: var(--space-5, 20px);
     }
     
     .progress-header {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      margin-bottom: var(--space-4, 16px);
+      margin-bottom: var(--space-3, 12px);
     }
     
     .progress-eyebrow {
@@ -547,12 +565,12 @@ function injectStyles(): void {
       height: 16px;
     }
     
-    /* Large ring */
+    /* Large ring - reduced from 100px to 88px for better proportion */
     .progress-ring-large {
       position: relative;
-      width: 100px;
-      height: 100px;
-      margin: 0 auto var(--space-4, 16px);
+      width: 88px;
+      height: 88px;
+      margin: 0 auto var(--space-3, 12px);
     }
     
     .progress-ring-large svg {
@@ -560,11 +578,11 @@ function injectStyles(): void {
     }
     
     .progress-ring-large .progress-ring-bg {
-      stroke-width: 8;
+      stroke-width: 7;
     }
     
     .progress-ring-large .progress-ring-fill {
-      stroke-width: 8;
+      stroke-width: 7;
     }
     
     .progress-ring-center {
@@ -578,15 +596,16 @@ function injectStyles(): void {
     .progress-ring-value {
       display: block;
       font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
-      font-size: var(--text-xl, 24px);
+      font-size: var(--text-lg, 20px);
       font-weight: var(--font-weight-bold, 700);
       color: var(--color-text-primary, #2C2520);
       line-height: 1;
     }
     
     .progress-ring-label {
-      font-size: var(--text-xs, 12px);
+      font-size: 10px;
       color: var(--color-text-muted, #756A5E);
+      margin-top: 2px;
     }
     
     .progress-ring-icon-large {
@@ -594,19 +613,19 @@ function injectStyles(): void {
     }
     
     .progress-ring-icon-large svg {
-      width: 32px;
-      height: 32px;
+      width: 28px;
+      height: 28px;
     }
     
     /* Stage info */
     .progress-stage {
       text-align: center;
-      margin-bottom: var(--space-4, 16px);
+      margin-bottom: var(--space-3, 12px);
     }
     
     .progress-stage-title {
       font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
-      font-size: var(--text-lg, 18px);
+      font-size: var(--text-base, 16px);
       font-weight: var(--font-weight-bold, 700);
       color: var(--color-text-primary, #2C2520);
       margin: 0 0 var(--space-1, 4px);
@@ -620,50 +639,51 @@ function injectStyles(): void {
     
     /* Metrics */
     .progress-metrics {
-      display: flex;
-      justify-content: space-between;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
       gap: var(--space-2, 8px);
-      padding: var(--space-3, 12px);
+      padding: var(--space-3, 12px) var(--space-2, 8px);
       background: var(--color-background-secondary, #F5F1E8);
       border-radius: var(--radius-lg, 12px);
-      margin-bottom: var(--space-4, 16px);
+      margin-bottom: var(--space-3, 12px);
     }
     
     .progress-metric {
       display: flex;
       flex-direction: column;
       align-items: center;
-      flex: 1;
+      gap: 2px;
     }
     
     .metric-icon {
       color: var(--color-text-muted, #756A5E);
-      margin-bottom: var(--space-1, 4px);
+      margin-bottom: 2px;
     }
     
     .metric-icon svg {
-      width: 16px;
-      height: 16px;
+      width: 18px;
+      height: 18px;
     }
     
     .metric-value {
       font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
-      font-size: var(--text-lg, 18px);
+      font-size: var(--text-base, 16px);
       font-weight: var(--font-weight-bold, 700);
       color: var(--color-text-primary, #2C2520);
       line-height: 1;
     }
     
     .metric-label {
-      font-size: var(--text-xs, 12px);
+      font-size: 10px;
       color: var(--color-text-muted, #756A5E);
       text-align: center;
+      line-height: 1.3;
     }
     
     /* Next stage */
     .progress-next {
       text-align: center;
-      padding: var(--space-3, 12px);
+      padding: var(--space-3, 12px) var(--space-4, 16px);
       background: var(--persona-tint, rgba(74, 103, 65, 0.1));
       border-radius: var(--radius-lg, 12px);
     }
@@ -681,6 +701,7 @@ function injectStyles(): void {
       font-size: var(--text-xs, 12px);
       color: var(--color-text-secondary, #5C544A);
       margin: 0;
+      line-height: 1.4;
     }
     
     .progress-complete {
@@ -734,6 +755,30 @@ function injectStyles(): void {
       background: var(--color-background-tertiary, #504540);
     }
     
+    /* Fix persona-primary text colors for dark theme readability */
+    /* Use !important to override base styles with persona-primary fallbacks */
+    [data-theme="midnight"] .progress-eyebrow,
+    [data-theme="midnight"] .progress-next-label {
+      color: var(--color-accent-text, #e8c870) !important;
+    }
+    
+    [data-theme="midnight"] .progress-ring-icon,
+    [data-theme="midnight"] .progress-ring-icon-large {
+      color: var(--color-accent-text, #e8c870) !important;
+    }
+    
+    [data-theme="midnight"] .progress-ring-fill {
+      stroke: var(--color-accent-text, #e8c870) !important;
+    }
+    
+    [data-theme="midnight"] .progress-percent,
+    [data-theme="midnight"] .progress-expand-icon,
+    [data-theme="midnight"] .metric-icon,
+    [data-theme="midnight"] .metric-label,
+    [data-theme="midnight"] .progress-ring-label {
+      color: var(--color-text-muted);
+    }
+    
     /* ========================================================================
        REDUCED MOTION
        ======================================================================== */
@@ -748,17 +793,13 @@ function injectStyles(): void {
     }
     
     /* ========================================================================
-       MOBILE
+       MOBILE - Hide progress indicator on mobile devices
+       Too intrusive and conflicts with mobile bottom sheet trigger button.
+       Users can still access stage info via the settings menu.
        ======================================================================== */
-    @media (max-width: 480px) {
+    @media (max-width: 768px) {
       .progress-indicator {
-        bottom: var(--space-20, 80px);
-        left: var(--space-3, 12px);
-      }
-      
-      .progress-expanded {
-        width: calc(100vw - var(--space-6, 24px));
-        max-width: 280px;
+        display: none !important;
       }
     }
   `;

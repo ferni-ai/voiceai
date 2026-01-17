@@ -1,0 +1,620 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Window Avatar — Better Than Pixar</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --ferni: #4a6741;
+        --ferni-light: #5a7a51;
+        --ferni-dark: #3d5a35;
+        --cream: #f5f1e8;
+        --ink: #2c2520;
+        --blush: #c4856a; /* Warm coral for cheek blush */
+        --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+        --ease-anticipate: cubic-bezier(0.68, -0.55, 0.265, 1.55);
+      }
+
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: 'Plus Jakarta Sans', sans-serif;
+        background: var(--cream);
+        min-height: 100vh;
+        padding: 40px 20px;
+        color: var(--ink);
+      }
+
+      header {
+        text-align: center;
+        margin-bottom: 24px;
+      }
+
+      h1 {
+        font-size: 1.5rem;
+        font-weight: 800;
+        color: var(--ferni);
+        margin-bottom: 4px;
+      }
+
+      .subtitle {
+        color: #5c544a;
+        font-size: 0.85rem;
+      }
+
+      .features {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        justify-content: center;
+        margin-top: 12px;
+      }
+
+      .feature-tag {
+        background: rgba(74, 103, 65, 0.1);
+        color: var(--ferni);
+        padding: 4px 12px;
+        border-radius: 999px;
+        font-size: 0.7rem;
+        font-weight: 600;
+      }
+
+      .demo-area {
+        max-width: 800px;
+        margin: 0 auto;
+      }
+
+      .main-demo {
+        background: rgba(255, 253, 251, 0.95);
+        border-radius: 24px;
+        padding: 32px;
+        margin-bottom: 24px;
+        box-shadow: 0 4px 20px rgba(44, 37, 32, 0.05);
+      }
+
+      .controls {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        justify-content: center;
+        margin-bottom: 24px;
+      }
+
+      .btn {
+        padding: 8px 16px;
+        border: none;
+        border-radius: 999px;
+        font-weight: 600;
+        font-size: 0.75rem;
+        cursor: pointer;
+        background: rgba(44, 37, 32, 0.06);
+        color: var(--ink);
+        transition: all 0.2s var(--ease-spring);
+      }
+
+      .btn:hover,
+      .btn.active {
+        background: var(--ferni);
+        color: white;
+      }
+
+      .avatar-stage {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 180px;
+      }
+
+      /* ============================================
+       "BETTER THAN PIXAR" AVATAR
+       
+       Character features beyond just eyes:
+       1. DIMPLES - Shadow shapes for warmth
+       2. CHEEK BLUSH - Subtle warm tint
+       3. BODY TILT - Rotate whole avatar
+       4. BODY SQUASH/STRETCH - Orb deforms
+       5. EYE ASYMMETRY - Playful expressions
+       6. WARM GLOW RING - Ring color shifts
+       7. ANTICIPATION - Brief squash before changes
+       
+       NO SPARKLES - Pure white eyes only
+       ============================================ */
+
+      .ferni-avatar {
+        --size: 120px;
+        position: relative;
+        width: var(--size);
+        height: var(--size);
+        /* Body tilt happens on the whole avatar */
+        transition: transform 0.3s var(--ease-spring);
+        transform-origin: center center;
+      }
+
+      .ferni-avatar .avatar-svg {
+        width: 100%;
+        height: 100%;
+        overflow: visible;
+      }
+
+      /* Presence ring - can glow warmer */
+      .presence-ring {
+        fill: none;
+        stroke: var(--ferni);
+        stroke-width: 2;
+        opacity: 0.35;
+        transition: all 0.4s var(--ease-spring);
+      }
+
+      /* Avatar body - squash & stretch capable */
+      .avatar-body {
+        transition: transform 0.25s var(--ease-spring);
+        transform-origin: center center;
+      }
+
+      /* Eyes - PURE WHITE, no sparkles */
+      .eye-main {
+        transition: transform 0.15s var(--ease-spring);
+        transform-origin: center center;
+      }
+
+      /* Lid overlay */
+      .avatar-lid-overlay {
+        position: absolute;
+        inset: 0;
+        border-radius: 50%;
+        overflow: hidden;
+        pointer-events: none;
+      }
+
+      .lid-top,
+      .lid-bottom {
+        fill: var(--cream);
+        transition: d 0.3s var(--ease-spring);
+      }
+
+      /* DIMPLES - Shadow ellipses below eyes */
+      .dimple {
+        fill: rgba(0, 0, 0, 0.15);
+        transition: all 0.3s var(--ease-spring);
+      }
+
+      /* CHEEK BLUSH - Warm glow zones */
+      .blush {
+        fill: var(--blush);
+        opacity: 0;
+        transition: opacity 0.4s var(--ease-spring);
+      }
+
+      /* ============================================
+       EXPRESSIONS - Beyond Just Eyes!
+       
+       Each expression uses MULTIPLE character tools:
+       - Eye transforms
+       - Lid paths
+       - Body rotation (tilt)
+       - Body scale (squash/stretch)
+       - Dimple opacity
+       - Blush opacity
+       - Ring glow
+       ============================================ */
+
+      /* NEUTRAL - Clean, present */
+      .ferni-avatar[data-mood='neutral'] .lid-top {
+        d: path('M 0,0 Q 50,-20 100,0 L 100,0 L 0,0 Z');
+      }
+      .ferni-avatar[data-mood='neutral'] .lid-bottom {
+        d: path('M 0,100 Q 50,120 100,100 L 100,100 L 0,100 Z');
+      }
+
+      /* HAPPY - Squint + dimples + slight body stretch */
+      .ferni-avatar[data-mood='happy'] {
+        transform: scaleY(1.02); /* Slight stretch = energized */
+      }
+      .ferni-avatar[data-mood='happy'] .eye-main {
+        transform: scaleY(0.55) scaleX(1.12);
+      }
+      .ferni-avatar[data-mood='happy'] .lid-top {
+        d: path('M 0,0 Q 50,18 100,0 L 100,0 L 0,0 Z');
+      }
+      .ferni-avatar[data-mood='happy'] .lid-bottom {
+        d: path('M 0,100 Q 50,90 100,100 L 100,100 L 0,100 Z');
+      }
+      .ferni-avatar[data-mood='happy'] .dimple {
+        opacity: 1;
+      }
+      .ferni-avatar[data-mood='happy'] .presence-ring {
+        stroke: #6a9a5a; /* Warmer green */
+        opacity: 0.5;
+      }
+
+      /* DELIGHTED - Full warmth: dimples + blush + glow */
+      .ferni-avatar[data-mood='delighted'] {
+        transform: scaleY(1.03) scaleX(0.98);
+      }
+      .ferni-avatar[data-mood='delighted'] .eye-main {
+        transform: scaleY(0.45) scaleX(1.15);
+      }
+      .ferni-avatar[data-mood='delighted'] .lid-top {
+        d: path('M 0,0 Q 50,22 100,0 L 100,0 L 0,0 Z');
+      }
+      .ferni-avatar[data-mood='delighted'] .lid-bottom {
+        d: path('M 0,100 Q 50,88 100,100 L 100,100 L 0,100 Z');
+      }
+      .ferni-avatar[data-mood='delighted'] .dimple {
+        opacity: 1;
+        transform: scale(1.2);
+      }
+      .ferni-avatar[data-mood='delighted'] .blush {
+        opacity: 0.25;
+      }
+      .ferni-avatar[data-mood='delighted'] .presence-ring {
+        stroke: #7aaa6a;
+        opacity: 0.6;
+        stroke-width: 3;
+      }
+
+      /* CURIOUS - Head tilt (body rotation) + one eye bigger */
+      .ferni-avatar[data-mood='curious'] {
+        transform: rotate(-4deg); /* Luxo Jr. style head tilt! */
+      }
+      .ferni-avatar[data-mood='curious'] .eye-left {
+        transform: scaleY(1.15) scaleX(1.05);
+      }
+      .ferni-avatar[data-mood='curious'] .eye-right {
+        transform: scaleY(1.05); /* Asymmetry! */
+      }
+      .ferni-avatar[data-mood='curious'] .lid-top {
+        d: path('M 0,0 Q 50,8 100,0 L 100,0 L 0,0 Z');
+      }
+
+      /* THINKING - Look up-right + slight lean */
+      .ferni-avatar[data-mood='thinking'] {
+        transform: rotate(2deg) translateY(-2px);
+      }
+      .ferni-avatar[data-mood='thinking'] .eye-main {
+        transform: translateX(3px) translateY(-3px);
+      }
+      .ferni-avatar[data-mood='thinking'] .lid-top {
+        d: path('M 0,0 Q 50,10 100,0 L 100,0 L 0,0 Z');
+      }
+
+      /* PLAYFUL - Asymmetric wink-ready + tilt */
+      .ferni-avatar[data-mood='playful'] {
+        transform: rotate(3deg);
+      }
+      .ferni-avatar[data-mood='playful'] .eye-left {
+        transform: scaleY(0.6) scaleX(1.1);
+      }
+      .ferni-avatar[data-mood='playful'] .eye-right {
+        transform: scaleY(1.1) scaleX(1.02);
+      }
+      .ferni-avatar[data-mood='playful'] .dimple-right {
+        opacity: 0.8;
+      }
+      .ferni-avatar[data-mood='playful'] .lid-top {
+        d: path('M 0,0 Q 30,15 60,5 Q 80,-5 100,0 L 100,0 L 0,0 Z');
+      }
+
+      /* SLEEPY - Heavy squash + lids */
+      .ferni-avatar[data-mood='sleepy'] {
+        transform: scaleY(0.96) scaleX(1.02); /* Squashed = tired */
+      }
+      .ferni-avatar[data-mood='sleepy'] .eye-main {
+        transform: scaleY(0.4);
+      }
+      .ferni-avatar[data-mood='sleepy'] .lid-top {
+        d: path('M 0,0 Q 50,50 100,0 L 100,0 L 0,0 Z');
+      }
+      .ferni-avatar[data-mood='sleepy'] .lid-bottom {
+        d: path('M 0,100 Q 50,78 100,100 L 100,100 L 0,100 Z');
+      }
+      .ferni-avatar[data-mood='sleepy'] .presence-ring {
+        opacity: 0.2;
+      }
+
+      /* SAD - Droopy + slight inward tilt */
+      .ferni-avatar[data-mood='sad'] {
+        transform: scaleY(0.98);
+      }
+      .ferni-avatar[data-mood='sad'] .eye-main {
+        transform: scaleY(0.75) translateY(2px);
+      }
+      .ferni-avatar[data-mood='sad'] .eye-left {
+        transform: scaleY(0.75) translateY(2px) rotate(3deg);
+      }
+      .ferni-avatar[data-mood='sad'] .eye-right {
+        transform: scaleY(0.75) translateY(2px) rotate(-3deg);
+      }
+      .ferni-avatar[data-mood='sad'] .lid-top {
+        d: path('M 0,0 Q 50,30 100,0 L 100,0 L 0,0 Z');
+      }
+
+      /* EMPATHETIC - Soft, warm tilt + light dimples */
+      .ferni-avatar[data-mood='empathetic'] {
+        transform: rotate(-2deg);
+      }
+      .ferni-avatar[data-mood='empathetic'] .eye-main {
+        transform: scaleY(0.9);
+      }
+      .ferni-avatar[data-mood='empathetic'] .lid-top {
+        d: path('M 0,0 Q 50,15 100,0 L 100,0 L 0,0 Z');
+      }
+      .ferni-avatar[data-mood='empathetic'] .dimple {
+        opacity: 0.5;
+      }
+      .ferni-avatar[data-mood='empathetic'] .presence-ring {
+        stroke: #5a8a5a;
+        opacity: 0.45;
+      }
+
+      /* SURPRISED - Wide stretch + eyes */
+      .ferni-avatar[data-mood='surprised'] {
+        transform: scaleY(1.04) scaleX(0.97); /* Stretch = alert */
+      }
+      .ferni-avatar[data-mood='surprised'] .eye-main {
+        transform: scaleY(1.25) scaleX(1.1);
+      }
+      .ferni-avatar[data-mood='surprised'] .lid-top {
+        d: path('M 0,0 Q 50,-25 100,0 L 100,0 L 0,0 Z');
+      }
+      .ferni-avatar[data-mood='surprised'] .lid-bottom {
+        d: path('M 0,100 Q 50,125 100,100 L 100,100 L 0,100 Z');
+      }
+
+      /* SPEAKING - Gentle squint + body pulse */
+      .ferni-avatar[data-mood='speaking'] .eye-main {
+        transform: scaleY(0.8) scaleX(1.04);
+      }
+      .ferni-avatar[data-mood='speaking'] .avatar-body {
+        animation: speakPulse 0.35s ease-in-out infinite;
+      }
+
+      @keyframes speakPulse {
+        0%,
+        100% {
+          transform: scale(1);
+        }
+        50% {
+          transform: scaleY(1.015) scaleX(0.99);
+        }
+      }
+
+      /* LISTENING - Attentive lean-in + wider eyes */
+      .ferni-avatar[data-mood='listening'] {
+        transform: translateY(-2px); /* Lean forward */
+      }
+      .ferni-avatar[data-mood='listening'] .eye-main {
+        transform: scaleY(1.08);
+      }
+      .ferni-avatar[data-mood='listening'] .avatar-body {
+        animation: listenBreathe 2.5s ease-in-out infinite;
+      }
+      .ferni-avatar[data-mood='listening'] .presence-ring {
+        opacity: 0.45;
+      }
+
+      @keyframes listenBreathe {
+        0%,
+        100% {
+          transform: scale(1);
+        }
+        50% {
+          transform: scale(1.012);
+        }
+      }
+
+      /* Gallery */
+      .gallery {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(85px, 1fr));
+        gap: 8px;
+      }
+
+      .gallery-card {
+        background: rgba(255, 253, 251, 0.95);
+        border-radius: 12px;
+        padding: 8px;
+        text-align: center;
+        box-shadow: 0 2px 8px rgba(44, 37, 32, 0.04);
+        cursor: pointer;
+        transition: all 0.2s var(--ease-spring);
+      }
+
+      .gallery-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(44, 37, 32, 0.08);
+      }
+
+      .gallery-card h3 {
+        font-size: 0.6rem;
+        margin-top: 4px;
+      }
+
+      .gallery-card p {
+        font-size: 0.5rem;
+        color: #756a5e;
+        margin-top: 2px;
+      }
+
+      .mini-avatar {
+        --size: 45px;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>Window Avatar — Better Than Pixar</h1>
+      <p class="subtitle">Character beyond just eyes</p>
+      <div class="features">
+        <span class="feature-tag">Dimples</span>
+        <span class="feature-tag">Cheek Blush</span>
+        <span class="feature-tag">Body Tilt</span>
+        <span class="feature-tag">Squash & Stretch</span>
+        <span class="feature-tag">Eye Asymmetry</span>
+        <span class="feature-tag">Warm Glow Ring</span>
+      </div>
+    </header>
+
+    <div class="demo-area">
+      <div class="main-demo">
+        <div class="controls">
+          <button class="btn active" data-mood="neutral">Neutral</button>
+          <button class="btn" data-mood="happy">Happy</button>
+          <button class="btn" data-mood="delighted">Delighted</button>
+          <button class="btn" data-mood="curious">Curious</button>
+          <button class="btn" data-mood="thinking">Thinking</button>
+          <button class="btn" data-mood="playful">Playful</button>
+          <button class="btn" data-mood="empathetic">Empathetic</button>
+          <button class="btn" data-mood="sleepy">Sleepy</button>
+          <button class="btn" data-mood="sad">Sad</button>
+          <button class="btn" data-mood="surprised">Surprised</button>
+          <button class="btn" data-mood="speaking">Speaking</button>
+          <button class="btn" data-mood="listening">Listening</button>
+        </div>
+
+        <div class="avatar-stage">
+          <div class="ferni-avatar" data-mood="neutral" id="mainAvatar">
+            <svg class="avatar-svg" viewBox="0 0 100 100">
+              <defs>
+                <linearGradient id="orbGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stop-color="#5a7a51" />
+                  <stop offset="100%" stop-color="#3d5a35" />
+                </linearGradient>
+                <linearGradient id="eyeGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                  <stop offset="0%" stop-color="#ffffff" />
+                  <stop offset="100%" stop-color="#f0ebe4" />
+                </linearGradient>
+              </defs>
+
+              <!-- Presence ring (changes with mood) -->
+              <circle class="presence-ring" cx="50" cy="50" r="46" />
+
+              <!-- Green orb (squash & stretch capable) -->
+              <circle class="avatar-body" cx="50" cy="50" r="40" fill="url(#orbGrad)" />
+
+              <!-- Subtle orb shine (high up, away from eyes) -->
+              <ellipse cx="35" cy="30" rx="8" ry="4" fill="rgba(255,255,255,0.08)" />
+
+              <!-- 
+              EYES - Pure white ellipses, NO sparkles!
+              Positioned at cy=48 (slightly above center)
+            -->
+              <g class="eyes-group">
+                <ellipse
+                  class="eye-main eye-left"
+                  cx="36"
+                  cy="48"
+                  rx="7"
+                  ry="10"
+                  fill="url(#eyeGrad)"
+                />
+                <ellipse
+                  class="eye-main eye-right"
+                  cx="64"
+                  cy="48"
+                  rx="7"
+                  ry="10"
+                  fill="url(#eyeGrad)"
+                />
+              </g>
+
+              <!-- 
+              CHEEK BLUSH - Warm coral tint (appears during delight)
+              Positioned in cheek area below eyes
+            -->
+              <ellipse class="blush blush-left" cx="28" cy="58" rx="8" ry="5" />
+              <ellipse class="blush blush-right" cx="72" cy="58" rx="8" ry="5" />
+            </svg>
+
+            <!-- Lid overlay with DIMPLES -->
+            <div class="avatar-lid-overlay">
+              <svg class="lid-svg" viewBox="0 0 100 100" preserveAspectRatio="none">
+                <!-- Lids -->
+                <path class="lid-top" d="M 0,0 Q 50,-20 100,0 L 100,0 L 0,0 Z" />
+                <path class="lid-bottom" d="M 0,100 Q 50,120 100,100 L 100,100 L 0,100 Z" />
+
+                <!-- DIMPLES - Shadow shapes that appear during warm expressions -->
+                <ellipse class="dimple dimple-left" cx="28" cy="65" rx="5" ry="3" opacity="0" />
+                <ellipse class="dimple dimple-right" cx="72" cy="65" rx="5" ry="3" opacity="0" />
+              </svg>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Gallery showing all expressions -->
+      <div class="gallery" id="gallery">
+        <!-- Generated by JS for brevity -->
+      </div>
+    </div>
+
+    <script>
+      const avatar = document.getElementById('mainAvatar');
+      const buttons = document.querySelectorAll('.btn');
+      const gallery = document.getElementById('gallery');
+
+      const moods = [
+        { id: 'neutral', name: 'Neutral', desc: 'Present' },
+        { id: 'happy', name: 'Happy', desc: 'Dimples!' },
+        { id: 'delighted', name: 'Delighted', desc: 'Blush + glow' },
+        { id: 'curious', name: 'Curious', desc: 'Head tilt' },
+        { id: 'playful', name: 'Playful', desc: 'Asymmetric' },
+        { id: 'empathetic', name: 'Empathetic', desc: 'Warm tilt' },
+        { id: 'sleepy', name: 'Sleepy', desc: 'Squash' },
+        { id: 'surprised', name: 'Surprised', desc: 'Stretch' },
+      ];
+
+      function setMood(mood) {
+        avatar.dataset.mood = mood;
+        buttons.forEach((b) => b.classList.toggle('active', b.dataset.mood === mood));
+      }
+
+      buttons.forEach((btn) => btn.addEventListener('click', () => setMood(btn.dataset.mood)));
+
+      // Generate gallery
+      gallery.innerHTML = moods
+        .map(
+          (m) => `
+      <div class="gallery-card" onclick="setMood('${m.id}')">
+        <div class="ferni-avatar mini-avatar" data-mood="${m.id}">
+          <svg class="avatar-svg" viewBox="0 0 100 100">
+            <defs>
+              <linearGradient id="og-${m.id}" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#5a7a51"/><stop offset="100%" stop-color="#3d5a35"/></linearGradient>
+              <linearGradient id="eg-${m.id}" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" stop-color="#fff"/><stop offset="100%" stop-color="#f0ebe4"/></linearGradient>
+            </defs>
+            <circle class="presence-ring" cx="50" cy="50" r="46"/>
+            <circle class="avatar-body" cx="50" cy="50" r="40" fill="url(#og-${m.id})"/>
+            <g class="eyes-group">
+              <ellipse class="eye-main eye-left" cx="36" cy="48" rx="7" ry="10" fill="url(#eg-${m.id})"/>
+              <ellipse class="eye-main eye-right" cx="64" cy="48" rx="7" ry="10" fill="url(#eg-${m.id})"/>
+            </g>
+            <ellipse class="blush blush-left" cx="28" cy="58" rx="8" ry="5" fill="#c4856a"/>
+            <ellipse class="blush blush-right" cx="72" cy="58" rx="8" ry="5" fill="#c4856a"/>
+          </svg>
+          <div class="avatar-lid-overlay">
+            <svg class="lid-svg" viewBox="0 0 100 100" preserveAspectRatio="none">
+              <path class="lid-top" d="M 0,0 Q 50,-20 100,0 L 100,0 L 0,0 Z"/>
+              <path class="lid-bottom" d="M 0,100 Q 50,120 100,100 L 100,100 L 0,100 Z"/>
+              <ellipse class="dimple dimple-left" cx="28" cy="65" rx="5" ry="3" opacity="0"/>
+              <ellipse class="dimple dimple-right" cx="72" cy="65" rx="5" ry="3" opacity="0"/>
+            </svg>
+          </div>
+        </div>
+        <h3>${m.name}</h3>
+        <p>${m.desc}</p>
+      </div>
+    `
+        )
+        .join('');
+    </script>
+  </body>
+</html>

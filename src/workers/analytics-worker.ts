@@ -13,6 +13,8 @@
  * - Generate learning signals
  */
 
+/* eslint-disable no-restricted-imports -- Workers need direct service imports */
+
 import { LocalWorker, type WorkerConfig } from './base-worker.js';
 import type { EventPayload } from '../services/async-events/index.js';
 
@@ -21,6 +23,7 @@ import {
   getCommunityInsights,
   saveCommunityInsightsToFirestore,
 } from '../intelligence/community-insights.js';
+// cleanForFirestore removed - not used in this worker
 import {
   getAgentEvolution,
   saveAgentEvolutionToFirestore,
@@ -69,7 +72,7 @@ export class AnalyticsWorker extends LocalWorker {
     this.log.debug('Batch processing enabled');
   }
 
-  protected async cleanup(): Promise<void> {
+  protected override async cleanup(): Promise<void> {
     if (this.flushInterval) {
       clearInterval(this.flushInterval);
       this.flushInterval = null;
@@ -77,7 +80,6 @@ export class AnalyticsWorker extends LocalWorker {
 
     // Final flush
     await this.flushBatches();
-
     await super.cleanup();
   }
 
@@ -108,7 +110,7 @@ export class AnalyticsWorker extends LocalWorker {
         break;
 
       case 'conversation:turn':
-        await this.handleTurn(userId, personaId, data);
+        this.handleTurn(userId, personaId, data);
         break;
 
       default:
@@ -249,7 +251,7 @@ export class AnalyticsWorker extends LocalWorker {
     try {
       const agentEvolution = getAgentEvolution();
 
-      if (personaId && data.bestStrategy) {
+      if (personaId != null && data.bestStrategy != null) {
         // Create adjustment from detected pattern
         agentEvolution.createAdjustmentFromCommunityPattern(personaId, {
           context: {
@@ -298,7 +300,7 @@ export class AnalyticsWorker extends LocalWorker {
     try {
       const communityInsights = getCommunityInsights();
 
-      if (personaId && data.topic) {
+      if (personaId != null && data.topic != null) {
         // Record as engagement signal
         communityInsights.recordEngagementSignal({
           personaId,
@@ -328,11 +330,11 @@ export class AnalyticsWorker extends LocalWorker {
   /**
    * Handle conversation turn for real-time analytics.
    */
-  private async handleTurn(
-    userId: string | undefined,
-    personaId: string | undefined,
-    data: Record<string, unknown>
-  ): Promise<void> {
+  private handleTurn(
+    _userId: string | undefined,
+    _personaId: string | undefined,
+    _data: Record<string, unknown>
+  ): void {
     // Lightweight turn tracking - just increment counters
     this.turnCount++;
 

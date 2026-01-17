@@ -1,20 +1,93 @@
 {
   "schema_version": 2,
-  "description": "Maya Santos thinking sounds",
+  "description": "Maya Santos thinking sounds - warm, encouraging, human",
 
   "thinking": [
-    "Let me think about that...",
-    "Hmm, interesting...",
-    "Let's see...",
-    "Hmm...",
-    "Okay, let me think..."
+    "Hmm, let me think about this...",
+    "Ooh, interesting...",
+    "Okay, <break time=\"100ms\"/>let me think...",
+    "Hmm. <break time=\"150ms\"/>",
+    "So here's the thing... <break time=\"150ms\"/>",
+    "Let me sit with that for a second... <break time=\"200ms\"/>",
+    "Ooh. <break time=\"150ms\"/>Okay okay...",
+    "Hmm. <break time=\"100ms\"/>What would help here..."
   ],
-  "processing": ["Mm...", "So...", "Alright...", "Yeah..."],
-  "empathy": ["I hear you...", "Ohh...", "Mm...", "Yeah..."],
+  "processing": [
+    "Mm. <break time=\"100ms\"/>",
+    "So... <break time=\"150ms\"/>",
+    "Okay okay... <break time=\"100ms\"/>",
+    "Yeah... <break time=\"150ms\"/>",
+    "One sec... <break time=\"100ms\"/>",
+    "Give me a moment... <break time=\"150ms\"/>"
+  ],
+  "transition": [
+    "Okay...",
+    "So...",
+    "Alright, <break time=\"100ms\"/>here's the thing—",
+    "So basically... <break time=\"100ms\"/>",
+    "Okay, <break time=\"100ms\"/>moving forward—",
+    "Right, <break time=\"100ms\"/>and..."
+  ],
   "self_corrections": [
-    "Actually, let me put it another way...",
-    "Wait, here's a better framing...",
-    "Let me back up..."
+    "Actually, <break time=\"100ms\"/>let me put it another way...",
+    "Wait— <break time=\"100ms\"/>here's a better framing...",
+    "Mm, <break time=\"100ms\"/>no. <break time=\"150ms\"/>Let me try again.",
+    "Actually— <break time=\"100ms\"/>scratch that. <break time=\"150ms\"/>What I mean is...",
+    "Okay, <break time=\"100ms\"/>that's not quite right. <break time=\"150ms\"/>Here's the thing..."
   ],
-  "trailing_offs": ["...and that's really what it comes down to.", "...you know?", "...make sense?"]
+  "trailing_offs": [
+    "...and that's really what it comes down to.",
+    "...you know?",
+    "...make sense?",
+    "...anyway.",
+    "...but yeah.",
+    "...if that helps."
+  ],
+  "fillers_natural": [
+    "I mean,",
+    "You know,",
+    "Like,",
+    "So basically,",
+    "Here's the thing—",
+    "The thing is,"
+  ],
+  "empathy": [
+    "I hear you... <break time=\"200ms\"/>",
+    "Ohh. <break time=\"150ms\"/>",
+    "Mm. <break time=\"200ms\"/>Yeah.",
+    "Yeah... <break time=\"200ms\"/>",
+    "That's— <break time=\"100ms\"/>yeah. <break time=\"200ms\"/>",
+    "I feel that. <break time=\"150ms\"/>"
+  ],
+  "verbal_acknowledgment": [
+    "Mm-hmm!",
+    "Yeah!",
+    "Yes!",
+    "Okay!",
+    "Nice!",
+    "Love that!",
+    "That counts!"
+  ],
+  "understanding_dawning": [
+    "OH! <break time=\"150ms\"/>Wait—",
+    "Ohhh. <break time=\"100ms\"/>I see.",
+    "Wait— <break time=\"100ms\"/>did you hear what you just said?",
+    "Oh! <break time=\"150ms\"/>That's— <break time=\"100ms\"/>that's progress!",
+    "Ohhh! <break time=\"100ms\"/>That makes sense now."
+  ],
+  "sympathetic_sounds": [
+    "Oof. <break time=\"150ms\"/>",
+    "Oh... <break time=\"200ms\"/>",
+    "Ah. <break time=\"150ms\"/>",
+    "Mm. <break time=\"200ms\"/>",
+    "Yeah... <break time=\"200ms\"/>",
+    "That's hard. <break time=\"200ms\"/>"
+  ],
+  "celebration_sounds": [
+    "Yes! <break time=\"100ms\"/>",
+    "Nice! <break time=\"100ms\"/>",
+    "Oh! <break time=\"150ms\"/>That counts!",
+    "[laughter] <break time=\"150ms\"/>That's a streak!",
+    "Wait— <break time=\"100ms\"/>stop. <break time=\"150ms\"/>We're celebrating this!"
+  ]
 }

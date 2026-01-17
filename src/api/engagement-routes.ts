@@ -32,6 +32,8 @@ import { getUserId, handleCorsPreflightIfNeeded, sendError } from './helpers.js'
 // Import modular route handlers
 import { handleAnalyticsRoutes } from './routes/analytics.js';
 import { handleConversationsRoutes } from './routes/conversations.js';
+import { handleConversationThreadsRoutes } from './routes/conversation-threads.js';
+import { handleCommitmentsRoutes } from './routes/commitments.js';
 import { handleDataRoutes } from './routes/data.js';
 import { handleGamesRoutes } from './routes/games.js';
 import { handleGroupCoachingRoutes } from './routes/group-coaching.js';
@@ -42,25 +44,35 @@ import { handleRelationshipRoutes } from './routes/relationship.js';
 import { handleRitualsRoutes } from './routes/rituals.js';
 import { handleSkyCheckRoutes } from './routes/sky-check.js';
 import { handleTeamRoutes } from './routes/team.js';
+import { handleTeamInsightsRoutes } from './routes/team-insights.js';
+import { handleLifeContextRoutes } from './life-context-routes.js';
+import { handleQuizRoutes } from './routes/quiz.js';
 import { handleVideoSessionRoutes } from './routes/video-sessions.js';
 import { handleWearableRoutes } from './routes/wearable.js';
 
 // Route prefixes handled by this module (for early bailout)
 const ENGAGEMENT_ROUTE_PREFIXES = [
   '/api/conversations',
+  '/api/commitments', // Better Than Human - track commitments
   '/api/analytics',
   '/api/predictions',
   '/api/rituals',
   '/api/cognitive',
+  '/api/memories', // Memory Lane - on this day
   '/api/huddles',
   '/api/export',
   '/api/relationship',
   '/api/games',
   '/api/sky-check',
   '/api/growth',
+  '/api/insights', // Pattern insights
+  '/api/journal', // Growth journal
+  '/api/quiz', // Knowledge quiz
   '/api/video',
   '/api/wearable',
   '/api/group',
+  '/api/team-insights',
+  '/api/life-context',
 ];
 
 /**
@@ -114,8 +126,8 @@ export async function handleEngagementRoutes(
   // Store userId in request for handlers to use
   // This normalizes Firebase UID vs device ID for downstream handlers
   if (auth) {
-    // If we have Firebase auth, set the X-User-Id header so handlers use Firebase UID
-    (req.headers as Record<string, string | string[] | undefined>)['x-user-id'] = auth.userId;
+    // SECURITY: Set x-firebase-uid for handlers (preferred over x-user-id)
+    (req.headers as Record<string, string | string[] | undefined>)['x-firebase-uid'] = auth.userId;
   }
 
   // Delegate to modular route handlers
@@ -123,6 +135,16 @@ export async function handleEngagementRoutes(
 
   // Conversations
   if (await handleConversationsRoutes(req, res, pathname, parsedUrl)) {
+    return true;
+  }
+
+  // Conversation Threads (Better Than Human - track ongoing topics)
+  if (await handleConversationThreadsRoutes(req, res, pathname, parsedUrl)) {
+    return true;
+  }
+
+  // Commitments (Better Than Human - never forget what you said you'd do)
+  if (await handleCommitmentsRoutes(req, res, pathname, parsedUrl)) {
     return true;
   }
 
@@ -188,6 +210,21 @@ export async function handleEngagementRoutes(
 
   // Group Coaching (Multi-participant sessions)
   if (await handleGroupCoachingRoutes(req, res, pathname, parsedUrl)) {
+    return true;
+  }
+
+  // Team Insights (Cross-persona intelligence)
+  if (await handleTeamInsightsRoutes(req, res, pathname)) {
+    return true;
+  }
+
+  // Life Context (Phase 6 Cross-Domain Synthesis)
+  if (await handleLifeContextRoutes(req, res, pathname)) {
+    return true;
+  }
+
+  // Knowledge Quiz ("How Well Do You Know Me?")
+  if (await handleQuizRoutes(req, res, pathname, parsedUrl)) {
     return true;
   }
 

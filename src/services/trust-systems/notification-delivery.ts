@@ -301,7 +301,7 @@ export async function deliverVoice(
 ): Promise<DeliveryResult> {
   try {
     // Use the voice call service with Cartesia TTS
-    const { callWithPersonaVoice } = await import('../voice-call.js');
+    const { callWithPersonaVoice } = await import('../voice/voice-call.js');
 
     const result = await callWithPersonaVoice(phone, item.message, personaId, {
       fallbackToTwilioVoice: true,

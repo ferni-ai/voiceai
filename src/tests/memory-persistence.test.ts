@@ -253,49 +253,13 @@ describe('Memory Persistence', () => {
   });
 
   describe('Rehydration', () => {
-    it('should rehydrate conversation embeddings on startup', async () => {
-      const { createStore, detectStoreType, rehydrateConversationEmbeddings } =
-        await import('../memory/index.js');
-      const { getFirestoreVectorStore, resetFirestoreVectorStore } =
-        await import('../memory/firestore-vector-store.js');
-      const { createUserProfile } = await import('../types/user-profile.js');
-
-      // Setup: Create store and save a conversation summary with embedding
-      const store = await createStore(detectStoreType());
-      const profile = createUserProfile(TEST_USER_ID, 'Rehydration Test User');
-      await store.saveProfile(profile);
-
-      const summary = {
-        id: `rehydrate-summary-${Date.now()}`,
-        sessionId: TEST_SESSION_ID,
-        timestamp: new Date(),
-        duration: 300,
-        turnCount: 10,
-        mainTopics: ['rehydration test'],
-        keyPoints: ['Testing embedding rehydration'],
-        emotionalArc: 'neutral',
-        embedding: MOCK_EMBEDDING,
-      };
-
-      await store.saveSummary(TEST_USER_ID, summary);
-
-      // Reset vector store to simulate restart
-      resetFirestoreVectorStore();
-
-      // Get fresh vector store
-      const vectorStore = getFirestoreVectorStore();
-      await vectorStore.initialize();
-
-      // Rehydrate
-      const rehydratedCount = await rehydrateConversationEmbeddings(store, vectorStore);
-      console.log(`Rehydrated ${rehydratedCount} conversation embeddings`);
-
-      // Should have rehydrated at least our test conversation
-      expect(rehydratedCount).toBeGreaterThanOrEqual(1);
-
-      // Cleanup
-      await store.deleteProfile(TEST_USER_ID);
-      await store.close();
+    // NOTE: rehydrateConversationEmbeddings is DEPRECATED and does nothing.
+    // FirestoreVectorStore is persistent - embeddings survive restarts.
+    // This test is skipped because the function intentionally returns 0.
+    it.skip('should rehydrate conversation embeddings on startup (DEPRECATED)', async () => {
+      // This test is skipped because rehydrateConversationEmbeddings is deprecated.
+      // FirestoreVectorStore persists embeddings directly - no rehydration needed.
+      expect(true).toBe(true);
     });
   });
 
@@ -361,7 +325,7 @@ describe('Memory Persistence', () => {
 describe('Phone Number Lookup', () => {
   it('should identify user by phone number', async () => {
     const { identifyByPhone, normalizePhoneNumber } =
-      await import('../services/user-identification.js');
+      await import('../services/identity/user-identification.js');
 
     const result = await identifyByPhone(TEST_PHONE);
 
@@ -370,7 +334,7 @@ describe('Phone Number Lookup', () => {
   });
 
   it('should normalize phone numbers consistently', async () => {
-    const { normalizePhoneNumber } = await import('../services/user-identification.js');
+    const { normalizePhoneNumber } = await import('../services/identity/user-identification.js');
 
     // Various formats should normalize to the same E.164 format
     expect(normalizePhoneNumber('555-123-4567')).toBe('+15551234567');

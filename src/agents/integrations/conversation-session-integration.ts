@@ -67,6 +67,10 @@ export interface VoiceAgentSessionConfig {
   personaId: string;
   sessionCount?: number;
   relationshipStage?: 'stranger' | 'acquaintance' | 'friend' | 'trusted_advisor';
+  /** User profile for superhuman memory callbacks */
+  userProfile?: {
+    humanMemory?: unknown; // Partial<HumanMemory> but keeping loose for flexibility
+  };
 }
 
 export interface HumanizeContext {
@@ -136,6 +140,64 @@ export async function initConversationSession(
           { sessionId: config.sessionId, personaId: config.personaId },
           '🧠 Intelligence integration initialized'
         );
+      }
+    }
+
+    // Prewarm LLM expression cache (non-blocking)
+    // This loads persisted expressions AND generates new ones for common themes
+    if (config.personaId === 'ferni') {
+      // Ferni has the full "Better Than Human" personality system
+      try {
+        const { prewarmPersonalitySession } =
+          await import('../../personas/bundles/ferni/personality-integration.js');
+        void prewarmPersonalitySession(config.userId, {
+          relationshipStage: config.relationshipStage,
+        });
+      } catch {
+        // Prewarm is optional - continue if it fails
+      }
+
+      // Initialize superhuman memory callbacks (non-blocking)
+      // This queues proactive insights like birthdays, growth celebrations, etc.
+      if (config.userId && config.userProfile?.humanMemory) {
+        try {
+          const { initializeMemoryCallbacks } =
+            await import('../../personas/bundles/ferni/superhuman-memory-integration.js');
+          // Pass actual humanMemory for callback generation
+          void initializeMemoryCallbacks(
+            config.userId,
+            config.userProfile.humanMemory as Parameters<typeof initializeMemoryCallbacks>[1]
+          ).then(({ callbacksQueued }) => {
+            if (callbacksQueued > 0) {
+              log.info({ userId: config.userId, callbacksQueued }, '🧠 Memory callbacks queued');
+            }
+          });
+        } catch {
+          // Memory callbacks are optional - continue if they fail
+        }
+      }
+    } else {
+      // Other personas use the shared LLM expression system
+      try {
+        const { prewarmPersonaExpressions, hasPersonaExpressionSupport } =
+          await import('../../personas/shared/persona-llm-expressions.js');
+        if (hasPersonaExpressionSupport(config.personaId)) {
+          const hour = new Date().getHours();
+          const timeOfDay =
+            hour >= 5 && hour < 12
+              ? 'morning'
+              : hour >= 12 && hour < 17
+                ? 'afternoon'
+                : hour >= 17 && hour < 22
+                  ? 'evening'
+                  : 'late_night';
+          void prewarmPersonaExpressions(config.personaId, {
+            timeOfDay,
+            relationshipStage: config.relationshipStage,
+          });
+        }
+      } catch {
+        // Prewarm is optional - continue if it fails
       }
     }
 

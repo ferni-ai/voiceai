@@ -608,6 +608,10 @@
       "file": "src/tools/domains/cameo/index.ts",
       "_original": "Check if bringing in a team member would add value to the current conversation. Use this when you"
     },
+    "checkConciergeStatus": {
+      "description": "Check the status of active concierge outreach requests (hotel quotes, restaurant reservations, appointments, service quotes). Use when user asks about pending requests.",
+      "file": "src/tools/domains/concierge/index.ts"
+    },
     "checkFinancialHealth": {
       "description": "Get a holistic view of financial health based on linked accounts. Includes net worth, savings rate, debt ratios. Use when user asks: -.",
       "file": "src/tools/plaid.ts",
@@ -2097,6 +2101,10 @@
       "file": "src/tools/financial-habits.ts",
       "_original": "Get status of all savings goals. Use when the user asks about: - Savings progress - Goal status - Emergency fund"
     },
+    "getServiceQuotes": {
+      "description": "Contact local service providers (plumbers, electricians, cleaners, etc.) to get quotes. AI-powered concierge calls businesses on user's behalf to get pricing and availability. Use when user needs home services quotes.",
+      "file": "src/tools/domains/concierge/index.ts"
+    },
     "getShoppingList": {
       "description": "Show the current shopping list. Use when user asks.",
       "file": "src/tools/shopping.ts",
@@ -2632,6 +2640,10 @@
       "description": "Make a restaurant reservation - tries online booking first (OpenTable/Resy), falls back to phone call. Use when the user wants to: - Book a table at a restaurant - Make a dinner/lunch reservation - Reserve for a special occasion Alex will try to book instantly online, or call if needed.",
       "file": "src/tools/scheduling/appointments-tools.ts"
     },
+    "makeRestaurantReservation": {
+      "description": "Book restaurant tables via AI-powered concierge. Calls restaurants to check availability, make reservations, and handle special requests. Use when user wants to reserve a table, book for a party, or make dining reservations.",
+      "file": "src/tools/domains/concierge/index.ts"
+    },
     "makeTextGameMove": {
       "description": "Make a move in the current text game.",
       "file": "src/tools/domains/games/index.ts"
@@ -2931,14 +2943,38 @@
       "file": "src/tools/event-planning.ts"
     },
     "playMusic": {
-      "description": "CALL THIS FUNCTION to play music. When user says 'play music', 'play some jazz', 'put on music', etc. - EXECUTE this function immediately. Do NOT describe what you will do - just call this function and speak the result.",
-      "file": "src/tools/spotify.ts",
+      "description": "PLAYS AUDIO DIRECTLY through speakers. Use for: 'play music', 'play some jazz', 'put on music', 'play a song'. This PLAYS AUDIO - does NOT contact people, does NOT reach out, does NOT message anyone. Just plays music immediately. NEVER use reachOut for music requests.",
+      "file": "src/tools/domains/entertainment/music.ts",
       "_original": "EXECUTE IMMEDIATELY to play music. DO NOT say"
     },
     "playPreview": {
       "description": "To play preview in call.",
       "file": "src/tools/spotify.ts",
       "_original": "EXECUTE IMMEDIATELY to play preview in call. DO NOT announce - call and speak result."
+    },
+    "playSonosMusic": {
+      "description": "CALL THIS FUNCTION to play music on Sonos speakers. When user says 'play jazz on Sonos', 'play music in the living room', 'play on my Sonos' - EXECUTE this function immediately. Searches favorites and plays matching music.",
+      "file": "src/tools/domains/entertainment/sonos-music.ts"
+    },
+    "playSonosFavorite": {
+      "description": "Play a specific Sonos favorite by name. Use when user asks for a specific favorite like 'play my jazz favorites on Sonos' or 'play Chill Vibes on Sonos'.",
+      "file": "src/tools/domains/entertainment/sonos-music.ts"
+    },
+    "pauseSonos": {
+      "description": "Pause music playback on Sonos. Use when user says 'pause Sonos', 'stop the music in living room', etc.",
+      "file": "src/tools/domains/entertainment/sonos-music.ts"
+    },
+    "resumeSonos": {
+      "description": "Resume paused music on Sonos. Use when user says 'resume Sonos', 'continue the music', etc.",
+      "file": "src/tools/domains/entertainment/sonos-music.ts"
+    },
+    "setSonosVolume": {
+      "description": "Set Sonos volume level. Use when user says 'turn up the Sonos', 'set volume to 50%', 'make it louder in living room'.",
+      "file": "src/tools/domains/entertainment/sonos-music.ts"
+    },
+    "whatsSonosPlaying": {
+      "description": "Check what's currently playing on Sonos. Use when user asks 'what's playing on Sonos?', 'what song is this?', etc.",
+      "file": "src/tools/domains/entertainment/sonos-music.ts"
     },
     "playWithPossibility": {
       "description": "Create space for imaginative play with possibilities unconstrained by practicality.",
@@ -3397,6 +3433,10 @@
       "description": "Help user address and repair a rupture or distance in an important relationship.",
       "file": "src/tools/domains/difficult-conversations/index.ts"
     },
+    "requestHotelQuotes": {
+      "description": "Contact hotels to get room rates and availability. AI-powered concierge calls hotels on user's behalf to compare prices and book rooms. Use when user wants hotel quotes, room rates, or to book accommodations.",
+      "file": "src/tools/domains/concierge/index.ts"
+    },
     "requestMayaRetirementHelp": {
       "description": "Request Maya.",
       "file": "src/tools/retirement-planning.ts",
@@ -3555,6 +3595,10 @@
     "scheduleFollowUp": {
       "description": "Schedule a follow-up on a topic for a future conversation. Use when the user mentions wanting to revisit something later.",
       "file": "src/tools/proactive.ts"
+    },
+    "scheduleHealthcareAppointment": {
+      "description": "Schedule doctor, dentist, specialist, or other healthcare appointments. AI-powered concierge calls providers to find availability and book appointments. Use when user wants to schedule medical appointments or find healthcare providers.",
+      "file": "src/tools/domains/concierge/index.ts"
     },
     "scheduleJoy": {
       "description": "Help the user intentionally schedule joy into their life.",
@@ -3772,6 +3816,50 @@
       "description": "Set a simple timer. Use when someone asks: - \"Set a timer for 5 minutes\" - \"Timer for 30 seconds\" - \"Remind me in 10 minutes\".",
       "file": "src/tools/domains/simple-utilities/timer-tools.ts"
     },
+    "whatCanYouDo": {
+      "description": "Explain what I can help with. Use when user asks: \"What can you do?\", \"Help\", \"What are your capabilities?\", \"What can I ask you?\".",
+      "file": "src/tools/domains/simple-utilities/essentials-tools.ts"
+    },
+    "quickCapture": {
+      "description": "Capture a thought and auto-route it (task, reminder, note, or memory). Use when user says: \"Remember this\", \"Quick note\", \"I need to\", \"Don't let me forget\".",
+      "file": "src/tools/domains/simple-utilities/essentials-tools.ts"
+    },
+    "recentContext": {
+      "description": "Recall what we talked about recently. Use when user asks: \"What were we talking about?\", \"What did we discuss?\", \"Remind me what I told you\".",
+      "file": "src/tools/domains/simple-utilities/essentials-tools.ts"
+    },
+    "setPreference": {
+      "description": "Remember user preferences (units, nickname, etc). Use when user says: \"Call me [name]\", \"I prefer Celsius\", \"Use 24-hour time\", \"Remember that I like\".",
+      "file": "src/tools/domains/simple-utilities/essentials-tools.ts"
+    },
+    "getPreferences": {
+      "description": "Show saved user preferences. Use when user asks: \"What are my preferences?\", \"What do you know about me?\", \"What have I set?\".",
+      "file": "src/tools/domains/simple-utilities/essentials-tools.ts"
+    },
+    "tellJoke": {
+      "description": "Tell a joke. Use when user says: \"Tell me a joke\", \"Make me laugh\", \"Say something funny\", \"I need a laugh\".",
+      "file": "src/tools/domains/simple-utilities/humor-tools.ts"
+    },
+    "getFunFact": {
+      "description": "Share an interesting fun fact. Use when user asks: \"Tell me a fun fact\", \"Did you know\", \"Give me some trivia\", \"Something interesting\".",
+      "file": "src/tools/domains/simple-utilities/humor-tools.ts"
+    },
+    "tellMiniStory": {
+      "description": "Tell a short lighthearted story. Use when user asks: \"Tell me a story\", \"I want a story\", \"Entertain me\".",
+      "file": "src/tools/domains/simple-utilities/humor-tools.ts"
+    },
+    "windDown": {
+      "description": "Evening wind-down ritual. Use when user says: \"Help me wind down\", \"I can't sleep\", \"Bedtime routine\", \"End of day ritual\", \"Good night\".",
+      "file": "src/tools/domains/simple-utilities/winddown-tools.ts"
+    },
+    "bedtimeCheckIn": {
+      "description": "Quick bedtime check-in. Use when user says: \"Bedtime\", \"Going to sleep\", \"Ready for bed\".",
+      "file": "src/tools/domains/simple-utilities/winddown-tools.ts"
+    },
+    "sleepAffirmation": {
+      "description": "Calming affirmation for sleep. Use when user says: \"I can't fall asleep\", \"Help me relax\", \"Calm me down for bed\".",
+      "file": "src/tools/domains/simple-utilities/winddown-tools.ts"
+    },
     "setWorkBoundary": {
       "description": "Help user establish and maintain healthy work boundaries.",
       "file": "src/tools/domains/career/index.ts"
@@ -3944,7 +4032,7 @@
       "file": "src/tools/team-integration.ts"
     },
     "startTextGame": {
-      "description": "Start a text-based game like tic-tac-toe.",
+      "description": "Start a text-based game. Available games: tic-tac-toe (classic 3x3 grid), 20-questions (guess what I'm thinking), word-association (word chain game), would-you-rather (dilemma choices), story-builder (collaborative storytelling), three-word-day (describe your day in 3 words), headline-writer (write future headlines), emoji-story (tell a story with emojis), values-card-sort (discover your values), one-word-checkin (how are you feeling?), tiny-win-tracker (celebrate small wins), fortune-cookie (wisdom and reflection).",
       "file": "src/tools/domains/games/index.ts"
     },
     "stopCallMusic": {

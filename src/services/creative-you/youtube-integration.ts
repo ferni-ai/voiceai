@@ -12,6 +12,7 @@
  */
 
 import { getLogger } from '../../utils/safe-logger.js';
+import { cleanForFirestore } from '../../utils/firestore-utils.js';
 
 const log = getLogger();
 
@@ -150,7 +151,8 @@ interface CuratedVideo {
 }
 
 // Pre-curated high-quality videos (no API needed for these)
-const CURATED_VIDEOS: CuratedVideo[] = [
+// Exported for use by intelligent curator
+export const CURATED_VIDEOS: CuratedVideo[] = [
   // TED Talks - Inspiration
   {
     youtubeId: 'H14bBuluwB8',
@@ -160,10 +162,11 @@ const CURATED_VIDEOS: CuratedVideo[] = [
     durationSeconds: 1140,
     topics: ['creativity', 'education', 'potential'],
     mood: 'inspire',
+    // Ferni voice: curious friend, not interview questions
     discussionPrompts: [
-      'When did you feel most creative as a child?',
-      'Has school or work ever stifled your creativity?',
-      'What would you create if you had no fear of failure?',
+      'What part made you pause?',
+      'Does this change how you see your own creativity?',
+      'What would you do differently if nobody was watching?',
     ],
     thumbnailUrl: 'https://img.youtube.com/vi/H14bBuluwB8/maxresdefault.jpg',
   },
@@ -175,10 +178,11 @@ const CURATED_VIDEOS: CuratedVideo[] = [
     durationSeconds: 1200,
     topics: ['vulnerability', 'connection', 'courage', 'emotions'],
     mood: 'reflect',
+    // Ferni voice: gentle curiosity
     discussionPrompts: [
-      'When has being vulnerable led to deeper connection?',
-      "What's something you've been afraid to share?",
-      'How do you define courage in your own life?',
+      'What landed for you?',
+      "When's the last time you let yourself be truly seen?",
+      'What would you push back on?',
     ],
     thumbnailUrl: 'https://img.youtube.com/vi/iCvmsMzlF7o/maxresdefault.jpg',
   },
@@ -190,10 +194,11 @@ const CURATED_VIDEOS: CuratedVideo[] = [
     durationSeconds: 1080,
     topics: ['leadership', 'purpose', 'motivation', 'communication'],
     mood: 'inspire',
+    // Ferni voice: personal reflection
     discussionPrompts: [
-      "What's your 'why' - what gets you out of bed?",
-      'Who has inspired you with their leadership?',
-      'How do you communicate your purpose to others?',
+      'Does this land differently than you expected?',
+      'Who came to mind while you watched?',
+      "What's the why behind what you're working on?",
     ],
     thumbnailUrl: 'https://img.youtube.com/vi/arj7oStGLkU/maxresdefault.jpg',
   },
@@ -207,10 +212,11 @@ const CURATED_VIDEOS: CuratedVideo[] = [
     durationSeconds: 540,
     topics: ['physics', 'philosophy', 'existence', 'quantum'],
     mood: 'learn',
+    // Ferni voice: wonder and curiosity
     discussionPrompts: [
-      'What does this video change about how you see reality?',
-      "What's the most mind-blowing scientific concept you know?",
-      'How comfortable are you with uncertainty?',
+      'What part stuck with you?',
+      'Does knowing this change anything for you?',
+      'What would you want to ask the scientists?',
     ],
     thumbnailUrl: 'https://img.youtube.com/vi/JQVmkDUkZT4/maxresdefault.jpg',
   },
@@ -222,10 +228,11 @@ const CURATED_VIDEOS: CuratedVideo[] = [
     durationSeconds: 480,
     topics: ['meaning', 'life', 'perspective', 'spirituality'],
     mood: 'reflect',
+    // Ferni voice: philosophical friend
     discussionPrompts: [
-      'How does this perspective change how you treat others?',
-      'What do you believe happens after death?',
-      'If this story were true, what would you do differently?',
+      'What hit you hardest?',
+      'Who does this remind you of?',
+      'What would change if you lived as though this were true?',
     ],
     thumbnailUrl: 'https://img.youtube.com/vi/h6fcK_fRYaI/maxresdefault.jpg',
   },
@@ -239,10 +246,11 @@ const CURATED_VIDEOS: CuratedVideo[] = [
     durationSeconds: 1320,
     topics: ['habits', 'motivation', 'change', 'action'],
     mood: 'inspire',
+    // Ferni voice: direct but warm
     discussionPrompts: [
-      "What's one thing you've been putting off?",
-      'What excuses do you make most often?',
-      'What would 5-second courage look like for you?',
+      "What's one thing you keep not starting?",
+      'What excuse just popped into your head?',
+      "What would you do right now if I wasn't here?",
     ],
     thumbnailUrl: 'https://img.youtube.com/vi/BHY0FxzoKZE/maxresdefault.jpg',
   },
@@ -256,10 +264,11 @@ const CURATED_VIDEOS: CuratedVideo[] = [
     durationSeconds: 1020,
     topics: ['emotions', 'mental-health', 'self-care', 'resilience'],
     mood: 'reflect',
+    // Ferni voice: gentle presence
     discussionPrompts: [
-      'How do you currently handle emotional pain?',
-      "What's a failure you've been ruminating on?",
-      'How can you be kinder to yourself this week?',
+      "What's something you've been carrying alone?",
+      "Where do you go when you're hurting?",
+      'What would you tell a friend going through this?',
     ],
     thumbnailUrl: 'https://img.youtube.com/vi/rqoxYKtEWEc/maxresdefault.jpg',
   },
@@ -273,10 +282,11 @@ const CURATED_VIDEOS: CuratedVideo[] = [
     durationSeconds: 1020,
     topics: ['innovation', 'creativity', 'ideas', 'collaboration'],
     mood: 'learn',
+    // Ferni voice: playful curiosity
     discussionPrompts: [
-      'Where do your best ideas come from?',
-      'How do you create space for creative thinking?',
-      'Who do you collaborate with on ideas?',
+      'When was the last time an idea hit you out of nowhere?',
+      'What gets your mind wandering in the best way?',
+      'Who do you think with?',
     ],
     thumbnailUrl: 'https://img.youtube.com/vi/nJPERZDfyWc/maxresdefault.jpg',
   },
@@ -290,10 +300,11 @@ const CURATED_VIDEOS: CuratedVideo[] = [
     durationSeconds: 360,
     topics: ['loneliness', 'self-discovery', 'growth', 'solitude'],
     mood: 'reflect',
+    // Ferni voice: thoughtful friend
     discussionPrompts: [
-      'When have you found value in being alone?',
-      'What do you avoid thinking about when alone?',
-      'How can solitude help you grow?',
+      "What do you discover when you're alone?",
+      'What thoughts show up in the quiet?',
+      'When does solitude feel like a gift vs. a punishment?',
     ],
     thumbnailUrl: 'https://img.youtube.com/vi/wHWbZmg2hzU/maxresdefault.jpg',
   },
@@ -307,10 +318,11 @@ const CURATED_VIDEOS: CuratedVideo[] = [
     durationSeconds: 1260,
     topics: ['confidence', 'body-language', 'presence', 'psychology'],
     mood: 'inspire',
+    // Ferni voice: practical exploration
     discussionPrompts: [
-      'How does your posture change when you feel confident?',
-      'When have you "faked it til you made it"?',
-      'What power pose could you try before your next challenge?',
+      "What does your body do when you're nervous?",
+      'When have you surprised yourself by showing up bigger?',
+      'What would change if you took up more space?',
     ],
     thumbnailUrl: 'https://img.youtube.com/vi/Lp7E973zozc/maxresdefault.jpg',
   },
@@ -322,10 +334,11 @@ const CURATED_VIDEOS: CuratedVideo[] = [
     durationSeconds: 750,
     topics: ['happiness', 'productivity', 'mindset', 'success'],
     mood: 'inspire',
+    // Ferni voice: light and curious
     discussionPrompts: [
-      'Do you believe happiness leads to success, or vice versa?',
-      'What makes you genuinely happy at work?',
-      'How could you practice gratitude daily?',
+      'Which comes first for you - happy or successful?',
+      "What's one thing that genuinely lights you up?",
+      "What if you've had it backwards this whole time?",
     ],
     thumbnailUrl: 'https://img.youtube.com/vi/_J6-3l3hCm0/maxresdefault.jpg',
   },
@@ -337,10 +350,11 @@ const CURATED_VIDEOS: CuratedVideo[] = [
     durationSeconds: 930,
     topics: ['motivation', 'psychology', 'goals', 'discipline'],
     mood: 'learn',
+    // Ferni voice: supportive exploration
     discussionPrompts: [
-      'What motivates you intrinsically vs extrinsically?',
-      'How do you stay motivated when things get hard?',
-      'What goal have you achieved through pure discipline?',
+      'What actually gets you moving?',
+      'When does discipline feel good vs. grinding?',
+      "What's the difference between your real goals and what you think you should want?",
     ],
     thumbnailUrl: 'https://img.youtube.com/vi/UF8uR6Z6KLc/maxresdefault.jpg',
   },
@@ -354,10 +368,11 @@ const CURATED_VIDEOS: CuratedVideo[] = [
     durationSeconds: 370,
     topics: ['meaning', 'nihilism', 'optimism', 'existence'],
     mood: 'reflect',
+    // Ferni voice: existential but warm
     discussionPrompts: [
-      'Does the vastness of the universe make you feel small or free?',
-      'How do you create meaning in your life?',
-      'What would you do if nothing really mattered?',
+      'Does this freak you out or free you?',
+      'If nothing matters, what would you choose to matter?',
+      'What part made you feel something?',
     ],
     thumbnailUrl: 'https://img.youtube.com/vi/MBRqu0YOH14/maxresdefault.jpg',
   },
@@ -369,10 +384,11 @@ const CURATED_VIDEOS: CuratedVideo[] = [
     durationSeconds: 370,
     topics: ['space', 'aliens', 'fermi-paradox', 'universe'],
     mood: 'learn',
+    // Ferni voice: wonder
     discussionPrompts: [
-      'Do you believe we are alone in the universe?',
-      'What explanation for the Fermi Paradox seems most likely to you?',
-      'How would confirmed alien life change your worldview?',
+      'What do you hope is out there?',
+      'Which explanation feels most unsettling to you?',
+      'How does looking up at the sky feel different now?',
     ],
     thumbnailUrl: 'https://img.youtube.com/vi/GoJsr4IwCm4/maxresdefault.jpg',
   },
@@ -384,10 +400,11 @@ const CURATED_VIDEOS: CuratedVideo[] = [
     durationSeconds: 540,
     topics: ['consciousness', 'mind', 'brain', 'philosophy'],
     mood: 'learn',
+    // Ferni voice: philosophical curiosity
     discussionPrompts: [
-      'What is the relationship between your brain and your mind?',
-      'Do you think AI could ever be conscious?',
-      'When do you feel most present and aware?',
+      "Does this make you question what 'you' even is?",
+      'When do you feel most like yourself?',
+      "What would it mean if you're not the narrator of your own story?",
     ],
     thumbnailUrl: 'https://img.youtube.com/vi/rN7pkFNEg5c/maxresdefault.jpg',
   },
@@ -401,10 +418,11 @@ const CURATED_VIDEOS: CuratedVideo[] = [
     durationSeconds: 300,
     topics: ['relationships', 'love', 'psychology', 'attachment'],
     mood: 'reflect',
+    // Ferni voice: compassionate inquiry
     discussionPrompts: [
-      'Do you recognize any patterns in your relationship choices?',
-      'What role did your childhood play in your attachment style?',
-      'How could self-awareness improve your relationships?',
+      'Did anything here hit uncomfortably close?',
+      'What patterns keep showing up for you?',
+      'Who taught you what love looks like?',
     ],
     thumbnailUrl: 'https://img.youtube.com/vi/jJ6K_f7oSdg/maxresdefault.jpg',
   },
@@ -416,10 +434,11 @@ const CURATED_VIDEOS: CuratedVideo[] = [
     durationSeconds: 420,
     topics: ['love', 'relationships', 'philosophy', 'emotions'],
     mood: 'reflect',
+    // Ferni voice: deep curiosity
     discussionPrompts: [
-      'How has your definition of love changed over time?',
-      'What is the most important element of love to you?',
-      'How do you express love to others?',
+      'What did this stir up for you?',
+      'How has what you want from love changed?',
+      'What would you disagree with here?',
     ],
     thumbnailUrl: 'https://img.youtube.com/vi/GhHfQUlpj9o/maxresdefault.jpg',
   },
@@ -433,10 +452,11 @@ const CURATED_VIDEOS: CuratedVideo[] = [
     durationSeconds: 840,
     topics: ['procrastination', 'productivity', 'psychology', 'humor'],
     mood: 'learn',
+    // Ferni voice: playful recognition
     discussionPrompts: [
-      'Which procrastination monkey do you relate to most?',
-      'What do you procrastinate on the most?',
-      "What's your panic monster moment been?",
+      'Okay, real talk - did you cringe at any part?',
+      "What's been sitting on your to-do list the longest?",
+      'What would actually get you to start?',
     ],
     thumbnailUrl: 'https://img.youtube.com/vi/qPKd99Pa2iU/maxresdefault.jpg',
   },
@@ -450,10 +470,11 @@ const CURATED_VIDEOS: CuratedVideo[] = [
     durationSeconds: 1170,
     topics: ['sleep', 'health', 'brain', 'wellness'],
     mood: 'learn',
+    // Ferni voice: caring and practical
     discussionPrompts: [
-      'How many hours of sleep do you typically get?',
-      'What prevents you from getting better sleep?',
-      'What sleep habit could you change starting tonight?',
+      'How did you sleep last night, honestly?',
+      'What gets in the way of rest for you?',
+      "What's one thing you could try tonight?",
     ],
     thumbnailUrl: 'https://img.youtube.com/vi/5MuIMqhT8DM/maxresdefault.jpg',
   },
@@ -467,10 +488,11 @@ const CURATED_VIDEOS: CuratedVideo[] = [
     durationSeconds: 3600,
     topics: ['relaxation', 'focus', 'music', 'ambiance'],
     mood: 'chill',
+    // Ferni voice: present moment
     discussionPrompts: [
-      'What music helps you focus best?',
-      'Where is your ideal place to work or think?',
-      'How does music affect your mood?',
+      'How are you feeling right now?',
+      'What would make this moment better?',
+      'What are you working on?',
     ],
     thumbnailUrl: 'https://img.youtube.com/vi/lTRiuFIWV54/maxresdefault.jpg',
   },
@@ -479,6 +501,12 @@ const CURATED_VIDEOS: CuratedVideo[] = [
 // ============================================================================
 // VIDEO SERVICE
 // ============================================================================
+
+/**
+ * Categories that are "utility" content - not growth/reflection focused
+ * These are fine to surface in general browsing, but shouldn't be daily picks
+ */
+const UTILITY_CATEGORIES: VideoCategory[] = ['music-video', 'tutorial'];
 
 /**
  * Get curated video recommendations based on user context
@@ -490,11 +518,17 @@ export function getVideoRecommendations(
     topic?: string;
     maxResults?: number;
     recentTopics?: string[];
+    excludeUtilityContent?: boolean; // Exclude music-video, tutorial, etc.
   } = {}
 ): VideoRecommendation[] {
-  const { mood, topic, maxResults = 5, recentTopics = [] } = options;
+  const { mood, topic, maxResults = 5, recentTopics = [], excludeUtilityContent = false } = options;
 
   let videos = [...CURATED_VIDEOS];
+
+  // Exclude utility content if requested (for daily picks)
+  if (excludeUtilityContent) {
+    videos = videos.filter((v) => !UTILITY_CATEGORIES.includes(v.category));
+  }
 
   // Filter by mood if specified
   if (mood) {
@@ -559,16 +593,17 @@ export function getVideoById(videoId: string): YouTubeVideo | null {
 /**
  * Get videos by category
  */
-export function getVideosByCategory(
-  category: VideoCategory,
-  maxResults: number = 5
-): YouTubeVideo[] {
+export function getVideosByCategory(category: VideoCategory, maxResults = 5): YouTubeVideo[] {
   const videos = CURATED_VIDEOS.filter((v) => v.category === category).slice(0, maxResults);
   return videos.map(curatedToYouTubeVideo);
 }
 
 /**
  * Get daily video pick based on day of week and user preferences
+ *
+ * BRAND PRINCIPLE: Daily picks should be GROWTH content - things that
+ * spark reflection, learning, or inspiration. Not utility content like
+ * background music or ambient streams.
  */
 export function getDailyVideoPick(
   userId: string,
@@ -593,10 +628,13 @@ export function getDailyVideoPick(
 
   const mood = userPreferences?.mood || dailyMoods[dayOfWeek];
 
+  // Get recommendations but EXCLUDE utility content
+  // Daily picks should be growth content, not background noise
   const recommendations = getVideoRecommendations(userId, {
     mood,
     recentTopics: userPreferences?.favoriteTopics,
-    maxResults: 1,
+    maxResults: 5, // Get more to filter
+    excludeUtilityContent: true, // Exclude music-video, tutorial, etc.
   });
 
   return recommendations[0] || null;
@@ -712,7 +750,7 @@ export function addDiscussionInsight(userId: string, sessionId: string, insight:
 /**
  * Get user's watch history
  */
-export function getWatchHistory(userId: string, limit: number = 20): WatchSession[] {
+export function getWatchHistory(userId: string, limit = 20): WatchSession[] {
   const userSessions = watchSessionStore.get(userId) || [];
   return userSessions
     .filter((s) => s.completedAt)
@@ -779,30 +817,62 @@ function formatDuration(seconds: number): string {
   return `PT${minutes}M${secs}S`;
 }
 
+/**
+ * Generate a recommendation reason that feels like a thoughtful friend
+ *
+ * BRAND PRINCIPLES:
+ * - Never generic ("This is cool", "Check this out")
+ * - Always intentional (why THIS video for THIS person)
+ * - Ferni voice: warm, grounded, like someone who knows you
+ */
 function getRecommendationReason(video: CuratedVideo, recentTopics: string[]): string {
-  // Find matching topic
+  // Find matching topic - use warm, friend-like language
   const matchingTopic = recentTopics.find((t) =>
     video.topics.some((vt) => vt.toLowerCase().includes(t.toLowerCase()))
   );
 
   if (matchingTopic) {
-    return `Based on your interest in ${matchingTopic}`;
+    const topicPhrases = [
+      `This came to mind when you mentioned ${matchingTopic}.`,
+      `Remember when we talked about ${matchingTopic}? Watch this.`,
+      `Something about ${matchingTopic} that might land with you.`,
+      `I keep thinking about what you said about ${matchingTopic}. This connects.`,
+    ];
+    return topicPhrases[Math.floor(Math.random() * topicPhrases.length)];
   }
 
-  // Category-based reasons
+  // Category-based reasons (intentional, not generic)
   const categoryReasons: Record<VideoCategory, string[]> = {
-    'ted-talk': ['A thought-provoking TED talk for you', 'This talk might shift your perspective'],
-    documentary: ['A fascinating documentary to explore'],
-    educational: ['Something interesting to learn today'],
-    'music-video': ['Some music to set the mood'],
-    'podcast-clip': ['A great conversation clip'],
-    tutorial: ['A helpful tutorial you might enjoy'],
-    inspiration: ['Some inspiration for your day'],
-    mindfulness: ['A mindful moment for you'],
-    creativity: ['Fuel for your creative mind'],
-    science: ['Expand your understanding'],
-    philosophy: ['Food for thought'],
-    'self-improvement': ['Something to help you grow'],
+    'ted-talk': [
+      'This talk stuck with me. Curious what you think.',
+      'One of those talks that shifts how you see things.',
+      "I've been sitting with this one. Worth your time.",
+    ],
+    documentary: ['I keep coming back to this one.', 'Worth the watch. Take your time with it.'],
+    educational: ['This one made me pause and think.', 'You might find this useful.'],
+    'music-video': [
+      'Good for when you need to think.',
+      'Background for wherever you are right now.',
+    ],
+    'podcast-clip': ['Caught this and thought of you.', 'A conversation worth eavesdropping on.'],
+    tutorial: ['Practical. Might actually help.', 'Step by step, no fluff.'],
+    inspiration: [
+      'Needed this today. Maybe you do too.',
+      "A little spark for what you're working on.",
+    ],
+    mindfulness: [
+      'Take a breath with this one.',
+      'For when you need to slow down.',
+      'A quieter moment.',
+    ],
+    creativity: ['Gets the wheels turning.', "Fuel for what you're building."],
+    science: ['This one expanded how I think about things.', 'Changes how you see the world.'],
+    philosophy: [
+      'One to sit with.',
+      'Food for thought. No easy answers.',
+      'Made me think. Might do the same for you.',
+    ],
+    'self-improvement': ['For your journey.', 'Small idea, big ripple.'],
   };
 
   const reasons = categoryReasons[video.category];

@@ -51,7 +51,7 @@
   top: var(--space-2);
   right: var(--space-4);
   font-family: Georgia, serif;
-  font-size: 80px;
+  font-size: var(--text-6xl);
   font-weight: normal;
   line-height: 1;
   color: var(--color-accent);

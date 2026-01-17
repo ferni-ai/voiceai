@@ -20,6 +20,7 @@
  * @module conversation/mid-response-tangents
  */
 
+import { seededChance, seededFloat, seededIndex, seededPick } from './utils/rng.js';
 import {
   getSessionVarietyTracker,
   type ThemeCategory,
@@ -244,9 +245,9 @@ function findMatchingTrigger(
 
   if (matches.length === 0) return null;
 
-  // Weighted selection
+  // Weighted selection using seeded RNG
   const totalWeight = matches.reduce((sum, t) => sum + (t.weight || 1), 0);
-  let random = Math.random() * totalWeight;
+  let random = seededFloat(`${Date.now()}:tangent`) * totalWeight;
 
   for (const trigger of matches) {
     random -= trigger.weight || 1;
@@ -318,7 +319,7 @@ export function decideTangent(
   }
 
   // Probability check
-  if (Math.random() > profile.tangentProbability) {
+  if (!seededChance(`${Date.now()}:1`, profile.tangentProbability)) {
     recordTangentDecision(sessionId, personaId, false, trigger.theme, 'none');
     return {
       shouldTangent: false,

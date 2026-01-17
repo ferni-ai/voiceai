@@ -1,0 +1,1158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sound Design | Ferni Brand</title>
+  <link rel="stylesheet" href="master-tokens.css">
+  <link rel="stylesheet" href="brand-components.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: var(--font-body);
+      background: var(--color-warm-white, #FAF8F5);
+      color: var(--color-natural-ink, #2C2520);
+      line-height: 1.6;
+    }
+
+    /* Header */
+    .header {
+      background: var(--color-bg-elevated);
+      border-bottom: 1px solid rgba(44, 37, 32, 0.1);
+      padding: 1rem 2rem;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .header-content {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      text-decoration: none;
+      color: inherit;
+    }
+
+    .logo svg {
+      width: 32px;
+      height: 32px;
+    }
+
+    .logo-text {
+      font-weight: 600;
+      font-size: 1.25rem;
+    }
+
+    .nav {
+      display: flex;
+      gap: 2rem;
+    }
+
+    .nav a {
+      color: var(--color-natural-ink);
+      text-decoration: none;
+      font-weight: 500;
+      opacity: 0.7;
+      transition: opacity 0.2s;
+    }
+
+    .nav a:hover,
+    .nav a.active {
+      opacity: 1;
+    }
+
+    /* Hero */
+    .hero {
+      background: linear-gradient(135deg, var(--color-natural-ink) 0%, var(--color-natural-ink-dark) 100%);
+      color: white;
+      padding: 4rem 2rem;
+      text-align: center;
+    }
+
+    .hero h1 {
+      font-size: 3rem;
+      font-weight: 700;
+      margin-bottom: 1rem;
+    }
+
+    .hero p {
+      font-size: 1.25rem;
+      opacity: 0.9;
+      max-width: 700px;
+      margin: 0 auto;
+    }
+
+    /* Main Content */
+    .main {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 3rem 2rem;
+    }
+
+    /* Section */
+    .section {
+      background: var(--color-bg-elevated);
+      border-radius: 16px;
+      padding: 2.5rem;
+      margin-bottom: 2rem;
+      box-shadow: 0 2px 8px rgba(44, 37, 32, 0.06);
+    }
+
+    .section-header {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .section-icon {
+      width: 48px;
+      height: 48px;
+      background: var(--color-ferni, #4a6741);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .section-icon svg {
+      width: 24px;
+      height: 24px;
+      stroke: white;
+    }
+
+    .section h2 {
+      font-size: 1.5rem;
+      font-weight: 600;
+    }
+
+    .section-intro {
+      font-size: 1.1rem;
+      color: rgba(44, 37, 32, 0.8);
+      margin-bottom: 2rem;
+      max-width: 800px;
+    }
+
+    /* Principles */
+    .principles-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 1.5rem;
+    }
+
+    .principle-card {
+      background: var(--color-warm-white);
+      border-radius: 12px;
+      padding: 1.5rem;
+    }
+
+    .principle-card h3 {
+      font-size: 1.125rem;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .principle-icon {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 24px;
+      height: 24px;
+      flex-shrink: 0;
+    }
+
+    .principle-icon svg {
+      width: 20px;
+      height: 20px;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .principle-card p {
+      font-size: 0.875rem;
+      color: rgba(44, 37, 32, 0.7);
+    }
+
+    /* Sound Categories */
+    .sound-category {
+      margin-bottom: 2rem;
+    }
+
+    .sound-category h3 {
+      font-size: 1.25rem;
+      font-weight: 600;
+      margin-bottom: 1rem;
+      padding-bottom: 0.5rem;
+      border-bottom: 2px solid var(--color-ferni);
+      display: inline-block;
+    }
+
+    .sound-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 1rem;
+    }
+
+    .sound-card {
+      background: var(--color-warm-white);
+      border-radius: 12px;
+      padding: 1.25rem;
+      display: flex;
+      gap: 1rem;
+    }
+
+    .sound-play {
+      width: 48px;
+      height: 48px;
+      background: var(--color-ferni);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      flex-shrink: 0;
+      transition: transform 0.2s, background 0.2s;
+    }
+
+    .sound-play:hover {
+      transform: scale(1.05);
+      background: var(--color-ferni-dark);
+    }
+
+    .sound-play svg {
+      width: 20px;
+      height: 20px;
+      fill: white;
+    }
+
+    .sound-info {
+      flex: 1;
+    }
+
+    .sound-name {
+      font-weight: 600;
+      font-size: 0.875rem;
+      margin-bottom: 0.25rem;
+    }
+
+    .sound-description {
+      font-size: 0.75rem;
+      color: rgba(44, 37, 32, 0.6);
+      margin-bottom: 0.5rem;
+    }
+
+    .sound-specs {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+
+    .sound-spec {
+      background: rgba(44, 37, 32, 0.1);
+      padding: 0.125rem 0.5rem;
+      border-radius: 4px;
+      font-size: 0.625rem;
+      font-family: var(--font-mono);
+    }
+
+    /* Technical Specs */
+    .specs-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .specs-table th,
+    .specs-table td {
+      padding: 1rem;
+      text-align: left;
+      border-bottom: 1px solid rgba(44, 37, 32, 0.1);
+    }
+
+    .specs-table th {
+      background: var(--color-warm-white);
+      font-weight: 600;
+      font-size: 0.875rem;
+      color: rgba(44, 37, 32, 0.7);
+    }
+
+    .specs-table td {
+      font-size: 0.875rem;
+    }
+
+    .specs-table code {
+      background: rgba(44, 37, 32, 0.08);
+      padding: 0.125rem 0.375rem;
+      border-radius: 4px;
+      font-family: var(--font-mono);
+      font-size: 0.8rem;
+    }
+
+    /* Persona Voices */
+    .persona-voice-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 1.5rem;
+    }
+
+    .persona-voice-card {
+      background: var(--color-warm-white);
+      border-radius: 16px;
+      overflow: hidden;
+    }
+
+    .persona-voice-header {
+      padding: 1.5rem;
+      color: white;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .persona-voice-header.ferni { background: var(--color-ferni); }
+    .persona-voice-header.maya { background: var(--color-maya); }
+    .persona-voice-header.peter { background: var(--color-peter); }
+    .persona-voice-header.jordan { background: var(--color-jordan); color: var(--color-natural-ink); }
+    .persona-voice-header.alex { background: var(--color-alex); }
+    .persona-voice-header.nayan { background: var(--color-nayan); color: var(--color-natural-ink); }
+
+    .persona-avatar-small {
+      width: 48px;
+      height: 48px;
+    }
+
+    .persona-voice-name {
+      font-size: 1.25rem;
+      font-weight: 600;
+    }
+
+    .persona-voice-body {
+      padding: 1.5rem;
+    }
+
+    .voice-attribute {
+      display: flex;
+      justify-content: space-between;
+      padding: 0.5rem 0;
+      border-bottom: 1px solid rgba(44, 37, 32, 0.1);
+      font-size: 0.875rem;
+    }
+
+    .voice-attribute:last-child {
+      border-bottom: none;
+    }
+
+    .voice-attribute-label {
+      color: rgba(44, 37, 32, 0.6);
+    }
+
+    .voice-attribute-value {
+      font-weight: 500;
+    }
+
+    /* Waveform */
+    .waveform {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 3px;
+      height: 40px;
+      padding: 1rem;
+      background: rgba(44, 37, 32, 0.05);
+      border-radius: 8px;
+      margin-top: 1rem;
+    }
+
+    .waveform-bar {
+      width: 4px;
+      background: var(--color-ferni);
+      border-radius: 2px;
+      animation: wave 1s ease-in-out infinite;
+    }
+
+    .waveform-bar:nth-child(1) { animation-delay: 0s; height: 12px; }
+    .waveform-bar:nth-child(2) { animation-delay: 0.1s; height: 24px; }
+    .waveform-bar:nth-child(3) { animation-delay: 0.2s; height: 16px; }
+    .waveform-bar:nth-child(4) { animation-delay: 0.3s; height: 32px; }
+    .waveform-bar:nth-child(5) { animation-delay: 0.4s; height: 20px; }
+    .waveform-bar:nth-child(6) { animation-delay: 0.5s; height: 28px; }
+    .waveform-bar:nth-child(7) { animation-delay: 0.6s; height: 14px; }
+    .waveform-bar:nth-child(8) { animation-delay: 0.7s; height: 22px; }
+
+    @keyframes wave {
+      0%, 100% { transform: scaleY(1); }
+      50% { transform: scaleY(0.5); }
+    }
+
+    /* Do's and Don'ts */
+    .dos-donts-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 1.5rem;
+    }
+
+    .dos-card, .donts-card {
+      padding: 1.5rem;
+      border-radius: 12px;
+    }
+
+    .dos-card {
+      background: var(--color-ferni-subtle);
+      border: 2px solid var(--color-ferni-border);
+    }
+
+    .donts-card {
+      background: var(--color-error-subtle);
+      border: 2px solid var(--color-error-border);
+    }
+
+    .dos-card h4, .donts-card h4 {
+      font-size: 1rem;
+      font-weight: 600;
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .dos-card h4 { color: var(--color-ferni); }
+    .donts-card h4 { color: var(--color-error); }
+
+    .dos-card ul, .donts-card ul {
+      list-style: none;
+      font-size: 0.875rem;
+    }
+
+    .dos-card li, .donts-card li {
+      padding: 0.5rem 0;
+      padding-left: 1.5rem;
+      position: relative;
+    }
+
+    .dos-card li::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      width: 14px;
+      height: 14px;
+      top: 0.2em;
+      background: var(--color-ferni);
+      mask: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M20 6L9 17l-5-5' stroke='currentColor' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+      mask-size: contain;
+      -webkit-mask: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M20 6L9 17l-5-5' stroke='currentColor' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+      -webkit-mask-size: contain;
+    }
+
+    .donts-card li::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      width: 14px;
+      height: 14px;
+      top: 0.2em;
+      background: var(--color-error);
+      mask: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M18 6L6 18M6 6l12 12' stroke='currentColor' stroke-width='3' stroke-linecap='round'/%3E%3C/svg%3E");
+      mask-size: contain;
+      -webkit-mask: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M18 6L6 18M6 6l12 12' stroke='currentColor' stroke-width='3' stroke-linecap='round'/%3E%3C/svg%3E");
+      -webkit-mask-size: contain;
+    }
+
+    /* File Format */
+    .format-cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 1rem;
+    }
+
+    .format-card {
+      background: var(--color-warm-white);
+      border-radius: 12px;
+      padding: 1.5rem;
+      text-align: center;
+    }
+
+    .format-extension {
+      font-size: 2rem;
+      font-weight: 700;
+      color: var(--color-ferni);
+      font-family: var(--font-mono);
+      margin-bottom: 0.5rem;
+    }
+
+    .format-name {
+      font-size: 0.875rem;
+      font-weight: 600;
+      margin-bottom: 0.25rem;
+    }
+
+    .format-use {
+      font-size: 0.75rem;
+      color: rgba(44, 37, 32, 0.6);
+    }
+
+    /* Footer */
+    .footer {
+      background: var(--color-natural-ink);
+      color: white;
+      padding: 3rem 2rem;
+      text-align: center;
+      margin-top: 4rem;
+    }
+
+    .footer p {
+      opacity: 0.7;
+    }
+
+    @media (max-width: 768px) {
+      .hero h1 {
+        font-size: 2rem;
+      }
+
+      .dos-donts-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .nav {
+        display: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Shared Navigation -->
+  <div id="nav-placeholder"></div>
+
+  <!-- Hero -->
+  <section class="hero">
+    <h1>Sound Design</h1>
+    <p>Audio is a core part of Ferni's identity. Every sound should feel warm, human, and supportive—never jarring or mechanical.</p>
+  </section>
+
+  <!-- Main Content -->
+  <main class="main">
+
+    <!-- Design Principles -->
+    <section class="section">
+      <div class="section-header">
+        <div class="section-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M9 18V5l12-2v13"/>
+            <circle cx="6" cy="18" r="3"/>
+            <circle cx="18" cy="16" r="3"/>
+          </svg>
+        </div>
+        <h2>Sound Design Principles</h2>
+      </div>
+      <p class="section-intro">Ferni's audio identity reinforces our core philosophy: making AI feel human. Every sound should support the user's experience without calling attention to itself.</p>
+
+      <div class="principles-grid">
+        <div class="principle-card">
+          <h3><span class="principle-icon"><svg viewBox="0 0 24 24"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"/><path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"/></svg></span> Organic & Natural</h3>
+          <p>Use real-world, natural sounds as a foundation. Avoid purely synthetic tones that feel robotic or clinical.</p>
+        </div>
+        <div class="principle-card">
+          <h3><span class="principle-icon"><svg viewBox="0 0 24 24"><path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/></svg></span> Soft & Rounded</h3>
+          <p>All sounds should have soft attacks and gentle releases. No sharp edges, harsh frequencies, or sudden starts.</p>
+        </div>
+        <div class="principle-card">
+          <h3><span class="principle-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg></span> Purposeful & Minimal</h3>
+          <p>Every sound must serve a clear purpose. When in doubt, use fewer sounds rather than more. Silence is powerful.</p>
+        </div>
+        <div class="principle-card">
+          <h3><span class="principle-icon"><svg viewBox="0 0 24 24"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg></span> Respectful Volume</h3>
+          <p>Sounds should never startle or demand attention. Maximum volume levels are intentionally conservative.</p>
+        </div>
+        <div class="principle-card">
+          <h3><span class="principle-icon"><svg viewBox="0 0 24 24"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/><path d="M5 3v4"/><path d="M19 17v4"/><path d="M3 5h4"/><path d="M17 19h4"/></svg></span> Emotionally Resonant</h3>
+          <p>Sounds should evoke warmth and comfort. Use frequencies and timbres associated with positive emotions.</p>
+        </div>
+        <div class="principle-card">
+          <h3><span class="principle-icon"><svg viewBox="0 0 24 24"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg></span> Harmonically Rich</h3>
+          <p>Prefer sounds with natural overtones and harmonics. Pure sine waves feel cold; real instruments feel alive.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- UI Sound Library -->
+    <section class="section">
+      <div class="section-header">
+        <div class="section-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+            <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/>
+          </svg>
+        </div>
+        <h2>UI Sound Library</h2>
+      </div>
+      <p class="section-intro">These sounds provide feedback for user interactions. Each sound is carefully designed to be pleasant even after hundreds of repetitions.</p>
+
+      <!-- Notifications -->
+      <div class="sound-category">
+        <h3>Notifications</h3>
+        <div class="sound-grid">
+          <div class="sound-card">
+            <div class="sound-play">
+              <svg viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+            </div>
+            <div class="sound-info">
+              <div class="sound-name">Gentle Arrival</div>
+              <div class="sound-description">New message or notification</div>
+              <div class="sound-specs">
+                <span class="sound-spec">400ms</span>
+                <span class="sound-spec">48kHz</span>
+                <span class="sound-spec">-12dB peak</span>
+              </div>
+            </div>
+          </div>
+          <div class="sound-card">
+            <div class="sound-play">
+              <svg viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+            </div>
+            <div class="sound-info">
+              <div class="sound-name">Soft Chime</div>
+              <div class="sound-description">Important alert (non-urgent)</div>
+              <div class="sound-specs">
+                <span class="sound-spec">600ms</span>
+                <span class="sound-spec">48kHz</span>
+                <span class="sound-spec">-10dB peak</span>
+              </div>
+            </div>
+          </div>
+          <div class="sound-card">
+            <div class="sound-play">
+              <svg viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+            </div>
+            <div class="sound-info">
+              <div class="sound-name">Warm Ping</div>
+              <div class="sound-description">Connection established</div>
+              <div class="sound-specs">
+                <span class="sound-spec">350ms</span>
+                <span class="sound-spec">48kHz</span>
+                <span class="sound-spec">-14dB peak</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Interactions -->
+      <div class="sound-category">
+        <h3>Interactions</h3>
+        <div class="sound-grid">
+          <div class="sound-card">
+            <div class="sound-play">
+              <svg viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+            </div>
+            <div class="sound-info">
+              <div class="sound-name">Button Tap</div>
+              <div class="sound-description">Primary button press</div>
+              <div class="sound-specs">
+                <span class="sound-spec">80ms</span>
+                <span class="sound-spec">48kHz</span>
+                <span class="sound-spec">-18dB peak</span>
+              </div>
+            </div>
+          </div>
+          <div class="sound-card">
+            <div class="sound-play">
+              <svg viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+            </div>
+            <div class="sound-info">
+              <div class="sound-name">Toggle Switch</div>
+              <div class="sound-description">On/off toggle</div>
+              <div class="sound-specs">
+                <span class="sound-spec">120ms</span>
+                <span class="sound-spec">48kHz</span>
+                <span class="sound-spec">-20dB peak</span>
+              </div>
+            </div>
+          </div>
+          <div class="sound-card">
+            <div class="sound-play">
+              <svg viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+            </div>
+            <div class="sound-info">
+              <div class="sound-name">Slide Complete</div>
+              <div class="sound-description">Swipe action completed</div>
+              <div class="sound-specs">
+                <span class="sound-spec">200ms</span>
+                <span class="sound-spec">48kHz</span>
+                <span class="sound-spec">-16dB peak</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Feedback -->
+      <div class="sound-category">
+        <h3>Feedback</h3>
+        <div class="sound-grid">
+          <div class="sound-card">
+            <div class="sound-play">
+              <svg viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+            </div>
+            <div class="sound-info">
+              <div class="sound-name">Success</div>
+              <div class="sound-description">Action completed successfully</div>
+              <div class="sound-specs">
+                <span class="sound-spec">450ms</span>
+                <span class="sound-spec">48kHz</span>
+                <span class="sound-spec">-12dB peak</span>
+              </div>
+            </div>
+          </div>
+          <div class="sound-card">
+            <div class="sound-play">
+              <svg viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+            </div>
+            <div class="sound-info">
+              <div class="sound-name">Error (Soft)</div>
+              <div class="sound-description">Something went wrong</div>
+              <div class="sound-specs">
+                <span class="sound-spec">300ms</span>
+                <span class="sound-spec">48kHz</span>
+                <span class="sound-spec">-14dB peak</span>
+              </div>
+            </div>
+          </div>
+          <div class="sound-card">
+            <div class="sound-play">
+              <svg viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+            </div>
+            <div class="sound-info">
+              <div class="sound-name">Listening</div>
+              <div class="sound-description">Voice input active</div>
+              <div class="sound-specs">
+                <span class="sound-spec">250ms</span>
+                <span class="sound-spec">48kHz</span>
+                <span class="sound-spec">-15dB peak</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Persona Voices -->
+    <section class="section">
+      <div class="section-header">
+        <div class="section-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+            <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+            <line x1="12" y1="19" x2="12" y2="23"/>
+            <line x1="8" y1="23" x2="16" y2="23"/>
+          </svg>
+        </div>
+        <h2>Persona Voice Profiles</h2>
+      </div>
+      <p class="section-intro">Each persona has a distinct voice that matches their personality and role. Voice synthesis uses Cartesia TTS with these specifications.</p>
+
+      <div class="persona-voice-grid">
+        <!-- Ferni -->
+        <div class="persona-voice-card">
+          <div class="persona-voice-header ferni">
+            <svg class="persona-avatar-small" viewBox="0 0 100 100" fill="none">
+              <circle cx="50" cy="50" r="45" fill="white" fill-opacity="0.2"/>
+              <ellipse cx="36" cy="48" rx="7" ry="9" fill="white"/>
+              <ellipse cx="64" cy="48" rx="7" ry="9" fill="white"/>
+            </svg>
+            <span class="persona-voice-name">Ferni</span>
+          </div>
+          <div class="persona-voice-body">
+            <div class="voice-attribute">
+              <span class="voice-attribute-label">Tone</span>
+              <span class="voice-attribute-value">Warm, Friendly</span>
+            </div>
+            <div class="voice-attribute">
+              <span class="voice-attribute-label">Pitch</span>
+              <span class="voice-attribute-value">Medium</span>
+            </div>
+            <div class="voice-attribute">
+              <span class="voice-attribute-label">Speed</span>
+              <span class="voice-attribute-value">Natural (1.0x)</span>
+            </div>
+            <div class="voice-attribute">
+              <span class="voice-attribute-label">Character</span>
+              <span class="voice-attribute-value">Supportive Guide</span>
+            </div>
+            <div class="waveform">
+              <div class="waveform-bar"></div>
+              <div class="waveform-bar"></div>
+              <div class="waveform-bar"></div>
+              <div class="waveform-bar"></div>
+              <div class="waveform-bar"></div>
+              <div class="waveform-bar"></div>
+              <div class="waveform-bar"></div>
+              <div class="waveform-bar"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Maya -->
+        <div class="persona-voice-card">
+          <div class="persona-voice-header maya">
+            <svg class="persona-avatar-small" viewBox="0 0 100 100" fill="none">
+              <circle cx="50" cy="50" r="45" fill="white" fill-opacity="0.2"/>
+              <ellipse cx="36" cy="48" rx="7" ry="9" fill="white"/>
+              <ellipse cx="64" cy="48" rx="7" ry="9" fill="white"/>
+            </svg>
+            <span class="persona-voice-name">Maya</span>
+          </div>
+          <div class="persona-voice-body">
+            <div class="voice-attribute">
+              <span class="voice-attribute-label">Tone</span>
+              <span class="voice-attribute-value">Calm, Encouraging</span>
+            </div>
+            <div class="voice-attribute">
+              <span class="voice-attribute-label">Pitch</span>
+              <span class="voice-attribute-value">Medium-Low</span>
+            </div>
+            <div class="voice-attribute">
+              <span class="voice-attribute-label">Speed</span>
+              <span class="voice-attribute-value">Slightly Slow (0.95x)</span>
+            </div>
+            <div class="voice-attribute">
+              <span class="voice-attribute-label">Character</span>
+              <span class="voice-attribute-value">Wellness Coach</span>
+            </div>
+            <div class="waveform">
+              <div class="waveform-bar" style="background: var(--color-maya);"></div>
+              <div class="waveform-bar" style="background: var(--color-maya);"></div>
+              <div class="waveform-bar" style="background: var(--color-maya);"></div>
+              <div class="waveform-bar" style="background: var(--color-maya);"></div>
+              <div class="waveform-bar" style="background: var(--color-maya);"></div>
+              <div class="waveform-bar" style="background: var(--color-maya);"></div>
+              <div class="waveform-bar" style="background: var(--color-maya);"></div>
+              <div class="waveform-bar" style="background: var(--color-maya);"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Peter -->
+        <div class="persona-voice-card">
+          <div class="persona-voice-header peter">
+            <svg class="persona-avatar-small" viewBox="0 0 100 100" fill="none">
+              <circle cx="50" cy="50" r="45" fill="white" fill-opacity="0.2"/>
+              <ellipse cx="36" cy="48" rx="7" ry="9" fill="white"/>
+              <ellipse cx="64" cy="48" rx="7" ry="9" fill="white"/>
+            </svg>
+            <span class="persona-voice-name">Peter</span>
+          </div>
+          <div class="persona-voice-body">
+            <div class="voice-attribute">
+              <span class="voice-attribute-label">Tone</span>
+              <span class="voice-attribute-value">Steady, Confident</span>
+            </div>
+            <div class="voice-attribute">
+              <span class="voice-attribute-label">Pitch</span>
+              <span class="voice-attribute-value">Low-Medium</span>
+            </div>
+            <div class="voice-attribute">
+              <span class="voice-attribute-label">Speed</span>
+              <span class="voice-attribute-value">Measured (0.9x)</span>
+            </div>
+            <div class="voice-attribute">
+              <span class="voice-attribute-label">Character</span>
+              <span class="voice-attribute-value">Financial Advisor</span>
+            </div>
+            <div class="waveform">
+              <div class="waveform-bar" style="background: var(--color-peter);"></div>
+              <div class="waveform-bar" style="background: var(--color-peter);"></div>
+              <div class="waveform-bar" style="background: var(--color-peter);"></div>
+              <div class="waveform-bar" style="background: var(--color-peter);"></div>
+              <div class="waveform-bar" style="background: var(--color-peter);"></div>
+              <div class="waveform-bar" style="background: var(--color-peter);"></div>
+              <div class="waveform-bar" style="background: var(--color-peter);"></div>
+              <div class="waveform-bar" style="background: var(--color-peter);"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Jordan -->
+        <div class="persona-voice-card">
+          <div class="persona-voice-header jordan">
+            <svg class="persona-avatar-small" viewBox="0 0 100 100" fill="none">
+              <circle cx="50" cy="50" r="45" fill="white" fill-opacity="0.2"/>
+              <ellipse cx="36" cy="48" rx="7" ry="9" fill="white"/>
+              <ellipse cx="64" cy="48" rx="7" ry="9" fill="white"/>
+            </svg>
+            <span class="persona-voice-name">Jordan</span>
+          </div>
+          <div class="persona-voice-body">
+            <div class="voice-attribute">
+              <span class="voice-attribute-label">Tone</span>
+              <span class="voice-attribute-value">Energetic, Motivating</span>
+            </div>
+            <div class="voice-attribute">
+              <span class="voice-attribute-label">Pitch</span>
+              <span class="voice-attribute-value">Medium-High</span>
+            </div>
+            <div class="voice-attribute">
+              <span class="voice-attribute-label">Speed</span>
+              <span class="voice-attribute-value">Slightly Fast (1.05x)</span>
+            </div>
+            <div class="voice-attribute">
+              <span class="voice-attribute-label">Character</span>
+              <span class="voice-attribute-value">Goal Tracker</span>
+            </div>
+            <div class="waveform">
+              <div class="waveform-bar" style="background: var(--color-jordan);"></div>
+              <div class="waveform-bar" style="background: var(--color-jordan);"></div>
+              <div class="waveform-bar" style="background: var(--color-jordan);"></div>
+              <div class="waveform-bar" style="background: var(--color-jordan);"></div>
+              <div class="waveform-bar" style="background: var(--color-jordan);"></div>
+              <div class="waveform-bar" style="background: var(--color-jordan);"></div>
+              <div class="waveform-bar" style="background: var(--color-jordan);"></div>
+              <div class="waveform-bar" style="background: var(--color-jordan);"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Alex -->
+        <div class="persona-voice-card">
+          <div class="persona-voice-header alex">
+            <svg class="persona-avatar-small" viewBox="0 0 100 100" fill="none">
+              <circle cx="50" cy="50" r="45" fill="white" fill-opacity="0.2"/>
+              <ellipse cx="36" cy="48" rx="7" ry="9" fill="white"/>
+              <ellipse cx="64" cy="48" rx="7" ry="9" fill="white"/>
+            </svg>
+            <span class="persona-voice-name">Alex</span>
+          </div>
+          <div class="persona-voice-body">
+            <div class="voice-attribute">
+              <span class="voice-attribute-label">Tone</span>
+              <span class="voice-attribute-value">Clear, Professional</span>
+            </div>
+            <div class="voice-attribute">
+              <span class="voice-attribute-label">Pitch</span>
+              <span class="voice-attribute-value">Medium</span>
+            </div>
+            <div class="voice-attribute">
+              <span class="voice-attribute-label">Speed</span>
+              <span class="voice-attribute-value">Natural (1.0x)</span>
+            </div>
+            <div class="voice-attribute">
+              <span class="voice-attribute-label">Character</span>
+              <span class="voice-attribute-value">Communication Pro</span>
+            </div>
+            <div class="waveform">
+              <div class="waveform-bar" style="background: var(--color-alex);"></div>
+              <div class="waveform-bar" style="background: var(--color-alex);"></div>
+              <div class="waveform-bar" style="background: var(--color-alex);"></div>
+              <div class="waveform-bar" style="background: var(--color-alex);"></div>
+              <div class="waveform-bar" style="background: var(--color-alex);"></div>
+              <div class="waveform-bar" style="background: var(--color-alex);"></div>
+              <div class="waveform-bar" style="background: var(--color-alex);"></div>
+              <div class="waveform-bar" style="background: var(--color-alex);"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Nayan -->
+        <div class="persona-voice-card">
+          <div class="persona-voice-header nayan">
+            <svg class="persona-avatar-small" viewBox="0 0 100 100" fill="none">
+              <circle cx="50" cy="50" r="45" fill="white" fill-opacity="0.2"/>
+              <ellipse cx="36" cy="48" rx="7" ry="9" fill="white"/>
+              <ellipse cx="64" cy="48" rx="7" ry="9" fill="white"/>
+            </svg>
+            <span class="persona-voice-name">Nayan</span>
+          </div>
+          <div class="persona-voice-body">
+            <div class="voice-attribute">
+              <span class="voice-attribute-label">Tone</span>
+              <span class="voice-attribute-value">Wise, Thoughtful</span>
+            </div>
+            <div class="voice-attribute">
+              <span class="voice-attribute-label">Pitch</span>
+              <span class="voice-attribute-value">Low</span>
+            </div>
+            <div class="voice-attribute">
+              <span class="voice-attribute-label">Speed</span>
+              <span class="voice-attribute-value">Slow (0.85x)</span>
+            </div>
+            <div class="voice-attribute">
+              <span class="voice-attribute-label">Character</span>
+              <span class="voice-attribute-value">Life Philosopher</span>
+            </div>
+            <div class="waveform">
+              <div class="waveform-bar" style="background: var(--color-nayan);"></div>
+              <div class="waveform-bar" style="background: var(--color-nayan);"></div>
+              <div class="waveform-bar" style="background: var(--color-nayan);"></div>
+              <div class="waveform-bar" style="background: var(--color-nayan);"></div>
+              <div class="waveform-bar" style="background: var(--color-nayan);"></div>
+              <div class="waveform-bar" style="background: var(--color-nayan);"></div>
+              <div class="waveform-bar" style="background: var(--color-nayan);"></div>
+              <div class="waveform-bar" style="background: var(--color-nayan);"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Technical Specifications -->
+    <section class="section">
+      <div class="section-header">
+        <div class="section-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="3"/>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+          </svg>
+        </div>
+        <h2>Technical Specifications</h2>
+      </div>
+
+      <table class="specs-table">
+        <thead>
+          <tr>
+            <th>Property</th>
+            <th>UI Sounds</th>
+            <th>Voice</th>
+            <th>Ambient</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Sample Rate</td>
+            <td><code>48000 Hz</code></td>
+            <td><code>24000 Hz</code></td>
+            <td><code>48000 Hz</code></td>
+          </tr>
+          <tr>
+            <td>Bit Depth</td>
+            <td><code>16-bit</code></td>
+            <td><code>16-bit</code></td>
+            <td><code>24-bit</code></td>
+          </tr>
+          <tr>
+            <td>Channels</td>
+            <td><code>Mono</code></td>
+            <td><code>Mono</code></td>
+            <td><code>Stereo</code></td>
+          </tr>
+          <tr>
+            <td>Peak Level</td>
+            <td><code>-10 to -20 dB</code></td>
+            <td><code>-6 to -12 dB</code></td>
+            <td><code>-18 to -24 dB</code></td>
+          </tr>
+          <tr>
+            <td>Duration</td>
+            <td><code>50-600ms</code></td>
+            <td><code>Variable</code></td>
+            <td><code>Loop-ready</code></td>
+          </tr>
+          <tr>
+            <td>Fade In</td>
+            <td><code>5-20ms</code></td>
+            <td><code>N/A</code></td>
+            <td><code>500-2000ms</code></td>
+          </tr>
+          <tr>
+            <td>Fade Out</td>
+            <td><code>20-100ms</code></td>
+            <td><code>Natural decay</code></td>
+            <td><code>500-2000ms</code></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3 style="margin-top: 2rem; margin-bottom: 1rem;">File Formats</h3>
+      <div class="format-cards">
+        <div class="format-card">
+          <div class="format-extension">.mp3</div>
+          <div class="format-name">MP3</div>
+          <div class="format-use">Web delivery (128-192kbps)</div>
+        </div>
+        <div class="format-card">
+          <div class="format-extension">.ogg</div>
+          <div class="format-name">Ogg Vorbis</div>
+          <div class="format-use">Web fallback</div>
+        </div>
+        <div class="format-card">
+          <div class="format-extension">.wav</div>
+          <div class="format-name">WAV</div>
+          <div class="format-use">Source/Archive</div>
+        </div>
+        <div class="format-card">
+          <div class="format-extension">.m4a</div>
+          <div class="format-name">AAC</div>
+          <div class="format-use">iOS/Mobile</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Do's and Don'ts -->
+    <section class="section">
+      <div class="section-header">
+        <div class="section-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+            <polyline points="22 4 12 14.01 9 11.01"/>
+          </svg>
+        </div>
+        <h2>Sound Design Do's & Don'ts</h2>
+      </div>
+
+      <div class="dos-donts-grid">
+        <div class="dos-card">
+          <h4><svg viewBox="0 0 24 24" fill="none" stroke="var(--color-ferni)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="width: 18px; height: 18px; vertical-align: middle; margin-right: 6px;"><path d="M20 6L9 17l-5-5"/></svg>Do</h4>
+          <ul>
+            <li>Use organic, natural sound sources</li>
+            <li>Apply soft attack and release envelopes</li>
+            <li>Keep UI sounds under 600ms</li>
+            <li>Test at low volumes—if it works quiet, it works</li>
+            <li>Use musical intervals (thirds, fifths) for pleasant tones</li>
+            <li>Match sound energy to action importance</li>
+            <li>Consider sound pairs (on/off, success/error)</li>
+            <li>Test for listener fatigue with repetition</li>
+          </ul>
+        </div>
+        <div class="donts-card">
+          <h4><svg viewBox="0 0 24 24" fill="none" stroke="var(--color-error)" stroke-width="3" stroke-linecap="round" style="width: 18px; height: 18px; vertical-align: middle; margin-right: 6px;"><path d="M18 6L6 18M6 6l12 12"/></svg>Don't</h4>
+          <ul>
+            <li>Use harsh, synthetic tones</li>
+            <li>Create sounds with sharp, sudden attacks</li>
+            <li>Exceed -6dB peak for any sound</li>
+            <li>Use dissonant intervals or clashing frequencies</li>
+            <li>Make sounds that demand immediate attention</li>
+            <li>Add sound effects to every interaction</li>
+            <li>Use sounds from stock libraries without modification</li>
+            <li>Create sounds that could startle or alarm users</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Shared Footer -->
+  <div id="footer-placeholder"></div>
+
+  <!-- Shared Navigation Script -->
+  <script src="shared/nav.js" defer></script>
+</body>
+</html>

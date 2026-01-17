@@ -62,7 +62,8 @@ env:
   GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
   GCP_REGION: us-central1
   NODE_VERSION: '20'
-  PNPM_VERSION: '9'
+  PNPM_VERSION: '10'
+  LIVEKIT_AGENTS_VERSION: '1.0.31'
   # Docker registries
   REGISTRY: gcr.io
   VOICE_IMAGE: gcr.io/${{ secrets.GCP_PROJECT_ID }}/ferni-voice-agent
@@ -145,8 +146,17 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'pnpm'
 
+      - name: Fix local dependencies for CI
+        run: |
+          sed -i 's|"file:../agents-js/agents"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
+          sed -i 's|"file:../agents-js/plugins/cartesia"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
+          sed -i 's|"file:../agents-js/plugins/deepgram"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
+          sed -i 's|"file:../agents-js/plugins/google"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
+          sed -i 's|"file:../agents-js/plugins/openai"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
+          sed -i 's|"file:../agents-js/plugins/silero"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
+
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: pnpm install --no-frozen-lockfile
 
       - name: Deployment safety check
         run: |
@@ -162,12 +172,15 @@ jobs:
       - name: Type check
         run: pnpm typecheck
         continue-on-error: true
+        env:
+          NODE_OPTIONS: --max-old-space-size=4096
 
       - name: Run tests
         run: pnpm test -- --reporter=dot
         continue-on-error: true
         env:
           NODE_ENV: test
+          NODE_OPTIONS: --max-old-space-size=4096
 
       - name: Build backend
         run: pnpm build:fast
@@ -177,8 +190,8 @@ jobs:
 
       - name: Build frontend
         run: |
-          cd frontend-typescript
-          pnpm install --frozen-lockfile
+          cd apps/web
+          pnpm install --no-frozen-lockfile
           pnpm build
 
   # ============================================================================
@@ -194,9 +207,12 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
+      # ═══════════════════════════════════════════════════════════════════════
+      # GCR AUTHENTICATION
+      # ═══════════════════════════════════════════════════════════════════════
+      # Uses gcloud auth configure-docker which works with service account keys
+      # without needing additional IAM permissions
+      # ═══════════════════════════════════════════════════════════════════════
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v2
         with:
@@ -206,19 +222,20 @@ jobs:
         run: gcloud auth configure-docker gcr.io --quiet
 
       - name: Build and push image
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          file: docker/Dockerfile.agent
-          push: true
-          tags: |
-            ${{ env.VOICE_IMAGE }}:${{ github.sha }}
-            ${{ env.VOICE_IMAGE }}:${{ needs.prepare.outputs.short_sha }}
-            ${{ env.VOICE_IMAGE }}:latest
-          cache-from: type=gha,scope=voice-agent
-          cache-to: type=gha,scope=voice-agent,mode=max
-          build-args: |
-            NODE_VERSION=20
+        run: |
+          # Use native docker build (gcloud auth configure-docker works with this)
+          docker build \
+            --file docker/Dockerfile.agent \
+            --tag ${{ env.VOICE_IMAGE }}:${{ github.sha }} \
+            --tag ${{ env.VOICE_IMAGE }}:${{ needs.prepare.outputs.short_sha }} \
+            --tag ${{ env.VOICE_IMAGE }}:latest \
+            --build-arg NODE_VERSION=20 \
+            .
+
+          # Push all tags
+          docker push ${{ env.VOICE_IMAGE }}:${{ github.sha }}
+          docker push ${{ env.VOICE_IMAGE }}:${{ needs.prepare.outputs.short_sha }}
+          docker push ${{ env.VOICE_IMAGE }}:latest
 
       - name: Image summary
         run: |
@@ -250,14 +267,26 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'pnpm'
 
+      - name: Fix local dependencies for CI
+        run: |
+          sed -i 's|"file:../agents-js/agents"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
+          sed -i 's|"file:../agents-js/plugins/cartesia"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
+          sed -i 's|"file:../agents-js/plugins/deepgram"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
+          sed -i 's|"file:../agents-js/plugins/google"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
+          sed -i 's|"file:../agents-js/plugins/openai"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
+          sed -i 's|"file:../agents-js/plugins/silero"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
+
       - name: Build design-system (required for Docker)
         run: |
-          pnpm install --frozen-lockfile --ignore-scripts
+          pnpm install --no-frozen-lockfile --ignore-scripts
           node design-system/build.js
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
+      # ═══════════════════════════════════════════════════════════════════════
+      # GCR AUTHENTICATION
+      # ═══════════════════════════════════════════════════════════════════════
+      # Uses gcloud auth configure-docker which works with service account keys
+      # Required for pulling private base image (ferni-speaker:latest)
+      # ═══════════════════════════════════════════════════════════════════════
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v2
         with:
@@ -266,20 +295,29 @@ jobs:
       - name: Configure Docker for GCR
         run: gcloud auth configure-docker gcr.io --quiet
 
+      - name: Pre-pull private base image
+        run: |
+          # Explicitly pull private base image before build
+          # This ensures gcloud credentials are properly used
+          echo "Pulling private base image: gcr.io/${{ env.GCP_PROJECT_ID }}/ferni-speaker:latest"
+          docker pull gcr.io/${{ env.GCP_PROJECT_ID }}/ferni-speaker:latest
+
       - name: Build and push image
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          file: docker/Dockerfile.ui
-          push: true
-          tags: |
-            ${{ env.UI_IMAGE }}:${{ github.sha }}
-            ${{ env.UI_IMAGE }}:${{ needs.prepare.outputs.short_sha }}
-            ${{ env.UI_IMAGE }}:latest
-          cache-from: type=gha,scope=ui-server
-          cache-to: type=gha,scope=ui-server,mode=max
-          build-args: |
-            NODE_VERSION=20
+        run: |
+          # Native docker build (uses locally cached base image)
+          docker build \
+            --file docker/Dockerfile.ui \
+            --tag ${{ env.UI_IMAGE }}:${{ github.sha }} \
+            --tag ${{ env.UI_IMAGE }}:${{ needs.prepare.outputs.short_sha }} \
+            --tag ${{ env.UI_IMAGE }}:latest \
+            --build-arg NODE_VERSION=20 \
+            --build-arg PROJECT_ID=${{ env.GCP_PROJECT_ID }} \
+            .
+
+          # Push all tags
+          docker push ${{ env.UI_IMAGE }}:${{ github.sha }}
+          docker push ${{ env.UI_IMAGE }}:${{ needs.prepare.outputs.short_sha }}
+          docker push ${{ env.UI_IMAGE }}:latest
 
       - name: Image summary
         run: |
@@ -328,18 +366,25 @@ jobs:
         id: deploy
         run: |
           REVISION_SUFFIX=${{ needs.prepare.outputs.short_sha }}
-          
+
           echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
           echo "🔵🟢 BLUE-GREEN DEPLOYMENT"
           echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-          echo "🟢 Deploying GREEN revision with NO traffic..."
-          echo ""
-          
+
+          # Check if service exists (--no-traffic only works for existing services)
+          if gcloud run services describe voiceai-agent --region=${{ env.GCP_REGION }} --format="value(status.url)" 2>/dev/null; then
+            echo "🟢 Service exists - deploying with --no-traffic (blue-green)..."
+            NO_TRAFFIC_FLAG="--no-traffic"
+          else
+            echo "🆕 New service - deploying with traffic (first deployment)..."
+            NO_TRAFFIC_FLAG=""
+          fi
+
           gcloud run deploy voiceai-agent \
             --image ${{ env.VOICE_IMAGE }}:${{ github.sha }} \
             --region ${{ env.GCP_REGION }} \
             --platform managed \
-            --no-traffic \
+            $NO_TRAFFIC_FLAG \
             --tag green \
             --revision-suffix $REVISION_SUFFIX \
             --memory 2Gi \
@@ -348,8 +393,9 @@ jobs:
             --concurrency 1 \
             --min-instances 0 \
             --max-instances 20 \
-            --set-env-vars "NODE_ENV=production,BUILD_SHA=${{ github.sha }}" \
-            --set-secrets "GOOGLE_API_KEY=google-api-key:latest,CARTESIA_API_KEY=cartesia-api-key:latest,LIVEKIT_URL=livekit-url:latest,LIVEKIT_API_KEY=livekit-api-key:latest,LIVEKIT_API_SECRET=livekit-api-secret:latest"
+            --allow-unauthenticated \
+            --set-env-vars "NODE_ENV=production,BUILD_SHA=${{ github.sha }},USE_OPENAI_REALTIME=true" \
+            --set-secrets "GOOGLE_API_KEY=google-api-key:latest,CARTESIA_API_KEY=cartesia-api-key:latest,LIVEKIT_URL=livekit-url:latest,LIVEKIT_API_KEY=livekit-api-key:latest,LIVEKIT_API_SECRET=livekit-api-secret:latest,OPENAI_API_KEY=openai-api-key:latest"
           
           REVISION=$(gcloud run revisions list --service=voiceai-agent --region=${{ env.GCP_REGION }} --format="value(REVISION)" --limit=1)
           URL=$(gcloud run services describe voiceai-agent --region=${{ env.GCP_REGION }} --format="value(status.url)")
@@ -497,26 +543,41 @@ jobs:
         with:
           project_id: ${{ env.GCP_PROJECT_ID }}
 
-      - name: Deploy green revision (no traffic)
+      - name: 🟢 Deploy GREEN revision (no traffic)
         id: deploy
         run: |
           REVISION_SUFFIX=${{ needs.prepare.outputs.short_sha }}
-          
+
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "🔵🟢 UI SERVER BLUE-GREEN DEPLOYMENT"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
+          # Check if service exists (--no-traffic only works for existing services)
+          if gcloud run services describe john-bogle-ui --region=${{ env.GCP_REGION }} --format="value(status.url)" 2>/dev/null; then
+            echo "🟢 Service exists - deploying with --no-traffic (blue-green)..."
+            NO_TRAFFIC_FLAG="--no-traffic"
+          else
+            echo "🆕 New service - deploying with traffic (first deployment)..."
+            NO_TRAFFIC_FLAG=""
+          fi
+
           gcloud run deploy john-bogle-ui \
             --image ${{ env.UI_IMAGE }}:${{ github.sha }} \
             --region ${{ env.GCP_REGION }} \
             --platform managed \
-            --no-traffic \
+            $NO_TRAFFIC_FLAG \
             --tag green \
             --revision-suffix $REVISION_SUFFIX \
             --allow-unauthenticated \
-            --memory 1Gi \
+            --memory 512Mi \
             --cpu 1 \
             --timeout 300 \
             --concurrency 80 \
             --min-instances 0 \
             --max-instances 10 \
-            --set-env-vars "NODE_ENV=production,BUILD_SHA=${{ github.sha }}"
+            --vpc-connector ferni-redis-connector \
+            --set-env-vars "^::^NODE_ENV=production::BUILD_SHA=${{ github.sha }}::ALLOWED_ORIGINS=https://app.ferni.ai,https://ferni.ai,https://ferni-prod.web.app::ALLOW_LEGACY_X_USER_ID_AUTH=true" \
+            --set-secrets "LIVEKIT_URL=livekit-url:latest,LIVEKIT_API_KEY=livekit-api-key:latest,LIVEKIT_API_SECRET=livekit-api-secret:latest,GITHUB_MARKETPLACE_TOKEN=github-marketplace-token:latest,ADMIN_API_KEYS=admin-api-key:latest,ADMIN_KEY=admin-api-key:latest,LOG_HASH_SECRET=log-hash-secret:latest,EVALOPS_ADMIN_KEY=evalops-admin-key:latest,REDIS_URL=redis-url:latest,TWITTER_CLIENT_ID=twitter-client-id:latest,TWITTER_CLIENT_SECRET=twitter-client-secret:latest,LINKEDIN_CLIENT_ID=linkedin-client-id:latest,LINKEDIN_CLIENT_SECRET=linkedin-client-secret:latest,GOOGLE_CALENDAR_CLIENT_ID=google-calendar-client-id:latest,GOOGLE_CALENDAR_CLIENT_SECRET=google-calendar-client-secret:latest"
           
           REVISION=$(gcloud run revisions list --service=john-bogle-ui --region=${{ env.GCP_REGION }} --format="value(REVISION)" --limit=1)
           URL=$(gcloud run services describe john-bogle-ui --region=${{ env.GCP_REGION }} --format="value(status.url)")
@@ -588,8 +649,17 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'pnpm'
 
+      - name: Fix local dependencies for CI
+        run: |
+          sed -i 's|"file:../agents-js/agents"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
+          sed -i 's|"file:../agents-js/plugins/cartesia"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
+          sed -i 's|"file:../agents-js/plugins/deepgram"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
+          sed -i 's|"file:../agents-js/plugins/google"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
+          sed -i 's|"file:../agents-js/plugins/openai"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
+          sed -i 's|"file:../agents-js/plugins/silero"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
+
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: pnpm install --no-frozen-lockfile
 
       - name: Run smoke tests
         run: |

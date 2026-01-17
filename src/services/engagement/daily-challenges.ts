@@ -12,6 +12,7 @@
  */
 
 import { getLogger } from '../../utils/safe-logger.js';
+import { cleanForFirestore } from '../../utils/firestore-utils.js';
 
 const log = getLogger();
 
@@ -203,7 +204,7 @@ export function getTodaysChallenge(userId: string, userStats?: UserChallengeStat
 
   // Add variations based on the week number for variety
   const weekNumber = getWeekNumber(today);
-  let finalType = schedule.type;
+  const finalType = schedule.type;
   let finalDescription = schedule.description;
   let gameType: string | undefined;
   let theme: string | undefined;
@@ -250,7 +251,7 @@ export function getTodaysChallenge(userId: string, userStats?: UserChallengeStat
 /**
  * Get upcoming challenges for the week
  */
-export function getUpcomingChallenges(userId: string, days: number = 7): DailyChallenge[] {
+export function getUpcomingChallenges(userId: string, days = 7): DailyChallenge[] {
   const challenges: DailyChallenge[] = [];
   const today = new Date();
 
@@ -414,7 +415,7 @@ export function hasCompletedTodaysChallenge(userId: string): boolean {
 /**
  * Get user's challenge history
  */
-export function getChallengeHistory(userId: string, limit: number = 30): ChallengeProgress[] {
+export function getChallengeHistory(userId: string, limit = 30): ChallengeProgress[] {
   const userProgress = progressStore.get(userId) || [];
   return userProgress
     .filter((p) => p.completedAt)

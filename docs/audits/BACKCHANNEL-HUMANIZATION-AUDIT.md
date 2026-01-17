@@ -1,11 +1,35 @@
 # Backchannel & Feedback Humanization Audit
 
 > **Audit Date**: December 14, 2025  
+> **Updated**: December 20, 2025 - Added LLM-based solution  
 > **Issue**: Too much backchannel/feedback making agent feel unnatural
 
 ## Executive Summary
 
-The agent has **at least 10 overlapping feedback mechanisms** that can stack in a single turn, creating an unnatural, overly-chatty experience. The core issue is that each system was designed in isolation without considering the cumulative effect.
+~~The agent has **at least 10 overlapping feedback mechanisms** that can stack in a single turn, creating an unnatural, overly-chatty experience.~~ 
+
+**UPDATE (Dec 20)**: We've implemented an **LLM-based backchannel system** that generates contextually appropriate backchannels instead of selecting from hardcoded phrase pools. This fundamentally solves the repetition problem.
+
+### The New Approach
+
+| Old System | New System |
+|------------|------------|
+| Multiple overlapping phrase pools | LLM generates based on context |
+| Random selection → repetition | Contextual → natural variety |
+| 10+ independent systems | Coordinated via feedback-coordinator.ts |
+| Hardcoded timing | Timing triggers, LLM generates content |
+
+**Key files:**
+- `src/speech/llm-backchannel.ts` - LLM-based backchannel generation
+- `src/speech/feedback-coordinator.ts` - Global feedback budget
+- `src/personas/bundles/ferni/identity/system-prompt.md` - Active listening guidance
+- `src/config/voice-humanization-flags.ts` - Feature flag: `enableLLMBackchannels`
+
+---
+
+## Previous Analysis (For Reference)
+
+The agent previously had **at least 10 overlapping feedback mechanisms** that could stack in a single turn:
 
 ### Current Feedback Mechanisms (All Can Fire Together!)
 

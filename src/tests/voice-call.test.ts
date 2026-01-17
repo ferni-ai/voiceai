@@ -42,7 +42,7 @@ import {
   callWithPersonaVoice,
   callWithAlexVoice,
   generateIncomingCallTwiml,
-} from '../services/voice-call.js';
+} from '../services/voice/voice-call.js';
 import { getVoiceId, getPersonaDisplayName } from '../personas/voice-registry.js';
 
 // ============================================================================

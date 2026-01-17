@@ -343,7 +343,7 @@ const DEFAULT_TOKENS: BrandTokens = {
 
 /** Cached brand context */
 let cachedContext: BrandContext | null = null;
-let cacheTime: number = 0;
+let cacheTime = 0;
 const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
 /**
@@ -377,9 +377,9 @@ export async function loadBrandContext(): Promise<BrandContext> {
       version: '1.0.0',
       lastUpdated: new Date().toISOString(),
       sourceDocs: [
-        'design-system/brand/BRAND-VOICE-GUIDE.md',
-        'design-system/brand/BETTER-THAN-HUMAN.md',
-        'design-system/brand/FERNI-BRAND-GUIDELINES.md',
+        'design-system/docs/brand/BRAND-VOICE-GUIDE.md',
+        'design-system/docs/brand/BETTER-THAN-HUMAN.md',
+        'design-system/docs/brand/FERNI-BRAND-GUIDELINES.md',
         'design-system/tokens/personas.json',
       ],
     },

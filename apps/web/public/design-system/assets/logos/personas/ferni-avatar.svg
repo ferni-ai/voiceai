@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Ferni Full Avatar - Complete orb with halo effects and eyes -->
+<!-- Based on PixarVoiceOrb + GlowHalo from iOS implementation -->
+<svg width="300" height="300" viewBox="0 0 300 300" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- Ferni Green Colors -->
+    <linearGradient id="orbGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#4a6741"/>
+      <stop offset="100%" stop-color="#3d5a35"/>
+    </linearGradient>
+
+    <!-- Outer Glow (soul shimmer) -->
+    <radialGradient id="outerGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="35%" stop-color="#4a6741" stop-opacity="0.15"/>
+      <stop offset="70%" stop-color="#4a6741" stop-opacity="0.08"/>
+      <stop offset="100%" stop-color="#4a6741" stop-opacity="0"/>
+    </radialGradient>
+
+    <!-- Soul Warmth (golden glow) -->
+    <radialGradient id="soulWarmth" cx="50%" cy="50%" r="50%">
+      <stop offset="20%" stop-color="#c4a265" stop-opacity="0.2"/>
+      <stop offset="60%" stop-color="#c4a265" stop-opacity="0.08"/>
+      <stop offset="100%" stop-color="#c4a265" stop-opacity="0"/>
+    </radialGradient>
+
+    <!-- Eye outer glow -->
+    <radialGradient id="eyeGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="white" stop-opacity="0.5"/>
+      <stop offset="50%" stop-color="white" stop-opacity="0.2"/>
+      <stop offset="100%" stop-color="white" stop-opacity="0"/>
+    </radialGradient>
+
+    <!-- Eye fill gradient -->
+    <linearGradient id="eyeFill" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="100%" stop-color="#f5f5f5"/>
+    </linearGradient>
+
+    <!-- Filters -->
+    <filter id="orbGlowFilter" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="10" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+    <filter id="eyeShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="1" stdDeviation="1" flood-color="black" flood-opacity="0.1"/>
+      <feDropShadow dx="0" dy="-0.5" stdDeviation="2" flood-color="white" flood-opacity="0.5"/>
+    </filter>
+
+    <filter id="sparkleGlow" x="-100%" y="-100%" width="300%" height="300%">
+      <feGaussianBlur stdDeviation="1" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+    <filter id="ringBlur" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="2"/>
+    </filter>
+  </defs>
+
+  <!-- Layer 1: Outer ambient glow -->
+  <circle cx="150" cy="150" r="120" fill="url(#outerGlow)"/>
+
+  <!-- Layer 2: Soul warmth bloom -->
+  <circle cx="150" cy="150" r="100" fill="url(#soulWarmth)"/>
+
+  <!-- Layer 3: Heartbeat ring (1.35x orb size) -->
+  <circle cx="150" cy="150" r="81" fill="none" stroke="#4a6741" stroke-width="2.5" stroke-opacity="0.5"/>
+
+  <!-- Layer 4: Inner presence ring (1.2x orb size) -->
+  <circle cx="150" cy="150" r="72" fill="none" stroke="#4a6741" stroke-width="2" stroke-opacity="0.35"/>
+
+  <!-- Layer 5: Main orb body -->
+  <circle cx="150" cy="150" r="60" fill="url(#orbGradient)" filter="url(#orbGlowFilter)"/>
+
+  <!-- Layer 6: Wave ring (audio-reactive ring around orb) -->
+  <circle cx="150" cy="150" r="52" fill="none" stroke="#4a6741" stroke-width="2" stroke-opacity="0.4" filter="url(#ringBlur)"/>
+
+  <!-- Layer 7: Eyes -->
+  <g id="bothEyes">
+    <!-- Left Eye -->
+    <g transform="translate(138, 143)">
+      <ellipse cx="0" cy="0" rx="16" ry="18" fill="url(#eyeGlow)" opacity="0.6"/>
+      <ellipse cx="0" cy="0" rx="10.8" ry="13.2" fill="url(#eyeFill)" filter="url(#eyeShadow)"/>
+      <g transform="translate(-4.3, -5.3)" filter="url(#sparkleGlow)">
+        <circle cx="0" cy="0" r="2.2" fill="white"/>
+        <circle cx="1.7" cy="1.3" r="0.9" fill="white" opacity="0.7"/>
+      </g>
+    </g>
+
+    <!-- Right Eye -->
+    <g transform="translate(162, 143)">
+      <ellipse cx="0" cy="0" rx="16" ry="18" fill="url(#eyeGlow)" opacity="0.6"/>
+      <ellipse cx="0" cy="0" rx="10.8" ry="13.2" fill="url(#eyeFill)" filter="url(#eyeShadow)"/>
+      <g transform="translate(-3.2, -5.3)" filter="url(#sparkleGlow)">
+        <circle cx="0" cy="0" r="2.2" fill="white"/>
+        <circle cx="1.7" cy="1.3" r="0.9" fill="white" opacity="0.7"/>
+      </g>
+    </g>
+  </g>
+</svg>

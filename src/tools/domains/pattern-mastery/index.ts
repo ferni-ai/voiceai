@@ -17,6 +17,16 @@ import { createDomainExport } from '../../registry/loader.js';
 import type { Tool, ToolContext, ToolDefinition } from '../../registry/types.js';
 
 import { getToolDescription } from '../../utils/tool-descriptions.js';
+
+// Cross-persona intelligence imports
+import {
+  addCrossPersonaInsight,
+  getInsightsForPersona,
+} from '../../../services/cross-persona-insights.js';
+
+// Pattern recognition superhuman services
+import { getPatternToSurface } from '../../../services/superhuman/pattern-mirror.js';
+import { loadUserPatterns } from '../../../services/superhuman/predictive-coaching.js';
 // ============================================================================
 // PATTERN DISCOVERY TOOLS
 // ============================================================================
@@ -258,6 +268,180 @@ const patternPredictionDef: ToolDefinition = {
 };
 
 // ============================================================================
+// CROSS-PERSONA INTELLIGENCE TOOLS
+// ============================================================================
+
+const sharePatternWithTeamDef: ToolDefinition = {
+  id: 'sharePatternWithTeam',
+  name: 'Share Pattern with Team',
+  description: 'Share a discovered pattern with other team members who can act on it',
+  domain: 'pattern-mastery',
+  tags: ['cross-persona', 'patterns', 'team'],
+
+  create: (ctx: ToolContext): Tool => {
+    return llm.tool({
+      description: getToolDescription('sharePatternWithTeam'),
+      parameters: z.object({
+        targetPersona: z
+          .enum(['maya', 'jordan', 'ferni', 'nayan', 'all'])
+          .describe('Who should know about this pattern'),
+        patternType: z
+          .enum(['behavioral', 'financial', 'emotional', 'relational', 'cyclical'])
+          .describe('Type of pattern'),
+        pattern: z.string().describe('The pattern discovered'),
+        implication: z.string().describe('What this pattern suggests'),
+        actionable: z.boolean().describe('Can something be done about this?'),
+      }),
+      execute: async ({ targetPersona, patternType, pattern, implication, actionable }) => {
+        getLogger().info(
+          { agentId: ctx.agentId, targetPersona, patternType },
+          'Sharing pattern with team'
+        );
+
+        try {
+          addCrossPersonaInsight(ctx.userId, {
+            source: 'peter',
+            target: targetPersona,
+            content: `Pattern (${patternType}): ${pattern} | Implication: ${implication} | Actionable: ${actionable}`,
+            priority: actionable ? 'high' : 'normal',
+            category: 'pattern_insight',
+            proactive: true,
+            oneTime: false,
+          });
+
+          const targetName =
+            targetPersona === 'all'
+              ? 'the team'
+              : targetPersona.charAt(0).toUpperCase() + targetPersona.slice(1);
+
+          let response = `**Pattern Intelligence Shared with ${targetName}**\n\n`;
+          response += `I've briefed ${targetName} on this ${patternType} pattern.\n\n`;
+
+          if (targetPersona === 'maya') {
+            response += `Maya can help build habits to either leverage or interrupt this pattern.`;
+          } else if (targetPersona === 'jordan') {
+            response += `Jordan can factor this pattern into goal planning and milestone setting.`;
+          } else if (targetPersona === 'ferni') {
+            response += `Ferni will have this context for emotional support conversations.`;
+          } else if (targetPersona === 'nayan') {
+            response += `Nayan can explore what this pattern reveals about your values and life direction.`;
+          }
+
+          return response;
+        } catch (error) {
+          getLogger().error({ error }, 'Failed to share pattern with team');
+          return "I've noted this pattern. It's part of my ongoing analysis.";
+        }
+      },
+    });
+  },
+};
+
+const surfacePatternMirrorInsightDef: ToolDefinition = {
+  id: 'surfacePatternMirrorInsight',
+  name: 'Surface Pattern Mirror Insight',
+  description: 'Surface an insight from the pattern mirror superhuman service',
+  domain: 'pattern-mastery',
+  tags: ['patterns', 'superhuman', 'insight'],
+
+  create: (ctx: ToolContext): Tool => {
+    return llm.tool({
+      description: getToolDescription('surfacePatternMirrorInsight'),
+      parameters: z.object({}),
+      execute: async () => {
+        getLogger().info({ agentId: ctx.agentId }, 'Surfacing pattern mirror insight');
+
+        try {
+          const patternInsight = getPatternToSurface(ctx.userId);
+          const userPatterns = await loadUserPatterns(ctx.userId);
+
+          if (!patternInsight && userPatterns.length === 0) {
+            return "I'm still gathering data to identify meaningful patterns. The more we talk, the more patterns emerge.";
+          }
+
+          let response = `**Pattern Recognition Insight**\n\n`;
+
+          if (patternInsight) {
+            response += `${patternInsight.insight}\n\n`;
+            if (patternInsight.gentleProbe) {
+              response += `*${patternInsight.gentleProbe}*\n\n`;
+            }
+          }
+
+          if (userPatterns.length > 0) {
+            response += `**Patterns I'm Tracking:**\n`;
+            for (const pattern of userPatterns.slice(0, 3)) {
+              response += `• ${pattern.trigger} → ${pattern.outcome} (seen ${pattern.frequency}x)\n`;
+            }
+          }
+
+          response += `\nPatterns are mirrors—they show us what we might not see ourselves. What resonates?`;
+
+          return response;
+        } catch (error) {
+          getLogger().error({ error }, 'Failed to surface pattern insight');
+          return "My pattern recognition is gathering data. I'll share insights as they emerge.";
+        }
+      },
+    });
+  },
+};
+
+const requestMayaHabitInterventionDef: ToolDefinition = {
+  id: 'requestMayaHabitIntervention',
+  name: 'Request Maya Habit Intervention',
+  description: 'Request Maya to design a habit intervention based on a pattern Peter discovered',
+  domain: 'pattern-mastery',
+  tags: ['cross-persona', 'habits', 'maya'],
+
+  create: (ctx: ToolContext): Tool => {
+    return llm.tool({
+      description: getToolDescription('requestMayaHabitIntervention'),
+      parameters: z.object({
+        pattern: z.string().describe('The pattern that needs a habit intervention'),
+        desiredOutcome: z.string().describe('What outcome would the habit create'),
+        patternStrength: z
+          .enum(['weak', 'moderate', 'strong'])
+          .describe('How entrenched is this pattern'),
+      }),
+      execute: async ({ pattern, desiredOutcome, patternStrength }) => {
+        const goal = desiredOutcome || 'Transform this pattern into something healthier';
+        const strength = patternStrength || 'forming';
+
+        getLogger().info(
+          { agentId: ctx.agentId, pattern, patternStrength: strength },
+          'Requesting Maya habit intervention'
+        );
+
+        try {
+          addCrossPersonaInsight(ctx.userId, {
+            source: 'peter',
+            target: 'maya',
+            content: `Pattern needs habit intervention: "${pattern}" | Desired outcome: ${goal} | Pattern strength: ${strength}`,
+            priority: strength === 'strong' ? 'high' : 'normal',
+            category: 'habit_request',
+            proactive: true,
+            oneTime: false,
+          });
+
+          let response = `**Habit Intervention Requested from Maya**\n\n`;
+          response += `I've asked Maya to design a habit intervention for this pattern.\n\n`;
+          response += `**Pattern:** ${pattern}\n`;
+          response += `**Goal:** ${goal}\n`;
+          response += `**Challenge:** ${strength === 'strong' ? 'This is an entrenched pattern—needs gentle, sustainable approach' : 'Pattern is still forming—good timing for intervention'}\n\n`;
+          response += `Maya will design something tiny and doable. Patterns don't change overnight, but small consistent actions compound.`;
+
+          return response;
+        } catch (error) {
+          getLogger().error({ error }, 'Failed to request Maya intervention');
+          return "I've noted this pattern. Let's think about what habits might help.";
+        }
+      },
+    });
+  },
+};
+
+// ============================================================================
 // DOMAIN TOOLS COLLECTION
 // ============================================================================
 
@@ -268,6 +452,10 @@ const patternMasteryTools: ToolDefinition[] = [
   dataStorytellingDef,
   counterIntuitiveInsightDef,
   patternPredictionDef,
+  // Cross-persona intelligence
+  sharePatternWithTeamDef,
+  surfacePatternMirrorInsightDef,
+  requestMayaHabitInterventionDef,
 ];
 
 // ============================================================================

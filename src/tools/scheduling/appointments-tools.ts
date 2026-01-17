@@ -10,14 +10,14 @@ import { llm } from '@livekit/agents';
 import { getLogger } from '../../utils/safe-logger.js';
 import { z } from 'zod';
 import { validatePhone, sanitizePhoneForLog } from '../validation.js';
-import { parseNaturalTime, createReminder } from '../../services/reminder-scheduler.js';
+import { parseNaturalTime, createReminder } from '../../services/scheduling/reminder-scheduler.js';
 import {
   searchRestaurants,
   bookReservation,
   isReservationServiceConfigured,
   formatRestaurantForSpeech,
 } from '../../services/restaurant-reservations.js';
-import { getAppointmentFollowUpService } from '../../services/appointment-followup.js';
+import { getAppointmentFollowUpService } from '../../services/scheduling/appointment-followup.js';
 import {
   createAppointmentRequest,
   updateAppointmentStatus,
@@ -141,7 +141,7 @@ export function createAppointmentTools() {
 
             if (result.success) {
               // Create appointment record
-              createAppointmentRequest({
+              await createAppointmentRequest({
                 userId,
                 type: 'restaurant',
                 businessName: match.name,
@@ -171,7 +171,7 @@ export function createAppointmentTools() {
         }
 
         // Fall back to phone call
-        const apt = createAppointmentRequest({
+        const apt = await createAppointmentRequest({
           userId,
           type: 'restaurant',
           businessName: restaurantName,
@@ -266,7 +266,7 @@ export function createAppointmentTools() {
         const userData = ctx?.userData as { userId?: string } | undefined;
         const userId = userData?.userId || 'unknown';
 
-        const apt = createAppointmentRequest({
+        const apt = await createAppointmentRequest({
           userId,
           type: appointmentType,
           businessName,
@@ -506,7 +506,7 @@ export function createAppointmentTools() {
         const userData = ctx?.userData as { userId?: string } | undefined;
         const userId = userData?.userId || 'unknown';
 
-        const apt = createAppointmentRequest({
+        const apt = await createAppointmentRequest({
           userId,
           type: 'service',
           businessName,
@@ -595,7 +595,7 @@ export function createAppointmentTools() {
         }
 
         // Update via the core function
-        const apt = updateAppointmentStatus(
+        const apt = await updateAppointmentStatus(
           foundApt.id,
           'confirmed',
           notes ? `Manually confirmed by user: ${notes}` : 'Manually confirmed by user',

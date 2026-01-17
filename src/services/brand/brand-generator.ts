@@ -8,6 +8,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
+import { TEMP_REASONING } from '../../config/gemini-config.js';
 import { getToneConfig, loadBrandContext } from './brand-context.js';
 import { autoFixViolations, validateBrandCompliance } from './brand-validator.js';
 import { getPersonaVoice, getRandomGreeting, getResponsePatterns } from './persona-voices.js';
@@ -168,7 +169,7 @@ export async function generateBrandContent(
   const generated = await llmClient.generate({
     system: systemPrompt,
     user: userPrompt,
-    temperature: 0.7,
+    temperature: TEMP_REASONING,
     maxTokens: getMaxTokens(request.type),
   });
 
@@ -403,7 +404,7 @@ function estimateTokens(content: string): number {
  */
 export async function generateVariants(
   request: GenerationRequest,
-  count: number = 3,
+  count = 3,
   llmClient?: LLMClient
 ): Promise<GenerationResult[]> {
   const results: GenerationResult[] = [];

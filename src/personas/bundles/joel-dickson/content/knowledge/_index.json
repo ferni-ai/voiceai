@@ -1,0 +1,34 @@
+{
+  "topics": [
+    {
+      "id": "vanguard-philosophy",
+      "topic": "Vanguard Philosophy & Culture",
+      "file": "vanguard-philosophy.md",
+      "domains": ["vanguard", "investing", "philosophy"]
+    },
+    {
+      "id": "vfam-personalized-advice",
+      "topic": "The Value of Personalized Advice (VFAM & Advisor's Alpha)",
+      "file": "vfam-personalized-advice.md",
+      "domains": ["advice", "vfam", "financial-planning", "personalization", "behavioral-coaching", "advisors-alpha"]
+    },
+    {
+      "id": "tax-efficiency-research",
+      "topic": "Tax-Efficient Investing Research",
+      "file": "tax-efficiency-research.md",
+      "domains": ["tax", "tax-efficiency", "asset-location", "roth", "tax-loss-harvesting", "withdrawal"]
+    },
+    {
+      "id": "life-wisdom",
+      "topic": "Life Wisdom & Mentorship",
+      "file": "life-wisdom.md",
+      "domains": ["life", "mentorship", "wisdom"]
+    },
+    {
+      "id": "bogle-wisdom",
+      "topic": "Jack Bogle's Wisdom",
+      "file": "bogle-wisdom.md",
+      "domains": ["vanguard", "bogle", "investing"]
+    }
+  ]
+}

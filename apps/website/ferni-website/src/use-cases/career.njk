@@ -5,11 +5,11 @@ description: "Should you take that job? Ask for a raise? Change fields entirely?
 permalink: /use-cases/career/
 ---
 
-<section class="use-case-hero" style="--use-case-color: #3a6b73">
+<section class="use-case-hero" style="--use-case-color: var(--color-peter)">
   <div class="container container-narrow">
     <a href="/use-cases/" class="use-case-hero__back">← All Use Cases</a>
     <span class="eyebrow">Use Case</span>
-    <h1 class="headline-xl">Career<br><span class="text-gradient" style="--gradient-start: #3a6b73; --gradient-end: #2d5359">Decisions</span></h1>
+    <h1 class="headline-xl">Career<br><span class="text-gradient" style="--gradient-start: var(--color-peter); --gradient-end: var(--color-peter-dark, #2d5359)">Decisions</span></h1>
     <p class="body-lg">Should you take that job? Ask for a raise? Change fields entirely? Think through big decisions with a coach who remembers your goals.</p>
   </div>
 </section>
@@ -21,7 +21,7 @@ permalink: /use-cases/career/
       <p>Career decisions are some of the highest-stakes choices we make. They affect your income, your identity, your daily happiness. And yet most of us make them with limited support:</p>
       <ul>
         <li>Career coaches charge $200-500/hour</li>
-        <li>Friends give advice based on their own situations</li>
+        <li>Friends share perspectives based on their own situations</li>
         <li>You end up making pro/con lists that don't capture the full picture</li>
       </ul>
       <p>The result? Decisions made from fear, not clarity. Jobs accepted for the wrong reasons. Opportunities missed because nobody helped you see them.</p>
@@ -38,7 +38,7 @@ permalink: /use-cases/career/
       <div class="use-case-features">
         <div class="use-case-feature">
           <div class="use-case-feature__icon">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <circle cx="12" cy="12" r="10"/>
               <path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/>
               <line x1="12" y1="17" x2="12.01" y2="17"/>
@@ -52,7 +52,7 @@ permalink: /use-cases/career/
         
         <div class="use-case-feature">
           <div class="use-case-feature__icon">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M12 20h9"/>
               <path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/>
             </svg>
@@ -65,7 +65,7 @@ permalink: /use-cases/career/
         
         <div class="use-case-feature">
           <div class="use-case-feature__icon">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <circle cx="12" cy="12" r="10"/>
               <path d="M12 6v6l4 2"/>
             </svg>
@@ -78,7 +78,7 @@ permalink: /use-cases/career/
         
         <div class="use-case-feature">
           <div class="use-case-feature__icon">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/>
               <circle cx="9" cy="7" r="4"/>
               <path d="M23 21v-2a4 4 0 00-3-3.87"/>
@@ -127,6 +127,86 @@ permalink: /use-cases/career/
     </div>
   </div>
 </section>
+
+{# Related Capabilities #}
+<section class="use-case-capabilities">
+  <div class="container container-narrow">
+    <div class="use-case-content reveal">
+      <h2>Superhuman Capabilities for Career Decisions</h2>
+      <p>These <a href="/capabilities/">unique capabilities</a> make Ferni better than any human support for career decisions:</p>
+      <div class="capability-list">
+        <div class="capability-item">
+          <strong>Perfect Memory</strong>
+          <span>We remember your goals from six months ago—and bring them up when it matters.</span>
+        </div>
+        <div class="capability-item">
+          <strong>Six Specialists</strong>
+          <span>Peter for research, Alex for negotiation prep, Nayan for long-term perspective—no referrals needed.</span>
+        </div>
+        <div class="capability-item">
+          <strong>Values Alignment</strong>
+          <span>We compare what you say matters vs. what you're actually optimizing for—gently, without judgment.</span>
+        </div>
+        <div class="capability-item">
+          <strong>Cross-Pattern Detection</strong>
+          <span>Peter sees connections across your career history, spending, and stated values that humans miss.</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  /* Use Case Capabilities - Design Token Compliant (Peter/Career) */
+  .use-case-capabilities {
+    padding: 60px 24px;
+    background: linear-gradient(135deg, rgba(58, 107, 115, 0.06), var(--color-accent-subtle));
+  }
+  
+  .use-case-capabilities h2 {
+    font-family: var(--font-display);
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--color-text-primary);
+    margin-bottom: 12px;
+  }
+  
+  .use-case-capabilities > .use-case-content > p {
+    color: var(--color-text-secondary);
+    margin-bottom: 24px;
+  }
+  
+  .use-case-capabilities a {
+    color: var(--color-peter);
+    font-weight: 600;
+  }
+  
+  .capability-list {
+    display: grid;
+    gap: 16px;
+  }
+  
+  .capability-item {
+    background: var(--color-elevated);
+    border-radius: 12px;
+    padding: 20px 24px;
+    border: 1px solid var(--color-border-subtle);
+  }
+  
+  .capability-item strong {
+    display: block;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--color-peter);
+    margin-bottom: 4px;
+  }
+  
+  .capability-item span {
+    font-size: 15px;
+    color: var(--color-text-secondary);
+    line-height: 1.5;
+  }
+</style>
 
 <section class="use-case-cta">
   <div class="container container-narrow">

@@ -461,7 +461,11 @@ describe('EngagementService', () => {
 
       const result = await engagementService.fetchEngagementData('user123');
 
-      expect(mockFetch).toHaveBeenCalledWith('/api/rituals?userId=user123');
+      // API uses full URL with window.location.origin
+      expect(mockFetch).toHaveBeenCalledWith(
+        expect.stringContaining('/api/rituals?userId=user123'),
+        expect.any(Object)
+      );
       expect(result).not.toBeNull();
       expect(result?.ritualStreaks).toHaveLength(1);
     });
@@ -669,7 +673,11 @@ describe('EngagementService', () => {
 
       const result = await engagementService.fetchPredictions('user123');
 
-      expect(mockFetch).toHaveBeenCalledWith('/api/predictions?userId=user123');
+      // API uses full URL with window.location.origin
+      expect(mockFetch).toHaveBeenCalledWith(
+        expect.stringContaining('/api/predictions?userId=user123'),
+        expect.any(Object)
+      );
       expect(result).toHaveLength(1);
       expect(result[0].category).toBe('mood');
     });

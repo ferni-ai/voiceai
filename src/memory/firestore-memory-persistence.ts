@@ -20,6 +20,8 @@ import type {
   EmotionalThread,
   MemoryItem,
 } from './interfaces/index.js';
+import { QUERY_LIMITS, MEMORY_TIMEOUTS } from './performance-limits.js';
+import { cleanForFirestore } from '../utils/firestore-utils.js';
 
 const log = createLogger({ module: 'FirestoreMemoryPersistence' });
 
@@ -32,9 +34,14 @@ interface Firestore {
   collection: (path: string) => CollectionReference;
 }
 
-interface CollectionReference {
-  doc: (id: string) => DocumentReference;
+interface Query {
   get: () => Promise<QuerySnapshot>;
+  limit: (n: number) => Query;
+  orderBy: (field: string, direction?: 'asc' | 'desc') => Query;
+}
+
+interface CollectionReference extends Query {
+  doc: (id: string) => DocumentReference;
 }
 
 interface DocumentReference {
@@ -170,7 +177,7 @@ export class FirestoreMemoryPersistence {
         } as SerializedMemoryItem;
       }
 
-      await triggerDoc.set(data, { merge: true });
+      await triggerDoc.set(cleanForFirestore(data), { merge: true });
       log.debug({ userId, memoryId, triggerCount: triggers.length }, 'Saved associative triggers');
     } catch (error) {
       log.error({ error: String(error), userId }, 'Failed to save associative triggers');
@@ -178,17 +185,36 @@ export class FirestoreMemoryPersistence {
   }
 
   /**
-   * Load all associative memory triggers for a user
+   * Load associative memory triggers for a user
+   *
+   * PERFORMANCE: Limited to QUERY_LIMITS.ASSOCIATIVE_TRIGGERS (50) items
+   * ordered by most recently updated for relevance
    */
   async loadAssociativeTriggers(
-    userId: string
+    userId: string,
+    limit?: number
   ): Promise<Map<string, { triggers: AssociativeTrigger[]; memory?: MemoryItem }>> {
     const result = new Map<string, { triggers: AssociativeTrigger[]; memory?: MemoryItem }>();
     if (!this.db) return result;
 
+    const queryLimit = limit ?? QUERY_LIMITS.ASSOCIATIVE_TRIGGERS;
+
     try {
       const userDoc = this.db.collection(this.USERS_COLLECTION).doc(userId);
-      const snapshot = await userDoc.collection('associative_memory').get();
+
+      // PERFORMANCE FIX: Add limit and order by recency
+      const query = userDoc
+        .collection('associative_memory')
+        .orderBy('updatedAt', 'desc')
+        .limit(queryLimit);
+
+      // Add timeout to prevent slow queries from blocking
+      const snapshot = await Promise.race([
+        query.get(),
+        new Promise<never>((_, reject) => {
+          setTimeout(() => reject(new Error('Query timeout')), MEMORY_TIMEOUTS.SINGLE_QUERY);
+        }),
+      ]);
 
       for (const doc of snapshot.docs) {
         const data = doc.data() as
@@ -217,9 +243,15 @@ export class FirestoreMemoryPersistence {
         }
       }
 
-      log.debug({ userId, memoryCount: result.size }, 'Loaded associative triggers');
+      log.debug(
+        { userId, memoryCount: result.size, limit: queryLimit },
+        'Loaded associative triggers'
+      );
     } catch (error) {
-      log.error({ error: String(error), userId }, 'Failed to load associative triggers');
+      log.warn(
+        { error: String(error), userId },
+        'Failed to load associative triggers (using empty fallback)'
+      );
     }
 
     return result;
@@ -251,7 +283,7 @@ export class FirestoreMemoryPersistence {
           })),
         };
 
-        await patternDoc.set(serialized);
+        await patternDoc.set(cleanForFirestore(serialized));
       }
 
       log.debug({ userId, patternCount: patterns.length }, 'Saved behavioral patterns');
@@ -262,13 +294,31 @@ export class FirestoreMemoryPersistence {
 
   /**
    * Load behavioral patterns for a user
+   *
+   * PERFORMANCE: Limited to QUERY_LIMITS.BEHAVIORAL_PATTERNS (20) items
+   * ordered by most recently observed
    */
-  async loadBehavioralPatterns(userId: string): Promise<BehavioralPattern[]> {
+  async loadBehavioralPatterns(userId: string, limit?: number): Promise<BehavioralPattern[]> {
     if (!this.db) return [];
+
+    const queryLimit = limit ?? QUERY_LIMITS.BEHAVIORAL_PATTERNS;
 
     try {
       const userDoc = this.db.collection(this.USERS_COLLECTION).doc(userId);
-      const snapshot = await userDoc.collection('behavioral_patterns').get();
+
+      // PERFORMANCE FIX: Add limit and order by recency
+      const query = userDoc
+        .collection('behavioral_patterns')
+        .orderBy('lastObserved', 'desc')
+        .limit(queryLimit);
+
+      // Add timeout
+      const snapshot = await Promise.race([
+        query.get(),
+        new Promise<never>((_, reject) => {
+          setTimeout(() => reject(new Error('Query timeout')), MEMORY_TIMEOUTS.SINGLE_QUERY);
+        }),
+      ]);
 
       const patterns: BehavioralPattern[] = [];
       for (const doc of snapshot.docs) {
@@ -286,10 +336,16 @@ export class FirestoreMemoryPersistence {
         }
       }
 
-      log.debug({ userId, patternCount: patterns.length }, 'Loaded behavioral patterns');
+      log.debug(
+        { userId, patternCount: patterns.length, limit: queryLimit },
+        'Loaded behavioral patterns'
+      );
       return patterns;
     } catch (error) {
-      log.error({ error: String(error), userId }, 'Failed to load behavioral patterns');
+      log.warn(
+        { error: String(error), userId },
+        'Failed to load behavioral patterns (using empty fallback)'
+      );
       return [];
     }
   }
@@ -316,7 +372,7 @@ export class FirestoreMemoryPersistence {
           lastMentioned: thread.lastMentioned.toISOString(),
         };
 
-        await threadDoc.set(serialized);
+        await threadDoc.set(cleanForFirestore(serialized));
       }
 
       log.debug({ userId, threadCount: threads.length }, 'Saved emotional threads');
@@ -377,7 +433,7 @@ export class FirestoreMemoryPersistence {
         lastUpdated: new Date().toISOString(),
       };
 
-      await prefDoc.set(data);
+      await prefDoc.set(cleanForFirestore(data));
       log.debug({ userId, prefCount: preferences.length }, 'Saved communication preferences');
     } catch (error) {
       log.error({ error: String(error), userId }, 'Failed to save communication preferences');
@@ -441,7 +497,7 @@ export class FirestoreMemoryPersistence {
       let deleted = 0;
 
       // Collect all delete operations with individual error handling
-      const deleteOps: Promise<void>[] = [];
+      const deleteOps: Array<Promise<void>> = [];
 
       for (const doc of assocSnapshot.docs) {
         deleteOps.push(

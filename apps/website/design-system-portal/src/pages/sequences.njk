@@ -1,0 +1,558 @@
+---
+layout: layouts/base.njk
+title: Animation Sequences
+permalink: /sequences/
+---
+
+<div class="page-header">
+  <h1>Animation Sequences</h1>
+  <p class="lead">Choreographed multi-step animation sequences for key brand moments. Pixar-style orchestration that makes every interaction feel alive.</p>
+</div>
+
+<section class="section" id="overview">
+  <h2>Sequence Orchestration</h2>
+
+  <div class="orchestration-rules">
+    <div class="rule-card">
+      <h4>Priority Levels</h4>
+      <ul>
+        <li><strong>Critical:</strong> connection_success, error_recovery</li>
+        <li><strong>High:</strong> celebration_big, team_unlock</li>
+        <li><strong>Normal:</strong> handoff_transition, celebration_small</li>
+        <li><strong>Low:</strong> deep_moment, session_end</li>
+      </ul>
+    </div>
+    <div class="rule-card">
+      <h4>Timing Rules</h4>
+      <ul>
+        <li>Max queue: 3 sequences</li>
+        <li>Min gap between: 500ms</li>
+        <li>Max concurrent: 1</li>
+        <li>No overlapping</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="onboarding">
+  <h2>Onboarding Reveal</h2>
+  <p class="sequence-meta">Trigger: first_app_open · Duration: 4500ms · Non-interruptible</p>
+
+  <div class="sequence-timeline">
+    <div class="timeline-step" style="--delay: 0; --duration: 800">
+      <div class="step-marker">0ms</div>
+      <div class="step-content">
+        <h4>Backdrop</h4>
+        <p>fadeIn · expoOut</p>
+        <span class="description">Warm backdrop fades in</span>
+      </div>
+    </div>
+    <div class="timeline-step" style="--delay: 400; --duration: 1200">
+      <div class="step-marker">400ms</div>
+      <div class="step-content">
+        <h4>Avatar</h4>
+        <p>breatheIn · gentle</p>
+        <span class="description">Avatar materializes with soft breath</span>
+      </div>
+    </div>
+    <div class="timeline-step" style="--delay: 600; --duration: 1000">
+      <div class="step-marker">600ms</div>
+      <div class="step-content">
+        <h4>Avatar Glow</h4>
+        <p>pulseIn · gentle</p>
+        <span class="description">Persona glow awakens</span>
+      </div>
+    </div>
+    <div class="timeline-step" style="--delay: 1600; --duration: 1500">
+      <div class="step-marker">1600ms</div>
+      <div class="step-content">
+        <h4>Greeting</h4>
+        <p>typewriter · linear</p>
+        <span class="description">"Hey. I'm Ferni."</span>
+      </div>
+    </div>
+    <div class="timeline-step" style="--delay: 3500; --duration: 400">
+      <div class="step-marker">3500ms</div>
+      <div class="step-content">
+        <h4>CTA</h4>
+        <p>fadeSlideUp · spring</p>
+        <span class="description">CTA appears, inviting conversation</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="sequence-extras">
+    <span class="extra"><strong>Sound:</strong> system.startup @ 300ms</span>
+    <span class="extra"><strong>Haptic:</strong> warmWelcome @ 500ms</span>
+  </div>
+</section>
+
+<section class="section" id="connection">
+  <h2>Connection Success</h2>
+  <p class="sequence-meta">Trigger: livekit_connected · Duration: 1200ms · Interruptible</p>
+
+  <div class="sequence-timeline">
+    <div class="timeline-step" style="--delay: 0; --duration: 500">
+      <div class="step-marker">0ms</div>
+      <div class="step-content">
+        <h4>Avatar</h4>
+        <p>settleBounce · spring</p>
+        <span class="description">Satisfying arrival bounce</span>
+      </div>
+    </div>
+    <div class="timeline-step" style="--delay: 100; --duration: 600">
+      <div class="step-marker">100ms</div>
+      <div class="step-content">
+        <h4>Avatar Glow</h4>
+        <p>pulse · gentle</p>
+        <span class="description">Glow pulses with life</span>
+      </div>
+    </div>
+    <div class="timeline-step" style="--delay: 200; --duration: 300">
+      <div class="step-marker">200ms</div>
+      <div class="step-content">
+        <h4>Status Text</h4>
+        <p>swap</p>
+        <span class="description">"Connected" in success color</span>
+      </div>
+    </div>
+    <div class="timeline-step" style="--delay: 400; --duration: 400">
+      <div class="step-marker">400ms</div>
+      <div class="step-content">
+        <h4>Waveform</h4>
+        <p>fadeIn · decelerate</p>
+        <span class="description">Waveform appears, ready to listen</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="handoff">
+  <h2>Handoff Transition</h2>
+  <p class="sequence-meta">Trigger: persona_switch · Duration: 2200ms · Non-interruptible</p>
+
+  <div class="sequence-timeline">
+    <div class="timeline-step" style="--delay: 0; --duration: 400">
+      <div class="step-marker">0ms</div>
+      <div class="step-content">
+        <h4>Current Avatar</h4>
+        <p>fadeGlow · accelerate</p>
+        <span class="description">Current persona gently fades</span>
+      </div>
+    </div>
+    <div class="timeline-step" style="--delay: 200; --duration: 800">
+      <div class="step-marker">200ms</div>
+      <div class="step-content">
+        <h4>Transition Glow</h4>
+        <p>colorShift · gentle</p>
+        <span class="description">Color transitions between personas</span>
+      </div>
+    </div>
+    <div class="timeline-step" style="--delay: 700; --duration: 800">
+      <div class="step-marker">700ms</div>
+      <div class="step-content">
+        <h4>New Avatar</h4>
+        <p>breatheIn · spring</p>
+        <span class="description">New persona materializes</span>
+      </div>
+    </div>
+    <div class="timeline-step" style="--delay: 1200; --duration: 400">
+      <div class="step-marker">1200ms</div>
+      <div class="step-content">
+        <h4>Name Tag</h4>
+        <p>slideUp · spring</p>
+        <span class="description">Name appears with personality</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="celebration-big">
+  <h2>Major Celebration</h2>
+  <p class="sequence-meta">Trigger: achievement_major · Duration: 3500ms · Non-interruptible</p>
+
+  <div class="sequence-timeline">
+    <div class="timeline-step" style="--delay: 0; --duration: 300">
+      <div class="step-marker">0ms</div>
+      <div class="step-content">
+        <h4>Overlay</h4>
+        <p>fadeIn</p>
+        <span class="description">Dimmed backdrop</span>
+      </div>
+    </div>
+    <div class="timeline-step featured" style="--delay: 100; --duration: 600">
+      <div class="step-marker">100ms</div>
+      <div class="step-content">
+        <h4>Avatar</h4>
+        <p>joyBounce · spring</p>
+        <span class="description">Pixar-style joy bounce</span>
+      </div>
+    </div>
+    <div class="timeline-step" style="--delay: 200; --duration: 1000">
+      <div class="step-marker">200ms</div>
+      <div class="step-content">
+        <h4>Avatar Glow</h4>
+        <p>radiate · expoOut</p>
+        <span class="description">Glow radiates outward</span>
+      </div>
+    </div>
+    <div class="timeline-step" style="--delay: 300; --duration: 2500">
+      <div class="step-marker">300ms</div>
+      <div class="step-content">
+        <h4>Confetti</h4>
+        <p>burst · 50 particles</p>
+        <span class="description">Confetti celebration</span>
+      </div>
+    </div>
+    <div class="timeline-step" style="--delay: 600; --duration: 500">
+      <div class="step-marker">600ms</div>
+      <div class="step-content">
+        <h4>Achievement Card</h4>
+        <p>popIn · spring</p>
+        <span class="description">Card pops in</span>
+      </div>
+    </div>
+    <div class="timeline-step" style="--delay: 1100; --duration: 800">
+      <div class="step-marker">1100ms</div>
+      <div class="step-content">
+        <h4>Achievement Text</h4>
+        <p>typewriter · 40ms/char</p>
+        <span class="description">Text types out</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="team-unlock">
+  <h2>Team Unlock</h2>
+  <p class="sequence-meta">Trigger: persona_unlocked · Duration: 4000ms · Non-interruptible</p>
+
+  <div class="sequence-timeline">
+    <div class="timeline-step" style="--delay: 0; --duration: 400">
+      <div class="step-marker">0ms</div>
+      <div class="step-content">
+        <h4>Overlay</h4>
+        <p>fadeIn</p>
+      </div>
+    </div>
+    <div class="timeline-step" style="--delay: 300; --duration: 600">
+      <div class="step-marker">300ms</div>
+      <div class="step-content">
+        <h4>Mystery Orb</h4>
+        <p>materialize · spring</p>
+      </div>
+    </div>
+    <div class="timeline-step featured" style="--delay: 900; --duration: 800">
+      <div class="step-marker">900ms</div>
+      <div class="step-content">
+        <h4>New Persona Avatar</h4>
+        <p>reveal · expoOut</p>
+        <span class="description">Circle clip reveal</span>
+      </div>
+    </div>
+    <div class="timeline-step" style="--delay: 1200; --duration: 2000">
+      <div class="step-marker">1200ms</div>
+      <div class="step-content">
+        <h4>Confetti</h4>
+        <p>burst · 40 particles</p>
+      </div>
+    </div>
+    <div class="timeline-step" style="--delay: 1600; --duration: 600">
+      <div class="step-marker">1600ms</div>
+      <div class="step-content">
+        <h4>Persona Name</h4>
+        <p>typewriter</p>
+      </div>
+    </div>
+    <div class="timeline-step" style="--delay: 2200; --duration: 400">
+      <div class="step-marker">2200ms</div>
+      <div class="step-content">
+        <h4>Persona Bio</h4>
+        <p>fadeSlideUp · spring</p>
+      </div>
+    </div>
+    <div class="timeline-step" style="--delay: 2800; --duration: 600">
+      <div class="step-marker">2800ms</div>
+      <div class="step-content">
+        <h4>Meet Button</h4>
+        <p>pulseAttention · repeat 2</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="reduced-motion">
+  <h2>Reduced Motion</h2>
+  <p>Alternative sequences for prefers-reduced-motion.</p>
+
+  <div class="reduced-motion-grid">
+    <div class="reduced-card">
+      <h4>celebration_big</h4>
+      <p>Removes confetti, simplifies avatar bounce to subtle scale</p>
+    </div>
+    <div class="reduced-card">
+      <h4>onboarding_reveal</h4>
+      <p>Avatar uses simple fadeIn, greeting uses fadeIn instead of typewriter</p>
+    </div>
+    <div class="reduced-card">
+      <h4>handoff_transition</h4>
+      <p>Simple crossfade: current avatar fades out, new avatar fades in</p>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="animation-library">
+  <h2>Animation Library</h2>
+  <p>Reusable animation definitions referenced by sequences.</p>
+
+  <div class="animation-lib-grid">
+    <div class="anim-card">
+      <h4>fadeIn</h4>
+      <div class="anim-demo fade-in"></div>
+      <code>opacity: 0 → 1</code>
+    </div>
+    <div class="anim-card">
+      <h4>fadeSlideUp</h4>
+      <div class="anim-demo fade-slide-up"></div>
+      <code>opacity: 0, Y: 16px → opacity: 1, Y: 0</code>
+    </div>
+    <div class="anim-card">
+      <h4>breatheIn</h4>
+      <div class="anim-demo breathe-in"></div>
+      <code>scale: 0.9, blur → scale: 1.02 → scale: 1</code>
+    </div>
+    <div class="anim-card">
+      <h4>joyBounce</h4>
+      <div class="anim-demo joy-bounce"></div>
+      <code>Pixar-style multi-stage bounce</code>
+    </div>
+    <div class="anim-card">
+      <h4>spring</h4>
+      <div class="anim-demo spring"></div>
+      <code>scale: 0.9 → 1.05 → 0.98 → 1</code>
+    </div>
+    <div class="anim-card">
+      <h4>nod</h4>
+      <div class="anim-demo nod"></div>
+      <code>Y: 0 → -4px, rotate: 2° → 0</code>
+    </div>
+  </div>
+</section>
+
+<style>
+.orchestration-rules {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: var(--space-4);
+  margin: var(--space-6) 0;
+}
+
+.rule-card {
+  padding: var(--space-4);
+  background: var(--glass-subtle-background);
+  border-radius: var(--radius-lg);
+}
+
+.rule-card h4 {
+  margin: 0 0 var(--space-3);
+  color: var(--color-accent);
+}
+
+.rule-card ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.rule-card li {
+  padding: var(--space-1) 0;
+  font-size: 0.9rem;
+}
+
+.sequence-meta {
+  color: var(--color-text-secondary);
+  font-size: 0.9rem;
+  margin-bottom: var(--space-4);
+}
+
+.sequence-timeline {
+  position: relative;
+  padding-left: var(--space-8);
+  margin: var(--space-6) 0;
+}
+
+.sequence-timeline::before {
+  content: '';
+  position: absolute;
+  left: 30px;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: var(--color-border-subtle);
+}
+
+.timeline-step {
+  position: relative;
+  padding: var(--space-3) 0;
+  padding-left: var(--space-6);
+}
+
+.timeline-step::before {
+  content: '';
+  position: absolute;
+  left: -26px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--color-accent);
+  border: 2px solid var(--color-bg-primary);
+}
+
+.timeline-step.featured::before {
+  width: 16px;
+  height: 16px;
+  left: -28px;
+  box-shadow: 0 0 0 4px rgba(61, 90, 69, 0.2);
+}
+
+.step-marker {
+  position: absolute;
+  left: -70px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 0.75rem;
+  color: var(--color-text-tertiary);
+  font-family: monospace;
+}
+
+.step-content h4 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.step-content p {
+  margin: var(--space-1) 0;
+  font-size: 0.85rem;
+  color: var(--color-accent);
+  font-family: monospace;
+}
+
+.step-content .description {
+  font-size: 0.85rem;
+  color: var(--color-text-secondary);
+  font-style: italic;
+  font-family: var(--font-body);
+}
+
+.sequence-extras {
+  display: flex;
+  gap: var(--space-4);
+  padding: var(--space-3);
+  background: var(--color-bg-elevated);
+  border-radius: var(--radius-md);
+  font-size: 0.85rem;
+}
+
+.reduced-motion-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: var(--space-4);
+  margin: var(--space-6) 0;
+}
+
+.reduced-card {
+  padding: var(--space-4);
+  background: var(--glass-subtle-background);
+  border-radius: var(--radius-lg);
+  border-left: 3px solid var(--color-warning);
+}
+
+.reduced-card h4 {
+  margin: 0 0 var(--space-2);
+  font-family: monospace;
+}
+
+.reduced-card p {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--color-text-secondary);
+}
+
+.animation-lib-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: var(--space-4);
+  margin: var(--space-6) 0;
+}
+
+.anim-card {
+  padding: var(--space-4);
+  background: var(--glass-subtle-background);
+  border-radius: var(--radius-lg);
+  text-align: center;
+}
+
+.anim-card h4 {
+  margin: 0 0 var(--space-3);
+  font-family: monospace;
+}
+
+.anim-demo {
+  width: 40px;
+  height: 40px;
+  margin: 0 auto var(--space-3);
+  background: var(--color-accent);
+  border-radius: var(--radius-md);
+}
+
+.anim-card code {
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+}
+
+.fade-in { animation: fadeIn 2s ease-in-out infinite; }
+.fade-slide-up { animation: fadeSlideUp 2s ease-in-out infinite; }
+.breathe-in { animation: breatheIn 2s ease-in-out infinite; }
+.joy-bounce { animation: joyBounce 2s ease-in-out infinite; }
+.spring { animation: spring 2s ease-in-out infinite; }
+.nod { animation: nod 2s ease-in-out infinite; }
+
+@keyframes fadeIn {
+  0%, 100% { opacity: 0; }
+  50% { opacity: 1; }
+}
+
+@keyframes fadeSlideUp {
+  0%, 100% { opacity: 0; transform: translateY(16px); }
+  50% { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes breatheIn {
+  0%, 100% { opacity: 0; transform: scale(0.9); filter: blur(4px); }
+  60% { opacity: 1; transform: scale(1.02); filter: blur(0); }
+  80% { opacity: 1; transform: scale(1); filter: blur(0); }
+}
+
+@keyframes joyBounce {
+  0%, 100% { transform: scale(1) translateY(0); }
+  20% { transform: scale(1.15) translateY(-20px); }
+  40% { transform: scale(0.95) translateY(0); }
+  60% { transform: scale(1.05) translateY(-8px); }
+  80% { transform: scale(0.98) translateY(0); }
+}
+
+@keyframes spring {
+  0%, 100% { transform: scale(0.9); }
+  50% { transform: scale(1.05); }
+  75% { transform: scale(0.98); }
+  90% { transform: scale(1); }
+}
+
+@keyframes nod {
+  0%, 100% { transform: translateY(0) rotate(0); }
+  30% { transform: translateY(-4px) rotate(2deg); }
+  60% { transform: translateY(0) rotate(0); }
+}
+</style>

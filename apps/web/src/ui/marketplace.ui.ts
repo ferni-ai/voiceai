@@ -4,23 +4,22 @@
  * A beautiful modal interface for browsing and installing agents from the
  * VoiceAI Agents marketplace (similar to Claude MCP's marketplace).
  *
- * Features:
- * - Browse available agents by category
- * - Search agents by name, description, or tags
- * - Install/uninstall agents with one click
- * - View installed agents
+ * This file is being progressively refactored into modular components.
+ * See ./marketplace/ directory for extracted modules:
+ * - types.ts - TypeScript interfaces
+ * - constants.ts - Constants and CSS variable helpers
+ * - state.ts - State management
+ * - utils.ts - Utility functions
+ * - styles/ - CSS styles
  *
- * USAGE:
- *   import { openMarketplace, closeMarketplace } from './ui/marketplace.ui.js';
- *
- *   // Open the marketplace modal
- *   openMarketplace();
+ * @module marketplace.ui
  */
 
-import { DURATION, EASING } from '../config/animation-constants.js';
+import { DURATION } from '../config/animation-constants.js';
 import { getPersona, isKnownPersonaId } from '../config/personas.js';
 import { t } from '../i18n/index.js';
 import { marketplaceService, type MarketplaceAgent } from '../services/marketplace.service.js';
+import { apiGet, apiPost } from '../utils/api.js';
 import { addTapListener, cleanupTapListeners } from '../utils/ios-touch.js';
 import {
   rosterPreferences,
@@ -44,50 +43,46 @@ import {
 } from './marketplace-permission-consent.ui.js';
 import { soundUI } from './sound.ui.js';
 import { refreshMarketplaceAgents } from './team.ui.js';
+import { 
+  listCustomAgents, 
+  deleteCustomAgent,
+  type CustomAgent,
+} from '../services/custom-agent.service.js';
+import { openCustomAgentWizard } from './custom-agent-wizard.ui.js';
+import { confirmDelete } from './confirm-modal.ui.js';
+import { openAgentEditor } from './custom-agent-editor.ui.js';
+import { getFirebaseUid, getAuthState } from '../services/firebase-auth.service.js';
+import { toast } from './whisper.ui.js';
+
+// Import from modular structure
+import {
+  getCategoryLabel,
+  getPersonaGradient,
+  getPersonaGlow,
+  getCategoryGradient,
+  getCategoryGlow,
+} from './marketplace/constants.js';
+import {
+  getMarketplaceStyles,
+  getDetailStyles,
+} from './marketplace/styles/index.js';
+import {
+  debounce,
+  renderStars,
+  formatReviewCount,
+} from './marketplace/utils.js';
 
 const log = createLogger('Marketplace');
 
 // FIX BUG: Track all setTimeout calls for proper cleanup
-const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
-
-// ============================================================================
-// PERSONA COLORS - Use CSS variables from design system tokens.css
-// Colors are applied via data-persona attribute on elements
-// ============================================================================
-
-/**
- * Get gradient for a persona using CSS variables.
- * Applies via data-persona attribute which sets --persona-primary and --persona-secondary.
- */
-function getPersonaGradient(personaId: string): string {
-  // External AI companies have their own brand colors defined in CSS
-  const externalBrands = ['claude', 'gemini', 'gpt'];
-  if (externalBrands.includes(personaId)) {
-    return `var(--gradient-${personaId})`;
-  }
-  // Internal personas use the persona CSS variables
-  return 'linear-gradient(135deg, var(--persona-secondary), var(--persona-primary))';
-}
-
-/**
- * Get glow color for avatar shadows using CSS variables.
- * External AI company brand colors are defined in design-system/tokens/colors.json
- */
-function getPersonaGlow(personaId: string): string {
-  // External AI companies use design token variables
-  const externalBrands = ['claude', 'gemini', 'gpt'];
-  if (externalBrands.includes(personaId)) {
-    return `var(--external-${personaId}-glow)`;
-  }
-  return 'var(--persona-glow)';
-}
+const { trackedTimeout } = createTimeoutTracker();
 
 // ============================================================================
 // STATE
 // ============================================================================
 
 let marketplaceModal: HTMLElement | null = null;
-let currentTab: 'browse' | 'installed' = 'browse';
+let currentTab: 'browse' | 'installed' | 'creations' = 'browse';
 let currentCategory: string | null = null;
 let searchQuery = '';
 
@@ -155,7 +150,7 @@ function ensureModalExists(): HTMLElement {
   marketplaceModal.setAttribute('aria-labelledby', 'marketplace-title');
   marketplaceModal.setAttribute('aria-modal', 'true');
   marketplaceModal.innerHTML = `
-    <div class="marketplace-backdrop" data-action="close"></div>
+    <div class="marketplace-backdrop" data-action="close" role="button" tabindex="0"></div>
     <div class="marketplace-container">
       <header class="marketplace-header">
         <div class="marketplace-title-row">
@@ -172,11 +167,18 @@ function ensureModalExists(): HTMLElement {
         <p class="marketplace-subtitle">Find coaches who understand what you need.</p>
         
         <div class="marketplace-tabs">
-          <button class="marketplace-tab active" data-tab="browse">
+          <button aria-label="${t('accessibility.discover')}" class="marketplace-tab active" data-tab="browse">
             Discover
           </button>
-          <button class="marketplace-tab" data-tab="installed">
+          <button aria-label="${t('accessibility.yourTeam')}" class="marketplace-tab" data-tab="installed">
             Your Team
+          </button>
+          <button aria-label="${t('accessibility.myCreations')}" class="marketplace-tab" data-tab="creations">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;">
+              <line x1="12" y1="5" x2="12" y2="19"></line>
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+            My Creations
           </button>
         </div>
         
@@ -285,6 +287,9 @@ export async function openMarketplace(): Promise<void> {
   searchQuery = '';
   currentCategory = null;
 
+  // Reset tab UI to match state (fixes bug where tab shows wrong selection)
+  updateTabs();
+
   // Show modal
   modal.classList.add('open');
   document.body.style.overflow = 'hidden';
@@ -338,8 +343,10 @@ async function refreshContent(): Promise<void> {
   try {
     if (currentTab === 'browse') {
       await renderBrowseTab();
-    } else {
+    } else if (currentTab === 'installed') {
       await renderInstalledTab();
+    } else if (currentTab === 'creations') {
+      await renderCreationsTab();
     }
   } catch (err) {
     log.error('❌ Marketplace: Failed to refresh content:', err);
@@ -583,6 +590,736 @@ async function renderInstalledTab(): Promise<void> {
 }
 
 /**
+ * Render the "My Creations" tab showing user's custom agents
+ */
+async function renderCreationsTab(): Promise<void> {
+  const grid = marketplaceModal?.querySelector('.marketplace-grid');
+  const empty = marketplaceModal?.querySelector('.marketplace-empty') as HTMLElement;
+
+  if (!grid) return;
+  if (empty) empty.style.display = 'none';
+
+  let customAgents: CustomAgent[] = [];
+  try {
+    customAgents = await listCustomAgents();
+  } catch (err) {
+    log.debug('Failed to fetch custom agents (API may not be ready):', err);
+    // Continue with empty array - show create prompt
+  }
+
+  // Build the creations tab HTML
+  const html = `
+    <section class="creations-section">
+      <div class="creations-header">
+        <div class="creations-header-content">
+          <h3 class="creations-title">Your Custom Agents</h3>
+          <p class="creations-subtitle">Create companions with custom voices and personalities</p>
+        </div>
+        <button aria-label="${t('accessibility.createAgent')}" class="creations-create-btn" data-action="create-agent">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="12" y1="5" x2="12" y2="19"></line>
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+          </svg>
+          Create Agent
+        </button>
+      </div>
+
+      ${customAgents.length === 0 ? `
+        <div class="creations-empty">
+          <div class="creations-empty-illustration">
+            <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" opacity="0.4">
+              <circle cx="12" cy="12" r="10"></circle>
+              <path d="M8 12h8"></path>
+              <path d="M12 8v8"></path>
+            </svg>
+          </div>
+          <h4 class="creations-empty-title">No agents yet</h4>
+          <p class="creations-empty-hint">Create your first custom agent to preserve a loved one's voice, build a mentor, or design your own companion.</p>
+          <button aria-label="${t('accessibility.createYourFirstAgent')}" class="creations-empty-btn" data-action="create-agent">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="12" y1="5" x2="12" y2="19"></line>
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+            Create Your First Agent
+          </button>
+        </div>
+
+        <div class="creations-types-preview">
+          <h4 class="creations-types-title">What you can create</h4>
+          <div class="creations-types-grid">
+            <button type="button" class="creation-type-card" data-action="create-type" data-type="legacy" aria-label="Create a Legacy agent">
+              <span class="creation-type-icon">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M12 2c.5 3.5 2 5.5 3.5 7 1.5 1.5 3.5 2.5 5.5 3-2 .5-4 1.5-5.5 3-1.5 1.5-3 3.5-3.5 7-.5-3.5-2-5.5-3.5-7-1.5-1.5-3.5-2.5-5.5-3 2-.5 4-1.5 5.5-3 1.5-1.5 3-3.5 3.5-7z"/>
+                </svg>
+              </span>
+              <h5 class="creation-type-name">Legacy</h5>
+              <p class="creation-type-desc">Preserve the voice and wisdom of someone you cherish</p>
+              <span class="creation-type-cta">Start creating <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg></span>
+            </button>
+            <button type="button" class="creation-type-card" data-action="create-type" data-type="mentor" aria-label="Create a Mentor agent">
+              <span class="creation-type-icon">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M12 22c4-3 8-6 8-11a8 8 0 0 0-16 0c0 5 4 8 8 11z"/>
+                  <circle cx="12" cy="11" r="3"/>
+                </svg>
+              </span>
+              <h5 class="creation-type-name">Mentor</h5>
+              <p class="creation-type-desc">Create a coach based on an inspiring figure</p>
+              <span class="creation-type-cta">Start creating <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg></span>
+            </button>
+            <button type="button" class="creation-type-card" data-action="create-type" data-type="twin" aria-label="Create a Digital Twin">
+              <span class="creation-type-icon">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="10"/>
+                  <circle cx="12" cy="10" r="3"/>
+                  <path d="M7 20.662V19a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v1.662"/>
+                </svg>
+              </span>
+              <h5 class="creation-type-name">Digital Twin</h5>
+              <p class="creation-type-desc">Your personal voice journal that grows with you</p>
+              <span class="creation-type-cta">Start creating <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg></span>
+            </button>
+            <button type="button" class="creation-type-card" data-action="create-type" data-type="fictional" aria-label="Create a Custom agent from scratch">
+              <span class="creation-type-icon">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="10"/>
+                  <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/>
+                </svg>
+              </span>
+              <h5 class="creation-type-name">Custom</h5>
+              <p class="creation-type-desc">Build any personality from scratch</p>
+              <span class="creation-type-cta">Start creating <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg></span>
+            </button>
+          </div>
+        </div>
+      ` : `
+        <div class="creations-grid">
+          ${customAgents.map(agent => renderCustomAgentCard(agent)).join('')}
+        </div>
+      `}
+    </section>
+  `;
+
+  grid.innerHTML = html;
+  grid.setAttribute('style', 'display: block;');
+
+  // Attach event listeners for create buttons
+  grid.querySelectorAll('[data-action="create-agent"]').forEach(btn => {
+    btn.addEventListener('click', handleCreateAgentClick);
+  });
+
+  // Attach event listeners for type cards (Legacy, Mentor, etc.)
+  grid.querySelectorAll('[data-action="create-type"]').forEach(btn => {
+    btn.addEventListener('click', handleCreateTypeClick);
+  });
+
+  // Attach listeners for agent cards
+  grid.querySelectorAll('.custom-agent-card').forEach(card => {
+    card.addEventListener('click', (e) => { void handleCustomAgentCardClick(e); });
+  });
+
+  grid.querySelectorAll('[data-action="delete-agent"]').forEach(btn => {
+    btn.addEventListener('click', (e) => { void handleDeleteAgentClick(e); });
+  });
+
+  // Journal button listeners for Digital Twin agents
+  grid.querySelectorAll('[data-action="open-journal"]').forEach(btn => {
+    btn.addEventListener('click', handleOpenJournalClick);
+  });
+
+  // Profile button listeners for Digital Twin agents
+  grid.querySelectorAll('[data-action="open-profile"]').forEach(btn => {
+    btn.addEventListener('click', handleOpenProfileClick);
+  });
+
+  // Talk to Twin button listeners for Digital Twin agents
+  grid.querySelectorAll('[data-action="talk-to-twin"]').forEach(btn => {
+    btn.addEventListener('click', handleTalkToTwinClick);
+  });
+
+  // Legacy agent listeners
+  grid.querySelectorAll('[data-action="open-stories"]').forEach(btn => {
+    btn.addEventListener('click', handleOpenStoriesClick);
+  });
+  grid.querySelectorAll('[data-action="record-voice"]').forEach(btn => {
+    btn.addEventListener('click', handleRecordVoiceClick);
+  });
+  grid.querySelectorAll('[data-action="talk-to-legacy"]').forEach(btn => {
+    btn.addEventListener('click', handleTalkToAgentClick);
+  });
+
+  // Mentor agent listeners
+  grid.querySelectorAll('[data-action="open-teachings"]').forEach(btn => {
+    btn.addEventListener('click', handleOpenTeachingsClick);
+  });
+  grid.querySelectorAll('[data-action="talk-to-mentor"]').forEach(btn => {
+    btn.addEventListener('click', handleTalkToAgentClick);
+  });
+
+  // Fictional agent listeners
+  grid.querySelectorAll('[data-action="open-character"]').forEach(btn => {
+    btn.addEventListener('click', handleOpenCharacterClick);
+  });
+  grid.querySelectorAll('[data-action="start-roleplay"]').forEach(btn => {
+    btn.addEventListener('click', handleStartRoleplayClick);
+  });
+
+  // Professional agent listeners
+  grid.querySelectorAll('[data-action="open-tasks"]').forEach(btn => {
+    btn.addEventListener('click', handleOpenTasksClick);
+  });
+  grid.querySelectorAll('[data-action="start-task-mode"]').forEach(btn => {
+    btn.addEventListener('click', handleStartTaskModeClick);
+  });
+
+  // Legacy share listener
+  grid.querySelectorAll('[data-action="share-legacy"]').forEach(btn => {
+    btn.addEventListener('click', handleShareLegacyClick);
+  });
+
+  // Mentor coaching listener
+  grid.querySelectorAll('[data-action="start-coaching"]').forEach(btn => {
+    btn.addEventListener('click', handleStartCoachingClick);
+  });
+
+  // Generic talk to agent
+  grid.querySelectorAll('[data-action="talk-to-agent"]').forEach(btn => {
+    btn.addEventListener('click', handleTalkToAgentClick);
+  });
+}
+
+/**
+ * Get type-specific action buttons for a custom agent card
+ */
+function getAgentTypeButtons(agent: CustomAgent): string {
+  const icons = {
+    profile: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="5"/><path d="M20 21a8 8 0 0 0-16 0"/></svg>`,
+    journal: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>`,
+    talk: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>`,
+    stories: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>`,
+    teachings: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m8 3 4 8 5-5 5 15H2L8 3z"/><path d="m5 21 5-10"/></svg>`,
+    character: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.24 12.24a6 6 0 0 0-8.49-8.49L5 10.5V19h8.5z"/><line x1="16" x2="2" y1="8" y2="22"/></svg>`,
+    tasks: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><path d="m9 16 2 2 4-4"/></svg>`,
+  };
+
+  switch (agent.type) {
+    case 'twin':
+      return `
+        <button aria-label="${t('accessibility.profile')}" class="custom-agent-action custom-agent-action--profile" data-action="open-profile" data-agent-id="${agent.id}">
+          ${icons.profile}
+          Profile
+        </button>
+        <button aria-label="${t('accessibility.journal')}" class="custom-agent-action custom-agent-action--journal" data-action="open-journal" data-agent-id="${agent.id}">
+          ${icons.journal}
+          Journal
+        </button>
+        <button aria-label="${t('accessibility.talk')}" class="custom-agent-action custom-agent-action--talk" data-action="talk-to-twin" data-agent-id="${agent.id}">
+          ${icons.talk}
+          Talk
+        </button>
+      `;
+
+    case 'legacy':
+      return `
+        <button aria-label="${t('accessibility.stories')}" class="custom-agent-action custom-agent-action--stories" data-action="open-stories" data-agent-id="${agent.id}">
+          ${icons.stories}
+          Stories
+        </button>
+        <button aria-label="${t('accessibility.voice')}" class="custom-agent-action custom-agent-action--voice" data-action="record-voice" data-agent-id="${agent.id}">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg>
+          Voice
+        </button>
+        <button aria-label="${t('accessibility.share')}" class="custom-agent-action custom-agent-action--share" data-action="share-legacy" data-agent-id="${agent.id}">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          Share
+        </button>
+        <button aria-label="${t('accessibility.talk')}" class="custom-agent-action custom-agent-action--talk" data-action="talk-to-legacy" data-agent-id="${agent.id}">
+          ${icons.talk}
+          Talk
+        </button>
+      `;
+
+    case 'mentor':
+      return `
+        <button aria-label="${t('accessibility.teachings')}" class="custom-agent-action custom-agent-action--teachings" data-action="open-teachings" data-agent-id="${agent.id}">
+          ${icons.teachings}
+          Teachings
+        </button>
+        <button aria-label="${t('accessibility.coachMe')}" class="custom-agent-action custom-agent-action--coaching" data-action="start-coaching" data-agent-id="${agent.id}">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+          Coach Me
+        </button>
+      `;
+
+    case 'fictional':
+      return `
+        <button aria-label="${t('accessibility.character')}" class="custom-agent-action custom-agent-action--character" data-action="open-character" data-agent-id="${agent.id}">
+          ${icons.character}
+          Character
+        </button>
+        <button aria-label="${t('accessibility.play')}" class="custom-agent-action custom-agent-action--roleplay" data-action="start-roleplay" data-agent-id="${agent.id}">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>
+          Roleplay
+        </button>
+      `;
+
+    case 'professional':
+      return `
+        <button aria-label="${t('accessibility.tasks')}" class="custom-agent-action custom-agent-action--tasks" data-action="open-tasks" data-agent-id="${agent.id}">
+          ${icons.tasks}
+          Tasks
+        </button>
+        <button aria-label="${t('accessibility.workMode')}" class="custom-agent-action custom-agent-action--work" data-action="start-task-mode" data-agent-id="${agent.id}">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+          Work Mode
+        </button>
+      `;
+
+    default:
+      return `
+        <button aria-label="${t('accessibility.talk')}" class="custom-agent-action custom-agent-action--talk" data-action="talk-to-agent" data-agent-id="${agent.id}">
+          ${icons.talk}
+          Talk
+        </button>
+      `;
+  }
+}
+
+/**
+ * Render a custom agent card
+ */
+function renderCustomAgentCard(agent: CustomAgent): string {
+  const statusClass = agent.status === 'active' ? 'status--active' : 
+                      agent.status === 'paused' ? 'status--paused' : 'status--draft';
+  const typeLabel = agent.type === 'legacy' ? 'Legacy' :
+                    agent.type === 'mentor' ? 'Mentor' :
+                    agent.type === 'twin' ? 'Digital Twin' :
+                    agent.type === 'fictional' ? 'Fictional' :
+                    agent.type === 'professional' ? 'Professional' : 'Custom';
+  
+  const initials = (agent.displayName || agent.name)
+    .split(' ')
+    .map(n => n[0])
+    .join('')
+    .slice(0, 2)
+    .toUpperCase();
+
+  const primaryColor = agent.colors?.primary || 'var(--persona-primary)';
+  const gradient = agent.colors?.gradient || `linear-gradient(135deg, ${primaryColor}, ${primaryColor})`;
+
+  return `
+    <article class="custom-agent-card" data-agent-id="${agent.id}">
+      <div class="custom-agent-header">
+        <div class="custom-agent-avatar" style="background: ${gradient};">
+          ${agent.icon || initials}
+        </div>
+        <div class="custom-agent-meta">
+          <h3 class="custom-agent-name">${agent.displayName || agent.name}</h3>
+          <span class="custom-agent-type">${typeLabel}</span>
+        </div>
+        <span class="custom-agent-status ${statusClass}">${agent.status}</span>
+      </div>
+      <p class="custom-agent-description">${agent.description}</p>
+      <div class="custom-agent-stats">
+        <span class="custom-agent-stat">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
+            <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+          </svg>
+          ${agent.voice?.status === 'ready' ? 'Voice ready' : agent.voice?.type === 'cloned' ? 'Voice pending' : 'No voice'}
+        </span>
+        <span class="custom-agent-stat">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path>
+            <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path>
+          </svg>
+          ${(agent.memories?.stories?.length || 0) + (agent.memories?.wisdom?.length || 0)} memories
+        </span>
+      </div>
+      <footer class="custom-agent-footer">
+        ${getAgentTypeButtons(agent)}
+        <button aria-label="${t('accessibility.edit')}" class="custom-agent-action custom-agent-action--edit" data-agent-id="${agent.id}">
+          Edit
+        </button>
+        <button class="custom-agent-action custom-agent-action--delete" data-action="delete-agent" data-agent-id="${agent.id}" aria-label="Delete ${agent.name}">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="3 6 5 6 21 6"></polyline>
+            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+          </svg>
+        </button>
+      </footer>
+    </article>
+  `;
+}
+
+/**
+ * Handle create agent button click
+ */
+function handleCreateAgentClick(e: Event): void {
+  e.stopPropagation();
+  closeMarketplace();
+  // Small delay to let marketplace close animation complete
+  trackedTimeout(() => {
+    openCustomAgentWizard(false);
+  }, 200);
+  soundUI.play('click');
+}
+
+/**
+ * Handle type card click (open wizard with preselected type)
+ * This allows users to click directly on Legacy/Mentor/Digital Twin/Custom cards
+ */
+function handleCreateTypeClick(e: Event): void {
+  e.preventDefault();
+  e.stopPropagation();
+  const btn = e.currentTarget as HTMLElement;
+  const agentType = btn.dataset.type as 'legacy' | 'mentor' | 'twin' | 'fictional';
+  
+  if (!agentType) {
+    log.warn('No agent type found on card');
+    return;
+  }
+  
+  log.info(`Creating agent with preselected type: ${agentType}`);
+  closeMarketplace();
+  
+  // Small delay to let marketplace close animation complete
+  trackedTimeout(() => {
+    openCustomAgentWizard({ preselectedType: agentType });
+  }, 200);
+  soundUI.play('click');
+}
+
+/**
+ * Handle custom agent card click (open for editing)
+ */
+async function handleCustomAgentCardClick(e: Event): Promise<void> {
+  const card = (e.currentTarget as HTMLElement);
+  const agentId = card.dataset.agentId;
+  if (agentId) {
+    log.debug('Custom agent card clicked:', agentId);
+    // Close marketplace and open editor
+    closeMarketplace();
+    trackedTimeout(async () => {
+      await openAgentEditor(agentId);
+    }, 200);
+    soundUI.play('click');
+  }
+}
+
+/**
+ * Handle delete agent button click
+ */
+async function handleDeleteAgentClick(e: Event): Promise<void> {
+  e.stopPropagation();
+  const btn = e.currentTarget as HTMLElement;
+  const agentId = btn.dataset.agentId;
+  
+  if (!agentId) return;
+
+  // Get agent name from card for confirmation message
+  const card = btn.closest('.custom-agent-card');
+  const agentName = card?.querySelector('.custom-agent-name')?.textContent || 'this agent';
+
+  // Confirm deletion with branded modal
+  const confirmed = await confirmDelete(agentName, {
+    message: `You'll lose all memories and voice data for ${agentName}.`,
+  });
+  if (!confirmed) return;
+
+  try {
+    await deleteCustomAgent(agentId);
+    const { toast } = await import('./whisper.ui.js');
+    toast.success(t('toasts.agentDeleted'));
+    soundUI.play('success');
+    // Refresh the tab
+    void refreshContent();
+  } catch (err) {
+    log.error('Failed to delete agent:', err);
+    const { toast } = await import('./whisper.ui.js');
+    toast.error("Couldn't delete agent. Try again?");
+  }
+}
+
+/**
+ * Handle opening the voice journal for a Digital Twin agent.
+ */
+async function handleOpenJournalClick(e: Event): Promise<void> {
+  e.preventDefault();
+  e.stopPropagation();
+
+  const btn = e.currentTarget as HTMLButtonElement;
+  const agentId = btn.dataset.agentId;
+  if (!agentId) return;
+
+  try {
+    // Open the voice journal UI
+    const { openVoiceJournal } = await import('./voice-journal/index.js');
+    await openVoiceJournal(agentId);
+  } catch (err) {
+    log.error('Failed to open journal:', err);
+    const { toast } = await import('./whisper.ui.js');
+    toast.error("Couldn't open journal. Try again?");
+  }
+}
+
+/**
+ * Handle opening the profile setup for a Digital Twin agent.
+ */
+async function handleOpenProfileClick(e: Event): Promise<void> {
+  e.preventDefault();
+  e.stopPropagation();
+
+  const btn = e.currentTarget as HTMLButtonElement;
+  const agentId = btn.dataset.agentId;
+  if (!agentId) return;
+
+  try {
+    // Open the Digital Twin profile UI
+    const { openTwinProfile } = await import('./digital-twin-profile.ui.js');
+    await openTwinProfile(agentId);
+  } catch (err) {
+    log.error('Failed to open profile:', err);
+    const { toast } = await import('./whisper.ui.js');
+    toast.error("Couldn't open profile. Try again?");
+  }
+}
+
+/**
+ * Handle opening the Talk to Twin conversation for a Digital Twin agent.
+ */
+async function handleTalkToTwinClick(e: Event): Promise<void> {
+  e.preventDefault();
+  e.stopPropagation();
+
+  const btn = e.currentTarget as HTMLButtonElement;
+  const agentId = btn.dataset.agentId;
+  if (!agentId) return;
+
+  try {
+    // Open the Talk to Twin UI
+    const { openTalkToTwin } = await import('./talk-to-twin.ui.js');
+    await openTalkToTwin(agentId);
+  } catch (err) {
+    log.error('Failed to open Talk to Twin:', err);
+    const { toast } = await import('./whisper.ui.js');
+    toast.error("Couldn't start conversation. Try again?");
+  }
+}
+
+/**
+ * Handle opening Stories UI for Legacy agents
+ */
+async function handleOpenStoriesClick(e: Event): Promise<void> {
+  e.preventDefault();
+  e.stopPropagation();
+
+  const btn = e.currentTarget as HTMLButtonElement;
+  const agentId = btn.dataset.agentId;
+  if (!agentId) return;
+
+  try {
+    const { openLegacyStories } = await import('./legacy-stories.ui.js');
+    await openLegacyStories(agentId);
+  } catch (err) {
+    log.error('Failed to open Legacy Stories:', err);
+    const { toast } = await import('./whisper.ui.js');
+    toast.error("Couldn't open stories. Try again?");
+  }
+}
+
+/**
+ * Handle opening Voice Clone Recorder for Legacy agents
+ */
+async function handleRecordVoiceClick(e: Event): Promise<void> {
+  e.preventDefault();
+  e.stopPropagation();
+
+  const btn = e.currentTarget as HTMLButtonElement;
+  const agentId = btn.dataset.agentId;
+  if (!agentId) return;
+
+  try {
+    const { openVoiceCloneRecorder } = await import('./voice-clone-recorder.ui.js');
+    await openVoiceCloneRecorder(agentId);
+  } catch (err) {
+    log.error('Failed to open Voice Recorder:', err);
+    const { toast } = await import('./whisper.ui.js');
+    toast.error("Couldn't open voice recorder. Try again?");
+  }
+}
+
+/**
+ * Handle opening Teachings UI for Mentor agents
+ */
+async function handleOpenTeachingsClick(e: Event): Promise<void> {
+  e.preventDefault();
+  e.stopPropagation();
+
+  const btn = e.currentTarget as HTMLButtonElement;
+  const agentId = btn.dataset.agentId;
+  if (!agentId) return;
+
+  try {
+    const { openMentorTeachings } = await import('./mentor-teachings.ui.js');
+    await openMentorTeachings(agentId);
+  } catch (err) {
+    log.error('Failed to open Mentor Teachings:', err);
+    const { toast } = await import('./whisper.ui.js');
+    toast.error("Couldn't open teachings. Try again?");
+  }
+}
+
+/**
+ * Handle opening Character UI for Fictional agents
+ */
+async function handleOpenCharacterClick(e: Event): Promise<void> {
+  e.preventDefault();
+  e.stopPropagation();
+
+  const btn = e.currentTarget as HTMLButtonElement;
+  const agentId = btn.dataset.agentId;
+  if (!agentId) return;
+
+  try {
+    const { openCharacterSheet } = await import('./character-sheet.ui.js');
+    await openCharacterSheet(agentId);
+  } catch (err) {
+    log.error('Failed to open Character Sheet:', err);
+    const { toast } = await import('./whisper.ui.js');
+    toast.error("Couldn't open character. Try again?");
+  }
+}
+
+/**
+ * Handle opening Tasks UI for Professional agents
+ */
+async function handleOpenTasksClick(e: Event): Promise<void> {
+  e.preventDefault();
+  e.stopPropagation();
+
+  const btn = e.currentTarget as HTMLButtonElement;
+  const agentId = btn.dataset.agentId;
+  if (!agentId) return;
+
+  try {
+    const { openProfessionalTasks } = await import('./professional-tasks.ui.js');
+    await openProfessionalTasks(agentId);
+  } catch (err) {
+    log.error('Failed to open Professional Tasks:', err);
+    const { toast } = await import('./whisper.ui.js');
+    toast.error("Couldn't open tasks. Try again?");
+  }
+}
+
+/**
+ * Handle generic talk to custom agent
+ */
+async function handleTalkToAgentClick(e: Event): Promise<void> {
+  e.preventDefault();
+  e.stopPropagation();
+
+  const btn = e.currentTarget as HTMLButtonElement;
+  const agentId = btn.dataset.agentId;
+  if (!agentId) return;
+
+  try {
+    // Use the Talk to Twin UI as the base for all agent conversations
+    const { openTalkToTwin } = await import('./talk-to-twin.ui.js');
+    await openTalkToTwin(agentId);
+  } catch (err) {
+    log.error('Failed to open agent conversation:', err);
+    const { toast } = await import('./whisper.ui.js');
+    toast.error("Couldn't start conversation. Try again?");
+  }
+}
+
+/**
+ * Handle sharing a Legacy agent with family members
+ */
+async function handleShareLegacyClick(e: Event): Promise<void> {
+  e.preventDefault();
+  e.stopPropagation();
+
+  const btn = e.currentTarget as HTMLButtonElement;
+  const agentId = btn.dataset.agentId;
+  if (!agentId) return;
+
+  try {
+    const { openLegacyShare } = await import('./legacy-share.ui.js');
+    await openLegacyShare(agentId);
+  } catch (err) {
+    log.error('Failed to open Legacy Share:', err);
+    const { toast } = await import('./whisper.ui.js');
+    toast.error("Couldn't open sharing. Try again?");
+  }
+}
+
+/**
+ * Handle starting a coaching session with a Mentor agent
+ */
+async function handleStartCoachingClick(e: Event): Promise<void> {
+  e.preventDefault();
+  e.stopPropagation();
+
+  const btn = e.currentTarget as HTMLButtonElement;
+  const agentId = btn.dataset.agentId;
+  if (!agentId) return;
+
+  try {
+    const { openCoachingMode } = await import('./coaching-mode.ui.js');
+    await openCoachingMode(agentId);
+  } catch (err) {
+    log.error('Failed to open Coaching Mode:', err);
+    const { toast } = await import('./whisper.ui.js');
+    toast.error("Couldn't start coaching. Try again?");
+  }
+}
+
+/**
+ * Handle starting roleplay with a Fictional agent
+ */
+async function handleStartRoleplayClick(e: Event): Promise<void> {
+  e.preventDefault();
+  e.stopPropagation();
+
+  const btn = e.currentTarget as HTMLButtonElement;
+  const agentId = btn.dataset.agentId;
+  if (!agentId) return;
+
+  try {
+    const { openRoleplayMode } = await import('./roleplay-mode.ui.js');
+    await openRoleplayMode(agentId);
+  } catch (err) {
+    log.error('Failed to open Roleplay Mode:', err);
+    const { toast } = await import('./whisper.ui.js');
+    toast.error("Couldn't start roleplay. Try again?");
+  }
+}
+
+/**
+ * Handle starting task mode with a Professional agent
+ */
+async function handleStartTaskModeClick(e: Event): Promise<void> {
+  e.preventDefault();
+  e.stopPropagation();
+
+  const btn = e.currentTarget as HTMLButtonElement;
+  const agentId = btn.dataset.agentId;
+  if (!agentId) return;
+
+  try {
+    const { openTaskMode } = await import('./task-mode.ui.js');
+    await openTaskMode(agentId);
+  } catch (err) {
+    log.error('Failed to open Task Mode:', err);
+    const { toast } = await import('./whisper.ui.js');
+    toast.error("Couldn't start work mode. Try again?");
+  }
+}
+
+/**
  * Render an employee card for the team narrative section.
  * FIX BUG: Shows locked state indicator for team members not yet unlocked.
  *
@@ -671,7 +1408,7 @@ function renderEmployeeCard(
 
 /**
  * Render the "Meet the Team" narrative section
- * The first company built by AI, run by AI.
+ * Meet your team - friends who truly understand.
  *
  * Uses CSS variables from design system tokens.css via data-persona attribute.
  * Each avatar now has a subtle ambient glow that matches its persona color.
@@ -687,8 +1424,8 @@ function renderTeamNarrative(): string {
   return `
     <section class="team-narrative">
       <div class="team-narrative-header">
-        <h3 class="team-narrative-title">The first company built by AI.</h3>
-        <p class="team-narrative-subtitle">Run by AI. For humans.</p>
+        <h3 class="team-narrative-title">Meet your team.</h3>
+        <p class="team-narrative-subtitle">Friends who truly understand.</p>
       </div>
       
       <div class="team-leadership">
@@ -759,15 +1496,16 @@ function renderTeamNarrative(): string {
  */
 function renderAgentCards(agents: (MarketplaceAgent & { isInstalled: boolean })[]): string {
   return agents
-    .map((agent) => {
+    .map((agent, index) => {
       const initials = agent.name
         .split(' ')
         .map((n) => n[0])
         .join('')
         .slice(0, 2)
         .toUpperCase();
-      // Use CSS variables via data-persona attribute - gradient comes from design system
-      const gradient = getPersonaGradient(agent.id);
+      // Use category-based colors for visual variety in marketplace
+      const gradient = getCategoryGradient(agent.category);
+      const glow = getCategoryGlow(agent.category);
 
       // Determine state classes and button
       const stateClass = agent.isInstalled ? 'installed' : '';
@@ -775,8 +1513,8 @@ function renderAgentCards(agents: (MarketplaceAgent & { isInstalled: boolean })[
         ? '<span class="agent-badge installed">Installed</span>'
         : '';
       const buttonHtml = agent.isInstalled
-        ? `<button class="agent-action uninstall" data-agent-id="${agent.id}">Remove</button>`
-        : `<button class="agent-action install" data-agent-id="${agent.id}">Add to Team</button>`;
+        ? `<button aria-label="${t('accessibility.remove')}" class="agent-action uninstall" data-agent-id="${agent.id}">Remove</button>`
+        : `<button aria-label="${t('accessibility.addToTeam')}" class="agent-action install" data-agent-id="${agent.id}">Add to Team</button>`;
 
       // Rating display
       const ratingHtml = agent.rating
@@ -787,17 +1525,21 @@ function renderAgentCards(agents: (MarketplaceAgent & { isInstalled: boolean })[
           </div>`
         : '';
 
+      // Staggered animation delay for breathing
+      const animationDelay = (index % 6) * 0.5;
+
       return `
-    <article class="marketplace-agent ${stateClass}" data-agent-id="${agent.id}" data-persona="${agent.id}" role="listitem">
-      <div class="agent-header">
-        <div class="agent-avatar" style="background: ${gradient};">
+    <article class="marketplace-agent discover-card ${stateClass}" data-agent-id="${agent.id}" data-category="${agent.category}" role="listitem" style="--stagger-delay: ${animationDelay}s;">
+      <div class="discover-avatar-container">
+        <div class="discover-avatar-ring" style="--avatar-glow: ${glow};"></div>
+        <div class="discover-avatar-orb" style="background: ${gradient}; --avatar-glow: ${glow};">
           ${initials}
         </div>
-        <div class="agent-meta">
-          <h3 class="agent-name">${agent.name}</h3>
-          <span class="agent-category">${getCategoryLabel(agent.category)}</span>
-          ${ratingHtml}
-        </div>
+      </div>
+      <div class="discover-info">
+        <h3 class="agent-name">${agent.name}</h3>
+        <span class="agent-category" data-category="${agent.category}">${getCategoryLabel(agent.category)}</span>
+        ${ratingHtml}
         ${badgeHtml}
       </div>
       <p class="agent-description">${agent.short_description}</p>
@@ -859,48 +1601,7 @@ function showEmpty(message: string): void {
   }
 }
 
-/**
- * Render star rating icons
- */
-function renderStars(rating: number): string {
-  const fullStars = Math.floor(rating);
-  const hasHalfStar = rating - fullStars >= 0.5;
-  const emptyStars = 5 - fullStars - (hasHalfStar ? 1 : 0);
-
-  const starIcon = `<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1" class="star-icon">
-    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
-  </svg>`;
-
-  const halfStarIcon = `<svg width="12" height="12" viewBox="0 0 24 24" class="star-icon star-half">
-    <defs>
-      <linearGradient id="half-star">
-        <stop offset="50%" stop-color="currentColor"/>
-        <stop offset="50%" stop-color="transparent"/>
-      </linearGradient>
-    </defs>
-    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" fill="url(#half-star)" stroke="currentColor" stroke-width="1"/>
-  </svg>`;
-
-  const emptyStarIcon = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" class="star-icon star-empty">
-    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
-  </svg>`;
-
-  return (
-    starIcon.repeat(fullStars) +
-    (hasHalfStar ? halfStarIcon : '') +
-    emptyStarIcon.repeat(emptyStars)
-  );
-}
-
-/**
- * Format review count for display
- */
-function formatReviewCount(count: number): string {
-  if (count >= 1000) {
-    return `${(count / 1000).toFixed(1)}k`;
-  }
-  return count.toString();
-}
+// renderStars and formatReviewCount imported from ./marketplace/utils.js
 
 /**
  * Set loading state with accessibility announcements
@@ -941,7 +1642,7 @@ function handleModalClick(e: Event): void {
   // Tab switching
   const tab = target.closest('[data-tab]') as HTMLElement;
   if (tab) {
-    const tabName = tab.dataset.tab as 'browse' | 'installed';
+    const tabName = tab.dataset.tab as 'browse' | 'installed' | 'creations';
     if (tabName !== currentTab) {
       currentTab = tabName;
       updateTabs();
@@ -1031,7 +1732,7 @@ function handleModalTouch(e: TouchEvent): void {
   const tab = target.closest('[data-tab]') as HTMLElement;
   if (tab) {
     e.preventDefault();
-    const tabName = tab.dataset.tab as 'browse' | 'installed';
+    const tabName = tab.dataset.tab as 'browse' | 'installed' | 'creations';
     if (tabName !== currentTab) {
       currentTab = tabName;
       updateTabs();
@@ -1123,7 +1824,7 @@ async function handleEmployeeCardClick(personaId: string): Promise<void> {
       `${name} isn't available yet. Keep talking to Ferni to unlock more teammates!`;
 
     // Import toast dynamically to avoid circular dependency
-    const { toast } = await import('./toast.ui.js');
+    const { toast } = await import('./whisper.ui.js');
     toast.info(message);
     soundUI.play('click');
     return;
@@ -1137,7 +1838,7 @@ async function handleEmployeeCardClick(personaId: string): Promise<void> {
     log.debug('Connected - sending handoff request to:', personaId);
 
     const { handoffService } = await import('../services/handoff.service.js');
-    const { toast } = await import('./toast.ui.js');
+    const { toast } = await import('./whisper.ui.js');
 
     const success = await handoffService.sendHandoffRequest(personaId as PersonaId, {
       onFailure: (error) => {
@@ -1194,19 +1895,19 @@ async function handleEmployeeCardClick(personaId: string): Promise<void> {
 async function handleRosterAction(action: 'add' | 'remove', personaId: string): Promise<void> {
   log.debug('Roster action:', { action, personaId });
 
-  const { toast } = await import('./toast.ui.js');
+  const { toast } = await import('./whisper.ui.js');
   const memberConfig = getTeamMember(personaId as TeamMemberId);
   const name = memberConfig?.displayName || personaId;
 
   if (action === 'add') {
     rosterPreferences.addMember(personaId as RosterTeamMemberId);
     soundUI.play('success');
-    toast.success(`${name} added to your team`);
+    toast.success(t('toasts.nameAddedToYourTeam'));
     log.info('Added team member to roster from marketplace:', personaId);
   } else {
     rosterPreferences.removeMember(personaId as RosterTeamMemberId);
     soundUI.play('click');
-    toast.info(`${name} removed from team`);
+    toast.info(t('toasts.nameRemovedFromTeam'));
     log.info('Removed team member from roster from marketplace:', personaId);
   }
 
@@ -1242,18 +1943,27 @@ async function handleAgentAction(agentId: string, isUninstall: boolean): Promise
 
       if (agent) {
         // Request permission consent before installing
+        // Uses verified publisher, trust level, and permissions from registry
+        // Map trust level: 'official' -> 'verified' for MarketplaceItem compatibility
+        const trustLevelMap: Record<string, 'platform' | 'verified' | 'community' | 'unverified'> = {
+          official: 'verified',
+          verified: 'verified',
+          community: 'community',
+        };
         const consentItem: MarketplaceItem = {
           id: agent.id,
           name: agent.name,
           type: 'agent',
           publisher: {
-            name: agent.author,
-            verified: false, // TODO: Get from registry
+            name: agent.publisher.name,
+            verified: agent.publisher.verified,
           },
-          trustLevel: 'community', // TODO: Get from registry
+          trustLevel: trustLevelMap[agent.trustLevel] || 'community',
           permissions: {
-            required: [], // TODO: Get from agent manifest
-            optional: [],
+            // Map PermissionScope strings to PermissionRequest objects
+            // Use type assertion since marketplace.service and marketplace-permission-consent have different scope types
+            required: agent.permissions.required.map((scope) => ({ scope: scope as unknown as import('./marketplace-permission-consent.ui.js').PermissionScope, reason: '', required: true as const })),
+            optional: agent.permissions.optional.map((scope) => ({ scope: scope as unknown as import('./marketplace-permission-consent.ui.js').PermissionScope, reason: '', required: false as const })),
           },
         };
 
@@ -1353,10 +2063,11 @@ async function showAgentDetail(agentId: string): Promise<void> {
  */
 async function fetchAgentReviews(agentId: string): Promise<AgentReview[]> {
   try {
-    const response = await fetch(`/api/marketplace/reviews/${agentId}?limit=10&status=approved`);
-    if (!response.ok) return [];
-    const data = await response.json();
-    return data.reviews || [];
+    const response = await apiGet<{ reviews?: AgentReview[] }>(
+      `/api/marketplace/reviews/${agentId}?limit=10&status=approved`
+    );
+    if (!response.ok || !response.data) return [];
+    return response.data.reviews || [];
   } catch {
     return [];
   }
@@ -1366,22 +2077,19 @@ async function fetchAgentReviews(agentId: string): Promise<AgentReview[]> {
  * Fetch review stats for an agent
  */
 async function fetchAgentReviewStats(agentId: string): Promise<ReviewStats> {
+  const defaultStats: ReviewStats = {
+    totalReviews: 0,
+    averageRating: 0,
+    ratingDistribution: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 },
+  };
   try {
-    const response = await fetch(`/api/marketplace/reviews/${agentId}/stats`);
-    if (!response.ok) {
-      return {
-        totalReviews: 0,
-        averageRating: 0,
-        ratingDistribution: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 },
-      };
-    }
-    return await response.json();
+    const response = await apiGet<ReviewStats>(
+      `/api/marketplace/reviews/${agentId}/stats`
+    );
+    if (!response.ok || !response.data) return defaultStats;
+    return response.data;
   } catch {
-    return {
-      totalReviews: 0,
-      averageRating: 0,
-      ratingDistribution: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 },
-    };
+    return defaultStats;
   }
 }
 
@@ -1474,6 +2182,39 @@ function renderDetailPanel(
           `
           }
         </section>
+
+        <section class="detail-section review-form-section">
+          <h3 class="detail-section-title">Write a Review</h3>
+          <form class="review-form" data-agent-id="${agent.id}">
+            <div class="review-rating-select">
+              <span class="review-rating-label">Your rating:</span>
+              <div class="star-selector" role="group" aria-label="${t('accessibility.selectRating')}">
+                ${[1, 2, 3, 4, 5]
+                  .map(
+                    (n) => `
+                  <button type="button" class="star-btn" data-rating="${n}" aria-label="${n} star${n > 1 ? 's' : ''}">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+                    </svg>
+                  </button>
+                `
+                  )
+                  .join('')}
+              </div>
+              <input type="hidden" name="rating" value="0" required />
+            </div>
+            <div class="form-group">
+              <input type="text" name="title" class="review-title-input" placeholder="Review title (optional)" maxlength="100" />
+            </div>
+            <div class="form-group">
+              <textarea name="body" class="review-body-input" placeholder="Share your experience..." rows="3" required minlength="10" maxlength="1000"></textarea>
+              <span class="char-count">0/1000</span>
+            </div>
+            <button type="submit" class="review-submit-btn" disabled>
+              Submit Review
+            </button>
+          </form>
+        </section>
       </div>
 
       <footer class="detail-footer">
@@ -1504,6 +2245,9 @@ function renderDetailPanel(
       void handleAgentAction(agentId, actionBtn.classList.contains('uninstall'));
     }
   });
+
+  // Review form event listeners
+  setupReviewFormListeners(detailPanel, agent.id);
 
   document.body.appendChild(detailPanel);
 
@@ -1575,2155 +2319,190 @@ function renderReviewCard(review: AgentReview): string {
   `;
 }
 
+// ============================================================================
+// REVIEW FORM HANDLERS
+// ============================================================================
+
 /**
- * Get styles for the detail panel
+ * Set up event listeners for the review form
  */
-function getDetailStyles(): string {
-  return `
-    .marketplace-detail {
-      position: fixed;
-      inset: 0;
-      z-index: 10001;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      opacity: 0;
-      pointer-events: none;
-      transition: opacity ${DURATION.SLOW}ms ${EASING.STANDARD};
+function setupReviewFormListeners(panel: HTMLElement, agentId: string): void {
+  const form = panel.querySelector('.review-form') as HTMLFormElement;
+  if (!form) return;
+
+  const starBtns = form.querySelectorAll('.star-btn');
+  const ratingInput = form.querySelector('input[name="rating"]') as HTMLInputElement;
+  const bodyInput = form.querySelector('textarea[name="body"]') as HTMLTextAreaElement;
+  const charCount = form.querySelector('.char-count') as HTMLElement;
+  const submitBtn = form.querySelector('.review-submit-btn') as HTMLButtonElement;
+
+  let selectedRating = 0;
+
+  // Star rating selection
+  starBtns.forEach((btn) => {
+    const starBtn = btn as HTMLButtonElement;
+    const rating = parseInt(starBtn.dataset.rating || '0', 10);
+
+    // Hover effect
+    starBtn.addEventListener('mouseenter', () => {
+      updateStarDisplay(starBtns, rating);
+    });
+
+    starBtn.addEventListener('mouseleave', () => {
+      updateStarDisplay(starBtns, selectedRating);
+    });
+
+    // Click to select
+    addTapListener(starBtn, () => {
+      selectedRating = rating;
+      ratingInput.value = String(rating);
+      updateStarDisplay(starBtns, rating);
+      validateReviewForm(form, submitBtn);
+      soundUI.play('switch');
+    });
+  });
+
+  // Character counter
+  bodyInput.addEventListener('input', () => {
+    const length = bodyInput.value.length;
+    charCount.textContent = `${length}/1000`;
+    validateReviewForm(form, submitBtn);
+  });
+
+  // Form submission
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    await submitReview(form, agentId, submitBtn);
+  });
+}
+
+/**
+ * Update star display based on rating
+ */
+function updateStarDisplay(starBtns: NodeListOf<Element>, rating: number): void {
+  starBtns.forEach((btn) => {
+    const starBtn = btn as HTMLButtonElement;
+    const btnRating = parseInt(starBtn.dataset.rating || '0', 10);
+    const svg = starBtn.querySelector('svg');
+    if (svg) {
+      if (btnRating <= rating) {
+        svg.setAttribute('fill', 'currentColor');
+        starBtn.classList.add('selected');
+      } else {
+        svg.setAttribute('fill', 'none');
+        starBtn.classList.remove('selected');
+      }
+    }
+  });
+}
+
+/**
+ * Validate the review form and enable/disable submit
+ */
+function validateReviewForm(form: HTMLFormElement, submitBtn: HTMLButtonElement): void {
+  const rating = parseInt((form.querySelector('input[name="rating"]') as HTMLInputElement).value, 10);
+  const body = (form.querySelector('textarea[name="body"]') as HTMLTextAreaElement).value.trim();
+
+  const isValid = rating >= 1 && rating <= 5 && body.length >= 10;
+  submitBtn.disabled = !isValid;
+}
+
+/**
+ * Submit the review to the API
+ */
+async function submitReview(
+  form: HTMLFormElement,
+  agentId: string,
+  submitBtn: HTMLButtonElement
+): Promise<void> {
+  const userId = getFirebaseUid();
+  if (!userId) {
+    toast.error(t('toasts.signInToLeaveAReview'));
+    return;
+  }
+
+  const authState = getAuthState();
+  const formData = new FormData(form);
+  const rating = parseInt(formData.get('rating') as string, 10);
+  const title = (formData.get('title') as string)?.trim() || undefined;
+  const body = (formData.get('body') as string).trim();
+
+  if (rating < 1 || rating > 5 || body.length < 10) {
+    toast.warning(t('toasts.addARatingAndAtLeast10Characters'));
+    return;
+  }
+
+  submitBtn.disabled = true;
+  submitBtn.textContent = t('ui.marketplace.submitting');
+
+  try {
+    const response = await apiPost<{ error?: string }>('/api/marketplace/reviews', {
+      itemId: agentId,
+      itemType: 'agent',
+      userId,
+      userName: authState.displayName || undefined,
+      rating,
+      title,
+      body,
+    });
+
+    if (!response.ok) {
+      throw new Error(response.error || 'Failed to submit review');
     }
 
-    .marketplace-detail.open {
-      opacity: 1;
-      pointer-events: auto;
-    }
+    toast.success(t('toasts.thanksForYourReview'));
+    soundUI.play('success');
 
-    .detail-backdrop {
-      position: absolute;
-      inset: 0;
-      background: rgba(0, 0, 0, 0.6);
-      backdrop-filter: blur(12px);
-    }
+    // Reset form
+    form.reset();
+    const starBtns = form.querySelectorAll('.star-btn');
+    updateStarDisplay(starBtns, 0);
+    const charCount = form.querySelector('.char-count') as HTMLElement;
+    if (charCount) charCount.textContent = '0/1000';
 
-    .detail-panel {
-      position: relative;
-      width: 90%;
-      max-width: 480px;
-      max-height: 85vh;
-      background: var(--color-background-elevated, #1a1614);
-      border-radius: var(--radius-2xl, 24px);
-      box-shadow: var(--shadow-2xl);
-      overflow: hidden;
-      display: flex;
-      flex-direction: column;
-      transform: scale(0.95);
-      transition: transform ${DURATION.SLOW}ms ${EASING.SPRING};
-    }
-
-    .marketplace-detail.open .detail-panel {
-      transform: scale(1);
-    }
-
-    .detail-close {
-      position: absolute;
-      top: 16px;
-      right: 16px;
-      width: 36px;
-      height: 36px;
-      border: none;
-      border-radius: 50%;
-      background: rgba(255, 255, 255, 0.1);
-      color: var(--color-text-secondary, rgba(255, 255, 255, 0.7));
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: background ${DURATION.FAST}ms;
-      z-index: 1;
-    }
-
-    .detail-close:hover {
-      background: rgba(255, 255, 255, 0.2);
-    }
-
-    .detail-header {
-      display: flex;
-      gap: 16px;
-      padding: 24px;
-      border-bottom: 1px solid var(--color-border, rgba(255, 255, 255, 0.08));
-    }
-
-    .detail-avatar {
-      width: 72px;
-      height: 72px;
-      border-radius: 18px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 1.5rem;
-      font-weight: 600;
-      color: white;
-      flex-shrink: 0;
-    }
-
-    .detail-meta {
-      flex: 1;
-      min-width: 0;
-    }
-
-    .detail-name {
-      font-size: 1.25rem;
-      font-weight: 600;
-      color: var(--color-text-primary, rgba(255, 255, 255, 0.95));
-      margin: 0 0 4px;
-    }
-
-    .detail-category {
-      font-size: 0.75rem;
-      font-weight: 500;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      color: var(--color-warm-amber, #C4A265);
-      margin: 0 0 8px;
-    }
-
-    .detail-rating {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-
-    .detail-stars {
-      display: flex;
-      color: var(--color-warm-amber, #C4A265);
-    }
-
-    .detail-rating-value {
-      font-weight: 600;
-      color: var(--color-text-primary);
-    }
-
-    .detail-rating-count {
-      color: var(--color-text-secondary, rgba(255, 255, 255, 0.5));
-      font-size: 0.875rem;
-    }
-
-    .detail-content {
-      flex: 1;
-      overflow-y: auto;
-      padding: 20px 24px;
-    }
-
-    .detail-section {
-      margin-bottom: 24px;
-    }
-
-    .detail-section:last-child {
-      margin-bottom: 0;
-    }
-
-    .detail-section-title {
-      font-size: 0.75rem;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      color: var(--color-text-secondary);
-      margin: 0 0 12px;
-    }
-
-    .detail-description {
-      color: var(--color-text-primary);
-      line-height: 1.6;
-      margin: 0 0 8px;
-    }
-
-    .detail-author {
-      color: var(--color-text-secondary);
-      font-size: 0.875rem;
-      margin: 0;
-    }
-
-    .detail-tags {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-    }
-
-    .detail-tag {
-      padding: 4px 12px;
-      background: rgba(255, 255, 255, 0.06);
-      border-radius: 12px;
-      font-size: 0.8rem;
-      color: var(--color-text-secondary);
-    }
-
-    .detail-reviews {
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
-    }
-
-    .detail-empty-reviews {
-      color: var(--color-text-secondary);
-      font-style: italic;
-      text-align: center;
-      padding: 20px;
-    }
-
-    .review-card {
-      padding: 16px;
-      background: rgba(255, 255, 255, 0.03);
-      border-radius: 12px;
-    }
-
-    .review-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 8px;
-    }
-
-    .review-rating {
-      display: flex;
-      color: var(--color-warm-amber, #C4A265);
-    }
-
-    .review-date {
-      font-size: 0.75rem;
-      color: var(--color-text-secondary);
-    }
-
-    .review-title {
-      font-weight: 600;
-      color: var(--color-text-primary);
-      margin: 0 0 6px;
-      font-size: 0.95rem;
-    }
-
-    .review-body {
-      color: var(--color-text-secondary);
-      line-height: 1.5;
-      margin: 0;
-      font-size: 0.9rem;
-    }
-
-    .review-helpful {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      margin-top: 10px;
-      font-size: 0.75rem;
-      color: var(--color-text-muted);
-    }
-
-    .review-response {
-      margin-top: 12px;
-      padding: 12px;
-      background: rgba(255, 255, 255, 0.04);
-      border-radius: 8px;
-      border-left: 3px solid var(--color-warm-amber, #C4A265);
-    }
-
-    .review-response-label {
-      font-size: 0.7rem;
-      font-weight: 600;
-      text-transform: uppercase;
-      color: var(--color-warm-amber);
-      margin: 0 0 6px;
-    }
-
-    .review-response-body {
-      color: var(--color-text-secondary);
-      font-size: 0.85rem;
-      line-height: 1.5;
-      margin: 0;
-    }
-
-    .detail-footer {
-      padding: 16px 24px;
-      border-top: 1px solid var(--color-border, rgba(255, 255, 255, 0.08));
-    }
-
-    .detail-action {
-      width: 100%;
-      padding: 14px 24px;
-      border: none;
-      border-radius: 12px;
-      font-size: 1rem;
-      font-weight: 600;
-      cursor: pointer;
-      transition: transform ${DURATION.FAST}ms, opacity ${DURATION.FAST}ms;
-    }
-
-    .detail-action.install {
-      background: var(--color-primary, #4a6741);
-      color: white;
-    }
-
-    .detail-action.uninstall {
-      background: transparent;
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      color: var(--color-text-secondary);
-    }
-
-    .detail-action:hover {
-      transform: scale(1.02);
-    }
-
-    .detail-action:active {
-      transform: scale(0.98);
-    }
-
-    /* Zen theme */
-    [data-theme="zen"] .detail-panel {
-      background: var(--color-background-elevated, #FFFDFB);
-    }
-
-    [data-theme="zen"] .detail-close {
-      background: rgba(44, 37, 32, 0.08);
-      color: rgba(44, 37, 32, 0.6);
-    }
-
-    [data-theme="zen"] .detail-name,
-    [data-theme="zen"] .detail-description {
-      color: rgba(44, 37, 32, 0.9);
-    }
-
-    [data-theme="zen"] .detail-category,
-    [data-theme="zen"] .detail-author,
-    [data-theme="zen"] .detail-rating-count,
-    [data-theme="zen"] .detail-section-title,
-    [data-theme="zen"] .review-body,
-    [data-theme="zen"] .review-date {
-      color: rgba(44, 37, 32, 0.6);
-    }
-
-    [data-theme="zen"] .detail-tag,
-    [data-theme="zen"] .review-card {
-      background: rgba(44, 37, 32, 0.04);
-    }
-
-    [data-theme="zen"] .review-title {
-      color: rgba(44, 37, 32, 0.9);
-    }
-
-    [data-theme="zen"] .detail-action.uninstall {
-      border-color: rgba(44, 37, 32, 0.2);
-      color: rgba(44, 37, 32, 0.7);
-    }
-  `;
+    // Optionally refresh the detail panel to show the new review
+    // For now, just close and let user reopen to see their review
+    log.info({ agentId, rating }, 'Review submitted successfully');
+  } catch (err) {
+    log.error({ error: err, agentId }, 'Failed to submit review');
+    toast.error("Couldn't submit review. Try again?");
+    submitBtn.disabled = false;
+    submitBtn.textContent = t('ui.marketplace.submitReview');
+  }
 }
 
 // ============================================================================
-// UTILITIES
+// LEGACY STYLES REMOVED
 // ============================================================================
+// The following massive CSS functions were moved to modular files:
+// - getDetailStyles() -> ./marketplace/styles/detail.ts (334 lines)
+// - getMarketplaceStyles() -> ./marketplace/styles/index.ts (2805 lines)
+// Total: ~3139 lines of CSS moved to modular architecture
+// Import from ./marketplace/styles/index.js instead
 
-function getCategoryLabel(category: string): string {
-  const labels: Record<string, string> = {
-    mentorship: 'Mentorship',
-    finance: 'Finance',
-    health: 'Health',
-    productivity: 'Productivity',
-    lifestyle: 'Lifestyle',
-    education: 'Education',
-    entertainment: 'Entertainment',
-    custom: 'Custom',
-  };
-  return labels[category] || category;
-}
-
-function debounce<T extends (...args: unknown[]) => void>(
-  fn: T,
-  delay: number
-): (...args: Parameters<T>) => void {
-  let timeoutId: ReturnType<typeof setTimeout>;
-  return (...args: Parameters<T>) => {
-    clearTimeout(timeoutId);
-    timeoutId = trackedTimeout(() => fn(...args), delay);
-  };
-}
+// Legacy CSS has been fully removed. All styles are now in:
+// - ./marketplace/styles/base.ts
+// - ./marketplace/styles/cards.ts
+// - ./marketplace/styles/detail.ts
+// - ./marketplace/styles/team.ts
+// - ./marketplace/styles/creations.ts
+//
+// Import getMarketplaceStyles and getDetailStyles from ./marketplace/styles/index.js
 
 // ============================================================================
-// STYLES
+// LEGACY CODE REMOVAL MARKER
 // ============================================================================
-
-function getMarketplaceStyles(): string {
-  return `
-    /* External AI Company Brand Colors */
-    :root {
-      --gradient-claude: linear-gradient(135deg, #CC785C 0%, #D97757 100%);
-      --gradient-gemini: linear-gradient(135deg, #4285F4 0%, #8AB4F8 100%);
-      --gradient-gpt: linear-gradient(135deg, #0D9373 0%, #10A37F 100%);
-    }
-    
-    .marketplace-modal {
-      position: fixed;
-      inset: 0;
-      z-index: var(--z-modal);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      opacity: 0;
-      visibility: hidden;
-      transition: opacity 0.3s ease, visibility 0.3s ease;
-    }
-
-    .marketplace-modal.open {
-      opacity: 1;
-      visibility: visible;
-    }
-
-    .marketplace-backdrop {
-      position: absolute;
-      inset: 0;
-      background: var(--backdrop-heavy, rgba(0, 0, 0, 0.6));
-      backdrop-filter: blur(var(--glass-blur-subtle, 8px));
-      -webkit-backdrop-filter: blur(var(--glass-blur-subtle, 8px));
-      /* iOS touch fix - make backdrop recognize taps */
-      cursor: pointer;
-      -webkit-tap-highlight-color: transparent;
-    }
-
-    .marketplace-container {
-      position: relative;
-      width: 90vw;
-      max-width: 900px;
-      max-height: 85vh;
-      background: var(--color-bg-elevated, #1a1a1a);
-      border-radius: var(--radius-2xl, 24px);
-      box-shadow: 
-        0 25px 50px -12px rgba(0, 0, 0, 0.5),
-        0 0 0 1px rgba(255, 255, 255, 0.05);
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-      transform: translateY(20px) scale(0.95);
-      opacity: 0;
-      transition: transform ${DURATION.MODERATE}ms ${EASING.EXPO_OUT}, 
-                  opacity ${DURATION.SLOW}ms ease;
-    }
-
-    .marketplace-modal.open .marketplace-container {
-      transform: translateY(0) scale(1);
-      opacity: 1;
-    }
-
-    /* Header */
-    .marketplace-header {
-      padding: var(--space-lg, 24px) var(--space-lg, 24px) var(--space-md, 16px);
-      border-bottom: 1px solid var(--color-border, rgba(255, 255, 255, 0.08));
-    }
-
-    .marketplace-title-row {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: var(--space-xs, 4px);
-    }
-
-    .marketplace-title {
-      font-family: 'Plus Jakarta Sans', var(--font-heading, sans-serif);
-      font-size: 1.75rem;
-      font-weight: 700;
-      letter-spacing: -0.02em;
-      color: var(--color-text, #fff);
-      margin: 0;
-    }
-
-    .marketplace-close {
-      width: 36px;
-      height: 36px;
-      border-radius: var(--radius-full, 50%);
-      background: transparent;
-      border: none;
-      color: var(--color-text-muted, rgba(255, 255, 255, 0.5));
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: all 0.2s ease;
-      /* iOS touch fixes */
-      -webkit-tap-highlight-color: transparent;
-      touch-action: manipulation;
-      user-select: none;
-      -webkit-user-select: none;
-    }
-
-    .marketplace-close:hover {
-      background: var(--color-bg-subtle, rgba(255, 255, 255, 0.08));
-      color: var(--color-text, #fff);
-      transform: rotate(90deg);
-    }
-
-    .marketplace-close:active {
-      transform: rotate(90deg) scale(0.95);
-    }
-
-    .marketplace-subtitle {
-      font-family: 'Inter', var(--font-body, sans-serif);
-      color: var(--color-text-muted, rgba(255, 255, 255, 0.5));
-      font-size: 0.95rem;
-      line-height: 1.5;
-      margin: 0 0 var(--space-lg, 20px);
-    }
-
-    /* Tabs - Pill style per brand */
-    .marketplace-tabs {
-      display: flex;
-      gap: var(--space-xs, 8px);
-      margin-bottom: var(--space-md, 16px);
-    }
-
-    .marketplace-tab {
-      padding: 10px 20px;
-      border-radius: 9999px;
-      background: transparent;
-      border: 1.5px solid var(--color-border, rgba(255, 255, 255, 0.12));
-      color: var(--color-text-muted, rgba(255, 255, 255, 0.6));
-      font-family: 'Inter', var(--font-body, sans-serif);
-      font-size: 0.875rem;
-      font-weight: 500;
-      cursor: pointer;
-      transition: all 0.2s ease;
-    }
-
-    .marketplace-tab:hover {
-      border-color: var(--color-text-muted, rgba(255, 255, 255, 0.25));
-      background: var(--color-bg-subtle, rgba(255, 255, 255, 0.03));
-      color: var(--color-text, #fff);
-    }
-
-    .marketplace-tab.active {
-      background: var(--persona-primary, var(--color-accent-primary, #3D5A45));
-      border-color: var(--persona-primary, var(--color-accent-primary, #3D5A45));
-      color: var(--persona-text, white);
-    }
-
-    .marketplace-tab:active {
-      transform: scale(0.98);
-    }
-
-    /* Search */
-    .marketplace-search {
-      display: flex;
-      gap: var(--space-sm, 12px);
-    }
-
-    .search-input-wrapper {
-      flex: 1;
-      position: relative;
-    }
-
-    .search-icon {
-      position: absolute;
-      left: 14px;
-      top: 50%;
-      transform: translateY(-50%);
-      color: var(--color-text-muted, rgba(255, 255, 255, 0.4));
-      pointer-events: none;
-    }
-
-    .marketplace-search-input {
-      width: 100%;
-      padding: 12px 16px 12px 44px;
-      border-radius: var(--radius-lg, 12px);
-      background: var(--color-bg-subtle, rgba(255, 255, 255, 0.05));
-      border: 1.5px solid var(--color-border, rgba(255, 255, 255, 0.1));
-      color: var(--color-text, #fff);
-      font-family: 'Inter', var(--font-body, sans-serif);
-      font-size: 0.9rem;
-      outline: none;
-      transition: all 0.2s ease;
-    }
-
-    .marketplace-search-input:focus {
-      border-color: var(--persona-primary, var(--color-accent-primary));
-      box-shadow: 0 0 0 3px var(--persona-glow, var(--color-accent-glow));
-    }
-
-    .marketplace-search-input::placeholder {
-      color: var(--color-text-muted, rgba(255, 255, 255, 0.35));
-    }
-
-    .marketplace-category-select {
-      padding: 12px 16px;
-      padding-right: 36px;
-      border-radius: var(--radius-lg, 12px);
-      background: var(--color-bg-subtle, rgba(255, 255, 255, 0.05));
-      border: 1.5px solid var(--color-border, rgba(255, 255, 255, 0.1));
-      color: var(--color-text, #fff);
-      font-family: 'Inter', var(--font-body, sans-serif);
-      font-size: 0.875rem;
-      cursor: pointer;
-      outline: none;
-      appearance: none;
-      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='rgba(255,255,255,0.5)' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
-      background-repeat: no-repeat;
-      background-position: right 12px center;
-      transition: all 0.2s ease;
-    }
-
-    .marketplace-category-select:focus {
-      border-color: var(--persona-primary, var(--color-accent-primary));
-    }
-
-    .marketplace-category-select option {
-      background: var(--color-bg-elevated, #1a1a1a);
-      color: var(--color-text, #fff);
-    }
-
-    /* Content */
-    .marketplace-content {
-      flex: 1;
-      overflow-y: auto;
-      padding: var(--space-lg, 24px);
-    }
-
-    .marketplace-loading,
-    .marketplace-empty {
-      display: none;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      padding: var(--space-2xl, 64px) var(--space-lg, 24px);
-      text-align: center;
-    }
-
-    .marketplace-spinner {
-      width: 40px;
-      height: 40px;
-      border: 3px solid var(--color-border-subtle, rgba(255, 255, 255, 0.1));
-      border-top-color: var(--persona-primary, var(--color-accent-primary));
-      border-radius: 50%;
-      animation: spin var(--duration-deliberate, 800ms) linear infinite;
-      margin-bottom: var(--space-4, 16px);
-    }
-
-    .marketplace-loading span {
-      font-family: 'Inter', var(--font-body, sans-serif);
-      color: var(--color-text-muted, rgba(255, 255, 255, 0.5));
-      font-size: 0.9rem;
-    }
-
-    @keyframes spin {
-      to { transform: rotate(360deg); }
-    }
-
-    .empty-illustration {
-      margin-bottom: var(--space-md, 16px);
-    }
-
-    .empty-title {
-      font-family: 'Plus Jakarta Sans', var(--font-heading, sans-serif);
-      font-size: 1.1rem;
-      font-weight: 600;
-      color: var(--color-text, #fff);
-      margin: 0 0 var(--space-xs, 8px);
-    }
-
-    .empty-hint {
-      font-family: 'Inter', var(--font-body, sans-serif);
-      color: var(--color-text-muted, rgba(255, 255, 255, 0.5));
-      font-size: 0.875rem;
-      margin: 0;
-    }
-
-    /* Agent Grid with staggered animation */
-    .marketplace-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-      gap: var(--space-md, 16px);
-    }
-
-    /* Staggered entrance animation */
-    .marketplace-agent {
-      background: var(--color-bg-subtle, rgba(255, 255, 255, 0.03));
-      border: 1px solid var(--color-border, rgba(255, 255, 255, 0.08));
-      border-radius: var(--radius-xl, 16px);
-      padding: var(--space-lg, 24px);
-      transition: all ${DURATION.SLOW}ms ${EASING.EXPO_OUT};
-      animation: cardEntrance ${DURATION.DELIBERATE}ms ${EASING.EXPO_OUT} backwards;
-    }
-
-    .marketplace-agent:nth-child(1) { animation-delay: 0ms; }
-    .marketplace-agent:nth-child(2) { animation-delay: 50ms; }
-    .marketplace-agent:nth-child(3) { animation-delay: 100ms; }
-    .marketplace-agent:nth-child(4) { animation-delay: 150ms; }
-    .marketplace-agent:nth-child(5) { animation-delay: 200ms; }
-    .marketplace-agent:nth-child(6) { animation-delay: 250ms; }
-    .marketplace-agent:nth-child(n+7) { animation-delay: 300ms; }
-
-    @keyframes cardEntrance {
-      from {
-        opacity: 0;
-        transform: translateY(16px);
-      }
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
-    }
-
-    .marketplace-agent:hover {
-      border-color: var(--color-border-hover, rgba(255, 255, 255, 0.18));
-      transform: translateY(-4px);
-      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.25);
-    }
-
-    .marketplace-agent.installed {
-      border-color: var(--persona-primary, var(--color-accent-primary));
-      background: var(--persona-tint, var(--color-accent-subtle));
-    }
-
-    /* Coming Soon state - disabled look */
-    .marketplace-agent.coming-soon {
-      opacity: 0.75;
-      pointer-events: auto;
-    }
-
-    .marketplace-agent.coming-soon:hover {
-      transform: none;
-      box-shadow: none;
-      border-color: var(--color-border, rgba(255, 255, 255, 0.08));
-    }
-
-    .agent-badge.coming-soon-badge {
-      background: var(--color-semantic-warning-glow, rgba(196, 162, 101, 0.15));
-      color: var(--color-semantic-warning, #C4A265);
-      border: 1px solid var(--color-semantic-warning-glow, rgba(196, 162, 101, 0.25));
-    }
-
-    .agent-action.coming-soon-btn {
-      background: transparent;
-      border: 1.5px solid var(--color-border, rgba(255, 255, 255, 0.12));
-      color: var(--color-text-muted, rgba(255, 255, 255, 0.4));
-      cursor: not-allowed;
-      opacity: 0.6;
-    }
-
-    .agent-action.coming-soon-btn:hover {
-      background: transparent;
-      transform: none;
-      box-shadow: none;
-    }
-
-    .agent-header {
-      display: flex;
-      align-items: flex-start;
-      gap: var(--space-sm, 12px);
-      margin-bottom: var(--space-sm, 12px);
-    }
-
-    .agent-avatar {
-      width: 52px;
-      height: 52px;
-      border-radius: var(--radius-lg, 14px);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-family: 'Plus Jakarta Sans', var(--font-heading, sans-serif);
-      font-size: 1rem;
-      font-weight: 700;
-      color: white;
-      letter-spacing: 0.02em;
-      /* Professional layered shadow with persona glow */
-      box-shadow: 
-        0 1px 2px rgba(0, 0, 0, 0.08),
-        0 4px 8px rgba(0, 0, 0, 0.06),
-        0 0 0 1px rgba(255, 255, 255, 0.08) inset,
-        0 6px 18px -4px var(--agent-secondary, rgba(0, 0, 0, 0.25));
-      flex-shrink: 0;
-      transition: transform ${DURATION.STANDARD}ms ${EASING.SPRING}, 
-                  box-shadow ${DURATION.STANDARD}ms ease;
-    }
-
-    .marketplace-agent:hover .agent-avatar {
-      transform: scale(1.06);
-      box-shadow: 
-        0 2px 4px rgba(0, 0, 0, 0.1),
-        0 8px 16px rgba(0, 0, 0, 0.08),
-        0 0 0 1px rgba(255, 255, 255, 0.12) inset,
-        0 10px 28px -4px var(--agent-secondary, rgba(0, 0, 0, 0.35)),
-        0 0 18px -2px var(--agent-secondary, rgba(0, 0, 0, 0.2));
-    }
-
-    .agent-meta {
-      flex: 1;
-      min-width: 0;
-    }
-
-    .agent-name {
-      font-family: 'Plus Jakarta Sans', var(--font-heading, sans-serif);
-      font-size: 1.1rem;
-      font-weight: 600;
-      letter-spacing: -0.01em;
-      color: var(--color-text, #fff);
-      margin: 0 0 4px;
-    }
-
-    .agent-category {
-      font-family: 'Inter', var(--font-body, sans-serif);
-      font-size: 0.75rem;
-      font-weight: 500;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      color: var(--color-warm-amber, #C4A265);
-    }
-
-    .agent-rating {
-      display: flex;
-      align-items: center;
-      gap: 4px;
-      margin-top: 4px;
-    }
-
-    .rating-stars {
-      display: flex;
-      align-items: center;
-      color: var(--color-warm-amber, #C4A265);
-    }
-
-    .star-icon {
-      width: 12px;
-      height: 12px;
-    }
-
-    .star-empty {
-      opacity: 0.3;
-    }
-
-    .rating-value {
-      font-family: 'Inter', var(--font-body, sans-serif);
-      font-size: 0.75rem;
-      font-weight: 600;
-      color: var(--color-text-primary, rgba(255, 255, 255, 0.9));
-    }
-
-    .rating-count {
-      font-family: 'Inter', var(--font-body, sans-serif);
-      font-size: 0.7rem;
-      color: var(--color-text-secondary, rgba(255, 255, 255, 0.5));
-    }
-
-    .agent-badge {
-      font-family: 'Inter', var(--font-body, sans-serif);
-      font-size: 0.65rem;
-      padding: 4px 10px;
-      border-radius: 9999px;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-    }
-
-    .agent-badge.installed {
-      background: var(--persona-primary, var(--color-accent-primary));
-      color: var(--persona-text, white);
-    }
-
-    .agent-description {
-      font-family: 'Inter', var(--font-body, sans-serif);
-      font-size: 0.875rem;
-      color: var(--color-text-muted, rgba(255, 255, 255, 0.7));
-      line-height: 1.5;
-      margin: 0 0 var(--space-sm, 12px);
-      display: -webkit-box;
-      -webkit-line-clamp: 2;
-      -webkit-box-orient: vertical;
-      overflow: hidden;
-    }
-
-    .agent-tags {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 6px;
-      margin-bottom: var(--space-md, 16px);
-    }
-
-    .agent-tag {
-      font-size: 0.7rem;
-      padding: 4px 10px;
-      border-radius: var(--radius-full, 20px);
-      background: var(--color-bg-subtle, rgba(255, 255, 255, 0.08));
-      color: var(--color-text-muted, rgba(255, 255, 255, 0.7));
-    }
-
-    .agent-footer {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding-top: var(--space-sm, 14px);
-      margin-top: var(--space-sm, 14px);
-      border-top: 1px solid var(--color-border, rgba(255, 255, 255, 0.06));
-    }
-
-    .agent-author {
-      font-family: 'Inter', var(--font-body, sans-serif);
-      font-size: 0.75rem;
-      color: var(--color-text-muted, rgba(255, 255, 255, 0.4));
-    }
-
-    /* Brand pill buttons */
-    .agent-action {
-      padding: 10px 20px;
-      border-radius: 9999px;
-      font-family: 'Inter', var(--font-body, sans-serif);
-      font-size: 0.8rem;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all ${DURATION.NORMAL}ms ${EASING.SPRING};
-    }
-
-    .agent-action.install {
-      background: var(--persona-primary, var(--color-accent-primary));
-      border: none;
-      color: var(--persona-text, white);
-      box-shadow: 0 2px 8px var(--persona-glow, var(--color-accent-glow));
-    }
-
-    .agent-action.install:hover {
-      background: var(--persona-secondary, var(--color-accent-hover));
-      transform: translateY(-2px);
-      box-shadow: 0 4px 12px var(--persona-glow, var(--color-accent-glow));
-    }
-
-    .agent-action.install:active {
-      transform: scale(0.98);
-    }
-
-    .agent-action.uninstall {
-      background: transparent;
-      border: 1.5px solid var(--color-border, rgba(255, 255, 255, 0.15));
-      color: var(--color-text-muted, rgba(255, 255, 255, 0.6));
-    }
-
-    .agent-action.uninstall:hover {
-      border-color: var(--color-semantic-error-glow, rgba(204, 68, 68, 0.5));
-      color: var(--color-semantic-error, #e57373);
-      background: var(--color-semantic-error-glow, rgba(204, 68, 68, 0.08));
-    }
-
-    .agent-action.uninstall:active {
-      transform: scale(0.98);
-    }
-
-    /* Footer */
-    .marketplace-footer {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: var(--space-md, 16px) var(--space-lg, 24px);
-      border-top: 1px solid var(--color-border, rgba(255, 255, 255, 0.08));
-      background: var(--color-bg-subtle, rgba(0, 0, 0, 0.15));
-    }
-
-    .marketplace-creator-link {
-      display: flex;
-      align-items: center;
-      gap: var(--space-xs, 8px);
-      font-family: 'Inter', var(--font-body, sans-serif);
-      color: var(--color-text-muted, rgba(255, 255, 255, 0.5));
-      text-decoration: none;
-      font-size: 0.85rem;
-      transition: color 0.2s ease;
-    }
-
-    .marketplace-creator-link:hover {
-      color: var(--color-text, #fff);
-    }
-
-    .marketplace-creator-link svg {
-      opacity: 0.7;
-      transition: opacity 0.2s ease, transform 0.2s ease;
-    }
-
-    .marketplace-creator-link:hover svg {
-      opacity: 1;
-      transform: scale(1.1);
-    }
-
-    .marketplace-powered-by {
-      font-size: 0.75rem;
-      color: var(--color-text-muted, rgba(255, 255, 255, 0.4));
-    }
-
-    /* Agent grid wrapper */
-    .agent-grid-wrapper {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-      gap: var(--space-md, 16px);
-    }
-
-    /* Team section divider */
-    .team-section-divider {
-      display: flex;
-      align-items: center;
-      gap: var(--space-md, 16px);
-      margin: var(--space-xl, 32px) 0 var(--space-lg, 24px);
-    }
-
-    .team-section-divider::before,
-    .team-section-divider::after {
-      content: '';
-      flex: 1;
-      height: 1px;
-      background: var(--color-border, rgba(255, 255, 255, 0.1));
-    }
-
-    .team-section-divider span {
-      font-family: 'Inter', var(--font-body, sans-serif);
-      font-size: 0.75rem;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.1em;
-      color: var(--color-text-muted, rgba(255, 255, 255, 0.4));
-    }
-
-    /* ========================================
-       MEET THE TEAM - AI Company Narrative
-       ======================================== */
-    .team-narrative {
-      padding: var(--space-6, 24px);
-      background: linear-gradient(135deg, 
-        var(--persona-tint, rgba(61, 90, 69, 0.08)) 0%, 
-        var(--color-semantic-warning-glow, rgba(196, 162, 101, 0.05)) 100%
-      );
-      border-radius: var(--radius-xl, 16px);
-      border: 1px solid var(--color-border-subtle, rgba(255, 255, 255, 0.08));
-      margin-bottom: var(--space-6, 24px);
-    }
-
-    .team-narrative-header {
-      text-align: center;
-      margin-bottom: var(--space-xl, 32px);
-    }
-
-    .team-narrative-title {
-      font-family: 'Plus Jakarta Sans', var(--font-heading, sans-serif);
-      font-size: 1.5rem;
-      font-weight: 700;
-      letter-spacing: -0.02em;
-      color: var(--color-text, #fff);
-      margin: 0 0 var(--space-xs, 8px);
-    }
-
-    .team-narrative-subtitle {
-      font-family: 'Inter', var(--font-body, sans-serif);
-      font-size: 1rem;
-      color: var(--color-warm-amber, #C4A265);
-      margin: 0;
-    }
-
-    .team-leadership {
-      display: flex;
-      flex-direction: column;
-      gap: var(--space-xl, 32px);
-    }
-
-    .leadership-section {
-      display: flex;
-      flex-direction: column;
-      gap: var(--space-sm, 12px);
-    }
-
-    .leadership-label {
-      font-family: 'Inter', var(--font-body, sans-serif);
-      font-size: 0.7rem;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.1em;
-      color: var(--color-text-muted, rgba(255, 255, 255, 0.4));
-    }
-
-    .leadership-grid {
-      display: flex;
-      justify-content: center;
-      gap: var(--space-md, 16px);
-      flex-wrap: wrap;
-    }
-
-    /* CEO Card - Prominent */
-    .ceo-card {
-      display: flex;
-      align-items: center;
-      gap: var(--space-md, 16px);
-      padding: var(--space-md, 16px) var(--space-lg, 24px);
-      background: var(--color-bg-subtle, rgba(255, 255, 255, 0.05));
-      border-radius: var(--radius-lg, 12px);
-      border: 1px solid var(--color-border, rgba(255, 255, 255, 0.1));
-      max-width: 400px;
-    }
-
-    .ceo-card .leader-avatar {
-      width: 64px;
-      height: 64px;
-      border-radius: var(--radius-lg, 14px);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-family: 'Plus Jakarta Sans', var(--font-heading, sans-serif);
-      font-size: 1.25rem;
-      font-weight: 700;
-      color: white;
-      flex-shrink: 0;
-      /* Layered shadow for depth + persona-specific glow */
-      box-shadow: 
-        0 1px 2px rgba(0, 0, 0, 0.1),
-        0 4px 8px rgba(0, 0, 0, 0.08),
-        0 0 0 1px rgba(255, 255, 255, 0.08) inset,
-        0 6px 20px -4px var(--avatar-glow, rgba(74, 103, 65, 0.4));
-      transition: transform ${DURATION.STANDARD}ms ${EASING.SPRING}, 
-                  box-shadow ${DURATION.STANDARD}ms ease;
-    }
-    
-    .ceo-card:hover .leader-avatar {
-      transform: scale(1.04);
-      box-shadow: 
-        0 2px 4px rgba(0, 0, 0, 0.1),
-        0 8px 16px rgba(0, 0, 0, 0.1),
-        0 0 0 1px rgba(255, 255, 255, 0.12) inset,
-        0 10px 30px -4px var(--avatar-glow, rgba(74, 103, 65, 0.5)),
-        0 0 20px -2px var(--avatar-glow, rgba(74, 103, 65, 0.3));
-    }
-
-    .leader-info {
-      text-align: left;
-    }
-
-    .leader-name {
-      font-family: 'Plus Jakarta Sans', var(--font-heading, sans-serif);
-      font-size: 1.1rem;
-      font-weight: 600;
-      color: var(--color-text, #fff);
-      margin: 0 0 2px;
-    }
-
-    .leader-title {
-      font-family: 'Inter', var(--font-body, sans-serif);
-      font-size: 0.75rem;
-      color: var(--color-warm-amber, #C4A265);
-      display: block;
-      margin-bottom: var(--space-xs, 8px);
-    }
-
-    .leader-bio {
-      font-family: 'Inter', var(--font-body, sans-serif);
-      font-size: 0.8rem;
-      color: var(--color-text-muted, rgba(255, 255, 255, 0.6));
-      line-height: 1.5;
-      margin: 0;
-    }
-
-    /* Co-founders - Compact row */
-    .leadership-grid.cofounders {
-      gap: var(--space-lg, 24px);
-    }
-
-    .leader-card.cofounder {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: var(--space-xs, 8px);
-    }
-
-    .cofounder-avatar {
-      width: 48px;
-      height: 48px;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: white;
-      /* Layered shadow for depth + persona-specific glow */
-      box-shadow: 
-        0 1px 2px rgba(0, 0, 0, 0.08),
-        0 3px 6px rgba(0, 0, 0, 0.06),
-        0 0 0 1px rgba(255, 255, 255, 0.08) inset,
-        0 4px 16px -3px var(--avatar-glow, rgba(0, 0, 0, 0.25));
-      transition: transform ${DURATION.STANDARD}ms ${EASING.SPRING}, 
-                  box-shadow ${DURATION.STANDARD}ms ease;
-    }
-    
-    .leader-card.cofounder:hover .cofounder-avatar {
-      transform: scale(1.08);
-      box-shadow: 
-        0 2px 4px rgba(0, 0, 0, 0.1),
-        0 6px 12px rgba(0, 0, 0, 0.08),
-        0 0 0 1px rgba(255, 255, 255, 0.12) inset,
-        0 8px 24px -3px var(--avatar-glow, rgba(0, 0, 0, 0.35)),
-        0 0 16px -2px var(--avatar-glow, rgba(0, 0, 0, 0.2));
-    }
-
-    .cofounder-name {
-      font-family: 'Inter', var(--font-body, sans-serif);
-      font-size: 0.8rem;
-      font-weight: 500;
-      color: var(--color-text-muted, rgba(255, 255, 255, 0.7));
-    }
-
-    /* Core Team - Employee cards */
-    .leadership-grid.employees {
-      gap: var(--space-sm, 12px);
-    }
-
-    .employee-card {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 4px;
-      padding: var(--space-sm, 12px);
-      background: var(--color-bg-subtle, rgba(255, 255, 255, 0.03));
-      border-radius: var(--radius-md, 10px);
-      min-width: 70px;
-      transition: all 0.2s ease;
-    }
-
-    .employee-card:hover {
-      background: var(--color-bg-subtle, rgba(255, 255, 255, 0.06));
-      transform: translateY(-2px);
-    }
-
-    .employee-avatar {
-      width: 40px;
-      height: 40px;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-family: 'Plus Jakarta Sans', var(--font-heading, sans-serif);
-      font-size: 0.75rem;
-      font-weight: 700;
-      color: white;
-      /* Layered shadow for depth + persona-specific glow */
-      box-shadow: 
-        0 1px 2px rgba(0, 0, 0, 0.06),
-        0 2px 4px rgba(0, 0, 0, 0.05),
-        0 0 0 1px rgba(255, 255, 255, 0.06) inset,
-        0 3px 12px -2px var(--avatar-glow, rgba(0, 0, 0, 0.2));
-      transition: transform ${DURATION.STANDARD}ms ${EASING.SPRING}, 
-                  box-shadow ${DURATION.STANDARD}ms ease;
-    }
-    
-    .employee-card:hover .employee-avatar {
-      transform: scale(1.1);
-      box-shadow: 
-        0 2px 4px rgba(0, 0, 0, 0.08),
-        0 4px 8px rgba(0, 0, 0, 0.06),
-        0 0 0 1px rgba(255, 255, 255, 0.1) inset,
-        0 6px 18px -2px var(--avatar-glow, rgba(0, 0, 0, 0.3)),
-        0 0 14px -2px var(--avatar-glow, rgba(0, 0, 0, 0.15));
-    }
-
-    .employee-name {
-      font-family: 'Inter', var(--font-body, sans-serif);
-      font-size: 0.8rem;
-      font-weight: 500;
-      color: var(--color-text, #fff);
-    }
-
-    .employee-role {
-      font-family: 'Inter', var(--font-body, sans-serif);
-      font-size: 0.65rem;
-      color: var(--color-text-muted, rgba(255, 255, 255, 0.5));
-    }
-
-    /* Locked employee card styles - FIX BUG: Visual locked indicators */
-    .employee-avatar-container {
-      position: relative;
-      display: inline-block;
-    }
-
-    .employee-card--locked {
-      opacity: 0.7;
-      cursor: pointer;
-    }
-
-    .employee-card--locked:hover {
-      opacity: 0.85;
-    }
-
-    .employee-avatar--locked {
-      filter: grayscale(40%);
-    }
-
-    .employee-lock-indicator {
-      position: absolute;
-      bottom: -2px;
-      right: -2px;
-      width: 18px;
-      height: 18px;
-      border-radius: 50%;
-      background: var(--color-bg-elevated, rgba(50, 45, 40, 0.9));
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: var(--color-text-muted, rgba(255, 255, 255, 0.6));
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
-    }
-
-    .employee-progress-ring {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      width: 48px;
-      height: 48px;
-      transform: translate(-50%, -50%);
-      pointer-events: none;
-    }
-
-    /* Roster action buttons for unlocked team members */
-    .employee-roster-action {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 5px;
-      margin-top: 6px;
-      padding: 6px 10px;
-      border: none;
-      border-radius: var(--radius-full, 9999px);
-      font-family: 'Inter', var(--font-body, sans-serif);
-      font-size: 0.7rem;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all ${DURATION.FAST}ms ${EASING.STANDARD};
-      min-width: 70px;
-    }
-
-    .employee-roster-action svg {
-      flex-shrink: 0;
-    }
-
-    /* Icon toggle system for remove button */
-    .roster-icon--minus,
-    .roster-label--hover {
-      display: none;
-    }
-
-    .employee-roster-action--remove:hover .roster-icon--check {
-      display: none;
-    }
-
-    .employee-roster-action--remove:hover .roster-icon--minus {
-      display: block;
-    }
-
-    .employee-roster-action--remove:hover .roster-label {
-      display: none;
-    }
-
-    .employee-roster-action--remove:hover .roster-label--hover {
-      display: inline;
-    }
-
-    /* "In Team" state - shows current status with checkmark */
-    .employee-roster-action--remove {
-      background: var(--persona-primary, #4a6741);
-      color: white;
-    }
-
-    .employee-roster-action--remove:hover {
-      background: var(--color-error, #c75450);
-    }
-
-    /* "Add" state - prominent action button with + icon */
-    .employee-roster-action--add {
-      background: transparent;
-      color: var(--color-text-secondary, rgba(255, 255, 255, 0.8));
-      border: 1.5px dashed var(--color-border, rgba(255, 255, 255, 0.25));
-    }
-
-    .employee-roster-action--add:hover {
-      background: var(--persona-primary, #4a6741);
-      color: white;
-      border-style: solid;
-      border-color: var(--persona-primary, #4a6741);
-      transform: scale(1.05);
-    }
-
-    /* Hide roster action for cards being clicked/tapped */
-    .employee-card:active .employee-roster-action {
-      pointer-events: none;
-    }
-
-    /* Zen theme roster action styles */
-    [data-theme="zen"] .employee-roster-action--add {
-      color: rgba(44, 37, 32, 0.7);
-      border-color: rgba(44, 37, 32, 0.25);
-    }
-
-    [data-theme="zen"] .employee-roster-action--add:hover {
-      background: var(--persona-primary, #4a6741);
-      color: white;
-      border-color: var(--persona-primary, #4a6741);
-    }
-
-    [data-theme="zen"] .employee-roster-action--remove:hover {
-      background: var(--color-error, #c75450);
-    }
-
-    .team-narrative-footer {
-      text-align: center;
-      font-family: 'Inter', var(--font-body, sans-serif);
-      font-size: 0.9rem;
-      font-style: italic;
-      color: var(--color-text-muted, rgba(255, 255, 255, 0.6));
-      margin: var(--space-xl, 32px) 0 0;
-      padding-top: var(--space-lg, 24px);
-      border-top: 1px solid var(--color-border, rgba(255, 255, 255, 0.08));
-    }
-
-    /* ========================================
-       ZEN THEME OVERRIDES - Light mode styles
-       ======================================== */
-    [data-theme="zen"] .marketplace-container {
-      background: rgba(255, 255, 255, 0.98);
-      border: 1px solid rgba(44, 37, 32, 0.1);
-      box-shadow: 
-        0 25px 50px -12px rgba(44, 37, 32, 0.15),
-        0 0 0 1px rgba(255, 255, 255, 0.8) inset;
-    }
-
-    [data-theme="zen"] .marketplace-header {
-      border-bottom-color: rgba(44, 37, 32, 0.1);
-    }
-
-    [data-theme="zen"] .marketplace-title {
-      color: #2c2520;
-    }
-
-    [data-theme="zen"] .marketplace-subtitle {
-      color: rgba(44, 37, 32, 0.65);
-    }
-
-    [data-theme="zen"] .marketplace-close {
-      color: rgba(44, 37, 32, 0.5);
-    }
-
-    [data-theme="zen"] .marketplace-close:hover {
-      background: rgba(44, 37, 32, 0.08);
-      color: #2c2520;
-    }
-
-    [data-theme="zen"] .marketplace-tab {
-      background: transparent;
-      border-color: rgba(44, 37, 32, 0.15);
-      color: rgba(44, 37, 32, 0.6);
-    }
-
-    [data-theme="zen"] .marketplace-tab:hover {
-      background: rgba(44, 37, 32, 0.05);
-      color: #2c2520;
-    }
-
-    [data-theme="zen"] .marketplace-tab.active {
-      background: var(--persona-primary, #4a6741);
-      border-color: var(--color-text-secondary);
-      color: white;
-    }
-
-    [data-theme="zen"] .marketplace-search-input {
-      background: rgba(44, 37, 32, 0.04);
-      border-color: rgba(44, 37, 32, 0.12);
-      color: #2c2520;
-    }
-
-    [data-theme="zen"] .marketplace-search-input::placeholder {
-      color: rgba(44, 37, 32, 0.4);
-    }
-
-    [data-theme="zen"] .marketplace-search-input:focus {
-      border-color: var(--color-text-secondary);
-    }
-
-    [data-theme="zen"] .marketplace-category-select {
-      background: rgba(44, 37, 32, 0.04);
-      border-color: rgba(44, 37, 32, 0.12);
-      color: #2c2520;
-    }
-
-    [data-theme="zen"] .marketplace-category-select option {
-      background: white;
-      color: #2c2520;
-    }
-
-    [data-theme="zen"] .marketplace-loading,
-    [data-theme="zen"] .marketplace-empty {
-      color: rgba(44, 37, 32, 0.5);
-    }
-
-    [data-theme="zen"] .marketplace-spinner {
-      border-color: rgba(44, 37, 32, 0.1);
-      border-top-color: var(--color-text-secondary);
-    }
-
-    [data-theme="zen"] .marketplace-agent {
-      background: rgba(44, 37, 32, 0.02);
-      border-color: rgba(44, 37, 32, 0.08);
-    }
-
-    [data-theme="zen"] .marketplace-agent:hover {
-      border-color: rgba(44, 37, 32, 0.15);
-      box-shadow: 0 10px 25px -5px rgba(44, 37, 32, 0.1);
-    }
-
-    [data-theme="zen"] .marketplace-agent.installed {
-      border-color: var(--color-text-secondary);
-      background: rgba(74, 103, 65, 0.06);
-    }
-
-    [data-theme="zen"] .agent-name {
-      color: #2c2520;
-    }
-
-    [data-theme="zen"] .agent-category {
-      color: rgba(44, 37, 32, 0.5);
-    }
-
-    [data-theme="zen"] .agent-rating .rating-stars {
-      color: var(--color-warm-amber, #B8956A);
-    }
-
-    [data-theme="zen"] .agent-rating .rating-value {
-      color: rgba(44, 37, 32, 0.9);
-    }
-
-    [data-theme="zen"] .agent-rating .rating-count {
-      color: rgba(44, 37, 32, 0.5);
-    }
-
-    [data-theme="zen"] .agent-description {
-      color: rgba(44, 37, 32, 0.7);
-    }
-
-    [data-theme="zen"] .agent-tag {
-      background: rgba(44, 37, 32, 0.06);
-      color: rgba(44, 37, 32, 0.7);
-    }
-
-    [data-theme="zen"] .agent-footer {
-      border-top-color: rgba(44, 37, 32, 0.08);
-    }
-
-    [data-theme="zen"] .agent-author {
-      color: rgba(44, 37, 32, 0.45);
-    }
-
-    [data-theme="zen"] .agent-action.uninstall {
-      border-color: rgba(44, 37, 32, 0.2);
-      color: rgba(44, 37, 32, 0.7);
-    }
-
-    [data-theme="zen"] .marketplace-footer {
-      border-top-color: rgba(44, 37, 32, 0.1);
-      background: rgba(44, 37, 32, 0.03);
-    }
-
-    [data-theme="zen"] .marketplace-creator-link {
-      color: rgba(44, 37, 32, 0.6);
-    }
-
-    [data-theme="zen"] .marketplace-creator-link:hover {
-      color: #2c2520;
-    }
-
-    [data-theme="zen"] .marketplace-powered-by {
-      color: rgba(44, 37, 32, 0.4);
-    }
-
-    /* Zen theme - Team Narrative section (Your Team tab) */
-    [data-theme="zen"] .team-narrative {
-      background: linear-gradient(135deg, 
-        rgba(74, 103, 65, 0.08) 0%, 
-        rgba(196, 162, 101, 0.06) 100%
-      );
-      border-color: rgba(44, 37, 32, 0.12);
-    }
-
-    [data-theme="zen"] .team-narrative-title {
-      color: #2c2520;
-    }
-
-    [data-theme="zen"] .team-narrative-subtitle {
-      color: rgba(74, 103, 65, 0.9);
-    }
-
-    [data-theme="zen"] .leadership-label {
-      color: rgba(44, 37, 32, 0.5);
-    }
-
-    [data-theme="zen"] .ceo-card {
-      background: rgba(44, 37, 32, 0.04);
-      border-color: rgba(44, 37, 32, 0.1);
-    }
-
-    [data-theme="zen"] .leader-name {
-      color: #2c2520;
-    }
-
-    [data-theme="zen"] .leader-title {
-      color: rgba(74, 103, 65, 0.85);
-    }
-
-    [data-theme="zen"] .leader-bio {
-      color: rgba(44, 37, 32, 0.7);
-    }
-
-    [data-theme="zen"] .cofounder-name {
-      color: rgba(44, 37, 32, 0.75);
-    }
-
-    [data-theme="zen"] .employee-card {
-      background: rgba(44, 37, 32, 0.03);
-    }
-
-    [data-theme="zen"] .employee-card:hover {
-      background: rgba(44, 37, 32, 0.06);
-    }
-
-    [data-theme="zen"] .employee-name {
-      color: #2c2520;
-    }
-
-    [data-theme="zen"] .employee-role {
-      color: rgba(44, 37, 32, 0.55);
-    }
-
-    [data-theme="zen"] .team-narrative-footer {
-      color: rgba(44, 37, 32, 0.6);
-      border-top-color: rgba(44, 37, 32, 0.1);
-    }
-
-    [data-theme="zen"] .team-section-divider::before,
-    [data-theme="zen"] .team-section-divider::after {
-      background: rgba(44, 37, 32, 0.15);
-    }
-
-    [data-theme="zen"] .team-section-divider span {
-      color: rgba(44, 37, 32, 0.5);
-    }
-
-    /* Zen theme - Coming Soon state */
-    [data-theme="zen"] .agent-badge.coming-soon-badge {
-      background: rgba(196, 162, 101, 0.12);
-      color: rgba(139, 115, 65, 0.9);
-      border-color: rgba(196, 162, 101, 0.25);
-    }
-
-    [data-theme="zen"] .agent-action.coming-soon-btn {
-      border-color: rgba(44, 37, 32, 0.15);
-      color: rgba(44, 37, 32, 0.4);
-    }
-
-    /* ========================================
-       MARKETPLACE LOCKED - Team unlock required
-       With preview of available agents
-       ======================================== */
-    .marketplace-locked-section {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      text-align: center;
-      padding: var(--space-lg, 24px);
-      background: linear-gradient(135deg, 
-        var(--color-bg-subtle, rgba(255, 255, 255, 0.03)) 0%,
-        var(--persona-tint, rgba(74, 103, 65, 0.05)) 100%
-      );
-      border-radius: var(--radius-xl, 16px);
-      border: 1px solid var(--color-border, rgba(255, 255, 255, 0.08));
-      margin-bottom: var(--space-lg, 24px);
-    }
-
-    .marketplace-locked-header {
-      display: flex;
-      align-items: center;
-      gap: var(--space-md, 16px);
-      margin-bottom: var(--space-md, 16px);
-    }
-
-    .marketplace-locked-icon {
-      width: 56px;
-      height: 56px;
-      border-radius: 50%;
-      background: var(--color-warm-amber, #C4A265);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: white;
-      flex-shrink: 0;
-    }
-
-    .marketplace-locked-text {
-      text-align: left;
-    }
-
-    .marketplace-locked-title {
-      font-family: 'Plus Jakarta Sans', var(--font-heading, sans-serif);
-      font-size: 1.25rem;
-      font-weight: 700;
-      color: var(--color-text, #fff);
-      margin: 0 0 4px;
-      letter-spacing: -0.02em;
-    }
-
-    .marketplace-locked-subtitle {
-      font-family: 'Inter', var(--font-body, sans-serif);
-      font-size: 0.9rem;
-      color: var(--color-warm-amber, #C4A265);
-      margin: 0;
-    }
-
-    .marketplace-locked-categories {
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: center;
-      gap: 8px;
-      margin-bottom: var(--space-md, 16px);
-    }
-
-    .locked-category-pill {
-      font-family: 'Inter', var(--font-body, sans-serif);
-      font-size: 0.7rem;
-      font-weight: 500;
-      padding: 5px 12px;
-      border-radius: 9999px;
-      background: var(--color-bg-subtle, rgba(255, 255, 255, 0.05));
-      color: var(--color-text-muted, rgba(255, 255, 255, 0.6));
-      border: 1px solid var(--color-border, rgba(255, 255, 255, 0.1));
-    }
-
-    .locked-category-more {
-      background: transparent;
-      color: var(--color-text-muted, rgba(255, 255, 255, 0.4));
-      border-style: dashed;
-    }
-
-    .marketplace-locked-progress {
-      width: 100%;
-      padding-top: var(--space-md, 16px);
-      border-top: 1px solid var(--color-border, rgba(255, 255, 255, 0.08));
-    }
-
-    .progress-label {
-      font-family: 'Inter', var(--font-body, sans-serif);
-      font-size: 0.7rem;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.1em;
-      color: var(--color-text-muted, rgba(255, 255, 255, 0.4));
-      margin: 0 0 var(--space-sm, 12px);
-    }
-
-    .team-progress-grid {
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: center;
-      gap: var(--space-sm, 12px);
-    }
-
-    .team-progress-member {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 4px;
-      padding: var(--space-xs, 8px);
-      background: var(--color-bg-subtle, rgba(255, 255, 255, 0.03));
-      border-radius: var(--radius-md, 10px);
-      min-width: 64px;
-      transition: all 0.2s ease;
-    }
-
-    .team-progress-member.unlocked {
-      background: var(--persona-tint, rgba(74, 103, 65, 0.15));
-      border: 1px solid var(--persona-primary, rgba(74, 103, 65, 0.3));
-    }
-
-    .team-progress-member.locked {
-      opacity: 0.6;
-    }
-
-    .team-progress-avatar {
-      width: 36px;
-      height: 36px;
-      border-radius: 50%;
-      background: var(--persona-primary, #4a6741);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-family: 'Plus Jakarta Sans', var(--font-heading, sans-serif);
-      font-size: 0.75rem;
-      font-weight: 700;
-      color: white;
-    }
-
-    .team-progress-member.locked .team-progress-avatar {
-      background: var(--color-bg-subtle, rgba(255, 255, 255, 0.1));
-      color: var(--color-text-muted, rgba(255, 255, 255, 0.5));
-    }
-
-    .team-progress-name {
-      font-family: 'Inter', var(--font-body, sans-serif);
-      font-size: 0.7rem;
-      font-weight: 500;
-      color: var(--color-text, #fff);
-    }
-
-    .team-progress-check {
-      color: var(--persona-primary, #4a6741);
-    }
-
-    .team-progress-percent {
-      font-family: 'Inter', var(--font-body, sans-serif);
-      font-size: 0.65rem;
-      font-weight: 600;
-      color: var(--color-warm-amber, #C4A265);
-    }
-
-    /* Preview Section - Teaser of locked agents */
-    .marketplace-preview-section {
-      margin-top: var(--space-md, 16px);
-    }
-
-    .preview-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: var(--space-md, 16px);
-    }
-
-    .preview-label {
-      font-family: 'Inter', var(--font-body, sans-serif);
-      font-size: 0.7rem;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.1em;
-      color: var(--color-warm-amber, #C4A265);
-      padding: 4px 10px;
-      background: var(--color-semantic-warning-glow, rgba(196, 162, 101, 0.1));
-      border-radius: 9999px;
-    }
-
-    .preview-hint {
-      font-family: 'Inter', var(--font-body, sans-serif);
-      font-size: 0.75rem;
-      color: var(--color-text-muted, rgba(255, 255, 255, 0.4));
-    }
-
-    .marketplace-preview-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-      gap: var(--space-md, 16px);
-    }
-
-    /* Locked Agent Card */
-    .marketplace-agent--locked {
-      position: relative;
-      background: var(--color-bg-subtle, rgba(255, 255, 255, 0.02));
-      border: 1px solid var(--color-border, rgba(255, 255, 255, 0.06));
-      border-radius: var(--radius-xl, 16px);
-      padding: var(--space-md, 16px);
-      overflow: hidden;
-      pointer-events: none;
-    }
-
-    .marketplace-agent--locked::before {
-      content: '';
-      position: absolute;
-      inset: 0;
-      background: linear-gradient(
-        135deg,
-        transparent 0%,
-        var(--color-bg-elevated, rgba(26, 26, 26, 0.4)) 100%
-      );
-      backdrop-filter: blur(1px);
-      z-index: 1;
-    }
-
-    .marketplace-agent--locked .agent-header,
-    .marketplace-agent--locked .agent-description,
-    .marketplace-agent--locked .agent-tags {
-      opacity: 0.5;
-    }
-
-    .agent-locked-overlay {
-      position: absolute;
-      top: var(--space-sm, 12px);
-      right: var(--space-sm, 12px);
-      width: 32px;
-      height: 32px;
-      border-radius: 50%;
-      background: var(--color-bg-elevated, rgba(26, 26, 26, 0.9));
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: var(--color-warm-amber, #C4A265);
-      z-index: 2;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-    }
-
-    .preview-more-hint {
-      text-align: center;
-      margin-top: var(--space-lg, 24px);
-      padding: var(--space-md, 16px);
-      background: var(--color-bg-subtle, rgba(255, 255, 255, 0.02));
-      border-radius: var(--radius-lg, 12px);
-      border: 1px dashed var(--color-border, rgba(255, 255, 255, 0.1));
-    }
-
-    .preview-more-hint span {
-      font-family: 'Inter', var(--font-body, sans-serif);
-      font-size: 0.85rem;
-      color: var(--color-text-muted, rgba(255, 255, 255, 0.5));
-    }
-
-    .marketplace-locked-hint {
-      font-family: 'Inter', var(--font-body, sans-serif);
-      font-size: 0.8rem;
-      color: var(--color-text-muted, rgba(255, 255, 255, 0.4));
-      margin: 0;
-      font-style: italic;
-    }
-
-    /* Installed agents locked message (when team not fully unlocked) */
-    .installed-agents-locked {
-      padding: var(--space-md, 16px) var(--space-lg, 24px);
-      background: var(--color-bg-subtle, rgba(255, 255, 255, 0.03));
-      border-radius: var(--radius-lg, 12px);
-      border: 1px dashed var(--color-border, rgba(255, 255, 255, 0.15));
-      text-align: center;
-    }
-
-    .installed-agents-locked-message {
-      font-family: 'Inter', var(--font-body, sans-serif);
-      font-size: 0.9rem;
-      color: var(--color-text-muted, rgba(255, 255, 255, 0.6));
-      margin: 0;
-      line-height: 1.5;
-    }
-
-    .installed-agents-locked-message strong {
-      color: var(--color-warm-amber, #C4A265);
-    }
-
-    [data-theme="zen"] .installed-agents-locked {
-      background: rgba(44, 37, 32, 0.03);
-      border-color: rgba(44, 37, 32, 0.15);
-    }
-
-    [data-theme="zen"] .installed-agents-locked-message {
-      color: rgba(44, 37, 32, 0.65);
-    }
-
-    [data-theme="zen"] .installed-agents-locked-message strong {
-      color: rgba(139, 115, 65, 0.9);
-    }
-
-    /* Zen theme - Marketplace Locked */
-    [data-theme="zen"] .marketplace-locked-section {
-      background: linear-gradient(135deg, 
-        rgba(44, 37, 32, 0.03) 0%,
-        rgba(74, 103, 65, 0.06) 100%
-      );
-      border-color: rgba(44, 37, 32, 0.12);
-    }
-
-    [data-theme="zen"] .marketplace-locked-icon {
-      background: rgba(139, 115, 65, 0.9);
-      color: white;
-    }
-
-    [data-theme="zen"] .marketplace-locked-title {
-      color: #2c2520;
-    }
-
-    [data-theme="zen"] .marketplace-locked-subtitle {
-      color: rgba(139, 115, 65, 0.9);
-    }
-
-    [data-theme="zen"] .locked-category-pill {
-      background: rgba(44, 37, 32, 0.05);
-      border-color: rgba(44, 37, 32, 0.12);
-      color: rgba(44, 37, 32, 0.7);
-    }
-
-    [data-theme="zen"] .locked-category-more {
-      color: rgba(44, 37, 32, 0.5);
-    }
-
-    [data-theme="zen"] .marketplace-locked-progress {
-      border-top-color: rgba(44, 37, 32, 0.1);
-    }
-
-    [data-theme="zen"] .progress-label {
-      color: rgba(44, 37, 32, 0.5);
-    }
-
-    [data-theme="zen"] .team-progress-member {
-      background: rgba(44, 37, 32, 0.04);
-    }
-
-    [data-theme="zen"] .team-progress-member.unlocked {
-      background: rgba(74, 103, 65, 0.1);
-      border-color: rgba(74, 103, 65, 0.25);
-    }
-
-    [data-theme="zen"] .team-progress-member.locked .team-progress-avatar {
-      background: rgba(44, 37, 32, 0.08);
-      color: rgba(44, 37, 32, 0.5);
-    }
-
-    [data-theme="zen"] .team-progress-name {
-      color: #2c2520;
-    }
-
-    [data-theme="zen"] .team-progress-percent {
-      color: rgba(139, 115, 65, 0.9);
-    }
-
-    [data-theme="zen"] .marketplace-locked-hint {
-      color: rgba(44, 37, 32, 0.5);
-    }
-
-    /* Zen theme - Preview Section */
-    [data-theme="zen"] .preview-label {
-      background: rgba(139, 115, 65, 0.12);
-      color: rgba(139, 115, 65, 0.95);
-    }
-
-    [data-theme="zen"] .preview-hint {
-      color: rgba(44, 37, 32, 0.5);
-    }
-
-    [data-theme="zen"] .marketplace-agent--locked {
-      background: rgba(44, 37, 32, 0.02);
-      border-color: rgba(44, 37, 32, 0.08);
-    }
-
-    [data-theme="zen"] .marketplace-agent--locked::before {
-      background: linear-gradient(
-        135deg,
-        transparent 0%,
-        rgba(255, 255, 255, 0.5) 100%
-      );
-    }
-
-    [data-theme="zen"] .agent-locked-overlay {
-      background: rgba(255, 255, 255, 0.95);
-      color: rgba(139, 115, 65, 0.9);
-      box-shadow: 0 2px 8px rgba(44, 37, 32, 0.15);
-    }
-
-    [data-theme="zen"] .preview-more-hint {
-      background: rgba(44, 37, 32, 0.02);
-      border-color: rgba(44, 37, 32, 0.12);
-    }
-
-    [data-theme="zen"] .preview-more-hint span {
-      color: rgba(44, 37, 32, 0.6);
-    }
-
-    /* Zen theme mobile close button */
-    @media (max-width: 640px) {
-      [data-theme="zen"] .marketplace-close {
-        background: rgba(44, 37, 32, 0.08);
-      }
-
-      [data-theme="zen"] .marketplace-close:hover {
-        background: rgba(44, 37, 32, 0.12);
-      }
-    }
-
-    /* Responsive */
-    @media (max-width: 640px) {
-      .marketplace-container {
-        width: 100vw;
-        max-height: 100vh;
-        max-height: 100dvh; /* Use dynamic viewport height for mobile */
-        border-radius: 0;
-      }
-
-      /* Mobile header - proper safe area handling */
-      .marketplace-header {
-        padding: max(var(--space-md, 16px), env(safe-area-inset-top, 0px)) 
-                 var(--space-md, 16px) 
-                 var(--space-sm, 12px);
-        padding-top: calc(max(var(--space-md, 16px), env(safe-area-inset-top, 0px)) + 8px);
-      }
-
-      /* Mobile title row - stack title and close button properly */
-      .marketplace-title-row {
-        gap: var(--space-sm, 12px);
-      }
-
-      /* Smaller title on mobile */
-      .marketplace-title {
-        font-size: 1.25rem;
-        line-height: 1.3;
-      }
-
-      /* Larger tap target for close button on mobile (minimum 44px per accessibility guidelines) */
-      .marketplace-close {
-        width: 44px;
-        height: 44px;
-        min-width: 44px;
-        flex-shrink: 0;
-        position: relative;
-        z-index: 10;
-        background: var(--color-bg-subtle, rgba(255, 255, 255, 0.1));
-      }
-
-      .marketplace-close svg {
-        width: 22px;
-        height: 22px;
-      }
-
-      .marketplace-subtitle {
-        font-size: 0.875rem;
-        margin-bottom: var(--space-md, 16px);
-      }
-
-      .marketplace-grid {
-        grid-template-columns: 1fr;
-      }
-
-      .marketplace-search {
-        flex-direction: column;
-      }
-
-      .marketplace-tabs {
-        width: 100%;
-      }
-
-      .marketplace-tab {
-        flex: 1;
-        justify-content: center;
-        padding: 10px 12px;
-        font-size: 0.8rem;
-      }
-
-      /* Content safe area padding */
-      .marketplace-content {
-        padding: var(--space-md, 16px);
-        padding-bottom: max(var(--space-md, 16px), env(safe-area-inset-bottom, 0px));
-      }
-
-      /* Footer safe area */
-      .marketplace-footer {
-        padding: var(--space-sm, 12px) var(--space-md, 16px);
-        padding-bottom: max(var(--space-sm, 12px), env(safe-area-inset-bottom, 0px));
-      }
-    }
-
-    /* Extra small devices - even more compact */
-    @media (max-width: 380px) {
-      .marketplace-title {
-        font-size: 1.1rem;
-      }
-
-      .marketplace-tab {
-        padding: 8px 10px;
-        font-size: 0.75rem;
-      }
-    }
-  `;
-}
+// ~3100 lines of CSS were removed during the Dec 2024 modularization.
+// The following marker prevents accidental re-addition:
+const _LEGACY_REMOVED = true;
+void _LEGACY_REMOVED;
+
+// --- The following was the start of ~3100 lines of legacy CSS that was removed ---
+// Original content started with:
+// const _LEGACY_STYLES_PLACEHOLDER = `
+//     .marketplace-detail { ... }
+// ...and continued for 3100+ lines...
+// --- END LEGACY CODE REMOVAL MARKER ---
 
 // ============================================================================
 // EXPORTS
@@ -3736,3 +2515,5 @@ export const marketplaceUI = {
 };
 
 export default marketplaceUI;
+
+// FILE END

@@ -21,8 +21,8 @@ function buildHumanizingInjections(context: {
   turnCount: number;
   emotionalState: string;
   isReturningUser: boolean;
-}): { category: string; content: string; priority: number }[] {
-  const injections: { category: string; content: string; priority: number }[] = [];
+}): Array<{ category: string; content: string; priority: number }> {
+  const injections: Array<{ category: string; content: string; priority: number }> = [];
 
   // Base warmth injection
   injections.push({
@@ -73,8 +73,8 @@ function buildHumanizingInjections(context: {
 function buildEmotionalInjections(analysis: {
   emotion: { primary: string; intensity: number; distressLevel: number };
   state: { userNeedsSupport: boolean; needsAcknowledgment: boolean };
-}): { category: string; content: string; priority: number }[] {
-  const injections: { category: string; content: string; priority: number }[] = [];
+}): Array<{ category: string; content: string; priority: number }> {
+  const injections: Array<{ category: string; content: string; priority: number }> = [];
 
   // Primary emotion handling
   injections.push({
@@ -121,8 +121,8 @@ function buildMemoryInjections(context: {
   userId: string;
   recentTopics: string[];
   relevantMemories: string[];
-}): { category: string; content: string; priority: number }[] {
-  const injections: { category: string; content: string; priority: number }[] = [];
+}): Array<{ category: string; content: string; priority: number }> {
+  const injections: Array<{ category: string; content: string; priority: number }> = [];
 
   if (context.recentTopics.length > 0) {
     injections.push({
@@ -149,8 +149,8 @@ function buildMemoryInjections(context: {
 function buildSafetyInjections(analysis: {
   hasCrisisIndicators: boolean;
   distressLevel: number;
-}): { category: string; content: string; priority: number }[] {
-  const injections: { category: string; content: string; priority: number }[] = [];
+}): Array<{ category: string; content: string; priority: number }> {
+  const injections: Array<{ category: string; content: string; priority: number }> = [];
 
   if (analysis.hasCrisisIndicators) {
     injections.push({
@@ -181,8 +181,8 @@ function buildCelebrationInjections(context: {
   achievement?: string;
   milestone?: string;
   goodNews?: boolean;
-}): { category: string; content: string; priority: number }[] {
-  const injections: { category: string; content: string; priority: number }[] = [];
+}): Array<{ category: string; content: string; priority: number }> {
+  const injections: Array<{ category: string; content: string; priority: number }> = [];
 
   if (context.achievement) {
     injections.push({

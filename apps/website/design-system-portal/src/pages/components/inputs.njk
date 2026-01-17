@@ -1,0 +1,1008 @@
+---
+layout: layouts/base.njk
+title: Inputs Component
+description: Text fields, selects, and form controls with accessible, human-centered design
+permalink: /components/inputs/
+---
+
+<article class="component-page">
+  <header class="page-header">
+    <nav class="breadcrumb">
+      <a href="/components/">Components</a>
+      <span>/</span>
+      <span>Inputs</span>
+    </nav>
+    <h1>Inputs</h1>
+    <p class="lead">Text fields, selects, and form controls designed for clarity and accessibility. Every input should feel effortless.</p>
+  </header>
+
+  <section class="section">
+    <h2>Text Input</h2>
+
+    <div class="demo-block">
+      <h3>Sizes</h3>
+      <p class="demo-description">Three sizes to fit different contexts and information hierarchy.</p>
+      <div class="demo-area demo-column">
+        <div class="input-wrapper">
+          <label class="input-label">Small</label>
+          <input type="text" class="input input-sm" placeholder="Small input">
+        </div>
+        <div class="input-wrapper">
+          <label class="input-label">Medium (Default)</label>
+          <input type="text" class="input input-md" placeholder="Medium input">
+        </div>
+        <div class="input-wrapper">
+          <label class="input-label">Large</label>
+          <input type="text" class="input input-lg" placeholder="Large input">
+        </div>
+      </div>
+      <div class="code-block">
+        <pre><code>&lt;input type="text" class="input input-sm" placeholder="Small"&gt;
+&lt;input type="text" class="input input-md" placeholder="Medium"&gt;
+&lt;input type="text" class="input input-lg" placeholder="Large"&gt;</code></pre>
+      </div>
+    </div>
+
+    <div class="demo-block">
+      <h3>States</h3>
+      <p class="demo-description">Visual feedback for different interaction states.</p>
+      <div class="demo-area demo-column">
+        <div class="input-wrapper">
+          <label class="input-label">Default</label>
+          <input type="text" class="input input-md" placeholder="Enter your name">
+        </div>
+        <div class="input-wrapper">
+          <label class="input-label">Focused</label>
+          <input type="text" class="input input-md input-focused" value="Typing here...">
+        </div>
+        <div class="input-wrapper">
+          <label class="input-label">Disabled</label>
+          <input type="text" class="input input-md" disabled placeholder="Can't edit this">
+        </div>
+        <div class="input-wrapper">
+          <label class="input-label">Error</label>
+          <input type="text" class="input input-md input-error" value="invalid@">
+          <span class="input-hint input-hint-error">Enter a valid email</span>
+        </div>
+        <div class="input-wrapper">
+          <label class="input-label">Success</label>
+          <input type="text" class="input input-md input-success" value="valid@email.com">
+          <span class="input-hint input-hint-success">Looks good!</span>
+        </div>
+      </div>
+      <div class="code-block">
+        <pre><code>&lt;!-- Error state --&gt;
+&lt;input type="text" class="input input-error" value="invalid"&gt;
+&lt;span class="input-hint input-hint-error"&gt;Enter a valid email&lt;/span&gt;
+
+&lt;!-- Success state --&gt;
+&lt;input type="text" class="input input-success" value="valid"&gt;
+&lt;span class="input-hint input-hint-success"&gt;Looks good!&lt;/span&gt;</code></pre>
+      </div>
+    </div>
+
+    <div class="demo-block">
+      <h3>With Icons</h3>
+      <p class="demo-description">Icons provide visual context and improve scannability.</p>
+      <div class="demo-area demo-column">
+        <div class="input-wrapper">
+          <label class="input-label">Search</label>
+          <div class="input-with-icon">
+            <svg class="input-icon input-icon-left" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="11" cy="11" r="8"/>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+            </svg>
+            <input type="text" class="input input-md has-icon-left" placeholder="Search...">
+          </div>
+        </div>
+        <div class="input-wrapper">
+          <label class="input-label">Email</label>
+          <div class="input-with-icon">
+            <svg class="input-icon input-icon-left" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+              <polyline points="22,6 12,13 2,6"/>
+            </svg>
+            <input type="email" class="input input-md has-icon-left" placeholder="you@example.com">
+          </div>
+        </div>
+        <div class="input-wrapper">
+          <label class="input-label">Password</label>
+          <div class="input-with-icon">
+            <svg class="input-icon input-icon-left" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+              <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+            </svg>
+            <input type="password" class="input input-md has-icon-left has-icon-right" placeholder="Enter password">
+            <svg class="input-icon input-icon-right clickable" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+              <circle cx="12" cy="12" r="3"/>
+            </svg>
+          </div>
+        </div>
+      </div>
+      <div class="code-block">
+        <pre><code>&lt;div class="input-with-icon"&gt;
+  &lt;svg class="input-icon input-icon-left"&gt;...&lt;/svg&gt;
+  &lt;input type="text" class="input has-icon-left" placeholder="Search..."&gt;
+&lt;/div&gt;</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <h2>Textarea</h2>
+
+    <div class="demo-block">
+      <h3>Basic Textarea</h3>
+      <p class="demo-description">Multi-line text input for longer content.</p>
+      <div class="demo-area">
+        <div class="input-wrapper" style="width: 100%; max-width: 400px;">
+          <label class="input-label">Message</label>
+          <textarea class="textarea" rows="4" placeholder="What's on your mind?"></textarea>
+          <span class="input-hint">Keep it short and sweet</span>
+        </div>
+      </div>
+      <div class="code-block">
+        <pre><code>&lt;textarea class="textarea" rows="4" placeholder="What's on your mind?"&gt;&lt;/textarea&gt;</code></pre>
+      </div>
+    </div>
+
+    <div class="demo-block">
+      <h3>Auto-resize</h3>
+      <p class="demo-description">Textarea that grows with content for a seamless writing experience.</p>
+      <div class="demo-area">
+        <div class="input-wrapper" style="width: 100%; max-width: 400px;">
+          <label class="input-label">Notes</label>
+          <textarea class="textarea textarea-auto" rows="2" placeholder="Start typing... I'll grow as needed"></textarea>
+        </div>
+      </div>
+      <div class="code-block">
+        <pre><code>&lt;textarea class="textarea textarea-auto" rows="2"&gt;&lt;/textarea&gt;
+
+&lt;script&gt;
+textarea.addEventListener('input', function() {
+  this.style.height = 'auto';
+  this.style.height = this.scrollHeight + 'px';
+});
+&lt;/script&gt;</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <h2>Select</h2>
+
+    <div class="demo-block">
+      <h3>Basic Select</h3>
+      <p class="demo-description">Dropdown selection for choosing from predefined options.</p>
+      <div class="demo-area demo-column">
+        <div class="input-wrapper">
+          <label class="input-label">Persona</label>
+          <div class="select-wrapper">
+            <select class="select">
+              <option value="">Choose a persona...</option>
+              <option value="ferni">Ferni</option>
+              <option value="maya">Maya</option>
+              <option value="peter">Peter</option>
+              <option value="alex">Alex</option>
+              <option value="jordan">Jordan</option>
+              <option value="nayan">Nayan</option>
+            </select>
+            <svg class="select-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="6 9 12 15 18 9"/>
+            </svg>
+          </div>
+        </div>
+        <div class="input-wrapper">
+          <label class="input-label">Size</label>
+          <div class="select-wrapper">
+            <select class="select select-sm">
+              <option value="">Small select</option>
+              <option value="1">Option 1</option>
+              <option value="2">Option 2</option>
+            </select>
+            <svg class="select-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="6 9 12 15 18 9"/>
+            </svg>
+          </div>
+        </div>
+      </div>
+      <div class="code-block">
+        <pre><code>&lt;div class="select-wrapper"&gt;
+  &lt;select class="select"&gt;
+    &lt;option value=""&gt;Choose a persona...&lt;/option&gt;
+    &lt;option value="ferni"&gt;Ferni&lt;/option&gt;
+    &lt;option value="maya"&gt;Maya&lt;/option&gt;
+  &lt;/select&gt;
+  &lt;svg class="select-icon"&gt;...&lt;/svg&gt;
+&lt;/div&gt;</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <h2>Checkbox & Radio</h2>
+
+    <div class="demo-block">
+      <h3>Checkboxes</h3>
+      <p class="demo-description">Multiple selections with clear visual feedback.</p>
+      <div class="demo-area demo-column" style="align-items: flex-start;">
+        <label class="checkbox-wrapper">
+          <input type="checkbox" class="checkbox" checked>
+          <span class="checkbox-control"></span>
+          <span class="checkbox-label">Enable notifications</span>
+        </label>
+        <label class="checkbox-wrapper">
+          <input type="checkbox" class="checkbox">
+          <span class="checkbox-control"></span>
+          <span class="checkbox-label">Subscribe to updates</span>
+        </label>
+        <label class="checkbox-wrapper">
+          <input type="checkbox" class="checkbox" disabled>
+          <span class="checkbox-control"></span>
+          <span class="checkbox-label">Disabled option</span>
+        </label>
+      </div>
+      <div class="code-block">
+        <pre><code>&lt;label class="checkbox-wrapper"&gt;
+  &lt;input type="checkbox" class="checkbox" checked&gt;
+  &lt;span class="checkbox-control"&gt;&lt;/span&gt;
+  &lt;span class="checkbox-label"&gt;Enable notifications&lt;/span&gt;
+&lt;/label&gt;</code></pre>
+      </div>
+    </div>
+
+    <div class="demo-block">
+      <h3>Radio Buttons</h3>
+      <p class="demo-description">Single selection from a group of options.</p>
+      <div class="demo-area demo-column" style="align-items: flex-start;">
+        <label class="radio-wrapper">
+          <input type="radio" name="theme" class="radio" checked>
+          <span class="radio-control"></span>
+          <span class="radio-label">Light theme</span>
+        </label>
+        <label class="radio-wrapper">
+          <input type="radio" name="theme" class="radio">
+          <span class="radio-control"></span>
+          <span class="radio-label">Dark theme</span>
+        </label>
+        <label class="radio-wrapper">
+          <input type="radio" name="theme" class="radio">
+          <span class="radio-control"></span>
+          <span class="radio-label">System default</span>
+        </label>
+      </div>
+      <div class="code-block">
+        <pre><code>&lt;label class="radio-wrapper"&gt;
+  &lt;input type="radio" name="theme" class="radio" checked&gt;
+  &lt;span class="radio-control"&gt;&lt;/span&gt;
+  &lt;span class="radio-label"&gt;Light theme&lt;/span&gt;
+&lt;/label&gt;</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <h2>Toggle Switch</h2>
+
+    <div class="demo-block">
+      <h3>Basic Toggle</h3>
+      <p class="demo-description">On/off controls for binary settings.</p>
+      <div class="demo-area demo-column" style="align-items: flex-start;">
+        <label class="toggle-wrapper">
+          <input type="checkbox" class="toggle-input" checked>
+          <span class="toggle-control"></span>
+          <span class="toggle-label">Voice responses</span>
+        </label>
+        <label class="toggle-wrapper">
+          <input type="checkbox" class="toggle-input">
+          <span class="toggle-control"></span>
+          <span class="toggle-label">Dark mode</span>
+        </label>
+        <label class="toggle-wrapper">
+          <input type="checkbox" class="toggle-input" disabled>
+          <span class="toggle-control"></span>
+          <span class="toggle-label">Pro feature (disabled)</span>
+        </label>
+      </div>
+      <div class="code-block">
+        <pre><code>&lt;label class="toggle-wrapper"&gt;
+  &lt;input type="checkbox" class="toggle-input" checked&gt;
+  &lt;span class="toggle-control"&gt;&lt;/span&gt;
+  &lt;span class="toggle-label"&gt;Voice responses&lt;/span&gt;
+&lt;/label&gt;</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <h2>CSS Implementation</h2>
+
+    <div class="code-block standalone">
+      <pre><code>/* Base Input */
+.input {
+  width: 100%;
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  color: var(--text-primary);
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-md);
+  transition: all var(--duration-fast) var(--ease-ease-out);
+}
+
+.input:focus {
+  outline: none;
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 3px var(--accent-subtle);
+}
+
+.input::placeholder {
+  color: var(--text-muted);
+}
+
+/* Sizes */
+.input-sm { padding: var(--space-2) var(--space-3); font-size: var(--text-xs); }
+.input-md { padding: var(--space-3) var(--space-4); }
+.input-lg { padding: var(--space-4) var(--space-5); font-size: var(--text-base); }
+
+/* States */
+.input-error {
+  border-color: var(--error);
+}
+
+.input-error:focus {
+  box-shadow: 0 0 0 3px rgba(var(--error-rgb), 0.15);
+}
+
+.input-success {
+  border-color: var(--success);
+}
+
+.input:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background: var(--bg-secondary);
+}
+
+/* Hints */
+.input-hint {
+  display: block;
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  margin-top: var(--space-1);
+}
+
+.input-hint-error { color: var(--error); }
+.input-hint-success { color: var(--success); }
+
+/* Checkbox */
+.checkbox-wrapper {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  cursor: pointer;
+}
+
+.checkbox {
+  position: absolute;
+  opacity: 0;
+}
+
+.checkbox-control {
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--border-medium);
+  border-radius: var(--radius-sm);
+  transition: all var(--duration-fast) var(--ease-ease-out);
+  position: relative;
+}
+
+.checkbox:checked + .checkbox-control {
+  background: var(--accent-primary);
+  border-color: var(--accent-primary);
+}
+
+.checkbox:checked + .checkbox-control::after {
+  content: '';
+  position: absolute;
+  left: 6px;
+  top: 2px;
+  width: 5px;
+  height: 10px;
+  border: solid white;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+/* Toggle */
+.toggle-control {
+  width: 44px;
+  height: 24px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-full);
+  position: relative;
+  transition: all var(--duration-fast) var(--ease-ease-out);
+}
+
+.toggle-control::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 18px;
+  height: 18px;
+  background: white;
+  border-radius: 50%;
+  box-shadow: var(--shadow-sm);
+  transition: transform var(--duration-fast) var(--ease-spring);
+}
+
+.toggle-input:checked + .toggle-control {
+  background: var(--accent-primary);
+  border-color: var(--accent-primary);
+}
+
+.toggle-input:checked + .toggle-control::after {
+  transform: translateX(20px);
+}</code></pre>
+    </div>
+  </section>
+
+  <section class="section">
+    <h2>Accessibility</h2>
+
+    <div class="a11y-guidelines">
+      <div class="a11y-item">
+        <h4>Labels Required</h4>
+        <p>Every input must have an associated <code>&lt;label&gt;</code> for screen readers. Never use placeholder as the only label.</p>
+      </div>
+      <div class="a11y-item">
+        <h4>Focus Indicators</h4>
+        <p>Clear focus states with sufficient contrast. The accent ring provides 3:1 contrast against backgrounds.</p>
+      </div>
+      <div class="a11y-item">
+        <h4>Error Messaging</h4>
+        <p>Errors use <code>aria-describedby</code> to connect inputs to their error messages for screen readers.</p>
+      </div>
+      <div class="a11y-item">
+        <h4>Keyboard Navigation</h4>
+        <p>All inputs are keyboard accessible. Checkboxes and radios respond to Space, selects to Arrow keys.</p>
+      </div>
+    </div>
+  </section>
+</article>
+
+<style>
+.component-page {
+  max-width: var(--container-max);
+}
+
+.page-header {
+  margin-bottom: var(--space-12);
+}
+
+.breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+  margin-bottom: var(--space-4);
+}
+
+.breadcrumb a {
+  color: var(--accent-text);
+  text-decoration: none;
+}
+
+.breadcrumb a:hover {
+  text-decoration: underline;
+}
+
+.page-header h1 {
+  font-family: var(--font-display);
+  font-size: var(--text-4xl);
+  font-weight: var(--font-weight-bold);
+  letter-spacing: -0.02em;
+  margin-bottom: var(--space-4);
+}
+
+.demo-block {
+  margin-top: var(--space-8);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+}
+
+.demo-block h3 {
+  font-family: var(--font-display);
+  font-size: var(--text-lg);
+  font-weight: var(--font-weight-semibold);
+  padding: var(--space-5) var(--space-6) 0;
+}
+
+.demo-description {
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+  padding: var(--space-2) var(--space-6) var(--space-4);
+}
+
+.demo-area {
+  padding: var(--space-8) var(--space-6);
+  background: var(--bg-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-6);
+}
+
+.demo-column {
+  flex-direction: column;
+  align-items: stretch;
+  max-width: 400px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+.code-block {
+  background: var(--bg-tertiary);
+  border-top: 1px solid var(--border-subtle);
+}
+
+.code-block.standalone {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-xl);
+  margin-top: var(--space-6);
+}
+
+.code-block pre {
+  margin: 0;
+  padding: var(--space-4) var(--space-6);
+  overflow-x: auto;
+}
+
+.code-block code {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  line-height: var(--leading-relaxed);
+}
+
+/* Input Styles */
+.input-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.input-label {
+  font-size: var(--text-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--text-secondary);
+}
+
+.input {
+  width: 100%;
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  color: var(--text-primary);
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-md);
+  transition: all var(--duration-fast) var(--ease-ease-out);
+}
+
+.input:focus {
+  outline: none;
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 3px var(--accent-subtle);
+}
+
+.input::placeholder {
+  color: var(--text-muted);
+}
+
+.input-sm {
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--text-xs);
+}
+
+.input-md {
+  padding: var(--space-3) var(--space-4);
+}
+
+.input-lg {
+  padding: var(--space-4) var(--space-5);
+  font-size: var(--text-base);
+}
+
+.input-focused {
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 3px var(--accent-subtle);
+}
+
+.input:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background: var(--bg-secondary);
+}
+
+.input-error {
+  border-color: var(--error);
+}
+
+.input-error:focus {
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.15);
+}
+
+.input-success {
+  border-color: var(--success);
+}
+
+.input-success:focus {
+  box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.15);
+}
+
+.input-hint {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+
+.input-hint-error {
+  color: var(--error);
+}
+
+.input-hint-success {
+  color: var(--success);
+}
+
+/* Input with Icon */
+.input-with-icon {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.input-icon {
+  position: absolute;
+  color: var(--text-muted);
+  pointer-events: none;
+}
+
+.input-icon-left {
+  left: var(--space-3);
+}
+
+.input-icon-right {
+  right: var(--space-3);
+}
+
+.input-icon.clickable {
+  pointer-events: auto;
+  cursor: pointer;
+  transition: color var(--duration-fast) var(--ease-ease-out);
+}
+
+.input-icon.clickable:hover {
+  color: var(--text-primary);
+}
+
+.has-icon-left {
+  padding-left: calc(var(--space-3) + 18px + var(--space-2));
+}
+
+.has-icon-right {
+  padding-right: calc(var(--space-3) + 18px + var(--space-2));
+}
+
+/* Textarea */
+.textarea {
+  width: 100%;
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  color: var(--text-primary);
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-md);
+  padding: var(--space-3) var(--space-4);
+  resize: vertical;
+  min-height: 80px;
+  transition: all var(--duration-fast) var(--ease-ease-out);
+}
+
+.textarea:focus {
+  outline: none;
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 3px var(--accent-subtle);
+}
+
+.textarea::placeholder {
+  color: var(--text-muted);
+}
+
+.textarea-auto {
+  resize: none;
+  overflow: hidden;
+}
+
+/* Select */
+.select-wrapper {
+  position: relative;
+  display: inline-block;
+  width: 100%;
+}
+
+.select {
+  width: 100%;
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  color: var(--text-primary);
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-md);
+  padding: var(--space-3) var(--space-8) var(--space-3) var(--space-4);
+  appearance: none;
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--ease-ease-out);
+}
+
+.select:focus {
+  outline: none;
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 3px var(--accent-subtle);
+}
+
+.select-sm {
+  padding: var(--space-2) var(--space-6) var(--space-2) var(--space-3);
+  font-size: var(--text-xs);
+}
+
+.select-icon {
+  position: absolute;
+  right: var(--space-3);
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+  color: var(--text-muted);
+}
+
+/* Checkbox */
+.checkbox-wrapper {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  cursor: pointer;
+}
+
+.checkbox {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.checkbox-control {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  border: 2px solid var(--border-medium);
+  border-radius: var(--radius-sm);
+  transition: all var(--duration-fast) var(--ease-ease-out);
+  position: relative;
+  background: var(--bg-tertiary);
+}
+
+.checkbox-wrapper:hover .checkbox-control {
+  border-color: var(--accent-primary);
+}
+
+.checkbox:checked + .checkbox-control {
+  background: var(--accent-primary);
+  border-color: var(--accent-primary);
+}
+
+.checkbox:checked + .checkbox-control::after {
+  content: '';
+  position: absolute;
+  left: 6px;
+  top: 2px;
+  width: 5px;
+  height: 10px;
+  border: solid white;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+.checkbox:focus + .checkbox-control {
+  box-shadow: 0 0 0 3px var(--accent-subtle);
+}
+
+.checkbox:disabled + .checkbox-control {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.checkbox-label {
+  font-size: var(--text-sm);
+  color: var(--text-primary);
+}
+
+/* Radio */
+.radio-wrapper {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  cursor: pointer;
+}
+
+.radio {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.radio-control {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  border: 2px solid var(--border-medium);
+  border-radius: 50%;
+  transition: all var(--duration-fast) var(--ease-ease-out);
+  position: relative;
+  background: var(--bg-tertiary);
+}
+
+.radio-wrapper:hover .radio-control {
+  border-color: var(--accent-primary);
+}
+
+.radio:checked + .radio-control {
+  border-color: var(--accent-primary);
+}
+
+.radio:checked + .radio-control::after {
+  content: '';
+  position: absolute;
+  left: 4px;
+  top: 4px;
+  width: 8px;
+  height: 8px;
+  background: var(--accent-primary);
+  border-radius: 50%;
+}
+
+.radio:focus + .radio-control {
+  box-shadow: 0 0 0 3px var(--accent-subtle);
+}
+
+.radio-label {
+  font-size: var(--text-sm);
+  color: var(--text-primary);
+}
+
+/* Toggle */
+.toggle-wrapper {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  cursor: pointer;
+}
+
+.toggle-input {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.toggle-control {
+  width: 44px;
+  height: 24px;
+  flex-shrink: 0;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-full);
+  position: relative;
+  transition: all var(--duration-fast) var(--ease-ease-out);
+}
+
+.toggle-control::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 18px;
+  height: 18px;
+  background: white;
+  border-radius: 50%;
+  box-shadow: var(--shadow-sm);
+  transition: transform var(--duration-fast) cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.toggle-wrapper:hover .toggle-control {
+  border-color: var(--accent-primary);
+}
+
+.toggle-input:checked + .toggle-control {
+  background: var(--accent-primary);
+  border-color: var(--accent-primary);
+}
+
+.toggle-input:checked + .toggle-control::after {
+  transform: translateX(20px);
+}
+
+.toggle-input:focus + .toggle-control {
+  box-shadow: 0 0 0 3px var(--accent-subtle);
+}
+
+.toggle-input:disabled + .toggle-control {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.toggle-label {
+  font-size: var(--text-sm);
+  color: var(--text-primary);
+}
+
+/* Accessibility Guidelines */
+.a11y-guidelines {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: var(--space-5);
+  margin-top: var(--space-6);
+}
+
+.a11y-item {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+}
+
+.a11y-item h4 {
+  font-family: var(--font-display);
+  font-weight: var(--font-weight-semibold);
+  margin-bottom: var(--space-2);
+  color: var(--accent-text);
+}
+
+.a11y-item p {
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  line-height: var(--leading-relaxed);
+}
+
+.a11y-item code {
+  background: var(--bg-secondary);
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+}
+
+@media (max-width: 768px) {
+  .page-header h1 {
+    font-size: var(--text-3xl);
+  }
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  // Auto-resize textarea
+  const autoTextarea = document.querySelector('.textarea-auto');
+  if (autoTextarea) {
+    autoTextarea.addEventListener('input', function() {
+      this.style.height = 'auto';
+      this.style.height = this.scrollHeight + 'px';
+    });
+  }
+});
+</script>

@@ -1,0 +1,685 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ferni Animation Storyboard</title>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --ferni: #4a6741;
+      --ferni-light: #5a7a51;
+      --ferni-dark: #3d5a35;
+      --cream: #F5F1E8;
+      --cream-dark: #E8E2D9;
+      --ink: #2C2520;
+      --ink-light: #5C544A;
+      --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+      --ease-gentle: cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background: linear-gradient(180deg, var(--cream) 0%, var(--cream-dark) 100%);
+      min-height: 100vh;
+      color: var(--ink);
+    }
+    
+    /* Header */
+    header {
+      text-align: center;
+      padding: 24px 20px 16px;
+    }
+    
+    h1 {
+      font-size: 1.3rem;
+      font-weight: 800;
+      color: var(--ferni);
+    }
+    
+    .subtitle {
+      font-size: 0.75rem;
+      color: var(--ink-light);
+      margin-top: 4px;
+    }
+    
+    /* Main stage */
+    .stage {
+      max-width: 400px;
+      margin: 0 auto;
+      padding: 0 20px;
+    }
+    
+    .conversation {
+      background: white;
+      border-radius: 24px;
+      padding: 24px;
+      box-shadow: 0 8px 32px rgba(44,37,32,0.08);
+      margin-bottom: 16px;
+    }
+    
+    .avatar-area {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 16px;
+    }
+    
+    /* Speech bubble */
+    .speech {
+      background: rgba(74, 103, 65, 0.08);
+      border-radius: 16px;
+      padding: 16px;
+      min-height: 80px;
+      position: relative;
+    }
+    
+    .speech::before {
+      content: '';
+      position: absolute;
+      top: -8px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 16px;
+      height: 16px;
+      background: rgba(74, 103, 65, 0.08);
+      border-radius: 4px;
+      transform: translateX(-50%) rotate(45deg);
+    }
+    
+    .speech-text {
+      font-size: 0.9rem;
+      line-height: 1.5;
+      color: var(--ink);
+      text-align: center;
+      opacity: 0;
+      transform: translateY(5px);
+      transition: all 0.4s var(--ease-gentle);
+    }
+    
+    .speech-text.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    
+    .emotion-label {
+      text-align: center;
+      font-size: 0.65rem;
+      font-weight: 700;
+      color: var(--ferni);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-top: 12px;
+      opacity: 0.7;
+    }
+    
+    /* Controls */
+    .controls {
+      display: flex;
+      gap: 8px;
+      justify-content: center;
+      margin-bottom: 16px;
+    }
+    
+    .btn {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 999px;
+      font-weight: 600;
+      font-size: 0.8rem;
+      cursor: pointer;
+      transition: all 0.2s var(--ease-spring);
+    }
+    
+    .btn-primary {
+      background: var(--ferni);
+      color: white;
+    }
+    
+    .btn-primary:hover {
+      background: var(--ferni-dark);
+      transform: scale(1.02);
+    }
+    
+    .btn-secondary {
+      background: rgba(44,37,32,0.06);
+      color: var(--ink);
+    }
+    
+    .btn-secondary:hover {
+      background: rgba(44,37,32,0.12);
+    }
+    
+    .btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    
+    /* Timeline */
+    .timeline {
+      background: white;
+      border-radius: 16px;
+      padding: 16px;
+      box-shadow: 0 4px 16px rgba(44,37,32,0.05);
+    }
+    
+    .timeline-title {
+      font-size: 0.65rem;
+      font-weight: 700;
+      color: var(--ferni);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 12px;
+    }
+    
+    .timeline-track {
+      display: flex;
+      gap: 4px;
+      overflow-x: auto;
+      padding-bottom: 8px;
+    }
+    
+    .timeline-item {
+      flex: 0 0 auto;
+      width: 50px;
+      text-align: center;
+      cursor: pointer;
+      padding: 6px 4px;
+      border-radius: 8px;
+      transition: all 0.2s var(--ease-spring);
+      border: 2px solid transparent;
+    }
+    
+    .timeline-item:hover {
+      background: rgba(74, 103, 65, 0.05);
+    }
+    
+    .timeline-item.active {
+      border-color: var(--ferni);
+      background: rgba(74, 103, 65, 0.08);
+    }
+    
+    .timeline-item.played {
+      opacity: 0.5;
+    }
+    
+    .timeline-avatar {
+      --size: 32px;
+      margin: 0 auto 4px;
+    }
+    
+    .timeline-label {
+      font-size: 0.45rem;
+      color: var(--ink-light);
+      font-weight: 600;
+    }
+    
+    /* ============================================
+       FERNI AVATAR - Actual Ferni Values
+       ============================================ */
+    
+    .ferni-avatar {
+      --size: 100px;
+      position: relative;
+      width: var(--size);
+      height: var(--size);
+      transition: transform 0.4s var(--ease-spring);
+    }
+    
+    .avatar-svg {
+      width: 100%;
+      height: 100%;
+      overflow: visible;
+    }
+    
+    .presence-ring {
+      fill: none;
+      stroke: var(--ferni);
+      stroke-width: 1.5;
+      opacity: 0.3;
+      transition: all 0.4s var(--ease-gentle);
+    }
+    
+    .avatar-body {
+      transition: transform 0.3s var(--ease-spring);
+      transform-origin: center center;
+    }
+    
+    .eye-main {
+      transition: transform 0.2s var(--ease-spring);
+      transform-origin: center center;
+    }
+    
+    .lid-top, .lid-bottom {
+      fill: var(--cream);
+      transition: d 0.3s var(--ease-spring);
+    }
+    
+    /* === EXPRESSIONS === */
+    
+    /* Neutral */
+    .ferni-avatar[data-mood="neutral"] .lid-top {
+      d: path("M 0,0 Q 50,-10 100,0 L 100,0 L 0,0 Z");
+    }
+    .ferni-avatar[data-mood="neutral"] .lid-bottom {
+      d: path("M 0,100 Q 50,110 100,100 L 100,100 L 0,100 Z");
+    }
+    
+    /* Listening - attentive, open */
+    .ferni-avatar[data-mood="listening"] {
+      transform: translateY(-2px);
+    }
+    .ferni-avatar[data-mood="listening"] .eye-main {
+      transform: scaleY(1.08);
+    }
+    .ferni-avatar[data-mood="listening"] .lid-top {
+      d: path("M 0,0 Q 50,5 100,0 L 100,0 L 0,0 Z");
+    }
+    .ferni-avatar[data-mood="listening"] .lid-bottom {
+      d: path("M 0,100 Q 50,105 100,100 L 100,100 L 0,100 Z");
+    }
+    .ferni-avatar[data-mood="listening"] .presence-ring {
+      opacity: 0.4;
+    }
+    
+    /* Speaking - gentle squint, body pulse */
+    .ferni-avatar[data-mood="speaking"] .eye-main {
+      transform: scaleY(0.88) scaleX(1.02);
+    }
+    .ferni-avatar[data-mood="speaking"] .lid-top {
+      d: path("M 0,0 Q 50,15 100,0 L 100,0 L 0,0 Z");
+    }
+    .ferni-avatar[data-mood="speaking"] .avatar-body {
+      animation: speakPulse 0.45s ease-in-out infinite;
+    }
+    .ferni-avatar[data-mood="speaking"] .presence-ring {
+      opacity: 0.35;
+      animation: ringPulse 0.45s ease-in-out infinite;
+    }
+    
+    @keyframes speakPulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scaleY(1.012) scaleX(0.992); }
+    }
+    
+    @keyframes ringPulse {
+      0%, 100% { transform: scale(1); opacity: 0.35; }
+      50% { transform: scale(1.008); opacity: 0.4; }
+    }
+    
+    /* Happy */
+    .ferni-avatar[data-mood="happy"] .eye-main {
+      transform: scaleY(0.8) scaleX(1.06);
+    }
+    .ferni-avatar[data-mood="happy"] .lid-top {
+      d: path("M 0,0 Q 50,25 100,0 L 100,0 L 0,0 Z");
+    }
+    .ferni-avatar[data-mood="happy"] .lid-bottom {
+      d: path("M 0,100 Q 50,85 100,100 L 100,100 L 0,100 Z");
+    }
+    
+    /* Warm - gentle positive */
+    .ferni-avatar[data-mood="warm"] .eye-main {
+      transform: scaleY(0.9) scaleX(1.03);
+    }
+    .ferni-avatar[data-mood="warm"] .lid-top {
+      d: path("M 0,0 Q 50,18 100,0 L 100,0 L 0,0 Z");
+    }
+    .ferni-avatar[data-mood="warm"] .lid-bottom {
+      d: path("M 0,100 Q 50,90 100,100 L 100,100 L 0,100 Z");
+    }
+    
+    /* Empathetic */
+    .ferni-avatar[data-mood="empathetic"] {
+      transform: rotate(-1deg);
+    }
+    .ferni-avatar[data-mood="empathetic"] .eye-main {
+      transform: scaleY(0.92);
+    }
+    .ferni-avatar[data-mood="empathetic"] .lid-top {
+      d: path("M 0,0 Q 50,20 100,0 L 100,0 L 0,0 Z");
+    }
+    .ferni-avatar[data-mood="empathetic"] .lid-bottom {
+      d: path("M 0,100 Q 50,90 100,100 L 100,100 L 0,100 Z");
+    }
+    
+    /* Curious */
+    .ferni-avatar[data-mood="curious"] {
+      transform: rotate(-2deg);
+    }
+    .ferni-avatar[data-mood="curious"] .eye-main {
+      transform: scaleY(1.06);
+    }
+    .ferni-avatar[data-mood="curious"] .lid-top {
+      d: path("M 0,0 Q 50,12 100,0 L 100,0 L 0,0 Z");
+    }
+    
+    /* Thinking */
+    .ferni-avatar[data-mood="thinking"] {
+      transform: rotate(1deg);
+    }
+    .ferni-avatar[data-mood="thinking"] .eye-main {
+      transform: translateX(2px) translateY(-2px) scaleY(0.95);
+    }
+    .ferni-avatar[data-mood="thinking"] .lid-top {
+      d: path("M 0,0 Q 50,15 100,0 L 100,0 L 0,0 Z");
+    }
+    
+    /* Surprised */
+    .ferni-avatar[data-mood="surprised"] {
+      transform: scaleY(1.02) scaleX(0.99);
+    }
+    .ferni-avatar[data-mood="surprised"] .eye-main {
+      transform: scaleY(1.15) scaleX(1.05);
+    }
+    .ferni-avatar[data-mood="surprised"] .lid-top {
+      d: path("M 0,0 Q 50,-15 100,0 L 100,0 L 0,0 Z");
+    }
+    .ferni-avatar[data-mood="surprised"] .lid-bottom {
+      d: path("M 0,100 Q 50,115 100,100 L 100,100 L 0,100 Z");
+    }
+    
+    /* Proud */
+    .ferni-avatar[data-mood="proud"] {
+      transform: scaleY(1.01);
+    }
+    .ferni-avatar[data-mood="proud"] .eye-main {
+      transform: scaleY(0.82) scaleX(1.08);
+    }
+    .ferni-avatar[data-mood="proud"] .lid-top {
+      d: path("M 0,0 Q 50,22 100,0 L 100,0 L 0,0 Z");
+    }
+    .ferni-avatar[data-mood="proud"] .lid-bottom {
+      d: path("M 0,100 Q 50,86 100,100 L 100,100 L 0,100 Z");
+    }
+    
+    /* Joy */
+    .ferni-avatar[data-mood="joy"] {
+      transform: scaleY(1.02) scaleX(0.99);
+    }
+    .ferni-avatar[data-mood="joy"] .eye-main {
+      transform: scaleY(0.7) scaleX(1.1);
+    }
+    .ferni-avatar[data-mood="joy"] .lid-top {
+      d: path("M 0,0 Q 50,28 100,0 L 100,0 L 0,0 Z");
+    }
+    .ferni-avatar[data-mood="joy"] .lid-bottom {
+      d: path("M 0,100 Q 50,82 100,100 L 100,100 L 0,100 Z");
+    }
+    
+    /* Pensive */
+    .ferni-avatar[data-mood="pensive"] {
+      transform: rotate(-1deg);
+    }
+    .ferni-avatar[data-mood="pensive"] .eye-main {
+      transform: scaleY(0.88);
+    }
+    .ferni-avatar[data-mood="pensive"] .lid-top {
+      d: path("M 0,0 Q 50,18 100,0 L 100,0 L 0,0 Z");
+    }
+    .ferni-avatar[data-mood="pensive"] .lid-bottom {
+      d: path("M 0,100 Q 50,94 100,100 L 100,100 L 0,100 Z");
+    }
+    
+    /* Principles section */
+    .principles {
+      margin-top: 20px;
+      padding: 0 20px 24px;
+    }
+    
+    .principles-card {
+      background: white;
+      border-radius: 16px;
+      padding: 16px;
+      box-shadow: 0 4px 16px rgba(44,37,32,0.05);
+    }
+    
+    .principles-title {
+      font-size: 0.65rem;
+      font-weight: 700;
+      color: var(--ferni);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 10px;
+    }
+    
+    .principle {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      margin-bottom: 8px;
+      font-size: 0.7rem;
+      color: var(--ink-light);
+    }
+    
+    .principle-icon {
+      width: 16px;
+      height: 16px;
+      background: rgba(74, 103, 65, 0.1);
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.5rem;
+      color: var(--ferni);
+      flex-shrink: 0;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Ferni Animation Storyboard</h1>
+    <p class="subtitle">Watch Ferni tell a story with subtle expressions</p>
+  </header>
+
+  <div class="stage">
+    <div class="conversation">
+      <div class="avatar-area">
+        <div class="ferni-avatar" data-mood="neutral" id="mainAvatar">
+          <svg class="avatar-svg" viewBox="0 0 100 100">
+            <defs>
+              <linearGradient id="orbGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#5a7a51"/>
+                <stop offset="100%" stop-color="#3d5a35"/>
+              </linearGradient>
+              <linearGradient id="eyeGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                <stop offset="0%" stop-color="#ffffff"/>
+                <stop offset="100%" stop-color="#f0ebe4"/>
+              </linearGradient>
+              <clipPath id="orbClip">
+                <circle cx="50" cy="50" r="40"/>
+              </clipPath>
+            </defs>
+            <circle class="presence-ring" cx="50" cy="50" r="46"/>
+            <g clip-path="url(#orbClip)">
+              <circle class="avatar-body" cx="50" cy="50" r="40" fill="url(#orbGrad)"/>
+              <ellipse class="eye-main eye-left" cx="36" cy="48" rx="7" ry="10" fill="url(#eyeGrad)"/>
+              <ellipse class="eye-main eye-right" cx="64" cy="48" rx="7" ry="10" fill="url(#eyeGrad)"/>
+              <path class="lid-top" d="M 0,0 Q 50,-10 100,0 L 100,0 L 0,0 Z"/>
+              <path class="lid-bottom" d="M 0,100 Q 50,110 100,100 L 100,100 L 0,100 Z"/>
+            </g>
+          </svg>
+        </div>
+      </div>
+      
+      <div class="speech">
+        <p class="speech-text" id="speechText"></p>
+      </div>
+      
+      <div class="emotion-label" id="emotionLabel">Ready</div>
+    </div>
+    
+    <div class="controls">
+      <button class="btn btn-primary" id="playBtn">▶ Play Story</button>
+      <button class="btn btn-secondary" id="resetBtn">↺ Reset</button>
+    </div>
+    
+    <div class="timeline">
+      <div class="timeline-title">Story Timeline</div>
+      <div class="timeline-track" id="timeline"></div>
+    </div>
+  </div>
+
+  <div class="principles">
+    <div class="principles-card">
+      <div class="principles-title">Ferni Animation Principles</div>
+      <div class="principle">
+        <div class="principle-icon">1</div>
+        <span><strong>Subtle Lids:</strong> Control points range -25 to +55, most expressions use 5-28</span>
+      </div>
+      <div class="principle">
+        <div class="principle-icon">2</div>
+        <span><strong>Eyes Lead:</strong> scaleY transforms (0.7-1.15) carry most expression</span>
+      </div>
+      <div class="principle">
+        <div class="principle-icon">3</div>
+        <span><strong>Tiny Body:</strong> Squash/stretch is 1-3% max (scaleY 0.98-1.02)</span>
+      </div>
+      <div class="principle">
+        <div class="principle-icon">4</div>
+        <span><strong>Speaking Pulse:</strong> 0.45s rhythm, 1.2% scale oscillation</span>
+      </div>
+      <div class="principle">
+        <div class="principle-icon">5</div>
+        <span><strong>Transitions:</strong> 0.3-0.4s with spring easing for natural flow</span>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const avatar = document.getElementById('mainAvatar');
+    const speechText = document.getElementById('speechText');
+    const emotionLabel = document.getElementById('emotionLabel');
+    const timeline = document.getElementById('timeline');
+    const playBtn = document.getElementById('playBtn');
+    const resetBtn = document.getElementById('resetBtn');
+    
+    // Story sequence - Ferni greeting a returning user
+    const story = [
+      { mood: 'neutral', text: '', label: 'Ready', duration: 500 },
+      { mood: 'listening', text: '', label: 'Listening...', duration: 1200 },
+      { mood: 'surprised', text: 'Oh!', label: 'Surprised', duration: 800 },
+      { mood: 'happy', text: "It's you!", label: 'Happy', duration: 1000 },
+      { mood: 'speaking', text: "I've been thinking about what you shared last time...", label: 'Speaking', duration: 2500 },
+      { mood: 'pensive', text: '', label: 'Pensive', duration: 1000 },
+      { mood: 'speaking', text: "About your goal to be more present with your family.", label: 'Speaking', duration: 2200 },
+      { mood: 'curious', text: '', label: 'Curious', duration: 800 },
+      { mood: 'speaking', text: "How did that dinner go?", label: 'Speaking', duration: 1500 },
+      { mood: 'listening', text: '', label: 'Listening', duration: 2000 },
+      { mood: 'warm', text: '', label: 'Warm', duration: 800 },
+      { mood: 'speaking', text: "That sounds like real progress.", label: 'Speaking', duration: 1800 },
+      { mood: 'proud', text: '', label: 'Proud', duration: 1200 },
+      { mood: 'speaking', text: "I'm genuinely proud of you.", label: 'Speaking', duration: 1500 },
+      { mood: 'joy', text: '', label: 'Joy', duration: 1500 },
+      { mood: 'empathetic', text: '', label: 'Empathetic', duration: 800 },
+      { mood: 'speaking', text: "What would you like to explore today?", label: 'Speaking', duration: 1800 },
+      { mood: 'listening', text: '', label: 'Listening', duration: 1500 },
+    ];
+    
+    let currentStep = -1;
+    let isPlaying = false;
+    let timeoutId = null;
+    
+    // Build timeline
+    function buildTimeline() {
+      timeline.innerHTML = story.map((step, i) => `
+        <div class="timeline-item" data-index="${i}">
+          <div class="ferni-avatar timeline-avatar" data-mood="${step.mood}">
+            <svg class="avatar-svg" viewBox="0 0 100 100">
+              <defs>
+                <linearGradient id="tg-${i}" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stop-color="#5a7a51"/>
+                  <stop offset="100%" stop-color="#3d5a35"/>
+                </linearGradient>
+                <linearGradient id="te-${i}" x1="0%" y1="0%" x2="0%" y2="100%">
+                  <stop offset="0%" stop-color="#fff"/>
+                  <stop offset="100%" stop-color="#f0ebe4"/>
+                </linearGradient>
+                <clipPath id="tc-${i}">
+                  <circle cx="50" cy="50" r="40"/>
+                </clipPath>
+              </defs>
+              <circle class="presence-ring" cx="50" cy="50" r="46"/>
+              <g clip-path="url(#tc-${i})">
+                <circle class="avatar-body" cx="50" cy="50" r="40" fill="url(#tg-${i})"/>
+                <ellipse class="eye-main eye-left" cx="36" cy="48" rx="7" ry="10" fill="url(#te-${i})"/>
+                <ellipse class="eye-main eye-right" cx="64" cy="48" rx="7" ry="10" fill="url(#te-${i})"/>
+                <path class="lid-top" d="M 0,0 Q 50,-10 100,0 L 100,0 L 0,0 Z"/>
+                <path class="lid-bottom" d="M 0,100 Q 50,110 100,100 L 100,100 L 0,100 Z"/>
+              </g>
+            </svg>
+          </div>
+          <div class="timeline-label">${step.label.slice(0,6)}</div>
+        </div>
+      `).join('');
+      
+      // Add click handlers
+      document.querySelectorAll('.timeline-item').forEach(item => {
+        item.addEventListener('click', () => {
+          const index = parseInt(item.dataset.index);
+          goToStep(index);
+        });
+      });
+    }
+    
+    function goToStep(index) {
+      currentStep = index;
+      const step = story[index];
+      
+      // Update avatar
+      avatar.dataset.mood = step.mood;
+      
+      // Update speech
+      speechText.textContent = step.text;
+      speechText.classList.toggle('visible', step.text.length > 0);
+      
+      // Update label
+      emotionLabel.textContent = step.label;
+      
+      // Update timeline
+      document.querySelectorAll('.timeline-item').forEach((item, i) => {
+        item.classList.toggle('active', i === index);
+        item.classList.toggle('played', i < index);
+      });
+    }
+    
+    async function playStory() {
+      if (isPlaying) return;
+      isPlaying = true;
+      playBtn.disabled = true;
+      playBtn.textContent = '▶ Playing...';
+      
+      for (let i = 0; i < story.length; i++) {
+        if (!isPlaying) break;
+        goToStep(i);
+        await new Promise(r => timeoutId = setTimeout(r, story[i].duration));
+      }
+      
+      isPlaying = false;
+      playBtn.disabled = false;
+      playBtn.textContent = '▶ Play Again';
+    }
+    
+    function reset() {
+      isPlaying = false;
+      if (timeoutId) clearTimeout(timeoutId);
+      currentStep = -1;
+      avatar.dataset.mood = 'neutral';
+      speechText.textContent = '';
+      speechText.classList.remove('visible');
+      emotionLabel.textContent = 'Ready';
+      playBtn.disabled = false;
+      playBtn.textContent = '▶ Play Story';
+      document.querySelectorAll('.timeline-item').forEach(item => {
+        item.classList.remove('active', 'played');
+      });
+    }
+    
+    // Initialize
+    buildTimeline();
+    playBtn.addEventListener('click', playStory);
+    resetBtn.addEventListener('click', reset);
+  </script>
+</body>
+</html>

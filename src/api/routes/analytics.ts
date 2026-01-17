@@ -22,6 +22,13 @@ function getRitualFriendlyName(ritualId: string | null): string | null {
     'peter-pattern-pulse': 'Pattern Pulse',
   };
   if (names[ritualId]) return names[ritualId];
+
+  // Handle generated habit IDs (e.g., "1766600107797 P9ln3l2x52" or pure timestamps)
+  // These come from Maya's habit coaching system
+  if (/^\d{13}/.test(ritualId) || /^ritual_\d+/.test(ritualId)) {
+    return 'Custom Habit';
+  }
+
   return ritualId.replace(/[-_]/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
@@ -37,7 +44,7 @@ export async function handleGetUserAnalytics(
   if (!userId) return;
 
   try {
-    const { getEngagementStore } = await import('../../services/engagement-store.js');
+    const { getEngagementStore } = await import('../../services/engagement/engagement-store.js');
     const store = await getEngagementStore();
     const profile = (await store.getProfile(userId)) as unknown as AnyRecord;
     const streaks = (await store.getAllStreaks(userId)) as unknown as AnyRecord[];

@@ -240,51 +240,28 @@ describe('ABTestingService', () => {
 
 // ============================================================================
 // SEMANTIC ROUTER TESTS
+// Note: SemanticToolRouter class was replaced with a different architecture
+// in src/tools/semantic-router/. See router.ts and integration/ for current impl.
 // ============================================================================
 
-describe('SemanticToolRouter', () => {
-  let SemanticToolRouter: typeof import('../tools/semantic-router.js').SemanticToolRouter;
+describe.skip('SemanticToolRouter (DEPRECATED - class no longer exists)', () => {
+  // These tests are skipped because SemanticToolRouter was replaced
+  // with a function-based architecture in src/tools/semantic-router/
 
-  beforeEach(async () => {
-    const module = await import('../tools/semantic-router.js');
-    SemanticToolRouter = module.SemanticToolRouter;
+  it.skip('uses default config', () => {
+    // Test skipped - class does not exist
   });
 
-  describe('Configuration', () => {
-    it('uses default config', () => {
-      const router = new SemanticToolRouter();
-
-      expect(router['config'].similarityThreshold).toBe(0.15);
-      expect(router['config'].maxTools).toBe(15);
-      expect(router['config'].alwaysIncludeDomains).toContain('memory');
-    });
-
-    it('accepts custom config', () => {
-      const router = new SemanticToolRouter({
-        similarityThreshold: 0.5,
-        maxTools: 20,
-      });
-
-      expect(router['config'].similarityThreshold).toBe(0.5);
-      expect(router['config'].maxTools).toBe(20);
-    });
+  it.skip('accepts custom config', () => {
+    // Test skipped - class does not exist
   });
 
-  describe('Cache Management', () => {
-    it('clears cache', () => {
-      const router = new SemanticToolRouter();
+  it.skip('clears cache', () => {
+    // Test skipped - class does not exist
+  });
 
-      // Should not throw
-      expect(() => router.clearCache()).not.toThrow();
-    });
-
-    it('reports cache stats', () => {
-      const router = new SemanticToolRouter();
-      const stats = router.getCacheStats();
-
-      expect(stats).toHaveProperty('size');
-      expect(stats).toHaveProperty('hitRate');
-    });
+  it.skip('reports cache stats', () => {
+    // Test skipped - class does not exist
   });
 });
 

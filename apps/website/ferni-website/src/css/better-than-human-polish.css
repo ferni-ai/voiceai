@@ -11,7 +11,7 @@
 
 /* Prevent rubber-banding showing white */
 html {
-  background-color: var(--color-bg-primary, #faf8f5);
+  background-color: var(--color-bg-primary, var(--color-bg-primary));
 }
 
 /* Navigation safe area */
@@ -128,8 +128,8 @@ select {
 :focus-visible {
   outline: none;
   box-shadow:
-    0 0 0 2px var(--color-bg-primary, #faf8f5),
-    0 0 0 4px var(--color-ferni, #4a6741);
+    0 0 0 2px var(--color-bg-primary, var(--color-bg-primary)),
+    0 0 0 4px var(--color-ferni, var(--color-ferni));
   border-radius: inherit;
 }
 
@@ -138,27 +138,27 @@ select {
 button:focus-visible,
 [role='button']:focus-visible {
   box-shadow:
-    0 0 0 3px var(--color-bg-primary, #faf8f5),
-    0 0 0 5px var(--color-ferni, #4a6741),
+    0 0 0 3px var(--color-bg-primary, var(--color-bg-primary)),
+    0 0 0 5px var(--color-ferni, var(--color-ferni)),
     0 4px 20px var(--color-ferni-glow, rgba(74, 103, 65, 0.28));
 }
 
 /* Link focus */
 a:focus-visible {
   box-shadow:
-    0 0 0 2px var(--color-bg-primary, #faf8f5),
-    0 0 0 4px var(--color-ferni, #4a6741);
-  border-radius: 4px;
+    0 0 0 2px var(--color-bg-primary, var(--color-bg-primary)),
+    0 0 0 4px var(--color-ferni, var(--color-ferni));
+  border-radius: var(--radius-xs);
 }
 
 /* Input focus */
 input:focus-visible,
 textarea:focus-visible,
 select:focus-visible {
-  border-color: var(--color-ferni, #4a6741);
+  border-color: var(--color-ferni, var(--color-ferni));
   box-shadow:
     0 0 0 3px var(--color-ferni-glow, rgba(74, 103, 65, 0.15)),
-    inset 0 0 0 1px var(--color-ferni, #4a6741);
+    inset 0 0 0 1px var(--color-ferni, var(--color-ferni));
 }
 
 /* Card focus (when interactive) */
@@ -166,8 +166,8 @@ select:focus-visible {
 .persona-card:focus-visible,
 .team-card:focus-visible {
   box-shadow:
-    0 0 0 2px var(--color-bg-primary, #faf8f5),
-    0 0 0 4px var(--color-ferni, #4a6741),
+    0 0 0 2px var(--color-bg-primary, var(--color-bg-primary)),
+    0 0 0 4px var(--color-ferni, var(--color-ferni)),
     var(--shadow-lg);
 }
 
@@ -178,7 +178,7 @@ select:focus-visible {
   left: 50%;
   transform: translateX(-50%);
   padding: 16px 32px;
-  background: var(--color-ferni, #4a6741);
+  background: var(--color-ferni, var(--color-ferni));
   color: white;
   font-weight: 600;
   border-radius: 0 0 12px 12px;
@@ -252,7 +252,7 @@ select:focus-visible {
   font-weight: 600;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: var(--color-ferni, #4a6741);
+  color: var(--color-ferni, var(--color-ferni));
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -606,7 +606,7 @@ h3 + p {
 
 ::-webkit-scrollbar-thumb {
   background: rgba(92, 84, 74, 0.3);
-  border-radius: 5px;
+  border-radius: var(--radius-sm);
   border: 3px solid transparent;
   background-clip: content-box;
   transition: background 0.3s ease;
@@ -630,12 +630,12 @@ h3 + p {
 
 ::selection {
   background: var(--color-ferni-glow, rgba(74, 103, 65, 0.25));
-  color: var(--color-text-primary, #2c2520);
+  color: var(--color-text-primary, var(--color-text-primary));
 }
 
 ::-moz-selection {
   background: var(--color-ferni-glow, rgba(74, 103, 65, 0.25));
-  color: var(--color-text-primary, #2c2520);
+  color: var(--color-text-primary, var(--color-text-primary));
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -646,11 +646,11 @@ h3 + p {
 .text-gradient-alive {
   background: linear-gradient(
     135deg,
-    #2d4a32 0%,
-    #3d5a35 25%,
-    #4a6741 50%,
-    #3d5a35 75%,
-    #2d4a32 100%
+    var(--color-ferni-secondary) 0%,
+    var(--color-ferni-secondary) 25%,
+    var(--color-ferni) 50%,
+    var(--color-ferni-secondary) 75%,
+    var(--color-ferni-secondary) 100%
   );
   background-size: 200% auto;
   -webkit-background-clip: text;
@@ -686,7 +686,7 @@ h3 + p {
   );
   background-size: 200% 100%;
   animation: shimmer 1.5s ease-in-out infinite;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
 }
 
 @keyframes shimmer {
@@ -766,7 +766,7 @@ h3 + p {
 @media (prefers-contrast: high) {
   :root {
     --color-text-primary: #000000;
-    --color-bg-primary: #ffffff;
+    --color-bg-primary: var(--color-text-inverse);
   }
 
   .glass,
@@ -814,7 +814,7 @@ h3 + p {
   .glass-subtle {
     background: white;
     backdrop-filter: none;
-    border: 1px solid #ccc;
+    border: 1px solid var(--color-border-medium);
   }
 }
 
@@ -845,9 +845,9 @@ h3 + p {
 .night-section {
   background: linear-gradient(
     180deg,
-    #0d0a08 0%,
-    #1a1512 30%,
-    #2a2420 70%,
+    var(--color-bg-dark) 0%,
+    var(--color-bg-dark) 30%,
+    var(--color-bg-dark-elevated) 70%,
     var(--color-bg-primary) 100%
   );
 }

@@ -6,15 +6,11 @@
   <title>{{ title }} | Ferni</title>
   <meta name="description" content="{{ description or site.tagline }}">
   
-  {# ====== PRECONNECT & PRELOAD (Performance) ====== #}
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  {# ====== PRECONNECT (Performance) ====== #}
   <link rel="preconnect" href="https://www.googletagmanager.com">
   
-  {# Preload critical fonts - removed redundant preload since the stylesheet link handles loading #}
-  
-  {# ====== FONTS ====== #}
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
+  {# ====== FONTS (Single Source of Truth) ====== #}
+  {% include "partials/fonts.njk" %}
   
   {# ====== FAVICONS ====== #}
   <link rel="icon" href="/images/favicon.png" type="image/png">
@@ -22,10 +18,21 @@
   <link rel="manifest" href="/manifest.json">
   <meta name="theme-color" content="#4a6741">
   
-  {# ====== STYLES ====== #}
-  <link rel="stylesheet" href="/css/story-brand.css">
-  <link rel="stylesheet" href="/css/components.css">
-  <link rel="stylesheet" href="/css/landing-intelligence.css">
+  {# ====== STYLES (with cache-busting) ====== #}
+  {# CRITICAL: tokens.css MUST come first - defines all CSS variables #}
+  <link rel="stylesheet" href="/css/tokens.css?v=20260112">
+  <link rel="stylesheet" href="/css/story-brand.css?v=20260103">
+  <link rel="stylesheet" href="/css/components.css?v=20251224">
+  <link rel="stylesheet" href="/css/sections/footer.css?v=20251231">
+  <link rel="stylesheet" href="/css/landing-intelligence.css?v=20251224">
+  <link rel="stylesheet" href="/css/ai-copy-magic.css?v=20251224">
+  <link rel="stylesheet" href="/css/ai-storytelling.css?v=20251224">
+  <link rel="stylesheet" href="/css/dark-mode.css?v=20251224">
+  <link rel="stylesheet" href="/css/pixar-animations.css?v=20251231">
+  <link rel="stylesheet" href="/css/better-than-human.css?v=20260103">
+  <link rel="stylesheet" href="/css/ferni-eq.css?v=20251231">
+  <link rel="stylesheet" href="/css/ferni-showcase.css?v=20251230">
+  <link rel="stylesheet" href="/css/waitlist-modal.css?v=20251225">
   
   {# ====== OPEN GRAPH ====== #}
   <meta property="og:title" content="{{ title }} | Ferni">
@@ -179,7 +186,10 @@
 </head>
 <body>
   {{ content | safe }}
-  
+
+  {# ====== WAITLIST MODAL (Integrated Gate) ====== #}
+  {% include "partials/home/waitlist-modal.njk" %}
+
   {# ====== COOKIE CONSENT BANNER ====== #}
   <div class="cookie-banner" id="cookieBanner" role="dialog" aria-label="Cookie consent">
     <div class="cookie-banner__content">
@@ -194,6 +204,7 @@
   {# ====== ANIMATION SYSTEM ====== #}
   <script src="/js/landing-animations.js"></script>
   <script src="/js/memory-story-animations.js"></script>
+  <script src="/js/hero-sequence.js"></script>
 
   {# ====== FERNI CHARACTER & POLISH ====== #}
   <script src="/js/ferni-character.js"></script>
@@ -203,8 +214,11 @@
   
   {# ====== FERNI EQ SYSTEM (Superhuman Emotional Intelligence) ====== #}
   <script src="/js/better-than-human.js"></script>
-  {# ferni-sentience.js removed - was creating floating "soft nudge" boxes #}
+  <script src="/js/ferni-sentience.js"></script>
   <script src="/js/ferni-sounds.js"></script>
+  
+  {# ====== FERNI SHOWCASE (Landing Page Magic) ====== #}
+  <script src="/js/ferni-showcase.js"></script>
   
   {# ====== DEMO WIDGET DISABLED - user complained about floating box #}
   {# <script src="/js/demo-widget.js"></script> #}
@@ -226,8 +240,19 @@
   <script src="/js/voice-samples.js"></script>
   <script src="/js/persona-quiz.js"></script>
   
+  {# ====== AI COPY MAGIC - Gemini-powered dynamic copy ====== #}
+  {# Time-aware hero, smart social proof, adaptive CTAs, hover insights #}
+  <script src="/js/ai-copy-magic.js"></script>
+  
+  {# ====== AI STORYTELLING - Superhuman narrative generation ====== #}
+  {# Memory timeline, showcase chat, use case voices, journey stories #}
+  <script src="/js/ai-storytelling.js"></script>
+  
   {# ====== VOICE DEMO - Live AI Interaction ====== #}
   <script src="/js/voice-demo.js"></script>
+
+  {# ====== WAITLIST MODAL (Integrated Gate) ====== #}
+  <script src="/js/waitlist-modal.js"></script>
 
   <script>
   (function() {
@@ -358,7 +383,9 @@
     // ========== COOKIE CONSENT ==========
     window.handleCookies = function(accepted) {
       localStorage.setItem('ferni_cookies', accepted ? 'accepted' : 'declined');
-      document.getElementById('cookieBanner').classList.add('is-hidden');
+      var banner = document.getElementById('cookieBanner');
+      banner.classList.remove('is-visible');
+      banner.classList.add('is-hidden');
       
       if (accepted && typeof gtag === 'function') {
         gtag('consent', 'update', {
@@ -415,7 +442,7 @@
           demoPanel.id = 'heroDemoPanel';
           demoPanel.className = 'hero__demo-panel';
           demoPanel.innerHTML = `
-            <div class="hero__demo-avatar" id="demoAvatar">FE</div>
+            <div class="hero__demo-avatar" id="demoAvatar"><svg class="ferni-eyes-svg" viewBox="0 0 100 100"><ellipse cx="36" cy="50" rx="10" ry="12" fill="white"/><circle cx="33" cy="45" r="2.5" fill="white" opacity="0.9"/><ellipse cx="64" cy="50" rx="10" ry="12" fill="white"/><circle cx="61" cy="45" r="2.5" fill="white" opacity="0.9"/></svg></div>
             <p class="hero__demo-status" id="demoStatus">Click below to start talking</p>
             <div class="hero__demo-action">
               <button class="btn btn--primary" id="demoStartBtn">

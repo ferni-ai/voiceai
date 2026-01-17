@@ -58,7 +58,7 @@ async function initAnomalyDetection(): Promise<void> {
 
 // Trigger initialization (non-blocking)
 initAnomalyDetection().catch((err) => {
-  log.debug({ error: String(err) }, 'Anomaly detection init failed (non-critical)');
+  log.warn({ error: String(err) }, 'Anomaly detection init failed (non-critical)');
 });
 
 // Track success/failure for anomaly detection per tool

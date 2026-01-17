@@ -782,7 +782,8 @@ export function createTokenServer(): http.Server {
         return;
       }
 
-      const tokens = await wearables.exchangeCode(provider, code || '');
+      // Pass state for PKCE-enabled providers (e.g., Garmin)
+      const tokens = await wearables.exchangeCode(provider, code || '', state || '');
       if (!tokens) {
         res.writeHead(302, {
           Location: stateData.return_url + `?${provider}_error=token_exchange_failed`,

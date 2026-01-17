@@ -1,0 +1,45 @@
+{
+  "postFile": "workflow-engine-guide.md",
+  "title": "Building Multi-Step Workflows",
+  "date": "2026-01-09T00:00:00.000Z",
+  "snippets": {
+    "twitter": {
+      "platform": "twitter",
+      "text": "📚 Building Multi-Step Workflows\n\nhttps://developers.ferni.ai/developers/blog/workflow-engine-guide/\n\n#VoiceAI #DevTutorial",
+      "length": null
+    },
+    "twitterThread": {
+      "platform": "twitter_thread",
+      "tweets": [
+        {
+          "text": "🧵 Building Multi-Step Workflows\n\nA thread on what you'll learn:\n\n👇",
+          "type": "hook"
+        },
+        {
+          "text": "Create sophisticated automations with the Ferni Workflow Engine. Supports branching, parallel execution, and voice-triggered workflows.\n\nLet's dive in...",
+          "type": "summary"
+        },
+        {
+          "text": "📖 Read the full post:\nhttps://developers.ferni.ai/developers/blog/workflow-engine-guide/\n\n#VoiceAI #DevTutorial #BuildInPublic",
+          "type": "cta"
+        }
+      ],
+      "totalTweets": 3
+    },
+    "linkedin": {
+      "platform": "linkedin",
+      "text": "Building Multi-Step Workflows\n\nCreate sophisticated automations with the Ferni Workflow Engine. Supports branching, parallel execution, and voice-triggered workflows.\n\nThis is part of our ongoing series helping developers build with voice AI.\n\nKey takeaways:\n• Practical code examples you can use today\n• Real-world patterns from production systems\n• Best practices from the Ferni team\n\nRead the full post: https://developers.ferni.ai/developers/blog/workflow-engine-guide/\n\n#VoiceAI #DevTutorial #BuildInPublic",
+      "length": 511
+    },
+    "discord": {
+      "platform": "discord",
+      "text": "📚 **Building Multi-Step Workflows**\n\nCreate sophisticated automations with the Ferni Workflow Engine. Supports branching, parallel execution, and voice-triggered workflows.\n\n🔗 **Read more:** https://developers.ferni.ai/developers/blog/workflow-engine-guide/\n\n---\n*15 min read • Tutorial*",
+      "length": 289
+    },
+    "threads": {
+      "platform": "threads",
+      "text": "Building Multi-Step Workflows\n\nCreate sophisticated automations with the Ferni Workflow Engine. Supports branching, parallel execution, and voice-triggered workflows.\n\nRead more 👉 https://developers.ferni.ai/developers/blog/workflow-engine-guide/",
+      "length": 247
+    }
+  }
+}

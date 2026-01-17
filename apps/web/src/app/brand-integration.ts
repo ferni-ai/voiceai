@@ -16,7 +16,7 @@ import {
 } from '../services/brand-system.js';
 import { getAvatarStateService, initAvatarStateService } from '../services/avatar-state.service.js';
 import { getVoiceAnalyzer } from '../services/voice-analyzer.service.js';
-import { getToastManager } from '../ui/toast.ui.js';
+import { getToastManager } from '../ui/whisper.ui.js';
 
 const log = createLogger('BrandIntegration');
 
@@ -311,7 +311,7 @@ export function playAvatarReaction(type: 'nod' | 'shake' | 'bounce' | 'pulse'): 
 // TOAST HELPERS
 // ============================================================================
 
-export { toast } from '../ui/toast.ui.js';
+export { toast } from '../ui/whisper.ui.js';
 
 // ============================================================================
 // EXPORTS

@@ -19,11 +19,12 @@
 import { DURATION, EASING, prefersReducedMotion } from '../config/animation-constants.js';
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
+import { t } from '../i18n/index.js';
 
 const log = createLogger('FerniAwakens');
 
 // FIX BUG: Track all setTimeout calls for proper cleanup
-const { trackedTimeout, clearAll: clearAllTimeouts } = createTimeoutTracker();
+const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
 
 // ============================================================================
 // CONSTANTS
@@ -408,7 +409,7 @@ function getAwakensHTML(): string {
       <p class="awakens-subtext">I'm Ferni, your AI life coach.</p>
       
       <!-- CTA -->
-      <button class="awakens-cta awakens-cta-btn">
+      <button aria-label="${t('accessibility.startTalking')}" class="awakens-cta awakens-cta-btn">
         Start talking
       </button>
     </div>
@@ -428,7 +429,7 @@ function injectStyles(): void {
     .ferni-awakens {
       position: fixed;
       inset: 0;
-      z-index: 10000;
+      z-index: var(--z-tooltip);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -459,7 +460,7 @@ function injectStyles(): void {
     }
     
     .awakens-logo {
-      width: 120px;
+      width: min(120px, 100%);
       height: 120px;
       margin-bottom: 32px;
       opacity: 0;
@@ -526,9 +527,9 @@ function injectStyles(): void {
       transform: scale(0.98);
     }
     
-    @media (max-width: 480px) {
+    @media (max-width: clamp(336px, 90vw, 480px)) {
       .awakens-logo {
-        width: 100px;
+        width: min(100px, 100%);
         height: 100px;
       }
       

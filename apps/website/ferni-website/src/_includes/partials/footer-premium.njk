@@ -1,0 +1,68 @@
+{# ============================================================================
+   PREMIUM FOOTER
+   Better than Apple. Human-first. On-brand.
+   
+   Variants:
+   - Default: Light background for legal/inner pages
+   - footer--bold: Dark background for main landing page
+   ============================================================================ #}
+
+<footer class="footer {{ footerClass or '' }}">
+  <div class="footer__inner">
+    
+    {# ========== HERO SECTION (CTA) ========== #}
+    {% if footerShowHero !== false %}
+    <div class="footer__hero">
+      <h2 class="footer__headline">{{ footerHeadline or "Ready when you are." }}</h2>
+      <p class="footer__subline">{{ footerSubline or "No pressure. No pitch. Just a conversation." }}</p>
+      <a href="{{ site.appUrl }}" class="footer__cta">
+        {{ footerCtaText or "Begin" }}
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="20" height="20" aria-hidden="true">
+          <path d="M5 12h14M12 5l7 7-7 7"/>
+        </svg>
+      </a>
+    </div>
+    {% endif %}
+
+    {# ========== NAVIGATION COLUMNS ========== #}
+    <div class="footer__nav">
+      <div class="footer__nav-group">
+        <h3 class="footer__nav-title">Explore</h3>
+        <a href="/story/">Our Story</a>
+        <a href="/team/">Meet the Team</a>
+        <a href="/capabilities/">Capabilities</a>
+        <a href="/building/">Building Ferni</a>
+      </div>
+      <div class="footer__nav-group">
+        <h3 class="footer__nav-title">Learn</h3>
+        <a href="/blog/">Blog</a>
+        <a href="/how-it-works/">How It Works</a>
+        <a href="/faq/">FAQ</a>
+        <a href="/help/">Help & Support</a>
+      </div>
+      <div class="footer__nav-group">
+        <h3 class="footer__nav-title">Connect</h3>
+        <a href="tel:{{ site.phoneRaw }}">Call Ferni</a>
+        <a href="{{ site.social.twitter }}">Twitter</a>
+        <a href="mailto:hello@ferni.ai">Email</a>
+        <a href="/give/">Gift Forward</a>
+      </div>
+    </div>
+
+    {# ========== BOTTOM BAR ========== #}
+    <div class="footer__bottom">
+      <div class="footer__brand-mark">
+        <span class="footer__logo-text">Ferni</span>
+        <span class="footer__motto">Better than human.</span>
+      </div>
+      <div class="footer__legal">
+        <span>&copy; {{ "" | year }} Ferni</span>
+        <a href="/privacy/">Privacy</a>
+        <a href="/terms/">Terms</a>
+        <a href="/sms-consent/">SMS</a>
+      </div>
+    </div>
+
+  </div>
+</footer>
+

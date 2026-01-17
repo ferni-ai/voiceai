@@ -1,15 +1,15 @@
 /**
  * Team Introduction UI - "Meet Your Team"
- * 
+ *
  * A warm, inviting modal that introduces users to Ferni's team.
  * Shows all team members with their roles, unlock status, and hints.
- * 
+ *
  * Design Philosophy:
  * - Centered floating modal (per brand guidelines)
  * - Warm, human copy - not corporate
  * - Shows the journey, not just a paywall
  * - Celebrates unlocked members, gently teases locked ones
- * 
+ *
  * @see FERNI-BRAND-GUIDELINES.md
  * @see FERNI-SCREEN-GUIDELINES.md
  */
@@ -18,14 +18,19 @@ import { t } from '../i18n/index.js';
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
-import { teamUnlockService, TEAM_MEMBERS, type TeamMemberId } from '../services/team-unlock.service.js';
+import { Modal, type ModalConfig } from '../components/base/modal.js';
+import {
+  teamUnlockService,
+  TEAM_MEMBERS,
+  type TeamMemberId,
+} from '../services/team-unlock.service.js';
 import { rosterPreferences } from '../services/roster-preferences.service.js';
 import { relationshipStageService } from '../services/relationship-stage.service.js';
 import { getPersonaColorConfig } from '../config/persona-colors.js';
 
 const log = createLogger('TeamIntro');
 
-// FIX BUG: Track all setTimeout calls for proper cleanup
+// Track timeouts for proper cleanup
 const { trackedTimeout, clearAll: clearAllTimeouts } = createTimeoutTracker();
 
 // ============================================================================
@@ -33,13 +38,18 @@ const { trackedTimeout, clearAll: clearAllTimeouts } = createTimeoutTracker();
 // ============================================================================
 
 const ICONS = {
-  close: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>',
+  close:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>',
   lock: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>',
-  unlock: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/></svg>',
-  check: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>',
+  unlock:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/></svg>',
+  check:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>',
   plus: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>',
-  heart: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>',
-  sparkle: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3L12 3Z"/></svg>',
+  heart:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>',
+  sparkle:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3L12 3Z"/></svg>',
 };
 
 // ============================================================================
@@ -61,7 +71,7 @@ const TEAM_INFO: TeamMemberInfo[] = [
     id: 'ferni',
     displayName: 'Ferni',
     role: 'Your Life Coach',
-    description: 'Your guide through life\'s journey. Always here, always listening.',
+    description: "Your guide through life's journey. Always here, always listening.",
     unlockHint: 'Always available',
     unlockedMessage: 'Start every conversation here',
     initials: 'FE',
@@ -99,7 +109,7 @@ const TEAM_INFO: TeamMemberInfo[] = [
     role: 'Event Planning',
     description: 'Plans gatherings, coordinates details, makes moments special.',
     unlockHint: 'Reach "Established" relationship',
-    unlockedMessage: 'Let\'s plan something memorable',
+    unlockedMessage: "Let's plan something memorable",
     initials: 'JT',
   },
   {
@@ -114,78 +124,41 @@ const TEAM_INFO: TeamMemberInfo[] = [
 ];
 
 // ============================================================================
-// STATE
+// TEAM INTRO MODAL CLASS
 // ============================================================================
 
-let modal: HTMLElement | null = null;
-let styleElement: HTMLStyleElement | null = null;
-let isVisible = false;
+/**
+ * TeamIntroModal extends the base Modal component with team-specific
+ * content and behavior.
+ */
+class TeamIntroModal extends Modal {
+  constructor() {
+    const config: ModalConfig = {
+      id: 'team-intro',
+      eyebrow: 'YOUR JOURNEY',
+      title: 'Meet Your Team',
+      onClose: () => {
+        log.debug('Team intro closed');
+      },
+    };
 
-// ============================================================================
-// PUBLIC API
-// ============================================================================
+    super(config, {
+      closeOnBackdropClick: true,
+      closeOnEscape: true,
+      maxWidth: 'clamp(560px, 90vw, 800px)',
+    });
+  }
 
-export function initTeamIntro(): void {
-  cleanupOrphanedElements();
-  injectStyles();
-  log.debug('Team intro initialized');
-}
+  /**
+   * Build the modal content with team member cards
+   */
+  protected override buildContent(): string {
+    const metrics = relationshipStageService.getMetrics();
 
-export function showTeamIntro(): void {
-  if (isVisible) return;
-  
-  createModal();
-  
-  // Animate in
-  requestAnimationFrame(() => {
-    modal?.classList.add('team-intro--visible');
-  });
-  
-  isVisible = true;
-  log.info('Team intro opened');
-}
-
-export function hideTeamIntro(): void {
-  if (!isVisible || !modal) return;
-  
-  modal.classList.remove('team-intro--visible');
-  
-  // Remove after animation
-  trackedTimeout(() => {
-    modal?.remove();
-    modal = null;
-  }, DURATION.SLOW);
-  
-  isVisible = false;
-  log.debug('Team intro closed');
-}
-
-// ============================================================================
-// MODAL CREATION
-// ============================================================================
-
-function createModal(): void {
-  if (modal) return;
-  
-  const metrics = relationshipStageService.getMetrics();
-  
-  modal = document.createElement('div');
-  modal.className = 'team-intro';
-  modal.setAttribute('role', 'dialog');
-  modal.setAttribute('aria-label', 'Meet your team');
-  modal.innerHTML = `
-    <div class="team-intro__backdrop" aria-hidden="true"></div>
-    <div class="team-intro__card">
-      <header class="team-intro__header">
-        <div class="team-intro__eyebrow">YOUR JOURNEY</div>
-        <h2 class="team-intro__title">Meet Your Team</h2>
-        <p class="team-intro__subtitle">
-          As we get to know each other, you'll unlock specialists who can help with specific areas of your life.
-        </p>
-        <button class="team-intro__close" aria-label="${t('common.close')}">
-          ${ICONS.close}
-        </button>
-      </header>
+    return `
+      <p class="team-intro__subtitle">
+        As we get to know each other, you'll unlock specialists who can help with specific areas of your life.
+      </p>
       
       <div class="team-intro__progress">
         <div class="team-intro__progress-label">
@@ -198,7 +171,7 @@ function createModal(): void {
       </div>
       
       <div class="team-intro__grid">
-        ${TEAM_INFO.map(member => createMemberCard(member)).join('')}
+        ${TEAM_INFO.map((member) => createMemberCard(member)).join('')}
       </div>
       
       <footer class="team-intro__footer">
@@ -206,45 +179,64 @@ function createModal(): void {
           ${getFooterMessage()}
         </p>
       </footer>
-    </div>
-  `;
-  
-  document.body.appendChild(modal);
-  
-  // Event listeners
-  modal.querySelector('.team-intro__backdrop')?.addEventListener('click', hideTeamIntro);
-  modal.querySelector('.team-intro__close')?.addEventListener('click', hideTeamIntro);
-  
-  // Add to roster buttons
-  modal.querySelectorAll('.team-member-card__action').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      const memberId = (btn as HTMLElement).dataset.member as TeamMemberId;
-      handleAddToRoster(memberId, btn as HTMLElement);
-      e.stopPropagation();
+    `;
+  }
+
+  /**
+   * Set up event handlers after mount
+   */
+  protected override afterMount(): void {
+    super.afterMount();
+
+    // Add to roster buttons
+    this.container?.querySelectorAll('.team-member-card__action').forEach((btn) => {
+      this.addListener(btn, 'click', (e) => {
+        const memberId = (btn as HTMLElement).dataset.member as TeamMemberId;
+        this.handleAddToRoster(memberId, btn as HTMLElement);
+        e.stopPropagation();
+      });
     });
-  });
-  
-  // Escape key
-  const handleEscape = (e: KeyboardEvent) => {
-    if (e.key === 'Escape') {
-      hideTeamIntro();
-      document.removeEventListener('keydown', handleEscape);
-    }
-  };
-  document.addEventListener('keydown', handleEscape);
+  }
+
+  /**
+   * Handle adding a team member to the roster
+   */
+  private handleAddToRoster(memberId: TeamMemberId, button: HTMLElement): void {
+    rosterPreferences.addMember(memberId);
+
+    // Animate button
+    button.innerHTML = `${ICONS.check} Added!`;
+    button.classList.add('team-member-card__action--added');
+    button.setAttribute('disabled', 'true');
+
+    // Update parent card
+    const card = button.closest('.team-member-card');
+    card?.classList.add('team-member-card--added');
+
+    log.info({ memberId }, 'Added team member to roster');
+
+    // Close modal after a moment (use tracked timeout for cleanup)
+    trackedTimeout(() => {
+      this.close();
+    }, 800);
+  }
 }
+
+// ============================================================================
+// HELPERS
+// ============================================================================
 
 function createMemberCard(member: TeamMemberInfo): string {
   const status = teamUnlockService.getMemberStatus(member.id);
   const isInRoster = rosterPreferences.isMemberVisible(member.id);
   const colors = getPersonaColorConfig(member.id);
-  
+
   const isLocked = !status.unlocked;
   const isFerni = member.id === 'ferni';
-  
+
   // Progress for locked members
   const progressPercent = isLocked ? Math.round(status.progress * 100) : 100;
-  
+
   return `
     <div class="team-member-card ${isLocked ? 'team-member-card--locked' : ''} ${isFerni ? 'team-member-card--ferni' : ''}"
          data-member="${member.id}"
@@ -262,39 +254,47 @@ function createMemberCard(member: TeamMemberInfo): string {
       </div>
       
       <div class="team-member-card__status">
-        ${isLocked ? `
+        ${
+          isLocked
+            ? `
           <div class="team-member-card__progress">
             <div class="team-member-card__progress-bar">
               <div class="team-member-card__progress-fill" style="width: ${progressPercent}%"></div>
             </div>
             <span class="team-member-card__hint">${member.unlockHint}</span>
           </div>
-        ` : `
+        `
+            : `
           <div class="team-member-card__ready">
-            ${isFerni ? `
+            ${
+              isFerni
+                ? `
               <span class="team-member-card__always">${ICONS.heart} Always here for you</span>
-            ` : `
-              ${isInRoster ? `
+            `
+                : `
+              ${
+                isInRoster
+                  ? `
                 <span class="team-member-card__added">${ICONS.check} In your roster</span>
-              ` : `
-                <button class="team-member-card__action" data-member="${member.id}">
+              `
+                  : `
+                <button aria-label="${t('accessibility.add')}" class="team-member-card__action" data-member="${member.id}">
                   ${ICONS.plus} Add to Roster
                 </button>
-              `}
-            `}
+              `
+              }
+            `
+            }
           </div>
-        `}
+        `
+        }
       </div>
     </div>
   `;
 }
 
-// ============================================================================
-// HELPERS
-// ============================================================================
-
 function getUnlockedCount(): number {
-  return TEAM_MEMBERS.filter(m => teamUnlockService.getMemberStatus(m.id).unlocked).length;
+  return TEAM_MEMBERS.filter((m) => teamUnlockService.getMemberStatus(m.id).unlocked).length;
 }
 
 function getProgressPercent(): number {
@@ -305,15 +305,15 @@ function getProgressPercent(): number {
 function getProgressMessage(conversations: number): string {
   if (conversations === 0) return "Let's start your journey";
   if (conversations < 3) return "We're just getting started";
-  if (conversations < 7) return "Building something special";
-  if (conversations < 15) return "Growing together";
-  return "Deep partnership";
+  if (conversations < 7) return 'Building something special';
+  if (conversations < 15) return 'Growing together';
+  return 'Deep partnership';
 }
 
 function getFooterMessage(): string {
   const unlocked = getUnlockedCount();
   if (unlocked <= 1) {
-    return "Keep talking to Ferni. Your team grows as your relationship deepens.";
+    return 'Keep talking to Ferni. Your team grows as your relationship deepens.';
   }
   if (unlocked < 4) {
     return "You're on your way! More team members unlock as we continue our journey.";
@@ -324,143 +324,34 @@ function getFooterMessage(): string {
   return "You've unlocked the full team! Everyone's here to support you.";
 }
 
-function handleAddToRoster(memberId: TeamMemberId, button: HTMLElement): void {
-  rosterPreferences.addMember(memberId);
-  
-  // Animate button
-  button.innerHTML = `${ICONS.check} Added!`;
-  button.classList.add('team-member-card__action--added');
-  button.setAttribute('disabled', 'true');
-  
-  // Update parent card
-  const card = button.closest('.team-member-card');
-  card?.classList.add('team-member-card--added');
-  
-  log.info({ memberId }, 'Added team member to roster');
-  
-  // Close modal after a moment
-  trackedTimeout(() => {
-    hideTeamIntro();
-  }, 800);
-}
-
-function cleanupOrphanedElements(): void {
-  document.querySelectorAll('.team-intro').forEach(el => el.remove());
-  document.querySelectorAll('#team-intro-styles').forEach(el => el.remove());
-}
-
 // ============================================================================
-// STYLES
+// SINGLETON INSTANCE & STYLES
 // ============================================================================
 
-function injectStyles(): void {
+let modalInstance: TeamIntroModal | null = null;
+
+/**
+ * Inject team intro specific styles
+ */
+function injectTeamIntroStyles(): void {
   if (document.getElementById('team-intro-styles')) return;
-  
-  styleElement = document.createElement('style');
+
+  const styleElement = document.createElement('style');
   styleElement.id = 'team-intro-styles';
   styleElement.textContent = `
-    /* Team Intro Modal - Brand-compliant centered floating modal */
-    .team-intro {
-      position: fixed;
-      inset: 0;
-      z-index: var(--z-modal);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: var(--space-4, 16px);
-      opacity: 0;
-      pointer-events: none;
-      transition: opacity ${DURATION.SLOW}ms ${EASING.STANDARD};
-    }
-    
-    .team-intro--visible {
-      opacity: 1;
-      pointer-events: auto;
-    }
-    
-    .team-intro__backdrop {
-      position: absolute;
-      inset: 0;
-      background: rgba(44, 37, 32, 0.6);
-      backdrop-filter: blur(var(--glass-blur-modal));
-      -webkit-backdrop-filter: blur(var(--glass-blur-modal));
-    }
-    
-    .team-intro__card {
-      position: relative;
-      background: var(--color-background-elevated, #FFFDFB);
-      border-radius: var(--radius-2xl, 24px);
-      box-shadow: var(--shadow-2xl, 0 25px 50px -12px rgba(0, 0, 0, 0.25));
-      max-width: 800px;
-      width: 100%;
-      max-height: 90vh;
-      overflow-y: auto;
-      transform: scale(0.95) translateY(10px);
-      transition: transform ${DURATION.SLOW}ms ${EASING.SPRING};
-    }
-    
-    .team-intro--visible .team-intro__card {
-      transform: scale(1) translateY(0);
-    }
-    
-    /* Header */
-    .team-intro__header {
-      position: relative;
-      padding: var(--space-8, 32px) var(--space-8, 32px) var(--space-4, 16px);
-      text-align: center;
-      border-bottom: 1px solid var(--color-border-subtle, rgba(0, 0, 0, 0.06));
-    }
-    
-    .team-intro__eyebrow {
-      font-size: 0.7rem;
-      font-weight: 600;
-      letter-spacing: 0.15em;
-      text-transform: uppercase;
-      color: var(--color-accent-text);
-      margin-bottom: var(--space-2, 8px);
-    }
-    
-    .team-intro__title {
-      font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
-      font-size: 1.75rem;
-      font-weight: 700;
-      color: var(--color-text-primary, #2C2520);
-      margin: 0 0 var(--space-2, 8px);
+    /* Team Intro Modal Extensions */
+    .team-intro .ferni-modal__content {
+      padding: 0;
     }
     
     .team-intro__subtitle {
       font-size: 0.95rem;
       color: var(--color-text-secondary, #5a5048);
-      max-width: 500px;
-      margin: 0 auto;
+      max-width: clamp(350px, 90vw, 500px);
+      margin: 0 auto var(--space-4, 16px);
       line-height: 1.5;
-    }
-    
-    .team-intro__close {
-      position: absolute;
-      top: var(--space-4, 16px);
-      right: var(--space-4, 16px);
-      width: 40px;
-      height: 40px;
-      border: none;
-      background: var(--color-background-secondary, #f5f3f0);
-      border-radius: var(--radius-full, 9999px);
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: var(--color-text-secondary, #5a5048);
-      transition: all ${DURATION.FAST}ms ${EASING.STANDARD};
-    }
-    
-    .team-intro__close:hover {
-      background: var(--color-background-tertiary, #ebe8e3);
-      color: var(--color-text-primary, #2C2520);
-    }
-    
-    .team-intro__close svg {
-      width: 20px;
-      height: 20px;
+      text-align: center;
+      padding: 0 var(--space-8, 32px);
     }
     
     /* Progress */
@@ -718,17 +609,12 @@ function injectStyles(): void {
     
     /* Mobile responsive */
     @media (max-width: 600px) {
-      .team-intro__card {
+      .team-intro .ferni-modal__card {
         max-height: 95vh;
-        border-radius: var(--radius-xl, 16px);
       }
       
-      .team-intro__header {
-        padding: var(--space-6, 24px) var(--space-4, 16px) var(--space-3, 12px);
-      }
-      
-      .team-intro__title {
-        font-size: 1.5rem;
+      .team-intro__subtitle {
+        padding: 0 var(--space-4, 16px);
       }
       
       .team-intro__grid {
@@ -743,15 +629,42 @@ function injectStyles(): void {
     
     /* Reduced motion */
     @media (prefers-reduced-motion: reduce) {
-      .team-intro,
-      .team-intro__card,
       .team-member-card {
         transition: none;
       }
     }
   `;
-  
+
   document.head.appendChild(styleElement);
+}
+
+// ============================================================================
+// PUBLIC API
+// ============================================================================
+
+export function initTeamIntro(): void {
+  // Cleanup any orphaned elements
+  document.querySelectorAll('.team-intro').forEach((el) => el.remove());
+
+  // Inject styles
+  injectTeamIntroStyles();
+
+  log.debug('Team intro initialized');
+}
+
+export function showTeamIntro(): void {
+  if (!modalInstance) {
+    modalInstance = new TeamIntroModal();
+    modalInstance.mount(document.body);
+  }
+
+  modalInstance.open();
+  log.info('Team intro opened');
+}
+
+export function hideTeamIntro(): void {
+  modalInstance?.close();
+  log.debug('Team intro closed');
 }
 
 // ============================================================================
@@ -763,4 +676,3 @@ export const teamIntroUI = {
   show: showTeamIntro,
   hide: hideTeamIntro,
 };
-

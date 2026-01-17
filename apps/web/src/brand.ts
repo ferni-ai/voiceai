@@ -115,7 +115,6 @@ export {
   type EmptyStateConfig,
   
   // Toast
-  ToastManager,
   getToastManager,
   resetToastManager,
   showToast,

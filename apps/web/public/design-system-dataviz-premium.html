@@ -1,0 +1,1637 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ferni Premium Data Visualization - 2025</title>
+  <style>
+    :root {
+      /* Apple Fitness Ring Colors */
+      --ring-move: #FA114F;
+      --ring-move-end: #FF2D55;
+      --ring-exercise: #92E82A;
+      --ring-exercise-end: #B8F547;
+      --ring-stand: #1EEAEF;
+      --ring-stand-end: #5BFFC1;
+
+      /* Ferni Brand */
+      --ferni-accent: #3D5A45;
+      --ferni-glow: rgba(61, 90, 69, 0.6);
+
+      /* Premium Palette */
+      --premium-gold: #FFD700;
+      --premium-purple: #4a6741;
+      --premium-cyan: #06B6D4;
+      --premium-pink: #EC4899;
+
+      /* Confidence Bands */
+      --band-95: rgba(74, 103, 65, 0.15);
+      --band-90: rgba(74, 103, 65, 0.25);
+      --band-75: rgba(74, 103, 65, 0.35);
+      --band-50: rgba(74, 103, 65, 0.5);
+
+      /* Glass Effects */
+      --glass-bg: rgba(255, 255, 255, 0.05);
+      --glass-border: rgba(255, 255, 255, 0.1);
+      --glass-glow: rgba(74, 103, 65, 0.3);
+
+      /* Base */
+      --bg-primary: #0a0a0f;
+      --bg-secondary: #12121a;
+      --bg-elevated: #1a1a25;
+      --text-primary: #ffffff;
+      --text-secondary: rgba(255, 255, 255, 0.7);
+      --text-muted: rgba(255, 255, 255, 0.5);
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      line-height: 1.6;
+      min-height: 100vh;
+    }
+
+    /* ========================================
+       HEADER
+    ======================================== */
+    header {
+      background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-primary) 100%);
+      padding: 3rem 2rem;
+      text-align: center;
+      border-bottom: 1px solid var(--glass-border);
+      position: relative;
+      overflow: hidden;
+    }
+
+    header::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: radial-gradient(circle at 30% 30%, var(--glass-glow) 0%, transparent 50%);
+      animation: headerGlow 15s ease-in-out infinite;
+    }
+
+    @keyframes headerGlow {
+      0%, 100% { transform: translate(0, 0); }
+      50% { transform: translate(10%, 10%); }
+    }
+
+    h1 {
+      font-size: 2.5rem;
+      font-weight: 700;
+      background: linear-gradient(135deg, var(--text-primary), var(--premium-purple));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      position: relative;
+      z-index: 1;
+    }
+
+    header p {
+      color: var(--text-secondary);
+      margin-top: 0.5rem;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* ========================================
+       NAVIGATION
+    ======================================== */
+    nav {
+      display: flex;
+      gap: 1rem;
+      padding: 1rem 2rem;
+      background: var(--bg-secondary);
+      flex-wrap: wrap;
+      justify-content: center;
+      border-bottom: 1px solid var(--glass-border);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      backdrop-filter: blur(20px);
+    }
+
+    nav a {
+      color: var(--text-secondary);
+      text-decoration: none;
+      padding: 0.5rem 1rem;
+      border-radius: 9999px;
+      font-size: 0.875rem;
+      font-weight: 500;
+      transition: all 0.3s ease;
+      border: 1px solid transparent;
+    }
+
+    nav a:hover {
+      color: var(--text-primary);
+      background: var(--glass-bg);
+      border-color: var(--glass-border);
+      box-shadow: 0 0 20px var(--glass-glow);
+    }
+
+    /* ========================================
+       MAIN CONTENT
+    ======================================== */
+    main {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 2rem;
+    }
+
+    section {
+      margin-bottom: 4rem;
+      padding: 2rem;
+      background: var(--bg-secondary);
+      border-radius: 24px;
+      border: 1px solid var(--glass-border);
+      position: relative;
+      overflow: hidden;
+    }
+
+    section::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--premium-purple), transparent);
+    }
+
+    .section-header {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .section-header h2 {
+      font-size: 1.5rem;
+      font-weight: 600;
+    }
+
+    .section-badge {
+      padding: 0.25rem 0.75rem;
+      background: linear-gradient(135deg, var(--premium-purple), var(--premium-pink));
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .section-description {
+      color: var(--text-secondary);
+      margin-bottom: 2rem;
+      max-width: 600px;
+    }
+
+    h3 {
+      font-size: 1.125rem;
+      font-weight: 600;
+      margin-bottom: 1rem;
+      color: var(--text-primary);
+    }
+
+    /* ========================================
+       APPLE FITNESS ACTIVITY RINGS
+    ======================================== */
+    .activity-rings-container {
+      display: flex;
+      gap: 3rem;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .activity-rings-main {
+      position: relative;
+      width: 280px;
+      height: 280px;
+    }
+
+    .activity-rings-svg {
+      width: 100%;
+      height: 100%;
+      transform: rotate(-90deg);
+    }
+
+    /* Ring backgrounds */
+    .ring-bg {
+      fill: none;
+      stroke-linecap: round;
+    }
+
+    /* Ring progress */
+    .ring-progress {
+      fill: none;
+      stroke-linecap: round;
+      filter: drop-shadow(0 0 8px currentColor);
+      stroke-dasharray: 0 100;
+      transition: stroke-dasharray 1.5s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .ring-progress.animate {
+      stroke-dasharray: var(--progress) 100;
+    }
+
+    /* Ring glow overlay */
+    .ring-glow {
+      fill: none;
+      stroke-linecap: round;
+      opacity: 0.5;
+      filter: blur(4px);
+      stroke-dasharray: 0 100;
+      transition: stroke-dasharray 1.5s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .ring-glow.animate {
+      stroke-dasharray: var(--progress) 100;
+    }
+
+    /* Ring center stats */
+    .ring-center {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      text-align: center;
+    }
+
+    .ring-center-value {
+      font-size: 3rem;
+      font-weight: 700;
+      line-height: 1;
+      background: linear-gradient(135deg, var(--ring-move), var(--ring-exercise));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .ring-center-label {
+      font-size: 0.875rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+    }
+
+    /* Ring legend */
+    .ring-legend {
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+
+    .ring-legend-item {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .ring-legend-dot {
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      box-shadow: 0 0 12px currentColor;
+    }
+
+    .ring-legend-info {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .ring-legend-label {
+      font-size: 0.875rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .ring-legend-value {
+      font-size: 1.5rem;
+      font-weight: 600;
+    }
+
+    .ring-legend-goal {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+
+    /* Mini rings row */
+    .mini-rings-row {
+      display: flex;
+      gap: 2rem;
+      margin-top: 2rem;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .mini-ring-card {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 1.5rem;
+      background: var(--glass-bg);
+      border-radius: 16px;
+      border: 1px solid var(--glass-border);
+    }
+
+    .mini-ring-svg {
+      width: 80px;
+      height: 80px;
+      transform: rotate(-90deg);
+    }
+
+    .mini-ring-label {
+      font-size: 0.875rem;
+      color: var(--text-secondary);
+    }
+
+    .mini-ring-value {
+      font-size: 1.25rem;
+      font-weight: 600;
+    }
+
+    /* ========================================
+       MONTE CARLO FAN CHART
+    ======================================== */
+    .projection-chart-container {
+      position: relative;
+      height: 400px;
+      margin-top: 1rem;
+    }
+
+    .projection-svg {
+      width: 100%;
+      height: 100%;
+    }
+
+    /* Confidence bands */
+    .confidence-band {
+      transition: opacity 0.3s ease;
+    }
+
+    .projection-svg:hover .confidence-band {
+      opacity: 0.8;
+    }
+
+    /* Projection line */
+    .projection-line {
+      fill: none;
+      stroke-width: 3;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .projection-line-historical {
+      stroke: var(--premium-purple);
+    }
+
+    .projection-line-forecast {
+      stroke: var(--premium-purple);
+      stroke-dasharray: 8 4;
+      opacity: 0.8;
+    }
+
+    /* Today marker */
+    .today-marker {
+      stroke: var(--text-muted);
+      stroke-dasharray: 4 4;
+    }
+
+    .today-label {
+      fill: var(--text-secondary);
+      font-size: 12px;
+      font-weight: 500;
+    }
+
+    /* Axis labels */
+    .axis-label {
+      fill: var(--text-muted);
+      font-size: 11px;
+    }
+
+    .axis-value {
+      fill: var(--text-secondary);
+      font-size: 12px;
+      font-weight: 500;
+    }
+
+    /* Legend */
+    .projection-legend {
+      display: flex;
+      gap: 2rem;
+      margin-top: 1.5rem;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .projection-legend-item {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.875rem;
+      color: var(--text-secondary);
+    }
+
+    .legend-line {
+      width: 24px;
+      height: 3px;
+      border-radius: 2px;
+    }
+
+    .legend-band {
+      width: 24px;
+      height: 12px;
+      border-radius: 2px;
+    }
+
+    /* Scenario cards */
+    .scenario-cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+      margin-top: 2rem;
+    }
+
+    .scenario-card {
+      padding: 1.5rem;
+      border-radius: 16px;
+      border: 1px solid var(--glass-border);
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .scenario-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+    }
+
+    .scenario-card.pessimistic::before {
+      background: linear-gradient(90deg, #ef4444, #f97316);
+    }
+
+    .scenario-card.expected::before {
+      background: linear-gradient(90deg, var(--premium-purple), var(--premium-pink));
+    }
+
+    .scenario-card.optimistic::before {
+      background: linear-gradient(90deg, #10b981, #06b6d4);
+    }
+
+    .scenario-label {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      margin-bottom: 0.5rem;
+    }
+
+    .scenario-value {
+      font-size: 2rem;
+      font-weight: 700;
+    }
+
+    .scenario-card.pessimistic .scenario-value { color: #ef4444; }
+    .scenario-card.expected .scenario-value { color: var(--premium-purple); }
+    .scenario-card.optimistic .scenario-value { color: #10b981; }
+
+    .scenario-change {
+      font-size: 0.875rem;
+      color: var(--text-secondary);
+      margin-top: 0.25rem;
+    }
+
+    /* ========================================
+       GLASSMORPHISM DASHBOARD CARDS
+    ======================================== */
+    .glass-dashboard {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1.5rem;
+    }
+
+    .glass-card {
+      padding: 1.5rem;
+      background: var(--glass-bg);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-radius: 20px;
+      border: 1px solid var(--glass-border);
+      position: relative;
+      overflow: hidden;
+      transition: all 0.3s ease;
+    }
+
+    .glass-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3), 0 0 40px var(--glass-glow);
+      border-color: var(--premium-purple);
+    }
+
+    .glass-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, transparent 50%);
+      pointer-events: none;
+    }
+
+    .glass-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 1rem;
+    }
+
+    .glass-card-title {
+      font-size: 0.875rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .glass-card-badge {
+      padding: 0.25rem 0.5rem;
+      border-radius: 6px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+
+    .glass-card-badge.positive {
+      background: rgba(16, 185, 129, 0.2);
+      color: #10b981;
+    }
+
+    .glass-card-badge.negative {
+      background: rgba(239, 68, 68, 0.2);
+      color: #ef4444;
+    }
+
+    .glass-card-value {
+      font-size: 2.5rem;
+      font-weight: 700;
+      line-height: 1;
+      margin-bottom: 0.5rem;
+    }
+
+    .glass-card-subtitle {
+      font-size: 0.875rem;
+      color: var(--text-secondary);
+      margin-bottom: 1rem;
+    }
+
+    /* Sparkline in glass card */
+    .glass-sparkline {
+      height: 60px;
+      margin-top: 1rem;
+    }
+
+    .glass-sparkline svg {
+      width: 100%;
+      height: 100%;
+    }
+
+    .sparkline-area {
+      fill: url(#sparklineGradient);
+      opacity: 0.3;
+    }
+
+    .sparkline-line {
+      fill: none;
+      stroke: var(--premium-purple);
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .sparkline-dot {
+      fill: var(--premium-purple);
+      filter: drop-shadow(0 0 6px var(--premium-purple));
+    }
+
+    /* ========================================
+       WEALTH JOURNEY VISUALIZATION
+    ======================================== */
+    .wealth-journey {
+      position: relative;
+      padding: 2rem 0;
+    }
+
+    .wealth-timeline {
+      display: flex;
+      justify-content: space-between;
+      position: relative;
+      padding: 0 2rem;
+    }
+
+    .wealth-timeline::before {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 2rem;
+      right: 2rem;
+      height: 4px;
+      background: linear-gradient(90deg,
+        var(--premium-purple) 0%,
+        var(--premium-cyan) 50%,
+        var(--premium-gold) 100%
+      );
+      border-radius: 2px;
+      transform: translateY(-50%);
+    }
+
+    .wealth-milestone {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      position: relative;
+      z-index: 1;
+    }
+
+    .wealth-milestone-dot {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: var(--bg-primary);
+      border: 4px solid var(--premium-purple);
+      box-shadow: 0 0 20px var(--premium-purple);
+      margin-bottom: 1rem;
+      transition: all 0.3s ease;
+    }
+
+    .wealth-milestone:hover .wealth-milestone-dot {
+      transform: scale(1.3);
+      box-shadow: 0 0 30px var(--premium-purple);
+    }
+
+    .wealth-milestone.achieved .wealth-milestone-dot {
+      background: var(--premium-purple);
+    }
+
+    .wealth-milestone-label {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 0.25rem;
+    }
+
+    .wealth-milestone-value {
+      font-size: 1.25rem;
+      font-weight: 600;
+    }
+
+    .wealth-milestone-date {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+
+    /* ========================================
+       ADVANCED MULTI-METRIC RINGS
+    ======================================== */
+    .multi-metric-container {
+      display: flex;
+      gap: 3rem;
+      align-items: center;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .multi-metric-rings {
+      position: relative;
+      width: 240px;
+      height: 240px;
+    }
+
+    .multi-metric-svg {
+      width: 100%;
+      height: 100%;
+      transform: rotate(-90deg);
+    }
+
+    .multi-metric-center {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      text-align: center;
+    }
+
+    .multi-metric-score {
+      font-size: 2.5rem;
+      font-weight: 700;
+      background: linear-gradient(135deg, var(--premium-gold), var(--premium-purple));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .multi-metric-label {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+    }
+
+    .multi-metric-details {
+      display: grid;
+      gap: 1rem;
+    }
+
+    .metric-detail-row {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      padding: 1rem;
+      background: var(--glass-bg);
+      border-radius: 12px;
+      border: 1px solid var(--glass-border);
+    }
+
+    .metric-detail-indicator {
+      width: 8px;
+      height: 40px;
+      border-radius: 4px;
+    }
+
+    .metric-detail-info {
+      flex: 1;
+    }
+
+    .metric-detail-name {
+      font-size: 0.875rem;
+      color: var(--text-secondary);
+    }
+
+    .metric-detail-value {
+      font-size: 1.25rem;
+      font-weight: 600;
+    }
+
+    .metric-detail-bar {
+      flex: 1;
+      height: 8px;
+      background: var(--bg-elevated);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .metric-detail-fill {
+      height: 100%;
+      border-radius: 4px;
+      transition: width 1.5s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    /* ========================================
+       REAL-TIME PULSE INDICATOR
+    ======================================== */
+    .pulse-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 1rem;
+    }
+
+    .pulse-card {
+      padding: 1.5rem;
+      background: var(--glass-bg);
+      border-radius: 16px;
+      border: 1px solid var(--glass-border);
+      text-align: center;
+      position: relative;
+    }
+
+    .pulse-indicator {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      position: absolute;
+      top: 1rem;
+      right: 1rem;
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    .pulse-indicator.healthy {
+      background: #10b981;
+      box-shadow: 0 0 12px #10b981;
+    }
+
+    .pulse-indicator.warning {
+      background: #f59e0b;
+      box-shadow: 0 0 12px #f59e0b;
+    }
+
+    .pulse-indicator.critical {
+      background: #ef4444;
+      box-shadow: 0 0 12px #ef4444;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.5; transform: scale(1.2); }
+    }
+
+    .pulse-value {
+      font-size: 2rem;
+      font-weight: 700;
+      margin-bottom: 0.25rem;
+    }
+
+    .pulse-label {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .pulse-trend {
+      font-size: 0.875rem;
+      margin-top: 0.5rem;
+    }
+
+    .pulse-trend.up { color: #10b981; }
+    .pulse-trend.down { color: #ef4444; }
+
+    /* ========================================
+       FOOTER
+    ======================================== */
+    footer {
+      text-align: center;
+      padding: 2rem;
+      color: var(--text-muted);
+      font-size: 0.875rem;
+      border-top: 1px solid var(--glass-border);
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Premium Data Visualization</h1>
+    <p>Apple Fitness Rings, Monte Carlo Projections, Glassmorphism Dashboards</p>
+  </header>
+
+  <nav>
+    <a href="#rings">Activity Rings</a>
+    <a href="#projection">Portfolio Projection</a>
+    <a href="#glass">Glass Dashboard</a>
+    <a href="#wealth">Wealth Journey</a>
+    <a href="#multi">Multi-Metric</a>
+    <a href="#pulse">Real-Time Pulse</a>
+  </nav>
+
+  <main>
+    <!-- ============================================
+         APPLE FITNESS ACTIVITY RINGS
+    ============================================ -->
+    <section id="rings">
+      <div class="section-header">
+        <h2>Apple Fitness Activity Rings</h2>
+        <span class="section-badge">Premium</span>
+      </div>
+      <p class="section-description">
+        Authentic Apple Watch-style activity rings using the magic radius formula (r=15.915 for circumference=100).
+        Features gradient strokes, glow effects, and smooth animations.
+      </p>
+
+      <div class="activity-rings-container">
+        <div class="activity-rings-main">
+          <svg class="activity-rings-svg" viewBox="0 0 100 100">
+            <defs>
+              <!-- Move Ring Gradient -->
+              <linearGradient id="moveGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#FA114F"/>
+                <stop offset="100%" stop-color="#FF2D55"/>
+              </linearGradient>
+              <!-- Exercise Ring Gradient -->
+              <linearGradient id="exerciseGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#92E82A"/>
+                <stop offset="100%" stop-color="#B8F547"/>
+              </linearGradient>
+              <!-- Stand Ring Gradient -->
+              <linearGradient id="standGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#1EEAEF"/>
+                <stop offset="100%" stop-color="#5BFFC1"/>
+              </linearGradient>
+            </defs>
+
+            <!-- Move Ring (Outer) - r=15.915 scaled to fit, stroke 10 -->
+            <circle class="ring-bg" cx="50" cy="50" r="42" stroke="rgba(250, 17, 79, 0.2)" stroke-width="10"/>
+            <circle class="ring-glow" cx="50" cy="50" r="42" stroke="url(#moveGradient)" stroke-width="10"
+                    style="--progress: 85;" pathLength="100"/>
+            <circle class="ring-progress" cx="50" cy="50" r="42" stroke="url(#moveGradient)" stroke-width="10"
+                    style="--progress: 85;" pathLength="100"/>
+
+            <!-- Exercise Ring (Middle) -->
+            <circle class="ring-bg" cx="50" cy="50" r="30" stroke="rgba(146, 232, 42, 0.2)" stroke-width="10"/>
+            <circle class="ring-glow" cx="50" cy="50" r="30" stroke="url(#exerciseGradient)" stroke-width="10"
+                    style="--progress: 72;" pathLength="100"/>
+            <circle class="ring-progress" cx="50" cy="50" r="30" stroke="url(#exerciseGradient)" stroke-width="10"
+                    style="--progress: 72;" pathLength="100"/>
+
+            <!-- Stand Ring (Inner) -->
+            <circle class="ring-bg" cx="50" cy="50" r="18" stroke="rgba(30, 234, 239, 0.2)" stroke-width="10"/>
+            <circle class="ring-glow" cx="50" cy="50" r="18" stroke="url(#standGradient)" stroke-width="10"
+                    style="--progress: 92;" pathLength="100"/>
+            <circle class="ring-progress" cx="50" cy="50" r="18" stroke="url(#standGradient)" stroke-width="10"
+                    style="--progress: 92;" pathLength="100"/>
+          </svg>
+
+          <div class="ring-center">
+            <div class="ring-center-value">847</div>
+            <div class="ring-center-label">Calories</div>
+          </div>
+        </div>
+
+        <div class="ring-legend">
+          <div class="ring-legend-item">
+            <div class="ring-legend-dot" style="background: linear-gradient(135deg, #FA114F, #FF2D55); color: #FA114F;"></div>
+            <div class="ring-legend-info">
+              <span class="ring-legend-label">Move</span>
+              <span class="ring-legend-value" style="color: #FA114F;">847/1000</span>
+              <span class="ring-legend-goal">85% of daily goal</span>
+            </div>
+          </div>
+          <div class="ring-legend-item">
+            <div class="ring-legend-dot" style="background: linear-gradient(135deg, #92E82A, #B8F547); color: #92E82A;"></div>
+            <div class="ring-legend-info">
+              <span class="ring-legend-label">Exercise</span>
+              <span class="ring-legend-value" style="color: #92E82A;">43/60</span>
+              <span class="ring-legend-goal">72% of daily goal</span>
+            </div>
+          </div>
+          <div class="ring-legend-item">
+            <div class="ring-legend-dot" style="background: linear-gradient(135deg, #1EEAEF, #5BFFC1); color: #1EEAEF;"></div>
+            <div class="ring-legend-info">
+              <span class="ring-legend-label">Stand</span>
+              <span class="ring-legend-value" style="color: #1EEAEF;">11/12</span>
+              <span class="ring-legend-goal">92% of daily goal</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <h3 style="margin-top: 3rem;">Weekly Ring Summary</h3>
+      <div class="mini-rings-row" id="weeklyRings"></div>
+    </section>
+
+    <!-- ============================================
+         MONTE CARLO PORTFOLIO PROJECTION
+    ============================================ -->
+    <section id="projection">
+      <div class="section-header">
+        <h2>Monte Carlo Portfolio Projection</h2>
+        <span class="section-badge">Financial</span>
+      </div>
+      <p class="section-description">
+        Fan chart visualization with confidence bands showing probability distributions.
+        Historical performance transitions to projected outcomes with uncertainty ranges.
+      </p>
+
+      <div class="projection-chart-container">
+        <svg class="projection-svg" viewBox="0 0 800 350" preserveAspectRatio="xMidYMid meet">
+          <defs>
+            <!-- Confidence band gradients -->
+            <linearGradient id="band95Gradient" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stop-color="rgba(74, 103, 65, 0.1)"/>
+              <stop offset="100%" stop-color="rgba(74, 103, 65, 0.05)"/>
+            </linearGradient>
+            <linearGradient id="band75Gradient" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stop-color="rgba(74, 103, 65, 0.2)"/>
+              <stop offset="100%" stop-color="rgba(74, 103, 65, 0.1)"/>
+            </linearGradient>
+            <linearGradient id="band50Gradient" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stop-color="rgba(74, 103, 65, 0.35)"/>
+              <stop offset="100%" stop-color="rgba(74, 103, 65, 0.2)"/>
+            </linearGradient>
+            <linearGradient id="lineGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stop-color="#4a6741"/>
+              <stop offset="100%" stop-color="#EC4899"/>
+            </linearGradient>
+          </defs>
+
+          <!-- Grid lines -->
+          <g class="grid-lines" stroke="rgba(255,255,255,0.05)" stroke-width="1">
+            <line x1="60" y1="50" x2="60" y2="300"/>
+            <line x1="60" y1="300" x2="760" y2="300"/>
+            <line x1="60" y1="237.5" x2="760" y2="237.5" stroke-dasharray="4 4"/>
+            <line x1="60" y1="175" x2="760" y2="175" stroke-dasharray="4 4"/>
+            <line x1="60" y1="112.5" x2="760" y2="112.5" stroke-dasharray="4 4"/>
+            <line x1="60" y1="50" x2="760" y2="50" stroke-dasharray="4 4"/>
+          </g>
+
+          <!-- Y-axis labels -->
+          <text class="axis-value" x="50" y="305" text-anchor="end">$0</text>
+          <text class="axis-value" x="50" y="242" text-anchor="end">$500K</text>
+          <text class="axis-value" x="50" y="180" text-anchor="end">$1M</text>
+          <text class="axis-value" x="50" y="117" text-anchor="end">$1.5M</text>
+          <text class="axis-value" x="50" y="55" text-anchor="end">$2M</text>
+
+          <!-- X-axis labels -->
+          <text class="axis-label" x="60" y="320">2020</text>
+          <text class="axis-label" x="200" y="320">2025</text>
+          <text class="axis-label" x="340" y="320">2030</text>
+          <text class="axis-label" x="480" y="320">2035</text>
+          <text class="axis-label" x="620" y="320">2040</text>
+          <text class="axis-label" x="760" y="320">2045</text>
+
+          <!-- Today marker -->
+          <line class="today-marker" x1="340" y1="50" x2="340" y2="300"/>
+          <text class="today-label" x="340" y="40" text-anchor="middle">Today</text>
+
+          <!-- 95% Confidence Band -->
+          <path class="confidence-band" fill="url(#band95Gradient)"
+                d="M340,200 Q450,180 550,120 Q650,60 760,30
+                   L760,290 Q650,270 550,250 Q450,230 340,200 Z"/>
+
+          <!-- 75% Confidence Band -->
+          <path class="confidence-band" fill="url(#band75Gradient)"
+                d="M340,200 Q450,175 550,140 Q650,100 760,60
+                   L760,260 Q650,240 550,220 Q450,210 340,200 Z"/>
+
+          <!-- 50% Confidence Band -->
+          <path class="confidence-band" fill="url(#band50Gradient)"
+                d="M340,200 Q450,170 550,155 Q650,130 760,90
+                   L760,230 Q650,210 550,195 Q450,190 340,200 Z"/>
+
+          <!-- Historical line -->
+          <path class="projection-line projection-line-historical" stroke="url(#lineGradient)"
+                d="M60,290 Q120,285 180,275 Q240,260 300,230 Q320,215 340,200"/>
+
+          <!-- Projected median line -->
+          <path class="projection-line projection-line-forecast" stroke="url(#lineGradient)"
+                d="M340,200 Q450,175 550,150 Q650,120 760,95"/>
+
+          <!-- Current value dot -->
+          <circle cx="340" cy="200" r="6" fill="#4a6741" filter="drop-shadow(0 0 8px #4a6741)"/>
+
+          <!-- Projected value dot -->
+          <circle cx="760" cy="95" r="5" fill="#EC4899" filter="drop-shadow(0 0 8px #EC4899)" opacity="0.8"/>
+        </svg>
+      </div>
+
+      <div class="projection-legend">
+        <div class="projection-legend-item">
+          <div class="legend-line" style="background: linear-gradient(90deg, #4a6741, #EC4899);"></div>
+          <span>Historical Performance</span>
+        </div>
+        <div class="projection-legend-item">
+          <div class="legend-line" style="background: linear-gradient(90deg, #4a6741, #EC4899); opacity: 0.6;"></div>
+          <span>Projected Median</span>
+        </div>
+        <div class="projection-legend-item">
+          <div class="legend-band" style="background: rgba(74, 103, 65, 0.35);"></div>
+          <span>50% Confidence</span>
+        </div>
+        <div class="projection-legend-item">
+          <div class="legend-band" style="background: rgba(74, 103, 65, 0.2);"></div>
+          <span>75% Confidence</span>
+        </div>
+        <div class="projection-legend-item">
+          <div class="legend-band" style="background: rgba(74, 103, 65, 0.1);"></div>
+          <span>95% Confidence</span>
+        </div>
+      </div>
+
+      <h3 style="margin-top: 2rem;">Scenario Analysis (2045)</h3>
+      <div class="scenario-cards">
+        <div class="scenario-card pessimistic">
+          <div class="scenario-label">10th Percentile</div>
+          <div class="scenario-value">$842K</div>
+          <div class="scenario-change">+68% from today</div>
+        </div>
+        <div class="scenario-card expected">
+          <div class="scenario-label">Median Projection</div>
+          <div class="scenario-value">$1.52M</div>
+          <div class="scenario-change">+203% from today</div>
+        </div>
+        <div class="scenario-card optimistic">
+          <div class="scenario-label">90th Percentile</div>
+          <div class="scenario-value">$2.84M</div>
+          <div class="scenario-change">+466% from today</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================
+         GLASSMORPHISM DASHBOARD
+    ============================================ -->
+    <section id="glass">
+      <div class="section-header">
+        <h2>Glassmorphism Dashboard</h2>
+        <span class="section-badge">2025 Design</span>
+      </div>
+      <p class="section-description">
+        Premium frosted glass cards with backdrop blur, glowing borders, and animated sparklines.
+        Modern 2025 aesthetic combining transparency with depth.
+      </p>
+
+      <div class="glass-dashboard">
+        <div class="glass-card">
+          <div class="glass-card-header">
+            <span class="glass-card-title">Monthly Revenue</span>
+            <span class="glass-card-badge positive">+18.2%</span>
+          </div>
+          <div class="glass-card-value">$284.5K</div>
+          <div class="glass-card-subtitle">vs $240.6K last month</div>
+          <div class="glass-sparkline" id="sparkline1"></div>
+        </div>
+
+        <div class="glass-card">
+          <div class="glass-card-header">
+            <span class="glass-card-title">Active Users</span>
+            <span class="glass-card-badge positive">+12.4%</span>
+          </div>
+          <div class="glass-card-value">24,847</div>
+          <div class="glass-card-subtitle">847 new this week</div>
+          <div class="glass-sparkline" id="sparkline2"></div>
+        </div>
+
+        <div class="glass-card">
+          <div class="glass-card-header">
+            <span class="glass-card-title">Churn Rate</span>
+            <span class="glass-card-badge negative">+0.3%</span>
+          </div>
+          <div class="glass-card-value">2.4%</div>
+          <div class="glass-card-subtitle">vs 2.1% target</div>
+          <div class="glass-sparkline" id="sparkline3"></div>
+        </div>
+
+        <div class="glass-card">
+          <div class="glass-card-header">
+            <span class="glass-card-title">NPS Score</span>
+            <span class="glass-card-badge positive">+8</span>
+          </div>
+          <div class="glass-card-value">72</div>
+          <div class="glass-card-subtitle">Excellent rating</div>
+          <div class="glass-sparkline" id="sparkline4"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================
+         WEALTH JOURNEY VISUALIZATION
+    ============================================ -->
+    <section id="wealth">
+      <div class="section-header">
+        <h2>Wealth Journey Timeline</h2>
+        <span class="section-badge">Milestone</span>
+      </div>
+      <p class="section-description">
+        Visual progression through financial milestones with achieved and upcoming goals.
+      </p>
+
+      <div class="wealth-journey">
+        <div class="wealth-timeline">
+          <div class="wealth-milestone achieved">
+            <div class="wealth-milestone-dot"></div>
+            <span class="wealth-milestone-label">Emergency Fund</span>
+            <span class="wealth-milestone-value">$25K</span>
+            <span class="wealth-milestone-date">Achieved 2021</span>
+          </div>
+          <div class="wealth-milestone achieved">
+            <div class="wealth-milestone-dot"></div>
+            <span class="wealth-milestone-label">Debt Free</span>
+            <span class="wealth-milestone-value">$0</span>
+            <span class="wealth-milestone-date">Achieved 2022</span>
+          </div>
+          <div class="wealth-milestone achieved">
+            <div class="wealth-milestone-dot"></div>
+            <span class="wealth-milestone-label">6 Months Expenses</span>
+            <span class="wealth-milestone-value">$50K</span>
+            <span class="wealth-milestone-date">Achieved 2023</span>
+          </div>
+          <div class="wealth-milestone">
+            <div class="wealth-milestone-dot"></div>
+            <span class="wealth-milestone-label">Coast FI</span>
+            <span class="wealth-milestone-value">$250K</span>
+            <span class="wealth-milestone-date">Target 2026</span>
+          </div>
+          <div class="wealth-milestone">
+            <div class="wealth-milestone-dot"></div>
+            <span class="wealth-milestone-label">Financial Independence</span>
+            <span class="wealth-milestone-value">$1.5M</span>
+            <span class="wealth-milestone-date">Target 2040</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================
+         MULTI-METRIC RINGS
+    ============================================ -->
+    <section id="multi">
+      <div class="section-header">
+        <h2>Multi-Metric Performance</h2>
+        <span class="section-badge">Composite</span>
+      </div>
+      <p class="section-description">
+        Nested rings showing multiple metrics with a composite score, inspired by Apple's approach.
+      </p>
+
+      <div class="multi-metric-container">
+        <div class="multi-metric-rings">
+          <svg class="multi-metric-svg" viewBox="0 0 100 100">
+            <defs>
+              <linearGradient id="goldGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#FFD700"/>
+                <stop offset="100%" stop-color="#FFA500"/>
+              </linearGradient>
+              <linearGradient id="purpleGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#4a6741"/>
+                <stop offset="100%" stop-color="#EC4899"/>
+              </linearGradient>
+              <linearGradient id="cyanGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#06B6D4"/>
+                <stop offset="100%" stop-color="#10B981"/>
+              </linearGradient>
+              <linearGradient id="pinkGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#EC4899"/>
+                <stop offset="100%" stop-color="#F43F5E"/>
+              </linearGradient>
+            </defs>
+
+            <!-- Revenue Ring (Outer) -->
+            <circle cx="50" cy="50" r="44" stroke="rgba(255, 215, 0, 0.15)" stroke-width="6" fill="none"/>
+            <circle cx="50" cy="50" r="44" stroke="url(#goldGradient)" stroke-width="6" fill="none"
+                    stroke-linecap="round" pathLength="100" class="ring-progress" style="--progress: 92;"/>
+
+            <!-- Growth Ring -->
+            <circle cx="50" cy="50" r="35" stroke="rgba(74, 103, 65, 0.15)" stroke-width="6" fill="none"/>
+            <circle cx="50" cy="50" r="35" stroke="url(#purpleGradient)" stroke-width="6" fill="none"
+                    stroke-linecap="round" pathLength="100" class="ring-progress" style="--progress: 78;"/>
+
+            <!-- Retention Ring -->
+            <circle cx="50" cy="50" r="26" stroke="rgba(6, 182, 212, 0.15)" stroke-width="6" fill="none"/>
+            <circle cx="50" cy="50" r="26" stroke="url(#cyanGradient)" stroke-width="6" fill="none"
+                    stroke-linecap="round" pathLength="100" class="ring-progress" style="--progress: 95;"/>
+
+            <!-- Satisfaction Ring (Inner) -->
+            <circle cx="50" cy="50" r="17" stroke="rgba(236, 72, 153, 0.15)" stroke-width="6" fill="none"/>
+            <circle cx="50" cy="50" r="17" stroke="url(#pinkGradient)" stroke-width="6" fill="none"
+                    stroke-linecap="round" pathLength="100" class="ring-progress" style="--progress: 84;"/>
+          </svg>
+
+          <div class="multi-metric-center">
+            <div class="multi-metric-score">87</div>
+            <div class="multi-metric-label">Health Score</div>
+          </div>
+        </div>
+
+        <div class="multi-metric-details">
+          <div class="metric-detail-row">
+            <div class="metric-detail-indicator" style="background: linear-gradient(180deg, #FFD700, #FFA500);"></div>
+            <div class="metric-detail-info">
+              <div class="metric-detail-name">Revenue Target</div>
+              <div class="metric-detail-value">92%</div>
+            </div>
+            <div class="metric-detail-bar">
+              <div class="metric-detail-fill" style="width: 92%; background: linear-gradient(90deg, #FFD700, #FFA500);"></div>
+            </div>
+          </div>
+          <div class="metric-detail-row">
+            <div class="metric-detail-indicator" style="background: linear-gradient(180deg, #4a6741, #EC4899);"></div>
+            <div class="metric-detail-info">
+              <div class="metric-detail-name">User Growth</div>
+              <div class="metric-detail-value">78%</div>
+            </div>
+            <div class="metric-detail-bar">
+              <div class="metric-detail-fill" style="width: 78%; background: linear-gradient(90deg, #4a6741, #EC4899);"></div>
+            </div>
+          </div>
+          <div class="metric-detail-row">
+            <div class="metric-detail-indicator" style="background: linear-gradient(180deg, #06B6D4, #10B981);"></div>
+            <div class="metric-detail-info">
+              <div class="metric-detail-name">Retention Rate</div>
+              <div class="metric-detail-value">95%</div>
+            </div>
+            <div class="metric-detail-bar">
+              <div class="metric-detail-fill" style="width: 95%; background: linear-gradient(90deg, #06B6D4, #10B981);"></div>
+            </div>
+          </div>
+          <div class="metric-detail-row">
+            <div class="metric-detail-indicator" style="background: linear-gradient(180deg, #EC4899, #F43F5E);"></div>
+            <div class="metric-detail-info">
+              <div class="metric-detail-name">NPS Score</div>
+              <div class="metric-detail-value">84%</div>
+            </div>
+            <div class="metric-detail-bar">
+              <div class="metric-detail-fill" style="width: 84%; background: linear-gradient(90deg, #EC4899, #F43F5E);"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================
+         REAL-TIME PULSE INDICATORS
+    ============================================ -->
+    <section id="pulse">
+      <div class="section-header">
+        <h2>Real-Time System Pulse</h2>
+        <span class="section-badge">Live</span>
+      </div>
+      <p class="section-description">
+        Live status indicators with animated pulse effects showing system health at a glance.
+      </p>
+
+      <div class="pulse-grid">
+        <div class="pulse-card">
+          <div class="pulse-indicator healthy"></div>
+          <div class="pulse-value">99.9%</div>
+          <div class="pulse-label">Uptime</div>
+          <div class="pulse-trend up">+0.1% this month</div>
+        </div>
+        <div class="pulse-card">
+          <div class="pulse-indicator healthy"></div>
+          <div class="pulse-value">24ms</div>
+          <div class="pulse-label">Latency</div>
+          <div class="pulse-trend up">-12ms improved</div>
+        </div>
+        <div class="pulse-card">
+          <div class="pulse-indicator warning"></div>
+          <div class="pulse-value">78%</div>
+          <div class="pulse-label">CPU Usage</div>
+          <div class="pulse-trend down">+15% load</div>
+        </div>
+        <div class="pulse-card">
+          <div class="pulse-indicator healthy"></div>
+          <div class="pulse-value">4.2K</div>
+          <div class="pulse-label">Active Sessions</div>
+          <div class="pulse-trend up">+847 today</div>
+        </div>
+        <div class="pulse-card">
+          <div class="pulse-indicator healthy"></div>
+          <div class="pulse-value">0</div>
+          <div class="pulse-label">Error Rate</div>
+          <div class="pulse-trend up">Clean slate</div>
+        </div>
+        <div class="pulse-card">
+          <div class="pulse-indicator healthy"></div>
+          <div class="pulse-value">$0.02</div>
+          <div class="pulse-label">Cost/Request</div>
+          <div class="pulse-trend up">-8% optimized</div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    Ferni Premium Data Visualization 2025 - Inspired by Apple Fitness, Portfolio Visualizer, and Modern Dashboard Design
+  </footer>
+
+  <script>
+    // ============================================
+    // ACTIVITY RINGS ANIMATION
+    // ============================================
+    function animateRings() {
+      var rings = document.querySelectorAll('.ring-progress, .ring-glow');
+      setTimeout(function() {
+        rings.forEach(function(ring) {
+          ring.classList.add('animate');
+        });
+      }, 300);
+    }
+
+    // ============================================
+    // WEEKLY MINI RINGS
+    // ============================================
+    function createWeeklyRings() {
+      var container = document.getElementById('weeklyRings');
+      var days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+      var data = [
+        { move: 92, exercise: 85, stand: 100 },
+        { move: 78, exercise: 60, stand: 92 },
+        { move: 105, exercise: 100, stand: 100 },
+        { move: 88, exercise: 75, stand: 83 },
+        { move: 95, exercise: 90, stand: 100 },
+        { move: 110, exercise: 120, stand: 100 },
+        { move: 85, exercise: 72, stand: 92 }
+      ];
+
+      days.forEach(function(day, i) {
+        var card = document.createElement('div');
+        card.className = 'mini-ring-card';
+
+        var svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        svg.setAttribute('class', 'mini-ring-svg');
+        svg.setAttribute('viewBox', '0 0 100 100');
+
+        // Use existing gradients by referencing their IDs
+        var defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+
+        // Move gradient
+        var moveGrad = document.createElementNS('http://www.w3.org/2000/svg', 'linearGradient');
+        moveGrad.setAttribute('id', 'miniMove' + i);
+        var stop1 = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
+        stop1.setAttribute('offset', '0%');
+        stop1.setAttribute('stop-color', '#FA114F');
+        var stop2 = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
+        stop2.setAttribute('offset', '100%');
+        stop2.setAttribute('stop-color', '#FF2D55');
+        moveGrad.appendChild(stop1);
+        moveGrad.appendChild(stop2);
+        defs.appendChild(moveGrad);
+
+        // Exercise gradient
+        var exGrad = document.createElementNS('http://www.w3.org/2000/svg', 'linearGradient');
+        exGrad.setAttribute('id', 'miniEx' + i);
+        var stop3 = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
+        stop3.setAttribute('offset', '0%');
+        stop3.setAttribute('stop-color', '#92E82A');
+        var stop4 = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
+        stop4.setAttribute('offset', '100%');
+        stop4.setAttribute('stop-color', '#B8F547');
+        exGrad.appendChild(stop3);
+        exGrad.appendChild(stop4);
+        defs.appendChild(exGrad);
+
+        // Stand gradient
+        var stGrad = document.createElementNS('http://www.w3.org/2000/svg', 'linearGradient');
+        stGrad.setAttribute('id', 'miniSt' + i);
+        var stop5 = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
+        stop5.setAttribute('offset', '0%');
+        stop5.setAttribute('stop-color', '#1EEAEF');
+        var stop6 = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
+        stop6.setAttribute('offset', '100%');
+        stop6.setAttribute('stop-color', '#5BFFC1');
+        stGrad.appendChild(stop5);
+        stGrad.appendChild(stop6);
+        defs.appendChild(stGrad);
+
+        svg.appendChild(defs);
+
+        // Create rings
+        var rings = [
+          { r: 42, color: 'rgba(250, 17, 79, 0.2)', grad: 'miniMove' + i, progress: Math.min(data[i].move, 100) },
+          { r: 30, color: 'rgba(146, 232, 42, 0.2)', grad: 'miniEx' + i, progress: Math.min(data[i].exercise, 100) },
+          { r: 18, color: 'rgba(30, 234, 239, 0.2)', grad: 'miniSt' + i, progress: Math.min(data[i].stand, 100) }
+        ];
+
+        rings.forEach(function(ring) {
+          // Background
+          var bg = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+          bg.setAttribute('cx', '50');
+          bg.setAttribute('cy', '50');
+          bg.setAttribute('r', ring.r.toString());
+          bg.setAttribute('fill', 'none');
+          bg.setAttribute('stroke', ring.color);
+          bg.setAttribute('stroke-width', '8');
+          svg.appendChild(bg);
+
+          // Progress
+          var progress = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+          progress.setAttribute('cx', '50');
+          progress.setAttribute('cy', '50');
+          progress.setAttribute('r', ring.r.toString());
+          progress.setAttribute('fill', 'none');
+          progress.setAttribute('stroke', 'url(#' + ring.grad + ')');
+          progress.setAttribute('stroke-width', '8');
+          progress.setAttribute('stroke-linecap', 'round');
+          progress.setAttribute('pathLength', '100');
+          progress.setAttribute('class', 'ring-progress');
+          progress.style.setProperty('--progress', ring.progress);
+          svg.appendChild(progress);
+        });
+
+        card.appendChild(svg);
+
+        var label = document.createElement('div');
+        label.className = 'mini-ring-label';
+        label.textContent = day;
+        card.appendChild(label);
+
+        var value = document.createElement('div');
+        value.className = 'mini-ring-value';
+        var avg = Math.round((data[i].move + data[i].exercise + data[i].stand) / 3);
+        value.textContent = avg + '%';
+        card.appendChild(value);
+
+        container.appendChild(card);
+      });
+    }
+
+    // ============================================
+    // SPARKLINES WITH GRADIENTS
+    // ============================================
+    function createSparkline(containerId, data, color) {
+      var container = document.getElementById(containerId);
+      if (!container) return;
+
+      var svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      svg.setAttribute('viewBox', '0 0 200 60');
+      svg.setAttribute('preserveAspectRatio', 'none');
+
+      // Create gradient
+      var defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+      var gradient = document.createElementNS('http://www.w3.org/2000/svg', 'linearGradient');
+      gradient.setAttribute('id', 'grad-' + containerId);
+      gradient.setAttribute('x1', '0%');
+      gradient.setAttribute('y1', '0%');
+      gradient.setAttribute('x2', '0%');
+      gradient.setAttribute('y2', '100%');
+
+      var stop1 = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
+      stop1.setAttribute('offset', '0%');
+      stop1.setAttribute('stop-color', color);
+      stop1.setAttribute('stop-opacity', '0.4');
+
+      var stop2 = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
+      stop2.setAttribute('offset', '100%');
+      stop2.setAttribute('stop-color', color);
+      stop2.setAttribute('stop-opacity', '0');
+
+      gradient.appendChild(stop1);
+      gradient.appendChild(stop2);
+      defs.appendChild(gradient);
+      svg.appendChild(defs);
+
+      // Calculate points
+      var max = Math.max.apply(null, data);
+      var min = Math.min.apply(null, data);
+      var range = max - min || 1;
+      var width = 200;
+      var height = 60;
+      var padding = 5;
+
+      var points = data.map(function(val, i) {
+        var x = (i / (data.length - 1)) * width;
+        var y = padding + ((max - val) / range) * (height - padding * 2);
+        return x + ',' + y;
+      });
+
+      // Area path
+      var areaPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      var areaD = 'M0,' + (height) + ' L' + points.join(' L') + ' L' + width + ',' + height + ' Z';
+      areaPath.setAttribute('d', areaD);
+      areaPath.setAttribute('fill', 'url(#grad-' + containerId + ')');
+      svg.appendChild(areaPath);
+
+      // Line path
+      var linePath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      linePath.setAttribute('d', 'M' + points.join(' L'));
+      linePath.setAttribute('fill', 'none');
+      linePath.setAttribute('stroke', color);
+      linePath.setAttribute('stroke-width', '2');
+      linePath.setAttribute('stroke-linecap', 'round');
+      linePath.setAttribute('stroke-linejoin', 'round');
+      svg.appendChild(linePath);
+
+      // End dot
+      var lastPoint = points[points.length - 1].split(',');
+      var dot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      dot.setAttribute('cx', lastPoint[0]);
+      dot.setAttribute('cy', lastPoint[1]);
+      dot.setAttribute('r', '4');
+      dot.setAttribute('fill', color);
+      svg.appendChild(dot);
+
+      container.appendChild(svg);
+    }
+
+    // ============================================
+    // INITIALIZE
+    // ============================================
+    document.addEventListener('DOMContentLoaded', function() {
+      animateRings();
+      createWeeklyRings();
+
+      // Create sparklines with sample data
+      createSparkline('sparkline1', [180, 195, 210, 205, 225, 240, 255, 248, 262, 275, 284], '#4a6741');
+      createSparkline('sparkline2', [18500, 19200, 20100, 21000, 21800, 22400, 23100, 23500, 24000, 24500, 24847], '#06B6D4');
+      createSparkline('sparkline3', [1.8, 1.9, 2.0, 2.1, 2.0, 2.2, 2.3, 2.2, 2.3, 2.4, 2.4], '#EF4444');
+      createSparkline('sparkline4', [58, 60, 62, 64, 65, 66, 68, 69, 70, 71, 72], '#10B981');
+
+      // Animate rings on scroll
+      var observer = new IntersectionObserver(function(entries) {
+        entries.forEach(function(entry) {
+          if (entry.isIntersecting) {
+            var rings = entry.target.querySelectorAll('.ring-progress, .ring-glow');
+            rings.forEach(function(ring) {
+              ring.classList.add('animate');
+            });
+          }
+        });
+      }, { threshold: 0.3 });
+
+      document.querySelectorAll('section').forEach(function(section) {
+        observer.observe(section);
+      });
+    });
+  </script>
+</body>
+</html>

@@ -53,6 +53,11 @@
           "empathetic": { "eyeOpenness": 0.85, "browFurrow": 0.1 },
           "proud": { "eyeOpenness": 0.95, "mouthCurve": 0.3, "headNod": true },
           "contemplative": { "eyeOpenness": 0.8, "headTilt": -3 }
+        },
+        "image": {
+          "src": "/images/avatars/avatar-ferni.png",
+          "alt": "Ferni - Your Life Coach",
+          "fallbackInitials": "FE"
         }
       },
 
@@ -150,6 +155,11 @@
           "focused": { "eyeOpenness": 1.0, "browFurrow": 0.2 },
           "excited": { "eyeOpenness": 1.15, "mouthCurve": 0.3 },
           "contemplating": { "eyeOpenness": 0.85, "lookDirection": "up" }
+        },
+        "image": {
+          "src": "/images/avatars/avatar-peter.png",
+          "alt": "Peter - Your Research Guide",
+          "fallbackInitials": "PJ"
         }
       },
 
@@ -246,6 +256,11 @@
           "encouraging": { "eyeOpenness": 1.0, "mouthCurve": 0.25 },
           "thoughtful": { "eyeOpenness": 0.9, "browPosition": "slight-raise" },
           "supportive": { "eyeOpenness": 0.95, "mouthCurve": 0.15, "nod": true }
+        },
+        "image": {
+          "src": "/images/avatars/avatar-alex.png",
+          "alt": "Alex - Your Communication Coach",
+          "fallbackInitials": "AC"
         }
       },
 
@@ -346,6 +361,11 @@
           "satisfied": { "eyeOpenness": 0.95, "mouthCurve": 0.2 },
           "encouraging": { "eyeOpenness": 1.0, "mouthCurve": 0.15, "nod": true },
           "planning": { "eyeOpenness": 0.9, "lookDirection": "thoughtful" }
+        },
+        "image": {
+          "src": "/images/avatars/avatar-maya.png",
+          "alt": "Maya - Your Habits & Routines Coach",
+          "fallbackInitials": "MS"
         }
       },
 
@@ -442,6 +462,15 @@
           "excited": { "eyeOpenness": 1.2, "mouthCurve": 0.4, "headBob": true },
           "encouraging": { "eyeOpenness": 1.05, "mouthCurve": 0.3 },
           "planning": { "eyeOpenness": 1.1, "mouthCurve": 0.2, "headTilt": 5 }
+        },
+        "image": {
+          "src": "/images/avatars/avatar-jordan.png",
+          "alt": "Jordan - Your Celebration Catalyst",
+          "fallbackInitials": "JT"
+        },
+        "voiceId": {
+          "cartesia": "219ccddf-e83d-491f-ae44-5f4447d5a9ca",
+          "_note": "Centralized reference - source of truth is persona.manifest.json"
         }
       },
 
@@ -534,6 +563,11 @@
           "knowing": { "eyeOpenness": 0.9, "mouthCurve": 0.15, "nod": "slow" },
           "questioning": { "eyeOpenness": 0.95, "browRaise": 0.1, "headTilt": 5 },
           "peaceful": { "eyeOpenness": 0.8, "mouthCurve": 0.1, "breathDeep": true }
+        },
+        "image": {
+          "src": "/images/avatars/avatar-nayan.png",
+          "alt": "Nayan - Your Wisdom Guide",
+          "fallbackInitials": "NP"
         }
       },
 

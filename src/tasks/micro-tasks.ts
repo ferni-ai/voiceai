@@ -12,8 +12,7 @@
  * - Showing active listening
  */
 
-import { llm, log } from '@livekit/agents';
-import { getLogger } from '../utils/safe-logger.js';
+import { llm } from '@livekit/agents';
 import { z } from 'zod';
 import { IntelligentTask } from './intelligent-task.js';
 
@@ -230,11 +229,11 @@ export class QuickCuriosityTask extends IntelligentTask<CuriosityResult> {
           ${topic ? `Topic: "${topic}"` : ''}
           
           Good follow-up questions:
-          - "Tell me more about that."
+          - "What's that like for you?"
           - "How did that come about?"
           - "What made you think of that?"
           - "How do you feel about it?"
-          - "What's that like for you?"
+          - "What's underneath that?"
           
           Rules:
           - ONE question only

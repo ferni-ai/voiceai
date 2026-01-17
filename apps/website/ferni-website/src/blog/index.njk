@@ -1,124 +1,192 @@
 ---
-layout: layouts/base.njk
-title: Blog - Ferni
+layout: layouts/blog.njk
+title: Blog
 description: Insights on AI coaching, personal growth, and building better habits
 permalink: /blog/
 ---
 
-<main class="min-h-screen bg-paper">
+{# Hero Section #}
+<section class="blog-hero">
+  <div class="container">
+    <p class="blog-hero__eyebrow reveal">The Ferni Blog</p>
+    <h1 class="blog-hero__title reveal">Thoughts on growth.</h1>
+    <p class="blog-hero__subtitle reveal">Insights on AI coaching, personal development, and building a life you love.</p>
+  </div>
+</section>
 
-  {# Hero Section #}
-  <section class="pt-32 pb-16 px-6 bg-gradient-to-b from-paper-sand to-paper">
-    <div class="max-w-4xl mx-auto text-center">
-      <p class="reveal text-eyebrow uppercase tracking-widest text-ferni mb-4">The Ferni Blog</p>
-      <h1 class="reveal font-display text-display-xl text-ink mb-6">Thoughts on growth.</h1>
-      <p class="reveal text-body-xl text-ink-muted max-w-2xl mx-auto">Insights on AI coaching, personal development, and building a life you love.</p>
-    </div>
-  </section>
+{# Blog Posts #}
+<section class="blog-posts">
+  <div class="container">
 
-  {# Blog Posts #}
-  <section class="py-16 px-6">
-    <div class="max-w-5xl mx-auto">
-      
-      {# Featured Post #}
-      {% set featuredPost = collections.posts | reverse | first %}
-      {% if featuredPost %}
-      <article class="reveal mb-12 bg-white rounded-3xl shadow-xl overflow-hidden hover:shadow-2xl transition-shadow duration-500 group">
-        <a href="{{ featuredPost.url }}" class="grid lg:grid-cols-2">
-          <div class="aspect-video lg:aspect-auto bg-gradient-to-br from-ferni/20 to-peter/20 relative">
-            {% if featuredPost.data.image %}
-            <img src="/images/blog/{{ featuredPost.data.image }}" alt="{{ featuredPost.data.imageAlt or featuredPost.data.title }}" class="absolute inset-0 w-full h-full object-cover" loading="lazy">
+    {# Featured Post #}
+    {% set featuredPost = collections.posts | reverse | first %}
+    {% if featuredPost %}
+    <article class="featured-post reveal">
+      <a href="{{ featuredPost.url }}" class="featured-post__link">
+        <div class="featured-post__image">
+          {% if featuredPost.data.image %}
+          <img src="/images/blog/{{ featuredPost.data.image }}" alt="{{ featuredPost.data.imageAlt or featuredPost.data.title }}" loading="lazy">
+          {% else %}
+          <div class="featured-post__placeholder">
+            {% if featuredPost.data.category == "Building in Public" %}
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/><path d="M2 2l7.586 7.586"/><circle cx="11" cy="11" r="2"/></svg>
+            {% elif featuredPost.data.category == "Product" %}
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+            {% elif featuredPost.data.category == "Announcements" %}
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
+            {% elif featuredPost.data.category == "Personal Growth" %}
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22V8"/><path d="M5 12H2a10 10 0 0020 0h-3"/><path d="M12 2a5 5 0 00-5 5v3h10V7a5 5 0 00-5-5z"/></svg>
             {% else %}
-            <div class="absolute inset-0 flex items-center justify-center">
-              <div class="w-20 h-20 rounded-2xl bg-ferni/20 flex items-center justify-center">
-                <svg class="w-10 h-10 text-ferni" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z"/></svg>
-              </div>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/><line x1="8" y1="7" x2="16" y2="7"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
+            {% endif %}
+          </div>
+          {% endif %}
+        </div>
+        <div class="featured-post__content">
+          <div class="featured-post__meta">
+            {% if featuredPost.data.category %}
+            <span class="post-category">{{ featuredPost.data.category }}</span>
+            {% endif %}
+            <span class="post-date">{{ featuredPost.date | date("MMMM d, yyyy") }}</span>
+          </div>
+          <h2 class="featured-post__title">{{ featuredPost.data.title }}</h2>
+          <p class="featured-post__excerpt">{{ featuredPost.data.excerpt }}</p>
+          <span class="featured-post__cta">
+            Read article
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+          </span>
+        </div>
+      </a>
+    </article>
+    {% endif %}
+      
+    {# Post Grid #}
+    <div class="posts-grid">
+      {% for post in collections.posts | reverse %}
+      {% if loop.index > 1 %}
+      <article class="post-card reveal">
+        <a href="{{ post.url }}" class="post-card__link">
+          <div class="post-card__image">
+            {% if post.data.image %}
+            <img src="/images/blog/{{ post.data.image }}" alt="{{ post.data.imageAlt or post.data.title }}" loading="lazy">
+            {% else %}
+            <div class="post-card__placeholder">
+              {% if post.data.category == "Building in Public" %}
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/><path d="M2 2l7.586 7.586"/><circle cx="11" cy="11" r="2"/></svg>
+              {% elif post.data.category == "Product" %}
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+              {% elif post.data.category == "Announcements" %}
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 17H2a3 3 0 006 0h8a3 3 0 006 0z"/><path d="M12 2L12 9"/><path d="M4.5 9.5L12 2l7.5 7.5"/><path d="M4 11h16v6H4z"/></svg>
+              {% elif post.data.category == "Personal Growth" %}
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22V8"/><path d="M5 12H2a10 10 0 0020 0h-3"/><path d="M12 2a5 5 0 00-5 5v3h10V7a5 5 0 00-5-5z"/></svg>
+              {% elif post.data.category == "AI & Technology" %}
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg>
+              {% else %}
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/><line x1="8" y1="7" x2="16" y2="7"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
+              {% endif %}
             </div>
             {% endif %}
           </div>
-          <div class="p-8 lg:p-10 flex flex-col justify-center">
-            <div class="flex items-center gap-4 mb-4">
-              {% if featuredPost.data.category %}
-              <span class="px-3 py-1 bg-ferni/10 text-ferni text-xs font-semibold rounded-full">{{ featuredPost.data.category }}</span>
+          <div class="post-card__content">
+            <div class="post-card__meta">
+              {% if post.data.category %}
+              <span class="post-category">{{ post.data.category }}</span>
               {% endif %}
-              <span class="text-ink-muted text-sm">{{ featuredPost.date | date("MMMM d, yyyy") }}</span>
+              <span class="post-date">{{ post.date | date("MMM d, yyyy") }}</span>
             </div>
-            <h2 class="font-display text-2xl lg:text-3xl font-bold text-ink mb-4 group-hover:text-ferni transition-colors">{{ featuredPost.data.title }}</h2>
-            <p class="text-ink-muted mb-6 line-clamp-3">{{ featuredPost.data.excerpt }}</p>
-            <span class="inline-flex items-center gap-2 text-ferni font-semibold">
-              Read article
-              <svg class="w-4 h-4 group-hover:translate-x-1 transition-transform" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-            </span>
+            <h3 class="post-card__title">{{ post.data.title }}</h3>
+            <p class="post-card__excerpt">{{ post.data.excerpt }}</p>
           </div>
         </a>
       </article>
       {% endif %}
-      
-      {# Post Grid #}
-      <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {% for post in collections.posts | reverse %}
-        {% if loop.index > 1 %}
-        <article class="reveal group bg-white rounded-2xl shadow-md hover:shadow-xl border border-ink/5 hover:border-ferni/20 overflow-hidden transition-all duration-500 hover:-translate-y-1">
-          <a href="{{ post.url }}" class="block">
-            <div class="aspect-video bg-gradient-to-br from-ferni/10 to-peter/10 relative">
-              {% if post.data.image %}
-              <img src="/images/blog/{{ post.data.image }}" alt="{{ post.data.imageAlt or post.data.title }}" class="absolute inset-0 w-full h-full object-cover" loading="lazy">
-              {% else %}
-              <div class="absolute inset-0 flex items-center justify-center">
-                <div class="w-12 h-12 rounded-xl bg-white/50 flex items-center justify-center">
-                  <svg class="w-6 h-6 text-ferni" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z"/></svg>
-                </div>
-              </div>
-              {% endif %}
-            </div>
-            <div class="p-5">
-              <div class="flex items-center gap-3 mb-3">
-                {% if post.data.category %}
-                <span class="px-2 py-0.5 bg-ferni/10 text-ferni text-xs font-medium rounded">{{ post.data.category }}</span>
-                {% endif %}
-                <span class="text-ink-muted text-xs">{{ post.date | date("MMM d, yyyy") }}</span>
-              </div>
-              <h3 class="font-display font-bold text-lg text-ink mb-2 group-hover:text-ferni transition-colors line-clamp-2">{{ post.data.title }}</h3>
-              <p class="text-ink-muted text-sm line-clamp-2">{{ post.data.excerpt }}</p>
-            </div>
-          </a>
-        </article>
-        {% endif %}
-        {% endfor %}
-      </div>
-      
-      {% if collections.posts.length == 0 %}
-      <div class="text-center py-20">
-        <div class="w-16 h-16 mx-auto mb-6 rounded-2xl bg-ink/5 flex items-center justify-center">
-          <svg class="w-8 h-8 text-ink-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z"/></svg>
-        </div>
-        <p class="text-ink-muted text-lg">No posts yet. Check back soon!</p>
-      </div>
-      {% endif %}
-      
+      {% endfor %}
     </div>
-  </section>
 
-  {# Newsletter CTA #}
-  <section class="py-16 px-6 bg-paper-sand">
-    <div class="max-w-xl mx-auto">
-      <div class="reveal bg-white rounded-3xl p-8 lg:p-10 shadow-xl text-center">
-        <h3 class="font-display text-display-sm text-ink mb-3">Stay in the loop</h3>
-        <p class="text-ink-muted mb-6">Get new articles and Ferni updates delivered to your inbox.</p>
-        <form class="flex flex-col sm:flex-row gap-3" action="https://ferni.us11.list-manage.com/subscribe/post?u=52ffacbad9b81de1f66ebac7c&amp;id=dd755645d6&amp;f_id=00b2c7e3f0" method="POST" target="_blank">
-          <input type="email" name="EMAIL" placeholder="your@email.com" required
-            class="flex-1 px-4 py-3 bg-paper-sand border border-ink/10 rounded-xl focus:outline-none focus:border-ferni focus:ring-2 focus:ring-ferni/20 transition-all">
-          <div aria-hidden="true" style="position: absolute; left: -5000px">
-            <input type="text" name="b_52ffacbad9b81de1f66ebac7c_dd755645d6" tabindex="-1" value="">
-          </div>
-          <button type="submit" class="px-6 py-3 bg-ferni hover:bg-ferni-dark text-white font-semibold rounded-xl shadow-lg shadow-ferni/20 hover:shadow-xl transition-all">
-            Subscribe
-          </button>
-        </form>
+    {% if collections.posts.length == 0 %}
+    <div class="blog-empty">
+      <div class="blog-empty__icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/><line x1="8" y1="7" x2="16" y2="7"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
       </div>
+      <p>No posts yet. Check back soon!</p>
     </div>
-  </section>
+    {% endif %}
 
-</main>
+  </div>
+</section>
 
-{% include "partials/footer.njk" %}
+{# Newsletter CTA #}
+<section class="blog-newsletter">
+  <div class="container container--narrow">
+    <div class="newsletter-card reveal">
+      <h3 class="newsletter-card__title">Stay in the loop</h3>
+      <p class="newsletter-card__subtitle">Get new articles and Ferni updates delivered to your inbox.</p>
+      <form class="newsletter-form" id="newsletter-form">
+        <input type="email" name="email" placeholder="your@email.com" required class="newsletter-form__input" id="newsletter-email">
+        <button type="submit" class="newsletter-form__btn" id="newsletter-submit">Subscribe</button>
+      </form>
+      <p class="newsletter-form__message" id="newsletter-message" style="display: none;"></p>
+      <p class="newsletter-form__footer">We respect your inbox. Unsubscribe anytime.</p>
+    </div>
+  </div>
+</section>
+
+<script>
+(function() {
+  const form = document.getElementById('newsletter-form');
+  const emailInput = document.getElementById('newsletter-email');
+  const submitBtn = document.getElementById('newsletter-submit');
+  const message = document.getElementById('newsletter-message');
+
+  if (!form) return;
+
+  form.addEventListener('submit', async function(e) {
+    e.preventDefault();
+
+    const email = emailInput.value.trim();
+    if (!email) return;
+
+    // Disable form while submitting
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Subscribing...';
+    message.style.display = 'none';
+
+    try {
+      const response = await fetch('/api/waitlist', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: email,
+          source: 'newsletter'
+        })
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        // Success - show message and hide form
+        form.style.display = 'none';
+        message.textContent = "You're in! Check your inbox for a welcome email. 🌿";
+        message.className = 'newsletter-form__message newsletter-form__message--success';
+        message.style.display = 'block';
+      } else {
+        // Error from API
+        message.textContent = data.error || "Something went wrong. Try again?";
+        message.className = 'newsletter-form__message newsletter-form__message--error';
+        message.style.display = 'block';
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Subscribe';
+      }
+    } catch (error) {
+      // Network error
+      message.textContent = "Couldn't connect. Try again?";
+      message.className = 'newsletter-form__message newsletter-form__message--error';
+      message.style.display = 'block';
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Subscribe';
+    }
+  });
+})();
+</script>

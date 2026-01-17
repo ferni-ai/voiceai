@@ -157,7 +157,7 @@ export class VoiceAnalyzer {
   /**
    * Start analyzing audio from an audio element
    */
-  async startFromElement(audioElement: HTMLAudioElement): Promise<void> {
+  startFromElement(audioElement: HTMLAudioElement): void {
     if (this.isRunning) return;
 
     try {
@@ -217,7 +217,7 @@ export class VoiceAnalyzer {
   // SETUP
   // ==========================================================================
 
-  private async setupAnalyzer(stream: MediaStream): Promise<void> {
+  private setupAnalyzer(stream: MediaStream): void {
     this.audioContext = new AudioContext();
     this.analyser = this.audioContext.createAnalyser();
     this.configureAnalyser();

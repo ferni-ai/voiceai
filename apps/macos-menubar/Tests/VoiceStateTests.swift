@@ -40,11 +40,13 @@ final class VoiceStateTests: XCTestCase {
     }
     
     func testBreathingIntensity() {
-        XCTAssertEqual(VoiceState.speaking.breathingIntensity, 1.5)
-        XCTAssertEqual(VoiceState.listening.breathingIntensity, 1.2)
+        // All active conversation states now use the same intensity (1.0)
+        XCTAssertEqual(VoiceState.speaking.breathingIntensity, 1.0)
+        XCTAssertEqual(VoiceState.listening.breathingIntensity, 1.0)
         XCTAssertEqual(VoiceState.connected.breathingIntensity, 1.0)
         XCTAssertEqual(VoiceState.thinking.breathingIntensity, 0.8)
         XCTAssertEqual(VoiceState.disconnected.breathingIntensity, 0.6)
+        XCTAssertEqual(VoiceState.error("test").breathingIntensity, 0.6)
     }
     
     // MARK: - State Equality

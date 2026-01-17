@@ -17,14 +17,15 @@
 
 import { t } from '../i18n/index.js';
 import { DURATION, EASING } from '../config/animation-constants.js';
+import { apiGet, apiPost } from '../utils/api.js';
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
-import { toast } from './toast.ui.js';
+import { toast } from './whisper.ui.js';
 
 const log = createLogger('B2BAdminUI');
 
 // FIX BUG: Track all setTimeout calls for proper cleanup
-const { trackedTimeout, clearAll: clearAllTimeouts } = createTimeoutTracker();
+const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
 
 // ============================================================================
 // TYPES
@@ -99,7 +100,7 @@ const styles = `
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 10000;
+  z-index: var(--z-tooltip);
   opacity: 0;
   pointer-events: none;
   transition: opacity ${DURATION.MODERATE}ms ${EASING.STANDARD};
@@ -113,18 +114,18 @@ const styles = `
 .b2b-admin-backdrop {
   position: absolute;
   inset: 0;
-  background: rgba(44, 37, 32, 0.4);
-  backdrop-filter: blur(var(--glass-blur-strong, 24px));
+  background: rgba(44, 37, 32, 0.75);
 }
 
 .b2b-admin-card {
   position: relative;
-  background: var(--color-background-elevated, #FFFDFB);
-  border-radius: var(--radius-2xl, 24px);
+  background: var(--color-bg-elevated, #FFFDFB);
+  border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
+  border-radius: var(--radius-xl, 20px);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.06);
   width: calc(100% - 48px);
-  max-width: 900px;
+  max-width: min(900px, 100%);
   max-height: 85vh;
-  box-shadow: var(--shadow-2xl);
   transform: scale(0.95);
   transition: transform ${DURATION.MODERATE}ms ${EASING.SPRING};
   display: flex;
@@ -155,7 +156,7 @@ const styles = `
 .b2b-admin-logo {
   width: 40px;
   height: 40px;
-  background: var(--persona-primary, #4a6741);
+  background: var(--persona-primary);
   border-radius: var(--radius-md, 8px);
   display: flex;
   align-items: center;
@@ -223,7 +224,7 @@ const styles = `
 }
 
 .b2b-admin-nav-btn.active {
-  background: var(--persona-primary, #4a6741);
+  background: var(--persona-primary);
   color: white;
 }
 
@@ -270,7 +271,7 @@ const styles = `
 
 .b2b-admin-stat-change {
   font-size: 0.8rem;
-  color: var(--persona-primary, #4a6741);
+  color: var(--persona-text);
   margin-top: var(--space-1, 4px);
 }
 
@@ -307,7 +308,7 @@ const styles = `
 .b2b-admin-section-title svg {
   width: 20px;
   height: 20px;
-  color: var(--persona-primary, #4a6741);
+  color: var(--persona-text);
 }
 
 .b2b-admin-section-content {
@@ -338,7 +339,7 @@ const styles = `
 }
 
 .b2b-admin-roi-value.positive {
-  color: var(--persona-primary, #4a6741);
+  color: var(--persona-text);
 }
 
 .b2b-admin-roi-value.investment {
@@ -375,7 +376,7 @@ const styles = `
 }
 
 .b2b-admin-checklist-icon.completed {
-  background: var(--persona-primary, #4a6741);
+  background: var(--persona-primary);
   color: white;
 }
 
@@ -460,7 +461,7 @@ const styles = `
 
 .b2b-admin-team-badge.admin {
   background: rgba(74, 103, 65, 0.1);
-  color: var(--persona-primary, #4a6741);
+  color: var(--persona-text);
 }
 
 .b2b-admin-team-badge.member {
@@ -485,8 +486,8 @@ const styles = `
 }
 
 .b2b-admin-team-action-btn:hover {
-  border-color: var(--persona-primary, #4a6741);
-  color: var(--persona-primary, #4a6741);
+  border-color: var(--persona-text);
+  color: var(--persona-text);
 }
 
 .b2b-admin-team-action-btn.danger:hover {
@@ -511,7 +512,7 @@ const styles = `
 
 .b2b-admin-invite-input:focus {
   outline: none;
-  border-color: var(--persona-primary, #4a6741);
+  border-color: var(--persona-text);
 }
 
 .b2b-admin-invite-select {
@@ -520,12 +521,12 @@ const styles = `
   border-radius: var(--radius-md, 8px);
   font-size: 0.9rem;
   background: white;
-  min-width: 100px;
+  min-width: min(100px, 100%);
 }
 
 .b2b-admin-invite-btn {
   padding: var(--space-3, 12px) var(--space-5, 20px);
-  background: var(--persona-primary, #4a6741);
+  background: var(--persona-primary);
   color: white;
   border: none;
   border-radius: var(--radius-md, 8px);
@@ -536,7 +537,7 @@ const styles = `
 }
 
 .b2b-admin-invite-btn:hover {
-  background: var(--persona-secondary, #3d5a35);
+  background: var(--persona-secondary);
 }
 
 /* Settings Form */
@@ -580,12 +581,12 @@ const styles = `
 .b2b-admin-form-input:focus,
 .b2b-admin-form-textarea:focus {
   outline: none;
-  border-color: var(--persona-primary, #4a6741);
+  border-color: var(--persona-text);
 }
 
 .b2b-admin-save-btn {
   padding: var(--space-3, 12px) var(--space-6, 24px);
-  background: var(--persona-primary, #4a6741);
+  background: var(--persona-primary);
   color: white;
   border: none;
   border-radius: var(--radius-md, 8px);
@@ -596,7 +597,7 @@ const styles = `
 }
 
 .b2b-admin-save-btn:hover {
-  background: var(--persona-secondary, #3d5a35);
+  background: var(--persona-secondary);
 }
 
 /* Topic Tags */
@@ -609,7 +610,7 @@ const styles = `
 .b2b-admin-topic-tag {
   padding: var(--space-1, 4px) var(--space-3, 12px);
   background: rgba(74, 103, 65, 0.1);
-  color: var(--persona-primary, #4a6741);
+  color: var(--persona-text);
   border-radius: var(--radius-full, 9999px);
   font-size: 0.85rem;
 }
@@ -655,7 +656,7 @@ const styles = `
 }
 
 /* Responsive */
-@media (max-width: 768px) {
+@media (max-width: clamp(538px, 90vw, 768px)) {
   .b2b-admin-stats-grid {
     grid-template-columns: repeat(2, 1fr);
   }
@@ -703,11 +704,14 @@ async function fetchOrgData(orgId: string): Promise<{
   onboardingChecklist: OnboardingItem[];
 }> {
   try {
-    const response = await fetch(
-      `/api/monetization/b2b/organization?orgId=${orgId}&userId=${currentUserId}`
-    );
-    if (!response.ok) throw new Error('Failed to fetch organization data');
-    return response.json();
+    const response = await apiGet<{
+      organization: Organization;
+      usageStats: OrgUsageStats;
+      roiEstimate: ROIEstimate;
+      onboardingChecklist: OnboardingItem[];
+    }>(`/api/monetization/b2b/organization?orgId=${orgId}&userId=${currentUserId}`);
+    if (!response.ok || !response.data) throw new Error('Failed to fetch organization data');
+    return response.data;
   } catch (error) {
     log.error({ error: String(error) }, 'Failed to fetch org data');
     // Return mock data for demo
@@ -770,15 +774,11 @@ async function fetchOrgData(orgId: string): Promise<{
 
 async function sendInvite(email: string, role: 'admin' | 'member'): Promise<boolean> {
   try {
-    const response = await fetch('/api/monetization/b2b/invite', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        orgId: currentOrg?.id,
-        email,
-        role,
-        invitedBy: currentUserId,
-      }),
+    const response = await apiPost('/api/monetization/b2b/invite', {
+      orgId: currentOrg?.id,
+      email,
+      role,
+      invitedBy: currentUserId,
     });
     return response.ok;
   } catch {
@@ -1037,7 +1037,7 @@ function renderTeam(): string {
             <option value="member">Member</option>
             <option value="admin">Admin</option>
           </select>
-          <button class="b2b-admin-invite-btn" id="send-invite-btn">Send Invite</button>
+          <button aria-label="Send Invite" class="b2b-admin-invite-btn" id="send-invite-btn">Send Invite</button>
         </div>
         <p class="b2b-admin-form-help">
           ${currentOrg?.seatCount ? currentOrg.seatCount - (currentOrg.activeSeats || 0) : 0} seats remaining
@@ -1064,9 +1064,9 @@ function renderTeam(): string {
                 </div>
               </div>
               <span class="b2b-admin-team-badge ${member.role}">${member.role}</span>
-              <div class="b2b-admin-team-actions">
-                ${member.role === 'member' ? `<button class="b2b-admin-team-action-btn" data-action="promote" data-user="${member.userId}">Make Admin</button>` : ''}
-                <button class="b2b-admin-team-action-btn danger" data-action="remove" data-user="${member.userId}">Remove</button>
+              <div class="b2b-admin-team-actions" role="button" tabindex="0">
+                ${member.role === 'member' ? `<button aria-label="Make Admin" class="b2b-admin-team-action-btn" data-action="promote" data-user="${member.userId}">Make Admin</button>` : ''}
+                <button aria-label="Remove" class="b2b-admin-team-action-btn danger" data-action="remove" data-user="${member.userId}">Remove</button>
               </div>
             </li>
           `
@@ -1105,7 +1105,7 @@ function renderSettings(): string {
           <p class="b2b-admin-form-help">Ferni will incorporate these values in relevant conversations.</p>
         </div>
 
-        <button class="b2b-admin-save-btn" id="save-settings-btn">Save Settings</button>
+        <button aria-label="Settings" class="b2b-admin-save-btn" id="save-settings-btn">Save Settings</button>
       </div>
     </div>
   `;
@@ -1148,12 +1148,12 @@ function renderBilling(roi: ROIEstimate): string {
         </div>
         <div class="b2b-admin-form-group">
           <label class="b2b-admin-form-label">Estimated ROI</label>
-          <p style="color: var(--persona-primary);">${roi.roi}% return on investment</p>
+          <p style="color: var(--persona-text);">${roi.roi}% return on investment</p>
           <p class="b2b-admin-form-help">
             Net benefit: $${((roi.estimatedSavings - roi.monthlyInvestment) / 100).toLocaleString()}/month
           </p>
         </div>
-        <button class="b2b-admin-save-btn" onclick="window.open('/api/subscription/portal?userId=${currentUserId}', '_blank')">
+        <button aria-label="Manage Billing" class="b2b-admin-save-btn" onclick="window.open('/api/subscription/portal?userId=${currentUserId}', '_blank')">
           Manage Billing
         </button>
       </div>

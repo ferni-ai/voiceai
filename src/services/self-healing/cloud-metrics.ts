@@ -20,6 +20,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
+import { registerInterval, clearNamedInterval, hasInterval } from '../../utils/interval-manager.js';
 import type { CircuitState } from './circuit-breaker.js';
 
 const log = createLogger({ module: 'cloud-metrics' });
@@ -70,8 +71,8 @@ const metricBuffer: MetricBuffer = {
   lastFlush: Date.now(),
 };
 
-// Export interval handle
-let exportInterval: NodeJS.Timeout | null = null;
+// Export interval name for managed interval
+const CLOUD_METRICS_EXPORT_INTERVAL = 'cloud-metrics-export';
 
 // ============================================================================
 // METRIC STATE MAPPING
@@ -342,9 +343,9 @@ export async function flushMetrics(): Promise<number> {
 export function configureMetrics(newConfig: Partial<MetricsConfig>): void {
   config = { ...config, ...newConfig };
 
-  if (config.enabled && !exportInterval) {
+  if (config.enabled && !hasInterval(CLOUD_METRICS_EXPORT_INTERVAL)) {
     startMetricsExport();
-  } else if (!config.enabled && exportInterval) {
+  } else if (!config.enabled && hasInterval(CLOUD_METRICS_EXPORT_INTERVAL)) {
     stopMetricsExport();
   }
 
@@ -355,16 +356,20 @@ export function configureMetrics(newConfig: Partial<MetricsConfig>): void {
  * Start periodic metrics export
  */
 export function startMetricsExport(): void {
-  if (exportInterval) {
+  if (hasInterval(CLOUD_METRICS_EXPORT_INTERVAL)) {
     return;
   }
 
   const intervalMs = config.exportIntervalMs || 60000;
-  exportInterval = setInterval(() => {
-    flushMetrics().catch((err) => {
-      log.warn({ error: String(err) }, 'Periodic metrics flush failed');
-    });
-  }, intervalMs);
+  registerInterval(
+    CLOUD_METRICS_EXPORT_INTERVAL,
+    () => {
+      flushMetrics().catch((err) => {
+        log.warn({ error: String(err) }, 'Periodic metrics flush failed');
+      });
+    },
+    intervalMs
+  );
 
   log.info({ intervalMs }, 'Metrics export started');
 }
@@ -373,14 +378,11 @@ export function startMetricsExport(): void {
  * Stop periodic metrics export
  */
 export function stopMetricsExport(): void {
-  if (exportInterval) {
-    clearInterval(exportInterval);
-    exportInterval = null;
-  }
+  clearNamedInterval(CLOUD_METRICS_EXPORT_INTERVAL);
 
   // Final flush
   flushMetrics().catch((err) => {
-    log.debug({ error: String(err) }, 'Final metrics flush failed (non-critical)');
+    log.warn({ error: String(err) }, 'Final metrics flush failed (non-critical)');
   });
 }
 

@@ -1,0 +1,728 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Window Avatar — Ferni Style</title>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --ferni: #4a6741;
+      --ferni-light: #5a7a51;
+      --ferni-dark: #3d5a35;
+      --cream: #F5F1E8;
+      --ink: #2C2520;
+      --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background: var(--cream);
+      min-height: 100vh;
+      padding: 24px;
+      color: var(--ink);
+    }
+    
+    header {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    
+    h1 {
+      font-size: 1.4rem;
+      font-weight: 800;
+      color: var(--ferni);
+    }
+    
+    .subtitle {
+      color: #5C544A;
+      font-size: 0.8rem;
+      margin-top: 4px;
+    }
+    
+    .main-stage {
+      background: white;
+      border-radius: 20px;
+      padding: 24px;
+      margin-bottom: 16px;
+      box-shadow: 0 4px 20px rgba(44,37,32,0.06);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    
+    .current-emotion {
+      font-size: 0.9rem;
+      font-weight: 700;
+      color: var(--ferni);
+      margin-bottom: 16px;
+    }
+    
+    /* ============================================
+       FERNI AVATAR - Proper subtle lid paths
+       
+       Path format: M 0,0 Q 50,Y 100,0 L 100,0 L 0,0 Z
+       Where Y is the control point:
+       - Negative Y = curve outside (invisible)
+       - Positive Y = curve inside (visible lid)
+       
+       Actual Ferni range:
+       - Neutral: -10 (invisible)
+       - Most expressions: 5 to 28
+       - Sleepy (most extreme): 55
+       ============================================ */
+    
+    .ferni-avatar {
+      --size: 100px;
+      position: relative;
+      width: var(--size);
+      height: var(--size);
+      transition: transform 0.25s var(--ease-spring);
+    }
+    
+    .avatar-svg {
+      width: 100%;
+      height: 100%;
+      overflow: visible;
+    }
+    
+    .presence-ring {
+      fill: none;
+      stroke: var(--ferni);
+      stroke-width: 1.5;
+      opacity: 0.3;
+    }
+    
+    .avatar-body {
+      transition: transform 0.2s var(--ease-spring);
+      transform-origin: center center;
+    }
+    
+    .eye-main {
+      transition: transform 0.15s var(--ease-spring);
+      transform-origin: center center;
+    }
+    
+    /* Lids use quadratic bezier - just a curve, no rectangle! */
+    .lid-top, .lid-bottom {
+      fill: var(--cream);
+      transition: d 0.25s var(--ease-spring);
+    }
+    
+    /* ============================================
+       EXPRESSIONS - Ferni-accurate subtle values
+       
+       Top lid: M 0,0 Q 50,Y 100,0 L 100,0 L 0,0 Z
+       - Y < 0 = invisible (outside circle)
+       - Y = 0-15 = barely visible
+       - Y = 15-30 = gentle curve
+       - Y = 30-55 = closing (rare)
+       
+       Bottom lid: M 0,100 Q 50,Y 100,100 L 100,100 L 0,100 Z
+       - Y > 100 = invisible
+       - Y = 85-100 = subtle
+       - Y = 70-85 = moderate
+       ============================================ */
+    
+    /* === NEUTRAL - Lids invisible === */
+    .ferni-avatar[data-mood="neutral"] .lid-top {
+      d: path("M 0,0 Q 50,-10 100,0 L 100,0 L 0,0 Z");
+    }
+    .ferni-avatar[data-mood="neutral"] .lid-bottom {
+      d: path("M 0,100 Q 50,110 100,100 L 100,100 L 0,100 Z");
+    }
+    
+    /* === HAPPY - Gentle squint (25 top, 85 bottom) === */
+    .ferni-avatar[data-mood="happy"] .eye-main {
+      transform: scaleY(0.85) scaleX(1.05);
+    }
+    .ferni-avatar[data-mood="happy"] .lid-top {
+      d: path("M 0,0 Q 50,25 100,0 L 100,0 L 0,0 Z");
+    }
+    .ferni-avatar[data-mood="happy"] .lid-bottom {
+      d: path("M 0,100 Q 50,85 100,100 L 100,100 L 0,100 Z");
+    }
+    
+    /* === JOY - Warmer squint (28 top, 82 bottom) === */
+    .ferni-avatar[data-mood="joy"] {
+      transform: scaleY(1.01);
+    }
+    .ferni-avatar[data-mood="joy"] .eye-main {
+      transform: scaleY(0.75) scaleX(1.08);
+    }
+    .ferni-avatar[data-mood="joy"] .lid-top {
+      d: path("M 0,0 Q 50,28 100,0 L 100,0 L 0,0 Z");
+    }
+    .ferni-avatar[data-mood="joy"] .lid-bottom {
+      d: path("M 0,100 Q 50,82 100,100 L 100,100 L 0,100 Z");
+    }
+    
+    /* === BEAMING - Celebrating (26 top, 84 bottom) === */
+    .ferni-avatar[data-mood="beaming"] {
+      transform: scaleY(1.02) scaleX(0.99);
+    }
+    .ferni-avatar[data-mood="beaming"] .eye-main {
+      transform: scaleY(0.7) scaleX(1.1);
+    }
+    .ferni-avatar[data-mood="beaming"] .lid-top {
+      d: path("M 0,0 Q 50,26 100,0 L 100,0 L 0,0 Z");
+    }
+    .ferni-avatar[data-mood="beaming"] .lid-bottom {
+      d: path("M 0,100 Q 50,84 100,100 L 100,100 L 0,100 Z");
+    }
+    
+    /* === LAUGHING - Most happy squint (30 top, 78 bottom) === */
+    .ferni-avatar[data-mood="laughing"] {
+      transform: scaleY(1.02) scaleX(0.98);
+    }
+    .ferni-avatar[data-mood="laughing"] .eye-main {
+      transform: scaleY(0.6) scaleX(1.12);
+    }
+    .ferni-avatar[data-mood="laughing"] .lid-top {
+      d: path("M 0,0 Q 50,30 100,0 L 100,0 L 0,0 Z");
+    }
+    .ferni-avatar[data-mood="laughing"] .lid-bottom {
+      d: path("M 0,100 Q 50,78 100,100 L 100,100 L 0,100 Z");
+    }
+    
+    /* === PLAYFUL - Asymmetric hint === */
+    .ferni-avatar[data-mood="playful"] {
+      transform: rotate(1deg);
+    }
+    .ferni-avatar[data-mood="playful"] .eye-left {
+      transform: scaleY(0.8) scaleX(1.05);
+    }
+    .ferni-avatar[data-mood="playful"] .eye-right {
+      transform: scaleY(0.95);
+    }
+    .ferni-avatar[data-mood="playful"] .lid-top {
+      d: path("M 0,0 Q 30,20 60,5 Q 80,-5 100,0 L 100,0 L 0,0 Z");
+    }
+    .ferni-avatar[data-mood="playful"] .lid-bottom {
+      d: path("M 0,100 Q 50,100 100,100 L 100,100 L 0,100 Z");
+    }
+    
+    /* === WINK - One eye narrowed === */
+    .ferni-avatar[data-mood="wink"] {
+      transform: rotate(1deg);
+    }
+    .ferni-avatar[data-mood="wink"] .eye-left {
+      transform: scaleY(0.5) scaleX(1.1);
+    }
+    .ferni-avatar[data-mood="wink"] .eye-right {
+      transform: scaleY(1.0);
+    }
+    .ferni-avatar[data-mood="wink"] .lid-top {
+      d: path("M 0,0 Q 25,25 50,15 Q 75,5 100,0 L 100,0 L 0,0 Z");
+    }
+    .ferni-avatar[data-mood="wink"] .lid-bottom {
+      d: path("M 0,100 Q 50,95 100,100 L 100,100 L 0,100 Z");
+    }
+    
+    /* === SMIRK - Knowing asymmetric === */
+    .ferni-avatar[data-mood="smirk"] {
+      transform: rotate(2deg);
+    }
+    .ferni-avatar[data-mood="smirk"] .eye-left {
+      transform: scaleY(0.8) scaleX(1.02);
+    }
+    .ferni-avatar[data-mood="smirk"] .eye-right {
+      transform: scaleY(0.9);
+    }
+    .ferni-avatar[data-mood="smirk"] .lid-top {
+      d: path("M 0,0 Q 30,18 60,8 Q 85,-2 100,0 L 100,0 L 0,0 Z");
+    }
+    
+    /* === CHEEKY - Raised brow hint === */
+    .ferni-avatar[data-mood="cheeky"] .eye-left {
+      transform: scaleY(0.85);
+    }
+    .ferni-avatar[data-mood="cheeky"] .eye-right {
+      transform: scaleY(1.05);
+    }
+    .ferni-avatar[data-mood="cheeky"] .lid-top {
+      d: path("M 0,0 Q 25,15 50,10 Q 75,-5 100,0 L 100,0 L 0,0 Z");
+    }
+    
+    /* === SURPRISED - Wide open (-18 top, 118 bottom) === */
+    .ferni-avatar[data-mood="surprised"] {
+      transform: scaleY(1.02) scaleX(0.99);
+    }
+    .ferni-avatar[data-mood="surprised"] .eye-main {
+      transform: scaleY(1.15) scaleX(1.05);
+    }
+    .ferni-avatar[data-mood="surprised"] .lid-top {
+      d: path("M 0,0 Q 50,-18 100,0 L 100,0 L 0,0 Z");
+    }
+    .ferni-avatar[data-mood="surprised"] .lid-bottom {
+      d: path("M 0,100 Q 50,118 100,100 L 100,100 L 0,100 Z");
+    }
+    
+    /* === SHOCKED - Very wide (-25 top, 125 bottom) === */
+    .ferni-avatar[data-mood="shocked"] {
+      transform: scaleY(1.03) scaleX(0.98);
+    }
+    .ferni-avatar[data-mood="shocked"] .eye-main {
+      transform: scaleY(1.2) scaleX(1.08);
+    }
+    .ferni-avatar[data-mood="shocked"] .lid-top {
+      d: path("M 0,0 Q 50,-25 100,0 L 100,0 L 0,0 Z");
+    }
+    .ferni-avatar[data-mood="shocked"] .lid-bottom {
+      d: path("M 0,100 Q 50,125 100,100 L 100,100 L 0,100 Z");
+    }
+    
+    /* === AMAZED - Wonder (-12 top, 112 bottom) === */
+    .ferni-avatar[data-mood="amazed"] {
+      transform: scaleY(1.02);
+    }
+    .ferni-avatar[data-mood="amazed"] .eye-main {
+      transform: scaleY(1.12) scaleX(1.05);
+    }
+    .ferni-avatar[data-mood="amazed"] .lid-top {
+      d: path("M 0,0 Q 50,-12 100,0 L 100,0 L 0,0 Z");
+    }
+    .ferni-avatar[data-mood="amazed"] .lid-bottom {
+      d: path("M 0,100 Q 50,112 100,100 L 100,100 L 0,100 Z");
+    }
+    
+    /* === SAD - Droopy (35 top) === */
+    .ferni-avatar[data-mood="sad"] {
+      transform: scaleY(0.99);
+    }
+    .ferni-avatar[data-mood="sad"] .eye-main {
+      transform: scaleY(0.9) translateY(1px);
+    }
+    .ferni-avatar[data-mood="sad"] .lid-top {
+      d: path("M 0,0 Q 50,35 100,0 L 100,0 L 0,0 Z");
+    }
+    .ferni-avatar[data-mood="sad"] .lid-bottom {
+      d: path("M 0,100 Q 50,100 100,100 L 100,100 L 0,100 Z");
+    }
+    
+    /* === PENSIVE - Soft contemplative (20 top, 92 bottom) === */
+    .ferni-avatar[data-mood="pensive"] {
+      transform: rotate(-1deg);
+    }
+    .ferni-avatar[data-mood="pensive"] .eye-main {
+      transform: scaleY(0.85);
+    }
+    .ferni-avatar[data-mood="pensive"] .lid-top {
+      d: path("M 0,0 Q 50,20 100,0 L 100,0 L 0,0 Z");
+    }
+    .ferni-avatar[data-mood="pensive"] .lid-bottom {
+      d: path("M 0,100 Q 50,92 100,100 L 100,100 L 0,100 Z");
+    }
+    
+    /* === EMPATHETIC - Warm presence (20 top, 90 bottom) === */
+    .ferni-avatar[data-mood="empathetic"] {
+      transform: rotate(-1deg);
+    }
+    .ferni-avatar[data-mood="empathetic"] .eye-main {
+      transform: scaleY(0.9);
+    }
+    .ferni-avatar[data-mood="empathetic"] .lid-top {
+      d: path("M 0,0 Q 50,20 100,0 L 100,0 L 0,0 Z");
+    }
+    .ferni-avatar[data-mood="empathetic"] .lid-bottom {
+      d: path("M 0,100 Q 50,90 100,100 L 100,100 L 0,100 Z");
+    }
+    
+    /* === CONCERNED - Holding space (22 top, 88 bottom) === */
+    .ferni-avatar[data-mood="concerned"] .eye-main {
+      transform: scaleY(0.92);
+    }
+    .ferni-avatar[data-mood="concerned"] .lid-top {
+      d: path("M 0,0 Q 50,22 100,0 L 100,0 L 0,0 Z");
+    }
+    .ferni-avatar[data-mood="concerned"] .lid-bottom {
+      d: path("M 0,100 Q 50,88 100,100 L 100,100 L 0,100 Z");
+    }
+    
+    /* === SLEEPY - Heavy lids (55 top, 70 bottom) - MOST EXTREME === */
+    .ferni-avatar[data-mood="sleepy"] {
+      transform: scaleY(0.99) scaleX(1.01);
+    }
+    .ferni-avatar[data-mood="sleepy"] .eye-main {
+      transform: scaleY(0.6);
+    }
+    .ferni-avatar[data-mood="sleepy"] .lid-top {
+      d: path("M 0,0 Q 50,55 100,0 L 100,0 L 0,0 Z");
+    }
+    .ferni-avatar[data-mood="sleepy"] .lid-bottom {
+      d: path("M 0,100 Q 50,70 100,100 L 100,100 L 0,100 Z");
+    }
+    
+    /* === TIRED - Winding down (45 top, 78 bottom) === */
+    .ferni-avatar[data-mood="tired"] {
+      transform: scaleY(0.99);
+    }
+    .ferni-avatar[data-mood="tired"] .eye-main {
+      transform: scaleY(0.7);
+    }
+    .ferni-avatar[data-mood="tired"] .lid-top {
+      d: path("M 0,0 Q 50,45 100,0 L 100,0 L 0,0 Z");
+    }
+    .ferni-avatar[data-mood="tired"] .lid-bottom {
+      d: path("M 0,100 Q 50,78 100,100 L 100,100 L 0,100 Z");
+    }
+    
+    /* === CURIOUS - Interest (15 top) === */
+    .ferni-avatar[data-mood="curious"] {
+      transform: rotate(-2deg);
+    }
+    .ferni-avatar[data-mood="curious"] .eye-main {
+      transform: scaleY(1.05);
+    }
+    .ferni-avatar[data-mood="curious"] .lid-top {
+      d: path("M 0,0 Q 50,15 100,0 L 100,0 L 0,0 Z");
+    }
+    .ferni-avatar[data-mood="curious"] .lid-bottom {
+      d: path("M 0,100 Q 50,100 100,100 L 100,100 L 0,100 Z");
+    }
+    
+    /* === THINKING - Processing (12 top, 95 bottom) === */
+    .ferni-avatar[data-mood="thinking"] {
+      transform: rotate(1deg);
+    }
+    .ferni-avatar[data-mood="thinking"] .eye-main {
+      transform: translateX(2px) translateY(-2px);
+    }
+    .ferni-avatar[data-mood="thinking"] .lid-top {
+      d: path("M 0,0 Q 50,12 100,0 L 100,0 L 0,0 Z");
+    }
+    .ferni-avatar[data-mood="thinking"] .lid-bottom {
+      d: path("M 0,100 Q 50,95 100,100 L 100,100 L 0,100 Z");
+    }
+    
+    /* === PONDERING - Deep thought (18 top, 92 bottom) === */
+    .ferni-avatar[data-mood="pondering"] {
+      transform: rotate(1deg);
+    }
+    .ferni-avatar[data-mood="pondering"] .eye-main {
+      transform: translateX(2px) translateY(-1px) scaleY(0.95);
+    }
+    .ferni-avatar[data-mood="pondering"] .lid-top {
+      d: path("M 0,0 Q 50,18 100,0 L 100,0 L 0,0 Z");
+    }
+    .ferni-avatar[data-mood="pondering"] .lid-bottom {
+      d: path("M 0,100 Q 50,92 100,100 L 100,100 L 0,100 Z");
+    }
+    
+    /* === NOTICING - Perceptive (8 top) === */
+    .ferni-avatar[data-mood="noticing"] .eye-main {
+      transform: scaleY(1.02);
+    }
+    .ferni-avatar[data-mood="noticing"] .lid-top {
+      d: path("M 0,0 Q 50,8 100,0 L 100,0 L 0,0 Z");
+    }
+    .ferni-avatar[data-mood="noticing"] .lid-bottom {
+      d: path("M 0,100 Q 50,100 100,100 L 100,100 L 0,100 Z");
+    }
+    
+    /* === LISTENING - Active (5 top, 105 bottom) === */
+    .ferni-avatar[data-mood="listening"] {
+      transform: translateY(-1px);
+    }
+    .ferni-avatar[data-mood="listening"] .eye-main {
+      transform: scaleY(1.05);
+    }
+    .ferni-avatar[data-mood="listening"] .lid-top {
+      d: path("M 0,0 Q 50,5 100,0 L 100,0 L 0,0 Z");
+    }
+    .ferni-avatar[data-mood="listening"] .lid-bottom {
+      d: path("M 0,100 Q 50,105 100,100 L 100,100 L 0,100 Z");
+    }
+    
+    /* === SPEAKING - Engaged (15 top) with subtle pulse === */
+    .ferni-avatar[data-mood="speaking"] .eye-main {
+      transform: scaleY(0.9);
+    }
+    .ferni-avatar[data-mood="speaking"] .lid-top {
+      d: path("M 0,0 Q 50,15 100,0 L 100,0 L 0,0 Z");
+    }
+    .ferni-avatar[data-mood="speaking"] .avatar-body {
+      animation: speakPulse 0.5s ease-in-out infinite;
+    }
+    
+    @keyframes speakPulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scaleY(1.008) scaleX(0.995); }
+    }
+    
+    /* === WARM - Positive regard (12 top, 95 bottom) === */
+    .ferni-avatar[data-mood="warm"] .eye-main {
+      transform: scaleY(0.92);
+    }
+    .ferni-avatar[data-mood="warm"] .lid-top {
+      d: path("M 0,0 Q 50,12 100,0 L 100,0 L 0,0 Z");
+    }
+    .ferni-avatar[data-mood="warm"] .lid-bottom {
+      d: path("M 0,100 Q 50,95 100,100 L 100,100 L 0,100 Z");
+    }
+    
+    /* === CONTENT - Satisfied (18 top, 90 bottom) === */
+    .ferni-avatar[data-mood="content"] .eye-main {
+      transform: scaleY(0.88);
+    }
+    .ferni-avatar[data-mood="content"] .lid-top {
+      d: path("M 0,0 Q 50,18 100,0 L 100,0 L 0,0 Z");
+    }
+    .ferni-avatar[data-mood="content"] .lid-bottom {
+      d: path("M 0,100 Q 50,90 100,100 L 100,100 L 0,100 Z");
+    }
+    
+    /* === PROUD - Pride in user (22 top, 88 bottom) === */
+    .ferni-avatar[data-mood="proud"] {
+      transform: scaleY(1.01);
+    }
+    .ferni-avatar[data-mood="proud"] .eye-main {
+      transform: scaleY(0.85);
+    }
+    .ferni-avatar[data-mood="proud"] .lid-top {
+      d: path("M 0,0 Q 50,22 100,0 L 100,0 L 0,0 Z");
+    }
+    .ferni-avatar[data-mood="proud"] .lid-bottom {
+      d: path("M 0,100 Q 50,88 100,100 L 100,100 L 0,100 Z");
+    }
+    
+    /* === PRESENT - Grounded (10 top, 98 bottom) === */
+    .ferni-avatar[data-mood="present"] .eye-main {
+      transform: scaleY(0.98);
+    }
+    .ferni-avatar[data-mood="present"] .lid-top {
+      d: path("M 0,0 Q 50,10 100,0 L 100,0 L 0,0 Z");
+    }
+    .ferni-avatar[data-mood="present"] .lid-bottom {
+      d: path("M 0,100 Q 50,98 100,100 L 100,100 L 0,100 Z");
+    }
+    
+    /* Gallery */
+    .category {
+      margin-bottom: 12px;
+    }
+    
+    .category-title {
+      font-size: 0.7rem;
+      font-weight: 700;
+      color: var(--ferni);
+      margin-bottom: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    
+    .emotion-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(65px, 1fr));
+      gap: 5px;
+    }
+    
+    .emotion-card {
+      background: white;
+      border-radius: 10px;
+      padding: 6px 4px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.15s var(--ease-spring);
+      border: 2px solid transparent;
+    }
+    
+    .emotion-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(44,37,32,0.08);
+    }
+    
+    .emotion-card.active {
+      border-color: var(--ferni);
+      background: rgba(74, 103, 65, 0.05);
+    }
+    
+    .emotion-card .mini-avatar {
+      --size: 36px;
+      margin: 0 auto;
+    }
+    
+    .emotion-card .label {
+      font-size: 0.5rem;
+      margin-top: 3px;
+      color: var(--ink);
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Ferni Expression System</h1>
+    <p class="subtitle">Subtle lids + eye transforms (actual Ferni values)</p>
+  </header>
+
+  <div class="main-stage">
+    <div class="current-emotion" id="currentLabel">Neutral</div>
+    <div class="ferni-avatar" data-mood="neutral" id="mainAvatar">
+      <svg class="avatar-svg" viewBox="0 0 100 100">
+        <defs>
+          <linearGradient id="orbGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#5a7a51"/>
+            <stop offset="100%" stop-color="#3d5a35"/>
+          </linearGradient>
+          <linearGradient id="eyeGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stop-color="#ffffff"/>
+            <stop offset="100%" stop-color="#f0ebe4"/>
+          </linearGradient>
+          <clipPath id="orbClip">
+            <circle cx="50" cy="50" r="40"/>
+          </clipPath>
+        </defs>
+        
+        <!-- Halo - always visible -->
+        <circle class="presence-ring" cx="50" cy="50" r="46"/>
+        
+        <!-- Clipped to orb -->
+        <g clip-path="url(#orbClip)">
+          <circle class="avatar-body" cx="50" cy="50" r="40" fill="url(#orbGrad)"/>
+          <ellipse class="eye-main eye-left" cx="36" cy="48" rx="7" ry="10" fill="url(#eyeGrad)"/>
+          <ellipse class="eye-main eye-right" cx="64" cy="48" rx="7" ry="10" fill="url(#eyeGrad)"/>
+          <!-- Subtle quadratic bezier curves - NOT rectangles! -->
+          <path class="lid-top" d="M 0,0 Q 50,-10 100,0 L 100,0 L 0,0 Z"/>
+          <path class="lid-bottom" d="M 0,100 Q 50,110 100,100 L 100,100 L 0,100 Z"/>
+        </g>
+      </svg>
+    </div>
+  </div>
+
+  <div id="emotionGallery"></div>
+
+  <script>
+    const avatar = document.getElementById('mainAvatar');
+    const label = document.getElementById('currentLabel');
+    const gallery = document.getElementById('emotionGallery');
+    
+    const categories = [
+      {
+        name: 'Happy',
+        emotions: [
+          { id: 'happy', label: 'Happy' },
+          { id: 'joy', label: 'Joy' },
+          { id: 'beaming', label: 'Beaming' },
+          { id: 'laughing', label: 'Laughing' },
+        ]
+      },
+      {
+        name: 'Playful',
+        emotions: [
+          { id: 'playful', label: 'Playful' },
+          { id: 'wink', label: 'Wink' },
+          { id: 'smirk', label: 'Smirk' },
+          { id: 'cheeky', label: 'Cheeky' },
+        ]
+      },
+      {
+        name: 'Surprised',
+        emotions: [
+          { id: 'surprised', label: 'Surprised' },
+          { id: 'shocked', label: 'Shocked' },
+          { id: 'amazed', label: 'Amazed' },
+        ]
+      },
+      {
+        name: 'Tender',
+        emotions: [
+          { id: 'sad', label: 'Sad' },
+          { id: 'pensive', label: 'Pensive' },
+          { id: 'empathetic', label: 'Empathetic' },
+          { id: 'concerned', label: 'Concerned' },
+        ]
+      },
+      {
+        name: 'Tired',
+        emotions: [
+          { id: 'tired', label: 'Tired' },
+          { id: 'sleepy', label: 'Sleepy' },
+        ]
+      },
+      {
+        name: 'Thinking',
+        emotions: [
+          { id: 'curious', label: 'Curious' },
+          { id: 'thinking', label: 'Thinking' },
+          { id: 'pondering', label: 'Pondering' },
+          { id: 'noticing', label: 'Noticing' },
+        ]
+      },
+      {
+        name: 'Presence',
+        emotions: [
+          { id: 'neutral', label: 'Neutral' },
+          { id: 'listening', label: 'Listening' },
+          { id: 'speaking', label: 'Speaking' },
+          { id: 'present', label: 'Present' },
+        ]
+      },
+      {
+        name: 'Warmth',
+        emotions: [
+          { id: 'warm', label: 'Warm' },
+          { id: 'content', label: 'Content' },
+          { id: 'proud', label: 'Proud' },
+        ]
+      },
+    ];
+    
+    function setMood(mood, labelText) {
+      avatar.dataset.mood = mood;
+      label.textContent = labelText;
+      document.querySelectorAll('.emotion-card').forEach(c => {
+        c.classList.toggle('active', c.dataset.mood === mood);
+      });
+    }
+    
+    function miniAvatarSVG(id) {
+      return `
+        <svg class="avatar-svg" viewBox="0 0 100 100">
+          <defs>
+            <linearGradient id="og-${id}" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#5a7a51"/>
+              <stop offset="100%" stop-color="#3d5a35"/>
+            </linearGradient>
+            <linearGradient id="eg-${id}" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stop-color="#fff"/>
+              <stop offset="100%" stop-color="#f0ebe4"/>
+            </linearGradient>
+            <clipPath id="oc-${id}">
+              <circle cx="50" cy="50" r="40"/>
+            </clipPath>
+          </defs>
+          <circle class="presence-ring" cx="50" cy="50" r="46"/>
+          <g clip-path="url(#oc-${id})">
+            <circle class="avatar-body" cx="50" cy="50" r="40" fill="url(#og-${id})"/>
+            <ellipse class="eye-main eye-left" cx="36" cy="48" rx="7" ry="10" fill="url(#eg-${id})"/>
+            <ellipse class="eye-main eye-right" cx="64" cy="48" rx="7" ry="10" fill="url(#eg-${id})"/>
+            <path class="lid-top" d="M 0,0 Q 50,-10 100,0 L 100,0 L 0,0 Z"/>
+            <path class="lid-bottom" d="M 0,100 Q 50,110 100,100 L 100,100 L 0,100 Z"/>
+          </g>
+        </svg>
+      `;
+    }
+    
+    gallery.innerHTML = categories.map(cat => `
+      <div class="category">
+        <div class="category-title">${cat.name}</div>
+        <div class="emotion-grid">
+          ${cat.emotions.map(e => `
+            <div class="emotion-card ${e.id === 'neutral' ? 'active' : ''}" 
+                 data-mood="${e.id}" 
+                 onclick="setMood('${e.id}', '${e.label}')">
+              <div class="ferni-avatar mini-avatar" data-mood="${e.id}">
+                ${miniAvatarSVG(e.id)}
+              </div>
+              <div class="label">${e.label}</div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    `).join('');
+  </script>
+</body>
+</html>
