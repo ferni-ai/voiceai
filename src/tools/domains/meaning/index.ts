@@ -15,12 +15,11 @@
 
 import { createDomainExport } from '../../registry/loader.js';
 import type { ToolDefinition, ToolContext, Tool } from '../../registry/types.js';
-import { llm, log as _log } from '@livekit/agents';
+import { llm } from '@livekit/agents';
 import { getLogger } from '../../../utils/safe-logger.js';
 import { z } from 'zod';
 
 import { getToolDescription } from '../../utils/tool-descriptions.js';
-import { generateToolQuestions } from '../../utils/dynamic-tool-questions.js';
 // ============================================================================
 // PURPOSE TOOLS
 // ============================================================================

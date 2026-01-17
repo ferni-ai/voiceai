@@ -239,11 +239,11 @@ function getPersistentQuantToolDefinitions(): ToolDefinition[] {
       { tags: ['quant', 'portfolio', 'persistent', 'view'] }
     ),
     wrapLegacyTool(
-      'getDailyBriefing',
+      'getDailyFinancialBriefing',
       'Daily Financial Briefing',
       'Get your personalized daily briefing with market updates, portfolio insights, FIRE progress, and action items.',
-      persistentTools.getDailyBriefing,
-      { tags: ['quant', 'briefing', 'proactive', 'daily'] }
+      persistentTools.getDailyFinancialBriefing,
+      { tags: ['quant', 'briefing', 'proactive', 'daily', 'financial'] }
     ),
     wrapLegacyTool(
       'recordBehavior',

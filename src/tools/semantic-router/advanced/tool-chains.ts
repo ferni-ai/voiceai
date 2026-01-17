@@ -445,7 +445,9 @@ export function recordStepCompletion(
     activeChains.delete(sessionId);
     // Clean up Redis
     if (redisCache?.isConnected()) {
-      redisCache.delete(`${REDIS_KEY_PREFIX}active:${sessionId}`).catch(() => {});
+      redisCache.delete(`${REDIS_KEY_PREFIX}active:${sessionId}`).catch((e) => {
+        log.debug({ error: String(e), sessionId }, 'Redis cleanup failed (non-blocking)');
+      });
     }
     log.info({ sessionId, completedSteps: context.completedSteps.length }, 'Chain completed');
   } else {
@@ -501,9 +503,13 @@ export function learnToolSequence(sessionId: string, tools: string[]): void {
       redisCache.incr(key).then((count: number) => {
         // Set TTL on first increment
         if (count === 1) {
-          redisCache?.expire(key, REDIS_TTL_SECONDS).catch(() => {});
+          redisCache?.expire(key, REDIS_TTL_SECONDS).catch((e) => {
+            log.debug({ error: String(e), key }, 'Redis TTL set failed (non-blocking)');
+          });
         }
-      }).catch(() => {});
+      }).catch((e) => {
+        log.debug({ error: String(e), key }, 'Redis incr failed (non-blocking)');
+      });
     }
   }
 

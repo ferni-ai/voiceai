@@ -122,7 +122,7 @@ import { isOrchestratorEnabled } from '../integrations/speech-orchestrator-integ
 // Speech coordination for centralized speech management
 import { coordinatedSay } from '../../speech/coordination/index.js';
 // Centralized generateReply gateway for proactive response triggering
-import { generateReply } from '../shared/generate-reply-gateway.js';
+import { generateReply, hasActiveResponsePending } from '../shared/generate-reply-gateway.js';
 // Session closing tracker to prevent errors during shutdown
 import { isSessionClosing } from '../shared/session-closing-tracker.js';
 // Tool updater for mid-session tool updates (OpenAI Realtime)
@@ -1687,6 +1687,15 @@ async function processFinalTranscript(
 
       // Skip if agent is already speaking (auto-response worked!)
       if (conversationManager.isAgentSpeaking()) {
+        return;
+      }
+
+      // CRITICAL FIX: Skip if there's already an active response being generated/played
+      // The gateway sets hasActiveResponse=true when generateReply is called,
+      // but LiveKit's AgentStateChanged event may fire much later (up to 4+ seconds!)
+      // This prevents duplicate competing responses.
+      if (hasActiveResponsePending(sessionId)) {
+        diag.state('🚀 [PROACTIVE] Skipped - response already pending in gateway');
         return;
       }
 

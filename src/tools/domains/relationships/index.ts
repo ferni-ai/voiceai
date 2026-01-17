@@ -5,25 +5,20 @@
  * This domain addresses the fundamental human need for belonging and love.
  *
  * DOMAIN: relationships
- * TOOLS:
- *   Health: assessRelationshipHealth, identifyNeglectedRelationships, getRelationshipInsights
- *   Nurturing: suggestConnectionAction, recordMeaningfulMoment, celebrateRelationship
- *   Conflict: navigateConflict, prepareForDifficultConversation, processRelationshipPain
- *   Communication: craftHeartfeltMessage, practiceActiveListening, expressGratitude
- *   Dynamics: mapRelationshipCircles, understandAttachmentStyle, setRelationshipBoundary
+ * TOOLS (6):
+ *   Health: assessRelationshipHealth, mapRelationshipCircles
+ *   Nurturing: suggestConnectionAction, deepenFriendship
+ *   Conflict: navigateConflict, prepareForDifficultConversation
  */
 
 import { createDomainExport } from '../../registry/loader.js';
 import type { ToolDefinition, ToolContext, Tool } from '../../registry/types.js';
-import { llm, log as _log } from '@livekit/agents';
+import { llm } from '@livekit/agents';
 import { getLogger } from '../../../utils/safe-logger.js';
 import { z } from 'zod';
 
 import { getToolDescription } from '../../utils/tool-descriptions.js';
-import {
-  generateToolQuestions,
-  formatQuestionsForResponse,
-} from '../../utils/dynamic-tool-questions.js';
+import { generateToolQuestions } from '../../utils/dynamic-tool-questions.js';
 // ============================================================================
 // RELATIONSHIP HEALTH TOOLS
 // ============================================================================
@@ -98,56 +93,6 @@ const assessRelationshipHealthDef: ToolDefinition = {
   },
 };
 
-const _identifyNeglectedRelationshipsDef: ToolDefinition = {
-  id: 'identifyNeglectedRelationships',
-  name: 'Identify Neglected Relationships',
-  description: 'Gently surface relationships that may need attention or reconnection',
-  domain: 'relationships',
-  tags: ['relationships', 'awareness', 'reconnection'],
-
-  create: (ctx: ToolContext): Tool => {
-    return llm.tool({
-      description: getToolDescription('identifyNeglectedRelationships'),
-      parameters: z.object({
-        timeframe: z
-          .enum(['weeks', 'months', 'years'])
-          .describe('How long since meaningful contact'),
-        category: z
-          .enum(['all', 'family', 'friends', 'mentors', 'old-friends'])
-          .optional()
-          .describe('Category to focus on'),
-      }),
-      execute: async ({ timeframe, category }) => {
-        getLogger().info(
-          { agentId: ctx.agentId, timeframe, category },
-          'Exploring neglected relationships'
-        );
-
-        const prompts: Record<string, string> = {
-          weeks:
-            "Who haven't you connected with in a few weeks that you'd normally talk to more often?",
-          months: "Who comes to mind when you think about people you've lost touch with recently?",
-          years: "Is there someone from your past you've been meaning to reach out to but haven't?",
-        };
-
-        let response = `${prompts[timeframe]}\n\n`;
-
-        response += `Sometimes life gets busy and connections fade unintentionally. `;
-        response += `There's no guilt here - just an invitation to notice.\n\n`;
-
-        response += `**Reflection questions:**\n`;
-        response += `- Who would be genuinely happy to hear from you?\n`;
-        response += `- Is there someone you've been thinking about lately?\n`;
-        response += `- What relationship, if nurtured, would add richness to your life?\n\n`;
-
-        response += `Would you like to talk about someone specific, or explore what's been getting in the way of connection?`;
-
-        return response;
-      },
-    });
-  },
-};
-
 // ============================================================================
 // RELATIONSHIP NURTURING TOOLS
 // ============================================================================
@@ -210,44 +155,6 @@ const suggestConnectionActionDef: ToolDefinition = {
         }
 
         response += `\n\nWhat resonates? Or would you like ideas tailored to something specific about them?`;
-
-        return response;
-      },
-    });
-  },
-};
-
-const _recordMeaningfulMomentDef: ToolDefinition = {
-  id: 'recordMeaningfulMoment',
-  name: 'Record Meaningful Moment',
-  description: 'Capture a meaningful moment shared with someone to remember and cherish',
-  domain: 'relationships',
-  tags: ['relationships', 'memory', 'meaningful-moments'],
-
-  create: (ctx: ToolContext): Tool => {
-    return llm.tool({
-      description: getToolDescription('recordMeaningfulMoment'),
-      parameters: z.object({
-        personName: z.string().describe('Person the moment was shared with'),
-        moment: z.string().describe('Description of what happened'),
-        whyItMatters: z.string().optional().describe('Why this moment felt significant'),
-        emotion: z.string().optional().describe('The primary emotion felt'),
-      }),
-      execute: async ({ personName, moment, whyItMatters, emotion }) => {
-        getLogger().info({ agentId: ctx.agentId, personName }, 'Recording meaningful moment');
-
-        let response = `What a gift to pause and capture this moment with ${personName}.\n\n`;
-        response += `**The moment:** ${moment}\n`;
-
-        if (whyItMatters) {
-          response += `**Why it matters:** ${whyItMatters}\n`;
-        }
-        if (emotion) {
-          response += `**What you felt:** ${emotion}\n`;
-        }
-
-        response += `\nI'll remember this. These are the moments that make relationships rich.\n\n`;
-        response += `Is there anything else about this moment you want to hold onto? Sometimes the small details are what we treasure most later.`;
 
         return response;
       },
@@ -349,158 +256,6 @@ const prepareForDifficultConversationDef: ToolDefinition = {
   },
 };
 
-const _craftApologyDef: ToolDefinition = {
-  id: 'craftApology',
-  name: 'Craft Apology',
-  description: 'Get help crafting a genuine, effective apology',
-  domain: 'relationships',
-  tags: ['relationships', 'repair', 'apology'],
-
-  create: (ctx: ToolContext): Tool => {
-    return llm.tool({
-      description: getToolDescription('craftApology'),
-      parameters: z.object({
-        personName: z.string().describe('Person to apologize to'),
-        whatYouDid: z.string().describe('What you did or said that caused harm'),
-        impact: z.string().describe('How it affected them'),
-        whatYouUnderstandNow: z
-          .string()
-          .optional()
-          .describe('What you understand now that you may not have before'),
-      }),
-      execute: async ({ personName, whatYouDid, impact, whatYouUnderstandNow }) => {
-        getLogger().info({ agentId: ctx.agentId, personName }, 'Crafting apology');
-
-        let response = `A genuine apology is a gift to the relationship. Here's a framework:\n\n`;
-
-        response += `**The anatomy of a real apology:**\n\n`;
-        response += `1. **Name what you did** (no minimizing): "${whatYouDid}"\n`;
-        response += `2. **Acknowledge the impact** (this is key): "${impact}"\n`;
-        response += `3. **Take responsibility** (no "but" or excuses): "I'm sorry. That was wrong of me."\n`;
-        if (whatYouUnderstandNow) {
-          response += `4. **Show growth**: "I understand now that ${whatYouUnderstandNow}"\n`;
-        }
-        response += `5. **Commit to change**: What will you do differently?\n`;
-        response += `6. **Ask, don't demand forgiveness**: "I hope you can forgive me, but I understand if you need time."\n\n`;
-
-        response += `**What NOT to do:**\n`;
-        response += `- Don't say "I'm sorry you felt that way" (that's not an apology)\n`;
-        response += `- Don't explain your intentions as an excuse\n`;
-        response += `- Don't rush them to forgive you\n\n`;
-
-        response += `Would you like help putting this into words you'd actually say to ${personName}?`;
-
-        return response;
-      },
-    });
-  },
-};
-
-// ============================================================================
-// COMMUNICATION & EXPRESSION TOOLS
-// ============================================================================
-
-const _expressGratitudeDef: ToolDefinition = {
-  id: 'expressGratitude',
-  name: 'Express Gratitude',
-  description: 'Get help expressing genuine gratitude to someone important',
-  domain: 'relationships',
-  tags: ['relationships', 'gratitude', 'expression'],
-
-  create: (ctx: ToolContext): Tool => {
-    return llm.tool({
-      description: getToolDescription('expressGratitude'),
-      parameters: z.object({
-        personName: z.string().describe('Person to express gratitude to'),
-        whatFor: z.string().describe('What you are grateful for'),
-        impact: z.string().optional().describe('How what they did impacted you'),
-      }),
-      execute: async ({ personName, whatFor, impact }) => {
-        getLogger().info({ agentId: ctx.agentId, personName }, 'Expressing gratitude');
-
-        let response = `Expressing gratitude is one of the most powerful things we can do for a relationship.\n\n`;
-
-        response += `**Making gratitude land:**\n\n`;
-        response += `Be specific: "Thank you for ${whatFor}" is more powerful than generic thanks.\n`;
-        if (impact) {
-          response += `Share the impact: "${impact}" - This lets them know their action mattered.\n`;
-        }
-        response += `\n**A template:**\n`;
-        response += `"${personName}, I want you to know how much it meant to me when you ${whatFor}. `;
-        if (impact) {
-          response += `${impact}. `;
-        }
-        response += `I don't want to let that go unacknowledged."\n\n`;
-
-        response += `**Consider:** Would ${personName} prefer to hear this in person, in a note, or another way? What would feel most meaningful to *them*?\n\n`;
-
-        response += `Would you like to say more about what they mean to you? Sometimes gratitude opens the door to deeper appreciation.`;
-
-        return response;
-      },
-    });
-  },
-};
-
-const _checkInOnSomeoneDef: ToolDefinition = {
-  id: 'checkInOnSomeone',
-  name: 'Check In On Someone',
-  description: 'Get guidance on how to check in on someone who might be struggling',
-  domain: 'relationships',
-  tags: ['relationships', 'support', 'check-in'],
-
-  create: (ctx: ToolContext): Tool => {
-    return llm.tool({
-      description: getToolDescription('checkInOnSomeone'),
-      parameters: z.object({
-        personName: z.string().describe('Person to check in on'),
-        concern: z.string().describe('What prompted your concern'),
-        relationshipCloseness: z
-          .enum(['very-close', 'close', 'acquaintance'])
-          .describe('How close you are'),
-      }),
-      execute: async ({ personName, concern, relationshipCloseness }) => {
-        getLogger().info(
-          { agentId: ctx.agentId, personName, relationshipCloseness },
-          'Check in guidance'
-        );
-
-        let response = `It's caring of you to want to reach out to ${personName}.\n\n`;
-        response += `**Your concern:** ${concern}\n\n`;
-
-        const approaches: Record<string, string[]> = {
-          'very-close': [
-            `Be direct: "Hey, I've noticed you seem off lately. I care about you - how are you really doing?"`,
-            `Show up: Sometimes presence matters more than words. Offer to just be with them.`,
-            `Name what you see: "I may be wrong, but you seem like you're carrying something heavy."`,
-          ],
-          close: [
-            `Open the door gently: "I've been thinking about you. How are things going?"`,
-            `Share your care: "I noticed [what you noticed] and wanted you to know I'm here if you want to talk."`,
-            `Offer specific help: "Can I bring you dinner this week?" is better than "Let me know if you need anything."`,
-          ],
-          acquaintance: [
-            `Keep it light but real: "Hey, I just wanted to check in. How are you doing?"`,
-            `Reference something specific: "I saw your [post/message/etc] and wanted to see how you're holding up."`,
-            `Don't push: Let them know the door is open without demanding they walk through it.`,
-          ],
-        };
-
-        response += `**Ways to reach out:**\n`;
-        approaches[relationshipCloseness].forEach((approach, i) => {
-          response += `\n${i + 1}. ${approach}`;
-        });
-
-        response += `\n\n**Important:** Don't be offended if they don't open up. Sometimes knowing someone cares is enough. And sometimes people need multiple invitations before they feel safe to share.\n\n`;
-
-        response += `What feels right to you?`;
-
-        return response;
-      },
-    });
-  },
-};
-
 // ============================================================================
 // RELATIONSHIP DYNAMICS TOOLS
 // ============================================================================
@@ -555,163 +310,6 @@ const mapRelationshipCirclesDef: ToolDefinition = {
         } else {
           response = `Let's explore your ${focusArea} together. Tell me who comes to mind when you think about this circle of your life.`;
         }
-
-        return response;
-      },
-    });
-  },
-};
-
-const _setRelationshipBoundaryDef: ToolDefinition = {
-  id: 'setRelationshipBoundary',
-  name: 'Set Relationship Boundary',
-  description: 'Get help thinking through and setting a healthy boundary',
-  domain: 'relationships',
-  tags: ['relationships', 'boundaries', 'self-care'],
-
-  create: (ctx: ToolContext): Tool => {
-    return llm.tool({
-      description: getToolDescription('setRelationshipBoundary'),
-      parameters: z.object({
-        personName: z.string().describe('Person the boundary is with'),
-        situation: z.string().describe('The situation requiring a boundary'),
-        whatYouNeed: z.string().describe('What you need to protect or preserve'),
-      }),
-      execute: async ({ personName, situation, whatYouNeed }) => {
-        getLogger().info({ agentId: ctx.agentId, personName }, 'Setting boundary');
-
-        let response = `Boundaries aren't walls - they're clarity about what you need to stay healthy in relationship.\n\n`;
-
-        response += `**The situation:** ${situation}\n`;
-        response += `**What you need to protect:** ${whatYouNeed}\n\n`;
-
-        response += `**Framing a boundary:**\n\n`;
-        response += `1. **Be clear about what you need** (not what they should do): "I need..." rather than "You need to stop..."\n`;
-        response += `2. **State it without over-explaining**: You don't have to justify your needs.\n`;
-        response += `3. **Be prepared to hold it**: A boundary without follow-through teaches people to ignore you.\n\n`;
-
-        response += `**A template:**\n`;
-        response += `"I care about our relationship. And I've realized I need [boundary] to [what it protects]. I hope you can understand."\n\n`;
-
-        response += `**Remember:** Their reaction to your boundary is information about them, not evidence that your boundary is wrong.\n\n`;
-
-        response += `Would you like help finding the specific words for ${personName}?`;
-
-        return response;
-      },
-    });
-  },
-};
-
-// ============================================================================
-// LOVE LANGUAGES & COMMUNICATION STYLES
-// ============================================================================
-
-const _understandLoveLanguagesDef: ToolDefinition = {
-  id: 'understandLoveLanguages',
-  name: 'Understand Love Languages',
-  description: 'Explore how you and others give and receive love',
-  domain: 'relationships',
-  tags: ['relationships', 'love-languages', 'communication'],
-
-  create: (ctx: ToolContext): Tool => {
-    return llm.tool({
-      description: getToolDescription('understandLoveLanguages'),
-      parameters: z.object({
-        mode: z
-          .enum(['discover-mine', 'understand-theirs', 'bridge-gap'])
-          .describe('What to explore'),
-        personName: z.string().optional().describe('Person to understand better'),
-      }),
-      execute: async ({ mode, personName }) => {
-        getLogger().info({ agentId: ctx.agentId, mode }, 'Understanding love languages');
-
-        let response = '';
-
-        if (mode === 'discover-mine') {
-          response = `**The Five Love Languages** (Gary Chapman)\n\n`;
-          response += `People feel loved in different ways:\n\n`;
-          response += `1. **Words of Affirmation** - Compliments, "I love you", verbal appreciation\n`;
-          response += `2. **Acts of Service** - Doing things to help, taking care of tasks\n`;
-          response += `3. **Receiving Gifts** - Thoughtful presents, symbols of love\n`;
-          response += `4. **Quality Time** - Undivided attention, being fully present\n`;
-          response += `5. **Physical Touch** - Hugs, holding hands, physical closeness\n\n`;
-          response += `**To discover yours:**\n`;
-          response += `- What makes you feel most loved?\n`;
-          response += `- What do you complain about most in relationships? (Often the inverse of your language)\n`;
-          response += `- What do you request most often?\n\n`;
-          response += `Which resonates most strongly with you?`;
-        } else if (mode === 'understand-theirs') {
-          response = `**Understanding ${personName || 'Their'} Love Language**\n\n`;
-          response += `Observe what they:\n`;
-          response += `- Complain about not getting enough of\n`;
-          response += `- Request most often\n`;
-          response += `- Do naturally for others (we often give love the way we want to receive it)\n\n`;
-          response += `The relationship transforms when you love someone in THEIR language, not just yours.\n\n`;
-          response += `What have you noticed about how ${personName || 'they'} show love? What do they seem to crave?`;
-        } else {
-          response = `**Bridging the Love Language Gap**\n\n`;
-          response += `Common scenario: You're giving love in YOUR language, but they're not receiving it because it's not THEIRS.\n\n`;
-          response += `Example: You show love through Acts of Service (doing things for them), but they need Words of Affirmation (hearing how you feel).\n\n`;
-          response += `**The solution:**\n`;
-          response += `- Learn their language and speak it intentionally\n`;
-          response += `- Share your language so they can learn to speak it\n`;
-          response += `- Appreciate their attempts even if imperfect\n\n`;
-          response += `What's the gap between how you give love and how ${personName || 'they'} receive it?`;
-        }
-
-        return response;
-      },
-    });
-  },
-};
-
-const _reconnectAfterTimeDef: ToolDefinition = {
-  id: 'reconnectAfterTime',
-  name: 'Reconnect After Time',
-  description: 'Navigate reconnecting with someone after a long absence',
-  domain: 'relationships',
-  tags: ['relationships', 'reconnection', 'absence'],
-
-  create: (ctx: ToolContext): Tool => {
-    return llm.tool({
-      description: getToolDescription('reconnectAfterTime'),
-      parameters: z.object({
-        personName: z.string().describe('Person to reconnect with'),
-        timePassed: z.string().describe('How long since connection'),
-        whyDisconnected: z.string().optional().describe('What caused the disconnection'),
-        whatYouWant: z.string().optional().describe('What you hope for from reconnecting'),
-      }),
-      execute: async ({ personName, timePassed, whyDisconnected, whatYouWant }) => {
-        getLogger().info(
-          { agentId: ctx.agentId, personName, timePassed },
-          'Reconnecting after time'
-        );
-
-        let response = `Reconnecting with ${personName} after ${timePassed}.\n\n`;
-
-        if (whyDisconnected) {
-          response += `You drifted because: ${whyDisconnected}\n\n`;
-        }
-
-        response += `**The awkwardness is normal.** Most people feel it. Most people are also glad when someone reaches out.\n\n`;
-
-        response += `**Approaches to consider:**\n\n`;
-        response += `1. **Keep it simple:** "Hey, I've been thinking about you. How are you?"\n`;
-        response += `2. **Acknowledge the time:** "I know it's been a while, and I've been meaning to reach out..."\n`;
-        response += `3. **Reference something specific:** A shared memory, something that reminded you of them\n`;
-        response += `4. **Be honest if appropriate:** "I'm sorry I let us drift apart"\n\n`;
-
-        response += `**What not to do:**\n`;
-        response += `- Over-explain your absence\n`;
-        response += `- Pretend no time has passed\n`;
-        response += `- Expect them to be exactly the same\n\n`;
-
-        if (whatYouWant) {
-          response += `You hope for: ${whatYouWant}\n\n`;
-        }
-
-        response += `What feels right? Would you like help crafting what to say?`;
 
         return response;
       },

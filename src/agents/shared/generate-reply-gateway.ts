@@ -91,6 +91,18 @@ interface SessionState {
   activeSession?: voice.AgentSession;
 
   // =========================================================================
+  // FIX: Track ALL active responses to prevent "conversation_already_has_active_response"
+  // =========================================================================
+  /** True if ANY response is currently in progress (any priority) */
+  hasActiveResponse: boolean;
+  /** Timestamp when active response started */
+  activeResponseStartedAt?: number;
+  /** Context of the active response (for debugging) */
+  activeResponseContext?: string;
+  /** Timestamp when user last interrupted (for grace period) */
+  userInterruptedAt?: number;
+
+  // =========================================================================
   // BETTER THAN HUMAN: Latency tracking for adaptive timeouts
   // =========================================================================
   /** Recent TTFB values (last 10) for adaptive timeout calculation */
@@ -531,6 +543,7 @@ function getSessionState(sessionId: string): SessionState {
       consecutiveFailures: 0,
       pendingCallCount: 0,
       hasActiveLowPriorityResponse: false,
+      hasActiveResponse: false,
       recentTTFBs: [],
       quickAckSent: false,
       stats: {
@@ -697,24 +710,61 @@ export function getGatewayStats(sessionId: string): SessionState['stats'] {
 }
 
 /**
- * Clear any pending low-priority response flag for a session.
+ * Check if there's an active response being generated/played for this session.
+ *
+ * CRITICAL FIX: This helps prevent duplicate responses when:
+ * 1. generateReply is called
+ * 2. Response is streaming (TTS generating)
+ * 3. BUT LiveKit's AgentStateChanged event hasn't fired yet
+ * 4. So conversationManager.isAgentSpeaking() returns false
+ * 5. Proactive response system fires ANOTHER generateReply
+ *
+ * Use this + isAgentSpeaking() to accurately detect if agent is responding.
+ */
+export function hasActiveResponsePending(sessionId: string): boolean {
+  const state = sessionStates.get(sessionId);
+  return state?.hasActiveResponse ?? false;
+}
+
+/**
+ * Clear any pending response flags and mark user interruption for a session.
  * Call this when user starts speaking to ensure we can immediately respond after.
- * This is a backup mechanism - the main interrupt happens in generateReply().
+ * This is called from session-state-handler when user starts speaking.
+ *
+ * FIX: Now tracks user interruption time for grace period handling in generateReply.
  */
 export function clearPendingLowPriorityResponse(sessionId: string): void {
   const state = sessionStates.get(sessionId);
-  if (state?.hasActiveLowPriorityResponse) {
+  if (!state) return;
+
+  const hadActiveResponse = state.hasActiveResponse || state.hasActiveLowPriorityResponse;
+
+  if (hadActiveResponse) {
     log.debug(
       {
         sessionId,
-        timeSinceStart: state.lowPriorityResponseStartedAt
-          ? Date.now() - state.lowPriorityResponseStartedAt
-          : 0,
+        hadLowPriority: state.hasActiveLowPriorityResponse,
+        hadActive: state.hasActiveResponse,
+        activeContext: state.activeResponseContext,
+        timeSinceStart: state.activeResponseStartedAt
+          ? Date.now() - state.activeResponseStartedAt
+          : state.lowPriorityResponseStartedAt
+            ? Date.now() - state.lowPriorityResponseStartedAt
+            : 0,
       },
-      '🧹 [GATEWAY] Clearing pending low-priority response flag (user speaking)'
+      '🧹 [GATEWAY] User speaking - clearing response flags and marking interruption'
     );
+
+    // Clear all response flags
     state.hasActiveLowPriorityResponse = false;
     state.lowPriorityResponseStartedAt = undefined;
+    state.hasActiveResponse = false;
+    state.activeResponseStartedAt = undefined;
+    state.activeResponseContext = undefined;
+
+    // Mark user interruption time for grace period handling
+    // This prevents new responses from being created too quickly after interruption
+    state.userInterruptedAt = Date.now();
 
     // Also interrupt the session to cancel any active response
     if (state.activeSession) {
@@ -1002,8 +1052,62 @@ export async function generateReply(
   }
 
   // -------------------------------------------------------------------------
-  // SAFEGUARD 4: Interrupt active low-priority response before starting new one
+  // SAFEGUARD 4: Active response check (ANY priority)
   // Prevents "conversation_already_has_active_response" errors from OpenAI
+  // FIX: This is a hard block - if a response is active, we MUST interrupt first
+  // -------------------------------------------------------------------------
+  if (state.hasActiveResponse) {
+    const timeSinceActive = state.activeResponseStartedAt
+      ? Date.now() - state.activeResponseStartedAt
+      : 0;
+
+    log.debug(
+      { sessionId, context, priority, timeSinceActive, activeContext: state.activeResponseContext },
+      '🛑 [GATEWAY] Active response detected - interrupting before new request'
+    );
+
+    try {
+      session.interrupt();
+      // FIX: 200ms delay to ensure OpenAI fully processes the interrupt
+      // OpenAI Realtime API takes time to clear the active response state
+      // Without this delay, we get "conversation_already_has_active_response" errors
+      await new Promise((resolve) => setTimeout(resolve, 200));
+    } catch (interruptErr) {
+      log.debug(
+        { error: String(interruptErr) },
+        'Active response interrupt failed (non-critical, continuing anyway)'
+      );
+    }
+
+    // Clear the flag
+    state.hasActiveResponse = false;
+    state.activeResponseStartedAt = undefined;
+    state.activeResponseContext = undefined;
+  }
+
+  // -------------------------------------------------------------------------
+  // SAFEGUARD 4b: User interruption grace period
+  // After user interrupts, wait before creating new response to let OpenAI
+  // fully cancel the previous response
+  // -------------------------------------------------------------------------
+  if (state.userInterruptedAt) {
+    const timeSinceInterrupt = Date.now() - state.userInterruptedAt;
+    const interruptGracePeriodMs = 150; // 150ms grace period after user interruption
+
+    if (timeSinceInterrupt < interruptGracePeriodMs) {
+      const remainingMs = interruptGracePeriodMs - timeSinceInterrupt;
+      log.debug(
+        { sessionId, context, timeSinceInterrupt, remainingMs },
+        '⏳ [GATEWAY] User just interrupted - waiting for grace period'
+      );
+      await new Promise((resolve) => setTimeout(resolve, remainingMs));
+    }
+    // Clear the flag after grace period
+    state.userInterruptedAt = undefined;
+  }
+
+  // -------------------------------------------------------------------------
+  // SAFEGUARD 4c: Legacy low-priority response handling
   // -------------------------------------------------------------------------
   if (state.hasActiveLowPriorityResponse && priority !== 'low') {
     // A backchannel or other low-priority response is still active
@@ -1042,6 +1146,11 @@ export async function generateReply(
   // EXECUTE: Call generateReply with proper error handling
   // -------------------------------------------------------------------------
   state.pendingCallCount++;
+
+  // Mark this response as active (any priority)
+  state.hasActiveResponse = true;
+  state.activeResponseStartedAt = Date.now();
+  state.activeResponseContext = context;
 
   // Mark if this is a low-priority response that shouldn't block future calls
   if (priority === 'low' && !waitForPlayout) {
@@ -1368,6 +1477,37 @@ export async function generateReply(
     };
   } finally {
     state.pendingCallCount--;
+
+    // Clear active response flag - response is no longer in progress
+    // FIX (Jan 2026): When waitForPlayout is false, we return success before OpenAI
+    // actually generates anything. Keep hasActiveResponse=true for a grace period
+    // to prevent competing response.create requests that OpenAI silently ignores.
+    if (waitForPlayout) {
+      // We waited for playout - safe to clear immediately
+      state.hasActiveResponse = false;
+      state.activeResponseStartedAt = undefined;
+      state.activeResponseContext = undefined;
+    } else {
+      // Didn't wait for playout - keep flag set for 2 seconds to prevent
+      // rapid-fire response.create requests that flood OpenAI
+      // The flag will be cleared by:
+      // 1. This timeout (2s)
+      // 2. User starting to speak (clearPendingLowPriorityResponse)
+      // 3. Next generateReply call (which will interrupt first)
+      const capturedSessionId = sessionId;
+      setTimeout(() => {
+        const currentState = sessionStates.get(capturedSessionId);
+        if (currentState && currentState.activeResponseContext === context) {
+          currentState.hasActiveResponse = false;
+          currentState.activeResponseStartedAt = undefined;
+          currentState.activeResponseContext = undefined;
+          log.debug(
+            { sessionId: capturedSessionId, context },
+            '⏰ [GATEWAY] Cleared hasActiveResponse after 2s grace period'
+          );
+        }
+      }, 2000);
+    }
 
     // Clear low-priority response flag if this was a low-priority call
     // (either completed successfully or failed/timed out)

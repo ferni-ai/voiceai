@@ -1059,8 +1059,8 @@ export function createPersistentQuantTools() {
       },
     }),
 
-    // DAILY BRIEFING
-    getDailyBriefing: llm.tool({
+    // DAILY FINANCIAL BRIEFING
+    getDailyFinancialBriefing: llm.tool({
       description:
         'Get your personalized daily financial briefing with market updates, portfolio insights, and action items.',
       parameters: z.object({}),

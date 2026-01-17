@@ -33,6 +33,7 @@ import {
 
 // Phase modules (extracted for maintainability)
 import {
+  buildUserAwareness,
   connectToRoom,
   getCachedVoiceDeps,
   getPrewarmedResources,
@@ -881,181 +882,33 @@ If someone asks what day it is, what time it is, or what the date is, you know t
     }
 
     // =========================================================================
-    // USER AWARENESS - Enhance model instructions with user context
-    // Now that we have services.userProfile, add user awareness to instructions
-    // This makes the agent aware of WHO they're talking to from the first moment
+    // USER AWARENESS - "Better Than Human" context about the user
+    // Uses the modular user-awareness phase for cleaner code organization
+    // See: voice-agent/phases/user-awareness.ts for the full implementation
     // =========================================================================
+    const userAwarenessResult = buildUserAwareness({
+      userProfile: services.userProfile,
+      isReturningUser,
+      userName,
+      sessionStartTime,
+    });
+
+    if (userAwarenessResult.facts.length > 0) {
+      modelBaseInstructions += userAwarenessResult.instructionsBlock;
+      process.stderr.write(
+        `[voice-agent-entry] 👤 BETTER THAN HUMAN - User awareness injected (${userAwarenessResult.facts.length} facts):\n`
+      );
+      userAwarenessResult.facts.forEach((fact, i) => {
+        process.stderr.write(`[voice-agent-entry]   ${i + 1}. ${fact}\n`);
+      });
+    } else {
+      process.stderr.write(
+        `[voice-agent-entry] 👤 No user awareness facts available (new user or empty profile)\n`
+      );
+    }
+
+    // Calendar Awareness runs only when we have a user profile
     if (services.userProfile) {
-      const profile = services.userProfile;
-      const userAwareness: string[] = [];
-
-      // User's name
-      if (profile.name || profile.preferredName || userName) {
-        const name = profile.preferredName || profile.name || userName;
-        userAwareness.push(`You're talking to ${name}.`);
-      }
-
-      // Relationship context
-      if (isReturningUser && profile.totalConversations) {
-        const convCount = profile.totalConversations;
-        if (convCount === 1) {
-          userAwareness.push("You've talked once before.");
-        } else if (convCount < 5) {
-          userAwareness.push(
-            `You've talked ${convCount} times - still getting to know each other.`
-          );
-        } else if (convCount < 20) {
-          userAwareness.push(`You've had ${convCount} conversations - a growing friendship.`);
-        } else {
-          userAwareness.push(
-            `You've had ${convCount} conversations together - you know each other well.`
-          );
-        }
-
-        // Last conversation time
-        if (profile.lastContact) {
-          const lastContactDate = new Date(profile.lastContact);
-          const daysSince = Math.floor(
-            (sessionStartTime.getTime() - lastContactDate.getTime()) / (24 * 60 * 60 * 1000)
-          );
-          if (daysSince === 0) {
-            userAwareness.push('You talked earlier today.');
-          } else if (daysSince === 1) {
-            userAwareness.push('You talked yesterday.');
-          } else if (daysSince < 7) {
-            userAwareness.push(`Last talked ${daysSince} days ago.`);
-          } else if (daysSince < 30) {
-            userAwareness.push(
-              `It's been about ${Math.round(daysSince / 7)} weeks since you last talked.`
-            );
-          } else {
-            userAwareness.push(
-              `It's been a while - about ${Math.round(daysSince / 30)} month${daysSince > 45 ? 's' : ''} since you last talked.`
-            );
-          }
-        }
-      } else if (!isReturningUser) {
-        userAwareness.push(
-          'This is your first conversation with them - be welcoming but not overwhelming.'
-        );
-      }
-
-      // Key relationship facts (if available)
-      const { relationshipStage } = profile;
-      if (relationshipStage && relationshipStage !== 'new_acquaintance') {
-        const stageDescriptions: Record<string, string> = {
-          getting_to_know: "You're still getting to know each other.",
-          trusted_advisor: 'They trust you and share openly.',
-          old_friend: "You're old friends - deep relationship.",
-        };
-        if (stageDescriptions[relationshipStage]) {
-          userAwareness.push(stageDescriptions[relationshipStage]);
-        }
-      }
-
-      // =========================================================================
-      // BETTER THAN HUMAN #1: Last Conversation Context
-      // A human friend might vaguely remember "oh we talked recently"
-      // Ferni remembers EXACTLY what you talked about
-      // =========================================================================
-      if (isReturningUser && profile.lastConversationSummary) {
-        userAwareness.push(`Last time you talked about: ${profile.lastConversationSummary}`);
-      }
-
-      // =========================================================================
-      // BETTER THAN HUMAN #2: Emotional Memory (via mood tracking)
-      // A human friend might not notice you were struggling last time
-      // Ferni remembers and checks in
-      // =========================================================================
-      if (profile.humanizingState?.lastMood) {
-        const { lastMood } = profile.humanizingState;
-        // Map moods to emotional context
-        const moodContext: Record<string, string> = {
-          tired_but_present: 'Last time they seemed a bit tired - be gentle.',
-          reflective: 'Last time they were in a reflective mood.',
-          philosophical: 'Last time they were in a thoughtful, philosophical space.',
-          energized: 'Last time they were full of energy!',
-          grounded: 'Last time they seemed calm and grounded.',
-          playful: 'Last time they were in a playful mood.',
-          nostalgic: 'Last time they were feeling nostalgic.',
-        };
-        if (moodContext[lastMood]) {
-          userAwareness.push(moodContext[lastMood]);
-        }
-      }
-
-      // =========================================================================
-      // BETTER THAN HUMAN #3: Key Life Events Awareness
-      // A human friend might forget important dates and events
-      // Ferni remembers milestones, challenges, and celebrations
-      // =========================================================================
-      if (profile.lifeEvents && profile.lifeEvents.length > 0) {
-        // Find recent events (within last 30 days that are in progress or upcoming)
-        const relevantEvents = profile.lifeEvents
-          .filter((event) => {
-            // Focus on active or upcoming events
-            return (
-              event.status === 'in_progress' ||
-              event.status === 'upcoming' ||
-              event.status === 'planning'
-            );
-          })
-          .slice(0, 2); // Max 2 events
-
-        for (const event of relevantEvents) {
-          const eventTypes: Record<string, string> = {
-            wedding: 'preparing for a wedding',
-            baby: 'expecting or has a new baby',
-            graduation: 'graduation coming up',
-            career_change: 'going through a career change',
-            relocation: 'moving/relocating',
-            loss: 'dealing with a loss',
-            celebration: 'has something to celebrate',
-          };
-          const eventContext = eventTypes[event.type];
-          if (eventContext) {
-            userAwareness.push(`Life context: ${event.title || eventContext}`);
-          }
-        }
-      }
-
-      // =========================================================================
-      // BETTER THAN HUMAN #4: Goals & Concerns Awareness
-      // Know what matters to them right now
-      // =========================================================================
-      if (profile.goals && profile.goals.length > 0) {
-        const topGoal = profile.goals[0];
-        userAwareness.push(`Current goal: ${topGoal}`);
-      }
-      if (profile.primaryConcerns && profile.primaryConcerns.length > 0) {
-        const topConcern = profile.primaryConcerns[0];
-        userAwareness.push(`On their mind: ${topConcern}`);
-      }
-
-      if (userAwareness.length > 0) {
-        modelBaseInstructions += `
----
-
-## Who You're Talking To
-
-${userAwareness.join('\n')}
-
-Use this awareness naturally. Don't announce what you know - just BE a friend who remembers.
-Reference past context when relevant, but don't force it. Let the conversation flow.
-`;
-        // DETAILED LOGGING: Show exactly what "Better Than Human" context is being injected
-        process.stderr.write(
-          `[voice-agent-entry] 👤 BETTER THAN HUMAN - User awareness injected (${userAwareness.length} facts):\n`
-        );
-        userAwareness.forEach((fact, i) => {
-          process.stderr.write(`[voice-agent-entry]   ${i + 1}. ${fact}\n`);
-        });
-      } else {
-        process.stderr.write(
-          `[voice-agent-entry] 👤 No user awareness facts available (new user or empty profile)\n`
-        );
-      }
-
       // =========================================================================
       // BETTER THAN HUMAN #5: Calendar Awareness (Non-blocking)
       // A human friend doesn't know your schedule. Ferni does.

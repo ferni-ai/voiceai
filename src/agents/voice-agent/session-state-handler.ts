@@ -49,7 +49,7 @@ import {
 } from '../integrations/speech-metrics-integration.js';
 import { SILENCE_THRESHOLDS, IDLE_TIMEOUT } from '../shared/constants.js';
 import { safeGenerateReply, generateReplyWithContext } from '../shared/safe-generate-reply.js';
-import { clearPendingLowPriorityResponse } from '../shared/generate-reply-gateway.js';
+import { clearPendingLowPriorityResponse, hasActiveResponsePending } from '../shared/generate-reply-gateway.js';
 import type { UserData } from '../shared/types.js';
 // Speech coordination for adaptive timing and centralized speech management
 import { getSpeechCoordinator, coordinatedSay } from '../../speech/coordination/index.js';
@@ -870,6 +870,15 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
           return;
         }
 
+        // CRITICAL FIX: Skip if there's already an active response being generated/played
+        // The gateway sets hasActiveResponse=true when generateReply is called,
+        // but LiveKit's AgentStateChanged event may fire much later (up to 4+ seconds!)
+        // This prevents the watchdog from firing recovery when a response is already in progress.
+        if (hasActiveResponsePending(sessionId)) {
+          diag.state('🚨 [EMPTY_RESPONSE_WATCHDOG] Skipped - response already pending in gateway');
+          return;
+        }
+
         // Skip if music is playing (user may be listening intentionally)
         try {
           const djController = getDJController();
@@ -984,7 +993,9 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
             // DJ Controller not initialized - continue with normal check
           }
 
-          if (!conversationManager.isAgentSpeaking()) {
+          // CRITICAL FIX: Also check if response is pending in gateway
+          // LiveKit's AgentStateChanged event can fire 4+ seconds after generateReply is called
+          if (!conversationManager.isAgentSpeaking() && !hasActiveResponsePending(sessionId)) {
             const timeSinceStop = Date.now() - userStoppedAt;
             if (timeSinceStop >= SILENCE_THRESHOLDS.EARLY_ACKNOWLEDGMENT_SECONDS * 1000 - 100) {
               // Dead air prevention: Use STRUCTURED commands (not conversational text)
