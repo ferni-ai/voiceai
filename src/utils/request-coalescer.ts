@@ -106,10 +106,18 @@ export class RequestCoalescer<T> {
       return existing.promise;
     }
 
-    // Check capacity
-    if (this.pending.size >= this.maxPending) {
+    // Check capacity (only count non-expired entries since we'll replace expired ones)
+    const effectiveSize = existing?.expired ? this.pending.size - 1 : this.pending.size;
+    if (effectiveSize >= this.maxPending) {
       this.errors++;
       throw new Error(`Request coalescer "${this.name}": Too many pending requests (${this.maxPending})`);
+    }
+
+    // Clean up orphaned timeout from expired entry before replacing it.
+    // The expired entry's promise is still valid for its waiters, but its timeout
+    // is now orphaned since we're creating a replacement entry.
+    if (existing?.expired) {
+      clearTimeout(existing.timeoutId);
     }
 
     // Create new pending request
