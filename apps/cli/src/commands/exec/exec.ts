@@ -25,7 +25,7 @@ const colors = {
   white: '\x1b[37m',
 };
 
-interface ExecutiveMetrics {
+export interface ExecutiveMetrics {
   ceo: CEOMetrics;
   cto: CTOMetrics;
   cio: CIOMetrics;
@@ -34,14 +34,14 @@ interface ExecutiveMetrics {
   csco: CSCOMetrics;
 }
 
-interface CEOMetrics {
+export interface CEOMetrics {
   companyHealth: number;
   okrProgress: number;
   pendingDecisions: number;
   alerts: string[];
 }
 
-interface CTOMetrics {
+export interface CTOMetrics {
   systemHealth: number;
   techDebtScore: number;
   openIncidents: number;
@@ -49,7 +49,7 @@ interface CTOMetrics {
   alerts: string[];
 }
 
-interface CIOMetrics {
+export interface CIOMetrics {
   complianceScore: number;
   dataRiskScore: number;
   accessReviewsPending: number;
@@ -57,7 +57,7 @@ interface CIOMetrics {
   alerts: string[];
 }
 
-interface CPOMetrics {
+export interface CPOMetrics {
   featureVelocity: number;
   userSatisfaction: number;
   activeExperiments: number;
@@ -65,7 +65,7 @@ interface CPOMetrics {
   alerts: string[];
 }
 
-interface CMOMetrics {
+export interface CMOMetrics {
   campaignROAS: number;
   socialEngagement: number;
   seoHealth: number;
@@ -73,7 +73,7 @@ interface CMOMetrics {
   alerts: string[];
 }
 
-interface CSCOMetrics {
+export interface CSCOMetrics {
   operationalEfficiency: number;
   costOptimization: number;
   vendorHealth: number;
@@ -82,7 +82,7 @@ interface CSCOMetrics {
 }
 
 // Mock data generator - will be replaced with real data integration
-function getExecutiveMetrics(): ExecutiveMetrics {
+export function getExecutiveMetrics(): ExecutiveMetrics {
   return {
     ceo: {
       companyHealth: 87,

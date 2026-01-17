@@ -18,6 +18,15 @@ import { homedir } from 'os';
 import { join } from 'path';
 import { promises as fs } from 'fs';
 
+// Import CEO storage for real decision data
+import {
+  getUserId,
+  getPendingDecisions,
+  getRecentWins,
+  getActiveBlockers,
+  getPriorities,
+} from '../ceo/storage-client.js';
+
 const colors = {
   reset: '\x1b[0m',
   bold: '\x1b[1m',
@@ -88,12 +97,107 @@ async function ensureConfigDir(): Promise<void> {
 }
 
 async function loadKnowledge(): Promise<KnowledgeStore> {
+  // Load local knowledge store
+  let store: KnowledgeStore;
   try {
     const data = await fs.readFile(KNOWLEDGE_FILE, 'utf-8');
-    return JSON.parse(data);
+    store = JSON.parse(data);
   } catch {
-    return { entries: [], stakeholders: [], timeline: [], searchIndex: {} };
+    store = { entries: [], stakeholders: [], timeline: [], searchIndex: {} };
   }
+
+  // Merge in CEO decisions and data from Firestore
+  try {
+    const userId = await getUserId();
+    if (userId) {
+      const [decisions, wins, blockers, priorities] = await Promise.all([
+        getPendingDecisions().catch(() => []),
+        getRecentWins(30).catch(() => []),
+        getActiveBlockers().catch(() => []),
+        getPriorities().catch(() => []),
+      ]);
+
+      // Convert CEO decisions to knowledge entries (if not already present)
+      for (const decision of decisions) {
+        const existingEntry = store.entries.find(e => e.id === `ceo-decision-${decision.id}`);
+        if (!existingEntry) {
+          store.entries.push({
+            id: `ceo-decision-${decision.id}`,
+            type: 'decision',
+            content: decision.description,
+            domain: 'ceo',
+            tags: ['ceo', 'decision', decision.status],
+            importance: decision.deadline ? 'high' : 'medium',
+            createdAt: decision.createdAt,
+            updatedAt: decision.decidedAt || decision.createdAt,
+            outcome: decision.status === 'decided' ? 'positive' : undefined,
+          });
+        }
+      }
+
+      // Convert wins to milestones
+      for (const win of wins) {
+        const existingEntry = store.entries.find(e => e.id === `ceo-win-${win.id}`);
+        if (!existingEntry) {
+          store.entries.push({
+            id: `ceo-win-${win.id}`,
+            type: 'milestone',
+            content: win.text,
+            domain: 'ceo',
+            tags: ['win', 'milestone', win.category || 'general'].filter(Boolean),
+            importance: 'medium',
+            createdAt: win.createdAt,
+            updatedAt: win.createdAt,
+            outcome: 'positive',
+          });
+        }
+      }
+
+      // Convert blockers to insights
+      for (const blocker of blockers) {
+        const existingEntry = store.entries.find(e => e.id === `ceo-blocker-${blocker.id}`);
+        if (!existingEntry) {
+          store.entries.push({
+            id: `ceo-blocker-${blocker.id}`,
+            type: 'insight',
+            content: `BLOCKER: ${blocker.text}`,
+            domain: 'ceo',
+            tags: ['blocker', 'obstacle', 'ceo'],
+            importance: 'high',
+            createdAt: blocker.createdAt,
+            updatedAt: blocker.resolvedAt || blocker.createdAt,
+            outcome: blocker.status === 'resolved' ? 'positive' : undefined,
+          });
+        }
+      }
+
+      // Convert priorities to goals
+      for (const priority of priorities) {
+        const existingEntry = store.entries.find(e => e.id === `ceo-priority-${priority.id}`);
+        if (!existingEntry) {
+          store.entries.push({
+            id: `ceo-priority-${priority.id}`,
+            type: 'goal',
+            content: priority.text,
+            domain: 'ceo',
+            tags: ['priority', 'goal', 'ceo'],
+            importance: priority.order <= 3 ? 'critical' : 'high',
+            createdAt: priority.createdAt,
+            updatedAt: priority.completedAt || priority.createdAt,
+            outcome: priority.status === 'completed' ? 'achieved' : undefined,
+          });
+        }
+      }
+
+      // Sort entries by date (most recent first)
+      store.entries.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    }
+  } catch (e) {
+    // Firestore not available, continue with local data only
+    console.error('Could not sync with CEO data:', e);
+  }
+
+  return store;
 }
 
 async function saveKnowledge(store: KnowledgeStore): Promise<void> {

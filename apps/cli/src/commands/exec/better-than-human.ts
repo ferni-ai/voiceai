@@ -16,6 +16,20 @@
 import { homedir } from 'os';
 import { join } from 'path';
 import { promises as fs } from 'fs';
+import { execSync } from 'child_process';
+
+// Import CEO storage for real data
+import {
+  getUserId,
+  getPendingDecisions,
+  getPriorities,
+  getActiveBlockers,
+  getRecentWins,
+  getEnergyTrend,
+} from '../ceo/storage-client.js';
+
+// Import executive metrics for cross-functional analysis
+import { getExecutiveMetrics, ExecutiveMetrics } from './exec.js';
 
 const colors = {
   reset: '\x1b[0m',
@@ -95,6 +109,49 @@ async function ensureConfigDir(): Promise<void> {
 }
 
 async function loadExecutiveState(): Promise<ExecutiveState> {
+  // Try to get real data from CEO coaching storage (Firestore)
+  try {
+    const userId = await getUserId();
+    if (userId) {
+      // Pull real data from Firestore
+      const [blockers, wins, energyTrend, decisions, priorities] = await Promise.all([
+        getActiveBlockers().catch(() => []),
+        getRecentWins(7).catch(() => []),
+        getEnergyTrend().catch(() => null),
+        getPendingDecisions().catch(() => []),
+        getPriorities().catch(() => []),
+      ]);
+
+      // Also check local file for any cached state
+      let localState: Partial<ExecutiveState> = {};
+      try {
+        const data = await fs.readFile(BTH_STATE_FILE, 'utf-8');
+        localState = JSON.parse(data);
+      } catch {
+        // No local state, that's fine
+      }
+
+      return {
+        energy: energyTrend?.current ?? localState.energy ?? 7,
+        lastCheckin: localState.lastCheckin ?? new Date().toISOString(),
+        recentDecisions: decisions.slice(0, 10).map((d: { id: string; description: string; createdAt: string; status: string }) => ({
+          id: d.id,
+          description: d.description,
+          madeAt: d.createdAt,
+          outcome: d.status === 'decided' ? 'positive' as const : 'pending' as const,
+          domain: 'ceo' as const,
+        })),
+        activeBlockers: blockers.map((b: { text: string }) => b.text),
+        currentFocus: priorities[0]?.text ?? localState.currentFocus ?? '',
+        weeklyWins: wins.length,
+      };
+    }
+  } catch (e) {
+    // Fall through to local file
+    console.error('Could not load real data:', e);
+  }
+
+  // Fall back to local file
   try {
     const data = await fs.readFile(BTH_STATE_FILE, 'utf-8');
     return JSON.parse(data);
@@ -212,73 +269,129 @@ function getContextualGreeting(ctx: NarrativeContext, state: ExecutiveState): st
 function detectCrossFunctionalPatterns(): CrossFunctionalInsight[] {
   const insights: CrossFunctionalInsight[] = [];
 
-  // These would normally pull from real data - showing the pattern detection logic
-  // In production, this correlates data from all C-suite functions
+  // Pull real executive metrics for cross-functional analysis
+  const metrics = getExecutiveMetrics();
 
-  // Pattern 1: Tech debt + Cost correlation
-  insights.push({
-    id: 'tech-cost-correlation',
-    type: 'correlation',
-    severity: 'warning',
-    title: 'Tech Debt Driving Cloud Costs',
-    description: 'Architecture inefficiencies are correlating with 15% higher compute costs than expected.',
-    domains: ['cto', 'csco'],
-    confidence: 0.78,
-    recommendation: 'Prioritize the caching layer refactor - it addresses both tech debt AND cost optimization.',
-    humanEquivalent: 'A human CFO and CTO rarely connect these dots without months of analysis.',
-  });
+  // Pattern 1: Tech debt + Cost correlation (CTO + CSCO)
+  if (metrics.cto.techDebtScore > 20 && metrics.csco.costOptimization < 15) {
+    insights.push({
+      id: 'tech-cost-correlation',
+      type: 'correlation',
+      severity: metrics.cto.techDebtScore > 30 ? 'critical' : 'warning',
+      title: 'Tech Debt Driving Cloud Costs',
+      description: `Tech debt score of ${metrics.cto.techDebtScore} correlating with only $${metrics.csco.costOptimization}k in cost savings - architecture inefficiencies may be adding compute overhead.`,
+      domains: ['cto', 'csco'],
+      confidence: 0.78,
+      recommendation: 'Prioritize refactoring efforts that address both tech debt AND cost optimization.',
+      humanEquivalent: 'A human CFO and CTO rarely connect these dots without months of analysis.',
+    });
+  }
 
-  // Pattern 2: Product + Marketing misalignment
-  insights.push({
-    id: 'product-marketing-sync',
-    type: 'opportunity',
-    severity: 'info',
-    title: 'Feature Launch Without Marketing Prep',
-    description: 'Voice enrollment feature shipped 2 weeks ago but no marketing campaign is scheduled.',
-    domains: ['cpo', 'cmo'],
-    confidence: 0.92,
-    recommendation: 'Create a feature spotlight campaign for voice enrollment - high-value, low-effort win.',
-    humanEquivalent: 'Cross-departmental launches often fall through the cracks without a dedicated PMO.',
-  });
+  // Pattern 2: Security + Compliance risk (CTO + CIO)
+  if (metrics.cto.securityScore < 95 && metrics.cio.complianceScore > 90) {
+    const gap = 100 - metrics.cto.securityScore;
+    insights.push({
+      id: 'security-compliance-risk',
+      type: 'risk',
+      severity: metrics.cto.securityScore < 85 ? 'critical' : 'warning',
+      title: 'Security Gaps May Impact Compliance',
+      description: `Security score of ${metrics.cto.securityScore}% with ${gap}% gap could jeopardize ${metrics.cio.complianceScore}% compliance rating.`,
+      domains: ['cto', 'cio'],
+      confidence: 0.85,
+      recommendation: 'Address security vulnerabilities before next compliance audit.',
+      humanEquivalent: 'Compliance teams often discover security issues too late in the audit cycle.',
+    });
+  }
 
-  // Pattern 3: Security + Compliance risk
-  insights.push({
-    id: 'security-compliance-risk',
-    type: 'risk',
-    severity: 'critical',
-    title: 'Security Vulnerabilities May Impact SOC2',
-    description: '3 unpatched dependencies could affect upcoming SOC2 audit if not addressed.',
-    domains: ['cto', 'cio'],
-    confidence: 0.85,
-    recommendation: 'Prioritize dependency updates this sprint - audit is in 6 weeks.',
-    humanEquivalent: 'Compliance teams often discover security issues too late in the audit cycle.',
-  });
+  // Pattern 3: Churn + Product Satisfaction (CPO + CEO)
+  if (metrics.cpo.churnRisk > 3 || metrics.cpo.userSatisfaction < 4.5) {
+    insights.push({
+      id: 'churn-satisfaction-pattern',
+      type: 'prediction',
+      severity: metrics.cpo.churnRisk > 5 ? 'critical' : 'warning',
+      title: 'User Satisfaction Driving Churn Risk',
+      description: `NPS of ${metrics.cpo.userSatisfaction}/5 correlating with ${metrics.cpo.churnRisk}% churn risk - satisfaction issues becoming retention problems.`,
+      domains: ['cpo', 'ceo'],
+      confidence: 0.82,
+      recommendation: 'Implement proactive outreach for at-risk users and address top feedback themes.',
+      humanEquivalent: 'Humans see individual feedback; AI sees the pattern across thousands of users.',
+    });
+  }
 
-  // Pattern 4: Customer churn + Support correlation
-  insights.push({
-    id: 'churn-support-pattern',
-    type: 'prediction',
-    severity: 'warning',
-    title: 'Support Ticket Pattern Predicts Churn',
-    description: 'Users with 3+ support tickets in 30 days show 4x higher churn rate.',
-    domains: ['cpo', 'ceo'],
-    confidence: 0.71,
-    recommendation: 'Implement proactive outreach for high-ticket users before they churn.',
-    humanEquivalent: 'Humans see individual tickets; AI sees the pattern across thousands.',
-  });
+  // Pattern 4: Product + Marketing sync (CPO + CMO)
+  if (metrics.cpo.featureVelocity > 7 && metrics.cmo.campaignROAS < 3) {
+    insights.push({
+      id: 'product-marketing-sync',
+      type: 'opportunity',
+      severity: 'info',
+      title: 'Feature Velocity Outpacing Marketing',
+      description: `Shipping ${metrics.cpo.featureVelocity} features/sprint but ROAS at ${metrics.cmo.campaignROAS}x - new features may not be getting marketing spotlight.`,
+      domains: ['cpo', 'cmo'],
+      confidence: 0.75,
+      recommendation: 'Create feature spotlight campaigns for recent releases - high-value, low-effort win.',
+      humanEquivalent: 'Cross-departmental launches often fall through the cracks without a dedicated PMO.',
+    });
+  }
 
-  // Pattern 5: Positive - Celebration
-  insights.push({
-    id: 'velocity-improvement',
-    type: 'anomaly',
-    severity: 'celebration',
-    title: 'Engineering Velocity Up 23%',
-    description: 'Sprint velocity increased significantly after the recent process improvements.',
-    domains: ['cto', 'ceo'],
-    confidence: 0.88,
-    recommendation: 'Document what worked and share with the team - this is worth celebrating.',
-    humanEquivalent: 'Humans often miss gradual improvements without explicit measurement.',
-  });
+  // Pattern 5: Vendor + Operations efficiency (CIO + CSCO)
+  if (metrics.cio.vendorsExpiringSoon > 0 && metrics.csco.vendorHealth < 95) {
+    insights.push({
+      id: 'vendor-renewal-risk',
+      type: 'risk',
+      severity: metrics.cio.vendorsExpiringSoon > 2 ? 'warning' : 'info',
+      title: 'Vendor Contract Renewals Need Attention',
+      description: `${metrics.cio.vendorsExpiringSoon} vendor contracts expiring with vendor health at ${metrics.csco.vendorHealth}% - renewal negotiations needed.`,
+      domains: ['cio', 'csco'],
+      confidence: 0.72,
+      recommendation: 'Review vendor performance before renewals to negotiate better terms.',
+      humanEquivalent: 'Vendor renewals often auto-renew without strategic review.',
+    });
+  }
+
+  // Pattern 6: Positive - System Health Celebration (CTO + CSCO)
+  if (metrics.cto.systemHealth >= 90 && metrics.csco.slaCompliance >= 99) {
+    insights.push({
+      id: 'operational-excellence',
+      type: 'anomaly',
+      severity: 'celebration',
+      title: 'Operational Excellence Achieved',
+      description: `System health at ${metrics.cto.systemHealth}% with ${metrics.csco.slaCompliance}% SLA compliance - infrastructure is running exceptionally well.`,
+      domains: ['cto', 'csco'],
+      confidence: 0.95,
+      recommendation: "Document what's working and share with the team - this is worth celebrating.",
+      humanEquivalent: 'Humans often miss gradual improvements without explicit measurement.',
+    });
+  }
+
+  // Pattern 7: Incidents + Access Review correlation (CTO + CIO)
+  if (metrics.cto.openIncidents > 0 && metrics.cio.accessReviewsPending > 5) {
+    insights.push({
+      id: 'incident-access-correlation',
+      type: 'risk',
+      severity: 'warning',
+      title: 'Open Incidents with Pending Access Reviews',
+      description: `${metrics.cto.openIncidents} open incident(s) while ${metrics.cio.accessReviewsPending} access reviews pending - potential security correlation.`,
+      domains: ['cto', 'cio'],
+      confidence: 0.65,
+      recommendation: 'Prioritize access reviews to rule out unauthorized access as incident factor.',
+      humanEquivalent: 'Security correlation between incidents and access patterns often overlooked.',
+    });
+  }
+
+  // Always include company health check from CEO metrics
+  if (metrics.ceo.companyHealth < 80 || metrics.ceo.okrProgress < 60) {
+    insights.push({
+      id: 'company-health-check',
+      type: 'risk',
+      severity: metrics.ceo.companyHealth < 70 ? 'critical' : 'warning',
+      title: 'Company Health Needs Attention',
+      description: `Company health at ${metrics.ceo.companyHealth}% with OKR progress at ${metrics.ceo.okrProgress}% - strategic focus needed.`,
+      domains: ['ceo'],
+      confidence: 0.90,
+      recommendation: `Address the ${metrics.ceo.pendingDecisions} pending decisions to unblock progress.`,
+      humanEquivalent: 'Comprehensive health scores require synthesizing data across all departments.',
+    });
+  }
 
   return insights;
 }
