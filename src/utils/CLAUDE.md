@@ -108,6 +108,8 @@ import { getRequestCoalescer, hashContent, getAllCoalescerStats } from '../utils
 const coalescer = getRequestCoalescer<number[]>('embeddings', {
   pendingTtlMs: 60000,  // Max time to wait for a request (default: 60s)
   maxPending: 10000,    // Max concurrent pending requests (default: 10000)
+  // Clone results to prevent mutation bugs when multiple callers share the result
+  cloneResult: (arr) => [...arr],  // Optional - use for arrays/objects
 });
 
 // These concurrent calls will share the same API request
@@ -115,7 +117,7 @@ const [result1, result2] = await Promise.all([
   coalescer.execute(hashContent(text), () => embedApi.embed(text)),
   coalescer.execute(hashContent(text), () => embedApi.embed(text)),
 ]);
-// Only 1 API call made, both get the same result
+// Only 1 API call made, both get the same result (each gets a clone)
 
 // Get stats for monitoring
 const stats = coalescer.getStats();
@@ -130,6 +132,32 @@ const allStats = getAllCoalescerStats();
 - TTL expiration marks entries as expired (new requests start fresh, existing waiters still get their result)
 - Entry identity tracking prevents race conditions during cleanup
 - Stats track coalesce rate for monitoring
+- Optional `cloneResult` prevents mutation bugs when callers share results
+
+**Observability Callbacks:**
+
+```typescript
+import { configureCoalescerMetrics, resetCoalescerMetrics } from '../utils/index.js';
+
+// Configure global metrics callbacks for observability
+configureCoalescerMetrics({
+  // Called when a request is coalesced with an existing in-flight request
+  onCoalesce: (name, key, waiterCount) => {
+    prometheus.inc('coalescer_coalesced_total', { name });
+  },
+  // Called when a coalescer is approaching capacity (>80% full)
+  onCapacityWarning: (name, current, max) => {
+    logger.warn({ name, current, max }, 'Coalescer approaching capacity');
+  },
+  // Called when a request completes (success or error)
+  onComplete: (name, key, durationMs, success) => {
+    prometheus.observe('coalescer_duration_ms', durationMs, { name, success: String(success) });
+  },
+});
+
+// Reset callbacks (for testing)
+resetCoalescerMetrics();
+```
 
 **Two-layer caching for embeddings:**
 
@@ -137,6 +165,15 @@ const allStats = getAllCoalescerStats();
 |----------|------------|------------------|----------|
 | `embed()` | ✅ | ❌ | High-frequency concurrent calls |
 | `embedCached()` | ✅ | ✅ (Redis/memory) | Need cross-session caching |
+
+**Coalescers in the codebase:**
+
+| Name | Location | Purpose |
+|------|----------|---------|
+| `embeddings` | `memory/embeddings.ts` | Embedding generation |
+| `tool-domain-load` | `tools/registry/loader.ts` | Tool domain lazy loading |
+| `semantic-router` | `tools/semantic-router/router.ts` | Routing query coalescing |
+| `firestore-vector-search` | `memory/firestore-vector-store/core.ts` | Vector search coalescing |
 
 ### Async Utilities
 
