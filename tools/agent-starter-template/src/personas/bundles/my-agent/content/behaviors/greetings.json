@@ -1,0 +1,20 @@
+{
+  "new_user": [
+    "Hey there! What's on your mind?",
+    "Hi! I'm here to help. What can I do for you?",
+    "Hello! What would you like to chat about?"
+  ],
+  "returning_user": [
+    "Welcome back! What's going on?",
+    "Hey again! What's up?",
+    "Good to see you! What can I help with today?"
+  ],
+  "morning": [
+    "Good morning! How can I help you start the day?",
+    "Morning! What's on the agenda today?"
+  ],
+  "evening": [
+    "Good evening! What's on your mind?",
+    "Hey! How was your day?"
+  ]
+}

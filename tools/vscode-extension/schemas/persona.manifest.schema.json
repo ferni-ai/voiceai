@@ -1,0 +1,318 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://voiceai.example.com/schemas/persona-manifest.v2.json",
+  "title": "Ferni Agent Manifest",
+  "description": "Configuration schema for Ferni voice AI agents",
+  "type": "object",
+  "required": ["identity", "voice", "personality"],
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "description": "JSON Schema reference"
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$",
+      "description": "Semantic version of the agent configuration"
+    },
+    "manifest_version": {
+      "type": "integer",
+      "enum": [2],
+      "description": "Manifest schema version"
+    },
+    "identity": {
+      "type": "object",
+      "required": ["id", "name"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]*$",
+          "description": "Unique identifier (lowercase, hyphens allowed)"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100,
+          "description": "Full name of the agent"
+        },
+        "display_name": {
+          "type": "string",
+          "description": "Display name (defaults to name)"
+        },
+        "description": {
+          "type": "string",
+          "maxLength": 500,
+          "description": "Brief description of the agent's purpose"
+        },
+        "aliases": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Alternative names the agent responds to"
+        },
+        "self_reference": {
+          "type": "string",
+          "description": "How the agent refers to itself"
+        }
+      }
+    },
+    "voice": {
+      "type": "object",
+      "required": ["provider", "voice_id"],
+      "properties": {
+        "provider": {
+          "type": "string",
+          "enum": ["cartesia", "elevenlabs", "openai"],
+          "description": "Text-to-speech provider"
+        },
+        "voice_id": {
+          "type": "string",
+          "description": "Voice ID or environment variable reference (${env:VAR})"
+        },
+        "default_rate": {
+          "type": "string",
+          "enum": ["slow", "medium", "fast"],
+          "default": "medium",
+          "description": "Default speaking rate"
+        }
+      }
+    },
+    "speech_characteristics": {
+      "type": "object",
+      "properties": {
+        "base_speed_multiplier": {
+          "type": "number",
+          "minimum": 0.5,
+          "maximum": 2.0,
+          "default": 1.0,
+          "description": "Base speaking speed multiplier"
+        },
+        "pause_multiplier": {
+          "type": "number",
+          "minimum": 0.5,
+          "maximum": 2.0,
+          "default": 1.0,
+          "description": "Pause length multiplier"
+        },
+        "thinking_sound_frequency": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "default": 0.2,
+          "description": "Frequency of thinking sounds (0-1)"
+        },
+        "emphasis_style": {
+          "type": "string",
+          "enum": ["subtle", "moderate", "dramatic", "warm"],
+          "default": "moderate",
+          "description": "Style of vocal emphasis"
+        },
+        "breathing_frequency": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Frequency of breath sounds"
+        },
+        "sentence_pause_ms": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000,
+          "description": "Pause between sentences in milliseconds"
+        },
+        "thought_pause_ms": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2000,
+          "description": "Pause between thoughts in milliseconds"
+        },
+        "voice_notes": {
+          "type": "string",
+          "description": "Free-form notes about voice characteristics"
+        }
+      }
+    },
+    "personality": {
+      "type": "object",
+      "properties": {
+        "warmth": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Warmth level (0=cold, 1=warm)"
+        },
+        "directness": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Directness level (0=gentle, 1=blunt)"
+        },
+        "energy": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Energy level (0=calm, 1=energetic)"
+        },
+        "humor_level": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Humor frequency (0=serious, 1=playful)"
+        },
+        "traits": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "List of personality traits"
+        }
+      }
+    },
+    "role": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Role identifier"
+        },
+        "domains": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Expertise domains"
+        },
+        "can_handoff": {
+          "type": "boolean",
+          "description": "Whether agent can handoff to others"
+        },
+        "handoff_targets": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Valid handoff target agent IDs"
+        }
+      }
+    },
+    "tools": {
+      "type": "object",
+      "properties": {
+        "domains": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Tool domains enabled for this agent"
+        },
+        "required": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Tools that must be available"
+        },
+        "optional": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Tools that may be used if available"
+        },
+        "forbidden": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Tools this agent cannot use"
+        }
+      }
+    },
+    "capabilities": {
+      "type": "object",
+      "properties": {
+        "can_handoff": {
+          "type": "boolean"
+        },
+        "handoff_targets": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "banking_enabled": {
+          "type": "boolean"
+        },
+        "music_enabled": {
+          "type": "boolean"
+        },
+        "standalone_agent": {
+          "type": "boolean"
+        },
+        "mentoring_enabled": {
+          "type": "boolean"
+        }
+      }
+    },
+    "team": {
+      "type": "object",
+      "properties": {
+        "membership": {
+          "type": "string"
+        },
+        "role_id": {
+          "type": "string"
+        },
+        "role_description": {
+          "type": "string"
+        },
+        "coordinator": {
+          "type": "boolean"
+        },
+        "handoff_triggers": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "handoff_phrases": {
+          "type": "object",
+          "properties": {
+            "to_coordinator": {
+              "type": "array",
+              "items": { "type": "string" }
+            },
+            "receive": {
+              "type": "array",
+              "items": { "type": "string" }
+            }
+          }
+        }
+      }
+    },
+    "content": {
+      "type": "object",
+      "properties": {
+        "stories": {
+          "type": "object",
+          "properties": {
+            "directory": { "type": "string" },
+            "lazy_load": { "type": "boolean" }
+          }
+        },
+        "knowledge": {
+          "type": "object",
+          "properties": {
+            "directory": { "type": "string" },
+            "lazy_load": { "type": "boolean" }
+          }
+        },
+        "behaviors": {
+          "type": "object",
+          "properties": {
+            "directory": { "type": "string" }
+          }
+        }
+      }
+    },
+    "metadata": {
+      "type": "object",
+      "properties": {
+        "author": {
+          "type": "string"
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updated_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "content_files_count": {
+          "type": "integer"
+        }
+      }
+    }
+  }
+}

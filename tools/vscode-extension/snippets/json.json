@@ -1,0 +1,114 @@
+{
+  "Ferni Agent Manifest": {
+    "prefix": "ferni-manifest",
+    "body": [
+      "{",
+      "  \"\\$schema\": \"https://voiceai.example.com/schemas/persona-manifest.v2.json\",",
+      "  \"version\": \"1.0.0\",",
+      "  \"manifest_version\": 2,",
+      "  \"identity\": {",
+      "    \"id\": \"${1:agent-id}\",",
+      "    \"name\": \"${2:Agent Name}\",",
+      "    \"display_name\": \"${3:Display Name}\",",
+      "    \"description\": \"${4:A helpful voice AI assistant}\",",
+      "    \"aliases\": [\"${5:agent}\"],",
+      "    \"self_reference\": \"${6:Agent}\"",
+      "  },",
+      "  \"voice\": {",
+      "    \"provider\": \"cartesia\",",
+      "    \"voice_id\": \"${7:bf991597-aacf-4b1a-96fe-4c0cb7fecf96}\",",
+      "    \"default_rate\": \"medium\"",
+      "  },",
+      "  \"speech_characteristics\": {",
+      "    \"base_speed_multiplier\": 1.0,",
+      "    \"pause_multiplier\": 1.0,",
+      "    \"thinking_sound_frequency\": 0.2,",
+      "    \"emphasis_style\": \"moderate\"",
+      "  },",
+      "  \"personality\": {",
+      "    \"warmth\": ${8:0.8},",
+      "    \"directness\": ${9:0.6},",
+      "    \"energy\": ${10:0.6},",
+      "    \"humor_level\": ${11:0.4}",
+      "  },",
+      "  \"tools\": {",
+      "    \"domains\": [\"${12:general}\"],",
+      "    \"required\": [],",
+      "    \"optional\": [\"searchWeb\", \"getWeather\"],",
+      "    \"forbidden\": []",
+      "  },",
+      "  \"metadata\": {",
+      "    \"author\": \"${13:Your Name}\",",
+      "    \"created_at\": \"${CURRENT_YEAR}-${CURRENT_MONTH}-${CURRENT_DATE}T00:00:00Z\"",
+      "  }",
+      "}"
+    ],
+    "description": "Complete Ferni agent manifest template"
+  },
+  "Ferni Identity Block": {
+    "prefix": "ferni-identity",
+    "body": [
+      "\"identity\": {",
+      "  \"id\": \"${1:agent-id}\",",
+      "  \"name\": \"${2:Agent Name}\",",
+      "  \"display_name\": \"${3:Display Name}\",",
+      "  \"description\": \"${4:description}\",",
+      "  \"aliases\": [\"${5:alias}\"],",
+      "  \"self_reference\": \"${6:Agent}\"",
+      "}"
+    ],
+    "description": "Agent identity configuration"
+  },
+  "Ferni Voice Block": {
+    "prefix": "ferni-voice",
+    "body": [
+      "\"voice\": {",
+      "  \"provider\": \"cartesia\",",
+      "  \"voice_id\": \"${1:bf991597-aacf-4b1a-96fe-4c0cb7fecf96}\",",
+      "  \"default_rate\": \"${2|medium,slow,fast|}\"",
+      "}"
+    ],
+    "description": "Voice configuration"
+  },
+  "Ferni Personality Block": {
+    "prefix": "ferni-personality",
+    "body": [
+      "\"personality\": {",
+      "  \"warmth\": ${1:0.8},",
+      "  \"directness\": ${2:0.6},",
+      "  \"energy\": ${3:0.6},",
+      "  \"humor_level\": ${4:0.4},",
+      "  \"traits\": [\"${5:helpful}\", \"${6:friendly}\"]",
+      "}"
+    ],
+    "description": "Personality configuration"
+  },
+  "Ferni Greetings": {
+    "prefix": "ferni-greetings",
+    "body": [
+      "{",
+      "  \"new_user\": [",
+      "    \"${1:Hey there! What's on your mind?}\",",
+      "    \"${2:Hi! How can I help you today?}\"",
+      "  ],",
+      "  \"returning_user\": [",
+      "    \"${3:Welcome back! What's going on?}\",",
+      "    \"${4:Good to see you again! What's up?}\"",
+      "  ]",
+      "}"
+    ],
+    "description": "Greetings configuration"
+  },
+  "Ferni Tools Block": {
+    "prefix": "ferni-tools",
+    "body": [
+      "\"tools\": {",
+      "  \"domains\": [\"${1:general}\"],",
+      "  \"required\": [],",
+      "  \"optional\": [${2:\"searchWeb\", \"getWeather\"}],",
+      "  \"forbidden\": []",
+      "}"
+    ],
+    "description": "Tools configuration"
+  }
+}

@@ -1,0 +1,215 @@
+{
+  "name": "ferni-agent-builder",
+  "displayName": "Ferni Agent Builder",
+  "description": "Build, preview, and deploy voice AI agents from VS Code",
+  "version": "0.1.0",
+  "publisher": "ferni",
+  "icon": "images/icon.png",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Programming Languages",
+    "Snippets",
+    "Other"
+  ],
+  "keywords": [
+    "voice ai",
+    "ai agent",
+    "ferni",
+    "voice assistant",
+    "chatbot"
+  ],
+  "activationEvents": [
+    "workspaceContains:**/persona.manifest.json",
+    "onView:ferniAgents"
+  ],
+  "main": "./out/extension.js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ferni-ai/vscode-extension"
+  },
+  "contributes": {
+    "commands": [
+      {
+        "command": "ferni.startPreview",
+        "title": "Start Preview",
+        "category": "Ferni",
+        "icon": "$(play)"
+      },
+      {
+        "command": "ferni.stopPreview",
+        "title": "Stop Preview",
+        "category": "Ferni",
+        "icon": "$(debug-stop)"
+      },
+      {
+        "command": "ferni.deployAgent",
+        "title": "Deploy Agent",
+        "category": "Ferni",
+        "icon": "$(cloud-upload)"
+      },
+      {
+        "command": "ferni.previewVoice",
+        "title": "Preview Voice",
+        "category": "Ferni",
+        "icon": "$(unmute)"
+      },
+      {
+        "command": "ferni.createAgent",
+        "title": "Create Agent",
+        "category": "Ferni",
+        "icon": "$(add)"
+      },
+      {
+        "command": "ferni.validateAgent",
+        "title": "Validate Agent",
+        "category": "Ferni",
+        "icon": "$(check)"
+      },
+      {
+        "command": "ferni.refreshAgents",
+        "title": "Refresh Agents",
+        "category": "Ferni",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "ferni.openDocs",
+        "title": "Open Documentation",
+        "category": "Ferni",
+        "icon": "$(book)"
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "ferni.startPreview",
+        "key": "ctrl+shift+p",
+        "mac": "cmd+shift+p",
+        "when": "editorTextFocus && resourceFilename =~ /persona\\.manifest\\.json$/"
+      },
+      {
+        "command": "ferni.deployAgent",
+        "key": "ctrl+shift+d",
+        "mac": "cmd+shift+d",
+        "when": "editorTextFocus && resourcePath =~ /bundles\\//"
+      },
+      {
+        "command": "ferni.previewVoice",
+        "key": "ctrl+shift+v",
+        "mac": "cmd+shift+v",
+        "when": "editorHasSelection && resourcePath =~ /bundles\\//"
+      }
+    ],
+    "menus": {
+      "editor/context": [
+        {
+          "command": "ferni.previewVoice",
+          "when": "editorHasSelection && resourcePath =~ /bundles\\//"
+        }
+      ],
+      "view/title": [
+        {
+          "command": "ferni.createAgent",
+          "when": "view == ferniAgents",
+          "group": "navigation"
+        },
+        {
+          "command": "ferni.refreshAgents",
+          "when": "view == ferniAgents",
+          "group": "navigation"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "ferni.startPreview",
+          "when": "view == ferniAgents && viewItem == agent"
+        },
+        {
+          "command": "ferni.deployAgent",
+          "when": "view == ferniAgents && viewItem == agent"
+        },
+        {
+          "command": "ferni.validateAgent",
+          "when": "view == ferniAgents && viewItem == agent"
+        }
+      ]
+    },
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "ferni",
+          "title": "Ferni Agents",
+          "icon": "images/ferni-icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "ferni": [
+        {
+          "id": "ferniAgents",
+          "name": "Agents"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "Ferni Agent Builder",
+      "properties": {
+        "ferni.previewPort": {
+          "type": "number",
+          "default": 3333,
+          "description": "Port for local preview server"
+        },
+        "ferni.defaultVoice": {
+          "type": "string",
+          "default": "bf991597-aacf-4b1a-96fe-4c0cb7fecf96",
+          "description": "Default voice ID for voice previews"
+        },
+        "ferni.autoValidate": {
+          "type": "boolean",
+          "default": true,
+          "description": "Automatically validate manifests on save"
+        },
+        "ferni.apiEndpoint": {
+          "type": "string",
+          "default": "https://api.ferni.ai",
+          "description": "Ferni API endpoint"
+        }
+      }
+    },
+    "jsonValidation": [
+      {
+        "fileMatch": "persona.manifest.json",
+        "url": "./schemas/persona.manifest.schema.json"
+      }
+    ],
+    "snippets": [
+      {
+        "language": "json",
+        "path": "./snippets/json.json"
+      },
+      {
+        "language": "markdown",
+        "path": "./snippets/markdown.json"
+      }
+    ]
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "pretest": "npm run compile",
+    "test": "node ./out/test/runTest.js",
+    "lint": "eslint src --ext ts",
+    "package": "vsce package",
+    "publish": "vsce publish"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/vscode": "^1.85.0",
+    "@typescript-eslint/eslint-plugin": "^6.0.0",
+    "@typescript-eslint/parser": "^6.0.0",
+    "eslint": "^8.50.0",
+    "typescript": "^5.3.0",
+    "@vscode/vsce": "^2.22.0"
+  }
+}

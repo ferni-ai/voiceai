@@ -1,0 +1,24 @@
+name: Validate Agent
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      
+      - name: Install Ferni CLI
+        run: npm install -g @ferni/cli
+      
+      - name: Validate Agent Configuration
+        run: ferni agent validate my-agent
+      
+      - name: Check Manifest Schema
+        run: ferni agent validate my-agent --strict

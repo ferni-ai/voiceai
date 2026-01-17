@@ -1,0 +1,16 @@
+{
+  "colors": {
+    "primary": "#4a6741",
+    "secondary": "#3d5a35",
+    "accent": "#a3c293",
+    "background": "#f8faf7",
+    "text": "#2c2520"
+  },
+  "theme": "light",
+  "fonts": {
+    "display": "Plus Jakarta Sans",
+    "body": "Inter"
+  },
+  "logo": null,
+  "tagline": "Your helpful AI assistant"
+}

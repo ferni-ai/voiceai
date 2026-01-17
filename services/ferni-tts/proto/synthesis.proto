@@ -1,0 +1,218 @@
+syntax = "proto3";
+
+package ferni.tts;
+
+// TTS Synthesis Service
+service SynthesisService {
+    // Synthesize speech from text (unary)
+    rpc Synthesize(SynthesisRequest) returns (SynthesisResponse);
+
+    // Synthesize speech with streaming response
+    rpc SynthesizeStream(SynthesisRequest) returns (stream AudioChunk);
+
+    // List available voices
+    rpc ListVoices(ListVoicesRequest) returns (ListVoicesResponse);
+
+    // Health check
+    rpc HealthCheck(HealthCheckRequest) returns (HealthCheckResponse);
+}
+
+// Request for speech synthesis
+message SynthesisRequest {
+    // Text to synthesize (plain text or SSML)
+    string text = 1;
+
+    // Whether the text is SSML
+    bool is_ssml = 2;
+
+    // Voice ID to use
+    string voice_id = 3;
+
+    // Audio output configuration
+    AudioConfig audio_config = 4;
+
+    // Prosody configuration
+    ProsodyConfig prosody_config = 5;
+
+    // Superhuman context for enhanced prosody
+    SuperhumanContext superhuman_context = 6;
+
+    // Request ID for tracing
+    string request_id = 7;
+}
+
+// Audio output configuration
+message AudioConfig {
+    // Sample rate in Hz (default: 24000)
+    uint32 sample_rate = 1;
+
+    // Bits per sample (default: 16)
+    uint32 bits_per_sample = 2;
+
+    // Number of channels (default: 1)
+    uint32 channels = 3;
+
+    // Output format
+    AudioFormat format = 4;
+}
+
+enum AudioFormat {
+    AUDIO_FORMAT_UNSPECIFIED = 0;
+    AUDIO_FORMAT_PCM = 1;
+    AUDIO_FORMAT_WAV = 2;
+    AUDIO_FORMAT_MP3 = 3;
+    AUDIO_FORMAT_OPUS = 4;
+}
+
+// Prosody configuration
+message ProsodyConfig {
+    // Speaking rate multiplier (1.0 = normal)
+    float rate = 1;
+
+    // Pitch adjustment in semitones
+    float pitch = 2;
+
+    // Volume (0.0 - 1.0)
+    float volume = 3;
+}
+
+// Superhuman context for enhanced prosody
+message SuperhumanContext {
+    // User's local hour (0-23) for circadian adjustment
+    optional uint32 user_local_hour = 1;
+
+    // Relationship stage (0.0-1.0)
+    optional float relationship_stage = 2;
+
+    // User's current energy level (0.0-1.0)
+    optional float user_energy = 3;
+
+    // User's detected emotion
+    optional string user_emotion = 4;
+
+    // Emotion intensity (0.0-1.0)
+    optional float emotion_intensity = 5;
+
+    // Topic sensitivity (0.0-1.0)
+    optional float topic_sensitivity = 6;
+
+    // Emotional trajectory
+    optional string emotional_trajectory = 7;
+
+    // Remembered entities
+    repeated MemoryEntity remembered_entities = 8;
+
+    // Turn number in conversation
+    optional uint32 turn_number = 9;
+
+    // User's speaking rate
+    optional float user_speaking_rate = 10;
+}
+
+// Memory entity for prosody emphasis
+message MemoryEntity {
+    // Entity name
+    string name = 1;
+
+    // Entity type (person, place, pet, etc.)
+    string entity_type = 2;
+
+    // Familiarity score (0.0-1.0)
+    float familiarity = 3;
+
+    // Emotional valence (-1.0 to 1.0)
+    optional float emotional_valence = 4;
+}
+
+// Synthesis response (non-streaming)
+message SynthesisResponse {
+    // Synthesized audio data
+    bytes audio = 1;
+
+    // Audio format used
+    AudioConfig audio_config = 2;
+
+    // Duration in milliseconds
+    uint64 duration_ms = 3;
+
+    // Request ID for tracing
+    string request_id = 4;
+
+    // First byte latency in milliseconds
+    uint64 latency_ms = 5;
+
+    // Transforms applied
+    repeated string transforms_applied = 6;
+}
+
+// Streaming audio chunk
+message AudioChunk {
+    // Audio data
+    bytes data = 1;
+
+    // Chunk index
+    uint32 index = 2;
+
+    // Is this the final chunk?
+    bool is_final = 3;
+
+    // Timestamp in milliseconds from start
+    uint64 timestamp_ms = 4;
+
+    // Duration of this chunk in milliseconds
+    uint64 duration_ms = 5;
+}
+
+// Request to list available voices
+message ListVoicesRequest {
+    // Filter by language (optional)
+    optional string language = 1;
+}
+
+// Response with available voices
+message ListVoicesResponse {
+    repeated VoiceInfo voices = 1;
+}
+
+// Voice information
+message VoiceInfo {
+    // Voice ID
+    string id = 1;
+
+    // Display name
+    string name = 2;
+
+    // Language code
+    string language = 3;
+
+    // Gender
+    VoiceGender gender = 4;
+
+    // Voice style/personality description
+    string style = 5;
+
+    // Whether voice supports cloning
+    bool supports_cloning = 6;
+}
+
+enum VoiceGender {
+    VOICE_GENDER_UNSPECIFIED = 0;
+    VOICE_GENDER_MALE = 1;
+    VOICE_GENDER_FEMALE = 2;
+    VOICE_GENDER_NEUTRAL = 3;
+}
+
+// Health check request
+message HealthCheckRequest {}
+
+// Health check response
+message HealthCheckResponse {
+    // Service is healthy
+    bool healthy = 1;
+
+    // Service version
+    string version = 2;
+
+    // Backend status
+    string backend_status = 3;
+}

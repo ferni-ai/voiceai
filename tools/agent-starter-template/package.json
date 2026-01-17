@@ -1,0 +1,18 @@
+{
+  "name": "my-ferni-agent",
+  "version": "1.0.0",
+  "description": "My custom voice AI agent",
+  "scripts": {
+    "preview": "ferni agent preview my-agent",
+    "validate": "ferni agent validate my-agent",
+    "deploy": "ferni agent publish my-agent",
+    "dev": "ferni agent preview my-agent"
+  },
+  "keywords": [
+    "ferni",
+    "voice-ai",
+    "ai-agent"
+  ],
+  "author": "Your Name",
+  "license": "MIT"
+}
