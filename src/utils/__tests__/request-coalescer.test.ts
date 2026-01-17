@@ -12,7 +12,10 @@ import {
   getAllCoalescerStats,
   resetAllCoalescers,
   hashContent,
+  configureCoalescerMetrics,
+  resetCoalescerMetrics,
   type CoalescerStats,
+  type CoalescerMetricsCallbacks,
 } from '../request-coalescer.js';
 
 describe('RequestCoalescer', () => {
@@ -238,6 +241,244 @@ describe('RequestCoalescer', () => {
 
       const stats = coalescer.getStats();
       expect(stats.errors).toBe(1);
+    });
+  });
+
+  describe('Clone Result', () => {
+    it('should clone results when cloneResult is provided', async () => {
+      const arrayCoalescer = new RequestCoalescer<number[]>('array-test', {
+        pendingTtlMs: 60000,
+        maxPending: 100,
+        cloneResult: (arr) => [...arr],
+      });
+
+      let executionCount = 0;
+      const executor = async () => {
+        executionCount++;
+        await new Promise((resolve) => setTimeout(resolve, 50));
+        return [1, 2, 3];
+      };
+
+      // Start 3 concurrent requests
+      const promises = [
+        arrayCoalescer.execute('clone-key', executor),
+        arrayCoalescer.execute('clone-key', executor),
+        arrayCoalescer.execute('clone-key', executor),
+      ];
+
+      await vi.advanceTimersByTimeAsync(100);
+      const results = await Promise.all(promises);
+
+      // All should have same values
+      expect(results[0]).toEqual([1, 2, 3]);
+      expect(results[1]).toEqual([1, 2, 3]);
+      expect(results[2]).toEqual([1, 2, 3]);
+
+      // But they should be different array instances
+      expect(results[0]).not.toBe(results[1]);
+      expect(results[1]).not.toBe(results[2]);
+      expect(results[0]).not.toBe(results[2]);
+
+      // Executor only called once
+      expect(executionCount).toBe(1);
+
+      arrayCoalescer.clear();
+    });
+
+    it('should allow mutation of cloned results without affecting others', async () => {
+      const arrayCoalescer = new RequestCoalescer<number[]>('mutation-test', {
+        pendingTtlMs: 60000,
+        maxPending: 100,
+        cloneResult: (arr) => [...arr],
+      });
+
+      const executor = async () => {
+        await new Promise((resolve) => setTimeout(resolve, 50));
+        return [1, 2, 3];
+      };
+
+      // Start 2 concurrent requests
+      const promise1 = arrayCoalescer.execute('mutation-key', executor);
+      const promise2 = arrayCoalescer.execute('mutation-key', executor);
+
+      await vi.advanceTimersByTimeAsync(100);
+      const [result1, result2] = await Promise.all([promise1, promise2]);
+
+      // Mutate the first result
+      result1.push(4);
+
+      // Second result should not be affected
+      expect(result1).toEqual([1, 2, 3, 4]);
+      expect(result2).toEqual([1, 2, 3]);
+
+      arrayCoalescer.clear();
+    });
+
+    it('should work with structuredClone for complex objects', async () => {
+      interface ComplexObject {
+        id: number;
+        nested: { value: string };
+      }
+
+      const objectCoalescer = new RequestCoalescer<ComplexObject>('object-test', {
+        pendingTtlMs: 60000,
+        maxPending: 100,
+        cloneResult: (obj) => structuredClone(obj),
+      });
+
+      const executor = async () => {
+        await new Promise((resolve) => setTimeout(resolve, 50));
+        return { id: 1, nested: { value: 'test' } };
+      };
+
+      // Start 2 concurrent requests
+      const promises = [
+        objectCoalescer.execute('obj-key', executor),
+        objectCoalescer.execute('obj-key', executor),
+      ];
+
+      await vi.advanceTimersByTimeAsync(100);
+      const [result1, result2] = await Promise.all(promises);
+
+      // Deep equality
+      expect(result1).toEqual({ id: 1, nested: { value: 'test' } });
+      expect(result2).toEqual({ id: 1, nested: { value: 'test' } });
+
+      // Different instances
+      expect(result1).not.toBe(result2);
+      expect(result1.nested).not.toBe(result2.nested);
+
+      objectCoalescer.clear();
+    });
+  });
+
+  describe('Observability Metrics Callbacks', () => {
+    beforeEach(() => {
+      resetCoalescerMetrics();
+    });
+
+    afterEach(() => {
+      resetCoalescerMetrics();
+    });
+
+    it('should call onCoalesce when requests are coalesced', async () => {
+      const onCoalesce = vi.fn();
+      configureCoalescerMetrics({ onCoalesce });
+
+      const metricsCoalescer = new RequestCoalescer<string>('metrics-coalesce', {
+        pendingTtlMs: 60000,
+        maxPending: 100,
+      });
+
+      const executor = async () => {
+        await new Promise((resolve) => setTimeout(resolve, 100));
+        return 'result';
+      };
+
+      // Start 3 concurrent requests
+      const promises = [
+        metricsCoalescer.execute('key', executor),
+        metricsCoalescer.execute('key', executor),
+        metricsCoalescer.execute('key', executor),
+      ];
+
+      await vi.advanceTimersByTimeAsync(150);
+      await Promise.all(promises);
+
+      // onCoalesce should be called twice (for 2nd and 3rd requests)
+      expect(onCoalesce).toHaveBeenCalledTimes(2);
+      expect(onCoalesce).toHaveBeenCalledWith('metrics-coalesce', 'key', 2); // 2nd waiter
+      expect(onCoalesce).toHaveBeenCalledWith('metrics-coalesce', 'key', 3); // 3rd waiter
+
+      metricsCoalescer.clear();
+    });
+
+    it('should call onComplete when request completes successfully', async () => {
+      const onComplete = vi.fn();
+      configureCoalescerMetrics({ onComplete });
+
+      const metricsCoalescer = new RequestCoalescer<string>('metrics-complete', {
+        pendingTtlMs: 60000,
+        maxPending: 100,
+      });
+
+      const executor = async () => {
+        await new Promise((resolve) => setTimeout(resolve, 50));
+        return 'result';
+      };
+
+      const promise = metricsCoalescer.execute('key', executor);
+      await vi.advanceTimersByTimeAsync(100);
+      await promise;
+
+      // onComplete should be called once with success=true
+      expect(onComplete).toHaveBeenCalledTimes(1);
+      expect(onComplete).toHaveBeenCalledWith(
+        'metrics-complete',
+        'key',
+        expect.any(Number),
+        true
+      );
+
+      metricsCoalescer.clear();
+    });
+
+    it('should call onComplete with success=false when request fails', async () => {
+      const onComplete = vi.fn();
+      configureCoalescerMetrics({ onComplete });
+
+      const metricsCoalescer = new RequestCoalescer<string>('metrics-error', {
+        pendingTtlMs: 60000,
+        maxPending: 100,
+      });
+
+      const executor = async () => {
+        await new Promise((resolve) => setTimeout(resolve, 50));
+        throw new Error('test error');
+      };
+
+      const promise = metricsCoalescer.execute('key', executor);
+      promise.catch(() => {}); // Suppress unhandled rejection
+
+      await vi.advanceTimersByTimeAsync(100);
+      await expect(promise).rejects.toThrow('test error');
+
+      // onComplete should be called once with success=false
+      expect(onComplete).toHaveBeenCalledTimes(1);
+      expect(onComplete).toHaveBeenCalledWith(
+        'metrics-error',
+        'key',
+        expect.any(Number),
+        false
+      );
+
+      metricsCoalescer.clear();
+    });
+
+    it('should call onCapacityWarning when approaching capacity', async () => {
+      const onCapacityWarning = vi.fn();
+      configureCoalescerMetrics({ onCapacityWarning });
+
+      const smallCoalescer = new RequestCoalescer<string>('metrics-capacity', {
+        pendingTtlMs: 60000,
+        maxPending: 10, // Small capacity for testing
+      });
+
+      const neverResolves = () => new Promise<string>(() => {});
+
+      // Fill to 80% capacity (threshold for warning)
+      for (let i = 1; i <= 8; i++) {
+        void smallCoalescer.execute(`key-${i}`, neverResolves);
+      }
+
+      // Warning should be triggered for keys 9 and 10 (at 80% and above)
+      void smallCoalescer.execute('key-9', neverResolves);
+      expect(onCapacityWarning).toHaveBeenCalledWith('metrics-capacity', 8, 10);
+
+      void smallCoalescer.execute('key-10', neverResolves);
+      expect(onCapacityWarning).toHaveBeenCalledWith('metrics-capacity', 9, 10);
+
+      smallCoalescer.clear();
     });
   });
 });

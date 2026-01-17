@@ -20,6 +20,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
+import { getRequestCoalescer, hashContent } from '../../utils/request-coalescer.js';
 import { getToolRegistry, type SemanticToolRegistry } from './registry.js';
 import { runCombinedMatching, normalizeText } from './matcher.js';
 import { extractToolArguments } from './argument-extractor.js';
@@ -237,6 +238,50 @@ export function resetSemanticRoutingMetrics(): void {
 }
 
 // ============================================================================
+// REQUEST COALESCER FOR ROUTING
+// ============================================================================
+
+/**
+ * Feature flag to enable/disable routing coalescing.
+ * Can be disabled for debugging or if issues arise.
+ */
+const ENABLE_ROUTER_COALESCING = process.env.ENABLE_ROUTER_COALESCING !== 'false';
+
+/**
+ * Request coalescer for semantic routing.
+ * Coalesces identical routing requests to prevent duplicate work when
+ * multiple concurrent requests have the same input text and persona.
+ *
+ * Key: SHA256 hash of normalized input text + personaId
+ * Note: Does NOT include userId to keep results user-agnostic
+ *
+ * Benefits:
+ * - Reduces redundant routing work during high-concurrency scenarios
+ * - TTL-based cleanup (60s) prevents memory leaks
+ * - Built-in stats tracking for observability
+ */
+const routerCoalescer = getRequestCoalescer<SemanticRouterResult>('semantic-router', {
+  pendingTtlMs: 60000,
+  maxPending: 5000,
+  // Clone results to prevent mutation bugs when multiple callers share the result
+  cloneResult: (result) => structuredClone(result),
+});
+
+/**
+ * Generate a coalescing key for a routing request.
+ * Key is based on normalized input + persona (NOT userId) for safety.
+ */
+function getRoutingCoalesceKey(inputText: string, personaId?: string): string {
+  const keyData = JSON.stringify({
+    text: normalizeText(inputText),
+    personaId: personaId ?? 'default',
+    // Note: Do NOT include userId - results should be user-agnostic
+    // Note: Do NOT include conversationHistory - too variable
+  });
+  return hashContent(keyData);
+}
+
+// ============================================================================
 // ROUTER CLASS
 // ============================================================================
 
@@ -310,6 +355,31 @@ export class SemanticRouter {
    * Route user input to tools
    */
   async route(
+    inputText: string,
+    context?: {
+      userId?: string;
+      sessionId?: string;
+      personaId?: string;
+      conversationHistory?: ConversationTurn[];
+      recentTools?: string[];
+    }
+  ): Promise<SemanticRouterResult> {
+    // Check if coalescing should be used
+    // Only coalesce when there's no conversation history (first turn) to avoid context conflicts
+    const shouldCoalesce = ENABLE_ROUTER_COALESCING && (!context?.conversationHistory || context.conversationHistory.length === 0);
+
+    if (shouldCoalesce) {
+      const coalesceKey = getRoutingCoalesceKey(inputText, context?.personaId);
+      return routerCoalescer.execute(coalesceKey, () => this.doRoute(inputText, context));
+    }
+
+    return this.doRoute(inputText, context);
+  }
+
+  /**
+   * Internal routing implementation (separated for coalescing)
+   */
+  private async doRoute(
     inputText: string,
     context?: {
       userId?: string;
@@ -687,4 +757,18 @@ export function mightNeedTool(inputText: string): boolean {
   ];
 
   return toolPatterns.some((p) => p.test(lowerText));
+}
+
+/**
+ * Get stats for the router coalescer (for observability)
+ */
+export function getRouterCoalescerStats(): {
+  totalRequests: number;
+  coalescedRequests: number;
+  actualExecutions: number;
+  coalesceRate: number;
+  errors: number;
+  currentPending: number;
+} {
+  return routerCoalescer.getStats();
 }

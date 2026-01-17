@@ -22,6 +22,7 @@
 
 import { perfInstrumentation } from '../../services/performance-instrumentation.js';
 import { getLogger } from '../../utils/safe-logger.js';
+import { getRequestCoalescer } from '../../utils/request-coalescer.js';
 
 import { toolRegistry } from './index.js';
 import { ALL_TOOL_DOMAINS, type ToolDefinition, type ToolDomain } from './types.js';
@@ -82,11 +83,19 @@ export const HIGH_PRIORITY_DOMAINS: ToolDomain[] = [
 const loadedDomains = new Set<ToolDomain>();
 
 /**
- * Track in-progress domain loads to prevent race conditions.
- * When multiple callers request the same domain simultaneously,
- * only one load executes and others await the same promise.
+ * Request coalescer for domain loading.
+ * Prevents race conditions when multiple callers request the same domain simultaneously.
+ * Only one load executes and others await the same result.
+ *
+ * Benefits over the previous Map-based approach:
+ * - TTL-based cleanup (60s) prevents memory leaks
+ * - Built-in stats tracking (coalesce rate, errors)
+ * - Consistent pattern across the codebase
  */
-const pendingLoads = new Map<ToolDomain, Promise<number>>();
+const domainLoadCoalescer = getRequestCoalescer<number>('tool-domain-load', {
+  pendingTtlMs: 60000,
+  maxPending: 200, // 118 domains max, with headroom for retries
+});
 
 /**
  * Check if a domain has been loaded
@@ -138,24 +147,9 @@ export async function loadToolDomain(
     return toolRegistry.getByDomain(domain).length;
   }
 
-  // RACE CONDITION FIX: If another caller is already loading this domain,
-  // wait for that load to complete instead of starting a duplicate load.
-  const existingLoad = pendingLoads.get(domain);
-  if (existingLoad) {
-    getLogger().debug({ domain }, 'Domain load already in progress, awaiting existing promise');
-    return existingLoad;
-  }
-
-  // Create and track the loading promise
-  const loadPromise = doLoadDomain(domain, options);
-  pendingLoads.set(domain, loadPromise);
-
-  try {
-    return await loadPromise;
-  } finally {
-    // Always clean up pending loads map
-    pendingLoads.delete(domain);
-  }
+  // Use request coalescer to prevent race conditions when multiple callers
+  // request the same domain simultaneously. Only one load executes.
+  return domainLoadCoalescer.execute(domain, () => doLoadDomain(domain, options));
 }
 
 /**
