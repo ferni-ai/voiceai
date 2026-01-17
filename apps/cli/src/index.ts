@@ -1317,6 +1317,20 @@ const COMMANDS: Record<string, CliCommand> = {
       'ferni csco capacity --forecast',
     ],
   },
+  exec: {
+    name: 'Exec',
+    description: 'Unified executive dashboard across all C-suite functions',
+    icon: '📊',
+    handler: handleExec,
+    subcommands: ['--quick', '--alerts', '--role'],
+    examples: [
+      'ferni exec',
+      'ferni exec --quick',
+      'ferni exec --alerts',
+      'ferni exec --role cto',
+      'ferni exec --json',
+    ],
+  },
 };
 
 // ============================================================================
@@ -10544,6 +10558,31 @@ async function handleCSCO(args: string[]): Promise<void> {
     execSync(cmd, { stdio: 'inherit', cwd: process.cwd() });
   } catch {
     log.error('CSCO operation failed');
+  }
+}
+
+async function handleExec(args: string[]): Promise<void> {
+  log.header('📊 Executive Dashboard');
+
+  const scriptArgs: string[] = [];
+  if (args.includes('--json')) scriptArgs.push('--json');
+  if (args.includes('--quick')) scriptArgs.push('--quick');
+  if (args.includes('--alerts')) scriptArgs.push('--alerts');
+  if (args.includes('--export')) scriptArgs.push('--export');
+
+  const roleIdx = args.findIndex((a) => a === '--role');
+  if (roleIdx >= 0 && args[roleIdx + 1]) {
+    const role = args[roleIdx + 1].toLowerCase();
+    if (['ceo', 'cto', 'cio', 'cpo', 'cmo', 'csco'].includes(role)) {
+      scriptArgs.push('--role', role);
+    }
+  }
+
+  const cmd = `npx tsx apps/cli/src/commands/exec/exec.ts ${scriptArgs.join(' ')}`;
+  try {
+    execSync(cmd, { stdio: 'inherit', cwd: process.cwd() });
+  } catch {
+    log.error('Executive dashboard failed');
   }
 }
 
