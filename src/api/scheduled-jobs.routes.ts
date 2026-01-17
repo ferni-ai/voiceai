@@ -90,6 +90,13 @@ export async function handleScheduledJobsRoutes(
       return true;
 
     // ========================================================================
+    // FAMILY CHECK-IN JOBS (Proactive family wellbeing calls)
+    // ========================================================================
+    case '/api/jobs/family-checkin-calls':
+      await handleFamilyCheckinCalls(res);
+      return true;
+
+    // ========================================================================
     // DEEP INTELLIGENCE JOBS (LLM-powered batch analysis)
     // ========================================================================
     case '/api/jobs/run-deep-analysis':
@@ -843,6 +850,68 @@ async function handleBetterThanHumanOutreach(res: ServerResponse): Promise<void>
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error',
       partialStats: stats,
+      timestamp: new Date().toISOString(),
+    });
+  }
+}
+
+// ============================================================================
+// FAMILY CHECK-IN JOB HANDLER
+// ============================================================================
+
+/**
+ * Family Check-in Calls Job
+ *
+ * Proactive outbound calling for family members' wellbeing.
+ * This is triggered by Cloud Scheduler on a regular basis (e.g., hourly)
+ * to check for due family check-in schedules and initiate calls.
+ *
+ * Flow:
+ * 1. Get all due check-in schedules
+ * 2. Initiate calls via LiveKit SIP or Twilio fallback
+ * 3. Agent conducts natural check-in conversation
+ * 4. Post-call analysis flags any concerns
+ * 5. Urgent concerns notify sponsors immediately
+ */
+async function handleFamilyCheckinCalls(res: ServerResponse): Promise<void> {
+  const startTime = Date.now();
+
+  try {
+    log.info('🏠 Starting family check-in calls job (Cloud Scheduler)');
+
+    const { runFamilyCheckinJob } = await import('../services/family/family-checkin-caller.js');
+
+    const result = await runFamilyCheckinJob();
+
+    const durationMs = Date.now() - startTime;
+
+    log.info(
+      {
+        ...result,
+        durationMs,
+      },
+      '✅ Family check-in calls job completed'
+    );
+
+    sendJson(res, 200, {
+      success: true,
+      job: 'family-checkin-calls',
+      stats: {
+        totalDue: result.totalDue,
+        callsInitiated: result.callsInitiated,
+        callsSucceeded: result.callsSucceeded,
+        callsFailed: result.callsFailed,
+        callsSkipped: result.callsSkipped,
+      },
+      durationMs,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error) {
+    const durationMs = Date.now() - startTime;
+    log.error({ error: String(error), durationMs }, 'Family check-in calls job failed');
+    sendJson(res, 500, {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error',
       timestamp: new Date().toISOString(),
     });
   }

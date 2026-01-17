@@ -15,3 +15,4 @@ export * from './family-messages.js';
 export * from './family-context-sharing.js';
 export * from './proactive-family-checkin.js';
 export * from './family-checkin-summary.js';
+export * from './family-checkin-caller.js';

@@ -349,3 +349,91 @@ describe('Helper Functions', () => {
     expect(questions.some(q => q.toLowerCase().includes('arthritis'))).toBe(true);
   });
 });
+
+// ============================================================================
+// FAMILY CHECKIN CALLER TESTS
+// ============================================================================
+
+describe('Family Check-in Caller', () => {
+  it('should be importable', async () => {
+    const { runFamilyCheckinJob, initiateCheckinCall, handleCheckinCallComplete } = await import(
+      '../family-checkin-caller.js'
+    );
+
+    expect(runFamilyCheckinJob).toBeDefined();
+    expect(typeof runFamilyCheckinJob).toBe('function');
+    expect(initiateCheckinCall).toBeDefined();
+    expect(typeof initiateCheckinCall).toBe('function');
+    expect(handleCheckinCallComplete).toBeDefined();
+    expect(typeof handleCheckinCallComplete).toBe('function');
+  });
+
+  describe('FamilyCheckinJobResult type', () => {
+    it('should return correct result structure from runFamilyCheckinJob', async () => {
+      const { runFamilyCheckinJob } = await import('../family-checkin-caller.js');
+
+      // Run job (will return empty results since no schedules are due)
+      const result = await runFamilyCheckinJob();
+
+      // Verify result has all expected fields
+      expect(result).toHaveProperty('success');
+      expect(result).toHaveProperty('totalDue');
+      expect(result).toHaveProperty('schedulesProcessed');
+      expect(result).toHaveProperty('callsInitiated');
+      expect(result).toHaveProperty('callsSucceeded');
+      expect(result).toHaveProperty('callsFailed');
+      expect(result).toHaveProperty('callsSkipped');
+      expect(result).toHaveProperty('errors');
+      expect(result).toHaveProperty('durationMs');
+
+      // Type checks
+      expect(typeof result.success).toBe('boolean');
+      expect(typeof result.totalDue).toBe('number');
+      expect(typeof result.schedulesProcessed).toBe('number');
+      expect(typeof result.callsInitiated).toBe('number');
+      expect(typeof result.durationMs).toBe('number');
+      expect(Array.isArray(result.errors)).toBe(true);
+    });
+  });
+
+  describe('initiateCheckinCall', () => {
+    it('should return failure for invalid sponsored identity', async () => {
+      const { initiateCheckinCall } = await import('../family-checkin-caller.js');
+
+      const mockSchedule = {
+        id: 'schedule-test-123',
+        sponsorUserId: 'user-test-456',
+        sponsoredIdentityId: 'nonexistent-identity',
+        familyMemberName: 'Test Mom',
+        relationship: 'mother',
+        phoneNumber: '+1234567890',
+        frequency: 'weekly' as const,
+        preferredTime: '14:00',
+        timezone: 'America/New_York',
+        isActive: true,
+        maxDurationMinutes: 15,
+        leaveVoicemailIfNoAnswer: true,
+        nextScheduledCall: new Date().toISOString(),
+        totalCallsMade: 0,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+
+      const result = await initiateCheckinCall(mockSchedule);
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('not found');
+    });
+  });
+
+  describe('default export', () => {
+    it('should export familyCheckinCaller object with all methods', async () => {
+      const { default: familyCheckinCaller } = await import('../family-checkin-caller.js');
+
+      expect(familyCheckinCaller).toBeDefined();
+      expect(familyCheckinCaller.runJob).toBeDefined();
+      expect(familyCheckinCaller.initiateCall).toBeDefined();
+      expect(familyCheckinCaller.handleComplete).toBeDefined();
+    });
+  });
+});

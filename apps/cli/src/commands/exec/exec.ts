@@ -732,6 +732,8 @@ ${colors.cyan}USAGE${colors.reset}
 
 ${colors.cyan}OPTIONS${colors.reset}
   ${colors.bold}--briefing${colors.reset}            Daily CEO briefing with cross-functional insights
+  ${colors.bold}--email <addr>${colors.reset}        Send briefing to email address (requires SENDGRID_API_KEY)
+  ${colors.bold}--slack${colors.reset}               Send high-priority alerts to Slack (requires SLACK_WEBHOOK_URL)
   ${colors.bold}--quick${colors.reset}               Quick status overview (one line per role)
   ${colors.bold}--alerts${colors.reset}              Only show alerts and action items
   ${colors.bold}--role <role>${colors.reset}         Filter by role: ceo, cto, cio, cpo, cmo, csco
@@ -741,6 +743,8 @@ ${colors.cyan}OPTIONS${colors.reset}
 ${colors.cyan}EXAMPLES${colors.reset}
   ferni exec                     # Full dashboard
   ferni exec --briefing          # Daily CEO briefing
+  ferni exec --email ceo@company.com  # Send briefing to email
+  ferni exec --slack             # Send critical alerts to Slack
   ferni exec --quick             # Quick status
   ferni exec --alerts            # Just alerts
   ferni exec --role cto          # CTO section only
@@ -772,6 +776,292 @@ export interface ExecOptions {
   json?: boolean;
   export?: boolean;
   briefing?: boolean;
+  email?: string;
+  slack?: boolean;
+}
+
+// ============================================================================
+// EMAIL BRIEFING
+// ============================================================================
+
+/**
+ * Generate HTML email for the executive briefing
+ */
+function generateBriefingEmailHTML(metrics: ExecutiveMetrics): string {
+  const now = new Date();
+  const dateStr = now.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+  const crossFunctionalAlerts = detectCrossFunctionalPatterns(metrics);
+
+  const getHealthColor = (score: number): string => {
+    if (score >= 90) return '#22c55e'; // green
+    if (score >= 70) return '#eab308'; // yellow
+    return '#ef4444'; // red
+  };
+
+  const allAlerts: string[] = [
+    ...metrics.cto.alerts.filter(a => !a.includes('detected')),
+    ...metrics.cio.alerts.filter(a => !a.includes('good')),
+    ...metrics.cpo.alerts.filter(a => !a.includes('track')),
+    ...metrics.cmo.alerts.filter(a => !a.includes('place')),
+    ...metrics.csco.alerts.filter(a => !a.includes('smooth')),
+  ];
+
+  const crossFunctionalHTML = crossFunctionalAlerts.length > 0
+    ? crossFunctionalAlerts.map(alert => {
+        const icon = alert.severity === 'critical' ? '🚨' : alert.severity === 'warning' ? '⚠️' : 'ℹ️';
+        const bgColor = alert.severity === 'critical' ? '#fef2f2' : alert.severity === 'warning' ? '#fefce8' : '#f0f9ff';
+        const borderColor = alert.severity === 'critical' ? '#fca5a5' : alert.severity === 'warning' ? '#fde047' : '#7dd3fc';
+        return `
+          <div style="background: ${bgColor}; border-left: 4px solid ${borderColor}; padding: 16px; margin: 12px 0; border-radius: 8px;">
+            <div style="font-weight: 600; font-size: 15px; margin-bottom: 8px;">${icon} ${alert.title}</div>
+            <div style="font-size: 13px; color: #666; margin-bottom: 4px;">Affects: ${alert.affectedRoles.join(', ')}</div>
+            <div style="font-size: 14px; margin-bottom: 8px;">${alert.message}</div>
+            <div style="font-size: 14px; color: #22c55e;">→ ${alert.recommendation}</div>
+          </div>
+        `;
+      }).join('')
+    : '<div style="color: #22c55e; padding: 12px;">✓ No cross-functional concerns detected</div>';
+
+  const actionItemsHTML = allAlerts.length > 0
+    ? `<ol style="margin: 0; padding-left: 20px;">${allAlerts.map(a => `<li style="margin: 8px 0;">${a}</li>`).join('')}</ol>`
+    : '<div style="color: #22c55e;">✓ No action items today</div>';
+
+  return `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ferni Executive Briefing - ${dateStr}</title>
+  <style>
+    body { margin: 0; padding: 0; background-color: #f5f5f5; font-family: 'Plus Jakarta Sans', 'Segoe UI', sans-serif; }
+    .container { max-width: 650px; margin: 0 auto; background: white; }
+    .header { background: linear-gradient(135deg, #4a6741 0%, #3d5a35 100%); padding: 32px; text-align: center; color: white; }
+    .header h1 { margin: 0 0 8px 0; font-size: 24px; font-weight: 600; }
+    .header p { margin: 0; opacity: 0.9; font-size: 14px; }
+    .content { padding: 32px; }
+    .section { margin-bottom: 32px; }
+    .section-title { font-size: 18px; font-weight: 600; margin-bottom: 16px; color: #2C2520; }
+    .metric-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+    .metric-card { background: #f8faf7; padding: 16px; border-radius: 8px; text-align: center; }
+    .metric-value { font-size: 28px; font-weight: 700; margin-bottom: 4px; }
+    .metric-label { font-size: 12px; color: #666; text-transform: uppercase; letter-spacing: 0.5px; }
+    .role-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-top: 16px; }
+    .role-card { background: #f9fafb; padding: 12px 16px; border-radius: 8px; border-left: 4px solid; }
+    .role-name { font-weight: 600; font-size: 13px; margin-bottom: 6px; }
+    .role-metrics { font-size: 13px; color: #4a4a4a; }
+    .footer { background: #f9fafb; padding: 24px 32px; text-align: center; font-size: 13px; color: #666; }
+    @media (max-width: 600px) { .metric-grid, .role-grid { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>🌅 Good Morning, CEO</h1>
+      <p>${dateStr}</p>
+    </div>
+
+    <div class="content">
+      <div class="section">
+        <div class="section-title">📊 Company Snapshot</div>
+        <div class="metric-grid">
+          <div class="metric-card">
+            <div class="metric-value" style="color: ${getHealthColor(metrics.ceo.companyHealth)}">${metrics.ceo.companyHealth}%</div>
+            <div class="metric-label">Company Health</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-value" style="color: ${getHealthColor(metrics.cto.systemHealth)}">${metrics.cto.systemHealth}%</div>
+            <div class="metric-label">Systems</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-value" style="color: ${getHealthColor(metrics.cto.securityScore)}">${metrics.cto.securityScore}%</div>
+            <div class="metric-label">Security</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-value" style="color: ${getHealthColor(metrics.cio.complianceScore)}">${metrics.cio.complianceScore}%</div>
+            <div class="metric-label">Compliance</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-value" style="color: ${getHealthColor(metrics.cpo.userSatisfaction * 20)}">${metrics.cpo.userSatisfaction}/5</div>
+            <div class="metric-label">Satisfaction</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-value" style="color: ${getHealthColor(metrics.csco.slaCompliance)}">${metrics.csco.slaCompliance}%</div>
+            <div class="metric-label">SLA</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">🎯 Key Metrics by Function</div>
+        <div class="role-grid">
+          <div class="role-card" style="border-color: #3b82f6;">
+            <div class="role-name" style="color: #3b82f6;">CTO</div>
+            <div class="role-metrics">Tech Debt: ${metrics.cto.techDebtScore} │ Incidents: ${metrics.cto.openIncidents}</div>
+          </div>
+          <div class="role-card" style="border-color: #22c55e;">
+            <div class="role-name" style="color: #22c55e;">CIO</div>
+            <div class="role-metrics">Data Risk: ${metrics.cio.dataRiskScore} │ Vendors Expiring: ${metrics.cio.vendorsExpiringSoon}</div>
+          </div>
+          <div class="role-card" style="border-color: #eab308;">
+            <div class="role-name" style="color: #eab308;">CPO</div>
+            <div class="role-metrics">Velocity: ${metrics.cpo.featureVelocity}/sprint │ Churn Risk: ${metrics.cpo.churnRisk}%</div>
+          </div>
+          <div class="role-card" style="border-color: #ef4444;">
+            <div class="role-name" style="color: #ef4444;">CMO</div>
+            <div class="role-metrics">ROAS: ${metrics.cmo.campaignROAS}x │ SEO: ${metrics.cmo.seoHealth}%</div>
+          </div>
+          <div class="role-card" style="border-color: #6b7280;">
+            <div class="role-name" style="color: #6b7280;">CSCO</div>
+            <div class="role-metrics">Efficiency: ${metrics.csco.operationalEfficiency}% │ Cost Savings: $${metrics.csco.costOptimization}k</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">🔮 Cross-Functional Insights</div>
+        ${crossFunctionalHTML}
+      </div>
+
+      <div class="section">
+        <div class="section-title">📋 Today's Action Items</div>
+        ${actionItemsHTML}
+      </div>
+    </div>
+
+    <div class="footer">
+      <div>Sent with care from <a href="https://ferni.ai" style="color: #4a6741; text-decoration: none;">Ferni</a></div>
+      <div style="margin-top: 8px;">Your AI executive assistant</div>
+    </div>
+  </div>
+</body>
+</html>
+  `.trim();
+}
+
+/**
+ * Send briefing via email
+ */
+async function sendBriefingEmail(email: string, metrics: ExecutiveMetrics): Promise<boolean> {
+  const { initializeEmailDelivery, sendEmail, isEmailDeliveryAvailable } = await import(
+    '../../../../../src/services/outreach/delivery/email-delivery.js'
+  );
+
+  // Initialize email delivery if needed
+  if (!isEmailDeliveryAvailable()) {
+    const apiKey = process.env.SENDGRID_API_KEY;
+    if (!apiKey) {
+      console.error(`${colors.red}❌ SENDGRID_API_KEY not set. Cannot send email.${colors.reset}`);
+      return false;
+    }
+    initializeEmailDelivery({
+      provider: 'sendgrid',
+      apiKey,
+      fromEmail: process.env.EMAIL_FROM || 'briefing@ferni.ai',
+      fromName: 'Ferni',
+      trackOpens: true,
+      trackClicks: true,
+    });
+  }
+
+  const now = new Date();
+  const dateStr = now.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+  const html = generateBriefingEmailHTML(metrics);
+
+  const result = await sendEmail({
+    to: email,
+    subject: `🌅 Ferni Executive Briefing - ${dateStr}`,
+    body: 'Your daily executive briefing is ready.',
+    html,
+    personaId: 'ferni',
+    userId: 'cli-user',
+    outreachId: `briefing-${Date.now()}`,
+    preheader: `Company Health: ${metrics.ceo.companyHealth}% | Systems: ${metrics.cto.systemHealth}%`,
+    tags: ['executive-briefing', 'automated'],
+  });
+
+  return result.success;
+}
+
+// ============================================================================
+// SLACK NOTIFICATIONS
+// ============================================================================
+
+/**
+ * Send critical alerts to Slack
+ * Uses the cross-functional pattern detection to identify high-priority items
+ */
+async function sendSlackAlerts(metrics: ExecutiveMetrics): Promise<{ sent: number; failed: number }> {
+  const { getSlackNotifications } = await import(
+    '../../../../../src/services/slack-notifications.js'
+  );
+
+  const slack = getSlackNotifications();
+  const crossFunctionalAlerts = detectCrossFunctionalPatterns(metrics);
+
+  // Filter for critical and warning alerts only
+  const highPriorityAlerts = crossFunctionalAlerts.filter(
+    (alert) => alert.severity === 'critical' || alert.severity === 'warning'
+  );
+
+  if (highPriorityAlerts.length === 0) {
+    console.log(`${colors.green}✓ No high-priority alerts to send${colors.reset}`);
+    return { sent: 0, failed: 0 };
+  }
+
+  let sent = 0;
+  let failed = 0;
+
+  for (const alert of highPriorityAlerts) {
+    const severityMap: Record<string, 'info' | 'warning' | 'error'> = {
+      info: 'info',
+      warning: 'warning',
+      critical: 'error',
+    };
+
+    const success = await slack.sendNotification({
+      type: 'alert',
+      title: `${alert.severity === 'critical' ? '🚨' : '⚠️'} ${alert.title}`,
+      message: `${alert.message}\n\n*Recommendation:* ${alert.recommendation}`,
+      severity: severityMap[alert.severity],
+      details: {
+        affectedRoles: alert.affectedRoles.join(', '),
+        alertId: alert.id,
+        companyHealth: metrics.ceo.companyHealth,
+        systemHealth: metrics.cto.systemHealth,
+        detectedAt: new Date().toISOString(),
+      },
+    });
+
+    if (success) {
+      sent++;
+      console.log(`  ${colors.green}✓${colors.reset} Sent: ${alert.title}`);
+    } else {
+      failed++;
+      console.log(`  ${colors.red}✗${colors.reset} Failed: ${alert.title}`);
+    }
+  }
+
+  // Also send a summary if there are multiple alerts
+  if (highPriorityAlerts.length >= 2) {
+    const criticalCount = highPriorityAlerts.filter((a) => a.severity === 'critical').length;
+    const warningCount = highPriorityAlerts.filter((a) => a.severity === 'warning').length;
+
+    await slack.sendNotification({
+      type: 'system',
+      title: '📊 Executive Dashboard Alert Summary',
+      message: `*${highPriorityAlerts.length} cross-functional concerns detected*\n\n• Critical: ${criticalCount}\n• Warning: ${warningCount}\n\nRun \`ferni exec --briefing\` for full details.`,
+      severity: criticalCount > 0 ? 'critical' : 'warning',
+      details: {
+        totalAlerts: highPriorityAlerts.length,
+        criticalCount,
+        warningCount,
+        companyHealth: metrics.ceo.companyHealth,
+      },
+    });
+  }
+
+  return { sent, failed };
 }
 
 // ============================================================================
@@ -957,6 +1247,40 @@ export async function exec(options: ExecOptions = {}): Promise<void> {
     return;
   }
 
+  // Handle email option
+  if (options.email) {
+    console.log(`${colors.cyan}📧 Sending executive briefing to ${options.email}...${colors.reset}`);
+    const success = await sendBriefingEmail(options.email, metrics);
+    if (success) {
+      console.log(`${colors.green}✅ Briefing sent successfully to ${options.email}${colors.reset}`);
+    } else {
+      console.log(`${colors.red}❌ Failed to send briefing. Check SENDGRID_API_KEY is set.${colors.reset}`);
+      process.exit(1);
+    }
+    return;
+  }
+
+  // Handle Slack option
+  if (options.slack) {
+    console.log(`${colors.cyan}📢 Sending high-priority alerts to Slack...${colors.reset}`);
+    const webhookUrl = process.env.SLACK_WEBHOOK_URL || process.env.SLACK_ALERTS_WEBHOOK;
+    if (!webhookUrl) {
+      console.log(`${colors.red}❌ SLACK_WEBHOOK_URL not set. Cannot send to Slack.${colors.reset}`);
+      console.log(`${colors.dim}Set SLACK_WEBHOOK_URL or SLACK_ALERTS_WEBHOOK environment variable.${colors.reset}`);
+      process.exit(1);
+    }
+    const result = await sendSlackAlerts(metrics);
+    if (result.sent > 0 || result.failed === 0) {
+      console.log(
+        `\n${colors.green}✅ Slack notifications complete: ${result.sent} sent${result.failed > 0 ? `, ${result.failed} failed` : ''}${colors.reset}`
+      );
+    } else {
+      console.log(`${colors.red}❌ Failed to send Slack notifications.${colors.reset}`);
+      process.exit(1);
+    }
+    return;
+  }
+
   if (options.briefing) {
     printBriefing(metrics);
     return;
@@ -1037,9 +1361,13 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   if (args.includes('--json')) options.json = true;
   if (args.includes('--export')) options.export = true;
   if (args.includes('--briefing')) options.briefing = true;
+  if (args.includes('--slack')) options.slack = true;
 
   const roleIdx = args.findIndex((a) => a === '--role');
   if (roleIdx >= 0) options.role = args[roleIdx + 1];
+
+  const emailIdx = args.findIndex((a) => a === '--email');
+  if (emailIdx >= 0) options.email = args[emailIdx + 1];
 
   exec(options).catch(console.error);
 }
