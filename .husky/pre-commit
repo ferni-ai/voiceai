@@ -23,7 +23,7 @@ echo ""
 
 # TypeScript type check (fast, catches type errors)
 echo "  → TypeScript type check..."
-npx tsc --noEmit --pretty
+NODE_OPTIONS='--max-old-space-size=8192' npx tsc --noEmit --pretty
 
 # ESLint (catches code quality issues)
 echo "  → ESLint..."
