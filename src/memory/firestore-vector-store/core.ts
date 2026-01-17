@@ -80,12 +80,15 @@ function getVectorSearchCoalesceKey(
     query,
     topK: options?.topK ?? 5,
     minScore: options?.minScore ?? 0,
-    // Include filter fields that affect results
+    // Include ALL filter fields that affect results
     filterSource: options?.filter?.source,
     filterUserId: options?.filter?.userId,
     filterCategory: options?.filter?.category,
     filterMinTimestamp: options?.filter?.minTimestamp?.toISOString(),
     filterMaxTimestamp: options?.filter?.maxTimestamp?.toISOString(),
+    // Include metadata filter - this is important for correct coalescing
+    // JSON.stringify handles nested objects correctly
+    filterMetadata: options?.filter?.metadata,
   });
   return hashContent(keyData);
 }

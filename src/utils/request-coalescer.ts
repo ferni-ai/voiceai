@@ -167,8 +167,12 @@ export class RequestCoalescer<T> {
       existing.waiterCount++;
       this.coalescedRequests++;
       log.debug({ name: this.name, key: key.slice(0, 8), waiters: existing.waiterCount }, 'Request coalesced');
-      // Notify metrics callback
-      metricsCallbacks?.onCoalesce?.(this.name, key, existing.waiterCount);
+      // Notify metrics callback (wrapped in try-catch to not break coalescing)
+      try {
+        metricsCallbacks?.onCoalesce?.(this.name, key, existing.waiterCount);
+      } catch (callbackError) {
+        log.warn({ error: String(callbackError), name: this.name }, 'Metrics onCoalesce callback threw - ignoring');
+      }
       // Clone result for coalesced waiters to prevent shared mutations
       if (this.cloneResult) {
         return existing.promise.then((result) => this.cloneResult!(result));
@@ -185,7 +189,11 @@ export class RequestCoalescer<T> {
 
     // Warn if approaching capacity threshold
     if (effectiveSize >= this.maxPending * CAPACITY_WARNING_THRESHOLD) {
-      metricsCallbacks?.onCapacityWarning?.(this.name, effectiveSize, this.maxPending);
+      try {
+        metricsCallbacks?.onCapacityWarning?.(this.name, effectiveSize, this.maxPending);
+      } catch (callbackError) {
+        log.warn({ error: String(callbackError), name: this.name }, 'Metrics onCapacityWarning callback threw - ignoring');
+      }
     }
 
     // Clean up orphaned timeout from expired entry before replacing it.

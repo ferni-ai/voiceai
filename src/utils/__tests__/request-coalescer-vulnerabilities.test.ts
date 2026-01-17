@@ -206,7 +206,7 @@ describe('Request Coalescer Vulnerabilities', () => {
       expect(coalescer.isPending('key')).toBe(false);
     });
 
-    it('FIXED: metrics callback throwing does not affect cleanup', async () => {
+    it('FIXED: onComplete callback throwing does not affect cleanup', async () => {
       configureCoalescerMetrics({
         onComplete: () => {
           throw new Error('Metrics callback exploded');
@@ -222,6 +222,65 @@ describe('Request Coalescer Vulnerabilities', () => {
 
       // Entry cleanup should have happened correctly
       expect(coalescer.isPending('key')).toBe(false);
+    });
+
+    it('FIXED: onCoalesce callback throwing does not affect coalescing', async () => {
+      configureCoalescerMetrics({
+        onCoalesce: () => {
+          throw new Error('onCoalesce exploded');
+        },
+      });
+
+      const coalescer = new RequestCoalescer<number>('coalesce-callback-test');
+      let callCount = 0;
+      const executor = async () => {
+        callCount++;
+        await new Promise((resolve) => setTimeout(resolve, 50));
+        return 42;
+      };
+
+      // Start two concurrent requests - second should coalesce
+      const promise1 = coalescer.execute('key', executor);
+      const promise2 = coalescer.execute('key', executor);
+
+      vi.advanceTimersByTime(100);
+
+      // Both should succeed despite callback throwing
+      const [result1, result2] = await Promise.all([promise1, promise2]);
+      expect(result1).toBe(42);
+      expect(result2).toBe(42);
+
+      // Only one execution should have happened
+      expect(callCount).toBe(1);
+    });
+
+    it('FIXED: onCapacityWarning callback throwing does not affect execution', async () => {
+      configureCoalescerMetrics({
+        onCapacityWarning: () => {
+          throw new Error('onCapacityWarning exploded');
+        },
+      });
+
+      const coalescer = new RequestCoalescer<number>('capacity-callback-test', {
+        maxPending: 10,
+      });
+
+      // Fill up to 80% capacity (8 entries) to trigger warning
+      const promises: Promise<number>[] = [];
+      for (let i = 0; i < 9; i++) {
+        promises.push(
+          coalescer.execute(`key${i}`, async () => {
+            await new Promise((resolve) => setTimeout(resolve, 100));
+            return i;
+          })
+        );
+      }
+
+      vi.advanceTimersByTime(200);
+
+      // All should complete despite callback throwing
+      const results = await Promise.all(promises);
+      expect(results).toEqual([0, 1, 2, 3, 4, 5, 6, 7, 8]);
     });
 
     it('SAFE: TTL expiration and completion don\'t interfere', async () => {
