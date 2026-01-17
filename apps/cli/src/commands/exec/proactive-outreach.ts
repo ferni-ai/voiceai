@@ -31,6 +31,7 @@ const colors = {
   blue: '\x1b[34m',
   cyan: '\x1b[36m',
   magenta: '\x1b[35m',
+  white: '\x1b[37m',
 };
 
 // ============================================================================
@@ -42,6 +43,8 @@ interface OutreachPreference {
   eveningReflectionTime: string; // '18:00'
   energyCheckInterval: number; // hours
   preferredChannel: 'cli' | 'slack' | 'email';
+  slackWebhookUrl?: string; // Slack incoming webhook URL
+  emailAddress?: string; // Email for notifications
   quietHoursStart: string;
   quietHoursEnd: string;
   celebrateMilestones: boolean;
@@ -252,10 +255,114 @@ function generateBlockerEscalation(blockerDescription: string, daysSinceCreated:
 }
 
 // ============================================================================
-// DELIVERY
+// DELIVERY CHANNELS
 // ============================================================================
 
-function deliverOutreach(outreach: ScheduledOutreach): void {
+/**
+ * Send outreach via Slack incoming webhook
+ */
+async function deliverViaSlack(outreach: ScheduledOutreach, webhookUrl: string): Promise<boolean> {
+  const icon = outreach.type === 'milestone' ? ':tada:' :
+               outreach.type === 'morning-briefing' ? ':sunny:' :
+               outreach.type === 'evening-reflection' ? ':crescent_moon:' :
+               outreach.type === 'energy-check' ? ':zap:' :
+               outreach.type === 'decision-follow-up' ? ':clipboard:' :
+               outreach.type === 'blocker-escalation' ? ':construction:' : ':speech_balloon:';
+
+  const typeLabel = outreach.type.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+
+  const payload = {
+    blocks: [
+      {
+        type: 'header',
+        text: {
+          type: 'plain_text',
+          text: `${icon} Ferni: ${typeLabel}`,
+          emoji: true,
+        },
+      },
+      {
+        type: 'section',
+        text: {
+          type: 'mrkdwn',
+          text: outreach.message,
+        },
+      },
+      {
+        type: 'context',
+        elements: [
+          {
+            type: 'mrkdwn',
+            text: `_${new Date(outreach.scheduledFor).toLocaleString()}_`,
+          },
+        ],
+      },
+    ],
+  };
+
+  try {
+    const response = await fetch(webhookUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+      console.error(`${colors.red}Slack delivery failed: ${response.status}${colors.reset}`);
+      return false;
+    }
+
+    console.log(`${colors.green}✓ Sent to Slack${colors.reset}`);
+    return true;
+  } catch (error) {
+    console.error(`${colors.red}Slack delivery error:${colors.reset}`, error);
+    return false;
+  }
+}
+
+/**
+ * Send outreach via email (using SendGrid or similar)
+ * For now, this logs a message - implement with your email provider
+ */
+async function deliverViaEmail(outreach: ScheduledOutreach, emailAddress: string): Promise<boolean> {
+  // TODO: Integrate with SendGrid, SES, or other email provider
+  // For now, we'll log that email would be sent
+  console.log(`${colors.yellow}⚠ Email delivery not yet implemented${colors.reset}`);
+  console.log(`${colors.dim}Would send to: ${emailAddress}${colors.reset}`);
+  console.log(`${colors.dim}Subject: Ferni ${outreach.type}${colors.reset}`);
+  console.log(`${colors.dim}Body: ${outreach.message}${colors.reset}`);
+  return false;
+}
+
+// ============================================================================
+// DELIVERY ROUTER
+// ============================================================================
+
+async function deliverOutreach(outreach: ScheduledOutreach, prefs?: OutreachPreference): Promise<void> {
+  // Determine delivery channel
+  const channel = prefs?.preferredChannel || 'cli';
+
+  // Try Slack first if configured
+  if (channel === 'slack' && prefs?.slackWebhookUrl) {
+    const success = await deliverViaSlack(outreach, prefs.slackWebhookUrl);
+    if (success) return;
+    // Fall back to CLI if Slack fails
+    console.log(`${colors.dim}Falling back to CLI output...${colors.reset}`);
+  }
+
+  // Try email if configured
+  if (channel === 'email' && prefs?.emailAddress) {
+    const success = await deliverViaEmail(outreach, prefs.emailAddress);
+    if (success) return;
+    // Fall back to CLI if email fails
+    console.log(`${colors.dim}Falling back to CLI output...${colors.reset}`);
+  }
+
+  // CLI delivery (default/fallback)
+  deliverViaCLI(outreach);
+}
+
+function deliverViaCLI(outreach: ScheduledOutreach): void {
   const typeColors: Record<string, string> = {
     'morning-briefing': colors.cyan,
     'evening-reflection': colors.magenta,
@@ -295,11 +402,40 @@ export async function proactiveOutreach(options: {
   deliver?: string;
   queue?: boolean;
   trigger?: 'morning' | 'evening' | 'energy' | 'milestone';
+  setSlack?: string;
+  setEmail?: string;
+  setChannel?: 'cli' | 'slack' | 'email';
   json?: boolean;
 }): Promise<void> {
-  const prefs = await loadPreferences();
+  let prefs = await loadPreferences();
   const queue = await loadOutreachQueue();
   const history = await loadHistory();
+
+  // Handle configuration updates
+  if (options.setSlack) {
+    prefs.slackWebhookUrl = options.setSlack;
+    prefs.preferredChannel = 'slack';
+    await savePreferences(prefs);
+    console.log(`${colors.green}✓ Slack webhook configured${colors.reset}`);
+    console.log(`${colors.dim}Preferred channel set to: slack${colors.reset}`);
+    return;
+  }
+
+  if (options.setEmail) {
+    prefs.emailAddress = options.setEmail;
+    prefs.preferredChannel = 'email';
+    await savePreferences(prefs);
+    console.log(`${colors.green}✓ Email address configured: ${options.setEmail}${colors.reset}`);
+    console.log(`${colors.dim}Preferred channel set to: email${colors.reset}`);
+    return;
+  }
+
+  if (options.setChannel) {
+    prefs.preferredChannel = options.setChannel;
+    await savePreferences(prefs);
+    console.log(`${colors.green}✓ Preferred channel set to: ${options.setChannel}${colors.reset}`);
+    return;
+  }
 
   if (options.json) {
     console.log(JSON.stringify({ prefs, queue: queue.slice(0, 10), history }, null, 2));
@@ -308,18 +444,34 @@ export async function proactiveOutreach(options: {
 
   // Configure preferences
   if (options.configure) {
+    const slackStatus = prefs.slackWebhookUrl
+      ? `${colors.green}Configured${colors.reset}`
+      : `${colors.dim}Not set${colors.reset}`;
+    const emailStatus = prefs.emailAddress
+      ? `${colors.green}${prefs.emailAddress}${colors.reset}`
+      : `${colors.dim}Not set${colors.reset}`;
+
     console.log(`
 ${colors.bold}${colors.cyan}Proactive Outreach Configuration${colors.reset}
 
-Current settings:
+${colors.bold}Schedule${colors.reset}
   Morning briefing:    ${prefs.morningBriefingTime}
   Evening reflection:  ${prefs.eveningReflectionTime}
   Energy check every:  ${prefs.energyCheckInterval} hours
   Quiet hours:         ${prefs.quietHoursStart} - ${prefs.quietHoursEnd}
-  Milestone celebrations: ${prefs.celebrateMilestones ? 'On' : 'Off'}
-  Proactive coaching:  ${prefs.proactiveCoaching ? 'On' : 'Off'}
 
-${colors.dim}To modify, edit ~/.ferni/outreach-preferences.json${colors.reset}
+${colors.bold}Delivery${colors.reset}
+  Preferred channel:   ${colors.bold}${prefs.preferredChannel}${colors.reset}
+  Slack webhook:       ${slackStatus}
+  Email address:       ${emailStatus}
+
+${colors.bold}Features${colors.reset}
+  Milestone celebrations: ${prefs.celebrateMilestones ? `${colors.green}On${colors.reset}` : `${colors.dim}Off${colors.reset}`}
+  Proactive coaching:     ${prefs.proactiveCoaching ? `${colors.green}On${colors.reset}` : `${colors.dim}Off${colors.reset}`}
+
+${colors.dim}To modify, edit ~/.ferni/outreach-preferences.json
+Or use: ferni exec outreach --set-slack <webhook-url>
+        ferni exec outreach --set-channel slack|email|cli${colors.reset}
 `);
     return;
   }
@@ -337,7 +489,7 @@ ${colors.dim}To modify, edit ~/.ferni/outreach-preferences.json${colors.reset}
 
     console.log(`${colors.yellow}${pending.length} pending outreach(es):${colors.reset}\n`);
     for (const outreach of pending) {
-      deliverOutreach(outreach);
+      await deliverOutreach(outreach, prefs);
     }
 
     // Mark as delivered
@@ -389,7 +541,7 @@ ${colors.dim}To modify, edit ~/.ferni/outreach-preferences.json${colors.reset}
         return;
     }
 
-    deliverOutreach(outreach);
+    await deliverOutreach(outreach, prefs);
     outreach.delivered = true;
     outreach.deliveredAt = new Date().toISOString();
     queue.push(outreach);
@@ -422,12 +574,19 @@ ${colors.bold}Stats${colors.reset}
   Last evening reflection: ${history.lastEveningReflection ? new Date(history.lastEveningReflection).toLocaleDateString() : 'Never'}
 
 ${colors.dim}Commands:
-  ferni outreach --trigger morning   # Trigger morning briefing now
-  ferni outreach --trigger evening   # Trigger evening reflection now
-  ferni outreach --trigger energy    # Trigger energy check now
-  ferni outreach --check             # Check for pending outreach
-  ferni outreach --queue             # View scheduled outreach
-  ferni outreach --configure         # View/edit preferences
+  ferni outreach --trigger morning     # Trigger morning briefing now
+  ferni outreach --trigger evening     # Trigger evening reflection now
+  ferni outreach --trigger energy      # Trigger energy check now
+  ferni outreach --check               # Check for pending outreach
+  ferni outreach --queue               # View scheduled outreach
+  ferni outreach --configure           # View/edit preferences
+
+Delivery configuration:
+  ferni outreach --set-slack <url>     # Set Slack webhook URL
+  ferni outreach --set-email <email>   # Set email address
+  ferni outreach --set-channel slack   # Switch to Slack delivery
+  ferni outreach --set-channel email   # Switch to email delivery
+  ferni outreach --set-channel cli     # Switch to CLI delivery (default)
 ${colors.reset}
 `);
 }
@@ -435,14 +594,31 @@ ${colors.reset}
 // CLI entry point
 if (import.meta.url === `file://${process.argv[1]}`) {
   const args = process.argv.slice(2);
+
+  // Parse --trigger <type>
   const triggerIdx = args.findIndex(a => a === '--trigger');
   const trigger = triggerIdx >= 0 ? args[triggerIdx + 1] as 'morning' | 'evening' | 'energy' | 'milestone' : undefined;
+
+  // Parse --set-slack <url>
+  const setSlackIdx = args.findIndex(a => a === '--set-slack');
+  const setSlack = setSlackIdx >= 0 ? args[setSlackIdx + 1] : undefined;
+
+  // Parse --set-email <email>
+  const setEmailIdx = args.findIndex(a => a === '--set-email');
+  const setEmail = setEmailIdx >= 0 ? args[setEmailIdx + 1] : undefined;
+
+  // Parse --set-channel <channel>
+  const setChannelIdx = args.findIndex(a => a === '--set-channel');
+  const setChannel = setChannelIdx >= 0 ? args[setChannelIdx + 1] as 'cli' | 'slack' | 'email' : undefined;
 
   proactiveOutreach({
     configure: args.includes('--configure'),
     check: args.includes('--check'),
     queue: args.includes('--queue'),
     trigger,
+    setSlack,
+    setEmail,
+    setChannel,
     json: args.includes('--json'),
   }).catch(console.error);
 }
