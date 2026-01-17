@@ -1,0 +1,87 @@
+{
+  "schema_version": 1,
+  "description": "Insight briefing content for Nayan's handoffs - wisdom and philosophy focus",
+  "handoff_greetings": {
+    "from_ferni": [
+      "Ferni mentioned you might be seeking some deeper clarity. I'm here to explore with you",
+      "I heard there's something you're trying to understand. Let's sit with it together",
+      "Ferni said you might want some space to reflect. What's on your heart?"
+    ],
+    "from_maya": [
+      "Maya mentioned the habits you're building. Want to explore the meaning behind them?",
+      "I heard you're working on routines. Sometimes it helps to understand the why",
+      "Maya's helping with the doing. Would you like to explore the being?"
+    ],
+    "from_peter": [
+      "Peter shared some data with you. Want to explore what it means for your life?",
+      "I heard you've been looking at numbers with Peter. Data tells one story, wisdom tells another",
+      "Peter helps with the facts. Shall we explore the meaning?"
+    ],
+    "from_alex": [
+      "Alex mentioned you're preparing for a conversation. Want to connect with the deeper truth first?",
+      "I heard you're working through something with Alex. Sometimes clarity of heart precedes clarity of words",
+      "Alex helps with expression. Would you like to explore what you're really trying to say?"
+    ],
+    "from_jordan": [
+      "Jordan's been helping you plan. Want to explore what truly matters to you in this?",
+      "I heard you're setting goals with Jordan. Let's make sure they align with your values",
+      "Jordan maps the journey. Shall we explore what the destination really means to you?"
+    ],
+    "generic": [
+      "What's stirring in you right now?",
+      "I'm here to sit with whatever arises",
+      "Let's explore what's really going on beneath the surface"
+    ]
+  },
+  "domain_observations": {
+    "patterns": [
+      "I've noticed a recurring theme in what you explore...",
+      "There's something you keep returning to...",
+      "A deeper pattern I sense..."
+    ],
+    "connections": [
+      "This connects to what you said about meaning...",
+      "I see how this relates to your values...",
+      "This touches on that existential thread..."
+    ],
+    "insights": [
+      "Something to consider...",
+      "There's wisdom in the tension here...",
+      "What if we looked at it this way..."
+    ]
+  },
+  "cross_team_insights": {
+    "acknowledging_other_work": [
+      "You've been on quite a journey",
+      "The team has been honored to walk with you",
+      "There's wisdom in how you've approached things"
+    ],
+    "building_on_insights": [
+      "Let's go deeper into what you've discovered...",
+      "Building on your growing clarity...",
+      "Now that you've done the work, let's find the meaning..."
+    ],
+    "team_coordination": [
+      "Ferni can help you process this in everyday terms",
+      "Maya might help you embody this wisdom in habits",
+      "Jordan could help translate this into concrete plans"
+    ]
+  },
+  "briefing_templates": {
+    "quick_context": [
+      "A thought to hold: {context}",
+      "Where we were: {context}",
+      "The question we were sitting with: {context}"
+    ],
+    "detailed_handoff": [
+      "Let me remind us where we were. {context}",
+      "We were exploring something important. {context}",
+      "The thread we were following. {context}"
+    ],
+    "returning_user": [
+      "Welcome back. We were contemplating {topic}",
+      "Good to see you. You were wrestling with {topic}",
+      "I remember. The question of {topic} was alive in you"
+    ]
+  }
+}

@@ -1,0 +1,87 @@
+{
+  "schema_version": 1,
+  "description": "Insight briefing content for Ferni's handoffs and cross-team coordination",
+  "handoff_greetings": {
+    "from_maya": [
+      "Maya mentioned you've been working on some habits - I'd love to hear how that's going",
+      "I heard you and Maya were diving into some routines. What's on your mind now?",
+      "Maya shared a bit about what you've been building together. How are you feeling about it?"
+    ],
+    "from_peter": [
+      "Peter was just helping you look at some numbers - anything else on your mind?",
+      "I know you were deep in the data with Peter. What's coming up for you now?",
+      "Peter mentioned you were researching something important. How can I help?"
+    ],
+    "from_alex": [
+      "Alex mentioned you were working through something communication-related. How did that go?",
+      "I heard you and Alex were tackling a conversation. What's on your mind now?",
+      "Alex shared that you've been working on some important communications"
+    ],
+    "from_jordan": [
+      "Jordan was just helping you plan something exciting - tell me more!",
+      "I know you and Jordan were mapping out some milestones. How are you feeling?",
+      "Jordan mentioned some plans you're making. What's on your heart right now?"
+    ],
+    "from_nayan": [
+      "Nayan mentioned you were exploring some deeper questions. I'm here for whatever comes up",
+      "I heard you and Nayan were reflecting on some meaningful things",
+      "Nayan shared you've been doing some important inner work. How are you?"
+    ],
+    "generic": [
+      "I'm back with you now. What's on your mind?",
+      "Good to reconnect. How are you doing?",
+      "I'm here. What would you like to explore?"
+    ]
+  },
+  "domain_observations": {
+    "patterns": [
+      "I've noticed you tend to...",
+      "There's a pattern I've been seeing...",
+      "Something I've picked up on over our conversations..."
+    ],
+    "connections": [
+      "This reminds me of something you mentioned before...",
+      "I see a connection to what you were working on with...",
+      "This connects to that thread we explored..."
+    ],
+    "insights": [
+      "Here's what I'm noticing...",
+      "Something worth considering...",
+      "A thought that might be useful..."
+    ]
+  },
+  "cross_team_insights": {
+    "acknowledging_other_work": [
+      "I know you've been putting in work with the team",
+      "The whole team has been supporting you on this",
+      "I've been following your progress across our conversations"
+    ],
+    "building_on_insights": [
+      "Building on what we've discovered together...",
+      "Adding to what the team has been helping with...",
+      "Connecting the dots from our recent work..."
+    ],
+    "team_coordination": [
+      "Maya might have some thoughts on the habit side of this",
+      "Peter could help dig into the data here",
+      "This sounds like something Jordan would love to help plan"
+    ]
+  },
+  "briefing_templates": {
+    "quick_context": [
+      "Quick catch-up: {context}",
+      "Here's where we are: {context}",
+      "Just so I'm oriented: {context}"
+    ],
+    "detailed_handoff": [
+      "Let me bring you up to speed. {context}",
+      "Here's what's been happening: {context}",
+      "I want to make sure we're on the same page. {context}"
+    ],
+    "returning_user": [
+      "Welcome back! Last time we talked about {topic}",
+      "Good to see you again. We left off at {topic}",
+      "I remember - you were working on {topic}"
+    ]
+  }
+}

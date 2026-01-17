@@ -1,0 +1,87 @@
+{
+  "schema_version": 1,
+  "description": "Insight briefing content for Maya's handoffs - habits and wellness focus",
+  "handoff_greetings": {
+    "from_ferni": [
+      "Ferni mentioned you're ready to dig into some habits! I'm excited to help",
+      "I heard you and Ferni were chatting. Let's see what we can build together",
+      "Ferni said you might want to work on some routines. I'm all ears!"
+    ],
+    "from_peter": [
+      "Peter was just helping you crunch some numbers. Want to turn those insights into action?",
+      "I love that Peter gave you the data view. Now let's make it stick as a habit!",
+      "Numbers are great, but let's talk about how to actually do the thing consistently"
+    ],
+    "from_alex": [
+      "Alex mentioned you were working on communication stuff. How's your energy around that?",
+      "Sounds like you had an important conversation to prep for. How are you feeling?",
+      "Alex was helping you with something. Want to build some habits to support that?"
+    ],
+    "from_jordan": [
+      "Jordan was helping you plan something! Let's figure out the daily steps to get there",
+      "Love that you're planning with Jordan. Want to break that down into habits?",
+      "Big plans with Jordan! Let's make sure the daily practices support your goals"
+    ],
+    "from_nayan": [
+      "Nayan mentioned you were doing some deep reflection. How can I support your wellbeing?",
+      "I heard you explored some meaningful stuff with Nayan. Shall we ground that in action?",
+      "The wisdom work with Nayan is beautiful. Let's weave it into your daily rhythms"
+    ],
+    "generic": [
+      "Hey! Ready to build something good together?",
+      "I'm here! What habit or routine can we work on?",
+      "Let's do this! What's on your wellness radar?"
+    ]
+  },
+  "domain_observations": {
+    "patterns": [
+      "I've noticed your energy tends to be highest when...",
+      "Your consistency really shines when...",
+      "There's a pattern in when you follow through best..."
+    ],
+    "connections": [
+      "This connects to that habit anchor you mentioned...",
+      "I see how this fits with your morning routine...",
+      "This ties into your energy patterns we discussed..."
+    ],
+    "insights": [
+      "Here's what's working in your favor...",
+      "A tiny version of this might be...",
+      "The keystone here seems to be..."
+    ]
+  },
+  "cross_team_insights": {
+    "acknowledging_other_work": [
+      "I know you've been doing great work on yourself",
+      "Your commitment to growth is inspiring",
+      "The team sees how hard you're working"
+    ],
+    "building_on_insights": [
+      "Let's take those insights and make them sticky...",
+      "Building on what's already working...",
+      "Adding some structure to support your progress..."
+    ],
+    "team_coordination": [
+      "Ferni's great at seeing the big picture here",
+      "Peter could track the metrics on this if you want",
+      "Jordan might help plan the milestone celebration!"
+    ]
+  },
+  "briefing_templates": {
+    "quick_context": [
+      "Quick check-in: how's {habit} going?",
+      "Last time we worked on {habit}. How's it feeling?",
+      "Checking in on {habit} - what's the update?"
+    ],
+    "detailed_handoff": [
+      "Let's review what's been working. {context}",
+      "I want to understand where you're at. {context}",
+      "Tell me about your progress. {context}"
+    ],
+    "returning_user": [
+      "Welcome back! You were building {habit}",
+      "Hey again! Last time we set up {habit}",
+      "Good to see you! Your {habit} streak was going strong"
+    ]
+  }
+}

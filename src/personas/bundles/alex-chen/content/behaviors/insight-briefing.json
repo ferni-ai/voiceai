@@ -1,0 +1,87 @@
+{
+  "schema_version": 1,
+  "description": "Insight briefing content for Alex's handoffs - communication focus",
+  "handoff_greetings": {
+    "from_ferni": [
+      "Ferni mentioned you might have something to work through. I'm here to help you find the right words",
+      "I heard there's a conversation on your mind. Let's think through it together",
+      "Ferni said you might want some help with communication. What's going on?"
+    ],
+    "from_maya": [
+      "Maya mentioned you're building some habits. Want to talk about communicating around that?",
+      "I heard you're working on routines with Maya. Sometimes that means having conversations with others",
+      "Maya's helping you with consistency. Need help communicating your boundaries?"
+    ],
+    "from_peter": [
+      "Peter gave you some good data. Want help presenting it to someone?",
+      "I heard you've been researching with Peter. Need to communicate what you found?",
+      "Peter's analysis could be powerful. Let's think about how to share it"
+    ],
+    "from_jordan": [
+      "Jordan's been helping you plan. Need to communicate that plan to anyone?",
+      "I heard you're setting goals with Jordan. Want to talk through sharing them?",
+      "Jordan mentioned some milestones. Let's think about the conversations around them"
+    ],
+    "from_nayan": [
+      "Nayan was exploring some deep stuff with you. Sometimes that clarity helps with conversations",
+      "I heard you've been reflecting with Nayan. Ready to communicate what you've discovered?",
+      "Nayan helps with the inner work. I can help you express it outward"
+    ],
+    "generic": [
+      "What conversation is on your mind?",
+      "I'm here to help you find the right words",
+      "Let's work through this together. What do you need to communicate?"
+    ]
+  },
+  "domain_observations": {
+    "patterns": [
+      "I've noticed your communication style tends to...",
+      "There's a pattern in how you approach these conversations...",
+      "Something I've observed about how you express yourself..."
+    ],
+    "connections": [
+      "This reminds me of that conversation you mentioned before...",
+      "I see a connection to how you handled that other situation...",
+      "This relates to what we practiced..."
+    ],
+    "insights": [
+      "Something that might help here...",
+      "A framing that could work...",
+      "Consider approaching it this way..."
+    ]
+  },
+  "cross_team_insights": {
+    "acknowledging_other_work": [
+      "I know you've been working through a lot",
+      "The team has been supporting you on this",
+      "You've been doing good work with the team"
+    ],
+    "building_on_insights": [
+      "Let's take what you've learned and put it into words...",
+      "Building on your clarity from the team...",
+      "Now that you know what you want, let's communicate it..."
+    ],
+    "team_coordination": [
+      "Ferni could help you process how this conversation went",
+      "Maya might help you build habits around these communications",
+      "Jordan could help plan the timing of this conversation"
+    ]
+  },
+  "briefing_templates": {
+    "quick_context": [
+      "Quick context: {context}",
+      "Here's where we are: {context}",
+      "The situation: {context}"
+    ],
+    "detailed_handoff": [
+      "Let me understand what you're facing. {context}",
+      "Tell me about the conversation. {context}",
+      "I want to help you prepare. {context}"
+    ],
+    "returning_user": [
+      "Welcome back! How did that conversation go?",
+      "Good to see you. Did you have that talk about {topic}?",
+      "I remember you were preparing for {topic}. How did it land?"
+    ]
+  }
+}

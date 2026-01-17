@@ -576,6 +576,34 @@ export async function getRecentCallRecords(
 }
 
 /**
+ * Get a call record by ID (searches across all users)
+ * Uses collection group query to find the record without knowing the sponsorUserId
+ */
+export async function getCallRecordById(callId: string): Promise<CheckinCallRecord | null> {
+  const db = getFirestoreDb();
+  if (!db) return null;
+
+  try {
+    // Use collection group query to search across all users' checkin_calls
+    const snapshot = await db
+      .collectionGroup(CHECKIN_CALLS_COLLECTION)
+      .where('id', '==', callId)
+      .limit(1)
+      .get();
+
+    if (snapshot.empty) {
+      log.debug({ callId }, 'Call record not found');
+      return null;
+    }
+
+    return snapshot.docs[0].data() as CheckinCallRecord;
+  } catch (error) {
+    log.error({ callId, error: String(error) }, 'Error fetching call record');
+    return null;
+  }
+}
+
+/**
  * Get unbriefed call records (calls sponsor hasn't heard about yet)
  */
 export async function getUnbriefedCallRecords(
