@@ -114,6 +114,75 @@ describe('Request Coalescer Edge Cases', () => {
       // Only 1 actual execution
       expect(coalescer.getStats().actualExecutions).toBe(1);
     });
+
+    it('FIXED: Entry replacement after TTL does not corrupt new entry', async () => {
+      // This is a regression test for a bug where completing an expired request
+      // would incorrectly clean up a replacement entry created by a new request.
+      //
+      // Timeline:
+      // t=0:   Request A starts, creates entry E1
+      // t=100: TTL fires, marks E1 as expired
+      // t=110: Request B starts, sees expired E1, creates NEW entry E2
+      // t=150: Request A completes - should NOT delete E2!
+      // t=160: Request C should coalesce with B (E2 still exists)
+
+      const coalescer = new RequestCoalescer<string>('test', {
+        pendingTtlMs: 100,
+        maxPending: 100,
+      });
+
+      let resolveA: (value: string) => void;
+      let resolveB: (value: string) => void;
+
+      // t=0: Request A starts
+      const promiseA = coalescer.execute('key', () =>
+        new Promise<string>((resolve) => {
+          resolveA = resolve;
+        })
+      );
+
+      expect(coalescer.getStats().actualExecutions).toBe(1);
+
+      // t=100: TTL expires
+      await vi.advanceTimersByTimeAsync(110);
+
+      // t=110: Request B starts (A is expired, creates new entry)
+      const promiseB = coalescer.execute('key', () =>
+        new Promise<string>((resolve) => {
+          resolveB = resolve;
+        })
+      );
+
+      expect(coalescer.getStats().actualExecutions).toBe(2);
+      expect(coalescer.isPending('key')).toBe(true);
+
+      // t=150: Request A completes - this should NOT affect B's entry
+      resolveA!('result-A');
+      await promiseA;
+
+      // CRITICAL: B's entry should still be pending!
+      // Before the fix, A's cleanup would delete B's entry.
+      expect(coalescer.isPending('key')).toBe(true);
+
+      // t=160: Request C should coalesce with B
+      let cExecutorCalled = false;
+      const promiseC = coalescer.execute('key', async () => {
+        cExecutorCalled = true;
+        return 'result-C';
+      });
+
+      // C should have coalesced with B, not started a new execution
+      expect(cExecutorCalled).toBe(false);
+      expect(coalescer.getStats().actualExecutions).toBe(2); // Still 2, not 3
+      expect(coalescer.getStats().coalescedRequests).toBe(1); // C coalesced with B
+
+      // Resolve B - both B and C should get the same result
+      resolveB!('result-B');
+      const [resultB, resultC] = await Promise.all([promiseB, promiseC]);
+
+      expect(resultB).toBe('result-B');
+      expect(resultC).toBe('result-B'); // C got B's result (coalesced)
+    });
   });
 
   describe('Registry Options Handling', () => {

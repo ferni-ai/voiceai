@@ -115,6 +115,17 @@ export class RequestCoalescer<T> {
     // Create new pending request
     this.actualExecutions++;
 
+    // Create the entry object first so we can reference it in the cleanup.
+    // This is critical for correctness: if TTL expires and a new request
+    // creates a replacement entry, we must NOT clean up the replacement.
+    const entry: PendingRequest<T> = {
+      promise: null as unknown as Promise<T>, // Will be set below
+      waiterCount: 1,
+      createdAt: Date.now(),
+      timeoutId: null as unknown as ReturnType<typeof setTimeout>, // Will be set below
+      expired: false,
+    };
+
     // Wrap the executor to handle cleanup
     const wrappedPromise = (async (): Promise<T> => {
       try {
@@ -124,36 +135,39 @@ export class RequestCoalescer<T> {
         this.errors++;
         throw error;
       } finally {
-        // Clean up after completion (success or error)
-        const pending = this.pending.get(key);
-        if (pending) {
-          clearTimeout(pending.timeoutId);
+        // Clean up after completion (success or error).
+        // IMPORTANT: Only clean up if this entry is still the current one for this key.
+        // If TTL expired and a new request replaced our entry, we must not touch it.
+        const currentEntry = this.pending.get(key);
+        if (currentEntry === entry) {
+          clearTimeout(entry.timeoutId);
           this.pending.delete(key);
         }
+        // If currentEntry !== entry, a replacement was created after our TTL expired.
+        // Leave it alone - it belongs to a different request.
       }
     })();
 
     // Set up TTL timeout - marks entry as expired so new requests don't coalesce,
     // but keeps the entry so existing waiters can still receive their result
     const timeoutId = setTimeout(() => {
-      const pending = this.pending.get(key);
-      if (pending && !pending.expired) {
+      // Check that this entry is still the current one (not replaced)
+      const currentEntry = this.pending.get(key);
+      if (currentEntry === entry && !entry.expired) {
         log.warn(
-          { name: this.name, key: key.slice(0, 8), waiters: pending.waiterCount },
+          { name: this.name, key: key.slice(0, 8), waiters: entry.waiterCount },
           'Request coalescer TTL expired - new requests will not coalesce'
         );
-        pending.expired = true;
+        entry.expired = true;
       }
     }, this.pendingTtlMs);
 
+    // Complete the entry initialization
+    entry.promise = wrappedPromise;
+    entry.timeoutId = timeoutId;
+
     // Store the pending request
-    this.pending.set(key, {
-      promise: wrappedPromise,
-      waiterCount: 1,
-      createdAt: Date.now(),
-      timeoutId,
-      expired: false,
-    });
+    this.pending.set(key, entry);
 
     return wrappedPromise;
   }
