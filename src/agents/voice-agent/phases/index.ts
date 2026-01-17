@@ -47,3 +47,10 @@ export {
   type UserAwarenessConfig,
   type UserAwarenessResult,
 } from './user-awareness.js';
+
+// Noise cancellation setup (Krisp-powered)
+export {
+  setupNoiseCancellation,
+  type NoiseCancellationConfig,
+  type NoiseCancellationResult,
+} from './noise-cancellation.js';
