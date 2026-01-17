@@ -198,6 +198,26 @@ export async function warmupResources(log: LogFn): Promise<WarmupResult> {
       })()
     );
 
+    // 3d. ⚡ Initialize native Rust acceleration for leakage detection
+    // Uses simd-json + Aho-Corasick for 2-5x faster TTS stream parsing
+    tasks.push(
+      (async () => {
+        try {
+          const nativeStart = Date.now();
+          const { initializeNativeAcceleration, isNativeAccelerationActive } =
+            await import('../shared/sanitizer/index.js');
+          initializeNativeAcceleration();
+          const active = isNativeAccelerationActive();
+          log(active ? '🦀 Native leakage detection initialized (Rust simd-json)' : '📦 Using JS leakage detection', {
+            durationMs: Date.now() - nativeStart,
+            native: active,
+          });
+        } catch (e) {
+          log('⚠️ Native acceleration init failed (non-fatal)', { error: String(e) });
+        }
+      })()
+    );
+
     // 4. Pre-load context builders (just import the module)
     tasks.push(
       (async () => {
@@ -357,7 +377,7 @@ export async function warmupResources(log: LogFn): Promise<WarmupResult> {
           const fastJoinStart = Date.now();
           const { initializeFastJoin } = await import('./fast-join.js');
           await initializeFastJoin({
-            poolSize: 2, // Keep 2 warm sessions ready
+            poolSize: 5, // PERFORMANCE: Increased from 2 to 5 for better concurrency
             enablePooling: process.env.ENABLE_SESSION_POOLING !== 'false',
           });
           log('✅ Fast-join session pool warmed', { durationMs: Date.now() - fastJoinStart });

@@ -51,6 +51,9 @@ export {
   detectsFunctionCallLeakage,
   getReplacementText,
   looksLikeJsonFunctionCall,
+  // Native acceleration (Rust simd-json + Aho-Corasick)
+  initializeNativeAcceleration,
+  isNativeAccelerationActive,
 } from './detectors/index.js';
 
 // ============================================================================

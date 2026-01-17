@@ -26,4 +26,7 @@ export {
   getReplacementText,
   looksLikeJsonFunctionCall,
   containsToolCallLeakage,
+  // Native acceleration (Rust simd-json + Aho-Corasick)
+  initializeNativeAcceleration,
+  isNativeAccelerationActive,
 } from './leakage-detector.js';

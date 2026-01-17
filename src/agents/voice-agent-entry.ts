@@ -35,10 +35,12 @@ import {
 import {
   buildUserAwareness,
   connectToRoom,
+  detectConnectionType,
   getCachedVoiceDeps,
   getPrewarmedResources,
   loadPersonaLocally,
   loadVoiceDeps as loadVoiceDepsPhase,
+  setupNoiseCancellation,
   type VoiceDeps,
 } from './voice-agent/phases/index.js';
 
@@ -2056,41 +2058,10 @@ If someone asks what day it is, what time it is, or what the date is, you know t
 
     // =========================================================================
     // CONNECTION TYPE DETECTION & KRISP NOISE CANCELLATION
+    // Uses phase modules for cleaner code organization
     // =========================================================================
-    const jobMetadata = ctx.job?.metadata || '';
-    const isWebConnection = jobMetadata.includes('"source":"web"');
-    const isPhoneCall =
-      !isWebConnection &&
-      (participant?.identity?.includes('phone') ||
-        participant?.identity?.includes('sip') ||
-        jobMetadata.includes('"source":"phone"'));
-
-    // Enable Krisp-powered noise cancellation for ALL connections (web + phone)
-    // This dramatically improves STT accuracy by removing background noise
-    // @see https://docs.livekit.io/agents/noise-cancellation/
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let inputOptions: any = undefined;
-    try {
-      const noiseCancellation = await import('@livekit/noise-cancellation-node');
-      if (isPhoneCall) {
-        // Phone calls: Use telephony-optimized noise cancellation
-        inputOptions = {
-          noiseCancellation: noiseCancellation.TelephonyBackgroundVoiceCancellation(),
-        };
-        process.stderr.write(
-          `[voice-agent-entry] 📞 Phone call - telephony noise cancellation enabled\n`
-        );
-      } else {
-        // Web connections: Use Krisp BVC (Background Voice Cancellation)
-        // This is the BEST option for web - removes AC, fans, keyboard, etc.
-        inputOptions = { noiseCancellation: noiseCancellation.BackgroundVoiceCancellation() };
-        process.stderr.write(
-          `[voice-agent-entry] 🔇 Web connection - Krisp BVC noise cancellation enabled\n`
-        );
-      }
-    } catch (err) {
-      process.stderr.write(`[voice-agent-entry] ⚠️ Noise cancellation not available: ${err}\n`);
-    }
+    const { isPhoneCall, isWebConnection } = detectConnectionType(ctx, participant);
+    const { inputOptions } = await setupNoiseCancellation({ isPhoneCall });
 
     await session.start({ agent, room: ctx.room, inputOptions });
     e2e.sessionStarted(jobId, personaId);
