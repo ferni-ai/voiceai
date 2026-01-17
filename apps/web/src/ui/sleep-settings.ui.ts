@@ -17,7 +17,7 @@ import { t } from '../i18n/index.js';
 import { circadianManager, type CircadianPeriod } from '../services/circadian-manager.js';
 import { visualStorytellingService, type SleepPatternData } from '../services/visual-storytelling.service.js';
 import { createLogger } from '../utils/logger.js';
-import { toast } from './toast.ui.js';
+import { toast } from './whisper.ui.js';
 
 const log = createLogger('SleepSettings');
 

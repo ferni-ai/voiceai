@@ -32,8 +32,9 @@ vi.mock('../../src/utils/api.js', () => ({
   getApiHeaders: vi.fn(() => ({})),
 }));
 
-vi.mock('../../src/ui/toast.ui.js', () => ({
+vi.mock('../../src/ui/whisper.ui.js', () => ({
   toast: mockToast,
+  whisper: mockToast,
 }));
 
 vi.mock('../../src/ui/support-ferni.ui.js', () => ({

@@ -55,38 +55,34 @@ interface QueuedWhisper {
 // ============================================================================
 
 const DEFAULT_DURATIONS: Record<WhisperType, number> = {
-  info: 2500,
-  success: 2000,
-  warning: 3000,
-  error: 4000,
-  celebration: 3500,
+  info: 2000,
+  success: 1800,
+  warning: 2500,
+  error: 3000,
+  celebration: 3000,
 };
 
-const TYPE_STYLES: Record<WhisperType, { bg: string; text: string; border: string }> = {
+// Glass styling with subtle accent colors
+const TYPE_ACCENTS: Record<WhisperType, { accent: string; glow: string }> = {
   info: {
-    bg: 'var(--persona-primary, #4a6741)',
-    text: 'white',
-    border: 'var(--persona-secondary, #3d5a35)',
+    accent: 'var(--persona-primary, #4a6741)',
+    glow: 'rgba(74, 103, 65, 0.15)',
   },
   success: {
-    bg: 'var(--persona-primary, #4a6741)',
-    text: 'white',
-    border: 'var(--persona-secondary, #3d5a35)',
+    accent: 'var(--color-semantic-success, #4a6741)',
+    glow: 'rgba(74, 103, 65, 0.2)',
   },
   warning: {
-    bg: 'var(--color-semantic-warning, #b8956a)',
-    text: 'white',
-    border: 'var(--color-semantic-warning-border, rgba(184, 149, 106, 0.8))',
+    accent: 'var(--color-semantic-warning, #b8956a)',
+    glow: 'rgba(184, 149, 106, 0.15)',
   },
   error: {
-    bg: 'var(--color-semantic-error, #a65a52)',
-    text: 'white',
-    border: 'var(--color-semantic-error-border, rgba(166, 90, 82, 0.8))',
+    accent: 'var(--color-semantic-error, #a86d55)',
+    glow: 'rgba(168, 109, 85, 0.2)',
   },
   celebration: {
-    bg: 'linear-gradient(135deg, var(--persona-primary, #4a6741) 0%, var(--persona-secondary, #3d5a35) 100%)',
-    text: 'white',
-    border: 'var(--persona-secondary, #3d5a35)',
+    accent: 'var(--persona-primary, #4a6741)',
+    glow: 'rgba(74, 103, 65, 0.25)',
   },
 };
 
@@ -113,7 +109,6 @@ function injectStyles(): void {
   styleElement.textContent = `
     .whisper-container {
       /* Position NEAR the avatar for that "Ferni is speaking" feel */
-      /* The avatar is in #coach, typically centered at top */
       position: fixed;
       top: calc(260px + env(safe-area-inset-top, 0px));
       left: 50%;
@@ -131,27 +126,46 @@ function injectStyles(): void {
       display: inline-flex;
       align-items: center;
       gap: 6px;
-      padding: 8px 16px;
-      border-radius: 9999px;
+      /* Glass styling - frosted, subtle, small */
+      background: rgba(30, 30, 35, 0.75);
+      backdrop-filter: blur(var(--glass-blur-medium, 16px));
+      -webkit-backdrop-filter: blur(var(--glass-blur-medium, 16px));
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      color: var(--color-text-primary, #faf6f0);
+      padding: 6px 14px;
+      border-radius: 20px;
       font-family: var(--font-body, 'Inter', system-ui, sans-serif);
-      font-size: clamp(12px, 2.8vw, 14px);
+      font-size: clamp(11px, 2.5vw, 12px);
       font-weight: 500;
       letter-spacing: 0.01em;
       white-space: nowrap;
       max-width: calc(100vw - 48px);
       overflow: hidden;
       text-overflow: ellipsis;
-      box-shadow: var(--shadow-lg, 0 4px 20px rgba(0, 0, 0, 0.12));
+      box-shadow: 0 4px 20px var(--whisper-glow, rgba(0, 0, 0, 0.15)), 0 2px 8px rgba(0, 0, 0, 0.2);
       pointer-events: auto;
       
       /* Entry animation - slides down from avatar */
       opacity: 0;
       transform: translateY(-8px) scale(0.95);
-      animation: whisper-in ${DURATION.SLOW}ms ${EASING.SPRING} forwards;
+      animation: whisper-in ${DURATION.NORMAL}ms ${EASING.STANDARD} forwards;
+    }
+
+    /* Subtle accent indicator on left */
+    .whisper::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 3px;
+      border-radius: 20px 0 0 20px;
+      background: var(--whisper-accent, var(--persona-primary, #4a6741));
+      opacity: 0.8;
     }
 
     .whisper.exiting {
-      animation: whisper-out ${DURATION.NORMAL}ms ${EASING.STANDARD} forwards;
+      animation: whisper-out ${DURATION.FAST}ms ${EASING.STANDARD} forwards;
     }
 
     @keyframes whisper-in {
@@ -172,27 +186,23 @@ function injectStyles(): void {
       }
       to {
         opacity: 0;
-        transform: translateY(-4px) scale(0.95);
+        transform: translateY(-4px) scale(0.97);
       }
     }
 
-    /* Celebration variant with sparkle animation */
-    .whisper--celebration {
-      background: linear-gradient(135deg, var(--persona-primary, #4a6741) 0%, var(--persona-secondary, #3d5a35) 100%);
-    }
-
-    .whisper--celebration::before {
+    /* Celebration variant with shimmer animation */
+    .whisper--celebration::after {
       content: '';
       position: absolute;
-      inset: -2px;
+      inset: 0;
       border-radius: inherit;
       background: linear-gradient(90deg, 
         transparent 0%, 
-        rgba(255, 255, 255, 0.3) 50%, 
+        rgba(255, 255, 255, 0.15) 50%, 
         transparent 100%
       );
       opacity: 0;
-      animation: shimmer 1.5s ease-in-out;
+      animation: shimmer 1.2s ease-in-out;
     }
 
     @keyframes shimmer {
@@ -211,29 +221,29 @@ function injectStyles(): void {
 
     /* Celebration amount styling */
     .whisper__amount {
-      font-weight: 700;
+      font-weight: 600;
+      color: var(--persona-primary, #4a6741);
       margin-right: 2px;
     }
 
     .whisper__reason {
-      opacity: 0.85;
-      font-size: 0.9em;
+      opacity: 0.8;
     }
 
     /* Sparkle particles for celebration */
     .whisper__sparkle {
       position: absolute;
-      width: 4px;
-      height: 4px;
-      background: white;
+      width: 3px;
+      height: 3px;
+      background: var(--persona-primary, #4a6741);
       border-radius: 50%;
       opacity: 0;
-      animation: sparkle-burst 0.8s ${EASING.EXPO_OUT} forwards;
+      animation: sparkle-burst 0.6s ${EASING.EXPO_OUT} forwards;
     }
 
     @keyframes sparkle-burst {
       0% {
-        opacity: 1;
+        opacity: 0.8;
         transform: translate(0, 0) scale(1);
       }
       100% {
@@ -253,7 +263,7 @@ function injectStyles(): void {
         animation: none;
         opacity: 0;
       }
-      .whisper--celebration::before,
+      .whisper--celebration::after,
       .whisper__sparkle {
         animation: none;
       }
@@ -265,8 +275,8 @@ function injectStyles(): void {
         top: calc(220px + env(safe-area-inset-top, 0px));
       }
       .whisper {
-        font-size: 12px;
-        padding: 6px 14px;
+        font-size: 11px;
+        padding: 5px 12px;
       }
     }
   `;
@@ -315,29 +325,22 @@ export function showWhisper(config: WhisperConfig): string {
 function displayWhisper(id: string, config: WhisperConfig): void {
   const container = ensureContainer();
   const type = config.type || 'info';
-  const styles = TYPE_STYLES[type];
+  const accents = TYPE_ACCENTS[type];
 
   // Create whisper element
   const whisper = document.createElement('div');
   whisper.className = `whisper whisper--${type}`;
   whisper.setAttribute('role', 'alert');
 
-  // Apply styles
-  if (type === 'celebration') {
-    whisper.style.background = styles.bg;
-  } else {
-    whisper.style.background = styles.bg;
-  }
-  whisper.style.color = styles.text;
-  whisper.style.borderWidth = '1px';
-  whisper.style.borderStyle = 'solid';
-  whisper.style.borderColor = styles.border;
+  // Set CSS custom properties for accent colors
+  whisper.style.setProperty('--whisper-accent', accents.accent);
+  whisper.style.setProperty('--whisper-glow', accents.glow);
 
   // Build content
   if (type === 'celebration' && config.amount !== undefined) {
     whisper.innerHTML = `
       <span class="whisper__amount">+${config.amount}</span>
-      <span>${config.reason || 'seeds'}</span>
+      <span class="whisper__reason">${config.reason || 'seeds'}</span>
     `;
   } else {
     whisper.textContent = config.message;
@@ -423,7 +426,7 @@ export function dismissWhisper(id?: string): void {
       const next = queue.shift()!;
       displayWhisper(next.id, next.config);
     }
-  }, DURATION.NORMAL);
+  }, DURATION.FAST);
 }
 
 /**

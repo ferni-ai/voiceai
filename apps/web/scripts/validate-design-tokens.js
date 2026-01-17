@@ -159,7 +159,7 @@ const IGNORE_PATTERNS = [
   'contact-settings.ui.ts',     // Contact button shadows
   'stage-celebration.ui.ts',    // Celebration effects
   'ambient-effects.ui.ts',      // Ambient animation effects
-  'toast.ui.ts',                // Toast notification shadows
+  'whisper.ui.ts',              // Toast/whisper notification shadows
   'voice-journal/',             // Voice journal visualizations
   'storytelling-',              // Storytelling visualizations
   'outreach-preferences.ui.ts', // Outreach settings shadows

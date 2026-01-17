@@ -21,7 +21,7 @@
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { createLogger } from '../utils/logger.js';
 import { apiGet, apiPatch } from '../utils/api.js';
-import { toast } from './toast.ui.js';
+import { toast } from './whisper.ui.js';
 import { getAuthState } from '../services/firebase-auth.service.js';
 
 const log = createLogger('MemoryLane');

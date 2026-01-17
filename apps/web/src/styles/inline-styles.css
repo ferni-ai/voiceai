@@ -11394,9 +11394,7 @@ body.ambient-aurora {
        ======================================================================== */
 
 /* Fixed elements that need safe area respect */
-.ferni-toast {
-  bottom: calc(100px + env(safe-area-inset-bottom, 0px)) !important;
-}
+/* Note: whisper.ui.ts handles toast positioning with safe area */
 
 /* Footer always respects bottom safe area */
 .footer {

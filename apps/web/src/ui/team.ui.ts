@@ -1689,27 +1689,31 @@ function celebrateMemberUnlock(personaId: PersonaId): void {
       removeClass(element, 'team-member--just-unlocked');
     });
 
-  // Show celebration toast
+  // Show celebration toast - uses same glass style as whisper.ui.ts
   const toast = document.createElement('div');
   toast.className = 'ferni-toast ferni-toast--celebration';
   toast.innerHTML = `
     <span class="ferni-toast__message">${name} unlocked!</span>
   `;
-  // FIX BUG: Use CSS variable for z-index instead of hardcoded value
+  // Glass toast styling - consistent with whisper.ui.ts
   toast.style.cssText = `
     position: fixed;
-    bottom: 100px;
+    bottom: calc(80px + env(safe-area-inset-bottom, 0px));
     left: 50%;
-    transform: translateX(-50%) translateY(20px);
-    background: var(--persona-primary, #4a6741);
-    color: white;
-    padding: var(--space-3, 12px) var(--space-5, 20px);
-    border-radius: var(--radius-full, 9999px);
-    box-shadow: var(--shadow-lg, 0 10px 30px rgba(0,0,0,0.3));
-    font-size: var(--text-sm, 14px);
+    transform: translateX(-50%) translateY(12px);
+    background: rgba(30, 30, 35, 0.75);
+    backdrop-filter: blur(var(--glass-blur-medium, 16px));
+    -webkit-backdrop-filter: blur(var(--glass-blur-medium, 16px));
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    color: var(--color-text-primary, #faf6f0);
+    padding: 6px 14px;
+    border-radius: 20px;
+    box-shadow: 0 4px 20px rgba(74, 103, 65, 0.2), 0 2px 8px rgba(0, 0, 0, 0.2);
+    font-size: 12px;
+    font-weight: 500;
     z-index: var(--z-toast, 1700);
     opacity: 0;
-    transition: opacity 0.3s ease, transform 0.3s ease;
+    transition: opacity 0.2s ease, transform 0.2s ease;
     display: flex;
     align-items: center;
     gap: var(--space-2, 8px);

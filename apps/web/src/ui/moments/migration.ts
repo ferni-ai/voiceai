@@ -123,16 +123,10 @@ export function enableMigrationWarnings(): void {
 // ============================================================================
 
 /**
- * Files that import from toast.ui.ts (need migration):
- *
- * apps/web/src/ui/sleep-settings.ui.ts
- * apps/web/src/app.ts
- * apps/web/src/ui/agent-page-builder.ui.ts
- * apps/web/src/ui/memory-lane.ui.ts
- * apps/web/src/ui/ferni-birthday.ui.ts
- * apps/web/src/ui/streak.ui.ts
- * apps/web/src/ui/bookmark.ui.ts
- * apps/web/src/ui/memory-feedback.ui.ts
+ * Toast migration complete (January 2026):
+ * All files now import from whisper.ui.ts which is the single source
+ * of truth for toast/notification functionality. The old toast.ui.ts
+ * has been removed.
  */
 
 /**

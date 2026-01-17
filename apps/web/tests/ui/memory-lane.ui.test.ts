@@ -42,9 +42,10 @@ vi.mock('../../src/services/firebase-auth.service.js', () => ({
   getAuthState: () => mockAuthState,
 }));
 
-// Mock toast
-vi.mock('../../src/ui/toast.ui.js', () => ({
+// Mock toast (via whisper system)
+vi.mock('../../src/ui/whisper.ui.js', () => ({
   toast: mockToast,
+  whisper: mockToast,
 }));
 
 // Mock API

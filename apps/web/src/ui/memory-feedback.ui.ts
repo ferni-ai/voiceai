@@ -16,7 +16,7 @@
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { apiPost } from '../utils/api.js';
 import { createLogger } from '../utils/logger.js';
-import { toast } from './toast.ui.js';
+import { toast } from './whisper.ui.js';
 
 const log = createLogger('MemoryFeedback');
 
@@ -246,20 +246,23 @@ export class MemoryFeedbackManager {
         position: fixed;
         bottom: calc(var(--space-xl, 42px) + 80px);
         left: 50%;
-        transform: translateX(-50%) translateY(20px);
-        background: var(--color-bg-elevated, #2c2520);
-        border: 1px solid var(--color-border-subtle, rgba(255, 255, 255, 0.1));
-        border-radius: var(--radius-xl, 16px);
-        padding: var(--space-sm, 8px) var(--space-md, 16px);
+        transform: translateX(-50%) translateY(12px);
+        /* Glass styling - consistent with whisper.ui.ts */
+        background: rgba(30, 30, 35, 0.75);
+        backdrop-filter: blur(var(--glass-blur-medium, 16px));
+        -webkit-backdrop-filter: blur(var(--glass-blur-medium, 16px));
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 16px;
+        padding: 6px 12px;
         display: flex;
         align-items: center;
-        gap: var(--space-md, 16px);
-        box-shadow: var(--shadow-lg, 0 8px 32px rgba(0, 0, 0, 0.3));
+        gap: 12px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2), 0 2px 8px rgba(0, 0, 0, 0.15);
         opacity: 0;
         z-index: var(--z-notification, 3000);
         transition: 
-          opacity ${DURATION.NORMAL}ms ${EASING.STANDARD},
-          transform ${DURATION.NORMAL}ms ${EASING.STANDARD};
+          opacity ${DURATION.FAST}ms ${EASING.STANDARD},
+          transform ${DURATION.FAST}ms ${EASING.STANDARD};
         max-width: 90vw;
       }
 
@@ -270,44 +273,44 @@ export class MemoryFeedbackManager {
 
       .memory-feedback--exiting {
         opacity: 0;
-        transform: translateX(-50%) translateY(10px);
+        transform: translateX(-50%) translateY(-8px);
       }
 
       .memory-feedback__content {
         display: flex;
         flex-direction: column;
-        gap: var(--space-2xs, 2px);
+        gap: 1px;
         flex: 1;
         min-width: 0;
       }
 
       .memory-feedback__label {
-        font-size: var(--text-xs, 0.75rem);
-        color: var(--color-text-muted, rgba(255, 255, 255, 0.6));
+        font-size: 10px;
+        color: var(--color-text-muted, rgba(255, 255, 255, 0.5));
         font-weight: 500;
       }
 
       .memory-feedback__preview {
-        font-size: var(--text-sm, 0.875rem);
-        color: var(--color-text-secondary, rgba(255, 255, 255, 0.8));
+        font-size: 11px;
+        color: var(--color-text-secondary, rgba(255, 255, 255, 0.7));
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
-        max-width: 200px;
+        max-width: 160px;
       }
 
       .memory-feedback__actions {
         display: flex;
-        gap: var(--space-xs, 4px);
+        gap: 2px;
       }
 
       .memory-feedback__btn {
         background: transparent;
         border: none;
-        border-radius: var(--radius-md, 8px);
-        padding: var(--space-sm, 8px);
+        border-radius: 6px;
+        padding: 6px;
         cursor: pointer;
-        color: var(--color-text-muted, rgba(255, 255, 255, 0.6));
+        color: var(--color-text-muted, rgba(255, 255, 255, 0.5));
         transition: 
           background ${DURATION.FAST}ms ${EASING.STANDARD},
           color ${DURATION.FAST}ms ${EASING.STANDARD};
@@ -317,13 +320,13 @@ export class MemoryFeedbackManager {
       }
 
       .memory-feedback__btn:hover {
-        background: var(--color-bg-tertiary, rgba(255, 255, 255, 0.1));
+        background: rgba(255, 255, 255, 0.08);
       }
 
       .memory-feedback__btn:focus-visible {
         outline: 2px solid var(--color-accent-primary, #4a6741);
         outline-offset: 2px;
-        background: var(--color-bg-tertiary, rgba(255, 255, 255, 0.1));
+        background: rgba(255, 255, 255, 0.08);
       }
 
       .memory-feedback__btn--helpful:hover,
@@ -338,7 +341,7 @@ export class MemoryFeedbackManager {
 
       .memory-feedback__btn--dismiss:hover,
       .memory-feedback__btn--dismiss:focus-visible {
-        color: var(--color-text-secondary, rgba(255, 255, 255, 0.8));
+        color: var(--color-text-secondary, rgba(255, 255, 255, 0.7));
       }
 
       @media (prefers-reduced-motion: reduce) {
@@ -350,12 +353,12 @@ export class MemoryFeedbackManager {
       @media (max-width: 480px) {
         .memory-feedback {
           bottom: calc(var(--space-lg, 26px) + 60px);
-          padding: var(--space-xs, 4px) var(--space-sm, 8px);
-          gap: var(--space-sm, 8px);
+          padding: 4px 8px;
+          gap: 8px;
         }
 
         .memory-feedback__preview {
-          max-width: 120px;
+          max-width: 100px;
         }
       }
     `;
