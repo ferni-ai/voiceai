@@ -21,6 +21,7 @@ firestore-vector-store/
 - **Automatic Fallback**: Falls back to in-memory cache if Firestore unavailable
 - **Recovery System**: Periodic attempts to reconnect to Firestore
 - **Cache Migration**: Migrates cached data to Firestore on recovery
+- **Request Coalescing**: Deduplicates concurrent identical searches (see below)
 
 ## Usage
 
@@ -87,11 +88,34 @@ When Firestore is unavailable, the store operates in fallback mode:
 - **Recovery**: Automatic attempts every 60 seconds (max 10 attempts)
 - **Migration**: Cached documents automatically migrate to Firestore on recovery
 
+## Request Coalescing
+
+The vector store uses request coalescing to prevent duplicate concurrent searches:
+
+```typescript
+import { getVectorSearchCoalescerStats } from './core.js';
+
+// Get stats for monitoring
+const stats = getVectorSearchCoalescerStats();
+// { totalRequests, coalescedRequests, actualExecutions, coalesceRate, errors, currentPending }
+```
+
+**How it works:**
+- Concurrent searches with identical query + options share one execution
+- Results are deep-cloned via `structuredClone` to prevent mutation bugs
+- 60-second TTL prevents memory leaks
+- Feature flag: Set `ENABLE_VECTOR_COALESCING=false` to disable
+
+**Coalesce key includes:**
+- Query text
+- topK, minScore
+- All filter fields (source, userId, category, timestamps, metadata)
+
 ## Import Rules
 
 This module can import from:
 - `config/` - Configuration utilities
-- `utils/` - Logger, firestore-utils
+- `utils/` - Logger, firestore-utils, request-coalescer
 - `../embeddings.js` - Embedding generation
 - `../vector-store-interface.js` - Contract types
 
