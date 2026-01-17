@@ -1,0 +1,892 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ferni for Developers — Build Voice AI Agents in Minutes</title>
+  <meta name="description" content="Create production voice AI agents with 3 commands. No ML required. From idea to live agent in 5 minutes.">
+  
+  <!-- Open Graph -->
+  <meta property="og:title" content="Ferni for Developers — Voice AI in 3 Commands">
+  <meta property="og:description" content="Build production voice AI agents without ML expertise. From idea to live in 5 minutes.">
+  <meta property="og:image" content="https://developers.ferni.ai/og-image.png">
+  <meta property="og:url" content="https://developers.ferni.ai">
+  <meta property="og:type" content="website">
+  
+  <!-- Twitter -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Ferni for Developers">
+  <meta name="twitter:description" content="Build voice AI agents in 3 commands">
+  <meta name="twitter:image" content="https://developers.ferni.ai/og-image.png">
+  
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- Favicon -->
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  
+  <style>
+    :root {
+      --color-bg: #0a0f0d;
+      --color-bg-elevated: #121a16;
+      --color-bg-card: #1a241e;
+      --color-text: #f0f5f1;
+      --color-text-muted: #8fa396;
+      --color-primary: #4a6741;
+      --color-primary-light: #5d8252;
+      --color-accent: #a3c293;
+      --color-border: #2d3d32;
+      --font-display: 'Plus Jakarta Sans', system-ui, sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+    }
+    
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    html {
+      scroll-behavior: smooth;
+    }
+    
+    body {
+      font-family: var(--font-display);
+      background: var(--color-bg);
+      color: var(--color-text);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+    
+    /* ========== HEADER ========== */
+    header {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 100;
+      padding: 1rem 2rem;
+      background: rgba(10, 15, 13, 0.8);
+      backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--color-border);
+    }
+    
+    nav {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .logo {
+      font-weight: 800;
+      font-size: 1.5rem;
+      color: var(--color-text);
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    
+    .logo svg {
+      width: 32px;
+      height: 32px;
+    }
+    
+    .nav-links {
+      display: flex;
+      gap: 2rem;
+      align-items: center;
+    }
+    
+    .nav-links a {
+      color: var(--color-text-muted);
+      text-decoration: none;
+      font-size: 0.95rem;
+      font-weight: 500;
+      transition: color 0.2s;
+    }
+    
+    .nav-links a:hover {
+      color: var(--color-text);
+    }
+    
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.75rem 1.5rem;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 0.95rem;
+      text-decoration: none;
+      transition: all 0.2s;
+      cursor: pointer;
+      border: none;
+    }
+    
+    .btn-primary {
+      background: var(--color-primary);
+      color: white;
+    }
+    
+    .btn-primary:hover {
+      background: var(--color-primary-light);
+      transform: translateY(-1px);
+    }
+    
+    .btn-secondary {
+      background: transparent;
+      color: var(--color-text);
+      border: 1px solid var(--color-border);
+    }
+    
+    .btn-secondary:hover {
+      background: var(--color-bg-elevated);
+      border-color: var(--color-text-muted);
+    }
+    
+    /* ========== HERO ========== */
+    .hero {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      padding: 8rem 2rem 4rem;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .hero::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 800px;
+      height: 800px;
+      background: radial-gradient(circle, var(--color-primary) 0%, transparent 70%);
+      opacity: 0.1;
+      pointer-events: none;
+    }
+    
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.5rem 1rem;
+      background: var(--color-bg-elevated);
+      border: 1px solid var(--color-border);
+      border-radius: 50px;
+      font-size: 0.85rem;
+      color: var(--color-accent);
+      margin-bottom: 2rem;
+    }
+    
+    .hero h1 {
+      font-size: clamp(3rem, 8vw, 5rem);
+      font-weight: 800;
+      line-height: 1.1;
+      max-width: 900px;
+      margin-bottom: 1.5rem;
+    }
+    
+    .hero h1 span {
+      background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-primary-light) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    
+    .hero p {
+      font-size: 1.25rem;
+      color: var(--color-text-muted);
+      max-width: 600px;
+      margin-bottom: 3rem;
+    }
+    
+    .hero-cta {
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    
+    /* ========== TERMINAL ========== */
+    .terminal-section {
+      padding: 6rem 2rem;
+      background: var(--color-bg-elevated);
+    }
+    
+    .container {
+      max-width: 1000px;
+      margin: 0 auto;
+    }
+    
+    .terminal {
+      background: #0d1210;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+      border: 1px solid var(--color-border);
+    }
+    
+    .terminal-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 16px;
+      background: var(--color-bg-card);
+      border-bottom: 1px solid var(--color-border);
+    }
+    
+    .terminal-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+    }
+    
+    .terminal-dot.red { background: #ff5f56; }
+    .terminal-dot.yellow { background: #ffbd2e; }
+    .terminal-dot.green { background: #27c93f; }
+    
+    .terminal-title {
+      flex: 1;
+      text-align: center;
+      font-size: 0.8rem;
+      color: var(--color-text-muted);
+      font-family: var(--font-mono);
+    }
+    
+    .terminal-body {
+      padding: 1.5rem;
+      font-family: var(--font-mono);
+      font-size: 0.95rem;
+      line-height: 1.8;
+    }
+    
+    .terminal-line {
+      display: flex;
+      margin-bottom: 0.5rem;
+    }
+    
+    .terminal-prompt {
+      color: var(--color-accent);
+      margin-right: 0.75rem;
+      user-select: none;
+    }
+    
+    .terminal-command {
+      color: var(--color-text);
+    }
+    
+    .terminal-output {
+      color: var(--color-text-muted);
+      padding-left: 1.5rem;
+      margin-bottom: 1rem;
+    }
+    
+    .terminal-output.success {
+      color: var(--color-accent);
+    }
+    
+    .terminal-cursor {
+      display: inline-block;
+      width: 10px;
+      height: 1.2em;
+      background: var(--color-accent);
+      margin-left: 2px;
+      animation: blink 1s step-end infinite;
+    }
+    
+    @keyframes blink {
+      50% { opacity: 0; }
+    }
+    
+    /* ========== FEATURES ========== */
+    .features {
+      padding: 8rem 2rem;
+    }
+    
+    .section-header {
+      text-align: center;
+      max-width: 600px;
+      margin: 0 auto 4rem;
+    }
+    
+    .section-header h2 {
+      font-size: 2.5rem;
+      font-weight: 700;
+      margin-bottom: 1rem;
+    }
+    
+    .section-header p {
+      color: var(--color-text-muted);
+      font-size: 1.1rem;
+    }
+    
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 2rem;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    
+    .feature-card {
+      background: var(--color-bg-elevated);
+      border: 1px solid var(--color-border);
+      border-radius: 16px;
+      padding: 2rem;
+      transition: all 0.3s;
+    }
+    
+    .feature-card:hover {
+      border-color: var(--color-primary);
+      transform: translateY(-4px);
+    }
+    
+    .feature-icon {
+      width: 48px;
+      height: 48px;
+      background: var(--color-bg-card);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+      margin-bottom: 1.5rem;
+    }
+    
+    .feature-card h3 {
+      font-size: 1.25rem;
+      font-weight: 600;
+      margin-bottom: 0.75rem;
+    }
+    
+    .feature-card p {
+      color: var(--color-text-muted);
+      font-size: 0.95rem;
+    }
+    
+    /* ========== CODE EXAMPLE ========== */
+    .code-section {
+      padding: 6rem 2rem;
+      background: var(--color-bg-elevated);
+    }
+    
+    .code-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 3rem;
+      max-width: 1200px;
+      margin: 0 auto;
+      align-items: center;
+    }
+    
+    @media (max-width: 900px) {
+      .code-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+    
+    .code-block {
+      background: #0d1210;
+      border-radius: 12px;
+      overflow: hidden;
+      border: 1px solid var(--color-border);
+    }
+    
+    .code-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.75rem 1rem;
+      background: var(--color-bg-card);
+      border-bottom: 1px solid var(--color-border);
+    }
+    
+    .code-filename {
+      font-family: var(--font-mono);
+      font-size: 0.8rem;
+      color: var(--color-text-muted);
+    }
+    
+    .code-copy {
+      background: none;
+      border: none;
+      color: var(--color-text-muted);
+      cursor: pointer;
+      font-size: 0.8rem;
+      padding: 0.25rem 0.5rem;
+      border-radius: 4px;
+      transition: all 0.2s;
+    }
+    
+    .code-copy:hover {
+      background: var(--color-bg-elevated);
+      color: var(--color-text);
+    }
+    
+    pre {
+      padding: 1.5rem;
+      overflow-x: auto;
+      font-family: var(--font-mono);
+      font-size: 0.9rem;
+      line-height: 1.7;
+    }
+    
+    .code-comment { color: #6a7f70; }
+    .code-key { color: #a3c293; }
+    .code-string { color: #c4a96a; }
+    .code-number { color: #c49a6a; }
+    
+    /* ========== USE CASES ========== */
+    .use-cases {
+      padding: 8rem 2rem;
+    }
+    
+    .use-cases-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 1.5rem;
+      max-width: 1000px;
+      margin: 0 auto;
+    }
+    
+    .use-case {
+      background: var(--color-bg-elevated);
+      border: 1px solid var(--color-border);
+      border-radius: 12px;
+      padding: 1.5rem;
+      text-align: center;
+      transition: all 0.3s;
+    }
+    
+    .use-case:hover {
+      border-color: var(--color-primary);
+    }
+    
+    .use-case-icon {
+      font-size: 2rem;
+      margin-bottom: 1rem;
+    }
+    
+    .use-case h3 {
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+    }
+    
+    .use-case p {
+      font-size: 0.9rem;
+      color: var(--color-text-muted);
+    }
+    
+    /* ========== CTA ========== */
+    .cta {
+      padding: 8rem 2rem;
+      background: linear-gradient(135deg, var(--color-bg-elevated) 0%, var(--color-bg) 100%);
+      text-align: center;
+    }
+    
+    .cta h2 {
+      font-size: 3rem;
+      font-weight: 800;
+      margin-bottom: 1rem;
+    }
+    
+    .cta p {
+      color: var(--color-text-muted);
+      font-size: 1.25rem;
+      max-width: 600px;
+      margin: 0 auto 2rem;
+    }
+    
+    .cta-code {
+      display: inline-block;
+      background: #0d1210;
+      border: 1px solid var(--color-border);
+      border-radius: 8px;
+      padding: 1rem 2rem;
+      font-family: var(--font-mono);
+      font-size: 1rem;
+      margin-bottom: 2rem;
+    }
+    
+    .cta-code span {
+      color: var(--color-accent);
+    }
+    
+    /* ========== FOOTER ========== */
+    footer {
+      padding: 4rem 2rem;
+      border-top: 1px solid var(--color-border);
+    }
+    
+    .footer-content {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 2fr 1fr 1fr 1fr;
+      gap: 3rem;
+    }
+    
+    @media (max-width: 768px) {
+      .footer-content {
+        grid-template-columns: 1fr;
+        gap: 2rem;
+      }
+    }
+    
+    .footer-brand {
+      max-width: 300px;
+    }
+    
+    .footer-brand p {
+      color: var(--color-text-muted);
+      font-size: 0.9rem;
+      margin-top: 1rem;
+    }
+    
+    .footer-column h4 {
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--color-text);
+      margin-bottom: 1rem;
+    }
+    
+    .footer-column a {
+      display: block;
+      color: var(--color-text-muted);
+      text-decoration: none;
+      font-size: 0.9rem;
+      margin-bottom: 0.5rem;
+      transition: color 0.2s;
+    }
+    
+    .footer-column a:hover {
+      color: var(--color-text);
+    }
+    
+    .footer-bottom {
+      max-width: 1200px;
+      margin: 3rem auto 0;
+      padding-top: 2rem;
+      border-top: 1px solid var(--color-border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.85rem;
+      color: var(--color-text-muted);
+    }
+    
+    /* ========== RESPONSIVE ========== */
+    @media (max-width: 768px) {
+      .nav-links {
+        display: none;
+      }
+      
+      .hero h1 {
+        font-size: 2.5rem;
+      }
+      
+      .hero-cta {
+        flex-direction: column;
+      }
+      
+      .terminal-body {
+        font-size: 0.8rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Header -->
+  <header>
+    <nav>
+      <a href="/" class="logo">
+        <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="16" cy="16" r="14" stroke="#4a6741" stroke-width="2"/>
+          <path d="M12 20V12L20 16L12 20Z" fill="#4a6741"/>
+        </svg>
+        Ferni
+      </a>
+      <div class="nav-links">
+        <a href="#features">Features</a>
+        <a href="#examples">Examples</a>
+        <a href="https://github.com/ferni-ai/agent-builder">GitHub</a>
+        <a href="https://discord.gg/ferni">Discord</a>
+        <a href="#" class="btn btn-primary">Get Started</a>
+      </div>
+    </nav>
+  </header>
+
+  <!-- Hero -->
+  <section class="hero">
+    <span class="hero-badge">
+      <span>🎙️</span>
+      Now in public beta
+    </span>
+    <h1>Build voice AI agents <span>in minutes</span></h1>
+    <p>Create production-ready voice agents with 3 commands. No ML expertise required. From idea to live agent in 5 minutes.</p>
+    <div class="hero-cta">
+      <a href="#quickstart" class="btn btn-primary">Get Started →</a>
+      <a href="#demo" class="btn btn-secondary">See Demo</a>
+    </div>
+  </section>
+
+  <!-- Terminal Demo -->
+  <section class="terminal-section" id="quickstart">
+    <div class="container">
+      <div class="terminal">
+        <div class="terminal-header">
+          <span class="terminal-dot red"></span>
+          <span class="terminal-dot yellow"></span>
+          <span class="terminal-dot green"></span>
+          <span class="terminal-title">Terminal — zsh</span>
+        </div>
+        <div class="terminal-body">
+          <div class="terminal-line">
+            <span class="terminal-prompt">$</span>
+            <span class="terminal-command">npm install -g @ferni/cli</span>
+          </div>
+          <div class="terminal-output">+ @ferni/cli@1.0.0</div>
+          
+          <div class="terminal-line">
+            <span class="terminal-prompt">$</span>
+            <span class="terminal-command">ferni agent init career-coach</span>
+          </div>
+          <div class="terminal-output success">✓ Created agent: career-coach</div>
+          
+          <div class="terminal-line">
+            <span class="terminal-prompt">$</span>
+            <span class="terminal-command">ferni agent preview career-coach</span>
+          </div>
+          <div class="terminal-output success">🎙️ Preview: http://localhost:3333</div>
+          
+          <div class="terminal-line">
+            <span class="terminal-prompt">$</span>
+            <span class="terminal-command">ferni agent publish career-coach</span>
+          </div>
+          <div class="terminal-output success">🚀 Live: https://career-coach.agents.ferni.ai</div>
+          
+          <div class="terminal-line">
+            <span class="terminal-prompt">$</span>
+            <span class="terminal-cursor"></span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Features -->
+  <section class="features" id="features">
+    <div class="section-header">
+      <h2>Everything you need</h2>
+      <p>Production infrastructure without the complexity. Focus on your agent, not the plumbing.</p>
+    </div>
+    <div class="features-grid">
+      <div class="feature-card">
+        <div class="feature-icon">⚡</div>
+        <h3>Sub-200ms Latency</h3>
+        <p>Real-time voice conversations that feel natural. Faster than human reaction time.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🎙️</div>
+        <h3>Natural Voices</h3>
+        <p>Choose from dozens of high-quality voices or clone your own with 30 seconds of audio.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🔥</div>
+        <h3>Hot Reload</h3>
+        <p>Edit your agent's personality and see changes instantly. No restart needed.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🚀</div>
+        <h3>One-Click Deploy</h3>
+        <p>Deploy to production with a single command. SSL, DNS, and scaling handled.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🎨</div>
+        <h3>Branded Pages</h3>
+        <p>Auto-generated landing pages with your brand colors, logo, and voice.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🔧</div>
+        <h3>Built-in Tools</h3>
+        <p>Web search, weather, news, and more. Add capabilities with a single line.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Code Example -->
+  <section class="code-section" id="examples">
+    <div class="code-grid">
+      <div>
+        <h2 style="font-size: 2rem; margin-bottom: 1rem;">Define your agent in Markdown</h2>
+        <p style="color: var(--color-text-muted); margin-bottom: 2rem;">
+          No complex configuration. Just describe who your agent is and what they do. The personality comes from natural language, not parameters.
+        </p>
+        <a href="#" class="btn btn-primary">View Full Docs</a>
+      </div>
+      <div class="code-block">
+        <div class="code-header">
+          <span class="code-filename">system-prompt.md</span>
+          <button class="code-copy">Copy</button>
+        </div>
+        <pre><code><span class="code-comment"># Career Coach</span>
+
+<span class="code-comment">> Helping engineers navigate growth</span>
+
+You are Alex, a career coach who helps 
+software engineers with:
+
+<span class="code-key">## What You Do</span>
+- Career strategy and planning
+- Salary negotiation coaching  
+- Leadership development
+- Job search support
+
+<span class="code-key">## Your Style</span>
+- Ask questions before giving advice
+- Use frameworks, not platitudes
+- Celebrate small wins
+
+<span class="code-key">## What You Don't Do</span>
+- Make promises about outcomes
+- Give legal or financial advice</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- Use Cases -->
+  <section class="use-cases">
+    <div class="section-header">
+      <h2>What will you build?</h2>
+      <p>From customer support to personal coaching, developers are building voice agents for everything.</p>
+    </div>
+    <div class="use-cases-grid">
+      <div class="use-case">
+        <div class="use-case-icon">💼</div>
+        <h3>Customer Support</h3>
+        <p>No more hold music</p>
+      </div>
+      <div class="use-case">
+        <div class="use-case-icon">📚</div>
+        <h3>Tutoring</h3>
+        <p>Infinite patience</p>
+      </div>
+      <div class="use-case">
+        <div class="use-case-icon">🏃</div>
+        <h3>Coaching</h3>
+        <p>Actually follows up</p>
+      </div>
+      <div class="use-case">
+        <div class="use-case-icon">🧘</div>
+        <h3>Wellness</h3>
+        <p>Always available</p>
+      </div>
+      <div class="use-case">
+        <div class="use-case-icon">👴</div>
+        <h3>Legacy</h3>
+        <p>Preserve voices</p>
+      </div>
+      <div class="use-case">
+        <div class="use-case-icon">🎮</div>
+        <h3>Entertainment</h3>
+        <p>Interactive characters</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section class="cta">
+    <h2>Start building today</h2>
+    <p>Free tier includes 100 minutes per month. No credit card required.</p>
+    <div class="cta-code">
+      <span>$</span> npm install -g @ferni/cli
+    </div>
+    <div>
+      <a href="#" class="btn btn-primary" style="padding: 1rem 2rem; font-size: 1.1rem;">
+        Get Started Free →
+      </a>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer>
+    <div class="footer-content">
+      <div class="footer-brand">
+        <a href="/" class="logo">
+          <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" style="width: 24px; height: 24px;">
+            <circle cx="16" cy="16" r="14" stroke="#4a6741" stroke-width="2"/>
+            <path d="M12 20V12L20 16L12 20Z" fill="#4a6741"/>
+          </svg>
+          Ferni
+        </a>
+        <p>Voice AI for developers. Build agents that feel human.</p>
+      </div>
+      <div class="footer-column">
+        <h4>Product</h4>
+        <a href="#">Features</a>
+        <a href="#">Pricing</a>
+        <a href="#">Examples</a>
+        <a href="#">Changelog</a>
+      </div>
+      <div class="footer-column">
+        <h4>Developers</h4>
+        <a href="#">Documentation</a>
+        <a href="#">API Reference</a>
+        <a href="#">CLI Reference</a>
+        <a href="#">GitHub</a>
+      </div>
+      <div class="footer-column">
+        <h4>Company</h4>
+        <a href="#">About</a>
+        <a href="#">Blog</a>
+        <a href="#">Careers</a>
+        <a href="#">Contact</a>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 Ferni. All rights reserved.</span>
+      <span>
+        <a href="#" style="color: inherit; margin-right: 1rem;">Privacy</a>
+        <a href="#" style="color: inherit;">Terms</a>
+      </span>
+    </div>
+  </footer>
+
+  <script>
+    // Copy button functionality
+    document.querySelectorAll('.code-copy').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const code = btn.closest('.code-block').querySelector('code').textContent;
+        navigator.clipboard.writeText(code);
+        btn.textContent = 'Copied!';
+        setTimeout(() => btn.textContent = 'Copy', 2000);
+      });
+    });
+
+    // Smooth scroll for anchor links
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+      anchor.addEventListener('click', function(e) {
+        e.preventDefault();
+        const target = document.querySelector(this.getAttribute('href'));
+        if (target) {
+          target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      });
+    });
+
+    // Terminal typing animation (optional enhancement)
+    // Could add typing effect for terminal commands
+  </script>
+</body>
+</html>
