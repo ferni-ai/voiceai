@@ -11,8 +11,8 @@
  */
 
 import { createLogger } from '../../../utils/safe-logger.js';
-import type { ContextBuilderInput, ContextInjection } from '../types.js';
-import { registerContextBuilder } from '../registry.js';
+import type { ContextBuilderInput, ContextInjection } from '../core/types.js';
+import { registerContextBuilder } from '../core/registry.js';
 
 const log = createLogger({ module: 'unified-knowledge-context' });
 
