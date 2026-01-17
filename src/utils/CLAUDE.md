@@ -97,6 +97,47 @@ if (limiter.tryConsume()) {
 const slidingLimiter = new SlidingWindowLimiter(100, 60000); // 100 requests per minute
 ```
 
+### Request Coalescer
+
+Prevents duplicate concurrent API calls by sharing in-flight request promises.
+
+```typescript
+import { getRequestCoalescer, hashContent, getAllCoalescerStats } from '../utils/index.js';
+
+// Get or create a coalescer for embeddings
+const coalescer = getRequestCoalescer<number[]>('embeddings', {
+  pendingTtlMs: 60000,  // Max time to wait for a request (default: 60s)
+  maxPending: 10000,    // Max concurrent pending requests (default: 10000)
+});
+
+// These concurrent calls will share the same API request
+const [result1, result2] = await Promise.all([
+  coalescer.execute(hashContent(text), () => embedApi.embed(text)),
+  coalescer.execute(hashContent(text), () => embedApi.embed(text)),
+]);
+// Only 1 API call made, both get the same result
+
+// Get stats for monitoring
+const stats = coalescer.getStats();
+// { totalRequests: 100, coalescedRequests: 80, actualExecutions: 20, coalesceRate: 0.8 }
+
+// Get stats for all coalescers
+const allStats = getAllCoalescerStats();
+```
+
+**Key behaviors:**
+- Concurrent requests with same key share one in-flight promise
+- TTL expiration marks entries as expired (new requests start fresh, existing waiters still get their result)
+- Entry identity tracking prevents race conditions during cleanup
+- Stats track coalesce rate for monitoring
+
+**Two-layer caching for embeddings:**
+
+| Function | Coalescing | Persistent Cache | Use When |
+|----------|------------|------------------|----------|
+| `embed()` | ✅ | ❌ | High-frequency concurrent calls |
+| `embedCached()` | ✅ | ✅ (Redis/memory) | Need cross-session caching |
+
 ### Async Utilities
 
 ```typescript
@@ -394,6 +435,7 @@ utils/
 ├── safe-logger.ts           # Structured logging
 ├── circuit-breaker.ts       # Circuit breaker pattern
 ├── rate-limiter.ts          # Token bucket & sliding window
+├── request-coalescer.ts     # Request coalescing for deduplication
 ├── async.ts                 # Async helpers (sleep, timeout, retry)
 ├── safe-fire-and-forget.ts  # Safe fire-and-forget wrappers
 ├── background-task.ts       # Background task utilities
@@ -407,6 +449,8 @@ utils/
 ├── cognitive-metrics.ts     # AI-specific metrics
 ├── ddos-protection.ts       # DDoS mitigation
 └── __tests__/               # Unit tests
+    ├── request-coalescer.test.ts
+    ├── request-coalescer-edge-cases.test.ts
     └── safe-fire-and-forget.test.ts
 ```
 
@@ -492,4 +536,4 @@ export function resetMyUtility(): void {
 
 ---
 
-*Last updated: December 2024*
+*Last updated: January 2026*

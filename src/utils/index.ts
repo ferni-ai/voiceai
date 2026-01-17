@@ -73,6 +73,20 @@ export {
 } from './circuit-breaker.js';
 
 // ============================================================================
+// REQUEST COALESCER
+// ============================================================================
+
+export {
+  RequestCoalescer,
+  getRequestCoalescer,
+  getAllCoalescerStats,
+  resetAllCoalescers,
+  hashContent,
+  type CoalescerOptions,
+  type CoalescerStats,
+} from './request-coalescer.js';
+
+// ============================================================================
 // METRICS
 // ============================================================================
 
@@ -312,6 +326,7 @@ export { default as asyncUtils } from './async.js';
 export { default as metricsUtils } from './metrics.js';
 export { default as rateLimiterUtils } from './rate-limiter.js';
 export { default as circuitBreakerUtils } from './circuit-breaker.js';
+export { default as requestCoalescerUtils } from './request-coalescer.js';
 export { default as sessionRegistryUtils } from './session-registry.js';
 export { default as cognitiveMetricsUtils } from './cognitive-metrics.js';
 export { default as textUtils } from './text-utils.js';
