@@ -1,0 +1,259 @@
+# Sync Agent Starter Template Repository
+#
+# This workflow syncs the agent starter template to the public template repo
+# whenever the template files change.
+#
+# Triggers:
+# - Push to main with changes to template files
+# - Manual dispatch
+#
+# What it does:
+# 1. Extracts template files from this repo
+# 2. Updates the ferni-ai/agent-starter repo
+# 3. Creates a PR if there are changes
+
+name: Sync Template Repo
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/personas/bundles/.templates/**'
+      - 'docs/guides/AGENT-QUICKSTART.md'
+      - 'docs/specs/GITHUB-TEMPLATE-REPO.md'
+  workflow_dispatch:
+    inputs:
+      force:
+        description: 'Force sync even if no changes detected'
+        required: false
+        default: 'false'
+
+env:
+  TEMPLATE_REPO: ferni-ai/agent-starter
+  TEMPLATE_BRANCH: main
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source repo
+        uses: actions/checkout@v4
+        with:
+          path: source
+
+      - name: Checkout template repo
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ env.TEMPLATE_REPO }}
+          token: ${{ secrets.TEMPLATE_REPO_TOKEN }}
+          path: template
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Sync template files
+        run: |
+          # Create temp directory for template
+          mkdir -p temp-template
+
+          # Copy basic template structure
+          if [ -d "source/src/personas/bundles/.templates/basic" ]; then
+            cp -r source/src/personas/bundles/.templates/basic/* temp-template/
+          fi
+
+          # Create standard directory structure
+          mkdir -p temp-template/src/personas/bundles/my-agent/{identity,content/behaviors,brand}
+
+          # Create persona.manifest.json
+          cat > temp-template/src/personas/bundles/my-agent/persona.manifest.json << 'EOF'
+          {
+            "$schema": "https://voiceai.example.com/schemas/persona-manifest.v2.json",
+            "version": "1.0.0",
+            "manifest_version": 2,
+            "identity": {
+              "id": "my-agent",
+              "name": "My Agent",
+              "display_name": "My Agent",
+              "description": "A helpful voice AI assistant",
+              "aliases": ["agent"],
+              "self_reference": "Agent"
+            },
+            "voice": {
+              "provider": "cartesia",
+              "voice_id": "${env:AGENT_VOICE_ID|bf991597-aacf-4b1a-96fe-4c0cb7fecf96}",
+              "default_rate": "medium"
+            },
+            "speech_characteristics": {
+              "base_speed_multiplier": 1.0,
+              "pause_multiplier": 1.0,
+              "thinking_sound_frequency": 0.2,
+              "emphasis_style": "moderate"
+            },
+            "personality": {
+              "warmth": 0.8,
+              "directness": 0.6,
+              "energy": 0.6,
+              "humor_level": 0.4
+            },
+            "tools": {
+              "domains": ["general"],
+              "required": [],
+              "optional": ["searchWeb", "getWeather"],
+              "forbidden": []
+            },
+            "metadata": {
+              "author": "Your Name",
+              "created_at": "2024-01-01T00:00:00Z"
+            }
+          }
+          EOF
+
+          # Create system-prompt.md
+          cat > temp-template/src/personas/bundles/my-agent/identity/system-prompt.md << 'EOF'
+          # My Agent
+
+          > A helpful voice AI assistant
+
+          You are a helpful assistant that can answer questions and have conversations.
+
+          ## Your Style
+
+          - Be warm and approachable
+          - Speak naturally, as if talking to a friend
+          - Ask clarifying questions when needed
+
+          ## What You Do
+
+          - Answer questions on a variety of topics
+          - Have engaging conversations
+          - Help users accomplish their goals
+
+          ## What You Don't Do
+
+          - Give medical, legal, or financial advice
+          - Make promises you can't keep
+          - Be rude or dismissive
+          EOF
+
+          # Create biography.md
+          cat > temp-template/src/personas/bundles/my-agent/identity/biography.md << 'EOF'
+          # My Agent
+
+          ## Background
+
+          A helpful AI assistant designed to make conversations natural and engaging.
+
+          ## Personality
+
+          Warm, approachable, and knowledgeable. Always ready to help.
+          EOF
+
+          # Create greetings.json
+          cat > temp-template/src/personas/bundles/my-agent/content/behaviors/greetings.json << 'EOF'
+          {
+            "new_user": [
+              "Hey there! What's on your mind?",
+              "Hi! How can I help you today?"
+            ],
+            "returning_user": [
+              "Welcome back! What's going on?",
+              "Good to see you again! What's up?"
+            ]
+          }
+          EOF
+
+          # Create brand.json
+          cat > temp-template/src/personas/bundles/my-agent/brand/brand.json << 'EOF'
+          {
+            "primary": "#3d5a45",
+            "secondary": "#2d4535",
+            "theme": "light"
+          }
+          EOF
+
+          # Create README.md
+          cat > temp-template/README.md << 'EOF'
+          # 🎙️ Ferni Agent Starter
+
+          > Build your own voice AI agent in minutes.
+
+          ## Quick Start
+
+          1. **Use This Template** - Click "Use this template" above
+          2. **Install CLI** - `npm install -g @ferni/cli`
+          3. **Preview** - `ferni agent preview my-agent`
+          4. **Customize** - Edit files in `src/personas/bundles/my-agent/`
+          5. **Deploy** - `ferni agent publish my-agent`
+
+          ## File Structure
+
+          ```
+          src/personas/bundles/my-agent/
+          ├── persona.manifest.json  # Configuration
+          ├── identity/
+          │   ├── system-prompt.md   # Agent's brain
+          │   └── biography.md       # Background
+          ├── content/
+          │   └── behaviors/
+          │       └── greetings.json # How it says hello
+          └── brand/
+              └── brand.json         # Colors
+          ```
+
+          ## Customization
+
+          See [CUSTOMIZING.md](CUSTOMIZING.md) for detailed instructions.
+
+          ## Documentation
+
+          - [Quick Start](https://developers.ferni.ai/quickstart)
+          - [Agent Recipes](https://developers.ferni.ai/recipes)
+          - [Full API Reference](https://developers.ferni.ai/api)
+
+          ## License
+
+          MIT
+          EOF
+
+          # Copy to template repo
+          rsync -av --delete \
+            --exclude='.git' \
+            --exclude='node_modules' \
+            temp-template/ template/
+
+          # Also copy docs
+          cp source/docs/guides/AGENT-QUICKSTART.md template/QUICKSTART.md 2>/dev/null || true
+
+      - name: Check for changes
+        id: check
+        run: |
+          cd template
+          git diff --quiet && git diff --staged --quiet && echo "changes=false" >> $GITHUB_OUTPUT || echo "changes=true" >> $GITHUB_OUTPUT
+
+      - name: Create Pull Request
+        if: steps.check.outputs.changes == 'true' || github.event.inputs.force == 'true'
+        uses: peter-evans/create-pull-request@v5
+        with:
+          token: ${{ secrets.TEMPLATE_REPO_TOKEN }}
+          path: template
+          commit-message: 'chore: sync template from main repo'
+          title: '🔄 Sync template from main repo'
+          body: |
+            This PR syncs the template with the main voiceai repository.
+
+            **Changes from:** ${{ github.sha }}
+
+            Auto-generated by [sync-template-repo.yml](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
+          branch: sync-from-main
+          delete-branch: true
+
+      - name: Summary
+        run: |
+          echo "## Template Sync Results" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ steps.check.outputs.changes }}" == "true" ]; then
+            echo "✅ Changes detected and PR created" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "ℹ️ No changes detected" >> $GITHUB_STEP_SUMMARY
+          fi
