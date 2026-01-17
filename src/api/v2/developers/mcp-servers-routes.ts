@@ -501,68 +501,58 @@ async function handleListServerTools(
 // ============================================================================
 
 /**
- * Test MCP server connection
+ * MCP JSON-RPC message interface
+ */
+interface MCPMessage {
+  jsonrpc: '2.0';
+  id?: number | string;
+  method?: string;
+  params?: Record<string, unknown>;
+  result?: unknown;
+  error?: { code: number; message: string; data?: unknown };
+}
+
+/**
+ * MCP Tool definition from tools/list response
+ */
+interface MCPToolDefinition {
+  name: string;
+  description?: string;
+  inputSchema?: Record<string, unknown>;
+}
+
+/**
+ * Test MCP server connection using the MCP protocol
  *
- * TODO: Implement actual MCP protocol connection
- * For now, returns a mock response
+ * Implements proper MCP handshake:
+ * 1. Send initialize request
+ * 2. Send initialized notification
+ * 3. Send tools/list request to discover available tools
  */
 async function testMCPConnection(server: DeveloperMCPServer): Promise<MCPServerTestResult> {
   const startTime = Date.now();
+  const timeoutMs = server.timeout || 10000;
 
   try {
-    // TODO: Implement real MCP connection test based on transport type
-    // For HTTP: Make a request to the endpoint
-    // For WebSocket: Open connection and list tools
-    // For stdio: Spawn process and communicate
+    // Decrypt secrets if needed for authentication
+    const decryptedSecrets = await decryptSecrets(server.secrets);
 
     if (server.transport === 'http' && server.endpoint) {
-      // Basic HTTP health check
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), server.timeout || 5000);
-
-      try {
-        const response = await fetch(server.endpoint, {
-          method: 'GET',
-          headers: server.headers || {},
-          signal: controller.signal,
-        });
-
-        clearTimeout(timeout);
-
-        if (!response.ok) {
-          return {
-            success: false,
-            connected: false,
-            error: `HTTP ${response.status}: ${response.statusText}`,
-            latencyMs: Date.now() - startTime,
-          };
-        }
-
-        // TODO: Parse MCP tools from response
-        return {
-          success: true,
-          connected: true,
-          tools: ['example-tool'], // Placeholder
-          latencyMs: Date.now() - startTime,
-        };
-      } catch (fetchError) {
-        clearTimeout(timeout);
-        const err = fetchError instanceof Error ? fetchError : new Error(String(fetchError));
-        return {
-          success: false,
-          connected: false,
-          error: err.name === 'AbortError' ? 'Connection timeout' : err.message,
-          latencyMs: Date.now() - startTime,
-        };
-      }
+      return await testHTTPMCPConnection(server, decryptedSecrets, timeoutMs, startTime);
     }
 
-    // For other transports, return placeholder response
-    // TODO: Implement stdio and websocket connections
+    if (server.transport === 'websocket' && server.endpoint) {
+      return await testWebSocketMCPConnection(server, decryptedSecrets, timeoutMs, startTime);
+    }
+
+    if (server.transport === 'stdio' && server.command) {
+      return await testStdioMCPConnection(server, decryptedSecrets, timeoutMs, startTime);
+    }
+
     return {
-      success: true,
-      connected: true,
-      tools: [], // Will be populated when MCP client is implemented
+      success: false,
+      connected: false,
+      error: `Invalid configuration for transport type: ${server.transport}`,
       latencyMs: Date.now() - startTime,
     };
   } catch (error) {
@@ -572,6 +562,454 @@ async function testMCPConnection(server: DeveloperMCPServer): Promise<MCPServerT
       success: false,
       connected: false,
       error: err.message,
+      latencyMs: Date.now() - startTime,
+    };
+  }
+}
+
+/**
+ * Test HTTP-based MCP connection (SSE/HTTP streaming)
+ */
+async function testHTTPMCPConnection(
+  server: DeveloperMCPServer,
+  secrets: Record<string, string> | undefined,
+  timeoutMs: number,
+  startTime: number
+): Promise<MCPServerTestResult> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    // Build headers with any secrets (like API keys)
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      Accept: 'application/json',
+      ...server.headers,
+    };
+
+    // Add authorization if secret contains API key
+    if (secrets?.apiKey) {
+      headers['Authorization'] = `Bearer ${secrets.apiKey}`;
+    }
+    if (secrets?.api_key) {
+      headers['Authorization'] = `Bearer ${secrets.api_key}`;
+    }
+
+    // Step 1: Send initialize request
+    const initializeRequest: MCPMessage = {
+      jsonrpc: '2.0',
+      id: 1,
+      method: 'initialize',
+      params: {
+        protocolVersion: '2024-11-05',
+        capabilities: {},
+        clientInfo: {
+          name: 'ferni-developer-platform',
+          version: '1.0.0',
+        },
+      },
+    };
+
+    const initResponse = await fetch(server.endpoint!, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(initializeRequest),
+      signal: controller.signal,
+    });
+
+    if (!initResponse.ok) {
+      clearTimeout(timeout);
+      return {
+        success: false,
+        connected: false,
+        error: `HTTP ${initResponse.status}: ${initResponse.statusText}`,
+        latencyMs: Date.now() - startTime,
+      };
+    }
+
+    const initResult = (await initResponse.json()) as MCPMessage;
+
+    if (initResult.error) {
+      clearTimeout(timeout);
+      return {
+        success: false,
+        connected: false,
+        error: `MCP error: ${initResult.error.message}`,
+        latencyMs: Date.now() - startTime,
+      };
+    }
+
+    // Step 2: Send initialized notification
+    const initializedNotification: MCPMessage = {
+      jsonrpc: '2.0',
+      method: 'notifications/initialized',
+    };
+
+    await fetch(server.endpoint!, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(initializedNotification),
+      signal: controller.signal,
+    });
+
+    // Step 3: Request tools list
+    const toolsRequest: MCPMessage = {
+      jsonrpc: '2.0',
+      id: 2,
+      method: 'tools/list',
+    };
+
+    const toolsResponse = await fetch(server.endpoint!, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(toolsRequest),
+      signal: controller.signal,
+    });
+
+    clearTimeout(timeout);
+
+    if (!toolsResponse.ok) {
+      return {
+        success: true,
+        connected: true,
+        tools: [],
+        latencyMs: Date.now() - startTime,
+      };
+    }
+
+    const toolsResult = (await toolsResponse.json()) as MCPMessage;
+
+    if (toolsResult.error) {
+      // Server connected but tools/list failed - still a successful connection
+      log.warn({ error: toolsResult.error.message, serverId: server.id }, 'MCP tools/list failed');
+      return {
+        success: true,
+        connected: true,
+        tools: [],
+        latencyMs: Date.now() - startTime,
+      };
+    }
+
+    // Extract tool names from result
+    const toolsData = toolsResult.result as { tools?: MCPToolDefinition[] } | undefined;
+    const tools = toolsData?.tools?.map((t) => t.name) || [];
+
+    log.info({ serverId: server.id, toolCount: tools.length }, 'MCP connection successful');
+
+    return {
+      success: true,
+      connected: true,
+      tools,
+      latencyMs: Date.now() - startTime,
+    };
+  } catch (fetchError) {
+    clearTimeout(timeout);
+    const err = fetchError instanceof Error ? fetchError : new Error(String(fetchError));
+
+    if (err.name === 'AbortError') {
+      return {
+        success: false,
+        connected: false,
+        error: 'Connection timeout',
+        latencyMs: Date.now() - startTime,
+      };
+    }
+
+    return {
+      success: false,
+      connected: false,
+      error: err.message,
+      latencyMs: Date.now() - startTime,
+    };
+  }
+}
+
+/**
+ * Test WebSocket-based MCP connection
+ */
+async function testWebSocketMCPConnection(
+  server: DeveloperMCPServer,
+  secrets: Record<string, string> | undefined,
+  timeoutMs: number,
+  startTime: number
+): Promise<MCPServerTestResult> {
+  // WebSocket implementation requires Node.js ws package
+  // For now, return a meaningful error if WebSocket is selected
+  try {
+    const { WebSocket } = await import('ws');
+
+    return new Promise((resolve) => {
+      const wsTimeout = setTimeout(() => {
+        resolve({
+          success: false,
+          connected: false,
+          error: 'WebSocket connection timeout',
+          latencyMs: Date.now() - startTime,
+        });
+      }, timeoutMs);
+
+      // Build WebSocket URL with authentication if needed
+      let wsUrl = server.endpoint!;
+      if (secrets?.apiKey || secrets?.api_key) {
+        const url = new URL(wsUrl);
+        url.searchParams.set('token', secrets.apiKey || secrets.api_key || '');
+        wsUrl = url.toString();
+      }
+
+      const ws = new WebSocket(wsUrl, {
+        headers: server.headers,
+      });
+
+      let initDone = false;
+      const tools: string[] = [];
+
+      ws.on('open', () => {
+        // Send initialize request
+        const initRequest: MCPMessage = {
+          jsonrpc: '2.0',
+          id: 1,
+          method: 'initialize',
+          params: {
+            protocolVersion: '2024-11-05',
+            capabilities: {},
+            clientInfo: {
+              name: 'ferni-developer-platform',
+              version: '1.0.0',
+            },
+          },
+        };
+        ws.send(JSON.stringify(initRequest));
+      });
+
+      ws.on('message', (data: Buffer) => {
+        try {
+          const message = JSON.parse(data.toString()) as MCPMessage;
+
+          if (message.id === 1 && !message.error) {
+            // Initialize succeeded, send initialized notification and tools/list
+            initDone = true;
+
+            const initializedNotif: MCPMessage = {
+              jsonrpc: '2.0',
+              method: 'notifications/initialized',
+            };
+            ws.send(JSON.stringify(initializedNotif));
+
+            const toolsRequest: MCPMessage = {
+              jsonrpc: '2.0',
+              id: 2,
+              method: 'tools/list',
+            };
+            ws.send(JSON.stringify(toolsRequest));
+          } else if (message.id === 2) {
+            // Tools list response
+            clearTimeout(wsTimeout);
+            ws.close();
+
+            if (message.error) {
+              resolve({
+                success: true,
+                connected: true,
+                tools: [],
+                latencyMs: Date.now() - startTime,
+              });
+            } else {
+              const toolsData = message.result as { tools?: MCPToolDefinition[] } | undefined;
+              const toolNames = toolsData?.tools?.map((t) => t.name) || [];
+              resolve({
+                success: true,
+                connected: true,
+                tools: toolNames,
+                latencyMs: Date.now() - startTime,
+              });
+            }
+          } else if (message.error) {
+            clearTimeout(wsTimeout);
+            ws.close();
+            resolve({
+              success: false,
+              connected: initDone,
+              error: message.error.message,
+              latencyMs: Date.now() - startTime,
+            });
+          }
+        } catch (parseError) {
+          // Ignore parse errors, wait for valid messages
+        }
+      });
+
+      ws.on('error', (err) => {
+        clearTimeout(wsTimeout);
+        resolve({
+          success: false,
+          connected: false,
+          error: err.message,
+          latencyMs: Date.now() - startTime,
+        });
+      });
+
+      ws.on('close', () => {
+        if (tools.length === 0 && !initDone) {
+          clearTimeout(wsTimeout);
+          resolve({
+            success: false,
+            connected: false,
+            error: 'WebSocket connection closed unexpectedly',
+            latencyMs: Date.now() - startTime,
+          });
+        }
+      });
+    });
+  } catch (importError) {
+    return {
+      success: false,
+      connected: false,
+      error: 'WebSocket support not available',
+      latencyMs: Date.now() - startTime,
+    };
+  }
+}
+
+/**
+ * Test stdio-based MCP connection (spawn process)
+ */
+async function testStdioMCPConnection(
+  server: DeveloperMCPServer,
+  secrets: Record<string, string> | undefined,
+  timeoutMs: number,
+  startTime: number
+): Promise<MCPServerTestResult> {
+  try {
+    const { spawn } = await import('child_process');
+
+    return new Promise((resolve) => {
+      const processTimeout = setTimeout(() => {
+        resolve({
+          success: false,
+          connected: false,
+          error: 'Process connection timeout',
+          latencyMs: Date.now() - startTime,
+        });
+      }, timeoutMs);
+
+      // Build environment with secrets
+      const env = {
+        ...process.env,
+        ...secrets,
+      };
+
+      // Parse command and args
+      const [cmd, ...defaultArgs] = server.command!.split(' ');
+      const args = [...defaultArgs, ...(server.args || [])];
+
+      const child = spawn(cmd, args, {
+        stdio: ['pipe', 'pipe', 'pipe'],
+        env,
+      });
+
+      let stdout = '';
+      let initDone = false;
+
+      child.stdout.on('data', (data: Buffer) => {
+        stdout += data.toString();
+
+        // Try to parse complete JSON messages
+        const lines = stdout.split('\n');
+        for (const line of lines) {
+          if (!line.trim()) continue;
+          try {
+            const message = JSON.parse(line) as MCPMessage;
+
+            if (message.id === 1 && !message.error) {
+              initDone = true;
+
+              // Send initialized notification
+              const initializedNotif: MCPMessage = {
+                jsonrpc: '2.0',
+                method: 'notifications/initialized',
+              };
+              child.stdin.write(JSON.stringify(initializedNotif) + '\n');
+
+              // Send tools/list request
+              const toolsRequest: MCPMessage = {
+                jsonrpc: '2.0',
+                id: 2,
+                method: 'tools/list',
+              };
+              child.stdin.write(JSON.stringify(toolsRequest) + '\n');
+            } else if (message.id === 2) {
+              clearTimeout(processTimeout);
+              child.kill();
+
+              if (message.error) {
+                resolve({
+                  success: true,
+                  connected: true,
+                  tools: [],
+                  latencyMs: Date.now() - startTime,
+                });
+              } else {
+                const toolsData = message.result as { tools?: MCPToolDefinition[] } | undefined;
+                const toolNames = toolsData?.tools?.map((t) => t.name) || [];
+                resolve({
+                  success: true,
+                  connected: true,
+                  tools: toolNames,
+                  latencyMs: Date.now() - startTime,
+                });
+              }
+            }
+          } catch {
+            // Incomplete JSON, wait for more data
+          }
+        }
+        // Keep last incomplete line
+        stdout = lines[lines.length - 1] || '';
+      });
+
+      child.on('error', (err) => {
+        clearTimeout(processTimeout);
+        resolve({
+          success: false,
+          connected: false,
+          error: `Process error: ${err.message}`,
+          latencyMs: Date.now() - startTime,
+        });
+      });
+
+      child.on('close', (code) => {
+        if (!initDone) {
+          clearTimeout(processTimeout);
+          resolve({
+            success: false,
+            connected: false,
+            error: `Process exited with code ${code}`,
+            latencyMs: Date.now() - startTime,
+          });
+        }
+      });
+
+      // Send initialize request
+      const initRequest: MCPMessage = {
+        jsonrpc: '2.0',
+        id: 1,
+        method: 'initialize',
+        params: {
+          protocolVersion: '2024-11-05',
+          capabilities: {},
+          clientInfo: {
+            name: 'ferni-developer-platform',
+            version: '1.0.0',
+          },
+        },
+      };
+      child.stdin.write(JSON.stringify(initRequest) + '\n');
+    });
+  } catch (importError) {
+    return {
+      success: false,
+      connected: false,
+      error: 'Process spawn not available',
       latencyMs: Date.now() - startTime,
     };
   }

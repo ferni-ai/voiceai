@@ -15,6 +15,7 @@ import { handleDeveloperKeysRoutes } from './keys-routes.js';
 import { handleDeveloperPersonasRoutes } from './personas-routes.js';
 import { handleDeveloperVoicesRoutes } from './voice-routes.js';
 import { handleDeveloperAnalyticsRoutes } from './analytics-routes.js';
+import { handleDeveloperWebhooksRoutes } from './webhooks-routes.js';
 
 /**
  * Main handler for all developer console routes
@@ -47,6 +48,10 @@ export async function handleDeveloperRoutes(
   }
 
   if (await handleDeveloperAnalyticsRoutes(req, res, pathname)) {
+    return true;
+  }
+
+  if (await handleDeveloperWebhooksRoutes(req, res, pathname)) {
     return true;
   }
 
