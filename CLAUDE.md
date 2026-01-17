@@ -392,6 +392,63 @@ ferni disk setup-cron         # or: pnpm ops:disk:setup-cron
 
 **Key files:** `apps/cli/src/commands/ops/cleanup-gce.ts`, `apps/cli/src/commands/deploy/deploy-gce.ts`
 
+### 🏃 GitHub Actions Self-Hosted Runner
+
+We use a **self-hosted GitHub Actions runner** on GCE to reduce CI billing and speed up builds through caching.
+
+| Property | Value |
+|----------|-------|
+| **VM Name** | `github-runner` |
+| **IP** | `34.171.8.182` |
+| **Machine Type** | `e2-medium` (~$25/mo) |
+| **Zone** | `us-central1-a` |
+| **Runner Labels** | `self-hosted`, `Linux`, `X64`, `gce` |
+
+**Pre-installed tools:** Docker 29.x, Node.js 20.x, pnpm 10.x, gcloud CLI
+
+**Cost Savings:** ~$25/mo fixed vs variable per-minute GitHub Actions billing (~$0.008/min).
+
+#### Runner Management Commands
+
+```bash
+# Check runner status
+ferni runner status              # Full status with GCE info
+ferni runner status --json       # JSON output
+
+# Restart the runner service
+ferni runner restart             # Graceful restart
+ferni runner restart --force     # Force stop + start
+
+# View logs
+ferni runner logs                # Last 50 lines
+ferni runner logs --follow       # Stream in real-time
+ferni runner logs --lines 100    # Last 100 lines
+
+# SSH into the runner
+ferni runner ssh
+```
+
+#### Workflows Using Self-Hosted Runner
+
+The following workflows run on the self-hosted runner:
+- `ci.yml` - All CI jobs (lint, test, build)
+- `deploy-gce.yml` - GCE deployments
+
+To use in a workflow:
+```yaml
+jobs:
+  build:
+    runs-on: [self-hosted, Linux, X64, gce]
+```
+
+#### Security Considerations
+
+- The runner executes code from PRs - **restrict to protected branches** if you accept external PRs
+- Runner service auto-starts on boot via systemd
+- Consider adding more runners for parallel job execution
+
+**Key files:** `apps/cli/src/commands/runner/`, `.github/workflows/ci.yml`
+
 ## ⚡ Build Optimization (pnpm + esbuild)
 
 We use **esbuild** for fast TypeScript compilation and **pnpm** for fast dependency installs.
@@ -1624,6 +1681,7 @@ The Ferni CLI (`ferni`) provides comprehensive access to all development, deploy
 | `ferni data` | Data analysis | profiles, behaviors, tools, contacts |
 | `ferni waitlist` | Manage waitlist | list, approve, stats, export |
 | `ferni disk` | GCE disk management | status, clean, setup-cron |
+| `ferni runner` | GitHub Actions runner | status, restart, logs, ssh |
 | `ferni secrets` | Secret management | list, check, rotate, sync, audit |
 
 ### Quality & Agents Commands

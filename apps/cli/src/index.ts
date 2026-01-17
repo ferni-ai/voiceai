@@ -950,6 +950,14 @@ const COMMANDS: Record<string, CliCommand> = {
     subcommands: ['status', 'clean', 'clean:aggressive', 'setup-cron'],
     examples: ['ferni disk', 'ferni disk status', 'ferni disk clean', 'ferni disk setup-cron'],
   },
+  runner: {
+    name: 'Runner',
+    description: 'GitHub Actions self-hosted runner management',
+    icon: '🏃',
+    handler: handleRunner,
+    subcommands: ['status', 'restart', 'logs', 'ssh'],
+    examples: ['ferni runner status', 'ferni runner restart', 'ferni runner logs --follow'],
+  },
   canary: {
     name: 'Canary',
     description: 'Canary deployment management',
@@ -1168,6 +1176,24 @@ const COMMANDS: Record<string, CliCommand> = {
     handler: handleCEOMeetings,
     subcommands: ['add', 'list', 'today', 'search', 'action-items'],
     examples: ['ferni meetings add "1:1 with Sarah"', 'ferni meetings today', 'ferni meetings action-items'],
+  },
+  // ============================================================================
+  // GROWTH AUTOMATION - Autonomous marketing across all channels
+  // ============================================================================
+  growth: {
+    name: 'Growth',
+    description: 'Autonomous growth marketing (TikTok, SEO, Reddit, Influencers)',
+    icon: '🚀',
+    handler: handleGrowth,
+    subcommands: ['tiktok', 'content', 'influencer', 'seo', 'auto', 'run', 'campaign', 'metrics'],
+    examples: [
+      'ferni growth',
+      'ferni growth tiktok add @ferni_ai --angle main',
+      'ferni growth content --platform tiktok',
+      'ferni growth influencer --tier micro',
+      'ferni growth auto post on',
+      'ferni growth run --generate',
+    ],
   },
   // ============================================================================
   // CUSTOM AGENT & SITE COMMANDS - Build and deploy custom agents
@@ -4786,6 +4812,36 @@ async function handleCEOMeetings(args: string[]): Promise<void> {
     console.log(`\n${colors.bold}Action Items from Meetings${colors.reset}`);
     console.log(`${colors.dim}Action item extraction coming soon...${colors.reset}`);
     console.log(`\nFor now, check your priorities: ${colors.cyan}ferni priorities${colors.reset}`);
+  }
+}
+
+// ============================================================================
+// GROWTH AUTOMATION HANDLER
+// ============================================================================
+
+async function handleGrowth(args: string[]): Promise<void> {
+  // Dynamic import to avoid bundling the growth module in the main CLI
+  const { registerGrowthCommand } = await import('./commands/growth/index.js');
+  const { Command } = await import('commander');
+
+  // Create a mini program just for growth commands
+  const program = new Command();
+  program.exitOverride();
+  program.configureOutput({
+    outputError: () => {}, // Suppress Commander errors
+  });
+
+  registerGrowthCommand(program);
+
+  try {
+    // Parse the growth command with its arguments
+    await program.parseAsync(['node', 'ferni', 'growth', ...args], { from: 'user' });
+  } catch (error) {
+    // Commander throws on --help and invalid commands, which is fine
+    if (error instanceof Error && error.message.includes('commander')) {
+      return;
+    }
+    throw error;
   }
 }
 
@@ -9573,6 +9629,49 @@ async function handleDisk(args: string[]): Promise<void> {
   } catch (error) {
     log.error('Disk operation failed');
     process.exit(1);
+  }
+}
+
+async function handleRunner(args: string[]): Promise<void> {
+  const subcommand = args[0] || 'status';
+
+  log.header('🏃 GitHub Actions Runner');
+
+  // Build arguments for the runner script - validated subcommands only
+  const validSubcommands = ['status', 'restart', 'logs', 'ssh', 'help'];
+  if (!validSubcommands.includes(subcommand)) {
+    log.error(`Unknown runner subcommand: ${subcommand}`);
+    console.log(`\n  Available: ${validSubcommands.join(', ')}`);
+    return;
+  }
+
+  const scriptArgs = [subcommand];
+
+  // Pass through boolean flags (safe, no user input)
+  if (args.includes('--json')) scriptArgs.push('--json');
+  if (args.includes('--force')) scriptArgs.push('--force');
+  if (args.includes('--follow') || args.includes('-f')) scriptArgs.push('--follow');
+
+  // Handle --lines option (validated as number)
+  const linesIdx = args.findIndex((a) => a === '--lines' || a === '-n');
+  if (linesIdx >= 0 && args[linesIdx + 1]) {
+    const lines = parseInt(args[linesIdx + 1], 10);
+    if (!isNaN(lines) && lines > 0) {
+      scriptArgs.push('--lines', String(lines));
+    }
+  }
+
+  // Run the runner.ts script with validated arguments
+  const cmd = `npx tsx apps/cli/src/commands/runner/runner.ts ${scriptArgs.join(' ')}`;
+
+  try {
+    execSync(cmd, { stdio: 'inherit', cwd: process.cwd() });
+  } catch (error) {
+    // SSH and logs may exit with Ctrl+C, don't treat as error
+    if (subcommand !== 'ssh' && subcommand !== 'logs') {
+      log.error('Runner operation failed');
+      process.exit(1);
+    }
   }
 }
 

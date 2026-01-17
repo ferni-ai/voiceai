@@ -54,6 +54,11 @@ apps/cli/
 │       ├── ops/                    # Operations
 │       │   ├── cleanup-gce.ts      # Disk cleanup
 │       │   └── cleanup-zombies.ts  # Zombie revision cleanup
+│       ├── runner/                 # GitHub Actions Runner
+│       │   ├── runner.ts           # Main command entry
+│       │   ├── runner-status.ts    # Status command
+│       │   ├── runner-restart.ts   # Restart command
+│       │   └── runner-logs.ts      # Logs command
 │       ├── quality/                # Code quality
 │       ├── runtime/                # Runtime management
 │       ├── tokens/                 # Design token management
@@ -174,6 +179,26 @@ ferni ops zombies
 
 # Fix zombie revisions
 ferni ops zombies --fix
+```
+
+### GitHub Actions Runner
+
+```bash
+# Check runner status
+ferni runner status
+ferni runner status --json
+
+# Restart runner service
+ferni runner restart
+ferni runner restart --force
+
+# View runner logs
+ferni runner logs
+ferni runner logs --follow
+ferni runner logs --lines 100
+
+# SSH into runner VM
+ferni runner ssh
 ```
 
 ### Code Generation
