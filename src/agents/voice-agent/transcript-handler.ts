@@ -121,6 +121,10 @@ import { getAnticipationPipeline } from '../../speech/anticipation/index.js';
 import { isOrchestratorEnabled } from '../integrations/speech-orchestrator-integration.js';
 // Speech coordination for centralized speech management
 import { coordinatedSay } from '../../speech/coordination/index.js';
+// Centralized generateReply gateway for proactive response triggering
+import { generateReply } from '../shared/generate-reply-gateway.js';
+// Session closing tracker to prevent errors during shutdown
+import { isSessionClosing } from '../shared/session-closing-tracker.js';
 // Tool updater for mid-session tool updates (OpenAI Realtime)
 import { updateAgentTools, supportsToolUpdates } from '../shared/tool-updater.js';
 import { createLogger } from '../../utils/safe-logger.js';
@@ -1663,6 +1667,61 @@ async function processFinalTranscript(
 
   // Detect team huddle requests
   processTeamHuddleDetection(event.transcript, sessionPersona.id, ctx.sendDataMessage);
+
+  // ===============================================
+  // 🚀 PROACTIVE RESPONSE TRIGGER (OpenAI Reliability Fix)
+  // OpenAI Realtime's auto-response (createResponse: true) is unreliable.
+  // Sometimes it generates responses, sometimes it doesn't.
+  // Instead of waiting 5 seconds for the watchdog, proactively trigger
+  // generateReply after a short delay to ensure the user gets a response.
+  // The delay allows the natural auto-response to fire first (if it works).
+  // ===============================================
+  const PROACTIVE_RESPONSE_DELAY_MS = 500; // Give auto-response a chance first
+
+  setTimeout(async () => {
+    try {
+      // Skip if session is closing
+      if (isSessionClosing(sessionId)) {
+        return;
+      }
+
+      // Skip if agent is already speaking (auto-response worked!)
+      if (conversationManager.isAgentSpeaking()) {
+        return;
+      }
+
+      // Skip if music is playing (user is listening intentionally)
+      try {
+        const djController = getDJController();
+        if (djController.isMusicActive()) {
+          diag.state('🚀 [PROACTIVE] Skipped - music is playing');
+          return;
+        }
+      } catch {
+        // DJ Controller not initialized - continue
+      }
+
+      // Trigger proactive response
+      diag.state('🚀 [PROACTIVE] Triggering response (OpenAI auto-response failed)', {
+        transcript: event.transcript.slice(0, 50),
+        delayMs: PROACTIVE_RESPONSE_DELAY_MS,
+      });
+
+      // Use structured meta-commands (same pattern as dead air handler)
+      // The LLM already has the conversation context, we just need to trigger a response
+      await generateReply(session, sessionId, {
+        instructions: '[RESPOND_NOW: Continue the conversation naturally based on what the user just said]',
+        context: 'proactive-response',
+        priority: 'high',
+        allowInterruptions: true,
+        waitForPlayout: false, // Don't block - let it stream
+        timeoutMs: 8000,
+      });
+    } catch (err) {
+      // Non-fatal - the watchdog will catch this as backup
+      diag.warn('Proactive response failed', { error: String(err) });
+    }
+  }, PROACTIVE_RESPONSE_DELAY_MS);
 }
 
 /**

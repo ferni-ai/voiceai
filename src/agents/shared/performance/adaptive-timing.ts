@@ -26,48 +26,52 @@ const log = createLogger({ module: 'AdaptiveTiming' });
  *
  * UPDATED Dec 2024: Lowered thresholds for more conversational feel
  * UPDATED Jan 2026: Tightened for human-like conversation
- * UPDATED Jan 2026: More aggressive targets - humans respond in 200-400ms
+ * UPDATED Jan 2026: SUPERHUMAN targets - faster than humans expect
+ *
+ * PHILOSOPHY: A human friend takes 200-400ms to start responding.
+ * We aim for < 200ms to feel FASTER than human conversation.
+ * This creates the "wow, they really get me" feeling.
  */
 export const LATENCY_TARGETS = {
-  /** Ideal response time - feels instant (human-like) */
-  INSTANT: 250, // Was 300 - match human turn-taking
+  /** Ideal response time - feels SUPERHUMAN */
+  INSTANT: 150, // Was 250 - faster than human turn-taking!
 
-  /** Good response time - feels natural */
-  NATURAL: 500, // Was 600 - within human range
+  /** Good response time - feels instant to user */
+  NATURAL: 350, // Was 500 - within fastest human range
 
-  /** Acceptable response time - user notices but tolerates */
-  ACCEPTABLE: 800, // Was 1200 - tighter, humans notice >1s
+  /** Acceptable response time - user barely notices */
+  ACCEPTABLE: 600, // Was 800 - tighter threshold
 
-  /** Slow response time - needs filler */
-  NEEDS_FILLER: 1000, // Was 1500 - inject filler at 1s, not 1.5s
+  /** Slow response time - needs filler to maintain presence */
+  NEEDS_FILLER: 800, // Was 1000 - inject filler earlier
 
   /** Hard limit before giving up on rich context */
-  HARD_LIMIT: 3000, // Was 3500 - fail fast, use fallback
+  HARD_LIMIT: 2500, // Was 3000 - fail faster, apologize later
 } as const;
 
 /**
- * Filler injection strategy
+ * Filler injection strategy - "Better than Human" Presence
  *
- * UPDATED Dec 2024: More aggressive filler for conversational feel
- * UPDATED Dec 25 2024: Further lowered thresholds for "Better than Human"
- * UPDATED Dec 29 2024: Even more aggressive - 600ms feels like human pausing to think
- * UPDATED Jan 2026: Human-like presence - fillers show "I'm processing"
+ * PHILOSOPHY: Silence is the enemy. A quick "Hmm" or "Let me think..."
+ * at 300ms shows PRESENCE. Users feel heard, even if processing takes longer.
  *
- * Research: Human turn-taking gaps are 200-500ms. Silence >600ms feels awkward.
- * A quick "Hmm" at 400ms shows presence without being annoying.
+ * UPDATED Jan 2026: SUPERHUMAN presence strategy
+ * - 300ms of silence = inject presence (human thinking pause)
+ * - 500ms of silence = guaranteed filler (feels awkward otherwise)
+ * - Tight cooldown allows staying present during complex processing
  */
 export const FILLER_STRATEGY = {
   /** Never inject filler below this latency - response is fast enough */
-  MIN_LATENCY_FOR_FILLER: 400, // Was 500 - inject filler at 400ms (human thinking pause)
+  MIN_LATENCY_FOR_FILLER: 300, // Was 400 - show presence at 300ms
 
   /** Always inject filler above this latency - silence is awkward */
-  GUARANTEED_FILLER_LATENCY: 700, // Was 1000 - 700ms of silence feels too long
+  GUARANTEED_FILLER_LATENCY: 500, // Was 700 - 500ms silence is too long
 
   /** Buffer time to add to average latency for filler timing */
-  FILLER_BUFFER_MS: 100, // Was 150 - tighter buffer for snappier feel
+  FILLER_BUFFER_MS: 75, // Was 100 - tighter buffer
 
-  /** Minimum time between fillers - don't spam "hmm"s */
-  FILLER_COOLDOWN_MS: 3000, // Was 4000 - allow more frequent fillers when struggling
+  /** Minimum time between fillers - allow presence during complex tasks */
+  FILLER_COOLDOWN_MS: 2500, // Was 3000 - more frequent presence when needed
 } as const;
 
 // ============================================================================
@@ -98,13 +102,16 @@ const sessionStats = new Map<string, SessionLatencyStats>();
 
 /**
  * Get or create latency stats for a session
+ *
+ * Start SUPERHUMAN optimistic - assume blazing fast until proven otherwise.
+ * This prevents unnecessary fillers on first few turns when system is actually fast.
  */
 function getSessionStats(sessionId: string): SessionLatencyStats {
   if (!sessionStats.has(sessionId)) {
     sessionStats.set(sessionId, {
       recentLatencies: [],
-      avgLatency: 300, // Start VERY aggressive - assume fast until proven otherwise
-      p95Latency: 600, // Optimistic p95 - will adjust based on actual performance
+      avgLatency: 200, // Start SUPERHUMAN - assume instant until proven otherwise
+      p95Latency: 400, // Optimistic p95 - will adjust based on actual performance
       lastFillerTime: 0,
       turnCount: 0,
       startTime: Date.now(),

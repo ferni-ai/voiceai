@@ -320,9 +320,10 @@ export async function prewarmConversationalAudio(): Promise<number> {
   log.info({ totalPhrases: tasks.length }, '⚡ Starting conversational audio prewarm');
 
   // Process in parallel batches
-  // Increased from 10 to 25 for faster warmup (~3x speedup)
-  // Cartesia can handle 25 concurrent requests without issues
-  const BATCH_SIZE = 25;
+  // Increased to 50 for faster warmup (~5x speedup from original 10)
+  // Cartesia can handle 50 concurrent requests without issues
+  // For local dev, set SKIP_CONVERSATIONAL_PREWARM=true to skip entirely
+  const BATCH_SIZE = 50;
   for (let i = 0; i < tasks.length; i += BATCH_SIZE) {
     const batch = tasks.slice(i, i + BATCH_SIZE);
 

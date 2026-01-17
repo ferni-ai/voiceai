@@ -45,6 +45,7 @@ import { coordinatedSay, cleanupSpeechCoordination } from '../../speech/coordina
 import {
   startHealthMonitoring,
   stopHealthMonitoring,
+  registerPingCallback,
 } from '../shared/openai-health-monitor.js';
 
 // ============================================================================
@@ -73,6 +74,8 @@ import { setupMusicHandler } from '../voice-agent/music-handler.js';
 import { dynamicToolLoader } from '../../tools/dynamic-loader.js';
 import { autoOptimizer } from '../../tools/optimization/auto-optimizer.js';
 import { initializeFrontendPublisher } from '../realtime/index.js';
+// Gateway for health ping callback
+import { generateReply } from '../shared/generate-reply-gateway.js';
 
 const log = getLogger();
 
@@ -993,7 +996,35 @@ Reference past context when relevant, but don't force it. Let the conversation f
   // =========================================================================
   if (isUsingOpenAI()) {
     startHealthMonitoring(sessionId);
-    log.info({ sessionId, personaId: persona.id }, '🏥 [HEALTH] OpenAI health monitoring started');
+
+    // Register a ping callback to keep the connection alive during idle periods
+    // This prevents the "stale connection" issue where the LLM doesn't respond for 5+ seconds
+    // The ping sends a minimal request that tests connection health without interrupting users
+    registerPingCallback(sessionId, async () => {
+      try {
+        // Use a minimal instruction that won't produce audible output
+        // The LLM processes this silently to verify connection health
+        const result = await generateReply(session, sessionId, {
+          instructions: '[Connection health check - acknowledge silently]',
+          waitForPlayout: false, // Don't wait for audio - just verify connection works
+          timeoutMs: 3000, // Short timeout for health check
+          priority: 'low', // Low priority so it doesn't interrupt real requests
+        });
+
+        if (result.success) {
+          log.debug({ sessionId }, '🏥 [HEALTH] Ping successful - connection alive');
+          return true;
+        }
+
+        log.warn({ sessionId, error: result.error }, '🏥 [HEALTH] Ping failed');
+        return false;
+      } catch (err) {
+        log.warn({ sessionId, error: String(err) }, '🏥 [HEALTH] Ping threw error');
+        return false;
+      }
+    });
+
+    log.info({ sessionId, personaId: persona.id }, '🏥 [HEALTH] OpenAI health monitoring started with ping callback');
   }
 
   // =========================================================================

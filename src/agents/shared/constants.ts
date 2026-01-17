@@ -40,10 +40,13 @@ export const SILENCE_THRESHOLDS = {
    * DEAD AIR FIX: If processing takes too long, acknowledge at this point
    *
    * NOTE: This MUST be > TURN_PROCESSING_SOFT_TIMEOUT to avoid duplicate fillers!
-   * turn-handler.ts fires at 4s - this acts as a backup fallback only.
+   * turn-handler.ts fires at 2s - this acts as a backup fallback only.
    * See turn-handler.ts:148 and session-state-handler.ts:451
+   *
+   * REDUCED Jan 2026: 5.0s → 3.0s - 5 seconds of silence feels like an eternity
+   * Research shows users perceive delays > 2s as "slow"
    */
-  EARLY_ACKNOWLEDGMENT_SECONDS: 5.0,
+  EARLY_ACKNOWLEDGMENT_SECONDS: 3.0,
 
   /**
    * Response intervals for progressive silence handling (seconds)
@@ -106,6 +109,12 @@ export const IDLE_TIMEOUT = {
  * These static values are used:
  * 1. During first few turns before we have latency data
  * 2. As absolute maximums that adaptive timing won't exceed
+ *
+ * "BETTER THAN HUMAN" PHILOSOPHY (Jan 2026):
+ * - Humans perceive delays > 1s as "slow"
+ * - Delays > 2s feel like "waiting"
+ * - Delays > 3s feel like "something's wrong"
+ * - We aim for < 1s response start, < 3s complete response
  */
 export const PROCESSING_TIMEOUTS = {
   /**
@@ -114,18 +123,20 @@ export const PROCESSING_TIMEOUTS = {
    * ADAPTIVE ALTERNATIVE: Use shouldInjectFiller() from adaptive-timing.ts
    * which adjusts based on actual processing latency.
    *
-   * Reduced from 4s to 2s for faster perceived response.
+   * REDUCED Jan 2026: 2s → 800ms for "Better than Human"
    * Research shows human turn-taking gaps are 200-500ms.
+   * A thinking sound at 800ms shows presence without awkward silence.
    */
-  TURN_PROCESSING_SOFT_TIMEOUT: 2000,
+  TURN_PROCESSING_SOFT_TIMEOUT: 800,
 
   /**
    * Hard timeout for turn processing (ms)
    *
-   * Reduced from 12s to 8s - if we can't respond in 8s,
-   * we should fall back to simpler context rather than delay further.
+   * REDUCED Jan 2026: 8s → 4s - fail fast, use fallback
+   * If we can't respond in 4s, we're doing something wrong.
+   * Fall back to simpler context rather than make user wait.
    */
-  TURN_PROCESSING_HARD_TIMEOUT: 8000,
+  TURN_PROCESSING_HARD_TIMEOUT: 4000,
 } as const;
 
 // ============================================================================
@@ -137,35 +148,38 @@ export const PROCESSING_TIMEOUTS = {
  *
  * "Better than Human" means responding faster than humans expect.
  * These timeouts are tuned for perceived responsiveness.
+ *
+ * PHILOSOPHY (Jan 2026): Silence is the enemy. Better a quick "Hmm, let me check"
+ * than 2 seconds of dead air. Users forgive slowness if they know you're working.
  */
 export const PROGRESSIVE_TIMEOUTS = {
   /**
    * Duration to wait silently before any feedback (ms)
    * Fast responses need no acknowledgment - feels instant
-   * Reduced from 1.5s to 1s for snappier feel
+   * REDUCED Jan 2026: 1s → 500ms - silence >500ms feels awkward
    */
-  SILENT_WINDOW: 1000,
+  SILENT_WINDOW: 500,
 
   /**
    * When to send first acknowledgment "Checking..." (ms)
    * User knows we're working on it
-   * Reduced from 2s to 1.5s
+   * REDUCED Jan 2026: 1.5s → 800ms - show presence quickly
    */
-  ACKNOWLEDGMENT_AT: 1500,
+  ACKNOWLEDGMENT_AT: 800,
 
   /**
    * When to send update "Still looking..." (ms)
    * Reassures user for slower operations
-   * Reduced from 5s to 3.5s
+   * REDUCED Jan 2026: 3.5s → 2s - keep them engaged
    */
-  UPDATE_AT: 3500,
+  UPDATE_AT: 2000,
 
   /**
    * Hard timeout for tool execution (ms)
    * After this, return cached/fallback data
-   * Reduced from 10s to 6s - fail fast, use cache
+   * REDUCED Jan 2026: 6s → 4s - fail fast, use cache, apologize later
    */
-  TOOL_HARD_TIMEOUT: 6000,
+  TOOL_HARD_TIMEOUT: 4000,
 
   /**
    * Maximum age of cached data to accept as fallback (ms)
@@ -178,21 +192,27 @@ export const PROGRESSIVE_TIMEOUTS = {
 // API TIMEOUTS
 // ============================================================================
 
+/**
+ * API Timeouts - "Better than Human" Edition
+ *
+ * If an external API can't respond fast, we use cache/fallback.
+ * Users prefer a quick "based on what I know" over waiting 10+ seconds.
+ */
 export const API_TIMEOUTS = {
-  /** Default timeout for external API calls (ms) */
-  DEFAULT: 10_000,
+  /** Default timeout for external API calls (ms) - REDUCED from 10s */
+  DEFAULT: 5_000,
 
-  /** Timeout for news API calls (ms) */
-  NEWS: 12_000,
+  /** Timeout for news API calls (ms) - REDUCED from 12s */
+  NEWS: 6_000,
 
-  /** Timeout for stock quote calls (ms) */
-  STOCK_QUOTE: 8_000,
+  /** Timeout for stock quote calls (ms) - REDUCED from 8s */
+  STOCK_QUOTE: 4_000,
 
-  /** Timeout for weather API calls (ms) */
-  WEATHER: 8_000,
+  /** Timeout for weather API calls (ms) - REDUCED from 8s */
+  WEATHER: 4_000,
 
-  /** Timeout for search API calls (ms) */
-  SEARCH: 15_000,
+  /** Timeout for search API calls (ms) - REDUCED from 15s */
+  SEARCH: 6_000,
 } as const;
 
 // ============================================================================

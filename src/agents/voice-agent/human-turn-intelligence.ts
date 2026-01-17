@@ -147,8 +147,14 @@ const ACTION_REQUEST_MARKERS = [
   /\b(set|create|schedule|remind)\s+(a\s+)?(reminder|meeting|appointment|event)/i,
   // Handoff requests
   /\b(talk to|speak with|switch to|transfer to|let me talk to)\s+(maya|peter|alex|jordan|nayan|ferni)/i,
-  // Generic action verbs at the end
-  /\b(play|check|get|find|search|look up|tell me)\s+\w+$/i,
+  // Search/lookup requests - FIXED: Allow multi-word queries after verbs
+  // "search for some flights", "look up the best restaurants", "find me a hotel"
+  /\b(search|look up|find)\s+(for\s+)?(some\s+|the\s+|a\s+|me\s+)?\w+/i,
+  // Generic action verbs with multi-word targets
+  // "check my calendar", "get the news", "tell me about X"
+  /\b(play|check|get|tell me)\s+(the\s+|my\s+|about\s+)?\w+/i,
+  // Question-form requests - "Could you X?", "Can you X?", "Would you X?"
+  /\b(could|can|would|will)\s+you\s+\w+/i,
 ];
 
 /** Phrases that indicate urgency */
@@ -385,27 +391,28 @@ export function analyzeTurnSignals(sessionId: string, context: TurnContext): Tur
   }
 
   // =========================================================================
-  // RESPONSE TIMING CALCULATION
+  // RESPONSE TIMING CALCULATION - "Better than Human"
+  // Research: Human turn-taking gaps are 200-500ms. We aim for 100-300ms.
   // =========================================================================
 
-  // Base delay on their rhythm - keep it tight for snappy conversation
-  let recommendedDelay = 150; // Minimum - was 200ms
+  // Base delay - INSTANT response feels superhuman
+  let recommendedDelay = 100; // Was 150ms - human-like turn-taking
 
-  // Emotional adjustment - reduced to stay responsive
+  // Emotional adjustment - still give SOME space, but stay present
   if (context.emotion === 'sad' || context.emotion === 'anxious') {
-    recommendedDelay += 200; // Was 400ms - still give space but not too much
+    recommendedDelay += 150; // Was 200ms - presence over silence
   } else if (isUrgent || context.emotion === 'excited') {
-    recommendedDelay = 80; // Was 100ms - quick response
+    recommendedDelay = 50; // Was 80ms - INSTANT response to urgency
   }
 
-  // Hesitation adjustment - reduced significantly
+  // Hesitation adjustment - wait briefly, not forever
   if (isHesitating && !context.isFinal) {
-    recommendedDelay += 250; // Was 600ms - still wait but not forever
+    recommendedDelay += 150; // Was 250ms - brief patience, not awkward silence
   }
 
-  // Low confidence adjustment - reduced
+  // Low confidence adjustment - minimal wait
   if (completionConfidence < 0.6) {
-    recommendedDelay += 150; // Was 300ms - not sure they're done but stay engaged
+    recommendedDelay += 100; // Was 150ms - stay engaged even when uncertain
   }
 
   // =========================================================================

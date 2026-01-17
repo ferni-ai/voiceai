@@ -375,14 +375,17 @@ export async function warmupResources(log: LogFn): Promise<WarmupResult> {
     // =========================================================================
     // STARTUP SLA CHECK (added after Dec 2024 startup hang incident)
     // =========================================================================
-    // Warmup should complete in <10 seconds. If it takes longer, something is
+    // Warmup should complete in <12 seconds. If it takes longer, something is
     // blocking that needs investigation. This catches issues like:
     // - Database queries iterating over large datasets
     // - Network calls without timeouts
     // - Synchronous operations that scale with data volume
+    //
+    // NOTE: Conversational audio prewarm (~200-300 TTS calls) takes ~5-8 seconds.
+    // For faster local dev, set SKIP_CONVERSATIONAL_PREWARM=true
     // =========================================================================
-    const WARMUP_SLA_MS = 10000; // 10 second budget
-    const WARMUP_WARNING_MS = 5000; // Warn at 5 seconds
+    const WARMUP_SLA_MS = 12000; // 12 second budget (conversational TTS takes ~5-8s)
+    const WARMUP_WARNING_MS = 7000; // Warn at 7 seconds
 
     if (durationMs > WARMUP_SLA_MS) {
       log('🚨 STARTUP SLA VIOLATION: Warmup took too long!', {

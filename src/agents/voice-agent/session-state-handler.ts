@@ -177,7 +177,8 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
   // This fixes the issue where user says "play music" and gets no response
   let emptyResponseWatchdogTimer: ReturnType<typeof setTimeout> | null = null;
   let lastUserMessageForRecovery: string | null = null;
-  const EMPTY_RESPONSE_WATCHDOG_MS = 5000; // 5 seconds - if no agent speech by then, trigger recovery
+  // REDUCED Jan 2026: 5s → 3s - 5 seconds of no response feels like the system is broken
+  const EMPTY_RESPONSE_WATCHDOG_MS = 3000; // 3 seconds - if no agent speech by then, trigger recovery
 
   // Idle timeout tracking - auto-disconnect after extended silence
   let idleTimeoutTimer: ReturnType<typeof setTimeout> | null = null;
