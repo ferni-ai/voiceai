@@ -340,12 +340,17 @@ Parameters:
         // Create the coordinated reminder
         const { createReminder } = await import('../../../services/scheduling/reminder-scheduler.js');
 
+        // Get sponsor's timezone from their profile (fallback to UTC for international support)
+        const { getUserContactInfo } = await import('../../../services/outreach/user-contact.js');
+        const sponsorContact = await getUserContactInfo(callContext.sponsorUserId);
+        const sponsorTimezone = sponsorContact?.timezone || 'Etc/UTC';
+
         const reminder = await createReminder({
           userId: callContext.sponsorUserId,
           message: reminderMessage,
           context: `Reminder from ${identity.displayName} (${identity.relationship})`,
           scheduledFor: parsedTime,
-          timezone: 'America/New_York', // TODO: Get from user profile
+          timezone: sponsorTimezone,
           deliveryMethod: 'voice_message', // Ferni will deliver it verbally
           deliveryAddress: '', // Not needed for voice delivery
           createdBy: 'ferni',

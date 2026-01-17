@@ -260,8 +260,13 @@ export async function queueCallbackRetry(
     // Get contact reachability data
     const reachability = await getContactReachability(userId, contactPhone || '');
 
+    // Get user's timezone from profile (fallback to UTC for international support)
+    const { getUserContactInfo } = await import('./user-contact.js');
+    const userContact = await getUserContactInfo(userId);
+    const userTimezone = userContact?.timezone || 'Etc/UTC';
+
     // Calculate next retry time
-    const nextRetry = calculateNextRetryTime(attemptCount, result, reachability);
+    const nextRetry = calculateNextRetryTime(attemptCount, result, reachability, userTimezone);
 
     const callbackRequest: CallbackRequest = {
       id: existingId || `callback_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
@@ -277,7 +282,7 @@ export async function queueCallbackRetry(
       lastAttemptAt: new Date().toISOString(),
       lastAttemptResult: result,
       scheduledFor: nextRetry.toISOString(),
-      timezone: 'America/New_York', // TODO: Get from user profile
+      timezone: userTimezone,
       status: 'scheduled',
       createdAt: existingId ? '' : new Date().toISOString(),
       updatedAt: new Date().toISOString(),

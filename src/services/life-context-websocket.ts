@@ -57,6 +57,9 @@ let heartbeatInterval: ReturnType<typeof setInterval> | null = null;
 // Store WebSocket server reference for shutdown
 let wssInstance: WebSocketServer | null = null;
 
+// Store broadcast subscription unsubscribe function
+let broadcastUnsubscribe: (() => void) | null = null;
+
 // ============================================================================
 // WEBSOCKET SERVER
 // ============================================================================
@@ -95,8 +98,8 @@ export function initLifeContextWebSocket(httpServer: Server): WebSocketServer {
 
   log.info('Life Context WebSocket server initialized on /ws/life-context');
 
-  // Subscribe to broadcast events
-  lifeContextBroadcast.subscribe((event: LifeContextBroadcastEvent) => {
+  // Subscribe to broadcast events and store unsubscribe function for cleanup
+  broadcastUnsubscribe = lifeContextBroadcast.subscribe((event: LifeContextBroadcastEvent) => {
     broadcastToUser(event.userId, {
       type: event.type,
       userId: event.userId,
@@ -529,6 +532,12 @@ export function shutdownLifeContextWebSocket(): void {
   if (heartbeatInterval) {
     clearNamedInterval('life-context-websocket-heartbeat');
     heartbeatInterval = null;
+  }
+
+  // Unsubscribe from broadcast events (prevent memory leak)
+  if (broadcastUnsubscribe) {
+    broadcastUnsubscribe();
+    broadcastUnsubscribe = null;
   }
 
   // Stop all monitoring
