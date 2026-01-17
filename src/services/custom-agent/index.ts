@@ -22,9 +22,9 @@ export {
   QUALITY_THRESHOLDS,
   SUPPORTED_FORMATS,
   MAX_FILE_SIZE_BYTES,
-} from './voice-clone.service.js';
+} from './voice-clone-service.js';
 
-export type { VoiceLibraryEntry } from './voice-clone.service.js';
+export type { VoiceLibraryEntry } from './voice-clone-service.js';
 
 // Memory Capture
 export {
@@ -40,17 +40,17 @@ export {
   createLifeEvent,
   createJournalEntry,
   createAddMemoryResponse,
-} from './memory-capture.service.js';
+} from './memory-capture-service.js';
 
 export type {
   MemoryType,
   RawMemoryInput,
   ProcessedMemory,
   ExtractedMetadata,
-} from './memory-capture.service.js';
+} from './memory-capture-service.js';
 
 // Prompt Generation
-export { generateSystemPrompt, generateManifest } from './prompt-generator.service.js';
+export { generateSystemPrompt, generateManifest } from './prompt-generator-service.js';
 
 // Persistence
 export {
@@ -64,7 +64,7 @@ export {
   updateAgentVoice,
   getActiveCustomAgents,
   userOwnsAgent,
-} from './custom-agent-persistence.service.js';
+} from './custom-agent-persistence-service.js';
 
 // Runtime (Voice Agent Integration)
 export {
@@ -77,7 +77,7 @@ export {
   CUSTOM_AGENT_PREFIXES,
   DEFAULT_COMMUNICATION,
   DEFAULT_KNOWLEDGE,
-} from './custom-agent-runtime.service.js';
+} from './custom-agent-runtime-service.js';
 
 // GCS Storage
 export {
@@ -90,6 +90,6 @@ export {
   deleteAgentAudioFiles,
   isGcsConfigured,
   getGcsBucketName,
-} from './gcs-storage.service.js';
+} from './gcs-storage-service.js';
 
-export type { UploadResult, SignedUrlResult } from './gcs-storage.service.js';
+export type { UploadResult, SignedUrlResult } from './gcs-storage-service.js';

@@ -51,12 +51,12 @@ import {
   addMemoryToAgent,
   removeMemoryFromAgent,
   updateAgentVoice,
-} from '../services/custom-agent/custom-agent-persistence.service.js';
+} from '../services/custom-agent/custom-agent-persistence-service.js';
 import {
   processVoiceUpload,
   createVoiceClone,
   generateVoicePreview,
-} from '../services/custom-agent/voice-clone.service.js';
+} from '../services/custom-agent/voice-clone-service.js';
 import type {
   CreateCustomAgentRequest,
   CustomAgent,

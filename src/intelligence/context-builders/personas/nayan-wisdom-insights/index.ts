@@ -214,7 +214,7 @@ async function buildNayanWisdomInsightsContext(
     // Get Nayan's superhuman wisdom context (paradoxes, enough, incubation, patterns)
     try {
       const { buildNayanWisdomContext } = await import(
-        '../../../../services/superhuman/nayan-wisdom-services.js'
+        '../../../../services/superhuman/wisdom-intelligence-services.js'
       );
       const nayanWisdomContext = await buildNayanWisdomContext(userId);
       if (nayanWisdomContext && nayanWisdomContext.length > 50) {

@@ -10,7 +10,7 @@ import { parseBody } from '../helpers.js';
 import {
   getCustomAgent,
   addMemoryToAgent,
-} from '../../services/custom-agent/custom-agent-persistence.service.js';
+} from '../../services/custom-agent/custom-agent-persistence-service.js';
 import type { JournalEntryBody } from './types.js';
 import { sendJson } from './helpers.js';
 
@@ -46,9 +46,9 @@ export async function handleCreateJournalEntry(
 
   try {
     const { uploadVoiceJournalEntry } =
-      await import('../../services/custom-agent/gcs-storage.service.js');
+      await import('../../services/custom-agent/gcs-storage-service.js');
     const { transcribeAudioBuffer, extractMetadata } =
-      await import('../../services/custom-agent/memory-capture.service.js');
+      await import('../../services/custom-agent/memory-capture-service.js');
 
     // Decode base64 audio
     const audioBuffer = Buffer.from(body.audio, 'base64');

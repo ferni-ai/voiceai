@@ -10,7 +10,7 @@ import fs from 'fs';
 import path from 'path';
 import { rateLimit } from '../../../api/auth-middleware.js';
 import { createLogger } from '../../../utils/safe-logger.js';
-import { listCustomAgents } from '../../../services/custom-agent/custom-agent-persistence.service.js';
+import { listCustomAgents } from '../../../services/custom-agent/custom-agent-persistence-service.js';
 import type { CustomAgent } from '../../../types/custom-agent-api.js';
 
 const log = createLogger({ module: 'AgentRoutes' });

@@ -502,7 +502,7 @@ export {
   type SystemHealthMetrics,
   type TaskAlert,
   type TaskTypeMetrics,
-} from './task-metrics.service.js';
+} from './task-metrics-service.js';
 
 // ============================================================================
 // CONSTANTS - Shared configuration

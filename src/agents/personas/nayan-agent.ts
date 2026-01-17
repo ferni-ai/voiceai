@@ -31,8 +31,8 @@ import {
 // Wisdom tools - Nayan's specialty (from domains)
 import { createWisdomTools } from '../../tools/domains/wisdom/wisdom.js';
 
-// Superhuman Wisdom Tools - Nayan's "Better Than Human" capabilities
-import { getToolDefinitions as getNayanWisdomTools } from '../../tools/domains/nayan-wisdom/index.js';
+// Superhuman Wisdom Tools - "Better Than Human" capabilities
+import { getToolDefinitions as getWisdomIntelligenceTools } from '../../tools/domains/wisdom-intelligence/index.js';
 
 // Conversation tools - wrap up, end conversation, graceful exit (from domains)
 import { createConversationTools } from '../../tools/domains/conversation/index.js';
@@ -108,7 +108,7 @@ function buildWisdomTools(): ToolSet {
  * - trackWisdomIncubation: Perfect patience for things ripening
  */
 async function buildSuperhumanWisdomTools(userId: string): Promise<ToolSet> {
-  const toolDefs = await getNayanWisdomTools();
+  const toolDefs = await getWisdomIntelligenceTools();
   const ctx: ToolContext = {
     agentId: 'nayan-patel',
     agentDisplayName: 'Nayan',

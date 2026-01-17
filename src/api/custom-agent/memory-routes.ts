@@ -11,7 +11,7 @@ import {
   getCustomAgent,
   addMemoryToAgent,
   removeMemoryFromAgent,
-} from '../../services/custom-agent/custom-agent-persistence.service.js';
+} from '../../services/custom-agent/custom-agent-persistence-service.js';
 import type { MemoryBody } from './types.js';
 import { sendJson, extractKeywords } from './helpers.js';
 

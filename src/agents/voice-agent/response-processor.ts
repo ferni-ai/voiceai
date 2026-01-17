@@ -162,7 +162,7 @@ export async function processResponse(
   // ============================================================
   try {
     const { sanitizeToolCallLeakage, containsToolCallLeakage } =
-      await import('../shared/tool-call-sanitizer.js');
+      await import('../shared/sanitizer/index.js');
     if (containsToolCallLeakage(processedText)) {
       processedText = sanitizeToolCallLeakage(processedText);
       appliedFeatures.push('tool_call_sanitized');

@@ -14,7 +14,7 @@ import { readFileSync, existsSync } from 'fs';
 import { join } from 'path';
 import { describe, expect, test } from 'vitest';
 
-import { detectsFunctionCallLeakage } from './tool-call-sanitizer.js';
+import { detectsFunctionCallLeakage } from './sanitizer/index.js';
 
 // Find project root
 const findProjectRoot = () => {

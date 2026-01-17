@@ -24,11 +24,11 @@ import {
   parseAMDWebhook,
   type AMDWebhookPayload,
   type DetectionResult,
-} from '../services/voice/call-detection.service.js';
+} from '../services/voice/call-detection-service.js';
 import {
   recordCallOutcome,
   getCallSession,
-} from '../services/voice/conversational-call.service.js';
+} from '../services/voice/conversational-call-service.js';
 import {
   createPhoneBridgeParticipant,
   cleanupBridgeSession,

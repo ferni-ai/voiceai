@@ -29,7 +29,7 @@ import {
   sanitizeToolCallLeakage,
   detectsFunctionCallLeakage,
   containsToolCallLeakage,
-} from '../../../agents/shared/tool-call-sanitizer.js';
+} from '../../../agents/shared/sanitizer/index.js';
 
 // ============================================================================
 // TEST CONFIG

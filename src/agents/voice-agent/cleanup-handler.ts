@@ -929,7 +929,7 @@ async function executeSessionCleanup(ctx: CleanupContext, cleanupStart: number):
 
     // Tool deduplication cache cleanup (prevents unbounded memory growth)
     (async () => {
-      const { clearToolDeduplicationForSession } = await import('../shared/tool-call-sanitizer.js');
+      const { clearToolDeduplicationForSession } = await import('../shared/sanitizer/index.js');
       clearToolDeduplicationForSession(sessionId);
     })(),
 

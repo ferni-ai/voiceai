@@ -138,8 +138,8 @@ import { dispose as disposeFerniMoments, initFerniMoments as _initFerniMoments }
 import { avatarSidekicks as _avatarSidekicks, dispose as disposeSidekicks } from './ui/avatar-sidekicks.ui.js';
 // Ferni Milestones - Warm relationship celebrations
 import { initFerniMilestones as _initFerniMilestones } from './ui/ferni-milestones.ui.js';
-// Connection Heart - Unified status + relationship indicator near avatar
-import { disposeConnectionHeart, initConnectionHeart as _initConnectionHeart } from './ui/connection-heart.ui.js';
+// Unified Indicator - Single smart badge for all avatar indicators
+import { disposeUnifiedIndicator, initUnifiedIndicator as _initUnifiedIndicator } from './ui/unified-indicator.ui.js';
 // Ferni Expressions - Character-level avatar expressions
 import { ferniExpressions, initFerniExpressions as _initFerniExpressions } from './ui/ferni-expressions.ui.js';
 // Emotion ↔ Expression Bridge - Auto-maps emotions to expressions
@@ -1525,10 +1525,10 @@ class VoiceAIApp {
       initFerniMilestones();
     });
 
-    // 💚 Connection Heart - load after 200ms (visible UI element)
-    this.deferredInit('ConnectionHeart', 200, async () => {
-      const { initConnectionHeart } = await import('./ui/connection-heart.ui.js');
-      initConnectionHeart();
+    // 💚 Unified Indicator - load after 200ms (single smart avatar badge)
+    this.deferredInit('UnifiedIndicator', 200, async () => {
+      const { initUnifiedIndicator } = await import('./ui/unified-indicator.ui.js');
+      initUnifiedIndicator();
     });
     
     // 🎬 Ferni Expressions - load after 300ms
@@ -3528,7 +3528,7 @@ class VoiceAIApp {
     disposeMobileBottomSheet();
     disposeFerniMoments();
     disposeSidekicks();
-    disposeConnectionHeart();
+    disposeUnifiedIndicator();
     disposeLogoExpressions();
     disposeFerniEQ();
     destroyTranscendentSystems();

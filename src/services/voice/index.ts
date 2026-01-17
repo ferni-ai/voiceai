@@ -48,7 +48,7 @@ export {
   // Types
   type NaturalCallRequest,
   type NaturalCallResult,
-} from './natural-call.service.js';
+} from './natural-call-service.js';
 
 // ============================================================================
 // TWO-WAY CALLS - Interactive conversations
@@ -68,7 +68,7 @@ export {
   type ConversationalCallRequest,
   type ConversationalCallResult,
   type CallSession,
-} from './conversational-call.service.js';
+} from './conversational-call-service.js';
 
 // ============================================================================
 // CALL DETECTION - Human vs Machine
@@ -89,7 +89,7 @@ export {
   type VoicemailContext,
   type VoicemailTemplate,
   type AMDWebhookPayload,
-} from './call-detection.service.js';
+} from './call-detection-service.js';
 
 // ============================================================================
 // LOW-LEVEL UTILITIES

@@ -205,7 +205,7 @@ The old monolithic `tool-call-sanitizer.ts` exports are maintained for backward 
 
 ```typescript
 // Old (still works)
-import { detectsFunctionCallLeakage } from './tool-call-sanitizer.js';
+import { detectsFunctionCallLeakage } from './sanitizer/index.js';
 
 // New (preferred)
 import { detectsFunctionCallLeakage } from './sanitizer/index.js';

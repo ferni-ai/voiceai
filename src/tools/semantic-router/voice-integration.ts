@@ -915,7 +915,7 @@ export async function routeVoiceInput(
       // This prevents the race condition where LLM (running in parallel) outputs JSON for the same tool
       try {
         const { markToolExecutedBySemanticRouter } =
-          await import('../../agents/shared/tool-call-sanitizer.js');
+          await import('../../agents/shared/sanitizer/index.js');
         markToolExecutedBySemanticRouter(context.sessionId, action.toolId);
       } catch (err) {
         log.warn({ error: String(err) }, 'Failed to mark tool as executed for deduplication');

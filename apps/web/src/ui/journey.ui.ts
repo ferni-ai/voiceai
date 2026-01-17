@@ -29,7 +29,7 @@ import {
 } from '../services/relationship-stage.service.js';
 import { trapFocus } from '../utils/accessibility.js';
 import { createLogger } from '../utils/logger.js';
-import { getConnectionState } from './connection-heart.ui.js';
+import { getVoiceAuthService } from '../services/voice-auth.service.js';
 import {
   getCelebratedCount,
   getMilestones,
@@ -47,6 +47,55 @@ import type { TrustJourneyData } from './trust-journey/types.js';
 const log = createLogger('JourneyUI');
 
 type ConnectionState = 'disconnected' | 'connecting' | 'connected' | 'speaking' | 'error';
+
+// ============================================================================
+// VOICE ID STATUS
+// ============================================================================
+
+interface VoiceIdStatus {
+  enrolled: boolean;
+  verifying: boolean;
+}
+
+async function getVoiceIdStatus(): Promise<VoiceIdStatus> {
+  try {
+    const voiceAuth = getVoiceAuthService();
+    const profile = await voiceAuth.getProfile();
+    return {
+      enrolled: profile.enrolled,
+      verifying: false, // Would need to track this separately
+    };
+  } catch {
+    return { enrolled: false, verifying: false };
+  }
+}
+
+// Track voice ID status for rendering
+let cachedVoiceIdStatus: VoiceIdStatus = { enrolled: false, verifying: false };
+
+/**
+ * Update the Voice ID display in the Journey modal
+ */
+function updateVoiceIdDisplay(): void {
+  if (!journeyModal) return;
+  
+  const voiceIdStat = journeyModal.querySelector('#journey-voice-id-stat');
+  if (!voiceIdStat) return;
+  
+  const valueEl = voiceIdStat.querySelector('.journey-stat__value');
+  if (!valueEl) return;
+  
+  if (cachedVoiceIdStatus.enrolled) {
+    valueEl.textContent = '✓';
+    valueEl.classList.remove('journey-stat__value--loading');
+    valueEl.classList.add('journey-stat__value--enrolled');
+    voiceIdStat.setAttribute('title', 'Voice ID enrolled - Ferni recognizes your voice');
+  } else {
+    valueEl.textContent = '—';
+    valueEl.classList.remove('journey-stat__value--loading', 'journey-stat__value--enrolled');
+    voiceIdStat.setAttribute('title', 'Voice ID not enrolled - Enroll to let Ferni recognize your voice');
+  }
+}
 
 // ============================================================================
 // TRUST JOURNEY DATA TYPES
@@ -182,10 +231,14 @@ export function closeJourney(): void {
     focusTrapCleanup = null;
   }
 
-  // Clean up event listener
+  // Clean up event listeners
   window.removeEventListener(
     'ferni:connection-heart-state',
     handleConnectionStateChange as EventListener
+  );
+  window.removeEventListener(
+    'ferni:indicator-state',
+    handleIndicatorStateChange as EventListener
   );
 
   soundUI.play('click');
@@ -287,16 +340,19 @@ function createModal(): void {
   const stageName = getTranslatedStageName(stage);
   const progressPercent = Math.round(stageProgress.progress * 100);
 
-  // Get current connection state
+  // Get current connection state from body classes
   let connectionState: ConnectionState = 'disconnected';
-  try {
-    connectionState = getConnectionState();
-  } catch {
-    // If connection heart not initialized, check body classes
-    if (document.body.classList.contains('connected')) {
-      connectionState = 'connected';
-    }
+  if (document.body.classList.contains('connected')) {
+    connectionState = 'connected';
+  } else if (document.body.classList.contains('connecting')) {
+    connectionState = 'connecting';
   }
+  
+  // Load voice ID status asynchronously
+  void getVoiceIdStatus().then(status => {
+    cachedVoiceIdStatus = status;
+    updateVoiceIdDisplay();
+  });
 
   // Group milestones by category
   const grouped: Record<string, typeof milestones> = {};
@@ -352,6 +408,11 @@ function createModal(): void {
               <span class="journey-stat__icon">${ICONS.flame}</span>
               <span class="journey-stat__value">${stageMetrics.currentStreak}</span>
               <span class="journey-stat__label">day streak</span>
+            </div>
+            <div class="journey-stat journey-stat--voice-id" id="journey-voice-id-stat">
+              <span class="journey-stat__icon">${ICONS.shield}</span>
+              <span class="journey-stat__value journey-stat__value--loading">...</span>
+              <span class="journey-stat__label">voice ID</span>
             </div>
           </div>
           
@@ -448,10 +509,14 @@ function createModal(): void {
   // Connect button handler
   journeyModal.querySelector('.journey-connect-btn')?.addEventListener('click', handleConnectClick);
 
-  // Listen for connection state changes
+  // Listen for connection state changes (from unified indicator)
   window.addEventListener(
     'ferni:connection-heart-state',
     handleConnectionStateChange as EventListener
+  );
+  window.addEventListener(
+    'ferni:indicator-state',
+    handleIndicatorStateChange as EventListener
   );
 
   // Escape key to close
@@ -542,6 +607,12 @@ function handleConnectionStateChange(e: CustomEvent<{ state: ConnectionState }>)
   if (state && journeyModal) {
     updateConnectionBanner(state);
   }
+}
+
+function handleIndicatorStateChange(e: CustomEvent<{ priority: string }>): void {
+  // When indicator state changes, we may want to update the modal
+  // For now, just log - the connection state handler covers most cases
+  log.debug('Indicator state changed:', e.detail?.priority);
 }
 
 function updateConnectionBanner(state: ConnectionState): void {

@@ -391,7 +391,7 @@ async function executeToolForResult(
       if (result.success && context.sessionId) {
         try {
           const { markToolExecutedBySemanticRouter } =
-            await import('../../../agents/shared/tool-call-sanitizer.js');
+            await import('../../../agents/shared/sanitizer/index.js');
           markToolExecutedBySemanticRouter(context.sessionId, toolId);
         } catch {
           // Non-critical - deduplication is defensive
@@ -432,7 +432,7 @@ async function executeToolForResult(
       if (context.sessionId) {
         try {
           const { markToolExecutedBySemanticRouter } =
-            await import('../../../agents/shared/tool-call-sanitizer.js');
+            await import('../../../agents/shared/sanitizer/index.js');
           markToolExecutedBySemanticRouter(context.sessionId, toolId);
         } catch {
           // Non-critical - deduplication is defensive

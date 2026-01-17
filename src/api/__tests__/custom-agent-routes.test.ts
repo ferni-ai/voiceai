@@ -20,7 +20,7 @@ const mockPersistenceService = {
   updateAgentVoice: vi.fn(),
 };
 
-vi.mock('../../services/custom-agent/custom-agent-persistence.service.js', () => mockPersistenceService);
+vi.mock('../../services/custom-agent/custom-agent-persistence-service.js', () => mockPersistenceService);
 
 // Mock voice clone service
 const mockVoiceService = {
@@ -29,7 +29,7 @@ const mockVoiceService = {
   generateVoicePreview: vi.fn(),
 };
 
-vi.mock('../../services/custom-agent/voice-clone.service.js', () => mockVoiceService);
+vi.mock('../../services/custom-agent/voice-clone-service.js', () => mockVoiceService);
 
 // Mock GCS
 vi.mock('@google-cloud/storage', () => ({

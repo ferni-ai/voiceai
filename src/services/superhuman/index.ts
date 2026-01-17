@@ -1009,3 +1009,14 @@ export {
   type CelebrationContext,
   type CommitmentE2EConfig,
 } from './commitment-keeper-e2e.js';
+
+// ============================================================================
+// UNIFIED USER KNOWLEDGE (Better Than Human: Complete Knowledge)
+// ============================================================================
+
+// Unified User Knowledge - Aggregates ALL memory sources into one picture
+export {
+  buildUnifiedUserKnowledge,
+  getUnifiedKnowledgeInjection,
+  type UnifiedUserKnowledge,
+} from './unified-user-knowledge.js';

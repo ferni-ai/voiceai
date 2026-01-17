@@ -123,11 +123,7 @@ export type ToolDomain =
   | 'travel' // Travel planning, flights, hotels, trip suggestions
   | 'settings' // User preferences: language, voice, session settings
   | 'insights' // Analytics summaries, progress tracking, weekly reviews
-  | 'nayan-wisdom' // Nayan's superhuman wisdom: paradox keeper, mortality perspective, koans, enough tracker
-  | 'maya-coaching' // Maya's superhuman coaching: habit DNA, friction mapping, tendencies, keystones, identity shifts
   | 'superhuman-communication' // Alex's 10 superhuman communication capabilities
-  | 'jordan-planning' // Jordan's superhuman planning: event patterns, guest intelligence, milestone detection
-  | 'peter-analytics' // Peter's superhuman analytics: blind spots, counterfactuals, pattern predictions
   | 'local-search' // Local search: nearby restaurants, services, places
   // Developer Platform
   | 'developer-custom' // API-registered custom tools from Developer Platform
@@ -254,16 +250,8 @@ export const ALL_TOOL_DOMAINS: readonly ToolDomain[] = [
   'travel',
   'settings',
   'insights',
-  // Nayan's Superhuman Wisdom
-  'nayan-wisdom',
-  // Maya's Superhuman Coaching
-  'maya-coaching',
   // Alex's Superhuman Communication
   'superhuman-communication',
-  // Jordan's Superhuman Planning
-  'jordan-planning',
-  // Peter's Superhuman Analytics
-  'peter-analytics',
   // Local Search
   'local-search',
   // Developer Platform
@@ -409,12 +397,7 @@ export const DOMAIN_TO_CATEGORY: Record<ToolDomain, ToolCategory> = {
   travel: 'lifestyle', // Travel planning, flights, hotels
   settings: 'core', // User preferences: language, voice, session settings
   insights: 'core', // Analytics summaries, progress tracking, weekly reviews
-  // Nayan's Superhuman Wisdom
-  'nayan-wisdom': 'information', // Nayan's superhuman wisdom tools (paradox keeper, mortality perspective, etc.)
-  'maya-coaching': 'lifestyle', // Maya's superhuman coaching tools (habit DNA, friction mapping, etc.)
   'superhuman-communication': 'communication', // Alex's 10 superhuman communication capabilities
-  'jordan-planning': 'lifestyle', // Jordan's superhuman planning tools
-  'peter-analytics': 'information', // Peter's superhuman analytics tools
   'local-search': 'information', // Local search for nearby restaurants, services, places
   // Developer Platform
   'developer-custom': 'core', // API-registered custom tools from Developer Platform

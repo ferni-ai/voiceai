@@ -28,7 +28,13 @@ apps/cli/
 ├── src/
 │   ├── index.ts                    # CLI entry point
 │   └── commands/
-│       ├── agents/                 # Agent management
+│       ├── agent/                  # Agent E2E commands (NEW!)
+│       │   ├── agent-init.ts       # ferni agent init (wizard)
+│       │   ├── agent-preview.ts    # ferni agent preview (local dev)
+│       │   ├── agent-publish.ts    # ferni agent publish (deploy)
+│       │   ├── agent-create.ts     # Cloud-based agent creation
+│       │   └── agent-*.ts          # Other agent commands
+│       ├── agents/                 # Legacy agent management
 │       │   └── agent-builder.ts    # Build custom agents
 │       ├── auth/                   # Authentication
 │       │   └── spotify-auth.ts     # Spotify OAuth
@@ -59,6 +65,46 @@ apps/cli/
 ---
 
 ## Key Commands
+
+### Agent E2E Workflow (NEW!)
+
+Create, preview, and deploy custom AI agents in minutes:
+
+```bash
+# Create a new agent with interactive wizard
+ferni agent init my-advisor
+
+# Preview locally with hot reload
+ferni agent preview my-advisor
+
+# Deploy to production
+ferni agent publish my-advisor
+```
+
+**Full E2E docs:** `docs/architecture/AGENT-E2E-DEVELOPER-EXPERIENCE.md`
+
+### Agent Management
+
+```bash
+# Interactive agent creation wizard
+ferni agent init <agent-id>
+ferni agent init my-coach --template mentor
+ferni agent init quick-agent --quick
+
+# Local development server with hot reload
+ferni agent preview <agent-id>
+ferni agent preview my-agent --port 4000
+
+# One-command production deployment
+ferni agent publish <agent-id>
+ferni agent publish my-agent --dry-run
+ferni agent publish my-agent --subdomain custom-name
+
+# Other agent commands
+ferni agent list              # List all agents
+ferni agent show <agent-id>   # Show agent details
+ferni agent test <agent-id>   # Run tests
+```
 
 ### Deployment
 
@@ -261,4 +307,56 @@ pnpm vitest run apps/cli/src/__tests__/
 
 ---
 
-*Last updated: December 2024*
+## Agent E2E Developer Experience
+
+The new `ferni agent` commands provide a streamlined E2E experience for creating custom agents:
+
+### Workflow Comparison
+
+| Before (Manual) | After (CLI) |
+|-----------------|-------------|
+| 7+ steps, 2-4 hours | 3 commands, 15-30 min |
+| Copy template, edit 10+ files | Interactive wizard |
+| Manual deployment scripts | One-command deploy |
+| No local preview | Hot-reload dev server |
+
+### File Structure Created by `ferni agent init`
+
+```
+src/personas/bundles/<agent-id>/
+├── persona.manifest.json         # Configuration (enhanced v3)
+├── identity/
+│   ├── system-prompt.md          # LLM instructions
+│   └── biography.md              # Background story
+├── content/
+│   ├── behaviors/
+│   │   ├── greetings.json
+│   │   ├── catchphrases.json
+│   │   └── backchannels.json
+│   └── knowledge/
+│       └── _index.json
+├── brand/
+│   └── brand.json                # Colors, theme
+└── README.md
+```
+
+### Templates Available
+
+| Template | Description | Personality |
+|----------|-------------|-------------|
+| `advisor` | Business/finance expert | Analytical, direct |
+| `mentor` | Life guidance | Warm, patient |
+| `coach` | Accountability partner | Energetic, motivating |
+| `wellness` | Mindfulness guide | Calm, gentle |
+| `creative` | Creativity catalyst | Playful, curious |
+| `custom` | Build from scratch | Customizable |
+
+### Voice Library
+
+The wizard includes a curated voice library from Cartesia. You can also:
+- Enter a custom voice ID
+- Clone voices (via Cartesia dashboard)
+
+---
+
+*Last updated: January 2026*

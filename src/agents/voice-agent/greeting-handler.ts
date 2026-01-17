@@ -603,6 +603,23 @@ async function generateStandardGreeting(
   const { threadStarter, proactiveInsight, proactiveInsightId, emotionalCheckIn, openQuestions } =
     await getProactiveContext(services, isReturningUser);
 
+  // BETTER-THAN-HUMAN: Load pending intentions for follow-up
+  let pendingIntentions: Array<{ intention: string; statedAt: Date; targetTime?: Date }> = [];
+  const intentionsUserId = services.userId;
+  try {
+    if (intentionsUserId) {
+      const { getPendingIntentions } = await import('../../services/trust-systems/small-wins.js');
+      const rawIntentions = getPendingIntentions(intentionsUserId);
+      pendingIntentions = rawIntentions.map((i) => ({
+        intention: i.intention,
+        statedAt: i.statedAt,
+        targetTime: i.targetTime,
+      }));
+    }
+  } catch (e) {
+    // Non-critical - continue without intentions
+  }
+
   // Generate the greeting
   const greeting = await generateGreeting(sessionPersona, {
     isReturningUser,
@@ -627,6 +644,7 @@ async function generateStandardGreeting(
       : undefined,
     conversationCount: services.userProfile?.totalConversations,
     userId: services.userId,
+    pendingIntentions,
   });
 
   // Apply proactive context to greeting
@@ -667,6 +685,23 @@ async function generateGreetingWithContext(
   // Get open questions from threads
   const openQuestions = openThreads.flatMap((t) => t.questionsToAnswer || []).slice(0, 3);
 
+  // BETTER-THAN-HUMAN: Load pending intentions for follow-up
+  let pendingIntentions: Array<{ intention: string; statedAt: Date; targetTime?: Date }> = [];
+  const intentionsUserId = services.userId;
+  try {
+    if (intentionsUserId) {
+      const { getPendingIntentions } = await import('../../services/trust-systems/small-wins.js');
+      const rawIntentions = getPendingIntentions(intentionsUserId);
+      pendingIntentions = rawIntentions.map((i) => ({
+        intention: i.intention,
+        statedAt: i.statedAt,
+        targetTime: i.targetTime,
+      }));
+    }
+  } catch (e) {
+    // Non-critical - continue without intentions
+  }
+
   const greeting = await generateGreeting(sessionPersona, {
     isReturningUser,
     userName: userData.name,
@@ -691,6 +726,7 @@ async function generateGreetingWithContext(
       : undefined,
     conversationCount: services.userProfile?.totalConversations,
     userId: services.userId,
+    pendingIntentions,
   });
 
   // Track if greeting referenced last conversation

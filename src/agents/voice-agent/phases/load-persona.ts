@@ -158,7 +158,7 @@ async function loadRichSystemPrompt(personaId: string): Promise<string> {
 async function loadCustomAgent(personaId: string, userId: string): Promise<PersonaConfig | null> {
   try {
     const { isCustomAgentId, loadCustomAgentAsPersona, createFallbackCustomAgentPersona } =
-      await import('../../../services/custom-agent/custom-agent-runtime.service.js');
+      await import('../../../services/custom-agent/custom-agent-runtime-service.js');
 
     if (!isCustomAgentId(personaId)) {
       return null;

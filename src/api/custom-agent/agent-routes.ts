@@ -13,7 +13,7 @@ import {
   listCustomAgents,
   updateCustomAgent,
   deleteCustomAgent,
-} from '../../services/custom-agent/custom-agent-persistence.service.js';
+} from '../../services/custom-agent/custom-agent-persistence-service.js';
 import type { CreateCustomAgentRequest, CustomAgent } from '../../types/custom-agent-api.js';
 import { sendJson } from './helpers.js';
 

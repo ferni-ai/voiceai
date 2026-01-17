@@ -18,7 +18,7 @@
 import type { IncomingMessage, ServerResponse } from 'http';
 import OpenAI from 'openai';
 import { getOpenAIFallbackModel, MAX_TOKENS_SHORT, TEMP_CONTENT } from '../config/gemini-config.js';
-import { transcribeAudioBuffer } from '../services/custom-agent/memory-capture.service.js';
+import { transcribeAudioBuffer } from '../services/custom-agent/memory-capture-service.js';
 import {
   generatePrompts,
   getBestPrompt,

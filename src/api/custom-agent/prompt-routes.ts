@@ -5,7 +5,7 @@
  */
 
 import type { IncomingMessage, ServerResponse } from 'http';
-import { getCustomAgent } from '../../services/custom-agent/custom-agent-persistence.service.js';
+import { getCustomAgent } from '../../services/custom-agent/custom-agent-persistence-service.js';
 import type { CustomAgent } from '../../types/custom-agent-api.js';
 import { sendJson } from './helpers.js';
 

@@ -150,3 +150,8 @@ models/
 # Python virtual environments
 apps/ml-training/**/.venv*/
 **/.venv*/
+
+# ML Training artifacts
+apps/ml-training/router/logs/
+data/ftis-training-*/
+

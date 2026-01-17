@@ -467,6 +467,20 @@ function getJourneyStyles(): string {
       color: var(--color-text-muted, #70605a);
       text-align: center;
     }
+    
+    /* Voice ID stat specific styles */
+    .journey-stat--voice-id {
+      cursor: help;
+    }
+    
+    .journey-stat__value--loading {
+      color: var(--color-text-muted, #70605a);
+      font-size: var(--text-sm, 0.875rem);
+    }
+    
+    .journey-stat__value--enrolled {
+      color: var(--persona-primary, #4a6741);
+    }
 
     .journey-next-stage {
       background: var(--persona-tint, rgba(74, 103, 65, 0.08));

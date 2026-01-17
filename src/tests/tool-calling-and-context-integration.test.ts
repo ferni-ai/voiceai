@@ -24,7 +24,7 @@ import {
 import {
   detectsFunctionCallLeakage,
   sanitizeToolCallLeakage,
-} from '../agents/shared/tool-call-sanitizer.js';
+} from '../agents/shared/sanitizer/index.js';
 
 // ============================================================================
 // PART 1: JSON FUNCTION PARSING TESTS

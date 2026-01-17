@@ -10,16 +10,16 @@ import { parseBody } from '../helpers.js';
 import {
   getCustomAgent,
   updateAgentVoice,
-} from '../../services/custom-agent/custom-agent-persistence.service.js';
+} from '../../services/custom-agent/custom-agent-persistence-service.js';
 import {
   processVoiceUpload,
   createVoiceClone as createCartesiaVoiceClone,
   generateVoicePreview,
-} from '../../services/custom-agent/voice-clone.service.js';
+} from '../../services/custom-agent/voice-clone-service.js';
 import {
   uploadAudioToGcs,
   isGcsConfigured,
-} from '../../services/custom-agent/gcs-storage.service.js';
+} from '../../services/custom-agent/gcs-storage-service.js';
 import type { CustomAgentVoice } from '../../types/custom-agent-api.js';
 import type { VoiceUploadBody, VoiceCloneBody } from './types.js';
 import { sendJson, getQualityFeedback } from './helpers.js';

@@ -86,7 +86,7 @@ const tts = await wrapTTS(baseTTS, {
 Intercepts and sanitizes tool calls from LLM output:
 
 ```typescript
-import { createToolCallSanitizer } from './tool-call-sanitizer.js';
+import { sanitizeToolCallLeakage } from './sanitizer/index.js';
 
 const sanitizer = createToolCallSanitizer({
   onToolCall: (call) => executeToolCall(call),

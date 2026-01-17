@@ -185,7 +185,7 @@ export function onAchievementUnlocked(badgeId: string): void {
  * Handle check-in request events
  */
 export function onCheckinRequest(message?: string): void {
-  badges.setCheckin(true, message);
+  badges.setCheckinPending(true, message);
 }
 
 /**

@@ -85,6 +85,10 @@ export async function handleScheduledJobsRoutes(
       await handleResetWeeklyCounters(res);
       return true;
 
+    case '/api/jobs/better-than-human-outreach':
+      await handleBetterThanHumanOutreach(res);
+      return true;
+
     // ========================================================================
     // DEEP INTELLIGENCE JOBS (LLM-powered batch analysis)
     // ========================================================================
@@ -647,6 +651,192 @@ async function handleResetWeeklyCounters(res: ServerResponse): Promise<void> {
     sendJson(res, 500, {
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error',
+    });
+  }
+}
+
+// ============================================================================
+// BETTER THAN HUMAN OUTREACH (CONSOLIDATED)
+// ============================================================================
+
+/**
+ * Consolidated Better Than Human outreach job.
+ * Runs all proactive outreach systems in one go:
+ * - Thinking of you moments
+ * - Commitment follow-ups
+ * - Growth reflections
+ * - Life rhythm predictions
+ * - Celebration deliveries
+ *
+ * This is THE superhuman capability - proactive care, not reactive response.
+ */
+async function handleBetterThanHumanOutreach(res: ServerResponse): Promise<void> {
+  const startTime = Date.now();
+  const stats = {
+    usersProcessed: 0,
+    thinkingOfYouSent: 0,
+    commitmentFollowUpsSent: 0,
+    growthReflectionsSent: 0,
+    celebrationsSent: 0,
+    errors: 0,
+  };
+
+  try {
+    log.info('🚀 Starting BETTER THAN HUMAN outreach job');
+
+    // 1. Run the thinking-of-you job from wellbeing-jobs
+    const { runThinkingOfYouOutreach } = await import('../tasks/scheduled/wellbeing-jobs.js');
+    const toyResult = await runThinkingOfYouOutreach();
+    stats.usersProcessed += toyResult.usersProcessed;
+    stats.thinkingOfYouSent += toyResult.outreachSent;
+    stats.errors += toyResult.errors;
+
+    // 2. Run commitment follow-ups
+    const { getFirestoreDb } = await import('../services/superhuman/firestore-utils.js');
+    const db = getFirestoreDb();
+
+    if (db) {
+      // Get commitments due for follow-up (due within next 24 hours or overdue)
+      const now = new Date();
+      const tomorrow = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+
+      const commitmentsSnap = await db
+        .collectionGroup('commitments')
+        .where('status', '==', 'active')
+        .where('dueDate', '<=', tomorrow.toISOString())
+        .limit(100)
+        .get();
+
+      for (const doc of commitmentsSnap.docs) {
+        try {
+          const commitment = doc.data();
+          const userId = doc.ref.parent.parent?.id;
+
+          if (!userId) continue;
+
+          // Send a gentle reminder via the outreach orchestrator
+          const { getOutreachOrchestrator } = await import(
+            '../services/outreach/outreach-orchestrator.js'
+          );
+          const orchestrator = getOutreachOrchestrator();
+
+          // Use push notification for commitment follow-ups
+          const sent = await orchestrator.sendPushNotification(
+            userId,
+            `Hey! Just thinking about your commitment: "${commitment.description}". How's it going?`,
+            { trigger: 'commitment_followup', personaId: 'ferni', metadata: { commitmentId: doc.id } }
+          );
+
+          if (sent) {
+            stats.commitmentFollowUpsSent++;
+          }
+        } catch (err) {
+          stats.errors++;
+          log.warn({ error: String(err), docId: doc.id }, 'Failed to process commitment follow-up');
+        }
+      }
+
+      // 3. Growth reflections (for users who haven't had one in 7+ days)
+      const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+
+      const usersForGrowth = await db
+        .collection('bogle_users')
+        .where('lastGrowthReflection', '<', sevenDaysAgo.toISOString())
+        .limit(50)
+        .get();
+
+      for (const userDoc of usersForGrowth.docs) {
+        try {
+          const userId = userDoc.id;
+
+          // Trigger growth reflection outreach
+          const { getOutreachOrchestrator } = await import(
+            '../services/outreach/outreach-orchestrator.js'
+          );
+          const orchestrator = getOutreachOrchestrator();
+          const sent = await orchestrator.triggerGrowthReflection(userId, 'ferni');
+
+          if (sent) {
+            stats.growthReflectionsSent++;
+
+            // Update last growth reflection time
+            await userDoc.ref.update({
+              lastGrowthReflection: now.toISOString(),
+            });
+          }
+        } catch (err) {
+          stats.errors++;
+          log.warn({ error: String(err), userId: userDoc.id }, 'Failed to trigger growth reflection');
+        }
+      }
+
+      // 4. Celebrations (recent milestones/achievements not yet celebrated)
+      const { getMilestonesToCelebrate, acknowledgeMilestone } = await import(
+        '../services/superhuman/proactive-milestone-detector.js'
+      );
+
+      // Get all users with recent activity
+      const recentUsers = await db
+        .collection('bogle_users')
+        .where('lastActiveAt', '>=', sevenDaysAgo.toISOString())
+        .limit(200)
+        .get();
+
+      for (const userDoc of recentUsers.docs) {
+        try {
+          const milestones = await getMilestonesToCelebrate(userDoc.id);
+
+          for (const milestone of milestones.slice(0, 1)) {
+            // Max 1 celebration per user per run
+            const { getOutreachOrchestrator } = await import(
+              '../services/outreach/outreach-orchestrator.js'
+            );
+            const orchestrator = getOutreachOrchestrator();
+
+            // Send celebration via push notification
+            const sent = await orchestrator.sendPushNotification(
+              userDoc.id,
+              `🎉 ${milestone.label}! ${milestone.celebrationSuggestion}`,
+              { trigger: 'celebration', personaId: 'ferni', metadata: { milestoneType: milestone.type, significance: milestone.significance } }
+            );
+
+            if (sent) {
+              stats.celebrationsSent++;
+              await acknowledgeMilestone(userDoc.id, milestone.label, now.toISOString());
+            }
+          }
+        } catch (err) {
+          // Don't count as error - milestone detection is best-effort
+          log.debug({ userId: userDoc.id }, 'No milestones to celebrate');
+        }
+      }
+    }
+
+    const durationMs = Date.now() - startTime;
+
+    log.info(
+      {
+        ...stats,
+        durationMs,
+      },
+      '✅ Better Than Human outreach job completed'
+    );
+
+    sendJson(res, 200, {
+      success: true,
+      job: 'better-than-human-outreach',
+      stats,
+      durationMs,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error) {
+    const durationMs = Date.now() - startTime;
+    log.error({ error: String(error), durationMs }, 'Better Than Human outreach job failed');
+    sendJson(res, 500, {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error',
+      partialStats: stats,
+      timestamp: new Date().toISOString(),
     });
   }
 }

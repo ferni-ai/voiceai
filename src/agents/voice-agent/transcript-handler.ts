@@ -1350,7 +1350,7 @@ async function processFinalTranscript(
           if (directResult.toolId) {
             try {
               const { markToolExecutedBySemanticRouter } = await import(
-                '../shared/tool-call-sanitizer.js'
+                '../shared/sanitizer/index.js'
               );
               markToolExecutedBySemanticRouter(sessionId, directResult.toolId);
             } catch {

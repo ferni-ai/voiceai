@@ -163,7 +163,7 @@ async function makeConversationalCall(
   try {
     // Try to use the existing conversational call service
     const { makeConversationalCall: makeCall, isConversationalCallingConfigured } = await import(
-      '../../voice/conversational-call.service.js'
+      '../../voice/conversational-call-service.js'
     );
 
     if (isConversationalCallingConfigured()) {

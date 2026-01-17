@@ -24,7 +24,7 @@ import {
   deleteAudioFromGcs,
   isGcsConfigured,
   type UploadResult,
-} from './gcs-storage.service.js';
+} from './gcs-storage-service.js';
 
 const log = getLogger().child({ module: 'VoiceCloneService' });
 

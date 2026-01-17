@@ -258,7 +258,7 @@ export async function deliverOutreach(
         log.info({ userId, personaId: persona }, 'Initiating proactive voice call');
         try {
           const { makeConversationalCall, isConversationalCallingConfigured } =
-            await import('../../voice/conversational-call.service.js');
+            await import('../../voice/conversational-call-service.js');
 
           const callConfig = isConversationalCallingConfigured();
           if (!callConfig.configured) {

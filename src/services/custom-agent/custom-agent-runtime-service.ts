@@ -8,7 +8,7 @@
  */
 
 import { getLogger } from '../../utils/safe-logger.js';
-import { getCustomAgent, getActiveCustomAgents } from './custom-agent-persistence.service.js';
+import { getCustomAgent, getActiveCustomAgents } from './custom-agent-persistence-service.js';
 import type { CustomAgent as ApiCustomAgent } from '../../types/custom-agent-api.js';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
 import type {

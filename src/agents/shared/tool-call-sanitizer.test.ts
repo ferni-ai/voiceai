@@ -10,7 +10,7 @@ import {
   createSanitizerTransformStream,
   detectsFunctionCallLeakage,
   sanitizeToolCallLeakage,
-} from './tool-call-sanitizer.js';
+} from './sanitizer/index.js';
 
 describe('detectsFunctionCallLeakage', () => {
   describe('should detect handoff announcements', () => {

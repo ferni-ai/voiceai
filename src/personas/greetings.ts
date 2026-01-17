@@ -455,6 +455,63 @@ function pickUnusedTemplate(templateList: string[], usedGreetings?: string[]): s
   return unused[Math.floor(Math.random() * unused.length)];
 }
 
+// ============================================================================
+// BETTER-THAN-HUMAN: INTENTION FOLLOW-UP GREETINGS
+// ============================================================================
+
+/**
+ * Generate a greeting that follows up on a stated intention.
+ *
+ * This is a superhuman capability - remembering what the user said they'd do
+ * and checking in on it naturally. A human friend might forget; Ferni doesn't.
+ */
+function generateIntentionFollowUpGreeting(
+  persona: PersonaConfig,
+  intention: { intention: string; statedAt: Date; targetTime?: Date },
+  userName?: string
+): string | null {
+  const name = userName || 'there';
+  const intentionShort = intention.intention.slice(0, 100);
+  const personaName = persona.name.split(' ')[0];
+
+  // Calculate how long ago the intention was stated
+  const now = new Date();
+  const daysSinceStated = Math.floor(
+    (now.getTime() - new Date(intention.statedAt).getTime()) / (1000 * 60 * 60 * 24)
+  );
+
+  // If target time has passed (overdue)
+  if (intention.targetTime && intention.targetTime < now) {
+    const overdueTemplates = [
+      `<break time="200ms"/>Hey, ${name}.<break time="400ms"/>I was thinking about you.<break time="300ms"/>You mentioned you'd "${intentionShort}".<break time="250ms"/>How did that go?`,
+      `<break time="250ms"/>${name}.<break time="400ms"/>I remembered something.<break time="300ms"/>You said you were going to "${intentionShort}".<break time="250ms"/>Did you get a chance to?`,
+      `<break time="200ms"/>Hey.<break time="400ms"/>So, ${name}—<break time="300ms"/>that thing you mentioned, "${intentionShort}".<break time="250ms"/>Did it happen?`,
+    ];
+    return overdueTemplates[Math.floor(Math.random() * overdueTemplates.length)];
+  }
+
+  // Standard follow-up (stated within the week)
+  if (daysSinceStated >= 1 && daysSinceStated <= 3) {
+    const recentTemplates = [
+      `<break time="200ms"/>Hey, ${name}.<break time="400ms"/>Quick thing—<break time="300ms"/>you mentioned "${intentionShort}" the other day.<break time="250ms"/>How's that going?`,
+      `<break time="250ms"/>${name}!<break time="400ms"/>I was just thinking—<break time="300ms"/>how did "${intentionShort}" work out?`,
+      `<break time="200ms"/>Hey.<break time="400ms"/>Before we dive in—<break time="300ms"/>you said you'd "${intentionShort}".<break time="250ms"/>Did you do it?`,
+    ];
+    return recentTemplates[Math.floor(Math.random() * recentTemplates.length)];
+  }
+
+  // Older intention (4-7 days)
+  if (daysSinceStated >= 4) {
+    const olderTemplates = [
+      `<break time="200ms"/>Hey, ${name}.<break time="400ms"/>I've been meaning to ask—<break time="300ms"/>a while back you mentioned "${intentionShort}".<break time="250ms"/>Ever get around to that?`,
+      `<break time="250ms"/>${name}.<break time="400ms"/>Something came to mind—<break time="300ms"/>you talked about "${intentionShort}" last week.<break time="250ms"/>How did that play out?`,
+    ];
+    return olderTemplates[Math.floor(Math.random() * olderTemplates.length)];
+  }
+
+  return null;
+}
+
 export function generateStaticGreeting(
   persona: PersonaConfig,
   options?: {
@@ -786,10 +843,43 @@ export async function generateGreeting(
     conversationCount?: number;
     // For personal journey awareness
     userId?: string;
+    // BETTER-THAN-HUMAN: Pending intentions to follow up on
+    pendingIntentions?: Array<{ intention: string; statedAt: Date; targetTime?: Date }>;
   }
 ): Promise<string> {
   // Static is now last resort only
   const staticGreeting = generateStaticGreeting(persona, options);
+
+  // BETTER-THAN-HUMAN: Check for pending intentions to follow up on
+  // This is the superhuman capability - remembering and checking in on stated intentions
+  if (options?.pendingIntentions && options.pendingIntentions.length > 0 && options?.isReturningUser) {
+    const now = new Date();
+    // Find the most relevant intention (overdue or recently stated)
+    const relevantIntention = options.pendingIntentions.find((i) => {
+      // Overdue by target time
+      if (i.targetTime && i.targetTime < now) return true;
+      // Stated more than a day ago (natural follow-up window)
+      const daysSinceStated = Math.floor(
+        (now.getTime() - new Date(i.statedAt).getTime()) / (1000 * 60 * 60 * 24)
+      );
+      return daysSinceStated >= 1 && daysSinceStated <= 7;
+    });
+
+    if (relevantIntention) {
+      const intentionFollowUp = generateIntentionFollowUpGreeting(
+        persona,
+        relevantIntention,
+        options.userName
+      );
+      if (intentionFollowUp) {
+        getLogger().info(
+          { persona: persona.id, intention: relevantIntention.intention.slice(0, 50) },
+          '📋 Including intention follow-up in greeting'
+        );
+        return intentionFollowUp;
+      }
+    }
+  }
 
   // Check for life events to acknowledge (highest priority - these are special!)
   if (options?.lifeEvents && options.lifeEvents.length > 0) {
