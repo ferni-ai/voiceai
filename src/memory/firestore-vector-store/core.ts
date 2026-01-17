@@ -59,11 +59,9 @@ const ENABLE_VECTOR_COALESCING = process.env.ENABLE_VECTOR_COALESCING !== 'false
 const vectorSearchCoalescer = getRequestCoalescer<VectorSearchResult[]>('firestore-vector-search', {
   pendingTtlMs: 60000,
   maxPending: 5000,
-  // Clone results to prevent mutation bugs when multiple callers share the result
-  cloneResult: (results) => results.map((r) => ({
-    ...r,
-    document: { ...r.document },
-  })),
+  // Clone results to prevent mutation bugs when multiple callers share the result.
+  // IMPORTANT: Use structuredClone for deep copy - metadata can have nested objects.
+  cloneResult: (results) => structuredClone(results),
 });
 
 /**

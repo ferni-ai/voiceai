@@ -223,9 +223,13 @@ export class RequestCoalescer<T> {
         this.errors++;
         throw error;
       } finally {
-        // Notify completion callback
+        // Notify completion callback (wrapped in try-catch to ensure cleanup always runs)
         const durationMs = Date.now() - executionStartTime;
-        metricsCallbacks?.onComplete?.(this.name, key, durationMs, success);
+        try {
+          metricsCallbacks?.onComplete?.(this.name, key, durationMs, success);
+        } catch (callbackError) {
+          log.warn({ error: String(callbackError), name: this.name }, 'Metrics onComplete callback threw - ignoring');
+        }
 
         // Clean up after completion (success or error).
         // IMPORTANT: Only clean up if this entry is still the current one for this key.
