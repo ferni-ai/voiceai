@@ -731,6 +731,7 @@ ${colors.cyan}USAGE${colors.reset}
   ferni exec [options]
 
 ${colors.cyan}OPTIONS${colors.reset}
+  ${colors.bold}--briefing${colors.reset}            Daily CEO briefing with cross-functional insights
   ${colors.bold}--quick${colors.reset}               Quick status overview (one line per role)
   ${colors.bold}--alerts${colors.reset}              Only show alerts and action items
   ${colors.bold}--role <role>${colors.reset}         Filter by role: ceo, cto, cio, cpo, cmo, csco
@@ -739,6 +740,7 @@ ${colors.cyan}OPTIONS${colors.reset}
 
 ${colors.cyan}EXAMPLES${colors.reset}
   ferni exec                     # Full dashboard
+  ferni exec --briefing          # Daily CEO briefing
   ferni exec --quick             # Quick status
   ferni exec --alerts            # Just alerts
   ferni exec --role cto          # CTO section only
@@ -769,6 +771,182 @@ export interface ExecOptions {
   role?: string;
   json?: boolean;
   export?: boolean;
+  briefing?: boolean;
+}
+
+// ============================================================================
+// CROSS-FUNCTIONAL PATTERN DETECTION (BETTER THAN HUMAN)
+// ============================================================================
+
+interface CrossFunctionalAlert {
+  id: string;
+  title: string;
+  severity: 'info' | 'warning' | 'critical';
+  affectedRoles: string[];
+  message: string;
+  recommendation: string;
+}
+
+/**
+ * Detect cross-functional patterns that span multiple C-suite roles
+ * This is "Better Than Human" - seeing connections humans miss
+ */
+function detectCrossFunctionalPatterns(metrics: ExecutiveMetrics): CrossFunctionalAlert[] {
+  const alerts: CrossFunctionalAlert[] = [];
+
+  // Pattern 1: Tech debt affecting product velocity
+  if (metrics.cto.techDebtScore > 20 && metrics.cpo.featureVelocity < 5) {
+    alerts.push({
+      id: 'tech-debt-velocity',
+      title: 'Tech Debt Impacting Product Velocity',
+      severity: 'warning',
+      affectedRoles: ['CTO', 'CPO'],
+      message: `High tech debt (${metrics.cto.techDebtScore}) correlating with low feature velocity (${metrics.cpo.featureVelocity}/sprint)`,
+      recommendation: 'Consider dedicated sprint for debt reduction before feature push',
+    });
+  }
+
+  // Pattern 2: Security issues affecting compliance
+  if (metrics.cto.securityScore < 80 && metrics.cio.complianceScore < 90) {
+    alerts.push({
+      id: 'security-compliance-risk',
+      title: 'Security-Compliance Risk Correlation',
+      severity: 'critical',
+      affectedRoles: ['CTO', 'CIO'],
+      message: `Security score (${metrics.cto.securityScore}%) and compliance (${metrics.cio.complianceScore}%) both declining`,
+      recommendation: 'Joint security-compliance audit recommended',
+    });
+  }
+
+  // Pattern 3: Marketing without analytics
+  if (metrics.cmo.brandSentiment < 0.7 && metrics.cpo.userSatisfaction < 4.0) {
+    alerts.push({
+      id: 'brand-satisfaction-gap',
+      title: 'Brand-Satisfaction Gap',
+      severity: 'warning',
+      affectedRoles: ['CMO', 'CPO'],
+      message: `Brand sentiment (${(metrics.cmo.brandSentiment * 100).toFixed(0)}%) and user satisfaction (${metrics.cpo.userSatisfaction}/5) both low`,
+      recommendation: 'Align product improvements with marketing messaging',
+    });
+  }
+
+  // Pattern 4: Ops efficiency affecting all
+  if (metrics.csco.operationalEfficiency < 80 && metrics.cto.systemHealth < 85) {
+    alerts.push({
+      id: 'ops-tech-alignment',
+      title: 'Operations-Technology Misalignment',
+      severity: 'warning',
+      affectedRoles: ['CSCO', 'CTO'],
+      message: `Operational efficiency (${metrics.csco.operationalEfficiency}%) and system health (${metrics.cto.systemHealth}%) need attention`,
+      recommendation: 'Review infrastructure automation and monitoring',
+    });
+  }
+
+  // Pattern 5: Overall health indicator
+  const avgHealth = (
+    metrics.cto.systemHealth +
+    metrics.cio.complianceScore +
+    (metrics.cpo.userSatisfaction * 20) +
+    metrics.cmo.seoHealth +
+    metrics.csco.operationalEfficiency
+  ) / 5;
+
+  if (avgHealth < 75) {
+    alerts.push({
+      id: 'overall-health-concern',
+      title: 'Overall Health Concern',
+      severity: 'critical',
+      affectedRoles: ['CEO', 'CTO', 'CIO', 'CPO', 'CMO', 'CSCO'],
+      message: `Average health score across functions: ${avgHealth.toFixed(0)}%`,
+      recommendation: 'Schedule all-hands alignment meeting',
+    });
+  }
+
+  // Pattern 6: High risk indicators
+  if (metrics.cpo.churnRisk > 7 && metrics.cmo.brandSentiment < 0.8) {
+    alerts.push({
+      id: 'churn-brand-risk',
+      title: 'Churn Risk with Brand Challenges',
+      severity: 'critical',
+      affectedRoles: ['CPO', 'CMO'],
+      message: `High churn risk (${metrics.cpo.churnRisk}%) combined with brand challenges`,
+      recommendation: 'Prioritize customer retention initiatives and brand refresh',
+    });
+  }
+
+  return alerts;
+}
+
+/**
+ * Print formatted daily briefing
+ */
+function printBriefing(metrics: ExecutiveMetrics): void {
+  const now = new Date();
+  const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+  const dateStr = now.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+
+  const crossFunctionalAlerts = detectCrossFunctionalPatterns(metrics);
+
+  console.log(`
+${colors.bold}${colors.cyan}╔══════════════════════════════════════════════════════════════════════════╗
+║                       GOOD MORNING, CEO                                  ║
+║                         Daily Executive Briefing                         ║
+╚══════════════════════════════════════════════════════════════════════════╝${colors.reset}
+${colors.dim}${dateStr} at ${timeStr}${colors.reset}
+
+${colors.bold}📊 COMPANY SNAPSHOT${colors.reset}
+┌──────────────────────────────────────────────────────────────────────────┐
+│  Company Health: ${getHealthColor(metrics.ceo.companyHealth)}${metrics.ceo.companyHealth}%${colors.reset}    Systems: ${getHealthColor(metrics.cto.systemHealth)}${metrics.cto.systemHealth}%${colors.reset}    Security: ${getHealthColor(metrics.cto.securityScore)}${metrics.cto.securityScore}%${colors.reset}
+│  Compliance: ${getHealthColor(metrics.cio.complianceScore)}${metrics.cio.complianceScore}%${colors.reset}      Satisfaction: ${getHealthColor(metrics.cpo.userSatisfaction * 20)}${metrics.cpo.userSatisfaction}/5${colors.reset}   SLA: ${getHealthColor(metrics.csco.slaCompliance)}${metrics.csco.slaCompliance}%${colors.reset}
+└──────────────────────────────────────────────────────────────────────────┘
+
+${colors.bold}🎯 KEY METRICS BY FUNCTION${colors.reset}
+  ${colors.blue}CTO${colors.reset} │ Tech Debt: ${metrics.cto.techDebtScore} │ Incidents: ${metrics.cto.openIncidents}
+  ${colors.green}CIO${colors.reset} │ Data Risk: ${metrics.cio.dataRiskScore} │ Vendors Expiring: ${metrics.cio.vendorsExpiringSoon}
+  ${colors.yellow}CPO${colors.reset} │ Velocity: ${metrics.cpo.featureVelocity}/sprint │ Churn Risk: ${metrics.cpo.churnRisk}%
+  ${colors.red}CMO${colors.reset} │ ROAS: ${metrics.cmo.campaignROAS}x │ SEO: ${metrics.cmo.seoHealth}%
+  ${colors.white}CSCO${colors.reset} │ Efficiency: ${metrics.csco.operationalEfficiency}% │ Cost Savings: $${metrics.csco.costOptimization}k
+`);
+
+  // Cross-functional alerts (Better Than Human)
+  if (crossFunctionalAlerts.length > 0) {
+    console.log(`${colors.bold}🔮 CROSS-FUNCTIONAL INSIGHTS (Better Than Human)${colors.reset}`);
+    console.log(`${colors.dim}Patterns detected across organizational boundaries:${colors.reset}\n`);
+
+    for (const alert of crossFunctionalAlerts) {
+      const icon = alert.severity === 'critical' ? '🚨' : alert.severity === 'warning' ? '⚠️' : 'ℹ️';
+      const severityColor = alert.severity === 'critical' ? colors.red : alert.severity === 'warning' ? colors.yellow : colors.cyan;
+
+      console.log(`  ${icon} ${severityColor}${colors.bold}${alert.title}${colors.reset}`);
+      console.log(`     ${colors.dim}Affects: ${alert.affectedRoles.join(', ')}${colors.reset}`);
+      console.log(`     ${alert.message}`);
+      console.log(`     ${colors.green}→ ${alert.recommendation}${colors.reset}\n`);
+    }
+  } else {
+    console.log(`${colors.bold}🔮 CROSS-FUNCTIONAL INSIGHTS${colors.reset}`);
+    console.log(`  ${colors.green}✓ No cross-functional concerns detected${colors.reset}\n`);
+  }
+
+  // Action items
+  const allAlerts: string[] = [
+    ...metrics.cto.alerts.filter(a => !a.includes('detected')),
+    ...metrics.cio.alerts.filter(a => !a.includes('good')),
+    ...metrics.cpo.alerts.filter(a => !a.includes('track')),
+    ...metrics.cmo.alerts.filter(a => !a.includes('place')),
+    ...metrics.csco.alerts.filter(a => !a.includes('smooth')),
+  ];
+
+  if (allAlerts.length > 0) {
+    console.log(`${colors.bold}📋 TODAY'S ACTION ITEMS${colors.reset}`);
+    allAlerts.forEach((alert, i) => {
+      console.log(`  ${i + 1}. ${alert}`);
+    });
+    console.log();
+  }
+
+  console.log(`${colors.dim}───────────────────────────────────────────────────────────────────────────${colors.reset}`);
+  console.log(`${colors.dim}Deep dive: ferni exec | ferni cto | ferni cio | ferni cpo | ferni cmo | ferni csco${colors.reset}`);
+  console.log(`${colors.dim}Schedule: ferni exec schedule | Quick: ferni exec --quick${colors.reset}\n`);
 }
 
 export async function exec(options: ExecOptions = {}): Promise<void> {
@@ -776,6 +954,11 @@ export async function exec(options: ExecOptions = {}): Promise<void> {
 
   if (options.json) {
     console.log(JSON.stringify(metrics, null, 2));
+    return;
+  }
+
+  if (options.briefing) {
+    printBriefing(metrics);
     return;
   }
 
@@ -853,6 +1036,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   if (args.includes('--alerts')) options.alerts = true;
   if (args.includes('--json')) options.json = true;
   if (args.includes('--export')) options.export = true;
+  if (args.includes('--briefing')) options.briefing = true;
 
   const roleIdx = args.findIndex((a) => a === '--role');
   if (roleIdx >= 0) options.role = args[roleIdx + 1];

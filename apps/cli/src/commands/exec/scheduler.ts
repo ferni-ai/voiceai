@@ -106,6 +106,8 @@ async function saveConfig(config: SchedulerConfig): Promise<void> {
 const ALLOWED_COMMANDS = new Set([
   'ferni ceo dashboard',
   'ferni exec',
+  'ferni exec --quick',
+  'ferni exec --briefing',
   'ferni cto health --detailed',
   'ferni cto health',
   'ferni csco costs --breakdown --optimize',
