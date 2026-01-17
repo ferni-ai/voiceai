@@ -190,6 +190,7 @@ import {
   initializeTwilioStreamBridge,
   attachTwilioStreamBridgeToServer,
 } from '../../api/twilio-routes.js';
+import { handleFamilyCheckinWebhookRoutes } from '../../api/family-checkin-webhook-routes.js';
 import { handleOutboundCallRoutes } from '../../api/outbound-call-handler.js';
 
 // WebSocket for real-time insights
@@ -931,6 +932,12 @@ const server = http.createServer(async (req, res) => {
     // Twilio routes (two-way conversational calls)
     if (pathname.startsWith('/api/twilio')) {
       const handled = await handleTwilioRoutes(req, res, pathname);
+      if (handled) return;
+    }
+
+    // Family check-in webhook routes (Twilio callbacks for family calls)
+    if (pathname.startsWith('/api/family-checkin/')) {
+      const handled = await handleFamilyCheckinWebhookRoutes(req, res, pathname);
       if (handled) return;
     }
 

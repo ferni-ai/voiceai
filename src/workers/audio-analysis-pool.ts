@@ -111,7 +111,8 @@ class AudioAnalysisWorkerPool {
     processingTimes: [] as number[],
   };
 
-  constructor(poolSize = 2) {
+  // PERFORMANCE: Increased default from 2 to 4 for better parallelism
+  constructor(poolSize = 4) {
     this.poolSize = poolSize;
   }
 

@@ -15,6 +15,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { getLogger } from '../../utils/safe-logger.js';
+import { cosineSimilarity } from '../../memory/rust-accelerator.js';
 
 const log = getLogger();
 
@@ -176,25 +177,8 @@ export async function getAllToolEmbeddings(): Promise<Map<string, number[]>> {
   return getEmbeddingsState().embeddingMap;
 }
 
-/**
- * Compute cosine similarity between two vectors
- */
-export function cosineSimilarity(a: number[], b: number[]): number {
-  if (a.length !== b.length) return 0;
-
-  let dotProduct = 0;
-  let normA = 0;
-  let normB = 0;
-
-  for (let i = 0; i < a.length; i++) {
-    dotProduct += a[i] * b[i];
-    normA += a[i] * a[i];
-    normB += b[i] * b[i];
-  }
-
-  const denominator = Math.sqrt(normA) * Math.sqrt(normB);
-  return denominator === 0 ? 0 : dotProduct / denominator;
-}
+// cosineSimilarity imported from rust-accelerator (SIMD-optimized)
+export { cosineSimilarity };
 
 /**
  * Find most similar tools to a query embedding
