@@ -500,124 +500,98 @@ function envDisabled(key: string): boolean {
   return val === 'false' || val === '0';
 }
 
-// Default config optimized for "Better Than Human" voice quality
-// Features can be controlled via .env:
+// Default config - CONSERVATIVE settings after production issues (January 2026)
+//
+// LESSONS LEARNED: The original "Better Than Human" config had 13+ DSP effects
+// enabled by default, causing cumulative audio degradation in production.
+// The new default is MINIMAL - only soft edges for clean transitions.
+//
+// Features can be controlled via .env (opt-in only):
+//   POST_TTS_WARMTH=true              - Enable warmth filter
+//   POST_TTS_COMPRESSION=true         - Enable compression
+//   POST_TTS_PRESENCE=true            - Enable presence boost
 //   POST_TTS_MICRO_PITCH=true         - Enable micro pitch modulation
-//   POST_TTS_ADAPTIVE_PACING=true     - Enable adaptive pacing
-//   POST_TTS_VOCAL_FRY=true           - Enable vocal fry (ultra-realistic)
-//   POST_TTS_LIP_SMACKS=true          - Enable lip smacks (ultra-realistic)
-//   POST_TTS_TEMPO_VARIATION=true     - Enable tempo variation (ultra-realistic)
-//   POST_TTS_BREATH=false             - Disable breath injection
-//   POST_TTS_WARMTH=false             - Disable warmth filter
-//   POST_TTS_COMPRESSION=false        - Disable compression
-//   POST_TTS_PRESENCE=false           - Disable presence boost
-//   POST_TTS_AMPLITUDE_JITTER=false   - Disable amplitude jitter
-//   POST_TTS_PITCH_DRIFT=false        - Disable pitch drift
-//   POST_TTS_NOISE_FLOOR=false        - Disable noise floor
-//   POST_TTS_SOLA_PITCH=false         - Disable SOLA pitch shifting
-//   POST_TTS_EMOTION_PROSODY=false    - Disable emotion prosody
-// STATE-OF-THE-ART HUMANIZATION (December 2024):
+//   POST_TTS_BREATH=true              - Enable breath injection
 //   POST_TTS_JITTER=true              - Enable cycle-to-cycle pitch variation
 //   POST_TTS_SHIMMER=true             - Enable cycle-to-cycle amplitude variation
-//   POST_TTS_HNR_MODULATION=true      - Enable breathiness modulation
-//   POST_TTS_SUBGLOTTAL=true          - Enable chest cavity resonances
-//   POST_TTS_SMILE_FORMANTS=true      - Enable emotional brightness
-//   POST_TTS_GLOTTALIZATION=true      - Enable glottal stops
-//   POST_TTS_HESITATION=true          - Enable "um", "uh" sounds
-//   POST_TTS_LOMBARD=true             - Enable noise adaptation
-//   POST_TTS_REGISTER=true            - Enable voice register transitions
-//   POST_TTS_PHARYNGEAL=true          - Enable throat tension
+//   ... etc (all humanization features are opt-in)
+//
+// WARNING: Do NOT enable many features at once without testing!
+// Each feature should be tested individually before combining.
 export const DEFAULT_CONFIG: Required<PostTTSConfig> = {
   sampleRate: 24000, // Cartesia output rate
-  // Features ON by default (use POST_TTS_X=false to disable)
-  enableBreath: !envDisabled('POST_TTS_BREATH'),
-  breathProbability: 0.15, // 15% chance at phrase boundaries
-  enableWarmth: !envDisabled('POST_TTS_WARMTH'),
-  warmthAmount: 0.35, // Subtle warmth
-  // Soft edges now properly applied only at utterance boundaries (first/last frame)
+  // =========================================================================
+  // CORE DSP - Only soft edges enabled by default (safe, proven)
+  // =========================================================================
   enableSoftEdges: true,
-  softEdgeMs: 15, // 15ms attack/release for natural phrase edges
-  enableCompression: !envDisabled('POST_TTS_COMPRESSION'),
-  compressionRatio: 2.0, // 2:1 gentle compression
-  compressionThresholdDb: -18, // Catch peaks
-  enablePresence: !envDisabled('POST_TTS_PRESENCE'),
-  presenceBoostDb: 2.0, // Subtle clarity boost
+  softEdgeMs: 10, // 10ms attack/release for clean transitions
+  // Warmth, compression, presence: OFF by default (opt-in)
+  enableBreath: envEnabled('POST_TTS_BREATH'),
+  breathProbability: 0.15,
+  enableWarmth: envEnabled('POST_TTS_WARMTH'),
+  warmthAmount: 0.25, // Reduced from 0.35
+  enableCompression: envEnabled('POST_TTS_COMPRESSION'),
+  compressionRatio: 1.5, // Reduced from 2.0
+  compressionThresholdDb: -20, // Raised from -18 (less aggressive)
+  enablePresence: envEnabled('POST_TTS_PRESENCE'),
+  presenceBoostDb: 1.5, // Reduced from 2.0
   sessionId: 'unknown',
   personaId: 'ferni',
   enableMetrics: true,
-  // Humanization (ON by default)
-  enableAmplitudeJitter: !envDisabled('POST_TTS_AMPLITUDE_JITTER'),
-  amplitudeJitterDepth: 0.015, // 1.5% subtle volume variation
-  enablePitchDrift: !envDisabled('POST_TTS_PITCH_DRIFT'),
-  pitchDriftCents: 5, // Subtle pitch wandering
-  enableNoiseFloor: !envDisabled('POST_TTS_NOISE_FLOOR'),
-  noiseFloorDb: -55, // Very subtle room tone
-  // SOLA & Emotion prosody (Better Than Human - ON by default)
-  useSolaPitch: !envDisabled('POST_TTS_SOLA_PITCH'),
-  enableEmotionProsody: !envDisabled('POST_TTS_EMOTION_PROSODY'),
-  emotion: 0, // Neutral by default
-  contentComplexity: 0.5, // Normal complexity
   // =========================================================================
-  // MICRO-PITCH MODULATION (ENABLED - uses SOLA path)
-  // When useSolaPitch=true (default), this uses SolaMicroPitch which is
-  // artifact-free. Only the legacy path (useSolaPitch=false) has click issues.
+  // HUMANIZATION - ALL OFF by default (opt-in only)
+  // These features caused audio quality issues when enabled together
   // =========================================================================
-  enableMicroPitch: !envDisabled('POST_TTS_MICRO_PITCH'),
-  pitchModulationCents: 8,
+  enableAmplitudeJitter: envEnabled('POST_TTS_AMPLITUDE_JITTER'),
+  amplitudeJitterDepth: 0.01, // Reduced from 0.015
+  enablePitchDrift: envEnabled('POST_TTS_PITCH_DRIFT'),
+  pitchDriftCents: 3, // Reduced from 5
+  enableNoiseFloor: envEnabled('POST_TTS_NOISE_FLOOR'),
+  noiseFloorDb: -60, // Reduced from -55 (quieter)
+  // SOLA & Emotion prosody: OFF by default
+  useSolaPitch: envEnabled('POST_TTS_SOLA_PITCH'),
+  enableEmotionProsody: envEnabled('POST_TTS_EMOTION_PROSODY'),
+  emotion: 0,
+  contentComplexity: 0.5,
+  // Micro-pitch: OFF by default
+  enableMicroPitch: envEnabled('POST_TTS_MICRO_PITCH'),
+  pitchModulationCents: 5, // Reduced from 8
   // =========================================================================
-  // HUMANIZATION FEATURES (All rewritten and working - December 2024)
+  // ADVANCED HUMANIZATION - ALL OFF by default (experimental)
+  // These had known issues documented in the code
   // =========================================================================
-  // Adaptive pacing: Uses analyzeContentComplexity() for text-aware tempo adjustment
   enableAdaptivePacing: envEnabled('POST_TTS_ADAPTIVE_PACING'),
-  // Vocal fry: Irregular glottal pulses (25-80 Hz) with diploponia, not LFO modulation
   enableVocalFry: envEnabled('POST_TTS_VOCAL_FRY'),
-  vocalFryDepth: 0.4,
-  vocalFryDurationMs: 200,
-  // Lip smacks: Formant-based synthesis with oral cavity resonances (F1/F2/F3)
-  // 4 types: lip pop (40%), soft smack (35%), wet smack (15%), tongue click (10%)
+  vocalFryDepth: 0.3, // Reduced from 0.4
+  vocalFryDurationMs: 150, // Reduced from 200
   enableLipSmacks: envEnabled('POST_TTS_LIP_SMACKS'),
-  lipSmackProbability: 0.3,
-  // Tempo variation: SOLA-based time stretching with cross-correlation and Hann windowing
-  // Proper frame boundary continuity (no more read_pos reset bug)
+  lipSmackProbability: 0.2, // Reduced from 0.3
   enableTempoVariation: envEnabled('POST_TTS_TEMPO_VARIATION'),
-  tempoVariationDepth: 0.03,
-  // Onset softening: micro-fades on hard glottal attacks
-  // Reduces harsh vowel-initial sounds for more natural speech
+  tempoVariationDepth: 0.02, // Reduced from 0.03
   enableOnsetSoftening: envEnabled('POST_TTS_ONSET_SOFTENING'),
   // =========================================================================
-  // STATE-OF-THE-ART HUMANIZATION - December 2024
-  // These features add subtle natural variations found in real human speech
-  // Most enabled by default for "Better Than Human" quality
+  // STATE-OF-THE-ART HUMANIZATION - ALL OFF by default
+  // These were the primary cause of production audio issues
   // =========================================================================
-  // Jitter: cycle-to-cycle pitch variation (natural speech has 0.5-2%)
-  enableJitter: !envDisabled('POST_TTS_JITTER'),
-  jitterAmount: 0.015, // 1.5% - subtle and natural
-  // Shimmer: cycle-to-cycle amplitude variation (natural speech has 3-10%)
-  enableShimmer: !envDisabled('POST_TTS_SHIMMER'),
-  shimmerAmount: 0.05, // 5% - within natural range
-  // HNR Modulation: adds subtle breathiness/aspiration noise
-  enableHnrModulation: !envDisabled('POST_TTS_HNR_MODULATION'),
-  hnrBreathiness: 0.15, // Light breathiness - not too raspy
-  // Subglottal Resonance: chest cavity resonances at Sg1=600Hz, Sg2=1400Hz, Sg3=2200Hz
-  enableSubglottalResonance: !envDisabled('POST_TTS_SUBGLOTTAL'),
-  subglottalStrength: 0.2, // Subtle presence - adds warmth
-  // Smile Formant Shifts: high-shelf boost for emotional brightness
-  enableSmileFormants: envEnabled('POST_TTS_SMILE_FORMANTS'), // OFF by default (situational)
-  smileAmount: 0.3, // When enabled, subtle smile
-  // Glottalization: 70Hz modulation at vowel onsets
-  enableGlottalization: envEnabled('POST_TTS_GLOTTALIZATION'), // OFF by default (can be harsh)
-  glottalizationStrength: 0.4, // When enabled, moderate intensity
-  // Hesitation Phenomena: synthetic "um" (300ms, 120Hz) and "uh" (200ms, 110Hz)
-  enableHesitationSounds: envEnabled('POST_TTS_HESITATION'), // OFF by default (use sparingly)
-  hesitationProbability: 0.1, // 10% chance per phrase when enabled
-  // Lombard Effect: noise-adaptive volume (+6dB) and brightness
-  enableLombardEffect: envEnabled('POST_TTS_LOMBARD'), // OFF by default (needs noise detection)
-  // Register Transitions: smooth transitions between modal/falsetto/fry
-  enableRegisterTransitions: envEnabled('POST_TTS_REGISTER'), // OFF by default (advanced)
-  targetRegister: 0, // 0=Modal (default), 1=Falsetto, 2=Fry
-  // Pharyngeal Constriction: throat tension for stress/tension sounds
-  enablePharyngealConstriction: envEnabled('POST_TTS_PHARYNGEAL'), // OFF by default (situational)
-  pharyngealAmount: 0.3, // When enabled, moderate tightness
+  enableJitter: envEnabled('POST_TTS_JITTER'),
+  jitterAmount: 0.01, // Reduced from 0.015
+  enableShimmer: envEnabled('POST_TTS_SHIMMER'),
+  shimmerAmount: 0.03, // Reduced from 0.05
+  enableHnrModulation: envEnabled('POST_TTS_HNR_MODULATION'),
+  hnrBreathiness: 0.1, // Reduced from 0.15
+  enableSubglottalResonance: envEnabled('POST_TTS_SUBGLOTTAL'),
+  subglottalStrength: 0.15, // Reduced from 0.2
+  enableSmileFormants: envEnabled('POST_TTS_SMILE_FORMANTS'),
+  smileAmount: 0.2, // Reduced from 0.3
+  enableGlottalization: envEnabled('POST_TTS_GLOTTALIZATION'),
+  glottalizationStrength: 0.3, // Reduced from 0.4
+  enableHesitationSounds: envEnabled('POST_TTS_HESITATION'),
+  hesitationProbability: 0.05, // Reduced from 0.1
+  enableLombardEffect: envEnabled('POST_TTS_LOMBARD'),
+  enableRegisterTransitions: envEnabled('POST_TTS_REGISTER'),
+  targetRegister: 0,
+  enablePharyngealConstriction: envEnabled('POST_TTS_PHARYNGEAL'),
+  pharyngealAmount: 0.2, // Reduced from 0.3
 };
 
 // ============================================================================
@@ -1471,61 +1445,55 @@ export async function isPostTTSAvailable(): Promise<boolean> {
  */
 export const PostTTSPresets = {
   /**
-   * Default "Better Than Human" preset - STATEFUL processing for butter smooth audio
+   * Conservative "Better Than Human" preset - SAFE for production (January 2026)
    *
-   * With the new stateful processor, this preset enables:
-   * - Crossfade overlap-add (eliminates frame boundary clicks)
-   * - Stateful biquad filters (no filter reset artifacts)
-   * - Stateful compression (no pumping/breathing)
-   * - De-esser (automatic sibilance control)
-   * - Look-ahead limiter (prevents clipping)
-   * - Soft attack/release (natural phrase boundaries)
-   * - Basic humanization (breath, jitter, drift, noise floor)
-   * - SOLA pitch shifting & emotion prosody
-   * - Advanced features OFF by default (enable per-persona or via ultraRealistic)
+   * After production audio quality issues, this preset is now MINIMAL:
+   * - Soft edges for clean transitions
+   * - Warmth and compression for better sound (proven safe)
+   * - NO experimental humanization features
+   *
+   * For more features, use specific presets or enable via env vars after testing.
    */
   betterThanHuman: {
-    enableBreath: true,
-    breathProbability: 0.15,
-    enableWarmth: true,
-    warmthAmount: 0.35,
     enableSoftEdges: true,
-    softEdgeMs: 15,
-    enableCompression: true,
-    compressionRatio: 2.0,
-    compressionThresholdDb: -18,
-    enablePresence: true,
-    presenceBoostDb: 2.0,
-    // Humanization (on by default)
-    enableAmplitudeJitter: true,
-    amplitudeJitterDepth: 0.015,
-    enablePitchDrift: true,
-    pitchDriftCents: 5,
-    enableNoiseFloor: true,
-    noiseFloorDb: -55,
-    // SOLA & emotion (on by default)
-    useSolaPitch: true,
-    enableEmotionProsody: true,
-    // Advanced humanization (off by default - enable per-persona)
+    softEdgeMs: 10,
+    enableBreath: false, // OFF - can sound artificial
+    breathProbability: 0.15,
+    enableWarmth: true, // Safe - subtle low-shelf EQ
+    warmthAmount: 0.25,
+    enableCompression: true, // Safe - gentle dynamics
+    compressionRatio: 1.5,
+    compressionThresholdDb: -20,
+    enablePresence: false, // OFF - can be harsh
+    presenceBoostDb: 1.5,
+    // ALL humanization OFF by default
+    enableAmplitudeJitter: false,
+    amplitudeJitterDepth: 0.01,
+    enablePitchDrift: false,
+    pitchDriftCents: 3,
+    enableNoiseFloor: false,
+    noiseFloorDb: -60,
+    useSolaPitch: false,
+    enableEmotionProsody: false,
+    enableMicroPitch: false,
     enableVocalFry: false,
     enableLipSmacks: false,
     enableTempoVariation: false,
     enableOnsetSoftening: false,
-    // State-of-the-art humanization (on by default for natural speech)
-    enableJitter: true,
-    jitterAmount: 0.015,
-    enableShimmer: true,
-    shimmerAmount: 0.05,
-    enableHnrModulation: true,
-    hnrBreathiness: 0.15,
-    enableSubglottalResonance: true,
-    subglottalStrength: 0.2,
-    enableSmileFormants: false, // Situational
-    enableGlottalization: false, // Can be harsh
-    enableHesitationSounds: false, // Use sparingly
-    enableLombardEffect: false, // Needs noise detection
-    enableRegisterTransitions: false, // Advanced
-    enablePharyngealConstriction: false, // Situational
+    enableJitter: false,
+    jitterAmount: 0.01,
+    enableShimmer: false,
+    shimmerAmount: 0.03,
+    enableHnrModulation: false,
+    hnrBreathiness: 0.1,
+    enableSubglottalResonance: false,
+    subglottalStrength: 0.15,
+    enableSmileFormants: false,
+    enableGlottalization: false,
+    enableHesitationSounds: false,
+    enableLombardEffect: false,
+    enableRegisterTransitions: false,
+    enablePharyngealConstriction: false,
   } satisfies Partial<PostTTSConfig>,
 
   /** Minimal processing - just soft edges for smooth transitions */
@@ -1559,41 +1527,39 @@ export const PostTTSPresets = {
 
   /** Warm and intimate - for emotional/supportive content */
   warmIntimate: {
-    enableBreath: true,
-    breathProbability: 0.2,
-    enableWarmth: true,
-    warmthAmount: 0.5,
     enableSoftEdges: true,
-    softEdgeMs: 20,
+    softEdgeMs: 12,
+    enableBreath: false,
+    breathProbability: 0.15,
+    enableWarmth: true, // More warmth for intimate sound
+    warmthAmount: 0.35,
     enableCompression: true,
-    compressionRatio: 2.5,
-    compressionThresholdDb: -20,
+    compressionRatio: 1.5,
+    compressionThresholdDb: -22,
     enablePresence: false, // Less presence for softer sound
     presenceBoostDb: 0,
-    // Enhanced humanization for intimacy
-    enableAmplitudeJitter: true,
-    amplitudeJitterDepth: 0.02, // Slightly more variation
-    enablePitchDrift: true,
-    pitchDriftCents: 8, // More expressive drift
-    enableNoiseFloor: true,
-    noiseFloorDb: -52, // Slightly more room tone
-    // Deprecated features - disabled
-    enableVocalFry: false, // DISABLED: sounds robotic, not natural
+    // ALL humanization OFF - these caused issues
+    enableAmplitudeJitter: false,
+    amplitudeJitterDepth: 0.01,
+    enablePitchDrift: false,
+    pitchDriftCents: 3,
+    enableNoiseFloor: false,
+    noiseFloorDb: -60,
+    enableVocalFry: false,
     vocalFryDepth: 0.3,
     vocalFryDurationMs: 150,
     enableLipSmacks: false,
     enableTempoVariation: false,
     enableOnsetSoftening: false,
-    // State-of-the-art humanization (enhanced for intimacy)
-    enableJitter: true,
-    jitterAmount: 0.018, // Slightly more for vulnerability
-    enableShimmer: true,
-    shimmerAmount: 0.06, // Slightly more variation
-    enableHnrModulation: true,
-    hnrBreathiness: 0.2, // More breath for intimacy
-    enableSubglottalResonance: true,
-    subglottalStrength: 0.25, // Warmer chest resonance
-    enableSmileFormants: false, // Off for intimate moments
+    enableJitter: false,
+    jitterAmount: 0.01,
+    enableShimmer: false,
+    shimmerAmount: 0.03,
+    enableHnrModulation: false,
+    hnrBreathiness: 0.1,
+    enableSubglottalResonance: false,
+    subglottalStrength: 0.15,
+    enableSmileFormants: false,
     enableGlottalization: false,
     enableHesitationSounds: false,
     enableLombardEffect: false,
@@ -1603,40 +1569,38 @@ export const PostTTSPresets = {
 
   /** Clear and energetic - for action-oriented content */
   clearEnergetic: {
-    enableBreath: true,
+    enableSoftEdges: true,
+    softEdgeMs: 8,
+    enableBreath: false,
     breathProbability: 0.1,
     enableWarmth: true,
     warmthAmount: 0.2,
-    enableSoftEdges: true,
-    softEdgeMs: 12,
-    enableCompression: true,
-    compressionRatio: 3.0, // More compression for punchier sound
-    compressionThresholdDb: -15,
-    enablePresence: true,
-    presenceBoostDb: 3.0, // More presence for clarity
-    // Light humanization (keep it clean)
-    enableAmplitudeJitter: true,
-    amplitudeJitterDepth: 0.01, // Subtle
-    enablePitchDrift: true,
-    pitchDriftCents: 3, // Less drift for stability
-    enableNoiseFloor: true,
-    noiseFloorDb: -58, // Quieter room tone
-    // No advanced humanization (keep energy crisp)
+    enableCompression: true, // Slightly more compression for punch
+    compressionRatio: 1.8,
+    compressionThresholdDb: -18,
+    enablePresence: true, // Presence ON for clarity
+    presenceBoostDb: 1.5,
+    // ALL humanization OFF
+    enableAmplitudeJitter: false,
+    amplitudeJitterDepth: 0.01,
+    enablePitchDrift: false,
+    pitchDriftCents: 3,
+    enableNoiseFloor: false,
+    noiseFloorDb: -60,
     enableVocalFry: false,
     enableLipSmacks: false,
     enableTempoVariation: false,
     enableOnsetSoftening: false,
-    // State-of-the-art humanization (minimal for clarity)
-    enableJitter: true,
-    jitterAmount: 0.012, // Less for stability
-    enableShimmer: true,
-    shimmerAmount: 0.04, // Less variation
-    enableHnrModulation: true,
-    hnrBreathiness: 0.1, // Less breathiness for clarity
-    enableSubglottalResonance: true,
-    subglottalStrength: 0.15, // Subtle
-    enableSmileFormants: true, // ON for energetic brightness
-    smileAmount: 0.25,
+    enableJitter: false,
+    jitterAmount: 0.01,
+    enableShimmer: false,
+    shimmerAmount: 0.03,
+    enableHnrModulation: false,
+    hnrBreathiness: 0.1,
+    enableSubglottalResonance: false,
+    subglottalStrength: 0.15,
+    enableSmileFormants: false,
+    smileAmount: 0.2,
     enableGlottalization: false,
     enableHesitationSounds: false,
     enableLombardEffect: false,
@@ -1647,68 +1611,63 @@ export const PostTTSPresets = {
   /**
    * DEPRECATED: Ultra-realistic preset
    *
-   * ⚠️ WARNING: The "advanced humanization" features (vocal fry, lip smacks,
-   * tempo variation) have known audio quality issues:
-   * - Vocal fry uses LFO amplitude modulation that sounds robotic
-   * - Lip smacks are synthetic noise that sounds like audio glitches
-   * - Tempo variation causes resampling artifacts
+   * ⚠️ WARNING (January 2026): This preset caused severe audio quality issues
+   * in production. The "state-of-the-art humanization" features (jitter, shimmer,
+   * HNR modulation, etc.) sound terrible when combined.
    *
-   * This preset now uses the same settings as betterThanHuman.
-   * The deprecated features are kept disabled.
+   * This preset now uses the same conservative settings as betterThanHuman.
+   * DO NOT enable humanization features without extensive A/B testing.
    */
   ultraRealistic: {
-    enableBreath: true,
-    breathProbability: 0.2,
-    enableWarmth: true,
-    warmthAmount: 0.35,
     enableSoftEdges: true,
-    softEdgeMs: 15,
+    softEdgeMs: 10,
+    enableBreath: false,
+    breathProbability: 0.15,
+    enableWarmth: true,
+    warmthAmount: 0.25,
     enableCompression: true,
-    compressionRatio: 2.0,
-    compressionThresholdDb: -18,
-    enablePresence: true,
-    presenceBoostDb: 2.0,
-    // Full humanization (working features only)
-    enableAmplitudeJitter: true,
-    amplitudeJitterDepth: 0.02,
-    enablePitchDrift: true,
-    pitchDriftCents: 8,
-    enableNoiseFloor: true,
-    noiseFloorDb: -52,
-    // SOLA & emotion prosody
-    useSolaPitch: true,
-    enableEmotionProsody: true,
-    enableAdaptivePacing: false, // DISABLED: not properly implemented
+    compressionRatio: 1.5,
+    compressionThresholdDb: -20,
+    enablePresence: false,
+    presenceBoostDb: 1.5,
+    // ALL humanization OFF - these caused production issues
+    useSolaPitch: false,
+    enableEmotionProsody: false,
+    enableAdaptivePacing: false,
     contentComplexity: 0.5,
-    // DEPRECATED features - kept disabled due to audio quality issues
-    enableVocalFry: false, // DISABLED: sounds robotic
-    vocalFryDepth: 0.4,
-    vocalFryDurationMs: 200,
-    enableLipSmacks: false, // DISABLED: sounds like glitches
-    lipSmackProbability: 0.25,
-    enableTempoVariation: false, // DISABLED: causes artifacts
-    tempoVariationDepth: 0.03,
+    enableAmplitudeJitter: false,
+    amplitudeJitterDepth: 0.01,
+    enablePitchDrift: false,
+    pitchDriftCents: 3,
+    enableNoiseFloor: false,
+    noiseFloorDb: -60,
+    enableVocalFry: false,
+    vocalFryDepth: 0.3,
+    vocalFryDurationMs: 150,
+    enableLipSmacks: false,
+    lipSmackProbability: 0.2,
+    enableTempoVariation: false,
+    tempoVariationDepth: 0.02,
     enableOnsetSoftening: false,
-    // State-of-the-art humanization (all on for maximum realism)
-    enableJitter: true,
-    jitterAmount: 0.02, // Full natural range
-    enableShimmer: true,
-    shimmerAmount: 0.06, // Full natural range
-    enableHnrModulation: true,
-    hnrBreathiness: 0.2, // More breathiness
-    enableSubglottalResonance: true,
-    subglottalStrength: 0.25, // Stronger chest presence
-    enableSmileFormants: false, // Context-dependent
-    smileAmount: 0.3,
-    enableGlottalization: false, // Can be enabled per-context
-    glottalizationStrength: 0.4,
-    enableHesitationSounds: false, // Can be enabled per-context
-    hesitationProbability: 0.1,
-    enableLombardEffect: false, // Needs noise detection
-    enableRegisterTransitions: false, // Advanced use case
+    enableJitter: false,
+    jitterAmount: 0.01,
+    enableShimmer: false,
+    shimmerAmount: 0.03,
+    enableHnrModulation: false,
+    hnrBreathiness: 0.1,
+    enableSubglottalResonance: false,
+    subglottalStrength: 0.15,
+    enableSmileFormants: false,
+    smileAmount: 0.2,
+    enableGlottalization: false,
+    glottalizationStrength: 0.3,
+    enableHesitationSounds: false,
+    hesitationProbability: 0.05,
+    enableLombardEffect: false,
+    enableRegisterTransitions: false,
     targetRegister: 0,
-    enablePharyngealConstriction: false, // Context-dependent
-    pharyngealAmount: 0.3,
+    enablePharyngealConstriction: false,
+    pharyngealAmount: 0.2,
   } satisfies Partial<PostTTSConfig>,
 
   /** Bypass - no processing (for debugging) */
