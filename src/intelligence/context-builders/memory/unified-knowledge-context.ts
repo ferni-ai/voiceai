@@ -13,6 +13,7 @@
 import { createLogger } from '../../../utils/safe-logger.js';
 import type { ContextBuilderInput, ContextInjection } from '../core/types.js';
 import { registerContextBuilder } from '../core/registry.js';
+import { BuilderCategory } from '../core/categories.js';
 
 const log = createLogger({ module: 'unified-knowledge-context' });
 
@@ -57,7 +58,14 @@ function setCache(userId: string, injection: string): void {
 async function buildUnifiedKnowledgeContext(
   input: ContextBuilderInput
 ): Promise<ContextInjection[]> {
-  const { userId, turnCount } = input;
+  // Extract userId and turnCount from the input structure
+  const userId = input.services?.userId;
+  const turnCount = input.userData?.turnCount ?? 0;
+
+  if (!userId) {
+    log.debug('No userId available, skipping unified knowledge');
+    return [];
+  }
 
   // Only inject on first few turns or periodically
   // Knowledge context is expensive and doesn't change mid-conversation
@@ -71,6 +79,7 @@ async function buildUnifiedKnowledgeContext(
     log.debug({ userId, cached: true }, 'Using cached unified knowledge');
     return [
       {
+        id: `unified-knowledge-${userId}-${Date.now()}`,
         content: cached,
         priority: 'high',
         source: 'unified_knowledge',
@@ -84,24 +93,23 @@ async function buildUnifiedKnowledgeContext(
       '../../../services/superhuman/unified-user-knowledge.js'
     );
 
-    const injection = await getUnifiedKnowledgeInjection(userId, {
-      maxPeople: 8, // Keep context reasonable
-      maxTopics: 8,
-      maxMoments: 3,
-    });
+    const result = await getUnifiedKnowledgeInjection(userId);
 
-    if (!injection) {
+    if (!result || !result.content) {
       return [];
     }
 
-    // Cache it
-    setCache(userId, injection);
+    const injectionContent = result.content;
 
-    log.debug({ userId, length: injection.length }, 'Built unified knowledge context');
+    // Cache it
+    setCache(userId, injectionContent);
+
+    log.debug({ userId, length: injectionContent.length }, 'Built unified knowledge context');
 
     return [
       {
-        content: injection,
+        id: `unified-knowledge-${userId}-${Date.now()}`,
+        content: injectionContent,
         priority: 'high',
         source: 'unified_knowledge',
       },
@@ -117,30 +125,10 @@ async function buildUnifiedKnowledgeContext(
 // ============================================================================
 
 registerContextBuilder({
-  id: 'unified-knowledge',
-  name: 'Unified Knowledge (Better Than Human Memory)',
-  description: 'Comprehensive user knowledge from all memory sources',
-  category: 'memory',
+  name: 'unified-knowledge',
+  description: 'Comprehensive user knowledge from all memory sources (Better Than Human Memory)',
+  category: BuilderCategory.MEMORY,
   priority: 85, // High priority - foundational context
-  enabled: true,
-
-  // Run for all personas - everyone benefits from knowing the user
-  personaFilter: () => true,
-
-  // Session-level context - doesn't need every turn
-  triggerCondition: (input) => {
-    // First turn: always
-    if (input.turnCount <= 1) return true;
-    // Early turns: help establish context
-    if (input.turnCount <= 3) return true;
-    // Periodic refresh
-    if (input.turnCount % 10 === 0) return true;
-    // Handoff: need fresh context
-    if (input.isHandoff) return true;
-
-    return false;
-  },
-
   build: buildUnifiedKnowledgeContext,
 });
 
