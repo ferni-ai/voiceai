@@ -17,7 +17,7 @@ jobs:
   # ============================================================================
   lint:
     name: Lint & Type Check
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux, X64, gce]
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -58,7 +58,7 @@ jobs:
   # ============================================================================
   test-unit:
     name: Unit Tests
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux, X64, gce]
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -105,7 +105,7 @@ jobs:
   # ============================================================================
   test-integration:
     name: Integration Tests
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux, X64, gce]
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -170,7 +170,7 @@ jobs:
   # ============================================================================
   build:
     name: Build
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux, X64, gce]
     needs: [lint, test-unit, test-integration]
     steps:
       - name: Checkout
@@ -224,7 +224,7 @@ jobs:
   # ============================================================================
   security:
     name: Security Scan
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux, X64, gce]
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -268,7 +268,7 @@ jobs:
   # ============================================================================
   code-quality:
     name: Code Quality Metrics
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux, X64, gce]
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -307,7 +307,7 @@ jobs:
   # ============================================================================
   quality-gates:
     name: Quality Gates (Blocking)
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux, X64, gce]
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -345,7 +345,7 @@ jobs:
   # ============================================================================
   validation:
     name: Validation Checks
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux, X64, gce]
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -386,7 +386,7 @@ jobs:
   # ============================================================================
   frontend-quality:
     name: Frontend Quality
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux, X64, gce]
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -449,7 +449,7 @@ jobs:
   # ============================================================================
   dependencies:
     name: Dependency Check
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux, X64, gce]
     steps:
       - name: Checkout
         uses: actions/checkout@v4

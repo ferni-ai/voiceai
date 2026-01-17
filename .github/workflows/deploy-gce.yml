@@ -59,7 +59,7 @@ jobs:
   # ============================================================================
   prepare:
     name: Prepare
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux, X64, gce]
     outputs:
       image_tag: ${{ steps.vars.outputs.image_tag }}
       should_deploy: ${{ steps.check.outputs.should_deploy }}
@@ -87,7 +87,7 @@ jobs:
   # ============================================================================
   build:
     name: Build Docker Image
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux, X64, gce]
     needs: prepare
     if: needs.prepare.outputs.should_deploy == 'true'
     steps:
@@ -125,7 +125,7 @@ jobs:
   # ============================================================================
   deploy:
     name: Deploy to GCE
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux, X64, gce]
     needs: [prepare, build]
     if: needs.prepare.outputs.should_deploy == 'true'
     steps:
@@ -324,7 +324,7 @@ jobs:
   # ============================================================================
   rollback:
     name: Rollback
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux, X64, gce]
     if: github.event.inputs.rollback == 'true'
     steps:
       - name: Authenticate to Google Cloud
