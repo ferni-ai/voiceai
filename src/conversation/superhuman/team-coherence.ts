@@ -16,7 +16,7 @@
  * @module @ferni/superhuman/team-coherence
  */
 
-import { seededChance, seededPick, seededIndex } from '../utils/rng.js';
+import { seededChance, seededPick, seededIndex } from '../utils/random-generator.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import type { TeamAwarenessResult, TeamCoherence, TeamHandoffNote } from './types.js';
 

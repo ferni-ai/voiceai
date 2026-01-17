@@ -8,7 +8,7 @@
  * @module conversation/conversational-memory/quoted-memory
  */
 
-import { seededChance, seededPick, seededIndex } from '../utils/rng.js';
+import { seededChance, seededPick, seededIndex } from '../utils/random-generator.js';
 import { humanizationSignalEmitter } from '../../services/humanization/humanization-signal-emitter.js';
 import { getLogger } from '../../utils/safe-logger.js';
 

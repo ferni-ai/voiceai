@@ -16,7 +16,7 @@
 
 import { getLogger } from '../../utils/safe-logger.js';
 
-import { seededChance, seededPick } from '../utils/rng.js';
+import { seededChance, seededPick } from '../utils/random-generator.js';
 
 import { CallbackGenerator } from './callbacks.js';
 import { ContradictionDetector } from './contradiction-detection.js';

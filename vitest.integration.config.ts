@@ -16,7 +16,7 @@ export default defineConfig({
   test: {
     globals: true,
     environment: 'node',
-    include: ['src/tests/integrations/**/*.test.ts'],
+    include: ['src/tests/integration/**/*.test.ts'],
     // Override the exclude to allow integration tests
     exclude: ['node_modules/**', 'dist/**'],
     setupFiles: ['./src/tests/setup.ts'],

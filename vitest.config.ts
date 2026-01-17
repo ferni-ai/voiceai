@@ -16,7 +16,7 @@ export default defineConfig({
       'apps/**',
       'e2e/**',
       // E2E integration tests require real API credentials - run manually
-      'src/tests/integrations/**',
+      'src/tests/integration/**',
       // Gemini E2E tests hit real APIs and are flaky (rate limits, LLM non-determinism)
       // Run manually: pnpm vitest run src/tests/e2e/gemini-integration/
       'src/tests/e2e/gemini-integration/**',

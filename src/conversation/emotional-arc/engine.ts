@@ -6,7 +6,7 @@
  * @module @ferni/conversation/emotional-arc/engine
  */
 
-import { seededPick } from '../utils/rng.js';
+import { seededPick } from '../utils/random-generator.js';
 import type { EmotionResult } from '../../intelligence/emotion-detector.js';
 import { humanizationSignalEmitter } from '../../services/humanization/humanization-signal-emitter.js';
 import type { VoiceEmotionResult } from '../../speech/audio-prosody.js';

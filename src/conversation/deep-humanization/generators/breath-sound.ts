@@ -7,7 +7,7 @@
  * @module @ferni/conversation/deep-humanization/generators/breath-sound
  */
 
-import { seededChance, seededIndex, seededPick } from '../../utils/rng.js';
+import { seededChance, seededIndex, seededPick } from '../../utils/random-generator.js';
 import type {
   HumanizationContext,
   ConversationMood,

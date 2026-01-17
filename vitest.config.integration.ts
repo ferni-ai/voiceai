@@ -30,7 +30,7 @@ export default defineConfig({
       '**/*.e2e.test.ts',
       '**/e2e/**',
       // Exclude tests that need real external APIs
-      'src/tests/integrations/**',
+      'src/tests/integration/**',
       'src/tests/e2e/gemini-integration/**',
       // Firestore tests need emulator
       '**/*firestore*.test.ts',

@@ -9,7 +9,7 @@
  * @module conversation/superhuman/natural-speech
  */
 
-import { seededChance, seededFloat, seededIndex, seededPick } from '../utils/rng.js';
+import { seededChance, seededFloat, seededIndex, seededPick } from '../utils/random-generator.js';
 import { createLogger } from '../../utils/safe-logger.js';
 
 const log = createLogger({ module: 'NaturalSpeech' });

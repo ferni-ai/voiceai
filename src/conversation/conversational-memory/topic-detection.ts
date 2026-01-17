@@ -7,7 +7,7 @@
  * @module conversation/conversational-memory/topic-detection
  */
 
-import { seededChance, seededPick, seededIndex } from '../utils/rng.js';
+import { seededChance, seededPick, seededIndex } from '../utils/random-generator.js';
 import { getTopicTracker } from '../../intelligence/topic-tracker.js';
 import { getContentWithFallback, type ContentContext } from '../../services/llm-dynamic-content.js';
 

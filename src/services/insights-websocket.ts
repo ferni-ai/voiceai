@@ -53,6 +53,9 @@ const HEARTBEAT_INTERVAL = 30000;
 // Store interval handle for cleanup
 let heartbeatInterval: ReturnType<typeof setInterval> | null = null;
 
+// Store broadcast subscription unsubscribe function to prevent memory leak
+let broadcastUnsubscribe: (() => void) | null = null;
+
 // ============================================================================
 // WEBSOCKET SERVER
 // ============================================================================
@@ -95,8 +98,8 @@ export function initInsightsWebSocket(httpServer: Server): WebSocketServer {
 
   log.info('Insights WebSocket server initialized on /ws/insights');
 
-  // Subscribe to broadcast events
-  insightsBroadcast.subscribe((event: InsightBroadcastEvent) => {
+  // Subscribe to broadcast events (store unsubscribe to prevent memory leak)
+  broadcastUnsubscribe = insightsBroadcast.subscribe((event: InsightBroadcastEvent) => {
     broadcastToUser(event.userId, {
       type: 'event',
       event,
@@ -411,6 +414,12 @@ export function shutdownInsightsWebSocket(): void {
   if (heartbeatInterval) {
     clearNamedInterval('insights-websocket-heartbeat');
     heartbeatInterval = null;
+  }
+
+  // Unsubscribe from broadcast to prevent memory leak
+  if (broadcastUnsubscribe) {
+    broadcastUnsubscribe();
+    broadcastUnsubscribe = null;
   }
 
   // Stop all monitoring

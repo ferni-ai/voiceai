@@ -15,7 +15,7 @@
  * This module transforms robotic content delivery into engaging storytelling.
  */
 
-import { seededChance, seededFloat, seededIndex, seededPick } from './utils/rng.js';
+import { seededChance, seededFloat, seededIndex, seededPick } from './utils/random-generator.js';
 import { getLogger } from '../utils/safe-logger.js';
 
 const log = getLogger().child({ module: 'ContentDeliveryPacing' });

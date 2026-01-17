@@ -15,7 +15,7 @@ import { createLogger } from '../../utils/safe-logger.js';
 import { countWordsRust, isTokenCountingAvailable } from '../../memory/rust-accelerator.js';
 import { createSessionRegistry, registerGlobalRegistry } from '../../utils/session-registry.js';
 
-import { seededPick } from '../utils/rng.js';
+import { seededPick } from '../utils/random-generator.js';
 
 import {
   ADVICE_PATTERNS,

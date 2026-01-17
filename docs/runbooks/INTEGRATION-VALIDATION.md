@@ -118,7 +118,7 @@ cd apps/web && pnpm dev
 pnpm test:integrations
 
 # Specific integration tests
-pnpm vitest run src/tests/integrations/
+pnpm vitest run src/tests/integration/
 
 # Wearable integrations
 pnpm vitest run src/tests/wearable-integrations.test.ts
@@ -287,7 +287,7 @@ pnpm vitest run src/tests/maya-santos-persona-e2e.test.ts
 pnpm vitest run src/tests/alex-chen-persona-e2e.test.ts
 
 # Integration E2E
-pnpm vitest run src/tests/integrations/integrations-e2e.test.ts
+pnpm vitest run src/tests/integration/integrations-e2e.test.ts
 ```
 
 ### CI/CD Integration

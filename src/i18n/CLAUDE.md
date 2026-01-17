@@ -21,7 +21,7 @@ Provides complete i18n support with:
 |------|---------|
 | `index.ts` | Core i18n API: `t()`, `setLocale()`, `formatDate()`, etc. |
 | `types.ts` | Type definitions, locale metadata, fallback chains |
-| `rtl.ts` | RTL-specific utilities (Arabic, Hebrew) |
+| `right-to-left.ts` | RTL-specific utilities (Arabic, Hebrew) |
 | `pricing.ts` | Locale-aware pricing and currency display |
 | `detection/browser.ts` | Browser locale detection |
 | `formatters/date.ts` | Date/time formatting |

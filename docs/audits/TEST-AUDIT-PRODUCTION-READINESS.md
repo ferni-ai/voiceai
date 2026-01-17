@@ -204,7 +204,7 @@ exclude: [
 jobs:
   unit-tests:
     # Fast, no external dependencies
-    exclude: ['src/tests/e2e/**', 'src/tests/integrations/**']
+    exclude: ['src/tests/e2e/**', 'src/tests/integration/**']
 
   integration-tests:
     # Requires secrets, can use mocks

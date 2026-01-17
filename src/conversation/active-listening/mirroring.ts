@@ -6,7 +6,7 @@
  * @module conversation/active-listening/mirroring
  */
 
-import { seededIndex } from '../utils/rng.js';
+import { seededIndex } from '../utils/random-generator.js';
 
 import type { MirroredPhrase } from './types.js';
 

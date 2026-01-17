@@ -19,7 +19,7 @@
  * @module @ferni/services/superhuman/observations
  */
 
-import { seededChance, seededPick } from '../../conversation/utils/rng.js';
+import { seededChance, seededPick } from '../../conversation/utils/random-generator.js';
 import { createLogger } from '../../utils/safe-logger.js';
 
 const logger = createLogger({ module: 'SuperhumanObservations' });

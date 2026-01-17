@@ -6,7 +6,7 @@
  * @module @ferni/conversation/temporal-context/engine
  */
 
-import { seededPick } from '../utils/rng.js';
+import { seededPick } from '../utils/random-generator.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import {
   generateContent,

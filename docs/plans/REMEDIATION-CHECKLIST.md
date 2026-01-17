@@ -100,7 +100,7 @@ log.info({ data }, 'message');
 | `src/tests/speech-modules.test.ts`                       | 43      | [ ]    |
 | `src/tasks/__tests__/transitions.test.ts`                | 13      | [ ]    |
 | `src/agents/__tests__/voice-agent-integration.test.ts`   | 7       | [ ]    |
-| `src/tests/integrations/google-places-e2e.test.ts`       | 6       | [ ]    |
+| `src/tests/integration/google-places-e2e.test.ts`       | 6       | [ ]    |
 | `src/tests/awareness-system.test.ts`                     | 6       | [ ]    |
 | `src/agents/processors/__tests__/turn-processor.test.ts` | 6       | [ ]    |
 

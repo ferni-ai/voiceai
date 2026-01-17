@@ -488,10 +488,10 @@ npx ts-node scripts/validate-integrations.ts --send-test
 
 ```bash
 # Communication tests (email, SMS, calls)
-npx vitest run src/tests/integrations/communication-e2e.test.ts
+npx vitest run src/tests/integration/communication-e2e.test.ts
 
 # Scheduling tests (appointments, reservations)
-npx vitest run src/tests/integrations/scheduling-e2e.test.ts
+npx vitest run src/tests/integration/scheduling-e2e.test.ts
 ```
 
 ### Manual Check

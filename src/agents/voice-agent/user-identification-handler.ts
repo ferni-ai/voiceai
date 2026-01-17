@@ -103,9 +103,6 @@ export async function identifyUser(
       userId = identification.userId;
       identificationSource = identification.source.type;
 
-      // Track userId globally for trust systems (Our Songs, etc.)
-      (globalThis as unknown as { __ferniCurrentUserId?: string }).__ferniCurrentUserId = userId;
-
       // CRITICAL: Only use REAL names, never placeholders!
       // Priority: 1. Profile name (persistent), 2. Metadata name (if real)
       const metadataName = metadata.user_name || metadata.userName;

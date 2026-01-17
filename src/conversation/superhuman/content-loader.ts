@@ -7,7 +7,7 @@
  * @module @ferni/superhuman/content-loader
  */
 
-import { seededChance, seededPick, seededIndex } from '../utils/rng.js';
+import { seededChance, seededPick, seededIndex } from '../utils/random-generator.js';
 import { readFile } from 'fs/promises';
 import { join } from 'path';
 import { createLogger } from '../../utils/safe-logger.js';

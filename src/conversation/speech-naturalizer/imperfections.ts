@@ -6,7 +6,7 @@
  * @module @ferni/conversation/speech-naturalizer/imperfections
  */
 
-import { createSeededRandom, createSystemRandom, type RandomSource } from '../utils/rng.js';
+import { createSeededRandom, createSystemRandom, type RandomSource } from '../utils/random-generator.js';
 import type { RandomOptions } from './types.js';
 
 function getRng(options: RandomOptions | undefined, salt: string): RandomSource {

@@ -20,7 +20,7 @@
  * @module conversation/mid-response-tangents
  */
 
-import { seededChance, seededFloat, seededIndex, seededPick } from './utils/rng.js';
+import { seededChance, seededFloat, seededIndex, seededPick } from './utils/random-generator.js';
 import {
   getSessionVarietyTracker,
   type ThemeCategory,

@@ -7,7 +7,7 @@
  * - Life Expectancy (Nayan)
  * - Context Builders
  *
- * @module tests/integrations/new-integrations
+ * @module tests/integration/new-integrations
  */
 
 import { describe, it, expect, beforeAll, vi } from 'vitest';

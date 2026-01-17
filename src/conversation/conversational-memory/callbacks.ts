@@ -9,7 +9,7 @@
 
 import { getLogger } from '../../utils/safe-logger.js';
 
-import { seededPick } from '../utils/rng.js';
+import { seededPick } from '../utils/random-generator.js';
 
 import type {
   ConversationCommitment,

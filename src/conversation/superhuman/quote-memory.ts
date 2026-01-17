@@ -9,7 +9,7 @@
  * @module conversation/superhuman/quote-memory
  */
 
-import { seededChance, seededPick, seededIndex } from '../utils/rng.js';
+import { seededChance, seededPick, seededIndex } from '../utils/random-generator.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
 

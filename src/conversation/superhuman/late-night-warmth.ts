@@ -19,7 +19,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
-import { seededPick } from '../utils/rng.js';
+import { seededPick } from '../utils/random-generator.js';
 
 const log = createLogger({ module: 'LateNightWarmth' });
 

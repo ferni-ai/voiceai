@@ -17,7 +17,7 @@
 
 import { humanizationSignalEmitter } from '../services/humanization/humanization-signal-emitter.js';
 import { createLogger } from '../utils/safe-logger.js';
-import { seededChance, seededFloat, seededIndex } from './utils/rng.js';
+import { seededChance, seededFloat, seededIndex } from './utils/random-generator.js';
 
 const logger = createLogger({ module: 'SilencePresence' });
 

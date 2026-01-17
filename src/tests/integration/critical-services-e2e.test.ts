@@ -8,7 +8,7 @@
  * - Spotify OAuth (music features)
  * - Hume AI Emotion Detection (core EQ)
  *
- * Run with: npx vitest run --config vitest.integration.config.ts src/tests/integrations/critical-services-e2e.test.ts
+ * Run with: npx vitest run --config vitest.integration.config.ts src/tests/integration/critical-services-e2e.test.ts
  */
 
 import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';

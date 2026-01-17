@@ -7,7 +7,7 @@
  * - Full appointment integration (call → calendar → notification)
  *
  * Run with:
- *   npx vitest run src/tests/integrations/appointment-e2e.test.ts
+ *   npx vitest run src/tests/integration/appointment-e2e.test.ts
  */
 
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';

@@ -59,4 +59,4 @@ export {
   seededIndex,
   seededPick,
   type RandomSource,
-} from './rng.js';
+} from './random-generator.js';

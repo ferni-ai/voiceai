@@ -7,7 +7,7 @@
  * @module conversation/proactive-memory/surfacing
  */
 
-import { seededPick } from '../utils/rng.js';
+import { seededPick } from '../utils/random-generator.js';
 
 import type {
   PatternDetection,

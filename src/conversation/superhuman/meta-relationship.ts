@@ -10,7 +10,7 @@
  * @module @ferni/superhuman/meta-relationship
  */
 
-import { seededChance, seededIndex, seededPick } from '../utils/rng.js';
+import { seededChance, seededIndex, seededPick } from '../utils/random-generator.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { getBetterThanHumanContentSync, getMetaRelationshipPhrase } from './content-loader.js';
 import type {

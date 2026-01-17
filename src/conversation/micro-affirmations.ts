@@ -16,7 +16,7 @@
  * @module @ferni/micro-affirmations
  */
 
-import { seededChance, seededIndex, seededPick } from './utils/rng.js';
+import { seededChance, seededIndex, seededPick } from './utils/random-generator.js';
 import { createLogger } from '../utils/safe-logger.js';
 
 const logger = createLogger({ module: 'MicroAffirmations' });

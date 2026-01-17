@@ -15,7 +15,7 @@
  * @module conversation/momentum-tracker
  */
 
-import { seededChance, seededPick, seededIndex } from './utils/rng.js';
+import { seededChance, seededPick, seededIndex } from './utils/random-generator.js';
 import { createLogger } from '../utils/safe-logger.js';
 import { recordMomentumTransition, recordMomentumVelocity } from './awareness-metrics.js';
 

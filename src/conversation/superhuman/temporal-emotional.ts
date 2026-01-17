@@ -15,7 +15,7 @@
  * @module @ferni/superhuman/temporal-emotional
  */
 
-import { seededChance, seededIndex, seededPick } from '../utils/rng.js';
+import { seededChance, seededIndex, seededPick } from '../utils/random-generator.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import type {
   EmotionalShift,

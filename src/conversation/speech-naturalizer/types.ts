@@ -6,7 +6,7 @@
  * @module @ferni/conversation/speech-naturalizer/types
  */
 
-import type { RandomSource } from '../utils/rng.js';
+import type { RandomSource } from '../utils/random-generator.js';
 
 export interface DisfluencyConfig {
   enabled: boolean;

@@ -891,6 +891,12 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
             const { routeDirectly, isDirectRoutingEnabled } = await import('./direct-tool-router.js');
 
             if (isDirectRoutingEnabled()) {
+              // RACE CONDITION FIX: Re-check session closing before taking action
+              if (isSessionClosing(sessionId)) {
+                diag.state('🚨 [EMPTY_RESPONSE_WATCHDOG] Skipped - session closing (re-check)');
+                return;
+              }
+
               const directResult = await routeDirectly(lastUserMessageForRecovery, {
                 userId: userData.userId || 'anonymous',
                 sessionId,
@@ -1012,6 +1018,14 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
                 turnCount,
                 hasContext: !!lastTranscript,
               });
+
+              // RACE CONDITION FIX: Re-check session closing state just before action
+              // Session could have started closing during the async operations above
+              if (isSessionClosing(sessionId)) {
+                diag.state('Early dead air skipped - session closing (re-check)');
+                earlyAckTimer = null;
+                return;
+              }
 
               // Use generateReplyWithContext which formats as behavioral instructions
               // Pass sessionId so session-closing check prevents errors during disconnect

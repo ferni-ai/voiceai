@@ -1323,6 +1323,26 @@ No manual wiring needed - the semantic router handles discovery.
 | Constants           | `SCREAMING_SNAKE`       | `MAX_RETRY_ATTEMPTS`               |
 | Booleans            | `is`/`has`/`can` prefix | `isActive`, `hasPermission`        |
 
+## Module Suffix Conventions
+
+When naming TypeScript modules, use consistent suffixes based on the module's responsibility:
+
+| Suffix | Use When | Examples |
+|--------|----------|----------|
+| `-service.ts` | Stateless business logic, CRUD operations, external API integrations | `calendar-service.ts`, `auth-service.ts` |
+| `-manager.ts` | Stateful resource management, lifecycle control, registry patterns | `session-manager.ts`, `cache-manager.ts` |
+| `-handler.ts` | Reactive event/request processing, webhooks, message handling | `webhook-handler.ts`, `error-handler.ts` |
+| `-engine.ts` | Complex algorithms, core domain logic, decision-making | `recommendation-engine.ts`, `humanization-engine.ts` |
+| `-executor.ts` | Proactive task/job execution, scheduled work | `job-executor.ts`, `tool-executor.ts` |
+| `-orchestrator.ts` | Multi-component coordination, workflow management | `multi-agent-orchestrator.ts`, `session-orchestrator.ts` |
+| `-controller.ts` | **DEPRECATED** - Use `-handler.ts` for request/response handling |
+
+### Rules
+
+- **Don't mix patterns**: A module should be either a service OR a manager, not both
+- **Same name, different layers is OK**: `utils/rate-limiter.ts` (generic) and `tools/rate-limiter.ts` (specialized) can coexist
+- **Apply to new files only**: Don't mass-rename existing files (too risky)
+
 ## Architecture Layers
 
 Import rules: Lower layers CANNOT import from higher layers (enforced by `pnpm quality:arch`).

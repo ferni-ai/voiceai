@@ -5,7 +5,7 @@
  * to make Jack feel responsive and natural.
  */
 
-import { seededChance, seededPick, seededIndex } from './utils/rng.js';
+import { seededChance, seededPick, seededIndex } from './utils/random-generator.js';
 import { getLogger } from '../utils/safe-logger.js';
 
 import type { AudioFrame } from '@livekit/rtc-node';

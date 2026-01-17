@@ -15,7 +15,7 @@
  * @module @ferni/conversation/orchestrator
  */
 
-import { seededChance, seededPick, seededIndex } from '../utils/rng.js';
+import { seededChance, seededPick, seededIndex } from '../utils/random-generator.js';
 import { createLogger } from '../../utils/safe-logger.js';
 
 // SSML sanitization - ensures stage directions like "*chuckles*" or "[gentle chuckle]" are handled

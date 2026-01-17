@@ -16,7 +16,7 @@
  * @module @ferni/hope-injection
  */
 
-import { seededChance, seededPick, seededIndex } from './utils/rng.js';
+import { seededChance, seededPick, seededIndex } from './utils/random-generator.js';
 import { getContentWithFallback, type ContentContext } from '../services/llm-dynamic-content.js';
 import { createLogger } from '../utils/safe-logger.js';
 

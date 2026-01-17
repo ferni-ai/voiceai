@@ -12,7 +12,7 @@ import {
   type ContentContext,
 } from '../../services/llm-dynamic-content.js';
 import { createLogger } from '../../utils/safe-logger.js';
-import { seededChance, seededPick } from '../utils/rng.js';
+import { seededChance, seededPick } from '../utils/random-generator.js';
 
 import type { Question, QuestionContext, QuestionType } from './types.js';
 import { QUESTION_TEMPLATES } from './templates.js';

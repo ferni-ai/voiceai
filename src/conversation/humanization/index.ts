@@ -21,7 +21,7 @@ import { createLogger } from '../../utils/safe-logger.js';
 // 🦀 Rust-accelerated word counting
 import { countWordsRust, isTokenCountingAvailable } from '../../memory/rust-accelerator.js';
 
-import { seededChance } from '../utils/rng.js';
+import { seededChance } from '../utils/random-generator.js';
 
 // Shared detection utilities
 import {

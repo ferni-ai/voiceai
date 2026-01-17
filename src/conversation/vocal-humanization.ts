@@ -24,7 +24,7 @@ import {
   type EnergyLevel,
 } from './utils/detection.js';
 
-import { chance, createSeededRandom, createSystemRandom, type RandomSource } from './utils/rng.js';
+import { chance, createSeededRandom, createSystemRandom, type RandomSource } from './utils/random-generator.js';
 
 const log = getLogger().child({ module: 'VocalHumanization' });
 

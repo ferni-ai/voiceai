@@ -132,13 +132,17 @@ async function getAllUserIdsWithCalendar(): Promise<string[]> {
 }
 
 // Get user timezone from preferences or default
+// FIX: Use UTC as fallback instead of hardcoded US timezone (international support)
 async function getUserTimezone(userId: string): Promise<string> {
   try {
     const contactInfo = await getUserContactInfo(userId);
-    return contactInfo?.timezone ?? 'America/New_York';
+    // Return user's configured timezone, or UTC as neutral fallback
+    // Note: UTC means briefings may arrive at unexpected times for users without timezone set
+    // This is better than assuming everyone is in New York
+    return contactInfo?.timezone ?? 'Etc/UTC';
   } catch (error) {
-    log.debug({ error: String(error), userId }, 'Failed to get user timezone, using default');
-    return 'America/New_York';
+    log.debug({ error: String(error), userId }, 'Failed to get user timezone, using UTC fallback');
+    return 'Etc/UTC';
   }
 }
 

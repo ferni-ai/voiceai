@@ -110,7 +110,7 @@ New file: `src/speech/backchannel-phrase-selector.ts`
  */
 
 import { getBackchannelSync, loadPersonaVoiceData } from './persona-voice-loader.js';
-import { seededIndex, seededChance } from '../conversation/utils/rng.js';
+import { seededIndex, seededChance } from '../conversation/utils/random-generator.js';
 
 interface PhraseHistory {
   used: string[];

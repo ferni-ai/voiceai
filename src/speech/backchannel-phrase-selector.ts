@@ -16,7 +16,7 @@
  * @module speech/backchannel-phrase-selector
  */
 
-import { seededChance, seededIndex } from '../conversation/utils/rng.js';
+import { seededChance, seededIndex } from '../conversation/utils/random-generator.js';
 import { createLogger } from '../utils/safe-logger.js';
 import { canAddFeedback, recordFeedback } from './feedback-coordinator.js';
 import {

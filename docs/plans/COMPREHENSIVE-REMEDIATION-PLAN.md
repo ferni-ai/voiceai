@@ -328,8 +328,8 @@ Tasks:
 
 **Files**:
 
-- `src/tests/integrations/google-places-e2e.test.ts` - 6 skipped
-- `src/tests/integrations/communication-e2e.test.ts` - 6 skipped
+- `src/tests/integration/google-places-e2e.test.ts` - 6 skipped
+- `src/tests/integration/communication-e2e.test.ts` - 6 skipped
 
 ```
 Tasks:

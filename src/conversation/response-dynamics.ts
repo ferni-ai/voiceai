@@ -10,7 +10,7 @@
  * - Turn-taking optimization
  */
 
-import { seededChance, seededPick, seededIndex } from './utils/rng.js';
+import { seededChance, seededPick, seededIndex } from './utils/random-generator.js';
 import { getLogger } from '../utils/safe-logger.js';
 
 // ============================================================================

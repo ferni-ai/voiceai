@@ -6,7 +6,7 @@
  * @module @ferni/conversation/speech-naturalizer/engine
  */
 
-import { chance, createSeededRandom, createSystemRandom, type RandomSource } from '../utils/rng.js';
+import { chance, createSeededRandom, createSystemRandom, type RandomSource } from '../utils/random-generator.js';
 import { requestThinkingPhrase, wasPhraseUsedThisTurn } from '../thinking-phrase-coordinator.js';
 
 import type {

@@ -175,6 +175,15 @@ const healthCheckIntervals = new Map<string, ReturnType<typeof setInterval>>();
 const responseTimeHistory = new Map<string, number[]>();
 const pingCallbacks = new Map<string, PingCallback>();
 
+// TTL for orphaned sessions (1 hour) - sessions with no activity are cleaned up
+const SESSION_TTL_MS = 60 * 60 * 1000;
+
+// Periodic cleanup interval (10 minutes)
+const CLEANUP_INTERVAL_MS = 10 * 60 * 1000;
+
+// Track cleanup interval for shutdown
+let orphanCleanupInterval: ReturnType<typeof setInterval> | null = null;
+
 // Global circuit breaker state (affects all OpenAI connections)
 const circuitBreaker: CircuitBreakerState = {
   state: 'closed',
@@ -910,6 +919,108 @@ export function exportPrometheusMetrics(): string {
   ].join('\n');
 }
 
+// ============================================================================
+// ORPHAN CLEANUP (Prevent unbounded Map growth)
+// ============================================================================
+
+/**
+ * Clean up sessions that haven't had any activity within TTL.
+ * This prevents memory leaks from sessions that exit without calling stopHealthMonitoring.
+ */
+export function cleanupOrphanedSessions(): number {
+  const now = Date.now();
+  const orphanedSessions: string[] = [];
+
+  for (const [sessionId, health] of connectionHealth.entries()) {
+    // Get the most recent activity timestamp
+    const lastActivity = Math.max(
+      health.lastSuccessfulRequestAt || 0,
+      health.lastFailedRequestAt || 0,
+      health.lastPongAt || 0,
+      health.lastCheckAt || 0
+    );
+
+    // If no activity ever recorded, use a fallback
+    const activityAge = lastActivity > 0 ? now - lastActivity : SESSION_TTL_MS + 1;
+
+    if (activityAge > SESSION_TTL_MS) {
+      orphanedSessions.push(sessionId);
+    }
+  }
+
+  if (orphanedSessions.length > 0) {
+    log.warn(
+      { count: orphanedSessions.length, sessions: orphanedSessions.slice(0, 5) },
+      '🏥 [HEALTH] Cleaning up orphaned sessions'
+    );
+  }
+
+  for (const sessionId of orphanedSessions) {
+    stopHealthMonitoring(sessionId);
+  }
+
+  return orphanedSessions.length;
+}
+
+/**
+ * Start periodic orphan cleanup (call once at startup).
+ */
+export function startOrphanCleanup(): void {
+  if (orphanCleanupInterval) {
+    log.debug('🏥 [HEALTH] Orphan cleanup already running');
+    return;
+  }
+
+  orphanCleanupInterval = setInterval(() => {
+    try {
+      cleanupOrphanedSessions();
+    } catch (err) {
+      log.warn({ error: String(err) }, '🏥 [HEALTH] Orphan cleanup failed');
+    }
+  }, CLEANUP_INTERVAL_MS);
+
+  log.info('🏥 [HEALTH] Started orphan cleanup interval');
+}
+
+/**
+ * Stop periodic orphan cleanup.
+ */
+export function stopOrphanCleanup(): void {
+  if (orphanCleanupInterval) {
+    clearInterval(orphanCleanupInterval);
+    orphanCleanupInterval = null;
+    log.debug('🏥 [HEALTH] Stopped orphan cleanup interval');
+  }
+}
+
+/**
+ * Clear all state (for testing or complete shutdown).
+ */
+export function clearAllState(): void {
+  // Stop orphan cleanup
+  stopOrphanCleanup();
+
+  // Clear all intervals
+  for (const [sessionId, interval] of healthCheckIntervals.entries()) {
+    clearInterval(interval);
+  }
+
+  // Clear all maps
+  connectionHealth.clear();
+  healthCheckIntervals.clear();
+  responseTimeHistory.clear();
+  pingCallbacks.clear();
+
+  // Reset circuit breaker
+  circuitBreaker.state = 'closed';
+  circuitBreaker.failureCount = 0;
+  circuitBreaker.halfOpenAttempts = 0;
+  circuitBreaker.lastFailureAt = undefined;
+  circuitBreaker.openedAt = undefined;
+
+  log.info('🏥 [HEALTH] Cleared all health monitor state');
+}
+
 export default {
   startHealthMonitoring,
   stopHealthMonitoring,
@@ -929,4 +1040,8 @@ export default {
   getHealthSummary,
   getObservabilityMetrics,
   exportPrometheusMetrics,
+  cleanupOrphanedSessions,
+  startOrphanCleanup,
+  stopOrphanCleanup,
+  clearAllState,
 };

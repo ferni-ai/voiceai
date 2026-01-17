@@ -5,7 +5,7 @@
  * cognitive style. This creates truly differentiated conversations.
  */
 
-import { seededChance, seededFloat, seededIndex, seededPick } from './utils/rng.js';
+import { seededChance, seededFloat, seededIndex, seededPick } from './utils/random-generator.js';
 import type { ReasoningStyle } from '../personas/cognitive-types.js';
 import { getCognitiveProfile } from '../personas/cognitive-profiles.js';
 

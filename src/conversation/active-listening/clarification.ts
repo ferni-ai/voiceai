@@ -7,7 +7,7 @@
  */
 
 import { getContentWithFallback, type ContentContext } from '../../services/llm-dynamic-content.js';
-import { seededIndex } from '../utils/rng.js';
+import { seededIndex } from '../utils/random-generator.js';
 
 import type { ClarifyingQuestion } from './types.js';
 

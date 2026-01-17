@@ -23,7 +23,7 @@
  * @module @ferni/session-intelligence
  */
 
-import { seededChance, seededPick, seededIndex } from './utils/rng.js';
+import { seededChance, seededPick, seededIndex } from './utils/random-generator.js';
 import { humanizationSignalEmitter } from '../services/humanization/humanization-signal-emitter.js';
 import { createLogger } from '../utils/safe-logger.js';
 import {

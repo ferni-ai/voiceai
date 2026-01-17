@@ -18,7 +18,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
-import { seededPick, seededChance } from '../utils/rng.js';
+import { seededPick, seededChance } from '../utils/random-generator.js';
 
 const log = createLogger({ module: 'MemoryCallbacks' });
 

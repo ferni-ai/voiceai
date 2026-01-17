@@ -20,7 +20,7 @@
  * export TEST_PHONE_NUMBER=+1xxxxxxxxxx  # Your test number
  * export TEST_EMAIL=your_test@email.com
  *
- * npx vitest run src/tests/integrations/communication-e2e.test.ts
+ * npx vitest run src/tests/integration/communication-e2e.test.ts
  * ```
  */
 

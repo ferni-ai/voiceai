@@ -12,7 +12,7 @@
  * - Topic relevance scoring
  */
 
-import { seededChance, seededPick, seededIndex } from './utils/rng.js';
+import { seededChance, seededPick, seededIndex } from './utils/random-generator.js';
 import { getLogger } from '../utils/safe-logger.js';
 import type { PersonaConfig, StoryConfig } from '../personas/types.js';
 import type { EmotionalArc } from './emotional-arc.js';

@@ -14,7 +14,7 @@
  *   updateHumanizingConfig({ disfluency: { frequency: 0.2 } });
  */
 
-import { seededChance, seededIndex, seededPick } from './utils/rng.js';
+import { seededChance, seededIndex, seededPick } from './utils/random-generator.js';
 import { getLogger } from '../utils/safe-logger.js';
 
 // ============================================================================

@@ -31,6 +31,8 @@ interface CleanupHandler {
 interface SessionCleanupState {
   handlers: Map<string, CleanupHandler>;
   isCleaningUp: boolean;
+  createdAt: number;
+  lastAccessedAt: number;
 }
 
 // ============================================================================
@@ -39,6 +41,15 @@ interface SessionCleanupState {
 
 const sessionRegistries = new Map<string, SessionCleanupState>();
 let handlerIdCounter = 0;
+
+// TTL for orphaned sessions (2 hours) - sessions not accessed within this time are cleaned up
+const SESSION_REGISTRY_TTL_MS = 2 * 60 * 60 * 1000;
+
+// Periodic cleanup interval (15 minutes)
+const ORPHAN_CLEANUP_INTERVAL_MS = 15 * 60 * 1000;
+
+// Track cleanup interval for shutdown
+let orphanCleanupInterval: ReturnType<typeof setInterval> | null = null;
 
 // ============================================================================
 // PUBLIC API
@@ -49,12 +60,18 @@ let handlerIdCounter = 0;
  */
 function getRegistry(sessionId: string): SessionCleanupState {
   let registry = sessionRegistries.get(sessionId);
+  const now = Date.now();
   if (!registry) {
     registry = {
       handlers: new Map(),
       isCleaningUp: false,
+      createdAt: now,
+      lastAccessedAt: now,
     };
     sessionRegistries.set(sessionId, registry);
+  } else {
+    // Update last accessed time
+    registry.lastAccessedAt = now;
   }
   return registry;
 }
@@ -237,10 +254,85 @@ export function getRegistryStats(sessionId: string): {
  * Clear all registries (for testing or shutdown).
  */
 export function clearAllRegistries(): void {
+  // Stop orphan cleanup interval
+  if (orphanCleanupInterval) {
+    clearInterval(orphanCleanupInterval);
+    orphanCleanupInterval = null;
+  }
+
   const sessionCount = sessionRegistries.size;
   sessionRegistries.clear();
   handlerIdCounter = 0;
   diag.debug(`[cleanup-registry] Cleared all registries (${sessionCount} sessions)`);
+}
+
+/**
+ * Clean up orphaned session registries that haven't been accessed within TTL.
+ * This prevents unbounded memory growth from sessions that don't call runSessionCleanup.
+ */
+export async function cleanupOrphanedSessions(): Promise<{
+  cleaned: number;
+  remaining: number;
+}> {
+  const now = Date.now();
+  const orphanedSessions: string[] = [];
+
+  for (const [sessionId, registry] of sessionRegistries.entries()) {
+    // Skip sessions currently being cleaned up
+    if (registry.isCleaningUp) continue;
+
+    const age = now - registry.lastAccessedAt;
+    if (age > SESSION_REGISTRY_TTL_MS) {
+      orphanedSessions.push(sessionId);
+    }
+  }
+
+  if (orphanedSessions.length > 0) {
+    diag.warn(`[cleanup-registry] Found ${orphanedSessions.length} orphaned sessions, cleaning up`);
+  }
+
+  let cleaned = 0;
+  for (const sessionId of orphanedSessions) {
+    try {
+      await runSessionCleanup(sessionId);
+      cleaned++;
+    } catch (err) {
+      diag.warn(`[cleanup-registry] Failed to cleanup orphaned session ${sessionId}`, {
+        error: String(err),
+      });
+    }
+  }
+
+  return { cleaned, remaining: sessionRegistries.size };
+}
+
+/**
+ * Start periodic orphan cleanup (call once at startup).
+ */
+export function startOrphanCleanup(): void {
+  if (orphanCleanupInterval) {
+    diag.debug('[cleanup-registry] Orphan cleanup already running');
+    return;
+  }
+
+  orphanCleanupInterval = setInterval(() => {
+    void cleanupOrphanedSessions().catch((err) => {
+      diag.warn('[cleanup-registry] Orphan cleanup failed', { error: String(err) });
+    });
+  }, ORPHAN_CLEANUP_INTERVAL_MS);
+
+  diag.debug('[cleanup-registry] Started orphan cleanup interval');
+}
+
+/**
+ * Stop periodic orphan cleanup.
+ */
+export function stopOrphanCleanup(): void {
+  if (orphanCleanupInterval) {
+    clearInterval(orphanCleanupInterval);
+    orphanCleanupInterval = null;
+    diag.debug('[cleanup-registry] Stopped orphan cleanup interval');
+  }
 }
 
 /**

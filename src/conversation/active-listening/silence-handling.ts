@@ -6,7 +6,7 @@
  * @module conversation/active-listening/silence-handling
  */
 
-import { seededIndex } from '../utils/rng.js';
+import { seededIndex } from '../utils/random-generator.js';
 
 import type { SilenceEvaluation } from './types.js';
 

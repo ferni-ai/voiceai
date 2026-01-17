@@ -17,7 +17,7 @@ import {
   type ContentContext,
 } from '../../services/llm-dynamic-content.js';
 import { getLogger } from '../../utils/safe-logger.js';
-import { seededChance, seededIndex } from '../utils/rng.js';
+import { seededChance, seededIndex } from '../utils/random-generator.js';
 
 import {
   BACKCHANNELS,

@@ -10,7 +10,7 @@
  * - Household (5 endpoints) - Family member management
  *
  * Run with:
- *   npx vitest run src/tests/integrations/integrations-e2e.test.ts
+ *   npx vitest run src/tests/integration/integrations-e2e.test.ts
  *
  * @module IntegrationsE2E
  */

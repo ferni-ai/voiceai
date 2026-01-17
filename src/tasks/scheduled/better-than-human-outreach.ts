@@ -49,7 +49,8 @@ export interface OutreachJobConfig {
 
 const DEFAULT_CONFIG: OutreachJobConfig = {
   schedule: '0 * * * *', // Every hour
-  timezone: 'America/Los_Angeles',
+  // FIX: Use UTC for server-side scheduling (consistent, no daylight saving surprises)
+  timezone: 'Etc/UTC',
   maxPerRun: 50,
   dryRun: false,
 };

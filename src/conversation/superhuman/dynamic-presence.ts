@@ -16,7 +16,7 @@
  * @module conversation/superhuman/dynamic-presence
  */
 
-import { seededPick, seededChance } from '../utils/rng.js';
+import { seededPick, seededChance } from '../utils/random-generator.js';
 import { createLogger } from '../../utils/safe-logger.js';
 
 const log = createLogger({ module: 'DynamicPresence' });

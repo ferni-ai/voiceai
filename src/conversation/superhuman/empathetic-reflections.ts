@@ -15,7 +15,7 @@
  * @module @ferni/superhuman/empathetic-reflections
  */
 
-import { seededChance, seededPick, seededIndex } from '../utils/rng.js';
+import { seededChance, seededPick, seededIndex } from '../utils/random-generator.js';
 import {
   generateContent,
   getContentWithFallback,
