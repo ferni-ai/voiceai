@@ -59,6 +59,27 @@ apps/cli/
 │       │   ├── runner-status.ts    # Status command
 │       │   ├── runner-restart.ts   # Restart command
 │       │   └── runner-logs.ts      # Logs command
+│       ├── ceo/                    # CEO Strategic Operations
+│       │   ├── ceo.ts              # Main command entry
+│       │   ├── ceo-dashboard.ts    # Company health dashboard
+│       │   ├── ceo-metrics.ts      # Cross-department KPIs
+│       │   └── ...                 # decisions, board-prep, investor-update, okrs
+│       ├── cto/                    # CTO Technical Leadership
+│       │   ├── cto.ts              # Main command entry
+│       │   ├── cto-health.ts       # Architecture health
+│       │   └── ...                 # debt, incidents, security, dependencies, performance
+│       ├── cio/                    # CIO Information Governance
+│       │   ├── cio.ts              # Main command entry
+│       │   └── ...                 # compliance, data-catalog, access-review, risk, vendors
+│       ├── cpo/                    # CPO Product Intelligence
+│       │   ├── cpo.ts              # Main command entry
+│       │   └── ...                 # roadmap, feedback, experiments, prioritize, personas, churn
+│       ├── cmo/                    # CMO Marketing Intelligence
+│       │   ├── cmo.ts              # Main command entry
+│       │   └── ...                 # campaigns, content, seo, social, attribution, competitors
+│       ├── csco/                   # CSCO Operations Intelligence
+│       │   ├── csco.ts             # Main command entry
+│       │   └── ...                 # costs, vendors, slas, capacity, automation
 │       ├── quality/                # Code quality
 │       ├── runtime/                # Runtime management
 │       ├── tokens/                 # Design token management
@@ -199,6 +220,68 @@ ferni runner logs --lines 100
 
 # SSH into runner VM
 ferni runner ssh
+```
+
+### Executive Suite - Autonomous Company Operations
+
+Six executive-level command suites for autonomous company intelligence:
+
+#### CEO - Strategic Operations
+```bash
+ferni ceo dashboard          # Real-time company health metrics
+ferni ceo metrics --period weekly  # KPIs across all departments
+ferni ceo decisions --pending      # Decision log with outcomes
+ferni ceo board-prep         # Board deck data generation
+ferni ceo investor-update    # Draft investor communications
+ferni ceo okrs --q1          # OKR tracking and scoring
+```
+
+#### CTO - Technical Leadership
+```bash
+ferni cto health             # Architecture health score
+ferni cto debt --prioritize  # Tech debt inventory
+ferni cto incidents --recent # Incident tracking & postmortems
+ferni cto security --scan    # Security vulnerability scan
+ferni cto dependencies       # Dependency health report
+ferni cto performance        # System performance by service
+```
+
+#### CIO - Information Governance
+```bash
+ferni cio compliance --soc2  # SOC2/GDPR/HIPAA status
+ferni cio data-catalog --pii # Data lineage & PII inventory
+ferni cio access-review --stale  # Permission audits
+ferni cio risk --matrix      # Risk register with mitigations
+ferni cio vendors --expiring # Vendor security assessments
+```
+
+#### CPO - Product Intelligence
+```bash
+ferni cpo roadmap --auto     # AI-generated roadmap from signals
+ferni cpo feedback --sentiment  # Aggregate user feedback
+ferni cpo experiments --winners # A/B test results
+ferni cpo prioritize --rice  # Feature scoring (RICE method)
+ferni cpo personas --journeys   # User persona insights
+ferni cpo churn --at-risk    # Churn prediction & interventions
+```
+
+#### CMO - Marketing Intelligence
+```bash
+ferni cmo campaigns --active # Campaign performance & ROAS
+ferni cmo content --calendar # Content calendar & AI generation
+ferni cmo seo --audit        # SEO health & keyword opportunities
+ferni cmo social --analytics # Social media metrics
+ferni cmo attribution --model linear  # Multi-touch attribution
+ferni cmo competitors --track   # Competitive intelligence
+```
+
+#### CSCO - Operations Intelligence
+```bash
+ferni csco costs --optimize  # Cost optimization opportunities
+ferni csco vendors --audit   # Vendor performance tracking
+ferni csco slas --status     # SLA monitoring & breach alerts
+ferni csco capacity --forecast  # Infrastructure capacity planning
+ferni csco automation --opportunities  # Process automation ROI
 ```
 
 ### Code Generation

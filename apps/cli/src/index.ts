@@ -1236,6 +1236,87 @@ const COMMANDS: Record<string, CliCommand> = {
       'ferni site deploy --ferni',
     ],
   },
+  // ============================================================================
+  // EXECUTIVE SUITE - Autonomous Company Operations
+  // ============================================================================
+  ceo: {
+    name: 'CEO',
+    description: 'Strategic operations dashboard (vision, OKRs, investor updates)',
+    icon: '👔',
+    handler: handleCEO,
+    subcommands: ['dashboard', 'metrics', 'decisions', 'board-prep', 'investor-update', 'okrs'],
+    examples: [
+      'ferni ceo dashboard',
+      'ferni ceo metrics --period weekly',
+      'ferni ceo decisions --pending',
+      'ferni ceo okrs --q1',
+    ],
+  },
+  cto: {
+    name: 'CTO',
+    description: 'Technical leadership (architecture, debt, incidents, security)',
+    icon: '🔧',
+    handler: handleCTO,
+    subcommands: ['health', 'debt', 'incidents', 'security', 'dependencies', 'performance'],
+    examples: [
+      'ferni cto health',
+      'ferni cto debt --prioritize',
+      'ferni cto incidents --recent',
+      'ferni cto security --scan',
+    ],
+  },
+  cio: {
+    name: 'CIO',
+    description: 'Information governance (compliance, data catalog, access, risk)',
+    icon: '🛡️',
+    handler: handleCIO,
+    subcommands: ['compliance', 'data-catalog', 'access-review', 'risk', 'vendors'],
+    examples: [
+      'ferni cio compliance --soc2',
+      'ferni cio data-catalog --pii',
+      'ferni cio access-review --stale',
+      'ferni cio risk --matrix',
+    ],
+  },
+  cpo: {
+    name: 'CPO',
+    description: 'Product intelligence (roadmap, feedback, experiments, personas)',
+    icon: '📊',
+    handler: handleCPO,
+    subcommands: ['roadmap', 'feedback', 'experiments', 'prioritize', 'personas', 'churn'],
+    examples: [
+      'ferni cpo roadmap --auto',
+      'ferni cpo feedback --sentiment',
+      'ferni cpo experiments --winners',
+      'ferni cpo prioritize --rice',
+    ],
+  },
+  cmo: {
+    name: 'CMO',
+    description: 'Marketing intelligence (campaigns, SEO, social, attribution)',
+    icon: '📢',
+    handler: handleCMO,
+    subcommands: ['campaigns', 'content', 'seo', 'social', 'attribution', 'competitors'],
+    examples: [
+      'ferni cmo campaigns --active',
+      'ferni cmo seo --audit',
+      'ferni cmo attribution --model linear',
+      'ferni cmo competitors --track',
+    ],
+  },
+  csco: {
+    name: 'CSCO',
+    description: 'Supply chain operations (costs, vendors, SLAs, capacity)',
+    icon: '⚙️',
+    handler: handleCSCO,
+    subcommands: ['costs', 'vendors', 'slas', 'capacity', 'automation'],
+    examples: [
+      'ferni csco costs --optimize',
+      'ferni csco vendors --audit',
+      'ferni csco slas --status',
+      'ferni csco capacity --forecast',
+    ],
+  },
 };
 
 // ============================================================================
@@ -10258,6 +10339,212 @@ async function handleReplay(args: string[]): Promise<void> {
 
   log.error(`Unknown replay subcommand: ${subcommand}`);
   console.log(`\n  Available: list, play, export, search`);
+}
+
+// ============================================================================
+// EXECUTIVE SUITE HANDLERS - Autonomous Company Operations
+// Note: Uses npx tsx to run dedicated command files. No user input is interpolated
+// into shell commands - only validated subcommand names are used.
+// ============================================================================
+
+async function handleCEO(args: string[]): Promise<void> {
+  const subcommand = args[0] || 'dashboard';
+  const validSubcommands = ['dashboard', 'metrics', 'decisions', 'board-prep', 'investor-update', 'okrs', 'help'];
+
+  if (!validSubcommands.includes(subcommand)) {
+    log.error(`Unknown CEO subcommand: ${subcommand}`);
+    console.log(`\n  Available: ${validSubcommands.join(', ')}`);
+    return;
+  }
+
+  log.header('👔 CEO Strategic Operations');
+
+  const scriptArgs = [subcommand];
+  // Pass through safe boolean flags
+  if (args.includes('--json')) scriptArgs.push('--json');
+  if (args.includes('--compare')) scriptArgs.push('--compare');
+  if (args.includes('--pending')) scriptArgs.push('--pending');
+  if (args.includes('--full')) scriptArgs.push('--full');
+
+  // Handle --period option (validated)
+  const periodIdx = args.findIndex((a) => a === '--period');
+  if (periodIdx >= 0 && args[periodIdx + 1]) {
+    const period = args[periodIdx + 1];
+    if (['daily', 'weekly', 'monthly', 'quarterly'].includes(period)) {
+      scriptArgs.push('--period', period);
+    }
+  }
+
+  const cmd = `npx tsx apps/cli/src/commands/ceo/ceo.ts ${scriptArgs.join(' ')}`;
+  try {
+    execSync(cmd, { stdio: 'inherit', cwd: process.cwd() });
+  } catch {
+    log.error('CEO operation failed');
+  }
+}
+
+async function handleCTO(args: string[]): Promise<void> {
+  const subcommand = args[0] || 'health';
+  const validSubcommands = ['health', 'debt', 'incidents', 'security', 'dependencies', 'performance', 'help'];
+
+  if (!validSubcommands.includes(subcommand)) {
+    log.error(`Unknown CTO subcommand: ${subcommand}`);
+    console.log(`\n  Available: ${validSubcommands.join(', ')}`);
+    return;
+  }
+
+  log.header('🔧 CTO Technical Leadership');
+
+  const scriptArgs = [subcommand];
+  if (args.includes('--json')) scriptArgs.push('--json');
+  if (args.includes('--prioritize')) scriptArgs.push('--prioritize');
+  if (args.includes('--recent')) scriptArgs.push('--recent');
+  if (args.includes('--scan')) scriptArgs.push('--scan');
+  if (args.includes('--critical')) scriptArgs.push('--critical');
+  if (args.includes('--outdated')) scriptArgs.push('--outdated');
+
+  const cmd = `npx tsx apps/cli/src/commands/cto/cto.ts ${scriptArgs.join(' ')}`;
+  try {
+    execSync(cmd, { stdio: 'inherit', cwd: process.cwd() });
+  } catch {
+    log.error('CTO operation failed');
+  }
+}
+
+async function handleCIO(args: string[]): Promise<void> {
+  const subcommand = args[0] || 'compliance';
+  const validSubcommands = ['compliance', 'data-catalog', 'access-review', 'risk', 'vendors', 'help'];
+
+  if (!validSubcommands.includes(subcommand)) {
+    log.error(`Unknown CIO subcommand: ${subcommand}`);
+    console.log(`\n  Available: ${validSubcommands.join(', ')}`);
+    return;
+  }
+
+  log.header('🛡️ CIO Information Governance');
+
+  const scriptArgs = [subcommand];
+  if (args.includes('--json')) scriptArgs.push('--json');
+  if (args.includes('--soc2')) scriptArgs.push('--soc2');
+  if (args.includes('--gdpr')) scriptArgs.push('--gdpr');
+  if (args.includes('--hipaa')) scriptArgs.push('--hipaa');
+  if (args.includes('--pii')) scriptArgs.push('--pii');
+  if (args.includes('--stale')) scriptArgs.push('--stale');
+  if (args.includes('--elevated')) scriptArgs.push('--elevated');
+  if (args.includes('--matrix')) scriptArgs.push('--matrix');
+  if (args.includes('--expiring')) scriptArgs.push('--expiring');
+
+  const cmd = `npx tsx apps/cli/src/commands/cio/cio.ts ${scriptArgs.join(' ')}`;
+  try {
+    execSync(cmd, { stdio: 'inherit', cwd: process.cwd() });
+  } catch {
+    log.error('CIO operation failed');
+  }
+}
+
+async function handleCPO(args: string[]): Promise<void> {
+  const subcommand = args[0] || 'roadmap';
+  const validSubcommands = ['roadmap', 'feedback', 'experiments', 'prioritize', 'personas', 'churn', 'help'];
+
+  if (!validSubcommands.includes(subcommand)) {
+    log.error(`Unknown CPO subcommand: ${subcommand}`);
+    console.log(`\n  Available: ${validSubcommands.join(', ')}`);
+    return;
+  }
+
+  log.header('📊 CPO Product Intelligence');
+
+  const scriptArgs = [subcommand];
+  if (args.includes('--json')) scriptArgs.push('--json');
+  if (args.includes('--auto')) scriptArgs.push('--auto');
+  if (args.includes('--sentiment')) scriptArgs.push('--sentiment');
+  if (args.includes('--winners')) scriptArgs.push('--winners');
+  if (args.includes('--rice')) scriptArgs.push('--rice');
+  if (args.includes('--journeys')) scriptArgs.push('--journeys');
+  if (args.includes('--at-risk')) scriptArgs.push('--at-risk');
+
+  const cmd = `npx tsx apps/cli/src/commands/cpo/cpo.ts ${scriptArgs.join(' ')}`;
+  try {
+    execSync(cmd, { stdio: 'inherit', cwd: process.cwd() });
+  } catch {
+    log.error('CPO operation failed');
+  }
+}
+
+async function handleCMO(args: string[]): Promise<void> {
+  const subcommand = args[0] || 'campaigns';
+  const validSubcommands = ['campaigns', 'content', 'seo', 'social', 'attribution', 'competitors', 'help'];
+
+  if (!validSubcommands.includes(subcommand)) {
+    log.error(`Unknown CMO subcommand: ${subcommand}`);
+    console.log(`\n  Available: ${validSubcommands.join(', ')}`);
+    return;
+  }
+
+  log.header('📢 CMO Marketing Intelligence');
+
+  const scriptArgs = [subcommand];
+  if (args.includes('--json')) scriptArgs.push('--json');
+  if (args.includes('--active')) scriptArgs.push('--active');
+  if (args.includes('--roas')) scriptArgs.push('--roas');
+  if (args.includes('--calendar')) scriptArgs.push('--calendar');
+  if (args.includes('--audit')) scriptArgs.push('--audit');
+  if (args.includes('--keywords')) scriptArgs.push('--keywords');
+  if (args.includes('--analytics')) scriptArgs.push('--analytics');
+  if (args.includes('--engagement')) scriptArgs.push('--engagement');
+  if (args.includes('--journey')) scriptArgs.push('--journey');
+  if (args.includes('--report')) scriptArgs.push('--report');
+  if (args.includes('--track')) scriptArgs.push('--track');
+
+  // Handle --model option
+  const modelIdx = args.findIndex((a) => a === '--model');
+  if (modelIdx >= 0 && args[modelIdx + 1]) {
+    const model = args[modelIdx + 1];
+    if (['linear', 'first-touch', 'last-touch', 'time-decay'].includes(model)) {
+      scriptArgs.push('--model', model);
+    }
+  }
+
+  const cmd = `npx tsx apps/cli/src/commands/cmo/cmo.ts ${scriptArgs.join(' ')}`;
+  try {
+    execSync(cmd, { stdio: 'inherit', cwd: process.cwd() });
+  } catch {
+    log.error('CMO operation failed');
+  }
+}
+
+async function handleCSCO(args: string[]): Promise<void> {
+  const subcommand = args[0] || 'costs';
+  const validSubcommands = ['costs', 'vendors', 'slas', 'capacity', 'automation', 'help'];
+
+  if (!validSubcommands.includes(subcommand)) {
+    log.error(`Unknown CSCO subcommand: ${subcommand}`);
+    console.log(`\n  Available: ${validSubcommands.join(', ')}`);
+    return;
+  }
+
+  log.header('⚙️ CSCO Operations Intelligence');
+
+  const scriptArgs = [subcommand];
+  if (args.includes('--json')) scriptArgs.push('--json');
+  if (args.includes('--breakdown')) scriptArgs.push('--breakdown');
+  if (args.includes('--optimize')) scriptArgs.push('--optimize');
+  if (args.includes('--forecast')) scriptArgs.push('--forecast');
+  if (args.includes('--audit')) scriptArgs.push('--audit');
+  if (args.includes('--renewals')) scriptArgs.push('--renewals');
+  if (args.includes('--risks')) scriptArgs.push('--risks');
+  if (args.includes('--breaches')) scriptArgs.push('--breaches');
+  if (args.includes('--alerts')) scriptArgs.push('--alerts');
+  if (args.includes('--plan')) scriptArgs.push('--plan');
+  if (args.includes('--opportunities')) scriptArgs.push('--opportunities');
+  if (args.includes('--metrics')) scriptArgs.push('--metrics');
+
+  const cmd = `npx tsx apps/cli/src/commands/csco/csco.ts ${scriptArgs.join(' ')}`;
+  try {
+    execSync(cmd, { stdio: 'inherit', cwd: process.cwd() });
+  } catch {
+    log.error('CSCO operation failed');
+  }
 }
 
 // ============================================================================
