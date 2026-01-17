@@ -85,6 +85,29 @@ const HEALTH_JOBS: SchedulerJob[] = [
     timeoutSeconds: 30,
     retryCount: 2,
   },
+  // =========================================================================
+  // BETTER THAN HUMAN SCHEDULED JOBS
+  // =========================================================================
+  {
+    name: 'better-than-human-outreach',
+    description: 'Proactive outreach: thinking-of-you, commitment follow-ups, celebrations',
+    schedule: '0 9 * * *', // Daily at 9am UTC (morning outreach)
+    url: `${UI_SERVER_URL}/api/jobs/better-than-human-outreach`,
+    httpMethod: 'POST',
+    expectedStatus: 200,
+    timeoutSeconds: 300, // 5 minutes - processes all users
+    retryCount: 2,
+  },
+  {
+    name: 'better-than-human-outreach-evening',
+    description: 'Evening proactive outreach batch',
+    schedule: '0 21 * * *', // Daily at 9pm UTC (evening batch)
+    url: `${UI_SERVER_URL}/api/jobs/better-than-human-outreach`,
+    httpMethod: 'POST',
+    expectedStatus: 200,
+    timeoutSeconds: 300,
+    retryCount: 2,
+  },
 ];
 
 function printHeader(text: string): void {

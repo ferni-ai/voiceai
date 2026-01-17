@@ -292,9 +292,15 @@ export class DeepExtractionWorker {
     
     // Update stats
     const extractionTimeMs = Date.now() - startTime;
-    this.extractionStats.avgExtractionTimeMs = 
-      (this.extractionStats.avgExtractionTimeMs * (this.extractionStats.completedJobs - 1) + extractionTimeMs) / 
-      this.extractionStats.completedJobs;
+    // Avoid division by zero - use running average only when we have previous jobs
+    if (this.extractionStats.completedJobs > 1) {
+      this.extractionStats.avgExtractionTimeMs =
+        (this.extractionStats.avgExtractionTimeMs * (this.extractionStats.completedJobs - 1) + extractionTimeMs) /
+        this.extractionStats.completedJobs;
+    } else {
+      // First job - set the extraction time directly
+      this.extractionStats.avgExtractionTimeMs = extractionTimeMs;
+    }
     this.extractionStats.totalEntitiesExtracted += refined.entities.length;
     this.extractionStats.totalFactsExtracted += refined.facts.length;
     

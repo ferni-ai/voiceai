@@ -852,7 +852,11 @@ export async function generateGreeting(
 
   // BETTER-THAN-HUMAN: Check for pending intentions to follow up on
   // This is the superhuman capability - remembering and checking in on stated intentions
-  if (options?.pendingIntentions && options.pendingIntentions.length > 0 && options?.isReturningUser) {
+  if (
+    options?.pendingIntentions &&
+    options.pendingIntentions.length > 0 &&
+    options?.isReturningUser
+  ) {
     const now = new Date();
     // Find the most relevant intention (overdue or recently stated)
     const relevantIntention = options.pendingIntentions.find((i) => {

@@ -715,16 +715,19 @@ async function handleBetterThanHumanOutreach(res: ServerResponse): Promise<void>
           if (!userId) continue;
 
           // Send a gentle reminder via the outreach orchestrator
-          const { getOutreachOrchestrator } = await import(
-            '../services/outreach/outreach-orchestrator.js'
-          );
+          const { getOutreachOrchestrator } =
+            await import('../services/outreach/outreach-orchestrator.js');
           const orchestrator = getOutreachOrchestrator();
 
           // Use push notification for commitment follow-ups
           const sent = await orchestrator.sendPushNotification(
             userId,
             `Hey! Just thinking about your commitment: "${commitment.description}". How's it going?`,
-            { trigger: 'commitment_followup', personaId: 'ferni', metadata: { commitmentId: doc.id } }
+            {
+              trigger: 'commitment_followup',
+              personaId: 'ferni',
+              metadata: { commitmentId: doc.id },
+            }
           );
 
           if (sent) {
@@ -750,9 +753,8 @@ async function handleBetterThanHumanOutreach(res: ServerResponse): Promise<void>
           const userId = userDoc.id;
 
           // Trigger growth reflection outreach
-          const { getOutreachOrchestrator } = await import(
-            '../services/outreach/outreach-orchestrator.js'
-          );
+          const { getOutreachOrchestrator } =
+            await import('../services/outreach/outreach-orchestrator.js');
           const orchestrator = getOutreachOrchestrator();
           const sent = await orchestrator.triggerGrowthReflection(userId, 'ferni');
 
@@ -766,14 +768,16 @@ async function handleBetterThanHumanOutreach(res: ServerResponse): Promise<void>
           }
         } catch (err) {
           stats.errors++;
-          log.warn({ error: String(err), userId: userDoc.id }, 'Failed to trigger growth reflection');
+          log.warn(
+            { error: String(err), userId: userDoc.id },
+            'Failed to trigger growth reflection'
+          );
         }
       }
 
       // 4. Celebrations (recent milestones/achievements not yet celebrated)
-      const { getMilestonesToCelebrate, acknowledgeMilestone } = await import(
-        '../services/superhuman/proactive-milestone-detector.js'
-      );
+      const { getMilestonesToCelebrate, acknowledgeMilestone } =
+        await import('../services/superhuman/proactive-milestone-detector.js');
 
       // Get all users with recent activity
       const recentUsers = await db
@@ -788,16 +792,19 @@ async function handleBetterThanHumanOutreach(res: ServerResponse): Promise<void>
 
           for (const milestone of milestones.slice(0, 1)) {
             // Max 1 celebration per user per run
-            const { getOutreachOrchestrator } = await import(
-              '../services/outreach/outreach-orchestrator.js'
-            );
+            const { getOutreachOrchestrator } =
+              await import('../services/outreach/outreach-orchestrator.js');
             const orchestrator = getOutreachOrchestrator();
 
             // Send celebration via push notification
             const sent = await orchestrator.sendPushNotification(
               userDoc.id,
               `🎉 ${milestone.label}! ${milestone.celebrationSuggestion}`,
-              { trigger: 'celebration', personaId: 'ferni', metadata: { milestoneType: milestone.type, significance: milestone.significance } }
+              {
+                trigger: 'celebration',
+                personaId: 'ferni',
+                metadata: { milestoneType: milestone.type, significance: milestone.significance },
+              }
             );
 
             if (sent) {
@@ -1012,8 +1019,7 @@ async function handleTTLCleanup(res: ServerResponse): Promise<void> {
   try {
     log.info('Running TTL cleanup job (Cloud Scheduler)');
 
-    const { runTTLCleanup } =
-      await import('../services/data-hygiene/ttl-cleanup.js');
+    const { runTTLCleanup } = await import('../services/data-hygiene/ttl-cleanup.js');
 
     // Run the cleanup
     const result = await runTTLCleanup();
@@ -1056,8 +1062,7 @@ async function handleTTLBackfill(res: ServerResponse): Promise<void> {
   try {
     log.info('Running TTL backfill migration (Cloud Scheduler)');
 
-    const { runTTLBackfill } =
-      await import('../services/data-hygiene/ttl-backfill.js');
+    const { runTTLBackfill } = await import('../services/data-hygiene/ttl-backfill.js');
 
     // Run in non-dry-run mode
     const result = await runTTLBackfill({ dryRun: false });
