@@ -1,0 +1,54 @@
+{
+  "name": "@ferni/sdk",
+  "version": "0.1.0",
+  "description": "Ferni Developer Platform SDK - Build AI-powered voice experiences",
+  "main": "dist/index.js",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup src/index.ts --format cjs,esm --dts --watch",
+    "lint": "eslint src --ext .ts",
+    "test": "vitest",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "tsup": "^8.5.1",
+    "typescript": "^5.9.3",
+    "vitest": "^1.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ferni/voiceai",
+    "directory": "packages/ferni-sdk"
+  },
+  "keywords": [
+    "ferni",
+    "sdk",
+    "api",
+    "voice",
+    "ai",
+    "personas",
+    "webhooks",
+    "typescript"
+  ],
+  "author": "Ferni Team",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
