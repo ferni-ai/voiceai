@@ -94,14 +94,10 @@ async function handleStatusCallback(
 
   try {
     // Update the call record based on status
-    const { completeCallRecord } = await import(
-      '../services/family/proactive-family-checkin.js'
-    );
+    const { completeCallRecord } = await import('../services/family/proactive-family-checkin.js');
 
     // Get sponsorUserId from call record
-    const { getCallRecordById } = await import(
-      '../services/family/proactive-family-checkin.js'
-    );
+    const { getCallRecordById } = await import('../services/family/proactive-family-checkin.js');
     const record = await getCallRecordById(callId);
 
     if (!record) {
@@ -111,7 +107,10 @@ async function handleStatusCallback(
     }
 
     // Map Twilio status to our status
-    const statusMap: Record<string, 'in_progress' | 'completed' | 'no_answer' | 'failed' | 'voicemail'> = {
+    const statusMap: Record<
+      string,
+      'in_progress' | 'completed' | 'no_answer' | 'failed' | 'voicemail'
+    > = {
       initiated: 'in_progress',
       ringing: 'in_progress',
       'in-progress': 'in_progress',
@@ -181,9 +180,7 @@ async function handleSpeechResponse(
 
   try {
     // Get the call record to get context
-    const { getCallRecordById } = await import(
-      '../services/family/proactive-family-checkin.js'
-    );
+    const { getCallRecordById } = await import('../services/family/proactive-family-checkin.js');
     const record = await getCallRecordById(callId);
 
     if (!record) {
@@ -208,9 +205,8 @@ async function handleSpeechResponse(
         { role: 'family_member' as const, content: SpeechResult },
       ];
 
-      const { analyzeCheckinCall, generateUrgentNotification } = await import(
-        '../services/family/family-checkin-summary.js'
-      );
+      const { analyzeCheckinCall, generateUrgentNotification } =
+        await import('../services/family/family-checkin-summary.js');
 
       const analysis = await analyzeCheckinCall(
         transcript,
@@ -220,11 +216,10 @@ async function handleSpeechResponse(
       );
 
       // Update call record with analysis
-      const { completeCallRecord } = await import(
-        '../services/family/proactive-family-checkin.js'
-      );
+      const { completeCallRecord } = await import('../services/family/proactive-family-checkin.js');
 
       await completeCallRecord(record.sponsorUserId, callId, {
+        status: 'completed',
         detectedMood: analysis.mood,
         moodConfidence: analysis.moodConfidence,
         conversationSummary: analysis.summary,
@@ -235,20 +230,18 @@ async function handleSpeechResponse(
       });
 
       // Check for urgent concerns
-      if (analysis.concerns.some(c => c.urgency === 'urgent' || c.urgency === 'high')) {
+      if (analysis.concerns.some((c) => c.urgency === 'urgent' || c.urgency === 'high')) {
         const notification = generateUrgentNotification({
           ...record,
           concernsIdentified: analysis.concerns,
         });
 
         if (notification) {
-          // Send notification to sponsor
-          const { sendUrgentNotificationToSponsor } = await import(
-            '../services/family/family-checkin-caller.js'
+          // Log urgent concerns - notification handling is done via push/SMS in handleCheckinCallComplete
+          log.info(
+            { callId, concerns: analysis.concerns.length, notification },
+            '🚨 Urgent concerns detected'
           );
-          // Note: This function doesn't exist yet as a standalone export
-          // The notification is sent internally by handleCheckinCallComplete
-          log.info({ callId, concerns: analysis.concerns.length }, '🚨 Urgent concerns detected');
         }
       }
     }
@@ -285,7 +278,14 @@ async function handleCallComplete(
   callId: string
 ): Promise<void> {
   try {
-    const body = await parseJsonBody(req);
+    const body = (await parseJsonBody(req)) as {
+      sponsorUserId: string;
+      status?: string;
+      durationSeconds?: number;
+      transcript?: Array<{ role: string; content: string }>;
+      familyMemberName: string;
+      relationship: string;
+    };
 
     log.info(
       {
@@ -297,12 +297,11 @@ async function handleCallComplete(
       '📞 Family check-in call complete'
     );
 
-    const { handleCheckinCallComplete } = await import(
-      '../services/family/family-checkin-caller.js'
-    );
+    const { handleCheckinCallComplete } =
+      await import('../services/family/family-checkin-caller.js');
 
     await handleCheckinCallComplete(callId, body.sponsorUserId, {
-      status: body.status || 'completed',
+      status: (body.status as 'completed' | 'failed' | 'no_answer') || 'completed',
       durationSeconds: body.durationSeconds,
       transcript: body.transcript,
       familyMemberName: body.familyMemberName,
@@ -389,7 +388,7 @@ async function parseJsonBody(req: IncomingMessage): Promise<Record<string, unkno
     });
     req.on('end', () => {
       try {
-        resolve(JSON.parse(data));
+        resolve(JSON.parse(data) as Record<string, unknown>);
       } catch {
         resolve({});
       }
@@ -411,8 +410,9 @@ function validateTwilioRequest(
     return false;
   }
 
-  const protocol = req.headers['x-forwarded-proto'] || 'https';
-  const host = req.headers.host || '';
+  const forwardedProto = req.headers['x-forwarded-proto'];
+  const protocol = typeof forwardedProto === 'string' ? forwardedProto : 'https';
+  const host = req.headers.host ?? '';
   const fullUrl = `${protocol}://${host}${req.url}`;
 
   const isValid = validateTwilioSignature(signature, fullUrl, body);
