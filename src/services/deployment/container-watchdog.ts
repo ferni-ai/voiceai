@@ -109,22 +109,30 @@ export interface WatchdogConfig {
   zone: string;
 }
 
+// Parse number from env with fallback
+const parseEnvNumber = (key: string, fallback: number): number => {
+  const val = process.env[key];
+  return val ? parseInt(val, 10) : fallback;
+};
+
 const DEFAULT_CONFIG: WatchdogConfig = {
   diskCheckIntervalMs: 60_000, // Check disk every minute
   memoryCheckIntervalMs: 30_000, // Check memory every 30s
   healthReportIntervalMs: 3600_000, // Report health hourly
 
-  diskWarningPercent: 70,
-  diskCriticalPercent: 85,
-  diskEmergencyPercent: 95,
+  diskWarningPercent: parseEnvNumber('WATCHDOG_DISK_WARNING_PERCENT', 70),
+  diskCriticalPercent: parseEnvNumber('WATCHDOG_DISK_CRITICAL_PERCENT', 85),
+  diskEmergencyPercent: parseEnvNumber('WATCHDOG_DISK_EMERGENCY_PERCENT', 95),
 
-  memoryWarningPercent: 80,
-  memoryCriticalPercent: 90,
+  // Memory thresholds - higher defaults for local dev where system memory is shared
+  // Set WATCHDOG_MEMORY_WARNING_PERCENT=80 for production, or 90 for local dev
+  memoryWarningPercent: parseEnvNumber('WATCHDOG_MEMORY_WARNING_PERCENT', 85),
+  memoryCriticalPercent: parseEnvNumber('WATCHDOG_MEMORY_CRITICAL_PERCENT', 92),
 
   autoCleanupEnabled: true,
   keepImages: 3,
 
-  slackEnabled: true,
+  slackEnabled: process.env.NODE_ENV !== 'development', // Disable Slack in local dev
   alertCooldownMs: 300_000, // 5 minutes between repeat alerts
 
   instanceName: process.env.GCE_INSTANCE || 'voiceai-agent-gce',

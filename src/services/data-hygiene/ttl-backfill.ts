@@ -475,38 +475,36 @@ async function main() {
   const collection =
     collectionIndex !== -1 ? args[collectionIndex + 1] : undefined;
 
-  console.log('═══════════════════════════════════════════════════════════════');
-  console.log('                     TTL BACKFILL MIGRATION                    ');
-  console.log('═══════════════════════════════════════════════════════════════');
-  console.log(`Mode: ${dryRun ? 'DRY RUN (no changes)' : 'LIVE (will update documents)'}`);
-  if (collection) {
-    console.log(`Collection: ${collection}`);
-  }
-  console.log('═══════════════════════════════════════════════════════════════\n');
+  log.info('═══════════════════════════════════════════════════════════════');
+  log.info('                     TTL BACKFILL MIGRATION                    ');
+  log.info('═══════════════════════════════════════════════════════════════');
+  log.info({ dryRun, collection }, `Mode: ${dryRun ? 'DRY RUN (no changes)' : 'LIVE (will update documents)'}`);
+  log.info('═══════════════════════════════════════════════════════════════');
 
   try {
     const result = await runTTLBackfill({ dryRun, collection });
 
-    console.log('\n═══════════════════════════════════════════════════════════════');
-    console.log('                         RESULTS                              ');
-    console.log('═══════════════════════════════════════════════════════════════');
-    console.log(`Status: ${result.success ? '✅ SUCCESS' : '❌ FAILED'}`);
-    console.log(`Mode: ${result.dryRun ? 'DRY RUN' : 'LIVE'}`);
-    console.log(`Total Updated: ${result.totalUpdated}`);
-    console.log(`Total Skipped (already had TTL): ${result.totalSkipped}`);
-    console.log(`Total Errors: ${result.totalErrors}`);
-    console.log(`Duration: ${result.durationMs}ms`);
-    console.log('\nPer-Collection Stats:');
+    log.info('═══════════════════════════════════════════════════════════════');
+    log.info('                         RESULTS                              ');
+    log.info('═══════════════════════════════════════════════════════════════');
+    log.info({ success: result.success }, `Status: ${result.success ? 'SUCCESS' : 'FAILED'}`);
+    log.info({ dryRun: result.dryRun }, `Mode: ${result.dryRun ? 'DRY RUN' : 'LIVE'}`);
+    log.info({ totalUpdated: result.totalUpdated }, `Total Updated: ${result.totalUpdated}`);
+    log.info({ totalSkipped: result.totalSkipped }, `Total Skipped (already had TTL): ${result.totalSkipped}`);
+    log.info({ totalErrors: result.totalErrors }, `Total Errors: ${result.totalErrors}`);
+    log.info({ durationMs: result.durationMs }, `Duration: ${result.durationMs}ms`);
+    log.info('Per-Collection Stats:');
     for (const stat of result.stats) {
-      console.log(
+      log.info(
+        { collection: stat.collection, scanned: stat.scanned, updated: stat.updated, skipped: stat.skipped, errors: stat.errors },
         `  ${stat.collection}: scanned=${stat.scanned}, updated=${stat.updated}, skipped=${stat.skipped}, errors=${stat.errors}`
       );
     }
-    console.log('═══════════════════════════════════════════════════════════════');
+    log.info('═══════════════════════════════════════════════════════════════');
 
     process.exit(result.success ? 0 : 1);
   } catch (error) {
-    console.error('Migration failed:', error);
+    log.error({ error: String(error) }, 'Migration failed');
     process.exit(1);
   }
 }

@@ -5,8 +5,8 @@
   "_comment": "Centralized tool descriptions - edit here to change LLM behavior",
   "_reference": "https://docs.cloud.google.com/vertex-ai/generative-ai/docs/multimodal/function-calling",
   "_stats": {
-    "totalTools": 1039,
-    "newlyAdded": 352
+    "totalTools": 1047,
+    "newlyAdded": 360
   },
   "defaults": {
     "prefix": "",
@@ -320,6 +320,10 @@
     "awardXPV2": {
       "description": "Award XP to the user. Automatically handles level-ups and leaderboard updates.",
       "file": "src/tools/gamification-v2.ts"
+    },
+    "backgroundFollowUp": {
+      "description": "Schedule a background follow-up to check in with the user later about something they mentioned. Use when user mentions something they're working on, struggling with, or planning that deserves a future check-in.",
+      "file": "src/tools/domains/communication/index.ts"
     },
     "balanceAloneAndTogether": {
       "description": "Help user find their personal balance between alone time and social time.",
@@ -2281,6 +2285,10 @@
       "description": "Guide the user through a grounding exercise.",
       "file": "src/tools/domains/presence/index.ts"
     },
+    "groundingForTrauma": {
+      "description": "Provide grounding techniques specifically designed for trauma responses including flashbacks, dissociation, panic, and hyperarousal. Safety first - helps return to present moment when trauma responses are activated.",
+      "file": "src/tools/domains/trauma-support/index.ts"
+    },
     "guideGroundingExercise": {
       "description": "Guide user through a grounding exercise when they are feeling overwhelmed, dissociated, or experiencing anxiety or panic.",
       "file": "src/tools/domains/crisis/index.ts"
@@ -2870,6 +2878,10 @@
     "pickRandom": {
       "description": "Pick randomly from options. Use when someone asks: - \"Pick a number between 1 and 10\" - \"Choose between pizza, tacos, or sushi\" - \"Random selection from these options\".",
       "file": "src/tools/domains/simple-utilities/decision-tools.ts"
+    },
+    "postTraumaticGrowth": {
+      "description": "Explore post-traumatic growth - the positive psychological change that can emerge from struggling with highly challenging life circumstances. Not everyone experiences this, and it's okay either way. Growth doesn't erase trauma or make it 'worth it'.",
+      "file": "src/tools/domains/trauma-support/index.ts"
     },
     "planAccommodation": {
       "description": "Discuss accommodation options.",
@@ -3696,6 +3708,10 @@
       "description": "Guide through Kristin Neff's self-compassion break practice.",
       "file": "src/tools/domains/self-compassion/index.ts"
     },
+    "selfCompassionTrauma": {
+      "description": "Practice self-compassion specifically for trauma survivors. Addresses self-blame, shame, and the need for gentleness. What happened was not their fault, and their responses were survival strategies.",
+      "file": "src/tools/domains/trauma-support/index.ts"
+    },
     "sendApprovedEmail": {
       "description": "Send an email that has been drafted and approved by the user. IMPORTANT: Only use after showing the draft to the user and getting their confirmation. This actually sends the email via SendGrid.",
       "file": "src/tools/communication-tools.ts"
@@ -3973,6 +3989,10 @@
     "smallActsOfConnection": {
       "description": "Provide small, practical acts of connection the user can do today.",
       "file": "src/tools/domains/connection/index.ts"
+    },
+    "somaticSupport": {
+      "description": "Provide body-based somatic support for trauma processing. Trauma lives in the body, not just the mind. Includes shaking, progressive relaxation, orienting, pendulation, and gentle movement practices.",
+      "file": "src/tools/domains/trauma-support/index.ts"
     },
     "speakToYourselfAsAFriend": {
       "description": "Help the user speak to themselves with the same kindness they would show a friend.",
@@ -4328,6 +4348,10 @@
       "description": "Help user understand where they are in the transition process using the three stages: Ending, Neutral Zone, and New Beginning.",
       "file": "src/tools/domains/life-transitions/index.ts"
     },
+    "traumaResponses": {
+      "description": "Help user understand trauma responses (fight, flight, freeze, fawn) as survival strategies, not weakness. Validates that their responses made sense given what was happening. Their nervous system was protecting them.",
+      "file": "src/tools/domains/trauma-support/index.ts"
+    },
     "translate": {
       "description": "Translate text between languages. Use when someone asks: - \"How do you say 'hello' in Japanese?\" - \"Translate 'thank you' to Spanish\" - \"What's 'I love you' in French?\" - \"Say 'where is the bathroom' in German\" Gemini natively speaks these languages, so translations are natural and contextual.",
       "file": "src/tools/domains/simple-utilities/translation-tools.ts"
@@ -4335,6 +4359,10 @@
     "triggerCircleBack": {
       "description": "System tool to trigger circling back to an open topic. Use every 5-7 turns to maintain conversation threads.",
       "file": "src/tools/proactive.ts"
+    },
+    "triggerAwareness": {
+      "description": "Help user understand and work with trauma triggers. Triggers are reminders that activate the nervous system's threat response, connecting present moment to past danger. Includes types of triggers and what to do when triggered.",
+      "file": "src/tools/domains/trauma-support/index.ts"
     },
     "troubleshootHabit": {
       "description": "Diagnose why a habit isn.",
@@ -4526,6 +4554,10 @@
     "whoAmIBecoming": {
       "description": "For when user is curious about or catching glimpses of who they're becoming through this transition.",
       "file": "src/tools/domains/life-transitions/index.ts"
+    },
+    "windowOfTolerance": {
+      "description": "Help user understand and expand their window of tolerance - the optimal zone where they can think, feel, and function. Explains hyperarousal (fight/flight), hypoarousal (freeze/shutdown), and how to return to the window. Trauma narrows this window; healing expands it.",
+      "file": "src/tools/domains/trauma-support/index.ts"
     },
     "winterSeason": {
       "description": "For when user is in a winter season - low energy, fallow, dormant. Normalize and honor it.",

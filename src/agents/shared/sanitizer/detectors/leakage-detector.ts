@@ -27,8 +27,12 @@ const ANNOUNCEMENT_PATTERNS: RegExp[] = [
   /i(?:'m| am) going to (?:call|use|invoke|execute|run|trigger) (?:the )?(\w+)/i,
   /i need to (?:call|use|invoke|execute|run|trigger) (?:the )?(\w+)/i,
   /^(?:calling|using|invoking|executing|running|triggering) (?:the )?(\w+)/i,
-  /i(?:'ll| will) (?:transfer|handoff|hand off) (?:you )?(?:to|over to) (\w+)/i,
-  /let me (?:transfer|handoff|hand off|connect) you (?:to|with) (\w+)/i,
+  // Handoff patterns - flexible word order for "hand you off" vs "hand off to you"
+  /i(?:'ll| will) (?:transfer|handoff|hand off|connect) (?:you )?(?:to|over to|with) (\w+)/i,
+  /i(?:'ll| will) (?:hand you off|connect you) (?:to|with) (\w+)/i,
+  /i(?:'m| am) (?:transferring|handing off|connecting) (?:you )?(?:to|with) (\w+)/i,
+  /let me (?:transfer|handoff|hand off|connect) (?:you )?(?:to|with) (\w+)/i,
+  /let me (?:hand you off|connect you) (?:to|with) (\w+)/i,
   /^(?:transferring|handing off|connecting) (?:you )?(?:to|with) (\w+)/i,
 ];
 
@@ -40,6 +44,17 @@ const INTENTION_PATTERNS: RegExp[] = [
   /^i(?:'ll| will) (\w+) (?:for you|that|this)/i,
   /^let me just (\w+)/i,
   /^i need to (\w+)/i,
+];
+
+/**
+ * Music announcement patterns - "I'll play X for you"
+ * These are specific patterns for music-related tool call announcements
+ */
+const MUSIC_ANNOUNCEMENT_PATTERNS: RegExp[] = [
+  /^i(?:'ll| will) play\b/i,          // "I'll play jazz for you"
+  /^let me play\b/i,                  // "Let me play that song"
+  /^i(?:'m| am) going to play\b/i,    // "I'm going to play some music"
+  /^playing\b.*\bfor you/i,           // "Playing some jazz for you"
 ];
 
 /**
@@ -145,6 +160,7 @@ const INSTRUCTION_LEAKAGE_PATTERNS_ANYWHERE: RegExp[] = [
 
 /**
  * Behavioral marker patterns - LLM thinking out loud
+ * Also includes [INTERNAL:...] markers which should be suppressed
  */
 const BEHAVIORAL_MARKER_PATTERNS: RegExp[] = [
   /^thinking\.{2,}/i,
@@ -157,6 +173,23 @@ const BEHAVIORAL_MARKER_PATTERNS: RegExp[] = [
   /^retrieving\.{2,}/i,
   /^loading\.{2,}/i,
   /^analyzing\.{2,}/i,
+  // [INTERNAL:...] markers from tool responses that should NEVER be spoken
+  /^\[INTERNAL:/i,
+  /^\[INTERNAL\s*:/i,
+];
+
+/**
+ * Internal instruction patterns - "do NOT read this" type messages
+ * These are tool-generated instructions that should be suppressed
+ */
+const INTERNAL_INSTRUCTION_PATTERNS: RegExp[] = [
+  /do NOT read this/i,
+  /don't read this/i,
+  /not to be spoken/i,
+  /for internal use only/i,
+  /respond naturally\s*[-–—]?\s*do NOT/i,
+  /do NOT read this aloud/i,
+  /do NOT read this message/i,
 ];
 
 /**
@@ -176,6 +209,15 @@ const FN_PREFIX_PATTERNS: RegExp[] = [
   /^function:\s*["']?(\w+)/i,
   /^tool:\s*["']?(\w+)/i,
   /^call:\s*["']?(\w+)/i,
+];
+
+/**
+ * Function call syntax patterns - toolName() or toolName(args)
+ */
+const FUNCTION_CALL_SYNTAX_PATTERNS: RegExp[] = [
+  /^(\w+)\(\s*\)/,                          // playMusic()
+  /^(\w+)\(\s*[^)]+\s*\)/,                  // playMusic(query: 'jazz')
+  /^(\w+)\s*\(\s*(['"])[^'"]*\2\s*\)/,      // playMusic('jazz')
 ];
 
 // ============================================================================
@@ -232,6 +274,23 @@ function detectIntention(text: string): LeakageDetection {
           pattern: 'intention',
         };
       }
+    }
+  }
+  return { detected: false };
+}
+
+/**
+ * Check for music announcement patterns
+ * These catch "I'll play jazz" type phrases that should trigger playMusic tool
+ */
+function detectMusicAnnouncement(text: string): LeakageDetection {
+  for (const pattern of MUSIC_ANNOUNCEMENT_PATTERNS) {
+    if (pattern.test(text)) {
+      return {
+        detected: true,
+        toolName: 'playMusic',
+        pattern: 'announcement',
+      };
     }
   }
   return { detected: false };
@@ -376,6 +435,21 @@ function detectInternalMarker(text: string): LeakageDetection {
 }
 
 /**
+ * Check for internal instruction patterns ("do NOT read this" etc.)
+ */
+function detectInternalInstruction(text: string): LeakageDetection {
+  for (const pattern of INTERNAL_INSTRUCTION_PATTERNS) {
+    if (pattern.test(text)) {
+      return {
+        detected: true,
+        pattern: 'internal_instruction',
+      };
+    }
+  }
+  return { detected: false };
+}
+
+/**
  * Check for fn: prefix patterns
  */
 function detectFnPrefix(text: string): LeakageDetection {
@@ -387,6 +461,29 @@ function detectFnPrefix(text: string): LeakageDetection {
         toolName: match[1],
         pattern: 'fn_prefix_malformed',
       };
+    }
+  }
+  return { detected: false };
+}
+
+/**
+ * Check for function call syntax patterns like toolName() or toolName(args)
+ */
+function detectFunctionCallSyntax(text: string): LeakageDetection {
+  const toolPatterns = getAllToolPatterns();
+
+  for (const pattern of FUNCTION_CALL_SYNTAX_PATTERNS) {
+    const match = text.match(pattern);
+    if (match) {
+      const potentialTool = match[1];
+      // Check if the captured name matches a known tool pattern
+      if (toolPatterns.some((t) => t.toLowerCase() === potentialTool.toLowerCase())) {
+        return {
+          detected: true,
+          toolName: potentialTool,
+          pattern: 'fn_prefix_malformed', // Use same pattern type for function call syntax
+        };
+      }
     }
   }
   return { detected: false };
@@ -412,12 +509,15 @@ export function detectsFunctionCallLeakage(text: string): LeakageDetection {
   // Run checks in order of specificity (most specific first)
   const checks = [
     detectFnPrefix,
+    detectFunctionCallSyntax,   // Catches playMusic(), handoffToMaya() syntax
     detectToolParam,
     detectMultiWordTool,
     detectToolMention,
     detectAnnouncement,
+    detectMusicAnnouncement,     // Catches "I'll play jazz" music announcements
     detectIntention,
-    detectBehavioralMarker,
+    detectBehavioralMarker,      // Catches [INTERNAL:...] markers
+    detectInternalInstruction,   // Catches "do NOT read this" patterns
     detectInternalMarker,
     detectInstructionLeakage,
   ];
@@ -447,6 +547,8 @@ export function getReplacementText(detection: LeakageDetection): string {
   switch (detection.pattern) {
     case 'behavioral_marker':
       return ''; // Remove entirely
+    case 'internal_instruction':
+      return ''; // Remove entirely - "do NOT read this" patterns
     case 'internal_marker':
       return ''; // Remove entirely
     case 'instruction_leakage':

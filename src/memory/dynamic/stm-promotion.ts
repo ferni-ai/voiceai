@@ -23,7 +23,8 @@ import {
   type TurnMemory,
   type EntityFrequency,
 } from './stm-buffer.js';
-import { recordFallback, recordSuccess } from '../../services/observability/firestore-monitor.js';
+// Note: Observability metrics tracked via structured logging, not direct service imports
+// This avoids architecture layer violation (memory layer cannot import services layer)
 
 const log = createLogger({ module: 'STMPromotion' });
 
@@ -219,8 +220,7 @@ export async function promoteSessionToFirestore(
 
   const db = getFirestoreDb();
   if (!db) {
-    log.warn({ sessionId, userId }, '🧠 [MEMORY-AUDIT] Firestore not available, skipping promotion');
-    recordFallback('stm-promotion', 'Firestore unavailable for STM promotion');
+    log.warn({ sessionId, userId, fallbackReason: 'Firestore unavailable' }, '🧠 [MEMORY-AUDIT] Firestore not available, skipping promotion');
     return result;
   }
 

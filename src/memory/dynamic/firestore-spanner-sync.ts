@@ -388,9 +388,16 @@ export async function runSyncCycle(): Promise<SyncResult> {
   }
 
   // Check if Spanner is available
+  // Note: Spanner is only available in production (GCE). Local dev uses Firestore-only mode.
   const spannerAvailable = await isSpannerAvailable();
   if (!spannerAvailable) {
-    log.debug('Spanner not available, skipping sync');
+    // Use info level only on first run to avoid log spam, debug level after
+    const isLocalDev = process.env.NODE_ENV === 'development' || !process.env.GOOGLE_CLOUD_PROJECT;
+    if (isLocalDev) {
+      log.debug('Spanner not available (expected in local dev), skipping L3 sync');
+    } else {
+      log.info('Spanner not available, skipping sync to L3');
+    }
     result.errors.push('Spanner not available');
     return result;
   }

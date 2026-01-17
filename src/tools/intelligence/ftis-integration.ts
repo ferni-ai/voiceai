@@ -127,11 +127,14 @@ export class FTISIntegration {
     log.info('🧠 Initializing FTIS Integration...');
 
     try {
-      // Initialize core components
+      // Initialize core components (except executor - lazy loaded when needed)
       this.classifier = getComplexityClassifier();
       this.sequencePredictor = getSequencePredictor();
       this.planner = getMCTSPlanner();
-      this.executor = getIntelligentExecutor();
+      // NOTE: IntelligentExecutor requires a toolExecutor function which isn't
+      // available at FTIS initialization time. It will be lazily initialized
+      // when setToolExecutor() is called or when execution is first needed.
+      // this.executor = getIntelligentExecutor(); -- REMOVED: causes startup error
       this.outcomeTracker = getOutcomeTracker();
       this.transitionMatrix = getTransitionMatrix();
       this.transitionLearner = getTransitionLearner();
@@ -146,6 +149,24 @@ export class FTISIntegration {
       log.error({ error: String(error) }, 'Failed to initialize FTIS');
       throw error;
     }
+  }
+
+  /**
+   * Set the tool executor for plan execution.
+   * Call this when a tool executor becomes available (e.g., after session setup).
+   */
+  setToolExecutor(toolExecutor: Parameters<typeof getIntelligentExecutor>[0]): void {
+    if (toolExecutor) {
+      this.executor = getIntelligentExecutor(toolExecutor);
+      log.debug('✅ FTIS executor initialized');
+    }
+  }
+
+  /**
+   * Get the executor (if available)
+   */
+  getExecutor(): IntelligentExecutor | null {
+    return this.executor;
   }
 
   // ==========================================================================
