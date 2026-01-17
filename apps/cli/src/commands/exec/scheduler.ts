@@ -329,6 +329,201 @@ function formatTimeUntil(isoDate: string): string {
 }
 
 // ============================================================================
+// CRON INTEGRATION
+// ============================================================================
+
+const CRON_MARKER_START = '# BEGIN FERNI EXEC SCHEDULER';
+const CRON_MARKER_END = '# END FERNI EXEC SCHEDULER';
+
+/**
+ * Convert our schedule format to cron expression
+ * e.g., 'daily@07:00' -> '0 7 * * *'
+ *       'weekly@mon-09:00' -> '0 9 * * 1'
+ *       'monthly@1-09:00' -> '0 9 1 * *'
+ */
+function scheduleToCron(schedule: string): string {
+  const [frequency, time] = schedule.split('@');
+
+  if (frequency === 'daily') {
+    const [hours, minutes] = time.split(':').map(Number);
+    return `${minutes} ${hours} * * *`;
+  }
+
+  if (frequency === 'weekly') {
+    const [day, timeStr] = time.split('-');
+    const [hours, minutes] = timeStr.split(':').map(Number);
+    const dayMap: Record<string, number> = { sun: 0, mon: 1, tue: 2, wed: 3, thu: 4, fri: 5, sat: 6 };
+    const dayNum = dayMap[day.toLowerCase()] ?? 1;
+    return `${minutes} ${hours} * * ${dayNum}`;
+  }
+
+  if (frequency === 'monthly') {
+    const [dayOfMonth, timeStr] = time.split('-');
+    const [hours, minutes] = timeStr.split(':').map(Number);
+    return `${minutes} ${hours} ${dayOfMonth} * *`;
+  }
+
+  // Default: run daily at midnight
+  return '0 0 * * *';
+}
+
+/**
+ * Generate crontab entries for all enabled jobs
+ */
+function generateCronEntries(config: SchedulerConfig): string {
+  const cliPath = process.argv[1] || 'npx ferni';
+  const entries: string[] = [CRON_MARKER_START];
+
+  for (const job of config.jobs.filter(j => j.enabled)) {
+    const cronExpr = scheduleToCron(job.schedule);
+    // Use npx tsx to run the scheduler with --run-now
+    const command = `cd ${process.cwd()} && npx tsx apps/cli/src/commands/exec/scheduler.ts --run-now ${job.id} >> ~/.ferni/scheduler.log 2>&1`;
+    entries.push(`# ${job.name}`);
+    entries.push(`${cronExpr} ${command}`);
+  }
+
+  entries.push(CRON_MARKER_END);
+  return entries.join('\n');
+}
+
+/**
+ * Get current user crontab
+ */
+function getCurrentCrontab(): string {
+  try {
+    return execSync('crontab -l 2>/dev/null', { encoding: 'utf-8' });
+  } catch {
+    return '';
+  }
+}
+
+/**
+ * Remove Ferni entries from crontab string
+ */
+function removeFerniFromCrontab(crontab: string): string {
+  const lines = crontab.split('\n');
+  const result: string[] = [];
+  let inFerniSection = false;
+
+  for (const line of lines) {
+    if (line.trim() === CRON_MARKER_START) {
+      inFerniSection = true;
+      continue;
+    }
+    if (line.trim() === CRON_MARKER_END) {
+      inFerniSection = false;
+      continue;
+    }
+    if (!inFerniSection) {
+      result.push(line);
+    }
+  }
+
+  return result.join('\n').trim();
+}
+
+/**
+ * Install cron jobs
+ */
+async function setupCron(config: SchedulerConfig, dryRun = false): Promise<boolean> {
+  const enabledJobs = config.jobs.filter(j => j.enabled);
+  if (enabledJobs.length === 0) {
+    console.log(`${colors.yellow}No enabled jobs to schedule${colors.reset}`);
+    return false;
+  }
+
+  const currentCrontab = getCurrentCrontab();
+  const cleanedCrontab = removeFerniFromCrontab(currentCrontab);
+  const ferniEntries = generateCronEntries(config);
+  const newCrontab = cleanedCrontab ? `${cleanedCrontab}\n\n${ferniEntries}` : ferniEntries;
+
+  if (dryRun) {
+    console.log(`${colors.cyan}Would install the following cron entries:${colors.reset}\n`);
+    console.log(ferniEntries);
+    console.log(`\n${colors.dim}Use --setup-cron without --dry-run to install${colors.reset}`);
+    return true;
+  }
+
+  try {
+    // Write new crontab
+    execSync(`echo '${newCrontab.replace(/'/g, "'\\''")}' | crontab -`, { encoding: 'utf-8' });
+    console.log(`${colors.green}✓ Cron jobs installed successfully${colors.reset}`);
+    console.log(`\n${colors.bold}Scheduled jobs:${colors.reset}`);
+    for (const job of enabledJobs) {
+      console.log(`  ${colors.cyan}●${colors.reset} ${job.name}: ${formatSchedule(job.schedule)}`);
+    }
+    console.log(`\n${colors.dim}Logs will be written to ~/.ferni/scheduler.log${colors.reset}`);
+    console.log(`${colors.dim}View crontab: crontab -l${colors.reset}`);
+    return true;
+  } catch (error) {
+    console.error(`${colors.red}Failed to install cron jobs:${colors.reset}`, error);
+    return false;
+  }
+}
+
+/**
+ * Remove cron jobs
+ */
+async function removeCron(): Promise<boolean> {
+  const currentCrontab = getCurrentCrontab();
+
+  if (!currentCrontab.includes(CRON_MARKER_START)) {
+    console.log(`${colors.yellow}No Ferni cron jobs found${colors.reset}`);
+    return true;
+  }
+
+  const cleanedCrontab = removeFerniFromCrontab(currentCrontab);
+
+  try {
+    if (cleanedCrontab.trim()) {
+      execSync(`echo '${cleanedCrontab.replace(/'/g, "'\\''")}' | crontab -`, { encoding: 'utf-8' });
+    } else {
+      execSync('crontab -r 2>/dev/null || true', { encoding: 'utf-8' });
+    }
+    console.log(`${colors.green}✓ Ferni cron jobs removed${colors.reset}`);
+    return true;
+  } catch (error) {
+    console.error(`${colors.red}Failed to remove cron jobs:${colors.reset}`, error);
+    return false;
+  }
+}
+
+/**
+ * Show cron status
+ */
+function showCronStatus(): void {
+  const currentCrontab = getCurrentCrontab();
+  const hasFerniJobs = currentCrontab.includes(CRON_MARKER_START);
+
+  if (hasFerniJobs) {
+    console.log(`${colors.green}✓ Cron jobs are installed${colors.reset}\n`);
+
+    // Extract and display Ferni section
+    const lines = currentCrontab.split('\n');
+    let inFerniSection = false;
+    for (const line of lines) {
+      if (line.trim() === CRON_MARKER_START) {
+        inFerniSection = true;
+        continue;
+      }
+      if (line.trim() === CRON_MARKER_END) {
+        break;
+      }
+      if (inFerniSection && line.trim()) {
+        if (line.startsWith('#')) {
+          console.log(`${colors.bold}${line}${colors.reset}`);
+        } else {
+          console.log(`  ${colors.dim}${line}${colors.reset}`);
+        }
+      }
+    }
+  } else {
+    console.log(`${colors.yellow}No cron jobs installed${colors.reset}`);
+    console.log(`${colors.dim}Use --setup-cron to install persistent scheduling${colors.reset}`);
+  }
+}
+
+// ============================================================================
 // DISPLAY FUNCTIONS
 // ============================================================================
 
@@ -388,6 +583,12 @@ ${colors.dim}Commands:
   ferni exec schedule --disable         Disable autonomous mode
   ferni exec schedule --run-now <job>   Run a job immediately
   ferni exec schedule --alerts          Show alert history
+
+Cron integration (persistent scheduling):
+  ferni exec schedule --setup-cron      Install cron jobs
+  ferni exec schedule --setup-cron --dry-run  Preview cron entries
+  ferni exec schedule --remove-cron     Remove cron jobs
+  ferni exec schedule --cron-status     Show installed cron jobs
 ${colors.reset}`);
 }
 
@@ -400,9 +601,29 @@ export async function execScheduler(options: {
   disable?: boolean;
   runNow?: string;
   alerts?: boolean;
+  setupCron?: boolean;
+  removeCron?: boolean;
+  cronStatus?: boolean;
+  dryRun?: boolean;
   json?: boolean;
 }): Promise<void> {
   let config = await loadConfig();
+
+  // Cron management
+  if (options.setupCron) {
+    await setupCron(config, options.dryRun);
+    return;
+  }
+
+  if (options.removeCron) {
+    await removeCron();
+    return;
+  }
+
+  if (options.cronStatus) {
+    showCronStatus();
+    return;
+  }
 
   if (options.enable) {
     config.enabled = true;
@@ -495,6 +716,10 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     disable: args.includes('--disable'),
     runNow: args.includes('--run-now') ? args[args.indexOf('--run-now') + 1] : undefined,
     alerts: args.includes('--alerts'),
+    setupCron: args.includes('--setup-cron'),
+    removeCron: args.includes('--remove-cron'),
+    cronStatus: args.includes('--cron-status'),
+    dryRun: args.includes('--dry-run'),
     json: args.includes('--json'),
   }).catch(console.error);
 }
