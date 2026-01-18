@@ -1,6 +1,30 @@
 {
   "indexes": [
     {
+      "collectionGroup": "conversation_threads",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "lastActivityAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "commitments",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "commitments",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    },
+    {
       "collectionGroup": "communication_preferences",
       "queryScope": "COLLECTION",
       "fields": [
@@ -22,6 +46,71 @@
       "fields": [
         { "fieldPath": "publisherId", "order": "ASCENDING" },
         { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "dynamic_entities",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        { "fieldPath": "syncedToSpanner", "order": "ASCENDING" },
+        { "fieldPath": "extractedAt", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "dynamic_facts",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        { "fieldPath": "syncedToSpanner", "order": "ASCENDING" },
+        { "fieldPath": "extractedAt", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "dynamic_relationships",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        { "fieldPath": "syncedToSpanner", "order": "ASCENDING" },
+        { "fieldPath": "extractedAt", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "callback_queue",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "scheduledFor", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "pending_actions",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "expiresAt", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "conversations",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        { "fieldPath": "summarized", "order": "ASCENDING" },
+        { "fieldPath": "endedAt", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "outreach_feedback",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        { "fieldPath": "templateId", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "proactive_checkin_calls",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        { "fieldPath": "sponsorBriefed", "order": "ASCENDING" },
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "callStartedAt", "order": "DESCENDING" }
       ]
     }
   ],

@@ -21,6 +21,7 @@ import type {
   CheckinCallContext,
 } from '../../../services/family/proactive-family-checkin.js';
 import type { SponsoredIdentity } from '../../../services/identity/sponsored-identity.js';
+import { getDefaultStore } from '../../../memory/index.js';
 
 const log = createLogger({ module: 'FamilyWellbeingContext' });
 
@@ -149,10 +150,33 @@ interface SponsorInfo {
 }
 
 async function getSponsorInfo(sponsorUserId: string): Promise<SponsorInfo> {
-  // For now, return a sensible default - in practice, this would come from the user's profile
-  // TODO: Add user profile service integration when available
   log.debug({ sponsorUserId }, 'Getting sponsor info');
 
+  try {
+    const store = getDefaultStore();
+    const profile = await store.getProfile(sponsorUserId);
+
+    if (profile) {
+      // Use preferredName first, then name from onboarding, then name field
+      const name =
+        profile.preferredName ||
+        profile.onboarding?.userName ||
+        profile.name ||
+        'your family member';
+
+      return {
+        name,
+        relationship: 'sponsor',
+      };
+    }
+  } catch (error) {
+    log.debug(
+      { error: String(error), sponsorUserId },
+      'Could not fetch sponsor profile, using default'
+    );
+  }
+
+  // Fallback to sensible default
   return {
     name: 'your family member',
     relationship: 'sponsor',
@@ -474,7 +498,7 @@ export function generateFamilyCheckinSystemPrompt(
     ? `\n\nTopics to AVOID (sensitive for this person):\n${schedule.topicsToAvoid.map(t => `- ${t}`).join('\n')}`
     : '';
 
-  return `You are Ferni, a warm and caring AI assistant making a check-in call to ${name}, who is ${context.sponsorRelationship}'s ${schedule.relationship}.
+  return `You are Ferni, a warm and caring companion making a check-in call to ${name}, who is ${context.sponsorRelationship}'s ${schedule.relationship}.
 
 CONTEXT:
 - ${name} is ${identity.displayName}, ${schedule.relationship} of ${context.sponsorName}

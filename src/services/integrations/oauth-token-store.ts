@@ -201,7 +201,9 @@ export async function getOAuthTokens(
     };
 
     // Update last used time in background
-    docRef.update({ lastUsedAt: new Date().toISOString() }).catch(() => {});
+    docRef.update({ lastUsedAt: new Date().toISOString() }).catch((err) => {
+      log.debug({ error: String(err), userId, provider }, 'Failed to update token lastUsedAt (non-critical)');
+    });
 
     return tokens;
   } catch (error) {

@@ -34,6 +34,11 @@ import {
   isConnectionHealthy,
   shouldAttemptReconnection,
 } from './openai-health-monitor.js';
+// Response Orchestrator - coordinate with SDK state tracking
+import {
+  onGenerationStarted,
+  onGenerationComplete,
+} from './response-orchestrator.js';
 
 const log = getLogger();
 
@@ -1121,10 +1126,11 @@ export async function generateReply(
 
     try {
       session.interrupt();
-      // FIX (Jan 2026): INCREASED from 200ms to 350ms to ensure OpenAI fully processes the interrupt
-      // OpenAI Realtime API takes time to clear the active response state
-      // 200ms was still causing "conversation_already_has_active_response" errors in rapid scenarios
-      await new Promise((resolve) => setTimeout(resolve, 350));
+      // FIX (Jan 2026): INCREASED from 350ms to 500ms to ensure OpenAI fully processes the interrupt
+      // OpenAI Realtime API takes significant time to clear the active response state
+      // Per OpenAI docs, must wait for response.done with status 'cancelled' before new response
+      // 350ms was still causing "conversation_already_has_active_response" errors
+      await new Promise((resolve) => setTimeout(resolve, 500));
     } catch (interruptErr) {
       log.debug(
         { error: String(interruptErr) },
@@ -1145,8 +1151,10 @@ export async function generateReply(
   // -------------------------------------------------------------------------
   if (state.userInterruptedAt) {
     const timeSinceInterrupt = Date.now() - state.userInterruptedAt;
-    // FIX (Jan 2026): INCREASED from 150ms to 300ms to let OpenAI fully clear its state
-    const interruptGracePeriodMs = 300;
+    // FIX (Jan 2026): INCREASED from 300ms to 400ms to let OpenAI fully clear its state
+    // Per OpenAI docs, response.cancel triggers response.done with status 'cancelled'
+    // Must wait for that full cycle before creating new response
+    const interruptGracePeriodMs = 400;
 
     if (timeSinceInterrupt < interruptGracePeriodMs) {
       const remainingMs = interruptGracePeriodMs - timeSinceInterrupt;
@@ -1177,10 +1185,10 @@ export async function generateReply(
 
     try {
       session.interrupt();
-      // FIX (Jan 2026): INCREASED from 150ms to 300ms to let OpenAI fully process the interrupt
-      // OpenAI Realtime needs more time than Gemini to clear active response state
-      // 50ms and even 150ms was causing "conversation_already_has_active_response" errors
-      await new Promise((resolve) => setTimeout(resolve, 300));
+      // FIX (Jan 2026): INCREASED from 300ms to 400ms to let OpenAI fully process the interrupt
+      // OpenAI Realtime needs significant time to clear active response state
+      // Per OpenAI docs, must wait for response.done with status 'cancelled'
+      await new Promise((resolve) => setTimeout(resolve, 400));
     } catch (interruptErr) {
       log.debug(
         { error: String(interruptErr) },
@@ -1289,6 +1297,10 @@ export async function generateReply(
     markLLMRequestSent(sessionId, context);
     const requestSentAt = Date.now();
 
+    // Notify orchestrator that we're starting a generation
+    // This ensures proactive systems know we're handling a response
+    onGenerationStarted(sessionId, context);
+
     // The actual generateReply call
     const replyPromise = (async () => {
       const handle = session.generateReply({ instructions, allowInterruptions });
@@ -1372,12 +1384,36 @@ export async function generateReply(
       log.debug({ sessionId, context, latencyMs }, '✅ [GATEWAY] generateReply succeeded');
     }
 
+    // =========================================================================
+    // FIX (Jan 2026): Detect when LLM responded but no speech was produced
+    // This happens when OpenAI returns empty content or only a function call
+    // without follow-up speech. Log a warning to help diagnose "no audio" issues.
+    // =========================================================================
+    if (!speechStarted && latencyMs < 500) {
+      // Very fast completion without speech = likely empty response or function call only
+      log.warn(
+        {
+          sessionId,
+          context,
+          latencyMs,
+          speechStarted,
+        },
+        '⚠️ [GATEWAY] Fast response but no speech started - OpenAI may have returned empty/function-only'
+      );
+    }
+
+    // Notify orchestrator that generation completed successfully
+    onGenerationComplete(sessionId);
+
     return {
       success: true,
       usedFallback: false,
       latencyMs,
     };
   } catch (error) {
+    // Notify orchestrator that generation failed/completed
+    onGenerationComplete(sessionId);
+
     state.stats.failedCalls++;
     // FIX: Don't increment consecutive failures for low-priority requests (e.g., backchannels)
     // This prevents optional operations from opening the circuit breaker

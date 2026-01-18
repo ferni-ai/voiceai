@@ -26,10 +26,7 @@ import {
 } from './summarization.js';
 
 // State persistence module
-import {
-  persistAllState,
-  applyHumanizingState,
-} from './state-persistence.js';
+import { persistAllState, applyHumanizingState } from './state-persistence.js';
 
 // Cleanup module
 import {
@@ -59,7 +56,13 @@ import { persistenceMetrics } from '../analytics/persistence-metrics.js';
 import { processAccumulatedSignals } from '../conversation-thread/superhuman-outreach-intelligence.js';
 
 // Conversation quality scoring ("Better Than Human" - automated session quality measurement)
-import { processSessionEnd as scoreConversation, type SessionData } from '../automation/conversation-scorer.js';
+import {
+  processSessionEnd as scoreConversation,
+  type SessionData,
+} from '../automation/conversation-scorer.js';
+
+// Pattern reinforcement ("Better Than Human" - detect and reinforce positive behavioral patterns)
+import { analyzeConversationForPatterns } from '../automation/pattern-reinforcement.js';
 
 const log = getLogger();
 
@@ -165,7 +168,10 @@ export async function handleEndSession(options: EndSessionOptions): Promise<void
   if (validatedUserId) {
     await promoteSTMToFirestore(sessionId, validatedUserId);
   } else {
-    log.warn({ sessionId, userId }, '🧠 [MEMORY-AUDIT] SKIPPING STM promotion - no validatedUserId');
+    log.warn(
+      { sessionId, userId },
+      '🧠 [MEMORY-AUDIT] SKIPPING STM promotion - no validatedUserId'
+    );
   }
 
   // Remove from active sessions
@@ -327,6 +333,14 @@ async function finalizeUserSession(options: FinalizeUserSessionOptions): Promise
       sessionStartTime,
       turns,
       userProfile: updatedProfile,
+    });
+
+    // 🔄 PATTERN REINFORCEMENT: Analyze for behavioral patterns to reinforce later
+    await analyzeSessionPatterns({
+      sessionId,
+      userId: validatedUserId,
+      personaId: personaId || 'ferni',
+      turns,
     });
   } catch (error) {
     log.warn(`Failed to save conversation summary/learning: ${error}`);
@@ -513,5 +527,77 @@ async function scoreConversationQuality(params: {
   } catch (error) {
     // Non-critical failure - just log and continue
     log.debug({ error: String(error), sessionId }, 'Conversation scoring skipped');
+  }
+}
+
+// ============================================================================
+// PATTERN REINFORCEMENT ANALYSIS
+// ============================================================================
+
+/**
+ * Analyze conversation for behavioral patterns at session end.
+ *
+ * Detects positive patterns (habits, mood improvement, boundary setting, etc.)
+ * and records them for later reinforcement messaging.
+ * This is a "Better Than Human" feature - surfacing growth patterns the user
+ * might not notice themselves.
+ */
+async function analyzeSessionPatterns(params: {
+  sessionId: string;
+  userId: string;
+  personaId: string;
+  turns: ConversationTurn[];
+  moodStart?: number;
+  moodEnd?: number;
+}): Promise<void> {
+  const { sessionId, userId, personaId, turns, moodStart, moodEnd } = params;
+
+  try {
+    // Build full conversation text from turns
+    const conversationText = turns
+      .map((turn) => `${turn.role === 'user' ? 'User' : 'Ferni'}: ${turn.content}`)
+      .join('\n');
+
+    // Skip if conversation is too short
+    if (conversationText.length < 100) {
+      log.debug({ sessionId, userId }, 'Conversation too short for pattern analysis');
+      return;
+    }
+
+    // Build metadata for richer pattern detection
+    const metadata: {
+      mood?: { start: number; end: number };
+      topics?: string[];
+    } = {};
+
+    if (moodStart !== undefined && moodEnd !== undefined) {
+      metadata.mood = { start: moodStart, end: moodEnd };
+    }
+
+    // Analyze for patterns
+    const patterns = await analyzeConversationForPatterns(
+      userId,
+      sessionId,
+      personaId,
+      conversationText,
+      metadata
+    );
+
+    if (patterns.length > 0) {
+      log.info(
+        {
+          sessionId,
+          userId,
+          patternCount: patterns.length,
+          patternTypes: patterns.map((p) => p.patternType),
+        },
+        '🔄 Behavioral patterns detected and recorded'
+      );
+    } else {
+      log.debug({ sessionId, userId }, 'No behavioral patterns detected this session');
+    }
+  } catch (error) {
+    // Non-critical failure - just log and continue
+    log.debug({ error: String(error), sessionId }, 'Pattern analysis skipped');
   }
 }

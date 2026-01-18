@@ -552,7 +552,9 @@ export function getDayAwareness(): DayAwarenessContext {
 
     if (age < DAY_CONTEXT_MAX_STALE_MS) {
       // Stale but usable - return with stale flag, refresh in background
-      refreshCache().catch(() => {});
+      refreshCache().catch((err) => {
+        log.debug({ error: String(err) }, 'Background cache refresh failed (non-critical)');
+      });
       return { ...cachedDayContext, freshness: 'stale' };
     }
   }
@@ -577,7 +579,9 @@ export function getCachedWeather(city: string): RegionalWeather | null {
   // Check freshness
   if (Date.now() - cached.generatedAt > WEATHER_TTL_MS) {
     // Expired - trigger background refresh but return stale
-    preWarmWeather(city).catch(() => {});
+    preWarmWeather(city).catch((err) => {
+      log.debug({ error: String(err), city }, 'Background weather refresh failed (non-critical)');
+    });
     return cached; // Return stale data (better than nothing)
   }
 

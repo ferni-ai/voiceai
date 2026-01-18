@@ -863,7 +863,9 @@ export class UnifiedToolOrchestrator {
     log.info(observabilityData, '🔧 Tool selection complete');
 
     // Emit observability event for external monitoring (fire-and-forget)
-    this.emitToolSelectionEvent(observabilityData).catch(() => {});
+    this.emitToolSelectionEvent(observabilityData).catch((err) => {
+      log.debug({ error: String(err) }, 'Tool selection event emission failed (non-critical)');
+    });
 
     return result;
   }

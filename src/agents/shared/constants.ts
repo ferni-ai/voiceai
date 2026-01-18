@@ -268,26 +268,35 @@ export const AUDIO = {
 /**
  * VAD Configuration for OpenAI Realtime API
  *
+ * REFERENCE: OpenAI Realtime API Best Practices (Jan 2026)
+ * OpenAI defaults: threshold=0.5, silence_duration=500ms, prefix_padding=300ms
+ *
  * The threshold controls how sensitive the agent is to sounds:
  * - Lower values (0.3-0.5): More sensitive, triggers on quieter sounds
  * - Higher values (0.6-0.8): Less sensitive, requires clearer speech
  *
  * Configurable via environment variables for different environments:
- * - VAD_THRESHOLD: Speech detection threshold (default: 0.65)
+ * - VAD_THRESHOLD: Speech detection threshold (default: 0.6)
  * - VAD_PREFIX_PADDING_MS: Audio to include before detected speech (default: 300)
- * - VAD_SILENCE_DURATION_MS: How long to wait after silence (default: 600)
+ * - VAD_SILENCE_DURATION_MS: How long to wait after silence (default: 500)
+ *
+ * IMPORTANT (Jan 2026): When createResponse=true, OpenAI auto-generates responses.
+ * The proactive response system in transcript-handler.ts is DISABLED when this is true
+ * to prevent "conversation_already_has_active_response" race conditions.
  */
 export const VAD_CONFIG = {
   /**
    * Speech detection threshold (0.0-1.0)
    * Higher = less sensitive to background noise
-   * Default increased from 0.5 to 0.65 to reduce false triggers
+   *
+   * OpenAI default: 0.5
+   * Our default: 0.6 (slightly less sensitive to reduce false triggers)
    *
    * Recommended values:
-   * - 0.5: Very sensitive (quiet environments only)
-   * - 0.65: Balanced (default, works in most environments)
-   * - 0.75: Low sensitivity (noisy environments)
-   * - 0.85: Very low sensitivity (very noisy environments)
+   * - 0.5: Very sensitive (quiet environments only) - OpenAI default
+   * - 0.6: Balanced (our default, works in most environments)
+   * - 0.7: Low sensitivity (noisy environments)
+   * - 0.8: Very low sensitivity (very noisy environments)
    */
   get threshold(): number {
     const envValue = process.env.VAD_THRESHOLD;
@@ -297,15 +306,15 @@ export const VAD_CONFIG = {
         return parsed;
       }
     }
-    return 0.65; // Default: balanced sensitivity
+    return 0.6; // Default: balanced sensitivity (OpenAI default is 0.5)
   },
 
   /**
    * Audio to include before detected speech starts (ms)
    * Captures the beginning of words that might be cut off
    *
-   * UPDATED Dec 2024: Reduced from 300ms → 200ms for faster response
-   * while still capturing word beginnings
+   * OpenAI default: 300ms
+   * Our default: 300ms (matching OpenAI for reliable word capture)
    */
   get prefixPaddingMs(): number {
     const envValue = process.env.VAD_PREFIX_PADDING_MS;
@@ -315,15 +324,18 @@ export const VAD_CONFIG = {
         return parsed;
       }
     }
-    return 200; // Default: 200ms padding (reduced from 300ms)
+    return 300; // Default: 300ms padding (matching OpenAI default)
   },
 
   /**
    * Duration of silence required to end speech detection (ms)
    * Lower = faster response, Higher = more tolerant of natural pauses
    *
-   * UPDATED Jan 2026: Reduced from 400ms → 300ms for human-like turn-taking
-   * Research: Human turn-taking gaps are 200-500ms
+   * OpenAI default: 500ms
+   * Our default: 500ms (matching OpenAI for reliable turn detection)
+   *
+   * UPDATED Jan 2026: Increased from 300ms → 500ms to match OpenAI defaults
+   * and reduce premature turn endings during natural pauses
    */
   get silenceDurationMs(): number {
     const envValue = process.env.VAD_SILENCE_DURATION_MS;
@@ -333,13 +345,31 @@ export const VAD_CONFIG = {
         return parsed;
       }
     }
-    return 300; // Default: 300ms silence before turn end (human-like turn-taking)
+    return 500; // Default: 500ms silence before turn end (OpenAI default)
   },
 
-  /** Whether to create a response after speech ends */
+  /**
+   * Whether to automatically create a response after speech ends
+   *
+   * OpenAI default: true
+   * Our default: true (ARCHITECTURE FIX Jan 2026)
+   *
+   * When true, the SDK/LLM handles normal turn responses automatically.
+   * Ferni's proactive systems (silence handler, check-ins) only trigger
+   * when the SDK is idle - preventing race conditions and duplicate responses.
+   *
+   * This is the clean architecture: SDK owns normal turns, Ferni owns proactive moments.
+   */
   createResponse: true,
 
-  /** Whether the user can interrupt the agent */
+  /**
+   * Whether the user can interrupt the agent while it's speaking
+   *
+   * OpenAI default: true
+   * Our default: true
+   *
+   * Essential for natural conversations - lets users interject naturally.
+   */
   interruptResponse: true,
 } as const;
 

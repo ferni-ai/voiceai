@@ -241,23 +241,31 @@ export function setupToolTrackingHandler(ctx: ToolTrackingContext): ToolTracking
           }
 
           // ================================================================
-          // 📰 FIX: Speak news/weather results directly for native function calling
-          // When using native function calling, the SDK JSON.stringify()s the result
-          // which double-escapes SSML, confusing the LLM. We speak the result directly.
+          // 🔧 FIX (Jan 2026): Speak tool results when using OpenAI Realtime
+          // With createResponse=false, OpenAI doesn't auto-generate speech after
+          // receiving function call results. We need to explicitly trigger a response.
+          //
+          // Priority tools that get direct speech (info-heavy results):
+          // - News, weather, sports (data that needs to be read)
+          // - Music control (simple confirmations already in tool output)
+          //
+          // Note: Other tools let the LLM decide what to say based on context.
           // ================================================================
-          if (isNewsOrWeather && !hasError && toolResult) {
+          const shouldSpeakDirectly = isNewsOrWeather || isMusic;
+          
+          if (shouldSpeakDirectly && !hasError && toolResult) {
             const resultToSpeak =
               typeof toolResult === 'string' ? toolResult : JSON.stringify(toolResult);
 
             // Only speak if there's meaningful content (not empty or too short)
-            if (resultToSpeak && resultToSpeak.length > 20) {
+            if (resultToSpeak && resultToSpeak.length > 10) {
               logger.info(
                 {
                   toolName,
                   resultLength: resultToSpeak.length,
                   sessionId,
                 },
-                '📰 News/weather tool result - speaking via safeGenerateReply'
+                '🔧 Tool result - speaking via safeGenerateReply'
               );
 
               // Fire-and-forget: speak the result via safeGenerateReply
@@ -275,21 +283,23 @@ export function setupToolTrackingHandler(ctx: ToolTrackingContext): ToolTracking
                     context: `native-tool-result-${toolName}`,
                     waitForPlayout: true,
                     timeoutMs: 6000,
-                    fallbackMessage: 'Let me share what I found...',
+                    fallbackMessage: toolName.toLowerCase().includes('music') 
+                      ? 'Done!' 
+                      : 'Let me share what I found...',
                     sessionId,
                   });
 
                   logger.info(
                     { toolName, sessionId },
-                    '📰 News/weather result spoken successfully'
+                    '🔧 Tool result spoken successfully'
                   );
                 } catch (speakErr) {
                   logger.warn(
                     { toolName, error: String(speakErr), sessionId },
-                    '📰 Failed to speak news/weather result (will retry via LLM)'
+                    '🔧 Failed to speak tool result (watchdog will catch this)'
                   );
                 }
-              }, 'speak-news-result');
+              }, `speak-tool-result-${toolName}`);
             }
           }
 

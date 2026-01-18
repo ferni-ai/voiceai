@@ -93,7 +93,7 @@ const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
 /**
  * Get threads for a user from Firestore
- * Collection: users/{userId}/conversation_threads
+ * Collection: bogle_users/{userId}/conversation_threads
  */
 async function getThreadsForUser(userId: string): Promise<ConversationThread[]> {
   // Check cache first
@@ -110,7 +110,7 @@ async function getThreadsForUser(userId: string): Promise<ConversationThread[]> 
 
   try {
     const snapshot = await db
-      .collection('users')
+      .collection('bogle_users')
       .doc(userId)
       .collection('conversation_threads')
       .orderBy('updatedAt', 'desc')
@@ -148,7 +148,7 @@ async function getThreadsForUser(userId: string): Promise<ConversationThread[]> 
 
 /**
  * Save a thread to Firestore
- * Collection: users/{userId}/conversation_threads/{threadId}
+ * Collection: bogle_users/{userId}/conversation_threads/{threadId}
  */
 async function saveThread(thread: ConversationThread): Promise<void> {
   const db = getFirestore();
@@ -159,7 +159,7 @@ async function saveThread(thread: ConversationThread): Promise<void> {
 
   try {
     const threadRef = db
-      .collection('users')
+      .collection('bogle_users')
       .doc(thread.userId)
       .collection('conversation_threads')
       .doc(thread.id);
@@ -186,7 +186,7 @@ async function deleteThread(userId: string, threadId: string): Promise<boolean> 
 
   try {
     await db
-      .collection('users')
+      .collection('bogle_users')
       .doc(userId)
       .collection('conversation_threads')
       .doc(threadId)

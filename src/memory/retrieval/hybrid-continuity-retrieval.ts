@@ -300,7 +300,9 @@ async function retrieveAnchors(
 
     // Mark top anchors as recalled (async, don't await)
     for (const anchor of topAnchors.slice(0, 3)) {
-      markAnchorRecalled(userId, anchor.anchorId).catch(() => {});
+      markAnchorRecalled(userId, anchor.anchorId).catch((err) => {
+        log.debug({ error: String(err), userId, anchorId: anchor.anchorId }, 'Failed to mark anchor recalled (non-critical)');
+      });
     }
 
     return topAnchors.map(({ _score, ...rest }) => rest);

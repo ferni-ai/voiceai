@@ -21,6 +21,7 @@
 
 import { createLogger } from '../../../utils/safe-logger.js';
 import type { SuperhumanCapabilities } from '../core/shared-types.js';
+import { emitSuperhumanActivation } from '../../../api/observability-routes.js';
 
 const log = createLogger({ module: 'context:superhuman-integration' });
 
@@ -425,6 +426,17 @@ export async function getSuperhuman(
         timestamp: Date.now(),
         cacheHit: true,
       });
+
+      // Emit observability event for cache hit
+      const config = PERSONA_SUPERHUMAN_MAP[persona];
+      emitSuperhumanActivation({
+        userId,
+        persona,
+        capabilities: config?.capabilities || [],
+        cacheHit: true,
+        durationMs: duration,
+      });
+
       log.debug(
         { persona, userId, cached: true, durationMs: duration },
         'Using cached superhuman context'
@@ -460,6 +472,17 @@ export async function getSuperhuman(
       timestamp: Date.now(),
       cacheHit: false,
     });
+
+    // Emit observability event for fresh build
+    const config = PERSONA_SUPERHUMAN_MAP[persona];
+    emitSuperhumanActivation({
+      userId,
+      persona,
+      capabilities: config?.capabilities || [],
+      cacheHit: false,
+      durationMs: duration,
+    });
+
     log.debug({ persona, userId, durationMs: duration }, 'Built superhuman context');
 
     // Format for the specific persona

@@ -1227,6 +1227,9 @@ Reference past context when relevant, but don't force it. Let the conversation f
           conversationManager,
           userData,
           sessionId,
+          // FIX (Jan 2026): Pass room to check for participants before silence responses
+          // This prevents speaking to empty rooms when participant hasn't joined yet
+          room,
         });
         // Note: silenceContext is created by setupSessionStateHandlers
         handlersStatus.sessionState = true;

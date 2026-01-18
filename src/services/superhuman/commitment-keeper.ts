@@ -552,7 +552,16 @@ export async function loadUserCommitments(userId: string): Promise<Commitment[]>
 
     return commitments;
   } catch (error) {
-    log.warn({ error: String(error), userId }, 'Failed to load commitments');
+    const errorStr = String(error);
+    // Check if this is a Firestore index building error - suppress warning and gracefully degrade
+    if (errorStr.includes('FAILED_PRECONDITION') && errorStr.includes('index')) {
+      // Index is building - this is expected and temporary, use debug level
+      log.debug({ userId }, 'Firestore index still building for commitments - returning empty');
+      recordDegradation('commitment-keeper');
+    } else {
+      // Unexpected error - log as warning
+      log.warn({ error: errorStr, userId }, 'Failed to load commitments');
+    }
     return [];
   }
 }

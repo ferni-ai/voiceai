@@ -1837,6 +1837,9 @@ If someone asks what day it is, what time it is, or what the date is, you know t
       conversationManager,
       userData,
       sessionId,
+      // FIX (Jan 2026): Pass room to check for participants before silence responses
+      // This prevents speaking to empty rooms when participant hasn't joined yet
+      room: ctx.room,
       // Idle timeout callback - disconnect after extended silence
       onIdleTimeout: () => {
         void (async () => {

@@ -133,7 +133,12 @@ async function getUsersWithCalendarConnected(): Promise<string[]> {
     
     // Get users from Google Calendar tokens
     const googleSnapshot = await db.collection('google_calendar_tokens').get();
-    const userIds = new Set<string>(googleSnapshot.docs.map((doc) => doc.id));
+    const userIds = new Set<string>(
+      googleSnapshot.docs
+        .map((doc) => doc.id)
+        // Filter out test users to avoid token refresh errors
+        .filter((id) => !id.startsWith('cal-test-') && !id.startsWith('test-'))
+    );
     
     // Also check unified calendar providers
     const providersSnapshot = await db
@@ -144,7 +149,11 @@ async function getUsersWithCalendarConnected(): Promise<string[]> {
     for (const doc of providersSnapshot.docs) {
       const pathParts = doc.ref.path.split('/');
       if (pathParts.length >= 2 && pathParts[0] === 'users') {
-        userIds.add(pathParts[1]);
+        const userId = pathParts[1];
+        // Also filter test users from unified providers
+        if (!userId.startsWith('cal-test-') && !userId.startsWith('test-')) {
+          userIds.add(userId);
+        }
       }
     }
     

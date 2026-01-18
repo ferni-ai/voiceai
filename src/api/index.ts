@@ -60,6 +60,8 @@ export { handleWellbeingRoutes } from './wellbeing.routes.js';
 export { handleWorkerRoutes } from './worker-routes.js';
 export { handleVisualStorytellingRoutes } from './visual-storytelling-routes.js';
 export { handleAutomationRoutes } from './automation-routes.js';
+export { handleSuperhumanMetricsRoutes } from './superhuman-metrics-routes.js';
+export { handleInsightsRoutes } from './insights-routes.js';
 
 // Modular route handlers
 export { handleVoiceAuthRoutes } from './voice-auth.routes.js';

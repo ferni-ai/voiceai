@@ -52,7 +52,9 @@ void (async () => {
         sessionId: 'broadcast',
         personaId: to,
         metadata: { from, to, reason, timestamp: Date.now() },
-      }).catch(() => {});
+      }).catch((err) => {
+        getLogger().debug({ error: String(err), from, to }, 'Handoff Pub/Sub broadcast failed (non-critical)');
+      });
     };
     getLogger().debug('Handoff Pub/Sub broadcasting enabled');
   } catch {

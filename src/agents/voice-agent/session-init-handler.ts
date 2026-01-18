@@ -196,9 +196,13 @@ export async function initializeSession(ctx: SessionInitContext): Promise<Sessio
 
   // Import session metrics for phase tracking
   let recordPhase: ((sessionId: string, phase: string, durationMs: number) => void) | null = null;
+  let startSessionMetrics: ((sessionId: string) => void) | null = null;
   try {
     const metrics = await import('../shared/session-metrics.js');
     recordPhase = metrics.recordPhase;
+    startSessionMetrics = metrics.startSessionMetrics;
+    // Start tracking this session BEFORE any recordPhase calls
+    startSessionMetrics(sessionId);
   } catch {
     // Metrics module not available - continue without tracking
   }

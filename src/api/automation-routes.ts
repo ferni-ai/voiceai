@@ -359,6 +359,109 @@ export async function handleAutomationRoutes(
       return true;
     }
 
+    // ========================================================================
+    // PATTERN REINFORCEMENT
+    // ========================================================================
+
+    // GET /api/automation/patterns
+    // Get pattern summary for a user (behavioral patterns detected over time)
+    if (route === '/patterns' && method === 'GET') {
+      const { getPatternSummary } = await import(
+        '../services/automation/pattern-reinforcement.js'
+      );
+
+      const summary = await getPatternSummary(userId);
+
+      sendJsonResponse(res, 200, {
+        success: true,
+        ...summary,
+      });
+      return true;
+    }
+
+    // GET /api/automation/patterns/reinforcements
+    // Get pending reinforcement messages ready for delivery
+    if (route === '/patterns/reinforcements' && method === 'GET') {
+      const { processReinforcementOpportunities } = await import(
+        '../services/automation/pattern-reinforcement.js'
+      );
+
+      const messages = await processReinforcementOpportunities(userId);
+
+      sendJsonResponse(res, 200, {
+        success: true,
+        messages,
+        count: messages.length,
+      });
+      return true;
+    }
+
+    // POST /api/automation/patterns/reinforcements/:id/deliver
+    // Mark a reinforcement message as delivered
+    const deliverMatch = route.match(/^\/patterns\/reinforcements\/([^/]+)\/deliver$/);
+    if (deliverMatch && method === 'POST') {
+      const { deliverReinforcement, processReinforcementOpportunities } = await import(
+        '../services/automation/pattern-reinforcement.js'
+      );
+
+      const messageId = deliverMatch[1];
+
+      // First, get the reinforcement messages to find the one being delivered
+      const messages = await processReinforcementOpportunities(userId);
+      const message = messages.find((m) => m.patternId === messageId);
+
+      if (!message) {
+        sendJsonResponse(res, 404, {
+          success: false,
+          error: 'Reinforcement message not found',
+        });
+        return true;
+      }
+
+      await deliverReinforcement(message);
+
+      log.info({ userId, messageId }, 'Reinforcement delivered');
+
+      sendJsonResponse(res, 200, {
+        success: true,
+        message: 'Reinforcement marked as delivered',
+      });
+      return true;
+    }
+
+    // POST /api/automation/patterns/reinforcements/:id/feedback
+    // Record user reaction to a reinforcement
+    const feedbackMatch = route.match(/^\/patterns\/reinforcements\/([^/]+)\/feedback$/);
+    if (feedbackMatch && method === 'POST') {
+      const { recordReinforcementReaction } = await import(
+        '../services/automation/pattern-reinforcement.js'
+      );
+
+      const messageId = feedbackMatch[1];
+      const body = await parseRequestBody(req);
+      const { reaction } = body as {
+        reaction: 'acknowledged' | 'dismissed' | 'engaged' | 'emotional';
+      };
+
+      if (!reaction) {
+        sendJsonResponse(res, 400, {
+          success: false,
+          error: 'reaction is required (acknowledged, dismissed, engaged, or emotional)',
+        });
+        return true;
+      }
+
+      await recordReinforcementReaction(userId, messageId, reaction);
+
+      log.info({ userId, messageId, reaction }, 'Reinforcement feedback recorded');
+
+      sendJsonResponse(res, 200, {
+        success: true,
+        message: 'Feedback recorded',
+      });
+      return true;
+    }
+
     // Route not matched
     return false;
   } catch (error) {

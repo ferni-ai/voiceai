@@ -16,6 +16,7 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import { getFirestoreDb } from './firestore-utils.js';
+import { getValuesAlignment, getBlindSpots } from './semantic-intelligence/self-awareness.js';
 
 const log = createLogger({ module: 'superhuman:planning-coordination' });
 
@@ -394,47 +395,89 @@ async function fetchEnergyAlignment(userId: string): Promise<EnergyAlignment> {
 }
 
 /**
- * Fetch life stage context from Nayan's domain
- * TODO: Integrate with self-awareness service when available
- * Currently returns sensible defaults based on event type
+ * Fetch life stage context from self-awareness service
+ * Integrates with the self-awareness service to provide values alignment
+ * and potential conflict detection based on user's tracked blind spots.
  */
 async function fetchLifeStageContext(
   userId: string,
   eventType: string
 ): Promise<LifeStageContext> {
-  // TODO: Integration with self-awareness service
-  // The self-awareness module doesn't exist yet at the expected path.
-  // For now, return sensible defaults based on event type.
-
   const eventLower = eventType.toLowerCase();
 
-  // Determine fit based on common event types
+  // Default values based on event type
   let fitWithStage: 'perfect_fit' | 'good_fit' | 'neutral' | 'potential_stress' = 'good_fit';
   const valuesAlignment: string[] = [];
   const wisdomNotes: string[] = [];
+  const potentialConflicts: string[] = [];
 
+  // Event-type based defaults
   if (eventLower.includes('wedding') || eventLower.includes('party') || eventLower.includes('celebration')) {
     valuesAlignment.push('connection', 'celebration', 'relationships');
     wisdomNotes.push('Events are investments in memory and connection');
-    fitWithStage = 'good_fit';
   } else if (eventLower.includes('career') || eventLower.includes('business') || eventLower.includes('conference')) {
     valuesAlignment.push('growth', 'achievement', 'career');
     wisdomNotes.push('Professional growth events can catalyze personal development');
-    fitWithStage = 'good_fit';
   } else if (eventLower.includes('trip') || eventLower.includes('vacation') || eventLower.includes('travel')) {
     valuesAlignment.push('adventure', 'experience', 'freedom');
     wisdomNotes.push('Travel broadens perspective and renews energy');
-    fitWithStage = 'good_fit';
   } else {
     valuesAlignment.push('connection', 'growth', 'experience');
     wisdomNotes.push('The planning is part of the experience');
+  }
+
+  // Integrate with self-awareness service for personalized context
+  try {
+    // Get user's stated values for alignment checking
+    const userValues = await getValuesAlignment(userId);
+    if (userValues) {
+      // Check if event aligns with user's stated values
+      for (const [value, data] of userValues.alignmentScores) {
+        if (data.score >= 0.6) {
+          // High alignment value
+          const valueMatches = eventLower.includes(value.toLowerCase()) ||
+            valuesAlignment.some(v => v.toLowerCase().includes(value.toLowerCase()));
+          if (valueMatches) {
+            fitWithStage = 'perfect_fit';
+            wisdomNotes.push(`This aligns well with your commitment to "${value}"`);
+          }
+        } else if (data.score < 0.4) {
+          // Value they struggle to live by
+          const valueMatches = eventLower.includes(value.toLowerCase());
+          if (valueMatches) {
+            potentialConflicts.push(`You've mentioned "${value}" is important but have struggled to prioritize it`);
+            fitWithStage = 'neutral';
+          }
+        }
+      }
+    }
+
+    // Check blind spots that might affect event planning
+    const blindSpots = await getBlindSpots(userId);
+    for (const spot of blindSpots.slice(0, 2)) {
+      if (spot.category === 'avoidance' || spot.category === 'patterns') {
+        // Check if blind spot pattern might affect this event type
+        const patternLower = spot.pattern.toLowerCase();
+        if (
+          (patternLower.includes('overcommit') && eventLower.includes('commit')) ||
+          (patternLower.includes('social') && (eventLower.includes('party') || eventLower.includes('gathering'))) ||
+          (patternLower.includes('work') && eventLower.includes('career'))
+        ) {
+          potentialConflicts.push(`Consider: ${spot.pattern}`);
+          if (fitWithStage === 'perfect_fit') fitWithStage = 'good_fit';
+          else if (fitWithStage === 'good_fit') fitWithStage = 'neutral';
+        }
+      }
+    }
+  } catch (error) {
+    log.debug({ error: String(error), userId }, 'Could not fetch self-awareness data for life stage context');
   }
 
   return {
     currentStage: 'Adult life',
     fitWithStage,
     valuesAlignment,
-    potentialConflicts: [],
+    potentialConflicts,
     wisdomNotes,
   };
 }

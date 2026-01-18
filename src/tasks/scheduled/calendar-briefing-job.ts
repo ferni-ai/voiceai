@@ -123,8 +123,19 @@ async function getAllUserIdsWithCalendar(): Promise<string[]> {
       userIds.push(doc.id);
     });
 
-    log.debug({ userCount: userIds.length }, 'Found users with calendar');
-    return userIds;
+    // Filter out test users to avoid spamming logs with expired token errors
+    // Test tokens are created during E2E testing and have invalid refresh tokens
+    const realUserIds = userIds.filter(
+      (id) => !id.startsWith('cal-test-') && !id.startsWith('test-')
+    );
+
+    const skipped = userIds.length - realUserIds.length;
+    if (skipped > 0) {
+      log.debug({ skipped }, 'Filtered out test calendar users');
+    }
+
+    log.debug({ userCount: realUserIds.length }, 'Found users with calendar');
+    return realUserIds;
   } catch (error) {
     log.error({ error: String(error) }, 'Failed to query users with calendar');
     return [];

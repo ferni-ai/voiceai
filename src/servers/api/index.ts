@@ -180,6 +180,7 @@ import { handleBatchOperationsRoutes } from '../../api/batch-operations-routes.j
 import { handleWebhookManagementRoutes } from '../../api/webhook-management-routes.js';
 import { handleDesignTokensRoutes } from '../../api/design-tokens-routes.js';
 import { handleInsightsRoutes } from '../../api/insights-routes.js';
+import { handleSuperhumanMetricsRoutes } from '../../api/superhuman-metrics-routes.js';
 import { handleVisualStorytellingRoutes } from '../../api/visual-storytelling-routes.js';
 import { handleMemoryRoutes } from '../../api/memory-routes.js';
 import { handleActionRoutes } from '../../api/action-routes.js';
@@ -457,6 +458,21 @@ const server = http.createServer(async (req, res) => {
     }
   } catch (err) {
     log.error({ error: String(err) }, 'Insights route error');
+    if (!res.writableEnded) {
+      res.writeHead(500);
+      res.end('Internal Server Error');
+    }
+    return;
+  }
+
+  try {
+    // Superhuman metrics routes - "Better Than Human" dashboard metrics
+    if (pathname.startsWith('/api/superhuman/')) {
+      const handled = await handleSuperhumanMetricsRoutes(req, res, pathname, parsedUrl);
+      if (handled) return;
+    }
+  } catch (err) {
+    log.error({ error: String(err) }, 'Superhuman metrics route error');
     if (!res.writableEnded) {
       res.writeHead(500);
       res.end('Internal Server Error');

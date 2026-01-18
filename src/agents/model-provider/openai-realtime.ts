@@ -66,6 +66,15 @@ const MINIMAL_INSTRUCTIONS = `You are part of **Ferni**, a voice-first life coac
 - Never speak programming code or file paths
 - If you catch yourself about to output code/XML → STOP and say something natural instead
 
+**CODE EDITING FORMAT - ABSOLUTELY FORBIDDEN:**
+- NEVER output anything resembling code editing JSON
+- NEVER say: {"edits, "path":, "start_line", "end_line", .go, .ts, .py, .rs
+- NEVER output JSON objects like: {"edits": [...]}
+- NEVER mention file names with extensions (.go, .ts, .tsx, .js, .py)
+- NEVER output line numbers in any format
+- If you're about to say ANYTHING with "edits", "path", "start_line", or file extensions → STOP
+- Instead say: "I'm here to help. What's on your mind?"
+
 **Reading News, Weather, Sports:**
 When you get news/weather/sports results from a tool, READ THEM OUT LOUD like a friendly radio announcer would. Don't just acknowledge getting them - actually share the content!
 - News: "Here's what's happening... [read each headline with natural pauses]"
@@ -195,7 +204,7 @@ export class OpenAIRealtimeProvider implements ModelProvider {
     // Note: OpenAI Realtime SDK doesn't accept 'instructions' in RealtimeModel constructor.
     // Instructions are set via the LiveKit Agent system prompt instead.
     // IMPORTANT: Always use OpenAI's realtime model - ignore config.model which may be set to Gemini
-    const openaiModel = config.model?.startsWith('gpt-') ? config.model : 'gpt-4o-realtime-preview';
+    const openaiModel = config.model?.startsWith('gpt-') ? config.model : 'gpt-realtime';
     const model = new openai.realtime.RealtimeModel({
       model: openaiModel,
       modalities: ['text'], // Text-only mode - Cartesia TTS handles persona voice
@@ -219,7 +228,16 @@ export class OpenAIRealtimeProvider implements ModelProvider {
   // -------------------------------------------------------------------------
 
   /**
-   * OpenAI uses internal server_vad, so AgentSession turn detection is undefined.
+   * OpenAI Realtime uses server_vad for turn detection.
+   * 
+   * Return undefined to let OpenAI's server_vad handle turn detection internally.
+   * 
+   * With create_response=true (our new architecture):
+   * 1. OpenAI's server_vad detects end of user speech
+   * 2. OpenAI auto-generates a response (SDK emits generation_created)
+   * 3. Ferni's proactive systems only trigger for silence/special cases
+   * 
+   * This is the clean architecture: SDK owns normal turns, Ferni owns proactive moments.
    */
   getSessionTurnDetection(): 'realtime_llm' | undefined {
     return undefined;

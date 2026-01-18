@@ -39,7 +39,8 @@ async function cleanupTestTokens(dryRun: boolean): Promise<void> {
   console.log('');
 
   const firestore = initFirebase();
-  const collection = firestore.collection('calendar_tokens');
+  // The OAuth tokens are stored in google_calendar_tokens (not calendar_tokens)
+  const collection = firestore.collection('google_calendar_tokens');
 
   // Query for test tokens
   const snapshot = await collection.get();

@@ -252,7 +252,9 @@ export async function setupMusicHandler(
 
       // Pre-warm LLM cache
       const speechContext: TrackSpeechContext = { track, personaId: sessionPersona.id };
-      prewarmInterjectionCache(speechContext).catch(() => {});
+      prewarmInterjectionCache(speechContext).catch((err) => {
+        log.debug({ error: String(err), personaId: sessionPersona.id }, 'Interjection cache prewarm failed (non-critical)');
+      });
     }
 
     // Maybe speak intro

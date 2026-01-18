@@ -6,12 +6,20 @@
  * Key characteristics:
  * - JSON workaround for function calling (native FC unreliable)
  * - Text-only mode with Cartesia TTS for persona voices
- * - realtime_llm turn detection
+ * - Built-in VAD turn detection (enabled by default in Gemini)
  * - Prewarm recommended for first response latency
  * - Optional Vertex AI mode for higher quotas
  *
+ * Reference: https://docs.livekit.io/agents/models/realtime/plugins/gemini.md
+ *
  * @module agents/model-provider/gemini-live
  */
+
+import * as google from '@livekit/agents-plugin-google';
+
+// Use string literal for modality to avoid ESM/CJS interop issues with @google/genai
+// The Modality enum from @google/genai can be undefined at runtime with tsx/esbuild
+const TEXT_MODALITY = 'TEXT' as const;
 
 import type {
   ModelProvider,
@@ -31,9 +39,9 @@ import type {
 const GEMINI_TOKEN_LIMIT = 30000;
 
 /**
- * Default Gemini model
+ * Default Gemini model - using 2.5 Flash native audio preview for better responsiveness
  */
-const DEFAULT_GEMINI_MODEL = 'gemini-2.0-flash-exp';
+const DEFAULT_GEMINI_MODEL = 'gemini-2.5-flash-native-audio-preview-12-2025';
 
 // ============================================================================
 // PROVIDER IMPLEMENTATION
@@ -75,7 +83,8 @@ export class GeminiLiveProvider implements ModelProvider {
   }
 
   /**
-   * Gemini uses realtime_llm turn detection.
+   * Gemini Live API includes built-in VAD-based turn detection, enabled by default.
+   * This is server-side and very fast (~100-200ms response time).
    */
   hasBuiltInTurnDetection(): boolean {
     return true;
@@ -120,30 +129,32 @@ export class GeminiLiveProvider implements ModelProvider {
    * Create a Gemini Live model instance.
    *
    * Uses text-only mode so Cartesia TTS handles persona voices.
+   * Gemini has built-in VAD turn detection - responses trigger automatically.
    * Supports optional Vertex AI mode for higher quotas.
+   *
+   * Reference: https://docs.livekit.io/agents/models/realtime/plugins/gemini.md
    */
   async createLLMModel(config: LLMModelConfig): Promise<unknown> {
-    // Dynamic imports to avoid loading SDK if not used
+    // Dynamic import per official docs
     const google = await import('@livekit/agents-plugin-google');
-    const genai = await import('@google/genai');
 
     // Vertex AI configuration (optional, for higher quotas)
     const USE_VERTEX_AI = process.env.USE_VERTEX_AI !== 'false';
     const vertexProject = process.env.GOOGLE_CLOUD_PROJECT || 'johnb-2025';
     const vertexLocation = process.env.GOOGLE_CLOUD_LOCATION || 'us-central1';
 
-    // Build model options
+    // Build model options per official LiveKit docs
+    // https://docs.livekit.io/agents/models/realtime/plugins/gemini.md#usage-with-separate-tts
     const modelOptions: Record<string, unknown> = {
       model: config.model || DEFAULT_GEMINI_MODEL,
-      modalities: [genai.Modality.TEXT], // Text-only → Cartesia TTS
+      // TEXT modality for half-cascade architecture with Cartesia TTS
+      modalities: [TEXT_MODALITY],
       temperature: config.temperature || 0.7,
       instructions: config.instructions,
-      // Enable user transcription
+      // Enable user transcription for memory/context
       inputAudioTranscription: {},
-      // Auto tool choice for JSON workaround
-      toolChoice: 'auto',
-      // Enable Google Search built-in tool
-      geminiTools: { googleSearch: {} },
+      // Enable affective dialog for better emotional responses (native audio models only)
+      enableAffectiveDialog: true,
     };
 
     // Add Vertex AI config if enabled
@@ -153,6 +164,7 @@ export class GeminiLiveProvider implements ModelProvider {
       modelOptions.location = vertexLocation;
     }
 
+    // Use google.beta.realtime namespace for Gemini Live API
     const model = new google.beta.realtime.RealtimeModel(modelOptions);
 
     return model;
@@ -163,10 +175,16 @@ export class GeminiLiveProvider implements ModelProvider {
   // -------------------------------------------------------------------------
 
   /**
-   * Gemini uses realtime_llm turn detection.
+   * Gemini Live API has built-in VAD-based turn detection, enabled by default.
+   * Return undefined to let Gemini's built-in VAD handle turn detection.
+   *
+   * Per docs: "The Gemini Live API includes built-in VAD-based turn detection,
+   * enabled by default."
    */
   getSessionTurnDetection(): 'realtime_llm' | undefined {
-    return 'realtime_llm';
+    // Return undefined - Gemini's built-in VAD handles turn detection automatically
+    // This is server-side and very fast (~100-200ms)
+    return undefined;
   }
 
   /**

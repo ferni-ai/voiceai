@@ -249,7 +249,12 @@ async function checkServiceHealth(): Promise<void> {
     return;
   }
 
-  const services = ['livekit', 'cartesia', 'deepgram', 'gemini', 'firestore'];
+  // Skip external network health checks in development mode - they often timeout locally
+  // and aren't critical for local dev workflows
+  const isDev = process.env.NODE_ENV === 'development' || !process.env.NODE_ENV;
+  const services = isDev
+    ? ['firestore'] // Only check Firestore in dev mode (local emulator or cloud)
+    : ['livekit', 'cartesia', 'deepgram', 'gemini', 'firestore'];
   const results: ServiceHealthResult[] = [];
   const unhealthyServices: string[] = [];
 

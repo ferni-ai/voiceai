@@ -1057,6 +1057,12 @@ async function executeSessionCleanup(ctx: CleanupContext, cleanupStart: number):
       cleanupSessionState(sessionId);
     })(),
 
+    // Response Orchestrator cleanup (prevents stale SDK state tracking)
+    (async () => {
+      const { cleanupSession: cleanupOrchestrator } = await import('../shared/response-orchestrator.js');
+      cleanupOrchestrator(sessionId);
+    })(),
+
     // Semantic tool presence cleanup ("Better than Human" tool feedback)
     (async () => {
       const { cleanupSessionToolPresence } = await import('../../tools/execution/index.js');

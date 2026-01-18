@@ -44,7 +44,9 @@ void (async () => {
           sessionId: data.sessionId as string,
           personaId: data.personaId as string,
           metadata: data,
-        }).catch(() => {});
+        }).catch((err) => {
+          log.debug({ error: String(err), type }, 'Session lifecycle Pub/Sub failed (non-critical)');
+        });
       }
     };
     log.debug('Session lifecycle Pub/Sub enabled');

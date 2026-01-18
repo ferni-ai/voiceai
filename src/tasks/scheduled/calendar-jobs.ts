@@ -114,7 +114,10 @@ export class WeeklyCalendarDigestJob extends ScheduledJob<WeeklyDigestConfig, We
       });
 
       const snapshot = await db.collection('google_calendar_tokens').get();
-      return snapshot.docs.map((doc) => doc.id);
+      // Filter out test users to avoid token refresh errors
+      return snapshot.docs
+        .map((doc) => doc.id)
+        .filter((id) => !id.startsWith('cal-test-') && !id.startsWith('test-'));
     } catch {
       log.warn('Could not fetch calendar users');
       return [];
@@ -210,7 +213,10 @@ export class PreMeetingNotificationsJob extends ScheduledJob<
       });
 
       const snapshot = await db.collection('google_calendar_tokens').get();
-      return snapshot.docs.map((doc) => doc.id);
+      // Filter out test users to avoid token refresh errors
+      return snapshot.docs
+        .map((doc) => doc.id)
+        .filter((id) => !id.startsWith('cal-test-') && !id.startsWith('test-'));
     } catch {
       log.warn('Could not fetch calendar users');
       return [];
@@ -311,7 +317,10 @@ export class MeetingFollowUpJob extends ScheduledJob<FollowUpAutomationConfig, F
       });
 
       const snapshot = await db.collection('google_calendar_tokens').get();
-      return snapshot.docs.map((doc) => doc.id);
+      // Filter out test users to avoid token refresh errors
+      return snapshot.docs
+        .map((doc) => doc.id)
+        .filter((id) => !id.startsWith('cal-test-') && !id.startsWith('test-'));
     } catch {
       log.warn('Could not fetch calendar users');
       return [];

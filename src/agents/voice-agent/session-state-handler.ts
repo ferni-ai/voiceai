@@ -50,6 +50,14 @@ import {
 import { SILENCE_THRESHOLDS, IDLE_TIMEOUT } from '../shared/constants.js';
 import { safeGenerateReply, generateReplyWithContext } from '../shared/safe-generate-reply.js';
 import { clearPendingLowPriorityResponse, hasActiveResponsePending } from '../shared/generate-reply-gateway.js';
+// Response Orchestrator - SDK state tracking for proactive response coordination
+import {
+  canTriggerProactive,
+  onAgentStateChanged,
+  onUserSpeaking,
+  onGenerationStarted,
+  onGenerationComplete,
+} from '../shared/response-orchestrator.js';
 import type { UserData } from '../shared/types.js';
 // Speech coordination for adaptive timing and centralized speech management
 import { getSpeechCoordinator, coordinatedSay } from '../../speech/coordination/index.js';
@@ -82,6 +90,12 @@ export interface SessionStateContext {
    * If provided, idle timeout will auto-disconnect after extended silence.
    */
   onIdleTimeout?: () => void;
+  /**
+   * LiveKit room instance for checking participant presence.
+   * FIX (Jan 2026): Required to prevent speaking to empty rooms when participant
+   * hasn't joined yet (fixes "no response from Ferni" issue).
+   */
+  room?: { remoteParticipants?: Map<string, unknown> };
 }
 
 export interface SessionStateResult {
@@ -108,7 +122,7 @@ const getLogger = () => log();
  * Returns the silenceContext which is shared with the transcript handler.
  */
 export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStateResult {
-  const { session, sessionPersona, conversationManager, userData, sessionId, onIdleTimeout } = ctx;
+  const { session, sessionPersona, conversationManager, userData, sessionId, onIdleTimeout, room } = ctx;
 
   // ============================================================
   // INTERRUPT-AWARE SPEECH HELPER
@@ -517,9 +531,27 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
   };
 
   // ============================================================
+  // SPEECH CREATED HANDLER - Track SDK auto-responses
+  // CRITICAL: With createResponse=true, SDK auto-generates responses.
+  // We must track these to prevent proactive systems from racing.
+  // ============================================================
+  session.on(voice.AgentSessionEventTypes.SpeechCreated, (event) => {
+    // When SDK creates speech without us calling generateReply (userInitiated: false),
+    // it means the SDK is handling an auto-response. Track it in the orchestrator.
+    if (!event.userInitiated) {
+      onGenerationStarted(sessionId, 'sdk-auto-response');
+      diag.state('📡 [SPEECH] SDK auto-response detected - orchestrator tracking');
+    }
+  });
+
+  // ============================================================
   // AGENT STATE CHANGED HANDLER
   // ============================================================
   session.on(voice.AgentSessionEventTypes.AgentStateChanged, (event) => {
+    // Update ResponseOrchestrator with agent state changes
+    // This ensures proactive systems know when SDK is handling a response
+    onAgentStateChanged(sessionId, event.newState as 'speaking' | 'listening' | 'thinking' | 'initializing');
+
     if (event.newState === 'speaking') {
       conversationManager.handleAgentStartedSpeaking('');
 
@@ -672,6 +704,10 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
     // USER STARTED SPEAKING
     // ----------------------------------------------------------------
     if (event.newState === 'speaking') {
+      // Update ResponseOrchestrator - user speaking clears SDK generation state
+      // This ensures proactive systems can properly coordinate after interruptions
+      onUserSpeaking(sessionId);
+
       // GRACEFUL INTERRUPT: Track if user interrupted while agent was speaking
       // This enables softer recovery when agent responds next
       if (conversationManager.isAgentSpeaking()) {
@@ -870,12 +906,10 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
           return;
         }
 
-        // CRITICAL FIX: Skip if there's already an active response being generated/played
-        // The gateway sets hasActiveResponse=true when generateReply is called,
-        // but LiveKit's AgentStateChanged event may fire much later (up to 4+ seconds!)
-        // This prevents the watchdog from firing recovery when a response is already in progress.
-        if (hasActiveResponsePending(sessionId)) {
-          diag.state('🚨 [EMPTY_RESPONSE_WATCHDOG] Skipped - response already pending in gateway');
+        // Check if response is already being handled (gateway state + orchestrator)
+        // This prevents the watchdog from firing recovery when SDK is responding
+        if (hasActiveResponsePending(sessionId) || !canTriggerProactive(sessionId)) {
+          diag.state('🚨 [EMPTY_RESPONSE_WATCHDOG] Skipped - SDK/gateway handling response');
           return;
         }
 
@@ -993,9 +1027,10 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
             // DJ Controller not initialized - continue with normal check
           }
 
-          // CRITICAL FIX: Also check if response is pending in gateway
-          // LiveKit's AgentStateChanged event can fire 4+ seconds after generateReply is called
-          if (!conversationManager.isAgentSpeaking() && !hasActiveResponsePending(sessionId)) {
+          // Check if SDK/Ferni is already handling a response
+          // Uses both gateway state and ResponseOrchestrator for complete picture
+          const sdkActive = !canTriggerProactive(sessionId);
+          if (!conversationManager.isAgentSpeaking() && !hasActiveResponsePending(sessionId) && !sdkActive) {
             const timeSinceStop = Date.now() - userStoppedAt;
             if (timeSinceStop >= SILENCE_THRESHOLDS.EARLY_ACKNOWLEDGMENT_SECONDS * 1000 - 100) {
               // Dead air prevention: Use STRUCTURED commands (not conversational text)
@@ -1279,6 +1314,13 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
       // shouldSkipGenerateReply checks both: (1) handoff in progress, (2) 3s draining window
       const handoffOrDraining = shouldSkipGenerateReply(sessionId);
 
+      // FIX (Jan 2026): Skip silence response if no participant has joined yet
+      // This prevents speaking to an empty room when participant wait times out
+      // but session continues anyway. The silence handler would generate audio
+      // that nobody can hear, causing "no response from Ferni" issues.
+      const hasParticipants = room?.remoteParticipants?.size ? room.remoteParticipants.size > 0 : true;
+      const noParticipants = room && !hasParticipants;
+
       if (toolsActive) {
         diag.state('🤫 [SILENCE] Skipped - tool execution in progress', {
           activeToolCount: silenceStateMetrics?.activeToolCount,
@@ -1292,9 +1334,28 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
         });
       }
 
+      if (noParticipants) {
+        diag.state('🤫 [SILENCE] Skipped - no participant in room yet', {
+          silenceSec: Math.round(silenceDurationSec),
+          hasRoom: !!room,
+          participantCount: room?.remoteParticipants?.size ?? 'unknown',
+        });
+      }
+
+      // ResponseOrchestrator check: Only trigger if SDK is not currently handling a response
+      // This is the key integration point for the clean architecture
+      const sdkIdle = canTriggerProactive(sessionId);
+      if (!sdkIdle) {
+        diag.state('🤫 [SILENCE] Skipped - SDK is handling response (orchestrator)', {
+          silenceSec: Math.round(silenceDurationSec),
+        });
+      }
+
       if (
         !toolsActive &&
         !handoffOrDraining &&
+        !noParticipants &&
+        sdkIdle &&
         targetInterval &&
         silenceDurationSec >= targetInterval &&
         Date.now() - lastSilenceResponseAt > SILENCE_THRESHOLDS.MIN_RESPONSE_INTERVAL

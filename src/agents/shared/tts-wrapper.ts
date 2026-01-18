@@ -152,6 +152,8 @@ const TOOL_ARG_SIGNATURES: Record<string, string[]> = {
   getWeather: ['location', 'units'],
   setReminder: ['message', 'time', 'recurring'],
   handoff: ['targetPersona', 'reason', 'context'],
+  // Cursor/Claude Code edit format - NOT a Ferni tool, indicates context contamination
+  cursorEdit: ['edits', 'path', 'start_line', 'end_line'],
 };
 
 /**
@@ -401,6 +403,32 @@ export async function wrappedTtsNode(
           /^\s*"[a-z_]+"\s*:\s*"[^"]+"\s*,?\s*$/i,
           // Function call argument patterns (category, importance, fact, etc.)
           /"\s*(category|importance|fact|medium|high|low|personal)"\s*[:,]/i,
+          
+          // ========================================================================
+          // CURSOR/CLAUDE CODE EDIT FORMAT PATTERNS (STRENGTHENED Jan 2026)
+          // These catch IDE edit commands that should NEVER be spoken
+          // Known issue: LLM sometimes hallucinates code editing format
+          // ========================================================================
+          // Edit object format: {"edits or [{"edits (with or without colon)
+          /^\s*\[?\s*\{\s*"?edits/i,
+          // Any content containing "edits" followed by bracket/brace
+          /edits\s*[\[{]/i,
+          // Path field: "path": "filename" or "path" "filename" or path without quotes
+          /"?path"?\s*[:"]\s*"?[^"]*\.(go|ts|tsx|js|jsx|py|rs|md|json|yaml|yml)/i,
+          // File paths with extensions being spoken
+          /[a-zA-Z_\/][a-zA-Z0-9_\/-]*\.(go|ts|tsx|js|jsx|py|rs|md|json|yaml|yml)\b/i,
+          // Line number fields: "start_line", "end_line" (with or without quotes/colons)
+          /"?(start_line|end_line)"?\s*[:",]/i,
+          // Line numbers in code-edit context
+          /line\s*\d+/i,
+          // Any chunk with both path-like and line number content
+          /\.(go|ts|tsx|js|jsx|py|rs)\s+.*\d+/i,
+          // Partial edit chunks: just filenames with extensions being spoken
+          /^[a-zA-Z_][a-zA-Z0-9_-]*\.(go|ts|tsx|js|jsx|py|rs|md|json)\s*$/i,
+          // Malformed JSON object start (opening brace with letters)
+          /^\s*\{[a-zA-Z"]/,
+          // XML-style code tags
+          /<\/?(?:edit|path|code|file|start_line|end_line)[^>]*>/i,
         ];
         
         // Check if chunk looks like leaked JSON
@@ -412,9 +440,34 @@ export async function wrappedTtsNode(
           chunk.includes(`"${val}"`) && (chunk.includes(':') || chunk.includes(','))
         );
         
-        if (looksLikeJson || hasKnownArgPattern) {
+        // Check for Cursor/Claude Code edit format specifically (STRENGTHENED Jan 2026)
+        // Catches: {"edits, edits[, .go, .ts, start_line, end_line, path: "file.ext"
+        const hasCursorEditPattern = 
+          // Core edit format
+          (chunk.includes('edits') && (chunk.includes('path') || chunk.includes('line') || chunk.includes('[') || chunk.includes('{'))) ||
+          // Line number fields
+          (chunk.includes('start_line') || chunk.includes('end_line')) ||
+          // JSON-like edit structure
+          /\{["\s]*edits/i.test(chunk) ||
+          /\[\s*\{["\s]*path/i.test(chunk) ||
+          // File extensions in suspicious context (not natural speech)
+          /\.(go|ts|tsx|js|jsx|py|rs)\s+["\d{]/i.test(chunk) ||
+          // Path with file extension
+          (chunk.includes('path') && /\.(go|ts|tsx|js|jsx|py|rs|json|yaml|md)/i.test(chunk)) ||
+          // Malformed JSON-like start
+          /^\s*\{"?\w/.test(chunk);
+        
+        if (looksLikeJson || hasKnownArgPattern || hasCursorEditPattern) {
           // Accumulate leaked JSON for analysis
           jsonLeakBuffer += chunk;
+          
+          // Log detection for debugging context contamination
+          if (hasCursorEditPattern) {
+            log.warn(
+              { chunk: chunk.slice(0, 100), sessionId },
+              '🚨 [JSON-LEAK-FILTER] Cursor/Claude Code edit format detected - stripping'
+            );
+          }
           
           // Don't enqueue - strip from TTS stream
           return;
@@ -652,6 +705,7 @@ export async function wrappedTtsNode(
   }
 
   // 4. Create cost tracking stream for FinOps + E2E Trace [4/4]
+  // Also includes SAFETY CHECK for code-editing output that slipped through filters
   let totalCharacters = 0;
   let ttsOutputBuffer = '';
   const costTrackingStream = new NodeTransformStream<string, string>({
@@ -661,7 +715,54 @@ export async function wrappedTtsNode(
       controller.enqueue(chunk);
     },
     flush() {
+      // =========================================================================
+      // FIX (Jan 2026): Log when TTS stream is empty - helps diagnose "no audio" issues
+      // This happens when OpenAI returns an empty response or only a function call
+      // =========================================================================
+      if (totalCharacters === 0) {
+        log.warn(
+          {
+            sessionId,
+            personaId,
+            trace: 'E2E_TTS_EMPTY',
+          },
+          '⚠️ [TTS] Empty text stream - OpenAI may have returned no speech content (function call only?)'
+        );
+        return;
+      }
+
       if (totalCharacters > 0) {
+        // =========================================================================
+        // SAFETY CHECK (Jan 2026): Detect code-editing output that slipped through
+        // If the ENTIRE output looks like code/JSON, trigger garbage recovery
+        // This catches cases where individual chunks looked okay but combined aren't
+        // =========================================================================
+        const codeEditIndicators = [
+          /\{["\s]*edits/i,
+          /\[\s*\{["\s]*path/i,
+          /start_line.*end_line/i,
+          /\.(go|ts|tsx|js|jsx|py|rs)\s*["{\d]/i,
+          /^[^a-zA-Z]*\{.*path.*line/is, // JSON-like with path and line
+        ];
+        
+        const looksLikeCodeEdit = codeEditIndicators.some(pattern => pattern.test(ttsOutputBuffer));
+        
+        if (looksLikeCodeEdit) {
+          log.error(
+            {
+              sessionId,
+              personaId,
+              outputSample: ttsOutputBuffer.slice(0, 200),
+              totalLength: totalCharacters,
+            },
+            '🚨 [SAFETY] Full TTS output looks like code-editing format - context contamination detected'
+          );
+          
+          // Note: We can't modify the stream here (chunks already enqueued), but
+          // the log alert will help diagnose the issue. The garbage recovery
+          // triggered by garbage response detection should catch this.
+        }
+        
         finops.recordTTSCost({
           characters: totalCharacters,
           userId,

@@ -6,9 +6,11 @@ This document outlines the plan for refactoring large files (>1500 lines) into s
 
 | File | Lines | Priority | Status |
 |------|-------|----------|--------|
+| `src/agents/processors/turn-processor.ts` | 2955 | High | 🟡 Planned |
 | `src/agents/voice-agent.ts` | 2768 | High | 🟡 Planned |
 | `src/ssml-tagger.ts` | 2394 | Medium | 🟢 In Progress |
 | `src/api/engagement-routes.ts` | 1707 | Medium | ✅ Complete |
+| `src/services/superhuman/semantic-intelligence/integration.ts` | 1496 | Medium | 🟡 Planned |
 
 ---
 
@@ -188,3 +190,132 @@ import { detectEmotion } from '../ssml/detection.js';
 - [ ] Integration testing
 - [ ] Performance validation
 - [ ] Documentation updates
+
+---
+
+## 4. turn-processor.ts (2955 lines) 🟡 PLANNED
+
+### Current Structure
+The main turn orchestrator that has grown beyond its initial scope.
+
+```
+processors/turn-processor.ts
+├── Imports (180 lines)
+├── Lazy module getters (~50 lines)
+├── buildContextInjections() (1254 lines) - THE PROBLEM
+│   ├── Safety/crisis checks
+│   ├── Emotional state building
+│   ├── Trust systems
+│   ├── Life coaching
+│   ├── Cross-persona insights
+│   ├── Semantic intelligence
+│   └── Many more context categories
+├── processTurn() (1132 lines)
+│   ├── Analysis phase
+│   ├── Context building
+│   ├── Tool routing
+│   ├── Response generation
+│   └── Post-processing
+├── Helper functions (~200 lines)
+│   ├── injectTurnContext()
+│   ├── getCelebrationEvents()
+│   ├── recordTeamHuddleObservation()
+│   └── Pattern detection utilities
+```
+
+### Target Structure
+```
+src/agents/processors/
+├── turn-processor.ts        # Main orchestrator (~500 lines)
+├── context-builder/
+│   ├── index.ts             # Entry point
+│   ├── safety-context.ts    # Crisis/safety checks
+│   ├── emotional-context.ts # Emotional state
+│   ├── trust-context.ts     # Trust systems
+│   ├── coaching-context.ts  # Life coaching
+│   ├── team-context.ts      # Cross-persona
+│   └── semantic-context.ts  # Semantic intelligence
+├── turn-phases/
+│   ├── analysis-phase.ts    # Message analysis
+│   ├── routing-phase.ts     # Tool routing
+│   └── response-phase.ts    # Response generation
+└── helpers/
+    ├── celebration-events.ts
+    ├── team-huddle.ts
+    └── pattern-detection.ts
+```
+
+### Migration Steps
+1. 🔲 Extract helper functions to `helpers/`
+2. 🔲 Create `context-builder/` directory
+3. 🔲 Extract context categories one at a time
+4. 🔲 Create `turn-phases/` for processTurn() decomposition
+5. 🔲 Slim down main orchestrator to ~500 lines
+6. 🔲 Test backwards compatibility
+
+---
+
+## 5. semantic-intelligence/integration.ts (1496 lines) 🟡 PLANNED
+
+### Current Structure
+```
+semantic-intelligence/integration.ts
+├── Imports (100 lines)
+├── Types (~65 lines)
+├── processSemanticIntelligence() (~130 lines)
+├── accumulateOutreachSignals() (~210 lines)
+├── Individual record* functions (~300 lines)
+│   ├── recordRelationshipGraphData()
+│   ├── recordCorrelationData()
+│   ├── recordEmotionalTrajectoryData()
+│   ├── recordRelationalData()
+│   ├── recordGrowthData()
+│   └── recordThreadingData()
+├── Advice tracking functions (~90 lines)
+│   ├── recordAgentAdvice()
+│   ├── trackFerniCommitments()
+│   └── recordAdviceOutcome()
+├── detectAdviceOutcome() (~110 lines)
+├── Helper functions (~270 lines)
+│   ├── extractDomainSignals()
+│   ├── detectEmotionalCatalyst()
+│   ├── extractLinguisticMarkers()
+│   ├── detectCognitivePatterns()
+│   └── extractKeyConcepts()
+└── warmupSemanticIntelligence() (~40 lines)
+```
+
+### Target Structure
+```
+src/services/superhuman/semantic-intelligence/
+├── integration.ts           # Main orchestrator (~400 lines)
+├── types.ts                 # Add new types
+├── signal-extraction/
+│   ├── index.ts
+│   ├── domain-signals.ts    # extractDomainSignals()
+│   ├── emotional-catalyst.ts # detectEmotionalCatalyst()
+│   ├── linguistic-markers.ts # extractLinguisticMarkers()
+│   ├── cognitive-patterns.ts # detectCognitivePatterns()
+│   └── key-concepts.ts      # extractKeyConcepts()
+├── recorders/
+│   ├── index.ts
+│   ├── relationship-graph.ts
+│   ├── correlation.ts
+│   ├── emotional-trajectory.ts
+│   ├── relational.ts
+│   ├── growth.ts
+│   └── threading.ts
+└── advice-tracking/
+    ├── index.ts
+    ├── recorder.ts          # recordAgentAdvice, trackFerniCommitments
+    ├── outcome-detector.ts  # detectAdviceOutcome
+    └── outcome-recorder.ts  # recordAdviceOutcome
+```
+
+### Migration Steps
+1. 🔲 Extract signal extraction helpers to `signal-extraction/`
+2. 🔲 Extract record* functions to `recorders/`
+3. 🔲 Extract advice tracking to `advice-tracking/`
+4. 🔲 Update integration.ts to import from modules
+5. 🔲 Test all exports work correctly
+6. 🔲 Update index.ts exports
