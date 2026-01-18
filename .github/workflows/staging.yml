@@ -22,6 +22,7 @@ env:
   GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
   GCP_REGION: us-central1
   NODE_VERSION: '20'
+  LIVEKIT_AGENTS_VERSION: '1.0.31'
 
 jobs:
   # ============================================================================
@@ -77,8 +78,21 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Fix local dependencies for CI
+        run: |
+          # Replace local file: dependencies with npm registry versions
+          # The local agents-js fork is not available in CI
+          sed -i 's|"file:../agents-js/agents"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
+          sed -i 's|"file:../agents-js/plugins/cartesia"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
+          sed -i 's|"file:../agents-js/plugins/deepgram"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
+          sed -i 's|"file:../agents-js/plugins/google"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
+          sed -i 's|"file:../agents-js/plugins/openai"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
+          sed -i 's|"file:../agents-js/plugins/silero"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
+          # Delete lockfile so pnpm regenerates it with npm registry versions
+          rm -f pnpm-lock.yaml
+
       - name: Setup pnpm
-        uses: pnpm/action-setup@v2
+        uses: pnpm/action-setup@v4
         with:
           version: 10
 
@@ -89,7 +103,7 @@ jobs:
           cache: 'pnpm'
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: pnpm install --no-frozen-lockfile
 
       - name: Run tests
         run: pnpm test -- --reporter=dot
@@ -97,10 +111,18 @@ jobs:
           NODE_ENV: test
         continue-on-error: true
 
-      - name: Build
+      - name: Build backend
+        run: pnpm build
+
+      - name: Build design-system
+        run: node design-system/build.js
+
+      - name: Build frontend
         run: |
+          cd apps/web
           pnpm build
-          cd frontend-typescript && pnpm install --frozen-lockfile && pnpm build
+        env:
+          NODE_ENV: staging
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v6
@@ -108,7 +130,7 @@ jobs:
           name: staging-build-${{ needs.context.outputs.short_sha }}
           path: |
             dist/
-            frontend-typescript/dist/
+            apps/web/dist/
           retention-days: 3
 
   # ============================================================================
@@ -128,6 +150,19 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Fix local dependencies for CI
+        run: |
+          # Replace local file: dependencies with npm registry versions
+          # The local agents-js fork is not available in CI
+          sed -i 's|"file:../agents-js/agents"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
+          sed -i 's|"file:../agents-js/plugins/cartesia"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
+          sed -i 's|"file:../agents-js/plugins/deepgram"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
+          sed -i 's|"file:../agents-js/plugins/google"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
+          sed -i 's|"file:../agents-js/plugins/openai"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
+          sed -i 's|"file:../agents-js/plugins/silero"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
+          # Delete lockfile so pnpm regenerates it with npm registry versions
+          rm -f pnpm-lock.yaml
+
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v2
         with:
@@ -142,7 +177,7 @@ jobs:
         run: gcloud auth configure-docker gcr.io
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v2
+        uses: pnpm/action-setup@v4
         with:
           version: 10
 
@@ -154,7 +189,7 @@ jobs:
 
       - name: Build design-system (required for Docker)
         run: |
-          pnpm install --frozen-lockfile --ignore-scripts
+          pnpm install --no-frozen-lockfile
           node design-system/build.js
 
       - name: Build staging image
