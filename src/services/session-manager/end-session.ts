@@ -58,6 +58,9 @@ import { persistenceMetrics } from '../analytics/persistence-metrics.js';
 // Superhuman outreach intelligence
 import { processAccumulatedSignals } from '../conversation-thread/superhuman-outreach-intelligence.js';
 
+// Conversation quality scoring ("Better Than Human" - automated session quality measurement)
+import { processSessionEnd as scoreConversation, type SessionData } from '../automation/conversation-scorer.js';
+
 const log = getLogger();
 
 // ============================================================================
@@ -315,6 +318,16 @@ async function finalizeUserSession(options: FinalizeUserSessionOptions): Promise
 
     // 🧠 FINAL PERSISTENCE: Save social graph and clear rate limits
     await persistSocialGraphOnEnd(validatedUserId);
+
+    // 📊 CONVERSATION QUALITY SCORING: Score this session for quality metrics
+    await scoreConversationQuality({
+      sessionId,
+      userId: validatedUserId,
+      personaId: personaId || 'ferni',
+      sessionStartTime,
+      turns,
+      userProfile: updatedProfile,
+    });
   } catch (error) {
     log.warn(`Failed to save conversation summary/learning: ${error}`);
   }
@@ -445,4 +458,60 @@ function determineRelationshipStage(
   }
 
   return 'new';
+}
+
+// ============================================================================
+// CONVERSATION QUALITY SCORING
+// ============================================================================
+
+/**
+ * Score conversation quality at session end.
+ *
+ * Maps session data to the SessionData format expected by the scorer
+ * and triggers quality scoring for the "Better than Human" metrics.
+ */
+async function scoreConversationQuality(params: {
+  sessionId: string;
+  userId: string;
+  personaId: string;
+  sessionStartTime: number;
+  turns: ConversationTurn[];
+  userProfile: UserProfile;
+}): Promise<void> {
+  const { sessionId, userId, personaId, sessionStartTime, turns, userProfile } = params;
+
+  try {
+    // Map ConversationTurn[] to TurnData[]
+    const turnData: SessionData['turns'] = turns.map((turn, index) => ({
+      speaker: turn.role === 'user' ? 'user' : 'agent',
+      text: turn.content,
+      timestamp: new Date(sessionStartTime + index * 30000).toISOString(), // Approximate timestamps
+      isQuestion: turn.content.includes('?'),
+    }));
+
+    // Calculate session duration
+    const duration = Math.floor((Date.now() - sessionStartTime) / 1000);
+
+    // Build session data for scoring (trust/mood fields are optional)
+    const sessionData: SessionData = {
+      sessionId,
+      userId,
+      personaId,
+      duration,
+      turns: turnData,
+      // Trust progression is tracked via relationship stages, not numeric scores
+      // The scorer will compute trust metrics from turn analysis
+    };
+
+    // Score the conversation
+    await scoreConversation(sessionData);
+
+    log.debug(
+      { sessionId, userId, turnCount: turns.length, duration },
+      '📊 Conversation quality scored'
+    );
+  } catch (error) {
+    // Non-critical failure - just log and continue
+    log.debug({ error: String(error), sessionId }, 'Conversation scoring skipped');
+  }
 }

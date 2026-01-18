@@ -73,6 +73,9 @@ import {
 } from '../utils/tone-detection.js';
 // 🌉 Humanization Bridge - Connects backend humanization to frontend EQ
 import { humanizationBridge } from '../services/humanization-bridge.service.js';
+// 🧠 EQ Bridge - Handles BTH superhuman signals (emotional bond, inside jokes, etc.)
+import { handleBetterThanHumanSignal } from '../eq/bridge/index.js';
+import type { BetterThanHumanSignal, BetterThanHumanSignalType } from '../eq/types.js';
 // 🔄 Behavior Signal Service - Bidirectional behavior system
 import { behaviorSignalService } from '../services/behavior-signal.service.js';
 // 🎭 Persona Intro - Team member unlock modal
@@ -868,7 +871,18 @@ type HumanizationSignalType =
   | 'vulnerability'
   | 'breakthrough'
   | 'high_engagement'
-  | 'disengagement';
+  | 'disengagement'
+  // 🧠 BETTER THAN HUMAN: Superhuman intelligence signals
+  | 'emotional_bond_deepen'
+  | 'protective_instinct'
+  | 'spontaneous_delight'
+  | 'inside_joke_callback'
+  | 'superhuman_observation'
+  | 'visible_vulnerability'
+  | 'temporal_insight'
+  | 'meta_relationship_moment'
+  | 'somatic_presence'
+  | 'anticipatory_presence';
 
 /**
  * Humanization signal event from backend
@@ -884,6 +898,19 @@ interface HumanizationSignalEvent extends DataMessage {
   emotionalTrajectory?: 'de_escalating' | 'escalating' | 'volatile';
   mismatchType?: string;
   timestamp: number;
+
+  // 🧠 BTH signal-specific properties
+  bondType?: string;
+  bondLevel?: number;
+  trigger?: string;
+  memoryReference?: string;
+  observationType?: string;
+  observationContent?: string;
+  vulnerabilityType?: string;
+  timeSpan?: string;
+  relationshipContext?: string;
+  somaticType?: 'breathing' | 'settling' | 'grounding' | 'pause';
+  timeContext?: 'late_night' | 'early_morning' | 'weekend' | 'monday' | 'evening';
 }
 
 /**
@@ -996,6 +1023,39 @@ function handleHumanizationSignal(event: HumanizationSignalEvent): void {
       handleMomentTrigger('breakthrough');
       setEmotionalState('celebration' as EmotionCategory);
       break;
+
+    // 🧠 BETTER THAN HUMAN: Route superhuman intelligence signals to EQ bridge
+    // These signals enable the avatar to show deeper emotional connection:
+    // - emotional_bond_deepen: warmth/trust/protectiveness
+    // - protective_instinct: defending user from self-criticism
+    // - spontaneous_delight: appreciation/gratitude/joy
+    // - inside_joke_callback: shared humor reference
+    // - superhuman_observation: pattern surfacing
+    // - visible_vulnerability: Ferni showing appropriate uncertainty
+    // - temporal_insight: cross-session memory reference
+    // - meta_relationship_moment: user reflects on relationship with Ferni
+    // - somatic_presence: physical grounding cues
+    // - anticipatory_presence: time-aware care (late night, Monday morning)
+    default: {
+      // Delegate BTH signals to the EQ bridge which has full handlers
+      const bthSignal: BetterThanHumanSignal = {
+        signalType: signalType as BetterThanHumanSignalType,
+        intensity,
+        bondLevel: event.bondLevel,
+        trigger: event.trigger,
+        memoryReference: event.memoryReference,
+        observationType: event.observationType,
+        observationContent: event.observationContent,
+        vulnerabilityType: event.vulnerabilityType,
+        timeSpan: event.timeSpan,
+        relationshipContext: event.relationshipContext,
+        somaticType: event.somaticType,
+        timeContext: event.timeContext,
+      };
+      handleBetterThanHumanSignal(bthSignal);
+      log.debug('🧠 BTH signal delegated to EQ bridge:', signalType);
+      break;
+    }
   }
 
   // 🌟 Transcendent: Update emotional color system based on signal type
@@ -1006,6 +1066,17 @@ function handleHumanizationSignal(event: HumanizationSignalEvent): void {
     high_engagement: 'excitement',
     disengagement: 'reflection',
     emotional_trajectory: 'anticipation',
+    // 🧠 BTH signal → emotion mappings
+    emotional_bond_deepen: 'warmth',
+    protective_instinct: 'concern',
+    spontaneous_delight: 'celebration',
+    inside_joke_callback: 'playfulness',
+    superhuman_observation: 'contemplation',
+    visible_vulnerability: 'authenticity',
+    temporal_insight: 'remembering',
+    meta_relationship_moment: 'connection',
+    somatic_presence: 'grounding',
+    anticipatory_presence: 'presence',
   };
 
   const mappedEmotion = emotionMap[signalType];
