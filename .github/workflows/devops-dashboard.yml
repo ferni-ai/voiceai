@@ -1,0 +1,189 @@
+name: DevOps Dashboard
+
+# Generates and publishes the DevOps dashboard
+# Shows CI metrics, budget usage, and workflow health
+
+on:
+  schedule:
+    # Run daily at 6 AM UTC
+    - cron: '0 6 * * *'
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: 'Publish to GitHub Pages'
+        required: false
+        default: false
+        type: boolean
+  # Also run when CI metrics workflow completes
+  workflow_run:
+    workflows: ["CI Metrics Collection"]
+    types:
+      - completed
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+  actions: read
+
+concurrency:
+  group: devops-dashboard
+  cancel-in-progress: true
+
+jobs:
+  generate:
+    name: Generate Dashboard
+    runs-on: ubuntu-latest
+    outputs:
+      budget_percentage: ${{ steps.generate.outputs.budget_percentage }}
+      has_alerts: ${{ steps.generate.outputs.has_alerts }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js and pnpm
+        uses: ./.github/actions/setup-node-pnpm
+        with:
+          frozen-lockfile: 'true'
+
+      - name: Install Octokit
+        run: pnpm add -D @octokit/rest
+
+      - name: Generate Dashboard
+        id: generate
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          OUTPUT_DIR: ./dashboard
+        run: |
+          npx tsx scripts/devops/generate_dashboard.ts
+
+          # Extract metrics for outputs
+          BUDGET_PCT=$(jq -r '.budget_percentage' ./dashboard/metrics.json)
+          ALERT_COUNT=$(jq -r '.alerts | length' ./dashboard/metrics.json)
+
+          echo "budget_percentage=$BUDGET_PCT" >> $GITHUB_OUTPUT
+          echo "has_alerts=$([[ $ALERT_COUNT -gt 0 ]] && echo 'true' || echo 'false')" >> $GITHUB_OUTPUT
+
+      - name: Upload Dashboard Artifact
+        uses: actions/upload-artifact@v6
+        with:
+          name: devops-dashboard
+          path: ./dashboard/
+          retention-days: 30
+
+      - name: Add to Job Summary
+        run: |
+          cat >> $GITHUB_STEP_SUMMARY << 'EOF'
+          ## 🚀 DevOps Dashboard Generated
+
+          Dashboard has been generated and is available as an artifact.
+
+          ### Quick Stats
+          EOF
+
+          jq -r '"| Metric | Value |
+          |--------|-------|
+          | Total Runs (7 days) | \(.total_workflow_runs) |
+          | Minutes Used | \(.total_minutes_used) |
+          | Est. Monthly | \(.estimated_monthly_minutes) |
+          | Budget Usage | \(.budget_percentage)% |"' ./dashboard/metrics.json >> $GITHUB_STEP_SUMMARY
+
+          # Add alerts if any
+          ALERT_COUNT=$(jq -r '.alerts | length' ./dashboard/metrics.json)
+          if [ "$ALERT_COUNT" -gt 0 ]; then
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "### ⚠️ Alerts ($ALERT_COUNT)" >> $GITHUB_STEP_SUMMARY
+            jq -r '.alerts[] | "- **[\(.level)]** \(.message)"' ./dashboard/metrics.json >> $GITHUB_STEP_SUMMARY
+          fi
+
+  # Optional: Deploy to GitHub Pages
+  deploy:
+    name: Deploy to GitHub Pages
+    needs: generate
+    runs-on: ubuntu-latest
+    if: inputs.publish == true || github.event_name == 'schedule'
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Download Dashboard Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: devops-dashboard
+          path: ./dashboard
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+
+      - name: Upload to Pages
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./dashboard
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+
+  # Notify on critical alerts
+  notify:
+    name: Notify on Alerts
+    needs: generate
+    runs-on: ubuntu-latest
+    if: needs.generate.outputs.has_alerts == 'true' && needs.generate.outputs.budget_percentage > 90
+
+    steps:
+      - name: Download metrics
+        uses: actions/download-artifact@v4
+        with:
+          name: devops-dashboard
+          path: ./dashboard
+
+      - name: Send Slack Alert
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          BUDGET_PCT: ${{ needs.generate.outputs.budget_percentage }}
+        run: |
+          if [ -z "$SLACK_WEBHOOK_URL" ]; then
+            echo "SLACK_WEBHOOK_URL not configured, skipping"
+            exit 0
+          fi
+
+          ALERT_COUNT=$(jq -r '.alerts | length' ./dashboard/metrics.json)
+
+          cat > /tmp/slack-payload.json << EOF
+          {
+            "blocks": [
+              {
+                "type": "header",
+                "text": {
+                  "type": "plain_text",
+                  "text": "🚨 DevOps Dashboard Alert",
+                  "emoji": true
+                }
+              },
+              {
+                "type": "section",
+                "text": {
+                  "type": "mrkdwn",
+                  "text": "*Budget Usage:* ${BUDGET_PCT}%\n*Active Alerts:* ${ALERT_COUNT}"
+                }
+              },
+              {
+                "type": "context",
+                "elements": [
+                  {
+                    "type": "mrkdwn",
+                    "text": "<${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View Dashboard>"
+                  }
+                ]
+              }
+            ]
+          }
+          EOF
+
+          curl -X POST -H 'Content-type: application/json' \
+            --data @/tmp/slack-payload.json \
+            "$SLACK_WEBHOOK_URL"

@@ -29,20 +29,29 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
 
       - name: Audit backend dependencies
         id: backend-audit
         run: |
           echo "## Backend Dependencies" >> $GITHUB_STEP_SUMMARY
-          npm audit --json > /tmp/backend-audit.json 2>/dev/null || true
+          pnpm audit --json > /tmp/backend-audit.json 2>/dev/null || true
 
-          CRITICAL=$(jq '.metadata.vulnerabilities.critical // 0' /tmp/backend-audit.json)
-          HIGH=$(jq '.metadata.vulnerabilities.high // 0' /tmp/backend-audit.json)
-          MODERATE=$(jq '.metadata.vulnerabilities.moderate // 0' /tmp/backend-audit.json)
+          CRITICAL=$(jq '.advisories | to_entries | map(select(.value.severity == "critical")) | length // 0' /tmp/backend-audit.json 2>/dev/null || echo "0")
+          HIGH=$(jq '.advisories | to_entries | map(select(.value.severity == "high")) | length // 0' /tmp/backend-audit.json 2>/dev/null || echo "0")
+          MODERATE=$(jq '.advisories | to_entries | map(select(.value.severity == "moderate")) | length // 0' /tmp/backend-audit.json 2>/dev/null || echo "0")
 
           echo "critical=$CRITICAL" >> $GITHUB_OUTPUT
           echo "high=$HIGH" >> $GITHUB_OUTPUT
@@ -57,14 +66,14 @@ jobs:
       - name: Audit frontend dependencies
         id: frontend-audit
         run: |
-          cd frontend-typescript
+          cd apps/web
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "## Frontend Dependencies" >> $GITHUB_STEP_SUMMARY
-          npm audit --json > /tmp/frontend-audit.json 2>/dev/null || true
+          pnpm audit --json > /tmp/frontend-audit.json 2>/dev/null || true
 
-          CRITICAL=$(jq '.metadata.vulnerabilities.critical // 0' /tmp/frontend-audit.json)
-          HIGH=$(jq '.metadata.vulnerabilities.high // 0' /tmp/frontend-audit.json)
-          MODERATE=$(jq '.metadata.vulnerabilities.moderate // 0' /tmp/frontend-audit.json)
+          CRITICAL=$(jq '.advisories | to_entries | map(select(.value.severity == "critical")) | length // 0' /tmp/frontend-audit.json 2>/dev/null || echo "0")
+          HIGH=$(jq '.advisories | to_entries | map(select(.value.severity == "high")) | length // 0' /tmp/frontend-audit.json 2>/dev/null || echo "0")
+          MODERATE=$(jq '.advisories | to_entries | map(select(.value.severity == "moderate")) | length // 0' /tmp/frontend-audit.json 2>/dev/null || echo "0")
 
           echo "critical=$CRITICAL" >> $GITHUB_OUTPUT
           echo "high=$HIGH" >> $GITHUB_OUTPUT

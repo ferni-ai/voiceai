@@ -1,0 +1,53 @@
+name: Reusable Design System Build
+
+# This workflow builds the design system and uploads artifacts for use by other workflows.
+# This eliminates duplicate design system builds across CI, deploy, and other workflows.
+
+on:
+  workflow_call:
+    inputs:
+      retention-days:
+        description: 'Number of days to retain the artifacts'
+        required: false
+        default: 1
+        type: number
+    outputs:
+      artifact-name:
+        description: 'Name of the design system artifact'
+        value: ${{ jobs.build.outputs.artifact-name }}
+
+jobs:
+  build:
+    name: Build Design System
+    runs-on: ubuntu-latest
+    outputs:
+      artifact-name: design-system-dist-${{ github.sha }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js and pnpm
+        uses: ./.github/actions/setup-node-pnpm
+        with:
+          frozen-lockfile: 'true'
+
+      - name: Build design system
+        run: node design-system/build.js
+
+      - name: Verify generated files
+        run: |
+          echo "Checking generated files..."
+          ls -la design-system/dist/ || echo "No dist folder"
+          ls -la apps/web/src/config/*.generated.* || echo "No generated config files"
+
+      - name: Upload design system artifacts
+        uses: actions/upload-artifact@v6
+        with:
+          name: design-system-dist-${{ github.sha }}
+          path: |
+            design-system/dist/
+            apps/web/src/config/*.generated.ts
+            apps/web/src/config/*.generated.css
+          retention-days: ${{ inputs.retention-days }}
+          if-no-files-found: warn
