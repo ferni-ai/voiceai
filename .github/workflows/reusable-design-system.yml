@@ -42,7 +42,7 @@ jobs:
           ls -la apps/web/src/config/*.generated.* || echo "No generated config files"
 
       - name: Upload design system artifacts
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v4
         with:
           name: design-system-dist-${{ github.sha }}
           path: |
