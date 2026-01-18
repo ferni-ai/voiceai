@@ -743,5 +743,36 @@ export async function handleHealthRoutes(
     return true;
   }
 
+  // Data integrity health (memory persistence audit)
+  if (pathname === '/health/data-integrity' || pathname === '/api/health/data-integrity') {
+    try {
+      const { checkDataIntegrity } = await import('../../../api/health/data-integrity.js');
+      
+      // Parse userId from query string if provided
+      const url = new URL(req.url || '', `http://${req.headers.host}`);
+      const userId = url.searchParams.get('userId') || undefined;
+      
+      const report = await checkDataIntegrity(userId);
+      
+      // Determine response status based on health
+      const status = report.firestore.healthStatus === 'healthy' ? 200 : 
+                     report.firestore.healthStatus === 'degraded' ? 200 : 503;
+      
+      res.writeHead(status, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify(report, null, 2));
+    } catch (err) {
+      log.error({ error: (err as Error).message }, 'Data integrity health check error');
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(
+        JSON.stringify({
+          status: 'error',
+          timestamp: new Date().toISOString(),
+          error: (err as Error).message,
+        })
+      );
+    }
+    return true;
+  }
+
   return false;
 }

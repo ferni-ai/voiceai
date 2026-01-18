@@ -14,6 +14,7 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import { getFirestoreDb } from '../../utils/firestore-utils.js';
+import { emitInfraEvent } from '../../utils/infra-events.js';
 import {
   getSTMBuffer,
   getFrequentEntities,
@@ -23,8 +24,6 @@ import {
   type TurnMemory,
   type EntityFrequency,
 } from './stm-buffer.js';
-// Note: Observability metrics tracked via structured logging, not direct service imports
-// This avoids architecture layer violation (memory layer cannot import services layer)
 
 const log = createLogger({ module: 'STMPromotion' });
 
@@ -221,6 +220,8 @@ export async function promoteSessionToFirestore(
   const db = getFirestoreDb();
   if (!db) {
     log.warn({ sessionId, userId, fallbackReason: 'Firestore unavailable' }, '🧠 [MEMORY-AUDIT] Firestore not available, skipping promotion');
+    // Emit event for observability (services layer can subscribe)
+    emitInfraEvent('firestore:fallback', { service: 'stm-promotion', reason: 'Firestore unavailable' });
     return result;
   }
 
@@ -377,6 +378,14 @@ export async function promoteSessionToFirestore(
       },
       '📤 Promoted STM to Firestore'
     );
+    
+    // Emit success event for observability
+    emitInfraEvent('memory:promotion', { 
+      userId, 
+      entitiesPromoted: result.entitiesPromoted, 
+      sessionId 
+    });
+    emitInfraEvent('firestore:success', { service: 'stm-promotion' });
 
     // 4. Cleanup STM after successful promotion
     cleanupSession(sessionId);

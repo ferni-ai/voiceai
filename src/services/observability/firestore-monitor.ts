@@ -5,10 +5,16 @@
  * metrics for observability. This helps detect infrastructure issues
  * that cause data loss.
  *
+ * Architecture:
+ * - Services layer subscribes to events from lower layers via infra-events
+ * - Lower layers (memory) emit events without importing this module
+ * - This module aggregates and tracks all fallback/success events
+ *
  * @module services/observability/firestore-monitor
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
+import { onInfraEvent } from '../../utils/infra-events.js';
 
 const log = createLogger({ module: 'firestore-monitor' });
 
@@ -198,6 +204,24 @@ export function resetMetrics(): void {
   isFirestoreAvailable = true;
   lastAvailabilityCheck = new Date();
 }
+
+// ============================================================================
+// EVENT SUBSCRIPTIONS
+// Subscribe to events from lower layers (memory, etc.)
+// ============================================================================
+
+// Subscribe to fallback events from memory layer
+onInfraEvent('firestore:fallback', (data) => {
+  recordFallback(data.service, data.reason);
+});
+
+// Subscribe to success events from memory layer
+onInfraEvent('firestore:success', (data) => {
+  recordSuccess(data.service);
+});
+
+// Log when monitor is initialized
+log.info('📊 Firestore monitor initialized with event subscriptions');
 
 // ============================================================================
 // EXPORTS

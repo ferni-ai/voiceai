@@ -398,6 +398,18 @@ export async function identifyFromMetadata(
               },
               '✅ AUTO-MIGRATION: Successfully migrated device profile'
             );
+            
+            // Also run comprehensive subcollection linking (catches any collections the old migration missed)
+            try {
+              const { autoLinkOnAuth } = await import('./identity-linking.js');
+              await autoLinkOnAuth(deviceId, firebaseUid);
+            } catch (linkError) {
+              // Non-fatal - old migration already handled the critical data
+              getLogger().debug(
+                { error: String(linkError) },
+                'Comprehensive identity linking failed (non-fatal)'
+              );
+            }
           } else {
             getLogger().warn(
               { firebaseUid: `${firebaseUid.slice(0, 8)}...`, error: result.error },
