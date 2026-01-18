@@ -1066,17 +1066,17 @@ function handleHumanizationSignal(event: HumanizationSignalEvent): void {
     high_engagement: 'excitement',
     disengagement: 'reflection',
     emotional_trajectory: 'anticipation',
-    // 🧠 BTH signal → emotion mappings
-    emotional_bond_deepen: 'warmth',
-    protective_instinct: 'concern',
-    spontaneous_delight: 'celebration',
-    inside_joke_callback: 'playfulness',
-    superhuman_observation: 'contemplation',
-    visible_vulnerability: 'authenticity',
-    temporal_insight: 'remembering',
-    meta_relationship_moment: 'connection',
-    somatic_presence: 'grounding',
-    anticipatory_presence: 'presence',
+    // 🧠 BTH signal → emotion mappings (using valid EmotionCategory values)
+    emotional_bond_deepen: 'tenderness',        // Bond deepening = warm tenderness
+    protective_instinct: 'concern',              // Already valid
+    spontaneous_delight: 'celebration',          // Already valid
+    inside_joke_callback: 'joy',                 // Inside jokes bring joy
+    superhuman_observation: 'reflection',        // Observation = reflective state
+    visible_vulnerability: 'vulnerability',      // Direct mapping
+    temporal_insight: 'reflection',              // Looking back = reflection
+    meta_relationship_moment: 'tenderness',      // Relationship moments = tenderness
+    somatic_presence: 'calm',                    // Grounding/somatic = calm
+    anticipatory_presence: 'anticipation',       // Direct mapping
   };
 
   const mappedEmotion = emotionMap[signalType];
