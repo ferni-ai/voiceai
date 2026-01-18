@@ -18,6 +18,9 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import type { FerniSuperhumanContext, RememberedEntity } from './ferni-tts-core.js';
+import { getFrequentEntities } from '../../memory/dynamic/stm-buffer.js';
+import { getFirestoreDb } from '../../services/superhuman/firestore-utils.js';
+import type { UserProfile } from '../../types/user-profile.js';
 
 const log = createLogger({ module: 'ferni-tts-bridge' });
 
@@ -305,10 +308,58 @@ export async function enrichContextFromFirestore(
   userId: string,
   baseContext: FerniSuperhumanContext
 ): Promise<FerniSuperhumanContext> {
-  // TODO: Implement when FerniSuperhumanContext type is extended with relationshipAwareness
-  // For now, this is a no-op to avoid type errors
-  log.debug({ userId }, 'enrichContextFromFirestore called (no-op until types aligned)');
-  return baseContext;
+  // Skip if we already have relationship data
+  if (baseContext.relationshipStage !== undefined) {
+    log.debug({ userId }, 'Skipping Firestore enrichment - relationship data already present');
+    return baseContext;
+  }
+
+  try {
+    const db = getFirestoreDb();
+    if (!db) {
+      log.debug({ userId }, 'Firestore not available, returning base context');
+      return baseContext;
+    }
+
+    const profileDoc = await db.collection('bogle_users').doc(userId).get();
+    if (!profileDoc.exists) {
+      log.debug({ userId }, 'No user profile found, returning base context');
+      return baseContext;
+    }
+
+    const profile = profileDoc.data() as UserProfile;
+    const now = new Date();
+
+    // Calculate relationship metrics
+    const relationshipDays = profile.firstContact
+      ? Math.floor((now.getTime() - new Date(profile.firstContact).getTime()) / (1000 * 60 * 60 * 24))
+      : 0;
+    const totalInteractions = profile.totalConversations || 0;
+
+    // Calculate relationship stage (0.0-1.0)
+    // Weight: 40% from time (max out at 1 year), 60% from interactions (max out at 100)
+    const daysFactor = Math.min(relationshipDays / 365, 1.0);
+    const interactionsFactor = Math.min(totalInteractions / 100, 1.0);
+    const relationshipStage = daysFactor * 0.4 + interactionsFactor * 0.6;
+
+    log.debug(
+      {
+        userId,
+        relationshipDays,
+        totalInteractions,
+        relationshipStage: relationshipStage.toFixed(2),
+      },
+      'Enriched context from Firestore'
+    );
+
+    return {
+      ...baseContext,
+      relationshipStage,
+    };
+  } catch (err) {
+    log.warn({ userId, error: String(err) }, 'Failed to enrich context from Firestore');
+    return baseContext;
+  }
 }
 
 /**
@@ -328,10 +379,49 @@ export async function enrichContextWithMemory(
   baseContext: FerniSuperhumanContext,
   _conversationTopics?: string[]
 ): Promise<FerniSuperhumanContext> {
-  // TODO: Implement when FerniSuperhumanContext type is extended with relationshipAwareness/conversationHistory
-  // For now, this is a no-op to avoid type errors
-  log.debug({ sessionId }, 'enrichContextWithMemory called (no-op until types aligned)');
-  return baseContext;
+  // Skip if we already have memory entities
+  if (baseContext.rememberedEntities && baseContext.rememberedEntities.length > 0) {
+    log.debug({ sessionId }, 'Skipping memory enrichment - entities already present');
+    return baseContext;
+  }
+
+  try {
+    // Get frequently mentioned entities from STM buffer
+    const frequentEntities = getFrequentEntities(sessionId, 10);
+
+    if (frequentEntities.length === 0) {
+      log.debug({ sessionId }, 'No frequent entities in STM buffer');
+      return baseContext;
+    }
+
+    // Convert to RememberedEntity format for Ferni TTS
+    // The familiarity is based on mention count (normalized to 0.0-1.0)
+    // The emotional valence defaults to neutral (0) since STM doesn't track sentiment
+    const maxMentions = Math.max(...frequentEntities.map((e) => e.mentionCount));
+    const rememberedEntities: RememberedEntity[] = frequentEntities.map((entity) => ({
+      name: entity.name,
+      entityType: normalizeEntityType(entity.type),
+      familiarity: Math.min(entity.mentionCount / Math.max(maxMentions, 5), 1.0),
+      emotionalValence: 0, // Neutral default - could be enhanced with sentiment from contexts
+    }));
+
+    log.debug(
+      {
+        sessionId,
+        entityCount: rememberedEntities.length,
+        topEntities: rememberedEntities.slice(0, 3).map((e) => e.name),
+      },
+      'Enriched context with STM memory entities'
+    );
+
+    return {
+      ...baseContext,
+      rememberedEntities,
+    };
+  } catch (err) {
+    log.warn({ sessionId, error: String(err) }, 'Failed to enrich context with memory');
+    return baseContext;
+  }
 }
 
 // ============================================================================
