@@ -24,6 +24,10 @@ import { diag } from '../../services/diagnostic-logger.js';
 import type { UserData } from '../shared/types.js';
 import { getPersonaDisplayName } from '../../personas/voice-registry.js';
 
+// Predictive handoff - pre-briefings for specialist personas
+import { getPreBriefing, markBriefingUsed } from '../../services/automation/predictive-handoff.js';
+import type { PreBriefing } from '../../services/automation/predictive-handoff.js';
+
 const log = getLogger();
 
 // ============================================================================
@@ -94,6 +98,8 @@ export interface OrchestratorConfig {
   onHandoffComplete?: (fromPersona: string, toPersona: string) => void;
   /** Session ID for logging */
   sessionId: string;
+  /** User ID for predictive handoff pre-briefings */
+  userId?: string;
 }
 
 export interface AgentCreationContext {
@@ -129,6 +135,7 @@ export class AgentOrchestrator {
   private readonly createPersonaAgent: OrchestratorConfig['createPersonaAgent'];
   private readonly onHandoffComplete?: OrchestratorConfig['onHandoffComplete'];
   private readonly sessionId: string;
+  private readonly userId?: string;
 
   /** All agents currently in the room */
   private agents = new Map<string, PersonaAgent>();
@@ -146,8 +153,9 @@ export class AgentOrchestrator {
     this.createPersonaAgent = config.createPersonaAgent;
     this.onHandoffComplete = config.onHandoffComplete;
     this.sessionId = config.sessionId;
+    this.userId = config.userId;
 
-    log.info({ sessionId: this.sessionId }, '🎭 AgentOrchestrator created');
+    log.info({ sessionId: this.sessionId, userId: this.userId }, '🎭 AgentOrchestrator created');
   }
 
   // ==========================================================================
@@ -365,17 +373,48 @@ export class AgentOrchestrator {
       );
 
       // ================================================================
-      // STEP 3: Spawn new agent
+      // STEP 3: Spawn new agent (with predictive pre-briefing if available)
       // ================================================================
       const step3Start = Date.now();
       log.info(
         { targetPersonaId: request.targetPersonaId, isHandoff: true },
         '🎭 [HANDOFF STEP 3/5] Spawning new agent...'
       );
+
+      // 🧠 PREDICTIVE HANDOFF: Fetch pre-briefing for the specialist
+      let preBriefing: PreBriefing | null = null;
+      let enhancedSummary = request.conversationSummary;
+      if (this.userId) {
+        try {
+          preBriefing = await getPreBriefing(this.userId, request.targetPersonaId as Parameters<typeof getPreBriefing>[1]);
+          if (preBriefing) {
+            // Enhance the conversation summary with pre-briefing context
+            const briefingContext = [
+              `[PRE-BRIEFING FROM FERNI TEAM]`,
+              preBriefing.context,
+              preBriefing.suggestedApproach ? `Suggested approach: ${preBriefing.suggestedApproach}` : '',
+              preBriefing.relevantHistory.length > 0 ? `Relevant history: ${preBriefing.relevantHistory.join('; ')}` : '',
+            ].filter(Boolean).join('\n');
+
+            enhancedSummary = enhancedSummary
+              ? `${briefingContext}\n\n${enhancedSummary}`
+              : briefingContext;
+
+            log.info(
+              { userId: this.userId, targetPersona: request.targetPersonaId, briefingId: preBriefing.id },
+              '🧠 [PREDICTIVE] Pre-briefing applied to handoff context'
+            );
+          }
+        } catch (err) {
+          // Non-critical - continue without pre-briefing
+          log.debug({ error: String(err) }, 'Pre-briefing fetch skipped');
+        }
+      }
+
       const newAgent = await this.spawnAgent(request.targetPersonaId, {
         room: this.room,
         userParticipant: this.userParticipant,
-        conversationSummary: request.conversationSummary,
+        conversationSummary: enhancedSummary,
         recentMessages: request.recentMessages,
         userName: request.userName,
         isHandoff: true,
@@ -386,6 +425,7 @@ export class AgentOrchestrator {
           newAgentId: newAgent.id,
           personaId: request.targetPersonaId,
           durationMs: Date.now() - step3Start,
+          hadPreBriefing: !!preBriefing,
         },
         '🎭 [HANDOFF STEP 3/5] ✅ New agent spawned'
       );
@@ -439,6 +479,13 @@ export class AgentOrchestrator {
 
       // Notify callback
       this.onHandoffComplete?.(previousPersonaId, request.targetPersonaId);
+
+      // 🧠 PREDICTIVE HANDOFF: Mark pre-briefing as used (non-blocking)
+      if (preBriefing && this.userId) {
+        markBriefingUsed(this.userId, preBriefing.id).catch((err) => {
+          log.debug({ error: String(err) }, 'Failed to mark briefing as used');
+        });
+      }
 
       return {
         success: true,

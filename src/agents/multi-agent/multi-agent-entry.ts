@@ -151,7 +151,7 @@ export async function initializeMultiAgentSession(
     deferHandlers, // Wire handlers after greeting for faster startup
   });
 
-  // Create the orchestrator
+  // Create the orchestrator (with userId for predictive handoff pre-briefings)
   const orchestrator = createAgentOrchestrator({
     ctx,
     room,
@@ -162,6 +162,7 @@ export async function initializeMultiAgentSession(
       onHandoffComplete?.(from, to);
     },
     sessionId,
+    userId,
   });
 
   // Start with the initial persona
