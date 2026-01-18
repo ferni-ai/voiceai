@@ -206,6 +206,16 @@ export class RedisCache {
     return this.initialized && this.client !== null;
   }
 
+  /**
+   * Get the underlying Redis client for advanced operations
+   * Returns null if not connected. Caller should check isConnected() first.
+   *
+   * Use this for operations not covered by the high-level API (sorted sets, etc.)
+   */
+  getClient(): RedisClient | null {
+    return this.client;
+  }
+
   // ============================================================================
   // SESSION MANAGEMENT
   // ============================================================================

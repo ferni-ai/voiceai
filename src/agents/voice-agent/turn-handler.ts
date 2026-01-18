@@ -53,6 +53,22 @@ import {
   dispatchEmotionEvents,
   dispatchHolisticEvents,
   dispatchExpressionUpdate,
+  // BTH signal dispatchers (10 superhuman capabilities)
+  dispatchSpontaneousDelight,
+  dispatchVisibleVulnerability,
+  dispatchTemporalInsight,
+  dispatchAnticipatoryPresence,
+  dispatchProtectiveInstinct,
+  dispatchSuperhumanObservation,
+  dispatchEmotionalBondDeepen,
+  dispatchMicroExpression,
+  dispatchMetaRelationshipMoment,
+  dispatchSomaticPresence,
+  dispatchInsideJokeCallback,
+  // BTH detection helpers
+  detectUserDelight,
+  detectMetaRelationship,
+  getTimeContext,
 } from '../realtime/emotion-event-dispatcher.js';
 // Safe fire-and-forget pattern for non-critical async operations
 import { fireAndForget } from '../../utils/safe-fire-and-forget.js';
@@ -411,6 +427,21 @@ export async function handleUserTurn(ctx: TurnHandlerContext): Promise<void> {
   startTurnProfiling(services.sessionId, turnNumber);
 
   // ================================================================
+  // 🌙 BTH: ANTICIPATORY PRESENCE - Time-of-day awareness
+  // Fire this early so frontend avatar shows appropriate presence
+  // (e.g., gentle expression at 2am, energized on Monday morning)
+  // ================================================================
+  const timeContext = getTimeContext();
+  if (timeContext) {
+    fireAndForget(async () => {
+      await dispatchAnticipatoryPresence(sendDataMessage, {
+        timeContext,
+        intensity: timeContext === 'late_night' ? 0.9 : 0.7,
+      });
+    }, 'bth-anticipatory-presence');
+  }
+
+  // ================================================================
   // EXTENSIBILITY: Slash command detection
   // ================================================================
   const trimmedText = userText.trim();
@@ -679,6 +710,51 @@ export async function handleUserTurn(ctx: TurnHandlerContext): Promise<void> {
         hasProactive: memoryRetrievalResult.memoryContext?.hasProactiveSuggestion || false,
         totalMs: memoryRetrievalResult.memoryContext?.metrics.totalTimeMs || 0,
       });
+
+      // ================================================================
+      // ⏳ BTH: TEMPORAL INSIGHT - Cross-session memory reference
+      // Trigger avatar micro-expression when surfacing temporal memories
+      // ================================================================
+      const hasTemporalMemory = memoryRetrievalResult.injections.some(
+        (inj) =>
+          /remember|last (week|month|time)|ago|before|earlier/i.test(inj.content)
+      );
+      if (hasTemporalMemory) {
+        const memoryContent = memoryRetrievalResult.injections[0]?.content || '';
+        fireAndForget(async () => {
+          await dispatchTemporalInsight(sendDataMessage, {
+            memoryReference: memoryContent.slice(0, 100),
+            intensity: 0.8,
+          });
+        }, 'bth-temporal-insight');
+      }
+
+      // ================================================================
+      // 😄 BTH: INSIDE JOKE CALLBACK - Shared humor history detected
+      // Trigger when memory retrieval surfaces humor, jokes, or fun moments
+      // Enables avatar to show "insider" micro-expression (knowing smile)
+      // ================================================================
+      const hasSharedHumor = memoryRetrievalResult.injections.some(
+        (inj) =>
+          /joke|laugh|funny|hilarious|humor|lol|haha|inside joke|remember when.*laugh/i.test(
+            inj.content
+          )
+      );
+      if (hasSharedHumor) {
+        const humorContent = memoryRetrievalResult.injections.find((inj) =>
+          /joke|laugh|funny|hilarious|humor/i.test(inj.content)
+        )?.content || '';
+        fireAndForget(async () => {
+          await dispatchInsideJokeCallback(sendDataMessage, {
+            memoryReference: humorContent.slice(0, 100),
+            intensity: 0.8,
+          });
+          await dispatchMicroExpression('insider', sendDataMessage, 0.75);
+          diag.state('😄 BTH: Inside joke callback triggered', {
+            memoryHint: humorContent.slice(0, 40),
+          });
+        }, 'bth-inside-joke');
+      }
     }
 
     // ================================================================
@@ -732,6 +808,86 @@ export async function handleUserTurn(ctx: TurnHandlerContext): Promise<void> {
       ).catch((e) => {
         diag.debug('Expression dispatch failed (non-critical)', { error: String(e) });
       });
+
+      // ================================================================
+      // 🎉 BTH: SPONTANEOUS DELIGHT - User shares joy/achievement
+      // Detect when user shares good news and trigger delight micro-expression
+      // ================================================================
+      if (detectUserDelight(userText)) {
+        fireAndForget(async () => {
+          await dispatchSpontaneousDelight(sendDataMessage, {
+            trigger: 'user_achievement',
+            intensity: result.emotional.intensity ?? 0.8,
+          });
+          diag.state('🎉 BTH: Spontaneous delight triggered', {
+            userText: userText.slice(0, 50),
+            emotionIntensity: result.emotional.intensity,
+          });
+        }, 'bth-spontaneous-delight');
+      }
+
+      // ================================================================
+      // 💞 BTH: EMOTIONAL BOND DEEPEN - Gratitude or vulnerability shared
+      // Detect when relationship is deepening through vulnerability/gratitude
+      // ================================================================
+      const isGratitude = /thank(s| you)|grateful|appreciate/i.test(userText);
+      const isVulnerable =
+        result.emotional.distressLevel > 0.4 ||
+        /i('m| am) (scared|afraid|worried|nervous|anxious)/i.test(userText);
+      if (isGratitude || isVulnerable) {
+        fireAndForget(async () => {
+          await dispatchEmotionalBondDeepen(sendDataMessage, {
+            trigger: isGratitude ? 'gratitude_expressed' : 'vulnerability_shared',
+            intensity: isVulnerable ? 0.85 : 0.7,
+            relationshipContext: isGratitude ? 'gratitude' : 'vulnerability',
+          });
+          // Also trigger warmth micro-expression
+          await dispatchMicroExpression('warmth_pulse', sendDataMessage, 0.75);
+        }, 'bth-emotional-bond');
+      }
+
+      // ================================================================
+      // 🤝 BTH: META-RELATIONSHIP MOMENT - User reflects on our relationship
+      // Detect when user comments on their relationship with Ferni
+      // e.g., "I appreciate how you listen", "Our conversations really help"
+      // ================================================================
+      if (detectMetaRelationship(userText)) {
+        fireAndForget(async () => {
+          await dispatchMetaRelationshipMoment(sendDataMessage, {
+            relationshipContext: 'user_reflection',
+            intensity: 0.85,
+          });
+          await dispatchMicroExpression('warmth_pulse', sendDataMessage, 0.8);
+          diag.state('🤝 BTH: Meta-relationship moment triggered', {
+            userText: userText.slice(0, 50),
+          });
+        }, 'bth-meta-relationship');
+      }
+
+      // ================================================================
+      // 🤔 BTH: VISIBLE VULNERABILITY - Ferni shows appropriate uncertainty
+      // Triggered when user asks philosophical/existential questions or
+      // complex life decisions where showing uncertainty is authentic.
+      // This humanizes Ferni by not being artificially confident.
+      // ================================================================
+      const isPhilosophical =
+        /meaning of life|purpose|why (do we|are we)|what (is|does) it mean|should i|how do i decide|hard choice|difficult decision/i.test(
+          userText
+        );
+      const askingAdvice =
+        /what (should|would) (i|you)|advice|recommend|suggest|think i should/i.test(userText);
+      if (isPhilosophical || (askingAdvice && result.emotional?.distressLevel > 0.3)) {
+        fireAndForget(async () => {
+          await dispatchVisibleVulnerability(sendDataMessage, {
+            vulnerabilityType: isPhilosophical ? 'uncertainty' : 'admission',
+            intensity: isPhilosophical ? 0.75 : 0.6,
+          });
+          diag.state('🤔 BTH: Visible vulnerability triggered', {
+            type: isPhilosophical ? 'philosophical_question' : 'advice_seeking',
+            userText: userText.slice(0, 50),
+          });
+        }, 'bth-visible-vulnerability');
+      }
     }
 
     // ================================================================
@@ -835,6 +991,35 @@ Voice signals detected: ${allSignals.join(', ') || 'subtle vocal cues'}`,
             voiceSignals: prosodySignalsList.length,
             anticipatedDistress,
           });
+
+          // ================================================================
+          // 🛡️ BTH: PROTECTIVE INSTINCT - Voice-text mismatch detected
+          // Trigger avatar micro-expression when sensing hidden distress
+          // ================================================================
+          void dispatchProtectiveInstinct(sendDataMessage, {
+            mismatchType: concernState.primaryConcern || 'voice_distress',
+            voiceEmotion: prosodySignalsList[0],
+            intensity: boostedScore,
+          });
+          void dispatchMicroExpression('protective', sendDataMessage, 0.8);
+
+          // ================================================================
+          // 🧘 BTH: SOMATIC PRESENCE - Physical grounding when needed
+          // Combine late night time context with detected distress to
+          // offer embodied presence ("let's take a breath together")
+          // ================================================================
+          const somaticTimeContext = getTimeContext();
+          if (somaticTimeContext === 'late_night' || boostedScore > 0.6) {
+            void dispatchSomaticPresence(sendDataMessage, {
+              somaticType: somaticTimeContext === 'late_night' ? 'breathing' : 'grounding',
+              intensity: boostedScore,
+            });
+            void dispatchMicroExpression('steady_presence', sendDataMessage, 0.85);
+            diag.state('🧘 BTH: Somatic presence triggered', {
+              timeContext: somaticTimeContext,
+              distressScore: boostedScore.toFixed(2),
+            });
+          }
         }
       }, 'concern-detection-with-prosody');
 
@@ -1385,6 +1570,19 @@ You are their lifeline right now. Be fully present.`,
           count: highConfidenceCorrelations.length,
           userId: services.userId,
         });
+
+        // ================================================================
+        // 🔮 BTH: SUPERHUMAN OBSERVATION - Pattern surfacing
+        // Trigger avatar micro-expression when surfacing cross-session patterns
+        // ================================================================
+        const topCorrelation = highConfidenceCorrelations[0];
+        fireAndForget(async () => {
+          await dispatchSuperhumanObservation(sendDataMessage, {
+            observationType: 'correlation',
+            observationContent: topCorrelation.insight,
+            intensity: topCorrelation.confidence === 'confirmed' ? 0.9 : 0.75,
+          });
+        }, 'bth-superhuman-observation');
       }
     }
 
