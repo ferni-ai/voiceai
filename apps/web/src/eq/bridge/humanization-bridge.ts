@@ -28,6 +28,55 @@ import { playMicroExpression, setBreathSyncEnabled, setBreathSyncStrength } from
 const log = createLogger('HumanizationBridge');
 
 // ============================================================================
+// BTH UI HINT EMITTER
+// Emits subtle UI hints when BTH signals are received, allowing UI components
+// to display what Ferni noticed without being intrusive
+// ============================================================================
+
+type BthHintType =
+  | 'delight'
+  | 'inside_joke'
+  | 'observation'
+  | 'vulnerability'
+  | 'memory'
+  | 'relationship'
+  | 'somatic'
+  | 'anticipatory';
+
+interface BthHintDetail {
+  type: BthHintType;
+  content: string;
+  metadata?: Record<string, unknown>;
+  timestamp: number;
+}
+
+/**
+ * Emit a BTH UI hint for frontend components to display
+ * These are subtle, non-intrusive hints that show what Ferni noticed
+ */
+function emitBthUIHint(
+  type: BthHintType,
+  content: string,
+  metadata?: Record<string, unknown>
+): void {
+  const detail: BthHintDetail = {
+    type,
+    content,
+    metadata,
+    timestamp: Date.now(),
+  };
+
+  // Emit custom event for UI components to catch
+  const event = new CustomEvent('ferni:bth-hint', { detail });
+  document.dispatchEvent(event);
+
+  log.debug('BTH UI hint emitted', { type, content: content.slice(0, 50) });
+}
+
+// Export for external use
+export { emitBthUIHint, type BthHintType, type BthHintDetail };
+
+// ============================================================================
 // AVATAR CONTAINER (for somatic presence)
 // ============================================================================
 
@@ -121,132 +170,299 @@ async function handleProtectiveInstinctSignal(signal: BetterThanHumanSignal): Pr
 /**
  * Spontaneous delight - appreciation/gratitude/joy
  */
-async function handleSpontaneousDelightSignal(_signal: BetterThanHumanSignal): Promise<void> {
+async function handleSpontaneousDelightSignal(signal: BetterThanHumanSignal): Promise<void> {
   const soul = await getAvatarSoul();
+  const intensity = signal.intensity || 0.8;
 
   if (soul) {
-    soul.flashShimmer(1.0);
+    soul.flashShimmer(intensity);
     soul.setPupilDilation('DILATED', 'fast');
-    soul.setGlowBleed(0.35, 'rgba(196, 162, 101, 0.6)');
+    soul.setGlowBleed(0.25 + intensity * 0.15, 'rgba(196, 162, 101, 0.6)');
   }
 
   ferniExpressions.setExpression('pleased', 400);
   playMicroExpression('delight_flash');
+
+  // Show subtle UI indicator for user's achievement
+  if (signal.trigger) {
+    emitBthUIHint('delight', signal.trigger);
+  }
 }
 
 /**
- * Inside joke callback - shared humor
+ * Inside joke callback - shared humor reference
+ * Backend sends memoryReference with the joke/humor context
  */
-async function handleInsideJokeSignal(_signal: BetterThanHumanSignal): Promise<void> {
+async function handleInsideJokeSignal(signal: BetterThanHumanSignal): Promise<void> {
   const soul = await getAvatarSoul();
+  const intensity = signal.intensity || 0.75;
 
   if (soul) {
-    soul.flashShimmer(0.8);
+    soul.flashShimmer(intensity);
     soul.setPupilDilation('INTERESTED', 'fast');
   }
 
   ferniExpressions.setExpression('warm', 300);
   playMicroExpression('insider');
+
+  // Show the shared humor reference to reinforce the connection
+  if (signal.memoryReference) {
+    emitBthUIHint('inside_joke', signal.memoryReference);
+  }
 }
 
 /**
  * Superhuman observation - pattern surfacing
+ * Backend sends observationType and observationContent
  */
-async function handleSuperhumanObservationSignal(_signal: BetterThanHumanSignal): Promise<void> {
+async function handleSuperhumanObservationSignal(signal: BetterThanHumanSignal): Promise<void> {
   const soul = await getAvatarSoul();
+  const intensity = signal.intensity || 0.75;
 
   if (soul) {
     soul.setPupilDilation('CONTRACTED', 'slow');
+    // Brief glance away as if "recalling" the pattern
     soul.glanceAway(300);
   }
 
   ferniExpressions.setExpression('noticing', 400);
   playMicroExpression('noticing');
+
+  // Surface the observation insight to the user
+  if (signal.observationContent) {
+    emitBthUIHint('observation', signal.observationContent, {
+      type: signal.observationType,
+      intensity,
+    });
+  }
 }
 
 /**
- * Visible vulnerability - showing uncertainty
+ * Visible vulnerability - Ferni showing appropriate uncertainty
+ * Backend sends vulnerabilityType: 'uncertainty' | 'admission' | 'reflection' | 'growth'
+ * This humanizes Ferni by not being artificially confident
  */
-async function handleVisibleVulnerabilitySignal(_signal: BetterThanHumanSignal): Promise<void> {
+async function handleVisibleVulnerabilitySignal(signal: BetterThanHumanSignal): Promise<void> {
   const soul = await getAvatarSoul();
+  const vulnerabilityType = signal.vulnerabilityType || 'uncertainty';
+  const intensity = signal.intensity || 0.6;
+
+  // Different expressions based on vulnerability type
+  const expressionMap: Record<string, { expression: string; glow: string }> = {
+    uncertainty: { expression: 'contemplative', glow: 'rgba(154, 123, 90, 0.4)' },
+    admission: { expression: 'thoughtful', glow: 'rgba(154, 123, 90, 0.35)' },
+    reflection: { expression: 'reflective', glow: 'rgba(170, 140, 100, 0.4)' },
+    growth: { expression: 'warm', glow: 'rgba(180, 150, 100, 0.45)' },
+  };
+
+  const config = expressionMap[vulnerabilityType] || expressionMap.uncertainty;
 
   if (soul) {
     soul.setPupilDilation('NEUTRAL', 'slow');
-    soul.setGlowBleed(0.15, 'rgba(154, 123, 90, 0.4)');
+    soul.setGlowBleed(0.12 + intensity * 0.08, config.glow);
   }
 
-  ferniExpressions.setExpression('contemplative', 500);
+  ferniExpressions.setExpression(config.expression as Parameters<typeof ferniExpressions.setExpression>[0], 500);
+
+  // Emit hint to show Ferni's authentic uncertainty
+  emitBthUIHint('vulnerability', vulnerabilityType, { intensity });
 }
 
 /**
- * Temporal insight - cross-session comparison
+ * Temporal insight - cross-session memory reference
+ * Backend sends memoryReference with what Ferni remembers
+ * e.g., "Last month you mentioned feeling stuck at work"
  */
-async function handleTemporalInsightSignal(_signal: BetterThanHumanSignal): Promise<void> {
+async function handleTemporalInsightSignal(signal: BetterThanHumanSignal): Promise<void> {
   const soul = await getAvatarSoul();
+  const intensity = signal.intensity || 0.8;
 
   if (soul) {
     soul.triggerMemorySpark();
     soul.setPupilDilation('CONNECTED', 'slow');
+    soul.setGlowBleed(0.2, 'rgba(196, 162, 101, 0.4)');
   }
 
   ferniExpressions.setExpression('remembering', 400);
   playMicroExpression('memory_spark');
+
+  // Show the memory reference so user sees what Ferni remembers
+  if (signal.memoryReference) {
+    emitBthUIHint('memory', signal.memoryReference, {
+      timeSpan: signal.timeSpan,
+      intensity,
+    });
+  }
 }
 
 /**
- * Meta-relationship moment - commenting on the relationship
+ * Meta-relationship moment - user reflects on their relationship with Ferni
+ * Backend sends relationshipContext describing the relationship aspect
+ * e.g., "growth", "trust", "appreciation"
  */
-async function handleMetaRelationshipSignal(_signal: BetterThanHumanSignal): Promise<void> {
+async function handleMetaRelationshipSignal(signal: BetterThanHumanSignal): Promise<void> {
   const soul = await getAvatarSoul();
+  const intensity = signal.intensity || 0.85;
+  const context = signal.relationshipContext || 'connection';
 
   if (soul) {
     soul.setPupilDilation('CONNECTED', 'slow');
-    soul.setGlowBleed(0.3, 'rgba(196, 162, 101, 0.5)');
+    soul.setGlowBleed(0.25 + intensity * 0.1, 'rgba(196, 162, 101, 0.5)');
     soul.startComfortPulse();
   }
 
   ferniExpressions.setExpression('warm', 500);
   playMicroExpression('warmth_pulse');
+
+  // Show that Ferni values this relationship moment
+  emitBthUIHint('relationship', context, { intensity });
 }
 
 /**
- * Somatic presence - physical embodiment cues
+ * Somatic presence - physical grounding cues for embodied support
+ * Backend sends somaticType: 'breathing' | 'settling' | 'grounding' | 'pause'
+ * Offers physical presence during distress or late-night sessions
  */
 async function handleSomaticPresenceSignal(signal: BetterThanHumanSignal): Promise<void> {
-  if (!avatarContainer) return;
+  const soul = await getAvatarSoul();
+  const somaticType = signal.somaticType || 'breathing';
+  const intensity = signal.intensity || 0.6;
 
-  const cue = signal.somaticCue || '';
-
-  if (cue.includes('settling') || cue.includes('breath')) {
-    avatarContainer.animate(
-      [
-        { transform: 'translateY(0)' },
-        { transform: 'translateY(2px)' },
-        { transform: 'translateY(0)' },
-      ],
-      {
-        duration: 800,
-        easing: EASING.GENTLE,
+  // Handle each somatic type with appropriate physical cues
+  switch (somaticType) {
+    case 'breathing':
+      // Slow, deep breathing animation - "let's take a breath together"
+      if (avatarContainer) {
+        avatarContainer.animate(
+          [
+            { transform: 'translateY(0) scale(1)' },
+            { transform: 'translateY(1px) scale(1.01)' },
+            { transform: 'translateY(0) scale(1)' },
+          ],
+          {
+            duration: 3000, // Slow breath cycle
+            easing: EASING.GENTLE,
+            iterations: 2,
+          }
+        );
       }
-    );
-  } else if (cue.includes('processing') || cue.includes('heavy')) {
-    ferniExpressions.setExpression('contemplative', 600);
+      if (soul) {
+        soul.setPupilDilation('NEUTRAL', 'slow');
+        setBreathSyncStrength(0.9);
+        setBreathSyncEnabled(true);
+      }
+      ferniExpressions.setExpression('present', 600);
+      break;
+
+    case 'settling':
+      // Settling into presence - gentle downward motion
+      if (avatarContainer) {
+        avatarContainer.animate(
+          [
+            { transform: 'translateY(0)' },
+            { transform: 'translateY(2px)' },
+            { transform: 'translateY(1px)' },
+          ],
+          {
+            duration: 800,
+            easing: EASING.GENTLE,
+          }
+        );
+      }
+      if (soul) {
+        soul.setGlowBleed(0.15, 'rgba(154, 123, 90, 0.4)');
+      }
+      ferniExpressions.setExpression('attentive', 500);
+      break;
+
+    case 'grounding':
+      // Deep grounding - stable, weighted presence
+      if (avatarContainer) {
+        avatarContainer.animate(
+          [
+            { transform: 'translateY(0)' },
+            { transform: 'translateY(3px)' },
+            { transform: 'translateY(2px)' },
+          ],
+          {
+            duration: 1200,
+            easing: EASING.GENTLE,
+          }
+        );
+      }
+      if (soul) {
+        soul.setPupilDilation('CONNECTED', 'slow');
+        soul.setGlowBleed(0.2, 'rgba(120, 100, 80, 0.5)');
+      }
+      ferniExpressions.setExpression('present', 700);
+      playMicroExpression('steady_presence');
+      break;
+
+    case 'pause':
+      // Intentional pause - stillness with presence
+      if (soul) {
+        soul.setPupilDilation('NEUTRAL', 'slow');
+        soul.setGlowBleed(0.1, 'rgba(154, 123, 90, 0.3)');
+      }
+      ferniExpressions.setExpression('contemplative', 800);
+      break;
   }
+
+  // Emit hint to show somatic support
+  emitBthUIHint('somatic', somaticType, { intensity });
 }
 
 /**
- * Anticipatory presence - "thinking of you"
+ * Anticipatory presence - time-aware care
+ * Backend sends timeContext: 'late_night' | 'early_morning' | 'weekend' | 'monday' | 'evening'
+ * Shows Ferni is aware of WHEN user is reaching out, not just WHAT they say
  */
-async function handleAnticipatoryPresenceSignal(_signal: BetterThanHumanSignal): Promise<void> {
+async function handleAnticipatoryPresenceSignal(signal: BetterThanHumanSignal): Promise<void> {
   const soul = await getAvatarSoul();
+  const timeContext = signal.timeContext || 'evening';
+  const intensity = signal.intensity || 0.7;
+
+  // Adjust presence based on time context
+  const timeConfig: Record<string, { expression: string; glow: string; microExpression: string }> = {
+    late_night: {
+      expression: 'gentle',
+      glow: 'rgba(140, 120, 90, 0.4)', // Softer, warmer for late night
+      microExpression: 'steady_presence',
+    },
+    early_morning: {
+      expression: 'warm',
+      glow: 'rgba(180, 150, 100, 0.45)', // Gentle awakening warmth
+      microExpression: 'recognition',
+    },
+    weekend: {
+      expression: 'relaxed',
+      glow: 'rgba(196, 162, 101, 0.4)',
+      microExpression: 'warmth_pulse',
+    },
+    monday: {
+      expression: 'supportive',
+      glow: 'rgba(160, 140, 100, 0.45)',
+      microExpression: 'courage_support',
+    },
+    evening: {
+      expression: 'present',
+      glow: 'rgba(196, 162, 101, 0.45)',
+      microExpression: 'recognition',
+    },
+  };
+
+  const config = timeConfig[timeContext] || timeConfig.evening;
 
   if (soul) {
     soul.setPupilDilation('INTERESTED', 'slow');
-    soul.setGlowBleed(0.25, 'rgba(196, 162, 101, 0.45)');
+    soul.setGlowBleed(0.2 + intensity * 0.1, config.glow);
   }
 
-  ferniExpressions.setExpression('warm', 400);
-  playMicroExpression('recognition');
+  ferniExpressions.setExpression(config.expression as Parameters<typeof ferniExpressions.setExpression>[0], 400);
+  playMicroExpression(config.microExpression as Parameters<typeof playMicroExpression>[0]);
+
+  // Emit hint showing time awareness
+  emitBthUIHint('anticipatory', timeContext, { intensity });
 }
 
 // ============================================================================

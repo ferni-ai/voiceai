@@ -199,6 +199,30 @@ log('✅ Deep extraction worker started');
 startSyncService();
 log('✅ Firestore → Spanner sync service started');
 
+// Start OpenAI health monitor orphan cleanup
+// This cleans up stale sessions that exited without calling stopHealthMonitoring()
+// Runs every 10 minutes to prevent unbounded Map growth
+import { startOrphanCleanup, stopOrphanCleanup } from './shared/openai-health-monitor.js';
+startOrphanCleanup();
+log('✅ OpenAI health monitor orphan cleanup started');
+
+// Start session cleanup registry orphan cleanup
+// This cleans up stale session registries (sessions that crashed without proper cleanup)
+// Runs every 15 minutes with 2-hour TTL to prevent unbounded Map growth
+import { startRegistryOrphanCleanup, stopRegistryOrphanCleanup } from './session/index.js';
+startRegistryOrphanCleanup();
+log('✅ Session cleanup registry orphan cleanup started');
+
+// Start session closing tracker orphan cleanup
+// This cleans up sessions stuck in "closing" state (crashed before cleanup completed)
+// Runs every 2 minutes with 5-minute TTL to prevent unbounded Map growth
+import {
+  startClosingTrackerCleanup,
+  stopClosingTrackerCleanup,
+} from './shared/session-closing-tracker.js';
+startClosingTrackerCleanup();
+log('✅ Session closing tracker orphan cleanup started');
+
 const moduleLoadTime = Date.now() - moduleLoadStart;
 log('Modules loaded', { moduleLoadTimeMs: moduleLoadTime });
 
@@ -277,10 +301,31 @@ const shutdown = async (signal: string): Promise<void> => {
   const { activeJobs } = getJobMetrics();
   log(`Received ${signal}, shutting down...`, { activeJobs });
 
-  // 1. Stop watchdog
+  // 1. Stop watchdog and health monitor
   try {
     stopWatchdog();
     log('Container watchdog stopped');
+  } catch {
+    // Ignore
+  }
+
+  try {
+    stopOrphanCleanup();
+    log('OpenAI health monitor cleanup stopped');
+  } catch {
+    // Ignore
+  }
+
+  try {
+    stopRegistryOrphanCleanup();
+    log('Session cleanup registry stopped');
+  } catch {
+    // Ignore
+  }
+
+  try {
+    stopClosingTrackerCleanup();
+    log('Session closing tracker cleanup stopped');
   } catch {
     // Ignore
   }

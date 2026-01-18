@@ -150,6 +150,10 @@ export interface UserBaseline {
   avgEngagement: number;
   avgEnergy: number;
   normalSpeechRate: number;
+  /** Natural speech intensity (0-1). High values (>0.7) mean user naturally speaks intensely. */
+  speechIntensity?: number;
+  /** Whether user tends to mask/understate concerns (learned over time) */
+  tendToMaskConcerns?: boolean;
 }
 
 export const DEFAULT_USER_BASELINE: UserBaseline = {
@@ -157,4 +161,6 @@ export const DEFAULT_USER_BASELINE: UserBaseline = {
   avgEngagement: 0.6,
   avgEnergy: 0.5,
   normalSpeechRate: 1.0,
+  speechIntensity: 0.5,
+  tendToMaskConcerns: false,
 };

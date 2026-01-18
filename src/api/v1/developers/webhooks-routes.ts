@@ -16,6 +16,8 @@ import { handleCorsPreflightIfNeeded, parseBody, sendJSON, sendError } from '../
 import { getPublisherFromToken } from './shared/developer-auth.js';
 import { z } from 'zod';
 import * as crypto from 'crypto';
+import { getFirestoreDb } from '../../../utils/firestore-utils.js';
+import { COLLECTIONS, type DeveloperWebhook, type WebhookEventType as WebhookEventTypeValue } from '../../../types/developer-platform.js';
 
 const log = getLogger().child({ module: 'developers-webhooks' });
 
@@ -23,14 +25,19 @@ const log = getLogger().child({ module: 'developers-webhooks' });
 // TYPES & VALIDATION
 // ============================================================================
 
+// Use the official WebhookEventType values from developer-platform.ts
 const WebhookEventType = z.enum([
   'session.started',
   'session.ended',
-  'session.error',
-  'persona.switched',
-  'tool.executed',
-  'transcript.ready',
-]);
+  'conversation.turn.completed',
+  'conversation.transcript.ready',
+  'tool.called',
+  'tool.completed',
+  'tool.failed',
+  'persona.handoff',
+  'persona.installed',
+  'activity.created',
+] as [WebhookEventTypeValue, ...WebhookEventTypeValue[]]);
 
 const CreateWebhookSchema = z.object({
   name: z.string().min(1).max(100),
@@ -65,29 +72,82 @@ interface Webhook {
 }
 
 // ============================================================================
-// STUB IMPLEMENTATIONS (TODO: Wire to real storage)
+// FIRESTORE STORAGE IMPLEMENTATION
 // ============================================================================
 
 /**
- * Temporary in-memory storage
- * TODO: Replace with Firestore/Postgres
+ * Get Firestore collection reference for webhooks
+ * @throws Error if Firestore is not initialized
  */
-const webhooksStore = new Map<string, Webhook>();
+function getWebhooksCollection() {
+  const db = getFirestoreDb();
+  if (!db) {
+    throw new Error('Firestore not initialized');
+  }
+  return db.collection(COLLECTIONS.WEBHOOKS);
+}
+
+/**
+ * Convert Firestore document to Webhook object
+ */
+function docToWebhook(doc: FirebaseFirestore.DocumentSnapshot): Webhook | null {
+  if (!doc.exists) return null;
+  const data = doc.data();
+  if (!data) return null;
+  const webhookData = data as DeveloperWebhook;
+
+  // Helper to convert Firestore Timestamp to Date
+  const toDate = (val: unknown): Date | undefined => {
+    if (!val) return undefined;
+    if (val instanceof Date) return val;
+    if (typeof val === 'object' && 'toDate' in val && typeof (val as { toDate: () => Date }).toDate === 'function') {
+      return (val as { toDate: () => Date }).toDate();
+    }
+    return undefined;
+  };
+
+  return {
+    id: doc.id,
+    publisherId: webhookData.publisherId,
+    personaId: webhookData.personaId,
+    name: webhookData.name,
+    url: webhookData.url,
+    events: webhookData.events,
+    secret: webhookData.secret,
+    enabled: webhookData.enabled ?? true,
+    failureCount: webhookData.failureCount ?? 0,
+    createdAt: toDate(webhookData.createdAt) ?? new Date(),
+    lastDeliveredAt: toDate(webhookData.lastDeliveredAt),
+  };
+}
 
 async function listWebhooks(
   publisherId: string,
   limit = 20,
   cursor?: string
 ): Promise<{ items: Webhook[]; nextCursor?: string; hasMore: boolean }> {
-  const allWebhooks = Array.from(webhooksStore.values())
-    .filter((w) => w.publisherId === publisherId)
-    .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+  const collection = getWebhooksCollection();
+  
+  let query = collection
+    .where('publisherId', '==', publisherId)
+    .orderBy('createdAt', 'desc')
+    .limit(limit + 1); // Fetch one extra to check if there are more
 
-  // Simple pagination (in real impl, use Firestore cursor)
-  const startIndex = cursor ? parseInt(cursor, 10) : 0;
-  const items = allWebhooks.slice(startIndex, startIndex + limit);
-  const hasMore = startIndex + limit < allWebhooks.length;
-  const nextCursor = hasMore ? String(startIndex + limit) : undefined;
+  // If cursor provided, start after that document
+  if (cursor) {
+    const cursorDoc = await collection.doc(cursor).get();
+    if (cursorDoc.exists) {
+      query = query.startAfter(cursorDoc);
+    }
+  }
+
+  const snapshot = await query.get();
+  const docs = snapshot.docs;
+  
+  // Check if there are more results
+  const hasMore = docs.length > limit;
+  const items = docs.slice(0, limit).map((doc) => docToWebhook(doc)!).filter(Boolean);
+  const nextCursor = hasMore && docs.length > 0 ? docs[limit - 1].id : undefined;
 
   return { items, nextCursor, hasMore };
 }
@@ -98,8 +158,27 @@ async function createWebhook(
 ): Promise<Webhook> {
   const id = `webhook_${crypto.randomBytes(16).toString('hex')}`;
   const secret = crypto.randomBytes(32).toString('hex');
+  const now = new Date();
 
-  const webhook: Webhook = {
+  const webhookData: Omit<DeveloperWebhook, 'id'> = {
+    publisherId,
+    personaId: data.personaId,
+    name: data.name,
+    url: data.url,
+    events: data.events,
+    secret,
+    enabled: data.enabled,
+    failureCount: 0,
+    createdAt: now,
+    updatedAt: now,
+  };
+
+  const collection = getWebhooksCollection();
+  await collection.doc(id).set(webhookData);
+
+  log.info({ publisherId, webhookId: id, events: data.events }, 'Webhook created');
+
+  return {
     id,
     publisherId,
     personaId: data.personaId,
@@ -109,18 +188,15 @@ async function createWebhook(
     secret,
     enabled: data.enabled,
     failureCount: 0,
-    createdAt: new Date(),
+    createdAt: now,
   };
-
-  webhooksStore.set(id, webhook);
-
-  log.info({ publisherId, webhookId: id, events: data.events }, 'Webhook created');
-
-  return webhook;
 }
 
 async function getWebhook(publisherId: string, webhookId: string): Promise<Webhook | null> {
-  const webhook = webhooksStore.get(webhookId);
+  const collection = getWebhooksCollection();
+  const doc = await collection.doc(webhookId).get();
+  
+  const webhook = docToWebhook(doc);
 
   if (!webhook || webhook.publisherId !== publisherId) {
     return null;
@@ -140,19 +216,28 @@ async function updateWebhook(
     return null;
   }
 
-  const updated: Webhook = {
+  const updateData: Record<string, unknown> = {
+    updatedAt: new Date(),
+  };
+  
+  if (updates.name !== undefined) updateData.name = updates.name;
+  if (updates.url !== undefined) updateData.url = updates.url;
+  if (updates.events !== undefined) updateData.events = updates.events;
+  if (updates.enabled !== undefined) updateData.enabled = updates.enabled;
+
+  const collection = getWebhooksCollection();
+  await collection.doc(webhookId).update(updateData);
+
+  log.info({ publisherId, webhookId, updates }, 'Webhook updated');
+
+  // Return updated webhook
+  return {
     ...webhook,
     ...(updates.name && { name: updates.name }),
     ...(updates.url && { url: updates.url }),
     ...(updates.events && { events: updates.events }),
     ...(updates.enabled !== undefined && { enabled: updates.enabled }),
   };
-
-  webhooksStore.set(webhookId, updated);
-
-  log.info({ publisherId, webhookId, updates }, 'Webhook updated');
-
-  return updated;
 }
 
 async function deleteWebhook(publisherId: string, webhookId: string): Promise<boolean> {
@@ -162,7 +247,8 @@ async function deleteWebhook(publisherId: string, webhookId: string): Promise<bo
     return false;
   }
 
-  webhooksStore.delete(webhookId);
+  const collection = getWebhooksCollection();
+  await collection.doc(webhookId).delete();
 
   log.info({ publisherId, webhookId }, 'Webhook deleted');
 
@@ -206,6 +292,15 @@ async function sendTestWebhook(
 
     const executionTimeMs = Date.now() - startTime;
 
+    // Update lastDeliveredAt in Firestore on success
+    if (response.ok) {
+      const collection = getWebhooksCollection();
+      await collection.doc(webhookId).update({
+        lastDeliveredAt: new Date(),
+        failureCount: 0, // Reset failure count on success
+      });
+    }
+
     log.info(
       { publisherId, webhookId, statusCode: response.status, executionTimeMs },
       'Test webhook sent'
@@ -220,6 +315,12 @@ async function sendTestWebhook(
   } catch (error) {
     const executionTimeMs = Date.now() - startTime;
     const err = error instanceof Error ? error : new Error(String(error));
+
+    // Increment failure count in Firestore
+    const collection = getWebhooksCollection();
+    await collection.doc(webhookId).update({
+      failureCount: (webhook.failureCount || 0) + 1,
+    });
 
     log.error({ publisherId, webhookId, error: err.message }, 'Test webhook failed');
 

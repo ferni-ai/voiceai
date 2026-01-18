@@ -211,8 +211,3 @@ export function applySvgColors(svg, colorMap) {
     });
   });
 }
-
-// Re-export for CommonJS compatibility
-if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { COLORS, rgba, gradient, getPersonaColor, getMoodColors, cssVar, applySvgColors };
-}

@@ -67,11 +67,14 @@ import {
   dispatchInsideJokeCallback,
   // BTH detection helpers
   detectUserDelight,
+  detectUserDelightWithContext,
   detectMetaRelationship,
   getTimeContext,
 } from '../realtime/emotion-event-dispatcher.js';
 // Safe fire-and-forget pattern for non-critical async operations
 import { fireAndForget } from '../../utils/safe-fire-and-forget.js';
+// "AGI-like" action approval detection (voice confirmation for autonomous actions)
+import { handleActionApprovalIntent } from '../shared/action-approval-handler.js';
 // "Better Than Human" concern detection with voice prosody
 import {
   getConcernDetectionEngine,
@@ -457,6 +460,28 @@ export async function handleUserTurn(ctx: TurnHandlerContext): Promise<void> {
     }
   }
 
+  // ================================================================
+  // AGI-LIKE: Check for action approval intent
+  // If user is responding to a pending action ("yes", "do it", etc.),
+  // handle it and skip normal turn processing
+  // ================================================================
+  if (services.userId) {
+    try {
+      const approvalResult = await handleActionApprovalIntent(services.userId, userText);
+      if (approvalResult.handled) {
+        diag.state('🎯 Action approval handled', {
+          actionId: approvalResult.action?.id,
+          approved: approvalResult.approved,
+          actionType: approvalResult.action?.actionType,
+        });
+        return; // Action approval fully handled, skip normal processing
+      }
+    } catch (approvalErr) {
+      // Non-fatal - continue with normal turn processing
+      diag.warn('Action approval check failed (non-fatal)', { error: String(approvalErr) });
+    }
+  }
+
   try {
     // Import the turn processor (cached after first load)
     const { processTurn, injectTurnContext, getCelebrationEvents } =
@@ -812,18 +837,31 @@ export async function handleUserTurn(ctx: TurnHandlerContext): Promise<void> {
       // ================================================================
       // 🎉 BTH: SPONTANEOUS DELIGHT - User shares joy/achievement
       // Detect when user shares good news and trigger delight micro-expression
+      // Uses context-aware detection to filter out sarcasm and third-person references
       // ================================================================
-      if (detectUserDelight(userText)) {
+      const delightResult = detectUserDelightWithContext(userText, {
+        sentiment: result.emotional.distressLevel > 0.5 ? 'negative' : 'positive',
+        intensity: result.emotional.intensity,
+      });
+
+      if (delightResult.detected && delightResult.confidence > 0.7) {
         fireAndForget(async () => {
           await dispatchSpontaneousDelight(sendDataMessage, {
-            trigger: 'user_achievement',
-            intensity: result.emotional.intensity ?? 0.8,
+            trigger: delightResult.trigger || 'user_achievement',
+            intensity: Math.min(delightResult.confidence, result.emotional.intensity ?? 0.8),
           });
           diag.state('🎉 BTH: Spontaneous delight triggered', {
             userText: userText.slice(0, 50),
             emotionIntensity: result.emotional.intensity,
+            confidence: delightResult.confidence,
           });
         }, 'bth-spontaneous-delight');
+      } else if (delightResult.rejectionReason && delightResult.rejectionReason !== 'no_match') {
+        // Log filtered false positives for debugging (helps tune patterns)
+        diag.debug('🎉 BTH: Delight detection filtered', {
+          userText: userText.slice(0, 50),
+          rejectionReason: delightResult.rejectionReason,
+        });
       }
 
       // ================================================================

@@ -21,7 +21,7 @@ import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 
 const log = createLogger('ExpressiveEyes');
-const { trackedTimeout, clearAll: clearAllTimeouts } = createTimeoutTracker();
+const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
 
 // ============================================================================
 // TYPES

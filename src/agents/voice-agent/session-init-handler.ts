@@ -838,6 +838,23 @@ export async function initializeSession(ctx: SessionInitContext): Promise<Sessio
             });
           }
         })(),
+
+        // Phase 12: Load user's scheduled reminders from Firestore into memory
+        // This ensures reminders created in previous sessions are active for this session
+        (async () => {
+          try {
+            const { loadRemindersFromFirestore } =
+              await import('../../services/scheduling/reminder-scheduler.js');
+            const loadedCount = await loadRemindersFromFirestore(userId);
+            if (loadedCount > 0) {
+              diag.session('⏰ Reminders loaded from Firestore', { userId, loadedCount });
+            }
+          } catch (reminderErr) {
+            diag.warn('Reminder loading failed (non-fatal)', {
+              error: String(reminderErr),
+            });
+          }
+        })(),
       ]);
 
       const profileDuration = Date.now() - profileLoadStart;

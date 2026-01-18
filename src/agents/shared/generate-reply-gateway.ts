@@ -103,6 +103,15 @@ interface SessionState {
   userInterruptedAt?: number;
 
   // =========================================================================
+  // FIX (Jan 2026): Cooldown after "active_response" errors
+  // Prevents hammering OpenAI with response.create when one is already active
+  // =========================================================================
+  /** Timestamp when last active_response error was received */
+  lastActiveResponseErrorAt?: number;
+  /** Count of active_response errors in current burst */
+  activeResponseErrorCount: number;
+
+  // =========================================================================
   // BETTER THAN HUMAN: Latency tracking for adaptive timeouts
   // =========================================================================
   /** Recent TTFB values (last 10) for adaptive timeout calculation */
@@ -544,6 +553,7 @@ function getSessionState(sessionId: string): SessionState {
       pendingCallCount: 0,
       hasActiveLowPriorityResponse: false,
       hasActiveResponse: false,
+      activeResponseErrorCount: 0,
       recentTTFBs: [],
       quickAckSent: false,
       stats: {
@@ -933,6 +943,49 @@ export async function generateReply(
   state.lastCallAt = Date.now();
 
   // -------------------------------------------------------------------------
+  // SAFEGUARD 0.5: Active response error cooldown (FIX Jan 2026)
+  // After receiving "conversation_already_has_active_response" errors,
+  // enforce a cooldown to prevent hammering OpenAI with 17+ rapid requests.
+  // -------------------------------------------------------------------------
+  const ACTIVE_RESPONSE_COOLDOWN_MS = 500; // 500ms cooldown after error
+  const timeSinceActiveResponseError = state.lastActiveResponseErrorAt
+    ? Date.now() - state.lastActiveResponseErrorAt
+    : Infinity;
+
+  if (timeSinceActiveResponseError < ACTIVE_RESPONSE_COOLDOWN_MS) {
+    // During cooldown - only allow high priority requests (user spoke)
+    if (priority !== 'high') {
+      state.stats.debouncedCalls++;
+      log.debug(
+        {
+          sessionId,
+          context,
+          priority,
+          timeSinceError: timeSinceActiveResponseError,
+          errorCount: state.activeResponseErrorCount,
+        },
+        '🛑 [GATEWAY] Blocked during active_response cooldown'
+      );
+      return {
+        success: false,
+        usedFallback: false,
+        debounced: true,
+        error: `Active response cooldown: ${timeSinceActiveResponseError}ms < ${ACTIVE_RESPONSE_COOLDOWN_MS}ms`,
+        latencyMs: Date.now() - startTime,
+      };
+    }
+  } else {
+    // Cooldown expired - reset error count
+    if (state.activeResponseErrorCount > 0) {
+      log.debug(
+        { sessionId, previousErrorCount: state.activeResponseErrorCount },
+        '✅ [GATEWAY] Active response cooldown expired, resetting error count'
+      );
+      state.activeResponseErrorCount = 0;
+    }
+  }
+
+  // -------------------------------------------------------------------------
   // SAFEGUARD 1: Session readiness check
   // -------------------------------------------------------------------------
   if (!state.isReady) {
@@ -1068,10 +1121,10 @@ export async function generateReply(
 
     try {
       session.interrupt();
-      // FIX: 200ms delay to ensure OpenAI fully processes the interrupt
+      // FIX (Jan 2026): INCREASED from 200ms to 350ms to ensure OpenAI fully processes the interrupt
       // OpenAI Realtime API takes time to clear the active response state
-      // Without this delay, we get "conversation_already_has_active_response" errors
-      await new Promise((resolve) => setTimeout(resolve, 200));
+      // 200ms was still causing "conversation_already_has_active_response" errors in rapid scenarios
+      await new Promise((resolve) => setTimeout(resolve, 350));
     } catch (interruptErr) {
       log.debug(
         { error: String(interruptErr) },
@@ -1092,7 +1145,8 @@ export async function generateReply(
   // -------------------------------------------------------------------------
   if (state.userInterruptedAt) {
     const timeSinceInterrupt = Date.now() - state.userInterruptedAt;
-    const interruptGracePeriodMs = 150; // 150ms grace period after user interruption
+    // FIX (Jan 2026): INCREASED from 150ms to 300ms to let OpenAI fully clear its state
+    const interruptGracePeriodMs = 300;
 
     if (timeSinceInterrupt < interruptGracePeriodMs) {
       const remainingMs = interruptGracePeriodMs - timeSinceInterrupt;
@@ -1123,10 +1177,10 @@ export async function generateReply(
 
     try {
       session.interrupt();
-      // INCREASED: 150ms delay to let OpenAI fully process the interrupt
+      // FIX (Jan 2026): INCREASED from 150ms to 300ms to let OpenAI fully process the interrupt
       // OpenAI Realtime needs more time than Gemini to clear active response state
-      // 50ms was causing "conversation_already_has_active_response" errors
-      await new Promise((resolve) => setTimeout(resolve, 150));
+      // 50ms and even 150ms was causing "conversation_already_has_active_response" errors
+      await new Promise((resolve) => setTimeout(resolve, 300));
     } catch (interruptErr) {
       log.debug(
         { error: String(interruptErr) },
@@ -1349,6 +1403,42 @@ export async function generateReply(
         success: false,
         usedFallback: false,
         error: 'Session draining after handoff',
+        latencyMs,
+      };
+    }
+
+    // FIX (Jan 2026): Handle "conversation_already_has_active_response" errors specially
+    // This prevents hammering OpenAI with 17+ rapid requests when one response is active.
+    // Track the error and enter cooldown mode to prevent further requests.
+    if (errorDetails.errorType === 'active_response') {
+      state.activeResponseErrorCount++;
+      state.lastActiveResponseErrorAt = Date.now();
+
+      // Also mark hasActiveResponse=true since OpenAI told us one is active
+      state.hasActiveResponse = true;
+      state.activeResponseStartedAt = Date.now();
+      state.activeResponseContext = 'external-active';
+
+      // Only log the first few errors of a burst, not all 17
+      if (state.activeResponseErrorCount <= 2) {
+        log.warn(
+          { sessionId, context, errorCount: state.activeResponseErrorCount, latencyMs },
+          '🛑 [GATEWAY] OpenAI has active response - entering cooldown'
+        );
+      } else if (state.activeResponseErrorCount === 3) {
+        log.warn(
+          { sessionId, context, errorCount: state.activeResponseErrorCount },
+          '🛑 [GATEWAY] Multiple active_response errors - suppressing further logs'
+        );
+      }
+
+      // Don't count as consecutive failure since this is a race condition, not a real failure
+      state.consecutiveFailures = Math.max(0, state.consecutiveFailures - 1);
+
+      return {
+        success: false,
+        usedFallback: false,
+        error: 'Active response in progress (cooldown activated)',
         latencyMs,
       };
     }

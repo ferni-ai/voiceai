@@ -35,16 +35,13 @@ type InfraEventHandler<T extends InfraEventName> = (data: InfraEventMap[T]) => v
 // EVENT EMITTER
 // ============================================================================
 
-const listeners: Map<InfraEventName, Set<InfraEventHandler<InfraEventName>>> = new Map();
+const listeners = new Map<InfraEventName, Set<InfraEventHandler<InfraEventName>>>();
 
 /**
  * Emit an infrastructure event.
  * Call this from any layer to signal something happened.
  */
-export function emitInfraEvent<T extends InfraEventName>(
-  event: T,
-  data: InfraEventMap[T]
-): void {
+export function emitInfraEvent<T extends InfraEventName>(event: T, data: InfraEventMap[T]): void {
   const handlers = listeners.get(event);
   if (!handlers || handlers.size === 0) {
     return; // No listeners, skip

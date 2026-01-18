@@ -57,6 +57,12 @@ const DEFAULT_CONFIG: PromotionConfig = {
 let config = { ...DEFAULT_CONFIG };
 
 /**
+ * Track sessions currently being promoted to prevent race conditions.
+ * Key: sessionId, Value: Promise that resolves when promotion completes
+ */
+const promotionInProgress = new Map<string, Promise<PromotionResult>>();
+
+/**
  * Configure promotion thresholds
  */
 export function configurePromotion(newConfig: Partial<PromotionConfig>): void {
@@ -199,6 +205,33 @@ function calculateOverallEmotionalShift(
  * @param options - Optional overrides for promotion behavior
  */
 export async function promoteSessionToFirestore(
+  sessionId: string,
+  userId: string,
+  options?: Partial<PromotionConfig>
+): Promise<PromotionResult> {
+  // Check if promotion is already in progress for this session
+  const existing = promotionInProgress.get(sessionId);
+  if (existing) {
+    log.debug({ sessionId, userId }, '🧠 [MEMORY-AUDIT] Promotion already in progress, awaiting existing');
+    return existing;
+  }
+
+  // Start promotion and track it
+  const promotionPromise = doPromoteSessionToFirestore(sessionId, userId, options);
+  promotionInProgress.set(sessionId, promotionPromise);
+
+  try {
+    return await promotionPromise;
+  } finally {
+    // Clean up tracking after completion
+    promotionInProgress.delete(sessionId);
+  }
+}
+
+/**
+ * Internal promotion logic - separated to allow proper lock tracking
+ */
+async function doPromoteSessionToFirestore(
   sessionId: string,
   userId: string,
   options?: Partial<PromotionConfig>

@@ -984,6 +984,44 @@ export function createTranscriptHandler(ctx: TranscriptHandlerContext): Transcri
           lastUtteranceDurationMs: userData.lastAgentUtteranceDurationMs,
           transcript: event.transcript.slice(0, 30),
         });
+
+        // =========================================================================
+        // FIX: HARD ECHO REJECTION for post-interruption phantom transcripts
+        // When user just interrupted AND we're in echo window AND transcript is
+        // short/non-substantive, this is almost certainly echo or STT hallucination
+        // from garbled audio. DROP IT instead of processing as user speech.
+        //
+        // Signs of echo/hallucination after interruption:
+        // - Very short (< 20 chars) or just a few words
+        // - Generic acknowledgments ("That's cool", "Yeah", "Okay", etc.)
+        // - Doesn't contain question words or action verbs (real interruptions
+        //   are usually "Wait", "Stop", "Actually...", questions, etc.)
+        // =========================================================================
+        if (userData.wasInterrupted && timeSinceAgentSpoke < 1500) {
+          const words = cleanedTranscript.split(/\s+/).filter((w) => w.length > 0);
+          const isShort = cleanedTranscript.length < 25 || words.length <= 4;
+
+          // Check if it looks like a real interruption vs phantom transcript
+          const interruptionSignals = /\b(wait|stop|hold|actually|but|no|sorry|excuse|hey|question|what|why|how|when|can you|could you)\b/i;
+          const looksLikeRealInterruption = interruptionSignals.test(cleanedTranscript);
+
+          // Generic acknowledgments that are unlikely to be real interruptions
+          const genericAcknowledgments = /^(that'?s?\s+(so\s+)?(cool|great|nice|good|awesome|interesting|amazing)|yeah|yep|okay|ok|sure|right|got it|i see|mm+|uh huh|alright)\.?$/i;
+          const isGenericAck = genericAcknowledgments.test(cleanedTranscript.trim());
+
+          if (isShort && !looksLikeRealInterruption && (isGenericAck || words.length <= 3)) {
+            diag.state('🚫 [ECHO] Dropping likely phantom transcript after interruption', {
+              transcript: cleanedTranscript,
+              timeSinceAgentSpokeMs: timeSinceAgentSpoke,
+              isShort,
+              isGenericAck,
+              wordCount: words.length,
+            });
+            // Clear the interrupt flag since we're not processing this turn
+            userData.wasInterrupted = false;
+            return; // DROP - don't process as user speech
+          }
+        }
       }
 
       if (cached) {

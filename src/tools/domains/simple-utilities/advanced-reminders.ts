@@ -357,8 +357,8 @@ const recurringReminderDef: ToolDefinition = {
         // Calculate next occurrence
         const nextOccurrence = calculateNextOccurrence(recurrencePattern, parsedTime);
 
-        // Get user's timezone preference, defaulting to America/New_York
-        let userTimezone = 'America/New_York';
+        // Get user's timezone preference, defaulting to UTC (neutral for international users)
+        let userTimezone = 'Etc/UTC';
         try {
           const store = await import('../../../memory/index.js').then((m) => m.getDefaultStore());
           const profile = await store.getProfile(ctx.userId || 'anon');

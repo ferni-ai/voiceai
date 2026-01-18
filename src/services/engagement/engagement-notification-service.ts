@@ -344,7 +344,7 @@ class MayaNotificationService extends EventEmitter {
       subject: this.getSubject(request.type),
       context: `Maya Habit Coach - ${request.type}`,
       scheduledFor: request.scheduledFor,
-      timezone: profile?.contactInfo?.timezone || 'America/New_York',
+      timezone: profile?.contactInfo?.timezone || 'Etc/UTC',
       deliveryMethod: prefs.preferredMethod,
       deliveryAddress,
       createdBy: 'maya',

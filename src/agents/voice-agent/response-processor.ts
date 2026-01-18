@@ -50,6 +50,11 @@ import {
   getPreparedResponse,
 } from '../../speech/sesame-inspired/index.js';
 import type { UserData } from '../shared/types.js';
+// BTH: Reactive vulnerability detection for when Ferni shows appropriate uncertainty
+import {
+  detectVulnerabilityWithContext,
+  type VulnerabilityDetectionResult,
+} from '../realtime/emotion-event-dispatcher.js';
 
 // ============================================================================
 // TYPES
@@ -103,6 +108,12 @@ export interface ResponseProcessorResult {
     dismissiveBlocked: boolean;
     reason?: string;
   };
+  /**
+   * Visible vulnerability detection result (for BTH reactive vulnerability)
+   * When Ferni's response shows appropriate uncertainty or admission,
+   * this enables the avatar to display humanizing micro-expressions.
+   */
+  visibleVulnerability?: VulnerabilityDetectionResult;
 }
 
 export interface EmotionModulation {
@@ -314,6 +325,29 @@ export async function processResponse(
   }
 
   // ============================================================
+  // 2d. 🎭 VISIBLE VULNERABILITY DETECTION ("Better Than Human")
+  // Detect when Ferni's response shows appropriate uncertainty/admission.
+  // This humanizes Ferni by triggering micro-expressions when showing doubt.
+  // Only triggers for EMOTIONAL vulnerability, not technical uncertainty.
+  // ============================================================
+  let visibleVulnerabilityResult: VulnerabilityDetectionResult | undefined;
+
+  try {
+    const userTopic = userData?.lastTopic;
+    visibleVulnerabilityResult = detectVulnerabilityWithContext(ctx.rawText, userTopic);
+
+    if (visibleVulnerabilityResult.detected && visibleVulnerabilityResult.isEmotional) {
+      diag.state('🎭 Ferni showing visible vulnerability', {
+        type: visibleVulnerabilityResult.type,
+        confidence: visibleVulnerabilityResult.confidence,
+      });
+      appliedFeatures.push(`visible_vulnerability_${visibleVulnerabilityResult.type}`);
+    }
+  } catch (vulnErr) {
+    diag.debug('Visible vulnerability detection failed (non-fatal)', { error: String(vulnErr) });
+  }
+
+  // ============================================================
   // 3. SSML TAGGING (if not already done by humanizer)
   // ============================================================
   if (!hasSsmlTags(processedText) && services) {
@@ -490,6 +524,7 @@ export async function processResponse(
     timingMs: Date.now() - startTime,
     trustEnforcement: trustEnforcementResult,
     crisisGuard: crisisGuardResult,
+    visibleVulnerability: visibleVulnerabilityResult,
   };
 }
 

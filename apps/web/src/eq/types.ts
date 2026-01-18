@@ -148,14 +148,45 @@ export type BetterThanHumanSignalType =
 export interface BetterThanHumanSignal {
   signalType: BetterThanHumanSignalType;
   intensity?: number;
+
+  // emotional_bond_deepen
   bondType?: string;
   bondLevel?: number;
+
+  // spontaneous_delight
   delightType?: string;
+  /** What triggered the delight (e.g., "recognition", "achievement") */
+  trigger?: string;
+
+  // inside_joke_callback
   jokePhase?: string;
+  /** Reference to the memory being recalled (for inside_joke, temporal_insight) */
+  memoryReference?: string;
+
+  // superhuman_observation
   observationType?: string;
   observationContent?: string;
+
+  // visible_vulnerability
   vulnerabilityType?: string;
+
+  // temporal_insight
   temporalInsight?: string;
+  /** Time span for temporal insights (e.g., "months", "years") */
+  timeSpan?: string;
+
+  // meta_relationship_moment
   metaRelationshipType?: string;
+  /** Context about the relationship (e.g., "milestone", "turning_point") */
+  relationshipContext?: string;
+
+  // somatic_presence
+  /** @deprecated Use somaticType instead */
   somaticCue?: string;
+  /** Type of somatic presence: breathing, settling, grounding, pause */
+  somaticType?: 'breathing' | 'settling' | 'grounding' | 'pause';
+
+  // anticipatory_presence
+  /** Time context for anticipatory care: late_night, early_morning, weekend, monday, evening */
+  timeContext?: 'late_night' | 'early_morning' | 'weekend' | 'monday' | 'evening';
 }

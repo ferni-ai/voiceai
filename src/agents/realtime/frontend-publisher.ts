@@ -195,6 +195,37 @@ export interface GameEndedMessage extends BaseMessage {
 }
 
 /**
+ * Pending action message - notify frontend of action needing approval
+ *
+ * Part of the AGI-like experience: Ferni shows what action she wants to take
+ * and asks for permission. The UI displays a card with approve/reject buttons.
+ */
+export interface PendingActionMessage extends BaseMessage {
+  type: 'pending_action';
+  action: {
+    id: string;
+    actionType: string;
+    category: string;
+    title: string;
+    summary: string;
+    details: string[];
+    canUndo: boolean;
+    estimatedCost?: number;
+    affectedParties?: string[];
+    expiresAt: string;
+  };
+}
+
+/**
+ * Action resolved message - notify frontend that action was approved/rejected
+ */
+export interface ActionResolvedMessage extends BaseMessage {
+  type: 'action_resolved';
+  actionId: string;
+  status: 'approved' | 'rejected' | 'expired' | 'executed';
+}
+
+/**
  * All possible message types
  */
 export type FrontendMessage =
@@ -210,7 +241,9 @@ export type FrontendMessage =
   | SetLanguageMessage
   | GameStateMessage
   | GameStartedMessage
-  | GameEndedMessage;
+  | GameEndedMessage
+  | PendingActionMessage
+  | ActionResolvedMessage;
 
 /**
  * Publisher configuration
@@ -662,6 +695,73 @@ export class FrontendPublisher {
       type: 'game_ended',
       gameType,
       result,
+    });
+  }
+
+  // ============================================================================
+  // ACTION CONFIRMATION MESSAGES
+  // ============================================================================
+
+  /**
+   * Send a pending action to the frontend for user approval
+   *
+   * This is part of the AGI-like experience: Ferni shows what action she wants
+   * to take and asks for permission. The UI displays a card with approve/reject.
+   *
+   * @param action - The pending action from the trust level system
+   */
+  async sendPendingAction(action: {
+    id: string;
+    actionType: string;
+    category: string;
+    description: string;
+    preview: {
+      title: string;
+      summary: string;
+      details: string[];
+      canUndo: boolean;
+      estimatedCost?: number;
+      affectedParties?: string[];
+    };
+    expiresAt: string;
+  }): Promise<boolean> {
+    this.logger.info(
+      { actionId: action.id, actionType: action.actionType },
+      '🎯 Sending pending action to frontend'
+    );
+
+    return this.send<PendingActionMessage>({
+      type: 'pending_action',
+      action: {
+        id: action.id,
+        actionType: action.actionType,
+        category: action.category,
+        title: action.preview.title,
+        summary: action.preview.summary,
+        details: action.preview.details,
+        canUndo: action.preview.canUndo,
+        estimatedCost: action.preview.estimatedCost,
+        affectedParties: action.preview.affectedParties,
+        expiresAt: action.expiresAt,
+      },
+    });
+  }
+
+  /**
+   * Send action resolved notification to frontend
+   *
+   * Called when an action is approved, rejected, expired, or executed.
+   */
+  async sendActionResolved(
+    actionId: string,
+    status: 'approved' | 'rejected' | 'expired' | 'executed'
+  ): Promise<boolean> {
+    this.logger.info({ actionId, status }, '🎯 Action resolved');
+
+    return this.send<ActionResolvedMessage>({
+      type: 'action_resolved',
+      actionId,
+      status,
     });
   }
 

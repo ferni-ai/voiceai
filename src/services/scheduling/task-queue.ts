@@ -175,7 +175,7 @@ export class TaskQueueService extends EventEmitter {
       name: params.name,
       schedule: params.schedule,
       customCron: params.customCron,
-      timezone: params.timezone ?? 'America/New_York',
+      timezone: params.timezone ?? 'Etc/UTC',
       jobType: params.jobType,
       parameters: params.parameters ?? {},
       isActive: true,

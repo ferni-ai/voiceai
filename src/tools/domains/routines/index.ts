@@ -165,7 +165,7 @@ async function createRoutineFromVoice(
       case 'time':
       default:
         // Parse time like "7:00 AM" or "7am" to cron
-        trigger = { type: 'time', schedule: parseTimeToCron(triggerValue), timezone: 'America/New_York' };
+        trigger = { type: 'time', schedule: parseTimeToCron(triggerValue), timezone: 'Etc/UTC' };
     }
 
     // Build action

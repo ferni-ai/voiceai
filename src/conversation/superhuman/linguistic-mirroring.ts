@@ -203,6 +203,47 @@ export class LinguisticMirroringEngine {
   }
 
   /**
+   * Apply streaming-safe linguistic mirroring to a chunk.
+   *
+   * 🎯 BTH: "They just... get me."
+   *
+   * This is a lightweight version for TTS streaming that only applies
+   * word-level substitutions (vocabulary, contractions, formality).
+   * It skips comfort filler insertion which requires sentence boundaries.
+   *
+   * Used by: tts-wrapper.ts transform pipeline
+   */
+  applyStreamingSafeMirroring(chunk: string): string {
+    // Need enough samples to mirror effectively
+    if (this.profile.sampleCount < 3 || !chunk.trim()) {
+      return chunk;
+    }
+
+    let result = chunk;
+
+    // 1. Apply vocabulary mirroring (word-for-word swaps)
+    result = this.applyVocabularyMirroring(result).text;
+
+    // 2. Apply contraction mirroring (word-for-word swaps)
+    result = this.applyContractionMirroring(result).text;
+
+    // 3. Apply formality mirroring (word-for-word swaps)
+    result = this.applyFormalityMirroring(result).text;
+
+    // NOTE: Comfort fillers are NOT applied in streaming mode
+    // They require sentence boundaries which streaming chunks don't guarantee
+
+    return result;
+  }
+
+  /**
+   * Check if this engine has learned enough to apply mirroring
+   */
+  hasLearnedEnough(): boolean {
+    return this.profile.sampleCount >= 3;
+  }
+
+  /**
    * Get energy-appropriate response length guidance
    */
   getResponseLengthGuidance(): { min: number; max: number; target: number } {

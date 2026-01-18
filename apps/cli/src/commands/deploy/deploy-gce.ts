@@ -68,7 +68,8 @@ const CONFIG = {
   // Managed Instance Group (auto-scaling mode)
   migName: 'voiceai-agent-mig',
   migTemplatePrefix: 'voiceai-agent-template',
-  migMinInstances: 2,
+  // PERFORMANCE: Increased min from 2 to 3 for better availability
+  migMinInstances: 3,
   migMaxInstances: 5,
 
   // Container settings

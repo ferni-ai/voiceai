@@ -22,7 +22,7 @@ import { MOMENT_ICONS, getIcon } from './icons.js';
 import type { Badge, BadgeCategory } from './types.js';
 
 const log = createLogger('TrophyRoom');
-const { trackedTimeout, clearAll: clearAllTimeouts } = createTimeoutTracker();
+const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
 
 // ============================================================================
 // BADGE DEFINITIONS

@@ -197,12 +197,15 @@ export class ConcernDetectionEngine {
     // Normalize score (0-1)
     score = Math.min(1, score / 3); // 3 strong signals = max
 
-    // Determine level
+    // Get adaptive thresholds based on context
+    const thresholds = this.getAdaptiveThresholds();
+
+    // Determine level using adaptive thresholds
     let level: ConcernLevel;
-    if (score < 0.15) level = 'none';
-    else if (score < 0.35) level = 'mild';
-    else if (score < 0.55) level = 'moderate';
-    else if (score < 0.75) level = 'elevated';
+    if (score < thresholds.none) level = 'none';
+    else if (score < thresholds.mild) level = 'mild';
+    else if (score < thresholds.moderate) level = 'moderate';
+    else if (score < thresholds.elevated) level = 'elevated';
     else level = 'elevated'; // Don't auto-escalate to crisis from score alone
 
     // Check for hopelessness - automatically elevated
@@ -298,6 +301,90 @@ export class ConcernDetectionEngine {
     return {
       approach: 'normal',
       guidance: 'No significant concern signals. Continue normally.',
+    };
+  }
+
+  // ==========================================================================
+  // ADAPTIVE THRESHOLDS
+  // ==========================================================================
+
+  /**
+   * Default concern level thresholds
+   */
+  private static readonly DEFAULT_THRESHOLDS = {
+    none: 0.15, // Score below this = no concern
+    mild: 0.35, // Score below this = mild concern
+    moderate: 0.55, // Score below this = moderate concern
+    elevated: 0.75, // Score below this = elevated concern
+  };
+
+  /**
+   * Get adaptive thresholds based on context (time, session state, user baseline)
+   *
+   * Thresholds are LOWERED (more sensitive) when:
+   * - Late night (11pm-5am) - people reach out late when really struggling
+   * - Long sessions (> 30 min) - sustained distress signals
+   * - User has history of masking - they understate concerns
+   * - Escalating pattern detected - early intervention helps
+   *
+   * Thresholds are RAISED (less sensitive) when:
+   * - User has naturally high-intensity speech patterns
+   * - Early in session (< 5 turns) - give time to settle in
+   */
+  private getAdaptiveThresholds(): typeof ConcernDetectionEngine.DEFAULT_THRESHOLDS {
+    const base = { ...ConcernDetectionEngine.DEFAULT_THRESHOLDS };
+
+    // Late night adjustment (11pm - 5am)
+    // People reaching out late at night are more likely genuinely struggling
+    const hour = new Date().getHours();
+    const isLateNight = hour >= 23 || hour < 5;
+    if (isLateNight) {
+      // Lower thresholds by ~20% (more sensitive)
+      base.none *= 0.8;
+      base.mild *= 0.85;
+      base.moderate *= 0.85;
+      base.elevated *= 0.9;
+      logger.debug({ hour }, '🌙 Late night: lowered concern thresholds');
+    }
+
+    // Long session adjustment (more than 30 turns suggests deep engagement or prolonged distress)
+    if (this.turnCount > 30) {
+      // Slightly lower thresholds for sustained sessions
+      base.none *= 0.9;
+      base.mild *= 0.92;
+      base.moderate *= 0.95;
+    }
+
+    // Early session grace period (< 5 turns)
+    // Don't over-interpret early messages while rapport is building
+    if (this.turnCount < 5) {
+      // Raise thresholds slightly (less sensitive)
+      base.none *= 1.1;
+      base.mild *= 1.1;
+      base.moderate *= 1.05;
+    }
+
+    // User baseline adjustment - if user has naturally higher speech intensity
+    if (this.userBaseline.speechIntensity && this.userBaseline.speechIntensity > 0.7) {
+      // Raise thresholds for naturally intense speakers
+      base.none *= 1.15;
+      base.mild *= 1.1;
+      base.moderate *= 1.05;
+    }
+
+    // Escalation pattern - if signals have been building
+    if (this.previousScore > 0.2 && this.signals.length >= 3) {
+      // Lower thresholds when we see a pattern building
+      base.mild *= 0.9;
+      base.moderate *= 0.92;
+    }
+
+    // Ensure thresholds stay in valid ranges
+    return {
+      none: Math.max(0.08, Math.min(0.25, base.none)),
+      mild: Math.max(0.2, Math.min(0.45, base.mild)),
+      moderate: Math.max(0.4, Math.min(0.65, base.moderate)),
+      elevated: Math.max(0.55, Math.min(0.85, base.elevated)),
     };
   }
 

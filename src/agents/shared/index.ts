@@ -119,6 +119,8 @@ export {
   isSessionClosing,
   clearSessionClosing,
   getClosingSessionCount,
+  startClosingTrackerCleanup,
+  stopClosingTrackerCleanup,
 } from './session-closing-tracker.js';
 
 // Helpers

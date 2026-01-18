@@ -78,6 +78,9 @@ export {
   initBehaviorSignalHandlers,
   disposeSignalHandlers,
   setBridgeAvatarContainer,
+  // BTH hint listener (testing)
+  showBthHint,
+  resetBthHintRateLimits,
 } from './bridge/index.js';
 
 // Import for initialization
@@ -105,6 +108,8 @@ import {
   disposeSignalHandlers,
   setBridgeAvatarContainer,
   handleBetterThanHumanSignal,
+  initBthHintListener,
+  disposeBthHintListener,
 } from './bridge/index.js';
 
 const log = createLogger('FerniEQ');
@@ -148,6 +153,7 @@ export function initFerniEQ(): void {
   // Initialize signal handlers
   initBetterThanHumanSignalHandlers();
   initBehaviorSignalHandlers();
+  initBthHintListener();
 
   // Start periodic breath sync
   startBreathSyncInterval();
@@ -161,6 +167,7 @@ export function initFerniEQ(): void {
  */
 export function disposeFerniEQ(): void {
   stopBreathSyncInterval();
+  disposeBthHintListener();
   disposeSignalHandlers();
   setAvatarContainer(null);
   setBridgeAvatarContainer(null);

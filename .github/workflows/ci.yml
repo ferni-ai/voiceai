@@ -166,12 +166,55 @@ jobs:
           fail_ci_if_error: false
 
   # ============================================================================
+  # AGI FEATURE TESTS
+  # ============================================================================
+  test-agi-features:
+    name: AGI Feature Tests
+    runs-on: [self-hosted, Linux, X64, gce]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 10
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: Fix local dependencies for CI
+        run: |
+          sed -i 's|"file:../agents-js/agents"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
+          sed -i 's|"file:../agents-js/plugins/cartesia"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
+          sed -i 's|"file:../agents-js/plugins/deepgram"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
+          sed -i 's|"file:../agents-js/plugins/google"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
+          sed -i 's|"file:../agents-js/plugins/openai"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
+          sed -i 's|"file:../agents-js/plugins/silero"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
+
+      - name: Install dependencies
+        run: pnpm install --no-frozen-lockfile
+
+      - name: Run AGI Feature Unit Tests
+        run: pnpm test:agi-features -- --reporter=verbose
+        env:
+          NODE_ENV: test
+
+      - name: Run AGI Actions API E2E Tests
+        run: pnpm test:agi-actions-api -- --reporter=verbose
+        env:
+          NODE_ENV: test
+
+  # ============================================================================
   # BUILD
   # ============================================================================
   build:
     name: Build
     runs-on: [self-hosted, Linux, X64, gce]
-    needs: [lint, test-unit, test-integration]
+    needs: [lint, test-unit, test-integration, test-agi-features]
     steps:
       - name: Checkout
         uses: actions/checkout@v4

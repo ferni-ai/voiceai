@@ -152,13 +152,16 @@ export {
 export {
   configureLegacyAdapter,
   isUsingEntityStore,
-  // Contact API compatibility
+  // Deprecation tracking (for monitoring migration progress)
+  getLegacyAdapterStats,
+  resetLegacyAdapterStats,
+  // Contact API compatibility (DEPRECATED - see legacy-adapter.ts for migration guide)
   getContacts,
   getContact,
   searchContacts,
   findContactByPhone,
   findContactByRelationship,
-  // Relationship network API compatibility
+  // Relationship network API compatibility (DEPRECATED)
   getRelationshipNetwork,
   getRelationshipConnections,
   type LegacyContactFormat,

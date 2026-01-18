@@ -27,7 +27,7 @@ import { journeyUI } from './journey.ui.js';
 
 const log = createLogger('UnifiedIndicator');
 
-const { trackedTimeout, clearAll: clearAllTimeouts } = createTimeoutTracker();
+const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
 
 // ============================================================================
 // TYPES

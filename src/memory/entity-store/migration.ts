@@ -202,17 +202,23 @@ async function readContactRelationships(userId: string): Promise<LegacyContact[]
   try {
     const snapshot = await firestore.collection('contact_relationships').where('userId', '==', userId).get();
 
-    return snapshot.docs.map((doc) => ({
-      id: doc.id,
-      userId,
-      displayName: doc.data().name,
-      phone: doc.data().phone,
-      email: doc.data().email,
-      relationship: doc.data().relationship,
-      notes: doc.data().notes,
-      createdAt: doc.data().createdAt?.toDate?.(),
-      updatedAt: doc.data().updatedAt?.toDate?.(),
-    })) as LegacyContact[];
+    return snapshot.docs
+      .map((doc) => {
+        const data = doc.data();
+        if (!data) return null;
+        return {
+          id: doc.id,
+          userId,
+          displayName: data.name,
+          phone: data.phone,
+          email: data.email,
+          relationship: data.relationship,
+          notes: data.notes,
+          createdAt: data.createdAt?.toDate?.(),
+          updatedAt: data.updatedAt?.toDate?.(),
+        } as LegacyContact;
+      })
+      .filter((item): item is LegacyContact => item !== null);
   } catch (error) {
     log.warn({ userId, error: String(error) }, 'Failed to read contact_relationships');
     return [];
@@ -232,18 +238,24 @@ async function readRelationshipNetwork(userId: string): Promise<LegacyRelationsh
       .collection('relationship_network')
       .get();
 
-    return snapshot.docs.map((doc) => ({
-      id: doc.id,
-      userId,
-      name: doc.data().name,
-      type: doc.data().type,
-      importance: doc.data().importance || 0.5,
-      sentiment: doc.data().sentiment || 0,
-      mentionCount: doc.data().mentionCount || 1,
-      firstMentioned: doc.data().firstMentioned?.toDate?.(),
-      lastMentioned: doc.data().lastMentioned?.toDate?.(),
-      context: doc.data().context || [],
-    })) as LegacyRelationshipPerson[];
+    return snapshot.docs
+      .map((doc) => {
+        const data = doc.data();
+        if (!data) return null;
+        return {
+          id: doc.id,
+          userId,
+          name: data.name,
+          type: data.type,
+          importance: data.importance || 0.5,
+          sentiment: data.sentiment || 0,
+          mentionCount: data.mentionCount || 1,
+          firstMentioned: data.firstMentioned?.toDate?.(),
+          lastMentioned: data.lastMentioned?.toDate?.(),
+          context: data.context || [],
+        } as LegacyRelationshipPerson;
+      })
+      .filter((item): item is LegacyRelationshipPerson => item !== null);
   } catch (error) {
     log.warn({ userId, error: String(error) }, 'Failed to read relationship_network');
     return [];
@@ -263,17 +275,23 @@ async function readRelationshipNodes(userId: string): Promise<LegacyRelationship
       .collection('relationship_nodes')
       .get();
 
-    return snapshot.docs.map((doc) => ({
-      id: doc.id,
-      userId,
-      name: doc.data().name,
-      type: doc.data().type || 'acquaintance',
-      importance: doc.data().salience || 0.5,
-      sentiment: doc.data().sentiment || 0,
-      mentionCount: doc.data().mentionCount || 1,
-      firstMentioned: doc.data().firstMentioned?.toDate?.(),
-      lastMentioned: doc.data().lastMentioned?.toDate?.(),
-    })) as LegacyRelationshipPerson[];
+    return snapshot.docs
+      .map((doc) => {
+        const data = doc.data();
+        if (!data) return null;
+        return {
+          id: doc.id,
+          userId,
+          name: data.name,
+          type: data.type || 'acquaintance',
+          importance: data.salience || 0.5,
+          sentiment: data.sentiment || 0,
+          mentionCount: data.mentionCount || 1,
+          firstMentioned: data.firstMentioned?.toDate?.(),
+          lastMentioned: data.lastMentioned?.toDate?.(),
+        } as LegacyRelationshipPerson;
+      })
+      .filter((item): item is LegacyRelationshipPerson => item !== null);
   } catch (error) {
     log.warn({ userId, error: String(error) }, 'Failed to read relationship_nodes');
     return [];
@@ -293,13 +311,19 @@ async function readGuestProfiles(userId: string): Promise<LegacyContact[]> {
       .collection('guest_profiles')
       .get();
 
-    return snapshot.docs.map((doc) => ({
-      id: doc.id,
-      userId,
-      displayName: doc.data().name,
-      relationship: doc.data().relationship,
-      notes: doc.data().preferences || doc.data().notes,
-    })) as LegacyContact[];
+    return snapshot.docs
+      .map((doc) => {
+        const data = doc.data();
+        if (!data) return null;
+        return {
+          id: doc.id,
+          userId,
+          displayName: data.name,
+          relationship: data.relationship,
+          notes: data.preferences || data.notes,
+        } as LegacyContact;
+      })
+      .filter((item): item is LegacyContact => item !== null);
   } catch (error) {
     log.warn({ userId, error: String(error) }, 'Failed to read guest_profiles');
     return [];

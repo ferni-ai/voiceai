@@ -269,6 +269,54 @@ const SCHEDULER_JOBS: SchedulerJob[] = [
   },
 
   // ==========================================================================
+  // BETTER THAN HUMAN OUTREACH (AGI-LIKE PROACTIVE CAPABILITIES)
+  // ==========================================================================
+  {
+    name: 'better-than-human-outreach-morning',
+    description: 'Proactive outreach: thinking-of-you, commitment follow-ups, celebrations (morning batch)',
+    schedule: '0 9 * * *', // 9 AM daily
+    timezone: 'America/Los_Angeles',
+    uri: `${UI_SERVER_URL}/api/jobs/better-than-human-outreach`,
+    httpMethod: 'POST',
+    retryCount: 2,
+    timeout: '300s', // 5 minutes - processes all users
+    enabled: true,
+  },
+  {
+    name: 'better-than-human-outreach-evening',
+    description: 'Proactive outreach: evening batch for celebrations and gentle check-ins',
+    schedule: '0 18 * * *', // 6 PM daily
+    timezone: 'America/Los_Angeles',
+    uri: `${UI_SERVER_URL}/api/jobs/better-than-human-outreach`,
+    httpMethod: 'POST',
+    retryCount: 2,
+    timeout: '300s',
+    enabled: true,
+  },
+  {
+    name: 'family-checkin-calls',
+    description: 'Proactive family wellbeing check-in calls',
+    schedule: '0 */2 * * *', // Every 2 hours
+    timezone: 'America/Los_Angeles',
+    uri: `${UI_SERVER_URL}/api/jobs/family-checkin-calls`,
+    httpMethod: 'POST',
+    retryCount: 2,
+    timeout: '300s',
+    enabled: true,
+  },
+  {
+    name: 'insight-action-processor',
+    description: 'Process superhuman insights and trigger automated actions',
+    schedule: '*/15 * * * *', // Every 15 minutes
+    timezone: 'America/Los_Angeles',
+    uri: `${UI_SERVER_URL}/api/jobs/process-insight-actions`,
+    httpMethod: 'POST',
+    retryCount: 2,
+    timeout: '120s',
+    enabled: true,
+  },
+
+  // ==========================================================================
   // WEEKLY RESETS
   // ==========================================================================
   {

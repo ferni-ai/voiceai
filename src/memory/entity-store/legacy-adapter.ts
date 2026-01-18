@@ -1,14 +1,24 @@
 /**
  * Legacy Adapter - Backwards Compatibility for Entity Store
  *
- * Provides the same API as legacy contact/relationship services
- * but reads from the unified entity store. This allows gradual
- * migration without breaking existing code.
+ * @deprecated This adapter provides backwards compatibility during migration.
+ * All functions in this file are DEPRECATED and should be migrated to use
+ * the native entity store APIs instead:
  *
- * Usage:
- * - Replace imports from legacy services with this adapter
- * - Same function signatures, reads from new entity store
- * - Falls back to legacy if entity store doesn't have data
+ * MIGRATION GUIDE:
+ * ================
+ * OLD (deprecated)                        NEW (use instead)
+ * -----------------                        -----------------
+ * getContacts(userId)                  →   getAllEntities(userId, { types: ['person'] })
+ * getContact(userId, id)               →   getEntity(userId, id)
+ * searchContacts(userId, q)            →   searchEntities(userId, q, { types: ['person'] })
+ * findContactByPhone(userId, phone)    →   findEntityByAlias(userId, phone) or custom search
+ * findContactByRelationship(userId, r) →   findEntityByAlias(userId, r, 'person')
+ * getRelationshipNetwork(userId)       →   getAllEntities(userId, { types: ['person'] })
+ * getRelationshipConnections(u, p)     →   getRelationshipsForEntity(userId, personId)
+ *
+ * NOTE: This adapter will be removed in a future version.
+ * Track your migration: grep for imports from 'legacy-adapter.js'
  *
  * @module memory/entity-store/legacy-adapter
  */
@@ -24,6 +34,41 @@ import {
 import type { Entity, EntityType, RelationshipType } from './types.js';
 
 const log = createLogger({ module: 'entity-store:legacy-adapter' });
+
+// ============================================================================
+// DEPRECATION TRACKING
+// ============================================================================
+
+// Track which legacy functions are still being called to guide migration
+const deprecationStats = new Map<string, number>();
+
+function trackDeprecatedCall(functionName: string): void {
+  const count = deprecationStats.get(functionName) || 0;
+  deprecationStats.set(functionName, count + 1);
+  
+  // Log every 100 calls to avoid spam
+  if ((count + 1) % 100 === 0) {
+    log.warn(
+      { functionName, totalCalls: count + 1 },
+      '⚠️ DEPRECATED: Legacy adapter function still in use. Please migrate to entity store APIs.'
+    );
+  }
+}
+
+/**
+ * Get deprecation statistics for monitoring migration progress.
+ * Useful for identifying which legacy functions are still heavily used.
+ */
+export function getLegacyAdapterStats(): Record<string, number> {
+  return Object.fromEntries(deprecationStats);
+}
+
+/**
+ * Reset deprecation stats (useful for tests).
+ */
+export function resetLegacyAdapterStats(): void {
+  deprecationStats.clear();
+}
 
 // ============================================================================
 // CONFIGURATION
@@ -113,6 +158,7 @@ function entityToLegacyContact(entity: Entity): LegacyContactFormat {
  * @deprecated Use getAllEntities({ types: ['person'] }) instead
  */
 export async function getContacts(userId: string): Promise<LegacyContactFormat[]> {
+  trackDeprecatedCall('getContacts');
   if (config.logReads) {
     log.debug({ userId }, 'Legacy adapter: getContacts');
   }
@@ -141,6 +187,7 @@ export async function getContacts(userId: string): Promise<LegacyContactFormat[]
  * @deprecated Use getEntity() instead
  */
 export async function getContact(userId: string, contactId: string): Promise<LegacyContactFormat | null> {
+  trackDeprecatedCall('getContact');
   if (config.logReads) {
     log.debug({ userId, contactId }, 'Legacy adapter: getContact');
   }
@@ -167,6 +214,7 @@ export async function searchContacts(
   userId: string,
   query: string
 ): Promise<LegacyContactFormat[]> {
+  trackDeprecatedCall('searchContacts');
   if (config.logReads) {
     log.debug({ userId, query }, 'Legacy adapter: searchContacts');
   }
@@ -204,6 +252,7 @@ export async function findContactByPhone(
   userId: string,
   phone: string
 ): Promise<LegacyContactFormat | null> {
+  trackDeprecatedCall('findContactByPhone');
   if (config.logReads) {
     log.debug({ userId, phone }, 'Legacy adapter: findContactByPhone');
   }
@@ -242,6 +291,7 @@ export async function findContactByRelationship(
   userId: string,
   relationship: string
 ): Promise<LegacyContactFormat | null> {
+  trackDeprecatedCall('findContactByRelationship');
   if (config.logReads) {
     log.debug({ userId, relationship }, 'Legacy adapter: findContactByRelationship');
   }
@@ -306,6 +356,7 @@ function entityToLegacyRelationshipPerson(entity: Entity): LegacyRelationshipPer
  * @deprecated Use getAllEntities({ types: ['person'] }) instead
  */
 export async function getRelationshipNetwork(userId: string): Promise<LegacyRelationshipPerson[]> {
+  trackDeprecatedCall('getRelationshipNetwork');
   if (config.logReads) {
     log.debug({ userId }, 'Legacy adapter: getRelationshipNetwork');
   }
@@ -336,6 +387,7 @@ export async function getRelationshipConnections(
   userId: string,
   personId: string
 ): Promise<Array<{ fromId: string; toId: string; type: string; strength: number }>> {
+  trackDeprecatedCall('getRelationshipConnections');
   if (config.logReads) {
     log.debug({ userId, personId }, 'Legacy adapter: getRelationshipConnections');
   }

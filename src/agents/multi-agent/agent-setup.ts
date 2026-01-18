@@ -1002,10 +1002,19 @@ Reference past context when relevant, but don't force it. Let the conversation f
     // The ping sends a minimal request that tests connection health without interrupting users
     registerPingCallback(sessionId, async () => {
       try {
+        // FIX (Jan 2026): Skip ping if user is actively speaking
+        // This prevents race conditions where ping and user response compete
+        const userData = session.userData as { userSpeakingStartTime?: number } | undefined;
+        if (userData?.userSpeakingStartTime) {
+          log.debug({ sessionId }, '🏥 [HEALTH] Skipping ping - user is speaking');
+          return true; // Return true to indicate "healthy" without actually pinging
+        }
+
         // Use a minimal instruction that won't produce audible output
         // The LLM processes this silently to verify connection health
         const result = await generateReply(session, sessionId, {
           instructions: '[Connection health check - acknowledge silently]',
+          context: 'health-ping', // FIX: Add context for better debugging
           waitForPlayout: false, // Don't wait for audio - just verify connection works
           timeoutMs: 3000, // Short timeout for health check
           priority: 'low', // Low priority so it doesn't interrupt real requests
@@ -1014,6 +1023,13 @@ Reference past context when relevant, but don't force it. Let the conversation f
         if (result.success) {
           log.debug({ sessionId }, '🏥 [HEALTH] Ping successful - connection alive');
           return true;
+        }
+
+        // FIX: Don't treat active_response errors as failures - they indicate
+        // the connection IS working, just busy
+        if (result.error?.includes('Active response')) {
+          log.debug({ sessionId }, '🏥 [HEALTH] Ping skipped - active response in progress');
+          return true; // Treat as healthy
         }
 
         log.warn({ sessionId, error: result.error }, '🏥 [HEALTH] Ping failed');

@@ -26,4 +26,6 @@ export {
   getRegistryStats,
   clearAllRegistries,
   createSessionCleanupTracker,
+  startOrphanCleanup as startRegistryOrphanCleanup,
+  stopOrphanCleanup as stopRegistryOrphanCleanup,
 } from './event-cleanup-registry.js';

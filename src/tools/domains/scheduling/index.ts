@@ -61,7 +61,7 @@ const log = getLogger();
 // HELPER: Parse time from natural language
 // ============================================================================
 
-function parseScheduleTime(timeStr: string, timezone = 'America/New_York'): Date | null {
+function parseScheduleTime(timeStr: string, timezone = 'Etc/UTC'): Date | null {
   // First try our enhanced parser
   const parsed = parseNaturalTime(timeStr, timezone);
   if (parsed) return parsed;

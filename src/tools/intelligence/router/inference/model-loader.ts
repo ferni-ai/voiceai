@@ -274,7 +274,9 @@ export function getModelLoader(config?: RouterModelConfig): ModelLoader {
 
 export function resetModelLoader(): void {
   if (loaderInstance) {
-    loaderInstance.unload().catch(() => {});
+    loaderInstance.unload().catch((err) => {
+      log.warn({ error: String(err) }, 'Failed to unload model during reset');
+    });
   }
   loaderInstance = null;
 }

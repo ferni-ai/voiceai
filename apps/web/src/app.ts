@@ -1440,7 +1440,8 @@ class VoiceAIApp {
       initCheckinBadgeUI();
 
       // Listen for check-in acknowledgment to start conversation with context
-      window.addEventListener('ferni:checkin-acknowledged', ((event: CustomEvent<{ checkinId: string; message: string; type: string }>) => {
+      // FIX: Use tracked listener to prevent memory leak
+      this.addTrackedListener(window, 'ferni:checkin-acknowledged', ((event: CustomEvent<{ checkinId: string; message: string; type: string }>) => {
         const { message, type } = event.detail;
         log.info({ type, message: message.slice(0, 50) }, '💭 Check-in acknowledged, starting conversation');
 

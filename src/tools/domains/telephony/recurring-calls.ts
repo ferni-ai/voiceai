@@ -323,7 +323,7 @@ export async function scheduleRecurringCall(
   ctx: { userId: string; timezone?: string }
 ): Promise<string> {
   const { contactQuery, schedule, purpose, message } = params;
-  const timezone = ctx.timezone || 'America/New_York';
+  const timezone = ctx.timezone || 'Etc/UTC';
 
   log.info(
     { contactQuery, schedule, purpose, userId: ctx.userId },

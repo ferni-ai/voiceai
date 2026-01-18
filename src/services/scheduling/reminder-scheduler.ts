@@ -134,7 +134,7 @@ export async function createReminder(params: {
     subject: params.subject,
     context: params.context,
     scheduledFor: params.scheduledFor,
-    timezone: params.timezone || 'America/New_York',
+    timezone: params.timezone || 'Etc/UTC',
     deliveryMethod: params.deliveryMethod,
     deliveryAddress: params.deliveryAddress,
     // Contact tracking for ML
@@ -347,7 +347,7 @@ export async function loadRemindersFromFirestore(userId?: string): Promise<numbe
         subject: data.subject,
         context: data.context,
         scheduledFor: new Date(data.scheduledFor),
-        timezone: data.timezone || 'America/New_York',
+        timezone: data.timezone || 'Etc/UTC',
         deliveryMethod: data.deliveryMethod,
         deliveryAddress: data.deliveryAddress,
         contactId: data.contactId,
@@ -1038,7 +1038,7 @@ export function cleanupOldReminders(maxAgeMs: number = 7 * 24 * 60 * 60 * 1000):
 /**
  * Parse natural language time expressions
  */
-export function parseNaturalTime(expression: string, timezone = 'America/New_York'): Date | null {
+export function parseNaturalTime(expression: string, timezone = 'Etc/UTC'): Date | null {
   const now = new Date();
   const lower = expression.toLowerCase().trim();
 

@@ -300,7 +300,9 @@ export async function initializeRouterModel(
 
 export function resetRouterModel(): void {
   if (routerInstance) {
-    routerInstance.shutdown().catch(() => {});
+    routerInstance.shutdown().catch((err) => {
+      log.warn({ error: String(err) }, 'Failed to shutdown router model during reset');
+    });
   }
   routerInstance = null;
 }

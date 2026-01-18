@@ -332,6 +332,7 @@ async function writeAnchors(
 
 /**
  * Create or update the memory capsule in Firestore
+ * Uses a transaction to prevent race conditions when multiple sessions end simultaneously
  */
 async function updateMemoryCapsule(
   data: SessionContinuityData,
@@ -351,60 +352,73 @@ async function updateMemoryCapsule(
       .collection('memory_capsules')
       .doc('current');
 
-    // Get existing capsule for version increment
-    const existing = await capsuleRef.get();
-    const existingCapsule = existing.data() as MemoryCapsule | undefined;
-    const version = (existingCapsule?.version || 0) + 1;
+    // Use a transaction to atomically read-modify-write
+    await db.runTransaction(async (transaction) => {
+      // Get existing capsule for version increment
+      const existing = await transaction.get(capsuleRef);
+      const existingCapsule = existing.data() as MemoryCapsule | undefined;
+      const version = (existingCapsule?.version || 0) + 1;
 
-    // Build capsule summary - merge with existing if present
-    const rollingSummary = existingCapsule?.rollingSummary
-      ? `${existingCapsule.rollingSummary}\n\n---\n\n${data.naturalSummary}`.slice(-2000)
-      : data.naturalSummary;
+      // Build capsule summary - merge with existing if present
+      const rollingSummary = existingCapsule?.rollingSummary
+        ? `${existingCapsule.rollingSummary}\n\n---\n\n${data.naturalSummary}`.slice(-2000)
+        : data.naturalSummary;
 
-    // Merge threads
-    const existingThreadMap = new Map(
-      (existingCapsule?.activeThreads || []).map((t) => [t.theme, t])
-    );
-    for (const thread of threads) {
-      existingThreadMap.set(thread.theme, {
-        theme: thread.theme,
-        lastUpdated: thread.lastUpdated.toISOString(),
-        sessionCount: thread.sessionCount,
-      });
-    }
-    const activeThreads = Array.from(existingThreadMap.values())
-      .sort((a, b) => new Date(b.lastUpdated).getTime() - new Date(a.lastUpdated).getTime())
-      .slice(0, 10);
+      // Merge threads
+      const existingThreadMap = new Map(
+        (existingCapsule?.activeThreads || []).map((t) => [t.theme, t])
+      );
+      for (const thread of threads) {
+        existingThreadMap.set(thread.theme, {
+          theme: thread.theme,
+          lastUpdated: thread.lastUpdated.toISOString(),
+          sessionCount: thread.sessionCount,
+        });
+      }
+      const activeThreads = Array.from(existingThreadMap.values())
+        .sort((a, b) => new Date(b.lastUpdated).getTime() - new Date(a.lastUpdated).getTime())
+        .slice(0, 10);
 
-    // Merge anchors (keep top by significance)
-    const existingAnchors = existingCapsule?.topAnchors || [];
-    const newAnchors = anchors.map((a) => ({
-      type: a.anchorType,
-      summary: a.payload.summary,
-      significance: a.significanceScore,
-    }));
-    const topAnchors = [...existingAnchors, ...newAnchors]
-      .sort((a, b) => b.significance - a.significance)
-      .slice(0, 10);
+      // Merge anchors (keep top by significance)
+      const existingAnchors = existingCapsule?.topAnchors || [];
+      const newAnchors = anchors.map((a) => ({
+        type: a.anchorType,
+        summary: a.payload.summary,
+        significance: a.significanceScore,
+      }));
+      const topAnchors = [...existingAnchors, ...newAnchors]
+        .sort((a, b) => b.significance - a.significance)
+        .slice(0, 10);
 
-    // Merge pending topics
-    const pendingTopics = Array.from(
-      new Set([...(existingCapsule?.pendingTopics || []), ...data.unfinishedTopics])
-    ).slice(0, 10);
+      // Merge pending topics
+      const pendingTopics = Array.from(
+        new Set([...(existingCapsule?.pendingTopics || []), ...data.unfinishedTopics])
+      ).slice(0, 10);
 
-    const capsule: MemoryCapsule = {
-      userId: data.userId,
-      rollingSummary,
-      activeThreads,
-      topAnchors,
-      lastEmotionalState: data.endingEmotionalState,
-      pendingTopics,
-      lastSessionId: data.sessionId,
-      updatedAt: new Date().toISOString(),
-      version,
-    };
+      const capsule: MemoryCapsule = {
+        userId: data.userId,
+        rollingSummary,
+        activeThreads,
+        topAnchors,
+        lastEmotionalState: data.endingEmotionalState,
+        pendingTopics,
+        lastSessionId: data.sessionId,
+        updatedAt: new Date().toISOString(),
+        version,
+      };
 
-    await capsuleRef.set(capsule);
+      transaction.set(capsuleRef, capsule);
+
+      log.info(
+        {
+          userId: data.userId,
+          version,
+          threads: activeThreads.length,
+          anchors: topAnchors.length,
+        },
+        '💊 Memory capsule updated'
+      );
+    });
 
     // Index session summary for semantic search (non-blocking)
     if (data.naturalSummary && data.naturalSummary.length > 20) {
@@ -423,16 +437,6 @@ async function updateMemoryCapsule(
         log.debug({ error: String(err) }, 'Failed to index session summary for semantic search');
       });
     }
-
-    log.info(
-      {
-        userId: data.userId,
-        version,
-        threads: activeThreads.length,
-        anchors: topAnchors.length,
-      },
-      '💊 Memory capsule updated'
-    );
   } catch (error) {
     log.warn({ error: String(error), userId: data.userId }, 'Failed to update memory capsule');
   }

@@ -478,5 +478,11 @@ export const DEFAULT_ESSENTIAL_DOMAINS: ToolDomain[] = [
   'information',
   'telephony',
   'communication',
+  'calendar', // Schedule, appointments - users ask constantly!
+  'productivity', // Tasks, notes, todos - users create these immediately!
+  'habits', // "Log my workout", "How are my habits?" - daily use
+  'simple-utilities', // Timers, conversions - basic utility requests
+  'games', // "Play a game", "Tic tac toe" - users request games often!
+  'presence', // "Help me calm down", "I'm anxious" - grounding tools needed fast
   'trauma-support', // SAFETY-CRITICAL: Immediate access for users in crisis
 ];

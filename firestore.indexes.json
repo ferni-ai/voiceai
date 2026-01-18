@@ -15,6 +15,14 @@
         { "fieldPath": "status", "order": "ASCENDING" },
         { "fieldPath": "trigger.type", "order": "ASCENDING" }
       ]
+    },
+    {
+      "collectionGroup": "developer_webhooks",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "publisherId", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
     }
   ],
   "fieldOverrides": []

@@ -14,3 +14,8 @@ export * from './engine-factory.js';
 export * from './session-primer.js';
 export * from './utils.js';
 export * from './validation.js';
+
+// Extracted modules from end-session.ts refactoring
+export * from './summarization.js';
+export * from './state-persistence.js';
+export * from './session-end-cleanup.js';

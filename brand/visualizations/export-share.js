@@ -27,7 +27,6 @@
 export const ExportFormat = {
   PNG: 'png',
   SVG: 'svg',
-  PDF: 'pdf',
   JSON: 'json',
   CSV: 'csv',
 };
@@ -83,9 +82,6 @@ export async function exportVisualization(element, options = {}) {
 
     case ExportFormat.SVG:
       return await exportAsSVG(element, { filename, includeWatermark });
-
-    case ExportFormat.PDF:
-      return await exportAsPDF(element, { filename, includeWatermark, scale });
 
     case ExportFormat.JSON:
       return await exportAsJSON(element, { filename });
@@ -173,32 +169,6 @@ async function exportAsSVG(element, options) {
 
   downloadBlob(blob, `${filename}.svg`);
   return svgString;
-}
-
-/**
- * Export as PDF (basic implementation)
- */
-async function exportAsPDF(element, options) {
-  const { filename, includeWatermark, scale } = options;
-
-  // For a real implementation, you'd use a library like jsPDF or pdfmake
-  // This is a simplified version that converts to image first
-  const canvas = await elementToCanvas(element, { scale, backgroundColor: '#ffffff' });
-
-  if (includeWatermark) {
-    addWatermark(canvas);
-  }
-
-  // In a real implementation, this would create a PDF
-  // For now, we'll just download as PNG with .pdf extension (placeholder)
-  console.warn('PDF export requires a PDF library. Exporting as PNG.');
-
-  const blob = await new Promise(resolve => {
-    canvas.toBlob(resolve, 'image/png', CONFIG.imageQuality);
-  });
-
-  downloadBlob(blob, `${filename}.png`);
-  return blob;
 }
 
 /**

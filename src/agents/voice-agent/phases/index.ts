@@ -54,3 +54,33 @@ export {
   type NoiseCancellationConfig,
   type NoiseCancellationResult,
 } from './noise-cancellation.js';
+
+// Multi-agent mode (experimental)
+export {
+  runMultiAgentMode,
+  type MultiAgentModeConfig,
+  type MultiAgentModeResult,
+} from './multi-agent-mode.js';
+
+// Handler setup (parallel handler imports)
+export {
+  setupHandlers,
+  type HandlerSetupConfig,
+  type HandlerSetupResult,
+  type HandlerModules,
+} from './handler-setup.js';
+
+// Voice humanization (prosody, interruptions, laughter)
+export {
+  setupVoiceHumanization,
+  type VoiceHumanizationConfig,
+  type VoiceHumanizationResult,
+} from './voice-humanization.js';
+
+// Session run loop (connection monitoring, disconnect handling)
+export {
+  runUntilDisconnect,
+  type SessionRunConfig,
+  type DisconnectResult,
+  type SessionCleanupTracker,
+} from './session-run.js';

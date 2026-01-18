@@ -22,7 +22,7 @@ import {
 import { DURATION, EASING } from './visualizations/utils/dom.js';
 
 const log = createLogger('YourStoryDashboard');
-const { trackedTimeout, clearAll: clearAllTimeouts } = createTimeoutTracker();
+const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
 
 // ============================================================================
 // TYPES

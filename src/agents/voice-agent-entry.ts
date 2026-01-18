@@ -40,7 +40,10 @@ import {
   getPrewarmedResources,
   loadPersonaLocally,
   loadVoiceDeps as loadVoiceDepsPhase,
+  runMultiAgentMode,
+  runUntilDisconnect,
   setupNoiseCancellation,
+  setupVoiceHumanization,
   type VoiceDeps,
 } from './voice-agent/phases/index.js';
 
@@ -76,6 +79,8 @@ import {
   initializeSpeechCoordination,
   cleanupSpeechCoordination,
 } from '../speech/coordination/index.js';
+// AGI-like action confirmation dispatcher
+import { initActionDispatcher, clearActionDispatcher } from './realtime/action-event-dispatcher.js';
 // Centralized generateReply gateway - handles session readiness
 import { prewarmSessionAsync, generateReply } from './shared/generate-reply-gateway.js';
 // Inject generateReply into semantic router (avoids architecture violation)
@@ -1505,6 +1510,34 @@ If someone asks what day it is, what time it is, or what the date is, you know t
     }
 
     // =========================================================================
+    // STEP 5b: INITIALIZE ACTION DISPATCHER (AGI-like autonomous actions)
+    // Enables UI and voice confirmation for actions Ferni takes on user's behalf
+    // =========================================================================
+    if (userId && session) {
+      try {
+        initActionDispatcher({
+          session,
+          sessionId,
+          userId,
+        });
+        process.stderr.write(`[voice-agent-entry] 🎯 Action dispatcher initialized\n`);
+
+        // Add cleanup handler
+        cleanupHandlers.push(() => {
+          try {
+            clearActionDispatcher(sessionId);
+          } catch {
+            /* ignore - dispatcher may already be cleaned up */
+          }
+        });
+      } catch (dispatcherErr) {
+        process.stderr.write(
+          `[voice-agent-entry] ⚠️ Action dispatcher initialization failed (non-fatal): ${dispatcherErr}\n`
+        );
+      }
+    }
+
+    // =========================================================================
     // STEP 6: SET UP ALL HANDLERS
     // =========================================================================
     devStage('handlers_setup');
@@ -1543,41 +1576,17 @@ If someone asks what day it is, what time it is, or what the date is, you know t
     });
 
     // =========================================================================
-    // VOICE HUMANIZATION INTEGRATION
+    // VOICE HUMANIZATION INTEGRATION (via phase module)
     // Makes agent feel more human through prosody, micro-interruptions, etc.
     // =========================================================================
-    let voiceHumanization: { cleanup: () => void } | null = null;
-    try {
-      const { getEmotionalArcTracker } = await import('../conversation/index.js');
-      const { quickSetupVoiceHumanization } =
-        await import('./integrations/voice-humanization-integration.js');
-      const emotionalArcTracker = getEmotionalArcTracker();
-
-      voiceHumanization = quickSetupVoiceHumanization(
-        sessionId,
-        sessionPersona.id,
-        emotionalArcTracker,
-        {
-          onInterrupt: () => {
-            // When micro-interruption detected, interrupt the agent
-            process.stderr.write(`[voice-agent-entry] 🛑 Micro-interruption detected\n`);
-            try {
-              session.interrupt();
-            } catch {
-              // Ignore interrupt errors
-            }
-          },
-          onLaughter: (laughType: string) => {
-            process.stderr.write(`[voice-agent-entry] 😄 User laughter detected: ${laughType}\n`);
-          },
-        }
-      );
-      process.stderr.write(`[voice-agent-entry] 🎤 Voice humanization initialized\n`);
-    } catch (humanizationErr) {
-      process.stderr.write(
-        `[voice-agent-entry] Voice humanization init (non-fatal): ${humanizationErr}\n`
-      );
-    }
+    const voiceHumanizationResult = await setupVoiceHumanization({
+      sessionId,
+      personaId: sessionPersona.id,
+      session,
+    });
+    const voiceHumanization = voiceHumanizationResult.cleanup
+      ? { cleanup: voiceHumanizationResult.cleanup }
+      : null;
 
     // =========================================================================
     // EXTENSIBILITY SESSION HOOK - Marketplace agent custom behavior
@@ -1666,381 +1675,33 @@ If someone asks what day it is, what time it is, or what the date is, you know t
     }
 
     // =========================================================================
-    // MULTI-AGENT MODE (Experimental)
-    // When enabled, each persona runs as a separate agent with its own Gemini session.
+    // MULTI-AGENT MODE (via phase module)
+    // When enabled, each persona runs as a separate agent with its own LLM session.
     // This provides natural handoffs with real voices and no prompt leakage.
     // =========================================================================
     if (MULTI_AGENT_MODE && participant) {
-      process.stderr.write(`[voice-agent-entry] 🎭 Starting multi-agent session\n`);
+      const multiAgentModeResult = await runMultiAgentMode({
+        ctx,
+        room: ctx.room!,
+        participant,
+        sessionPersona,
+        services,
+        userData,
+        sessionId,
+        userId,
+        unregisterSession,
+      });
 
-      try {
-        const multiAgentResult = await initializeMultiAgentSession({
-          ctx,
-          room: ctx.room!,
-          userParticipant: participant,
-          initialPersonaId: sessionPersona.id,
-          services,
-          userData,
-          sessionId,
-          userId,
-          // ⚡ FAST-AGENT-JOIN: Defer handler wiring until after greeting starts
-          // This saves ~500ms by wiring handlers in background after user hears greeting
-          deferHandlers: true,
-          onHandoffComplete: (from, to) => {
-            process.stderr.write(`[voice-agent-entry] 🎭 Handoff complete: ${from} → ${to}\n`);
-            // Notify frontend
-            const encoder = new TextEncoder();
-            void ctx.room?.localParticipant?.publishData(
-              encoder.encode(
-                JSON.stringify({
-                  type: 'handoff_complete',
-                  from,
-                  target: to,
-                  timestamp: Date.now(),
-                })
-              ),
-              { reliable: true }
-            );
-          },
-        });
-
-        // FIX: Verify the orchestrator has an active agent before proceeding
-        // If start() failed silently, we should fall back to single-agent mode
-        const activePersona = multiAgentResult.orchestrator.getCurrentPersonaId();
-
-        // Initialize group conversation integration for Team Roundtables and Conference Calls
-        let groupConversationIntegration: GroupVoiceIntegration | null = null;
-        if (ctx.room && participant) {
-          groupConversationIntegration = createGroupVoiceIntegration({
-            ctx,
-            room: ctx.room,
-            userParticipant: participant,
-            sessionId,
-            userId,
-            webhookBaseUrl: process.env.WEBHOOK_BASE_URL ?? 'https://api.ferni.ai',
-            // createRoundtableAgent will be provided when roundtable starts
-          });
-          process.stderr.write(
-            `[voice-agent-entry] 🎙️ Group conversation integration initialized\n`
-          );
-        }
-        if (!activePersona) {
-          // FIX: Notify frontend before falling back to single-agent mode
-          // This prevents UI confusion where frontend expects multi-agent behavior
-          const encoder = new TextEncoder();
-          await ctx.room?.localParticipant?.publishData(
-            encoder.encode(
-              JSON.stringify({
-                type: 'multi_agent_unavailable',
-                reason: 'Orchestrator has no active agent after initialization',
-                fallbackMode: 'single-agent',
-                timestamp: Date.now(),
-              })
-            ),
-            { reliable: true }
-          );
-          throw new Error(
-            'Multi-agent orchestrator has no active agent after initialization - falling back to single-agent'
-          );
-        }
-        process.stderr.write(
-          `[voice-agent-entry] 🎭 Multi-agent orchestrator ready with active persona: ${activePersona}\n`
-        );
-
-        // FIX: Handoff locking to prevent concurrent handoff requests
-        // Without this, multiple handoff requests can race and cause undefined behavior
-        // Uses promise-based mutex pattern to handle async race conditions
-        let handoffInProgress = false;
-        let handoffPromise: Promise<void> = Promise.resolve();
-        let releaseHandoffLock: (() => void) | null = null;
-
-        /**
-         * Acquires the handoff lock. Returns true if acquired, false if already locked.
-         * Uses promise chaining to ensure proper async synchronization.
-         */
-        const acquireHandoffLock = async (): Promise<boolean> => {
-          // Wait for any previous handoff to complete
-          await handoffPromise;
-          // Double-check after await (prevents race where two waiters both proceed)
-          if (handoffInProgress) {
-            return false;
-          }
-          handoffInProgress = true;
-          // Create new promise for waiters
-          handoffPromise = new Promise<void>((resolve) => {
-            releaseHandoffLock = resolve;
-          });
-          return true;
-        };
-
-        /**
-         * Releases the handoff lock, allowing next waiter to proceed.
-         */
-        const releaseHandoff = (): void => {
-          handoffInProgress = false;
-          if (releaseHandoffLock) {
-            releaseHandoffLock();
-            releaseHandoffLock = null;
-          }
-        };
-
-        // Set up data channel handler for multi-agent handoffs
-        const dataHandler = (data: Uint8Array, _participant?: { identity: string }): void => {
-          void (async () => {
-            try {
-              const decoder = new TextDecoder();
-              const rawMessage = decoder.decode(data);
-              process.stderr.write(
-                `[voice-agent-entry] 📨 Data received: ${rawMessage.slice(0, 200)}\n`
-              );
-              const message = JSON.parse(rawMessage);
-
-              // Handle group conversation messages
-              if (message.type?.startsWith('group_') && groupConversationIntegration) {
-                await groupConversationIntegration.handleDataChannelMessage(message);
-                return; // Group messages are fully handled
-              }
-
-              if (message.type === 'handoff_request') {
-                // FIX: Acquire handoff lock to prevent concurrent handoffs (async-safe)
-                const acquired = await acquireHandoffLock();
-                if (!acquired) {
-                  process.stderr.write(
-                    `[voice-agent-entry] 🔒 Handoff already in progress, ignoring request for ${message.target}\n`
-                  );
-                  return;
-                }
-
-                try {
-                  process.stderr.write(
-                    `[voice-agent-entry] 🎭 Multi-agent handoff request: ${message.target}\n`
-                  );
-
-                  // Send handoff_acknowledged immediately (frontend expects this)
-                  const encoder = new TextEncoder();
-                  const currentPersonaId = multiAgentResult.orchestrator.getCurrentPersonaId();
-                  await ctx.room?.localParticipant?.publishData(
-                    encoder.encode(
-                      JSON.stringify({
-                        type: 'handoff_acknowledged',
-                        target: message.target,
-                        success: true,
-                        timestamp: Date.now(),
-                      })
-                    ),
-                    { reliable: true }
-                  );
-
-                  // FIX: Send handoff_started to trigger frontend transitioning state
-                  // Frontend expects: acknowledged → started → complete
-                  // Without this, frontend doesn't set isTransitioning=true and logs out-of-order warning
-                  await ctx.room?.localParticipant?.publishData(
-                    encoder.encode(
-                      JSON.stringify({
-                        type: 'handoff_started',
-                        target: message.target,
-                        newAgent: message.target,
-                        previousAgent: currentPersonaId,
-                        timestamp: Date.now(),
-                      })
-                    ),
-                    { reliable: true }
-                  );
-
-                  const result = await handleHandoffFromDataChannel(
-                    multiAgentResult.orchestrator,
-                    message.target,
-                    message.reason || 'User requested via UI',
-                    services
-                  );
-                  if (!result.success) {
-                    process.stderr.write(
-                      `[voice-agent-entry] 🎭 Handoff failed: ${result.error}\n`
-                    );
-                    // Send handoff_failed to frontend with rollbackTo for UI recovery
-                    await ctx.room?.localParticipant?.publishData(
-                      encoder.encode(
-                        JSON.stringify({
-                          type: 'handoff_failed',
-                          target: message.target,
-                          error: result.error,
-                          rollbackTo: currentPersonaId,
-                          timestamp: Date.now(),
-                        })
-                      ),
-                      { reliable: true }
-                    );
-                  }
-                } finally {
-                  releaseHandoff();
-                }
-              }
-            } catch {
-              // Ignore non-JSON messages
-            }
-          })();
-        };
-
-        if (ctx.room) {
-          ctx.room.on('dataReceived', dataHandler);
-          process.stderr.write(
-            `[voice-agent-entry] 📡 Data channel handler registered on room: ${ctx.room.name}\n`
-          );
-        } else {
-          process.stderr.write(
-            `[voice-agent-entry] ⚠️ WARNING: ctx.room is null, data channel won't work!\n`
-          );
-        }
-
-        // FIX: Wire LLM-triggered handoffs (from tools) to the orchestrator
-        // The handoff tools call executeHandoff() which emits voiceSwitch events.
-        // In multi-agent mode, we need to route these to orchestrator.handoff()
-        const voiceSwitchHandler = (event: {
-          persona: { id: string };
-          previousAgentId?: string;
-        }) => {
-          void (async () => {
-            const targetPersonaId = event.persona?.id;
-            if (!targetPersonaId) {
-              process.stderr.write(`[voice-agent-entry] 🎭 voiceSwitch event missing persona ID\n`);
-              return;
-            }
-
-            // FIX: Acquire handoff lock to prevent concurrent handoffs (async-safe, shared with dataHandler)
-            const acquired = await acquireHandoffLock();
-            if (!acquired) {
-              process.stderr.write(
-                `[voice-agent-entry] 🔒 Handoff already in progress, ignoring LLM request for ${targetPersonaId}\n`
-              );
-              return;
-            }
-
-            try {
-              const currentPersonaId =
-                event.previousAgentId || multiAgentResult.orchestrator.getCurrentPersonaId();
-              process.stderr.write(
-                `[voice-agent-entry] 🎭 LLM-triggered handoff via voiceSwitch: ${currentPersonaId || 'unknown'} → ${targetPersonaId}\n`
-              );
-
-              // FIX: Send frontend events for LLM-triggered handoffs too
-              // Frontend needs these to properly track transitioning state
-              const encoder = new TextEncoder();
-              await ctx.room?.localParticipant?.publishData(
-                encoder.encode(
-                  JSON.stringify({
-                    type: 'handoff_started',
-                    target: targetPersonaId,
-                    newAgent: targetPersonaId,
-                    previousAgent: currentPersonaId,
-                    timestamp: Date.now(),
-                  })
-                ),
-                { reliable: true }
-              );
-
-              const result = await handleHandoffFromDataChannel(
-                multiAgentResult.orchestrator,
-                targetPersonaId,
-                'LLM requested handoff',
-                services
-              );
-
-              if (!result.success) {
-                process.stderr.write(
-                  `[voice-agent-entry] 🎭 LLM handoff failed: ${result.error}\n`
-                );
-                // Send failure event to frontend
-                await ctx.room?.localParticipant?.publishData(
-                  encoder.encode(
-                    JSON.stringify({
-                      type: 'handoff_failed',
-                      target: targetPersonaId,
-                      error: result.error,
-                      rollbackTo: currentPersonaId,
-                      timestamp: Date.now(),
-                    })
-                  ),
-                  { reliable: true }
-                );
-              }
-
-              // Emit handoffHandlerComplete so executeHandoff() knows it completed
-              handoffEvents.emit('handoffHandlerComplete', {
-                targetId: targetPersonaId,
-                success: result.success,
-                greetingSpoken: result.success,
-                instructionsUpdated: result.success,
-                error: result.error,
-              });
-            } finally {
-              releaseHandoff();
-            }
-          })();
-        };
-
-        handoffEvents.on('voiceSwitch', voiceSwitchHandler);
-        process.stderr.write(
-          `[voice-agent-entry] 🎭 voiceSwitch handler registered for LLM-triggered handoffs\n`
-        );
-
-        // Wait for disconnect
-        await new Promise<void>((resolve) => {
-          ctx.room?.once('disconnected', () => {
-            process.stderr.write(`[voice-agent-entry] 🎭 Room disconnected\n`);
-            resolve();
-          });
-        });
-
-        // Cleanup
-        handoffEvents.off('voiceSwitch', voiceSwitchHandler);
-        if (groupConversationIntegration) {
-          await groupConversationIntegration.cleanup();
-          process.stderr.write(`[voice-agent-entry] 🎙️ Group conversation cleaned up\n`);
-        }
-        await multiAgentResult.cleanup();
-        process.stderr.write(`[voice-agent-entry] 🎭 Multi-agent session ended\n`);
-
-        // CRITICAL: Stop auto-save interval to prevent memory leak
-        // The auto-save was continuing to run every 30 seconds after session end
-        if (userId) {
-          try {
-            const { stopAutoSave } = await import('../services/intelligence-persistence.js');
-            stopAutoSave(userId);
-            process.stderr.write(`[voice-agent-entry] 🛑 Stopped auto-save for user ${userId}\n`);
-          } catch (autoSaveErr) {
-            process.stderr.write(
-              `[voice-agent-entry] ⚠️ Failed to stop auto-save: ${autoSaveErr}\n`
-            );
-          }
-        }
-
-        // CRITICAL: Unregister session from crash analytics to prevent memory leak
-        // This was missing, causing activeSessions to remain at 2 after job completion
-        unregisterSession(sessionId, 'multi_agent_clean_exit');
+      if (multiAgentModeResult.activated) {
+        // Multi-agent mode handled the session, exit early
         return;
-      } catch (err) {
+      }
+
+      if (multiAgentModeResult.error) {
         process.stderr.write(
-          `[voice-agent-entry] 🎭 Multi-agent mode failed, falling back to single-agent: ${err}\n`
+          `[voice-agent-entry] 🎭 Multi-agent mode failed, continuing with single-agent: ${multiAgentModeResult.error}\n`
         );
-        // FIX: Notify frontend before falling back to single-agent mode
-        // This prevents UI confusion where frontend expects multi-agent behavior
-        try {
-          const encoder = new TextEncoder();
-          await ctx.room?.localParticipant?.publishData(
-            encoder.encode(
-              JSON.stringify({
-                type: 'multi_agent_unavailable',
-                reason: String(err),
-                fallbackMode: 'single-agent',
-                timestamp: Date.now(),
-              })
-            ),
-            { reliable: true }
-          );
-        } catch {
-          // Ignore - room may not be available
-        }
-        // Fall through to single-agent mode
+        // Fall through to single-agent mode (already notified frontend in phase module)
       }
     }
 

@@ -95,6 +95,8 @@ import {
   routingStatsUI,
   type SemanticRoutingData,
 } from '../ui/routing-stats.ui.js';
+// 🎯 Action Confirmation - AGI-like autonomous actions
+import { actionConfirmation, type PendingAction } from '../ui/action-confirmation.ui.js';
 // 🌟 Transcendent Animation Systems - "Better Than Human" signature moments
 import {
   handleEmotionEvent,
@@ -435,6 +437,24 @@ export function handleDataMessage(message: DataMessage): void {
     case 'feedback_prompt':
       // 📊 CONTEXTUAL FEEDBACK: Backend triggered a feedback prompt
       handleFeedbackPrompt(message);
+      break;
+
+    case 'pending_action':
+      // 🎯 AGI ACTION: Ferni wants to do something on behalf of user
+      try {
+        handlePendingAction(message as PendingActionEvent);
+      } catch (err) {
+        log.error({ error: String(err) }, '🎯 Failed to handle pending action');
+      }
+      break;
+
+    case 'action_resolved':
+      // 🎯 AGI ACTION: Action was approved/rejected/executed
+      try {
+        handleActionResolved(message as ActionResolvedEvent);
+      } catch (err) {
+        log.error({ error: String(err) }, '🎯 Failed to handle action resolved');
+      }
       break;
 
     default:
@@ -2750,4 +2770,84 @@ function handleSemanticRouting(event: SemanticRoutingEvent): void {
     bypassed_llm: event.bypassed_llm,
     routing_path: event.routing_path as SemanticRoutingData['routing_path'],
   });
+}
+
+// ============================================================================
+// ACTION CONFIRMATION HANDLERS - AGI-like Autonomous Actions
+// ============================================================================
+
+/**
+ * Pending action event from backend
+ *
+ * Part of the AGI-like experience: Ferni shows what action she wants to take
+ * and asks for permission. The UI displays a card with approve/reject buttons.
+ */
+interface PendingActionEvent extends DataMessage {
+  type: 'pending_action';
+  action: {
+    id: string;
+    actionType: string;
+    category: string;
+    title: string;
+    summary: string;
+    details: string[];
+    canUndo: boolean;
+    estimatedCost?: number;
+    affectedParties?: string[];
+    expiresAt: string;
+  };
+}
+
+/**
+ * Action resolved event from backend
+ */
+interface ActionResolvedEvent extends DataMessage {
+  type: 'action_resolved';
+  actionId: string;
+  status: 'approved' | 'rejected' | 'expired' | 'executed';
+}
+
+/**
+ * Handle pending action events - show confirmation card
+ */
+function handlePendingAction(event: PendingActionEvent): void {
+  log.info('🎯 Pending action received', {
+    actionId: event.action.id,
+    actionType: event.action.actionType,
+    category: event.action.category,
+  });
+
+  // Transform to PendingAction format expected by UI
+  const pendingAction: PendingAction = {
+    id: event.action.id,
+    actionType: event.action.actionType,
+    category: event.action.category,
+    description: event.action.summary,
+    preview: {
+      title: event.action.title,
+      summary: event.action.summary,
+      details: event.action.details,
+      canUndo: event.action.canUndo,
+      estimatedCost: event.action.estimatedCost,
+      affectedParties: event.action.affectedParties,
+    },
+    expiresAt: event.action.expiresAt,
+    metadata: {},
+  };
+
+  // Show the confirmation card
+  actionConfirmation.show(pendingAction);
+}
+
+/**
+ * Handle action resolved events - dismiss/update card
+ */
+function handleActionResolved(event: ActionResolvedEvent): void {
+  log.info('🎯 Action resolved', {
+    actionId: event.actionId,
+    status: event.status,
+  });
+
+  // Dismiss the confirmation card (it will show success/rejected state briefly)
+  actionConfirmation.dismiss(event.actionId);
 }

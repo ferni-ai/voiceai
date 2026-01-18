@@ -37,6 +37,9 @@ import { coordinatedSay } from '../../speech/coordination/index.js';
 import { generateReply } from '../shared/generate-reply-gateway.js';
 // Safe fire-and-forget for non-critical async operations
 import { fireAndForget } from '../../utils/safe-fire-and-forget.js';
+// Action approval system
+import { resolvePendingAction } from '../../services/automation/trust-level-system.js';
+import { dispatchActionApproved, dispatchActionRejected } from '../realtime/action-event-dispatcher.js';
 
 // ============================================================================
 // TYPES
@@ -185,6 +188,11 @@ export function setupDataChannelHandler(ctx: DataChannelContext): DataChannelRes
       // 📊 USER FEEDBACK: Handle contextual feedback from avatar-attached UI
       if (message.type === 'user_feedback') {
         await handleUserFeedback(message, ctx);
+      }
+
+      // 🎯 ACTION RESPONSE: Handle approve/reject from UI action confirmation cards
+      if (message.type === 'action_response') {
+        await handleActionResponse(message, ctx);
       }
     } catch {
       // Not JSON or not a valid request - this is expected for non-data-channel uses
@@ -1117,6 +1125,107 @@ async function handleUserFeedback(
   await room.localParticipant?.publishData(new TextEncoder().encode(ackMessage), {
     reliable: true,
   });
+}
+
+// ============================================================================
+// ACTION RESPONSE HANDLER
+// ============================================================================
+
+/**
+ * Handle action_response messages from frontend action confirmation cards.
+ *
+ * This enables the AGI-like experience where users can approve/reject
+ * autonomous actions via the UI. The voice agent will confirm the action
+ * and execute it (or acknowledge the rejection).
+ *
+ * Message format:
+ * {
+ *   type: 'action_response',
+ *   actionId: string,
+ *   approved: boolean
+ * }
+ */
+async function handleActionResponse(
+  message: {
+    actionId: string;
+    approved: boolean;
+  },
+  ctx: DataChannelContext
+): Promise<void> {
+  const { room, session, sessionId, userId } = ctx;
+  const { actionId, approved } = message;
+
+  if (!userId) {
+    getLogger().warn({ actionId }, '🎯 Cannot process action response without userId');
+    return;
+  }
+
+  getLogger().info(
+    { actionId, approved, userId, sessionId },
+    `🎯 User ${approved ? 'approved' : 'rejected'} action from UI`
+  );
+
+  try {
+    // Resolve the pending action
+    const resolvedAction = await resolvePendingAction(userId, actionId, approved);
+
+    if (!resolvedAction) {
+      getLogger().warn({ actionId }, '🎯 Action not found or already resolved');
+      
+      // Send error ack to frontend
+      const ackMessage = JSON.stringify({
+        type: 'action_response_ack',
+        actionId,
+        success: false,
+        error: 'Action not found or already resolved',
+        timestamp: Date.now(),
+      });
+      await room.localParticipant?.publishData(new TextEncoder().encode(ackMessage), {
+        reliable: true,
+      });
+      return;
+    }
+
+    // Dispatch to voice confirmation (fire and forget - don't block UI ack)
+    fireAndForget(async () => {
+      if (approved) {
+        await dispatchActionApproved(resolvedAction, { skipVoice: false });
+      } else {
+        await dispatchActionRejected(resolvedAction, { skipVoice: false });
+      }
+    }, `action-voice-confirm-${actionId}`);
+
+    // Send success ack to frontend
+    const ackMessage = JSON.stringify({
+      type: 'action_response_ack',
+      actionId,
+      success: true,
+      approved,
+      timestamp: Date.now(),
+    });
+    await room.localParticipant?.publishData(new TextEncoder().encode(ackMessage), {
+      reliable: true,
+    });
+
+    getLogger().info(
+      { actionId, approved, actionType: resolvedAction.actionType },
+      '🎯 Action response processed successfully'
+    );
+  } catch (error) {
+    getLogger().error({ error: String(error), actionId }, '🎯 Failed to process action response');
+
+    // Send error ack to frontend
+    const ackMessage = JSON.stringify({
+      type: 'action_response_ack',
+      actionId,
+      success: false,
+      error: String(error),
+      timestamp: Date.now(),
+    });
+    await room.localParticipant?.publishData(new TextEncoder().encode(ackMessage), {
+      reliable: true,
+    });
+  }
 }
 
 // ============================================================================

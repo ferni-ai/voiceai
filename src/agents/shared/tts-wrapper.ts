@@ -39,6 +39,7 @@ import {
 } from './performance/post-tts-transform.js';
 import { getVoiceIdForPersona } from '../../config/voice-ids.js';
 import { getModelProvider } from '../model-provider/index.js';
+import { getLinguisticMirroring } from '../../conversation/superhuman/linguistic-mirroring.js';
 
 const log = createLogger({ module: 'TtsWrapper' });
 
@@ -606,7 +607,51 @@ export async function wrappedTtsNode(
     log.debug('🎭 Interrupt recovery applied to streaming response');
   }
 
-  // 3. Create cost tracking stream for FinOps + E2E Trace [4/4]
+  // 3. 🪞 BTH: Apply linguistic mirroring to match user's communication style
+  // This makes Ferni "just... get me" by mirroring vocabulary, formality, and contractions
+  // Must happen BEFORE cost tracking so we count the actual characters sent to TTS
+  let linguisticallyMirroredText: NodeReadableStream<string>;
+  const enableLinguisticMirroring =
+    process.env.DISABLE_LINGUISTIC_MIRRORING !== 'true' &&
+    userId &&
+    userId !== 'anonymous';
+
+  if (enableLinguisticMirroring) {
+    const mirroringEngine = getLinguisticMirroring(userId);
+
+    // Only apply if we've learned enough from user messages (3+ samples)
+    if (mirroringEngine.hasLearnedEnough()) {
+      let mirroringAppliedCount = 0;
+
+      const linguisticMirroringTransform = new NodeTransformStream<string, string>({
+        transform(chunk, controller) {
+          const mirrored = mirroringEngine.applyStreamingSafeMirroring(chunk);
+          if (mirrored !== chunk) {
+            mirroringAppliedCount++;
+          }
+          controller.enqueue(mirrored);
+        },
+        flush() {
+          if (mirroringAppliedCount > 0) {
+            log.debug(
+              { userId, sessionId, mirroringAppliedCount },
+              '🪞 BTH: Linguistic mirroring applied to TTS stream'
+            );
+          }
+        },
+      });
+
+      linguisticallyMirroredText = interruptAwareText.pipeThrough(linguisticMirroringTransform);
+    } else {
+      // Not enough samples yet - pass through
+      linguisticallyMirroredText = interruptAwareText;
+    }
+  } else {
+    // Mirroring disabled or no userId - pass through
+    linguisticallyMirroredText = interruptAwareText;
+  }
+
+  // 4. Create cost tracking stream for FinOps + E2E Trace [4/4]
   let totalCharacters = 0;
   let ttsOutputBuffer = '';
   const costTrackingStream = new NodeTransformStream<string, string>({
@@ -649,10 +694,10 @@ export async function wrappedTtsNode(
     },
   });
 
-  // 4. Chain all transforms (sanitizer → interrupt-aware → cost tracking)
-  const trackedText = interruptAwareText.pipeThrough(costTrackingStream);
+  // 5. Chain all transforms (sanitizer → interrupt-aware → mirroring → cost tracking)
+  const trackedText = linguisticallyMirroredText.pipeThrough(costTrackingStream);
 
-  // 5. Apply streaming TTS optimization for lower latency
+  // 6. Apply streaming TTS optimization for lower latency
   // This chunks the text more aggressively for faster first-audio
   let optimizedText: NodeReadableStream<string>;
   if (enableStreamingOptimization) {

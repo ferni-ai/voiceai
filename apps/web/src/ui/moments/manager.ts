@@ -49,7 +49,7 @@ const log = createLogger('MomentsManager');
 // TIMEOUT TRACKING
 // ============================================================================
 
-const { trackedTimeout, clearAll: clearAllTimeouts } = createTimeoutTracker();
+const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
 
 // ============================================================================
 // MOMENTS MANAGER CLASS

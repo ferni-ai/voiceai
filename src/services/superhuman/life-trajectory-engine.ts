@@ -165,25 +165,98 @@ export interface PivotSuggestion {
 }
 
 // ============================================================================
+// Firestore Document Types (for type-safe data access)
+// ============================================================================
+
+/** Raw habit data from Firestore */
+interface FirestoreHabit {
+  id?: string;
+  name?: string;
+  category?: string;
+  currentStreak?: number;
+  longestStreak?: number;
+  consistency?: number;
+  createdAt?: FirebaseFirestore.Timestamp | Date | string;
+}
+
+/** Raw conversation summary from Firestore */
+interface FirestoreConversation {
+  topics?: string[];
+  timestamp?: FirebaseFirestore.Timestamp | Date;
+}
+
+/** Raw mood data from Firestore */
+interface FirestoreMood {
+  score?: number;
+  timestamp?: FirebaseFirestore.Timestamp | Date;
+}
+
+/** Raw milestone data from Firestore */
+interface FirestoreMilestone {
+  date?: string;
+  title?: string;
+}
+
+/** Raw dream data from Firestore */
+interface FirestoreDream {
+  dormant?: boolean;
+  lastMentioned?: string | Date;
+  title?: string;
+}
+
+/** Raw value data from Firestore */
+interface FirestoreValue {
+  name?: string;
+  importance?: number;
+  importanceToUser?: number;
+  livingScore?: number;
+}
+
+/** Raw relationship data from Firestore */
+interface FirestoreRelationship {
+  name?: string;
+  relationship?: string;
+  importance?: number;
+  health?: number;
+  trend?: 'improving' | 'stable' | 'declining';
+  lastInteraction?: string | Date;
+}
+
+/** Raw commitment data from Firestore */
+interface FirestoreCommitment {
+  id?: string;
+  description?: string;
+  title?: string;
+  category?: string;
+  progress?: number;
+  status?: string;
+  blockers?: string[];
+  enablers?: string[];
+  momentum?: string;
+}
+
+/** Aggregated trajectory data from Firestore */
+interface TrajectoryData {
+  dreams: FirestoreDream[];
+  commitments: FirestoreCommitment[];
+  habits: FirestoreHabit[];
+  relationships: FirestoreRelationship[];
+  values: FirestoreValue[];
+  conversations: FirestoreConversation[];
+  insights: unknown[];
+  milestones: FirestoreMilestone[];
+  moods: FirestoreMood[];
+  goals?: FirestoreCommitment[]; // Alias for commitments
+}
+
+// ============================================================================
 // Data Gathering
 // ============================================================================
 
 /**
  * Gather all data needed for trajectory synthesis
  */
-async function gatherTrajectoryData(
-  userId: string
-): Promise<{
-  dreams: unknown[];
-  commitments: unknown[];
-  habits: unknown[];
-  relationships: unknown[];
-  values: unknown[];
-  conversations: unknown[];
-  insights: unknown[];
-  milestones: unknown[];
-  moods: unknown[];
-}> {
+async function gatherTrajectoryData(userId: string): Promise<TrajectoryData> {
   const db = getFirestoreDb();
   if (!db) {
     return {
@@ -259,9 +332,9 @@ async function gatherTrajectoryData(
  * Synthesize the current life chapter
  */
 function synthesizeCurrentChapter(data: {
-  conversations: unknown[];
-  milestones: unknown[];
-  moods: unknown[];
+  conversations: FirestoreConversation[];
+  milestones: FirestoreMilestone[];
+  moods: FirestoreMood[];
 }): LifeChapter {
   // Analyze recent conversations for themes
   const themes: string[] = [];
@@ -269,8 +342,7 @@ function synthesizeCurrentChapter(data: {
 
   // Extract topics from conversation summaries
   for (const conv of data.conversations.slice(0, 20)) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const topics = (conv as any).topics || [];
+    const topics = conv.topics || [];
     for (const topic of topics) {
       recentTopics.set(topic, (recentTopics.get(topic) || 0) + 1);
     }
@@ -286,8 +358,7 @@ function synthesizeCurrentChapter(data: {
   // Determine emotional tone from moods
   let emotionalTone = 'neutral';
   if (data.moods.length > 0) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const avgMood = (data.moods as any[]).reduce((sum, m) => sum + (m.score || 50), 0) / data.moods.length;
+    const avgMood = data.moods.reduce((sum, m) => sum + (m.score || 50), 0) / data.moods.length;
     if (avgMood > 70) emotionalTone = 'positive and energized';
     else if (avgMood > 50) emotionalTone = 'steady and grounded';
     else if (avgMood > 30) emotionalTone = 'challenged but persevering';
@@ -303,10 +374,8 @@ function synthesizeCurrentChapter(data: {
     startDate: new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString(), // 90 days ago
     themes,
     keyEvents: data.milestones.slice(0, 5).map((m) => ({
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      date: (m as any).date || new Date().toISOString(),
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      event: (m as any).title || 'Milestone',
+      date: m.date || new Date().toISOString(),
+      event: m.title || 'Milestone',
       impact: 'positive' as const,
     })),
     emotionalTone,
@@ -348,15 +417,14 @@ function generateChapterTitle(themes: string[], emotionalTone: string): string {
  * Project compound effects
  */
 function projectCompoundEffects(data: {
-  habits: unknown[];
-  goals: unknown[];
+  habits: FirestoreHabit[];
+  goals: FirestoreCommitment[];
 }): CompoundEffect[] {
   const effects: CompoundEffect[] = [];
 
   // Analyze habits for compound effects
   for (const habit of data.habits.slice(0, 10)) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const h = habit as any;
+    const h = habit;
 
     if (!h.name) continue;
 
@@ -454,23 +522,22 @@ function projectHabitOutcome(habitName: string, consistency: number, years: numb
  * Generate pivot suggestions
  */
 function generatePivotSuggestions(data: {
-  dreams: unknown[];
-  values: unknown[];
-  goals: unknown[];
-  relationships: unknown[];
+  dreams: FirestoreDream[];
+  values: FirestoreValue[];
+  goals: FirestoreCommitment[];
+  relationships: FirestoreRelationship[];
 }): PivotSuggestion[] {
   const suggestions: PivotSuggestion[] = [];
 
   // Check for dormant dreams
   for (const dream of data.dreams.slice(0, 5)) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const d = dream as any;
-    if (d.dormant || (d.lastMentioned && Date.now() - new Date(d.lastMentioned).getTime() > 90 * 24 * 60 * 60 * 1000)) {
+    const lastMentioned = dream.lastMentioned ? new Date(dream.lastMentioned).getTime() : 0;
+    if (dream.dormant || (lastMentioned && Date.now() - lastMentioned > 90 * 24 * 60 * 60 * 1000)) {
       suggestions.push({
         id: `pivot_dream_${Date.now()}`,
-        title: `Revisit: ${d.dream || 'Your dream'}`,
+        title: `Revisit: ${dream.title || 'Your dream'}`,
         domain: 'growth',
-        description: `You mentioned wanting "${d.dream}" but haven't talked about it in a while.`,
+        description: `You mentioned wanting "${dream.title}" but haven't talked about it in a while.`,
         reasoning: 'Dreams that go unexplored often create regret. Even small steps keep them alive.',
         urgency: 'medium',
         potentialImpact: 'Reconnecting with this dream could bring renewed purpose and energy.',
@@ -482,14 +549,13 @@ function generatePivotSuggestions(data: {
 
   // Check for value misalignment
   for (const value of data.values.slice(0, 5)) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const v = value as any;
-    if (v.importanceToUser > 70 && (v.livingScore || 50) < 40) {
+    const importance = value.importanceToUser ?? value.importance ?? 50;
+    if (importance > 70 && (value.livingScore || 50) < 40) {
       suggestions.push({
         id: `pivot_value_${Date.now()}`,
-        title: `Live your value: ${v.value}`,
+        title: `Live your value: ${value.name}`,
         domain: 'meaning',
-        description: `${v.value} is important to you, but your recent actions don't reflect it.`,
+        description: `${value.name} is important to you, but your recent actions don't reflect it.`,
         reasoning: 'Value misalignment creates subtle unhappiness and inauthenticity.',
         urgency: 'high',
         potentialImpact: 'Aligning actions with values leads to deeper satisfaction.',
@@ -501,16 +567,15 @@ function generatePivotSuggestions(data: {
 
   // Check for relationship drift
   for (const rel of data.relationships.slice(0, 5)) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const r = rel as any;
-    if (r.importance > 70 && r.trend === 'declining') {
+    const importance = rel.importance ?? 50;
+    if (importance > 70 && rel.trend === 'declining') {
       suggestions.push({
         id: `pivot_rel_${Date.now()}`,
-        title: `Reconnect with ${r.personName || 'someone important'}`,
+        title: `Reconnect with ${rel.name || 'someone important'}`,
         domain: 'relationships',
-        description: `Your relationship with ${r.personName} has been drifting.`,
+        description: `Your relationship with ${rel.name} has been drifting.`,
         reasoning: 'Important relationships require maintenance. The drift accelerates if unaddressed.',
-        urgency: r.importance > 80 ? 'high' : 'medium',
+        urgency: importance > 80 ? 'high' : 'medium',
         potentialImpact: 'Maintaining key relationships is essential for wellbeing and support.',
         suggestedTiming: 'Reach out this week',
         relatedGoals: [],
@@ -525,10 +590,10 @@ function generatePivotSuggestions(data: {
  * Calculate life score
  */
 function calculateLifeScore(data: {
-  habits: unknown[];
-  relationships: unknown[];
-  goals: unknown[];
-  moods: unknown[];
+  habits: FirestoreHabit[];
+  relationships: FirestoreRelationship[];
+  goals: FirestoreCommitment[];
+  moods: FirestoreMood[];
 }): LifeTrajectory['lifeScore'] {
   // This is subjective but helpful for tracking progress
   const scores = {
@@ -540,8 +605,7 @@ function calculateLifeScore(data: {
   };
 
   // Adjust based on habit consistency
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const healthHabits = (data.habits as any[]).filter((h) =>
+  const healthHabits = data.habits.filter((h) =>
     ['exercise', 'sleep', 'nutrition', 'workout'].some((k) => h.name?.toLowerCase().includes(k))
   );
   if (healthHabits.length > 0) {
@@ -550,8 +614,7 @@ function calculateLifeScore(data: {
   }
 
   // Adjust based on goal progress
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const activeGoals = (data.goals as any[]).filter((g) => g.status === 'active');
+  const activeGoals = data.goals.filter((g) => g.status === 'active');
   if (activeGoals.length > 0) {
     const avgProgress = activeGoals.reduce((sum, g) => sum + (g.progress || 0), 0) / activeGoals.length;
     scores.growth = Math.round(avgProgress);
@@ -560,15 +623,13 @@ function calculateLifeScore(data: {
 
   // Adjust based on relationship health
   if (data.relationships.length > 0) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const avgHealth = (data.relationships as any[]).reduce((sum, r) => sum + (r.health || 50), 0) / data.relationships.length;
+    const avgHealth = data.relationships.reduce((sum, r) => sum + (r.health || 50), 0) / data.relationships.length;
     scores.relationships = Math.round(avgHealth);
   }
 
   // Adjust based on mood trend
   if (data.moods.length >= 5) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const recentMoods = data.moods.slice(0, 5).map((m: any) => m.score || 50);
+    const recentMoods = data.moods.slice(0, 5).map((m) => m.score || 50);
     scores.meaning = Math.round(recentMoods.reduce((a, b) => a + b, 0) / recentMoods.length);
   }
 
@@ -601,36 +662,30 @@ export async function generateLifeTrajectory(userId: string): Promise<LifeTrajec
 
   // Process goals
   const activeGoals: Goal[] = data.commitments
-    .filter((c) => (c as { status?: string }).status === 'active')
+    .filter((c) => c.status === 'active')
     .slice(0, 10)
-    .map((c) => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const commitment = c as any;
-      return {
-        id: commitment.id || `goal_${Math.random().toString(36).substring(2)}`,
-        title: commitment.description || commitment.title || 'Goal',
-        category: 'other' as const,
-        description: commitment.description || '',
-        targetDate: commitment.dueDate,
-        progress: commitment.progress || 0,
-        status: 'active' as const,
-        blockers: [],
-        enablers: [],
-        momentum: 'steady' as const,
-      };
-    });
+    .map((commitment) => ({
+      id: commitment.id || `goal_${Math.random().toString(36).substring(2)}`,
+      title: commitment.description || commitment.title || 'Goal',
+      category: (commitment.category as Goal['category']) || 'other',
+      description: commitment.description || '',
+      targetDate: undefined, // commitment.dueDate would need to be added to type
+      progress: commitment.progress || 0,
+      status: 'active' as const,
+      blockers: commitment.blockers || [],
+      enablers: commitment.enablers || [],
+      momentum: (commitment.momentum as Goal['momentum']) || 'steady',
+    }));
 
   // Process habits with projections
-  const habits: HabitWithProjection[] = data.habits.slice(0, 10).map((h) => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const habit = h as any;
+  const habits: HabitWithProjection[] = data.habits.slice(0, 10).map((habit) => {
     const consistency = habit.consistency || 50;
     return {
       id: habit.id || `habit_${Math.random().toString(36).substring(2)}`,
       name: habit.name || 'Habit',
       category: habit.category || 'wellness',
-      currentStreak: habit.streak || 0,
-      longestStreak: habit.longestStreak || habit.streak || 0,
+      currentStreak: habit.currentStreak || 0,
+      longestStreak: habit.longestStreak || habit.currentStreak || 0,
       consistency,
       projectedImpact: {
         oneMonth: projectHabitOutcome(habit.name || '', consistency, 1 / 12),
@@ -643,28 +698,22 @@ export async function generateLifeTrajectory(userId: string): Promise<LifeTrajec
   });
 
   // Process relationships
-  const relationships: RelationshipHealth[] = data.relationships.slice(0, 10).map((r) => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const rel = r as any;
-    return {
-      personName: rel.name || 'Unknown',
-      relationship: rel.relationship || 'friend',
-      importance: rel.importance || 50,
-      currentHealth: rel.health || 50,
-      trend: rel.trend || 'stable',
-      lastMeaningfulInteraction: rel.lastMentioned || new Date().toISOString(),
-      suggestedAction: rel.trend === 'declining' ? 'Reach out soon' : undefined,
-    };
-  });
+  const relationships: RelationshipHealth[] = data.relationships.slice(0, 10).map((rel) => ({
+    personName: rel.name || 'Unknown',
+    relationship: rel.relationship || 'friend',
+    importance: rel.importance || 50,
+    currentHealth: rel.health || 50,
+    trend: rel.trend || 'stable',
+    lastMeaningfulInteraction: rel.lastInteraction?.toString() || new Date().toISOString(),
+    suggestedAction: rel.trend === 'declining' ? 'Reach out soon' : undefined,
+  }));
 
   // Process values
-  const values: ValueAlignment[] = data.values.slice(0, 5).map((v) => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const val = v as any;
+  const values: ValueAlignment[] = data.values.slice(0, 5).map((val) => {
     const importance = val.importance || 50;
     const living = val.livingScore || 50;
     return {
-      value: val.value || val.name || 'Value',
+      value: val.name || 'Value',
       importanceToUser: importance,
       livingScorel: living,
       gap: Math.abs(importance - living),

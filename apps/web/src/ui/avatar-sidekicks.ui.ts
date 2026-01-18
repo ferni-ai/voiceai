@@ -222,7 +222,7 @@ let activeSidekicks: ActiveSidekick[] = [];
 let isInitialized = false;
 let eventAbortController: AbortController | null = null;
 
-const { trackedTimeout, clearAll: clearAllTimeouts } = createTimeoutTracker();
+const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
 
 // ============================================================================
 // INITIALIZATION

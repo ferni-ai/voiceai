@@ -89,6 +89,10 @@ export async function handleScheduledJobsRoutes(
       await handleBetterThanHumanOutreach(res);
       return true;
 
+    case '/api/jobs/process-insight-actions':
+      await handleProcessInsightActions(res);
+      return true;
+
     // ========================================================================
     // FAMILY CHECK-IN JOBS (Proactive family wellbeing calls)
     // ========================================================================
@@ -846,6 +850,212 @@ async function handleBetterThanHumanOutreach(res: ServerResponse): Promise<void>
   } catch (error) {
     const durationMs = Date.now() - startTime;
     log.error({ error: String(error), durationMs }, 'Better Than Human outreach job failed');
+    sendJson(res, 500, {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error',
+      partialStats: stats,
+      timestamp: new Date().toISOString(),
+    });
+  }
+}
+
+// ============================================================================
+// INSIGHT ACTION PROCESSOR
+// ============================================================================
+
+/**
+ * Process superhuman insights and trigger automated actions.
+ * This bridges the insight-action system for AGI-like autonomous behavior.
+ *
+ * Flow:
+ * 1. Gather recent insights from all superhuman services
+ * 2. Evaluate against insight-action rules
+ * 3. Execute matching actions (outreach, notifications, tasks)
+ * 4. Record execution history for cooldown tracking
+ */
+async function handleProcessInsightActions(res: ServerResponse): Promise<void> {
+  const startTime = Date.now();
+  const stats = {
+    insightsGathered: 0,
+    rulesEvaluated: 0,
+    actionsExecuted: 0,
+    actionsSkipped: 0,
+    errors: 0,
+  };
+
+  try {
+    log.info('🧠 Starting insight action processor (Cloud Scheduler)');
+
+    const { evaluateInsight, processInsights, INSIGHT_ACTION_RULES } =
+      await import('../services/automation/insight-action-bridge.js');
+    const { getFirestoreDb } = await import('../services/superhuman/firestore-utils.js');
+    const db = getFirestoreDb();
+
+    if (!db) {
+      throw new Error('Firestore not available');
+    }
+
+    // Get recently active users
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+    const usersSnap = await db
+      .collection('bogle_users')
+      .where('lastActiveAt', '>=', sevenDaysAgo.toISOString())
+      .limit(500)
+      .get();
+
+    const insights: Array<{
+      id: string;
+      userId: string;
+      capability: string;
+      timestamp: string;
+      data: Record<string, unknown>;
+    }> = [];
+
+    // Gather insights from superhuman services for each user
+    for (const userDoc of usersSnap.docs) {
+      try {
+        const userId = userDoc.id;
+
+        // Check capacity guardian for burnout risk
+        const capacitySnap = await db
+          .collection('bogle_users')
+          .doc(userId)
+          .collection('capacity')
+          .orderBy('createdAt', 'desc')
+          .limit(1)
+          .get();
+
+        if (!capacitySnap.empty) {
+          const capacity = capacitySnap.docs[0].data();
+          if (capacity.level && capacity.level <= 4) {
+            insights.push({
+              id: `capacity_${userId}_${Date.now()}`,
+              userId,
+              capability: 'capacity_guardian',
+              timestamp: new Date().toISOString(),
+              data: { burnoutRisk: 1 - capacity.level / 10 },
+            });
+          }
+        }
+
+        // Check commitments for overdue items
+        const commitmentsSnap = await db
+          .collection('bogle_users')
+          .doc(userId)
+          .collection('commitments')
+          .where('status', '==', 'active')
+          .where('dueDate', '<', new Date().toISOString())
+          .limit(5)
+          .get();
+
+        if (!commitmentsSnap.empty) {
+          insights.push({
+            id: `commitment_${userId}_${Date.now()}`,
+            userId,
+            capability: 'commitment_keeper',
+            timestamp: new Date().toISOString(),
+            data: {
+              commitmentOverdue: true,
+              overdueCommitments: commitmentsSnap.docs.map((d) => d.data().description),
+            },
+          });
+        }
+
+        // Check relationship network for drift
+        const relationshipsSnap = await db
+          .collection('bogle_users')
+          .doc(userId)
+          .collection('relationships')
+          .orderBy('lastMentioned', 'asc')
+          .limit(5)
+          .get();
+
+        for (const relDoc of relationshipsSnap.docs) {
+          const rel = relDoc.data();
+          const lastMentioned = new Date(rel.lastMentioned);
+          const daysSince = (Date.now() - lastMentioned.getTime()) / (1000 * 60 * 60 * 24);
+
+          if (daysSince > 30 && (rel.importance === 'high' || rel.relationship === 'family')) {
+            insights.push({
+              id: `relationship_${userId}_${relDoc.id}_${Date.now()}`,
+              userId,
+              capability: 'relationship_network',
+              timestamp: new Date().toISOString(),
+              data: {
+                driftScore: Math.min(daysSince / 60, 1),
+                relationshipImportance: rel.importance === 'high' ? 0.9 : 0.7,
+                relationshipName: rel.name,
+              },
+            });
+          }
+        }
+
+        // Check dreams for dormant items
+        const dreamsSnap = await db
+          .collection('bogle_users')
+          .doc(userId)
+          .collection('dreams')
+          .where('dormant', '==', false)
+          .limit(5)
+          .get();
+
+        for (const dreamDoc of dreamsSnap.docs) {
+          const dream = dreamDoc.data();
+          const lastMentioned = new Date(dream.lastMentioned || dream.createdAt);
+          const daysSince = (Date.now() - lastMentioned.getTime()) / (1000 * 60 * 60 * 24);
+
+          if (daysSince > 30) {
+            insights.push({
+              id: `dream_${userId}_${dreamDoc.id}_${Date.now()}`,
+              userId,
+              capability: 'dream_keeper',
+              timestamp: new Date().toISOString(),
+              data: {
+                dormantDays: daysSince,
+                dreamImportance: dream.importance || 0.5,
+                dreamDescription: dream.dream,
+              },
+            });
+          }
+        }
+
+        stats.insightsGathered += insights.length;
+      } catch (err) {
+        stats.errors++;
+        log.warn({ userId: userDoc.id, error: String(err) }, 'Failed to gather insights for user');
+      }
+    }
+
+    // Process all gathered insights through the insight-action bridge
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const executions = await processInsights(insights as any[]);
+
+    stats.rulesEvaluated = insights.length * INSIGHT_ACTION_RULES.length;
+    stats.actionsExecuted = executions.filter((e) => e.status === 'completed').length;
+    stats.actionsSkipped = executions.filter((e) => e.status !== 'completed').length;
+
+    const durationMs = Date.now() - startTime;
+
+    log.info(
+      {
+        ...stats,
+        durationMs,
+      },
+      '✅ Insight action processor completed'
+    );
+
+    sendJson(res, 200, {
+      success: true,
+      job: 'process-insight-actions',
+      stats,
+      durationMs,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error) {
+    const durationMs = Date.now() - startTime;
+    log.error({ error: String(error), durationMs }, 'Insight action processor failed');
     sendJson(res, 500, {
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error',

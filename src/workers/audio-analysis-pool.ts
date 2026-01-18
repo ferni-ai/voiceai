@@ -277,7 +277,8 @@ export function getAudioAnalysisPool(): AudioAnalysisWorkerPool {
     return poolInstance;
   }
   // Create new instance (non-concurrent singleton creation)
-  const instance = new AudioAnalysisWorkerPool(2);
+  // PERFORMANCE: Uses constructor default (4) for better parallelism
+  const instance = new AudioAnalysisWorkerPool();
   poolInstance = instance;
   return instance;
 }

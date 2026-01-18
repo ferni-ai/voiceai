@@ -23,7 +23,7 @@ import { DURATION, EASING } from '../config/animation-constants.js';
 import { apiGet } from '../utils/api.js';
 
 const log = createLogger('CapabilityHubUI');
-const { trackedTimeout, clearAll: clearAllTimeouts } = createTimeoutTracker();
+const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
 
 // ============================================================================
 // TYPES

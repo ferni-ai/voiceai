@@ -183,6 +183,7 @@ import { handleInsightsRoutes } from '../../api/insights-routes.js';
 import { handleVisualStorytellingRoutes } from '../../api/visual-storytelling-routes.js';
 import { handleMemoryRoutes } from '../../api/memory-routes.js';
 import { handleActionRoutes } from '../../api/action-routes.js';
+import { handleAutomationRoutes } from '../../api/automation-routes.js';
 import { handleWorkerRoutes } from '../../api/worker-routes.js';
 import { handleSemanticIntelligenceRoutes } from './routes/semantic-intelligence.js';
 import {
@@ -829,7 +830,7 @@ const server = http.createServer(async (req, res) => {
 
     // Action routes (Activity Dashboard - calls, texts, emails, calendar)
     if (pathname.startsWith('/api/actions')) {
-      const handled = await handleActionRoutes(req, res, pathname, parsedUrl);
+      const handled = await handleActionRoutes(req, res, pathname);
       if (handled) return;
     }
 
@@ -1242,6 +1243,12 @@ const server = http.createServer(async (req, res) => {
     // Life Automation routes (workflows, templates, integrations)
     if (pathname.startsWith('/api/life-automation')) {
       const handled = await handleLifeAutomationRoutes(req, res, pathname, parsedUrl);
+      if (handled) return;
+    }
+
+    // Automation routes (send-message, create-event, audit-log)
+    if (pathname.startsWith('/api/automation')) {
+      const handled = await handleAutomationRoutes(req, res, pathname);
       if (handled) return;
     }
 

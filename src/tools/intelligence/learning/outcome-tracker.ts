@@ -464,7 +464,9 @@ export async function initializeOutcomeTracker(
 
 export function resetOutcomeTracker(): void {
   if (trackerInstance) {
-    trackerInstance.shutdown().catch(() => {});
+    trackerInstance.shutdown().catch((err) => {
+      log.warn({ error: String(err) }, 'Failed to shutdown outcome tracker during reset');
+    });
   }
   trackerInstance = null;
 }
