@@ -82,8 +82,12 @@ export {
   getAllCoalescerStats,
   resetAllCoalescers,
   hashContent,
+  // Observability callbacks for metrics integration
+  configureCoalescerMetrics,
+  resetCoalescerMetrics,
   type CoalescerOptions,
   type CoalescerStats,
+  type CoalescerMetricsCallbacks,
 } from './request-coalescer.js';
 
 // ============================================================================

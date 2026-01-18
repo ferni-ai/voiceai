@@ -37,11 +37,25 @@ const log = getLogger();
 // TYPES
 // ============================================================================
 
-export interface CoalescerOptions {
+export interface CoalescerOptions<T = unknown> {
   /** Time in ms before pending requests are auto-cleaned (default: 60000) */
   pendingTtlMs?: number;
   /** Maximum number of pending requests to track (default: 10000) */
   maxPending?: number;
+  /**
+   * Optional function to clone results before returning to waiters.
+   * Prevents mutation bugs when multiple callers share the same result.
+   * For primitive types (strings, numbers) this is not needed.
+   * For arrays/objects, use structuredClone or a custom cloner.
+   *
+   * @example
+   * // For arrays of numbers (like embeddings)
+   * cloneResult: (arr) => [...arr]
+   *
+   * // For complex objects
+   * cloneResult: (obj) => structuredClone(obj)
+   */
+  cloneResult?: (result: T) => T;
 }
 
 export interface CoalescerStats {
@@ -64,6 +78,54 @@ interface PendingRequest<T> {
 }
 
 // ============================================================================
+// OBSERVABILITY / METRICS CALLBACKS
+// ============================================================================
+
+/**
+ * Metrics callbacks for observability integration.
+ * These are optional hooks that can be registered to receive events from coalescers.
+ */
+export interface CoalescerMetricsCallbacks {
+  /** Called when a request is coalesced with an existing in-flight request */
+  onCoalesce?: (name: string, key: string, waiterCount: number) => void;
+  /** Called when a coalescer is approaching its capacity limit (>80% full) */
+  onCapacityWarning?: (name: string, current: number, max: number) => void;
+  /** Called when a request completes (success or error) */
+  onComplete?: (name: string, key: string, durationMs: number, success: boolean) => void;
+}
+
+let metricsCallbacks: CoalescerMetricsCallbacks | null = null;
+
+/**
+ * Configure global metrics callbacks for all coalescers.
+ * This allows integration with observability systems.
+ *
+ * @example
+ * configureCoalescerMetrics({
+ *   onCoalesce: (name, key, waiters) => {
+ *     prometheus.inc('coalescer_coalesced_total', { name });
+ *   },
+ *   onCapacityWarning: (name, current, max) => {
+ *     logger.warn({ name, current, max }, 'Coalescer approaching capacity');
+ *   },
+ * });
+ */
+export function configureCoalescerMetrics(callbacks: CoalescerMetricsCallbacks): void {
+  metricsCallbacks = callbacks;
+  log.debug({ hasOnCoalesce: !!callbacks.onCoalesce, hasOnCapacityWarning: !!callbacks.onCapacityWarning }, 'Coalescer metrics callbacks configured');
+}
+
+/**
+ * Reset metrics callbacks (for testing).
+ */
+export function resetCoalescerMetrics(): void {
+  metricsCallbacks = null;
+}
+
+/** Capacity warning threshold (80%) */
+const CAPACITY_WARNING_THRESHOLD = 0.8;
+
+// ============================================================================
 // REQUEST COALESCER CLASS
 // ============================================================================
 
@@ -71,6 +133,7 @@ export class RequestCoalescer<T> {
   readonly name: string;
   private readonly pendingTtlMs: number;
   private readonly maxPending: number;
+  private readonly cloneResult: ((result: T) => T) | null;
   private readonly pending = new Map<string, PendingRequest<T>>();
 
   // Stats
@@ -79,10 +142,11 @@ export class RequestCoalescer<T> {
   private actualExecutions = 0;
   private errors = 0;
 
-  constructor(name: string, options: CoalescerOptions = {}) {
+  constructor(name: string, options: CoalescerOptions<T> = {}) {
     this.name = name;
     this.pendingTtlMs = options.pendingTtlMs ?? 60000;
     this.maxPending = options.maxPending ?? 10000;
+    this.cloneResult = options.cloneResult ?? null;
   }
 
   /**
@@ -103,6 +167,16 @@ export class RequestCoalescer<T> {
       existing.waiterCount++;
       this.coalescedRequests++;
       log.debug({ name: this.name, key: key.slice(0, 8), waiters: existing.waiterCount }, 'Request coalesced');
+      // Notify metrics callback (wrapped in try-catch to not break coalescing)
+      try {
+        metricsCallbacks?.onCoalesce?.(this.name, key, existing.waiterCount);
+      } catch (callbackError) {
+        log.warn({ error: String(callbackError), name: this.name }, 'Metrics onCoalesce callback threw - ignoring');
+      }
+      // Clone result for coalesced waiters to prevent shared mutations
+      if (this.cloneResult) {
+        return existing.promise.then((result) => this.cloneResult!(result));
+      }
       return existing.promise;
     }
 
@@ -111,6 +185,15 @@ export class RequestCoalescer<T> {
     if (effectiveSize >= this.maxPending) {
       this.errors++;
       throw new Error(`Request coalescer "${this.name}": Too many pending requests (${this.maxPending})`);
+    }
+
+    // Warn if approaching capacity threshold
+    if (effectiveSize >= this.maxPending * CAPACITY_WARNING_THRESHOLD) {
+      try {
+        metricsCallbacks?.onCapacityWarning?.(this.name, effectiveSize, this.maxPending);
+      } catch (callbackError) {
+        log.warn({ error: String(callbackError), name: this.name }, 'Metrics onCapacityWarning callback threw - ignoring');
+      }
     }
 
     // Clean up orphaned timeout from expired entry before replacing it.
@@ -134,15 +217,28 @@ export class RequestCoalescer<T> {
       expired: false,
     };
 
+    // Track execution start time for metrics
+    const executionStartTime = Date.now();
+
     // Wrap the executor to handle cleanup
     const wrappedPromise = (async (): Promise<T> => {
+      let success = false;
       try {
         const result = await executor();
+        success = true;
         return result;
       } catch (error) {
         this.errors++;
         throw error;
       } finally {
+        // Notify completion callback (wrapped in try-catch to ensure cleanup always runs)
+        const durationMs = Date.now() - executionStartTime;
+        try {
+          metricsCallbacks?.onComplete?.(this.name, key, durationMs, success);
+        } catch (callbackError) {
+          log.warn({ error: String(callbackError), name: this.name }, 'Metrics onComplete callback threw - ignoring');
+        }
+
         // Clean up after completion (success or error).
         // IMPORTANT: Only clean up if this entry is still the current one for this key.
         // If TTL expired and a new request replaced our entry, we must not touch it.
@@ -177,6 +273,10 @@ export class RequestCoalescer<T> {
     // Store the pending request
     this.pending.set(key, entry);
 
+    // Clone result for original caller to ensure mutation safety
+    if (this.cloneResult) {
+      return wrappedPromise.then((result) => this.cloneResult!(result));
+    }
     return wrappedPromise;
   }
 
@@ -259,7 +359,7 @@ const coalescers = new Map<string, RequestCoalescer<unknown>>();
  * with the given name already exists, the provided options are ignored and
  * a warning is logged if they differ from the existing configuration.
  */
-export function getRequestCoalescer<T>(name: string, options?: CoalescerOptions): RequestCoalescer<T> {
+export function getRequestCoalescer<T>(name: string, options?: CoalescerOptions<T>): RequestCoalescer<T> {
   const existing = coalescers.get(name);
   if (existing) {
     // Warn if different options were requested (they'll be ignored)
@@ -283,9 +383,9 @@ export function getRequestCoalescer<T>(name: string, options?: CoalescerOptions)
     return existing as RequestCoalescer<T>;
   }
 
-  const coalescer = new RequestCoalescer<unknown>(name, options);
-  coalescers.set(name, coalescer);
-  return coalescer as RequestCoalescer<T>;
+  const coalescer = new RequestCoalescer<T>(name, options);
+  coalescers.set(name, coalescer as RequestCoalescer<unknown>);
+  return coalescer;
 }
 
 /**
@@ -311,4 +411,6 @@ export default {
   getAllCoalescerStats,
   resetAllCoalescers,
   hashContent,
+  configureCoalescerMetrics,
+  resetCoalescerMetrics,
 };

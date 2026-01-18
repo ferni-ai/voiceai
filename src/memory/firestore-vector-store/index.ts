@@ -69,7 +69,7 @@ export {
 } from './search-cache.js';
 
 // Re-export core
-export { FirestoreVectorStore } from './core.js';
+export { FirestoreVectorStore, getVectorSearchCoalescerStats, isVectorCoalescingEnabled } from './core.js';
 
 // ============================================================================
 // SINGLETON INSTANCE
