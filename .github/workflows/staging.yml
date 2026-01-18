@@ -78,19 +78,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Fix local dependencies for CI
-        run: |
-          # Replace local file: dependencies with npm registry versions
-          # The local agents-js fork is not available in CI
-          sed -i 's|"file:../agents-js/agents"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
-          sed -i 's|"file:../agents-js/plugins/cartesia"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
-          sed -i 's|"file:../agents-js/plugins/deepgram"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
-          sed -i 's|"file:../agents-js/plugins/google"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
-          sed -i 's|"file:../agents-js/plugins/openai"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
-          sed -i 's|"file:../agents-js/plugins/silero"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
-          # Delete lockfile so pnpm regenerates it with npm registry versions
-          rm -f pnpm-lock.yaml
-
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
         with:
@@ -101,6 +88,17 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'pnpm'
+
+      - name: Fix local dependencies for CI
+        run: |
+          # Replace local file: dependencies with npm registry versions
+          # The local agents-js fork is not available in CI
+          sed -i 's|"file:../agents-js/agents"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
+          sed -i 's|"file:../agents-js/plugins/cartesia"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
+          sed -i 's|"file:../agents-js/plugins/deepgram"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
+          sed -i 's|"file:../agents-js/plugins/google"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
+          sed -i 's|"file:../agents-js/plugins/openai"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
+          sed -i 's|"file:../agents-js/plugins/silero"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
 
       - name: Install dependencies
         run: pnpm install --no-frozen-lockfile
@@ -150,19 +148,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Fix local dependencies for CI
-        run: |
-          # Replace local file: dependencies with npm registry versions
-          # The local agents-js fork is not available in CI
-          sed -i 's|"file:../agents-js/agents"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
-          sed -i 's|"file:../agents-js/plugins/cartesia"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
-          sed -i 's|"file:../agents-js/plugins/deepgram"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
-          sed -i 's|"file:../agents-js/plugins/google"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
-          sed -i 's|"file:../agents-js/plugins/openai"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
-          sed -i 's|"file:../agents-js/plugins/silero"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
-          # Delete lockfile so pnpm regenerates it with npm registry versions
-          rm -f pnpm-lock.yaml
-
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v2
         with:
@@ -186,6 +171,17 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'pnpm'
+
+      - name: Fix local dependencies for CI
+        run: |
+          # Replace local file: dependencies with npm registry versions
+          # The local agents-js fork is not available in CI
+          sed -i 's|"file:../agents-js/agents"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
+          sed -i 's|"file:../agents-js/plugins/cartesia"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
+          sed -i 's|"file:../agents-js/plugins/deepgram"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
+          sed -i 's|"file:../agents-js/plugins/google"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
+          sed -i 's|"file:../agents-js/plugins/openai"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
+          sed -i 's|"file:../agents-js/plugins/silero"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
 
       - name: Build design-system (required for Docker)
         run: |
