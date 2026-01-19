@@ -239,7 +239,8 @@ export interface SessionLifecycleMethods {
  * function analyzeMessage(services: SessionAnalysisMethods) { ... }
  */
 export interface SessionServices
-  extends SessionCore,
+  extends
+    SessionCore,
     SessionHandoff,
     SessionMemory,
     SessionIntelligence,

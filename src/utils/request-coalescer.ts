@@ -112,7 +112,10 @@ let metricsCallbacks: CoalescerMetricsCallbacks | null = null;
  */
 export function configureCoalescerMetrics(callbacks: CoalescerMetricsCallbacks): void {
   metricsCallbacks = callbacks;
-  log.debug({ hasOnCoalesce: !!callbacks.onCoalesce, hasOnCapacityWarning: !!callbacks.onCapacityWarning }, 'Coalescer metrics callbacks configured');
+  log.debug(
+    { hasOnCoalesce: !!callbacks.onCoalesce, hasOnCapacityWarning: !!callbacks.onCapacityWarning },
+    'Coalescer metrics callbacks configured'
+  );
 }
 
 /**
@@ -166,12 +169,18 @@ export class RequestCoalescer<T> {
       // Only coalesce with non-expired requests
       existing.waiterCount++;
       this.coalescedRequests++;
-      log.debug({ name: this.name, key: key.slice(0, 8), waiters: existing.waiterCount }, 'Request coalesced');
+      log.debug(
+        { name: this.name, key: key.slice(0, 8), waiters: existing.waiterCount },
+        'Request coalesced'
+      );
       // Notify metrics callback (wrapped in try-catch to not break coalescing)
       try {
         metricsCallbacks?.onCoalesce?.(this.name, key, existing.waiterCount);
       } catch (callbackError) {
-        log.warn({ error: String(callbackError), name: this.name }, 'Metrics onCoalesce callback threw - ignoring');
+        log.warn(
+          { error: String(callbackError), name: this.name },
+          'Metrics onCoalesce callback threw - ignoring'
+        );
       }
       // Clone result for coalesced waiters to prevent shared mutations
       if (this.cloneResult) {
@@ -184,7 +193,9 @@ export class RequestCoalescer<T> {
     const effectiveSize = existing?.expired ? this.pending.size - 1 : this.pending.size;
     if (effectiveSize >= this.maxPending) {
       this.errors++;
-      throw new Error(`Request coalescer "${this.name}": Too many pending requests (${this.maxPending})`);
+      throw new Error(
+        `Request coalescer "${this.name}": Too many pending requests (${this.maxPending})`
+      );
     }
 
     // Warn if approaching capacity threshold
@@ -192,7 +203,10 @@ export class RequestCoalescer<T> {
       try {
         metricsCallbacks?.onCapacityWarning?.(this.name, effectiveSize, this.maxPending);
       } catch (callbackError) {
-        log.warn({ error: String(callbackError), name: this.name }, 'Metrics onCapacityWarning callback threw - ignoring');
+        log.warn(
+          { error: String(callbackError), name: this.name },
+          'Metrics onCapacityWarning callback threw - ignoring'
+        );
       }
     }
 
@@ -236,7 +250,10 @@ export class RequestCoalescer<T> {
         try {
           metricsCallbacks?.onComplete?.(this.name, key, durationMs, success);
         } catch (callbackError) {
-          log.warn({ error: String(callbackError), name: this.name }, 'Metrics onComplete callback threw - ignoring');
+          log.warn(
+            { error: String(callbackError), name: this.name },
+            'Metrics onComplete callback threw - ignoring'
+          );
         }
 
         // Clean up after completion (success or error).
@@ -359,7 +376,10 @@ const coalescers = new Map<string, RequestCoalescer<unknown>>();
  * with the given name already exists, the provided options are ignored and
  * a warning is logged if they differ from the existing configuration.
  */
-export function getRequestCoalescer<T>(name: string, options?: CoalescerOptions<T>): RequestCoalescer<T> {
+export function getRequestCoalescer<T>(
+  name: string,
+  options?: CoalescerOptions<T>
+): RequestCoalescer<T> {
   const existing = coalescers.get(name);
   if (existing) {
     // Warn if different options were requested (they'll be ignored)

@@ -29,7 +29,7 @@ export type ModelProviderId = 'openai-realtime' | 'gemini-live';
  * Configuration for which prompt modules to include
  *
  * Different providers need different prompt configurations:
- * - OpenAI Realtime: Native function calling, minimal instructions
+ * - OpenAI Realtime: Native function calling, minimal instructions + tool guidance
  * - Gemini Live: JSON workaround, full function-calling prompts
  */
 export interface PromptModuleConfig {
@@ -41,9 +41,16 @@ export interface PromptModuleConfig {
 
   /**
    * Include persona-specific identity/function-calling-specialty.md
-   * Contains persona-specific tool descriptions
+   * Contains JSON format examples for Gemini
    */
   includeFunctionCallingSpecialty: boolean;
+
+  /**
+   * Include identity/tool-usage-guidance.md
+   * Contains conceptual tool guidance (WHEN to use tools, handoff triggers)
+   * This is needed by ALL providers, even those with native function calling
+   */
+  includeToolUsageGuidance: boolean;
 
   /**
    * Include shared/model-base-instructions.md
@@ -89,6 +96,56 @@ export interface LLMModelConfig {
     createResponse?: boolean;
     interruptResponse?: boolean;
   };
+
+  /**
+   * Whether this turn expects a tool call.
+   * When true, providers may lower temperature for more deterministic output.
+   * Set by semantic router when it detects tool-calling intent.
+   */
+  expectsToolCall?: boolean;
+}
+
+// ============================================================================
+// DYNAMIC TEMPERATURE
+// ============================================================================
+
+/**
+ * Default temperatures for different contexts.
+ * 
+ * Research (Jan 2026) shows that lower temperature during tool calls
+ * significantly improves Gemini's function calling reliability.
+ */
+export const TEMPERATURE_DEFAULTS = {
+  /** Standard conversation temperature */
+  CONVERSATION: 0.7,
+  
+  /** Temperature when tool call is expected (more deterministic) */
+  TOOL_CALL: 0.1,
+  
+  /** Temperature for retry attempts (even more deterministic) */
+  RETRY: 0.05,
+} as const;
+
+/**
+ * Get appropriate temperature based on context.
+ * 
+ * @param expectsToolCall - Whether a tool call is expected this turn
+ * @param isRetry - Whether this is a retry attempt
+ * @param baseTemperature - Base temperature to use if not adjusting
+ * @returns Appropriate temperature for the context
+ */
+export function getContextualTemperature(
+  expectsToolCall: boolean = false,
+  isRetry: boolean = false,
+  baseTemperature: number = TEMPERATURE_DEFAULTS.CONVERSATION
+): number {
+  if (isRetry) {
+    return TEMPERATURE_DEFAULTS.RETRY;
+  }
+  if (expectsToolCall) {
+    return TEMPERATURE_DEFAULTS.TOOL_CALL;
+  }
+  return baseTemperature;
 }
 
 /**
@@ -225,6 +282,22 @@ export interface ModelProvider {
    * @returns The LLM model instance (type varies by provider)
    */
   createLLMModel(config: LLMModelConfig): Promise<unknown>;
+
+  /**
+   * Convert tools to provider-native format.
+   *
+   * Different providers expect tools in different formats:
+   * - OpenAI: function definitions with JSON schema
+   * - Gemini: functionDeclarations wrapped in tools array
+   * - Qwen: Similar to OpenAI
+   *
+   * This method enables provider-agnostic tool passing and
+   * future-proofs the system for new LLM providers.
+   *
+   * @param tools - LiveKit tool definitions
+   * @returns Provider-specific tool format (varies by provider)
+   */
+  convertToolsToNativeFormat?(tools: unknown[]): unknown;
 
   // -------------------------------------------------------------------------
   // Session Configuration

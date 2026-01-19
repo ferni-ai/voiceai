@@ -1,0 +1,134 @@
+{
+  "$schema": "../tool.schema.json",
+  "domain": "events",
+  "persona": "jordan",
+  "version": "1.0.0",
+  "tools": [
+    {
+      "name": "planEvent",
+      "description": "Start planning an event or celebration. Jordan helps with all aspects of event planning from intimate gatherings to major milestones.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "eventType": {
+            "type": "string",
+            "description": "Type of event: birthday, wedding, reunion, party, dinner, celebration"
+          },
+          "date": {
+            "type": "string",
+            "description": "When the event should be"
+          },
+          "size": {
+            "type": "string",
+            "description": "Approximate number of guests",
+            "enum": ["intimate (2-10)", "small (10-25)", "medium (25-50)", "large (50+)"]
+          },
+          "vibe": {
+            "type": "string",
+            "description": "The desired atmosphere"
+          }
+        },
+        "required": ["eventType"]
+      },
+      "examples": [
+        { "userSays": "Help me plan a birthday party", "output": "{\"fn\":\"planEvent\",\"args\":{\"eventType\":\"birthday\"}}" },
+        { "userSays": "I want to throw a dinner party next month", "output": "{\"fn\":\"planEvent\",\"args\":{\"eventType\":\"dinner\",\"date\":\"next month\",\"size\":\"intimate (2-10)\"}}" },
+        { "userSays": "Plan our anniversary celebration", "output": "{\"fn\":\"planEvent\",\"args\":{\"eventType\":\"celebration\",\"vibe\":\"romantic\"}}" }
+      ],
+      "tags": ["events", "planning", "celebrations"]
+    },
+    {
+      "name": "trackMilestone",
+      "description": "Track an important milestone or anniversary. Jordan remembers and helps celebrate special moments.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "milestone": {
+            "type": "string",
+            "description": "What milestone to track"
+          },
+          "date": {
+            "type": "string",
+            "description": "Date of the milestone"
+          },
+          "person": {
+            "type": "string",
+            "description": "Who the milestone is for"
+          },
+          "recurring": {
+            "type": "boolean",
+            "description": "Whether this repeats annually"
+          }
+        },
+        "required": ["milestone", "date"]
+      },
+      "examples": [
+        { "userSays": "Remember my mom's birthday is March 15", "output": "{\"fn\":\"trackMilestone\",\"args\":{\"milestone\":\"birthday\",\"date\":\"March 15\",\"person\":\"mom\",\"recurring\":true}}" },
+        { "userSays": "Track our wedding anniversary on June 20", "output": "{\"fn\":\"trackMilestone\",\"args\":{\"milestone\":\"wedding anniversary\",\"date\":\"June 20\",\"recurring\":true}}" },
+        { "userSays": "Add my start date at work - January 10", "output": "{\"fn\":\"trackMilestone\",\"args\":{\"milestone\":\"work anniversary\",\"date\":\"January 10\",\"recurring\":true}}" }
+      ],
+      "tags": ["milestones", "anniversaries", "reminders"]
+    },
+    {
+      "name": "suggestVenue",
+      "description": "Suggest venues or locations for an event based on requirements.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "eventType": {
+            "type": "string",
+            "description": "What kind of event"
+          },
+          "location": {
+            "type": "string",
+            "description": "City or area to search"
+          },
+          "budget": {
+            "type": "string",
+            "description": "Budget range"
+          },
+          "requirements": {
+            "type": "array",
+            "description": "Specific requirements",
+            "items": { "type": "string" }
+          }
+        },
+        "required": ["eventType"]
+      },
+      "examples": [
+        { "userSays": "Find a venue for my birthday in SF", "output": "{\"fn\":\"suggestVenue\",\"args\":{\"eventType\":\"birthday\",\"location\":\"San Francisco\"}}" },
+        { "userSays": "I need a restaurant for 20 people", "output": "{\"fn\":\"suggestVenue\",\"args\":{\"eventType\":\"dinner\",\"requirements\":[\"seats 20\"]}}" }
+      ],
+      "tags": ["events", "venues", "recommendations"]
+    },
+    {
+      "name": "createGuestList",
+      "description": "Manage the guest list for an event.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "event": {
+            "type": "string",
+            "description": "Which event this is for"
+          },
+          "action": {
+            "type": "string",
+            "description": "What to do",
+            "enum": ["add", "remove", "list", "rsvp"]
+          },
+          "guests": {
+            "type": "array",
+            "description": "Guest names to add/remove",
+            "items": { "type": "string" }
+          }
+        },
+        "required": ["event", "action"]
+      },
+      "examples": [
+        { "userSays": "Add Sarah to the party guest list", "output": "{\"fn\":\"createGuestList\",\"args\":{\"event\":\"party\",\"action\":\"add\",\"guests\":[\"Sarah\"]}}" },
+        { "userSays": "Who's on the guest list?", "output": "{\"fn\":\"createGuestList\",\"args\":{\"event\":\"party\",\"action\":\"list\"}}" }
+      ],
+      "tags": ["events", "guests", "management"]
+    }
+  ]
+}

@@ -22,8 +22,7 @@ const HANDLED_TOOLS = [
   // Market Data
   'marketdata',
   'marketawareness',
-  'getstockquote',
-  'getmarketsummary',
+  // NOTE: getstockquote and getmarketsummary are handled by information-executor
   // Insights
   'analyzepatterns',
   'behavioralinsights',
@@ -63,13 +62,12 @@ async function execute(
     const toolDefs = await getToolDefinitions();
 
     // Map lowercase function names to tool IDs
+    // NOTE: getstockquote and getmarketsummary are handled by information-executor
     const toolIdMap: Record<string, string> = {
       analyzestock: 'analyzeStock',
       findstocks: 'findStocks',
       marketdata: 'marketData',
       marketawareness: 'marketAwareness',
-      getstockquote: 'marketData',
-      getmarketsummary: 'marketData',
       analyzepatterns: 'analyzePatterns',
       behavioralinsights: 'behavioralInsights',
       insightbriefing: 'insightBriefing',

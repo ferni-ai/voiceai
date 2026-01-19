@@ -147,13 +147,14 @@ export class OpenAIRealtimeProvider implements ModelProvider {
   // -------------------------------------------------------------------------
 
   /**
-   * OpenAI should NOT include JSON function-calling prompts.
-   * Native function calling handles tool execution.
+   * OpenAI should NOT include JSON function-calling prompts (native FC handles that).
+   * BUT it DOES need tool usage guidance (when to hand off, awareness matrix, etc.)
    */
   getPromptModules(): PromptModuleConfig {
     return {
-      includeFunctionCallingBase: false,
-      includeFunctionCallingSpecialty: false,
+      includeFunctionCallingBase: false, // No JSON format instructions
+      includeFunctionCallingSpecialty: false, // No JSON format examples
+      includeToolUsageGuidance: true, // YES - conceptual guidance about WHEN to use tools
       includeModelBaseInstructions: false,
       useMinimalInstructions: true,
     };
@@ -221,6 +222,42 @@ export class OpenAIRealtimeProvider implements ModelProvider {
     });
 
     return model;
+  }
+
+  // -------------------------------------------------------------------------
+  // Tool Conversion
+  // -------------------------------------------------------------------------
+
+  /**
+   * Convert tools to OpenAI-native format.
+   *
+   * OpenAI expects tools as an array of function definitions:
+   * ```
+   * [{
+   *   type: 'function',
+   *   function: {
+   *     name: 'toolName',
+   *     description: 'what it does',
+   *     parameters: { type: 'object', properties: {...} }
+   *   }
+   * }]
+   * ```
+   *
+   * @param tools - LiveKit tool definitions
+   * @returns OpenAI-native tool format
+   */
+  convertToolsToNativeFormat(tools: unknown[]): unknown {
+    return tools.map((tool) => {
+      const t = tool as Record<string, unknown>;
+      return {
+        type: 'function',
+        function: {
+          name: t.name,
+          description: t.description || `Execute ${t.name}`,
+          parameters: t.parameters || { type: 'object', properties: {} },
+        },
+      };
+    });
   }
 
   // -------------------------------------------------------------------------

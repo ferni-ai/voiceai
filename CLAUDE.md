@@ -58,20 +58,52 @@ Pre-commit hooks validate both backend and frontend code. CI enforces all qualit
 | Layer violations         | 0          | `pnpm quality:arch`               |
 | Design tokens (frontend) | 0          | `cd apps/web && pnpm lint:tokens` |
 
-## 🚀 Development Servers (MUST RUN ALL 3)
+## 🚀 Development Servers (MUST RUN ALL 4)
+
+For full development, you need 4 servers running:
+
+| Server | Port | Purpose |
+|--------|------|---------|
+| **Token Server** | 3001 | LiveKit tokens, Spotify OAuth, subscriptions |
+| **UI Server** | 3002 | APIs, engagement routes, agent registry |
+| **Vite Frontend** | 3004 | Frontend with HMR |
+| **Voice Agent** | LiveKit | Voice agent (connects to dev LiveKit project) |
+
+### For Cursor AI Agents (Recommended)
+
+Start each server in a **separate background terminal** so logs can be watched:
 
 ```bash
-# Terminal 1: Token Server (port 3001) - LiveKit tokens, Spotify OAuth, subscriptions
-node token-server.js
+# Terminal 1: Token Server (port 3001)
+pnpm token-server
 
-# Terminal 2: UI Server (port 3002) - APIs, engagement routes, agent registry
-PORT=3002 node ui-server.js
+# Terminal 2: UI Server (port 3002)
+pnpm ui-server
 
-# Terminal 3: Vite Dev Server (port 3004) - Frontend with HMR
+# Terminal 3: Vite Frontend (port 3004)
 cd apps/web && pnpm dev
+
+# Terminal 4: Voice Agent (LiveKit worker)
+LOG_FULL_RESPONSES=true pnpm dev
 ```
 
-**Why 3 servers?** Vite proxies API calls: `/api/*` → UI Server (3002), `/token`, `/spotify/*`, `/subscription/*` → Token Server (3001)
+Run `ferni dev cursor` for a quick reference of these commands.
+
+### Health Check
+
+```bash
+curl -s http://localhost:3001/health  # Token server
+curl -s http://localhost:3002/health  # UI server
+curl -s http://localhost:3004/ | head -c 100  # Vite
+```
+
+### Stop All Servers
+
+```bash
+ferni dev stop
+```
+
+**Why 4 servers?** Vite proxies API calls: `/api/*` → UI Server (3002), `/token`, `/spotify/*`, `/subscription/*` → Token Server (3001). The Voice Agent connects directly to LiveKit.
 
 ## 🔑 LiveKit Configuration (Dev vs Production)
 
@@ -485,7 +517,7 @@ We use **esbuild** for fast TypeScript compilation and **pnpm** for fast depende
 | `pnpm build`            | Full tsc build (for debugging type errors) |
 | `pnpm typecheck`        | Type checking without emitting files       |
 
-**Docs:** See `docs/BUILD-OPTIMIZATIONS.md` for full details.
+**Docs:** See `docs/deployment/BUILD-OPTIMIZATIONS.md` for full details.
 
 ## 🎨 Design System (SINGLE SOURCE OF TRUTH)
 
@@ -1120,10 +1152,10 @@ const trustPhrases = await loadTrustPhrases('ferni'); // ❌ Wrong!
 
 ```bash
 # Run all persona E2E tests
-npm test -- --run persona-e2e
+pnpm vitest run persona-e2e
 
 # Run context injection integration tests
-npm test -- --run context-injection-integration
+pnpm vitest run context-injection-integration
 ```
 
 ### Key Implementation Rules
@@ -1828,16 +1860,31 @@ ferni coach career        # Career coaching session
 ## 🎯 Seth's Preferences
 
 - **Always start local dev servers** when beginning a coding session
-- Start all 4 servers in background so logs can be watched in terminals:
-  1. Token Server (port 3001)
-  2. UI Server (port 3002)
-  3. Vite Dev Server (port 3004)
-  4. Voice Agent (LiveKit worker)
+- Start all 4 servers in **separate background terminals** so logs can be watched individually
+
+### Cursor AI Agent: Starting Dev Servers
+
+When starting a dev session, run each command in a separate background shell so terminal logs are watchable:
 
 ```bash
-# Quick start all servers (run in background)
-pnpm token-server &                       # Token Server (3001)
-pnpm ui-server &                          # UI Server (3002)
-cd apps/web && pnpm dev &                 # Vite (3004)
-pnpm dev &                                # Voice Agent (LiveKit worker)
+# Terminal 1: Token Server (port 3001)
+pnpm token-server
+
+# Terminal 2: UI Server (port 3002)
+pnpm ui-server
+
+# Terminal 3: Vite Frontend (port 3004)
+cd apps/web && pnpm dev
+
+# Terminal 4: Voice Agent (LiveKit worker)
+LOG_FULL_RESPONSES=true pnpm dev
 ```
+
+**Quick reference:** `ferni dev cursor` prints these commands.
+
+**Verify all running:**
+```bash
+curl -s http://localhost:3001/health && curl -s http://localhost:3002/health && curl -s http://localhost:3004/ | head -c 50
+```
+
+**Stop all:** `ferni dev stop`

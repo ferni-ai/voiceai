@@ -270,9 +270,11 @@ describe('Brand Evolution Features', () => {
     });
     
     it('should correctly identify Sundays', () => {
-      const sunday = new Date('2026-01-18'); // A Sunday
-      const monday = new Date('2026-01-19'); // A Monday
-      
+      // Use explicit time to avoid timezone issues with ISO date parsing
+      // new Date('2026-01-18') parses as UTC midnight which may be Saturday in local TZ
+      const sunday = new Date(2026, 0, 18, 12, 0, 0); // January 18, 2026 at noon local time - a Sunday
+      const monday = new Date(2026, 0, 19, 12, 0, 0); // January 19, 2026 at noon local time - a Monday
+
       expect(isSunday(sunday)).toBe(true);
       expect(isSunday(monday)).toBe(false);
     });

@@ -154,7 +154,29 @@ export async function processResponse(
   const { persona, userData, services, sessionId } = ctx;
 
   // ============================================================
-  // 0. STAGE DIRECTION SANITIZATION (CRITICAL)
+  // 0. SSML INJECTION PREVENTION (SECURITY CRITICAL)
+  // Strip ALL SSML tags from raw LLM output FIRST.
+  // This prevents user-injected SSML from affecting TTS.
+  // Our system will add appropriate SSML based on text analysis later.
+  // ============================================================
+  try {
+    const { stripSsmlTags } = await import('../../ssml/core.js');
+    const preStrip = processedText;
+    processedText = stripSsmlTags(processedText);
+    if (preStrip !== processedText) {
+      appliedFeatures.push('ssml_injection_blocked');
+      diag.warn('SSML injection blocked - stripped tags from LLM output', {
+        hadTags: true,
+        originalLength: preStrip.length,
+        strippedLength: processedText.length,
+      });
+    }
+  } catch (stripErr) {
+    diag.error('SSML stripping failed (security critical!)', { error: String(stripErr) });
+  }
+
+  // ============================================================
+  // 0b. STAGE DIRECTION SANITIZATION (CRITICAL)
   // Remove *grinning*, *laughing*, [smiles], etc. BEFORE any processing
   // These must NEVER be spoken aloud - this is the safety net
   // ============================================================
@@ -167,7 +189,7 @@ export async function processResponse(
   }
 
   // ============================================================
-  // 0b. TOOL CALL LEAKAGE SANITIZATION (CRITICAL)
+  // 0c. TOOL CALL LEAKAGE SANITIZATION (CRITICAL)
   // Catch malformed function calls: "playMusic query jazz", [INTERNAL:...], etc.
   // These happen when Gemini outputs tool call syntax as text instead of calling
   // ============================================================

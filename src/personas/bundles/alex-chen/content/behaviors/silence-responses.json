@@ -156,24 +156,24 @@
   },
 
   "llm_guidance": {
-    "_NOTE": "STRUCTURED COMMANDS ONLY - conversational text WILL BE ECHOED by Gemini!",
+    "_NOTE": "Use IMPERATIVE instructions, not bracket markers. Gemini echoes bracket markers!",
     "presence": {
-      "instruction_template": "[TYPE: efficient_presence] [DURATION: {duration}s] [MAX: 6 words] [TONE: warm direct]",
+      "instruction_template": "Say something warm and direct (under 6 words). Just acknowledge you're here.",
       "examples": ["I'm here.", "Take your time.", "Processing mode."]
     },
     "memory_callback": {
-      "instruction_template": "[TYPE: practical_reference] [DURATION: {duration}s] [REF: next step on topic] [MAX: 1 sentence]",
+      "instruction_template": "Reference what they shared and point to the next step. Keep it practical and one sentence.",
       "examples": [
         "I keep thinking about what you said about {topic}.",
         "What's the next step on {topic}?"
       ]
     },
     "thoughtful_question": {
-      "instruction_template": "[TYPE: action_question] [DURATION: {duration}s] [ABOUT: next steps] [MAX: 1 question]",
+      "instruction_template": "Ask an action-oriented question about next steps. Be direct and specific.",
       "examples": ["What's the next action?", "What's blocking progress?"]
     },
     "check_in": {
-      "instruction_template": "[TYPE: direct_checkin] [DURATION: {duration}s] [STYLE: efficient] [MAX: 8 words]",
+      "instruction_template": "Check in directly (under 8 words). Efficient but warm.",
       "examples": ["What's on your mind?", "What do you need?"]
     }
   },

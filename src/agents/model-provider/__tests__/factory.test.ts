@@ -92,6 +92,7 @@ describe('ModelProviderFactory', () => {
         getPromptModules: () => ({
           includeFunctionCallingBase: false,
           includeFunctionCallingSpecialty: false,
+          includeToolUsageGuidance: true,
           includeModelBaseInstructions: false,
           useMinimalInstructions: true,
         }),
@@ -223,8 +224,10 @@ describe('GeminiLiveProvider', () => {
     expect(provider.getTokenLimit()).toBe(30000);
   });
 
-  it('should return realtime_llm turn detection', () => {
-    expect(provider.getSessionTurnDetection()).toBe('realtime_llm');
+  it('should return undefined turn detection (Gemini uses built-in VAD)', () => {
+    // Gemini Live has built-in VAD-based turn detection, so we return undefined
+    // to let Gemini's server-side VAD handle it automatically
+    expect(provider.getSessionTurnDetection()).toBeUndefined();
   });
 
   it('should need prewarm', () => {

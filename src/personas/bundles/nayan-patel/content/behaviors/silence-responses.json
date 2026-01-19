@@ -159,24 +159,24 @@
   },
 
   "llm_guidance": {
-    "_NOTE": "STRUCTURED COMMANDS ONLY - conversational text WILL BE ECHOED by Gemini!",
+    "_NOTE": "Use IMPERATIVE instructions, not bracket markers. Gemini echoes bracket markers!",
     "presence": {
-      "instruction_template": "[TYPE: wise_presence] [DURATION: {duration}s] [MAX: 8 words] [TONE: patient philosophical]",
+      "instruction_template": "Say something patient and philosophical (under 8 words). Be wise and grounded.",
       "examples": ["I am here.", "The mind needs space.", "In silence, truth speaks."]
     },
     "memory_callback": {
-      "instruction_template": "[TYPE: contemplative_reference] [DURATION: {duration}s] [REF: wisdom in their story] [MAX: 1 sentence]",
+      "instruction_template": "Reference the wisdom in what they shared. Be contemplative, one sentence.",
       "examples": [
         "I keep returning to what you said about {topic}.",
         "There is wisdom in what you shared."
       ]
     },
     "thoughtful_question": {
-      "instruction_template": "[TYPE: soul_question] [DURATION: {duration}s] [ABOUT: deeper truth] [MAX: 1 question]",
+      "instruction_template": "Ask a deep question about underlying truth or meaning. Be philosophical.",
       "examples": ["What is the deeper truth here?", "What does your heart already know?"]
     },
     "check_in": {
-      "instruction_template": "[TYPE: wise_checkin] [DURATION: {duration}s] [STYLE: philosophical open] [MAX: 8 words]",
+      "instruction_template": "Check in with wisdom (under 8 words). Be philosophical and open.",
       "examples": ["What is arising for you?", "Where is your mind?"]
     }
   },

@@ -117,6 +117,42 @@ const DEFAULT_CONFIG: ClassifierConfig = {
   mediumToolLimit: 3,
 };
 
+/**
+ * FTIS-only mode configuration with lower thresholds.
+ * 
+ * When FTIS_ONLY_MODE=true, we want to handle MORE queries directly
+ * since FTIS is the sole tool routing mechanism.
+ * 
+ * Changes from default:
+ * - Lower confidence threshold (0.70 vs 0.85) - more direct execution
+ * - Higher tool limits (2/5 vs 1/3) - handle multi-tool queries directly
+ */
+const FTIS_ONLY_CONFIG: ClassifierConfig = {
+  simpleConfidenceThreshold: 0.70, // Lower threshold for FTIS-only
+  complexKeywords: DEFAULT_CONFIG.complexKeywords,
+  multiStepKeywords: DEFAULT_CONFIG.multiStepKeywords,
+  simpleToolLimit: 2, // Can handle 2 tools directly
+  mediumToolLimit: 5, // Can handle 5 tools via sequence
+};
+
+/**
+ * Check if FTIS-only mode is enabled.
+ */
+function isFTISOnlyMode(): boolean {
+  return process.env.FTIS_ONLY_MODE === 'true';
+}
+
+/**
+ * Get the appropriate configuration based on environment.
+ */
+function getConfig(): ClassifierConfig {
+  if (isFTISOnlyMode()) {
+    log.info('Using FTIS_ONLY_CONFIG with lower thresholds');
+    return FTIS_ONLY_CONFIG;
+  }
+  return DEFAULT_CONFIG;
+}
+
 // ============================================================================
 // COMPLEXITY CLASSIFIER
 // ============================================================================
@@ -125,7 +161,20 @@ export class ComplexityClassifier {
   private config: ClassifierConfig;
 
   constructor(config: Partial<ClassifierConfig> = {}) {
-    this.config = { ...DEFAULT_CONFIG, ...config };
+    // Use FTIS_ONLY_CONFIG when FTIS_ONLY_MODE is enabled
+    const baseConfig = getConfig();
+    this.config = { ...baseConfig, ...config };
+    
+    if (isFTISOnlyMode()) {
+      log.info(
+        {
+          simpleConfidenceThreshold: this.config.simpleConfidenceThreshold,
+          simpleToolLimit: this.config.simpleToolLimit,
+          mediumToolLimit: this.config.mediumToolLimit,
+        },
+        '🚀 ComplexityClassifier using FTIS-only configuration'
+      );
+    }
   }
 
   // ==========================================================================

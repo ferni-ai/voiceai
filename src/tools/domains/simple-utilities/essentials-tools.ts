@@ -40,6 +40,51 @@ interface UserPreferences {
 // In-memory cache for fast reads (backed by Firestore)
 const userPreferencesCache = new Map<string, UserPreferences>();
 
+// ============================================================================
+// SESSION DATA MANAGER REGISTRATION
+// ============================================================================
+
+/**
+ * Clear cached data for a user
+ */
+function clearUserCache(userId: string): void {
+  userPreferencesCache.delete(userId);
+  log.debug({ userId }, '🧹 Preferences cache cleared for user');
+}
+
+/**
+ * Clear all cached data
+ */
+function clearAllCache(): void {
+  userPreferencesCache.clear();
+  log.debug('🧹 Preferences cache cleared');
+}
+
+/**
+ * Get cache statistics
+ */
+function getPreferencesCacheStats(): { users: number; entries: number } {
+  return { users: userPreferencesCache.size, entries: userPreferencesCache.size };
+}
+
+/**
+ * Register with SessionDataManager for proper lifecycle cleanup
+ */
+export async function registerEssentialsWithSessionManager(): Promise<void> {
+  try {
+    const { getSessionDataManager } = await import('../../../services/session-data-manager.js');
+    getSessionDataManager().registerService({
+      name: 'Essentials',
+      clearUserData: clearUserCache,
+      clearAllData: clearAllCache,
+      getStats: getPreferencesCacheStats,
+    });
+  } catch {
+    // SessionDataManager may not be initialized yet
+    log.debug('SessionDataManager not available for Essentials registration');
+  }
+}
+
 // Load preferences from Firestore (with cache)
 async function loadPreferences(userId: string): Promise<UserPreferences> {
   // Check cache first
@@ -817,3 +862,6 @@ export const essentialsToolDefinitions: ToolDefinition[] = [
 ];
 
 export { whatCanYouDoDef, quickCaptureDef, recentContextDef, setPreferenceDef, getPreferencesDef };
+
+// Auto-register with SessionDataManager when module is loaded
+void registerEssentialsWithSessionManager();

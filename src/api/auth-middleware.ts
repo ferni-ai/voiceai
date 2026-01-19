@@ -34,6 +34,7 @@ import {
   trackFailedAuth,
 } from '../services/security-events.js';
 import { createLogger } from '../utils/safe-logger.js';
+import { getClientIp } from '../utils/ddos-protection.js';
 import { API_ERRORS } from './error-messages.js';
 import { sendError } from './helpers.js';
 
@@ -542,10 +543,13 @@ export function rateLimit(
   const auth = authenticate(req);
   const defaultTier = getRateLimitTier(auth);
 
+  // SECURITY: Use authenticated userId as primary rate limit key (can't be spoofed)
+  // Fall back to secure getClientIp for anonymous requests (validates IP format)
+  // Never trust raw X-Forwarded-For header directly - allows bypass via header spoofing
   const {
     maxRequests = options.tier?.maxRequests ?? defaultTier.maxRequests,
     windowMs = options.tier?.windowMs ?? defaultTier.windowMs,
-    keyGenerator = (r) => getHeader(r, 'X-Forwarded-For') || r.socket.remoteAddress || 'unknown',
+    keyGenerator = () => (auth?.userId ? `user:${auth.userId}` : getClientIp(req)),
     keyPrefix = '',
   } = options;
 

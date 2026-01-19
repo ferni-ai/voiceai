@@ -20,6 +20,7 @@
  * - GET /api/observability/redis - Redis cache stats, pub/sub status, circuit breakers
  * - GET /api/observability/ftis - FTIS (Tool Intelligence) metrics (transitions, outcomes, patterns)
  * - GET /api/observability/superhuman - Superhuman capability activation metrics
+ * - GET /api/observability/tts-gateway - TTS Gateway metrics (cache hits, synthesis latency, errors)
  * - POST /api/observability/clear - Clear all metrics
  */
 
@@ -28,6 +29,11 @@ import {
   getCollectiveLearningSchedulerStatus,
   getCommunityInsights,
 } from '../intelligence/index.js';
+// Function calling health metrics (Jan 2026)
+import {
+  getFunctionCallHealthDashboard,
+  getGeminiHealthMetrics,
+} from '../agents/shared/function-call-telemetry.js';
 import {
   connectionHealthMetrics,
   costMetrics,
@@ -96,7 +102,9 @@ const MAX_SUPERHUMAN_EVENTS = 100;
  *
  * @param event Event data including which capabilities were activated
  */
-export function emitSuperhumanActivation(event: Omit<SuperhumanActivationEvent, 'timestamp'>): void {
+export function emitSuperhumanActivation(
+  event: Omit<SuperhumanActivationEvent, 'timestamp'>
+): void {
   const fullEvent: SuperhumanActivationEvent = {
     ...event,
     timestamp: new Date().toISOString(),
@@ -785,6 +793,70 @@ export async function handleObservabilityRoutes(
         count: events.length,
         collectedAt: new Date().toISOString(),
       });
+      return true;
+    }
+
+    // GET /api/observability/function-call-health - Function calling reliability metrics (Jan 2026)
+    if (pathname === '/api/observability/function-call-health' && req.method === 'GET') {
+      const dashboard = getFunctionCallHealthDashboard();
+      const geminiHealth = getGeminiHealthMetrics();
+
+      sendJSON(res, {
+        health: dashboard.health,
+        recommendations: dashboard.recommendations,
+        trends: dashboard.trends,
+        gemini: {
+          isGemini: geminiHealth.isGemini,
+          status: geminiHealth.status,
+          activeSessions: geminiHealth.activeSessions,
+          aggregate: geminiHealth.aggregate,
+          recentLeakages: geminiHealth.recentLeakages,
+          thresholds: geminiHealth.thresholds,
+          recommendation: geminiHealth.recommendation,
+        },
+        collectedAt: new Date().toISOString(),
+      });
+      return true;
+    }
+
+    // GET /api/observability/tts-gateway - TTS Gateway metrics
+    if (pathname === '/api/observability/tts-gateway' && req.method === 'GET') {
+      try {
+        const { getGatewayTTSMetrics, isTTSGatewayEnabled } =
+          await import('../speech/tts-gateway/index.js');
+        const { getTTSCache } = await import('../services/tts/index.js');
+
+        const gatewayMetrics = getGatewayTTSMetrics();
+        const cache = getTTSCache();
+        const cacheStats = cache?.getStats() ?? null;
+
+        sendJSON(res, {
+          enabled: isTTSGatewayEnabled(),
+          gateway: gatewayMetrics,
+          cache: cacheStats,
+          summary: {
+            cacheHitRate:
+              gatewayMetrics.totalRequests > 0
+                ? `${((gatewayMetrics.cacheHits / gatewayMetrics.totalRequests) * 100).toFixed(1)}%`
+                : 'N/A',
+            avgLatencyMs: {
+              cacheHit: gatewayMetrics.avgCacheHitLatencyMs.toFixed(0),
+              synthesis: gatewayMetrics.avgSynthesisLatencyMs.toFixed(0),
+            },
+            totalSavedLatencyMs: gatewayMetrics.totalSavedLatencyMs,
+            errorRate:
+              gatewayMetrics.totalRequests > 0
+                ? `${((gatewayMetrics.errors / gatewayMetrics.totalRequests) * 100).toFixed(1)}%`
+                : 'N/A',
+          },
+          collectedAt: new Date().toISOString(),
+        });
+      } catch (error) {
+        sendJSON(res, {
+          error: 'TTS Gateway metrics not available',
+          message: String(error),
+        });
+      }
       return true;
     }
 

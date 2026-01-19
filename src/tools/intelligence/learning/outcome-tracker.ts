@@ -98,6 +98,16 @@ const DEFAULT_CONFIG: TrackerConfig = {
   maxInMemory: 1000,
 };
 
+/**
+ * Check if training data collection is enabled.
+ * 
+ * Set FTIS_COLLECT_TRAINING_DATA=true to collect routing outcomes
+ * for RouterModel ONNX training.
+ */
+export function isTrainingDataCollectionEnabled(): boolean {
+  return process.env.FTIS_COLLECT_TRAINING_DATA === 'true';
+}
+
 // ============================================================================
 // OUTCOME TRACKER
 // ============================================================================

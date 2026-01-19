@@ -70,7 +70,7 @@ export interface InboundVerificationResult {
 // VERIFICATION STATE
 // ============================================================================
 
-interface VerificationState {
+export interface VerificationState {
   sessionId: string;
   expectedUserId: string;
   expectedName: string;
@@ -233,6 +233,22 @@ export function cleanupVoiceVerification(sessionId: string): void {
 }
 
 /**
+ * Get the verification state for a session (for testing/debugging).
+ */
+export function getVerificationState(sessionId: string): VerificationState | undefined {
+  return pendingVerifications.get(sessionId);
+}
+
+/**
+ * Reset all verification state.
+ * Used for testing to ensure clean state between tests.
+ */
+export function resetAllVerificationState(): void {
+  pendingVerifications.clear();
+  completedVerifications.clear();
+}
+
+/**
  * Helper to check if we should set up voice verification for an inbound call.
  * Returns the expected user info if verification should be set up.
  */
@@ -277,7 +293,9 @@ export function shouldSetupVoiceVerification(
 export default {
   registerForVoiceVerification,
   needsVoiceVerification,
+  getVerificationState,
   verifyInboundVoice,
   cleanupVoiceVerification,
+  resetAllVerificationState,
   shouldSetupVoiceVerification,
 };

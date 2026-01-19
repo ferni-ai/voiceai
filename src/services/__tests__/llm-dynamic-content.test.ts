@@ -10,14 +10,23 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
-// Mock logger
+// Mock logger - include all exports that may be used
+const mockLogger = {
+  debug: vi.fn(),
+  info: vi.fn(),
+  warn: vi.fn(),
+  error: vi.fn(),
+  child: vi.fn(() => mockLogger),
+};
+
 vi.mock('../../utils/safe-logger.js', () => ({
-  getLogger: vi.fn(() => ({
-    debug: vi.fn(),
-    info: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-  })),
+  getLogger: vi.fn(() => mockLogger),
+  safeLog: vi.fn(() => mockLogger),
+  createLogger: vi.fn(() => mockLogger),
+  serializeError: vi.fn((e) => e),
+  isFullLoggingEnabled: vi.fn(() => false),
+  truncateForLog: vi.fn((text) => text),
+  logPreview: vi.fn(),
 }));
 
 // Mock LLM utils to avoid actual API calls

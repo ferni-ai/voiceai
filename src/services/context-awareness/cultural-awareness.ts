@@ -115,18 +115,8 @@ function getSeason(): Season {
   return 'winter';
 }
 
-function _getSeasonalContext(season: Season): string {
-  // Reserved for future seasonal messaging
-  const contexts: Record<Season, string[]> = {
-    spring: ['fresh start energy', 'spring cleaning vibes', 'renewal'],
-    summer: ['summer mode', 'vacation energy', 'long days'],
-    fall: ['back to routine', 'harvest energy', 'cozy season approaching'],
-    winter: ['holiday season', 'reflection time', 'cozy vibes'],
-  };
-
-  const options = contexts[season];
-  return options[Math.floor(Math.random() * options.length)];
-}
+// NOTE: _getSeasonalContext was removed - it was dead code (never called)
+// Seasonal messaging is handled by getSeasonalAdjustment() instead.
 
 // ============================================================================
 // Month Context

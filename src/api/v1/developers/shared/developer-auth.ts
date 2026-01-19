@@ -158,7 +158,16 @@ export async function getPublisherFromToken(req: IncomingMessage): Promise<strin
     return null;
   }
 
-  const idToken = authHeader.substring(7);
+  const idToken = authHeader.substring(7).trim();
+
+  // Validate token format (JWTs should have 3 parts and be at least ~100 chars)
+  if (!idToken || idToken.length < 100 || idToken.split('.').length !== 3) {
+    log.warn(
+      { tokenLength: idToken?.length ?? 0, tokenParts: idToken?.split('.').length ?? 0 },
+      'Invalid token format in getPublisherFromToken'
+    );
+    return null;
+  }
 
   try {
     const auth = await getFirebaseAuth();
@@ -192,7 +201,13 @@ export async function verifyFirebaseToken(idToken: string): Promise<FirebaseDeco
     return (await auth.verifyIdToken(idToken)) as FirebaseDecodedToken;
   } catch (error) {
     const err = error instanceof Error ? error : new Error(String(error));
-    log.warn({ error: err.message }, 'Invalid Firebase ID token');
+    // SECURITY: Log only metadata, never any part of the token
+    const tokenLength = idToken?.length ?? 0;
+    const tokenParts = idToken?.split('.').length ?? 0;
+    log.warn(
+      { error: err.message, tokenLength, tokenParts },
+      'Invalid Firebase ID token'
+    );
     return null;
   }
 }

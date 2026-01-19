@@ -182,6 +182,60 @@ describe('Transcript Validator', () => {
       });
     });
 
+    describe('Punctuation-Only Rejection', () => {
+      it('should reject single period', () => {
+        const result = validateTranscript('.', defaultContext);
+        expect(result.isValid).toBe(false);
+        expect(result.reason).toBe('single_char');
+      });
+
+      it('should reject ellipsis', () => {
+        const result = validateTranscript('...', defaultContext);
+        expect(result.isValid).toBe(false);
+        expect(result.reason).toBe('single_char');
+      });
+
+      it('should reject multiple periods', () => {
+        const result = validateTranscript('..', defaultContext);
+        expect(result.isValid).toBe(false);
+        expect(result.reason).toBe('single_char');
+      });
+
+      it('should reject exclamation marks only', () => {
+        const result = validateTranscript('!!!', defaultContext);
+        expect(result.isValid).toBe(false);
+        expect(result.reason).toBe('single_char');
+      });
+
+      it('should reject question marks only', () => {
+        const result = validateTranscript('???', defaultContext);
+        expect(result.isValid).toBe(false);
+        expect(result.reason).toBe('single_char');
+      });
+
+      it('should reject mixed punctuation', () => {
+        const result = validateTranscript('!?...', defaultContext);
+        expect(result.isValid).toBe(false);
+        expect(result.reason).toBe('single_char');
+      });
+
+      it('should reject em-dash', () => {
+        const result = validateTranscript('—', defaultContext);
+        expect(result.isValid).toBe(false);
+        expect(result.reason).toBe('single_char');
+      });
+
+      it('should accept text with punctuation', () => {
+        const result = validateTranscript('Hello!', defaultContext);
+        expect(result.isValid).toBe(true);
+      });
+
+      it('should accept just "yes" or "no"', () => {
+        expect(validateTranscript('yes', defaultContext).isValid).toBe(true);
+        expect(validateTranscript('no', defaultContext).isValid).toBe(true);
+      });
+    });
+
     describe('Echo Window Detection', () => {
       it('should reject short transcripts during echo window', () => {
         const echoContext: ValidationContext = {
@@ -332,6 +386,19 @@ describe('Transcript Validator', () => {
 
     it('should return false for longer valid text', () => {
       expect(isLikelyNoise('I would like to schedule a meeting')).toBe(false);
+    });
+
+    it('should return true for punctuation-only strings', () => {
+      expect(isLikelyNoise('.')).toBe(true);
+      expect(isLikelyNoise('...')).toBe(true);
+      expect(isLikelyNoise('!!!')).toBe(true);
+      expect(isLikelyNoise('???')).toBe(true);
+      expect(isLikelyNoise('!?')).toBe(true);
+    });
+
+    it('should return false for text with punctuation', () => {
+      expect(isLikelyNoise('Hello!')).toBe(false);
+      expect(isLikelyNoise('What?')).toBe(false);
     });
   });
 

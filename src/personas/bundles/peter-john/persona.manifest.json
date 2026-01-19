@@ -339,11 +339,10 @@
       "second-chances",
       "pattern-mastery",
       "proactive",
-      "settings",
-      "peter-analytics"
+      "settings"
     ],
     "_domain_ownership": {
-      "exclusive": ["research", "pattern-mastery", "peter-analytics"],
+      "exclusive": ["research", "pattern-mastery"],
       "shared": ["stories", "meaning", "curiosity"],
       "handoff_preferred": {
         "habits": "maya-santos",

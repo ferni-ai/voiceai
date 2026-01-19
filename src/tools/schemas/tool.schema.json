@@ -1,0 +1,169 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://ferni.ai/schemas/tool.schema.json",
+  "title": "Ferni Tool Schema",
+  "description": "JSON Schema for Ferni tool definitions, aligned with Gemini's native functionDeclarations format",
+  "type": "object",
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "description": "Reference to this schema file"
+    },
+    "domain": {
+      "type": "string",
+      "description": "Tool domain (e.g., music, weather, handoff)",
+      "pattern": "^[a-z][a-z0-9-]*$"
+    },
+    "persona": {
+      "type": "string",
+      "description": "Persona this tool belongs to (if persona-specific)",
+      "enum": ["ferni", "maya", "alex", "peter", "jordan", "nayan", "joel"]
+    },
+    "version": {
+      "type": "string",
+      "description": "Schema version for this file",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$"
+    },
+    "tools": {
+      "type": "array",
+      "description": "Array of tool definitions",
+      "items": {
+        "$ref": "#/definitions/ToolDefinition"
+      },
+      "minItems": 1
+    }
+  },
+  "required": ["domain", "tools"],
+  "additionalProperties": false,
+  "definitions": {
+    "ToolDefinition": {
+      "type": "object",
+      "description": "A single tool definition in Gemini-native format",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Tool name in camelCase",
+          "pattern": "^[a-zA-Z][a-zA-Z0-9]*$"
+        },
+        "description": {
+          "type": "string",
+          "description": "What this tool does - used by LLM to decide when to call it",
+          "minLength": 10,
+          "maxLength": 1000
+        },
+        "parameters": {
+          "$ref": "#/definitions/ParameterSchema"
+        },
+        "examples": {
+          "type": "array",
+          "description": "Example user inputs and expected JSON outputs",
+          "items": {
+            "$ref": "#/definitions/ToolExample"
+          },
+          "minItems": 1
+        },
+        "tags": {
+          "type": "array",
+          "description": "Tags for categorization and search",
+          "items": {
+            "type": "string"
+          }
+        },
+        "deprecated": {
+          "type": "boolean",
+          "description": "Whether this tool is deprecated"
+        },
+        "experimental": {
+          "type": "boolean",
+          "description": "Whether this tool is experimental"
+        }
+      },
+      "required": ["name", "description", "parameters", "examples"],
+      "additionalProperties": false
+    },
+    "ParameterSchema": {
+      "type": "object",
+      "description": "JSON Schema for tool parameters (Gemini-compatible)",
+      "properties": {
+        "type": {
+          "const": "object"
+        },
+        "properties": {
+          "type": "object",
+          "description": "Parameter definitions",
+          "additionalProperties": {
+            "$ref": "#/definitions/ParameterProperty"
+          }
+        },
+        "required": {
+          "type": "array",
+          "description": "List of required parameter names",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": ["type", "properties"],
+      "additionalProperties": false
+    },
+    "ParameterProperty": {
+      "type": "object",
+      "description": "A single parameter definition",
+      "properties": {
+        "type": {
+          "type": "string",
+          "description": "Parameter type",
+          "enum": ["string", "number", "integer", "boolean", "array", "object"]
+        },
+        "description": {
+          "type": "string",
+          "description": "Parameter description with examples"
+        },
+        "enum": {
+          "type": "array",
+          "description": "Allowed values for this parameter",
+          "items": {
+            "type": "string"
+          }
+        },
+        "default": {
+          "description": "Default value if not provided"
+        },
+        "items": {
+          "type": "object",
+          "description": "Schema for array items (when type is array)"
+        },
+        "minimum": {
+          "type": "number",
+          "description": "Minimum value for numbers"
+        },
+        "maximum": {
+          "type": "number",
+          "description": "Maximum value for numbers"
+        }
+      },
+      "required": ["type", "description"],
+      "additionalProperties": false
+    },
+    "ToolExample": {
+      "type": "object",
+      "description": "Example of user input and expected tool call output",
+      "properties": {
+        "userSays": {
+          "type": "string",
+          "description": "What the user might say"
+        },
+        "output": {
+          "type": "string",
+          "description": "Expected JSON output: {\"fn\":\"toolName\",\"args\":{...}}"
+        },
+        "notes": {
+          "type": "string",
+          "description": "Optional notes about this example"
+        }
+      },
+      "required": ["userSays", "output"],
+      "additionalProperties": false
+    }
+  }
+}

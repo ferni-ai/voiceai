@@ -677,6 +677,20 @@ export function createTranscriptHandler(ctx: TranscriptHandlerContext): Transcri
     // FINAL TRANSCRIPT PROCESSING
     // ===============================================
     if (event.isFinal && event.transcript) {
+      // 🔍 E2E TRACE: User input received (STT complete)
+      const sttCompleteTime = Date.now();
+      log().info(
+        {
+          trace: 'E2E_USER_INPUT',
+          transcript: event.transcript.slice(0, 100),
+          fullLength: event.transcript.length,
+          sessionId,
+          userId,
+          turnNumber: userData.turnCount || 0,
+        },
+        `🔍 E2E TRACE [STT] User said: "${event.transcript.slice(0, 50)}..." (${event.transcript.length} chars)`
+      );
+
       // 📊 E2E LATENCY: Start tracking this turn
       // This helps diagnose whether pauses are OpenAI, TTS, or our code
       const turnId = startLatencyTurn(sessionId, event.transcript);
@@ -708,6 +722,29 @@ export function createTranscriptHandler(ctx: TranscriptHandlerContext): Transcri
           timeSinceAgentSpoke,
         });
         // Don't process this as a user turn - it's noise/echo
+        return;
+      }
+
+      // ===============================================
+      // 🚫 SPEECH DURATION FILTER (Secondary Safety Net)
+      // Filter transcripts from very short "speech" events (< 150ms)
+      // These are almost always clicks, pops, or mic noise
+      // "Hi" takes ~150-200ms, so legitimate speech passes through
+      // Primary filter is in session-state-handler.ts
+      // ===============================================
+      const MIN_SPEECH_DURATION_MS = 150;
+      if (
+        userData.lastSpeechDurationMs !== undefined &&
+        userData.lastSpeechDurationMs > 0 &&
+        userData.lastSpeechDurationMs < MIN_SPEECH_DURATION_MS
+      ) {
+        diag.state('🚫 Transcript rejected by speech duration filter (likely noise)', {
+          speechDurationMs: userData.lastSpeechDurationMs,
+          thresholdMs: MIN_SPEECH_DURATION_MS,
+          transcript: event.transcript.slice(0, 30),
+        });
+        // Clear the flag and reject
+        userData.lastSpeechDurationMs = undefined;
         return;
       }
 

@@ -158,24 +158,24 @@
   },
 
   "llm_guidance": {
-    "_NOTE": "STRUCTURED COMMANDS ONLY - conversational text WILL BE ECHOED by Gemini!",
+    "_NOTE": "Use IMPERATIVE instructions, not bracket markers. Gemini echoes bracket markers!",
     "presence": {
-      "instruction_template": "[TYPE: enthusiastic_presence] [DURATION: {duration}s] [MAX: 8 words] [TONE: positive warm]",
+      "instruction_template": "Say something positive and warm (under 8 words). Show enthusiasm that you're here.",
       "examples": ["I'm here!", "Take your time.", "Good ideas need space."]
     },
     "memory_callback": {
-      "instruction_template": "[TYPE: excited_reference] [DURATION: {duration}s] [REF: their plans] [TONE: enthusiastic] [MAX: 1 sentence]",
+      "instruction_template": "Reference their plans or ideas with enthusiasm. Keep it to one sentence.",
       "examples": [
         "I keep thinking about what you said about {topic}!",
         "That thing you mentioned - sounds exciting!"
       ]
     },
     "thoughtful_question": {
-      "instruction_template": "[TYPE: forward_question] [DURATION: {duration}s] [ABOUT: dreams or plans] [MAX: 1 question]",
+      "instruction_template": "Ask a forward-looking question about their dreams or plans. Be curious and positive.",
       "examples": ["What are you looking forward to?", "What would make this memorable?"]
     },
     "check_in": {
-      "instruction_template": "[TYPE: warm_checkin] [DURATION: {duration}s] [STYLE: curious positive] [MAX: 8 words]",
+      "instruction_template": "Check in with positive energy (under 8 words). Be curious and warm.",
       "examples": ["What's on your mind?", "What's exciting you?"]
     }
   },

@@ -599,6 +599,7 @@ vi.mock('../../../../config/gemini-config.js', () => {
   return {
     // Spread all constants
     ...mockConstants,
+    MAX_TOKENS_SHORT: 200,
     // Client functions
     getGeminiClient: async () => mockClient,
     createGeminiClient: async () => mockClient,
@@ -609,6 +610,10 @@ vi.mock('../../../../config/gemini-config.js', () => {
     getDefaultModel: () => mockConstants.GEMINI_MODEL,
     getLLMTimeout: () => mockConstants.LLM_TIMEOUT_MS,
     getShortLLMTimeout: () => mockConstants.LLM_SHORT_TIMEOUT_MS,
+    // Purpose-specific model getters
+    getExtractionModel: () => 'gemini-1.5-flash',
+    getEmbeddingModel: () => 'text-embedding-004',
+    getOpenAIFallbackModel: () => 'gpt-4o-mini',
   };
 });
 

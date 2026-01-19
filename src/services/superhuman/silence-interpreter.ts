@@ -110,7 +110,61 @@ export interface SilenceProfile {
   /** User's baseline silence tolerance (ms before they feel awkward) */
   baselinePauseTolerance: number;
 
+  /** Response effectiveness by type (for learning) */
+  responseEffectiveness: ResponseEffectiveness;
+
+  /** Topics that trigger certain silence types */
+  topicTriggers: TopicSilenceTrigger[];
+
   updatedAt: Date;
+}
+
+/**
+ * Track effectiveness of responses per silence type
+ */
+export interface ResponseEffectiveness {
+  /** Per-type tracking */
+  byType: Record<SilenceType, {
+    totalResponses: number;
+    helpfulResponses: number;
+    /** Which phrases worked best */
+    topPhrases: Array<{ phrase: string; score: number }>;
+    /** Average wait time that worked */
+    optimalWaitMs: number;
+  }>;
+  /** Overall effectiveness score (0-1) */
+  overallScore: number;
+  /** Last updated */
+  lastUpdated: Date;
+}
+
+/**
+ * Track which topics trigger which silence types
+ */
+export interface TopicSilenceTrigger {
+  topic: string;
+  silenceType: SilenceType;
+  frequency: number; // How often this topic → silence type
+  avgDuration: number;
+  avgEffectiveness: number;
+}
+
+/**
+ * Learning result from pattern analysis
+ */
+export interface SilenceLearningResult {
+  /** Was signature updated */
+  signatureUpdated: boolean;
+  /** Suggested adjustments */
+  adjustments: {
+    type: SilenceType;
+    field: string;
+    oldValue: unknown;
+    newValue: unknown;
+    reason: string;
+  }[];
+  /** New topic triggers discovered */
+  newTriggers: TopicSilenceTrigger[];
 }
 
 // ============================================================================
@@ -457,6 +511,19 @@ export async function recordSilenceOutcome(
         silenceSignatures: DEFAULT_SIGNATURES,
         silenceHistory: [entry],
         baselinePauseTolerance: 2000,
+        responseEffectiveness: {
+          byType: {
+            processing: { totalResponses: 0, helpfulResponses: 0, topPhrases: [], optimalWaitMs: 3000 },
+            emotional: { totalResponses: 0, helpfulResponses: 0, topPhrases: [], optimalWaitMs: 5000 },
+            uncomfortable: { totalResponses: 0, helpfulResponses: 0, topPhrases: [], optimalWaitMs: 4000 },
+            invitational: { totalResponses: 0, helpfulResponses: 0, topPhrases: [], optimalWaitMs: 3000 },
+            exhausted: { totalResponses: 0, helpfulResponses: 0, topPhrases: [], optimalWaitMs: 6000 },
+            contemplative: { totalResponses: 0, helpfulResponses: 0, topPhrases: [], optimalWaitMs: 5000 },
+          },
+          overallScore: 0.5,
+          lastUpdated: new Date(),
+        },
+        topicTriggers: [],
         updatedAt: new Date(),
       };
       await ref.set(cleanForFirestore(newProfile));
@@ -528,6 +595,304 @@ export async function updateBaselineTolerance(userId: string): Promise<void> {
   } catch (error) {
     log.debug({ error: String(error), userId }, 'Failed to update baseline tolerance');
   }
+}
+
+// ============================================================================
+// ENHANCED LEARNING
+// ============================================================================
+
+/**
+ * Learn from silence patterns and update user signatures.
+ * Call this periodically (e.g., end of session) to refine patterns.
+ */
+export async function learnFromPatterns(userId: string): Promise<SilenceLearningResult> {
+  const result: SilenceLearningResult = {
+    signatureUpdated: false,
+    adjustments: [],
+    newTriggers: [],
+  };
+
+  const profile = await loadSilenceProfile(userId);
+  if (!profile || profile.silenceHistory.length < 10) {
+    return result;
+  }
+
+  const db = getFirestoreDb();
+  if (!db) return result;
+
+  // Group history by type
+  const byType = new Map<SilenceType, SilenceHistoryEntry[]>();
+  for (const entry of profile.silenceHistory) {
+    const existing = byType.get(entry.type) || [];
+    existing.push(entry);
+    byType.set(entry.type, existing);
+  }
+
+  // Update signatures based on patterns
+  const updatedSignatures = { ...profile.silenceSignatures };
+  let hasChanges = false;
+
+  for (const [type, entries] of byType) {
+    if (entries.length < 5) continue;
+
+    const helpfulEntries = entries.filter((e) => e.wasHelpful === true);
+    const unhelpfulEntries = entries.filter((e) => e.wasHelpful === false);
+
+    // Adjust confidence threshold
+    if (helpfulEntries.length + unhelpfulEntries.length >= 5) {
+      const successRate = helpfulEntries.length / (helpfulEntries.length + unhelpfulEntries.length);
+      const currentThreshold = updatedSignatures[type].confidenceThreshold;
+      const newThreshold = Math.max(0.4, Math.min(0.8, successRate));
+
+      if (Math.abs(newThreshold - currentThreshold) > 0.1) {
+        result.adjustments.push({
+          type,
+          field: 'confidenceThreshold',
+          oldValue: currentThreshold,
+          newValue: newThreshold,
+          reason: `Success rate ${(successRate * 100).toFixed(0)}%`,
+        });
+        updatedSignatures[type].confidenceThreshold = newThreshold;
+        hasChanges = true;
+      }
+    }
+
+    // Learn optimal duration range from successful interactions
+    if (helpfulEntries.length >= 5) {
+      const durations = helpfulEntries.map((e) => e.duration).sort((a, b) => a - b);
+      const p25 = durations[Math.floor(durations.length * 0.25)];
+      const p75 = durations[Math.floor(durations.length * 0.75)];
+
+      const currentRange = updatedSignatures[type].typicalDuration;
+      if (Math.abs(p25 - currentRange.min) > 500 || Math.abs(p75 - currentRange.max) > 500) {
+        result.adjustments.push({
+          type,
+          field: 'typicalDuration',
+          oldValue: currentRange,
+          newValue: { min: p25, max: p75 },
+          reason: 'Learned from successful responses',
+        });
+        updatedSignatures[type].typicalDuration = { min: p25, max: p75 };
+        hasChanges = true;
+      }
+    }
+  }
+
+  // Discover topic triggers
+  const topicCounts = new Map<string, Map<SilenceType, number[]>>();
+  for (const entry of profile.silenceHistory) {
+    if (!entry.precedingTopic) continue;
+    const topic = entry.precedingTopic.toLowerCase();
+    if (!topicCounts.has(topic)) {
+      topicCounts.set(topic, new Map());
+    }
+    const typeMap = topicCounts.get(topic)!;
+    const durations = typeMap.get(entry.type) || [];
+    durations.push(entry.duration);
+    typeMap.set(entry.type, durations);
+  }
+
+  for (const [topic, typeMap] of topicCounts) {
+    for (const [silenceType, durations] of typeMap) {
+      if (durations.length >= 3) {
+        // Check if this is a new or stronger trigger
+        const existingTrigger = profile.topicTriggers?.find(
+          (t) => t.topic === topic && t.silenceType === silenceType
+        );
+
+        if (!existingTrigger || durations.length > existingTrigger.frequency) {
+          const avgDuration = durations.reduce((a, b) => a + b, 0) / durations.length;
+          const trigger: TopicSilenceTrigger = {
+            topic,
+            silenceType,
+            frequency: durations.length,
+            avgDuration,
+            avgEffectiveness: 0.5, // Will be updated with outcome data
+          };
+          result.newTriggers.push(trigger);
+          hasChanges = true;
+        }
+      }
+    }
+  }
+
+  // Save updated profile
+  if (hasChanges) {
+    try {
+      const updatedProfile = {
+        ...profile,
+        silenceSignatures: updatedSignatures,
+        topicTriggers: [
+          ...(profile.topicTriggers || []).filter(
+            (t) => !result.newTriggers.some((nt) => nt.topic === t.topic && nt.silenceType === t.silenceType)
+          ),
+          ...result.newTriggers,
+        ],
+        updatedAt: new Date(),
+      };
+
+      await db
+        .collection('bogle_users')
+        .doc(userId)
+        .collection('silence_patterns')
+        .doc('profile')
+        .set(cleanForFirestore(updatedProfile));
+
+      result.signatureUpdated = true;
+      log.debug(
+        { userId, adjustments: result.adjustments.length, newTriggers: result.newTriggers.length },
+        'Learned from silence patterns'
+      );
+    } catch (error) {
+      log.debug({ error: String(error), userId }, 'Failed to save learned patterns');
+    }
+  }
+
+  return result;
+}
+
+/**
+ * Update response effectiveness tracking after a response.
+ */
+export async function updateResponseEffectiveness(
+  userId: string,
+  silenceType: SilenceType,
+  phrase: string,
+  wasHelpful: boolean,
+  waitTimeMs: number
+): Promise<void> {
+  const db = getFirestoreDb();
+  if (!db) return;
+
+  try {
+    const ref = db
+      .collection('bogle_users')
+      .doc(userId)
+      .collection('silence_patterns')
+      .doc('profile');
+
+    const doc = await ref.get();
+    if (!doc.exists) return;
+
+    const profile = doc.data() as SilenceProfile;
+
+    // Initialize if needed
+    if (!profile.responseEffectiveness) {
+      profile.responseEffectiveness = createDefaultEffectiveness();
+    }
+
+    const typeData = profile.responseEffectiveness.byType[silenceType];
+    typeData.totalResponses++;
+    if (wasHelpful) {
+      typeData.helpfulResponses++;
+    }
+
+    // Update phrase ranking
+    const phraseClean = phrase.replace(/<[^>]*>/g, '').trim();
+    if (phraseClean) {
+      const existingPhrase = typeData.topPhrases.find((p) => p.phrase === phraseClean);
+      if (existingPhrase) {
+        existingPhrase.score = existingPhrase.score * 0.9 + (wasHelpful ? 0.1 : 0);
+      } else {
+        typeData.topPhrases.push({ phrase: phraseClean, score: wasHelpful ? 0.8 : 0.3 });
+      }
+      // Keep top 10 phrases
+      typeData.topPhrases.sort((a, b) => b.score - a.score);
+      typeData.topPhrases = typeData.topPhrases.slice(0, 10);
+    }
+
+    // Update optimal wait time (exponential moving average)
+    if (wasHelpful) {
+      typeData.optimalWaitMs = typeData.optimalWaitMs * 0.8 + waitTimeMs * 0.2;
+    }
+
+    // Update overall score
+    let totalResponses = 0;
+    let totalHelpful = 0;
+    for (const data of Object.values(profile.responseEffectiveness.byType)) {
+      totalResponses += data.totalResponses;
+      totalHelpful += data.helpfulResponses;
+    }
+    profile.responseEffectiveness.overallScore =
+      totalResponses > 0 ? totalHelpful / totalResponses : 0.5;
+    profile.responseEffectiveness.lastUpdated = new Date();
+
+    await ref.set(cleanForFirestore(profile));
+  } catch (error) {
+    log.debug({ error: String(error), userId }, 'Failed to update response effectiveness');
+  }
+}
+
+/**
+ * Get the best response phrase for a silence type based on learned effectiveness.
+ */
+export async function getBestResponsePhrase(
+  userId: string,
+  silenceType: SilenceType
+): Promise<string> {
+  const profile = await loadSilenceProfile(userId);
+
+  // Check learned effectiveness
+  if (profile?.responseEffectiveness?.byType[silenceType]) {
+    const typeData = profile.responseEffectiveness.byType[silenceType];
+    if (typeData.topPhrases.length > 0 && typeData.topPhrases[0].score > 0.6) {
+      // Use learned best phrase
+      return typeData.topPhrases[0].phrase;
+    }
+  }
+
+  // Fall back to default
+  return getResponsePhrase(silenceType);
+}
+
+/**
+ * Get optimal wait time for a silence type based on learned patterns.
+ */
+export async function getOptimalWaitTime(
+  userId: string,
+  silenceType: SilenceType
+): Promise<number> {
+  const profile = await loadSilenceProfile(userId);
+
+  if (profile?.responseEffectiveness?.byType[silenceType]) {
+    const typeData = profile.responseEffectiveness.byType[silenceType];
+    if (typeData.totalResponses >= 5) {
+      return Math.round(typeData.optimalWaitMs);
+    }
+  }
+
+  // Fall back to default
+  return WAIT_BEFORE_RESPONDING[silenceType];
+}
+
+/**
+ * Create default response effectiveness tracking
+ */
+function createDefaultEffectiveness(): ResponseEffectiveness {
+  const byType: ResponseEffectiveness['byType'] = {} as ResponseEffectiveness['byType'];
+  const silenceTypes: SilenceType[] = [
+    'processing',
+    'emotional',
+    'uncomfortable',
+    'invitational',
+    'exhausted',
+    'contemplative',
+  ];
+
+  for (const type of silenceTypes) {
+    byType[type] = {
+      totalResponses: 0,
+      helpfulResponses: 0,
+      topPhrases: [],
+      optimalWaitMs: WAIT_BEFORE_RESPONDING[type],
+    };
+  }
+
+  return {
+    byType,
+    overallScore: 0.5,
+    lastUpdated: new Date(),
+  };
 }
 
 // ============================================================================
@@ -632,6 +997,11 @@ export const silenceInterpreter = {
   buildSilenceContext,
   shouldAnalyzeSilence,
   getResponsePhrase,
+  // Enhanced learning
+  learnFromPatterns,
+  updateResponseEffectiveness,
+  getBestResponsePhrase,
+  getOptimalWaitTime,
 };
 
 export default silenceInterpreter;

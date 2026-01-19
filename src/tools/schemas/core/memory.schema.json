@@ -1,0 +1,57 @@
+{
+  "$schema": "../tool.schema.json",
+  "domain": "memory",
+  "version": "1.0.0",
+  "tools": [
+    {
+      "name": "rememberAboutUser",
+      "description": "Store an important fact about the user with semantic embedding for future recall. Facts persist across all sessions and are searchable by meaning.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "fact": {
+            "type": "string",
+            "description": "The fact to remember with full context. Examples: 'has two kids named Maya and Jake, ages 8 and 12', 'retiring next year from teaching biology', 'worried about healthcare costs'"
+          },
+          "category": {
+            "type": "string",
+            "description": "Category for the memory",
+            "enum": ["personal", "financial", "emotional", "goal", "preference"]
+          },
+          "importance": {
+            "type": "string",
+            "description": "How important this fact is",
+            "enum": ["low", "medium", "high"]
+          }
+        },
+        "required": ["fact", "category"]
+      },
+      "examples": [
+        { "userSays": "I have two kids, Maya and Jake", "output": "{\"fn\":\"rememberAboutUser\",\"args\":{\"fact\":\"has two kids named Maya and Jake\",\"category\":\"personal\",\"importance\":\"high\"}}" },
+        { "userSays": "I'm thinking about retiring next year", "output": "{\"fn\":\"rememberAboutUser\",\"args\":{\"fact\":\"considering retirement next year\",\"category\":\"goal\",\"importance\":\"high\"}}" },
+        { "userSays": "I prefer morning workouts", "output": "{\"fn\":\"rememberAboutUser\",\"args\":{\"fact\":\"prefers morning workouts\",\"category\":\"preference\",\"importance\":\"medium\"}}" }
+      ],
+      "tags": ["memory", "recall", "persistence", "better-than-human"]
+    },
+    {
+      "name": "recallFromMemory",
+      "description": "Semantic search across stored memories. Finds memories by meaning, not just keywords.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "topic": {
+            "type": "string",
+            "description": "What to recall - conceptual, not exact match. Examples: 'retirement plans', 'family situation', 'their concerns'"
+          }
+        },
+        "required": ["topic"]
+      },
+      "examples": [
+        { "userSays": "What do you know about my family?", "output": "{\"fn\":\"recallFromMemory\",\"args\":{\"topic\":\"family situation\"}}" },
+        { "userSays": "What are my goals?", "output": "{\"fn\":\"recallFromMemory\",\"args\":{\"topic\":\"goals and aspirations\"}}" },
+        { "userSays": "What have I told you about work?", "output": "{\"fn\":\"recallFromMemory\",\"args\":{\"topic\":\"work and career\"}}" }
+      ],
+      "tags": ["memory", "recall", "search", "better-than-human"]
+    }
+  ]
+}

@@ -118,6 +118,8 @@ export interface UserData {
   currentSpeechDurationMs?: number;
   /** Timestamp of last live backchannel */
   lastLiveBackchannelAt?: number;
+  /** Duration of the last completed speech (ms) - used for noise filtering */
+  lastSpeechDurationMs?: number;
 
   // Voice humanization - ambient awareness
   // Maps to EnvironmentType from ambient-awareness.ts

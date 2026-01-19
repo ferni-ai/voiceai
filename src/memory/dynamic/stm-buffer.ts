@@ -91,6 +91,10 @@ const sessionBuffers = new Map<string, SessionSTM>();
 // Session cleanup timers
 const cleanupTimers = new Map<string, NodeJS.Timeout>();
 
+// Global cleanup interval (sweeps for expired sessions periodically)
+let globalCleanupInterval: NodeJS.Timeout | null = null;
+const CLEANUP_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
+
 // ============================================================================
 // CORE FUNCTIONS
 // ============================================================================
@@ -102,6 +106,11 @@ export function getSTMBuffer(sessionId: string, userId: string): SessionSTM {
   let buffer = sessionBuffers.get(sessionId);
 
   if (!buffer) {
+    // Start the global cleanup interval on first session
+    if (!globalCleanupInterval && sessionBuffers.size === 0) {
+      startSTMCleanup();
+    }
+
     buffer = {
       sessionId,
       userId,
@@ -413,6 +422,57 @@ export function cleanupExpiredSessions(): void {
   if (toDelete.length > 0) {
     log.info({ cleanedUp: toDelete.length }, 'Cleaned up expired STM buffers');
   }
+}
+
+/**
+ * Start the global cleanup interval
+ * Called automatically on first session creation, but can be called explicitly
+ */
+export function startSTMCleanup(): void {
+  if (globalCleanupInterval) return; // Already running
+
+  globalCleanupInterval = setInterval(() => {
+    cleanupExpiredSessions();
+  }, CLEANUP_INTERVAL_MS);
+
+  // Prevent the interval from keeping Node.js alive
+  if (globalCleanupInterval.unref) {
+    globalCleanupInterval.unref();
+  }
+
+  log.debug({ intervalMs: CLEANUP_INTERVAL_MS }, 'Started STM cleanup interval');
+}
+
+/**
+ * Stop the global cleanup interval
+ * Should be called on graceful shutdown
+ */
+export function stopSTMCleanup(): void {
+  if (globalCleanupInterval) {
+    clearInterval(globalCleanupInterval);
+    globalCleanupInterval = null;
+    log.debug({}, 'Stopped STM cleanup interval');
+  }
+}
+
+/**
+ * Clear all sessions and stop cleanup (for testing or shutdown)
+ */
+export function clearAllSTMBuffers(): void {
+  // Stop the cleanup interval
+  stopSTMCleanup();
+
+  // Clear all timers
+  for (const timer of cleanupTimers.values()) {
+    clearTimeout(timer);
+  }
+  cleanupTimers.clear();
+
+  // Clear all buffers
+  const count = sessionBuffers.size;
+  sessionBuffers.clear();
+
+  log.debug({ clearedSessions: count }, 'Cleared all STM buffers');
 }
 
 /**

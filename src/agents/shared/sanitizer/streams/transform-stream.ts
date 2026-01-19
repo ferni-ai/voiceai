@@ -9,6 +9,7 @@
 
 import type { ReadableStream, WritableStream } from 'node:stream/web';
 import { TransformStream } from 'node:stream/web';
+import type { voice } from '@livekit/agents';
 import { createLogger } from '../../../../utils/safe-logger.js';
 import type { SanitizerStreamOptions } from '../types.js';
 import {
@@ -26,6 +27,8 @@ import {
   containsGuidanceBlocks as rustContainsGuidanceBlocks,
   isGuidanceStrippingAvailable,
 } from '../../../../memory/rust-accelerator.js';
+// Gateway for generateReply with proper safeguards (debouncing, circuit breaker, etc.)
+import { generateReply as gatewayGenerateReply, TOOL_RESPONSE_TIMEOUT_MS } from '../../generate-reply-gateway.js';
 
 const log = createLogger({ module: 'sanitizer-stream' });
 
@@ -104,6 +107,189 @@ export function createSanitizerTransformStream(): AnyTransformStream {
  * @param options - Configuration options
  * @returns Transform stream with fallback behavior
  */
+// ============================================================================
+// BETTER THAN HUMAN: Rich Tool Response Guidance
+// ============================================================================
+
+/**
+ * Build rich guidance for LLM after tool execution.
+ * This creates "Better Than Human" responses with full context.
+ */
+function buildToolResponseGuidance(params: {
+  fnName: string;
+  result: string;
+  success: boolean;
+  error?: string;
+  options: SanitizerStreamOptions;
+}): string {
+  const { fnName, result, success, error, options } = params;
+  const {
+    userName,
+    userRequest,
+    userEmotion,
+    timeContext,
+    personaId,
+    personaDisplayName,
+    recentTopics,
+  } = options;
+
+  // Tool-specific response guidance
+  const toolGuidance = getToolSpecificGuidance(fnName, success);
+  
+  // Build persona voice guidance
+  const personaVoice = getPersonaVoiceGuidance(personaId, personaDisplayName);
+  
+  // Build emotional attunement
+  const emotionalGuidance = userEmotion?.primary
+    ? `[EMOTIONAL ATTUNEMENT: User seems ${userEmotion.primary}${userEmotion.intensity && userEmotion.intensity > 0.7 ? ' (strongly)' : ''}. Match their energy appropriately.]`
+    : '';
+  
+  // Build time awareness
+  const timeAwareness = timeContext?.timeOfDay
+    ? `[TIME CONTEXT: It's ${timeContext.timeOfDay}${timeContext.isWeekend ? ' on the weekend' : ''}. Be mindful of this in your tone.]`
+    : '';
+  
+  // Build personalization
+  const personalization = userName
+    ? `[USER: ${userName}${userRequest ? ` asked: "${userRequest}"` : ''}]`
+    : userRequest
+      ? `[USER REQUEST: "${userRequest}"]`
+      : '';
+  
+  // Build continuity reference
+  const continuity = recentTopics?.length
+    ? `[RECENT TOPICS: ${recentTopics.slice(0, 3).join(', ')} - maintain conversational flow]`
+    : '';
+
+  if (success) {
+    return [
+      `[TOOL EXECUTED: ${fnName}]`,
+      `[RESULT: ${result.slice(0, 800)}]`,
+      personalization,
+      emotionalGuidance,
+      timeAwareness,
+      personaVoice,
+      toolGuidance,
+      continuity,
+      '',
+      '[CRITICAL - OUTPUT FORMAT:]',
+      '⚠️ OUTPUT NATURAL SPEECH ONLY - NO JSON, NO CODE, NO MARKDOWN',
+      '⚠️ The tool has ALREADY executed. Do NOT output {"fn":...} or any JSON.',
+      '⚠️ Just acknowledge the result in plain conversational text.',
+      '',
+      '[RESPONSE RULES:]',
+      '- Respond as if YOU did this, not a tool (never say "the tool" or "I executed")',
+      '- Be conversational and warm, like telling a friend',
+      '- Keep it brief (1-2 sentences usually)',
+      '- NEVER use colons in speech (no "Result: X", say "It\'s X")',
+      '- Match the user\'s emotional energy',
+      '- If they were excited, share their excitement',
+      '- If result is rich data, share the most relevant highlight first',
+    ].filter(Boolean).join('\n');
+  } else {
+    return [
+      `[TOOL FAILED: ${fnName}]`,
+      `[ERROR: ${error || 'Unknown error'}]`,
+      personalization,
+      emotionalGuidance,
+      personaVoice,
+      '',
+      '[CRITICAL - OUTPUT FORMAT:]',
+      '⚠️ OUTPUT NATURAL SPEECH ONLY - NO JSON, NO CODE, NO MARKDOWN',
+      '⚠️ Do NOT output {"fn":...} or any JSON. Just speak naturally.',
+      '',
+      '[RESPONSE RULES:]',
+      '- Acknowledge the hiccup warmly (not robotically)',
+      '- Don\'t over-apologize or be dramatic',
+      '- Offer a specific alternative or ask how else you can help',
+      '- Keep it brief and move forward positively',
+      '- Example tone: "Hmm, that didn\'t work. Want me to try X instead?"',
+    ].filter(Boolean).join('\n');
+  }
+}
+
+/**
+ * Get tool-specific response guidance for natural framing
+ */
+function getToolSpecificGuidance(fnName: string, success: boolean): string {
+  const toolGuidelines: Record<string, string> = {
+    // Games & Fun
+    startGame: success
+      ? '[TOOL GUIDANCE: You started a game! Set up the rules briefly and dive into the first question/round with energy.]'
+      : '[TOOL GUIDANCE: Game couldn\'t start. Offer to try a different game or activity.]',
+    
+    // Music
+    playMusic: success
+      ? '[TOOL GUIDANCE: Music is now playing. A brief "Here we go" or acknowledgment is enough - the music speaks for itself.]'
+      : '[TOOL GUIDANCE: Music couldn\'t play. Ask what else they\'d like to hear or suggest checking their connection.]',
+    
+    // Weather
+    getWeather: success
+      ? '[TOOL GUIDANCE: Share the weather conversationally. Start with the most relevant info (temp if asking generally, rain if they asked about umbrella).]'
+      : '[TOOL GUIDANCE: Couldn\'t get weather. Offer to try again or suggest they check their weather app.]',
+    
+    // Habits
+    createHabit: success
+      ? '[TOOL GUIDANCE: Celebrate this with them! Starting a new habit is exciting. Be encouraging but not over-the-top.]'
+      : '[TOOL GUIDANCE: Habit creation failed. Ask if they want to try with different details.]',
+    logHabitCompletion: success
+      ? '[TOOL GUIDANCE: Acknowledge their progress warmly. Reference their streak if impressive.]'
+      : '[TOOL GUIDANCE: Couldn\'t log it. Reassure them it still counts and you\'ll try again.]',
+    
+    // Tasks & Notes
+    createTask: success
+      ? '[TOOL GUIDANCE: Confirm the task briefly. If it has a due date, mention when it\'s due.]'
+      : '[TOOL GUIDANCE: Task creation failed. Offer to remember it another way.]',
+    saveNote: success
+      ? '[TOOL GUIDANCE: Confirm you saved it. Brief is best - "Got it, saved."]'
+      : '[TOOL GUIDANCE: Couldn\'t save. Offer to remember it for this conversation at least.]',
+    
+    // Timer & Time
+    setTimer: success
+      ? '[TOOL GUIDANCE: Confirm the timer is set with the duration. Keep it brief.]'
+      : '[TOOL GUIDANCE: Timer couldn\'t be set. Offer an alternative or suggest their phone timer.]',
+    
+    // Handoff
+    handoff: success
+      ? '[TOOL GUIDANCE: You\'re transitioning to another persona. Say goodbye warmly and hand off naturally.]'
+      : '[TOOL GUIDANCE: Handoff failed. Reassure user you can still help, or try again.]',
+    
+    // Breathing & Grounding
+    breatheWithMe: success
+      ? '[TOOL GUIDANCE: Guide them gently into the breathing exercise. Use calm, measured pacing.]'
+      : '[TOOL GUIDANCE: Exercise couldn\'t start. Offer to guide them through breathing yourself.]',
+    groundInBody: success
+      ? '[TOOL GUIDANCE: Guide them into the grounding exercise with a calm, present voice.]'
+      : '[TOOL GUIDANCE: Offer to do a simple grounding check-in together instead.]',
+  };
+  
+  return toolGuidelines[fnName] || (success
+    ? '[TOOL GUIDANCE: Share the result naturally as if you just did something helpful for a friend.]'
+    : '[TOOL GUIDANCE: Something went wrong. Be warm, brief, and offer an alternative.]');
+}
+
+/**
+ * Get persona-specific voice guidance
+ */
+function getPersonaVoiceGuidance(personaId?: string, displayName?: string): string {
+  const personaVoices: Record<string, string> = {
+    'ferni': '[PERSONA VOICE: Warm, grounded life coach. Supportive but not saccharine. Like a wise friend.]',
+    'maya-santos': '[PERSONA VOICE: Energetic habit coach. Encouraging and action-oriented. Celebrates progress.]',
+    'peter-john': '[PERSONA VOICE: Calm research advisor. Thoughtful and precise. Explains with clarity.]',
+    'alex-chen': '[PERSONA VOICE: Professional communications coach. Clear and efficient. Gets to the point.]',
+    'jordan-taylor': '[PERSONA VOICE: Creative event planner. Enthusiastic about celebrations and milestones.]',
+    'nayan-patel': '[PERSONA VOICE: Wise philosopher. Reflective and deep. Finds meaning in moments.]',
+  };
+  
+  if (personaId && personaVoices[personaId]) {
+    return personaVoices[personaId];
+  }
+  
+  return displayName
+    ? `[PERSONA VOICE: Respond as ${displayName} with warmth and authenticity.]`
+    : '[PERSONA VOICE: Respond warmly and naturally, like a supportive friend.]';
+}
+
 export function createSanitizerWithMusicFallback(
   options: SanitizerStreamOptions = {}
 ): AnyTransformStream {
@@ -111,10 +297,241 @@ export function createSanitizerWithMusicFallback(
 
   let buffer = '';
   let musicFallbackTriggered = false;
+  let jsonFunctionExecuted = false;
+  // Track text that comes BEFORE a JSON function call (should still be spoken)
+  let prefixTextFlushed = false;
+  // Track if we're potentially accumulating a JSON block (don't enqueue until we know)
+  let potentialJsonAccumulating = false;
+  // Buffered chunks waiting to be released if JSON detection fails
+  let pendingChunks: string[] = [];
 
   const transformer = new TransformStream<string, string>({
     async transform(chunk, controller) {
       buffer += chunk;
+
+      // =========================================================================
+      // 🔧 JSON FUNCTION CALL EXECUTION (CRITICAL - must happen FIRST!)
+      // When LLM outputs `{"fn":"toolName","args":{...}}`, execute it!
+      // This is the JSON workaround for Gemini's unreliable native function calling.
+      //
+      // IMPORTANT: After executing, we MUST tell the LLM about the result so it
+      // can continue the conversation naturally. Otherwise the LLM thinks it just
+      // output text and waits for user input → SILENCE.
+      //
+      // FIX (Jan 2026): Handle JSON embedded within text, not just standalone JSON.
+      // LLMs often output: "Sure thing.\n```json\n{...}\n```" 
+      // We need to:
+      // 1. Extract and speak the prefix text ("Sure thing.")
+      // 2. Execute the JSON function call
+      // 3. Strip the JSON from TTS output
+      // =========================================================================
+      
+      // Detect if we're starting to see a JSON block (must buffer until complete)
+      // This catches: ```json, ```\n{, {"fn", etc.
+      const jsonStartSignals = [
+        /```(?:json)?[\s\n]*\{?[\s\n]*"?fn/i,  // Markdown code fence with JSON
+        /```(?:json)?[\s\n]*$/,                 // Just opened code fence
+        /\{\s*"fn"\s*:/,                        // Bare JSON start
+      ];
+      
+      if (!potentialJsonAccumulating) {
+        const hasJsonStart = jsonStartSignals.some(pattern => pattern.test(buffer));
+        if (hasJsonStart) {
+          potentialJsonAccumulating = true;
+          pendingChunks = []; // Start fresh accumulation
+          
+          // Find where the JSON might start
+          const codeBlockStart = buffer.indexOf('```');
+          const bareJsonStart = buffer.indexOf('{"fn"');
+          const jsonStartIndex = codeBlockStart >= 0 ? codeBlockStart : bareJsonStart;
+          
+          // Enqueue any text BEFORE the potential JSON start
+          if (jsonStartIndex > 0) {
+            const prefixText = buffer.slice(0, jsonStartIndex).trim();
+            if (prefixText && !prefixTextFlushed) {
+              prefixTextFlushed = true;
+              log.info(
+                { prefixText: prefixText.slice(0, 100), sessionId, trace: 'E2E_JSON_PREFIX' },
+                `🔧 E2E TRACE [JSON PREFIX] Speaking prefix before JSON: "${prefixText.slice(0, 50)}..."`
+              );
+              controller.enqueue(prefixText);
+            }
+          }
+          
+          log.debug({ sessionId, bufferSnippet: buffer.slice(-50) }, '🔍 Potential JSON block detected, buffering...');
+        }
+      }
+      
+      // If we're accumulating, don't enqueue yet - wait for complete JSON
+      if (potentialJsonAccumulating) {
+        pendingChunks.push(chunk);
+      }
+      
+      // Check if buffer CONTAINS a complete JSON function call
+      // Pattern: ```json\n{...}\n``` OR just {...} with "fn" and "args"
+      const jsonBlockMatch = buffer.match(/```(?:json)?\s*(\{[^`]*"fn"\s*:\s*"[^"]+"\s*[^`]*\})\s*```/s);
+      const bareJsonMatch = !jsonBlockMatch && buffer.match(/(\{[^{}]*"fn"\s*:\s*"[^"]+"\s*,\s*"args"\s*:\s*\{[^{}]*\}[^{}]*\})/);
+      const jsonMatch = jsonBlockMatch || bareJsonMatch;
+      
+      if (!jsonFunctionExecuted && jsonMatch) {
+        const fullMatch = jsonMatch[0];
+        const jsonContent = jsonMatch[1];
+        
+        // JSON found and complete - we already enqueued prefix, now execute
+        potentialJsonAccumulating = false;
+        pendingChunks = [];
+        
+        // Try to extract fn and args from the JSON content
+        const fnArgsMatch = jsonContent.match(/"fn"\s*:\s*"([^"]+)".*?"args"\s*:\s*(\{[^{}]*\})/s);
+        if (fnArgsMatch && toolContext) {
+          const fnName = fnArgsMatch[1];
+          const argsStr = fnArgsMatch[2];
+          
+          try {
+            const args = JSON.parse(argsStr);
+            
+            // 🚫 DEDUPLICATION: Check if tool was already executed by semantic router
+            // This prevents double execution when semantic router and LLM both try to call the same tool
+            const toolId = `${fnName}:${JSON.stringify(args)}`;
+            if (sessionId && wasToolExecutedBySemanticRouter(sessionId, toolId)) {
+              log.info(
+                { fn: fnName, sessionId, trace: 'E2E_DEDUP_SKIP' },
+                `🚫 E2E TRACE [DEDUP] Skipping ${fnName} - already executed by semantic router`
+              );
+              buffer = '';
+              return;
+            }
+            
+            jsonFunctionExecuted = true;
+            
+            log.info(
+              { fn: fnName, args, sessionId, trace: 'E2E_JSON_INTERCEPT' },
+              `🔧 E2E TRACE [JSON INTERCEPT] Executing: ${fnName}(${JSON.stringify(args).slice(0, 50)}...)`
+            );
+            
+            // Mark as executed to prevent duplicate calls from other layers
+            if (sessionId) {
+              markToolExecutedBySemanticRouter(sessionId, toolId);
+            }
+            
+            // Execute the function
+            const { executeJsonFunction } = await import('../../json-function-executor.js');
+            const result = await executeJsonFunction(
+              { fn: fnName, args, raw: fullMatch },
+              { ...toolContext, sessionId }
+            );
+            
+            // Convert result to string for guidance
+            const resultStr = typeof result.result === 'string' 
+              ? result.result 
+              : JSON.stringify(result.result);
+            
+            if (result.success) {
+              log.info(
+                { fn: fnName, result: resultStr?.slice(0, 100), trace: 'E2E_JSON_SUCCESS' },
+                `✅ E2E TRACE [JSON SUCCESS] ${fnName} completed`
+              );
+              
+              if (result.speakDirectly && resultStr) {
+                // Tool explicitly wants to speak directly (e.g., "speak" pseudo-tool)
+                session?.say?.(resultStr, { allowInterruptions: true });
+              } else if (session && sessionId && sessionId !== 'unknown') {
+                // BETTER THAN HUMAN: Use gateway with rich contextual guidance
+                // Gateway provides: debouncing, circuit breaker, active response tracking
+                const instructions = buildToolResponseGuidance({
+                  fnName,
+                  result: resultStr || 'Success',
+                  success: true,
+                  options,
+                });
+                
+                log.info(
+                  { fn: fnName, hasUserContext: !!options.userName, hasEmotion: !!options.userEmotion, trace: 'E2E_GENERATE_REPLY' },
+                  `🔄 E2E TRACE [GENERATE_REPLY] Telling LLM about ${fnName} via gateway`
+                );
+                
+                // Use gateway for proper safeguards - fire and forget with error handling
+                // IMPORTANT: Tool responses need longer timeout - Gemini must parse the tool
+                // result AND generate a contextual response (not just a simple conversational reply)
+                // FIX (Jan 2026): Set waitForPlayout: false to avoid hanging on concurrent speech
+                // The PREFIX text may already be playing, and the gateway's speechStarted flag
+                // gets polluted by events from that speech, causing the timeout to silently return
+                // without rejecting. With waitForPlayout: false, we return after LLM response
+                // and the speech happens asynchronously.
+                gatewayGenerateReply(
+                  session as voice.AgentSession,
+                  sessionId,
+                  {
+                    instructions,
+                    context: `json-tool-${fnName}`,
+                    priority: 'high', // Tool responses should be high priority
+                    allowInterruptions: true,
+                    waitForPlayout: false, // Don't wait - PREFIX may be playing concurrently
+                    fallbackMessage: resultStr || 'Done!',
+                    timeoutMs: TOOL_RESPONSE_TIMEOUT_MS, // 10s - tool responses need more time
+                  }
+                ).catch((gatewayError) => {
+                  log.warn(
+                    { error: String(gatewayError), fn: fnName, trace: 'E2E_GATEWAY_FALLBACK' },
+                    'Gateway generateReply failed, using direct say fallback'
+                  );
+                  session?.say?.(resultStr || 'Done!', { allowInterruptions: true });
+                });
+              } else if (resultStr) {
+                // Fallback: speak the result directly when session/sessionId not available
+                session?.say?.(resultStr, { allowInterruptions: true });
+              }
+            } else {
+              log.error(
+                { fn: fnName, error: result.error, trace: 'E2E_JSON_FAILED' },
+                `❌ E2E TRACE [JSON FAILED] ${fnName}: ${result.error}`
+              );
+              
+              // BETTER THAN HUMAN: Rich contextual guidance for graceful failure
+              if (session && sessionId && sessionId !== 'unknown') {
+                const instructions = buildToolResponseGuidance({
+                  fnName,
+                  result: '',
+                  success: false,
+                  error: result.error,
+                  options,
+                });
+                
+                // Use gateway for proper safeguards
+                // IMPORTANT: Tool responses need longer timeout - even failures need time to process
+                // FIX (Jan 2026): Set waitForPlayout: false to avoid hanging on concurrent speech
+                gatewayGenerateReply(
+                  session as voice.AgentSession,
+                  sessionId,
+                  {
+                    instructions,
+                    context: `json-tool-${fnName}-failed`,
+                    priority: 'high',
+                    allowInterruptions: true,
+                    waitForPlayout: false, // Don't wait - PREFIX may be playing concurrently
+                    fallbackMessage: "Hmm, that didn't quite work. Want me to try something else?",
+                    timeoutMs: TOOL_RESPONSE_TIMEOUT_MS, // 10s - tool responses need more time
+                  }
+                ).catch((gatewayError) => {
+                  log.warn(
+                    { error: String(gatewayError), fn: fnName },
+                    'Gateway generateReply failed for error case, using direct say fallback'
+                  );
+                  session?.say?.("Hmm, that didn't quite work. Want me to try something else?", { allowInterruptions: true });
+                });
+              } else {
+                session?.say?.("Hmm, that didn't quite work. Want me to try something else?", { allowInterruptions: true });
+              }
+            }
+          } catch (parseError) {
+            log.warn({ error: String(parseError), buffer: buffer.slice(0, 100) }, 'Failed to parse JSON function call');
+          }
+          
+          // Clear buffer - don't send JSON to TTS
+          buffer = '';
+          return;
+        }
+      }
 
       // Check for music narration pattern
       if (!musicFallbackTriggered && shouldTriggerMusicFallback(buffer)) {
@@ -157,11 +574,38 @@ export function createSanitizerWithMusicFallback(
         if (replacement) {
           controller.enqueue(replacement);
         }
+        potentialJsonAccumulating = false;
+        pendingChunks = [];
         buffer = '';
         return;
       }
 
-      // Pass through clean text
+      // If we're accumulating potential JSON, don't enqueue yet
+      if (potentialJsonAccumulating) {
+        // Safety: If buffer gets too large without finding complete JSON, release it
+        // This prevents infinite buffering if LLM outputs malformed JSON
+        if (buffer.length > 1000) {
+          log.warn(
+            { sessionId, bufferLength: buffer.length },
+            '⚠️ JSON accumulation buffer overflow - releasing pending chunks'
+          );
+          // Release all pending chunks
+          for (const pendingChunk of pendingChunks) {
+            controller.enqueue(pendingChunk);
+          }
+          potentialJsonAccumulating = false;
+          pendingChunks = [];
+        }
+        // Don't enqueue current chunk - we're still buffering
+        
+        // Keep buffer reasonable
+        if (buffer.length > 500) {
+          buffer = buffer.slice(-200);
+        }
+        return;
+      }
+
+      // Pass through clean text (only when NOT accumulating potential JSON)
       controller.enqueue(chunk);
 
       // Keep buffer reasonable
@@ -170,9 +614,46 @@ export function createSanitizerWithMusicFallback(
       }
     },
 
-    flush() {
+    flush(controller) {
+      // If we have pending chunks when stream ends, analyze before releasing
+      // This handles the case where JSON detection never completed (e.g., Gemini timeout mid-response)
+      if (pendingChunks.length > 0) {
+        const combinedPending = pendingChunks.join('');
+        
+        // Check if pending content looks like incomplete JSON (should NOT be spoken)
+        // Patterns: starts with { or ```, contains "fn":, ends mid-JSON
+        const looksLikeIncompleteJson = 
+          combinedPending.includes('"fn"') ||
+          combinedPending.includes('```json') ||
+          (combinedPending.includes('{') && !combinedPending.includes('}')) ||
+          combinedPending.match(/^\s*\{/) ||
+          combinedPending.match(/```\s*$/);
+        
+        if (looksLikeIncompleteJson) {
+          // DROP incomplete JSON - don't speak it!
+          // This happens when Gemini connection dies mid-function-call output
+          log.warn(
+            { sessionId, pendingCount: pendingChunks.length, preview: combinedPending.slice(0, 100) },
+            '🚫 Stream ended with incomplete JSON function call - DROPPING (not sending to TTS)'
+          );
+          // Don't enqueue anything - let the fallback message handle the response
+        } else {
+          // Not JSON - release the pending chunks
+          log.warn(
+            { sessionId, pendingCount: pendingChunks.length },
+            '⚠️ Stream ended with pending chunks - releasing to TTS'
+          );
+          for (const pendingChunk of pendingChunks) {
+            controller.enqueue(pendingChunk);
+          }
+        }
+      }
+      
       buffer = '';
       musicFallbackTriggered = false;
+      jsonFunctionExecuted = false;
+      potentialJsonAccumulating = false;
+      pendingChunks = [];
     },
   });
 

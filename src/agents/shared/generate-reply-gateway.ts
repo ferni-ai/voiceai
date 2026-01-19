@@ -70,6 +70,8 @@ export interface GatewayResult {
   skipped?: boolean;
   /** True if the call was debounced (too rapid) */
   debounced?: boolean;
+  /** True if call succeeded but LLM returned empty/no-speech response (Jan 2026 fix) */
+  noSpeechProduced?: boolean;
 }
 
 /** Type alias for external consumers */
@@ -584,6 +586,14 @@ const BASE_TIMEOUT_MS = 4000;
 const MIN_TIMEOUT_MS = 2500;
 /** Maximum timeout - never exceed this */
 const MAX_TIMEOUT_MS = 8000;
+/** 
+ * Timeout for tool response calls - needs more time because Gemini must:
+ * 1. Parse the tool result
+ * 2. Generate a contextually appropriate response  
+ * 3. Start streaming speech
+ * Tool calls are fundamentally different from normal conversational turns.
+ */
+export const TOOL_RESPONSE_TIMEOUT_MS = 10000;
 /** Time before sending quick acknowledgment (ms) */
 const QUICK_ACK_DELAY_MS = 1200;
 /** Number of recent TTFBs to track for averaging */
@@ -1223,7 +1233,30 @@ export async function generateReply(
   // -------------------------------------------------------------------------
   // BETTER THAN HUMAN: Use adaptive timeout based on session latency history
   // -------------------------------------------------------------------------
-  const effectiveTimeoutMs = timeoutMs !== 4000 ? timeoutMs : getAdaptiveTimeout(state);
+  // CRITICAL FIX (Jan 2026): Tool response contexts need longer timeout!
+  // Tool responses require Gemini to:
+  //   1. Parse the tool result
+  //   2. Generate contextually appropriate response
+  //   3. Start streaming speech
+  // This takes significantly longer than normal conversational turns.
+  // Auto-detect tool context and enforce TOOL_RESPONSE_TIMEOUT_MS (10s) minimum.
+  const isToolResponseContext = context.startsWith('json-tool-') || context.includes('tool-response');
+  let effectiveTimeoutMs: number;
+  
+  if (isToolResponseContext) {
+    // Tool responses: use at least TOOL_RESPONSE_TIMEOUT_MS, or caller's value if higher
+    effectiveTimeoutMs = Math.max(timeoutMs, TOOL_RESPONSE_TIMEOUT_MS);
+    log.debug(
+      { context, requestedTimeout: timeoutMs, effectiveTimeoutMs },
+      '🔧 [GATEWAY] Using extended timeout for tool response context'
+    );
+  } else if (timeoutMs !== 4000) {
+    // Caller specified a custom timeout - use it
+    effectiveTimeoutMs = timeoutMs;
+  } else {
+    // Default timeout - use adaptive based on session history
+    effectiveTimeoutMs = getAdaptiveTimeout(state);
+  }
 
   // Start quick acknowledgment timer (fires if LLM is slow)
   const quickAckTimerId = priority === 'high' ? startQuickAckTimer(sessionId, state) : null;
@@ -1265,17 +1298,22 @@ export async function generateReply(
 
     // Create our own timeout (fires before SDK's 15s timeout)
     // CRITICAL: On timeout, only interrupt if agent hasn't started speaking
+    // FIX (Jan 2026): ALWAYS reject on timeout so the caller's fallback can kick in.
+    // The previous behavior silently returned when speechStarted was true, but that flag
+    // could be set by ANOTHER concurrent generation (e.g., PREFIX text playing while
+    // tool response is pending). This left the promise hanging forever.
     const timeoutPromise = new Promise<never>((_, reject) => {
       timeoutId = setTimeout(() => {
-        // FIX: Don't interrupt if agent is actively speaking!
-        // This prevents cutting off Ferni mid-sentence when audio playout takes longer than timeout
+        // Check if speech started - but this could be from another concurrent generation
+        // (e.g., PREFIX text was playing while we wait for the tool response LLM call)
         if (speechStarted) {
           log.debug(
             { sessionId, context, effectiveTimeoutMs },
-            '⏸️ [GATEWAY] Timeout reached but agent is speaking - allowing playout to complete'
+            '⏸️ [GATEWAY] Timeout reached but agent may be speaking - rejecting but NOT interrupting'
           );
-          // Don't reject or interrupt - let the playout promise handle completion naturally
-          // The Promise.race will wait for replyPromise since we're not rejecting
+          // Don't interrupt (to avoid cutting off another speech), but DO reject
+          // so the caller's fallback mechanism can trigger
+          reject(new Error(`Gateway timeout (${effectiveTimeoutMs}ms) - speech may be active`));
           return;
         }
 
@@ -1388,8 +1426,13 @@ export async function generateReply(
     // FIX (Jan 2026): Detect when LLM responded but no speech was produced
     // This happens when OpenAI returns empty content or only a function call
     // without follow-up speech. Log a warning to help diagnose "no audio" issues.
+    //
+    // IMPORTANT: We can ONLY detect this reliably when waitForPlayout is true!
+    // When waitForPlayout is false, the promise resolves immediately BEFORE
+    // speech starts, so speechStarted will always be false (false positive).
     // =========================================================================
-    if (!speechStarted && latencyMs < 500) {
+    const noSpeechProduced = waitForPlayout && !speechStarted && latencyMs < 500;
+    if (noSpeechProduced) {
       // Very fast completion without speech = likely empty response or function call only
       log.warn(
         {
@@ -1397,6 +1440,7 @@ export async function generateReply(
           context,
           latencyMs,
           speechStarted,
+          waitForPlayout,
         },
         '⚠️ [GATEWAY] Fast response but no speech started - OpenAI may have returned empty/function-only'
       );
@@ -1409,6 +1453,8 @@ export async function generateReply(
       success: true,
       usedFallback: false,
       latencyMs,
+      // FIX (Jan 2026): Let callers know if no speech was produced so they can use fallback
+      noSpeechProduced,
     };
   } catch (error) {
     // Notify orchestrator that generation failed/completed
@@ -1695,12 +1741,30 @@ export async function prewarmSession(
 
   log.info({ sessionId }, '🔥 [GATEWAY] Starting FULL prewarm (establishing Gemini connection)...');
 
+  // FIX (Jan 2026): Increased timeout from 3s to 5s - connection can take a while on cold start
+  // Also properly interrupt the handle on timeout to prevent WritableStream errors
+  const PREWARM_TIMEOUT_MS = 5000;
+  let prewarmHandle: ReturnType<typeof session.generateReply> | null = null;
+  let timeoutId: ReturnType<typeof setTimeout> | null = null;
+
   try {
     // Call generateReply with minimal instruction to establish Gemini WebSocket
-    // Timeout set to 3s - if Gemini doesn't connect in 3s, use lazy connection
+    // Timeout set to 5s - if Gemini doesn't connect in 5s, use lazy connection
     // This prevents blocking session startup while still attempting early connection
     const timeoutPromise = new Promise<never>((_, reject) => {
-      setTimeout(() => reject(new Error('Prewarm timeout (3s)')), 3000);
+      timeoutId = setTimeout(() => {
+        // FIX: Interrupt the session to properly clean up the handle
+        // This prevents the WritableStream is closed error from LiveKit telemetry
+        if (prewarmHandle) {
+          try {
+            session.interrupt();
+            log.debug({ sessionId }, '🛑 [GATEWAY] Prewarm handle interrupted on timeout');
+          } catch (interruptErr) {
+            log.debug({ error: String(interruptErr) }, '🔇 [GATEWAY] Prewarm interrupt failed (non-critical)');
+          }
+        }
+        reject(new Error(`Prewarm timeout (${PREWARM_TIMEOUT_MS / 1000}s)`));
+      }, PREWARM_TIMEOUT_MS);
     });
 
     const prewarmPromise = (async () => {
@@ -1709,21 +1773,26 @@ export async function prewarmSession(
         throw new Error('Session cancelled during prewarm');
       }
 
-      const handle = session.generateReply({
+      prewarmHandle = session.generateReply({
         instructions: ' ',
         allowInterruptions: true,
       });
 
       // Wait for generation_created event (implicit in waitForPlayout)
-      await handle.waitForPlayout();
+      await prewarmHandle.waitForPlayout();
     })();
 
-    // Attach catch handler
+    // Attach catch handler to prevent unhandled rejection
     prewarmPromise.catch((err: Error) => {
       log.debug({ error: err.message }, '🔇 [GATEWAY] Swallowed prewarm rejection');
     });
 
     await Promise.race([prewarmPromise, timeoutPromise]);
+
+    // Clear timeout on success to prevent memory leak
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+    }
 
     // SAFETY CHECK: Don't mark as ready if session was cancelled during prewarm
     if (cancelledSessions.has(sessionId)) {
@@ -1742,10 +1811,22 @@ export async function prewarmSession(
     );
     return true;
   } catch (error) {
+    // Clear timeout to prevent memory leak
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+    }
+
     const errorMsg = error instanceof Error ? error.message : String(error);
     // Don't warn for cancellation - it's expected
     if (errorMsg.includes('cancelled')) {
       log.debug({ sessionId }, '🔇 [GATEWAY] Prewarm cancelled (session ended)');
+    } else if (errorMsg.includes('timeout')) {
+      // Timeout is expected when connection is slow - mark session ready for lazy connection
+      markSessionReady(sessionId);
+      log.info(
+        { sessionId, durationMs: Date.now() - startTime, error: errorMsg },
+        '⚠️ [GATEWAY] Prewarm timeout - session marked ready for lazy connection'
+      );
     } else {
       log.warn({ sessionId, error: errorMsg }, '⚠️ [GATEWAY] Prewarm failed');
     }

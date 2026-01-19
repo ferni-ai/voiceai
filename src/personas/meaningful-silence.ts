@@ -2242,14 +2242,20 @@ function buildLLMSilenceInstructionsInternal(
   // NO conversational phrases that could be echoed as speech!
   // Format: [TYPE] → [CONSTRAINTS]
 
+  // FIX (Jan 2026): Changed instruction format to be IMPERATIVES, not bracketed markers.
+  // Gemini was echoing back [TYPE: presence] as if it were output format.
+  // Now we use clear imperative instructions like "Say something warm..."
+
   if (silenceDurationSeconds < firstThreshold || recentEmotionalTone === 'heavy') {
     // Short silence or heavy topic - just presence
     responseType = 'comfortable_presence';
+    // FIX (Jan 2026): Removed "OR silence" - this caused LLM to output nothing
+    // We want a brief acknowledgment, not literal silence
     responseGuidance =
       llmGuidance?.presence?.instruction_template?.replace(
         '{duration}',
         String(Math.round(silenceDurationSeconds))
-      ) || '[TYPE: soft_presence] → [MAX: 5 words OR silence]';
+      ) || "Say something warm and brief (under 5 words). Just acknowledge you're here.";
     invitesReply = false;
   } else if (silenceDurationSeconds < secondThreshold && hasTopicsToReference) {
     // Medium silence WITH something to reference - use memory callback
@@ -2258,7 +2264,8 @@ function buildLLMSilenceInstructionsInternal(
       llmGuidance?.memory_callback?.instruction_template?.replace(
         '{duration}',
         String(Math.round(silenceDurationSeconds))
-      ) || '[TYPE: memory_reference] → [REF: something they shared] [NO: questions]';
+      ) ||
+      "Reference something specific they shared. Don't ask a question - just acknowledge what they said.";
     invitesReply = false;
   } else if (silenceDurationSeconds < secondThreshold) {
     // Medium silence but NO topics to reference - fall back to presence
@@ -2267,7 +2274,7 @@ function buildLLMSilenceInstructionsInternal(
       llmGuidance?.presence?.instruction_template?.replace(
         '{duration}',
         String(Math.round(silenceDurationSeconds))
-      ) || '[TYPE: presence] → [MAX: 8 words] [TONE: warm]';
+      ) || 'Say something warm (under 8 words). Be present without pressure.';
     invitesReply = false;
   } else if (turnCount >= questionMinTurns) {
     // Longer silence, established conversation - thoughtful question
@@ -2276,7 +2283,8 @@ function buildLLMSilenceInstructionsInternal(
       llmGuidance?.thoughtful_question?.instruction_template?.replace(
         '{duration}',
         String(Math.round(silenceDurationSeconds))
-      ) || '[TYPE: curious_question] → [ABOUT: specific detail they shared] [NOT: generic]';
+      ) ||
+      'Ask a thoughtful question about something specific they mentioned. Make it feel curious, not generic.';
     invitesReply = true;
   } else {
     // Early conversation, long silence - gentle check-in
@@ -2285,7 +2293,7 @@ function buildLLMSilenceInstructionsInternal(
       llmGuidance?.check_in?.instruction_template?.replace(
         '{duration}',
         String(Math.round(silenceDurationSeconds))
-      ) || '[TYPE: check_in] → [STYLE: curious not concerned] [MAX: 10 words]';
+      ) || 'Check in gently (under 10 words). Be curious, not concerned.';
     invitesReply = true;
   }
 
@@ -2319,14 +2327,31 @@ function buildLLMSilenceInstructionsInternal(
     conversationContext.push(`Topic: ${wasDiscussingTopic}`);
   }
 
-  // Build STRUCTURED instructions that cannot be mistaken for speech
-  // Using [BRACKET] format that Gemini recognizes as meta-commands
-  const contextLine = conversationContext.length > 0 ? conversationContext.join(' | ') : '';
+  // FIX (Jan 2026): Build clear imperative instructions without bracket markers.
+  // Gemini was echoing back [SITUATION:], [TYPE:], etc. as if they were output format.
+  // Now we use natural language that clearly separates context from instructions.
+
+  const contextLine = conversationContext.length > 0 ? conversationContext.join('. ') : '';
   const hintsLine = contextHints.length > 0 ? contextHints.join('. ') : '';
 
-  const instructions = `[SITUATION: ${Math.round(silenceDurationSeconds)}s silence${contextLine ? ` | ${contextLine}` : ''}${hintsLine ? ` | ${hintsLine}` : ''}${timeHint ? ` | ${timeHint}` : ''}]
+  // Build context section (clearly labeled as CONTEXT to read, not output)
+  const contextSection = [
+    contextLine,
+    hintsLine,
+    timeHint,
+    `It's been ${Math.round(silenceDurationSeconds)} seconds of silence.`,
+  ]
+    .filter(Boolean)
+    .join(' ');
+
+  // Build clear instructions that won't be echoed
+  const instructions = `CONTEXT (read but do NOT include in your response):
+${contextSection}
+
+YOUR TASK:
 ${responseGuidance}
-[OUTPUT: plain text only, no quotes, no meta-commentary]`;
+
+CRITICAL: Output ONLY your spoken response. No meta-commentary, no brackets, no quotes around your response. Just speak naturally.`;
 
   // Generate smart fallback instead of random static selection
   const smartFallback = getSmartFallbackWithRecency(context, invitesReply);

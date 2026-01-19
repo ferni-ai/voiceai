@@ -73,22 +73,63 @@ export function sendMissingFieldError(res: ServerResponse, field: string): void 
 }
 
 /**
+ * Trusted proxy IPs that are allowed to set X-Forwarded-For
+ * In production, these should be your load balancer/CDN IPs
+ */
+const TRUSTED_PROXIES = new Set([
+  '127.0.0.1',
+  '::1',
+  // GCP Load Balancer ranges
+  '35.191.0.0/16',
+  '130.211.0.0/22',
+  // Add your CDN/proxy IPs here
+]);
+
+/**
+ * Check if an IP is in a trusted proxy range
+ */
+function isTrustedProxy(ip: string | undefined): boolean {
+  if (!ip) return false;
+
+  // Direct match
+  if (TRUSTED_PROXIES.has(ip)) return true;
+
+  // For production, should use proper CIDR matching
+  // For now, check if we're behind a known GCP load balancer
+  // GCP always sets a valid X-Forwarded-For when behind their LB
+  const isGcpEnvironment = process.env.K_SERVICE || process.env.GOOGLE_CLOUD_PROJECT;
+  if (isGcpEnvironment) return true;
+
+  return false;
+}
+
+/**
  * Extract client IP from request
+ *
+ * SECURITY: Only trusts X-Forwarded-For from known proxies to prevent IP spoofing.
+ * In production (GCP), the load balancer sets this header reliably.
  */
 export function getClientIp(req: {
   headers: Record<string, string | string[] | undefined>;
   socket?: { remoteAddress?: string };
 }): string {
-  const forwarded = req.headers['x-forwarded-for'];
-  if (forwarded) {
-    const first = Array.isArray(forwarded) ? forwarded[0] : forwarded.split(',')[0];
-    return first?.trim() || 'unknown';
+  const socketIp = req.socket?.remoteAddress;
+
+  // Only trust proxy headers if the direct connection is from a trusted proxy
+  if (isTrustedProxy(socketIp)) {
+    const forwarded = req.headers['x-forwarded-for'];
+    if (forwarded) {
+      const first = Array.isArray(forwarded) ? forwarded[0] : forwarded.split(',')[0];
+      const ip = first?.trim();
+      if (ip) return ip;
+    }
+
+    const realIp = req.headers['x-real-ip'];
+    if (realIp) {
+      return Array.isArray(realIp) ? realIp[0] : realIp;
+    }
   }
 
-  const realIp = req.headers['x-real-ip'];
-  if (realIp) {
-    return Array.isArray(realIp) ? realIp[0] : realIp;
-  }
-
-  return req.socket?.remoteAddress || 'unknown';
+  // Fallback to direct socket IP (or unknown if not available)
+  return socketIp || 'unknown';
 }

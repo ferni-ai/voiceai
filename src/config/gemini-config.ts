@@ -133,8 +133,7 @@ export const REALTIME_MODEL = process.env.LLM_REALTIME_MODEL || 'gemini-2.0-flas
  * OpenAI realtime model (for OpenAI realtime API)
  * Default: gpt-realtime (GA production model, replaces deprecated gpt-4o-realtime-preview)
  */
-export const OPENAI_REALTIME_MODEL =
-  process.env.LLM_OPENAI_REALTIME_MODEL || 'gpt-realtime';
+export const OPENAI_REALTIME_MODEL = process.env.LLM_OPENAI_REALTIME_MODEL || 'gpt-realtime';
 
 /**
  * OpenAI high-quality model (for content generation, analysis)

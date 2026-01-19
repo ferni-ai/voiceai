@@ -13,7 +13,10 @@ import type { Request, Response, Router } from 'express';
 import { getLogger } from '../utils/safe-logger.js';
 import { runDataHealthJob } from '../services/data-hygiene/scheduled-jobs.js';
 import { runTTLCleanup } from '../services/data-hygiene/ttl-cleanup.js';
-import { runDocumentSizeMonitor, getDocumentSizeMetrics } from '../services/data-hygiene/document-size-monitor.js';
+import {
+  runDocumentSizeMonitor,
+  getDocumentSizeMetrics,
+} from '../services/data-hygiene/document-size-monitor.js';
 
 const log = getLogger().child({ module: 'data-hygiene-routes' });
 

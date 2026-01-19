@@ -228,9 +228,10 @@ describe('DJ Architecture E2E Integration', () => {
         expect(moment.probability).toBeLessThanOrEqual(1);
       }
 
-      // Should have expected moment types
+      // Should have expected moment types (buildup for long tracks)
+      // NOTE: 'outro' is intentionally NOT scheduled here - handled by DJ Controller on fade
       const types = moments.map((m) => m.type);
-      expect(types).toContain('outro'); // Always has outro
+      expect(types).toContain('buildup');
     });
 
     it('should not calculate moments for short tracks', () => {

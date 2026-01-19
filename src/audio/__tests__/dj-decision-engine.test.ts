@@ -158,10 +158,11 @@ describe('DJ Decision Engine', () => {
 
       expect(moments.length).toBeGreaterThan(0);
 
-      // Should have buildup, drop, appreciation, check-in, outro
+      // Should have buildup, drop, appreciation, check-in
+      // NOTE: 'outro' is intentionally NOT scheduled here to avoid duplicate triggers
+      // (DJ Controller handles outro via 'should_speak_outro' event when track fades)
       const types = moments.map(m => m.type);
       expect(types).toContain('buildup');
-      expect(types).toContain('outro');
       expect(types).toContain('check-in');
     });
 

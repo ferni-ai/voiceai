@@ -1,0 +1,35 @@
+{
+  "$schema": "../tool.schema.json",
+  "domain": "news",
+  "version": "1.0.0",
+  "tools": [
+    {
+      "name": "getNews",
+      "description": "Get current news headlines. Your training data is outdated - never make up headlines, always call this tool for news requests.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "topic": {
+            "type": "string",
+            "description": "News topic or category to filter by",
+            "enum": ["general", "technology", "business", "sports", "entertainment", "science", "health"]
+          },
+          "query": {
+            "type": "string",
+            "description": "Specific search query for news"
+          }
+        },
+        "required": []
+      },
+      "examples": [
+        { "userSays": "News", "output": "{\"fn\":\"getNews\",\"args\":{}}" },
+        { "userSays": "What's happening in the world?", "output": "{\"fn\":\"getNews\",\"args\":{}}" },
+        { "userSays": "Tech news", "output": "{\"fn\":\"getNews\",\"args\":{\"topic\":\"technology\"}}" },
+        { "userSays": "Sports news", "output": "{\"fn\":\"getNews\",\"args\":{\"topic\":\"sports\"}}" },
+        { "userSays": "Any news about Apple?", "output": "{\"fn\":\"getNews\",\"args\":{\"query\":\"Apple\"}}" },
+        { "userSays": "Business headlines", "output": "{\"fn\":\"getNews\",\"args\":{\"topic\":\"business\"}}" }
+      ],
+      "tags": ["news", "information", "headlines"]
+    }
+  ]
+}

@@ -1,0 +1,77 @@
+{
+  "$schema": "../tool.schema.json",
+  "domain": "tasks",
+  "version": "1.0.0",
+  "tools": [
+    {
+      "name": "addTask",
+      "description": "Add a new task to the user's task list.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "description": "The task title or description"
+          },
+          "priority": {
+            "type": "string",
+            "description": "Task priority level",
+            "enum": ["high", "medium", "low"]
+          },
+          "dueDate": {
+            "type": "string",
+            "description": "When the task is due. Can be natural language like 'tomorrow', 'next week', or a date."
+          }
+        },
+        "required": ["title"]
+      },
+      "examples": [
+        { "userSays": "I need to buy groceries", "output": "{\"fn\":\"addTask\",\"args\":{\"title\":\"buy groceries\"}}" },
+        { "userSays": "Add a task to call the dentist", "output": "{\"fn\":\"addTask\",\"args\":{\"title\":\"call the dentist\"}}" },
+        { "userSays": "Remind me to finish the report by Friday", "output": "{\"fn\":\"addTask\",\"args\":{\"title\":\"finish the report\",\"dueDate\":\"Friday\"}}" }
+      ],
+      "tags": ["tasks", "productivity", "todo"]
+    },
+    {
+      "name": "getTasks",
+      "description": "Get the user's task list.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "filter": {
+            "type": "string",
+            "description": "Filter tasks by status",
+            "enum": ["all", "pending", "completed", "overdue"]
+          }
+        },
+        "required": []
+      },
+      "examples": [
+        { "userSays": "What are my tasks?", "output": "{\"fn\":\"getTasks\",\"args\":{\"filter\":\"all\"}}" },
+        { "userSays": "Show my to-do list", "output": "{\"fn\":\"getTasks\",\"args\":{\"filter\":\"pending\"}}" },
+        { "userSays": "What do I need to do?", "output": "{\"fn\":\"getTasks\",\"args\":{\"filter\":\"pending\"}}" }
+      ],
+      "tags": ["tasks", "productivity", "todo"]
+    },
+    {
+      "name": "completeTask",
+      "description": "Mark a task as completed.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "taskName": {
+            "type": "string",
+            "description": "Name or partial name of the task to complete"
+          }
+        },
+        "required": ["taskName"]
+      },
+      "examples": [
+        { "userSays": "I finished the grocery shopping", "output": "{\"fn\":\"completeTask\",\"args\":{\"taskName\":\"grocery\"}}" },
+        { "userSays": "Mark the dentist task as done", "output": "{\"fn\":\"completeTask\",\"args\":{\"taskName\":\"dentist\"}}" },
+        { "userSays": "I called Mom", "output": "{\"fn\":\"completeTask\",\"args\":{\"taskName\":\"call Mom\"}}" }
+      ],
+      "tags": ["tasks", "productivity", "todo"]
+    }
+  ]
+}

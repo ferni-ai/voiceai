@@ -5,13 +5,17 @@
  * This ensures data hygiene and prevents unbounded storage growth.
  *
  * Collection TTL policies:
- * - semantic_intelligence/correlations: 90 days
- * - semantic_intelligence/threads: 180 days
- * - outreach/history: 365 days
+ * - semantic_intelligence_correlations: 90 days
+ * - semantic_intelligence_threads: 180 days
+ * - outreach_history: 365 days
  * - user_corrections: 365 days
  * - persona_interactions: 180 days
- * - emotional_trajectories: 90 days
+ * - semantic_intelligence_emotional_trajectories: 90 days
  * - crisis_episodes: never (sensitive, manual only)
+ *
+ * NOTE: Collection paths must have an odd number of segments (1, 3, 5, etc.)
+ * A path like "collection/doc" has 2 segments = document path, not collection.
+ * Use underscores instead of slashes for top-level collection names.
  *
  * @module services/data-layer/ttl-cleanup
  */
@@ -68,18 +72,20 @@ export const TTL_CONFIGS: TTLConfig[] = [
   },
 
   // Semantic intelligence - medium TTL
+  // NOTE: Collection paths must have odd number of segments (1, 3, 5...)
+  // Using underscores instead of slashes for top-level collections
   {
-    path: 'semantic_intelligence/correlations',
+    path: 'semantic_intelligence_correlations',
     ttlDays: 90,
     description: 'Cross-domain correlation patterns',
   },
   {
-    path: 'semantic_intelligence/emotional_trajectories',
+    path: 'semantic_intelligence_emotional_trajectories',
     ttlDays: 90,
     description: 'Emotional arc tracking',
   },
   {
-    path: 'semantic_intelligence/temporal_patterns',
+    path: 'semantic_intelligence_temporal_patterns',
     ttlDays: 90,
     description: 'Time-based behavior patterns',
   },
@@ -91,7 +97,7 @@ export const TTL_CONFIGS: TTLConfig[] = [
     description: 'Persona interaction history',
   },
   {
-    path: 'semantic_intelligence/threads',
+    path: 'semantic_intelligence_threads',
     ttlDays: 180,
     description: 'Conversation threads',
   },
@@ -108,7 +114,7 @@ export const TTL_CONFIGS: TTLConfig[] = [
     description: 'User corrections for learning',
   },
   {
-    path: 'outreach/history',
+    path: 'outreach_history',
     ttlDays: 365,
     description: 'Outreach attempt history',
   },
@@ -176,7 +182,9 @@ async function deleteExpiredDocuments(
       }
 
       // Small delay to avoid overwhelming Firestore
-      await new Promise((resolve) => setTimeout(resolve, 100));
+      await new Promise<void>((resolve) => {
+        setTimeout(resolve, 100);
+      });
     }
 
     log.info({ collection: config.path, deleted, ttlDays: config.ttlDays }, '✅ TTL cleanup complete');

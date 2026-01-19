@@ -39,19 +39,18 @@ interface CachedGreetingAudio {
   durationMs: number;
 }
 
-interface GreetingCacheEntry {
-  /** Normalized text key */
-  key: string;
-  /** Cached audio data */
-  data: CachedGreetingAudio;
-}
-
 // ============================================================================
 // CACHE STATE
 // ============================================================================
 
-/** In-memory cache of pre-generated greeting audio */
+/** Maximum cache size to prevent unbounded memory growth */
+const MAX_CACHE_SIZE = 500;
+
+/** In-memory cache of pre-generated greeting audio with LRU eviction */
 const greetingCache = new Map<string, CachedGreetingAudio>();
+
+/** LRU order tracking - most recently used keys at the end */
+const lruOrder: string[] = [];
 
 /** Whether warmup has completed */
 let warmupComplete = false;
@@ -62,7 +61,32 @@ const metrics = {
   cacheMisses: 0,
   warmupDurationMs: 0,
   greetingsCached: 0,
+  evictions: 0,
 };
+
+/**
+ * Update LRU order for a key (move to end = most recently used)
+ */
+function touchLRU(key: string): void {
+  const idx = lruOrder.indexOf(key);
+  if (idx !== -1) {
+    lruOrder.splice(idx, 1);
+  }
+  lruOrder.push(key);
+}
+
+/**
+ * Evict least recently used entries if cache exceeds max size
+ */
+function evictLRU(): void {
+  while (greetingCache.size > MAX_CACHE_SIZE && lruOrder.length > 0) {
+    const lruKey = lruOrder.shift();
+    if (lruKey) {
+      greetingCache.delete(lruKey);
+      metrics.evictions++;
+    }
+  }
+}
 
 // ============================================================================
 // COMMON GREETINGS TO PRE-CACHE
@@ -127,6 +151,13 @@ async function generateGreetingAudio(text: string, voiceId: string): Promise<Arr
     return null;
   }
 
+  // 🔧 FIX: Strip SSML tags before sending to Cartesia
+  // SSML tags get fragmented by Cartesia's tokenizer and spoken literally
+  const plainText = text
+    .replace(/<[^>]+>/g, ' ')  // Strip all XML-like tags
+    .replace(/\s+/g, ' ')       // Collapse whitespace
+    .trim();
+
   try {
     const response = await fetch(CARTESIA_API_URL, {
       method: 'POST',
@@ -137,7 +168,7 @@ async function generateGreetingAudio(text: string, voiceId: string): Promise<Arr
       },
       body: JSON.stringify({
         model_id: CARTESIA_MODEL,
-        transcript: text,
+        transcript: plainText,  // Use stripped text
         voice: { mode: 'id', id: voiceId },
         output_format: {
           container: 'raw',
@@ -215,6 +246,8 @@ export async function prewarmGreetingAudio(): Promise<number> {
                 generatedAt: Date.now(),
                 durationMs: estimateAudioDuration(audio.byteLength),
               });
+              touchLRU(key);
+              evictLRU();
               cachedCount++;
             }
           } catch {
@@ -257,6 +290,7 @@ export function getCachedGreetingAudio(text: string, voiceId: string): ArrayBuff
 
   if (cached) {
     metrics.cacheHits++;
+    touchLRU(key);
     log.debug(
       { text: text.slice(0, 30), voiceId: voiceId.slice(0, 8), durationMs: cached.durationMs },
       '🎯 Greeting audio CACHE HIT'
@@ -296,6 +330,7 @@ export function getGreetingCacheMetrics() {
  */
 export function clearGreetingCache(): void {
   greetingCache.clear();
+  lruOrder.length = 0;
   warmupComplete = false;
   metrics.cacheHits = 0;
   metrics.cacheMisses = 0;

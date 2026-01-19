@@ -100,6 +100,58 @@ export interface ShoppingList {
 const listsCache = new Map<string, ShoppingList>();
 const loadedUsers = new Set<string>();
 
+// ============================================================================
+// SESSION DATA MANAGER REGISTRATION
+// ============================================================================
+
+/**
+ * Clear cached data for a user
+ */
+function clearUserCache(userId: string): void {
+  // Remove all lists for this user
+  for (const [listId, list] of listsCache.entries()) {
+    if (list.userId === userId) {
+      listsCache.delete(listId);
+    }
+  }
+  loadedUsers.delete(userId);
+  getLogger().debug({ userId }, '🧹 Shopping cache cleared for user');
+}
+
+/**
+ * Clear all cached data
+ */
+function clearAllCache(): void {
+  listsCache.clear();
+  loadedUsers.clear();
+  getLogger().debug('🧹 Shopping caches cleared');
+}
+
+/**
+ * Get cache statistics
+ */
+function getShoppingCacheStats(): { users: number; entries: number } {
+  return { users: loadedUsers.size, entries: listsCache.size };
+}
+
+/**
+ * Register with SessionDataManager for proper lifecycle cleanup
+ */
+export async function registerShoppingWithSessionManager(): Promise<void> {
+  try {
+    const { getSessionDataManager } = await import('../../../services/session-data-manager.js');
+    getSessionDataManager().registerService({
+      name: 'Shopping',
+      clearUserData: clearUserCache,
+      clearAllData: clearAllCache,
+      getStats: getShoppingCacheStats,
+    });
+  } catch {
+    // SessionDataManager may not be initialized yet
+    getLogger().debug('SessionDataManager not available for Shopping registration');
+  }
+}
+
 async function ensureUserListsLoaded(userId: string): Promise<void> {
   if (loadedUsers.has(userId)) return;
 
@@ -656,3 +708,6 @@ export function createShoppingTools() {
 }
 
 export default createShoppingTools;
+
+// Auto-register with SessionDataManager when module is loaded
+void registerShoppingWithSessionManager();

@@ -352,22 +352,31 @@ export async function routeDirectly(
   const result = await executeTool(intent, context);
 
   if (result.success) {
+    const toolId =
+      intent.type === 'music'
+        ? 'playMusic'
+        : intent.type === 'weather'
+          ? 'getWeather'
+          : 'handoff';
+
+    // Telemetry: Track which layer handled this tool call
+    // 'direct-router' = Ultra-high-confidence pre-LLM routing (bypasses LLM entirely)
     log.info(
       {
         intent: intent.type,
+        toolId,
+        confidence: intent.confidence,
         hasResponse: !!result.response,
+        handledBy: 'direct-router',
+        sessionId: context.sessionId,
+        trace: 'E2E_TOOL_SUCCESS',
       },
-      '✅ Direct routing: Tool executed successfully'
+      `🔍 E2E TRACE [TOOL] Completed: ${toolId} (via direct-router)`
     );
 
     return {
       handled: true,
-      toolId:
-        intent.type === 'music'
-          ? 'playMusic'
-          : intent.type === 'weather'
-            ? 'getWeather'
-            : 'handoff',
+      toolId,
       confidence: intent.confidence,
       intent: intent.type,
       speechResponse: result.response,

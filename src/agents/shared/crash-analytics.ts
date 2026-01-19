@@ -102,6 +102,11 @@ const EXPECTED_ERROR_PATTERNS = [
   'Task cancellation timed out',
   // Normal playout completion
   'playout completed',
+  // LiveKit telemetry race condition - stream closed during prewarm timeout
+  // This happens when prewarm times out and the handle is abandoned but telemetry
+  // is still trying to write spans. It's benign and recoverable.
+  'WritableStream is closed',
+  'Invalid state: WritableStream is closed',
 ] as const;
 
 /**

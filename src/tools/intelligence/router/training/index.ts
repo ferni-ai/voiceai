@@ -20,6 +20,16 @@ export {
   resetTrainingDataAugmenter,
 } from './data-augmenter.js';
 
+// Synthetic generator (comprehensive generation for all 880+ tools)
+export {
+  SyntheticTrainingGenerator,
+  getSyntheticGenerator,
+  resetSyntheticGenerator,
+  type SemanticToolMapping,
+  type GenerationResult,
+  type GenerationStats,
+} from './synthetic-generator.js';
+
 // Dataset export
 export { DatasetExporter, exportToJsonl, exportToHuggingFace } from './export-dataset.js';
 

@@ -102,6 +102,18 @@ import {
   processSemanticIntelligence,
   type TurnSemanticData,
 } from '../../services/superhuman/semantic-intelligence/integration.js';
+
+// "Better Than Human v4" - Superhuman Intelligence Enhancements (10 modules)
+import {
+  recordEmotionalMomentum,
+  checkEmotionalIntervention,
+  analyzeVoiceAndIntervene,
+  cleanupSession as cleanupSuperhumanIntelligenceSession,
+} from '../../intelligence/context-builders/superhuman/superhuman-intelligence-context.js';
+import { getMicroMomentDetector } from '../../intelligence/deep-understanding/micro-moments/engine.js';
+import { getRhythmIntelligence } from '../../conversation/rhythm-intelligence/engine.js';
+import { getRelationalMemory } from '../../services/superhuman/relational-memory/engine.js';
+import { getPatternConnector } from '../../intelligence/deep-understanding/pattern-connector/engine.js';
 import { getPrimaryPersonName } from '../../services/superhuman/semantic-intelligence/person-extractor.js';
 
 // NEW: Unified Intelligence System (Levels 2-5)
@@ -113,6 +125,19 @@ import {
 
 // "Better Than Human" dynamic memory capture - LLM-powered extraction
 import { fastCapture } from '../../memory/dynamic/index.js';
+
+// Session Health Monitor - Function calling reliability (Jan 2026)
+import {
+  initializeHealthMonitor,
+  recordTurn as recordHealthTurn,
+  recordToolCallSuccess,
+  recordToolCallLeakage,
+  getSessionHealth,
+  clearHealthMonitor,
+} from '../shared/session-health-monitor.js';
+
+// Conversation Priming - Context refresh callback for health monitor
+import { applyConversationPriming, DEFAULT_PRIMING_CONFIG } from '../shared/conversation-priming.js';
 
 // "Better Than Human" memory retrieval - Phase 9 real-time integration
 import {
@@ -424,10 +449,41 @@ export async function handleUserTurn(ctx: TurnHandlerContext): Promise<void> {
   }
 
   // ================================================================
-  // PERFORMANCE: Start turn profiling
-  // ================================================================
-  const turnNumber = userData.turnCount || 1;
-  startTurnProfiling(services.sessionId, turnNumber);
+    // PERFORMANCE: Start turn profiling
+    // ================================================================
+    const turnNumber = userData.turnCount || 1;
+    startTurnProfiling(services.sessionId, turnNumber);
+
+    // ================================================================
+    // 🏥 SESSION HEALTH MONITOR: Initialize on first turn
+    // Tracks function calling reliability and triggers refresh on decay
+    // ================================================================
+    if (turnNumber === 1) {
+      // Create refresh callback that reapplies conversation priming
+      const refreshCallback = async (): Promise<void> => {
+        try {
+          const primingConfig = {
+            ...DEFAULT_PRIMING_CONFIG,
+            personaId: persona.id,
+          };
+          applyConversationPriming(
+            (role, content) => {
+              turnCtx.addMessage({ role, content });
+            },
+            primingConfig
+          );
+          diag.state('🏥 Session health: Context refresh applied (conversation priming)');
+        } catch (err) {
+          diag.warn('Session health refresh failed', { error: String(err) });
+        }
+      };
+
+      initializeHealthMonitor(services.sessionId, refreshCallback);
+      diag.state('🏥 Session health monitor initialized', { sessionId: services.sessionId });
+    }
+
+    // Record this turn for health monitoring
+    recordHealthTurn(services.sessionId);
 
   // ================================================================
   // 🌙 BTH: ANTICIPATORY PRESENCE - Time-of-day awareness
@@ -926,6 +982,62 @@ export async function handleUserTurn(ctx: TurnHandlerContext): Promise<void> {
           });
         }, 'bth-visible-vulnerability');
       }
+
+      // ================================================================
+      // 🧠 BTH v4: EMOTIONAL MOMENTUM TRACKING
+      // Track emotional trajectory across turns for intervention detection.
+      // This enables "spiral-down" detection and proactive support.
+      // ================================================================
+      fireAndForget(async () => {
+        const topics = result.analysis?.analysis?.topics?.detected || [];
+        const distressLevel = result.emotional?.distressLevel ?? 0;
+        const valence = distressLevel > 0.5 ? -0.5 : 0.2;
+        
+        recordEmotionalMomentum(
+          services.sessionId,
+          result.emotional?.primary || 'neutral',
+          valence,
+          topics
+        );
+
+        // Check if intervention is needed (e.g., spiral-down detected)
+        const intervention = checkEmotionalIntervention(services.sessionId);
+
+        if (intervention?.shouldIntervene) {
+          diag.state('🧠 BTH v4: Emotional intervention triggered', {
+            trajectory: intervention.trajectory,
+            guidance: typeof intervention.guidance === 'string' ? intervention.guidance.slice(0, 100) : undefined,
+          });
+          // Dispatch to frontend for avatar adjustment
+          await sendDataMessage('emotional_intervention', {
+            trajectory: intervention.trajectory,
+            shouldIntervene: true,
+          });
+        }
+      }, 'bth-v4-emotional-momentum');
+
+      // ================================================================
+      // 🧠 BTH v4: PATTERN CONNECTOR - Record emotional observation
+      // Track topic-emotion correlations for cross-session insights.
+      // ================================================================
+      fireAndForget(async () => {
+        const topics = result.analysis?.analysis?.topics?.detected || [];
+        const distressLevel = result.emotional?.distressLevel ?? 0;
+        const valence = distressLevel > 0.5 ? -0.5 : 0.2;
+        
+        if (topics.length > 0) {
+          const patternConnector = getPatternConnector();
+          patternConnector.recordObservation(
+            services.userId || 'anonymous',
+            {
+              topics,
+              emotion: result.emotional?.primary || 'neutral',
+              valence,
+              sessionId: services.sessionId,
+            }
+          );
+        }
+      }, 'bth-v4-pattern-connector');
     }
 
     // ================================================================
@@ -1319,6 +1431,61 @@ You are their lifeline right now. Be fully present.`,
     }
 
     // ================================================================
+    // 🎤 BTH v4: VOICE BIOMARKER PIPELINE
+    // Analyze voice features to detect stress, fatigue, anxiety, etc.
+    // Enables proactive interventions like breathing exercises.
+    // ================================================================
+    const voiceEmotionData = voiceEmotion as { prosody?: ProsodyFeatures } | undefined;
+    if (voiceEmotionData?.prosody) {
+      fireAndForget(async () => {
+        try {
+          const prosodyData = voiceEmotionData.prosody!;
+          const biomarkerResult = await analyzeVoiceAndIntervene({
+            speakingRate: prosodyData.speechRate,
+            pitchMean: prosodyData.pitchMean,
+            pitchVariance: prosodyData.pitchVariance,
+            energy: prosodyData.energyMean,
+            jitter: prosodyData.jitter,
+          });
+
+          if (biomarkerResult) {
+            // Log state for observability
+            diag.state('🎤 BTH v4: Voice biomarkers analyzed', {
+              primaryState: biomarkerResult.state.primaryState,
+              stressLevel: biomarkerResult.state.stressLevel,
+              energyLevel: biomarkerResult.state.energyLevel,
+              interventionType: biomarkerResult.intervention.type,
+            });
+
+            // Send to frontend for avatar/UI adjustments
+            await sendDataMessage('voice_biomarkers', {
+              state: biomarkerResult.state.primaryState,
+              stressLevel: biomarkerResult.state.stressLevel,
+              energyLevel: biomarkerResult.state.energyLevel,
+              biomarkers: biomarkerResult.state.biomarkers,
+            });
+
+            // If intervention is recommended, inject context
+            if (biomarkerResult.intervention.type !== 'none' && biomarkerResult.contextInjection) {
+              result.context.injections.push({
+                category: 'voice_biomarker',
+                content: biomarkerResult.contextInjection,
+                priority: 75, // High priority for voice-based interventions
+              });
+
+              diag.info('🎤 BTH v4: Voice intervention recommended', {
+                type: biomarkerResult.intervention.type,
+                urgency: biomarkerResult.intervention.urgency,
+              });
+            }
+          }
+        } catch (biomarkerError) {
+          diag.debug('Voice biomarker analysis failed (non-critical)', { error: String(biomarkerError) });
+        }
+      }, 'bth-v4-voice-biomarkers');
+    }
+
+    // ================================================================
     // PERFORMANCE: Mark context building start
     // Context building includes: feedback, trust, personality, extensibility
     // ================================================================
@@ -1624,6 +1791,35 @@ You are their lifeline right now. Be fully present.`,
       }
     }
 
+    // ================================================================
+    // 📝 CONTEXT PRUNING: Prevent session decay from long conversations
+    // Research (Jan 2026) shows that large context degrades Gemini's
+    // function calling. Prune while preserving priming and recent turns.
+    // ================================================================
+    // NOTE: Context pruning is handled at the session level in session-state.ts
+    // where we have access to the conversation history array. LiveKit's ChatContext
+    // doesn't expose messages directly, so pruning must happen before messages
+    // are added to the context, tracked via SessionStateManager.
+    // The pruning logic is available via shouldPruneContext() and pruneConversationContext()
+    // from conversation-priming.ts - see registerReliabilityServices() in DI setup.
+    //
+    // For session health monitoring, we track turn count and tool call outcomes
+    // which inform when a context refresh (re-priming) should occur.
+    if (turnNumber > 0 && turnNumber % 10 === 0) {
+      // Log session health periodically for observability
+      const { getSessionHealth } = await import('../shared/session-health-monitor.js');
+      const health = getSessionHealth(services.sessionId);
+      if (health) {
+        diag.state('🏥 Periodic session health check', {
+          turnCount: health.turnCount,
+          lastToolCallTurn: health.lastToolCallTurn,
+          consecutiveLeakages: health.consecutiveLeakages,
+          shouldRefresh: health.shouldRefresh,
+          refreshReason: health.refreshReason,
+        });
+      }
+    }
+
     // Inject context into LLM
     injectTurnContext(turnCtx, result);
 
@@ -1835,6 +2031,100 @@ IMPORTANT:
     };
 
     await recordAllLearningData(learningCtx);
+
+    // ================================================================
+    // 🧠 BTH v4: MICRO-MOMENT OUTCOME RECORDING
+    // Records micro-moment detection for learning and confidence adjustment.
+    // ================================================================
+    fireAndForget(async () => {
+      try {
+        const detector = getMicroMomentDetector();
+        const analysis = detector.detect({
+          message: userText,
+          previousMessages: [],
+        });
+
+        if (analysis.hasSignificantMoment && analysis.primaryMoment) {
+          // Record for learning - assumes positive until next turn provides feedback
+          detector.recordOutcome(analysis.primaryMoment, 'positive');
+
+          diag.debug('🧠 BTH v4: Micro-moment recorded for learning', {
+            type: analysis.primaryMoment.type,
+            confidence: analysis.primaryMoment.confidence,
+          });
+        }
+      } catch {
+        // Non-critical
+      }
+    }, 'bth-v4-micro-moment-recording');
+
+    // ================================================================
+    // 🎵 BTH v4: RHYTHM INTELLIGENCE RECORDING
+    // Records user's conversation rhythm preferences for learning.
+    // ================================================================
+    fireAndForget(async () => {
+      try {
+        const rhythmEngine = getRhythmIntelligence();
+        const wordCount = userText.split(/\s+/).filter(Boolean).length;
+        const sentenceCount = (userText.match(/[.!?]+/g) || []).length || 1;
+        
+        const turnAnalysis = rhythmEngine.analyzeTurn(userText);
+        
+        // Record turn for rhythm learning with full TurnAnalysis
+        await rhythmEngine.recordTurn(
+          services.userId || 'anonymous',
+          {
+            wordCount,
+            sentenceCount,
+            avgWordsPerSentence: wordCount / sentenceCount,
+            energy: turnAnalysis.energy,
+            timeOfDay: turnAnalysis.timeOfDay,
+          },
+          true // Assume positive engagement
+        );
+
+        diag.debug('🎵 BTH v4: Rhythm recorded for learning', {
+          wordCount,
+          energy: turnAnalysis.energy,
+        });
+      } catch {
+        // Non-critical
+      }
+    }, 'bth-v4-rhythm-recording');
+
+    // ================================================================
+    // 🤝 BTH v4: RELATIONAL MEMORY UPDATES
+    // Updates trust milestones and relationship context based on turn.
+    // ================================================================
+    fireAndForget(async () => {
+      try {
+        const relMem = getRelationalMemory();
+        
+        // Detect and record trust milestones
+        if (/thank(s| you)|grateful|appreciate/i.test(userText)) {
+          await relMem.addMilestone(services.userId || 'anonymous', {
+            type: 'expressed-gratitude',
+            description: `User expressed gratitude during turn ${turnNumber}`,
+            occurredAt: new Date(),
+            sessionId: services.sessionId,
+            impactScore: 0.7,
+          });
+        }
+        
+        if (/i('m| am) (scared|afraid|worried|nervous|anxious)/i.test(userText) ||
+            (result.emotional?.distressLevel ?? 0) > 0.5) {
+          await relMem.addMilestone(services.userId || 'anonymous', {
+            type: 'first-vulnerability',
+            description: `User shared vulnerability during turn ${turnNumber}`,
+            occurredAt: new Date(),
+            sessionId: services.sessionId,
+            impactScore: 0.8,
+          });
+        }
+      } catch {
+        // Non-critical
+      }
+    }, 'bth-v4-relational-memory');
 
     // ================================================================
     // "BETTER THAN HUMAN V3" - SEMANTIC INTELLIGENCE

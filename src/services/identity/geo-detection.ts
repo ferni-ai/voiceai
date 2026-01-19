@@ -253,7 +253,7 @@ export async function lookupIPCountry(
   // Check cache first (avoids rate limiting)
   const cached = ipGeoCache.get(ip);
   if (cached && Date.now() - cached.timestamp < IP_CACHE_TTL) {
-    log.debug({ ip: ip.substring(0, 6) + '...' }, '🌍 Geo: using cached IP lookup');
+    log.debug({ ip: `${ip.substring(0, 6)}...` }, '🌍 Geo: using cached IP lookup');
     return cached.data;
   }
 
@@ -275,7 +275,7 @@ export async function lookupIPCountry(
 
     if (!response.ok) {
       log.info(
-        { ip: ip.substring(0, 6) + '...', status: response.status },
+        { ip: `${ip.substring(0, 6)}...`, status: response.status },
         '🌍 Geo: IP lookup HTTP error'
       );
       ipGeoCache.set(ip, { data: null, timestamp: Date.now() }); // Cache failure
@@ -293,7 +293,7 @@ export async function lookupIPCountry(
     // Check for API-level errors (rate limiting, invalid IP, etc.)
     if (data.status === 'fail') {
       log.info(
-        { ip: ip.substring(0, 6) + '...', message: data.message },
+        { ip: `${ip.substring(0, 6)}...`, message: data.message },
         '🌍 Geo: IP lookup API error'
       );
       ipGeoCache.set(ip, { data: null, timestamp: Date.now() }); // Cache failure
@@ -301,10 +301,34 @@ export async function lookupIPCountry(
     }
 
     if (data.countryCode) {
+      // 🐛 FIX: Validate city name isn't suspicious garbage
+      // "Current" is a real place in North Eleuthera, Bahamas, but if IP geo returns it
+      // for a US IP, it's almost certainly bad data from the free ip-api.com service.
+      let validatedCity = data.city;
+      if (validatedCity) {
+        const suspiciousPatterns = [
+          /^current$/i, // "Current" as a city name (99% chance it's wrong)
+          /^unknown$/i, // "Unknown" city
+          /^private$/i, // "Private" or similar
+          /^reserved$/i, // Reserved IP block
+          /^\d+\.\d+\.\d+\.\d+$/, // IP address as city name (bad data)
+          /^localhost$/i, // Localhost
+          /^null$/i, // Literal "null"
+        ];
+
+        if (suspiciousPatterns.some((pattern) => pattern.test(validatedCity!))) {
+          log.warn(
+            { ip: `${ip.substring(0, 6)}...`, city: validatedCity, countryCode: data.countryCode },
+            '🌍 Geo: Suspicious city name detected - clearing city'
+          );
+          validatedCity = undefined; // Clear the suspicious city
+        }
+      }
+
       const result = {
         countryCode: data.countryCode,
         regionCode: data.region,
-        city: data.city,
+        city: validatedCity,
       };
       ipGeoCache.set(ip, { data: result, timestamp: Date.now() }); // Cache success
       return result;
@@ -314,9 +338,9 @@ export async function lookupIPCountry(
     return null;
   } catch (err) {
     if ((err as Error).name === 'AbortError') {
-      log.info({ ip: ip.substring(0, 6) + '...' }, '🌍 Geo: IP lookup timed out');
+      log.info({ ip: `${ip.substring(0, 6)}...` }, '🌍 Geo: IP lookup timed out');
     } else {
-      log.info({ ip: ip.substring(0, 6) + '...', error: String(err) }, '🌍 Geo: IP lookup failed');
+      log.info({ ip: `${ip.substring(0, 6)}...`, error: String(err) }, '🌍 Geo: IP lookup failed');
     }
     ipGeoCache.set(ip, { data: null, timestamp: Date.now() }); // Cache failure
     return null;
@@ -429,7 +453,7 @@ export async function detectGeoFromRequest(
   // 5. IP geolocation lookup (if enabled)
   if (enableIpLookup) {
     const ip = getClientIP(req);
-    log.info({ ip: ip.substring(0, 10) + '...' }, '🌍 Geo: attempting IP lookup');
+    log.info({ ip: `${ip.substring(0, 10)}...` }, '🌍 Geo: attempting IP lookup');
     const ipGeo = await lookupIPCountry(ip, ipLookupTimeout);
 
     if (ipGeo?.countryCode) {
@@ -457,7 +481,7 @@ export async function detectGeoFromRequest(
         source: 'ip-geo',
       };
     } else {
-      log.info({ ip: ip.substring(0, 10) + '...' }, '🌍 Geo: IP lookup returned no data');
+      log.info({ ip: `${ip.substring(0, 10)}...` }, '🌍 Geo: IP lookup returned no data');
     }
   }
 

@@ -171,24 +171,24 @@
   },
 
   "llm_guidance": {
-    "_NOTE": "STRUCTURED COMMANDS ONLY - conversational text WILL BE ECHOED by Gemini!",
+    "_NOTE": "Use IMPERATIVE instructions, not bracket markers. Gemini echoes bracket markers!",
     "presence": {
-      "instruction_template": "[TYPE: soft_presence] [DURATION: {duration}s] [MAX: 8 words] [TONE: warm]",
+      "instruction_template": "Say something warm and brief (under 8 words). Just acknowledge you're here.",
       "examples": ["I'm here.", "Take your time.", "No rush."]
     },
     "memory_callback": {
-      "instruction_template": "[TYPE: memory_reference] [DURATION: {duration}s] [REF: something they shared] [MAX: 1 sentence]",
+      "instruction_template": "Reference something specific they shared earlier. Keep it to one sentence. Don't ask a question.",
       "examples": [
         "I keep thinking about what you said about {topic}.",
         "That thing you mentioned earlier - tell me more when you're ready."
       ]
     },
     "thoughtful_question": {
-      "instruction_template": "[TYPE: thoughtful_question] [DURATION: {duration}s] [ABOUT: detail they shared] [MAX: 1 question]",
+      "instruction_template": "Ask a thoughtful question about something specific they mentioned. Make it feel curious and personal, not generic.",
       "examples": ["What's underneath that?", "What would it mean if this worked out?"]
     },
     "check_in": {
-      "instruction_template": "[TYPE: gentle_checkin] [DURATION: {duration}s] [STYLE: open curious] [MAX: 10 words]",
+      "instruction_template": "Check in gently (under 10 words). Be curious and open, not concerned.",
       "examples": ["Just checking in - what's on your mind?", "What are you thinking about?"]
     }
   },

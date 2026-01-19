@@ -16,10 +16,7 @@
  * @module agents/multi-agent/agent-setup
  */
 
-import * as genai from '@google/genai';
 import { voice, type JobContext } from '@livekit/agents';
-import * as google from '@livekit/agents-plugin-google';
-import * as openai from '@livekit/agents-plugin-openai';
 import type { Room } from '@livekit/rtc-node';
 import type { PersonaConfig } from '../../personas/types.js';
 import { getPersonaDisplayName, getVoiceId } from '../../personas/voice-registry.js';
@@ -40,40 +37,39 @@ import { cleanupSpeechSession } from '../../speech/session-cleanup.js';
 // FIX: Import retry counter cleanup for WeakMap session GC
 import { clearRetryCounter } from '../shared/sanitizer/index.js';
 // Speech coordination for centralized speech management
-import { coordinatedSay, cleanupSpeechCoordination } from '../../speech/coordination/index.js';
+import { cleanupSpeechCoordination, coordinatedSay } from '../../speech/coordination/index.js';
 // BETTER THAN HUMAN: Health monitoring for OpenAI connection
 import {
+  registerPingCallback,
   startHealthMonitoring,
   stopHealthMonitoring,
-  registerPingCallback,
 } from '../shared/openai-health-monitor.js';
 
 // ============================================================================
 // CRITICAL PATH IMPORTS - Hoisted to module level for faster startup
 // These were previously dynamic imports causing 500ms+ delays
 // ============================================================================
-import { loadSystemPrompt, loadModelBaseInstructions } from '../personas/prompt-loader.js';
-import { FerniAgent } from '../personas/ferni-agent.js';
-import { VAD_CONFIG } from '../shared/constants.js';
 import * as voiceManagerModule from '../../speech/voice-manager.js';
 import { resolveVoiceId } from '../../tools/handoff/voice-id-resolver.js';
+import { FerniAgent } from '../personas/ferni-agent.js';
+import { loadModelBaseInstructions, loadSystemPrompt } from '../personas/prompt-loader.js';
 // Tool loading - hoisted for faster initial agent startup
+import { loadEssentialDomains } from '../../tools/dynamic-loader/index.js';
+import { buildHandoffTools } from '../../tools/handoff/handoff-factory.js';
+import { warmupHandoffToolsForSession } from '../../tools/handoff/session-cache.js';
 import {
   getToolsForAgent,
   initializeToolOrchestrator,
   isOrchestratorInitialized,
 } from '../../tools/orchestrator/voice-agent-integration.js';
-import { buildHandoffTools } from '../../tools/handoff/handoff-factory.js';
-import { loadEssentialDomains } from '../../tools/dynamic-loader/index.js';
-import { warmupHandoffToolsForSession } from '../../tools/handoff/session-cache.js';
 // Handler imports - hoisted for faster handler wiring
-import { createTranscriptHandler } from '../voice-agent/transcript-handler.js';
-import { setupSessionStateHandlers } from '../voice-agent/session-state-handler.js';
-import { setupToolTrackingHandler } from '../voice-agent/tool-tracking-handler.js';
-import { setupMusicHandler } from '../voice-agent/music-handler.js';
 import { dynamicToolLoader } from '../../tools/dynamic-loader.js';
 import { autoOptimizer } from '../../tools/optimization/auto-optimizer.js';
 import { initializeFrontendPublisher } from '../realtime/index.js';
+import { setupMusicHandler } from '../voice-agent/music-handler.js';
+import { setupSessionStateHandlers } from '../voice-agent/session-state-handler.js';
+import { setupToolTrackingHandler } from '../voice-agent/tool-tracking-handler.js';
+import { createTranscriptHandler } from '../voice-agent/transcript-handler.js';
 // Gateway for health ping callback
 import { generateReply } from '../shared/generate-reply-gateway.js';
 
@@ -622,7 +618,10 @@ Reference past context when relevant, but don't force it. Let the conversation f
       return tools;
     } catch (err) {
       // FIX: Don't return empty - fall back to essential tools!
-      log.error({ personaId: persona.id, error: String(err) }, '❌ Fast path failed - trying essential fallback');
+      log.error(
+        { personaId: persona.id, error: String(err) },
+        '❌ Fast path failed - trying essential fallback'
+      );
       return await loadEssentialToolsFallback();
     }
   };
@@ -669,7 +668,7 @@ Reference past context when relevant, but don't force it. Let the conversation f
           personaId: persona.id,
           handoffCount,
           essentialCount: Object.keys(essentialTools).length,
-          totalCount: Object.keys(allTools).length
+          totalCount: Object.keys(allTools).length,
         },
         '🔄 Essential tools loaded as timeout fallback (handoff + essential domains)'
       );
@@ -682,7 +681,9 @@ Reference past context when relevant, but don't force it. Let the conversation f
         '🚨 CRITICAL: Essential tool loading failed - using EMERGENCY hardcoded tools'
       );
       process.stderr.write(`\n🚨 CRITICAL TOOL FAILURE: ${err}\n`);
-      process.stderr.write('🚨 Using emergency hardcoded tools - agent capabilities severely limited!\n\n');
+      process.stderr.write(
+        '🚨 Using emergency hardcoded tools - agent capabilities severely limited!\n\n'
+      );
 
       // Return emergency toolset - better than nothing!
       return getEmergencyToolset(persona.id);
@@ -781,12 +782,15 @@ Reference past context when relevant, but don't force it. Let the conversation f
             }, toolTimeoutMs)
           ),
         ]);
-        
+
         if (fastResult === null || Object.keys(fastResult).length === 0) {
-          log.info({ personaId: persona.id }, '🔄 Fast path incomplete - loading essential tools fallback');
+          log.info(
+            { personaId: persona.id },
+            '🔄 Fast path incomplete - loading essential tools fallback'
+          );
           return await loadEssentialToolsFallback();
         }
-        
+
         return fastResult;
       }
 
@@ -811,15 +815,17 @@ Reference past context when relevant, but don't force it. Let the conversation f
       // BUG FIX #2: Race condition - loadToolsInner() might return empty {} just before timeout
       //             In that case result !== null but tools are still missing!
       const toolCount = result ? Object.keys(result).length : 0;
-      const hasEssentials = result && (
-        Object.keys(result).some(t => t.toLowerCase().includes('music') || t.toLowerCase().includes('play')) ||
-        Object.keys(result).some(t => t.toLowerCase().includes('handoff'))
-      );
-      
+      const hasEssentials =
+        result &&
+        (Object.keys(result).some(
+          (t) => t.toLowerCase().includes('music') || t.toLowerCase().includes('play')
+        ) ||
+          Object.keys(result).some((t) => t.toLowerCase().includes('handoff')));
+
       if (result === null || toolCount === 0 || !hasEssentials) {
         log.warn(
-          { 
-            personaId: persona.id, 
+          {
+            personaId: persona.id,
             wasNull: result === null,
             toolCount,
             hasEssentials,
@@ -874,9 +880,13 @@ Reference past context when relevant, but don't force it. Let the conversation f
   const toolCount = Object.keys(orchestratorTools).length;
   const toolNames = Object.keys(orchestratorTools);
   const sampleTools = toolNames.slice(0, 10).join(', ');
-  const hasHandoffs = toolNames.some(t => t.toLowerCase().includes('handoff'));
-  const hasMusic = toolNames.some(t => t.toLowerCase().includes('music') || t.toLowerCase().includes('play'));
-  const hasMemory = toolNames.some(t => t.toLowerCase().includes('memory') || t.toLowerCase().includes('recall'));
+  const hasHandoffs = toolNames.some((t) => t.toLowerCase().includes('handoff'));
+  const hasMusic = toolNames.some(
+    (t) => t.toLowerCase().includes('music') || t.toLowerCase().includes('play')
+  );
+  const hasMemory = toolNames.some(
+    (t) => t.toLowerCase().includes('memory') || t.toLowerCase().includes('recall')
+  );
 
   // Log to both structured log AND stderr for visibility
   log.info(
@@ -893,7 +903,9 @@ Reference past context when relevant, but don't force it. Let the conversation f
   );
   process.stderr.write(`\n${'='.repeat(60)}\n`);
   process.stderr.write(`🔧 TOOLS AVAILABLE TO LLM: ${toolCount}\n`);
-  process.stderr.write(`   Handoffs: ${hasHandoffs ? '✅' : '❌'} | Music: ${hasMusic ? '✅' : '❌'} | Memory: ${hasMemory ? '✅' : '❌'}\n`);
+  process.stderr.write(
+    `   Handoffs: ${hasHandoffs ? '✅' : '❌'} | Music: ${hasMusic ? '✅' : '❌'} | Memory: ${hasMemory ? '✅' : '❌'}\n`
+  );
   process.stderr.write(`   Sample: ${sampleTools}\n`);
   process.stderr.write(`${'='.repeat(60)}\n\n`);
 
@@ -918,14 +930,22 @@ Reference past context when relevant, but don't force it. Let the conversation f
   mark('llm_selection_start');
   const geminiConfig = modelConfig.getDefault();
 
+  // IMPORTANT: Native-audio models do NOT support TEXT modality!
+  // They fail with "Cannot extract voices from a non-audio request" error.
+  // See: https://github.com/livekit/agents/issues/4423
+  // See: https://github.com/googleapis/python-genai/issues/1780
+  //
+  // For TEXT modality + Cartesia TTS, use standard models like gemini-2.0-flash-exp
+  const VOICE_MODEL = 'gemini-2.0-flash-exp';
+
   log.info(
-    { personaId: persona.id, providerId: modelProvider.id },
+    { personaId: persona.id, providerId: modelProvider.id, model: VOICE_MODEL },
     `${modelProvider.getLogPrefix()} Creating LLM model via ${modelProvider.displayName}`
   );
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const llmModel: any = await modelProvider.createLLMModel({
-    model: geminiConfig.model,
+    model: VOICE_MODEL,
     instructions: modelBaseInstructions,
     temperature: geminiConfig.temperature,
   });
@@ -970,6 +990,7 @@ Reference past context when relevant, but don't force it. Let the conversation f
   // TTS: Both use Cartesia TTS for persona voice
   // VAD: Optional Silero fallback when USE_LOCAL_VAD=true
   mark('session_create_start');
+
   const session = new voice.AgentSession<UserData>({
     turnDetection: modelProvider.getSessionTurnDetection(),
     vad, // Silero VAD fallback (undefined by default, loaded when USE_LOCAL_VAD=true)
@@ -1040,7 +1061,10 @@ Reference past context when relevant, but don't force it. Let the conversation f
       }
     });
 
-    log.info({ sessionId, personaId: persona.id }, '🏥 [HEALTH] OpenAI health monitoring started with ping callback');
+    log.info(
+      { sessionId, personaId: persona.id },
+      '🏥 [HEALTH] OpenAI health monitoring started with ping callback'
+    );
   }
 
   // =========================================================================
@@ -1081,6 +1105,27 @@ Reference past context when relevant, but don't force it. Let the conversation f
       );
       process.stderr.write(`\n🚨 [LLM CONNECTION ERROR] ${JSON.stringify(error, null, 2)}\n`);
     });
+
+    // 🔍 DEBUG: Listen for input audio transcription events
+    // This captures what Gemini's internal STT transcribes from the audio
+    llmWithEvents.on('input_audio_transcription_completed', (event: unknown) => {
+      const transcriptionEvent = event as { transcript?: string };
+      process.stderr.write(
+        `\n🎤 [GEMINI STT] Input transcribed: "${transcriptionEvent.transcript || '(empty)'}"\n`
+      );
+      // Log character codes to detect invisible characters or periods
+      if (transcriptionEvent.transcript) {
+        const charCodes = transcriptionEvent.transcript.split('').map((c) => c.charCodeAt(0));
+        process.stderr.write(`🎤 [GEMINI STT] Char codes: [${charCodes.join(', ')}]\n`);
+      }
+    });
+
+    // Also listen for message events to see all Gemini communication
+    if (process.env.DEBUG_GEMINI_MESSAGES === 'true') {
+      llmWithEvents.on('message', (msg: unknown) => {
+        process.stderr.write(`\n🔍 [GEMINI MSG] ${JSON.stringify(msg, null, 2)}\n`);
+      });
+    }
   }
 
   // Listen for errors on the session
@@ -1174,7 +1219,8 @@ Reference past context when relevant, but don't force it. Let the conversation f
         // The dynamic loader loads entertainment (music), information (weather), etc.
         // These need to be registered with the agent/OpenAI immediately!
         try {
-          const { updateAgentTools, supportsToolUpdates } = await import('../shared/tool-updater.js');
+          const { updateAgentTools, supportsToolUpdates } =
+            await import('../shared/tool-updater.js');
           if (supportsToolUpdates()) {
             const essentialTools = dynamicToolLoader.getCurrentTools();
             const essentialDomains = dynamicToolLoader.getLoadedDomains();
@@ -1183,12 +1229,17 @@ Reference past context when relevant, but don't force it. Let the conversation f
                 domains: essentialDomains,
               });
               if (updated) {
-                diag.entry(`🔧 [${persona.id}] Essential tools registered with agent (${Object.keys(essentialTools).length} tools from ${essentialDomains.join(', ')})`);
+                diag.entry(
+                  `🔧 [${persona.id}] Essential tools registered with agent (${Object.keys(essentialTools).length} tools from ${essentialDomains.join(', ')})`
+                );
               }
             }
           }
         } catch (toolUpdateError) {
-          log.warn({ error: String(toolUpdateError) }, 'Failed to update agent with essential tools');
+          log.warn(
+            { error: String(toolUpdateError) },
+            'Failed to update agent with essential tools'
+          );
         }
 
         const transcriptHandler = createTranscriptHandler({
@@ -1209,6 +1260,20 @@ Reference past context when relevant, but don't force it. Let the conversation f
 
         // Wire transcript events
         const transcriptEventHandler = (event: unknown) => {
+          // 🔍 DEBUG: Log every transcript event when DEBUG_GEMINI_TRANSCRIPTS=true
+          // This helps debug what Gemini is transcribing from audio
+          if (process.env.DEBUG_GEMINI_TRANSCRIPTS === 'true') {
+            const transcriptEvent = event as { transcript?: string; isFinal?: boolean };
+            process.stderr.write(
+              `\n🎤 [TRANSCRIPT] UserInputTranscribed: "${transcriptEvent.transcript || '(empty)'}" ` +
+                `(isFinal: ${transcriptEvent.isFinal}, length: ${(transcriptEvent.transcript || '').length})\n`
+            );
+            // Also log character codes for invisible characters
+            if (transcriptEvent.transcript) {
+              const charCodes = transcriptEvent.transcript.split('').map((c) => c.charCodeAt(0));
+              process.stderr.write(`🎤 [TRANSCRIPT] Char codes: [${charCodes.join(', ')}]\n`);
+            }
+          }
           transcriptHandler.handler(
             event as import('../voice-agent/transcript-handler.js').TranscriptEvent
           );
@@ -1399,7 +1464,10 @@ Reference past context when relevant, but don't force it. Let the conversation f
       log.debug({ sessionId }, '🧹 [CLEANUP] Cleaning up speech coordination...');
       try {
         cleanupSpeechCoordination(sessionId);
-        log.debug({ sessionId, personaId: persona.id }, '🧹 [CLEANUP] Speech coordination cleaned up');
+        log.debug(
+          { sessionId, personaId: persona.id },
+          '🧹 [CLEANUP] Speech coordination cleaned up'
+        );
       } catch (err) {
         log.warn({ error: String(err) }, '🧹 [CLEANUP] Error cleaning up speech coordination');
       }
@@ -1409,7 +1477,10 @@ Reference past context when relevant, but don't force it. Let the conversation f
         log.debug({ sessionId }, '🧹 [CLEANUP] Stopping OpenAI health monitoring...');
         try {
           stopHealthMonitoring(sessionId);
-          log.debug({ sessionId, personaId: persona.id }, '🧹 [CLEANUP] OpenAI health monitoring stopped');
+          log.debug(
+            { sessionId, personaId: persona.id },
+            '🧹 [CLEANUP] OpenAI health monitoring stopped'
+          );
         } catch (err) {
           log.warn({ error: String(err) }, '🧹 [CLEANUP] Error stopping health monitoring');
         }
@@ -1523,7 +1594,7 @@ async function buildHandoffContext(config: AgentSetupConfig): Promise<string | n
       );
 
       if (trustContext?.contextSummary) {
-        parts.push('\n' + trustContext.contextSummary);
+        parts.push(`\n${trustContext.contextSummary}`);
       }
     } catch (error) {
       // Non-fatal - continue with basic handoff context
@@ -1554,10 +1625,7 @@ async function createPersonaTTS(personaId: string) {
     );
   } else {
     // Fallback when voice ID resolution fails
-    log.warn(
-      { personaId },
-      '⚠️ Voice ID resolution failed - using fallback getVoiceId'
-    );
+    log.warn({ personaId }, '⚠️ Voice ID resolution failed - using fallback getVoiceId');
     voiceId = getVoiceId(personaId); // Emergency fallback
   }
 

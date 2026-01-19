@@ -19,14 +19,41 @@ const log = createLogger({ module: 'retry-analyzer' });
 // ============================================================================
 
 /**
- * Maximum retry attempts before giving up
+ * Maximum retry attempts before giving up.
+ * 
+ * Research (Jan 2026) shows that 3 attempts with progressively more
+ * forceful prompts catches most transient Gemini function call failures.
  */
-const MAX_RETRY_ATTEMPTS = 2;
+const MAX_RETRY_ATTEMPTS = 3;
+
+/**
+ * Base delay between retries in milliseconds.
+ * Uses exponential backoff: attempt 1 = 100ms, attempt 2 = 200ms, attempt 3 = 400ms
+ */
+const BASE_RETRY_DELAY_MS = 100;
 
 /**
  * Session retry counter (WeakMap to avoid memory leaks)
  */
 const sessionRetryCounters = new WeakMap<object, number>();
+
+/**
+ * Calculate exponential backoff delay for a given attempt.
+ * @param attempt - Current attempt number (1-indexed)
+ * @returns Delay in milliseconds
+ */
+export function getRetryDelay(attempt: number): number {
+  return BASE_RETRY_DELAY_MS * Math.pow(2, attempt - 1);
+}
+
+/**
+ * Sleep for exponential backoff delay.
+ * @param attempt - Current attempt number (1-indexed)
+ */
+export async function sleepForRetry(attempt: number): Promise<void> {
+  const delay = getRetryDelay(attempt);
+  await new Promise((resolve) => setTimeout(resolve, delay));
+}
 
 // ============================================================================
 // ANALYSIS FUNCTIONS
@@ -76,11 +103,76 @@ function extractToolFromPattern(text: string): string | null {
 }
 
 /**
- * Generate retry prompt based on the detected issue
+ * Generate retry prompt based on the detected issue and attempt number.
+ * 
+ * Uses progressively more forceful prompts:
+ * - Attempt 1: Standard instruction
+ * - Attempt 2: Explicit JSON-only with warnings
+ * - Attempt 3: Ultra-explicit with tool name prefilled
+ * 
+ * @param suggestedTool - The tool that should be called
+ * @param originalMessage - Original user message
+ * @param attempt - Current attempt number (1-indexed)
  */
-function generateRetryPrompt(suggestedTool: string, originalMessage: string): string {
-  // Customize prompt based on tool type
-  if (suggestedTool.toLowerCase().includes('music') || suggestedTool === 'playMusic') {
+function generateRetryPrompt(suggestedTool: string, originalMessage: string, attempt: number = 1): string {
+  const isMusic = suggestedTool.toLowerCase().includes('music') || suggestedTool === 'playMusic';
+  const isHandoff = suggestedTool.toLowerCase().includes('handoff') || suggestedTool.toLowerCase().includes('transfer');
+
+  // ATTEMPT 3: Ultra-explicit with prefilled tool name (last resort)
+  if (attempt >= 3) {
+    if (isMusic) {
+      return `OUTPUT THIS EXACT JSON NOW (fill in the query):
+{"fn":"playMusic","args":{"query":"jazz"}}
+
+User wanted: "${originalMessage}"
+Replace "jazz" with appropriate query. OUTPUT ONLY JSON. NO OTHER TEXT.`;
+    }
+    if (isHandoff) {
+      return `OUTPUT THIS EXACT JSON NOW:
+{"fn":"${suggestedTool}","args":{"reason":"user request"}}
+
+ONLY OUTPUT THE JSON ABOVE. NOTHING ELSE. NO WORDS.`;
+    }
+    return `OUTPUT JSON FUNCTION CALL NOW:
+{"fn":"${suggestedTool}","args":{}}
+
+Fill in args as needed. OUTPUT ONLY JSON. ZERO OTHER TEXT.`;
+  }
+
+  // ATTEMPT 2: Explicit JSON-only with strong warnings
+  if (attempt >= 2) {
+    if (isMusic) {
+      return `CRITICAL: You just spoke instead of calling the function. This is WRONG.
+
+The user asked: "${originalMessage}"
+
+You MUST output ONLY this JSON format (no other text):
+{"fn":"playMusic","args":{"query":"<search query>"}}
+
+DO NOT say "I'll play" or "Let me play" - just output the JSON.`;
+    }
+    if (isHandoff) {
+      return `CRITICAL: You announced the transfer instead of executing it. This is WRONG.
+
+The user asked: "${originalMessage}"
+
+You MUST output ONLY this JSON format (no other text):
+{"fn":"${suggestedTool}","args":{"reason":"<brief reason>"}}
+
+DO NOT say "I'll transfer you" - just output the JSON.`;
+    }
+    return `CRITICAL: You spoke about the tool instead of calling it. This is WRONG.
+
+The user asked: "${originalMessage}"
+
+You MUST output ONLY the JSON function call:
+{"fn":"${suggestedTool}","args":{...}}
+
+NO TEXT BEFORE OR AFTER. ONLY JSON.`;
+  }
+
+  // ATTEMPT 1: Standard instruction (existing behavior)
+  if (isMusic) {
     return `The user asked: "${originalMessage}"
 
 IMPORTANT: Do NOT say "I'll play" or "Let me play" or "Playing music". 
@@ -91,10 +183,7 @@ Instead, output the JSON function call IMMEDIATELY:
 Do not add any text before or after the JSON.`;
   }
 
-  if (
-    suggestedTool.toLowerCase().includes('handoff') ||
-    suggestedTool.toLowerCase().includes('transfer')
-  ) {
+  if (isHandoff) {
     return `The user asked: "${originalMessage}"
 
 IMPORTANT: Do NOT announce the transfer. Execute it directly with JSON:
@@ -135,7 +224,10 @@ export function analyzeForRetry(
 
   // Check if we've exceeded max retries
   if (currentAttempt >= MAX_RETRY_ATTEMPTS) {
-    log.debug('Max retry attempts reached, not retrying');
+    log.warn(
+      { currentAttempt, maxAttempts: MAX_RETRY_ATTEMPTS },
+      '🛑 RETRY: Max retry attempts reached, giving up on function call'
+    );
     return {
       shouldRetry: false,
       retryPrompt: null,
@@ -174,24 +266,29 @@ export function analyzeForRetry(
     };
   }
 
-  // Generate retry prompt
-  const retryPrompt = generateRetryPrompt(suggestedTool, originalMessage);
+  // Increment retry counter first (so attempt is 1-indexed)
+  const nextAttempt = currentAttempt + 1;
+  sessionRetryCounters.set(session, nextAttempt);
 
-  // Increment retry counter
-  sessionRetryCounters.set(session, currentAttempt + 1);
+  // Generate retry prompt with escalating forcefulness
+  const retryPrompt = generateRetryPrompt(suggestedTool, originalMessage, nextAttempt);
+  const retryDelayMs = getRetryDelay(nextAttempt);
 
-  log.info('Recommending retry:', {
-    attempt: currentAttempt + 1,
+  log.info({
+    attempt: nextAttempt,
+    maxAttempts: MAX_RETRY_ATTEMPTS,
     tool: suggestedTool,
     pattern: detection.pattern,
-  });
+    delayMs: retryDelayMs,
+    forceLevel: nextAttempt === 1 ? 'standard' : nextAttempt === 2 ? 'explicit' : 'ultra-explicit',
+  }, `🔄 RETRY: Recommending retry attempt ${nextAttempt}/${MAX_RETRY_ATTEMPTS}`);
 
   return {
     shouldRetry: true,
     retryPrompt,
     suggestedTool,
     pattern: detection.pattern ?? null,
-    attempt: currentAttempt + 1,
+    attempt: nextAttempt,
   };
 }
 

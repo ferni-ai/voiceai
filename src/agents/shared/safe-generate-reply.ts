@@ -105,6 +105,8 @@ export interface SafeGenerateReplyResult {
   contextWarning?: boolean;
   /** True if WebSocket appears unhealthy */
   connectionWarning?: boolean;
+  /** True if LLM succeeded but produced no speech (Jan 2026 fix) */
+  noSpeechProduced?: boolean;
 }
 
 // ============================================================================
@@ -308,6 +310,8 @@ interface ExecuteWithTimeoutResult {
   success: boolean;
   usedFallback: boolean;
   error?: string;
+  /** True if LLM succeeded but produced no speech (Jan 2026 fix) */
+  noSpeechProduced?: boolean;
 }
 
 async function executeWithTimeout(
@@ -341,6 +345,7 @@ async function executeWithTimeout(
       success: result.success,
       usedFallback: result.usedFallback,
       error: result.error,
+      noSpeechProduced: result.noSpeechProduced, // FIX (Jan 2026): Propagate empty response detection
     };
   }
 
@@ -508,6 +513,22 @@ export async function safeGenerateReply(
     // FIX: Properly handle gateway results including fallback usage
     // Previously, we always returned success: true here, even when fallback was used
     if (result.success) {
+      // FIX (Jan 2026): Detect when LLM succeeded but produced no speech
+      // This happens when LLM returns empty or function-only response
+      // Use fallback to ensure user gets a response
+      if (result.noSpeechProduced && fallbackMessage) {
+        logger.warn(
+          { context, instructionChars: instructions.length },
+          '⚠️ generateReply succeeded but produced no speech - using fallback'
+        );
+        return {
+          ...speakFallback(session, fallbackMessage, context, 'No speech produced', sessionId),
+          noSpeechProduced: true,
+          contextWarning: contextSize.warning,
+          connectionWarning: !connectionHealth.healthy,
+        };
+      }
+      
       failureTracker.recordSuccess();
       logger.debug(
         { context, instructionChars: instructions.length },
@@ -516,6 +537,7 @@ export async function safeGenerateReply(
       return {
         success: true,
         usedFallback: false,
+        noSpeechProduced: result.noSpeechProduced,
         contextWarning: contextSize.warning,
         connectionWarning: !connectionHealth.healthy,
       };

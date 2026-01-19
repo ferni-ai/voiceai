@@ -328,6 +328,11 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
   const LIVE_BACKCHANNEL_MIN_INTERVAL_MS = 15000; // 15s between live backchannels (was 4s!)
   const MIN_SPEECH_FOR_LIVE_BACKCHANNEL_MS = 5000; // User must speak 5s+ (was 2s)
 
+  // NOISE FILTER (Jan 2026): Filter out very short "speech" events (clicks, pops, noise)
+  // "Hi" takes ~150-200ms to say, noise/clicks are usually < 100ms
+  // This prevents false activations from VAD picking up non-speech sounds
+  const MIN_SPEECH_DURATION_MS = 150;
+
   // ============================================================
   // BACKCHANNEL HELPER (Regular - after user pauses)
   // LLM-based: Let the LLM generate contextual backchannels
@@ -871,8 +876,27 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
       // Record timestamp for response latency tracking
       userFinishedSpeakingAt = Date.now();
 
+      // Calculate and store speech duration for noise filtering
+      const speechDurationMs = userData.userSpeakingStartTime
+        ? userFinishedSpeakingAt - userData.userSpeakingStartTime
+        : 0;
+      userData.lastSpeechDurationMs = speechDurationMs;
+
+      // 🚫 NOISE FILTER: Reject very short "speech" (clicks, pops, mic noise)
+      // "Hi" takes ~150-200ms, so anything shorter is almost certainly noise
+      if (speechDurationMs > 0 && speechDurationMs < MIN_SPEECH_DURATION_MS) {
+        diag.state('🚫 [NOISE FILTER] Rejecting short speech (likely click/noise)', {
+          durationMs: speechDurationMs,
+          thresholdMs: MIN_SPEECH_DURATION_MS,
+        });
+        // Clear the speaking start time but don't process further
+        userData.userSpeakingStartTime = undefined;
+        // Don't notify DJ controller or start watchdogs for noise
+        return;
+      }
+
       if (userData.userSpeakingStartTime) {
-        conversationManager.handleUserFinishedSpeaking(Date.now() - userData.userSpeakingStartTime);
+        conversationManager.handleUserFinishedSpeaking(speechDurationMs);
       }
 
       // DJ CONTROLLER: User stopped speaking - triggers automatic unduck
@@ -1436,8 +1460,14 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
               waitForPlayout: false,
             });
 
-            if (result.success) {
+            if (result.success && !result.noSpeechProduced) {
               diag.state('LLM silence response complete', { type: silenceInstructions.type });
+            } else if (result.noSpeechProduced) {
+              // FIX (Jan 2026): LLM returned empty - fallback already spoken by safeGenerateReply
+              diag.state('LLM silence produced no speech, used fallback', {
+                type: silenceInstructions.type,
+                fallbackUsed: result.usedFallback,
+              });
             } else if (result.usedFallback) {
               diag.state('LLM silence used fallback', {
                 type: silenceInstructions.type,

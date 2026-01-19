@@ -53,6 +53,12 @@ jobs:
       - name: Lint check
         run: pnpm lint --if-present
 
+      - name: Tool schema validation
+        run: pnpm tools:schemas:validate
+
+      - name: Tool schema check (no drift)
+        run: pnpm tools:schemas:check
+
   # ============================================================================
   # UNIT TESTS (Fast - ~30-60 seconds)
   # ============================================================================

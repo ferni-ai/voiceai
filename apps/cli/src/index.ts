@@ -397,8 +397,8 @@ const COMMANDS: Record<string, CliCommand> = {
     description: 'Development workflow management',
     icon: '🛠️',
     handler: handleDev,
-    subcommands: ['start', 'stop', 'restart', 'status', 'ports', 'frontend', 'agent'],
-    examples: ['ferni dev start', 'ferni dev stop', 'ferni dev status', 'ferni dev frontend'],
+    subcommands: ['start', 'stop', 'restart', 'status', 'ports', 'frontend', 'agent', 'cursor'],
+    examples: ['ferni dev start', 'ferni dev stop', 'ferni dev status', 'ferni dev cursor'],
   },
   personas: {
     name: 'Personas',
@@ -2721,6 +2721,40 @@ async function handleDev(args: string[]): Promise<void> {
 
   if (subcommand === 'agent') {
     await handleDev(['start', 'agent']);
+  }
+
+  if (subcommand === 'cursor') {
+    // Output commands for Cursor AI agent to start servers in separate terminals
+    console.log(`
+${colors.bold}${colors.cyan}╔═══════════════════════════════════════════════════════════════╗
+║           CURSOR TERMINAL MODE - Dev Servers                   ║
+╚═══════════════════════════════════════════════════════════════╝${colors.reset}
+
+${colors.bold}For Cursor AI agents:${colors.reset} Start each server in a separate background
+terminal so logs can be watched individually.
+
+${colors.bold}${colors.cyan}Commands to run in separate terminals:${colors.reset}
+
+${colors.yellow}# Terminal 1: Token Server (port 3001)${colors.reset}
+${colors.green}pnpm token-server${colors.reset}
+
+${colors.yellow}# Terminal 2: UI Server (port 3002)${colors.reset}
+${colors.green}pnpm ui-server${colors.reset}
+
+${colors.yellow}# Terminal 3: Vite Frontend (port 3004)${colors.reset}
+${colors.green}cd apps/web && pnpm dev${colors.reset}
+
+${colors.yellow}# Terminal 4: Voice Agent (LiveKit worker)${colors.reset}
+${colors.green}LOG_FULL_RESPONSES=true pnpm dev${colors.reset}
+
+${colors.bold}${colors.cyan}Health check after starting:${colors.reset}
+${colors.dim}curl -s http://localhost:3001/health && echo ""
+curl -s http://localhost:3002/health && echo ""
+curl -s http://localhost:3004/ | head -c 100${colors.reset}
+
+${colors.bold}${colors.cyan}Stop all servers:${colors.reset}
+${colors.dim}ferni dev stop${colors.reset}
+`);
   }
 }
 

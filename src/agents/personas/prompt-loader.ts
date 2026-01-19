@@ -211,6 +211,39 @@ async function loadSharedFile(relativePath: string): Promise<string | null> {
 }
 
 /**
+ * Load generated tool documentation from src/tools/schemas/generated/.
+ *
+ * When USE_GENERATED_TOOL_DOCS=true, prefer auto-generated markdown over manual files.
+ * This is part of the Gemini Native Tool Schema migration.
+ *
+ * @see scripts/tools/generate-markdown-docs.ts
+ */
+async function loadGeneratedToolDocs(): Promise<string | null> {
+  // Feature flag: opt-in to generated docs
+  if (process.env.USE_GENERATED_TOOL_DOCS !== 'true') {
+    return null;
+  }
+
+  try {
+    const fs = await import('fs/promises');
+    const { fileURLToPath } = await import('url');
+    const { dirname, join } = await import('path');
+
+    const __filename = fileURLToPath(import.meta.url);
+    const __dirname = dirname(__filename);
+
+    const filePath = join(__dirname, '../../../tools/schemas/generated/function-calling-base.generated.md');
+    const content = await fs.readFile(filePath, 'utf-8');
+
+    log.info({ source: 'generated' }, '📝 Loaded generated function-calling docs from tool schemas');
+    return content;
+  } catch {
+    log.warn({}, '⚠️ USE_GENERATED_TOOL_DOCS=true but generated file not found - falling back to manual');
+    return null;
+  }
+}
+
+/**
  * Load the shared safety disclaimer.
  * This ensures all personas have consistent legal/safety guardrails.
  */
@@ -262,8 +295,8 @@ async function loadFunctionCallingWithBase(bundleDir: string): Promise<string | 
   // Load safety disclaimer (always include if available)
   const safetyDisclaimer = await loadSafetyDisclaimer();
 
-  // Try new pattern first: base + specialty
-  const base = await loadSharedFile('function-calling-base.md');
+  // Try generated docs first (from tool schemas, when USE_GENERATED_TOOL_DOCS=true)
+  const generatedDocs = await loadGeneratedToolDocs();
   const specialty = await loadFile(bundleDir, 'identity/function-calling-specialty.md');
 
   const parts: string[] = [];
@@ -272,6 +305,16 @@ async function loadFunctionCallingWithBase(bundleDir: string): Promise<string | 
   if (safetyDisclaimer) {
     parts.push(safetyDisclaimer);
   }
+
+  // If generated docs available and enabled, use them instead of manual base
+  if (generatedDocs && specialty) {
+    log.debug({ bundleDir, source: 'generated' }, 'Using generated function-calling docs + persona specialty');
+    parts.push(generatedDocs, specialty);
+    return parts.join('\n\n---\n\n');
+  }
+
+  // Fall back to manual files: base + specialty
+  const base = await loadSharedFile('function-calling-base.md');
 
   if (base && specialty) {
     log.debug({ bundleDir }, 'Loaded function-calling with base + specialty pattern');
@@ -299,6 +342,48 @@ async function loadFunctionCallingWithBase(bundleDir: string): Promise<string | 
     return safetyDisclaimer;
   }
 
+  return null;
+}
+
+/**
+ * Load tool usage guidance (conceptual knowledge about WHEN to use tools).
+ *
+ * This is SEPARATE from JSON format instructions and should be loaded for ALL providers,
+ * including those with native function calling (OpenAI Realtime).
+ *
+ * Contains:
+ * - Handoff triggers (which topic → which persona)
+ * - Coordinator awareness matrix
+ * - Phone call mechanics
+ * - Game triggers
+ * - Triage vs handoff logic
+ *
+ * @param bundleDir - The persona bundle directory
+ * @returns Tool usage guidance content, or null if provider doesn't need it
+ */
+async function loadToolUsageGuidance(bundleDir: string): Promise<string | null> {
+  const provider = getModelProvider();
+  const promptConfig = provider.getPromptModules();
+
+  if (!promptConfig.includeToolUsageGuidance) {
+    log.debug(
+      { bundleDir, providerId: provider.id },
+      `${provider.getLogPrefix()} Skipping tool usage guidance (provider config)`
+    );
+    return null;
+  }
+
+  const guidance = await loadFile(bundleDir, 'identity/tool-usage-guidance.md');
+
+  if (guidance) {
+    log.debug(
+      { bundleDir, providerId: provider.id },
+      `${provider.getLogPrefix()} Loaded tool usage guidance (conceptual knowledge about WHEN to use tools)`
+    );
+    return guidance;
+  }
+
+  log.debug({ bundleDir }, 'No tool-usage-guidance.md found');
   return null;
 }
 
@@ -372,10 +457,22 @@ export async function loadSystemPrompt(
       if (!modulePath) continue;
 
       // Special handling for function_calling - use base + specialty pattern
+      // (includes JSON format instructions - Gemini only)
       if (moduleKey === 'function_calling') {
         const functionCallingContent = await loadFunctionCallingWithBase(bundleDir);
         if (functionCallingContent) {
           sections.push(functionCallingContent);
+          loadedModules.push(moduleKey);
+        }
+        continue;
+      }
+
+      // Special handling for tool_usage_guidance - conceptual knowledge about WHEN to use tools
+      // (ALL providers need this, including OpenAI Realtime with native function calling)
+      if (moduleKey === 'tool_usage_guidance') {
+        const guidanceContent = await loadToolUsageGuidance(bundleDir);
+        if (guidanceContent) {
+          sections.push(guidanceContent);
           loadedModules.push(moduleKey);
         }
         continue;
@@ -443,6 +540,15 @@ export async function loadSystemPrompt(
 export async function loadFunctionCallingPrompt(personaId: string): Promise<string | null> {
   const bundleDir = PERSONA_BUNDLES[personaId.toLowerCase()] || personaId;
   return loadFunctionCallingWithBase(bundleDir);
+}
+
+/**
+ * Load tool usage guidance (conceptual knowledge about WHEN to use tools).
+ * This is provider-aware and returns null if provider doesn't need it.
+ */
+export async function loadToolUsageGuidancePrompt(personaId: string): Promise<string | null> {
+  const bundleDir = PERSONA_BUNDLES[personaId.toLowerCase()] || personaId;
+  return loadToolUsageGuidance(bundleDir);
 }
 
 /**

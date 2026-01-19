@@ -74,33 +74,90 @@ export interface VoiceAgentContext {
 }
 
 /**
+ * Voice emotion result structure (from audio-prosody analysis)
+ * This matches the VoiceEmotionResult type from speech/audio-prosody/types.ts
+ */
+interface VoiceEmotionData {
+  primary?: string;
+  confidence?: number;
+  valence?: number;
+  arousal?: number;
+  stressLevel?: number;
+  anxietyMarkers?: boolean;
+  prosody?: {
+    speechRate?: number;
+    energyMean?: number;
+    pitchMean?: number;
+  };
+}
+
+/**
  * Extended session userData type for voice agents
+ *
+ * This interface reflects the ACTUAL userData structure populated by:
+ * - audio-processor.ts: voiceEmotion, emotionModulation
+ * - session-state-handler.ts: turnCount, userProfile data
+ * - transcript-handler.ts: turnCount increments
  */
 export interface VoiceSessionUserData {
   userId?: string;
   personaId?: string;
+  /** Services object containing session services including userProfile */
   services?: {
     sessionId?: string;
+    /** User profile from Firestore (contains timezone, firstContact, totalConversations) */
+    userProfile?: {
+      timezone?: string;
+      firstContact?: string;
+      totalConversations?: number;
+      name?: string;
+    };
   };
+  /** User's timezone from profile (e.g., 'America/New_York') - legacy field */
   timezone?: string;
+  /** Turn count in current session */
+  turnCount?: number;
+
+  // Voice emotion analysis (populated by audio-processor.ts)
+  /** Voice emotion analysis result from audio prosody */
+  voiceEmotion?: VoiceEmotionData;
+  /** Emotion modulation for response */
+  emotionModulation?: {
+    shouldSoftVoice?: boolean;
+    suggestedPace?: 'slower' | 'normal' | 'faster';
+  };
+
+  // Legacy/alternative fields (for backwards compatibility)
   currentEmotion?: string;
   emotionIntensity?: number;
   userEnergy?: number;
   speakingRate?: number;
-  turnCount?: number;
+
+  // Topic and conversation state
   topicSensitivity?: number;
   emotionalTrajectory?: string;
   isVulnerable?: boolean;
+
+  // Relationship data (from user profile or Firestore)
   relationshipDays?: number;
   totalInteractions?: number;
   vulnerableMoments?: number;
   trustLevel?: number;
+
+  // Memory entities
   activeMemoryEntities?: Array<{
     name: string;
     type: string;
     familiarity: number;
     sentiment: number;
   }>;
+
+  // User profile data (populated on session init)
+  userProfile?: {
+    timezone?: string;
+    firstContact?: string;
+    totalConversations?: number;
+  };
 }
 
 // ============================================================================
@@ -110,8 +167,12 @@ export interface VoiceSessionUserData {
 /**
  * Extract voice agent context from session userData
  *
- * This is the first step in the bridge - extracting the raw data
- * from the voice agent's session.
+ * This reads from the ACTUAL userData structure populated by:
+ * - audio-processor.ts: voiceEmotion (emotion, arousal, prosody)
+ * - session-init-handler.ts: userProfile (timezone, totalConversations)
+ * - transcript-handler.ts: turnCount
+ *
+ * Falls back to legacy field names for backwards compatibility.
  */
 export function extractVoiceAgentContext(userData: VoiceSessionUserData | unknown): VoiceAgentContext {
   if (!userData || typeof userData !== 'object') {
@@ -121,34 +182,108 @@ export function extractVoiceAgentContext(userData: VoiceSessionUserData | unknow
 
   const data = userData as VoiceSessionUserData;
 
-  return {
+  // Extract emotion from voiceEmotion (primary source) or legacy fields
+  let userEmotion: VoiceAgentContext['userEmotion'];
+  if (data.voiceEmotion?.primary) {
+    userEmotion = {
+      emotion: data.voiceEmotion.primary,
+      intensity: data.voiceEmotion.confidence ?? data.voiceEmotion.arousal ?? 0.5,
+    };
+  } else if (data.currentEmotion) {
+    // Legacy fallback
+    userEmotion = {
+      emotion: data.currentEmotion,
+      intensity: data.emotionIntensity ?? 0.5,
+    };
+  }
+
+  // Extract energy from voiceEmotion.arousal (maps -1..1 to 0..1) or legacy field
+  let userEnergy = data.userEnergy;
+  if (userEnergy === undefined && data.voiceEmotion?.arousal !== undefined) {
+    // Map arousal from [-1, 1] to [0, 1]
+    userEnergy = (data.voiceEmotion.arousal + 1) / 2;
+  }
+
+  // Extract speaking rate from voiceEmotion.prosody or legacy field
+  const userSpeakingRate = data.speakingRate ?? data.voiceEmotion?.prosody?.speechRate;
+
+  // Extract timezone from services.userProfile (primary) or legacy fields
+  // Priority: services.userProfile.timezone > data.timezone > data.userProfile?.timezone
+  const userTimezone =
+    data.services?.userProfile?.timezone ?? data.timezone ?? data.userProfile?.timezone;
+
+  // Extract relationship data from services.userProfile (primary) or legacy userProfile
+  // services.userProfile is populated by session-init-handler from Firestore
+  const profileSource = data.services?.userProfile ?? data.userProfile;
+
+  let relationship: VoiceAgentContext['relationship'];
+  if (profileSource?.firstContact || profileSource?.totalConversations) {
+    const firstContact = profileSource.firstContact
+      ? new Date(profileSource.firstContact)
+      : undefined;
+    const daysSinceFirst = firstContact
+      ? Math.floor((Date.now() - firstContact.getTime()) / (1000 * 60 * 60 * 24))
+      : undefined;
+
+    relationship = {
+      daysSinceFirstInteraction: data.relationshipDays ?? daysSinceFirst,
+      totalInteractions: data.totalInteractions ?? profileSource.totalConversations,
+      vulnerableMoments: data.vulnerableMoments,
+      trustLevel: data.trustLevel,
+    };
+  } else if (data.relationshipDays !== undefined || data.totalInteractions !== undefined) {
+    relationship = {
+      daysSinceFirstInteraction: data.relationshipDays,
+      totalInteractions: data.totalInteractions,
+      vulnerableMoments: data.vulnerableMoments,
+      trustLevel: data.trustLevel,
+    };
+  }
+
+  // Detect vulnerability from voiceEmotion
+  const isVulnerable =
+    data.isVulnerable ??
+    (data.voiceEmotion?.anxietyMarkers === true ||
+      (data.voiceEmotion?.stressLevel !== undefined && data.voiceEmotion.stressLevel > 0.7));
+
+  const context: VoiceAgentContext = {
     userId: data.userId,
     sessionId: data.services?.sessionId,
     personaId: data.personaId,
-    userTimezone: data.timezone,
+    userTimezone,
     turnNumber: data.turnCount,
-    userEmotion: data.currentEmotion
-      ? {
-          emotion: data.currentEmotion,
-          intensity: data.emotionIntensity ?? 0.5,
-        }
-      : undefined,
-    userEnergy: data.userEnergy,
-    userSpeakingRate: data.speakingRate,
+    userEmotion,
+    userEnergy,
+    userSpeakingRate,
     topicSensitivity: data.topicSensitivity,
     emotionalTrajectory: data.emotionalTrajectory,
-    isVulnerable: data.isVulnerable,
-    relationship:
-      data.relationshipDays !== undefined || data.totalInteractions !== undefined
-        ? {
-            daysSinceFirstInteraction: data.relationshipDays,
-            totalInteractions: data.totalInteractions,
-            vulnerableMoments: data.vulnerableMoments,
-            trustLevel: data.trustLevel,
-          }
-        : undefined,
+    isVulnerable,
+    relationship,
     memoryEntities: data.activeMemoryEntities,
   };
+
+  // Log what we extracted for debugging
+  const hasData =
+    userEmotion || userEnergy !== undefined || userTimezone || relationship || data.turnCount;
+  if (hasData) {
+    log.debug(
+      {
+        hasVoiceEmotion: !!data.voiceEmotion,
+        hasServicesUserProfile: !!data.services?.userProfile,
+        hasLegacyUserProfile: !!data.userProfile,
+        emotion: userEmotion?.emotion,
+        energy: userEnergy?.toFixed(2),
+        timezone: userTimezone,
+        turnCount: data.turnCount,
+        hasRelationship: !!relationship,
+        relationshipDays: relationship?.daysSinceFirstInteraction,
+        totalInteractions: relationship?.totalInteractions,
+      },
+      '📊 Extracted voice agent context for Ferni TTS'
+    );
+  }
+
+  return context;
 }
 
 // ============================================================================

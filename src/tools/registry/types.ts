@@ -137,6 +137,7 @@ export type ToolDomain =
   | 'transportation' // Uber/Lyft rides, commute tracking
   | 'vehicle' // Maintenance schedules, registration alerts
   | 'workflows' // Custom automations, IFTTT-style triggers
+  | 'routines' // Ferni's care routines - "What I Do For You"
   // CEO Coaching Domain
   | 'ceo-coaching' // CEO personal coaching: briefings, wins, energy, priorities, decisions
   // Intelligence Domains
@@ -266,6 +267,7 @@ export const ALL_TOOL_DOMAINS: readonly ToolDomain[] = [
   'transportation',
   'vehicle',
   'workflows',
+  'routines',
   // CEO Coaching
   'ceo-coaching',
   // Intelligence Domains

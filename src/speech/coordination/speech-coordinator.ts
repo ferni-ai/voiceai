@@ -14,9 +14,58 @@
  */
 
 import type { voice } from '@livekit/agents';
-import { createLogger } from '../../utils/safe-logger.js';
+import { createLogger, truncateForLog } from '../../utils/safe-logger.js';
+
+// TTS Gateway integration
+import {
+  isTTSGatewayEnabled,
+  speakToSession as gatewaySpeak,
+  extractSSMLToConfig,
+} from '../tts-gateway/index.js';
 
 const log = createLogger({ module: 'speech-coordinator' });
+
+// ============================================================================
+// SSML STRIPPING (CRITICAL FIX)
+// ============================================================================
+// Cartesia's LiveKit plugin uses a SentenceTokenizer that fragments SSML tags
+// across WebSocket packets, causing them to be spoken literally (e.g., "break 280ms").
+// Strip ALL SSML tags before sending to session.say() to prevent this.
+
+/**
+ * Strip SSML tags from text before sending to TTS.
+ * Converts break tags to natural punctuation for pause effect.
+ */
+function stripSSMLForTTS(text: string): string {
+  let result = text;
+  
+  // Convert <break time="Xms"/> to natural pauses
+  // Long breaks (>300ms) → period for pause
+  // Short breaks (<300ms) → comma
+  result = result.replace(
+    /<break\s+time=["']?(\d+)(?:ms)?["']?\s*\/?>/gi,
+    (_, ms) => {
+      const duration = parseInt(ms, 10);
+      if (duration >= 300) return '. ';
+      if (duration >= 100) return ', ';
+      return ' ';
+    }
+  );
+  
+  // Strip emotion, speed, volume, prosody tags entirely
+  result = result.replace(/<\/?(?:speed|volume|emotion|prosody)[^>]*>/gi, '');
+  
+  // Strip any other XML-like tags (including [breath], [laughter], etc. if present)
+  result = result.replace(/<[^>]+>/g, '');
+  
+  // Clean up whitespace and multiple punctuation
+  result = result.replace(/\s+/g, ' ');
+  result = result.replace(/\.\s*\./g, '.');
+  result = result.replace(/,\s*,/g, ',');
+  result = result.replace(/^\s*[.,]\s*/, ''); // Remove leading punctuation
+  
+  return result.trim();
+}
 
 // ============================================================================
 // TYPES
@@ -337,6 +386,10 @@ export class SpeechCoordinator {
   private queueWaitTimes: number[] = [];
   private requestIdCounter = 0;
 
+  // Context for TTS Gateway
+  private sessionId: string | undefined = undefined;
+  private personaId: string | undefined = undefined;
+
   constructor() {
     this.timing = new AdaptiveTimingCalculator();
     this.stats = {
@@ -356,12 +409,24 @@ export class SpeechCoordinator {
    * HANDOFF FIX: If coordinator is stuck in SPEAKING state from a previous session,
    * reset to IDLE and process queue. This happens during handoffs when the old
    * session is replaced before its onSpeechEnded callback fires.
+   *
+   * @param session - LiveKit agent session
+   * @param context - Optional context for TTS gateway (sessionId, personaId)
    */
-  attachSession(session: voice.AgentSession): void {
+  attachSession(
+    session: voice.AgentSession,
+    context?: { sessionId?: string; personaId?: string }
+  ): void {
     const wasInSpeakingState = this.state === CoordinatorState.SPEAKING;
     const hadPendingRequests = this.queue.length > 0;
 
     this.session = session;
+    
+    // Store context for TTS Gateway
+    if (context) {
+      this.sessionId = context.sessionId;
+      this.personaId = context.personaId;
+    }
 
     // HANDOFF FIX: If we're replacing a session that was speaking,
     // the onSpeechEnded callback from the old session won't fire.
@@ -403,7 +468,29 @@ export class SpeechCoordinator {
     this.queue = [];
     this.currentRequest = null;
     this.state = CoordinatorState.IDLE;
+    this.sessionId = undefined;
+    this.personaId = undefined;
     log.info('Session detached from speech coordinator');
+  }
+
+  /**
+   * Update session context (for handoffs, persona changes)
+   */
+  setContext(context: { sessionId?: string; personaId?: string }): void {
+    if (context.sessionId !== undefined) {
+      this.sessionId = context.sessionId;
+    }
+    if (context.personaId !== undefined) {
+      this.personaId = context.personaId;
+    }
+    log.debug({ sessionId: this.sessionId, personaId: this.personaId }, 'Context updated');
+  }
+
+  /**
+   * Get current session context
+   */
+  getContext(): { sessionId?: string; personaId?: string } {
+    return { sessionId: this.sessionId, personaId: this.personaId };
   }
 
   /**
@@ -663,9 +750,51 @@ export class SpeechCoordinator {
     request.onStart?.();
 
     try {
-      this.session.say(request.text, {
-        allowInterruptions: request.allowInterruptions ?? true,
-      });
+      // 🚀 TTS GATEWAY: Use centralized gateway when enabled
+      if (isTTSGatewayEnabled()) {
+        // Extract SSML for logging (gateway handles actual stripping)
+        const ssmlResult = extractSSMLToConfig(request.text);
+        
+        log.debug(
+          {
+            original: truncateForLog(request.text, 50),
+            cleanText: truncateForLog(ssmlResult.text, 50),
+            hadSSML: ssmlResult.hadSSML,
+            config: ssmlResult.config,
+          },
+          '🎤 Speaking via TTS Gateway'
+        );
+
+        // Use gateway - fire and forget (onSpeechEnded handles completion)
+        try {
+          gatewaySpeak(this.session, request.text, {
+            voiceId: this.personaId || 'ferni',
+            sessionId: this.sessionId,
+            personaId: this.personaId,
+            allowInterruptions: request.allowInterruptions ?? true,
+          });
+        } catch (error: unknown) {
+          log.error({ error: String(error), id: request.id }, 'TTS Gateway speech failed');
+        }
+      } else {
+        // LEGACY PATH: Direct SSML stripping (will be removed once gateway validated)
+        // 🔧 FIX: Strip SSML tags before sending to TTS
+        // Cartesia's tokenizer fragments SSML tags, causing them to be spoken literally
+        const textToSpeak = stripSSMLForTTS(request.text);
+        
+        log.debug(
+          { 
+            original: request.text.slice(0, 50), 
+            stripped: textToSpeak.slice(0, 50),
+            hadSSML: request.text !== textToSpeak,
+          },
+          'Speaking text (SSML stripped) - legacy path'
+        );
+        
+        this.session.say(textToSpeak, {
+          allowInterruptions: request.allowInterruptions ?? true,
+        });
+      }
       // Note: onSpeechEnded() will be called by session state handler
     } catch (error) {
       const errorStr = String(error);

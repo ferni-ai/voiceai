@@ -472,11 +472,31 @@ export function resetABTestingManager(): void {
 // ============================================================================
 
 /**
+ * Check if FTIS should be the primary router (bypass A/B testing).
+ *
+ * When FTIS_PRIMARY=true:
+ * - FTIS is used for ALL users (100% traffic)
+ * - A/B testing is effectively disabled
+ * - High-confidence FTIS routing skips Gemini entirely
+ *
+ * This is the recommended production setting after FTIS has been validated.
+ *
+ * @returns Whether FTIS should be primary
+ */
+export function isFTISPrimary(): boolean {
+  return process.env.FTIS_PRIMARY === 'true';
+}
+
+/**
  * Create the FTIS v1 rollout experiment.
  * This experiment tests the full FTIS stack (complexity routing, sequence prediction,
  * MCTS planning, transition matrix) against the baseline semantic routing.
  *
  * Call this on app startup to ensure the experiment is active.
+ *
+ * Traffic allocation:
+ * - FTIS_PRIMARY=true: 100% FTIS traffic (recommended for production)
+ * - FTIS_PRIMARY=false (default): 50/50 A/B split for testing
  */
 export function initializeFTISExperiment(): void {
   const manager = getABTestingManager();
@@ -488,24 +508,30 @@ export function initializeFTISExperiment(): void {
     return;
   }
 
+  // Determine traffic allocation based on FTIS_PRIMARY flag
+  const ftisIsPrimary = isFTISPrimary();
+  const ftisTrafficPercent = ftisIsPrimary ? 100 : 50;
+  const controlTrafficPercent = ftisIsPrimary ? 0 : 50;
+
   try {
     manager.createExperiment({
       id: 'ftis-v1-rollout',
       name: 'FTIS Full System Rollout',
-      description:
-        'Tests FTIS (complexity routing, sequence prediction, MCTS) against semantic-only baseline',
+      description: ftisIsPrimary
+        ? 'FTIS primary mode: 100% traffic to FTIS (production)'
+        : 'Tests FTIS (complexity routing, sequence prediction, MCTS) against semantic-only baseline',
       variants: [
         {
           id: 'control',
           name: 'Semantic Only',
-          trafficPercent: 50,
+          trafficPercent: controlTrafficPercent,
           config: { useFTIS: false },
           isControl: true,
         },
         {
           id: 'ftis',
           name: 'FTIS Full Stack',
-          trafficPercent: 50,
+          trafficPercent: ftisTrafficPercent,
           config: { useFTIS: true },
           isControl: false,
         },
@@ -517,7 +543,11 @@ export function initializeFTISExperiment(): void {
       secondaryMetrics: ['latency_ms', 'user_satisfaction', 'tool_sequence_completion'],
     });
 
-    log.info('🧪 FTIS v1 rollout experiment created (50/50 split)');
+    if (ftisIsPrimary) {
+      log.info('🎯 FTIS PRIMARY MODE: 100% traffic to FTIS (high-confidence skips Gemini)');
+    } else {
+      log.info('🧪 FTIS v1 rollout experiment created (50/50 split)');
+    }
   } catch (error) {
     log.error({ error: String(error) }, 'Failed to create FTIS experiment');
   }
@@ -566,8 +596,16 @@ export function updateFTISExperimentTraffic(ftisPercent: number): void {
 
 /**
  * Check if a user should use FTIS based on A/B test assignment.
+ *
+ * When FTIS_PRIMARY=true, this always returns true (skips A/B testing).
+ * Otherwise, uses A/B test assignment to determine whether to use FTIS.
  */
 export function shouldUseFTIS(userId: string): boolean {
+  // When FTIS is primary, always use it (skip A/B testing)
+  if (isFTISPrimary()) {
+    return true;
+  }
+
   const manager = getABTestingManager();
   const variant = manager.getVariant(userId, 'ftis-v1-rollout');
 

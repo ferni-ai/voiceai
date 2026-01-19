@@ -43,13 +43,13 @@ describe('Trust Level System', () => {
     });
 
     it('should have payments require NEW trust level', () => {
-      expect(ACTION_TYPES.send_payment.maxTrustLevel).toBe('NEW');
+      expect(ACTION_TYPES.send_payment.maxTrustLevel).toBe('new');
       expect(ACTION_TYPES.send_payment.requiresConfirmation).toBe(true);
     });
 
     it('should allow messaging to reach TRUSTED level', () => {
-      expect(ACTION_TYPES.send_sms.maxTrustLevel).toBe('TRUSTED');
-      expect(ACTION_TYPES.send_email.maxTrustLevel).toBe('TRUSTED');
+      expect(ACTION_TYPES.send_sms.maxTrustLevel).toBe('trusted');
+      expect(ACTION_TYPES.send_email.maxTrustLevel).toBe('trusted');
     });
   });
 
@@ -115,9 +115,11 @@ describe('Trust Level System', () => {
   describe('Pending Actions', () => {
     it('should create pending action', async () => {
       const preview = createMockActionPreview();
-      const actionId = await createPendingAction(testUserId, 'send_sms', 'messaging', preview, {});
-      expect(actionId).toBeDefined();
-      expect(typeof actionId).toBe('string');
+      // Function returns PendingAction object, not just a string ID
+      const pendingAction = await createPendingAction(testUserId, 'send_sms', preview, {});
+      expect(pendingAction).toBeDefined();
+      expect(typeof pendingAction.id).toBe('string');
+      expect(pendingAction.actionType).toBe('send_sms');
     });
 
     it('should get all pending actions for user', async () => {
@@ -127,8 +129,8 @@ describe('Trust Level System', () => {
 
     it('should resolve pending action on approval', async () => {
       const preview = createMockActionPreview();
-      const actionId = await createPendingAction(testUserId, 'send_sms', 'messaging', preview, {});
-      const result = await resolvePendingAction(testUserId, actionId, true);
+      const pendingAction = await createPendingAction(testUserId, 'send_sms', preview, {});
+      const result = await resolvePendingAction(testUserId, pendingAction.id, true);
       expect(result === null || result.status === 'approved').toBe(true);
     });
   });

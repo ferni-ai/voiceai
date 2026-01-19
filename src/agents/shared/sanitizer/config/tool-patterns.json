@@ -598,6 +598,7 @@
     "grounding": {
       "description": "Grounding exercise tools",
       "patterns": [
+        "grounding",
         "groundingExercise",
         "grounding exercise",
         "5 4 3 2 1",

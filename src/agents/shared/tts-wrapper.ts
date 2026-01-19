@@ -40,8 +40,38 @@ import {
 import { getVoiceIdForPersona } from '../../config/voice-ids.js';
 import { getModelProvider } from '../model-provider/index.js';
 import { getLinguisticMirroring } from '../../conversation/superhuman/linguistic-mirroring.js';
+import {
+  bridgeToFerniContext,
+  enrichContextFromFirestore,
+  enrichContextWithMemory,
+} from '../../speech/tts/ferni-tts-context-bridge.js';
+
+// TTS Gateway integration
+import {
+  isTTSGatewayEnabled,
+  createStreamingPipeline as createGatewayStreamingPipeline,
+  extractSSMLToConfig,
+  getSSMLProcessor,
+  createGatewayTTSNode,
+} from '../../speech/tts-gateway/index.js';
 
 const log = createLogger({ module: 'TtsWrapper' });
+
+// =============================================================================
+// FERNI TTS CONFIGURATION
+// =============================================================================
+
+/**
+ * Check if Ferni TTS (superhuman transforms) is enabled
+ */
+function isFerniTTSEnabled(): boolean {
+  return (
+    process.env.TTS_PROVIDER === 'ferni-tts' ||
+    process.env.ENABLE_FERNI_TTS_TRANSFORMS === 'true'
+  );
+}
+
+// NOTE: _getFerniTTSEndpoint was removed - it was dead code (never called)
 
 // =============================================================================
 // GARBAGE RESPONSE DETECTION & RECOVERY
@@ -79,6 +109,44 @@ function detectGarbageResponse(trimmedOutput: string): boolean {
   // Just ellipsis variants
   if (/^\.{2,}$/.test(trimmedOutput) || trimmedOutput === '...' || trimmedOutput === '…') {
     return true;
+  }
+
+  return false;
+}
+
+/**
+ * Detect if LLM is responding to a punctuation-only STT artifact.
+ *
+ * Sometimes Gemini's internal STT transcribes silence/noise as just "." or similar,
+ * and the LLM responds with things like "You just sent a period."
+ *
+ * These responses should be suppressed as they're reacting to artifacts, not user intent.
+ */
+function detectPunctuationArtifactResponse(trimmedOutput: string): boolean {
+  const lower = trimmedOutput.toLowerCase();
+
+  // Patterns that indicate the LLM is responding to a punctuation-only artifact
+  const punctuationArtifactPatterns = [
+    // "You sent a period" variants
+    /you (just )?(sent|typed|said) (a |an? )?\.?(period|dot|ellips|punctuation)/i,
+    // "That was just a period" variants
+    /(that was|that's) (just )?(a |an? )?(period|dot|ellips|punctuation)/i,
+    // "Just a period?" variants
+    /^(just |only )?(a |an? )?(period|dot|ellips|punctuation)\??$/i,
+    // "Everything alright? You sent a period"
+    /everything (alright|okay|ok)\??.*(period|dot|punctuation)/i,
+    // "You just sent punctuation"
+    /you (just )?(sent|typed) (some )?punctuation/i,
+    // "Did you mean to send a period?"
+    /did you (mean|want) to.*(period|dot|punctuation)/i,
+    // "I noticed you sent a period"
+    /i (noticed|saw|see) you (sent|typed).*(period|dot|punctuation)/i,
+  ];
+
+  for (const pattern of punctuationArtifactPatterns) {
+    if (pattern.test(lower)) {
+      return true;
+    }
   }
 
   return false;
@@ -259,6 +327,31 @@ export interface TtsSessionContext {
     regionCode?: string;
     countryCode?: string;
   };
+  
+  // =========================================================================
+  // BETTER THAN HUMAN: Rich context for natural tool responses
+  // =========================================================================
+  
+  /** User's name for personalized responses */
+  userName?: string;
+  /** What the user originally asked (from last transcript) */
+  userRequest?: string;
+  /** User's detected emotional state */
+  userEmotion?: {
+    primary?: string;
+    intensity?: number;
+    valence?: number;
+  };
+  /** Time context for awareness */
+  timeContext?: {
+    timeOfDay?: 'morning' | 'afternoon' | 'evening' | 'night' | 'late-night';
+    dayOfWeek?: string;
+    isWeekend?: boolean;
+  };
+  /** Recent conversation topics for continuity */
+  recentTopics?: string[];
+  /** Persona display name for voice guidance */
+  personaDisplayName?: string;
 }
 
 /**
@@ -511,9 +604,26 @@ export async function wrappedTtsNode(
     // 🔍 E2E TRACE: Log raw LLM output BEFORE sanitization
     // This is CRITICAL for diagnosing tool call issues (Gemini problem pattern)
     let rawLLMBuffer = '';
+    let rawLLMStartTime = Date.now();
+    let rawLLMChunkCount = 0;
     const rawLLMLogger = new NodeTransformStream<string, string>({
+      start() {
+        rawLLMStartTime = Date.now();
+        log.info(
+          { sessionId, personaId, trace: 'STREAM_LIFECYCLE' },
+          '🔄 [0/4] Raw LLM logger stream STARTED - waiting for LLM output'
+        );
+      },
       transform(chunk, controller) {
+        rawLLMChunkCount++;
         rawLLMBuffer += chunk;
+        if (rawLLMChunkCount === 1) {
+          const latencyMs = Date.now() - rawLLMStartTime;
+          log.info(
+            { sessionId, personaId, chunkLength: chunk.length, latencyMs, trace: 'STREAM_LIFECYCLE' },
+            `🔄 [0.5/4] First LLM chunk arrived after ${latencyMs}ms: "${chunk.slice(0, 50)}..."`
+          );
+        }
         controller.enqueue(chunk);
       },
       flush() {
@@ -624,10 +734,20 @@ export async function wrappedTtsNode(
       userLocation,
     };
 
+    // BETTER THAN HUMAN: Pass rich context for natural tool responses
     const sanitizerWithFallback = createSanitizerWithMusicFallback({
       toolContext,
       session: options.session,
       sessionId,
+      userId,
+      personaId,
+      // Rich context for Better Than Human responses
+      userName: sessionContext?.userName,
+      userRequest: sessionContext?.userRequest,
+      userEmotion: sessionContext?.userEmotion,
+      timeContext: sessionContext?.timeContext,
+      recentTopics: sessionContext?.recentTopics,
+      personaDisplayName: sessionContext?.personaDisplayName,
     });
 
     // Pipe: Raw LLM → Logger → Sanitizer
@@ -708,10 +828,26 @@ export async function wrappedTtsNode(
   // Also includes SAFETY CHECK for code-editing output that slipped through filters
   let totalCharacters = 0;
   let ttsOutputBuffer = '';
+  let streamStartTime = Date.now();
+  let chunkCount = 0;
   const costTrackingStream = new NodeTransformStream<string, string>({
+    start() {
+      streamStartTime = Date.now();
+      log.info(
+        { sessionId, personaId, trace: 'STREAM_LIFECYCLE' },
+        '🔄 [2/4] TTS cost tracking stream STARTED'
+      );
+    },
     transform(chunk, controller) {
+      chunkCount++;
       totalCharacters += chunk.length;
       ttsOutputBuffer += chunk;
+      if (chunkCount === 1) {
+        log.info(
+          { sessionId, personaId, chunkLength: chunk.length, trace: 'STREAM_LIFECYCLE' },
+          `🔄 [3/4] TTS stream first chunk received: "${chunk.slice(0, 50)}..."`
+        );
+      }
       controller.enqueue(chunk);
     },
     flush() {
@@ -781,6 +917,7 @@ export async function wrappedTtsNode(
 
         // 🔍 E2E TRACE [4/4]: What actually goes to TTS (spoken to user)
         // Use truncateForLog() to respect LOG_FULL_RESPONSES env var
+        const streamDurationMs = Date.now() - streamStartTime;
         log.info(
           {
             trace: 'E2E_TTS_OUTPUT',
@@ -788,11 +925,31 @@ export async function wrappedTtsNode(
             fullLength: totalCharacters,
             estimatedTokens: estimatedOutputTokens,
             isEmpty: ttsOutputBuffer.trim().length === 0,
+            chunkCount,
+            streamDurationMs,
           },
-          `🔍 E2E TRACE [4/4] → TTS: "${truncateForLog(ttsOutputBuffer, 100)}"`
+          `🔍 E2E TRACE [4/4] → TTS: "${truncateForLog(ttsOutputBuffer, 100)}" (${chunkCount} chunks in ${streamDurationMs}ms)`
         );
       }
     },
+  });
+
+  // DIAGNOSTIC: Wrap the stream to detect cancellation
+  // The writable side's abort signal tells us if the consumer cancelled
+  const originalWritable = costTrackingStream.writable;
+  const abortController = new AbortController();
+  abortController.signal.addEventListener('abort', () => {
+    log.warn(
+      {
+        sessionId,
+        personaId,
+        totalCharacters,
+        chunkCount,
+        trace: 'STREAM_CANCELLED',
+        streamDurationMs: Date.now() - streamStartTime,
+      },
+      `🚨 [TTS STREAM CANCELLED] Stream aborted after ${chunkCount} chunks (${totalCharacters} chars) - THIS IS THE BUG!`
+    );
   });
 
   // 5. Chain all transforms (sanitizer → interrupt-aware → mirroring → cost tracking)
@@ -823,11 +980,145 @@ export async function wrappedTtsNode(
 
   log.debug('Sanitizer, interrupt-awareness, cost tracking, and streaming optimization attached');
 
-  // 6. Pass to TTS implementation (cache-aware or default)
+  // 6. Build superhuman context for Ferni TTS transforms
+  // This extracts conversation state (emotion, timezone, relationship, etc.) from session userData
+  // The context is used by the 8 "Better than Human" prosody transforms
+  const enableSuperhumanContext = isFerniTTSEnabled();
+  let superhumanContext: ReturnType<typeof bridgeToFerniContext> | undefined;
+
+  if (enableSuperhumanContext) {
+    // Access full session userData for context extraction
+    const fullUserData = agent.session?.userData as Record<string, unknown> | undefined;
+
+    // Bridge conversation state → superhuman context
+    superhumanContext = bridgeToFerniContext(fullUserData);
+
+    // Async enrichment for relationship data (fire-and-forget to not block TTS)
+    // This adds relationship stage from Firestore if not already in session
+    if (userId && userId !== 'anonymous') {
+      // Start async enrichment in background
+      void Promise.all([
+        enrichContextFromFirestore(userId, superhumanContext),
+        enrichContextWithMemory(sessionId, superhumanContext),
+      ])
+        .then(([firestoreEnriched, memoryEnriched]) => {
+          // Merge enriched data back
+          Object.assign(superhumanContext!, firestoreEnriched, memoryEnriched);
+          log.debug(
+            {
+              sessionId,
+              userId,
+              hasRelationshipStage: superhumanContext?.relationshipStage !== undefined,
+              entityCount: superhumanContext?.rememberedEntities?.length || 0,
+            },
+            '🧠 Superhuman context enriched from Firestore/memory'
+          );
+        })
+        .catch((err) => {
+          log.debug({ error: String(err), sessionId }, 'Failed to enrich superhuman context');
+        });
+    }
+
+    log.info(
+      {
+        sessionId,
+        personaId,
+        hasUserLocalHour: superhumanContext.userLocalHour !== undefined,
+        hasRelationshipStage: superhumanContext.relationshipStage !== undefined,
+        hasUserEmotion: superhumanContext.userEmotion !== undefined,
+        hasUserEnergy: superhumanContext.userEnergy !== undefined,
+        turnNumber: superhumanContext.turnNumber,
+        userLocalHour: superhumanContext.userLocalHour,
+        relationshipStage: superhumanContext.relationshipStage?.toFixed(2),
+        emotion: superhumanContext.userEmotion?.[0],
+        energy: superhumanContext.userEnergy?.toFixed(2),
+      },
+      '🦸 BTH: Superhuman context built for TTS transforms'
+    );
+  }
+
+  // 7. Pass to TTS implementation (cache-aware or default)
   let audioStream: NodeReadableStream<AudioFrame> | null;
 
-  if (enableCacheAwareTTS) {
-    // Use cache-aware TTS that checks speculative cache before Cartesia
+  // DIAGNOSTIC: Wrap text stream to detect cancellation
+  let textStreamConsumed = false;
+  let textStreamCancelled = false;
+  const diagnosticTextStream = new NodeTransformStream<string, string>({
+    transform(chunk, controller) {
+      textStreamConsumed = true;
+      controller.enqueue(chunk);
+    },
+    flush() {
+      log.info(
+        { sessionId, personaId, trace: 'STREAM_LIFECYCLE' },
+        '✅ [5/4] Text stream fully consumed by TTS (flush called)'
+      );
+    },
+  });
+  
+  // Detect when the readable side is cancelled
+  const wrappedText = optimizedText.pipeThrough(diagnosticTextStream);
+  
+  // Track when stream reader is released without consuming
+  const originalReader = wrappedText.getReader();
+  const trackedTextStream = new ReadableStream<string>({
+    async pull(controller) {
+      try {
+        const { value, done } = await originalReader.read();
+        if (done) {
+          controller.close();
+        } else {
+          controller.enqueue(value);
+        }
+      } catch (err) {
+        log.warn(
+          { sessionId, personaId, error: String(err), trace: 'STREAM_CANCELLED' },
+          '🚨 [TEXT STREAM ERROR] Error reading text stream'
+        );
+        controller.error(err);
+      }
+    },
+    cancel(reason) {
+      textStreamCancelled = true;
+      log.warn(
+        { sessionId, personaId, reason: String(reason), consumed: textStreamConsumed, trace: 'STREAM_CANCELLED' },
+        '🚨 [TEXT STREAM CANCELLED] TTS text stream was cancelled - this explains missing audio!'
+      );
+      originalReader.cancel(reason);
+    },
+  }) as NodeReadableStream<string>;
+
+  // 🚀 TTS GATEWAY: Use FULL gateway when enabled (highest priority)
+  // This completely replaces LiveKit's internal Cartesia with our gateway
+  if (isTTSGatewayEnabled()) {
+    const actualVoiceId = getVoiceIdForPersona(personaId);
+    
+    log.info(
+      { personaId, voiceId: actualVoiceId, emotion, sessionId },
+      '🚀 Using FULL TTS Gateway - bypassing LiveKit Cartesia'
+    );
+
+    // Create gateway TTS node that:
+    // 1. Collects text from stream
+    // 2. Parses/strips SSML
+    // 3. Checks unified cache
+    // 4. On miss: calls our Cartesia provider directly
+    // 5. Caches result
+    // 6. Returns audio frames
+    const gatewayTTS = createGatewayTTSNode({
+      voiceId: actualVoiceId,
+      sessionId,
+      personaId,
+      emotion,
+      sampleRate: 24000,
+      frameDurationMs: 20,
+      enableCache: true,
+    });
+
+    // Use gateway for full TTS synthesis
+    audioStream = await gatewayTTS(trackedTextStream);
+  } else if (enableCacheAwareTTS) {
+    // LEGACY PATH: Use cache-aware TTS that checks speculative cache before Cartesia
     // BUG FIX: Convert personaId to actual Cartesia voice UUID
     // Previously passed personaId directly, causing cache misses and wrong voice lookups
     const actualVoiceId = getVoiceIdForPersona(personaId);
@@ -840,14 +1131,32 @@ export async function wrappedTtsNode(
 
     log.debug(
       { personaId, voiceId: actualVoiceId, emotion, sessionId },
-      '🎯 Cache-aware TTS enabled - will check speculative cache'
+      '🎯 Cache-aware TTS enabled (legacy path) - will check speculative cache'
     );
 
-    audioStream = await cacheAwareTTS(agent, optimizedText, modelSettings);
+    audioStream = await cacheAwareTTS(agent, trackedTextStream, modelSettings);
   } else {
     // Fallback to default TTS implementation
+    // 🚀 CONSOLIDATED: Use gateway's SSMLProcessor (single source of truth)
+    // This prevents SSML tags from being spoken literally by Cartesia
+    const processor = getSSMLProcessor();
+    const bufferTransform = processor.createBufferTransform();
+    
+    const stripTransform = new NodeTransformStream<string, string>({
+      transform(chunk, controller) {
+        const result = processor.parse(chunk);
+        if (result.cleanText.trim()) {
+          controller.enqueue(result.cleanText);
+        }
+      },
+    });
+    
+    const ssmlStrippedStream = trackedTextStream
+      .pipeThrough(bufferTransform)
+      .pipeThrough(stripTransform);
+    
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    audioStream = await (voice.Agent.default as any).ttsNode(agent, optimizedText, modelSettings);
+    audioStream = await (voice.Agent.default as any).ttsNode(agent, ssmlStrippedStream, modelSettings);
   }
 
   // 7. Apply "Better Than Human" post-TTS enhancement (Rust-accelerated audio processing)
@@ -874,9 +1183,72 @@ export async function wrappedTtsNode(
 // HELPER FOR EXTRACTING SESSION CONTEXT FROM AGENT
 // =============================================================================
 
+// ============================================================================
+// BETTER THAN HUMAN: Context Helpers
+// ============================================================================
+
+/**
+ * Persona display names for personalized voice guidance
+ */
+const PERSONA_DISPLAY_NAMES: Record<string, string> = {
+  'ferni': 'Ferni',
+  'maya-santos': 'Maya',
+  'peter-john': 'Peter',
+  'alex-chen': 'Alex',
+  'jordan-taylor': 'Jordan',
+  'nayan-patel': 'Nayan',
+};
+
+/**
+ * Get persona display name from persona ID
+ */
+function getPersonaDisplayName(personaId?: string): string | undefined {
+  if (!personaId) return undefined;
+  return PERSONA_DISPLAY_NAMES[personaId];
+}
+
+/**
+ * Compute time context for time-aware responses
+ */
+function computeTimeContext(): TtsSessionContext['timeContext'] {
+  const now = new Date();
+  const hour = now.getHours();
+  const day = now.getDay();
+  
+  // Determine time of day
+  let timeOfDay: 'morning' | 'afternoon' | 'evening' | 'night' | 'late-night';
+  if (hour < 6) {
+    timeOfDay = 'late-night';
+  } else if (hour < 12) {
+    timeOfDay = 'morning';
+  } else if (hour < 17) {
+    timeOfDay = 'afternoon';
+  } else if (hour < 21) {
+    timeOfDay = 'evening';
+  } else {
+    timeOfDay = 'night';
+  }
+  
+  const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  
+  return {
+    timeOfDay,
+    dayOfWeek: dayNames[day],
+    isWeekend: day === 0 || day === 6,
+  };
+}
+
 /**
  * Extract TTS session context from agent's session userData.
  * Safe to call even if session or userData is undefined.
+ *
+ * BETTER THAN HUMAN: Includes rich context for natural tool responses:
+ * - User's name for personalization
+ * - Last user message (what they asked for)
+ * - Emotional state from voice analysis
+ * - Time of day awareness
+ * - Recent conversation topics
+ * - Persona display name
  *
  * @param agent - Voice agent instance
  * @param defaultPersonaId - Fallback persona ID if not in session
@@ -894,6 +1266,7 @@ export function extractTtsSessionContext(
   // Previously this was always returning undefined, causing sessionId: 'unknown' in handoffs.
   const services = userData?.services as { sessionId?: string } | undefined;
   const extractedSessionId = services?.sessionId ?? (userData?.sessionId as string | undefined);
+  const personaId = (userData?.personaId as string | undefined) || defaultPersonaId;
 
   // DIAGNOSTIC: Log when sessionId is missing or 'unknown'
   if (!extractedSessionId || extractedSessionId === 'unknown') {
@@ -904,23 +1277,65 @@ export function extractTtsSessionContext(
         hasServices: !!services,
         servicesSessionId: services?.sessionId,
         userDataSessionId: userData?.sessionId,
-        personaId: defaultPersonaId,
+        personaId,
         userDataKeys: userData ? Object.keys(userData).slice(0, 10) : [],
       },
       '⚠️ [HANDOFF-DEBUG] sessionId extraction failed - check userData.services'
     );
   }
 
+  // Extract voice emotion data if available
+  const voiceEmotion = userData?.voiceEmotion as {
+    primary?: string;
+    intensity?: number;
+    valence?: number;
+  } | undefined;
+  
+  // Extract last emotion analysis as fallback
+  const lastEmotionAnalysis = userData?.lastEmotionAnalysis as {
+    primary?: string;
+    intensity?: number;
+  } | undefined;
+
   return {
+    // Core session info
     userId: userData?.userId as string | undefined,
     sessionId: extractedSessionId,
-    personaId: (userData?.personaId as string | undefined) || defaultPersonaId,
+    personaId,
     wasInterrupted: userData?.wasInterrupted as boolean | undefined,
     interruptType: userData?.interruptType as 'hard' | 'soft' | undefined,
     emotion: userData?.currentEmotion as string | undefined,
     userLocation: userData?.userLocation as
       | { city?: string; regionCode?: string; countryCode?: string }
       | undefined,
+    
+    // =========================================================================
+    // BETTER THAN HUMAN: Rich context for natural tool responses
+    // =========================================================================
+    
+    // User's name for personalized responses
+    userName: (userData?.userName as string | undefined) || (userData?.name as string | undefined),
+    
+    // What the user originally asked (from last transcript)
+    userRequest: userData?.lastUserMessage as string | undefined,
+    
+    // User's detected emotional state (prefer voice emotion, fallback to last analysis)
+    userEmotion: voiceEmotion || lastEmotionAnalysis
+      ? {
+          primary: voiceEmotion?.primary || lastEmotionAnalysis?.primary,
+          intensity: voiceEmotion?.intensity || lastEmotionAnalysis?.intensity,
+          valence: voiceEmotion?.valence,
+        }
+      : undefined,
+    
+    // Time context for awareness
+    timeContext: computeTimeContext(),
+    
+    // Recent conversation topics for continuity (last 3)
+    recentTopics: (userData?.recentTopics as string[] | undefined)?.slice(0, 3),
+    
+    // Persona display name for voice guidance
+    personaDisplayName: getPersonaDisplayName(personaId),
   };
 }
 

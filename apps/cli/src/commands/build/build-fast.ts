@@ -125,6 +125,22 @@ function copyStaticFiles(): void {
     copyJsonFiles(toolsDir, toolsOutDir);
     log.success('Copied tool JSON files');
   }
+
+  // Copy generated tool documentation (markdown files for runtime loading)
+  const generatedSchemasDir = join(CONFIG.srcDir, 'tools', 'schemas', 'generated');
+  const generatedSchemasOutDir = join(CONFIG.outDir, 'tools', 'schemas', 'generated');
+
+  if (existsSync(generatedSchemasDir)) {
+    if (!existsSync(generatedSchemasOutDir)) {
+      mkdirSync(generatedSchemasOutDir, { recursive: true });
+    }
+    // Copy markdown files for runtime loading by prompt-loader
+    const mdFile = join(generatedSchemasDir, 'function-calling-base.generated.md');
+    if (existsSync(mdFile)) {
+      cpSync(mdFile, join(generatedSchemasOutDir, 'function-calling-base.generated.md'));
+      log.success('Copied generated tool documentation');
+    }
+  }
 }
 
 /**

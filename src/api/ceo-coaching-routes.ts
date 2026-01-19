@@ -201,13 +201,17 @@ async function getDashboardData(req: Request, res: Response): Promise<void> {
     }
 
     // Calculate energy metrics
-    const avgEnergyThisWeek = energyEntries.length > 0
-      ? energyEntries.slice(0, 7).reduce((sum, e) => sum + e.level, 0) / Math.min(energyEntries.length, 7)
-      : 0;
+    const avgEnergyThisWeek =
+      energyEntries.length > 0
+        ? energyEntries.slice(0, 7).reduce((sum, e) => sum + e.level, 0) /
+          Math.min(energyEntries.length, 7)
+        : 0;
 
-    const avgEnergyLastWeek = energyEntries.length > 7
-      ? energyEntries.slice(7, 14).reduce((sum, e) => sum + e.level, 0) / Math.min(energyEntries.length - 7, 7)
-      : 0;
+    const avgEnergyLastWeek =
+      energyEntries.length > 7
+        ? energyEntries.slice(7, 14).reduce((sum, e) => sum + e.level, 0) /
+          Math.min(energyEntries.length - 7, 7)
+        : 0;
 
     // Find best energy day
     let bestEnergyDay: string | null = null;
@@ -225,17 +229,21 @@ async function getDashboardData(req: Request, res: Response): Promise<void> {
       const cat = win.category || 'general';
       categoryCount[cat] = (categoryCount[cat] || 0) + 1;
     }
-    const topWinCategory = Object.entries(categoryCount)
-      .sort(([, a], [, b]) => b - a)[0]?.[0] || null;
+    const topWinCategory =
+      Object.entries(categoryCount).sort(([, a], [, b]) => b - a)[0]?.[0] || null;
 
     // Stale items (14+ days old)
     const staleBlockers = activeBlockers.filter((b) => {
-      const daysOld = Math.floor((now.getTime() - new Date(b.createdAt).getTime()) / (24 * 60 * 60 * 1000));
+      const daysOld = Math.floor(
+        (now.getTime() - new Date(b.createdAt).getTime()) / (24 * 60 * 60 * 1000)
+      );
       return daysOld >= 14;
     }).length;
 
     const staleDecisions = pendingDecisions.filter((d) => {
-      const daysOld = Math.floor((now.getTime() - new Date(d.createdAt).getTime()) / (24 * 60 * 60 * 1000));
+      const daysOld = Math.floor(
+        (now.getTime() - new Date(d.createdAt).getTime()) / (24 * 60 * 60 * 1000)
+      );
       return daysOld >= 14;
     }).length;
 
@@ -266,13 +274,17 @@ async function getDashboardData(req: Request, res: Response): Promise<void> {
         id: b.id,
         text: b.text,
         createdAt: b.createdAt,
-        daysOld: Math.floor((now.getTime() - new Date(b.createdAt).getTime()) / (24 * 60 * 60 * 1000)),
+        daysOld: Math.floor(
+          (now.getTime() - new Date(b.createdAt).getTime()) / (24 * 60 * 60 * 1000)
+        ),
       })),
       decisions: pendingDecisions.map((d) => ({
         id: d.id,
         description: d.description,
         createdAt: d.createdAt,
-        daysOld: Math.floor((now.getTime() - new Date(d.createdAt).getTime()) / (24 * 60 * 60 * 1000)),
+        daysOld: Math.floor(
+          (now.getTime() - new Date(d.createdAt).getTime()) / (24 * 60 * 60 * 1000)
+        ),
       })),
       priorities: priorities.map((p) => ({
         text: p.text,

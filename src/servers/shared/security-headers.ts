@@ -48,8 +48,12 @@ export interface SecurityHeadersConfig {
  */
 const DEFAULT_CSP_DIRECTIVES: Record<string, string[]> = {
   'default-src': ["'self'"],
-  'script-src': ["'self'", "'unsafe-inline'", "'unsafe-eval'", 'https://apis.google.com', 'https://cdn.jsdelivr.net'],
-  'style-src': ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
+  // SECURITY: Removed 'unsafe-inline' and 'unsafe-eval' - these bypass CSP protections
+  // Use nonces for inline scripts: add 'nonce-{random}' to script tags and CSP
+  // 'strict-dynamic' allows trusted scripts to load other scripts
+  'script-src': ["'self'", "'strict-dynamic'", 'https://apis.google.com', 'https://cdn.jsdelivr.net'],
+  // SECURITY: Removed 'unsafe-inline' for styles - use nonces or hashes instead
+  'style-src': ["'self'", 'https://fonts.googleapis.com'],
   'font-src': ["'self'", 'https://fonts.gstatic.com'],
   'img-src': ["'self'", 'data:', 'https:', 'blob:'],
   'connect-src': [

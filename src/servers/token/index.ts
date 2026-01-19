@@ -66,7 +66,9 @@ interface RateLimitEntry {
 }
 
 const tokenRateLimits = new Map<string, RateLimitEntry>();
-const TOKEN_RATE_LIMIT_MAX = 10; // Max 10 tokens per minute per IP
+// DEV: Higher limits in development mode
+const isDev = process.env.NODE_ENV === 'development' || !process.env.NODE_ENV;
+const TOKEN_RATE_LIMIT_MAX = isDev ? 100 : 10; // 100 in dev, 10 in prod per minute per IP
 const TOKEN_RATE_LIMIT_WINDOW_MS = 60 * 1000; // 1 minute
 
 /**

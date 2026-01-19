@@ -59,7 +59,7 @@ describe('Music Integration', () => {
       expect(state.isPlaying).toBe(false);
       expect(state.currentTrack).toBeNull();
       expect(state.volume).toBe(0.25); // 25% default
-      expect(state.duckingVolume).toBe(0.08); // 8% when ducked
+      expect(state.duckingVolume).toBe(0.04); // 4% when ducked - reduced so voice dominates
       expect(state.isDucked).toBe(false);
       expect(state.queue).toEqual([]);
       expect(state.isInitialized).toBe(false);
@@ -215,9 +215,10 @@ describe('Music Player UX', () => {
       expect(state.volume).toBeGreaterThanOrEqual(0.2);
       expect(state.volume).toBeLessThanOrEqual(0.35);
 
-      // Ducked volume should be barely audible
-      expect(state.duckingVolume).toBeGreaterThanOrEqual(0.05);
-      expect(state.duckingVolume).toBeLessThanOrEqual(0.15);
+      // Ducked volume should be nearly silent so voice dominates
+      // Reduced from 8% to 4% to prioritize speech clarity
+      expect(state.duckingVolume).toBeGreaterThanOrEqual(0.03);
+      expect(state.duckingVolume).toBeLessThanOrEqual(0.1);
     });
   });
 

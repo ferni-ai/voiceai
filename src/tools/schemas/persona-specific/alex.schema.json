@@ -1,0 +1,124 @@
+{
+  "$schema": "../tool.schema.json",
+  "domain": "communication",
+  "persona": "alex",
+  "version": "1.0.0",
+  "tools": [
+    {
+      "name": "draftEmail",
+      "description": "Draft an email with Alex's communication expertise. Helps craft professional, clear, and effective emails.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "to": {
+            "type": "string",
+            "description": "Recipient name or relationship (e.g., 'my boss', 'the team', 'client')"
+          },
+          "subject": {
+            "type": "string",
+            "description": "Email subject or topic"
+          },
+          "tone": {
+            "type": "string",
+            "description": "Tone of the email",
+            "enum": ["professional", "friendly", "formal", "casual", "apologetic", "assertive"]
+          },
+          "purpose": {
+            "type": "string",
+            "description": "What the email needs to accomplish"
+          }
+        },
+        "required": ["purpose"]
+      },
+      "examples": [
+        { "userSays": "Help me write an email to my boss about time off", "output": "{\"fn\":\"draftEmail\",\"args\":{\"to\":\"my boss\",\"purpose\":\"request time off\",\"tone\":\"professional\"}}" },
+        { "userSays": "Draft an apology email to the client", "output": "{\"fn\":\"draftEmail\",\"args\":{\"to\":\"client\",\"purpose\":\"apologize\",\"tone\":\"apologetic\"}}" },
+        { "userSays": "I need to email about the project deadline", "output": "{\"fn\":\"draftEmail\",\"args\":{\"purpose\":\"discuss project deadline\",\"tone\":\"professional\"}}" }
+      ],
+      "tags": ["email", "communication", "writing"]
+    },
+    {
+      "name": "prepareConversation",
+      "description": "Help prepare for a difficult or important conversation. Alex provides talking points, tone guidance, and anticipates responses.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "with": {
+            "type": "string",
+            "description": "Who the conversation is with"
+          },
+          "topic": {
+            "type": "string",
+            "description": "What the conversation is about"
+          },
+          "goal": {
+            "type": "string",
+            "description": "What you want to achieve from this conversation"
+          }
+        },
+        "required": ["topic"]
+      },
+      "examples": [
+        { "userSays": "I need to talk to my boss about a raise", "output": "{\"fn\":\"prepareConversation\",\"args\":{\"with\":\"boss\",\"topic\":\"salary raise\",\"goal\":\"negotiate higher salary\"}}" },
+        { "userSays": "Help me prepare for a difficult conversation with my partner", "output": "{\"fn\":\"prepareConversation\",\"args\":{\"with\":\"partner\",\"topic\":\"difficult conversation\"}}" },
+        { "userSays": "I have to give feedback to a team member", "output": "{\"fn\":\"prepareConversation\",\"args\":{\"with\":\"team member\",\"topic\":\"performance feedback\",\"goal\":\"give constructive feedback\"}}" }
+      ],
+      "tags": ["conversation", "communication", "preparation"]
+    },
+    {
+      "name": "scheduleEvent",
+      "description": "Schedule a meeting or event on the calendar.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "description": "Event title"
+          },
+          "when": {
+            "type": "string",
+            "description": "When to schedule. Can be natural language like 'tomorrow at 2pm', 'next Monday morning'"
+          },
+          "duration": {
+            "type": "string",
+            "description": "How long the event is. Examples: '30 minutes', '1 hour'"
+          },
+          "with": {
+            "type": "string",
+            "description": "Attendees or participants"
+          }
+        },
+        "required": ["title", "when"]
+      },
+      "examples": [
+        { "userSays": "Schedule a meeting with Sarah tomorrow at 2", "output": "{\"fn\":\"scheduleEvent\",\"args\":{\"title\":\"Meeting with Sarah\",\"when\":\"tomorrow at 2pm\",\"with\":\"Sarah\"}}" },
+        { "userSays": "Block time for deep work on Monday morning", "output": "{\"fn\":\"scheduleEvent\",\"args\":{\"title\":\"Deep Work\",\"when\":\"Monday morning\",\"duration\":\"2 hours\"}}" },
+        { "userSays": "Set up a team sync for Friday", "output": "{\"fn\":\"scheduleEvent\",\"args\":{\"title\":\"Team Sync\",\"when\":\"Friday\",\"with\":\"team\"}}" }
+      ],
+      "tags": ["calendar", "scheduling", "meetings"]
+    },
+    {
+      "name": "analyzeCommunication",
+      "description": "Analyze a communication (email, message, conversation) and provide feedback on tone, clarity, and effectiveness.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "content": {
+            "type": "string",
+            "description": "The text to analyze"
+          },
+          "context": {
+            "type": "string",
+            "description": "Context about the communication situation"
+          }
+        },
+        "required": ["content"]
+      },
+      "examples": [
+        { "userSays": "What do you think of this email?", "output": "{\"fn\":\"analyzeCommunication\",\"args\":{\"content\":\"[user provides email]\"}}" },
+        { "userSays": "Is this message too harsh?", "output": "{\"fn\":\"analyzeCommunication\",\"args\":{\"content\":\"[user provides message]\",\"context\":\"checking tone\"}}" }
+      ],
+      "tags": ["communication", "analysis", "feedback"]
+    }
+  ]
+}

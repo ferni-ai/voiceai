@@ -318,3 +318,6 @@ export async function registerHabitCoachingWithSessionManager(): Promise<void> {
     getLogger().debug('SessionDataManager not available for HabitCoaching registration');
   }
 }
+
+// Auto-register with SessionDataManager when module is loaded
+void registerHabitCoachingWithSessionManager();

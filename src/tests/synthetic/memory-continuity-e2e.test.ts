@@ -355,7 +355,9 @@ describe('Hybrid Retrieval Ranking', () => {
 
     expect(formatted).toContain('[MEMORY CONTINUITY]');
     expect(formatted).toContain('career');
-    expect(formatted).toContain('breakthrough');
+    // Anchor type 'breakthrough' is rendered as 💡 emoji, not text
+    expect(formatted).toContain('💡');
+    expect(formatted).toContain('Realized need for boundaries'); // anchor summary
     expect(formatted).toContain('work-life balance');
   });
 

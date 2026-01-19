@@ -279,6 +279,15 @@ export async function handleDeveloperAuthRoutes(
         return true;
       }
 
+      // Validate token format without logging any token content
+      const tokenLength = body.idToken.length;
+      const tokenParts = body.idToken.split('.').length;
+      // SECURITY: Never log token content - only metadata for debugging
+      log.debug(
+        { tokenLength, tokenParts, isValidFormat: tokenParts === 3 && tokenLength >= 100 },
+        'Received Firebase ID token for verification'
+      );
+
       // Verify Firebase ID token
       const auth = await getFirebaseAuth();
       let decodedToken: FirebaseDecodedToken;
@@ -287,7 +296,11 @@ export async function handleDeveloperAuthRoutes(
         decodedToken = (await auth.verifyIdToken(body.idToken)) as FirebaseDecodedToken;
       } catch (error) {
         const err = error instanceof Error ? error : new Error(String(error));
-        log.warn({ error: err.message }, 'Invalid Firebase ID token');
+        // SECURITY: Log only metadata, never any part of the token
+        log.warn(
+          { error: err.message, tokenLength, tokenParts },
+          'Invalid Firebase ID token'
+        );
         sendError(res, 'Invalid or expired token', 401);
         return true;
       }

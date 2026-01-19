@@ -366,9 +366,7 @@ export async function handleAutomationRoutes(
     // GET /api/automation/patterns
     // Get pattern summary for a user (behavioral patterns detected over time)
     if (route === '/patterns' && method === 'GET') {
-      const { getPatternSummary } = await import(
-        '../services/automation/pattern-reinforcement.js'
-      );
+      const { getPatternSummary } = await import('../services/automation/pattern-reinforcement.js');
 
       const summary = await getPatternSummary(userId);
 
@@ -382,9 +380,8 @@ export async function handleAutomationRoutes(
     // GET /api/automation/patterns/reinforcements
     // Get pending reinforcement messages ready for delivery
     if (route === '/patterns/reinforcements' && method === 'GET') {
-      const { processReinforcementOpportunities } = await import(
-        '../services/automation/pattern-reinforcement.js'
-      );
+      const { processReinforcementOpportunities } =
+        await import('../services/automation/pattern-reinforcement.js');
 
       const messages = await processReinforcementOpportunities(userId);
 
@@ -400,9 +397,8 @@ export async function handleAutomationRoutes(
     // Mark a reinforcement message as delivered
     const deliverMatch = route.match(/^\/patterns\/reinforcements\/([^/]+)\/deliver$/);
     if (deliverMatch && method === 'POST') {
-      const { deliverReinforcement, processReinforcementOpportunities } = await import(
-        '../services/automation/pattern-reinforcement.js'
-      );
+      const { deliverReinforcement, processReinforcementOpportunities } =
+        await import('../services/automation/pattern-reinforcement.js');
 
       const messageId = deliverMatch[1];
 
@@ -433,9 +429,8 @@ export async function handleAutomationRoutes(
     // Record user reaction to a reinforcement
     const feedbackMatch = route.match(/^\/patterns\/reinforcements\/([^/]+)\/feedback$/);
     if (feedbackMatch && method === 'POST') {
-      const { recordReinforcementReaction } = await import(
-        '../services/automation/pattern-reinforcement.js'
-      );
+      const { recordReinforcementReaction } =
+        await import('../services/automation/pattern-reinforcement.js');
 
       const messageId = feedbackMatch[1];
       const body = await parseRequestBody(req);

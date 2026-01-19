@@ -100,12 +100,71 @@ My account is <spell>ABC-123</spell>.
 That's hilarious! [laughter]
 ```
 
+### ⚠️ CRITICAL: Streaming Requirements
+
+**If you're streaming token by token, you MUST buffer complete SSML tags!**
+
+From Cartesia docs:
+> "Note that if you're streaming token by token, you'll need to buffer the whole value of the speed or volume tags. Passing in `1`, `.`, `0` as separate inputs, for example, will result in **reading out the tags**."
+
+**Example of the bug:**
+```
+// Fragmented streaming causes tags to be spoken!
+Stream chunk 1: "<speed "
+Stream chunk 2: "ratio=\"1."
+Stream chunk 3: "5\"/> Hello"
+// Result: Cartesia speaks "speed ratio 1.5 Hello" literally!
+```
+
+**Solution: Buffer incomplete tags**
+```typescript
+// Our SSML buffering transform in cache-aware-tts.ts
+function createSSMLBufferingTransform() {
+  let buffer = '';
+  return new TransformStream({
+    transform(chunk, controller) {
+      buffer += chunk;
+      const lastOpenBracket = buffer.lastIndexOf('<');
+      const lastCloseBracket = buffer.lastIndexOf('>');
+      
+      if (lastOpenBracket > lastCloseBracket) {
+        // Incomplete tag - hold it, emit only complete text
+        const completeText = buffer.substring(0, lastOpenBracket);
+        buffer = buffer.substring(lastOpenBracket);
+        if (completeText) controller.enqueue(completeText);
+      } else {
+        // No incomplete tags - emit entire buffer
+        if (buffer) {
+          controller.enqueue(buffer);
+          buffer = '';
+        }
+      }
+    },
+    flush(controller) {
+      if (buffer) controller.enqueue(buffer);
+    }
+  });
+}
+```
+
+### Prompting Tips (from Cartesia docs)
+
+1. **Use appropriate punctuation** - Add punctuation at the end of each transcript
+2. **Dates: MM/DD/YYYY** - Use `04/20/2023` format
+3. **Time formatting** - Add space before AM/PM: `7:00 PM`, `7 PM`
+4. **Insert pauses** - Use `-` or `<break time="X"/>` for pauses
+5. **Match voice to language** - Each voice has optimal languages
+6. **Stream contiguous audio** - Use continuations for connected chunks
+7. **Custom pronunciations** - Specify for domain-specific/ambiguous words
+8. **Force spelling** - Use `<spell>` for IDs, email addresses, numbers
+
 ### Important Notes
 
 1. **Buffer complete tags** when streaming token-by-token to prevent tags from being read aloud
 2. **Emotion tag** works best with voices tagged as "Emotive" in Cartesia
 3. **Mid-generation emotion shifts** may yield unpredictable results
 4. **Break tags** count as 1 character for billing purposes
+5. **Best emotive voices**: Leo, Jace, Kyle, Gavin, Maya, Tessa, Dana, Marian
 
 ## Architecture Overview
 

@@ -51,20 +51,51 @@ interface CacheMetrics {
 // CACHE STATE
 // ============================================================================
 
+/** Maximum cache size to prevent unbounded memory growth */
+const MAX_CACHE_SIZE = 1000;
+
 /** Main audio cache - key is `${voiceId}:${normalizedText}` */
 const audioCache = new Map<string, CachedAudio>();
+
+/** LRU order tracking - most recently used keys at the end */
+const lruOrder: string[] = [];
 
 /** Whether warmup is complete */
 let warmupComplete = false;
 
 /** Metrics */
-const metrics: CacheMetrics = {
+const metrics: CacheMetrics & { evictions: number } = {
   cacheHits: 0,
   cacheMisses: 0,
   warmupDurationMs: 0,
   totalPhrasesCached: 0,
   byCategory: {},
+  evictions: 0,
 };
+
+/**
+ * Update LRU order for a key (move to end = most recently used)
+ */
+function touchLRU(key: string): void {
+  const idx = lruOrder.indexOf(key);
+  if (idx !== -1) {
+    lruOrder.splice(idx, 1);
+  }
+  lruOrder.push(key);
+}
+
+/**
+ * Evict least recently used entries if cache exceeds max size
+ */
+function evictLRU(): void {
+  while (audioCache.size > MAX_CACHE_SIZE && lruOrder.length > 0) {
+    const lruKey = lruOrder.shift();
+    if (lruKey) {
+      audioCache.delete(lruKey);
+      metrics.evictions++;
+    }
+  }
+}
 
 // ============================================================================
 // PHRASES TO PRE-CACHE
@@ -201,6 +232,13 @@ async function generateAudio(text: string, voiceId: string): Promise<ArrayBuffer
   const apiKey = process.env.CARTESIA_API_KEY;
   if (!apiKey) return null;
 
+  // 🔧 FIX: Strip SSML tags before sending to Cartesia
+  // SSML tags get fragmented by Cartesia's tokenizer and spoken literally
+  const plainText = text
+    .replace(/<[^>]+>/g, ' ')  // Strip all XML-like tags
+    .replace(/\s+/g, ' ')       // Collapse whitespace
+    .trim();
+
   try {
     const response = await fetch(CARTESIA_API_URL, {
       method: 'POST',
@@ -211,7 +249,7 @@ async function generateAudio(text: string, voiceId: string): Promise<ArrayBuffer
       },
       body: JSON.stringify({
         model_id: CARTESIA_MODEL,
-        transcript: text,
+        transcript: plainText,  // Use stripped text
         voice: { mode: 'id', id: voiceId },
         output_format: {
           container: 'raw',
@@ -348,6 +386,8 @@ export async function prewarmConversationalAudio(): Promise<number> {
             durationMs: estimateDuration(audio.byteLength),
             category,
           });
+          touchLRU(key);
+          evictLRU();
           cachedCount++;
           categoryCount[category]++;
         }
@@ -387,6 +427,7 @@ export function getCachedAudio(text: string, voiceId: string): ArrayBuffer | nul
 
   if (cached) {
     metrics.cacheHits++;
+    touchLRU(key);
     log.debug(
       { text: text.slice(0, 20), category: cached.category, durationMs: cached.durationMs },
       '🎯 Audio CACHE HIT'
@@ -436,6 +477,7 @@ export function getConversationalCacheMetrics(): CacheMetrics & {
  */
 export function clearConversationalCache(): void {
   audioCache.clear();
+  lruOrder.length = 0;
   warmupComplete = false;
   metrics.cacheHits = 0;
   metrics.cacheMisses = 0;

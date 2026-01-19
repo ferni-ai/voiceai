@@ -1,0 +1,59 @@
+{
+  "$schema": "../tool.schema.json",
+  "domain": "ferni-coordinator",
+  "persona": "ferni",
+  "version": "1.0.0",
+  "tools": [
+    {
+      "name": "teamIntro",
+      "description": "Introduce the Ferni team and their specialties. Use when user asks about the team, who they can talk to, or what help is available.",
+      "parameters": {
+        "type": "object",
+        "properties": {},
+        "required": []
+      },
+      "examples": [
+        { "userSays": "Who can I talk to?", "output": "{\"fn\":\"teamIntro\",\"args\":{}}" },
+        { "userSays": "Tell me about your team", "output": "{\"fn\":\"teamIntro\",\"args\":{}}" },
+        { "userSays": "What kind of help is available?", "output": "{\"fn\":\"teamIntro\",\"args\":{}}" }
+      ],
+      "tags": ["team", "introduction", "coordinator"]
+    },
+    {
+      "name": "checkIn",
+      "description": "Run a check-in with the user to see how they're doing. Activates reflective conversation mode.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "depth": {
+            "type": "string",
+            "description": "Depth of check-in",
+            "enum": ["quick", "regular", "deep"]
+          }
+        },
+        "required": []
+      },
+      "examples": [
+        { "userSays": "How am I doing?", "output": "{\"fn\":\"checkIn\",\"args\":{}}" },
+        { "userSays": "Let's check in", "output": "{\"fn\":\"checkIn\",\"args\":{}}" },
+        { "userSays": "I want to reflect", "output": "{\"fn\":\"checkIn\",\"args\":{\"depth\":\"deep\"}}" }
+      ],
+      "tags": ["wellbeing", "reflection", "coaching"]
+    },
+    {
+      "name": "getUserSnapshot",
+      "description": "Get an overview of user's current state across all domains: habits, goals, calendar, recent conversations.",
+      "parameters": {
+        "type": "object",
+        "properties": {},
+        "required": []
+      },
+      "examples": [
+        { "userSays": "Give me an overview", "output": "{\"fn\":\"getUserSnapshot\",\"args\":{}}" },
+        { "userSays": "What's my current status?", "output": "{\"fn\":\"getUserSnapshot\",\"args\":{}}" },
+        { "userSays": "Summary of where I'm at", "output": "{\"fn\":\"getUserSnapshot\",\"args\":{}}" }
+      ],
+      "tags": ["snapshot", "overview", "coordinator"]
+    }
+  ]
+}

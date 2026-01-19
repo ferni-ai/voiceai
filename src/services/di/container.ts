@@ -18,7 +18,9 @@
  *   testContainer.register('database', () => mockDatabase);
  */
 
-import { getLogger } from '../../utils/safe-logger.js';
+import { createLogger } from '../../utils/safe-logger.js';
+
+const log = createLogger({ module: 'DIContainer' });
 
 // ============================================================================
 // TYPES
@@ -42,6 +44,25 @@ interface Registration<T = unknown> {
  * Service identifier - can be string or symbol
  */
 export type ServiceId = string | symbol;
+
+/**
+ * Interface for services that need cleanup
+ */
+export interface Disposable {
+  dispose(): void | Promise<void>;
+}
+
+/**
+ * Type guard for disposable services
+ */
+function isDisposable(obj: unknown): obj is Disposable {
+  return (
+    obj !== null &&
+    typeof obj === 'object' &&
+    'dispose' in obj &&
+    typeof (obj as Disposable).dispose === 'function'
+  );
+}
 
 // ============================================================================
 // CONTAINER
@@ -154,6 +175,34 @@ export class Container {
   }
 
   /**
+   * Dispose all singleton instances that implement Disposable
+   * Should be called on graceful shutdown
+   */
+  async dispose(): Promise<void> {
+    const disposables: Array<{ id: ServiceId; instance: Disposable }> = [];
+
+    // Collect all disposable instances
+    for (const [id, registration] of this.registrations) {
+      if (registration.instance && isDisposable(registration.instance)) {
+        disposables.push({ id, instance: registration.instance });
+      }
+    }
+
+    // Dispose in reverse registration order (dependencies first)
+    for (const { id, instance } of disposables.reverse()) {
+      try {
+        await instance.dispose();
+        log.debug({ serviceId: String(id) }, 'Disposed service');
+      } catch (error) {
+        log.error({ serviceId: String(id), error: String(error) }, 'Error disposing service');
+      }
+    }
+
+    // Clear all instances after disposal
+    this.clearInstances();
+  }
+
+  /**
    * Get registration (checks parent if not found locally)
    */
   private getRegistration<T>(id: ServiceId): Registration<T> | undefined {
@@ -216,16 +265,29 @@ export function resetContainer(): void {
  * Usage:
  *   container.register(Tokens.Logger, () => new Logger());
  *   const logger = container.resolve<Logger>(Tokens.Logger);
+ *
+ * All store tokens correspond to interfaces in store-interfaces.ts:
+ *   - IMemoryStore, IVectorStore, IRedisCache, etc.
  */
 export const Tokens = {
   // Core services
   Logger: Symbol('Logger'),
   Config: Symbol('Config'),
 
-  // Storage
-  MemoryStore: Symbol('MemoryStore'),
-  VectorStore: Symbol('VectorStore'),
-  RedisCache: Symbol('RedisCache'),
+  // Storage (see store-interfaces.ts for contracts)
+  MemoryStore: Symbol('MemoryStore'), // IMemoryStore
+  VectorStore: Symbol('VectorStore'), // IVectorStore (VectorStoreContract)
+  RedisCache: Symbol('RedisCache'), // IRedisCache
+
+  // Domain Stores (see store-interfaces.ts for contracts)
+  LifeDataStore: Symbol('LifeDataStore'), // ILifeDataStore
+  ProductivityStore: Symbol('ProductivityStore'), // IProductivityStore
+  EngagementStore: Symbol('EngagementStore'), // IEngagementStore
+  VoiceProfileStore: Symbol('VoiceProfileStore'), // IVoiceProfileStore
+  EntityStore: Symbol('EntityStore'), // IEntityStore
+  ActionStore: Symbol('ActionStore'), // IActionStore
+  SubscriptionStore: Symbol('SubscriptionStore'), // ISubscriptionStore
+  CollectiveLearning: Symbol('CollectiveLearning'), // ICollectiveLearningStore
 
   // Intelligence
   EmotionDetector: Symbol('EmotionDetector'),
@@ -236,10 +298,15 @@ export const Tokens = {
 
   // Services
   AgentBus: Symbol('AgentBus'),
-  LifeDataStore: Symbol('LifeDataStore'),
-  ProductivityStore: Symbol('ProductivityStore'),
   BackgroundTasks: Symbol('BackgroundTasks'),
-  CollectiveLearning: Symbol('CollectiveLearning'),
+
+  // TTS Services (Clean Architecture)
+  TTSGateway: Symbol('TTSGateway'), // ITTSGateway
+  TTSCache: Symbol('TTSCache'), // ITTSCache
+  TTSProvider: Symbol('TTSProvider'), // ITTSProvider
+
+  // Persona Registry (OCP-compliant)
+  PersonaRegistry: Symbol('PersonaRegistry'), // IPersonaRegistry
 
   // Memory Services (Better than Human memory capabilities)
   CognitiveMemory: Symbol('CognitiveMemory'),
@@ -251,6 +318,24 @@ export const Tokens = {
   // Schedulers
   ReminderScheduler: Symbol('ReminderScheduler'),
   ProactiveScheduler: Symbol('ProactiveScheduler'),
+
+  // Superhuman Intelligence (10 enhancements)
+  ResponseModeIntelligence: Symbol('ResponseModeIntelligence'),
+  EmotionalMomentumTracker: Symbol('EmotionalMomentumTracker'),
+  SilenceInterpreter: Symbol('SilenceInterpreter'),
+  MicroMomentDetector: Symbol('MicroMomentDetector'),
+  AvoidanceDetector: Symbol('AvoidanceDetector'),
+  RhythmIntelligence: Symbol('RhythmIntelligence'),
+  RelationalMemory: Symbol('RelationalMemory'),
+  PatternConnector: Symbol('PatternConnector'),
+  StoryArcTracker: Symbol('StoryArcTracker'),
+  VoiceBiomarkerPipeline: Symbol('VoiceBiomarkerPipeline'),
+
+  // Reliability Services (Jan 2026)
+  SessionHealthMonitor: Symbol('SessionHealthMonitor'),
+  ParallelToolExecutor: Symbol('ParallelToolExecutor'),
+  ContextPruner: Symbol('ContextPruner'),
+  FunctionCallTelemetry: Symbol('FunctionCallTelemetry'),
 } as const;
 
 // ============================================================================

@@ -1,0 +1,127 @@
+{
+  "$schema": "../tool.schema.json",
+  "domain": "wisdom",
+  "persona": "nayan",
+  "version": "1.0.0",
+  "tools": [
+    {
+      "name": "reflectOn",
+      "description": "Guide reflection on a topic from a wisdom perspective. Nayan offers philosophical depth and helps find meaning.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "topic": {
+            "type": "string",
+            "description": "What to reflect on"
+          },
+          "tradition": {
+            "type": "string",
+            "description": "Optional philosophical tradition to draw from",
+            "enum": ["stoic", "buddhist", "eastern", "western", "universal"]
+          }
+        },
+        "required": ["topic"]
+      },
+      "examples": [
+        { "userSays": "Help me reflect on my purpose", "output": "{\"fn\":\"reflectOn\",\"args\":{\"topic\":\"purpose\"}}" },
+        { "userSays": "I'm struggling with change", "output": "{\"fn\":\"reflectOn\",\"args\":{\"topic\":\"change and impermanence\"}}" },
+        { "userSays": "What's the stoic take on failure?", "output": "{\"fn\":\"reflectOn\",\"args\":{\"topic\":\"failure\",\"tradition\":\"stoic\"}}" }
+      ],
+      "tags": ["wisdom", "philosophy", "reflection"]
+    },
+    {
+      "name": "findMeaning",
+      "description": "Help find meaning in a situation or experience. Nayan reframes challenges as growth opportunities.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "situation": {
+            "type": "string",
+            "description": "The situation to find meaning in"
+          }
+        },
+        "required": ["situation"]
+      },
+      "examples": [
+        { "userSays": "Why did this happen to me?", "output": "{\"fn\":\"findMeaning\",\"args\":{\"situation\":\"[user's situation]\"}}" },
+        { "userSays": "Help me understand this setback", "output": "{\"fn\":\"findMeaning\",\"args\":{\"situation\":\"setback\"}}" },
+        { "userSays": "What's the lesson in this?", "output": "{\"fn\":\"findMeaning\",\"args\":{\"situation\":\"[context]\"}}" }
+      ],
+      "tags": ["wisdom", "meaning", "growth"]
+    },
+    {
+      "name": "guidedMeditation",
+      "description": "Lead a brief guided meditation or mindfulness exercise.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "description": "Type of meditation",
+            "enum": ["breathing", "body-scan", "loving-kindness", "visualization", "gratitude"]
+          },
+          "duration": {
+            "type": "string",
+            "description": "How long the meditation should be",
+            "enum": ["1min", "3min", "5min", "10min"]
+          },
+          "intention": {
+            "type": "string",
+            "description": "Optional intention or focus"
+          }
+        },
+        "required": []
+      },
+      "examples": [
+        { "userSays": "Guide me through a meditation", "output": "{\"fn\":\"guidedMeditation\",\"args\":{\"type\":\"breathing\",\"duration\":\"5min\"}}" },
+        { "userSays": "Quick breathing exercise", "output": "{\"fn\":\"guidedMeditation\",\"args\":{\"type\":\"breathing\",\"duration\":\"1min\"}}" },
+        { "userSays": "Lead a gratitude meditation", "output": "{\"fn\":\"guidedMeditation\",\"args\":{\"type\":\"gratitude\",\"duration\":\"5min\"}}" }
+      ],
+      "tags": ["meditation", "mindfulness", "wellness"]
+    },
+    {
+      "name": "exploreValues",
+      "description": "Help explore and clarify personal values.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "context": {
+            "type": "string",
+            "description": "Context for values exploration (e.g., career, relationships, life direction)"
+          }
+        },
+        "required": []
+      },
+      "examples": [
+        { "userSays": "What do I really value?", "output": "{\"fn\":\"exploreValues\",\"args\":{}}" },
+        { "userSays": "Help me figure out what matters in my career", "output": "{\"fn\":\"exploreValues\",\"args\":{\"context\":\"career\"}}" },
+        { "userSays": "I'm not sure what I want in life", "output": "{\"fn\":\"exploreValues\",\"args\":{\"context\":\"life direction\"}}" }
+      ],
+      "tags": ["values", "philosophy", "self-discovery"]
+    },
+    {
+      "name": "shareWisdom",
+      "description": "Share relevant wisdom, quotes, or philosophical insights on a topic.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "topic": {
+            "type": "string",
+            "description": "Topic to share wisdom about"
+          },
+          "source": {
+            "type": "string",
+            "description": "Preferred wisdom tradition or source"
+          }
+        },
+        "required": ["topic"]
+      },
+      "examples": [
+        { "userSays": "Share some wisdom about patience", "output": "{\"fn\":\"shareWisdom\",\"args\":{\"topic\":\"patience\"}}" },
+        { "userSays": "What did the Stoics say about adversity?", "output": "{\"fn\":\"shareWisdom\",\"args\":{\"topic\":\"adversity\",\"source\":\"stoic\"}}" },
+        { "userSays": "Give me a quote about courage", "output": "{\"fn\":\"shareWisdom\",\"args\":{\"topic\":\"courage\"}}" }
+      ],
+      "tags": ["wisdom", "quotes", "philosophy"]
+    }
+  ]
+}

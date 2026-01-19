@@ -320,7 +320,7 @@ describe('Voice Agent Entry - Integration Checklist', () => {
 
       // Phone Call Support
       { name: 'Phone Call Detection', pattern: 'isPhoneCall' },
-      { name: 'Noise Cancellation', pattern: 'TelephonyBackgroundVoiceCancellation' },
+      { name: 'Noise Cancellation', pattern: 'setupNoiseCancellation' },
 
       // Humanization Signals
       { name: 'Humanization Signal Emitter', pattern: 'initHumanizationSignalEmitter' },
@@ -336,8 +336,8 @@ describe('Voice Agent Entry - Integration Checklist', () => {
       { name: 'Game Engine', pattern: 'getSessionGameEngine' },
 
       // NEW: Advanced Humanization
-      { name: 'Voice Humanization Integration', pattern: 'quickSetupVoiceHumanization' },
-      { name: 'Emotional Arc Tracker', pattern: 'getEmotionalArcTracker' },
+      { name: 'Voice Humanization Integration', pattern: 'setupVoiceHumanization' },
+      { name: 'Emotional Expressions', pattern: 'emotionalExpressions' },
       { name: 'Insight Callback', pattern: 'setInsightCallback' },
 
       // NEW: Prosody & Bundle

@@ -37,6 +37,55 @@ export interface VoiceMemo {
 const memoCache = new Map<string, VoiceMemo[]>();
 
 // ============================================================================
+// SESSION DATA MANAGER REGISTRATION
+// ============================================================================
+
+/**
+ * Clear cached data for a user
+ */
+function clearUserCache(userId: string): void {
+  memoCache.delete(userId);
+  log.debug({ userId }, '🧹 Voice memos cache cleared for user');
+}
+
+/**
+ * Clear all cached data
+ */
+function clearAllCache(): void {
+  memoCache.clear();
+  log.debug('🧹 Voice memos cache cleared');
+}
+
+/**
+ * Get cache statistics
+ */
+function getVoiceMemoCacheStats(): { users: number; entries: number } {
+  let totalMemos = 0;
+  for (const memos of memoCache.values()) {
+    totalMemos += memos.length;
+  }
+  return { users: memoCache.size, entries: totalMemos };
+}
+
+/**
+ * Register with SessionDataManager for proper lifecycle cleanup
+ */
+export async function registerVoiceMemosWithSessionManager(): Promise<void> {
+  try {
+    const { getSessionDataManager } = await import('../../../services/session-data-manager.js');
+    getSessionDataManager().registerService({
+      name: 'VoiceMemos',
+      clearUserData: clearUserCache,
+      clearAllData: clearAllCache,
+      getStats: getVoiceMemoCacheStats,
+    });
+  } catch {
+    // SessionDataManager may not be initialized yet
+    log.debug('SessionDataManager not available for VoiceMemos registration');
+  }
+}
+
+// ============================================================================
 // STORAGE HELPERS
 // ============================================================================
 
@@ -412,3 +461,6 @@ export const voiceMemosToolDefinitions: ToolDefinition[] = [
 ];
 
 export default voiceMemosToolDefinitions;
+
+// Auto-register with SessionDataManager when module is loaded
+void registerVoiceMemosWithSessionManager();

@@ -43,6 +43,12 @@ import {
   invalidateToolCache,
 } from '../../services/performance/tool-response-cache.js';
 import { executeWithReliability } from '../../services/performance/tool-execution-reliability.js';
+// Parallel tool executor for critical tools (Jan 2026)
+import {
+  isCriticalTool,
+  executeWithParallelFallback,
+  type ToolResult as ParallelToolResult,
+} from './parallel-tool-executor.js';
 // Developer Platform: Webhook integration for tool events
 import {
   onToolCalled as dispatchToolCalledWebhook,
@@ -435,7 +441,17 @@ export async function executeJsonFunction(
   const startTime = Date.now();
   const sessionId = ctx.sessionId || 'unknown';
 
-  log.info({ fn, args }, '🔧 Executing JSON function call');
+  // 🔍 E2E TRACE: Tool execution started
+  log.info(
+    { 
+      fn, 
+      args: truncateForLog(JSON.stringify(args), 200),
+      sessionId,
+      userId: ctx.userId,
+      trace: 'E2E_TOOL_START',
+    }, 
+    `🔍 E2E TRACE [TOOL] Starting: ${fn}(${truncateForLog(JSON.stringify(args), 50)})`
+  );
   ctx.onToolStart?.(fn, args);
 
   // Developer Platform: Dispatch tool.called webhook (fire-and-forget)
@@ -474,14 +490,64 @@ export async function executeJsonFunction(
   try {
     // ================================================================
     // RELIABILITY: Execute with retry and circuit breaker
+    // For CRITICAL tools (handoffs, calls), use parallel execution
     // ================================================================
-    const { result, retries, fromFallback } = await executeWithReliability(
-      fn,
-      async () => routeToTool(fn, args, ctx),
-      {
-        fallbackValue: getFallbackResponse(fn),
+    let result: unknown;
+    let retries = 0;
+    let fromFallback = false;
+    let parallelAttempt: number | undefined;
+
+    if (isCriticalTool(fn)) {
+      // CRITICAL TOOL: Use parallel execution for high reliability
+      log.info({ fn }, '🚀 Critical tool detected - using parallel execution');
+
+      const parallelResult = await executeWithParallelFallback(
+        fn,
+        args,
+        async (toolArgs): Promise<ParallelToolResult> => {
+          try {
+            const toolResult = await routeToTool(fn, toolArgs, ctx);
+            return { success: true, data: toolResult };
+          } catch (err) {
+            return { success: false, error: String(err) };
+          }
+        },
+        {
+          maxParallel: 2,
+          timeoutMs: 5000,
+          verbose: true,
+        }
+      );
+
+      if (parallelResult.success) {
+        result = parallelResult.data;
+        parallelAttempt = parallelResult.attempt;
+        if (parallelAttempt && parallelAttempt > 1) {
+          log.info({ fn, parallelAttempt }, '🚀 Critical tool succeeded on parallel attempt');
+        }
+      } else {
+        // Parallel execution failed - try fallback
+        fromFallback = true;
+        result = getFallbackResponse(fn);
+        log.warn(
+          { fn, error: parallelResult.error, parallelDurationMs: parallelResult.durationMs },
+          '⚠️ Critical tool parallel execution failed, using fallback'
+        );
       }
-    );
+    } else {
+      // NON-CRITICAL: Use standard retry with circuit breaker
+      const reliabilityResult = await executeWithReliability(
+        fn,
+        async () => routeToTool(fn, args, ctx),
+        {
+          fallbackValue: getFallbackResponse(fn),
+        }
+      );
+
+      result = reliabilityResult.result;
+      retries = reliabilityResult.retries;
+      fromFallback = reliabilityResult.fromFallback;
+    }
 
     if (retries > 0) {
       log.info({ fn, retries }, '🔄 Tool succeeded after retries');
@@ -519,7 +585,24 @@ export async function executeJsonFunction(
       invalidateToolCache(ctx.sessionId, fn);
     }
 
-    log.info({ fn, durationMs: executionResult.durationMs }, '✅ JSON function executed');
+    // 🔍 E2E TRACE: Tool execution completed
+    // Telemetry: Track which layer handled this tool call
+    // - 'json-workaround': This executor (JSON intercepted from LLM output)
+    // - 'semantic-router': Handled pre-LLM by semantic router
+    // - 'native-fc': Handled by LLM's native function calling
+    log.info(
+      { 
+        fn, 
+        durationMs: executionResult.durationMs,
+        sessionId,
+        resultPreview: truncateForLog(JSON.stringify(result), 200),
+        retries,
+        fromFallback,
+        handledBy: 'json-workaround', // This executor is the JSON workaround layer
+        trace: 'E2E_TOOL_SUCCESS',
+      }, 
+      `🔍 E2E TRACE [TOOL] Completed: ${fn} in ${executionResult.durationMs}ms (via json-workaround)`
+    );
 
     // Developer Platform: Dispatch tool.completed webhook (fire-and-forget)
     dispatchToolCompletedWebhook({
@@ -601,7 +684,18 @@ export async function executeJsonFunction(
       durationMs,
     };
 
-    log.error({ fn, args, error: String(err) }, '❌ JSON function execution failed');
+    // 🔍 E2E TRACE: Tool execution failed
+    log.error(
+      { 
+        fn, 
+        args: truncateForLog(JSON.stringify(args), 200),
+        error: String(err),
+        durationMs,
+        sessionId,
+        trace: 'E2E_TOOL_FAILED',
+      }, 
+      `🔍 E2E TRACE [TOOL FAILED] ${fn} after ${durationMs}ms: ${String(err).slice(0, 100)}`
+    );
 
     // Developer Platform: Dispatch tool.failed webhook (fire-and-forget)
     dispatchToolFailedWebhook({
@@ -1370,13 +1464,43 @@ async function routeToTool(
     if (location === 'current' || location === '' || !location) {
       // Priority 1: Try IP-detected location (TikTok-style personalization)
       if (ctx?.userLocation?.city) {
-        location = ctx.userLocation.regionCode
-          ? `${ctx.userLocation.city}, ${ctx.userLocation.regionCode}`
-          : ctx.userLocation.city;
-        log.info(
-          { trace: 'E2E_WEATHER_LOCATION', source: 'IP_DETECTED', location, userId: ctx.userId },
-          `🔍 E2E TRACE [WEATHER] Using IP-detected: "${location}"`
-        );
+        // 🐛 FIX: Validate IP-detected city isn't suspicious
+        // "Current" is a real place in North Eleuthera, Bahamas, but it's more likely
+        // that the IP geolocation service returned garbage than the user is there.
+        // Also catch other suspicious patterns that indicate bad geo data.
+        const suspiciousPatterns = [
+          /^current$/i,           // "Current" as a city name
+          /^unknown$/i,           // "Unknown" city
+          /^private$/i,           // "Private" or similar
+          /^reserved$/i,          // Reserved IP block
+          /^\d+\.\d+\.\d+\.\d+$/, // IP address as city name (bad data)
+          /^localhost$/i,         // Localhost
+          /^null$/i,              // Literal "null"
+        ];
+        
+        const cityLower = ctx.userLocation.city.toLowerCase().trim();
+        const isSuspicious = suspiciousPatterns.some(pattern => pattern.test(cityLower));
+        
+        if (isSuspicious) {
+          log.warn(
+            { 
+              trace: 'E2E_WEATHER_SUSPICIOUS_CITY', 
+              city: ctx.userLocation.city, 
+              region: ctx.userLocation.regionCode,
+              userId: ctx.userId 
+            },
+            `🔍 E2E TRACE [WEATHER] ⚠️ SUSPICIOUS CITY detected: "${ctx.userLocation.city}" - ignoring IP geolocation`
+          );
+          // Don't use this location - fall through to other sources
+        } else {
+          location = ctx.userLocation.regionCode
+            ? `${ctx.userLocation.city}, ${ctx.userLocation.regionCode}`
+            : ctx.userLocation.city;
+          log.info(
+            { trace: 'E2E_WEATHER_LOCATION', source: 'IP_DETECTED', location, userId: ctx.userId },
+            `🔍 E2E TRACE [WEATHER] Using IP-detected: "${location}"`
+          );
+        }
       }
 
       // Priority 2: Try to get user's saved location from memory

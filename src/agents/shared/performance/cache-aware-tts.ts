@@ -31,8 +31,50 @@ import { getTTSWithSpeculation } from '../../../services/performance/speculative
 import { getCachedAudio as getConversationalCachedAudio } from '../conversational-audio-cache.js';
 // ⚡ Import greeting audio cache for instant first greeting
 import { getPrewarmedGreetingAudio } from './greeting-audio-prewarm.js';
+// 🚀 CONSOLIDATED: Use gateway's SSML processor (single source of truth)
+import { getSSMLProcessor } from '../../../speech/tts-gateway/ssml/index.js';
+// 🚀 NEW: Check unified TTSCache first (highest priority cache)
+import { getTTSCache } from '../../../services/tts/index.js';
 
 const log = createLogger({ module: 'CacheAwareTTS' });
+
+// ============================================================================
+// SSML STRIPPING (DELEGATED TO TTS GATEWAY)
+// ============================================================================
+//
+// PROBLEM: The LiveKit Cartesia plugin uses a SentenceTokenizer internally that
+// fragments SSML tags across WebSocket packets. When tags like <break time="280ms"/>
+// get split, Cartesia speaks them literally ("break 280 milliseconds").
+//
+// SOLUTION: Use the TTS Gateway's SSMLProcessor (single source of truth).
+// This processor:
+// - Buffers incomplete SSML tags
+// - Converts breaks to natural punctuation
+// - Strips prosody tags that don't work in streaming
+// - Cleans up resulting text
+//
+// ============================================================================
+
+/**
+ * Wrap a text stream with SSML stripping before sending to Cartesia.
+ * Uses the TTS Gateway's SSMLProcessor for consistent behavior.
+ */
+function stripSSMLFromStream(textStream: NodeReadableStream<string>): NodeReadableStream<string> {
+  const processor = getSSMLProcessor();
+  // Buffer incomplete tags, then strip via parse
+  const bufferTransform = processor.createBufferTransform();
+  
+  const stripTransform = new TransformStream<string, string>({
+    transform(chunk, controller) {
+      const result = processor.parse(chunk);
+      if (result.cleanText.trim()) {
+        controller.enqueue(result.cleanText);
+      }
+    },
+  }) as NodeTransformStream<string, string>;
+  
+  return textStream.pipeThrough(bufferTransform).pipeThrough(stripTransform);
+}
 
 /**
  * Type interface for accessing the internal ttsNode method on voice.Agent.default.
@@ -221,6 +263,52 @@ export async function processTTSWithCache(
   // Check caches (fastest first)
   if (enableCache) {
     try {
+      // 0. 🚀 UNIFIED TTS CACHE (new gateway cache - highest priority)
+      // This cache is prosody-aware and delegates to legacy caches on miss.
+      const unifiedCache = getTTSCache();
+      if (unifiedCache) {
+        const cached = await unifiedCache.get(text, voiceId);
+        if (cached) {
+          const hitLatency = Date.now() - startTime;
+          metrics.cacheHits++;
+          hitLatencies.push(hitLatency);
+          if (hitLatencies.length > 100) hitLatencies.shift();
+          metrics.avgCacheHitLatencyMs =
+            hitLatencies.reduce((a, b) => a + b, 0) / hitLatencies.length;
+          metrics.totalSavedLatencyMs += 300;
+
+          log.info(
+            {
+              text: text.slice(0, 30),
+              sessionId,
+              hitLatencyMs: hitLatency,
+              audioBytes: cached.audio.byteLength,
+              cache: 'unified-gateway',
+            },
+            '🚀 UNIFIED TTS CACHE HIT - gateway cache!'
+          );
+
+          const frames = [...splitIntoFrames(cached.audio, sampleRate)];
+          log.info(
+            { 
+              frameCount: frames.length, 
+              sessionId, 
+              cache: 'unified-gateway',
+              trace: 'E2E_AUDIO_START',
+            },
+            `🔍 E2E TRACE [AUDIO] Sending ${frames.length} frames from unified gateway cache`
+          );
+          return new ReadableStream<AudioFrame>({
+            start(controller) {
+              for (const frame of frames) {
+                controller.enqueue(frame);
+              }
+              controller.close();
+            },
+          }) as NodeReadableStream<AudioFrame>;
+        }
+      }
+
       // 1. ⚡ CONVERSATIONAL CACHE (instant - greetings, handoffs, banter)
       // This is pre-warmed at startup for <800ms latency on common phrases.
       const conversationalAudio = getConversationalCachedAudio(text, voiceId);
@@ -247,6 +335,16 @@ export async function processTTSWithCache(
         );
 
         const frames = [...splitIntoFrames(conversationalAudio, sampleRate)];
+        // 🔍 E2E TRACE: Audio frames starting (from conversational cache)
+        log.info(
+          { 
+            frameCount: frames.length, 
+            sessionId, 
+            cache: 'conversational',
+            trace: 'E2E_AUDIO_START',
+          },
+          `🔍 E2E TRACE [AUDIO] Sending ${frames.length} frames from conversational cache`
+        );
         return new ReadableStream<AudioFrame>({
           start(controller) {
             for (const frame of frames) {
@@ -283,6 +381,16 @@ export async function processTTSWithCache(
         );
 
         const frames = [...splitIntoFrames(greetingAudio, sampleRate)];
+        // 🔍 E2E TRACE: Audio frames starting (from greeting cache)
+        log.info(
+          { 
+            frameCount: frames.length, 
+            sessionId, 
+            cache: 'greeting',
+            trace: 'E2E_AUDIO_START',
+          },
+          `🔍 E2E TRACE [AUDIO] Sending ${frames.length} frames from greeting cache`
+        );
         return new ReadableStream<AudioFrame>({
           start(controller) {
             for (const frame of frames) {
@@ -323,6 +431,16 @@ export async function processTTSWithCache(
 
         // Create a readable stream from the cached audio frames
         const frames = [...splitIntoFrames(cacheResult.audio, sampleRate)];
+        // 🔍 E2E TRACE: Audio frames starting (from speculative cache)
+        log.info(
+          { 
+            frameCount: frames.length, 
+            sessionId, 
+            cache: 'speculative',
+            trace: 'E2E_AUDIO_START',
+          },
+          `🔍 E2E TRACE [AUDIO] Sending ${frames.length} frames from speculative cache`
+        );
 
         return new ReadableStream<AudioFrame>({
           start(controller) {
@@ -485,8 +603,9 @@ export function createCacheAwareTTSNode(
     const startTime = Date.now();
 
     // If cache is disabled, pass through directly to default TTS
+    // 🔧 FIX: Buffer SSML tags to prevent fragmentation (Cartesia speaks fragmented tags!)
     if (!enableCache) {
-      return getDefaultTTSNode().ttsNode(agent, text, modelSettings);
+      return getDefaultTTSNode().ttsNode(agent, stripSSMLFromStream(text), modelSettings);
     }
 
     // =========================================================================
@@ -735,7 +854,8 @@ export function createCacheAwareTTSNode(
         },
       }) as NodeReadableStream<string>;
 
-      return getDefaultTTSNode().ttsNode(agent, fullStream, modelSettings);
+      // 🔧 FIX: Buffer SSML tags to prevent fragmentation (Cartesia speaks fragmented tags!)
+      return getDefaultTTSNode().ttsNode(agent, stripSSMLFromStream(fullStream), modelSettings);
     }
 
     // CACHE MISS - pass entire stream to default TTS
@@ -745,7 +865,17 @@ export function createCacheAwareTTSNode(
     if (missLatencies.length > 100) missLatencies.shift();
     metrics.avgCacheMissLatencyMs = missLatencies.reduce((a, b) => a + b, 0) / missLatencies.length;
 
-    log.debug({ text: buffer.slice(0, 50), emotion, sessionId }, 'TTS cache miss - using Cartesia');
+    // 🔍 E2E TRACE: Cache miss - handing off to Cartesia TTS
+    log.info(
+      { 
+        text: buffer.slice(0, 50), 
+        emotion, 
+        sessionId, 
+        missLatencyMs: missLatency,
+        trace: 'E2E_TTS_CARTESIA',
+      }, 
+      `🔍 E2E TRACE [TTS] Cache miss - calling Cartesia for "${buffer.slice(0, 30)}..."`
+    );
 
     // Release reader
     try {
@@ -783,7 +913,8 @@ export function createCacheAwareTTSNode(
       },
     }) as NodeReadableStream<string>;
 
-    return getDefaultTTSNode().ttsNode(agent, reconstructedStream, modelSettings);
+    // 🔧 FIX: Buffer SSML tags to prevent fragmentation (Cartesia speaks fragmented tags!)
+    return getDefaultTTSNode().ttsNode(agent, stripSSMLFromStream(reconstructedStream), modelSettings);
   };
 }
 

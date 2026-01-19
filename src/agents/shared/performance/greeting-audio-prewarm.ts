@@ -200,11 +200,16 @@ export async function prewarmGreetingAudio(fullWarmup = false): Promise<PrewarmR
  * Get pre-warmed greeting audio.
  *
  * @param text - The greeting text (will be normalized)
- * @param personaId - Persona ID
+ * @param voiceIdOrPersonaId - Either Cartesia voice UUID or persona ID (like "ferni")
  * @returns ArrayBuffer of audio data, or null if not cached
  */
-export function getPrewarmedGreetingAudio(text: string, personaId: string): ArrayBuffer | null {
-  const voiceId = getVoiceIdForPersona(personaId);
+export function getPrewarmedGreetingAudio(text: string, voiceIdOrPersonaId: string): ArrayBuffer | null {
+  // Handle both voiceId (Cartesia UUID) and personaId (like "ferni")
+  // UUIDs are longer and contain dashes
+  const voiceId = voiceIdOrPersonaId.includes('-') && voiceIdOrPersonaId.length > 20
+    ? voiceIdOrPersonaId  // Already a Cartesia UUID
+    : getVoiceIdForPersona(voiceIdOrPersonaId);  // Resolve persona name
+  
   if (!voiceId) return null;
 
   const key = getCacheKey(text, voiceId);
@@ -212,7 +217,7 @@ export function getPrewarmedGreetingAudio(text: string, personaId: string): Arra
 
   if (cached) {
     log.debug(
-      { personaId, text: text.slice(0, 30), durationMs: cached.durationMs },
+      { voiceId: voiceId.slice(0, 8), text: text.slice(0, 30), durationMs: cached.durationMs },
       '🎯 Greeting audio CACHE HIT'
     );
     return cached.audio;
@@ -224,8 +229,11 @@ export function getPrewarmedGreetingAudio(text: string, personaId: string): Arra
 /**
  * Check if greeting audio is cached
  */
-export function isGreetingAudioCached(text: string, personaId: string): boolean {
-  const voiceId = getVoiceIdForPersona(personaId);
+export function isGreetingAudioCached(text: string, voiceIdOrPersonaId: string): boolean {
+  // Handle both voiceId and personaId
+  const voiceId = voiceIdOrPersonaId.includes('-') && voiceIdOrPersonaId.length > 20
+    ? voiceIdOrPersonaId
+    : getVoiceIdForPersona(voiceIdOrPersonaId);
   if (!voiceId) return false;
 
   const key = getCacheKey(text, voiceId);

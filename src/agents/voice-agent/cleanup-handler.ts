@@ -88,11 +88,25 @@ import { getContextCarrier } from '../../tools/context-carrier.js';
 // Action history cleanup - for honesty guardrail tracking
 import { clearSessionHistory } from '../shared/action-history.js';
 
+// Session health monitor cleanup - function calling reliability (Jan 2026)
+import { clearHealthMonitor } from '../shared/session-health-monitor.js';
+
+// Function call telemetry session cleanup (Jan 2026)
+import { clearSession as clearTelemetrySession } from '../shared/function-call-telemetry.js';
+
 // Injection builders cache cleanup (Jan 2026 optimization)
 import { clearNonVolatileInjectionCache } from '../processors/injection-builders.js';
 
 // FinOps cost tracking
 import { finops } from '../../services/observability/finops.js';
+
+// BTH v4: Superhuman Intelligence Enhancements cleanup
+import { cleanupSession as cleanupSuperhumanIntelligenceSession } from '../../intelligence/context-builders/superhuman/superhuman-intelligence-context.js';
+import { getEmotionalMomentumTracker } from '../../conversation/emotional-arc/momentum/tracker.js';
+import { getMicroMomentDetector } from '../../intelligence/deep-understanding/micro-moments/engine.js';
+import { getAvoidanceDetector } from '../../intelligence/deep-understanding/avoidance-detection/engine.js';
+import { getPatternConnector } from '../../intelligence/deep-understanding/pattern-connector/engine.js';
+import { getStoryArcTracker } from '../../intelligence/story-tracking/engine.js';
 
 // Relationship Arc - Better Than Human relationship progression
 import { incrementSessionStats } from '../../intelligence/context-builders/relationship/arc/storage.js';
@@ -437,6 +451,24 @@ async function executeSessionCleanup(ctx: CleanupContext, cleanupStart: number):
       } catch (naturalnessErr) {
         diag.warn('Voice pattern persistence failed (non-fatal)', {
           error: String(naturalnessErr),
+        });
+      }
+    })(),
+
+    // BTH v4: Superhuman Intelligence Enhancements cleanup
+    (async () => {
+      try {
+        // Clean up context builder session state (also cleans momentum tracker)
+        cleanupSuperhumanIntelligenceSession(sessionId);
+
+        // Reset micro-moment detector state
+        const microMomentDetector = getMicroMomentDetector();
+        microMomentDetector.reset();
+
+        diag.session('🧠 BTH v4: Superhuman intelligence session cleaned up');
+      } catch (bthErr) {
+        diag.warn('BTH v4 cleanup failed (non-fatal)', {
+          error: String(bthErr),
         });
       }
     })(),
@@ -1081,6 +1113,13 @@ async function executeSessionCleanup(ctx: CleanupContext, cleanupStart: number):
       const { clearSpeculativeState } =
         await import('../shared/performance/speculative-preloading.js');
       clearSpeculativeState(sessionId);
+    })(),
+
+    // Session health monitor cleanup (function calling reliability - Jan 2026)
+    (async () => {
+      clearHealthMonitor(sessionId);
+      // Also clear telemetry session (logs summary before clearing)
+      clearTelemetrySession(sessionId);
     })(),
 
     // Semantic memory cache cleanup ("Better than Human" memory query caching)

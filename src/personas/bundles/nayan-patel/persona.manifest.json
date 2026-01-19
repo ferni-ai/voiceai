@@ -410,11 +410,10 @@
       "breakup-recovery",
       "settings",
       "empty-nest",
-      "faith-transition",
-      "nayan-wisdom"
+      "faith-transition"
     ],
     "_domain_ownership": {
-      "exclusive": ["wisdom", "timeless-perspective", "faith-transition", "nayan-wisdom"],
+      "exclusive": ["wisdom", "timeless-perspective", "faith-transition"],
       "shared": ["meaning", "midlife", "empty-nest", "life-transitions", "presence"],
       "handoff_preferred": {
         "habits": "maya-santos",

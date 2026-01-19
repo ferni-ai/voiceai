@@ -117,6 +117,9 @@ const NOISE_PATTERNS = [
   /^\s*ah+\s*$/i, // Just "ah"
 ];
 
+/** Pattern to detect punctuation-only transcripts (periods, ellipses, etc.) */
+const PUNCTUATION_ONLY_PATTERN = /^[.,!?;:\-–—…'"()[\]{}]+$/;
+
 /**
  * Patterns that indicate likely echo of agent speech - questions the agent would ask
  * These are grammatically broken phrases that occur when echo gets garbled by STT
@@ -235,6 +238,20 @@ export function validateTranscript(
       isValid: false,
       reason: 'single_char',
       confidence: 0.9,
+      transcript,
+    };
+  }
+
+  // =========================================================================
+  // CHECK 3b: Punctuation-only transcripts (always noise or accidental input)
+  // Catches: ".", "..", "...", "!", "?", "...", etc.
+  // =========================================================================
+  if (PUNCTUATION_ONLY_PATTERN.test(trimmed)) {
+    log.debug('Transcript rejected: punctuation only', { transcript: trimmed });
+    return {
+      isValid: false,
+      reason: 'single_char', // Reuse reason - semantically similar
+      confidence: 0.95,
       transcript,
     };
   }
@@ -414,6 +431,9 @@ export function isLikelyNoise(transcript: string, expectedLanguage = 'en'): bool
 
   // Single char
   if (trimmed.length <= 1) return true;
+
+  // Punctuation only (periods, ellipses, etc.)
+  if (PUNCTUATION_ONLY_PATTERN.test(trimmed)) return true;
 
   // Just noise markers
   for (const pattern of NOISE_PATTERNS) {

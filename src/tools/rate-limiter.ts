@@ -1,14 +1,19 @@
 /**
  * Rate Limiter for External API Calls
  *
- * Implements token bucket algorithm for rate limiting.
- * Prevents API abuse and handles graceful degradation.
+ * Thin wrapper around utils/rate-limiter that adds:
+ * - Service-specific configurations
+ * - Request tracking (count, last time)
+ * - Helper wrapper functions
+ *
+ * @module tools/rate-limiter
  */
 
 import { getLogger } from '../utils/safe-logger.js';
+import { RateLimiter as BaseRateLimiter } from '../utils/rate-limiter.js';
 
 // ============================================================================
-// RATE LIMITER IMPLEMENTATION
+// TYPES
 // ============================================================================
 
 interface RateLimitConfig {
@@ -17,48 +22,32 @@ interface RateLimitConfig {
   refillInterval: number; // How often to refill (ms)
 }
 
-interface RateLimitState {
-  tokens: number;
-  lastRefill: number;
-  requestCount: number;
-  lastRequestTime: number;
-}
+// ============================================================================
+// TOOLS RATE LIMITER (wraps utils/rate-limiter)
+// ============================================================================
 
 /**
- * Token bucket rate limiter
+ * Token bucket rate limiter for tool API calls.
+ * Wraps the base RateLimiter from utils with request tracking.
  */
 export class RateLimiter {
-  private config: RateLimitConfig;
-  private state: RateLimitState;
+  private baseLimiter: BaseRateLimiter;
   private name: string;
+  private requestCount = 0;
+  private lastRequestTime = 0;
+  private maxTokens: number;
+  private refillInterval: number;
 
   constructor(name: string, config: Partial<RateLimitConfig> = {}) {
     this.name = name;
-    this.config = {
-      maxTokens: config.maxTokens ?? 10,
+    this.maxTokens = config.maxTokens ?? 10;
+    this.refillInterval = config.refillInterval ?? 1000;
+
+    this.baseLimiter = new BaseRateLimiter({
+      maxTokens: this.maxTokens,
       refillRate: config.refillRate ?? 1,
-      refillInterval: config.refillInterval ?? 1000,
-    };
-    this.state = {
-      tokens: this.config.maxTokens,
-      lastRefill: Date.now(),
-      requestCount: 0,
-      lastRequestTime: 0,
-    };
-  }
-
-  /**
-   * Refill tokens based on elapsed time
-   */
-  private refill(): void {
-    const now = Date.now();
-    const elapsed = now - this.state.lastRefill;
-    const tokensToAdd = Math.floor(elapsed / this.config.refillInterval) * this.config.refillRate;
-
-    if (tokensToAdd > 0) {
-      this.state.tokens = Math.min(this.config.maxTokens, this.state.tokens + tokensToAdd);
-      this.state.lastRefill = now;
-    }
+      refillInterval: this.refillInterval,
+    });
   }
 
   /**
@@ -66,20 +55,17 @@ export class RateLimiter {
    * Returns true if allowed, false if rate limited
    */
   tryAcquire(): boolean {
-    this.refill();
-
-    if (this.state.tokens > 0) {
-      this.state.tokens--;
-      this.state.requestCount++;
-      this.state.lastRequestTime = Date.now();
+    if (this.baseLimiter.tryConsume()) {
+      this.requestCount++;
+      this.lastRequestTime = Date.now();
       return true;
     }
 
     getLogger().warn(
       {
         limiter: this.name,
-        tokens: this.state.tokens,
-        requestCount: this.state.requestCount,
+        tokens: this.baseLimiter.getAvailableTokens(),
+        requestCount: this.requestCount,
       },
       'Rate limit exceeded'
     );
@@ -100,7 +86,7 @@ export class RateLimiter {
 
       // Wait for refill interval
       await new Promise<void>((resolve) => {
-        setTimeout(resolve, this.config.refillInterval);
+        setTimeout(resolve, this.refillInterval);
       });
     }
 
@@ -123,11 +109,11 @@ export class RateLimiter {
     requestCount: number;
     isLimited: boolean;
   } {
-    this.refill();
+    const tokens = this.baseLimiter.getAvailableTokens();
     return {
-      availableTokens: this.state.tokens,
-      requestCount: this.state.requestCount,
-      isLimited: this.state.tokens === 0,
+      availableTokens: tokens,
+      requestCount: this.requestCount,
+      isLimited: tokens === 0,
     };
   }
 
@@ -135,12 +121,9 @@ export class RateLimiter {
    * Reset the limiter (e.g., for testing)
    */
   reset(): void {
-    this.state = {
-      tokens: this.config.maxTokens,
-      lastRefill: Date.now(),
-      requestCount: 0,
-      lastRequestTime: 0,
-    };
+    this.baseLimiter.reset();
+    this.requestCount = 0;
+    this.lastRequestTime = 0;
   }
 }
 

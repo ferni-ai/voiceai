@@ -19,8 +19,8 @@ const HANDLED_TOOLS = [
   'reachout', // Unified "Better than Human" outreach (auto-selects channel)
   'multioutreach', // Multi-target outreach (call/text/email multiple people)
   'callonbehalf',
-  'callandconverse', // Personal calls (family, friends)
-  'makephonecall', // Voicemail/business calls
+  // NOTE: callandconverse is handled by scheduling-executor (it came first in registry)
+  // NOTE: makephonecall is handled by scheduling-executor (for scheduling calls)
   'schedulecallback',
   'checkvoicemail',
   'requestcallback',
@@ -219,19 +219,19 @@ async function execute(
   }
 
   // ========================================
-  // CALL AND CONVERSE / CALL ON BEHALF
+  // CALL ON BEHALF
   // Call someone (mom, doctor, restaurant) on behalf of the user
-  // callAndConverse: Personal calls (family, friends) - have a conversation
   // callOnBehalf: Task-driven calls (doctor to reschedule, restaurant to book)
+  // NOTE: callandconverse is handled by scheduling-executor
+  // NOTE: makephonecall is handled by scheduling-executor
   // ========================================
-  if (fnLower === 'callandconverse' || fnLower === 'callonbehalf' || fnLower === 'makephonecall') {
+  if (fnLower === 'callonbehalf') {
     const contact = args.contact as string;
     const phoneNumber = args.phoneNumber as string;
-    // callAndConverse uses 'purpose', callOnBehalf uses 'objective'
+    // callOnBehalf uses 'objective' for what to accomplish
     const objective = (args.objective || args.purpose) as string;
-    const callType =
-      (args.callType as string) || (fnLower === 'callandconverse' ? 'personal' : 'business');
-    const tone = args.tone as string; // warm, casual, professional (for callAndConverse)
+    const callType = (args.callType as string) || 'business';
+    const tone = args.tone as string;
 
     log.info(
       { contact, objective, callType, tone, userId, fn: fnLower },

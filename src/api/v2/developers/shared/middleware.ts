@@ -99,7 +99,18 @@ export async function requirePublisherAuth(
     return null;
   }
 
-  const idToken = authHeader.substring(7);
+  const idToken = authHeader.substring(7).trim();
+
+  // Check for empty or obviously invalid token
+  if (!idToken || idToken.length < 100) {
+    // SECURITY: Never log any part of the token
+    log.warn(
+      { tokenLength: idToken?.length ?? 0 },
+      'Empty or malformed token received'
+    );
+    sendError(res, 'Invalid token format', 401);
+    return null;
+  }
 
   try {
     // Verify Firebase token

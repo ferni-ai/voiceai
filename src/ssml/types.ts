@@ -234,6 +234,8 @@ export const ALL_CARTESIA_EMOTIONS: CartesiaEmotion[] = Object.values(CARTESIA_E
 /**
  * Emotions that are directly supported by Cartesia's emotion tag
  * (subset that definitely work in <emotion value="..."/>)
+ *
+ * Primary emotions with best results: neutral, angry, excited, content, sad, scared
  */
 export const CARTESIA_SUPPORTED_EMOTIONS: CartesiaEmotion[] = [
   CARTESIA_EMOTIONS.ANGRY,
@@ -242,6 +244,22 @@ export const CARTESIA_SUPPORTED_EMOTIONS: CartesiaEmotion[] = [
   CARTESIA_EMOTIONS.CURIOUS,
   CARTESIA_EMOTIONS.AFFECTIONATE,
 ];
+
+/**
+ * Best Cartesia voices for emotional expression
+ * These voices have the best emotional response according to Cartesia docs
+ * @see https://docs.cartesia.ai/build-with-cartesia/sonic-3/volume-speed-emotion
+ */
+export const CARTESIA_EMOTIVE_VOICES = {
+  LEO: '0834f3df-e650-4766-a20c-5a93a43aa6e3',
+  JACE: '6776173b-fd72-460d-89b3-d85812ee518d',
+  KYLE: 'c961b81c-a935-4c17-bfb3-ba2239de8c2f',
+  GAVIN: 'f4a3a8e4-694c-4c45-9ca0-27caf97901b5',
+  MAYA: 'cbaf8084-f009-4838-a096-07ee2e6612b1',
+  TESSA: '6ccbfb76-1fc6-48f7-b71d-91ac6298247b',
+  DANA: 'cc00e582-ed66-4004-8336-0175b85c85f6',
+  MARIAN: '26403c37-80c1-4a1a-8692-540551ca2ae5',
+} as const;
 
 /**
  * Check if an emotion value is directly supported in Cartesia's emotion tag

@@ -21,6 +21,41 @@ import { getEstimatedDuration, recordToolDuration } from './coordinated-tool-exe
 const log = createLogger({ module: 'speech-coordination-integration' });
 
 // ============================================================================
+// SSML STRIPPING (for fallback path)
+// ============================================================================
+// Cartesia's LiveKit plugin fragments SSML tags, causing them to be spoken literally.
+// This helper strips SSML for the fallback session.say() path.
+
+function stripSSMLForTTS(text: string): string {
+  let result = text;
+  
+  // Convert <break time="Xms"/> to natural pauses
+  result = result.replace(
+    /<break\s+time=["']?(\d+)(?:ms)?["']?\s*\/?>/gi,
+    (_, ms) => {
+      const duration = parseInt(ms, 10);
+      if (duration >= 300) return '. ';
+      if (duration >= 100) return ', ';
+      return ' ';
+    }
+  );
+  
+  // Strip emotion, speed, volume, prosody tags
+  result = result.replace(/<\/?(?:speed|volume|emotion|prosody)[^>]*>/gi, '');
+  
+  // Strip any other XML-like tags
+  result = result.replace(/<[^>]+>/g, '');
+  
+  // Clean up whitespace and punctuation
+  result = result.replace(/\s+/g, ' ');
+  result = result.replace(/\.\s*\./g, '.');
+  result = result.replace(/,\s*,/g, ',');
+  result = result.replace(/^\s*[.,]\s*/, '');
+  
+  return result.trim();
+}
+
+// ============================================================================
 // TYPES
 // ============================================================================
 
@@ -84,8 +119,10 @@ export function initializeSpeechCoordination(ctx: SpeechCoordinationContext): vo
     isAttached: true,
   });
 
-  // Attach coordinator to session
-  coordinator.attachSession(session);
+  // Attach coordinator to session with context for TTS Gateway
+  // FIX (Jan 2026): Pass sessionId and personaId so the coordinator
+  // can properly route speech through TTS Gateway with correct voice
+  coordinator.attachSession(session, { sessionId, personaId });
 
   log.info({ sessionId, personaId }, 'Speech coordination initialized');
 }
@@ -135,8 +172,10 @@ export async function routeSpeech(
   if (!state || !state.isAttached) {
     log.warn({ sessionId }, 'Speech coordination not initialized - falling back to direct speech');
     // Fallback: speak directly if coordination not set up
+    // 🔧 FIX: Strip SSML tags before sending to TTS
+    const textToSpeak = stripSSMLForTTS(text);
     try {
-      state?.session?.say(text, { allowInterruptions: options.allowInterruptions ?? true });
+      state?.session?.say(textToSpeak, { allowInterruptions: options.allowInterruptions ?? true });
       return { accepted: true, id: 'fallback-direct' };
     } catch (err) {
       return { accepted: false, id: 'fallback-failed', reason: String(err) };

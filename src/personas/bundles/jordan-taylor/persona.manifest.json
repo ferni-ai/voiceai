@@ -452,11 +452,10 @@
       "life-thesis",
       "midlife",
       "neurodiversity",
-      "settings",
-      "jordan-planning"
+      "settings"
     ],
     "_domain_ownership": {
-      "exclusive": ["life-planning", "milestone-mastery", "jordan-planning"],
+      "exclusive": ["life-planning", "milestone-mastery"],
       "shared": ["dreams", "life-transitions", "stories", "grief"],
       "handoff_preferred": {
         "habits": "maya-santos",

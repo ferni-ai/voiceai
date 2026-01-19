@@ -94,9 +94,11 @@ const ANNOUNCEMENT_PATTERNS: RegExp[] = [
   /i(?:'ll| will) (?:transfer|handoff|hand off|connect) (?:you )?(?:to|over to|with) (\w+)/i,
   /i(?:'ll| will) (?:hand you off|connect you) (?:to|with) (\w+)/i,
   /i(?:'m| am) (?:transferring|handing off|connecting) (?:you )?(?:to|with) (\w+)/i,
+  /i(?:'m| am) going to (?:hand you off|hand off|transfer you) (?:to|with) (\w+)/i,
   /let me (?:transfer|handoff|hand off|connect) (?:you )?(?:to|with) (\w+)/i,
   /let me (?:hand you off|connect you) (?:to|with) (\w+)/i,
   /^(?:transferring|handing off|connecting) (?:you )?(?:to|with) (\w+)/i,
+  /^handing you off to (\w+)/i,
 ];
 
 /**
@@ -118,6 +120,7 @@ const MUSIC_ANNOUNCEMENT_PATTERNS: RegExp[] = [
   /^let me play\b/i,                  // "Let me play that song"
   /^i(?:'m| am) going to play\b/i,    // "I'm going to play some music"
   /^playing\b.*\bfor you/i,           // "Playing some jazz for you"
+  /^playing\b/i,                       // "Playing 'Bohemian Rhapsody' now" or "Playing some jazz"
 ];
 
 /**
@@ -184,6 +187,9 @@ const INSTRUCTION_LEAKAGE_PATTERNS_START: RegExp[] = [
 /**
  * Mid-text instruction leakage patterns - can appear anywhere in output
  * CRITICAL: These catch instruction text that Gemini echoes from context
+ *
+ * FIX (Jan 2026): Added silence handler instruction patterns that Gemini was
+ * echoing back: [TYPE:], [TONE:], [OUTPUT:], [MAX:], etc.
  */
 const INSTRUCTION_LEAKAGE_PATTERNS_ANYWHERE: RegExp[] = [
   // Bracketed markers that should NEVER be spoken
@@ -193,6 +199,24 @@ const INSTRUCTION_LEAKAGE_PATTERNS_ANYWHERE: RegExp[] = [
   /\[DO:\s/i,
   /\[SITUATION:\s/i,
   /\[TOPIC SHIFT:/i,
+  
+  // Silence handler instruction patterns (Jan 2026)
+  // These are format instructions sent to LLM that it sometimes echoes back
+  /\[TYPE:\s/i,           // [TYPE: presence]
+  /\[TONE:\s/i,           // [TONE: warm]
+  /\[OUTPUT:\s/i,         // [OUTPUT: plain text only...]
+  /\[MAX:\s/i,            // [MAX: 8 words]
+  /\[STYLE:\s/i,          // [STYLE: conversational]
+  /\[FORMAT:\s/i,         // [FORMAT: ...]
+  /\[RESPONSE:\s/i,       // [RESPONSE: ...]
+  /\[CONTEXT:\s/i,        // [CONTEXT: ...]
+  /\[USER:\s/i,           // [USER: name]
+  /\[PERSONA:\s/i,        // [PERSONA: ferni]
+  /→\s*\[/i,              // Arrow pointing to instruction: → [MAX: 8 words]
+  
+  // Catch-all for uppercase bracketed instructions [WORD: ...]
+  // This catches any instruction format we might have missed
+  /\[[A-Z]{2,}:\s/,       // [ANYWORD: ...] where ANYWORD is 2+ uppercase chars
 
   // Claude Code edit format - NEVER speak code edit instructions
   /<edit>/i,
@@ -661,10 +685,13 @@ function escapeRegex(str: string): string {
 }
 
 /**
- * Check if text looks like JSON function call (for quick pre-check)
+ * Check if text looks like OR CONTAINS a JSON function call (for quick pre-check)
  *
  * PERFORMANCE: Uses Rust memchr for fast byte searching when available.
  * Native version is 2-5x faster than JS string operations.
+ *
+ * FIX (Jan 2026): Now also detects JSON embedded within text, not just standalone.
+ * LLMs often output: "Sure thing.\n```json\n{...}\n```"
  */
 export function looksLikeJsonFunctionCall(text: string): boolean {
   // Use native SIMD-accelerated check when available
@@ -672,12 +699,39 @@ export function looksLikeJsonFunctionCall(text: string): boolean {
     return nativeLikelyContains(text);
   }
 
-  // JS fallback
+  // JS fallback - handles backticks (common LLM output) and whitespace
   const trimmed = text.trim();
-  return (
-    (trimmed.startsWith('{') && trimmed.includes('"fn"')) ||
-    (trimmed.startsWith('{') && trimmed.includes("'fn'"))
-  );
+  
+  // Must contain "fn" key and have valid JSON structure indicators
+  const hasFnKey = trimmed.includes('"fn"') || trimmed.includes("'fn'");
+  const hasArgsKey = trimmed.includes('"args"') || trimmed.includes("'args'");
+  
+  if (!hasFnKey || !hasArgsKey) {
+    return false;
+  }
+  
+  // Check 1: Standalone JSON (whole text is JSON)
+  // Strip leading/trailing backticks (LLMs often wrap JSON in backticks)
+  const stripped = trimmed.replace(/^`+|`+$/g, '').trim();
+  const startsWithBrace = stripped.startsWith('{');
+  const endsWithBrace = stripped.endsWith('}');
+  
+  if (startsWithBrace && endsWithBrace) {
+    return true;
+  }
+  
+  // Check 2: JSON embedded in markdown code fence (common Gemini pattern)
+  // Pattern: ```json\n{"fn":"toolName","args":{...}}\n```
+  const hasCodeFenceJson = /```(?:json)?\s*\{[^`]*"fn"\s*:\s*"[^"]+"\s*[^`]*\}\s*```/s.test(trimmed);
+  if (hasCodeFenceJson) {
+    return true;
+  }
+  
+  // Check 3: JSON embedded in text (text before/after JSON block)
+  // Look for complete JSON object with fn and args
+  const hasEmbeddedJson = /\{[^{}]*"fn"\s*:\s*"[^"]+"\s*,\s*"args"\s*:\s*\{[^{}]*\}[^{}]*\}/.test(trimmed);
+  
+  return hasEmbeddedJson;
 }
 
 /**
@@ -686,4 +740,60 @@ export function looksLikeJsonFunctionCall(text: string): boolean {
  */
 export function containsToolCallLeakage(text: string): boolean {
   return detectsFunctionCallLeakage(text).detected;
+}
+
+// ============================================================================
+// INSTRUCTION BLOCK STRIPPING (Final Safety Net)
+// ============================================================================
+
+/**
+ * Patterns for instruction blocks to strip from TTS output.
+ * These are more aggressive than detection - they strip entire lines/blocks.
+ */
+const INSTRUCTION_BLOCK_STRIP_PATTERNS: RegExp[] = [
+  // Full bracketed instruction lines: [WORD: anything]
+  /\[[A-Z][A-Z_\-]+:\s*[^\]]*\]/g,  // [TYPE: presence], [OUTPUT: plain text only...]
+  
+  // Arrow-prefixed instructions: → [...]
+  /→\s*\[[^\]]*\]/g,
+  
+  // Parenthetical instructions: (internal), (do not speak)
+  /\([^)]*internal[^)]*\)/gi,
+  /\([^)]*do not[^)]*\)/gi,
+  
+  // Lines that are ONLY instruction markers (newline followed by [WORD:)
+  /\n\[[A-Z][A-Z_\-]+:[^\n]*/g,
+];
+
+/**
+ * Strip instruction blocks from text.
+ * Use as a final safety net AFTER streaming transforms, before TTS.
+ * 
+ * @param text - Text that may contain instruction blocks
+ * @returns Text with instruction blocks removed
+ */
+export function stripInstructionBlocks(text: string): string {
+  if (!text) return text;
+  
+  let result = text;
+  
+  for (const pattern of INSTRUCTION_BLOCK_STRIP_PATTERNS) {
+    result = result.replace(pattern, '');
+  }
+  
+  // Clean up extra whitespace left behind
+  result = result
+    .replace(/\n\s*\n\s*\n/g, '\n\n')  // Collapse multiple blank lines
+    .replace(/^\s+|\s+$/g, '')          // Trim
+    .replace(/\s+\n/g, '\n');           // Trim trailing space before newlines
+  
+  return result;
+}
+
+/**
+ * Check if text contains instruction blocks that should be stripped.
+ */
+export function containsInstructionBlocks(text: string): boolean {
+  if (!text) return false;
+  return INSTRUCTION_BLOCK_STRIP_PATTERNS.some(pattern => pattern.test(text));
 }

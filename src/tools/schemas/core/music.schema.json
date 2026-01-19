@@ -1,0 +1,79 @@
+{
+  "$schema": "../tool.schema.json",
+  "domain": "music",
+  "version": "1.0.0",
+  "tools": [
+    {
+      "name": "playMusic",
+      "description": "Play music by search query. Use when user says: 'play music', 'play some music', 'play a song', 'put on music'. Searches music catalog and starts playback immediately.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string",
+            "description": "Music search query. Can be: song title ('Bohemian Rhapsody'), artist name ('The Beatles'), genre ('jazz'), mood ('relaxing', 'chill', 'upbeat'), or combination ('calm late night music')."
+          }
+        },
+        "required": ["query"]
+      },
+      "examples": [
+        { "userSays": "Play jazz", "output": "{\"fn\":\"playMusic\",\"args\":{\"query\":\"jazz\"}}" },
+        { "userSays": "Something relaxing", "output": "{\"fn\":\"playMusic\",\"args\":{\"query\":\"relaxing music\"}}" },
+        { "userSays": "Play The Beatles", "output": "{\"fn\":\"playMusic\",\"args\":{\"query\":\"The Beatles\"}}" },
+        { "userSays": "Put on some chill music", "output": "{\"fn\":\"playMusic\",\"args\":{\"query\":\"chill music\"}}" }
+      ],
+      "tags": ["music", "audio", "entertainment"]
+    },
+    {
+      "name": "musicControl",
+      "description": "Control music playback: pause, resume, skip, volume. Use for playback control commands.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "type": "string",
+            "description": "Playback action to perform",
+            "enum": ["pause", "resume", "skip", "volume", "stop"]
+          },
+          "level": {
+            "type": "integer",
+            "description": "Volume level 0-100 (only for volume action)",
+            "minimum": 0,
+            "maximum": 100
+          }
+        },
+        "required": ["action"]
+      },
+      "examples": [
+        { "userSays": "Pause", "output": "{\"fn\":\"musicControl\",\"args\":{\"action\":\"pause\"}}" },
+        { "userSays": "Resume", "output": "{\"fn\":\"musicControl\",\"args\":{\"action\":\"resume\"}}" },
+        { "userSays": "Skip this song", "output": "{\"fn\":\"musicControl\",\"args\":{\"action\":\"skip\"}}" },
+        { "userSays": "Turn it up", "output": "{\"fn\":\"musicControl\",\"args\":{\"action\":\"volume\",\"level\":80}}" },
+        { "userSays": "Turn it down", "output": "{\"fn\":\"musicControl\",\"args\":{\"action\":\"volume\",\"level\":30}}" },
+        { "userSays": "Stop the music", "output": "{\"fn\":\"musicControl\",\"args\":{\"action\":\"stop\"}}" }
+      ],
+      "tags": ["music", "audio", "control"]
+    },
+    {
+      "name": "musicInfo",
+      "description": "Get information about currently playing music or recent history.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "type": "string",
+            "description": "What info to get",
+            "enum": ["playing", "history", "queue"]
+          }
+        },
+        "required": ["action"]
+      },
+      "examples": [
+        { "userSays": "What's playing?", "output": "{\"fn\":\"musicInfo\",\"args\":{\"action\":\"playing\"}}" },
+        { "userSays": "What song is this?", "output": "{\"fn\":\"musicInfo\",\"args\":{\"action\":\"playing\"}}" },
+        { "userSays": "What have I been listening to?", "output": "{\"fn\":\"musicInfo\",\"args\":{\"action\":\"history\"}}" }
+      ],
+      "tags": ["music", "audio", "info"]
+    }
+  ]
+}

@@ -18,7 +18,6 @@ import { onConversationThreadChange } from '../data-layer/hooks/index.js';
 import type {
   ConversationThread,
   ThreadMessage,
-  OwnershipTransfer,
   ThreadStatus,
   EngagementChannel,
 } from './types.js';
@@ -343,6 +342,47 @@ export async function loadMessages(
 // ============================================================================
 
 /**
+ * Type guard to check if a value is a Firestore Timestamp-like object.
+ */
+function isTimestampLike(value: unknown): value is { toDate: () => Date } {
+  return (
+    value !== null &&
+    typeof value === 'object' &&
+    'toDate' in value &&
+    typeof (value as { toDate?: unknown }).toDate === 'function'
+  );
+}
+
+/**
+ * Safely convert a timestamp-like value to a Date.
+ * Handles Firestore Timestamps, Date objects, strings, and numbers.
+ */
+function toDate(value: unknown): Date {
+  if (value instanceof Date) {
+    return value;
+  }
+  if (isTimestampLike(value)) {
+    // Firestore Timestamp
+    return value.toDate();
+  }
+  if (typeof value === 'string' || typeof value === 'number') {
+    return new Date(value);
+  }
+  // Fallback to current time if value is invalid
+  return new Date();
+}
+
+/**
+ * Safely convert an optional timestamp-like value to a Date or undefined.
+ */
+function toDateOptional(value: unknown): Date | undefined {
+  if (value === undefined || value === null) {
+    return undefined;
+  }
+  return toDate(value);
+}
+
+/**
  * Convert Firestore document to ConversationThread.
  */
 function firestoreToThread(data: FirestoreThread): ConversationThread {
@@ -353,7 +393,7 @@ function firestoreToThread(data: FirestoreThread): ConversationThread {
     ownershipHistory: data.ownershipHistory.map((h) => ({
       fromAgentId: h.fromAgentId as PersonaId,
       toAgentId: h.toAgentId as PersonaId,
-      transferredAt: h.transferredAt.toDate(),
+      transferredAt: toDate(h.transferredAt),
       reason: h.reason,
     })),
     channelsUsed: data.channelsUsed as EngagementChannel[],
@@ -361,10 +401,10 @@ function firestoreToThread(data: FirestoreThread): ConversationThread {
     lastChannel: data.lastChannel as EngagementChannel,
     messages: [], // Messages loaded separately
     messageCount: data.messageCount,
-    startedAt: data.startedAt.toDate(),
-    lastActivityAt: data.lastActivityAt.toDate(),
-    lastAgentMessageAt: data.lastAgentMessageAt?.toDate(),
-    lastUserMessageAt: data.lastUserMessageAt?.toDate(),
+    startedAt: toDate(data.startedAt),
+    lastActivityAt: toDate(data.lastActivityAt),
+    lastAgentMessageAt: toDateOptional(data.lastAgentMessageAt),
+    lastUserMessageAt: toDateOptional(data.lastUserMessageAt),
     triggerType: data.triggerType,
     outreachId: data.outreachId,
     topicTags: data.topicTags,
@@ -391,7 +431,7 @@ function firestoreToMessage(data: FirestoreMessage): ThreadMessage {
     channel: data.channel as EngagementChannel,
     direction: data.direction as 'inbound' | 'outbound',
     content: data.content,
-    timestamp: data.timestamp.toDate(),
+    timestamp: toDate(data.timestamp),
     metadata: data.metadata
       ? {
           sentiment: data.metadata.sentiment as 'positive' | 'neutral' | 'negative' | undefined,

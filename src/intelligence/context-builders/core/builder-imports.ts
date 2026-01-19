@@ -88,6 +88,7 @@ export const BUILDER_IMPORTS: Record<string, BuilderImporter> = {
   'physical-presence': async () => import('../personas/physical-presence.js'),
   'lovable-presence': async () => import('../personas/lovable-presence.js'),
   'mortality-perspective': async () => import('../personas/mortality-perspective.js'),
+  'dynamic-backstory': async () => import('../personas/backstory-context.js'),
 
   // ============================================================================
   // INTELLIGENCE (in intelligence/) - "Better Than Human" capabilities

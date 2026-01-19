@@ -1,0 +1,35 @@
+{
+  "$schema": "../tool.schema.json",
+  "domain": "weather",
+  "version": "1.0.0",
+  "tools": [
+    {
+      "name": "getWeather",
+      "description": "Get current weather conditions or forecast. Location is auto-detected via IP - only include location if user specifies a different city.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "location": {
+            "type": "string",
+            "description": "Location for weather. Can be city name, zip code. Only include if user specifies a location different from their current location."
+          },
+          "type": {
+            "type": "string",
+            "description": "Type of weather info to get",
+            "enum": ["current", "forecast", "hourly"]
+          }
+        },
+        "required": []
+      },
+      "examples": [
+        { "userSays": "Weather", "output": "{\"fn\":\"getWeather\",\"args\":{}}" },
+        { "userSays": "Is it raining?", "output": "{\"fn\":\"getWeather\",\"args\":{}}" },
+        { "userSays": "What's the weather like?", "output": "{\"fn\":\"getWeather\",\"args\":{}}" },
+        { "userSays": "Weather in Miami", "output": "{\"fn\":\"getWeather\",\"args\":{\"location\":\"Miami\"}}" },
+        { "userSays": "What's the forecast?", "output": "{\"fn\":\"getWeather\",\"args\":{\"type\":\"forecast\"}}" },
+        { "userSays": "Do I need an umbrella today?", "output": "{\"fn\":\"getWeather\",\"args\":{}}" }
+      ],
+      "tags": ["weather", "forecast", "information"]
+    }
+  ]
+}

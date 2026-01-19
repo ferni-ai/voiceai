@@ -12,6 +12,7 @@
  */
 
 import { getLogger } from '../../../utils/safe-logger.js';
+import { registerInterval } from '../../../utils/interval-manager.js';
 
 const log = getLogger();
 
@@ -47,6 +48,7 @@ interface RateLimitResult {
 class RateLimiter {
   private entries = new Map<string, RateLimitEntry>();
   private config: Required<RateLimitConfig>;
+  private cleanupCancel: (() => void) | null = null;
 
   constructor(config: RateLimitConfig) {
     this.config = {
@@ -54,8 +56,23 @@ class RateLimiter {
       ...config,
     };
 
-    // Cleanup old entries periodically
-    setInterval(() => this.cleanup(), this.config.windowMs);
+    // Cleanup old entries periodically using managed intervals (prevents memory leaks)
+    this.cleanupCancel = registerInterval(
+      `calendar-rate-limiter-${this.config.prefix}`,
+      () => this.cleanup(),
+      this.config.windowMs
+    );
+  }
+
+  /**
+   * Dispose of the rate limiter and clear its cleanup interval
+   */
+  dispose(): void {
+    if (this.cleanupCancel) {
+      this.cleanupCancel();
+      this.cleanupCancel = null;
+    }
+    this.entries.clear();
   }
 
   /**

@@ -72,6 +72,16 @@ export interface PrimingResult {
 export function getPrimingTurns(config: ConversationPrimingConfig): PrimingTurn[] {
   const turns: PrimingTurn[] = [];
 
+  // 🎯 FTIS ONLY MODE: Skip JSON priming entirely
+  // When FTIS handles all tools, Gemini should NOT know about JSON format
+  // It would output JSON as speech instead of natural language
+  if (process.env.FTIS_ONLY_MODE === 'true') {
+    log.info(
+      '🎯 FTIS_ONLY_MODE=true: Skipping JSON priming (FTIS handles all tools)'
+    );
+    return turns;
+  }
+  
   // 🎯 SEMANTIC ROUTING PRIMARY: Skip JSON priming entirely
   // When semantic routing handles tools, we don't want to teach the LLM
   // the JSON format (it would output JSON as speech instead of natural language)
@@ -499,6 +509,285 @@ function extractMusicQuery(message: string): string | null {
   }
 
   return null;
+}
+
+// ============================================================================
+// CONTEXT PRUNING
+// ============================================================================
+
+/**
+ * Configuration for context pruning.
+ */
+export interface ContextPruningConfig {
+  /** Maximum turns to keep (including priming) */
+  maxTurns: number;
+  /** Always keep last N user/assistant turns */
+  minRecentTurns: number;
+  /** Whether to preserve turns with successful tool calls */
+  preserveToolCalls: boolean;
+  /** Token limit to trigger pruning (approximate) */
+  tokenThreshold: number;
+  /** Whether pruning is enabled */
+  enabled: boolean;
+}
+
+/**
+ * A conversation turn for pruning analysis.
+ */
+export interface ConversationTurn {
+  role: 'user' | 'assistant' | 'system' | 'tool';
+  content: string;
+  /** Index in original conversation */
+  index: number;
+  /** Whether this is a priming turn */
+  isPriming?: boolean;
+  /** Whether this turn contains a successful tool call */
+  hasToolCall?: boolean;
+  /** Timestamp of the turn */
+  timestamp?: number;
+}
+
+/**
+ * Result of context pruning operation.
+ */
+export interface PruningResult {
+  /** Turns to keep */
+  keptTurns: ConversationTurn[];
+  /** Turns that were pruned */
+  prunedTurns: ConversationTurn[];
+  /** Whether pruning was applied */
+  wasApplied: boolean;
+  /** Reason for pruning */
+  reason: string | null;
+  /** Estimated tokens before pruning */
+  estimatedTokensBefore: number;
+  /** Estimated tokens after pruning */
+  estimatedTokensAfter: number;
+}
+
+export const DEFAULT_PRUNING_CONFIG: ContextPruningConfig = {
+  maxTurns: 50,
+  minRecentTurns: 10,
+  preserveToolCalls: true,
+  tokenThreshold: 20000, // Prune when approaching Gemini's 30k limit
+  enabled: true,
+};
+
+/**
+ * JSON function call pattern to detect successful tool calls
+ */
+const JSON_TOOL_CALL_PATTERN = /\{"fn":\s*"[^"]+"/;
+
+/**
+ * Estimate token count for a conversation turn (rough approximation).
+ * Uses ~4 chars per token as a rough heuristic.
+ */
+function estimateTokens(content: string): number {
+  return Math.ceil(content.length / 4);
+}
+
+/**
+ * Check if a turn contains a successful JSON tool call.
+ */
+function hasJsonToolCall(turn: ConversationTurn): boolean {
+  return turn.role === 'assistant' && JSON_TOOL_CALL_PATTERN.test(turn.content);
+}
+
+/**
+ * Prune conversation context to improve Gemini function calling reliability.
+ *
+ * Research (Jan 2026) shows that large context degrades Gemini's function calling.
+ * This function implements smart pruning that preserves:
+ * 1. System prompt (always first turn if present)
+ * 2. Priming turns (marked with isPriming: true)
+ * 3. Last N user/assistant turns (minRecentTurns)
+ * 4. Turns containing successful tool calls (for in-context learning)
+ *
+ * @param turns - Full conversation history
+ * @param config - Pruning configuration
+ * @returns Pruning result with kept and pruned turns
+ *
+ * @example
+ * ```typescript
+ * const result = pruneConversationContext(conversationHistory, {
+ *   maxTurns: 50,
+ *   minRecentTurns: 10,
+ *   preserveToolCalls: true,
+ *   tokenThreshold: 20000,
+ *   enabled: true,
+ * });
+ *
+ * if (result.wasApplied) {
+ *   // Use result.keptTurns for the LLM
+ *   console.log(`Pruned ${result.prunedTurns.length} turns`);
+ * }
+ * ```
+ */
+export function pruneConversationContext(
+  turns: ConversationTurn[],
+  config: ContextPruningConfig = DEFAULT_PRUNING_CONFIG
+): PruningResult {
+  const result: PruningResult = {
+    keptTurns: [],
+    prunedTurns: [],
+    wasApplied: false,
+    reason: null,
+    estimatedTokensBefore: 0,
+    estimatedTokensAfter: 0,
+  };
+
+  if (!config.enabled) {
+    result.keptTurns = turns;
+    result.reason = 'Pruning disabled';
+    return result;
+  }
+
+  // Calculate total estimated tokens
+  result.estimatedTokensBefore = turns.reduce((sum, turn) => sum + estimateTokens(turn.content), 0);
+
+  // Check if pruning is needed
+  const shouldPrune = turns.length > config.maxTurns || result.estimatedTokensBefore > config.tokenThreshold;
+
+  if (!shouldPrune) {
+    result.keptTurns = turns;
+    result.reason = 'Under thresholds, no pruning needed';
+    result.estimatedTokensAfter = result.estimatedTokensBefore;
+    return result;
+  }
+
+  log.info(
+    {
+      totalTurns: turns.length,
+      maxTurns: config.maxTurns,
+      estimatedTokens: result.estimatedTokensBefore,
+      tokenThreshold: config.tokenThreshold,
+    },
+    '✂️ PRUNE: Starting context pruning'
+  );
+
+  // Categorize turns
+  const systemTurns: ConversationTurn[] = [];
+  const primingTurns: ConversationTurn[] = [];
+  const toolCallTurns: ConversationTurn[] = [];
+  const recentTurns: ConversationTurn[] = [];
+  const middleTurns: ConversationTurn[] = [];
+
+  // Identify turn categories
+  turns.forEach((turn, idx) => {
+    // System prompt (usually index 0)
+    if (turn.role === 'system') {
+      systemTurns.push(turn);
+      return;
+    }
+
+    // Priming turns (marked)
+    if (turn.isPriming) {
+      primingTurns.push(turn);
+      return;
+    }
+
+    // Check if recent turn (last N)
+    const isRecentTurn = idx >= turns.length - config.minRecentTurns;
+    if (isRecentTurn) {
+      recentTurns.push(turn);
+      return;
+    }
+
+    // Check if contains tool call (preserve for in-context learning)
+    if (config.preserveToolCalls && hasJsonToolCall(turn)) {
+      toolCallTurns.push(turn);
+      return;
+    }
+
+    // Everything else is middle content (candidate for pruning)
+    middleTurns.push(turn);
+  });
+
+  // Calculate how many middle turns we can keep
+  const preservedCount = systemTurns.length + primingTurns.length + toolCallTurns.length + recentTurns.length;
+  const remainingSlots = Math.max(0, config.maxTurns - preservedCount);
+
+  // Keep the most recent middle turns if we have room
+  const keptMiddleTurns = middleTurns.slice(-remainingSlots);
+  const prunedMiddleTurns = middleTurns.slice(0, -remainingSlots || undefined);
+
+  // Reconstruct the conversation in original order
+  const keptTurnIndices = new Set<number>([
+    ...systemTurns.map((t) => t.index),
+    ...primingTurns.map((t) => t.index),
+    ...toolCallTurns.map((t) => t.index),
+    ...keptMiddleTurns.map((t) => t.index),
+    ...recentTurns.map((t) => t.index),
+  ]);
+
+  // Build final turn arrays preserving original order
+  result.keptTurns = turns.filter((turn) => keptTurnIndices.has(turn.index));
+  result.prunedTurns = turns.filter((turn) => !keptTurnIndices.has(turn.index));
+  result.wasApplied = result.prunedTurns.length > 0;
+  result.estimatedTokensAfter = result.keptTurns.reduce((sum, turn) => sum + estimateTokens(turn.content), 0);
+
+  result.reason = `Pruned ${result.prunedTurns.length} turns (kept: ${systemTurns.length} system, ${primingTurns.length} priming, ${toolCallTurns.length} tool calls, ${keptMiddleTurns.length} middle, ${recentTurns.length} recent)`;
+
+  log.info(
+    {
+      pruned: result.prunedTurns.length,
+      kept: result.keptTurns.length,
+      tokensBefore: result.estimatedTokensBefore,
+      tokensAfter: result.estimatedTokensAfter,
+      tokensSaved: result.estimatedTokensBefore - result.estimatedTokensAfter,
+    },
+    '✂️ PRUNE: Context pruning complete'
+  );
+
+  return result;
+}
+
+/**
+ * Check if pruning is recommended based on current context.
+ *
+ * @param turns - Current conversation history
+ * @param config - Pruning configuration
+ * @returns Whether pruning should be applied
+ */
+export function shouldPruneContext(
+  turns: ConversationTurn[],
+  config: ContextPruningConfig = DEFAULT_PRUNING_CONFIG
+): { shouldPrune: boolean; reason: string } {
+  if (!config.enabled) {
+    return { shouldPrune: false, reason: 'Pruning disabled' };
+  }
+
+  if (turns.length > config.maxTurns) {
+    return { shouldPrune: true, reason: `Turn count (${turns.length}) exceeds max (${config.maxTurns})` };
+  }
+
+  const estimatedTokens = turns.reduce((sum, turn) => sum + estimateTokens(turn.content), 0);
+  if (estimatedTokens > config.tokenThreshold) {
+    return { shouldPrune: true, reason: `Token count (~${estimatedTokens}) exceeds threshold (${config.tokenThreshold})` };
+  }
+
+  return { shouldPrune: false, reason: 'Under thresholds' };
+}
+
+/**
+ * Mark priming turns in a conversation history.
+ * Call this after applying priming to tag the turns for preservation during pruning.
+ *
+ * @param turns - Conversation turns
+ * @param primingCount - Number of priming turns that were added
+ * @returns Turns with priming flags set
+ */
+export function markPrimingTurns(turns: ConversationTurn[], primingCount: number): ConversationTurn[] {
+  // Priming turns are added after system prompt, so they're at indices 1 through primingCount
+  return turns.map((turn, idx) => {
+    // Skip system prompt (index 0)
+    // Priming turns are 1 through primingCount
+    const isPrimingTurn = idx > 0 && idx <= primingCount;
+    return {
+      ...turn,
+      isPriming: isPrimingTurn || turn.isPriming,
+    };
+  });
 }
 
 // ============================================================================

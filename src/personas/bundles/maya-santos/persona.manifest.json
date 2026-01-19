@@ -687,11 +687,10 @@
       "digital-wellness",
       "body-relationship",
       "chronic-conditions",
-      "settings",
-      "maya-coaching"
+      "settings"
     ],
     "_domain_ownership": {
-      "exclusive": ["habits", "wellness", "habit-persistence", "maya-coaching"],
+      "exclusive": ["habits", "wellness", "habit-persistence"],
       "shared": ["health", "self-compassion", "presence", "quiet-growth"],
       "handoff_preferred": {
         "calendar": "alex-chen",

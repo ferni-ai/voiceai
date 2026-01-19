@@ -594,4 +594,5 @@ export {
   detectTopicHints,
   detectDateSignals,
   detectRelationshipSignals,
+  detectLinkingSignals,
 };

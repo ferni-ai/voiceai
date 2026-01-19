@@ -839,7 +839,8 @@ export async function getHandoffGreeting(
   if (!briefing?.handoff_greetings) return null;
 
   // Map persona ID to greeting key
-  const greetingKey = `from_${fromPersonaId.replace(/-/g, '_')}` as keyof typeof briefing.handoff_greetings;
+  const greetingKey =
+    `from_${fromPersonaId.replace(/-/g, '_')}` as keyof typeof briefing.handoff_greetings;
   const greetings = briefing.handoff_greetings[greetingKey] ?? briefing.handoff_greetings.generic;
 
   return getRandomPhrase(greetings);

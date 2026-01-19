@@ -1,0 +1,110 @@
+{
+  "$schema": "../tool.schema.json",
+  "domain": "research",
+  "persona": "peter",
+  "version": "1.0.0",
+  "tools": [
+    {
+      "name": "researchTopic",
+      "description": "Research a topic in depth. Peter digs into data, finds reliable sources, and provides balanced analysis.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "topic": {
+            "type": "string",
+            "description": "The topic to research"
+          },
+          "depth": {
+            "type": "string",
+            "description": "How deep to go with the research",
+            "enum": ["quick", "moderate", "comprehensive"]
+          },
+          "focus": {
+            "type": "string",
+            "description": "Specific angle or focus for the research"
+          }
+        },
+        "required": ["topic"]
+      },
+      "examples": [
+        { "userSays": "Research solar panel costs", "output": "{\"fn\":\"researchTopic\",\"args\":{\"topic\":\"solar panel costs\",\"depth\":\"moderate\"}}" },
+        { "userSays": "Deep dive into AI trends", "output": "{\"fn\":\"researchTopic\",\"args\":{\"topic\":\"AI trends\",\"depth\":\"comprehensive\"}}" },
+        { "userSays": "Quick research on electric cars", "output": "{\"fn\":\"researchTopic\",\"args\":{\"topic\":\"electric cars\",\"depth\":\"quick\"}}" }
+      ],
+      "tags": ["research", "analysis", "information"]
+    },
+    {
+      "name": "analyzeStock",
+      "description": "Analyze a stock or investment. Peter provides data-driven insights without financial advice.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "symbol": {
+            "type": "string",
+            "description": "Stock ticker symbol (e.g., AAPL, GOOGL)"
+          },
+          "aspects": {
+            "type": "array",
+            "description": "What aspects to analyze",
+            "items": { "type": "string" }
+          }
+        },
+        "required": ["symbol"]
+      },
+      "examples": [
+        { "userSays": "Tell me about Apple stock", "output": "{\"fn\":\"analyzeStock\",\"args\":{\"symbol\":\"AAPL\"}}" },
+        { "userSays": "How is Tesla doing?", "output": "{\"fn\":\"analyzeStock\",\"args\":{\"symbol\":\"TSLA\"}}" },
+        { "userSays": "Research NVIDIA financials", "output": "{\"fn\":\"analyzeStock\",\"args\":{\"symbol\":\"NVDA\",\"aspects\":[\"financials\"]}}" }
+      ],
+      "tags": ["finance", "stocks", "analysis"]
+    },
+    {
+      "name": "compareOptions",
+      "description": "Compare multiple options with data-driven analysis. Peter creates comparison frameworks for better decision making.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "options": {
+            "type": "array",
+            "description": "The options to compare",
+            "items": { "type": "string" }
+          },
+          "criteria": {
+            "type": "array",
+            "description": "Criteria to compare against",
+            "items": { "type": "string" }
+          },
+          "context": {
+            "type": "string",
+            "description": "Context for the comparison"
+          }
+        },
+        "required": ["options"]
+      },
+      "examples": [
+        { "userSays": "Compare Tesla and Ford", "output": "{\"fn\":\"compareOptions\",\"args\":{\"options\":[\"Tesla\",\"Ford\"],\"context\":\"car purchase\"}}" },
+        { "userSays": "Help me compare job offers", "output": "{\"fn\":\"compareOptions\",\"args\":{\"options\":[\"Job A\",\"Job B\"],\"criteria\":[\"salary\",\"benefits\",\"growth\"]}}" }
+      ],
+      "tags": ["research", "comparison", "analysis", "decision"]
+    },
+    {
+      "name": "factCheck",
+      "description": "Verify a claim or statement with reliable sources.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "claim": {
+            "type": "string",
+            "description": "The claim or statement to fact-check"
+          }
+        },
+        "required": ["claim"]
+      },
+      "examples": [
+        { "userSays": "Is it true that...", "output": "{\"fn\":\"factCheck\",\"args\":{\"claim\":\"[claim to verify]\"}}" },
+        { "userSays": "Verify this for me", "output": "{\"fn\":\"factCheck\",\"args\":{\"claim\":\"[claim]\"}}" }
+      ],
+      "tags": ["research", "verification", "fact-check"]
+    }
+  ]
+}

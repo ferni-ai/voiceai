@@ -1,0 +1,106 @@
+{
+  "$schema": "../tool.schema.json",
+  "domain": "habits",
+  "persona": "maya",
+  "version": "1.0.0",
+  "tools": [
+    {
+      "name": "createHabit",
+      "description": "Create a new habit to track. Maya helps users build sustainable habits using behavior science principles.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "habit": {
+            "type": "string",
+            "description": "The habit to create. Be specific: 'meditate for 5 minutes', 'drink a glass of water after waking'"
+          },
+          "frequency": {
+            "type": "string",
+            "description": "How often to do the habit",
+            "enum": ["daily", "weekdays", "weekends", "weekly", "custom"]
+          },
+          "cue": {
+            "type": "string",
+            "description": "The trigger that reminds to do the habit. Examples: 'after morning coffee', 'before bed'"
+          }
+        },
+        "required": ["habit"]
+      },
+      "examples": [
+        { "userSays": "I want to start meditating", "output": "{\"fn\":\"createHabit\",\"args\":{\"habit\":\"meditate for 5 minutes\",\"frequency\":\"daily\"}}" },
+        { "userSays": "Help me build a reading habit", "output": "{\"fn\":\"createHabit\",\"args\":{\"habit\":\"read for 15 minutes\",\"frequency\":\"daily\"}}" },
+        { "userSays": "I want to exercise after waking up", "output": "{\"fn\":\"createHabit\",\"args\":{\"habit\":\"exercise\",\"frequency\":\"daily\",\"cue\":\"after waking up\"}}" }
+      ],
+      "tags": ["habits", "behavior", "tracking"]
+    },
+    {
+      "name": "checkHabit",
+      "description": "Mark a habit as done or check habit status.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "habitName": {
+            "type": "string",
+            "description": "Name or partial name of the habit to check off"
+          },
+          "action": {
+            "type": "string",
+            "description": "What to do with the habit",
+            "enum": ["done", "skip", "status"]
+          }
+        },
+        "required": ["habitName"]
+      },
+      "examples": [
+        { "userSays": "I meditated today", "output": "{\"fn\":\"checkHabit\",\"args\":{\"habitName\":\"meditate\",\"action\":\"done\"}}" },
+        { "userSays": "Done with my reading", "output": "{\"fn\":\"checkHabit\",\"args\":{\"habitName\":\"reading\",\"action\":\"done\"}}" },
+        { "userSays": "How am I doing with exercise?", "output": "{\"fn\":\"checkHabit\",\"args\":{\"habitName\":\"exercise\",\"action\":\"status\"}}" }
+      ],
+      "tags": ["habits", "tracking", "progress"]
+    },
+    {
+      "name": "getHabitStreaks",
+      "description": "Get habit streak information and progress analytics.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "habitName": {
+            "type": "string",
+            "description": "Specific habit to check, or leave empty for all habits"
+          }
+        },
+        "required": []
+      },
+      "examples": [
+        { "userSays": "What are my streaks?", "output": "{\"fn\":\"getHabitStreaks\",\"args\":{}}" },
+        { "userSays": "How's my meditation streak?", "output": "{\"fn\":\"getHabitStreaks\",\"args\":{\"habitName\":\"meditation\"}}" },
+        { "userSays": "Show my habit progress", "output": "{\"fn\":\"getHabitStreaks\",\"args\":{}}" }
+      ],
+      "tags": ["habits", "streaks", "progress", "analytics"]
+    },
+    {
+      "name": "suggestHabitStack",
+      "description": "Suggest a habit stack - a sequence of habits linked together for better adherence.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "baseHabit": {
+            "type": "string",
+            "description": "An existing habit to stack on top of"
+          },
+          "newHabit": {
+            "type": "string",
+            "description": "The new habit to add to the stack"
+          }
+        },
+        "required": ["newHabit"]
+      },
+      "examples": [
+        { "userSays": "How can I stick to journaling?", "output": "{\"fn\":\"suggestHabitStack\",\"args\":{\"newHabit\":\"journaling\"}}" },
+        { "userSays": "Help me add stretching to my routine", "output": "{\"fn\":\"suggestHabitStack\",\"args\":{\"newHabit\":\"stretching\"}}" },
+        { "userSays": "What should I do after my morning coffee?", "output": "{\"fn\":\"suggestHabitStack\",\"args\":{\"baseHabit\":\"morning coffee\"}}" }
+      ],
+      "tags": ["habits", "stacking", "behavior-science"]
+    }
+  ]
+}

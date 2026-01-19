@@ -22,6 +22,12 @@ vi.mock('../services/memory/voice-memory.js', () => ({
   compareVoiceSketches: vi.fn(),
 }));
 
+// Mock voice-mismatch-context to avoid side effects
+vi.mock('../intelligence/context-builders/external/voice-mismatch-context.js', () => ({
+  setVoiceMismatchContext: vi.fn(),
+  getVoiceMismatchContext: vi.fn(),
+}));
+
 // ============================================================================
 // TEST DATA
 // ============================================================================
@@ -29,24 +35,57 @@ vi.mock('../services/memory/voice-memory.js', () => ({
 const TEST_SESSION_ID = 'session-123';
 const TEST_USER_ID = 'user-456';
 const TEST_USER_NAME = 'Seth';
+
+// VoiceSketch must match the interface in types/user-profile.ts
 const TEST_STORED_SKETCH = {
-  fundamentalFrequency: { mean: 120, std: 15 },
-  spectralCentroid: { mean: 2000, std: 300 },
-  speechRate: { mean: 150, std: 20 },
-  pausePattern: { mean: 0.3, std: 0.1 },
-  energyContour: { mean: 0.6, std: 0.15 },
+  pitchMean: 120,
+  pitchMin: 90,
+  pitchMax: 150,
+  pitchStdDev: 15,
+  speakingRateMean: 150,
+  pauseFrequency: 10,
+  avgPauseDuration: 300,
+  spectralCentroidMean: 2000,
+  spectralCentroidStdDev: 300,
+  spectralRolloffMean: 3500,
+  energyMean: 0.6,
+  energyStdDev: 0.15,
+  samplesAnalyzed: 100,
+  totalDurationMs: 10000,
+  confidence: 0.85,
+  createdAt: new Date('2024-01-01'),
+  updatedAt: new Date('2024-01-01'),
 };
+
 const TEST_LIVE_SKETCH = {
-  fundamentalFrequency: { mean: 118, std: 14 },
-  spectralCentroid: { mean: 1980, std: 290 },
-  speechRate: { mean: 155, std: 22 },
-  pausePattern: { mean: 0.32, std: 0.12 },
-  energyContour: { mean: 0.58, std: 0.14 },
+  pitchMean: 118,
+  pitchMin: 88,
+  pitchMax: 148,
+  pitchStdDev: 14,
+  speakingRateMean: 155,
+  pauseFrequency: 11,
+  avgPauseDuration: 320,
+  spectralCentroidMean: 1980,
+  spectralCentroidStdDev: 290,
+  spectralRolloffMean: 3400,
+  energyMean: 0.58,
+  energyStdDev: 0.14,
+  samplesAnalyzed: 50,
+  totalDurationMs: 5000,
+  confidence: 0.75,
+  createdAt: new Date('2024-01-02'),
+  updatedAt: new Date('2024-01-02'),
 };
 
 // ============================================================================
 // HELPERS
 // ============================================================================
+
+async function resetModuleState() {
+  const { resetAllVerificationState } =
+    await import('../services/voice/inbound-voice-verification.js');
+  resetAllVerificationState();
+}
 
 function resetMocks() {
   vi.clearAllMocks();
@@ -57,12 +96,14 @@ function resetMocks() {
 // ============================================================================
 
 describe('Inbound Voice Verification Service', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     resetMocks();
+    await resetModuleState();
   });
 
-  afterEach(() => {
+  afterEach(async () => {
     resetMocks();
+    await resetModuleState();
   });
 
   // ==========================================================================
@@ -148,11 +189,12 @@ describe('Inbound Voice Verification Service', () => {
         TEST_STORED_SKETCH
       );
 
-      const result = await verifyInboundVoice(TEST_SESSION_ID, TEST_LIVE_SKETCH);
+      const result = verifyInboundVoice(TEST_SESSION_ID, TEST_LIVE_SKETCH);
 
-      expect(result.passed).toBe(true);
-      expect(result.shouldChallenge).toBe(false);
-      expect(result.similarity).toBe(0.85);
+      expect(result).not.toBeNull();
+      expect(result!.passed).toBe(true);
+      expect(result!.shouldChallenge).toBe(false);
+      expect(result!.similarity).toBe(0.85);
     });
 
     it('returns shouldChallenge=true when similarity < MISMATCH_THRESHOLD', async () => {
@@ -172,10 +214,11 @@ describe('Inbound Voice Verification Service', () => {
         TEST_STORED_SKETCH
       );
 
-      const result = await verifyInboundVoice(TEST_SESSION_ID, TEST_LIVE_SKETCH);
+      const result = verifyInboundVoice(TEST_SESSION_ID, TEST_LIVE_SKETCH);
 
-      expect(result.passed).toBe(false);
-      expect(result.shouldChallenge).toBe(true);
+      expect(result).not.toBeNull();
+      expect(result!.passed).toBe(false);
+      expect(result!.shouldChallenge).toBe(true);
     });
 
     it('returns shouldChallenge=false for uncertain range', async () => {
@@ -195,10 +238,11 @@ describe('Inbound Voice Verification Service', () => {
         TEST_STORED_SKETCH
       );
 
-      const result = await verifyInboundVoice(TEST_SESSION_ID, TEST_LIVE_SKETCH);
+      const result = verifyInboundVoice(TEST_SESSION_ID, TEST_LIVE_SKETCH);
 
+      expect(result).not.toBeNull();
       // Should not challenge in uncertain range - give benefit of the doubt
-      expect(result.shouldChallenge).toBe(false);
+      expect(result!.shouldChallenge).toBe(false);
     });
 
     it('marks session as verified after check', async () => {
@@ -218,23 +262,22 @@ describe('Inbound Voice Verification Service', () => {
         TEST_STORED_SKETCH
       );
 
-      await verifyInboundVoice(TEST_SESSION_ID, TEST_LIVE_SKETCH);
+      verifyInboundVoice(TEST_SESSION_ID, TEST_LIVE_SKETCH);
 
       const state = getVerificationState(TEST_SESSION_ID);
       expect(state?.verified).toBe(true);
     });
 
-    it('returns error result when session not registered', async () => {
+    it('returns null when session not registered', async () => {
       const { verifyInboundVoice } =
         await import('../services/voice/inbound-voice-verification.js');
 
-      const result = await verifyInboundVoice('unregistered-session', TEST_LIVE_SKETCH);
+      const result = verifyInboundVoice('unregistered-session', TEST_LIVE_SKETCH);
 
-      expect(result.passed).toBe(false);
-      expect(result.error).toBeDefined();
+      expect(result).toBeNull();
     });
 
-    it('does not verify already-verified session', async () => {
+    it('returns null for already-verified session', async () => {
       const { compareVoiceSketches } = await import('../services/memory/voice-memory.js');
       const mockCompare = compareVoiceSketches as ReturnType<typeof vi.fn>;
       mockCompare.mockReturnValue({
@@ -253,14 +296,13 @@ describe('Inbound Voice Verification Service', () => {
       );
 
       // Verify first time
-      await verifyInboundVoice(TEST_SESSION_ID, TEST_LIVE_SKETCH);
+      const firstResult = verifyInboundVoice(TEST_SESSION_ID, TEST_LIVE_SKETCH);
+      expect(firstResult).not.toBeNull();
       const callCount = mockCompare.mock.calls.length;
 
-      // Try to verify again
-      const result = await verifyInboundVoice(TEST_SESSION_ID, TEST_LIVE_SKETCH);
-
-      // Should return cached result without re-comparing
-      expect(result.passed).toBe(true);
+      // Try to verify again - should return null without re-comparing
+      const secondResult = verifyInboundVoice(TEST_SESSION_ID, TEST_LIVE_SKETCH);
+      expect(secondResult).toBeNull();
       expect(mockCompare.mock.calls.length).toBe(callCount); // No new calls
     });
   });
@@ -280,7 +322,7 @@ describe('Inbound Voice Verification Service', () => {
         voiceSketch: TEST_STORED_SKETCH,
       };
 
-      const result = shouldSetupVoiceVerification(profile, true, true);
+      const result = shouldSetupVoiceVerification(profile as never, true, true);
 
       expect(result.shouldSetup).toBe(true);
       expect(result.voiceSketch).toEqual(TEST_STORED_SKETCH);
@@ -297,7 +339,7 @@ describe('Inbound Voice Verification Service', () => {
         voiceSketch: TEST_STORED_SKETCH,
       };
 
-      const result = shouldSetupVoiceVerification(profile, false, true); // isInboundCall = false
+      const result = shouldSetupVoiceVerification(profile as never, false, true); // isInboundCall = false
 
       expect(result.shouldSetup).toBe(false);
     });
@@ -312,7 +354,7 @@ describe('Inbound Voice Verification Service', () => {
         voiceSketch: TEST_STORED_SKETCH,
       };
 
-      const result = shouldSetupVoiceVerification(profile, true, false); // isKnownCaller = false
+      const result = shouldSetupVoiceVerification(profile as never, true, false); // isKnownCaller = false
 
       expect(result.shouldSetup).toBe(false);
     });
@@ -327,7 +369,7 @@ describe('Inbound Voice Verification Service', () => {
         // No voiceSketch
       };
 
-      const result = shouldSetupVoiceVerification(profile, true, true);
+      const result = shouldSetupVoiceVerification(profile as never, true, true);
 
       expect(result.shouldSetup).toBe(false);
     });
