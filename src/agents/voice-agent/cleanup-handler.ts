@@ -417,6 +417,10 @@ async function executeSessionCleanup(ctx: CleanupContext, cleanupStart: number):
     // Deep understanding profiles
     userId ? cleanupDeepUnderstandingProfiles(userId, sessionId) : Promise.resolve(),
 
+    // Relationship memory - persist relationship state at session end
+    // Core Principle #2: "Every interaction is part of an ongoing relationship"
+    userId ? cleanupRelationshipMemory(userId, sessionPersona.id, sessionId) : Promise.resolve(),
+
     // Capability learning - track which capabilities resonated for collective learning
     userId ? cleanupCapabilityLearning(userId, sessionId) : Promise.resolve(),
 
@@ -1369,6 +1373,80 @@ async function cleanupTrustProfiles(userId: string): Promise<void> {
     diag.session('Trust profiles saved', { userId });
   } catch (trustErr) {
     diag.warn('Trust profile save failed (non-fatal)', { error: String(trustErr) });
+  }
+}
+
+async function cleanupRelationshipMemory(
+  userId: string,
+  personaId: string,
+  sessionId: string
+): Promise<void> {
+  try {
+    const { getRelationshipEngine } = await import('../../intelligence/relationship/index.js');
+    const { clearSessionCallbackCount } = await import(
+      '../../intelligence/context-builders/relationship/callback-opportunities.js'
+    );
+    const { getConversationState } = await import('../../services/conversation-state.js');
+
+    // Get the relationship engine for this session
+    const engine = getRelationshipEngine(userId, personaId);
+    if (engine) {
+      // Get actual session mood and topics from conversation state
+      // SessionMood: 'positive' | 'neutral' | 'struggling' | 'crisis'
+      let sessionMood: 'positive' | 'neutral' | 'struggling' | 'crisis' = 'neutral';
+      let topics: string[] = [];
+
+      try {
+        const convState = getConversationState(sessionId);
+        if (convState) {
+          // Map sentiment to session mood
+          // Sentiment: 'positive' | 'neutral' | 'negative' | 'mixed'
+          // SessionMood: 'positive' | 'neutral' | 'struggling' | 'crisis'
+          const sentiment = convState.getEmotionalContext().sentiment;
+          if (sentiment === 'positive') {
+            sessionMood = 'positive';
+          } else if (sentiment === 'negative') {
+            sessionMood = 'struggling';
+          } else {
+            sessionMood = 'neutral';
+          }
+
+          // Extract topics from topic history
+          const topicContext = convState.getTopicContext();
+          topics = topicContext.history
+            .map((t) => t.topic)
+            .filter((t): t is string => t !== null)
+            .slice(-10); // Keep last 10 topics
+
+          // Add current topic if present
+          if (topicContext.current && !topics.includes(topicContext.current)) {
+            topics.push(topicContext.current);
+          }
+        }
+      } catch (stateErr) {
+        // Conversation state may not exist or be accessible - use defaults
+        diag.debug('Could not get conversation state for relationship memory', {
+          error: String(stateErr),
+        });
+      }
+
+      // End session and persist relationship memory
+      await engine.endSession(sessionMood, topics);
+      diag.session('💕 Relationship memory saved', {
+        userId,
+        personaId,
+        stage: engine.stage,
+        sessions: engine.sessions,
+        trust: engine.trust,
+        mood: sessionMood,
+        topicsCount: topics.length,
+      });
+    }
+
+    // Clear session callback counts
+    clearSessionCallbackCount(userId, sessionId);
+  } catch (relErr) {
+    diag.warn('Relationship memory save failed (non-fatal)', { error: String(relErr) });
   }
 }
 

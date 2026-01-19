@@ -7,13 +7,47 @@
  * @module agents/shared/sanitizer/detectors/patterns-loader
  */
 
-import { createRequire } from 'module';
+import { readFileSync, existsSync } from 'fs';
+import { dirname, join } from 'path';
+import { fileURLToPath } from 'url';
 import { createLogger } from '../../../../utils/safe-logger.js';
 import type { ToolPatternsConfig } from '../types.js';
 
-// Use createRequire for JSON imports (works in both Node.js and esbuild bundles)
-const require = createRequire(import.meta.url);
-const toolPatternsJson = require('../config/tool-patterns.json');
+// Resolve the JSON file path robustly for both dev and production
+function loadToolPatternsJson(): ToolPatternsConfig {
+  const __filename = fileURLToPath(import.meta.url);
+  const __dirname = dirname(__filename);
+
+  // Try multiple possible locations for the JSON file
+  const possiblePaths = [
+    // Relative to this file in src
+    join(__dirname, '../config/tool-patterns.json'),
+    // Relative to this file in dist
+    join(__dirname, '../../config/tool-patterns.json'),
+    // From app root (dist)
+    join(process.cwd(), 'dist/agents/shared/sanitizer/config/tool-patterns.json'),
+    // From app root (src - for dev)
+    join(process.cwd(), 'src/agents/shared/sanitizer/config/tool-patterns.json'),
+  ];
+
+  for (const filePath of possiblePaths) {
+    if (existsSync(filePath)) {
+      const content = readFileSync(filePath, 'utf-8');
+      return JSON.parse(content) as ToolPatternsConfig;
+    }
+  }
+
+  // If no file found, return a minimal default config to avoid crashes
+  console.warn('[patterns-loader] Could not find tool-patterns.json, using defaults');
+  return {
+    domains: {},
+    paramPatterns: [],
+    teamMemberNames: ['ferni', 'maya', 'alex', 'jordan', 'peter', 'nayan'],
+    slowTools: [],
+  };
+}
+
+const toolPatternsJson = loadToolPatternsJson();
 
 const log = createLogger({ module: 'patterns-loader' });
 

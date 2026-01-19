@@ -931,11 +931,11 @@ const COMMANDS: Record<string, CliCommand> = {
   },
   experiments: {
     name: 'Experiments',
-    description: 'A/B testing & feature experiments',
+    description: 'A/B testing, bandits & auto-rollout experiments',
     icon: '🧬',
     handler: handleExperiments,
-    subcommands: ['list', 'create', 'start', 'stop', 'results', 'winner'],
-    examples: ['ferni experiments list', 'ferni experiments results exp-123'],
+    subcommands: ['list', 'status', 'show', 'health', 'create', 'start', 'pause', 'resume', 'complete', 'promote', 'delete'],
+    examples: ['ferni experiments list', 'ferni experiments show exp-123', 'ferni experiments health exp-123'],
   },
   cache: {
     name: 'Cache',
@@ -5088,18 +5088,34 @@ async function handleBrand(args: string[]): Promise<void> {
   // Dynamic import to avoid bundling
   const { brand } = await import('./commands/brand/brand.js');
 
-  // Parse args: ferni brand [command] [subcommand] [--options]
+  // Parse args: ferni brand [command] [subcommand] [positional...] [--options]
   const [command, subcommand, ...rest] = args;
   const options: Record<string, unknown> = {};
+  const positionalArgs: string[] = [];
 
-  // Parse options
+  // Parse options and positional args
   for (let i = 0; i < rest.length; i++) {
     const arg = rest[i];
     if (arg.startsWith('--')) {
       const key = arg.slice(2).replace(/-/g, '');
       const value = rest[i + 1] && !rest[i + 1].startsWith('--') ? rest[++i] : true;
       options[key] = value;
+    } else {
+      positionalArgs.push(arg);
     }
+  }
+
+  // Map positional args to named options based on subcommand
+  if (subcommand === 'run' && positionalArgs[0]) {
+    options.job = positionalArgs[0];
+  } else if (subcommand === 'add' && positionalArgs[0]) {
+    options.name = positionalArgs[0];
+  } else if (subcommand === 'show' || subcommand === 'update' || subcommand === 'prep') {
+    if (positionalArgs[0]) options.id = positionalArgs[0];
+    if (positionalArgs[1]) options.status = positionalArgs[1];
+  } else if (subcommand === 'complete' && positionalArgs.length >= 2) {
+    options.workstreamId = positionalArgs[0];
+    options.taskId = positionalArgs[1];
   }
 
   await brand(command, subcommand, options);
@@ -9780,89 +9796,408 @@ async function handleChaos(args: string[]): Promise<void> {
 
 async function handleExperiments(args: string[]): Promise<void> {
   const subcommand = args[0] || 'list';
+  const API_BASE = 'http://localhost:3002/api/experiments';
 
   log.header('🧬 A/B Experiments');
 
-  const experiments = [
-    { id: 'exp-voice-speed', name: 'Voice Speed Variants', status: 'running', traffic: '50/50' },
-    { id: 'exp-greeting', name: 'Greeting Message Test', status: 'running', traffic: '33/33/34' },
-    { id: 'exp-avatar', name: 'Avatar Style Test', status: 'completed', traffic: 'N/A' },
-  ];
-
-  if (subcommand === 'list') {
-    console.log(`${colors.bold}Active Experiments:${colors.reset}\n`);
-
-    for (const exp of experiments) {
-      const statusColor = exp.status === 'running' ? colors.green : colors.dim;
-      console.log(`  ${colors.cyan}${exp.id}${colors.reset}`);
-      console.log(`    ${exp.name}`);
-      console.log(
-        `    Status: ${statusColor}${exp.status}${colors.reset} • Traffic: ${exp.traffic}`
-      );
-      console.log();
+  // Helper to get status icon
+  const getStatusIcon = (status: string): string => {
+    switch (status) {
+      case 'running':
+        return `${colors.green}●${colors.reset}`;
+      case 'paused':
+        return `${colors.yellow}●${colors.reset}`;
+      case 'completed':
+        return `${colors.dim}●${colors.reset}`;
+      case 'promoted':
+        return `${colors.green}✓${colors.reset}`;
+      case 'rolled_back':
+        return `${colors.red}✗${colors.reset}`;
+      default:
+        return `${colors.dim}○${colors.reset}`;
     }
-    return;
+  };
+
+  // Helper to get type icon
+  const getTypeIcon = (type: string): string => {
+    switch (type) {
+      case 'ab':
+        return `${colors.blue}[A/B]${colors.reset}`;
+      case 'bandit':
+        return `${colors.magenta}[MAB]${colors.reset}`;
+      case 'rollout':
+        return `${colors.cyan}[ROL]${colors.reset}`;
+      default:
+        return `${colors.dim}[???]${colors.reset}`;
+    }
+  };
+
+  try {
+    if (subcommand === 'list') {
+      const response = await fetch(API_BASE);
+      if (!response.ok) {
+        log.error(`API error: ${response.statusText}`);
+        return;
+      }
+      const data = (await response.json()) as {
+        experiments: Array<{
+          id: string;
+          name: string;
+          type: string;
+          status: string;
+          variants: number;
+          winner?: string;
+        }>;
+        count: number;
+      };
+
+      if (data.experiments.length === 0) {
+        console.log(`${colors.yellow}No experiments found.${colors.reset}`);
+        console.log(`\n  Create one with: ${colors.cyan}ferni experiments create --help${colors.reset}`);
+        return;
+      }
+
+      console.log(`${colors.bold}Active Experiments:${colors.reset}\n`);
+
+      for (const exp of data.experiments) {
+        console.log(`  ${getStatusIcon(exp.status)} ${colors.cyan}${exp.id}${colors.reset} ${getTypeIcon(exp.type)} ${exp.name}`);
+        console.log(`    ${colors.dim}${exp.variants} variants${colors.reset}`);
+        if (exp.winner) {
+          console.log(`    ${colors.green}Winner: ${exp.winner}${colors.reset}`);
+        }
+      }
+
+      console.log(`\n${colors.dim}Total: ${data.count} experiments${colors.reset}`);
+      return;
+    }
+
+    if (subcommand === 'status' || subcommand === 'summary') {
+      const response = await fetch(`${API_BASE}/summary`);
+      if (!response.ok) {
+        log.error(`API error: ${response.statusText}`);
+        return;
+      }
+      const data = (await response.json()) as {
+        total: number;
+        running: number;
+        paused: number;
+        completed: number;
+        byType: { ab: number; bandit: number; rollout: number };
+      };
+
+      console.log(`${colors.bold}Experiment Summary:${colors.reset}\n`);
+      console.log(`  Total:     ${colors.cyan}${data.total}${colors.reset}`);
+      console.log(`  Running:   ${colors.green}${data.running}${colors.reset}`);
+      console.log(`  Paused:    ${colors.yellow}${data.paused}${colors.reset}`);
+      console.log(`  Completed: ${colors.dim}${data.completed}${colors.reset}`);
+      console.log();
+      console.log(`  A/B Tests: ${data.byType.ab}`);
+      console.log(`  Bandits:   ${data.byType.bandit}`);
+      console.log(`  Rollouts:  ${data.byType.rollout}`);
+      return;
+    }
+
+    if (subcommand === 'show' || subcommand === 'results') {
+      const expId = args[1];
+      if (!expId) {
+        log.error('Experiment ID required');
+        console.log(`\n  Usage: ${colors.cyan}ferni experiments show <experiment-id>${colors.reset}`);
+        return;
+      }
+
+      const response = await fetch(`${API_BASE}/${expId}`);
+      if (!response.ok) {
+        log.error(`Experiment not found: ${expId}`);
+        return;
+      }
+      const data = (await response.json()) as {
+        experiment: {
+          config: {
+            id: string;
+            name: string;
+            type: string;
+            primaryMetric: string;
+            autoPromote: boolean;
+            autoRollback: boolean;
+            variants: Array<{ id: string; name: string; trafficPercent: number }>;
+          };
+          status: string;
+          createdAt: string;
+          startedAt?: string;
+          winner?: string;
+        };
+      };
+
+      const exp = data.experiment;
+      console.log(`${colors.bold}${exp.config.name}${colors.reset}\n`);
+      console.log(`  ID:          ${colors.cyan}${exp.config.id}${colors.reset}`);
+      console.log(`  Type:        ${getTypeIcon(exp.config.type)} ${exp.config.type}`);
+      console.log(`  Status:      ${getStatusIcon(exp.status)} ${exp.status}`);
+      console.log(`  Created:     ${new Date(exp.createdAt).toLocaleString()}`);
+      if (exp.startedAt) {
+        console.log(`  Started:     ${new Date(exp.startedAt).toLocaleString()}`);
+      }
+      if (exp.winner) {
+        console.log(`  ${colors.green}Winner: ${exp.winner}${colors.reset}`);
+      }
+      console.log(`\n${colors.bold}Variants:${colors.reset}`);
+      for (const v of exp.config.variants) {
+        console.log(`  - ${v.name} (${v.trafficPercent}%)`);
+      }
+      console.log(`\n  Primary Metric: ${exp.config.primaryMetric}`);
+      console.log(`  Auto-Promote:   ${exp.config.autoPromote ? 'Yes' : 'No'}`);
+      console.log(`  Auto-Rollback:  ${exp.config.autoRollback ? 'Yes' : 'No'}`);
+      return;
+    }
+
+    if (subcommand === 'health') {
+      const expId = args[1];
+      if (!expId) {
+        log.error('Experiment ID required');
+        return;
+      }
+
+      const response = await fetch(`${API_BASE}/${expId}/health`);
+      if (!response.ok) {
+        log.error(`Experiment not found: ${expId}`);
+        return;
+      }
+      const data = (await response.json()) as {
+        health: {
+          status: string;
+          lastCheck: string;
+          recommendations: string[];
+          typeStatus: {
+            ab?: { recommendation: string; pValue?: number };
+            bandit?: { estimatedBest: string; bestConfidence: number };
+            rollout?: { currentStage: number; percentage: number; confidence: number };
+            sequential?: { decision: string; samplesUsed: number };
+          };
+        };
+      };
+
+      const health = data.health;
+      const statusColor =
+        health.status === 'healthy'
+          ? colors.green
+          : health.status === 'warning'
+            ? colors.yellow
+            : colors.red;
+
+      console.log(`${colors.bold}Health: ${expId}${colors.reset}\n`);
+      console.log(`  Status:     ${statusColor}${health.status.toUpperCase()}${colors.reset}`);
+      console.log(`  Last Check: ${new Date(health.lastCheck).toLocaleString()}`);
+
+      if (health.recommendations.length > 0) {
+        console.log(`\n${colors.bold}Recommendations:${colors.reset}`);
+        for (const rec of health.recommendations) {
+          console.log(`  • ${rec}`);
+        }
+      }
+      return;
+    }
+
+    if (subcommand === 'create') {
+      console.log(`${colors.bold}Create New Experiment:${colors.reset}\n`);
+      console.log(`  ${colors.cyan}Usage:${colors.reset}`);
+      console.log(`    ferni experiments create -i <id> -n <name> -t <type> [-v <variants>]`);
+      console.log();
+      console.log(`  ${colors.cyan}Options:${colors.reset}`);
+      console.log(`    -i, --id <id>        Experiment ID (required)`);
+      console.log(`    -n, --name <name>    Experiment name (required)`);
+      console.log(`    -t, --type <type>    Type: ab, bandit, or rollout (required)`);
+      console.log(`    -v, --variants       Comma-separated variant names (default: control,treatment)`);
+      console.log(`    --auto-promote       Enable auto-promotion when winner detected`);
+      console.log(`    --dry-run            Preview without creating`);
+      console.log();
+      console.log(`  ${colors.cyan}Example:${colors.reset}`);
+      console.log(`    ferni experiments create -i voice-speed-v1 -n "Voice Speed Test" -t ab`);
+      console.log();
+      console.log(`  ${colors.dim}For full CLI support, use the Commander-based command:${colors.reset}`);
+      console.log(`    ${colors.cyan}npx ts-node apps/cli/src/commands/experiments/experiments.ts create --help${colors.reset}`);
+      return;
+    }
+
+    if (subcommand === 'start') {
+      const expId = args[1];
+      if (!expId) {
+        log.error('Experiment ID required');
+        return;
+      }
+
+      const spinner = new Spinner(`Starting ${expId}...`);
+      spinner.start();
+
+      const response = await fetch(`${API_BASE}/${expId}/start`, { method: 'POST' });
+      spinner.stop(response.ok);
+
+      if (!response.ok) {
+        const error = (await response.json()) as { error?: string };
+        log.error(error.error || response.statusText);
+        return;
+      }
+
+      log.success(`Experiment ${expId} started`);
+      return;
+    }
+
+    if (subcommand === 'pause' || subcommand === 'stop') {
+      const expId = args[1];
+      if (!expId) {
+        log.error('Experiment ID required');
+        return;
+      }
+
+      const spinner = new Spinner(`Pausing ${expId}...`);
+      spinner.start();
+
+      const response = await fetch(`${API_BASE}/${expId}/pause`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reason: 'Paused via CLI' }),
+      });
+      spinner.stop(response.ok);
+
+      if (!response.ok) {
+        const error = (await response.json()) as { error?: string };
+        log.error(error.error || response.statusText);
+        return;
+      }
+
+      log.success(`Experiment ${expId} paused`);
+      return;
+    }
+
+    if (subcommand === 'resume') {
+      const expId = args[1];
+      if (!expId) {
+        log.error('Experiment ID required');
+        return;
+      }
+
+      const spinner = new Spinner(`Resuming ${expId}...`);
+      spinner.start();
+
+      const response = await fetch(`${API_BASE}/${expId}/resume`, { method: 'POST' });
+      spinner.stop(response.ok);
+
+      if (!response.ok) {
+        const error = (await response.json()) as { error?: string };
+        log.error(error.error || response.statusText);
+        return;
+      }
+
+      log.success(`Experiment ${expId} resumed`);
+      return;
+    }
+
+    if (subcommand === 'complete' || subcommand === 'winner') {
+      const expId = args[1];
+      const winner = args[2];
+      if (!expId) {
+        log.error('Experiment ID required');
+        return;
+      }
+
+      const spinner = new Spinner(`Completing ${expId}...`);
+      spinner.start();
+
+      const response = await fetch(`${API_BASE}/${expId}/complete`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ winner }),
+      });
+      spinner.stop(response.ok);
+
+      if (!response.ok) {
+        const error = (await response.json()) as { error?: string };
+        log.error(error.error || response.statusText);
+        return;
+      }
+
+      log.success(`Experiment ${expId} completed`);
+      if (winner) {
+        console.log(`  ${colors.green}Winner: ${winner}${colors.reset}`);
+      }
+      return;
+    }
+
+    if (subcommand === 'promote') {
+      const expId = args[1];
+      if (!expId) {
+        log.error('Experiment ID required');
+        return;
+      }
+
+      const spinner = new Spinner(`Checking promotion for ${expId}...`);
+      spinner.start();
+
+      const response = await fetch(`${API_BASE}/${expId}/promote`, { method: 'POST' });
+      spinner.stop(response.ok);
+
+      if (!response.ok) {
+        const error = (await response.json()) as { error?: string };
+        log.error(error.error || response.statusText);
+        return;
+      }
+
+      const data = (await response.json()) as {
+        success: boolean;
+        promotion: { winner?: string; reason?: string; blockingIssues?: string[] };
+      };
+      if (data.success) {
+        log.success(`Winner promoted: ${data.promotion.winner}`);
+      } else {
+        console.log(`${colors.yellow}Not ready to promote${colors.reset}`);
+        if (data.promotion.reason) {
+          console.log(`  ${colors.dim}Reason: ${data.promotion.reason}${colors.reset}`);
+        }
+        if (data.promotion.blockingIssues && data.promotion.blockingIssues.length > 0) {
+          console.log(`  ${colors.dim}Blocking issues:${colors.reset}`);
+          for (const issue of data.promotion.blockingIssues) {
+            console.log(`    - ${issue}`);
+          }
+        }
+      }
+      return;
+    }
+
+    if (subcommand === 'delete') {
+      const expId = args[1];
+      const force = args.includes('--force') || args.includes('-f');
+      if (!expId) {
+        log.error('Experiment ID required');
+        return;
+      }
+
+      if (!force) {
+        console.log(`${colors.yellow}This will permanently delete experiment: ${expId}${colors.reset}`);
+        console.log(`${colors.dim}Use --force to skip this confirmation.${colors.reset}`);
+        return;
+      }
+
+      const spinner = new Spinner(`Deleting ${expId}...`);
+      spinner.start();
+
+      const response = await fetch(`${API_BASE}/${expId}`, { method: 'DELETE' });
+      spinner.stop(response.ok);
+
+      if (!response.ok) {
+        const error = (await response.json()) as { error?: string };
+        log.error(error.error || response.statusText);
+        return;
+      }
+
+      log.success(`Experiment ${expId} deleted`);
+      return;
+    }
+
+    log.error(`Unknown experiments subcommand: ${subcommand}`);
+    console.log(`\n  Available: list, status, show, health, create, start, pause, resume, complete, promote, delete`);
+  } catch (error) {
+    log.error('Failed to connect to API. Is the UI server running?');
+    console.log(`${colors.dim}Run: pnpm ui-server${colors.reset}`);
   }
-
-  if (subcommand === 'results') {
-    const expId = args[1] || experiments[0].id;
-    console.log(`${colors.bold}Results for ${expId}:${colors.reset}\n`);
-
-    console.log(`  ${colors.cyan}Variant A (Control):${colors.reset}`);
-    console.log(`    Sessions:     1,234`);
-    console.log(`    Completion:   ${colors.yellow}72%${colors.reset}`);
-    console.log(`    Avg Duration: 4m 12s`);
-    console.log();
-
-    console.log(`  ${colors.cyan}Variant B (Test):${colors.reset}`);
-    console.log(`    Sessions:     1,256`);
-    console.log(`    Completion:   ${colors.green}78%${colors.reset} (+6%)`);
-    console.log(`    Avg Duration: 4m 45s`);
-    console.log();
-
-    console.log(`  ${colors.green}Statistical Significance: 95%${colors.reset}`);
-    console.log(`  ${colors.bold}Recommendation: Variant B wins${colors.reset}`);
-    return;
-  }
-
-  if (subcommand === 'create') {
-    console.log(`${colors.bold}Create New Experiment:${colors.reset}\n`);
-
-    console.log(`  ${colors.cyan}Steps:${colors.reset}`);
-    console.log(`    1. Define variants in feature flags`);
-    console.log(`    2. Set traffic allocation`);
-    console.log(`    3. Define success metrics`);
-    console.log(`    4. Set minimum sample size`);
-    console.log();
-    console.log(`  ${colors.dim}See docs/experiments/ for examples${colors.reset}`);
-    return;
-  }
-
-  if (subcommand === 'start' || subcommand === 'stop') {
-    const expId = args[1] || experiments[0].id;
-    const action = subcommand === 'start' ? 'Starting' : 'Stopping';
-
-    const spinner = new Spinner(`${action} ${expId}...`);
-    spinner.start();
-    await new Promise((r) => setTimeout(r, 500));
-    spinner.stop(true);
-
-    log.success(`Experiment ${expId} ${subcommand === 'start' ? 'started' : 'stopped'}`);
-    return;
-  }
-
-  if (subcommand === 'winner') {
-    const expId = args[1] || experiments[0].id;
-    console.log(`${colors.bold}Declaring winner for ${expId}:${colors.reset}\n`);
-
-    console.log(`  ${colors.green}✓${colors.reset} Variant B selected as winner`);
-    console.log(`  ${colors.dim}Traffic: 100% → Variant B${colors.reset}`);
-    console.log(`  ${colors.dim}Experiment archived${colors.reset}`);
-    return;
-  }
-
-  log.error(`Unknown experiments subcommand: ${subcommand}`);
-  console.log(`\n  Available: list, create, start, stop, results, winner`);
 }
 
 async function handleCache(args: string[]): Promise<void> {

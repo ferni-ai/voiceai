@@ -141,6 +141,18 @@ function copyStaticFiles(): void {
       log.success('Copied generated tool documentation');
     }
   }
+
+  // Copy sanitizer config (tool-patterns.json)
+  const sanitizerConfigDir = join(CONFIG.srcDir, 'agents', 'shared', 'sanitizer', 'config');
+  const sanitizerConfigOutDir = join(CONFIG.outDir, 'agents', 'shared', 'sanitizer', 'config');
+
+  if (existsSync(sanitizerConfigDir)) {
+    if (!existsSync(sanitizerConfigOutDir)) {
+      mkdirSync(sanitizerConfigOutDir, { recursive: true });
+    }
+    cpSync(sanitizerConfigDir, sanitizerConfigOutDir, { recursive: true });
+    log.success('Copied sanitizer config');
+  }
 }
 
 /**
