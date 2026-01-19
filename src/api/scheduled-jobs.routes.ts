@@ -136,6 +136,44 @@ export async function handleScheduledJobsRoutes(
       await handleDailyAdminReport(res);
       return true;
 
+    // ========================================================================
+    // MEMORY MAINTENANCE JOBS (Better Than Human memory system)
+    // ========================================================================
+    case '/api/jobs/memory-consolidation':
+      await handleMemoryConsolidation(res);
+      return true;
+
+    case '/api/jobs/memory-decay':
+      await handleMemoryDecay(res);
+      return true;
+
+    case '/api/jobs/memory-deduplication':
+      await handleMemoryDeduplication(res);
+      return true;
+
+    case '/api/jobs/memory-health-check':
+      await handleMemoryHealthCheck(res);
+      return true;
+
+    // ========================================================================
+    // KNOWLEDGE GRAPH JOBS (Unified entity knowledge maintenance)
+    // ========================================================================
+    case '/api/jobs/knowledge-graph-insights':
+      await handleKnowledgeGraphInsights(res);
+      return true;
+
+    case '/api/jobs/knowledge-graph-consolidation':
+      await handleKnowledgeGraphConsolidation(res);
+      return true;
+
+    case '/api/jobs/knowledge-graph-thread-maintenance':
+      await handleKnowledgeGraphThreadMaintenance(res);
+      return true;
+
+    case '/api/jobs/knowledge-graph-entity-decay':
+      await handleKnowledgeGraphEntityDecay(res);
+      return true;
+
     default:
       return false;
   }
@@ -1462,6 +1500,474 @@ async function handleDailyAdminReport(res: ServerResponse): Promise<void> {
     sendJson(res, 500, {
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error',
+    });
+  }
+}
+
+// ============================================================================
+// MEMORY MAINTENANCE JOB HANDLERS
+// ============================================================================
+
+/**
+ * Memory Consolidation Job Handler
+ *
+ * Consolidates related memories to reduce storage and improve retrieval.
+ * Runs weekly to compress similar memories into richer representations.
+ */
+async function handleMemoryConsolidation(res: ServerResponse): Promise<void> {
+  const startTime = Date.now();
+
+  try {
+    log.info('🧠 Running memory consolidation job (Cloud Scheduler)');
+
+    const { MemoryConsolidationJob } = await import('../tasks/scheduled/memory-jobs.js');
+
+    const job = new MemoryConsolidationJob();
+    const result = await job.run({
+      dryRun: false,
+      minMemoriesForConsolidation: 20,
+      similarityThreshold: 0.7,
+      maxMemoriesToProcess: 100,
+      maxUsersPerRun: 50,
+    });
+
+    const durationMs = Date.now() - startTime;
+
+    log.info(
+      {
+        ...result,
+        durationMs,
+      },
+      '✅ Memory consolidation job completed'
+    );
+
+    sendJson(res, 200, {
+      success: true,
+      job: 'memory-consolidation',
+      stats: {
+        memoriesAnalyzed: result.memoriesAnalyzed,
+        groupsConsolidated: result.groupsConsolidated,
+        memoriesCompressed: result.memoriesCompressed,
+        bytesRecovered: result.bytesRecovered,
+        usersProcessed: result.usersProcessed,
+      },
+      durationMs,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error) {
+    const durationMs = Date.now() - startTime;
+    log.error({ error: String(error), durationMs }, 'Memory consolidation job failed');
+    sendJson(res, 500, {
+      success: false,
+      job: 'memory-consolidation',
+      error: error instanceof Error ? error.message : 'Unknown error',
+      timestamp: new Date().toISOString(),
+    });
+  }
+}
+
+/**
+ * Memory Decay Job Handler
+ *
+ * Applies graceful forgetting to old memories, allowing less important
+ * memories to fade while preserving emotionally significant ones.
+ * Runs daily to maintain healthy memory state.
+ */
+async function handleMemoryDecay(res: ServerResponse): Promise<void> {
+  const startTime = Date.now();
+
+  try {
+    log.info('🧠 Running memory decay job (Cloud Scheduler)');
+
+    const { MemoryDecayJob } = await import('../tasks/scheduled/memory-jobs.js');
+
+    const job = new MemoryDecayJob();
+    const result = await job.run({
+      dryRun: false,
+      archiveThreshold: 0.1,
+      protectEmotional: true,
+      maxMemoriesToProcess: 500,
+      maxUsersPerRun: 100,
+    });
+
+    const durationMs = Date.now() - startTime;
+
+    log.info(
+      {
+        ...result,
+        durationMs,
+      },
+      '✅ Memory decay job completed'
+    );
+
+    sendJson(res, 200, {
+      success: true,
+      job: 'memory-decay',
+      stats: {
+        memoriesDecayed: result.memoriesDecayed,
+        memoriesPruned: result.memoriesPruned,
+        averageStrengthBefore: result.averageStrengthBefore,
+        averageStrengthAfter: result.averageStrengthAfter,
+        usersProcessed: result.usersProcessed,
+      },
+      durationMs,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error) {
+    const durationMs = Date.now() - startTime;
+    log.error({ error: String(error), durationMs }, 'Memory decay job failed');
+    sendJson(res, 500, {
+      success: false,
+      job: 'memory-decay',
+      error: error instanceof Error ? error.message : 'Unknown error',
+      timestamp: new Date().toISOString(),
+    });
+  }
+}
+
+/**
+ * Memory Deduplication Job Handler
+ *
+ * Finds and handles duplicate or near-duplicate memories using LSH
+ * (Locality-Sensitive Hashing) for O(n) performance.
+ * Runs weekly to prevent storage bloat and retrieval confusion.
+ */
+async function handleMemoryDeduplication(res: ServerResponse): Promise<void> {
+  const startTime = Date.now();
+
+  try {
+    log.info('🧠 Running memory deduplication job (Cloud Scheduler)');
+
+    const { MemoryDeduplicationJob } = await import('../tasks/scheduled/memory-jobs.js');
+
+    const job = new MemoryDeduplicationJob();
+    const result = await job.run({
+      dryRun: false,
+      exactDuplicateThreshold: 0.95,
+      strategy: 'merge',
+      maxMemoriesToScan: 200,
+      maxUsersPerRun: 50,
+    });
+
+    const durationMs = Date.now() - startTime;
+
+    log.info(
+      {
+        ...result,
+        durationMs,
+      },
+      '✅ Memory deduplication job completed'
+    );
+
+    sendJson(res, 200, {
+      success: true,
+      job: 'memory-deduplication',
+      stats: {
+        memoriesScanned: result.memoriesScanned,
+        duplicatesFound: result.duplicatesFound,
+        memoriesMerged: result.memoriesMerged,
+        memoriesDeleted: result.memoriesDeleted,
+        usersProcessed: result.usersProcessed,
+      },
+      durationMs,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error) {
+    const durationMs = Date.now() - startTime;
+    log.error({ error: String(error), durationMs }, 'Memory deduplication job failed');
+    sendJson(res, 500, {
+      success: false,
+      job: 'memory-deduplication',
+      error: error instanceof Error ? error.message : 'Unknown error',
+      timestamp: new Date().toISOString(),
+    });
+  }
+}
+
+/**
+ * Memory Health Check Job Handler
+ *
+ * Collects metrics and checks for health issues in the memory system.
+ * Runs every 4 hours to monitor system health and send alerts.
+ */
+async function handleMemoryHealthCheck(res: ServerResponse): Promise<void> {
+  const startTime = Date.now();
+
+  try {
+    log.info('🧠 Running memory health check job (Cloud Scheduler)');
+
+    const { MemoryHealthCheckJob } = await import('../tasks/scheduled/memory-jobs.js');
+
+    const job = new MemoryHealthCheckJob();
+    const result = await job.run({
+      dryRun: false,
+      sendAlerts: true,
+    });
+
+    const durationMs = Date.now() - startTime;
+
+    // Determine overall status based on health score
+    const status =
+      result.healthScore >= 80 ? 'healthy' : result.healthScore >= 50 ? 'degraded' : 'unhealthy';
+
+    log.info(
+      {
+        healthScore: result.healthScore,
+        alertCount: result.alerts.length,
+        status,
+        durationMs,
+      },
+      '✅ Memory health check completed'
+    );
+
+    sendJson(res, 200, {
+      success: true,
+      job: 'memory-health-check',
+      status,
+      healthScore: result.healthScore,
+      alerts: result.alerts.map((a) => ({
+        severity: a.severity,
+        message: a.message,
+      })),
+      metrics: {
+        storage: result.metrics.storage,
+        embedding: result.metrics.embedding,
+        retrieval: result.metrics.retrieval,
+        deduplication: result.metrics.deduplication,
+      },
+      durationMs,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error) {
+    const durationMs = Date.now() - startTime;
+    log.error({ error: String(error), durationMs }, 'Memory health check job failed');
+    sendJson(res, 500, {
+      success: false,
+      job: 'memory-health-check',
+      error: error instanceof Error ? error.message : 'Unknown error',
+      timestamp: new Date().toISOString(),
+    });
+  }
+}
+
+// ============================================================================
+// KNOWLEDGE GRAPH JOB HANDLERS
+// ============================================================================
+
+/**
+ * Knowledge Graph Insight Generation Job Handler
+ *
+ * Detects patterns, correlations, and generates insights from the knowledge graph.
+ * Runs daily to surface meaningful connections in user data.
+ */
+async function handleKnowledgeGraphInsights(res: ServerResponse): Promise<void> {
+  const startTime = Date.now();
+
+  try {
+    log.info('🧠 Running knowledge graph insight generation job (Cloud Scheduler)');
+
+    const { InsightGenerationJob } = await import('../tasks/scheduled/knowledge-graph-jobs.js');
+
+    const job = new InsightGenerationJob();
+    const result = await job.run({
+      dryRun: false,
+      maxUsers: 50,
+      minObservations: 5,
+      minStrength: 0.5,
+    });
+
+    const durationMs = Date.now() - startTime;
+
+    log.info(
+      {
+        ...result,
+        durationMs,
+      },
+      '✅ Knowledge graph insight generation completed'
+    );
+
+    sendJson(res, 200, {
+      success: true,
+      job: 'knowledge-graph-insights',
+      stats: {
+        processedUsers: result.processedUsers,
+        totalInsights: result.totalInsights,
+      },
+      durationMs,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error) {
+    const durationMs = Date.now() - startTime;
+    log.error({ error: String(error), durationMs }, 'Knowledge graph insight generation failed');
+    sendJson(res, 500, {
+      success: false,
+      job: 'knowledge-graph-insights',
+      error: error instanceof Error ? error.message : 'Unknown error',
+      timestamp: new Date().toISOString(),
+    });
+  }
+}
+
+/**
+ * Knowledge Graph Consolidation Job Handler
+ *
+ * Merges duplicate entities and cleans up orphaned references.
+ * Runs weekly to maintain knowledge graph quality.
+ */
+async function handleKnowledgeGraphConsolidation(res: ServerResponse): Promise<void> {
+  const startTime = Date.now();
+
+  try {
+    log.info('🧠 Running knowledge graph consolidation job (Cloud Scheduler)');
+
+    const { ConsolidationJob } = await import('../tasks/scheduled/knowledge-graph-jobs.js');
+
+    const job = new ConsolidationJob();
+    const result = await job.run({
+      dryRun: false,
+      maxUsers: 100,
+      decayRate: 0.02,
+      archiveThreshold: 0.05,
+    });
+
+    const durationMs = Date.now() - startTime;
+
+    log.info(
+      {
+        ...result,
+        durationMs,
+      },
+      '✅ Knowledge graph consolidation completed'
+    );
+
+    sendJson(res, 200, {
+      success: true,
+      job: 'knowledge-graph-consolidation',
+      stats: {
+        processedUsers: result.processedUsers,
+        entitiesMerged: result.entitiesMerged,
+        entitiesDecayed: result.entitiesDecayed,
+      },
+      durationMs,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error) {
+    const durationMs = Date.now() - startTime;
+    log.error({ error: String(error), durationMs }, 'Knowledge graph consolidation failed');
+    sendJson(res, 500, {
+      success: false,
+      job: 'knowledge-graph-consolidation',
+      error: error instanceof Error ? error.message : 'Unknown error',
+      timestamp: new Date().toISOString(),
+    });
+  }
+}
+
+/**
+ * Knowledge Graph Thread Maintenance Job Handler
+ *
+ * Marks dormant conversation threads and cleans up expired ones.
+ * Runs daily to maintain thread quality.
+ */
+async function handleKnowledgeGraphThreadMaintenance(res: ServerResponse): Promise<void> {
+  const startTime = Date.now();
+
+  try {
+    log.info('🧠 Running knowledge graph thread maintenance job (Cloud Scheduler)');
+
+    const { ThreadMaintenanceJob } = await import('../tasks/scheduled/knowledge-graph-jobs.js');
+
+    const job = new ThreadMaintenanceJob();
+    const result = await job.run({
+      dryRun: false,
+      maxUsers: 100,
+      dormantAfterDays: 30,
+    });
+
+    const durationMs = Date.now() - startTime;
+
+    log.info(
+      {
+        ...result,
+        durationMs,
+      },
+      '✅ Knowledge graph thread maintenance completed'
+    );
+
+    sendJson(res, 200, {
+      success: true,
+      job: 'knowledge-graph-thread-maintenance',
+      stats: {
+        processedUsers: result.processedUsers,
+        threadsDormant: result.threadsDormant,
+        insightsExpired: result.insightsExpired,
+      },
+      durationMs,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error) {
+    const durationMs = Date.now() - startTime;
+    log.error({ error: String(error), durationMs }, 'Knowledge graph thread maintenance failed');
+    sendJson(res, 500, {
+      success: false,
+      job: 'knowledge-graph-thread-maintenance',
+      error: error instanceof Error ? error.message : 'Unknown error',
+      timestamp: new Date().toISOString(),
+    });
+  }
+}
+
+/**
+ * Knowledge Graph Entity Decay Job Handler
+ *
+ * Applies memory decay to entities based on recency and importance.
+ * Runs daily to implement graceful forgetting at the entity level.
+ */
+async function handleKnowledgeGraphEntityDecay(res: ServerResponse): Promise<void> {
+  const startTime = Date.now();
+
+  try {
+    log.info('🧠 Running knowledge graph entity decay job (Cloud Scheduler)');
+
+    const { EntityDecayJob } = await import('../tasks/scheduled/knowledge-graph-jobs.js');
+
+    const job = new EntityDecayJob();
+    const result = await job.run({
+      dryRun: false,
+      maxUsers: 100,
+      baseDecayRate: 0.05,
+      recentMentionProtectionDays: 7,
+      emotionalProtection: 0.5,
+    });
+
+    const durationMs = Date.now() - startTime;
+
+    log.info(
+      {
+        ...result,
+        durationMs,
+      },
+      '✅ Knowledge graph entity decay completed'
+    );
+
+    sendJson(res, 200, {
+      success: true,
+      job: 'knowledge-graph-entity-decay',
+      stats: {
+        processedUsers: result.processedUsers,
+        entitiesDecayed: result.entitiesDecayed,
+      },
+      durationMs,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error) {
+    const durationMs = Date.now() - startTime;
+    log.error({ error: String(error), durationMs }, 'Knowledge graph entity decay failed');
+    sendJson(res, 500, {
+      success: false,
+      job: 'knowledge-graph-entity-decay',
+      error: error instanceof Error ? error.message : 'Unknown error',
+      timestamp: new Date().toISOString(),
     });
   }
 }

@@ -542,11 +542,13 @@ const COMMANDS: Record<string, CliCommand> = {
     description: 'Operational tasks (zombies, health, semantic, cleanup)',
     icon: '🔧',
     handler: handleOps,
-    subcommands: ['zombies', 'diagnose', 'health', 'ttl-cleanup', 'semantic', 'scheduler', 'logs', 'dashboard', 'metrics'],
+    subcommands: ['zombies', 'diagnose', 'health', 'memory', 'ttl-cleanup', 'semantic', 'scheduler', 'logs', 'dashboard', 'metrics'],
     examples: [
       'ferni ops zombies',
       'ferni ops diagnose',
       'ferni ops health',
+      'ferni ops memory:deploy-scheduler',
+      'ferni ops memory:scheduler-status',
       'ferni ops dashboard',
       'ferni ops metrics',
     ],
@@ -1194,6 +1196,50 @@ const COMMANDS: Record<string, CliCommand> = {
       'ferni growth influencer --tier micro',
       'ferni growth auto post on',
       'ferni growth run --generate',
+    ],
+  },
+  // ============================================================================
+  // BRAND & COMMUNITY - Brand evolution automation
+  // ============================================================================
+  brand: {
+    name: 'Brand',
+    description: 'Brand execution hub (awards, story, workstreams, audit)',
+    icon: '🎨',
+    handler: handleBrand,
+    subcommands: ['dashboard', 'awards', 'story', 'workstreams', 'audit'],
+    examples: [
+      'ferni brand',
+      'ferni brand awards',
+      'ferni brand story create',
+      'ferni brand workstreams',
+      'ferni brand audit',
+    ],
+  },
+  community: {
+    name: 'Community',
+    description: 'Community automation (Discord, stories, ambassadors, events)',
+    icon: '🏘️',
+    handler: handleCommunity,
+    subcommands: ['dashboard', 'discord', 'stories', 'ambassadors', 'events'],
+    examples: [
+      'ferni community',
+      'ferni community discord',
+      'ferni community stories',
+      'ferni community ambassadors',
+      'ferni community events',
+    ],
+  },
+  rituals: {
+    name: 'Rituals',
+    description: 'Cultural rituals automation (daily, weekly, milestones)',
+    icon: '🌿',
+    handler: handleRituals,
+    subcommands: ['daily', 'morning', 'evening', 'weekly', 'milestone', 'prompts'],
+    examples: [
+      'ferni rituals',
+      'ferni rituals morning',
+      'ferni rituals weekly',
+      'ferni rituals milestone',
     ],
   },
   // ============================================================================
@@ -5035,6 +5081,73 @@ async function handleGrowth(args: string[]): Promise<void> {
 }
 
 // ============================================================================
+// BRAND & COMMUNITY HANDLERS
+// ============================================================================
+
+async function handleBrand(args: string[]): Promise<void> {
+  // Dynamic import to avoid bundling
+  const { brand } = await import('./commands/brand/brand.js');
+
+  // Parse args: ferni brand [command] [subcommand] [--options]
+  const [command, subcommand, ...rest] = args;
+  const options: Record<string, unknown> = {};
+
+  // Parse options
+  for (let i = 0; i < rest.length; i++) {
+    const arg = rest[i];
+    if (arg.startsWith('--')) {
+      const key = arg.slice(2).replace(/-/g, '');
+      const value = rest[i + 1] && !rest[i + 1].startsWith('--') ? rest[++i] : true;
+      options[key] = value;
+    }
+  }
+
+  await brand(command, subcommand, options);
+}
+
+async function handleCommunity(args: string[]): Promise<void> {
+  // Dynamic import to avoid bundling
+  const { community } = await import('./commands/community/community.js');
+
+  // Parse args: ferni community [command] [subcommand] [--options]
+  const [command, subcommand, ...rest] = args;
+  const options: Record<string, unknown> = {};
+
+  // Parse options
+  for (let i = 0; i < rest.length; i++) {
+    const arg = rest[i];
+    if (arg.startsWith('--')) {
+      const key = arg.slice(2).replace(/-/g, '');
+      const value = rest[i + 1] && !rest[i + 1].startsWith('--') ? rest[++i] : true;
+      options[key] = value;
+    }
+  }
+
+  await community(command, subcommand, options);
+}
+
+async function handleRituals(args: string[]): Promise<void> {
+  // Dynamic import to avoid bundling
+  const { rituals } = await import('./commands/rituals/rituals.js');
+
+  // Parse args: ferni rituals [command] [subcommand] [--options]
+  const [command, subcommand, ...rest] = args;
+  const options: Record<string, unknown> = {};
+
+  // Parse options
+  for (let i = 0; i < rest.length; i++) {
+    const arg = rest[i];
+    if (arg.startsWith('--')) {
+      const key = arg.slice(2).replace(/-/g, '');
+      const value = rest[i + 1] && !rest[i + 1].startsWith('--') ? rest[++i] : true;
+      options[key] = value;
+    }
+  }
+
+  await rituals(command, subcommand, options);
+}
+
+// ============================================================================
 // VOICE + CLAUDE CODE COMMAND
 // ============================================================================
 
@@ -6041,6 +6154,7 @@ async function handleOps(args: string[]): Promise<void> {
     console.log(`  ${colors.cyan}ferni ops zombies${colors.reset}      - Cleanup zombie Cloud Run revisions`);
     console.log(`  ${colors.cyan}ferni ops diagnose${colors.reset}     - Diagnose disconnect issues`);
     console.log(`  ${colors.cyan}ferni ops health${colors.reset}       - Run health checks with alerts`);
+    console.log(`  ${colors.cyan}ferni ops memory${colors.reset}       - Memory system scheduler management`);
     console.log(`  ${colors.cyan}ferni ops ttl-cleanup${colors.reset}  - Run TTL data cleanup`);
     console.log(`  ${colors.cyan}ferni ops semantic${colors.reset}     - Semantic store management`);
     console.log(`  ${colors.cyan}ferni ops scheduler${colors.reset}    - Setup GCP Cloud Scheduler`);
@@ -6102,6 +6216,43 @@ async function handleOps(args: string[]): Promise<void> {
       console.log(`${colors.bold}Semantic Store Commands:${colors.reset}\n`);
       console.log(`  ${colors.cyan}ferni ops semantic deploy${colors.reset}    - Deploy semantic store`);
       console.log(`  ${colors.cyan}ferni ops semantic backfill${colors.reset}  - Run semantic backfill`);
+    }
+  }
+
+  if (subcommand === 'memory' || subcommand.startsWith('memory:')) {
+    // Handle memory:xxx shorthand syntax
+    const action = subcommand.includes(':') ? subcommand.split(':')[1] : (args[1] || 'status');
+    const subArgs = subcommand.includes(':') ? args.slice(1) : args.slice(2);
+    const dryRun = args.includes('--dry-run');
+
+    if (action === 'deploy-scheduler' || action === 'deploy') {
+      console.log(`${colors.cyan}Deploying memory scheduler jobs...${colors.reset}\n`);
+      const cmd = dryRun
+        ? `npx tsx ${cliCommandsDir}/memory-scheduler.ts deploy --dry-run`
+        : `npx tsx ${cliCommandsDir}/memory-scheduler.ts deploy`;
+      spawnSync('sh', ['-c', cmd], { stdio: 'inherit' });
+    } else if (action === 'scheduler-status' || action === 'status') {
+      console.log(`${colors.cyan}Checking memory scheduler status...${colors.reset}\n`);
+      spawnSync('sh', ['-c', `npx tsx ${cliCommandsDir}/memory-scheduler.ts status`], { stdio: 'inherit' });
+    } else if (action === 'trigger') {
+      const jobName = subArgs[0];
+      if (!jobName) {
+        console.log(`${colors.red}Please specify a job name: ferni ops memory:trigger <job-name>${colors.reset}`);
+        return;
+      }
+      console.log(`${colors.cyan}Triggering memory job: ${jobName}...${colors.reset}\n`);
+      spawnSync('sh', ['-c', `npx tsx ${cliCommandsDir}/memory-scheduler.ts trigger ${jobName}`], { stdio: 'inherit' });
+    } else if (action === 'list') {
+      console.log(`${colors.cyan}Available memory jobs:${colors.reset}\n`);
+      spawnSync('sh', ['-c', `npx tsx ${cliCommandsDir}/memory-scheduler.ts list`], { stdio: 'inherit' });
+    } else {
+      console.log(`${colors.bold}Memory System Commands:${colors.reset}\n`);
+      console.log(`  ${colors.cyan}ferni ops memory:deploy-scheduler${colors.reset}  - Deploy all memory scheduler jobs`);
+      console.log(`  ${colors.cyan}ferni ops memory:scheduler-status${colors.reset}  - Show scheduler job status`);
+      console.log(`  ${colors.cyan}ferni ops memory:trigger <job>${colors.reset}     - Manually trigger a job`);
+      console.log(`  ${colors.cyan}ferni ops memory:list${colors.reset}              - List available jobs`);
+      console.log(`\n${colors.dim}Options:${colors.reset}`);
+      console.log(`  ${colors.dim}--dry-run${colors.reset}  Preview changes without applying`);
     }
   }
 

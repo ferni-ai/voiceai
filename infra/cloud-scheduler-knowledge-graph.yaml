@@ -1,0 +1,147 @@
+# Cloud Scheduler Jobs for Knowledge Graph Maintenance
+#
+# These jobs maintain the unified knowledge graph (Better Than Human memory):
+# - Insight Generation: Detect patterns and correlations
+# - Consolidation: Merge duplicates, cleanup entities
+# - Thread Maintenance: Mark dormant threads, cleanup expired
+# - Entity Decay: Apply memory decay to old entities
+#
+# Deploy with gcloud commands below or via `ferni ops memory:deploy-scheduler`
+
+jobs:
+  # Insight Generation - runs daily at 2am PT
+  # Detects patterns, correlations, and generates insights from knowledge graph
+  - name: knowledge-graph-insights
+    description: Daily insight generation from knowledge graph
+    schedule: "0 2 * * *"  # 2am every day
+    timeZone: America/Los_Angeles
+    httpTarget:
+      uri: https://app.ferni.ai/api/jobs/knowledge-graph-insights
+      httpMethod: POST
+      headers:
+        Content-Type: application/json
+        X-CloudScheduler: "true"
+    retryConfig:
+      retryCount: 2
+      minBackoffDuration: 60s
+      maxBackoffDuration: 300s
+
+  # Entity Consolidation - runs weekly on Mondays at 3am PT
+  # Merges duplicate entities, cleans up orphaned references
+  - name: knowledge-graph-consolidation
+    description: Weekly knowledge graph entity consolidation
+    schedule: "0 3 * * 1"  # 3am every Monday
+    timeZone: America/Los_Angeles
+    httpTarget:
+      uri: https://app.ferni.ai/api/jobs/knowledge-graph-consolidation
+      httpMethod: POST
+      headers:
+        Content-Type: application/json
+        X-CloudScheduler: "true"
+    retryConfig:
+      retryCount: 2
+      minBackoffDuration: 60s
+      maxBackoffDuration: 300s
+
+  # Thread Maintenance - runs daily at 4am PT
+  # Marks dormant conversation threads, cleans up expired threads
+  - name: knowledge-graph-thread-maintenance
+    description: Daily conversation thread maintenance
+    schedule: "0 4 * * *"  # 4am every day
+    timeZone: America/Los_Angeles
+    httpTarget:
+      uri: https://app.ferni.ai/api/jobs/knowledge-graph-thread-maintenance
+      httpMethod: POST
+      headers:
+        Content-Type: application/json
+        X-CloudScheduler: "true"
+    retryConfig:
+      retryCount: 2
+      minBackoffDuration: 30s
+      maxBackoffDuration: 120s
+
+  # Entity Decay - runs daily at 5am PT
+  # Applies memory decay to entities based on recency and importance
+  - name: knowledge-graph-entity-decay
+    description: Daily entity importance decay
+    schedule: "0 5 * * *"  # 5am every day
+    timeZone: America/Los_Angeles
+    httpTarget:
+      uri: https://app.ferni.ai/api/jobs/knowledge-graph-entity-decay
+      httpMethod: POST
+      headers:
+        Content-Type: application/json
+        X-CloudScheduler: "true"
+    retryConfig:
+      retryCount: 2
+      minBackoffDuration: 30s
+      maxBackoffDuration: 120s
+
+# ============================================================================
+# MANUAL DEPLOYMENT COMMANDS
+# ============================================================================
+#
+# Create all knowledge graph jobs:
+#
+# gcloud scheduler jobs create http knowledge-graph-insights \
+#   --location=us-central1 \
+#   --schedule="0 2 * * *" \
+#   --uri="https://app.ferni.ai/api/jobs/knowledge-graph-insights" \
+#   --http-method=POST \
+#   --headers="Content-Type=application/json,X-CloudScheduler=true" \
+#   --time-zone="America/Los_Angeles" \
+#   --description="Daily insight generation from knowledge graph"
+#
+# gcloud scheduler jobs create http knowledge-graph-consolidation \
+#   --location=us-central1 \
+#   --schedule="0 3 * * 1" \
+#   --uri="https://app.ferni.ai/api/jobs/knowledge-graph-consolidation" \
+#   --http-method=POST \
+#   --headers="Content-Type=application/json,X-CloudScheduler=true" \
+#   --time-zone="America/Los_Angeles" \
+#   --description="Weekly knowledge graph entity consolidation"
+#
+# gcloud scheduler jobs create http knowledge-graph-thread-maintenance \
+#   --location=us-central1 \
+#   --schedule="0 4 * * *" \
+#   --uri="https://app.ferni.ai/api/jobs/knowledge-graph-thread-maintenance" \
+#   --http-method=POST \
+#   --headers="Content-Type=application/json,X-CloudScheduler=true" \
+#   --time-zone="America/Los_Angeles" \
+#   --description="Daily conversation thread maintenance"
+#
+# gcloud scheduler jobs create http knowledge-graph-entity-decay \
+#   --location=us-central1 \
+#   --schedule="0 5 * * *" \
+#   --uri="https://app.ferni.ai/api/jobs/knowledge-graph-entity-decay" \
+#   --http-method=POST \
+#   --headers="Content-Type=application/json,X-CloudScheduler=true" \
+#   --time-zone="America/Los_Angeles" \
+#   --description="Daily entity importance decay"
+#
+# ============================================================================
+# TESTING COMMANDS
+# ============================================================================
+#
+# Test insight generation manually:
+# curl -X POST https://app.ferni.ai/api/jobs/knowledge-graph-insights \
+#   -H "Content-Type: application/json" \
+#   -H "X-Dev-Trigger: true"
+#
+# Test consolidation manually:
+# curl -X POST https://app.ferni.ai/api/jobs/knowledge-graph-consolidation \
+#   -H "Content-Type: application/json" \
+#   -H "X-Dev-Trigger: true"
+#
+# Test thread maintenance manually:
+# curl -X POST https://app.ferni.ai/api/jobs/knowledge-graph-thread-maintenance \
+#   -H "Content-Type: application/json" \
+#   -H "X-Dev-Trigger: true"
+#
+# Test entity decay manually:
+# curl -X POST https://app.ferni.ai/api/jobs/knowledge-graph-entity-decay \
+#   -H "Content-Type: application/json" \
+#   -H "X-Dev-Trigger: true"
+#
+# List all scheduler jobs:
+# gcloud scheduler jobs list --location=us-central1 | grep knowledge-graph

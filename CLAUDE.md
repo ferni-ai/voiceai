@@ -893,6 +893,12 @@ pnpm vitest run src/memory/dynamic/__tests__/ src/tests/synthetic/dynamic-memory
 
 # Run with Firestore emulator
 firebase emulators:start --only firestore &
+
+# Memory scheduler management
+ferni ops memory:deploy-scheduler    # Deploy all memory scheduler jobs
+ferni ops memory:scheduler-status    # Show scheduler job status
+ferni ops memory:trigger <job>       # Manually trigger a job
+ferni ops memory:list                # List available jobs
 FIRESTORE_EMULATOR_HOST=localhost:8080 pnpm vitest run src/tests/integration/
 ```
 
@@ -926,6 +932,39 @@ FIRESTORE_EMULATOR_HOST=localhost:8080 pnpm vitest run src/tests/integration/
 | E2E tests | 76 |
 | Integration tests | 11 |
 | **Total** | **122** |
+
+### Memory Maintenance Jobs (Cloud Scheduler)
+
+The memory system runs scheduled maintenance jobs via Cloud Scheduler:
+
+| Job | Schedule | Purpose |
+|-----|----------|---------|
+| `memory-consolidation` | Weekly (Sun 3am PT) | Merge related memories, reduce storage |
+| `memory-decay` | Daily (4am PT) | Graceful forgetting, decay old memories |
+| `memory-deduplication` | Weekly (Sat 2am PT) | LSH-based duplicate cleanup |
+| `memory-health-check` | Every 4 hours | Monitor system health, send alerts |
+| `knowledge-graph-insights` | Daily (2am PT) | Generate insights from entity patterns |
+| `knowledge-graph-consolidation` | Weekly (Mon 3am PT) | Merge duplicate entities |
+| `knowledge-graph-thread-maintenance` | Daily (4am PT) | Mark dormant threads, cleanup expired |
+| `knowledge-graph-entity-decay` | Daily (5am PT) | Apply importance decay to entities |
+
+**Deployment:**
+```bash
+# Deploy all memory scheduler jobs
+ferni ops memory:deploy-scheduler
+
+# Check job status
+ferni ops memory:scheduler-status
+
+# Manually trigger a job
+ferni ops memory:trigger memory-health-check
+```
+
+**Key Files:**
+- API handlers: `src/api/scheduled-jobs.routes.ts`
+- Job classes: `src/tasks/scheduled/memory-jobs.ts`, `knowledge-graph-jobs.ts`
+- Scheduler YAML: `infra/cloud-scheduler-memory.yaml`, `cloud-scheduler-knowledge-graph.yaml`
+- CLI: `apps/cli/src/commands/ops/memory-scheduler.ts`
 
 ## 🚀 Ferni EQ - Superhuman Emotional Intelligence
 
@@ -1708,7 +1747,7 @@ The Ferni CLI (`ferni`) provides comprehensive access to all development, deploy
 | `ferni doctor` | System diagnostics | all, apis, quotas, billing, env |
 | `ferni db` | Database operations | status, backup, migrate, query |
 | `ferni env` | Environment variables | list, diff, check, sync, secrets |
-| `ferni ops` | Operational tasks | zombies, health, semantic, scheduler |
+| `ferni ops` | Operational tasks | zombies, health, semantic, scheduler, memory |
 | `ferni users` | User data management | list, show, dump, cleanup, grant |
 | `ferni data` | Data analysis | profiles, behaviors, tools, contacts |
 | `ferni waitlist` | Manage waitlist | list, approve, stats, export |

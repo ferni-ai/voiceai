@@ -275,3 +275,226 @@ spec:
   notificationChannels:
     - projects/ferni-prod/notificationChannels/email-oncall
     - projects/ferni-prod/notificationChannels/slack-alerts
+
+---
+# ============================================================================
+# MEMORY SYSTEM ALERTS
+# Better Than Human memory maintenance monitoring
+# ============================================================================
+
+# Memory Consolidation Job Failure
+# Triggers when weekly memory consolidation job fails
+apiVersion: monitoring.googleapis.com/v1
+kind: AlertPolicy
+metadata:
+  name: memory-consolidation-failure
+  labels:
+    severity: warning
+    team: memory
+spec:
+  displayName: "Memory Consolidation Job Failed"
+  documentation:
+    content: |
+      The weekly memory consolidation job has failed.
+
+      **Impact:**
+      - Related memories not being merged
+      - Storage not being optimized
+      - Memory retrieval may be slower
+
+      **Investigation Steps:**
+      1. Check job logs: `ferni ops logs --filter=memory-consolidation`
+      2. Verify Firestore connectivity
+      3. Check for timeout issues (job may need more time)
+      4. Manual trigger: `ferni ops memory:trigger memory-consolidation`
+
+      **Recovery:**
+      - Job will retry automatically
+      - If persistent, check `src/tasks/scheduled/memory-jobs.ts`
+    mimeType: text/markdown
+  conditions:
+    - displayName: Memory consolidation job error
+      conditionThreshold:
+        filter: |
+          resource.type="cloud_run_revision"
+          AND resource.labels.service_name="john-bogle-ui"
+          AND metric.type="logging.googleapis.com/log_entry_count"
+          AND textPayload=~"Memory consolidation job failed"
+        aggregations:
+          - alignmentPeriod: 3600s
+            perSeriesAligner: ALIGN_COUNT
+        comparison: COMPARISON_GT
+        thresholdValue: 0
+        duration: 0s
+  combiner: OR
+  alertStrategy:
+    autoClose: 86400s  # 24 hours (weekly job)
+  notificationChannels:
+    - projects/ferni-prod/notificationChannels/slack-alerts
+
+---
+# Memory Decay Job Failure
+# Triggers when daily memory decay job fails
+apiVersion: monitoring.googleapis.com/v1
+kind: AlertPolicy
+metadata:
+  name: memory-decay-failure
+  labels:
+    severity: warning
+    team: memory
+spec:
+  displayName: "Memory Decay Job Failed"
+  documentation:
+    content: |
+      The daily memory decay job has failed.
+
+      **Impact:**
+      - Old memories not being gracefully forgotten
+      - Storage growing without natural cleanup
+      - Less relevant memories still prominent
+
+      **Investigation Steps:**
+      1. Check job logs: `ferni ops logs --filter=memory-decay`
+      2. Verify Firestore connectivity
+      3. Check for rate limiting issues
+      4. Manual trigger: `ferni ops memory:trigger memory-decay`
+
+      **Recovery:**
+      - Job will retry automatically next day
+      - Memories are protected by emotional importance
+    mimeType: text/markdown
+  conditions:
+    - displayName: Memory decay job error
+      conditionThreshold:
+        filter: |
+          resource.type="cloud_run_revision"
+          AND resource.labels.service_name="john-bogle-ui"
+          AND metric.type="logging.googleapis.com/log_entry_count"
+          AND textPayload=~"Memory decay job failed"
+        aggregations:
+          - alignmentPeriod: 3600s
+            perSeriesAligner: ALIGN_COUNT
+        comparison: COMPARISON_GT
+        thresholdValue: 0
+        duration: 0s
+  combiner: OR
+  alertStrategy:
+    autoClose: 86400s
+  notificationChannels:
+    - projects/ferni-prod/notificationChannels/slack-alerts
+
+---
+# Memory Health Check Degraded
+# Triggers when memory health score drops below threshold
+apiVersion: monitoring.googleapis.com/v1
+kind: AlertPolicy
+metadata:
+  name: memory-health-degraded
+  labels:
+    severity: warning
+    team: memory
+spec:
+  displayName: "Memory Health Degraded"
+  documentation:
+    content: |
+      Memory system health score has dropped below acceptable levels.
+
+      **Health Score Meaning:**
+      - 80-100: Healthy
+      - 50-79: Degraded
+      - 0-49: Unhealthy
+
+      **Common Causes:**
+      - High cache miss rate
+      - Slow retrieval latency
+      - Embedding service issues
+      - Firestore connectivity problems
+
+      **Investigation Steps:**
+      1. Check health endpoint: `curl https://app.ferni.ai/api/memory/health`
+      2. Review health check results: `ferni ops memory:scheduler-status`
+      3. Check embedding service health
+      4. Verify Redis cache connectivity
+
+      **Impact:**
+      - Memory retrieval may be slower
+      - Context building may timeout
+      - User experience affected
+    mimeType: text/markdown
+  conditions:
+    - displayName: Health score below threshold
+      conditionThreshold:
+        filter: |
+          resource.type="cloud_run_revision"
+          AND resource.labels.service_name="john-bogle-ui"
+          AND metric.type="logging.googleapis.com/log_entry_count"
+          AND textPayload=~"Memory health.*unhealthy|degraded"
+        aggregations:
+          - alignmentPeriod: 14400s  # 4 hours
+            perSeriesAligner: ALIGN_COUNT
+        comparison: COMPARISON_GT
+        thresholdValue: 2  # Multiple failures
+        duration: 0s
+  combiner: OR
+  alertStrategy:
+    autoClose: 14400s
+  notificationChannels:
+    - projects/ferni-prod/notificationChannels/slack-alerts
+
+---
+# Knowledge Graph Job Failure
+# Triggers when any knowledge graph maintenance job fails
+apiVersion: monitoring.googleapis.com/v1
+kind: AlertPolicy
+metadata:
+  name: knowledge-graph-job-failure
+  labels:
+    severity: warning
+    team: memory
+spec:
+  displayName: "Knowledge Graph Job Failed"
+  documentation:
+    content: |
+      A knowledge graph maintenance job has failed.
+
+      **Jobs Monitored:**
+      - knowledge-graph-insights (daily)
+      - knowledge-graph-consolidation (weekly)
+      - knowledge-graph-thread-maintenance (daily)
+      - knowledge-graph-entity-decay (daily)
+
+      **Impact:**
+      - Insights not being generated
+      - Entities not being consolidated
+      - Conversation threads not maintained
+      - Entity importance not decaying naturally
+
+      **Investigation Steps:**
+      1. Check job logs: `ferni ops logs --filter=knowledge-graph`
+      2. Verify Firestore connectivity
+      3. Check for specific job failures
+      4. Manual trigger: `ferni ops memory:trigger <job-name>`
+
+      **Recovery:**
+      - Jobs will retry automatically
+      - Knowledge graph is resilient to missed runs
+    mimeType: text/markdown
+  conditions:
+    - displayName: Knowledge graph job error
+      conditionThreshold:
+        filter: |
+          resource.type="cloud_run_revision"
+          AND resource.labels.service_name="john-bogle-ui"
+          AND metric.type="logging.googleapis.com/log_entry_count"
+          AND textPayload=~"Knowledge graph.*(failed|error)"
+        aggregations:
+          - alignmentPeriod: 3600s
+            perSeriesAligner: ALIGN_COUNT
+        comparison: COMPARISON_GT
+        thresholdValue: 0
+        duration: 0s
+  combiner: OR
+  alertStrategy:
+    autoClose: 86400s
+  notificationChannels:
+    - projects/ferni-prod/notificationChannels/slack-alerts

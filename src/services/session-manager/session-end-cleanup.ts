@@ -357,6 +357,7 @@ export async function persistSocialGraphOnEnd(userId: string): Promise<void> {
 
 /**
  * Promote STM (Short-Term Memory) to Firestore at session end.
+ * Also queues memory consolidation for async processing.
  */
 export async function promoteSTMToFirestore(sessionId: string, userId: string): Promise<void> {
   log.info({ sessionId, userId }, '🧠 [MEMORY-AUDIT] Calling STM promotion from end-session');
@@ -364,6 +365,17 @@ export async function promoteSTMToFirestore(sessionId: string, userId: string): 
     const { onSessionEnd } = await import('../../memory/dynamic/stm-promotion.js');
     await onSessionEnd(sessionId, userId);
     log.info({ sessionId, userId }, '🧠 [MEMORY-AUDIT] STM promotion completed from end-session');
+
+    // Queue memory consolidation for async processing
+    // This allows related memories to be consolidated shortly after session ends
+    try {
+      const { queueMemoryConsolidation } = await import('../../workers/summarization-worker.js');
+      queueMemoryConsolidation(userId);
+      log.debug({ sessionId, userId }, '🧠 [MEMORY-AUDIT] Memory consolidation queued');
+    } catch (consolidationError) {
+      // Non-critical - scheduled job will handle it
+      log.debug({ error: String(consolidationError), userId }, '🧠 Memory consolidation queue skipped');
+    }
   } catch (stmError) {
     log.warn({ error: String(stmError), sessionId, userId }, '🧠 [MEMORY-AUDIT] STM promotion FAILED');
   }
