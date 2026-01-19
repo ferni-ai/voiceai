@@ -1,0 +1,54 @@
+name: 'Setup Node.js and pnpm'
+description: 'Sets up Node.js, pnpm, and installs dependencies with caching'
+
+inputs:
+  node-version:
+    description: 'Node.js version'
+    default: '20'
+  pnpm-version:
+    description: 'pnpm version'
+    default: '10'
+  install-deps:
+    description: 'Whether to install dependencies'
+    default: 'true'
+  frozen-lockfile:
+    description: 'Use frozen lockfile (fail if lockfile needs update)'
+    default: 'false'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Setup pnpm
+      uses: pnpm/action-setup@v4
+      with:
+        version: ${{ inputs.pnpm-version }}
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ inputs.node-version }}
+        cache: 'pnpm'
+
+    - name: Fix local dependencies for CI
+      if: inputs.install-deps == 'true'
+      shell: bash
+      run: |
+        # Replace local file: dependencies with npm registry versions
+        # The local agents-js fork is not available in CI
+        LIVEKIT_VERSION="1.0.31"
+        sed -i 's|"file:../agents-js/agents"|"^'"$LIVEKIT_VERSION"'"|g' package.json || true
+        sed -i 's|"file:../agents-js/plugins/cartesia"|"^'"$LIVEKIT_VERSION"'"|g' package.json || true
+        sed -i 's|"file:../agents-js/plugins/deepgram"|"^'"$LIVEKIT_VERSION"'"|g' package.json || true
+        sed -i 's|"file:../agents-js/plugins/google"|"^'"$LIVEKIT_VERSION"'"|g' package.json || true
+        sed -i 's|"file:../agents-js/plugins/openai"|"^'"$LIVEKIT_VERSION"'"|g' package.json || true
+        sed -i 's|"file:../agents-js/plugins/silero"|"^'"$LIVEKIT_VERSION"'"|g' package.json || true
+
+    - name: Install dependencies
+      if: inputs.install-deps == 'true'
+      shell: bash
+      run: |
+        if [ "${{ inputs.frozen-lockfile }}" == "true" ]; then
+          pnpm install --frozen-lockfile
+        else
+          pnpm install --no-frozen-lockfile
+        fi

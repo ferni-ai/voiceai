@@ -123,7 +123,7 @@ jobs:
           NODE_ENV: staging
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v4
         with:
           name: staging-build-${{ needs.context.outputs.short_sha }}
           path: |

@@ -3,27 +3,92 @@ name: CI
 on:
   push:
     branches: [main, develop]
+    paths:
+      - 'src/**'
+      - 'apps/**'
+      - 'packages/**'
+      - 'design-system/**'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - 'tsconfig*.json'
+      - '.github/workflows/ci.yml'
+      - '.github/actions/**'
   pull_request:
     branches: [main, develop]
+    paths:
+      - 'src/**'
+      - 'apps/**'
+      - 'packages/**'
+      - 'design-system/**'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - 'tsconfig*.json'
+      - '.github/workflows/ci.yml'
+      - '.github/actions/**'
+
+# Cancel in-progress runs when a new run is triggered
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 env:
   NODE_VERSION: '20'
-  LIVEKIT_AGENTS_VERSION: '1.0.31'
   NODE_OPTIONS: '--max-old-space-size=4096'
 
 jobs:
+  # ============================================================================
+  # SETUP - Shared dependency installation and caching
+  # ============================================================================
+  setup:
+    name: Setup & Cache Dependencies
+    runs-on: [self-hosted, Linux, X64, gce]
+    timeout-minutes: 15
+    outputs:
+      cache-key: ${{ steps.cache-key.outputs.key }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Generate cache key
+        id: cache-key
+        run: echo "key=node-modules-${{ hashFiles('pnpm-lock.yaml') }}" >> $GITHUB_OUTPUT
+
+      - name: Setup Node.js and pnpm
+        uses: ./.github/actions/setup-node-pnpm
+        with:
+          frozen-lockfile: 'true'
+
+      - name: Verify installation success
+        run: |
+          if [ ! -d "node_modules" ]; then
+            echo "❌ node_modules not found - install failed"
+            exit 1
+          fi
+          echo "✅ node_modules verified"
+
+      - name: Save node_modules cache
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            node_modules
+            apps/*/node_modules
+            packages/*/node_modules
+          key: ${{ steps.cache-key.outputs.key }}
+
   # ============================================================================
   # LINT & TYPE CHECK
   # ============================================================================
   lint:
     name: Lint & Type Check
     runs-on: [self-hosted, Linux, X64, gce]
+    timeout-minutes: 15
+    needs: setup
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v2
+        uses: pnpm/action-setup@v4
         with:
           version: 10
 
@@ -31,21 +96,16 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'pnpm'
 
-      - name: Fix local dependencies for CI
-        run: |
-          # Replace local file: dependencies with npm registry versions
-          # The local agents-js fork is not available in CI
-          sed -i 's|"file:../agents-js/agents"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
-          sed -i 's|"file:../agents-js/plugins/cartesia"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
-          sed -i 's|"file:../agents-js/plugins/deepgram"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
-          sed -i 's|"file:../agents-js/plugins/google"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
-          sed -i 's|"file:../agents-js/plugins/openai"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
-          sed -i 's|"file:../agents-js/plugins/silero"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
-
-      - name: Install dependencies
-        run: pnpm install --no-frozen-lockfile
+      - name: Restore node_modules cache
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            node_modules
+            apps/*/node_modules
+            packages/*/node_modules
+          key: ${{ needs.setup.outputs.cache-key }}
+          fail-on-cache-miss: true
 
       - name: TypeScript type check
         run: pnpm typecheck
@@ -65,12 +125,14 @@ jobs:
   test-unit:
     name: Unit Tests
     runs-on: [self-hosted, Linux, X64, gce]
+    timeout-minutes: 20
+    needs: setup
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v2
+        uses: pnpm/action-setup@v4
         with:
           version: 10
 
@@ -78,19 +140,16 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'pnpm'
 
-      - name: Fix local dependencies for CI
-        run: |
-          sed -i 's|"file:../agents-js/agents"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
-          sed -i 's|"file:../agents-js/plugins/cartesia"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
-          sed -i 's|"file:../agents-js/plugins/deepgram"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
-          sed -i 's|"file:../agents-js/plugins/google"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
-          sed -i 's|"file:../agents-js/plugins/openai"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
-          sed -i 's|"file:../agents-js/plugins/silero"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
-
-      - name: Install dependencies
-        run: pnpm install --no-frozen-lockfile
+      - name: Restore node_modules cache
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            node_modules
+            apps/*/node_modules
+            packages/*/node_modules
+          key: ${{ needs.setup.outputs.cache-key }}
+          fail-on-cache-miss: true
 
       - name: Run unit tests with coverage
         run: pnpm test:unit:coverage -- --reporter=verbose
@@ -112,12 +171,14 @@ jobs:
   test-integration:
     name: Integration Tests
     runs-on: [self-hosted, Linux, X64, gce]
+    timeout-minutes: 30
+    needs: setup
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v2
+        uses: pnpm/action-setup@v4
         with:
           version: 10
 
@@ -125,19 +186,16 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'pnpm'
 
-      - name: Fix local dependencies for CI
-        run: |
-          sed -i 's|"file:../agents-js/agents"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
-          sed -i 's|"file:../agents-js/plugins/cartesia"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
-          sed -i 's|"file:../agents-js/plugins/deepgram"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
-          sed -i 's|"file:../agents-js/plugins/google"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
-          sed -i 's|"file:../agents-js/plugins/openai"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
-          sed -i 's|"file:../agents-js/plugins/silero"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
-
-      - name: Install dependencies
-        run: pnpm install --no-frozen-lockfile
+      - name: Restore node_modules cache
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            node_modules
+            apps/*/node_modules
+            packages/*/node_modules
+          key: ${{ needs.setup.outputs.cache-key }}
+          fail-on-cache-miss: true
 
       - name: Run integration tests
         run: pnpm test:integration -- --reporter=verbose
@@ -177,12 +235,14 @@ jobs:
   test-agi-features:
     name: AGI Feature Tests
     runs-on: [self-hosted, Linux, X64, gce]
+    timeout-minutes: 20
+    needs: setup
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v2
+        uses: pnpm/action-setup@v4
         with:
           version: 10
 
@@ -190,19 +250,16 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'pnpm'
 
-      - name: Fix local dependencies for CI
-        run: |
-          sed -i 's|"file:../agents-js/agents"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
-          sed -i 's|"file:../agents-js/plugins/cartesia"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
-          sed -i 's|"file:../agents-js/plugins/deepgram"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
-          sed -i 's|"file:../agents-js/plugins/google"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
-          sed -i 's|"file:../agents-js/plugins/openai"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
-          sed -i 's|"file:../agents-js/plugins/silero"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
-
-      - name: Install dependencies
-        run: pnpm install --no-frozen-lockfile
+      - name: Restore node_modules cache
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            node_modules
+            apps/*/node_modules
+            packages/*/node_modules
+          key: ${{ needs.setup.outputs.cache-key }}
+          fail-on-cache-miss: true
 
       - name: Run AGI Feature Unit Tests
         run: pnpm test:agi-features -- --reporter=verbose
@@ -220,13 +277,14 @@ jobs:
   build:
     name: Build
     runs-on: [self-hosted, Linux, X64, gce]
-    needs: [lint, test-unit, test-integration, test-agi-features]
+    timeout-minutes: 30
+    needs: [setup, lint, test-unit, test-integration, test-agi-features]
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v2
+        uses: pnpm/action-setup@v4
         with:
           version: 10
 
@@ -234,19 +292,16 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'pnpm'
 
-      - name: Fix local dependencies for CI
-        run: |
-          sed -i 's|"file:../agents-js/agents"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
-          sed -i 's|"file:../agents-js/plugins/cartesia"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
-          sed -i 's|"file:../agents-js/plugins/deepgram"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
-          sed -i 's|"file:../agents-js/plugins/google"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
-          sed -i 's|"file:../agents-js/plugins/openai"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
-          sed -i 's|"file:../agents-js/plugins/silero"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
-
-      - name: Install dependencies
-        run: pnpm install --no-frozen-lockfile
+      - name: Restore node_modules cache
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            node_modules
+            apps/*/node_modules
+            packages/*/node_modules
+          key: ${{ needs.setup.outputs.cache-key }}
+          fail-on-cache-miss: true
 
       - name: Build backend
         run: pnpm build --if-present
@@ -260,7 +315,7 @@ jobs:
           pnpm build
 
       - name: Upload build artifacts
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v4
         with:
           name: build
           path: |
@@ -274,12 +329,14 @@ jobs:
   security:
     name: Security Scan
     runs-on: [self-hosted, Linux, X64, gce]
+    timeout-minutes: 15
+    needs: setup
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v2
+        uses: pnpm/action-setup@v4
         with:
           version: 10
 
@@ -287,19 +344,16 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'pnpm'
 
-      - name: Fix local dependencies for CI
-        run: |
-          sed -i 's|"file:../agents-js/agents"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
-          sed -i 's|"file:../agents-js/plugins/cartesia"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
-          sed -i 's|"file:../agents-js/plugins/deepgram"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
-          sed -i 's|"file:../agents-js/plugins/google"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
-          sed -i 's|"file:../agents-js/plugins/openai"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
-          sed -i 's|"file:../agents-js/plugins/silero"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
-
-      - name: Install dependencies
-        run: pnpm install --no-frozen-lockfile
+      - name: Restore node_modules cache
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            node_modules
+            apps/*/node_modules
+            packages/*/node_modules
+          key: ${{ needs.setup.outputs.cache-key }}
+          fail-on-cache-miss: true
 
       - name: Run pnpm audit
         run: pnpm audit --audit-level=high || echo "⚠️ Security vulnerabilities found - review required"
@@ -318,6 +372,8 @@ jobs:
   code-quality:
     name: Code Quality Metrics
     runs-on: [self-hosted, Linux, X64, gce]
+    timeout-minutes: 15
+    needs: setup
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -325,7 +381,7 @@ jobs:
           fetch-depth: 0
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v2
+        uses: pnpm/action-setup@v4
         with:
           version: 10
 
@@ -333,19 +389,16 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'pnpm'
 
-      - name: Fix local dependencies for CI
-        run: |
-          sed -i 's|"file:../agents-js/agents"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
-          sed -i 's|"file:../agents-js/plugins/cartesia"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
-          sed -i 's|"file:../agents-js/plugins/deepgram"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
-          sed -i 's|"file:../agents-js/plugins/google"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
-          sed -i 's|"file:../agents-js/plugins/openai"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
-          sed -i 's|"file:../agents-js/plugins/silero"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
-
-      - name: Install dependencies
-        run: pnpm install --no-frozen-lockfile
+      - name: Restore node_modules cache
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            node_modules
+            apps/*/node_modules
+            packages/*/node_modules
+          key: ${{ needs.setup.outputs.cache-key }}
+          fail-on-cache-miss: true
 
       - name: Run unified audit
         run: pnpm audit all
@@ -357,6 +410,8 @@ jobs:
   quality-gates:
     name: Quality Gates (Blocking)
     runs-on: [self-hosted, Linux, X64, gce]
+    timeout-minutes: 15
+    needs: setup
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -364,7 +419,7 @@ jobs:
           fetch-depth: 0
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v2
+        uses: pnpm/action-setup@v4
         with:
           version: 10
 
@@ -372,19 +427,16 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'pnpm'
 
-      - name: Fix local dependencies for CI
-        run: |
-          sed -i 's|"file:../agents-js/agents"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
-          sed -i 's|"file:../agents-js/plugins/cartesia"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
-          sed -i 's|"file:../agents-js/plugins/deepgram"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
-          sed -i 's|"file:../agents-js/plugins/google"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
-          sed -i 's|"file:../agents-js/plugins/openai"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
-          sed -i 's|"file:../agents-js/plugins/silero"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
-
-      - name: Install dependencies
-        run: pnpm install --no-frozen-lockfile
+      - name: Restore node_modules cache
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            node_modules
+            apps/*/node_modules
+            packages/*/node_modules
+          key: ${{ needs.setup.outputs.cache-key }}
+          fail-on-cache-miss: true
 
       - name: Run CI Quality Gates
         run: pnpm ci:quality-gates
@@ -395,12 +447,14 @@ jobs:
   validation:
     name: Validation Checks
     runs-on: [self-hosted, Linux, X64, gce]
+    timeout-minutes: 15
+    needs: setup
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v2
+        uses: pnpm/action-setup@v4
         with:
           version: 10
 
@@ -408,19 +462,16 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'pnpm'
 
-      - name: Fix local dependencies for CI
-        run: |
-          sed -i 's|"file:../agents-js/agents"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
-          sed -i 's|"file:../agents-js/plugins/cartesia"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
-          sed -i 's|"file:../agents-js/plugins/deepgram"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
-          sed -i 's|"file:../agents-js/plugins/google"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
-          sed -i 's|"file:../agents-js/plugins/openai"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
-          sed -i 's|"file:../agents-js/plugins/silero"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
-
-      - name: Install dependencies
-        run: pnpm install --no-frozen-lockfile
+      - name: Restore node_modules cache
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            node_modules
+            apps/*/node_modules
+            packages/*/node_modules
+          key: ${{ needs.setup.outputs.cache-key }}
+          fail-on-cache-miss: true
 
       - name: Validate voices
         run: pnpm validate voices
@@ -436,12 +487,14 @@ jobs:
   frontend-quality:
     name: Frontend Quality
     runs-on: [self-hosted, Linux, X64, gce]
+    timeout-minutes: 20
+    needs: setup
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v2
+        uses: pnpm/action-setup@v4
         with:
           version: 10
 
@@ -449,19 +502,16 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'pnpm'
 
-      - name: Fix local dependencies for CI
-        run: |
-          sed -i 's|"file:../agents-js/agents"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
-          sed -i 's|"file:../agents-js/plugins/cartesia"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
-          sed -i 's|"file:../agents-js/plugins/deepgram"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
-          sed -i 's|"file:../agents-js/plugins/google"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
-          sed -i 's|"file:../agents-js/plugins/openai"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
-          sed -i 's|"file:../agents-js/plugins/silero"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
-
-      - name: Install dependencies
-        run: pnpm install --no-frozen-lockfile
+      - name: Restore node_modules cache
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            node_modules
+            apps/*/node_modules
+            packages/*/node_modules
+          key: ${{ needs.setup.outputs.cache-key }}
+          fail-on-cache-miss: true
 
       - name: Build design-system
         run: pnpm build:design-system
@@ -499,12 +549,14 @@ jobs:
   dependencies:
     name: Dependency Check
     runs-on: [self-hosted, Linux, X64, gce]
+    timeout-minutes: 10
+    needs: setup
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v2
+        uses: pnpm/action-setup@v4
         with:
           version: 10
 
@@ -512,19 +564,16 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'pnpm'
 
-      - name: Fix local dependencies for CI
-        run: |
-          sed -i 's|"file:../agents-js/agents"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
-          sed -i 's|"file:../agents-js/plugins/cartesia"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
-          sed -i 's|"file:../agents-js/plugins/deepgram"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
-          sed -i 's|"file:../agents-js/plugins/google"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
-          sed -i 's|"file:../agents-js/plugins/openai"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
-          sed -i 's|"file:../agents-js/plugins/silero"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
-
-      - name: Install dependencies
-        run: pnpm install --no-frozen-lockfile
+      - name: Restore node_modules cache
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            node_modules
+            apps/*/node_modules
+            packages/*/node_modules
+          key: ${{ needs.setup.outputs.cache-key }}
+          fail-on-cache-miss: true
 
       - name: Check for outdated dependencies
         run: pnpm outdated || true

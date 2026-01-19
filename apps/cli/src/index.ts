@@ -542,12 +542,13 @@ const COMMANDS: Record<string, CliCommand> = {
     description: 'Operational tasks (zombies, health, semantic, cleanup)',
     icon: '🔧',
     handler: handleOps,
-    subcommands: ['zombies', 'diagnose', 'health', 'ttl-cleanup', 'semantic', 'scheduler', 'logs'],
+    subcommands: ['zombies', 'diagnose', 'health', 'ttl-cleanup', 'semantic', 'scheduler', 'logs', 'dashboard', 'metrics'],
     examples: [
       'ferni ops zombies',
       'ferni ops diagnose',
       'ferni ops health',
-      'ferni ops semantic deploy',
+      'ferni ops dashboard',
+      'ferni ops metrics',
     ],
   },
   waitlist: {
@@ -6044,6 +6045,8 @@ async function handleOps(args: string[]): Promise<void> {
     console.log(`  ${colors.cyan}ferni ops semantic${colors.reset}     - Semantic store management`);
     console.log(`  ${colors.cyan}ferni ops scheduler${colors.reset}    - Setup GCP Cloud Scheduler`);
     console.log(`  ${colors.cyan}ferni ops logs${colors.reset}         - View GCE container logs`);
+    console.log(`  ${colors.cyan}ferni ops dashboard${colors.reset}    - Generate CI/CD health dashboard`);
+    console.log(`  ${colors.cyan}ferni ops metrics${colors.reset}      - Collect and display CI metrics`);
     return;
   }
 
@@ -6120,6 +6123,23 @@ async function handleOps(args: string[]): Promise<void> {
       : `gcloud compute ssh sethford@voiceai-agent-gce --zone=us-central1-a -- 'docker logs $(docker ps -q | head -1) 2>&1 | tail -50'`;
 
     spawnSync('sh', ['-c', logCmd], { stdio: 'inherit' });
+  }
+
+  if (subcommand === 'dashboard') {
+    const json = args.includes('--json');
+    const open = args.includes('--open');
+    const publish = args.includes('--publish');
+    const outputArg = args.find((a) => a.startsWith('--output='));
+    const output = outputArg ? outputArg.split('=')[1] : undefined;
+
+    console.log(`${colors.cyan}Generating CI/CD dashboard...${colors.reset}\n`);
+    const cmd = `npx tsx ${cliCommandsDir}/ci-dashboard.ts${json ? ' --json' : ''}${open ? ' --open' : ''}${publish ? ' --publish' : ''}${output ? ` --output=${output}` : ''}`;
+    spawnSync('sh', ['-c', cmd], { stdio: 'inherit' });
+  }
+
+  if (subcommand === 'metrics') {
+    console.log(`${colors.cyan}Collecting CI metrics...${colors.reset}\n`);
+    spawnSync('sh', ['-c', `npx tsx ${scriptsDir}/devops/collect_ci_metrics.ts`], { stdio: 'inherit' });
   }
 }
 

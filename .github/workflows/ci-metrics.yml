@@ -1,0 +1,151 @@
+name: CI Metrics Collection
+
+# Collects CI/CD metrics weekly and on-demand
+# Helps track minute usage and identify optimization opportunities
+
+on:
+  schedule:
+    # Run weekly on Monday at 9 AM UTC
+    - cron: '0 9 * * 1'
+  workflow_dispatch:
+    inputs:
+      notify_slack:
+        description: 'Send Slack notification with report'
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  collect-metrics:
+    name: Collect CI Metrics
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js and pnpm
+        uses: ./.github/actions/setup-node-pnpm
+        with:
+          frozen-lockfile: 'true'
+
+      - name: Install Octokit
+        run: pnpm add -D @octokit/rest
+
+      - name: Collect metrics
+        id: metrics
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: |
+          npx tsx scripts/devops/collect_ci_metrics.ts 2>&1 | tee metrics-output.txt
+
+          # Extract JSON metrics for outputs
+          JSON_START=$(grep -n "=== JSON Metrics ===" metrics-output.txt | cut -d: -f1)
+          JSON_END=$(grep -n "=== Markdown Report ===" metrics-output.txt | cut -d: -f1)
+
+          if [ -n "$JSON_START" ] && [ -n "$JSON_END" ]; then
+            sed -n "$((JSON_START+1)),$((JSON_END-2))p" metrics-output.txt > metrics.json
+            echo "estimated_monthly=$(jq -r '.estimated_monthly_minutes' metrics.json)" >> $GITHUB_OUTPUT
+            echo "total_runs=$(jq -r '.total_workflow_runs' metrics.json)" >> $GITHUB_OUTPUT
+          fi
+        continue-on-error: true
+
+      - name: Generate Summary
+        run: |
+          # Extract and append Markdown report to step summary
+          REPORT_START=$(grep -n "=== Markdown Report ===" metrics-output.txt | cut -d: -f1)
+          if [ -n "$REPORT_START" ]; then
+            tail -n +$((REPORT_START+1)) metrics-output.txt >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: Upload metrics artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ci-metrics-${{ github.run_number }}
+          path: |
+            metrics.json
+            metrics-output.txt
+          retention-days: 90
+
+      - name: Warn on over-budget
+        if: steps.metrics.outputs.estimated_monthly > 3000
+        run: |
+          echo "::warning::CI minute usage (${{ steps.metrics.outputs.estimated_monthly }} min/month) exceeds budget (3,000 min/month)"
+
+      - name: Send Slack notification
+        if: inputs.notify_slack == true || (github.event_name == 'schedule' && steps.metrics.outputs.estimated_monthly > 3000)
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          ESTIMATED_MONTHLY: ${{ steps.metrics.outputs.estimated_monthly }}
+          TOTAL_RUNS: ${{ steps.metrics.outputs.total_runs }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          if [ -z "$SLACK_WEBHOOK_URL" ]; then
+            echo "SLACK_WEBHOOK_URL not configured, skipping notification"
+            exit 0
+          fi
+
+          BUDGET_PCT=$((ESTIMATED_MONTHLY * 100 / 3000))
+          if [ "$BUDGET_PCT" -gt 100 ]; then
+            STATUS_EMOJI="🚨"
+            STATUS_TEXT="OVER BUDGET"
+          elif [ "$BUDGET_PCT" -gt 80 ]; then
+            STATUS_EMOJI="⚠️"
+            STATUS_TEXT="Warning"
+          else
+            STATUS_EMOJI="✅"
+            STATUS_TEXT="On Track"
+          fi
+
+          cat > /tmp/slack-payload.json << EOF
+          {
+            "blocks": [
+              {
+                "type": "header",
+                "text": {
+                  "type": "plain_text",
+                  "text": "${STATUS_EMOJI} Weekly CI Metrics Report",
+                  "emoji": true
+                }
+              },
+              {
+                "type": "section",
+                "fields": [
+                  {
+                    "type": "mrkdwn",
+                    "text": "*Estimated Monthly:*\n${ESTIMATED_MONTHLY} min (${BUDGET_PCT}% of 3,000)"
+                  },
+                  {
+                    "type": "mrkdwn",
+                    "text": "*Total Runs This Week:*\n${TOTAL_RUNS}"
+                  }
+                ]
+              },
+              {
+                "type": "section",
+                "text": {
+                  "type": "mrkdwn",
+                  "text": "*Status:* ${STATUS_TEXT}"
+                }
+              },
+              {
+                "type": "context",
+                "elements": [
+                  {
+                    "type": "mrkdwn",
+                    "text": "<${RUN_URL}|View Full Report>"
+                  }
+                ]
+              }
+            ]
+          }
+          EOF
+
+          curl -X POST -H 'Content-type: application/json' \
+            --data @/tmp/slack-payload.json \
+            "$SLACK_WEBHOOK_URL"

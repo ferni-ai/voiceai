@@ -1843,6 +1843,79 @@ ferni coach career        # Career coaching session
 
 ---
 
+## CI/CD & DevOps
+
+### Key Documentation
+
+| Document | Location | Purpose |
+|----------|----------|---------|
+| CI Inventory | `docs/ci/ci-inventory.md` | All workflows, triggers, durations |
+| Minute Usage | `docs/ci/minute-usage-analysis.md` | Cost analysis, optimizations |
+| Multi-Lens Review | `docs/ci/ci-review.md` | Security, efficiency, DX review |
+| CI Backlog | `docs/ci/ci-backlog.md` | Prioritized improvements |
+| Handoff | `docs/ci/handoff.md` | Onboarding for CI maintainers |
+| Monorepo Structure | `docs/monorepo/structure.md` | Package layout, dependencies |
+| Nx Evaluation | `docs/monorepo/nx-evaluation.md` | Build tool decision |
+| Observability | `docs/devops-observability/overview.md` | Metrics, alerting |
+
+### Key Workflows
+
+| Workflow | Purpose | Trigger |
+|----------|---------|---------|
+| `ci.yml` | Lint, test, build | Push/PR (with path filters) |
+| `deploy-production.yml` | Production deploy | Push to main |
+| `ci-metrics.yml` | Weekly CI metrics | Monday 9 AM UTC |
+| `design-system.yml` | Token validation | Push to design-system/* |
+
+### Composite Action
+
+All workflows use `.github/actions/setup-node-pnpm` for consistent setup:
+
+```yaml
+- uses: ./.github/actions/setup-node-pnpm
+  with:
+    node-version: '20'      # Optional
+    pnpm-version: '10'      # Optional
+    frozen-lockfile: 'true' # Optional
+```
+
+### CI Commands
+
+```bash
+# Run CI locally
+pnpm quality              # Full quality check (typecheck + lint + test)
+pnpm typecheck            # TypeScript only
+pnpm test                 # Unit tests
+pnpm build:fast           # Fast esbuild
+
+# View CI metrics
+npx tsx scripts/devops/collect_ci_metrics.ts
+
+# Trigger workflows
+gh workflow run ci.yml
+gh workflow run ci-metrics.yml --field notify_slack=true
+
+# Check workflow status
+gh run list --workflow=ci.yml
+```
+
+### Optimizations Applied (January 2026)
+
+| Optimization | Impact |
+|--------------|--------|
+| Path filters on ci.yml | 70% fewer runs |
+| Concurrency control | No parallel waste |
+| Composite action | DRY setup |
+| pnpm v10 standardization | No version drift |
+
+### Budget
+
+- **Limit:** 3,000 minutes/month
+- **Before optimization:** ~5,400 min/month (180% of budget)
+- **After optimization:** ~2,200 min/month (73% of budget)
+
+---
+
 ## Documentation Stats (January 2026)
 
 | Category | Count |
