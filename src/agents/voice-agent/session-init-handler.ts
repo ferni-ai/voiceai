@@ -94,6 +94,12 @@ import {
   type SessionSignals,
 } from '../../memory/predictive-cache-warming.js';
 
+// Smart Context Routing cache warming (Phase 2 BTH Communication Overhaul)
+import {
+  createSmartSelector,
+  getFeedbackAggregator,
+} from '../../intelligence/context-routing/index.js';
+
 // FinOps cost tracking
 import { finops } from '../../services/observability/finops.js';
 
@@ -278,6 +284,28 @@ export async function initializeSession(ctx: SessionInitContext): Promise<Sessio
         diag.debug('Cache warming failed (non-fatal)', { error: String(warmErr) });
       }
     }, 'session-init:redis-warmup');
+  }
+
+  // ================================================================
+  // ⚡ SMART CONTEXT ROUTING CACHE WARMING (Phase 2 BTH)
+  // Pre-warm builder effectiveness scores for ML-informed selection.
+  // ================================================================
+  if (userId && process.env.USE_SMART_CONTEXT_ROUTING === 'true') {
+    fireAndForget(async () => {
+      try {
+        const selector = createSmartSelector(userId, sessionId);
+        const aggregator = getFeedbackAggregator();
+
+        await selector.warmCache(
+          () => aggregator.getUserDataForCache(userId),
+          () => aggregator.loadAllBuilderEffectiveness()
+        );
+
+        diag.session('🧠 Smart context routing cache warmed', { userId, sessionId });
+      } catch (warmErr) {
+        diag.debug('Smart routing cache warming failed (non-fatal)', { error: String(warmErr) });
+      }
+    }, 'session-init:smart-routing-warmup');
   }
 
   // ================================================================

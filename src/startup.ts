@@ -353,6 +353,15 @@ export async function startup(): Promise<AppConfig> {
           return 'predictive_intelligence';
         }),
 
+      // Smart Context Routing experiment setup (Phase 2 BTH Communication Overhaul)
+      // Sets up A/B testing for ML-informed context selection
+      import('./intelligence/context-routing/index.js')
+        .then(({ setupSmartRoutingExperiment }) => setupSmartRoutingExperiment())
+        .then(() => {
+          logger.debug('✓ Smart Context Routing experiment ready (deferred)');
+          return 'smart_context_routing';
+        }),
+
       // Semantic Data Layer TTL Cleanup - run on startup to clear expired data
       // This ensures stale data is cleaned up after restarts
       import('./services/data-layer/ttl-cleanup.js').then(async ({ runTTLCleanup }) => {

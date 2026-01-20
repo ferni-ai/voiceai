@@ -97,6 +97,10 @@ import { clearSession as clearTelemetrySession } from '../shared/function-call-t
 // Injection builders cache cleanup (Jan 2026 optimization)
 import { clearNonVolatileInjectionCache } from '../processors/injection-builders.js';
 
+// Smart Context Routing cleanup (Phase 2 BTH Communication Overhaul)
+import { getFeedbackAggregator } from '../../intelligence/context-routing/index.js';
+import { detectConversationMode } from '../processors/injection-filter.js';
+
 // FinOps cost tracking
 import { finops } from '../../services/observability/finops.js';
 
@@ -1140,6 +1144,22 @@ async function executeSessionCleanup(ctx: CleanupContext, cleanupStart: number):
     (async () => {
       if (userId) {
         clearNonVolatileInjectionCache(userId);
+      }
+    })(),
+
+    // Smart Context Routing feedback aggregation (Phase 2 BTH Communication Overhaul)
+    // Aggregates injection effectiveness feedback from this session to Firestore
+    (async () => {
+      if (userId && process.env.USE_SMART_CONTEXT_ROUTING === 'true') {
+        try {
+          const aggregator = getFeedbackAggregator();
+          // Get last user text to detect mode (or default to 'unknown')
+          const mode = detectConversationMode('', 0, false);
+          await aggregator.aggregateFromTracker(sessionId, userId, mode);
+          diag.session('🧠 Smart routing feedback aggregated', { sessionId, userId });
+        } catch (err) {
+          diag.debug('Smart routing feedback aggregation failed (non-fatal)', { error: String(err) });
+        }
       }
     })(),
   ]);
