@@ -8,6 +8,7 @@
  */
 
 import { createLogger } from '../../../../utils/safe-logger.js';
+import { getOnnxRuntime, runInferenceProtected } from '../../../../utils/transformers-loader.js';
 import type { FeatureEncoder } from './feature-encoder.js';
 import { initializeFeatureEncoder } from './feature-encoder.js';
 import { ModelLoader, getModelLoader } from './model-loader.js';
@@ -108,34 +109,32 @@ export class RouterModel {
       // Encode input features
       const features = await this.encoder!.encode(input);
 
-      // Run ONNX inference
+      // Run ONNX inference (using protected execution with circuit breaker)
       const model = this.loader.getModel()!;
-      const session = model.session as {
-        run: (
-          feeds: Record<string, unknown>,
-          options?: unknown
-        ) => Promise<Record<string, { data: Float32Array | number[] }>>;
-      };
+      const session = model.session;
 
-      // Prepare tensors
-      const { Tensor } = await this.getOnnxRuntime();
+      // Prepare tensors using protected ONNX runtime getter
+      const ort = await getOnnxRuntime();
 
-      const inputIdsTensor = new Tensor(
+      const inputIdsTensor = new ort.Tensor(
         'int64',
         BigInt64Array.from(features.inputIds.map(BigInt)),
         [1, features.inputIds.length]
       );
-      const attentionMaskTensor = new Tensor(
+      const attentionMaskTensor = new ort.Tensor(
         'int64',
         BigInt64Array.from(features.attentionMask.map(BigInt)),
         [1, features.attentionMask.length]
       );
 
-      // Run inference
-      const outputs = await session.run({
-        input_ids: inputIdsTensor,
-        attention_mask: attentionMaskTensor,
-      });
+      // Run inference with circuit breaker protection
+      const outputs = await runInferenceProtected<Record<string, { data: Float32Array | number[] }>>(
+        session,
+        {
+          input_ids: inputIdsTensor,
+          attention_mask: attentionMaskTensor,
+        }
+      );
 
       // Get logits
       const logits = outputs.logits?.data || outputs[Object.keys(outputs)[0]]?.data;
@@ -207,17 +206,8 @@ export class RouterModel {
     }));
   }
 
-  /**
-   * Get ONNX Runtime dynamically
-   */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private async getOnnxRuntime(): Promise<any> {
-    try {
-      return await import('onnxruntime-node');
-    } catch {
-      throw new Error('ONNX Runtime not available - install onnxruntime-node');
-    }
-  }
+  // Note: ONNX runtime is now imported from transformers-loader.ts
+  // which provides crash protection via circuit breaker and timeouts.
 
   // ==========================================================================
   // HEALTH & METRICS

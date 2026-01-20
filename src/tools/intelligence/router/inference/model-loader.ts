@@ -7,6 +7,7 @@
  */
 
 import { createLogger } from '../../../../utils/safe-logger.js';
+import { createInferenceSession } from '../../../../utils/transformers-loader.js';
 import type { RouterModelConfig } from './types.js';
 
 const log = createLogger({ module: 'ftis:model-loader' });
@@ -79,26 +80,15 @@ export class ModelLoader {
       throw new Error(`Model file not found: ${this.config.modelPath}`);
     }
 
-    // Load ONNX Runtime dynamically
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let ort: any;
-    try {
-      ort = await import('onnxruntime-node');
-    } catch {
-      // Fallback to web runtime or mock for development
-      log.debug('onnxruntime-node not available');
-      throw new Error('ONNX Runtime not available - install onnxruntime-node');
-    }
-
-    // Create session options
-    // Note: onnxruntime-node uses lowercase backend names ('cpu', 'cuda') not 'CPUExecutionProvider'
+    // Load the model using protected session creation (circuit breaker + timeout)
+    // Note: GPU execution is handled automatically by ONNX runtime auto-detection
     const sessionOptions = {
-      executionProviders: this.config.useGPU ? ['cuda', 'cpu'] : ['cpu'],
-      graphOptimizationLevel: 'all',
+      graphOptimizationLevel: 'all' as const,
+      intraOpNumThreads: 2,
+      interOpNumThreads: 1,
     };
 
-    // Load the model
-    const session = await ort.InferenceSession.create(this.config.modelPath, sessionOptions);
+    const session = await createInferenceSession(this.config.modelPath, sessionOptions);
 
     log.debug(
       {

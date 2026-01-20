@@ -15,6 +15,11 @@ import * as path from 'path';
 import { fileURLToPath } from 'url';
 
 import { createLogger } from '../../utils/safe-logger.js';
+import {
+  getOnnxRuntime,
+  createInferenceSession,
+  runInferenceProtected,
+} from '../../utils/transformers-loader.js';
 
 const log = createLogger({ module: 'ftis-hierarchical' });
 
@@ -83,28 +88,8 @@ import { getSimpleTokenizer, type SimpleTokenizer } from './simple-tokenizer.js'
 let tokenizer: SimpleTokenizer | null = null;
 let tokenizerPath: string = '';
 
-// ============================================================================
-// ONNX RUNTIME
-// ============================================================================
-
-let ort: any = null;
-
-async function getOnnxRuntime(): Promise<any> {
-  if (ort) return ort;
-
-  try {
-    ort = await import('onnxruntime-node');
-    return ort;
-  } catch {
-    try {
-      ort = await import('onnxruntime-web');
-      return ort;
-    } catch (error) {
-      log.error({ error: String(error) }, 'ONNX Runtime not available');
-      throw new Error('ONNX Runtime not available');
-    }
-  }
-}
+// Note: ONNX runtime is now imported from transformers-loader.ts
+// which provides crash protection via circuit breaker and timeouts.
 
 // ============================================================================
 // HIERARCHICAL CLASSIFIER
@@ -139,7 +124,6 @@ export class HierarchicalClassifier {
     log.info('🧠 Initializing FTIS Hierarchical Classifier...');
 
     try {
-      const runtime = await getOnnxRuntime();
       const modelsDir = this.config.modelsDir;
 
       // Check if models exist
@@ -151,19 +135,19 @@ export class HierarchicalClassifier {
         return;
       }
 
-      // Load Stage 1 model
-      this.stage1Session = await runtime.InferenceSession.create(stage1ModelPath);
+      // Load Stage 1 model (using protected session creation)
+      this.stage1Session = await createInferenceSession(stage1ModelPath);
       this.stage1LabelMap = JSON.parse(
         await fs.readFile(path.join(modelsDir, 'stage1', 'label_map.json'), 'utf-8')
       );
       log.debug({ labels: Object.keys(this.stage1LabelMap).length }, 'Stage 1 model loaded');
 
-      // Load Stage 2 models
+      // Load Stage 2 models (using protected session creation)
       for (const superCat of Object.keys(this.stage1LabelMap)) {
         const modelPath = path.join(modelsDir, 'stage2', superCat, 'model.onnx');
         try {
           await fs.access(modelPath);
-          const session = await runtime.InferenceSession.create(modelPath);
+          const session = await createInferenceSession(modelPath);
           const labelMap = JSON.parse(
             await fs.readFile(path.join(modelsDir, 'stage2', superCat, 'label_map.json'), 'utf-8')
           );
@@ -237,8 +221,8 @@ export class HierarchicalClassifier {
       [1, this.config.maxLength]
     );
 
-    // Run inference
-    const outputs = await session.run({
+    // Run inference (using protected execution with circuit breaker)
+    const outputs = await runInferenceProtected(session, {
       input_ids: inputIds,
       attention_mask: attentionMask,
     });
