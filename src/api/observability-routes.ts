@@ -22,6 +22,8 @@
  * - GET /api/observability/superhuman - Superhuman capability activation metrics
  * - GET /api/observability/tts-gateway - TTS Gateway metrics (cache hits, synthesis latency, errors)
  * - GET /api/observability/injections - BTH Injection effectiveness metrics (Phase 1 Communication System Overhaul)
+ * - GET /api/observability/native-bindings - ONNX/Transformers health (circuit breakers, crashes, latency)
+ * - POST /api/observability/native-bindings/reset - Reset native binding circuit breakers (admin only)
  * - POST /api/observability/clear - Clear all metrics
  */
 
@@ -900,6 +902,36 @@ export async function handleObservabilityRoutes(
         ...injectionData,
         collectedAt: new Date().toISOString(),
       });
+      return true;
+    }
+
+    // GET /api/observability/native-bindings - ONNX/Transformers health (circuit breakers, crashes)
+    if (pathname === '/api/observability/native-bindings' && req.method === 'GET') {
+      const { getNativeBindingHealth } = await import('../utils/transformers-loader.js');
+      const { getAllNativeBindingStats } = await import('../utils/native-binding-guard.js');
+
+      sendJSON(res, {
+        health: getNativeBindingHealth(),
+        allGuards: getAllNativeBindingStats(),
+        collectedAt: new Date().toISOString(),
+      });
+      return true;
+    }
+
+    // POST /api/observability/native-bindings/reset - Reset circuit breakers (admin only)
+    if (pathname === '/api/observability/native-bindings/reset' && req.method === 'POST') {
+      // Require admin for this operation
+      const auth = await requireAdmin(req, res);
+      if (!auth) return true;
+
+      const { resetCircuitBreakers } = await import('../utils/transformers-loader.js');
+      resetCircuitBreakers();
+
+      sendJSON(res, {
+        message: 'Native binding circuit breakers reset',
+        timestamp: new Date().toISOString(),
+      });
+      log.warn({ admin: auth.userId }, 'Native binding circuit breakers reset via API');
       return true;
     }
 

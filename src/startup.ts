@@ -29,6 +29,8 @@ import { initializeTeamHandlers, shutdownTools } from './tools/index.js';
 import { getLogger } from './utils/safe-logger.js';
 import { registerInterval } from './utils/interval-manager.js';
 import { recordStartupMetrics, startMetricsLogging } from './services/performance-metrics.js';
+import { setupNativeCrashHandlers } from './utils/native-binding-guard.js';
+import { onNativeBindingCrash } from './utils/transformers-loader.js';
 
 // ============================================================================
 // STATE
@@ -71,6 +73,49 @@ export async function startup(): Promise<AppConfig> {
   for (const warning of validation.warnings) {
     logger.warn(`⚠️  ${warning}`);
   }
+
+  // Install native crash handlers (ONNX, Transformers.js, WASM)
+  // This must happen early to catch crashes during initialization
+  logger.info('Installing native crash handlers...');
+  setupNativeCrashHandlers();
+  onNativeBindingCrash(async (diagnostics) => {
+    logger.error(
+      {
+        binding: diagnostics.bindingName,
+        operation: diagnostics.operation,
+        errorType: diagnostics.errorType,
+        error: diagnostics.errorMessage,
+        memoryMb: diagnostics.memoryUsageMb,
+        recoveryAction: diagnostics.recoveryAction,
+      },
+      '🔴 Native binding crash detected'
+    );
+
+    // Record to crash analytics for dashboard visibility
+    try {
+      const { recordCrash } = await import('./agents/shared/crash-analytics.js');
+      // Note: CrashContext doesn't have binding-specific fields, so we include details in the error message
+      const errorMessage = [
+        `[${diagnostics.bindingName}]`,
+        diagnostics.errorMessage,
+        `(op: ${diagnostics.operation}, recovery: ${diagnostics.recoveryAction})`,
+        diagnostics.inputSummary ? `input: ${diagnostics.inputSummary}` : '',
+      ]
+        .filter(Boolean)
+        .join(' ');
+      recordCrash(
+        diagnostics.errorType === 'native_crash' ? 'uncaught_exception' : 'manual_report',
+        new Error(errorMessage),
+        undefined, // No session ID for native crashes
+        {
+          memoryUsageMb: diagnostics.memoryUsageMb,
+        }
+      );
+    } catch {
+      // Crash analytics not available yet
+    }
+  });
+  logger.info('✓ Native crash handlers installed');
 
   // Initialize memory system (storage + cache)
   // OPTIMIZATION: Use lazy initialization for Firestore to reduce cold start time

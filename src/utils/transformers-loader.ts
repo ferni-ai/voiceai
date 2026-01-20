@@ -16,12 +16,21 @@
  *
  * 4. **Graceful Degradation**: Falls back gracefully if native bindings fail.
  *
+ * 5. **Crash Protection**: Uses circuit breaker and timeout protection to prevent
+ *    native binding crashes from taking down the entire agent.
+ *
  * @module utils/transformers-loader
  * @see https://github.com/microsoft/onnxruntime/issues/24144 (SIGSEGV regression)
  * @see https://onnxruntime.ai/docs/performance/tune-performance/threading.html
  */
 
 import { createLogger } from './safe-logger.js';
+import {
+  getOnnxGuard,
+  getTransformersGuard,
+  type NativeBindingStats,
+  type CrashDiagnostics,
+} from './native-binding-guard.js';
 
 const log = createLogger({ module: 'transformers-loader' });
 
@@ -202,6 +211,7 @@ export async function getOnnxRuntime(): Promise<OnnxRuntimeModule> {
 
 /**
  * Create an ONNX inference session with proper configuration.
+ * Protected by circuit breaker and timeout.
  *
  * @param modelPath - Path to the ONNX model file
  * @param options - Optional session configuration
@@ -211,35 +221,75 @@ export async function createInferenceSession(
   modelPath: string,
   options: SessionOptions = {}
 ): Promise<any> {
-  const ort = await getOnnxRuntime();
+  const guard = getOnnxGuard();
+  const modelName = modelPath.split('/').pop() || 'unknown';
 
-  // Merge with defaults
-  const sessionOptions = { ...DEFAULT_SESSION_OPTIONS, ...options };
+  return guard.execute(
+    `createSession:${modelName}`,
+    async () => {
+      const ort = await getOnnxRuntime();
 
-  // Create session options object
-  // Note: graphOptimizationLevel must be a STRING in onnxruntime-node
-  // Do NOT specify executionProviders - let ONNX auto-detect (v1.20.1 defaults to CPU)
-  const ortSessionOptions: Record<string, unknown> = {
-    intraOpNumThreads: sessionOptions.intraOpNumThreads || 1,
-    interOpNumThreads: sessionOptions.interOpNumThreads || 1,
-    graphOptimizationLevel: sessionOptions.graphOptimizationLevel || 'all',
-  };
+      // Merge with defaults
+      const sessionOptions = { ...DEFAULT_SESSION_OPTIONS, ...options };
 
-  log.debug(
-    {
-      model: modelPath.split('/').pop(),
-      intraThreads: ortSessionOptions.intraOpNumThreads,
-      interThreads: ortSessionOptions.interOpNumThreads,
-      optimizationLevel: sessionOptions.graphOptimizationLevel,
+      // Create session options object
+      // Note: graphOptimizationLevel must be a STRING in onnxruntime-node
+      // Do NOT specify executionProviders - let ONNX auto-detect (v1.20.1 defaults to CPU)
+      const ortSessionOptions: Record<string, unknown> = {
+        intraOpNumThreads: sessionOptions.intraOpNumThreads || 1,
+        interOpNumThreads: sessionOptions.interOpNumThreads || 1,
+        graphOptimizationLevel: sessionOptions.graphOptimizationLevel || 'all',
+      };
+
+      log.debug(
+        {
+          model: modelName,
+          intraThreads: ortSessionOptions.intraOpNumThreads,
+          interThreads: ortSessionOptions.interOpNumThreads,
+          optimizationLevel: sessionOptions.graphOptimizationLevel,
+        },
+        'Creating ONNX session'
+      );
+
+      return ort.InferenceSession.create(modelPath, ortSessionOptions);
     },
-    'Creating ONNX session'
+    undefined, // No fallback for session creation
+    `model:${modelName}`
   );
+}
 
-  return ort.InferenceSession.create(modelPath, ortSessionOptions);
+/**
+ * Run ONNX inference with protection against crashes.
+ * This wraps session.run() with circuit breaker, timeout, and diagnostics.
+ *
+ * @param session - ONNX InferenceSession
+ * @param feeds - Input feeds for the model
+ * @param outputNames - Optional output names to fetch
+ * @returns Inference results
+ */
+export async function runInferenceProtected<T = any>(
+  session: any,
+  feeds: Record<string, any>,
+  outputNames?: string[]
+): Promise<T> {
+  const guard = getOnnxGuard();
+
+  return guard.execute(
+    'inference',
+    async () => {
+      if (outputNames) {
+        return session.run(feeds, outputNames);
+      }
+      return session.run(feeds);
+    },
+    undefined,
+    `inputs:${Object.keys(feeds).join(',')}`
+  );
 }
 
 /**
  * Create an AutoTokenizer from a pretrained model.
+ * Protected by circuit breaker and timeout.
  *
  * @param modelId - HuggingFace model ID or local path
  * @param options - Tokenizer options
@@ -248,14 +298,24 @@ export async function createTokenizer(
   modelId: string,
   options: { localFilesOnly?: boolean } = {}
 ): Promise<any> {
-  const transformers = await getTransformers();
-  return transformers.AutoTokenizer.from_pretrained(modelId, {
-    local_files_only: options.localFilesOnly ?? false,
-  });
+  const guard = getTransformersGuard();
+
+  return guard.execute(
+    `createTokenizer:${modelId}`,
+    async () => {
+      const transformers = await getTransformers();
+      return transformers.AutoTokenizer.from_pretrained(modelId, {
+        local_files_only: options.localFilesOnly ?? false,
+      });
+    },
+    undefined,
+    `model:${modelId}`
+  );
 }
 
 /**
  * Create a transformers.js pipeline.
+ * Protected by circuit breaker and timeout.
  *
  * @param task - Pipeline task (e.g., 'feature-extraction', 'text-classification')
  * @param modelId - HuggingFace model ID
@@ -266,11 +326,46 @@ export async function createPipeline(
   modelId: string,
   options: { device?: string; quantized?: boolean } = {}
 ): Promise<any> {
-  const transformers = await getTransformers();
-  return transformers.pipeline(task, modelId, {
-    device: options.device ?? 'cpu',
-    quantized: options.quantized ?? true,
-  });
+  const guard = getTransformersGuard();
+
+  return guard.execute(
+    `createPipeline:${task}:${modelId}`,
+    async () => {
+      const transformers = await getTransformers();
+      return transformers.pipeline(task, modelId, {
+        device: options.device ?? 'cpu',
+        quantized: options.quantized ?? true,
+      });
+    },
+    undefined,
+    `task:${task},model:${modelId}`
+  );
+}
+
+/**
+ * Run a pipeline with crash protection.
+ * Use this for inference instead of calling the pipeline directly.
+ *
+ * @param pipeline - The transformers.js pipeline
+ * @param input - Input to the pipeline
+ * @param options - Pipeline options
+ */
+export async function runPipelineProtected<T = any>(
+  pipeline: any,
+  input: string | string[],
+  options: Record<string, unknown> = {}
+): Promise<T> {
+  const guard = getTransformersGuard();
+  const inputSummary = Array.isArray(input)
+    ? `${input.length} items`
+    : input.slice(0, 50);
+
+  return guard.execute(
+    'pipelineInference',
+    async () => pipeline(input, options),
+    undefined,
+    inputSummary
+  );
 }
 
 // ============================================================================
@@ -304,6 +399,92 @@ export function getLoaderStatus(): {
     onnxRuntimeReady: isOnnxRuntimeReady(),
     initError: initError ? initError.message : null,
   };
+}
+
+/**
+ * Get comprehensive health status including circuit breaker states.
+ * Use this for detailed diagnostics and observability.
+ */
+export function getNativeBindingHealth(): {
+  transformers: {
+    ready: boolean;
+    guard: NativeBindingStats;
+  };
+  onnx: {
+    ready: boolean;
+    guard: NativeBindingStats;
+  };
+  overall: 'healthy' | 'degraded' | 'unhealthy';
+  initError: string | null;
+} {
+  const transformersGuard = getTransformersGuard();
+  const onnxGuard = getOnnxGuard();
+
+  const transformersStats = transformersGuard.getStats();
+  const onnxStats = onnxGuard.getStats();
+
+  // Determine overall health
+  let overall: 'healthy' | 'degraded' | 'unhealthy' = 'healthy';
+
+  if (transformersStats.state === 'open' || onnxStats.state === 'open') {
+    overall = 'unhealthy';
+  } else if (
+    transformersStats.state === 'half-open' ||
+    onnxStats.state === 'half-open' ||
+    transformersStats.consecutiveFailures > 0 ||
+    onnxStats.consecutiveFailures > 0 ||
+    initError !== null
+  ) {
+    overall = 'degraded';
+  }
+
+  return {
+    transformers: {
+      ready: isTransformersReady(),
+      guard: transformersStats,
+    },
+    onnx: {
+      ready: isOnnxRuntimeReady(),
+      guard: onnxStats,
+    },
+    overall,
+    initError: initError ? initError.message : null,
+  };
+}
+
+/**
+ * Check if native bindings are healthy enough for inference.
+ * Returns false if circuit breakers are open.
+ */
+export function canRunInference(): boolean {
+  const transformersGuard = getTransformersGuard();
+  const onnxGuard = getOnnxGuard();
+
+  return (
+    transformersGuard.isHealthy() &&
+    onnxGuard.isHealthy() &&
+    !initError
+  );
+}
+
+/**
+ * Reset circuit breakers after fixing underlying issues.
+ * Use with caution - only after addressing the root cause.
+ */
+export function resetCircuitBreakers(): void {
+  getTransformersGuard().reset();
+  getOnnxGuard().reset();
+  log.warn('Native binding circuit breakers reset');
+}
+
+/**
+ * Register a crash event listener for monitoring.
+ */
+export function onNativeBindingCrash(
+  callback: (diagnostics: CrashDiagnostics) => void
+): void {
+  getTransformersGuard().on('crash', callback);
+  getOnnxGuard().on('crash', callback);
 }
 
 // ============================================================================
