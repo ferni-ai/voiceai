@@ -1,11 +1,22 @@
 /**
  * Transcript-Level Semantic Router Integration
  *
- * This module integrates the semantic router directly into the voice agent's
- * transcript handler. Unlike the turn-processor integration (which is not used
- * by the Live API flow), this hooks into the actual transcript events.
+ * @deprecated ROUTING DEPRECATED (January 2026)
+ * -------------------------------------------------
+ * The `routeTranscript()` function is now DEPRECATED.
+ * Routing is handled by the Unified Tool Orchestrator (UTO):
+ *   - src/tools/orchestrator/unified-tool-orchestrator.ts
+ *   - Use: toolOrchestrator.routeAndExecute()
  *
- * ARCHITECTURE:
+ * This module is kept for backwards compatibility with:
+ *   - setGenerateReplyFunction() - still needed by some components
+ *   - isSemanticRoutingEnabled() - still used as a feature flag
+ *   - TranscriptRoutingResult type - used in some interfaces
+ *
+ * DO NOT ADD NEW USAGES of routeTranscript().
+ * -------------------------------------------------
+ *
+ * ORIGINAL ARCHITECTURE (now handled by UTO):
  * 1. Final transcript arrives
  * 2. Semantic router runs BEFORE Gemini processes
  * 3. High confidence → Execute tool, then guide Gemini with generateReply()

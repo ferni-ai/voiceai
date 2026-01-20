@@ -329,6 +329,124 @@ const SCHEDULER_JOBS: SchedulerJob[] = [
     retryCount: 2,
     enabled: true,
   },
+
+  // ==========================================================================
+  // BRAND AUTOMATION JOBS
+  // ==========================================================================
+  {
+    name: 'brand-award-deadline-check',
+    description: 'Check upcoming award deadlines and send Slack alerts',
+    schedule: '0 9 * * *', // Daily at 9 AM
+    timezone: 'America/Los_Angeles',
+    uri: `${UI_SERVER_URL}/api/jobs/brand-award-deadline-check`,
+    httpMethod: 'POST',
+    retryCount: 2,
+    timeout: '60s',
+    enabled: true,
+  },
+  {
+    name: 'brand-story-review-reminder',
+    description: 'Remind team to review pending user stories',
+    schedule: '0 10 * * 1,4', // Monday and Thursday at 10 AM
+    timezone: 'America/Los_Angeles',
+    uri: `${UI_SERVER_URL}/api/jobs/brand-story-review-reminder`,
+    httpMethod: 'POST',
+    retryCount: 2,
+    timeout: '60s',
+    enabled: true,
+  },
+  {
+    name: 'brand-workstream-progress',
+    description: 'Generate and send weekly workstream progress report',
+    schedule: '0 9 * * 1', // Monday at 9 AM
+    timezone: 'America/Los_Angeles',
+    uri: `${UI_SERVER_URL}/api/jobs/brand-workstream-progress`,
+    httpMethod: 'POST',
+    retryCount: 2,
+    timeout: '60s',
+    enabled: true,
+  },
+  {
+    name: 'brand-milestone-check',
+    description: 'Check for milestones to celebrate and post to Slack',
+    schedule: '0 10 * * *', // Daily at 10 AM
+    timezone: 'America/Los_Angeles',
+    uri: `${UI_SERVER_URL}/api/jobs/brand-milestone-check`,
+    httpMethod: 'POST',
+    retryCount: 2,
+    timeout: '60s',
+    enabled: true,
+  },
+  {
+    name: 'brand-ambassador-engagement',
+    description: 'Check for inactive ambassadors and send re-engagement reminders',
+    schedule: '0 9 1 * *', // 1st of each month at 9 AM
+    timezone: 'America/Los_Angeles',
+    uri: `${UI_SERVER_URL}/api/jobs/brand-ambassador-engagement`,
+    httpMethod: 'POST',
+    retryCount: 2,
+    timeout: '60s',
+    enabled: true,
+  },
+  {
+    name: 'brand-metrics-collection',
+    description: 'Collect and persist daily brand metrics',
+    schedule: '0 0 * * *', // Daily at midnight
+    timezone: 'America/Los_Angeles',
+    uri: `${UI_SERVER_URL}/api/jobs/brand-metrics-collection`,
+    httpMethod: 'POST',
+    retryCount: 2,
+    timeout: '120s',
+    enabled: true,
+  },
+  {
+    name: 'brand-weekly-report',
+    description: 'Generate and send comprehensive weekly brand report',
+    schedule: '0 9 * * 1', // Monday at 9 AM
+    timezone: 'America/Los_Angeles',
+    uri: `${UI_SERVER_URL}/api/jobs/brand-weekly-report`,
+    httpMethod: 'POST',
+    retryCount: 2,
+    timeout: '120s',
+    enabled: true,
+  },
+  {
+    name: 'brand-publish-stories',
+    description: 'Publish approved user stories to social media (Twitter, LinkedIn, Discord)',
+    schedule: '0 11 * * *', // Daily at 11 AM
+    timezone: 'America/Los_Angeles',
+    uri: `${UI_SERVER_URL}/api/jobs/brand-publish-stories`,
+    httpMethod: 'POST',
+    retryCount: 2,
+    timeout: '180s',
+    enabled: true,
+  },
+
+  // ==========================================================================
+  // GTM (GO-TO-MARKET) CONTENT AUTOMATION
+  // ==========================================================================
+  {
+    name: 'gtm-daily-publishing',
+    description: 'Autonomous daily content generation and publishing to all social platforms',
+    schedule: '0 9 * * *', // Daily at 9 AM
+    timezone: 'America/Los_Angeles',
+    uri: `${UI_SERVER_URL}/api/jobs/gtm-daily-publishing`,
+    httpMethod: 'POST',
+    retryCount: 2,
+    timeout: '300s', // 5 min - content generation can take time
+    enabled: true,
+  },
+  {
+    name: 'gtm-weekly-content-generation',
+    description: 'Generate content calendar for the upcoming week',
+    schedule: '0 8 * * 0', // Sunday at 8 AM
+    timezone: 'America/Los_Angeles',
+    uri: `${UI_SERVER_URL}/api/jobs/gtm-weekly-content`,
+    httpMethod: 'POST',
+    retryCount: 2,
+    timeout: '600s', // 10 min - generates 7 pieces of content
+    enabled: true,
+  },
 ];
 
 // ============================================================================

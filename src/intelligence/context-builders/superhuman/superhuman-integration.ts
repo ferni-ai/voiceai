@@ -152,6 +152,7 @@ const PERSONA_SUPERHUMAN_MAP: Record<PersonaSuperhuman, SuperhumanSelectors> = {
     // Jordan focuses on dreams, milestones, narrative, seasonal
     // + Future Self for goal-setting, Timing for milestone planning
     // + V2: Calendar prep for event planning, energy wave for optimal scheduling
+    // + V4: Jordan's Superhuman Planning - 9 new event intelligence services
     capabilities: [
       'dreams',
       'milestones',
@@ -164,8 +165,29 @@ const PERSONA_SUPERHUMAN_MAP: Record<PersonaSuperhuman, SuperhumanSelectors> = {
       'calendarPrep',
       'energyWave',
       'recoveryTracking',
+      // V4: Jordan's Superhuman Planning (January 2026)
+      'eventPatterns',
+      'guestIntelligence',
+      'milestoneDetector',
+      'eventStories',
+      'anticipatoryPlanning',
+      'celebrationBalance',
+      'planningCoordination',
+      'seasonalPlanning',
+      'postEventLearning',
     ],
     priorityOrder: [
+      // V4 Jordan superhuman capabilities first - these are her superpowers
+      'eventPatterns',
+      'guestIntelligence',
+      'milestoneDetector',
+      'anticipatoryPlanning',
+      'celebrationBalance',
+      'eventStories',
+      'planningCoordination',
+      'seasonalPlanning',
+      'postEventLearning',
+      // Then existing capabilities
       'calendarPrep',
       'dreams',
       'futureSelf',
@@ -175,7 +197,7 @@ const PERSONA_SUPERHUMAN_MAP: Record<PersonaSuperhuman, SuperhumanSelectors> = {
       'energyWave',
       'seasonal',
     ],
-    maxTokens: 800,
+    maxTokens: 1200, // Increased for V4 capabilities
   },
   alex: {
     // Alex focuses on network, commitments, capacity

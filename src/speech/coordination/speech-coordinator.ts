@@ -755,6 +755,9 @@ export class SpeechCoordinator {
         // Extract SSML for logging (gateway handles actual stripping)
         const ssmlResult = extractSSMLToConfig(request.text);
         
+        const speakStartTime = Date.now();
+        const debugTTS = process.env.DEBUG_TTS_PIPELINE === 'true' || process.env.DEBUG_GEMINI_ALL === 'true';
+        
         log.debug(
           {
             original: truncateForLog(request.text, 50),
@@ -765,6 +768,17 @@ export class SpeechCoordinator {
           '🎤 Speaking via TTS Gateway'
         );
 
+        // 🔊 E2E TRACING: Full pipeline timing
+        if (debugTTS) {
+          const queueWaitTime = Date.now() - request.queuedAt;
+          process.stderr.write(`\n🔊 [SPEECH COORDINATOR] ${new Date().toISOString()}\n`);
+          process.stderr.write(`  🆔 Request ID: ${request.id}\n`);
+          process.stderr.write(`  📊 Priority: ${request.priority}\n`);
+          process.stderr.write(`  ⏱️ Queue wait: ${queueWaitTime}ms\n`);
+          process.stderr.write(`  📝 Text: "${truncateForLog(request.text, 100)}"\n`);
+          process.stderr.write(`  🎙️ Persona: ${this.personaId || 'ferni'}\n`);
+        }
+
         // Use gateway - fire and forget (onSpeechEnded handles completion)
         try {
           gatewaySpeak(this.session, request.text, {
@@ -773,8 +787,15 @@ export class SpeechCoordinator {
             personaId: this.personaId,
             allowInterruptions: request.allowInterruptions ?? true,
           });
+          
+          if (debugTTS) {
+            process.stderr.write(`  ✅ gatewaySpeak() completed: ${Date.now() - speakStartTime}ms\n`);
+          }
         } catch (error: unknown) {
           log.error({ error: String(error), id: request.id }, 'TTS Gateway speech failed');
+          if (debugTTS) {
+            process.stderr.write(`  ❌ gatewaySpeak() FAILED: ${String(error)}\n`);
+          }
         }
       } else {
         // LEGACY PATH: Direct SSML stripping (will be removed once gateway validated)

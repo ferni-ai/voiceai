@@ -96,24 +96,7 @@ export {
   type TeamStory,
 } from './team-chemistry.js';
 
-// Persona LLM Expressions - dynamic expression generation for all personas
-export {
-  generatePersonaExpressions,
-  getPersonaExpression,
-  prewarmPersonaExpressions,
-  clearPersonaCache,
-  hasPersonaExpressionSupport,
-  PERSONA_CONFIGS,
-  MAYA_CONFIG,
-  JORDAN_CONFIG,
-  PETER_CONFIG,
-  ALEX_CONFIG,
-  NAYAN_CONFIG,
-  type PersonaExpressionConfig,
-  type PersonaTheme,
-  type ExpressionContext as PersonaExpressionContext,
-  type GeneratedExpression as PersonaGeneratedExpression,
-} from './persona-llm-expressions.js';
+// NOTE: Persona LLM Expressions removed - use persona-specific expression generators in bundles/
 
 // Persona Turn Personality - turn-level personality injection for all personas
 export {

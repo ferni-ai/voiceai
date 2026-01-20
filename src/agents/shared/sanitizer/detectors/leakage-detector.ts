@@ -763,6 +763,16 @@ const INSTRUCTION_BLOCK_STRIP_PATTERNS: RegExp[] = [
   
   // Lines that are ONLY instruction markers (newline followed by [WORD:)
   /\n\[[A-Z][A-Z_\-]+:[^\n]*/g,
+  
+  // 🚫 FTIS V2 tool result metadata that leaked to TTS
+  // Catches: "Status: SUCCESS Result: Now playing..." format
+  // This should NEVER reach TTS, but acts as a safety net
+  /Status:\s*(SUCCESS|FAILED)\s*Result:\s*/gi,
+  /Status:\s*(SUCCESS|FAILED)\s*Error:\s*/gi,
+  
+  // Catch full tool result blocks on single line (legacy format)
+  // [TOOL_RESULT: xxx] Status: SUCCESS Result: ...
+  /\[TOOL_RESULT:[^\]]*\]\s*Status:\s*(SUCCESS|FAILED)[^\n]*/gi,
 ];
 
 /**

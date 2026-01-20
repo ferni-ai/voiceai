@@ -70,6 +70,9 @@ import {
 } from '../../tools/semantic-router/integration/index.js';
 import { shouldUseIntelligentRouting } from '../../tools/semantic-router/advanced/intelligent/index.js';
 
+// 🧠 FTIS V2: ONNX-based tool classification with direct execution
+import { runFTISV2Routing, convertToSemanticRoutingResult, isFTISV2OnlyMode, buildFTISV2ToolHint } from './ftis-v2-integration.js';
+
 // Context inspection for debugging
 import { recordContextBuild, createInspectionData } from '../../services/context-inspection.js';
 
@@ -97,6 +100,10 @@ import {
   buildSemanticIntelligenceInjection,
   // 🎯 Persona-specific context builders (NEW - January 2026)
   buildPersonaSpecificContextInjections,
+  // 🔧 Tool history injection (NEW - January 2026)
+  buildToolHistoryInjection,
+  // 🔌 Service availability injection (NEW - January 2026)
+  buildServiceAvailabilityInjection,
   type AdvancedHumanizationInjectionResult,
   type ConversationDynamicsResult as InjectionDynamicsResult,
   type SemanticIntelligenceInjectionResult,
@@ -122,6 +129,18 @@ import {
   filterInjections,
   deduplicateInjections,
 } from './injection-filter.js';
+
+// Injection effectiveness tracking (Phase 1 BTH Communication Overhaul)
+import {
+  tagInjectionsForTracking,
+  recordUserReaction,
+} from '../../intelligence/feedback/injection-tracker.js';
+
+// Smart context routing (Phase 2 BTH Communication Overhaul)
+import {
+  selectInjections as smartSelectInjections,
+  type SelectionDecision,
+} from '../../intelligence/context-routing/index.js';
 
 // Topic-based builder skipping - skip irrelevant builders BEFORE evaluation
 import { filterBuildersByTopic, skipBuilder, type BuilderName } from './topic-builder-filter.js';
@@ -579,14 +598,17 @@ async function buildContextInjections(
   // ============================================================================
   // TIER 1: CRITICAL BUILDERS (no timeout - these are essential)
   // ============================================================================
-  const [behavioralResult, humanTransferInjection, crisisHistoryInjection] = await Promise.all([
-    // Behavioral context system - essential for response quality
-    buildIntegratedContext(contextInput),
-    // Human transfer awareness - safety critical (includes signal logging for analytics)
-    buildHumanTransferInjections(userText, services.userId),
-    // Crisis history follow-up - better than human continuity
-    buildCrisisHistoryInjection(services.userId || 'unknown'),
-  ]);
+  const [behavioralResult, humanTransferInjection, crisisHistoryInjection, toolHistoryInjection] =
+    await Promise.all([
+      // Behavioral context system - essential for response quality
+      buildIntegratedContext(contextInput),
+      // Human transfer awareness - safety critical (includes signal logging for analytics)
+      buildHumanTransferInjections(userText, services.userId),
+      // Crisis history follow-up - better than human continuity
+      buildCrisisHistoryInjection(services.userId || 'unknown'),
+      // 🔧 Tool history - CRITICAL: LLM must know what it just did (P0-#1 fix, Jan 2026)
+      buildToolHistoryInjection(builderInput),
+    ]);
 
   // ============================================================================
   // TIER 2 + TIER 3: Run in PARALLEL (Jan 2026 optimization)
@@ -728,6 +750,14 @@ async function buildContextInjections(
         [] as ContextInjection[],
         'persona-context'
       ),
+      // 🔌 SERVICE AVAILABILITY - Tell LLM what services are connected (P0-#3 fix, Jan 2026)
+      // Prevents LLM from promising features that aren't available
+      withTimeout(
+        buildServiceAvailabilityInjection(builderInput),
+        IMPORTANT_TIMEOUT_MS,
+        null,
+        'service-availability'
+      ),
     ]),
     // TIER 3: OPTIONAL BUILDERS (run in parallel with TIER 2)
     Promise.all([
@@ -791,6 +821,7 @@ async function buildContextInjections(
     liveSuperhumanResult,
     semanticIntelligenceResult,
     personaSpecificInjections,
+    serviceAvailabilityInjection,
   ] = tier2Results;
 
   // Destructure TIER 3 results
@@ -856,6 +887,12 @@ async function buildContextInjections(
   injections.push(...boundaryInjections);
   injections.push(...healthInjections);
   injections.push(...personaSpecificInjections); // 🎯 Persona "Better Than Human" deep insights (NEW Jan 2026)
+
+  // 🔌 Service availability - prevent LLM from promising unavailable features (P0-#3 fix, Jan 2026)
+  if (serviceAvailabilityInjection) {
+    injections.push(serviceAvailabilityInjection);
+    diag.debug('🔌 Service availability context added - LLM knows what services are connected');
+  }
 
   // ========================================================================
   // 🌟 LIVE SUPERHUMAN INJECTIONS - Real-time "Better Than Human" per turn
@@ -966,6 +1003,15 @@ async function buildContextInjections(
     diag.info('📋 Crisis history awareness added (Better Than Human follow-up)', {
       category: crisisHistoryInjection.category,
       priority: crisisHistoryInjection.priority,
+    });
+  }
+
+  // 🔧 Tool history injection - LLM knows what it just did (P0-#1 fix, Jan 2026)
+  if (toolHistoryInjection) {
+    injections.push(toolHistoryInjection);
+    diag.info('🔧 Tool history awareness added - LLM knows recent actions', {
+      category: toolHistoryInjection.category,
+      priority: toolHistoryInjection.priority,
     });
   }
 
@@ -1560,6 +1606,15 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
   }
 
   // ============================================================================
+  // 📊 FEEDBACK: Record user reaction to previous turn's injections (Phase 1 BTH)
+  // This captures how the user responded to our last response (which had injections).
+  // The reaction data completes the feedback loop for injection effectiveness tracking.
+  // ============================================================================
+  if (services.sessionId) {
+    recordUserReaction(services.sessionId, userText);
+  }
+
+  // ============================================================================
   // 🚨 SAFETY FIRST: Crisis detection runs BEFORE anything else
   // This is a HARD safety rail that CANNOT be bypassed
   // ============================================================================
@@ -1963,11 +2018,31 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
   // This saves ~30-50ms by not waiting for each operation sequentially
   // ============================================================================
 
+  // 🧠 FTIS V2 ONLY MODE: Use ONNX classification for ALL tool routing
+  // When enabled, FTIS V2 handles everything - no semantic router, no JSON workaround
+  // Uses isFTISV2OnlyMode() as SINGLE SOURCE OF TRUTH (enabled by default!)
+  const isFTISV2Mode = isFTISV2OnlyMode();
+
   // 🎯 SEMANTIC ROUTING: Start tool routing in parallel (primary tool calling method)
   // This runs alongside other processing and can bypass LLM entirely for high-confidence tool requests.
   // Falls back to JSON function calling (legacy workaround) for LLM-routed tools.
   let semanticRoutingPromise: Promise<TurnRouterResult> | null = null;
-  if (isRoutingEnabled()) {
+  let ftisV2RoutingPromise: ReturnType<typeof runFTISV2Routing> | null = null;
+
+  if (isFTISV2Mode) {
+    // FTIS V2 Mode: Use ONNX classification exclusively
+    const userId = services.userId || 'unknown';
+    const userLocationData = ctx.userData?.location as
+      | { city?: string; regionCode?: string; countryCode?: string }
+      | undefined;
+    ftisV2RoutingPromise = runFTISV2Routing(userText, {
+      userId,
+      sessionId: services.sessionId || '',
+      personaId: ctx.persona.id,
+      userLocation: userLocationData,
+    });
+    diag.debug('🧠 FTIS V2 routing started', { mode: 'ftis_v2_only' });
+  } else if (isRoutingEnabled()) {
     // Build conversation history from recent transcripts (if available)
     const conversationHistory = (userData.recentTranscripts || []).map((text) => ({
       role: 'user' as const,
@@ -1993,6 +2068,88 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
       semanticRoutingPromise = startIntelligentRouting(userText, routingContext);
     } else {
       semanticRoutingPromise = startSemanticRouting(userText, routingContext);
+    }
+  }
+
+  // ============================================================================
+  // 🧠 FTIS V2 DIRECT EXECUTION: Handle ONNX classification results
+  // When FTIS V2 mode is enabled, this handles ALL tool routing
+  // ============================================================================
+  // P1-#8: Store FTIS hint for injection when falling back to LLM
+  let ftisClassificationHint: string | null = null;
+
+  if (ftisV2RoutingPromise) {
+    const ftisResult = await ftisV2RoutingPromise;
+
+    // Check if FTIS V2 executed a tool directly
+    if (ftisResult.bypassLLM && ftisResult.toolResult) {
+      diag.state('🧠 FTIS V2: Direct tool execution complete', {
+        tool: ftisResult.toolResult.toolId,
+        confidence: ftisResult.classification?.confidence,
+        latencyMs: ftisResult.processingTimeMs,
+      });
+
+      // 🎯 CLEAN ARCHITECTURE: Keep bypassLLM: true
+      // The tool has executed. Instead of injecting into chat context (which can leak),
+      // the turn-handler will use generateReply with ephemeral instructions.
+      // This is the cleanest pattern - instructions guide ONE response only.
+      const ftisSemanticRouting = convertToSemanticRoutingResult(ftisResult);
+      // bypassLLM stays TRUE - we don't want normal LLM context flow
+
+      diag.debug('🎯 FTIS V2: Will use generateReply for natural response', {
+        tool: ftisResult.toolResult.toolId,
+        result: ftisResult.toolResult.output?.slice(0, 100) || ftisResult.toolResult.speakableResponse?.slice(0, 100),
+      });
+
+      // Return result with bypassLLM: true
+      // turn-handler will call generateReply with ephemeral instructions
+      return {
+        analysis: analysisResult,
+        context: {
+          injections: [], // No context injection needed - generateReply handles it
+          elapsedMs: ftisResult.processingTimeMs,
+        },
+        emotional: {
+          primary: analysisResult.analysis.emotion.primary,
+          intensity: analysisResult.analysis.emotion.intensity,
+          distressLevel: 0,
+          trajectory: 'stable',
+        },
+        response: {
+          length: {
+            min: 1,
+            max: 3,
+            guidance: 'Keep response brief - FTIS V2 tool already executed',
+          },
+        },
+        identity: {
+          needsReinforcement: false,
+          activeAgentId: ctx.persona.id,
+          sessionPersonaId: ctx.persona.id,
+        },
+        bundleRuntime: undefined,
+        easterEgg: undefined,
+        valueCapture: undefined,
+        advancedHumanization: undefined,
+        crisis: {
+          isCrisis: false,
+          severity: 0,
+          indicators: [],
+          shouldOverrideLLM: false,
+        },
+        semanticRouting: ftisSemanticRouting,
+      };
+    }
+
+    // Medium confidence: Add classification as a hint for context (no direct execution)
+    // P1-#8: Actually create the hint injection so LLM knows what FTIS detected
+    if (ftisResult.classification && ftisResult.classification.confidence >= 0.5) {
+      ftisClassificationHint = buildFTISV2ToolHint(ftisResult.classification);
+      diag.debug('🧠 FTIS V2: Classification added as context hint', {
+        category: ftisResult.classification.fineCategory,
+        confidence: ftisResult.classification.confidence,
+        hintCreated: !!ftisClassificationHint,
+      });
     }
   }
 
@@ -2268,6 +2425,19 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
     injections.sort((a, b) => b.priority - a.priority);
   }
 
+  // P1-#8: Add FTIS classification hint when falling back to LLM
+  // This helps the LLM understand what FTIS detected, even at medium confidence
+  if (ftisClassificationHint) {
+    injections.push({
+      category: 'tool_hint',
+      content: ftisClassificationHint,
+      priority: 70, // High priority - helps LLM route correctly
+    });
+    diag.debug('🧠 FTIS V2: Injected classification hint for LLM', {
+      hintLength: ftisClassificationHint.length,
+    });
+  }
+
   // 📋 CONTEXT INSPECTION: Record for debugging API
   // Enable with LOG_CONTEXT_BUILDS=true for verbose logging
   const shouldRecordContext =
@@ -2530,12 +2700,53 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
     });
   }
 
-  const filteredInjections = filterInjections(deduplicatedInjections, {
-    mode: conversationMode,
-    userText: ctx.userText,
-    emotionalIntensity: emotionalState.intensity,
-    crisisDetected,
-  });
+  // ============================================================================
+  // 🧠 SMART CONTEXT ROUTING (Phase 2 BTH Communication Overhaul)
+  // Uses ML-informed selection when enabled via experiment, falls back to priority
+  // ============================================================================
+  let filteredInjections: ContextInjection[];
+  let selectionDecision: SelectionDecision | undefined;
+
+  const useSmartRouting = process.env.USE_SMART_CONTEXT_ROUTING === 'true';
+
+  if (useSmartRouting && services.userId && services.sessionId) {
+    // Use ML-informed smart selection
+    selectionDecision = await smartSelectInjections(deduplicatedInjections, {
+      userId: services.userId,
+      sessionId: services.sessionId,
+      userText: ctx.userText,
+      emotionalIntensity: emotionalState.intensity,
+      crisisDetected,
+      useSmartSelection: true,
+    });
+    filteredInjections = selectionDecision.selected;
+
+    diag.debug('🧠 Smart context routing', {
+      algorithm: selectionDecision.algorithm,
+      confidence: selectionDecision.confidence.toFixed(2),
+      selected: selectionDecision.selected.length,
+      rejected: selectionDecision.rejected.length,
+      mode: selectionDecision.mode,
+      processingTimeMs: selectionDecision.processingTimeMs,
+    });
+  } else {
+    // Fall back to priority-based filtering
+    filteredInjections = filterInjections(deduplicatedInjections, {
+      mode: conversationMode,
+      userText: ctx.userText,
+      emotionalIntensity: emotionalState.intensity,
+      crisisDetected,
+    });
+  }
+
+  // ============================================================================
+  // 📊 FEEDBACK: Tag filtered injections for effectiveness tracking (Phase 1 BTH)
+  // These tracked injections will be used to measure which injections actually
+  // influenced the LLM response and how the user reacted.
+  // ============================================================================
+  const trackedInjections = services.sessionId
+    ? tagInjectionsForTracking(filteredInjections, services.sessionId)
+    : undefined;
 
   // ============================================================================
   // 🎯 SEMANTIC ROUTING: Await tool routing result and apply if applicable
@@ -2642,6 +2853,8 @@ If they're just conversing, respond naturally without the tool call.`,
       injections: filteredInjections,
       humanizingResult: humanizingResult || undefined,
       elapsedMs,
+      // 📊 FEEDBACK: Tracked injections for effectiveness measurement (Phase 1 BTH)
+      trackedInjections,
     },
     emotional: emotionalState,
     response: responseGuidance,

@@ -757,6 +757,7 @@ export async function executeJsonFunction(
         selectionMethod: ctx.semanticPrediction ? 'semantic' : 'direct',
         confidence: ctx.semanticPrediction?.confidence,
       });
+
     }
 
     ctx.onToolComplete?.(executionResult);
@@ -827,6 +828,22 @@ async function routeToTool(
       return { __speakDirectly: true, text: text.trim() };
     }
     log.warn({ args }, '🎤 Speak pseudo-tool called without valid text');
+    return null;
+  }
+
+  // ========================================
+  // CONVERSATION PSEUDO-TOOL (FTIS signals "just conversation")
+  // When FTIS classifies input as pure conversation, it outputs __conversation__
+  // This signals: "don't execute a tool, let the LLM respond naturally"
+  // Return null to pass through to LLM without tool execution
+  // ========================================
+  if (fnLower === '__conversation__' || fnLower === 'conversation') {
+    log.debug(
+      { query: args.query },
+      '💬 Conversation pseudo-tool - passing through to LLM'
+    );
+    // Return null to signal "no tool result, let LLM handle this"
+    // The conversation flow will continue naturally
     return null;
   }
 
@@ -2765,14 +2782,17 @@ async function routeToTool(
   // ========================================
   // TRAVEL
   // ========================================
-  if (fnLower === 'searchflights') {
-    const { origin, destination, departureDate } = args as {
+  if (fnLower === 'searchflights' || fnLower === 'travel_flights') {
+    const { origin, destination, departureDate, query } = args as {
       origin?: string;
       destination?: string;
       departureDate?: string;
+      query?: string; // From FTIS semantic router
     };
-    log.info({ origin, destination, departureDate }, '✈️ Search flights');
-    return `Flight search isn't connected yet. Looking for ${origin || 'somewhere'} to ${destination || 'somewhere'}${departureDate ? ` on ${departureDate}` : ''}. Jordan can help you plan your trip though!`;
+    log.info({ origin, destination, departureDate, query }, '✈️ Search flights');
+    // If just a query (from FTIS), extract destination
+    const dest = destination || query || 'your destination';
+    return `Flight search isn't connected yet. Looking for flights to ${dest}. Jordan can help you plan your trip though!`;
   }
 
   if (fnLower === 'searchhotels') {
@@ -2862,6 +2882,22 @@ async function routeToTool(
   // ========================================
   // GAME TOOLS
   // ========================================
+  // Handle semantic ID from FTIS router
+  if (fnLower === 'game_trivia') {
+    const { query } = args as { query?: string };
+    log.info({ query }, '🎮 Trivia game requested (semantic ID)');
+    // Trivia isn't implemented yet - return friendly message
+    // Note: This often triggers from misclassification (e.g., "watching football")
+    return null; // Return null to let LLM handle naturally
+  }
+
+  if (fnLower === 'game_play' || fnLower === 'game_storytelling') {
+    const { gameType, query } = args as { gameType?: string; query?: string };
+    log.info({ gameType, query }, '🎮 Game requested (semantic ID)');
+    // Return null to pass through to LLM - let it decide how to engage
+    return null;
+  }
+
   if (fnLower === 'submitgameanswer') {
     log.info({ answer: args.answer }, '🎮 Game answer submitted');
     return `Got your answer! Let's see how you did.`;

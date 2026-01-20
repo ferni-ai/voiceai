@@ -28,6 +28,33 @@ import { dirname, join } from 'path';
 import * as readline from 'readline';
 import { fileURLToPath } from 'url';
 
+// CEO Services for personal productivity commands
+import {
+  briefingService,
+  goalsService,
+  focusService,
+  winsService,
+  weeklyReviewService,
+  askService,
+  energyService,
+  journalService,
+  gratitudeService,
+  // New Firestore-backed services
+  decisionsService,
+  prioritiesService,
+  blockersService,
+  ideasService,
+  meetingsService,
+  insightsService,
+  type Goal,
+  type FocusSession,
+  type Decision,
+  type UserPriority,
+  type Blocker,
+  type Idea,
+  type Meeting,
+} from '../../../src/services/ceo/index.js';
+
 // ============================================================================
 // CONFIGURATION
 // ============================================================================
@@ -327,9 +354,14 @@ const COMMANDS: Record<string, CliCommand> = {
     name: 'Validate',
     description: 'Run validations',
     icon: icons.check,
-    script: 'apps/cli/src/commands/validate/validate.ts',
-    subcommands: ['voices', 'humanization', 'integrations', 'persistence', 'all'],
-    examples: ['ferni validate voices', 'ferni validate all'],
+    handler: handleValidate,
+    subcommands: ['voices', 'humanization', 'integrations', 'persistence', 'e2e', 'all'],
+    examples: [
+      'ferni validate voices',
+      'ferni validate e2e',
+      'ferni validate e2e --ci',
+      'ferni validate all',
+    ],
   },
   audit: {
     name: 'Audit',
@@ -426,11 +458,41 @@ const COMMANDS: Record<string, CliCommand> = {
   },
   tools: {
     name: 'Tools',
-    description: 'Manage LLM tools',
+    description: 'Manage and validate LLM tools (122+ domains)',
     icon: '🔧',
     handler: handleTools,
-    subcommands: ['list', 'show', 'validate', 'stats', 'test'],
-    examples: ['ferni tools list', 'ferni tools show habit-coaching', 'ferni tools stats'],
+    subcommands: ['list', 'exec', 'validate', 'generate-fixtures'],
+    examples: [
+      'ferni tools list --domain career',
+      'ferni tools exec trackJobApplication --params \'{"company": "Acme"}\'',
+      'ferni tools validate --all',
+    ],
+  },
+  commands: {
+    name: 'Commands',
+    description: 'Manage and validate persona commands (slash commands)',
+    icon: '💬',
+    handler: handleCommands,
+    subcommands: ['list', 'exec', 'validate'],
+    examples: [
+      'ferni commands list --persona ferni',
+      'ferni commands exec ferni/daily-check-in',
+      'ferni commands validate --all',
+    ],
+  },
+  api: {
+    name: 'API',
+    description: 'Manage and validate API endpoints (200+ routes)',
+    icon: '🌐',
+    handler: handleApi,
+    subcommands: ['list', 'call', 'validate'],
+    examples: [
+      'ferni api list',
+      'ferni api list --category calendar',
+      'ferni api call GET /api/health',
+      'ferni api call POST /api/habits --body \'{"name": "Morning run"}\'',
+      'ferni api validate --all',
+    ],
   },
   ftis: {
     name: 'FTIS',
@@ -1180,6 +1242,14 @@ const COMMANDS: Record<string, CliCommand> = {
     subcommands: ['add', 'list', 'today', 'search', 'action-items'],
     examples: ['ferni meetings add "1:1 with Sarah"', 'ferni meetings today', 'ferni meetings action-items'],
   },
+  insights: {
+    name: 'Insights',
+    description: 'Superhuman cross-data intelligence (CEO feature)',
+    icon: '🧠',
+    handler: handleCEOInsights,
+    subcommands: ['all', 'critical', 'energy', 'goals', 'burnout', 'patterns', 'refresh'],
+    examples: ['ferni insights', 'ferni insights critical', 'ferni insights burnout', 'ferni insights refresh'],
+  },
   // ============================================================================
   // GROWTH AUTOMATION - Autonomous marketing across all channels
   // ============================================================================
@@ -1437,6 +1507,58 @@ const COMMANDS: Record<string, CliCommand> = {
       'ferni knowledge --add "Decision here" --type decision',
     ],
   },
+  // ============================================================================
+  // PLATFORM OPERATIONS - Infrastructure and DevOps namespace
+  // ============================================================================
+  platform: {
+    name: 'Platform',
+    description: 'Platform operations hub (deploy, logs, status, metrics, alerts)',
+    icon: '🏗️',
+    handler: handlePlatform,
+    subcommands: [
+      'deploy',
+      'logs',
+      'status',
+      'metrics',
+      'alerts',
+      'traffic',
+      'rollback',
+      'secrets',
+      'db',
+      'cache',
+      'sessions',
+      'costs',
+      'sla',
+      'oncall',
+      'incidents',
+      'chaos',
+      'experiments',
+    ],
+    examples: [
+      'ferni platform',
+      'ferni platform deploy gce',
+      'ferni platform logs agent --tail',
+      'ferni platform status',
+      'ferni platform metrics live',
+      'ferni platform alerts active',
+    ],
+  },
+  // ============================================================================
+  // YOUR TEAM - Meet the AI leadership team supporting you
+  // ============================================================================
+  team: {
+    name: 'Team',
+    description: 'Meet your AI leadership team - specialists ready to help',
+    icon: '👥',
+    handler: handleTeam,
+    subcommands: ['list', 'ferni', 'maya', 'alex', 'jordan', 'peter', 'nayan'],
+    examples: [
+      'ferni team',
+      'ferni team maya',
+      'ferni team alex',
+      'ferni team --connect maya',
+    ],
+  },
 };
 
 // ============================================================================
@@ -1476,6 +1598,203 @@ function execCommandWithStatus(cmd: string): { output: string; success: boolean 
   } catch (error) {
     return { output: (error as Error).message, success: false };
   }
+}
+
+// ============================================================================
+// PLATFORM COMMAND - Unified ops namespace
+// ============================================================================
+
+async function handlePlatform(args: string[]): Promise<void> {
+  const subcommand = args[0];
+  const subArgs = args.slice(1);
+
+  // If no subcommand, show platform dashboard
+  if (!subcommand) {
+    log.header(`${icons.cloud} Platform Operations Hub`);
+    console.log(`\n  ${colors.bold}Quick Status${colors.reset}`);
+    console.log(`  Run ${colors.cyan}ferni platform status${colors.reset} for full status\n`);
+
+    console.log(`  ${colors.bold}Available Operations:${colors.reset}`);
+    console.log(`    ${colors.green}deploy${colors.reset}       Deploy services (gce, ui, frontend)`);
+    console.log(`    ${colors.green}logs${colors.reset}         View & analyze logs`);
+    console.log(`    ${colors.green}status${colors.reset}       Check deployment status`);
+    console.log(`    ${colors.green}metrics${colors.reset}      Real-time platform metrics`);
+    console.log(`    ${colors.green}alerts${colors.reset}       Alert management`);
+    console.log(`    ${colors.green}traffic${colors.reset}      Traffic management & canary`);
+    console.log(`    ${colors.green}rollback${colors.reset}     Rollback deployments`);
+    console.log(`    ${colors.green}secrets${colors.reset}      Secret management`);
+    console.log(`    ${colors.green}db${colors.reset}           Database operations`);
+    console.log(`    ${colors.green}cache${colors.reset}        Cache management`);
+    console.log(`    ${colors.green}sessions${colors.reset}     Active sessions & analytics`);
+    console.log(`    ${colors.green}costs${colors.reset}        Cloud cost tracking`);
+    console.log(`    ${colors.green}sla${colors.reset}          SLA tracking & uptime`);
+    console.log(`    ${colors.green}oncall${colors.reset}       On-call rotation`);
+    console.log(`    ${colors.green}incidents${colors.reset}    Incident response`);
+    console.log(`    ${colors.green}chaos${colors.reset}        Chaos engineering tests`);
+    console.log(`    ${colors.green}experiments${colors.reset}  A/B tests & rollouts`);
+    console.log();
+    console.log(`  ${colors.dim}Examples:${colors.reset}`);
+    console.log(`    ferni platform deploy gce`);
+    console.log(`    ferni platform logs agent --tail`);
+    console.log(`    ferni platform metrics live`);
+    return;
+  }
+
+  // Route to existing handlers
+  const routeMap: Record<string, (args: string[]) => Promise<void>> = {
+    deploy: async (a) => runCommand('apps/cli/src/commands/deploy/deploy.ts', a),
+    logs: handleLogs,
+    status: handleStatus,
+    metrics: handleMetrics,
+    alerts: handleAlerts,
+    traffic: handleTraffic,
+    rollback: handleRollback,
+    secrets: handleSecrets,
+    db: handleDb,
+    cache: handleCache,
+    sessions: handleSessions,
+    costs: handleCosts,
+    sla: handleSLA,
+    oncall: handleOnCall,
+    incidents: handleIncidentCmd,
+    chaos: handleChaos,
+    experiments: handleExperiments,
+  };
+
+  const handler = routeMap[subcommand];
+  if (handler) {
+    await handler(subArgs);
+  } else {
+    log.error(messages.unknownCommand(`platform ${subcommand}`));
+    console.log(`\nRun ${colors.cyan}ferni platform${colors.reset} to see available operations.`);
+  }
+}
+
+// ============================================================================
+// TEAM COMMAND - Meet your AI leadership team
+// ============================================================================
+
+interface TeamMember {
+  name: string;
+  role: string;
+  icon: string;
+  color: string;
+  specialty: string;
+  expertise: string[];
+  askAbout: string[];
+}
+
+const AI_TEAM: Record<string, TeamMember> = {
+  ferni: {
+    name: 'Ferni',
+    role: 'Your Chief of Staff',
+    icon: '🌿',
+    color: colors.green,
+    specialty: 'Orchestrating your team and connecting the dots',
+    expertise: ['Daily briefings', 'Team coordination', 'Quick answers', 'Life admin'],
+    askAbout: ['What should I focus on today?', 'Summarize my week', 'Connect me with Maya'],
+  },
+  maya: {
+    name: 'Maya Santos',
+    role: 'Habit & Wellness Coach',
+    icon: '🧘',
+    color: colors.cyan,
+    specialty: 'Building sustainable habits and holistic wellbeing',
+    expertise: ['Habit formation', 'Mindfulness', 'Energy management', 'Work-life balance'],
+    askAbout: ['Help me build a morning routine', 'I need to manage stress', 'Track my habits'],
+  },
+  alex: {
+    name: 'Alex Chen',
+    role: 'Communications Director',
+    icon: '✉️',
+    color: colors.blue,
+    specialty: 'Managing relationships and communication strategy',
+    expertise: ['Calendar management', 'Email drafting', 'Meeting prep', 'Relationship tracking'],
+    askAbout: ['Draft this email', 'Prep me for tomorrow\'s meetings', 'Who should I follow up with?'],
+  },
+  jordan: {
+    name: 'Jordan Taylor',
+    role: 'Life Planner & Accountability',
+    icon: '📋',
+    color: colors.yellow,
+    specialty: 'Goal setting, planning, and keeping you accountable',
+    expertise: ['Goal tracking', 'Project planning', 'Milestone celebrations', 'Accountability'],
+    askAbout: ['Review my goals', 'Plan my next quarter', 'Celebrate my wins'],
+  },
+  peter: {
+    name: 'Peter John',
+    role: 'Research & Intelligence',
+    icon: '🔍',
+    color: colors.magenta,
+    specialty: 'Deep research and data-driven insights',
+    expertise: ['Market research', 'Financial analysis', 'Decision support', 'Data synthesis'],
+    askAbout: ['Research this topic', 'Analyze this opportunity', 'What does the data say?'],
+  },
+  nayan: {
+    name: 'Nayan Patel',
+    role: 'Wisdom & Perspective',
+    icon: '🌟',
+    color: colors.white,
+    specialty: 'Life philosophy, values alignment, and deeper meaning',
+    expertise: ['Life narrative', 'Values alignment', 'Big picture thinking', 'Legacy planning'],
+    askAbout: ['Am I living aligned with my values?', 'What matters most?', 'Help me reflect deeply'],
+  },
+};
+
+async function handleTeam(args: string[]): Promise<void> {
+  const subcommand = args[0];
+
+  // Show team overview
+  if (!subcommand || subcommand === 'list') {
+    log.header('👥 Your AI Leadership Team');
+    console.log(`  ${colors.dim}A team of specialists, always ready to help.${colors.reset}\n`);
+
+    for (const [id, member] of Object.entries(AI_TEAM)) {
+      console.log(`  ${member.icon} ${member.color}${colors.bold}${member.name}${colors.reset}`);
+      console.log(`     ${colors.dim}${member.role}${colors.reset}`);
+      console.log(`     ${member.specialty}\n`);
+    }
+
+    console.log(`  ${colors.bold}Connect with a team member:${colors.reset}`);
+    console.log(`    ${colors.cyan}ferni team maya${colors.reset}     Learn about Maya`);
+    console.log(`    ${colors.cyan}ferni voice --persona maya${colors.reset}  Talk to Maya`);
+    console.log(`    ${colors.cyan}ferni coach${colors.reset}         Start a coaching session`);
+    return;
+  }
+
+  // Show specific team member
+  const member = AI_TEAM[subcommand.toLowerCase()];
+  if (member) {
+    log.header(`${member.icon} ${member.name}`);
+    console.log(`  ${member.color}${colors.bold}${member.role}${colors.reset}\n`);
+    console.log(`  ${colors.bold}Specialty:${colors.reset} ${member.specialty}\n`);
+
+    console.log(`  ${colors.bold}Expertise:${colors.reset}`);
+    member.expertise.forEach((e) => console.log(`    ${colors.dim}•${colors.reset} ${e}`));
+    console.log();
+
+    console.log(`  ${colors.bold}Ask ${member.name.split(' ')[0]} about:${colors.reset}`);
+    member.askAbout.forEach((q) => console.log(`    ${colors.cyan}"${q}"${colors.reset}`));
+    console.log();
+
+    console.log(`  ${colors.bold}Connect:${colors.reset}`);
+    console.log(`    ${colors.green}ferni voice --persona ${subcommand}${colors.reset}  Start a voice conversation`);
+    console.log(`    ${colors.green}ferni ask "${member.askAbout[0]}"${colors.reset}`);
+    return;
+  }
+
+  // Special command: --connect
+  if (subcommand === '--connect' && args[1]) {
+    const connectTo = args[1].toLowerCase();
+    if (AI_TEAM[connectTo]) {
+      console.log(`\n  ${colors.dim}Connecting you to ${AI_TEAM[connectTo].name}...${colors.reset}\n`);
+      await handleVoice(['--persona', connectTo]);
+      return;
+    }
+  }
+
+  log.error(messages.notFound(`team member "${subcommand}"`));
+  console.log(`\nAvailable: ${Object.keys(AI_TEAM).join(', ')}`);
 }
 
 // ============================================================================
@@ -3205,163 +3524,29 @@ async function handlePR(args: string[]): Promise<void> {
 // ============================================================================
 
 async function handleTools(args: string[]): Promise<void> {
-  const subcommand = args[0] || 'list';
+  // Delegate to the comprehensive tools command module
+  const { handleTools: handler } = await import('./commands/tools/tools.js');
+  await handler(args);
+}
 
-  log.header(`🔧 LLM Tools Management`);
+// ============================================================================
+// COMMANDS (PERSONA COMMANDS)
+// ============================================================================
 
-  const toolsDir = join(PROJECT_ROOT, 'src', 'tools');
+async function handleCommands(args: string[]): Promise<void> {
+  // Delegate to the commands module
+  const { handleCommands: handler } = await import('./commands/commands/commands.js');
+  await handler(args);
+}
 
-  if (subcommand === 'list') {
-    console.log(`${colors.bold}Available LLM Tools:${colors.reset}\n`);
+// ============================================================================
+// API COMMAND
+// ============================================================================
 
-    // Get tool files
-    const toolFiles = execCommand(
-      `find ${toolsDir} -name "*.ts" -type f ! -name "*.test.ts" ! -name "types.ts" ! -name "index.ts" ! -path "*/node_modules/*" 2>/dev/null`
-    );
-
-    const tools = toolFiles
-      .split('\n')
-      .filter(Boolean)
-      .map((f) => {
-        const relative = f.replace(toolsDir + '/', '');
-        return relative.replace('.ts', '');
-      });
-
-    // Group by directory
-    const grouped: Record<string, string[]> = {};
-    for (const tool of tools) {
-      const parts = tool.split('/');
-      const category = parts.length > 1 ? parts[0] : 'root';
-      if (!grouped[category]) grouped[category] = [];
-      grouped[category].push(parts[parts.length - 1]);
-    }
-
-    for (const [category, categoryTools] of Object.entries(grouped)) {
-      console.log(`  ${colors.cyan}${category}:${colors.reset}`);
-      for (const tool of categoryTools) {
-        console.log(`    ${colors.dim}${icons.bullet}${colors.reset} ${tool}`);
-      }
-    }
-
-    console.log();
-    log.info(`Total: ${tools.length} tools`);
-  }
-
-  if (subcommand === 'show') {
-    const toolName = args[1];
-    if (!toolName) {
-      log.error('Please specify a tool name');
-      log.info('Usage: ferni tools show <tool-name>');
-      return;
-    }
-
-    const toolPath = execCommand(
-      `find ${toolsDir} -name "${toolName}.ts" -type f ! -name "*.test.ts" 2>/dev/null | head -1`
-    );
-
-    if (!toolPath) {
-      log.error(`Tool not found: ${toolName}`);
-      return;
-    }
-
-    console.log(`${colors.bold}Tool: ${toolName}${colors.reset}\n`);
-    console.log(`  ${colors.cyan}Path:${colors.reset} ${toolPath.replace(PROJECT_ROOT + '/', '')}`);
-
-    // Count lines
-    const lines = execCommand(`wc -l < "${toolPath}"`).trim();
-    console.log(`  ${colors.cyan}Lines:${colors.reset} ${lines}`);
-
-    // Look for function definitions
-    const functions = execCommand(
-      `grep -E "^(export )?(async )?function" "${toolPath}" 2>/dev/null | head -5`
-    );
-    if (functions) {
-      console.log(`\n  ${colors.cyan}Functions:${colors.reset}`);
-      functions
-        .split('\n')
-        .filter(Boolean)
-        .forEach((fn) => {
-          const match = fn.match(/function\s+(\w+)/);
-          if (match) {
-            console.log(`    ${colors.dim}${icons.bullet}${colors.reset} ${match[1]}`);
-          }
-        });
-    }
-  }
-
-  if (subcommand === 'stats') {
-    console.log(`${colors.bold}Tool Statistics:${colors.reset}\n`);
-
-    const toolFiles = execCommand(
-      `find ${toolsDir} -name "*.ts" -type f ! -name "*.test.ts" ! -name "types.ts" ! -name "index.ts" 2>/dev/null`
-    );
-    const tools = toolFiles.split('\n').filter(Boolean);
-
-    let totalLines = 0;
-    const largestTools: { name: string; lines: number }[] = [];
-
-    for (const tool of tools) {
-      const lines = parseInt(execCommand(`wc -l < "${tool}"`).trim()) || 0;
-      totalLines += lines;
-      largestTools.push({
-        name: tool.replace(toolsDir + '/', '').replace('.ts', ''),
-        lines,
-      });
-    }
-
-    largestTools.sort((a, b) => b.lines - a.lines);
-
-    console.log(`  Total tools: ${tools.length}`);
-    console.log(`  Total lines: ${totalLines.toLocaleString()}`);
-    console.log(`  Average lines/tool: ${Math.round(totalLines / tools.length)}`);
-
-    console.log(`\n  ${colors.cyan}Largest tools:${colors.reset}`);
-    for (const tool of largestTools.slice(0, 5)) {
-      const status = tool.lines > 500 ? colors.yellow : colors.green;
-      console.log(`    ${status}${tool.lines.toString().padStart(4)}${colors.reset} ${tool.name}`);
-    }
-  }
-
-  if (subcommand === 'validate') {
-    console.log(`${colors.bold}Validating tools...${colors.reset}\n`);
-
-    const spinner = new Spinner('Running tool validation...');
-    spinner.start();
-
-    const result = spawnSync('npm', ['run', 'typecheck'], {
-      cwd: PROJECT_ROOT,
-      stdio: 'pipe',
-      shell: true,
-    });
-
-    spinner.stop(result.status === 0);
-
-    if (result.status !== 0) {
-      console.log(result.stdout?.toString() || result.stderr?.toString());
-    } else {
-      log.success('All tools validated');
-    }
-  }
-
-  if (subcommand === 'test') {
-    const toolName = args[1];
-
-    if (toolName) {
-      log.info(`Running tests for ${toolName}...`);
-      spawnSync('npm', ['test', '--', '--run', '-t', toolName], {
-        cwd: PROJECT_ROOT,
-        stdio: 'inherit',
-        shell: true,
-      });
-    } else {
-      log.info('Running all tool tests...');
-      spawnSync('npm', ['test', '--', '--run', 'tools/'], {
-        cwd: PROJECT_ROOT,
-        stdio: 'inherit',
-        shell: true,
-      });
-    }
-  }
+async function handleApi(args: string[]): Promise<void> {
+  // Delegate to the API module
+  const { handleApi: handler } = await import('./commands/api/api.js');
+  await handler(args);
 }
 
 // ============================================================================
@@ -4122,8 +4307,97 @@ async function handleVoice(args: string[]): Promise<void> {
 // ============================================================================
 
 async function handleCEOGoals(args: string[]): Promise<void> {
-  const { handleGoals } = await import('./features/ceo.js');
-  await handleGoals(args);
+  const subcommand = args[0] || 'list';
+  const userId = process.env.FERNI_USER_ID || 'cli-user';
+
+  log.header('🎯 Goals');
+
+  try {
+    if (subcommand === 'list' || !args[0]) {
+      // List all active goals
+      const goals = await goalsService.getGoals(userId, 'active');
+
+      if (goals.length === 0) {
+        console.log(`\n${colors.dim}No active goals yet.${colors.reset}`);
+        console.log(`${colors.dim}Add one with: ferni goals add "Your goal here"${colors.reset}\n`);
+        return;
+      }
+
+      console.log(`\n${colors.bold}Active Goals${colors.reset}\n`);
+      for (const goal of goals) {
+        const progress = goal.progress || 0;
+        const progressBar = '█'.repeat(Math.floor(progress / 5)) + '░'.repeat(20 - Math.floor(progress / 5));
+        console.log(`  ${colors.bold}${goal.title}${colors.reset}`);
+        if (goal.description) {
+          console.log(`  ${colors.dim}${goal.description}${colors.reset}`);
+        }
+        console.log(`  ${colors.green}${progressBar}${colors.reset} ${progress}%`);
+        console.log(`  ${colors.dim}ID: ${goal.id} • Category: ${goal.category}${colors.reset}\n`);
+      }
+    } else if (subcommand === 'add') {
+      // Add a new goal - everything after "add" is the title
+      const title = args.slice(1).join(' ').replace(/^["']|["']$/g, '');
+      if (!title) {
+        console.log(`${colors.red}Please provide a goal title.${colors.reset}`);
+        console.log(`${colors.dim}Example: ferni goals add "Build morning routine"${colors.reset}\n`);
+        return;
+      }
+
+      const goal = await goalsService.createGoal(userId, { title, category: 'personal' });
+      console.log(`\n${colors.green}✓ Goal created!${colors.reset}`);
+      console.log(`  ${colors.bold}${goal.title}${colors.reset}`);
+      console.log(`  ${colors.dim}ID: ${goal.id}${colors.reset}\n`);
+    } else if (subcommand === 'complete') {
+      // Complete a goal by ID
+      const goalId = args[1];
+      if (!goalId) {
+        console.log(`${colors.red}Please provide a goal ID.${colors.reset}`);
+        console.log(`${colors.dim}Example: ferni goals complete goal_12345${colors.reset}\n`);
+        return;
+      }
+
+      await goalsService.updateGoal(userId, goalId, { status: 'completed', progress: 100 });
+      console.log(`\n${colors.green}✓ Goal completed!${colors.reset}\n`);
+    } else if (subcommand === 'progress') {
+      // Show progress overview across all goals
+      const activeGoals = await goalsService.getGoals(userId, 'active');
+      const completedGoals = await goalsService.getGoals(userId, 'completed');
+
+      console.log(`\n${colors.bold}Progress Overview${colors.reset}\n`);
+      console.log(`  ${colors.cyan}Active Goals:${colors.reset}    ${activeGoals.length}`);
+      console.log(`  ${colors.green}Completed:${colors.reset}       ${completedGoals.length}`);
+
+      if (activeGoals.length > 0) {
+        const avgProgress = Math.round(
+          activeGoals.reduce((sum, g) => sum + (g.progress || 0), 0) / activeGoals.length
+        );
+        console.log(`  ${colors.yellow}Avg Progress:${colors.reset}    ${avgProgress}%\n`);
+      }
+    } else if (subcommand === 'all') {
+      // List all goals including completed
+      const goals = await goalsService.getGoals(userId);
+
+      if (goals.length === 0) {
+        console.log(`\n${colors.dim}No goals yet.${colors.reset}\n`);
+        return;
+      }
+
+      console.log(`\n${colors.bold}All Goals${colors.reset}\n`);
+      for (const goal of goals) {
+        const statusIcon = goal.status === 'completed' ? '✓' : goal.status === 'paused' ? '⏸' : '○';
+        const statusColor = goal.status === 'completed' ? colors.green : goal.status === 'paused' ? colors.yellow : colors.white;
+        console.log(`  ${statusColor}${statusIcon}${colors.reset} ${goal.title} ${colors.dim}(${goal.status})${colors.reset}`);
+      }
+      console.log();
+    } else {
+      console.log(`${colors.red}Unknown subcommand: ${subcommand}${colors.reset}`);
+      console.log(`${colors.dim}Available: list, add, complete, progress, all${colors.reset}\n`);
+    }
+  } catch (error) {
+    log.error(`Goals operation failed: ${String(error)}`);
+    console.log(`\n${colors.red}Couldn't access goals.${colors.reset}`);
+    console.log(`${colors.dim}Make sure the service is running.${colors.reset}\n`);
+  }
 }
 
 async function handleCEOContext(args: string[]): Promise<void> {
@@ -4144,77 +4418,122 @@ async function handleCEORoster(args: string[]): Promise<void> {
 // Daily Workflow Handlers
 async function handleCEOBriefing(args: string[]): Promise<void> {
   const subcommand = args[0] || 'today';
-  log.header(`☀️ Daily Briefing`);
+  const userId = process.env.FERNI_USER_ID || 'cli-user';
 
-  if (subcommand === 'today' || !args[0]) {
+  try {
+    if (subcommand === 'today' || !args[0]) {
+      // Generate and display the full briefing using the service
+      const briefing = await briefingService.generateBriefing(userId);
+      const formatted = briefingService.formatForTerminal(briefing);
+      console.log(formatted);
+    } else if (subcommand === 'tomorrow') {
+      console.log(`\n${colors.bold}Tomorrow's Preview${colors.reset}`);
+      console.log(`${colors.dim}Calendar integration coming soon...${colors.reset}`);
+    } else if (subcommand === 'week') {
+      // Generate weekly review using weeklyReviewService
+      try {
+        const review = await weeklyReviewService.generateWeeklyReview(userId);
+        const formatted = weeklyReviewService.formatForTerminal(review);
+        console.log(formatted);
+      } catch (err) {
+        console.log(`\n${colors.bold}Week at a Glance${colors.reset}`);
+        console.log(`${colors.dim}Run 'ferni weekly' for full weekly review${colors.reset}`);
+      }
+    } else {
+      log.error(`Unknown subcommand: ${subcommand}`);
+      console.log(`Available: today, tomorrow, week`);
+    }
+  } catch (error) {
+    log.error(`Briefing failed: ${String(error)}`);
+    // Fallback to basic output
     const today = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
     console.log(`\n${colors.bold}Good morning! Here's your briefing for ${today}${colors.reset}\n`);
     console.log(`${colors.cyan}📅 Calendar${colors.reset}`);
     console.log(`   Run ${colors.dim}ferni briefing${colors.reset} with calendar integration for full view\n`);
     console.log(`${colors.cyan}📌 Top Priorities${colors.reset}`);
-    console.log(`   Run ${colors.dim}ferni priorities${colors.reset} to see your priorities\n`);
-    console.log(`${colors.cyan}🎯 Active Goals${colors.reset}`);
     console.log(`   Run ${colors.dim}ferni goals${colors.reset} to see your goals\n`);
-    console.log(`${colors.dim}Tip: Set up your priorities with 'ferni priorities add "..."'${colors.reset}`);
-  } else if (subcommand === 'tomorrow') {
-    console.log(`\n${colors.bold}Tomorrow's Preview${colors.reset}`);
-    console.log(`${colors.dim}Calendar integration coming soon...${colors.reset}`);
-  } else if (subcommand === 'week') {
-    console.log(`\n${colors.bold}Week at a Glance${colors.reset}`);
-    console.log(`${colors.dim}Weekly overview coming soon...${colors.reset}`);
   }
 }
 
 async function handleCEOFocus(args: string[]): Promise<void> {
   const subcommand = args[0] || 'status';
-  log.header(`🎯 Focus Session`);
+  const userId = process.env.FERNI_USER_ID || 'cli-user';
 
-  const dataDir = join(homedir(), '.ferni');
-  const focusFile = join(dataDir, 'focus-session.json');
+  log.header('🎯 Focus Session');
 
-  if (subcommand === 'start') {
-    const duration = parseInt(args[1]) || 25;
-    const label = args.slice(2).join(' ') || 'Focus session';
-    const session = {
-      startedAt: new Date().toISOString(),
-      duration,
-      label,
-      endAt: new Date(Date.now() + duration * 60 * 1000).toISOString(),
-    };
-    await fs.mkdir(dataDir, { recursive: true });
-    await fs.writeFile(focusFile, JSON.stringify(session, null, 2));
-    console.log(`\n${colors.green}✓ Focus session started!${colors.reset}`);
-    console.log(`  ${colors.bold}${label}${colors.reset} - ${duration} minutes`);
-    console.log(`  Ends at: ${new Date(session.endAt).toLocaleTimeString()}`);
-    console.log(`\n${colors.dim}Run 'ferni focus status' to check progress${colors.reset}`);
-  } else if (subcommand === 'stop') {
-    try {
-      await fs.unlink(focusFile);
-      console.log(`\n${colors.green}✓ Focus session ended${colors.reset}`);
-    } catch {
-      console.log(`\n${colors.yellow}No active focus session${colors.reset}`);
-    }
-  } else if (subcommand === 'status') {
-    try {
-      const data = await fs.readFile(focusFile, 'utf-8');
-      const session = JSON.parse(data);
-      const remaining = Math.max(0, (new Date(session.endAt).getTime() - Date.now()) / 1000 / 60);
-      if (remaining > 0) {
-        console.log(`\n${colors.green}🎯 Active Focus Session${colors.reset}`);
-        console.log(`  ${colors.bold}${session.label}${colors.reset}`);
-        console.log(`  ${Math.ceil(remaining)} minutes remaining`);
+  try {
+    if (subcommand === 'start') {
+      const duration = parseInt(args[1]) || 25;
+      const task = args.slice(2).join(' ') || undefined;
+
+      const session = await focusService.startSession(userId, { duration, task });
+      const endTime = new Date(session.startTime.getTime() + session.plannedDuration * 60 * 1000);
+
+      console.log(`\n${colors.green}✓ Focus session started!${colors.reset}`);
+      console.log(`  ${colors.bold}${session.task || 'Focus session'}${colors.reset} - ${duration} minutes`);
+      console.log(`  Ends at: ${endTime.toLocaleTimeString()}`);
+      console.log(`\n${colors.dim}Run 'ferni focus status' to check progress${colors.reset}`);
+    } else if (subcommand === 'stop') {
+      const session = await focusService.endSession(userId);
+      if (session) {
+        console.log(`\n${colors.green}✓ Focus session ended${colors.reset}`);
+        if (session.actualDuration) {
+          console.log(`  Duration: ${session.actualDuration} minutes`);
+        }
       } else {
-        console.log(`\n${colors.green}✓ Focus session completed!${colors.reset}`);
-        console.log(`  ${session.label} - Great work!`);
-        await fs.unlink(focusFile);
+        console.log(`\n${colors.yellow}No active focus session${colors.reset}`);
       }
-    } catch {
-      console.log(`\n${colors.dim}No active focus session${colors.reset}`);
-      console.log(`Start one with: ${colors.cyan}ferni focus start 25${colors.reset}`);
+    } else if (subcommand === 'status') {
+      const session = await focusService.getCurrentSession(userId);
+      if (session) {
+        const endTime = new Date(session.startTime.getTime() + session.plannedDuration * 60 * 1000);
+        const remaining = Math.max(0, (endTime.getTime() - Date.now()) / 1000 / 60);
+
+        if (remaining > 0) {
+          console.log(`\n${colors.green}🎯 Active Focus Session${colors.reset}`);
+          console.log(`  ${colors.bold}${session.task || 'Focus session'}${colors.reset}`);
+          console.log(`  ${Math.ceil(remaining)} minutes remaining`);
+          console.log(`  ${colors.dim}Started: ${session.startTime.toLocaleTimeString()}${colors.reset}`);
+        } else {
+          // Session complete, end it
+          await focusService.endSession(userId);
+          console.log(`\n${colors.green}✓ Focus session completed!${colors.reset}`);
+          console.log(`  ${session.task || 'Focus session'} - Great work!`);
+        }
+      } else {
+        console.log(`\n${colors.dim}No active focus session${colors.reset}`);
+        console.log(`Start one with: ${colors.cyan}ferni focus start 25${colors.reset}`);
+      }
+    } else if (subcommand === 'stats') {
+      const stats = await focusService.getStats(userId, 'week');
+      console.log(`\n${colors.bold}Focus Statistics (This Week)${colors.reset}\n`);
+      console.log(`  ${colors.cyan}Total Sessions:${colors.reset}    ${stats.totalSessions}`);
+      console.log(`  ${colors.cyan}Total Minutes:${colors.reset}     ${stats.totalMinutes}`);
+      console.log(`  ${colors.cyan}Average Duration:${colors.reset}  ${stats.averageDuration} min`);
+      console.log(`  ${colors.cyan}Completion Rate:${colors.reset}   ${stats.completionRate}%`);
+      console.log(`  ${colors.cyan}Streak:${colors.reset}            ${stats.streakDays} days\n`);
+    } else if (subcommand === 'history') {
+      const sessions = await focusService.getSessionHistory(userId, 10);
+      if (sessions.length === 0) {
+        console.log(`\n${colors.dim}No focus sessions yet.${colors.reset}\n`);
+        return;
+      }
+      console.log(`\n${colors.bold}Recent Focus Sessions${colors.reset}\n`);
+      for (const session of sessions) {
+        const date = session.startTime.toLocaleDateString();
+        const duration = session.actualDuration || session.plannedDuration;
+        const status = session.interrupted ? '⚠️ interrupted' : '✓ completed';
+        console.log(`  ${colors.dim}${date}${colors.reset} ${session.task || 'Focus'} (${duration} min) ${status}`);
+      }
+      console.log();
+    } else {
+      console.log(`${colors.red}Unknown subcommand: ${subcommand}${colors.reset}`);
+      console.log(`${colors.dim}Available: start, stop, status, stats, history${colors.reset}\n`);
     }
-  } else if (subcommand === 'stats') {
-    console.log(`\n${colors.bold}Focus Statistics${colors.reset}`);
-    console.log(`${colors.dim}Stats tracking coming soon...${colors.reset}`);
+  } catch (error) {
+    log.error(`Focus operation failed: ${String(error)}`);
+    console.log(`\n${colors.red}Couldn't access focus sessions.${colors.reset}`);
+    console.log(`${colors.dim}Make sure the service is running.${colors.reset}\n`);
   }
 }
 
@@ -4246,93 +4565,120 @@ async function handleCEOReflect(args: string[]): Promise<void> {
 
 async function handleCEOWeekly(args: string[]): Promise<void> {
   const subcommand = args[0] || 'review';
-  log.header(`📅 Weekly Review`);
+  const userId = process.env.FERNI_USER_ID || 'cli-user';
 
-  if (subcommand === 'review') {
-    console.log(`\n${colors.bold}Weekly Review Checklist${colors.reset}\n`);
-    console.log(`  ${colors.cyan}1.${colors.reset} Review wins from the week (${colors.dim}ferni wins week${colors.reset})`);
-    console.log(`  ${colors.cyan}2.${colors.reset} Check goal progress (${colors.dim}ferni goals progress${colors.reset})`);
-    console.log(`  ${colors.cyan}3.${colors.reset} Clear completed priorities (${colors.dim}ferni priorities${colors.reset})`);
-    console.log(`  ${colors.cyan}4.${colors.reset} Review decisions made (${colors.dim}ferni decisions review${colors.reset})`);
-    console.log(`  ${colors.cyan}5.${colors.reset} Check habit streaks (${colors.dim}ferni habits streaks${colors.reset})`);
-    console.log(`  ${colors.cyan}6.${colors.reset} Resolve blockers (${colors.dim}ferni blockers list${colors.reset})`);
-    console.log(`  ${colors.cyan}7.${colors.reset} Plan next week (${colors.dim}ferni weekly plan${colors.reset})`);
-  } else if (subcommand === 'plan') {
-    console.log(`\n${colors.bold}Plan Next Week${colors.reset}\n`);
-    console.log(`  ${colors.cyan}•${colors.reset} Set 3 priorities: ${colors.dim}ferni priorities add "..."${colors.reset}`);
-    console.log(`  ${colors.cyan}•${colors.reset} Schedule focus time: ${colors.dim}ferni focus start${colors.reset}`);
-    console.log(`  ${colors.cyan}•${colors.reset} Review upcoming calendar events`);
-  } else if (subcommand === 'summary') {
-    console.log(`\n${colors.bold}Week Summary${colors.reset}`);
-    console.log(`${colors.dim}Summary generation coming soon...${colors.reset}`);
+  log.header('📅 Weekly Review');
+
+  try {
+    if (subcommand === 'review' || !args[0]) {
+      // Generate full weekly review using the service
+      const review = await weeklyReviewService.generateReview(userId);
+      const formatted = weeklyReviewService.formatForTerminal(review);
+      console.log(formatted);
+    } else if (subcommand === 'last') {
+      // Get last week's review
+      const review = await weeklyReviewService.generateReview(userId, -1);
+      const formatted = weeklyReviewService.formatForTerminal(review);
+      console.log(formatted);
+    } else if (subcommand === 'plan') {
+      console.log(`\n${colors.bold}Plan Next Week${colors.reset}\n`);
+      console.log(`  ${colors.cyan}•${colors.reset} Set 3 priorities: ${colors.dim}ferni priorities add "..."${colors.reset}`);
+      console.log(`  ${colors.cyan}•${colors.reset} Schedule focus time: ${colors.dim}ferni focus start 90${colors.reset}`);
+      console.log(`  ${colors.cyan}•${colors.reset} Review upcoming calendar events`);
+      console.log(`  ${colors.cyan}•${colors.reset} Add goals: ${colors.dim}ferni goals add "..."${colors.reset}`);
+      console.log(`\n${colors.dim}Run 'ferni briefing week' for upcoming week preview${colors.reset}\n`);
+    } else if (subcommand === 'checklist') {
+      // Quick checklist for manual review
+      console.log(`\n${colors.bold}Weekly Review Checklist${colors.reset}\n`);
+      console.log(`  ${colors.cyan}1.${colors.reset} Review wins from the week (${colors.dim}ferni wins week${colors.reset})`);
+      console.log(`  ${colors.cyan}2.${colors.reset} Check goal progress (${colors.dim}ferni goals progress${colors.reset})`);
+      console.log(`  ${colors.cyan}3.${colors.reset} Review energy patterns (${colors.dim}ferni energy patterns${colors.reset})`);
+      console.log(`  ${colors.cyan}4.${colors.reset} Check focus stats (${colors.dim}ferni focus stats${colors.reset})`);
+      console.log(`  ${colors.cyan}5.${colors.reset} Plan next week (${colors.dim}ferni weekly plan${colors.reset})`);
+      console.log(`\n${colors.dim}Or run 'ferni weekly' for automated review${colors.reset}\n`);
+    } else {
+      console.log(`${colors.red}Unknown subcommand: ${subcommand}${colors.reset}`);
+      console.log(`${colors.dim}Available: review, last, plan, checklist${colors.reset}\n`);
+    }
+  } catch (error) {
+    log.error(`Weekly review failed: ${String(error)}`);
+    // Fallback to checklist
+    console.log(`\n${colors.yellow}Automated review unavailable. Showing checklist:${colors.reset}\n`);
+    console.log(`  ${colors.cyan}1.${colors.reset} Review wins: ${colors.dim}ferni wins week${colors.reset}`);
+    console.log(`  ${colors.cyan}2.${colors.reset} Check goals: ${colors.dim}ferni goals progress${colors.reset}`);
+    console.log(`  ${colors.cyan}3.${colors.reset} Focus stats: ${colors.dim}ferni focus stats${colors.reset}`);
+    console.log(`  ${colors.cyan}4.${colors.reset} Plan ahead: ${colors.dim}ferni weekly plan${colors.reset}\n`);
   }
 }
 
 // Personal Tracking Handlers
 async function handleCEOWins(args: string[]): Promise<void> {
   const subcommand = args[0] || 'list';
-  log.header(`🏆 Wins & Achievements`);
+  const userId = process.env.FERNI_USER_ID || 'cli-user';
 
-  const dataDir = join(homedir(), '.ferni');
-  const winsFile = join(dataDir, 'wins.json');
+  log.header('🏆 Wins & Achievements');
 
-  async function loadWins(): Promise<Array<{ text: string; date: string }>> {
-    try {
-      const data = await fs.readFile(winsFile, 'utf-8');
-      return JSON.parse(data);
-    } catch {
-      return [];
-    }
-  }
-
-  async function saveWins(wins: Array<{ text: string; date: string }>): Promise<void> {
-    await fs.mkdir(dataDir, { recursive: true });
-    await fs.writeFile(winsFile, JSON.stringify(wins, null, 2));
-  }
-
-  if (subcommand === 'add') {
-    const text = args.slice(1).join(' ');
-    if (!text) {
-      console.log(`\n${colors.yellow}Usage: ferni wins add "Your achievement"${colors.reset}`);
-      return;
-    }
-    const wins = await loadWins();
-    wins.push({ text, date: new Date().toISOString() });
-    await saveWins(wins);
-    console.log(`\n${colors.green}🏆 Win recorded!${colors.reset} "${text}"`);
-  } else if (subcommand === 'list' || subcommand === 'today' || subcommand === 'week') {
-    const wins = await loadWins();
-    const now = new Date();
-    const filtered = wins.filter((w) => {
-      const date = new Date(w.date);
-      if (subcommand === 'today') {
-        return date.toDateString() === now.toDateString();
-      } else if (subcommand === 'week') {
-        const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-        return date >= weekAgo;
+  try {
+    if (subcommand === 'add') {
+      const text = args.slice(1).join(' ').replace(/^["']|["']$/g, '');
+      if (!text) {
+        console.log(`\n${colors.yellow}Usage: ferni wins add "Your achievement"${colors.reset}`);
+        return;
       }
-      return true;
-    });
-    if (filtered.length === 0) {
-      console.log(`\n${colors.dim}No wins recorded yet. Add one with: ferni wins add "..."${colors.reset}`);
+      const win = await winsService.addWin(userId, text);
+      console.log(`\n${colors.green}🏆 Win recorded!${colors.reset} "${win.description}"`);
+    } else if (subcommand === 'list' || subcommand === 'today' || subcommand === 'week' || subcommand === 'month') {
+      const period = subcommand === 'list' ? 'all' : subcommand;
+      const wins = await winsService.getWins(userId, period as 'today' | 'week' | 'month' | 'all');
+
+      if (wins.length === 0) {
+        const periodText = period === 'all' ? '' : ` ${period}`;
+        console.log(`\n${colors.dim}No wins${periodText} yet. Add one with: ferni wins add "..."${colors.reset}`);
+      } else {
+        const periodText = period === 'all' ? 'All' : period.charAt(0).toUpperCase() + period.slice(1);
+        console.log(`\n${colors.bold}${periodText} Wins:${colors.reset}\n`);
+        for (const w of wins.slice(0, 10)) {
+          const date = w.createdAt.toLocaleDateString();
+          console.log(`  ${colors.green}🏆${colors.reset} ${w.description} ${colors.dim}(${date})${colors.reset}`);
+        }
+      }
+    } else if (subcommand === 'celebrate') {
+      console.log(`\n${colors.bold}🎉 Celebration Time! 🎉${colors.reset}\n`);
+      const wins = await winsService.getWins(userId, 'week');
+      if (wins.length > 0) {
+        console.log(`  Recent wins to celebrate:\n`);
+        for (const w of wins.slice(0, 3)) {
+          console.log(`  ${colors.green}🏆${colors.reset} ${w.description}`);
+        }
+        console.log(`\n  ${colors.cyan}You're doing amazing!${colors.reset}`);
+      } else {
+        // Try to get a random win for motivation
+        const randomWin = await winsService.getRandomWin(userId);
+        if (randomWin) {
+          console.log(`  A past win to remember:\n`);
+          console.log(`  ${colors.green}🏆${colors.reset} ${randomWin.description}`);
+          console.log(`\n  ${colors.cyan}You've done great things before!${colors.reset}`);
+        } else {
+          console.log(`  ${colors.dim}Add some wins first with: ferni wins add "..."${colors.reset}`);
+        }
+      }
+    } else if (subcommand === 'random') {
+      const win = await winsService.getRandomWin(userId);
+      if (win) {
+        console.log(`\n${colors.bold}Random Win for Motivation:${colors.reset}\n`);
+        console.log(`  ${colors.green}🏆${colors.reset} ${win.description}`);
+        console.log(`  ${colors.dim}${win.createdAt.toLocaleDateString()}${colors.reset}\n`);
+      } else {
+        console.log(`\n${colors.dim}No wins yet. Add one with: ferni wins add "..."${colors.reset}`);
+      }
     } else {
-      console.log(`\n${colors.bold}Your Wins:${colors.reset}\n`);
-      filtered.slice(-10).forEach((w, i) => {
-        const date = new Date(w.date).toLocaleDateString();
-        console.log(`  ${colors.green}🏆${colors.reset} ${w.text} ${colors.dim}(${date})${colors.reset}`);
-      });
+      console.log(`${colors.red}Unknown subcommand: ${subcommand}${colors.reset}`);
+      console.log(`${colors.dim}Available: add, list, today, week, month, celebrate, random${colors.reset}\n`);
     }
-  } else if (subcommand === 'celebrate') {
-    console.log(`\n${colors.bold}🎉 Celebration Time! 🎉${colors.reset}\n`);
-    const wins = await loadWins();
-    if (wins.length > 0) {
-      const recent = wins.slice(-3);
-      console.log(`  Recent wins to celebrate:\n`);
-      recent.forEach((w) => console.log(`  ${colors.green}🏆${colors.reset} ${w.text}`));
-      console.log(`\n  ${colors.cyan}You're doing amazing!${colors.reset}`);
-    } else {
-      console.log(`  ${colors.dim}Add some wins first with: ferni wins add "..."${colors.reset}`);
-    }
+  } catch (error) {
+    log.error(`Wins operation failed: ${String(error)}`);
+    console.log(`\n${colors.red}Couldn't access wins.${colors.reset}`);
+    console.log(`${colors.dim}Make sure the service is running.${colors.reset}\n`);
   }
 }
 
@@ -4416,509 +4762,499 @@ async function handleCEOHabits(args: string[]): Promise<void> {
 
 async function handleCEOEnergy(args: string[]): Promise<void> {
   const subcommand = args[0] || 'today';
-  log.header(`⚡ Energy Tracker`);
+  const userId = process.env.FERNI_USER_ID || 'cli-user';
 
-  const dataDir = join(homedir(), '.ferni');
-  const energyFile = join(dataDir, 'energy.json');
+  log.header('⚡ Energy Tracker');
 
-  interface EnergyLog {
-    level: number;
-    note: string;
-    timestamp: string;
-  }
+  try {
+    if (subcommand === 'log') {
+      const level = parseInt(args[1]);
+      if (isNaN(level) || level < 1 || level > 10) {
+        console.log(`\n${colors.yellow}Usage: ferni energy log <1-10> ["optional note"]${colors.reset}`);
+        return;
+      }
+      const notes = args.slice(2).join(' ') || undefined;
+      const energyLog = await energyService.logEnergy(userId, level, notes);
+      const emoji = energyLog.level >= 7 ? '🔥' : energyLog.level >= 4 ? '⚡' : '🔋';
+      console.log(`\n${colors.green}${emoji} Energy logged:${colors.reset} ${energyLog.level}/10${notes ? ` - "${notes}"` : ''}`);
+    } else if (subcommand === 'today') {
+      const logs = await energyService.getToday(userId);
+      if (logs.length === 0) {
+        console.log(`\n${colors.dim}No energy logged today. Log with: ferni energy log 7${colors.reset}`);
+      } else {
+        console.log(`\n${colors.bold}Today's Energy:${colors.reset}\n`);
+        for (const l of logs) {
+          const time = l.createdAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+          const bar = '█'.repeat(l.level) + '░'.repeat(10 - l.level);
+          console.log(`  ${time}: ${colors.cyan}${bar}${colors.reset} ${l.level}/10 ${l.notes ? colors.dim + l.notes + colors.reset : ''}`);
+        }
+      }
+    } else if (subcommand === 'week') {
+      const average = await energyService.getWeeklyAverage(userId);
+      const logs = await energyService.getTrend(userId, 7);
+      console.log(`\n${colors.bold}This Week's Energy:${colors.reset}\n`);
+      console.log(`  ${colors.cyan}Weekly Average:${colors.reset} ${average.toFixed(1)}/10`);
+      console.log(`  ${colors.cyan}Entries:${colors.reset}        ${logs.length}\n`);
 
-  async function loadEnergy(): Promise<EnergyLog[]> {
-    try {
-      const data = await fs.readFile(energyFile, 'utf-8');
-      return JSON.parse(data);
-    } catch {
-      return [];
-    }
-  }
-
-  async function saveEnergy(logs: EnergyLog[]): Promise<void> {
-    await fs.mkdir(dataDir, { recursive: true });
-    await fs.writeFile(energyFile, JSON.stringify(logs, null, 2));
-  }
-
-  if (subcommand === 'log') {
-    const level = parseInt(args[1]);
-    if (isNaN(level) || level < 1 || level > 10) {
-      console.log(`\n${colors.yellow}Usage: ferni energy log <1-10> ["optional note"]${colors.reset}`);
-      return;
-    }
-    const note = args.slice(2).join(' ') || '';
-    const logs = await loadEnergy();
-    logs.push({ level, note, timestamp: new Date().toISOString() });
-    await saveEnergy(logs);
-    const emoji = level >= 7 ? '🔥' : level >= 4 ? '⚡' : '🔋';
-    console.log(`\n${colors.green}${emoji} Energy logged:${colors.reset} ${level}/10${note ? ` - "${note}"` : ''}`);
-  } else if (subcommand === 'today') {
-    const logs = await loadEnergy();
-    const today = new Date().toDateString();
-    const todayLogs = logs.filter((l) => new Date(l.timestamp).toDateString() === today);
-    if (todayLogs.length === 0) {
-      console.log(`\n${colors.dim}No energy logged today. Log with: ferni energy log 7${colors.reset}`);
+      if (logs.length > 0) {
+        // Show daily averages
+        const byDay = new Map<string, number[]>();
+        for (const l of logs) {
+          const day = l.createdAt.toLocaleDateString([], { weekday: 'short' });
+          if (!byDay.has(day)) byDay.set(day, []);
+          byDay.get(day)!.push(l.level);
+        }
+        console.log(`  ${colors.bold}Daily Averages:${colors.reset}`);
+        for (const [day, levels] of byDay) {
+          const avg = levels.reduce((a, b) => a + b, 0) / levels.length;
+          const bar = '█'.repeat(Math.round(avg)) + '░'.repeat(10 - Math.round(avg));
+          console.log(`    ${day}: ${colors.cyan}${bar}${colors.reset} ${avg.toFixed(1)}`);
+        }
+      }
+    } else if (subcommand === 'patterns') {
+      const analysis = await energyService.getWeeklyAnalysis(userId);
+      console.log(`\n${colors.bold}Energy Patterns (Last 7 Days)${colors.reset}\n`);
+      console.log(`  ${colors.cyan}Average:${colors.reset}   ${analysis.average.toFixed(1)}/10`);
+      console.log(`  ${colors.cyan}Trend:${colors.reset}     ${analysis.trend === 'improving' ? colors.green : analysis.trend === 'declining' ? colors.red : colors.yellow}${analysis.trend}${colors.reset}`);
+      if (analysis.peakTime) {
+        console.log(`  ${colors.cyan}Peak Time:${colors.reset} ${analysis.peakTime}`);
+      }
+      if (analysis.lowTime) {
+        console.log(`  ${colors.cyan}Low Time:${colors.reset}  ${analysis.lowTime}`);
+      }
+      console.log();
     } else {
-      console.log(`\n${colors.bold}Today's Energy:${colors.reset}\n`);
-      todayLogs.forEach((l) => {
-        const time = new Date(l.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-        const bar = '█'.repeat(l.level) + '░'.repeat(10 - l.level);
-        console.log(`  ${time}: ${colors.cyan}${bar}${colors.reset} ${l.level}/10 ${l.note ? colors.dim + l.note + colors.reset : ''}`);
-      });
+      console.log(`${colors.red}Unknown subcommand: ${subcommand}${colors.reset}`);
+      console.log(`${colors.dim}Available: log, today, week, patterns${colors.reset}\n`);
     }
-  } else if (subcommand === 'patterns') {
-    console.log(`\n${colors.bold}Energy Patterns${colors.reset}`);
-    console.log(`${colors.dim}Pattern analysis coming soon...${colors.reset}`);
+  } catch (error) {
+    log.error(`Energy operation failed: ${String(error)}`);
+    console.log(`\n${colors.red}Couldn't access energy logs.${colors.reset}`);
+    console.log(`${colors.dim}Make sure the service is running.${colors.reset}\n`);
   }
 }
 
 async function handleCEOJournal(args: string[]): Promise<void> {
   const subcommand = args[0] || 'today';
+  const userId = process.env.FERNI_USER_ID || 'cli-user';
   log.header(`📓 Journal`);
 
-  const dataDir = join(homedir(), '.ferni');
-  const journalFile = join(dataDir, 'journal.json');
-
-  interface JournalEntry {
-    text: string;
-    timestamp: string;
-  }
-
-  async function loadJournal(): Promise<JournalEntry[]> {
-    try {
-      const data = await fs.readFile(journalFile, 'utf-8');
-      return JSON.parse(data);
-    } catch {
-      return [];
-    }
-  }
-
-  async function saveJournal(entries: JournalEntry[]): Promise<void> {
-    await fs.mkdir(dataDir, { recursive: true });
-    await fs.writeFile(journalFile, JSON.stringify(entries, null, 2));
-  }
-
-  // If no subcommand and has text, treat as 'add'
-  if (args[0] && !['add', 'today', 'search', 'prompts'].includes(args[0])) {
-    const text = args.join(' ');
-    const entries = await loadJournal();
-    entries.push({ text, timestamp: new Date().toISOString() });
-    await saveJournal(entries);
-    console.log(`\n${colors.green}✓ Journal entry saved${colors.reset}`);
-    return;
-  }
-
-  if (subcommand === 'add') {
-    const text = args.slice(1).join(' ');
-    if (!text) {
-      console.log(`\n${colors.yellow}Usage: ferni journal "Your entry..."${colors.reset}`);
+  try {
+    // If no subcommand and has text, treat as 'add'
+    if (args[0] && !['add', 'today', 'week', 'search', 'prompts', 'sentiment'].includes(args[0])) {
+      const text = args.join(' ');
+      const entry = await journalService.addEntry(userId, text);
+      const sentimentEmoji = entry.sentiment === 'positive' ? '😊' : entry.sentiment === 'negative' ? '😔' : '😐';
+      console.log(`\n${colors.green}✓ Journal entry saved${colors.reset} ${sentimentEmoji}`);
       return;
     }
-    const entries = await loadJournal();
-    entries.push({ text, timestamp: new Date().toISOString() });
-    await saveJournal(entries);
-    console.log(`\n${colors.green}✓ Journal entry saved${colors.reset}`);
-  } else if (subcommand === 'today') {
-    const entries = await loadJournal();
-    const today = new Date().toDateString();
-    const todayEntries = entries.filter((e) => new Date(e.timestamp).toDateString() === today);
-    if (todayEntries.length === 0) {
-      console.log(`\n${colors.dim}No entries today. Write with: ferni journal "..."${colors.reset}`);
-    } else {
-      console.log(`\n${colors.bold}Today's Journal:${colors.reset}\n`);
-      todayEntries.forEach((e) => {
-        const time = new Date(e.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-        console.log(`  ${colors.dim}${time}${colors.reset} ${e.text}`);
+
+    if (subcommand === 'add') {
+      const text = args.slice(1).join(' ');
+      if (!text) {
+        console.log(`\n${colors.yellow}Usage: ferni journal "Your entry..."${colors.reset}`);
+        return;
+      }
+      const entry = await journalService.addEntry(userId, text);
+      const sentimentEmoji = entry.sentiment === 'positive' ? '😊' : entry.sentiment === 'negative' ? '😔' : '😐';
+      console.log(`\n${colors.green}✓ Journal entry saved${colors.reset} ${sentimentEmoji}`);
+    } else if (subcommand === 'today') {
+      const entries = await journalService.getEntries(userId, 'today');
+      if (entries.length === 0) {
+        console.log(`\n${colors.dim}No entries today. Write with: ferni journal "..."${colors.reset}`);
+      } else {
+        console.log(`\n${colors.bold}Today's Journal:${colors.reset}\n`);
+        entries.forEach((e) => {
+          const time = e.createdAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+          const sentimentEmoji = e.sentiment === 'positive' ? '😊' : e.sentiment === 'negative' ? '😔' : '😐';
+          console.log(`  ${colors.dim}${time}${colors.reset} ${sentimentEmoji} ${e.content}`);
+        });
+      }
+    } else if (subcommand === 'week') {
+      const entries = await journalService.getEntries(userId, 'week');
+      if (entries.length === 0) {
+        console.log(`\n${colors.dim}No entries this week.${colors.reset}`);
+      } else {
+        console.log(`\n${colors.bold}This Week's Journal:${colors.reset} (${entries.length} entries)\n`);
+        entries.slice(0, 20).forEach((e) => {
+          const date = e.createdAt.toLocaleDateString();
+          const sentimentEmoji = e.sentiment === 'positive' ? '😊' : e.sentiment === 'negative' ? '😔' : '😐';
+          console.log(`  ${colors.dim}${date}${colors.reset} ${sentimentEmoji} ${e.content}`);
+        });
+      }
+    } else if (subcommand === 'search') {
+      const query = args.slice(1).join(' ');
+      if (!query) {
+        console.log(`\n${colors.yellow}Usage: ferni journal search <query>${colors.reset}`);
+        return;
+      }
+      const matches = await journalService.search(userId, query);
+      console.log(`\n${colors.bold}Search Results:${colors.reset} (${matches.length} found)\n`);
+      matches.slice(0, 10).forEach((e) => {
+        const date = e.createdAt.toLocaleDateString();
+        console.log(`  ${colors.dim}${date}${colors.reset} ${e.content}`);
       });
+    } else if (subcommand === 'sentiment') {
+      const sentimentArg = args[1] as 'positive' | 'neutral' | 'negative';
+      const sentiment = ['positive', 'neutral', 'negative'].includes(sentimentArg) ? sentimentArg : 'positive';
+      const entries = await journalService.getEntriesBySentiment(userId, sentiment);
+      const emoji = sentiment === 'positive' ? '😊' : sentiment === 'negative' ? '😔' : '😐';
+      console.log(`\n${colors.bold}${emoji} ${sentiment.charAt(0).toUpperCase() + sentiment.slice(1)} Entries:${colors.reset}\n`);
+      if (entries.length === 0) {
+        console.log(`  ${colors.dim}No ${sentiment} entries found.${colors.reset}`);
+      } else {
+        entries.slice(0, 10).forEach((e) => {
+          const date = e.createdAt.toLocaleDateString();
+          console.log(`  ${colors.dim}${date}${colors.reset} ${e.content}`);
+        });
+      }
+    } else if (subcommand === 'prompts') {
+      const prompts = [
+        "What's on your mind right now?",
+        "What are you looking forward to?",
+        "What challenged you today?",
+        "What made you smile?",
+        "What would make today great?",
+      ];
+      console.log(`\n${colors.bold}Journal Prompts:${colors.reset}\n`);
+      prompts.forEach((p, i) => console.log(`  ${colors.cyan}${i + 1}.${colors.reset} ${p}`));
     }
-  } else if (subcommand === 'search') {
-    const query = args.slice(1).join(' ').toLowerCase();
-    const entries = await loadJournal();
-    const matches = entries.filter((e) => e.text.toLowerCase().includes(query));
-    console.log(`\n${colors.bold}Search Results:${colors.reset} (${matches.length} found)\n`);
-    matches.slice(-10).forEach((e) => {
-      const date = new Date(e.timestamp).toLocaleDateString();
-      console.log(`  ${colors.dim}${date}${colors.reset} ${e.text}`);
-    });
-  } else if (subcommand === 'prompts') {
-    const prompts = [
-      "What's on your mind right now?",
-      "What are you looking forward to?",
-      "What challenged you today?",
-      "What made you smile?",
-      "What would make today great?",
-    ];
-    console.log(`\n${colors.bold}Journal Prompts:${colors.reset}\n`);
-    prompts.forEach((p, i) => console.log(`  ${colors.cyan}${i + 1}.${colors.reset} ${p}`));
+  } catch (error) {
+    console.log(`\n${colors.red}Error:${colors.reset} Couldn't access journal. Try again later.`);
   }
 }
 
 async function handleCEOGratitude(args: string[]): Promise<void> {
   const subcommand = args[0] || 'today';
+  const userId = process.env.FERNI_USER_ID || 'cli-user';
   log.header(`🙏 Gratitude`);
 
-  const dataDir = join(homedir(), '.ferni');
-  const gratitudeFile = join(dataDir, 'gratitude.json');
-
-  async function loadGratitude(): Promise<Array<{ text: string; date: string }>> {
-    try {
-      const data = await fs.readFile(gratitudeFile, 'utf-8');
-      return JSON.parse(data);
-    } catch {
-      return [];
-    }
-  }
-
-  async function saveGratitude(items: Array<{ text: string; date: string }>): Promise<void> {
-    await fs.mkdir(dataDir, { recursive: true });
-    await fs.writeFile(gratitudeFile, JSON.stringify(items, null, 2));
-  }
-
-  // If has text (not a subcommand), treat as 'add'
-  if (args[0] && !['add', 'today', 'week', 'random'].includes(args[0])) {
-    const text = args.join(' ');
-    const items = await loadGratitude();
-    items.push({ text, date: new Date().toISOString() });
-    await saveGratitude(items);
-    console.log(`\n${colors.green}🙏 Gratitude recorded:${colors.reset} "${text}"`);
-    return;
-  }
-
-  if (subcommand === 'add') {
-    const text = args.slice(1).join(' ');
-    if (!text) {
-      console.log(`\n${colors.yellow}Usage: ferni gratitude "What you're grateful for"${colors.reset}`);
+  try {
+    // If has text (not a subcommand), treat as 'add'
+    if (args[0] && !['add', 'today', 'week', 'random', 'streak', 'stats'].includes(args[0])) {
+      const text = args.join(' ');
+      await gratitudeService.addGratitude(userId, text);
+      console.log(`\n${colors.green}🙏 Gratitude recorded:${colors.reset} "${text}"`);
       return;
     }
-    const items = await loadGratitude();
-    items.push({ text, date: new Date().toISOString() });
-    await saveGratitude(items);
-    console.log(`\n${colors.green}🙏 Gratitude recorded:${colors.reset} "${text}"`);
-  } else if (subcommand === 'today') {
-    const items = await loadGratitude();
-    const today = new Date().toDateString();
-    const todayItems = items.filter((i) => new Date(i.date).toDateString() === today);
-    if (todayItems.length === 0) {
-      console.log(`\n${colors.dim}No gratitude logged today. Add with: ferni gratitude "..."${colors.reset}`);
-    } else {
-      console.log(`\n${colors.bold}Today's Gratitude:${colors.reset}\n`);
-      todayItems.forEach((i) => console.log(`  ${colors.green}🙏${colors.reset} ${i.text}`));
+
+    if (subcommand === 'add') {
+      const text = args.slice(1).join(' ');
+      if (!text) {
+        console.log(`\n${colors.yellow}Usage: ferni gratitude "What you're grateful for"${colors.reset}`);
+        return;
+      }
+      await gratitudeService.addGratitude(userId, text);
+      console.log(`\n${colors.green}🙏 Gratitude recorded:${colors.reset} "${text}"`);
+    } else if (subcommand === 'today') {
+      const items = await gratitudeService.getToday(userId);
+      if (items.length === 0) {
+        console.log(`\n${colors.dim}No gratitude logged today. Add with: ferni gratitude "..."${colors.reset}`);
+      } else {
+        console.log(`\n${colors.bold}Today's Gratitude:${colors.reset}\n`);
+        items.forEach((i) => console.log(`  ${colors.green}🙏${colors.reset} ${i.content}`));
+      }
+    } else if (subcommand === 'week') {
+      const items = await gratitudeService.getThisWeek(userId);
+      console.log(`\n${colors.bold}This Week's Gratitude:${colors.reset} (${items.length})\n`);
+      if (items.length === 0) {
+        console.log(`  ${colors.dim}No gratitude this week.${colors.reset}`);
+      } else {
+        items.forEach((i) => {
+          const date = i.createdAt.toLocaleDateString([], { weekday: 'short' });
+          console.log(`  ${colors.dim}${date}${colors.reset} ${i.content}`);
+        });
+      }
+    } else if (subcommand === 'random') {
+      const random = await gratitudeService.getRandom(userId);
+      if (!random) {
+        console.log(`\n${colors.dim}No gratitude recorded yet. Add with: ferni gratitude "..."${colors.reset}`);
+      } else {
+        console.log(`\n${colors.bold}Remember when you were grateful for:${colors.reset}`);
+        console.log(`\n  ${colors.green}🙏${colors.reset} "${random.content}"`);
+        console.log(`  ${colors.dim}(${random.createdAt.toLocaleDateString()})${colors.reset}`);
+      }
+    } else if (subcommand === 'streak') {
+      const streak = await gratitudeService.getStreak(userId);
+      if (streak === 0) {
+        console.log(`\n${colors.dim}No streak yet. Start with: ferni gratitude "..."${colors.reset}`);
+      } else {
+        console.log(`\n${colors.bold}🔥 Gratitude Streak:${colors.reset} ${streak} day${streak === 1 ? '' : 's'}`);
+        console.log(`  ${colors.dim}Keep it going!${colors.reset}`);
+      }
+    } else if (subcommand === 'stats') {
+      const [count, streak] = await Promise.all([
+        gratitudeService.getCount(userId),
+        gratitudeService.getStreak(userId),
+      ]);
+      console.log(`\n${colors.bold}Gratitude Stats:${colors.reset}\n`);
+      console.log(`  📊 Total entries: ${count}`);
+      console.log(`  🔥 Current streak: ${streak} day${streak === 1 ? '' : 's'}`);
     }
-  } else if (subcommand === 'week') {
-    const items = await loadGratitude();
-    const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-    const weekItems = items.filter((i) => new Date(i.date) >= weekAgo);
-    console.log(`\n${colors.bold}This Week's Gratitude:${colors.reset} (${weekItems.length})\n`);
-    weekItems.forEach((i) => {
-      const date = new Date(i.date).toLocaleDateString([], { weekday: 'short' });
-      console.log(`  ${colors.dim}${date}${colors.reset} ${i.text}`);
-    });
-  } else if (subcommand === 'random') {
-    const items = await loadGratitude();
-    if (items.length === 0) {
-      console.log(`\n${colors.dim}No gratitude recorded yet. Add with: ferni gratitude "..."${colors.reset}`);
-    } else {
-      const random = items[Math.floor(Math.random() * items.length)];
-      console.log(`\n${colors.bold}Remember when you were grateful for:${colors.reset}`);
-      console.log(`\n  ${colors.green}🙏${colors.reset} "${random.text}"`);
-      console.log(`  ${colors.dim}(${new Date(random.date).toLocaleDateString()})${colors.reset}`);
-    }
+  } catch (error) {
+    console.log(`\n${colors.red}Error:${colors.reset} Couldn't access gratitude data. Try again later.`);
   }
 }
 
-// Decision Support Handlers
+// Decision Support Handlers - Now Firestore-backed!
 async function handleCEODecisions(args: string[]): Promise<void> {
   const subcommand = args[0] || 'list';
+  const userId = process.env.FERNI_USER_ID || 'cli-user';
   log.header(`⚖️ Decision Tracker`);
 
-  const dataDir = join(homedir(), '.ferni');
-  const decisionsFile = join(dataDir, 'decisions.json');
-
-  interface Decision {
-    id: string;
-    question: string;
-    outcome?: string;
-    status: 'pending' | 'decided' | 'reviewed';
-    createdAt: string;
-    decidedAt?: string;
-  }
-
-  async function loadDecisions(): Promise<Decision[]> {
-    try {
-      const data = await fs.readFile(decisionsFile, 'utf-8');
-      return JSON.parse(data);
-    } catch {
-      return [];
-    }
-  }
-
-  async function saveDecisions(decisions: Decision[]): Promise<void> {
-    await fs.mkdir(dataDir, { recursive: true });
-    await fs.writeFile(decisionsFile, JSON.stringify(decisions, null, 2));
-  }
-
-  if (subcommand === 'add') {
-    const question = args.slice(1).join(' ');
-    if (!question) {
-      console.log(`\n${colors.yellow}Usage: ferni decisions add "What decision?"${colors.reset}`);
-      return;
-    }
-    const decisions = await loadDecisions();
-    const id = (decisions.length + 1).toString();
-    decisions.push({ id, question, status: 'pending', createdAt: new Date().toISOString() });
-    await saveDecisions(decisions);
-    console.log(`\n${colors.green}✓ Decision tracked:${colors.reset} [#${id}] "${question}"`);
-  } else if (subcommand === 'pending') {
-    const decisions = await loadDecisions();
-    const pending = decisions.filter((d) => d.status === 'pending');
-    if (pending.length === 0) {
-      console.log(`\n${colors.green}✓ No pending decisions${colors.reset}`);
-    } else {
-      console.log(`\n${colors.bold}Pending Decisions:${colors.reset}\n`);
-      pending.forEach((d) => {
-        const age = Math.floor((Date.now() - new Date(d.createdAt).getTime()) / (1000 * 60 * 60 * 24));
-        console.log(`  ${colors.yellow}#${d.id}${colors.reset} ${d.question} ${colors.dim}(${age}d ago)${colors.reset}`);
+  try {
+    if (subcommand === 'add') {
+      const question = args.slice(1).join(' ');
+      if (!question) {
+        console.log(`\n${colors.yellow}Usage: ferni decisions add "What decision?"${colors.reset}`);
+        return;
+      }
+      const decision = await decisionsService.addDecision(userId, question);
+      console.log(`\n${colors.green}✓ Decision tracked:${colors.reset} [#${decision.id.slice(-6)}] "${question}"`);
+      console.log(`${colors.dim}Synced to cloud for cross-device access${colors.reset}`);
+    } else if (subcommand === 'pending') {
+      const pending = await decisionsService.getPendingDecisions(userId);
+      if (pending.length === 0) {
+        console.log(`\n${colors.green}✓ No pending decisions${colors.reset}`);
+      } else {
+        console.log(`\n${colors.bold}Pending Decisions:${colors.reset}\n`);
+        pending.forEach((d) => {
+          const age = Math.floor((Date.now() - d.createdAt.getTime()) / (1000 * 60 * 60 * 24));
+          console.log(`  ${colors.yellow}#${d.id.slice(-6)}${colors.reset} ${d.title} ${colors.dim}(${age}d ago)${colors.reset}`);
+        });
+      }
+    } else if (subcommand === 'decide') {
+      const id = args[1];
+      const choice = args.slice(2).join(' ');
+      if (!id || !choice) {
+        console.log(`\n${colors.yellow}Usage: ferni decisions decide <id> "Your choice"${colors.reset}`);
+        return;
+      }
+      await decisionsService.makeDecision(userId, id, choice);
+      console.log(`\n${colors.green}✓ Decision made: "${choice}"${colors.reset}`);
+    } else if (subcommand === 'outcome') {
+      const id = args[1];
+      const outcome = args.slice(2).join(' ');
+      const rating = parseInt(args[args.length - 1]) || undefined;
+      if (!id || !outcome) {
+        console.log(`\n${colors.yellow}Usage: ferni decisions outcome <id> "How it turned out" [rating 1-5]${colors.reset}`);
+        return;
+      }
+      await decisionsService.addOutcome(userId, id, outcome, rating);
+      console.log(`\n${colors.green}✓ Outcome recorded${colors.reset}`);
+    } else if (subcommand === 'list' || subcommand === 'review') {
+      const decisions = await decisionsService.getDecisions(userId);
+      if (decisions.length === 0) {
+        console.log(`\n${colors.dim}No decisions yet. Add one with: ferni decisions add "..."${colors.reset}`);
+        return;
+      }
+      console.log(`\n${colors.bold}All Decisions:${colors.reset}\n`);
+      decisions.slice(-10).forEach((d) => {
+        const icon = d.status === 'reviewed' ? colors.green + '✓' : d.status === 'made' ? '◉' : colors.yellow + '○';
+        console.log(`  ${icon}${colors.reset} #${d.id.slice(-6)} ${d.title}`);
+        if (d.choice) console.log(`    ${colors.cyan}→ Choice: ${d.choice}${colors.reset}`);
+        if (d.outcome) console.log(`    ${colors.dim}→ Outcome: ${d.outcome}${colors.reset}`);
       });
     }
-  } else if (subcommand === 'outcome') {
-    const id = args[1];
-    const outcome = args.slice(2).join(' ');
-    const decisions = await loadDecisions();
-    const decision = decisions.find((d) => d.id === id);
-    if (decision) {
-      decision.outcome = outcome;
-      decision.status = 'reviewed';
-      decision.decidedAt = new Date().toISOString();
-      await saveDecisions(decisions);
-      console.log(`\n${colors.green}✓ Outcome recorded for decision #${id}${colors.reset}`);
-    } else {
-      console.log(`\n${colors.yellow}Decision #${id} not found${colors.reset}`);
-    }
-  } else if (subcommand === 'list' || subcommand === 'review') {
-    const decisions = await loadDecisions();
-    console.log(`\n${colors.bold}All Decisions:${colors.reset}\n`);
-    decisions.slice(-10).forEach((d) => {
-      const icon = d.status === 'reviewed' ? colors.green + '✓' : d.status === 'decided' ? '◉' : colors.yellow + '○';
-      console.log(`  ${icon}${colors.reset} #${d.id} ${d.question}`);
-      if (d.outcome) console.log(`    ${colors.dim}→ ${d.outcome}${colors.reset}`);
-    });
+  } catch (error) {
+    console.log(`\n${colors.red}Error:${colors.reset} Couldn't access decisions data. Try again later.`);
   }
 }
 
+// Priorities Handler - Now Firestore-backed!
 async function handleCEOPriorities(args: string[]): Promise<void> {
   const subcommand = args[0] || 'list';
+  const userId = process.env.FERNI_USER_ID || 'cli-user';
   log.header(`📌 Priorities`);
 
-  const dataDir = join(homedir(), '.ferni');
-  const prioritiesFile = join(dataDir, 'priorities.json');
-
-  interface Priority {
-    text: string;
-    done: boolean;
-    createdAt: string;
-  }
-
-  async function loadPriorities(): Promise<Priority[]> {
-    try {
-      const data = await fs.readFile(prioritiesFile, 'utf-8');
-      return JSON.parse(data);
-    } catch {
-      return [];
+  try {
+    if (subcommand === 'add') {
+      const text = args.slice(1).join(' ');
+      if (!text) {
+        console.log(`\n${colors.yellow}Usage: ferni priorities add "Priority"${colors.reset}`);
+        return;
+      }
+      const priority = await prioritiesService.addPriority(userId, text);
+      console.log(`\n${colors.green}✓ Priority added:${colors.reset} "${text}"`);
+      console.log(`${colors.dim}Synced to cloud for cross-device access${colors.reset}`);
+    } else if (subcommand === 'done') {
+      const priorities = await prioritiesService.getPriorities(userId);
+      const active = priorities.filter((p) => !p.completed);
+      const index = parseInt(args[1]) - 1;
+      if (active[index]) {
+        await prioritiesService.completePriority(userId, active[index].id);
+        console.log(`\n${colors.green}✓ Marked done:${colors.reset} "${active[index].title}"`);
+      } else {
+        console.log(`\n${colors.yellow}Priority not found${colors.reset}`);
+      }
+    } else if (subcommand === 'clear') {
+      await prioritiesService.clearCompleted(userId);
+      console.log(`\n${colors.green}✓ Cleared completed priorities${colors.reset}`);
+    } else if (subcommand === 'top') {
+      const top = await prioritiesService.getTopPriority(userId);
+      if (top) {
+        console.log(`\n${colors.bold}Top Priority:${colors.reset}`);
+        console.log(`\n  ${colors.cyan}→${colors.reset} ${top.title}`);
+      } else {
+        console.log(`\n${colors.dim}No priorities set. Add with: ferni priorities add "..."${colors.reset}`);
+      }
+    } else if (subcommand === 'list') {
+      const priorities = await prioritiesService.getPriorities(userId);
+      const active = priorities.filter((p) => !p.completed);
+      if (active.length === 0) {
+        console.log(`\n${colors.dim}No priorities set. Add with: ferni priorities add "..."${colors.reset}`);
+      } else {
+        console.log(`\n${colors.bold}Your Priorities:${colors.reset}\n`);
+        active.forEach((p, i) => {
+          const urgencyIcon = p.urgency >= 4 ? '🔥' : p.urgency >= 3 ? '⚡' : '';
+          console.log(`  ${colors.cyan}${i + 1}.${colors.reset} ${p.title} ${urgencyIcon}`);
+        });
+      }
     }
-  }
-
-  async function savePriorities(priorities: Priority[]): Promise<void> {
-    await fs.mkdir(dataDir, { recursive: true });
-    await fs.writeFile(prioritiesFile, JSON.stringify(priorities, null, 2));
-  }
-
-  if (subcommand === 'add') {
-    const text = args.slice(1).join(' ');
-    if (!text) {
-      console.log(`\n${colors.yellow}Usage: ferni priorities add "Priority"${colors.reset}`);
-      return;
-    }
-    const priorities = await loadPriorities();
-    priorities.push({ text, done: false, createdAt: new Date().toISOString() });
-    await savePriorities(priorities);
-    console.log(`\n${colors.green}✓ Priority added:${colors.reset} "${text}"`);
-  } else if (subcommand === 'done') {
-    const index = parseInt(args[1]) - 1;
-    const priorities = await loadPriorities();
-    if (priorities[index]) {
-      priorities[index].done = true;
-      await savePriorities(priorities);
-      console.log(`\n${colors.green}✓ Marked done:${colors.reset} "${priorities[index].text}"`);
-    } else {
-      console.log(`\n${colors.yellow}Priority not found${colors.reset}`);
-    }
-  } else if (subcommand === 'clear') {
-    const priorities = await loadPriorities();
-    const remaining = priorities.filter((p) => !p.done);
-    await savePriorities(remaining);
-    console.log(`\n${colors.green}✓ Cleared completed priorities${colors.reset}`);
-  } else if (subcommand === 'list') {
-    const priorities = await loadPriorities();
-    const active = priorities.filter((p) => !p.done);
-    if (active.length === 0) {
-      console.log(`\n${colors.dim}No priorities set. Add with: ferni priorities add "..."${colors.reset}`);
-    } else {
-      console.log(`\n${colors.bold}Your Priorities:${colors.reset}\n`);
-      active.forEach((p, i) => {
-        console.log(`  ${colors.cyan}${i + 1}.${colors.reset} ${p.text}`);
-      });
-    }
+  } catch (error) {
+    console.log(`\n${colors.red}Error:${colors.reset} Couldn't access priorities data. Try again later.`);
   }
 }
 
+// Blockers Handler - Now Firestore-backed!
 async function handleCEOBlockers(args: string[]): Promise<void> {
   const subcommand = args[0] || 'list';
+  const userId = process.env.FERNI_USER_ID || 'cli-user';
   log.header(`🚧 Blockers`);
 
-  const dataDir = join(homedir(), '.ferni');
-  const blockersFile = join(dataDir, 'blockers.json');
-
-  interface Blocker {
-    id: string;
-    text: string;
-    resolved: boolean;
-    createdAt: string;
-  }
-
-  async function loadBlockers(): Promise<Blocker[]> {
-    try {
-      const data = await fs.readFile(blockersFile, 'utf-8');
-      return JSON.parse(data);
-    } catch {
-      return [];
+  try {
+    if (subcommand === 'add') {
+      const text = args.slice(1).join(' ');
+      if (!text) {
+        console.log(`\n${colors.yellow}Usage: ferni blockers add "What's blocking you?"${colors.reset}`);
+        return;
+      }
+      const blocker = await blockersService.addBlocker(userId, text);
+      console.log(`\n${colors.green}✓ Blocker tracked:${colors.reset} [#${blocker.id.slice(-6)}] "${text}"`);
+      console.log(`${colors.dim}Synced to cloud for cross-device access${colors.reset}`);
+    } else if (subcommand === 'resolve') {
+      const id = args[1];
+      const resolution = args.slice(2).join(' ') || 'Resolved';
+      if (!id) {
+        console.log(`\n${colors.yellow}Usage: ferni blockers resolve <id> ["How it was resolved"]${colors.reset}`);
+        return;
+      }
+      await blockersService.resolveBlocker(userId, id, resolution);
+      console.log(`\n${colors.green}✓ Blocker resolved!${colors.reset}`);
+    } else if (subcommand === 'escalate') {
+      const id = args[1];
+      const escalateTo = args.slice(2).join(' ');
+      if (!id || !escalateTo) {
+        console.log(`\n${colors.yellow}Usage: ferni blockers escalate <id> "Person/team"${colors.reset}`);
+        return;
+      }
+      await blockersService.escalateBlocker(userId, id, escalateTo);
+      console.log(`\n${colors.yellow}⚡ Blocker escalated to: ${escalateTo}${colors.reset}`);
+    } else if (subcommand === 'list') {
+      const active = await blockersService.getActiveBlockers(userId);
+      if (active.length === 0) {
+        console.log(`\n${colors.green}✓ No active blockers!${colors.reset}`);
+      } else {
+        console.log(`\n${colors.bold}Active Blockers:${colors.reset}\n`);
+        active.forEach((b) => {
+          const age = Math.floor((Date.now() - b.createdAt.getTime()) / (1000 * 60 * 60 * 24));
+          const severityIcon = b.severity === 'critical' ? '🔴' : b.severity === 'high' ? '🟠' : '🚧';
+          console.log(`  ${severityIcon} #${b.id.slice(-6)} ${b.description} ${colors.dim}(${age}d)${colors.reset}`);
+          if (b.status === 'escalated') console.log(`    ${colors.yellow}↗ Escalated to: ${b.escalatedTo}${colors.reset}`);
+        });
+      }
+    } else if (subcommand === 'count') {
+      const count = await blockersService.getActiveBlockerCount(userId);
+      console.log(`\n${colors.bold}Active Blockers:${colors.reset} ${count}`);
     }
-  }
-
-  async function saveBlockers(blockers: Blocker[]): Promise<void> {
-    await fs.mkdir(dataDir, { recursive: true });
-    await fs.writeFile(blockersFile, JSON.stringify(blockers, null, 2));
-  }
-
-  if (subcommand === 'add') {
-    const text = args.slice(1).join(' ');
-    if (!text) {
-      console.log(`\n${colors.yellow}Usage: ferni blockers add "What's blocking you?"${colors.reset}`);
-      return;
-    }
-    const blockers = await loadBlockers();
-    const id = (blockers.length + 1).toString();
-    blockers.push({ id, text, resolved: false, createdAt: new Date().toISOString() });
-    await saveBlockers(blockers);
-    console.log(`\n${colors.green}✓ Blocker tracked:${colors.reset} [#${id}] "${text}"`);
-  } else if (subcommand === 'resolve') {
-    const id = args[1];
-    const blockers = await loadBlockers();
-    const blocker = blockers.find((b) => b.id === id);
-    if (blocker) {
-      blocker.resolved = true;
-      await saveBlockers(blockers);
-      console.log(`\n${colors.green}✓ Blocker resolved:${colors.reset} "${blocker.text}"`);
-    } else {
-      console.log(`\n${colors.yellow}Blocker #${id} not found${colors.reset}`);
-    }
-  } else if (subcommand === 'list') {
-    const blockers = await loadBlockers();
-    const active = blockers.filter((b) => !b.resolved);
-    if (active.length === 0) {
-      console.log(`\n${colors.green}✓ No active blockers!${colors.reset}`);
-    } else {
-      console.log(`\n${colors.bold}Active Blockers:${colors.reset}\n`);
-      active.forEach((b) => {
-        const age = Math.floor((Date.now() - new Date(b.createdAt).getTime()) / (1000 * 60 * 60 * 24));
-        console.log(`  ${colors.red}🚧${colors.reset} #${b.id} ${b.text} ${colors.dim}(${age}d)${colors.reset}`);
-      });
-    }
-  } else if (subcommand === 'escalate') {
-    console.log(`\n${colors.bold}Escalation${colors.reset}`);
-    console.log(`${colors.dim}Escalation workflow coming soon...${colors.reset}`);
+  } catch (error) {
+    console.log(`\n${colors.red}Error:${colors.reset} Couldn't access blockers data. Try again later.`);
   }
 }
 
+// Ideas Handler - Now Firestore-backed!
 async function handleCEOIdeas(args: string[]): Promise<void> {
   const subcommand = args[0] || 'list';
+  const userId = process.env.FERNI_USER_ID || 'cli-user';
   log.header(`💡 Ideas`);
 
-  const dataDir = join(homedir(), '.ferni');
-  const ideasFile = join(dataDir, 'ideas.json');
-
-  interface Idea {
-    text: string;
-    tags: string[];
-    createdAt: string;
-  }
-
-  async function loadIdeas(): Promise<Idea[]> {
-    try {
-      const data = await fs.readFile(ideasFile, 'utf-8');
-      return JSON.parse(data);
-    } catch {
-      return [];
-    }
-  }
-
-  async function saveIdeas(ideas: Idea[]): Promise<void> {
-    await fs.mkdir(dataDir, { recursive: true });
-    await fs.writeFile(ideasFile, JSON.stringify(ideas, null, 2));
-  }
-
-  // If has text (not a subcommand), treat as 'add'
-  if (args[0] && !['add', 'list', 'random', 'tag', 'search'].includes(args[0])) {
-    const text = args.join(' ');
-    const ideas = await loadIdeas();
-    ideas.push({ text, tags: [], createdAt: new Date().toISOString() });
-    await saveIdeas(ideas);
-    console.log(`\n${colors.green}💡 Idea captured:${colors.reset} "${text}"`);
-    return;
-  }
-
-  if (subcommand === 'add') {
-    const text = args.slice(1).join(' ');
-    if (!text) {
-      console.log(`\n${colors.yellow}Usage: ferni ideas "Your idea"${colors.reset}`);
+  try {
+    // If has text (not a subcommand), treat as 'add'
+    if (args[0] && !['add', 'list', 'random', 'tag', 'search', 'archive'].includes(args[0])) {
+      const text = args.join(' ');
+      const idea = await ideasService.addIdea(userId, text);
+      console.log(`\n${colors.green}💡 Idea captured:${colors.reset} "${text}"`);
+      console.log(`${colors.dim}Synced to cloud for cross-device access${colors.reset}`);
       return;
     }
-    const ideas = await loadIdeas();
-    ideas.push({ text, tags: [], createdAt: new Date().toISOString() });
-    await saveIdeas(ideas);
-    console.log(`\n${colors.green}💡 Idea captured:${colors.reset} "${text}"`);
-  } else if (subcommand === 'list') {
-    const ideas = await loadIdeas();
-    if (ideas.length === 0) {
-      console.log(`\n${colors.dim}No ideas yet. Capture one with: ferni ideas "..."${colors.reset}`);
-    } else {
-      console.log(`\n${colors.bold}Your Ideas:${colors.reset} (${ideas.length})\n`);
-      ideas.slice(-10).forEach((i) => {
-        const date = new Date(i.createdAt).toLocaleDateString();
-        console.log(`  ${colors.yellow}💡${colors.reset} ${i.text} ${colors.dim}(${date})${colors.reset}`);
-      });
+
+    if (subcommand === 'add') {
+      const text = args.slice(1).join(' ');
+      if (!text) {
+        console.log(`\n${colors.yellow}Usage: ferni ideas "Your idea"${colors.reset}`);
+        return;
+      }
+      const idea = await ideasService.addIdea(userId, text);
+      console.log(`\n${colors.green}💡 Idea captured:${colors.reset} "${text}"`);
+      console.log(`${colors.dim}Synced to cloud for cross-device access${colors.reset}`);
+    } else if (subcommand === 'list') {
+      const ideas = await ideasService.getIdeas(userId);
+      const active = ideas.filter((i) => !i.archived);
+      if (active.length === 0) {
+        console.log(`\n${colors.dim}No ideas yet. Capture one with: ferni ideas "..."${colors.reset}`);
+      } else {
+        const count = await ideasService.getIdeaCount(userId);
+        console.log(`\n${colors.bold}Your Ideas:${colors.reset} (${count} total)\n`);
+        active.slice(-10).forEach((i) => {
+          const date = i.createdAt.toLocaleDateString();
+          const tags = i.tags.length > 0 ? ` ${colors.cyan}[${i.tags.join(', ')}]${colors.reset}` : '';
+          console.log(`  ${colors.yellow}💡${colors.reset} ${i.content}${tags} ${colors.dim}(${date})${colors.reset}`);
+        });
+      }
+    } else if (subcommand === 'random') {
+      const random = await ideasService.getRandomIdea(userId);
+      if (!random) {
+        console.log(`\n${colors.dim}No ideas yet${colors.reset}`);
+      } else {
+        console.log(`\n${colors.bold}Random Idea:${colors.reset}`);
+        console.log(`\n  ${colors.yellow}💡${colors.reset} "${random.content}"`);
+      }
+    } else if (subcommand === 'tag') {
+      const id = args[1];
+      const tag = args[2];
+      if (!id || !tag) {
+        console.log(`\n${colors.yellow}Usage: ferni ideas tag <id> <tag>${colors.reset}`);
+        return;
+      }
+      await ideasService.tagIdea(userId, id, tag);
+      console.log(`\n${colors.green}✓ Tag added: ${tag}${colors.reset}`);
+    } else if (subcommand === 'search') {
+      const query = args.slice(1).join(' ');
+      if (!query) {
+        console.log(`\n${colors.yellow}Usage: ferni ideas search "query"${colors.reset}`);
+        return;
+      }
+      const matches = await ideasService.searchIdeas(userId, query);
+      console.log(`\n${colors.bold}Search Results:${colors.reset} (${matches.length})\n`);
+      matches.forEach((i) => console.log(`  ${colors.yellow}💡${colors.reset} ${i.content}`));
+    } else if (subcommand === 'archive') {
+      const id = args[1];
+      if (!id) {
+        console.log(`\n${colors.yellow}Usage: ferni ideas archive <id>${colors.reset}`);
+        return;
+      }
+      await ideasService.archiveIdea(userId, id);
+      console.log(`\n${colors.green}✓ Idea archived${colors.reset}`);
     }
-  } else if (subcommand === 'random') {
-    const ideas = await loadIdeas();
-    if (ideas.length === 0) {
-      console.log(`\n${colors.dim}No ideas yet${colors.reset}`);
-    } else {
-      const random = ideas[Math.floor(Math.random() * ideas.length)];
-      console.log(`\n${colors.bold}Random Idea:${colors.reset}`);
-      console.log(`\n  ${colors.yellow}💡${colors.reset} "${random.text}"`);
-    }
-  } else if (subcommand === 'search') {
-    const query = args.slice(1).join(' ').toLowerCase();
-    const ideas = await loadIdeas();
-    const matches = ideas.filter((i) => i.text.toLowerCase().includes(query));
-    console.log(`\n${colors.bold}Search Results:${colors.reset} (${matches.length})\n`);
-    matches.forEach((i) => console.log(`  ${colors.yellow}💡${colors.reset} ${i.text}`));
+  } catch (error) {
+    console.log(`\n${colors.red}Error:${colors.reset} Couldn't access ideas data. Try again later.`);
   }
 }
 
 // Direct Interaction Handlers
 async function handleCEOAsk(args: string[]): Promise<void> {
   const question = args.join(' ');
+  const userId = process.env.FERNI_USER_ID || 'cli-user';
   log.header(`💬 Ask Ferni`);
 
   if (!question) {
@@ -4933,11 +5269,49 @@ async function handleCEOAsk(args: string[]): Promise<void> {
   }
 
   console.log(`\n${colors.cyan}Question:${colors.reset} "${question}"`);
-  console.log(`\n${colors.bold}Ferni says:${colors.reset}`);
-  console.log(`\n  ${colors.dim}(AI response integration coming soon... For now, use the voice app!)${colors.reset}`);
-  console.log(`\n  Try: ${colors.cyan}ferni briefing${colors.reset} for your daily summary`);
-  console.log(`       ${colors.cyan}ferni priorities${colors.reset} to see your focus areas`);
-  console.log(`       ${colors.cyan}ferni wins${colors.reset} to review achievements`);
+  console.log(`\n${colors.bold}Ferni:${colors.reset}\n`);
+
+  try {
+    // Stream the response from the ask service
+    const responseGenerator = askService.ask(userId, question);
+    let result;
+
+    // Print chunks as they stream in
+    for await (const chunk of responseGenerator) {
+      process.stdout.write(chunk);
+    }
+
+    // Get the final result (sources and follow-up questions)
+    result = await responseGenerator.next();
+    const response = result.value;
+
+    // Add newline after streaming
+    console.log('\n');
+
+    // Show sources if any were used
+    if (response && response.sources && response.sources.length > 0) {
+      console.log(`${colors.dim}Sources: ${response.sources.join(', ')}${colors.reset}`);
+    }
+
+    // Show follow-up questions if any
+    if (response && response.followUpQuestions && response.followUpQuestions.length > 0) {
+      console.log(`\n${colors.bold}Follow-up questions:${colors.reset}`);
+      response.followUpQuestions.forEach((q, i) => {
+        console.log(`  ${colors.cyan}${i + 1}.${colors.reset} ${q}`);
+      });
+    }
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    if (errorMessage.includes('OPENAI_API_KEY')) {
+      console.log(`${colors.yellow}Note:${colors.reset} Ask requires OPENAI_API_KEY to be set.`);
+      console.log(`\n${colors.dim}In the meantime, try:${colors.reset}`);
+      console.log(`  • ${colors.cyan}ferni briefing${colors.reset} for your daily summary`);
+      console.log(`  • ${colors.cyan}ferni priorities${colors.reset} to see your focus areas`);
+      console.log(`  • ${colors.cyan}ferni wins${colors.reset} to review achievements`);
+    } else {
+      console.log(`\n${colors.red}Error:${colors.reset} Couldn't get a response. ${errorMessage}`);
+    }
+  }
 }
 
 async function handleCEOCoach(args: string[]): Promise<void> {
@@ -4984,69 +5358,219 @@ async function handleCEOCoach(args: string[]): Promise<void> {
   console.log(`\n${colors.dim}Reflect and journal: ferni journal "your thoughts..."${colors.reset}`);
 }
 
+// Meetings Handler - Now Firestore-backed!
 async function handleCEOMeetings(args: string[]): Promise<void> {
   const subcommand = args[0] || 'today';
+  const userId = process.env.FERNI_USER_ID || 'cli-user';
   log.header(`🗓️ Meeting Notes`);
 
-  const dataDir = join(homedir(), '.ferni');
-  const meetingsFile = join(dataDir, 'meetings.json');
-
-  interface Meeting {
-    title: string;
-    notes: string;
-    actionItems: string[];
-    timestamp: string;
-  }
-
-  async function loadMeetings(): Promise<Meeting[]> {
-    try {
-      const data = await fs.readFile(meetingsFile, 'utf-8');
-      return JSON.parse(data);
-    } catch {
-      return [];
-    }
-  }
-
-  async function saveMeetings(meetings: Meeting[]): Promise<void> {
-    await fs.mkdir(dataDir, { recursive: true });
-    await fs.writeFile(meetingsFile, JSON.stringify(meetings, null, 2));
-  }
-
-  if (subcommand === 'add') {
-    const title = args.slice(1).join(' ');
-    if (!title) {
-      console.log(`\n${colors.yellow}Usage: ferni meetings add "Meeting title"${colors.reset}`);
-      return;
-    }
-    const meetings = await loadMeetings();
-    meetings.push({ title, notes: '', actionItems: [], timestamp: new Date().toISOString() });
-    await saveMeetings(meetings);
-    console.log(`\n${colors.green}✓ Meeting recorded:${colors.reset} "${title}"`);
-    console.log(`${colors.dim}Add notes with: ferni journal "Meeting notes..."${colors.reset}`);
-  } else if (subcommand === 'today') {
-    const meetings = await loadMeetings();
-    const today = new Date().toDateString();
-    const todayMeetings = meetings.filter((m) => new Date(m.timestamp).toDateString() === today);
-    if (todayMeetings.length === 0) {
-      console.log(`\n${colors.dim}No meetings logged today. Add with: ferni meetings add "..."${colors.reset}`);
-    } else {
-      console.log(`\n${colors.bold}Today's Meetings:${colors.reset}\n`);
-      todayMeetings.forEach((m) => {
-        const time = new Date(m.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-        console.log(`  ${colors.cyan}${time}${colors.reset} ${m.title}`);
+  try {
+    if (subcommand === 'add') {
+      const title = args.slice(1).join(' ');
+      if (!title) {
+        console.log(`\n${colors.yellow}Usage: ferni meetings add "Meeting title"${colors.reset}`);
+        return;
+      }
+      const meeting = await meetingsService.addMeeting(userId, title, []);
+      console.log(`\n${colors.green}✓ Meeting recorded:${colors.reset} "${title}"`);
+      console.log(`${colors.dim}Add notes with: ferni meetings notes ${meeting.id.slice(-6)} "Notes..."${colors.reset}`);
+      console.log(`${colors.dim}Synced to cloud for cross-device access${colors.reset}`);
+    } else if (subcommand === 'notes') {
+      const id = args[1];
+      const notes = args.slice(2).join(' ');
+      if (!id || !notes) {
+        console.log(`\n${colors.yellow}Usage: ferni meetings notes <id> "Your notes"${colors.reset}`);
+        return;
+      }
+      await meetingsService.updateNotes(userId, id, notes);
+      console.log(`\n${colors.green}✓ Notes added to meeting${colors.reset}`);
+    } else if (subcommand === 'action') {
+      const id = args[1];
+      const actionTitle = args.slice(2).join(' ');
+      if (!id || !actionTitle) {
+        console.log(`\n${colors.yellow}Usage: ferni meetings action <meeting-id> "Action item"${colors.reset}`);
+        return;
+      }
+      await meetingsService.addActionItem(userId, id, actionTitle);
+      console.log(`\n${colors.green}✓ Action item added${colors.reset}`);
+    } else if (subcommand === 'today') {
+      const meetings = await meetingsService.getMeetings(userId, 'today');
+      if (meetings.length === 0) {
+        console.log(`\n${colors.dim}No meetings logged today. Add with: ferni meetings add "..."${colors.reset}`);
+      } else {
+        console.log(`\n${colors.bold}Today's Meetings:${colors.reset}\n`);
+        meetings.forEach((m) => {
+          const time = m.meetingDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+          console.log(`  ${colors.cyan}${time}${colors.reset} ${m.title} ${colors.dim}#${m.id.slice(-6)}${colors.reset}`);
+          if (m.notes) console.log(`    ${colors.dim}📝 ${m.notes.slice(0, 50)}...${colors.reset}`);
+          if (m.actionItems.length > 0) console.log(`    ${colors.yellow}📋 ${m.actionItems.length} action item(s)${colors.reset}`);
+        });
+      }
+    } else if (subcommand === 'week') {
+      const meetings = await meetingsService.getMeetings(userId, 'week');
+      console.log(`\n${colors.bold}This Week's Meetings:${colors.reset}\n`);
+      meetings.forEach((m) => {
+        const date = m.meetingDate.toLocaleDateString();
+        console.log(`  ${colors.dim}${date}${colors.reset} ${m.title} ${colors.dim}#${m.id.slice(-6)}${colors.reset}`);
+      });
+    } else if (subcommand === 'list') {
+      const meetings = await meetingsService.getMeetings(userId);
+      console.log(`\n${colors.bold}Recent Meetings:${colors.reset}\n`);
+      meetings.slice(-10).forEach((m) => {
+        const date = m.meetingDate.toLocaleDateString();
+        console.log(`  ${colors.dim}${date}${colors.reset} ${m.title} ${colors.dim}#${m.id.slice(-6)}${colors.reset}`);
+      });
+    } else if (subcommand === 'action-items') {
+      const actionItems = await meetingsService.getActionItems(userId, false);
+      if (actionItems.length === 0) {
+        console.log(`\n${colors.green}✓ No pending action items!${colors.reset}`);
+      } else {
+        console.log(`\n${colors.bold}Pending Action Items:${colors.reset}\n`);
+        actionItems.forEach((item) => {
+          const icon = item.completed ? colors.green + '✓' : colors.yellow + '○';
+          console.log(`  ${icon}${colors.reset} ${item.title}`);
+        });
+      }
+    } else if (subcommand === 'search') {
+      const query = args.slice(1).join(' ');
+      if (!query) {
+        console.log(`\n${colors.yellow}Usage: ferni meetings search "query"${colors.reset}`);
+        return;
+      }
+      const matches = await meetingsService.searchMeetings(userId, query);
+      console.log(`\n${colors.bold}Search Results:${colors.reset} (${matches.length})\n`);
+      matches.forEach((m) => {
+        const date = m.meetingDate.toLocaleDateString();
+        console.log(`  ${colors.dim}${date}${colors.reset} ${m.title}`);
       });
     }
-  } else if (subcommand === 'list') {
-    const meetings = await loadMeetings();
-    console.log(`\n${colors.bold}Recent Meetings:${colors.reset}\n`);
-    meetings.slice(-10).forEach((m) => {
-      const date = new Date(m.timestamp).toLocaleDateString();
-      console.log(`  ${colors.dim}${date}${colors.reset} ${m.title}`);
+  } catch (error) {
+    console.log(`\n${colors.red}Error:${colors.reset} Couldn't access meetings data. Try again later.`);
+  }
+}
+
+// Insights Handler - "Better than Human" Cross-Data Intelligence
+async function handleCEOInsights(args: string[]): Promise<void> {
+  const subcommand = args[0] || 'all';
+  const userId = process.env.FERNI_USER_ID || 'cli-user';
+  log.header(`🧠 Superhuman Insights`);
+
+  // Helper to format priority with color
+  const formatPriority = (priority: string) => {
+    switch (priority) {
+      case 'urgent':
+        return `${colors.red}⚡ URGENT${colors.reset}`;
+      case 'high':
+        return `${colors.yellow}⬆ HIGH${colors.reset}`;
+      case 'medium':
+        return `${colors.cyan}● MEDIUM${colors.reset}`;
+      default:
+        return `${colors.dim}○ LOW${colors.reset}`;
+    }
+  };
+
+  // Helper to format insight type with icon
+  const formatType = (type: string) => {
+    switch (type) {
+      case 'warning':
+        return '⚠️';
+      case 'celebration':
+        return '🎉';
+      case 'correlation':
+        return '🔗';
+      case 'pattern':
+        return '📊';
+      case 'suggestion':
+        return '💡';
+      default:
+        return '•';
+    }
+  };
+
+  // Helper to display insights
+  const displayInsights = (insights: Array<{ id: string; type: string; category: string; title: string; description: string; priority: string; confidence: number; actionable?: string }>, title: string) => {
+    if (insights.length === 0) {
+      console.log(`\n${colors.dim}No insights found. Keep tracking your progress!${colors.reset}`);
+      console.log(`${colors.dim}Insights emerge when you have 3+ data points in goals, wins, energy, etc.${colors.reset}`);
+      return;
+    }
+
+    console.log(`\n${colors.bold}${title}${colors.reset} (${insights.length})\n`);
+    insights.forEach((insight) => {
+      const typeIcon = formatType(insight.type);
+      const priority = formatPriority(insight.priority);
+      const confidence = Math.round(insight.confidence * 100);
+
+      console.log(`  ${typeIcon} ${colors.bold}${insight.title}${colors.reset}`);
+      console.log(`     ${priority} ${colors.dim}|${colors.reset} ${insight.category} ${colors.dim}|${colors.reset} ${confidence}% confident`);
+      console.log(`     ${insight.description}`);
+      if (insight.actionable) {
+        console.log(`     ${colors.cyan}→ ${insight.actionable}${colors.reset}`);
+      }
+      console.log('');
     });
-  } else if (subcommand === 'action-items') {
-    console.log(`\n${colors.bold}Action Items from Meetings${colors.reset}`);
-    console.log(`${colors.dim}Action item extraction coming soon...${colors.reset}`);
-    console.log(`\nFor now, check your priorities: ${colors.cyan}ferni priorities${colors.reset}`);
+  };
+
+  try {
+    if (subcommand === 'all') {
+      const insights = await insightsService.getAllInsights(userId);
+      displayInsights(insights, '🧠 All Insights');
+      console.log(`${colors.dim}Cached for 30 min. Force refresh: ferni insights refresh${colors.reset}`);
+    } else if (subcommand === 'critical') {
+      const insights = await insightsService.getCriticalInsights(userId);
+      displayInsights(insights, '⚡ Critical Insights (Urgent + High Priority)');
+    } else if (subcommand === 'energy') {
+      const insights = await insightsService.getInsightsByCategory(userId, 'energy');
+      displayInsights(insights, '⚡ Energy Insights');
+    } else if (subcommand === 'goals') {
+      const insights = await insightsService.getInsightsByCategory(userId, 'goals');
+      displayInsights(insights, '🎯 Goal Insights');
+    } else if (subcommand === 'burnout') {
+      const insights = await insightsService.getBurnoutWarning(userId);
+      if (insights.length === 0) {
+        console.log(`\n${colors.green}✓ No burnout warning signs detected!${colors.reset}`);
+        console.log(`${colors.dim}You're maintaining healthy patterns. Keep it up!${colors.reset}`);
+      } else {
+        displayInsights(insights, '🔥 Burnout Warning');
+      }
+    } else if (subcommand === 'patterns') {
+      const insights = await insightsService.getWeeklyPatterns(userId);
+      displayInsights(insights, '📅 Weekly Patterns');
+    } else if (subcommand === 'refresh') {
+      console.log(`\n${colors.cyan}Refreshing insights...${colors.reset}`);
+      const insights = await insightsService.refreshInsights(userId);
+      displayInsights(insights, '🔄 Refreshed Insights');
+      console.log(`${colors.green}✓ Cache refreshed${colors.reset}`);
+    } else if (subcommand === 'focus') {
+      const insights = await insightsService.getInsightsByCategory(userId, 'focus');
+      displayInsights(insights, '🎯 Focus Session Insights');
+    } else if (subcommand === 'decisions') {
+      const insights = await insightsService.getInsightsByCategory(userId, 'decisions');
+      displayInsights(insights, '🤔 Decision Quality Insights');
+    } else if (subcommand === 'momentum') {
+      const insights = await insightsService.getInsightsByCategory(userId, 'momentum');
+      displayInsights(insights, '🚀 Momentum Insights');
+    } else if (subcommand === 'blockers') {
+      const insights = await insightsService.getInsightsByCategory(userId, 'blockers');
+      displayInsights(insights, '🚧 Blocker Impact Insights');
+    } else {
+      console.log(`\n${colors.bold}Usage:${colors.reset}\n`);
+      console.log(`  ${colors.cyan}ferni insights${colors.reset}          Show all insights (cached 30 min)`);
+      console.log(`  ${colors.cyan}ferni insights critical${colors.reset} Show urgent & high priority only`);
+      console.log(`  ${colors.cyan}ferni insights burnout${colors.reset}  Check for burnout warning signs`);
+      console.log(`  ${colors.cyan}ferni insights patterns${colors.reset} Weekly productivity patterns`);
+      console.log(`  ${colors.cyan}ferni insights refresh${colors.reset}  Force refresh (bypass cache)`);
+      console.log(`\n${colors.bold}Categories:${colors.reset}\n`);
+      console.log(`  ${colors.cyan}ferni insights energy${colors.reset}   Energy-related insights`);
+      console.log(`  ${colors.cyan}ferni insights goals${colors.reset}    Goal progress insights`);
+      console.log(`  ${colors.cyan}ferni insights focus${colors.reset}    Focus session effectiveness`);
+      console.log(`  ${colors.cyan}ferni insights decisions${colors.reset} Decision quality analysis`);
+      console.log(`  ${colors.cyan}ferni insights momentum${colors.reset} Win streaks and momentum`);
+      console.log(`  ${colors.cyan}ferni insights blockers${colors.reset} Blocker impact analysis`);
+    }
+  } catch (error) {
+    console.log(`\n${colors.red}Error:${colors.reset} Couldn't generate insights. Try again later.`);
+    console.log(`${colors.dim}Make sure you have some tracked data (goals, wins, energy, etc.)${colors.reset}`);
   }
 }
 
@@ -6673,6 +7197,75 @@ async function handleData(args: string[]): Promise<void> {
     console.log(`${colors.cyan}Checking for unsafe Firestore queries...${colors.reset}\n`);
     spawnSync('sh', ['-c', `npx tsx ${scriptsDir}/check-unsafe-firestore.ts`], { stdio: 'inherit' });
   }
+}
+
+// ============================================================================
+// VALIDATE COMMAND
+// ============================================================================
+
+async function handleValidate(args: string[]): Promise<void> {
+  const subcommand = args[0] || 'status';
+  const subArgs = args.slice(1);
+
+  // Handle E2E validation
+  if (subcommand === 'e2e') {
+    const { handleValidateE2E } = await import('./commands/validate/validate-e2e.js');
+    await handleValidateE2E(subArgs);
+    return;
+  }
+
+  // For other validations, delegate to the legacy validate script
+  const validateScriptsDir = join(PROJECT_ROOT, 'apps', 'cli', 'src', 'commands', 'validate');
+
+  log.header(`${icons.check} Validation`);
+
+  if (!subcommand || subcommand === 'status') {
+    console.log(`${colors.bold}Validate Commands:${colors.reset}\n`);
+    console.log(`  ${colors.cyan}ferni validate voices${colors.reset}        - Validate voice IDs`);
+    console.log(`  ${colors.cyan}ferni validate humanization${colors.reset}  - Validate humanization pipeline`);
+    console.log(`  ${colors.cyan}ferni validate integrations${colors.reset}  - Validate external integrations`);
+    console.log(`  ${colors.cyan}ferni validate persistence${colors.reset}   - Verify Firestore persistence`);
+    console.log(`  ${colors.cyan}ferni validate e2e${colors.reset}           - E2E validation (tools, commands, API)`);
+    console.log(`  ${colors.cyan}ferni validate e2e --ci${colors.reset}      - E2E with CI threshold check`);
+    console.log(`  ${colors.cyan}ferni validate all${colors.reset}           - Run all validations`);
+    return;
+  }
+
+  // Map subcommands to scripts
+  const scripts: Record<string, string> = {
+    voices: 'validate-voice-ids.ts',
+    humanization: 'validate-humanization.ts',
+    integrations: 'validate-integrations.ts',
+    persistence: 'verify-persistence.ts',
+  };
+
+  if (subcommand === 'all') {
+    // Run all validations including E2E
+    console.log(`${colors.cyan}Running all validations...${colors.reset}\n`);
+
+    for (const [name, script] of Object.entries(scripts)) {
+      console.log(`\n${colors.bold}━━━ ${name.toUpperCase()} ━━━${colors.reset}\n`);
+      const scriptPath = join(validateScriptsDir, script);
+      spawnSync('sh', ['-c', `npx tsx ${scriptPath}`], { stdio: 'inherit' });
+    }
+
+    // Run E2E validation
+    console.log(`\n${colors.bold}━━━ E2E ━━━${colors.reset}\n`);
+    const { handleValidateE2E } = await import('./commands/validate/validate-e2e.js');
+    await handleValidateE2E([]);
+    return;
+  }
+
+  const script = scripts[subcommand];
+  if (!script) {
+    log.error(`Unknown validation: ${subcommand}`);
+    console.log(`\nAvailable: ${Object.keys(scripts).join(', ')}, e2e, all`);
+    process.exit(1);
+  }
+
+  console.log(`${colors.cyan}Running ${subcommand} validation...${colors.reset}\n`);
+  const scriptPath = join(validateScriptsDir, script);
+  spawnSync('sh', ['-c', `npx tsx ${scriptPath}`], { stdio: 'inherit' });
 }
 
 // ============================================================================
@@ -8963,6 +9556,11 @@ async function handleCostsAICmd(args: string[]): Promise<void> {
 
 async function handleAPICmd(args: string[]): Promise<void> {
   const { handleAPIContracts: handler } = await import('./features/dev/api-contracts.js');
+  await handler(args);
+}
+
+async function handleToolsCmd(args: string[]): Promise<void> {
+  const { handleTools: handler } = await import('./commands/tools/tools.js');
   await handler(args);
 }
 
@@ -11358,10 +11956,37 @@ ${colors.bold}What would you like to do?${colors.reset}
 
   const commandList = Object.entries(COMMANDS);
 
-  // Group commands by category
+  // Group commands by category - "Your Team" (personal/CEO) first, then platform ops
+  const yourTeamCommands = [
+    'team',
+    'briefing',
+    'ask',
+    'coach',
+    'goals',
+    'focus',
+    'reflect',
+    'weekly',
+    'wins',
+    'habits',
+    'energy',
+    'journal',
+    'gratitude',
+    'decisions',
+    'priorities',
+  ];
+  const platformOpsCommands = [
+    'platform',
+    'deploy',
+    'status',
+    'logs',
+    'rollback',
+    'metrics',
+    'alerts',
+    'traffic',
+    'experiments',
+  ];
   const devCommands = [
     'dev',
-    'deploy',
     'build',
     'test',
     'setup',
@@ -11372,19 +11997,6 @@ ${colors.bold}What would you like to do?${colors.reset}
     'deps',
     'auth',
   ];
-  const opsCommands = [
-    'status',
-    'logs',
-    'doctor',
-    'db',
-    'env',
-    'jobs',
-    'costs',
-    'debug',
-    'integrations',
-    'secrets',
-  ];
-  const selfHealCommands = ['self-heal', 'circuits', 'restart', 'diagnose', 'anomalies'];
   const agentCommands = [
     'agents',
     'agent',
@@ -11393,41 +12005,48 @@ ${colors.bold}What would you like to do?${colors.reset}
     'tools',
     'voices',
     'validate',
-    'generate',
-    'rollout',
     'audit',
     'tokens',
-    'design',
   ];
-  const aiCommands = ['ai', 'review', 'copy', 'test-gen', 'docs', 'perf', 'security', 'onboard'];
-  const platformCommands = [
-    'rollback',
-    'metrics',
-    'sessions',
-    'sla',
-    'traffic',
-    'alerts',
+  const infraCommands = [
+    'doctor',
+    'db',
+    'env',
+    'secrets',
+    'ops',
     'oncall',
-    'runbook',
-    'backup',
   ];
-  const chaosTestingCommands = ['chaos', 'experiments'];
-  const devExperienceCommands = ['init', 'context', 'tunnel', 'replay', 'cache', 'notify'];
-  const advancedCommands = [
-    'release-auto',
-    'deps-ai',
-    'incident',
-    'refactor',
-    'translate',
-    'flags',
-    'costs-ai',
-    'api',
-  ];
+  const selfHealCommands = ['self-heal', 'circuits', 'restart', 'diagnose'];
 
-  console.log(`  ${colors.bold}${colors.blue}Development${colors.reset}`);
+  // Display "Your Team" section first - the CEO experience
+  console.log(`  ${colors.bold}${colors.green}👥 Your Team (Personal)${colors.reset}`);
   let index = 1;
   const indexMap: Record<number, string> = {};
 
+  for (const key of yourTeamCommands) {
+    const cmd = COMMANDS[key];
+    if (cmd) {
+      console.log(
+        `    ${colors.green}${index.toString().padStart(2)}${colors.reset}) ${cmd.icon} ${colors.bold}${cmd.name}${colors.reset} - ${cmd.description}`
+      );
+      indexMap[index] = key;
+      index++;
+    }
+  }
+
+  console.log(`\n  ${colors.bold}${colors.cyan}🏗️ Platform Operations${colors.reset}`);
+  for (const key of platformOpsCommands) {
+    const cmd = COMMANDS[key];
+    if (cmd) {
+      console.log(
+        `    ${colors.green}${index.toString().padStart(2)}${colors.reset}) ${cmd.icon} ${colors.bold}${cmd.name}${colors.reset} - ${cmd.description}`
+      );
+      indexMap[index] = key;
+      index++;
+    }
+  }
+
+  console.log(`\n  ${colors.bold}${colors.blue}Development${colors.reset}`);
   for (const key of devCommands) {
     const cmd = COMMANDS[key];
     if (cmd) {
@@ -11439,8 +12058,20 @@ ${colors.bold}What would you like to do?${colors.reset}
     }
   }
 
-  console.log(`\n  ${colors.bold}${colors.magenta}Operations${colors.reset}`);
-  for (const key of opsCommands) {
+  console.log(`\n  ${colors.bold}${colors.magenta}Agents & Quality${colors.reset}`);
+  for (const key of agentCommands) {
+    const cmd = COMMANDS[key];
+    if (cmd) {
+      console.log(
+        `    ${colors.green}${index.toString().padStart(2)}${colors.reset}) ${cmd.icon} ${colors.bold}${cmd.name}${colors.reset} - ${cmd.description}`
+      );
+      indexMap[index] = key;
+      index++;
+    }
+  }
+
+  console.log(`\n  ${colors.bold}${colors.yellow}Infrastructure${colors.reset}`);
+  for (const key of infraCommands) {
     const cmd = COMMANDS[key];
     if (cmd) {
       console.log(
@@ -11453,78 +12084,6 @@ ${colors.bold}What would you like to do?${colors.reset}
 
   console.log(`\n  ${colors.bold}${colors.red}Self-Healing${colors.reset}`);
   for (const key of selfHealCommands) {
-    const cmd = COMMANDS[key];
-    if (cmd) {
-      console.log(
-        `    ${colors.green}${index.toString().padStart(2)}${colors.reset}) ${cmd.icon} ${colors.bold}${cmd.name}${colors.reset} - ${cmd.description}`
-      );
-      indexMap[index] = key;
-      index++;
-    }
-  }
-
-  console.log(`\n  ${colors.bold}${colors.cyan}Agents & Quality${colors.reset}`);
-  for (const key of agentCommands) {
-    const cmd = COMMANDS[key];
-    if (cmd) {
-      console.log(
-        `    ${colors.green}${index.toString().padStart(2)}${colors.reset}) ${cmd.icon} ${colors.bold}${cmd.name}${colors.reset} - ${cmd.description}`
-      );
-      indexMap[index] = key;
-      index++;
-    }
-  }
-
-  console.log(`\n  ${colors.bold}${colors.yellow}AI Automation${colors.reset}`);
-  for (const key of aiCommands) {
-    const cmd = COMMANDS[key];
-    if (cmd) {
-      console.log(
-        `    ${colors.green}${index.toString().padStart(2)}${colors.reset}) ${cmd.icon} ${colors.bold}${cmd.name}${colors.reset} - ${cmd.description}`
-      );
-      indexMap[index] = key;
-      index++;
-    }
-  }
-
-  console.log(`\n  ${colors.bold}${colors.cyan}Platform Oversight${colors.reset}`);
-  for (const key of platformCommands) {
-    const cmd = COMMANDS[key];
-    if (cmd) {
-      console.log(
-        `    ${colors.green}${index.toString().padStart(2)}${colors.reset}) ${cmd.icon} ${colors.bold}${cmd.name}${colors.reset} - ${cmd.description}`
-      );
-      indexMap[index] = key;
-      index++;
-    }
-  }
-
-  console.log(`\n  ${colors.bold}${colors.red}Chaos & Testing${colors.reset}`);
-  for (const key of chaosTestingCommands) {
-    const cmd = COMMANDS[key];
-    if (cmd) {
-      console.log(
-        `    ${colors.green}${index.toString().padStart(2)}${colors.reset}) ${cmd.icon} ${colors.bold}${cmd.name}${colors.reset} - ${cmd.description}`
-      );
-      indexMap[index] = key;
-      index++;
-    }
-  }
-
-  console.log(`\n  ${colors.bold}${colors.green}Developer Experience${colors.reset}`);
-  for (const key of devExperienceCommands) {
-    const cmd = COMMANDS[key];
-    if (cmd) {
-      console.log(
-        `    ${colors.green}${index.toString().padStart(2)}${colors.reset}) ${cmd.icon} ${colors.bold}${cmd.name}${colors.reset} - ${cmd.description}`
-      );
-      indexMap[index] = key;
-      index++;
-    }
-  }
-
-  console.log(`\n  ${colors.bold}${colors.magenta}Advanced Automation${colors.reset}`);
-  for (const key of advancedCommands) {
     const cmd = COMMANDS[key];
     if (cmd) {
       console.log(
@@ -11620,11 +12179,46 @@ ${colors.bold}Usage:${colors.reset}
 ${colors.bold}Commands:${colors.reset}
 `);
 
-  // Group by category
+  // Group by category - "Your Team" (CEO features) first, platform ops grouped
   const categories = {
+    '👥 Your Team (Personal)': [
+      'team',
+      'briefing',
+      'ask',
+      'coach',
+      'goals',
+      'focus',
+      'reflect',
+      'weekly',
+      'wins',
+      'habits',
+      'energy',
+      'journal',
+      'gratitude',
+      'decisions',
+      'priorities',
+      'blockers',
+      'ideas',
+      'remember',
+      'brain',
+      'roster',
+      'meetings',
+      'insights',
+    ],
+    '🏗️ Platform Operations': [
+      'platform',
+      'deploy',
+      'status',
+      'logs',
+      'rollback',
+      'metrics',
+      'alerts',
+      'traffic',
+      'oncall',
+      'experiments',
+    ],
     Development: [
       'dev',
-      'deploy',
       'build',
       'test',
       'setup',
@@ -11637,23 +12231,6 @@ ${colors.bold}Commands:${colors.reset}
       'devblog',
       'icons',
     ],
-    Operations: [
-      'status',
-      'logs',
-      'doctor',
-      'db',
-      'env',
-      'jobs',
-      'costs',
-      'debug',
-      'integrations',
-      'secrets',
-      'ops',
-      'users',
-      'data',
-      'waitlist',
-    ],
-    'Self-Healing': ['self-heal', 'circuits', 'restart', 'diagnose', 'anomalies'],
     'Agents & Quality': [
       'agents',
       'agent',
@@ -11671,21 +12248,29 @@ ${colors.bold}Commands:${colors.reset}
       'design',
       'smoke',
     ],
-    'AI Automation': ['ai', 'review', 'copy', 'test-gen', 'docs', 'perf', 'security', 'onboard'],
-    'Platform Oversight': [
-      'rollback',
-      'metrics',
+    Infrastructure: [
+      'doctor',
+      'db',
+      'env',
+      'jobs',
+      'costs',
+      'debug',
+      'integrations',
+      'secrets',
+      'ops',
+      'users',
+      'data',
+      'waitlist',
       'sessions',
       'sla',
-      'traffic',
-      'alerts',
-      'oncall',
       'runbook',
       'backup',
       'runtime',
       'calls',
     ],
-    'Chaos & Testing': ['chaos', 'experiments'],
+    'Self-Healing': ['self-heal', 'circuits', 'restart', 'diagnose', 'anomalies'],
+    'AI Automation': ['ai', 'review', 'copy', 'test-gen', 'docs', 'perf', 'security', 'onboard'],
+    'Chaos & Testing': ['chaos'],
     'Developer Experience': ['init', 'context', 'tunnel', 'replay', 'cache', 'notify'],
     'Advanced Automation': [
       'release-auto',
@@ -11696,28 +12281,6 @@ ${colors.bold}Commands:${colors.reset}
       'flags',
       'costs-ai',
       'api',
-    ],
-    'CEO Features': [
-      'goals',
-      'roster',
-      'remember',
-      'brain',
-      'briefing',
-      'focus',
-      'reflect',
-      'weekly',
-      'wins',
-      'habits',
-      'energy',
-      'journal',
-      'gratitude',
-      'decisions',
-      'priorities',
-      'blockers',
-      'ideas',
-      'ask',
-      'coach',
-      'meetings',
     ],
   };
 
@@ -11739,30 +12302,33 @@ ${colors.bold}Commands:${colors.reset}
     console.log();
   }
 
-  console.log(`${colors.bold}Examples:${colors.reset}
+  console.log(`${colors.bold}Examples - Your Team (Personal):${colors.reset}
   ferni                          # Start interactive mode
-  ferni deploy ui                # Deploy UI to cloud
-  ferni deploy gce               # Deploy voice agent to GCE
-  ferni agents list              # List AI agents
-  ferni logs agent --tail        # Stream agent logs
-  ferni status                   # Check all services
+  ferni team                     # Meet your AI leadership team
+  ferni team maya                # Learn about Maya (Wellness Coach)
+  ferni briefing                 # Your morning briefing
+  ferni ask "What should I focus on?"  # Ask Ferni anything
+  ferni coach career             # Career coaching session
+  ferni goals                    # Track your goals
+  ferni wins "Shipped v2!"       # Log an achievement
+  ferni focus start 90           # Start a 90-minute focus session
+  ferni habits check sleep       # Mark a habit as done
+
+${colors.bold}Examples - Platform Operations:${colors.reset}
+  ferni platform                 # Platform operations hub
+  ferni platform deploy gce      # Deploy voice agent to GCE
+  ferni platform logs agent      # Stream agent logs
+  ferni platform status          # Check all services
+  ferni deploy ui                # Deploy UI (also works directly)
+  ferni status                   # Check status (also works directly)
   ferni doctor                   # Run diagnostics
-  ferni db status                # Check database
-  ferni env check                # Validate environment
-  ferni traffic canary 10        # Canary 10% traffic to new version
-  ferni alerts active            # Show active alerts
-  ferni oncall who               # Who's on call right now?
-  ferni chaos latency 500        # Inject 500ms latency for testing
-  ferni context prod             # Switch to production environment
-  ferni tunnel gce               # SSH tunnel to GCE instance
-  ferni rollback agent           # Rollback to previous version
 
 ${colors.bold}Tips:${colors.reset}
   ${colors.dim}•${colors.reset} Run ${colors.cyan}ferni${colors.reset} without arguments for interactive mode
+  ${colors.dim}•${colors.reset} Use ${colors.cyan}ferni team${colors.reset} to see your AI leadership team
+  ${colors.dim}•${colors.reset} Most personal commands work directly: ${colors.cyan}ferni goals${colors.reset}, ${colors.cyan}ferni briefing${colors.reset}
+  ${colors.dim}•${colors.reset} Platform ops can use ${colors.cyan}ferni platform${colors.reset} hub or work directly
   ${colors.dim}•${colors.reset} Use ${colors.cyan}--tail${colors.reset} with logs for live streaming
-  ${colors.dim}•${colors.reset} Run ${colors.cyan}ferni doctor${colors.reset} to diagnose issues
-  ${colors.dim}•${colors.reset} Use ${colors.cyan}ferni context <env>${colors.reset} to switch environments
-  ${colors.dim}•${colors.reset} Run ${colors.cyan}ferni oncall who${colors.reset} to see who's on call
 `);
 }
 

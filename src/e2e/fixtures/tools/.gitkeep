@@ -1,0 +1,58 @@
+# Tool E2E Fixtures
+
+This directory contains E2E test fixtures for all 122+ tool domains.
+
+## Structure
+
+Each domain has its own fixture file:
+- `habits.fixture.json`
+- `career.fixture.json`
+- `memory.fixture.json`
+- etc.
+
+## Generation
+
+Run `ferni tools generate-fixtures` to auto-generate fixture stubs for all tools.
+Use `--force` to overwrite existing fixtures.
+
+## Format
+
+```json
+{
+  "domain": "habits",
+  "description": "E2E fixtures for habits domain tools",
+  "generatedAt": "2026-01-19T...",
+  "tools": [
+    {
+      "id": "tool-trackHabit",
+      "category": "tool",
+      "toolId": "trackHabit",
+      "toolDomain": "habits",
+      "name": "Track Habit",
+      "description": "Track daily habit completion",
+      "tags": ["habits"],
+      "testParams": {
+        "userId": "{testUserId}",
+        "habitId": "test-habit-id"
+      },
+      "expectedStorage": [
+        {
+          "path": "bogle_users/{userId}/habits",
+          "exists": true,
+          "requiredFields": ["name", "frequency"]
+        }
+      ],
+      "expectedInsight": {
+        "anyInsight": true
+      },
+      "incomplete": true
+    }
+  ]
+}
+```
+
+## Fixture States
+
+- `incomplete: true` - Auto-generated stub, needs manual verification
+- `skip: true` - Skip this test, with `skipReason`
+- No flags - Ready for E2E validation

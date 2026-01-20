@@ -252,6 +252,22 @@ export interface ContextUserData {
 
   /** Cross-domain life context snapshot */
   lifeContextSnapshot?: import('../../triggers/index.js').LifeContextSnapshot;
+
+  // ============================================================
+  // SYSTEM STATE (UTO routing result)
+  // ============================================================
+
+  /** Current system state from Unified Tool Orchestrator */
+  systemState?: {
+    music: {
+      isPlaying: boolean;
+      currentTrack?: { name: string; artist: string };
+      playDurationSeconds?: number;
+      isDucked: boolean;
+    };
+    timers: { active: number; nextExpiry?: Date };
+    lastToolExecuted?: { toolId: string; timestamp: Date; result?: string };
+  };
 }
 
 // ============================================================================

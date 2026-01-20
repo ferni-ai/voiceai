@@ -29,6 +29,11 @@ import {
 } from '../../../../memory/rust-accelerator.js';
 // Gateway for generateReply with proper safeguards (debouncing, circuit breaker, etc.)
 import { generateReply as gatewayGenerateReply, TOOL_RESPONSE_TIMEOUT_MS } from '../../generate-reply-gateway.js';
+// FTIS V2 mode check - when enabled, tools execute via FTIS V2, not JSON workaround
+import { isFTISV2OnlyMode } from '../../../processors/ftis-v2-integration.js';
+import { recordFTISV2JsonBypass } from '../../../../services/observability/ftis-metrics.js';
+// Injection tracking for BTH Communication System feedback loop
+import { analyzeResponseAlignment } from '../../../../intelligence/feedback/injection-tracker.js';
 
 const log = createLogger({ module: 'sanitizer-stream' });
 
@@ -293,6 +298,28 @@ function getPersonaVoiceGuidance(personaId?: string, displayName?: string): stri
 export function createSanitizerWithMusicFallback(
   options: SanitizerStreamOptions = {}
 ): AnyTransformStream {
+  // ==========================================================================
+  // FTIS V2 MODE: Skip JSON workaround entirely
+  // When FTIS V2 is active, tools execute directly via FTIS V2 classification,
+  // not via JSON output interception. The LLM should not output JSON at all.
+  // ==========================================================================
+  if (isFTISV2OnlyMode()) {
+    // Record metrics for observability
+    recordFTISV2JsonBypass();
+    
+    log.info(
+      { sessionId: options.sessionId, trace: 'FTIS_V2_BYPASS' },
+      '🎯 FTIS V2 mode: JSON workaround DISABLED (FTIS handles all tools)'
+    );
+    
+    // Return a simple passthrough stream - no JSON detection, no execution
+    return new TransformStream<string, string>({
+      transform(chunk, controller) {
+        controller.enqueue(chunk);
+      },
+    });
+  }
+
   const { toolContext, session, sessionId } = options;
 
   let buffer = '';
@@ -304,6 +331,13 @@ export function createSanitizerWithMusicFallback(
   let potentialJsonAccumulating = false;
   // Buffered chunks waiting to be released if JSON detection fails
   let pendingChunks: string[] = [];
+  // FIX (Jan 2026): Track how many characters have been enqueued BEFORE JSON detection
+  // This prevents re-enqueuing the prefix when JSON is found, causing "OhOh" duplication
+  let charactersEnqueuedBeforeJson = 0;
+
+  // BTH Feedback Loop: Accumulate clean response text for injection attribution analysis
+  // This tracks what the LLM actually said (excluding JSON function calls)
+  let cleanResponseText = '';
 
   const transformer = new TransformStream<string, string>({
     async transform(chunk, controller) {
@@ -346,15 +380,34 @@ export function createSanitizerWithMusicFallback(
           const jsonStartIndex = codeBlockStart >= 0 ? codeBlockStart : bareJsonStart;
           
           // Enqueue any text BEFORE the potential JSON start
+          // FIX (Jan 2026): Only enqueue the REMAINING prefix text that hasn't been enqueued yet
+          // Some chunks may have already been passed through before JSON was detected
           if (jsonStartIndex > 0) {
-            const prefixText = buffer.slice(0, jsonStartIndex).trim();
-            if (prefixText && !prefixTextFlushed) {
+            const fullPrefixText = buffer.slice(0, jsonStartIndex).trim();
+            // Skip characters that were already enqueued before JSON detection
+            const remainingPrefixText = charactersEnqueuedBeforeJson > 0 
+              ? fullPrefixText.slice(charactersEnqueuedBeforeJson).trim()
+              : fullPrefixText;
+            
+            if (remainingPrefixText && !prefixTextFlushed) {
               prefixTextFlushed = true;
               log.info(
-                { prefixText: prefixText.slice(0, 100), sessionId, trace: 'E2E_JSON_PREFIX' },
-                `🔧 E2E TRACE [JSON PREFIX] Speaking prefix before JSON: "${prefixText.slice(0, 50)}..."`
+                {
+                  prefixText: remainingPrefixText.slice(0, 100),
+                  alreadyEnqueued: charactersEnqueuedBeforeJson,
+                  sessionId,
+                  trace: 'E2E_JSON_PREFIX'
+                },
+                `🔧 E2E TRACE [JSON PREFIX] Speaking prefix before JSON: "${remainingPrefixText.slice(0, 50)}..."`
               );
-              controller.enqueue(prefixText);
+              controller.enqueue(remainingPrefixText);
+              // BTH Feedback Loop: Track prefix as clean response text
+              cleanResponseText += remainingPrefixText;
+            } else if (fullPrefixText && charactersEnqueuedBeforeJson > 0) {
+              log.debug(
+                { alreadyEnqueued: charactersEnqueuedBeforeJson, fullPrefixLength: fullPrefixText.length, sessionId },
+                '🔧 Prefix already partially/fully enqueued before JSON detection - skipping duplicate'
+              );
             }
           }
           
@@ -608,6 +661,13 @@ export function createSanitizerWithMusicFallback(
       // Pass through clean text (only when NOT accumulating potential JSON)
       controller.enqueue(chunk);
 
+      // BTH Feedback Loop: Accumulate clean text for injection attribution
+      cleanResponseText += chunk;
+
+      // FIX (Jan 2026): Track how much we've enqueued before potential JSON detection
+      // This prevents re-enqueuing the prefix if JSON is detected later
+      charactersEnqueuedBeforeJson += chunk.length;
+
       // Keep buffer reasonable
       if (buffer.length > 500) {
         buffer = buffer.slice(-200);
@@ -619,16 +679,16 @@ export function createSanitizerWithMusicFallback(
       // This handles the case where JSON detection never completed (e.g., Gemini timeout mid-response)
       if (pendingChunks.length > 0) {
         const combinedPending = pendingChunks.join('');
-        
+
         // Check if pending content looks like incomplete JSON (should NOT be spoken)
         // Patterns: starts with { or ```, contains "fn":, ends mid-JSON
-        const looksLikeIncompleteJson = 
+        const looksLikeIncompleteJson =
           combinedPending.includes('"fn"') ||
           combinedPending.includes('```json') ||
           (combinedPending.includes('{') && !combinedPending.includes('}')) ||
           combinedPending.match(/^\s*\{/) ||
           combinedPending.match(/```\s*$/);
-        
+
         if (looksLikeIncompleteJson) {
           // DROP incomplete JSON - don't speak it!
           // This happens when Gemini connection dies mid-function-call output
@@ -645,15 +705,46 @@ export function createSanitizerWithMusicFallback(
           );
           for (const pendingChunk of pendingChunks) {
             controller.enqueue(pendingChunk);
+            // BTH Feedback Loop: Track released pending chunks as clean response
+            cleanResponseText += pendingChunk;
           }
         }
       }
-      
+
+      // =========================================================================
+      // BTH FEEDBACK LOOP: Analyze response alignment with injections
+      // This is the key hook for Phase 1 - measuring injection effectiveness
+      // =========================================================================
+      if (cleanResponseText.trim() && sessionId && options.userId) {
+        const conversationMode = options.conversationMode || 'conversation';
+        try {
+          // Non-blocking - fire and forget
+          analyzeResponseAlignment(
+            sessionId,
+            options.userId,
+            cleanResponseText,
+            conversationMode
+          );
+          log.debug(
+            { sessionId, responseLength: cleanResponseText.length, trace: 'BTH_INJECTION_TRACKING' },
+            '📊 BTH Feedback: Analyzed response alignment with injections'
+          );
+        } catch (err) {
+          log.warn(
+            { sessionId, error: String(err) },
+            'BTH Feedback: Failed to analyze response alignment'
+          );
+        }
+      }
+
+      // Reset state for next response
       buffer = '';
       musicFallbackTriggered = false;
       jsonFunctionExecuted = false;
       potentialJsonAccumulating = false;
       pendingChunks = [];
+      charactersEnqueuedBeforeJson = 0;
+      cleanResponseText = '';
     },
   });
 

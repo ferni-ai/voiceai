@@ -176,30 +176,8 @@ export async function initConversationSession(
           // Memory callbacks are optional - continue if they fail
         }
       }
-    } else {
-      // Other personas use the shared LLM expression system
-      try {
-        const { prewarmPersonaExpressions, hasPersonaExpressionSupport } =
-          await import('../../personas/shared/persona-llm-expressions.js');
-        if (hasPersonaExpressionSupport(config.personaId)) {
-          const hour = new Date().getHours();
-          const timeOfDay =
-            hour >= 5 && hour < 12
-              ? 'morning'
-              : hour >= 12 && hour < 17
-                ? 'afternoon'
-                : hour >= 17 && hour < 22
-                  ? 'evening'
-                  : 'late_night';
-          void prewarmPersonaExpressions(config.personaId, {
-            timeOfDay,
-            relationshipStage: config.relationshipStage,
-          });
-        }
-      } catch {
-        // Prewarm is optional - continue if it fails
-      }
     }
+    // NOTE: Shared LLM expression prewarming removed - use persona-specific expression generators
 
     log.info(
       {

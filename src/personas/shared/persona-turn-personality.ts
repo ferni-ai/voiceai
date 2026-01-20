@@ -13,14 +13,18 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
-import {
-  generatePersonaExpressions,
-  getPersonaExpression,
-  hasPersonaExpressionSupport,
-  PERSONA_CONFIGS,
-  type ExpressionContext,
-  type GeneratedExpression,
-} from './persona-llm-expressions.js';
+// NOTE: persona-llm-expressions removed - stubs provided for backward compatibility
+// Use persona-specific expression generators in bundles/ instead
+type ExpressionContext = Record<string, unknown>;
+type GeneratedExpression = { content: string; theme: string; ssml?: string; id?: string };
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const hasPersonaExpressionSupport = (_personaId: string): boolean => false;
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const getPersonaExpression = (_personaId: string, _theme: string, _context: ExpressionContext): GeneratedExpression | null => null;
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const generatePersonaExpressions = (_personaId: string, _themes: { id: string; contextHints?: string[] }[], _context: ExpressionContext): Promise<void> => Promise.resolve();
+const PERSONA_CONFIGS: Record<string, { themes: { id: string; contextHints?: string[] }[] }> = {};
+
 import {
   generateHumanizationLLM,
   type HumanizationType,
@@ -445,13 +449,13 @@ export async function processPersonaTurn(input: PersonaTurnInput): Promise<Perso
 
       // If not in cache, generate (non-blocking, for future)
       if (!expression) {
-        void generatePersonaExpressions(personaId, [theme], buildExpressionContext(input));
+        void generatePersonaExpressions(personaId, [{ id: theme }], buildExpressionContext(input));
       } else {
         result.shouldInject = true;
         result.expression = {
           theme: expression.theme,
           content: expression.content,
-          ssml: expression.ssml,
+          ssml: expression.ssml || expression.content,
           id: expression.id,
         };
         result.injectionPoint = 'after_response';

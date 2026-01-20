@@ -13,9 +13,10 @@ permalink: /developers/blog/
     --dev-surface-elevated: #70605a;
     --dev-border: rgba(215, 185, 145, 0.12);
     --dev-border-strong: rgba(215, 185, 145, 0.20);
-    --dev-accent: #4a6741;
-    --dev-accent-hover: #5a7a4f;
-    --dev-accent-light: rgba(74, 103, 65, 0.15);
+    --dev-accent: #d4a84a;
+    --dev-accent-hover: #e0bc6a;
+    --dev-accent-light: rgba(212, 168, 74, 0.15);
+    --dev-ferni: #4a6741;
     --dev-text: #faf6f0;
     --dev-text-secondary: #f0ebe4;
     --dev-text-muted: #e8e2da;
@@ -239,7 +240,7 @@ permalink: /developers/blog/
     width: 36px;
     height: 36px;
     border-radius: 50%;
-    background: var(--dev-accent);
+    background: var(--dev-ferni);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -496,9 +497,11 @@ permalink: /developers/blog/
   <div class="dev-nav-inner">
     <a href="/developers/" class="dev-nav-brand">
       <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <!-- LUXO STYLE: opaque white eyes, NO pupils, warm smile -->
         <circle cx="50" cy="50" r="45" fill="#4a6741"/>
-        <ellipse cx="35" cy="45" rx="8" ry="10" fill="#FFFDFB"/>
-        <ellipse cx="65" cy="45" rx="8" ry="10" fill="#FFFDFB"/>
+        <ellipse cx="35" cy="45" rx="8" ry="10" fill="#faf6f0"/>
+        <ellipse cx="65" cy="45" rx="8" ry="10" fill="#faf6f0"/>
+        <path d="M32 68 Q50 80 68 68" stroke="#faf6f0" stroke-width="4" stroke-linecap="round" fill="none"/>
       </svg>
       <span>Ferni Developers</span>
     </a>
@@ -526,7 +529,7 @@ permalink: /developers/blog/
               {% if post.data.category %}
                 <span class="post-card-category">{{ post.data.category }}</span>
               {% endif %}
-              <time datetime="{{ post.date | date('yyyy-MM-dd') }}">
+              <time datetime="{{ post.date | rssDate }}">
                 {{ post.date | date('MMM d, yyyy') }}
               </time>
             </div>
@@ -563,9 +566,11 @@ permalink: /developers/blog/
       <div class="dev-footer-brand">
         <a href="/developers/" class="dev-footer-logo">
           <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <!-- LUXO STYLE: opaque white eyes, NO pupils, warm smile -->
             <circle cx="50" cy="50" r="45" fill="#4a6741"/>
-            <ellipse cx="35" cy="45" rx="8" ry="10" fill="#FFFDFB"/>
-            <ellipse cx="65" cy="45" rx="8" ry="10" fill="#FFFDFB"/>
+            <ellipse cx="35" cy="45" rx="8" ry="10" fill="#faf6f0"/>
+            <ellipse cx="65" cy="45" rx="8" ry="10" fill="#faf6f0"/>
+            <path d="M32 68 Q50 80 68 68" stroke="#faf6f0" stroke-width="4" stroke-linecap="round" fill="none"/>
           </svg>
           <span>Ferni Developers</span>
         </a>

@@ -1,5 +1,5 @@
 ---
-layout: layouts/base.njk
+layout: layouts/dev-base.njk
 title: API Reference | Ferni Developer Platform
 description: Complete API documentation for the Ferni Developer Platform. MCP Servers, Custom Tools, Webhooks, Workflows, Activities, and OAuth.
 isDocs: true
@@ -7,20 +7,24 @@ isDocs: true
 
 <style>
   :root {
-    --dev-bg: #0f172a;
-    --dev-surface: #1e293b;
-    --dev-border: #334155;
-    --dev-accent: #38bdf8;
-    --dev-accent-hover: #0ea5e9;
-    --dev-text: #e2e8f0;
-    --dev-text-muted: #94a3b8;
-    --dev-code-bg: #1e1e2e;
+    --dev-bg: #584840;
+    --dev-surface: #70605a;
+    --dev-surface-elevated: #7d6e67;
+    --dev-border: rgba(212, 168, 74, 0.2);
+    --dev-accent: #d4a84a;
+    --dev-accent-hover: #e5bc6a;
+    --dev-text: #faf8f5;
+    --dev-text-muted: rgba(250, 248, 245, 0.7);
+    --dev-code-bg: #4a3c35;
+    --dev-ferni-green: #4a6741;
   }
 
-  body {
+  body.dev-portal {
     background: var(--dev-bg);
     color: var(--dev-text);
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    margin: 0;
+    padding: 0;
   }
 
   .dev-nav {
@@ -113,7 +117,9 @@ isDocs: true
   }
 
   .api-section-icon {
-    font-size: 1.25rem;
+    width: 24px;
+    height: 24px;
+    color: var(--dev-accent);
   }
 
   .api-section > p {
@@ -137,7 +143,7 @@ isDocs: true
   }
 
   .endpoint-table th {
-    background: rgba(0,0,0,0.2);
+    background: rgba(0,0,0,0.15);
     font-weight: 600;
     font-size: 0.85rem;
     color: var(--dev-text-muted);
@@ -150,7 +156,7 @@ isDocs: true
   }
 
   .endpoint-table tr:hover td {
-    background: rgba(56, 189, 248, 0.05);
+    background: rgba(212, 168, 74, 0.05);
   }
 
   .method {
@@ -165,7 +171,7 @@ isDocs: true
   }
 
   .method-get { background: rgba(74, 222, 128, 0.2); color: #4ade80; }
-  .method-post { background: rgba(56, 189, 248, 0.2); color: #38bdf8; }
+  .method-post { background: rgba(212, 168, 74, 0.25); color: var(--dev-accent); }
   .method-put { background: rgba(251, 191, 36, 0.2); color: #fbbf24; }
   .method-delete { background: rgba(248, 113, 113, 0.2); color: #f87171; }
 
@@ -203,8 +209,8 @@ isDocs: true
   }
 
   .auth-note {
-    background: rgba(56, 189, 248, 0.1);
-    border: 1px solid rgba(56, 189, 248, 0.3);
+    background: rgba(212, 168, 74, 0.1);
+    border: 1px solid rgba(212, 168, 74, 0.3);
     border-radius: 8px;
     padding: 1rem 1.5rem;
     margin-bottom: 2rem;
@@ -214,8 +220,10 @@ isDocs: true
   }
 
   .auth-note-icon {
-    font-size: 1.25rem;
     flex-shrink: 0;
+    width: 24px;
+    height: 24px;
+    color: var(--dev-accent);
   }
 
   .auth-note-content h4 {
@@ -236,6 +244,15 @@ isDocs: true
     border-radius: 4px;
     font-family: 'JetBrains Mono', monospace;
     font-size: 0.85rem;
+  }
+
+  .auth-note-content a {
+    color: var(--dev-accent);
+    text-decoration: none;
+  }
+
+  .auth-note-content a:hover {
+    text-decoration: underline;
   }
 
   .dev-footer {
@@ -286,7 +303,7 @@ isDocs: true
 <nav class="dev-nav">
   <a href="/developers/" class="dev-nav-brand">
     <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <!-- LUXO STYLE: opaque white eyes, no pupils -->
+      <!-- LUXO STYLE: opaque white eyes, no pupils, warm smile -->
       <circle cx="50" cy="50" r="45" fill="#4a6741"/>
       <ellipse cx="36" cy="48" rx="7" ry="9" fill="white"/>
       <ellipse cx="64" cy="48" rx="7" ry="9" fill="white"/>
@@ -307,22 +324,33 @@ isDocs: true
   <p>Complete documentation for all Ferni Developer Platform v2 endpoints.</p>
 </header>
 
-<main class="api-content">
+<div class="api-content">
   <div class="base-url">
     <span class="base-url-label">Base URL</span>
     <code class="base-url-value">https://api.ferni.ai/api/v2/developers</code>
   </div>
 
   <div class="auth-note">
-    <span class="auth-note-icon">🔑</span>
+    <svg class="auth-note-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+      <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+    </svg>
     <div class="auth-note-content">
       <h4>Authentication Required</h4>
-      <p>All endpoints require authentication via <code>Authorization: Bearer pk_live_xxx</code> header. Get your API key from the <a href="/developers/getting-started/" style="color: var(--dev-accent);">Getting Started guide</a>.</p>
+      <p>All endpoints require authentication via <code>Authorization: Bearer pk_live_xxx</code> header. Get your API key from the <a href="/developers/getting-started/">Getting Started guide</a>.</p>
     </div>
   </div>
 
   <section class="api-section">
-    <h2><span class="api-section-icon">🔌</span> MCP Servers</h2>
+    <h2>
+      <svg class="api-section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="2" y="2" width="20" height="8" rx="2" ry="2"/>
+        <rect x="2" y="14" width="20" height="8" rx="2" ry="2"/>
+        <line x1="6" y1="6" x2="6.01" y2="6"/>
+        <line x1="6" y1="18" x2="6.01" y2="18"/>
+      </svg>
+      MCP Servers
+    </h2>
     <p>Register and manage external Model Context Protocol servers.</p>
 
     <table class="endpoint-table">
@@ -374,7 +402,12 @@ isDocs: true
   </section>
 
   <section class="api-section">
-    <h2><span class="api-section-icon">🛠️</span> Custom Tools</h2>
+    <h2>
+      <svg class="api-section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>
+      </svg>
+      Custom Tools
+    </h2>
     <p>Create webhook, MCP, or prompt-based tools for voice agents.</p>
 
     <table class="endpoint-table">
@@ -421,7 +454,13 @@ isDocs: true
   </section>
 
   <section class="api-section">
-    <h2><span class="api-section-icon">🔔</span> Webhooks</h2>
+    <h2>
+      <svg class="api-section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+        <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+      </svg>
+      Webhooks
+    </h2>
     <p>Subscribe to real-time events from voice agent sessions.</p>
 
     <table class="endpoint-table">
@@ -473,7 +512,12 @@ isDocs: true
   </section>
 
   <section class="api-section">
-    <h2><span class="api-section-icon">⚡</span> Workflows</h2>
+    <h2>
+      <svg class="api-section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+      </svg>
+      Workflows
+    </h2>
     <p>Build multi-step automations with branching and parallel execution.</p>
 
     <table class="endpoint-table">
@@ -530,7 +574,14 @@ isDocs: true
   </section>
 
   <section class="api-section">
-    <h2><span class="api-section-icon">📊</span> Activities</h2>
+    <h2>
+      <svg class="api-section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="18" y1="20" x2="18" y2="10"/>
+        <line x1="12" y1="20" x2="12" y2="4"/>
+        <line x1="6" y1="20" x2="6" y2="14"/>
+      </svg>
+      Activities
+    </h2>
     <p>Track custom metrics and query historical activity data.</p>
 
     <table class="endpoint-table">
@@ -577,7 +628,13 @@ isDocs: true
   </section>
 
   <section class="api-section">
-    <h2><span class="api-section-icon">🔐</span> OAuth</h2>
+    <h2>
+      <svg class="api-section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+        <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+      </svg>
+      OAuth
+    </h2>
     <p>Integrate external services using your own OAuth applications.</p>
 
     <table class="endpoint-table">
@@ -637,8 +694,8 @@ isDocs: true
       </tbody>
     </table>
   </section>
-</main>
+</div>
 
 <footer class="dev-footer">
-  <p>&copy; {{ 'now' | date('yyyy') }} Ferni AI. <a href="/developers/">Docs</a> · <a href="/developers/api/">API Reference</a> · <a href="/developers/blog/">Blog</a> · <a href="https://ferni.ai">ferni.ai</a></p>
+  <p>Ferni AI {{ 'now' | date('yyyy') }}. <a href="/developers/">Docs</a> / <a href="/developers/api/">API Reference</a> / <a href="/developers/blog/">Blog</a> / <a href="https://ferni.ai">ferni.ai</a></p>
 </footer>

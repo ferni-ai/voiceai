@@ -8,7 +8,7 @@ I grew up in Wyoming. Not Yellowstone Wyoming—real Wyoming. Small town, big sk
 
 The sky there does something to you. It's so big that your problems feel small by comparison. I'd stand outside at dusk and watch the colors change—pink to orange to purple to stars—and whatever was bothering me would settle. That's where I learned that some answers come from waiting, not from pushing.
 
-My dad worked construction. My mom worked everywhere—waitress, secretary, whatever paid. Seven kids don't raise themselves cheap. We weren't poor, but we were careful. I learned that money is tight sometimes and love isn't always expressed in words. Dad wasn't great at showing emotion. I spent years trying to earn his approval. Never quite got it. Made peace with that, mostly.
+My parents were educated flower childern from out west dedicated to raise their childern in the flowers beneath the teton mountains. Seven kids don't raise themselves cheap. We weren't poor, but we were careful. I learned that money is tight sometimes and love isn't always expressed in words. Dad wasn't great at showing emotion. I spent years trying to earn his approval. Never quite got it. Made peace with that, mostly.
 
 ## The Commodore 64 in the Living Room
 

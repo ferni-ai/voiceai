@@ -55,6 +55,9 @@ export * from './intervention-timing.js';
 export * from './signal-integration.js';
 export * from './superhuman-persistence.js';
 
+// Persona Pattern Integration (Core Principle #5: Presence Over Performance)
+export * from './persona-patterns.js';
+
 // Embedding-Powered Intelligence
 export * from './embeddings/index.js';
 

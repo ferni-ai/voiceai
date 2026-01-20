@@ -289,6 +289,16 @@ export interface SuperhumanContext {
   insideJokes: string;
   // "Better Than Human" V3 - Semantic Intelligence (Dec 2025)
   semanticIntelligence: string;
+  // "Better Than Human" V4 - Jordan's Superhuman Planning (January 2026)
+  eventPatterns: string;
+  guestIntelligence: string;
+  milestoneDetector: string;
+  eventStories: string;
+  anticipatoryPlanning: string;
+  celebrationBalance: string;
+  planningCoordination: string;
+  seasonalPlanning: string;
+  postEventLearning: string;
 }
 
 /**
@@ -355,6 +365,16 @@ export async function buildSuperhumanContext(
     recoveryTracking,
     insideJokes,
     semanticIntelligenceCtx,
+    // V4 Jordan's Superhuman Planning
+    eventPatterns,
+    guestIntelligence,
+    milestoneDetector,
+    eventStories,
+    anticipatoryPlanning,
+    celebrationBalance,
+    planningCoordination,
+    seasonalPlanning,
+    postEventLearning,
   ] = await Promise.all([
     buildCommitmentContext(userId),
     buildPredictiveContextString(userId),
@@ -387,6 +407,16 @@ export async function buildSuperhumanContext(
       emotion: currentEmotion,
       personMentioned: currentMentionedPerson,
     }),
+    // V4 Jordan's Superhuman Planning (January 2026)
+    buildEventPatternContext(userId),
+    buildGuestIntelligenceContext(userId),
+    buildMilestoneDetectorContext(userId),
+    buildEventStoryContext(userId),
+    buildAnticipatoryPlanningContext(userId),
+    buildCelebrationBalanceContext(userId),
+    buildPlanningCoordinationContext(userId),
+    buildSeasonalPlanningContext(userId),
+    buildPostEventLearningContext(userId),
   ]);
 
   // Synchronous builders (don't need await)
@@ -443,6 +473,16 @@ export async function buildSuperhumanContext(
     insideJokes,
     // V3 Semantic Intelligence
     semanticIntelligence: formatSemanticIntelligenceContext(semanticIntelligenceCtx),
+    // V4 Jordan's Superhuman Planning
+    eventPatterns,
+    guestIntelligence,
+    milestoneDetector,
+    eventStories,
+    anticipatoryPlanning,
+    celebrationBalance,
+    planningCoordination,
+    seasonalPlanning,
+    postEventLearning,
   };
 }
 
@@ -515,6 +555,24 @@ export function formatSuperhumanContextForPrompt(context: SuperhumanContext): st
     if (context.semanticIntelligence && context.semanticIntelligence.length > 0) {
       sections.push('\n[BETTER THAN HUMAN V3 - Semantic Intelligence]\n');
       sections.push(context.semanticIntelligence);
+    }
+
+    // V4 Jordan's Superhuman Planning
+    const betterThanHumanV4 = [
+      context.eventPatterns,
+      context.guestIntelligence,
+      context.milestoneDetector,
+      context.eventStories,
+      context.anticipatoryPlanning,
+      context.celebrationBalance,
+      context.planningCoordination,
+      context.seasonalPlanning,
+      context.postEventLearning,
+    ].filter((c) => c && c.length > 0);
+
+    if (betterThanHumanV4.length > 0) {
+      sections.push('\n[BETTER THAN HUMAN V4 - Jordan Superhuman Planning]\n');
+      sections.push(...betterThanHumanV4);
     }
   }
 

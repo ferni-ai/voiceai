@@ -1,0 +1,503 @@
+/**
+ * FTIS Hybrid Router
+ *
+ * Implements tiered routing for optimal latency/accuracy tradeoff:
+ * - Fast Path: Direct execution when high confidence + within boundary (~50ms)
+ * - Verify Path: Gemini verification for medium confidence (~200ms)
+ * - LLM Path: Pass to LLM for low confidence or outside boundary (~500ms)
+ *
+ * Features:
+ * - Dynamic threshold adjustment based on tool success rates
+ * - Per-category threshold configuration
+ * - Automatic fallback handling
+ * - Comprehensive metrics
+ *
+ * @module tools/intelligence/ftis-hybrid-router
+ */
+
+import { createLogger } from '../../utils/safe-logger.js';
+import { FTISClassifierV2, ClassificationResult, getFTISClassifierV2 } from './ftis-classifier-v2.js';
+import { FTISDecisionBoundary, getFTISDecisionBoundary } from './ftis-decision-boundary.js';
+import { FTISCalibration, getFTISCalibration } from './ftis-calibration.js';
+
+const log = createLogger({ module: 'ftis-hybrid' });
+
+// ============================================================================
+// TYPES
+// ============================================================================
+
+export type RoutingTier = 'fast' | 'verify' | 'llm';
+
+export interface RoutingDecision {
+  /** Which routing tier was selected */
+  tier: RoutingTier;
+  /** Classification result from FTIS */
+  classification: ClassificationResult;
+  /** Reason for the routing decision */
+  reason: string;
+  /** Final confidence used for decision (may be calibrated/boundary-adjusted) */
+  effectiveConfidence: number;
+  /** Whether the query is within class boundary */
+  withinBoundary: boolean;
+  /** Estimated latency for this tier */
+  estimatedLatencyMs: number;
+  /** Suggested action */
+  action: 'execute_tool' | 'verify_with_gemini' | 'pass_to_llm';
+}
+
+export interface HybridRouterConfig {
+  /** Confidence threshold for fast path (default: 0.75) */
+  fastPathThreshold: number;
+  /** Confidence threshold for verify path (default: 0.50) */
+  verifyPathThreshold: number;
+  /** Whether to enable Gemini verification (default: true) */
+  enableVerification: boolean;
+  /** Whether to use calibrated confidence (default: true) */
+  useCalibration: boolean;
+  /** Whether to use boundary checking (default: true) */
+  useBoundaryChecking: boolean;
+  /** Per-category threshold overrides */
+  categoryThresholds: Record<string, { fast: number; verify: number }>;
+  /** High-reliability tools that can use lower thresholds */
+  highReliabilityTools: string[];
+  /** High-risk tools that should use higher thresholds */
+  highRiskTools: string[];
+}
+
+export interface RouterMetrics {
+  totalRoutings: number;
+  fastPathCount: number;
+  verifyPathCount: number;
+  llmPathCount: number;
+  fastPathRate: number;
+  verifyPathRate: number;
+  llmPathRate: number;
+  averageLatencyMs: number;
+  categoryDistribution: Map<string, { fast: number; verify: number; llm: number }>;
+}
+
+// ============================================================================
+// DEFAULT CONFIG
+// ============================================================================
+
+const DEFAULT_CONFIG: HybridRouterConfig = {
+  fastPathThreshold: 0.75,
+  verifyPathThreshold: 0.50,
+  enableVerification: true,
+  useCalibration: true,
+  useBoundaryChecking: true,
+  categoryThresholds: {},
+  // Tools that are safe to execute with lower confidence
+  highReliabilityTools: [
+    'play_music',
+    'find_music',
+    'music_control',
+    'weather',
+    'time',
+    'date',
+    'joke',
+  ],
+  // Tools that should require higher confidence
+  highRiskTools: [
+    'handoff_maya',
+    'handoff_peter',
+    'handoff_alex',
+    'handoff_jordan',
+    'handoff_nayan',
+    'handoff_ferni',
+    'bills',
+    'budget',
+    'call_make',
+    'email_send',
+    'message_send',
+  ],
+};
+
+// ============================================================================
+// HYBRID ROUTER
+// ============================================================================
+
+export class FTISHybridRouter {
+  private config: HybridRouterConfig;
+  private classifier: FTISClassifierV2;
+  private boundary: FTISDecisionBoundary;
+  private calibration: FTISCalibration;
+  private initialized = false;
+
+  // Metrics
+  private metrics: RouterMetrics = {
+    totalRoutings: 0,
+    fastPathCount: 0,
+    verifyPathCount: 0,
+    llmPathCount: 0,
+    fastPathRate: 0,
+    verifyPathRate: 0,
+    llmPathRate: 0,
+    averageLatencyMs: 0,
+    categoryDistribution: new Map(),
+  };
+  private latencySum = 0;
+
+  // Dynamic threshold adjustment based on success rates
+  private toolSuccessRates = new Map<string, { successes: number; total: number }>();
+
+  constructor(config: Partial<HybridRouterConfig> = {}) {
+    this.config = { ...DEFAULT_CONFIG, ...config };
+    this.classifier = getFTISClassifierV2();
+    this.boundary = getFTISDecisionBoundary();
+    this.calibration = getFTISCalibration();
+  }
+
+  /**
+   * Initialize the router and all its components
+   */
+  async initialize(): Promise<void> {
+    if (this.initialized) return;
+
+    const startTime = Date.now();
+    log.info('🚀 Initializing FTIS Hybrid Router...');
+
+    // Initialize all components in parallel
+    await Promise.all([
+      this.classifier.initialize(),
+      this.boundary.initialize(),
+      this.calibration.initialize(),
+    ]);
+
+    this.initialized = true;
+    log.info(
+      {
+        classifierReady: this.classifier.isReady(),
+        boundaryReady: this.boundary.isReady(),
+        calibrationReady: this.calibration.isReady(),
+        durationMs: Date.now() - startTime,
+      },
+      '✅ FTIS Hybrid Router initialized'
+    );
+  }
+
+  /**
+   * Check if router is ready
+   */
+  isReady(): boolean {
+    return this.initialized && this.classifier.isReady();
+  }
+
+  /**
+   * Get threshold for a specific category
+   */
+  private getThresholds(category: string): { fast: number; verify: number } {
+    // Check for category-specific override
+    if (this.config.categoryThresholds[category]) {
+      return this.config.categoryThresholds[category];
+    }
+
+    // Adjust based on tool reliability
+    if (this.config.highReliabilityTools.includes(category)) {
+      return {
+        fast: this.config.fastPathThreshold - 0.10, // Lower threshold = easier fast path
+        verify: this.config.verifyPathThreshold - 0.10,
+      };
+    }
+
+    if (this.config.highRiskTools.includes(category)) {
+      return {
+        fast: this.config.fastPathThreshold + 0.10, // Higher threshold = harder fast path
+        verify: this.config.verifyPathThreshold + 0.10,
+      };
+    }
+
+    // Dynamic adjustment based on historical success rate
+    const successData = this.toolSuccessRates.get(category);
+    if (successData && successData.total >= 10) {
+      const successRate = successData.successes / successData.total;
+      if (successRate > 0.95) {
+        // High success rate, can lower thresholds
+        return {
+          fast: this.config.fastPathThreshold - 0.05,
+          verify: this.config.verifyPathThreshold - 0.05,
+        };
+      } else if (successRate < 0.80) {
+        // Low success rate, raise thresholds
+        return {
+          fast: this.config.fastPathThreshold + 0.10,
+          verify: this.config.verifyPathThreshold + 0.10,
+        };
+      }
+    }
+
+    return {
+      fast: this.config.fastPathThreshold,
+      verify: this.config.verifyPathThreshold,
+    };
+  }
+
+  /**
+   * Main routing method - determines which path to take
+   */
+  async route(query: string): Promise<RoutingDecision> {
+    if (!this.initialized) {
+      await this.initialize();
+    }
+
+    const startTime = Date.now();
+
+    // Get classification
+    const classification = await this.classifier.classify(query);
+
+    if (!classification) {
+      // Classification failed, go to LLM
+      return {
+        tier: 'llm',
+        classification: {
+          superCategory: 'unknown',
+          fineCategory: 'unknown',
+          superConfidence: 0,
+          fineConfidence: 0,
+          combinedConfidence: 0,
+          usedFallback: false,
+          toolIds: [],
+          latencyMs: Date.now() - startTime,
+          effectiveConfidence: 0,
+        },
+        reason: 'classification_failed',
+        effectiveConfidence: 0,
+        withinBoundary: false,
+        estimatedLatencyMs: 500,
+        action: 'pass_to_llm',
+      };
+    }
+
+    // Determine effective confidence
+    let effectiveConfidence = classification.combinedConfidence;
+    let withinBoundary = true;
+    let reason = '';
+
+    // Apply boundary checking
+    if (this.config.useBoundaryChecking && classification.boundaryAdjustedConfidence !== undefined) {
+      effectiveConfidence = classification.boundaryAdjustedConfidence;
+      withinBoundary = !classification.isOpenIntent;
+
+      if (classification.isOpenIntent) {
+        reason = `outside_boundary:${classification.openIntentReason}`;
+      }
+    }
+
+    // Apply calibration if available
+    // Note: calibration is already integrated into ftis-classifier-v2.ts
+    // This is where we could apply additional calibration if needed
+
+    // Get thresholds for this category
+    const thresholds = this.getThresholds(classification.fineCategory);
+
+    // Make routing decision
+    let tier: RoutingTier;
+    let action: 'execute_tool' | 'verify_with_gemini' | 'pass_to_llm';
+    let estimatedLatencyMs: number;
+
+    if (!withinBoundary) {
+      // Outside boundary - always go to LLM
+      tier = 'llm';
+      action = 'pass_to_llm';
+      estimatedLatencyMs = 500;
+      reason = reason || 'outside_class_boundary';
+    } else if (effectiveConfidence >= thresholds.fast) {
+      // Fast path - high confidence, execute directly
+      tier = 'fast';
+      action = 'execute_tool';
+      estimatedLatencyMs = 50;
+      reason = 'high_confidence_within_boundary';
+    } else if (effectiveConfidence >= thresholds.verify && this.config.enableVerification) {
+      // Verify path - medium confidence, verify with Gemini
+      tier = 'verify';
+      action = 'verify_with_gemini';
+      estimatedLatencyMs = 200;
+      reason = 'medium_confidence_needs_verification';
+    } else {
+      // LLM path - low confidence or verification disabled
+      tier = 'llm';
+      action = 'pass_to_llm';
+      estimatedLatencyMs = 500;
+      reason = 'low_confidence';
+    }
+
+    // Update metrics
+    this.updateMetrics(tier, classification.fineCategory, Date.now() - startTime);
+
+    const decision: RoutingDecision = {
+      tier,
+      classification,
+      reason,
+      effectiveConfidence,
+      withinBoundary,
+      estimatedLatencyMs,
+      action,
+    };
+
+    log.debug(
+      {
+        query: query.slice(0, 40),
+        tier,
+        fineCategory: classification.fineCategory,
+        originalConf: classification.combinedConfidence.toFixed(3),
+        effectiveConf: effectiveConfidence.toFixed(3),
+        withinBoundary,
+        reason,
+      },
+      '🔀 Routing decision'
+    );
+
+    return decision;
+  }
+
+  /**
+   * Record tool execution success/failure for dynamic threshold adjustment
+   */
+  recordToolOutcome(category: string, success: boolean): void {
+    const data = this.toolSuccessRates.get(category) || { successes: 0, total: 0 };
+    data.total++;
+    if (success) {
+      data.successes++;
+    }
+    this.toolSuccessRates.set(category, data);
+
+    log.debug(
+      {
+        category,
+        success,
+        successRate: (data.successes / data.total).toFixed(3),
+        total: data.total,
+      },
+      '📊 Tool outcome recorded'
+    );
+  }
+
+  /**
+   * Update internal metrics
+   */
+  private updateMetrics(tier: RoutingTier, category: string, latencyMs: number): void {
+    this.metrics.totalRoutings++;
+    this.latencySum += latencyMs;
+    this.metrics.averageLatencyMs = this.latencySum / this.metrics.totalRoutings;
+
+    switch (tier) {
+      case 'fast':
+        this.metrics.fastPathCount++;
+        break;
+      case 'verify':
+        this.metrics.verifyPathCount++;
+        break;
+      case 'llm':
+        this.metrics.llmPathCount++;
+        break;
+    }
+
+    this.metrics.fastPathRate = this.metrics.fastPathCount / this.metrics.totalRoutings;
+    this.metrics.verifyPathRate = this.metrics.verifyPathCount / this.metrics.totalRoutings;
+    this.metrics.llmPathRate = this.metrics.llmPathCount / this.metrics.totalRoutings;
+
+    // Category distribution
+    const catData = this.metrics.categoryDistribution.get(category) || { fast: 0, verify: 0, llm: 0 };
+    catData[tier]++;
+    this.metrics.categoryDistribution.set(category, catData);
+  }
+
+  /**
+   * Get current metrics
+   */
+  getMetrics(): RouterMetrics {
+    return { ...this.metrics };
+  }
+
+  /**
+   * Get tool success rates
+   */
+  getToolSuccessRates(): Map<string, { successRate: number; total: number }> {
+    const rates = new Map<string, { successRate: number; total: number }>();
+    for (const [category, data] of this.toolSuccessRates) {
+      rates.set(category, {
+        successRate: data.total > 0 ? data.successes / data.total : 0,
+        total: data.total,
+      });
+    }
+    return rates;
+  }
+
+  /**
+   * Reset metrics
+   */
+  resetMetrics(): void {
+    this.metrics = {
+      totalRoutings: 0,
+      fastPathCount: 0,
+      verifyPathCount: 0,
+      llmPathCount: 0,
+      fastPathRate: 0,
+      verifyPathRate: 0,
+      llmPathRate: 0,
+      averageLatencyMs: 0,
+      categoryDistribution: new Map(),
+    };
+    this.latencySum = 0;
+  }
+
+  /**
+   * Update configuration at runtime
+   */
+  updateConfig(updates: Partial<HybridRouterConfig>): void {
+    this.config = { ...this.config, ...updates };
+    log.info({ updates: Object.keys(updates) }, 'Router config updated');
+  }
+
+  /**
+   * Get current configuration
+   */
+  getConfig(): HybridRouterConfig {
+    return { ...this.config };
+  }
+}
+
+// ============================================================================
+// SINGLETON
+// ============================================================================
+
+let routerInstance: FTISHybridRouter | null = null;
+
+export function getFTISHybridRouter(): FTISHybridRouter {
+  if (!routerInstance) {
+    routerInstance = new FTISHybridRouter();
+  }
+  return routerInstance;
+}
+
+export async function initializeFTISHybridRouter(
+  config?: Partial<HybridRouterConfig>
+): Promise<FTISHybridRouter> {
+  if (!routerInstance) {
+    routerInstance = new FTISHybridRouter(config);
+  }
+  await routerInstance.initialize();
+  return routerInstance;
+}
+
+export function resetFTISHybridRouter(): void {
+  routerInstance = null;
+}
+
+// ============================================================================
+// CONVENIENCE FUNCTION
+// ============================================================================
+
+/**
+ * Quick routing function for use in tool orchestrators
+ *
+ * @param query - User query
+ * @returns Routing decision
+ */
+export async function routeQuery(query: string): Promise<RoutingDecision> {
+  const router = getFTISHybridRouter();
+  if (!router.isReady()) {
+    await router.initialize();
+  }
+  return router.route(query);
+}

@@ -41,10 +41,9 @@ import {
   loadPersonaLocally,
   loadVoiceDeps as loadVoiceDepsPhase,
   runMultiAgentMode,
-  runUntilDisconnect,
   setupNoiseCancellation,
   setupVoiceHumanization,
-  type VoiceDeps,
+  type VoiceDeps
 } from './voice-agent/phases/index.js';
 
 // Import the full PersonaConfig type for proper type compatibility
@@ -64,31 +63,30 @@ import { finops } from '../services/observability/finops.js';
 
 // Multi-agent system for natural persona handoffs
 // Each persona gets its own Gemini session + TTS voice
-import { initializeMultiAgentSession, handleHandoffFromDataChannel } from './multi-agent/index.js';
 // Group conversations - Team Roundtables and Conference Calls
-import {
-  createGroupVoiceIntegration,
-  type GroupVoiceIntegration,
-} from './group-conversation/voice-integration.js';
 // handoffEvents is imported dynamically at runtime from '../tools/handoff/index.js'
 // FIX: Import retry counter cleanup for WeakMap session GC
 import { clearRetryCounter } from './shared/sanitizer/index.js';
 // Speech coordination for centralized speech management
 import {
+  cleanupSpeechCoordination,
   coordinatedSay,
   initializeSpeechCoordination,
-  cleanupSpeechCoordination,
 } from '../speech/coordination/index.js';
 // AGI-like action confirmation dispatcher
-import { initActionDispatcher, clearActionDispatcher } from './realtime/action-event-dispatcher.js';
+import { clearActionDispatcher, initActionDispatcher } from './realtime/action-event-dispatcher.js';
 // Centralized generateReply gateway - handles session readiness
-import { prewarmSessionAsync, generateReply } from './shared/generate-reply-gateway.js';
+import {
+  generateReply,
+  prewarmSessionAsync,
+  registerSessionForReconnection,
+} from './shared/generate-reply-gateway.js';
 // Inject generateReply into semantic router (avoids architecture violation)
 import { setGenerateReplyFunction } from '../tools/semantic-router/integration/transcript-integration.js';
 // Location preference service - set active session for native tool location fallback
 import {
-  setCurrentActiveSession,
   clearCurrentActiveSession,
+  setCurrentActiveSession,
 } from '../tools/domains/information/location-preference.js';
 
 // Development telemetry for E2E observability
@@ -111,7 +109,7 @@ import { logPipelineStage, type StageType } from './shared/dev-telemetry.js';
 const MULTI_AGENT_MODE = process.env.MULTI_AGENT_MODE !== 'false';
 
 // Model provider abstraction - centralizes all model-specific behavior
-import { getModelProvider, isUsingOpenAI } from './model-provider/index.js';
+import { getModelProvider } from './model-provider/index.js';
 
 // Get provider early for module-level logging
 const modelProvider = getModelProvider();
@@ -1472,6 +1470,25 @@ If someone asks what day it is, what time it is, or what the date is, you know t
       `[voice-agent-entry] 🎭 Instructions: Model=${modelBaseInstructions.length} chars, Agent=${systemPrompt.length} chars\n`
     );
 
+    // 🔍 DEBUG: Listen for input audio transcription events
+    // This captures what Gemini's internal STT transcribes from the audio
+    // CRITICAL for debugging - shows exactly what Gemini hears before processing
+    const llmWithEvents = llm as { on?: (event: string, handler: (event: unknown) => void) => void };
+    if (llmWithEvents.on) {
+      llmWithEvents.on('input_audio_transcription_completed', (event: unknown) => {
+        const transcriptionEvent = event as { transcript?: string };
+        process.stderr.write(
+          `\n🎤 [GEMINI STT] Input transcribed: "${transcriptionEvent.transcript || '(empty)'}"\n`
+        );
+        // Log character codes to detect invisible characters or periods
+        if (transcriptionEvent.transcript) {
+          const charCodes = transcriptionEvent.transcript.split('').map((c: string) => c.charCodeAt(0));
+          process.stderr.write(`🎤 [GEMINI STT] Char codes: [${charCodes.join(', ')}]\n`);
+        }
+      });
+      process.stderr.write(`[voice-agent-entry] 🔍 Gemini STT transcription logging enabled\n`);
+    }
+
     session = new voice.AgentSession({
       // ⚡ OPTIMIZATION: Use provider's turn detection setting
       // Different providers have different built-in turn detection mechanisms
@@ -1729,6 +1746,9 @@ If someone asks what day it is, what time it is, or what the date is, you know t
     process.stderr.write(
       `[voice-agent-entry] Session started! (isPhone: ${isPhoneCall}, isWeb: ${isWebConnection})\n`
     );
+
+    // Register session for gateway access (enables generateReplyBySessionId)
+    registerSessionForReconnection(sessionId, session);
 
     // =========================================================================
     // PREWARM: Use gateway for proper session readiness tracking (provider-dependent)

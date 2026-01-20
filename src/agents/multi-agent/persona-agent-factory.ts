@@ -22,7 +22,7 @@ import type { AgentCreationContext, PersonaAgent } from './orchestrator.js';
 // Speech coordination for centralized speech management
 import { initializeSpeechCoordination } from '../../speech/coordination/index.js';
 // Centralized generateReply gateway - handles session readiness
-import { markSessionReady, prewarmSession } from '../shared/generate-reply-gateway.js';
+import { markSessionReady, prewarmSession, registerSessionForReconnection } from '../shared/generate-reply-gateway.js';
 // Model provider abstraction
 import { getModelProvider } from '../model-provider/index.js';
 
@@ -196,6 +196,9 @@ export function createPersonaAgentFactory(factoryConfig: PersonaAgentFactoryConf
       });
       mark('session_started');
       log.info({ personaId, agentInstanceId }, '🎭 Agent session started successfully');
+
+      // Register session for gateway access (enables generateReplyBySessionId)
+      registerSessionForReconnection(sessionId, agentSetup.session);
 
       // =========================================================================
       // PREWARM: SYNCHRONOUS to prevent double connection (provider-dependent)

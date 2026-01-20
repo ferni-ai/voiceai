@@ -123,19 +123,6 @@ export {
 } from './theatrical.js';
 
 // ============================================================================
-// SESSION RUNTIME MANAGER
-// ============================================================================
-
-export {
-  createSessionRuntime,
-  SessionBundleRuntimeManager,
-  type SessionContext,
-  type SessionEnhancements,
-  type SessionRuntimeConfig,
-  type WelcomeBackResult,
-} from './session-runtime.js';
-
-// ============================================================================
 // ALIVE ENTRANCES (context-aware handoff transitions)
 // ============================================================================
 
@@ -560,45 +547,8 @@ export type {
   TeamStory,
 } from './shared/team-chemistry.js';
 
-// ============================================================================
-// UNIFIED PERSONA INTELLIGENCE
-// ============================================================================
-
-export {
-  clearPersonaIntelligence,
-  getPersonaIntelligence,
-  PersonaIntelligenceEngine,
-  resetAllPersonaIntelligence,
-} from './persona-intelligence.js';
-
-export type {
-  PersonaIntelligenceConfig,
-  PersonaIntelligenceContext,
-  UnifiedPromptInjection,
-} from './persona-intelligence.js';
-
-// ============================================================================
-// PREDICTIVE INTELLIGENCE
-// ============================================================================
-
-export {
-  analyzePredictively,
-  detectConcerns,
-  detectPatterns,
-  getAnticipatoryInsights,
-  getProactiveFollowUps,
-  loadPredictiveIntelligence,
-} from './predictive-intelligence.js';
-
-export type {
-  AnticipatoryInsight,
-  DetectedConcern,
-  DetectedPattern,
-  PatternMatchContext,
-  PredictiveAnalysis,
-  PredictiveIntelligence,
-  ProactiveFollowUp,
-} from './predictive-intelligence.js';
+// NOTE: UNIFIED PERSONA INTELLIGENCE removed - use src/intelligence/relationship/ instead
+// NOTE: PREDICTIVE INTELLIGENCE removed - use src/intelligence/predictive/ instead
 
 // ============================================================================
 // MOMENT DETECTION

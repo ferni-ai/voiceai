@@ -1,270 +1,33 @@
 ---
-layout: layouts/base.njk
-title: Ferni Developer Platform | Build Voice-First AI Experiences
-description: Extend voice agents with MCP servers, custom tools, webhooks, and workflows. The complete developer toolkit for building voice-first AI experiences.
-isDocs: true
-badge: Developers
+layout: layouts/dev-portal.njk
+title: Ferni Developer Platform | Extend Voice Companions with Heart
+description: Give Ferni new abilities through MCP servers, custom tools, and webhooks. Build extensions that feel as warm and human as Ferni itself.
 ---
 
 <style>
-  :root {
-    --dev-bg: #0f172a;
-    --dev-surface: #1e293b;
-    --dev-border: #334155;
-    --dev-accent: #38bdf8;
-    --dev-accent-hover: #0ea5e9;
-    --dev-success: #4ade80;
-    --dev-warning: #fbbf24;
-    --dev-text: #e2e8f0;
-    --dev-text-muted: #94a3b8;
-    --dev-code-bg: #1e1e2e;
-  }
-
-  body {
-    background: var(--dev-bg);
-    color: var(--dev-text);
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-  }
-
-  /* Developer Navigation */
-  .dev-nav {
-    background: var(--dev-surface);
-    border-bottom: 1px solid var(--dev-border);
-    padding: 1rem 2rem;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    position: sticky;
-    top: 0;
-    z-index: 100;
-  }
-
-  .dev-nav-brand {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    text-decoration: none;
-    color: var(--dev-text);
-    font-weight: 600;
-    font-size: 1.1rem;
-  }
-
-  .dev-nav-brand svg {
-    width: 32px;
-    height: 32px;
-  }
-
-  .dev-nav-links {
-    display: flex;
-    gap: 2rem;
-    list-style: none;
-    margin: 0;
-    padding: 0;
-  }
-
-  .dev-nav-links a {
-    color: var(--dev-text-muted);
-    text-decoration: none;
-    font-size: 0.9rem;
-    font-weight: 500;
-    transition: color 0.2s;
-  }
-
-  .dev-nav-links a:hover,
-  .dev-nav-links a.active {
-    color: var(--dev-accent);
-  }
-
-  /* Hero Section */
-  .dev-hero {
-    background: linear-gradient(135deg, var(--dev-surface) 0%, var(--dev-bg) 100%);
-    padding: 6rem 2rem;
-    text-align: center;
-    border-bottom: 1px solid var(--dev-border);
-  }
-
-  .dev-hero-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    background: rgba(56, 189, 248, 0.1);
-    border: 1px solid rgba(56, 189, 248, 0.3);
-    color: var(--dev-accent);
-    padding: 0.5rem 1rem;
-    border-radius: 9999px;
-    font-size: 0.85rem;
-    font-weight: 500;
-    margin-bottom: 2rem;
-  }
-
+  /* Page-specific overrides */
   .dev-hero h1 {
-    font-size: clamp(2.5rem, 5vw, 4rem);
-    font-weight: 800;
-    line-height: 1.1;
-    margin: 0 0 1.5rem;
-    background: linear-gradient(135deg, #fff 0%, var(--dev-accent) 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-  }
-
-  .dev-hero p {
-    font-size: 1.25rem;
-    color: var(--dev-text-muted);
-    max-width: 600px;
-    margin: 0 auto 2.5rem;
-    line-height: 1.6;
-  }
-
-  .dev-hero-ctas {
-    display: flex;
-    gap: 1rem;
-    justify-content: center;
-    flex-wrap: wrap;
-  }
-
-  .btn-dev {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.875rem 1.75rem;
-    border-radius: 8px;
-    font-weight: 600;
-    font-size: 1rem;
-    text-decoration: none;
-    transition: all 0.2s;
-  }
-
-  .btn-dev-primary {
-    background: var(--dev-accent);
-    color: var(--dev-bg);
-  }
-
-  .btn-dev-primary:hover {
-    background: var(--dev-accent-hover);
-    transform: translateY(-1px);
-  }
-
-  .btn-dev-secondary {
-    background: transparent;
     color: var(--dev-text);
-    border: 1px solid var(--dev-border);
   }
 
-  .btn-dev-secondary:hover {
-    border-color: var(--dev-accent);
-    color: var(--dev-accent);
-  }
-
-  /* Stats Bar */
-  .dev-stats {
-    background: var(--dev-surface);
-    border-bottom: 1px solid var(--dev-border);
-    padding: 2rem;
-  }
-
-  .dev-stats-grid {
-    max-width: 900px;
-    margin: 0 auto;
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 2rem;
-    text-align: center;
+  .dev-hero-eyebrow {
+    color: var(--dev-ferni-light);
   }
 
   .dev-stat-value {
-    font-size: 2rem;
-    font-weight: 800;
-    color: var(--dev-accent);
     font-family: 'JetBrains Mono', monospace;
   }
 
-  .dev-stat-label {
-    font-size: 0.85rem;
-    color: var(--dev-text-muted);
-    margin-top: 0.25rem;
-  }
-
-  /* Section Styles */
-  .dev-section {
-    padding: 5rem 2rem;
-    max-width: 1200px;
-    margin: 0 auto;
-  }
-
-  .dev-section-header {
-    text-align: center;
-    margin-bottom: 3rem;
-  }
-
-  .dev-section-header h2 {
-    font-size: 2.25rem;
-    font-weight: 700;
-    margin: 0 0 1rem;
-    color: var(--dev-text);
-  }
-
-  .dev-section-header p {
-    font-size: 1.1rem;
-    color: var(--dev-text-muted);
-    max-width: 600px;
-    margin: 0 auto;
-  }
-
-  /* API Cards */
-  .api-cards {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-    gap: 1.5rem;
-  }
-
-  .api-card {
-    background: var(--dev-surface);
-    border: 1px solid var(--dev-border);
-    border-radius: 12px;
-    padding: 2rem;
-    transition: all 0.2s;
-    text-decoration: none;
-    color: inherit;
-  }
-
-  .api-card:hover {
-    border-color: var(--dev-accent);
-    transform: translateY(-2px);
-  }
-
-  .api-card-icon {
-    width: 48px;
-    height: 48px;
-    border-radius: 10px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin-bottom: 1.25rem;
-    font-size: 1.5rem;
-  }
-
-  .api-card h3 {
-    font-size: 1.25rem;
-    font-weight: 600;
-    margin: 0 0 0.75rem;
-    color: var(--dev-text);
-  }
-
-  .api-card p {
-    font-size: 0.95rem;
-    color: var(--dev-text-muted);
-    line-height: 1.6;
-    margin: 0 0 1rem;
-  }
+  /* Alternate stat colors for variety */
+  .dev-stats-grid > div:nth-child(1) .dev-stat-value { color: var(--dev-peter-light); }
+  .dev-stats-grid > div:nth-child(2) .dev-stat-value { color: var(--dev-accent); }
+  .dev-stats-grid > div:nth-child(3) .dev-stat-value { color: var(--dev-ferni-light); }
+  .dev-stats-grid > div:nth-child(4) .dev-stat-value { color: var(--dev-jordan-light); }
 
   .api-card-endpoints {
-    font-size: 0.8rem;
-    color: var(--dev-accent);
     font-family: 'JetBrains Mono', monospace;
   }
 
-  /* Code Preview */
   .code-preview {
     background: var(--dev-code-bg);
     border: 1px solid var(--dev-border);
@@ -313,10 +76,63 @@ badge: Developers
     color: var(--dev-text);
   }
 
-  .code-preview .comment { color: #6a9955; }
-  .code-preview .string { color: #ce9178; }
-  .code-preview .keyword { color: #569cd6; }
-  .code-preview .function { color: #dcdcaa; }
+  .code-preview .comment { color: #8b9a8b; }
+  .code-preview .string { color: #d4a84a; }
+  .code-preview .keyword { color: #c4856a; }
+  .code-preview .function { color: #6b8760; }
+
+  /* API Cards */
+  .api-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1.5rem;
+  }
+
+  .api-card {
+    background: var(--dev-surface);
+    border: 1px solid var(--dev-border);
+    border-radius: 12px;
+    padding: 2rem;
+    transition: all 0.2s;
+    text-decoration: none;
+    color: inherit;
+  }
+
+  .api-card:hover {
+    border-color: var(--dev-accent);
+    transform: translateY(-2px);
+  }
+
+  .api-card-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 1.25rem;
+    background: var(--dev-accent-subtle);
+    color: var(--dev-accent);
+  }
+
+  .api-card h3 {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin: 0 0 0.75rem;
+    color: var(--dev-text);
+  }
+
+  .api-card p {
+    font-size: 0.95rem;
+    color: var(--dev-text-muted);
+    line-height: 1.6;
+    margin: 0 0 1rem;
+  }
+
+  .api-card-endpoints {
+    font-size: 0.8rem;
+    color: var(--dev-accent);
+  }
 
   /* Resources Grid */
   .resources-grid {
@@ -344,9 +160,6 @@ badge: Developers
     font-weight: 600;
     margin: 0 0 0.5rem;
     color: var(--dev-text);
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
   }
 
   .resource-card p {
@@ -409,77 +222,21 @@ badge: Developers
     line-height: 1.5;
   }
 
-  /* Footer */
-  .dev-footer {
-    background: var(--dev-surface);
-    border-top: 1px solid var(--dev-border);
-    padding: 2rem;
-    text-align: center;
-  }
-
-  .dev-footer p {
-    color: var(--dev-text-muted);
-    font-size: 0.9rem;
-    margin: 0;
-  }
-
-  .dev-footer a {
-    color: var(--dev-accent);
-    text-decoration: none;
-  }
-
-  .dev-footer a:hover {
-    text-decoration: underline;
-  }
-
-  /* Responsive */
   @media (max-width: 768px) {
-    .dev-nav {
-      flex-direction: column;
-      gap: 1rem;
-    }
-
-    .dev-nav-links {
-      gap: 1rem;
-    }
-
-    .dev-hero {
-      padding: 4rem 1.5rem;
-    }
-
     .dev-stats-grid {
       grid-template-columns: repeat(2, 1fr);
-    }
-
-    .dev-section {
-      padding: 3rem 1.5rem;
-    }
-
-    .dev-hero-ctas {
-      flex-direction: column;
-      align-items: center;
-    }
-
-    .btn-dev {
-      width: 100%;
-      max-width: 280px;
-      justify-content: center;
     }
   }
 </style>
 
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-
 <nav class="dev-nav">
   <a href="/developers/" class="dev-nav-brand">
     <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <!-- LUXO STYLE: opaque white eyes, no pupils -->
-      <circle cx="50" cy="50" r="45" fill="#4a6741"/>
-      <ellipse cx="36" cy="48" rx="7" ry="9" fill="white"/>
-      <ellipse cx="64" cy="48" rx="7" ry="9" fill="white"/>
-      <path d="M30 70 Q50 82 70 70" stroke="white" stroke-width="4" stroke-linecap="round" fill="none"/>
+      <!-- LUXO STYLE: opaque white eyes, NO pupils, warm smile -->
+      <circle cx="50" cy="50" r="45" fill="var(--dev-ferni)"/>
+      <ellipse cx="35" cy="45" rx="8" ry="10" fill="#faf6f0"/>
+      <ellipse cx="65" cy="45" rx="8" ry="10" fill="#faf6f0"/>
+      <path d="M32 68 Q50 80 68 68" stroke="#faf6f0" stroke-width="4" stroke-linecap="round" fill="none"/>
     </svg>
     <span>Ferni Developers</span>
   </a>
@@ -492,14 +249,12 @@ badge: Developers
 </nav>
 
 <header class="dev-hero">
-  <div class="dev-hero-badge">
-    <span>✨</span> Developer Platform v2 Now Available
-  </div>
-  <h1>Build Voice-First<br>AI Experiences</h1>
-  <p>Extend voice agents with MCP servers, custom tools, webhooks, and workflows. Everything you need to create intelligent voice applications.</p>
+  <span class="dev-hero-eyebrow">Developer Platform</span>
+  <h1>Extend Ferni with Care</h1>
+  <p>Give your AI companion new abilities through thoughtful integrations. Connect the tools and services that matter to you, while preserving the warmth that makes Ferni feel like a friend.</p>
   <div class="dev-hero-ctas">
     <a href="/developers/getting-started/" class="btn-dev btn-dev-primary">
-      Get Started →
+      Start Building
     </a>
     <a href="/developers/api/" class="btn-dev btn-dev-secondary">
       API Reference
@@ -511,15 +266,15 @@ badge: Developers
   <div class="dev-stats-grid">
     <div>
       <div class="dev-stat-value">6</div>
-      <div class="dev-stat-label">API Groups</div>
+      <div class="dev-stat-label">Integration Types</div>
     </div>
     <div>
       <div class="dev-stat-value">43</div>
-      <div class="dev-stat-label">Endpoints</div>
+      <div class="dev-stat-label">API Endpoints</div>
     </div>
     <div>
       <div class="dev-stat-value">&lt;5min</div>
-      <div class="dev-stat-label">To First API Call</div>
+      <div class="dev-stat-label">To Your First Call</div>
     </div>
     <div>
       <div class="dev-stat-value">100%</div>
@@ -530,50 +285,78 @@ badge: Developers
 
 <section class="dev-section">
   <div class="dev-section-header">
-    <h2>Platform Capabilities</h2>
-    <p>A complete toolkit for extending voice agents with custom functionality</p>
+    <h2>Ways to Extend</h2>
+    <p>Build integrations that feel natural to conversation</p>
   </div>
 
   <div class="api-cards">
     <a href="/developers/api/mcp-servers/" class="api-card">
-      <div class="api-card-icon" style="background: rgba(56, 189, 248, 0.1); color: #38bdf8;">🔌</div>
+      <div class="api-card-icon" style="background: rgba(58, 107, 115, 0.15); color: var(--dev-peter-light);">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 2v4m0 12v4M4.93 4.93l2.83 2.83m8.48 8.48l2.83 2.83M2 12h4m12 0h4M4.93 19.07l2.83-2.83m8.48-8.48l2.83-2.83"/>
+        </svg>
+      </div>
       <h3>MCP Servers</h3>
-      <p>Register external Model Context Protocol servers to give voice agents new tools and capabilities.</p>
+      <p>Connect external services through the Model Context Protocol. Give Ferni access to your CRM, databases, or internal tools.</p>
       <span class="api-card-endpoints">7 endpoints</span>
     </a>
 
     <a href="/developers/api/tools/" class="api-card">
-      <div class="api-card-icon" style="background: rgba(74, 222, 128, 0.1); color: #4ade80;">🛠️</div>
+      <div class="api-card-icon" style="background: rgba(74, 103, 65, 0.15); color: var(--dev-ferni-light);">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>
+        </svg>
+      </div>
       <h3>Custom Tools</h3>
-      <p>Create webhook, MCP, or prompt-based tools that agents can invoke during conversations.</p>
+      <p>Create new capabilities Ferni can use mid-conversation. Webhook-based, MCP, or simple prompt tools.</p>
       <span class="api-card-endpoints">6 endpoints</span>
     </a>
 
     <a href="/developers/api/webhooks/" class="api-card">
-      <div class="api-card-icon" style="background: rgba(251, 191, 36, 0.1); color: #fbbf24;">🔔</div>
+      <div class="api-card-icon" style="background: rgba(184, 149, 106, 0.15); color: var(--dev-nayan-light);">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+          <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+        </svg>
+      </div>
       <h3>Webhooks</h3>
-      <p>Subscribe to real-time events like session starts, tool calls, and workflow completions.</p>
+      <p>Stay informed about what matters. Subscribe to session events, tool calls, and conversation milestones.</p>
       <span class="api-card-endpoints">7 endpoints</span>
     </a>
 
     <a href="/developers/api/workflows/" class="api-card">
-      <div class="api-card-icon" style="background: rgba(167, 139, 250, 0.1); color: #a78bfa;">⚡</div>
+      <div class="api-card-icon" style="background: rgba(196, 133, 106, 0.15); color: var(--dev-jordan-light);">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+        </svg>
+      </div>
       <h3>Workflows</h3>
-      <p>Build multi-step automations with branching, parallel execution, and error handling.</p>
+      <p>Orchestrate multi-step processes. Branching logic, parallel paths, and graceful error handling.</p>
       <span class="api-card-endpoints">8 endpoints</span>
     </a>
 
     <a href="/developers/api/activities/" class="api-card">
-      <div class="api-card-icon" style="background: rgba(244, 114, 182, 0.1); color: #f472b6;">📊</div>
+      <div class="api-card-icon" style="background: rgba(90, 107, 138, 0.15); color: var(--dev-alex-light);">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="20" x2="18" y2="10"/>
+          <line x1="12" y1="20" x2="12" y2="4"/>
+          <line x1="6" y1="20" x2="6" y2="14"/>
+        </svg>
+      </div>
       <h3>Activities</h3>
-      <p>Track custom metrics and activities. Query historical data and aggregate statistics.</p>
+      <p>Track meaningful moments. Log custom activities and query patterns over time.</p>
       <span class="api-card-endpoints">6 endpoints</span>
     </a>
 
     <a href="/developers/api/oauth/" class="api-card">
-      <div class="api-card-icon" style="background: rgba(248, 113, 113, 0.1); color: #f87171;">🔐</div>
-      <h3>OAuth</h3>
-      <p>Integrate external services with your own OAuth apps. Secure token storage and refresh.</p>
+      <div class="api-card-icon" style="background: rgba(166, 122, 106, 0.15); color: var(--dev-maya-light);">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+          <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+        </svg>
+      </div>
+      <h3>OAuth Connections</h3>
+      <p>Securely connect to external services. We handle token storage and refresh so you can focus on building.</p>
       <span class="api-card-endpoints">9 endpoints</span>
     </a>
   </div>
@@ -583,7 +366,7 @@ badge: Developers
   <div style="max-width: 1200px; margin: 0 auto;">
     <div class="dev-section-header">
       <h2>Quick Start</h2>
-      <p>Make your first API call in under 5 minutes</p>
+      <p>Your first integration in a few minutes</p>
     </div>
 
     <div class="code-preview">
@@ -593,7 +376,7 @@ badge: Developers
         <span class="code-preview-dot green"></span>
         <span class="code-preview-title">terminal</span>
       </div>
-      <pre><code><span class="comment"># Register an MCP server</span>
+      <pre><code><span class="comment"># Connect an MCP server</span>
 curl -X POST https://api.ferni.ai/api/v2/developers/mcp-servers \
   -H <span class="string">"Authorization: Bearer pk_live_xxx"</span> \
   -H <span class="string">"Content-Type: application/json"</span> \
@@ -617,7 +400,7 @@ curl -X POST https://api.ferni.ai/api/v2/developers/mcp-servers \
 
     <div style="text-align: center; margin-top: 2rem;">
       <a href="/developers/getting-started/" class="btn-dev btn-dev-primary">
-        Full Getting Started Guide →
+        Full Getting Started Guide
       </a>
     </div>
   </div>
@@ -626,33 +409,33 @@ curl -X POST https://api.ferni.ai/api/v2/developers/mcp-servers \
 <section class="dev-section">
   <div class="dev-section-header">
     <h2>Resources</h2>
-    <p>Everything you need to build with the Ferni Developer Platform</p>
+    <p>Everything you need to build thoughtful integrations</p>
   </div>
 
   <div class="resources-grid">
     <a href="/developers/getting-started/" class="resource-card">
-      <h3>📖 Getting Started</h3>
-      <p>5-minute quickstart guide to make your first API call</p>
+      <h3>Getting Started</h3>
+      <p>Your first API call in about five minutes</p>
     </a>
     <a href="/developers/blog/mcp-server-integration/" class="resource-card">
-      <h3>🔌 MCP Integration</h3>
-      <p>Deep dive on connecting external MCP servers</p>
+      <h3>MCP Integration Guide</h3>
+      <p>Deep dive on connecting external services</p>
     </a>
     <a href="/developers/blog/webhook-security/" class="resource-card">
-      <h3>🔒 Webhook Security</h3>
-      <p>HMAC signature verification and best practices</p>
+      <h3>Webhook Security</h3>
+      <p>HMAC signatures and best practices</p>
     </a>
     <a href="/developers/blog/workflow-engine-guide/" class="resource-card">
-      <h3>⚡ Workflow Patterns</h3>
-      <p>Common workflow recipes and examples</p>
+      <h3>Workflow Patterns</h3>
+      <p>Common recipes and examples</p>
     </a>
     <a href="/developers/api/" class="resource-card">
-      <h3>📚 API Reference</h3>
+      <h3>API Reference</h3>
       <p>Complete endpoint documentation</p>
     </a>
     <a href="https://github.com/ferni-ai/examples" class="resource-card" target="_blank" rel="noopener">
-      <h3>💻 Examples</h3>
-      <p>Sample code and starter templates on GitHub</p>
+      <h3>Example Code</h3>
+      <p>Starter templates on GitHub</p>
     </a>
   </div>
 </section>
@@ -660,8 +443,8 @@ curl -X POST https://api.ferni.ai/api/v2/developers/mcp-servers \
 <section class="blog-preview">
   <div style="max-width: 1200px; margin: 0 auto;">
     <div class="dev-section-header">
-      <h2>From the Developer Blog</h2>
-      <p>Technical insights, API updates, and engineering deep dives</p>
+      <h2>From the Blog</h2>
+      <p>Technical insights and updates from the team</p>
     </div>
 
     <div class="blog-preview-grid">
@@ -677,8 +460,8 @@ curl -X POST https://api.ferni.ai/api/v2/developers/mcp-servers \
         </a>
       {% else %}
         <a href="/developers/blog/" class="blog-preview-card">
-          <div class="blog-preview-card-category">Announcements</div>
-          <h3>Developer Blog Coming Soon</h3>
+          <div class="blog-preview-card-category">Coming Soon</div>
+          <h3>Developer Blog</h3>
           <p>Technical insights and API updates from the Ferni team.</p>
         </a>
       {% endfor %}
@@ -686,7 +469,7 @@ curl -X POST https://api.ferni.ai/api/v2/developers/mcp-servers \
 
     <div style="text-align: center; margin-top: 2rem;">
       <a href="/developers/blog/" class="btn-dev btn-dev-secondary">
-        View All Posts →
+        View All Posts
       </a>
     </div>
   </div>

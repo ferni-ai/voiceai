@@ -68,6 +68,9 @@
     "validate:admin": "npx tsx apps/cli/src/commands/validate/validate.ts admin-dashboards",
     "validate:admin:prod": "npx tsx -e \"import('./apps/cli/src/commands/validate/validate-admin-dashboards.js').then(m => m.run(['--prod']))\"",
     "validate:all": "npx tsx apps/cli/src/commands/validate/validate.ts all",
+    "validate:e2e": "npx tsx apps/cli/src/commands/validate/validate-e2e.ts",
+    "validate:e2e:ci": "npx tsx apps/cli/src/commands/validate/validate-e2e.ts --ci",
+    "validate:e2e:json": "npx tsx apps/cli/src/commands/validate/validate-e2e.ts --report json",
     "validate:tools": "npx tsx scripts/validate-tool-registry.ts",
     "test:integrations": "npx env-cmd -f .env npx tsx apps/cli/src/commands/test/test-all-integrations.ts",
     "test:integrations:live": "npx env-cmd -f .env npx tsx apps/cli/src/commands/test/test-all-integrations.ts --live",
@@ -478,7 +481,7 @@
     "livekit-client": "^2.16.0",
     "livekit-server-sdk": "^2.14.2",
     "lru-cache": "^10.4.3",
-    "onnxruntime-node": "1.23.2",
+    "onnxruntime-node": "1.20.1",
     "openai": "6.10.0",
     "pg": "^8.16.3",
     "pino": "10.1.0",
@@ -538,6 +541,23 @@
       "@livekit/agents-plugin-google": "file:../agents-js/plugins/google",
       "sharp": "^0.34.5",
       "@google-cloud/firestore": "8.0.0"
-    }
+    },
+    "ignoredBuiltDependencies": [
+      "@ffmpeg-installer/darwin-arm64",
+      "@ffmpeg-installer/darwin-x64",
+      "@ffmpeg-installer/linux-arm",
+      "@ffmpeg-installer/linux-arm64",
+      "@ffmpeg-installer/linux-ia32",
+      "@ffmpeg-installer/linux-x64",
+      "@firebase/util",
+      "@tsparticles/engine",
+      "canvas",
+      "esbuild",
+      "ferni-speaker",
+      "node-pty",
+      "onnxruntime-node",
+      "protobufjs",
+      "sharp"
+    ]
   }
 }

@@ -2,7 +2,24 @@
 
 > **We believe in making AI human, and the decisions we make will reflect that.**
 
-The Ferni CLI (`ferni`) is the command-line interface for managing the Ferni platform. It handles deployments, builds, code generation, and operational tasks.
+The Ferni CLI (`ferni`) is the command-line interface for **autonomous business operations**. Beyond deployments and builds, it's evolving into the "CEO" - capable of running experiments, making data-driven decisions, and automating end-to-end business processes.
+
+---
+
+## Vision: CLI as Autonomous CEO
+
+The CLI is being elevated from a developer tool to a full business automation platform:
+
+| Level | Capability | Status |
+|-------|------------|--------|
+| **L1: Developer Tool** | Deploy, build, test | ✅ Complete |
+| **L2: Operations Platform** | Monitor, alert, auto-remediate | ⚠️ In Progress |
+| **L3: Business Intelligence** | Metrics, insights, recommendations | 🔴 Planned |
+| **L4: Autonomous CEO** | Decide, execute, report | 🔴 Roadmap |
+
+**Full roadmap:** `docs/CEO-AUTOMATION-ROADMAP.md`
+**Implementation plan:** `docs/plans/CLI-IMPLEMENTATION-PLAN.md` (all 73 incomplete commands)
+**Command reference:** `docs/CLI-COMMAND-REFERENCE.md`
 
 ---
 
@@ -47,6 +64,9 @@ apps/cli/
 │       │   ├── deploy.ts           # Main deploy command
 │       │   ├── deploy-gce.ts       # GCE deployment
 │       │   └── rollout.ts          # Rolling updates
+│       ├── experiments/            # A/B Testing & Experiments (NEW!)
+│       │   ├── index.ts            # Module exports
+│       │   └── experiments.ts      # All experiment commands
 │       ├── generate/               # Code generation
 │       │   ├── generate.ts         # Main generate
 │       │   └── *.ts                # Various generators
@@ -201,6 +221,37 @@ ferni ops zombies
 # Fix zombie revisions
 ferni ops zombies --fix
 ```
+
+### Experiments & A/B Testing (NEW!)
+
+The autonomous experimentation system supports A/B tests, multi-armed bandits, and auto-escalating rollouts.
+
+```bash
+# List and manage experiments
+ferni experiments list              # List all experiments
+ferni experiments status            # Show experiment summary
+ferni experiments show <id>         # Show experiment details
+ferni experiments health <id>       # Show experiment health
+
+# Lifecycle management
+ferni experiments start <id>        # Start an experiment
+ferni experiments pause <id>        # Pause an experiment
+ferni experiments resume <id>       # Resume an experiment
+ferni experiments complete <id>     # Complete an experiment
+
+# Winner management
+ferni experiments promote <id>      # Check and promote winner
+ferni experiments delete <id> -f    # Delete an experiment
+```
+
+**Experiment Types:**
+| Type | Algorithm | Use Case |
+|------|-----------|----------|
+| `ab` | Z-test significance | Classic A/B testing |
+| `bandit` | Thompson Sampling | Dynamic traffic optimization |
+| `rollout` | Stage-based (2%→10%→25%→50%→100%) | Safe feature rollouts |
+
+**Full docs:** `src/tools/intelligence/learning/CLAUDE.md`
 
 ### GitHub Actions Runner
 

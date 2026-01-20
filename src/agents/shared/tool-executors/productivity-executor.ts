@@ -35,7 +35,7 @@ const HANDLED_TOOLS = [
   'canceltimer',
   // Reminders
   'schedulereminder',
-  'cancelreminder',
+  // NOTE: 'cancelreminder' is handled by scheduling-executor.ts (has real implementation)
   'getreminders',
   // Notes
   'addnote',
@@ -643,7 +643,8 @@ async function execute(
   if (fnLower === 'gettimer' || fnLower === 'canceltimer') {
     return 'Timer management is coming soon!';
   }
-  if (fnLower === 'cancelreminder' || fnLower === 'getreminders') {
+  // NOTE: cancelreminder is now handled by scheduling-executor.ts (has real implementation)
+  if (fnLower === 'getreminders') {
     return 'Reminder management is coming soon!';
   }
 

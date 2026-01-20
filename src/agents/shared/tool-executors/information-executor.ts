@@ -13,14 +13,22 @@ const log = createLogger({ module: 'InformationExecutor' });
 
 /** Tools handled by this executor */
 const HANDLED_TOOLS = [
+  // Weather - both domain IDs and semantic IDs (FTIS router outputs semantic IDs)
   'getweather',
+  'weather_current', // Semantic ID from FTIS router
+  'getweatherforecast',
+  'weather_forecast', // Semantic ID from FTIS router
+  // Time
   'getcurrenttime',
+  // News - both domain IDs and semantic IDs
   'searchnews',
   'getnews',
+  'info_news', // Semantic ID from FTIS router
   'getfinancialsnews',
   'getfinancialnews',
   'gettechnews',
   'getstocknews',
+  // Market data
   'getmarketsummary',
   'getmarketoverview',
   'getstockquote',
@@ -38,19 +46,25 @@ async function execute(
 ): Promise<unknown | null> {
   const fnLower = fn.toLowerCase();
 
-  // Weather
-  if (fnLower === 'getweather') {
-    const { getCurrentWeather, getWeatherForecast } =
+  // Weather - handle both domain IDs (getweather) and semantic IDs (weather_current)
+  if (fnLower === 'getweather' || fnLower === 'weather_current') {
+    const { getCurrentWeather } =
       await import('../../../tools/domains/information/weather.js');
-    const location = (args.location as string) || 'current';
-    const type = (args.type as string) || 'current';
+    const location = (args.location as string) || (args.city as string) || 'current';
 
-    log.info({ location, type }, '🌤️ Getting weather');
-
-    if (type === 'forecast') {
-      return getWeatherForecast(location, 5);
-    }
+    log.info({ location, toolId: fn }, '🌤️ Getting current weather');
     return getCurrentWeather(location);
+  }
+
+  // Weather forecast - handle both domain IDs and semantic IDs
+  if (fnLower === 'getweatherforecast' || fnLower === 'weather_forecast') {
+    const { getWeatherForecast } =
+      await import('../../../tools/domains/information/weather.js');
+    const location = (args.location as string) || (args.city as string) || 'current';
+    const days = (args.days as number) || 5;
+
+    log.info({ location, days, toolId: fn }, '📅 Getting weather forecast');
+    return getWeatherForecast(location, days);
   }
 
   // Current time
@@ -69,8 +83,10 @@ async function execute(
     return `It's ${formatted}.`;
   }
 
-  // General news search
-  if (fnLower === 'searchnews' || fnLower === 'getnews') {
+  // General news search - handle both domain IDs and semantic IDs
+  // FIX (Jan 2026): Return speakDirectly to bypass flaky LLM round-trip
+  // News is already SSML-formatted and ready to speak - no need for LLM summarization
+  if (fnLower === 'searchnews' || fnLower === 'getnews' || fnLower === 'info_news') {
     const { getFinancialNews, getStockNews, getGeneralNews, getTechNews } =
       await import('../../../tools/domains/information/news.js');
     const topic = (args.topic as string)?.toLowerCase() || 'general';
@@ -79,17 +95,20 @@ async function execute(
 
     log.info({ topic, query, category }, '📰 News search requested');
 
+    let newsText: string;
     if (topic === 'tech' || topic === 'technology') {
-      return getTechNews();
-    }
-    if (topic === 'financial' || topic === 'finance' || topic === 'market' || topic === 'markets') {
+      newsText = await getTechNews();
+    } else if (topic === 'financial' || topic === 'finance' || topic === 'market' || topic === 'markets') {
       const newsCategory = (category as 'general' | 'forex' | 'crypto' | 'merger') || 'general';
-      return getFinancialNews(newsCategory);
+      newsText = await getFinancialNews(newsCategory);
+    } else if (topic === 'stock' && query) {
+      newsText = await getStockNews(query.toUpperCase());
+    } else {
+      newsText = await getGeneralNews();
     }
-    if (topic === 'stock' && query) {
-      return getStockNews(query.toUpperCase());
-    }
-    return getGeneralNews();
+    
+    // Return speakDirectly format - bypasses LLM, speaks news immediately
+    return { __speakDirectly: true, text: newsText };
   }
 
   // Financial news
@@ -97,14 +116,16 @@ async function execute(
     const { getFinancialNews } = await import('../../../tools/domains/information/news.js');
     const category = (args.category as 'general' | 'forex' | 'crypto' | 'merger') || 'general';
     log.info({ category }, '📰 Financial news requested');
-    return getFinancialNews(category);
+    const newsText = await getFinancialNews(category);
+    return { __speakDirectly: true, text: newsText };
   }
 
   // Tech news
   if (fnLower === 'gettechnews') {
     const { getTechNews } = await import('../../../tools/domains/information/news.js');
     log.info({}, '📰 Tech news requested');
-    return getTechNews();
+    const newsText = await getTechNews();
+    return { __speakDirectly: true, text: newsText };
   }
 
   // Stock-specific news
@@ -115,7 +136,8 @@ async function execute(
       return 'Please specify a stock symbol (e.g., AAPL, TSLA).';
     }
     log.info({ symbol }, '📰 Stock news requested');
-    return getStockNews(symbol.toUpperCase());
+    const newsText = await getStockNews(symbol.toUpperCase());
+    return { __speakDirectly: true, text: newsText };
   }
 
   // Market summary

@@ -1,6 +1,17 @@
 /**
  * Relationship Memory Engine
  *
+ * @deprecated This module has been rebuilt in src/intelligence/relationship/.
+ *
+ * The new implementation is fully wired end-to-end:
+ * - Import from 'src/intelligence/relationship/index.js' instead
+ * - Automatic initialization in session-init-handler.ts
+ * - Automatic persistence in cleanup-handler.ts
+ * - Moment detection in turn-handler.ts
+ * - Context injection via registered context builders
+ *
+ * This file is kept for reference but should NOT be used for new code.
+ *
  * > "We believe in making AI human, and the decisions we make will reflect that."
  *
  * This engine tracks, learns from, and intelligently leverages relationship history.

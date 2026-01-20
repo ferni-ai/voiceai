@@ -1,29 +1,107 @@
 <!DOCTYPE html>
 <html lang="{{ locale or 'en' }}">
 <head>
-  {% include "partials/head.njk" %}
-  
-  <!-- Main Styles -->
-  <link rel="stylesheet" href="/css/styles.css">
-  
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ title }} | Ferni</title>
+  <meta name="description" content="{{ description or 'Ferni Developer Platform' }}">
+
+  <!-- Canonical URL -->
+  <link rel="canonical" href="https://ferni.ai{{ page.url }}">
+
+  <!-- Open Graph -->
+  <meta property="og:title" content="{{ title }}">
+  <meta property="og:description" content="{{ description or 'Ferni Developer Platform' }}">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://ferni.ai{{ page.url }}">
+  <meta property="og:site_name" content="Ferni">
+
+  <!-- Twitter -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:site" content="@ferniAI">
+  <meta name="twitter:title" content="{{ title }}">
+  <meta name="twitter:description" content="{{ description or 'Ferni Developer Platform' }}">
+
+  <!-- Favicon -->
+  <link rel="icon" href="/images/favicon.ico" sizes="16x16 32x32 48x48">
+  <link rel="icon" type="image/svg+xml" href="/images/favicon.svg">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon.png">
+  <link rel="apple-touch-icon" href="/images/apple-touch-icon.png">
+
+  <!-- Fonts for Developer Portal -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <!-- Developer Portal Base Styles (Cedar Night Theme) -->
+  <style>
+    *, *::before, *::after {
+      box-sizing: border-box;
+    }
+
+    :root {
+      --dev-bg: #584840;
+      --dev-surface: #70605a;
+      --dev-surface-elevated: #7d6e67;
+      --dev-border: rgba(212, 168, 74, 0.2);
+      --dev-accent: #d4a84a;
+      --dev-accent-hover: #e5bc6a;
+      --dev-text: #faf8f5;
+      --dev-text-muted: rgba(250, 248, 245, 0.7);
+      --dev-code-bg: #4a3c35;
+      --dev-ferni-green: #4a6741;
+    }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      min-height: 100vh;
+    }
+
+    body {
+      background: var(--dev-bg);
+      color: var(--dev-text);
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      line-height: 1.6;
+    }
+
+    a {
+      color: var(--dev-accent);
+      text-decoration: none;
+    }
+
+    a:hover {
+      text-decoration: underline;
+    }
+
+    code {
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    /* Screen reader only */
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+  </style>
+
   {% block head %}{% endblock %}
 </head>
-<body class="dev-portal">
+<body>
   <!-- Skip Link for Accessibility -->
-  <a href="#main-content" class="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2 focus:bg-ferni focus:text-white focus:rounded-lg focus:shadow-lg">
-    Skip to main content
-  </a>
-  
-  {# Developer portal uses its own header - no main site header #}
-  
+  <a href="#main-content" class="sr-only">Skip to main content</a>
+
   <main id="main-content" role="main" tabindex="-1">
     {{ content | safe }}
   </main>
-  
-  {# Developer portal pages include their own footer - no main site footer #}
-  
-  <!-- Scripts -->
-  <script src="/js/better-than-human.js"></script>
+
   {% block scripts %}{% endblock %}
 </body>
 </html>

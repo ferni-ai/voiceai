@@ -66,3 +66,20 @@ export {
   type HealthCheckEvent,
   type ScalingEvent,
 } from './resilience-metrics.js';
+
+// FTIS V3 Metrics (SOTA 2026)
+export {
+  FTISMetricsCollector,
+  getFTISMetrics,
+  resetFTISMetrics,
+  type ClassificationOutcome,
+  type CalibrationBin,
+  type FTISMetricsSummary,
+} from './ftis-v3-metrics.js';
+
+// BTH Injection Metrics (Phase 1 Communication System Overhaul)
+export {
+  recordInjectionFeedback,
+  recordInjectionBloat,
+  getInjectionMetrics,
+} from './ftis-metrics.js';

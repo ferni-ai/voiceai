@@ -143,36 +143,26 @@ export class FeatureEncoder {
    * Initialize the encoder
    */
   async initialize(): Promise<void> {
-    // Try to load transformers.js tokenizer first
-    // Try @huggingface/transformers first (newer), then @xenova/transformers (legacy)
+    // Use unified loader to avoid OrtEnv conflicts (NEVER import @xenova directly!)
     try {
-      const { AutoTokenizer } = await import('@huggingface/transformers');
-      this.transformersTokenizer = await AutoTokenizer.from_pretrained(this.config.tokenizerPath, {
-        local_files_only: true, // Use local tokenizer files
+      const { createTokenizer } = await import('../../../../utils/transformers-loader.js');
+      this.transformersTokenizer = await createTokenizer(this.config.tokenizerPath, {
+        localFilesOnly: true,
       });
       this.useTransformers = true;
-      log.info('Using @huggingface/transformers tokenizer');
+      log.info('Using unified transformers loader for tokenizer');
     } catch (error) {
-      log.debug({ error: String(error) }, '@huggingface/transformers not available, trying @xenova');
+      log.debug({ error: String(error) }, 'Transformers.js not available, using simple tokenizer');
 
+      // Fall back to simple tokenizer
+      this.tokenizer = new SimpleTokenizer();
+
+      // Try to load vocab
       try {
-        const { AutoTokenizer } = await import('@xenova/transformers');
-        this.transformersTokenizer = await AutoTokenizer.from_pretrained(this.config.tokenizerPath);
-        this.useTransformers = true;
-        log.info('Using @xenova/transformers tokenizer');
-      } catch (error2) {
-        log.debug({ error: String(error2) }, 'Transformers.js not available, using simple tokenizer');
-
-        // Fall back to simple tokenizer
-        this.tokenizer = new SimpleTokenizer();
-
-        // Try to load vocab
-        try {
-          const vocabPath = `${this.config.tokenizerPath}/vocab.json`;
-          await this.tokenizer.loadVocab(vocabPath);
-        } catch {
-          log.debug('No vocab file found, using basic tokenization');
-        }
+        const vocabPath = `${this.config.tokenizerPath}/vocab.json`;
+        await this.tokenizer.loadVocab(vocabPath);
+      } catch {
+        log.debug('No vocab file found, using basic tokenization');
       }
     }
 

@@ -760,6 +760,58 @@ export async function loadBundle(
         behaviors.playfulness = await loadJsonFile(playfulnessPath);
       }
 
+      // ========================================================================
+      // FERNI 200% - Orphaned behaviors now wired for "Better Than Human"
+      // ========================================================================
+
+      // Load affirmation (encouragement, celebration, recognition)
+      const affirmationPath = join(behaviorsPath, 'affirmation.json');
+      if (await fileExists(affirmationPath)) {
+        behaviors.affirmation = await loadJsonFile(affirmationPath);
+      }
+
+      // Load cross-cultural (Japanese philosophy, multicultural wisdom)
+      const crossCulturalPath = join(behaviorsPath, 'cross-cultural.json');
+      if (await fileExists(crossCulturalPath)) {
+        behaviors.cross_cultural = await loadJsonFile(crossCulturalPath);
+      }
+
+      // Load emotional-range (mode triggers: silly, frustrated, delighted, etc.)
+      const emotionalRangePath = join(behaviorsPath, 'emotional-range.json');
+      if (await fileExists(emotionalRangePath)) {
+        behaviors.emotional_range = await loadJsonFile(emotionalRangePath);
+      }
+
+      // Load insight-briefing (handoff greetings, domain observations)
+      const insightBriefingPath = join(behaviorsPath, 'insight-briefing.json');
+      if (await fileExists(insightBriefingPath)) {
+        behaviors.insight_briefing = await loadJsonFile(insightBriefingPath);
+      }
+
+      // Load running-jokes (recurring callbacks, inside references)
+      const runningJokesPath = join(behaviorsPath, 'running-jokes.json');
+      if (await fileExists(runningJokesPath)) {
+        behaviors.running_jokes = await loadJsonFile(runningJokesPath);
+      }
+
+      // Load team-awareness (how persona references teammates)
+      const teamAwarenessPath = join(behaviorsPath, 'team-awareness.json');
+      if (await fileExists(teamAwarenessPath)) {
+        behaviors.team_awareness = await loadJsonFile(teamAwarenessPath);
+      }
+
+      // Load team-stories (stories about teammates, handoff setups)
+      const teamStoriesPath = join(behaviorsPath, 'team-stories.json');
+      if (await fileExists(teamStoriesPath)) {
+        behaviors.team_stories = await loadJsonFile(teamStoriesPath);
+      }
+
+      // Load topic-guidance (guidance for grief, anxiety, transitions, etc.)
+      const topicGuidancePath = join(behaviorsPath, 'topic-guidance.json');
+      if (await fileExists(topicGuidancePath)) {
+        behaviors.topic_guidance = await loadJsonFile(topicGuidancePath);
+      }
+
       behaviorsCache = behaviors;
       return behaviors;
     },
@@ -932,15 +984,13 @@ export async function loadBundle(
     },
 
     async getAssets() {
-      // Lazy import to avoid circular dependencies
-      const { getAssets } = await import('./assets-loader.js');
-      return getAssets(bundlePath);
+      // NOTE: assets-loader.js removed - return null
+      return null;
     },
 
     async getHooks() {
-      // Lazy import to avoid circular dependencies
-      const { getHooks } = await import('./hooks-loader.js');
-      return getHooks(bundlePath);
+      // NOTE: hooks-loader.js removed - return null
+      return null;
     },
 
     async getMCPConfig(options?: { publisherId?: string; personaId?: string }) {

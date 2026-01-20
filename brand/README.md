@@ -4,6 +4,15 @@
 
 This directory is the **interactive brand library** with HTML galleries and visual references.
 
+## Start Here
+
+| Need | Document |
+|------|----------|
+| **Find any doc** | [`INDEX.md`](./INDEX.md) - Complete navigation hub |
+| **AI agent rules** | [`CLAUDE.md`](./CLAUDE.md) - LUXO eyes, design rules |
+| **Growth strategy** | [`evolution/README.md`](./evolution/README.md) - 16 strategy docs |
+| **Canonical brand docs** | [`design-system/docs/brand/`](../design-system/docs/brand/README.md) |
+
 ## Asset Consolidation Notice
 
 **Canonical asset locations have been consolidated to `design-system/assets/`**

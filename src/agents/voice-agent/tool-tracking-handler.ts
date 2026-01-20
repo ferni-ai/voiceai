@@ -303,8 +303,13 @@ export function setupToolTrackingHandler(ctx: ToolTrackingContext): ToolTracking
             }
           }
 
-          // Record in conversation state
-          convState.recordToolCall(toolName, resultSummary);
+          // Record in conversation state with full tracking (P0-#1 fix, Jan 2026)
+          // - success: !hasError tells LLM if tool worked
+          // - userRequest: most recent transcript that likely triggered this tool
+          convState.recordToolCall(toolName, resultSummary, {
+            success: !hasError,
+            userRequest: userData.recentTranscripts?.[0],
+          });
 
           // 📚 CAPABILITY LEARNING: Track tool execution for collective learning
           // This feeds into domain fluency optimization over time

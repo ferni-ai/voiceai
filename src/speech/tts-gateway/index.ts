@@ -335,6 +335,8 @@ export function speakToSession(
     return;
   }
 
+  const startTime = Date.now();
+  
   log.debug(
     {
       originalText: truncateForLog(text, 50),
@@ -345,10 +347,26 @@ export function speakToSession(
     '🎤 TTS Gateway: Speaking to session'
   );
 
+  // 🔊 E2E TRACING: Log TTS pipeline timing
+  const debugTTS = process.env.DEBUG_TTS_PIPELINE === 'true' || process.env.DEBUG_GEMINI_ALL === 'true';
+  if (debugTTS) {
+    process.stderr.write(`\n🔊 [TTS PIPELINE] ${new Date().toISOString()}\n`);
+    process.stderr.write(`  📝 Input: "${truncateForLog(text, 100)}"\n`);
+    process.stderr.write(`  🧹 Clean: "${truncateForLog(cleanText, 100)}"\n`);
+    process.stderr.write(`  🎙️ Voice: ${options.voiceId}\n`);
+    process.stderr.write(`  ⏱️ SSML parse: ${Date.now() - startTime}ms\n`);
+  }
+
   // Use session.say() with clean text
+  const sayStart = Date.now();
   session.say(cleanText, {
     allowInterruptions: options.allowInterruptions ?? true,
   });
+  
+  if (debugTTS) {
+    process.stderr.write(`  ⏱️ session.say() called: ${Date.now() - sayStart}ms\n`);
+    process.stderr.write(`  ⏱️ Total TTS Gateway: ${Date.now() - startTime}ms\n`);
+  }
 }
 
 /**

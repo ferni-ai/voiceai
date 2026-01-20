@@ -39,13 +39,8 @@ export {
   type TranscriptEvent,
 } from './transcript-handler.js';
 
-// Direct tool router (high-confidence pre-LLM tool execution)
-export {
-  routeDirectly,
-  isDirectRoutingEnabled,
-  type DirectRouteResult,
-  type DirectRouteContext,
-} from './direct-tool-router.js';
+// Direct tool router - DELETED: Now handled by UTO.routeAndExecute()
+// See: src/tools/orchestrator/unified-tool-orchestrator.ts
 
 // Session state handler (AgentStateChanged, UserStateChanged)
 export {

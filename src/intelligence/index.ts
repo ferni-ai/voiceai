@@ -1072,6 +1072,77 @@ export {
   type VoicePatternObservation,
 } from './superhuman-memory.js';
 
+// ============================================================================
+// RELATIONSHIP MEMORY (Core Principle #2: Relationship Over Transaction)
+// ============================================================================
+
+export {
+  // Factory functions
+  initializeRelationship,
+  getRelationshipEngine,
+  clearRelationshipEngine,
+  clearAllRelationshipEngines,
+  // Class
+  RelationshipEngine,
+  // Persistence
+  loadRelationshipMemory,
+  saveRelationshipMemory,
+  deleteRelationshipMemory,
+  createDefaultMemory as createDefaultRelationshipMemory,
+  // Config
+  STAGE_CONFIGS,
+  // Types - renamed to avoid collision with context-assembler types
+  type RelationshipStage,
+  type RelationshipMemory,
+  type RelationshipContext as RelMemoryContext,
+  type SharedMoment,
+  type SharedMomentType,
+  type MomentDetails,
+  type InsideJoke,
+  type CallbackAttempt,
+  type CallbackResponse,
+  type CallbackEffectiveness,
+  type CallbackOpportunity,
+  type EmotionalTrajectory as RelEmotionalTrajectory,
+  type SessionMood,
+  type Milestone,
+  type MilestoneType,
+  type SessionStartResult,
+  type StageConfig,
+} from './relationship/index.js';
+
+// ============================================================================
+// COGNITIVE INTELLIGENCE (Core Principle #4: Authentic Personality)
+// ============================================================================
+
+export {
+  // Engine functions
+  getCognitiveProfile,
+  buildConstraints,
+  buildCognitiveContext,
+  buildCognitivePromptInjection,
+  getCognitiveEngineResult,
+  getPersonaQuestion,
+  getInsightLeadIn,
+  getDisagreementPhrase,
+  clearCognitiveCache,
+  warmCognitiveCache,
+  // Types
+  type QuestioningStyle,
+  type SilenceInterpretation,
+  type SilenceHandling,
+  type DisagreementStyle,
+  type DisagreementApproach,
+  type InsightFramingStyle,
+  type InsightFraming,
+  type ResponsePacing,
+  type CognitiveProfile,
+  type CognitiveContext,
+  type CognitiveConstraints,
+  type CognitiveContextInput,
+  type CognitiveEngineResult,
+} from './cognitive/index.js';
+
 export default {
   analyzeMessage,
   resetIntelligence,

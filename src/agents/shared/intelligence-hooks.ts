@@ -1,190 +1,112 @@
 /**
  * Intelligence Hooks for Voice Agent
  *
- * Lightweight hooks that can be wired into the voice agent without
- * impacting startup time. These run AFTER session is connected.
+ * NOTE: The old intelligence system (persona-intelligence.ts, predictive-intelligence.ts)
+ * has been deprecated and removed. The new intelligence system is in src/intelligence/.
+ *
+ * This file provides stub implementations for backward compatibility.
+ * The functions return null to indicate no intelligence processing.
  *
  * > "We believe in making AI human, and the decisions we make will reflect that."
  */
 
 import { getLogger } from '../../utils/safe-logger.js';
-import type { IntelligenceIntegration } from './intelligence-integration.js';
-
-// Re-export the type for consumers
-export type { IntelligenceIntegration };
 
 const log = getLogger();
 
 // ============================================================================
-// LAZY LOADING
-// ============================================================================
-
-// Lazy load to avoid impacting startup time
-let intelligenceModule: typeof import('./intelligence-integration.js') | null = null;
-
-async function getIntelligenceModule() {
-  if (!intelligenceModule) {
-    intelligenceModule = await import('./intelligence-integration.js');
-  }
-  return intelligenceModule;
-}
-
-// ============================================================================
-// SESSION HOOKS
+// TYPES (stub for backward compatibility)
 // ============================================================================
 
 /**
- * Initialize intelligence for a voice session (call AFTER session starts)
- *
- * @param personaId - The persona ID (e.g., 'ferni')
- * @param userId - The user's ID (from participant identity or metadata)
- * @returns Intelligence integration or null if disabled/failed
+ * @deprecated Use new intelligence system in src/intelligence/
+ */
+export interface IntelligenceIntegration {
+  startSession: () => void;
+  endSession: (mood: string, engagement: string, topics: string[]) => Promise<void>;
+  processMessage: (
+    userMessage: string,
+    aiResponse?: string,
+    topic?: string
+  ) => Promise<{
+    shouldAcknowledgeMoment: boolean;
+    predictive?: { concerns: Array<{ severity: string; detection: string }> };
+    suggestedResponse?: string;
+  }>;
+  getPromptInjection: (topic?: string) => string | null;
+  getRelationshipSummary: () => { stage: string; totalSessions: number };
+}
+
+// ============================================================================
+// SESSION HOOKS (stubs - always return null)
+// ============================================================================
+
+/**
+ * Initialize intelligence for a voice session
+ * @deprecated Use new intelligence system in src/intelligence/relationship/
  */
 export async function initializeSessionIntelligence(
   personaId: string,
   userId: string | undefined
 ): Promise<IntelligenceIntegration | null> {
-  // Skip if no user ID
-  if (!userId) {
-    log.debug({ personaId }, 'No userId available, skipping intelligence initialization');
-    return null;
-  }
-
-  // Skip if explicitly disabled
-  if (process.env.DISABLE_INTELLIGENCE === 'true') {
-    log.debug({ personaId, userId }, 'Intelligence disabled via env');
-    return null;
-  }
-
-  try {
-    const { initializeIntelligence } = await getIntelligenceModule();
-    const intelligence = await initializeIntelligence(personaId, userId, {
-      autoDetectMoments: true,
-      enablePredictive: true,
-      enablePersistence: true,
-      saveOnSessionEnd: true,
-      momentConfidenceThreshold: 0.6,
-    });
-
-    intelligence.startSession();
-
-    log.info(
-      {
-        personaId,
-        userId,
-        stage: intelligence.getRelationshipSummary().stage,
-        sessions: intelligence.getRelationshipSummary().totalSessions,
-      },
-      'Intelligence session started'
-    );
-
-    return intelligence;
-  } catch (error) {
-    log.error({ error, personaId, userId }, 'Failed to initialize intelligence');
-    return null;
-  }
+  log.debug(
+    { personaId, userId },
+    'Old intelligence system removed - use src/intelligence/ instead'
+  );
+  return null;
 }
 
 /**
  * Process a user message through the intelligence system
- *
- * @param intelligence - The intelligence integration
- * @param userMessage - The user's message
- * @param aiResponse - Optional AI response
- * @param topic - Optional current topic
- * @returns Processing result or null
+ * @deprecated Use new intelligence system
  */
 export async function processMessageWithIntelligence(
-  intelligence: IntelligenceIntegration | null,
-  userMessage: string,
-  aiResponse?: string,
-  topic?: string
+  _intelligence: IntelligenceIntegration | null,
+  _userMessage: string,
+  _aiResponse?: string,
+  _topic?: string
 ): Promise<{
   shouldAcknowledge: boolean;
   concerns: Array<{ severity: string; detection: string }>;
   suggestedResponse?: string;
 } | null> {
-  if (!intelligence) return null;
-
-  try {
-    const result = await intelligence.processMessage(userMessage, aiResponse, topic);
-
-    return {
-      shouldAcknowledge: result.shouldAcknowledgeMoment,
-      concerns: result.predictive?.concerns || [],
-      suggestedResponse: result.suggestedResponse,
-    };
-  } catch (error) {
-    log.error({ error }, 'Failed to process message with intelligence');
-    return null;
-  }
+  return null;
 }
 
 /**
  * End the intelligence session and persist memory
- *
- * @param intelligence - The intelligence integration
- * @param mood - Session mood
- * @param topics - Topics discussed
+ * @deprecated Use new intelligence system
  */
 export async function endSessionIntelligence(
-  intelligence: IntelligenceIntegration | null,
-  mood: 'positive' | 'neutral' | 'struggling' | 'crisis' = 'neutral',
-  topics: string[] = []
+  _intelligence: IntelligenceIntegration | null,
+  _mood: 'positive' | 'neutral' | 'struggling' | 'crisis' = 'neutral',
+  _topics: string[] = []
 ): Promise<void> {
-  if (!intelligence) return;
-
-  try {
-    await intelligence.endSession(mood, 'medium', topics);
-    log.info('Intelligence session ended and memory saved');
-  } catch (error) {
-    log.error({ error }, 'Failed to end intelligence session');
-  }
+  // No-op - old system removed
 }
 
 /**
  * Get enhanced system prompt with relationship context
- *
- * @param intelligence - The intelligence integration
- * @param basePrompt - The original system prompt
- * @param currentTopic - Optional current topic
- * @returns Enhanced prompt with relationship context
+ * @deprecated Use new intelligence context builders
  */
 export function enhanceSystemPrompt(
-  intelligence: IntelligenceIntegration | null,
+  _intelligence: IntelligenceIntegration | null,
   basePrompt: string,
-  currentTopic?: string
+  _currentTopic?: string
 ): string {
-  if (!intelligence) return basePrompt;
-
-  try {
-    const injection = intelligence.getPromptInjection(currentTopic);
-    if (injection) {
-      return `${basePrompt}\n\n${injection}`;
-    }
-  } catch (error) {
-    log.error({ error }, 'Failed to enhance system prompt');
-  }
-
   return basePrompt;
 }
 
 /**
- * Get quick prompt enhancement (one-shot, no session tracking)
- * Useful for API calls where you want relationship context but not full session tracking
+ * Get quick prompt enhancement
+ * @deprecated Use new intelligence context builders
  */
 export async function getQuickPromptEnhancement(
-  personaId: string,
-  userId: string,
-  currentTopic?: string
+  _personaId: string,
+  _userId: string,
+  _currentTopic?: string
 ): Promise<string> {
-  try {
-    const { getQuickPromptInjection } = await getIntelligenceModule();
-    return await getQuickPromptInjection(personaId, userId, currentTopic);
-  } catch (error) {
-    log.error({ error, personaId, userId }, 'Failed to get quick prompt enhancement');
-    return '';
-  }
+  return '';
 }
 
 export default {

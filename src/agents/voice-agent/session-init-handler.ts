@@ -859,6 +859,44 @@ export async function initializeSession(ctx: SessionInitContext): Promise<Sessio
             });
           }
         })(),
+
+        // Phase 13: Relationship Memory - Load relationship state for this user-persona pair
+        // Core Principle #2: "Every interaction is part of an ongoing relationship"
+        (async () => {
+          try {
+            const { initializeRelationship } =
+              await import('../../intelligence/relationship/index.js');
+            const relationship = await initializeRelationship(userId, sessionPersona.id);
+            const sessionResult = relationship.startSession();
+
+            // Log relationship state
+            diag.session('💕 Relationship memory loaded', {
+              userId,
+              personaId: sessionPersona.id,
+              stage: sessionResult.currentStage,
+              sessions: relationship.sessions,
+              isReturningUser: sessionResult.isReturningUser,
+              daysSinceLastSession: sessionResult.daysSinceLastSession,
+              stageAdvanced: sessionResult.stageAdvanced,
+              milestone: sessionResult.milestone?.type,
+            });
+
+            // Store milestone info in userData for greeting
+            if (sessionResult.milestone && userData) {
+              (userData as Record<string, unknown>).relationshipMilestone = sessionResult.milestone;
+            }
+            if (sessionResult.stageAdvanced && userData) {
+              (userData as Record<string, unknown>).relationshipStageAdvanced = {
+                from: sessionResult.previousStage,
+                to: sessionResult.currentStage,
+              };
+            }
+          } catch (relErr) {
+            diag.warn('Relationship memory loading failed (non-fatal)', {
+              error: String(relErr),
+            });
+          }
+        })(),
       ]);
 
       const profileDuration = Date.now() - profileLoadStart;

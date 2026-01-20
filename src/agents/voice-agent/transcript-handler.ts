@@ -110,11 +110,9 @@ import {
   recordAnticipatoryOutcome,
   type VoiceProsodyCue,
 } from '../../intelligence/triggers/index.js';
-// Semantic Router - pre-LLM tool routing for high-confidence requests
-import {
-  isSemanticRoutingEnabled,
-  routeTranscript,
-} from '../../tools/semantic-router/integration/index.js';
+// Semantic Router - DEPRECATED: Now handled by UTO.routeAndExecute()
+// Keeping import for backwards compatibility with prosody features
+import type { TranscriptRoutingResult } from '../../tools/semantic-router/integration/index.js';
 // Unified Anticipation Pipeline - "Better Than Human" anticipation during speech
 import { getAnticipationPipeline } from '../../speech/anticipation/index.js';
 // Speech Orchestrator integration for micro-reactions
@@ -732,7 +730,9 @@ export function createTranscriptHandler(ctx: TranscriptHandlerContext): Transcri
       // "Hi" takes ~150-200ms, so legitimate speech passes through
       // Primary filter is in session-state-handler.ts
       // ===============================================
-      const MIN_SPEECH_DURATION_MS = 150;
+      // ⚠️ DEBUGGING: Set DISABLE_NOISE_FILTER=true to disable
+      const NOISE_FILTER_DISABLED = process.env.DISABLE_NOISE_FILTER === 'true';
+      const MIN_SPEECH_DURATION_MS = NOISE_FILTER_DISABLED ? 0 : 150;
       if (
         userData.lastSpeechDurationMs !== undefined &&
         userData.lastSpeechDurationMs > 0 &&
@@ -1390,17 +1390,18 @@ async function processFinalTranscript(
   }
 
   // ===============================================
-  // 🎯 DIRECT TOOL ROUTING (Surgical Pre-LLM Execution)
-  // HIGH-CONFIDENCE ONLY: Music, weather, handoff - obvious intents
-  // This fixes the "Gemini returns nothing" bug for clear tool requests
-  // Unlike full semantic routing, this has very low false positive rate
+  // 🎯 UNIFIED TOOL ROUTING (Consolidated Pre-LLM Execution)
+  // Uses UTO (Unified Tool Orchestrator) for:
+  // 1. Fast-path via FTIS V3 Hybrid Router (~50ms for high confidence)
+  // 2. FTIS V2 ML classification for other intents - ~20ms
+  // 3. System state injection for LLM awareness
   // ===============================================
   if (event.transcript) {
     try {
-      const { routeDirectly, isDirectRoutingEnabled } = await import('./direct-tool-router.js');
+      const { toolOrchestrator } = await import('../../tools/orchestrator/unified-tool-orchestrator.js');
 
-      if (isDirectRoutingEnabled()) {
-        const directResult = await routeDirectly(event.transcript, {
+      if (toolOrchestrator.isRoutingEnabled()) {
+        const routingResult = await toolOrchestrator.routeAndExecute(event.transcript, {
           userId: userId || 'anonymous',
           sessionId,
           personaId: sessionPersona.id,
@@ -1409,137 +1410,82 @@ async function processFinalTranscript(
           userLocation: userData.userLocation,
         });
 
-        if (directResult.handled) {
-          diag.state('🎯 Direct router handled transcript', {
-            toolId: directResult.toolId,
-            confidence: directResult.confidence,
-            intent: directResult.intent,
+        // Log E2E trace for observability
+        for (const trace of routingResult.trace) {
+          diag.state(`[ROUTE] ${trace.stage}`, trace.data);
+        }
+
+        if (routingResult.handled) {
+          diag.state('🎯 UTO routed and executed tool', {
+            routedBy: routingResult.routedBy,
+            toolId: routingResult.toolId,
+            confidence: routingResult.confidence,
+            musicPlaying: routingResult.systemState.music.isPlaying,
           });
 
           // Track turn count and user message
           userData.turnCount = (userData.turnCount || 0) + 1;
           userData.lastUserMessage = event.transcript;
 
+          // 📝 PERSIST: Store lastToolExecuted for cross-turn awareness
+          if (routingResult.toolId) {
+            userData.lastToolExecuted = {
+              toolId: routingResult.toolId,
+              timestamp: new Date(),
+              result: routingResult.toolResult,
+            };
+          }
+
+          // Store system state for context injection
+          userData.systemState = routingResult.systemState;
+
           // 🚫 DEDUPLICATION: Mark tool as executed to prevent LLM from also calling it
-          // This prevents double-execution when:
-          // 1. Direct router executes tool
-          // 2. LLM (OpenAI native function calling or JSON workaround) also tries to call same tool
-          if (directResult.toolId) {
+          if (routingResult.toolId) {
             try {
               const { markToolExecutedBySemanticRouter } = await import(
                 '../shared/sanitizer/index.js'
               );
-              markToolExecutedBySemanticRouter(sessionId, directResult.toolId);
+              markToolExecutedBySemanticRouter(sessionId, routingResult.toolId);
             } catch {
               // Non-critical - deduplication is defensive
             }
           }
 
-          // 🛑 EARLY RETURN: Skip LLM processing to prevent double-response
-          // Previously we let LLM "respond naturally" but this caused issues:
-          // 1. LLM didn't know tool was already executed
-          // 2. With JSON prompts, LLM output JSON instead of natural speech
-          // 3. Even with OpenAI native function calling, LLM might call the tool again
-          // The tool result provides the response (e.g., music starts playing)
+          // 🛑 EARLY RETURN: Tool executed, skip LLM processing
           return;
         }
-      }
-    } catch (directRouteError) {
-      // Non-fatal - fall through to semantic routing / Gemini
-      diag.debug('Direct routing error (non-blocking)', { error: String(directRouteError) });
-    }
-  }
 
-  // ===============================================
-  // 🎯 SEMANTIC ROUTING (Pre-LLM Tool Execution)
-  // Route high-confidence tool requests BEFORE Gemini processes
-  // This bypasses the LLM entirely for deterministic tool calls
-  // ===============================================
-  if (isSemanticRoutingEnabled() && event.transcript) {
-    try {
-      // Build voice prosody context from userData (Better Than Human)
-      const voiceProsody = userData.voiceEmotion
-        ? {
-            stressLevel: userData.voiceEmotion.stressLevel,
-            arousal: userData.voiceEmotion.arousal,
-            valence: userData.voiceEmotion.valence,
-            anxietyMarkers: userData.voiceEmotion.anxietyMarkers ? ['detected'] : undefined,
-            voiceTremor: userData.voiceEmotion.prosody?.breathiness
-              ? userData.voiceEmotion.prosody.breathiness > 0.7
-              : undefined,
-          }
-        : undefined;
-
-      // Calculate WPM from prosody if available
-      const wordsPerMinute = userData.voiceEmotion?.prosody?.speechRate;
-
-      // Build detected emotion from voice analysis
-      const detectedEmotion = userData.voiceEmotion
-        ? {
-            emotion: String(userData.voiceEmotion.primary),
-            intensity: userData.voiceEmotion.confidence,
-            valence: userData.voiceEmotion.valence,
-            source: 'voice' as const,
-          }
-        : undefined;
-
-      const routingResult = await routeTranscript(event.transcript, {
-        userId: userId || 'anonymous',
-        sessionId,
-        personaId: sessionPersona.id,
-        session,
-        // ConversationHistory and recentTools are optional
-        conversationHistory: [],
-        recentTools: [],
-        // Better Than Human: Voice prosody signals
-        voiceProsody,
-        wordsPerMinute,
-        detectedEmotion,
-      });
-
-      // If semantic router handled it, skip normal processing
-      if (routingResult.handled) {
-        diag.state('🎯 Semantic router handled transcript', {
-          toolId: routingResult.toolId,
+        // Log system state even for conversation (LLM awareness)
+        diag.state('🎯 UTO: no tool executed, passing to Gemini', {
+          routedBy: routingResult.routedBy,
           confidence: routingResult.confidence,
-          // Better Than Human features
-          emotionalArc: routingResult.emotionalArc?.trend,
-          prosodyBoost: routingResult.prosodyBoost?.boostedTools?.slice(0, 2),
-          hasIntervention: !!routingResult.suggestedIntervention,
+          musicPlaying: routingResult.systemState.music.isPlaying,
+          hasToolHint: !!routingResult.toolHint,
         });
 
-        // Still track the turn count and user message
-        userData.turnCount = (userData.turnCount || 0) + 1;
-        userData.lastUserMessage = event.transcript;
-
-        // If there's a suggested intervention, store it for potential use
-        if (routingResult.suggestedIntervention) {
-          userData.suggestedIntervention = routingResult.suggestedIntervention;
-          diag.state('🧠 Proactive intervention suggested', {
-            type: routingResult.suggestedIntervention.type,
-            urgency: routingResult.suggestedIntervention.urgency,
-          });
+        // Merge persisted lastToolExecuted into system state if exists
+        if (userData.lastToolExecuted && !routingResult.systemState.lastToolExecuted) {
+          routingResult.systemState.lastToolExecuted = userData.lastToolExecuted;
         }
 
-        return; // Skip Gemini processing
-      }
+        // Store system state for context injection to LLM
+        userData.systemState = routingResult.systemState;
 
-      // Log if routing was attempted but not handled
-      if (routingResult.attempted) {
-        diag.state('🎯 Semantic routing attempted, passing to Gemini', {
-          confidence: routingResult.confidence,
-          emotionalTrend: routingResult.emotionalArc?.trend,
-          boostedTools: routingResult.prosodyBoost?.boostedTools?.slice(0, 2),
-        });
-
-        // Store prosody boost for Gemini context injection
-        if (routingResult.prosodyBoost?.boostedTools?.length) {
-          userData.prosodyBoost = routingResult.prosodyBoost;
+        // Store tool hint for medium-confidence cases (LLM should call the tool, not hallucinate)
+        if (routingResult.toolHint) {
+          userData.toolHint = routingResult.toolHint;
+          diag.state('🔮 UTO: tool hint for LLM', {
+            toolId: routingResult.toolHint.toolId,
+            confidence: routingResult.toolHint.confidence,
+          });
+        } else {
+          // Clear any previous tool hint
+          userData.toolHint = undefined;
         }
       }
     } catch (routingError) {
       // Non-fatal - let Gemini handle
-      diag.warn('Semantic routing error', { error: String(routingError) });
+      diag.warn('UTO routing error', { error: String(routingError) });
     }
   }
 

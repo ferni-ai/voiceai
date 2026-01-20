@@ -21,6 +21,7 @@
  * - GET /api/observability/ftis - FTIS (Tool Intelligence) metrics (transitions, outcomes, patterns)
  * - GET /api/observability/superhuman - Superhuman capability activation metrics
  * - GET /api/observability/tts-gateway - TTS Gateway metrics (cache hits, synthesis latency, errors)
+ * - GET /api/observability/injections - BTH Injection effectiveness metrics (Phase 1 Communication System Overhaul)
  * - POST /api/observability/clear - Clear all metrics
  */
 
@@ -38,6 +39,7 @@ import {
   connectionHealthMetrics,
   costMetrics,
   errorMetrics,
+  getInjectionMetrics,
   llmHealthMetrics,
   memoryMetrics,
   observabilityHub,
@@ -753,17 +755,48 @@ export async function handleObservabilityRoutes(
     if (pathname === '/api/observability/ftis' && req.method === 'GET') {
       try {
         const { getFTISIntegration } = await import('../tools/intelligence/ftis-integration.js');
+        const { getFTISHealth, getFTISV2Metrics } =
+          await import('../services/observability/ftis-metrics.js');
+        const { isFTISV2OnlyMode } = await import('../agents/processors/ftis-v2-integration.js');
+
         const ftis = getFTISIntegration();
         const metrics = ftis.getMetrics();
         const patterns = ftis.getToolPatterns();
+        const health = getFTISHealth();
+        const ftisV2Active = isFTISV2OnlyMode();
 
-        sendJSON(res, {
+        const response: Record<string, unknown> = {
           transitionMatrix: metrics.transitionMatrix,
           planner: metrics.planner,
           learner: metrics.learner,
           topPatterns: patterns.slice(0, 10),
+          health: {
+            status: health.status,
+            mode: health.mode,
+            accuracy: health.metrics.accuracy,
+          },
           collectedAt: new Date().toISOString(),
-        });
+        };
+
+        // Add FTIS V2 specific metrics when enabled
+        if (ftisV2Active) {
+          const v2Metrics = getFTISV2Metrics();
+          response.ftisV2 = {
+            enabled: true,
+            directExecutionCount: v2Metrics.directExecutionCount,
+            directExecutionRate: `${(v2Metrics.directExecutionRate * 100).toFixed(1)}%`,
+            avgLatencyMs: v2Metrics.avgDirectLatencyMs,
+            p95LatencyMs: v2Metrics.p95DirectLatencyMs,
+            jsonWorkaroundBypassCount: v2Metrics.jsonWorkaroundBypassCount,
+            fallbackRate: `${(v2Metrics.fallbackRate * 100).toFixed(1)}%`,
+            successRate: `${(v2Metrics.successRate * 100).toFixed(1)}%`,
+            executionsByCategory: v2Metrics.executionsByCategory,
+          };
+        } else {
+          response.ftisV2 = { enabled: false };
+        }
+
+        sendJSON(res, response);
       } catch (error) {
         sendJSON(res, {
           error: 'FTIS metrics not available',
@@ -857,6 +890,16 @@ export async function handleObservabilityRoutes(
           message: String(error),
         });
       }
+      return true;
+    }
+
+    // GET /api/observability/injections - BTH Injection effectiveness metrics (Phase 1 Communication System Overhaul)
+    if (pathname === '/api/observability/injections' && req.method === 'GET') {
+      const injectionData = getInjectionMetrics();
+      sendJSON(res, {
+        ...injectionData,
+        collectedAt: new Date().toISOString(),
+      });
       return true;
     }
 

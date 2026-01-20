@@ -482,6 +482,70 @@ jobs:
         continue-on-error: true
 
   # ============================================================================
+  # E2E VALIDATION - Validate all user actions (tools, commands, API)
+  # ============================================================================
+  e2e-validation:
+    name: E2E Validation
+    runs-on: [self-hosted, Linux, X64, gce]
+    timeout-minutes: 30
+    needs: setup
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Restore node_modules cache
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            node_modules
+            apps/*/node_modules
+            packages/*/node_modules
+          key: ${{ needs.setup.outputs.cache-key }}
+          fail-on-cache-miss: true
+
+      - name: Build CLI and backend
+        run: pnpm build:fast
+
+      - name: Run E2E validation
+        run: node dist/apps/cli/src/index.js validate e2e --ci --report json > e2e-report.json || true
+
+      - name: Check E2E coverage threshold
+        run: |
+          if [ -f e2e-report.json ]; then
+            COVERAGE=$(cat e2e-report.json | grep -o '"coverage":[0-9]*' | head -1 | grep -o '[0-9]*' || echo "0")
+            CI_PASSED=$(cat e2e-report.json | grep -o '"ciPassed":[a-z]*' | head -1 | grep -o '[a-z]*' || echo "false")
+            echo "E2E Coverage: ${COVERAGE}%"
+            echo "CI Passed: ${CI_PASSED}"
+            if [ "$CI_PASSED" = "false" ]; then
+              echo "❌ E2E coverage ${COVERAGE}% is below 80% threshold"
+              # Don't fail build for now, just warn
+              # exit 1
+            else
+              echo "✅ E2E coverage ${COVERAGE}% meets 80% threshold"
+            fi
+          else
+            echo "⚠️ E2E report not generated - skipping threshold check"
+          fi
+
+      - name: Upload E2E report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: e2e-validation-report
+          path: e2e-report.json
+          retention-days: 30
+
+  # ============================================================================
   # FRONTEND QUALITY
   # ============================================================================
   frontend-quality:

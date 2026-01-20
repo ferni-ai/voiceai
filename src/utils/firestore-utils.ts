@@ -219,6 +219,12 @@ export function cleanForFirestore<T>(obj: T): T {
     return obj.toISOString() as T;
   }
 
+  // Preserve Firestore Timestamps - they have a toDate() method
+  // This prevents converting them to plain objects with _seconds/_nanoseconds
+  if (typeof obj === 'object' && 'toDate' in obj && typeof (obj as { toDate: unknown }).toDate === 'function') {
+    return obj;
+  }
+
   if (Array.isArray(obj)) {
     return obj.map((item) => cleanForFirestore(item)) as T;
   }

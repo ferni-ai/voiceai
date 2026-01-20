@@ -13,13 +13,147 @@
  *
  * Not just at key emotional moments—throughout, like a supportive friend.
  *
+ * NOW ENHANCED with bundle content from affirmation.json:
+ * - Earned encouragement patterns (not sprinkled, earned)
+ * - Celebration responses (breakthrough, progress, courage, small_wins)
+ * - Recognition phrases (character, growth, effort)
+ * - "I'm proud of you" moments (use sparingly!)
+ *
  * @module @ferni/micro-affirmations
  */
 
 import { seededChance, seededIndex, seededPick } from './utils/random-generator.js';
 import { createLogger } from '../utils/safe-logger.js';
+import { loadPersonaContent } from '../services/persona-content-loader.js';
 
 const logger = createLogger({ module: 'MicroAffirmations' });
+
+// ============================================================================
+// BUNDLE CONTENT TYPES & LOADING
+// ============================================================================
+
+interface BundleAffirmationContent {
+  encouragement?: {
+    general?: string[];
+    self_doubt?: string[];
+    overwhelm?: string[];
+    failure?: string[];
+  };
+  celebration?: {
+    breakthrough?: string[];
+    progress?: string[];
+    courage?: string[];
+    small_wins?: string[];
+  };
+  recognition?: {
+    character?: string[];
+    growth?: string[];
+    effort?: string[];
+  };
+  proud_of_you?: {
+    when_to_use?: string[];
+    variations?: string[];
+  };
+  _guidance_for_llm?: {
+    be_specific?: string;
+    match_moment?: string;
+    avoid_hollow?: string;
+    timing?: string;
+  };
+}
+
+let bundleContentCache: BundleAffirmationContent | null = null;
+let bundleCacheTimestamp = 0;
+const BUNDLE_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
+/**
+ * Load affirmation content from persona bundle
+ */
+async function loadBundleAffirmations(): Promise<BundleAffirmationContent | null> {
+  const now = Date.now();
+  if (bundleContentCache && now - bundleCacheTimestamp < BUNDLE_CACHE_TTL) {
+    return bundleContentCache;
+  }
+
+  try {
+    const content = await loadPersonaContent<BundleAffirmationContent>('ferni', 'affirmation');
+    if (content) {
+      bundleContentCache = content;
+      bundleCacheTimestamp = now;
+      logger.debug('Loaded affirmation bundle content');
+    }
+    return content;
+  } catch (err) {
+    logger.debug({ error: String(err) }, 'Could not load affirmation bundle');
+    return null;
+  }
+}
+
+/**
+ * Get a bundle affirmation for a specific context
+ * These are richer than the hardcoded ones and should be used for key moments
+ */
+export async function getBundleAffirmation(
+  context:
+    | 'self_doubt'
+    | 'overwhelm'
+    | 'failure'
+    | 'breakthrough'
+    | 'progress'
+    | 'courage'
+    | 'small_win'
+    | 'growth'
+    | 'effort'
+    | 'proud'
+): Promise<string | null> {
+  const content = await loadBundleAffirmations();
+  if (!content) return null;
+
+  let phrases: string[] | undefined;
+
+  switch (context) {
+    // Encouragement contexts
+    case 'self_doubt':
+      phrases = content.encouragement?.self_doubt;
+      break;
+    case 'overwhelm':
+      phrases = content.encouragement?.overwhelm;
+      break;
+    case 'failure':
+      phrases = content.encouragement?.failure;
+      break;
+    // Celebration contexts
+    case 'breakthrough':
+      phrases = content.celebration?.breakthrough;
+      break;
+    case 'progress':
+      phrases = content.celebration?.progress;
+      break;
+    case 'courage':
+      phrases = content.celebration?.courage;
+      break;
+    case 'small_win':
+      phrases = content.celebration?.small_wins;
+      break;
+    // Recognition contexts
+    case 'growth':
+      phrases = content.recognition?.growth;
+      break;
+    case 'effort':
+      phrases = content.recognition?.effort;
+      break;
+    // Special "I'm proud of you" - use sparingly!
+    case 'proud':
+      phrases = content.proud_of_you?.variations;
+      break;
+    default:
+      return null;
+  }
+
+  if (!phrases || phrases.length === 0) return null;
+
+  return phrases[Math.floor(Math.random() * phrases.length)];
+}
 
 // ============================================================================
 // TYPES

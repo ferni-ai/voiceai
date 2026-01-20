@@ -13,6 +13,8 @@ import type { PersonaConfig } from '../../personas/types.js';
 import type { ConversationAnalysis, SessionServices } from '../../services/index.js';
 import type { UserData } from '../shared/types.js';
 import type { HolisticContextSummary } from '../../tools/semantic-router/types.js';
+// Import TrackedInjection from the feedback module (Phase 1 BTH)
+import type { TrackedInjection } from '../../intelligence/feedback/index.js';
 
 // Re-export for convenience
 export type MessageAnalysis = ConversationAnalysis;
@@ -101,6 +103,8 @@ export interface ContextBuildResult {
   humanizingResult?: HumanizingResultBase;
   /** Time taken to build context in ms */
   elapsedMs: number;
+  /** Tracked injections for feedback attribution (Phase 1 BTH) */
+  trackedInjections?: TrackedInjection[];
 }
 
 // ============================================================================

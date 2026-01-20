@@ -1,33 +1,54 @@
 ---
-title: "Introducing the Ferni Developer Platform"
-excerpt: "Build voice-first AI experiences with MCP servers, custom tools, webhooks, and workflows. The complete developer toolkit for extending voice agents."
-author: "Ferni Dev Team"
-authorInitials: "FD"
+title: "Announcing the Ferni Developer Platform: Voice AI You Can Actually Build On"
+excerpt: "Today we're opening the platform that powers Ferni to every developer. Build voice-first experiences with the same tools we use."
+author: "Seth Ford"
+authorInitials: "SF"
 authorColor: "#4a6741"
 date: 2026-01-11
 category: "Announcements"
 image: "developer-platform-launch.png"
-readTime: 8
+readTime: 10
 ---
 
-Today we're excited to announce the **Ferni Developer Platform** - a comprehensive suite of APIs that let you extend voice agents with custom capabilities, integrate external services, and build sophisticated automation workflows.
+# Announcing the Ferni Developer Platform: Voice AI You Can Actually Build On
 
-## What is the Developer Platform?
+**Three months ago, a developer emailed us asking if they could use Ferni to build a voice interface for their CRM.**
 
-The Developer Platform transforms Ferni from a standalone voice AI into an extensible platform. You can now:
+They'd tried everything else. Built with DialogFlow (too rigid). Experimented with custom LLM chains (too slow). Even attempted raw WebRTC with Whisper (got latency down to 2 seconds, then gave up).
 
-- **Register MCP Servers** - Connect external Model Context Protocol servers to give agents new tools
-- **Create Custom Tools** - Build webhook, MCP, or prompt-based tools callable by voice
-- **Subscribe to Webhooks** - Receive real-time events when users interact with your agents
-- **Track Activities** - Log and query custom metrics and activities
-- **Build Workflows** - Create multi-step automations with branching and parallel execution
-- **Integrate OAuth** - Authenticate with external services using your own OAuth apps
+"I just want to say 'Pull up the Johnson account' and have it work," they wrote. "Why is this so hard?"
 
-## Core Concepts
+We couldn't help them then. Ferni was a closed system - designed for personal use, not developer extension.
 
-### MCP Server Integration
+That changes today.
 
-The [Model Context Protocol](https://modelcontextprotocol.io) (MCP) is an open standard for connecting AI systems to external tools and data sources. With the Developer Platform, you can register your own MCP servers:
+**Introducing the Ferni Developer Platform** - the complete infrastructure for building voice-first AI applications. The same stack that powers 50,000+ daily Ferni conversations, now available to every developer.
+
+---
+
+## Why We Built This
+
+Let me be honest about our motivation: we built this because we needed it ourselves.
+
+Ferni started as a single AI companion. Then users asked for different personas (Maya for coaching, Peter for planning, Alex for productivity). Then they wanted to connect their calendars. Then their email. Then Notion. Then custom tools for their specific workflows.
+
+Each integration required changes to our core codebase. Every new tool meant coordinating between teams. Our velocity dropped. Feature requests piled up.
+
+So we built an extension system. A way for anyone - including us - to add new capabilities without touching the core engine.
+
+That system is what we're releasing today.
+
+---
+
+## The Core Primitives
+
+The platform has five main components. Each solves a specific integration challenge we faced.
+
+### MCP Server Registration
+
+The [Model Context Protocol](https://modelcontextprotocol.io) (MCP) is the emerging standard for connecting AI to external tools. We adopted it early because it solved a real problem: how do you give an LLM access to arbitrary tools without retraining or fine-tuning?
+
+Now you can register your own MCP servers:
 
 ```bash
 curl -X POST https://api.ferni.ai/api/v2/developers/mcp-servers \
@@ -42,19 +63,20 @@ curl -X POST https://api.ferni.ai/api/v2/developers/mcp-servers \
   }'
 ```
 
-Once registered, tools from your MCP server become available to voice agents. Users can say things like "Look up customer Acme Corp" and the agent will use your MCP tools to fulfill the request.
+Once registered, your tools become voice-callable. Users say "Look up customer Acme Corp" and the agent uses your MCP server to fulfill it.
+
+**The insight that made this work:** We don't expose the tool interface to users. We expose natural language. The agent figures out which tool to call. This means your MCP server just needs to work - it doesn't need to understand conversation.
 
 ### Custom Tools
 
-Not every tool needs a full MCP server. For simpler integrations, you can create custom tools with three execution types:
+Not everything needs a full MCP server. For simpler integrations, we support three tool types:
 
-**Webhook Tools** - Call your HTTP endpoint when triggered:
+**Webhook Tools** - Your HTTP endpoint gets called when triggered:
 
 {% raw %}
 ```json
 {
   "name": "create-ticket",
-  "displayName": "Create Support Ticket",
   "type": "webhook",
   "config": {
     "url": "https://api.yourservice.com/tickets",
@@ -72,7 +94,7 @@ Not every tool needs a full MCP server. For simpler integrations, you can create
 ```
 {% endraw %}
 
-**MCP Tools** - Delegate to a registered MCP server:
+**MCP Tools** - Delegate to a registered MCP server (useful for composing tools):
 
 ```json
 {
@@ -85,7 +107,7 @@ Not every tool needs a full MCP server. For simpler integrations, you can create
 }
 ```
 
-**Prompt Tools** - Use LLM prompting for the response:
+**Prompt Tools** - Use LLM prompting for the response (surprisingly powerful for summarization and formatting):
 
 {% raw %}
 ```json
@@ -99,9 +121,11 @@ Not every tool needs a full MCP server. For simpler integrations, you can create
 ```
 {% endraw %}
 
-### Webhook Events
+### Webhooks
 
-Stay informed about what's happening in your agents with webhook subscriptions:
+Our earliest internal feedback was "I need to know when things happen." Users would ask Ferni to set reminders, track habits, or log activities - and we had no way to push that data to external systems.
+
+Webhooks solved this:
 
 ```bash
 curl -X POST https://api.ferni.ai/api/v2/developers/webhooks \
@@ -114,17 +138,16 @@ curl -X POST https://api.ferni.ai/api/v2/developers/webhooks \
       "session.ended",
       "tool.called",
       "workflow.completed"
-    ],
-    "enabled": true
+    ]
   }'
 ```
 
-All webhooks are signed with HMAC-SHA256 for security. Verify signatures in your handler:
+Every webhook is signed with HMAC-SHA256. We learned this the hard way - someone found one of our internal webhook endpoints and started spoofing events. Always verify:
 
 ```typescript
 import crypto from 'crypto';
 
-function verifyWebhook(payload: string, signature: string, secret: string): boolean {
+function verifyWebhook(payload: string, signature: string, secret: string) {
   const [timestamp, hash] = signature.split(',').map(s => s.split('=')[1]);
   const expected = crypto
     .createHmac('sha256', secret)
@@ -134,18 +157,17 @@ function verifyWebhook(payload: string, signature: string, secret: string): bool
 }
 ```
 
-### Workflow Engine
+### Workflows
 
-The workflow engine lets you build multi-step automations with conditions, parallel execution, and error handling:
+This was the hardest to get right. Users wanted complex automations: "Every morning at 8am, check my calendar, summarize what's coming up, and read it to me."
+
+That's not one tool call. It's a sequence of tools with conditions and error handling.
 
 {% raw %}
 ```json
 {
   "name": "Daily Standup",
-  "trigger": {
-    "type": "voice_command",
-    "config": { "command": "start standup" }
-  },
+  "trigger": { "type": "voice_command", "config": { "command": "start standup" } },
   "nodes": [
     { "id": "start", "type": "start" },
     { "id": "fetch-calendar", "type": "mcp_call", "config": {
@@ -159,9 +181,7 @@ The workflow engine lets you build multi-step automations with conditions, paral
     { "id": "summarize", "type": "llm_prompt", "config": {
       "prompt": "Summarize today's meetings: {{fetch-calendar.result}}"
     }},
-    { "id": "speak", "type": "speak", "config": {
-      "text": "{{summarize.result}}"
-    }},
+    { "id": "speak", "type": "speak", "config": { "text": "{{summarize.result}}" }},
     { "id": "end", "type": "end" }
   ],
   "edges": [
@@ -176,16 +196,38 @@ The workflow engine lets you build multi-step automations with conditions, paral
 ```
 {% endraw %}
 
+Yes, it's JSON. Yes, we're building a visual editor. But the JSON-first approach means you can version control your workflows, generate them programmatically, and test them in CI.
+
+### Activities
+
+The final primitive is activities - a way to log custom events and metrics. We use this internally for everything from tracking habit completion to measuring conversation quality.
+
+```typescript
+await ferniApi.activities.log({
+  type: 'habit_completed',
+  payload: {
+    habitId: 'morning-meditation',
+    duration: 600,
+    streak: 5,
+  },
+});
+```
+
+Activities feed into the agent's context. If you log a "meeting_finished" activity, the agent knows about it and can reference it in conversation.
+
+---
+
 ## Getting Started
+
+The platform is live today. Here's how to start:
 
 ### 1. Get API Credentials
 
-Sign in to the [Developer Console](https://developers.ferni.ai/console) and create an API key. Keys starting with `pk_live_` are for production; `pk_test_` keys work in sandbox.
+Visit [developers.ferni.ai/console](https://developers.ferni.ai/console) and create an API key. Keys starting with `pk_live_` are for production; `pk_test_` keys work in sandbox.
 
-### 2. Make Your First API Call
+### 2. Make Your First Call
 
 ```bash
-# List your MCP servers
 curl https://api.ferni.ai/api/v2/developers/mcp-servers \
   -H "Authorization: Bearer pk_live_xxx"
 ```
@@ -203,27 +245,31 @@ curl -X POST https://api.ferni.ai/api/v2/developers/mcp-servers \
   }'
 ```
 
-### 4. Test the Connection
+### 4. Test It
 
 ```bash
 curl -X POST https://api.ferni.ai/api/v2/developers/mcp-servers/mcp_xxx/test \
   -H "Authorization: Bearer pk_live_xxx"
 ```
 
+---
+
 ## API Reference
 
-The Developer Platform includes six main API groups:
+Six API groups, 43 endpoints total:
 
-| API | Endpoints | Description |
-|-----|-----------|-------------|
-| **MCP Servers** | 7 endpoints | Register and manage external MCP servers |
-| **Custom Tools** | 6 endpoints | Create webhook, MCP, or prompt-based tools |
-| **Webhooks** | 7 endpoints | Subscribe to events with delivery logs |
-| **Activities** | 6 endpoints | Track custom metrics and activities |
-| **Workflows** | 8 endpoints | Build multi-step automations |
-| **OAuth** | 9 endpoints | Manage external service authentication |
+| API | Endpoints | What It Does |
+|-----|-----------|--------------|
+| **MCP Servers** | 7 | Register external MCP servers |
+| **Custom Tools** | 6 | Create webhook, MCP, or prompt tools |
+| **Webhooks** | 7 | Subscribe to events |
+| **Activities** | 6 | Log custom metrics |
+| **Workflows** | 8 | Build multi-step automations |
+| **OAuth** | 9 | Manage external auth |
 
-See the full [API Reference](/developers/api/) for complete documentation.
+Full documentation: [developers.ferni.ai/api](/developers/api/)
+
+---
 
 ## Rate Limits
 
@@ -234,37 +280,52 @@ See the full [API Reference](/developers/api/) for complete documentation.
 | Write operations | 50/min |
 | Expensive operations (test, execute) | 10/min |
 
-Rate limit headers are included in every response:
-- `X-RateLimit-Limit` - Maximum requests in window
-- `X-RateLimit-Remaining` - Requests remaining
-- `X-RateLimit-Reset` - Unix timestamp when limit resets
-
-## Security
-
-- **All requests require authentication** via API key or Firebase token
-- **Secrets are encrypted at rest** using AES-256-GCM
-- **Webhooks are signed** with HMAC-SHA256
-- **Resource ownership is enforced** - you can only access your own resources
-
-## What's Next?
-
-We're just getting started. Coming soon:
-
-- **TypeScript SDK** - Type-safe client library for Node.js
-- **Python SDK** - Native Python client
-- **OpenAPI Spec** - Auto-generated documentation and client generation
-- **Visual Workflow Editor** - Build workflows in the browser
-- **API Explorer** - Interactive API testing in the console
-
-## Resources
-
-- [API Reference](/developers/api/) - Complete endpoint documentation
-- [MCP Integration Guide](/developers/blog/mcp-server-integration/) - Deep dive on MCP
-- [Webhook Security](/developers/blog/webhook-security/) - HMAC verification guide
-- [GitHub Examples](https://github.com/ferni-ai/examples) - Sample code and templates
+Rate limit headers on every response tell you where you stand.
 
 ---
 
-We can't wait to see what you build. If you have questions or feedback, reach out on [Discord](https://discord.gg/ferni) or [Twitter](https://twitter.com/ferni_ai).
+## Security
 
-Happy building!
+- All requests require authentication (API key or Firebase token)
+- Secrets are encrypted at rest with AES-256-GCM
+- Webhooks are signed with HMAC-SHA256
+- Resource ownership is strictly enforced
+
+We take security seriously because we've seen what happens when you don't. Every webhook we've ever received without signature verification has been either a bug or an attack.
+
+---
+
+## What's Coming
+
+We're just getting started. On the roadmap:
+
+- **TypeScript SDK** - Type-safe client for Node.js (Q1)
+- **Python SDK** - Native Python support (Q1)
+- **Visual Workflow Editor** - Build workflows in the browser (Q2)
+- **OpenAPI Spec** - Auto-generate clients in any language (Q1)
+- **API Explorer** - Interactive testing in the console (Q1)
+
+---
+
+## One More Thing
+
+Remember that CRM developer who emailed us three months ago?
+
+He was our first beta tester. His MCP server now handles "pull up the Johnson account" exactly like he imagined.
+
+But he built something we didn't expect: voice-activated lead scoring. His agents say things like "Johnson hasn't responded in two weeks - should I flag them as cold?" He didn't ask us for that feature. He built it himself, in an afternoon, with tools we gave him.
+
+That's why we built a platform instead of just a product.
+
+We can't wait to see what you build.
+
+---
+
+**Resources:**
+- [API Reference](/developers/api/)
+- [MCP Integration Guide](/developers/blog/mcp-server-integration/)
+- [Webhook Security](/developers/blog/webhook-security/)
+- [Discord Community](https://discord.gg/ferni)
+- [GitHub Examples](https://github.com/ferni-ai/examples)
+
+Questions? Reach out on [Discord](https://discord.gg/ferni) or [Twitter](https://twitter.com/ferni_ai).

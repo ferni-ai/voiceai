@@ -205,6 +205,21 @@ export async function handleScheduledJobsRoutes(
       await handleBrandWeeklyReport(res);
       return true;
 
+    case '/api/jobs/brand-publish-stories':
+      await handleBrandPublishStories(res);
+      return true;
+
+    // ========================================================================
+    // GTM (GO-TO-MARKET) CONTENT AUTOMATION
+    // ========================================================================
+    case '/api/jobs/gtm-daily-publishing':
+      await handleGTMDailyPublishing(res);
+      return true;
+
+    case '/api/jobs/gtm-weekly-content':
+      await handleGTMWeeklyContent(res);
+      return true;
+
     default:
       return false;
   }
@@ -2098,7 +2113,7 @@ async function handleBrandAwardDeadlineCheck(res: ServerResponse): Promise<void>
     let awards: BrandAward[] = [];
     if (db) {
       const snapshot = await db.collection('brand_awards').get();
-      awards = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() } as BrandAward));
+      awards = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }) as BrandAward);
     }
 
     const now = new Date();
@@ -2168,7 +2183,7 @@ async function handleBrandStoryReviewReminder(res: ServerResponse): Promise<void
     let stories: UserStory[] = [];
     if (db) {
       const snapshot = await db.collection('brand_user_stories').get();
-      stories = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() } as UserStory));
+      stories = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }) as UserStory);
     }
 
     const pendingStories = stories.filter((story) => !story.approved);
@@ -2221,7 +2236,7 @@ async function handleBrandWorkstreamProgress(res: ServerResponse): Promise<void>
     let workstreams: BrandWorkstream[] = [];
     if (db) {
       const snapshot = await db.collection('brand_workstreams').get();
-      workstreams = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() } as BrandWorkstream));
+      workstreams = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }) as BrandWorkstream);
     }
 
     // Calculate stats
@@ -2298,7 +2313,7 @@ async function handleBrandMilestoneCheck(res: ServerResponse): Promise<void> {
     let milestones: BrandMilestone[] = [];
     if (db) {
       const snapshot = await db.collection('brand_milestones').get();
-      milestones = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() } as BrandMilestone));
+      milestones = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }) as BrandMilestone);
     }
 
     const now = new Date();
@@ -2311,10 +2326,34 @@ async function handleBrandMilestoneCheck(res: ServerResponse): Promise<void> {
     });
 
     let celebrationsSent = 0;
+    let socialPostsSent = 0;
     for (const milestone of todayMilestones) {
       const message = `🎉 *Today's Milestone: ${milestone.name}*\n\n${milestone.description || 'Time to celebrate!'}`;
       if (await sendSlackMessage(message, ':tada:')) {
         celebrationsSent++;
+      }
+
+      // Post to social media
+      try {
+        const { postMilestoneCelebration } = await import('../services/social/social-service.js');
+        const socialResult = await postMilestoneCelebration({
+          name: milestone.name,
+          description: milestone.description,
+          date: milestone.date,
+        });
+        socialPostsSent += socialResult.successCount;
+        log.info('Milestone posted to social', {
+          milestone: milestone.name,
+          platforms: socialResult.results.map((r) => r.platform),
+          success: socialResult.successCount,
+        });
+      } catch (socialError) {
+        log.warn('Social posting failed for milestone', { error: String(socialError) });
+      }
+
+      // Mark milestone as celebrated
+      if (db) {
+        await db.collection('brand_milestones').doc(milestone.id).update({ celebrated: true });
       }
     }
 
@@ -2327,6 +2366,7 @@ async function handleBrandMilestoneCheck(res: ServerResponse): Promise<void> {
         totalMilestones: milestones.length,
         todayMilestones: todayMilestones.length,
         celebrationsSent,
+        socialPostsSent,
       },
       durationMs,
       timestamp: new Date().toISOString(),
@@ -2360,7 +2400,7 @@ async function handleBrandAmbassadorEngagement(res: ServerResponse): Promise<voi
     let ambassadors: BrandAmbassador[] = [];
     if (db) {
       const snapshot = await db.collection('brand_ambassadors').get();
-      ambassadors = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() } as BrandAmbassador));
+      ambassadors = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }) as BrandAmbassador);
     }
 
     const now = new Date();
@@ -2529,9 +2569,11 @@ async function handleBrandWeeklyReport(res: ServerResponse): Promise<void> {
         db.collection('brand_ambassadors').get(),
       ]);
 
-      awards = awardsSnap.docs.map((doc) => ({ id: doc.id, ...doc.data() } as BrandAward));
-      workstreams = workstreamsSnap.docs.map((doc) => ({ id: doc.id, ...doc.data() } as BrandWorkstream));
-      stories = storiesSnap.docs.map((doc) => ({ id: doc.id, ...doc.data() } as UserStory));
+      awards = awardsSnap.docs.map((doc) => ({ id: doc.id, ...doc.data() }) as BrandAward);
+      workstreams = workstreamsSnap.docs.map(
+        (doc) => ({ id: doc.id, ...doc.data() }) as BrandWorkstream
+      );
+      stories = storiesSnap.docs.map((doc) => ({ id: doc.id, ...doc.data() }) as UserStory);
       ambassadorsCount = ambassadorsSnap.size;
     }
 
@@ -2598,6 +2640,258 @@ async function handleBrandWeeklyReport(res: ServerResponse): Promise<void> {
   } catch (error) {
     const durationMs = Date.now() - startTime;
     log.error({ error: String(error), durationMs }, 'Brand weekly report failed');
+    sendJson(res, 500, {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error',
+      timestamp: new Date().toISOString(),
+    });
+  }
+}
+
+/**
+ * Publish Approved Stories Job Handler
+ *
+ * Publishes approved stories to social media (Twitter, LinkedIn, Discord).
+ * Only publishes stories that have been approved but not yet published.
+ * Runs daily at 11 AM.
+ */
+async function handleBrandPublishStories(res: ServerResponse): Promise<void> {
+  const startTime = Date.now();
+
+  try {
+    log.info('📢 Running brand story publishing (Cloud Scheduler)');
+
+    const { getFirestoreDb } = await import('../services/superhuman/firestore-utils.js');
+    const db = getFirestoreDb();
+
+    interface UserStoryDoc {
+      id: string;
+      userName: string;
+      story: string;
+      quote?: string;
+      approved?: boolean;
+      publishedToSocial?: boolean;
+      source?: string;
+      createdAt?: string;
+    }
+
+    let stories: UserStoryDoc[] = [];
+    if (db) {
+      const snapshot = await db.collection('brand_user_stories').get();
+      stories = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }) as UserStoryDoc);
+    }
+
+    // Find approved stories not yet published to social
+    const unpublishedStories = stories.filter((s) => s.approved && !s.publishedToSocial);
+
+    let storiesPublished = 0;
+    let socialPostsSent = 0;
+
+    // Publish max 3 stories per run to avoid flooding
+    const storiesToPublish = unpublishedStories.slice(0, 3);
+
+    for (const story of storiesToPublish) {
+      try {
+        const { postUserStory } = await import('../services/social/social-service.js');
+
+        // Use quote if available, otherwise use first 200 chars of story
+        const quote =
+          story.quote || story.story.substring(0, 200) + (story.story.length > 200 ? '...' : '');
+
+        const socialResult = await postUserStory({
+          userName: story.userName,
+          quote,
+        });
+
+        if (socialResult.successCount > 0) {
+          storiesPublished++;
+          socialPostsSent += socialResult.successCount;
+
+          // Mark as published
+          if (db) {
+            await db
+              .collection('brand_user_stories')
+              .doc(story.id)
+              .update({
+                publishedToSocial: true,
+                publishedAt: new Date().toISOString(),
+                socialPlatforms: socialResult.results
+                  .filter((r) => r.success)
+                  .map((r) => r.platform),
+              });
+          }
+
+          log.info('Story published to social', {
+            storyId: story.id,
+            userName: story.userName,
+            platforms: socialResult.results.map((r) => r.platform),
+            success: socialResult.successCount,
+          });
+        }
+      } catch (storyError) {
+        log.warn('Failed to publish story to social', {
+          storyId: story.id,
+          error: String(storyError),
+        });
+      }
+    }
+
+    // Notify Slack about publications
+    if (storiesPublished > 0) {
+      await sendSlackMessage(
+        `📢 Published ${storiesPublished} user stories to social media (${socialPostsSent} total posts)`,
+        ':mega:'
+      );
+    }
+
+    const durationMs = Date.now() - startTime;
+
+    sendJson(res, 200, {
+      success: true,
+      job: 'brand-publish-stories',
+      stats: {
+        totalStories: stories.length,
+        approvedUnpublished: unpublishedStories.length,
+        storiesPublished,
+        socialPostsSent,
+      },
+      durationMs,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error) {
+    const durationMs = Date.now() - startTime;
+    log.error({ error: String(error), durationMs }, 'Brand story publishing failed');
+    sendJson(res, 500, {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error',
+      timestamp: new Date().toISOString(),
+    });
+  }
+}
+
+// ============================================================================
+// GTM (GO-TO-MARKET) CONTENT AUTOMATION JOB HANDLERS
+// ============================================================================
+
+/**
+ * GTM Daily Publishing Job Handler
+ *
+ * Autonomous content generation and publishing to all social platforms.
+ * Uses AI to generate brand-aligned content and posts to Twitter, LinkedIn, Discord.
+ * Runs daily at 9 AM.
+ */
+async function handleGTMDailyPublishing(res: ServerResponse): Promise<void> {
+  const startTime = Date.now();
+
+  try {
+    log.info('🚀 Running GTM daily publishing (Cloud Scheduler)');
+
+    const { runDailyPublishing, getGTMStatus } = await import('../services/gtm/gtm-service.js');
+
+    // Get pre-run status
+    const preStatus = await getGTMStatus();
+
+    // Run the daily publishing job
+    const result = await runDailyPublishing();
+
+    // Get post-run status
+    const postStatus = await getGTMStatus();
+
+    // Notify Slack about the publishing run
+    if (result.published > 0 || result.generated > 0) {
+      await sendSlackMessage(
+        `📣 GTM Publishing Complete:\n• Generated: ${result.generated} content pieces\n• Published: ${result.published} posts\n• Platforms: Twitter, LinkedIn, Discord`,
+        ':mega:'
+      );
+    }
+
+    const durationMs = Date.now() - startTime;
+
+    sendJson(res, 200, {
+      success: result.success,
+      job: 'gtm-daily-publishing',
+      stats: {
+        generated: result.generated,
+        published: result.published,
+        errors: result.errors.length,
+        pendingContent: postStatus.pendingEntries,
+      },
+      errors: result.errors.length > 0 ? result.errors : undefined,
+      suggestion: postStatus.suggestion,
+      durationMs,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error) {
+    const durationMs = Date.now() - startTime;
+    log.error({ error: String(error), durationMs }, 'GTM daily publishing failed');
+    sendJson(res, 500, {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error',
+      timestamp: new Date().toISOString(),
+    });
+  }
+}
+
+/**
+ * GTM Weekly Content Generation Job Handler
+ *
+ * Generates content calendar entries for the upcoming week.
+ * Uses AI to create brand-aligned content for each day based on the weekly schedule.
+ * Runs Sunday at 8 AM.
+ */
+async function handleGTMWeeklyContent(res: ServerResponse): Promise<void> {
+  const startTime = Date.now();
+
+  try {
+    log.info('📅 Running GTM weekly content generation (Cloud Scheduler)');
+
+    const { generateWeeklyContent, getCalendarStats } =
+      await import('../services/gtm/gtm-service.js');
+
+    // Get next week's start date (tomorrow)
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+
+    // Generate content for the week
+    const result = await generateWeeklyContent(tomorrow);
+
+    // Get calendar stats
+    const stats = getCalendarStats();
+
+    // Notify Slack
+    if (result.content.length > 0) {
+      const contentList = result.content
+        .map((c) => `• ${c.brief.category}: "${c.title.substring(0, 50)}..."`)
+        .join('\n');
+
+      await sendSlackMessage(
+        `📅 Weekly Content Generated:\n${contentList}\n\nTotal pending: ${stats.byStatus['in-progress'] + stats.byStatus.ready}`,
+        ':calendar:'
+      );
+    }
+
+    const durationMs = Date.now() - startTime;
+
+    sendJson(res, 200, {
+      success: result.success,
+      job: 'gtm-weekly-content',
+      stats: {
+        entriesCreated: result.entries,
+        contentGenerated: result.content.length,
+        calendarStats: {
+          planned: stats.byStatus.planned,
+          inProgress: stats.byStatus['in-progress'],
+          ready: stats.byStatus.ready,
+          published: stats.byStatus.published,
+        },
+      },
+      contentTitles: result.content.map((c) => c.title),
+      durationMs,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error) {
+    const durationMs = Date.now() - startTime;
+    log.error({ error: String(error), durationMs }, 'GTM weekly content generation failed');
     sendJson(res, 500, {
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error',

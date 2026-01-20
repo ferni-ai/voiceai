@@ -167,6 +167,8 @@ export interface SanitizerStreamOptions {
   recentTopics?: string[];
   /** Persona display name for voice guidance */
   personaDisplayName?: string;
+  /** Current conversation mode for injection tracking */
+  conversationMode?: string;
 }
 
 // ============================================================================

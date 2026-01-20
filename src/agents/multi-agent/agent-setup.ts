@@ -1108,6 +1108,8 @@ Reference past context when relevant, but don't force it. Let the conversation f
 
     // 🔍 DEBUG: Listen for input audio transcription events
     // This captures what Gemini's internal STT transcribes from the audio
+    process.stderr.write(`\n🔊 [AUDIO DEBUG] Attaching input_audio_transcription_completed listener to LLM...\n`);
+    
     llmWithEvents.on('input_audio_transcription_completed', (event: unknown) => {
       const transcriptionEvent = event as { transcript?: string };
       process.stderr.write(
@@ -1119,6 +1121,26 @@ Reference past context when relevant, but don't force it. Let the conversation f
         process.stderr.write(`🎤 [GEMINI STT] Char codes: [${charCodes.join(', ')}]\n`);
       }
     });
+
+    // 🔊 AUDIO DEBUG: Listen for ALL possible audio-related events
+    // Different SDKs use different event names
+    const audioEventNames = [
+      'input_audio_transcription_completed',
+      'input_transcription',
+      'transcription',
+      'speech_started',
+      'speech_ended',
+      'user_speech_started',
+      'user_speech_ended',
+      'audio_received',
+      'input_audio',
+    ];
+    for (const eventName of audioEventNames) {
+      llmWithEvents.on(eventName, (event: unknown) => {
+        process.stderr.write(`\n🔊 [AUDIO EVENT] ${eventName}: ${JSON.stringify(event, null, 2).slice(0, 500)}\n`);
+      });
+    }
+    process.stderr.write(`🔊 [AUDIO DEBUG] Listening for audio events: ${audioEventNames.join(', ')}\n`);
 
     // Also listen for message events to see all Gemini communication
     if (process.env.DEBUG_GEMINI_MESSAGES === 'true') {
@@ -1140,6 +1162,101 @@ Reference past context when relevant, but don't force it. Let the conversation f
       );
       process.stderr.write(`\n🚨 [SESSION ERROR] ${JSON.stringify(error, null, 2)}\n`);
     });
+
+    // 🔊 COMPREHENSIVE SESSION DEBUG: Track ALL session events during startup
+    // This helps us understand what's happening during prewarm
+    process.stderr.write(`\n🔊 [SESSION DEBUG] Attaching comprehensive session event listeners...\n`);
+    
+    // Track user state changes (when user starts/stops speaking)
+    sessionWithEvents.on('user_state_changed', (event: unknown) => {
+      process.stderr.write(`\n👤 [USER STATE] ${JSON.stringify(event, null, 2)}\n`);
+    });
+    
+    // Track agent state changes (when agent starts/stops speaking)
+    sessionWithEvents.on('agent_state_changed', (event: unknown) => {
+      process.stderr.write(`\n🤖 [AGENT STATE] ${JSON.stringify(event, null, 2)}\n`);
+    });
+    
+    // Track speech creation (SDK auto-generating responses)
+    sessionWithEvents.on('speech_created', (event: unknown) => {
+      process.stderr.write(`\n🎙️ [SPEECH CREATED] ${JSON.stringify(event, null, 2)}\n`);
+    });
+    
+    // Track user input transcription
+    sessionWithEvents.on('user_input_transcribed', (event: unknown) => {
+      const evt = event as { transcript?: string; isFinal?: boolean };
+      process.stderr.write(`\n📝 [USER TRANSCRIPT] isFinal=${evt.isFinal}: "${evt.transcript || '(empty)'}"\n`);
+    });
+    
+    // 🔊 E2E TRACING: Track ALL speech-related events
+    const debugAll = process.env.DEBUG_GEMINI_ALL === 'true' || process.env.DEBUG_TTS_PIPELINE === 'true';
+    
+    if (debugAll) {
+      // Track when speech is committed (text sent to TTS)
+      sessionWithEvents.on('speech_committed', (event: unknown) => {
+        process.stderr.write(`\n🔊 [SPEECH COMMITTED] ${JSON.stringify(event, null, 2).slice(0, 500)}\n`);
+      });
+      
+      // Track agent speech (when audio is played)
+      sessionWithEvents.on('agent_speech', (event: unknown) => {
+        const evt = event as { text?: string };
+        process.stderr.write(`\n🔊 [AGENT SPEECH] "${evt.text?.slice(0, 100) || '(no text)'}"\n`);
+      });
+      
+      // Track generation events (when LLM starts/finishes generating)
+      sessionWithEvents.on('generation_created', (event: unknown) => {
+        process.stderr.write(`\n⚡ [GENERATION CREATED] ${JSON.stringify(event, null, 2).slice(0, 300)}\n`);
+      });
+      
+      sessionWithEvents.on('generation_done', (event: unknown) => {
+        process.stderr.write(`\n✅ [GENERATION DONE] ${JSON.stringify(event, null, 2).slice(0, 300)}\n`);
+      });
+      
+      // Track response events (OpenAI Realtime style)
+      sessionWithEvents.on('response.created', (event: unknown) => {
+        process.stderr.write(`\n⚡ [RESPONSE CREATED] ${JSON.stringify(event, null, 2).slice(0, 300)}\n`);
+      });
+      
+      sessionWithEvents.on('response.done', (event: unknown) => {
+        process.stderr.write(`\n✅ [RESPONSE DONE] ${JSON.stringify(event, null, 2).slice(0, 300)}\n`);
+      });
+      
+      // Track text output
+      sessionWithEvents.on('response.text.delta', (event: unknown) => {
+        const evt = event as { delta?: string };
+        process.stderr.write(`📝 [TEXT DELTA] "${evt.delta || ''}"`);
+      });
+      
+      sessionWithEvents.on('response.text.done', (event: unknown) => {
+        const evt = event as { text?: string };
+        process.stderr.write(`\n📝 [TEXT DONE] Full text: "${evt.text?.slice(0, 200) || '(empty)'}"\n`);
+      });
+      
+      // Track audio output
+      sessionWithEvents.on('response.audio.delta', () => {
+        process.stderr.write(`🔊`); // Just a dot to show audio is being generated
+      });
+      
+      sessionWithEvents.on('response.audio.done', (event: unknown) => {
+        process.stderr.write(`\n🔊 [AUDIO DONE] Audio generation complete\n`);
+      });
+      
+      // Track playout (when audio actually plays)
+      sessionWithEvents.on('playout_started', (event: unknown) => {
+        process.stderr.write(`\n▶️ [PLAYOUT STARTED] ${JSON.stringify(event, null, 2).slice(0, 200)}\n`);
+      });
+      
+      sessionWithEvents.on('playout_done', (event: unknown) => {
+        process.stderr.write(`\n⏹️ [PLAYOUT DONE] ${JSON.stringify(event, null, 2).slice(0, 200)}\n`);
+      });
+      
+      // Track interruptions
+      sessionWithEvents.on('interrupted', (event: unknown) => {
+        process.stderr.write(`\n🛑 [INTERRUPTED] ${JSON.stringify(event, null, 2).slice(0, 200)}\n`);
+      });
+      
+      process.stderr.write(`🔊 [E2E TRACE] Comprehensive speech event tracing enabled\n`);
+    }
   }
 
   log.info({ personaId: persona.id }, '🔍 Enhanced error logging attached to LLM and session');
@@ -1635,15 +1752,79 @@ async function createPersonaTTS(personaId: string) {
   log.info({ personaId, voiceId, voiceName }, '🎭 Creating TTS with Cartesia voice');
 
   // Use PersonaAwareTTS (supports voice switching)
-  const tts = voiceManagerModule.createPersonaAwareTTS(voiceName, {
+  const baseTTS = voiceManagerModule.createPersonaAwareTTS(voiceName, {
     voiceId,
     accent: 'american',
     isLocalizedVoice: false,
   });
 
-  log.info({ personaId, ttsVoiceId: tts.getVoiceId?.() || 'N/A' }, '🎭 TTS created');
+  log.info({ personaId, ttsVoiceId: baseTTS.getVoiceId?.() || 'N/A' }, '🎭 TTS created');
 
-  return tts;
+  // 🔊 E2E TRACING: Wrap TTS to log all synthesis calls
+  // This shows exactly when and what text is sent to TTS
+  const debugTTS = process.env.DEBUG_TTS_PIPELINE === 'true' || process.env.DEBUG_GEMINI_ALL === 'true';
+  
+  if (debugTTS) {
+    // Create a proxy that logs all method calls
+    const ttsProxy = new Proxy(baseTTS, {
+      get(target, prop) {
+        const value = (target as unknown as Record<string | symbol, unknown>)[prop];
+        
+        // Wrap synthesize method
+        if (prop === 'synthesize' && typeof value === 'function') {
+          return async function(...args: unknown[]) {
+            const text = String(args[0] || '');
+            const timestamp = new Date().toISOString();
+            process.stderr.write(`\n${'='.repeat(60)}\n`);
+            process.stderr.write(`🔊 [TTS SYNTHESIZE] ${timestamp}\n`);
+            process.stderr.write(`  📝 Text: "${text.slice(0, 200)}${text.length > 200 ? '...' : ''}"\n`);
+            process.stderr.write(`  🎙️ Voice: ${voiceId}\n`);
+            process.stderr.write(`  📏 Length: ${text.length} chars\n`);
+            process.stderr.write(`${'='.repeat(60)}\n`);
+            
+            const startTime = Date.now();
+            try {
+              const result = await (value as Function).apply(target, args);
+              process.stderr.write(`  ✅ TTS synthesize completed: ${Date.now() - startTime}ms\n`);
+              return result;
+            } catch (err) {
+              process.stderr.write(`  ❌ TTS synthesize FAILED: ${String(err)}\n`);
+              throw err;
+            }
+          };
+        }
+        
+        // Wrap stream method  
+        if (prop === 'stream' && typeof value === 'function') {
+          return function(...args: unknown[]) {
+            const timestamp = new Date().toISOString();
+            process.stderr.write(`\n🔊 [TTS STREAM START] ${timestamp}\n`);
+            process.stderr.write(`  🎙️ Voice: ${voiceId}\n`);
+            
+            try {
+              const result = (value as Function).apply(target, args);
+              process.stderr.write(`  ✅ TTS stream created\n`);
+              return result;
+            } catch (err) {
+              process.stderr.write(`  ❌ TTS stream FAILED: ${String(err)}\n`);
+              throw err;
+            }
+          };
+        }
+        
+        // Return other properties as-is
+        if (typeof value === 'function') {
+          return value.bind(target);
+        }
+        return value;
+      }
+    });
+    
+    log.info({ personaId }, '🔊 TTS wrapped with E2E tracing');
+    return ttsProxy;
+  }
+
+  return baseTTS;
 }
 
 /**

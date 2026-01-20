@@ -41,6 +41,14 @@ import {
 } from '../../services/cross-persona-insights.js';
 import { getHandoffGreeting as getInsightBriefingGreeting } from '../../services/persona-content-loader.js';
 import { createHandoffEvent } from './types.js';
+// WIRED: Team Chemistry for handoffs - warm dynamics between personas
+import {
+  buildHandoffContext as buildTeamChemistryContext,
+  generateHandoffNote,
+  getTeamDynamics,
+  type TeamPairDynamic,
+} from '../../personas/shared/team-chemistry.js';
+import type { RelationshipStage } from '../../intelligence/relationship/types.js';
 import { HANDOFF_TIMING } from '../../config/handoff-timing.js';
 // Persona Affinity Tracking - "Better Than Human" smart routing
 import { personaAffinity } from '../../services/superhuman/persona-affinity.js';
@@ -106,6 +114,13 @@ interface HandoffContext {
     hasVoiceStrain?: boolean;
     hasVoiceTremor?: boolean;
   };
+  /** Team chemistry context for warm handoffs */
+  teamChemistry?: {
+    dynamic?: TeamPairDynamic;
+    handoffNote?: string;
+    fromPersona: string;
+    toPersona: string;
+  };
 }
 
 let conversationContext: HandoffContext | null = null;
@@ -126,13 +141,14 @@ export function captureHandoffContext(context: Partial<HandoffContext>): void {
 }
 
 /**
- * Capture handoff context with cognitive intelligence
+ * Capture handoff context with cognitive intelligence and team chemistry
  */
 export function captureHandoffContextWithCognition(
   context: Partial<HandoffContext>,
   sessionId: string,
   previousPersonaId: string,
-  targetPersonaId: string
+  targetPersonaId: string,
+  relationshipStage?: RelationshipStage
 ): void {
   // Calculate emotional weight from emotional state
   const emotionalWeight =
@@ -164,9 +180,19 @@ export function captureHandoffContextWithCognition(
     sessionId
   );
 
+  // WIRED: Build team chemistry context for warm handoffs
+  const teamChemistry = buildTeamChemistryForHandoff(
+    previousPersonaId,
+    targetPersonaId,
+    context.topics?.[0] || 'general',
+    context.emotionalState || 'neutral',
+    relationshipStage || 'acquaintance'
+  );
+
   captureHandoffContext({
     ...context,
     cognitiveContext,
+    teamChemistry,
   });
 
   getLogger().info(
@@ -175,9 +201,58 @@ export function captureHandoffContextWithCognition(
       targetPersona: targetPersonaId,
       userStyle: cognitiveContext.userCognitiveStyle,
       effectiveApproaches: cognitiveContext.effectiveApproaches,
+      hasTeamChemistry: !!teamChemistry.dynamic,
     },
-    '🧠 Cognitive handoff context captured'
+    '🧠 Cognitive + Team Chemistry handoff context captured'
   );
+}
+
+/**
+ * Build team chemistry context for handoffs
+ * Adds warm dynamics between personas based on their relationship
+ */
+function buildTeamChemistryForHandoff(
+  fromPersona: string,
+  toPersona: string,
+  topic: string,
+  emotionalState: string,
+  trustLevel: RelationshipStage
+): NonNullable<HandoffContext['teamChemistry']> {
+  // Get team dynamics if available
+  const dynamic = getTeamDynamics(fromPersona, toPersona);
+
+  // Map emotional state to chemistry format
+  const chemistryEmotionalState =
+    emotionalState === 'distressed' || emotionalState === 'anxious'
+      ? 'high_emotion'
+      : emotionalState === 'excited' || emotionalState === 'happy'
+        ? 'excited'
+        : emotionalState === 'sad' || emotionalState === 'struggling'
+          ? 'struggling'
+          : 'neutral';
+
+  // Generate handoff note if dynamics exist
+  let handoffNote: string | undefined;
+  if (dynamic) {
+    try {
+      handoffNote = generateHandoffNote(
+        fromPersona,
+        toPersona,
+        topic,
+        chemistryEmotionalState,
+        trustLevel
+      );
+    } catch (err) {
+      getLogger().debug({ error: String(err) }, 'Could not generate handoff note');
+    }
+  }
+
+  return {
+    dynamic: dynamic || undefined,
+    handoffNote,
+    fromPersona,
+    toPersona,
+  };
 }
 
 /**
@@ -918,12 +993,19 @@ function buildHandoffInstructions(
     cognitiveInstructions = `\n\n${formatCognitiveHandoffForPrompt(conversationContext.cognitiveContext)}`;
   }
 
+  // WIRED: Include team chemistry context for warm handoffs
+  let teamChemistryInstructions = '';
+  if (conversationContext?.teamChemistry) {
+    teamChemistryInstructions = formatTeamChemistryForPrompt(conversationContext.teamChemistry);
+  }
+
   return `You are now ${targetName}. A handoff just occurred.
 
 HANDOFF REASON: ${reason}
 
 ${contextContinuation ? `CONTEXT: ${contextContinuation}` : ''}
 ${cognitiveInstructions}
+${teamChemistryInstructions}
 
 IMPORTANT: Your greeting has ALREADY been spoken automatically. Do NOT repeat a greeting or introduction - the user already heard "${targetName} here" or similar. Jump straight into addressing their needs.
 
@@ -932,7 +1014,48 @@ INSTRUCTIONS:
 2. Reference the context if relevant
 3. Move forward with your expertise in this area
 4. Stay in character as ${targetName}
-5. Apply the cognitive insights above to match the user's thinking style`;
+5. Apply the cognitive insights above to match the user's thinking style
+6. If team chemistry is provided, warmly reference your colleague when natural`;
+}
+
+/**
+ * Format team chemistry context for LLM prompt injection
+ */
+function formatTeamChemistryForPrompt(
+  chemistry: NonNullable<HandoffContext['teamChemistry']>
+): string {
+  if (!chemistry.dynamic) {
+    return '';
+  }
+
+  const { dynamic, handoffNote, fromPersona } = chemistry;
+  const fromName = getPersonaDisplayName(fromPersona);
+
+  const parts: string[] = ['\n[🤝 TEAM CHEMISTRY - Warm Handoff Context]'];
+
+  // Relationship dynamic
+  parts.push(`Relationship with ${fromName}: ${dynamic.relationship}`);
+  parts.push(`Team Dynamic: ${dynamic.dynamic}`);
+
+  // Mutual respect (for natural compliments)
+  if (dynamic.mutualRespect) {
+    parts.push(`Mutual Respect: ${dynamic.mutualRespect}`);
+  }
+
+  // Handoff note from previous persona
+  if (handoffNote) {
+    parts.push(`${fromName}'s Note: "${handoffNote}"`);
+  }
+
+  // Guidance
+  parts.push('\nGuidance:');
+  parts.push(`• When natural, warmly reference ${fromName}'s work or what they shared`);
+  parts.push(`• Your relationship is ${dynamic.relationship} - let that warmth show`);
+  if (dynamic.playfulTension) {
+    parts.push(`• Playful tension (use sparingly): ${dynamic.playfulTension}`);
+  }
+
+  return parts.join('\n');
 }
 
 // ============================================================================

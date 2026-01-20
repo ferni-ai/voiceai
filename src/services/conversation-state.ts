@@ -299,6 +299,23 @@ export interface UserContext {
 }
 
 /**
+ * A single tool execution record for history tracking
+ * Enables "what did you just do?" queries from users
+ */
+export interface ToolHistoryEntry {
+  /** Tool ID that was called */
+  toolId: string;
+  /** Human-readable result summary */
+  result: string;
+  /** Whether the tool succeeded */
+  success: boolean;
+  /** User's original request that triggered this tool */
+  userRequest?: string;
+  /** Timestamp of execution */
+  timestamp: number;
+}
+
+/**
  * Tool execution context (passed to tools)
  */
 export interface ToolExecutionData {
@@ -313,6 +330,26 @@ export interface ToolExecutionData {
 
   /** Tools to avoid (recently used) */
   recentlyUsedTools: string[];
+
+  /**
+   * History of recent tool executions (last 10)
+   * Enables LLM to answer "what did you just do?" and track actions
+   *
+   * CRITICAL: This solves the "LLM doesn't know what it just did" gap
+   * by maintaining a persistent history of tool executions.
+   */
+  history: ToolHistoryEntry[];
+
+  /**
+   * Currently executing tool (in-flight state)
+   * P0-#4 fix: LLM needs to know when a tool is running to avoid speaking over it
+   */
+  toolInFlight?: {
+    toolId: string;
+    startedAt: number;
+    /** Expected completion time based on tool type */
+    expectedDurationMs?: number;
+  };
 }
 
 /**
@@ -410,6 +447,7 @@ function createDefaultToolExecutionData(): ToolExecutionData {
   return {
     suggestedNextTools: [],
     recentlyUsedTools: [],
+    history: [],
   };
 }
 
@@ -750,7 +788,24 @@ export class ConversationStateManager {
   // TOOL EXECUTION
   // ============================================================================
 
-  recordToolCall(toolName: string, resultSummary?: string): void {
+  /**
+   * Record a tool call with full history tracking.
+   *
+   * CRITICAL: This enables the LLM to answer "what did you just do?" by
+   * maintaining a history of recent tool executions with timestamps.
+   *
+   * @param toolName - The tool ID that was called
+   * @param resultSummary - Human-readable result summary
+   * @param options - Additional options for history tracking
+   */
+  recordToolCall(
+    toolName: string,
+    resultSummary?: string,
+    options?: {
+      success?: boolean;
+      userRequest?: string;
+    }
+  ): void {
     this.state.toolExecution.lastToolCalled = toolName;
     this.state.toolExecution.lastToolResult = resultSummary;
 
@@ -760,7 +815,82 @@ export class ConversationStateManager {
       this.state.toolExecution.recentlyUsedTools.pop();
     }
 
+    // Add to history (keep last 10 entries)
+    // This is the KEY fix for "LLM doesn't know what it just did"
+    const historyEntry: ToolHistoryEntry = {
+      toolId: toolName,
+      result: resultSummary || 'Completed',
+      success: options?.success ?? true,
+      userRequest: options?.userRequest,
+      timestamp: Date.now(),
+    };
+    this.state.toolExecution.history.unshift(historyEntry);
+    if (this.state.toolExecution.history.length > 10) {
+      this.state.toolExecution.history.pop();
+    }
+
     this.touch();
+    this.logger.debug(
+      { toolName, success: options?.success ?? true, historyLength: this.state.toolExecution.history.length },
+      '🔧 Tool call recorded with history'
+    );
+  }
+
+  /**
+   * Get recent tool execution history for LLM context injection.
+   * Returns the last N tool executions with their results.
+   */
+  getToolHistory(limit = 5): ToolHistoryEntry[] {
+    return this.state.toolExecution.history.slice(0, limit);
+  }
+
+  /**
+   * Mark a tool as starting execution (in-flight state).
+   * P0-#4 fix: Enables LLM to know a tool is running.
+   *
+   * @param toolId - The tool that's starting
+   * @param expectedDurationMs - Expected duration based on tool type
+   */
+  startToolExecution(toolId: string, expectedDurationMs?: number): void {
+    this.state.toolExecution.toolInFlight = {
+      toolId,
+      startedAt: Date.now(),
+      expectedDurationMs,
+    };
+    this.touch();
+    this.logger.debug({ toolId, expectedDurationMs }, '🔧 Tool execution started (in-flight)');
+  }
+
+  /**
+   * Mark a tool as finished execution (clears in-flight state).
+   * Should be called after recordToolCall() or on tool error.
+   */
+  endToolExecution(): void {
+    if (this.state.toolExecution.toolInFlight) {
+      const duration = Date.now() - this.state.toolExecution.toolInFlight.startedAt;
+      this.logger.debug(
+        { toolId: this.state.toolExecution.toolInFlight.toolId, durationMs: duration },
+        '🔧 Tool execution ended'
+      );
+      this.state.toolExecution.toolInFlight = undefined;
+      this.touch();
+    }
+  }
+
+  /**
+   * Get the currently executing tool (if any).
+   * Returns null if no tool is in-flight.
+   */
+  getToolInFlight(): { toolId: string; startedAt: number; elapsedMs: number; expectedDurationMs?: number } | null {
+    const inFlight = this.state.toolExecution.toolInFlight;
+    if (!inFlight) return null;
+
+    return {
+      toolId: inFlight.toolId,
+      startedAt: inFlight.startedAt,
+      elapsedMs: Date.now() - inFlight.startedAt,
+      expectedDurationMs: inFlight.expectedDurationMs,
+    };
   }
 
   suggestNextTools(toolNames: string[]): void {

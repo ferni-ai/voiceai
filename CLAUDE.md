@@ -1717,6 +1717,60 @@ git commit --no-verify -m "EMERGENCY: ..."
 # Then IMMEDIATELY fix and redeploy properly
 ```
 
+## 🧬 Experiments & A/B Testing System (NEW!)
+
+Autonomous experimentation system for data-driven decisions.
+
+### Experiment Types
+
+| Type | Algorithm | Use Case |
+|------|-----------|----------|
+| `ab` | Z-test significance | Classic A/B testing |
+| `bandit` | Thompson Sampling | Dynamic traffic optimization |
+| `rollout` | Stage-based (2%→10%→25%→50%→100%) | Safe feature rollouts |
+
+### Quick Commands
+
+```bash
+ferni experiments list              # List all experiments
+ferni experiments status            # Show experiment summary
+ferni experiments show <id>         # Show experiment details
+ferni experiments health <id>       # Show experiment health
+ferni experiments start <id>        # Start an experiment
+ferni experiments promote <id>      # Check and promote winner
+```
+
+### Key Files
+
+| File | Purpose |
+|------|---------|
+| `src/tools/intelligence/learning/experiment-manager.ts` | Central orchestrator |
+| `src/tools/intelligence/learning/auto-rollout.ts` | Auto-escalating rollout |
+| `src/tools/intelligence/learning/bandit.ts` | Thompson Sampling MAB |
+| `src/tools/intelligence/learning/sequential-test.ts` | SPRT early stopping |
+| `src/api/experiment-routes.ts` | REST API |
+| `apps/cli/src/commands/experiments/` | CLI commands |
+
+**Full docs:** `src/tools/intelligence/learning/CLAUDE.md`
+
+---
+
+## 🤖 CEO Automation Roadmap
+
+The CLI is evolving from a developer tool to an **autonomous business operations platform**.
+
+| Level | Capability | Status |
+|-------|------------|--------|
+| **L1: Developer Tool** | Deploy, build, test | ✅ Complete |
+| **L2: Operations Platform** | Monitor, alert, auto-remediate | ⚠️ In Progress |
+| **L3: Business Intelligence** | Metrics, insights, recommendations | 🔴 Planned |
+| **L4: Autonomous CEO** | Decide, execute, report | 🔴 Roadmap |
+
+**Full roadmap:** `docs/CEO-AUTOMATION-ROADMAP.md`
+**CLI reference:** `docs/CLI-COMMAND-REFERENCE.md`
+
+---
+
 ## 🎯 Complete CLI Reference
 
 The Ferni CLI (`ferni`) provides comprehensive access to all development, deployment, and operations workflows. Run `ferni help` for full details.

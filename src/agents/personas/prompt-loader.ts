@@ -22,6 +22,8 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import { getModelProvider } from '../model-provider/index.js';
+// Use centralized FTIS V2 mode check - single source of truth
+import { isFTISV2OnlyMode } from '../processors/ftis-v2-integration.js';
 
 const log = createLogger({ module: 'PromptLoader' });
 
@@ -269,6 +271,23 @@ async function loadSafetyDisclaimer(): Promise<string | null> {
  * (they would be spoken as text like "fn:speak args:...").
  */
 async function loadFunctionCallingWithBase(bundleDir: string): Promise<string | null> {
+  // 🎯 FTIS V2 ONLY MODE: Load FTIS V2 instructions instead of JSON function calling
+  // FTIS V2 executes tools directly - LLM just responds to results
+  // Uses isFTISV2OnlyMode() as SINGLE SOURCE OF TRUTH (enabled by default!)
+  if (isFTISV2OnlyMode()) {
+    log.info(
+      { bundleDir },
+      '🎯 FTIS V2 MODE: Loading FTIS V2 instructions (tools execute automatically)'
+    );
+    const ftisInstructions = await loadSharedFile('ftis-v2-instructions.md');
+    if (ftisInstructions) {
+      return ftisInstructions;
+    }
+    // Fall through if file not found
+    log.warn({ bundleDir }, '⚠️ FTIS V2 instructions file not found, no tool instructions loaded');
+    return null;
+  }
+
   // 🎯 SEMANTIC ROUTING PRIMARY: Skip function calling prompts entirely
   // The semantic router handles tool execution BEFORE the LLM, so we don't
   // want to teach the LLM the JSON format (it would output JSON as speech).
@@ -621,13 +640,16 @@ let modelBaseInstructionsCache: string | null = null;
  *
  * Includes:
  * - Platform context (Ferni team)
- * - Critical tool calling format (JSON) - SKIPPED for providers with native FC
+ * - Critical tool calling format (JSON) - SKIPPED for providers with native FC or FTIS V2 mode
  * - Honesty rules
  * - Voice output guidance
  * - Safety boundaries
  *
  * NOTE: Providers with native function calling (e.g., OpenAI Realtime) use
  * minimal instructions to prevent the LLM from outputting "fn:speak" etc.
+ *
+ * NOTE: When FTIS V2 mode is active, load model-base-instructions-ftis.md which
+ * does NOT include JSON format examples (FTIS handles all tools externally).
  */
 export async function loadModelBaseInstructions(): Promise<string> {
   // Check if provider uses minimal instructions (native function calling)
@@ -648,6 +670,10 @@ export async function loadModelBaseInstructions(): Promise<string> {
     return modelBaseInstructionsCache;
   }
 
+  // Check if FTIS V2 mode is active - use FTIS-specific instructions (no JSON)
+  // Uses isFTISV2OnlyMode() as SINGLE SOURCE OF TRUTH (enabled by default!)
+  const isFTISV2Mode = isFTISV2OnlyMode();
+
   try {
     const fs = await import('fs/promises');
     const { fileURLToPath } = await import('url');
@@ -657,22 +683,40 @@ export async function loadModelBaseInstructions(): Promise<string> {
     const __dirname = dirname(__filename);
 
     // Load from shared bundles directory
-    const basePath = join(__dirname, '../../personas/bundles/shared/model-base-instructions.md');
+    // Use FTIS-specific instructions when FTIS V2 mode is active (no JSON examples)
+    const fileName = isFTISV2Mode ? 'model-base-instructions-ftis.md' : 'model-base-instructions.md';
+    const basePath = join(__dirname, '../../personas/bundles/shared', fileName);
     const content = await fs.readFile(basePath, 'utf-8');
 
     // Cache it
     modelBaseInstructionsCache = content;
     log.info(
-      { length: content.length, estimatedTokens: Math.round(content.length / 4) },
-      'Loaded model-level base instructions'
+      { 
+        length: content.length, 
+        estimatedTokens: Math.round(content.length / 4),
+        isFTISV2Mode,
+        fileName,
+      },
+      `Loaded model-level base instructions${isFTISV2Mode ? ' (FTIS V2 mode - no JSON)' : ''}`
     );
 
     return content;
   } catch (error) {
-    log.warn({ error: String(error) }, 'Failed to load model-base-instructions, using fallback');
+    log.warn({ error: String(error), isFTISV2Mode }, 'Failed to load model-base-instructions, using fallback');
 
-    // Fallback: minimal critical instructions
-    const fallback = `You are part of Ferni, a voice-first life coaching platform.
+    // Fallback: different based on mode
+    const fallback = isFTISV2Mode
+      ? `You are part of Ferni, a voice-first life coaching platform.
+
+Actions happen automatically in the background. You don't call tools or announce actions.
+
+Just be conversational. When users ask for things like music or weather, respond naturally:
+- "Sure thing!" or "Here we go!" or "Nice choice!"
+
+CRITICAL: Never output technical text like brackets, status messages, or "tool" language. Just chat naturally.
+
+Never claim capabilities you don't have. Be honest.`
+      : `You are part of Ferni, a voice-first life coaching platform.
 
 When user requests a tool action, output ONLY raw JSON:
 {"fn":"toolName","args":{...}}

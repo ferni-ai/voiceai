@@ -4,7 +4,16 @@
 
 This is the **canonical location** for all Ferni brand guidelines and design system documentation.
 
-📦 **For brand ASSETS** (logos, icons, favicons), see [`brand/`](../../brand/README.md)
+## Related Brand Resources
+
+| Resource | Location | Content |
+|----------|----------|---------|
+| **Full Doc Index** | [`brand/INDEX.md`](../../../brand/INDEX.md) | Navigation hub for ALL 80+ docs |
+| **Brand Assets** | [`brand/`](../../../brand/README.md) | Logos, icons, favicons |
+| **Interactive Demos** | [`brand/*.html`](../../../brand/) | HTML galleries, expressions |
+| **Growth Strategy** | [`brand/evolution/`](../../../brand/evolution/README.md) | 16 strategy docs (~7K lines) |
+| **Data Viz System** | [`brand/visualizations/`](../../../brand/visualizations/README.md) | Visualization components |
+| **AI Agent Rules** | [`brand/CLAUDE.md`](../../../brand/CLAUDE.md) | LUXO eyes, design rules |
 
 ---
 

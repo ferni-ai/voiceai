@@ -1282,14 +1282,18 @@ You are their lifeline right now. Be fully present.`,
     }
 
     // ================================================================
-    // 🎯 SEMANTIC ROUTING: Direct Tool Execution (Bypass LLM)
-    // When semantic router has high confidence, execute tools directly
-    // without going through the LLM. This provides <20ms responses.
+    // 🎯 SEMANTIC ROUTING / FTIS V2: Direct Tool Execution + Natural Response
+    // When router has high confidence, tools execute directly.
+    // 
+    // CLEAN ARCHITECTURE (Jan 2026):
+    // Instead of injecting tool results into chat context (which can leak),
+    // we use generateReply with EPHEMERAL instructions that guide ONE response.
+    // The instructions are NOT stored in chat history, so they can't leak.
     // ================================================================
     if (result.semanticRouting?.bypassLLM && result.semanticRouting.toolResult) {
       const { toolResult, metrics, routingPath } = result.semanticRouting;
 
-      diag.state('🎯 SEMANTIC ROUTING: Bypassing LLM for direct tool response', {
+      diag.state('🎯 DIRECT TOOL: Using generateReply for natural response', {
         toolId: toolResult.toolId,
         confidence: metrics.confidence,
         matchPath: metrics.matchPath,
@@ -1323,12 +1327,60 @@ You are their lifeline right now. Be fully present.`,
         // Non-critical
       }
 
-      // Speak the tool result through the coordinator to prevent overlap
-      if (currentSession && toolResult.speakableResponse) {
-        const { coordinatedSay } = await import('../../speech/coordination/index.js');
-        coordinatedSay(services.sessionId, toolResult.speakableResponse, {
-          allowInterruptions: true,
+      // 🎯 CLEAN ARCHITECTURE: Use generateReply with ephemeral instructions
+      // The instructions guide ONE response only and are NOT stored in chat history.
+      // This is cleaner than context injection which can leak to TTS.
+      try {
+        const { generateReplyBySessionId, TOOL_RESPONSE_TIMEOUT_MS } = 
+          await import('../shared/generate-reply-gateway.js');
+        const { buildToolResponseInstructions } = 
+          await import('../processors/ftis-v2-integration.js');
+        
+        const instructions = buildToolResponseInstructions({
+          toolId: toolResult.toolId,
+          result: toolResult.output || toolResult.speakableResponse || 'Success',
+          success: toolResult.success,
+          personaId: persona.id,
+          personaDisplayName: persona.displayName,
+          userRequest: userText,
         });
+
+        diag.debug('🎯 DIRECT TOOL: Calling generateReplyBySessionId', {
+          toolId: toolResult.toolId,
+          instructionsLength: instructions.length,
+        });
+
+        // generateReply with ephemeral instructions - NOT stored in chat history
+        const replyResult = await generateReplyBySessionId(services.sessionId, {
+          instructions,
+          context: `ftis-tool-${toolResult.toolId}`,
+          priority: 'high',
+          allowInterruptions: true,
+          waitForPlayout: false, // Don't block
+          fallbackMessage: toolResult.speakableResponse || 'Done!',
+          timeoutMs: TOOL_RESPONSE_TIMEOUT_MS,
+        });
+
+        if (!replyResult.success) {
+          diag.warn('🎯 DIRECT TOOL: generateReply failed, fallback was used', {
+            toolId: toolResult.toolId,
+            error: replyResult.error,
+            usedFallback: replyResult.usedFallback,
+          });
+        }
+      } catch (replyError) {
+        // Fallback: speak directly if generateReply completely fails
+        diag.warn('🎯 DIRECT TOOL: generateReply threw, using coordinatedSay fallback', {
+          toolId: toolResult.toolId,
+          error: String(replyError),
+        });
+        
+        if (toolResult.speakableResponse) {
+          const { coordinatedSay } = await import('../../speech/coordination/index.js');
+          coordinatedSay(services.sessionId, toolResult.speakableResponse, {
+            allowInterruptions: true,
+          });
+        }
       }
 
       // Track tool usage (fire-and-forget)
@@ -1820,7 +1872,9 @@ You are their lifeline right now. Be fully present.`,
       }
     }
 
-    // Inject context into LLM
+    // Inject context into LLM (with role: 'user')
+    // Note: FTIS V2 tool results are now handled in the semantic routing section above
+    // using generateReplyBySessionId with ephemeral instructions (cleaner architecture)
     injectTurnContext(turnCtx, result);
 
     // Mark LLM start (LLM inference happens after this point)
@@ -2057,6 +2111,97 @@ IMPORTANT:
         // Non-critical
       }
     }, 'bth-v4-micro-moment-recording');
+
+    // ================================================================
+    // 💕 RELATIONSHIP MEMORY: MOMENT DETECTION
+    // Core Principle #2: "Remember past conversations and reference them naturally"
+    // Records significant moments to relationship memory for callbacks.
+    // ================================================================
+    fireAndForget(async () => {
+      try {
+        const { getRelationshipEngine } = await import('../../intelligence/relationship/index.js');
+        const engine = getRelationshipEngine(services.userId || '', persona.id);
+        if (!engine) return;
+
+        // Detect shared moments based on emotional intensity and content
+        const emotionalAnalysis = result.analysis.analysis.emotion;
+        const emotionalIntensity = emotionalAnalysis?.intensity ?? 0;
+        const primaryEmotion = emotionalAnalysis?.primary || 'neutral';
+
+        // Detect breakthrough moments (high positive emotion + growth language)
+        const isBreakthrough =
+          emotionalIntensity > 0.7 &&
+          /realize|understand|get it|makes sense|aha|finally|never thought|see now/i.test(userText);
+        if (isBreakthrough) {
+          engine.recordMoment('breakthrough', `User had a realization`, {
+            userPhrase: userText.slice(0, 200),
+            significance: Math.min(0.9, emotionalIntensity),
+          });
+          diag.debug('💕 Relationship: Recorded breakthrough moment');
+        }
+
+        // Detect first vulnerability (opening up about personal struggles)
+        const isVulnerable =
+          emotionalIntensity > 0.5 &&
+          /scared|afraid|worried|anxious|struggling|hard for me|admit|never told|confess/i.test(userText);
+        if (isVulnerable) {
+          engine.recordMoment('vulnerability', `User opened up about a struggle`, {
+            userPhrase: userText.slice(0, 200),
+            significance: Math.min(0.85, emotionalIntensity),
+          });
+          diag.debug('💕 Relationship: Recorded vulnerability moment');
+        }
+
+        // Detect celebration moments (achievements, wins)
+        const isCelebration =
+          /got the job|passed|won|achieved|made it|succeeded|promotion|accepted|engaged|married|pregnant|baby/i.test(userText);
+        if (isCelebration) {
+          engine.recordMoment('celebration', `User shared a win or achievement`, {
+            userPhrase: userText.slice(0, 200),
+            significance: 0.8,
+          });
+          diag.debug('💕 Relationship: Recorded celebration moment');
+        }
+
+        // Detect crisis support (user in difficult time)
+        const isCrisis =
+          emotionalIntensity > 0.8 &&
+          ['sad', 'anxious', 'afraid', 'angry', 'frustrated', 'hopeless'].includes(primaryEmotion);
+        if (isCrisis) {
+          engine.recordMoment('crisis_support', `Supported user during difficult moment`, {
+            significance: 0.9,
+          });
+          diag.debug('💕 Relationship: Recorded crisis support moment');
+        }
+
+        // Detect laughter / shared humor
+        const isLaughter =
+          /haha|lol|that's funny|you're funny|made me laugh|hilarious|cracking up/i.test(userText);
+        if (isLaughter) {
+          engine.recordMoment('laughter', `Shared a laugh together`, {
+            userPhrase: userText.slice(0, 100),
+            significance: 0.6,
+          });
+          diag.debug('💕 Relationship: Recorded laughter moment');
+        }
+
+        // Detect deep conversation (long, thoughtful engagement)
+        const wordCount = userText.split(/\s+/).filter(Boolean).length;
+        const isDeepConversation =
+          wordCount > 100 &&
+          emotionalIntensity > 0.5 &&
+          /life|meaning|purpose|values|believe|important|matter|death|love|fear|hope|dream/i.test(userText);
+        if (isDeepConversation) {
+          engine.recordMoment('deep_conversation', `Had a meaningful exchange`, {
+            userPhrase: userText.slice(0, 200),
+            significance: 0.75,
+          });
+          diag.debug('💕 Relationship: Recorded deep conversation moment');
+        }
+      } catch {
+        // Non-critical - relationship moment detection is enhancement
+      }
+    }, 'relationship-moment-detection');
 
     // ================================================================
     // 🎵 BTH v4: RHYTHM INTELLIGENCE RECORDING

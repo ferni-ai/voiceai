@@ -397,6 +397,62 @@ export function unregisterSessionForReconnection(sessionId: string): void {
 }
 
 /**
+ * Generate a reply using only sessionId (looks up session from registry).
+ * 
+ * This is a convenience function that matches the `coordinatedSay(sessionId, ...)` pattern.
+ * Use this when you only have sessionId available (e.g., in turn-handler).
+ * 
+ * @param sessionId - The session ID to generate reply for
+ * @param options - Gateway options (instructions, fallback, etc.)
+ * @returns GatewayResult with success/failure info
+ * 
+ * @example
+ * ```ts
+ * // Instead of needing the full session:
+ * await generateReplyBySessionId(sessionId, {
+ *   instructions: 'Tool executed: playMusic. Acknowledge briefly.',
+ *   context: 'ftis-tool-response',
+ *   fallbackMessage: 'Done!',
+ * });
+ * ```
+ */
+export async function generateReplyBySessionId(
+  sessionId: string,
+  options: GatewayOptions
+): Promise<GatewayResult> {
+  const session = sessionObjects.get(sessionId);
+  
+  if (!session) {
+    log.warn(
+      { sessionId, context: options.context },
+      '⚠️ [GATEWAY] generateReplyBySessionId: Session not found in registry'
+    );
+    
+    // Fall back to speaking directly via coordinatedSay if fallback provided
+    if (options.fallbackMessage) {
+      try {
+        coordinatedSay(sessionId, options.fallbackMessage, { allowInterruptions: true });
+        return {
+          success: false,
+          usedFallback: true,
+          error: 'Session not in registry',
+        };
+      } catch {
+        // Ignore coordinatedSay errors
+      }
+    }
+    
+    return {
+      success: false,
+      usedFallback: false,
+      error: 'Session not found in registry',
+    };
+  }
+  
+  return generateReply(session, sessionId, options);
+}
+
+/**
  * Handle Gemini death by attempting reconnection.
  *
  * CRITICAL FIX: This is called when isLLMDead is detected.
@@ -1240,7 +1296,7 @@ export async function generateReply(
   //   3. Start streaming speech
   // This takes significantly longer than normal conversational turns.
   // Auto-detect tool context and enforce TOOL_RESPONSE_TIMEOUT_MS (10s) minimum.
-  const isToolResponseContext = context.startsWith('json-tool-') || context.includes('tool-response');
+  const isToolResponseContext = context.startsWith('json-tool-') || context.startsWith('ftis-tool-') || context.includes('tool-response');
   let effectiveTimeoutMs: number;
   
   if (isToolResponseContext) {
@@ -1341,6 +1397,15 @@ export async function generateReply(
 
     // The actual generateReply call
     const replyPromise = (async () => {
+      // FIX (Jan 2026): Add diagnostic logging for tool response debugging
+      const isToolResponse = context?.startsWith('json-tool-');
+      if (isToolResponse) {
+        log.info(
+          { sessionId, context, instructionPreview: instructions.slice(0, 200), waitForPlayout },
+          '🔧 [GATEWAY] Tool response generateReply STARTED'
+        );
+      }
+      
       const handle = session.generateReply({ instructions, allowInterruptions });
 
       // BETTER THAN HUMAN: Track actual TTFB by listening for first content
@@ -1360,6 +1425,21 @@ export async function generateReply(
           );
         });
         await handle.waitForPlayout();
+        
+        if (isToolResponse) {
+          log.info(
+            { sessionId, context, durationMs: Date.now() - requestSentAt },
+            '✅ [GATEWAY] Tool response generateReply COMPLETED (with playout)'
+          );
+        }
+      } else {
+        // Without waitForPlayout, we just fire and return immediately
+        if (isToolResponse) {
+          log.info(
+            { sessionId, context },
+            '📤 [GATEWAY] Tool response generateReply FIRED (no playout wait)'
+          );
+        }
       }
 
       // Record when we got the response
@@ -1716,7 +1796,10 @@ export async function prewarmSession(
   // Determine prewarm mode:
   // SKIP_PREWARM_GENERATEREPLY=false → Full prewarm (calls generateReply to establish connection)
   // SKIP_PREWARM_GENERATEREPLY=true/unset → Quick mode (500ms delay, lazy connection)
-  const SKIP_PREWARM_GENERATEREPLY = process.env.SKIP_PREWARM_GENERATEREPLY !== 'false';
+  const envValue = process.env.SKIP_PREWARM_GENERATEREPLY;
+  const SKIP_PREWARM_GENERATEREPLY = envValue !== 'false';
+  
+  process.stderr.write(`\n🔥 [PREWARM DEBUG] SKIP_PREWARM_GENERATEREPLY env="${envValue}" → mode=${SKIP_PREWARM_GENERATEREPLY ? 'QUICK' : 'FULL'}\n`);
 
   if (SKIP_PREWARM_GENERATEREPLY) {
     log.info({ sessionId }, '🔥 [GATEWAY] Starting session prewarm (QUICK MODE)...');
@@ -1740,6 +1823,8 @@ export async function prewarmSession(
   }
 
   log.info({ sessionId }, '🔥 [GATEWAY] Starting FULL prewarm (establishing Gemini connection)...');
+  process.stderr.write(`\n⚠️ [PREWARM DEBUG] FULL prewarm starting - Gemini will receive audio during this phase!\n`);
+  process.stderr.write(`⚠️ [PREWARM DEBUG] Any audio picked up now will trigger Gemini response\n`);
 
   // FIX (Jan 2026): Increased timeout from 3s to 5s - connection can take a while on cold start
   // Also properly interrupt the handle on timeout to prevent WritableStream errors

@@ -30,6 +30,7 @@ export const BUILDER_IMPORTS: Record<string, BuilderImporter> = {
   celebration: async () => import('../emotional/celebration.js'),
   'celebration-growth': async () => import('../emotional/celebration-growth.js'),
   'somatic-context': async () => import('../emotional/somatic-context.js'),
+  'emotional-range-modes': async () => import('../emotional/emotional-range-modes.js'),
   'human-listening': async () => import('../emotional/human-listening.js'),
   'energy-mirroring': async () => import('../emotional/energy-mirroring.js'),
   'energy-awareness': async () => import('../emotional/energy-awareness.js'),
@@ -83,6 +84,7 @@ export const BUILDER_IMPORTS: Record<string, BuilderImporter> = {
   'nayan-wisdom-insights': async () => import('../personas/nayan-wisdom-insights.js'),
   'alex-communication-insights': async () =>
     import('../personas/alex-communication-insights/index.js'),
+  'cross-cultural-wisdom': async () => import('../personas/cross-cultural-wisdom.js'),
   'joel-dickson-insights': async () => import('../personas/joel-dickson-insights/index.js'),
   'spontaneous-vulnerability': async () => import('../personas/spontaneous-vulnerability.js'),
   'physical-presence': async () => import('../personas/physical-presence.js'),
@@ -118,6 +120,7 @@ export const BUILDER_IMPORTS: Record<string, BuilderImporter> = {
   'therapeutic-frameworks': async () => import('../coaching/therapeutic-frameworks.js'),
   'behavioral-economics': async () => import('../coaching/behavioral-economics.js'),
   methodology: async () => import('../coaching/methodology.js'),
+  'topic-guidance': async () => import('../coaching/topic-guidance.js'),
   cognitive: async () => import('../coaching/cognitive.js'),
   'cognitive-quirks': async () => import('../coaching/cognitive-quirks.js'),
   'cognitive-distortions': async () => import('../coaching/cognitive-distortions.js'),
@@ -196,6 +199,8 @@ export const BUILDER_IMPORTS: Record<string, BuilderImporter> = {
   'tool-failure-awareness': async () => import('../awareness/tool-failure-awareness.js'),
   // Routine awareness: "What I Do For You" automated routines
   'routine-awareness': async () => import('../awareness/routine-awareness.js'),
+  // System state awareness: Music playing, timers, recent tool executions (ALWAYS runs)
+  'system-state-awareness': async () => import('../awareness/system-state-awareness.js'),
 
   // ============================================================================
   // EXTERNAL (in external/)
@@ -217,6 +222,8 @@ export const BUILDER_IMPORTS: Record<string, BuilderImporter> = {
   // ============================================================================
   'trust-context': async () => import('../relationship/trust-context.js'),
   'relationship-behaviors': async () => import('../relationship/relationship-behaviors.js'),
+  'relationship-stage': async () => import('../relationship/relationship-stage.js'),
+  'callback-opportunities': async () => import('../relationship/callback-opportunities.js'),
   'deep-relationship': async () => import('../relationship/deep-relationship.js'),
   'social-relationships': async () => import('../relationship/social-relationships.js'),
   'social-graph-context': async () => import('../relationship/social-graph-context.js'),
@@ -245,6 +252,16 @@ export const BUILDER_IMPORTS: Record<string, BuilderImporter> = {
   // ============================================================================
   'community-learning': async () => import('../learning/community-learning.js'),
   'wisdom-synthesis': async () => import('../learning/wisdom-synthesis.js'),
+
+  // ============================================================================
+  // PREDICTIVE (in proactive/)
+  // ============================================================================
+  'persona-proactive': async () => import('../proactive/persona-proactive.js'),
+
+  // ============================================================================
+  // COGNITIVE (in cognitive/)
+  // ============================================================================
+  'cognitive-style': async () => import('../cognitive/cognitive-style.js'),
 
   // ============================================================================
   // ROOT INFRASTRUCTURE (stay at root)

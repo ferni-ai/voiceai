@@ -409,6 +409,37 @@ export interface UserData {
   /** Whether this is a response to our proactive outreach */
   isOutreachResponse?: boolean;
 
+  // ============================================================
+  // UNIFIED TOOL ROUTING (UTO) STATE
+  // Persists tool execution and system state across turns
+  // ============================================================
+
+  /** Last tool executed (persists across turns for LLM awareness) */
+  lastToolExecuted?: {
+    toolId: string;
+    timestamp: Date;
+    result?: string;
+  };
+
+  /** Current system state from UTO for context injection */
+  systemState?: {
+    music: {
+      isPlaying: boolean;
+      currentTrack?: { name: string; artist: string };
+      volume: number;
+      isDucked: boolean;
+    };
+    timers: { active: number; nextExpiry?: Date };
+    lastToolExecuted?: { toolId: string; timestamp: Date; result?: string };
+  };
+
+  /** Tool hint from UTO for medium-confidence cases - tells LLM what tool to use */
+  toolHint?: {
+    toolId: string;
+    guidance: string;
+    confidence: number;
+  };
+
   /** Index signature for extensibility (compatible with PersonaSessionData) */
   [key: string]: unknown;
 }

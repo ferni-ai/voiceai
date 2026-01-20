@@ -18,6 +18,13 @@ const HANDLED_TOOLS = [
   'musiccontrol',
   'musicinfo',
   'suggestmusic',
+  // FTIS V3 semantic tool IDs (from classifier) - route all to playMusicUnified
+  'spotify_search',
+  'spotify_play',
+  'find_music',
+  'play_music',
+  'music_play',
+  'itunes_play',
   // Legacy aliases (backward compatibility)
   'pausemusic',
   'pausecallmusic',
@@ -44,11 +51,13 @@ async function execute(
     return null;
   }
 
-  // Play music
-  if (fnLower === 'playmusic') {
+  // Play music (handles multiple tool IDs from FTIS V3 classifier)
+  // All these route to playMusicUnified which handles iTunes/Spotify intent detection
+  const playMusicTools = ['playmusic', 'spotify_search', 'spotify_play', 'find_music', 'play_music', 'music_play', 'itunes_play'];
+  if (playMusicTools.includes(fnLower)) {
     const { playMusicUnified } = await import('../../../tools/domains/entertainment/music.js');
     const query = (args.query as string) || 'music';
-    log.info({ query }, '🎵 Playing music');
+    log.info({ query, toolId: fn }, '🎵 Playing music via playMusicUnified');
     return playMusicUnified(query);
   }
 

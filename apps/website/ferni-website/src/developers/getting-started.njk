@@ -1,0 +1,622 @@
+---
+layout: layouts/dev-base.njk
+title: Getting Started | Ferni Developer Platform
+description: Get your API keys and make your first call in under 5 minutes
+permalink: /developers/getting-started/
+---
+
+<style>
+  :root {
+    --dev-bg: #584840;
+    --dev-surface: #70605a;
+    --dev-surface-elevated: #7d6e67;
+    --dev-border: rgba(212, 168, 74, 0.2);
+    --dev-accent: #d4a84a;
+    --dev-accent-hover: #e5bc6a;
+    --dev-text: #faf8f5;
+    --dev-text-muted: rgba(250, 248, 245, 0.7);
+    --dev-code-bg: #4a3c35;
+    --dev-ferni-green: #4a6741;
+  }
+
+  body.dev-portal {
+    background: var(--dev-bg);
+    color: var(--dev-text);
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    margin: 0;
+    padding: 0;
+    line-height: 1.7;
+  }
+
+  .dev-nav {
+    background: var(--dev-surface);
+    border-bottom: 1px solid var(--dev-border);
+    padding: 1rem 2rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  .dev-nav-brand {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    text-decoration: none;
+    color: var(--dev-text);
+    font-weight: 600;
+    font-size: 1.1rem;
+  }
+
+  .dev-nav-brand svg {
+    width: 32px;
+    height: 32px;
+  }
+
+  .dev-nav-links {
+    display: flex;
+    gap: 2rem;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  .dev-nav-links a {
+    color: var(--dev-text-muted);
+    text-decoration: none;
+    font-size: 0.9rem;
+    font-weight: 500;
+    transition: color 0.2s;
+  }
+
+  .dev-nav-links a:hover,
+  .dev-nav-links a.active {
+    color: var(--dev-accent);
+  }
+
+  .doc-header {
+    background: linear-gradient(135deg, var(--dev-surface) 0%, var(--dev-bg) 100%);
+    border-bottom: 1px solid var(--dev-border);
+    padding: 4rem 2rem;
+    text-align: center;
+  }
+
+  .doc-header h1 {
+    font-size: 2.5rem;
+    font-weight: 700;
+    margin: 0 0 1rem;
+    color: var(--dev-text);
+  }
+
+  .doc-header p {
+    font-size: 1.1rem;
+    color: var(--dev-text-muted);
+    max-width: 600px;
+    margin: 0 auto;
+  }
+
+  .doc-content {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 3rem 2rem;
+  }
+
+  .doc-content h2 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin: 2.5rem 0 1rem;
+    color: var(--dev-text);
+    border-bottom: 1px solid var(--dev-border);
+    padding-bottom: 0.5rem;
+  }
+
+  .doc-content h3 {
+    font-size: 1.2rem;
+    font-weight: 600;
+    margin: 2rem 0 0.75rem;
+    color: var(--dev-text);
+  }
+
+  .doc-content p {
+    margin: 0 0 1rem;
+    color: var(--dev-text);
+  }
+
+  .doc-content strong {
+    color: var(--dev-accent);
+  }
+
+  .doc-content ul, .doc-content ol {
+    margin: 0 0 1.5rem;
+    padding-left: 1.5rem;
+  }
+
+  .doc-content li {
+    margin-bottom: 0.5rem;
+    color: var(--dev-text);
+  }
+
+  .doc-content a {
+    color: var(--dev-accent);
+    text-decoration: none;
+  }
+
+  .doc-content a:hover {
+    text-decoration: underline;
+  }
+
+  .doc-content code {
+    background: var(--dev-code-bg);
+    padding: 0.125rem 0.375rem;
+    border-radius: 4px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.9em;
+  }
+
+  .doc-content pre {
+    background: var(--dev-code-bg);
+    border: 1px solid var(--dev-border);
+    border-radius: 8px;
+    padding: 1rem 1.5rem;
+    overflow-x: auto;
+    margin: 1rem 0 1.5rem;
+  }
+
+  .doc-content pre code {
+    background: transparent;
+    padding: 0;
+    font-size: 0.85rem;
+    line-height: 1.6;
+  }
+
+  .doc-content table {
+    width: 100%;
+    border-collapse: collapse;
+    background: var(--dev-surface);
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid var(--dev-border);
+    margin: 1rem 0 1.5rem;
+  }
+
+  .doc-content th,
+  .doc-content td {
+    padding: 0.75rem 1rem;
+    text-align: left;
+  }
+
+  .doc-content th {
+    background: rgba(0,0,0,0.15);
+    font-weight: 600;
+    font-size: 0.85rem;
+    color: var(--dev-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .doc-content td {
+    border-top: 1px solid var(--dev-border);
+  }
+
+  .doc-content tr:hover td {
+    background: rgba(212, 168, 74, 0.05);
+  }
+
+  .callout {
+    background: rgba(212, 168, 74, 0.1);
+    border: 1px solid rgba(212, 168, 74, 0.3);
+    border-radius: 8px;
+    padding: 1rem 1.5rem;
+    margin: 1.5rem 0;
+  }
+
+  .callout-warning {
+    background: rgba(248, 113, 113, 0.1);
+    border-color: rgba(248, 113, 113, 0.3);
+  }
+
+  .callout strong {
+    color: var(--dev-text);
+  }
+
+  .path-card {
+    background: var(--dev-surface);
+    border: 1px solid var(--dev-border);
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin: 1rem 0;
+  }
+
+  .path-card h4 {
+    margin: 0 0 0.5rem;
+    color: var(--dev-accent);
+    font-size: 1.1rem;
+  }
+
+  .path-card p {
+    margin: 0 0 1rem;
+    color: var(--dev-text-muted);
+  }
+
+  .path-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--dev-accent);
+    font-size: 0.9rem;
+    margin-top: 0.5rem;
+  }
+
+  .dev-footer {
+    background: var(--dev-surface);
+    border-top: 1px solid var(--dev-border);
+    padding: 2rem;
+    text-align: center;
+  }
+
+  .dev-footer p {
+    color: var(--dev-text-muted);
+    font-size: 0.9rem;
+    margin: 0;
+  }
+
+  .dev-footer a {
+    color: var(--dev-accent);
+    text-decoration: none;
+  }
+
+  .dev-footer a:hover {
+    text-decoration: underline;
+  }
+
+  @media (max-width: 768px) {
+    .dev-nav {
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .doc-content pre {
+      font-size: 0.8rem;
+    }
+  }
+</style>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+<nav class="dev-nav">
+  <a href="/developers/" class="dev-nav-brand">
+    <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <!-- LUXO STYLE: opaque white eyes, no pupils, warm smile -->
+      <circle cx="50" cy="50" r="45" fill="#4a6741"/>
+      <ellipse cx="36" cy="48" rx="7" ry="9" fill="white"/>
+      <ellipse cx="64" cy="48" rx="7" ry="9" fill="white"/>
+      <path d="M30 70 Q50 82 70 70" stroke="white" stroke-width="4" stroke-linecap="round" fill="none"/>
+    </svg>
+    <span>Ferni Developers</span>
+  </a>
+  <ul class="dev-nav-links">
+    <li><a href="/developers/" class="active">Docs</a></li>
+    <li><a href="/developers/api/">API Reference</a></li>
+    <li><a href="/developers/blog/">Blog</a></li>
+    <li><a href="https://github.com/ferni-ai" target="_blank" rel="noopener">GitHub</a></li>
+  </ul>
+</nav>
+
+<header class="doc-header">
+  <h1>Getting Started</h1>
+  <p>Get your API keys and make your first call in under 5 minutes</p>
+</header>
+
+<div class="doc-content">
+  <h2>Welcome to the Ferni Developer Platform</h2>
+
+  <p>The Ferni Developer Platform lets you extend voice agents with custom integrations, workflows, and tools. No local setup required - everything runs in the cloud.</p>
+
+  <p><strong>What you can build:</strong></p>
+  <ul>
+    <li>Connect external services via <strong>MCP Servers</strong></li>
+    <li>Create <strong>Custom Tools</strong> for voice agents to use</li>
+    <li>Receive real-time events via <strong>Webhooks</strong></li>
+    <li>Define multi-step <strong>Workflows</strong> triggered by voice</li>
+    <li>Track custom <strong>Activities</strong> and metrics</li>
+  </ul>
+
+  <h2>Step 1: Get Your API Credentials</h2>
+
+  <h3>Create a Developer Account</h3>
+  <ol>
+    <li>Visit <a href="https://console.ferni.ai">console.ferni.ai</a></li>
+    <li>Sign up with your email or Google account</li>
+    <li>Accept the Developer Terms of Service</li>
+  </ol>
+
+  <h3>Generate API Keys</h3>
+  <p>Navigate to <strong>Settings - API Keys</strong> and click <strong>Create API Key</strong>.</p>
+
+  <pre><code>pk_live_xxxxxxxxxxxxxxxxxxxxxxxxxxxxx</code></pre>
+
+  <div class="callout callout-warning">
+    <strong>Important:</strong> Copy your key immediately - it won't be shown again.
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Key Type</th>
+        <th>Prefix</th>
+        <th>Usage</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Live</td>
+        <td><code>pk_live_</code></td>
+        <td>Production traffic</td>
+      </tr>
+      <tr>
+        <td>Test</td>
+        <td><code>pk_test_</code></td>
+        <td>Development and testing</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2>Step 2: Make Your First API Call</h2>
+
+  <p>Let's verify your credentials by listing your MCP servers (initially empty):</p>
+
+  <pre><code>curl https://api.ferni.ai/api/v2/developers/mcp-servers \
+  -H "Authorization: Bearer pk_live_xxxxx"</code></pre>
+
+  <p><strong>Response:</strong></p>
+  <pre><code>{
+  "success": true,
+  "data": []
+}</code></pre>
+
+  <p>If you see this response, you're ready to build.</p>
+
+  <h2>Step 3: Choose Your Path</h2>
+
+  <div class="path-card">
+    <h4>Path A: Connect External Tools (MCP Servers)</h4>
+    <p>Register an MCP Server to give voice agents access to your tools.</p>
+    <pre><code>curl -X POST https://api.ferni.ai/api/v2/developers/mcp-servers \
+  -H "Authorization: Bearer pk_live_xxxxx" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "my-crm",
+    "description": "CRM integration for customer lookups",
+    "transport": "http",
+    "endpoint": "https://mcp.yourcompany.com",
+    "autoConnect": true
+  }'</code></pre>
+    <p>Now users can say "Look up customer Acme Corp" and your tools execute automatically.</p>
+    <a href="/developers/blog/mcp-server-integration/" class="path-link">Full MCP Integration Guide &rarr;</a>
+  </div>
+
+  <div class="path-card">
+    <h4>Path B: Receive Events (Webhooks)</h4>
+    <p>Get notified when things happen in Ferni.</p>
+    <pre><code>curl -X POST https://api.ferni.ai/api/v2/developers/webhooks \
+  -H "Authorization: Bearer pk_live_xxxxx" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Session Events",
+    "url": "https://api.yourcompany.com/ferni-webhooks",
+    "events": ["session.started", "session.ended", "tool.called"],
+    "enabled": true
+  }'</code></pre>
+    <a href="/developers/blog/webhook-security/" class="path-link">Webhook Security Best Practices &rarr;</a>
+  </div>
+
+  <div class="path-card">
+    <h4>Path C: Build Workflows</h4>
+    <p>Create multi-step automations triggered by voice.</p>
+    <pre><code>curl -X POST https://api.ferni.ai/api/v2/developers/workflows \
+  -H "Authorization: Bearer pk_live_xxxxx" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Daily Standup",
+    "trigger": { "type": "voice_command", "config": { "command": "start standup" } },
+    "nodes": [
+      { "id": "start", "type": "start" },
+      { "id": "fetch", "type": "mcp_call", "config": { "serverId": "mcp_xxx", "toolName": "calendar.getEvents" } },
+      { "id": "speak", "type": "speak", "config": { "text": "Your calendar summary..." } },
+      { "id": "end", "type": "end" }
+    ],
+    "edges": [
+      { "sourceId": "start", "targetId": "fetch" },
+      { "sourceId": "fetch", "targetId": "speak" },
+      { "sourceId": "speak", "targetId": "end" }
+    ]
+  }'</code></pre>
+    <a href="/developers/blog/workflow-engine-guide/" class="path-link">Workflow Engine Guide &rarr;</a>
+  </div>
+
+  <h2>Authentication</h2>
+
+  <p>All API requests require a Bearer token:</p>
+
+  <pre><code>curl https://api.ferni.ai/api/v2/developers/... \
+  -H "Authorization: Bearer pk_live_xxxxx"</code></pre>
+
+  <h3>Error Responses</h3>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Status</th>
+        <th>Meaning</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>401</code></td>
+        <td>Missing or invalid API key</td>
+      </tr>
+      <tr>
+        <td><code>403</code></td>
+        <td>Key doesn't have required scope</td>
+      </tr>
+      <tr>
+        <td><code>429</code></td>
+        <td>Rate limit exceeded</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2>Rate Limits</h2>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Plan</th>
+        <th>Requests/minute</th>
+        <th>MCP Servers</th>
+        <th>Webhooks</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Free</td>
+        <td>60</td>
+        <td>3</td>
+        <td>5</td>
+      </tr>
+      <tr>
+        <td>Pro</td>
+        <td>600</td>
+        <td>25</td>
+        <td>50</td>
+      </tr>
+      <tr>
+        <td>Enterprise</td>
+        <td>Unlimited</td>
+        <td>Unlimited</td>
+        <td>Unlimited</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <p>Rate limit headers are included in every response:</p>
+
+  <pre><code>X-RateLimit-Limit: 60
+X-RateLimit-Remaining: 58
+X-RateLimit-Reset: 1704985200</code></pre>
+
+  <h2>Base URLs</h2>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Environment</th>
+        <th>Base URL</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Production</td>
+        <td><code>https://api.ferni.ai/api/v2</code></td>
+      </tr>
+      <tr>
+        <td>Sandbox</td>
+        <td><code>https://sandbox.ferni.ai/api/v2</code></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2>SDKs (Coming Soon)</h2>
+
+  <p>Official SDKs are in development:</p>
+
+  <pre><code>// TypeScript SDK (coming Q1 2026)
+import { Ferni } from '@ferni/sdk';
+
+const ferni = new Ferni({ apiKey: 'pk_live_xxxxx' });
+
+const server = await ferni.mcp.create({
+  name: 'my-crm',
+  endpoint: 'https://mcp.yourcompany.com'
+});</code></pre>
+
+  <pre><code># Python SDK (coming Q1 2026)
+from ferni import Ferni
+
+ferni = Ferni(api_key="pk_live_xxxxx")
+
+server = ferni.mcp.create(
+    name="my-crm",
+    endpoint="https://mcp.yourcompany.com"
+)</code></pre>
+
+  <p>Until then, use <code>curl</code> or any HTTP client.</p>
+
+  <h2>Quick Reference</h2>
+
+  <table>
+    <thead>
+      <tr>
+        <th>What you want</th>
+        <th>Endpoint</th>
+        <th>Guide</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Register external tools</td>
+        <td><code>POST /mcp-servers</code></td>
+        <td><a href="/developers/blog/mcp-server-integration/">MCP Guide</a></td>
+      </tr>
+      <tr>
+        <td>Create custom tools</td>
+        <td><code>POST /tools</code></td>
+        <td><a href="/developers/api/">API Reference</a></td>
+      </tr>
+      <tr>
+        <td>Receive events</td>
+        <td><code>POST /webhooks</code></td>
+        <td><a href="/developers/blog/webhook-security/">Webhook Security</a></td>
+      </tr>
+      <tr>
+        <td>Build automations</td>
+        <td><code>POST /workflows</code></td>
+        <td><a href="/developers/blog/workflow-engine-guide/">Workflow Guide</a></td>
+      </tr>
+      <tr>
+        <td>Track metrics</td>
+        <td><code>POST /activities</code></td>
+        <td><a href="/developers/api/">API Reference</a></td>
+      </tr>
+      <tr>
+        <td>Connect OAuth</td>
+        <td><code>POST /oauth/providers</code></td>
+        <td><a href="/developers/api/">API Reference</a></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2>Next Steps</h2>
+
+  <ul>
+    <li><a href="/developers/api/">API Reference</a> - Full endpoint documentation</li>
+    <li><a href="/developers/blog/">Developer Blog</a> - Tutorials and best practices</li>
+    <li><a href="https://github.com/ferni-ai/examples">Examples</a> - Working code samples</li>
+  </ul>
+
+  <h2>Get Help</h2>
+
+  <ul>
+    <li><a href="https://discord.gg/ferni">Discord</a> - Community support</li>
+    <li><a href="https://github.com/ferni-ai/platform/issues">GitHub Issues</a> - Bug reports</li>
+    <li><a href="mailto:support@ferni.ai">support@ferni.ai</a> - Enterprise support</li>
+  </ul>
+</div>
+
+<footer class="dev-footer">
+  <p>Ferni AI {{ 'now' | date('yyyy') }}. <a href="/developers/">Docs</a> / <a href="/developers/api/">API Reference</a> / <a href="/developers/blog/">Blog</a> / <a href="https://ferni.ai">ferni.ai</a></p>
+</footer>

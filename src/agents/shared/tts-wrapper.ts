@@ -40,6 +40,8 @@ import {
 import { getVoiceIdForPersona } from '../../config/voice-ids.js';
 import { getModelProvider } from '../model-provider/index.js';
 import { getLinguisticMirroring } from '../../conversation/superhuman/linguistic-mirroring.js';
+// FTIS V2 mode check - when enabled, skip JSON workaround entirely
+import { isFTISV2OnlyMode } from '../processors/ftis-v2-integration.js';
 import {
   bridgeToFerniContext,
   enrichContextFromFirestore,
@@ -352,6 +354,8 @@ export interface TtsSessionContext {
   recentTopics?: string[];
   /** Persona display name for voice guidance */
   personaDisplayName?: string;
+  /** Current conversation mode for injection tracking */
+  conversationMode?: string;
 }
 
 /**
@@ -445,6 +449,7 @@ export async function wrappedTtsNode(
 
   // 1. Filter JSON function calls (Gemini workaround)
   // SKIP when:
+  // - FTIS V2 mode enabled: FTIS handles all tool calls via classification
   // - DISABLE_JSON_WORKAROUND=true: Explicitly disabled
   // - SEMANTIC_ROUTING_PRIMARY=true: Semantic router handles all tool calls
   // - Provider has native function calling (doesn't need JSON workaround)
@@ -452,19 +457,25 @@ export async function wrappedTtsNode(
   // When a provider has native function calling (e.g., OpenAI Realtime), the LLM calls
   // functions directly via the API protocol, not by outputting JSON in text.
   // The sanitizer would just add latency with no benefit.
+  //
+  // When FTIS V2 is active, the system classifies user intent BEFORE the LLM responds
+  // and executes tools directly. The LLM then receives tool results and responds naturally.
   const provider = getModelProvider();
   const skipJsonWorkaround =
+    isFTISV2OnlyMode() ||  // FTIS V2 handles all tools - no JSON workaround needed
     process.env.DISABLE_JSON_WORKAROUND === 'true' ||
     process.env.SEMANTIC_ROUTING_PRIMARY === 'true' ||
     !provider.needsJsonWorkaround();
 
   let filteredText: NodeReadableStream<string>;
   if (skipJsonWorkaround) {
-    const reason = !provider.needsJsonWorkaround()
-      ? `${provider.displayName} has native function calling`
-      : process.env.SEMANTIC_ROUTING_PRIMARY === 'true'
-        ? 'semantic routing is primary'
-        : 'explicitly disabled';
+    const reason = isFTISV2OnlyMode()
+      ? 'FTIS V2 mode handles all tools'
+      : !provider.needsJsonWorkaround()
+        ? `${provider.displayName} has native function calling`
+        : process.env.SEMANTIC_ROUTING_PRIMARY === 'true'
+          ? 'semantic routing is primary'
+          : 'explicitly disabled';
     log.info(`${provider.getLogPrefix()} JSON workaround DISABLED - ${reason}`);
     
     // BUG FIX: Even with native function calling, OpenAI Realtime can sometimes
@@ -748,6 +759,8 @@ export async function wrappedTtsNode(
       timeContext: sessionContext?.timeContext,
       recentTopics: sessionContext?.recentTopics,
       personaDisplayName: sessionContext?.personaDisplayName,
+      // BTH Feedback Loop: Conversation mode for injection tracking
+      conversationMode: sessionContext?.conversationMode,
     });
 
     // Pipe: Raw LLM → Logger → Sanitizer

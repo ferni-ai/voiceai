@@ -1,53 +1,14 @@
 /**
- * 🎮 Social Service Index
+ * Social Media Service
  *
- * Export all social/multiplayer services:
- * - Multiplayer games (challenges, taste match)
- * - Leaderboards
+ * Unified social media posting for Ferni brand.
+ * Supports Twitter, LinkedIn, Discord, and more.
+ *
+ * @module services/social
  */
 
-// Multiplayer Games
-export {
-  createChallenge,
-  acceptChallenge,
-  completeChallenge,
-  declineChallenge,
-  getChallenge,
-  getChallengeByShareCode,
-  getPendingChallenges,
-  getChallengeHistory,
-  createTasteMatchSession,
-  joinTasteMatchSession,
-  setParticipantReady,
-  submitTasteMatchAnswer,
-  getTasteMatchSession,
-  getCurrentQuestion,
-  type ChallengeType,
-  type ChallengeStatus,
-  type Challenge,
-  type TasteMatchSession,
-  type TasteMatchParticipant,
-  type TasteMatchQuestion,
-  type TasteMatchAnswer,
-  type TasteMatchInsight,
-  type TasteCompatibility,
-} from './multiplayer-games.js';
-
-// Leaderboards
-export {
-  getUserStats,
-  updateUserStats,
-  recordChallengeResult,
-  getLeaderboard,
-  getUserRank,
-  getLeaderboardAroundUser,
-  calculateLevel,
-  getXPForNextLevel,
-  seedLeaderboardData,
-  type LeaderboardPeriod,
-  type LeaderboardScope,
-  type LeaderboardEntry,
-  type Leaderboard,
-  type UserStats,
-  type GameStats,
-} from './leaderboards.js';
+export * from './types.js';
+export * from './social-service.js';
+export { postToLinkedIn, refreshLinkedInToken } from './linkedin-adapter.js';
+export { postToTwitter, refreshTwitterToken } from './twitter-adapter.js';
+export { postToDiscord, postToDiscordWebhook, postToDiscordBot } from './discord-adapter.js';

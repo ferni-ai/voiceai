@@ -1,6 +1,14 @@
 /**
  * Relationship Memory Engine Types
  *
+ * @deprecated These types have been rebuilt in src/intelligence/relationship/types.ts.
+ *
+ * The new types are cleaner and aligned with the wired implementation:
+ * - Import from 'src/intelligence/relationship/index.js' instead
+ * - Types: RelationshipMemory, SharedMoment, CallbackAttempt, etc.
+ *
+ * This file is kept for reference but should NOT be used for new code.
+ *
  * > "Your best friend forgets. We don't."
  *
  * This module defines the schema for tracking the evolving relationship

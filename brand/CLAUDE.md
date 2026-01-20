@@ -2,8 +2,19 @@
 
 **Interactive brand showcase** with HTML galleries, expression demos, and visual references.
 
-> **For brand DOCUMENTATION**, see `design-system/docs/brand/` (canonical location)
-> **For design TOKENS**, see `design-system/tokens/` (source of truth)
+> **Full doc index**: See `INDEX.md` for complete navigation of all 80+ brand docs
+
+## Quick Links
+
+| Need | Go To |
+|------|-------|
+| **Brand guidelines** | `design-system/docs/brand/FERNI-BRAND-GUIDELINES.md` |
+| **Better Than Human spec** | `design-system/docs/brand/BETTER-THAN-HUMAN.md` |
+| **UI/screen standards** | `design-system/docs/brand/FERNI-SCREEN-GUIDELINES.md` |
+| **Voice/tone** | `design-system/docs/brand/BRAND-VOICE-GUIDE.md` |
+| **Design tokens (JSON)** | `design-system/tokens/` |
+| **Growth strategy** | `brand/evolution/README.md` (16 docs) |
+| **All docs map** | `brand/INDEX.md` |
 
 ## Critical Design Rules
 
@@ -62,24 +73,61 @@ color: #4a6741;
 ## File Structure
 
 ```
-brand/                       # Interactive showcases (this folder)
-├── CLAUDE.md                # Critical design rules (LUXO eyes!)
-├── brand-book.html          # Print-ready brand guidelines
-├── components.html          # UI component showcase
-├── characters/              # Per-persona expression galleries
-├── capabilities/            # 19 superhuman capabilities showcase
-├── expressions/             # Avatar expression system
-└── favicons/                # Favicon variants
+brand/                         # Interactive showcases (this folder)
+├── INDEX.md                   # Complete documentation index (START HERE)
+├── CLAUDE.md                  # AI agent design rules (LUXO eyes!)
+├── README.md                  # Quick start
+│
+├── characters/                # Per-persona expression galleries (6 personas)
+│   ├── ferni/expressions.html
+│   ├── maya/expressions.html
+│   └── ... (alex, jordan, peter, nayan)
+│
+├── evolution/                 # Growth & strategy docs (16 docs, ~7K lines)
+│   ├── README.md              # Categorized navigation
+│   ├── BETTER-THAN-HUMAN-MANIFESTO.md
+│   ├── COMMUNITY-PLAYBOOK.md
+│   └── ... (14 more)
+│
+├── visualizations/            # Data visualization system
+│   ├── components/            # 12 viz components
+│   └── mock-data/             # Sample data templates
+│
+├── motion/                    # Animation system
+├── marketing/                 # Marketing pages & templates
+├── investor/                  # Investor materials
+├── capabilities/              # 19 superhuman capabilities
+├── docs/                      # Content strategy (blog, calendar)
+└── specs/                     # Technical specifications
 
-design-system/               # Source of truth
-├── tokens/                  # JSON design tokens (EDIT THESE)
-├── assets/                  # Consolidated logos, icons
-└── docs/brand/              # Brand DOCUMENTATION (canonical)
+design-system/                 # Source of truth
+├── tokens/                    # JSON design tokens (EDIT THESE)
+├── assets/                    # Consolidated logos, icons
+└── docs/brand/                # Canonical brand DOCUMENTATION (28 docs)
 ```
 
 ## Quick Reference
 
-- **Expression Gallery**: `characters/ferni/expressions.html`
-- **Motion Demo**: `motion/demo.html`
-- **Capabilities**: `capabilities/index.html`
-- **Universe Bible**: `FERNI-UNIVERSE-BIBLE.md`
+| Resource | Location |
+|----------|----------|
+| Expression Gallery | `characters/ferni/expressions.html` |
+| Motion Demo | `motion/demo.html` |
+| Capabilities | `capabilities/index.html` |
+| Universe Bible | `design-system/docs/brand/FERNI-UNIVERSE-BIBLE.md` |
+| Full Doc Index | `INDEX.md` |
+
+## Documentation by Category
+
+| Category | Count | Location |
+|----------|-------|----------|
+| Core Brand | 5 | `design-system/docs/brand/` |
+| Design System | 5 | `design-system/docs/brand/` |
+| Superhuman Experience | 5 | Split across both |
+| Sensory Design | 6 | `design-system/docs/brand/` |
+| Visual Guidelines | 5 | `design-system/docs/brand/` |
+| Motion & Animation | 3 | `brand/motion/` |
+| Growth & Strategy | 16 | `brand/evolution/` |
+| Data Visualization | 6 | `brand/visualizations/` |
+| Marketing | 6 | Split across both |
+| Technical Specs | 4 | Split across both |
+| **Total** | **~80** | See `INDEX.md` for full map |

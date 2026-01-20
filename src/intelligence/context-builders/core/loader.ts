@@ -134,6 +134,7 @@ export const BUILDER_MANIFEST: Record<BuilderCategory, string[]> = {
     'celebration-growth',
     'somatic-context',
     'emotional-trajectory-awareness', // E2E: Surfaces emotional trends over time ("Better Than Human")
+    'emotional-range-modes', // WIRED: Beyond warm-wise - silly, frustrated, delighted, etc.
   ],
 
   // VOICE - Voice emotion analysis
@@ -188,6 +189,7 @@ export const BUILDER_MANIFEST: Record<BuilderCategory, string[]> = {
     'jordan-milestone-insights', // Jordan-specific: milestone and goal insights on entry/handoff
     'nayan-wisdom-insights', // Nayan-specific: big-picture wisdom synthesis on entry/handoff
     'alex-communication-insights', // Alex-specific: communication coaching on entry/handoff
+    'cross-cultural-wisdom', // WIRED: Japanese philosophy, poetry, multicultural wisdom (Better Than Human)
     'joel-dickson-insights', // Joel-specific: investing wisdom, Bogle principles (STANDALONE persona)
     'better-than-human-direct', // Direct surfacing of Better Than Human curated phrases
     'conversational-superpowers', // Quote memory, milestones, micro-wins, jokes, names
@@ -209,6 +211,7 @@ export const BUILDER_MANIFEST: Record<BuilderCategory, string[]> = {
     'methodology', // Evidence-based frameworks from methodology.json
     'maya-habit-insights', // Maya-specific: habit patterns, predictive care, streak protection
     'prediction-surfacing', // Proactive prediction surfacing for all personas
+    'topic-guidance', // WIRED: Sensitive topic guidance (grief, anxiety, transitions, etc.)
   ],
 
   // COGNITIVE - Cognitive intelligence
@@ -217,6 +220,7 @@ export const BUILDER_MANIFEST: Record<BuilderCategory, string[]> = {
     'deep-understanding', // Unified deep intelligence: silence, rhythm, resistance, energy, goals, flow, repair, hope, chapters
     'awareness', // Momentum, thinking time, tangents, self-awareness (priority 55)
     'cognitive',
+    'cognitive-style', // WIRED: Persona cognitive differentiation - questioning style, silence handling, insight framing
     'cognitive-quirks',
     'cognitive-distortions',
     'cognitive-insights',
@@ -256,6 +260,7 @@ export const BUILDER_MANIFEST: Record<BuilderCategory, string[]> = {
   // NOTE: pacing.behavioral.ts in behavioral/builders/ provides safer signal-based
   // pacing control that cannot be misinterpreted. Legacy builder disabled.
   [BuilderCategory.CONTEXT]: [
+    'system-state-awareness', // P0: Music playing, timers, recent tool executions (ALWAYS runs, priority 10)
     'outbound-call-context', // On-behalf call purpose, script, compliance (runs early for outbound calls)
     'inbound-call-context', // Inbound phone call identity, recognition status, sponsored identity context
     'proactive-session-context', // E2E: Proactive check-in call trigger and opener guidance
@@ -277,6 +282,10 @@ export const BUILDER_MANIFEST: Record<BuilderCategory, string[]> = {
     'situational-awareness',
     'trust-context',
     'relationship-behaviors',
+    'relationship-stage', // NEW: Relationship stage, trust level, milestone awareness (Core Principle #2)
+    'callback-opportunities', // NEW: Natural callbacks to past shared moments (Core Principle #2)
+    'persona-proactive', // NEW: Persona-specific proactive pattern detection (Core Principle #5)
+    'cognitive-style', // NEW: Cognitive differentiation - questioning, silence, insights (Core Principle #4)
     'session-flow',
     'natural-discovery', // Gentle prompts to learn about dreams, values, goals
     'calendar-awareness',

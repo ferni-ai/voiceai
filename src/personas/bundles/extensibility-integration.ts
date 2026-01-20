@@ -103,26 +103,10 @@ export async function executeHook(
 
     log.debug({ event, personaId: ctx.personaId }, 'Executing extensibility hook');
 
-    // Import and execute the hook
-    const { executeHook: execHook } = await import('./hooks-loader.js');
-    const result = await execHook({
-      event: event as import('./hooks-loader.js').HookEvent,
-      hook,
-      personaId: ctx.personaId,
-      userId: ctx.userId || 'unknown',
-      sessionId: ctx.sessionId || 'unknown',
-      data: {
-        toolName: ctx.toolName,
-        toolParams: ctx.toolParams,
-        toolResult: ctx.toolResult,
-        commandId: ctx.commandId,
-        commandArgs: ctx.commandArgs,
-      },
-    });
-
-    log.info({ event, personaId: ctx.personaId, success: result.success }, 'Hook executed');
-
-    return result;
+    // NOTE: hooks-loader.js removed - hooks extensibility system not yet implemented
+    // Return null to indicate no hook was executed
+    log.warn({ event, personaId: ctx.personaId }, 'Hooks system not implemented - skipping');
+    return null;
   } catch (error) {
     log.error({ error, event, personaId: ctx.personaId }, 'Failed to execute hook');
     return null;
@@ -368,13 +352,9 @@ export async function getAssets(personaId: string): Promise<BundleAssets | null>
  */
 export async function getThemeCSS(personaId: string, prefix = 'agent'): Promise<string | null> {
   try {
-    const assets = await getAssets(personaId);
-    if (!assets?.theme) {
-      return null;
-    }
-
-    const { themeToCSSVariables } = await import('./assets-loader.js');
-    return themeToCSSVariables(assets.theme, prefix);
+    // NOTE: assets-loader.js removed - theme CSS generation not yet implemented
+    // Return null to indicate no CSS was generated
+    return null;
   } catch (error) {
     log.error({ error, personaId }, 'Failed to get theme CSS');
     return null;

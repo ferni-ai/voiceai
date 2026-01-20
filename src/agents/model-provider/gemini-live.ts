@@ -48,6 +48,7 @@ import type {
   PromptModuleConfig,
 } from './types.js';
 import { getContextualTemperature, TEMPERATURE_DEFAULTS } from './types.js';
+import { isFTISV2OnlyMode } from '../processors/ftis-v2-integration.js';
 
 // ============================================================================
 // CONSTANTS
@@ -77,26 +78,35 @@ type GeminiFCMode = 'AUTO' | 'ANY' | 'NONE';
 
 /**
  * Get the configured function calling mode from environment.
+ * 
+ * FIX (Jan 2026): Now properly checks isFTISV2OnlyMode() instead of
+ * just the env var. When FTIS V2 is active (default), native FC should
+ * be NONE since FTIS handles all tool routing via transcripts.
  */
 function getGeminiFCMode(): GeminiFCMode {
-  // FTIS_ONLY_MODE disables all Gemini tool knowledge
-  if (process.env.FTIS_ONLY_MODE === 'true') {
+  // FTIS V2 mode disables all Gemini native tool knowledge
+  // FTIS V2 handles tools via transcript classification, not native FC
+  if (isFTISV2OnlyMode()) {
     return 'NONE';
   }
   const mode = process.env.GEMINI_FC_MODE?.toUpperCase();
   if (mode === 'ANY' || mode === 'NONE' || mode === 'AUTO') {
     return mode;
   }
-  // Default to AUTO for backward compatibility
+  // Default to AUTO when FTIS V2 is disabled
   return 'AUTO';
 }
 
 /**
  * Check if FTIS-only mode is enabled.
  * When true, Gemini has NO tool knowledge - FTIS handles everything.
+ * 
+ * NOTE: This function delegates to the consolidated isFTISV2OnlyMode() from
+ * ftis-v2-integration.ts which is the single source of truth.
+ * It checks both FTIS_V2_ONLY_MODE and FTIS_ONLY_MODE env vars.
  */
 function isFTISOnlyMode(): boolean {
-  return process.env.FTIS_ONLY_MODE === 'true';
+  return isFTISV2OnlyMode();
 }
 
 /**
@@ -278,10 +288,11 @@ export class GeminiLiveProvider implements ModelProvider {
       modalities: [TEXT_MODALITY],
       temperature,
       instructions: config.instructions,
-      // Enable input audio transcription to see what Gemini transcribes
-      // This is critical for debugging - without it we can't see what audio
-      // Gemini receives and how it transcribes it (e.g., silence as ".")
-      inputAudioTranscription: { languageCode: 'en-US' },
+      // Enable input audio transcription for FTIS V2 and debugging
+      // CRITICAL: Must be empty object {} - the AudioTranscriptionConfig interface
+      // is empty and adding invalid fields like languageCode breaks transcription!
+      // This enables UserInputTranscribed events needed for FTIS V2 tool routing.
+      inputAudioTranscription: {},
     };
 
     // Pass tools for native function calling as a backup layer
@@ -332,6 +343,66 @@ export class GeminiLiveProvider implements ModelProvider {
 
     // Use google.beta.realtime namespace for Gemini Live API
     const model = new google.beta.realtime.RealtimeModel(modelOptions);
+
+    // 🔊 E2E TRACING: Attach comprehensive message logging
+    // Enable with DEBUG_GEMINI_ALL=true to see EVERYTHING
+    const debugAll = process.env.DEBUG_GEMINI_ALL === 'true' || process.env.DEBUG_GEMINI_MESSAGES === 'true';
+    
+    const modelWithEvents = model as unknown as {
+      on?: (event: string, handler: (...args: unknown[]) => void) => void;
+    };
+    
+    if (modelWithEvents.on) {
+      console.log('🔊 [GEMINI] Attaching E2E message tracing...');
+      
+      // Log ALL events from the model
+      const eventsToTrace = [
+        // Core message events
+        'message',
+        'response',
+        'content',
+        // Audio events
+        'input_audio_transcription_completed',
+        'input_transcription',
+        'audio_buffer_speech_started',
+        'audio_buffer_speech_stopped',
+        // State events
+        'session.created',
+        'session.update',
+        'conversation.item.created',
+        'response.created',
+        'response.done',
+        'response.output_item.added',
+        'response.content_part.added',
+        'response.text.delta',
+        'response.text.done',
+        'response.function_call_arguments.delta',
+        'response.function_call_arguments.done',
+        // Error events
+        'error',
+        'close',
+      ];
+      
+      for (const eventName of eventsToTrace) {
+        modelWithEvents.on(eventName, (event: unknown) => {
+          const eventStr = JSON.stringify(event, null, 2);
+          const truncated = eventStr.length > 2000 ? eventStr.slice(0, 2000) + '...[TRUNCATED]' : eventStr;
+          
+          if (debugAll) {
+            process.stderr.write(`\n📡 [GEMINI ${eventName}] ${truncated}\n`);
+          } else {
+            // Always log important events even without debug flag
+            if (['error', 'close', 'input_audio_transcription_completed'].includes(eventName)) {
+              process.stderr.write(`\n📡 [GEMINI ${eventName}] ${truncated}\n`);
+            }
+          }
+        });
+      }
+      
+      console.log(`🔊 [GEMINI] Tracing ${eventsToTrace.length} event types (DEBUG_GEMINI_ALL=${debugAll})`);
+    } else {
+      console.log('⚠️ [GEMINI] Model does not support event listeners - no tracing available');
+    }
 
     return model;
   }

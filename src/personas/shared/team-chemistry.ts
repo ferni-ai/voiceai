@@ -6,12 +6,184 @@
  * This module powers the natural, warm dynamics between Ferni team members.
  * Real teams have inside jokes, mutual admiration, playful teasing, and
  * shared history. So does the Ferni team.
+ *
+ * Now loads rich content from persona bundles:
+ * - team-awareness.json: How personas reference teammates
+ * - team-stories.json: Stories about teammates, handoff setups
  */
 
 import { getLogger } from '../../utils/safe-logger.js';
-import type { RelationshipStage } from '../relationship-memory/index.js';
+// WIRED: Use NEW relationship types from intelligence module
+import type { RelationshipStage } from '../../intelligence/relationship/types.js';
+import { loadPersonaContent } from '../../services/persona-content-loader.js';
 
 const log = getLogger();
+
+// ============================================================================
+// BUNDLE CONTENT TYPES
+// ============================================================================
+
+interface TeamStoriesContent {
+  team_observations?: Record<
+    string,
+    Array<{ story: string; triggers: string[]; mood: string }>
+  >;
+  team_handoff_setups?: Record<string, string[]>;
+  team_affection?: string[];
+}
+
+interface TeamAwarenessContent {
+  teammate_references?: Record<
+    string,
+    {
+      affectionate_nicknames?: string[];
+      how_i_describe_them?: string;
+      when_they_helped?: string[];
+      proud_moments?: string[];
+    }
+  >;
+  team_huddle_references?: string[];
+  coordinating_phrases?: string[];
+  after_handoff_references?: string[];
+  spontaneous_team_mentions?: {
+    probability?: number;
+    conditions?: { min_relationship_stage?: string; min_turns?: number };
+    phrases?: string[];
+  };
+}
+
+// Cache for loaded content
+let teamStoriesCache: Record<string, TeamStoriesContent | null> = {};
+let teamAwarenessCache: Record<string, TeamAwarenessContent | null> = {};
+
+/**
+ * Load team stories content from bundle
+ */
+async function loadTeamStories(personaId: string): Promise<TeamStoriesContent | null> {
+  if (teamStoriesCache[personaId] !== undefined) {
+    return teamStoriesCache[personaId];
+  }
+  try {
+    const content = await loadPersonaContent<TeamStoriesContent>(personaId, 'team_stories');
+    teamStoriesCache[personaId] = content;
+    return content;
+  } catch {
+    teamStoriesCache[personaId] = null;
+    return null;
+  }
+}
+
+/**
+ * Load team awareness content from bundle
+ */
+async function loadTeamAwareness(personaId: string): Promise<TeamAwarenessContent | null> {
+  if (teamAwarenessCache[personaId] !== undefined) {
+    return teamAwarenessCache[personaId];
+  }
+  try {
+    const content = await loadPersonaContent<TeamAwarenessContent>(personaId, 'team_awareness');
+    teamAwarenessCache[personaId] = content;
+    return content;
+  } catch {
+    teamAwarenessCache[personaId] = null;
+    return null;
+  }
+}
+
+/**
+ * Get a rich handoff setup phrase from bundle content
+ * Returns persona-specific warm handoff phrases like:
+ * "Ooh, stocks? Peter's gonna LOVE this. He's probably already analyzing something."
+ */
+export async function getRichHandoffSetup(
+  fromPersonaId: string,
+  toPersonaId: string
+): Promise<string | null> {
+  const content = await loadTeamStories(fromPersonaId);
+  if (!content?.team_handoff_setups) return null;
+
+  // Map persona ID to key format (peter-john -> peter)
+  const keyMap: Record<string, string> = {
+    'peter-john': 'peter',
+    'alex-chen': 'alex',
+    'maya-santos': 'maya',
+    'jordan-taylor': 'jordan',
+    'nayan-patel': 'nayan',
+    ferni: 'ferni',
+  };
+
+  const key = keyMap[toPersonaId] || toPersonaId;
+  const phrases = content.team_handoff_setups[key];
+  if (!phrases || phrases.length === 0) return null;
+
+  const phrase = phrases[Math.floor(Math.random() * phrases.length)];
+  log.debug({ fromPersonaId, toPersonaId, phrase }, '🤝 Using rich handoff setup from bundle');
+  return phrase;
+}
+
+/**
+ * Get a team story about a specific teammate
+ */
+export async function getTeamStoryAbout(
+  fromPersonaId: string,
+  aboutPersonaId: string,
+  trigger?: string
+): Promise<{ story: string; mood: string } | null> {
+  const content = await loadTeamStories(fromPersonaId);
+  if (!content?.team_observations) return null;
+
+  const keyMap: Record<string, string> = {
+    'peter-john': 'peter',
+    'alex-chen': 'alex',
+    'maya-santos': 'maya',
+    'jordan-taylor': 'jordan',
+    'nayan-patel': 'nayan',
+  };
+
+  const key = keyMap[aboutPersonaId] || aboutPersonaId;
+  const stories = content.team_observations[key];
+  if (!stories || stories.length === 0) return null;
+
+  // If trigger provided, try to find matching story
+  if (trigger) {
+    const matching = stories.filter((s) =>
+      s.triggers.some((t) => trigger.toLowerCase().includes(t.toLowerCase()))
+    );
+    if (matching.length > 0) {
+      const story = matching[Math.floor(Math.random() * matching.length)];
+      return { story: story.story, mood: story.mood };
+    }
+  }
+
+  // Return random story
+  const story = stories[Math.floor(Math.random() * stories.length)];
+  return { story: story.story, mood: story.mood };
+}
+
+/**
+ * Get a "when they helped" reference from team awareness
+ */
+export async function getWhenTheyHelpedReference(
+  speakingPersonaId: string,
+  aboutPersonaId: string
+): Promise<string | null> {
+  const content = await loadTeamAwareness(speakingPersonaId);
+  if (!content?.teammate_references) return null;
+
+  const keyMap: Record<string, string> = {
+    'peter-john': 'peter-john',
+    'alex-chen': 'alex-chen',
+    'maya-santos': 'maya-santos',
+    'jordan-taylor': 'jordan-taylor',
+    'nayan-patel': 'nayan-patel',
+  };
+
+  const key = keyMap[aboutPersonaId] || aboutPersonaId;
+  const ref = content.teammate_references[key];
+  if (!ref?.when_they_helped || ref.when_they_helped.length === 0) return null;
+
+  return ref.when_they_helped[Math.floor(Math.random() * ref.when_they_helped.length)];
+}
 
 // ============================================================================
 // TYPES
@@ -301,8 +473,8 @@ const HANDOFF_TRUST_CONTEXT = {
   stranger: 'First time talking to them. Build rapport first.',
   acquaintance: 'Getting to know them. Be warm.',
   friend: 'They know the team. Jump in.',
-  trusted_advisor: 'Deep relationship. Be yourself.',
-  inner_circle: 'Old friends at this point. Full directness allowed.',
+  trusted: 'Deep relationship. Be yourself.',
+  confidant: 'Old friends at this point. Full directness allowed.',
 };
 
 // ============================================================================
@@ -466,7 +638,7 @@ export function getTeamChemistryConfig(): TeamChemistryConfig {
     teamReferenceFrequency: 0.15,
     teamReferenceMinSessions: 3,
     insideJokeMinRelationship: 'friend',
-    teamStoryMinRelationship: 'trusted_advisor',
+    teamStoryMinRelationship: 'trusted',
     handoffContextAlways: true,
     complimentMaxPerSession: 1,
     complimentMinSessionsBetween: 5,

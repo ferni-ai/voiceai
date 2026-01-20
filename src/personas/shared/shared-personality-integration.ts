@@ -81,10 +81,7 @@ import {
   callbackToExpression,
   type MemoryCallback,
 } from './memory-personality-bridge.js';
-import {
-  prewarmCache as prewarmLLMCache,
-  type ExpressionContext as LLMExpressionContext,
-} from './llm-expression-generator.js';
+// NOTE: llm-expression-generator removed - use persona-specific generators in bundles/
 
 const log = createLogger({ module: 'shared-personality-integration' });
 
@@ -349,13 +346,7 @@ export async function processSharedPersonalityTurn(
     // Prewarm resonance cache
     await prewarmResonanceCache(userId);
 
-    // Prewarm LLM expression cache with default context
-    const defaultLLMContext: LLMExpressionContext = {
-      timeOfDay: 'morning',
-      relationshipStage: 'acquaintance',
-      momentum: 'opening',
-    };
-    prewarmLLMCache(personaId, defaultLLMContext);
+    // NOTE: LLM expression cache prewarming removed - use persona-specific generators
 
     state.initialized = true;
   }

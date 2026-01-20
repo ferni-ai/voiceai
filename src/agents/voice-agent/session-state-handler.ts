@@ -12,11 +12,15 @@
 
 import { log, voice } from '@livekit/agents';
 // FIX AUDIT: Import from service layer instead of API routes (clean architecture)
-import { checkForAccentChange } from '../../services/session/index.js';
 import { getDJController } from '../../audio/index.js';
-import { notifyAgentSpeakingStart, notifyAgentSpeakingEnd, notifyUserSpeakingStart, notifyUserSpeakingEnd } from './music-handler.js';
+import { checkForAccentChange } from '../../services/session/index.js';
+import {
+  notifyAgentSpeakingEnd,
+  notifyAgentSpeakingStart,
+  notifyUserSpeakingEnd,
+  notifyUserSpeakingStart,
+} from './music-handler.js';
 // Tool execution tracking - prevents dead air check-in during active tool calls
-import { getStateMetrics } from '../../speech/coordination/sanitizer-integration.js';
 import { getSessionFlags } from '../../config/voice-humanization-flags.js';
 import { getActiveListeningEngine } from '../../conversation/active-listening.js';
 import {
@@ -25,42 +29,42 @@ import {
   type SilenceAnalysis,
 } from '../../intelligence/silence-intelligence.js';
 import {
-  getMeaningfulSilenceResponse,
   getLLMSilenceInstructions,
   playAmbientMusicDuringSilence,
   stopAmbientMusic,
-  type SilenceContext,
-  type LLMSilenceInstructions,
+  type SilenceContext
 } from '../../personas/meaningful-silence.js';
 import type { PersonaConfig } from '../../personas/types.js';
 import type { ConversationManager } from '../../services/conversation-manager.js';
 import { diag } from '../../services/diagnostic-logger.js';
+import { getStateMetrics } from '../../speech/coordination/sanitizer-integration.js';
 import { wrapSpeechWithInterruptAwareness } from '../../speech/graceful-interrupt/speech-wrapper.js';
 import { getLiveBackchannelingService } from '../../speech/live-backchanneling/index.js';
 import {
-  generateBackchannelInstructions,
-  generateSilenceInstructions,
+  generateBackchannelInstructions
 } from '../../speech/llm-backchannel.js';
-import { getContextAwareThinkingFiller } from '../../speech/persona-phrases.js';
 import {
   trackBackchannelEvent,
   trackResponseLatency,
   validateTurnPrediction,
 } from '../integrations/speech-metrics-integration.js';
-import { SILENCE_THRESHOLDS, IDLE_TIMEOUT } from '../shared/constants.js';
-import { safeGenerateReply, generateReplyWithContext } from '../shared/safe-generate-reply.js';
-import { clearPendingLowPriorityResponse, hasActiveResponsePending } from '../shared/generate-reply-gateway.js';
+import { IDLE_TIMEOUT, SILENCE_THRESHOLDS } from '../shared/constants.js';
+import {
+  clearPendingLowPriorityResponse,
+  hasActiveResponsePending,
+} from '../shared/generate-reply-gateway.js';
+import { generateReplyWithContext, safeGenerateReply } from '../shared/safe-generate-reply.js';
 // Response Orchestrator - SDK state tracking for proactive response coordination
 import {
   canTriggerProactive,
   onAgentStateChanged,
-  onUserSpeaking,
-  onGenerationStarted,
   onGenerationComplete,
+  onGenerationStarted,
+  onUserSpeaking
 } from '../shared/response-orchestrator.js';
 import type { UserData } from '../shared/types.js';
 // Speech coordination for adaptive timing and centralized speech management
-import { getSpeechCoordinator, coordinatedSay } from '../../speech/coordination/index.js';
+import { coordinatedSay, getSpeechCoordinator } from '../../speech/coordination/index.js';
 // Safe fire-and-forget pattern for non-critical async operations
 import { fireAndForget } from '../../utils/safe-fire-and-forget.js';
 // Better Than Human - Silence Interpreter integration
@@ -122,7 +126,8 @@ const getLogger = () => log();
  * Returns the silenceContext which is shared with the transcript handler.
  */
 export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStateResult {
-  const { session, sessionPersona, conversationManager, userData, sessionId, onIdleTimeout, room } = ctx;
+  const { session, sessionPersona, conversationManager, userData, sessionId, onIdleTimeout, room } =
+    ctx;
 
   // ============================================================
   // INTERRUPT-AWARE SPEECH HELPER
@@ -331,7 +336,15 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
   // NOISE FILTER (Jan 2026): Filter out very short "speech" events (clicks, pops, noise)
   // "Hi" takes ~150-200ms to say, noise/clicks are usually < 100ms
   // This prevents false activations from VAD picking up non-speech sounds
-  const MIN_SPEECH_DURATION_MS = 150;
+  // 
+  // ⚠️ DEBUGGING: Set DISABLE_NOISE_FILTER=true to disable (helps debug what Gemini hears)
+  // The filter was incorrectly triggering and blocking valid responses (Jan 2026 bug)
+  const NOISE_FILTER_DISABLED = process.env.DISABLE_NOISE_FILTER === 'true';
+  const MIN_SPEECH_DURATION_MS = NOISE_FILTER_DISABLED ? 0 : 150;
+  
+  if (NOISE_FILTER_DISABLED) {
+    diag.state('⚠️ NOISE FILTER DISABLED via DISABLE_NOISE_FILTER=true');
+  }
 
   // ============================================================
   // BACKCHANNEL HELPER (Regular - after user pauses)
@@ -555,7 +568,10 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
   session.on(voice.AgentSessionEventTypes.AgentStateChanged, (event) => {
     // Update ResponseOrchestrator with agent state changes
     // This ensures proactive systems know when SDK is handling a response
-    onAgentStateChanged(sessionId, event.newState as 'speaking' | 'listening' | 'thinking' | 'initializing');
+    onAgentStateChanged(
+      sessionId,
+      event.newState as 'speaking' | 'listening' | 'thinking' | 'initializing'
+    );
 
     if (event.newState === 'speaking') {
       conversationManager.handleAgentStartedSpeaking('');
@@ -889,6 +905,25 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
           durationMs: speechDurationMs,
           thresholdMs: MIN_SPEECH_DURATION_MS,
         });
+
+        // 🛑 CRITICAL FIX (Jan 2026): Interrupt SDK auto-response for noise
+        // With createResponse=true, the SDK auto-generates responses when user "speech" ends.
+        // For noise (clicks, pops), the SDK may have already started generating a response
+        // based on the brief audio. We interrupt it to prevent hallucinated responses.
+        try {
+          session.interrupt();
+          diag.debug('🛑 [NOISE FILTER] Interrupted SDK auto-response for noise');
+        } catch (interruptErr) {
+          // Non-critical - SDK might not have started a response yet
+          diag.debug('🛑 [NOISE FILTER] Interrupt attempt (SDK may not have started response)');
+        }
+
+        // 🔧 FIX (Jan 2026): Clear ResponseOrchestrator state after noise interrupt
+        // Without this, sdkGenerating stays true indefinitely, blocking all proactive responses.
+        // The interrupt() call stops the SDK, but the orchestrator doesn't know about it.
+        onGenerationComplete(sessionId);
+        diag.debug('🛑 [NOISE FILTER] Cleared orchestrator state after interrupt');
+
         // Clear the speaking start time but don't process further
         userData.userSpeakingStartTime = undefined;
         // Don't notify DJ controller or start watchdogs for noise
@@ -912,7 +947,8 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
 
       // Store the user's last message for recovery (from userData if available)
       const recentTranscripts = userData.recentTranscripts ?? [];
-      lastUserMessageForRecovery = recentTranscripts[recentTranscripts.length - 1] || userData.lastUserMessage || null;
+      lastUserMessageForRecovery =
+        recentTranscripts[recentTranscripts.length - 1] || userData.lastUserMessage || null;
 
       emptyResponseWatchdogTimer = setTimeout(async () => {
         // If we get here, the agent didn't respond within 5 seconds
@@ -948,24 +984,27 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
           // DJ Controller not initialized - continue with recovery
         }
 
-        diag.state('🚨 [EMPTY_RESPONSE_WATCHDOG] No agent response after 5s - triggering recovery', {
-          lastUserMessage: lastUserMessageForRecovery?.slice(0, 50),
-          userFinishedAt: userFinishedSpeakingAt,
-        });
+        diag.state(
+          '🚨 [EMPTY_RESPONSE_WATCHDOG] No agent response after 5s - triggering recovery',
+          {
+            lastUserMessage: lastUserMessageForRecovery?.slice(0, 50),
+            userFinishedAt: userFinishedSpeakingAt,
+          }
+        );
 
-        // Try direct tool routing first (handles music, weather, handoffs)
+        // Try UTO routing first (handles music, weather, handoffs via FTIS V3 Hybrid Router)
         if (lastUserMessageForRecovery) {
           try {
-            const { routeDirectly, isDirectRoutingEnabled } = await import('./direct-tool-router.js');
+            const { toolOrchestrator } = await import('../../tools/orchestrator/unified-tool-orchestrator.js');
 
-            if (isDirectRoutingEnabled()) {
+            if (toolOrchestrator.isRoutingEnabled()) {
               // RACE CONDITION FIX: Re-check session closing before taking action
               if (isSessionClosing(sessionId)) {
                 diag.state('🚨 [EMPTY_RESPONSE_WATCHDOG] Skipped - session closing (re-check)');
                 return;
               }
 
-              const directResult = await routeDirectly(lastUserMessageForRecovery, {
+              const routingResult = await toolOrchestrator.routeAndExecute(lastUserMessageForRecovery, {
                 userId: userData.userId || 'anonymous',
                 sessionId,
                 personaId: sessionPersona.id,
@@ -974,22 +1013,26 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
                 userLocation: userData.userLocation,
               });
 
-              if (directResult.handled) {
-                diag.state('🚨 [EMPTY_RESPONSE_WATCHDOG] Recovery via direct routing succeeded', {
-                  toolId: directResult.toolId,
-                  intent: directResult.intent,
+              if (routingResult.handled) {
+                diag.state('🚨 [EMPTY_RESPONSE_WATCHDOG] Recovery via UTO routing succeeded', {
+                  toolId: routingResult.toolId,
+                  routedBy: routingResult.routedBy,
                 });
                 return; // Recovery successful!
               }
             }
           } catch (routeErr) {
-            diag.warn('Empty response recovery: direct routing failed', { error: String(routeErr) });
+            diag.warn('Empty response recovery: UTO routing failed', {
+              error: String(routeErr),
+            });
           }
         }
 
-        // If direct routing didn't handle it, let the silence handler take over
+        // If UTO routing didn't handle it, let the silence handler take over
         // (it will kick in at its normal threshold, but we've at least tried)
-        diag.state('🚨 [EMPTY_RESPONSE_WATCHDOG] Direct routing did not handle - awaiting silence handler');
+        diag.state(
+          '🚨 [EMPTY_RESPONSE_WATCHDOG] UTO routing did not handle - awaiting silence handler'
+        );
       }, EMPTY_RESPONSE_WATCHDOG_MS);
       // Note: Thinking music is now handled by the ambient-music system automatically
 
@@ -1054,7 +1097,11 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
           // Check if SDK/Ferni is already handling a response
           // Uses both gateway state and ResponseOrchestrator for complete picture
           const sdkActive = !canTriggerProactive(sessionId);
-          if (!conversationManager.isAgentSpeaking() && !hasActiveResponsePending(sessionId) && !sdkActive) {
+          if (
+            !conversationManager.isAgentSpeaking() &&
+            !hasActiveResponsePending(sessionId) &&
+            !sdkActive
+          ) {
             const timeSinceStop = Date.now() - userStoppedAt;
             if (timeSinceStop >= SILENCE_THRESHOLDS.EARLY_ACKNOWLEDGMENT_SECONDS * 1000 - 100) {
               // Dead air prevention: Use STRUCTURED commands (not conversational text)
@@ -1342,7 +1389,9 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
       // This prevents speaking to an empty room when participant wait times out
       // but session continues anyway. The silence handler would generate audio
       // that nobody can hear, causing "no response from Ferni" issues.
-      const hasParticipants = room?.remoteParticipants?.size ? room.remoteParticipants.size > 0 : true;
+      const hasParticipants = room?.remoteParticipants?.size
+        ? room.remoteParticipants.size > 0
+        : true;
       const noParticipants = room && !hasParticipants;
 
       if (toolsActive) {
@@ -1449,7 +1498,9 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
               allowInterruptions: silenceInstructions.allowInterruptions,
               // FIX: Only use fallback if music is NOT playing
               // Fallback like "How did that feel?" doesn't make sense during music
-              fallbackMessage: silenceContext.isMusicPlaying ? undefined : silenceInstructions.fallback,
+              fallbackMessage: silenceContext.isMusicPlaying
+                ? undefined
+                : silenceInstructions.fallback,
               context: `silence-${silenceInstructions.type}`,
               sessionId,
               // FIX: Increase timeout for silence responses (users are already in comfortable silence)

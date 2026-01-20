@@ -216,6 +216,26 @@ export interface SuperhumanCapabilities {
   recoveryTracking?: string;
   /** Inside Joke Memory - Shared history callbacks */
   insideJokes?: string;
+
+  // NEW "Better Than Human" V4 - Jordan's Superhuman Planning (January 2026)
+  /** Event Pattern Memory - Perfect recall across all events */
+  eventPatterns?: string;
+  /** Guest Intelligence - Permanent guest profiles */
+  guestIntelligence?: string;
+  /** Proactive Milestone Detector - Detect celebrations humans forget */
+  milestoneDetector?: string;
+  /** Event Story Capture - Remember what events MEANT */
+  eventStories?: string;
+  /** Anticipatory Planning - See life transitions coming */
+  anticipatoryPlanning?: string;
+  /** Celebration Balance - Track joy objectively */
+  celebrationBalance?: string;
+  /** Planning Coordination - Cross-domain readiness */
+  planningCoordination?: string;
+  /** Seasonal Planning Intelligence - Cultural dates & optimal timing */
+  seasonalPlanning?: string;
+  /** Post-Event Learning - Follow up and learn */
+  postEventLearning?: string;
 }
 
 // ============================================================================

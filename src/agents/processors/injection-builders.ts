@@ -2385,3 +2385,237 @@ export async function buildPersonaSpecificContextInjections(
     return [];
   }
 }
+
+// ============================================================================
+// TOOL HISTORY INJECTION BUILDER (NEW - January 2026)
+// Priority: 85 (high - LLM needs to know what tools it just executed)
+//
+// CRITICAL: This fixes the "LLM doesn't know what it just did" gap.
+// When user asks "what did you just do?" the LLM now has context.
+// ============================================================================
+
+/**
+ * Build tool history context injection so LLM knows what tools it executed.
+ *
+ * This is a P0 fix for the "Better than Human" experience:
+ * - User: "What did you just do?"
+ * - Before: LLM has no idea, makes up something
+ * - After: LLM can reference the actual tool execution history
+ *
+ * @param ctx - Injection builder context
+ * @returns Context injection with recent tool history
+ */
+export async function buildToolHistoryInjection(
+  ctx: InjectionBuilderContext
+): Promise<ContextInjection | null> {
+  const { services } = ctx;
+
+  // Need userId to get conversation state
+  if (!services.userId) {
+    return null;
+  }
+
+  try {
+    // Get conversation state which tracks tool history
+    const { getConversationState } = await import('../../services/conversation-state.js');
+    const convState = getConversationState(services.userId);
+
+    // P0-#4: Check for in-flight tools first (tool timeout awareness)
+    const inFlight = convState.getToolInFlight();
+    let inFlightWarning = '';
+    if (inFlight && inFlight.elapsedMs > 2000) {
+      // Tool has been running for > 2s - LLM should know
+      const elapsedSec = Math.round(inFlight.elapsedMs / 1000);
+      inFlightWarning = `⏳ TOOL IN PROGRESS: "${inFlight.toolId}" has been running for ${elapsedSec}s
+   - DO NOT ask the user to wait or acknowledge delay - the system handles this
+   - When the tool completes, you'll see the result in your next context
+   - Focus on the user's needs, not the tool execution
+
+`;
+    }
+
+    // Get recent tool history (last 3 for context, not overwhelming)
+    const history = convState.getToolHistory(3);
+
+    // If no history and no in-flight, no injection needed
+    if ((!history || history.length === 0) && !inFlightWarning) {
+      return null;
+    }
+
+    // Format history for LLM context
+    const historyLines = history.map((entry, idx) => {
+      const timeAgo = Math.round((Date.now() - entry.timestamp) / 1000);
+      const timeStr = timeAgo < 60 ? `${timeAgo}s ago` : `${Math.round(timeAgo / 60)}m ago`;
+      const statusEmoji = entry.success ? '✅' : '❌';
+
+      // Most recent entry gets more detail
+      if (idx === 0) {
+        return `${statusEmoji} JUST NOW (${timeStr}): ${entry.toolId}
+   Result: ${entry.result.slice(0, 200)}${entry.result.length > 200 ? '...' : ''}
+   ${entry.userRequest ? `In response to: "${entry.userRequest.slice(0, 100)}"` : ''}`;
+      }
+
+      // Older entries are more condensed
+      return `${statusEmoji} ${timeStr}: ${entry.toolId} → ${entry.result.slice(0, 80)}${entry.result.length > 80 ? '...' : ''}`;
+    });
+
+    // Build history content only if there is history
+    const historyContent =
+      history && history.length > 0
+        ? `[🔧 RECENT TOOL EXECUTIONS - You DID these things]
+
+${historyLines.join('\n\n')}
+
+GUIDANCE:
+- If user asks "what did you just do?" - reference this history
+- If user seems confused - you can naturally mention what you just did
+- This is your memory of actions taken - BE ACCURATE about what you did
+- Never hallucinate or make up tool results - only reference what's here`
+        : '';
+
+    // Combine in-flight warning with history
+    const content = inFlightWarning + historyContent;
+
+    diag.debug('🔧 Tool history injection built', {
+      historyCount: history.length,
+      mostRecent: history[0]?.toolId,
+    });
+
+    return {
+      category: 'tool_history',
+      content,
+      priority: 85, // High - LLM needs to know what it did
+    };
+  } catch (error) {
+    diag.debug('Tool history injection skipped', {
+      error: String(error),
+    });
+    return null;
+  }
+}
+
+// ============================================================================
+// 🔌 SERVICE AVAILABILITY INJECTION (P0-#3 fix, Jan 2026)
+// Tells LLM which services are connected so it doesn't promise unavailable features
+// ============================================================================
+
+/**
+ * Service availability info for LLM context
+ */
+interface ServiceAvailability {
+  serviceId: string;
+  serviceName: string;
+  isConnected: boolean;
+  /** What the LLM should NOT offer if disconnected */
+  unavailableCapabilities?: string[];
+}
+
+/**
+ * Build service availability injection
+ *
+ * CRITICAL: Prevents LLM from promising features that aren't available
+ * (e.g., "I'll play that on Spotify" when Spotify isn't connected)
+ *
+ * P0-#3: LLM awareness of connected services
+ */
+export async function buildServiceAvailabilityInjection(
+  ctx: InjectionBuilderContext
+): Promise<ContextInjection | null> {
+  const { services } = ctx;
+
+  if (!services.userId) {
+    return null;
+  }
+
+  try {
+    const { getIntegrationHub } = await import('../../services/integrations/index.js');
+    const hub = getIntegrationHub();
+
+    // Key services users expect
+    const servicesToCheck: Array<{
+      id: string;
+      name: string;
+      unavailableCapabilities: string[];
+    }> = [
+      {
+        id: 'spotify',
+        name: 'Spotify',
+        unavailableCapabilities: [
+          'play music on Spotify',
+          'create playlists',
+          'control playback',
+        ],
+      },
+      {
+        id: 'google_calendar',
+        name: 'Google Calendar',
+        unavailableCapabilities: [
+          'schedule events',
+          'check your calendar',
+          'set reminders',
+        ],
+      },
+      {
+        id: 'gmail',
+        name: 'Gmail',
+        unavailableCapabilities: ['send emails', 'read your inbox', 'draft messages'],
+      },
+      {
+        id: 'plaid',
+        name: 'Banking (Plaid)',
+        unavailableCapabilities: [
+          'check account balances',
+          'review transactions',
+          'track spending',
+        ],
+      },
+    ];
+
+    // Check each service asynchronously
+    const availabilityResults: ServiceAvailability[] = await Promise.all(
+      servicesToCheck.map(async (service) => ({
+        serviceId: service.id,
+        serviceName: service.name,
+        isConnected: await hub.isConnectedAsync(services.userId!, service.id),
+        unavailableCapabilities: service.unavailableCapabilities,
+      }))
+    );
+
+    // Build content - focus on what's NOT available to prevent over-promising
+    const connectedServices = availabilityResults.filter((s) => s.isConnected);
+    const disconnectedServices = availabilityResults.filter((s) => !s.isConnected);
+
+    if (disconnectedServices.length === 0) {
+      // All services connected - no need to warn
+      return null;
+    }
+
+    const unavailableLines = disconnectedServices.map((service) => {
+      const caps = service.unavailableCapabilities?.join(', ') || 'use this service';
+      return `- ${service.serviceName}: NOT CONNECTED - Do NOT offer to ${caps}`;
+    });
+
+    const connectedLine =
+      connectedServices.length > 0
+        ? `\n\nConnected services: ${connectedServices.map((s) => s.serviceName).join(', ')}`
+        : '';
+
+    return {
+      category: 'service_availability',
+      content: `[🔌 SERVICE AVAILABILITY - What you CAN and CANNOT do]
+
+The following services are NOT connected for this user:
+${unavailableLines.join('\n')}
+
+CRITICAL: Do NOT promise or offer features from disconnected services.
+Instead, say "I'd need you to connect [Service] to do that" if the user asks.${connectedLine}`,
+      priority: 80, // High priority - prevents broken promises
+    };
+  } catch (error) {
+    diag.debug('Service availability injection failed (graceful skip)', {
+      userId: services.userId,
+      error: String(error),
+    });
+    return null;
+  }
+}

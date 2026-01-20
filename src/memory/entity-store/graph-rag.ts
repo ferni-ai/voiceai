@@ -245,14 +245,15 @@ export class GraphRAGRetriever {
     candidates: EntitySearchResult[],
     topK: number
   ): Promise<EntitySearchResult[]> {
-    // Lazy load cross-encoder
+    // Lazy load cross-encoder using unified loader to avoid OrtEnv conflicts
     if (!this.crossEncoderLoaded) {
       try {
-        // Use transformers.js for browser/Node compatibility
-        const { pipeline } = await import('@xenova/transformers');
-        this.crossEncoder = await pipeline(
+        // Use unified loader (NEVER import @xenova/transformers directly!)
+        const { createPipeline } = await import('../../utils/transformers-loader.js');
+        this.crossEncoder = await createPipeline(
           'text-classification',
-          'Xenova/ms-marco-MiniLM-L-6-v2'
+          'Xenova/ms-marco-MiniLM-L-6-v2',
+          { device: 'cpu' }
         );
         this.crossEncoderLoaded = true;
       } catch (error) {

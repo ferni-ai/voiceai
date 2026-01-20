@@ -24,6 +24,13 @@ const HANDLED_TOOLS = [
   'handofftojordan',
   'handofftonayan',
   'handofftoferni',
+  // Semantic IDs from FTIS router (underscore style)
+  'handoff_maya',
+  'handoff_alex',
+  'handoff_peter',
+  'handoff_jordan',
+  'handoff_nayan',
+  'handoff_ferni',
   // Transfer variants
   'transfertomaya',
   'transfertoalex',
@@ -70,6 +77,13 @@ const PERSONA_ALIASES: Record<string, string> = {
 function extractTarget(fn: string, args: Record<string, unknown>): string {
   const fnLower = fn.toLowerCase();
 
+  // Check semantic IDs from FTIS router: handoff_maya -> maya
+  const semanticMatch = fnLower.match(/^handoff_(\w+)$/);
+  if (semanticMatch) {
+    const persona = semanticMatch[1];
+    return PERSONA_ALIASES[persona] || persona;
+  }
+
   // Check direct handoff tools: handofftomaya -> maya
   for (const persona of Object.keys(PERSONA_ALIASES)) {
     if (fnLower.endsWith(persona)) {
@@ -109,7 +123,8 @@ async function execute(
   const isHandoffTool =
     HANDLED_TOOLS.includes(fnLower as (typeof HANDLED_TOOLS)[number]) ||
     fnLower.startsWith('handoffto') ||
-    fnLower.startsWith('transferto');
+    fnLower.startsWith('transferto') ||
+    fnLower.startsWith('handoff_'); // Semantic IDs from FTIS router
 
   if (!isHandoffTool) {
     return null;

@@ -64,6 +64,12 @@ import {
   initializeFTISExperiment,
   shouldUseFTIS,
 } from '../intelligence/learning/ab-testing.js';
+// FTIS V3 Hybrid Router - tiered routing (fast/verify/llm)
+import {
+  getFTISHybridRouter,
+  type RoutingDecision,
+  type RoutingTier,
+} from '../intelligence/ftis-hybrid-router.js';
 
 const log = getLogger();
 
@@ -1444,6 +1450,253 @@ export class UnifiedToolOrchestrator {
     this.selectionCache.clear();
     semanticRouter.clearCache();
     log.info('🧹 Orchestrator caches cleared');
+  }
+
+  // ==========================================================================
+  // FTIS V3 HYBRID ROUTING (Fast/Verify/LLM tiered execution)
+  // ==========================================================================
+
+  /**
+   * Check if hybrid routing is enabled.
+   * Returns true when the orchestrator is initialized and hybrid routing can be used.
+   * The actual router initialization happens lazily in routeAndExecute().
+   * 
+   * NOTE: Requires onnxruntime-node@1.20.1 - versions 1.21.0+ have SIGSEGV bugs.
+   */
+  isRoutingEnabled(): boolean {
+    if (!this.initialized) {
+      return false;
+    }
+    try {
+      // Router exists as a singleton - lazy initialization happens in routeAndExecute()
+      const router = getFTISHybridRouter();
+      return router !== null;
+    } catch {
+      return false;
+    }
+  }
+
+  /**
+   * Route and potentially execute a user query using FTIS V3 hybrid routing.
+   * 
+   * Returns:
+   * - Fast Path: Tool executed directly, result returned
+   * - Verify Path: Tool boosted for execution with verification flag
+   * - LLM Path: Passed to LLM for natural response
+   */
+  async routeAndExecute(
+    query: string,
+    context: {
+      userId: string;
+      sessionId: string;
+      personaId: string;
+      recentTopics?: string[];
+      lastAgentMessage?: string;
+      userLocation?: { city?: string; regionCode?: string; countryCode?: string };
+    }
+  ): Promise<{
+    handled: boolean;
+    routedBy: 'fast_path' | 'verify_path' | 'llm_path';
+    toolId?: string;
+    toolResult?: string;
+    confidence: number;
+    classification?: {
+      superCategory: string;
+      fineCategory: string;
+      toolIds: string[];
+    };
+    toolHint?: {
+      toolId: string;
+      guidance: string;
+      confidence: number;
+    };
+    systemState: {
+      music: {
+        isPlaying: boolean;
+        currentTrack?: { name: string; artist: string };
+        volume: number;
+        isDucked: boolean;
+      };
+      timers: {
+        active: number;
+        nextExpiry?: Date;
+      };
+      lastToolExecuted?: {
+        toolId: string;
+        timestamp: Date;
+        result?: string;
+      };
+    };
+    trace: Array<{ stage: string; data: Record<string, unknown> }>;
+  }> {
+    const trace: Array<{ stage: string; data: Record<string, unknown> }> = [];
+    
+    try {
+      // Get the hybrid router
+      const router = getFTISHybridRouter();
+      
+      // Initialize router if not ready (lazy init)
+      if (!router.isReady()) {
+        log.info('🔄 Initializing FTIS Hybrid Router on first routing request...');
+        await router.initialize();
+      }
+      
+      trace.push({ stage: 'router_init', data: { available: !!router, ready: router.isReady() } });
+      
+      // Route the query
+      const routingDecision = await router.route(query);
+      
+      trace.push({
+        stage: 'routing_decision',
+        data: {
+          tier: routingDecision.tier,
+          effectiveConfidence: routingDecision.effectiveConfidence,
+          withinBoundary: routingDecision.withinBoundary,
+          action: routingDecision.action,
+          category: routingDecision.classification.fineCategory,
+        },
+      });
+
+      const classification = {
+        superCategory: routingDecision.classification.superCategory,
+        fineCategory: routingDecision.classification.fineCategory,
+        toolIds: routingDecision.classification.toolIds || [],
+      };
+
+      // Handle based on routing tier
+      if (routingDecision.tier === 'fast' && routingDecision.action === 'execute_tool') {
+        // Fast Path: Execute tool directly
+        const toolId = classification.toolIds[0];
+        
+        if (toolId) {
+          trace.push({ stage: 'fast_path_execute', data: { toolId } });
+          
+          // Import and execute the tool
+          try {
+            const { executeJsonFunction } = await import('../../agents/shared/json-function-executor.js');
+            
+            // Build tool arguments based on category
+            const args = this.buildToolArgs(query, classification.fineCategory, context);
+            
+            const result = await executeJsonFunction(
+              { fn: toolId, args, raw: JSON.stringify({ fn: toolId, args }) },
+              {
+                sessionId: context.sessionId,
+                userId: context.userId,
+                personaId: context.personaId,
+                inputText: query,
+              }
+            );
+            
+            trace.push({ stage: 'tool_executed', data: { success: result.success, toolId } });
+            
+            const isMusicTool = classification.fineCategory === 'play_music' || classification.fineCategory === 'find_music';
+            const resultStr = result.result ? String(result.result) : undefined;
+            return {
+              handled: true,
+              routedBy: 'fast_path',
+              toolId,
+              toolResult: resultStr,
+              confidence: routingDecision.effectiveConfidence,
+              classification,
+              systemState: {
+                music: {
+                  isPlaying: isMusicTool && result.success,
+                  volume: 1.0,
+                  isDucked: false,
+                },
+                timers: { active: 0 },
+                lastToolExecuted: {
+                  toolId,
+                  timestamp: new Date(),
+                  result: resultStr,
+                },
+              },
+              trace,
+            };
+          } catch (execError) {
+            trace.push({ stage: 'tool_error', data: { error: String(execError) } });
+            // Fall through to verify path
+          }
+        }
+      }
+
+      if (routingDecision.tier === 'verify') {
+        // Verify Path: Recommend execution but flag for verification
+        trace.push({ stage: 'verify_path', data: { toolIds: classification.toolIds } });
+        
+        return {
+          handled: false, // Let LLM handle but with boosted tool recommendation
+          routedBy: 'verify_path',
+          confidence: routingDecision.effectiveConfidence,
+          classification,
+          toolHint: classification.toolIds[0] ? {
+            toolId: classification.toolIds[0],
+            guidance: `User likely wants to ${classification.fineCategory.replace(/_/g, ' ')}. Call ${classification.toolIds[0]} tool.`,
+            confidence: routingDecision.effectiveConfidence,
+          } : undefined,
+          systemState: {
+            music: { isPlaying: false, volume: 1.0, isDucked: false },
+            timers: { active: 0 },
+          },
+          trace,
+        };
+      }
+
+      // LLM Path: Pass to LLM for natural response
+      trace.push({ stage: 'llm_path', data: { reason: routingDecision.reason } });
+      
+      return {
+        handled: false,
+        routedBy: 'llm_path',
+        confidence: routingDecision.effectiveConfidence,
+        classification,
+        systemState: {
+          music: { isPlaying: false, volume: 1.0, isDucked: false },
+          timers: { active: 0 },
+        },
+        trace,
+      };
+      
+    } catch (error) {
+      log.warn({ error: String(error) }, 'Hybrid routing failed, falling back to LLM');
+      trace.push({ stage: 'error', data: { error: String(error) } });
+      
+      return {
+        handled: false,
+        routedBy: 'llm_path',
+        confidence: 0,
+        systemState: {
+          music: { isPlaying: false, volume: 1.0, isDucked: false },
+          timers: { active: 0 },
+        },
+        trace,
+      };
+    }
+  }
+
+  /**
+   * Build tool arguments based on query and category
+   */
+  private buildToolArgs(
+    query: string,
+    category: string,
+    context: { userLocation?: { city?: string; regionCode?: string; countryCode?: string } }
+  ): Record<string, unknown> {
+    switch (category) {
+      case 'play_music':
+      case 'find_music':
+        return { query };
+      case 'weather':
+        return {
+          location: context.userLocation?.city || 'current location',
+        };
+      case 'alarm_set':
+      case 'timer_set':
+        return { query }; // Let the tool parse the time from query
+      default:
+        return { query };
+    }
   }
 }
 

@@ -89,6 +89,7 @@ import { handleDiagnosticsRoutes } from '../../api/handoff-diagnostics.js';
 import { handleDashboardMetricsRoutes } from '../../api/dashboard-metrics-routes.js';
 import { handleDORARoutes } from '../../api/dora-routes.js';
 import { handleObservabilityRoutes } from '../../api/observability-routes.js';
+import { handleFTISRoutes } from '../../services/observability/ftis-metrics.js';
 import { handleToolsAnalyticsRoutes } from '../../api/tools-analytics-routes.js';
 import { handleVoicePresenceRoutes } from '../../api/voice-presence-routes.js';
 import { handleOutreachRoutes } from '../../api/outreach.routes.js';
@@ -751,6 +752,12 @@ const server = http.createServer(async (req, res) => {
     // Observability routes
     if (pathname.startsWith('/api/observability')) {
       const handled = await handleObservabilityRoutes(req, res, pathname);
+      if (handled) return;
+    }
+
+    // FTIS (Tool Intelligence) dedicated routes - health, metrics, stats
+    if (pathname.startsWith('/api/ftis')) {
+      const handled = await handleFTISRoutes(req, res, pathname);
       if (handled) return;
     }
 

@@ -265,6 +265,16 @@ export const BUILDER_CATEGORIES: Record<string, BuilderCategory> = {
   // LEARNING
   'community-learning': BuilderCategory.LEARNING,
   'wisdom-synthesis': BuilderCategory.LEARNING,
+
+  // RELATIONSHIP MEMORY (Core Principle #2: Relationship Over Transaction)
+  'relationship-stage': BuilderCategory.HUMANIZING, // Relationship stage awareness
+  'callback-opportunities': BuilderCategory.MEMORY, // Callbacks to past moments
+
+  // PREDICTIVE INTELLIGENCE (Core Principle #5: Presence Over Performance)
+  'persona-proactive': BuilderCategory.COGNITIVE, // Persona-specific proactive patterns
+
+  // COGNITIVE DIFFERENTIATION (Core Principle #4: Authentic Personality)
+  'cognitive-style': BuilderCategory.PERSONA, // Persona thinking style
 };
 
 // ============================================================================
