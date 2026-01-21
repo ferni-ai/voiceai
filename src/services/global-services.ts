@@ -112,12 +112,10 @@ export async function initializeServices(indexPersona = true): Promise<GlobalSer
     const [
       { initializeProductivityStore },
       { initializeBackgroundTasks },
-      { initializeCollectiveLearning },
       { initializeMemoryManagement },
     ] = await Promise.all([
       import('./stores/productivity-store.js'),
       import('./scheduling/background-tasks.js'),
-      import('./memory/collective-learning-store.js'),
       import('./memory/memory-management.js'),
     ]);
 
@@ -128,11 +126,9 @@ export async function initializeServices(indexPersona = true): Promise<GlobalSer
     ]);
     getLogger().info('📦 Productivity and background tasks initialized');
 
-    // Initialize optional services (these do background Firestore loads)
-    // They return immediately and load data in background
-    const collectiveLearning = await initializeCollectiveLearning();
+    // Initialize memory management (does background Firestore loads)
     await initializeMemoryManagement();
-    getLogger().info('🧠 Collective learning and memory management initialized');
+    getLogger().info('🧠 Memory management initialized');
 
     // Initialize optimization persistence (tool analytics, feedback, patterns)
     try {
@@ -163,7 +159,6 @@ export async function initializeServices(indexPersona = true): Promise<GlobalSer
       vectorStore,
       productivityStore,
       backgroundTasks,
-      collectiveLearning,
       initialized: true,
     };
 
@@ -237,17 +232,6 @@ export async function initializeServices(indexPersona = true): Promise<GlobalSer
       backgroundTasks = getBackgroundTaskService();
     }
 
-    // Try to init collective learning in fallback
-    let collectiveLearning;
-    try {
-      const { initializeCollectiveLearning } =
-        await import('./memory/collective-learning-store.js');
-      collectiveLearning = await initializeCollectiveLearning();
-    } catch {
-      const { getCollectiveLearningStore } = await import('./memory/collective-learning-store.js');
-      collectiveLearning = getCollectiveLearningStore();
-    }
-
     // Try to init memory management in fallback
     try {
       const { initializeMemoryManagement } = await import('./memory/memory-management.js');
@@ -261,7 +245,6 @@ export async function initializeServices(indexPersona = true): Promise<GlobalSer
       vectorStore: getVectorStore(),
       productivityStore,
       backgroundTasks,
-      collectiveLearning,
       initialized: false,
     };
 

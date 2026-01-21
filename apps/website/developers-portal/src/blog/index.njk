@@ -1,0 +1,114 @@
+---
+layout: layouts/base.njk
+title: Developer Blog
+description: Technical insights, API updates, and engineering deep dives from the Ferni Developer Platform team.
+permalink: /blog/
+tags: []
+eleventyExcludeFromCollections: true
+---
+
+<div class="blog-page">
+  <header class="blog-header">
+    <div class="container">
+      <span class="blog-eyebrow">Developer Blog</span>
+      <h1>Insights & Updates</h1>
+      <p>Technical deep dives, API updates, and engineering best practices for building voice-first AI applications.</p>
+    </div>
+  </header>
+
+  <main class="blog-content">
+    <div class="container">
+      {% if collections.blogPosts.length > 0 %}
+        <!-- Featured Post (most recent) -->
+        {% set featuredPost = collections.blogPosts | reverse | first %}
+        <article class="blog-featured">
+          <a href="{{ featuredPost.url }}">
+            {% if featuredPost.data.image %}
+            <div class="blog-featured-image">
+              <img src="/images/blog/{{ featuredPost.data.image }}" alt="{{ featuredPost.data.title }}">
+            </div>
+            {% endif %}
+            <div class="blog-featured-content">
+              <div class="blog-card-meta">
+                {% if featuredPost.data.category %}
+                <span class="blog-card-category">{{ featuredPost.data.category }}</span>
+                {% endif %}
+                <time datetime="{{ featuredPost.date | date('iso') }}">
+                  {{ featuredPost.date | date('MMM d, yyyy') }}
+                </time>
+              </div>
+              <h2>{{ featuredPost.data.title }}</h2>
+              {% if featuredPost.data.excerpt %}
+              <p>{{ featuredPost.data.excerpt }}</p>
+              {% endif %}
+              <div class="blog-card-author">
+                <span class="blog-card-author-avatar" style="background: {{ featuredPost.data.authorColor or 'var(--accent-primary)' }}">
+                  {{ featuredPost.data.authorInitials or 'FD' }}
+                </span>
+                <span class="blog-card-author-name">{{ featuredPost.data.author or 'Ferni Dev Team' }}</span>
+                {% if featuredPost.data.readTime %}
+                <span class="blog-card-read-time">{{ featuredPost.data.readTime }} min read</span>
+                {% endif %}
+              </div>
+            </div>
+          </a>
+        </article>
+
+        <!-- Posts Grid -->
+        <div class="blog-grid">
+          {% for post in collections.blogPosts | reverse %}
+            {% if loop.index > 1 %}
+            <article class="blog-card">
+              <a href="{{ post.url }}">
+                <div class="blog-card-meta">
+                  {% if post.data.category %}
+                  <span class="blog-card-category">{{ post.data.category }}</span>
+                  {% endif %}
+                  <time datetime="{{ post.date | date('iso') }}">
+                    {{ post.date | date('MMM d, yyyy') }}
+                  </time>
+                </div>
+                <h3>{{ post.data.title }}</h3>
+                {% if post.data.excerpt %}
+                <p>{{ post.data.excerpt }}</p>
+                {% endif %}
+                <div class="blog-card-footer">
+                  <div class="blog-card-author">
+                    <span class="blog-card-author-avatar" style="background: {{ post.data.authorColor or 'var(--accent-primary)' }}">
+                      {{ post.data.authorInitials or 'FD' }}
+                    </span>
+                    <span class="blog-card-author-name">{{ post.data.author or 'Ferni Dev Team' }}</span>
+                  </div>
+                  {% if post.data.readTime %}
+                  <span class="blog-card-read-time">{{ post.data.readTime }} min read</span>
+                  {% endif %}
+                </div>
+              </a>
+            </article>
+            {% endif %}
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="blog-empty">
+          <h2>Coming Soon</h2>
+          <p>We're working on some great content for developers. Check back soon!</p>
+        </div>
+      {% endif %}
+    </div>
+  </main>
+
+  <!-- Newsletter Section -->
+  <section class="blog-newsletter-section">
+    <div class="container-narrow">
+      <div class="blog-newsletter-card">
+        <h2>Never miss an update</h2>
+        <p>Subscribe to get notified about new articles, API changes, and developer resources.</p>
+        <form class="blog-newsletter-form-large">
+          <input type="email" placeholder="Enter your email" required>
+          <button type="submit" class="btn btn-primary">Subscribe</button>
+        </form>
+        <p class="blog-newsletter-note">No spam, unsubscribe anytime.</p>
+      </div>
+    </div>
+  </section>
+</div>

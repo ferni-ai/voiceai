@@ -1,63 +1,70 @@
 /**
- * User Memory Indexer
+ * User Memory Indexer Stub
  *
- * Re-exports from the modular user-memory-indexer/ directory.
- * Maintained for backward compatibility.
+ * This module was removed during the memory architecture cleanup (Jan 2026).
+ * These are stub exports to maintain backward compatibility.
  *
- * @see USER-MEMORY-VECTORIZATION.md for full strategy
- * @module memory/user-memory-indexer
+ * The actual indexing functionality has been consolidated into:
+ * - src/memory/semantic-rag.ts (for semantic search indexing)
+ * - src/memory/entity-store/ (for entity-based indexing)
  */
 
-// Re-export everything from the modular implementation
-export {
-  // Main functions
-  indexUserMemories,
-  removeUserMemories,
-  batchIndexUserMemories,
-  getUserMemoryStats,
+import type { UserProfile } from '../types/user-profile.js';
+import { getLogger } from '../utils/safe-logger.js';
 
-  // Types
-  type UserMemoryCategory,
-  type IndexingResult,
-  type AnyVectorStore,
+const log = getLogger();
 
-  // Helper
-  generateDocId,
+export interface IndexingResult {
+  indexed: number;
+  skipped: number;
+  errors: number;
+  categories: Record<string, number>;
+}
 
-  // Profile indexers
-  indexKeyMoments,
-  indexPeople,
-  indexOpenThreads,
-  indexFollowUps,
-  indexLifeEvents,
-  indexGoals,
-  indexPersonaMemories,
-  indexSharedContent,
-  indexPreferences,
-  indexEntertainment,
+export interface IndexingOptions {
+  categories?: string[];
+  forceReindex?: boolean;
+  vectorStore?: unknown; // Legacy option, not used
+}
 
-  // Human memory indexers
-  indexHumanMemory,
-  indexImportantDates,
-  indexInsideJokes,
-  indexRunningThemes,
-  indexValues,
-  indexDreams,
-  indexFears,
-  indexGrowthMarkers,
-  indexChallenges,
-  indexAvoidances,
-  indexTemporalPatterns,
-  indexComfortPatterns,
-  indexStressTriggers,
-  indexEmotionalTells,
+/**
+ * Index user memories for semantic search.
+ * Stub implementation - returns empty result.
+ */
+export async function indexUserMemories(
+  userId: string,
+  _profile: UserProfile,
+  _options?: IndexingOptions
+): Promise<IndexingResult> {
+  log.debug({ userId }, 'indexUserMemories called (stub - no-op)');
+  return {
+    indexed: 0,
+    skipped: 0,
+    errors: 0,
+    categories: {},
+  };
+}
 
-  // Extended indexers (voice journals, custom agents, contacts, habits)
-  indexVoiceJournals,
-  indexCustomAgents,
-  indexContactNotes,
-  indexHabits,
-} from './user-memory-indexer/index.js';
+/**
+ * Check if user memories need re-indexing.
+ * Stub implementation - always returns false.
+ */
+export async function needsReindex(_userId: string): Promise<boolean> {
+  return false;
+}
 
-// Re-export default for backward compatibility
-export { default } from './user-memory-indexer/index.js';
+/**
+ * Get indexing status for a user.
+ * Stub implementation - returns empty status.
+ */
+export async function getIndexingStatus(_userId: string): Promise<{
+  lastIndexed: Date | null;
+  totalIndexed: number;
+  categories: string[];
+}> {
+  return {
+    lastIndexed: null,
+    totalIndexed: 0,
+    categories: [],
+  };
+}

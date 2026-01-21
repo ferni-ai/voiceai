@@ -5,7 +5,7 @@
  */
 
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
-import {
+import reliabilityModule, {
   executeWithReliability,
   getToolMetrics,
   getAllToolMetrics,
@@ -13,6 +13,9 @@ import {
   getReliabilityDashboard,
   resetReliabilityMetrics,
 } from '../tool-execution-reliability.js';
+
+// Extract getTimeoutForTool from default export
+const { getTimeoutForTool } = reliabilityModule;
 
 describe('ToolExecutionReliability', () => {
   beforeEach(() => {
@@ -505,6 +508,92 @@ describe('ToolExecutionReliability', () => {
       // After reset, circuit should be gone
       const states = getCircuitBreakerStates();
       expect(states['getweather']).toBeUndefined();
+    });
+  });
+
+  // ==========================================================================
+  // P0-#4 UTO Fix: Tool Timeout Mechanism Tests
+  // ==========================================================================
+  describe('tool timeout (P0-#4 UTO Fix)', () => {
+    it('should return correct timeout for fast tools', () => {
+      expect(getTimeoutForTool('getweather')).toBe(10_000);
+      expect(getTimeoutForTool('getnews')).toBe(10_000);
+      expect(getTimeoutForTool('getquote')).toBe(10_000);
+      expect(getTimeoutForTool('GETWEATHER')).toBe(10_000); // case insensitive
+    });
+
+    it('should return correct timeout for slow tools', () => {
+      expect(getTimeoutForTool('searchspotify')).toBe(60_000);
+      expect(getTimeoutForTool('playmusic')).toBe(60_000);
+      expect(getTimeoutForTool('sendemail')).toBe(60_000);
+    });
+
+    it('should return default timeout for normal tools', () => {
+      expect(getTimeoutForTool('unknowntool')).toBe(30_000);
+      expect(getTimeoutForTool('mycustomtool')).toBe(30_000);
+    });
+
+    // Real timer tests - need real timers for Promise.race with setTimeout
+    describe('with real timers', () => {
+      beforeEach(() => {
+        vi.useRealTimers();
+      });
+
+      afterEach(() => {
+        vi.useFakeTimers();
+      });
+
+      it('should timeout hung executor and return fallback', async () => {
+        // Create an executor that never resolves (simulating a hung external API)
+        const executor = vi.fn().mockImplementation(() => new Promise(() => {}));
+
+        const result = await executeWithReliability('testTimeout', executor, {
+          timeoutMs: 50, // Very short timeout for testing
+          fallbackValue: 'timed out fallback',
+        });
+
+        expect(result.fromFallback).toBe(true);
+        expect(result.timedOut).toBe(true);
+        expect(result.result).toBe('timed out fallback');
+      }, 5000);
+
+      it('should throw timeout error when no fallback provided', async () => {
+        const executor = vi.fn().mockImplementation(() => new Promise(() => {}));
+
+        await expect(
+          executeWithReliability('testTimeoutNoFallback', executor, {
+            timeoutMs: 50,
+          })
+        ).rejects.toThrow('TOOL_TIMEOUT');
+      }, 5000);
+
+      it('should complete successfully before timeout', async () => {
+        const executor = vi.fn().mockImplementation(async () => {
+          await new Promise((resolve) => setTimeout(resolve, 20));
+          return 'success';
+        });
+
+        const result = await executeWithReliability('testFastTool', executor, {
+          timeoutMs: 200,
+        });
+
+        expect(result.result).toBe('success');
+        expect(result.fromFallback).toBe(false);
+        expect(result.timedOut).toBeUndefined();
+      }, 5000);
+
+      it('should include timeout info in metrics', async () => {
+        const executor = vi.fn().mockImplementation(() => new Promise(() => {}));
+
+        await executeWithReliability('timeoutMetric', executor, {
+          timeoutMs: 50,
+          fallbackValue: 'fallback',
+        });
+
+        const metrics = getToolMetrics('timeoutMetric');
+        expect(metrics?.failureCount).toBe(1);
+        expect(metrics?.lastFailure?.error).toContain('TOOL_TIMEOUT');
+      }, 5000);
     });
   });
 });

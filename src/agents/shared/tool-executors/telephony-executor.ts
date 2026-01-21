@@ -16,6 +16,7 @@ const log = createLogger({ module: 'TelephonyExecutor' });
 
 /** Tools handled by this executor */
 const HANDLED_TOOLS = [
+  // Domain tool names (camelCase)
   'reachout', // Unified "Better than Human" outreach (auto-selects channel)
   'multioutreach', // Multi-target outreach (call/text/email multiple people)
   'callonbehalf',
@@ -24,7 +25,24 @@ const HANDLED_TOOLS = [
   'schedulecallback',
   'checkvoicemail',
   'requestcallback',
+  // ===========================================
+  // FTIS V3 Semantic Tool IDs (from category_to_tools.json)
+  // ===========================================
+  // call_make category
+  'call_make',
+  'telephony_call',
+  // call_manage category
+  'call_voicemail',
+  'call_history',
 ] as const;
+
+/** Map FTIS tool IDs to canonical handler names */
+const TOOL_ALIASES: Record<string, string> = {
+  call_make: 'callonbehalf',
+  telephony_call: 'callonbehalf',
+  call_voicemail: 'checkvoicemail',
+  call_history: 'checkvoicemail',
+};
 
 /**
  * Execute telephony-related tools with real backend integration.
@@ -34,9 +52,18 @@ async function execute(
   args: Record<string, unknown>,
   ctx: ToolExecutionContext
 ): Promise<unknown | null> {
-  const fnLower = fn.toLowerCase();
+  let fnLower = fn.toLowerCase();
   const userId = ctx.userId || 'unknown';
   const { sessionId } = ctx;
+
+  // Resolve FTIS aliases to canonical tool names
+  if (TOOL_ALIASES[fnLower]) {
+    log.debug(
+      { original: fnLower, resolved: TOOL_ALIASES[fnLower] },
+      '🔀 Resolving FTIS tool alias'
+    );
+    fnLower = TOOL_ALIASES[fnLower];
+  }
 
   // ========================================
   // REACH OUT - UNIFIED "BETTER THAN HUMAN" OUTREACH

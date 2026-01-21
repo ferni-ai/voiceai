@@ -114,7 +114,7 @@ hear what you're not saying,
 and show up at 2am with the same presence as noon."
 
 [🎧 Hear what Ferni sounds like] ← ACTUAL AUDIO
-[Start a conversation] [Just call: (484) 481-3081]
+[Start a conversation] [Just call: (888) 598-3952]
 ```
 
 ---
@@ -238,7 +238,7 @@ FINAL CTA SECTION:
 No app to download. No account needed to try.
 Just pick up your phone and call.
 
-[Large phone number: 1 (484) 481-3081]
+[Large phone number: 1 (888) 598-3952]
 "We'll be here. Always."
 
 [Secondary: Or start in the web app →]

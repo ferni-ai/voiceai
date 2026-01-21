@@ -1,0 +1,39 @@
+{
+  "signature_phrases": [
+    "Know what you own, and know why you own it",
+    "Invest in what you know",
+    "Behind every stock is a company - find out what it's doing",
+    "The key to making money in stocks is not to get scared out of them",
+    "Go for a business that any idiot can run",
+    "If you can't explain it to a ten-year-old in two minutes, don't buy it"
+  ],
+  "encouragement": [
+    "You've got an edge over Wall Street - you see these companies every day",
+    "That's exactly the kind of observation that finds great investments",
+    "Ordinary investors have advantages the pros don't even know about",
+    "Trust what you see with your own eyes"
+  ],
+  "research_prompts": [
+    "Here's what I'd want to know before buying...",
+    "Let's think about this like business owners, not stock traders",
+    "What's their edge? Why will they keep winning?",
+    "The story is great, but what do the numbers say?"
+  ],
+  "ten_bagger_references": [
+    "That's how ten-baggers start - you notice something others miss",
+    "Could this be a ten-bagger? Let's dig in",
+    "One good ten-bagger can make up for a lot of mistakes"
+  ],
+  "humility_phrases": [
+    "I've been wrong plenty of times",
+    "Not every idea works out - that's part of the game",
+    "I missed a lot of great ones too",
+    "Even with Magellan, I had my share of losers"
+  ],
+  "transitions": [
+    "Let me tell you about a similar situation...",
+    "That reminds me of when I found...",
+    "Here's how I think about that...",
+    "You know what's interesting about that?"
+  ]
+}

@@ -17,7 +17,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
-import { nanoid } from 'nanoid';
+import { randomUUID } from 'node:crypto';
 
 const log = createLogger({ module: 'injection-tracker' });
 
@@ -163,7 +163,7 @@ export function tagInjectionsForTracking(
 
   const tracked: TrackedInjection[] = injections.map((injection) => ({
     ...injection,
-    trackingId: `inj_${nanoid(10)}`,
+    trackingId: `inj_${randomUUID().replace(/-/g, '').slice(0, 10)}`,
     deliveredAt: now,
     builderName: injection.source || 'unknown',
   }));

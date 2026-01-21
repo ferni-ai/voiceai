@@ -2,6 +2,7 @@
 layout: layouts/base.njk
 title: API Reference
 description: Complete API reference for the Ferni Marketplace
+permalink: /api/
 ---
 
 <section class="hero" style="padding-bottom: var(--space-12);">
@@ -30,7 +31,7 @@ description: Complete API reference for the Ferni Marketplace
       <p style="color: rgba(255, 255, 255, 0.9); margin-bottom: var(--space-6); max-width: 600px; margin-left: auto; margin-right: auto;">
         Test API endpoints directly in your browser with Swagger UI. No code required - just enter your API key and start exploring.
       </p>
-      <a href="/pages/api/explorer" class="btn btn-primary" style="background: var(--color-gold); color: var(--color-cedar-dark); border: none; padding: var(--space-4) var(--space-8); font-size: 1.125rem; font-weight: 600; display: inline-flex; align-items: center; gap: var(--space-2); text-decoration: none; border-radius: var(--radius-lg); transition: transform 0.2s ease, box-shadow 0.2s ease;">
+      <a href="/api/explorer/" class="btn btn-primary" style="background: var(--color-gold); color: var(--color-cedar-dark); border: none; padding: var(--space-4) var(--space-8); font-size: 1.125rem; font-weight: 600; display: inline-flex; align-items: center; gap: var(--space-2); text-decoration: none; border-radius: var(--radius-lg); transition: transform 0.2s ease, box-shadow 0.2s ease;">
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
         </svg>
@@ -39,32 +40,32 @@ description: Complete API reference for the Ferni Marketplace
     </div>
 
     <!-- Quick Links -->
-    <div style="background: var(--bg-elevated); border: 1px solid var(--border-subtle); border-radius: var(--radius-2xl); padding: var(--space-6); margin-bottom: var(--space-12);">
-      <h3 style="margin-bottom: var(--space-4);">Jump to Section</h3>
-      <div class="grid grid-2" style="gap: var(--space-2);">
-        <a href="#authentication" style="color: var(--text-secondary); text-decoration: none; padding: var(--space-2);">→ Authentication</a>
-        <a href="#developer" style="color: var(--text-secondary); text-decoration: none; padding: var(--space-2);">→ Developer API</a>
-        <a href="#analytics" style="color: var(--text-secondary); text-decoration: none; padding: var(--space-2);">→ Analytics API</a>
-        <a href="#publisher" style="color: var(--text-secondary); text-decoration: none; padding: var(--space-2);">→ Publisher API</a>
-        <a href="#browse" style="color: var(--text-secondary); text-decoration: none; padding: var(--space-2);">→ Browse API</a>
-        <a href="#install" style="color: var(--text-secondary); text-decoration: none; padding: var(--space-2);">→ Install API</a>
-        <a href="#usage" style="color: var(--text-secondary); text-decoration: none; padding: var(--space-2);">→ Usage/Billing API</a>
-        <a href="#errors" style="color: var(--text-secondary); text-decoration: none; padding: var(--space-2);">→ Error Codes</a>
+    <div class="elevated-card elevated-card-2xl mb-12">
+      <h3 class="mb-4">Jump to Section</h3>
+      <div class="jump-links">
+        <a href="#authentication" class="jump-link">→ Authentication</a>
+        <a href="#developer" class="jump-link">→ Developer API</a>
+        <a href="#analytics" class="jump-link">→ Analytics API</a>
+        <a href="#publisher" class="jump-link">→ Publisher API</a>
+        <a href="#browse" class="jump-link">→ Browse API</a>
+        <a href="#install" class="jump-link">→ Install API</a>
+        <a href="#usage" class="jump-link">→ Usage/Billing API</a>
+        <a href="#errors" class="jump-link">→ Error Codes</a>
       </div>
     </div>
 
     <!-- Authentication -->
-    <div id="authentication" style="margin-bottom: var(--space-12);">
-      <h2 style="margin-bottom: var(--space-4);">Authentication</h2>
-      <p style="color: var(--text-secondary); margin-bottom: var(--space-6);">
+    <div id="authentication" class="api-section mb-12">
+      <h2 class="mb-4">Authentication</h2>
+      <p class="api-section-desc mb-6">
         All API requests require authentication via HTTP headers. Different endpoints require different authentication levels:
       </p>
 
-      <h3 style="margin-bottom: var(--space-4);">User Authentication</h3>
-      <p style="color: var(--text-secondary); margin-bottom: var(--space-4);">
+      <h3 class="mb-4">User Authentication</h3>
+      <p class="api-section-desc">
         For install, usage, and billing endpoints:
       </p>
-      <div class="code-block" style="margin-bottom: var(--space-6);">
+      <div class="code-block mb-6">
         <div class="code-header">
           <div class="code-dots">
             <span class="code-dot code-dot-red"></span>
@@ -78,11 +79,11 @@ description: Complete API reference for the Ferni Marketplace
         </div>
       </div>
 
-      <h3 style="margin-bottom: var(--space-4);">Publisher Authentication</h3>
-      <p style="color: var(--text-secondary); margin-bottom: var(--space-4);">
+      <h3 class="mb-4">Publisher Authentication</h3>
+      <p class="api-section-desc">
         For submitting and managing tools/agents:
       </p>
-      <div class="code-block" style="margin-bottom: var(--space-6);">
+      <div class="code-block mb-6">
         <div class="code-header">
           <div class="code-dots">
             <span class="code-dot code-dot-red"></span>
@@ -97,7 +98,7 @@ x-publisher-name: Acme Corp</code></pre>
         </div>
       </div>
 
-      <h3 style="margin-bottom: var(--space-4);">Example Request</h3>
+      <h3 class="mb-4">Example Request</h3>
       <div class="code-block">
         <div class="code-header">
           <div class="code-dots">
@@ -115,19 +116,19 @@ x-publisher-name: Acme Corp</code></pre>
     </div>
 
     <!-- Developer API -->
-    <div id="developer" style="margin-bottom: var(--space-12);">
-      <h2 style="margin-bottom: var(--space-4);">Developer API</h2>
-      <p style="color: var(--text-secondary); margin-bottom: var(--space-8);">
+    <div id="developer" class="mb-12">
+      <h2 class="mb-4">Developer API</h2>
+      <p class="api-section-desc mb-8">
         Create, manage, and publish AI personas through the developer console. All endpoints require Firebase Authentication.
       </p>
 
       <!-- Developer Auth -->
-      <div style="margin-bottom: var(--space-10);">
-        <h3 style="margin-bottom: var(--space-4);">Developer Authentication</h3>
-        <p style="color: var(--text-secondary); margin-bottom: var(--space-4);">
+      <div class="mb-10">
+        <h3 class="mb-4">Developer Authentication</h3>
+        <p class="api-section-desc">
           Developer API uses Firebase Auth tokens. Get a token after signing in with Google or GitHub:
         </p>
-        <div class="code-block" style="margin-bottom: var(--space-4);">
+        <div class="code-block" class="mb-4">
           <div class="code-header">
             <div class="code-dots">
               <span class="code-dot code-dot-red"></span>
@@ -143,19 +144,19 @@ x-publisher-name: Acme Corp</code></pre>
       </div>
 
       <!-- API Keys -->
-      <div style="margin-bottom: var(--space-10);">
-        <h3 style="margin-bottom: var(--space-6);">API Keys</h3>
+      <div class="mb-10">
+        <h3 class="mb-6">API Keys</h3>
 
         <!-- List Keys -->
         <div style="margin-bottom: var(--space-8);">
           <div style="display: flex; align-items: center; gap: var(--space-3); margin-bottom: var(--space-4);">
-            <span style="display: inline-block; padding: var(--space-1) var(--space-3); background: var(--accent-primary); color: var(--bg-code); font-weight: 700; border-radius: var(--radius-md); font-size: var(--text-sm);">GET</span>
-            <code style="color: var(--text-primary); font-size: var(--text-lg);">/api/v1/developers/keys</code>
+            <span class="method-badge method-badge-get">GET</span>
+            <code class="endpoint-path">/api/v1/developers/keys</code>
           </div>
-          <p style="color: var(--text-secondary); margin-bottom: var(--space-4);">
+          <p class="api-section-desc">
             List all API keys (prefix only for security).
           </p>
-          <h4 style="margin-bottom: var(--space-3);">Response</h4>
+          <h4 class="mb-3">Response</h4>
           <div class="code-block">
             <div class="code-header">
               <div class="code-dots">
@@ -184,14 +185,14 @@ x-publisher-name: Acme Corp</code></pre>
         <!-- Create Key -->
         <div style="margin-bottom: var(--space-8);">
           <div style="display: flex; align-items: center; gap: var(--space-3); margin-bottom: var(--space-4);">
-            <span style="display: inline-block; padding: var(--space-1) var(--space-3); background: var(--success); color: var(--bg-code); font-weight: 700; border-radius: var(--radius-md); font-size: var(--text-sm);">POST</span>
-            <code style="color: var(--text-primary); font-size: var(--text-lg);">/api/v1/developers/keys</code>
+            <span class="method-badge method-badge-post">POST</span>
+            <code class="endpoint-path">/api/v1/developers/keys</code>
           </div>
-          <p style="color: var(--text-secondary); margin-bottom: var(--space-4);">
+          <p class="api-section-desc">
             Create a new API key. <strong>The full key is only returned once!</strong>
           </p>
-          <h4 style="margin-bottom: var(--space-3);">Request Body</h4>
-          <div class="code-block" style="margin-bottom: var(--space-4);">
+          <h4 class="mb-3">Request Body</h4>
+          <div class="code-block" class="mb-4">
             <div class="code-header">
               <div class="code-dots">
                 <span class="code-dot code-dot-red"></span>
@@ -207,7 +208,7 @@ x-publisher-name: Acme Corp</code></pre>
 }</code></pre>
             </div>
           </div>
-          <h4 style="margin-bottom: var(--space-3);">Response</h4>
+          <h4 class="mb-3">Response</h4>
           <div class="code-block">
             <div class="code-header">
               <div class="code-dots">
@@ -235,29 +236,29 @@ x-publisher-name: Acme Corp</code></pre>
         <!-- Delete Key -->
         <div style="margin-bottom: var(--space-8);">
           <div style="display: flex; align-items: center; gap: var(--space-3); margin-bottom: var(--space-4);">
-            <span style="display: inline-block; padding: var(--space-1) var(--space-3); background: var(--error); color: var(--bg-code); font-weight: 700; border-radius: var(--radius-md); font-size: var(--text-sm);">DELETE</span>
-            <code style="color: var(--text-primary); font-size: var(--text-lg);">/api/v1/developers/keys/:id</code>
+            <span class="method-badge method-badge-delete">DELETE</span>
+            <code class="endpoint-path">/api/v1/developers/keys/:id</code>
           </div>
-          <p style="color: var(--text-secondary); margin-bottom: var(--space-4);">
+          <p class="api-section-desc">
             Revoke an API key immediately.
           </p>
         </div>
       </div>
 
       <!-- Personas -->
-      <div style="margin-bottom: var(--space-10);">
-        <h3 style="margin-bottom: var(--space-6);">Personas</h3>
+      <div class="mb-10">
+        <h3 class="mb-6">Personas</h3>
 
         <!-- List Personas -->
         <div style="margin-bottom: var(--space-8);">
           <div style="display: flex; align-items: center; gap: var(--space-3); margin-bottom: var(--space-4);">
-            <span style="display: inline-block; padding: var(--space-1) var(--space-3); background: var(--accent-primary); color: var(--bg-code); font-weight: 700; border-radius: var(--radius-md); font-size: var(--text-sm);">GET</span>
-            <code style="color: var(--text-primary); font-size: var(--text-lg);">/api/v1/developers/personas</code>
+            <span class="method-badge method-badge-get">GET</span>
+            <code class="endpoint-path">/api/v1/developers/personas</code>
           </div>
-          <p style="color: var(--text-secondary); margin-bottom: var(--space-4);">
+          <p class="api-section-desc">
             List all personas created by the authenticated developer.
           </p>
-          <h4 style="margin-bottom: var(--space-3);">Response</h4>
+          <h4 class="mb-3">Response</h4>
           <div class="code-block">
             <div class="code-header">
               <div class="code-dots">
@@ -288,13 +289,13 @@ x-publisher-name: Acme Corp</code></pre>
         <!-- Create Persona -->
         <div style="margin-bottom: var(--space-8);">
           <div style="display: flex; align-items: center; gap: var(--space-3); margin-bottom: var(--space-4);">
-            <span style="display: inline-block; padding: var(--space-1) var(--space-3); background: var(--success); color: var(--bg-code); font-weight: 700; border-radius: var(--radius-md); font-size: var(--text-sm);">POST</span>
-            <code style="color: var(--text-primary); font-size: var(--text-lg);">/api/v1/developers/personas</code>
+            <span class="method-badge method-badge-post">POST</span>
+            <code class="endpoint-path">/api/v1/developers/personas</code>
           </div>
-          <p style="color: var(--text-secondary); margin-bottom: var(--space-4);">
+          <p class="api-section-desc">
             Create a new persona draft.
           </p>
-          <h4 style="margin-bottom: var(--space-3);">Request Body (Persona Manifest)</h4>
+          <h4 class="mb-3">Request Body (Persona Manifest)</h4>
           <div class="code-block">
             <div class="code-header">
               <div class="code-dots">
@@ -345,10 +346,10 @@ x-publisher-name: Acme Corp</code></pre>
         <!-- Update Persona -->
         <div style="margin-bottom: var(--space-8);">
           <div style="display: flex; align-items: center; gap: var(--space-3); margin-bottom: var(--space-4);">
-            <span style="display: inline-block; padding: var(--space-1) var(--space-3); background: var(--warning); color: var(--bg-code); font-weight: 700; border-radius: var(--radius-md); font-size: var(--text-sm);">PUT</span>
-            <code style="color: var(--text-primary); font-size: var(--text-lg);">/api/v1/developers/personas/:id</code>
+            <span class="method-badge method-badge-put">PUT</span>
+            <code class="endpoint-path">/api/v1/developers/personas/:id</code>
           </div>
-          <p style="color: var(--text-secondary); margin-bottom: var(--space-4);">
+          <p class="api-section-desc">
             Update a draft persona. Only drafts and rejected personas can be updated.
           </p>
         </div>
@@ -356,13 +357,13 @@ x-publisher-name: Acme Corp</code></pre>
         <!-- Validate Persona -->
         <div style="margin-bottom: var(--space-8);">
           <div style="display: flex; align-items: center; gap: var(--space-3); margin-bottom: var(--space-4);">
-            <span style="display: inline-block; padding: var(--space-1) var(--space-3); background: var(--success); color: var(--bg-code); font-weight: 700; border-radius: var(--radius-md); font-size: var(--text-sm);">POST</span>
-            <code style="color: var(--text-primary); font-size: var(--text-lg);">/api/v1/developers/personas/:id/validate</code>
+            <span class="method-badge method-badge-post">POST</span>
+            <code class="endpoint-path">/api/v1/developers/personas/:id/validate</code>
           </div>
-          <p style="color: var(--text-secondary); margin-bottom: var(--space-4);">
+          <p class="api-section-desc">
             Validate a persona manifest before submission.
           </p>
-          <h4 style="margin-bottom: var(--space-3);">Response</h4>
+          <h4 class="mb-3">Response</h4>
           <div class="code-block">
             <div class="code-header">
               <div class="code-dots">
@@ -387,13 +388,13 @@ x-publisher-name: Acme Corp</code></pre>
         <!-- Submit Persona -->
         <div style="margin-bottom: var(--space-8);">
           <div style="display: flex; align-items: center; gap: var(--space-3); margin-bottom: var(--space-4);">
-            <span style="display: inline-block; padding: var(--space-1) var(--space-3); background: var(--success); color: var(--bg-code); font-weight: 700; border-radius: var(--radius-md); font-size: var(--text-sm);">POST</span>
-            <code style="color: var(--text-primary); font-size: var(--text-lg);">/api/v1/developers/personas/:id/submit</code>
+            <span class="method-badge method-badge-post">POST</span>
+            <code class="endpoint-path">/api/v1/developers/personas/:id/submit</code>
           </div>
-          <p style="color: var(--text-secondary); margin-bottom: var(--space-4);">
+          <p class="api-section-desc">
             Submit a persona for marketplace review. Must pass validation first.
           </p>
-          <h4 style="margin-bottom: var(--space-3);">Response</h4>
+          <h4 class="mb-3">Response</h4>
           <div class="code-block">
             <div class="code-header">
               <div class="code-dots">
@@ -416,34 +417,34 @@ x-publisher-name: Acme Corp</code></pre>
         <!-- Delete Persona -->
         <div style="margin-bottom: var(--space-8);">
           <div style="display: flex; align-items: center; gap: var(--space-3); margin-bottom: var(--space-4);">
-            <span style="display: inline-block; padding: var(--space-1) var(--space-3); background: var(--error); color: var(--bg-code); font-weight: 700; border-radius: var(--radius-md); font-size: var(--text-sm);">DELETE</span>
-            <code style="color: var(--text-primary); font-size: var(--text-lg);">/api/v1/developers/personas/:id</code>
+            <span class="method-badge method-badge-delete">DELETE</span>
+            <code class="endpoint-path">/api/v1/developers/personas/:id</code>
           </div>
-          <p style="color: var(--text-secondary); margin-bottom: var(--space-4);">
+          <p class="api-section-desc">
             Delete a persona. Published personas cannot be deleted (use unpublish instead).
           </p>
         </div>
       </div>
 
       <!-- Voices -->
-      <div style="margin-bottom: var(--space-10);">
-        <h3 style="margin-bottom: var(--space-6);">Voices</h3>
+      <div class="mb-10">
+        <h3 class="mb-6">Voices</h3>
 
         <!-- List Voices -->
         <div style="margin-bottom: var(--space-8);">
           <div style="display: flex; align-items: center; gap: var(--space-3); margin-bottom: var(--space-4);">
-            <span style="display: inline-block; padding: var(--space-1) var(--space-3); background: var(--accent-primary); color: var(--bg-code); font-weight: 700; border-radius: var(--radius-md); font-size: var(--text-sm);">GET</span>
-            <code style="color: var(--text-primary); font-size: var(--text-lg);">/api/v1/developers/voices</code>
+            <span class="method-badge method-badge-get">GET</span>
+            <code class="endpoint-path">/api/v1/developers/voices</code>
           </div>
-          <p style="color: var(--text-secondary); margin-bottom: var(--space-4);">
+          <p class="api-section-desc">
             List curated Cartesia voices available for personas.
           </p>
-          <h4 style="margin-bottom: var(--space-3);">Query Parameters</h4>
-          <ul style="color: var(--text-secondary); margin-bottom: var(--space-4);">
+          <h4 class="mb-3">Query Parameters</h4>
+          <ul class="api-section-desc">
             <li><code>gender</code> - Filter by gender (male, female, neutral)</li>
             <li><code>category</code> - Filter by category (conversational, professional, etc.)</li>
           </ul>
-          <h4 style="margin-bottom: var(--space-3);">Response</h4>
+          <h4 class="mb-3">Response</h4>
           <div class="code-block">
             <div class="code-header">
               <div class="code-dots">
@@ -473,14 +474,14 @@ x-publisher-name: Acme Corp</code></pre>
         <!-- Preview Voice -->
         <div style="margin-bottom: var(--space-8);">
           <div style="display: flex; align-items: center; gap: var(--space-3); margin-bottom: var(--space-4);">
-            <span style="display: inline-block; padding: var(--space-1) var(--space-3); background: var(--success); color: var(--bg-code); font-weight: 700; border-radius: var(--radius-md); font-size: var(--text-sm);">POST</span>
-            <code style="color: var(--text-primary); font-size: var(--text-lg);">/api/v1/developers/voices/preview</code>
+            <span class="method-badge method-badge-post">POST</span>
+            <code class="endpoint-path">/api/v1/developers/voices/preview</code>
           </div>
-          <p style="color: var(--text-secondary); margin-bottom: var(--space-4);">
+          <p class="api-section-desc">
             Generate an audio preview of a voice with custom text.
           </p>
-          <h4 style="margin-bottom: var(--space-3);">Request Body</h4>
-          <div class="code-block" style="margin-bottom: var(--space-4);">
+          <h4 class="mb-3">Request Body</h4>
+          <div class="code-block" class="mb-4">
             <div class="code-header">
               <div class="code-dots">
                 <span class="code-dot code-dot-red"></span>
@@ -496,7 +497,7 @@ x-publisher-name: Acme Corp</code></pre>
 }</code></pre>
             </div>
           </div>
-          <h4 style="margin-bottom: var(--space-3);">Response</h4>
+          <h4 class="mb-3">Response</h4>
           <div class="code-block">
             <div class="code-header">
               <div class="code-dots">
@@ -521,7 +522,7 @@ x-publisher-name: Acme Corp</code></pre>
 
       <!-- Persona Lifecycle -->
       <div style="background: var(--bg-code); border-radius: var(--radius-lg); padding: var(--space-6); margin-bottom: var(--space-8);">
-        <h4 style="margin-bottom: var(--space-4);">Persona Lifecycle</h4>
+        <h4 class="mb-4">Persona Lifecycle</h4>
         <div style="display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap; color: var(--text-secondary);">
           <span style="padding: var(--space-2) var(--space-3); background: var(--bg-elevated); border-radius: var(--radius-md); font-weight: 600;">draft</span>
           <span>→</span>
@@ -537,23 +538,23 @@ x-publisher-name: Acme Corp</code></pre>
       </div>
 
       <!-- Analytics -->
-      <div id="analytics" style="margin-bottom: var(--space-10);">
-        <h3 style="margin-bottom: var(--space-6);">Analytics</h3>
+      <div id="analytics" class="mb-10">
+        <h3 class="mb-6">Analytics</h3>
 
         <!-- Overview -->
         <div style="margin-bottom: var(--space-8);">
           <div style="display: flex; align-items: center; gap: var(--space-3); margin-bottom: var(--space-4);">
-            <span style="display: inline-block; padding: var(--space-1) var(--space-3); background: var(--accent-primary); color: var(--bg-code); font-weight: 700; border-radius: var(--radius-md); font-size: var(--text-sm);">GET</span>
-            <code style="color: var(--text-primary); font-size: var(--text-lg);">/api/v1/developers/analytics/overview</code>
+            <span class="method-badge method-badge-get">GET</span>
+            <code class="endpoint-path">/api/v1/developers/analytics/overview</code>
           </div>
-          <p style="color: var(--text-secondary); margin-bottom: var(--space-4);">
+          <p class="api-section-desc">
             Get summary statistics with comparison to previous period.
           </p>
-          <h4 style="margin-bottom: var(--space-3);">Query Parameters</h4>
-          <ul style="color: var(--text-secondary); margin-bottom: var(--space-4);">
+          <h4 class="mb-3">Query Parameters</h4>
+          <ul class="api-section-desc">
             <li><code>period</code> - Time period: day, week, month, or year (default: week)</li>
           </ul>
-          <h4 style="margin-bottom: var(--space-3);">Response</h4>
+          <h4 class="mb-3">Response</h4>
           <div class="code-block">
             <div class="code-header">
               <div class="code-dots">
@@ -585,13 +586,13 @@ x-publisher-name: Acme Corp</code></pre>
         <!-- Usage Over Time -->
         <div style="margin-bottom: var(--space-8);">
           <div style="display: flex; align-items: center; gap: var(--space-3); margin-bottom: var(--space-4);">
-            <span style="display: inline-block; padding: var(--space-1) var(--space-3); background: var(--accent-primary); color: var(--bg-code); font-weight: 700; border-radius: var(--radius-md); font-size: var(--text-sm);">GET</span>
-            <code style="color: var(--text-primary); font-size: var(--text-lg);">/api/v1/developers/analytics/usage</code>
+            <span class="method-badge method-badge-get">GET</span>
+            <code class="endpoint-path">/api/v1/developers/analytics/usage</code>
           </div>
-          <p style="color: var(--text-secondary); margin-bottom: var(--space-4);">
+          <p class="api-section-desc">
             Get API call volume over time for charting.
           </p>
-          <h4 style="margin-bottom: var(--space-3);">Response</h4>
+          <h4 class="mb-3">Response</h4>
           <div class="code-block">
             <div class="code-header">
               <div class="code-dots">
@@ -615,13 +616,13 @@ x-publisher-name: Acme Corp</code></pre>
         <!-- Persona Usage -->
         <div style="margin-bottom: var(--space-8);">
           <div style="display: flex; align-items: center; gap: var(--space-3); margin-bottom: var(--space-4);">
-            <span style="display: inline-block; padding: var(--space-1) var(--space-3); background: var(--accent-primary); color: var(--bg-code); font-weight: 700; border-radius: var(--radius-md); font-size: var(--text-sm);">GET</span>
-            <code style="color: var(--text-primary); font-size: var(--text-lg);">/api/v1/developers/analytics/personas</code>
+            <span class="method-badge method-badge-get">GET</span>
+            <code class="endpoint-path">/api/v1/developers/analytics/personas</code>
           </div>
-          <p style="color: var(--text-secondary); margin-bottom: var(--space-4);">
+          <p class="api-section-desc">
             Get per-persona usage breakdown.
           </p>
-          <h4 style="margin-bottom: var(--space-3);">Response</h4>
+          <h4 class="mb-3">Response</h4>
           <div class="code-block">
             <div class="code-header">
               <div class="code-dots">
@@ -650,13 +651,13 @@ x-publisher-name: Acme Corp</code></pre>
         <!-- Errors -->
         <div style="margin-bottom: var(--space-8);">
           <div style="display: flex; align-items: center; gap: var(--space-3); margin-bottom: var(--space-4);">
-            <span style="display: inline-block; padding: var(--space-1) var(--space-3); background: var(--accent-primary); color: var(--bg-code); font-weight: 700; border-radius: var(--radius-md); font-size: var(--text-sm);">GET</span>
-            <code style="color: var(--text-primary); font-size: var(--text-lg);">/api/v1/developers/analytics/errors</code>
+            <span class="method-badge method-badge-get">GET</span>
+            <code class="endpoint-path">/api/v1/developers/analytics/errors</code>
           </div>
-          <p style="color: var(--text-secondary); margin-bottom: var(--space-4);">
+          <p class="api-section-desc">
             Get error breakdown by type.
           </p>
-          <h4 style="margin-bottom: var(--space-3);">Response</h4>
+          <h4 class="mb-3">Response</h4>
           <div class="code-block">
             <div class="code-header">
               <div class="code-dots">
@@ -684,24 +685,24 @@ x-publisher-name: Acme Corp</code></pre>
     </div>
 
     <!-- Publisher API -->
-    <div id="publisher" style="margin-bottom: var(--space-12);">
-      <h2 style="margin-bottom: var(--space-4);">Publisher API</h2>
-      <p style="color: var(--text-secondary); margin-bottom: var(--space-8);">
+    <div id="publisher" class="mb-12">
+      <h2 class="mb-4">Publisher API</h2>
+      <p class="api-section-desc mb-8">
         Submit, update, and manage your published tools and agents.
       </p>
 
       <!-- Submit Tool/Agent -->
-      <div style="margin-bottom: var(--space-10);">
+      <div class="mb-10">
         <div style="display: flex; align-items: center; gap: var(--space-3); margin-bottom: var(--space-4);">
-          <span style="display: inline-block; padding: var(--space-1) var(--space-3); background: var(--success); color: var(--bg-code); font-weight: 700; border-radius: var(--radius-md); font-size: var(--text-sm);">POST</span>
-          <code style="color: var(--text-primary); font-size: var(--text-lg);">/api/marketplace/publisher/submit</code>
+          <span class="method-badge method-badge-post">POST</span>
+          <code class="endpoint-path">/api/marketplace/publisher/submit</code>
         </div>
-        <p style="color: var(--text-secondary); margin-bottom: var(--space-4);">
+        <p class="api-section-desc">
           Submit a new tool or agent for marketplace review.
         </p>
 
-        <h4 style="margin-bottom: var(--space-3);">Request Body</h4>
-        <div class="code-block" style="margin-bottom: var(--space-4);">
+        <h4 class="mb-3">Request Body</h4>
+        <div class="code-block" class="mb-4">
           <div class="code-header">
             <div class="code-dots">
               <span class="code-dot code-dot-red"></span>
@@ -739,8 +740,8 @@ x-publisher-name: Acme Corp</code></pre>
           </div>
         </div>
 
-        <h4 style="margin-bottom: var(--space-3);">Example Request</h4>
-        <div class="code-block" style="margin-bottom: var(--space-4);">
+        <h4 class="mb-3">Example Request</h4>
+        <div class="code-block" class="mb-4">
           <div class="code-header">
             <div class="code-dots">
               <span class="code-dot code-dot-red"></span>
@@ -758,7 +759,7 @@ x-publisher-name: Acme Corp</code></pre>
           </div>
         </div>
 
-        <h4 style="margin-bottom: var(--space-3);">Response (200 OK)</h4>
+        <h4 class="mb-3">Response (200 OK)</h4>
         <div class="code-block">
           <div class="code-header">
             <div class="code-dots">
@@ -780,17 +781,17 @@ x-publisher-name: Acme Corp</code></pre>
       </div>
 
       <!-- List Publisher Items -->
-      <div style="margin-bottom: var(--space-10);">
+      <div class="mb-10">
         <div style="display: flex; align-items: center; gap: var(--space-3); margin-bottom: var(--space-4);">
-          <span style="display: inline-block; padding: var(--space-1) var(--space-3); background: var(--accent-primary); color: var(--bg-code); font-weight: 700; border-radius: var(--radius-md); font-size: var(--text-sm);">GET</span>
-          <code style="color: var(--text-primary); font-size: var(--text-lg);">/api/marketplace/publisher/items</code>
+          <span class="method-badge method-badge-get">GET</span>
+          <code class="endpoint-path">/api/marketplace/publisher/items</code>
         </div>
-        <p style="color: var(--text-secondary); margin-bottom: var(--space-4);">
+        <p class="api-section-desc">
           List all items published by your account.
         </p>
 
-        <h4 style="margin-bottom: var(--space-3);">Example Request</h4>
-        <div class="code-block" style="margin-bottom: var(--space-4);">
+        <h4 class="mb-3">Example Request</h4>
+        <div class="code-block" class="mb-4">
           <div class="code-header">
             <div class="code-dots">
               <span class="code-dot code-dot-red"></span>
@@ -806,7 +807,7 @@ x-publisher-name: Acme Corp</code></pre>
           </div>
         </div>
 
-        <h4 style="margin-bottom: var(--space-3);">Response (200 OK)</h4>
+        <h4 class="mb-3">Response (200 OK)</h4>
         <div class="code-block">
           <div class="code-header">
             <div class="code-dots">
@@ -836,16 +837,16 @@ x-publisher-name: Acme Corp</code></pre>
       </div>
 
       <!-- Get Publisher Profile -->
-      <div style="margin-bottom: var(--space-10);">
+      <div class="mb-10">
         <div style="display: flex; align-items: center; gap: var(--space-3); margin-bottom: var(--space-4);">
-          <span style="display: inline-block; padding: var(--space-1) var(--space-3); background: var(--accent-primary); color: var(--bg-code); font-weight: 700; border-radius: var(--radius-md); font-size: var(--text-sm);">GET</span>
-          <code style="color: var(--text-primary); font-size: var(--text-lg);">/api/marketplace/publisher/profile</code>
+          <span class="method-badge method-badge-get">GET</span>
+          <code class="endpoint-path">/api/marketplace/publisher/profile</code>
         </div>
-        <p style="color: var(--text-secondary); margin-bottom: var(--space-4);">
+        <p class="api-section-desc">
           Get your publisher profile and statistics.
         </p>
 
-        <h4 style="margin-bottom: var(--space-3);">Response (200 OK)</h4>
+        <h4 class="mb-3">Response (200 OK)</h4>
         <div class="code-block">
           <div class="code-header">
             <div class="code-dots">
@@ -872,17 +873,17 @@ x-publisher-name: Acme Corp</code></pre>
       </div>
 
       <!-- Get Item Analytics -->
-      <div style="margin-bottom: var(--space-10);">
+      <div class="mb-10">
         <div style="display: flex; align-items: center; gap: var(--space-3); margin-bottom: var(--space-4);">
-          <span style="display: inline-block; padding: var(--space-1) var(--space-3); background: var(--accent-primary); color: var(--bg-code); font-weight: 700; border-radius: var(--radius-md); font-size: var(--text-sm);">GET</span>
-          <code style="color: var(--text-primary); font-size: var(--text-lg);">/api/marketplace/publisher/:id/analytics</code>
+          <span class="method-badge method-badge-get">GET</span>
+          <code class="endpoint-path">/api/marketplace/publisher/:id/analytics</code>
         </div>
-        <p style="color: var(--text-secondary); margin-bottom: var(--space-4);">
+        <p class="api-section-desc">
           Get detailed analytics for a specific item.
         </p>
 
-        <h4 style="margin-bottom: var(--space-3);">Example Request</h4>
-        <div class="code-block" style="margin-bottom: var(--space-4);">
+        <h4 class="mb-3">Example Request</h4>
+        <div class="code-block" class="mb-4">
           <div class="code-header">
             <div class="code-dots">
               <span class="code-dot code-dot-red"></span>
@@ -898,7 +899,7 @@ x-publisher-name: Acme Corp</code></pre>
           </div>
         </div>
 
-        <h4 style="margin-bottom: var(--space-3);">Response (200 OK)</h4>
+        <h4 class="mb-3">Response (200 OK)</h4>
         <div class="code-block">
           <div class="code-header">
             <div class="code-dots">
@@ -939,17 +940,17 @@ x-publisher-name: Acme Corp</code></pre>
       </div>
 
       <!-- Update Submission -->
-      <div style="margin-bottom: var(--space-10);">
+      <div class="mb-10">
         <div style="display: flex; align-items: center; gap: var(--space-3); margin-bottom: var(--space-4);">
-          <span style="display: inline-block; padding: var(--space-1) var(--space-3); background: var(--warning); color: var(--bg-code); font-weight: 700; border-radius: var(--radius-md); font-size: var(--text-sm);">PUT</span>
-          <code style="color: var(--text-primary); font-size: var(--text-lg);">/api/marketplace/publisher/:id</code>
+          <span class="method-badge method-badge-put">PUT</span>
+          <code class="endpoint-path">/api/marketplace/publisher/:id</code>
         </div>
-        <p style="color: var(--text-secondary); margin-bottom: var(--space-4);">
+        <p class="api-section-desc">
           Update an existing submission with new manifest data.
         </p>
 
-        <h4 style="margin-bottom: var(--space-3);">Example Request</h4>
-        <div class="code-block" style="margin-bottom: var(--space-4);">
+        <h4 class="mb-3">Example Request</h4>
+        <div class="code-block" class="mb-4">
           <div class="code-header">
             <div class="code-dots">
               <span class="code-dot code-dot-red"></span>
@@ -967,7 +968,7 @@ x-publisher-name: Acme Corp</code></pre>
           </div>
         </div>
 
-        <h4 style="margin-bottom: var(--space-3);">Response (200 OK)</h4>
+        <h4 class="mb-3">Response (200 OK)</h4>
         <div class="code-block">
           <div class="code-header">
             <div class="code-dots">
@@ -988,17 +989,17 @@ x-publisher-name: Acme Corp</code></pre>
       </div>
 
       <!-- Delete Submission -->
-      <div style="margin-bottom: var(--space-10);">
+      <div class="mb-10">
         <div style="display: flex; align-items: center; gap: var(--space-3); margin-bottom: var(--space-4);">
-          <span style="display: inline-block; padding: var(--space-1) var(--space-3); background: var(--error); color: var(--bg-code); font-weight: 700; border-radius: var(--radius-md); font-size: var(--text-sm);">DELETE</span>
-          <code style="color: var(--text-primary); font-size: var(--text-lg);">/api/marketplace/publisher/:id</code>
+          <span class="method-badge method-badge-delete">DELETE</span>
+          <code class="endpoint-path">/api/marketplace/publisher/:id</code>
         </div>
-        <p style="color: var(--text-secondary); margin-bottom: var(--space-4);">
+        <p class="api-section-desc">
           Delete a submission from the marketplace. Existing installations continue to work for 30 days.
         </p>
 
-        <h4 style="margin-bottom: var(--space-3);">Example Request</h4>
-        <div class="code-block" style="margin-bottom: var(--space-4);">
+        <h4 class="mb-3">Example Request</h4>
+        <div class="code-block" class="mb-4">
           <div class="code-header">
             <div class="code-dots">
               <span class="code-dot code-dot-red"></span>
@@ -1014,7 +1015,7 @@ x-publisher-name: Acme Corp</code></pre>
           </div>
         </div>
 
-        <h4 style="margin-bottom: var(--space-3);">Response (200 OK)</h4>
+        <h4 class="mb-3">Response (200 OK)</h4>
         <div class="code-block">
           <div class="code-header">
             <div class="code-dots">
@@ -1035,24 +1036,24 @@ x-publisher-name: Acme Corp</code></pre>
     </div>
 
     <!-- Browse API -->
-    <div id="browse" style="margin-bottom: var(--space-12);">
-      <h2 style="margin-bottom: var(--space-4);">Browse API</h2>
-      <p style="color: var(--text-secondary); margin-bottom: var(--space-8);">
+    <div id="browse" class="mb-12">
+      <h2 class="mb-4">Browse API</h2>
+      <p class="api-section-desc mb-8">
         Discover and retrieve information about tools and agents in the marketplace.
       </p>
 
       <!-- List Tools -->
-      <div style="margin-bottom: var(--space-10);">
+      <div class="mb-10">
         <div style="display: flex; align-items: center; gap: var(--space-3); margin-bottom: var(--space-4);">
-          <span style="display: inline-block; padding: var(--space-1) var(--space-3); background: var(--accent-primary); color: var(--bg-code); font-weight: 700; border-radius: var(--radius-md); font-size: var(--text-sm);">GET</span>
-          <code style="color: var(--text-primary); font-size: var(--text-lg);">/api/marketplace/browse/tools</code>
+          <span class="method-badge method-badge-get">GET</span>
+          <code class="endpoint-path">/api/marketplace/browse/tools</code>
         </div>
-        <p style="color: var(--text-secondary); margin-bottom: var(--space-4);">
+        <p class="api-section-desc">
           List all available tools in the marketplace.
         </p>
 
-        <h4 style="margin-bottom: var(--space-3);">Example Request</h4>
-        <div class="code-block" style="margin-bottom: var(--space-4);">
+        <h4 class="mb-3">Example Request</h4>
+        <div class="code-block" class="mb-4">
           <div class="code-header">
             <div class="code-dots">
               <span class="code-dot code-dot-red"></span>
@@ -1066,7 +1067,7 @@ x-publisher-name: Acme Corp</code></pre>
           </div>
         </div>
 
-        <h4 style="margin-bottom: var(--space-3);">Response (200 OK)</h4>
+        <h4 class="mb-3">Response (200 OK)</h4>
         <div class="code-block">
           <div class="code-header">
             <div class="code-dots">
@@ -1099,16 +1100,16 @@ x-publisher-name: Acme Corp</code></pre>
       </div>
 
       <!-- List Agents -->
-      <div style="margin-bottom: var(--space-10);">
+      <div class="mb-10">
         <div style="display: flex; align-items: center; gap: var(--space-3); margin-bottom: var(--space-4);">
-          <span style="display: inline-block; padding: var(--space-1) var(--space-3); background: var(--accent-primary); color: var(--bg-code); font-weight: 700; border-radius: var(--radius-md); font-size: var(--text-sm);">GET</span>
-          <code style="color: var(--text-primary); font-size: var(--text-lg);">/api/marketplace/browse/agents</code>
+          <span class="method-badge method-badge-get">GET</span>
+          <code class="endpoint-path">/api/marketplace/browse/agents</code>
         </div>
-        <p style="color: var(--text-secondary); margin-bottom: var(--space-4);">
+        <p class="api-section-desc">
           List all available agents in the marketplace.
         </p>
 
-        <h4 style="margin-bottom: var(--space-3);">Response (200 OK)</h4>
+        <h4 class="mb-3">Response (200 OK)</h4>
         <div class="code-block">
           <div class="code-header">
             <div class="code-dots">
@@ -1142,17 +1143,17 @@ x-publisher-name: Acme Corp</code></pre>
       </div>
 
       <!-- Get Tool Details -->
-      <div style="margin-bottom: var(--space-10);">
+      <div class="mb-10">
         <div style="display: flex; align-items: center; gap: var(--space-3); margin-bottom: var(--space-4);">
-          <span style="display: inline-block; padding: var(--space-1) var(--space-3); background: var(--accent-primary); color: var(--bg-code); font-weight: 700; border-radius: var(--radius-md); font-size: var(--text-sm);">GET</span>
-          <code style="color: var(--text-primary); font-size: var(--text-lg);">/api/marketplace/browse/tools/:id</code>
+          <span class="method-badge method-badge-get">GET</span>
+          <code class="endpoint-path">/api/marketplace/browse/tools/:id</code>
         </div>
-        <p style="color: var(--text-secondary); margin-bottom: var(--space-4);">
+        <p class="api-section-desc">
           Get detailed information about a specific tool.
         </p>
 
-        <h4 style="margin-bottom: var(--space-3);">Example Request</h4>
-        <div class="code-block" style="margin-bottom: var(--space-4);">
+        <h4 class="mb-3">Example Request</h4>
+        <div class="code-block" class="mb-4">
           <div class="code-header">
             <div class="code-dots">
               <span class="code-dot code-dot-red"></span>
@@ -1166,7 +1167,7 @@ x-publisher-name: Acme Corp</code></pre>
           </div>
         </div>
 
-        <h4 style="margin-bottom: var(--space-3);">Response (200 OK)</h4>
+        <h4 class="mb-3">Response (200 OK)</h4>
         <div class="code-block">
           <div class="code-header">
             <div class="code-dots">
@@ -1211,17 +1212,17 @@ x-publisher-name: Acme Corp</code></pre>
       </div>
 
       <!-- Get Agent Details -->
-      <div style="margin-bottom: var(--space-10);">
+      <div class="mb-10">
         <div style="display: flex; align-items: center; gap: var(--space-3); margin-bottom: var(--space-4);">
-          <span style="display: inline-block; padding: var(--space-1) var(--space-3); background: var(--accent-primary); color: var(--bg-code); font-weight: 700; border-radius: var(--radius-md); font-size: var(--text-sm);">GET</span>
-          <code style="color: var(--text-primary); font-size: var(--text-lg);">/api/marketplace/browse/agents/:id</code>
+          <span class="method-badge method-badge-get">GET</span>
+          <code class="endpoint-path">/api/marketplace/browse/agents/:id</code>
         </div>
-        <p style="color: var(--text-secondary); margin-bottom: var(--space-4);">
+        <p class="api-section-desc">
           Get detailed information about a specific agent.
         </p>
 
-        <h4 style="margin-bottom: var(--space-3);">Example Request</h4>
-        <div class="code-block" style="margin-bottom: var(--space-4);">
+        <h4 class="mb-3">Example Request</h4>
+        <div class="code-block" class="mb-4">
           <div class="code-header">
             <div class="code-dots">
               <span class="code-dot code-dot-red"></span>
@@ -1238,24 +1239,24 @@ x-publisher-name: Acme Corp</code></pre>
     </div>
 
     <!-- Install API -->
-    <div id="install" style="margin-bottom: var(--space-12);">
-      <h2 style="margin-bottom: var(--space-4);">Install API</h2>
-      <p style="color: var(--text-secondary); margin-bottom: var(--space-8);">
+    <div id="install" class="mb-12">
+      <h2 class="mb-4">Install API</h2>
+      <p class="api-section-desc mb-8">
         Install, uninstall, and manage marketplace items.
       </p>
 
       <!-- Install Tool -->
-      <div style="margin-bottom: var(--space-10);">
+      <div class="mb-10">
         <div style="display: flex; align-items: center; gap: var(--space-3); margin-bottom: var(--space-4);">
-          <span style="display: inline-block; padding: var(--space-1) var(--space-3); background: var(--success); color: var(--bg-code); font-weight: 700; border-radius: var(--radius-md); font-size: var(--text-sm);">POST</span>
-          <code style="color: var(--text-primary); font-size: var(--text-lg);">/api/marketplace/install/tool</code>
+          <span class="method-badge method-badge-post">POST</span>
+          <code class="endpoint-path">/api/marketplace/install/tool</code>
         </div>
-        <p style="color: var(--text-secondary); margin-bottom: var(--space-4);">
+        <p class="api-section-desc">
           Install a tool for the authenticated user.
         </p>
 
-        <h4 style="margin-bottom: var(--space-3);">Request Body</h4>
-        <div class="code-block" style="margin-bottom: var(--space-4);">
+        <h4 class="mb-3">Request Body</h4>
+        <div class="code-block" class="mb-4">
           <div class="code-header">
             <div class="code-dots">
               <span class="code-dot code-dot-red"></span>
@@ -1272,8 +1273,8 @@ x-publisher-name: Acme Corp</code></pre>
           </div>
         </div>
 
-        <h4 style="margin-bottom: var(--space-3);">Example Request</h4>
-        <div class="code-block" style="margin-bottom: var(--space-4);">
+        <h4 class="mb-3">Example Request</h4>
+        <div class="code-block" class="mb-4">
           <div class="code-header">
             <div class="code-dots">
               <span class="code-dot code-dot-red"></span>
@@ -1290,7 +1291,7 @@ x-publisher-name: Acme Corp</code></pre>
           </div>
         </div>
 
-        <h4 style="margin-bottom: var(--space-3);">Response (200 OK)</h4>
+        <h4 class="mb-3">Response (200 OK)</h4>
         <div class="code-block">
           <div class="code-header">
             <div class="code-dots">
@@ -1314,17 +1315,17 @@ x-publisher-name: Acme Corp</code></pre>
       </div>
 
       <!-- Install Agent -->
-      <div style="margin-bottom: var(--space-10);">
+      <div class="mb-10">
         <div style="display: flex; align-items: center; gap: var(--space-3); margin-bottom: var(--space-4);">
-          <span style="display: inline-block; padding: var(--space-1) var(--space-3); background: var(--success); color: var(--bg-code); font-weight: 700; border-radius: var(--radius-md); font-size: var(--text-sm);">POST</span>
-          <code style="color: var(--text-primary); font-size: var(--text-lg);">/api/marketplace/install/agent</code>
+          <span class="method-badge method-badge-post">POST</span>
+          <code class="endpoint-path">/api/marketplace/install/agent</code>
         </div>
-        <p style="color: var(--text-secondary); margin-bottom: var(--space-4);">
+        <p class="api-section-desc">
           Install an agent for the authenticated user.
         </p>
 
-        <h4 style="margin-bottom: var(--space-3);">Request Body</h4>
-        <div class="code-block" style="margin-bottom: var(--space-4);">
+        <h4 class="mb-3">Request Body</h4>
+        <div class="code-block" class="mb-4">
           <div class="code-header">
             <div class="code-dots">
               <span class="code-dot code-dot-red"></span>
@@ -1341,7 +1342,7 @@ x-publisher-name: Acme Corp</code></pre>
           </div>
         </div>
 
-        <h4 style="margin-bottom: var(--space-3);">Response (200 OK)</h4>
+        <h4 class="mb-3">Response (200 OK)</h4>
         <div class="code-block">
           <div class="code-header">
             <div class="code-dots">
@@ -1365,17 +1366,17 @@ x-publisher-name: Acme Corp</code></pre>
       </div>
 
       <!-- Uninstall Tool -->
-      <div style="margin-bottom: var(--space-10);">
+      <div class="mb-10">
         <div style="display: flex; align-items: center; gap: var(--space-3); margin-bottom: var(--space-4);">
-          <span style="display: inline-block; padding: var(--space-1) var(--space-3); background: var(--error); color: var(--bg-code); font-weight: 700; border-radius: var(--radius-md); font-size: var(--text-sm);">DELETE</span>
-          <code style="color: var(--text-primary); font-size: var(--text-lg);">/api/marketplace/install/tool/:id</code>
+          <span class="method-badge method-badge-delete">DELETE</span>
+          <code class="endpoint-path">/api/marketplace/install/tool/:id</code>
         </div>
-        <p style="color: var(--text-secondary); margin-bottom: var(--space-4);">
+        <p class="api-section-desc">
           Uninstall a tool.
         </p>
 
-        <h4 style="margin-bottom: var(--space-3);">Example Request</h4>
-        <div class="code-block" style="margin-bottom: var(--space-4);">
+        <h4 class="mb-3">Example Request</h4>
+        <div class="code-block" class="mb-4">
           <div class="code-header">
             <div class="code-dots">
               <span class="code-dot code-dot-red"></span>
@@ -1390,7 +1391,7 @@ x-publisher-name: Acme Corp</code></pre>
           </div>
         </div>
 
-        <h4 style="margin-bottom: var(--space-3);">Response (200 OK)</h4>
+        <h4 class="mb-3">Response (200 OK)</h4>
         <div class="code-block">
           <div class="code-header">
             <div class="code-dots">
@@ -1409,16 +1410,16 @@ x-publisher-name: Acme Corp</code></pre>
       </div>
 
       <!-- Uninstall Agent -->
-      <div style="margin-bottom: var(--space-10);">
+      <div class="mb-10">
         <div style="display: flex; align-items: center; gap: var(--space-3); margin-bottom: var(--space-4);">
-          <span style="display: inline-block; padding: var(--space-1) var(--space-3); background: var(--error); color: var(--bg-code); font-weight: 700; border-radius: var(--radius-md); font-size: var(--text-sm);">DELETE</span>
-          <code style="color: var(--text-primary); font-size: var(--text-lg);">/api/marketplace/install/agent/:id</code>
+          <span class="method-badge method-badge-delete">DELETE</span>
+          <code class="endpoint-path">/api/marketplace/install/agent/:id</code>
         </div>
-        <p style="color: var(--text-secondary); margin-bottom: var(--space-4);">
+        <p class="api-section-desc">
           Uninstall an agent.
         </p>
 
-        <h4 style="margin-bottom: var(--space-3);">Example Request</h4>
+        <h4 class="mb-3">Example Request</h4>
         <div class="code-block">
           <div class="code-header">
             <div class="code-dots">
@@ -1436,17 +1437,17 @@ x-publisher-name: Acme Corp</code></pre>
       </div>
 
       <!-- List Installations -->
-      <div style="margin-bottom: var(--space-10);">
+      <div class="mb-10">
         <div style="display: flex; align-items: center; gap: var(--space-3); margin-bottom: var(--space-4);">
-          <span style="display: inline-block; padding: var(--space-1) var(--space-3); background: var(--accent-primary); color: var(--bg-code); font-weight: 700; border-radius: var(--radius-md); font-size: var(--text-sm);">GET</span>
-          <code style="color: var(--text-primary); font-size: var(--text-lg);">/api/marketplace/install/list</code>
+          <span class="method-badge method-badge-get">GET</span>
+          <code class="endpoint-path">/api/marketplace/install/list</code>
         </div>
-        <p style="color: var(--text-secondary); margin-bottom: var(--space-4);">
+        <p class="api-section-desc">
           List all installations for the authenticated user.
         </p>
 
-        <h4 style="margin-bottom: var(--space-3);">Example Request</h4>
-        <div class="code-block" style="margin-bottom: var(--space-4);">
+        <h4 class="mb-3">Example Request</h4>
+        <div class="code-block" class="mb-4">
           <div class="code-header">
             <div class="code-dots">
               <span class="code-dot code-dot-red"></span>
@@ -1461,7 +1462,7 @@ x-publisher-name: Acme Corp</code></pre>
           </div>
         </div>
 
-        <h4 style="margin-bottom: var(--space-3);">Response (200 OK)</h4>
+        <h4 class="mb-3">Response (200 OK)</h4>
         <div class="code-block">
           <div class="code-header">
             <div class="code-dots">
@@ -1497,24 +1498,24 @@ x-publisher-name: Acme Corp</code></pre>
     </div>
 
     <!-- Usage/Billing API -->
-    <div id="usage" style="margin-bottom: var(--space-12);">
-      <h2 style="margin-bottom: var(--space-4);">Usage & Billing API</h2>
-      <p style="color: var(--text-secondary); margin-bottom: var(--space-8);">
+    <div id="usage" class="mb-12">
+      <h2 class="mb-4">Usage & Billing API</h2>
+      <p class="api-section-desc mb-8">
         Track usage, check quotas, and retrieve billing information.
       </p>
 
       <!-- Get Item Usage -->
-      <div style="margin-bottom: var(--space-10);">
+      <div class="mb-10">
         <div style="display: flex; align-items: center; gap: var(--space-3); margin-bottom: var(--space-4);">
-          <span style="display: inline-block; padding: var(--space-1) var(--space-3); background: var(--accent-primary); color: var(--bg-code); font-weight: 700; border-radius: var(--radius-md); font-size: var(--text-sm);">GET</span>
-          <code style="color: var(--text-primary); font-size: var(--text-lg);">/api/marketplace/usage/:itemId</code>
+          <span class="method-badge method-badge-get">GET</span>
+          <code class="endpoint-path">/api/marketplace/usage/:itemId</code>
         </div>
-        <p style="color: var(--text-secondary); margin-bottom: var(--space-4);">
+        <p class="api-section-desc">
           Get usage statistics for a specific item.
         </p>
 
-        <h4 style="margin-bottom: var(--space-3);">Example Request</h4>
-        <div class="code-block" style="margin-bottom: var(--space-4);">
+        <h4 class="mb-3">Example Request</h4>
+        <div class="code-block" class="mb-4">
           <div class="code-header">
             <div class="code-dots">
               <span class="code-dot code-dot-red"></span>
@@ -1530,7 +1531,7 @@ x-publisher-name: Acme Corp</code></pre>
           </div>
         </div>
 
-        <h4 style="margin-bottom: var(--space-3);">Response (200 OK)</h4>
+        <h4 class="mb-3">Response (200 OK)</h4>
         <div class="code-block">
           <div class="code-header">
             <div class="code-dots">
@@ -1565,17 +1566,17 @@ x-publisher-name: Acme Corp</code></pre>
       </div>
 
       <!-- Get Usage Summary -->
-      <div style="margin-bottom: var(--space-10);">
+      <div class="mb-10">
         <div style="display: flex; align-items: center; gap: var(--space-3); margin-bottom: var(--space-4);">
-          <span style="display: inline-block; padding: var(--space-1) var(--space-3); background: var(--accent-primary); color: var(--bg-code); font-weight: 700; border-radius: var(--radius-md); font-size: var(--text-sm);">GET</span>
-          <code style="color: var(--text-primary); font-size: var(--text-lg);">/api/marketplace/usage/summary</code>
+          <span class="method-badge method-badge-get">GET</span>
+          <code class="endpoint-path">/api/marketplace/usage/summary</code>
         </div>
-        <p style="color: var(--text-secondary); margin-bottom: var(--space-4);">
+        <p class="api-section-desc">
           Get aggregated usage across all installed items.
         </p>
 
-        <h4 style="margin-bottom: var(--space-3);">Example Request</h4>
-        <div class="code-block" style="margin-bottom: var(--space-4);">
+        <h4 class="mb-3">Example Request</h4>
+        <div class="code-block" class="mb-4">
           <div class="code-header">
             <div class="code-dots">
               <span class="code-dot code-dot-red"></span>
@@ -1591,7 +1592,7 @@ x-publisher-name: Acme Corp</code></pre>
           </div>
         </div>
 
-        <h4 style="margin-bottom: var(--space-3);">Response (200 OK)</h4>
+        <h4 class="mb-3">Response (200 OK)</h4>
         <div class="code-block">
           <div class="code-header">
             <div class="code-dots">
@@ -1628,17 +1629,17 @@ x-publisher-name: Acme Corp</code></pre>
       </div>
 
       <!-- Check Quota -->
-      <div style="margin-bottom: var(--space-10);">
+      <div class="mb-10">
         <div style="display: flex; align-items: center; gap: var(--space-3); margin-bottom: var(--space-4);">
-          <span style="display: inline-block; padding: var(--space-1) var(--space-3); background: var(--accent-primary); color: var(--bg-code); font-weight: 700; border-radius: var(--radius-md); font-size: var(--text-sm);">GET</span>
-          <code style="color: var(--text-primary); font-size: var(--text-lg);">/api/marketplace/quota/check/:itemId</code>
+          <span class="method-badge method-badge-get">GET</span>
+          <code class="endpoint-path">/api/marketplace/quota/check/:itemId</code>
         </div>
-        <p style="color: var(--text-secondary); margin-bottom: var(--space-4);">
+        <p class="api-section-desc">
           Check if user has available quota to execute an item.
         </p>
 
-        <h4 style="margin-bottom: var(--space-3);">Example Request</h4>
-        <div class="code-block" style="margin-bottom: var(--space-4);">
+        <h4 class="mb-3">Example Request</h4>
+        <div class="code-block" class="mb-4">
           <div class="code-header">
             <div class="code-dots">
               <span class="code-dot code-dot-red"></span>
@@ -1654,7 +1655,7 @@ x-publisher-name: Acme Corp</code></pre>
           </div>
         </div>
 
-        <h4 style="margin-bottom: var(--space-3);">Response (200 OK)</h4>
+        <h4 class="mb-3">Response (200 OK)</h4>
         <div class="code-block">
           <div class="code-header">
             <div class="code-dots">
@@ -1675,7 +1676,7 @@ x-publisher-name: Acme Corp</code></pre>
           </div>
         </div>
 
-        <h4 style="margin-bottom: var(--space-3);">Response (200 OK - Quota Exceeded)</h4>
+        <h4 class="mb-3">Response (200 OK - Quota Exceeded)</h4>
         <div class="code-block">
           <div class="code-header">
             <div class="code-dots">
@@ -1699,15 +1700,15 @@ x-publisher-name: Acme Corp</code></pre>
     </div>
 
     <!-- Error Codes -->
-    <div id="errors" style="margin-bottom: var(--space-12);">
-      <h2 style="margin-bottom: var(--space-4);">Error Codes</h2>
-      <p style="color: var(--text-secondary); margin-bottom: var(--space-6);">
+    <div id="errors" class="mb-12">
+      <h2 class="mb-4">Error Codes</h2>
+      <p class="api-section-desc mb-6">
         The API uses standard HTTP status codes and returns error details in JSON format.
       </p>
 
       <div style="background: var(--bg-elevated); border: 1px solid var(--border-subtle); border-radius: var(--radius-2xl); padding: var(--space-6); margin-bottom: var(--space-6);">
-        <h3 style="margin-bottom: var(--space-4);">HTTP Status Codes</h3>
-        <table style="width: 100%; border-collapse: collapse;">
+        <h3 class="mb-4">HTTP Status Codes</h3>
+        <table class="api-table">
           <thead>
             <tr style="border-bottom: 1px solid var(--border-subtle);">
               <th style="text-align: left; padding: var(--space-3); color: var(--text-secondary);">Code</th>
@@ -1718,40 +1719,40 @@ x-publisher-name: Acme Corp</code></pre>
           <tbody>
             <tr style="border-bottom: 1px solid var(--border-subtle);">
               <td style="padding: var(--space-3); font-weight: 700;">200</td>
-              <td style="padding: var(--space-3);">OK</td>
+              <td class="p-3">OK</td>
               <td style="padding: var(--space-3); color: var(--text-secondary);">Request successful</td>
             </tr>
             <tr style="border-bottom: 1px solid var(--border-subtle);">
               <td style="padding: var(--space-3); font-weight: 700;">400</td>
-              <td style="padding: var(--space-3);">Bad Request</td>
+              <td class="p-3">Bad Request</td>
               <td style="padding: var(--space-3); color: var(--text-secondary);">Invalid request body or parameters</td>
             </tr>
             <tr style="border-bottom: 1px solid var(--border-subtle);">
               <td style="padding: var(--space-3); font-weight: 700;">401</td>
-              <td style="padding: var(--space-3);">Unauthorized</td>
+              <td class="p-3">Unauthorized</td>
               <td style="padding: var(--space-3); color: var(--text-secondary);">Missing or invalid authentication</td>
             </tr>
             <tr style="border-bottom: 1px solid var(--border-subtle);">
               <td style="padding: var(--space-3); font-weight: 700;">403</td>
-              <td style="padding: var(--space-3);">Forbidden</td>
+              <td class="p-3">Forbidden</td>
               <td style="padding: var(--space-3); color: var(--text-secondary);">Not authorized to access resource</td>
             </tr>
             <tr style="border-bottom: 1px solid var(--border-subtle);">
               <td style="padding: var(--space-3); font-weight: 700;">404</td>
-              <td style="padding: var(--space-3);">Not Found</td>
+              <td class="p-3">Not Found</td>
               <td style="padding: var(--space-3); color: var(--text-secondary);">Resource does not exist</td>
             </tr>
             <tr>
               <td style="padding: var(--space-3); font-weight: 700;">500</td>
-              <td style="padding: var(--space-3);">Internal Server Error</td>
+              <td class="p-3">Internal Server Error</td>
               <td style="padding: var(--space-3); color: var(--text-secondary);">Server error occurred</td>
             </tr>
           </tbody>
         </table>
       </div>
 
-      <h3 style="margin-bottom: var(--space-4);">Error Response Format</h3>
-      <div class="code-block" style="margin-bottom: var(--space-6);">
+      <h3 class="mb-4">Error Response Format</h3>
+      <div class="code-block" class="mb-6">
         <div class="code-header">
           <div class="code-dots">
             <span class="code-dot code-dot-red"></span>
@@ -1772,21 +1773,21 @@ x-publisher-name: Acme Corp</code></pre>
         </div>
       </div>
 
-      <h3 style="margin-bottom: var(--space-4);">Common Error Scenarios</h3>
+      <h3 class="mb-4">Common Error Scenarios</h3>
       <div style="display: grid; gap: var(--space-4);">
-        <div style="background: var(--bg-elevated); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: var(--space-4);">
+        <div class="elevated-card">
           <h4 style="margin-bottom: var(--space-2);">Missing Authentication</h4>
           <p style="color: var(--text-secondary); font-size: var(--text-sm); margin: 0;">401 Unauthorized - Include x-user-id or x-publisher-id header</p>
         </div>
-        <div style="background: var(--bg-elevated); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: var(--space-4);">
+        <div class="elevated-card">
           <h4 style="margin-bottom: var(--space-2);">Publisher ID Mismatch</h4>
           <p style="color: var(--text-secondary); font-size: var(--text-sm); margin: 0;">403 Forbidden - Publisher ID in manifest must match authenticated publisher</p>
         </div>
-        <div style="background: var(--bg-elevated); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: var(--space-4);">
+        <div class="elevated-card">
           <h4 style="margin-bottom: var(--space-2);">Item Not Found</h4>
           <p style="color: var(--text-secondary); font-size: var(--text-sm); margin: 0;">404 Not Found - Requested tool or agent does not exist</p>
         </div>
-        <div style="background: var(--bg-elevated); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: var(--space-4);">
+        <div class="elevated-card">
           <h4 style="margin-bottom: var(--space-2);">Invalid Manifest</h4>
           <p style="color: var(--text-secondary); font-size: var(--text-sm); margin: 0;">400 Bad Request - Check validationErrors array for specific issues</p>
         </div>
@@ -1795,21 +1796,21 @@ x-publisher-name: Acme Corp</code></pre>
 
     <!-- Next Steps -->
     <div style="background: var(--bg-elevated); border: 1px solid var(--border-subtle); border-radius: var(--radius-2xl); padding: var(--space-8);">
-      <h2 style="margin-bottom: var(--space-4);">Need Help?</h2>
+      <h2 class="mb-4">Need Help?</h2>
       <div class="grid grid-2" style="gap: var(--space-4);">
-        <a href="/getting-started/" class="card" style="padding: var(--space-4);">
+        <a href="/getting-started/" class="card" class="p-4">
           <h4 style="margin-bottom: var(--space-2);">Getting Started</h4>
           <p style="font-size: var(--text-sm); margin: 0;">New to Ferni? Start here</p>
         </a>
-        <a href="/sdk/" class="card" style="padding: var(--space-4);">
+        <a href="/sdk/" class="card" class="p-4">
           <h4 style="margin-bottom: var(--space-2);">SDK Documentation</h4>
           <p style="font-size: var(--text-sm); margin: 0;">TypeScript SDK for easier integration</p>
         </a>
-        <a href="/examples/" class="card" style="padding: var(--space-4);">
+        <a href="/examples/" class="card" class="p-4">
           <h4 style="margin-bottom: var(--space-2);">Code Examples</h4>
           <p style="font-size: var(--text-sm); margin: 0;">Real-world API usage examples</p>
         </a>
-        <a href="https://marketplace.ferni.ai" class="card" style="padding: var(--space-4);">
+        <a href="https://marketplace.ferni.ai" class="card" class="p-4">
           <h4 style="margin-bottom: var(--space-2);">Publisher Portal</h4>
           <p style="font-size: var(--text-sm); margin: 0;">Manage your submissions</p>
         </a>

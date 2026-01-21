@@ -48,7 +48,7 @@ We're not interested in your data. We're interested in your growth.
 
 ## Try It Today
 
-Ferni is free. Really free. Just [open the web app](https://app.ferni.ai) or call **1 (484) 481-3081**.
+Ferni is free. Really free. Just [open the web app](https://app.ferni.ai) or call **1 (888) 598-3952**.
 
 No sign-up required. No credit card. Just a conversation.
 

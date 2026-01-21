@@ -14,32 +14,29 @@
  * @module session-manager/session-end-cleanup
  */
 
-import type { UserProfile } from '../../types/user-profile.js';
-import { getLogger } from '../../utils/safe-logger.js';
-import type { SessionServices } from '../types.js';
-import type { ConversationTurn } from '../../memory/index.js';
-import type { ConversationSummary } from './summarization.js';
-import {
-  removeHistoryTracker,
-  clearCurrentSessionMomentsGetter,
-} from '../../memory/index.js';
 import { removeContextManager } from '../../context/index.js';
 import {
-  resetLearningEngine,
-  removeResponseQualityTracker,
-  removeConversationPatternAnalyzer,
-  removeProactiveInsightEngine,
-  removeFinancialJourneyTracker,
-  removeCrossSessionThreader,
-  removeVoicePaceAdapter,
-  removeHumorCalibration,
-  removeStoryPreference,
   removeCommunicationMirroring,
+  removeConversationPatternAnalyzer,
+  removeCrossSessionThreader,
   removeEmotionalMemory,
+  removeFinancialJourneyTracker,
+  removeHumorCalibration,
+  removeProactiveInsightEngine,
+  removeResponseQualityTracker,
+  removeStoryPreference,
+  removeVoicePaceAdapter,
+  resetLearningEngine,
 } from '../../intelligence/index.js';
+import type { ConversationTurn } from '../../memory/index.js';
+import { clearCurrentSessionMomentsGetter, removeHistoryTracker } from '../../memory/index.js';
+import type { UserProfile } from '../../types/user-profile.js';
+import { getLogger } from '../../utils/safe-logger.js';
 import { cleanupIntelligenceEngines } from '../intelligence-persistence.js';
-import { onSessionEndUnified } from '../trust-systems/unified-persistence.js';
 import * as realtimeMemory from '../memory/realtime-memory.js';
+import { onSessionEndUnified } from '../trust-systems/unified-persistence.js';
+import type { SessionServices } from '../types.js';
+import type { ConversationSummary } from './summarization.js';
 
 const log = getLogger();
 
@@ -122,7 +119,10 @@ export async function cleanupIntelligenceEnginesAll(
 /**
  * Capture growth snapshot at session end.
  */
-export async function captureGrowthSnapshot(userId: string, services: SessionServices): Promise<void> {
+export async function captureGrowthSnapshot(
+  userId: string,
+  services: SessionServices
+): Promise<void> {
   try {
     const { getGrowthVisibilityEngine } = await import('../growth-visibility-engine.js');
     const growthEngine = getGrowthVisibilityEngine(userId);
@@ -161,7 +161,10 @@ export async function clearLifeDataCache(userId: string): Promise<void> {
 /**
  * Finalize realtime memory and trigger async summarization.
  */
-export async function finalizeRealtimeMemory(userId: string, conversationId: string): Promise<void> {
+export async function finalizeRealtimeMemory(
+  userId: string,
+  conversationId: string
+): Promise<void> {
   try {
     await realtimeMemory.endConversation(userId, conversationId);
 
@@ -231,12 +234,12 @@ export async function indexUserMemories(userId: string, profile: UserProfile): P
       .then((result) => {
         if (result.indexed > 0) {
           log.info(
-            { userId, indexed: result.indexed, categories: result.categories },
+            { userId, indexed: result.indexed, categories: Object.keys(result.categories || {}) },
             '🧠 User memories indexed for semantic search'
           );
         }
       })
-      .catch((err) => {
+      .catch((err: unknown) => {
         log.debug({ error: String(err) }, 'User memory indexing failed (non-blocking)');
       });
   } catch (error) {
@@ -374,9 +377,15 @@ export async function promoteSTMToFirestore(sessionId: string, userId: string): 
       log.debug({ sessionId, userId }, '🧠 [MEMORY-AUDIT] Memory consolidation queued');
     } catch (consolidationError) {
       // Non-critical - scheduled job will handle it
-      log.debug({ error: String(consolidationError), userId }, '🧠 Memory consolidation queue skipped');
+      log.debug(
+        { error: String(consolidationError), userId },
+        '🧠 Memory consolidation queue skipped'
+      );
     }
   } catch (stmError) {
-    log.warn({ error: String(stmError), sessionId, userId }, '🧠 [MEMORY-AUDIT] STM promotion FAILED');
+    log.warn(
+      { error: String(stmError), sessionId, userId },
+      '🧠 [MEMORY-AUDIT] STM promotion FAILED'
+    );
   }
 }

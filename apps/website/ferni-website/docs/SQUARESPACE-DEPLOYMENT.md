@@ -109,7 +109,7 @@ Before deploying, update these links in `index.html`:
 | Link | Current Value | Update To |
 |------|---------------|-----------|
 | App URL | `https://app.ferni.ai` | Your app URL |
-| Phone | `tel:+14844813081` | Your Ferni phone |
+| Phone | `tel:+18885983952` | Your Ferni phone |
 | Privacy | `#` | Your privacy policy |
 | Terms | `#` | Your terms of service |
 

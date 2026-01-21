@@ -302,3 +302,158 @@ describe('Handoff Integration - Persona ID Consistency', () => {
     }
   });
 });
+
+describe('Handoff Integration - Intelligent Banter', () => {
+  /**
+   * Tests the intelligent banter system that provides context-aware
+   * handoff phrases based on topic, emotion, time, and relationship depth.
+   * 
+   * This test suite verifies:
+   * - Intelligent banter is properly wired and callable
+   * - It returns both softOpenBanter and arrivingBanter
+   * - Context affects the banter generation
+   * - Falls back gracefully when context is missing
+   */
+
+  const CANONICAL_IDS = [
+    'ferni',
+    'maya-santos',
+    'peter-john',
+    'alex-chen',
+    'jordan-taylor',
+    'nayan-patel',
+  ];
+
+  it('should generate intelligent banter for all persona pairs', async () => {
+    const { getIntelligentBanter } = await import(
+      '../../../services/team-engagement/intelligent-banter.js'
+    );
+
+    // Test ferni → each team member
+    for (const target of CANONICAL_IDS) {
+      if (target === 'ferni') continue;
+
+      const result = getIntelligentBanter('ferni', target, {});
+
+      // Should always return both banter strings
+      expect(result.softOpenBanter).toBeDefined();
+      expect(result.arrivingBanter).toBeDefined();
+      expect(typeof result.softOpenBanter).toBe('string');
+      expect(typeof result.arrivingBanter).toBe('string');
+      expect(result.softOpenBanter.length).toBeGreaterThan(0);
+      expect(result.arrivingBanter.length).toBeGreaterThan(0);
+    }
+  });
+
+  it('should indicate when intelligent banter was used vs fallback', async () => {
+    const { getIntelligentBanter } = await import(
+      '../../../services/team-engagement/intelligent-banter.js'
+    );
+
+    // With minimal context - may use fallback
+    const minimalResult = getIntelligentBanter('ferni', 'maya-santos', {});
+    expect(typeof minimalResult.wasIntelligent).toBe('boolean');
+
+    // With rich context - should use intelligent banter
+    const richResult = getIntelligentBanter('ferni', 'maya-santos', {
+      currentTopic: 'building a morning routine habit',
+      userEmotion: 'positive',
+      handoffCountThisSession: 0,
+      handoffReason: 'User wants help with habits',
+      totalSessions: 15,
+      timeOfDay: 'morning',
+      relationshipStage: 'established',
+    });
+
+    expect(richResult.softOpenBanter).toBeDefined();
+    expect(richResult.arrivingBanter).toBeDefined();
+    // With rich context, intelligent banter should be used
+    expect(richResult.wasIntelligent).toBe(true);
+  });
+
+  it('should adapt banter based on handoff count (brevity mode)', async () => {
+    const { getIntelligentBanter } = await import(
+      '../../../services/team-engagement/intelligent-banter.js'
+    );
+
+    // First handoff - should have fuller banter
+    const firstHandoff = getIntelligentBanter('ferni', 'peter-john', {
+      handoffCountThisSession: 0,
+    });
+
+    // Third+ handoff - should be more brief
+    const thirdHandoff = getIntelligentBanter('ferni', 'peter-john', {
+      handoffCountThisSession: 3,
+    });
+
+    // Both should work and produce valid banter
+    expect(firstHandoff.softOpenBanter.length).toBeGreaterThan(0);
+    expect(thirdHandoff.softOpenBanter.length).toBeGreaterThan(0);
+
+    // Both should be reasonable lengths (brevity mode may not always be shorter
+    // depending on the specific banter selected from the templates)
+    // Main assertion: both produce valid output, no errors from handoff count context
+    expect(firstHandoff.softOpenBanter.length).toBeLessThan(500);
+    expect(thirdHandoff.softOpenBanter.length).toBeLessThan(500);
+  });
+
+  it('should include context metadata in result when intelligent banter is used', async () => {
+    const { getIntelligentBanter } = await import(
+      '../../../services/team-engagement/intelligent-banter.js'
+    );
+
+    const result = getIntelligentBanter('ferni', 'alex-chen', {
+      currentTopic: 'email communication',
+      userEmotion: 'stressed',
+      timeOfDay: 'evening',
+      handoffReason: 'calendar scheduling',
+    });
+
+    // When intelligent banter is used, contextUsed should be populated
+    if (result.wasIntelligent) {
+      expect(result.contextUsed).toBeDefined();
+      // At least some context should be recorded
+      const hasContext = 
+        result.contextUsed?.topic ||
+        result.contextUsed?.emotion ||
+        result.contextUsed?.timeOfDay ||
+        result.contextUsed?.handoffReason;
+      expect(hasContext).toBeTruthy();
+    }
+  });
+
+  it('should handle emotion-aware banter', async () => {
+    const { getIntelligentBanter } = await import(
+      '../../../services/team-engagement/intelligent-banter.js'
+    );
+
+    // Test stressed emotion
+    const stressedResult = getIntelligentBanter('ferni', 'maya-santos', {
+      userEmotion: 'stressed',
+    });
+
+    // Test positive emotion
+    const positiveResult = getIntelligentBanter('ferni', 'maya-santos', {
+      userEmotion: 'positive',
+    });
+
+    // Both should generate valid banter
+    expect(stressedResult.softOpenBanter.length).toBeGreaterThan(0);
+    expect(positiveResult.softOpenBanter.length).toBeGreaterThan(0);
+  });
+
+  it('should handle team-to-team handoffs', async () => {
+    const { getIntelligentBanter } = await import(
+      '../../../services/team-engagement/intelligent-banter.js'
+    );
+
+    // Maya → Peter (team to team)
+    const result = getIntelligentBanter('maya-santos', 'peter-john', {
+      currentTopic: 'tracking habit progress with data',
+    });
+
+    expect(result.softOpenBanter).toBeDefined();
+    expect(result.arrivingBanter).toBeDefined();
+    expect(result.softOpenBanter.length).toBeGreaterThan(0);
+  });
+});

@@ -141,6 +141,17 @@
       "coaching-analytics",
       "deep-financial-analysis",
       "cross-domain-analysis"
-    ]
-  }
+    ],
+    "causal-analysis": ["causal-inference", "research-frameworks", "pattern-recognition-techniques"]
+  },
+  "additional_topics": [
+    {
+      "id": "causal-inference",
+      "topic": "Causal Inference Methodology",
+      "file": "causal-inference.md",
+      "domains": ["causality", "patterns", "granger", "counterfactuals", "research"],
+      "priority": "high",
+      "description": "Granger causality, counterfactual reasoning, confounder identification, intervention recommendations"
+    }
+  ]
 }

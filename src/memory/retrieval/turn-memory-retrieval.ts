@@ -35,12 +35,12 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
+import { rerankHybridResults } from './cross-encoder.js';
 import {
   hybridSearch,
-  type HybridSearchResult,
   type HybridSearchMetrics,
+  type HybridSearchResult,
 } from './hybrid-search.js';
-import { rerankHybridResults } from './cross-encoder.js';
 
 const log = createLogger({ module: 'TurnMemoryRetrieval' });
 
@@ -351,8 +351,50 @@ export async function retrieveForTurn(input: TurnRetrievalInput): Promise<Memory
       }
     }
 
+    // 2.5. ASSOCIATIVE MEMORY (find naturally associated memories)
+    // When user mentions something, find what a friend would naturally think of
+    let associativeResults: HybridSearchResult[] = [];
+    if (rankedResults.length > 0) {
+      try {
+        const { getAssociativeMemory } = await import('../associative-memory.js');
+        const associative = getAssociativeMemory(userId);
+        const triggered = await associative.getTriggeredMemories(transcript, {
+          query: transcript,
+          currentTopic: input.topics?.[0],
+          currentEmotion: input.emotion,
+          personaId: input.personaId,
+        });
+
+        // Convert to HybridSearchResult format and add to results
+        // Filter out any that are already in rankedResults
+        const existingIds = new Set(rankedResults.map((r) => r.id));
+        for (const t of triggered.slice(0, 3)) {
+          const memoryId = t.memory?.source?.documentId || `assoc-${Date.now()}`;
+          if (existingIds.has(memoryId)) continue;
+
+          associativeResults.push({
+            id: memoryId,
+            text: t.naturalReference || t.memory?.content || '',
+            score: t.activationStrength * 0.9, // Slightly lower than direct matches
+            type: 'memory' as const,
+            sources: ['associative'],
+            scoreBreakdown: { bm25: 0, vector: 0, entity: t.activationStrength },
+            metadata: {
+              triggerType: t.trigger?.triggerType,
+              triggerValue: t.trigger?.triggerValue,
+            },
+          });
+        }
+      } catch (error) {
+        log.debug({ error: String(error) }, 'Associative memory unavailable');
+      }
+    }
+
+    // Merge associative results with ranked results
+    const mergedResults = [...rankedResults, ...associativeResults];
+
     // 3. RELEVANCE GATING
-    const relevantResults = rankedResults.filter((r) => r.score >= config.minRelevanceScore);
+    const relevantResults = mergedResults.filter((r) => r.score >= config.minRelevanceScore);
     metrics.filteredResultCount = relevantResults.length;
 
     // 4. DEDUPLICATION (remove recently surfaced)

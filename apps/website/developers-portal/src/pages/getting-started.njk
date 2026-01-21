@@ -1,156 +1,202 @@
 ---
 layout: layouts/base.njk
 title: Getting Started
-description: Create your first voice AI agent in under 5 minutes
+description: Start talking to Ferni in under 2 minutes. Free forever.
+permalink: /getting-started/
 ---
 
-<section class="hero" style="padding-bottom: var(--space-12);">
+<section class="hero">
   <div class="container">
     <div class="hero-eyebrow">Getting Started</div>
-    <h1>Create Your First Agent<br><span class="accent">in 5 Minutes</span></h1>
+    <h1>Start Talking to Ferni<br><span class="accent">Free Forever</span></h1>
     <p class="hero-subtitle">
-      Follow this guide to set up your development environment and deploy your first voice AI agent.
+      Ferni is free for everyone. No signup walls. No credit card. Just someone who listens.
     </p>
   </div>
 </section>
 
-<section class="section" style="padding-top: var(--space-8);">
+<section class="section">
   <div class="container container-narrow">
     
     <!-- Two Paths -->
-    <div style="background: var(--bg-elevated); border: 1px solid var(--border-subtle); border-radius: var(--radius-2xl); padding: var(--space-6); margin-bottom: var(--space-12);">
-      <h3 style="margin-bottom: var(--space-4);">Choose Your Path</h3>
-      <div class="grid grid-2" style="gap: var(--space-4);">
-        <a href="#console-wizard" class="card" style="padding: var(--space-4); border: 2px solid var(--accent-primary);">
-          <h4 style="margin-bottom: var(--space-2);">Visual Wizard (Recommended)</h4>
-          <p style="font-size: var(--text-sm); margin: 0; color: var(--text-secondary);">Create personas through our guided console - no code required</p>
+    <div class="path-selector">
+      <h2>Choose How to Start</h2>
+      <div class="grid grid-2">
+        <a href="#talk-now" class="path-card path-card-primary">
+          <h3>Talk to Ferni Now</h3>
+          <p>Open the app and start a conversation. No setup required.</p>
         </a>
-        <a href="#cli-setup" class="card" style="padding: var(--space-4);">
-          <h4 style="margin-bottom: var(--space-2);">Developer CLI</h4>
-          <p style="font-size: var(--text-sm); margin: 0; color: var(--text-secondary);">Full control with command-line tools and SDK</p>
+        <a href="#build-persona" class="path-card">
+          <h3>Build a Custom Persona</h3>
+          <p>Create your own AI personality for specific use cases.</p>
         </a>
       </div>
     </div>
 
-    <!-- Console Wizard Path -->
-    <div id="console-wizard" style="margin-bottom: var(--space-16);">
-      <div style="display: flex; align-items: center; gap: var(--space-4); margin-bottom: var(--space-6);">
-        <div style="width: 48px; height: 48px; background: var(--accent-primary); border-radius: var(--radius-full); display: flex; align-items: center; justify-content: center; font-weight: 800; color: var(--bg-code); font-size: var(--text-lg);">✨</div>
-        <div>
-          <h2 style="margin: 0;">Create with Visual Wizard</h2>
-          <p style="color: var(--text-secondary); margin: 0;">The fastest way to create and publish a persona</p>
+    <!-- Talk Now Path -->
+    <div id="talk-now" class="step-section">
+      <div class="step-header-lg">
+        <div class="step-icon">1</div>
+        <div class="step-title-group">
+          <h2>Talk to Ferni</h2>
+          <p>The fastest way to experience voice AI that listens</p>
         </div>
       </div>
 
-      <!-- Step 1: Sign In -->
-      <div style="margin-bottom: var(--space-8);">
-        <div style="display: flex; align-items: center; gap: var(--space-4); margin-bottom: var(--space-4);">
-          <div style="width: 40px; height: 40px; background: var(--accent-primary); border-radius: var(--radius-full); display: flex; align-items: center; justify-content: center; font-weight: 800; color: var(--bg-code);">1</div>
-          <h3 style="margin: 0;">Sign In to Console</h3>
+      <div class="step-content">
+        <p>
+          Ferni is available right now. No account needed for your first conversation.
+        </p>
+        <p>
+          Go to <a href="https://app.ferni.ai">app.ferni.ai</a> and click "Start Talking." 
+          That's it. Ferni will introduce himself and you can start chatting about whatever's on your mind.
+        </p>
+        <a href="https://app.ferni.ai" class="btn btn-primary">Open Ferni →</a>
+      </div>
+
+      <div class="step-content">
+        <div class="step-header">
+          <div class="step-icon">2</div>
+          <h3>Meet the Team</h3>
         </div>
-        <p style="color: var(--text-secondary); margin-bottom: var(--space-4);">
-          Go to the <a href="/console/">Developer Console</a> and sign in with Google or GitHub. This creates your developer account automatically.
+        <p>
+          Ferni isn't just one AI—it's a team of six specialists. Each has their own personality, voice, and expertise:
+        </p>
+        <ul class="prereq-list">
+          <li><strong>Ferni</strong> — Life coach, your main guide</li>
+          <li><strong>Peter</strong> — Research and information</li>
+          <li><strong>Alex</strong> — Communication and scheduling</li>
+          <li><strong>Maya</strong> — Habits and routines</li>
+          <li><strong>Jordan</strong> — Events and milestones</li>
+          <li><strong>Nayan</strong> — Wisdom and perspective</li>
+        </ul>
+        <p>
+          During conversation, Ferni can hand you off to a specialist when needed. Or you can ask for someone specific.
         </p>
       </div>
 
-      <!-- Step 2: Create Persona -->
-      <div style="margin-bottom: var(--space-8);">
-        <div style="display: flex; align-items: center; gap: var(--space-4); margin-bottom: var(--space-4);">
-          <div style="width: 40px; height: 40px; background: var(--accent-primary); border-radius: var(--radius-full); display: flex; align-items: center; justify-content: center; font-weight: 800; color: var(--bg-code);">2</div>
-          <h3 style="margin: 0;">Start Persona Wizard</h3>
+      <div class="step-content">
+        <div class="step-header">
+          <div class="step-icon step-icon-success">3</div>
+          <h3>Keep Talking</h3>
         </div>
-        <p style="color: var(--text-secondary); margin-bottom: var(--space-4);">
-          Go to <a href="/personas/create/">Create Persona</a> and follow the 6-step wizard:
+        <p>
+          Ferni remembers your conversations. The more you talk, the more useful Ferni becomes. 
+          Mention something once and Ferni will remember it—whether that's your goals, your relationships, or what's stressing you out.
         </p>
-        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-3);">
-          <div style="background: var(--bg-code); padding: var(--space-3); border-radius: var(--radius-md); text-align: center;">
-            <div style="font-weight: 700;">1. Identity</div>
-            <div style="font-size: var(--text-sm); color: var(--text-secondary);">Name & tagline</div>
-          </div>
-          <div style="background: var(--bg-code); padding: var(--space-3); border-radius: var(--radius-md); text-align: center;">
-            <div style="font-weight: 700;">2. Personality</div>
-            <div style="font-size: var(--text-sm); color: var(--text-secondary);">Traits & style</div>
-          </div>
-          <div style="background: var(--bg-code); padding: var(--space-3); border-radius: var(--radius-md); text-align: center;">
-            <div style="font-weight: 700;">3. Voice</div>
-            <div style="font-size: var(--text-sm); color: var(--text-secondary);">Pick & preview</div>
-          </div>
-          <div style="background: var(--bg-code); padding: var(--space-3); border-radius: var(--radius-md); text-align: center;">
-            <div style="font-weight: 700;">4. Knowledge</div>
-            <div style="font-size: var(--text-sm); color: var(--text-secondary);">Expertise tags</div>
-          </div>
-          <div style="background: var(--bg-code); padding: var(--space-3); border-radius: var(--radius-md); text-align: center;">
-            <div style="font-weight: 700;">5. Behaviors</div>
-            <div style="font-size: var(--text-sm); color: var(--text-secondary);">Greetings</div>
-          </div>
-          <div style="background: var(--bg-code); padding: var(--space-3); border-radius: var(--radius-md); text-align: center;">
-            <div style="font-weight: 700;">6. Review</div>
-            <div style="font-size: var(--text-sm); color: var(--text-secondary);">Submit</div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Step 3: Preview Voice -->
-      <div style="margin-bottom: var(--space-8);">
-        <div style="display: flex; align-items: center; gap: var(--space-4); margin-bottom: var(--space-4);">
-          <div style="width: 40px; height: 40px; background: var(--accent-primary); border-radius: var(--radius-full); display: flex; align-items: center; justify-content: center; font-weight: 800; color: var(--bg-code);">3</div>
-          <h3 style="margin: 0;">Choose a Voice</h3>
-        </div>
-        <p style="color: var(--text-secondary); margin-bottom: var(--space-4);">
-          Browse our curated library of Cartesia voices. Click any voice to hear a preview with your custom greeting text.
+        <p>
+          This is the "Ferni remembered..." moment. Perfect memory. Zero judgment. Full presence. 
+          That's what "better than human" actually means.
         </p>
-      </div>
-
-      <!-- Step 4: Submit -->
-      <div style="margin-bottom: var(--space-8);">
-        <div style="display: flex; align-items: center; gap: var(--space-4); margin-bottom: var(--space-4);">
-          <div style="width: 40px; height: 40px; background: var(--success); border-radius: var(--radius-full); display: flex; align-items: center; justify-content: center; font-weight: 800; color: var(--bg-code);">4</div>
-          <h3 style="margin: 0;">Submit for Review</h3>
-        </div>
-        <p style="color: var(--text-secondary); margin-bottom: var(--space-4);">
-          The wizard validates your persona automatically. Fix any errors, then submit for marketplace review. Approval typically takes 2-5 business days.
-        </p>
-        <a href="/personas/create/" class="btn btn-primary">Create Your First Persona →</a>
       </div>
     </div>
 
-    <div style="border-top: 1px solid var(--border-subtle); margin-bottom: var(--space-12); padding-top: var(--space-12);">
-      <div style="text-align: center; color: var(--text-muted); font-size: var(--text-sm); margin-bottom: var(--space-8);">— OR —</div>
+    <div class="section-divider">
+      <div class="section-divider-text">— OR —</div>
     </div>
 
-    <!-- CLI Path -->
-    <div id="cli-setup">
-      <div style="display: flex; align-items: center; gap: var(--space-4); margin-bottom: var(--space-6);">
-        <div style="width: 48px; height: 48px; background: var(--bg-elevated); border: 2px solid var(--border-subtle); border-radius: var(--radius-full); display: flex; align-items: center; justify-content: center; font-weight: 800; color: var(--text-primary); font-size: var(--text-lg);">⌘</div>
-        <div>
-          <h2 style="margin: 0;">Developer CLI Setup</h2>
-          <p style="color: var(--text-secondary); margin: 0;">Full control with TypeScript SDK and CLI tools</p>
+    <!-- Build Persona Path -->
+    <div id="build-persona" class="step-section">
+      <div class="step-header-lg">
+        <div class="step-icon">A</div>
+        <div class="step-title-group">
+          <h2>Build a Custom Persona</h2>
+          <p>Create AI personalities for your own applications</p>
         </div>
       </div>
     </div>
 
-    <!-- Prerequisites -->
-    <div style="margin-bottom: var(--space-12);">
-      <h2 style="margin-bottom: var(--space-4);">Prerequisites</h2>
-      <p style="color: var(--text-secondary); margin-bottom: var(--space-6);">
-        Before you begin, make sure you have the following installed:
+    <div class="step-content">
+      <div class="step-header">
+        <div class="step-icon">1</div>
+        <h3>Open the Console</h3>
+      </div>
+      <p>
+        Go to the <a href="/console/">Developer Console</a> and sign in with Google or GitHub. 
+        This creates your developer account.
       </p>
-      <ul style="color: var(--text-secondary); line-height: 2;">
-        <li><strong>Node.js 18+</strong> - <a href="https://nodejs.org">Download</a></li>
-        <li><strong>npm</strong> or <strong>pnpm</strong> - Package manager</li>
-        <li><strong>Git</strong> - For cloning the repository</li>
+    </div>
+
+    <div class="step-content">
+      <div class="step-header">
+        <div class="step-icon">2</div>
+        <h3>Create a Persona</h3>
+      </div>
+      <p>
+        Go to <a href="/personas/create/">Create Persona</a> and follow the wizard:
+      </p>
+      <div class="wizard-steps-grid">
+        <div class="wizard-step">
+          <div class="wizard-step-title">1. Identity</div>
+          <div class="wizard-step-desc">Name and tagline</div>
+        </div>
+        <div class="wizard-step">
+          <div class="wizard-step-title">2. Personality</div>
+          <div class="wizard-step-desc">Traits and style</div>
+        </div>
+        <div class="wizard-step">
+          <div class="wizard-step-title">3. Voice</div>
+          <div class="wizard-step-desc">Pick and preview</div>
+        </div>
+        <div class="wizard-step">
+          <div class="wizard-step-title">4. Knowledge</div>
+          <div class="wizard-step-desc">Expertise areas</div>
+        </div>
+        <div class="wizard-step">
+          <div class="wizard-step-title">5. Behaviors</div>
+          <div class="wizard-step-desc">Greetings</div>
+        </div>
+        <div class="wizard-step">
+          <div class="wizard-step-title">6. Review</div>
+          <div class="wizard-step-desc">Submit</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="step-content">
+      <div class="step-header">
+        <div class="step-icon">3</div>
+        <h3>Choose a Voice</h3>
+      </div>
+      <p>
+        Browse our library of Cartesia voices. Click any voice to hear a preview with your greeting text. 
+        Each voice has different characteristics—warm, professional, energetic, calm.
+      </p>
+    </div>
+
+    <div class="step-content">
+      <div class="step-header">
+        <div class="step-icon step-icon-success">4</div>
+        <h3>Publish</h3>
+      </div>
+      <p>
+        The wizard validates your persona automatically. Submit for review and your persona 
+        will be available within a few days.
+      </p>
+      <a href="/personas/create/" class="btn btn-primary">Create Persona →</a>
+    </div>
+
+    <!-- For Developers -->
+    <div class="step-section">
+      <div class="step-header-lg">
+        <div class="step-icon">B</div>
+        <div class="step-title-group">
+          <h2>For Developers</h2>
+          <p>Build with the SDK and CLI for full control</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="step-content">
+      <h3>Prerequisites</h3>
+      <ul class="prereq-list">
+        <li><strong>Node.js 18+</strong> — <a href="https://nodejs.org">Download</a></li>
+        <li><strong>npm or pnpm</strong> — Package manager</li>
       </ul>
     </div>
     
-    <!-- Step 1 -->
-    <div style="margin-bottom: var(--space-12);">
-      <div style="display: flex; align-items: center; gap: var(--space-4); margin-bottom: var(--space-4);">
-        <div style="width: 40px; height: 40px; background: var(--accent-primary); border-radius: var(--radius-full); display: flex; align-items: center; justify-content: center; font-weight: 800; color: var(--bg-code);">1</div>
-        <h2 style="margin: 0;">Clone the Repository</h2>
-      </div>
-      <p style="color: var(--text-secondary); margin-bottom: var(--space-4);">
-        Start by cloning the Ferni agents repository:
-      </p>
+    <div class="step-content">
+      <h3>Quick Start</h3>
       <div class="code-block">
         <div class="code-header">
           <div class="code-dots">
@@ -161,200 +207,48 @@ description: Create your first voice AI agent in under 5 minutes
           <span class="code-lang">bash</span>
         </div>
         <div class="code-content">
-          <pre><code>git clone https://github.com/ferni-ai/voiceai-agents.git
-cd voiceai-agents
-npm install</code></pre>
-        </div>
-      </div>
-    </div>
-    
-    <!-- Step 2 -->
-    <div style="margin-bottom: var(--space-12);">
-      <div style="display: flex; align-items: center; gap: var(--space-4); margin-bottom: var(--space-4);">
-        <div style="width: 40px; height: 40px; background: var(--accent-primary); border-radius: var(--radius-full); display: flex; align-items: center; justify-content: center; font-weight: 800; color: var(--bg-code);">2</div>
-        <h2 style="margin: 0;">Set Up Environment</h2>
-      </div>
-      <p style="color: var(--text-secondary); margin-bottom: var(--space-4);">
-        Copy the example environment file and add your API keys:
-      </p>
-      <div class="code-block">
-        <div class="code-header">
-          <div class="code-dots">
-            <span class="code-dot code-dot-red"></span>
-            <span class="code-dot code-dot-yellow"></span>
-            <span class="code-dot code-dot-green"></span>
-          </div>
-          <span class="code-lang">bash</span>
-        </div>
-        <div class="code-content">
-          <pre><code>cp .env.example .env</code></pre>
-        </div>
-      </div>
-      <p style="color: var(--text-secondary); margin-top: var(--space-4);">
-        Then edit <code>.env</code> and add your keys:
-      </p>
-      <div class="code-block" style="margin-top: var(--space-4);">
-        <div class="code-header">
-          <div class="code-dots">
-            <span class="code-dot code-dot-red"></span>
-            <span class="code-dot code-dot-yellow"></span>
-            <span class="code-dot code-dot-green"></span>
-          </div>
-          <span class="code-lang">.env</span>
-        </div>
-        <div class="code-content">
-          <pre><code># Required: OpenAI API key for LLM
-OPENAI_API_KEY=sk-...
+          <pre><code># Install the Ferni SDK
+npm install @ferni/sdk
 
-# Required: Cartesia API key for voice synthesis
-CARTESIA_API_KEY=...
+# Create a new persona
+npx ferni persona create my-coach --template coach
 
-# Optional: LiveKit for real-time audio
-LIVEKIT_API_KEY=...
-LIVEKIT_API_SECRET=...</code></pre>
+# Start locally
+npx ferni dev</code></pre>
         </div>
       </div>
-    </div>
-    
-    <!-- Step 3 -->
-    <div style="margin-bottom: var(--space-12);">
-      <div style="display: flex; align-items: center; gap: var(--space-4); margin-bottom: var(--space-4);">
-        <div style="width: 40px; height: 40px; background: var(--accent-primary); border-radius: var(--radius-full); display: flex; align-items: center; justify-content: center; font-weight: 800; color: var(--bg-code);">3</div>
-        <h2 style="margin: 0;">Create Your Agent</h2>
-      </div>
-      <p style="color: var(--text-secondary); margin-bottom: var(--space-4);">
-        Use the CLI to scaffold a new agent from a template:
-      </p>
-      <div class="code-block">
-        <div class="code-header">
-          <div class="code-dots">
-            <span class="code-dot code-dot-red"></span>
-            <span class="code-dot code-dot-yellow"></span>
-            <span class="code-dot code-dot-green"></span>
-          </div>
-          <span class="code-lang">bash</span>
-        </div>
-        <div class="code-content">
-          <pre><code># Create a new agent with the 'coach' template
-npm run agents create my-coach --template coach
-
-# This creates:
-# src/personas/bundles/my-coach/
-#   ├── content/
-#   │   ├── identity.json      # Name, voice, personality
-#   │   ├── behaviors.json     # Conversation patterns
-#   │   └── knowledge.json     # Domain expertise
-#   └── index.ts               # Entry point</code></pre>
-        </div>
-      </div>
-    </div>
-    
-    <!-- Step 4 -->
-    <div style="margin-bottom: var(--space-12);">
-      <div style="display: flex; align-items: center; gap: var(--space-4); margin-bottom: var(--space-4);">
-        <div style="width: 40px; height: 40px; background: var(--accent-primary); border-radius: var(--radius-full); display: flex; align-items: center; justify-content: center; font-weight: 800; color: var(--bg-code);">4</div>
-        <h2 style="margin: 0;">Customize Your Agent</h2>
-      </div>
-      <p style="color: var(--text-secondary); margin-bottom: var(--space-4);">
-        Edit the identity file to personalize your agent:
-      </p>
-      <div class="code-block">
-        <div class="code-header">
-          <div class="code-dots">
-            <span class="code-dot code-dot-red"></span>
-            <span class="code-dot code-dot-yellow"></span>
-            <span class="code-dot code-dot-green"></span>
-          </div>
-          <span class="code-lang">identity.json</span>
-        </div>
-        <div class="code-content">
-          <pre><code class="language-json">{
-  "name": "Luna",
-  "displayName": "Luna the Life Coach",
-  "tagline": "Your thoughtful companion for growth",
-  
-  "voice": {
-    "provider": "cartesia",
-    "voiceId": "a0e99841-438c-4a64-b679-ae501e7d6091",
-    "settings": {
-      "speed": 1.0,
-      "emotion": "friendly"
-    }
-  },
-  
-  "personality": {
-    "warmth": 0.85,
-    "humorLevel": 0.6,
-    "formality": 0.3,
-    "traits": ["empathetic", "encouraging", "insightful"]
-  },
-  
-  "systemPrompt": "You are Luna, a warm and insightful life coach..."
-}</code></pre>
-        </div>
-      </div>
-    </div>
-    
-    <!-- Step 5 -->
-    <div style="margin-bottom: var(--space-12);">
-      <div style="display: flex; align-items: center; gap: var(--space-4); margin-bottom: var(--space-4);">
-        <div style="width: 40px; height: 40px; background: var(--success); border-radius: var(--radius-full); display: flex; align-items: center; justify-content: center; font-weight: 800; color: var(--bg-code);">5</div>
-        <h2 style="margin: 0;">Start Talking!</h2>
-      </div>
-      <p style="color: var(--text-secondary); margin-bottom: var(--space-4);">
-        Run your agent locally and start a conversation:
-      </p>
-      <div class="code-block">
-        <div class="code-header">
-          <div class="code-dots">
-            <span class="code-dot code-dot-red"></span>
-            <span class="code-dot code-dot-yellow"></span>
-            <span class="code-dot code-dot-green"></span>
-          </div>
-          <span class="code-lang">bash</span>
-        </div>
-        <div class="code-content">
-          <pre><code># Start your agent
-PERSONA_ID=my-coach npm run dev
-
-# Output:
-# 🎙️ Voice agent running on http://localhost:8080
-# 📡 WebSocket server ready
-# Ready to chat!</code></pre>
-        </div>
-      </div>
-      <p style="color: var(--text-secondary); margin-top: var(--space-4);">
-        Open <a href="http://localhost:8080" target="_blank">http://localhost:8080</a> in your browser and start talking to your agent!
+      <p>
+        See the <a href="/sdk/">SDK Documentation</a> for the full API reference.
       </p>
     </div>
     
     <!-- Next Steps -->
-    <div style="background: var(--bg-elevated); border: 1px solid var(--border-subtle); border-radius: var(--radius-2xl); padding: var(--space-8);">
-      <h2 style="margin-bottom: var(--space-4);">Next Steps</h2>
-      <div class="grid grid-2" style="gap: var(--space-4);">
-        <a href="/personas/create/" class="card" style="padding: var(--space-4); border: 2px solid var(--accent-primary);">
-          <h4 style="margin-bottom: var(--space-2);">Create a Persona</h4>
-          <p style="font-size: var(--text-sm); margin: 0;">Use the visual wizard to create your first agent</p>
+    <div class="next-steps">
+      <h2>Explore More</h2>
+      <div class="grid grid-2">
+        <a href="https://app.ferni.ai" class="link-card link-card-primary">
+          <h4>Talk to Ferni</h4>
+          <p>Start a conversation right now</p>
         </a>
-        <a href="/console/" class="card" style="padding: var(--space-4);">
-          <h4 style="margin-bottom: var(--space-2);">Developer Console</h4>
-          <p style="font-size: var(--text-sm); margin: 0;">Manage API keys and personas</p>
+        <a href="/personas/create/" class="link-card">
+          <h4>Create a Persona</h4>
+          <p>Build your own AI personality</p>
         </a>
-        <a href="/api/" class="card" style="padding: var(--space-4);">
-          <h4 style="margin-bottom: var(--space-2);">API Reference</h4>
-          <p style="font-size: var(--text-sm); margin: 0;">Learn about all available endpoints</p>
+        <a href="/api/" class="link-card">
+          <h4>API Reference</h4>
+          <p>All available endpoints</p>
         </a>
-        <a href="/sdk/" class="card" style="padding: var(--space-4);">
-          <h4 style="margin-bottom: var(--space-2);">SDK Documentation</h4>
-          <p style="font-size: var(--text-sm); margin: 0;">Deep dive into the TypeScript SDK</p>
+        <a href="/sdk/" class="link-card">
+          <h4>SDK Documentation</h4>
+          <p>TypeScript SDK guide</p>
         </a>
-        <a href="/examples/" class="card" style="padding: var(--space-4);">
-          <h4 style="margin-bottom: var(--space-2);">Example Agents</h4>
-          <p style="font-size: var(--text-sm); margin: 0;">See real-world implementations</p>
+        <a href="/blog/" class="link-card">
+          <h4>Blog</h4>
+          <p>Architecture and philosophy</p>
         </a>
-        <a href="/personas/" class="card" style="padding: var(--space-4);">
-          <h4 style="margin-bottom: var(--space-2);">My Personas</h4>
-          <p style="font-size: var(--text-sm); margin: 0;">View and manage your created personas</p>
+        <a href="/console/" class="link-card">
+          <h4>Developer Console</h4>
+          <p>Manage your personas</p>
         </a>
       </div>
     </div>

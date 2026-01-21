@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tool Integration via MCP: How We Connect Voice AI to External Services | Ferni Developer Blog</title>
+  <meta name="description" content="The Model Context Protocol (MCP) standardizes how AI agents discover and use tools. Here&#39;s why we&#39;ve built native support—and how it works.">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%233D5A45' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='4 17 10 11 4 5'/><line x1='12' x2='20' y1='19' y2='19'/></svg>">
+
+  <!-- Open Graph -->
+  <meta property="og:title" content="Tool Integration via MCP: How We Connect Voice AI to External Services">
+  <meta property="og:description" content="The Model Context Protocol (MCP) standardizes how AI agents discover and use tools. Here&#39;s why we&#39;ve built native support—and how it works.">
+  <meta property="og:type" content="article">
+  <meta property="og:url" content="https://developers.ferni.ai/blog/mcp-server-integration/">
+  
+  <meta property="og:image" content="https://developers.ferni.ai/images/blog/default-og.png">
+  
+
+  <!-- Article metadata -->
+  <meta property="article:published_time" content="2026-01-11T00:00:00.000Z">
+  <meta property="article:author" content="Seth Ford">
+  
+  <meta property="article:section" content="Integration">
+  
+
+  <!-- Theme -->
+  <script>
+    (function() {
+      const saved = localStorage.getItem('ferni-theme');
+      const systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      const theme = saved || (systemDark ? 'dark' : 'light');
+      document.documentElement.setAttribute('data-theme', theme);
+      document.documentElement.classList.add('no-transitions');
+    })();
+  </script>
+
+  <!-- Styles -->
+  <link rel="stylesheet" href="/css/tokens.css">
+  <link rel="stylesheet" href="/css/components.css">
+  <link rel="stylesheet" href="/css/docs.css">
+  <link rel="stylesheet" href="/css/blog.css">
+</head>
+<body>
+  <nav class="nav">
+  <div class="nav-inner">
+    <!-- Logo -->
+    <a href="/" class="nav-logo">
+      <svg width="28" height="28" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="16" cy="16" r="14" fill="var(--accent-primary)"/>
+        <path d="M10 12h12M10 16h8M10 20h10" stroke="var(--text-inverse)" stroke-width="2" stroke-linecap="round"/>
+      </svg>
+      <span>Ferni</span>
+      <span class="nav-badge">Developers</span>
+    </a>
+    
+    <!-- Main Navigation Links (Apple-style: minimal, essential only) -->
+    <ul class="nav-links">
+      <li><a href="/getting-started/" >Docs</a></li>
+      <li><a href="/api/" >API</a></li>
+      <li><a href="/sdk/" >SDK</a></li>
+      <li><a href="/blog/" class="active">Blog</a></li>
+    </ul>
+
+    <!-- Right side: Search + Theme Toggle + CTAs -->
+    <div class="nav-right">
+      <!-- Search Button -->
+      <button class="nav-search-btn" onclick="openSearch()" aria-label="Search documentation">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="11" cy="11" r="8"/>
+          <path d="m21 21-4.35-4.35"/>
+        </svg>
+        <span class="nav-search-text">Search docs...</span>
+        <kbd class="nav-search-kbd">⌘K</kbd>
+      </button>
+
+      <!-- Theme Toggle (in nav) -->
+      <button class="nav-theme-toggle" onclick="toggleTheme()" aria-label="Toggle theme" title="Toggle light/dark theme">
+        <svg class="sun-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="5"/>
+          <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+        </svg>
+        <svg class="moon-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+        </svg>
+      </button>
+
+      <!-- CTAs -->
+      <div class="nav-cta">
+        <a href="https://github.com/ferni-ai" class="btn btn-ghost" target="_blank" rel="noopener">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+          </svg>
+          <span class="nav-cta-text">GitHub</span>
+        </a>
+        <a href="/community/" class="btn btn-ghost nav-community-btn">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+            <circle cx="9" cy="7" r="4"/>
+            <path d="M22 21v-2a4 4 0 0 0-3-3.87"/>
+            <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+          </svg>
+          <span class="nav-cta-text">Community</span>
+        </a>
+        <a href="/console/" class="btn btn-primary">Console</a>
+      </div>
+    </div>
+
+    <!-- Mobile Menu Toggle -->
+    <button class="nav-mobile-toggle" onclick="toggleMobileNav()" aria-label="Toggle menu">
+      <svg class="menu-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="4" x2="20" y1="12" y2="12"/>
+        <line x1="4" x2="20" y1="6" y2="6"/>
+        <line x1="4" x2="20" y1="18" y2="18"/>
+      </svg>
+      <svg class="close-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M18 6 6 18"/>
+        <path d="m6 6 12 12"/>
+      </svg>
+    </button>
+  </div>
+
+  <!-- Mobile Navigation Menu -->
+  <div class="nav-mobile-menu">
+    <ul class="nav-mobile-links">
+      <li><a href="/getting-started/" >Documentation</a></li>
+      <li><a href="/api/" >API Reference</a></li>
+      <li><a href="/sdk/" >SDK</a></li>
+      <li><a href="/blog/" class="active">Blog</a></li>
+      <li><a href="/community/">Community</a></li>
+      <li><a href="https://github.com/ferni-ai" target="_blank" rel="noopener">GitHub</a></li>
+      <li><a href="/console/" class="btn btn-primary">Console</a></li>
+    </ul>
+  </div>
+</nav>
+
+<!-- Search Modal (placeholder - to be implemented in Phase 5) -->
+<div class="search-modal" id="searchModal">
+  <div class="search-modal-backdrop" onclick="closeSearch()"></div>
+  <div class="search-modal-content">
+    <div class="search-input-wrapper">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="11" cy="11" r="8"/>
+        <path d="m21 21-4.35-4.35"/>
+      </svg>
+      <input type="text" class="search-input" placeholder="Search documentation..." autofocus>
+      <kbd class="search-kbd">ESC</kbd>
+    </div>
+    <div class="search-results">
+      <p class="search-hint">Start typing to search...</p>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Mobile nav toggle
+  function toggleMobileNav() {
+    document.querySelector('.nav').classList.toggle('nav-mobile-open');
+  }
+
+  // Search modal
+  function openSearch() {
+    document.getElementById('searchModal').classList.add('open');
+    document.querySelector('.search-input').focus();
+  }
+
+  function closeSearch() {
+    document.getElementById('searchModal').classList.remove('open');
+  }
+
+  // Keyboard shortcuts
+  document.addEventListener('keydown', function(e) {
+    // Cmd+K or Ctrl+K to open search
+    if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+      e.preventDefault();
+      openSearch();
+    }
+    // Escape to close search
+    if (e.key === 'Escape') {
+      closeSearch();
+    }
+  });
+
+  // Close mobile nav on resize
+  window.addEventListener('resize', function() {
+    if (window.innerWidth > 1024) {
+      document.querySelector('.nav').classList.remove('nav-mobile-open');
+    }
+  });
+</script>
+
+
+  <article class="blog-post">
+    <header class="blog-post-header">
+      <div class="container-narrow">
+        <a href="/blog/" class="blog-back-link">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="m15 18-6-6 6-6"/>
+          </svg>
+          Back to Blog
+        </a>
+
+        <div class="blog-post-meta">
+          
+          <span class="blog-post-category">Integration</span>
+          
+          <time datetime="2026-01-11T00:00:00.000Z">Jan 10, 2026</time>
+          
+          <span class="blog-post-read-time">12 min read</span>
+          
+        </div>
+
+        <h1>Tool Integration via MCP: How We Connect Voice AI to External Services</h1>
+
+        
+        <p class="blog-post-excerpt">The Model Context Protocol (MCP) standardizes how AI agents discover and use tools. Here&#39;s why we&#39;ve built native support—and how it works.</p>
+        
+
+        <div class="blog-post-author">
+          <span class="blog-post-author-avatar" style="background: #4a6741">
+            SF
+          </span>
+          <div class="blog-post-author-info">
+            <span class="blog-post-author-name">Seth Ford</span>
+            <span class="blog-post-author-role">Developer</span>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <div class="blog-post-content">
+      <div class="container-narrow prose">
+        <p>Large language models can reason about anything. But they can't <em>do</em> anything without tool integration.</p>
+<p>Ask an LLM to check your calendar, and it apologizes. Ask it to send an email, and it explains why it can't. The intelligence is there; the capability isn't.</p>
+<p>This is the tool integration problem. And the <a href="https://modelcontextprotocol.io">Model Context Protocol (MCP)</a> is emerging as the standard solution.</p>
+<hr>
+<h2>Why Tool Integration Is Hard</h2>
+<p>The simplest approach seems straightforward: give the AI functions to call.</p>
+<pre class="language-javascript"><code class="language-javascript"><span class="token keyword">const</span> tools <span class="token operator">=</span> <span class="token punctuation">{</span>
+  <span class="token function-variable function">check_calendar</span><span class="token operator">:</span> <span class="token keyword">async</span> <span class="token punctuation">(</span><span class="token parameter">date</span><span class="token punctuation">)</span> <span class="token operator">=></span> <span class="token punctuation">{</span>
+    <span class="token keyword">return</span> <span class="token keyword">await</span> calendarAPI<span class="token punctuation">.</span><span class="token function">getEvents</span><span class="token punctuation">(</span>date<span class="token punctuation">)</span><span class="token punctuation">;</span>
+  <span class="token punctuation">}</span><span class="token punctuation">,</span>
+<span class="token punctuation">}</span><span class="token punctuation">;</span></code></pre>
+<p>This fails at scale for several reasons:</p>
+<h3>The Discovery Problem</h3>
+<p>How does the AI know which tools exist? You can list them in the system prompt, but that doesn't scale. The AI needs to discover relevant tools dynamically based on conversation context.</p>
+<p>&quot;Check my calendar&quot; should surface calendar tools. &quot;Research this company&quot; should surface search tools. &quot;I'm stressed about the meeting tomorrow&quot; might benefit from calendar tools, preparation tools, <em>and</em> coaching tools.</p>
+<h3>The Reliability Problem</h3>
+<p>Tool calls fail. APIs timeout. Auth tokens expire. Rate limits hit.</p>
+<p>Building resilient tool integration requires:</p>
+<ul>
+<li>Retry logic with exponential backoff</li>
+<li>Graceful degradation when tools are unavailable</li>
+<li>Error explanation that makes sense in conversation</li>
+<li>Alternative suggestions when primary tools fail</li>
+</ul>
+<p>Every AI developer implements these patterns from scratch.</p>
+<h3>The Security Problem</h3>
+<p>Tools act on behalf of users. They access sensitive data, make changes, spend money.</p>
+<p>Questions every AI developer faces:</p>
+<ul>
+<li>How do you authenticate tool calls?</li>
+<li>How do you scope permissions?</li>
+<li>How do you prevent prompt injection from triggering unintended tool calls?</li>
+<li>How do you audit what tools did?</li>
+</ul>
+<h3>The Composition Problem</h3>
+<p>Real tasks require multiple tools. &quot;Plan my trip to Paris&quot; needs flight search, hotel booking, calendar checking, and payment processing—all coordinated.</p>
+<p>Sequencing is hard. Error handling across sequences is harder. Rolling back partial completions when later steps fail is hardest.</p>
+<hr>
+<h2>How MCP Solves This</h2>
+<p>MCP's key insight: <strong>separate tool servers from AI systems</strong>.</p>
+<p>Instead of building integrations directly into AI applications, MCP defines a protocol for external servers that expose tools. Any AI can connect to any MCP server. Tool providers build once, work everywhere.</p>
+<p>An MCP server exposes three types of capabilities:</p>
+<p><strong>Tools</strong>: Actions the AI can take</p>
+<pre><code>calendar.getEvents(date) - Read calendar
+email.send(to, subject, body) - Send email
+crm.lookupCustomer(query) - Search CRM
+</code></pre>
+<p><strong>Resources</strong>: Data the AI can read</p>
+<pre><code>file://reports/quarterly.pdf - Read a file
+db://customers/recent - Query a database
+</code></pre>
+<p><strong>Prompts</strong>: Reusable templates</p>
+<pre><code>summarize-meeting - Standard meeting summary format
+write-followup - Template for follow-up emails
+</code></pre>
+<p>When an AI connects to an MCP server, it discovers what's available. The server describes each tool's purpose, parameters, and return types. The AI uses this to decide when and how to call tools.</p>
+<hr>
+<h2>Why MCP Matters</h2>
+<p>The surface benefit is standardization. Build an MCP server once, use it with any AI.</p>
+<p>The deeper implications are more significant:</p>
+<h3>Tools Become a Marketplace</h3>
+<p>With a standard protocol, tools can be distributed independently of AI applications. A CRM vendor can publish an MCP server that works with any AI system. Users install it without AI vendor involvement.</p>
+<p>This unbundles tool integration from AI development.</p>
+<h3>Security Gets Solved Once</h3>
+<p>MCP defines standard patterns for authentication, authorization, and auditing. Instead of every application inventing security, best practices emerge at the protocol level.</p>
+<h3>Vertical Specialization Accelerates</h3>
+<p>Building industry-specific AI today requires significant integration work. Healthcare AI needs EHR integration. Legal AI needs document management.</p>
+<p>With MCP, these integrations become reusable. A healthcare MCP server can integrate with Epic, Cerner, and Meditech—and any AI application can use it.</p>
+<hr>
+<h2>Our Implementation</h2>
+<p>Ferni supports MCP natively. Register an MCP server and its tools become voice-callable.</p>
+<p>But we've addressed patterns MCP doesn't cover:</p>
+<h3>Semantic Tool Discovery</h3>
+<p>MCP tells the AI what tools exist. It doesn't help decide which tools are relevant.</p>
+<p>Our semantic layer (<code>src/tools/dynamic-tool-router.ts</code>) maps conversation intent to tool relevance. When you mention stress about tomorrow, we identify that calendar tools, preparation tools, and coaching tools are all potentially relevant—even though you didn't mention them.</p>
+<p>The tool orchestrator (<code>src/tools/orchestrator/unified-tool-orchestrator.ts</code>) handles per-turn selection:</p>
+<pre class="language-typescript"><code class="language-typescript"><span class="token comment">// Request comes in</span>
+<span class="token keyword">const</span> request <span class="token operator">=</span> <span class="token string">'Help me process grief'</span><span class="token punctuation">;</span>
+
+<span class="token comment">// Intent detection identifies domains</span>
+<span class="token keyword">const</span> intent <span class="token operator">=</span> <span class="token keyword">await</span> <span class="token function">detectToolIntent</span><span class="token punctuation">(</span>request<span class="token punctuation">)</span><span class="token punctuation">;</span>
+<span class="token comment">// → { domains: ["grief"], confidence: 0.9 }</span>
+
+<span class="token comment">// Lazy-load relevant domain</span>
+<span class="token keyword">const</span> tools <span class="token operator">=</span> <span class="token keyword">await</span> <span class="token function">getToolsForDomains</span><span class="token punctuation">(</span><span class="token punctuation">[</span><span class="token string">'grief'</span><span class="token punctuation">]</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+
+<span class="token comment">// Semantic router scores by relevance</span>
+<span class="token keyword">const</span> selected <span class="token operator">=</span> <span class="token keyword">await</span> semanticRouter<span class="token punctuation">.</span><span class="token function">score</span><span class="token punctuation">(</span>tools<span class="token punctuation">,</span> request<span class="token punctuation">)</span><span class="token punctuation">;</span>
+
+<span class="token comment">// Top tools sent to LLM</span>
+<span class="token comment">// → processGrief(), exploreFeelings(), suggestResources()</span></code></pre>
+<h3>Automatic Error Recovery</h3>
+<p>MCP defines success paths. We've defined failure handling:</p>
+<ul>
+<li><strong>Automatic retry</strong>: Exponential backoff on transient failures</li>
+<li><strong>Circuit breakers</strong>: Repeatedly failing tools are disabled temporarily</li>
+<li><strong>Graceful degradation</strong>: Alternative tools surface when primary tools fail</li>
+<li><strong>Conversational errors</strong>: &quot;Let me try another way&quot; rather than error messages</li>
+</ul>
+<h3>Tool Composition Engine</h3>
+<p>Complex tasks require coordination. Our composition engine handles:</p>
+<ul>
+<li><strong>Sequential execution</strong>: Tools run in order with results passing between them</li>
+<li><strong>Parallel execution</strong>: Independent tools run simultaneously</li>
+<li><strong>Conditional execution</strong>: Tool choice based on intermediate results</li>
+<li><strong>Transaction management</strong>: Rollback on failure</li>
+</ul>
+<hr>
+<h2>Connecting an MCP Server</h2>
+<p>Registration takes minutes:</p>
+<p><strong>1. Register your server:</strong></p>
+<pre class="language-bash"><code class="language-bash"><span class="token function">curl</span> <span class="token parameter variable">-X</span> POST https://api.ferni.ai/api/v2/developers/mcp-servers <span class="token punctuation">\</span>
+  <span class="token parameter variable">-H</span> <span class="token string">"Authorization: Bearer <span class="token variable">$API_KEY</span>"</span> <span class="token punctuation">\</span>
+  <span class="token parameter variable">-d</span> <span class="token string">'{
+    "name": "my-crm",
+    "endpoint": "https://mcp.yourservice.com",
+    "transport": "http"
+  }'</span></code></pre>
+<p><strong>2. Test the connection:</strong></p>
+<pre class="language-bash"><code class="language-bash"><span class="token function">curl</span> <span class="token parameter variable">-X</span> POST https://api.ferni.ai/api/v2/developers/mcp-servers/<span class="token punctuation">{</span>id<span class="token punctuation">}</span>/test <span class="token punctuation">\</span>
+  <span class="token parameter variable">-H</span> <span class="token string">"Authorization: Bearer <span class="token variable">$API_KEY</span>"</span></code></pre>
+<p><strong>3. Start talking:</strong></p>
+<p>Once connected, tools are voice-callable. Say &quot;look up customer Acme Corp&quot; and it works.</p>
+<p>No prompt engineering. No integration code. The platform handles discovery, parameter extraction, and natural language responses.</p>
+<hr>
+<h2>Where This Goes</h2>
+<p>MCP is early. The specification is evolving. But the direction is clear: standardized tool integration is coming.</p>
+<p>We expect:</p>
+<ul>
+<li>Major AI vendors to announce MCP support</li>
+<li>Tool marketplaces to emerge</li>
+<li>Security standards to solidify</li>
+<li>Orchestration primitives to enter the spec</li>
+</ul>
+<p>We're building for this future. Native MCP support, semantic discovery, composition engines—these position us for what's coming.</p>
+<hr>
+<h2>Strategic Takeaway</h2>
+<p>If you're building AI applications:</p>
+<p><strong>Support MCP now.</strong> Even if adoption is limited today, the trajectory is clear. Building on MCP means your integrations work with tomorrow's AI systems.</p>
+<p><strong>Build MCP servers if you have data or capabilities.</strong> Exposing an MCP interface is an investment in distribution across the AI ecosystem.</p>
+<p><strong>Think about tools as a layer.</strong> The companies that win in AI won't just have the best models. They'll have the best tool ecosystems.</p>
+<hr>
+<h2>Resources</h2>
+<ul>
+<li><a href="https://modelcontextprotocol.io">MCP Specification</a> - Official protocol documentation</li>
+<li><a href="/console/mcp-servers/">Ferni MCP Guide</a> - Connect MCP servers to our platform</li>
+<li><a href="https://github.com/modelcontextprotocol/servers">MCP Server Examples</a> - Reference implementations</li>
+</ul>
+<hr>
+<p><em>Seth Ford is Ferni's AI babysitter. Follow <a href="https://twitter.com/ferni_ai">@ferni_ai</a> for more on the future of conversational AI.</em></p>
+
+      </div>
+    </div>
+
+    <footer class="blog-post-footer">
+      <div class="container-narrow">
+        <!-- Share buttons -->
+        <div class="blog-share">
+          <span class="blog-share-label">Share this article</span>
+          <div class="blog-share-buttons">
+            <a href="https://twitter.com/intent/tweet?text=Tool%20Integration%20via%20MCP%3A%20How%20We%20Connect%20Voice%20AI%20to%20External%20Services&url=https://developers.ferni.ai%2Fblog%2Fmcp-server-integration%2F" target="_blank" rel="noopener" class="btn btn-ghost" aria-label="Share on Twitter">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+              </svg>
+            </a>
+            <a href="https://www.linkedin.com/sharing/share-offsite/?url=https://developers.ferni.ai%2Fblog%2Fmcp-server-integration%2F" target="_blank" rel="noopener" class="btn btn-ghost" aria-label="Share on LinkedIn">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
+              </svg>
+            </a>
+            <button onclick="copyToClipboard('https://developers.ferni.ai/blog/mcp-server-integration/')" class="btn btn-ghost" aria-label="Copy link">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect width="14" height="14" x="8" y="8" rx="2" ry="2"/>
+                <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- Newsletter CTA -->
+        <div class="blog-newsletter">
+          <h3>Stay in the loop</h3>
+          <p>Get the latest updates on voice AI development, API changes, and engineering best practices.</p>
+          <form class="blog-newsletter-form">
+            <input type="email" placeholder="your@email.com" required>
+            <button type="submit" class="btn btn-primary">Subscribe</button>
+          </form>
+        </div>
+      </div>
+    </footer>
+  </article>
+
+  <footer class="footer" role="contentinfo">
+  <div class="container">
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <a href="/" class="nav-logo" aria-label="Ferni Developers Home">
+          <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <circle cx="16" cy="16" r="14" fill="var(--accent-primary)"/>
+            <path d="M10 12h12M10 16h8M10 20h10" stroke="var(--text-inverse)" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+          <span>Ferni Developers</span>
+        </a>
+        <p>Build voice AI agents with the same platform that powers Ferni's AI life coaching team.</p>
+        
+        <!-- Social Links -->
+        <div class="footer-social">
+          <a href="https://github.com/ferni-ai" target="_blank" rel="noopener noreferrer" aria-label="GitHub">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+            </svg>
+          </a>
+          <a href="https://discord.gg/ferni" target="_blank" rel="noopener noreferrer" aria-label="Discord">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M20.317 4.3698a19.7913 19.7913 0 00-4.8851-1.5152.0741.0741 0 00-.0785.0371c-.211.3753-.4447.8648-.6083 1.2495-1.8447-.2762-3.68-.2762-5.4868 0-.1636-.3933-.4058-.8742-.6177-1.2495a.077.077 0 00-.0785-.037 19.7363 19.7363 0 00-4.8852 1.515.0699.0699 0 00-.0321.0277C.5334 9.0458-.319 13.5799.0992 18.0578a.0824.0824 0 00.0312.0561c2.0528 1.5076 4.0413 2.4228 5.9929 3.0294a.0777.0777 0 00.0842-.0276c.4616-.6304.8731-1.2952 1.226-1.9942a.076.076 0 00-.0416-.1057c-.6528-.2476-1.2743-.5495-1.8722-.8923a.077.077 0 01-.0076-.1277c.1258-.0943.2517-.1923.3718-.2914a.0743.0743 0 01.0776-.0105c3.9278 1.7933 8.18 1.7933 12.0614 0a.0739.0739 0 01.0785.0095c.1202.099.246.1981.3728.2924a.077.077 0 01-.0066.1276 12.2986 12.2986 0 01-1.873.8914.0766.0766 0 00-.0407.1067c.3604.698.7719 1.3628 1.225 1.9932a.076.076 0 00.0842.0286c1.961-.6067 3.9495-1.5219 6.0023-3.0294a.077.077 0 00.0313-.0552c.5004-5.177-.8382-9.6739-3.5485-13.6604a.061.061 0 00-.0312-.0286zM8.02 15.3312c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9555-2.4189 2.157-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.9555 2.4189-2.1569 2.4189zm7.9748 0c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9554-2.4189 2.1569-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.946 2.4189-2.1568 2.4189Z"/>
+            </svg>
+          </a>
+          <a href="https://twitter.com/ferni_ai" target="_blank" rel="noopener noreferrer" aria-label="Twitter">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+            </svg>
+          </a>
+        </div>
+      </div>
+      
+      <div class="footer-column">
+        <h4>Documentation</h4>
+        <ul class="footer-links">
+          <li><a href="/getting-started/">Getting Started</a></li>
+          <li><a href="/api/">API Reference</a></li>
+          <li><a href="/sdk/">SDK</a></li>
+          <li><a href="/examples/">Examples</a></li>
+        </ul>
+      </div>
+      
+      <div class="footer-column">
+        <h4>Resources</h4>
+        <ul class="footer-links">
+          <li><a href="/blog/">Blog</a></li>
+          <li><a href="/community/">Community</a></li>
+          <li><a href="/console/">Developer Console</a></li>
+        </ul>
+      </div>
+      
+      <div class="footer-column">
+        <h4>Company</h4>
+        <ul class="footer-links">
+          <li><a href="https://ferni.ai" target="_blank" rel="noopener">Ferni.ai</a></li>
+          <li><a href="https://marketplace.ferni.ai" target="_blank" rel="noopener">Marketplace</a></li>
+          <li><a href="https://ferni.ai/privacy" target="_blank" rel="noopener">Privacy</a></li>
+          <li><a href="https://ferni.ai/terms" target="_blank" rel="noopener">Terms</a></li>
+        </ul>
+      </div>
+    </div>
+    
+    <div class="footer-bottom">
+      <p>&copy; 2026 Ferni AI. All rights reserved.</p>
+      <div class="footer-status">
+        <a href="https://status.ferni.ai" target="_blank" rel="noopener" class="footer-status-link">
+          <span class="footer-status-dot"></span>
+          All systems operational
+        </a>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<style>
+  .footer-social {
+    display: flex;
+    gap: var(--space-3);
+    margin-top: var(--space-4);
+  }
+
+  .footer-social a {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    color: var(--text-muted);
+    background: var(--bg-tertiary);
+    border-radius: var(--radius-md);
+    transition: all var(--duration-fast) var(--ease-gentle);
+  }
+
+  .footer-social a:hover {
+    color: var(--text-primary);
+    background: var(--accent-subtle);
+  }
+
+  .footer-status {
+    display: flex;
+    align-items: center;
+  }
+
+  .footer-status-link {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    font-size: var(--text-sm);
+    color: var(--text-muted);
+    text-decoration: none;
+  }
+
+  .footer-status-link:hover {
+    color: var(--text-secondary);
+  }
+
+  .footer-status-dot {
+    width: 8px;
+    height: 8px;
+    background: var(--success);
+    border-radius: var(--radius-full);
+    animation: pulse 2s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+  }
+</style>
+
+
+  <script>
+    window.addEventListener('load', function() {
+      requestAnimationFrame(function() {
+        document.documentElement.classList.remove('no-transitions');
+      });
+    });
+
+    function toggleTheme() {
+      const html = document.documentElement;
+      const current = html.getAttribute('data-theme');
+      const next = current === 'dark' ? 'light' : 'dark';
+      html.setAttribute('data-theme', next);
+      localStorage.setItem('ferni-theme', next);
+    }
+
+    function copyToClipboard(text) {
+      navigator.clipboard.writeText(text).then(() => {
+        // Could add a toast notification here
+        alert('Link copied!');
+      });
+    }
+  </script>
+</body>
+</html>

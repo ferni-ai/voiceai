@@ -1,8 +1,8 @@
 {
-  "timestamp": "2026-01-18T09:31:40.160Z",
+  "timestamp": "2026-01-21T15:37:42.053Z",
   "passed": true,
   "errors": 0,
-  "warnings": 26,
+  "warnings": 28,
   "details": {
     "errors": [],
     "warnings": [
@@ -109,6 +109,22 @@
         "bg": "#70605a",
         "ratio": "2.15",
         "message": "nayan primary (#b8956a) has 2.15:1 contrast on dark bg - DO NOT use as text"
+      },
+      {
+        "type": "persona-as-text",
+        "persona": "joel",
+        "color": "#9A0718",
+        "bg": "#584840",
+        "ratio": "1.00",
+        "message": "joel primary (#9A0718) has 1.00:1 contrast on dark bg - DO NOT use as text"
+      },
+      {
+        "type": "persona-as-text",
+        "persona": "joel",
+        "color": "#9A0718",
+        "bg": "#70605a",
+        "ratio": "1.45",
+        "message": "joel primary (#9A0718) has 1.45:1 contrast on dark bg - DO NOT use as text"
       },
       {
         "type": "persona-as-text",

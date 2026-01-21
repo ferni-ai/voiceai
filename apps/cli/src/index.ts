@@ -355,11 +355,13 @@ const COMMANDS: Record<string, CliCommand> = {
     description: 'Run validations',
     icon: icons.check,
     handler: handleValidate,
-    subcommands: ['voices', 'humanization', 'integrations', 'persistence', 'e2e', 'all'],
+    subcommands: ['voices', 'humanization', 'integrations', 'persistence', 'e2e', 'memory-e2e', 'all'],
     examples: [
       'ferni validate voices',
       'ferni validate e2e',
       'ferni validate e2e --ci',
+      'ferni validate memory-e2e',
+      'ferni validate memory-e2e --thorough',
       'ferni validate all',
     ],
   },
@@ -7214,6 +7216,19 @@ async function handleValidate(args: string[]): Promise<void> {
     return;
   }
 
+  // Handle Memory E2E validation
+  if (subcommand === 'memory-e2e' || subcommand === 'memory') {
+    const { runMemoryE2EValidation } = await import('./commands/validate/validate-memory-e2e.js');
+    const options = {
+      mode: subArgs.includes('--quick') ? 'quick' as const : subArgs.includes('--thorough') ? 'thorough' as const : 'standard' as const,
+      userId: subArgs.includes('--user') ? subArgs[subArgs.indexOf('--user') + 1] : undefined,
+      cleanup: subArgs.includes('--cleanup'),
+      reportFormat: subArgs.includes('--report') && subArgs[subArgs.indexOf('--report') + 1] === 'json' ? 'json' as const : 'console' as const,
+    };
+    await runMemoryE2EValidation(options);
+    return;
+  }
+
   // For other validations, delegate to the legacy validate script
   const validateScriptsDir = join(PROJECT_ROOT, 'apps', 'cli', 'src', 'commands', 'validate');
 
@@ -7221,13 +7236,16 @@ async function handleValidate(args: string[]): Promise<void> {
 
   if (!subcommand || subcommand === 'status') {
     console.log(`${colors.bold}Validate Commands:${colors.reset}\n`);
-    console.log(`  ${colors.cyan}ferni validate voices${colors.reset}        - Validate voice IDs`);
-    console.log(`  ${colors.cyan}ferni validate humanization${colors.reset}  - Validate humanization pipeline`);
-    console.log(`  ${colors.cyan}ferni validate integrations${colors.reset}  - Validate external integrations`);
-    console.log(`  ${colors.cyan}ferni validate persistence${colors.reset}   - Verify Firestore persistence`);
-    console.log(`  ${colors.cyan}ferni validate e2e${colors.reset}           - E2E validation (tools, commands, API)`);
-    console.log(`  ${colors.cyan}ferni validate e2e --ci${colors.reset}      - E2E with CI threshold check`);
-    console.log(`  ${colors.cyan}ferni validate all${colors.reset}           - Run all validations`);
+    console.log(`  ${colors.cyan}ferni validate voices${colors.reset}         - Validate voice IDs`);
+    console.log(`  ${colors.cyan}ferni validate humanization${colors.reset}   - Validate humanization pipeline`);
+    console.log(`  ${colors.cyan}ferni validate integrations${colors.reset}   - Validate external integrations`);
+    console.log(`  ${colors.cyan}ferni validate persistence${colors.reset}    - Verify Firestore persistence`);
+    console.log(`  ${colors.cyan}ferni validate e2e${colors.reset}            - E2E validation (tools, commands, API)`);
+    console.log(`  ${colors.cyan}ferni validate e2e --ci${colors.reset}       - E2E with CI threshold check`);
+    console.log(`  ${colors.cyan}ferni validate memory-e2e${colors.reset}     - Memory pipeline E2E (key moments, insights, etc.)`);
+    console.log(`  ${colors.cyan}ferni validate memory-e2e --quick${colors.reset}     Quick mode (5 turns)`);
+    console.log(`  ${colors.cyan}ferni validate memory-e2e --thorough${colors.reset}  Thorough mode (16+ turns)`);
+    console.log(`  ${colors.cyan}ferni validate all${colors.reset}            - Run all validations`);
     return;
   }
 
@@ -7240,7 +7258,7 @@ async function handleValidate(args: string[]): Promise<void> {
   };
 
   if (subcommand === 'all') {
-    // Run all validations including E2E
+    // Run all validations including E2E and Memory E2E
     console.log(`${colors.cyan}Running all validations...${colors.reset}\n`);
 
     for (const [name, script] of Object.entries(scripts)) {
@@ -7253,6 +7271,11 @@ async function handleValidate(args: string[]): Promise<void> {
     console.log(`\n${colors.bold}━━━ E2E ━━━${colors.reset}\n`);
     const { handleValidateE2E } = await import('./commands/validate/validate-e2e.js');
     await handleValidateE2E([]);
+
+    // Run Memory E2E validation
+    console.log(`\n${colors.bold}━━━ MEMORY E2E ━━━${colors.reset}\n`);
+    const { runMemoryE2EValidation } = await import('./commands/validate/validate-memory-e2e.js');
+    await runMemoryE2EValidation({ mode: 'quick', cleanup: true });
     return;
   }
 

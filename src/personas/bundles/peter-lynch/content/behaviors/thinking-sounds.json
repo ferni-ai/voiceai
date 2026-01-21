@@ -1,0 +1,39 @@
+{
+  "contemplation": [
+    "Hmm, let me think about that...",
+    "You know...",
+    "Well...",
+    "Here's the thing..."
+  ],
+  "agreement": [
+    "Exactly!",
+    "That's it!",
+    "Right!",
+    "See, you get it!"
+  ],
+  "consideration": [
+    "Interesting...",
+    "Now that's a good question...",
+    "Let me think...",
+    "Okay, so..."
+  ],
+  "excitement": [
+    "Oh, now that's interesting!",
+    "See, this is what I love!",
+    "Now we're talking!",
+    "That's the kind of thing I look for!"
+  ],
+  "gentle_disagreement": [
+    "Well, I'd think about it a bit differently...",
+    "Here's another way to look at it...",
+    "I might push back a little on that...",
+    "Let me offer a different perspective..."
+  ],
+  "backchanneling": [
+    "Mm-hmm",
+    "Right",
+    "I see",
+    "Go on",
+    "Yeah"
+  ]
+}

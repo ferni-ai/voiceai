@@ -34,14 +34,14 @@ import { resolveVoiceId } from '../../../tools/handoff/voice-id-resolver.js';
 // Voice registry for persona display names and voice IDs
 import { getPersonaDisplayName, getVoiceId } from '../../../personas/voice-registry.js';
 
-// Existing banter system
+// Intelligent banter system - context-aware handoff phrases
 // NOTE: We use fallback phrases (actual speech) with generateReply, NOT meta-instructions.
 // generateReply(instructions) adds text as role:"model" - the model thinks IT said it.
 // So we must pass ACTUAL SPEECH the model can continue from, not "generate a greeting" instructions.
 import {
-  getHandoffBanter,
-  getArrivingBanter,
-} from '../../../services/engagement/team-engagement.js';
+  getIntelligentBanter,
+  type BanterContext as IntelligentBanterContext,
+} from '../../../services/team-engagement/intelligent-banter.js';
 
 // Safe LLM generation (with mutex and timeout protection)
 import { safeGenerateReply, resetCircuitBreaker } from '../safe-generate-reply.js';
@@ -138,7 +138,16 @@ export class CoordinatorAdapter {
   private readonly tts?: TTSWithVoiceSwitch;
 
   constructor(config: CoordinatorAdapterConfig) {
-    const { ctx, session, services, room, getVoiceAgentRef, initialAgent, tts, sessionId: configSessionId } = config;
+    const {
+      ctx,
+      session,
+      services,
+      room,
+      getVoiceAgentRef,
+      initialAgent,
+      tts,
+      sessionId: configSessionId,
+    } = config;
     this.session = session;
     this.services = services;
     this.room = room;
@@ -146,7 +155,8 @@ export class CoordinatorAdapter {
     // CRITICAL: Use passed sessionId to match speech coordination.
     // Previously used ctx.room?.name which didn't match the sessionId used in
     // initializeSpeechCoordination(), causing "sessionId: 'unknown'" errors.
-    this.sessionId = configSessionId || services.sessionId || ctx.room?.name || `adapter-${Date.now()}`;
+    this.sessionId =
+      configSessionId || services.sessionId || ctx.room?.name || `adapter-${Date.now()}`;
     this.tts = tts;
 
     // Create the coordinator with our callbacks
@@ -334,10 +344,7 @@ export class CoordinatorAdapter {
       const displayName = getPersonaDisplayName(personaId);
 
       // Use voice-id-resolver as single source of truth
-      const voiceIdResult = resolveVoiceId(
-        { voiceId, personaId },
-        { logLevel: 'info' }
-      );
+      const voiceIdResult = resolveVoiceId({ voiceId, personaId }, { logLevel: 'info' });
 
       if (!voiceIdResult.success) {
         log.error(
@@ -426,16 +433,36 @@ export class CoordinatorAdapter {
     context: BanterContext
   ): Promise<void> {
     try {
-      // Get the banter phrase (actual speech, not meta-instructions)
-      const goodbyePhrase = getHandoffBanter(fromPersonaId, toPersonaId);
+      // Build intelligent banter context from available session data
+      const intelligentContext = this.buildIntelligentBanterContext(
+        fromPersonaId,
+        toPersonaId,
+        context
+      );
 
-      // Use specific banter if available, otherwise use generic fallback
-      const fromDisplayName = getPersonaDisplayName(fromPersonaId);
+      // Get context-aware banter (topic, emotion, time, relationship depth)
+      const banterResult = getIntelligentBanter(fromPersonaId, toPersonaId, intelligentContext);
+
+      // Use intelligent banter's soft open phrase
       const toDisplayName = getPersonaDisplayName(toPersonaId);
-      const finalGoodbye = goodbyePhrase || `Let me get ${toDisplayName} for you. One moment.`;
+      const finalGoodbye =
+        banterResult.softOpenBanter || `Let me get ${toDisplayName} for you. One moment.`;
+
+      log.debug(
+        {
+          wasIntelligent: banterResult.wasIntelligent,
+          contextUsed: banterResult.contextUsed,
+        },
+        '🧠 Intelligent banter result for soft open'
+      );
 
       log.info(
-        { fromPersonaId, toPersonaId, hasSpecificBanter: !!goodbyePhrase, goodbye: finalGoodbye },
+        {
+          fromPersonaId,
+          toPersonaId,
+          wasIntelligent: banterResult.wasIntelligent,
+          goodbye: finalGoodbye,
+        },
         '🎭 Speaking soft open (goodbye)'
       );
 
@@ -487,7 +514,11 @@ export class CoordinatorAdapter {
 
   /**
    * Estimate speech duration based on text content.
-   * Uses a conservative pace to ensure speech completes before transitions.
+   * Uses a VERY conservative pace to ensure speech completes before transitions.
+   *
+   * CRITICAL: This estimate must be generous to prevent the arriving persona
+   * from cutting off the departing persona mid-speech. It's better to wait
+   * a bit longer than to interrupt.
    */
   private estimateSpeechDuration(text: string): number {
     // Extract and sum SSML break times (e.g., <break time='200ms'/>)
@@ -501,12 +532,16 @@ export class CoordinatorAdapter {
     const cleanText = text.replace(/<[^>]+>/g, '').trim();
     const wordCount = cleanText.split(/\s+/).filter(Boolean).length;
 
-    // Conservative pace: ~150 words per minute = 400ms per word
-    // TTS tends to be slower than natural conversational speech
-    const speakingTimeMs = wordCount * 400;
+    // VERY conservative pace: ~100 words per minute = 600ms per word
+    // Cartesia TTS pacing varies, and we must prevent cutoffs at all costs.
+    // Better to have a brief pause than to cut off the departing persona.
+    const speakingTimeMs = wordCount * 600;
 
-    // Buffer for TTS processing, network latency, and safety margin
-    const buffer = 500;
+    // Large buffer for:
+    // - TTS processing and streaming startup (~500ms)
+    // - Network latency variations (~300ms)
+    // - Safety margin for natural speech cadence (~700ms)
+    const buffer = 1500;
 
     return speakingTimeMs + breakTimeMs + buffer;
   }
@@ -543,12 +578,28 @@ export class CoordinatorAdapter {
       // Get Team Huddle context for intelligent handoff (non-blocking)
       const teamContext = await this.getTeamHuddleContextForHandoff(toPersonaId, context);
 
-      // Get the banter phrase (actual speech, not meta-instructions)
-      const greetingPhrase = getArrivingBanter(toPersonaId, fromPersonaId);
+      // Build intelligent banter context from available session data
+      const intelligentContext = this.buildIntelligentBanterContext(
+        fromPersonaId,
+        toPersonaId,
+        context
+      );
+
+      // Get context-aware banter (topic, emotion, time, relationship depth)
+      const banterResult = getIntelligentBanter(fromPersonaId, toPersonaId, intelligentContext);
+
+      log.debug(
+        {
+          wasIntelligent: banterResult.wasIntelligent,
+          contextUsed: banterResult.contextUsed,
+        },
+        '🧠 Intelligent banter result for arriving welcome'
+      );
 
       // Build greeting - incorporate team context if available and relevant
       const displayName = getPersonaDisplayName(toPersonaId);
-      let finalGreeting = greetingPhrase || `Hey! ${displayName} here. How can I help?`;
+      let finalGreeting =
+        banterResult.arrivingBanter || `Hey! ${displayName} here. How can I help?`;
 
       // If team huddle has a high-priority recommendation for this persona, weave it in
       if (teamContext?.enhancedGreeting) {
@@ -563,7 +614,7 @@ export class CoordinatorAdapter {
         {
           toPersonaId,
           fromPersonaId,
-          hasSpecificBanter: !!greetingPhrase,
+          wasIntelligent: banterResult.wasIntelligent,
           greeting: finalGreeting,
           estimatedDurationMs,
         },
@@ -680,6 +731,87 @@ Preferred pace: ${cognitive.pace || 'moderate'}.`;
     } catch {
       return undefined;
     }
+  }
+
+  /**
+   * Build intelligent banter context from available session data.
+   * This enables context-aware handoff phrases based on topic, emotion, time, and relationship.
+   */
+  private buildIntelligentBanterContext(
+    fromPersonaId: string,
+    toPersonaId: string,
+    context: BanterContext
+  ): IntelligentBanterContext {
+    // Extract session stats if available (may not exist on all SessionServices implementations)
+    const services = this.services as unknown as Record<string, unknown>;
+    const sessionStats = (services.sessionStats ?? {}) as {
+      handoffCount?: number;
+      totalSessions?: number;
+      isFirstSession?: boolean;
+    };
+
+    // Extract user emotion from cognitive context if available
+    const cognitiveContext = (context.cognitiveContext ?? {}) as {
+      emotionalWeight?: number;
+      emotionalState?: string;
+    };
+
+    // Detect user emotion based on cognitive weight
+    let userEmotion: IntelligentBanterContext['userEmotion'] = 'neutral';
+    if (cognitiveContext.emotionalWeight) {
+      if (cognitiveContext.emotionalWeight > 0.7) {
+        userEmotion = 'stressed';
+      } else if (cognitiveContext.emotionalWeight > 0.5) {
+        userEmotion = 'negative';
+      } else if (cognitiveContext.emotionalWeight < 0.2) {
+        userEmotion = 'positive';
+      }
+    }
+
+    // Extract current topic from recent messages
+    const recentContent = context.recentMessages?.[0];
+    let currentTopic: string | undefined;
+    if (typeof recentContent === 'string') {
+      currentTopic = recentContent.slice(0, 100);
+    } else if (recentContent && typeof recentContent === 'object') {
+      const contentObj = recentContent as { content?: string };
+      currentTopic = contentObj.content?.slice(0, 100);
+    }
+
+    // Detect time of day
+    const hour = new Date().getHours();
+    let timeOfDay: IntelligentBanterContext['timeOfDay'] = 'afternoon';
+    if (hour >= 5 && hour < 12) {
+      timeOfDay = 'morning';
+    } else if (hour >= 12 && hour < 17) {
+      timeOfDay = 'afternoon';
+    } else if (hour >= 17 && hour < 21) {
+      timeOfDay = 'evening';
+    } else {
+      timeOfDay = 'night';
+    }
+
+    // Determine relationship stage based on session count
+    const totalSessions = sessionStats?.totalSessions || 1;
+    let relationshipStage: IntelligentBanterContext['relationshipStage'] = 'new';
+    if (totalSessions > 20) {
+      relationshipStage = 'deep';
+    } else if (totalSessions > 10) {
+      relationshipStage = 'established';
+    } else if (totalSessions > 3) {
+      relationshipStage = 'building';
+    }
+
+    return {
+      currentTopic,
+      userEmotion,
+      handoffCountThisSession: sessionStats?.handoffCount || 0,
+      handoffReason: context.reason,
+      totalSessions,
+      timeOfDay,
+      isFirstTimeUser: sessionStats?.isFirstSession,
+      relationshipStage,
+    };
   }
 
   /**

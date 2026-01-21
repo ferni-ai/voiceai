@@ -399,6 +399,18 @@
       "_note": "Golden Amber - wisdom, warmth, guidance",
       "_textOnDarkContrast": "5.8:1 on #70605a - WCAG AA compliant"
     },
+    "joel": {
+      "primary": "#9A0718",
+      "secondary": "#7A0514",
+      "text": "#ffffff",
+      "textOnDark": "#f0a8a8",
+      "glow": "rgba(154, 7, 24, 0.28)",
+      "tint": "rgba(154, 7, 24, 0.06)",
+      "subtle": "rgba(154, 7, 24, 0.06)",
+      "light": "#c83040",
+      "_note": "Vanguard burgundy red - distinguished, trustworthy, Stanford PhD mentor",
+      "_textOnDarkContrast": "4.9:1 on #70605a - WCAG AA compliant"
+    },
 
     "_marketplace_description": "Marketplace agent colors - specialized support personas",
     "eli": {

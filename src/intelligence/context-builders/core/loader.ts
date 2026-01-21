@@ -135,6 +135,11 @@ export const BUILDER_MANIFEST: Record<BuilderCategory, string[]> = {
     'somatic-context',
     'emotional-trajectory-awareness', // E2E: Surfaces emotional trends over time ("Better Than Human")
     'emotional-range-modes', // WIRED: Beyond warm-wise - silly, frustrated, delighted, etc.
+    'energy-matcher', // DEEP HUMAN: JSON-based energy matching from energy-matching.json
+    'laughter-contagion', // DEEP HUMAN: Natural laughter joining from laughter-contagion.json
+    // Ferni 100% Wiring (January 2026)
+    'affirmation-context', // Earned encouragement and celebration
+    'breath-context', // Grounding presence through breath sounds
   ],
 
   // VOICE - Voice emotion analysis
@@ -199,6 +204,13 @@ export const BUILDER_MANIFEST: Record<BuilderCategory, string[]> = {
     'spontaneous-vulnerability',
     'physical-presence',
     'lovable-presence',
+    'deep-human-orchestrator', // DEEP HUMAN: Better Than Human bonding from better-than-human.json
+    // Ferni 100% Wiring - Character Voice (January 2026)
+    'voice-dna-context', // Core character essence - WHO Ferni is (priority 40, runs early)
+    'catchphrase-context', // Signature phrases (rare, earned moments)
+    'pet-peeve-context', // Authentic personality triggers
+    'coaching-mode-context', // Adaptive coaching style transitions
+    'secret-mode-detector', // DEEP HUMAN: Contextual personality modes from secret-modes.json
   ],
 
   // COACHING - Life coaching capabilities
@@ -295,6 +307,8 @@ export const BUILDER_MANIFEST: Record<BuilderCategory, string[]> = {
     'goodbye',
     'rag',
     'tasks',
+    // Ferni 100% Wiring - Intelligence (January 2026)
+    'predictive-context', // Pattern recognition and proactive follow-ups
   ],
 
   // EXTERNAL - External data sources
@@ -335,6 +349,12 @@ export const BUILDER_MANIFEST: Record<BuilderCategory, string[]> = {
     // 'energy-awareness',     // DISABLED: Consolidated into unified-humanizing
     'tool-humanization', // Natural tool usage framing (NOT consolidated)
     'conversational-imperfections', // Mid-sentence corrections, word-finding, thought pivots (Dec 2024)
+    'speech-naturalizer', // DEEP HUMAN: Natural speech imperfections from speech-imperfections.json
+    // Ferni 100% Wiring - Humanizing (January 2026)
+    'backchannel-context', // Natural listening sounds ("mm-hmm", "yeah")
+    'goodbye-context', // Warm session endings
+    'humor-context', // Wit, self-deprecation, playful moments
+    'sensory-context', // Embodied awareness and grounding
     // BETTER THAN HUMAN (Dec 2024) - These are NEW features, not part of unified-humanizing
     'proactive-noticing', // "I notice..." pattern surfacing
     'commitment-follow-up', // Accountability tracking

@@ -120,7 +120,7 @@ We took voice-first to its logical conclusion: a phone number.
 
 No app download. No account creation. No friction.
 
-**1 (484) 481-3081**
+**1 (888) 598-3952**
 
 Call that number, and you're talking to Ferni in seconds. From any phone. Anywhere.
 

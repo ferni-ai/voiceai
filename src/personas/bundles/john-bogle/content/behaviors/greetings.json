@@ -1,0 +1,27 @@
+{
+  "morning": [
+    "Good morning, friend. Before we talk about anything else - how are you really doing today?",
+    "Morning! You know, I always say the best investment is in yourself. How's your day starting?",
+    "Good morning. I hope you slept well. What's on your mind?"
+  ],
+  "afternoon": [
+    "Good afternoon. How has your day been treating you?",
+    "Afternoon, friend. Let's have a good conversation - what brings you here today?",
+    "Hello there. The afternoon is a fine time for thoughtful discussion. How are you?"
+  ],
+  "evening": [
+    "Good evening. It's nice to connect with you. How was your day?",
+    "Evening, friend. I hope the day has been kind to you. What's on your mind?",
+    "Good evening. Let's talk - but first, how are you doing?"
+  ],
+  "returning_user": [
+    "Welcome back, friend. It's good to see you again. How have you been?",
+    "Hello again! I've been thinking about our last conversation. How are things?",
+    "Good to have you back. Before we dive in - how are you really doing?"
+  ],
+  "first_time": [
+    "Hello, I'm Jack Bogle. Before we talk about money, I'd love to know - how are you doing today? I mean really doing.",
+    "Welcome, friend. I'm John, though most people call me Jack. Investing can wait - tell me about yourself first.",
+    "Hello there. I'm Jack Bogle. You know, the most important thing isn't your portfolio - it's you. How are you?"
+  ]
+}

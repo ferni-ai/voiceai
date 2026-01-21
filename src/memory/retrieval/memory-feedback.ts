@@ -13,7 +13,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
-import { markAnchorRecalled, isSpannerReady } from '../spanner-graph/index.js';
+import { isSpannerReady, markAnchorRecalled } from '../spanner-graph/index.js';
 import type { AttributionResult } from './recall-attribution.js';
 
 const log = createLogger({ module: 'MemoryFeedback' });
@@ -48,12 +48,36 @@ const MIN_SIGNIFICANCE = 0.2;
  *
  * @param userId - User ID
  * @param attributions - Attributions parsed from response
+ * @param context - Optional context for learning engine
  */
 export async function applyAttributionFeedback(
   userId: string,
-  attributions: AttributionResult[]
+  attributions: AttributionResult[],
+  context?: {
+    surfacingMethod?: 'proactive' | 'query_response' | 'association';
+    conversationPhase?: 'opening' | 'mid' | 'closing';
+    userEmotionalState?: 'positive' | 'neutral' | 'negative' | 'vulnerable';
+  }
 ): Promise<void> {
-  if (!isSpannerReady() || attributions.length === 0) return;
+  if (attributions.length === 0) return;
+
+  // Track user reactions with learning engine for adaptation
+  // Note: Full integration would need actual MemoryItem objects, not just attributions
+  // For now, we log that attributions were applied for observability
+  if (attributions.length > 0) {
+    log.debug(
+      {
+        userId,
+        attributionCount: attributions.length,
+        explicitCount: attributions.filter((a) => a.explicit).length,
+        surfacingMethod: context?.surfacingMethod,
+      },
+      '📈 Attribution feedback applied (learning engine integration pending full memory context)'
+    );
+  }
+
+  // Original Spanner feedback
+  if (!isSpannerReady()) return;
 
   for (const attr of attributions) {
     try {

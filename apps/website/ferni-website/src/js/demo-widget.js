@@ -820,7 +820,7 @@
     tooltip.innerHTML = `
       <p>Ferni is voice-first.</p>
       <p>In the real app, just talk—Ferni listens and responds naturally.</p>
-      <a href="tel:+14844813081">Try calling: (484) 481-3081</a>
+      <a href="tel:+18885983952">Try calling: (888) 598-3952</a>
     `;
     
     widgetContainer.querySelector('.demo-widget__input-area').appendChild(tooltip);

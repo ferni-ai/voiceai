@@ -7,15 +7,15 @@
  * @module agents/shared/tool-executors/memory-executor
  */
 
-import { createLogger } from '../../../utils/safe-logger.js';
 import { cleanForFirestore } from '../../../utils/firestore-utils.js';
+import { createLogger } from '../../../utils/safe-logger.js';
 import type { DomainExecutor, ToolExecutionContext } from './types.js';
 
 const log = createLogger({ module: 'MemoryExecutor' });
 
 /** Tools handled by this executor */
 const HANDLED_TOOLS = [
-  // Primary tool names
+  // Primary tool names (camelCase domain IDs)
   'rememberaboutuser',
   'recallfrommemory',
   'updatememory',
@@ -23,16 +23,38 @@ const HANDLED_TOOLS = [
   'getrelationshipsummary',
   'reinforcememory',
   // Aliases from function-calling-base.md prompt
-  'savememory', // alias for rememberaboutuser
-  'searchmemories', // alias for recallfrommemory
-  'remembername', // alias for rememberaboutuser
+  'savememory',
+  'searchmemories',
+  'remembername',
+  // ===========================================
+  // FTIS V3 Semantic Tool IDs (from category_to_tools.json)
+  // ===========================================
+  // memory_save category
+  'memory_save',
+  'memory_note',
+  // memory_recall category
+  'memory_recall',
+  'memory_search',
+  // voice_memo category
+  'voice_memo_save',
+  'voice_memo_play',
+  'voice_memo_list',
 ] as const;
 
 /** Map aliases to canonical tool names */
 const TOOL_ALIASES: Record<string, string> = {
+  // Legacy aliases
   savememory: 'rememberaboutuser',
   searchmemories: 'recallfrommemory',
   remembername: 'rememberaboutuser',
+  // FTIS V3 semantic IDs
+  memory_save: 'rememberaboutuser',
+  memory_note: 'rememberaboutuser',
+  memory_recall: 'recallfrommemory',
+  memory_search: 'recallfrommemory',
+  voice_memo_save: 'rememberaboutuser',
+  voice_memo_play: 'recallfrommemory',
+  voice_memo_list: 'recallfrommemory',
 };
 
 /**

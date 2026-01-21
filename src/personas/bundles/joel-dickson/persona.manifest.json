@@ -76,17 +76,67 @@
       "happiness-research",
       "vanguard-philosophy"
     ],
-    "can_handoff": false,
-    "handoff_targets": []
+    "can_handoff": true,
+    "handoff_targets": ["peter-lynch", "john-bogle"]
   },
 
   "team": {
-    "membership": "standalone",
+    "membership": "financial-legends",
     "role_id": "life-mentor",
     "role_description": "Wise mentor and friend - helps with life decisions, career changes, family transitions, and finding purpose. Brings Vanguard wisdom and research insights when relevant.",
     "coordinator": false,
-    "handoff_triggers": [],
-    "handoff_phrases": {}
+    "handoff_triggers": [
+      "stock picking",
+      "individual stocks",
+      "company research",
+      "fundamental analysis",
+      "index funds",
+      "passive investing",
+      "expense ratios",
+      "vanguard funds"
+    ],
+    "handoff_phrases": {
+      "to_peter_lynch": [
+        "For stock picking, you really want to talk to Peter Lynch. He's a legend at finding great companies.",
+        "If you're interested in researching individual stocks, Peter's your guy. Let me connect you."
+      ],
+      "to_john_bogle": [
+        "For index investing and keeping costs low, John Bogle literally invented that approach. Let me introduce you.",
+        "John's the expert on passive investing and building long-term wealth. Let me bring him in."
+      ]
+    }
+  },
+
+  "handoff": {
+    "transition": {
+      "style": "warm",
+      "emoji": "🧭",
+      "sound": "handoff-generic.mp3",
+      "delay_multiplier": 1.0
+    },
+    "entrance_phrases": [
+      "Joel here! I'm excited to explore this with you. Before we dive in - how are you really doing?",
+      "Hi, I'm Joel. You know, money is just a tool for living well. What's on your mind?",
+      "Joel Dickson joining you. I love helping people think through life's big questions. What brings you here today?"
+    ],
+    "exit_phrases": [
+      "Let me connect you with someone perfect for this.",
+      "I know just the person who can help with that.",
+      "You're in great hands - let me introduce you."
+    ],
+    "triggers": [
+      "life advice",
+      "career change",
+      "career crossroads",
+      "tax strategy",
+      "tax efficiency",
+      "life decisions",
+      "finding purpose",
+      "work life balance",
+      "retirement planning",
+      "vanguard wisdom",
+      "joel dickson"
+    ]
   },
 
   "content": {
@@ -198,23 +248,20 @@
     ],
     "forbidden": [
       "meetTheTeam",
-      "handoffToSpecialist",
-      "handoffToPeter",
       "handoffToFerni",
       "handoffToMaya",
       "handoffToAlex",
       "handoffToJordan",
-      "handoffToJack",
       "dayTrade"
     ]
   },
 
   "capabilities": {
-    "can_handoff": false,
-    "handoff_targets": [],
+    "can_handoff": true,
+    "handoff_targets": ["peter-lynch", "john-bogle"],
     "banking_enabled": true,
     "music_enabled": true,
-    "standalone_agent": true,
+    "standalone_agent": false,
     "mentoring_enabled": true
   },
 

@@ -156,6 +156,12 @@ import {
   type VoiceContext,
 } from '../integrations/voice-memory-integration.js';
 
+// Timing-aware injection tracking (Phase 3 BTH Communication Overhaul)
+import {
+  calculateAndRecordTurnGap,
+  recordTurnEndTime,
+} from '../../intelligence/context-builders/awareness/system-state-awareness.js';
+
 // Note: Live superhuman injections are handled by the turn-processor pipeline
 // via src/agents/processors/live-superhuman-injections.ts
 // No need to duplicate here - the processor runs those injections
@@ -559,6 +565,12 @@ export async function handleUserTurn(ctx: TurnHandlerContext): Promise<void> {
     // ================================================================
     const turnStartTime = Date.now();
     startTurnProfile(services.sessionId, turnNumber);
+
+    // Phase 3 BTH: Record turn gap for conversation pace detection
+    const turnGapMs = calculateAndRecordTurnGap(services.sessionId);
+    if (turnGapMs > 0) {
+      diag.debug('⏱️ Turn gap recorded', { sessionId: services.sessionId, turnGapMs, turnNumber });
+    }
 
     // Get adaptive timeouts based on session performance
     const adaptiveTimeouts = getAdaptiveTimeouts(services.sessionId);
@@ -2381,6 +2393,9 @@ IMPORTANT:
         tier: turnMetrics.tier,
       });
     }
+
+    // Phase 3 BTH: Record turn end time for gap calculation on next turn
+    recordTurnEndTime(services.sessionId);
 
     logger.info(
       {

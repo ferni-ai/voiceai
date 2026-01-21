@@ -1,0 +1,138 @@
+<aside class="sidebar">
+  <nav class="sidebar-nav">
+    <!-- Getting Started -->
+    <div class="sidebar-section">
+      <h3 class="sidebar-title">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+          <polyline points="9 22 9 12 15 12 15 22"/>
+        </svg>
+        Getting Started
+      </h3>
+      <ul class="sidebar-links">
+        <li><a href="/getting-started/" {% if page.url == '/getting-started/' %}class="active"{% endif %}>Introduction</a></li>
+      </ul>
+    </div>
+
+    <!-- API Reference -->
+    <div class="sidebar-section">
+      <h3 class="sidebar-title">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+          <polyline points="3.29 7 12 12 20.71 7"/>
+          <line x1="12" y1="22" x2="12" y2="12"/>
+        </svg>
+        API Reference
+      </h3>
+      <ul class="sidebar-links">
+        <li><a href="/api/" {% if page.url == '/api/' %}class="active"{% endif %}>Overview</a></li>
+        <li><a href="/api/explorer/" {% if page.url == '/api/explorer/' %}class="active"{% endif %}>API Explorer</a></li>
+      </ul>
+    </div>
+
+    <!-- SDK -->
+    <div class="sidebar-section">
+      <h3 class="sidebar-title">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="16 18 22 12 16 6"/>
+          <polyline points="8 6 2 12 8 18"/>
+        </svg>
+        SDK
+      </h3>
+      <ul class="sidebar-links">
+        <li><a href="/sdk/" {% if page.url == '/sdk/' %}class="active"{% endif %}>Overview</a></li>
+      </ul>
+    </div>
+
+    <!-- Console -->
+    <div class="sidebar-section">
+      <h3 class="sidebar-title">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect width="18" height="18" x="3" y="3" rx="2"/>
+          <path d="m7 7 5 5-5 5"/>
+          <line x1="12" y1="17" x2="17" y2="17"/>
+        </svg>
+        Console
+      </h3>
+      <ul class="sidebar-links">
+        <li><a href="/console/" {% if page.url == '/console/' %}class="active"{% endif %}>Dashboard</a></li>
+        <li><a href="/console/analytics/" {% if page.url == '/console/analytics/' %}class="active"{% endif %}>Analytics</a></li>
+        <li><a href="/console/webhooks/" {% if page.url == '/console/webhooks/' %}class="active"{% endif %}>Webhooks</a></li>
+        <li><a href="/console/tools/" {% if page.url == '/console/tools/' %}class="active"{% endif %}>Custom Tools</a></li>
+        <li><a href="/console/mcp-servers/" {% if page.url == '/console/mcp-servers/' %}class="active"{% endif %}>MCP Servers</a></li>
+        <li><a href="/console/oauth/" {% if page.url == '/console/oauth/' %}class="active"{% endif %}>OAuth Providers</a></li>
+        <li><a href="/console/workflows/" {% if page.url == '/console/workflows/' %}class="active"{% endif %}>Workflows</a></li>
+        <li><a href="/console/activities/" {% if page.url == '/console/activities/' %}class="active"{% endif %}>Activities</a></li>
+      </ul>
+    </div>
+
+    <!-- Examples -->
+    <div class="sidebar-section">
+      <h3 class="sidebar-title">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect width="18" height="18" x="3" y="3" rx="2"/>
+          <path d="m9 8 6 4-6 4Z"/>
+        </svg>
+        Examples
+      </h3>
+      <ul class="sidebar-links">
+        <li><a href="/examples/" {% if page.url == '/examples/' %}class="active"{% endif %}>All Examples</a></li>
+      </ul>
+    </div>
+
+    <!-- Personas -->
+    <div class="sidebar-section">
+      <h3 class="sidebar-title">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+          <circle cx="12" cy="7" r="4"/>
+        </svg>
+        Personas
+      </h3>
+      <ul class="sidebar-links">
+        <li><a href="/personas/" {% if page.url == '/personas/' %}class="active"{% endif %}>My Personas</a></li>
+        <li><a href="/personas/create/" {% if page.url == '/personas/create/' %}class="active"{% endif %}>Create Persona</a></li>
+      </ul>
+    </div>
+
+    <!-- Resources -->
+    <div class="sidebar-section">
+      <h3 class="sidebar-title">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"/>
+          <path d="M12 16v-4"/>
+          <path d="M12 8h.01"/>
+        </svg>
+        Resources
+      </h3>
+      <ul class="sidebar-links">
+        <li><a href="/blog/" {% if '/blog/' in page.url %}class="active"{% endif %}>Blog</a></li>
+        <li><a href="/community/" {% if page.url == '/community/' %}class="active"{% endif %}>Community</a></li>
+        <li><a href="{{ site.social.github }}" target="_blank" rel="noopener">GitHub ↗</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <!-- Mobile Sidebar Toggle -->
+  <button class="sidebar-mobile-toggle" onclick="toggleSidebar()" aria-label="Toggle sidebar">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <rect width="18" height="18" x="3" y="3" rx="2"/>
+      <path d="M9 3v18"/>
+    </svg>
+  </button>
+</aside>
+
+<script>
+  function toggleSidebar() {
+    document.querySelector('.sidebar').classList.toggle('sidebar-open');
+  }
+
+  // Close sidebar on mobile when clicking a link
+  document.querySelectorAll('.sidebar-links a').forEach(link => {
+    link.addEventListener('click', () => {
+      if (window.innerWidth <= 1024) {
+        document.querySelector('.sidebar').classList.remove('sidebar-open');
+      }
+    });
+  });
+</script>

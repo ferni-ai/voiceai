@@ -31,13 +31,13 @@ import { cleanupSpeechSession } from '../../speech/session-cleanup.js';
 // 🌊 Naturalness Engine - voice pattern persistence
 import { persistNaturalnessData } from '../../speech/naturalness/index.js';
 // FIX AUDIT: Merged handoff imports to avoid duplicate import warning
+import { getDJController } from '../../audio/dj-controller.js';
 import {
   cameoUnlockEvents,
   handoffEvents,
   resetHandoffState,
   resetMetPersonas,
 } from '../../tools/handoff/index.js';
-import { getDJController } from '../../audio/dj-controller.js';
 // 🎭 Unified conversation session cleanup - loaded dynamically to avoid startup timeout
 // import { cleanupConversationSession } from '../integrations/conversation-session-integration.js';
 // FIX AUDIT: Import from service layer instead of API routes (clean architecture)
@@ -97,20 +97,23 @@ import { clearSession as clearTelemetrySession } from '../shared/function-call-t
 // Injection builders cache cleanup (Jan 2026 optimization)
 import { clearNonVolatileInjectionCache } from '../processors/injection-builders.js';
 
+// Timing-aware injection cleanup (Phase 3 BTH Communication Overhaul)
+import { clearTimingState } from '../../intelligence/context-builders/awareness/system-state-awareness.js';
+import { clearCachedInsights } from '../processors/timing-aware-injection.js';
+
 // Smart Context Routing cleanup (Phase 2 BTH Communication Overhaul)
 import { getFeedbackAggregator } from '../../intelligence/context-routing/index.js';
 import { detectConversationMode } from '../processors/injection-filter.js';
+
+// Injection effectiveness tracking cleanup (Phase 1 BTH Communication Overhaul)
+import { cleanupSession as cleanupInjectionTracker } from '../../intelligence/feedback/injection-tracker.js';
 
 // FinOps cost tracking
 import { finops } from '../../services/observability/finops.js';
 
 // BTH v4: Superhuman Intelligence Enhancements cleanup
 import { cleanupSession as cleanupSuperhumanIntelligenceSession } from '../../intelligence/context-builders/superhuman/superhuman-intelligence-context.js';
-import { getEmotionalMomentumTracker } from '../../conversation/emotional-arc/momentum/tracker.js';
 import { getMicroMomentDetector } from '../../intelligence/deep-understanding/micro-moments/engine.js';
-import { getAvoidanceDetector } from '../../intelligence/deep-understanding/avoidance-detection/engine.js';
-import { getPatternConnector } from '../../intelligence/deep-understanding/pattern-connector/engine.js';
-import { getStoryArcTracker } from '../../intelligence/story-tracking/engine.js';
 
 // Relationship Arc - Better Than Human relationship progression
 import { incrementSessionStats } from '../../intelligence/context-builders/relationship/arc/storage.js';
@@ -127,8 +130,6 @@ import { clearNamedInterval } from '../../utils/interval-manager.js';
 import type { HandoffEventPayload } from '../shared/handoff/types.js';
 
 // 🧠 DEEP SIGNAL EXTRACTION: LLM-powered extraction at session end
-import { LLMSignalExtractor } from '../../memory/llm-signal-extractor.js';
-import { callLLM } from '../../services/llm-utils.js';
 
 // ============================================================================
 // CLEANUP TIMEOUT PROTECTION
@@ -412,6 +413,17 @@ async function executeSessionCleanup(ctx: CleanupContext, cleanupStart: number):
   // GROUP 2: PARALLEL DATA PERSISTENCE (independent, can run together)
   // ================================================================
   const persistenceGroup = await Promise.allSettled([
+    // HUMAN SIGNAL EXTRACTION - extract "Better Than Human" signals from conversation
+    // This captures: birthdays, emotional tells, values, fears, growth markers, inside jokes
+    userId
+      ? extractAndSaveHumanSignals(
+          userId,
+          sessionPersona.id,
+          sessionId,
+          finalConvState as Record<string, unknown> | null
+        )
+      : Promise.resolve(),
+
     // Cognitive session
     cleanupCognitiveSession(userId, sessionPersona.id, sessionId, services),
 
@@ -514,7 +526,8 @@ async function executeSessionCleanup(ctx: CleanupContext, cleanupStart: number):
     userId
       ? (async () => {
           try {
-            const { flushMusicLearning } = await import('../../audio/music-learning-persistence.js');
+            const { flushMusicLearning } =
+              await import('../../audio/music-learning-persistence.js');
             await flushMusicLearning(userId);
             diag.session('🎵 Music learning persisted', { userId });
           } catch (musicErr) {
@@ -715,7 +728,7 @@ async function executeSessionCleanup(ctx: CleanupContext, cleanupStart: number):
             // Collect insights from cross-persona insights service
             // SurfaceInsightItem has { insight: { id, category, summary, sourcePersona }, relevanceScore }
             const rawInsights = getInsightsForPersona(userId, sessionPersona?.id || 'ferni');
-            
+
             // 🐛 FIX: Deduplicate insights by content to prevent same insight appearing multiple times
             const seenContents = new Set<string>();
             const dedupedInsights = rawInsights.filter((item) => {
@@ -726,21 +739,23 @@ async function executeSessionCleanup(ctx: CleanupContext, cleanupStart: number):
               seenContents.add(contentKey);
               return true;
             });
-            
-            const insightsGenerated: SessionInsight[] = dedupedInsights.slice(0, 10).map((item) => ({
-              type:
-                item.relevanceScore >= 0.8
-                  ? 'breakthrough'
-                  : item.insight.category === 'emotional'
-                    ? 'concern'
-                    : item.insight.category === 'pattern'
-                      ? 'pattern'
-                      : 'memory',
-              content: item.insight.summary,
-              confidence: item.relevanceScore,
-              timestamp: new Date(),
-              personaId: item.insight.sourcePersona,
-            }));
+
+            const insightsGenerated: SessionInsight[] = dedupedInsights
+              .slice(0, 10)
+              .map((item) => ({
+                type:
+                  item.relevanceScore >= 0.8
+                    ? 'breakthrough'
+                    : item.insight.category === 'emotional'
+                      ? 'concern'
+                      : item.insight.category === 'pattern'
+                        ? 'pattern'
+                        : 'memory',
+                content: item.insight.summary,
+                confidence: item.relevanceScore,
+                timestamp: new Date(),
+                personaId: item.insight.sourcePersona,
+              }));
 
             // Collect commitments from commitment keeper
             const userCommitments = await commitmentKeeper.load(userId);
@@ -818,7 +833,8 @@ async function executeSessionCleanup(ctx: CleanupContext, cleanupStart: number):
     userId
       ? (async () => {
           try {
-            const { getLastConversationContext } = await import('../../services/memory/realtime-memory.js');
+            const { getLastConversationContext } =
+              await import('../../services/memory/realtime-memory.js');
             const { saveMemoryDirect } = await import('../../services/unified-memory-service.js');
 
             // Get conversation context for signal extraction
@@ -940,9 +956,7 @@ async function executeSessionCleanup(ctx: CleanupContext, cleanupStart: number):
     // Handoff tools session cache cleanup (prevents memory leaks)
     (async () => {
       try {
-        const { clearHandoffToolsCache } = await import(
-          '../../tools/handoff/session-cache.js'
-        );
+        const { clearHandoffToolsCache } = await import('../../tools/handoff/session-cache.js');
         clearHandoffToolsCache(sessionId);
       } catch {
         // Non-critical, ignore
@@ -1099,7 +1113,8 @@ async function executeSessionCleanup(ctx: CleanupContext, cleanupStart: number):
 
     // Response Orchestrator cleanup (prevents stale SDK state tracking)
     (async () => {
-      const { cleanupSession: cleanupOrchestrator } = await import('../shared/response-orchestrator.js');
+      const { cleanupSession: cleanupOrchestrator } =
+        await import('../shared/response-orchestrator.js');
       cleanupOrchestrator(sessionId);
     })(),
 
@@ -1147,6 +1162,19 @@ async function executeSessionCleanup(ctx: CleanupContext, cleanupStart: number):
       }
     })(),
 
+    // Timing-aware injection cleanup (Phase 3 BTH Communication Overhaul)
+    // Clears timing state (tools in flight, turn gaps) and cached insights
+    (async () => {
+      clearTimingState(sessionId);
+      clearCachedInsights(sessionId);
+    })(),
+
+    // Injection effectiveness tracking cleanup (Phase 1 BTH Communication Overhaul)
+    // Clears session state for injection tracking (delivery count, reactions, etc.)
+    (async () => {
+      cleanupInjectionTracker(sessionId);
+    })(),
+
     // Smart Context Routing feedback aggregation (Phase 2 BTH Communication Overhaul)
     // Aggregates injection effectiveness feedback from this session to Firestore
     (async () => {
@@ -1158,7 +1186,9 @@ async function executeSessionCleanup(ctx: CleanupContext, cleanupStart: number):
           await aggregator.aggregateFromTracker(sessionId, userId, mode);
           diag.session('🧠 Smart routing feedback aggregated', { sessionId, userId });
         } catch (err) {
-          diag.debug('Smart routing feedback aggregation failed (non-fatal)', { error: String(err) });
+          diag.debug('Smart routing feedback aggregation failed (non-fatal)', {
+            error: String(err),
+          });
         }
       }
     })(),
@@ -1353,7 +1383,7 @@ async function cleanupDJIntegration(_services: SessionServices): Promise<void> {
     // The music-user-learning.ts module handles Thompson Sampling for preferences
     // and music-memory-integration.ts handles music helped memories
     // No manual preference merging needed here - it's all automatic now!
-    
+
     diag.session('🎧 DJ Controller cleanup complete');
   } catch (djErr) {
     diag.warn('🎧 DJ summary save failed (non-fatal)', { error: String(djErr) });
@@ -1403,9 +1433,8 @@ async function cleanupRelationshipMemory(
 ): Promise<void> {
   try {
     const { getRelationshipEngine } = await import('../../intelligence/relationship/index.js');
-    const { clearSessionCallbackCount } = await import(
-      '../../intelligence/context-builders/relationship/callback-opportunities.js'
-    );
+    const { clearSessionCallbackCount } =
+      await import('../../intelligence/context-builders/relationship/callback-opportunities.js');
     const { getConversationState } = await import('../../services/conversation-state.js');
 
     // Get the relationship engine for this session
@@ -1422,7 +1451,7 @@ async function cleanupRelationshipMemory(
           // Map sentiment to session mood
           // Sentiment: 'positive' | 'neutral' | 'negative' | 'mixed'
           // SessionMood: 'positive' | 'neutral' | 'struggling' | 'crisis'
-          const sentiment = convState.getEmotionalContext().sentiment;
+          const { sentiment } = convState.getEmotionalContext();
           if (sentiment === 'positive') {
             sessionMood = 'positive';
           } else if (sentiment === 'negative') {
@@ -1614,6 +1643,151 @@ async function cleanupDeepHumanization(sessionId: string): Promise<void> {
   } catch (deepHumanCleanupErr) {
     diag.warn('Deep humanization cleanup failed (non-fatal)', {
       error: String(deepHumanCleanupErr),
+    });
+  }
+}
+
+/**
+ * Extract and save human signals from the conversation.
+ * This is a "Better Than Human" capability - extracting things no human friend
+ * would reliably notice and remember:
+ * - Important dates (birthdays, anniversaries)
+ * - Emotional tells (patterns in how they express feelings)
+ * - Values and dreams
+ * - Growth markers
+ * - Inside joke potential
+ * - Topics avoided
+ */
+async function extractAndSaveHumanSignals(
+  userId: string,
+  personaId: string,
+  _sessionId: string,
+  conversationState: Record<string, unknown> | null
+): Promise<void> {
+  try {
+    const { extractHumanSignals, mergeSignalsIntoMemory } =
+      await import('../../memory/human-signal-extractor.js');
+
+    // Try to get conversation turns from state - handle different possible structures
+    const flow = conversationState?.flow as
+      | { turns?: Array<{ role: string; content: string }> }
+      | undefined;
+    const turns = flow?.turns || [];
+    if (turns.length < 2) {
+      diag.session('Skipping human signal extraction (too few turns)');
+      return;
+    }
+
+    // Extract signals from the conversation
+    const signals = extractHumanSignals(
+      turns.map((t) => ({
+        role: t.role as 'user' | 'assistant',
+        content: t.content,
+      })),
+      {
+        userId,
+        personaId,
+      }
+    );
+
+    // Merge extracted signals into existing memory
+    if (signals && Object.values(signals).some((arr) => Array.isArray(arr) && arr.length > 0)) {
+      diag.session('🧠 Human signals extracted', {
+        importantDates: signals.importantDates?.length || 0,
+        emotionalTells: signals.emotionalTells?.length || 0,
+        values: signals.values?.length || 0,
+        dreams: signals.dreams?.length || 0,
+        fears: signals.fears?.length || 0,
+        growthMarkers: signals.growthMarkers?.length || 0,
+        insideJokes: signals.insideJokes?.length || 0,
+      });
+
+      // ======================================================
+      // PERSIST TO FIRESTORE ("Better Than Human" Memory)
+      // ======================================================
+      try {
+        const { getFirestore } = await import('firebase-admin/firestore');
+        const db = getFirestore();
+        const userDoc = db.collection('bogle_users').doc(userId);
+
+        // Get existing human memory
+        const humanMemoryRef = userDoc.collection('human_memory').doc('profile');
+        const existingDoc = await humanMemoryRef.get();
+        const existingMemory = existingDoc.exists ? existingDoc.data() : {};
+
+        // Merge new signals with existing memory
+        const mergedMemory = mergeSignalsIntoMemory(existingMemory, signals);
+
+        // Save merged memory to Firestore
+        await humanMemoryRef.set(
+          {
+            ...mergedMemory,
+            updatedAt: new Date(),
+            lastExtractedFrom: {
+              personaId,
+              timestamp: new Date(),
+            },
+          },
+          { merge: true }
+        );
+
+        diag.session('💾 Human signals persisted to Firestore', {
+          newImportantDates: signals.importantDates?.length || 0,
+          newEmotionalTells: signals.emotionalTells?.length || 0,
+          newValues: signals.values?.length || 0,
+          newDreams: signals.dreams?.length || 0,
+        });
+
+        // Also persist individual signal types for indexing
+        const batch = db.batch();
+
+        // Save important dates with their own IDs for easy querying
+        if (signals.importantDates?.length > 0) {
+          for (const date of signals.importantDates) {
+            const dateRef = userDoc
+              .collection('human_memory')
+              .doc('profile')
+              .collection('important_dates')
+              .doc(date.id);
+            batch.set(dateRef, { ...date, discoveredAt: new Date() }, { merge: true });
+          }
+        }
+
+        // Save inside jokes
+        if (signals.insideJokes?.length > 0) {
+          for (const joke of signals.insideJokes) {
+            const jokeRef = userDoc
+              .collection('human_memory')
+              .doc('profile')
+              .collection('inside_jokes')
+              .doc(joke.id);
+            batch.set(jokeRef, { ...joke, createdAt: new Date() }, { merge: true });
+          }
+        }
+
+        // Save growth markers
+        if (signals.growthMarkers?.length > 0) {
+          for (const marker of signals.growthMarkers) {
+            const markerRef = userDoc
+              .collection('human_memory')
+              .doc('profile')
+              .collection('growth_markers')
+              .doc(marker.id);
+            batch.set(markerRef, { ...marker, observedAt: new Date() }, { merge: true });
+          }
+        }
+
+        await batch.commit();
+        diag.session('💾 Human memory subcollections saved');
+      } catch (persistErr) {
+        diag.warn('Human signal persistence to Firestore failed (non-fatal)', {
+          error: String(persistErr),
+        });
+      }
+    }
+  } catch (humanSignalErr) {
+    diag.warn('Human signal extraction failed (non-fatal)', {
+      error: String(humanSignalErr),
     });
   }
 }

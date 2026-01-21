@@ -4,7 +4,7 @@
  * Auto-generated from design tokens.
  * DO NOT EDIT DIRECTLY - modify tokens/*.json and rebuild.
  *
- * Build: 2026-01-18T09:31:40.139Z
+ * Build: 2026-01-21T15:37:42.034Z
  */
 
 /* ========================================
@@ -359,6 +359,15 @@
   --persona-text: #ffffff;
   --persona-glow: rgba(184, 149, 106, 0.28);
   --persona-tint: rgba(184, 149, 106, 0.06);
+}
+
+/* Persona: joel */
+[data-persona="joel"] {
+  --persona-primary: #9A0718;
+  --persona-secondary: #7A0514;
+  --persona-text: #ffffff;
+  --persona-glow: rgba(154, 7, 24, 0.28);
+  --persona-tint: rgba(154, 7, 24, 0.06);
 }
 
 /* Persona: _marketplace_description */

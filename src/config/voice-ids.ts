@@ -67,6 +67,11 @@ export const VOICE_IDS = {
   // Joel Dickson (Vanguard life mentor) - Added Jan 2025
   JOEL_DICKSON: '3ebcd114-d280-4eed-a238-b9323a6b8e52',
 
+  // Financial Legends team - Added Jan 2026
+  // NOTE: Select appropriate voices from https://play.cartesia.ai/library
+  PETER_LYNCH: 'a0e99841-438c-4a64-b679-ae501e7d6091', // Placeholder - select mature male voice
+  JOHN_BOGLE: '79a125e8-cd45-4c13-8a67-188112f4dd22',  // Placeholder - select warm elder male voice
+
   // Generic advisor fallback
   GENERIC: '79a125e8-cd45-4c13-8a67-188112f4dd22',
 } as const;
@@ -98,11 +103,11 @@ export function getVoiceIdForPersona(personaId: string): string {
     'alex-chen': process.env.ALEX_CHEN_VOICE_ID || process.env.COMM_SPECIALIST_VOICE_ID,
     'maya-santos': process.env.MAYA_SANTOS_VOICE_ID || process.env.SPEND_SAVE_VOICE_ID,
     'jordan-taylor': process.env.JORDAN_TAYLOR_VOICE_ID || process.env.EVENT_PLANNER_VOICE_ID,
-    'nayan-patel':
-      process.env.NAYAN_PATEL_VOICE_ID ||
-      process.env.NAYAN_VOICE_ID ||
-      process.env.PETER_LYNCH_VOICE_ID,
+    'nayan-patel': process.env.NAYAN_PATEL_VOICE_ID || process.env.NAYAN_VOICE_ID,
     'joel-dickson': process.env.JOEL_DICKSON_VOICE_ID,
+    // Financial Legends
+    'peter-lynch': process.env.PETER_LYNCH_VOICE_ID,
+    'john-bogle': process.env.JOHN_BOGLE_VOICE_ID,
     'generic-advisor': process.env.GENERIC_ADVISOR_VOICE_ID,
   };
 
@@ -155,6 +160,19 @@ export function getVoiceIdForPersona(personaId: string): string {
     'dr-dickson': VOICE_IDS.JOEL_DICKSON,
     'vanguard-mentor': VOICE_IDS.JOEL_DICKSON,
     'life-mentor': VOICE_IDS.JOEL_DICKSON,
+
+    // Peter Lynch aliases (Financial Legends)
+    'peter-lynch': VOICE_IDS.PETER_LYNCH,
+    lynch: VOICE_IDS.PETER_LYNCH,
+    'stock-picker': VOICE_IDS.PETER_LYNCH,
+    magellan: VOICE_IDS.PETER_LYNCH,
+
+    // John Bogle aliases (Financial Legends)
+    'john-bogle': VOICE_IDS.JOHN_BOGLE,
+    bogle: VOICE_IDS.JOHN_BOGLE,
+    'jack-bogle': VOICE_IDS.JOHN_BOGLE,
+    'vanguard-founder': VOICE_IDS.JOHN_BOGLE,
+    'index-pioneer': VOICE_IDS.JOHN_BOGLE,
 
     // Generic
     'generic-advisor': VOICE_IDS.GENERIC,
@@ -219,6 +237,8 @@ export function logVoiceIdAssignments(): void {
     'jordan-taylor',
     'nayan-patel',
     'joel-dickson',
+    'peter-lynch',
+    'john-bogle',
   ];
 
   for (const persona of personas) {

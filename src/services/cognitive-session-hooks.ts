@@ -9,17 +9,17 @@
  * - onCognitiveSessionEnd: Call in disconnect handler before other cleanup
  */
 
-import { getLogger } from '../utils/safe-logger.js';
-import type { UserProfile } from '../types/user-profile.js';
 import type { ReasoningStyle } from '../personas/cognitive-types.js';
-import {
-  initializeCognitiveSession,
-  endCognitiveSession,
-  syncCognitiveToProfile,
-  loadCognitiveFromProfile,
-  getCognitiveSession,
-} from './memory/cognitive-memory.js';
+import type { UserProfile } from '../types/user-profile.js';
+import { getLogger } from '../utils/safe-logger.js';
 import { cognitiveBroadcast } from './cognitive-broadcast.js';
+import {
+  endCognitiveSession,
+  getCognitiveSession,
+  initializeCognitiveSession,
+  loadCognitiveFromProfile,
+  syncCognitiveToProfile,
+} from './memory/cognitive-memory.js';
 
 const logger = getLogger();
 
@@ -106,6 +106,11 @@ export async function onCognitiveSessionEnd(options: CognitiveSessionEndOptions)
     // End the cognitive session
     const sessionSummary = await endCognitiveSession(userId, personaId);
 
+    if (!sessionSummary) {
+      logger.debug({ userId, personaId }, 'No cognitive session to end');
+      return null;
+    }
+
     // Broadcast session end
     cognitiveBroadcast.broadcast({
       type: 'session_end',
@@ -150,7 +155,8 @@ export async function syncCognitiveDataToProfile(
   profile: UserProfile
 ): Promise<UserProfile> {
   try {
-    return await syncCognitiveToProfile(userId, profile);
+    const updated = await syncCognitiveToProfile(userId, profile);
+    return updated;
   } catch (error) {
     logger.warn({ error, userId }, 'Failed to sync cognitive data to profile');
     return profile;
@@ -190,7 +196,7 @@ export function getCognitiveSessionInfo(
     active: true,
     userStyle: session.userStyle,
     styleConfidence: session.userStyleConfidence,
-    approachesUsed: session.approachesUsed.length,
+    approachesUsed: session.approachesUsed.size, // Map uses .size, not .length
     topicsExplained: session.topicsExplained.length,
   };
 }

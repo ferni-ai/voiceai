@@ -293,7 +293,6 @@ describe('DI Container', () => {
       expect(Tokens.LifeDataStore).toBeDefined();
       expect(Tokens.ProductivityStore).toBeDefined();
       expect(Tokens.BackgroundTasks).toBeDefined();
-      expect(Tokens.CollectiveLearning).toBeDefined();
     });
 
     it('should have scheduler tokens', () => {

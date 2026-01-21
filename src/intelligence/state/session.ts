@@ -798,6 +798,159 @@ export function updateSessionFlowState(
 }
 
 // ============================================================================
+// DEEP HUMAN STATE HELPERS
+// ============================================================================
+
+/**
+ * Deep human system state for session.
+ * Tracks active modes, energy levels, speech imperfections, and laughter.
+ */
+export interface DeepHumanState {
+  // Secret Mode state
+  activeSecretMode: string | null;
+  secretModeActivatedTurn: number;
+  seasonalModeActive: string | null;
+
+  // Energy state
+  detectedUserEnergy: 'very_low' | 'low' | 'neutral' | 'elevated' | 'high';
+  previousEnergy: 'very_low' | 'low' | 'neutral' | 'elevated' | 'high';
+  energyLastUpdatedTurn: number;
+
+  // Speech naturalizer state
+  speechImperfectionsUsed: number;
+  lastSpeechImperfectionTurn: number;
+  speechTypesUsed: string[];
+
+  // Laughter state
+  laughterJoinCount: number;
+  lastLaughterTurn: number;
+  laughTypesUsed: string[];
+
+  // Better Than Human state
+  lastEmotionalBondTurn: number;
+  lastDelightTurn: number;
+  lastObservationTurn: number;
+  lastMetaRelationshipTurn: number;
+
+  // Quirks state
+  lastQuirkTurn: number;
+  quirksRevealedThisSession: number;
+}
+
+const DEEP_HUMAN_STATE_KEY = 'deep-human';
+
+/**
+ * Get deep human state for session
+ */
+export function getDeepHumanState(sessionId: string): DeepHumanState {
+  let state = getCustomState<DeepHumanState>(sessionId, DEEP_HUMAN_STATE_KEY);
+  if (!state) {
+    state = {
+      activeSecretMode: null,
+      secretModeActivatedTurn: -1,
+      seasonalModeActive: null,
+
+      detectedUserEnergy: 'neutral',
+      previousEnergy: 'neutral',
+      energyLastUpdatedTurn: -1,
+
+      speechImperfectionsUsed: 0,
+      lastSpeechImperfectionTurn: -10,
+      speechTypesUsed: [],
+
+      laughterJoinCount: 0,
+      lastLaughterTurn: -10,
+      laughTypesUsed: [],
+
+      lastEmotionalBondTurn: -100,
+      lastDelightTurn: -100,
+      lastObservationTurn: -100,
+      lastMetaRelationshipTurn: -100,
+
+      lastQuirkTurn: -10,
+      quirksRevealedThisSession: 0,
+    };
+    setCustomState(sessionId, DEEP_HUMAN_STATE_KEY, state);
+  }
+  return state;
+}
+
+/**
+ * Update deep human state
+ */
+export function updateDeepHumanState(
+  sessionId: string,
+  updates: Partial<DeepHumanState>
+): DeepHumanState {
+  const state = getDeepHumanState(sessionId);
+  Object.assign(state, updates);
+  return state;
+}
+
+/**
+ * Set active secret mode
+ */
+export function setActiveSecretMode(
+  sessionId: string,
+  mode: string | null,
+  turnCount: number
+): void {
+  updateDeepHumanState(sessionId, {
+    activeSecretMode: mode,
+    secretModeActivatedTurn: mode ? turnCount : -1,
+  });
+}
+
+/**
+ * Get active secret mode
+ */
+export function getActiveSecretMode(sessionId: string): string | null {
+  return getDeepHumanState(sessionId).activeSecretMode;
+}
+
+/**
+ * Update energy level
+ */
+export function updateEnergyLevel(
+  sessionId: string,
+  energy: DeepHumanState['detectedUserEnergy'],
+  turnCount: number
+): void {
+  const state = getDeepHumanState(sessionId);
+  updateDeepHumanState(sessionId, {
+    previousEnergy: state.detectedUserEnergy,
+    detectedUserEnergy: energy,
+    energyLastUpdatedTurn: turnCount,
+  });
+}
+
+/**
+ * Record speech imperfection usage
+ */
+export function recordSpeechImperfection(sessionId: string, type: string, turnCount: number): void {
+  const state = getDeepHumanState(sessionId);
+  const typesUsed = [...state.speechTypesUsed, type];
+  updateDeepHumanState(sessionId, {
+    speechImperfectionsUsed: state.speechImperfectionsUsed + 1,
+    lastSpeechImperfectionTurn: turnCount,
+    speechTypesUsed: typesUsed,
+  });
+}
+
+/**
+ * Record laughter usage
+ */
+export function recordLaughter(sessionId: string, type: string, turnCount: number): void {
+  const state = getDeepHumanState(sessionId);
+  const typesUsed = [...state.laughTypesUsed, type];
+  updateDeepHumanState(sessionId, {
+    laughterJoinCount: state.laughterJoinCount + 1,
+    lastLaughterTurn: turnCount,
+    laughTypesUsed: typesUsed,
+  });
+}
+
+// ============================================================================
 // EXPORTS
 // ============================================================================
 

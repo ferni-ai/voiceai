@@ -1,30 +1,146 @@
 <nav class="nav">
   <div class="nav-inner">
+    <!-- Logo -->
     <a href="/" class="nav-logo">
-      <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <svg width="28" height="28" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
         <circle cx="16" cy="16" r="14" fill="var(--accent-primary)"/>
-        <path d="M10 12h12M10 16h8M10 20h10" stroke="var(--bg-code)" stroke-width="2" stroke-linecap="round"/>
+        <path d="M10 12h12M10 16h8M10 20h10" stroke="var(--text-inverse)" stroke-width="2" stroke-linecap="round"/>
       </svg>
       <span>Ferni</span>
       <span class="nav-badge">Developers</span>
     </a>
     
+    <!-- Main Navigation Links (Apple-style: minimal, essential only) -->
     <ul class="nav-links">
-      <li><a href="/getting-started/" {% if page.url == '/getting-started/' %}class="active"{% endif %}>Getting Started</a></li>
-      <li><a href="/api/" {% if '/api/' in page.url and '/api/explorer' not in page.url %}class="active"{% endif %}>API Reference</a></li>
-      <li><a href="/pages/api/explorer" {% if '/api/explorer' in page.url %}class="active"{% endif %}>API Explorer</a></li>
-      <li><a href="/sdk/" {% if page.url == '/sdk/' %}class="active"{% endif %}>SDK</a></li>
-      <li><a href="/examples/" {% if page.url == '/examples/' %}class="active"{% endif %}>Examples</a></li>
+      <li><a href="/getting-started/" {% if '/getting-started' in page.url %}class="active"{% endif %}>Docs</a></li>
+      <li><a href="/api/" {% if '/api/' in page.url %}class="active"{% endif %}>API</a></li>
+      <li><a href="/sdk/" {% if '/sdk/' in page.url %}class="active"{% endif %}>SDK</a></li>
+      <li><a href="/blog/" {% if '/blog/' in page.url %}class="active"{% endif %}>Blog</a></li>
     </ul>
-    
-    <div class="nav-cta">
-      <a href="{{ site.social.github }}" class="btn btn-ghost" target="_blank" rel="noopener">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-          <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+
+    <!-- Right side: Search + Theme Toggle + CTAs -->
+    <div class="nav-right">
+      <!-- Search Button -->
+      <button class="nav-search-btn" onclick="openSearch()" aria-label="Search documentation">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="11" cy="11" r="8"/>
+          <path d="m21 21-4.35-4.35"/>
         </svg>
-        GitHub
-      </a>
-      <a href="/console/" class="btn btn-primary">Console</a>
+        <span class="nav-search-text">Search docs...</span>
+        <kbd class="nav-search-kbd">⌘K</kbd>
+      </button>
+
+      <!-- Theme Toggle (in nav) -->
+      <button class="nav-theme-toggle" onclick="toggleTheme()" aria-label="Toggle theme" title="Toggle light/dark theme">
+        <svg class="sun-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="5"/>
+          <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+        </svg>
+        <svg class="moon-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+        </svg>
+      </button>
+
+      <!-- CTAs -->
+      <div class="nav-cta">
+        <a href="{{ site.social.github }}" class="btn btn-ghost" target="_blank" rel="noopener">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+          </svg>
+          <span class="nav-cta-text">GitHub</span>
+        </a>
+        <a href="/community/" class="btn btn-ghost nav-community-btn">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+            <circle cx="9" cy="7" r="4"/>
+            <path d="M22 21v-2a4 4 0 0 0-3-3.87"/>
+            <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+          </svg>
+          <span class="nav-cta-text">Community</span>
+        </a>
+        <a href="/console/" class="btn btn-primary">Console</a>
+      </div>
     </div>
+
+    <!-- Mobile Menu Toggle -->
+    <button class="nav-mobile-toggle" onclick="toggleMobileNav()" aria-label="Toggle menu">
+      <svg class="menu-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="4" x2="20" y1="12" y2="12"/>
+        <line x1="4" x2="20" y1="6" y2="6"/>
+        <line x1="4" x2="20" y1="18" y2="18"/>
+      </svg>
+      <svg class="close-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M18 6 6 18"/>
+        <path d="m6 6 12 12"/>
+      </svg>
+    </button>
+  </div>
+
+  <!-- Mobile Navigation Menu -->
+  <div class="nav-mobile-menu">
+    <ul class="nav-mobile-links">
+      <li><a href="/getting-started/" {% if '/getting-started' in page.url %}class="active"{% endif %}>Documentation</a></li>
+      <li><a href="/api/" {% if '/api/' in page.url %}class="active"{% endif %}>API Reference</a></li>
+      <li><a href="/sdk/" {% if '/sdk/' in page.url %}class="active"{% endif %}>SDK</a></li>
+      <li><a href="/blog/" {% if '/blog/' in page.url %}class="active"{% endif %}>Blog</a></li>
+      <li><a href="/community/">Community</a></li>
+      <li><a href="{{ site.social.github }}" target="_blank" rel="noopener">GitHub</a></li>
+      <li><a href="/console/" class="btn btn-primary">Console</a></li>
+    </ul>
   </div>
 </nav>
+
+<!-- Search Modal (placeholder - to be implemented in Phase 5) -->
+<div class="search-modal" id="searchModal">
+  <div class="search-modal-backdrop" onclick="closeSearch()"></div>
+  <div class="search-modal-content">
+    <div class="search-input-wrapper">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="11" cy="11" r="8"/>
+        <path d="m21 21-4.35-4.35"/>
+      </svg>
+      <input type="text" class="search-input" placeholder="Search documentation..." autofocus>
+      <kbd class="search-kbd">ESC</kbd>
+    </div>
+    <div class="search-results">
+      <p class="search-hint">Start typing to search...</p>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Mobile nav toggle
+  function toggleMobileNav() {
+    document.querySelector('.nav').classList.toggle('nav-mobile-open');
+  }
+
+  // Search modal
+  function openSearch() {
+    document.getElementById('searchModal').classList.add('open');
+    document.querySelector('.search-input').focus();
+  }
+
+  function closeSearch() {
+    document.getElementById('searchModal').classList.remove('open');
+  }
+
+  // Keyboard shortcuts
+  document.addEventListener('keydown', function(e) {
+    // Cmd+K or Ctrl+K to open search
+    if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+      e.preventDefault();
+      openSearch();
+    }
+    // Escape to close search
+    if (e.key === 'Escape') {
+      closeSearch();
+    }
+  });
+
+  // Close mobile nav on resize
+  window.addEventListener('resize', function() {
+    if (window.innerWidth > 1024) {
+      document.querySelector('.nav').classList.remove('nav-mobile-open');
+    }
+  });
+</script>

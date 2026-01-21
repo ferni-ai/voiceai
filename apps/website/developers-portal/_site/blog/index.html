@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Developer Blog | Ferni Developers</title>
+  <meta name="description" content="Technical insights, API updates, and engineering deep dives from the Ferni Developer Platform team.">
+
+  <!-- Fonts: Plus Jakarta Sans (display), Inter (body), JetBrains Mono (code) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%233D5A45' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='4 17 10 11 4 5'/><line x1='12' x2='20' y1='19' y2='19'/></svg>">
+
+  <!-- Open Graph -->
+  <meta property="og:title" content="Developer Blog | Ferni Developers">
+  <meta property="og:description" content="Technical insights, API updates, and engineering deep dives from the Ferni Developer Platform team.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://developers.ferni.ai/blog/">
+
+  <!-- Theme: Prevent flash of wrong theme -->
+  <script>
+    (function() {
+      // Get saved preference or system preference
+      const saved = localStorage.getItem('ferni-theme');
+      const systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      const theme = saved || (systemDark ? 'dark' : 'light');
+      
+      // Apply theme immediately to prevent flash
+      document.documentElement.setAttribute('data-theme', theme);
+      document.documentElement.classList.add('no-transitions');
+    })();
+  </script>
+
+  <!-- Styles (v=20260120 cache bust) -->
+  <link rel="stylesheet" href="/css/tokens.css?v=20260120">
+  <link rel="stylesheet" href="/css/components.css?v=20260120">
+  <link rel="stylesheet" href="/css/prism.css?v=20260120">
+  
+</head>
+<body>
+  <!-- Skip to content link for accessibility -->
+  <a href="#main-content" class="skip-to-content">Skip to content</a>
+
+  <nav class="nav">
+  <div class="nav-inner">
+    <!-- Logo -->
+    <a href="/" class="nav-logo">
+      <svg width="28" height="28" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="16" cy="16" r="14" fill="var(--accent-primary)"/>
+        <path d="M10 12h12M10 16h8M10 20h10" stroke="var(--text-inverse)" stroke-width="2" stroke-linecap="round"/>
+      </svg>
+      <span>Ferni</span>
+      <span class="nav-badge">Developers</span>
+    </a>
+    
+    <!-- Main Navigation Links (Apple-style: minimal, essential only) -->
+    <ul class="nav-links">
+      <li><a href="/getting-started/" >Docs</a></li>
+      <li><a href="/api/" >API</a></li>
+      <li><a href="/sdk/" >SDK</a></li>
+      <li><a href="/blog/" class="active">Blog</a></li>
+    </ul>
+
+    <!-- Right side: Search + Theme Toggle + CTAs -->
+    <div class="nav-right">
+      <!-- Search Button -->
+      <button class="nav-search-btn" onclick="openSearch()" aria-label="Search documentation">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="11" cy="11" r="8"/>
+          <path d="m21 21-4.35-4.35"/>
+        </svg>
+        <span class="nav-search-text">Search docs...</span>
+        <kbd class="nav-search-kbd">⌘K</kbd>
+      </button>
+
+      <!-- Theme Toggle (in nav) -->
+      <button class="nav-theme-toggle" onclick="toggleTheme()" aria-label="Toggle theme" title="Toggle light/dark theme">
+        <svg class="sun-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="5"/>
+          <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+        </svg>
+        <svg class="moon-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+        </svg>
+      </button>
+
+      <!-- CTAs -->
+      <div class="nav-cta">
+        <a href="https://github.com/ferni-ai" class="btn btn-ghost" target="_blank" rel="noopener">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+          </svg>
+          <span class="nav-cta-text">GitHub</span>
+        </a>
+        <a href="/community/" class="btn btn-ghost nav-community-btn">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+            <circle cx="9" cy="7" r="4"/>
+            <path d="M22 21v-2a4 4 0 0 0-3-3.87"/>
+            <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+          </svg>
+          <span class="nav-cta-text">Community</span>
+        </a>
+        <a href="/console/" class="btn btn-primary">Console</a>
+      </div>
+    </div>
+
+    <!-- Mobile Menu Toggle -->
+    <button class="nav-mobile-toggle" onclick="toggleMobileNav()" aria-label="Toggle menu">
+      <svg class="menu-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="4" x2="20" y1="12" y2="12"/>
+        <line x1="4" x2="20" y1="6" y2="6"/>
+        <line x1="4" x2="20" y1="18" y2="18"/>
+      </svg>
+      <svg class="close-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M18 6 6 18"/>
+        <path d="m6 6 12 12"/>
+      </svg>
+    </button>
+  </div>
+
+  <!-- Mobile Navigation Menu -->
+  <div class="nav-mobile-menu">
+    <ul class="nav-mobile-links">
+      <li><a href="/getting-started/" >Documentation</a></li>
+      <li><a href="/api/" >API Reference</a></li>
+      <li><a href="/sdk/" >SDK</a></li>
+      <li><a href="/blog/" class="active">Blog</a></li>
+      <li><a href="/community/">Community</a></li>
+      <li><a href="https://github.com/ferni-ai" target="_blank" rel="noopener">GitHub</a></li>
+      <li><a href="/console/" class="btn btn-primary">Console</a></li>
+    </ul>
+  </div>
+</nav>
+
+<!-- Search Modal (placeholder - to be implemented in Phase 5) -->
+<div class="search-modal" id="searchModal">
+  <div class="search-modal-backdrop" onclick="closeSearch()"></div>
+  <div class="search-modal-content">
+    <div class="search-input-wrapper">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="11" cy="11" r="8"/>
+        <path d="m21 21-4.35-4.35"/>
+      </svg>
+      <input type="text" class="search-input" placeholder="Search documentation..." autofocus>
+      <kbd class="search-kbd">ESC</kbd>
+    </div>
+    <div class="search-results">
+      <p class="search-hint">Start typing to search...</p>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Mobile nav toggle
+  function toggleMobileNav() {
+    document.querySelector('.nav').classList.toggle('nav-mobile-open');
+  }
+
+  // Search modal
+  function openSearch() {
+    document.getElementById('searchModal').classList.add('open');
+    document.querySelector('.search-input').focus();
+  }
+
+  function closeSearch() {
+    document.getElementById('searchModal').classList.remove('open');
+  }
+
+  // Keyboard shortcuts
+  document.addEventListener('keydown', function(e) {
+    // Cmd+K or Ctrl+K to open search
+    if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+      e.preventDefault();
+      openSearch();
+    }
+    // Escape to close search
+    if (e.key === 'Escape') {
+      closeSearch();
+    }
+  });
+
+  // Close mobile nav on resize
+  window.addEventListener('resize', function() {
+    if (window.innerWidth > 1024) {
+      document.querySelector('.nav').classList.remove('nav-mobile-open');
+    }
+  });
+</script>
+
+
+  <main id="main-content" tabindex="-1">
+    
+<div class="blog-page">
+  <header class="blog-header">
+    <div class="container">
+      <span class="blog-eyebrow">Developer Blog</span>
+      <h1>Insights & Updates</h1>
+      <p>Technical deep dives, API updates, and engineering best practices for building voice-first AI applications.</p>
+    </div>
+  </header>
+
+  <main class="blog-content">
+    <div class="container">
+      
+        <!-- Featured Post (most recent) -->
+        
+        <article class="blog-featured">
+          <a href="/blog/performance-optimization/">
+            
+            <div class="blog-featured-content">
+              <div class="blog-card-meta">
+                
+                <span class="blog-card-category">Architecture</span>
+                
+                <time datetime="2026-01-14T00:00:00.000Z">
+                  Jan 13, 2026
+                </time>
+              </div>
+              <h2>The Latency Stack: How We Architect Voice AI for Sub-200ms Response</h2>
+              
+              <p>Voice AI that feels human requires response times humans don&#39;t consciously notice. Here&#39;s how we architect for that constraint.</p>
+              
+              <div class="blog-card-author">
+                <span class="blog-card-author-avatar" style="background: #4a6741">
+                  SF
+                </span>
+                <span class="blog-card-author-name">Seth Ford</span>
+                
+                <span class="blog-card-read-time">10 min read</span>
+                
+              </div>
+            </div>
+          </a>
+        </article>
+
+        <!-- Posts Grid -->
+        <div class="blog-grid">
+          
+            
+          
+            
+            <article class="blog-card">
+              <a href="/blog/mcp-server-integration/">
+                <div class="blog-card-meta">
+                  
+                  <span class="blog-card-category">Integration</span>
+                  
+                  <time datetime="2026-01-11T00:00:00.000Z">
+                    Jan 10, 2026
+                  </time>
+                </div>
+                <h3>Tool Integration via MCP: How We Connect Voice AI to External Services</h3>
+                
+                <p>The Model Context Protocol (MCP) standardizes how AI agents discover and use tools. Here&#39;s why we&#39;ve built native support—and how it works.</p>
+                
+                <div class="blog-card-footer">
+                  <div class="blog-card-author">
+                    <span class="blog-card-author-avatar" style="background: #4a6741">
+                      SF
+                    </span>
+                    <span class="blog-card-author-name">Seth Ford</span>
+                  </div>
+                  
+                  <span class="blog-card-read-time">12 min read</span>
+                  
+                </div>
+              </a>
+            </article>
+            
+          
+            
+            <article class="blog-card">
+              <a href="/blog/introducing-developer-platform/">
+                <div class="blog-card-meta">
+                  
+                  <span class="blog-card-category">Mission</span>
+                  
+                  <time datetime="2026-01-11T00:00:00.000Z">
+                    Jan 10, 2026
+                  </time>
+                </div>
+                <h3>Why Ferni Is Free Forever</h3>
+                
+                <p>Everyone deserves someone who truly pays attention. We&#39;re building AI that embodies the best parts of human connection—and keeping it free for everyone who needs it.</p>
+                
+                <div class="blog-card-footer">
+                  <div class="blog-card-author">
+                    <span class="blog-card-author-avatar" style="background: #4a6741">
+                      SF
+                    </span>
+                    <span class="blog-card-author-name">Seth Ford</span>
+                  </div>
+                  
+                  <span class="blog-card-read-time">6 min read</span>
+                  
+                </div>
+              </a>
+            </article>
+            
+          
+            
+            <article class="blog-card">
+              <a href="/blog/webhook-security/">
+                <div class="blog-card-meta">
+                  
+                  <span class="blog-card-category">Architecture</span>
+                  
+                  <time datetime="2026-01-09T00:00:00.000Z">
+                    Jan 8, 2026
+                  </time>
+                </div>
+                <h3>How Ferni&#39;s Memory Actually Works</h3>
+                
+                <p>The &#39;Ferni remembered...&#39; moment is our signature brand experience. Here&#39;s the architecture that makes it possible.</p>
+                
+                <div class="blog-card-footer">
+                  <div class="blog-card-author">
+                    <span class="blog-card-author-avatar" style="background: #4a6741">
+                      SF
+                    </span>
+                    <span class="blog-card-author-name">Seth Ford</span>
+                  </div>
+                  
+                  <span class="blog-card-read-time">8 min read</span>
+                  
+                </div>
+              </a>
+            </article>
+            
+          
+            
+            <article class="blog-card">
+              <a href="/blog/quick-tips-getting-started/">
+                <div class="blog-card-meta">
+                  
+                  <span class="blog-card-category">Philosophy</span>
+                  
+                  <time datetime="2026-01-09T00:00:00.000Z">
+                    Jan 8, 2026
+                  </time>
+                </div>
+                <h3>Why We&#39;re Building Voice AI Differently</h3>
+                
+                <p>Most voice AI treats conversation as a technical problem. We think it&#39;s a relationship problem. Here&#39;s the philosophy behind Ferni&#39;s architecture.</p>
+                
+                <div class="blog-card-footer">
+                  <div class="blog-card-author">
+                    <span class="blog-card-author-avatar" style="background: #4a6741">
+                      SF
+                    </span>
+                    <span class="blog-card-author-name">Seth Ford</span>
+                  </div>
+                  
+                  <span class="blog-card-read-time">8 min read</span>
+                  
+                </div>
+              </a>
+            </article>
+            
+          
+        </div>
+      
+    </div>
+  </main>
+
+  <!-- Newsletter Section -->
+  <section class="blog-newsletter-section">
+    <div class="container-narrow">
+      <div class="blog-newsletter-card">
+        <h2>Never miss an update</h2>
+        <p>Subscribe to get notified about new articles, API changes, and developer resources.</p>
+        <form class="blog-newsletter-form-large">
+          <input type="email" placeholder="Enter your email" required>
+          <button type="submit" class="btn btn-primary">Subscribe</button>
+        </form>
+        <p class="blog-newsletter-note">No spam, unsubscribe anytime.</p>
+      </div>
+    </div>
+  </section>
+</div>
+
+  </main>
+
+  <footer class="footer" role="contentinfo">
+  <div class="container">
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <a href="/" class="nav-logo" aria-label="Ferni Developers Home">
+          <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <circle cx="16" cy="16" r="14" fill="var(--accent-primary)"/>
+            <path d="M10 12h12M10 16h8M10 20h10" stroke="var(--text-inverse)" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+          <span>Ferni Developers</span>
+        </a>
+        <p>Build voice AI agents with the same platform that powers Ferni's AI life coaching team.</p>
+        
+        <!-- Social Links -->
+        <div class="footer-social">
+          <a href="https://github.com/ferni-ai" target="_blank" rel="noopener noreferrer" aria-label="GitHub">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+            </svg>
+          </a>
+          <a href="https://discord.gg/ferni" target="_blank" rel="noopener noreferrer" aria-label="Discord">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M20.317 4.3698a19.7913 19.7913 0 00-4.8851-1.5152.0741.0741 0 00-.0785.0371c-.211.3753-.4447.8648-.6083 1.2495-1.8447-.2762-3.68-.2762-5.4868 0-.1636-.3933-.4058-.8742-.6177-1.2495a.077.077 0 00-.0785-.037 19.7363 19.7363 0 00-4.8852 1.515.0699.0699 0 00-.0321.0277C.5334 9.0458-.319 13.5799.0992 18.0578a.0824.0824 0 00.0312.0561c2.0528 1.5076 4.0413 2.4228 5.9929 3.0294a.0777.0777 0 00.0842-.0276c.4616-.6304.8731-1.2952 1.226-1.9942a.076.076 0 00-.0416-.1057c-.6528-.2476-1.2743-.5495-1.8722-.8923a.077.077 0 01-.0076-.1277c.1258-.0943.2517-.1923.3718-.2914a.0743.0743 0 01.0776-.0105c3.9278 1.7933 8.18 1.7933 12.0614 0a.0739.0739 0 01.0785.0095c.1202.099.246.1981.3728.2924a.077.077 0 01-.0066.1276 12.2986 12.2986 0 01-1.873.8914.0766.0766 0 00-.0407.1067c.3604.698.7719 1.3628 1.225 1.9932a.076.076 0 00.0842.0286c1.961-.6067 3.9495-1.5219 6.0023-3.0294a.077.077 0 00.0313-.0552c.5004-5.177-.8382-9.6739-3.5485-13.6604a.061.061 0 00-.0312-.0286zM8.02 15.3312c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9555-2.4189 2.157-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.9555 2.4189-2.1569 2.4189zm7.9748 0c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9554-2.4189 2.1569-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.946 2.4189-2.1568 2.4189Z"/>
+            </svg>
+          </a>
+          <a href="https://twitter.com/ferni_ai" target="_blank" rel="noopener noreferrer" aria-label="Twitter">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+            </svg>
+          </a>
+        </div>
+      </div>
+      
+      <div class="footer-column">
+        <h4>Documentation</h4>
+        <ul class="footer-links">
+          <li><a href="/getting-started/">Getting Started</a></li>
+          <li><a href="/api/">API Reference</a></li>
+          <li><a href="/sdk/">SDK</a></li>
+          <li><a href="/examples/">Examples</a></li>
+        </ul>
+      </div>
+      
+      <div class="footer-column">
+        <h4>Resources</h4>
+        <ul class="footer-links">
+          <li><a href="/blog/">Blog</a></li>
+          <li><a href="/community/">Community</a></li>
+          <li><a href="/console/">Developer Console</a></li>
+        </ul>
+      </div>
+      
+      <div class="footer-column">
+        <h4>Company</h4>
+        <ul class="footer-links">
+          <li><a href="https://ferni.ai" target="_blank" rel="noopener">Ferni.ai</a></li>
+          <li><a href="https://marketplace.ferni.ai" target="_blank" rel="noopener">Marketplace</a></li>
+          <li><a href="https://ferni.ai/privacy" target="_blank" rel="noopener">Privacy</a></li>
+          <li><a href="https://ferni.ai/terms" target="_blank" rel="noopener">Terms</a></li>
+        </ul>
+      </div>
+    </div>
+    
+    <div class="footer-bottom">
+      <p>&copy; 2026 Ferni AI. All rights reserved.</p>
+      <div class="footer-status">
+        <a href="https://status.ferni.ai" target="_blank" rel="noopener" class="footer-status-link">
+          <span class="footer-status-dot"></span>
+          All systems operational
+        </a>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<style>
+  .footer-social {
+    display: flex;
+    gap: var(--space-3);
+    margin-top: var(--space-4);
+  }
+
+  .footer-social a {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    color: var(--text-muted);
+    background: var(--bg-tertiary);
+    border-radius: var(--radius-md);
+    transition: all var(--duration-fast) var(--ease-gentle);
+  }
+
+  .footer-social a:hover {
+    color: var(--text-primary);
+    background: var(--accent-subtle);
+  }
+
+  .footer-status {
+    display: flex;
+    align-items: center;
+  }
+
+  .footer-status-link {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    font-size: var(--text-sm);
+    color: var(--text-muted);
+    text-decoration: none;
+  }
+
+  .footer-status-link:hover {
+    color: var(--text-secondary);
+  }
+
+  .footer-status-dot {
+    width: 8px;
+    height: 8px;
+    background: var(--success);
+    border-radius: var(--radius-full);
+    animation: pulse 2s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+  }
+</style>
+
+
+  <script>
+    // Remove no-transitions class after page load
+    window.addEventListener('load', function() {
+      // Small delay to ensure CSS is applied
+      requestAnimationFrame(function() {
+        document.documentElement.classList.remove('no-transitions');
+      });
+    });
+
+    // Theme toggle function
+    function toggleTheme() {
+      const html = document.documentElement;
+      const current = html.getAttribute('data-theme');
+      const next = current === 'dark' ? 'light' : 'dark';
+      
+      html.setAttribute('data-theme', next);
+      localStorage.setItem('ferni-theme', next);
+    }
+
+    // Listen for system theme changes
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function(e) {
+      // Only auto-switch if user hasn't manually set a preference
+      if (!localStorage.getItem('ferni-theme')) {
+        document.documentElement.setAttribute('data-theme', e.matches ? 'dark' : 'light');
+      }
+    });
+  </script>
+
+  <!-- Code copy functionality -->
+  <script src="/js/code-copy.js"></script>
+  
+  <!-- Search functionality -->
+  <script src="/js/search.js"></script>
+
+  
+</body>
+</html>

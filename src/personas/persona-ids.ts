@@ -51,7 +51,22 @@ export const CANONICAL_IDS = {
   SAGE: 'nayan-patel',
   // Standalone personas (not part of Ferni team)
   JOEL_DICKSON: 'joel-dickson',
+  // Financial Legends team
+  PETER_LYNCH: 'peter-lynch',
+  JOHN_BOGLE: 'john-bogle',
 } as const;
+
+/**
+ * Financial Legends roster - restricted handoff group
+ * These three personas can hand off to each other but not to the main Ferni team.
+ */
+export const FINANCIAL_LEGENDS = [
+  'peter-lynch',
+  'john-bogle',
+  'joel-dickson',
+] as const;
+
+export type FinancialLegendsId = (typeof FINANCIAL_LEGENDS)[number];
 
 export type CanonicalPersonaId = (typeof CANONICAL_IDS)[keyof typeof CANONICAL_IDS];
 
@@ -78,6 +93,8 @@ export const CANONICAL_TO_FRONTEND: Record<CanonicalPersonaId, CanonicalPersonaI
   'jordan-taylor': 'jordan-taylor',
   'nayan-patel': 'nayan-patel',
   'joel-dickson': 'joel-dickson',
+  'peter-lynch': 'peter-lynch',
+  'john-bogle': 'john-bogle',
 };
 
 /**
@@ -93,6 +110,8 @@ export const FRONTEND_TO_CANONICAL: Record<CanonicalPersonaId, CanonicalPersonaI
   'jordan-taylor': 'jordan-taylor',
   'nayan-patel': 'nayan-patel',
   'joel-dickson': 'joel-dickson',
+  'peter-lynch': 'peter-lynch',
+  'john-bogle': 'john-bogle',
 };
 
 /**
@@ -169,13 +188,27 @@ export const ALIAS_TO_CANONICAL: Record<string, CanonicalPersonaId> = {
   'lifetime-advisor': 'nayan-patel',
   'spiritual-guide': 'nayan-patel',
 
-  // Joel Dickson (Vanguard Life Mentor - Standalone)
+  // Joel Dickson (Life Mentor - Financial Legends)
   'joel-dickson': 'joel-dickson',
   joel: 'joel-dickson',
   dickson: 'joel-dickson',
   'dr-dickson': 'joel-dickson',
   'vanguard-mentor': 'joel-dickson',
   'life-mentor': 'joel-dickson',
+
+  // Peter Lynch (Stock Picker - Financial Legends)
+  'peter-lynch': 'peter-lynch',
+  'stock-picker': 'peter-lynch',
+  magellan: 'peter-lynch',
+  'fidelity-legend': 'peter-lynch',
+
+  // John Bogle (Index Pioneer - Financial Legends)
+  'john-bogle': 'john-bogle',
+  bogle: 'john-bogle',
+  'jack-bogle': 'john-bogle',
+  jack: 'john-bogle',
+  'vanguard-founder': 'john-bogle',
+  'index-pioneer': 'john-bogle',
 };
 
 // ============================================================================
@@ -248,6 +281,8 @@ export const DISPLAY_NAMES: Record<CanonicalPersonaId, string> = {
   'jordan-taylor': 'Jordan',
   'nayan-patel': 'Nayan',
   'joel-dickson': 'Joel',
+  'peter-lynch': 'Peter Lynch',
+  'john-bogle': 'John Bogle',
 };
 
 export function getDisplayName(id: string): string {

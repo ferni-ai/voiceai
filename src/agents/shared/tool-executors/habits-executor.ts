@@ -7,14 +7,15 @@
  * @module agents/shared/tool-executors/habits-executor
  */
 
-import { createLogger } from '../../../utils/safe-logger.js';
 import { cleanForFirestore } from '../../../utils/firestore-utils.js';
+import { createLogger } from '../../../utils/safe-logger.js';
 import type { DomainExecutor, ToolExecutionContext } from './types.js';
 
 const log = createLogger({ module: 'HabitsExecutor' });
 
 /** Tools handled by this executor */
 const HANDLED_TOOLS = [
+  // Domain tool names (camelCase)
   'createhabit',
   'loghabit',
   'gethabitprogress',
@@ -24,7 +25,60 @@ const HANDLED_TOOLS = [
   'deletehabit',
   'pausehabit',
   'resumehabit',
+  // ===========================================
+  // FTIS V3 Semantic Tool IDs (from category_to_tools.json)
+  // ===========================================
+  // habit_log category
+  'habit_log',
+  'habit_complete',
+  'habit_track',
+  // habit_create category
+  'habit_create',
+  'habit_dna',
+  'habit_bundles',
+  // habit_view category
+  'habit_list',
+  'habit_streak',
+  'habit_progress',
+  // habit_coaching category
+  'habit_coaching',
+  'habit_pace',
+  'habit_guidance',
+  // routine categories
+  'routine_run',
+  'routine_start',
+  'winddown_start',
+  'routine_create',
+  'routine_list',
+  'routine_edit',
 ] as const;
+
+/** Map FTIS tool IDs to canonical names */
+const TOOL_ALIASES: Record<string, string> = {
+  // habit_log
+  habit_log: 'loghabit',
+  habit_complete: 'loghabit',
+  habit_track: 'loghabit',
+  // habit_create
+  habit_create: 'createhabit',
+  habit_dna: 'createhabit',
+  habit_bundles: 'createhabit',
+  // habit_view
+  habit_list: 'gethabits',
+  habit_streak: 'gethabitstreak',
+  habit_progress: 'gethabitprogress',
+  // habit_coaching (uses habit progress)
+  habit_coaching: 'gethabitprogress',
+  habit_pace: 'gethabitprogress',
+  habit_guidance: 'suggesthabitstack',
+  // routines (map to habits for now)
+  routine_run: 'loghabit',
+  routine_start: 'loghabit',
+  winddown_start: 'loghabit',
+  routine_create: 'createhabit',
+  routine_list: 'gethabits',
+  routine_edit: 'createhabit',
+};
 
 /**
  * Execute habits-related tools
@@ -34,10 +88,19 @@ async function execute(
   args: Record<string, unknown>,
   ctx: ToolExecutionContext
 ): Promise<unknown | null> {
-  const fnLower = fn.toLowerCase();
+  let fnLower = fn.toLowerCase();
 
   if (!HANDLED_TOOLS.includes(fnLower as (typeof HANDLED_TOOLS)[number])) {
     return null;
+  }
+
+  // Resolve FTIS aliases to canonical tool names
+  if (TOOL_ALIASES[fnLower]) {
+    log.debug(
+      { original: fnLower, resolved: TOOL_ALIASES[fnLower] },
+      '🔀 Resolving FTIS tool alias'
+    );
+    fnLower = TOOL_ALIASES[fnLower];
   }
 
   // ========================================

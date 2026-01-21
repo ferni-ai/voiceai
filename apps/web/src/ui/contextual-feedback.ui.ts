@@ -1,15 +1,17 @@
 /**
  * Contextual Feedback UI
  *
- * Avatar-attached feedback component that appears during natural conversation
- * pauses to collect micro-feedback on how the conversation is landing.
+ * Bottom-docked floating feedback component that appears during natural
+ * conversation pauses to collect micro-feedback on how the conversation
+ * is landing.
  *
  * Design principles:
- * - Appears near the avatar like a thought bubble
+ * - Floats at the bottom of the screen as a pill-shaped dock
+ * - Stays out of the way of main content (conversation, waveform)
  * - Uses SVG icons (no emojis per brand guidelines)
  * - Auto-hides after timeout if no interaction
  * - Sends reaction via data channel to backend
- * - Minimal, non-intrusive, contextual
+ * - Minimal, non-intrusive, accessible
  *
  * @module ui/contextual-feedback
  */
@@ -17,7 +19,7 @@
 import { appState } from '../state/app.state.js';
 import { connectionService } from '../services/connection.service.js';
 import { createLogger } from '../utils/logger.js';
-import { DURATION, EASING, prefersReducedMotion } from '../config/animation-constants.js';
+import { DURATION } from '../config/animation-constants.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 
 const log = createLogger('ContextualFeedbackUI');
@@ -158,55 +160,44 @@ function injectStyles(): void {
   style.id = styleId;
   style.textContent = `
     /* ========================================
-       CONTEXTUAL FEEDBACK - Avatar-Attached
+       CONTEXTUAL FEEDBACK - Bottom Floating Dock
+       
+       Positioned at the bottom of the screen as a 
+       floating pill, keeping it out of the way of
+       main content while remaining accessible.
        ======================================== */
 
     .contextual-feedback {
-      position: absolute;
-      bottom: -12px;
+      position: fixed;
+      bottom: calc(env(safe-area-inset-bottom, 0px) + 100px);
       left: 50%;
-      transform: translateX(-50%) translateY(100%);
+      transform: translateX(-50%) translateY(20px);
       z-index: var(--z-floating, 20);
       pointer-events: none;
       opacity: 0;
+      transition:
+        opacity var(--duration-normal, 200ms) var(--ease-out-expo),
+        transform var(--duration-normal, 200ms) var(--ease-spring);
     }
 
     .contextual-feedback--visible {
       opacity: 1;
       pointer-events: auto;
+      transform: translateX(-50%) translateY(0);
     }
 
     .contextual-feedback__bubble {
       display: flex;
-      flex-direction: column;
+      flex-direction: row;
       align-items: center;
       gap: var(--space-xs, 4px);
-      padding: var(--space-xs, 4px);
+      padding: var(--space-xs, 4px) var(--space-sm, 8px);
       background: var(--glass-background-elevated, rgba(255, 255, 255, 0.15));
       backdrop-filter: blur(var(--glass-blur-heavy, 20px));
       -webkit-backdrop-filter: blur(var(--glass-blur-heavy, 20px));
       border: 1px solid var(--glass-border, rgba(255, 255, 255, 0.1));
-      border-radius: var(--radius-xl, 16px);
+      border-radius: var(--radius-full, 9999px);
       box-shadow: var(--shadow-lg, 0 8px 30px rgba(0, 0, 0, 0.12));
-      transition:
-        transform var(--duration-normal, 200ms) var(--ease-spring),
-        opacity var(--duration-normal, 200ms) var(--ease-out-expo);
-    }
-
-    /* Arrow pointing up to avatar */
-    .contextual-feedback__bubble::before {
-      content: '';
-      position: absolute;
-      top: -6px;
-      left: 50%;
-      transform: translateX(-50%);
-      width: 12px;
-      height: 12px;
-      background: var(--glass-background-elevated, rgba(255, 255, 255, 0.15));
-      border: 1px solid var(--glass-border, rgba(255, 255, 255, 0.1));
-      border-bottom: none;
-      border-right: none;
-      transform: translateX(-50%) rotate(45deg);
     }
 
     .contextual-feedback__reactions {
@@ -218,11 +209,11 @@ function injectStyles(): void {
       display: flex;
       align-items: center;
       justify-content: center;
-      width: 40px;
-      height: 40px;
+      width: 36px;
+      height: 36px;
       padding: 0;
       border: none;
-      border-radius: var(--radius-lg, 12px);
+      border-radius: var(--radius-full, 9999px);
       background: transparent;
       color: var(--color-text-secondary, rgba(255, 255, 255, 0.7));
       cursor: pointer;
@@ -255,54 +246,34 @@ function injectStyles(): void {
       transform: scale(1.15);
     }
 
+    /* Divider between reactions and skip */
+    .contextual-feedback__divider {
+      width: 1px;
+      height: 20px;
+      background: var(--glass-border, rgba(255, 255, 255, 0.15));
+      margin: 0 var(--space-2xs, 2px);
+    }
+
     /* Skip/dismiss button */
     .contextual-feedback__skip {
       font-size: 10px;
-      font-weight: 500;
+      font-weight: 600;
       color: var(--color-text-muted, rgba(255, 255, 255, 0.5));
       text-transform: uppercase;
       letter-spacing: 0.05em;
-      padding: var(--space-2xs, 2px) var(--space-xs, 4px);
+      padding: var(--space-xs, 4px) var(--space-sm, 8px);
       border: none;
+      border-radius: var(--radius-full, 9999px);
       background: transparent;
       cursor: pointer;
-      transition: color var(--duration-fast, 150ms);
+      transition: 
+        color var(--duration-fast, 150ms),
+        background var(--duration-fast, 150ms);
     }
 
     .contextual-feedback__skip:hover {
       color: var(--color-text-secondary, rgba(255, 255, 255, 0.7));
-    }
-
-    /* Entrance animation */
-    .contextual-feedback--entering .contextual-feedback__bubble {
-      animation: feedback-enter var(--duration-slow, 300ms) var(--ease-spring) forwards;
-    }
-
-    @keyframes feedback-enter {
-      0% {
-        opacity: 0;
-        transform: translateY(10px) scale(0.9);
-      }
-      100% {
-        opacity: 1;
-        transform: translateY(0) scale(1);
-      }
-    }
-
-    /* Exit animation */
-    .contextual-feedback--exiting .contextual-feedback__bubble {
-      animation: feedback-exit var(--duration-normal, 200ms) var(--ease-out-expo) forwards;
-    }
-
-    @keyframes feedback-exit {
-      0% {
-        opacity: 1;
-        transform: translateY(0) scale(1);
-      }
-      100% {
-        opacity: 0;
-        transform: translateY(10px) scale(0.9);
-      }
+      background: var(--color-bg-elevated, rgba(255, 255, 255, 0.1));
     }
 
     /* Feedback sent confirmation */
@@ -318,13 +289,29 @@ function injectStyles(): void {
 
     /* Reduced motion */
     @media (prefers-reduced-motion: reduce) {
-      .contextual-feedback--entering .contextual-feedback__bubble,
-      .contextual-feedback--exiting .contextual-feedback__bubble {
-        animation: none;
+      .contextual-feedback {
+        transition: opacity var(--duration-fast, 150ms);
       }
 
       .contextual-feedback__btn {
         transition: none;
+      }
+    }
+
+    /* Mobile adjustments */
+    @media (max-width: 480px) {
+      .contextual-feedback {
+        bottom: calc(env(safe-area-inset-bottom, 0px) + 80px);
+      }
+
+      .contextual-feedback__btn {
+        width: 32px;
+        height: 32px;
+      }
+
+      .contextual-feedback__btn svg {
+        width: 16px;
+        height: 16px;
       }
     }
   `;
@@ -336,13 +323,6 @@ function injectStyles(): void {
 // ============================================================================
 
 function createContainer(): void {
-  // Find the avatar container to attach to
-  const avatarContainer = document.getElementById('coach');
-  if (!avatarContainer) {
-    log.warn('Avatar container #coach not found - will retry on connect');
-    return;
-  }
-
   container = document.createElement('div');
   container.className = 'contextual-feedback';
   container.setAttribute('role', 'dialog');
@@ -368,6 +348,10 @@ function createContainer(): void {
     reactionsDiv.appendChild(btn);
   });
 
+  // Divider between reactions and skip
+  const divider = document.createElement('div');
+  divider.className = 'contextual-feedback__divider';
+
   // Skip button
   const skipBtn = document.createElement('button');
   skipBtn.className = 'contextual-feedback__skip';
@@ -376,12 +360,12 @@ function createContainer(): void {
   skipBtn.addEventListener('click', () => dismissPrompt());
 
   bubble.appendChild(reactionsDiv);
+  bubble.appendChild(divider);
   bubble.appendChild(skipBtn);
   container.appendChild(bubble);
 
-  // Append to avatar container
-  avatarContainer.style.position = 'relative';
-  avatarContainer.appendChild(container);
+  // Append to body for fixed positioning
+  document.body.appendChild(container);
 }
 
 // ============================================================================
@@ -434,26 +418,16 @@ export function show(): void {
   }
   if (!container) return;
 
-  container.classList.remove('contextual-feedback--exiting');
-  container.classList.add('contextual-feedback--visible', 'contextual-feedback--entering');
-
-  // Remove entering class after animation
-  trackedTimeout(() => {
-    container?.classList.remove('contextual-feedback--entering');
-  }, DURATION.SLOW);
+  container.classList.add('contextual-feedback--visible');
 }
 
 export function hide(): void {
   if (!container) return;
 
-  container.classList.add('contextual-feedback--exiting');
+  container.classList.remove('contextual-feedback--visible');
 
+  // Reset button states after animation completes
   trackedTimeout(() => {
-    container?.classList.remove(
-      'contextual-feedback--visible',
-      'contextual-feedback--exiting'
-    );
-    // Reset button states
     container?.querySelectorAll('.contextual-feedback__btn--selected').forEach((btn) => {
       btn.classList.remove('contextual-feedback__btn--selected');
     });

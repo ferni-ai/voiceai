@@ -737,6 +737,67 @@ export function getCachedHealthStatus(): HealthStatus {
 }
 
 /**
+ * Fast service health check using cached results (P2 UTO Fix - January 2026)
+ *
+ * Returns cached health status without making a network call.
+ * Used for pre-checking service availability before tool execution.
+ *
+ * @param serviceName - The service name (e.g., 'firestore', 'gemini', 'spotify')
+ * @returns true if service was healthy in last check, false if unhealthy or never checked
+ */
+export function isServiceHealthyFast(serviceName: string): boolean {
+  const monitor = monitors.find((m) => m.name === serviceName);
+  if (!monitor) {
+    // Unknown service - assume healthy to avoid blocking
+    return true;
+  }
+
+  // If never checked, assume healthy to avoid blocking on first call
+  if (!monitor.lastResult) {
+    return true;
+  }
+
+  // Check if cached result is stale (older than 2 minutes)
+  const staleThresholdMs = 120_000;
+  if (monitor.lastCheck && Date.now() - monitor.lastCheck > staleThresholdMs) {
+    // Stale cache - assume healthy but trigger background refresh
+    checkServiceHealth(serviceName).catch(() => {
+      // Non-critical - ignore errors from background refresh
+    });
+    return true;
+  }
+
+  return monitor.lastResult.healthy;
+}
+
+/**
+ * Get list of services critical for a specific function
+ * Used by tool executors to check required services before execution
+ *
+ * @param criticalFor - The function to check (e.g., 'tools', 'memory', 'audio')
+ * @returns Array of service names critical for that function
+ */
+export function getServicesForFunction(
+  criticalFor: 'dispatch' | 'session' | 'audio' | 'memory' | 'tools'
+): string[] {
+  return monitors.filter((m) => m.criticalFor.includes(criticalFor)).map((m) => m.name);
+}
+
+/**
+ * Check if all services critical for a function are healthy
+ * Uses cached results for fast pre-checks
+ *
+ * @param criticalFor - The function to check
+ * @returns true if all critical services are healthy
+ */
+export function areServicesHealthyFor(
+  criticalFor: 'dispatch' | 'session' | 'audio' | 'memory' | 'tools'
+): boolean {
+  const criticalServices = getServicesForFunction(criticalFor);
+  return criticalServices.every((service) => isServiceHealthyFast(service));
+}
+
+/**
  * Get list of all monitors
  */
 export function getMonitors(): readonly HealthMonitor[] {

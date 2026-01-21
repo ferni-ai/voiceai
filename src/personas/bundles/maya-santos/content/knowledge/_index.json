@@ -35,6 +35,22 @@
       "topic": "The Glidepath Method",
       "file": "glidepath-method.md",
       "domains": ["habits", "progression", "systems", "all-domains"]
+    },
+    {
+      "id": "advanced-behavior-science",
+      "topic": "Advanced Behavior Science",
+      "file": "advanced-behavior-science.md",
+      "domains": [
+        "habits",
+        "behavior",
+        "fogg-model",
+        "mcii",
+        "chronotype",
+        "commitment-devices",
+        "all-domains"
+      ],
+      "priority": "high",
+      "description": "Fogg Behavior Model, MCII/WOOP protocols, chronotype science, habit cascades, behavioral economics"
     }
   ]
 }

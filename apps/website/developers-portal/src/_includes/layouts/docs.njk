@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ title }} | {{ site.title }}</title>
+  <meta name="description" content="{{ description or site.description }}">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%233D5A45' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='4 17 10 11 4 5'/><line x1='12' x2='20' y1='19' y2='19'/></svg>">
+
+  <!-- Open Graph -->
+  <meta property="og:title" content="{{ title }} | {{ site.title }}">
+  <meta property="og:description" content="{{ description or site.description }}">
+  <meta property="og:type" content="article">
+  <meta property="og:url" content="{{ site.url }}{{ page.url }}">
+
+  <!-- Theme: Prevent flash -->
+  <script>
+    (function() {
+      const saved = localStorage.getItem('ferni-theme');
+      const systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      const theme = saved || (systemDark ? 'dark' : 'light');
+      document.documentElement.setAttribute('data-theme', theme);
+      document.documentElement.classList.add('no-transitions');
+    })();
+  </script>
+
+  <!-- Styles -->
+  <link rel="stylesheet" href="/css/tokens.css">
+  <link rel="stylesheet" href="/css/components.css">
+  <link rel="stylesheet" href="/css/docs.css">
+  {% if extraCss %}
+  <link rel="stylesheet" href="/css/{{ extraCss }}.css">
+  {% endif %}
+</head>
+<body>
+  {% include "partials/nav.njk" %}
+
+  <div class="docs-layout">
+    <!-- Sidebar -->
+    {% include "partials/sidebar.njk" %}
+
+    <!-- Main Content -->
+    <article class="docs-content">
+      {% if breadcrumb %}
+      <nav class="docs-breadcrumb" aria-label="Breadcrumb">
+        <ol>
+          {% for item in breadcrumb %}
+          <li>
+            {% if item.url %}
+            <a href="{{ item.url }}">{{ item.label }}</a>
+            {% else %}
+            <span>{{ item.label }}</span>
+            {% endif %}
+          </li>
+          {% endfor %}
+        </ol>
+      </nav>
+      {% endif %}
+
+      <header class="docs-header">
+        {% if category %}
+        <span class="docs-category">{{ category }}</span>
+        {% endif %}
+        <h1>{{ title }}</h1>
+        {% if description %}
+        <p class="docs-subtitle">{{ description }}</p>
+        {% endif %}
+      </header>
+
+      <div class="docs-body prose">
+        {{ content | safe }}
+      </div>
+
+      <!-- Page Navigation -->
+      {% if prevPage or nextPage %}
+      <nav class="docs-pagination">
+        {% if prevPage %}
+        <a href="{{ prevPage.url }}" class="docs-pagination-prev">
+          <span class="docs-pagination-label">Previous</span>
+          <span class="docs-pagination-title">{{ prevPage.title }}</span>
+        </a>
+        {% else %}
+        <div></div>
+        {% endif %}
+        {% if nextPage %}
+        <a href="{{ nextPage.url }}" class="docs-pagination-next">
+          <span class="docs-pagination-label">Next</span>
+          <span class="docs-pagination-title">{{ nextPage.title }}</span>
+        </a>
+        {% endif %}
+      </nav>
+      {% endif %}
+    </article>
+
+    <!-- Table of Contents (right sidebar) -->
+    {% if toc %}
+    <aside class="docs-toc">
+      <div class="docs-toc-inner">
+        <h4>On this page</h4>
+        <nav class="docs-toc-nav">
+          {{ toc | safe }}
+        </nav>
+      </div>
+    </aside>
+    {% endif %}
+  </div>
+
+  {% include "partials/footer.njk" %}
+
+  <script>
+    // Remove no-transitions class
+    window.addEventListener('load', function() {
+      requestAnimationFrame(function() {
+        document.documentElement.classList.remove('no-transitions');
+      });
+    });
+
+    // Theme toggle
+    function toggleTheme() {
+      const html = document.documentElement;
+      const current = html.getAttribute('data-theme');
+      const next = current === 'dark' ? 'light' : 'dark';
+      html.setAttribute('data-theme', next);
+      localStorage.setItem('ferni-theme', next);
+    }
+
+    // Listen for system theme changes
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function(e) {
+      if (!localStorage.getItem('ferni-theme')) {
+        document.documentElement.setAttribute('data-theme', e.matches ? 'dark' : 'light');
+      }
+    });
+
+    // Sidebar active state and scroll tracking
+    document.addEventListener('DOMContentLoaded', function() {
+      const tocLinks = document.querySelectorAll('.docs-toc-nav a');
+      const sections = [];
+      
+      tocLinks.forEach(link => {
+        const id = link.getAttribute('href').slice(1);
+        const section = document.getElementById(id);
+        if (section) {
+          sections.push({ id, el: section, link });
+        }
+      });
+
+      if (sections.length) {
+        const observer = new IntersectionObserver((entries) => {
+          entries.forEach(entry => {
+            if (entry.isIntersecting) {
+              tocLinks.forEach(l => l.classList.remove('active'));
+              const activeLink = document.querySelector(`.docs-toc-nav a[href="#${entry.target.id}"]`);
+              if (activeLink) activeLink.classList.add('active');
+            }
+          });
+        }, { rootMargin: '-80px 0px -80% 0px' });
+
+        sections.forEach(s => observer.observe(s.el));
+      }
+    });
+  </script>
+
+  {% if extraJs %}
+  <script src="/js/{{ extraJs }}.js"></script>
+  {% endif %}
+</body>
+</html>

@@ -4,7 +4,7 @@
  * Persona colors generated from design-system/tokens/colors.json
  * Regenerate with: npm run build:persona-colors
  *
- * Generated: 2026-01-12T19:50:54.001Z
+ * Generated: 2026-01-21T10:49:16.893Z
  */
 
 import type { PersonaColorConfig } from '../types/colors.js';
@@ -82,6 +82,16 @@ export const GENERATED_PERSONA_COLORS: Record<string, PersonaColorConfig> = {
     tint: 'rgba(184, 149, 106, 0.06)',
     gradient: 'linear-gradient(135deg, #9a7a52 0%, #b8956a 100%)',
     description: 'Golden Amber - wisdom, warmth, guidance',
+  },
+
+  'joel': {
+    primary: '#9A0718',
+    secondary: '#7A0514',
+    text: '#ffffff',
+    glow: 'rgba(154, 7, 24, 0.28)',
+    tint: 'rgba(154, 7, 24, 0.06)',
+    gradient: 'linear-gradient(135deg, #7A0514 0%, #9A0718 100%)',
+    description: 'Vanguard burgundy red - distinguished, trustworthy, Stanford PhD mentor',
   },
 
   'eli': {
@@ -166,6 +176,7 @@ export const GENERATED_PERSONA_IDS = [
   "maya",
   "jordan",
   "nayan",
+  "joel",
   "eli",
   "marcus",
   "kenji",

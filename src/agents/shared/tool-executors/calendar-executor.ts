@@ -7,19 +7,20 @@
  * @module agents/shared/tool-executors/calendar-executor
  */
 
-import { createLogger } from '../../../utils/safe-logger.js';
-import type { DomainExecutor, ToolExecutionContext } from './types.js';
 import {
+  createEvent,
   getEventsForDay,
   getEventsForWeek,
-  createEvent,
   isTimeSlotAvailable,
 } from '../../../services/calendar/calendar-service.js';
+import { createLogger } from '../../../utils/safe-logger.js';
+import type { DomainExecutor, ToolExecutionContext } from './types.js';
 
 const log = createLogger({ module: 'CalendarExecutor' });
 
 /** Tools handled by this executor */
 const HANDLED_TOOLS = [
+  // Domain tool names (camelCase)
   'getcalendartoday',
   'getschedule',
   'createcalendarevent',
@@ -30,12 +31,35 @@ const HANDLED_TOOLS = [
   // Aliases from function-calling-base.md
   'getcalendar',
   'getevents',
+  // ===========================================
+  // FTIS V3 Semantic Tool IDs (from category_to_tools.json)
+  // ===========================================
+  // calendar_create category
+  'calendar_create_event',
+  'scheduling_find_time',
+  // calendar_view category
+  'calendar_list_events',
+  'calendar_check_availability',
+  'scheduling_conflicts',
+  // calendar_modify category
+  'calendar_update_event',
+  'calendar_delete_event',
+  'calendar_reschedule',
 ] as const;
 
 /** Map aliases to canonical tool names */
 const TOOL_ALIASES: Record<string, string> = {
   getcalendar: 'getcalendartoday',
   getevents: 'getcalendartoday',
+  // FTIS V3 semantic IDs → canonical names
+  calendar_create_event: 'createcalendarevent',
+  scheduling_find_time: 'checkavailability',
+  calendar_list_events: 'getcalendartoday',
+  calendar_check_availability: 'checkavailability',
+  scheduling_conflicts: 'checkavailability',
+  calendar_update_event: 'createcalendarevent', // Re-use create logic with update
+  calendar_delete_event: 'deletecalendarevent',
+  calendar_reschedule: 'createcalendarevent',
 };
 
 /**

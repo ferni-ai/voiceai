@@ -17,25 +17,26 @@ import { createLogger } from '../../../utils/safe-logger.js';
 import type { DomainExecutor, ToolExecutionContext } from './types.js';
 
 // Domain executors
-import { musicExecutor } from './music-executor.js';
-import { informationExecutor } from './information-executor.js';
-import { productivityExecutor } from './productivity-executor.js';
-import { memoryExecutor } from './memory-executor.js';
 import { calendarExecutor } from './calendar-executor.js';
-import { habitsExecutor } from './habits-executor.js';
-import { homeExecutor } from './home-executor.js';
-import { schedulingExecutor } from './scheduling-executor.js';
 import { conciergeExecutor } from './concierge-executor.js';
-import { telephonyExecutor } from './telephony-executor.js';
+import { habitsExecutor } from './habits-executor.js';
+import { handoffExecutor } from './handoff-executor.js';
+import { homeExecutor } from './home-executor.js';
+import { informationExecutor } from './information-executor.js';
+import { memoryExecutor } from './memory-executor.js';
+import { musicExecutor } from './music-executor.js';
+import { productivityExecutor } from './productivity-executor.js';
 import { reflectionGamesExecutor } from './reflection-games-executor.js';
 import { researchExecutor } from './research-executor.js';
-import { handoffExecutor } from './handoff-executor.js';
-import {
-  dynamicDomainExecutor,
-  getDynamicToolIds,
-  isDynamicTool,
-  resetDynamicExecutor,
-} from './dynamic-domain-executor.js';
+import { schedulingExecutor } from './scheduling-executor.js';
+import { telephonyExecutor } from './telephony-executor.js';
+// FTIS V3 domain executors (January 2026)
+import ceoExecutor from './ceo-executor.js';
+import { dynamicDomainExecutor } from './dynamic-domain-executor.js';
+import entertainmentExecutor from './entertainment-executor.js';
+import financeExecutor from './finance-executor.js';
+import healthExecutor from './health-executor.js';
+import travelExecutor from './travel-executor.js';
 
 const log = createLogger({ module: 'ToolExecutors' });
 
@@ -61,10 +62,12 @@ const DOMAIN_EXECUTORS: DomainExecutor[] = [
   reflectionGamesExecutor,
   researchExecutor,
   handoffExecutor,
-  // TODO: Add more executors:
-  // - engagementExecutor
-  // - shoppingExecutor
-  // - travelExecutor
+  // FTIS V3 domain executors (January 2026)
+  healthExecutor,
+  financeExecutor,
+  entertainmentExecutor,
+  ceoExecutor,
+  travelExecutor,
 ];
 
 /**
@@ -168,22 +171,28 @@ export function getExecutorStats(): {
 export type { DomainExecutor, ToolExecutionContext, ToolHandler } from './types.js';
 
 // Re-export individual executors for testing
-export { musicExecutor } from './music-executor.js';
-export { informationExecutor } from './information-executor.js';
-export { productivityExecutor } from './productivity-executor.js';
-export { memoryExecutor } from './memory-executor.js';
 export { calendarExecutor } from './calendar-executor.js';
-export { habitsExecutor } from './habits-executor.js';
-export { homeExecutor } from './home-executor.js';
-export { schedulingExecutor } from './scheduling-executor.js';
 export { conciergeExecutor } from './concierge-executor.js';
-export { telephonyExecutor } from './telephony-executor.js';
+export { habitsExecutor } from './habits-executor.js';
+export { handoffExecutor } from './handoff-executor.js';
+export { homeExecutor } from './home-executor.js';
+export { informationExecutor } from './information-executor.js';
+export { memoryExecutor } from './memory-executor.js';
+export { musicExecutor } from './music-executor.js';
+export { productivityExecutor } from './productivity-executor.js';
 export { reflectionGamesExecutor } from './reflection-games-executor.js';
 export { researchExecutor } from './research-executor.js';
-export { handoffExecutor } from './handoff-executor.js';
+export { schedulingExecutor } from './scheduling-executor.js';
+export { telephonyExecutor } from './telephony-executor.js';
+// FTIS V3 domain executors (January 2026)
+export { default as ceoExecutor } from './ceo-executor.js';
 export {
   dynamicDomainExecutor,
   getDynamicToolIds,
   isDynamicTool,
   resetDynamicExecutor,
 } from './dynamic-domain-executor.js';
+export { default as entertainmentExecutor } from './entertainment-executor.js';
+export { default as financeExecutor } from './finance-executor.js';
+export { default as healthExecutor } from './health-executor.js';
+export { default as travelExecutor } from './travel-executor.js';

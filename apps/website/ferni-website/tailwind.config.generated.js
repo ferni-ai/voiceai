@@ -3,7 +3,7 @@
  * 
  * 🎨 AUTO-GENERATED FROM design-system/tokens/
  * Do not edit directly - run: npm run build:tailwind-config
- * Generated: 2026-01-18T09:31:41.932Z
+ * Generated: 2026-01-21T15:37:42.839Z
  * 
  * IMPORTANT: This file uses CSS variable references (not hardcoded hex values)
  * so colors automatically update when design-tokens.css is regenerated.
@@ -85,6 +85,11 @@ module.exports = {
       "DEFAULT": "var(--color-nayan)",
       "dark": "var(--color-nayan-secondary)",
       "glow": "var(--color-nayan-glow)"
+    },
+    "joel": {
+      "DEFAULT": "var(--color-joel)",
+      "dark": "var(--color-joel-secondary)",
+      "glow": "var(--color-joel-glow)"
     },
     "eli": {
       "DEFAULT": "var(--color-eli)",

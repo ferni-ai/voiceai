@@ -4,7 +4,7 @@
  *
  * 🎨 AUTO-GENERATED FROM design-system/tokens/
  * Do not edit directly - run: pnpm tokens:sync
- * Generated: 2026-01-18T09:31:44.247Z
+ * Generated: 2026-01-21T15:37:43.797Z
  */
 
 :root {
@@ -67,6 +67,8 @@
   --persona-jordan-glow: rgba(196, 133, 106, 0.28);
   --persona-nayan: #b8956a;
   --persona-nayan-glow: rgba(184, 149, 106, 0.28);
+  --persona-joel: #9A0718;
+  --persona-joel-glow: rgba(154, 7, 24, 0.28);
   --persona-eli: #6B5B95;
   --persona-eli-glow: rgba(107, 91, 149, 0.28);
   --persona-marcus: #2D5A4A;

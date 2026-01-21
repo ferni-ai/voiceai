@@ -267,7 +267,6 @@ export interface GlobalServices {
   vectorStore: VectorStore | FirestoreVectorStore;
   productivityStore: import('./stores/productivity-store.js').default;
   backgroundTasks: import('./scheduling/background-tasks.js').default;
-  collectiveLearning: import('./memory/collective-learning-store.js').CollectiveLearningStore;
   initialized: boolean;
 }
 

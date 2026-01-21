@@ -70,7 +70,7 @@
 ```
 Your AI life coach. Six specialists. One conversation. Just talk.
 
-Call: (484) 481-3081 | Try free at ferni.ai
+Call: (888) 598-3952 | Try free at ferni.ai
 ```
 
 **Option 2 (More playful):**
@@ -86,7 +86,7 @@ Try free  ferni.ai
 ```
 Talk to your AI team anytime. No judgment. Just guidance.
 
-ferni.ai | Call: (484) 481-3081
+ferni.ai | Call: (888) 598-3952
 ```
 
 ---
@@ -125,7 +125,7 @@ We're reimagining what personal guidance looks like. Our team of six AI speciali
 
  Try Ferni free:
 • Web: app.ferni.ai
-• Phone: 1 (484) 481-3081
+• Phone: 1 (888) 598-3952
 
 Made in Park City, Utah.
 ```
@@ -140,7 +140,7 @@ Made in Park City, Utah.
 Your AI life coach team
 Six specialists. One conversation.
 Just talk  ferni.ai
- (484) 481-3081
+ (888) 598-3952
 ```
 
 **Option 2 (Minimalist):**
@@ -200,7 +200,7 @@ Our team includes:
 
 Try Ferni free:
  Web: app.ferni.ai
- Phone: (484) 481-3081
+ Phone: (888) 598-3952
 
 Follow us:
 • Twitter/X: @ferniAI
@@ -377,7 +377,7 @@ You can delete everything anytime.
 6/ You can try it right now:
 
  Web: app.ferni.ai
- Phone: (484) 481-3081
+ Phone: (888) 598-3952
 
 It's free. No signup required for phone.
 ```
@@ -422,7 +422,7 @@ We respond in under 500ms. We're available 24/7. And we remember everything.
 
 Try Ferni free:
  app.ferni.ai
- (484) 481-3081
+ (888) 598-3952
 
 We believe everyone deserves access to quality guidance—not just those who can afford a coach.
 
@@ -460,7 +460,7 @@ What would you talk to an AI life coach about?
 **Slide 8:**
 "Try free right now:
 app.ferni.ai
-(484) 481-3081"
+(888) 598-3952"
 
 **Caption:**
 
@@ -474,7 +474,7 @@ Six specialists working together to help you navigate life, build habits, make d
 Just talk. We'll listen.
 
 Try free: link in bio
- Or call: (484) 481-3081
+ Or call: (888) 598-3952
 
 #ferni #aicoach #lifecoach #personalcoach #ai #voiceai #habits #personalgrowth #mindset
 ```
@@ -532,7 +532,7 @@ After setup, your social links will be:
 | Instagram   | https://instagram.com/ferni.ai     |
 | TikTok      | https://tiktok.com/@ferni.ai       |
 | YouTube     | https://youtube.com/@ferniAI       |
-| Phone       | tel:+14844813081                   |
+| Phone       | tel:+18885983952                   |
 | Email       | hello@ferni.ai                     |
 
 ---

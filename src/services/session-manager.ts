@@ -54,6 +54,21 @@ import { loadInsights as loadCrossPersonaInsights } from './cross-persona-insigh
 // Unified persistence - session lifecycle hooks
 import { onSessionEndUnified, onSessionStartUnified } from './trust-systems/unified-persistence.js';
 
+// Memory pipeline diagnostics
+import {
+  diagnosticSessionStart,
+  diagnosticSessionEnd,
+  diagnosticTurnAdded,
+  diagnosticUserTurnAnalyzed,
+  diagnosticLearningFinalized,
+  diagnosticHumanSignalsExtracted,
+  diagnosticApplyLearningToProfile,
+  diagnosticProfileSaveAttempt,
+  diagnosticProfileSaveSuccess,
+  diagnosticProfileSaveError,
+  diagnosticError,
+} from '../diagnostics/memory-pipeline-diagnostics.js';
+
 // Memory imports
 import {
   // Advanced memory retrieval for session priming
@@ -145,7 +160,6 @@ import {
 
 // Persistence metrics for observability
 import { persistenceMetrics } from './analytics/persistence-metrics.js';
-import { cleanForFirestore } from '../utils/firestore-utils.js';
 
 // ============================================================================
 // SESSION STATE
@@ -349,7 +363,7 @@ export async function createSessionServices(
   }
 
   // Create session-specific components
-  const historyTracker = getHistoryTracker(sessionId, userId);
+  const historyTracker = getHistoryTracker(sessionId, userId || 'anonymous');
   const contextManager = getContextManager(sessionId, userProfile || undefined);
 
   // Reset intelligence and tasks for new session
@@ -839,6 +853,13 @@ export async function createSessionServices(
         userProfile
       );
 
+      // Memory pipeline diagnostics - log what was analyzed
+      diagnosticUserTurnAnalyzed(sessionId, {
+        emotion: analysis.emotion,
+        intent: analysis.intent,
+        topics: analysis.topics.detected,
+      });
+
       // Feed pattern analyzer
       if (analysis.topics.detected.length > 0) {
         for (const topic of analysis.topics.detected) {
@@ -876,7 +897,7 @@ export async function createSessionServices(
       };
 
       if (role === 'user') {
-        historyTracker.addUserTurn(content, { durationMs });
+        historyTracker.addUserTurn(content, new Date());
         if (durationMs) {
           getSessionWPMTracker(sessionId).addSample(content, durationMs);
 
@@ -955,6 +976,9 @@ export async function createSessionServices(
             );
           });
       }
+
+      // Memory pipeline diagnostics
+      diagnosticTurnAdded(sessionId, role, content.length);
     },
 
     // ========================================================================
@@ -1453,7 +1477,7 @@ export async function createSessionServices(
 
       try {
         const history = historyTracker.getSessionHistory();
-        const recentTopics = history.metadata.topicsDiscussed || [];
+        const recentTopics = history.metadata?.topicsDiscussed || [];
 
         services.superhumanContext = buildSuperhumanContext(services.userProfile, {
           detectedEmotion: options?.detectedEmotion,
@@ -1532,10 +1556,10 @@ export async function createSessionServices(
             mood: state.currentMood,
             energyLevel:
               state.distressLevel < 0.3 ? 'high' : state.distressLevel < 0.6 ? 'medium' : 'low',
-            topicsDiscussed: history.metadata.topicsDiscussed,
-            emotionalMoments: history.metadata.emotionalJourney.map((e) => ({
+            topicsDiscussed: history.metadata?.topicsDiscussed || [],
+            emotionalMoments: (history.metadata?.emotionalJourney || []).map((e) => ({
               timestamp: new Date(),
-              emotion: e,
+              emotion: typeof e === 'string' ? e : e.emotion,
               intensity: 0.5,
             })),
             sessionDurationMinutes: Math.floor(historyTracker.getDurationSeconds() / 60),
@@ -1555,9 +1579,9 @@ export async function createSessionServices(
           // SAFEGUARD: Ensure we ALWAYS have a lastConversationSummary
           // This is the ONLY reliable marker that Ferni remembers the conversation
           if (!updated.lastConversationSummary) {
-            const turnCount = history.turns.length;
+            const turnCount = history.turns?.length || history.entries?.length || 0;
             const durationMin = Math.floor(historyTracker.getDurationSeconds() / 60);
-            const topics = history.metadata.topicsDiscussed.slice(0, 3);
+            const topics = (history.metadata?.topicsDiscussed || []).slice(0, 3);
 
             if (topics.length > 0) {
               updated.lastConversationSummary = `Chatted about ${topics.join(', ')}`;
@@ -1733,8 +1757,27 @@ export async function createSessionServices(
             'Session learning stats'
           );
 
+          // Memory pipeline diagnostics - log what was captured
+          diagnosticLearningFinalized(sessionId, {
+            keyMomentsCount: learningData.keyMoments.length,
+            emotionalPatternsCount: learningData.emotionalPatterns.length,
+            insightsCount: learningData.insights.length,
+            smallDetailsCount: learningData.smallDetails.length,
+          });
+
+          // Track before state for diagnostics
+          const beforeKeyMoments = userProfile.keyMoments?.length || 0;
+          const beforeEmotionalPatterns = userProfile.emotionalPatterns?.length || 0;
+
           // Apply learning to profile
           let updatedProfile = UserLearningEngine.applyLearningToProfile(userProfile, learningData);
+
+          // Memory pipeline diagnostics - log what was applied
+          diagnosticApplyLearningToProfile(
+            sessionId,
+            { keyMoments: beforeKeyMoments, emotionalPatterns: beforeEmotionalPatterns },
+            { keyMoments: updatedProfile.keyMoments?.length || 0, emotionalPatterns: updatedProfile.emotionalPatterns?.length || 0 }
+          );
 
           // Apply humanizing state updates
           if (humanizingStateUpdates.length > 0) {
@@ -1953,6 +1996,16 @@ export async function createSessionServices(
               // Only merge if we found meaningful signals
               const totalSignals = Object.values(signals).reduce((sum, arr) => sum + arr.length, 0);
 
+              // Memory pipeline diagnostics - log human signal extraction
+              diagnosticHumanSignalsExtracted(sessionId, {
+                dates: signals.importantDates.length,
+                values: signals.values.length,
+                dreams: signals.dreams.length,
+                fears: signals.fears.length,
+                growth: signals.growthMarkers.length,
+                comfort: signals.comfortPatterns.length,
+              });
+
               if (totalSignals > 0) {
                 updatedProfile.humanMemory = mergeSignalsIntoMemory(
                   updatedProfile.humanMemory,
@@ -1974,6 +2027,7 @@ export async function createSessionServices(
               }
             }
           } catch (humanMemoryError) {
+            diagnosticError(sessionId, 'HumanSignalExtraction', String(humanMemoryError));
             getLogger().warn(
               { error: String(humanMemoryError), userId: validatedUserId },
               'Failed to extract human memory signals (non-fatal)'
@@ -1987,7 +2041,17 @@ export async function createSessionServices(
           // ================================================================
 
           services.userProfile = updatedProfile;
-          await services.saveProfile();
+          
+          // Memory pipeline diagnostics - profile save attempt
+          diagnosticProfileSaveAttempt(sessionId, validatedUserId || 'unknown');
+          
+          try {
+            await services.saveProfile();
+            diagnosticProfileSaveSuccess(sessionId, validatedUserId || 'unknown');
+          } catch (saveError) {
+            diagnosticProfileSaveError(sessionId, String(saveError));
+            throw saveError;
+          }
 
           getLogger().info(
             {
@@ -2031,13 +2095,13 @@ export async function createSessionServices(
                     {
                       userId: validatedUserId,
                       indexed: result.indexed,
-                      categories: result.categories,
+                      categories: Object.keys(result.categories || {}),
                     },
                     '🧠 User memories indexed for semantic search'
                   );
                 }
               })
-              .catch((err) => {
+              .catch((err: unknown) => {
                 getLogger().debug(
                   { error: String(err) },
                   'User memory indexing failed (non-blocking)'
@@ -2216,12 +2280,18 @@ export async function createSessionServices(
       const sessionEndDurationMs = Date.now() - sessionEndStartTime;
       persistenceMetrics.recordSessionEnd(sessionId, sessionEndDurationMs);
 
+      // Memory pipeline diagnostics - session summary
+      diagnosticSessionEnd(sessionId);
+
       getLogger().info(`Session ${sessionId} ended and cleaned up`);
     },
   };
 
   // Store in active sessions
   activeSessions.set(sessionId, services);
+
+  // Memory pipeline diagnostics - track session start
+  diagnosticSessionStart(sessionId, validatedUserId || 'unknown');
 
   return services;
 }

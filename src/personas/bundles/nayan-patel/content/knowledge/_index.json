@@ -107,6 +107,20 @@
       "description": "Raising conscious, healthy children with wisdom",
       "topics": ["parenting", "children", "family", "education", "discipline", "teenagers"],
       "priority": 3
+    },
+    {
+      "id": "contemplative-science",
+      "file": "contemplative-science.md",
+      "description": "Evidence-based contemplative practices: FFMQ mindfulness, Kristin Neff self-compassion, Ardelt wisdom scale, ACT hexaflex",
+      "topics": [
+        "mindfulness",
+        "self-compassion",
+        "wisdom",
+        "ACT",
+        "defusion",
+        "psychological-flexibility"
+      ],
+      "priority": 1
     }
   ],
   "cross_references": {

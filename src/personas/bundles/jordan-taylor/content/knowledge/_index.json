@@ -54,6 +54,21 @@
       "topic": "Graduation & Achievement Milestones",
       "file": "graduation-milestones.md",
       "domains": ["graduation", "achievement", "education", "celebration", "career-achievement"]
+    },
+    {
+      "id": "temporal-psychology",
+      "topic": "Temporal Psychology for Life Planning",
+      "file": "temporal-psychology.md",
+      "domains": [
+        "fresh-start",
+        "peak-end",
+        "regret-minimization",
+        "optimal-stopping",
+        "life-chapters",
+        "decision-timing"
+      ],
+      "priority": "high",
+      "description": "Fresh Start Effect, Peak-End Rule, Monte Carlo simulation, Regret Minimization Framework, optimal stopping theory"
     }
   ]
 }

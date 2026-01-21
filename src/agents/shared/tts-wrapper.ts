@@ -22,6 +22,7 @@ import {
 } from 'node:stream/web';
 
 import { createLogger, truncateForLog } from '../../utils/safe-logger.js';
+import { markTurnCheckpoint } from '../../services/performance/turn-profiler.js';
 import { createSanitizerWithMusicFallback } from './sanitizer/index.js';
 import { finops } from '../../services/observability/finops.js';
 import { GEMINI_MODEL } from '../../config/gemini-config.js';
@@ -323,6 +324,8 @@ export interface TtsSessionContext {
   interruptType?: 'hard' | 'soft';
   /** Current emotional context (for cache-aware TTS) */
   emotion?: string;
+  /** Current turn number for profiling checkpoints */
+  turnNumber?: number;
   /** User's IP-detected location for weather, local content */
   userLocation?: {
     city?: string;
@@ -446,6 +449,15 @@ export async function wrappedTtsNode(
   const interruptType = sessionContext?.interruptType;
   const emotion = sessionContext?.emotion;
   const userLocation = sessionContext?.userLocation;
+  const turnNumber = sessionContext?.turnNumber;
+
+  // =========================================================================
+  // P1 UTO Fix (January 2026): Mark TTS start checkpoint for latency tracking
+  // This enables accurate time-to-first-audio measurement
+  // =========================================================================
+  if (sessionId !== 'unknown' && turnNumber !== undefined) {
+    markTurnCheckpoint(sessionId, turnNumber, 'ttsStart');
+  }
 
   // 1. Filter JSON function calls (Gemini workaround)
   // SKIP when:
@@ -634,10 +646,19 @@ export async function wrappedTtsNode(
             { sessionId, personaId, chunkLength: chunk.length, latencyMs, trace: 'STREAM_LIFECYCLE' },
             `🔄 [0.5/4] First LLM chunk arrived after ${latencyMs}ms: "${chunk.slice(0, 50)}..."`
           );
+          // P1 UTO Fix (January 2026): Mark LLM first token checkpoint for latency tracking
+          if (turnNumber !== undefined) {
+            markTurnCheckpoint(sessionId, turnNumber, 'llmFirstToken');
+          }
         }
         controller.enqueue(chunk);
       },
       flush() {
+        // P1 UTO Fix (January 2026): Mark LLM complete checkpoint for latency tracking
+        if (turnNumber !== undefined) {
+          markTurnCheckpoint(sessionId, turnNumber, 'llmComplete');
+        }
+
         // Log the complete raw LLM output for this turn
         if (rawLLMBuffer.length > 0) {
           const containsJson = rawLLMBuffer.includes('{"fn"') || rawLLMBuffer.includes('"fn":');
@@ -1172,6 +1193,34 @@ export async function wrappedTtsNode(
     audioStream = await (voice.Agent.default as any).ttsNode(agent, ssmlStrippedStream, modelSettings);
   }
 
+  // =========================================================================
+  // P1 UTO Fix (January 2026): Wrap audio stream with checkpoint markers
+  // This tracks ttsFirstByte and ttsComplete for latency measurement
+  // =========================================================================
+  function wrapWithTTSCheckpoints(
+    stream: NodeReadableStream<AudioFrame> | null
+  ): NodeReadableStream<AudioFrame> | null {
+    if (!stream || sessionId === 'unknown' || turnNumber === undefined) {
+      return stream;
+    }
+
+    let isFirstFrame = true;
+    const checkpointTransform = new NodeTransformStream<AudioFrame, AudioFrame>({
+      transform(frame, controller) {
+        if (isFirstFrame) {
+          isFirstFrame = false;
+          markTurnCheckpoint(sessionId, turnNumber!, 'ttsFirstByte');
+        }
+        controller.enqueue(frame);
+      },
+      flush() {
+        markTurnCheckpoint(sessionId, turnNumber!, 'ttsComplete');
+      },
+    });
+
+    return stream.pipeThrough(checkpointTransform);
+  }
+
   // 7. Apply "Better Than Human" post-TTS enhancement (Rust-accelerated audio processing)
   if (audioStream && enablePostTTSEnhancement) {
     const enhancementConfig = {
@@ -1186,10 +1235,11 @@ export async function wrappedTtsNode(
       '🦀 Applying post-TTS "Better Than Human" audio enhancement'
     );
 
-    return applyPostTTSEnhancement(audioStream, enhancementConfig);
+    const enhancedStream = await applyPostTTSEnhancement(audioStream, enhancementConfig);
+    return wrapWithTTSCheckpoints(enhancedStream);
   }
 
-  return audioStream;
+  return wrapWithTTSCheckpoints(audioStream);
 }
 
 // =============================================================================
@@ -1321,6 +1371,8 @@ export function extractTtsSessionContext(
     userLocation: userData?.userLocation as
       | { city?: string; regionCode?: string; countryCode?: string }
       | undefined,
+    // Turn number for profiling checkpoints (P1 UTO Fix - January 2026)
+    turnNumber: (userData?.turnCount as number | undefined) ?? (userData?.turnNumber as number | undefined),
     
     // =========================================================================
     // BETTER THAN HUMAN: Rich context for natural tool responses

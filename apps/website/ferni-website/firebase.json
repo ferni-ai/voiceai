@@ -3,10 +3,28 @@
     {
       "site": "ferni-landing",
       "public": "_site",
-      "ignore": [
-        "firebase.json",
-        "**/.*",
-        "**/node_modules/**"
+      "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
+      "redirects": [
+        {
+          "source": "/developers",
+          "destination": "https://developers.ferni.ai",
+          "type": 301
+        },
+        {
+          "source": "/developers/**",
+          "destination": "https://developers.ferni.ai/:splat",
+          "type": 301
+        },
+        {
+          "source": "/dev-blog",
+          "destination": "https://developers.ferni.ai/blog",
+          "type": 301
+        },
+        {
+          "source": "/dev-blog/**",
+          "destination": "https://developers.ferni.ai/blog/:splat",
+          "type": 301
+        }
       ],
       "headers": [
         {
@@ -137,10 +155,28 @@
     {
       "target": "ferni-prod",
       "public": "_site",
-      "ignore": [
-        "firebase.json",
-        "**/.*",
-        "**/node_modules/**"
+      "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
+      "redirects": [
+        {
+          "source": "/developers",
+          "destination": "https://developers.ferni.ai",
+          "type": 301
+        },
+        {
+          "source": "/developers/**",
+          "destination": "https://developers.ferni.ai/:splat",
+          "type": 301
+        },
+        {
+          "source": "/dev-blog",
+          "destination": "https://developers.ferni.ai/blog",
+          "type": 301
+        },
+        {
+          "source": "/dev-blog/**",
+          "destination": "https://developers.ferni.ai/blog/:splat",
+          "type": 301
+        }
       ],
       "headers": [
         {

@@ -16,9 +16,13 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
-import { FTISClassifierV2, ClassificationResult, getFTISClassifierV2 } from './ftis-classifier-v2.js';
-import { FTISDecisionBoundary, getFTISDecisionBoundary } from './ftis-decision-boundary.js';
 import { FTISCalibration, getFTISCalibration } from './ftis-calibration.js';
+import {
+  ClassificationResult,
+  FTISClassifierV2,
+  getFTISClassifierV2,
+} from './ftis-classifier-v2.js';
+import { FTISDecisionBoundary, getFTISDecisionBoundary } from './ftis-decision-boundary.js';
 
 const log = createLogger({ module: 'ftis-hybrid' });
 
@@ -62,6 +66,12 @@ export interface HybridRouterConfig {
   highReliabilityTools: string[];
   /** High-risk tools that should use higher thresholds */
   highRiskTools: string[];
+  /**
+   * Categories that should ALWAYS route to LLM path regardless of confidence.
+   * These are conversational/emotional support categories where Ferni should
+   * respond naturally rather than executing a tool.
+   */
+  conversationalCategories: string[];
 }
 
 export interface RouterMetrics {
@@ -82,7 +92,7 @@ export interface RouterMetrics {
 
 const DEFAULT_CONFIG: HybridRouterConfig = {
   fastPathThreshold: 0.75,
-  verifyPathThreshold: 0.50,
+  verifyPathThreshold: 0.5,
   enableVerification: true,
   useCalibration: true,
   useBoundaryChecking: true,
@@ -110,6 +120,29 @@ const DEFAULT_CONFIG: HybridRouterConfig = {
     'call_make',
     'email_send',
     'message_send',
+  ],
+  // Categories that ALWAYS route to LLM - these are conversational/emotional
+  // support topics where Ferni should respond naturally, not execute tools.
+  // Even high confidence should not bypass the LLM for these.
+  conversationalCategories: [
+    // Crisis & Safety
+    'crisis_support',
+    // Emotional Support
+    'grounding',
+    'wellness_check',
+    'coaching_motivation',
+    'grief_support',
+    'relationship_advice',
+    'breakup_support',
+    'self_compassion',
+    'imposter_syndrome',
+    // General conversation
+    'conversation',
+    // Recommendations (better as natural conversation)
+    'restaurant_rec',
+    'movie_rec',
+    'book_rec',
+    'podcast_rec',
   ],
 };
 
@@ -195,15 +228,15 @@ export class FTISHybridRouter {
     // Adjust based on tool reliability
     if (this.config.highReliabilityTools.includes(category)) {
       return {
-        fast: this.config.fastPathThreshold - 0.10, // Lower threshold = easier fast path
-        verify: this.config.verifyPathThreshold - 0.10,
+        fast: this.config.fastPathThreshold - 0.1, // Lower threshold = easier fast path
+        verify: this.config.verifyPathThreshold - 0.1,
       };
     }
 
     if (this.config.highRiskTools.includes(category)) {
       return {
-        fast: this.config.fastPathThreshold + 0.10, // Higher threshold = harder fast path
-        verify: this.config.verifyPathThreshold + 0.10,
+        fast: this.config.fastPathThreshold + 0.1, // Higher threshold = harder fast path
+        verify: this.config.verifyPathThreshold + 0.1,
       };
     }
 
@@ -217,11 +250,11 @@ export class FTISHybridRouter {
           fast: this.config.fastPathThreshold - 0.05,
           verify: this.config.verifyPathThreshold - 0.05,
         };
-      } else if (successRate < 0.80) {
+      } else if (successRate < 0.8) {
         // Low success rate, raise thresholds
         return {
-          fast: this.config.fastPathThreshold + 0.10,
-          verify: this.config.verifyPathThreshold + 0.10,
+          fast: this.config.fastPathThreshold + 0.1,
+          verify: this.config.verifyPathThreshold + 0.1,
         };
       }
     }
@@ -274,7 +307,10 @@ export class FTISHybridRouter {
     let reason = '';
 
     // Apply boundary checking
-    if (this.config.useBoundaryChecking && classification.boundaryAdjustedConfidence !== undefined) {
+    if (
+      this.config.useBoundaryChecking &&
+      classification.boundaryAdjustedConfidence !== undefined
+    ) {
       effectiveConfidence = classification.boundaryAdjustedConfidence;
       withinBoundary = !classification.isOpenIntent;
 
@@ -295,7 +331,20 @@ export class FTISHybridRouter {
     let action: 'execute_tool' | 'verify_with_gemini' | 'pass_to_llm';
     let estimatedLatencyMs: number;
 
-    if (!withinBoundary) {
+    // Check if this is a conversational category that should always go to LLM
+    const isConversational = this.config.conversationalCategories.includes(
+      classification.fineCategory
+    );
+
+    if (isConversational) {
+      // Conversational categories ALWAYS go to LLM regardless of confidence
+      // These are emotional support, coaching, and advisory topics where
+      // Ferni should respond naturally rather than executing a tool
+      tier = 'llm';
+      action = 'pass_to_llm';
+      estimatedLatencyMs = 500;
+      reason = 'conversational_category';
+    } else if (!withinBoundary) {
       // Outside boundary - always go to LLM
       tier = 'llm';
       action = 'pass_to_llm';
@@ -342,6 +391,7 @@ export class FTISHybridRouter {
         originalConf: classification.combinedConfidence.toFixed(3),
         effectiveConf: effectiveConfidence.toFixed(3),
         withinBoundary,
+        isConversational,
         reason,
       },
       '🔀 Routing decision'
@@ -397,7 +447,11 @@ export class FTISHybridRouter {
     this.metrics.llmPathRate = this.metrics.llmPathCount / this.metrics.totalRoutings;
 
     // Category distribution
-    const catData = this.metrics.categoryDistribution.get(category) || { fast: 0, verify: 0, llm: 0 };
+    const catData = this.metrics.categoryDistribution.get(category) || {
+      fast: 0,
+      verify: 0,
+      llm: 0,
+    };
     catData[tier]++;
     this.metrics.categoryDistribution.set(category, catData);
   }

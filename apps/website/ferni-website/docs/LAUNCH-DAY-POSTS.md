@@ -53,7 +53,7 @@ It's free during early access. No credit card. No commitment.
 
 Just talk: ferni.ai
 
-Or call: (484) 481-3081
+Or call: (888) 598-3952
 
 We're here when you need us. 
 ```
@@ -133,7 +133,7 @@ That's what we're launching today.
 It's free during early access. No credit card.
 
  Try it: ferni.ai
- Or call: (484) 481-3081
+ Or call: (888) 598-3952
 
 I'd love to hear what you think.
 
@@ -185,7 +185,7 @@ What makes it different:
  6 specialists working together
  Perfect memory of every conversation
  Voice or text—however you want to talk
- Call anytime: (484) 481-3081
+ Call anytime: (888) 598-3952
  Free during early access
 
 No prompts. No commands. No learning curve.
@@ -245,7 +245,7 @@ Try it FREE
 ferni.ai
 
 or call
-(484) 481-3081
+(888) 598-3952
 
 [Swipe Up Link]
 ```
@@ -269,7 +269,7 @@ And it remembers EVERYTHING from every conversation. No 'remind me again what we
 It's free right now. No credit card."
 
 [CTA - 25-30s]
-"Link in bio if you want to try it. Or just call (484) 481-3081. Yes, actually call it."
+"Link in bio if you want to try it. Or just call (888) 598-3952. Yes, actually call it."
 ```
 
 ---
@@ -294,7 +294,7 @@ Ferni, Peter, Alex, Maya, Jordan, and Nayan—all working together, all sharing 
 Every conversation builds on the last. No starting over.
 
  Voice & Web
-Talk naturally at app.ferni.ai or call (484) 481-3081.
+Talk naturally at app.ferni.ai or call (888) 598-3952.
 
  Still Free
 No changes to early access. Keep using Ferni as much as you want.
@@ -324,7 +324,7 @@ It's the AI life coach I've been building - 6 specialists who work together, rem
 
 Would mean the world if you tried it: ferni.ai
 
-Or literally just call (484) 481-3081
+Or literally just call (888) 598-3952
 
 Let me know what you think!
 ```
@@ -351,7 +351,7 @@ Let me know what you think!
 
 - **Website:** https://ferni.ai
 - **App:** https://app.ferni.ai  
-- **Phone:** (484) 481-3081
+- **Phone:** (888) 598-3952
 - **Twitter:** @ferniAI
 - **LinkedIn:** linkedin.com/company/ferni
 - **Instagram:** @ferni.ai

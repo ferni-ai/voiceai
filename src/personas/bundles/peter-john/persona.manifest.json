@@ -330,6 +330,7 @@
       "cameo",
       "research",
       "information",
+      "entertainment",
       "stories",
       "engagement",
       "curiosity",
@@ -442,9 +443,6 @@
     "forbidden": [
       "dayTrade",
       "optionsTrading",
-      "playMusic",
-      "sendEmail",
-      "scheduleAppointment",
       "createHabit"
     ]
   },
@@ -453,7 +451,7 @@
     "can_handoff": true,
     "handoff_targets": ["@coordinator", "@team"],
     "banking_enabled": false,
-    "music_enabled": false,
+    "music_enabled": true,
     "stock_research": true,
     "cross_domain_insights": true,
     "proactive_insights": true

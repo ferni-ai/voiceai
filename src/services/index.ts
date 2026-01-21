@@ -255,14 +255,9 @@ export {
 } from './stores/productivity-store.js';
 
 // ============================================================================
-// COLLECTIVE LEARNING
+// COLLECTIVE LEARNING - REMOVED
+// Previously exported from ./memory/collective-learning-store.js - file has been removed
 // ============================================================================
-
-export {
-  getCollectiveLearningStore,
-  initializeCollectiveLearning,
-  shutdownCollectiveLearning,
-} from './memory/collective-learning-store.js';
 
 // ============================================================================
 // TEAM MANAGEMENT

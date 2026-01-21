@@ -10,6 +10,8 @@
  * @module intelligence/context-builders/personas/alex-communication-insights
  */
 
+import { getFinancialStore } from '../../../../services/stores/financial-store.js';
+import { getHandoffContext } from '../../../../tools/handoff/executor.js';
 import { createLogger } from '../../../../utils/safe-logger.js';
 import {
   BuilderCategory,
@@ -20,36 +22,37 @@ import {
   type ContextBuilderInput,
   type ContextInjection,
 } from '../../index.js';
-import { getHandoffContext } from '../../../../tools/handoff/executor.js';
-import { getFinancialStore } from '../../../../services/stores/financial-store.js';
 import { getSuperhuman } from '../../superhuman/superhuman-integration.js';
+
+// V5 Superhuman Persona Intelligence - Communication Intelligence
+import { buildCommunicationIntelligenceContext } from '../../../../services/superhuman/index.js';
 import {
   detectMilestoneConflicts,
   findOptimalMilestoneWindows,
   type MilestoneConflict,
-  type TimeWindow,
   type SimpleMilestone,
+  type TimeWindow,
 } from '../../../../services/superhuman/milestone-calendar-coordinator.js';
 
-import { getSession, clearAlexCommunicationSession } from './session.js';
-import { getUserStateSnapshot, getUpcomingPriorities, getMemoryContext } from './data-fetchers.js';
+import { getMemoryContext, getUpcomingPriorities, getUserStateSnapshot } from './data-fetchers.js';
+import { clearAlexCommunicationSession, getSession } from './session.js';
 // Cross-Domain: CEO Coaching for blocker communication needs
 import { getActiveBlockers } from '../../../../tools/domains/ceo-coaching/storage.js';
-import { computeCommunicationMetrics } from './metrics.js';
-import { buildCommunicationContext } from './communication-context.js';
-import { detectProactiveTriggers } from './triggers.js';
 import { identifyCoachingOpportunities } from './coaching.js';
-import { gatherTeamInsights } from './team-insights.js';
+import { buildCommunicationContext } from './communication-context.js';
 import { formatBriefingForInjection } from './formatting.js';
+import { computeCommunicationMetrics } from './metrics.js';
 import {
   buildAlexSuperhumanContext,
   processTranscriptForSuperhuman,
 } from './superhuman-context.js';
+import { gatherTeamInsights } from './team-insights.js';
+import { detectProactiveTriggers } from './triggers.js';
 import type {
   CommunicationBriefing,
-  UserStateSnapshot,
-  MemoryContext,
   HandoffContextType,
+  MemoryContext,
+  UserStateSnapshot,
 } from './types.js';
 
 const log = createLogger({ module: 'context:alex-communication-insights' });
@@ -316,6 +319,18 @@ async function buildAlexCommunicationInsightsContext(
       void processTranscriptForSuperhuman(userId, input.userText, {
         currentTopic: input.analysis?.topics?.detected?.[0],
       });
+    }
+
+    // V5 Superhuman Persona Intelligence - Computational Linguistics
+    // Politeness Theory, Warmth-Competence Model, Gottman patterns, NVC
+    const commIntelligenceContext = await buildCommunicationIntelligenceContext(userId).catch(
+      (e) => {
+        log.debug({ error: String(e) }, 'Failed to build communication intelligence context');
+        return '';
+      }
+    );
+    if (commIntelligenceContext) {
+      formattedSections.push('\n' + commIntelligenceContext);
     }
 
     // 🤝 TEAM HUDDLE: Record Alex's observations for cross-persona intelligence

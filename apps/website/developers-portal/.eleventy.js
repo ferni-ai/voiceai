@@ -16,6 +16,32 @@ module.exports = function (eleventyConfig) {
   // Filters
   eleventyConfig.addFilter('year', () => new Date().getFullYear());
 
+  // Date formatting filter
+  eleventyConfig.addFilter('date', (dateObj, format) => {
+    if (!dateObj) return '';
+    const date = new Date(dateObj);
+    const options = {};
+
+    if (format === 'long') {
+      options.year = 'numeric';
+      options.month = 'long';
+      options.day = 'numeric';
+    } else if (format === 'short') {
+      options.year = 'numeric';
+      options.month = 'short';
+      options.day = 'numeric';
+    } else if (format === 'iso') {
+      return date.toISOString();
+    } else {
+      // Default format: "Jan 15, 2026"
+      options.year = 'numeric';
+      options.month = 'short';
+      options.day = 'numeric';
+    }
+
+    return date.toLocaleDateString('en-US', options);
+  });
+
   // JSON stringify filter for inline data
   eleventyConfig.addFilter('jsonify', (value) => JSON.stringify(value, null, 2));
 

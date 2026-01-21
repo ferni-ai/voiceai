@@ -65,6 +65,8 @@ export {
 export {
   // Main execution function
   executeWithReliability,
+  // Timeout configuration
+  getTimeoutForTool,
   // Metrics
   getToolMetrics,
   getAllToolMetrics,

@@ -155,6 +155,15 @@ export class AgentOrchestrator {
     this.sessionId = config.sessionId;
     this.userId = config.userId;
 
+    // CRITICAL: Increase MaxListeners to prevent warnings during multi-agent handoffs
+    // Each AgentSession adds listeners to the Room (trackPublished, localTrackPublished, etc.)
+    // With 6 possible personas and concurrent handoffs, we can have up to 20+ listeners
+    // Default is 10 which causes MaxListenersExceededWarning
+    if (this.room && typeof (this.room as any).setMaxListeners === 'function') {
+      (this.room as any).setMaxListeners(30);
+      log.debug({ sessionId: this.sessionId }, '🎭 Room MaxListeners set to 30 for multi-agent mode');
+    }
+
     log.info({ sessionId: this.sessionId, userId: this.userId }, '🎭 AgentOrchestrator created');
   }
 

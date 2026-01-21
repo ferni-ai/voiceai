@@ -55,8 +55,107 @@ import {
   onToolCompleted as dispatchToolCompletedWebhook,
   onToolFailed as dispatchToolFailedWebhook,
 } from '../integrations/developer-webhook-integration.js';
+// Timing-aware tool tracking (Phase 3 BTH Communication Overhaul)
+import {
+  registerToolInFlight,
+  completeToolInFlight,
+} from '../../intelligence/context-builders/awareness/system-state-awareness.js';
+// Centralized conversation state for tool tracking (P0-#2 UTO Fix - January 2026)
+import { getConversationState } from '../../services/conversation-state.js';
+// P2 UTO Fix (January 2026): Service health pre-check before tool execution
+import { isServiceHealthyFast } from '../../services/self-healing/index.js';
 
 const log = createLogger({ module: 'json-function-executor' });
+
+// ============================================================================
+// P2 UTO Fix (January 2026): TOOL → SERVICE MAPPING
+// Maps tool names to their required backend services for health pre-checks
+// ============================================================================
+
+/**
+ * Map of tool name patterns to their required backend services.
+ * Used for service health pre-checks before tool execution.
+ *
+ * Service names match those in health-monitors.ts:
+ * - 'firestore': Database operations
+ * - 'gemini': AI/LLM operations
+ * - 'spotify': Music playback
+ * - 'openai': OpenAI-specific operations
+ * - 'cartesia': TTS operations (handled separately)
+ * - 'livekit': Voice/audio operations (handled separately)
+ */
+const TOOL_SERVICE_MAP: Record<string, string> = {
+  // Music tools → Spotify
+  playMusic: 'spotify',
+  searchMusic: 'spotify',
+  pauseMusic: 'spotify',
+  resumeMusic: 'spotify',
+  skipTrack: 'spotify',
+  setVolume: 'spotify',
+  getQueue: 'spotify',
+  shufflePlayback: 'spotify',
+
+  // Memory/storage tools → Firestore
+  saveNote: 'firestore',
+  getNotes: 'firestore',
+  saveMemory: 'firestore',
+  getMemory: 'firestore',
+  saveCommitment: 'firestore',
+  getCommitments: 'firestore',
+  saveReflection: 'firestore',
+  getReflections: 'firestore',
+  saveHabit: 'firestore',
+  getHabits: 'firestore',
+  saveGoal: 'firestore',
+  getGoals: 'firestore',
+  saveEvent: 'firestore',
+  getEvents: 'firestore',
+  saveContact: 'firestore',
+  getContacts: 'firestore',
+};
+
+/**
+ * Get the required backend service for a tool.
+ * Returns null if no specific service is required (general tools).
+ *
+ * @param toolName - The name of the tool to check
+ * @returns The required service name, or null if no specific service required
+ */
+function getRequiredServiceForTool(toolName: string): string | null {
+  // Direct match
+  if (toolName in TOOL_SERVICE_MAP) {
+    return TOOL_SERVICE_MAP[toolName];
+  }
+
+  // Pattern matching for tool families
+  const lowered = toolName.toLowerCase();
+
+  // Music-related tools
+  if (
+    lowered.includes('music') ||
+    lowered.includes('song') ||
+    lowered.includes('playlist') ||
+    lowered.includes('track') ||
+    lowered.includes('album') ||
+    lowered.includes('artist')
+  ) {
+    return 'spotify';
+  }
+
+  // Memory/storage tools
+  if (
+    lowered.includes('save') ||
+    lowered.includes('store') ||
+    lowered.includes('persist') ||
+    lowered.includes('remember') ||
+    lowered.startsWith('get') && (lowered.includes('note') || lowered.includes('memory') || lowered.includes('habit'))
+  ) {
+    return 'firestore';
+  }
+
+  // No specific service required
+  return null;
+}
 
 // ============================================================================
 // LEARNING LOOP INTEGRATION
@@ -468,6 +567,19 @@ export async function executeJsonFunction(
   // Telemetry: Log that a JSON function call was detected
   logJsonDetected(sessionId, fn, args);
 
+  // Timing-aware tracking: Register tool as in-flight (Phase 3 BTH)
+  if (sessionId !== 'unknown') {
+    registerToolInFlight(sessionId, fn);
+    // P0-#2 UTO Fix: Also register in centralized conversation state
+    // This enables the system-state-awareness context builder to detect in-flight tools
+    try {
+      const convState = getConversationState(sessionId);
+      convState.startToolExecution(fn);
+    } catch {
+      // Conversation state may not exist yet - that's OK
+    }
+  }
+
   // ================================================================
   // PERFORMANCE: Check tool response cache for read-only tools
   // ================================================================
@@ -482,9 +594,55 @@ export async function executeJsonFunction(
         durationMs: Date.now() - startTime,
       };
       log.info({ fn, cached: true }, '🎯 Tool response from cache');
+      // Timing-aware tracking: Mark tool as complete (Phase 3 BTH)
+      completeToolInFlight(ctx.sessionId, fn);
+      // P0-#2 UTO Fix: Also clear in-flight in conversation state
+      try {
+        const convState = getConversationState(ctx.sessionId);
+        convState.endToolExecution();
+      } catch {
+        // Ignore - conversation state may not exist
+      }
       ctx.onToolComplete?.(executionResult);
       return executionResult;
     }
+  }
+
+  // ================================================================
+  // P2 UTO Fix (January 2026): Service health pre-check
+  // Skip tool execution if required backend services are unhealthy
+  // ================================================================
+  const requiredService = getRequiredServiceForTool(fn);
+  if (requiredService && !isServiceHealthyFast(requiredService)) {
+    log.warn(
+      { fn, requiredService, sessionId },
+      `⚠️ Skipping tool execution - required service '${requiredService}' is unhealthy`
+    );
+
+    // Return fallback without attempting execution
+    const fallbackResult = getFallbackResponse(fn);
+    const executionResult: FunctionExecutionResult = {
+      success: false,
+      fn,
+      args,
+      result: fallbackResult,
+      durationMs: Date.now() - startTime,
+      error: `Service '${requiredService}' is unavailable`,
+    };
+
+    // Clean up in-flight tracking
+    if (sessionId !== 'unknown') {
+      completeToolInFlight(sessionId, fn);
+      try {
+        const convState = getConversationState(sessionId);
+        convState.endToolExecution();
+      } catch {
+        // Ignore - conversation state may not exist
+      }
+    }
+
+    ctx.onToolComplete?.(executionResult);
+    return executionResult;
   }
 
   try {
@@ -672,6 +830,18 @@ export async function executeJsonFunction(
       });
     }
 
+    // Timing-aware tracking: Mark tool as complete (Phase 3 BTH)
+    if (sessionId !== 'unknown') {
+      completeToolInFlight(sessionId, fn);
+      // P0-#2 UTO Fix: Also clear in-flight in conversation state
+      try {
+        const convState = getConversationState(sessionId);
+        convState.endToolExecution();
+      } catch {
+        // Ignore - conversation state may not exist
+      }
+    }
+
     ctx.onToolComplete?.(executionResult);
     return executionResult;
   } catch (err) {
@@ -758,6 +928,18 @@ export async function executeJsonFunction(
         confidence: ctx.semanticPrediction?.confidence,
       });
 
+    }
+
+    // Timing-aware tracking: Mark tool as complete even on failure (Phase 3 BTH)
+    if (sessionId !== 'unknown') {
+      completeToolInFlight(sessionId, fn);
+      // P0-#2 UTO Fix: Also clear in-flight in conversation state
+      try {
+        const convState = getConversationState(sessionId);
+        convState.endToolExecution();
+      } catch {
+        // Ignore - conversation state may not exist
+      }
     }
 
     ctx.onToolComplete?.(executionResult);

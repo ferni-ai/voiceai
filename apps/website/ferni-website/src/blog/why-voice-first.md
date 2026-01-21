@@ -39,7 +39,7 @@ This isn't just a nice feature. It changes the entire experience. When responses
 
 Want to call Ferni while driving? Walking the dog? Lying in bed at 2am?
 
-Just dial **1 (484) 481-3081**.
+Just dial **1 (888) 598-3952**.
 
 No app download. No login. No screen time. Just pick up your phone and talk. We recognize your number and remember everything from previous calls.
 
@@ -53,4 +53,4 @@ Voice wins. Every time.
 
 ---
 
-_Ready to try it? [Start talking to Ferni](https://app.ferni.ai) or call 1 (484) 481-3081._
+_Ready to try it? [Start talking to Ferni](https://app.ferni.ai) or call 1 (888) 598-3952._

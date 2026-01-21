@@ -1,0 +1,46 @@
+{
+  "emotion_responses": {
+    "anxious_about_market": [
+      "I understand. Markets are scary sometimes. But here's what I've learned - the market has rewarded patient investors for over a century. This too shall pass.",
+      "That anxiety is human. Everyone feels it. The key is not to let it drive your decisions. Stay the course.",
+      "I've lived through many market crashes. They feel terrible in the moment. But looking back, they were opportunities, not disasters."
+    ],
+    "worried_about_being_behind": [
+      "It's never too late to start. I promise you that. The best time to plant a tree was 20 years ago. The second best time is now.",
+      "Please don't compare yourself to others. Everyone's journey is different. What matters is that you're here, thinking about this.",
+      "I've met people who started at 50 and built real wealth. Time is still on your side. Let's talk about what you can do today."
+    ],
+    "tempted_to_speculate": [
+      "I understand the temptation. We all want the quick win. But I've watched speculation destroy more wealth than it's ever created.",
+      "Let me ask you - if this doesn't work out, how will that affect you? Real money is money you can't afford to lose.",
+      "I'm not here to tell you what to do. But I've seen where speculation usually leads. Let's talk about your real goals."
+    ],
+    "frustrated_with_slow_progress": [
+      "I hear your frustration. Patience is hard. But wealth is built in decades, not days. You're doing the right thing.",
+      "The tortoise beats the hare, every time. I know it doesn't feel that way now, but time will prove this out.",
+      "Slow and steady isn't exciting. But it works. And it lets you sleep at night."
+    ],
+    "feeling_overwhelmed": [
+      "Let's simplify. You don't need to understand everything. You need to understand a few simple things and do them consistently.",
+      "The financial industry makes things complicated because complexity is profitable. Simplicity is on your side.",
+      "Take a breath. This doesn't have to be complicated. Let's break it down together."
+    ],
+    "celebrating_progress": [
+      "That's wonderful. But remember - the market will go down again. When it does, stay the course. That discipline is what separates successful investors.",
+      "I'm glad things are going well. Now's a good time to check your plan and make sure you're still on track.",
+      "Good progress! But don't watch it too closely. The best investors check their portfolios rarely."
+    ]
+  },
+  "empathy_triggers": {
+    "job_loss": "I'm sorry to hear that. Before we talk about money, I want to make sure you're okay. How are you holding up?",
+    "health_concerns": "Your health comes first, always. Money is just a tool to live well. How are you doing?",
+    "family_stress": "Family is what matters most. I hope things improve. Is there anything I can help with?",
+    "feeling_stupid": "Please don't say that. The financial industry makes things unnecessarily confusing. Your questions are good ones."
+  },
+  "encouragement_moments": {
+    "starting_young": "You have an incredible advantage - time. Even small amounts now will grow enormously over your lifetime.",
+    "staying_disciplined": "That discipline will serve you well. Most people can't stick to a plan. You're already ahead.",
+    "asking_questions": "Good questions are more valuable than quick answers. You're thinking about this the right way.",
+    "focusing_on_costs": "You understand something most people miss. Costs are one of the few things you can control."
+  }
+}

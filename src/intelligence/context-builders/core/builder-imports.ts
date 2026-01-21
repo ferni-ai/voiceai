@@ -34,6 +34,11 @@ export const BUILDER_IMPORTS: Record<string, BuilderImporter> = {
   'human-listening': async () => import('../emotional/human-listening.js'),
   'energy-mirroring': async () => import('../emotional/energy-mirroring.js'),
   'energy-awareness': async () => import('../emotional/energy-awareness.js'),
+  'energy-matcher': async () => import('../emotional/energy-matcher.js'), // Deep Human: JSON-based energy matching
+  'laughter-contagion': async () => import('../emotional/laughter-contagion.js'), // Deep Human: Natural laughter joining
+  // Ferni 100% Wiring - Emotional (January 2026)
+  'affirmation-context': async () => import('../emotional/affirmation-context.js'),
+  'breath-context': async () => import('../emotional/breath-context.js'),
 
   // ============================================================================
   // VOICE (in emotional/)
@@ -91,6 +96,14 @@ export const BUILDER_IMPORTS: Record<string, BuilderImporter> = {
   'lovable-presence': async () => import('../personas/lovable-presence.js'),
   'mortality-perspective': async () => import('../personas/mortality-perspective.js'),
   'dynamic-backstory': async () => import('../personas/backstory-context.js'),
+  'deep-human-orchestrator': async () => import('../personas/deep-human-orchestrator.js'), // Deep Human: Better Than Human bonding
+  'secret-mode-detector': async () => import('../personas/secret-mode-detector.js'), // Deep Human: Contextual personality modes
+  // Ferni 100% Wiring - Character Voice (January 2026)
+  'voice-dna-context': async () => import('../personas/voice-dna-context.js'),
+  'catchphrase-context': async () => import('../personas/catchphrase-context.js'),
+  'humor-context': async () => import('../personas/humor-context.js'),
+  'pet-peeve-context': async () => import('../personas/pet-peeve-context.js'),
+  'coaching-mode-context': async () => import('../personas/coaching-mode-context.js'),
 
   // ============================================================================
   // INTELLIGENCE (in intelligence/) - "Better Than Human" capabilities
@@ -110,6 +123,8 @@ export const BUILDER_IMPORTS: Record<string, BuilderImporter> = {
   'sec-intelligence': async () => import('../intelligence/sec-intelligence.js'),
   'prediction-surfacing': async () => import('../intelligence/prediction-intelligence.js'),
   'semantic-intent-guidance': async () => import('../intelligence/semantic-intent-guidance.js'),
+  // Ferni 100% Wiring - Intelligence (January 2026)
+  'predictive-context': async () => import('../intelligence/predictive-context.js'),
 
   // ============================================================================
   // COACHING (in coaching/)
@@ -201,6 +216,14 @@ export const BUILDER_IMPORTS: Record<string, BuilderImporter> = {
   'routine-awareness': async () => import('../awareness/routine-awareness.js'),
   // System state awareness: Music playing, timers, recent tool executions (ALWAYS runs)
   'system-state-awareness': async () => import('../awareness/system-state-awareness.js'),
+  // Ferni 100% Wiring - Awareness (January 2026)
+  'sensory-context': async () => import('../awareness/sensory-context.js'),
+
+  // ============================================================================
+  // CONVERSATIONAL (in conversational/) - Ferni 100% Wiring (January 2026)
+  // ============================================================================
+  'backchannel-context': async () => import('../conversational/backchannel-context.js'),
+  'goodbye-context': async () => import('../conversational/goodbye-context.js'),
 
   // ============================================================================
   // EXTERNAL (in external/)
@@ -246,6 +269,7 @@ export const BUILDER_IMPORTS: Record<string, BuilderImporter> = {
   'tool-humanization': async () => import('../humanization/tool-humanization.js'),
   'conversational-imperfections': async () =>
     import('../humanization/conversational-imperfections.js'),
+  'speech-naturalizer': async () => import('../humanization/speech-naturalizer.js'), // Deep Human: Natural speech imperfections
 
   // ============================================================================
   // LEARNING (in learning/)

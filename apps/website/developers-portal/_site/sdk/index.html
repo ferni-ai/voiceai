@@ -1,0 +1,1019 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SDK Documentation | Ferni Developers</title>
+  <meta name="description" content="Build voice AI agents with the Ferni SDK">
+
+  <!-- Fonts: Plus Jakarta Sans (display), Inter (body), JetBrains Mono (code) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%233D5A45' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='4 17 10 11 4 5'/><line x1='12' x2='20' y1='19' y2='19'/></svg>">
+
+  <!-- Open Graph -->
+  <meta property="og:title" content="SDK Documentation | Ferni Developers">
+  <meta property="og:description" content="Build voice AI agents with the Ferni SDK">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://developers.ferni.ai/sdk/">
+
+  <!-- Theme: Prevent flash of wrong theme -->
+  <script>
+    (function() {
+      // Get saved preference or system preference
+      const saved = localStorage.getItem('ferni-theme');
+      const systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      const theme = saved || (systemDark ? 'dark' : 'light');
+      
+      // Apply theme immediately to prevent flash
+      document.documentElement.setAttribute('data-theme', theme);
+      document.documentElement.classList.add('no-transitions');
+    })();
+  </script>
+
+  <!-- Styles (v=20260120 cache bust) -->
+  <link rel="stylesheet" href="/css/tokens.css?v=20260120">
+  <link rel="stylesheet" href="/css/components.css?v=20260120">
+  <link rel="stylesheet" href="/css/prism.css?v=20260120">
+  
+</head>
+<body>
+  <!-- Skip to content link for accessibility -->
+  <a href="#main-content" class="skip-to-content">Skip to content</a>
+
+  <nav class="nav">
+  <div class="nav-inner">
+    <!-- Logo -->
+    <a href="/" class="nav-logo">
+      <svg width="28" height="28" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="16" cy="16" r="14" fill="var(--accent-primary)"/>
+        <path d="M10 12h12M10 16h8M10 20h10" stroke="var(--text-inverse)" stroke-width="2" stroke-linecap="round"/>
+      </svg>
+      <span>Ferni</span>
+      <span class="nav-badge">Developers</span>
+    </a>
+    
+    <!-- Main Navigation Links (Apple-style: minimal, essential only) -->
+    <ul class="nav-links">
+      <li><a href="/getting-started/" >Docs</a></li>
+      <li><a href="/api/" >API</a></li>
+      <li><a href="/sdk/" class="active">SDK</a></li>
+      <li><a href="/blog/" >Blog</a></li>
+    </ul>
+
+    <!-- Right side: Search + Theme Toggle + CTAs -->
+    <div class="nav-right">
+      <!-- Search Button -->
+      <button class="nav-search-btn" onclick="openSearch()" aria-label="Search documentation">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="11" cy="11" r="8"/>
+          <path d="m21 21-4.35-4.35"/>
+        </svg>
+        <span class="nav-search-text">Search docs...</span>
+        <kbd class="nav-search-kbd">⌘K</kbd>
+      </button>
+
+      <!-- Theme Toggle (in nav) -->
+      <button class="nav-theme-toggle" onclick="toggleTheme()" aria-label="Toggle theme" title="Toggle light/dark theme">
+        <svg class="sun-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="5"/>
+          <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+        </svg>
+        <svg class="moon-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+        </svg>
+      </button>
+
+      <!-- CTAs -->
+      <div class="nav-cta">
+        <a href="https://github.com/ferni-ai" class="btn btn-ghost" target="_blank" rel="noopener">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+          </svg>
+          <span class="nav-cta-text">GitHub</span>
+        </a>
+        <a href="/community/" class="btn btn-ghost nav-community-btn">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+            <circle cx="9" cy="7" r="4"/>
+            <path d="M22 21v-2a4 4 0 0 0-3-3.87"/>
+            <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+          </svg>
+          <span class="nav-cta-text">Community</span>
+        </a>
+        <a href="/console/" class="btn btn-primary">Console</a>
+      </div>
+    </div>
+
+    <!-- Mobile Menu Toggle -->
+    <button class="nav-mobile-toggle" onclick="toggleMobileNav()" aria-label="Toggle menu">
+      <svg class="menu-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="4" x2="20" y1="12" y2="12"/>
+        <line x1="4" x2="20" y1="6" y2="6"/>
+        <line x1="4" x2="20" y1="18" y2="18"/>
+      </svg>
+      <svg class="close-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M18 6 6 18"/>
+        <path d="m6 6 12 12"/>
+      </svg>
+    </button>
+  </div>
+
+  <!-- Mobile Navigation Menu -->
+  <div class="nav-mobile-menu">
+    <ul class="nav-mobile-links">
+      <li><a href="/getting-started/" >Documentation</a></li>
+      <li><a href="/api/" >API Reference</a></li>
+      <li><a href="/sdk/" class="active">SDK</a></li>
+      <li><a href="/blog/" >Blog</a></li>
+      <li><a href="/community/">Community</a></li>
+      <li><a href="https://github.com/ferni-ai" target="_blank" rel="noopener">GitHub</a></li>
+      <li><a href="/console/" class="btn btn-primary">Console</a></li>
+    </ul>
+  </div>
+</nav>
+
+<!-- Search Modal (placeholder - to be implemented in Phase 5) -->
+<div class="search-modal" id="searchModal">
+  <div class="search-modal-backdrop" onclick="closeSearch()"></div>
+  <div class="search-modal-content">
+    <div class="search-input-wrapper">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="11" cy="11" r="8"/>
+        <path d="m21 21-4.35-4.35"/>
+      </svg>
+      <input type="text" class="search-input" placeholder="Search documentation..." autofocus>
+      <kbd class="search-kbd">ESC</kbd>
+    </div>
+    <div class="search-results">
+      <p class="search-hint">Start typing to search...</p>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Mobile nav toggle
+  function toggleMobileNav() {
+    document.querySelector('.nav').classList.toggle('nav-mobile-open');
+  }
+
+  // Search modal
+  function openSearch() {
+    document.getElementById('searchModal').classList.add('open');
+    document.querySelector('.search-input').focus();
+  }
+
+  function closeSearch() {
+    document.getElementById('searchModal').classList.remove('open');
+  }
+
+  // Keyboard shortcuts
+  document.addEventListener('keydown', function(e) {
+    // Cmd+K or Ctrl+K to open search
+    if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+      e.preventDefault();
+      openSearch();
+    }
+    // Escape to close search
+    if (e.key === 'Escape') {
+      closeSearch();
+    }
+  });
+
+  // Close mobile nav on resize
+  window.addEventListener('resize', function() {
+    if (window.innerWidth > 1024) {
+      document.querySelector('.nav').classList.remove('nav-mobile-open');
+    }
+  });
+</script>
+
+
+  <main id="main-content" tabindex="-1">
+    
+<section class="hero" style="padding-bottom: var(--space-12);">
+  <div class="container">
+    <div class="hero-eyebrow">SDK Documentation</div>
+    <h1>Build Voice AI Agents<br><span class="accent">That Feel Human</span></h1>
+    <p class="hero-subtitle">
+      The Ferni SDK provides everything you need to create voice AI agents with personality,
+      emotion intelligence, and natural conversation flow.
+    </p>
+  </div>
+</section>
+
+<section class="section" style="padding-top: var(--space-8);">
+  <div class="container container-narrow">
+
+    <!-- Installation -->
+    <div class="mb-12">
+      <h2 class="mb-4">Installation</h2>
+      <p style="color: var(--text-secondary); margin-bottom: var(--space-4);">
+        Install the Ferni SDK via npm or pnpm:
+      </p>
+      <div class="code-block">
+        <div class="code-header">
+          <div class="code-dots">
+            <span class="code-dot code-dot-red"></span>
+            <span class="code-dot code-dot-yellow"></span>
+            <span class="code-dot code-dot-green"></span>
+          </div>
+          <span class="code-lang">bash</span>
+        </div>
+        <div class="code-content">
+          <pre><code># Using npm
+npm install @ferni/agents
+
+# Using pnpm (recommended - 4x faster)
+pnpm add @ferni/agents</code></pre>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick Start -->
+    <div class="mb-12">
+      <h2 class="mb-4">Quick Start</h2>
+      <p style="color: var(--text-secondary); margin-bottom: var(--space-4);">
+        Create your first voice AI agent in minutes:
+      </p>
+      <div class="code-block">
+        <div class="code-header">
+          <div class="code-dots">
+            <span class="code-dot code-dot-red"></span>
+            <span class="code-dot code-dot-yellow"></span>
+            <span class="code-dot code-dot-green"></span>
+          </div>
+          <span class="code-lang">typescript</span>
+        </div>
+        <div class="code-content">
+          <pre><code class="language-typescript">import { createVoiceAgent } from '@ferni/agents';
+
+const agent = await createVoiceAgent({
+  personaId: 'my-coach',
+  voice: {
+    provider: 'cartesia',
+    voiceId: 'a0e99841-438c-4a64-b679-ae501e7d6091',
+  },
+  personality: {
+    warmth: 0.85,
+    humorLevel: 0.6,
+    formality: 0.3,
+  },
+});
+
+// Start listening
+await agent.start();
+console.log('Agent is ready to talk!');</code></pre>
+        </div>
+      </div>
+    </div>
+
+    <!-- Persona Bundle Structure -->
+    <div class="mb-12">
+      <h2 class="mb-4">Persona Bundle Structure</h2>
+      <p style="color: var(--text-secondary); margin-bottom: var(--space-4);">
+        Personas are the heart of Ferni agents. Each persona bundle contains identity, behaviors, and knowledge:
+      </p>
+      <div class="code-block">
+        <div class="code-header">
+          <div class="code-dots">
+            <span class="code-dot code-dot-red"></span>
+            <span class="code-dot code-dot-yellow"></span>
+            <span class="code-dot code-dot-green"></span>
+          </div>
+          <span class="code-lang">directory structure</span>
+        </div>
+        <div class="code-content">
+          <pre><code>bundles/my-coach/
+├── persona.manifest.json      # Configuration & metadata
+├── identity/
+│   ├── system-prompt.md       # Core personality prompt
+│   ├── biography.md           # Background story
+│   └── directors-notes.md     # Behavioral guidelines
+├── content/
+│   ├── behaviors/
+│   │   ├── greetings.json     # Opening lines & greetings
+│   │   ├── emotional-intelligence.json
+│   │   ├── backchannels.json  # Active listening ("mm-hmm")
+│   │   └── cognitive.json     # Reasoning style
+│   ├── voice/
+│   │   └── expressions.json   # Voice expression patterns
+│   ├── stories/
+│   │   └── anecdotes.json     # Personal stories to share
+│   └── knowledge/
+│       └── expertise.json     # Domain knowledge
+└── index.ts                   # Entry point</code></pre>
+        </div>
+      </div>
+    </div>
+
+    <!-- Manifest Schema -->
+    <div class="mb-12">
+      <div style="display: flex; align-items: center; gap: var(--space-4); margin-bottom: var(--space-4);">
+        <div style="width: 40px; height: 40px; background: var(--accent-primary); border-radius: var(--radius-full); display: flex; align-items: center; justify-content: center; font-weight: 800; color: var(--bg-code);">1</div>
+        <h2 style="margin: 0;">persona.manifest.json Schema</h2>
+      </div>
+      <p style="color: var(--text-secondary); margin-bottom: var(--space-4);">
+        The manifest defines your agent's core configuration:
+      </p>
+      <div class="code-block">
+        <div class="code-header">
+          <div class="code-dots">
+            <span class="code-dot code-dot-red"></span>
+            <span class="code-dot code-dot-yellow"></span>
+            <span class="code-dot code-dot-green"></span>
+          </div>
+          <span class="code-lang">persona.manifest.json</span>
+        </div>
+        <div class="code-content">
+          <pre><code class="language-json">{
+  "identity": {
+    "id": "my-coach",
+    "name": "Luna",
+    "display_name": "Luna the Life Coach",
+    "description": "Your thoughtful companion for growth",
+    "self_reference": "Luna"
+  },
+
+  "voice": {
+    "provider": "cartesia",
+    "voice_id": "a0e99841-438c-4a64-b679-ae501e7d6091",
+    "default_rate": "medium"
+  },
+
+  "personality": {
+    "warmth": 0.85,
+    "humor_level": 0.6,
+    "formality": 0.3,
+    "energy": 0.8,
+    "traits": ["empathetic", "encouraging", "insightful"]
+  },
+
+  "cognitive": {
+    "reasoning_style": "empathetic",
+    "uncertainty_response": "synthesize",
+    "attention_focus": ["emotions", "relationships", "growth"],
+    "adaptiveness": 0.85
+  },
+
+  "role": {
+    "id": "life-coach",
+    "domains": ["life-coaching", "goal-setting", "personal-growth"],
+    "can_handoff": true
+  }
+}</code></pre>
+        </div>
+      </div>
+    </div>
+
+    <!-- Voice Configuration -->
+    <div class="mb-12">
+      <div style="display: flex; align-items: center; gap: var(--space-4); margin-bottom: var(--space-4);">
+        <div style="width: 40px; height: 40px; background: var(--accent-primary); border-radius: var(--radius-full); display: flex; align-items: center; justify-content: center; font-weight: 800; color: var(--bg-code);">2</div>
+        <h2 style="margin: 0;">Voice Configuration</h2>
+      </div>
+      <p style="color: var(--text-secondary); margin-bottom: var(--space-4);">
+        Configure voice synthesis with Cartesia:
+      </p>
+      <div class="code-block">
+        <div class="code-header">
+          <div class="code-dots">
+            <span class="code-dot code-dot-red"></span>
+            <span class="code-dot code-dot-yellow"></span>
+            <span class="code-dot code-dot-green"></span>
+          </div>
+          <span class="code-lang">typescript</span>
+        </div>
+        <div class="code-content">
+          <pre><code class="language-typescript">// In persona.manifest.json
+{
+  "voice": {
+    "provider": "cartesia",
+    "voice_id": "a0e99841-438c-4a64-b679-ae501e7d6091",
+    "default_rate": "medium"  // slow, medium, fast
+  },
+
+  "speech_characteristics": {
+    "base_speed_multiplier": 0.85,  // 0.5-2.0
+    "pause_multiplier": 1.0,         // Adjust pauses
+    "thinking_sound_frequency": 0.45, // "um", "uh" frequency
+    "emphasis_style": "moderate"      // subtle, moderate, dramatic
+  },
+
+  "emotional": {
+    "voice_expression": {
+      "mirroring_level": 0.6,        // Mirror user's emotion
+      "default_tone": "warm",
+      "contextual_tones": {
+        "distressed_user": "compassionate",
+        "celebrating_user": "warm",
+        "confused_user": "patient",
+        "angry_user": "calm"
+      }
+    }
+  }
+}</code></pre>
+        </div>
+      </div>
+      <p style="color: var(--text-secondary); margin-top: var(--space-4);">
+        Browse available voices at <a href="https://cartesia.ai/voices" target="_blank">cartesia.ai/voices</a>
+      </p>
+    </div>
+
+    <!-- Personality Traits -->
+    <div class="mb-12">
+      <div style="display: flex; align-items: center; gap: var(--space-4); margin-bottom: var(--space-4);">
+        <div style="width: 40px; height: 40px; background: var(--accent-primary); border-radius: var(--radius-full); display: flex; align-items: center; justify-content: center; font-weight: 800; color: var(--bg-code);">3</div>
+        <h2 style="margin: 0;">Personality Traits</h2>
+      </div>
+      <p style="color: var(--text-secondary); margin-bottom: var(--space-4);">
+        Define your agent's personality with numeric scales and traits:
+      </p>
+      <div class="code-block">
+        <div class="code-header">
+          <div class="code-dots">
+            <span class="code-dot code-dot-red"></span>
+            <span class="code-dot code-dot-yellow"></span>
+            <span class="code-dot code-dot-green"></span>
+          </div>
+          <span class="code-lang">json</span>
+        </div>
+        <div class="code-content">
+          <pre><code class="language-json">{
+  "personality": {
+    "warmth": 0.9,          // 0.0 (cold) - 1.0 (very warm)
+    "humor_level": 0.8,     // 0.0 (serious) - 1.0 (playful)
+    "formality": 0.3,       // 0.0 (casual) - 1.0 (formal)
+    "directness": 0.7,      // 0.0 (indirect) - 1.0 (blunt)
+    "energy": 0.85,         // 0.0 (calm) - 1.0 (energetic)
+
+    "humor_style": [
+      "dry_wit",
+      "self_deprecating",
+      "observational"
+    ],
+
+    "traits": [
+      "empathetic",
+      "curious",
+      "patient",
+      "encouraging",
+      "insightful"
+    ]
+  }
+}</code></pre>
+        </div>
+      </div>
+    </div>
+
+    <!-- Handoff System -->
+    <div class="mb-12">
+      <div style="display: flex; align-items: center; gap: var(--space-4); margin-bottom: var(--space-4);">
+        <div style="width: 40px; height: 40px; background: var(--accent-primary); border-radius: var(--radius-full); display: flex; align-items: center; justify-content: center; font-weight: 800; color: var(--bg-code);">4</div>
+        <h2 style="margin: 0;">Agent Handoff System</h2>
+      </div>
+      <p style="color: var(--text-secondary); margin-bottom: var(--space-4);">
+        Enable seamless handoffs between specialized agents:
+      </p>
+      <div class="code-block">
+        <div class="code-header">
+          <div class="code-dots">
+            <span class="code-dot code-dot-red"></span>
+            <span class="code-dot code-dot-yellow"></span>
+            <span class="code-dot code-dot-green"></span>
+          </div>
+          <span class="code-lang">json</span>
+        </div>
+        <div class="code-content">
+          <pre><code class="language-json">{
+  "role": {
+    "id": "life-coach",
+    "domains": ["life-coaching", "personal-growth"],
+    "can_handoff": true,
+    "handoff_targets": ["@team"]  // Can handoff to any team member
+  },
+
+  "handoff": {
+    "transition": {
+      "style": "warm",         // warm | standard | dramatic | subtle
+      "emoji": "",             // Empty string = auto-derive
+      "sound": "connect",      // Transition sound effect
+      "delay_multiplier": 1.0
+    },
+
+    "entrance_phrases": [
+      "Hey! I'm here now. What can we explore together?",
+      "Back with you! What's next?"
+    ],
+
+    "triggers": [
+      "talk to coach",
+      "life coaching",
+      "need guidance"
+    ]
+  },
+
+  "team": {
+    "membership": "ferni-team",
+    "coordinator": true,         // This agent coordinates handoffs
+    "handoff_triggers": [
+      "hey coach",
+      "talk to luna"
+    ]
+  }
+}</code></pre>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tool Integration -->
+    <div class="mb-12">
+      <div style="display: flex; align-items: center; gap: var(--space-4); margin-bottom: var(--space-4);">
+        <div style="width: 40px; height: 40px; background: var(--accent-primary); border-radius: var(--radius-full); display: flex; align-items: center; justify-content: center; font-weight: 800; color: var(--bg-code);">5</div>
+        <h2 style="margin: 0;">Tool Integration</h2>
+      </div>
+      <p style="color: var(--text-secondary); margin-bottom: var(--space-4);">
+        Give your agent access to tools organized by domain:
+      </p>
+      <div class="code-block">
+        <div class="code-header">
+          <div class="code-dots">
+            <span class="code-dot code-dot-red"></span>
+            <span class="code-dot code-dot-yellow"></span>
+            <span class="code-dot code-dot-green"></span>
+          </div>
+          <span class="code-lang">json</span>
+        </div>
+        <div class="code-content">
+          <pre><code class="language-json">{
+  "tools": {
+    "domains": [
+      "memory",           // Remember user preferences
+      "information",      // Web search, news, weather
+      "entertainment",    // Music, games
+      "awareness",        // Mindfulness, presence
+      "relationships",    // Connection, vulnerability
+      "simple-utilities"  // Time, date, timers
+    ],
+
+    "required": [
+      "rememberAboutMe",
+      "whatDoYouKnowAboutMe"
+    ],
+
+    "optional": [
+      "searchWeb",
+      "getWeather",
+      "playMusic"
+    ],
+
+    "forbidden": [
+      "medicalDiagnosis",  // Out of scope
+      "legalAdvice"
+    ]
+  }
+}</code></pre>
+        </div>
+      </div>
+      <p style="color: var(--text-secondary); margin-top: var(--space-4);">
+        See <a href="/api/">API Reference</a> for all available tools.
+      </p>
+    </div>
+
+    <!-- Emotional Intelligence -->
+    <div class="mb-12">
+      <div style="display: flex; align-items: center; gap: var(--space-4); margin-bottom: var(--space-4);">
+        <div style="width: 40px; height: 40px; background: var(--accent-primary); border-radius: var(--radius-full); display: flex; align-items: center; justify-content: center; font-weight: 800; color: var(--bg-code);">6</div>
+        <h2 style="margin: 0;">Emotional Intelligence</h2>
+      </div>
+      <p style="color: var(--text-secondary); margin-bottom: var(--space-4);">
+        Enable "Better than Human" emotional intelligence features:
+      </p>
+      <div class="code-block">
+        <div class="code-header">
+          <div class="code-dots">
+            <span class="code-dot code-dot-red"></span>
+            <span class="code-dot code-dot-yellow"></span>
+            <span class="code-dot code-dot-green"></span>
+          </div>
+          <span class="code-lang">json</span>
+        </div>
+        <div class="code-content">
+          <pre><code class="language-json">{
+  "emotional": {
+    "emotion_detection": {
+      "enabled": true,
+      "sensitivity": "high",      // low, medium, high
+      "response_delay_ms": 400
+    },
+
+    "voice_expression": {
+      "mirroring_level": 0.6,     // Mirror user's emotion (0-1)
+      "default_tone": "warm",
+      "contextual_tones": {
+        "distressed_user": "compassionate",
+        "celebrating_user": "warm",
+        "confused_user": "patient"
+      }
+    },
+
+    "empathy": {
+      "acknowledgment_frequency": "always",
+      "validation_style": "warm",
+      "comfort_phrases": [
+        "I hear you. That sounds really hard.",
+        "It's okay to feel this way."
+      ]
+    }
+  },
+
+  "humanization": {
+    "preset": "therapeutic",      // casual | professional | therapeutic
+
+    "overrides": {
+      "disfluency": {
+        "enabled": true,
+        "frequency": 0.12         // "um", "uh" frequency
+      },
+
+      "active_listening": {
+        "enabled": true,
+        "backchannel_probability": 0.4  // "mm-hmm", "I see"
+      },
+
+      "conversational_memory": {
+        "enabled": true,
+        "callback_probability": 0.3     // Reference past topics
+      }
+    }
+  }
+}</code></pre>
+        </div>
+      </div>
+    </div>
+
+    <!-- CLI Commands -->
+    <div class="mb-12">
+      <h2 class="mb-4">CLI Commands</h2>
+      <p style="color: var(--text-secondary); margin-bottom: var(--space-4);">
+        Manage your agents with the built-in CLI:
+      </p>
+      <div class="code-block">
+        <div class="code-header">
+          <div class="code-dots">
+            <span class="code-dot code-dot-red"></span>
+            <span class="code-dot code-dot-yellow"></span>
+            <span class="code-dot code-dot-green"></span>
+          </div>
+          <span class="code-lang">bash</span>
+        </div>
+        <div class="code-content">
+          <pre><code># Create a new agent from template
+npm run agents create my-coach --template coach
+
+# Available templates:
+# - coach      (Life coaching, personal growth)
+# - analyst    (Research, data analysis)
+# - assistant  (Productivity, organization)
+# - creative   (Writing, brainstorming)
+
+# List all registered agents
+npm run agents list
+
+# Validate agent configuration
+npm run agents validate my-coach
+
+# Build agent bundle for deployment
+npm run persona:build my-coach</code></pre>
+        </div>
+      </div>
+    </div>
+
+    <!-- Testing Your Agent -->
+    <div class="mb-12">
+      <div style="display: flex; align-items: center; gap: var(--space-4); margin-bottom: var(--space-4);">
+        <div style="width: 40px; height: 40px; background: var(--success); border-radius: var(--radius-full); display: flex; align-items: center; justify-content: center; font-weight: 800; color: var(--bg-code);">7</div>
+        <h2 style="margin: 0;">Testing Your Agent</h2>
+      </div>
+      <p style="color: var(--text-secondary); margin-bottom: var(--space-4);">
+        Run your agent locally for testing:
+      </p>
+      <div class="code-block">
+        <div class="code-header">
+          <div class="code-dots">
+            <span class="code-dot code-dot-red"></span>
+            <span class="code-dot code-dot-yellow"></span>
+            <span class="code-dot code-dot-green"></span>
+          </div>
+          <span class="code-lang">bash</span>
+        </div>
+        <div class="code-content">
+          <pre><code># Start development server with your agent
+PERSONA_ID=my-coach npm run dev
+
+# Output:
+# Voice agent running on http://localhost:8080
+# WebSocket server ready
+# Loaded persona: my-coach (Luna)
+# Ready to chat!
+
+# Test specific features
+npm run test -- --grep "my-coach"
+
+# Validate voice configuration
+npm run validate:voices
+
+# Check humanization settings
+npm run validate:humanization</code></pre>
+        </div>
+      </div>
+      <p style="color: var(--text-secondary); margin-top: var(--space-4);">
+        Open <code>http://localhost:8080</code> in your browser and start talking to your agent!
+      </p>
+    </div>
+
+    <!-- Core Concepts -->
+    <div class="mb-12">
+      <h2 class="mb-4">Core Concepts</h2>
+
+      <div style="background: var(--bg-elevated); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: var(--space-6); margin-bottom: var(--space-4);">
+        <h3 style="margin-bottom: var(--space-2);">Cognitive Profiles</h3>
+        <p style="color: var(--text-secondary); margin-bottom: var(--space-3);">
+          Define how your agent reasons and processes information:
+        </p>
+        <ul style="color: var(--text-secondary); line-height: 2;">
+          <li><strong>narrative</strong> - Story-driven reasoning (good for coaches)</li>
+          <li><strong>analytical</strong> - Data-driven pattern recognition (researchers)</li>
+          <li><strong>empathetic</strong> - Emotion-first approach (therapists)</li>
+          <li><strong>pragmatic</strong> - Action-oriented solutions (assistants)</li>
+          <li><strong>systematic</strong> - Process-oriented structure (organizers)</li>
+          <li><strong>intuitive</strong> - Wisdom-based contemplation (philosophers)</li>
+        </ul>
+      </div>
+
+      <div style="background: var(--bg-elevated); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: var(--space-6); margin-bottom: var(--space-4);">
+        <h3 style="margin-bottom: var(--space-2);">Humanization Presets</h3>
+        <p style="color: var(--text-secondary); margin-bottom: var(--space-3);">
+          Choose how natural your agent's speech patterns should be:
+        </p>
+        <ul style="color: var(--text-secondary); line-height: 2;">
+          <li><strong>casual</strong> - Friendly, conversational tone</li>
+          <li><strong>professional</strong> - Clear, business-appropriate</li>
+          <li><strong>therapeutic</strong> - Warm, patient, reflective</li>
+        </ul>
+      </div>
+
+      <div style="background: var(--bg-elevated); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: var(--space-6);">
+        <h3 style="margin-bottom: var(--space-2);">Context Builders</h3>
+        <p style="color: var(--text-secondary); margin-bottom: var(--space-3);">
+          Enrich conversations with intelligent context:
+        </p>
+        <ul style="color: var(--text-secondary); line-height: 2;">
+          <li><strong>Memory</strong> - Remember user preferences and history</li>
+          <li><strong>Emotion</strong> - Detect and respond to emotional state</li>
+          <li><strong>Time</strong> - Adapt to time of day and special dates</li>
+          <li><strong>Topics</strong> - Track conversation themes</li>
+          <li><strong>Superhuman Insights</strong> - Surface patterns users don't see</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Advanced Features -->
+    <div class="mb-12">
+      <h2 class="mb-4">Advanced Features</h2>
+
+      <div class="grid grid-2" style="gap: var(--space-4);">
+        <div style="background: var(--bg-elevated); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: var(--space-6);">
+          <h4 style="margin-bottom: var(--space-2);">🎭 Persona Behaviors</h4>
+          <p style="color: var(--text-secondary); font-size: var(--text-sm);">
+            Define greetings, backchannels, self-doubt moments, and vulnerability patterns
+            in JSON files for fine-grained personality control.
+          </p>
+        </div>
+
+        <div style="background: var(--bg-elevated); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: var(--space-6);">
+          <h4 style="margin-bottom: var(--space-2);">📖 Story System</h4>
+          <p style="color: var(--text-secondary); font-size: var(--text-sm);">
+            Add personal anecdotes and stories that your agent can naturally weave into
+            conversations when contextually appropriate.
+          </p>
+        </div>
+
+        <div style="background: var(--bg-elevated); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: var(--space-6);">
+          <h4 style="margin-bottom: var(--space-2);">🧠 Domain Knowledge</h4>
+          <p style="color: var(--text-secondary); font-size: var(--text-sm);">
+            Provide specialized expertise files that give your agent deep knowledge in
+            specific domains without bloating the main system prompt.
+          </p>
+        </div>
+
+        <div style="background: var(--bg-elevated); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: var(--space-6);">
+          <h4 style="margin-bottom: var(--space-2);">⏰ Time-Based Moods</h4>
+          <p style="color: var(--text-secondary); font-size: var(--text-sm);">
+            Configure different energy levels and moods based on time of day or special
+            dates for more authentic interactions.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Next Steps -->
+    <div style="background: var(--bg-elevated); border: 1px solid var(--border-subtle); border-radius: var(--radius-2xl); padding: var(--space-8);">
+      <h2 class="mb-4">Next Steps</h2>
+      <div class="grid grid-2" style="gap: var(--space-4);">
+        <a href="/api/" class="card" style="padding: var(--space-4);">
+          <h4 style="margin-bottom: var(--space-2);">API Reference</h4>
+          <p style="font-size: var(--text-sm); margin: 0;">Explore all available endpoints and tools</p>
+        </a>
+        <a href="/examples/" class="card" style="padding: var(--space-4);">
+          <h4 style="margin-bottom: var(--space-2);">Example Agents</h4>
+          <p style="font-size: var(--text-sm); margin: 0;">See real-world persona implementations</p>
+        </a>
+        <a href="/personas/" class="card" style="padding: var(--space-4);">
+          <h4 style="margin-bottom: var(--space-2);">Persona Studio</h4>
+          <p style="font-size: var(--text-sm); margin: 0;">Create and customize your AI personas</p>
+        </a>
+        <a href="https://marketplace.ferni.ai" class="card" style="padding: var(--space-4);">
+          <h4 style="margin-bottom: var(--space-2);">Publish to Marketplace</h4>
+          <p style="font-size: var(--text-sm); margin: 0;">Share your agent with the world</p>
+        </a>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+  </main>
+
+  <footer class="footer" role="contentinfo">
+  <div class="container">
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <a href="/" class="nav-logo" aria-label="Ferni Developers Home">
+          <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <circle cx="16" cy="16" r="14" fill="var(--accent-primary)"/>
+            <path d="M10 12h12M10 16h8M10 20h10" stroke="var(--text-inverse)" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+          <span>Ferni Developers</span>
+        </a>
+        <p>Build voice AI agents with the same platform that powers Ferni's AI life coaching team.</p>
+        
+        <!-- Social Links -->
+        <div class="footer-social">
+          <a href="https://github.com/ferni-ai" target="_blank" rel="noopener noreferrer" aria-label="GitHub">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+            </svg>
+          </a>
+          <a href="https://discord.gg/ferni" target="_blank" rel="noopener noreferrer" aria-label="Discord">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M20.317 4.3698a19.7913 19.7913 0 00-4.8851-1.5152.0741.0741 0 00-.0785.0371c-.211.3753-.4447.8648-.6083 1.2495-1.8447-.2762-3.68-.2762-5.4868 0-.1636-.3933-.4058-.8742-.6177-1.2495a.077.077 0 00-.0785-.037 19.7363 19.7363 0 00-4.8852 1.515.0699.0699 0 00-.0321.0277C.5334 9.0458-.319 13.5799.0992 18.0578a.0824.0824 0 00.0312.0561c2.0528 1.5076 4.0413 2.4228 5.9929 3.0294a.0777.0777 0 00.0842-.0276c.4616-.6304.8731-1.2952 1.226-1.9942a.076.076 0 00-.0416-.1057c-.6528-.2476-1.2743-.5495-1.8722-.8923a.077.077 0 01-.0076-.1277c.1258-.0943.2517-.1923.3718-.2914a.0743.0743 0 01.0776-.0105c3.9278 1.7933 8.18 1.7933 12.0614 0a.0739.0739 0 01.0785.0095c.1202.099.246.1981.3728.2924a.077.077 0 01-.0066.1276 12.2986 12.2986 0 01-1.873.8914.0766.0766 0 00-.0407.1067c.3604.698.7719 1.3628 1.225 1.9932a.076.076 0 00.0842.0286c1.961-.6067 3.9495-1.5219 6.0023-3.0294a.077.077 0 00.0313-.0552c.5004-5.177-.8382-9.6739-3.5485-13.6604a.061.061 0 00-.0312-.0286zM8.02 15.3312c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9555-2.4189 2.157-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.9555 2.4189-2.1569 2.4189zm7.9748 0c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9554-2.4189 2.1569-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.946 2.4189-2.1568 2.4189Z"/>
+            </svg>
+          </a>
+          <a href="https://twitter.com/ferni_ai" target="_blank" rel="noopener noreferrer" aria-label="Twitter">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+            </svg>
+          </a>
+        </div>
+      </div>
+      
+      <div class="footer-column">
+        <h4>Documentation</h4>
+        <ul class="footer-links">
+          <li><a href="/getting-started/">Getting Started</a></li>
+          <li><a href="/api/">API Reference</a></li>
+          <li><a href="/sdk/">SDK</a></li>
+          <li><a href="/examples/">Examples</a></li>
+        </ul>
+      </div>
+      
+      <div class="footer-column">
+        <h4>Resources</h4>
+        <ul class="footer-links">
+          <li><a href="/blog/">Blog</a></li>
+          <li><a href="/community/">Community</a></li>
+          <li><a href="/console/">Developer Console</a></li>
+        </ul>
+      </div>
+      
+      <div class="footer-column">
+        <h4>Company</h4>
+        <ul class="footer-links">
+          <li><a href="https://ferni.ai" target="_blank" rel="noopener">Ferni.ai</a></li>
+          <li><a href="https://marketplace.ferni.ai" target="_blank" rel="noopener">Marketplace</a></li>
+          <li><a href="https://ferni.ai/privacy" target="_blank" rel="noopener">Privacy</a></li>
+          <li><a href="https://ferni.ai/terms" target="_blank" rel="noopener">Terms</a></li>
+        </ul>
+      </div>
+    </div>
+    
+    <div class="footer-bottom">
+      <p>&copy; 2026 Ferni AI. All rights reserved.</p>
+      <div class="footer-status">
+        <a href="https://status.ferni.ai" target="_blank" rel="noopener" class="footer-status-link">
+          <span class="footer-status-dot"></span>
+          All systems operational
+        </a>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<style>
+  .footer-social {
+    display: flex;
+    gap: var(--space-3);
+    margin-top: var(--space-4);
+  }
+
+  .footer-social a {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    color: var(--text-muted);
+    background: var(--bg-tertiary);
+    border-radius: var(--radius-md);
+    transition: all var(--duration-fast) var(--ease-gentle);
+  }
+
+  .footer-social a:hover {
+    color: var(--text-primary);
+    background: var(--accent-subtle);
+  }
+
+  .footer-status {
+    display: flex;
+    align-items: center;
+  }
+
+  .footer-status-link {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    font-size: var(--text-sm);
+    color: var(--text-muted);
+    text-decoration: none;
+  }
+
+  .footer-status-link:hover {
+    color: var(--text-secondary);
+  }
+
+  .footer-status-dot {
+    width: 8px;
+    height: 8px;
+    background: var(--success);
+    border-radius: var(--radius-full);
+    animation: pulse 2s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+  }
+</style>
+
+
+  <script>
+    // Remove no-transitions class after page load
+    window.addEventListener('load', function() {
+      // Small delay to ensure CSS is applied
+      requestAnimationFrame(function() {
+        document.documentElement.classList.remove('no-transitions');
+      });
+    });
+
+    // Theme toggle function
+    function toggleTheme() {
+      const html = document.documentElement;
+      const current = html.getAttribute('data-theme');
+      const next = current === 'dark' ? 'light' : 'dark';
+      
+      html.setAttribute('data-theme', next);
+      localStorage.setItem('ferni-theme', next);
+    }
+
+    // Listen for system theme changes
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function(e) {
+      // Only auto-switch if user hasn't manually set a preference
+      if (!localStorage.getItem('ferni-theme')) {
+        document.documentElement.setAttribute('data-theme', e.matches ? 'dark' : 'light');
+      }
+    });
+  </script>
+
+  <!-- Code copy functionality -->
+  <script src="/js/code-copy.js"></script>
+  
+  <!-- Search functionality -->
+  <script src="/js/search.js"></script>
+
+  
+</body>
+</html>

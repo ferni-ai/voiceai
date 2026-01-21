@@ -195,8 +195,14 @@ async function buildWithEsbuild(watch = false): Promise<void> {
   const entryPoints = allFiles.filter((file) => {
     const relPath = relative(CONFIG.srcDir, file);
     return !CONFIG.exclude.some((pattern) => {
-      // Simple glob matching
-      const regex = new RegExp(pattern.replace(/\*\*/g, '.*').replace(/\*/g, '[^/]*'));
+      // Simple glob matching - escape dots BEFORE glob replacements
+      // to prevent patterns like "*.test.ts" from matching "foo-test.ts"
+      const regex = new RegExp(
+        pattern
+          .replace(/\./g, '\\.') // Escape literal dots first
+          .replace(/\*\*/g, '.*') // ** matches any path
+          .replace(/\*/g, '[^/]*') // * matches segment without slashes
+      );
       return regex.test(relPath);
     });
   });

@@ -520,6 +520,7 @@
       "handoff",
       "cameo",
       "information",
+      "entertainment",
       "calendar",
       "communication",
       "telephony",
@@ -613,7 +614,6 @@
       "analyzeStock",
       "getStockQuote",
       "makeTrade",
-      "playMusic",
       "createHabit",
       "logHabitCompletion"
     ]
@@ -623,7 +623,7 @@
     "can_handoff": true,
     "handoff_targets": ["@coordinator", "@team"],
     "banking_enabled": false,
-    "music_enabled": false,
+    "music_enabled": true,
     "communication_enabled": true,
     "calendar_enabled": true
   },

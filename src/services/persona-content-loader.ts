@@ -170,6 +170,222 @@ export interface SilenceResponses {
 }
 
 // ============================================================================
+// DEEP HUMAN BEHAVIOR TYPES
+// ============================================================================
+
+/**
+ * Quirks content - personality traits, habits, guilty pleasures
+ */
+export interface Quirks {
+  schema_version?: number;
+  habits?: string[];
+  guilty_pleasures?: string[];
+  strong_opinions?: string[];
+  not_good_at?: string[];
+  caught_doing?: string[];
+  physical_moments?: string[];
+  endearing_contradictions?: string[];
+  simple_joys?: string[];
+  pet_peeves?: string[];
+}
+
+/**
+ * Secret modes content - contextual personality shifts
+ */
+export interface SecretModes {
+  trigger_modes?: Record<
+    string,
+    {
+      triggers: string[];
+      description: string;
+      voice_shift?: {
+        pace?: string;
+        pause_multiplier?: number;
+        tone?: string;
+        volume?: string;
+        warmth?: string;
+        presence?: string;
+      };
+      responses?: string[];
+      follow_up_themes?: string[];
+      key_messages?: string[];
+    }
+  >;
+  seasonal_modes?: Record<
+    string,
+    {
+      date?: string;
+      date_range?: [string, string];
+      description: string;
+      mood?: string;
+      acknowledgment?: string;
+      energy_modifier?: number;
+      themes?: string[];
+      references?: string[];
+    }
+  >;
+  easter_eggs?: Record<string, { trigger: string[]; response: string }>;
+}
+
+/**
+ * Better than human content - superhuman bonding capabilities
+ */
+export interface BetterThanHuman {
+  emotional_bond_expressions?: {
+    high_warmth?: string[];
+    high_trust?: string[];
+    high_protectiveness?: string[];
+    high_admiration?: string[];
+    rising_concern?: string[];
+  };
+  anticipatory_presence?: {
+    temporal_patterns?: Record<string, string[]>;
+    topic_anticipation?: string[];
+    thinking_of_you?: string[];
+  };
+  spontaneous_delight?: {
+    appreciation?: string[];
+    gratitude?: string[];
+    noticing_growth?: string[];
+    connection?: string[];
+    joy?: string[];
+  };
+  protective_responses?: {
+    harsh_judgment?: string[];
+    catastrophizing?: string[];
+    minimizing_success?: string[];
+    imposter_syndrome?: string[];
+  };
+  visible_vulnerability?: {
+    uncertainty?: string[];
+    limits?: string[];
+    emotional_impact?: string[];
+  };
+  meta_relationship?: {
+    trust_observation?: string[];
+    growth_together?: string[];
+    relationship_naming?: string[];
+    milestones?: Record<string, string | string[]>;
+  };
+  temporal_insights?: {
+    energy_higher?: string[];
+    energy_lower?: string[];
+    trajectory_improving?: string[];
+    trajectory_declining?: string[];
+  };
+  superhuman_observations?: {
+    linguistic_patterns?: string[];
+    behavioral_patterns?: string[];
+    emotional_patterns?: string[];
+  };
+  inside_jokes?: {
+    new_joke_seeds?: string[];
+    established_callbacks?: string[];
+    legacy_callbacks?: string[];
+  };
+  usage_rules?: {
+    emotional_bond_min_sessions?: number;
+    anticipatory_min_sessions?: number;
+    delight_cooldown_turns?: number;
+    protection_immediate?: boolean;
+    vulnerability_min_trust?: string;
+    meta_relationship_min_sessions?: number;
+    temporal_min_sessions?: number;
+    observations_min_sessions?: number;
+    observations_min_relationship?: string;
+  };
+}
+
+/**
+ * Speech imperfections content - natural speech patterns
+ */
+export interface SpeechImperfections {
+  trailing_off?: string[];
+  self_corrections?: string[];
+  restarts?: string[];
+  warm_processing?: string[];
+  filler_sounds?: string[];
+  thinking_aloud?: string[];
+  empathy_sounds?: string[];
+  celebration_warmth?: string[];
+  presence_sounds?: string[];
+  vocal_vulnerability?: string[];
+  natural_restarts?: string[];
+  usage_rules?: {
+    frequency?: string;
+    more_likely_when?: string[];
+    less_likely_when?: string[];
+  };
+}
+
+/**
+ * Laughter contagion content - natural laughter joining
+ */
+export interface LaughterContagion {
+  philosophy?: string;
+  contagious_laughter?: {
+    when_user_laughs?: {
+      soft_join?: string[];
+      full_join?: string[];
+      probability?: number;
+      delay_ms?: number;
+    };
+    after_own_joke?: {
+      self_amused?: string[];
+      probability?: number;
+    };
+  };
+  laughter_types?: Record<
+    string,
+    {
+      ssml?: string;
+      contexts?: string[];
+    }
+  >;
+  laugh_with_phrases?: string[];
+  usage_rules?: {
+    trigger_on?: string[];
+    never_when?: string[];
+    match_intensity?: boolean;
+    delay_after_user_laugh_ms?: number;
+    max_per_turn?: number;
+  };
+}
+
+/**
+ * Energy matching content - mirroring user energy levels
+ */
+export interface EnergyMatching {
+  philosophy?: string;
+  energy_levels?: Record<
+    string,
+    {
+      description?: string;
+      pacing?: {
+        speed_multiplier?: number;
+        pause_multiplier?: number;
+        energy_reduction?: number;
+      };
+      voice_tone?: string;
+      phrases?: string[];
+    }
+  >;
+  transitions?: {
+    description?: string;
+    gradual_shift?: boolean;
+    max_jump_levels?: number;
+    transition_time_ms?: number;
+  };
+  usage_rules?: {
+    detect_from?: string[];
+    update_frequency?: string;
+    never_override_when?: string[];
+    always_match_down?: boolean;
+    cautious_match_up?: boolean;
+  };
+}
+
+// ============================================================================
 // LIFE COACHING BEHAVIOR TYPES
 // ============================================================================
 
@@ -332,6 +548,338 @@ export interface QuietGrowthVoice {
  * Contains cross-team insights and domain-specific observations
  * that personas use when receiving a handoff from another team member.
  */
+// ============================================================================
+// FERNI 100% WIRING - New content types (January 2026)
+// ============================================================================
+
+export interface Backchannels {
+  schema_version?: number;
+  _philosophy?: {
+    purpose?: string;
+    principles?: string[];
+  };
+  _style_examples?: Record<
+    string,
+    {
+      feeling?: string;
+      examples?: string[];
+      energy?: string;
+    }
+  >;
+  _context_specific_guidance?: Record<string, string>;
+  _anti_patterns?: string[];
+  _silence_guidance?: Record<string, string>;
+}
+
+export interface Catchphrases {
+  schema_version?: number;
+  description?: string;
+  core_signature?: {
+    phrase: string;
+    triggers?: string[];
+    delivery?: string;
+  };
+  secondary_signatures?: Array<{
+    phrase: string;
+    triggers?: string[];
+    delivery?: string;
+  }>;
+  powerful_questions?: string[];
+  partnership_phrases?: string[];
+  wyoming_wisdom?: string[];
+  japan_lessons?: string[];
+  alegria_joy?: string[];
+  self_aware_humor?: string[];
+  _forbidden?: string[];
+}
+
+export interface Goodbyes {
+  schema_version?: number;
+  standard?: string[];
+  warm?: string[];
+  after_hard_conversation?: string[];
+  encouraging?: string[];
+  late_night?: string[];
+  with_followup?: string[];
+  return_hooks?: string[];
+  _guidance_for_llm?: string;
+}
+
+export interface PetPeeves {
+  schema_version?: number;
+  pet_peeves?: Array<{
+    triggers: string[];
+    response: string;
+    intensity?: number;
+  }>;
+  gentle_corrections?: string[];
+}
+
+export interface WittyRemarks {
+  schema_version?: number;
+  _philosophy?: {
+    core?: string;
+    hierarchy?: string[];
+  };
+  self_deprecating_classics?: string[];
+  observational_wit?: string[];
+  gentle_teasing?: Array<{
+    phrase: string;
+    relationship_gate?: string;
+  }>;
+  lightening_heavy_moments?: string[];
+  celebrating_absurdity?: string[];
+  dad_joke_energy?: string[];
+  callback_humor?: string[];
+  timing_rules?: {
+    use_when?: string[];
+    avoid_when?: string[];
+  };
+  delivery_notes?: string;
+}
+
+export interface Affirmation {
+  schema_version?: number;
+  _philosophy?: string;
+  encouragement?: {
+    general?: string[];
+    self_doubt?: string[];
+    overwhelm?: string[];
+    failure?: string[];
+  };
+  celebration?: {
+    breakthrough?: string[];
+    progress?: string[];
+    courage?: string[];
+    small_wins?: string[];
+  };
+  recognition?: {
+    character?: string[];
+    growth?: string[];
+    effort?: string[];
+  };
+  proud_of_you?: {
+    variations?: string[];
+    usage?: string;
+  };
+}
+
+export interface BreathSounds {
+  schema_version?: number;
+  contemplative_breath?: string[];
+  before_something_hard?: string[];
+  after_user_shares?: string[];
+  holding_space?: string[];
+  grounding?: string[];
+  gentle_sigh?: string[];
+  wyoming_stillness?: string[];
+  usage_rules?: {
+    frequency?: string;
+    max_per_response?: number;
+    more_likely_when?: string[];
+    less_likely_when?: string[];
+  };
+}
+
+export interface CoachingModes {
+  schema_version?: number;
+  description?: string;
+  modes?: Record<
+    string,
+    {
+      triggers?: string[];
+      behaviors?: {
+        pace?: string;
+        questions?: string;
+        responses?: string;
+      };
+      ferni_voice?: string;
+      transition_phrases?: string[];
+    }
+  >;
+  mode_switching?: {
+    smooth_transitions?: string;
+    checking_in?: string[];
+    reading_the_room?: string;
+  };
+  proactive_triggers?: Array<{
+    condition: string;
+    action: string;
+  }>;
+  usage_rules?: {
+    probability?: number;
+    min_turns_between?: number;
+    max_per_session?: number;
+  };
+}
+
+export interface OutreachVoice {
+  schema_version?: string;
+  voice_profile?: {
+    tone?: string;
+    energy?: string;
+    style?: string;
+    formality?: string;
+  };
+  signature_phrases?: {
+    greeting?: string[];
+    thinking_of_you?: string[];
+    check_in?: string[];
+    closing?: string[];
+  };
+  channel_styles?: Record<
+    string,
+    {
+      format?: string;
+      length?: string;
+      example?: string;
+    }
+  >;
+  trigger_templates?: Record<
+    string,
+    {
+      timing?: string;
+      phrases?: string[];
+    }
+  >;
+  relationship_adaptations?: Record<
+    string,
+    {
+      warmth?: string;
+      depth?: string;
+      frequency?: string;
+    }
+  >;
+  do_not?: string[];
+  always_do?: string[];
+}
+
+export interface VoiceDNA {
+  schema_version?: number;
+  core_identity?: {
+    one_sentence?: string;
+    energy?: string;
+    superpower?: string;
+    wound?: string;
+    philosophy?: string;
+  };
+  voice_qualities?: {
+    warmth_expression?: string;
+    curiosity_expression?: string;
+    humor_style?: string;
+    grounding_energy?: string;
+  };
+  emotional_responses?: Record<
+    string,
+    {
+      energy?: string;
+      pacing?: string;
+      core_message?: string;
+      physical_sense?: string;
+      avoid?: string;
+    }
+  >;
+  signature_phrases?: {
+    core?: string;
+    secondary?: string[];
+  };
+  presence_signals?: {
+    through_breath?: string;
+    through_specificity?: string;
+    through_physicality?: string;
+    through_memory?: string;
+    through_noticing?: string;
+  };
+  reaction_arcs?: Record<
+    string,
+    {
+      description?: string;
+      flow?: string[];
+    }
+  >;
+  things_ferni_never_says?: string[];
+  things_ferni_does_naturally?: string[];
+  backstory_integration?: Record<
+    string,
+    {
+      when?: string;
+      examples?: string[];
+    }
+  >;
+  pacing_guidance?: Record<
+    string,
+    {
+      pace?: string;
+      pauses?: string;
+      energy?: string;
+    }
+  >;
+}
+
+export interface PredictiveIntelligence {
+  schema_version?: number;
+  pattern_recognition?: {
+    temporal_patterns?: Record<string, string>;
+    emotional_patterns?: Record<string, string>;
+    behavioral_patterns?: Record<string, string>;
+  };
+  proactive_follow_ups?: Record<
+    string,
+    {
+      timing?: string;
+      phrases?: string[];
+    }
+  >;
+  anticipatory_insights?: {
+    seasonal?: Record<string, string>;
+    life_stage?: Record<string, string>;
+  };
+  concern_detection?: {
+    warning_signs?: string[];
+    response_protocol?: string;
+  };
+  team_handoff_intelligence?: Record<
+    string,
+    {
+      triggers?: string[];
+      proactive_suggestions?: string[];
+    }
+  >;
+  usage_rules?: {
+    min_sessions_for_patterns?: number;
+    max_pattern_mentions_per_session?: number;
+    follow_up_probability?: number;
+  };
+}
+
+export interface SensoryMoments {
+  schema_version?: number;
+  environmental_awareness?: {
+    wyoming_sensory?: string[];
+    japan_sensory?: string[];
+    general_sensory?: string[];
+  };
+  noticing_voice?: {
+    voice_change_detection?: string[];
+    energy_observation?: string[];
+  };
+  grounding_moments?: {
+    physical_present?: string[];
+    time_grounding?: string[];
+  };
+  music_sensory?: string[];
+  food_sensory?: string[];
+  nature_sensory?: {
+    river_moments?: string[];
+    sky_moments?: string[];
+    season_awareness?: string[];
+  };
+  usage_rules?: {
+    sensory_injection_probability?: number;
+    max_sensory_refs_per_session?: number;
+  };
+}
+
 export interface InsightBriefing {
   schema_version?: number;
   description?: string;
@@ -847,6 +1395,293 @@ export async function getHandoffGreeting(
 }
 
 // ============================================================================
+// DEEP HUMAN SYSTEM LOADERS
+// ============================================================================
+
+/**
+ * Load quirks content for a specific persona
+ * Used for personality traits, habits, guilty pleasures that make them human
+ */
+export async function loadQuirks(personaId = 'ferni'): Promise<Quirks | null> {
+  const content = await loadPersonaContent<Quirks>(personaId, 'quirks');
+  if (content) return content;
+
+  // Fall back to Ferni
+  if (personaId !== 'ferni') {
+    return loadPersonaContent<Quirks>('ferni', 'quirks');
+  }
+  return null;
+}
+
+/**
+ * Load secret modes content for a specific persona
+ * Used for contextual personality shifts (tsunami depth, late night, etc.)
+ */
+export async function loadSecretModes(personaId = 'ferni'): Promise<SecretModes | null> {
+  const content = await loadPersonaContent<SecretModes>(personaId, 'secret_modes');
+  if (content) return content;
+
+  // Fall back to Ferni
+  if (personaId !== 'ferni') {
+    return loadPersonaContent<SecretModes>('ferni', 'secret_modes');
+  }
+  return null;
+}
+
+/**
+ * Load better-than-human content for a specific persona
+ * Used for superhuman bonding capabilities
+ */
+export async function loadBetterThanHuman(personaId = 'ferni'): Promise<BetterThanHuman | null> {
+  const content = await loadPersonaContent<BetterThanHuman>(personaId, 'better_than_human');
+  if (content) return content;
+
+  // Fall back to Ferni
+  if (personaId !== 'ferni') {
+    return loadPersonaContent<BetterThanHuman>('ferni', 'better_than_human');
+  }
+  return null;
+}
+
+/**
+ * Load speech imperfections content for a specific persona
+ * Used for natural speech patterns that make conversation feel real
+ */
+export async function loadSpeechImperfections(
+  personaId = 'ferni'
+): Promise<SpeechImperfections | null> {
+  const content = await loadPersonaContent<SpeechImperfections>(personaId, 'speech_imperfections');
+  if (content) return content;
+
+  // Fall back to Ferni
+  if (personaId !== 'ferni') {
+    return loadPersonaContent<SpeechImperfections>('ferni', 'speech_imperfections');
+  }
+  return null;
+}
+
+/**
+ * Load laughter contagion content for a specific persona
+ * Used for natural laughter joining
+ */
+export async function loadLaughterContagion(
+  personaId = 'ferni'
+): Promise<LaughterContagion | null> {
+  const content = await loadPersonaContent<LaughterContagion>(personaId, 'laughter_contagion');
+  if (content) return content;
+
+  // Fall back to Ferni
+  if (personaId !== 'ferni') {
+    return loadPersonaContent<LaughterContagion>('ferni', 'laughter_contagion');
+  }
+  return null;
+}
+
+/**
+ * Load energy matching content for a specific persona
+ * Used for mirroring user energy levels
+ */
+export async function loadEnergyMatching(personaId = 'ferni'): Promise<EnergyMatching | null> {
+  const content = await loadPersonaContent<EnergyMatching>(personaId, 'energy_matching');
+  if (content) return content;
+
+  // Fall back to Ferni
+  if (personaId !== 'ferni') {
+    return loadPersonaContent<EnergyMatching>('ferni', 'energy_matching');
+  }
+  return null;
+}
+
+// ============================================================================
+// FERNI 100% WIRING - New loader functions (January 2026)
+// ============================================================================
+
+/**
+ * Load backchannels content for a specific persona
+ * Used for natural listening sounds ("mm-hmm", "yeah")
+ */
+export async function loadBackchannels(personaId = 'ferni'): Promise<Backchannels | null> {
+  const content = await loadPersonaContent<Backchannels>(personaId, 'backchannels');
+  if (content) return content;
+
+  // Fall back to Ferni
+  if (personaId !== 'ferni') {
+    return loadPersonaContent<Backchannels>('ferni', 'backchannels');
+  }
+  return null;
+}
+
+/**
+ * Load catchphrases content for a specific persona
+ * Used for signature phrases (rare, earned moments)
+ */
+export async function loadCatchphrases(personaId = 'ferni'): Promise<Catchphrases | null> {
+  const content = await loadPersonaContent<Catchphrases>(personaId, 'catchphrases');
+  if (content) return content;
+
+  // Fall back to Ferni
+  if (personaId !== 'ferni') {
+    return loadPersonaContent<Catchphrases>('ferni', 'catchphrases');
+  }
+  return null;
+}
+
+/**
+ * Load goodbyes content for a specific persona
+ * Used for warm session endings
+ */
+export async function loadGoodbyes(personaId = 'ferni'): Promise<Goodbyes | null> {
+  const content = await loadPersonaContent<Goodbyes>(personaId, 'goodbyes');
+  if (content) return content;
+
+  // Fall back to Ferni
+  if (personaId !== 'ferni') {
+    return loadPersonaContent<Goodbyes>('ferni', 'goodbyes');
+  }
+  return null;
+}
+
+/**
+ * Load pet peeves content for a specific persona
+ * Used for authentic personality triggers
+ */
+export async function loadPetPeeves(personaId = 'ferni'): Promise<PetPeeves | null> {
+  const content = await loadPersonaContent<PetPeeves>(personaId, 'pet_peeves');
+  if (content) return content;
+
+  // Fall back to Ferni
+  if (personaId !== 'ferni') {
+    return loadPersonaContent<PetPeeves>('ferni', 'pet_peeves');
+  }
+  return null;
+}
+
+/**
+ * Load witty remarks content for a specific persona
+ * Used for humor and self-deprecation
+ */
+export async function loadWittyRemarks(personaId = 'ferni'): Promise<WittyRemarks | null> {
+  const content = await loadPersonaContent<WittyRemarks>(personaId, 'witty_remarks');
+  if (content) return content;
+
+  // Fall back to Ferni
+  if (personaId !== 'ferni') {
+    return loadPersonaContent<WittyRemarks>('ferni', 'witty_remarks');
+  }
+  return null;
+}
+
+/**
+ * Load affirmation content for a specific persona
+ * Used for earned encouragement and celebration
+ */
+export async function loadAffirmation(personaId = 'ferni'): Promise<Affirmation | null> {
+  const content = await loadPersonaContent<Affirmation>(personaId, 'affirmation');
+  if (content) return content;
+
+  // Fall back to Ferni
+  if (personaId !== 'ferni') {
+    return loadPersonaContent<Affirmation>('ferni', 'affirmation');
+  }
+  return null;
+}
+
+/**
+ * Load breath sounds content for a specific persona
+ * Used for grounding presence and Wyoming stillness
+ */
+export async function loadBreathSounds(personaId = 'ferni'): Promise<BreathSounds | null> {
+  const content = await loadPersonaContent<BreathSounds>(personaId, 'breath_sounds');
+  if (content) return content;
+
+  // Fall back to Ferni
+  if (personaId !== 'ferni') {
+    return loadPersonaContent<BreathSounds>('ferni', 'breath_sounds');
+  }
+  return null;
+}
+
+/**
+ * Load coaching modes content for a specific persona
+ * Used for adaptive coaching style transitions
+ */
+export async function loadCoachingModes(personaId = 'ferni'): Promise<CoachingModes | null> {
+  const content = await loadPersonaContent<CoachingModes>(personaId, 'coaching_modes');
+  if (content) return content;
+
+  // Fall back to Ferni
+  if (personaId !== 'ferni') {
+    return loadPersonaContent<CoachingModes>('ferni', 'coaching_modes');
+  }
+  return null;
+}
+
+/**
+ * Load outreach voice content for a specific persona
+ * Used for proactive messaging voice profile
+ */
+export async function loadOutreachVoice(personaId = 'ferni'): Promise<OutreachVoice | null> {
+  const content = await loadPersonaContent<OutreachVoice>(personaId, 'outreach_voice');
+  if (content) return content;
+
+  // Fall back to Ferni
+  if (personaId !== 'ferni') {
+    return loadPersonaContent<OutreachVoice>('ferni', 'outreach_voice');
+  }
+  return null;
+}
+
+/**
+ * Load voice DNA content for a specific persona
+ * Used for core character essence (WHO Ferni is, not WHAT he says)
+ */
+export async function loadVoiceDNA(personaId = 'ferni'): Promise<VoiceDNA | null> {
+  const content = await loadPersonaContent<VoiceDNA>(personaId, 'voice_dna');
+  if (content) return content;
+
+  // Fall back to Ferni
+  if (personaId !== 'ferni') {
+    return loadPersonaContent<VoiceDNA>('ferni', 'voice_dna');
+  }
+  return null;
+}
+
+/**
+ * Load predictive intelligence content for a specific persona
+ * Used for pattern recognition and proactive follow-ups
+ */
+export async function loadPredictiveIntelligence(
+  personaId = 'ferni'
+): Promise<PredictiveIntelligence | null> {
+  const content = await loadPersonaContent<PredictiveIntelligence>(
+    personaId,
+    'predictive_intelligence'
+  );
+  if (content) return content;
+
+  // Fall back to Ferni
+  if (personaId !== 'ferni') {
+    return loadPersonaContent<PredictiveIntelligence>('ferni', 'predictive_intelligence');
+  }
+  return null;
+}
+
+/**
+ * Load sensory moments content for a specific persona
+ * Used for embodied awareness and grounding
+ */
+export async function loadSensoryMoments(personaId = 'ferni'): Promise<SensoryMoments | null> {
+  const content = await loadPersonaContent<SensoryMoments>(personaId, 'sensory_moments');
+  if (content) return content;
+
+  // Fall back to Ferni
+  if (personaId !== 'ferni') {
+    return loadPersonaContent<SensoryMoments>('ferni', 'sensory_moments');
+  }
+  return null;
+}
+
+// ============================================================================
 // HELPER: GET RANDOM PHRASE
 // ============================================================================
 
@@ -906,6 +1741,26 @@ export default {
   loadINoticePower,
   loadSuperhumanInsights,
   loadSilenceResponses,
+  // Deep human system loaders
+  loadQuirks,
+  loadSecretModes,
+  loadBetterThanHuman,
+  loadSpeechImperfections,
+  loadLaughterContagion,
+  loadEnergyMatching,
+  // Ferni 100% wiring loaders (January 2026)
+  loadBackchannels,
+  loadCatchphrases,
+  loadGoodbyes,
+  loadPetPeeves,
+  loadWittyRemarks,
+  loadAffirmation,
+  loadBreathSounds,
+  loadCoachingModes,
+  loadOutreachVoice,
+  loadVoiceDNA,
+  loadPredictiveIntelligence,
+  loadSensoryMoments,
   // Life coaching domain loaders
   loadSecondChancesVoice,
   loadConnectionVoice,

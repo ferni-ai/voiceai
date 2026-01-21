@@ -93,12 +93,6 @@ async function registerApplicationServices(): Promise<void> {
     return initializeBackgroundTasks();
   });
 
-  // Collective Learning
-  container.registerSingleton(Tokens.CollectiveLearning, async () => {
-    const { initializeCollectiveLearning } = await import('../memory/collective-learning-store.js');
-    return initializeCollectiveLearning();
-  });
-
   // Agent Bus
   container.registerSingleton(Tokens.AgentBus, async () => {
     const { getAgentBus } = await import('../agent-bus.js');
@@ -572,24 +566,20 @@ export async function getServicesFromDI(): Promise<GlobalServices> {
   const vectorStoreResult = container.resolve(Tokens.VectorStore);
   const productivityStoreResult = container.resolve(Tokens.ProductivityStore);
   const backgroundTasksResult = container.resolve(Tokens.BackgroundTasks);
-  const collectiveLearningResult = container.resolve(Tokens.CollectiveLearning);
 
   // Await if they're promises
-  const [store, vectorStore, productivityStore, backgroundTasks, collectiveLearning] =
-    await Promise.all([
-      Promise.resolve(storeResult),
-      Promise.resolve(vectorStoreResult),
-      Promise.resolve(productivityStoreResult),
-      Promise.resolve(backgroundTasksResult),
-      Promise.resolve(collectiveLearningResult),
-    ]);
+  const [store, vectorStore, productivityStore, backgroundTasks] = await Promise.all([
+    Promise.resolve(storeResult),
+    Promise.resolve(vectorStoreResult),
+    Promise.resolve(productivityStoreResult),
+    Promise.resolve(backgroundTasksResult),
+  ]);
 
   return {
     store: store as GlobalServices['store'],
     vectorStore: vectorStore as GlobalServices['vectorStore'],
     productivityStore: productivityStore as GlobalServices['productivityStore'],
     backgroundTasks: backgroundTasks as GlobalServices['backgroundTasks'],
-    collectiveLearning: collectiveLearning as GlobalServices['collectiveLearning'],
     initialized: true,
   };
 }

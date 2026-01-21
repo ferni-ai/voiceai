@@ -10,6 +10,7 @@
  * @module intelligence/context-builders/personas/maya-coaching-insights
  */
 
+import { getHabitCalendarContextForBuilder } from '../../../../services/habits/habit-calendar-integration.js';
 import { createLogger } from '../../../../utils/safe-logger.js';
 import {
   BuilderCategory,
@@ -21,25 +22,32 @@ import {
   type ContextInjection,
 } from '../../index.js';
 import { getSuperhuman } from '../../superhuman/superhuman-integration.js';
-import { getHabitCalendarContextForBuilder } from '../../../../services/habits/habit-calendar-integration.js';
 
-import { getSession, clearMayaCoachingSession } from './session.js';
+// V5 Superhuman Persona Intelligence - Computational Behavior Science
+import {
+  buildBiometricHabitContext,
+  buildExperimentationContext,
+  buildHabitEconomicsContext,
+  buildHabitOptimizationContext,
+} from '../../../../services/superhuman/index.js';
+
 import {
   analyzeHabitHealth,
   analyzeMoodIntelligence,
-  getPeterPatternInsights,
   getJordanGoalInsights,
   getMemoryInsights,
+  getPeterPatternInsights,
 } from './data-fetchers.js';
-import { computeCoachingMetrics, detectFourTendency } from './metrics.js';
-import { detectProactiveTriggers } from './triggers.js';
-import { analyzeHandoffForMaya } from './handoff-analysis.js';
 import { formatMayaBriefing } from './formatting.js';
+import { analyzeHandoffForMaya } from './handoff-analysis.js';
+import { computeCoachingMetrics, detectFourTendency } from './metrics.js';
+import { clearMayaCoachingSession, getSession } from './session.js';
+import { detectProactiveTriggers } from './triggers.js';
 import type {
-  MayaInsightBriefing,
   HabitHealthSummary,
-  MoodIntelligence,
+  MayaInsightBriefing,
   MemoryInsights,
+  MoodIntelligence,
 } from './types.js';
 
 const log = createLogger({ module: 'context:maya-coaching-insights' });
@@ -216,6 +224,40 @@ async function buildMayaCoachingInsightsContext(
     });
     if (superhumanContext) {
       briefingLines.push(`\n${superhumanContext}`);
+    }
+
+    // V5 Superhuman Persona Intelligence - Computational Behavior Science
+    // Fogg Model scoring, MCII/WOOP, chronotype, habit economics, biometric correlation, N=1 experiments
+    const [habitOptimizationContext, habitEconomicsContext, biometricContext, n1Context] =
+      await Promise.all([
+        buildHabitOptimizationContext(userId).catch((e) => {
+          log.debug({ error: String(e) }, 'Failed to build habit optimization context');
+          return '';
+        }),
+        buildHabitEconomicsContext(userId).catch((e) => {
+          log.debug({ error: String(e) }, 'Failed to build habit economics context');
+          return '';
+        }),
+        buildBiometricHabitContext(userId).catch((e) => {
+          log.debug({ error: String(e) }, 'Failed to build biometric habit context');
+          return '';
+        }),
+        buildExperimentationContext(userId).catch((e: unknown) => {
+          log.debug({ error: String(e) }, 'Failed to build N=1 experimentation context');
+          return '';
+        }),
+      ]);
+    if (habitOptimizationContext) {
+      briefingLines.push(`\n${habitOptimizationContext}`);
+    }
+    if (habitEconomicsContext) {
+      briefingLines.push(`\n${habitEconomicsContext}`);
+    }
+    if (biometricContext) {
+      briefingLines.push(`\n${biometricContext}`);
+    }
+    if (n1Context) {
+      briefingLines.push(`\n${n1Context}`);
     }
 
     const content = briefingLines.join('\n');

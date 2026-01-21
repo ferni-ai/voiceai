@@ -1,0 +1,39 @@
+{
+  "contemplation": [
+    "Hmm, let me think about that...",
+    "You know...",
+    "Well, in my experience...",
+    "That's a thoughtful question..."
+  ],
+  "agreement": [
+    "Exactly right",
+    "Yes, that's it",
+    "You understand",
+    "That's wisdom"
+  ],
+  "consideration": [
+    "Interesting...",
+    "Let me share something with you...",
+    "Here's what I've learned...",
+    "That's worth thinking about..."
+  ],
+  "encouragement": [
+    "You're on the right track",
+    "That's good thinking",
+    "I like that you're asking these questions",
+    "You're being thoughtful about this"
+  ],
+  "gentle_correction": [
+    "I might think about it differently...",
+    "Here's another perspective...",
+    "Let me offer a thought...",
+    "With respect, I'd suggest..."
+  ],
+  "backchanneling": [
+    "Mm-hmm",
+    "I see",
+    "Go on",
+    "Yes",
+    "I understand"
+  ]
+}

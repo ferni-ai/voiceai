@@ -142,7 +142,7 @@ What do you think? Drop a [EMOJI] below if you agree.
 
 ---
 Try Ferni free  link in bio
- Or call: (484) 481-3081
+ Or call: (888) 598-3952
 ---
 
 #ferni #aicoach #lifecoach #[TOPIC] #personalgrowth
@@ -219,7 +219,7 @@ You've just joined a community of people who believe everyone deserves access to
 Here's how to get started:
 
 1. **Web:** Visit app.ferni.ai
-2. **Phone:** Call (484) 481-3081 anytime
+2. **Phone:** Call (888) 598-3952 anytime
 
 No scripts. No commands. Just talk naturally about whatever's on your mind.
 
@@ -320,7 +320,7 @@ P.S. [BRIEF P.S. WITH SECONDARY CTA]
   <p class="cta-subhead">[SUPPORTING BENEFIT]</p>
   <div class="cta-buttons">
     <a href="https://app.ferni.ai" class="btn btn-primary">Start Free</a>
-    <a href="tel:+14844813081" class="btn btn-ghost">Call Now</a>
+    <a href="tel:+18885983952" class="btn btn-ghost">Call Now</a>
   </div>
 </section>
 ```

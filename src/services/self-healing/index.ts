@@ -120,6 +120,10 @@ export {
   startHealthMonitoring,
   stopHealthMonitoring,
   isMonitoringActive,
+  // P2 UTO Fix (January 2026): Fast pre-checks for tool execution
+  isServiceHealthyFast,
+  getServicesForFunction,
+  areServicesHealthyFor,
 } from './health-monitors.js';
 export type { HealthCheckResult, HealthMonitor, HealthStatus } from './health-monitors.js';
 

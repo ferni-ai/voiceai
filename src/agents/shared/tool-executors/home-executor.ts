@@ -10,21 +10,22 @@
  * @module agents/shared/tool-executors/home-executor
  */
 
-import { createLogger } from '../../../utils/safe-logger.js';
-import type { DomainExecutor, ToolExecutionContext } from './types.js';
+import { hasAnySmartHomeIntegration } from '../../../services/smart-home/user-credentials.js';
 import {
-  getAllDevices,
-  controlDevice,
   activateScene,
+  controlDevice,
+  getAllDevices,
   setLightsForVibe,
   type SmartDevice,
 } from '../../../tools/domains/smart-home/smart-home.js';
-import { hasAnySmartHomeIntegration } from '../../../services/smart-home/user-credentials.js';
+import { createLogger } from '../../../utils/safe-logger.js';
+import type { DomainExecutor, ToolExecutionContext } from './types.js';
 
 const log = createLogger({ module: 'HomeExecutor' });
 
 /** Tools handled by this executor */
 const HANDLED_TOOLS = [
+  // Domain tool names (camelCase)
   'setlights',
   'gethomestatus',
   'setthermostat',
@@ -38,7 +39,38 @@ const HANDLED_TOOLS = [
   'disarmsecurity',
   'controllight',
   'listdevices',
+  // ===========================================
+  // FTIS V3 Semantic Tool IDs (from category_to_tools.json)
+  // ===========================================
+  // lights category
+  'smarthome_lights',
+  'lights_on',
+  'lights_off',
+  'lights_dim',
+  // thermostat category
+  'smarthome_thermostat',
+  'thermostat_set',
+  // locks category
+  'smarthome_locks',
+  'locks_control',
+  // garage category
+  'smarthome_garage',
+  'garage_control',
 ] as const;
+
+/** Map FTIS tool IDs to canonical handler names */
+const TOOL_ALIASES: Record<string, string> = {
+  smarthome_lights: 'setlights',
+  lights_on: 'setlights',
+  lights_off: 'setlights',
+  lights_dim: 'setlights',
+  smarthome_thermostat: 'setthermostat',
+  thermostat_set: 'setthermostat',
+  smarthome_locks: 'lockdoors',
+  locks_control: 'lockdoors',
+  smarthome_garage: 'controldevice',
+  garage_control: 'controldevice',
+};
 
 /**
  * Get a helpful message when no smart home is configured
@@ -55,10 +87,27 @@ async function execute(
   args: Record<string, unknown>,
   ctx: ToolExecutionContext
 ): Promise<unknown | null> {
-  const fnLower = fn.toLowerCase();
+  let fnLower = fn.toLowerCase();
 
   if (!HANDLED_TOOLS.includes(fnLower as (typeof HANDLED_TOOLS)[number])) {
     return null;
+  }
+
+  // Resolve FTIS aliases to canonical tool names
+  if (TOOL_ALIASES[fnLower]) {
+    log.debug(
+      { original: fnLower, resolved: TOOL_ALIASES[fnLower] },
+      '🔀 Resolving FTIS tool alias'
+    );
+    // Extract action from FTIS tool ID (e.g., lights_off → 'off', lights_on → 'on')
+    if (fnLower === 'lights_off') {
+      args.state = 'off';
+    } else if (fnLower === 'lights_on') {
+      args.state = 'on';
+    } else if (fnLower === 'lights_dim') {
+      args.brightness = args.brightness || 50;
+    }
+    fnLower = TOOL_ALIASES[fnLower];
   }
 
   const { userId } = ctx;

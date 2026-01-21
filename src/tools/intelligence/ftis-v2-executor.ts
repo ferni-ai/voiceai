@@ -127,6 +127,31 @@ export function extractArguments(
     game: () => extractGameArgs(normalizedQuery),
     joke: () => ({}),
 
+    // ===========================================
+    // FTIS V3 Categories (January 2026)
+    // ===========================================
+
+    // Health Domain
+    exercise_log: () => extractExerciseArgs(normalizedQuery),
+    nutrition: () => extractNutritionArgs(normalizedQuery),
+    water: () => extractWaterArgs(normalizedQuery),
+    sleep: () => extractSleepArgs(normalizedQuery),
+
+    // Finance Domain
+    budget: () => extractBudgetArgs(normalizedQuery),
+    bills: () => extractBillsArgs(normalizedQuery),
+
+    // CEO Coaching Domain
+    briefing: () => ({}), // No args needed - get today's briefing
+    priorities: () => extractPrioritiesArgs(normalizedQuery),
+    journal: () => extractJournalArgs(normalizedQuery),
+    gratitude: () => extractGratitudeArgs(normalizedQuery),
+
+    // Travel Domain
+    travel_plan: () => extractTravelPlanArgs(normalizedQuery),
+    flights: () => extractFlightArgs(normalizedQuery),
+    directions: () => extractDirectionsArgs(normalizedQuery),
+
     // Default
     conversation: () => ({}),
   };
@@ -301,7 +326,9 @@ function extractWeatherArgs(query: string): Record<string, unknown> {
 
 function extractItemAddArgs(query: string): Record<string, unknown> {
   // Extract item to add
-  const addMatch = query.match(/(?:add|put|remember)\s+(.+?)(?:\s+(?:to|on)\s+(?:my\s+)?(?:list|todo))?$/i);
+  const addMatch = query.match(
+    /(?:add|put|remember)\s+(.+?)(?:\s+(?:to|on)\s+(?:my\s+)?(?:list|todo))?$/i
+  );
   if (addMatch) {
     return { title: addMatch[1].trim() };
   }
@@ -325,7 +352,9 @@ function extractTodoCompleteArgs(query: string): Record<string, unknown> {
 
 function extractHabitLogArgs(query: string): Record<string, unknown> {
   // "I did X" or "I went to the gym" patterns
-  const didMatch = query.match(/(?:i\s+)?(?:did|went|completed|finished)\s+(?:my\s+)?(.+?)(?:\s+today)?$/i);
+  const didMatch = query.match(
+    /(?:i\s+)?(?:did|went|completed|finished)\s+(?:my\s+)?(.+?)(?:\s+today)?$/i
+  );
   if (didMatch) {
     return { habitName: didMatch[1].trim() };
   }
@@ -333,7 +362,9 @@ function extractHabitLogArgs(query: string): Record<string, unknown> {
 }
 
 function extractHabitCreateArgs(query: string): Record<string, unknown> {
-  const createMatch = query.match(/(?:create|start|track|add)\s+(?:a\s+)?(?:new\s+)?(?:habit\s+)?(?:for\s+|to\s+)?(.+)$/i);
+  const createMatch = query.match(
+    /(?:create|start|track|add)\s+(?:a\s+)?(?:new\s+)?(?:habit\s+)?(?:for\s+|to\s+)?(.+)$/i
+  );
   if (createMatch) {
     return { name: createMatch[1].trim(), frequency: 'daily' };
   }
@@ -349,7 +380,9 @@ function extractCallArgs(query: string): Record<string, unknown> {
 }
 
 function extractMessageArgs(query: string): Record<string, unknown> {
-  const msgMatch = query.match(/(?:text|message|send)\s+(?:my\s+)?(\w+)\s+(?:that\s+|saying\s+)?(.+)$/i);
+  const msgMatch = query.match(
+    /(?:text|message|send)\s+(?:my\s+)?(\w+)\s+(?:that\s+|saying\s+)?(.+)$/i
+  );
   if (msgMatch) {
     return { contact: msgMatch[1].trim(), message: msgMatch[2].trim() };
   }
@@ -393,6 +426,302 @@ function extractGameArgs(query: string): Record<string, unknown> {
   return {};
 }
 
+// ===========================================
+// FTIS V3 ARGUMENT EXTRACTORS (January 2026)
+// ===========================================
+
+// Health Domain Extractors
+
+function extractExerciseArgs(query: string): Record<string, unknown> {
+  const args: Record<string, unknown> = {};
+
+  // Extract exercise type
+  const exerciseTypes = [
+    'run',
+    'walk',
+    'jog',
+    'bike',
+    'swim',
+    'yoga',
+    'workout',
+    'gym',
+    'lift',
+    'weight',
+    'cardio',
+    'hiit',
+  ];
+  for (const type of exerciseTypes) {
+    if (query.includes(type)) {
+      args.exerciseType = type;
+      break;
+    }
+  }
+
+  // Extract duration
+  const durationMatch = query.match(/(\d+)\s*(minute|min|hour|hr)/i);
+  if (durationMatch) {
+    const value = parseInt(durationMatch[1]);
+    const unit = durationMatch[2].toLowerCase();
+    args.durationMinutes = unit.startsWith('hour') || unit.startsWith('hr') ? value * 60 : value;
+  }
+
+  // Extract intensity
+  if (/light|easy|gentle/i.test(query)) args.intensity = 'light';
+  else if (/moderate|medium/i.test(query)) args.intensity = 'moderate';
+  else if (/hard|intense|heavy/i.test(query)) args.intensity = 'vigorous';
+
+  return args;
+}
+
+function extractNutritionArgs(query: string): Record<string, unknown> {
+  const args: Record<string, unknown> = {};
+
+  // Extract meal type
+  if (/breakfast/i.test(query)) args.mealType = 'breakfast';
+  else if (/lunch/i.test(query)) args.mealType = 'lunch';
+  else if (/dinner/i.test(query)) args.mealType = 'dinner';
+  else if (/snack/i.test(query)) args.mealType = 'snack';
+
+  // Extract what they ate (simple extraction)
+  const ateMatch = query.match(/(?:ate|had|eaten|eating)\s+(.+?)(?:\s+for|\s+at|$)/i);
+  if (ateMatch) {
+    args.food = ateMatch[1].trim();
+  }
+
+  return args;
+}
+
+function extractWaterArgs(query: string): Record<string, unknown> {
+  const args: Record<string, unknown> = {};
+
+  // Extract quantity
+  const glassMatch = query.match(/(\d+)\s*glass/i);
+  const ozMatch = query.match(/(\d+)\s*(?:oz|ounce)/i);
+  const literMatch = query.match(/(\d+(?:\.\d+)?)\s*(?:liter|litre|l\b)/i);
+
+  if (glassMatch) {
+    args.glasses = parseInt(glassMatch[1]);
+    args.amountOz = parseInt(glassMatch[1]) * 8; // 8 oz per glass
+  } else if (ozMatch) {
+    args.amountOz = parseInt(ozMatch[1]);
+  } else if (literMatch) {
+    args.amountOz = Math.round(parseFloat(literMatch[1]) * 33.8);
+  }
+
+  return args;
+}
+
+function extractSleepArgs(query: string): Record<string, unknown> {
+  const args: Record<string, unknown> = {};
+
+  // Extract sleep duration
+  const hoursMatch = query.match(/(\d+(?:\.\d+)?)\s*hours?/i);
+  if (hoursMatch) {
+    args.hours = parseFloat(hoursMatch[1]);
+  }
+
+  // Extract sleep quality
+  if (/great|amazing|wonderful|excellent/i.test(query)) args.quality = 'excellent';
+  else if (/good|well|fine/i.test(query)) args.quality = 'good';
+  else if (/ok|okay|alright|decent/i.test(query)) args.quality = 'fair';
+  else if (/bad|poor|terrible|awful/i.test(query)) args.quality = 'poor';
+
+  return args;
+}
+
+// Finance Domain Extractors
+
+function extractBudgetArgs(query: string): Record<string, unknown> {
+  const args: Record<string, unknown> = {};
+
+  // Extract category
+  const categories = [
+    'food',
+    'groceries',
+    'entertainment',
+    'transport',
+    'transportation',
+    'bills',
+    'utilities',
+    'shopping',
+    'travel',
+  ];
+  for (const cat of categories) {
+    if (query.includes(cat)) {
+      args.category = cat;
+      break;
+    }
+  }
+
+  // Extract amount
+  const amountMatch = query.match(/\$?(\d+(?:,\d{3})*(?:\.\d{2})?)/);
+  if (amountMatch) {
+    args.amount = parseFloat(amountMatch[1].replace(',', ''));
+  }
+
+  // Extract time period
+  if (/week/i.test(query)) args.period = 'weekly';
+  else if (/month/i.test(query)) args.period = 'monthly';
+  else if (/year/i.test(query)) args.period = 'yearly';
+
+  return args;
+}
+
+function extractBillsArgs(query: string): Record<string, unknown> {
+  const args: Record<string, unknown> = {};
+
+  // Extract bill type
+  const billTypes = [
+    'rent',
+    'mortgage',
+    'electric',
+    'electricity',
+    'gas',
+    'water',
+    'internet',
+    'phone',
+    'insurance',
+    'credit card',
+    'loan',
+  ];
+  for (const bill of billTypes) {
+    if (query.includes(bill)) {
+      args.billType = bill;
+      break;
+    }
+  }
+
+  // Extract amount
+  const amountMatch = query.match(/\$?(\d+(?:,\d{3})*(?:\.\d{2})?)/);
+  if (amountMatch) {
+    args.amount = parseFloat(amountMatch[1].replace(',', ''));
+  }
+
+  return args;
+}
+
+// CEO Coaching Domain Extractors
+
+function extractPrioritiesArgs(query: string): Record<string, unknown> {
+  const args: Record<string, unknown> = {};
+
+  // Check for action type
+  if (/add|set|create/i.test(query)) args.action = 'add';
+  else if (/list|show|what/i.test(query)) args.action = 'list';
+  else if (/complete|done|finish/i.test(query)) args.action = 'complete';
+  else if (/remove|delete|clear/i.test(query)) args.action = 'remove';
+
+  // Extract priority content (after common verbs)
+  const contentMatch = query.match(/(?:add|set|create|priority is)\s+(.+)/i);
+  if (contentMatch) {
+    args.content = contentMatch[1].trim();
+  }
+
+  return args;
+}
+
+function extractJournalArgs(query: string): Record<string, unknown> {
+  const args: Record<string, unknown> = {};
+
+  // Extract the journal content (everything after common prefixes)
+  const contentMatch = query.match(/(?:journal|write|note|log|record|add)\s+(?:that\s+)?(.+)/i);
+  if (contentMatch) {
+    args.content = contentMatch[1].trim();
+  }
+
+  return args;
+}
+
+function extractGratitudeArgs(query: string): Record<string, unknown> {
+  const args: Record<string, unknown> = {};
+
+  // Extract what they're grateful for
+  const gratefulMatch = query.match(
+    /(?:grateful for|thankful for|appreciate|gratitude for)\s+(.+)/i
+  );
+  if (gratefulMatch) {
+    args.content = gratefulMatch[1].trim();
+  }
+
+  return args;
+}
+
+// Travel Domain Extractors
+
+function extractTravelPlanArgs(query: string): Record<string, unknown> {
+  const args: Record<string, unknown> = {};
+
+  // Extract destination
+  const toMatch = query.match(/(?:to|visit|going to|trip to)\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)/);
+  if (toMatch) {
+    args.destination = toMatch[1];
+  }
+
+  // Extract dates
+  const dateMatch = query.match(/(?:on|in|for|from)\s+(\w+\s+\d+|\d+\/\d+)/i);
+  if (dateMatch) {
+    args.date = dateMatch[1];
+  }
+
+  // Extract duration
+  const durationMatch = query.match(/(\d+)\s*(?:day|night|week)/i);
+  if (durationMatch) {
+    args.duration = durationMatch[0];
+  }
+
+  return args;
+}
+
+function extractFlightArgs(query: string): Record<string, unknown> {
+  const args: Record<string, unknown> = {};
+
+  // Extract origin
+  const fromMatch = query.match(/(?:from)\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)/);
+  if (fromMatch) {
+    args.origin = fromMatch[1];
+  }
+
+  // Extract destination
+  const toMatch = query.match(/(?:to)\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)/);
+  if (toMatch) {
+    args.destination = toMatch[1];
+  }
+
+  // Extract date
+  const dateMatch = query.match(/(?:on|for)\s+(\w+\s+\d+|\d+\/\d+)/i);
+  if (dateMatch) {
+    args.date = dateMatch[1];
+  }
+
+  return args;
+}
+
+function extractDirectionsArgs(query: string): Record<string, unknown> {
+  const args: Record<string, unknown> = {};
+
+  // Extract destination
+  const toMatch = query.match(
+    /(?:to|directions to|how to get to|way to|route to)\s+(.+?)(?:\s+from|$)/i
+  );
+  if (toMatch) {
+    args.destination = toMatch[1].trim();
+  }
+
+  // Extract origin
+  const fromMatch = query.match(/(?:from)\s+(.+?)(?:\s+to|$)/i);
+  if (fromMatch) {
+    args.origin = fromMatch[1].trim();
+  }
+
+  // Extract mode
+  if (/walk/i.test(query)) args.mode = 'walking';
+  else if (/drive|car/i.test(query)) args.mode = 'driving';
+  else if (/transit|bus|train|subway/i.test(query)) args.mode = 'transit';
+  else if (/bike|bicycle/i.test(query)) args.mode = 'bicycling';
+
+  return args;
+}
+
 // ============================================================================
 // DIRECT EXECUTION
 // ============================================================================
@@ -430,9 +759,8 @@ export async function executeDirectFromClassification(
     );
 
     // Import and use the domain bridge for execution
-    const { hasDomainMapping, getDomainToolId } = await import(
-      '../semantic-router/domain-bridge.js'
-    );
+    const { hasDomainMapping, getDomainToolId } =
+      await import('../semantic-router/domain-bridge.js');
 
     // Translate semantic tool ID to domain tool ID
     // CRITICAL FIX (Jan 2026): We must ALWAYS translate the tool ID, not just check if mapping exists
@@ -448,7 +776,11 @@ export async function executeDirectFromClassification(
       // Fallback: try the fine category as the semantic ID
       actualToolId = getDomainToolId(classification.fineCategory) || classification.fineCategory;
       log.debug(
-        { originalId: classification.fineCategory, translatedId: actualToolId, trace: 'FTIS_V2_TRANSLATE' },
+        {
+          originalId: classification.fineCategory,
+          translatedId: actualToolId,
+          trace: 'FTIS_V2_TRANSLATE',
+        },
         `🔄 Translated category: ${classification.fineCategory} → ${actualToolId}`
       );
     } else {

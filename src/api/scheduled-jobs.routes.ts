@@ -111,6 +111,11 @@ export async function handleScheduledJobsRoutes(
       await handleFlushMLState(res);
       return true;
 
+    // P2 UTO Fix (January 2026): Semantic router learning calibration
+    case '/api/jobs/semantic-router-learning':
+      await handleSemanticRouterLearning(res);
+      return true;
+
     // ========================================================================
     // GCS CLEANUP JOBS
     // ========================================================================
@@ -2012,6 +2017,75 @@ async function handleKnowledgeGraphEntityDecay(res: ServerResponse): Promise<voi
     sendJson(res, 500, {
       success: false,
       job: 'knowledge-graph-entity-decay',
+      error: error instanceof Error ? error.message : 'Unknown error',
+      timestamp: new Date().toISOString(),
+    });
+  }
+}
+
+// ============================================================================
+// P2 UTO FIX (January 2026): SEMANTIC ROUTER LEARNING
+// ============================================================================
+
+/**
+ * Semantic Router Learning Job Handler
+ *
+ * Runs batch learning for the semantic router to improve tool routing accuracy:
+ * 1. Updates confidence calibration from accumulated feedback
+ * 2. Consolidates learned user patterns
+ * 3. Prunes low-confidence vocabulary entries
+ *
+ * This is the missing "wire" that connects recorded outcomes to actual
+ * calibration improvements.
+ */
+async function handleSemanticRouterLearning(res: ServerResponse): Promise<void> {
+  const startTime = Date.now();
+
+  try {
+    log.info('🎯 Running semantic router learning job (Cloud Scheduler)');
+
+    const { runBatchLearning, getFeedbackStats } =
+      await import('../tools/semantic-router/advanced/learning-loop.js');
+
+    // Run batch learning (updates calibration, consolidates patterns, prunes vocab)
+    const result = await runBatchLearning();
+
+    // Get stats for reporting
+    const stats = getFeedbackStats();
+
+    const durationMs = Date.now() - startTime;
+
+    log.info(
+      {
+        calibrationUpdated: result.calibrationUpdated,
+        patternsConsolidated: result.patternsConsolidated,
+        vocabularyPruned: result.vocabularyPruned,
+        feedbackStats: stats,
+        durationMs,
+      },
+      '✅ Semantic router learning completed'
+    );
+
+    sendJson(res, 200, {
+      success: true,
+      job: 'semantic-router-learning',
+      stats: {
+        calibrationUpdated: result.calibrationUpdated,
+        patternsConsolidated: result.patternsConsolidated,
+        vocabularyPruned: result.vocabularyPruned,
+        totalFeedback: stats.totalFeedback,
+        correctionRate: (stats.correctionRate * 100).toFixed(1) + '%',
+        successRate: (stats.successRate * 100).toFixed(1) + '%',
+      },
+      durationMs,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error) {
+    const durationMs = Date.now() - startTime;
+    log.error({ error: String(error), durationMs }, 'Semantic router learning failed');
+    sendJson(res, 500, {
+      success: false,
+      job: 'semantic-router-learning',
       error: error instanceof Error ? error.message : 'Unknown error',
       timestamp: new Date().toISOString(),
     });

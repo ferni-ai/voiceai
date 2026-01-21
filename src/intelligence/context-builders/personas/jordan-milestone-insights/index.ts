@@ -82,49 +82,52 @@ import { buildMilestoneCalendarContext } from '../../../../services/milestones/m
 // Cross-Domain: Milestone ↔ Calendar Coordination
 import { getCoordinationContext } from '../../../../services/superhuman/milestone-calendar-coordinator.js';
 
+// V5 Superhuman Persona Intelligence - Life Trajectory Simulator
+import { buildLifeTrajectoryContext } from '../../../../services/superhuman/index.js';
+
 // Import submodules
 import {
-  getSession,
-  clearJordanMilestoneSession,
-  clearAllJordanMilestoneSessions,
-} from './session.js';
-import {
   analyzeGoalsOverview,
-  getPeterFinancialInsights,
   getMayaHabitInsights,
-  getMoodPatterns,
   getMemoryOrchestratorInsights,
+  getMoodPatterns,
+  getPeterFinancialInsights,
 } from './data-fetchers.js';
+import { formatJordanBriefing } from './formatting.js';
+import { analyzeHandoffForJordan } from './handoff-analysis.js';
 import {
-  computePlanningMetrics,
   analyzeLifeStageContext,
   analyzeSeasonalContext,
+  computePlanningMetrics,
 } from './metrics.js';
 import {
   detectCelebrationOpportunities,
   generateProactiveDiscoveries,
   generateTimelineAlerts,
 } from './opportunities.js';
-import { analyzeHandoffForJordan } from './handoff-analysis.js';
-import { formatJordanBriefing } from './formatting.js';
+import {
+  clearAllJordanMilestoneSessions,
+  clearJordanMilestoneSession,
+  getSession,
+} from './session.js';
 
 // Cross-Domain: CEO Coaching wins for celebration opportunities
 import { getRecentWins } from '../../../../tools/domains/ceo-coaching/storage.js';
 
-import type { JordanInsightBriefing } from './types.js';
 import {
   DEFAULT_GOALS_OVERVIEW,
-  DEFAULT_PETER_INSIGHTS,
   DEFAULT_HABIT_INSIGHTS,
-  DEFAULT_MOOD_INSIGHTS,
   DEFAULT_MEMORY_INSIGHTS,
+  DEFAULT_MOOD_INSIGHTS,
+  DEFAULT_PETER_INSIGHTS,
+  type JordanInsightBriefing,
 } from './types.js';
 
 const log = createLogger({ module: 'context:jordan-milestone-insights' });
 
 // Re-export types
 export type * from './types.js';
-export { clearJordanMilestoneSession, clearAllJordanMilestoneSessions };
+export { clearAllJordanMilestoneSessions, clearJordanMilestoneSession };
 
 // ============================================================================
 // BUILD BRIEFING
@@ -275,6 +278,16 @@ async function buildJordanMilestoneInsightsContext(
     });
     if (superhumanContext) {
       briefingLines.push('\n' + superhumanContext);
+    }
+
+    // V5 Superhuman Persona Intelligence - Life Trajectory Simulator
+    // Fresh Start Effect, Peak-End Rule, Monte Carlo, Regret Minimization, Optimal Stopping
+    const lifeTrajectoryContext = await buildLifeTrajectoryContext(userId).catch((e) => {
+      log.debug({ error: String(e) }, 'Failed to build life trajectory context');
+      return '';
+    });
+    if (lifeTrajectoryContext) {
+      briefingLines.push('\n' + lifeTrajectoryContext);
     }
 
     // 🤝 TEAM HUDDLE: Record Jordan's observations for cross-persona intelligence

@@ -1,13 +1,17 @@
 /**
  * Tool Execution Reliability
  *
- * Provides retry logic, circuit breaker, and error tracking for tool execution.
+ * Provides retry logic, circuit breaker, timeout, and error tracking for tool execution.
  *
  * Features:
  * - Automatic retry with exponential backoff
  * - Circuit breaker pattern to prevent cascading failures
  * - Per-tool error tracking and metrics
  * - Graceful degradation with fallback responses
+ * - P0-#4 UTO Fix (January 2026): Tool timeout mechanism
+ *   - Prevents hung tool execution from blocking conversations
+ *   - Per-tool timeout configuration (fast: 10s, normal: 30s, slow: 60s)
+ *   - Timeout errors are retryable and logged distinctly
  *
  * @module agents/shared/tool-execution-reliability
  */
@@ -290,6 +294,74 @@ function sleep(ms: number): Promise<void> {
   });
 }
 
+/**
+ * Execute with timeout (P0-#4 UTO Fix - January 2026)
+ *
+ * Wraps a promise in a timeout to prevent hung tool execution.
+ * Without this, a slow or unresponsive external service can block
+ * the entire conversation indefinitely.
+ */
+async function executeWithTimeout<T>(
+  promise: Promise<T>,
+  timeoutMs: number,
+  toolName: string
+): Promise<T> {
+  let timeoutHandle: ReturnType<typeof setTimeout>;
+
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    timeoutHandle = setTimeout(() => {
+      reject(new Error(`TOOL_TIMEOUT: ${toolName} exceeded ${timeoutMs}ms timeout`));
+    }, timeoutMs);
+  });
+
+  try {
+    const result = await Promise.race([promise, timeoutPromise]);
+    clearTimeout(timeoutHandle!);
+    return result;
+  } catch (error) {
+    clearTimeout(timeoutHandle!);
+    throw error;
+  }
+}
+
+/** Default tool timeout in ms (30 seconds - generous for external APIs) */
+const DEFAULT_TOOL_TIMEOUT_MS = 30_000;
+
+/** Fast tools that should timeout sooner (10 seconds) */
+const FAST_TIMEOUT_TOOLS = new Set([
+  'getweather',
+  'gettime',
+  'getnews',
+  'searchnews',
+  'getquote',
+  'getmarketsummary',
+]);
+
+/** Slow tools that need longer timeout (60 seconds) */
+const SLOW_TIMEOUT_TOOLS = new Set([
+  'searchspotify',
+  'playmusic',
+  'createcalendarevent',
+  'sendemail',
+  'generateimage',
+  'transcribeaudio',
+]);
+
+/**
+ * Get timeout for a tool based on its expected duration
+ * Exported for use in json-function-executor and other callers.
+ */
+export function getTimeoutForTool(toolName: string): number {
+  const normalized = toolName.toLowerCase();
+  if (FAST_TIMEOUT_TOOLS.has(normalized)) {
+    return 10_000; // 10 seconds
+  }
+  if (SLOW_TIMEOUT_TOOLS.has(normalized)) {
+    return 60_000; // 60 seconds
+  }
+  return DEFAULT_TOOL_TIMEOUT_MS; // 30 seconds
+}
+
 // ============================================================================
 // MAIN EXECUTION WRAPPER
 // ============================================================================
@@ -323,7 +395,7 @@ function getOrCreateMetrics(toolName: string): ToolExecutionMetrics {
 }
 
 /**
- * Execute a tool with retry and circuit breaker
+ * Execute a tool with retry, circuit breaker, and timeout (P0-#4 UTO Fix)
  */
 export async function executeWithReliability<T>(
   toolName: string,
@@ -332,11 +404,14 @@ export async function executeWithReliability<T>(
     retryConfig?: RetryConfig;
     useCircuitBreaker?: boolean;
     fallbackValue?: T;
+    /** Optional timeout override in ms. Defaults based on tool type. */
+    timeoutMs?: number;
   } = {}
-): Promise<{ result: T; retries: number; fromFallback: boolean }> {
+): Promise<{ result: T; retries: number; fromFallback: boolean; timedOut?: boolean }> {
   const normalizedTool = toolName.toLowerCase();
   const retryConfig = { ...DEFAULT_RETRY_CONFIG, ...options.retryConfig };
   const useCircuitBreaker = options.useCircuitBreaker ?? CIRCUIT_BREAKER_TOOLS.has(normalizedTool);
+  const timeoutMs = options.timeoutMs ?? getTimeoutForTool(normalizedTool);
   const metrics = getOrCreateMetrics(normalizedTool);
   const cb = getCircuitBreaker();
 
@@ -363,7 +438,8 @@ export async function executeWithReliability<T>(
 
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
     try {
-      const result = await executor();
+      // P0-#4 UTO Fix: Wrap executor in timeout to prevent hung tools
+      const result = await executeWithTimeout(executor(), timeoutMs, toolName);
 
       // Success
       const duration = Date.now() - startTime;
@@ -409,14 +485,20 @@ export async function executeWithReliability<T>(
     cb.recordFailure(normalizedTool, String(lastError));
   }
 
+  // P0-#4 UTO Fix: Check if failure was due to timeout
+  const isTimeout = String(lastError).includes('TOOL_TIMEOUT');
+  const logMessage = isTimeout
+    ? `⏱️ Tool execution timed out after ${timeoutMs}ms`
+    : '❌ Tool execution failed after retries';
+
   log.warn(
-    { toolName, retries, error: String(lastError) },
-    '❌ Tool execution failed after retries'
+    { toolName, retries, error: String(lastError), isTimeout, timeoutMs },
+    logMessage
   );
 
   // Return fallback if provided
   if (options.fallbackValue !== undefined) {
-    return { result: options.fallbackValue, retries, fromFallback: true };
+    return { result: options.fallbackValue, retries, fromFallback: true, timedOut: isTimeout };
   }
 
   throw lastError;
@@ -514,4 +596,5 @@ export default {
   getCircuitBreakerStates,
   getReliabilityDashboard,
   resetReliabilityMetrics,
+  getTimeoutForTool,
 };

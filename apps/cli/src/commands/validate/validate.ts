@@ -87,6 +87,12 @@ const VALIDATIONS: Record<string, ValidationTask> = {
     script: 'scripts/verify-persistence.ts',
     category: 'core',
   },
+  'memory-e2e': {
+    name: 'Memory E2E',
+    description: 'Run synthetic conversations to validate all memory/insight storage paths',
+    script: 'apps/cli/src/commands/validate/validate-memory-e2e.ts',
+    category: 'feature',
+  },
 };
 
 // ============================================================================

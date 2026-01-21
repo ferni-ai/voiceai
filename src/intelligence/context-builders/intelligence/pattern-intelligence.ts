@@ -267,7 +267,7 @@ function recordObservation(
 /**
  * Analyze patterns from accumulated observations
  */
-function analyzePatterns(userId: string): DetectedPattern[] {
+async function analyzePatterns(userId: string): Promise<DetectedPattern[]> {
   const state = getPatternState(userId);
   const patterns: DetectedPattern[] = [];
 
@@ -454,6 +454,43 @@ function analyzePatterns(userId: string): DetectedPattern[] {
     }
   }
 
+  // 6. BEHAVIORAL PATTERN DETECTOR INTEGRATION
+  // Use the specialized behavioral pattern detector for deeper analysis
+  try {
+    const { getBehavioralPatternDetector } =
+      await import('../../../memory/behavioral-pattern-detector.js');
+    const detector = getBehavioralPatternDetector();
+
+    // Get existing patterns from the detector
+    const behavioralPatterns = await detector.getPatterns(userId);
+
+    for (const bp of behavioralPatterns) {
+      // Convert to DetectedPattern format
+      // Map patternType to our PatternType (behavioral patterns are 'behavioral' type)
+      patterns.push({
+        id: `behavioral_${bp.patternType}_${Date.now()}`,
+        type: 'behavioral' as PatternType,
+        userId,
+        pattern: bp.description,
+        evidence: [
+          {
+            date: new Date(),
+            description: bp.implication,
+          },
+        ],
+        confidence: bp.confidence,
+        sensitivity: 0.5, // Default sensitivity for behavioral patterns
+        minRelationshipStage: bp.confidence > 0.7 ? 'friend' : 'trusted_advisor',
+        surfaced: false,
+        firstDetectedAt: bp.firstObserved || new Date(),
+        observationCount: bp.frequency || 3,
+      });
+    }
+  } catch (error) {
+    // Behavioral detector not available or failed - continue with existing patterns
+    log.debug({ error: String(error) }, 'Behavioral pattern detector unavailable');
+  }
+
   return patterns;
 }
 
@@ -493,12 +530,12 @@ function extractKeywords(phrase: string): string[] {
 /**
  * Get a pattern to surface if appropriate
  */
-function getPatternToSurface(
+async function getPatternToSurface(
   userId: string,
   relationshipStage: string,
   turnCount: number,
   emotionalContext: { isHeavy: boolean; isPositive: boolean }
-): PatternSurfacingContext | null {
+): Promise<PatternSurfacingContext | null> {
   const state = getPatternState(userId);
 
   // Don't surface too frequently - but earlier is okay for acquaintances
@@ -514,7 +551,7 @@ function getPatternToSurface(
   }
 
   // Get analyzed patterns
-  const patterns = analyzePatterns(userId);
+  const patterns = await analyzePatterns(userId);
 
   // Filter by eligibility
   const eligible = patterns.filter((p) => {
@@ -674,7 +711,7 @@ async function buildPatternSurfacingContext(
   const relationshipStage = userProfile.relationshipStage || 'acquaintance';
 
   // Check if we should surface a pattern
-  const patternContext = getPatternToSurface(services.userId, relationshipStage, turnCount, {
+  const patternContext = await getPatternToSurface(services.userId, relationshipStage, turnCount, {
     isHeavy: analysis.emotion?.needsSupport || false,
     isPositive: analysis.emotion?.valence === 'positive',
   });

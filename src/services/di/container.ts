@@ -287,7 +287,6 @@ export const Tokens = {
   EntityStore: Symbol('EntityStore'), // IEntityStore
   ActionStore: Symbol('ActionStore'), // IActionStore
   SubscriptionStore: Symbol('SubscriptionStore'), // ISubscriptionStore
-  CollectiveLearning: Symbol('CollectiveLearning'), // ICollectiveLearningStore
 
   // Intelligence
   EmotionDetector: Symbol('EmotionDetector'),

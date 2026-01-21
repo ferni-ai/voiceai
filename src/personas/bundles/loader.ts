@@ -812,6 +812,46 @@ export async function loadBundle(
         behaviors.topic_guidance = await loadJsonFile(topicGuidancePath);
       }
 
+      // ========================================================================
+      // FERNI 100% WIRING - Previously orphaned behavior files (January 2026)
+      // ========================================================================
+
+      // Load breath sounds (grounding presence, Wyoming stillness)
+      const breathSoundsPath = join(behaviorsPath, 'breath-sounds.json');
+      if (await fileExists(breathSoundsPath)) {
+        behaviors.breath_sounds = await loadJsonFile(breathSoundsPath);
+      }
+
+      // Load coaching modes (adaptive coaching style transitions)
+      const coachingModesPath = join(behaviorsPath, 'coaching-modes.json');
+      if (await fileExists(coachingModesPath)) {
+        behaviors.coaching_modes = await loadJsonFile(coachingModesPath);
+      }
+
+      // Load outreach voice (proactive messaging voice profile)
+      const outreachVoicePath = join(behaviorsPath, 'outreach-voice.json');
+      if (await fileExists(outreachVoicePath)) {
+        behaviors.outreach_voice = await loadJsonFile(outreachVoicePath);
+      }
+
+      // Load voice DNA (core character essence)
+      const voiceDnaPath = join(behaviorsPath, 'voice-dna.json');
+      if (await fileExists(voiceDnaPath)) {
+        behaviors.voice_dna = await loadJsonFile(voiceDnaPath);
+      }
+
+      // Load callbacks (memory callbacks for personalization)
+      const callbacksPath = join(behaviorsPath, 'callbacks.json');
+      if (await fileExists(callbacksPath)) {
+        behaviors.callbacks = await loadJsonFile(callbacksPath);
+      }
+
+      // Load music preferences (DJ personality and taste)
+      const musicPreferencesPath = join(behaviorsPath, 'music-preferences.json');
+      if (await fileExists(musicPreferencesPath)) {
+        behaviors.music_preferences = await loadJsonFile(musicPreferencesPath);
+      }
+
       behaviorsCache = behaviors;
       return behaviors;
     },

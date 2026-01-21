@@ -53,11 +53,11 @@ import { getEmbeddingProvider as getInternalEmbeddingProvider } from './embeddin
 // Vector store interface (unified)
 export {
   isVectorStore,
-  type VectorStoreContract,
   type VectorDocument,
   type VectorFilter,
   type VectorSearchOptions,
   type VectorSearchResult,
+  type VectorStoreContract,
   type VectorStoreStats,
 } from './vector-store-interface.js';
 
@@ -86,18 +86,116 @@ export {
   type RAGResult,
 } from './semantic-rag.js';
 
-// User Memory Indexer (comprehensive user data vectorization)
-export {
-  batchIndexUserMemories,
-  getUserMemoryStats,
-  indexUserMemories,
-  removeUserMemories,
-  type IndexingResult,
-  type UserMemoryCategory,
-} from './user-memory-indexer.js';
-
 // Human Signal Extractor (conversation → human memory)
 export { extractHumanSignals, mergeSignalsIntoMemory } from './human-signal-extractor.js';
+
+// Spreading Activation (human-like memory associations)
+export {
+  getSpreadingActivation,
+  SpreadingActivationEngine,
+  type ActivationResult,
+  type SpreadingConfig,
+} from './spreading-activation.js';
+
+// Learning Engine (track user reactions to surfaced memories)
+export {
+  getLearningEngine,
+  LearningEngine,
+  resetLearningEngine,
+  type MemoryReaction,
+  type SurfacingEvent,
+  type UserLearnings,
+} from './learning-engine.js';
+
+// History Tracker Stubs (legacy - history tracking is now handled by session state)
+// These are no-op stubs for backward compatibility
+// Uses ConversationTurn from summarizer.ts (re-exported below)
+import { type ConversationTurn as SummarizerTurn } from './summarizer.js';
+
+export interface HistoryMetadata {
+  startTime?: Date;
+  topicsDiscussed?: string[];
+  emotionalJourney?: Array<{ emotion: string; timestamp: Date }>;
+}
+
+export interface ConversationHistoryTracker {
+  sessionId: string;
+  userId: string;
+  addUserTurn: (content: string, timestamp?: Date) => void;
+  addAssistantTurn: (content: string, timestamp?: Date) => void;
+  getTurnCount: () => number;
+  getSessionHistory: () => {
+    entries?: SummarizerTurn[];
+    turns?: SummarizerTurn[];
+    metadata?: HistoryMetadata;
+  };
+  getRecentHistory: (count: number) => SummarizerTurn[];
+  getSimpleTurns: () => SummarizerTurn[];
+  getDurationSeconds: () => number;
+}
+
+const historyTrackers = new Map<string, ConversationHistoryTracker>();
+
+export function getHistoryTracker(sessionId: string, userId: string): ConversationHistoryTracker {
+  const key = `${sessionId}-${userId}`;
+  if (!historyTrackers.has(key)) {
+    const startTime = new Date();
+    const turns: SummarizerTurn[] = [];
+
+    historyTrackers.set(key, {
+      sessionId,
+      userId,
+      addUserTurn(content: string, timestamp?: Date): void {
+        turns.push({ role: 'user', content, timestamp: timestamp || new Date() });
+      },
+      addAssistantTurn(content: string, timestamp?: Date): void {
+        turns.push({ role: 'assistant', content, timestamp: timestamp || new Date() });
+      },
+      getTurnCount(): number {
+        return turns.length;
+      },
+      getSessionHistory(): {
+        entries?: SummarizerTurn[];
+        turns?: SummarizerTurn[];
+        metadata?: HistoryMetadata;
+      } {
+        return {
+          entries: [...turns],
+          turns: [...turns],
+          metadata: { startTime, topicsDiscussed: [], emotionalJourney: [] },
+        };
+      },
+      getRecentHistory(count: number): SummarizerTurn[] {
+        return turns.slice(-count);
+      },
+      getSimpleTurns(): SummarizerTurn[] {
+        return [...turns];
+      },
+      getDurationSeconds(): number {
+        return Math.floor((Date.now() - startTime.getTime()) / 1000);
+      },
+    });
+  }
+  return historyTrackers.get(key)!;
+}
+
+export function removeHistoryTracker(sessionId: string): void {
+  // Remove any trackers with this sessionId
+  for (const [key] of historyTrackers) {
+    if (key.startsWith(`${sessionId}-`)) {
+      historyTrackers.delete(key);
+    }
+  }
+}
+
+// Protection Engine (protect important memories from decay)
+export {
+  getProtectionEngine,
+  ProtectionEngine,
+  resetProtectionEngine,
+  type ProtectedMemory,
+  type ProtectionLevel,
+} from './protection-engine.js';
 
 // Summarization
 export {
@@ -110,15 +208,7 @@ export {
   type SummarizationOptions,
 } from './summarizer.js';
 
-// History tracking
-export {
-  ConversationHistoryTracker,
-  getActiveSessionIds,
-  getHistoryTracker,
-  removeHistoryTracker,
-  type SessionHistory,
-  type TrackedTurn,
-} from './history.js';
+// History tracking is handled by session state in services layer
 
 // Key Moment Retrieval
 export {
@@ -186,39 +276,39 @@ export {
 
 // Semantic Memory Cache (performance - "Better than Human" optimization)
 export {
+  clearAllSemanticCaches,
+  clearUserSemanticCache,
   configureSemanticCache,
   findSimilarCached,
+  getSemanticCacheStats,
+  getUserCacheInfo,
+  invalidateSemanticCache,
+  resetSemanticCacheStats,
   storeInSemanticCache,
   withSemanticCache,
-  clearUserSemanticCache,
-  clearAllSemanticCaches,
-  invalidateSemanticCache,
-  getSemanticCacheStats,
-  resetSemanticCacheStats,
-  getUserCacheInfo,
   type CachedQuery,
+  type CacheLookupResult,
   type SemanticCacheConfig,
   type CacheStats as SemanticCacheStats,
-  type CacheLookupResult,
 } from './semantic-memory-cache.js';
 
 // Predictive Cache Warming (80%+ cache hit rate for anticipated queries)
 export {
-  configurePredictiveWarming,
   configureMemoryRetrieval,
-  setupMemoryFetcher,
+  configurePredictiveWarming,
   detectTimeSignals,
   predictQueries,
-  warmCacheForSession,
+  setupMemoryFetcher,
   warmCacheForHandoff,
-  type PersonaId as PredictivePersonaId,
-  type TimeOfDay,
+  warmCacheForSession,
   type DayOfWeek,
-  type SessionSignals,
-  type PredictedQuery,
-  type WarmingResult,
-  type PredictiveCacheConfig,
   type MemoryRetrievalFn,
+  type PredictedQuery,
+  type PredictiveCacheConfig,
+  type PersonaId as PredictivePersonaId,
+  type SessionSignals,
+  type TimeOfDay,
+  type WarmingResult,
 } from './predictive-cache-warming.js';
 
 // Memory Consolidation (long-term memory management)
@@ -290,25 +380,21 @@ export {
 // ============================================================================
 
 export {
+  // Cosine similarity (already Rust-accelerated)
+  batchCosineSimilarity,
   // Euclidean distance (SIMD-accelerated for batches)
   batchEuclideanDistance,
   batchEuclideanDistanceF32,
+  batchNormalizeVectorsF32,
+  // Centroid computation (SIMD-accelerated)
+  computeCentroidF32,
   euclideanDistanceF32,
-
+  // Native module availability check
+  isRustAvailable,
   // Vector normalization (SIMD-accelerated)
   normalizeVector,
   normalizeVectorF32,
-  batchNormalizeVectorsF32,
   vectorNormF32,
-
-  // Centroid computation (SIMD-accelerated)
-  computeCentroidF32,
-
-  // Cosine similarity (already Rust-accelerated)
-  batchCosineSimilarity,
-
-  // Native module availability check
-  isRustAvailable,
 } from './rust-accelerator.js';
 
 // Memory Metrics (observability)
@@ -328,25 +414,8 @@ export {
   type StorageMetrics,
 } from './memory-metrics.js';
 
-// Tiered Memory Storage (Phase 2.3 optimization - 10x faster hot data retrieval)
-export {
-  clearAccessRecords,
-  getFromHotTier,
-  getMemoriesTiered,
-  getMemoryTiered,
-  getTieredMemoryConfig,
-  getTieredMemoryStats,
-  getUserAccessRecords,
-  recordMemoryAccess,
-  removeFromHotTier,
-  resetTieredMemoryStats,
-  runDemotionCheck,
-  setTieredMemoryConfig,
-  storeInHotTier,
-  type MemoryAccessRecord,
-  type TieredMemoryConfig,
-  type TieredMemoryStats,
-} from './tiered-memory-storage.js';
+// Tiered Memory Storage - REMOVED (Phase 2.3 optimization deprecated)
+// Previously exported from ./tiered-memory-storage.js - file has been removed
 
 // ============================================================================
 // UNIFIED EMOTIONAL MEMORY (coordinates user emotions + bonding)
@@ -359,19 +428,19 @@ export {
   configureEmotionalMemoryEngines,
   getUnifiedEmotionalMemory,
   UnifiedEmotionalMemory,
+  type BondingEngine,
   type EmotionalBond,
   type EmotionalCheckIn,
-  type EmotionalContext as UnifiedEmotionalContext,
   type EmotionalMemoryConfig,
   type EmotionalMemoryEngineFactories,
   type EmotionalMoment,
   type EmotionalPattern,
-  type BondingEngine,
-  type UserEmotionEngine,
   type RelationshipStage,
+  type EmotionalContext as UnifiedEmotionalContext,
   type UnifiedEmotionalState,
   type UserEmotionalContext,
   type UserEmotionalMoment,
+  type UserEmotionEngine,
 } from './emotional-memory-unified.js';
 
 // ============================================================================
@@ -380,55 +449,55 @@ export {
 
 // Clean Architecture Interfaces
 export type {
-  // Core types (renamed to avoid conflicts with existing exports)
-  MemoryItem as IMemoryItem,
-  RetrievedMemory as IRetrievedMemory,
-  RetrievalContext as IRetrievalContext,
-  ExplainedMemory as IExplainedMemory,
-  ConnectionType as IConnectionType,
-  VectorDocument as IVectorDocument,
-  VectorSearchOptions as IVectorSearchOptions,
-  VectorSearchResult as IVectorSearchResult,
-  DecayResult as IDecayResult,
+  ApproachGuidance,
+  AssociativeMemoryService,
   // Associative Memory
   AssociativeTrigger,
-  TriggeredMemory,
-  AssociativeMemoryService,
-  // Communication Preferences
-  PreferenceDimension,
-  InteractionPreference,
-  ApproachGuidance,
-  CommunicationPreferencesService,
-  // Behavioral Patterns
-  PatternType,
   BehavioralPattern,
   BehavioralPatternDetector,
+  CommunicationPreferencesService,
   // Emotional Threading
   EmotionalThread,
-  SessionEmotionalContext,
   EmotionalThreadingService,
   // Signal Extraction
   ExtractedSignals,
-  HumanSignalExtractor,
-  // Natural References
-  ReferenceStyle,
   GeneratedReference,
-  NaturalReferenceGenerator,
-  // Orchestrator
-  OrchestratedMemory,
-  RecallContext,
-  MemoryOrchestrator,
+  HumanSignalExtractor,
+  ConnectionType as IConnectionType,
+  DecayResult as IDecayResult,
+  ExplainedMemory as IExplainedMemory,
+  // Core types (renamed to avoid conflicts with existing exports)
+  MemoryItem as IMemoryItem,
+  InteractionPreference,
+  RetrievalContext as IRetrievalContext,
+  RetrievedMemory as IRetrievedMemory,
+  VectorDocument as IVectorDocument,
+  VectorSearchOptions as IVectorSearchOptions,
+  VectorSearchResult as IVectorSearchResult,
   // Container
   MemoryContainer,
   MemoryContainerConfig,
+  MemoryOrchestrator,
+  NaturalReferenceGenerator,
+  // Orchestrator
+  OrchestratedMemory,
+  // Behavioral Patterns
+  PatternType,
+  // Communication Preferences
+  PreferenceDimension,
+  RecallContext,
+  // Natural References
+  ReferenceStyle,
+  SessionEmotionalContext,
+  TriggeredMemory,
 } from './interfaces/index.js';
 
 // Associative Memory (human-like memory triggers)
 export {
   AssociativeMemory,
+  clearAssociativeMemory,
   getAssociativeMemory,
   saveAssociativeMemory,
-  clearAssociativeMemory,
 } from './associative-memory.js';
 
 // Communication Preferences (how users like to be approached)
@@ -440,18 +509,18 @@ export {
 
 // LLM Signal Extraction (smarter than regex)
 export {
-  LLMSignalExtractor,
-  getLLMSignalExtractor,
-  resetLLMSignalExtractor,
   configureLLMSignalExtractor,
+  getLLMSignalExtractor,
+  LLMSignalExtractor,
+  resetLLMSignalExtractor,
 } from './llm-signal-extractor.js';
 
 // Natural Reference Generator (human-sounding memory callbacks)
 export {
-  NaturalReferenceGeneratorImpl,
-  getNaturalReferenceGenerator,
-  resetNaturalReferenceGenerator,
   generateNaturalReference,
+  getNaturalReferenceGenerator,
+  NaturalReferenceGeneratorImpl,
+  resetNaturalReferenceGenerator,
 } from './natural-reference-generator.js';
 
 // Emotional Threading (cross-session emotional continuity)
@@ -466,8 +535,8 @@ export {
   BehavioralPatternDetectorImpl,
   getBehavioralPatternDetector,
   loadPatternsFromPersistence,
-  savePatternsToPeristence,
   resetBehavioralPatternDetector,
+  savePatternsToPeristence,
 } from './behavioral-pattern-detector.js';
 
 // Firestore Memory Persistence
@@ -481,44 +550,44 @@ export {
 export {
   // Configuration
   configureFirestoreExtended,
-  // Session state
-  saveSessionState,
-  getSessionState,
-  getRecentSessions,
-  type SessionState,
-  // Tool execution logs
-  logToolExecution,
-  getToolExecutions,
-  type ToolExecution,
-  // Persona bonds
-  savePersonaBond,
-  getPersonaBond,
-  getAllPersonaBonds,
-  type PersonaBond,
-  // Voice profile
-  saveVoiceProfile,
-  getVoiceProfile,
-  type VoiceProfile,
-  // User intents
-  logUserIntent,
-  getRecentIntents,
-  type UserIntent,
-  // Superhuman cache
-  setCachedInsight,
-  getCachedInsight,
-  type CachedInsight,
-  // Quality metrics
-  saveQualityMetrics,
-  getQualityMetrics,
-  type QualityMetrics,
   // GDPR
   deleteAllExtendedUserData,
+  getAllPersonaBonds,
+  getCachedInsight,
+  getPersonaBond,
+  getQualityMetrics,
+  getRecentIntents,
+  getRecentSessions,
+  getSessionState,
+  getToolExecutions,
+  getVoiceProfile,
+  // Tool execution logs
+  logToolExecution,
+  // User intents
+  logUserIntent,
+  // Persona bonds
+  savePersonaBond,
+  // Quality metrics
+  saveQualityMetrics,
+  // Session state
+  saveSessionState,
+  // Voice profile
+  saveVoiceProfile,
+  // Superhuman cache
+  setCachedInsight,
+  type CachedInsight,
+  type PersonaBond,
+  type QualityMetrics,
+  type SessionState,
+  type ToolExecution,
+  type UserIntent,
+  type VoiceProfile,
 } from './firestore-extended-persistence.js';
 
 // Memory Orchestrator (unified entry point)
 export {
-  MemoryOrchestratorImpl,
   getMemoryOrchestrator,
+  MemoryOrchestratorImpl,
   resetMemoryOrchestrator,
 } from './orchestrator.js';
 
@@ -537,54 +606,54 @@ export { routeSignalsToSuperhuman } from './superhuman-signal-router.js';
 // with deduplication, alias resolution, and cross-domain queries.
 
 export {
-  // Types
-  type Entity,
-  type EntityType,
-  type EntitySource,
-  type RelationshipType,
-  type Mention,
-  type MentionType,
-  type ExtractedFact,
-  type EntityRelationship,
-  type EdgeType,
-  type EntityQuery,
-  type EntityQueryResult,
-  type PersonCaptureInput,
-  type CaptureContext,
-  type CaptureResult,
+  captureMultiplePeople,
+  capturePersonEntity,
   // Storage
   createEntity,
-  getEntity,
-  updateEntity,
+  createMention,
   deleteEntity,
+  findContactForTelephony,
   findEntityByAlias,
-  searchEntities,
+  getAllContacts,
   getAllEntities,
   getEntitiesByType,
-  createMention,
+  getEntity,
+  getEntityStoreHealth,
+  getEntityStoreStats,
   getMentionsForEntity,
   getRecentMentions,
-  upsertRelationship,
   getRelationshipsForEntity,
-  recordMention,
   hasEntityStore,
-  getEntityStoreStats,
-  // Resolver
-  resolvePerson,
-  mergeEntities,
-  whatDoWeKnowAbout,
-  type ResolvedEntity,
+  initializeEntityStore,
   // Integration
   isEntityStoreReady,
-  initializeEntityStore,
-  capturePersonEntity,
-  captureMultiplePeople,
-  findContactForTelephony,
-  getAllContacts,
-  getEntityStoreHealth,
+  mergeEntities,
+  migrateAllUsers,
   // Migration
   migrateUser,
-  migrateAllUsers,
+  recordMention,
+  // Resolver
+  resolvePerson,
+  searchEntities,
+  updateEntity,
+  upsertRelationship,
+  whatDoWeKnowAbout,
+  type CaptureContext,
+  type CaptureResult,
+  type EdgeType,
+  // Types
+  type Entity,
+  type EntityQuery,
+  type EntityQueryResult,
+  type EntityRelationship,
+  type EntitySource,
+  type EntityType,
+  type ExtractedFact,
+  type Mention,
+  type MentionType,
+  type PersonCaptureInput,
+  type RelationshipType,
+  type ResolvedEntity,
 } from './entity-store/index.js';
 
 // ============================================================================

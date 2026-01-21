@@ -179,6 +179,7 @@ export class MemoryDecayManager {
 
   /**
    * Check if a memory is protected from decay
+   * Uses both built-in rules AND the Protection Engine for "Better Than Human" protection
    */
   isProtected(memory: MemoryItem): boolean {
     // Protected types
@@ -194,6 +195,20 @@ export class MemoryDecayManager {
     // Very high emotional weight memories are protected
     if (memory.emotionalWeight > 0.9) {
       return true;
+    }
+
+    // ENHANCEMENT: Check Protection Engine for "Better Than Human" protection
+    // Protects: core identity, emotional milestones, life milestones,
+    // relationship cores, and user-marked memories
+    try {
+      // Dynamic import to avoid circular dependencies
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const { isMemoryProtected } = require('./protection-engine.js');
+      if (isMemoryProtected(memory)) {
+        return true;
+      }
+    } catch (error) {
+      // Protection engine not available - use built-in rules only
     }
 
     return false;

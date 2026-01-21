@@ -52,17 +52,21 @@ import {
   type ValidationOptions,
 } from './pre-validation.js';
 import { resolveVoiceId, type VoiceIdInput } from './voice-id-resolver.js';
-import type { HandoffTransaction } from './handoff-transaction.js';
-import { createTransaction } from './handoff-transaction.js';
+import { createTransaction, type HandoffTransaction } from './handoff-transaction.js';
 import {
   EventSequencer,
   sequenceGenerator,
   type SequencedEvent,
   type HandoffEventType,
 } from './event-sequencer.js';
-import type { HandoffStateManager } from './handoff-state-manager.js';
-import { getHandoffManager } from './handoff-state-manager.js';
+import { getHandoffManager, type HandoffStateManager } from './handoff-state-manager.js';
 import { recordHandoffMetrics, type HandoffMetricsData } from '../../services/handoff-metrics.js';
+
+// Intelligent banter for warm handoffs
+import {
+  getIntelligentBanter,
+  type BanterContext as IntelligentBanterContext,
+} from '../../services/team-engagement/intelligent-banter.js';
 
 const log = getLogger();
 
@@ -412,9 +416,6 @@ export class HandoffCoordinator {
         };
       }
 
-      // CRITICAL: Frontend expects 'target' not 'targetAgent'
-      this.emitUIEvent('handoff_started', { traceId, target: canonicalId, displayName });
-
       // ====================================================================
       // PHASE 3: LOAD PERSONA DATA
       // ====================================================================
@@ -464,17 +465,113 @@ export class HandoffCoordinator {
       };
 
       // ====================================================================
-      // FAST MODE DETECTION (Option D: Instant Switch + Async Welcome)
+      // PHASE 5.5: GENERATE INTELLIGENT BANTER (for UI display)
       // ====================================================================
-      // Default: user-initiated = fast, LLM-initiated = normal banter
-      const useFastMode = request.fastMode ?? request.source === 'user';
+      // Build intelligent banter context for context-aware phrases
+      const intelligentBanterContext: IntelligentBanterContext = {
+        currentTopic: request.recentMessages?.[0]?.slice(0, 100),
+        handoffCountThisSession: this.stateManager.getSnapshot().handoffCount || 0,
+        handoffReason: request.reason,
+        isFirstTimeUser: !this.stateManager.hasMetPersona(canonicalId),
+      };
 
-      if (useFastMode) {
-        log.info({ traceId, target: canonicalId }, '⚡ FAST MODE: Instant switch enabled');
+      // Generate context-aware banter (topic, emotion, time, relationship)
+      const banterResult = getIntelligentBanter(
+        previousAgent,
+        canonicalId,
+        intelligentBanterContext
+      );
+
+      log.debug(
+        {
+          wasIntelligent: banterResult.wasIntelligent,
+          contextUsed: banterResult.contextUsed,
+          softOpen: banterResult.softOpenBanter?.slice(0, 50),
+          arriving: banterResult.arrivingBanter?.slice(0, 50),
+        },
+        '🧠 Intelligent banter generated for handoff'
+      );
+
+      // CRITICAL: Frontend expects 'target' not 'targetAgent'
+      // Include banter text so frontend can display it during transition
+      this.emitUIEvent('handoff_started', {
+        traceId,
+        target: canonicalId,
+        displayName,
+        softOpenBanter: banterResult.softOpenBanter,
+        arrivingBanter: banterResult.arrivingBanter,
+      });
+
+      // ====================================================================
+      // BETTER THAN HUMAN: Adaptive Warmth Based on Relationship
+      // ====================================================================
+      // Human support networks can't remember if people have met, forget context,
+      // and often do awkward re-introductions. We do better.
+      //
+      // Warmth Level Decision Matrix:
+      // - First meeting → WARM (full intro, both personas speak)
+      // - User stressed → WARM (extra care, don't rush)
+      // - Multiple handoffs same session (3+) → FAST (don't repeat yourself)
+      // - Established relationship → BALANCED (skip goodbye, keep greeting)
+      // - Explicitly requested fast → FAST
+      //
+      const isFirstMeeting = banterContext.isFirstMeeting;
+      const isUserStressed = intelligentBanterContext.userEmotion === 'stressed';
+      const handoffCount = intelligentBanterContext.handoffCountThisSession ?? 0;
+      const hasMetManyTimes = handoffCount >= 3;
+
+      // Determine warmth level
+      let warmthLevel: 'warm' | 'balanced' | 'fast';
+      let warmthReason: string;
+
+      if (request.fastMode === true) {
+        // Explicit fast mode request
+        warmthLevel = 'fast';
+        warmthReason = 'explicitly_requested';
+      } else if (isFirstMeeting) {
+        // First time meeting this persona - full warm introduction
+        warmthLevel = 'warm';
+        warmthReason = 'first_meeting';
+      } else if (isUserStressed) {
+        // User needs extra care - don't rush
+        warmthLevel = 'warm';
+        warmthReason = 'user_stressed';
+      } else if (hasMetManyTimes) {
+        // Multiple handoffs this session - brevity mode
+        warmthLevel = 'fast';
+        warmthReason = 'brevity_mode';
+      } else if (request.source === 'llm') {
+        // LLM-initiated - natural conversation flow
+        warmthLevel = 'warm';
+        warmthReason = 'llm_initiated';
+      } else {
+        // User-initiated (UI click) to known persona - balanced
+        warmthLevel = 'balanced';
+        warmthReason = 'established_relationship';
       }
 
-      // Step 1: Soft Open (departing persona's goodbye) - SKIP IN FAST MODE
-      if (!useFastMode && !this.skipBanter && this.onBeforeVoiceSwitch) {
+      // Convert warmth level to mode flags
+      const useFastMode = warmthLevel === 'fast';
+      const skipSoftOpen = warmthLevel !== 'warm'; // Only warm gets soft open
+      const asyncWelcome = warmthLevel === 'fast'; // Fast uses async, others block
+
+      log.info(
+        {
+          traceId,
+          target: canonicalId,
+          warmthLevel,
+          warmthReason,
+          isFirstMeeting,
+          isUserStressed,
+          handoffCount,
+          source: request.source,
+        },
+        `🤝 BETTER THAN HUMAN: ${warmthLevel} handoff (${warmthReason})`
+      );
+
+      // Step 1: Soft Open (departing persona's goodbye) - ONLY in WARM mode
+      // Warm mode = first meeting, stressed user, or LLM-initiated
+      if (!skipSoftOpen && !this.skipBanter && this.onBeforeVoiceSwitch) {
         tx.addStep({
           name: 'soft-open-banter',
           execute: async () => {
@@ -531,18 +628,23 @@ export class HandoffCoordinator {
         critical: true,
       });
 
-      // Step 4: Arriving Welcome - BLOCKING in normal mode, ASYNC in fast mode
+      // Step 4: Arriving Welcome - BLOCKING for warm/balanced, ASYNC only for fast
+      // BETTER THAN HUMAN: Even in "fast" mode for returning users, we still greet them
+      // The difference is whether we wait for the greeting before completing
       if (!this.skipBanter && this.onAfterVoiceSwitch) {
-        if (useFastMode) {
+        if (asyncWelcome) {
           // FAST MODE: Trigger arriving welcome ASYNC (non-blocking)
-          // Don't add to transaction - fire and forget after switch completes
+          // Only used when user has met this persona 3+ times this session (brevity mode)
           tx.addStep({
             name: 'queue-async-welcome',
             execute: async () => {
               // Queue the welcome to run AFTER transaction completes
               // Use setTimeout(0) to ensure it runs after handoff_complete is sent
               setTimeout(() => {
-                log.info({ traceId, target: canonicalId }, '🎭 FAST MODE: Async welcome starting');
+                log.info(
+                  { traceId, target: canonicalId, warmthLevel },
+                  '🎭 Async welcome starting (brevity mode)'
+                );
                 this.onAfterVoiceSwitch!(canonicalId, banterContext).catch((err) => {
                   log.warn(
                     { traceId, error: String(err) },
@@ -557,7 +659,7 @@ export class HandoffCoordinator {
             critical: false,
           });
         } else {
-          // NORMAL MODE: Blocking arriving welcome
+          // WARM/BALANCED MODE: Blocking arriving welcome - ensures persona greets user
           tx.addStep({
             name: 'arriving-welcome-banter',
             execute: async () => {

@@ -16,6 +16,13 @@
  * @module intelligence/context-builders/ferni-coordinator-insights
  */
 
+import {
+  generateTeamStatus,
+  getInsightsForPersona,
+  type CrossPersonaInsight,
+  type PersonaId,
+  type TeamStatusSummary,
+} from '../../../services/cross-persona-insights.js';
 import { createLogger } from '../../../utils/safe-logger.js';
 import {
   BuilderCategory,
@@ -25,21 +32,14 @@ import {
   type ContextBuilderInput,
   type ContextInjection,
 } from '../index.js';
-import {
-  getInsightsForPersona,
-  generateTeamStatus,
-  type PersonaId,
-  type CrossPersonaInsight,
-  type TeamStatusSummary,
-} from '../../../services/cross-persona-insights.js';
 // Better Than Human: Calendar awareness for smart handoffs
-import {
-  getCalendarLoadFactors,
-  type CalendarLoadFactors,
-} from '../../../services/calendar/calendar-load-service.js';
+import { getCalendarLoadFactors } from '../../../services/calendar/calendar-load-service.js';
 import { detectRecoveryNeeds } from '../../../services/calendar/recovery-protection.js';
 // Superhuman services: 19 "Better Than Human" capabilities
 import { getSuperhuman } from '../superhuman/superhuman-integration.js';
+
+// V5 Superhuman Persona Intelligence - Orchestration & Therapeutic Alliance
+import { buildOrchestrationContext } from '../../../services/superhuman/index.js';
 
 const log = createLogger({ module: 'context:ferni-coordinator' });
 
@@ -569,6 +569,25 @@ async function buildFerniCoordinatorIntelligenceContext(
       }
     } catch (superhumanErr) {
       log.debug({ error: String(superhumanErr) }, 'Superhuman context failed (non-fatal)');
+    }
+
+    // =========================================================================
+    // V5 ORCHESTRATION INTELLIGENCE
+    // WAI therapeutic alliance, Rogerian conditions, MI fidelity, session quality
+    // =========================================================================
+    try {
+      const orchestrationContext = await buildOrchestrationContext(userId);
+      if (orchestrationContext) {
+        injections.push(
+          createStandardInjection(
+            `[🎯 ORCHESTRATION INTELLIGENCE]\n${orchestrationContext}`,
+            'orchestration_intel'
+          )
+        );
+        log.info({ userId }, '🎯 Orchestration intelligence context injected for Ferni');
+      }
+    } catch (orchestrationErr) {
+      log.debug({ error: String(orchestrationErr) }, 'Orchestration context failed (non-fatal)');
     }
   } catch (err) {
     log.warn({ error: String(err) }, 'Failed to build coordinator intelligence');

@@ -670,6 +670,7 @@
       "handoff",
       "cameo",
       "information",
+      "entertainment",
       "habits",
       "wellness",
       "self-compassion",
@@ -734,11 +735,7 @@
     "forbidden": [
       "dayTrade",
       "analyzeStock",
-      "makeInvestment",
-      "scheduleAppointment",
-      "sendEmail",
-      "makeCall",
-      "playMusic"
+      "makeInvestment"
     ]
   },
 
@@ -749,7 +746,7 @@
     "proactive_notifications": true,
     "cross_agent_context": true,
     "banking_enabled": true,
-    "music_enabled": false
+    "music_enabled": true
   },
 
   "team_handlers": {

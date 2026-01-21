@@ -452,7 +452,7 @@ npm run marketing:optimize:images
 **Content**
 
 - [ ] All copy proofread
-- [ ] Phone number correct: 1 (484) 481-3081
+- [ ] Phone number correct: 1 (888) 598-3952
 - [ ] App URL correct: https://app.ferni.ai
 - [ ] All links working
 - [ ] Copyright year: 2024 → 2025

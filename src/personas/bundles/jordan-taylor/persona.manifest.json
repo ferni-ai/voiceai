@@ -435,6 +435,7 @@
       "handoff",
       "cameo",
       "information",
+      "entertainment",
       "life-planning",
       "dreams",
       "engagement",
@@ -523,14 +524,14 @@
       "recallEventMeaning",
       "getAnticipatedTransitions"
     ],
-    "forbidden": ["dayTrade", "analyzeStock", "sendEmail", "makeCall", "playMusic", "createHabit"]
+    "forbidden": ["dayTrade", "analyzeStock"]
   },
 
   "capabilities": {
     "can_handoff": true,
     "handoff_targets": ["@coordinator", "@team"],
     "banking_enabled": false,
-    "music_enabled": false,
+    "music_enabled": true,
     "event_planning": true,
     "life_planning": true
   },

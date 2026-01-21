@@ -22,28 +22,34 @@ import {
 } from '../../index.js';
 import { getSuperhuman } from '../../superhuman/superhuman-integration.js';
 
-import { getSession, clearPeterResearchSession } from './session.js';
+// V5 Superhuman Persona Intelligence - Causal Inference & Financial Patterns
 import {
-  analyzeSpendingPatterns,
-  getMayaHabitInsights,
-  getMoodPatterns,
-  getMemoryOrchestratorInsights,
+  buildCausalInferenceContext,
+  buildFinancialPatternContext,
+} from '../../../../services/superhuman/index.js';
+
+import {
   analyzeGoalTrajectory,
+  analyzeSpendingPatterns,
   buildCalendarResearchContext,
+  getMayaHabitInsights,
+  getMemoryOrchestratorInsights,
+  getMoodPatterns,
 } from './data-fetchers.js';
+import { clearPeterResearchSession, getSession } from './session.js';
 // Cross-Domain: CEO Coaching for pending decisions
 import { getPendingDecisions } from '../../../../tools/domains/ceo-coaching/storage.js';
+import { formatBriefingForInjection } from './formatting.js';
+import { analyzeHandoffContext } from './handoff-analysis.js';
 import {
-  computeBehavioralMetrics,
   analyzePersonalLifePatterns,
-  generateCrossDomainPatterns,
+  computeBehavioralMetrics,
   generateCoachingInsights,
+  generateCrossDomainPatterns,
   generateDeepFinancialInsights,
 } from './metrics.js';
 import { detectProactiveCoachingInsights } from './opportunities.js';
-import { analyzeHandoffContext } from './handoff-analysis.js';
-import { formatBriefingForInjection } from './formatting.js';
-import type { UserInsightBriefing, HabitInsights, MoodInsights, MemoryInsights } from './types.js';
+import type { HabitInsights, MemoryInsights, MoodInsights, UserInsightBriefing } from './types.js';
 
 const log = createLogger({ module: 'context:peter-research-insights' });
 
@@ -297,6 +303,25 @@ async function buildPeterResearchInsightsContext(
     // Add superhuman context if available
     if (superhumanContext) {
       briefingLines.push('\n' + superhumanContext);
+    }
+
+    // V5 Superhuman Persona Intelligence - Causal Inference Engine & Financial Patterns
+    // Granger causality, counterfactuals, intervention recommendations, behavioral biases
+    const [causalContext, financialContext] = await Promise.all([
+      buildCausalInferenceContext(userId).catch((e) => {
+        log.debug({ error: String(e) }, 'Failed to build causal inference context');
+        return '';
+      }),
+      buildFinancialPatternContext(userId).catch((e) => {
+        log.debug({ error: String(e) }, 'Failed to build financial pattern context');
+        return '';
+      }),
+    ]);
+    if (causalContext) {
+      briefingLines.push('\n' + causalContext);
+    }
+    if (financialContext) {
+      briefingLines.push('\n' + financialContext);
     }
 
     // 🤝 TEAM HUDDLE: Record Peter's observations for cross-persona intelligence

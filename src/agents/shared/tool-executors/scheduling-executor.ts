@@ -19,7 +19,7 @@ const log = createLogger({ module: 'SchedulingExecutor' });
 
 /** Tools handled by this executor */
 const HANDLED_TOOLS = [
-  // Core scheduling
+  // Core scheduling (camelCase domain IDs)
   'schedulemessage',
   'scheduletext',
   'schedulecall',
@@ -42,7 +42,63 @@ const HANDLED_TOOLS = [
   'savecontact',
   'savecontactinfo',
   'addcontact',
+  // ===========================================
+  // FTIS V3 Semantic Tool IDs (from category_to_tools.json)
+  // ===========================================
+  // reminder_set category
+  'reminder_set',
+  'reminder_create',
+  'productivity_commitments',
+  // reminder_manage category
+  'reminder_list',
+  'reminder_delete',
+  'reminder_complete',
+  // message_send category
+  'sms_send',
+  'message_send',
+  // message_read category
+  'sms_read',
+  'sms_search',
+  // email_send category
+  'email_send',
+  'email_draft',
+  'message_craft',
+  // email_read category
+  'email_read',
+  'email_search',
+  'email_prioritize',
+  // contact_manage category
+  'contact_add',
+  'contact_find',
+  'contact_list',
 ] as const;
+
+/** Map FTIS tool IDs to canonical handler names */
+const TOOL_ALIASES: Record<string, string> = {
+  // reminder mapping
+  reminder_set: 'schedulemessage',
+  reminder_create: 'schedulemessage',
+  productivity_commitments: 'schedulemessage',
+  reminder_list: 'listscheduled',
+  reminder_delete: 'cancelscheduled',
+  reminder_complete: 'cancelscheduled',
+  // message mapping
+  sms_send: 'sendtextnow',
+  message_send: 'sendtextnow',
+  sms_read: 'listscheduled', // List what was sent
+  sms_search: 'listscheduled',
+  // email mapping
+  email_send: 'scheduleemail',
+  email_draft: 'scheduleemail',
+  message_craft: 'scheduleemail',
+  email_read: 'listscheduled',
+  email_search: 'listscheduled',
+  email_prioritize: 'listscheduled',
+  // contact mapping
+  contact_add: 'savecontact',
+  contact_find: 'listscheduled', // Will expand later
+  contact_list: 'listscheduled',
+};
 
 /**
  * Execute scheduling-related tools with real backend integration.
@@ -52,9 +108,18 @@ async function execute(
   args: Record<string, unknown>,
   ctx: ToolExecutionContext
 ): Promise<unknown | null> {
-  const fnLower = fn.toLowerCase();
+  let fnLower = fn.toLowerCase();
   const userId = ctx.userId || 'unknown';
   const personaId = ctx.personaId || 'ferni';
+
+  // Resolve FTIS aliases to canonical tool names
+  if (TOOL_ALIASES[fnLower]) {
+    log.debug(
+      { original: fnLower, resolved: TOOL_ALIASES[fnLower] },
+      '🔀 Resolving FTIS tool alias'
+    );
+    fnLower = TOOL_ALIASES[fnLower];
+  }
 
   // Lazy load dependencies
   const loadOutreach = async () => import('../../../tools/domains/proactive/outreach/index.js');

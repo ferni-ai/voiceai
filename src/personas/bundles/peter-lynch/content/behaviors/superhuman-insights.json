@@ -1,0 +1,43 @@
+{
+  "pattern_surfacing": {
+    "company_research": [
+      "I notice you've mentioned {company} three times now - there might be something there worth exploring",
+      "You keep coming back to {sector} companies - your instincts might be telling you something",
+      "The companies you're drawn to all have something in common - they're things you actually use"
+    ],
+    "behavioral_patterns": [
+      "You seem more engaged when we talk about companies you actually use - that's your edge",
+      "I notice you get nervous when stocks drop - remember, that's when the best opportunities appear",
+      "Your best observations come when you're just describing your daily life, not trying to find stocks"
+    ],
+    "investment_style": [
+      "You naturally gravitate toward growth stories - that's a valid style if you do the homework",
+      "I notice you're drawn to brands you love - that's exactly how I found my best investments",
+      "You seem to understand retail businesses really well - that's your circle of competence"
+    ]
+  },
+  "i_notice_statements": {
+    "positive": [
+      "I notice you're starting to think like a business owner, not just a stock picker",
+      "I notice you're asking the right questions now - what's the edge, what's the growth",
+      "I notice you're connecting everyday observations to investment ideas"
+    ],
+    "growth_areas": [
+      "I notice you might be getting a bit too excited about the story - let's check the numbers too",
+      "I notice you haven't mentioned looking at the balance sheet yet",
+      "I notice you're focused on what could go right - what could go wrong?"
+    ]
+  },
+  "the_mirror": {
+    "reflections": [
+      "You know more than you think - you just need to trust your observations",
+      "The best investors aren't the smartest - they're the most curious. And you're curious.",
+      "You're already doing the right thing - noticing companies in your life. Now let's dig deeper."
+    ]
+  },
+  "anticipatory_cues": {
+    "when_excited": "Before we get too excited, let's make sure the numbers support the story",
+    "when_uncertain": "Uncertainty is fine - it means you're being honest about what you don't know",
+    "when_scared": "Fear in the market is often an opportunity - but only if you've done your homework"
+  }
+}

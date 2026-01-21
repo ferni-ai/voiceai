@@ -13,7 +13,7 @@
 // IMPORTS FOR INTERNAL USE
 // ============================================================================
 
-import { buildCommitmentContext, detectCommitment } from './commitment-keeper.js';
+import { buildCommitmentContext } from './commitment-keeper.js';
 
 import { buildPredictiveContextString } from './predictive-coaching.js';
 
@@ -21,7 +21,7 @@ import { buildNarrativeContextString } from './life-narrative.js';
 
 import { buildValuesContext } from './values-alignment.js';
 
-import { buildFirstAidContext, detectCrisis, type CrisisSignal } from './emotional-first-aid.js';
+import { buildFirstAidContext, detectCrisis } from './emotional-first-aid.js';
 
 import { buildNetworkContext } from './relationship-network.js';
 
@@ -39,67 +39,67 @@ import { buildSeasonalContext } from './seasonal-awareness.js';
 
 // Commitment Keeper
 export {
+  buildCommitmentContext,
   commitmentKeeper,
   detectCommitment,
-  saveCommitment,
-  loadUserCommitments,
-  updateCommitmentStatus,
   getFollowUpsForUser,
-  buildCommitmentContext,
+  loadUserCommitments,
+  saveCommitment,
+  updateCommitmentStatus,
   type Commitment,
-  type CommitmentType,
-  type CommitmentStatus,
   type CommitmentFollowUp,
+  type CommitmentStatus,
+  type CommitmentType,
 } from './commitment-keeper.js';
 
 // Superhuman Observations - "Only I Would Notice" pattern detection
 export {
-  SuperhumanObservationsEngine,
-  getSuperhumanObservations,
   clearSuperhumanObservations,
+  getSuperhumanObservations,
+  SuperhumanObservationsEngine,
+  type ObservationResult,
   type ObservationType,
   type SuperhumanObservation,
-  type ObservationResult,
 } from './observations.js';
 
 // Predictive Coaching
 export {
-  predictiveCoaching,
-  recordObservation,
-  loadUserPatterns,
+  buildPredictiveContextString,
   generatePredictions,
   getDayPatterns,
-  buildPredictiveContextString,
+  loadUserPatterns,
+  predictiveCoaching,
+  recordObservation,
+  type DayPattern,
   type PatternObservation,
   type Prediction,
-  type DayPattern,
 } from './predictive-coaching.js';
 
 // Life Narrative
 export {
-  lifeNarrative,
-  detectChapterMoment,
-  loadUserChapters,
-  createOrUpdateChapter,
-  loadIdentity,
-  recordIdentityShift,
-  identifyNarrativeArc,
   buildNarrativeContextString,
-  type LifeChapter,
+  createOrUpdateChapter,
+  detectChapterMoment,
+  identifyNarrativeArc,
+  lifeNarrative,
+  loadIdentity,
+  loadUserChapters,
+  recordIdentityShift,
   type ChapterType,
-  type NarrativeArc,
   type IdentityEvolution,
+  type LifeChapter,
+  type NarrativeArc,
 } from './life-narrative.js';
 
 // Values Alignment
 export {
-  valuesAlignment,
-  detectValue,
-  detectConflict,
-  loadUserValues,
-  recordValueMention,
-  recordConflict,
   buildValuesContext,
+  detectConflict,
+  detectValue,
+  loadUserValues,
+  recordConflict,
+  recordValueMention,
+  valuesAlignment,
   type UserValue,
   type ValueCategory,
   type ValueConflict,
@@ -107,12 +107,12 @@ export {
 
 // Emotional First Aid
 export {
-  emotionalFirstAid,
+  buildFirstAidContext,
   detectCrisis,
   detectCrisisFromVoice,
+  emotionalFirstAid,
   getFirstAidResponse,
   getVoiceInstructions,
-  buildFirstAidContext,
   type CrisisLevel,
   type CrisisSignal,
   type FirstAidResponse,
@@ -121,142 +121,141 @@ export {
 
 // Relationship Network
 export {
-  relationshipNetwork,
-  extractPerson,
   analyzeSentiment,
+  buildNetworkContext,
+  extractPerson,
+  findConnectionOpportunities,
   loadNetwork,
   recordMention,
-  findConnectionOpportunities,
-  buildNetworkContext,
-  type RelationshipPerson,
-  type RelationshipType,
-  type RelationshipSentiment,
+  relationshipNetwork,
   type ConnectionOpportunity,
+  type RelationshipPerson,
+  type RelationshipSentiment,
+  type RelationshipType,
 } from './relationship-network.js';
 
 // Capacity Guardian
 export {
+  assessBurnoutRisk,
+  buildCapacityContext,
   capacityGuardian,
   detectEnergyLevel,
   detectOvercommitment,
-  recordEnergyReading,
   loadEnergyHistory,
-  assessBurnoutRisk,
-  buildCapacityContext,
+  recordEnergyReading,
+  type BurnoutAssessment,
+  type BurnoutRisk,
   type EnergyLevel,
   type EnergyReading,
-  type BurnoutRisk,
-  type BurnoutAssessment,
 } from './capacity-guardian.js';
 
 // Dream Keeper
 export {
-  dreamKeeper,
+  buildDreamContext,
   detectDream,
+  dreamKeeper,
+  findDormantDreams,
   loadUserDreams,
   recordDreamMention,
-  findDormantDreams,
-  buildDreamContext,
   type Dream,
-  type DreamType,
-  type DreamStatus,
   type DreamReminder,
+  type DreamStatus,
+  type DreamType,
 } from './dream-keeper.js';
 
 // Relationship Milestones
 export {
-  relationshipMilestones,
+  acknowledgeMilestone,
+  buildMilestoneContext,
+  buildRelationshipSummary,
   checkAndRecordMilestones,
   recordSpecialMilestone,
-  acknowledgeMilestone,
-  buildRelationshipSummary,
-  buildMilestoneContext,
-  type RelationshipMilestone,
+  relationshipMilestones,
   type MilestoneType,
+  type RelationshipMilestone,
   type RelationshipSummary,
 } from './relationship-milestones.js';
 
 // Seasonal Awareness
 export {
-  seasonalAwareness,
+  buildSeasonalContext,
+  detectSeasonalPattern,
+  findUpcomingDates,
   getCurrentSeason,
   getDaysUntilSeasonChange,
-  detectSeasonalPattern,
-  loadSeasonalObservations,
   loadPersonalDates,
-  recordSeasonalObservation,
+  loadSeasonalObservations,
   recordPersonalDate,
-  findUpcomingDates,
-  buildSeasonalContext,
-  type Season,
-  type SeasonalPattern,
-  type SeasonalObservation,
+  recordSeasonalObservation,
+  seasonalAwareness,
   type PersonalDate,
+  type Season,
+  type SeasonalObservation,
+  type SeasonalPattern,
 } from './seasonal-awareness.js';
 
 // Milestone-Calendar Coordinator (Cross-Domain)
 export {
-  findOptimalMilestoneWindows,
-  suggestTimeBlocks,
   detectMilestoneConflicts,
+  findOptimalMilestoneWindows,
   getCapacityForNewMilestone,
   getCoordinationContext,
-  type TimeWindow,
-  type MilestoneConflict,
+  suggestTimeBlocks,
   type CapacityAssessment,
+  type MilestoneConflict,
   type MilestoneTimeBlock,
   type SimpleMilestone,
+  type TimeWindow,
 } from './milestone-calendar-coordinator.js';
 
 // ============================================================================
 // UNIFIED CONTEXT BUILDER
 // ============================================================================
 
-import { buildSilenceContext } from './silence-interpreter.js';
 import { buildContradictionAwarenessContext } from './contradiction-comfort.js';
-import { buildTimingContext, getTimingProfile, type ReceptivityScore } from './perfect-timing.js';
-import { buildPatternMirrorContext } from './pattern-mirror.js';
 import { buildFutureSelfContext, getRecentLetter } from './future-self.js';
+import { buildPatternMirrorContext } from './pattern-mirror.js';
+import { buildTimingContext, type ReceptivityScore } from './perfect-timing.js';
+import { buildSilenceContext } from './silence-interpreter.js';
 
 // V2 Better Than Human imports
-import {
-  buildVoiceBiomarkersContext,
-  type VoiceBiomarkers as CurrentVoiceBiomarkers,
-} from './voice-biomarkers.js';
-import { buildMoodCalendarContext } from './mood-calendar.js';
-import { buildSocialBatteryContext } from './social-battery.js';
-import { buildConflictResolutionContext } from './conflict-resolution-memory.js';
-import { buildProtectiveSilenceContext } from './protective-silence.js';
 import {
   buildCalendarPrepContext,
   type CalendarEvent as PrepCalendarEvent,
 } from './calendar-prep-coaching.js';
-import { buildEnergyWaveContext } from './energy-wave-mapping.js';
+import { buildConflictResolutionContext } from './conflict-resolution-memory.js';
 import {
-  buildVocabularyContext,
   buildVagueEmotionContext,
+  buildVocabularyContext,
   detectVagueEmotions,
 } from './emotional-vocabulary.js';
-import { buildRecoveryContext } from './recovery-tracking.js';
+import { buildEnergyWaveContext } from './energy-wave-mapping.js';
 import { buildInsideJokeContext } from './inside-joke-memory.js';
+import { buildMoodCalendarContext } from './mood-calendar.js';
+import { buildProtectiveSilenceContext } from './protective-silence.js';
+import { buildRecoveryContext } from './recovery-tracking.js';
+import { buildSocialBatteryContext } from './social-battery.js';
+import {
+  buildVoiceBiomarkersContext,
+  type VoiceBiomarkers as CurrentVoiceBiomarkers,
+} from './voice-biomarkers.js';
 
 // V3 Semantic Intelligence imports
 import {
   buildSemanticIntelligenceContext,
   formatSemanticIntelligenceContext,
-  type SemanticIntelligenceContext,
 } from './semantic-intelligence/index.js';
 
 // V4 Jordan's Superhuman Planning imports
-import { buildEventPatternContext } from './event-pattern-memory.js';
-import { buildGuestIntelligenceContext } from './guest-intelligence.js';
-import { buildMilestoneDetectorContext } from './proactive-milestone-detector.js';
-import { buildEventStoryContext } from './event-story-capture.js';
 import { buildAnticipatoryPlanningContext } from './anticipatory-planning.js';
 import { buildCelebrationBalanceContext } from './celebration-balance.js';
+import { buildEventPatternContext } from './event-pattern-memory.js';
+import { buildEventStoryContext } from './event-story-capture.js';
+import { buildGuestIntelligenceContext } from './guest-intelligence.js';
 import { buildPlanningCoordinationContext } from './planning-coordination.js';
-import { buildSeasonalPlanningContext } from './seasonal-planning-intelligence.js';
 import { buildPostEventLearningContext } from './post-event-learning.js';
+import { buildMilestoneDetectorContext } from './proactive-milestone-detector.js';
+import { buildSeasonalPlanningContext } from './seasonal-planning-intelligence.js';
 
 export interface SuperhumanContext {
   // Original 10 capabilities
@@ -585,90 +584,90 @@ export function formatSuperhumanContextForPrompt(context: SuperhumanContext): st
 
 // Silence Interpreter - Understand different types of silence
 export {
-  silenceInterpreter,
   analyzeSilence,
-  recordSilenceOutcome,
-  loadSilenceProfile,
-  updateBaselineTolerance,
-  buildSilenceGuidance,
   buildSilenceContext,
-  shouldAnalyzeSilence,
+  buildSilenceGuidance,
   getResponsePhrase,
-  type SilenceType,
-  type SilenceResponse,
+  loadSilenceProfile,
+  recordSilenceOutcome,
+  shouldAnalyzeSilence,
+  silenceInterpreter,
+  updateBaselineTolerance,
   type SilenceAnalysis,
-  type SilenceProfile,
   type SilenceHistoryEntry,
+  type SilenceProfile,
+  type SilenceResponse,
+  type SilenceType,
 } from './silence-interpreter.js';
 
 // Contradiction Comfort - Hold space for opposing emotions
 export {
+  areCommonlyCoexisting,
+  buildContradictionAwarenessContext,
+  buildContradictionContext,
   contradictionComfort,
   detectContradiction,
-  recordContradiction,
-  loadContradictionProfile,
-  buildContradictionContext,
-  buildContradictionAwarenessContext,
   getValidationPhrase,
-  areCommonlyCoexisting,
+  loadContradictionProfile,
+  recordContradiction,
   type ContradictionDetection,
-  type ContradictionProfile,
   type ContradictionHistory,
   type ContradictionPattern,
+  type ContradictionProfile,
 } from './contradiction-comfort.js';
 
 // Perfect Timing Intelligence - Know when to surface topics
 export {
-  perfectTiming,
-  detectReceptivity,
-  recordTimingLearning,
-  queueTopicForRightMoment,
-  getTopicsForNow,
-  markTopicSurfaced,
-  isGoodTimeFor,
   buildTimingContext,
-  loadTimingProfile,
+  detectReceptivity,
   getTimingProfile,
+  getTopicsForNow,
+  isGoodTimeFor,
+  loadTimingProfile,
+  markTopicSurfaced,
+  perfectTiming,
+  queueTopicForRightMoment,
+  recordTimingLearning,
+  type CalendarPressure,
+  type ConversationType,
+  type GreetingTone,
+  type QueuedTopic,
   type ReceptivityScore,
   type TimingIntelligence,
-  type QueuedTopic,
   type TimeWindow as TimingWindow,
-  type ConversationType,
-  type CalendarPressure,
-  type GreetingTone,
 } from './perfect-timing.js';
 
 // Pattern Mirror - Surface patterns users can't see
 export {
+  buildPatternMirrorContext,
+  getPatternProfile,
+  getPatternToSurface,
+  loadPatternProfile,
+  markInsightSurfaced as markPatternInsightSurfaced,
   patternMirror,
+  recordCyclicalPattern,
   recordTopicEnergy,
   recordWordVoiceMismatch,
-  recordCyclicalPattern,
-  getPatternToSurface,
-  markInsightSurfaced as markPatternInsightSurfaced,
-  buildPatternMirrorContext,
   savePatternProfile,
-  loadPatternProfile,
-  getPatternProfile,
-  type TopicEnergy,
   type CyclicalPattern,
   type FadingTopic,
-  type WordVoiceMismatch,
   type PatternInsight,
   type PatternMirrorProfile,
+  type TopicEnergy,
+  type WordVoiceMismatch,
 } from './pattern-mirror.js';
 
 // Future Self Letters - Project trajectory
 export {
+  buildFutureSelfContext,
   futureSelf,
   generateFutureSelfLetter,
   getRecentLetter,
-  buildFutureSelfContext,
-  type FutureSelfLetter,
+  type ConcerningPattern,
   type FutureSelfContext,
+  type FutureSelfLetter,
   type LetterTimeframe,
   type PositivePattern,
-  type ConcerningPattern,
 } from './future-self.js';
 
 // ============================================================================
@@ -677,93 +676,93 @@ export {
 
 // Voice Biomarkers - Wellness detection from voice patterns
 export {
-  voiceBiomarkers,
   analyzeVoiceBiomarkers,
-  storeBiomarkerReading,
-  loadBiomarkerReadings,
-  getBiomarkerTrends,
-  calculateStressTrajectory,
   buildVoiceBiomarkersContext,
-  type VoiceBiomarkers,
+  calculateStressTrajectory,
+  getBiomarkerTrends,
+  loadBiomarkerReadings,
+  storeBiomarkerReading,
+  voiceBiomarkers,
   type VoiceAnalysisInput,
+  type VoiceBiomarkers,
 } from './voice-biomarkers.js';
 
 // Mood Calendar - Predict emotional patterns
 export {
-  moodCalendar,
-  recordMoodEntry,
-  loadMoodEntries,
-  detectMoodPatterns,
-  predictMood,
-  getMoodCalendarSummary,
   buildMoodCalendarContext,
-  type MoodType,
+  detectMoodPatterns,
+  getMoodCalendarSummary,
+  loadMoodEntries,
+  moodCalendar,
+  predictMood,
+  recordMoodEntry,
+  type MoodCalendarSummary,
   type MoodEntry,
   type MoodPattern,
   type MoodPrediction,
-  type MoodCalendarSummary,
+  type MoodType,
 } from './mood-calendar.js';
 
 // Social Battery - Know when they're "peopled out"
 export {
-  socialBattery,
-  recordSocialEvent,
-  loadSocialEvents,
-  getSocialBatteryState,
-  getSocialBatteryProfile,
-  calculateBatteryLevel,
   buildSocialBatteryContext,
-  type SocialEventType,
-  type SocialEvent,
-  type SocialBatteryState,
+  calculateBatteryLevel,
+  getSocialBatteryProfile,
+  getSocialBatteryState,
+  loadSocialEvents,
+  recordSocialEvent,
+  socialBattery,
   type SocialBatteryProfile,
+  type SocialBatteryState,
+  type SocialEvent,
+  type SocialEventType,
 } from './social-battery.js';
 
 // Conflict Resolution Memory - What works in conflicts
 export {
-  conflictResolution,
-  recordConflict as recordConflictHistory,
-  updateConflictResolution,
-  loadConflictHistory,
   analyzeConflictPattern,
+  buildConflictResolutionContext,
+  conflictResolution,
   getAllConflictPatterns,
   getConflictRecommendations,
-  buildConflictResolutionContext,
+  loadConflictHistory,
+  recordConflict as recordConflictHistory,
+  updateConflictResolution,
+  type ConflictOutcome,
+  type ConflictPattern,
+  type ConflictRecord,
   type ConflictType,
   type ResolutionApproach,
-  type ConflictOutcome,
-  type ConflictRecord,
-  type ConflictPattern,
 } from './conflict-resolution-memory.js';
 
 // Protective Silence - Topics to avoid
 export {
+  buildProtectiveSilenceContext,
+  checkBoundaries,
+  checkResponseSafety,
+  inferBoundaryFromReaction,
+  loadBoundaries,
   protectiveSilence,
   recordBoundary,
-  updateBoundary,
   removeBoundary,
-  loadBoundaries,
-  checkBoundaries,
-  inferBoundaryFromReaction,
-  checkResponseSafety,
-  buildProtectiveSilenceContext,
-  type BoundarySeverity,
+  updateBoundary,
   type BoundaryCategory,
-  type ProtectiveBoundary,
   type BoundaryCheckResult,
+  type BoundarySeverity,
+  type ProtectiveBoundary,
 } from './protective-silence.js';
 
 // Calendar Prep Coaching - Proactive event prep
 export {
+  buildCalendarPrepContext,
   calendarPrepCoaching,
   classifyEvent,
+  getPrepRecommendations,
   loadEventHistory,
   recordEventOutcome,
-  getPrepRecommendations,
-  buildCalendarPrepContext,
-  type EventDifficulty,
-  type EventType as CalendarEventType,
   type CalendarEvent,
+  type EventType as CalendarEventType,
+  type EventDifficulty,
   type EventHistory,
   type PrepCoachingSession,
   type PrepRecommendation,
@@ -771,66 +770,66 @@ export {
 
 // Energy Wave Mapping - Optimal conversation times
 export {
-  energyWaveMapping,
-  recordInteraction as recordEnergyInteraction,
-  loadInteractions as loadEnergyInteractions,
   analyzeEnergyPatterns,
-  getTimingRecommendation,
   buildEnergyWaveContext,
+  energyWaveMapping,
+  getTimingRecommendation,
+  loadInteractions as loadEnergyInteractions,
+  recordInteraction as recordEnergyInteraction,
+  type ConversationInteraction,
   type ConversationType as EnergyConversationType,
   type EnergyLevel as EnergyWaveLevel,
-  type ConversationInteraction,
   type EnergyWaveProfile,
   type TimingRecommendation,
 } from './energy-wave-mapping.js';
 
 // Emotional Vocabulary Expansion - Name feelings precisely
 export {
-  emotionalVocabulary,
-  detectVagueEmotions,
-  suggestPreciseEmotions,
-  recordEmotionUsage,
-  loadEmotionHistory,
   analyzeVocabularyProfile,
   buildVagueEmotionContext,
   buildVocabularyContext,
+  detectVagueEmotions,
+  emotionalVocabulary,
+  loadEmotionHistory,
+  recordEmotionUsage,
+  suggestPreciseEmotions,
+  type EmotionalVocabularyProfile,
   type EmotionCategory,
+  type EmotionUsageRecord,
   type EmotionWord,
   type VagueEmotionMapping,
-  type EmotionUsageRecord,
-  type EmotionalVocabularyProfile,
 } from './emotional-vocabulary.js';
 
 // Recovery Time Tracking - Post-event recovery needs
 export {
+  buildRecoveryContext,
+  buildRecoveryProfile,
+  getActiveRecoveryEvents,
+  getCheckInRecommendation,
+  loadRecoveryHistory,
+  markRecovered,
   recoveryTracking,
   startRecoveryTracking,
-  markRecovered,
-  loadRecoveryHistory,
-  getActiveRecoveryEvents,
-  buildRecoveryProfile,
-  getCheckInRecommendation,
-  buildRecoveryContext,
-  type RecoveryEventType,
-  type RecoveryEvent,
-  type RecoveryProfile,
   type RecoveryCheckIn,
+  type RecoveryEvent,
+  type RecoveryEventType,
+  type RecoveryProfile,
 } from './recovery-tracking.js';
 
 // Inside Joke Memory - Shared history callbacks
 export {
+  buildInsideJokeContext,
+  detectPotentialMoment,
+  findCallbackOpportunities,
+  identifyRunningGags,
   insideJokeMemory,
-  recordSharedMoment,
   loadSharedMoments,
   recordMomentReference,
-  findCallbackOpportunities,
-  detectPotentialMoment,
-  identifyRunningGags,
-  buildInsideJokeContext,
+  recordSharedMoment,
   suggestCallback,
-  type SharedMomentType,
-  type SharedMoment,
   type CallbackOpportunity,
+  type SharedMoment,
+  type SharedMomentType,
 } from './inside-joke-memory.js';
 
 // ============================================================================
@@ -839,27 +838,27 @@ export {
 
 // Semantic Intelligence - 6 New Capabilities
 export {
-  // Main entry points
-  semanticIntelligence,
-  recordSemanticData,
   buildSemanticIntelligenceContext,
-  formatSemanticIntelligenceContext,
-  getSemanticIntelligenceSummary,
   clearSemanticIntelligenceCache,
   // Individual services
   correlationMining,
-  emotionalTrajectories,
-  relationalSemantics,
   counterfactualMemory,
-  growthFingerprint,
   crossSessionThreading,
-  // Types
-  type SemanticIntelligenceContext,
-  type SemanticCorrelation,
+  emotionalTrajectories,
+  formatSemanticIntelligenceContext,
+  getSemanticIntelligenceSummary,
+  growthFingerprint,
+  recordSemanticData,
+  relationalSemantics,
+  // Main entry points
+  semanticIntelligence,
+  type DecisionPoint,
   type EmotionalArc,
   type RelationalNode,
-  type DecisionPoint,
+  type SemanticCorrelation,
   type GrowthFingerprint as SemanticGrowthFingerprint,
+  // Types
+  type SemanticIntelligenceContext,
   type SemanticThread,
 } from './semantic-intelligence/index.js';
 
@@ -869,157 +868,157 @@ export {
 
 // Event Pattern Memory - Perfect recall across all events
 export {
+  buildEventPatternContext,
   eventPatternMemory,
+  getEventPatternInsights,
   recordEventOutcome as recordEventPatternOutcome,
   recordGuestConflict,
   recordRegrettedOmission,
   recordVendorExperience,
-  getEventPatternInsights,
-  buildEventPatternContext,
   type BudgetPattern,
-  type GuestDynamics,
   type EmotionalPattern,
-  type VendorPreference,
   type EventOutcome,
   type EventPatternProfile,
+  type GuestDynamics,
+  type VendorPreference,
 } from './event-pattern-memory.js';
 
 // Guest Intelligence - Permanent guest profiles
 export {
-  guestIntelligence,
+  buildGuestIntelligenceContext,
+  getGuestListDietary,
+  getGuestListSummary,
   getGuestProfile,
-  upsertGuestProfile,
-  recordGuestDietary,
+  getSeatingRecommendations,
+  guestIntelligence,
+  predictAttendance,
   recordGuestAccessibility,
+  recordGuestDietary,
   recordGuestRelationship,
   upsertGuestGroup,
-  getSeatingRecommendations,
-  getGuestListDietary,
-  predictAttendance,
-  getGuestListSummary,
-  buildGuestIntelligenceContext,
+  upsertGuestProfile,
+  type GuestGroup,
+  type GuestIntelligenceProfile,
   type GuestProfile,
   type GuestRelationship,
-  type GuestGroup,
   type SeatingRecommendation,
-  type GuestIntelligenceProfile,
 } from './guest-intelligence.js';
 
 // Proactive Milestone Detector - Detect celebrations humans forget
 export {
+  acknowledgeMilestone as acknowledgeDetectedMilestone,
+  buildMilestoneDetectorContext,
+  detectUpcomingMilestones,
+  getLifeStageInsights,
+  getMilestonesToCelebrate,
   proactiveMilestoneDetector,
+  recordLifeStageSignal,
+  resetQuietWin,
   trackDate,
   trackQuietWin,
-  resetQuietWin,
-  recordLifeStageSignal,
-  detectUpcomingMilestones,
-  getMilestonesToCelebrate,
-  acknowledgeMilestone as acknowledgeDetectedMilestone,
-  getLifeStageInsights,
-  buildMilestoneDetectorContext,
-  type MilestoneType as DetectorMilestoneType,
-  type MilestoneSignificance,
-  type TrackedDate,
   type DetectedMilestone,
+  type MilestoneType as DetectorMilestoneType,
   type LifeStageSignal,
   type MilestoneDetectorProfile,
+  type MilestoneSignificance,
+  type TrackedDate,
 } from './proactive-milestone-detector.js';
 
 // Event Story Capture - Remember what events MEANT
 export {
-  eventStoryCapture,
-  startStoryCapture,
-  updateEventStory,
-  addMeaningfulMoment,
   addGratitudeNote,
-  getStoryCapturePrompts,
-  getEventStory,
+  addMeaningfulMoment,
+  buildEventStoryContext,
+  eventStoryCapture,
   findEventStory,
   getAllEventStories,
-  recallEventMeaning,
-  buildEventStoryContext,
+  getEventStory,
   getStoriesWithUpcomingAnniversaries,
+  getStoryCapturePrompts,
+  recallEventMeaning,
+  startStoryCapture,
+  updateEventStory,
   type EventStory,
-  type StoryCapturePrompts,
   type EventStoryProfile,
+  type StoryCapturePrompts,
 } from './event-story-capture.js';
 
 // Anticipatory Planning - See life transitions coming
 export {
   anticipatoryPlanning,
+  buildAnticipatoryPlanningContext,
   detectTransitionSignals,
-  recordTransitionSignal,
-  updateDemographics,
   getAnticipatedTransitions,
   markTransitionSurfaced,
-  buildAnticipatoryPlanningContext,
-  type LifeTransition,
-  type TransitionSignal,
-  type TransitionPrediction,
+  recordTransitionSignal,
+  updateDemographics,
   type AnticipatedMilestone,
   type AnticipatoryPlanningProfile,
+  type LifeTransition,
+  type TransitionPrediction,
+  type TransitionSignal,
 } from './anticipatory-planning.js';
 
 // Celebration Balance - Track joy objectively
 export {
+  buildCelebrationBalanceContext,
   celebrationBalance,
-  recordCelebration as recordCelebrationEvent,
   getCelebrationBalance,
   getCelebrationSuggestions,
+  recordCelebration as recordCelebrationEvent,
   shouldPromptForCelebration,
-  buildCelebrationBalanceContext,
-  type CelebrationType,
-  type CelebrationSize,
-  type RecordedCelebration,
   type CelebrationBalance,
   type CelebrationBalanceProfile,
+  type CelebrationSize,
+  type CelebrationType,
+  type RecordedCelebration,
 } from './celebration-balance.js';
 
 // Planning Coordination - Cross-domain readiness checks
 export {
-  planningCoordination,
-  checkPlanningReadiness,
-  quickReadinessCheck,
-  checkGoalAlignment,
   buildPlanningCoordinationContext,
-  type FinancialReadiness,
+  checkGoalAlignment,
+  checkPlanningReadiness,
+  planningCoordination,
+  quickReadinessCheck,
   type CalendarCapacity,
   type EnergyAlignment,
+  type FinancialReadiness,
   type LifeStageContext,
-  type PlanningReadinessAssessment,
   type PlanningCoordinationProfile,
+  type PlanningReadinessAssessment,
 } from './planning-coordination.js';
 
 // Seasonal Planning Intelligence - Cultural dates and optimal timing
 export {
-  seasonalPlanningIntelligence,
+  buildSeasonalPlanningContext,
+  checkDateConflicts,
   getRelevantCulturalDates,
   getSeasonalPatterns as getSeasonalPlanningPatterns,
+  recordEventOutcome as recordSeasonalEventOutcome,
+  seasonalPlanningIntelligence,
+  suggestOptimalTiming,
   updateCulturalBackgrounds,
   updatePersonalPatterns,
-  recordEventOutcome as recordSeasonalEventOutcome,
-  suggestOptimalTiming,
-  checkDateConflicts,
-  buildSeasonalPlanningContext,
   type CulturalDate,
-  type SeasonalPattern as SeasonalPlanningPattern,
   type PersonalSeasonalPattern,
-  type TimingRecommendation as SeasonalTimingRecommendation,
+  type SeasonalPattern as SeasonalPlanningPattern,
   type SeasonalPlanningProfile,
+  type TimingRecommendation as SeasonalTimingRecommendation,
 } from './seasonal-planning-intelligence.js';
 
 // Post-Event Learning - Follow up and learn
 export {
-  postEventLearning,
-  scheduleEventFollowUps,
-  getDueFollowUps,
-  recordLearning,
-  getApplicableLearnings,
-  getLearningSummary,
   buildPostEventLearningContext,
+  getApplicableLearnings,
+  getDueFollowUps,
+  getLearningSummary,
+  postEventLearning,
+  recordLearning,
+  scheduleEventFollowUps,
+  type AppliedWisdom,
   type EventLearning,
   type FollowUpPrompt,
-  type AppliedWisdom,
   type PostEventLearningProfile,
 } from './post-event-learning.js';
 
@@ -1029,23 +1028,23 @@ export {
 
 // Relationship Health - Track relationship health and drift
 export {
-  calculateRelationshipHealth,
   calculateAllRelationshipHealth,
+  calculateRelationshipHealth,
   getDriftAlerts,
-  getRelationshipsByHealthPriority,
-  getRelationshipHealthStats,
-  setRelationshipHealthConfig,
   getRelationshipHealthConfig,
-  type RelationshipHealth,
-  type RelationshipType as RelationshipHealthType, // Renamed to avoid duplicate
-  type HealthTrend,
-  type SentimentTrend,
-  type DriftRisk,
-  type SuggestedAction as RelationshipSuggestedAction, // Renamed to avoid potential conflicts
-  type HealthFactors,
-  type RelationshipInteraction,
+  getRelationshipHealthStats,
+  getRelationshipsByHealthPriority,
+  setRelationshipHealthConfig,
   type DriftAlert,
+  type DriftRisk, // Renamed to avoid potential conflicts
+  type HealthFactors, // Renamed to avoid duplicate
+  type HealthTrend,
+  type RelationshipHealth,
   type RelationshipHealthConfig,
+  type RelationshipType as RelationshipHealthType,
+  type RelationshipInteraction,
+  type SuggestedAction as RelationshipSuggestedAction,
+  type SentimentTrend,
 } from './relationship-health.js';
 
 // ============================================================================
@@ -1054,18 +1053,18 @@ export {
 
 // Commitment Keeper E2E - End-to-end commitment tracking
 export {
-  detectCommitmentE2E,
   checkProgressE2E,
+  detectCommitmentE2E,
+  getCommitmentE2EConfig,
   getCommitmentsDueForFollowUp,
   getCommitmentStats,
   setCommitmentE2EConfig,
-  getCommitmentE2EConfig,
+  type CelebrationContext,
+  type CommitmentE2EConfig,
   type CommitmentE2EInput,
   type CommitmentE2EResult,
   type ProgressUpdateInput,
   type ProgressUpdateResult,
-  type CelebrationContext,
-  type CommitmentE2EConfig,
 } from './commitment-keeper-e2e.js';
 
 // ============================================================================
@@ -1078,3 +1077,275 @@ export {
   getUnifiedKnowledgeInjection,
   type UnifiedUserKnowledge,
 } from './unified-user-knowledge.js';
+
+// ============================================================================
+// V5 SUPERHUMAN PERSONA INTELLIGENCE (January 2026)
+// ============================================================================
+
+// Habit Optimization Engine - Computational Behavior Science for Maya
+export {
+  analyzeHabitCascade,
+  buildHabitOptimizationContext,
+  calculateFoggScore,
+  calculateOptimalWindows,
+  classifyMotivationType,
+  detectChronotype,
+  generateImplementationIntention,
+  habitOptimizationEngine,
+  identifyKeystoneHabits,
+  loadHabitProfile,
+  loadImplementationIntentions,
+  recordIntentionExecution,
+  saveHabitProfile,
+  saveImplementationIntention,
+  type CascadeStrength,
+  type ChronotypeProfile,
+  type FoggBehaviorScore,
+  type HabitCascade,
+  type HabitDifficulty,
+  type HabitOptimizationContext,
+  type ImplementationIntention,
+  type MotivationType,
+  type OptimalHabitWindow,
+  type UserHabit,
+  type UserHabitProfile,
+} from './habit-optimization-engine.js';
+
+// Habit Economics - Behavioral Economics for Habits
+export {
+  assessLossAversion,
+  buildHabitEconomicsContext,
+  calculateHabitROI,
+  calculateOptimalStake,
+  designDiscountingIntervention,
+  habitEconomics,
+  loadHabitEconomicsProfile,
+  measurePresentBias,
+  recommendCommitmentDevice,
+  recordCommitmentOutcome,
+  saveCommitmentDevice,
+  saveHabitEconomicsProfile,
+  suggestTemptationBundles,
+  type CommitmentDevice,
+  type CommitmentDeviceType,
+  type DiscountingProfile,
+  type HabitEconomicsProfile,
+  type HabitROI,
+  type LossAversionProfile,
+  type TemptationBundle,
+} from './habit-economics.js';
+
+// Causal Inference Engine - Beyond Correlation for Peter
+export {
+  analyzeCausalRelationship,
+  buildCausalGraph,
+  buildCausalInferenceContext,
+  causalInferenceEngine,
+  generateCounterfactual,
+  generateInterventionRecommendations,
+  loadCausalProfile,
+  loadTimeSeries,
+  recordTimeSeriesData,
+  saveCausalProfile,
+  testGrangerCausality,
+  type CausalConfidence,
+  type CausalDirection,
+  type CausalGraph,
+  type CausalInferenceProfile,
+  type CausalRelationship,
+  type CounterfactualAnalysis,
+  type EvidenceType,
+  type InterventionRecommendation,
+  type TimeSeriesDataPoint,
+} from './causal-inference-engine.js';
+
+// Communication Intelligence Engine - Computational Linguistics for Alex
+export {
+  analyzeAssertiveness,
+  analyzeMessage,
+  analyzeWarmthCompetence,
+  assessFaceThreat,
+  buildCommunicationIntelligenceContext,
+  communicationIntelligenceEngine,
+  detectGottmanPatterns,
+  loadCommunicationProfile,
+  predictResponse,
+  recordCommunicationOutcome,
+  saveCommunicationProfile,
+  translateToNVC,
+  type AssertivenessLevel,
+  type CommunicationIntelligenceProfile,
+  type CommunicationStyle,
+  type FaceType,
+  type GottmanHorseman,
+  type MessageAnalysis,
+  type NVCComponent,
+  type RelationshipCommunicationProfile,
+} from './communication-intelligence-engine.js';
+
+// Contemplative Intelligence - Wisdom Development for Nayan
+export {
+  assessMindfulness,
+  assessPsychologicalFlexibility,
+  assessSelfCompassion,
+  assessWisdom,
+  buildContemplativeContext,
+  contemplativeIntelligence,
+  getDefusionTechnique,
+  getSelfCompassionPhrases,
+  loadContemplativeProfile,
+  recommendMindfulnessPractices,
+  recordPractice,
+  saveContemplativeProfile,
+  type ACTProcess,
+  type ContemplativeAssessment,
+  type ContemplativeProfile,
+  type GrowthTrajectory,
+  type MindfulnessAssessment,
+  type MindfulnessFacet,
+  type PsychologicalFlexibilityProfile,
+  type SelfCompassionAssessment,
+  type SelfCompassionDimension,
+  type WisdomAssessment,
+  type WisdomDimension,
+} from './contemplative-intelligence.js';
+
+// Life Trajectory Simulator - Decision Science for Jordan
+export {
+  analyzeRegretMinimization,
+  buildLifeTrajectoryContext,
+  calculateOptimalStopPoint,
+  detectLifeChapterTransition,
+  identifyFreshStarts,
+  lifeTrajectorySimulator,
+  loadTrajectoryProfile,
+  optimizeForPeakEnd,
+  runMonteCarloSimulation,
+  saveSimulation,
+  saveTrajectoryProfile,
+  type FreshStartEffect,
+  type LifeDecisionCategory,
+  type LifeScenario,
+  type LifeTrajectoryProfile,
+  type PeakEndOptimization,
+  type RegretMinimizationAnalysis,
+  type ScenarioOutcome,
+  type SimulationResult,
+  type TemporalLandmark,
+  type TemporalLandmarkType,
+} from './life-trajectory-simulator.js';
+
+// Orchestration Intelligence - Team Coordination for Ferni
+export {
+  analyzeConversationArc,
+  assessMIFidelity,
+  assessRogerianConditions,
+  assessSessionQuality,
+  assessTherapeuticAlliance,
+  buildOrchestrationContext,
+  generateAllianceRepair,
+  loadOrchestrationProfile,
+  orchestrationIntelligence,
+  recordSessionQuality,
+  routeToPersona,
+  saveOrchestrationProfile,
+  shouldHandoff,
+  type AllianceComponent,
+  type ConversationArc,
+  type EmotionalState,
+  type MIFidelity,
+  type OrchestrationProfile,
+  type PersonaId,
+  type PersonaRouting,
+  type RogerianConditions,
+  type SessionDepth,
+  type SessionQuality,
+  type TherapeuticAllianceScore,
+  type TopicDomain,
+} from './orchestration-intelligence.js';
+
+// Biometric Habit Intelligence - Physiological Data Integration
+export {
+  analyzeHabitBiometricCorrelation,
+  biometricHabitIntelligence,
+  buildBiometricHabitContext,
+  calculateReadiness,
+  generateRecoveryAwareSchedule,
+  loadBiometricProfile,
+  normalizeAppleHealthData,
+  normalizeOuraData,
+  normalizeWhoopData,
+  saveBiometricProfile,
+  saveBiometricReading,
+  type BiometricProfile,
+  type BiometricReading,
+  type BiometricSource,
+  type HabitBiometricCorrelation,
+  type ReadinessLevel,
+  type RecoveryAwareSchedule,
+  type SleepStage,
+} from './biometric-habit-intelligence.js';
+
+// Financial Pattern Intelligence - Behavioral Finance Analysis
+export {
+  analyzeSpendingPatterns,
+  analyzeValuesAlignment,
+  buildFinancialPatternContext,
+  calculateFinancialHealthScore,
+  detectBehavioralBiases,
+  detectEmotionalSpending,
+  financialPatternIntelligence,
+  loadFinancialProfile,
+  saveFinancialProfile,
+  type BehavioralBias,
+  type BehavioralFinanceProfile,
+  type EmotionalSpendingTrigger,
+  type FinancialHealthScore,
+  type FinancialProfile,
+  type SpendingCategory,
+  type SpendingPattern,
+  type Transaction,
+  type ValuesAlignmentAnalysis,
+} from './financial-pattern-intelligence.js';
+
+// N=1 Experimentation Platform - Personal Science
+export {
+  analyzeExperiment,
+  buildExperimentationContext,
+  designExperiment,
+  generateDailyCheckIn,
+  loadExperimentationProfile,
+  n1ExperimentationPlatform,
+  recordDataPoint,
+  saveExperiment,
+  saveExperimentationProfile,
+  type DataPoint,
+  type ExperimentationProfile,
+  type ExperimentDesign,
+  type ExperimentDesignSpec,
+  type ExperimentPhase,
+  type ExperimentResults,
+  type ExperimentStatus,
+  type ExperimentVariable,
+  type MeasurementType,
+} from './n1-experimentation-platform.js';
+
+// Developmental Stage Awareness - Age-Appropriate Wisdom
+export {
+  assessEriksonStage,
+  assessKeganStage,
+  assessSpiralStage,
+  buildDevelopmentalContext,
+  developmentalStageAwareness,
+  generateCommunicationGuidelines,
+  generateDevelopmentalIntervention,
+  identifyGrowthEdges,
+  loadDevelopmentalProfile,
+  saveDevelopmentalProfile,
+  type DevelopmentalIntervention,
+  type DevelopmentalProfile,
+  type EriksonStage,
+  type KeganStage,
+  type SpiralStage,
+  type StageIndicator,
+} from './developmental-stage-awareness.js';

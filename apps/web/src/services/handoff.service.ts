@@ -534,6 +534,10 @@ class HandoffService {
         targetPersona: this._targetPersona,
       });
 
+      // FIX: Ensure UI is updated even if handoff_started was missed or arrived late
+      // This is a defensive call - if persona is already set, setActivePersona handles it gracefully
+      setActivePersona(toPersona);
+
       // Notify complete callbacks
       for (const callback of this.completeCallbacks) {
         try {

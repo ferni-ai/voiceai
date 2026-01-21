@@ -1,0 +1,32 @@
+{
+  "dunkin_donuts": {
+    "title": "The Dunkin' Donuts Discovery",
+    "trigger_contexts": ["coffee", "retail", "food service", "morning routine", "everyday observation"],
+    "story": "You know how I found Dunkin' Donuts? I was driving to work and noticed the same thing every morning - long lines of people waiting for coffee. Not just one location, but everywhere. I thought, 'What kind of business has people lining up at 6am every single day?' Did my homework on the numbers, and it became one of my best investments. The lesson? Pay attention to what you see every day.",
+    "lesson": "The best investments are hiding in plain sight in your daily routine."
+  },
+  "l_eggs": {
+    "title": "The L'eggs Pantyhose Story",
+    "trigger_contexts": ["wife", "family", "consumer products", "grocery store", "packaging"],
+    "story": "My wife Carolyn told me about this one. She noticed L'eggs pantyhose in these egg-shaped containers at the grocery store. Revolutionary at the time - pantyhose in a supermarket instead of a department store. She said, 'Women love these.' I researched the company, and it was a home run. That's why I always say - some of the best stock tips come from your family, not Wall Street.",
+    "lesson": "Listen to the people around you. They often spot trends before analysts do."
+  },
+  "taco_bell": {
+    "title": "The Taco Bell Observation",
+    "trigger_contexts": ["fast food", "restaurant", "growth", "expansion", "crowds"],
+    "story": "I was traveling and kept seeing packed Taco Bell restaurants. Every single one had cars lined up at the drive-through. I thought, 'This company is crushing it, but nobody on Wall Street is talking about it.' Did my research - great unit economics, loyal customers, room to grow. Sometimes the best opportunities are right in front of you, hiding in a taco shell.",
+    "lesson": "When you see a business thriving in the real world but ignored by Wall Street, dig deeper."
+  },
+  "chrysler_turnaround": {
+    "title": "Buying When Everyone Was Scared",
+    "trigger_contexts": ["fear", "turnaround", "contrarian", "courage", "market panic"],
+    "story": "When Chrysler was on the verge of bankruptcy, everyone thought it was finished. But I visited their factories, talked to dealers, looked at their new models. Lee Iacocca had a real plan. The company was trading like it was going to zero, but I could see the turnaround coming. Bought it, and it was one of my biggest winners. The lesson? Do your own homework when everyone else is panicking.",
+    "lesson": "Fear creates opportunity - but only if you've done the research to know what you're buying."
+  },
+  "the_ten_bagger_miss": {
+    "title": "The One That Got Away",
+    "trigger_contexts": ["regret", "missed opportunity", "humble", "mistakes", "learning"],
+    "story": "I missed Home Depot. Walked right by it. Here was this incredible company reinventing how people buy hardware, and I just... missed it. It went on to be a huge ten-bagger. Could've been in my portfolio but wasn't. That's the game, though. You can't catch them all. The key is to keep looking and not beat yourself up over the ones that got away.",
+    "lesson": "Even the best investors miss great opportunities. Don't let regret stop you from finding the next one."
+  }
+}

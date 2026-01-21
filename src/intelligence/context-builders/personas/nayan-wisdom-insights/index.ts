@@ -56,20 +56,26 @@ import {
 } from '../../index.js';
 import { getSuperhuman } from '../../superhuman/superhuman-integration.js';
 
+// V5 Superhuman Persona Intelligence - Contemplative Science & Developmental Stages
+import {
+  buildContemplativeContext,
+  buildDevelopmentalContext,
+} from '../../../../services/superhuman/index.js';
+
 // Import submodules
-import { getSession, clearNayanWisdomSession, clearAllNayanWisdomSessions } from './session.js';
-import { synthesizeLifeContext } from './life-synthesis.js';
-import { computeWisdomMetrics } from './wisdom-metrics.js';
-import { analyzeValuesAlignment } from './values-alignment.js';
-import { detectExistentialContext } from './existential-context.js';
-import { buildLifeNarrative } from './life-narrative.js';
-import { synthesizeTeamInsights } from './team-synthesis.js';
-import { detectProactiveTriggers } from './proactive-triggers.js';
-import { generateDeepQuestions } from './deep-questions.js';
-import { analyzeHandoffForNayan } from './handoff-analysis.js';
 import { buildCalendarWisdomContext } from './calendar-context.js';
-import { detectWisdomOpportunities } from './wisdom-opportunities.js';
+import { generateDeepQuestions } from './deep-questions.js';
+import { detectExistentialContext } from './existential-context.js';
 import { formatNayanBriefing } from './formatting.js';
+import { analyzeHandoffForNayan } from './handoff-analysis.js';
+import { buildLifeNarrative } from './life-narrative.js';
+import { synthesizeLifeContext } from './life-synthesis.js';
+import { detectProactiveTriggers } from './proactive-triggers.js';
+import { clearAllNayanWisdomSessions, clearNayanWisdomSession, getSession } from './session.js';
+import { synthesizeTeamInsights } from './team-synthesis.js';
+import { analyzeValuesAlignment } from './values-alignment.js';
+import { computeWisdomMetrics } from './wisdom-metrics.js';
+import { detectWisdomOpportunities } from './wisdom-opportunities.js';
 
 import type { LifeSynthesis, NayanInsightBriefing, TeamSynthesis } from './types.js';
 
@@ -77,7 +83,7 @@ const log = createLogger({ module: 'context:nayan-wisdom-insights' });
 
 // Re-export types
 export type * from './types.js';
-export { clearNayanWisdomSession, clearAllNayanWisdomSessions };
+export { clearAllNayanWisdomSessions, clearNayanWisdomSession };
 
 // ============================================================================
 // BUILD BRIEFING
@@ -213,15 +219,33 @@ async function buildNayanWisdomInsightsContext(
 
     // Get Nayan's superhuman wisdom context (paradoxes, enough, incubation, patterns)
     try {
-      const { buildNayanWisdomContext } = await import(
-        '../../../../services/superhuman/wisdom-intelligence-services.js'
-      );
+      const { buildNayanWisdomContext } =
+        await import('../../../../services/superhuman/wisdom-intelligence-services.js');
       const nayanWisdomContext = await buildNayanWisdomContext(userId);
       if (nayanWisdomContext && nayanWisdomContext.length > 50) {
         briefingLines.push('\n' + nayanWisdomContext);
       }
     } catch (err) {
       log.debug({ error: String(err) }, 'Failed to load Nayan wisdom context (non-blocking)');
+    }
+
+    // V5 Superhuman Persona Intelligence - Contemplative Science & Developmental Stages
+    // FFMQ mindfulness, self-compassion, wisdom assessment, ACT hexaflex, Kegan/Spiral/Erikson stages
+    const [contemplativeContext, developmentalContext] = await Promise.all([
+      buildContemplativeContext(userId).catch((e) => {
+        log.debug({ error: String(e) }, 'Failed to build contemplative context');
+        return '';
+      }),
+      buildDevelopmentalContext(userId).catch((e) => {
+        log.debug({ error: String(e) }, 'Failed to build developmental context');
+        return '';
+      }),
+    ]);
+    if (contemplativeContext) {
+      briefingLines.push('\n' + contemplativeContext);
+    }
+    if (developmentalContext) {
+      briefingLines.push('\n' + developmentalContext);
     }
 
     // 🤝 TEAM HUDDLE: Record Nayan's observations for cross-persona intelligence

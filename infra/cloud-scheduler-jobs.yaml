@@ -142,7 +142,18 @@ data:
       timezone: "America/Los_Angeles"
       uri: "https://ui-server-xxxxx.run.app/api/jobs/rollup-persona-metrics"
       httpMethod: POST
-      
+
+    # P2 UTO Fix (January 2026): Semantic router learning feedback loop
+    - name: semantic-router-learning
+      description: "Update semantic router calibration from feedback, consolidate patterns"
+      schedule: "0 5 * * *"  # 5 AM daily (after persona metrics)
+      timezone: "America/Los_Angeles"
+      uri: "https://ui-server-xxxxx.run.app/api/jobs/semantic-router-learning"
+      httpMethod: POST
+      retryConfig:
+        retryCount: 2
+        minBackoffDuration: "60s"
+
     # ==========================================================================
     # TRUST SYSTEM JOBS
     # ==========================================================================

@@ -9,16 +9,16 @@
         "headers": [
           {
             "key": "Cache-Control",
-            "value": "public, max-age=86400"
+            "value": "public, max-age=86400, stale-while-revalidate=604800"
           }
         ]
       },
       {
-        "source": "**/*.@(jpg|jpeg|gif|png|svg|webp|ico)",
+        "source": "**/*.@(jpg|jpeg|gif|png|svg|webp|ico|woff|woff2)",
         "headers": [
           {
             "key": "Cache-Control",
-            "value": "public, max-age=604800"
+            "value": "public, max-age=2592000, immutable"
           }
         ]
       },
@@ -27,7 +27,37 @@
         "headers": [
           {
             "key": "Cache-Control",
-            "value": "no-cache"
+            "value": "no-cache, must-revalidate"
+          }
+        ]
+      },
+      {
+        "source": "/pagefind/**",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "public, max-age=3600"
+          }
+        ]
+      },
+      {
+        "source": "**",
+        "headers": [
+          {
+            "key": "X-Content-Type-Options",
+            "value": "nosniff"
+          },
+          {
+            "key": "X-Frame-Options",
+            "value": "DENY"
+          },
+          {
+            "key": "Referrer-Policy",
+            "value": "strict-origin-when-cross-origin"
+          },
+          {
+            "key": "Permissions-Policy",
+            "value": "camera=(), microphone=(), geolocation=()"
           }
         ]
       }
@@ -48,42 +78,6 @@
           "serviceId": "john-bogle-ui",
           "region": "us-central1"
         }
-      },
-      {
-        "source": "/api/openapi.yaml",
-        "destination": "/api/openapi.yaml"
-      },
-      {
-        "source": "/api{,/**}",
-        "destination": "/pages/api/index.html"
-      },
-      {
-        "source": "/getting-started{,/**}",
-        "destination": "/pages/getting-started/index.html"
-      },
-      {
-        "source": "/sdk{,/**}",
-        "destination": "/pages/sdk/index.html"
-      },
-      {
-        "source": "/examples{,/**}",
-        "destination": "/pages/examples/index.html"
-      },
-      {
-        "source": "/console{,/**}",
-        "destination": "/pages/console/index.html"
-      },
-      {
-        "source": "/personas",
-        "destination": "/pages/personas/index.html"
-      },
-      {
-        "source": "/personas/",
-        "destination": "/pages/personas/index.html"
-      },
-      {
-        "source": "/personas/create{,/**}",
-        "destination": "/pages/personas/create/index.html"
       },
       {
         "source": "**",

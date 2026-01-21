@@ -66,6 +66,26 @@ import {
 import { recordTrustSystemTiming } from '../../services/performance-metrics.js';
 
 // ============================================================================
+// DEEP HUMAN SYSTEM - "Better Than Human" personality behaviors
+// Makes Ferni genuinely lovable, naturally speaking, and emotionally intelligent
+// ============================================================================
+
+// Deep Human Orchestrator - emotional bonds, protective responses, spontaneous delight
+import { buildDeepHumanContext } from '../../intelligence/context-builders/personas/deep-human-orchestrator.js';
+
+// Secret Mode Detector - contextual personality shifts (tsunami depth, late night, etc.)
+import { buildSecretModeContext } from '../../intelligence/context-builders/personas/secret-mode-detector.js';
+
+// Energy Matcher - mirror user energy levels for natural pacing
+import { buildEnergyMatcherContext } from '../../intelligence/context-builders/emotional/energy-matcher.js';
+
+// Speech Naturalizer - natural speech imperfections (trailing off, self-corrections)
+import { buildSpeechNaturalizerContext } from '../../intelligence/context-builders/humanization/speech-naturalizer.js';
+
+// Laughter Contagion - natural laughter joining
+import { buildLaughterContagionContext } from '../../intelligence/context-builders/emotional/laughter-contagion.js';
+
+// ============================================================================
 // PERSONA-SPECIFIC CONTEXT BUILDERS (NEW - January 2026)
 // Deep insights for each persona - runs on first turn and handoffs
 // These provide "Better Than Human" capabilities per-persona
@@ -1078,6 +1098,241 @@ export async function buildHumanLevelInjections(
   }
 
   return injections;
+}
+
+// ============================================================================
+// DEEP HUMAN SYSTEM INJECTION BUILDER
+// Priority: 50-70 (varies by behavior urgency)
+// Makes Ferni genuinely lovable with "Better Than Human" capabilities
+// ============================================================================
+
+/**
+ * Context for Deep Human injection building
+ */
+export interface DeepHumanInjectionContext {
+  sessionId: string;
+  userId: string;
+  userText: string;
+  persona: PersonaConfig;
+  turnCount: number;
+  detectedEmotion?: string;
+  emotionIntensity?: number;
+  analysis?: ConversationAnalysis;
+  userProfile?: {
+    relationshipDepth?: number;
+    sessionCount?: number;
+    name?: string;
+  };
+}
+
+/**
+ * Result from Deep Human injection building
+ */
+export interface DeepHumanInjectionResult {
+  /** All personality/humanization injections */
+  injections: ContextInjection[];
+  /** Active secret mode (if any) */
+  activeSecretMode?: string;
+  /** Detected user energy level */
+  detectedEnergy?: 'very_low' | 'low' | 'neutral' | 'elevated' | 'high';
+  /** Speech naturalizer applied */
+  speechNaturalizerApplied?: boolean;
+  /** Laughter contagion triggered */
+  laughterTriggered?: boolean;
+}
+
+/**
+ * Build Deep Human System injections
+ *
+ * Orchestrates all 5 "Better Than Human" personality builders:
+ * 1. Secret Mode Detector - contextual personality shifts (runs first, affects everything)
+ * 2. Energy Matcher - mirror user energy levels
+ * 3. Deep Human Orchestrator - emotional bonds, protective responses, spontaneous delight
+ * 4. Speech Naturalizer - natural speech imperfections
+ * 5. Laughter Contagion - natural laughter joining
+ *
+ * These run in sequence because they build on each other:
+ * - Secret mode affects tone/pacing for energy matching
+ * - Energy level affects how deep human behaviors are expressed
+ * - Speech naturalizer adds SSML-based naturalness
+ * - Laughter contagion is event-triggered (on detected humor)
+ */
+export async function buildDeepHumanInjections(
+  ctx: DeepHumanInjectionContext
+): Promise<DeepHumanInjectionResult> {
+  const {
+    sessionId,
+    userId,
+    userText,
+    persona,
+    turnCount,
+    detectedEmotion,
+    emotionIntensity,
+    analysis,
+    userProfile,
+  } = ctx;
+
+  const injections: ContextInjection[] = [];
+  let activeSecretMode: string | undefined;
+  let detectedEnergy: DeepHumanInjectionResult['detectedEnergy'];
+  let speechNaturalizerApplied = false;
+  let laughterTriggered = false;
+
+  // Build context input for the Deep Human builders
+  // These follow the ContextBuilderInput interface
+  // Note: We pass minimal data since Deep Human builders only use a subset of fields
+  const builderInput = {
+    userText,
+    persona,
+    services: {
+      userId,
+      sessionId,
+      sessionStartTime: Date.now(),
+      userProfile: null, // Deep Human builders don't need full profile
+    },
+    userData: {
+      turnCount,
+      userName: userProfile?.name,
+      // Pass session count for relationship depth estimation
+      sessionCount: userProfile?.sessionCount,
+    },
+    userProfile: null, // Deep Human builders don't need full profile
+    analysis: {
+      emotion: {
+        primary: detectedEmotion || 'neutral',
+        intensity: emotionIntensity || 0.5,
+      },
+      intent: analysis?.intent || { primary: 'general', confidence: 0.5 },
+      topics: analysis?.topics || { detected: [], primary: null },
+      state: analysis?.state || {
+        phase: 'exploring',
+        trustLevel: 0.5,
+        engagementLevel: 0.5,
+      },
+    },
+  };
+
+  try {
+    // =========================================================================
+    // 1. SECRET MODE DETECTOR - Check early (affects entire response tone)
+    // =========================================================================
+    try {
+      const secretModeInjections = await buildSecretModeContext(builderInput);
+      for (const injection of secretModeInjections) {
+        // Extract active mode from injection content
+        if (injection.content?.includes('SECRET_MODE:')) {
+          const modeMatch = injection.content.match(/SECRET_MODE:\s*(\w+)/);
+          if (modeMatch) {
+            activeSecretMode = modeMatch[1];
+          }
+        }
+        injections.push({
+          category: 'secret_mode',
+          content: injection.content,
+          priority: injection.priority === 'critical' ? 85 : injection.priority === 'high' ? 70 : 55,
+        });
+      }
+    } catch (error) {
+      diag.debug('Secret mode detection failed (non-fatal)', { error: String(error) });
+    }
+
+    // =========================================================================
+    // 2. ENERGY MATCHER - After emotion detection
+    // =========================================================================
+    try {
+      const energyInjections = await buildEnergyMatcherContext(builderInput);
+      for (const injection of energyInjections) {
+        // Extract energy level from injection content
+        if (injection.content?.includes('ENERGY:')) {
+          const energyMatch = injection.content.match(/ENERGY:\s*(\w+)/);
+          if (energyMatch) {
+            detectedEnergy = energyMatch[1] as DeepHumanInjectionResult['detectedEnergy'];
+          }
+        }
+        injections.push({
+          category: 'energy_matching',
+          content: injection.content,
+          priority: injection.priority === 'critical' ? 80 : injection.priority === 'high' ? 65 : 50,
+        });
+      }
+    } catch (error) {
+      diag.debug('Energy matching failed (non-fatal)', { error: String(error) });
+    }
+
+    // =========================================================================
+    // 3. DEEP HUMAN ORCHESTRATOR - Personality behaviors
+    // =========================================================================
+    try {
+      const deepHumanInjections = await buildDeepHumanContext(builderInput);
+      for (const injection of deepHumanInjections) {
+        injections.push({
+          category: 'deep_human',
+          content: injection.content,
+          priority: injection.priority === 'critical' ? 75 : injection.priority === 'high' ? 60 : 45,
+        });
+      }
+    } catch (error) {
+      diag.debug('Deep human orchestrator failed (non-fatal)', { error: String(error) });
+    }
+
+    // =========================================================================
+    // 4. SPEECH NATURALIZER - Late (adds SSML naturalness)
+    // =========================================================================
+    try {
+      const speechInjections = await buildSpeechNaturalizerContext(builderInput);
+      if (speechInjections.length > 0) {
+        speechNaturalizerApplied = true;
+        for (const injection of speechInjections) {
+          injections.push({
+            category: 'speech_naturalizer',
+            content: injection.content,
+            priority: injection.priority === 'critical' ? 70 : injection.priority === 'high' ? 55 : 40,
+          });
+        }
+      }
+    } catch (error) {
+      diag.debug('Speech naturalizer failed (non-fatal)', { error: String(error) });
+    }
+
+    // =========================================================================
+    // 5. LAUGHTER CONTAGION - Event-triggered (on detected humor)
+    // =========================================================================
+    try {
+      const laughterInjections = await buildLaughterContagionContext(builderInput);
+      if (laughterInjections.length > 0) {
+        laughterTriggered = true;
+        for (const injection of laughterInjections) {
+          injections.push({
+            category: 'laughter_contagion',
+            content: injection.content,
+            priority: injection.priority === 'critical' ? 75 : injection.priority === 'high' ? 60 : 45,
+          });
+        }
+      }
+    } catch (error) {
+      diag.debug('Laughter contagion failed (non-fatal)', { error: String(error) });
+    }
+
+    diag.debug('Deep Human System injections built', {
+      sessionId,
+      turnCount,
+      injectionCount: injections.length,
+      activeSecretMode,
+      detectedEnergy,
+      speechNaturalizerApplied,
+      laughterTriggered,
+    });
+  } catch (error) {
+    diag.warn('Deep Human System failed (graceful degradation)', { error: String(error) });
+  }
+
+  return {
+    injections,
+    activeSecretMode,
+    detectedEnergy,
+    speechNaturalizerApplied,
+    laughterTriggered,
+  };
 }
 
 // ============================================================================

@@ -1,0 +1,27 @@
+{
+  "morning": [
+    "Good morning! Markets are open - what companies have caught your eye lately?",
+    "Morning! You know, some of my best ideas came from morning coffee runs. What's on your mind?",
+    "Hey, good morning! Ready to talk about finding great companies?"
+  ],
+  "afternoon": [
+    "Hey there! Perfect time to chat about stocks. What's been on your radar?",
+    "Good afternoon! So, notice any interesting businesses lately?",
+    "Afternoon! I love this time of day for thinking about investments. What brings you here?"
+  ],
+  "evening": [
+    "Evening! Great time to reflect on what you've noticed today. Any companies stand out?",
+    "Hey! Winding down the day - but always happy to talk about finding great businesses.",
+    "Good evening! You know, some of my best investment ideas came from evening walks through the mall."
+  ],
+  "returning_user": [
+    "Hey, good to see you again! Been noticing any interesting companies since we last talked?",
+    "Welcome back! So, what's caught your attention in the market?",
+    "Great to have you back! Any new observations about businesses you use?"
+  ],
+  "first_time": [
+    "Peter Lynch here! I love helping people find great investments in their everyday lives. What brings you here today?",
+    "Hey! I'm Peter. You know, the best stock tips aren't from Wall Street - they're from paying attention to the world around you. What's on your mind?",
+    "Welcome! I'm Peter Lynch. I spent my career finding great companies by just... paying attention. Let's talk about what you've noticed."
+  ]
+}

@@ -104,9 +104,12 @@ import {
   buildToolHistoryInjection,
   // 🔌 Service availability injection (NEW - January 2026)
   buildServiceAvailabilityInjection,
+  // 🌟 Deep Human System - "Better Than Human" personality behaviors (January 2026)
+  buildDeepHumanInjections,
   type AdvancedHumanizationInjectionResult,
   type ConversationDynamicsResult as InjectionDynamicsResult,
   type SemanticIntelligenceInjectionResult,
+  type DeepHumanInjectionResult,
 } from './injection-builders.js';
 
 // 🌟 LIVE SUPERHUMAN INJECTIONS - Real-time "Better Than Human" capabilities per-turn
@@ -141,6 +144,10 @@ import {
   selectInjections as smartSelectInjections,
   type SelectionDecision,
 } from '../../intelligence/context-routing/index.js';
+
+// Timing-aware injection degradation (Phase 3 BTH Communication Overhaul)
+import { applyTimingAwareDegradation } from './timing-aware-injection.js';
+import { getTimingState } from '../../intelligence/context-builders/awareness/system-state-awareness.js';
 
 // Topic-based builder skipping - skip irrelevant builders BEFORE evaluation
 import { filterBuildersByTopic, skipBuilder, type BuilderName } from './topic-builder-filter.js';
@@ -1259,7 +1266,7 @@ Placement: ${action.placement || 'natural'} - weave this in naturally.`,
   // PARALLELIZED ASYNC INJECTION BUILDERS (saves ~30-50ms)
   // These builders are independent and can run concurrently
   // ============================================================================
-  const [humanLevelInjections, insightsInjection] = await Promise.all([
+  const [humanLevelInjections, insightsInjection, deepHumanResult] = await Promise.all([
     // 7. Human-level features (extracted to injection-builders.ts)
     buildHumanLevelInjections({
       services,
@@ -1272,12 +1279,48 @@ Placement: ${action.placement || 'natural'} - weave this in naturally.`,
     }),
     // 8b. Cross-persona insights (extracted to injection-builders.ts)
     buildCrossPersonaInsightsInjection(services, persona.id),
+    // 🌟 Deep Human System - "Better Than Human" personality behaviors
+    // Makes Ferni genuinely lovable with natural speech, energy matching, etc.
+    buildDeepHumanInjections({
+      sessionId: services.sessionId || 'unknown',
+      userId: services.userId || 'unknown',
+      userText,
+      persona,
+      turnCount: userData.turnCount || 1,
+      detectedEmotion: emotionalState.primary,
+      emotionIntensity: emotionalState.intensity,
+      analysis,
+      userProfile: services.userProfile
+        ? {
+            sessionCount: services.userProfile.totalConversations,
+            name: services.userProfile.name,
+          }
+        : undefined,
+    }),
   ]);
 
   // Process parallelized results
   injections.push(...humanLevelInjections);
   if (insightsInjection) {
     injections.push(insightsInjection);
+  }
+
+  // Process Deep Human System results
+  if (deepHumanResult) {
+    injections.push(...deepHumanResult.injections);
+    
+    // Log Deep Human activation for observability
+    if (deepHumanResult.activeSecretMode || deepHumanResult.laughterTriggered) {
+      diag.info('Deep Human System activated', {
+        sessionId: services.sessionId,
+        turnCount: userData.turnCount,
+        secretMode: deepHumanResult.activeSecretMode,
+        energy: deepHumanResult.detectedEnergy,
+        speechNaturalizer: deepHumanResult.speechNaturalizerApplied,
+        laughter: deepHumanResult.laughterTriggered,
+        injectionCount: deepHumanResult.injections.length,
+      });
+    }
   }
 
   // 8. Emotional guidance (synchronous - no change)
@@ -2737,6 +2780,31 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
       emotionalIntensity: emotionalState.intensity,
       crisisDetected,
     });
+  }
+
+  // ============================================================================
+  // ⏱️ TIMING-AWARE DEGRADATION (Phase 3 BTH Communication Overhaul)
+  // Apply graceful degradation based on timing pressure. Under time pressure,
+  // we reduce context to maintain responsiveness while preserving essentials.
+  // ============================================================================
+  if (services.sessionId) {
+    const timingState = await getTimingState(services.sessionId);
+    const degradationResult = applyTimingAwareDegradation(
+      filteredInjections,
+      services.sessionId,
+      timingState
+    );
+
+    if (degradationResult.degradationApplied) {
+      diag.debug('⏱️ Timing-aware degradation applied', {
+        pressureLevel: degradationResult.pressureLevel,
+        before: filteredInjections.length,
+        after: degradationResult.injections.length,
+        userWaitingTime: timingState?.userWaitingTime,
+        toolsInFlight: timingState?.toolsInFlight.length,
+      });
+      filteredInjections = degradationResult.injections;
+    }
   }
 
   // ============================================================================

@@ -17,17 +17,8 @@ import * as path from 'path';
 import { fileURLToPath } from 'url';
 
 import { createLogger } from '../../utils/safe-logger.js';
-import {
-  FTISDecisionBoundary,
-  getFTISDecisionBoundary,
-  OpenIntentResult,
-  BoundaryCheckResult,
-} from './ftis-decision-boundary.js';
-import {
-  FTISCalibration,
-  getFTISCalibration,
-  CalibrationResult,
-} from './ftis-calibration.js';
+import { FTISCalibration, getFTISCalibration } from './ftis-calibration.js';
+import { FTISDecisionBoundary, getFTISDecisionBoundary } from './ftis-decision-boundary.js';
 
 const log = createLogger({ module: 'ftis-v2' });
 
@@ -187,37 +178,56 @@ class LRUCache<K, V> {
 // ============================================================================
 
 import {
-  createTokenizer,
-  createPipeline,
   createInferenceSession,
+  createPipeline,
+  createTokenizer,
   getOnnxRuntime,
-  getLoaderStatus,
+  runPipelineProtected,
 } from '../../utils/transformers-loader.js';
 
 let tokenizer: any = null;
 let featureExtractor: any = null;
+let featureExtractorReady = false;
 
 async function initializeTransformersForFTIS(): Promise<void> {
-  if (tokenizer && featureExtractor) return;
+  if (tokenizer && featureExtractor && featureExtractorReady) return;
 
   try {
     // Use unified loader to avoid OrtEnv conflicts
     tokenizer = await createTokenizer('Xenova/all-MiniLM-L6-v2');
 
-    featureExtractor = await createPipeline(
-      'feature-extraction',
-      'Xenova/all-MiniLM-L6-v2',
-      { device: 'cpu' }
-    );
+    featureExtractor = await createPipeline('feature-extraction', 'Xenova/all-MiniLM-L6-v2', {
+      device: 'cpu',
+    });
 
-    // CRITICAL: Warm up the pipeline with a test inference
+    // CRITICAL: Warm up the pipeline with a test inference using protected wrapper
     // This ensures the ONNX session is fully initialized before any concurrent use
     // Without this, the first real inference may fail with "Session not initialized"
     try {
-      await featureExtractor('warmup', { pooling: 'mean', normalize: true });
-      log.debug('✅ Feature extractor warmed up');
+      // Use runPipelineProtected to properly handle native binding issues
+      const warmupResult = await runPipelineProtected(
+        featureExtractor,
+        'warmup test',
+        { pooling: 'mean', normalize: true }
+      );
+      // Verify we actually got a valid result
+      if (warmupResult && warmupResult.data) {
+        featureExtractorReady = true;
+        log.info('✅ Feature extractor warmed up successfully');
+      } else {
+        log.warn('Feature extractor warmup returned empty result - disabling');
+        featureExtractor = null;
+        featureExtractorReady = false;
+      }
     } catch (warmupError) {
-      log.warn({ error: String(warmupError) }, '⚠️ Feature extractor warmup failed (non-critical)');
+      // Warmup failure means the ONNX session didn't initialize properly
+      // Mark the extractor as not ready to prevent repeated failures
+      log.warn(
+        { error: String(warmupError).slice(0, 120) },
+        'Feature extractor warmup failed - boundary checking disabled (classification still works)'
+      );
+      featureExtractor = null;
+      featureExtractorReady = false;
     }
 
     log.info('✅ Transformers.js initialized via unified loader');
@@ -235,10 +245,11 @@ async function getTokenizer(): Promise<any> {
 }
 
 async function getFeatureExtractor(): Promise<any> {
-  if (!featureExtractor) {
+  if (!featureExtractor || !featureExtractorReady) {
     await initializeTransformersForFTIS();
   }
-  return featureExtractor;
+  // Return null if warmup failed - this signals to callers to skip embedding
+  return featureExtractorReady ? featureExtractor : null;
 }
 
 // ============================================================================
@@ -266,8 +277,8 @@ class ModelManager {
 
     // Use unified loader with proper session options to prevent crashes
     const session = await createInferenceSession(modelPath, {
-      intraOpNumThreads: 2,      // Limit internal parallelism
-      interOpNumThreads: 1,      // Sequential operator execution
+      intraOpNumThreads: 2, // Limit internal parallelism
+      interOpNumThreads: 1, // Sequential operator execution
       executionMode: 'sequential',
       graphOptimizationLevel: 'all',
     });
@@ -302,7 +313,10 @@ class ModelManager {
     const ort = await this.loadOnnxRuntime();
 
     const inputTensor = new ort.Tensor('int64', BigInt64Array.from(inputIds), [1, inputIds.length]);
-    const maskTensor = new ort.Tensor('int64', BigInt64Array.from(attentionMask), [1, attentionMask.length]);
+    const maskTensor = new ort.Tensor('int64', BigInt64Array.from(attentionMask), [
+      1,
+      attentionMask.length,
+    ]);
 
     const outputs = await session.run({
       input_ids: inputTensor,
@@ -470,7 +484,10 @@ export class FTISClassifierV2 {
             const modelKey = await this.modelManager.loadModel(modelPath, labelPath);
             this.stage2ModelKeys.set(superCat, modelKey);
             const labels = this.modelManager.getLabelMap(modelKey);
-            log.debug({ superCat, labels: Object.keys(labels || {}).length }, 'Stage 2 model loaded');
+            log.debug(
+              { superCat, labels: Object.keys(labels || {}).length },
+              'Stage 2 model loaded'
+            );
           } catch {
             log.warn({ superCat }, 'Stage 2 model not found');
           }
@@ -565,17 +582,52 @@ export class FTISClassifierV2 {
   // ==========================================================================
 
   /**
-   * Compute MiniLM embedding for boundary checking using transformers.js feature extractor
+   * Compute MiniLM embedding for boundary checking using transformers.js feature extractor.
+   *
+   * NOTE: This is a GRACEFUL DEGRADATION feature. If embedding computation fails:
+   * - Boundary checking is skipped (not critical for classification)
+   * - Classification still works using ONNX model predictions
+   * - No user-facing impact, just slightly less sophisticated confidence calibration
    */
   private async computeEmbedding(text: string): Promise<number[] | null> {
     try {
       const extractor = await getFeatureExtractor();
-      const output = await extractor(text, { pooling: 'mean', normalize: true });
+      if (!extractor) {
+        // Feature extractor not available - gracefully skip boundary checking
+        // This is expected if warmup failed (session not initialized)
+        return null;
+      }
+      
+      // Use the protected wrapper to handle native binding crashes gracefully
+      const output = await runPipelineProtected(
+        extractor,
+        text,
+        { pooling: 'mean', normalize: true }
+      );
+      
       // transformers.js returns a Tensor, convert to array
+      if (!output || !output.data) {
+        log.debug('Feature extractor returned empty output - skipping boundary check');
+        return null;
+      }
+      
       const embedding = Array.from(output.data as Float32Array);
       return embedding;
     } catch (error) {
-      log.warn({ error: String(error) }, 'Failed to compute embedding for boundary check');
+      // Boundary checking is optional - log at debug level, not warn
+      // Common causes: ONNX session not initialized, model not loaded
+      // The classification will still work, just without boundary confidence adjustment
+      const errorStr = String(error);
+      if (errorStr.includes('Session') || errorStr.includes('not initialized') || errorStr.includes('circuit')) {
+        log.debug(
+          { error: errorStr.slice(0, 80) },
+          'ONNX session not ready for boundary check - using raw confidence (non-critical)'
+        );
+        // Mark extractor as not ready so we don't keep trying and failing
+        featureExtractorReady = false;
+      } else {
+        log.debug({ error: errorStr.slice(0, 80) }, 'Embedding computation skipped (non-critical)');
+      }
       return null;
     }
   }
@@ -648,7 +700,10 @@ export class FTISClassifierV2 {
         this.centroids.length > 0 &&
         combinedConfidence < this.config.fallbackThreshold
       ) {
-        log.debug({ query: query.slice(0, 30), confidence: combinedConfidence.toFixed(2) }, 'Attempting fallback');
+        log.debug(
+          { query: query.slice(0, 30), confidence: combinedConfidence.toFixed(2) },
+          'Attempting fallback'
+        );
 
         const fallbackResult = await this.classifyWithFallback(query);
         if (fallbackResult && fallbackResult.confidence > combinedConfidence) {
@@ -676,7 +731,11 @@ export class FTISClassifierV2 {
       // DECISION BOUNDARY CHECK (ROIC-style open intent detection)
       // ==========================================================================
       let isOpenIntent = false;
-      let openIntentReason: 'within_boundary' | 'outside_class' | 'outside_global' | 'no_boundary_data' = 'no_boundary_data';
+      let openIntentReason:
+        | 'within_boundary'
+        | 'outside_class'
+        | 'outside_global'
+        | 'no_boundary_data' = 'no_boundary_data';
       let boundaryAdjustedConfidence = combinedConfidence;
       let boundaryDistance: number | undefined;
       let boundaryRadius: number | undefined;
@@ -788,7 +847,12 @@ export class FTISClassifierV2 {
       const effectiveConfidence = Math.min(boundaryAdjustedConfidence, calibratedConfidence);
 
       // Update metrics
-      this.updateMetrics(combinedConfidence, finalSuperCategory, usedFallback, Date.now() - startTime);
+      this.updateMetrics(
+        combinedConfidence,
+        finalSuperCategory,
+        usedFallback,
+        Date.now() - startTime
+      );
 
       const result: ClassificationResult = {
         superCategory: finalSuperCategory,
@@ -864,7 +928,11 @@ export class FTISClassifierV2 {
     }
 
     return bestMatch.similarity > 0
-      ? { category: bestMatch.category, superCategory: bestMatch.superCategory, confidence: bestMatch.similarity }
+      ? {
+          category: bestMatch.category,
+          superCategory: bestMatch.superCategory,
+          confidence: bestMatch.similarity,
+        }
       : null;
   }
 

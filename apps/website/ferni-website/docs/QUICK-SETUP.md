@@ -26,7 +26,7 @@ Open each in a new tab and complete signup:
 ```
 Your AI life coach. Six specialists. One conversation. Just talk. 
 
-Call: (484) 481-3081 | Try free at ferni.ai
+Call: (888) 598-3952 | Try free at ferni.ai
 ```
 
 ### LinkedIn Tagline — *Copy this:*
@@ -39,7 +39,7 @@ Your personal AI life coach. Six specialists. One conversation.
 Your AI life coach team 
 Six specialists. One conversation.
 Just talk  ferni.ai
- (484) 481-3081
+ (888) 598-3952
 ```
 
 ### TikTok Bio — *Copy this:*
@@ -49,7 +49,7 @@ Your AI life coach  Just talk  ferni.ai
 
 ### YouTube Description — *Copy this:*
 ```
-Ferni is your personal AI life coach—a team of six specialists working together to help you navigate life. Try free: app.ferni.ai | Call: (484) 481-3081
+Ferni is your personal AI life coach—a team of six specialists working together to help you navigate life. Try free: app.ferni.ai | Call: (888) 598-3952
 ```
 
 ---

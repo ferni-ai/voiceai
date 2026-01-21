@@ -13,27 +13,53 @@ const log = createLogger({ module: 'InformationExecutor' });
 
 /** Tools handled by this executor */
 const HANDLED_TOOLS = [
-  // Weather - both domain IDs and semantic IDs (FTIS router outputs semantic IDs)
+  // ============================================
+  // Weather - domain IDs + FTIS semantic IDs
+  // ============================================
   'getweather',
-  'weather_current', // Semantic ID from FTIS router
   'getweatherforecast',
-  'weather_forecast', // Semantic ID from FTIS router
-  // Time
+  // FTIS weather_current category
+  'weather_current',
+  'weather_now',
+  // FTIS weather_forecast category
+  'weather_forecast',
+  'weather_hourly',
+  'weather_weekly',
+  // ============================================
+  // Time/Date - domain IDs + FTIS semantic IDs
+  // ============================================
   'getcurrenttime',
-  // News - both domain IDs and semantic IDs
+  'getcurrentdate',
+  'getdate',
+  // FTIS time category
+  'info_time',
+  'essentials_time',
+  // FTIS date category
+  'info_date',
+  'essentials_date',
+  // ============================================
+  // News - domain IDs + FTIS semantic IDs
+  // ============================================
   'searchnews',
   'getnews',
-  'info_news', // Semantic ID from FTIS router
+  'info_news',
   'getfinancialsnews',
   'getfinancialnews',
   'gettechnews',
   'getstocknews',
+  // ============================================
   // Market data
+  // ============================================
   'getmarketsummary',
   'getmarketoverview',
   'getstockquote',
   'getstockprice',
   'getquote',
+  // ============================================
+  // Capabilities/Help
+  // ============================================
+  'essentials_help',
+  'essentials_capabilities',
 ] as const;
 
 /**
@@ -48,8 +74,7 @@ async function execute(
 
   // Weather - handle both domain IDs (getweather) and semantic IDs (weather_current)
   if (fnLower === 'getweather' || fnLower === 'weather_current') {
-    const { getCurrentWeather } =
-      await import('../../../tools/domains/information/weather.js');
+    const { getCurrentWeather } = await import('../../../tools/domains/information/weather.js');
     const location = (args.location as string) || (args.city as string) || 'current';
 
     log.info({ location, toolId: fn }, '🌤️ Getting current weather');
@@ -58,8 +83,7 @@ async function execute(
 
   // Weather forecast - handle both domain IDs and semantic IDs
   if (fnLower === 'getweatherforecast' || fnLower === 'weather_forecast') {
-    const { getWeatherForecast } =
-      await import('../../../tools/domains/information/weather.js');
+    const { getWeatherForecast } = await import('../../../tools/domains/information/weather.js');
     const location = (args.location as string) || (args.city as string) || 'current';
     const days = (args.days as number) || 5;
 
@@ -67,20 +91,43 @@ async function execute(
     return getWeatherForecast(location, days);
   }
 
-  // Current time
-  if (fnLower === 'getcurrenttime') {
+  // Current time - handle all FTIS time variants
+  if (fnLower === 'getcurrenttime' || fnLower === 'info_time' || fnLower === 'essentials_time') {
     const timezone = (args.timezone as string) || 'local';
     const now = new Date();
     const options: Intl.DateTimeFormatOptions = {
       timeZone: timezone === 'local' ? undefined : timezone,
       hour: 'numeric',
       minute: '2-digit',
+    };
+    const formatted = now.toLocaleTimeString('en-US', options);
+    log.info({ toolId: fn }, '🕐 Getting current time');
+    return `It's ${formatted}.`;
+  }
+
+  // Current date - handle all FTIS date variants
+  if (
+    fnLower === 'getcurrentdate' ||
+    fnLower === 'getdate' ||
+    fnLower === 'info_date' ||
+    fnLower === 'essentials_date'
+  ) {
+    const now = new Date();
+    const options: Intl.DateTimeFormatOptions = {
       weekday: 'long',
       month: 'long',
       day: 'numeric',
+      year: 'numeric',
     };
-    const formatted = now.toLocaleString('en-US', options);
-    return `It's ${formatted}.`;
+    const formatted = now.toLocaleDateString('en-US', options);
+    log.info({ toolId: fn }, '📅 Getting current date');
+    return `Today is ${formatted}.`;
+  }
+
+  // Capabilities/Help - FTIS essentials category
+  if (fnLower === 'essentials_help' || fnLower === 'essentials_capabilities') {
+    log.info({ toolId: fn }, '❓ Capabilities requested');
+    return "I'm Ferni, your AI life coach. I can help with calendar management, habits, reminders, music, weather, calling and texting contacts, smart home control, and much more. What would you like to do?";
   }
 
   // General news search - handle both domain IDs and semantic IDs
@@ -98,7 +145,12 @@ async function execute(
     let newsText: string;
     if (topic === 'tech' || topic === 'technology') {
       newsText = await getTechNews();
-    } else if (topic === 'financial' || topic === 'finance' || topic === 'market' || topic === 'markets') {
+    } else if (
+      topic === 'financial' ||
+      topic === 'finance' ||
+      topic === 'market' ||
+      topic === 'markets'
+    ) {
       const newsCategory = (category as 'general' | 'forex' | 'crypto' | 'merger') || 'general';
       newsText = await getFinancialNews(newsCategory);
     } else if (topic === 'stock' && query) {
@@ -106,7 +158,7 @@ async function execute(
     } else {
       newsText = await getGeneralNews();
     }
-    
+
     // Return speakDirectly format - bypasses LLM, speaks news immediately
     return { __speakDirectly: true, text: newsText };
   }

@@ -4,8 +4,8 @@
   "description": "Six brilliant minds who remember your whole story, hear what you're not saying, and show up at 2am with the same presence as noon. Better than human.",
   "url": "https://ferni.ai",
   "appUrl": "https://app.ferni.ai",
-  "phone": "1 (484) 481-3081",
-  "phoneRaw": "+14844813081",
+  "phone": "1 (888) 598-3952",
+  "phoneRaw": "+18885983952",
   "email": "hello@ferni.ai",
 
   "brand": {
@@ -34,7 +34,7 @@
         "text": "Meet Ferni",
         "url": "https://app.ferni.ai?utm_source=ferni_website&utm_medium=web&utm_campaign=homepage"
       },
-      "secondary": { "text": "Call Ferni", "url": "tel:+14844813081" }
+      "secondary": { "text": "Call Ferni", "url": "tel:+18885983952" }
     },
     "variants": {
       "lateNight": {
@@ -195,7 +195,7 @@
     },
     {
       "question": "How does the phone calling work?",
-      "answer": "Simply call 1 (484) 481-3081 from any phone. No app needed, no sign-up required. Ferni will recognize your number and remember your previous conversations automatically."
+      "answer": "Simply call 1 (888) 598-3952 from any phone. No app needed, no sign-up required. Ferni will recognize your number and remember your previous conversations automatically."
     },
     {
       "question": "Is my conversation private?",
@@ -249,7 +249,7 @@
       ],
       "connect": [
         { "title": "Web App", "url": "https://app.ferni.ai" },
-        { "title": "Call Ferni", "url": "tel:+14844813081" },
+        { "title": "Call Ferni", "url": "tel:+18885983952" },
         { "title": "Twitter", "url": "https://twitter.com/ferniAI" }
       ],
       "legal": [
@@ -273,7 +273,7 @@
     },
     "secondary": {
       "text": "Call Ferni",
-      "url": "tel:+14844813081"
+      "url": "tel:+18885983952"
     },
     "founders": {
       "free": "Talk to Ferni",

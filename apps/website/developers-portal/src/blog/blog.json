@@ -1,0 +1,8 @@
+{
+  "layout": "layouts/blog-post.njk",
+  "tags": "blogPosts",
+  "permalink": "/blog/{{ page.fileSlug }}/",
+  "eleventyComputed": {
+    "ogImage": "{{ '/images/blog/' + (image or 'default-og.png') }}"
+  }
+}

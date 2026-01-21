@@ -467,7 +467,7 @@ async function handleGetPatternInsights(
     }
 
     // Extract patterns from profile
-    const { patterns: rawPatterns } = extractLearnedMemories(
+    const { patterns: rawPatterns } = await extractLearnedMemories(
       profile as Parameters<typeof extractLearnedMemories>[0]
     );
 
@@ -496,7 +496,7 @@ async function handleGetPatternInsights(
       totalPatterns === 0 ? "I'm still learning about you" : null,
       totalPatterns > 0 && totalPatterns < 5 ? "I'm starting to notice some patterns" : null,
       totalPatterns >= 5 && totalPatterns < 10 ? "I'm getting to know you pretty well" : null,
-      totalPatterns >= 10 ? "I feel like I really understand how you tick" : null,
+      totalPatterns >= 10 ? 'I feel like I really understand how you tick' : null,
     ].filter(Boolean);
 
     sendJSONCached(

@@ -193,7 +193,7 @@
     if (lower.includes('how') && lower.includes('work')) {
       return "Ferni is always available via phone call, text, or web app. Just reach out whenever you need support - we're here 24/7.";
     }
-    return "Great question! You can call 1 (484) 481-3081 anytime, or use our web app. We're here whenever you need us.";
+    return "Great question! You can call 1 (888) 598-3952 anytime, or use our web app. We're here whenever you need us.";
   }
 
   async function apiCall(endpoint, options = {}) {

@@ -46,6 +46,10 @@ export interface HandoffStartedMessage extends BaseMessage {
   previousAgent: string;
   direction: string;
   playSound?: string;
+  /** Warm handoff: Departing persona's soft open banter text */
+  softOpenBanter?: string;
+  /** Warm handoff: Arriving persona's welcome banter text */
+  arrivingBanter?: string;
 }
 
 /**
@@ -391,7 +395,9 @@ export class FrontendPublisher {
     newAgent: string,
     previousAgent: string,
     direction: string,
-    playSound?: string
+    playSound?: string,
+    softOpenBanter?: string,
+    arrivingBanter?: string
   ): Promise<boolean> {
     diag.entry(`Handoff started: ${previousAgent} → ${newAgent}`);
 
@@ -401,6 +407,8 @@ export class FrontendPublisher {
       previousAgent,
       direction,
       playSound,
+      softOpenBanter,
+      arrivingBanter,
     });
   }
 

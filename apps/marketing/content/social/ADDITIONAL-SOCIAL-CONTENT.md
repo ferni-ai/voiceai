@@ -69,7 +69,7 @@ Built Ferni because 2am thoughts deserve better than a Google search and the cei
 
 Sometimes you just need someone to talk to. Even if that someone is AI.
 
-Try it: app.ferni.ai (or call 484-481-3081)
+Try it: app.ferni.ai (or call 888-598-3952)
 ```
 
 ```

@@ -388,6 +388,7 @@
       "handoff",
       "cameo",
       "information",
+      "entertainment",
       "wisdom",
       "meaning",
       "presence",
@@ -470,11 +471,7 @@
       "makeInvestment",
       "analyzeStock",
       "getStockQuote",
-      "sendEmail",
-      "makeCall",
-      "playMusic",
-      "createHabit",
-      "scheduleAppointment"
+      "createHabit"
     ]
   },
 
@@ -482,7 +479,7 @@
     "can_handoff": true,
     "handoff_targets": ["@coordinator", "@team"],
     "banking_enabled": false,
-    "music_enabled": false,
+    "music_enabled": true,
     "wisdom_sharing": true,
     "meditation_guidance": true
   },

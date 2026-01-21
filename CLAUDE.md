@@ -1917,14 +1917,18 @@ ferni coach career        # Career coaching session
 
 **Domain Modules:**
 - `src/tools/CLAUDE.md` - How to create tools (118 domains)
+- `src/tools/semantic-router/CLAUDE.md` - Semantic tool routing (<50ms latency)
 - `src/tools/habit-coaching/CLAUDE.md` - Habit coaching module
 - `src/personas/CLAUDE.md` - How to create personas (6 AI team members)
 - `src/intelligence/CLAUDE.md` - Context builder patterns
 - `src/intelligence/context-builders/CLAUDE.md` - Builder implementation
+- `src/tasks/scheduled/CLAUDE.md` - Scheduled jobs (Cloud Scheduler)
 
 **Infrastructure:**
 - `src/services/CLAUDE.md` - Services layer patterns
-- `src/memory/CLAUDE.md` - Memory and persistence
+- `src/memory/CLAUDE.md` - Memory and persistence (three-layer L1/L2/L3)
+- `src/memory/dynamic/CLAUDE.md` - Real-time memory capture (STM, deep extraction)
+- `src/memory/knowledge-graph/CLAUDE.md` - Entity relationship graph
 - `src/personality/CLAUDE.md` - Personality emergence, timing intelligence
 - `src/context/CLAUDE.md` - ContextManager, session context
 - `src/handoff/CLAUDE.md` - Persona transitions, cameo system
@@ -1933,6 +1937,10 @@ ferni coach career        # Career coaching session
 **Frontend/Brand:**
 - `apps/web/CLAUDE.md` - Frontend/design system rules
 - `brand/CLAUDE.md` - Brand library rules (LUXO-STYLE EYES: opaque white, NO pupils)
+
+**Applications:**
+- `apps/CLAUDE.md` - Navigation index for all platform apps
+- `apps/ml-training/CLAUDE.md` - ML training pipeline (Qwen 2.5 router model)
 
 ---
 

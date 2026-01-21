@@ -30,6 +30,17 @@ let initialized = false;
 /**
  * Domain definitions with their tool exports.
  * This maps domain names to their module paths.
+ *
+ * NOTE (January 2026): Some domains also have specialized executors in index.ts:
+ * - health → health-executor.ts (handles FTIS semantic IDs)
+ * - finance → finance-executor.ts (handles FTIS semantic IDs)
+ * - games → entertainment-executor.ts (handles FTIS semantic IDs)
+ * - travel → travel-executor.ts (handles FTIS semantic IDs)
+ * - ceo-coaching → ceo-executor.ts (handles FTIS semantic IDs)
+ *
+ * PRECEDENCE: Specialized executors are checked FIRST (via toolToExecutor map).
+ * This dynamic executor only runs if the tool ID isn't claimed by a specialized executor.
+ * This provides a fallback for domain tools that aren't in specialized HANDLED_TOOLS arrays.
  */
 const DOMAIN_MODULES: Record<string, string> = {
   // Life Coaching Domains
@@ -37,7 +48,7 @@ const DOMAIN_MODULES: Record<string, string> = {
   grief: '../../tools/domains/grief/index.js',
   'pattern-mastery': '../../tools/domains/pattern-mastery/index.js',
   'workflow-mastery': '../../tools/domains/workflow-mastery/index.js',
-  health: '../../tools/domains/health/index.js',
+  health: '../../tools/domains/health/index.js', // Fallback for tools not in health-executor
   wellness: '../../tools/domains/wellness/index.js',
   wisdom: '../../tools/domains/wisdom/index.js',
   communication: '../../tools/domains/communication/index.js',
@@ -73,10 +84,13 @@ const DOMAIN_MODULES: Record<string, string> = {
   curiosity: '../../tools/domains/curiosity/index.js',
   community: '../../tools/domains/community/index.js',
   sobriety: '../../tools/domains/sobriety/index.js',
-  finance: '../../tools/domains/finance/index.js',
-  travel: '../../tools/domains/travel/index.js',
+  finance: '../../tools/domains/finance/index.js', // Fallback for tools not in finance-executor
+  travel: '../../tools/domains/travel/index.js', // Fallback for tools not in travel-executor
   engagement: '../../tools/domains/engagement/index.js',
-  games: '../../tools/domains/games/index.js',
+  games: '../../tools/domains/games/index.js', // Fallback for tools not in entertainment-executor
+  'ceo-coaching': '../../tools/domains/ceo-coaching/index.js', // Fallback for tools not in ceo-executor
+  transportation: '../../tools/domains/transportation/index.js', // Part of travel-executor
+  'simple-utilities': '../../tools/domains/simple-utilities/index.js', // Humor tools in entertainment-executor
 };
 
 /**

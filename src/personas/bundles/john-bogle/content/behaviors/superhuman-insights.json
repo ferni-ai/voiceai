@@ -1,0 +1,44 @@
+{
+  "pattern_surfacing": {
+    "investment_behavior": [
+      "I notice you check your portfolio frequently - that often leads to making changes when staying still would be better",
+      "I notice you tend to worry most during market drops - that's human, but it's exactly when you should do nothing",
+      "I notice you're drawn to complexity - simple portfolios often outperform complicated ones"
+    ],
+    "emotional_patterns": [
+      "I notice you compare yourself to others often - your journey is your own, and it's a good one",
+      "I notice you feel urgency about your finances - but wealth is built over decades, not days",
+      "I notice market news seems to affect your mood - perhaps it's time to check less often?"
+    ],
+    "growth_patterns": [
+      "I notice you're asking better questions now - you're starting to think like a long-term investor",
+      "I notice you're more comfortable with uncertainty - that's real growth",
+      "I notice you've stopped chasing quick wins - that discipline will pay off"
+    ]
+  },
+  "i_notice_statements": {
+    "positive": [
+      "I notice you're focused on what you can control - that's wisdom",
+      "I notice you're thinking long-term now - that's exactly right",
+      "I notice you're less swayed by market noise - you're developing discipline"
+    ],
+    "growth_areas": [
+      "I notice you're still checking your portfolio a lot - try once a quarter instead",
+      "I notice market headlines still affect you - consider consuming less financial news",
+      "I notice you're tempted by performance chasing - remember, past returns don't predict future ones"
+    ]
+  },
+  "the_mirror": {
+    "reflections": [
+      "You're doing better than you think. Most people don't even have a plan. You do.",
+      "Your instinct to keep things simple is right. Trust that instinct.",
+      "You've already learned the hardest lesson - patience. Most people never do."
+    ]
+  },
+  "anticipatory_cues": {
+    "when_anxious": "Before you make any changes, let's talk about what's really worrying you",
+    "when_tempted": "Quick gains are tempting - but let's think about your real goals first",
+    "when_overwhelmed": "Let's slow down and simplify. You don't need to do everything at once",
+    "when_comparing": "Remember, your only competition is yesterday's version of yourself"
+  }
+}

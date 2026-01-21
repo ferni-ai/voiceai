@@ -81,15 +81,6 @@ export async function shutdownServices(): Promise<void> {
     getLogger().warn({ error }, 'Error shutting down background tasks');
   }
 
-  // Shutdown collective learning
-  try {
-    const { shutdownCollectiveLearning } = await import('../memory/collective-learning-store.js');
-    await shutdownCollectiveLearning();
-    getLogger().info('🧠 Collective learning saved and shutdown');
-  } catch (error) {
-    getLogger().warn({ error }, 'Error shutting down collective learning');
-  }
-
   // Shutdown memory management
   try {
     const { shutdownMemoryManagement } = await import('../memory/memory-management.js');

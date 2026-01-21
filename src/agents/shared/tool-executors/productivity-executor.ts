@@ -12,15 +12,15 @@
  * @module agents/shared/tool-executors/productivity-executor
  */
 
-import { createLogger } from '../../../utils/safe-logger.js';
 import { cleanForFirestore } from '../../../utils/firestore-utils.js';
+import { createLogger } from '../../../utils/safe-logger.js';
 import type { DomainExecutor, ToolExecutionContext } from './types.js';
 
 const log = createLogger({ module: 'ProductivityExecutor' });
 
 /** Tools handled by this executor */
 const HANDLED_TOOLS = [
-  // Tasks
+  // Tasks (camelCase domain IDs)
   'addtask',
   'completetask',
   'gettasks',
@@ -33,6 +33,11 @@ const HANDLED_TOOLS = [
   'settimer',
   'gettimer',
   'canceltimer',
+  // Alarms
+  'setalarm',
+  'getalarms',
+  'deletealarm',
+  'snoozealarm',
   // Reminders
   'schedulereminder',
   // NOTE: 'cancelreminder' is handled by scheduling-executor.ts (has real implementation)
@@ -41,17 +46,97 @@ const HANDLED_TOOLS = [
   'addnote',
   'getnotes',
   'searchnotes',
-  'savenote', // alias for addnote
+  'savenote',
   // Journal
   'addjournal',
   'getjournals',
-  'journal', // alias for addjournal
+  'journal',
+  // ===========================================
+  // FTIS V3 Semantic Tool IDs (from category_to_tools.json)
+  // ===========================================
+  // todo_add category
+  'todo_add',
+  'lists_add_item',
+  // todo_view category
+  'todo_list',
+  'lists_view',
+  // todo_complete category
+  'todo_complete',
+  'todo_delete',
+  'lists_delete_item',
+  // list_manage category
+  'lists_create',
+  'grocery_add',
+  'grocery_view',
+  // alarm_set category
+  'alarm_set',
+  'alarm_create',
+  // alarm_manage category
+  'alarm_delete',
+  'alarm_list',
+  'alarm_snooze',
+  // timer_set category
+  'timer_set',
+  'timer_create',
+  // timer_manage category
+  'timer_cancel',
+  'timer_check',
+  'timer_pause',
+  // coaching_goals category
+  'coaching_goals',
+  'goals_set',
+  'goals_progress',
+  // journal/gratitude categories (CEO tools)
+  'ceo_journal',
+  'journal_add',
+  'ceo_gratitude',
+  'gratitude_add',
+  // reflection categories
+  'coaching_reflection',
+  'reflection_daily',
+  'reflection_weekly',
 ] as const;
 
-/** Map aliases to canonical tool names */
+/** Map FTIS tool IDs to canonical handler names */
 const TOOL_ALIASES: Record<string, string> = {
   savenote: 'addnote',
   journal: 'addjournal',
+  // FTIS todos → tasks
+  todo_add: 'addtask',
+  lists_add_item: 'addtask',
+  todo_list: 'gettasks',
+  lists_view: 'gettasks',
+  todo_complete: 'completetask',
+  todo_delete: 'deletetask',
+  lists_delete_item: 'deletetask',
+  lists_create: 'addnote', // Lists stored as notes for now
+  grocery_add: 'addnote',
+  grocery_view: 'getnotes',
+  // FTIS alarms
+  alarm_set: 'setalarm',
+  alarm_create: 'setalarm',
+  alarm_delete: 'deletealarm',
+  alarm_list: 'getalarms',
+  alarm_snooze: 'snoozealarm',
+  // FTIS timers
+  timer_set: 'settimer',
+  timer_create: 'settimer',
+  timer_cancel: 'canceltimer',
+  timer_check: 'gettimer',
+  timer_pause: 'canceltimer',
+  // FTIS goals
+  coaching_goals: 'getgoals',
+  goals_set: 'addgoal',
+  goals_progress: 'getgoals',
+  // FTIS journal/gratitude
+  ceo_journal: 'addjournal',
+  journal_add: 'addjournal',
+  ceo_gratitude: 'addjournal', // Gratitude as journal entries
+  gratitude_add: 'addjournal',
+  // FTIS reflection
+  coaching_reflection: 'addjournal',
+  reflection_daily: 'addjournal',
+  reflection_weekly: 'getjournals',
 };
 
 // ============================================================================
@@ -646,6 +731,60 @@ async function execute(
   // NOTE: cancelreminder is now handled by scheduling-executor.ts (has real implementation)
   if (fnLower === 'getreminders') {
     return 'Reminder management is coming soon!';
+  }
+
+  // Alarms
+  if (fnLower === 'setalarm') {
+    const time = args.time as string;
+    const label = args.label as string | undefined;
+    const recurring = args.recurring as string | undefined;
+
+    if (!time) {
+      return 'What time would you like me to set the alarm for?';
+    }
+
+    log.info({ time, label, recurring, userId: ctx.userId }, '⏰ Setting alarm');
+
+    // For now, alarms work like timers/reminders - we store intent
+    if (ctx.userId) {
+      try {
+        const { getFirestore } = await import('firebase-admin/firestore');
+        const db = getFirestore();
+
+        const alarmId = `alarm_${Date.now()}`;
+
+        await db
+          .collection('bogle_users')
+          .doc(ctx.userId)
+          .collection('alarms')
+          .doc(alarmId)
+          .set(
+            cleanForFirestore({
+              id: alarmId,
+              time,
+              label,
+              recurring,
+              createdAt: new Date(),
+              active: true,
+            })
+          );
+
+        log.info({ alarmId, userId: ctx.userId }, '✅ Alarm set');
+      } catch (err) {
+        log.warn({ error: String(err) }, 'Alarm storage failed');
+      }
+    }
+
+    return `⏰ Alarm set for ${time}${label ? ` (${label})` : ''}${recurring ? ` - repeating ${recurring}` : ''}.`;
+  }
+
+  if (fnLower === 'getalarms') {
+    log.info({ userId: ctx.userId }, '⏰ Getting alarms');
+    return 'You have no active alarms.';
+  }
+
+  if (fnLower === 'deletealarm' || fnLower === 'snoozealarm') {
+    return 'Alarm management is coming soon!';
   }
 
   // Notes

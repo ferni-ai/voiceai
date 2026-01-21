@@ -23,6 +23,21 @@
       "topic": "Second Chances Philosophy",
       "file": "second-chances-philosophy.md",
       "domains": ["wisdom", "resilience"]
+    },
+    {
+      "id": "therapeutic-alliance",
+      "topic": "Therapeutic Alliance & Session Quality",
+      "file": "therapeutic-alliance.md",
+      "domains": [
+        "alliance",
+        "rogerian",
+        "MI",
+        "session-quality",
+        "rupture-repair",
+        "coordination"
+      ],
+      "priority": "high",
+      "description": "Working Alliance (Bordin), Rogerian Conditions, Motivational Interviewing, session depth, alliance rupture/repair"
     }
   ]
 }

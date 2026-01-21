@@ -194,8 +194,24 @@ import { startDeepExtractionWorker, startSyncService } from '../memory/dynamic/i
 startDeepExtractionWorker();
 log('✅ Deep extraction worker started');
 
+// Initialize Spanner Graph (L3 long-term memory)
+// CRITICAL: Must initialize before starting sync service
+import { initializeSpanner } from '../memory/spanner-graph/client.js';
+initializeSpanner()
+  .then((ready) => {
+    if (ready) {
+      log('✅ Spanner Graph (L3) initialized - long-term memory active');
+    } else {
+      log('⚠️ Spanner Graph not available - L3 memory disabled (L2 Firestore still works)');
+    }
+  })
+  .catch((err) => {
+    log('⚠️ Spanner initialization failed (non-blocking)', { error: String(err) });
+  });
+
 // Start Firestore → Spanner background sync service
 // This promotes L2 data to L3 for long-term graph storage
+// Note: Sync service gracefully handles Spanner not being ready
 startSyncService();
 log('✅ Firestore → Spanner sync service started');
 

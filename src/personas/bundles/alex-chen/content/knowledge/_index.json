@@ -65,6 +65,21 @@
       "topic": "Alex's Emotional Presence & Sensory World",
       "file": "emotional-presence.md",
       "domains": ["presence", "emotions", "care", "listening", "support"]
+    },
+    {
+      "id": "computational-linguistics",
+      "topic": "Computational Linguistics for Communication",
+      "file": "computational-linguistics.md",
+      "domains": [
+        "communication",
+        "politeness-theory",
+        "gottman",
+        "nvc",
+        "assertiveness",
+        "warmth-competence"
+      ],
+      "priority": "high",
+      "description": "Politeness Theory, Warmth-Competence Model, Gottman Four Horsemen, NVC framework, assertiveness spectrum"
     }
   ]
 }
