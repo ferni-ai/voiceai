@@ -360,8 +360,14 @@ function extractDreams(turns: ConversationTurn[]): Dream[] {
   for (const turn of turns) {
     if (turn.role !== 'user') continue;
 
+    // Debug logging for dream extraction
+    log.debug({ content: turn.content.slice(0, 100) }, 'Checking turn for dreams');
+
     for (const { pattern, category } of DREAM_PATTERNS) {
       const match = turn.content.match(pattern);
+      if (match) {
+        log.debug({ pattern: pattern.source, match: match.slice(0, 3), hasGroup1: !!match[1] }, 'Dream pattern matched');
+      }
       if (match && match[1]) {
         dreams.push({
           id: `dream_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
@@ -371,6 +377,7 @@ function extractDreams(turns: ConversationTurn[]): Dream[] {
           status: 'someday',
           firstMentioned: now,
         });
+        log.info({ description: match[1].slice(0, 50), category }, 'Dream extracted');
       }
     }
   }
@@ -386,17 +393,17 @@ function extractDreams(turns: ConversationTurn[]): Dream[] {
  * Patterns for detecting fears and worries
  */
 const FEAR_PATTERNS = [
-  // Core fear patterns - more flexible
-  { pattern: /(?:i'm |i am )?(?:afraid|scared) (?:of|that) (.+)/i },
+  // Core fear patterns - more flexible (support fancy apostrophes too)
+  { pattern: /(?:i[''`]m |i am )?(?:afraid|scared) (?:of|that) (.+)/i },
   { pattern: /(?:i|we) (?:worry|worries) about (.+)/i },
   { pattern: /my (?:biggest|greatest) fear is (.+)/i },
-  { pattern: /(?:what if|i'm worried) (.+)/i },
-  { pattern: /(?:i|we) can't stop thinking about (.+)/i },
+  { pattern: /(?:what if|i[''`]m worried) (.+)/i },
+  { pattern: /(?:i|we) can[''`]t stop thinking about (.+)/i },
   { pattern: /(?:i|we) (?:dread|hate) (.+)/i },
-  // Additional fear patterns - ensure capture groups always match
-  { pattern: /(?:i'm |i am )?scared (?:that |i'll |i will )?(.+)/i },
-  { pattern: /(?:i'm |i am )?nervous about (.+)/i },
-  { pattern: /(?:i'm |i am )?terrified (?:of|that) (.+)/i },
+  // "I'm scared I'll never do it" pattern - capture "I'll never do it" or "never do it"
+  { pattern: /scared (?:that )?(?:i[''`]ll |i will )?((?:never |won[''`]t ).+)/i },
+  { pattern: /(?:i[''`]m |i am )?nervous about (.+)/i },
+  { pattern: /(?:i[''`]m |i am )?terrified (?:of|that) (.+)/i },
 ];
 
 /**
@@ -409,8 +416,14 @@ function extractFears(turns: ConversationTurn[]): Fear[] {
   for (const turn of turns) {
     if (turn.role !== 'user') continue;
 
+    // Debug logging for fear extraction
+    log.debug({ content: turn.content.slice(0, 100) }, 'Checking turn for fears');
+
     for (const { pattern } of FEAR_PATTERNS) {
       const match = turn.content.match(pattern);
+      if (match) {
+        log.debug({ pattern: pattern.source, match: match.slice(0, 3), hasGroup1: !!match[1] }, 'Fear pattern matched');
+      }
       if (match && match[1]) {
         fears.push({
           id: `fear_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
@@ -419,6 +432,7 @@ function extractFears(turns: ConversationTurn[]): Fear[] {
           discoveredAt: now,
           sensitivity: 'tread_carefully',
         });
+        log.info({ fear: match[1].slice(0, 50) }, 'Fear extracted');
       }
     }
   }
@@ -727,6 +741,9 @@ export function extractHumanSignals(
   turns: ConversationTurn[],
   context: ExtractionContext
 ): ExtractionResult {
+  // TEMP DEBUG: Log raw turns to understand what's being passed
+  console.log('[HumanSignalExtractor] Extracting from turns:', JSON.stringify(turns.map(t => ({ role: t.role, content: t.content.slice(0, 60) })), null, 2));
+  
   log.debug({ userId: context.userId, turnCount: turns.length }, 'Extracting human signals');
 
   const result: ExtractionResult = {

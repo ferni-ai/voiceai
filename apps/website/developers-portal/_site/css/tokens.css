@@ -4,7 +4,7 @@
  *
  * 🎨 AUTO-GENERATED FROM design-system/tokens/
  * Do not edit directly - run: pnpm tokens:sync
- * Generated: 2026-01-21T10:49:18.074Z
+ * Generated: 2026-01-21T15:37:43.797Z
  */
 
 :root {
@@ -251,77 +251,4 @@
   --container-narrow: 768px;
   --sidebar-width: 280px;
   --header-height: 64px;
-
-  /* ========================================
-     CODE SYNTAX HIGHLIGHTING - Dark Theme
-     ======================================== */
-  --code-text: #e8e2da;
-  --syntax-comment: #7d9a72;
-  --syntax-keyword: #d4a84a;
-  --syntax-string: #ce9178;
-  --syntax-number: #b5cea8;
-  --syntax-function: #dcdcaa;
-  --syntax-variable: #9cdcfe;
-  --syntax-operator: #d4d4d4;
-  --syntax-class: #4ec9b0;
-  --syntax-property: #9cdcfe;
-  --syntax-punctuation: #d4d4d4;
-}
-
-/* ========================================
-   LIGHT THEME OVERRIDES
-   ======================================== */
-[data-theme='light'] {
-  /* Backgrounds - Warm light */
-  --bg-primary: #faf8f5;
-  --bg-secondary: #f5f2ed;
-  --bg-tertiary: #efeae3;
-  --bg-elevated: #ffffff;
-  --bg-glass: rgba(88, 72, 64, 0.04);
-  --bg-overlay: rgba(250, 248, 245, 0.95);
-  --bg-code: #1e1e1e;
-  --bg-code-inline: rgba(88, 72, 64, 0.08);
-
-  /* Text - Dark warm */
-  --text-primary: #2c2520;
-  --text-secondary: #4a423a;
-  --text-muted: #6b6058;
-  --text-dimmed: #8a7d72;
-  --text-inverse: #faf6f0;
-
-  /* Accent - Sage Green for light mode */
-  --accent-primary: #3d5a45;
-  --accent-hover: #4a6b52;
-  --accent-pressed: #324a3a;
-  --accent-glow: rgba(61, 90, 69, 0.15);
-  --accent-subtle: rgba(61, 90, 69, 0.08);
-  --accent-text: #3d5a45;
-
-  /* Borders - Warmer */
-  --border-subtle: rgba(88, 72, 64, 0.10);
-  --border-medium: rgba(88, 72, 64, 0.18);
-  --border-strong: rgba(88, 72, 64, 0.28);
-
-  /* Semantic - Slightly darker for light bg */
-  --success: #2d8a4e;
-  --success-glow: rgba(45, 138, 78, 0.15);
-  --error: #c53030;
-  --error-glow: rgba(197, 48, 48, 0.15);
-  --warning: #c27c0e;
-  --warning-glow: rgba(194, 124, 14, 0.15);
-  --info: #2b6cb0;
-  --info-glow: rgba(43, 108, 176, 0.15);
-
-  /* Code Syntax - Light theme (dark bg for code) */
-  --code-text: #d4d4d4;
-  --syntax-comment: #6a9955;
-  --syntax-keyword: #569cd6;
-  --syntax-string: #ce9178;
-  --syntax-number: #b5cea8;
-  --syntax-function: #dcdcaa;
-  --syntax-variable: #9cdcfe;
-  --syntax-operator: #d4d4d4;
-  --syntax-class: #4ec9b0;
-  --syntax-property: #9cdcfe;
-  --syntax-punctuation: #d4d4d4;
 }
