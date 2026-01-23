@@ -44,17 +44,22 @@ export interface SecurityHeadersConfig {
 }
 
 /**
- * Default CSP directives
+ * Default CSP directives for API routes
  */
 const DEFAULT_CSP_DIRECTIVES: Record<string, string[]> = {
   'default-src': ["'self'"],
-  // SECURITY: Removed 'unsafe-inline' and 'unsafe-eval' - these bypass CSP protections
-  // Use nonces for inline scripts: add 'nonce-{random}' to script tags and CSP
-  // 'strict-dynamic' allows trusted scripts to load other scripts
-  'script-src': ["'self'", "'strict-dynamic'", 'https://apis.google.com', 'https://cdn.jsdelivr.net'],
-  // SECURITY: Removed 'unsafe-inline' for styles - use nonces or hashes instead
-  'style-src': ["'self'", 'https://fonts.googleapis.com'],
-  'font-src': ["'self'", 'https://fonts.gstatic.com'],
+  // SECURITY: Allow specific CDN hosts for scripts
+  // Note: Removed 'strict-dynamic' because it disables host-based allowlisting
+  'script-src': [
+    "'self'",
+    "'unsafe-inline'", // Needed for inline scripts in HTML pages
+    'https://apis.google.com',
+    'https://cdn.jsdelivr.net',
+    'https://js.stripe.com',
+  ],
+  // Allow inline styles for HTML pages
+  'style-src': ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
+  'font-src': ["'self'", 'https://fonts.gstatic.com', 'https://constellation-static.web.vanguard.com'],
   'img-src': ["'self'", 'data:', 'https:', 'blob:'],
   'connect-src': [
     "'self'",
@@ -66,7 +71,8 @@ const DEFAULT_CSP_DIRECTIVES: Record<string, string[]> = {
     'https://api.cartesia.ai',
     'https://api.openai.com',
     'https://cdn.jsdelivr.net',
-    'https://fonts.gstatic.com', // Required for service worker font caching
+    'https://fonts.gstatic.com',
+    'https://constellation-static.web.vanguard.com', // Vanguard fonts
   ],
   'media-src': ["'self'", 'blob:', 'https:'],
   'object-src': ["'none'"],

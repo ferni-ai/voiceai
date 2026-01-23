@@ -778,9 +778,24 @@ async function serveStaticSite(
       )
       .catch((err: unknown) => log.warn({ err, siteId }, 'Failed to update analytics'));
 
+    // Permissive CSP for landing pages - allows LiveKit and inline scripts
+    const landingPageCSP = [
+      "default-src 'self'",
+      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://apis.google.com https://js.stripe.com",
+      "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+      "font-src 'self' https://fonts.gstatic.com https://constellation-static.web.vanguard.com data:",
+      "img-src 'self' data: https: blob:",
+      "connect-src 'self' https://*.livekit.cloud wss://*.livekit.cloud https://*.firebaseio.com https://*.googleapis.com https://api.stripe.com https://api.cartesia.ai https://cdn.jsdelivr.net",
+      "media-src 'self' blob: https:",
+      "object-src 'none'",
+      "frame-ancestors 'self'",
+      "base-uri 'self'",
+    ].join('; ');
+
     res.writeHead(200, {
       'Content-Type': contentType,
       'Cache-Control': 'public, max-age=3600',
+      'Content-Security-Policy': landingPageCSP,
     });
     res.end(content);
     return true;
