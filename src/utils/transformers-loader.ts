@@ -184,7 +184,6 @@ export async function initializeOnnxRuntime(): Promise<OnnxRuntimeModule> {
 
     try {
       // Fall back to onnxruntime-web (WASM, slower but more compatible)
-      // @ts-expect-error - optional dependency
       const ort = await import('onnxruntime-web');
       onnxRuntimeModule = ort as unknown as OnnxRuntimeModule;
       log.debug('Using onnxruntime-web (WASM fallback)');
