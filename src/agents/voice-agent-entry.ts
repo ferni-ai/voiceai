@@ -43,7 +43,7 @@ import {
   runMultiAgentMode,
   setupNoiseCancellation,
   setupVoiceHumanization,
-  type VoiceDeps
+  type VoiceDeps,
 } from './voice-agent/phases/index.js';
 
 // Import the full PersonaConfig type for proper type compatibility
@@ -836,6 +836,12 @@ If someone asks what day it is, what time it is, or what the date is, you know t
       publisherId,
     });
 
+    // CRITICAL FIX: Set personaId on userData so TTS wrapper knows which persona is active
+    // This enables persona-specific SSML/speech traits for custom agents (e.g., joel-dickson)
+    // Without this, TTS wrapper defaults to 'ferni' and wrong persona behaviors are used
+    // See: multi-agent/agent-setup.ts line 205 for the equivalent fix in multi-agent path
+    userData.personaId = sessionPersona.id;
+
     if (stopPeriodicSync) {
       cleanupHandlers.push(stopPeriodicSync);
     }
@@ -1473,7 +1479,9 @@ If someone asks what day it is, what time it is, or what the date is, you know t
     // 🔍 DEBUG: Listen for input audio transcription events
     // This captures what Gemini's internal STT transcribes from the audio
     // CRITICAL for debugging - shows exactly what Gemini hears before processing
-    const llmWithEvents = llm as { on?: (event: string, handler: (event: unknown) => void) => void };
+    const llmWithEvents = llm as {
+      on?: (event: string, handler: (event: unknown) => void) => void;
+    };
     if (llmWithEvents.on) {
       llmWithEvents.on('input_audio_transcription_completed', (event: unknown) => {
         const transcriptionEvent = event as { transcript?: string };
@@ -1482,7 +1490,9 @@ If someone asks what day it is, what time it is, or what the date is, you know t
         );
         // Log character codes to detect invisible characters or periods
         if (transcriptionEvent.transcript) {
-          const charCodes = transcriptionEvent.transcript.split('').map((c: string) => c.charCodeAt(0));
+          const charCodes = transcriptionEvent.transcript
+            .split('')
+            .map((c: string) => c.charCodeAt(0));
           process.stderr.write(`🎤 [GEMINI STT] Char codes: [${charCodes.join(', ')}]\n`);
         }
       });
