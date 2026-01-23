@@ -44,10 +44,21 @@ export interface TransformersModule {
   env?: any;
 }
 
+/** Writable properties of transformers.env (for type-safe config) */
+interface TransformersEnvWritable {
+  allowRemoteModels?: boolean;
+  cacheDir?: string;
+}
+
 export interface OnnxRuntimeModule {
   InferenceSession: any;
   Tensor: any;
   env?: any;
+}
+
+/** Writable properties of ort.env.wasm (for type-safe config) */
+interface OnnxEnvWritable {
+  wasm?: { numThreads?: number };
 }
 
 export interface SessionOptions {
@@ -73,8 +84,8 @@ let initError: Error | null = null;
 
 // Default session options optimized for server environments
 const DEFAULT_SESSION_OPTIONS: SessionOptions = {
-  intraOpNumThreads: 2,      // Limit internal parallelism
-  interOpNumThreads: 1,      // Sequential operator execution
+  intraOpNumThreads: 2, // Limit internal parallelism
+  interOpNumThreads: 1, // Sequential operator execution
   executionMode: 'sequential',
   graphOptimizationLevel: 'all',
 };
@@ -123,11 +134,11 @@ async function doInitialize(): Promise<void> {
 
     // Configure transformers.js environment
     if (transformers.env) {
+      const envWritable = transformers.env as unknown as TransformersEnvWritable;
       // Disable remote model loading in production for security
-      (transformers.env as any).allowRemoteModels = process.env.NODE_ENV !== 'production';
-
+      envWritable.allowRemoteModels = process.env.NODE_ENV !== 'production';
       // Use local cache directory
-      (transformers.env as any).cacheDir = process.env.TRANSFORMERS_CACHE || './.cache/transformers';
+      envWritable.cacheDir = process.env.TRANSFORMERS_CACHE || './.cache/transformers';
     }
 
     transformersModule = transformers as TransformersModule;
@@ -158,10 +169,10 @@ export async function initializeOnnxRuntime(): Promise<OnnxRuntimeModule> {
 
     // Configure ONNX environment to prevent conflicts
     if (ort.env) {
-      // Set number of threads for the thread pool (use any cast for readonly bypass)
-      const env = ort.env as any;
-      if (env.wasm) {
-        env.wasm.numThreads = DEFAULT_SESSION_OPTIONS.intraOpNumThreads;
+      // Set number of threads for the thread pool
+      const envWritable = ort.env as unknown as OnnxEnvWritable;
+      if (envWritable.wasm) {
+        envWritable.wasm.numThreads = DEFAULT_SESSION_OPTIONS.intraOpNumThreads;
       }
     }
 
@@ -173,6 +184,7 @@ export async function initializeOnnxRuntime(): Promise<OnnxRuntimeModule> {
 
     try {
       // Fall back to onnxruntime-web (WASM, slower but more compatible)
+      // @ts-expect-error - optional dependency
       const ort = await import('onnxruntime-web');
       onnxRuntimeModule = ort as unknown as OnnxRuntimeModule;
       log.debug('Using onnxruntime-web (WASM fallback)');
@@ -356,9 +368,7 @@ export async function runPipelineProtected<T = any>(
   options: Record<string, unknown> = {}
 ): Promise<T> {
   const guard = getTransformersGuard();
-  const inputSummary = Array.isArray(input)
-    ? `${input.length} items`
-    : input.slice(0, 50);
+  const inputSummary = Array.isArray(input) ? `${input.length} items` : input.slice(0, 50);
 
   return guard.execute(
     'pipelineInference',
@@ -460,11 +470,7 @@ export function canRunInference(): boolean {
   const transformersGuard = getTransformersGuard();
   const onnxGuard = getOnnxGuard();
 
-  return (
-    transformersGuard.isHealthy() &&
-    onnxGuard.isHealthy() &&
-    !initError
-  );
+  return transformersGuard.isHealthy() && onnxGuard.isHealthy() && !initError;
 }
 
 /**
@@ -480,9 +486,7 @@ export function resetCircuitBreakers(): void {
 /**
  * Register a crash event listener for monitoring.
  */
-export function onNativeBindingCrash(
-  callback: (diagnostics: CrashDiagnostics) => void
-): void {
+export function onNativeBindingCrash(callback: (diagnostics: CrashDiagnostics) => void): void {
   getTransformersGuard().on('crash', callback);
   getOnnxGuard().on('crash', callback);
 }

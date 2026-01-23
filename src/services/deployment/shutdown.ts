@@ -31,6 +31,7 @@ export async function shutdownServices(): Promise<void> {
 
   // Clear history trackers
   try {
+    // @ts-expect-error - JS file with types
     const { clearAllHistoryTrackers } = await import('../../memory/history.js');
     clearAllHistoryTrackers();
     getLogger().info('Cleared history trackers');
