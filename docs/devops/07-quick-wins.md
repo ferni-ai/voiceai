@@ -199,13 +199,50 @@ git revert <commit-sha>
 
 ---
 
-## Metrics to Track
+## Monitoring & Tracking
+
+### CLI Commands
+
+```bash
+# Quick status check (one-liner)
+ferni ci status
+
+# Week-over-week comparison (track concurrency impact)
+ferni ci status --compare
+
+# Full interactive dashboard
+ferni ops dashboard --open
+
+# JSON output for scripts
+ferni ci status --json
+```
+
+### What to Monitor
 
 After 1 week, measure:
 - [ ] staging.yml runs reduced by >30%
 - [ ] No duplicate runs observed
 - [ ] No staging deploys for docs-only PRs
 - [ ] Total monthly minutes < 2,400
+- [ ] Cancelled runs increased (concurrency working)
+
+### Existing Monitoring Stack
+
+| Component | Location | Purpose |
+|-----------|----------|---------|
+| CLI Status | `ferni ci status` | Quick one-liner |
+| Dashboard | `ferni ops dashboard` | Full HTML dashboard |
+| Metrics Collector | `scripts/devops/collect_ci_metrics.ts` | Weekly collection |
+| Automated Collection | `.github/workflows/ci-metrics.yml` | Monday 9 AM UTC |
+
+### Key Metrics
+
+| Metric | Target | How to Check |
+|--------|--------|--------------|
+| Monthly minutes | < 2,400 | `ferni ci status` |
+| Cancelled runs | Increasing | `ferni ci status --compare` |
+| Duplicate runs | Zero | GitHub Actions UI |
+| Budget usage | < 80% | `ferni ci status` |
 
 ---
 
