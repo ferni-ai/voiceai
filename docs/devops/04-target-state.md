@@ -105,6 +105,12 @@ on:
       - '*.json'
       - '*.yaml'
       - '.github/**'
+  workflow_dispatch:
+    inputs:
+      fast_mode:
+        description: 'Skip integration tests (unit only)'
+        type: boolean
+        default: false
 ```
 
 ### Jobs (All Parallel After Setup)
@@ -114,8 +120,17 @@ on:
 | setup | 1 min | - | cache-key |
 | lint | 2 min | Yes | - |
 | test-unit | 2 min | Yes | coverage |
+| test-integration | 3 min | Yes (skippable) | - |
 | security | 1 min | Yes | - |
 | quality-gates | 1 min | Yes | - |
+
+### Fast Mode (Unit Tests Only)
+
+For urgent PRs or when integration tests are known to be unaffected:
+- Add `[fast]` to PR title, OR
+- Use workflow_dispatch with `fast_mode: true`
+- Skips: test-integration, test-agi-features
+- Duration: ~6 min instead of ~10 min
 
 ### Success Criteria
 
