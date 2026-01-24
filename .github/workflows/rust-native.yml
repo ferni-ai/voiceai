@@ -160,16 +160,8 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v2
-        with:
-          version: 10
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: 'pnpm'
+      - name: Setup Node.js and pnpm
+        uses: ./.github/actions/setup-node-pnpm
 
       - name: Download rust-perf artifact
         uses: actions/download-artifact@v4
@@ -183,9 +175,6 @@ jobs:
           name: rust-audio-linux-x64
           path: apps/rust-audio/
         continue-on-error: true
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
 
       - name: Verify rust-perf loads
         run: node -e "const p = require('./apps/rust-perf'); console.log('rust-perf exports:', Object.keys(p));"
