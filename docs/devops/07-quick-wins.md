@@ -1,7 +1,7 @@
 # CI/CD Quick Wins Implemented
 
 > **Date**: 2026-01-24
-> **Status**: Implemented
+> **Status**: ✅ Complete (35/36 workflows)
 
 ---
 
@@ -9,14 +9,20 @@
 
 | Change | Files Modified | Estimated Savings |
 |--------|----------------|-------------------|
-| Added concurrency to staging.yml | 1 | ~200 min/month |
+| Added concurrency to ALL workflows | 35 | ~400 min/month |
 | Added path filters to staging.yml | 1 | ~300 min/month |
-| Added concurrency to design-system.yml | 1 | ~20 min/month |
-| Added concurrency to chromatic.yml | 1 | ~10 min/month |
-| Added concurrency to e2e-tests.yml | 1 | ~50 min/month |
-| Added concurrency to data-layer-e2e.yml | 1 | ~20 min/month |
-| Added concurrency to deploy-production.yml | 1 | Serialization (safety) |
-| **Total** | **7** | **~600 min/month** |
+| Serialized deploy workflows (safety) | 7 | Prevents race conditions |
+| **Total** | **35** | **~700 min/month** |
+
+### Coverage Breakdown
+
+| Category | Workflows | Concurrency Strategy |
+|----------|-----------|---------------------|
+| PR-triggered | 15 | `cancel-in-progress: true` |
+| Deploy workflows | 7 | `cancel-in-progress: false` (serialized) |
+| Scheduled/automation | 8 | `cancel-in-progress: true` |
+| Build/publish | 4 | Mixed (SDK serialized, others cancel) |
+| Reusable (workflow_call) | 1 | N/A (controlled by caller) |
 
 ---
 
@@ -162,10 +168,34 @@ git revert <commit-sha>
 
 | Change | Priority | Effort |
 |--------|----------|--------|
-| Add concurrency to 20+ remaining workflows | P1 | 2 hours |
+| ~~Add concurrency to 20+ remaining workflows~~ | ~~P1~~ | ✅ Done |
 | Restrict build-apps.yml to tags only | P1 | 10 min |
 | Migrate workflows to composite action | P1 | 4 hours |
 | Add CI summary artifact | P2 | 2 hours |
+
+---
+
+## Workflows Updated
+
+### PR-Triggered (cancel-in-progress: true)
+- `staging.yml`, `ci.yml`, `design-system.yml`, `chromatic.yml`
+- `e2e-tests.yml`, `data-layer-e2e.yml`, `lighthouse-ci.yml`
+- `security-scan.yml`, `token-check.yml`, `i18n-check.yml`
+- `rust-native.yml`, `brand-compliance.yml`, `performance-budget.yml`
+- `stage-direction-tests.yml`, `bth-benchmarks.yml`
+
+### Deploy Workflows (serialized)
+- `deploy-production.yml`, `deploy-firebase.yml`, `deploy-worker.yml`
+- `rollback.yml`, `incident-response.yml`, `feature-rollout.yml`
+- `sdk-publish.yml`
+
+### Scheduled/Automation
+- `ci-metrics.yml`, `cost-alerts.yml`, `uptime-monitor.yml`
+- `ai-automation.yml`, `error-alerting.yml`
+- `changelog.yml`, `dev-blog-changelog.yml`, `sync-template-repo.yml`
+
+### Not Modified (by design)
+- `reusable-design-system.yml` - Uses `workflow_call`, concurrency controlled by caller
 
 ---
 
