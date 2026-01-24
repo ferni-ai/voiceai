@@ -617,6 +617,18 @@ const COMMANDS: Record<string, CliCommand> = {
       'ferni ops metrics',
     ],
   },
+  ci: {
+    name: 'CI',
+    description: 'CI/CD status and monitoring',
+    icon: '📊',
+    handler: handleCI,
+    subcommands: ['status', 'compare', 'failures'],
+    examples: [
+      'ferni ci status',
+      'ferni ci status --compare',
+      'ferni ci status --json',
+    ],
+  },
   waitlist: {
     name: 'Waitlist',
     description: 'Manage user waitlist',
@@ -6833,6 +6845,47 @@ async function handleOps(args: string[]): Promise<void> {
   if (subcommand === 'metrics') {
     console.log(`${colors.cyan}Collecting CI metrics...${colors.reset}\n`);
     spawnSync('sh', ['-c', `npx tsx ${scriptsDir}/devops/collect_ci_metrics.ts`], { stdio: 'inherit' });
+  }
+}
+
+// ============================================================================
+// CI COMMAND
+// ============================================================================
+
+async function handleCI(args: string[]): Promise<void> {
+  const subcommand = args[0] || 'status';
+
+  log.header(`📊 CI/CD Status`);
+
+  const cliCommandsDir = join(PROJECT_ROOT, 'apps/cli/src/commands/ops');
+
+  if (!subcommand || subcommand === 'help') {
+    console.log(`${colors.bold}CI Commands:${colors.reset}\n`);
+    console.log(`  ${colors.cyan}ferni ci status${colors.reset}           - Quick one-liner CI health`);
+    console.log(`  ${colors.cyan}ferni ci status --compare${colors.reset} - Week-over-week comparison`);
+    console.log(`  ${colors.cyan}ferni ci status --json${colors.reset}    - JSON output for scripts`);
+    console.log(`  ${colors.cyan}ferni ci failures${colors.reset}         - Categorized failure analysis`);
+    console.log();
+    console.log(`${colors.dim}Full dashboard: ferni ops dashboard${colors.reset}`);
+    return;
+  }
+
+  if (subcommand === 'status') {
+    const compare = args.includes('--compare');
+    const json = args.includes('--json');
+
+    const cmd = `npx tsx ${cliCommandsDir}/ci-status.ts${compare ? ' --compare' : ''}${json ? ' --json' : ''}`;
+    spawnSync('sh', ['-c', cmd], { stdio: 'inherit' });
+  }
+
+  if (subcommand === 'compare') {
+    // Alias for status --compare
+    spawnSync('sh', ['-c', `npx tsx ${cliCommandsDir}/ci-status.ts --compare`], { stdio: 'inherit' });
+  }
+
+  if (subcommand === 'failures') {
+    console.log(`${colors.yellow}Failure categorization coming soon!${colors.reset}`);
+    console.log(`${colors.dim}For now, use: ferni ops dashboard${colors.reset}`);
   }
 }
 
