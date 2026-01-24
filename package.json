@@ -500,6 +500,7 @@
     "@commitlint/cli": "^19.0.0",
     "@commitlint/config-conventional": "^20.2.0",
     "@eslint/js": "9.39.2",
+    "@octokit/rest": "22.0.1",
     "@playwright/test": "^1.57.0",
     "@types/express": "5.0.6",
     "@types/express-serve-static-core": "5.1.0",

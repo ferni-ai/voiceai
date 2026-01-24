@@ -57,7 +57,7 @@ async function collectMetrics(): Promise<DashboardData> {
     throw new Error('GITHUB_TOKEN environment variable is required');
   }
 
-  const repository = process.env.GITHUB_REPOSITORY || 'sethdford/voiceai';
+  const repository = process.env.GITHUB_REPOSITORY || 'ferni-ai/voiceai';
   const [owner, repo] = repository.split('/');
   const budgetMinutes = 3000;
 
