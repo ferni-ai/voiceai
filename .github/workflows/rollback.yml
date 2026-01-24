@@ -26,6 +26,11 @@ on:
         required: true
         type: string
 
+# Serialize rollbacks - critical operation, never cancel
+concurrency:
+  group: rollback-production
+  cancel-in-progress: false
+
 env:
   GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
   GCP_REGION: us-central1

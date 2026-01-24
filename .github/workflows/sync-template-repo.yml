@@ -28,6 +28,10 @@ on:
         required: false
         default: 'false'
 
+concurrency:
+  group: sync-template-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 env:
   TEMPLATE_REPO: ferni-ai/agent-starter
   TEMPLATE_BRANCH: main

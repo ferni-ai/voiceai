@@ -26,6 +26,10 @@ on:
         default: 'false'
         type: boolean
 
+concurrency:
+  group: bth-benchmarks-${{ github.workflow }}-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
+
 env:
   NODE_VERSION: '20'
   # Regression threshold - fail if F1 drops more than this

@@ -43,6 +43,11 @@ on:
         type: boolean
         default: true
 
+# One rollout per feature at a time - don't cancel active rollouts
+concurrency:
+  group: feature-rollout-${{ inputs.feature_id }}
+  cancel-in-progress: false
+
 env:
   NODE_VERSION: '20'
   API_URL: ${{ secrets.API_URL || 'https://john-bogle-ui-1031920444452.us-central1.run.app' }}

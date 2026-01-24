@@ -35,6 +35,11 @@ on:
           - medium
           - low
 
+# Serialize incident response - critical operations should not be cancelled
+concurrency:
+  group: incident-response-${{ inputs.service }}
+  cancel-in-progress: false
+
 env:
   GCP_REGION: us-central1
 

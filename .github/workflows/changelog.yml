@@ -13,6 +13,10 @@ on:
         description: 'Version to release (e.g., v1.2.3)'
         required: true
 
+concurrency:
+  group: changelog-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: write
 

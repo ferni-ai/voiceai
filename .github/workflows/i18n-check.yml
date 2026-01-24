@@ -22,6 +22,10 @@ on:
       - 'frontend-typescript/src/i18n/**'
       - 'promo/ferni-website/src/_data/i18n/**'
 
+concurrency:
+  group: i18n-${{ github.workflow }}-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   i18n-validation:
     name: 🌐 Translation Validation

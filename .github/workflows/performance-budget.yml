@@ -10,6 +10,10 @@ on:
       - 'package.json'
       - 'package-lock.json'
 
+concurrency:
+  group: perf-budget-${{ github.workflow }}-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
+
 env:
   # Bundle size limits (in KB)
   MAX_BUNDLE_SIZE_KB: 500

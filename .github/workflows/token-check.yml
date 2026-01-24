@@ -23,6 +23,10 @@ on:
       - 'design-system/tokens/**'
       - 'design-system/*.js'
 
+concurrency:
+  group: token-check-${{ github.workflow }}-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   token-drift-check:
     name: Check Token Drift

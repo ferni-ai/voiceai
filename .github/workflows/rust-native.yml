@@ -14,6 +14,10 @@ on:
       - 'apps/rust-audio/**'
       - '.github/workflows/rust-native.yml'
 
+concurrency:
+  group: rust-native-${{ github.workflow }}-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
+
 env:
   RUST_VERSION: '1.75'
   NODE_VERSION: '20'

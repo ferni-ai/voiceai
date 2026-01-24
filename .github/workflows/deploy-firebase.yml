@@ -28,6 +28,11 @@ on:
           - both
         default: 'app'
 
+# Serialize Firebase deploys - don't cancel active deploys
+concurrency:
+  group: deploy-firebase
+  cancel-in-progress: false
+
 env:
   NODE_VERSION: '20'
 

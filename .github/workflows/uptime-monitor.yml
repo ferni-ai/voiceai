@@ -15,6 +15,10 @@ on:
         type: boolean
         default: false
 
+concurrency:
+  group: uptime-monitor-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 env:
   # Endpoints to monitor
   VOICE_AGENT_URL: https://voiceai-agent-1031920444452.us-central1.run.app

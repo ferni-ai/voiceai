@@ -32,6 +32,11 @@ on:
           - production
           - staging
 
+# Serialize worker deploys - don't cancel active deploys
+concurrency:
+  group: deploy-worker
+  cancel-in-progress: false
+
 env:
   PROJECT_ID: ferni-prod
   REGION: us-central1

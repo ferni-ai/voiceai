@@ -19,6 +19,11 @@ on:
           - minor
           - major
 
+# Serialize SDK publishes - don't want concurrent version bumps
+concurrency:
+  group: sdk-publish
+  cancel-in-progress: false
+
 jobs:
   test:
     name: Test SDK

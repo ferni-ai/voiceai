@@ -19,6 +19,10 @@ on:
       - 'src/personas/**/system-prompt.md'
       - 'src/tests/stage-direction*.test.ts'
 
+concurrency:
+  group: stage-direction-${{ github.workflow }}-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
+
 env:
   NODE_VERSION: '20'
 
