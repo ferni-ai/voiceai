@@ -14,6 +14,11 @@ on:
       - 'design-system/**'
       - 'packages/ferni-react/**'
 
+# Cancel in-progress runs when a new run is triggered
+concurrency:
+  group: chromatic-${{ github.workflow }}-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   chromatic:
     name: Visual Regression Tests

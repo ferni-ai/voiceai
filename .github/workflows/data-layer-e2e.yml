@@ -17,6 +17,11 @@ on:
       - 'src/memory/**'
   workflow_dispatch:
 
+# Cancel in-progress runs when a new run is triggered
+concurrency:
+  group: data-layer-e2e-${{ github.workflow }}-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   firestore-e2e:
     name: Firestore Emulator E2E

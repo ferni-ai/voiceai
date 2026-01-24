@@ -1950,11 +1950,11 @@ ferni coach career        # Career coaching session
 
 | Document | Location | Purpose |
 |----------|----------|---------|
+| **CI/CD Charter** | `docs/devops/00-charter.md` | Canonical CI contract for agents |
+| **Current State** | `docs/devops/01-current-state.md` | Workflow inventory, cost analysis |
 | CI Inventory | `docs/ci/ci-inventory.md` | All workflows, triggers, durations |
 | Minute Usage | `docs/ci/minute-usage-analysis.md` | Cost analysis, optimizations |
-| Multi-Lens Review | `docs/ci/ci-review.md` | Security, efficiency, DX review |
 | CI Backlog | `docs/ci/ci-backlog.md` | Prioritized improvements |
-| Handoff | `docs/ci/handoff.md` | Onboarding for CI maintainers |
 | Monorepo Structure | `docs/monorepo/structure.md` | Package layout, dependencies |
 | Nx Evaluation | `docs/monorepo/nx-evaluation.md` | Build tool decision |
 | Observability | `docs/devops-observability/overview.md` | Metrics, alerting |
@@ -2014,6 +2014,40 @@ gh run list --workflow=ci.yml
 - **Limit:** 3,000 minutes/month
 - **Before optimization:** ~5,400 min/month (180% of budget)
 - **After optimization:** ~2,200 min/month (73% of budget)
+
+### Agent CI Rules (MANDATORY)
+
+**Before committing code**, agents MUST run:
+
+```bash
+pnpm quality          # Typecheck + lint + test - REQUIRED
+```
+
+**Additional checks based on what changed:**
+
+| If You Changed | Also Run |
+|----------------|----------|
+| Design tokens (`design-system/tokens/`) | `pnpm tokens:sync && pnpm tokens:check` |
+| Frontend (`apps/web/`) | `cd apps/web && pnpm lint:tokens` |
+| Tool definitions | `pnpm tools:schemas:validate` |
+| Rust code | `cd apps/rust-* && cargo test` |
+
+**Interpreting CI failures:**
+
+| Failure | Agent Action |
+|---------|--------------|
+| TypeScript error | Fix the type; never use `as any` to silence |
+| Lint error | Run `pnpm lint:fix`, review changes |
+| Test failure | Read error, fix logic or update test |
+| Flaky test | Re-run once; if still fails, fix or quarantine |
+
+**Definition of "green"**: All these must pass for a change to be mergeable:
+- `pnpm typecheck` (0 errors)
+- `pnpm lint` (0 errors)
+- `pnpm test:unit` (all pass)
+- `pnpm ci:quality-gates` (thresholds met)
+
+**Full CI/CD charter**: `docs/devops/00-charter.md`
 
 ---
 

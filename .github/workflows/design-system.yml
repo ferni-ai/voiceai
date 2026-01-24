@@ -25,6 +25,11 @@ on:
         type: boolean
         default: false
 
+# Cancel in-progress runs when a new run is triggered
+concurrency:
+  group: design-system-${{ github.workflow }}-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   # ============================================================================
   # Token Validation

@@ -58,6 +58,11 @@ on:
         type: number
         default: 100
 
+# Serialize production deploys - don't cancel in-progress, queue instead
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
 env:
   GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
   GCP_REGION: us-central1

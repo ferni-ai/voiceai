@@ -7,6 +7,15 @@ on:
   pull_request:
     branches: [main]
     types: [opened, synchronize, reopened]
+    paths:
+      - 'src/**'
+      - 'apps/**'
+      - 'packages/**'
+      - 'design-system/**'
+      - 'docker/**'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - '.github/workflows/staging.yml'
   workflow_dispatch:
     inputs:
       branch:
@@ -17,6 +26,11 @@ on:
         description: 'Cleanup old staging deployments'
         type: boolean
         default: false
+
+# Cancel in-progress runs when a new run is triggered
+concurrency:
+  group: staging-${{ github.workflow }}-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
 
 env:
   GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
