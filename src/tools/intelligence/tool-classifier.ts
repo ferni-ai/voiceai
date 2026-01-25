@@ -9,7 +9,7 @@
  * - Gemini fallback for low-confidence predictions
  * - Full observability metrics
  *
- * @module tools/intelligence/ftis-classifier-v2
+ * @module tools/intelligence/tool-classifier
  */
 
 import * as fs from 'fs/promises';
@@ -17,8 +17,8 @@ import * as path from 'path';
 import { fileURLToPath } from 'url';
 
 import { createLogger } from '../../utils/safe-logger.js';
-import { FTISCalibration, getFTISCalibration } from './ftis-calibration.js';
-import { FTISDecisionBoundary, getFTISDecisionBoundary } from './ftis-decision-boundary.js';
+import { FTISCalibration, getFTISCalibration } from './classifier-calibration.js';
+import { FTISDecisionBoundary, getFTISDecisionBoundary } from './classifier-boundary.js';
 
 const log = createLogger({ module: 'ftis-v2' });
 
@@ -48,7 +48,12 @@ export interface ClassificationResult {
   /** Whether the query was detected as open intent (should go to LLM) */
   isOpenIntent?: boolean;
   /** Reason for open intent classification */
-  openIntentReason?: 'within_boundary' | 'outside_class' | 'outside_global' | 'no_boundary_data';
+  openIntentReason?:
+    | 'within_boundary'
+    | 'outside_class'
+    | 'outside_global'
+    | 'no_boundary_data'
+    | 'pattern_match';
   /** Boundary-adjusted confidence (lower if near/outside boundary) */
   boundaryAdjustedConfidence?: number;
   /** Distance to class boundary centroid */
@@ -205,11 +210,10 @@ async function initializeTransformersForFTIS(): Promise<void> {
     // Without this, the first real inference may fail with "Session not initialized"
     try {
       // Use runPipelineProtected to properly handle native binding issues
-      const warmupResult = await runPipelineProtected(
-        featureExtractor,
-        'warmup test',
-        { pooling: 'mean', normalize: true }
-      );
+      const warmupResult = await runPipelineProtected(featureExtractor, 'warmup test', {
+        pooling: 'mean',
+        normalize: true,
+      });
       // Verify we actually got a valid result
       if (warmupResult && warmupResult.data) {
         featureExtractorReady = true;
@@ -597,20 +601,19 @@ export class FTISClassifierV2 {
         // This is expected if warmup failed (session not initialized)
         return null;
       }
-      
+
       // Use the protected wrapper to handle native binding crashes gracefully
-      const output = await runPipelineProtected(
-        extractor,
-        text,
-        { pooling: 'mean', normalize: true }
-      );
-      
+      const output = await runPipelineProtected(extractor, text, {
+        pooling: 'mean',
+        normalize: true,
+      });
+
       // transformers.js returns a Tensor, convert to array
       if (!output || !output.data) {
         log.debug('Feature extractor returned empty output - skipping boundary check');
         return null;
       }
-      
+
       const embedding = Array.from(output.data as Float32Array);
       return embedding;
     } catch (error) {
@@ -618,7 +621,11 @@ export class FTISClassifierV2 {
       // Common causes: ONNX session not initialized, model not loaded
       // The classification will still work, just without boundary confidence adjustment
       const errorStr = String(error);
-      if (errorStr.includes('Session') || errorStr.includes('not initialized') || errorStr.includes('circuit')) {
+      if (
+        errorStr.includes('Session') ||
+        errorStr.includes('not initialized') ||
+        errorStr.includes('circuit')
+      ) {
         log.debug(
           { error: errorStr.slice(0, 80) },
           'ONNX session not ready for boundary check - using raw confidence (non-critical)'

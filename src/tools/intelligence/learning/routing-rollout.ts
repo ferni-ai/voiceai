@@ -15,13 +15,13 @@
  *   // Monitor rollout health
  *   const health = getFTISRolloutHealth();
  *
- * @module tools/intelligence/learning/ftis-rollout
+ * @module tools/intelligence/learning/routing-rollout
  */
 
 import { createLogger } from '../../../utils/safe-logger.js';
-import { getAccuracyMetrics } from '../ftis-safety.js';
+import { getAccuracyMetrics } from '../tool-safety.js';
 
-const log = createLogger({ module: 'ftis-rollout' });
+const log = createLogger({ module: 'routing-rollout' });
 
 // ============================================================================
 // TYPES

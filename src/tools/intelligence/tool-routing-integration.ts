@@ -4,7 +4,7 @@
  * Bridges the Ferni Tool Intelligence System with the unified tool orchestrator.
  * Provides complexity-based routing, sequence prediction, and outcome tracking.
  *
- * @module tools/intelligence/ftis-integration
+ * @module tools/intelligence/tool-routing-integration
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
@@ -30,7 +30,7 @@ import type { TransitionLearner, TransitionMatrix } from './transitions/index.js
 import { getTransitionLearner, getTransitionMatrix } from './transitions/index.js';
 import { getTimeOfDay } from './transitions/types.js';
 
-const log = createLogger({ module: 'ftis-integration' });
+const log = createLogger({ module: 'tool-routing-integration' });
 
 // ============================================================================
 // TYPES

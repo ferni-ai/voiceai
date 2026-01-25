@@ -148,4 +148,4 @@ export {
   type FTISRoutingRequest,
   type FTISRoutingResult,
   type FTISConfig,
-} from './ftis-integration.js';
+} from './tool-routing-integration.js';

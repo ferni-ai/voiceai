@@ -10,13 +10,13 @@
  * 3. Execute tool directly
  * 4. Return result for LLM to respond to naturally
  *
- * @module tools/intelligence/ftis-v2-executor
+ * @module tools/intelligence/tool-executor
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
-import type { ClassificationResult } from './ftis-classifier-v2.js';
+import type { ClassificationResult } from './tool-classifier.js';
 
-const log = createLogger({ module: 'ftis-v2-executor' });
+const log = createLogger({ module: 'tool-executor' });
 
 // ============================================================================
 // TYPES
@@ -78,9 +78,11 @@ export function extractArguments(
 
   // Category-specific argument extraction
   const extractors: Record<string, () => Record<string, unknown>> = {
-    // Music
+    // Music - support both naming conventions (model uses music_play, legacy uses play_music)
+    music_play: () => extractMusicArgs(normalizedQuery),
     play_music: () => extractMusicArgs(normalizedQuery),
     music_control: () => extractMusicControlArgs(normalizedQuery),
+    music_search: () => extractMusicSearchArgs(normalizedQuery),
     find_music: () => extractMusicSearchArgs(normalizedQuery),
 
     // Calendar
@@ -187,9 +189,12 @@ function mapCategoryToToolId(fineCategory: string, toolIds: string[]): string {
   }
 
   // Fallback mapping for common categories
+  // Note: Support both naming conventions (model uses music_play, legacy uses play_music)
   const fallbackMap: Record<string, string> = {
+    music_play: 'playMusic',
     play_music: 'playMusic',
     music_control: 'musicControl',
+    music_search: 'searchMusic',
     find_music: 'searchMusic',
     weather: 'getWeather',
     alarm_set: 'setAlarm',
@@ -747,11 +752,16 @@ export async function executeDirectFromClassification(
       classification.toolIds
     );
 
+    // Use effective confidence in logging (accounts for boundary detection + calibration)
+    const routingConfidence = classification.effectiveConfidence ?? classification.combinedConfidence;
+
     log.info(
       {
         toolId,
         fineCategory: classification.fineCategory,
-        confidence: classification.combinedConfidence,
+        confidence: routingConfidence,
+        rawConfidence: classification.combinedConfidence,
+        isOpenIntent: classification.isOpenIntent,
         args,
         trace: 'FTIS_V2_DIRECT_EXEC',
       },
@@ -905,6 +915,15 @@ export function shouldExecuteDirectly(classification: ClassificationResult): boo
     return false;
   }
 
-  // Check confidence threshold
-  return classification.combinedConfidence >= DIRECT_EXECUTION_THRESHOLD;
+  // Don't execute if classifier detected open intent (query outside known class boundaries)
+  if (classification.isOpenIntent === true) {
+    return false;
+  }
+
+  // CRITICAL: Use effectiveConfidence, NOT combinedConfidence!
+  // effectiveConfidence accounts for boundary detection and calibration.
+  // combinedConfidence is the raw ONNX output which can be overconfident.
+  const routingConfidence = classification.effectiveConfidence ?? classification.combinedConfidence;
+
+  return routingConfidence >= DIRECT_EXECUTION_THRESHOLD;
 }

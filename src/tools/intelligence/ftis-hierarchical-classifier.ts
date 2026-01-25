@@ -204,22 +204,20 @@ export class HierarchicalClassifier {
       tokenizer = await getSimpleTokenizer(tokenizerPath);
       log.debug({ vocabSize: tokenizer.vocabSize() }, 'Tokenizer loaded');
     }
-    
+
     // Encode text
     const encoded = tokenizer.encode(text);
-    
+
     // Prepare tensors
     const runtime = await getOnnxRuntime();
-    const inputIds = new runtime.Tensor(
-      'int64',
-      BigInt64Array.from(encoded.input_ids),
-      [1, this.config.maxLength]
-    );
-    const attentionMask = new runtime.Tensor(
-      'int64',
-      BigInt64Array.from(encoded.attention_mask),
-      [1, this.config.maxLength]
-    );
+    const inputIds = new runtime.Tensor('int64', BigInt64Array.from(encoded.input_ids), [
+      1,
+      this.config.maxLength,
+    ]);
+    const attentionMask = new runtime.Tensor('int64', BigInt64Array.from(encoded.attention_mask), [
+      1,
+      this.config.maxLength,
+    ]);
 
     // Run inference (using protected execution with circuit breaker)
     const outputs = await runInferenceProtected(session, {
@@ -281,7 +279,11 @@ export class HierarchicalClassifier {
 
       const stage2Model = this.stage2Models.get(superCategory);
       if (stage2Model) {
-        const stage2Result = await this.runInference(stage2Model.session, query, stage2Model.labelMap);
+        const stage2Result = await this.runInference(
+          stage2Model.session,
+          query,
+          stage2Model.labelMap
+        );
         fineCategory = stage2Result.label;
         fineConfidence = stage2Result.confidence;
       }
@@ -299,7 +301,7 @@ export class HierarchicalClassifier {
         );
 
         try {
-          const { getGeminiFallback } = await import('./ftis-gemini-fallback.js');
+          const { getGeminiFallback } = await import('./gemini-fallback.js');
           const fallback = getGeminiFallback();
 
           if (fallback.isInitialized()) {

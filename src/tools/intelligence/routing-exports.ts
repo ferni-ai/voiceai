@@ -25,7 +25,7 @@ export {
   type ClassificationResult,
   type ClassifierConfig,
   type ClassifierMetrics,
-} from './ftis-classifier-v2.js';
+} from './tool-classifier.js';
 
 // =============================================================================
 // V3 COMPONENTS (SOTA 2026)
@@ -39,7 +39,7 @@ export {
   type BoundaryCheckResult,
   type OpenIntentResult,
   type DecisionBoundaries,
-} from './ftis-decision-boundary.js';
+} from './classifier-boundary.js';
 
 // BaseCal confidence calibration
 export {
@@ -48,7 +48,7 @@ export {
   resetFTISCalibration,
   type CalibrationResult,
   type CalibrationInput,
-} from './ftis-calibration.js';
+} from './classifier-calibration.js';
 
 // Hybrid routing architecture
 export {
@@ -59,7 +59,7 @@ export {
   type RoutingTier,
   type HybridRouterConfig,
   type RouterMetrics,
-} from './ftis-hybrid-router.js';
+} from './tool-router.js';
 
 // =============================================================================
 // CONVENIENCE ALIASES
@@ -71,7 +71,7 @@ import {
   initializeFTISClassifierV2,
   type ClassificationResult,
   type ClassifierConfig,
-} from './ftis-classifier-v2.js';
+} from './tool-classifier.js';
 
 // Default export for easy import
 export default FTISClassifierV2;
@@ -138,4 +138,4 @@ export {
   getEmbedding,
   cosineSimilarity,
   findMostSimilarCategory,
-} from './ftis-gemini-fallback.js';
+} from './gemini-fallback.js';

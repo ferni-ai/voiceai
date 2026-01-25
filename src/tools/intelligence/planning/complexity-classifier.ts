@@ -119,16 +119,16 @@ const DEFAULT_CONFIG: ClassifierConfig = {
 
 /**
  * FTIS-only mode configuration with lower thresholds.
- * 
+ *
  * When FTIS_ONLY_MODE=true, we want to handle MORE queries directly
  * since FTIS is the sole tool routing mechanism.
- * 
+ *
  * Changes from default:
  * - Lower confidence threshold (0.70 vs 0.85) - more direct execution
  * - Higher tool limits (2/5 vs 1/3) - handle multi-tool queries directly
  */
 const FTIS_ONLY_CONFIG: ClassifierConfig = {
-  simpleConfidenceThreshold: 0.70, // Lower threshold for FTIS-only
+  simpleConfidenceThreshold: 0.7, // Lower threshold for FTIS-only
   complexKeywords: DEFAULT_CONFIG.complexKeywords,
   multiStepKeywords: DEFAULT_CONFIG.multiStepKeywords,
   simpleToolLimit: 2, // Can handle 2 tools directly
@@ -164,7 +164,7 @@ export class ComplexityClassifier {
     // Use FTIS_ONLY_CONFIG when FTIS_ONLY_MODE is enabled
     const baseConfig = getConfig();
     this.config = { ...baseConfig, ...config };
-    
+
     if (isFTISOnlyMode()) {
       log.info(
         {

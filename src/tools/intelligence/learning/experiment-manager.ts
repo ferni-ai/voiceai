@@ -624,10 +624,13 @@ export class ExperimentManager {
 
     if (results) {
       const control = results.variantMetrics['control'];
-      const treatment = Object.values(results.variantMetrics).find((m) => m.variantId !== 'control');
+      const treatment = Object.values(results.variantMetrics).find(
+        (m) => m.variantId !== 'control'
+      );
 
       if (control && treatment && control.sampleSize > 50 && treatment.sampleSize > 50) {
-        const degradation = (control.conversionRate - treatment.conversionRate) / control.conversionRate;
+        const degradation =
+          (control.conversionRate - treatment.conversionRate) / control.conversionRate;
 
         if (degradation > 0.1) {
           return {
@@ -735,7 +738,9 @@ export class ExperimentManager {
       const results = abManager.calculateResults(id);
       if (results) {
         const control = results.variantMetrics['control'];
-        const treatment = Object.values(results.variantMetrics).find((m) => m.variantId !== 'control');
+        const treatment = Object.values(results.variantMetrics).find(
+          (m) => m.variantId !== 'control'
+        );
         if (control && treatment) {
           health.typeStatus.sequential = checkSequentialTest(control, treatment);
         }
@@ -795,7 +800,9 @@ export class ExperimentManager {
       total: experiments.length,
       running: experiments.filter((e) => e.status === 'running').length,
       paused: experiments.filter((e) => e.status === 'paused').length,
-      completed: experiments.filter((e) => ['completed', 'promoted', 'rolled_back'].includes(e.status)).length,
+      completed: experiments.filter((e) =>
+        ['completed', 'promoted', 'rolled_back'].includes(e.status)
+      ).length,
       byType: {
         ab: experiments.filter((e) => e.config.type === 'ab').length,
         bandit: experiments.filter((e) => e.config.type === 'bandit').length,

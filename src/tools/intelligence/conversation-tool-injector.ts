@@ -16,8 +16,8 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
-import type { FTISRoutingResult } from './ftis-integration.js';
-import { getFTISIntegration } from './ftis-integration.js';
+import type { FTISRoutingResult } from './tool-routing-integration.js';
+import { getFTISIntegration } from './tool-routing-integration.js';
 
 const log = createLogger({ module: 'ConversationToolInjector' });
 
@@ -61,10 +61,7 @@ export interface InjectedToolResult {
 
 export interface ConversationToolInjector {
   /** Analyze turn for tool-relevant content */
-  analyzeTurn(
-    transcript: string,
-    context: ConversationContext
-  ): Promise<ToolInjectionDecision>;
+  analyzeTurn(transcript: string, context: ConversationContext): Promise<ToolInjectionDecision>;
 
   /** Execute tool and format result for injection */
   executeAndFormat(
@@ -205,10 +202,7 @@ export function createConversationToolInjector(): ConversationToolInjector {
             : `Low confidence (${Math.round(complexity.confidence * 100)}%)`,
         };
       } catch (error) {
-        log.error(
-          { error: String(error), userId: context.userId },
-          'Tool analysis failed'
-        );
+        log.error({ error: String(error), userId: context.userId }, 'Tool analysis failed');
         return {
           shouldInject: false,
           confidence: 0,
@@ -226,9 +220,7 @@ export function createConversationToolInjector(): ConversationToolInjector {
 
       try {
         // Import domain bridge for tool execution
-        const { executeDomainTool } = await import(
-          '../semantic-router/domain-bridge.js'
-        );
+        const { executeDomainTool } = await import('../semantic-router/domain-bridge.js');
 
         // Execute with timeout
         // Note: Using minimal context since conversation-tool-injector doesn't
@@ -242,10 +234,7 @@ export function createConversationToolInjector(): ConversationToolInjector {
         });
 
         const timeoutPromise = new Promise<never>((_, reject) =>
-          setTimeout(
-            () => reject(new Error('Tool execution timeout')),
-            TOOL_EXECUTION_TIMEOUT_MS
-          )
+          setTimeout(() => reject(new Error('Tool execution timeout')), TOOL_EXECUTION_TIMEOUT_MS)
         );
 
         const result = await Promise.race([resultPromise, timeoutPromise]);
@@ -343,11 +332,7 @@ export async function analyzeAndInject(
   }
 
   // Execute the tool
-  const result = await injector.executeAndFormat(
-    decision.toolId,
-    decision.args || {},
-    context
-  );
+  const result = await injector.executeAndFormat(decision.toolId, decision.args || {}, context);
 
   // Format as system message
   return injector.formatAsSystemMessage(result);

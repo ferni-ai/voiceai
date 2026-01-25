@@ -7,7 +7,7 @@
  * Key insight: When fine-tuned model is confident but base model is uncertain,
  * the prediction is likely wrong.
  *
- * @module tools/intelligence/ftis-calibration
+ * @module tools/intelligence/classifier-calibration
  */
 
 import * as fs from 'fs/promises';
@@ -16,7 +16,7 @@ import { fileURLToPath } from 'url';
 
 import { createLogger } from '../../utils/safe-logger.js';
 
-const log = createLogger({ module: 'ftis-calibration' });
+const log = createLogger({ module: 'classifier-calibration' });
 
 // ============================================================================
 // TYPES
@@ -194,7 +194,10 @@ export class FTISCalibration {
               const centroids = JSON.parse(await fs.readFile(centroidsPath, 'utf-8'));
               this.stage2Centroids.set(superCat, centroids);
 
-              log.debug({ superCat, ece: calData.metadata.final_ece }, 'Stage 2 calibration loaded');
+              log.debug(
+                { superCat, ece: calData.metadata.final_ece },
+                'Stage 2 calibration loaded'
+              );
             } catch {
               // Skip categories without calibration
             }
@@ -223,7 +226,9 @@ export class FTISCalibration {
    * Check if calibration is available
    */
   isReady(): boolean {
-    return this.initialized && (this.stage1Calibration !== null || this.stage2Calibrations.size > 0);
+    return (
+      this.initialized && (this.stage1Calibration !== null || this.stage2Calibrations.size > 0)
+    );
   }
 
   /**
@@ -272,7 +277,10 @@ export class FTISCalibration {
   /**
    * Get base model pseudo-confidence by comparing embedding to centroids
    */
-  private getBaseConfidence(embedding: number[], centroids: number[][]): { confidence: number; entropy: number } {
+  private getBaseConfidence(
+    embedding: number[],
+    centroids: number[][]
+  ): { confidence: number; entropy: number } {
     // Compute similarities to all centroids
     const similarities = centroids.map((centroid) => this.cosineSimilarity(embedding, centroid));
 
@@ -349,7 +357,10 @@ export class FTISCalibration {
     const fineEntropy = this.computeEntropy(fineProbs);
 
     // Get base model signals
-    const { confidence: baseConfidence, entropy: baseEntropy } = this.getBaseConfidence(embedding, centroids);
+    const { confidence: baseConfidence, entropy: baseEntropy } = this.getBaseConfidence(
+      embedding,
+      centroids
+    );
 
     // Compute confidence gap
     const confidenceGap = Math.abs(fineConfidence - baseConfidence);

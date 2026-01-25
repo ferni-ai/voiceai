@@ -4,12 +4,12 @@
  * Provides high-accuracy classification fallback using Gemini embeddings
  * when ONNX model confidence is below threshold.
  *
- * @module tools/intelligence/ftis-gemini-fallback
+ * @module tools/intelligence/gemini-fallback
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
 
-const log = createLogger({ module: 'ftis-gemini-fallback' });
+const log = createLogger({ module: 'gemini-fallback' });
 
 // ============================================================================
 // TYPES
@@ -105,14 +105,14 @@ export async function getBatchEmbeddings(
   dimension = 768
 ): Promise<Array<number[] | null>> {
   const results: Array<number[] | null> = [];
-  
+
   for (const text of texts) {
     const embedding = await getEmbedding(text, dimension);
     results.push(embedding);
     // Small delay to avoid rate limiting
-    await new Promise(r => setTimeout(r, 50));
+    await new Promise((r) => setTimeout(r, 50));
   }
-  
+
   return results;
 }
 

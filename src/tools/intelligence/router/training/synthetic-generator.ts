@@ -103,7 +103,7 @@ const QUERY_TEMPLATES: Record<string, string[]> = {
     'Remind me in {duration}',
     'Cancel my alarm',
     'Snooze',
-    "What alarms do I have set?",
+    'What alarms do I have set?',
   ],
 
   // Tasks & Lists
@@ -113,7 +113,7 @@ const QUERY_TEMPLATES: Record<string, string[]> = {
     'Remind me to {action}',
     'Create a list for {purpose}',
     'Mark {task} as done',
-    "What do I need to do?",
+    'What do I need to do?',
     'Add a task: {task}',
     'Show my tasks',
   ],
@@ -158,7 +158,7 @@ const QUERY_TEMPLATES: Record<string, string[]> = {
   finance: [
     "What's my balance?",
     'Track this expense: {amount}',
-    "How much have I spent on {category}?",
+    'How much have I spent on {category}?',
     'Budget check',
     'Add {amount} to my savings',
     'Bill reminder for {bill}',
@@ -179,11 +179,11 @@ const QUERY_TEMPLATES: Record<string, string[]> = {
   // Grief & Support
   grief: [
     "I'm feeling sad about {loss}",
-    "I miss {person}",
+    'I miss {person}',
     "I'm grieving",
-    "Today is hard because of {reason}",
-    "I need support",
-    "Can we talk about loss?",
+    'Today is hard because of {reason}',
+    'I need support',
+    'Can we talk about loss?',
   ],
 
   // Career
@@ -220,16 +220,16 @@ const QUERY_TEMPLATES: Record<string, string[]> = {
     "I'm feeling lonely",
     'How do I make friends?',
     'Help me reach out to {person}',
-    "I miss my friends",
+    'I miss my friends',
     'Relationship advice',
   ],
 
   // Crisis
   crisis: [
     "I'm not okay",
-    "I need help right now",
+    'I need help right now',
     "I'm having a panic attack",
-    "Things are really hard",
+    'Things are really hard',
     "I don't know what to do",
   ],
 
@@ -237,8 +237,8 @@ const QUERY_TEMPLATES: Record<string, string[]> = {
   coaching: [
     'I need to talk',
     'Can we chat?',
-    "How are you?",
-    "What should I do about {situation}?",
+    'How are you?',
+    'What should I do about {situation}?',
     'Give me advice',
     'Help me think through this',
   ],
@@ -292,7 +292,7 @@ const QUERY_TEMPLATES: Record<string, string[]> = {
   books: [
     'Recommend a book about {topic}',
     'What should I read next?',
-    "I finished {book}",
+    'I finished {book}',
     'Book club suggestions',
     'Similar books to {book}',
   ],
@@ -325,7 +325,7 @@ const PLACEHOLDER_VALUES: Record<string, string[]> = {
   task: ['finish report', 'email John', 'grocery shopping', 'workout'],
   purpose: ['groceries', 'trip packing', 'home projects', 'gift ideas'],
   person: ['Mom', 'John', 'Sarah', 'my sister', 'David', 'the team'],
-  message: ["I'll be late", "thinking of you", 'call me back', 'miss you'],
+  message: ["I'll be late", 'thinking of you', 'call me back', 'miss you'],
   habit: ['meditation', 'exercise', 'reading', 'journaling', 'water intake', 'sleep'],
   metric: ['weight', 'steps', 'water', 'mood', 'energy'],
   medication: ['vitamins', 'prescription', 'supplements'],
@@ -560,11 +560,7 @@ export class SyntheticTrainingGenerator {
       const queries = [query, ...this.generateVariations(query)];
 
       for (const q of queries.slice(0, this.config.paraphraseCount + 1)) {
-        const example = this.createExample(
-          mapping.semanticId,
-          q,
-          mapping.domainToolId
-        );
+        const example = this.createExample(mapping.semanticId, q, mapping.domainToolId);
         examples.push(example);
       }
     }
@@ -621,11 +617,7 @@ export class SyntheticTrainingGenerator {
   /**
    * Create a training example.
    */
-  private createExample(
-    semanticId: string,
-    query: string,
-    domainToolId: string
-  ): TrainingExample {
+  private createExample(semanticId: string, query: string, domainToolId: string): TrainingExample {
     // Select persona based on weights
     const personaId = this.selectWeighted(this.config.personaWeights);
 
@@ -697,10 +689,7 @@ export class SyntheticTrainingGenerator {
       }
     }
 
-    log.debug(
-      { hardNegativeCount: this.hardNegatives.length },
-      'Generated hard negatives'
-    );
+    log.debug({ hardNegativeCount: this.hardNegatives.length }, 'Generated hard negatives');
   }
 
   // ==========================================================================
@@ -710,9 +699,7 @@ export class SyntheticTrainingGenerator {
   /**
    * Generate examples that involve multiple tools in sequence.
    */
-  private generateMultiToolExamples(
-    mappings: SemanticToolMapping[]
-  ): TrainingExample[] {
+  private generateMultiToolExamples(mappings: SemanticToolMapping[]): TrainingExample[] {
     const examples: TrainingExample[] = [];
 
     // Common multi-tool patterns
@@ -726,7 +713,7 @@ export class SyntheticTrainingGenerator {
         tools: ['music_play', 'smarthome_light'],
       },
       {
-        query: "Check my calendar and then call John",
+        query: 'Check my calendar and then call John',
         tools: ['calendar_today', 'call_contact'],
       },
       {
@@ -741,9 +728,7 @@ export class SyntheticTrainingGenerator {
 
     for (const pattern of patterns) {
       // Verify tools exist
-      const validTools = pattern.tools.filter((t) =>
-        mappings.some((m) => m.semanticId === t)
-      );
+      const validTools = pattern.tools.filter((t) => mappings.some((m) => m.semanticId === t));
 
       if (validTools.length >= 2) {
         const example: TrainingExample = {
@@ -815,13 +800,7 @@ export class SyntheticTrainingGenerator {
   private randomRecentTools(): string[] {
     if (Math.random() > 0.6) return [];
 
-    const tools = [
-      'weather_current',
-      'music_play',
-      'calendar_today',
-      'habit_track',
-      'task_list',
-    ];
+    const tools = ['weather_current', 'music_play', 'calendar_today', 'habit_track', 'task_list'];
     const count = Math.floor(Math.random() * 3) + 1;
     return tools.slice(0, count);
   }

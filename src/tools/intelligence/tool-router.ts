@@ -16,15 +16,101 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
-import { FTISCalibration, getFTISCalibration } from './ftis-calibration.js';
+import { FTISCalibration, getFTISCalibration } from './classifier-calibration.js';
 import {
   ClassificationResult,
   FTISClassifierV2,
   getFTISClassifierV2,
-} from './ftis-classifier-v2.js';
-import { FTISDecisionBoundary, getFTISDecisionBoundary } from './ftis-decision-boundary.js';
+} from './tool-classifier.js';
+import { FTISDecisionBoundary, getFTISDecisionBoundary } from './classifier-boundary.js';
 
 const log = createLogger({ module: 'ftis-hybrid' });
+
+// ============================================================================
+// PATTERN MATCHING LAYER (Pre-ML defense for edge cases)
+// ============================================================================
+// These patterns catch edge cases that the ML model struggles with.
+// Pattern matching runs in <1ms, providing a fast path before ML inference.
+
+interface PatternRule {
+  patterns: RegExp[];
+  toolGroup: string;
+  tools: string[];
+  boost: number;
+}
+
+const PATTERN_RULES: PatternRule[] = [
+  // Weather patterns - "do I need an umbrella" type queries
+  {
+    patterns: [
+      /do I need (a |an )?(jacket|umbrella|coat|sweater|raincoat)/i,
+      /will I need (a |an )?(jacket|umbrella|coat|sweater)/i,
+      /(will|is) it (rain|snow|sunny|cold|hot|warm)/i,
+      /going to (rain|snow|be sunny|be cold|be hot)/i,
+      /should I (bring|take|wear|pack) (a |an )?(jacket|umbrella|coat)/i,
+    ],
+    toolGroup: 'weather',
+    tools: ['weather', 'get_weather'],
+    boost: 0.95,
+  },
+  // News patterns - "headlines" queries
+  {
+    patterns: [
+      /give (me )?(the )?headlines/i,
+      /show (me )?(the )?headlines/i,
+      /^headlines$/i,
+      /what are the headlines/i,
+      /today'?s? headlines/i,
+      /latest headlines/i,
+      /news headlines/i,
+    ],
+    toolGroup: 'news',
+    tools: ['news', 'get_news'],
+    boost: 0.95,
+  },
+  // Open intent patterns - AI personal questions (should be conversational)
+  {
+    patterns: [
+      /what'?s? your favorite/i,
+      /what is your favorite/i,
+      /what do you (like|prefer|enjoy)/i,
+      /are you (alive|real|conscious|sentient|a robot|an AI)/i,
+      /do you (have )?(feelings|emotions|a soul|dreams|thoughts)/i,
+      /do you (think|believe|feel)/i,
+      /can you (feel|think|dream)/i,
+      /tell me about yourself/i,
+    ],
+    toolGroup: 'open_intent',
+    tools: [], // Empty = conversational, no tool execution
+    boost: 0.9,
+  },
+];
+
+interface PatternMatchResult {
+  matched: boolean;
+  rule?: PatternRule;
+  matchedPattern?: string;
+  isOpenIntent?: boolean;
+}
+
+function matchPatterns(query: string): PatternMatchResult {
+  const normalizedQuery = query.toLowerCase().trim();
+
+  for (const rule of PATTERN_RULES) {
+    for (const pattern of rule.patterns) {
+      if (pattern.test(normalizedQuery)) {
+        return {
+          matched: true,
+          rule,
+          matchedPattern: pattern.source,
+          isOpenIntent: rule.toolGroup === 'open_intent',
+        };
+      }
+    }
+  }
+
+  return { matched: false };
+}
 
 // ============================================================================
 // TYPES
@@ -84,6 +170,9 @@ export interface RouterMetrics {
   llmPathRate: number;
   averageLatencyMs: number;
   categoryDistribution: Map<string, { fast: number; verify: number; llm: number }>;
+  /** Pattern matching statistics */
+  patternMatchCount: number;
+  patternMatchRate: number;
 }
 
 // ============================================================================
@@ -168,6 +257,8 @@ export class FTISHybridRouter {
     llmPathRate: 0,
     averageLatencyMs: 0,
     categoryDistribution: new Map(),
+    patternMatchCount: 0,
+    patternMatchRate: 0,
   };
   private latencySum = 0;
 
@@ -267,6 +358,10 @@ export class FTISHybridRouter {
 
   /**
    * Main routing method - determines which path to take
+   *
+   * Uses a two-layer defense:
+   * 1. Pattern matching (< 1ms) - catches edge cases the ML struggles with
+   * 2. ML classification (~50-200ms) - handles everything else
    */
   async route(query: string): Promise<RoutingDecision> {
     if (!this.initialized) {
@@ -275,7 +370,88 @@ export class FTISHybridRouter {
 
     const startTime = Date.now();
 
-    // Get classification
+    // LAYER 1: Pattern matching (fast path for edge cases)
+    const patternMatch = matchPatterns(query);
+    if (patternMatch.matched && patternMatch.rule) {
+      const rule = patternMatch.rule;
+
+      // Open intent patterns → always LLM (conversational)
+      if (patternMatch.isOpenIntent) {
+        const latencyMs = Date.now() - startTime;
+        log.debug(
+          {
+            query: query.slice(0, 40),
+            matchedPattern: patternMatch.matchedPattern,
+            toolGroup: rule.toolGroup,
+            latencyMs,
+          },
+          '🎯 Pattern match: open intent → LLM path'
+        );
+
+        // Update metrics for pattern match
+        this.updateMetrics('llm', 'open_intent', latencyMs, true);
+
+        return {
+          tier: 'llm',
+          classification: {
+            superCategory: 'open_intent',
+            fineCategory: 'open_intent',
+            superConfidence: rule.boost,
+            fineConfidence: rule.boost,
+            combinedConfidence: rule.boost,
+            usedFallback: false,
+            toolIds: [],
+            latencyMs,
+            effectiveConfidence: rule.boost,
+            isOpenIntent: true,
+            openIntentReason: 'pattern_match',
+          },
+          reason: 'pattern_match_open_intent',
+          effectiveConfidence: rule.boost,
+          withinBoundary: false,
+          estimatedLatencyMs: 1, // Pattern match is <1ms
+          action: 'pass_to_llm',
+        };
+      }
+
+      // Tool patterns → fast path with high confidence
+      const latencyMs = Date.now() - startTime;
+      log.debug(
+        {
+          query: query.slice(0, 40),
+          matchedPattern: patternMatch.matchedPattern,
+          toolGroup: rule.toolGroup,
+          tools: rule.tools,
+          latencyMs,
+        },
+        '🎯 Pattern match: tool detected → fast path'
+      );
+
+      // Update metrics for pattern match
+      this.updateMetrics('fast', rule.toolGroup, latencyMs, true);
+
+      return {
+        tier: 'fast',
+        classification: {
+          superCategory: rule.toolGroup,
+          fineCategory: rule.toolGroup,
+          superConfidence: rule.boost,
+          fineConfidence: rule.boost,
+          combinedConfidence: rule.boost,
+          usedFallback: false,
+          toolIds: rule.tools,
+          latencyMs,
+          effectiveConfidence: rule.boost,
+        },
+        reason: 'pattern_match_tool',
+        effectiveConfidence: rule.boost,
+        withinBoundary: true,
+        estimatedLatencyMs: 1, // Pattern match is <1ms
+        action: 'execute_tool',
+      };
+    }
+
+    // LAYER 2: ML classification (for everything else)
     const classification = await this.classifier.classify(query);
 
     if (!classification) {
@@ -320,7 +496,7 @@ export class FTISHybridRouter {
     }
 
     // Apply calibration if available
-    // Note: calibration is already integrated into ftis-classifier-v2.ts
+    // Note: calibration is already integrated into tool-classifier.ts
     // This is where we could apply additional calibration if needed
 
     // Get thresholds for this category
@@ -425,10 +601,21 @@ export class FTISHybridRouter {
   /**
    * Update internal metrics
    */
-  private updateMetrics(tier: RoutingTier, category: string, latencyMs: number): void {
+  private updateMetrics(
+    tier: RoutingTier,
+    category: string,
+    latencyMs: number,
+    wasPatternMatch = false
+  ): void {
     this.metrics.totalRoutings++;
     this.latencySum += latencyMs;
     this.metrics.averageLatencyMs = this.latencySum / this.metrics.totalRoutings;
+
+    // Track pattern matches
+    if (wasPatternMatch) {
+      this.metrics.patternMatchCount++;
+    }
+    this.metrics.patternMatchRate = this.metrics.patternMatchCount / this.metrics.totalRoutings;
 
     switch (tier) {
       case 'fast':
@@ -491,6 +678,8 @@ export class FTISHybridRouter {
       llmPathRate: 0,
       averageLatencyMs: 0,
       categoryDistribution: new Map(),
+      patternMatchCount: 0,
+      patternMatchRate: 0,
     };
     this.latencySum = 0;
   }

@@ -7,7 +7,7 @@
  * Queries outside boundaries are classified as "open intent" and should be
  * passed to the LLM rather than routed to tools.
  *
- * @module tools/intelligence/ftis-decision-boundary
+ * @module tools/intelligence/classifier-boundary
  */
 
 import * as fs from 'fs/promises';
@@ -116,7 +116,10 @@ export class FTISDecisionBoundary {
       );
       return true;
     } catch (error) {
-      log.warn({ error: String(error), path: this.boundariesPath }, 'Decision boundaries not found - open intent detection disabled');
+      log.warn(
+        { error: String(error), path: this.boundariesPath },
+        'Decision boundaries not found - open intent detection disabled'
+      );
       return false;
     }
   }
@@ -172,7 +175,11 @@ export class FTISDecisionBoundary {
   /**
    * Check if a query embedding is within the boundary of a Stage 2 category
    */
-  checkStage2Boundary(embedding: number[], superCategory: string, fineCategory: string): BoundaryCheckResult | null {
+  checkStage2Boundary(
+    embedding: number[],
+    superCategory: string,
+    fineCategory: string
+  ): BoundaryCheckResult | null {
     if (!this.boundaries) return null;
 
     const superBoundaries = this.boundaries.stage2[superCategory];
@@ -210,7 +217,7 @@ export class FTISDecisionBoundary {
       boundaryConfidence = 1.0 - (distance / radius) * 0.5;
     } else {
       // Map [radius, 2*radius] to [0.5, 0.0]
-      boundaryConfidence = Math.max(0, 0.5 - (distance - radius) / radius * 0.5);
+      boundaryConfidence = Math.max(0, 0.5 - ((distance - radius) / radius) * 0.5);
     }
 
     return {
@@ -273,7 +280,11 @@ export class FTISDecisionBoundary {
     }
 
     // First check: Is the query within the fine category boundary?
-    const fineCheck = this.checkStage2Boundary(embedding, predictedSuperCategory, predictedFineCategory);
+    const fineCheck = this.checkStage2Boundary(
+      embedding,
+      predictedSuperCategory,
+      predictedFineCategory
+    );
 
     if (fineCheck) {
       if (fineCheck.withinBoundary) {
@@ -430,7 +441,9 @@ export function getFTISDecisionBoundary(): FTISDecisionBoundary {
   return boundaryInstance;
 }
 
-export async function initializeFTISDecisionBoundary(modelsDir?: string): Promise<FTISDecisionBoundary> {
+export async function initializeFTISDecisionBoundary(
+  modelsDir?: string
+): Promise<FTISDecisionBoundary> {
   if (!boundaryInstance) {
     boundaryInstance = new FTISDecisionBoundary(modelsDir);
   }

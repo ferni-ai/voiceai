@@ -7,7 +7,7 @@
  * - Explicit user corrections
  * - Automatic hard negative mining from misclassifications
  *
- * @module tools/intelligence/learning/ftis-feedback-loop
+ * @module tools/intelligence/learning/routing-feedback
  */
 
 import * as fs from 'fs/promises';
@@ -15,7 +15,10 @@ import * as path from 'path';
 import { fileURLToPath } from 'url';
 
 import { createLogger } from '../../../utils/safe-logger.js';
-import { getFTISMetrics, ClassificationOutcome } from '../../../services/observability/ftis-v3-metrics.js';
+import {
+  getFTISMetrics,
+  ClassificationOutcome,
+} from '../../../services/observability/routing-metrics-v3.js';
 
 const log = createLogger({ module: 'ftis-feedback' });
 
@@ -75,7 +78,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DEFAULT_CONFIG: FeedbackLoopConfig = {
   feedbackDir: path.join(__dirname, '../../../../models/ftis-merged/feedback'),
   minExamplesForRetrain: 50,
-  lowConfidenceThreshold: 0.70,
+  lowConfidenceThreshold: 0.7,
   maxFeedbackAge: 7 * 24 * 60 * 60 * 1000, // 7 days
 };
 
@@ -142,7 +145,11 @@ export class FTISFeedbackLoop {
     this.signals.push(signal);
 
     // Auto-mine hard negatives from certain signal types
-    if (signal.type === 'interruption' || signal.type === 'tool_failure' || signal.type === 'user_correction') {
+    if (
+      signal.type === 'interruption' ||
+      signal.type === 'tool_failure' ||
+      signal.type === 'user_correction'
+    ) {
       this.mineNegativeFromSignal(signal);
     }
 
@@ -164,7 +171,11 @@ export class FTISFeedbackLoop {
   /**
    * Record user interruption (they stopped the tool mid-execution or immediately after)
    */
-  async recordInterruption(query: string, predictedCategory: string, confidence: number): Promise<void> {
+  async recordInterruption(
+    query: string,
+    predictedCategory: string,
+    confidence: number
+  ): Promise<void> {
     await this.recordFeedback({
       type: 'interruption',
       query,
@@ -181,7 +192,11 @@ export class FTISFeedbackLoop {
   /**
    * Record tool execution success
    */
-  async recordToolSuccess(query: string, predictedCategory: string, executedTool: string): Promise<void> {
+  async recordToolSuccess(
+    query: string,
+    predictedCategory: string,
+    executedTool: string
+  ): Promise<void> {
     await this.recordFeedback({
       type: 'tool_success',
       query,
@@ -200,7 +215,12 @@ export class FTISFeedbackLoop {
   /**
    * Record tool execution failure
    */
-  async recordToolFailure(query: string, predictedCategory: string, executedTool: string, error?: string): Promise<void> {
+  async recordToolFailure(
+    query: string,
+    predictedCategory: string,
+    executedTool: string,
+    error?: string
+  ): Promise<void> {
     await this.recordFeedback({
       type: 'tool_failure',
       query,
@@ -417,7 +437,8 @@ export class FTISFeedbackLoop {
         interruption: this.minedNegatives.filter((n) => n.source === 'interruption').length,
         tool_failure: this.minedNegatives.filter((n) => n.source === 'tool_failure').length,
         user_correction: this.minedNegatives.filter((n) => n.source === 'user_correction').length,
-        low_confidence_wrong: this.minedNegatives.filter((n) => n.source === 'low_confidence_wrong').length,
+        low_confidence_wrong: this.minedNegatives.filter((n) => n.source === 'low_confidence_wrong')
+          .length,
       },
       retrainSuggestion: this.shouldSuggestRetrain(),
     };

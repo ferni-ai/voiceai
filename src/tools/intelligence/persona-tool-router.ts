@@ -56,7 +56,7 @@ export interface PersonaRoutingDecision {
 
 /**
  * Persona-specific tool domain mappings.
- * 
+ *
  * Each persona has domains they're most effective at handling.
  */
 const PERSONA_SPECIALTIES: PersonaSpecialty[] = [

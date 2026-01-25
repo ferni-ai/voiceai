@@ -37,3 +37,17 @@ export type {
 } from './types.js';
 
 export { DEFAULT_ROUTER_CONFIG } from './types.js';
+
+// V3 Client (Python inference server)
+export {
+  FtisV3Client,
+  getFtisV3Client,
+  resetFtisV3Client,
+  DEFAULT_V3_CONFIG,
+} from './v3-client.js';
+
+export type {
+  V3ClientConfig,
+  PredictRequest,
+  PredictResponse,
+} from './v3-client.js';

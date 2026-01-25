@@ -7,7 +7,7 @@
  * - Accuracy monitoring: Track accuracy and alert on drops
  * - Emergency rollback: FTIS_ONLY_MODE=false re-enables JSON workaround
  *
- * @module tools/intelligence/ftis-safety
+ * @module tools/intelligence/tool-safety
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
@@ -34,8 +34,8 @@ export interface FTISSafetyConfig {
 
 const DEFAULT_CONFIG: FTISSafetyConfig = {
   routingTimeoutMs: 200, // 200ms max for routing decision
-  confidenceFloor: 0.50, // Below 50% confidence, ask clarifying question
-  accuracyAlertThreshold: 0.90, // Alert if accuracy drops below 90%
+  confidenceFloor: 0.5, // Below 50% confidence, ask clarifying question
+  accuracyAlertThreshold: 0.9, // Alert if accuracy drops below 90%
   ftisOnlyMode: process.env.FTIS_ONLY_MODE === 'true',
 };
 
@@ -113,10 +113,7 @@ export async function withTimeout<T>(
   ]);
 
   if (result.timedOut) {
-    log.warn(
-      { timeoutMs: config.routingTimeoutMs },
-      '⏱️ FTIS routing timed out - using fallback'
-    );
+    log.warn({ timeoutMs: config.routingTimeoutMs }, '⏱️ FTIS routing timed out - using fallback');
   }
 
   return result;
@@ -177,7 +174,7 @@ function generateClarifyingQuestion(query: string, confidence: number): string {
 
   // Context-specific clarifications
   if (queryLower.includes('that') || queryLower.includes('it')) {
-    return "I want to make sure I understand - what specifically are you referring to?";
+    return 'I want to make sure I understand - what specifically are you referring to?';
   }
 
   if (queryLower.includes('help') && queryLower.length < 20) {
@@ -189,7 +186,7 @@ function generateClarifyingQuestion(query: string, confidence: number): string {
   }
 
   // Default clarification
-  return "I want to make sure I help you with the right thing. Could you tell me a bit more?";
+  return 'I want to make sure I help you with the right thing. Could you tell me a bit more?';
 }
 
 // ============================================================================
@@ -217,8 +214,7 @@ export function recordOutcome(success: boolean, wasCorrection: boolean = false):
 
   // Recalculate accuracy
   if (metricsState.totalDecisions > 0) {
-    metricsState.accuracy =
-      metricsState.successfulExecutions / metricsState.totalDecisions;
+    metricsState.accuracy = metricsState.successfulExecutions / metricsState.totalDecisions;
   }
 
   // Check alert state

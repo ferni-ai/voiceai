@@ -128,13 +128,12 @@ export class RouterModel {
       );
 
       // Run inference with circuit breaker protection
-      const outputs = await runInferenceProtected<Record<string, { data: Float32Array | number[] }>>(
-        session,
-        {
-          input_ids: inputIdsTensor,
-          attention_mask: attentionMaskTensor,
-        }
-      );
+      const outputs = await runInferenceProtected<
+        Record<string, { data: Float32Array | number[] }>
+      >(session, {
+        input_ids: inputIdsTensor,
+        attention_mask: attentionMaskTensor,
+      });
 
       // Get logits
       const logits = outputs.logits?.data || outputs[Object.keys(outputs)[0]]?.data;

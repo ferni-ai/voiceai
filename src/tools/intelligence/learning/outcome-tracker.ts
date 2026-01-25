@@ -100,7 +100,7 @@ const DEFAULT_CONFIG: TrackerConfig = {
 
 /**
  * Check if training data collection is enabled.
- * 
+ *
  * Set FTIS_COLLECT_TRAINING_DATA=true to collect routing outcomes
  * for RouterModel ONNX training.
  */
