@@ -19,7 +19,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  RUST_VERSION: '1.85'
+  RUST_VERSION: 'stable'  # napi-build@2.3.1 requires Rust 1.88+
   NODE_VERSION: '20'
 
 jobs:

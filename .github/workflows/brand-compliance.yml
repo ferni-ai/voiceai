@@ -19,6 +19,10 @@ concurrency:
   group: brand-${{ github.workflow }}-${{ github.head_ref || github.ref }}
   cancel-in-progress: true
 
+permissions:
+  contents: read
+  pull-requests: write
+
 jobs:
   lint-brand:
     name: Brand Compliance Check
@@ -88,20 +92,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v2
-        with:
-          version: 10
+      - name: Setup Node.js and pnpm
+        uses: ./.github/actions/setup-node-pnpm
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'pnpm'
-          
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-        
       - name: Build design tokens
         run: |
           cd design-system
@@ -124,29 +117,18 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v2
-        with:
-          version: 10
+      - name: Setup Node.js and pnpm
+        uses: ./.github/actions/setup-node-pnpm
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'pnpm'
-          
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-        
       - name: Install Playwright
         run: pnpm playwright install --with-deps chromium
-        
+
       - name: Build frontend
         run: |
           cd frontend-typescript
           pnpm install --frozen-lockfile
           pnpm build
-          
+
       - name: Run visual regression tests
         run: |
           cd frontend-typescript
@@ -167,25 +149,14 @@ jobs:
     name: Accessibility Audit
     runs-on: ubuntu-latest
     if: github.event_name == 'pull_request'
-    
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v2
-        with:
-          version: 10
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'pnpm'
-          
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-        
+      - name: Setup Node.js and pnpm
+        uses: ./.github/actions/setup-node-pnpm
+
       - name: Install Playwright
         run: pnpm playwright install --with-deps chromium
         

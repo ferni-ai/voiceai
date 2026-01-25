@@ -7,4 +7,6 @@ packages:
   - apps/rust-audio
   - apps/rust-perf
   - packages/shared-types
+  - packages/ferni-react
+  - packages/ferni-sdk
   - design-system
