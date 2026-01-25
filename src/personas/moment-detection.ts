@@ -19,7 +19,8 @@
  */
 
 import { getLogger } from '../utils/safe-logger.js';
-import type { SharedMomentType } from './relationship-memory/types.js';
+// UPDATED (Jan 2026): Import from intelligence/relationship (relationship-memory deleted)
+import type { SharedMomentType } from '../intelligence/relationship/types.js';
 import {
   detectMomentsUnified,
   extractMemorableMoments as extractMemorableMomentsUnified,
@@ -545,10 +546,12 @@ export function getMomentPriority(type: SharedMomentType): number {
   const priorities: Record<SharedMomentType, number> = {
     crisis_support: 10,
     first_vulnerability: 9,
+    vulnerability: 8, // General vulnerability (not first time)
     breakthrough: 8,
     trust_demonstration: 7,
     growth_recognition: 6,
     celebration: 5,
+    deep_conversation: 5, // Meaningful exchange
     laughter: 4,
     disagreement_resolved: 3,
     callback_resonance: 2,

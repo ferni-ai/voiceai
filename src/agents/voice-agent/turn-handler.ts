@@ -137,7 +137,10 @@ import {
 } from '../shared/session-health-monitor.js';
 
 // Conversation Priming - Context refresh callback for health monitor
-import { applyConversationPriming, DEFAULT_PRIMING_CONFIG } from '../shared/conversation-priming.js';
+import {
+  applyConversationPriming,
+  DEFAULT_PRIMING_CONFIG,
+} from '../shared/conversation-priming.js';
 
 // "Better Than Human" memory retrieval - Phase 9 real-time integration
 import {
@@ -455,41 +458,38 @@ export async function handleUserTurn(ctx: TurnHandlerContext): Promise<void> {
   }
 
   // ================================================================
-    // PERFORMANCE: Start turn profiling
-    // ================================================================
-    const turnNumber = userData.turnCount || 1;
-    startTurnProfiling(services.sessionId, turnNumber);
+  // PERFORMANCE: Start turn profiling
+  // ================================================================
+  const turnNumber = userData.turnCount || 1;
+  startTurnProfiling(services.sessionId, turnNumber);
 
-    // ================================================================
-    // 🏥 SESSION HEALTH MONITOR: Initialize on first turn
-    // Tracks function calling reliability and triggers refresh on decay
-    // ================================================================
-    if (turnNumber === 1) {
-      // Create refresh callback that reapplies conversation priming
-      const refreshCallback = async (): Promise<void> => {
-        try {
-          const primingConfig = {
-            ...DEFAULT_PRIMING_CONFIG,
-            personaId: persona.id,
-          };
-          applyConversationPriming(
-            (role, content) => {
-              turnCtx.addMessage({ role, content });
-            },
-            primingConfig
-          );
-          diag.state('🏥 Session health: Context refresh applied (conversation priming)');
-        } catch (err) {
-          diag.warn('Session health refresh failed', { error: String(err) });
-        }
-      };
+  // ================================================================
+  // 🏥 SESSION HEALTH MONITOR: Initialize on first turn
+  // Tracks function calling reliability and triggers refresh on decay
+  // ================================================================
+  if (turnNumber === 1) {
+    // Create refresh callback that reapplies conversation priming
+    const refreshCallback = async (): Promise<void> => {
+      try {
+        const primingConfig = {
+          ...DEFAULT_PRIMING_CONFIG,
+          personaId: persona.id,
+        };
+        applyConversationPriming((role, content) => {
+          turnCtx.addMessage({ role, content });
+        }, primingConfig);
+        diag.state('🏥 Session health: Context refresh applied (conversation priming)');
+      } catch (err) {
+        diag.warn('Session health refresh failed', { error: String(err) });
+      }
+    };
 
-      initializeHealthMonitor(services.sessionId, refreshCallback);
-      diag.state('🏥 Session health monitor initialized', { sessionId: services.sessionId });
-    }
+    initializeHealthMonitor(services.sessionId, refreshCallback);
+    diag.state('🏥 Session health monitor initialized', { sessionId: services.sessionId });
+  }
 
-    // Record this turn for health monitoring
-    recordHealthTurn(services.sessionId);
+  // Record this turn for health monitoring
+  recordHealthTurn(services.sessionId);
 
   // ================================================================
   // 🌙 BTH: ANTICIPATORY PRESENCE - Time-of-day awareness
@@ -808,9 +808,8 @@ export async function handleUserTurn(ctx: TurnHandlerContext): Promise<void> {
       // ⏳ BTH: TEMPORAL INSIGHT - Cross-session memory reference
       // Trigger avatar micro-expression when surfacing temporal memories
       // ================================================================
-      const hasTemporalMemory = memoryRetrievalResult.injections.some(
-        (inj) =>
-          /remember|last (week|month|time)|ago|before|earlier/i.test(inj.content)
+      const hasTemporalMemory = memoryRetrievalResult.injections.some((inj) =>
+        /remember|last (week|month|time)|ago|before|earlier/i.test(inj.content)
       );
       if (hasTemporalMemory) {
         const memoryContent = memoryRetrievalResult.injections[0]?.content || '';
@@ -827,16 +826,16 @@ export async function handleUserTurn(ctx: TurnHandlerContext): Promise<void> {
       // Trigger when memory retrieval surfaces humor, jokes, or fun moments
       // Enables avatar to show "insider" micro-expression (knowing smile)
       // ================================================================
-      const hasSharedHumor = memoryRetrievalResult.injections.some(
-        (inj) =>
-          /joke|laugh|funny|hilarious|humor|lol|haha|inside joke|remember when.*laugh/i.test(
-            inj.content
-          )
+      const hasSharedHumor = memoryRetrievalResult.injections.some((inj) =>
+        /joke|laugh|funny|hilarious|humor|lol|haha|inside joke|remember when.*laugh/i.test(
+          inj.content
+        )
       );
       if (hasSharedHumor) {
-        const humorContent = memoryRetrievalResult.injections.find((inj) =>
-          /joke|laugh|funny|hilarious|humor/i.test(inj.content)
-        )?.content || '';
+        const humorContent =
+          memoryRetrievalResult.injections.find((inj) =>
+            /joke|laugh|funny|hilarious|humor/i.test(inj.content)
+          )?.content || '';
         fireAndForget(async () => {
           await dispatchInsideJokeCallback(sendDataMessage, {
             memoryReference: humorContent.slice(0, 100),
@@ -1004,7 +1003,7 @@ export async function handleUserTurn(ctx: TurnHandlerContext): Promise<void> {
         const topics = result.analysis?.analysis?.topics?.detected || [];
         const distressLevel = result.emotional?.distressLevel ?? 0;
         const valence = distressLevel > 0.5 ? -0.5 : 0.2;
-        
+
         recordEmotionalMomentum(
           services.sessionId,
           result.emotional?.primary || 'neutral',
@@ -1018,7 +1017,10 @@ export async function handleUserTurn(ctx: TurnHandlerContext): Promise<void> {
         if (intervention?.shouldIntervene) {
           diag.state('🧠 BTH v4: Emotional intervention triggered', {
             trajectory: intervention.trajectory,
-            guidance: typeof intervention.guidance === 'string' ? intervention.guidance.slice(0, 100) : undefined,
+            guidance:
+              typeof intervention.guidance === 'string'
+                ? intervention.guidance.slice(0, 100)
+                : undefined,
           });
           // Dispatch to frontend for avatar adjustment
           await sendDataMessage('emotional_intervention', {
@@ -1036,18 +1038,15 @@ export async function handleUserTurn(ctx: TurnHandlerContext): Promise<void> {
         const topics = result.analysis?.analysis?.topics?.detected || [];
         const distressLevel = result.emotional?.distressLevel ?? 0;
         const valence = distressLevel > 0.5 ? -0.5 : 0.2;
-        
+
         if (topics.length > 0) {
           const patternConnector = getPatternConnector();
-          patternConnector.recordObservation(
-            services.userId || 'anonymous',
-            {
-              topics,
-              emotion: result.emotional?.primary || 'neutral',
-              valence,
-              sessionId: services.sessionId,
-            }
-          );
+          patternConnector.recordObservation(services.userId || 'anonymous', {
+            topics,
+            emotion: result.emotional?.primary || 'neutral',
+            valence,
+            sessionId: services.sessionId,
+          });
         }
       }, 'bth-v4-pattern-connector');
     }
@@ -1296,7 +1295,7 @@ You are their lifeline right now. Be fully present.`,
     // ================================================================
     // 🎯 SEMANTIC ROUTING / FTIS V2: Direct Tool Execution + Natural Response
     // When router has high confidence, tools execute directly.
-    // 
+    //
     // CLEAN ARCHITECTURE (Jan 2026):
     // Instead of injecting tool results into chat context (which can leak),
     // we use generateReply with EPHEMERAL instructions that guide ONE response.
@@ -1343,11 +1342,11 @@ You are their lifeline right now. Be fully present.`,
       // The instructions guide ONE response only and are NOT stored in chat history.
       // This is cleaner than context injection which can leak to TTS.
       try {
-        const { generateReplyBySessionId, TOOL_RESPONSE_TIMEOUT_MS } = 
+        const { generateReplyBySessionId, TOOL_RESPONSE_TIMEOUT_MS } =
           await import('../shared/generate-reply-gateway.js');
-        const { buildToolResponseInstructions } = 
-          await import('../processors/ftis-v2-integration.js');
-        
+        const { buildToolResponseInstructions } =
+          await import('../processors/tool-routing-integration.js');
+
         const instructions = buildToolResponseInstructions({
           toolId: toolResult.toolId,
           result: toolResult.output || toolResult.speakableResponse || 'Success',
@@ -1386,7 +1385,7 @@ You are their lifeline right now. Be fully present.`,
           toolId: toolResult.toolId,
           error: String(replyError),
         });
-        
+
         if (toolResult.speakableResponse) {
           const { coordinatedSay } = await import('../../speech/coordination/index.js');
           coordinatedSay(services.sessionId, toolResult.speakableResponse, {
@@ -1544,7 +1543,9 @@ You are their lifeline right now. Be fully present.`,
             }
           }
         } catch (biomarkerError) {
-          diag.debug('Voice biomarker analysis failed (non-critical)', { error: String(biomarkerError) });
+          diag.debug('Voice biomarker analysis failed (non-critical)', {
+            error: String(biomarkerError),
+          });
         }
       }, 'bth-v4-voice-biomarkers');
     }
@@ -1560,14 +1561,10 @@ You are their lifeline right now. Be fully present.`,
     // Inject recent feedback context so agent can naturally adjust its style
     // ================================================================
     try {
-      const { buildFeedbackContext } = await import(
-        '../../intelligence/context-builders/feedback-context.js'
-      );
+      const { buildFeedbackContext } =
+        await import('../../intelligence/context-builders/feedback-context.js');
 
-      const feedbackContext = await buildFeedbackContext(
-        services.userId || '',
-        services.sessionId
-      );
+      const feedbackContext = await buildFeedbackContext(services.userId || '', services.sessionId);
 
       if (feedbackContext.context && feedbackContext.summary.needsAdjustment) {
         result.context.injections.push({
@@ -1998,11 +1995,14 @@ Just respond naturally to what the user said.`,
       // ================================================================
       try {
         if (services.userId) {
-          const { getAmbientCalendarContext, shouldInterruptForCalendar, generateAmbientContextInjection } = 
-            await import('../../services/calendar/ambient-calendar-awareness.js');
-          
+          const {
+            getAmbientCalendarContext,
+            shouldInterruptForCalendar,
+            generateAmbientContextInjection,
+          } = await import('../../services/calendar/ambient-calendar-awareness.js');
+
           const ambientContext = await getAmbientCalendarContext(services.userId);
-          
+
           if (shouldInterruptForCalendar(ambientContext)) {
             const urgentContextText = generateAmbientContextInjection(ambientContext);
             if (urgentContextText) {
@@ -2018,7 +2018,10 @@ Just respond naturally to what the user said.`,
           }
         }
       } catch (calendarErr) {
-        logger.debug({ error: String(calendarErr) }, '📅 Calendar ambient check failed (non-fatal)');
+        logger.debug(
+          { error: String(calendarErr) },
+          '📅 Calendar ambient check failed (non-fatal)'
+        );
       }
     } catch (extHookErr) {
       logger.warn({ error: String(extHookErr) }, 'Extensibility hook failed (non-fatal)');
@@ -2125,54 +2128,101 @@ IMPORTANT:
     }, 'bth-v4-micro-moment-recording');
 
     // ================================================================
-    // 💕 RELATIONSHIP MEMORY: MOMENT DETECTION
+    // 💕 UNIFIED PERSONALITY RECORDING (Bridge)
     // Core Principle #2: "Remember past conversations and reference them naturally"
-    // Records significant moments to relationship memory for callbacks.
+    // Records significant moments to BOTH RelationshipEngine AND PersonalityService v2.
+    // Also dispatches frontend signals for anticipation, vulnerability, etc.
+    // Includes voice features for "Better Than Human" multimodal analysis.
     // ================================================================
     fireAndForget(async () => {
       try {
-        const { getRelationshipEngine } = await import('../../intelligence/relationship/index.js');
-        const engine = getRelationshipEngine(services.userId || '', persona.id);
-        if (!engine) return;
+        const { recordUnifiedMoment } = await import('../../personality/bridge/personality-bridge.js');
 
         // Detect shared moments based on emotional intensity and content
         const emotionalAnalysis = result.analysis.analysis.emotion;
         const emotionalIntensity = emotionalAnalysis?.intensity ?? 0;
         const primaryEmotion = emotionalAnalysis?.primary || 'neutral';
 
+        // Extract voice features from prosody data for multimodal personality analysis
+        // This enables "Better Than Human" - memories tied to how they sounded, not just what they said
+        // Note: prosody comes from userData.voiceEmotion (full VoiceEmotionResult), not ctx.voiceEmotion (minimal)
+        const voiceEmotionWithProsody = (userData as UserData).voiceEmotion;
+        const prosody = voiceEmotionWithProsody?.prosody;
+        const voiceFeatures = prosody
+          ? {
+              pitchMean: prosody.pitchMean,
+              pitchVariation: prosody.pitchRange,
+              speakingRate: prosody.speechRate,
+              energyLevel: prosody.energyMean,
+              jitter: prosody.jitter,
+              shimmer: prosody.shimmer,
+            }
+          : undefined;
+
         // Detect breakthrough moments (high positive emotion + growth language)
         const isBreakthrough =
           emotionalIntensity > 0.7 &&
           /realize|understand|get it|makes sense|aha|finally|never thought|see now/i.test(userText);
         if (isBreakthrough) {
-          engine.recordMoment('breakthrough', `User had a realization`, {
-            userPhrase: userText.slice(0, 200),
-            significance: Math.min(0.9, emotionalIntensity),
+          await recordUnifiedMoment({
+            userId: services.userId || '',
+            personaId: persona.id,
+            type: 'breakthrough',
+            message: userText,
+            emotionalIntensity,
+            voiceFeatures,
+            sendDataMessage,
+            details: {
+              userPhrase: userText.slice(0, 200),
+              significance: Math.min(0.9, emotionalIntensity),
+            },
           });
-          diag.debug('💕 Relationship: Recorded breakthrough moment');
+          diag.debug('💕 Unified: Recorded breakthrough moment');
         }
 
         // Detect first vulnerability (opening up about personal struggles)
         const isVulnerable =
           emotionalIntensity > 0.5 &&
-          /scared|afraid|worried|anxious|struggling|hard for me|admit|never told|confess/i.test(userText);
+          /scared|afraid|worried|anxious|struggling|hard for me|admit|never told|confess/i.test(
+            userText
+          );
         if (isVulnerable) {
-          engine.recordMoment('vulnerability', `User opened up about a struggle`, {
-            userPhrase: userText.slice(0, 200),
-            significance: Math.min(0.85, emotionalIntensity),
+          await recordUnifiedMoment({
+            userId: services.userId || '',
+            personaId: persona.id,
+            type: 'vulnerability',
+            message: userText,
+            emotionalIntensity,
+            voiceFeatures,
+            sendDataMessage,
+            details: {
+              userPhrase: userText.slice(0, 200),
+              significance: Math.min(0.85, emotionalIntensity),
+            },
           });
-          diag.debug('💕 Relationship: Recorded vulnerability moment');
+          diag.debug('💕 Unified: Recorded vulnerability moment');
         }
 
         // Detect celebration moments (achievements, wins)
         const isCelebration =
-          /got the job|passed|won|achieved|made it|succeeded|promotion|accepted|engaged|married|pregnant|baby/i.test(userText);
+          /got the job|passed|won|achieved|made it|succeeded|promotion|accepted|engaged|married|pregnant|baby/i.test(
+            userText
+          );
         if (isCelebration) {
-          engine.recordMoment('celebration', `User shared a win or achievement`, {
-            userPhrase: userText.slice(0, 200),
-            significance: 0.8,
+          await recordUnifiedMoment({
+            userId: services.userId || '',
+            personaId: persona.id,
+            type: 'celebration',
+            message: userText,
+            emotionalIntensity: 0.8,
+            voiceFeatures,
+            sendDataMessage,
+            details: {
+              userPhrase: userText.slice(0, 200),
+              significance: 0.8,
+            },
           });
-          diag.debug('💕 Relationship: Recorded celebration moment');
+          diag.debug('💕 Unified: Recorded celebration moment');
         }
 
         // Detect crisis support (user in difficult time)
@@ -2180,21 +2230,39 @@ IMPORTANT:
           emotionalIntensity > 0.8 &&
           ['sad', 'anxious', 'afraid', 'angry', 'frustrated', 'hopeless'].includes(primaryEmotion);
         if (isCrisis) {
-          engine.recordMoment('crisis_support', `Supported user during difficult moment`, {
-            significance: 0.9,
+          await recordUnifiedMoment({
+            userId: services.userId || '',
+            personaId: persona.id,
+            type: 'crisis_support',
+            message: userText,
+            emotionalIntensity: 0.9,
+            voiceFeatures,
+            sendDataMessage,
+            details: {
+              significance: 0.9,
+            },
           });
-          diag.debug('💕 Relationship: Recorded crisis support moment');
+          diag.debug('💕 Unified: Recorded crisis support moment');
         }
 
         // Detect laughter / shared humor
         const isLaughter =
           /haha|lol|that's funny|you're funny|made me laugh|hilarious|cracking up/i.test(userText);
         if (isLaughter) {
-          engine.recordMoment('laughter', `Shared a laugh together`, {
-            userPhrase: userText.slice(0, 100),
-            significance: 0.6,
+          await recordUnifiedMoment({
+            userId: services.userId || '',
+            personaId: persona.id,
+            type: 'laughter',
+            message: userText,
+            emotionalIntensity: 0.6,
+            voiceFeatures,
+            sendDataMessage,
+            details: {
+              userPhrase: userText.slice(0, 100),
+              significance: 0.6,
+            },
           });
-          diag.debug('💕 Relationship: Recorded laughter moment');
+          diag.debug('💕 Unified: Recorded laughter moment');
         }
 
         // Detect deep conversation (long, thoughtful engagement)
@@ -2202,18 +2270,113 @@ IMPORTANT:
         const isDeepConversation =
           wordCount > 100 &&
           emotionalIntensity > 0.5 &&
-          /life|meaning|purpose|values|believe|important|matter|death|love|fear|hope|dream/i.test(userText);
+          /life|meaning|purpose|values|believe|important|matter|death|love|fear|hope|dream/i.test(
+            userText
+          );
         if (isDeepConversation) {
-          engine.recordMoment('deep_conversation', `Had a meaningful exchange`, {
-            userPhrase: userText.slice(0, 200),
-            significance: 0.75,
+          await recordUnifiedMoment({
+            userId: services.userId || '',
+            personaId: persona.id,
+            type: 'deep_conversation',
+            message: userText,
+            emotionalIntensity: 0.75,
+            voiceFeatures,
+            sendDataMessage,
+            details: {
+              userPhrase: userText.slice(0, 200),
+              significance: 0.75,
+            },
           });
-          diag.debug('💕 Relationship: Recorded deep conversation moment');
+          diag.debug('💕 Unified: Recorded deep conversation moment');
         }
       } catch {
-        // Non-critical - relationship moment detection is enhancement
+        // Non-critical - personality moment detection is enhancement
       }
-    }, 'relationship-moment-detection');
+    }, 'unified-personality-recording');
+
+    // ================================================================
+    // 🔮 PERSONALITY V2 SIGNAL DISPATCH
+    // Dispatches anticipation, vulnerability, pattern, and growth signals
+    // that were stored by the personality-v2 context builder.
+    // ================================================================
+    fireAndForget(async () => {
+      try {
+        const v2Signals = (userData as { personalityV2Signals?: import('../../intelligence/context-builders/personality-v2.js').PersonalityV2Signals }).personalityV2Signals;
+        if (!v2Signals) return;
+
+        const {
+          dispatchAnticipationSignal,
+          dispatchVulnerabilitySignal,
+          dispatchPatternSurfacingSignal,
+          dispatchGrowthCelebrationSignal,
+        } = await import('../../personality/bridge/signal-dispatchers.js');
+
+        // Dispatch anticipation signal for avatar micro-expressions
+        if (v2Signals.anticipatedEmotion) {
+          await dispatchAnticipationSignal(sendDataMessage, v2Signals.anticipatedEmotion);
+          diag.debug('🔮 Dispatched anticipation signal', {
+            emotion: v2Signals.anticipatedEmotion.emotion,
+          });
+        }
+
+        // Dispatch vulnerability signals
+        if (v2Signals.pendingVulnerabilities?.length) {
+          for (const vuln of v2Signals.pendingVulnerabilities) {
+            // Create a VulnerabilityData object (plain data interface, not class)
+            const deposit: import('../../personality/bridge/signal-dispatchers.js').VulnerabilityData = {
+              level: vuln.level,
+              category: vuln.category,
+              isFirstTime: vuln.isFirstTime,
+              acknowledgment: vuln.suggestedAcknowledgment,
+            };
+            await dispatchVulnerabilitySignal(sendDataMessage, deposit, vuln.isFirstTime);
+          }
+          diag.debug('💜 Dispatched vulnerability signals', {
+            count: v2Signals.pendingVulnerabilities.length,
+          });
+        }
+
+        // Dispatch pattern surfacing signals
+        if (v2Signals.surfaceablePatterns?.length) {
+          for (const pattern of v2Signals.surfaceablePatterns) {
+            const emotionalPattern = {
+              patternType: pattern.patternType,
+              description: pattern.description,
+              confidence: pattern.confidence,
+              insightToShare: pattern.insightToShare,
+              isReadyToSurface: true,
+            } as import('../../personality/domain/model/emotional-pattern.js').EmotionalPattern;
+            await dispatchPatternSurfacingSignal(sendDataMessage, emotionalPattern);
+          }
+          diag.debug('🔍 Dispatched pattern signals', {
+            count: v2Signals.surfaceablePatterns.length,
+          });
+        }
+
+        // Dispatch growth celebration signals
+        if (v2Signals.celebratableMilestones?.length) {
+          for (const milestone of v2Signals.celebratableMilestones) {
+            // Create a GrowthMilestoneData object (plain data interface, not class)
+            const growthMilestone: import('../../personality/bridge/signal-dispatchers.js').GrowthMilestoneData = {
+              area: milestone.area,
+              significance: milestone.significance,
+              description: milestone.description,
+              celebrationMessage: milestone.celebrationMessage,
+              isReadyToCelebrate: true,
+            };
+            await dispatchGrowthCelebrationSignal(sendDataMessage, growthMilestone);
+          }
+          diag.debug('🌱 Dispatched growth signals', {
+            count: v2Signals.celebratableMilestones.length,
+          });
+        }
+
+        // Clear signals after dispatch to prevent re-dispatch
+        delete (userData as { personalityV2Signals?: unknown }).personalityV2Signals;
+      } catch {
+        // Non-critical - signal dispatch is enhancement
+      }
+    }, 'personality-v2-signal-dispatch');
 
     // ================================================================
     // 🎵 BTH v4: RHYTHM INTELLIGENCE RECORDING
@@ -2224,9 +2387,9 @@ IMPORTANT:
         const rhythmEngine = getRhythmIntelligence();
         const wordCount = userText.split(/\s+/).filter(Boolean).length;
         const sentenceCount = (userText.match(/[.!?]+/g) || []).length || 1;
-        
+
         const turnAnalysis = rhythmEngine.analyzeTurn(userText);
-        
+
         // Record turn for rhythm learning with full TurnAnalysis
         await rhythmEngine.recordTurn(
           services.userId || 'anonymous',
@@ -2256,7 +2419,7 @@ IMPORTANT:
     fireAndForget(async () => {
       try {
         const relMem = getRelationalMemory();
-        
+
         // Detect and record trust milestones
         if (/thank(s| you)|grateful|appreciate/i.test(userText)) {
           await relMem.addMilestone(services.userId || 'anonymous', {
@@ -2267,9 +2430,11 @@ IMPORTANT:
             impactScore: 0.7,
           });
         }
-        
-        if (/i('m| am) (scared|afraid|worried|nervous|anxious)/i.test(userText) ||
-            (result.emotional?.distressLevel ?? 0) > 0.5) {
+
+        if (
+          /i('m| am) (scared|afraid|worried|nervous|anxious)/i.test(userText) ||
+          (result.emotional?.distressLevel ?? 0) > 0.5
+        ) {
           await relMem.addMilestone(services.userId || 'anonymous', {
             type: 'first-vulnerability',
             description: `User shared vulnerability during turn ${turnNumber}`,
@@ -2346,37 +2511,34 @@ IMPORTANT:
           turnNumber,
           transcriptLen: userText.length,
         });
-        
-        fireAndForget(
-          async () => {
-            const captureResult = await fastCapture({
-              userId: captureUserId,
-              sessionId: services.sessionId,
-              turnNumber,
-              transcript: userText,
-              voiceEmotion: result.analysis.analysis.emotion?.primary,
-              personaId: persona.id, // For multi-persona data attribution
-            });
 
-            // 🧠 CRITICAL: Record to STM buffer for session context
-            // This enables wasEntityMentioned(), buildSTMContext(), and session-end promotion
-            const { recordTurn } = await import('../../memory/dynamic/index.js');
-            recordTurn(services.sessionId, captureUserId, captureResult, userText, turnNumber);
+        fireAndForget(async () => {
+          const captureResult = await fastCapture({
+            userId: captureUserId,
+            sessionId: services.sessionId,
+            turnNumber,
+            transcript: userText,
+            voiceEmotion: result.analysis.analysis.emotion?.primary,
+            personaId: persona.id, // For multi-persona data attribution
+          });
 
-            // 🧠 MEMORY AUDIT: Log capture results (upgraded to info level)
-            diag.info('🧠 [MEMORY-AUDIT] turn-handler memory capture DONE', {
-              userId: captureUserId,
-              sessionId: services.sessionId,
-              turnNumber,
-              entityCount: captureResult.mentionedEntities.length,
-              topicCount: captureResult.topicHints.length,
-              emotionCount: captureResult.emotionSignals.length,
-              asyncJobId: captureResult.asyncJobId,
-              captureTimeMs: captureResult.captureTimeMs,
-            });
-          },
-          'dynamic-memory-capture'
-        );
+          // 🧠 CRITICAL: Record to STM buffer for session context
+          // This enables wasEntityMentioned(), buildSTMContext(), and session-end promotion
+          const { recordTurn } = await import('../../memory/dynamic/index.js');
+          recordTurn(services.sessionId, captureUserId, captureResult, userText, turnNumber);
+
+          // 🧠 MEMORY AUDIT: Log capture results (upgraded to info level)
+          diag.info('🧠 [MEMORY-AUDIT] turn-handler memory capture DONE', {
+            userId: captureUserId,
+            sessionId: services.sessionId,
+            turnNumber,
+            entityCount: captureResult.mentionedEntities.length,
+            topicCount: captureResult.topicHints.length,
+            emotionCount: captureResult.emotionSignals.length,
+            asyncJobId: captureResult.asyncJobId,
+            captureTimeMs: captureResult.captureTimeMs,
+          });
+        }, 'dynamic-memory-capture');
       } else {
         diag.warn('🧠 [MEMORY-AUDIT] turn-handler SKIPPING memory capture - no userId');
       }

@@ -118,10 +118,19 @@ export const STAGE_CONFIGS: Record<RelationshipStage, StageConfig> = {
 export type SharedMomentType =
   | 'breakthrough' // Aha moment, realization
   | 'vulnerability' // User opened up about struggles
+  | 'first_vulnerability' // Special case: first time opening up
+  | 'trust_demonstration' // User showed explicit trust in Ferni
+  | 'growth_recognition' // User acknowledged personal growth
   | 'celebration' // Achievement, win
   | 'crisis_support' // We helped during hard time
   | 'laughter' // Genuine shared humor
-  | 'deep_conversation'; // Meaningful exchange
+  | 'deep_conversation' // Meaningful exchange
+  | 'disagreement_resolved' // Conflict worked through together
+  | 'callback_resonance' // Memory callback that resonated
+  | 'emotional_mirror' // Ferni reflected user's emotion accurately
+  | 'protective_moment' // Ferni showed protective care
+  | 'silence_held' // Meaningful silence was held
+  | 'pattern_insight'; // Pattern surfaced that resonated
 
 /**
  * A single shared moment in the relationship
