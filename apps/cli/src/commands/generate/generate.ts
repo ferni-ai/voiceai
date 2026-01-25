@@ -66,19 +66,13 @@ const GENERATORS: Record<string, GeneratorTask> = {
     name: 'Frontend Personas',
     description: 'Generate persona TypeScript files for frontend',
     command: 'npx',
-    args: ['tsx', 'scripts/generate-frontend-personas.ts'],
-  },
-  env: {
-    name: 'Environment Example',
-    description: 'Generate .env.example from codebase analysis',
-    command: 'npx',
-    args: ['tsx', 'scripts/generate-env-example.ts'],
+    args: ['tsx', 'apps/cli/src/commands/generate/generate-frontend-personas.ts'],
   },
   vapid: {
     name: 'VAPID Keys',
     description: 'Generate VAPID keys for web push notifications',
     command: 'npx',
-    args: ['tsx', 'scripts/generate-vapid-keys.ts'],
+    args: ['tsx', 'apps/cli/src/commands/generate/generate-vapid-keys.ts'],
   },
   marketing: {
     name: 'Marketing Assets',
@@ -241,7 +235,6 @@ ${colors.bold}Usage:${colors.reset}
 
 ${colors.bold}Commands:${colors.reset}
   ${colors.green}personas${colors.reset}       Generate frontend persona TypeScript files
-  ${colors.green}env${colors.reset}            Generate .env.example from codebase
   ${colors.green}vapid${colors.reset}          Generate VAPID keys for push notifications
   ${colors.green}marketing${colors.reset}      Generate marketing assets with AI
   ${colors.green}design-system${colors.reset}  Build complete design system
@@ -258,7 +251,7 @@ ${colors.bold}Options:${colors.reset}
 ${colors.bold}Examples:${colors.reset}
   npm run generate personas       # Generate frontend personas
   npm run generate design-system  # Build design system
-  npm run generate env            # Generate .env.example
+  npm run generate vapid          # Generate VAPID keys
   npm run generate all            # Run all generators
 `);
 }
@@ -291,7 +284,7 @@ ${colors.cyan}╚═════════════════════
       process.exit(0);
 
     case 'all':
-      keysToRun = ['design-system', 'personas', 'env'];
+      keysToRun = ['design-system', 'personas', 'vapid'];
       break;
 
     default:

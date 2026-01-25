@@ -9,17 +9,17 @@ name: i18n Validation
 on:
   pull_request:
     paths:
-      - 'frontend-typescript/src/i18n/**'
-      - 'frontend-typescript/src/ui/**/*.ts'
-      - 'frontend-typescript/src/app.ts'
-      - 'frontend-typescript/src/services/**/*.ts'
+      - 'apps/web/src/i18n/**'
+      - 'apps/web/src/ui/**/*.ts'
+      - 'apps/web/src/app.ts'
+      - 'apps/web/src/services/**/*.ts'
       - 'promo/ferni-website/src/_data/i18n/**'
       - 'promo/ferni-website/src/**/*.njk'
       - 'promo/ferni-website/src/**/*.html'
   push:
     branches: [main]
     paths:
-      - 'frontend-typescript/src/i18n/**'
+      - 'apps/web/src/i18n/**'
       - 'promo/ferni-website/src/_data/i18n/**'
 
 concurrency:

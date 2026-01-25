@@ -6,9 +6,9 @@ name: Performance Budget
 on:
   pull_request:
     paths:
-      - 'frontend-typescript/**'
+      - 'apps/web/**'
       - 'package.json'
-      - 'package-lock.json'
+      - 'pnpm-lock.yaml'
 
 concurrency:
   group: perf-budget-${{ github.workflow }}-${{ github.head_ref || github.ref }}
@@ -40,13 +40,13 @@ jobs:
 
       - name: Build frontend
         run: |
-          cd frontend-typescript
-          npm run build
+          cd apps/web
+          pnpm build
 
       - name: Analyze bundle size
         id: bundle
         run: |
-          cd frontend-typescript/dist
+          cd apps/web/dist
 
           # Get total size
           TOTAL_SIZE=$(du -sk . | cut -f1)

@@ -309,6 +309,49 @@
       }
     },
 
+    "joel": {
+      "name": "Joel",
+      "role": "Investment Mentor",
+      "archetype": "The Distinguished Guide to Financial Wisdom",
+
+      "colors": {
+        "primary": {
+          "value": "#9A0718",
+          "description": "Vanguard burgundy red"
+        },
+        "secondary": {
+          "value": "#7A0514",
+          "description": "Deeper burgundy"
+        },
+        "glow": {
+          "value": "rgba(154, 7, 24, 0.3)",
+          "description": "Distinguished glow"
+        },
+        "tint": {
+          "value": "rgba(154, 7, 24, 0.1)",
+          "description": "Background tint"
+        }
+      },
+
+      "animation": {
+        "timingMultiplier": 1.15,
+        "easingPreference": "gentle",
+        "breathingBase": 5500,
+        "reactionIntensity": 0.85
+      },
+
+      "audio": {
+        "signature": "authoritative",
+        "pitchRange": "medium-low",
+        "paceBase": "measured"
+      },
+
+      "haptics": {
+        "intensityMultiplier": 0.95,
+        "signaturePattern": "confident"
+      }
+    },
+
     "_marketplace": "Marketplace agent personas - specialized support",
 
     "eli": {

@@ -35,13 +35,14 @@ runs:
       run: |
         # Replace local file: dependencies with npm registry versions
         # The local agents-js fork is not available in CI
+        # Using sed -i.bak for cross-platform compatibility (Linux and macOS)
         LIVEKIT_VERSION="1.0.31"
-        sed -i 's|"file:../agents-js/agents"|"^'"$LIVEKIT_VERSION"'"|g' package.json || true
-        sed -i 's|"file:../agents-js/plugins/cartesia"|"^'"$LIVEKIT_VERSION"'"|g' package.json || true
-        sed -i 's|"file:../agents-js/plugins/deepgram"|"^'"$LIVEKIT_VERSION"'"|g' package.json || true
-        sed -i 's|"file:../agents-js/plugins/google"|"^'"$LIVEKIT_VERSION"'"|g' package.json || true
-        sed -i 's|"file:../agents-js/plugins/openai"|"^'"$LIVEKIT_VERSION"'"|g' package.json || true
-        sed -i 's|"file:../agents-js/plugins/silero"|"^'"$LIVEKIT_VERSION"'"|g' package.json || true
+        sed -i.bak 's|"file:../agents-js/agents"|"^'"$LIVEKIT_VERSION"'"|g' package.json && rm -f package.json.bak || true
+        sed -i.bak 's|"file:../agents-js/plugins/cartesia"|"^'"$LIVEKIT_VERSION"'"|g' package.json && rm -f package.json.bak || true
+        sed -i.bak 's|"file:../agents-js/plugins/deepgram"|"^'"$LIVEKIT_VERSION"'"|g' package.json && rm -f package.json.bak || true
+        sed -i.bak 's|"file:../agents-js/plugins/google"|"^'"$LIVEKIT_VERSION"'"|g' package.json && rm -f package.json.bak || true
+        sed -i.bak 's|"file:../agents-js/plugins/openai"|"^'"$LIVEKIT_VERSION"'"|g' package.json && rm -f package.json.bak || true
+        sed -i.bak 's|"file:../agents-js/plugins/silero"|"^'"$LIVEKIT_VERSION"'"|g' package.json && rm -f package.json.bak || true
 
     - name: Install dependencies
       if: inputs.install-deps == 'true'

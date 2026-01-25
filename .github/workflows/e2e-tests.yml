@@ -6,7 +6,7 @@ name: E2E Tests
 on:
   pull_request:
     paths:
-      - 'frontend-typescript/**'
+      - 'apps/web/**'
   deployment_status:
   workflow_dispatch:
     inputs:
@@ -42,15 +42,15 @@ jobs:
 
       - name: Install Playwright
         run: |
-          cd frontend-typescript
+          cd apps/web
           pnpm playwright install --with-deps chromium
 
       - name: Create E2E test file if not exists
         run: |
-          mkdir -p frontend-typescript/e2e
+          mkdir -p apps/web/e2e
 
           # Create basic E2E tests
-          cat > frontend-typescript/e2e/app.spec.ts << 'EOF'
+          cat > apps/web/e2e/app.spec.ts << 'EOF'
           import { test, expect } from '@playwright/test';
 
           const BASE_URL = process.env.TEST_URL || 'https://ferni-prod.web.app';
@@ -145,7 +145,7 @@ jobs:
           EOF
 
           # Create Playwright config if not exists
-          cat > frontend-typescript/playwright.config.ts << 'EOF'
+          cat > apps/web/playwright.config.ts << 'EOF'
           import { defineConfig, devices } from '@playwright/test';
 
           export default defineConfig({
@@ -171,7 +171,7 @@ jobs:
 
       - name: Run E2E tests
         run: |
-          cd frontend-typescript
+          cd apps/web
           pnpm playwright test --reporter=github
         env:
           TEST_URL: ${{ env.TEST_URL }}
@@ -181,7 +181,7 @@ jobs:
         if: failure()
         with:
           name: playwright-report
-          path: frontend-typescript/playwright-report/
+          path: apps/web/playwright-report/
           retention-days: 7
 
       - name: Comment on PR
