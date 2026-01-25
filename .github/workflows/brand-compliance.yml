@@ -46,7 +46,7 @@ jobs:
         with:
           script: |
             const { execSync } = require('child_process');
-            
+
             // Run linter and capture output
             let output;
             try {
@@ -54,17 +54,27 @@ jobs:
             } catch (e) {
               output = e.stdout || e.message;
             }
-            
+
+            // Truncate output to prevent exceeding GitHub's 65536 char limit
+            const MAX_OUTPUT_CHARS = 50000;
+            let truncatedOutput = output;
+            let truncatedNote = '';
+            if (output.length > MAX_OUTPUT_CHARS) {
+              truncatedOutput = output.substring(0, MAX_OUTPUT_CHARS);
+              const remainingCount = output.split('\n').length - truncatedOutput.split('\n').length;
+              truncatedNote = `\n\n... (truncated, ${remainingCount}+ more violations. Run \`pnpm tsx apps/cli/src/commands/quality/lint-brand.ts\` locally for full output)`;
+            }
+
             const comment = `## 🎨 Brand Compliance Check Failed
-            
+
             The following brand guideline violations were found:
-            
+
             \`\`\`
-            ${output}
+            ${truncatedOutput}${truncatedNote}
             \`\`\`
-            
+
             Please fix these issues before merging. See \`brand/FERNI-BRAND-GUIDELINES.md\` for details.
-            
+
             ### Quick Reference
             - Use \`createLogger()\` instead of \`console.log\`
             - Use CSS variables instead of hardcoded colors
@@ -72,7 +82,7 @@ jobs:
             - Use Lucide icons instead of emoji
             - Add HMR cleanup to UI components
             `;
-            
+
             github.rest.issues.createComment({
               issue_number: context.issue.number,
               owner: context.repo.owner,

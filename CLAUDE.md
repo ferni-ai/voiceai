@@ -2049,6 +2049,38 @@ pnpm quality          # Typecheck + lint + test - REQUIRED
 
 **Full CI/CD charter**: `docs/devops/00-charter.md`
 
+### Git Commit Message Format (MANDATORY)
+
+Commits use [Conventional Commits](https://www.conventionalcommits.org/) with **commitlint** enforcement.
+
+**Format:**
+```
+type(scope): subject
+
+body (optional)
+
+Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>
+```
+
+**Rules:**
+- **Subject MUST be lowercase** - `fix(ci): add caching` ✅ not `fix(ci): Add Caching` ❌
+- Type must be one of: `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`, `chore`
+- Scope is optional but recommended (e.g., `ci`, `web`, `agents`, `memory`)
+- Subject must not end with a period
+- Body should explain "why" not "what"
+
+**Examples:**
+```bash
+# Good
+fix(ci): add missing permissions for pr comments
+feat(memory): implement three-layer caching
+refactor(tools): split large file into modules
+
+# Bad - will fail commitlint
+fix(ci): Add missing permissions   # uppercase subject
+fix: added new feature.            # past tense, ends with period
+```
+
 ---
 
 ## Documentation Stats (January 2026)
