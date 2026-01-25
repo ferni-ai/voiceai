@@ -60,6 +60,42 @@ lru = "0.12"
 # Generic array for FFT
 num-complex = "0.4"
 
+# ONNX Runtime for FTIS V3 inference (CPU fallback)
+# Note: CoreML feature removed - it cannot load models with external data format
+# (separate .onnx_data files). CPU inference with multi-threading is used instead.
+ort = { version = "2.0.0-rc.11" }
+
+# HuggingFace tokenizers for ONNX inference
+tokenizers = { version = "0.21", features = ["onig"] }
+
+# Ndarray for ONNX tensor operations (must match ort's ndarray version)
+ndarray = "0.17"
+
+# ============================================================================
+# Candle ML Framework for ML inference
+# ============================================================================
+# Metal backend only on macOS (Apple Silicon GPU acceleration)
+# Linux uses CPU inference as fallback
+
+# Candle core - Metal feature only on macOS/iOS targets
+[target.'cfg(target_os = "macos")'.dependencies]
+candle-core = { version = "0.8", features = ["metal"] }
+
+[target.'cfg(not(target_os = "macos"))'.dependencies]
+candle-core = { version = "0.8" }
+
+[dependencies.candle-nn]
+version = "0.8"
+
+[dependencies.candle-transformers]
+version = "0.8"
+
+[dependencies.safetensors]
+version = "0.5"
+
+[dependencies.half]
+version = "2.4"
+
 [build-dependencies]
 # Updated to 2.3.1 with Rust 1.92
 napi-build = "2.3.1"
