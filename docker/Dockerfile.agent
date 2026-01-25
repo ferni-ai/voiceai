@@ -32,10 +32,15 @@ FROM rust:1.92-slim AS rust-builder
 
 WORKDIR /rust
 
-# Install build dependencies for napi-rs
+# Install build dependencies for napi-rs and Rust crates
+# - pkg-config + libssl-dev: Required for openssl-sys crate
+# - gcc-objc: Required for objc_exception crate (used by objc2 crate)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     curl \
+    pkg-config \
+    libssl-dev \
+    gobjc \
     && rm -rf /var/lib/apt/lists/* \
     && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
     && apt-get install -y nodejs \
