@@ -19,7 +19,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  RUST_VERSION: '1.75'
+  RUST_VERSION: '1.85'
   NODE_VERSION: '20'
 
 jobs:
