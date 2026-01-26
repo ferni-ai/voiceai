@@ -91,6 +91,266 @@ const DEFAULT_SESSION_OPTIONS: SessionOptions = {
 };
 
 // ============================================================================
+// SESSION READINESS TRACKER
+// ============================================================================
+
+/**
+ * Tracks session initialization state and provides an initialization barrier.
+ * Solves the race condition where concurrent requests can hit a session
+ * before it's fully initialized.
+ */
+class SessionReadinessTracker {
+  private sessionStates = new Map<
+    string,
+    {
+      ready: boolean;
+      readyPromise: Promise<void>;
+      resolve: () => void;
+      reject: (error: Error) => void;
+      error: Error | null;
+      warmupAttempts: number;
+      lastWarmupTime: number;
+    }
+  >();
+
+  /**
+   * Register a new session and create its readiness promise.
+   */
+  registerSession(sessionId: string): void {
+    if (this.sessionStates.has(sessionId)) {
+      return; // Already registered
+    }
+
+    let resolve: () => void = () => {};
+    let reject: (error: Error) => void = () => {};
+    const readyPromise = new Promise<void>((res, rej) => {
+      resolve = res;
+      reject = rej;
+    });
+
+    // Attach a no-op catch handler to prevent unhandled rejection warnings
+    // The actual rejection is still propagated to waiters via waitForSession
+    readyPromise.catch(() => {
+      // Intentionally empty - error is stored in state.error and re-thrown in waitForSession
+    });
+
+    this.sessionStates.set(sessionId, {
+      ready: false,
+      readyPromise,
+      resolve,
+      reject,
+      error: null,
+      warmupAttempts: 0,
+      lastWarmupTime: 0,
+    });
+  }
+
+  /**
+   * Mark a session as ready after successful warmup.
+   */
+  markReady(sessionId: string): void {
+    const state = this.sessionStates.get(sessionId);
+    if (state && !state.ready) {
+      state.ready = true;
+      state.resolve();
+      log.debug({ sessionId }, 'Session marked ready');
+    }
+  }
+
+  /**
+   * Mark a session as failed.
+   */
+  markFailed(sessionId: string, error: Error): void {
+    const state = this.sessionStates.get(sessionId);
+    if (state && !state.ready) {
+      state.error = error;
+      state.reject(error);
+      log.debug({ sessionId, error: error.message }, 'Session marked failed');
+    }
+  }
+
+  /**
+   * Wait for a session to be ready (initialization barrier).
+   * Returns immediately if already ready, throws if failed.
+   */
+  async waitForSession(sessionId: string, timeoutMs = 10000): Promise<void> {
+    const state = this.sessionStates.get(sessionId);
+    if (!state) {
+      // Session not registered - might be a new session or race condition
+      return;
+    }
+
+    if (state.ready) {
+      return;
+    }
+
+    if (state.error) {
+      throw state.error;
+    }
+
+    // Wait with timeout
+    const timeoutPromise = new Promise<void>((_, reject) => {
+      setTimeout(
+        () => reject(new Error(`Session ${sessionId} initialization timed out`)),
+        timeoutMs
+      );
+    });
+
+    await Promise.race([state.readyPromise, timeoutPromise]);
+  }
+
+  /**
+   * Check if a session is ready without waiting.
+   */
+  isReady(sessionId: string): boolean {
+    const state = this.sessionStates.get(sessionId);
+    return state?.ready ?? false;
+  }
+
+  /**
+   * Get session initialization status for health checks.
+   */
+  getStatus(): {
+    sessions: Array<{ id: string; ready: boolean; error: string | null; warmupAttempts: number }>;
+    allReady: boolean;
+    anyFailed: boolean;
+  } {
+    const sessions: Array<{
+      id: string;
+      ready: boolean;
+      error: string | null;
+      warmupAttempts: number;
+    }> = [];
+    let allReady = true;
+    let anyFailed = false;
+
+    for (const [id, state] of this.sessionStates.entries()) {
+      sessions.push({
+        id,
+        ready: state.ready,
+        error: state.error?.message ?? null,
+        warmupAttempts: state.warmupAttempts,
+      });
+      if (!state.ready) allReady = false;
+      if (state.error) anyFailed = true;
+    }
+
+    return { sessions, allReady, anyFailed };
+  }
+
+  /**
+   * Record a warmup attempt for tracking.
+   */
+  recordWarmupAttempt(sessionId: string): void {
+    const state = this.sessionStates.get(sessionId);
+    if (state) {
+      state.warmupAttempts++;
+      state.lastWarmupTime = Date.now();
+    }
+  }
+
+  /**
+   * Reset a specific session (for retry scenarios).
+   */
+  resetSession(sessionId: string): void {
+    this.sessionStates.delete(sessionId);
+    this.registerSession(sessionId);
+  }
+
+  /**
+   * Clear all session states (for testing).
+   */
+  clear(): void {
+    this.sessionStates.clear();
+  }
+}
+
+// Global session readiness tracker
+const sessionTracker = new SessionReadinessTracker();
+
+/**
+ * Get the session readiness tracker for external access.
+ */
+export function getSessionReadinessTracker(): SessionReadinessTracker {
+  return sessionTracker;
+}
+
+// ============================================================================
+// EXPONENTIAL BACKOFF WITH JITTER
+// ============================================================================
+
+/**
+ * Sleep with exponential backoff and jitter.
+ * Jitter prevents thundering herd when multiple processes retry simultaneously.
+ *
+ * @param attempt - Current attempt number (1-indexed)
+ * @param baseDelayMs - Base delay in milliseconds (default: 50ms)
+ * @param maxDelayMs - Maximum delay cap (default: 5000ms)
+ */
+async function sleepWithBackoff(
+  attempt: number,
+  baseDelayMs = 50,
+  maxDelayMs = 5000
+): Promise<void> {
+  // Exponential backoff: baseDelay * 2^attempt
+  const exponentialDelay = baseDelayMs * Math.pow(2, attempt - 1);
+  // Add jitter: random 0-50% of the delay
+  const jitter = Math.random() * exponentialDelay * 0.5;
+  // Cap at maxDelay
+  const delay = Math.min(exponentialDelay + jitter, maxDelayMs);
+
+  await new Promise<void>((resolve) => {
+    setTimeout(resolve, delay);
+  });
+}
+
+/**
+ * Retry an async operation with exponential backoff and jitter.
+ *
+ * @param fn - The async function to retry
+ * @param options - Retry configuration
+ * @returns The function result
+ * @throws The last error if all retries fail
+ */
+export async function retryWithBackoff<T>(
+  fn: () => Promise<T>,
+  options: {
+    maxRetries?: number;
+    baseDelayMs?: number;
+    maxDelayMs?: number;
+    shouldRetry?: (error: unknown) => boolean;
+    onRetry?: (attempt: number, error: unknown) => void;
+  } = {}
+): Promise<T> {
+  const {
+    maxRetries = 5,
+    baseDelayMs = 50,
+    maxDelayMs = 5000,
+    shouldRetry = () => true,
+    onRetry,
+  } = options;
+
+  let lastError: unknown;
+
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      return await fn();
+    } catch (error) {
+      lastError = error;
+
+      if (attempt === maxRetries || !shouldRetry(error)) {
+        throw error;
+      }
+
+      onRetry?.(attempt, error);
+      await sleepWithBackoff(attempt, baseDelayMs, maxDelayMs);
+    }
+  }
+
+  throw lastError;
+}
+
+// ============================================================================
 // INITIALIZATION
 // ============================================================================
 
@@ -423,6 +683,11 @@ export function getNativeBindingHealth(): {
     ready: boolean;
     guard: NativeBindingStats;
   };
+  sessions: {
+    allReady: boolean;
+    anyFailed: boolean;
+    details: Array<{ id: string; ready: boolean; error: string | null; warmupAttempts: number }>;
+  };
   overall: 'healthy' | 'degraded' | 'unhealthy';
   initError: string | null;
 } {
@@ -431,18 +696,22 @@ export function getNativeBindingHealth(): {
 
   const transformersStats = transformersGuard.getStats();
   const onnxStats = onnxGuard.getStats();
+  const sessionStatus = sessionTracker.getStatus();
 
   // Determine overall health
   let overall: 'healthy' | 'degraded' | 'unhealthy' = 'healthy';
 
   if (transformersStats.state === 'open' || onnxStats.state === 'open') {
     overall = 'unhealthy';
+  } else if (sessionStatus.anyFailed) {
+    overall = 'degraded'; // Session failures are degraded, not unhealthy (graceful degradation)
   } else if (
     transformersStats.state === 'half-open' ||
     onnxStats.state === 'half-open' ||
     transformersStats.consecutiveFailures > 0 ||
     onnxStats.consecutiveFailures > 0 ||
-    initError !== null
+    initError !== null ||
+    !sessionStatus.allReady
   ) {
     overall = 'degraded';
   }
@@ -455,6 +724,11 @@ export function getNativeBindingHealth(): {
     onnx: {
       ready: isOnnxRuntimeReady(),
       guard: onnxStats,
+    },
+    sessions: {
+      allReady: sessionStatus.allReady,
+      anyFailed: sessionStatus.anyFailed,
+      details: sessionStatus.sessions,
     },
     overall,
     initError: initError ? initError.message : null,

@@ -64,8 +64,27 @@ import {
 import { getConversationState } from '../../services/conversation-state.js';
 // P2 UTO Fix (January 2026): Service health pre-check before tool execution
 import { isServiceHealthyFast } from '../../services/self-healing/index.js';
+// Phase 3: Implicit correction capture for learning loop closure
+import { recordActualToolExecution } from '../../tools/semantic-router/learning/implicit-correction-capture.js';
+// LLMCompiler: Parallel function calling with dependency tracking (Jan 2026)
+import {
+  containsLLMCompilerPlan,
+  parseLLMCompilerPlan,
+  executeLLMCompilerPlan,
+  stripLLMCompilerPlan,
+  // Pre-Act: Upfront reasoning before tool execution
+  containsPreActPlan,
+  parsePreActPlan,
+  stripPreActFormat,
+} from './llm-compiler/index.js';
 
 const log = createLogger({ module: 'json-function-executor' });
+
+/** Feature flag for LLMCompiler parallel execution */
+const USE_LLMCOMPILER = process.env.USE_LLMCOMPILER === 'true';
+
+/** Feature flag for Pre-Act upfront reasoning (enabled with LLMCompiler) */
+const USE_PREACT = process.env.USE_PREACT === 'true' || USE_LLMCOMPILER;
 
 // ============================================================================
 // P2 UTO Fix (January 2026): TOOL → SERVICE MAPPING
@@ -148,7 +167,8 @@ function getRequiredServiceForTool(toolName: string): string | null {
     lowered.includes('store') ||
     lowered.includes('persist') ||
     lowered.includes('remember') ||
-    lowered.startsWith('get') && (lowered.includes('note') || lowered.includes('memory') || lowered.includes('habit'))
+    (lowered.startsWith('get') &&
+      (lowered.includes('note') || lowered.includes('memory') || lowered.includes('habit')))
   ) {
     return 'firestore';
   }
@@ -246,7 +266,16 @@ function recordToolOutcome(params: {
  */
 function extractTargetFromArgs(args: Record<string, unknown>): string | undefined {
   // Check common arg names for contact/target info
-  const targetKeys = ['contact', 'contactName', 'recipient', 'to', 'target', 'name', 'phone', 'email'];
+  const targetKeys = [
+    'contact',
+    'contactName',
+    'recipient',
+    'to',
+    'target',
+    'name',
+    'phone',
+    'email',
+  ];
   for (const key of targetKeys) {
     if (typeof args[key] === 'string' && args[key]) {
       return args[key] as string;
@@ -276,7 +305,7 @@ function extractDomainFromTool(toolName: string): string {
 
   const toolLower = toolName.toLowerCase();
   for (const [domain, patterns] of Object.entries(domainPatterns)) {
-    if (patterns.some(p => toolLower.includes(p) || toolLower === p)) {
+    if (patterns.some((p) => toolLower.includes(p) || toolLower === p)) {
       return domain;
     }
   }
@@ -412,6 +441,11 @@ export interface ToolExecutionContext {
     regionCode?: string;
     countryCode?: string;
   };
+  /**
+   * Whether this execution is from LLMCompiler parallel execution.
+   * Used for telemetry differentiation.
+   */
+  fromLLMCompiler?: boolean;
 }
 
 // ============================================================================
@@ -542,13 +576,13 @@ export async function executeJsonFunction(
 
   // 🔍 E2E TRACE: Tool execution started
   log.info(
-    { 
-      fn, 
+    {
+      fn,
       args: truncateForLog(JSON.stringify(args), 200),
       sessionId,
       userId: ctx.userId,
       trace: 'E2E_TOOL_START',
-    }, 
+    },
     `🔍 E2E TRACE [TOOL] Starting: ${fn}(${truncateForLog(JSON.stringify(args), 50)})`
   );
   ctx.onToolStart?.(fn, args);
@@ -749,8 +783,8 @@ export async function executeJsonFunction(
     // - 'semantic-router': Handled pre-LLM by semantic router
     // - 'native-fc': Handled by LLM's native function calling
     log.info(
-      { 
-        fn, 
+      {
+        fn,
         durationMs: executionResult.durationMs,
         sessionId,
         resultPreview: truncateForLog(JSON.stringify(result), 200),
@@ -758,9 +792,17 @@ export async function executeJsonFunction(
         fromFallback,
         handledBy: 'json-workaround', // This executor is the JSON workaround layer
         trace: 'E2E_TOOL_SUCCESS',
-      }, 
+      },
       `🔍 E2E TRACE [TOOL] Completed: ${fn} in ${executionResult.durationMs}ms (via json-workaround)`
     );
+
+    // Phase 3: Record actual tool execution for implicit correction capture (fire-and-forget)
+    // This detects when the LLM chose a different tool than the semantic router predicted
+    if (sessionId !== 'unknown') {
+      recordActualToolExecution(sessionId, fn, 'json_fallback').catch(() => {
+        // Ignore errors - this is non-critical
+      });
+    }
 
     // Developer Platform: Dispatch tool.completed webhook (fire-and-forget)
     dispatchToolCompletedWebhook({
@@ -856,14 +898,14 @@ export async function executeJsonFunction(
 
     // 🔍 E2E TRACE: Tool execution failed
     log.error(
-      { 
-        fn, 
+      {
+        fn,
         args: truncateForLog(JSON.stringify(args), 200),
         error: String(err),
         durationMs,
         sessionId,
         trace: 'E2E_TOOL_FAILED',
-      }, 
+      },
       `🔍 E2E TRACE [TOOL FAILED] ${fn} after ${durationMs}ms: ${String(err).slice(0, 100)}`
     );
 
@@ -927,7 +969,6 @@ export async function executeJsonFunction(
         selectionMethod: ctx.semanticPrediction ? 'semantic' : 'direct',
         confidence: ctx.semanticPrediction?.confidence,
       });
-
     }
 
     // Timing-aware tracking: Mark tool as complete even on failure (Phase 3 BTH)
@@ -1020,10 +1061,7 @@ async function routeToTool(
   // Return null to pass through to LLM without tool execution
   // ========================================
   if (fnLower === '__conversation__' || fnLower === 'conversation') {
-    log.debug(
-      { query: args.query },
-      '💬 Conversation pseudo-tool - passing through to LLM'
-    );
+    log.debug({ query: args.query }, '💬 Conversation pseudo-tool - passing through to LLM');
     // Return null to signal "no tool result, let LLM handle this"
     // The conversation flow will continue naturally
     return null;
@@ -1668,25 +1706,25 @@ async function routeToTool(
         // that the IP geolocation service returned garbage than the user is there.
         // Also catch other suspicious patterns that indicate bad geo data.
         const suspiciousPatterns = [
-          /^current$/i,           // "Current" as a city name
-          /^unknown$/i,           // "Unknown" city
-          /^private$/i,           // "Private" or similar
-          /^reserved$/i,          // Reserved IP block
+          /^current$/i, // "Current" as a city name
+          /^unknown$/i, // "Unknown" city
+          /^private$/i, // "Private" or similar
+          /^reserved$/i, // Reserved IP block
           /^\d+\.\d+\.\d+\.\d+$/, // IP address as city name (bad data)
-          /^localhost$/i,         // Localhost
-          /^null$/i,              // Literal "null"
+          /^localhost$/i, // Localhost
+          /^null$/i, // Literal "null"
         ];
-        
+
         const cityLower = ctx.userLocation.city.toLowerCase().trim();
-        const isSuspicious = suspiciousPatterns.some(pattern => pattern.test(cityLower));
-        
+        const isSuspicious = suspiciousPatterns.some((pattern) => pattern.test(cityLower));
+
         if (isSuspicious) {
           log.warn(
-            { 
-              trace: 'E2E_WEATHER_SUSPICIOUS_CITY', 
-              city: ctx.userLocation.city, 
+            {
+              trace: 'E2E_WEATHER_SUSPICIOUS_CITY',
+              city: ctx.userLocation.city,
               region: ctx.userLocation.regionCode,
-              userId: ctx.userId 
+              userId: ctx.userId,
             },
             `🔍 E2E TRACE [WEATHER] ⚠️ SUSPICIOUS CITY detected: "${ctx.userLocation.city}" - ignoring IP geolocation`
           );
@@ -3272,7 +3310,9 @@ async function routeToTool(
 
   // Also output to stderr for maximum visibility in production logs
   process.stderr.write(`\n⚠️ UNKNOWN TOOL: "${fn}" with args: ${JSON.stringify(args)}\n`);
-  process.stderr.write(`   User: ${ctx.userId || 'unknown'}, Persona: ${ctx.personaId || 'unknown'}\n`);
+  process.stderr.write(
+    `   User: ${ctx.userId || 'unknown'}, Persona: ${ctx.personaId || 'unknown'}\n`
+  );
   process.stderr.write(`   → If this is a valid tool, add route in json-function-executor.ts\n\n`);
 
   // Return a human-friendly response that can be spoken by TTS
@@ -3291,6 +3331,81 @@ export async function parseAndExecuteAll(
   text: string,
   ctx: ToolExecutionContext = {}
 ): Promise<FunctionExecutionResult[]> {
+  // Pre-Act: Check for reasoning + plan format (upfront planning)
+  if (USE_PREACT && containsPreActPlan(text)) {
+    const preActPlan = parsePreActPlan(text);
+
+    if (preActPlan) {
+      log.info(
+        {
+          format: preActPlan.format,
+          confidence: preActPlan.confidence,
+          taskCount: preActPlan.plan.tasks.length,
+          reasoningLength: preActPlan.reasoning.length,
+          sessionId: ctx.sessionId,
+        },
+        '🧠 Pre-Act plan detected with reasoning'
+      );
+
+      // Log the reasoning for observability (helps debug decision-making)
+      if (preActPlan.reasoning.length > 0) {
+        log.debug(
+          { reasoning: preActPlan.reasoning.slice(0, 200), sessionId: ctx.sessionId },
+          'Pre-Act reasoning'
+        );
+      }
+
+      // Execute the plan using LLMCompiler
+      const compilerResult = await executeLLMCompilerPlan(preActPlan.plan, {
+        userId: ctx.userId,
+        sessionId: ctx.sessionId,
+        personaId: ctx.personaId,
+        publisherId: ctx.publisherId,
+        inputText: ctx.inputText,
+      });
+
+      return compilerResult.taskResults.map((tr) => ({
+        success: tr.success,
+        fn: tr.fn,
+        args: {},
+        result: tr.result,
+        error: tr.error,
+        durationMs: tr.durationMs,
+      }));
+    }
+  }
+
+  // LLMCompiler: Check for DAG format for parallel execution
+  if (USE_LLMCOMPILER && containsLLMCompilerPlan(text)) {
+    const plan = parseLLMCompilerPlan(text);
+
+    if (plan && plan.tasks.length > 1) {
+      log.info(
+        { taskCount: plan.tasks.length, sessionId: ctx.sessionId },
+        '🔀 Using LLMCompiler parallel execution'
+      );
+
+      const compilerResult = await executeLLMCompilerPlan(plan, {
+        userId: ctx.userId,
+        sessionId: ctx.sessionId,
+        personaId: ctx.personaId,
+        publisherId: ctx.publisherId,
+        inputText: ctx.inputText,
+      });
+
+      // Convert to FunctionExecutionResult format for compatibility
+      return compilerResult.taskResults.map((tr) => ({
+        success: tr.success,
+        fn: tr.fn,
+        args: {},
+        result: tr.result,
+        error: tr.error,
+        durationMs: tr.durationMs,
+      }));
+    }
+  }
+
+  // Standard sequential execution (fallback)
   const calls = extractAllJsonFunctionCalls(text);
   const results: FunctionExecutionResult[] = [];
 
@@ -3306,9 +3421,21 @@ export async function parseAndExecuteAll(
  * Strip JSON function calls from text (for TTS)
  */
 export function stripJsonFunctionCalls(text: string): string {
-  const calls = extractAllJsonFunctionCalls(text);
-
   let cleaned = text;
+
+  // Strip Pre-Act format first (includes reasoning + plan)
+  if (USE_PREACT && containsPreActPlan(text)) {
+    const { cleanText } = stripPreActFormat(cleaned);
+    cleaned = cleanText;
+  }
+
+  // Strip LLMCompiler DAG format (if present)
+  if (USE_LLMCOMPILER && containsLLMCompilerPlan(cleaned)) {
+    cleaned = stripLLMCompilerPlan(cleaned);
+  }
+
+  // Strip individual JSON function calls
+  const calls = extractAllJsonFunctionCalls(cleaned);
   for (const call of calls) {
     cleaned = cleaned.replace(call.raw, '');
   }

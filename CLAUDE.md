@@ -1406,6 +1406,51 @@ User: "Help me process grief"
 
 No manual wiring needed - the semantic router handles discovery.
 
+### LLMCompiler (Parallel Function Calling)
+
+Based on **ICML 2024 research**, LLMCompiler enables parallel tool execution with dependency tracking. Results: **3.7x latency reduction**, **6.7x cost savings**.
+
+#### Enable LLMCompiler
+
+```bash
+USE_LLMCOMPILER=true pnpm dev
+```
+
+#### How It Works
+
+Instead of sequential `{"fn":"tool","args":{}}` calls, Gemini outputs a DAG:
+
+```json
+[
+  {"id":"t1","fn":"getWeather","args":{"city":"NYC"},"dependsOn":[]},
+  {"id":"t2","fn":"playMusic","args":{"genre":"jazz"},"dependsOn":[]},
+  {"id":"t3","fn":"planDay","args":{"weather":"$t1"},"dependsOn":["t1"]}
+]
+```
+
+- **Batch 1:** `t1` and `t2` execute in parallel (no dependencies)
+- **Batch 2:** `t3` executes after `t1` (uses `$t1` as variable substitution)
+
+#### Key Files
+
+| File | Purpose |
+|------|---------|
+| `src/agents/shared/llm-compiler/planner.ts` | Plan parsing, DAG validation |
+| `src/agents/shared/llm-compiler/executor.ts` | Parallel execution via `ParallelExecutor` |
+| `src/agents/shared/llm-compiler/joiner.ts` | Result aggregation |
+| `src/personas/bundles/shared/function-calling-base.md` | LLM prompt with DAG format |
+
+#### Debugging LLMCompiler
+
+```bash
+# Watch for these logs:
+🔀 LLMCompiler parallel execution  # Good - DAG detected
+⚡ Executing batch 1/2            # Good - parallel batch running
+📊 Parallelism ratio: 2.5         # Higher = more parallel
+```
+
+See `src/agents/shared/CLAUDE.md` for full documentation.
+
 ## Critical Rules
 
 ### Never Do
@@ -1470,6 +1515,39 @@ When naming TypeScript modules, use consistent suffixes based on the module's re
 - **Don't mix patterns**: A module should be either a service OR a manager, not both
 - **Same name, different layers is OK**: `utils/rate-limiter.ts` (generic) and `tools/rate-limiter.ts` (specialized) can coexist
 - **Apply to new files only**: Don't mass-rename existing files (too risky)
+
+## Naming Conventions (Clean Architecture)
+
+**Use clear, descriptive names instead of acronyms or version numbers.**
+
+| Wrong | Right | Why |
+|-------|-------|-----|
+| `ftis-classifier-v2.ts` | `tool-classifier.ts` | Clear function, no acronym |
+| `ftis-hybrid-router.ts` | `tool-router.ts` | Describes what it routes |
+| `ftis-calibration.ts` | `classifier-calibration.ts` | Clear relationship |
+| `ftis-decision-boundary.ts` | `classifier-boundary.ts` | Clear relationship |
+| `bth-service.ts` | `better-than-human-service.ts` | No acronyms |
+
+### Tool Routing Components (Simplified Jan 2026)
+
+Tool routing now uses a simple 2-layer architecture:
+1. **Semantic Router** - Pre-filters tools by embedding similarity (<30ms)
+2. **LLM Native Function Calling** - OpenAI/Gemini selects from filtered tools
+
+| File | Purpose |
+|------|---------|
+| `orchestrator/tool-orchestrator.ts` | Main tool selection API |
+| `orchestrator/voice-agent-integration.ts` | Voice agent integration |
+| `semantic-router/matcher.ts` | Semantic matching algorithm |
+| `semantic-router/registry.ts` | Tool registration |
+| `builder.ts` | Tool factory |
+
+### Naming Rules
+
+1. **No acronyms in file names** - Use full descriptive names
+2. **No version numbers in names** - Use semantic versioning in code, not file names
+3. **Function over implementation** - Name by what it does, not how (`tool-classifier` not `onnx-classifier`)
+4. **Logger modules can use short names** - `createLogger({ module: 'tool-router' })` is fine
 
 ## Architecture Layers
 
