@@ -137,6 +137,7 @@ COPY apps/cli/src/ ./apps/cli/src/
 # Copy tool manifest/embeddings build scripts
 COPY scripts/build-tool-manifest.ts ./scripts/
 COPY scripts/build-tool-embeddings.ts ./scripts/
+COPY scripts/generate-tool-tiers.js ./scripts/
 
 # Build TypeScript + Bundle Agent + CLI + Tool Artifacts
 # - Agent bundle: 2441 modules → 1 file (eliminates 30-120s module loading)
