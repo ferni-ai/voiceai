@@ -255,6 +255,81 @@ async function handleMemoryAPI(url: string, res: ServerResponse): Promise<void> 
       return;
     }
 
+    if (url === '/api/memory/health') {
+      // Memory system health check - verifies all components
+      const components: Record<string, 'up' | 'down' | 'degraded'> = {
+        unifiedMemoryService: 'down',
+        vectorStore: 'down',
+        deepExtractionWorker: 'down',
+        firestore: 'down',
+      };
+
+      try {
+        // Check unified memory service
+        const { getUnifiedMemoryService } = await import(
+          '../../services/unified-memory-service.js'
+        );
+        if (getUnifiedMemoryService()) {
+          components.unifiedMemoryService = 'up';
+        }
+      } catch {
+        // Service not available
+      }
+
+      try {
+        // Check vector store
+        const { getFirestoreVectorStore } = await import(
+          '../../memory/firestore-vector-store/index.js'
+        );
+        const vectorStore = getFirestoreVectorStore();
+        if (vectorStore) {
+          const stats = await vectorStore.getStats();
+          components.vectorStore = stats.usingFallback ? 'degraded' : 'up';
+        }
+      } catch {
+        // Vector store not available
+      }
+
+      try {
+        // Check deep extraction worker
+        const { getDeepExtractionWorker } = await import(
+          '../../memory/dynamic/deep-extraction-worker.js'
+        );
+        const worker = getDeepExtractionWorker();
+        components.deepExtractionWorker = worker.isRunning() ? 'up' : 'down';
+      } catch {
+        // Worker not available
+      }
+
+      try {
+        // Check Firestore connection
+        const { getFirestoreDb } = await import('../../utils/firestore-utils.js');
+        const db = getFirestoreDb();
+        if (db) {
+          await db.collection('bogle_users').limit(1).get();
+          components.firestore = 'up';
+        }
+      } catch {
+        // Firestore not available
+      }
+
+      // Determine overall status
+      const componentStatuses = Object.values(components);
+      const allUp = componentStatuses.every((s) => s === 'up');
+      const anyDown = componentStatuses.some((s) => s === 'down');
+      const status = allUp ? 'healthy' : anyDown ? 'unhealthy' : 'degraded';
+
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(
+        JSON.stringify({
+          status,
+          components,
+          timestamp: new Date().toISOString(),
+        })
+      );
+      return;
+    }
+
     // Unknown endpoint
     res.writeHead(404, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ error: 'Unknown memory endpoint' }));
