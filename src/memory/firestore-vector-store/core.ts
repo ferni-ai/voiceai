@@ -285,17 +285,22 @@ export class FirestoreVectorStore implements VectorStoreContract {
     await this.ensureInitialized();
 
     let { embedding } = doc;
+    let needsEmbedding = false;
+
     if (!embedding) {
       try {
         embedding = await embed(doc.text);
       } catch (error) {
-        log.warn({ docId: doc.id, error: String(error) }, 'Failed to generate embedding');
-        return;
+        log.warn({ docId: doc.id, error: String(error) }, 'Failed to generate embedding - storing without embedding for later retry');
+        needsEmbedding = true;
+        // Continue to store document without embedding rather than dropping it
       }
     }
 
     if (this.useFallback || !this.db) {
-      this.fallbackCache.add(doc.id, doc, embedding);
+      if (embedding) {
+        this.fallbackCache.add(doc.id, doc, embedding);
+      }
       return;
     }
 
@@ -303,18 +308,22 @@ export class FirestoreVectorStore implements VectorStoreContract {
       const docRef = this.db.collection(this.COLLECTION_NAME).doc(doc.id);
       const { FieldValue } = await import('@google-cloud/firestore');
 
-      await docRef.set(
-        removeUndefined({
-          text: doc.text,
-          embedding: FieldValue.vector(embedding),
-          metadata: doc.metadata,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        })
-      );
+      // Store document even without embedding - mark for later retry
+      const docData = removeUndefined({
+        text: doc.text,
+        embedding: embedding ? FieldValue.vector(embedding) : null,
+        metadata: doc.metadata,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        needsEmbedding, // Flag for background job to retry embedding generation
+      });
+
+      await docRef.set(docData);
     } catch (error) {
       log.error({ docId: doc.id, error: String(error) }, 'Failed to add document');
-      this.fallbackCache.add(doc.id, doc, embedding);
+      if (embedding) {
+        this.fallbackCache.add(doc.id, doc, embedding);
+      }
     }
   }
 
@@ -325,6 +334,12 @@ export class FirestoreVectorStore implements VectorStoreContract {
     const needsEmbedding = docs.filter((d) => !d.embedding);
     const hasEmbedding = docs.filter((d) => d.embedding);
 
+    // First, always store docs that already have embeddings (don't lose them!)
+    for (const doc of hasEmbedding) {
+      await this.addDocument(doc);
+    }
+
+    // Then try batch embedding for the rest
     if (needsEmbedding.length > 0) {
       try {
         const texts = needsEmbedding.map((d) => d.text);
@@ -332,18 +347,23 @@ export class FirestoreVectorStore implements VectorStoreContract {
         for (let i = 0; i < needsEmbedding.length; i++) {
           needsEmbedding[i].embedding = embeddings[i];
         }
+        // Store newly embedded docs
+        for (const doc of needsEmbedding) {
+          await this.addDocument(doc);
+        }
       } catch (error) {
-        log.warn({ error: String(error) }, 'Batch embedding failed');
-        return;
+        log.warn(
+          { error: String(error), count: needsEmbedding.length },
+          'Batch embedding failed - storing docs without embeddings for retry'
+        );
+        // Store without embeddings for later retry (addDocument handles this)
+        for (const doc of needsEmbedding) {
+          await this.addDocument(doc);
+        }
       }
     }
 
-    const allDocs = [...needsEmbedding, ...hasEmbedding];
-    for (const doc of allDocs) {
-      await this.addDocument(doc);
-    }
-
-    log.info({ count: allDocs.length }, 'Added documents to vector store');
+    log.info({ count: docs.length }, 'Added documents to vector store');
   }
 
   /**
@@ -450,15 +470,26 @@ export class FirestoreVectorStore implements VectorStoreContract {
     }
 
     // Check search cache first (exact or fuzzy match)
-    const cachedResults = this.searchCache.get(query, queryEmbedding, options?.filter, { topK, minScore });
+    const cachedResults = this.searchCache.get(query, queryEmbedding, options?.filter, {
+      topK,
+      minScore,
+    });
     if (cachedResults) {
       return cachedResults;
     }
 
     if (this.useFallback || !this.db) {
-      const fallbackResults = this.fallbackCache.search(queryEmbedding, topK, options?.filter, minScore);
+      const fallbackResults = this.fallbackCache.search(
+        queryEmbedding,
+        topK,
+        options?.filter,
+        minScore
+      );
       // Cache fallback results too
-      this.searchCache.set(query, queryEmbedding, fallbackResults, options?.filter, { topK, minScore });
+      this.searchCache.set(query, queryEmbedding, fallbackResults, options?.filter, {
+        topK,
+        minScore,
+      });
       return fallbackResults;
     }
 
@@ -547,8 +578,16 @@ export class FirestoreVectorStore implements VectorStoreContract {
       log.warn({ error: String(error) }, 'Firestore search failed, using fallback');
     }
 
-    const fallbackResults = this.fallbackCache.search(queryEmbedding, topK, options?.filter, minScore);
-    this.searchCache.set(query, queryEmbedding, fallbackResults, options?.filter, { topK, minScore });
+    const fallbackResults = this.fallbackCache.search(
+      queryEmbedding,
+      topK,
+      options?.filter,
+      minScore
+    );
+    this.searchCache.set(query, queryEmbedding, fallbackResults, options?.filter, {
+      topK,
+      minScore,
+    });
     return fallbackResults;
   }
 
@@ -570,14 +609,25 @@ export class FirestoreVectorStore implements VectorStoreContract {
 
     // Check cache (uses embedding-based fuzzy matching since no query text)
     const cacheKey = '[embedding]'; // Placeholder - fuzzy matching uses embedding
-    const cachedResults = this.searchCache.get(cacheKey, queryEmbedding, options?.filter, { topK, minScore });
+    const cachedResults = this.searchCache.get(cacheKey, queryEmbedding, options?.filter, {
+      topK,
+      minScore,
+    });
     if (cachedResults) {
       return cachedResults;
     }
 
     if (this.useFallback || !this.db) {
-      const fallbackResults = this.fallbackCache.search(queryEmbedding, topK, options?.filter, minScore);
-      this.searchCache.set(cacheKey, queryEmbedding, fallbackResults, options?.filter, { topK, minScore });
+      const fallbackResults = this.fallbackCache.search(
+        queryEmbedding,
+        topK,
+        options?.filter,
+        minScore
+      );
+      this.searchCache.set(cacheKey, queryEmbedding, fallbackResults, options?.filter, {
+        topK,
+        minScore,
+      });
       return fallbackResults;
     }
 
@@ -639,15 +689,26 @@ export class FirestoreVectorStore implements VectorStoreContract {
           score: topKResult.similarities[i],
         }));
 
-        this.searchCache.set(cacheKey, queryEmbedding, results, options?.filter, { topK, minScore });
+        this.searchCache.set(cacheKey, queryEmbedding, results, options?.filter, {
+          topK,
+          minScore,
+        });
         return results;
       }
     } catch (error) {
       log.warn({ error: String(error) }, 'searchByEmbedding failed');
     }
 
-    const fallbackResults = this.fallbackCache.search(queryEmbedding, topK, options?.filter, minScore);
-    this.searchCache.set(cacheKey, queryEmbedding, fallbackResults, options?.filter, { topK, minScore });
+    const fallbackResults = this.fallbackCache.search(
+      queryEmbedding,
+      topK,
+      options?.filter,
+      minScore
+    );
+    this.searchCache.set(cacheKey, queryEmbedding, fallbackResults, options?.filter, {
+      topK,
+      minScore,
+    });
     return fallbackResults;
   }
 

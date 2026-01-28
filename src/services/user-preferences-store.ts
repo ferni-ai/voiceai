@@ -8,7 +8,7 @@
  */
 
 import { createLogger } from '../utils/safe-logger.js';
-import { getFirestoreDb } from '../utils/firestore-utils.js';
+import { getFirestoreDb, toSafeDate } from '../utils/firestore-utils.js';
 import type { ExtractedPreference } from '../intelligence/tracking/preferences.js';
 
 const log = createLogger({ module: 'UserPreferencesStore' });
@@ -150,7 +150,7 @@ export async function getUserPreferences(userId: string): Promise<UserPreference
     const profile: UserPreferencesProfile = {
       userId,
       preferences: new Map(Object.entries(preferences)),
-      lastUpdated: (data.lastUpdated as { toDate(): Date })?.toDate() || new Date(),
+      lastUpdated: toSafeDate(data.lastUpdated),
     };
 
     // Cache for future requests

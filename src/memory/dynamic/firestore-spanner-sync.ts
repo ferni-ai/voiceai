@@ -17,7 +17,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
-import { getFirestoreDb } from '../../utils/firestore-utils.js';
+import { getFirestoreDb, toSafeDate } from '../../utils/firestore-utils.js';
 
 const log = createLogger({ module: 'FirestoreSpannerSync' });
 
@@ -146,7 +146,13 @@ async function syncEntityToSpanner(entity: SyncableEntity): Promise<boolean> {
       entityId: `entity_${entity.userId}_${entity.id}`,
       userId: entity.userId,
       name: entity.name,
-      entityType: entity.type as 'person' | 'place' | 'organization' | 'event' | 'concept' | 'thing',
+      entityType: entity.type as
+        | 'person'
+        | 'place'
+        | 'organization'
+        | 'event'
+        | 'concept'
+        | 'thing',
       attributes: {},
       importance: entity.importance,
       firstMentioned: extractedDate,
@@ -163,7 +169,7 @@ async function syncEntityToSpanner(entity: SyncableEntity): Promise<boolean> {
 async function syncFactToSpanner(fact: SyncableFact): Promise<boolean> {
   try {
     const { insertFact } = await import('../spanner-graph/client.js');
-    
+
     await insertFact({
       factId: `fact_${fact.userId}_${fact.id}`,
       userId: fact.userId,
@@ -185,15 +191,11 @@ async function syncFactToSpanner(fact: SyncableFact): Promise<boolean> {
 async function syncRelationshipToSpanner(rel: SyncableRelationship): Promise<boolean> {
   try {
     const { insertRelationship, getEntitiesByUser } = await import('../spanner-graph/client.js');
-    
+
     // Find source and target entities
     const entities = await getEntitiesByUser(rel.userId);
-    const sourceEntity = entities.find(
-      (e) => e.name.toLowerCase() === rel.source.toLowerCase()
-    );
-    const targetEntity = entities.find(
-      (e) => e.name.toLowerCase() === rel.target.toLowerCase()
-    );
+    const sourceEntity = entities.find((e) => e.name.toLowerCase() === rel.source.toLowerCase());
+    const targetEntity = entities.find((e) => e.name.toLowerCase() === rel.target.toLowerCase());
 
     if (!sourceEntity || !targetEntity) {
       log.debug(
@@ -245,7 +247,7 @@ async function getUnsyncedEntities(limit: number): Promise<SyncableEntity[]> {
       // Extract userId from path: bogle_users/{userId}/dynamic_entities/{docId}
       const pathParts = doc.ref.path.split('/');
       const userId = pathParts[1];
-      
+
       entities.push({
         id: doc.id,
         userId,
@@ -259,7 +261,11 @@ async function getUnsyncedEntities(limit: number): Promise<SyncableEntity[]> {
     }
   } catch (error) {
     // If index doesn't exist or other query error, fallback to no filter
-    log.debug({ error: String(error) }, 'Collection group query failed, entities may need manual sync');
+    // NOTE: This is often caused by missing composite index for extractedAt + syncedToSpanner
+    log.warn(
+      { error: String(error) },
+      'Collection group query failed - check Firestore composite index exists for dynamic_entities'
+    );
   }
 
   return entities;
@@ -285,7 +291,7 @@ async function getUnsyncedFacts(limit: number): Promise<SyncableFact[]> {
       const data = doc.data();
       const pathParts = doc.ref.path.split('/');
       const userId = pathParts[1];
-      
+
       facts.push({
         id: doc.id,
         userId,
@@ -298,7 +304,7 @@ async function getUnsyncedFacts(limit: number): Promise<SyncableFact[]> {
       });
     }
   } catch (error) {
-    log.debug({ error: String(error) }, 'Collection group query failed for facts');
+    log.warn({ error: String(error) }, 'Collection group query failed for facts - check Firestore composite index');
   }
 
   return facts;
@@ -324,7 +330,7 @@ async function getUnsyncedRelationships(limit: number): Promise<SyncableRelation
       const data = doc.data();
       const pathParts = doc.ref.path.split('/');
       const userId = pathParts[1];
-      
+
       relationships.push({
         id: doc.id,
         userId,
@@ -336,7 +342,7 @@ async function getUnsyncedRelationships(limit: number): Promise<SyncableRelation
       });
     }
   } catch (error) {
-    log.debug({ error: String(error) }, 'Collection group query failed for relationships');
+    log.warn({ error: String(error) }, 'Collection group query failed for relationships - check Firestore composite index');
   }
 
   return relationships;
@@ -351,15 +357,10 @@ async function markAsSynced(
   if (!db) return;
 
   try {
-    await db
-      .collection('bogle_users')
-      .doc(userId)
-      .collection(collection)
-      .doc(docId)
-      .update({
-        syncedToSpanner: true,
-        syncedAt: new Date().toISOString(),
-      });
+    await db.collection('bogle_users').doc(userId).collection(collection).doc(docId).update({
+      syncedToSpanner: true,
+      syncedAt: new Date().toISOString(),
+    });
   } catch (error) {
     log.warn({ error: String(error), docId }, 'Failed to mark document as synced');
   }
@@ -524,7 +525,216 @@ export function isSyncServiceRunning(): boolean {
 }
 
 // ============================================================================
+// REAL-TIME SYNC FOR HIGH-IMPORTANCE MEMORIES
+// ============================================================================
+
+/**
+ * Threshold for high-importance immediate sync
+ */
+const HIGH_IMPORTANCE_THRESHOLD = 0.75;
+
+/**
+ * Threshold for medium-importance priority sync
+ */
+const MEDIUM_IMPORTANCE_THRESHOLD = 0.5;
+
+/**
+ * Sync a single memory to Spanner immediately
+ *
+ * Use this for high-importance memories that should be available
+ * in graph queries right away instead of waiting for batch sync.
+ *
+ * @param memory The memory to sync
+ * @returns true if sync was successful
+ */
+export async function syncMemoryImmediately(memory: {
+  id: string;
+  userId: string;
+  content: string;
+  type: string;
+  emotionalWeight?: number;
+  strength?: number;
+  peopleMentioned?: string[];
+  topics?: string[];
+  createdAt: Date;
+}): Promise<boolean> {
+  if (!(await isSpannerAvailable())) {
+    log.debug('Spanner not available for immediate sync');
+    return false;
+  }
+
+  try {
+    const importance = memory.emotionalWeight || memory.strength || 0.5;
+    log.debug(
+      { memoryId: memory.id, importance },
+      'Syncing memory to Spanner immediately'
+    );
+
+    // Sync entities from people mentioned
+    for (const person of memory.peopleMentioned || []) {
+      await syncEntityToSpanner({
+        id: `${memory.id}_${person}`,
+        userId: memory.userId,
+        name: person,
+        type: 'person',
+        importance,
+        mentionCount: 1,
+        extractedAt: memory.createdAt.toISOString(),
+        lastContext: memory.content.substring(0, 200),
+      });
+    }
+
+    // Sync as fact if it has topics
+    for (const topic of memory.topics || []) {
+      await syncFactToSpanner({
+        id: `${memory.id}_${topic}`,
+        userId: memory.userId,
+        entityName: topic,
+        factType: memory.type === 'fact' ? 'attribute' : 'state',
+        key: topic,
+        value: memory.content.substring(0, 500),
+        confidence: importance,
+        extractedAt: memory.createdAt.toISOString(),
+      });
+    }
+
+    log.info({ memoryId: memory.id }, 'Immediate sync to Spanner completed');
+    return true;
+  } catch (error) {
+    log.warn({ error: String(error), memoryId: memory.id }, 'Immediate sync to Spanner failed');
+    return false;
+  }
+}
+
+/**
+ * Determine if a memory should be synced immediately
+ */
+export function shouldSyncImmediately(memory: {
+  emotionalWeight?: number;
+  strength?: number;
+  peopleMentioned?: string[];
+  type?: string;
+}): boolean {
+  // Check importance threshold
+  const importance = memory.emotionalWeight || memory.strength || 0;
+  if (importance >= HIGH_IMPORTANCE_THRESHOLD) {
+    return true;
+  }
+
+  // Check if it mentions important people (3+ is significant network)
+  if ((memory.peopleMentioned?.length || 0) >= 3) {
+    return true;
+  }
+
+  // Check for specific types that benefit from graph queries
+  const graphBenefitTypes = ['relationship', 'milestone', 'commitment', 'breakthrough'];
+  if (memory.type && graphBenefitTypes.includes(memory.type)) {
+    return true;
+  }
+
+  return false;
+}
+
+/**
+ * Queue a memory for priority sync (not immediate, but faster than 6h)
+ * These get synced on next batch or within 30 minutes
+ */
+const prioritySyncQueue: Map<string, Date> = new Map();
+
+export function queueForPrioritySync(memoryId: string): void {
+  prioritySyncQueue.set(memoryId, new Date());
+  log.debug({ memoryId, queueSize: prioritySyncQueue.size }, 'Queued for priority sync');
+}
+
+export function getPrioritySyncQueue(): Map<string, Date> {
+  return new Map(prioritySyncQueue);
+}
+
+export function clearPrioritySyncQueue(): void {
+  prioritySyncQueue.clear();
+}
+
+/**
+ * Process priority sync queue (call this more frequently than batch sync)
+ */
+export async function processPrioritySyncQueue(): Promise<number> {
+  if (prioritySyncQueue.size === 0) return 0;
+
+  if (!(await isSpannerAvailable())) {
+    log.debug('Spanner not available for priority sync');
+    return 0;
+  }
+
+  const startTime = Date.now();
+  const memoryIds = Array.from(prioritySyncQueue.keys());
+  let synced = 0;
+
+  // Load and sync memories from Firestore
+  try {
+    const db = getFirestoreDb();
+    if (!db) {
+      log.warn('Firestore not available for priority sync');
+      return 0;
+    }
+    
+    for (const memoryId of memoryIds.slice(0, 50)) { // Process up to 50 at a time
+      try {
+        // Query the memory from the unified memories collection
+        const memorySnapshot = await db
+          .collectionGroup('unified_memories')
+          .where('id', '==', memoryId)
+          .limit(1)
+          .get();
+
+        if (!memorySnapshot.empty) {
+          const memoryDoc = memorySnapshot.docs[0];
+          const data = memoryDoc.data();
+          
+          const syncSuccess = await syncMemoryImmediately({
+            id: data.id,
+            userId: data.userId,
+            content: data.content,
+            type: data.type,
+            emotionalWeight: data.emotionalWeight,
+            strength: data.strength,
+            peopleMentioned: data.peopleMentioned,
+            topics: data.topics,
+            createdAt: toSafeDate(data.createdAt),
+          });
+
+          if (syncSuccess) {
+            synced++;
+            prioritySyncQueue.delete(memoryId);
+          }
+        } else {
+          // Memory not found, remove from queue
+          prioritySyncQueue.delete(memoryId);
+        }
+      } catch (error) {
+        log.warn({ error: String(error), memoryId }, 'Failed to process priority sync');
+      }
+    }
+  } catch (error) {
+    log.warn({ error: String(error) }, 'Failed to process priority sync queue');
+  }
+
+  log.info(
+    { synced, remaining: prioritySyncQueue.size, durationMs: Date.now() - startTime },
+    'Processed priority sync queue'
+  );
+
+  return synced;
+}
+
+// ============================================================================
 // EXPORTS
 // ============================================================================
 
-export type { SyncConfig, SyncResult, SyncStats, SyncableEntity, SyncableFact, SyncableRelationship };
+export type {
+  SyncConfig,
+  SyncResult,
+  SyncStats,
+  SyncableEntity,
+  SyncableFact,
+  SyncableRelationship,
+};

@@ -7,7 +7,13 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { removeUndefined, deepRemoveUndefined, cleanForFirestore } from '../firestore-utils.js';
+import {
+  removeUndefined,
+  deepRemoveUndefined,
+  cleanForFirestore,
+  toSafeDate,
+  toSafeDateOptional,
+} from '../firestore-utils.js';
 
 describe('Firestore Utils', () => {
   describe('removeUndefined', () => {
@@ -78,7 +84,10 @@ describe('Firestore Utils', () => {
 
     it('should handle arrays', () => {
       const result = deepRemoveUndefined({
-        items: [{ id: 1, value: undefined }, { id: 2, value: 'test' }],
+        items: [
+          { id: 1, value: undefined },
+          { id: 2, value: 'test' },
+        ],
       });
 
       expect(result).toEqual({
@@ -193,6 +202,96 @@ describe('Firestore Utils', () => {
         },
         array: [{ id: 1, date: '2024-03-01T00:00:00.000Z' }, { id: 2 }],
       });
+    });
+  });
+
+  describe('toSafeDate', () => {
+    it('should return Date unchanged', () => {
+      const date = new Date('2024-01-15T10:30:00.000Z');
+      expect(toSafeDate(date)).toEqual(date);
+    });
+
+    it('should handle Firestore Timestamp with toDate method', () => {
+      const mockTimestamp = {
+        toDate: () => new Date('2024-01-15T10:30:00.000Z'),
+        seconds: 1705314600,
+        nanoseconds: 0,
+      };
+      expect(toSafeDate(mockTimestamp)).toEqual(new Date('2024-01-15T10:30:00.000Z'));
+    });
+
+    it('should handle serialized Timestamp with seconds (toJSON format)', () => {
+      const serialized = { seconds: 1705314600, nanoseconds: 0 };
+      const result = toSafeDate(serialized);
+      expect(result.getTime()).toBe(1705314600000);
+    });
+
+    it('should handle serialized Timestamp with _seconds (JSON.stringify format)', () => {
+      const serialized = { _seconds: 1705314600, _nanoseconds: 0 };
+      const result = toSafeDate(serialized);
+      expect(result.getTime()).toBe(1705314600000);
+    });
+
+    it('should handle nanoseconds precision', () => {
+      const serialized = { _seconds: 1705314600, _nanoseconds: 500000000 };
+      const result = toSafeDate(serialized);
+      expect(result.getTime()).toBe(1705314600500);
+    });
+
+    it('should handle ISO string', () => {
+      const result = toSafeDate('2024-01-15T10:30:00.000Z');
+      expect(result).toEqual(new Date('2024-01-15T10:30:00.000Z'));
+    });
+
+    it('should handle numeric timestamp', () => {
+      const result = toSafeDate(1705314600000);
+      expect(result.getTime()).toBe(1705314600000);
+    });
+
+    it('should return fallback for null/undefined', () => {
+      const fallback = new Date('2024-01-01');
+      expect(toSafeDate(null, fallback)).toEqual(fallback);
+      expect(toSafeDate(undefined, fallback)).toEqual(fallback);
+    });
+
+    it('should return current date as default fallback', () => {
+      const before = Date.now();
+      const result = toSafeDate(null);
+      const after = Date.now();
+      expect(result.getTime()).toBeGreaterThanOrEqual(before);
+      expect(result.getTime()).toBeLessThanOrEqual(after);
+    });
+
+    it('should return fallback for invalid string', () => {
+      const fallback = new Date('2024-01-01');
+      expect(toSafeDate('not-a-date', fallback)).toEqual(fallback);
+    });
+  });
+
+  describe('toSafeDateOptional', () => {
+    it('should return undefined for null', () => {
+      expect(toSafeDateOptional(null)).toBeUndefined();
+    });
+
+    it('should return undefined for undefined', () => {
+      expect(toSafeDateOptional(undefined)).toBeUndefined();
+    });
+
+    it('should return Date for valid input', () => {
+      const date = new Date('2024-01-15');
+      expect(toSafeDateOptional(date)).toEqual(date);
+    });
+
+    it('should handle serialized Timestamp', () => {
+      const serialized = { _seconds: 1705314600, _nanoseconds: 0 };
+      const result = toSafeDateOptional(serialized);
+      expect(result).toBeDefined();
+      expect(result!.getTime()).toBe(1705314600000);
+    });
+
+    it('should handle ISO string', () => {
+      const result = toSafeDateOptional('2024-01-15T10:30:00.000Z');
+      expect(result).toEqual(new Date('2024-01-15T10:30:00.000Z'));
     });
   });
 });

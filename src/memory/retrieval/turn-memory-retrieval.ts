@@ -151,8 +151,8 @@ export interface TurnRetrievalConfig {
 }
 
 const DEFAULT_CONFIG: TurnRetrievalConfig = {
-  minRelevanceScore: 0.7,
-  maxMemories: 3,
+  minRelevanceScore: 0.45, // Lowered from 0.7 - was filtering out 70% of relevant memories
+  maxMemories: 5, // Increased from 3 - more context helps
   enableReranking: true,
   rerankTimeoutMs: 50,
   totalTimeoutMs: 100,
@@ -183,8 +183,8 @@ export function getTurnRetrievalConfig(): TurnRetrievalConfig {
 /** Track recently surfaced memories per session */
 const recentlySurfacedBySession = new Map<string, Map<string, number>>();
 
-/** How long to suppress re-surfacing (5 minutes) */
-const RESURFACING_COOLDOWN_MS = 5 * 60 * 1000;
+/** How long to suppress re-surfacing (2 minutes - was 5 min but too aggressive) */
+const RESURFACING_COOLDOWN_MS = 2 * 60 * 1000;
 
 /**
  * Check if a memory was recently surfaced

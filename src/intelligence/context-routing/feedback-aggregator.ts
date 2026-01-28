@@ -19,6 +19,7 @@ import type {
   PredictiveScore,
 } from './types.js';
 import { CacheManager } from './cache-manager.js';
+import { toSafeDate } from '../../utils/firestore-utils.js';
 import { createLogger } from '../../utils/safe-logger.js';
 
 const log = createLogger({ module: 'FeedbackAggregator' });
@@ -74,9 +75,7 @@ export class FeedbackAggregator {
   /**
    * Load builder effectiveness from Firestore.
    */
-  async loadBuilderEffectiveness(
-    builderId: string
-  ): Promise<BuilderEffectiveness | null> {
+  async loadBuilderEffectiveness(builderId: string): Promise<BuilderEffectiveness | null> {
     if (!this.firestore) {
       log.debug('No Firestore available, returning null');
       return null;
@@ -102,7 +101,7 @@ export class FeedbackAggregator {
         negativeReactions: data.negativeReactions,
         roiScore: data.roiScore,
         modeScores: data.modeScores ?? {},
-        lastUpdated: data.lastUpdated?.toDate() ?? new Date(),
+        lastUpdated: toSafeDate(data.lastUpdated),
         sampleCount: data.sampleCount,
       };
     } catch (error) {
@@ -122,9 +121,7 @@ export class FeedbackAggregator {
     }
 
     try {
-      const snapshot = await this.firestore
-        .collection(BUILDER_EFFECTIVENESS_COLLECTION)
-        .get();
+      const snapshot = await this.firestore.collection(BUILDER_EFFECTIVENESS_COLLECTION).get();
 
       for (const doc of snapshot.docs) {
         const data = doc.data();
@@ -137,7 +134,7 @@ export class FeedbackAggregator {
           negativeReactions: data.negativeReactions,
           roiScore: data.roiScore,
           modeScores: data.modeScores ?? {},
-          lastUpdated: data.lastUpdated?.toDate() ?? new Date(),
+          lastUpdated: toSafeDate(data.lastUpdated),
           sampleCount: data.sampleCount,
         });
       }
@@ -170,9 +167,7 @@ export class FeedbackAggregator {
     }
 
     try {
-      const docRef = this.firestore
-        .collection(BUILDER_EFFECTIVENESS_COLLECTION)
-        .doc(builderId);
+      const docRef = this.firestore.collection(BUILDER_EFFECTIVENESS_COLLECTION).doc(builderId);
 
       const doc = await docRef.get();
       const existing = doc.exists ? doc.data()! : null;
@@ -248,10 +243,7 @@ export class FeedbackAggregator {
     }
 
     try {
-      const doc = await this.firestore
-        .collection(USER_PREFERENCES_COLLECTION)
-        .doc(userId)
-        .get();
+      const doc = await this.firestore.collection(USER_PREFERENCES_COLLECTION).doc(userId).get();
 
       if (!doc.exists) {
         return null;
@@ -263,7 +255,7 @@ export class FeedbackAggregator {
         effectiveBuilders: data.effectiveBuilders ?? [],
         ineffectiveBuilders: data.ineffectiveBuilders ?? [],
         modePreferences: data.modePreferences ?? {},
-        updatedAt: data.updatedAt?.toDate() ?? new Date(),
+        updatedAt: toSafeDate(data.updatedAt),
       };
     } catch (error) {
       log.error({ error: String(error), userId }, 'Failed to load user preferences');
@@ -368,9 +360,8 @@ export class FeedbackAggregator {
   ): Promise<void> {
     try {
       // Dynamic import to avoid circular dependency
-      const { getSessionFeedback, aggregateBuilderMetrics } = await import(
-        '../feedback/injection-tracker.js'
-      );
+      const { getSessionFeedback, aggregateBuilderMetrics } =
+        await import('../feedback/injection-tracker.js');
 
       // Get feedback items from the session tracker
       const feedbackItems = getSessionFeedback(sessionId);
@@ -384,17 +375,13 @@ export class FeedbackAggregator {
       const metrics = aggregateBuilderMetrics(feedbackItems);
 
       for (const [, metric] of metrics) {
-        await this.updateBuilderEffectiveness(
-          metric.builderName,
-          metric.category,
-          {
-            deliveries: metric.deliveryCount,
-            alignments: metric.alignmentCount,
-            positiveReactions: metric.positiveReactionCount,
-            negativeReactions: metric.negativeReactionCount,
-            mode,
-          }
-        );
+        await this.updateBuilderEffectiveness(metric.builderName, metric.category, {
+          deliveries: metric.deliveryCount,
+          alignments: metric.alignmentCount,
+          positiveReactions: metric.positiveReactionCount,
+          negativeReactions: metric.negativeReactionCount,
+          mode,
+        });
 
         // Update user preferences based on ROI
         if (metric.deliveryCount >= 5) {
@@ -431,9 +418,7 @@ export class FeedbackAggregator {
   /**
    * Get user data for cache warming.
    */
-  async getUserDataForCache(
-    userId: string
-  ): Promise<{
+  async getUserDataForCache(userId: string): Promise<{
     scores: Map<string, PredictiveScore>;
     preferences: UserBuilderPreferences | null;
   }> {
@@ -497,9 +482,7 @@ let globalAggregator: FeedbackAggregator | null = null;
 /**
  * Get or create the global feedback aggregator.
  */
-export function getFeedbackAggregator(
-  firestore?: FirebaseFirestore.Firestore
-): FeedbackAggregator {
+export function getFeedbackAggregator(firestore?: FirebaseFirestore.Firestore): FeedbackAggregator {
   if (!globalAggregator) {
     globalAggregator = createFeedbackAggregator(firestore);
   }
@@ -510,9 +493,7 @@ export function getFeedbackAggregator(
  * Initialize the feedback aggregator with Firestore.
  * Should be called at startup.
  */
-export function initializeFeedbackAggregator(
-  firestore: FirebaseFirestore.Firestore
-): void {
+export function initializeFeedbackAggregator(firestore: FirebaseFirestore.Firestore): void {
   globalAggregator = createFeedbackAggregator(firestore);
   log.info('Initialized feedback aggregator');
 }

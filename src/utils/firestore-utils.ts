@@ -221,7 +221,11 @@ export function cleanForFirestore<T>(obj: T): T {
 
   // Preserve Firestore Timestamps - they have a toDate() method
   // This prevents converting them to plain objects with _seconds/_nanoseconds
-  if (typeof obj === 'object' && 'toDate' in obj && typeof (obj as { toDate: unknown }).toDate === 'function') {
+  if (
+    typeof obj === 'object' &&
+    'toDate' in obj &&
+    typeof (obj as { toDate: unknown }).toDate === 'function'
+  ) {
     return obj;
   }
 
@@ -254,7 +258,7 @@ export function cleanForFirestore<T>(obj: T): T {
  * - JavaScript Date objects
  * - ISO 8601 date strings
  * - Unix timestamps (number)
- * - Serialized Firestore Timestamps ({seconds, nanoseconds})
+ * - Serialized Firestore Timestamps ({seconds, nanoseconds} or {_seconds, _nanoseconds})
  *
  * @param value - The value to convert
  * @param fallback - Fallback date if conversion fails (defaults to now)
@@ -285,10 +289,16 @@ export function toSafeDate(value: unknown, fallback: Date = new Date()): Date {
     return (value as { toDate: () => Date }).toDate();
   }
 
-  // Plain object with seconds (serialized Firestore Timestamp)
-  if (typeof value === 'object' && 'seconds' in value) {
-    const { seconds } = value as { seconds: number };
-    return new Date(seconds * 1000);
+  // Plain object with seconds (serialized via .toJSON())
+  if (typeof value === 'object' && value !== null && 'seconds' in value) {
+    const obj = value as { seconds: number; nanoseconds?: number };
+    return new Date(obj.seconds * 1000 + (obj.nanoseconds ?? 0) / 1000000);
+  }
+
+  // Plain object with _seconds (serialized via JSON.stringify)
+  if (typeof value === 'object' && value !== null && '_seconds' in value) {
+    const obj = value as { _seconds: number; _nanoseconds?: number };
+    return new Date(obj._seconds * 1000 + (obj._nanoseconds ?? 0) / 1000000);
   }
 
   // ISO string or numeric timestamp
@@ -298,4 +308,26 @@ export function toSafeDate(value: unknown, fallback: Date = new Date()): Date {
   }
 
   return fallback;
+}
+
+/**
+ * Safely convert a Firestore field to a JavaScript Date, returning undefined if null/undefined.
+ *
+ * @param value - The value to convert
+ * @returns A JavaScript Date object, or undefined
+ *
+ * @example
+ * ```typescript
+ * const data = doc.data();
+ * const contact = {
+ *   ...data,
+ *   deletedAt: toSafeDateOptional(data.deletedAt), // undefined if not set
+ * };
+ * ```
+ */
+export function toSafeDateOptional(value: unknown): Date | undefined {
+  if (value === null || value === undefined) {
+    return undefined;
+  }
+  return toSafeDate(value);
 }

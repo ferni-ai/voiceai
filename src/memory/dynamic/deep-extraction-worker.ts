@@ -561,6 +561,7 @@ Return refined extraction as JSON with: entities, facts, relationships arrays:`;
           sessionId: job.sessionId,
           turnNumber: job.turnNumber,
           source: 'deep_extraction',
+          syncedToSpanner: false, // Required for L2→L3 sync
         });
       }
 
@@ -574,6 +575,7 @@ Return refined extraction as JSON with: entities, facts, relationships arrays:`;
           sessionId: job.sessionId,
           turnNumber: job.turnNumber,
           source: 'deep_extraction',
+          syncedToSpanner: false, // Required for L2→L3 sync
         });
       }
 
@@ -591,6 +593,7 @@ Return refined extraction as JSON with: entities, facts, relationships arrays:`;
           sessionId: job.sessionId,
           turnNumber: job.turnNumber,
           source: 'deep_extraction',
+          syncedToSpanner: false, // Required for L2→L3 sync
         });
       }
 

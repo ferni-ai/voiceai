@@ -17,7 +17,7 @@
 
 import admin from 'firebase-admin';
 import { getGCPProjectId } from '../../config/environment.js';
-import { removeUndefined, cleanForFirestore } from '../../utils/firestore-utils.js';
+import { removeUndefined, cleanForFirestore, toSafeDate, toSafeDateOptional } from '../../utils/firestore-utils.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import { normalizePhoneNumber, isValidPhoneNumber } from './user-identification.js';
 
@@ -222,9 +222,7 @@ export async function createSponsoredIdentity(
   // Check if phone number is already registered
   const existing = await lookupByPhone(normalizedPhone);
   if (existing.found) {
-    throw new Error(
-      `Phone number ${normalizedPhone} is already registered to another identity`
-    );
+    throw new Error(`Phone number ${normalizedPhone} is already registered to another identity`);
   }
 
   const id = `sponsored_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
@@ -294,9 +292,7 @@ export async function getSponsoredIdentity(id: string): Promise<SponsoredIdentit
 /**
  * Get all sponsored identities for a sponsor.
  */
-export async function getSponsoredIdentities(
-  sponsorUserId: string
-): Promise<SponsoredIdentity[]> {
+export async function getSponsoredIdentities(sponsorUserId: string): Promise<SponsoredIdentity[]> {
   const db = getFirestore();
   if (!db) return [];
 
@@ -351,9 +347,7 @@ export async function updateSponsoredIdentity(
     // Check if new phone is available
     const existing = await lookupByPhone(normalizedPhone);
     if (existing.found && existing.identity?.id !== id) {
-      throw new Error(
-        `Phone number ${normalizedPhone} is already registered to another identity`
-      );
+      throw new Error(`Phone number ${normalizedPhone} is already registered to another identity`);
     }
 
     // Remove old phone index
@@ -382,10 +376,7 @@ export async function updateSponsoredIdentity(
 /**
  * Revoke a sponsored identity (permanently disable).
  */
-export async function revokeSponsoredIdentity(
-  id: string,
-  sponsorUserId: string
-): Promise<boolean> {
+export async function revokeSponsoredIdentity(id: string, sponsorUserId: string): Promise<boolean> {
   const identity = await getSponsoredIdentity(id);
   if (!identity) {
     return false;
@@ -412,10 +403,7 @@ export async function revokeSponsoredIdentity(
 /**
  * Delete a sponsored identity completely.
  */
-export async function deleteSponsoredIdentity(
-  id: string,
-  sponsorUserId: string
-): Promise<boolean> {
+export async function deleteSponsoredIdentity(id: string, sponsorUserId: string): Promise<boolean> {
   const identity = await getSponsoredIdentity(id);
   if (!identity) {
     return false;
@@ -517,10 +505,7 @@ export async function lookupByPhone(phoneNumber: string): Promise<PhoneLookupRes
 /**
  * Record a call for a sponsored identity.
  */
-export async function recordCall(
-  identityId: string,
-  durationMinutes: number
-): Promise<void> {
+export async function recordCall(identityId: string, durationMinutes: number): Promise<void> {
   const identity = await getSponsoredIdentity(identityId);
   if (!identity) return;
 
@@ -549,10 +534,7 @@ export async function recordCall(
 /**
  * Mark a sponsored identity as voice enrolled.
  */
-export async function markVoiceEnrolled(
-  identityId: string,
-  voiceProfileId: string
-): Promise<void> {
+export async function markVoiceEnrolled(identityId: string, voiceProfileId: string): Promise<void> {
   const identity = await getSponsoredIdentity(identityId);
   if (!identity) {
     throw new Error(`Sponsored identity not found: ${identityId}`);
@@ -658,7 +640,12 @@ export async function createSelfRegisteredIdentity(
 export async function approveSelfRegisteredIdentity(
   identityId: string,
   sponsorUserId: string,
-  updates?: Partial<Pick<SponsoredIdentity, 'displayName' | 'relationship' | 'accessLevel' | 'allowedPersonas' | 'notes'>>
+  updates?: Partial<
+    Pick<
+      SponsoredIdentity,
+      'displayName' | 'relationship' | 'accessLevel' | 'allowedPersonas' | 'notes'
+    >
+  >
 ): Promise<SponsoredIdentity | null> {
   const identity = await getSponsoredIdentity(identityId);
   if (!identity) {
@@ -808,14 +795,14 @@ function docToIdentity(doc: admin.firestore.DocumentSnapshot): SponsoredIdentity
     allowedPersonas: data.allowedPersonas || ['*'],
     status: data.status || 'active',
     notes: data.notes,
-    createdAt: data.createdAt?.toDate() || new Date(),
-    updatedAt: data.updatedAt?.toDate() || new Date(),
-    lastCallAt: data.lastCallAt?.toDate(),
+    createdAt: toSafeDate(data.createdAt),
+    updatedAt: toSafeDate(data.updatedAt),
+    lastCallAt: toSafeDateOptional(data.lastCallAt),
     totalCalls: data.totalCalls || 0,
     totalMinutes: data.totalMinutes || 0,
     selfRegistered: data.selfRegistered,
     selfRegisteredName: data.selfRegisteredName,
-    selfRegisteredAt: data.selfRegisteredAt?.toDate(),
+    selfRegisteredAt: toSafeDateOptional(data.selfRegisteredAt),
   };
 }
 
@@ -848,9 +835,7 @@ const activeEnrollmentSessions = new Map<
  * Start voice enrollment for a sponsored identity during a phone call.
  * Returns prompts the agent should use to collect voice samples.
  */
-export async function startPhoneVoiceEnrollment(
-  identityId: string
-): Promise<{
+export async function startPhoneVoiceEnrollment(identityId: string): Promise<{
   success: boolean;
   prompts: string[];
   error?: string;
@@ -919,9 +904,8 @@ export async function recordPhoneVoiceSample(
   }
 
   // Import voice enrollment functions
-  const { addEnrollmentSample, startEnrollmentSession, completeEnrollment } = await import(
-    '../voice/voice-enrollment.js'
-  );
+  const { addEnrollmentSample, startEnrollmentSession, completeEnrollment } =
+    await import('../voice/voice-enrollment.js');
   const { saveVoiceProfile } = await import('../voice/voice-profile-store.js');
 
   // Create or get the underlying enrollment session
@@ -931,7 +915,10 @@ export async function recordPhoneVoiceSample(
 
   if (!enrollmentSession) {
     enrollmentSession = startEnrollmentSession(identityId, { requiredSamples: 3 });
-    (activeEnrollmentSessions as Map<string, unknown>).set(`session:${identityId}`, enrollmentSession);
+    (activeEnrollmentSessions as Map<string, unknown>).set(
+      `session:${identityId}`,
+      enrollmentSession
+    );
   }
 
   // Add the sample

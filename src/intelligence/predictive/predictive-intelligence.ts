@@ -33,6 +33,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
+import { toSafeDate } from '../../utils/firestore-utils.js';
 import { Firestore, FieldValue } from '@google-cloud/firestore';
 
 const log = createLogger({ module: 'PredictiveIntelligence' });
@@ -209,10 +210,7 @@ export class PredictiveIntelligenceService {
         .doc(userId)
         .collection('conversations');
 
-      const conversations = await conversationsRef
-        .orderBy('createdAt', 'desc')
-        .limit(100)
-        .get();
+      const conversations = await conversationsRef.orderBy('createdAt', 'desc').limit(100).get();
 
       if (conversations.empty) return patterns;
 
@@ -236,7 +234,6 @@ export class PredictiveIntelligenceService {
         }))
       );
       patterns.push(...topicalPatterns);
-
     } catch (error) {
       log.warn({ userId, error: String(error) }, 'Error analyzing behavioral patterns');
     }
@@ -296,7 +293,15 @@ export class PredictiveIntelligenceService {
     const dayOfWeekCountsArray = Array.from(dayOfWeekCounts.entries());
     for (const [day, count] of dayOfWeekCountsArray) {
       if (count >= 15 && count / conversations.length > 0.2) {
-        const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+        const dayNames = [
+          'Sunday',
+          'Monday',
+          'Tuesday',
+          'Wednesday',
+          'Thursday',
+          'Friday',
+          'Saturday',
+        ];
         patterns.push({
           patternId: `weekly_pattern_${day}_${userId}`,
           userId,
@@ -378,7 +383,8 @@ export class PredictiveIntelligenceService {
             userId,
             type: 'need_anticipation',
             prediction: `User typically engages around ${pattern.typicalTiming.hourOfDay}:00. Consider proactive outreach.`,
-            confidence: pattern.confidence > 0.7 ? 'high' : pattern.confidence > 0.4 ? 'medium' : 'low',
+            confidence:
+              pattern.confidence > 0.7 ? 'high' : pattern.confidence > 0.4 ? 'medium' : 'low',
             confidenceScore: pattern.confidence,
             predictedTiming: predictedTime,
             evidence: [pattern.description],
@@ -395,7 +401,8 @@ export class PredictiveIntelligenceService {
             userId,
             type: 'topic_surfacing',
             prediction: pattern.description,
-            confidence: pattern.confidence > 0.6 ? 'high' : pattern.confidence > 0.3 ? 'medium' : 'low',
+            confidence:
+              pattern.confidence > 0.6 ? 'high' : pattern.confidence > 0.3 ? 'medium' : 'low',
             confidenceScore: pattern.confidence,
             evidence: [`Observed ${pattern.observationCount} times`],
             priority: Math.round(pattern.confidence * 5),
@@ -404,7 +411,6 @@ export class PredictiveIntelligenceService {
           });
         }
       }
-
     } catch (error) {
       log.warn({ userId, error: String(error) }, 'Error generating predictions');
     }
@@ -478,14 +484,12 @@ export class PredictiveIntelligenceService {
       const now = Date.now();
       const recentCount = conversations.filter(
         (c) =>
-          c.createdAt?.toDate?.() &&
-          now - c.createdAt.toDate().getTime() < 7 * 24 * 60 * 60 * 1000
+          c.createdAt && now - toSafeDate(c.createdAt).getTime() < 7 * 24 * 60 * 60 * 1000
       ).length;
 
       const olderCount = conversations.filter(
         (c) =>
-          c.createdAt?.toDate?.() &&
-          now - c.createdAt.toDate().getTime() >= 7 * 24 * 60 * 60 * 1000
+          c.createdAt && now - toSafeDate(c.createdAt).getTime() >= 7 * 24 * 60 * 60 * 1000
       ).length;
 
       if (olderCount > 0 && recentCount < olderCount * 0.5) {
@@ -494,7 +498,16 @@ export class PredictiveIntelligenceService {
       }
 
       // Analyze negative language
-      const negativeKeywords = ['sad', 'hopeless', 'alone', 'worthless', 'tired', 'exhausted', 'anxious', 'scared'];
+      const negativeKeywords = [
+        'sad',
+        'hopeless',
+        'alone',
+        'worthless',
+        'tired',
+        'exhausted',
+        'anxious',
+        'scared',
+      ];
       let negativeCount = 0;
       let totalWords = 0;
 
@@ -541,7 +554,6 @@ export class PredictiveIntelligenceService {
         indicators.riskLevel = 'elevated';
         indicators.recommendedInterventions.push('Monitor closely');
       }
-
     } catch (error) {
       log.warn({ userId, error: String(error) }, 'Error analyzing crisis indicators');
     }
@@ -620,9 +632,11 @@ export class PredictiveIntelligenceService {
         const recentProgress = progressEntries[0]?.progressPercent || 0;
         const olderProgress = progressEntries[progressEntries.length - 1]?.progressPercent || 0;
         const daysBetween =
-          progressEntries.length > 1 && progressEntries[0].recordedAt && progressEntries[progressEntries.length - 1].recordedAt
-            ? (progressEntries[0].recordedAt.toDate().getTime() -
-                progressEntries[progressEntries.length - 1].recordedAt.toDate().getTime()) /
+          progressEntries.length > 1 &&
+          progressEntries[0].recordedAt &&
+          progressEntries[progressEntries.length - 1].recordedAt
+            ? (toSafeDate(progressEntries[0].recordedAt).getTime() -
+                toSafeDate(progressEntries[progressEntries.length - 1].recordedAt).getTime()) /
               (24 * 60 * 60 * 1000)
             : 7;
         velocity = ((recentProgress - olderProgress) / Math.max(daysBetween, 1)) * 7;
@@ -637,28 +651,37 @@ export class PredictiveIntelligenceService {
       // Detect plateau
       const isPlateaued =
         progressEntries.length >= 5 &&
-        progressEntries.slice(0, 5).every((p) => Math.abs((p.progressPercent || 0) - currentProgress) < 2);
+        progressEntries
+          .slice(0, 5)
+          .every((p) => Math.abs((p.progressPercent || 0) - currentProgress) < 2);
 
       let plateauDurationDays: number | undefined;
       if (isPlateaued && progressEntries[4]?.recordedAt) {
         plateauDurationDays = Math.floor(
-          (Date.now() - progressEntries[4].recordedAt.toDate().getTime()) / (24 * 60 * 60 * 1000)
+          (Date.now() - toSafeDate(progressEntries[4].recordedAt).getTime()) / (24 * 60 * 60 * 1000)
         );
       }
 
       // Detect breakthrough
       const recentBreakthrough =
         progressEntries.length >= 2 &&
-        (progressEntries[0]?.progressPercent || 0) - (progressEntries[1]?.progressPercent || 0) > 10;
+        (progressEntries[0]?.progressPercent || 0) - (progressEntries[1]?.progressPercent || 0) >
+          10;
 
       // Get milestones
       const milestones = (goal.milestones || [])
         .filter((m: { achieved: boolean }) => m.achieved)
-        .map((m: { description: string; achievedAt: { toDate: () => Date }; significance: number }) => ({
-          description: m.description,
-          achievedAt: m.achievedAt?.toDate?.() || new Date(),
-          significance: m.significance || 0.5,
-        }));
+        .map(
+          (m: {
+            description: string;
+            achievedAt: { toDate: () => Date };
+            significance: number;
+          }) => ({
+            description: m.description,
+            achievedAt: m.achievedAt?.toDate?.() || new Date(),
+            significance: m.significance || 0.5,
+          })
+        );
 
       return {
         userId,
@@ -703,7 +726,11 @@ export class PredictiveIntelligenceService {
         if (!tracking) continue;
 
         // Plateau alert
-        if (tracking.isPlateaued && tracking.plateauDurationDays && tracking.plateauDurationDays > 7) {
+        if (
+          tracking.isPlateaued &&
+          tracking.plateauDurationDays &&
+          tracking.plateauDurationDays > 7
+        ) {
           predictions.push({
             id: `growth_plateau_${goalDoc.id}_${Date.now()}`,
             userId,

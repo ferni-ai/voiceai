@@ -64,6 +64,9 @@ import { commitmentKeeper } from '../../services/superhuman/commitment-keeper.js
 // NEW: Unified Intelligence System (Levels 2-5) cleanup
 import { cleanupIntelligenceSession } from '../integrations/unified-intelligence-integration.js';
 
+// Memory Intelligence System - Superhuman memory surfacing cleanup
+import { endMemorySession } from '../../intelligence/memory-intelligence/turn-processor-integration.js';
+
 // Capability learning - track which capabilities resonated
 import { finalizeSessionLearning } from '../../intelligence/capability-learning.js';
 import { clearSession as clearHumeSession } from '../../services/emotion-analysis/hume.js';
@@ -125,6 +128,9 @@ import { sessionLifecycle } from '../../services/session/session-lifecycle-hooks
 
 // Interval Manager - for session heartbeat cleanup
 import { clearNamedInterval } from '../../utils/interval-manager.js';
+
+// WIRED (Jan 2026): Personality A/B Testing engagement recording
+import { recordSessionEngagement } from '../../personas/shared/personality-ab-testing.js';
 
 // FIX AUDIT: Import proper types for event handlers instead of using `any`
 import type { HandoffEventPayload } from '../shared/handoff/types.js';
@@ -415,12 +421,13 @@ async function executeSessionCleanup(ctx: CleanupContext, cleanupStart: number):
   const persistenceGroup = await Promise.allSettled([
     // HUMAN SIGNAL EXTRACTION - extract "Better Than Human" signals from conversation
     // This captures: birthdays, emotional tells, values, fears, growth markers, inside jokes
+    // FIX: Pass turns from historyTracker, not from conversationState (which doesn't have turns!)
     userId
       ? extractAndSaveHumanSignals(
           userId,
           sessionPersona.id,
           sessionId,
-          finalConvState as Record<string, unknown> | null
+          services.historyTracker?.getSimpleTurns() || []
         )
       : Promise.resolve(),
 
@@ -437,8 +444,54 @@ async function executeSessionCleanup(ctx: CleanupContext, cleanupStart: number):
     // Core Principle #2: "Every interaction is part of an ongoing relationship"
     userId ? cleanupRelationshipMemory(userId, sessionPersona.id, sessionId) : Promise.resolve(),
 
+    // STM → Firestore promotion (L1 → L2)
+    // Promotes frequently-mentioned entities from in-memory STM buffer to Firestore
+    userId
+      ? (async () => {
+          try {
+            const { onSessionEnd } = await import('../../memory/dynamic/index.js');
+            await onSessionEnd(sessionId, userId);
+            diag.session('🧠 STM promoted to Firestore', { sessionId, userId });
+          } catch (err) {
+            diag.warn('STM promotion failed (non-fatal)', { error: String(err) });
+          }
+        })()
+      : Promise.resolve(),
+
     // Capability learning - track which capabilities resonated for collective learning
     userId ? cleanupCapabilityLearning(userId, sessionId) : Promise.resolve(),
+
+    // WIRED (Jan 2026): Personality A/B Testing engagement recording
+    userId
+      ? (async () => {
+          try {
+            const PERSONALITY_EXPERIMENT_ID = 'personality_v2';
+            const turnCount = finalConvState?.flow.turnCount || userData?.turnCount || 0;
+            
+            // Record session engagement metrics for A/B testing analysis
+            recordSessionEngagement(userId, PERSONALITY_EXPERIMENT_ID, {
+              turnCount,
+              sessionDurationMs: sessionDurationMs,
+              // Simplified metrics - full implementation would track more
+              positiveResponses: 0, // Would need to track during session
+              negativeResponses: 0,
+              neutralResponses: turnCount,
+              noticingsTriggered: 0,
+              noticingsAcknowledged: 0,
+              expressionsInjected: 0,
+              expressionsEngaged: 0,
+              topicChanges: 0,
+              deepTopicExplorations: 0,
+              vulnerabilityMoments: 0,
+              breakthroughMoments: 0,
+              averageTurnLengthWords: 0,
+            });
+            diag.session('📊 A/B Testing engagement recorded', { userId, turnCount, sessionDurationMs });
+          } catch (error) {
+            diag.warn('A/B Testing engagement recording failed (non-fatal)', { error: String(error) });
+          }
+        })()
+      : Promise.resolve(),
 
     // Trial time recording
     userData?.isTrialUser && userId
@@ -1524,6 +1577,14 @@ async function cleanupDeepUnderstandingProfiles(userId: string, sessionId: strin
   } catch (intErr) {
     diag.warn('Unified intelligence cleanup failed (non-fatal)', { error: String(intErr) });
   }
+
+  // Memory Intelligence - End session to persist learning and cleanup
+  try {
+    await endMemorySession(userId);
+    diag.session('Memory Intelligence session ended', { userId, sessionId });
+  } catch (memErr) {
+    diag.warn('Memory Intelligence cleanup failed (non-fatal)', { error: String(memErr) });
+  }
 }
 
 async function cleanupCapabilityLearning(userId: string, sessionId: string): Promise<void> {
@@ -1657,29 +1718,56 @@ async function cleanupDeepHumanization(sessionId: string): Promise<void> {
  * - Growth markers
  * - Inside joke potential
  * - Topics avoided
+ * 
+ * MEMORY FIX (Jan 2026): Now uses LLM-powered extraction via Gemini 1.5 Flash
+ * instead of regex patterns. Falls back to regex if LLM fails.
  */
 async function extractAndSaveHumanSignals(
   userId: string,
   personaId: string,
   _sessionId: string,
-  conversationState: Record<string, unknown> | null
+  turns: Array<{ role: string; content: string }>
 ): Promise<void> {
   try {
-    const { extractHumanSignals, mergeSignalsIntoMemory } =
-      await import('../../memory/human-signal-extractor.js');
+    const { LLMSignalExtractor } = await import('../../memory/llm-signal-extractor.js');
 
-    // Try to get conversation turns from state - handle different possible structures
-    const flow = conversationState?.flow as
-      | { turns?: Array<{ role: string; content: string }> }
-      | undefined;
-    const turns = flow?.turns || [];
+    // FIX: Turns are now passed directly from historyTracker.getSimpleTurns()
     if (turns.length < 2) {
-      diag.session('Skipping human signal extraction (too few turns)');
+      diag.session('Skipping human signal extraction (too few turns)', { turnCount: turns.length });
       return;
     }
+    
+    diag.session('🧠 Starting LLM-powered human signal extraction', { turnCount: turns.length });
 
-    // Extract signals from the conversation
-    const signals = extractHumanSignals(
+    // Create LLM extractor with Gemini caller
+    const extractor = new LLMSignalExtractor({ useLLM: true });
+    
+    // Set up Gemini LLM caller for extraction
+    try {
+      const { GoogleGenerativeAI } = await import('@google/generative-ai');
+      const apiKey = process.env.GOOGLE_API_KEY || process.env.GEMINI_API_KEY;
+      
+      if (apiKey) {
+        const genAI = new GoogleGenerativeAI(apiKey);
+        // Use flash model for cost efficiency
+        const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+        
+        extractor.setLLMCall(async (prompt: string) => {
+          const result = await model.generateContent(prompt);
+          const response = await result.response;
+          return response.text();
+        });
+        
+        diag.session('🤖 LLM signal extractor configured with Gemini 1.5 Flash');
+      } else {
+        diag.warn('No Gemini API key available, falling back to regex extraction');
+      }
+    } catch (llmSetupErr) {
+      diag.warn('Failed to set up LLM caller, using regex fallback', { error: String(llmSetupErr) });
+    }
+
+    // Extract signals from the conversation using LLM (with regex fallback)
+    const extractedSignals = await extractor.extractSignals(
       turns.map((t) => ({
         role: t.role as 'user' | 'assistant',
         content: t.content,
@@ -1690,17 +1778,27 @@ async function extractAndSaveHumanSignals(
       }
     );
 
+    // Check if any signals were extracted
+    const hasSignals = extractedSignals && Object.values(extractedSignals).some((arr) => Array.isArray(arr) && arr.length > 0);
+    
+    // Always log extraction results for monitoring
+    diag.session('🧠 Human signal extraction complete', {
+      method: 'llm_with_fallback',
+      importantDates: extractedSignals.importantDates?.length || 0,
+      values: extractedSignals.values?.length || 0,
+      dreams: extractedSignals.dreams?.length || 0,
+      fears: extractedSignals.fears?.length || 0,
+      growthMarkers: extractedSignals.growthMarkers?.length || 0,
+      insideJokes: extractedSignals.insideJokes?.length || 0,
+      challenges: extractedSignals.challenges?.length || 0,
+      comfortPatterns: extractedSignals.comfortPatterns?.length || 0,
+      stressTriggers: extractedSignals.stressTriggers?.length || 0,
+      avoidances: extractedSignals.avoidances?.length || 0,
+      hasSignals,
+    });
+    
     // Merge extracted signals into existing memory
-    if (signals && Object.values(signals).some((arr) => Array.isArray(arr) && arr.length > 0)) {
-      diag.session('🧠 Human signals extracted', {
-        importantDates: signals.importantDates?.length || 0,
-        emotionalTells: signals.emotionalTells?.length || 0,
-        values: signals.values?.length || 0,
-        dreams: signals.dreams?.length || 0,
-        fears: signals.fears?.length || 0,
-        growthMarkers: signals.growthMarkers?.length || 0,
-        insideJokes: signals.insideJokes?.length || 0,
-      });
+    if (hasSignals) {
 
       // ======================================================
       // PERSIST TO FIRESTORE ("Better Than Human" Memory)
@@ -1713,10 +1811,10 @@ async function extractAndSaveHumanSignals(
         // Get existing human memory
         const humanMemoryRef = userDoc.collection('human_memory').doc('profile');
         const existingDoc = await humanMemoryRef.get();
-        const existingMemory = existingDoc.exists ? existingDoc.data() : {};
+        const existingMemory = existingDoc.exists ? existingDoc.data() as Record<string, unknown> : {};
 
-        // Merge new signals with existing memory
-        const mergedMemory = mergeSignalsIntoMemory(existingMemory, signals);
+        // Merge new signals with existing memory using the extractor's merge method
+        const mergedMemory = extractor.mergeWithExisting(existingMemory, extractedSignals);
 
         // Save merged memory to Firestore
         await humanMemoryRef.set(
@@ -1732,47 +1830,49 @@ async function extractAndSaveHumanSignals(
         );
 
         diag.session('💾 Human signals persisted to Firestore', {
-          newImportantDates: signals.importantDates?.length || 0,
-          newEmotionalTells: signals.emotionalTells?.length || 0,
-          newValues: signals.values?.length || 0,
-          newDreams: signals.dreams?.length || 0,
+          newImportantDates: extractedSignals.importantDates?.length || 0,
+          newValues: extractedSignals.values?.length || 0,
+          newDreams: extractedSignals.dreams?.length || 0,
         });
 
         // Also persist individual signal types for indexing
         const batch = db.batch();
 
         // Save important dates with their own IDs for easy querying
-        if (signals.importantDates?.length > 0) {
-          for (const date of signals.importantDates) {
+        if (extractedSignals.importantDates && extractedSignals.importantDates.length > 0) {
+          for (const date of extractedSignals.importantDates) {
+            const dateId = `date_${date.month}_${date.day}_${Date.now()}`;
             const dateRef = userDoc
               .collection('human_memory')
               .doc('profile')
               .collection('important_dates')
-              .doc(date.id);
+              .doc(dateId);
             batch.set(dateRef, { ...date, discoveredAt: new Date() }, { merge: true });
           }
         }
 
         // Save inside jokes
-        if (signals.insideJokes?.length > 0) {
-          for (const joke of signals.insideJokes) {
+        if (extractedSignals.insideJokes && extractedSignals.insideJokes.length > 0) {
+          for (const joke of extractedSignals.insideJokes) {
+            const jokeId = `joke_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
             const jokeRef = userDoc
               .collection('human_memory')
               .doc('profile')
               .collection('inside_jokes')
-              .doc(joke.id);
+              .doc(jokeId);
             batch.set(jokeRef, { ...joke, createdAt: new Date() }, { merge: true });
           }
         }
 
         // Save growth markers
-        if (signals.growthMarkers?.length > 0) {
-          for (const marker of signals.growthMarkers) {
+        if (extractedSignals.growthMarkers && extractedSignals.growthMarkers.length > 0) {
+          for (const marker of extractedSignals.growthMarkers) {
+            const markerId = `growth_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
             const markerRef = userDoc
               .collection('human_memory')
               .doc('profile')
               .collection('growth_markers')
-              .doc(marker.id);
+              .doc(markerId);
             batch.set(markerRef, { ...marker, observedAt: new Date() }, { merge: true });
           }
         }

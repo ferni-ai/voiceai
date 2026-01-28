@@ -87,12 +87,41 @@ const removeUndefinedImpl = <T extends object>(obj: T): T => {
   return result as T;
 };
 
+// Helper: Safely convert any timestamp-like value to Date
+const toSafeDateImpl = (value: unknown, fallback: Date = new Date()): Date => {
+  if (!value) return fallback;
+  if (value instanceof Date) return value;
+  if (typeof value === 'object' && value !== null && 'toDate' in value) {
+    return (value as { toDate: () => Date }).toDate();
+  }
+  if (typeof value === 'object' && value !== null && 'seconds' in value) {
+    const obj = value as { seconds: number; nanoseconds?: number };
+    return new Date(obj.seconds * 1000 + (obj.nanoseconds ?? 0) / 1000000);
+  }
+  if (typeof value === 'object' && value !== null && '_seconds' in value) {
+    const obj = value as { _seconds: number; _nanoseconds?: number };
+    return new Date(obj._seconds * 1000 + (obj._nanoseconds ?? 0) / 1000000);
+  }
+  if (typeof value === 'string' || typeof value === 'number') {
+    const parsed = new Date(value);
+    if (!isNaN(parsed.getTime())) return parsed;
+  }
+  return fallback;
+};
+
+const toSafeDateOptionalImpl = (value: unknown): Date | undefined => {
+  if (value === null || value === undefined) return undefined;
+  return toSafeDateImpl(value);
+};
+
 // Mock the canonical utils/firestore-utils.js
 vi.mock('../utils/firestore-utils.js', () => ({
   getFirestoreDb: vi.fn(() => mockFirestoreDb),
   cleanForFirestore: vi.fn((obj: unknown) => cleanForFirestoreImpl(obj)),
   removeUndefined: vi.fn((obj: unknown) => removeUndefinedImpl(obj as object)),
   deepRemoveUndefined: vi.fn((obj: unknown) => cleanForFirestoreImpl(obj)),
+  toSafeDate: vi.fn((value: unknown, fallback?: Date) => toSafeDateImpl(value, fallback)),
+  toSafeDateOptional: vi.fn((value: unknown) => toSafeDateOptionalImpl(value)),
   recordDegradation: vi.fn(),
   getFirestoreHealth: vi.fn(() => ({
     dbAvailable: true,

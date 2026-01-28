@@ -13,7 +13,7 @@
 
 import { FieldValue, getFirestore } from 'firebase-admin/firestore';
 import { createLogger } from '../../utils/safe-logger.js';
-import { removeUndefined, cleanForFirestore } from '../../utils/firestore-utils.js';
+import { removeUndefined, cleanForFirestore, toSafeDate } from '../../utils/firestore-utils.js';
 import { quickValidate } from '../brand/index.js';
 import { HERO_CTA_VARIANTS, HERO_HEADLINE_VARIANTS } from './variant-library.js';
 import { getWebExperiments, type WebExperiment } from './web-experiments.js';
@@ -604,7 +604,7 @@ export async function getHypotheses(
   return snapshot.docs.map((doc) => ({
     ...doc.data(),
     id: doc.id,
-    createdAt: doc.data().createdAt?.toDate() || new Date(),
+    createdAt: toSafeDate(doc.data().createdAt),
   })) as GeneratedHypothesis[];
 }
 

@@ -10,6 +10,7 @@
  */
 
 import { Firestore, Timestamp } from '@google-cloud/firestore';
+import { toSafeDate, toSafeDateOptional } from '../../utils/firestore-utils.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import type {
   CallbackAttempt,
@@ -232,43 +233,43 @@ function fromFirestoreDoc(doc: FirestoreRelationship): RelationshipMemory {
     stage: doc.stage,
     trustScore: doc.trustScore,
     totalSessions: doc.totalSessions,
-    firstSessionAt: doc.firstSessionAt.toDate(),
-    lastSessionAt: doc.lastSessionAt.toDate(),
+    firstSessionAt: toSafeDate(doc.firstSessionAt),
+    lastSessionAt: toSafeDate(doc.lastSessionAt),
     sharedMoments: (doc.sharedMoments ?? []).map((m) => ({
       id: m.id,
       type: m.type as SharedMoment['type'],
       summary: m.summary,
       sessionNumber: m.sessionNumber,
-      timestamp: m.timestamp.toDate(),
+      timestamp: toSafeDate(m.timestamp),
       userPhrase: m.userPhrase,
       significance: m.significance,
       topic: m.topic,
       callbackCount: m.callbackCount,
-      lastCallback: m.lastCallback?.toDate(),
+      lastCallback: toSafeDateOptional(m.lastCallback),
     })),
     insideJokes: (doc.insideJokes ?? []).map((j) => ({
       id: j.id,
       trigger: j.trigger,
       reference: j.reference,
       origin: j.origin,
-      createdAt: j.createdAt.toDate(),
+      createdAt: toSafeDate(j.createdAt),
       originSession: j.originSession,
       usageCount: j.usageCount,
       resonanceScore: j.resonanceScore,
-      lastUsed: j.lastUsed?.toDate(),
+      lastUsed: toSafeDateOptional(j.lastUsed),
       status: j.status as InsideJoke['status'],
     })),
     callbackAttempts: (doc.callbackAttempts ?? []).map((c) => ({
       reference: c.reference,
       type: c.type as CallbackAttempt['type'],
-      timestamp: c.timestamp.toDate(),
+      timestamp: toSafeDate(c.timestamp),
       userResponse: c.userResponse as CallbackAttempt['userResponse'],
       threadContinued: c.threadContinued,
     })),
     emotionalTrajectory: {
       recentSessions: (doc.emotionalTrajectory?.recentSessions ?? []).map((s) => ({
         sessionNumber: s.sessionNumber,
-        date: s.date.toDate(),
+        date: toSafeDate(s.date),
         mood: s.mood as EmotionalTrajectory['recentSessions'][0]['mood'],
         topics: s.topics,
       })),
@@ -278,24 +279,24 @@ function fromFirestoreDoc(doc: FirestoreRelationship): RelationshipMemory {
       trendConfidence: doc.emotionalTrajectory?.trendConfidence ?? 0,
       concerns: (doc.emotionalTrajectory?.concerns ?? []).map((c) => ({
         concern: c.concern,
-        firstNoticed: c.firstNoticed.toDate(),
+        firstNoticed: toSafeDate(c.firstNoticed),
         severity: c.severity as 'low' | 'medium' | 'high',
         addressed: c.addressed,
       })),
       growthAreas: (doc.emotionalTrajectory?.growthAreas ?? []).map((g) => ({
         area: g.area,
-        firstNoticed: g.firstNoticed.toDate(),
+        firstNoticed: toSafeDate(g.firstNoticed),
         progressLevel: g.progressLevel as 'emerging' | 'developing' | 'strong',
       })),
     },
     milestones: (doc.milestones ?? []).map((m) => ({
       type: m.type as MilestoneType,
       reached: m.reached,
-      reachedAt: m.reachedAt?.toDate(),
+      reachedAt: toSafeDateOptional(m.reachedAt),
       acknowledged: m.acknowledged,
-      acknowledgedAt: m.acknowledgedAt?.toDate(),
+      acknowledgedAt: toSafeDateOptional(m.acknowledgedAt),
     })),
-    updatedAt: doc.updatedAt.toDate(),
+    updatedAt: toSafeDate(doc.updatedAt),
   };
 }
 
@@ -356,9 +357,7 @@ export async function saveRelationshipMemory(memory: RelationshipMemory): Promis
   }
 
   try {
-    const docRef = firestore
-      .collection(getRelationshipPath(memory.userId))
-      .doc(memory.personaId);
+    const docRef = firestore.collection(getRelationshipPath(memory.userId)).doc(memory.personaId);
 
     const firestoreDoc = toFirestoreDoc(memory);
 
@@ -377,7 +376,10 @@ export async function saveRelationshipMemory(memory: RelationshipMemory): Promis
       'Saved relationship memory'
     );
   } catch (error) {
-    log.error({ error, userId: memory.userId, personaId: memory.personaId }, 'Failed to save relationship memory');
+    log.error(
+      { error, userId: memory.userId, personaId: memory.personaId },
+      'Failed to save relationship memory'
+    );
     throw error;
   }
 }
@@ -385,10 +387,7 @@ export async function saveRelationshipMemory(memory: RelationshipMemory): Promis
 /**
  * Delete relationship memory from Firestore
  */
-export async function deleteRelationshipMemory(
-  userId: string,
-  personaId: string
-): Promise<void> {
+export async function deleteRelationshipMemory(userId: string, personaId: string): Promise<void> {
   const firestore = getFirestoreDb();
   if (!firestore) {
     return;

@@ -28,7 +28,7 @@
  * @module agents/shared/json-function-executor
  */
 
-import { cleanForFirestore } from '../../utils/firestore-utils.js';
+import { cleanForFirestore, toSafeDate } from '../../utils/firestore-utils.js';
 import { createLogger, truncateForLog } from '../../utils/safe-logger.js';
 import { recordAction } from './action-history.js';
 import { logJsonDetected, logJsonExecuted } from './function-call-telemetry.js';
@@ -1300,7 +1300,7 @@ async function routeToTool(
             if (score > 0.2) {
               // Apply recency boost (memories from last 7 days get +0.15)
               const daysSince = data.extractedAt
-                ? (Date.now() - data.extractedAt.toDate().getTime()) / (1000 * 60 * 60 * 24)
+                ? (Date.now() - toSafeDate(data.extractedAt).getTime()) / (1000 * 60 * 60 * 24)
                 : 30;
               const recencyBoost = daysSince < 7 ? 0.15 : daysSince < 30 ? 0.05 : 0;
 
@@ -1311,7 +1311,7 @@ async function routeToTool(
               memories.push({
                 content: factText,
                 score: score + recencyBoost + emotionalBoost,
-                timestamp: data.extractedAt?.toDate?.() || new Date(),
+                timestamp: toSafeDate(data.extractedAt),
                 source: 'fact',
                 category: data.category as string,
                 emotionalWeight: emotionalBoost,

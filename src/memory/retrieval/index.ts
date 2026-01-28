@@ -89,6 +89,108 @@ export interface EntityMatch {
 }
 
 // ============================================================================
+// WRITE-THROUGH CACHE (fixes race condition: retrieval before indexing)
+// ============================================================================
+
+/**
+ * Cache for recently written memories to fix the race condition where
+ * retrieval happens before async indexing completes.
+ *
+ * Structure: userId -> Map<memoryId, {content, timestamp, score, type}>
+ * TTL: 30 seconds (enough time for indexing to complete)
+ */
+const recentWritesCache = new Map<string, Map<string, RecentWrite>>();
+const RECENT_WRITE_TTL_MS = 30 * 1000; // 30 seconds
+
+interface RecentWrite {
+  content: string;
+  timestamp: number;
+  type: string;
+  score: number;
+  metadata?: Record<string, unknown>;
+}
+
+/**
+ * Add a memory to the write-through cache.
+ * Call this when writing a memory to ensure it's immediately retrievable.
+ */
+export function cacheRecentWrite(
+  userId: string,
+  memoryId: string,
+  content: string,
+  type: string,
+  metadata?: Record<string, unknown>
+): void {
+  if (!recentWritesCache.has(userId)) {
+    recentWritesCache.set(userId, new Map());
+  }
+  const userCache = recentWritesCache.get(userId)!;
+  userCache.set(memoryId, {
+    content,
+    timestamp: Date.now(),
+    type,
+    score: 0.95, // High score for recent writes
+    metadata,
+  });
+
+  // Cleanup old entries
+  for (const [id, write] of userCache.entries()) {
+    if (Date.now() - write.timestamp > RECENT_WRITE_TTL_MS) {
+      userCache.delete(id);
+    }
+  }
+}
+
+/**
+ * Get recent writes that match a query (simple substring match).
+ * Returns memories written in the last 30 seconds that may not be indexed yet.
+ */
+function getRecentWrites(userId: string, query: string): RetrievedMemory[] {
+  const userCache = recentWritesCache.get(userId);
+  if (!userCache) return [];
+
+  const now = Date.now();
+  const queryLower = query.toLowerCase();
+  const results: RetrievedMemory[] = [];
+
+  for (const [id, write] of userCache.entries()) {
+    // Skip expired entries
+    if (now - write.timestamp > RECENT_WRITE_TTL_MS) continue;
+
+    // Simple relevance: check if query terms appear in content
+    const contentLower = write.content.toLowerCase();
+    if (contentLower.includes(queryLower) || queryLower.split(' ').some((term) => contentLower.includes(term))) {
+      // Convert to RetrievedMemory format with proper MemoryItem structure
+      results.push({
+        item: {
+          id,
+          type: (write.type as 'summary' | 'moment' | 'topic' | 'commitment' | 'preference' | 'person' | 'event') || 'moment',
+          content: write.content,
+          timestamp: new Date(write.timestamp),
+          emotionalWeight: (write.metadata?.emotionalWeight as number) || 0.5,
+          relevanceDecay: 0, // No decay for recent writes
+          baseImportance: 0.8, // High importance for recent writes
+          source: {
+            collection: 'recent_writes_cache',
+            documentId: id,
+          },
+        },
+        score: write.score,
+        scoreBreakdown: {
+          semantic: 0.8,
+          temporal: 1.0, // Maximum temporal score for recent
+          emotional: 0.5,
+          contextual: 0.7,
+        },
+        reason: 'Recently captured from conversation',
+      });
+    }
+  }
+
+  return results;
+}
+
+// ============================================================================
 // UNIFIED RETRIEVAL
 // ============================================================================
 
@@ -101,6 +203,7 @@ export interface EntityMatch {
  * - Entity store (knowledge graph)
  * - STM buffer (recent conversation)
  * - Memory graph (associations)
+ * - Recent writes (write-through cache)
  */
 export async function retrieveContext(
   userId: string,
@@ -116,6 +219,14 @@ export async function retrieveContext(
 
   const topK = options?.topK ?? 10;
   const minScore = options?.minScore ?? 0.3;
+
+  // 0. RECENT WRITES CACHE (fixes race condition)
+  // Check for memories written in the last 30 seconds that may not be indexed yet
+  const recentWrites = getRecentWrites(userId, query);
+  if (recentWrites.length > 0) {
+    memories.push(...recentWrites);
+    sources.push('recent-write');
+  }
 
   // 1. SEMANTIC SEARCH (primary retrieval)
   try {
@@ -167,17 +278,15 @@ export async function retrieveContext(
   }
 
   // 3. STM BUFFER (recent conversation context)
-  if (options?.includeSTM !== false && context?.conversationTurn !== undefined) {
+  // Query STM if not explicitly disabled - sessionId is sufficient (conversationTurn not required)
+  const sessionId = (context as { sessionId?: string })?.sessionId;
+  if (options?.includeSTM !== false && sessionId) {
     try {
       const { buildSTMContext } = await import('../dynamic/stm-buffer.js');
-      // Need session ID for STM lookup - extract from context if available
-      const sessionId = (context as { sessionId?: string })?.sessionId;
-      if (sessionId) {
-        const stm = buildSTMContext(sessionId);
-        stmContext = stm ?? undefined;
-        if (stmContext) {
-          sources.push('stm');
-        }
+      const stm = buildSTMContext(sessionId);
+      stmContext = stm ?? undefined;
+      if (stmContext) {
+        sources.push('stm');
       }
     } catch (error) {
       log.debug({ error: String(error) }, 'STM buffer unavailable');
