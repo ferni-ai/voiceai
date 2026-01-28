@@ -11,7 +11,10 @@
 
 import type { IncomingMessage, ServerResponse } from 'http';
 
+import { getFirestoreVectorStore } from '../memory/firestore-vector-store/index.js';
+import { getDeepExtractionWorker } from '../memory/dynamic/deep-extraction-worker.js';
 import { getUnifiedMemoryService } from '../services/unified-memory-service.js';
+import { getFirestoreDb } from '../utils/firestore-utils.js';
 import { createLogger } from '../utils/safe-logger.js';
 import { optionalAuth, requireAuth } from './auth-middleware.js';
 import {
@@ -213,11 +216,7 @@ async function handleMetrics(req: IncomingMessage, res: ServerResponse): Promise
  * Collect real memory metrics from Firestore collections
  */
 async function collectRealMemoryMetrics(): Promise<MemoryMetricsResponse> {
-  // Get memory service
-  const unifiedMemory = getUnifiedMemoryService();
-
-  // Default metrics structure
-  const defaultMetrics: MemoryMetricsResponse = {
+  const metrics: MemoryMetricsResponse = {
     learningMetrics: {
       totalFeedbackEvents: 0,
       helpfulCount: 0,
@@ -242,37 +241,103 @@ async function collectRealMemoryMetrics(): Promise<MemoryMetricsResponse> {
     lastUpdated: new Date().toISOString(),
   };
 
-  try {
-    // Note: Detailed per-user learning metrics require a userId
-    // For system-wide metrics, we check the overall health instead
-    // This endpoint returns aggregate metrics, not per-user stats
+  const db = getFirestoreDb();
+  const vectorStore = getFirestoreVectorStore();
 
-    // Get general health info which may have surfacing stats
-    const healthInfo = await unifiedMemory.getHealth?.('system');
-    if (healthInfo) {
-      // Use health info to estimate surfacing metrics if available
-      if (typeof healthInfo.totalMemories === 'number') {
-        defaultMetrics.surfacingMetrics.totalSurfaced = healthInfo.totalMemories;
-      }
+  // 1. Vector Store Metrics
+  if (vectorStore) {
+    try {
+      const vectorStats = await vectorStore.getStats();
+      metrics.surfacingMetrics.totalSurfaced = vectorStats.documentCount;
+      // Category breakdown can inform timing
+      const categories = vectorStats.byCategory;
+      metrics.surfacingMetrics.timingBreakdown.immediate = categories['immediate'] || 0;
+      metrics.surfacingMetrics.timingBreakdown.nextPause = categories['deferred'] || 0;
+      metrics.surfacingMetrics.timingBreakdown.sessionEnd = categories['background'] || 0;
+    } catch (error) {
+      log.warn({ error: String(error) }, 'Failed to get vector store stats');
     }
-
-    // Determine health status based on available data
-    const hasRecentFeedback = defaultMetrics.learningMetrics.totalFeedbackEvents > 0;
-    const hasGoodHelpfulRate = defaultMetrics.learningMetrics.helpfulRate >= 0.5;
-
-    if (hasRecentFeedback && hasGoodHelpfulRate) {
-      defaultMetrics.healthStatus = 'healthy';
-    } else if (hasRecentFeedback || defaultMetrics.surfacingMetrics.totalSurfaced > 0) {
-      defaultMetrics.healthStatus = 'degraded';
-    } else {
-      defaultMetrics.healthStatus = 'unhealthy';
-    }
-
-    return defaultMetrics;
-  } catch (error) {
-    log.warn({ error: String(error) }, 'Error collecting real metrics, returning defaults');
-    return defaultMetrics;
   }
+
+  // 2. Deep Extraction Worker Stats
+  try {
+    const worker = getDeepExtractionWorker();
+    const workerStats = worker.getStats();
+    // Use worker stats for graph metrics (entities/facts extracted)
+    metrics.graphMetrics.totalLinks =
+      workerStats.totalEntitiesExtracted + workerStats.totalFactsExtracted;
+    metrics.graphMetrics.linksByType = {
+      entities: workerStats.totalEntitiesExtracted,
+      facts: workerStats.totalFactsExtracted,
+    };
+    if (workerStats.completedJobs > 0) {
+      metrics.graphMetrics.avgLinksPerMemory =
+        (workerStats.totalEntitiesExtracted + workerStats.totalFactsExtracted) /
+        workerStats.completedJobs;
+    }
+  } catch (error) {
+    log.warn({ error: String(error) }, 'Failed to get deep extraction stats');
+  }
+
+  // 3. Learning Metrics from Firestore (aggregate across users)
+  if (db) {
+    try {
+      // Query a sample of surfacing events for learning metrics
+      // Note: For production, this should use aggregate queries or pre-computed stats
+      const usersSnapshot = await db.collection('bogle_users').limit(100).get();
+
+      let totalEvents = 0;
+      let helpfulCount = 0;
+      let notHelpfulCount = 0;
+      let totalConfidence = 0;
+
+      for (const userDoc of usersSnapshot.docs) {
+        const eventsSnapshot = await userDoc.ref
+          .collection('surfacing_events')
+          .orderBy('surfacedAt', 'desc')
+          .limit(50)
+          .get();
+
+        for (const eventDoc of eventsSnapshot.docs) {
+          const event = eventDoc.data();
+          totalEvents++;
+
+          if (event.reaction === 'engaged' || event.reaction === 'grateful') {
+            helpfulCount++;
+          } else if (event.reaction === 'ignored' || event.reaction === 'negative') {
+            notHelpfulCount++;
+          }
+
+          if (typeof event.confidence === 'number') {
+            totalConfidence += event.confidence;
+          }
+        }
+      }
+
+      metrics.learningMetrics.totalFeedbackEvents = totalEvents;
+      metrics.learningMetrics.helpfulCount = helpfulCount;
+      metrics.learningMetrics.notHelpfulCount = notHelpfulCount;
+      metrics.learningMetrics.helpfulRate = totalEvents > 0 ? helpfulCount / totalEvents : 0;
+      metrics.surfacingMetrics.avgConfidence = totalEvents > 0 ? totalConfidence / totalEvents : 0;
+    } catch (error) {
+      log.warn({ error: String(error) }, 'Failed to query surfacing events');
+    }
+  }
+
+  // 4. Determine health status
+  const hasVectorData = metrics.surfacingMetrics.totalSurfaced > 0;
+  const hasExtractionData = metrics.graphMetrics.totalLinks > 0;
+  const hasGoodHelpfulRate = metrics.learningMetrics.helpfulRate >= 0.5;
+
+  if (hasVectorData && hasExtractionData) {
+    metrics.healthStatus = hasGoodHelpfulRate ? 'healthy' : 'degraded';
+  } else if (hasVectorData || hasExtractionData) {
+    metrics.healthStatus = 'degraded';
+  } else {
+    metrics.healthStatus = 'unhealthy';
+  }
+
+  return metrics;
 }
 
 /**
@@ -319,23 +384,63 @@ async function handleUserMetrics(
 
 /**
  * GET /api/memory/health
- * Quick health check for the memory system
+ * Quick health check for the memory system - actually verifies each component
  */
-async function handleHealthCheck(req: IncomingMessage, res: ServerResponse): Promise<boolean> {
-  try {
-    const unifiedMemory = getUnifiedMemoryService();
+async function handleHealthCheck(_req: IncomingMessage, res: ServerResponse): Promise<boolean> {
+  const components: Record<string, 'up' | 'down' | 'degraded'> = {
+    unifiedMemoryService: 'down',
+    vectorStore: 'down',
+    deepExtractionWorker: 'down',
+    firestore: 'down',
+  };
 
-    // Basic health check - ensure service is running
-    const isHealthy = unifiedMemory !== null;
+  try {
+    // Check unified memory service
+    const unifiedMemory = getUnifiedMemoryService();
+    if (unifiedMemory) {
+      components.unifiedMemoryService = 'up';
+    }
+
+    // Check vector store
+    const vectorStore = getFirestoreVectorStore();
+    if (vectorStore) {
+      try {
+        const stats = await vectorStore.getStats();
+        components.vectorStore = stats.usingFallback ? 'degraded' : 'up';
+      } catch {
+        components.vectorStore = 'down';
+      }
+    }
+
+    // Check deep extraction worker
+    try {
+      const worker = getDeepExtractionWorker();
+      components.deepExtractionWorker = worker.isRunning() ? 'up' : 'down';
+    } catch {
+      components.deepExtractionWorker = 'down';
+    }
+
+    // Check Firestore connection
+    const db = getFirestoreDb();
+    if (db) {
+      try {
+        // Quick read to verify connection
+        await db.collection('bogle_users').limit(1).get();
+        components.firestore = 'up';
+      } catch {
+        components.firestore = 'down';
+      }
+    }
+
+    // Determine overall status
+    const componentStatuses = Object.values(components);
+    const allUp = componentStatuses.every((s) => s === 'up');
+    const anyDown = componentStatuses.some((s) => s === 'down');
+    const status = allUp ? 'healthy' : anyDown ? 'unhealthy' : 'degraded';
 
     sendJSON(res, {
-      status: isHealthy ? 'healthy' : 'unhealthy',
-      components: {
-        unifiedMemoryService: isHealthy ? 'up' : 'down',
-        learningEngine: 'up',
-        memoryGraph: 'up',
-        spreadingActivation: 'up',
-      },
+      status,
+      components,
       timestamp: new Date().toISOString(),
     });
     return true;
@@ -343,6 +448,7 @@ async function handleHealthCheck(req: IncomingMessage, res: ServerResponse): Pro
     log.error({ error: String(error) }, 'Memory health check failed');
     sendJSON(res, {
       status: 'unhealthy',
+      components,
       error: 'Health check failed',
       timestamp: new Date().toISOString(),
     });

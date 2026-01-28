@@ -21,7 +21,12 @@ import {
   type DeepExtractionJob,
 } from '../deep-extraction-worker.js';
 import * as asyncEventsConfig from '../async-events-config.js';
-import type { EntityMention, EmotionSignal, DateSignal, RelationshipSignal } from '../fast-capture.js';
+import type {
+  EntityMention,
+  EmotionSignal,
+  DateSignal,
+  RelationshipSignal,
+} from '../fast-capture.js';
 
 // ============================================================================
 // MOCKS
@@ -30,6 +35,12 @@ import type { EntityMention, EmotionSignal, DateSignal, RelationshipSignal } fro
 // Mock safe-logger
 vi.mock('../../../utils/safe-logger.js', () => ({
   createLogger: () => ({
+    debug: vi.fn(),
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+  }),
+  getLogger: () => ({
     debug: vi.fn(),
     info: vi.fn(),
     warn: vi.fn(),
@@ -48,6 +59,11 @@ vi.mock('../async-events-config.js', () => ({
 // Mock Firestore - return null to test graceful degradation
 vi.mock('../../../utils/firestore-utils.js', () => ({
   getFirestoreDb: vi.fn(() => null),
+}));
+
+// Mock firestore-vector-store - return null for graceful degradation
+vi.mock('../../firestore-vector-store/index.js', () => ({
+  getFirestoreVectorStore: vi.fn(() => null),
 }));
 
 // Mock Gemini config
@@ -368,7 +384,8 @@ describe('DeepExtractionWorker Job Processing', () => {
   it('should process job with various transcript lengths', async () => {
     const shortTranscript = createMockJob({ transcript: 'Hi' });
     const longTranscript = createMockJob({
-      transcript: 'My mom called me yesterday and we talked for hours about her upcoming birthday party. She mentioned that my sister Sarah would be flying in from New York and my brother Mike would be driving down from Boston. The whole family is excited.'
+      transcript:
+        'My mom called me yesterday and we talked for hours about her upcoming birthday party. She mentioned that my sister Sarah would be flying in from New York and my brother Mike would be driving down from Boston. The whole family is excited.',
     });
 
     eventHandler(shortTranscript);
@@ -638,31 +655,35 @@ describe('DeepExtractionWorker Statistics', () => {
 
   it('should accumulate statistics across multiple jobs', async () => {
     // Job with 2 entities
-    eventHandler(createMockJob({
-      fastCaptureHints: {
-        mentionedEntities: [
-          { name: 'mom', type: 'person', context: 'my mom', confidence: 0.9 },
-          { name: 'dad', type: 'person', context: 'my dad', confidence: 0.8 },
-        ] as EntityMention[],
-        emotionSignals: [],
-        topicHints: [],
-        dateSignals: [],
-        relationshipSignals: [],
-      },
-    }));
+    eventHandler(
+      createMockJob({
+        fastCaptureHints: {
+          mentionedEntities: [
+            { name: 'mom', type: 'person', context: 'my mom', confidence: 0.9 },
+            { name: 'dad', type: 'person', context: 'my dad', confidence: 0.8 },
+          ] as EntityMention[],
+          emotionSignals: [],
+          topicHints: [],
+          dateSignals: [],
+          relationshipSignals: [],
+        },
+      })
+    );
 
     // Job with 1 entity
-    eventHandler(createMockJob({
-      fastCaptureHints: {
-        mentionedEntities: [
-          { name: 'boss', type: 'person', context: 'my boss', confidence: 0.7 },
-        ] as EntityMention[],
-        emotionSignals: [],
-        topicHints: [],
-        dateSignals: [],
-        relationshipSignals: [],
-      },
-    }));
+    eventHandler(
+      createMockJob({
+        fastCaptureHints: {
+          mentionedEntities: [
+            { name: 'boss', type: 'person', context: 'my boss', confidence: 0.7 },
+          ] as EntityMention[],
+          emotionSignals: [],
+          topicHints: [],
+          dateSignals: [],
+          relationshipSignals: [],
+        },
+      })
+    );
 
     await new Promise((resolve) => setTimeout(resolve, 200));
 
@@ -846,11 +867,9 @@ describe('DeepExtractionWorker Concurrent Processing', () => {
   });
 
   it('should process jobs sequentially (not concurrently)', async () => {
-    const jobs = Array.from({ length: 5 }, (_, i) =>
-      createMockJob({ jobId: `job-${i}` })
-    );
+    const jobs = Array.from({ length: 5 }, (_, i) => createMockJob({ jobId: `job-${i}` }));
 
-    jobs.forEach(job => eventHandler(job));
+    jobs.forEach((job) => eventHandler(job));
 
     await new Promise((resolve) => setTimeout(resolve, 500));
 
@@ -914,7 +933,8 @@ describe('DeepExtractionWorker Edge Cases', () => {
   });
 
   it('should handle transcript with special characters', async () => {
-    const specialTranscript = "My mom's friend said \"don't worry\" about the $500 bill! 😊 @work #stressed";
+    const specialTranscript =
+      'My mom\'s friend said "don\'t worry" about the $500 bill! 😊 @work #stressed';
     const job = createMockJob({ transcript: specialTranscript });
 
     eventHandler(job);
@@ -942,7 +962,7 @@ describe('DeepExtractionWorker Edge Cases', () => {
       name: `Person${i}`,
       type: 'person' as const,
       context: `Person${i} context`,
-      confidence: 0.7 + (i * 0.01),
+      confidence: 0.7 + i * 0.01,
     }));
 
     const job = createMockJob({

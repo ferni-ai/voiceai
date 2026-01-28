@@ -13,14 +13,15 @@
 
 import { safeOnEvent } from './async-events-config.js';
 import { createLogger } from '../../utils/safe-logger.js';
-import type { 
-  EntityMention, 
-  EmotionSignal, 
-  DateSignal, 
-  RelationshipSignal 
+import type {
+  EntityMention,
+  EmotionSignal,
+  DateSignal,
+  RelationshipSignal,
 } from './fast-capture.js';
-
-const log = createLogger({ module: 'DeepExtractionWorker' });
+// 🧠 MEMORY FIX: Import vector store for semantic search capability
+import { getFirestoreVectorStore } from '../firestore-vector-store/index.js';
+import type { VectorDocument } from '../vector-store-interface.js';
 
 // ============================================================================
 // TYPES
@@ -75,6 +76,18 @@ export interface ExtractionResult {
   categories: string[];
   importanceScore: number;
   shouldPersist: boolean;
+}
+
+/**
+ * Stats for the deep extraction worker (Jan 2026)
+ */
+export interface ExtractionStats {
+  totalJobs: number;
+  completedJobs: number;
+  failedJobs: number;
+  avgExtractionTimeMs: number;
+  totalEntitiesExtracted: number;
+  totalFactsExtracted: number;
 }
 
 // ============================================================================
@@ -159,7 +172,7 @@ Return refined extraction with any additions.`;
 
 /**
  * Deep Extraction Worker
- * 
+ *
  * Standalone worker that processes LLM extraction jobs from the async event queue.
  * Does not extend LocalWorker to avoid Pub/Sub dependency.
  */
@@ -186,13 +199,15 @@ export class DeepExtractionWorker {
    */
   start(): void {
     if (this.running) {
-      this.log.warn('Worker already running');
+      this.log.warn('🧠 [MEMORY-AUDIT] Deep extraction worker already running');
       return;
     }
-    
+
     this.running = true;
     this.setupEventListener();
-    this.log.info('Deep extraction worker started');
+    this.log.info(
+      '🧠 [MEMORY-AUDIT] Deep extraction worker started - ready to process memory jobs'
+    );
   }
 
   /**
@@ -200,20 +215,50 @@ export class DeepExtractionWorker {
    */
   stop(): void {
     this.running = false;
-    this.log.info('Deep extraction worker stopped');
+    this.log.info('🧠 [MEMORY-AUDIT] Deep extraction worker stopped');
   }
 
   private setupEventListener(): void {
     // Listen for deep extraction events via DI wrapper (avoids layer violation)
     const registered = safeOnEvent('memory:deep-extraction', (job: unknown) => {
+      this.log.info(
+        { jobId: (job as DeepExtractionJob)?.jobId, userId: (job as DeepExtractionJob)?.userId },
+        '🧠 [MEMORY-AUDIT] Received deep extraction job'
+      );
       if (this.running) {
         this.enqueue(job as DeepExtractionJob);
+      } else {
+        this.log.warn('🧠 [MEMORY-AUDIT] Received job but worker not running');
       }
     });
 
     if (!registered) {
-      this.log.warn('AsyncEvents not configured - deep extraction will not receive jobs');
+      this.log.warn(
+        '🧠 [MEMORY-AUDIT] AsyncEvents not configured - deep extraction will not receive jobs'
+      );
+      this.log.warn(
+        '🧠 [MEMORY-AUDIT] Ensure configureAsyncEvents() is called in global-services.ts'
+      );
+    } else {
+      this.log.info('🧠 [MEMORY-AUDIT] Event listener registered for memory:deep-extraction');
     }
+  }
+
+  /**
+   * Get health status for monitoring
+   */
+  getHealthStatus(): {
+    running: boolean;
+    queueDepth: number;
+    isProcessing: boolean;
+    stats: ExtractionStats;
+  } {
+    return {
+      running: this.running,
+      queueDepth: this.jobQueue.length,
+      isProcessing: this.isProcessing,
+      stats: { ...this.extractionStats },
+    };
   }
 
   private enqueue(job: DeepExtractionJob): void {
@@ -223,9 +268,9 @@ export class DeepExtractionWorker {
     } else {
       this.jobQueue.push(job);
     }
-    
+
     this.extractionStats.totalJobs++;
-    this.processQueue();
+    void this.processQueue();
   }
 
   private async processQueue(): Promise<void> {
@@ -237,7 +282,7 @@ export class DeepExtractionWorker {
 
     while (this.jobQueue.length > 0) {
       const job = this.jobQueue.shift()!;
-      
+
       try {
         await this.processJob(job);
         this.extractionStats.completedJobs++;
@@ -252,18 +297,18 @@ export class DeepExtractionWorker {
 
   private async processJob(job: DeepExtractionJob): Promise<void> {
     const startTime = Date.now();
-    
+
     this.log.debug({ jobId: job.jobId, userId: job.userId }, 'Starting deep extraction');
 
     // 1. LLM Entity Extraction
     const entities = await this.extractEntities(job.transcript, job.fastCaptureHints);
-    
+
     // 2. LLM Fact Extraction
     const facts = await this.extractFacts(job.transcript, entities);
-    
+
     // 3. LLM Relationship Extraction
     const relationships = await this.extractRelationships(job.transcript, entities);
-    
+
     // 4. Self-Questioning Refinement (ProMem pattern)
     const refined = await this.selfQuestionRefine({
       entities,
@@ -271,31 +316,35 @@ export class DeepExtractionWorker {
       relationships,
       transcript: job.transcript,
     });
-    
+
     // 5. Calculate importance
     const importanceScore = this.calculateImportance(refined, job.fastCaptureHints);
-    
+
     // 6. Determine if worth persisting
-    const shouldPersist = importanceScore > 0.3 || 
-                          refined.entities.length > 0 ||
-                          refined.facts.length > 0;
-    
+    const shouldPersist =
+      importanceScore > 0.3 || refined.entities.length > 0 || refined.facts.length > 0;
+
     // 7. Write to memory store
     if (shouldPersist) {
-      await this.persistExtraction(job.userId, {
-        ...refined,
-        importanceScore,
-        shouldPersist,
-        categories: job.fastCaptureHints.topicHints,
-      }, job);
+      await this.persistExtraction(
+        job.userId,
+        {
+          ...refined,
+          importanceScore,
+          shouldPersist,
+          categories: job.fastCaptureHints.topicHints,
+        },
+        job
+      );
     }
-    
+
     // Update stats
     const extractionTimeMs = Date.now() - startTime;
     // Avoid division by zero - use running average only when we have previous jobs
     if (this.extractionStats.completedJobs > 1) {
       this.extractionStats.avgExtractionTimeMs =
-        (this.extractionStats.avgExtractionTimeMs * (this.extractionStats.completedJobs - 1) + extractionTimeMs) /
+        (this.extractionStats.avgExtractionTimeMs * (this.extractionStats.completedJobs - 1) +
+          extractionTimeMs) /
         this.extractionStats.completedJobs;
     } else {
       // First job - set the extraction time directly
@@ -303,15 +352,18 @@ export class DeepExtractionWorker {
     }
     this.extractionStats.totalEntitiesExtracted += refined.entities.length;
     this.extractionStats.totalFactsExtracted += refined.facts.length;
-    
-    this.log.info({
-      jobId: job.jobId,
-      extractionTimeMs,
-      entityCount: refined.entities.length,
-      factCount: refined.facts.length,
-      relationshipCount: refined.relationships.length,
-      importanceScore,
-    }, 'Deep extraction complete');
+
+    this.log.info(
+      {
+        jobId: job.jobId,
+        extractionTimeMs,
+        entityCount: refined.entities.length,
+        factCount: refined.facts.length,
+        relationshipCount: refined.relationships.length,
+        importanceScore,
+      },
+      'Deep extraction complete'
+    );
   }
 
   // ============================================================================
@@ -365,7 +417,7 @@ Extract entities as JSON array:`;
         return [];
       }
 
-      const entityList = entities.map(e => `${e.name} (${e.type})`).join('\n');
+      const entityList = entities.map((e) => `${e.name} (${e.type})`).join('\n');
 
       const prompt = `${FACT_EXTRACTION_PROMPT}
 
@@ -403,7 +455,7 @@ Extract facts as JSON array:`;
         return [];
       }
 
-      const entityList = entities.map(e => `${e.name} (${e.type})`).join('\n');
+      const entityList = entities.map((e) => `${e.name} (${e.type})`).join('\n');
 
       const prompt = `${RELATIONSHIP_EXTRACTION_PROMPT}
 
@@ -502,7 +554,7 @@ Return refined extraction as JSON with: entities, facts, relationships arrays:`;
           .doc(userId)
           .collection('dynamic_entities')
           .doc();
-        
+
         batch.set(entityRef, {
           ...entity,
           extractedAt: timestamp,
@@ -514,12 +566,8 @@ Return refined extraction as JSON with: entities, facts, relationships arrays:`;
 
       // Store each fact
       for (const fact of result.facts) {
-        const factRef = db
-          .collection('bogle_users')
-          .doc(userId)
-          .collection('dynamic_facts')
-          .doc();
-        
+        const factRef = db.collection('bogle_users').doc(userId).collection('dynamic_facts').doc();
+
         batch.set(factRef, {
           ...fact,
           extractedAt: timestamp,
@@ -536,7 +584,7 @@ Return refined extraction as JSON with: entities, facts, relationships arrays:`;
           .doc(userId)
           .collection('dynamic_relationships')
           .doc();
-        
+
         batch.set(relRef, {
           ...rel,
           extractedAt: timestamp,
@@ -552,7 +600,7 @@ Return refined extraction as JSON with: entities, facts, relationships arrays:`;
         .doc(userId)
         .collection('extraction_history')
         .doc(job.jobId);
-      
+
       batch.set(metaRef, {
         jobId: job.jobId,
         sessionId: job.sessionId,
@@ -567,14 +615,157 @@ Return refined extraction as JSON with: entities, facts, relationships arrays:`;
       });
 
       await batch.commit();
-      
-      this.log.debug({
-        userId,
-        entityCount: result.entities.length,
-        factCount: result.facts.length,
-      }, 'Persisted extraction results');
+
+      this.log.debug(
+        {
+          userId,
+          entityCount: result.entities.length,
+          factCount: result.facts.length,
+        },
+        'Persisted extraction results to Firestore'
+      );
+
+      // 🧠 MEMORY FIX: Also store in vector store for semantic search
+      // This is the critical missing piece - without this, context builders return empty
+      await this.persistToVectorStore(userId, result, job, timestamp);
     } catch (error) {
       this.log.error({ error: String(error), userId }, 'Failed to persist extraction');
+    }
+  }
+
+  /**
+   * Persist extracted entities and facts to the vector store for semantic search.
+   * This enables "Better Than Human" memory - context builders can find relevant
+   * memories by semantic similarity, not just exact match.
+   *
+   * 🧠 MEMORY FIX (January 2026): This was the missing link!
+   * - Firestore collections stored raw data (worked)
+   * - But vector store was empty (no semantic search possible)
+   * - Context builders returned [] because nothing to search
+   */
+  private async persistToVectorStore(
+    userId: string,
+    result: ExtractionResult,
+    job: DeepExtractionJob,
+    timestampStr: string
+  ): Promise<void> {
+    try {
+      const vectorStore = getFirestoreVectorStore();
+      await vectorStore.initialize();
+
+      const vectorDocs: VectorDocument[] = [];
+      const timestamp = new Date(timestampStr); // Convert ISO string to Date
+
+      // Create vector documents for entities
+      for (const entity of result.entities) {
+        // Build searchable text that includes entity name, type, and attributes
+        const attributeText = Object.entries(entity.attributes)
+          .map(([k, v]) => `${k}: ${v}`)
+          .join('. ');
+
+        const searchableText = [
+          `${entity.name} (${entity.type})`,
+          attributeText,
+          `Mentioned in conversation with ${job.personaId || 'Ferni'}`,
+        ]
+          .filter(Boolean)
+          .join('. ');
+
+        vectorDocs.push({
+          id: `entity-${userId}-${entity.name.toLowerCase().replace(/\s+/g, '-')}-${Date.now()}`,
+          text: searchableText,
+          metadata: {
+            source: 'deep_extraction',
+            userId,
+            category: 'entity',
+            entityName: entity.name,
+            entityType: entity.type,
+            sessionId: job.sessionId,
+            turnNumber: job.turnNumber,
+            timestamp,
+            confidence: entity.confidence,
+          },
+        });
+      }
+
+      // Create vector documents for facts (these are often the most valuable for memory)
+      for (const fact of result.facts) {
+        const searchableText = [
+          `${fact.entityName}: ${fact.key} is ${fact.value}`,
+          fact.temporalContext ? `(${fact.temporalContext})` : '',
+          `Type: ${fact.factType}`,
+        ]
+          .filter(Boolean)
+          .join('. ');
+
+        vectorDocs.push({
+          id: `fact-${userId}-${fact.entityName.toLowerCase().replace(/\s+/g, '-')}-${fact.key}-${Date.now()}`,
+          text: searchableText,
+          metadata: {
+            source: 'deep_extraction',
+            userId,
+            category: 'fact',
+            entityName: fact.entityName,
+            factType: fact.factType,
+            factKey: fact.key,
+            factValue: fact.value,
+            sessionId: job.sessionId,
+            turnNumber: job.turnNumber,
+            timestamp,
+            confidence: fact.confidence,
+          },
+        });
+      }
+
+      // Create vector documents for relationships
+      for (const rel of result.relationships) {
+        const searchableText = [
+          `${rel.source} ${rel.type} ${rel.target}`,
+          rel.bidirectional ? '(bidirectional relationship)' : '',
+          `Relationship strength: ${rel.strength}`,
+        ]
+          .filter(Boolean)
+          .join('. ');
+
+        vectorDocs.push({
+          id: `rel-${userId}-${rel.source.toLowerCase()}-${rel.target.toLowerCase()}-${Date.now()}`,
+          text: searchableText,
+          metadata: {
+            source: 'deep_extraction',
+            userId,
+            category: 'relationship',
+            sourceEntity: rel.source,
+            targetEntity: rel.target,
+            relationType: rel.type,
+            sessionId: job.sessionId,
+            turnNumber: job.turnNumber,
+            timestamp,
+            strength: rel.strength,
+          },
+        });
+      }
+
+      // Batch add to vector store (auto-generates embeddings)
+      if (vectorDocs.length > 0) {
+        await vectorStore.addDocuments(vectorDocs);
+
+        this.log.info(
+          {
+            userId,
+            vectorDocsAdded: vectorDocs.length,
+            entities: result.entities.length,
+            facts: result.facts.length,
+            relationships: result.relationships.length,
+          },
+          '🧠 [MEMORY-AUDIT] Persisted to vector store for semantic search'
+        );
+      }
+    } catch (error) {
+      // Non-blocking - log but don't fail the extraction
+      this.log.warn(
+        { error: String(error), userId },
+        '🧠 [MEMORY-AUDIT] Failed to persist to vector store (non-blocking)'
+      );
     }
   }
 
@@ -587,7 +778,7 @@ Return refined extraction as JSON with: entities, facts, relationships arrays:`;
       const { GoogleGenerativeAI } = await import('@google/generative-ai');
       const apiKey = process.env.GOOGLE_API_KEY || process.env.GEMINI_API_KEY;
       if (!apiKey) return null;
-      
+
       const { getExtractionModel } = await import('../../config/gemini-config.js');
       const genAI = new GoogleGenerativeAI(apiKey);
       return genAI.getGenerativeModel({ model: getExtractionModel() });
@@ -618,11 +809,11 @@ Return refined extraction as JSON with: entities, facts, relationships arrays:`;
   }
 
   private fallbackEntityExtraction(
-    transcript: string,
+    _transcript: string,
     hints: DeepExtractionJob['fastCaptureHints']
   ): ExtractedEntity[] {
     // Convert fast capture hints to entities
-    return hints.mentionedEntities.map(m => ({
+    return hints.mentionedEntities.map((m) => ({
       name: m.name,
       type: m.type as ExtractedEntity['type'],
       attributes: {},
@@ -631,27 +822,31 @@ Return refined extraction as JSON with: entities, facts, relationships arrays:`;
   }
 
   private calculateImportance(
-    result: { entities: ExtractedEntity[]; facts: ExtractedFact[]; relationships: ExtractedRelationship[] },
+    result: {
+      entities: ExtractedEntity[];
+      facts: ExtractedFact[];
+      relationships: ExtractedRelationship[];
+    },
     hints: DeepExtractionJob['fastCaptureHints']
   ): number {
     let score = 0;
-    
+
     // Entity count
     score += Math.min(result.entities.length * 0.1, 0.3);
-    
+
     // Fact count
     score += Math.min(result.facts.length * 0.1, 0.3);
-    
+
     // Relationship count
     score += Math.min(result.relationships.length * 0.15, 0.2);
-    
+
     // Emotional intensity
-    const highEmotion = hints.emotionSignals.some(e => e.intensity === 'high');
+    const highEmotion = hints.emotionSignals.some((e) => e.intensity === 'high');
     if (highEmotion) score += 0.2;
-    
+
     // Date signals (time-sensitive)
     if (hints.dateSignals.length > 0) score += 0.1;
-    
+
     return Math.min(score, 1);
   }
 
@@ -659,7 +854,7 @@ Return refined extraction as JSON with: entities, facts, relationships arrays:`;
   // PUBLIC API
   // ============================================================================
 
-  public getStats(): typeof this.extractionStats {
+  public getStats(): ExtractionStats {
     return { ...this.extractionStats };
   }
 
