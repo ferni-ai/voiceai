@@ -49,7 +49,7 @@ import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const PROJECT_ROOT = join(__dirname, "..", "..", "..", "..", "..");
+const PROJECT_ROOT = join(__dirname, '..', '..', '..', '..', '..');
 
 // ============================================================================
 // CONFIGURATION
@@ -181,9 +181,12 @@ async function healthCheck(port: number): Promise<boolean> {
       if (attempt === CONFIG.healthCheckRetries - 1) {
         log.substep('Trying SSH-based health check as fallback...');
         try {
-          const result = ssh(`curl -s -o /dev/null -w "%{http_code}" http://localhost:${port}/health`, {
-            silent: true,
-          }).trim();
+          const result = ssh(
+            `curl -s -o /dev/null -w "%{http_code}" http://localhost:${port}/health`,
+            {
+              silent: true,
+            }
+          ).trim();
           if (result === '200') {
             log.success('SSH-based health check passed (external firewall may be blocking)');
             return true;
@@ -248,6 +251,8 @@ function getSecrets(): Record<string, string> {
     'sip-domain',
     // Gemini API configuration
     'use-vertex-ai',
+    // LiveKit Gemini plugin uses different env var for Vertex AI
+    'google-genai-use-vertexai',
   ];
 
   const secrets: Record<string, string> = {};
@@ -376,7 +381,9 @@ async function ensureRedisRunning(): Promise<void> {
   let ready = false;
   for (let i = 0; i < 10; i++) {
     try {
-      const pong = ssh(`docker exec ${CONFIG.redisContainerName} redis-cli ping`, { silent: true }).trim();
+      const pong = ssh(`docker exec ${CONFIG.redisContainerName} redis-cli ping`, {
+        silent: true,
+      }).trim();
       if (pong === 'PONG') {
         ready = true;
         break;
@@ -413,7 +420,7 @@ function buildAndPush(useCloudBuild: boolean): string {
       --substitutions=_IMAGE_TAG=${tag} \
       --project ${CONFIG.projectId} \
       --quiet .`);
-    
+
     log.substep('Image built and pushed to GCR');
   } else {
     // Use local Docker (faster if Docker is running)
@@ -496,8 +503,8 @@ function deployToSlot(
     REDIS_PORT: String(CONFIG.redisPort),
     // Enable Pub/Sub for background task offloading
     PUBSUB_ENABLED: 'true',
-    // Enable OpenAI Realtime API (more reliable function calling than Gemini)
-    USE_OPENAI_REALTIME: 'true',
+    // Use Gemini model (defaults configured in gemini-config.ts)
+    USE_OPENAI_REALTIME: 'false',
   });
 
   // Start the new container
@@ -508,11 +515,7 @@ function deployToSlot(
   log.success(`${slot.toUpperCase()} container started on port ${port}`);
 }
 
-function promoteSlot(
-  slot: 'blue' | 'green',
-  image: string,
-  secrets: Record<string, string>
-): void {
+function promoteSlot(slot: 'blue' | 'green', image: string, secrets: Record<string, string>): void {
   log.step(`Promoting ${slot.toUpperCase()} to Production (port ${CONFIG.bluePort})`);
 
   const otherSlot = slot === 'blue' ? 'green' : 'blue';
@@ -547,8 +550,8 @@ function promoteSlot(
     GCS_VOICE_BUCKET: 'ferni-voice-audio-3235',
     REDIS_HOST: '172.17.0.1',
     REDIS_PORT: String(CONFIG.redisPort),
-    // Enable OpenAI Realtime API (more reliable function calling than Gemini)
-    USE_OPENAI_REALTIME: 'true',
+    // Use Gemini model (defaults configured in gemini-config.ts)
+    USE_OPENAI_REALTIME: 'false',
   });
 
   // Use "blue" as the production container name for consistency
@@ -570,7 +573,7 @@ interface CleanupResult {
 
 function performDiskCleanup(aggressive: boolean = false): CleanupResult {
   log.step('Disk Cleanup');
-  
+
   const result: CleanupResult = {
     imagesRemoved: 0,
     spaceFreed: '0B',
@@ -592,11 +595,11 @@ function performDiskCleanup(aggressive: boolean = false): CleanupResult {
       `docker images ${CONFIG.imageName} --format '{{.ID}} {{.CreatedAt}}' | sort -k2 -r | tail -n +4 | awk '{print $1}'`,
       { silent: true }
     ).trim();
-    
+
     if (imageList) {
       const imageIds = imageList.split('\n').filter(Boolean);
       result.imagesRemoved = imageIds.length;
-      
+
       for (const imageId of imageIds) {
         ssh(`docker rmi ${imageId} 2>/dev/null || true`, { silent: true });
       }
@@ -627,7 +630,8 @@ function performDiskCleanup(aggressive: boolean = false): CleanupResult {
 
     if (daemonConfigExists === 'missing') {
       // Create daemon.json with log rotation settings
-      ssh(`sudo bash -c 'cat > /etc/docker/daemon.json << EOF
+      ssh(
+        `sudo bash -c 'cat > /etc/docker/daemon.json << EOF
 {
   "log-driver": "json-file",
   "log-opts": {
@@ -635,7 +639,9 @@ function performDiskCleanup(aggressive: boolean = false): CleanupResult {
     "max-file": "3"
   }
 }
-EOF'`, { silent: true });
+EOF'`,
+        { silent: true }
+      );
       log.substep('Created Docker daemon config with log rotation');
       result.logsRotated = true;
     }
@@ -646,7 +652,9 @@ EOF'`, { silent: true });
   // 7. Truncate existing container logs (immediate relief)
   log.substep('Truncating existing container logs...');
   try {
-    ssh(`sudo sh -c 'truncate -s 0 /var/lib/docker/containers/*/*-json.log 2>/dev/null || true'`, { silent: true });
+    ssh(`sudo sh -c 'truncate -s 0 /var/lib/docker/containers/*/*-json.log 2>/dev/null || true'`, {
+      silent: true,
+    });
   } catch {
     // May fail if no logs exist
   }
@@ -660,7 +668,9 @@ EOF'`, { silent: true });
 
   // 9. Report disk space
   try {
-    const diskUsage = ssh(`df -h / | tail -1 | awk '{print $4 " available (" $5 " used)"}'`, { silent: true }).trim();
+    const diskUsage = ssh(`df -h / | tail -1 | awk '{print $4 " available (" $5 " used)"}'`, {
+      silent: true,
+    }).trim();
     result.spaceFreed = diskUsage;
     log.success(`Disk status: ${diskUsage}`);
   } catch {
@@ -704,7 +714,8 @@ async function deployToMig(image: string, secrets: Record<string, string>): Prom
 
   // Step 1: Create new instance template with the new image
   log.substep(`Creating new instance template: ${templateName}`);
-  exec(`gcloud compute instance-templates create-with-container ${templateName} \
+  exec(
+    `gcloud compute instance-templates create-with-container ${templateName} \
     --machine-type=e2-standard-4 \
     --container-image=${image} \
     --container-restart-policy=always \
@@ -715,7 +726,9 @@ async function deployToMig(image: string, secrets: Record<string, string>): Prom
     --metadata=google-logging-enabled=true \
     --network=default \
     --project=${CONFIG.projectId} \
-    --quiet 2>&1`, { silent: true });
+    --quiet 2>&1`,
+    { silent: true }
+  );
 
   log.success(`Instance template created: ${templateName}`);
 
@@ -795,9 +808,12 @@ async function deployToMig(image: string, secrets: Record<string, string>): Prom
     const templatesToDelete = templates.slice(3);
     for (const template of templatesToDelete) {
       log.substep(`Deleting old template: ${template}`);
-      exec(`gcloud compute instance-templates delete ${template} --project=${CONFIG.projectId} --quiet`, {
-        silent: true,
-      });
+      exec(
+        `gcloud compute instance-templates delete ${template} --project=${CONFIG.projectId} --quiet`,
+        {
+          silent: true,
+        }
+      );
     }
 
     if (templatesToDelete.length > 0) {
@@ -894,7 +910,10 @@ function rollback(): void {
  *
  * See: docs/architecture/LIVEKIT-AUTOSCALING.md
  */
-function checkForConflictingDeployments(useMig: boolean): { hasConflict: boolean; message: string } {
+function checkForConflictingDeployments(useMig: boolean): {
+  hasConflict: boolean;
+  message: string;
+} {
   log.substep('Checking for conflicting deployments...');
 
   try {
@@ -921,7 +940,8 @@ function checkForConflictingDeployments(useMig: boolean): { hasConflict: boolean
     if (useMig && standaloneVm) {
       return {
         hasConflict: true,
-        message: `⚠️  CONFLICT DETECTED!\n\n` +
+        message:
+          `⚠️  CONFLICT DETECTED!\n\n` +
           `You're deploying to MIG but the standalone VM (${CONFIG.instanceName}) is running.\n` +
           `Both would register with LiveKit, causing job routing conflicts.\n\n` +
           `To fix, stop the standalone VM first:\n` +
@@ -934,7 +954,8 @@ function checkForConflictingDeployments(useMig: boolean): { hasConflict: boolean
     if (!useMig && migInstances.length > 0) {
       return {
         hasConflict: true,
-        message: `⚠️  CONFLICT DETECTED!\n\n` +
+        message:
+          `⚠️  CONFLICT DETECTED!\n\n` +
           `You're deploying to standalone VM but MIG instances are running:\n` +
           `  ${migInstances.map((i) => i.name).join('\n  ')}\n\n` +
           `Both would register with LiveKit, causing job routing conflicts.\n\n` +
@@ -994,9 +1015,13 @@ ${colors.bold}${colors.magenta}╔═══════════════�
   // Show configuration
   log.info(`Project: ${CONFIG.projectId}`);
   if (useMig) {
-    log.info(`MIG: ${CONFIG.migName} (${CONFIG.migMinInstances}-${CONFIG.migMaxInstances} instances)`);
+    log.info(
+      `MIG: ${CONFIG.migName} (${CONFIG.migMinInstances}-${CONFIG.migMaxInstances} instances)`
+    );
     const migStatus = getMigStatus();
-    log.info(`Current status: ${migStatus.healthy}/${migStatus.total} healthy, stable: ${migStatus.isStable}`);
+    log.info(
+      `Current status: ${migStatus.healthy}/${migStatus.total} healthy, stable: ${migStatus.isStable}`
+    );
   } else {
     log.info(`Instance: ${CONFIG.instanceName} (${CONFIG.instanceIp})`);
   }

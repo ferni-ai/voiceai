@@ -4,15 +4,18 @@
  * Implementation of ModelProvider for Google's Gemini Live API.
  *
  * Key characteristics:
- * - JSON workaround for function calling (native FC unreliable)
+ * - Supports both native function calling AND JSON workaround
  * - Text-only mode with Cartesia TTS for persona voices
  * - Built-in VAD turn detection (enabled by default in Gemini)
  * - Prewarm recommended for first response latency
  * - Optional Vertex AI mode for higher quotas
  *
- * Feature flags:
- * - USE_GEMINI_NATIVE_FC=true: Enable native function calling from generated schemas
- * - USE_GENERATED_TOOL_DOCS=true: Use auto-generated tool documentation
+ * Configuration (via environment or gemini-fc-config.ts):
+ * - GEMINI_USE_NATIVE_FC: Enable native function calling (true/false)
+ * - GEMINI_FC_MODE: Function calling mode (AUTO/ANY/NONE)
+ * - GEMINI_JSON_FALLBACK: Keep JSON workaround as fallback (true/false)
+ * - GEMINI_TURN_OPTIMIZATION: Enable turn-by-turn tool optimization (true/false)
+ * - GEMINI_NATIVE_PROMPTS: Use simplified prompts without JSON instructions (true/false)
  *
  * Reference: https://docs.livekit.io/agents/models/realtime/plugins/gemini.md
  *
@@ -29,7 +32,7 @@ const TEXT_MODALITY = 'TEXT' as const;
 
 /**
  * Gemini function declaration format.
- * Used for native function calling as a backup to the semantic router.
+ * Used for native function calling.
  */
 interface GeminiFunctionDeclaration {
   name: string;
@@ -38,9 +41,19 @@ interface GeminiFunctionDeclaration {
     type: 'object';
     properties: Record<string, unknown>;
     required?: string[];
+    additionalProperties?: boolean;
   };
 }
 
+import { createLogger } from '../../utils/safe-logger.js';
+import { isFTISV2OnlyMode } from '../processors/tool-routing-integration.js';
+import {
+  getGeminiFCConfig,
+  isJsonFallbackEnabled,
+  isNativeFCEnabled,
+  shouldUseNativePrompts,
+  type GeminiFCMode,
+} from '../shared/gemini-fc-config.js';
 import type {
   LLMModelConfig,
   ModelProvider,
@@ -48,7 +61,8 @@ import type {
   PromptModuleConfig,
 } from './types.js';
 import { getContextualTemperature, TEMPERATURE_DEFAULTS } from './types.js';
-import { isFTISV2OnlyMode } from '../processors/ftis-v2-integration.js';
+
+const log = createLogger({ module: 'GeminiLiveProvider' });
 
 // ============================================================================
 // CONSTANTS
@@ -61,69 +75,197 @@ import { isFTISV2OnlyMode } from '../processors/ftis-v2-integration.js';
 const GEMINI_TOKEN_LIMIT = 30000;
 
 /**
- * Function calling mode for Gemini.
- * 
- * Environment variable: GEMINI_FC_MODE
- * 
- * Options:
- * - 'AUTO' (default): Gemini decides when to call functions based on user input
- * - 'ANY': Force function calling - Gemini MUST call a function when tools are available
- *          This significantly improves reliability but may call functions unexpectedly
- * - 'NONE': Disable native function calling entirely (use JSON workaround only)
- * 
- * Research (Jan 2026) shows 'ANY' mode reduces flakiness significantly by
- * forcing Gemini to commit to a function call rather than speaking about tools.
- */
-type GeminiFCMode = 'AUTO' | 'ANY' | 'NONE';
-
-/**
- * Get the configured function calling mode from environment.
- * 
- * FIX (Jan 2026): Now properly checks isFTISV2OnlyMode() instead of
- * just the env var. When FTIS V2 is active (default), native FC should
- * be NONE since FTIS handles all tool routing via transcripts.
+ * Get the configured function calling mode.
+ *
+ * Priority:
+ * 1. FTIS V2 mode active → NONE (FTIS handles all tools externally)
+ * 2. Native FC disabled → NONE (use JSON workaround only)
+ * 3. Use configured mode from gemini-fc-config
  */
 function getGeminiFCMode(): GeminiFCMode {
   // FTIS V2 mode disables all Gemini native tool knowledge
-  // FTIS V2 handles tools via transcript classification, not native FC
   if (isFTISV2OnlyMode()) {
     return 'NONE';
   }
-  const mode = process.env.GEMINI_FC_MODE?.toUpperCase();
-  if (mode === 'ANY' || mode === 'NONE' || mode === 'AUTO') {
-    return mode;
+
+  // If native FC is disabled, return NONE
+  if (!isNativeFCEnabled()) {
+    return 'NONE';
   }
-  // Default to AUTO when FTIS V2 is disabled
-  return 'AUTO';
+
+  // Use configured mode
+  return getGeminiFCConfig().fcMode;
 }
 
 /**
  * Check if FTIS-only mode is enabled.
  * When true, Gemini has NO tool knowledge - FTIS handles everything.
- * 
- * NOTE: This function delegates to the consolidated isFTISV2OnlyMode() from
- * ftis-v2-integration.ts which is the single source of truth.
- * It checks both FTIS_V2_ONLY_MODE and FTIS_ONLY_MODE env vars.
  */
 function isFTISOnlyMode(): boolean {
   return isFTISV2OnlyMode();
 }
 
 /**
- * Default Gemini model for TEXT modality with external TTS (half-cascade architecture).
+ * Default Gemini model for Live API with TEXT modality + external TTS.
  *
- * IMPORTANT: Native-audio models (gemini-*-native-audio-*) do NOT support TEXT modality!
- * They fail with "Cannot extract voices from a non-audio request" error.
- * This is a known Google bug: https://github.com/livekit/agents/issues/4423
+ * Supported models for TEXT modality (from Google docs):
+ * - gemini-2.0-flash-live-preview-04-09 (current, retiring March 2026)
+ * - gemini-live-2.5-flash-preview (TEXT modality supported, future upgrade)
+ * - gemini-live-2.5-flash (private GA, requires access request)
  *
- * For TEXT mode with Cartesia TTS, use standard models:
- * - gemini-2.0-flash-exp (recommended - stable, fast)
- * - gemini-2.5-flash (if available)
+ * NOT supported:
+ * - gemini-2.0-flash-exp (deprecated, not supported by Live API)
+ * - gemini-live-2.5-flash-native-audio (AUDIO modality only, no TEXT output)
  *
- * Native-audio models should ONLY be used with AUDIO modality where Gemini
- * handles both STT and TTS internally.
+ * WORKING MODEL (January 2026):
+ * - gemini-2.0-flash-live-preview-04-09 (supports TEXT modality on Vertex AI)
  */
-const DEFAULT_GEMINI_MODEL = 'gemini-2.0-flash-exp';
+const DEFAULT_GEMINI_MODEL = 'gemini-2.0-flash-live-preview-04-09';
+
+// ============================================================================
+// NATIVE FUNCTION CALLING INSTRUCTIONS
+// ============================================================================
+
+/**
+ * Minimal instructions for Gemini with native function calling.
+ *
+ * These are foundational rules that:
+ * - Establish platform context (Ferni team)
+ * - CRITICAL: Tell Gemini to USE the native function calling API (not JSON)
+ * - Set voice output guidance
+ * - Include anti-hallucination guardrails
+ *
+ * This is analogous to OpenAI's MINIMAL_INSTRUCTIONS but for Gemini.
+ * Without this, Gemini doesn't know HOW to call tools - only WHEN (from tool-usage-guidance.md).
+ */
+/**
+ * Native Function Calling Instructions for Gemini
+ *
+ * Structure follows Google's Gemini Live API Best Practices (Jan 2026):
+ * 1. Persona definition FIRST
+ * 2. Conversational rules in ORDER (with tool calls as DISTINCT sentences)
+ * 3. Guardrails with "unmistakably" for precision
+ *
+ * Reference: https://cloud.google.com/vertex-ai/generative-ai/docs/live-api/best-practices
+ */
+const GEMINI_NATIVE_FC_INSTRUCTIONS = `## Persona
+
+You are **Ferni**, a voice-first AI life coach. You are warm, curious, and genuinely care about helping people navigate life. You speak naturally, like a wise friend who truly understands.
+
+**Your Team (available via handoff):**
+- **Maya** - Habits and routines specialist
+- **Peter** - Research and deep analysis
+- **Alex** - Communications and productivity
+- **Jordan** - Events and celebrations
+- **Nayan** - Wisdom and philosophy
+
+---
+
+## Conversational Rules
+
+**Rule 1: Function calls are SILENT API invocations, NEVER text.**
+You have tools available (music, weather, handoffs, etc.). When you want to use a tool:
+1. Generate a function_call event with the tool name and arguments.
+2. Do NOT speak or write the function call - it's an API-level operation.
+3. Wait for the function_call_output result.
+4. Then respond naturally to the user based on the result.
+
+**CRITICAL - Function calls are INVISIBLE to the user:**
+- Function calls happen through the API, not in your text output
+- NEVER output function calls in brackets like \`[playMusic ...]\` - this is WRONG
+- NEVER output function calls as JSON like \`{"fn":"..."}\` - this is WRONG
+- NEVER say the function name out loud - this is WRONG
+- The user should only hear your natural speech, not see or hear any function syntax
+
+**Rule 2: CALL THE FUNCTION FIRST, then speak.**
+CRITICAL: When the user makes an actionable request, you MUST generate a function_call BEFORE any text response.
+
+**Common pattern to AVOID:**
+❌ User: "play some jazz" → You say "Let me play some jazz for you" (NO FUNCTION CALL - THIS IS WRONG)
+❌ User: "what's the weather" → You say "I'll check the weather" (NO FUNCTION CALL - THIS IS WRONG)
+
+**Correct pattern:**
+✅ User: "play some jazz" → [function_call: playMusic({query:"jazz"})] → Then say "Here we go!"
+✅ User: "what's the weather" → [function_call: getWeather()] → Then share weather naturally
+✅ User: "let me talk to Maya" → [function_call: handoffToMaya({reason:"..."})] → Handoff occurs
+
+If you find yourself about to say "let me...", "I'll...", "I'm going to...", or "here comes..." — STOP. That means you should CALL THE FUNCTION FIRST instead of announcing it.
+
+**Rule 3: After function results, announce them naturally.**
+When you receive results from a function:
+- Weather: "It's 72 degrees and sunny right now."
+- News: "Here's what's happening..." then share headlines conversationally.
+- Music: "Here we go!" or "Playing that for you."
+- Handoff: "Let me get Maya for you."
+
+Add natural transitions: "Also...", "And here's something interesting...", "Oh!"
+
+**Rule 4: Action trigger words.**
+When you hear these words/phrases, IMMEDIATELY call the appropriate function:
+
+| Trigger | Function |
+|---------|----------|
+| "play", "put on", "some music" | playMusic |
+| "weather", "temperature", "forecast" | getWeather |
+| "reminder", "remind me" | setReminder |
+| "timer", "set a timer" | quickTimer |
+| "alarm", "wake me up" | quickAlarm |
+| "talk to Maya/Peter/Alex/Jordan/Nayan" | handoffTo{Name} |
+| "transfer", "switch to", "hand me off" | handoffTo{Name} |
+
+Don't discuss what you're going to do — just DO it by calling the function.
+
+**Rule 5: Conversational loop.**
+After handling a request, be available for follow-ups. The user may want to:
+- Ask about different topics
+- Control music (pause, skip, volume)
+- Talk to different team members
+- Just chat
+
+Stay engaged and responsive throughout the conversation.
+
+---
+
+## Output Guardrails
+
+**UNMISTAKABLY follow these rules:**
+
+1. **Never output function calls as text in ANY format.** Your spoken words must NEVER contain:
+   - Brackets with function names: \`[playMusic ...]\` or \`[getWeather]\` - FORBIDDEN
+   - JSON syntax: \`{"fn":...}\` or \`"args":...\` - FORBIDDEN
+   - Code-like syntax: curly braces, colons with quoted strings - FORBIDDEN
+   - Function descriptions: "calling playMusic" or "invoking getWeather" - FORBIDDEN
+   
+   If you want to call a function, generate a proper function_call event through the API. Your speech should only contain natural language.
+
+2. **Never describe tool calls.** Don't say "I'll call the playMusic function" or "Let me invoke getWeather". Just call the function silently through the API, then speak about the result naturally.
+
+3. **Never invent results.** Only speak information you actually received from a function call. If a tool fails, say "That didn't work, let me try again" or "I couldn't get that information."
+
+4. **Never guess.** If you don't have information, say "I don't know" or "Let me look that up for you."
+
+5. **Function calls are API events, not text.** When you see a function call opportunity:
+   - WRONG: Speaking "[playMusic jazz]" or "playMusic(jazz)"
+   - RIGHT: Generate a function_call event, wait for result, then say "Here's some jazz for you!"
+
+---
+
+## Voice Output Style
+
+- Short sentences optimized for voice
+- Natural reactions: "Oh!" "Hmm." "Wait—" "Interesting!"
+- No asterisks, stage directions, or markdown
+- Warm and conversational, never robotic
+
+---
+
+## Safety Boundaries
+
+You are UNMISTAKABLY a life coach, not a licensed professional:
+- Never give medical advice (refer to doctors)
+- Never give financial advice (refer to advisors)
+- Never give legal advice (refer to lawyers)
+- For crisis situations, show empathy and suggest professional help`;
 
 // ============================================================================
 // PROVIDER IMPLEMENTATION
@@ -150,27 +292,25 @@ export class GeminiLiveProvider implements ModelProvider {
   /**
    * Whether Gemini has native function calling capabilities.
    *
-   * When FTIS_ONLY_MODE=true: NO - FTIS handles all tools externally
-   * Otherwise: YES - Native FC enabled as backup layer
-   *
-   * Architecture (when not in FTIS-only mode):
-   * 1. Semantic Router handles 90%+ of tool calls (primary, <1ms)
-   * 2. Native FC provides backup for uncertain cases
-   * 3. JSON workaround catches any remaining edge cases
-   * 4. SSML processor strips any leaked JSON
+   * Determined by:
+   * 1. FTIS_ONLY_MODE → NO (FTIS handles all tools externally)
+   * 2. GEMINI_USE_NATIVE_FC=true → YES
+   * 3. Default: NO (use JSON workaround)
    */
   hasNativeFunctionCalling(): boolean {
     if (isFTISOnlyMode()) {
       return false; // FTIS handles all tools - no native FC
     }
-    return true; // Enabled as backup layer
+    return isNativeFCEnabled();
   }
 
   /**
    * Whether Gemini needs the JSON workaround for function calling.
    *
-   * When FTIS_ONLY_MODE=true: NO - FTIS handles all tools externally
-   * Otherwise: YES - JSON workaround provides defense-in-depth
+   * Determined by:
+   * 1. FTIS_ONLY_MODE → NO (FTIS handles all tools externally)
+   * 2. JSON fallback disabled and native FC enabled → NO
+   * 3. Default: YES (provides defense-in-depth)
    *
    * The sanitizer intercepts JSON output to execute tools before TTS.
    */
@@ -178,7 +318,13 @@ export class GeminiLiveProvider implements ModelProvider {
     if (isFTISOnlyMode()) {
       return false; // FTIS handles all tools - no JSON workaround needed
     }
-    return true; // Still enabled for defense-in-depth
+
+    // If native FC is enabled and fallback is disabled, no JSON workaround needed
+    if (isNativeFCEnabled() && !isJsonFallbackEnabled()) {
+      return false;
+    }
+
+    return true; // Default: JSON workaround for defense-in-depth
   }
 
   /**
@@ -195,11 +341,11 @@ export class GeminiLiveProvider implements ModelProvider {
 
   /**
    * Gemini prompt modules configuration.
-   * 
-   * When FTIS_ONLY_MODE=true:
-   * - NO JSON function calling prompts (Gemini has no tool knowledge)
-   * - FTIS handles all tool routing externally
-   * - Gemini just does natural conversation
+   *
+   * Three modes:
+   * 1. FTIS_ONLY_MODE: No function calling prompts (FTIS handles all tools)
+   * 2. Native FC with native prompts: No JSON format instructions, just tool guidance
+   * 3. Default/JSON workaround: Full JSON function-calling prompts
    */
   getPromptModules(): PromptModuleConfig {
     if (isFTISOnlyMode()) {
@@ -212,8 +358,23 @@ export class GeminiLiveProvider implements ModelProvider {
         useMinimalInstructions: false,
       };
     }
-    
-    // Default: Include JSON function-calling prompts
+
+    // Check if we should use native prompts (no JSON format instructions)
+    if (shouldUseNativePrompts()) {
+      // Native FC mode: Use minimal instructions + tool guidance
+      // CRITICAL: useMinimalInstructions=true ensures Gemini gets explicit instructions
+      // about HOW to use native function calling (not just WHEN to use tools)
+      log.debug('Using native FC prompts with minimal instructions');
+      return {
+        includeFunctionCallingBase: false, // No JSON format instructions
+        includeFunctionCallingSpecialty: false, // No JSON examples
+        includeToolUsageGuidance: true, // Keep conceptual guidance (when to use tools)
+        includeModelBaseInstructions: true,
+        useMinimalInstructions: true, // CRITICAL: Include native FC instructions
+      };
+    }
+
+    // Default: Include JSON function-calling prompts (for JSON workaround)
     return {
       includeFunctionCallingBase: true, // JSON format instructions
       includeFunctionCallingSpecialty: true, // JSON format examples
@@ -231,10 +392,20 @@ export class GeminiLiveProvider implements ModelProvider {
   }
 
   /**
-   * Gemini doesn't use minimal instructions - it needs full JSON prompts.
+   * Get minimal instructions for Gemini native function calling mode.
+   *
+   * CRITICAL: When native FC is enabled, these instructions tell Gemini
+   * HOW to use the function calling API. Without this, Gemini knows WHEN
+   * to use tools (from tool-usage-guidance.md) but not HOW (it would just
+   * talk instead of actually calling functions).
    */
   getMinimalInstructions(): string {
-    // This shouldn't be called for Gemini since useMinimalInstructions is false
+    // Only return native FC instructions when using native function calling
+    if (shouldUseNativePrompts()) {
+      return GEMINI_NATIVE_FC_INSTRUCTIONS;
+    }
+    // For JSON workaround mode, no minimal instructions needed
+    // (the full function-calling-base.md provides the instructions)
     return '';
   }
 
@@ -265,23 +436,34 @@ export class GeminiLiveProvider implements ModelProvider {
     // See: https://github.com/googleapis/python-genai/issues/1780
     //
     // For TEXT output + external TTS (Cartesia), use standard models like:
-    // - gemini-2.0-flash-exp (recommended)
-    // - gemini-2.5-flash
+    // - gemini-2.0-flash-live-preview-04-09 (current, retiring March 2026)
+    // - gemini-live-2.5-flash-preview (future upgrade, supports TEXT modality)
     //
     // Native-audio models (gemini-*-native-audio-*) ONLY work with AUDIO modality
     // where Gemini handles both STT and TTS internally.
-    
+
     // Dynamic temperature: Lower when tool call is expected for more deterministic output
     // Research (Jan 2026) shows this significantly improves Gemini's function calling reliability
     const temperature = config.expectsToolCall
-      ? getContextualTemperature(true, false, config.temperature ?? TEMPERATURE_DEFAULTS.CONVERSATION)
-      : config.temperature ?? TEMPERATURE_DEFAULTS.CONVERSATION;
+      ? getContextualTemperature(
+          true,
+          false,
+          config.temperature ?? TEMPERATURE_DEFAULTS.CONVERSATION
+        )
+      : (config.temperature ?? TEMPERATURE_DEFAULTS.CONVERSATION);
 
     if (config.expectsToolCall) {
-      console.log(
-        `🌡️ [Gemini] Lowered temperature to ${temperature} (tool call expected)`
-      );
+      log.debug({ temperature }, '🌡️ Lowered temperature (tool call expected)');
     }
+
+    // Check if Vertex AI should be used for Live API
+    // Try BOTH env vars - GEMINI_LIVE_USE_VERTEX_AI for explicit control, or fall back to general vars
+    const useVertexAI =
+      process.env.GEMINI_LIVE_USE_VERTEX_AI === 'true' ||
+      process.env.GOOGLE_GENAI_USE_VERTEXAI === 'true' ||
+      process.env.USE_VERTEX_AI === 'true';
+    const gcpProject = process.env.GOOGLE_CLOUD_PROJECT;
+    const gcpLocation = process.env.GOOGLE_CLOUD_LOCATION || 'us-central1';
 
     const modelOptions: Record<string, unknown> = {
       model: config.model || DEFAULT_GEMINI_MODEL,
@@ -295,49 +477,97 @@ export class GeminiLiveProvider implements ModelProvider {
       inputAudioTranscription: {},
     };
 
-    // Pass tools for native function calling as a backup layer
-    // The semantic router handles 90%+ of tool calls, but native FC
-    // provides defense-in-depth for edge cases
-    //
-    // Priority:
-    // 1. Generated declarations (USE_GEMINI_NATIVE_FC=true): Single source of truth
-    // 2. Converted config.tools: Existing tool definitions
+    // Configure Vertex AI if enabled (higher quotas)
+    if (useVertexAI && gcpProject) {
+      modelOptions.vertexai = true;
+      modelOptions.project = gcpProject;
+      modelOptions.location = gcpLocation;
+      log.info({ project: gcpProject, location: gcpLocation }, '🔷 Gemini Live using Vertex AI');
+    } else {
+      log.info(
+        '🔶 Gemini Live using Gemini API (set GOOGLE_GENAI_USE_VERTEXAI=true for Vertex AI)'
+      );
+    }
+
+    // Pass tools for native function calling
+    // Configured via gemini-fc-config.ts
     const fcMode = getGeminiFCMode();
-    
+    const geminiFCConfig = getGeminiFCConfig();
+
     // Only load tools if FC mode is not NONE
     if (fcMode !== 'NONE') {
       const generatedDeclarations = await this.loadGeneratedDeclarations();
 
+      let functionDeclarations: GeminiFunctionDeclaration[] = [];
+
       if (generatedDeclarations && generatedDeclarations.length > 0) {
         // Use generated declarations from tool schemas
-        modelOptions.tools = [{ functionDeclarations: generatedDeclarations }];
+        functionDeclarations = generatedDeclarations;
       } else if (config.tools && config.tools.length > 0) {
         // Fall back to converted LiveKit tools
-        const functionDeclarations = this.convertToGeminiFunctions(config.tools);
-        if (functionDeclarations.length > 0) {
-          modelOptions.tools = [{ functionDeclarations }];
-        }
+        functionDeclarations = this.convertToGeminiFunctions(config.tools);
       }
 
-      // Configure function calling mode
-      // Research (Jan 2026): 'ANY' mode forces function calling and reduces flakiness
-      // See: https://ai.google.dev/gemini-api/docs/function-calling
-      if (modelOptions.tools) {
+      // Apply strict schemas if configured (anti-hallucination)
+      if (geminiFCConfig.enforceStrictSchemas && functionDeclarations.length > 0) {
+        functionDeclarations = functionDeclarations.map((decl) => ({
+          ...decl,
+          parameters: decl.parameters
+            ? {
+                ...decl.parameters,
+                additionalProperties: false,
+              }
+            : undefined,
+        }));
+        log.debug('🔒 Applied strict schemas (additionalProperties: false)');
+      }
+
+      if (functionDeclarations.length > 0) {
+        // Cap tools at maxToolsPerTurn if turn optimization is enabled
+        if (geminiFCConfig.enableTurnOptimization) {
+          const maxTools = geminiFCConfig.maxToolsPerTurn;
+          if (functionDeclarations.length > maxTools) {
+            log.debug(
+              { original: functionDeclarations.length, capped: maxTools },
+              '✂️ Capping tools at maxToolsPerTurn'
+            );
+            functionDeclarations = functionDeclarations.slice(0, maxTools);
+          }
+        }
+
+        // NOTE (Jan 2026): LiveKit's RealtimeModel constructor does NOT accept `tools` option!
+        // Function declarations must be sent via session.updateTools() AFTER session starts.
+        // The agent's _tools are automatically sent via registerInitialTools() in voice-agent-entry.ts
+        // and persona-agent-factory.ts after session.start().
+        //
+        // We configure toolConfig here for the FC mode (AUTO/ANY), but the actual function
+        // declarations are registered separately via LiveKit's updateTools() → toFunctionDeclarations()
+
+        // Configure function calling mode
+        // Research (Jan 2026): 'AUTO' mode lets Gemini decide, 'ANY' forces function calling
         modelOptions.toolConfig = {
           functionCallingConfig: {
             mode: fcMode, // 'AUTO' or 'ANY'
           },
         };
-        
-        console.log(
-          `🎯 [Gemini] Function calling mode: ${fcMode} (${fcMode === 'ANY' ? 'FORCED' : 'automatic'})`
+
+        log.info(
+          {
+            fcMode,
+            toolCount: functionDeclarations.length,
+            strictSchemas: geminiFCConfig.enforceStrictSchemas,
+            turnOptimization: geminiFCConfig.enableTurnOptimization,
+          },
+          `🎯 Native FC configured: ${fcMode} mode (tools sent via session.updateTools after start)`
         );
       }
     } else {
       if (isFTISOnlyMode()) {
-        console.log('🚀 [Gemini] FTIS_ONLY_MODE: Gemini has NO tool knowledge - FTIS handles everything');
+        log.debug('🚀 FTIS_ONLY_MODE: Gemini has NO tool knowledge - FTIS handles everything');
       } else {
-        console.log('🎯 [Gemini] Native function calling DISABLED (GEMINI_FC_MODE=NONE)');
+        log.debug(
+          '🎯 Native function calling DISABLED (GEMINI_FC_MODE=NONE or GEMINI_USE_NATIVE_FC=false)'
+        );
       }
     }
 
@@ -346,15 +576,16 @@ export class GeminiLiveProvider implements ModelProvider {
 
     // 🔊 E2E TRACING: Attach comprehensive message logging
     // Enable with DEBUG_GEMINI_ALL=true to see EVERYTHING
-    const debugAll = process.env.DEBUG_GEMINI_ALL === 'true' || process.env.DEBUG_GEMINI_MESSAGES === 'true';
-    
+    const debugAll =
+      process.env.DEBUG_GEMINI_ALL === 'true' || process.env.DEBUG_GEMINI_MESSAGES === 'true';
+
     const modelWithEvents = model as unknown as {
       on?: (event: string, handler: (...args: unknown[]) => void) => void;
     };
-    
+
     if (modelWithEvents.on) {
-      console.log('🔊 [GEMINI] Attaching E2E message tracing...');
-      
+      log.debug('🔊 Attaching E2E message tracing...');
+
       // Log ALL events from the model
       const eventsToTrace = [
         // Core message events
@@ -382,12 +613,13 @@ export class GeminiLiveProvider implements ModelProvider {
         'error',
         'close',
       ];
-      
+
       for (const eventName of eventsToTrace) {
         modelWithEvents.on(eventName, (event: unknown) => {
           const eventStr = JSON.stringify(event, null, 2);
-          const truncated = eventStr.length > 2000 ? eventStr.slice(0, 2000) + '...[TRUNCATED]' : eventStr;
-          
+          const truncated =
+            eventStr.length > 2000 ? `${eventStr.slice(0, 2000)}...[TRUNCATED]` : eventStr;
+
           if (debugAll) {
             process.stderr.write(`\n📡 [GEMINI ${eventName}] ${truncated}\n`);
           } else {
@@ -396,12 +628,36 @@ export class GeminiLiveProvider implements ModelProvider {
               process.stderr.write(`\n📡 [GEMINI ${eventName}] ${truncated}\n`);
             }
           }
+
+          // 🔧 NATIVE FC LOGGING: Always log function call events for debugging
+          // These events indicate Gemini is using native function calling
+          if (eventName === 'response.function_call_arguments.done') {
+            const fcEvent = event as {
+              name?: string;
+              call_id?: string;
+              arguments?: string;
+            };
+            let parsedArgs: unknown = fcEvent.arguments;
+            try {
+              if (typeof fcEvent.arguments === 'string') {
+                parsedArgs = JSON.parse(fcEvent.arguments);
+              }
+            } catch {
+              // Keep as string if not valid JSON
+            }
+            process.stderr.write(
+              `\n🔧 [NATIVE FC] Gemini function call COMPLETE:\n` +
+                `   Tool: ${fcEvent.name || 'unknown'}\n` +
+                `   Call ID: ${fcEvent.call_id || 'none'}\n` +
+                `   Arguments: ${JSON.stringify(parsedArgs, null, 2)}\n\n`
+            );
+          }
         });
       }
-      
-      console.log(`🔊 [GEMINI] Tracing ${eventsToTrace.length} event types (DEBUG_GEMINI_ALL=${debugAll})`);
+
+      log.debug({ eventCount: eventsToTrace.length, debugAll }, '🔊 Tracing event types');
     } else {
-      console.log('⚠️ [GEMINI] Model does not support event listeners - no tracing available');
+      log.warn('⚠️ Model does not support event listeners - no tracing available');
     }
 
     return model;
@@ -425,7 +681,9 @@ export class GeminiLiveProvider implements ModelProvider {
    * @returns Generated declarations or null if disabled/unavailable
    */
   async loadGeneratedDeclarations(): Promise<GeminiFunctionDeclaration[] | null> {
-    if (process.env.USE_GEMINI_NATIVE_FC !== 'true') {
+    // Use the centralized config instead of checking env var directly
+    // This ensures consistency - GEMINI_USE_NATIVE_FC is the correct env var name
+    if (!isNativeFCEnabled()) {
       return null;
     }
 
@@ -436,16 +694,17 @@ export class GeminiLiveProvider implements ModelProvider {
 
       // Log success (only once per session)
       if (Array.isArray(functionDeclarations) && functionDeclarations.length > 0) {
-        console.log(
-          `🎯 [Gemini] Loaded ${functionDeclarations.length} native function declarations from schemas`
+        log.info(
+          { count: functionDeclarations.length },
+          '🎯 Loaded native function declarations from schemas'
         );
       }
 
       return functionDeclarations as GeminiFunctionDeclaration[];
     } catch (error) {
-      console.warn(
-        '⚠️ [Gemini] USE_GEMINI_NATIVE_FC=true but generated declarations not found:',
-        error instanceof Error ? error.message : error
+      log.warn(
+        { error: error instanceof Error ? error.message : String(error) },
+        '⚠️ Native FC enabled but generated declarations file not found - falling back to converted tools'
       );
       return null;
     }

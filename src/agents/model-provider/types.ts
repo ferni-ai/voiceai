@@ -73,7 +73,7 @@ export interface PromptModuleConfig {
  * Configuration for creating an LLM model instance
  */
 export interface LLMModelConfig {
-  /** Model identifier (e.g., 'gpt-realtime', 'gemini-2.0-flash-exp') */
+  /** Model identifier (e.g., 'gpt-realtime', 'gemini-2.5-flash') */
   model?: string;
 
   /** System instructions/prompt */
@@ -111,24 +111,24 @@ export interface LLMModelConfig {
 
 /**
  * Default temperatures for different contexts.
- * 
+ *
  * Research (Jan 2026) shows that lower temperature during tool calls
  * significantly improves Gemini's function calling reliability.
  */
 export const TEMPERATURE_DEFAULTS = {
   /** Standard conversation temperature */
   CONVERSATION: 0.7,
-  
+
   /** Temperature when tool call is expected (more deterministic) */
   TOOL_CALL: 0.1,
-  
+
   /** Temperature for retry attempts (even more deterministic) */
   RETRY: 0.05,
 } as const;
 
 /**
  * Get appropriate temperature based on context.
- * 
+ *
  * @param expectsToolCall - Whether a tool call is expected this turn
  * @param isRetry - Whether this is a retry attempt
  * @param baseTemperature - Base temperature to use if not adjusting

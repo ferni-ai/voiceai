@@ -40,7 +40,7 @@ export const GOOGLE_API_KEY = GEMINI_API_KEY;
 // ============================================================================
 
 /** Default Gemini model (from .env or fallback) */
-export const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-2.0-flash-exp';
+export const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
 
 /** Default temperature for generation (0.0 - 2.0) */
 export const GEMINI_TEMPERATURE = parseFloat(process.env.GEMINI_TEMPERATURE || '0.8');
@@ -85,9 +85,9 @@ export const EXTRACTION_MODEL = process.env.LLM_EXTRACTION_MODEL || 'gemini-1.5-
 
 /**
  * Model for embedding generation
- * Default: text-embedding-004 (Google's latest embedding model)
+ * Default: text-embedding-005 (Google's latest embedding model)
  */
-export const EMBEDDING_MODEL = process.env.LLM_EMBEDDING_MODEL || 'text-embedding-004';
+export const EMBEDDING_MODEL = process.env.LLM_EMBEDDING_MODEL || 'text-embedding-005';
 
 /**
  * Model for OpenAI fallback operations
@@ -111,10 +111,10 @@ export const CLASSIFICATION_MODEL = process.env.LLM_CLASSIFICATION_MODEL || 'gem
 /**
  * Model for content generation (marketing, outreach)
  * Optimized for: Quality, creativity
- * Default: gemini-2.0-flash-exp (latest features, good quality)
+ * Default: gemini-2.5-flash (stable, good quality)
  */
 export const CONTENT_GENERATION_MODEL =
-  process.env.LLM_CONTENT_GENERATION_MODEL || 'gemini-2.0-flash-exp';
+  process.env.LLM_CONTENT_GENERATION_MODEL || 'gemini-2.5-flash';
 
 /**
  * Model for light/fast tasks (humanization, expressions)
@@ -124,10 +124,15 @@ export const CONTENT_GENERATION_MODEL =
 export const LIGHT_MODEL = process.env.LLM_LIGHT_MODEL || 'gemini-2.0-flash-lite';
 
 /**
- * Model for realtime/voice applications
- * Default: gemini-2.0-flash-exp (optimized for streaming)
+ * Model for realtime/voice applications (Vertex AI Live API)
+ * Default: gemini-2.0-flash-live-preview-04-09 (supports TEXT modality)
+ * NOTE: gemini-live-2.5-flash-preview also works but gemini-live-2.5-flash is private GA
+ * NOTE: Native-audio models (gemini-live-*-native-audio) do NOT work with TEXT modality!
  */
-export const REALTIME_MODEL = process.env.LLM_REALTIME_MODEL || 'gemini-2.0-flash-exp';
+export const REALTIME_MODEL =
+  process.env.LLM_REALTIME_MODEL ||
+  process.env.GEMINI_MODEL ||
+  'gemini-2.0-flash-live-preview-04-09';
 
 /**
  * OpenAI realtime model (for OpenAI realtime API)
@@ -412,7 +417,7 @@ export function getClassificationModel(): string {
 
 /**
  * Get model for content generation (marketing, outreach)
- * Use this instead of hardcoding 'gemini-2.0-flash-exp'
+ * Use this instead of hardcoding 'gemini-2.5-flash'
  */
 export function getContentGenerationModel(): string {
   return CONTENT_GENERATION_MODEL;
@@ -428,7 +433,7 @@ export function getLightModel(): string {
 
 /**
  * Get model for realtime/voice applications
- * Use this instead of hardcoding 'gemini-2.0-flash-exp'
+ * Use this instead of hardcoding 'gemini-2.0-flash-live-preview-04-09'
  */
 export function getRealtimeModel(): string {
   return REALTIME_MODEL;

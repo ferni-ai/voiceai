@@ -27,7 +27,7 @@ const log = createLogger({ module: 'ModelConfig' });
  * Gemini model configuration parameters
  */
 export interface GeminiModelConfig {
-  /** Model ID (e.g., 'gemini-2.0-flash-exp', 'gemini-1.5-pro-latest') */
+  /** Model ID (e.g., 'gemini-2.5-flash', 'gemini-1.5-pro-latest') */
   model: string;
   /** Temperature (0.0 - 2.0, default: 0.8) - Controls randomness */
   temperature: number;
@@ -203,9 +203,9 @@ export const AVAILABLE_MODELS = [
     description: 'Latest model with improved capabilities',
   },
   {
-    id: 'gemini-2.0-flash-exp',
-    name: 'Gemini 2.0 Flash (Experimental)',
-    description: 'Fast, latest features',
+    id: 'gemini-2.5-flash',
+    name: 'Gemini 2.5 Flash',
+    description: 'Fast, stable, recommended',
   },
   {
     id: 'gemini-2.0-flash-live-001',
@@ -573,7 +573,7 @@ export function validateGeminiConfig(config: Partial<GeminiModelConfig>): {
  * Use this instead of hardcoding model names!
  *
  * @example
- * // Instead of: model: 'gemini-2.0-flash-exp'
+ * // Instead of: model: 'gemini-2.5-flash'
  * // Use: model: getDefaultModel()
  */
 export function getDefaultModel(): string {
