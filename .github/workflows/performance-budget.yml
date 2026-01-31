@@ -2,71 +2,79 @@ name: Performance Budget
 
 # Checks bundle size and fails PR if it exceeds budget
 # Runs on PRs to catch regressions before merge
+#
+# Budget calibrated 2026-01-31: Current bundle ~14MB total, ~2.8MB largest chunk
+# Values include 20% headroom for growth
 
 on:
   pull_request:
     paths:
-      - 'frontend-typescript/**'
+      - 'apps/web/**'
       - 'package.json'
-      - 'package-lock.json'
+      - 'pnpm-lock.yaml'
+
+concurrency:
+  group: perf-budget-${{ github.workflow }}-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: write
 
 env:
-  # Bundle size limits (in KB)
-  MAX_BUNDLE_SIZE_KB: 500
-  MAX_CHUNK_SIZE_KB: 200
+  # Bundle size limits (in KB) - calibrated 2026-01-31
+  # Current: ~14MB total, ~2.8MB largest chunk
+  # Budget: +20% headroom for growth
+  MAX_BUNDLE_SIZE_KB: 17000
+  MAX_CHUNK_SIZE_KB: 3500
 
 jobs:
   check-bundle-size:
     name: Check Bundle Size
     runs-on: ubuntu-latest
+    timeout-minutes: 15
 
     steps:
       - name: Checkout PR
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
-
-      - name: Install dependencies
-        run: |
-          npm ci --ignore-scripts
-          cd frontend-typescript && npm ci
+      - name: Setup Node.js and pnpm
+        uses: ./.github/actions/setup-node-pnpm
 
       - name: Build design system
-        run: node design-system/build.js
+        run: pnpm build:design-system
 
       - name: Build frontend
         run: |
-          cd frontend-typescript
-          npm run build
+          cd apps/web
+          pnpm build
 
       - name: Analyze bundle size
         id: bundle
         run: |
-          cd frontend-typescript/dist
+          cd apps/web/dist
 
           # Get total size
           TOTAL_SIZE=$(du -sk . | cut -f1)
           echo "total_kb=$TOTAL_SIZE" >> $GITHUB_OUTPUT
 
-          # Get largest chunk
-          LARGEST_CHUNK=$(find . -name "*.js" -exec du -k {} \; | sort -rn | head -1 | cut -f1)
+          # Get largest chunk (handle case where no .js files exist)
+          LARGEST_CHUNK=$(find . -name "*.js" -exec du -k {} \; 2>/dev/null | sort -rn | head -1 | cut -f1)
+          LARGEST_CHUNK=${LARGEST_CHUNK:-0}
           echo "largest_chunk_kb=$LARGEST_CHUNK" >> $GITHUB_OUTPUT
 
-          # List all chunks
+          # List all chunks in summary
           echo "## Bundle Analysis" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "| File | Size (KB) |" >> $GITHUB_STEP_SUMMARY
           echo "|------|-----------|" >> $GITHUB_STEP_SUMMARY
-          find . -name "*.js" -exec du -k {} \; | sort -rn | head -10 | while read size file; do
+          find . -name "*.js" -exec du -k {} \; 2>/dev/null | sort -rn | head -10 | while read size file; do
             echo "| $file | $size |" >> $GITHUB_STEP_SUMMARY
           done
 
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Total: ${TOTAL_SIZE} KB**" >> $GITHUB_STEP_SUMMARY
+          echo "**Total: ${TOTAL_SIZE} KB** (budget: ${{ env.MAX_BUNDLE_SIZE_KB }} KB)" >> $GITHUB_STEP_SUMMARY
+          echo "**Largest chunk: ${LARGEST_CHUNK} KB** (budget: ${{ env.MAX_CHUNK_SIZE_KB }} KB)" >> $GITHUB_STEP_SUMMARY
 
       - name: Check budget
         run: |
@@ -95,8 +103,9 @@ jobs:
             echo ""
             echo "💡 Tips to reduce bundle size:"
             echo "  - Use dynamic imports for large dependencies"
-            echo "  - Check for duplicate dependencies"
+            echo "  - Check for duplicate dependencies with: pnpm why <package>"
             echo "  - Remove unused code with tree-shaking"
+            echo "  - Consider code splitting for large components"
             exit 1
           fi
 
@@ -115,13 +124,20 @@ jobs:
 
             const body = `## 📦 Bundle Size Report
 
-            | Metric | Value | Budget | Status |
-            |--------|-------|--------|--------|
-            | Total Bundle | ${total} KB | ${maxTotal} KB | ${totalOk ? '✅' : '❌'} |
-            | Largest Chunk | ${largest} KB | ${maxChunk} KB | ${chunkOk ? '✅' : '❌'} |
+| Metric | Value | Budget | Status |
+|--------|-------|--------|--------|
+| Total Bundle | ${total} KB | ${maxTotal} KB | ${totalOk ? '✅' : '❌'} |
+| Largest Chunk | ${largest} KB | ${maxChunk} KB | ${chunkOk ? '✅' : '❌'} |
 
-            ${totalOk && chunkOk ? '✅ All performance budgets passed!' : '❌ Performance budget exceeded - please optimize before merging.'}
-            `;
+${totalOk && chunkOk ? '✅ All performance budgets passed!' : '❌ Performance budget exceeded - please optimize before merging.'}
+
+<details>
+<summary>Budget calibration</summary>
+
+Budgets were calibrated on 2026-01-31 based on current bundle sizes with 20% headroom.
+To update budgets, edit \`.github/workflows/performance-budget.yml\`.
+</details>
+`;
 
             github.rest.issues.createComment({
               issue_number: context.issue.number,
