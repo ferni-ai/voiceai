@@ -18,7 +18,7 @@
  */
 
 import { spawn } from 'child_process';
-import { dirname } from 'path';
+import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 
 // ============================================================================
@@ -66,7 +66,7 @@ const GENERATORS: Record<string, GeneratorTask> = {
     name: 'Frontend Personas',
     description: 'Generate persona TypeScript files for frontend',
     command: 'npx',
-    args: ['tsx', 'scripts/generate-frontend-personas.ts'],
+    args: ['tsx', 'apps/cli/src/commands/generate/generate-frontend-personas.ts'],
   },
   env: {
     name: 'Environment Example',
@@ -131,9 +131,12 @@ interface GeneratorResult {
 async function runGenerator(key: string, task: GeneratorTask): Promise<GeneratorResult> {
   const start = Date.now();
 
+  // Calculate project root (5 levels up from apps/cli/src/commands/generate/)
+  const projectRoot = join(__dirname, '..', '..', '..', '..', '..');
+
   return new Promise((resolve) => {
     const child = spawn(task.command, task.args, {
-      cwd: dirname(__dirname),
+      cwd: projectRoot,
       stdio: 'inherit',
       shell: true,
     });
