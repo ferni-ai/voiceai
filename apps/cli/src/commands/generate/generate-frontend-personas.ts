@@ -343,14 +343,14 @@ async function manifestToFrontendPersona(
     subtitle: manifest.team?.role_description?.split(' - ')[0] || roleSubtitles[roleId] || 'Team Member',
     role: isCoordinator ? 'coach' : 'team',
     description: manifest.identity.description,
-    helperText: manifest.team?.role_description?.split(' - ')[0] || manifest.identity.description.split('.')[0],
+    helperText: manifest.team?.role_description?.split(' - ')[0] || manifest.identity.description?.split('.')[0] || '',
     skills: roleSkills[roleId] || [{ icon: '', name: 'Support' }],
     entrancePhrase: entrancePhrase || 
       (manifest.team?.handoff_phrases?.receive?.[0]) ||
       (manifest.handoff?.entrance_phrases?.[0]) ||
       `${manifest.identity.name} here. How can I help?`,
     quotes: bundleQuotes.length > 0 ? bundleQuotes : [
-      `"${manifest.identity.description.split('.')[0]}."`,
+      `"${manifest.identity.description?.split('.')[0] || manifest.identity.name}."`,
     ],
     traits: manifest.personality?.traits || [],
     domains: manifest.role?.domains || [],
