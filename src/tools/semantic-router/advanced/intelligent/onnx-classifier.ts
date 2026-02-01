@@ -99,14 +99,41 @@ export function detectModelVersion(): 'v7' | 'v6' | 'v5' | 'none' {
 }
 
 /**
- * Default model paths (relative to project root)
+ * Default model paths (relative to project root).
+ * Auto-detects V6 vs V5 based on which model files are available.
  */
 function getDefaultConfig(): OnnxClassifierConfig {
-  // V6-860: Qwen3-1.7B, 861 labels (860 tools + __no_tool__), hard negatives + open intent boost
-  const modelDir = path.resolve(process.cwd(), 'models/ferni-router-v6-860');
+  const modelsRoot = path.resolve(process.cwd(), 'models');
+  const version = detectModelVersion();
+
+  // Select model directory based on detected version (V6 preferred, V5 fallback)
+  let modelDirName: string;
+  if (version === 'v6' || version === 'v7') {
+    // V7 uses the hierarchical classifier, but flat fallback still uses V6
+    modelDirName = 'ferni-router-v6-860';
+  } else if (version === 'v5') {
+    modelDirName = 'ferni-router-v5-860';
+  } else {
+    // Default to V6 path (will fail gracefully if not present)
+    modelDirName = 'ferni-router-v6-860';
+  }
+
+  const modelDir = path.join(modelsRoot, modelDirName);
+
+  // Prefer INT8 quantized model (4x smaller, 3-5x faster) if available
+  const fs = require('fs') as typeof import('fs');
+  const int8Path = path.join(modelDir, 'model_int8.onnx');
+  const fp32Path = path.join(modelDir, 'model.onnx');
+  const modelPath = fs.existsSync(int8Path) ? int8Path : fp32Path;
+  const modelType = modelPath === int8Path ? 'int8' : 'fp32';
+
+  log.debug(
+    { version, modelDir: modelDirName, modelType },
+    'Flat classifier model directory selected'
+  );
 
   return {
-    modelPath: path.join(modelDir, 'model.onnx'),
+    modelPath,
     tokenizerPath: path.join(modelDir, 'tokenizer.json'),
     labelMapPath: path.join(modelDir, 'label_map.json'),
     maxLength: 128,
@@ -180,13 +207,16 @@ async function doInitialize(config: Partial<OnnxClassifierConfig>): Promise<void
     const warmupMs = routerInstance.warmup();
 
     const totalMs = Date.now() - startTime;
+    const modelType = fullConfig.modelPath.includes('int8') ? 'INT8' : 'FP32';
     log.info(
       {
         numTools: routerInstance.getNumTools(),
         warmupMs: warmupMs.toFixed(1),
         totalMs,
+        modelType,
+        modelPath: path.basename(fullConfig.modelPath),
       },
-      '🧠 ONNX classifier initialized'
+      `🧠 ONNX classifier initialized (${modelType})`
     );
   } catch (error) {
     initializationError = error instanceof Error ? error : new Error(String(error));

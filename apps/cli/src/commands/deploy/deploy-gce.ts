@@ -93,6 +93,15 @@ const CONFIG = {
 
   // SSH settings
   sshUser: process.env.GCE_SSH_USER || 'sethford',
+
+  // ONNX Model settings (V6 classifier for tool routing)
+  models: {
+    gcsBucket: 'ferni-voiceai-models',
+    gcsPath: 'ferni-router-v6-860',
+    hostDir: '/opt/voiceai-models/ferni-router-v6-860',
+    containerDir: '/app/models/ferni-router-v6-860',
+    requiredFiles: ['model_int8.onnx', 'tokenizer.json', 'label_map.json'],
+  },
 };
 
 // ============================================================================
@@ -143,6 +152,45 @@ function exec(cmd: string, options: { silent?: boolean; cwd?: string } = {}): st
 function ssh(cmd: string, options: { silent?: boolean } = {}): string {
   const sshCmd = `gcloud compute ssh ${CONFIG.sshUser}@${CONFIG.instanceName} --zone=${CONFIG.zone} --command="${cmd.replace(/"/g, '\\"')}"`;
   return exec(sshCmd, options);
+}
+
+/**
+ * Ensure ONNX models are available on the GCE host.
+ * Downloads from GCS if not already present. Skips if model files exist (fast path).
+ */
+function ensureModelsOnHost(): void {
+  log.step('ONNX Model Setup');
+
+  const { gcsBucket, gcsPath, hostDir, requiredFiles } = CONFIG.models;
+  const gcsUri = `gs://${gcsBucket}/${gcsPath}`;
+
+  // Check if models already exist on host
+  const checkCmd = requiredFiles
+    .map((f) => `test -f ${hostDir}/${f}`)
+    .join(' && ');
+  const existing = ssh(`${checkCmd} && echo "EXISTS" || echo "MISSING"`, { silent: true }).trim();
+
+  if (existing === 'EXISTS') {
+    log.success('ONNX V6 model already present on host (skipping download)');
+    return;
+  }
+
+  log.substep('Downloading ONNX V6 model from GCS...');
+  ssh(`sudo mkdir -p ${hostDir}`);
+  ssh(`sudo gsutil -m cp ${gcsUri}/* ${hostDir}/`);
+  ssh(`sudo chmod -R 755 ${hostDir}`);
+
+  // Verify download
+  const verify = ssh(`${checkCmd} && echo "OK" || echo "FAIL"`, { silent: true }).trim();
+  if (verify !== 'OK') {
+    log.error(`Model download failed. Expected files in ${hostDir}: ${requiredFiles.join(', ')}`);
+    log.warn('Deployment will continue — classifier falls back to pattern matching');
+    return;
+  }
+
+  // Show model info
+  const modelSize = ssh(`du -sh ${hostDir}/ | cut -f1`, { silent: true }).trim();
+  log.success(`ONNX V6 model ready (${modelSize})`);
 }
 
 async function sleep(ms: number): Promise<void> {
@@ -507,9 +555,10 @@ function deployToSlot(
     USE_OPENAI_REALTIME: 'false',
   });
 
-  // Start the new container
+  // Start the new container (with ONNX model volume mount)
   log.substep(`Starting ${slot} container on port ${port}...`);
-  const dockerCmd = `docker run -d --name ${containerName} --restart unless-stopped -p ${port}:${port} ${envVars} ${image}`;
+  const modelMount = `-v /opt/voiceai-models:/app/models:ro`;
+  const dockerCmd = `docker run -d --name ${containerName} --restart unless-stopped -p ${port}:${port} ${modelMount} ${envVars} ${image}`;
   ssh(dockerCmd);
 
   log.success(`${slot.toUpperCase()} container started on port ${port}`);
@@ -554,8 +603,9 @@ function promoteSlot(slot: 'blue' | 'green', image: string, secrets: Record<stri
     USE_OPENAI_REALTIME: 'false',
   });
 
-  // Use "blue" as the production container name for consistency
-  const dockerCmd = `docker run -d --name ${CONFIG.containerName}-blue --restart unless-stopped -p ${CONFIG.bluePort}:${CONFIG.bluePort} ${envVars} ${image}`;
+  // Use "blue" as the production container name for consistency (with ONNX model volume mount)
+  const modelMount = `-v /opt/voiceai-models:/app/models:ro`;
+  const dockerCmd = `docker run -d --name ${CONFIG.containerName}-blue --restart unless-stopped -p ${CONFIG.bluePort}:${CONFIG.bluePort} ${modelMount} ${envVars} ${image}`;
   ssh(dockerCmd);
 
   log.success(`Production is now live on port ${CONFIG.bluePort}!`);
@@ -720,10 +770,11 @@ async function deployToMig(image: string, secrets: Record<string, string>): Prom
     --container-image=${image} \
     --container-restart-policy=always \
     --container-env="${envVarsString}" \
+    --container-mount-host-path=mount-path=/app/models,host-path=/opt/voiceai-models,mode=ro \
     --tags=voiceai-agent \
     --service-account=1031920444452-compute@developer.gserviceaccount.com \
     --scopes=cloud-platform \
-    --metadata=google-logging-enabled=true \
+    --metadata=google-logging-enabled=true,startup-script='#!/bin/bash\\nmkdir -p /opt/voiceai-models/ferni-router-v6-860\\ngsutil -m cp gs://${CONFIG.models.gcsBucket}/${CONFIG.models.gcsPath}/* /opt/voiceai-models/ferni-router-v6-860/ 2>/dev/null || true\\nchmod -R 755 /opt/voiceai-models' \
     --network=default \
     --project=${CONFIG.projectId} \
     --quiet 2>&1`,
@@ -1110,8 +1161,10 @@ ${colors.bold}${colors.green}╔════════════════
 
   if (isDryRun) {
     log.info('Would ensure Redis sidecar is running');
+    log.info('Would ensure ONNX V6 model is on host (download from GCS if missing)');
     log.info(`Would build image using ${useCloudBuild ? 'Cloud Build' : 'local Docker'}`);
     log.info(`Would deploy to ${targetSlot} slot on port ${targetPort}`);
+    log.info('Would mount /opt/voiceai-models → /app/models (ONNX classifier)');
     log.info('Would set REDIS_HOST=172.17.0.1 for container');
     log.info('Would run health checks');
     log.info(`Would promote ${targetSlot} to production`);
@@ -1121,6 +1174,9 @@ ${colors.bold}${colors.green}╔════════════════
 
   // Ensure Redis sidecar is running
   await ensureRedisRunning();
+
+  // Ensure ONNX models are on the host (downloads from GCS if missing)
+  ensureModelsOnHost();
 
   // Build and push
   const image = buildAndPush(useCloudBuild);

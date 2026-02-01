@@ -69,6 +69,8 @@ import {
   isHierarchicalClassifierAvailable,
   type HierarchicalClassificationOutput,
 } from '../semantic-router/advanced/intelligent/hierarchical-classifier.js';
+// V7 domain label → ToolDomain mapping (V7 taxonomy uses different names than tool registry)
+import { mapV7DomainToToolDomains } from '../semantic-router/advanced/intelligent/v7-domain-map.js';
 
 const log = getLogger();
 
@@ -789,24 +791,30 @@ export class UnifiedToolOrchestrator {
           const topPrediction = ftisV7Classification.predictions[0];
 
           if (topPrediction.combinedConfidence >= threshold) {
-            // High confidence - load tools from predicted domain
-            const domain = topPrediction.domain as ToolDomain;
-            await loadToolDomainsLazy([domain]);
+            // High confidence - map V7 domain label to tool registry domains
+            const toolDomains = mapV7DomainToToolDomains(topPrediction.domain);
 
-            // Get all tools in the predicted domain
-            const domainToolDefs = toolRegistry.query({ domains: [domain] });
-            for (const toolDef of domainToolDefs) {
-              try {
-                ftisTools[toolDef.id] = toolDef.create(ctx);
-              } catch {
-                // Skip tools that fail to create
+            if (toolDomains.length > 0) {
+              await loadToolDomainsLazy(toolDomains);
+
+              // Get all tools in the mapped domains
+              for (const domain of toolDomains) {
+                const domainToolDefs = toolRegistry.query({ domains: [domain] });
+                for (const toolDef of domainToolDefs) {
+                  try {
+                    ftisTools[toolDef.id] = toolDef.create(ctx);
+                  } catch {
+                    // Skip tools that fail to create
+                  }
+                }
               }
             }
 
             log.info(
               {
                 transcript: request.transcript.slice(0, 50),
-                domain: topPrediction.domain,
+                v7Domain: topPrediction.domain,
+                toolDomains: toolDomains.join(','),
                 metaTool: topPrediction.metaTool,
                 domainConfidence: topPrediction.domainConfidence.toFixed(3),
                 metaToolConfidence: topPrediction.metaToolConfidence.toFixed(3),

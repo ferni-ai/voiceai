@@ -256,14 +256,16 @@ export async function warmupResources(log: LogFn): Promise<WarmupResult> {
       (async () => {
         try {
           const onnxStart = Date.now();
-          const { initializeOnnxClassifier, isOnnxClassifierAvailable, getOnnxToolCount } =
+          const { initializeOnnxClassifier, isOnnxClassifierAvailable, getOnnxToolCount, detectModelVersion } =
             await import('../../tools/semantic-router/advanced/intelligent/onnx-classifier.js');
+          const modelVersion = detectModelVersion();
           await initializeOnnxClassifier();
 
           if (isOnnxClassifierAvailable()) {
-            log('🧠 ONNX ML classifier initialized (98.0% accuracy, 861 labels)', {
+            log(`🧠 ONNX ML classifier initialized (${modelVersion} model, 861 labels)`, {
               durationMs: Date.now() - onnxStart,
               toolsCovered: getOnnxToolCount(),
+              modelVersion,
             });
           } else {
             log('⚠️ ONNX classifier not available - using pattern matching', {
