@@ -27,24 +27,13 @@ jobs:
   token-drift-check:
     name: Check Token Drift
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v2
-        with:
-          version: 10
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'pnpm'
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+      - name: Setup Node.js and pnpm
+        uses: ./.github/actions/setup-node-pnpm
 
       - name: Check token drift
         id: drift-check
@@ -58,7 +47,7 @@ jobs:
         run: |
           echo "⚠️ Token drift detected! Regenerating..."
           pnpm tokens:sync
-          
+
           # Check if there are changes
           if git diff --quiet; then
             echo "✅ No actual drift - timestamps may have differed"
@@ -80,24 +69,13 @@ jobs:
   animation-constants-check:
     name: Check Animation Constants
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v2
-        with:
-          version: 10
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'pnpm'
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+      - name: Setup Node.js and pnpm
+        uses: ./.github/actions/setup-node-pnpm
 
       - name: Regenerate animation constants
         run: pnpm build:animation-constants 2>/dev/null || true
@@ -119,24 +97,13 @@ jobs:
   tailwind-config-check:
     name: Check Tailwind Config
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v2
-        with:
-          version: 10
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'pnpm'
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+      - name: Setup Node.js and pnpm
+        uses: ./.github/actions/setup-node-pnpm
 
       - name: Regenerate Tailwind config
         run: pnpm build:tailwind-config 2>/dev/null || true
@@ -154,4 +121,3 @@ jobs:
           else
             echo "ℹ️ No generated Tailwind config (first run needed)"
           fi
-

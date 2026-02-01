@@ -1,7 +1,7 @@
 name: Feature Rollout
 
 # Automated feature validation and progressive rollout workflow
-# 
+#
 # Usage:
 #   gh workflow run feature-rollout.yml \
 #     -f feature_id=new-voice-model \
@@ -57,40 +57,29 @@ jobs:
     if: ${{ !inputs.skip_validation }}
     outputs:
       can_proceed: ${{ steps.validate.outputs.can_proceed }}
-    
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v2
-        with:
-          version: 10
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: 'pnpm'
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+      - name: Setup Node.js and pnpm
+        uses: ./.github/actions/setup-node-pnpm
 
       - name: Validate feature flag exists
         id: validate
         run: |
           echo "Validating feature flag: ${{ inputs.feature_id }}"
-          
+
           # Check if flag exists via API
           RESPONSE=$(curl -sf "${{ env.API_URL }}/api/flags/${{ inputs.feature_id }}" \
             -H "X-API-Key: ${{ secrets.API_KEY }}" || echo '{"error": "not_found"}')
-          
+
           if echo "$RESPONSE" | grep -q "error"; then
             echo "❌ Feature flag '${{ inputs.feature_id }}' not found"
             echo "can_proceed=false" >> $GITHUB_OUTPUT
             exit 1
           fi
-          
+
           echo "✅ Feature flag found"
           echo "$RESPONSE" | jq .
           echo "can_proceed=true" >> $GITHUB_OUTPUT
@@ -103,15 +92,15 @@ jobs:
       - name: Check current system health
         run: |
           echo "Checking system health..."
-          
+
           HEALTH=$(curl -sf "${{ env.API_URL }}/health" || echo '{"status": "error"}')
           STATUS=$(echo "$HEALTH" | jq -r '.status // "error"')
-          
+
           if [ "$STATUS" != "ok" ] && [ "$STATUS" != "healthy" ]; then
             echo "❌ System health check failed: $STATUS"
             exit 1
           fi
-          
+
           echo "✅ System is healthy"
 
   # ============================================================================
@@ -124,7 +113,7 @@ jobs:
     if: ${{ always() && (needs.validate.result == 'success' || inputs.skip_validation) }}
     outputs:
       rollout_started: ${{ steps.start.outputs.started }}
-    
+
     steps:
       - name: Start feature rollout
         id: start
@@ -133,7 +122,7 @@ jobs:
           echo "   Preset: ${{ inputs.preset }}"
           echo "   Auto-advance: ${{ inputs.auto_advance }}"
           echo "   Auto-rollback: ${{ inputs.auto_rollback }}"
-          
+
           # Start rollout via API
           RESPONSE=$(curl -sf -X POST "${{ env.API_URL }}/api/rollouts" \
             -H "Content-Type: application/json" \
@@ -145,14 +134,14 @@ jobs:
               "autoRollback": ${{ inputs.auto_rollback }},
               "webhookUrl": "${{ secrets.SLACK_WEBHOOK_URL }}"
             }' || echo '{"error": "failed"}')
-          
+
           if echo "$RESPONSE" | grep -q "error"; then
             echo "❌ Failed to start rollout"
             echo "$RESPONSE"
             echo "started=false" >> $GITHUB_OUTPUT
             exit 1
           fi
-          
+
           echo "✅ Rollout started successfully"
           echo "$RESPONSE" | jq .
           echo "started=true" >> $GITHUB_OUTPUT
@@ -193,28 +182,28 @@ jobs:
     runs-on: ubuntu-latest
     needs: [start-rollout]
     if: needs.start-rollout.outputs.rollout_started == 'true'
-    
+
     steps:
       - name: Monitor rollout progress
         run: |
           echo "📊 Monitoring rollout progress..."
-          
+
           MAX_CHECKS=60  # 30 minutes with 30s intervals
           CHECK_INTERVAL=30
-          
+
           for i in $(seq 1 $MAX_CHECKS); do
             echo ""
             echo "=== Check $i / $MAX_CHECKS ==="
-            
+
             STATUS=$(curl -sf "${{ env.API_URL }}/api/rollouts/${{ inputs.feature_id }}" \
               -H "X-API-Key: ${{ secrets.ADMIN_API_KEY }}" || echo '{"rollout": {"stage": "error"}}')
-            
+
             STAGE=$(echo "$STATUS" | jq -r '.rollout.stage // "unknown"')
             PERCENTAGE=$(echo "$STATUS" | jq -r '.rollout.currentPercentage // 0')
-            
+
             echo "Stage: $STAGE"
             echo "Percentage: $PERCENTAGE%"
-            
+
             case "$STAGE" in
               "stable")
                 echo "✅ Rollout completed successfully!"
@@ -237,12 +226,12 @@ jobs:
                 echo "❓ Unknown stage: $STAGE"
                 ;;
             esac
-            
+
             if [ $i -lt $MAX_CHECKS ]; then
               sleep $CHECK_INTERVAL
             fi
           done
-          
+
           echo "⏰ Monitoring timeout - rollout still in progress"
           echo "Check status manually: ${{ env.API_URL }}/api/rollouts/${{ inputs.feature_id }}"
 
@@ -254,20 +243,20 @@ jobs:
     runs-on: ubuntu-latest
     needs: [monitor]
     if: always() && inputs.notify_slack
-    
+
     steps:
       - name: Get final status
         id: status
         run: |
           STATUS=$(curl -sf "${{ env.API_URL }}/api/rollouts/${{ inputs.feature_id }}" \
             -H "X-API-Key: ${{ secrets.ADMIN_API_KEY }}" || echo '{}')
-          
+
           STAGE=$(echo "$STATUS" | jq -r '.rollout.stage // "unknown"')
           PERCENTAGE=$(echo "$STATUS" | jq -r '.rollout.currentPercentage // 0')
-          
+
           echo "stage=$STAGE" >> $GITHUB_OUTPUT
           echo "percentage=$PERCENTAGE" >> $GITHUB_OUTPUT
-          
+
           if [ "$STAGE" = "stable" ]; then
             echo "emoji=✅" >> $GITHUB_OUTPUT
             echo "status_text=Completed Successfully" >> $GITHUB_OUTPUT
@@ -295,4 +284,3 @@ jobs:
                 }
               ]
             }' || true
-

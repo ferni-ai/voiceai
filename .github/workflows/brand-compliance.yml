@@ -23,21 +23,10 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v2
-        with:
-          version: 10
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'pnpm'
-          
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-        
+      - name: Setup Node.js and pnpm
+        uses: ./.github/actions/setup-node-pnpm
+
       - name: Run brand compliance linter
         id: brand-lint
         run: pnpm tsx apps/cli/src/commands/quality/lint-brand.ts
@@ -90,25 +79,14 @@ jobs:
   lint-tokens:
     name: Token Validation
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v2
-        with:
-          version: 10
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'pnpm'
-          
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-        
+      - name: Setup Node.js and pnpm
+        uses: ./.github/actions/setup-node-pnpm
+
       - name: Build design tokens
         run: |
           cd design-system
@@ -126,25 +104,14 @@ jobs:
     name: Visual Regression
     runs-on: ubuntu-latest
     if: github.event_name == 'pull_request'
-    
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v2
-        with:
-          version: 10
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'pnpm'
-          
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-        
+      - name: Setup Node.js and pnpm
+        uses: ./.github/actions/setup-node-pnpm
+
       - name: Install Playwright
         run: pnpm playwright install --with-deps chromium
         
@@ -174,25 +141,14 @@ jobs:
     name: Accessibility Audit
     runs-on: ubuntu-latest
     if: github.event_name == 'pull_request'
-    
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v2
-        with:
-          version: 10
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'pnpm'
-          
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-        
+      - name: Setup Node.js and pnpm
+        uses: ./.github/actions/setup-node-pnpm
+
       - name: Install Playwright
         run: pnpm playwright install --with-deps chromium
         
